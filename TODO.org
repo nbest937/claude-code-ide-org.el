@@ -2,7 +2,8 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* DOING The review buffer is one undifferentiated face, so its element kinds have to be parsed by eye :code:
+* DONE The review buffer is one undifferentiated face, so its element kinds have to be parsed by eye :code:
+CLOSED: [2026-09-14 Mon 12:55]
 :PROPERTIES:
 :ID:       f3a53bd4-60ab-47a1-84b0-07d2c1c5fd24
 :CREATED:  [2026-09-14 Mon 12:16]
@@ -22,15 +23,28 @@
 *Written into this drawer at =REVIEW= rather than left as body prose.* The four members closed an hour earlier all had to be restructured at close because their journals sat in the body, which is the pre-=d5eb32a3= shape; doing it here at the point the work finished costs nothing and removes that step.
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-14 Mon 12:16]--[2026-09-14 Mon 12:20] =>  0:04
 - State "DOING"      from "TODO"       [2026-09-14 Mon 12:16] \\
   highlighting the review buffer's element kinds
+- [2026-09-14 Mon 12:16]--[2026-09-14 Mon 12:20] faces for the review buffer's element kinds
 CLOCK: [2026-09-14 Mon 12:20]--[2026-09-14 Mon 12:24] =>  0:04
 - [2026-09-14 Mon 12:20]--[2026-09-14 Mon 12:24] faces for the review buffer's element kinds
+CLOCK: [2026-09-14 Mon 12:24]--[2026-09-14 Mon 12:25] =>  0:01
+- [2026-09-14 Mon 12:24]--[2026-09-14 Mon 12:25] faces for the review buffer's element kinds
+CLOCK: [2026-09-14 Mon 12:36]--[2026-09-14 Mon 12:39] =>  0:03
+- [2026-09-14 Mon 12:36]--[2026-09-14 Mon 12:39] faces for the review buffer's element kinds
+- State "REVIEW"     from "DOING"      [2026-09-14 Mon 12:39] \\
+  shipped and verified on a real render
+- State "DONE"       from "REVIEW"     [2026-09-14 Mon 12:55] \\
+  faces reviewed and accepted by the user
+CLOCK: [2026-09-14 Mon 12:55]--[2026-09-14 Mon 12:56] =>  0:01
+- [2026-09-14 Mon 12:55]--[2026-09-14 Mon 12:56] assigned at review
 :END:
 
 Asked by the user 2026-09-14 after reviewing the four shipped members of =afea7e4f=: the buffer carries genuinely distinct kinds of line and text — group headings, item lines, the =[tracker]= annotation, prompt synopses, span evidence, and the =!=/=STALE=/=UNASSIGNED= warnings — and every one rendered in the default face, so structure had to be parsed by column position and punctuation alone. It had gained three new element kinds in a week without gaining any way to tell them apart. The rendered *transcripts* need nothing: they are =.org= files and Emacs highlights them already.
 
 *Resolution:* six named faces inheriting from standard ones, applied at render time to strings this file constructs, with ordinary items deliberately left unfaced so colour still means something where it appears.
+
 
 * TODO Make =d= mark for dismissal rather than dismiss, so a shared reason can be given once :code:
 :PROPERTIES:
@@ -169,6 +183,10 @@ enforces the wrong thing.
 :CREATED:  [2026-09-11 Fri 19:27]
 :CATEGORY: Slices
 :END:
+:LOGBOOK:
+CLOCK: [2026-09-14 Mon 12:44]--[2026-09-14 Mon 12:46] =>  0:02
+- [2026-09-14 Mon 12:44]--[2026-09-14 Mon 12:46] assigned at review
+:END:
 
 Work has three states relative to an open slice and only two can be represented.
 Planned-and-open is a member line; unplanned-and-*closed* is picked up
@@ -304,6 +322,13 @@ worth reformulating rather than finishing out of order.
 
 *Until it exists, the five sit under the wrong lead and the slice's body says so*, which is the honest interim: visible and wrong beats invisible.
 
+*Declined by the user, 2026-09-14, and the reasoning retires the proposal above rather than deferring it:* "I'm inclined to move the other way and just allow the slice to grow according to convention without regard for membership. If anyone ever cares to discriminate then the grep can happen on demand. Another case of over-regulation on my part without a clear necessity."
+
+*That is the better call, and it follows this project's own precedent more closely than the =:ADOPTED:= proposal did.* The planned/adopted distinction is **derivable** — the plan file says who was planned — so storing it would be a second copy of a fact that already exists, and the project's standing objection to derived-facts-stored (=a7f4b40c=) applies exactly. =:DROPPED:= earned its property because a bare cookie deletion was genuinely *ambiguous* between three readings (=1b727475=); nothing is ambiguous here. And thirteen slices have run without anyone once needing the distinction at a glance, which is the demonstrated-premise test =7771fc63= set.
+
+*So the =Planned:= lead keeps its name and a slice simply grows.* Its literal accuracy for adopted members is the price, and it is a small one against a property, a refresh branch, a lint rule and a convention section — none of which anything has asked for.
+
+*One prerequisite had to be met for this to be safe, and it was not.* The grep is only durable while the operative plan version stays pinned, and =next-session.md= is rewritten in place. =afea7e4f= carried **no** =orgit-rev= revision link at all — three days into the slice — so the discrimination was derivable from the *current* file and would have become guesswork the moment the next slice rewrote it. The link is now on the slice. **The convention that matters here is therefore not a new property but the existing one: link the plan revision when the slice is picked up**, and this is its first recorded failure.
 
 
 * TODO org_capture cannot set =:CATEGORY:=, so every captured heading is uncategorised and nothing notices :code:
@@ -645,14 +670,14 @@ CLOCK: [2026-09-11 Fri 11:08]--[2026-09-11 Fri 11:09] =>  0:01
 (Filing prose restored 2026-09-11 — the original capture note was discarded by =org_capture='s immediate path, by documented design.) Hit composing =afea7e4f=: the fourth member (=fbaf8009=) belonged first, but the line lands only after the last planned member or an =after== anchor — no prepend, no move. A slice declares membership AND order, so append-only ordering forces either re-declaring the slice or a plan-drawer correction (the workaround used). Options: a =first= flag, a =before== parameter, or a dedicated reorder call; =1206b5b0= (the =parent== gap) is the precedent for extending this tool when composition hits a wall.
 
 
-* DOING [4/9] Join the transcript to the record: span synopses, readable sessions, weighted attribution :code:
+* DOING [5/9] Join the transcript to the record: span synopses, readable sessions, weighted attribution :code:
 :PROPERTIES:
 :ID:       afea7e4f-41b3-4eda-83f1-39e1b9e7a61a
 :CREATED:  [2026-09-11 Fri 11:00]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(295cde3a-49a5-4960-a828-a4fc175d73c1 f3a53bd4-60ab-47a1-84b0-07d2c1c5fd24 40159d43-e48b-4f38-95eb-651145637049 b23e5bcc-1bfd-4862-a801-0c7ac6959924 169df26b-64a8-4de9-8919-ab58d510aaf6)
+:BLOCKER:  ids(295cde3a-49a5-4960-a828-a4fc175d73c1 40159d43-e48b-4f38-95eb-651145637049 b23e5bcc-1bfd-4862-a801-0c7ac6959924 169df26b-64a8-4de9-8919-ab58d510aaf6)
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-11 Fri 11:12] \\
@@ -685,7 +710,7 @@ Planned:
 - [ ] [[id:295cde3a-49a5-4960-a828-a4fc175d73c1][295cde3a]] NEXT Attribute a turn to several tasks by weight, judged from the transcript with lag
 - [X] [[id:fbaf8009-b3dc-48ed-b099-63b74fc156a8][fbaf8009]] DONE The review buffer should name each item's tracker, now that two projects share the queue
 - [X] [[id:f1e36a65-3469-4ae6-ac1f-fdfcd1c053c9][f1e36a65]] DONE Open the review buffer newest-first, with =s= to reverse it like dired
-- [-] [[id:f3a53bd4-60ab-47a1-84b0-07d2c1c5fd24][f3a53bd4]] DOING The review buffer is one undifferentiated face, so its element kinds have to be parsed by eye
+- [X] [[id:f3a53bd4-60ab-47a1-84b0-07d2c1c5fd24][f3a53bd4]] DONE The review buffer is one undifferentiated face, so its element kinds have to be parsed by eye
 - [ ] [[id:40159d43-e48b-4f38-95eb-651145637049][40159d43]] TODO Nothing stops a span being assigned to "Review attention", which ranks high and reads like "Review and planning"
 - [ ] [[id:b23e5bcc-1bfd-4862-a801-0c7ac6959924][b23e5bcc]] TODO A state item applies correctly and is then reported failed, so it is re-offered forever
 - [ ] [[id:169df26b-64a8-4de9-8919-ab58d510aaf6][169df26b]] TODO The stored error backtrace is captured after unwinding, so it never shows where the error came from
@@ -708,7 +733,11 @@ Planned:
 
 *Read the cookie accordingly.* =[4/9]= counts four planned members done out of four planned plus five adopted. The slice's own deliverable — the transcript join, its three ways — is 4 of 5 with =295cde3a= outstanding; the other five are work this slice caused or uncovered, not work it set out to do.
 
+*Plan revisions* (added 2026-09-14, late — the convention wants this from the moment a slice is picked up, and this slice ran three days without it):
 
+- [[orgit-rev:claude-code-ide-org::add7291][add7291]] [2026-09-11 Fri 11:13] rewrote =next-session.md= for this slice: nominated it and named =fbaf8009= as its opening member
+
+*This link is what makes the planned/adopted distinction derivable on demand*, which is the reason the project declined to store that distinction in the file ([[id:9bab114d-44fa-488e-92bd-ff7c3fd8065d][9bab114d]]). =next-session.md= is rewritten in place, so the *current* file answers the question only until the next slice rewrites it; after that the pinned revision is the only way to ask what this slice actually planned. Without the link the grep degrades into guessing a commit by date, which is precisely the kind of recoverable-in-principle that stops being done.
 
 
 * TODO Emacs died of a fatal signal at review-buffer quit, deadlocked in the mac port's shutdown
@@ -2338,6 +2367,21 @@ The CLOCK line carries the weighted *share* as a literal interval org can sum; t
 
 *Which also names the test.* Aggregate plausibility is checkable against the reconstructible-stretch yardstick [[id:445ec1f1-095a-462b-abbd-7a3a00925ddb][445ec1f1]] settled on — a day whose commits, test deltas and debriefs bound what actually happened.
 
+*The user proposed a much simpler mechanism 2026-09-14, and asked the one empirical question that decides it:* fixed 20-minute windows (9:00--9:20, 9:20--9:40, ...), count the headings *worked* rather than mentioned, split the window between them by a small table — 5 headings → 4 minutes each, 4 → 5, 3 → 7, 2 → 10 — applied "only in the periods of maximum utilization". No weights, no overlap, end-to-end intervals in order of appearance. "How often are there more than 5 headings being worked during windows when the agent is continuously occupied?"
+
+*Measured over the whole queue corpus. Worked is read as an event that **acts on** a heading — =todo=, =clock_in=, =clock_out=, =amend=, =capture= with an id — rather than a mention, which is the distinction the question turns on.*
+
+*The answer to the question asked is yes, it is rare.* Across 362 windows carrying any heading activity: 1 heading in 49%, 2 in 25%, 3 in 15%, 4 in 6%, 5 in 3%, and **more than 5 in 6 windows — 1.7%**, the largest being 9. The table's 2--5 range covers 49% of active windows and the overflow case is negligible.
+
+*But the premise the table rests on does not hold, and this is the finding.* "Continuously occupied" windows essentially do not exist. Over 399 windows with any run time, the **median utilisation is 13.8%**; one window reaches 90%, five reach 75%, thirteen reach 50%. Gating allocation on maximum utilisation would fire on roughly 1--3% of windows and record almost nothing — the mechanism would be correct and inert.
+
+*The simplification survives one change, and it is smaller than the gate it removes: divide the window's **measured run time**, not its twenty minutes.* The pipeline already knows how many seconds of turn time fell in each window; splitting *that* N ways keeps everything the proposal wanted — fixed windows, equal shares, no weights, no overlap, contiguous intervals in order of appearance — while needing no utilisation threshold, no lookup table, and inventing no minutes. Total allocated then equals total measured, which is the property that makes it defensible rather than merely explainable.
+
+*Two smaller notes.* The table overshoots at 3: 3 × 7 = 21 minutes in a 20-minute window, a 5% systematic over-record concentrated in the third-commonest case. And 1 heading is the *most* common window at 49% and is not in the table; it presumably takes the whole window, which is worth stating rather than leaving implied.
+
+*One property to preserve whichever shape wins.* An allocated interval's boundaries are an artefact of the division, not an observation — nobody worked heading B from 9:07 to 9:11. The annotation must say so, or the CLOCK line reads as measurement, which is exactly the objection =7771fc63= raised against plausible fabricated numbers.
+
+
 
 * TODO AFK markers are ground truth for the one judgement we cannot automate, and we discard them :code:
 :PROPERTIES:
@@ -3391,6 +3435,8 @@ The third is the important one: it is the known negative, confirmed independentl
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-14 Mon 13:40]--[2026-09-14 Mon 13:42] =>  0:02
+CLOCK: [2026-09-14 Mon 12:51]--[2026-09-14 Mon 13:39] =>  0:48
 CLOCK: [2026-09-14 Mon 12:16]--[2026-09-14 Mon 12:18] =>  0:02
 CLOCK: [2026-09-14 Mon 11:11]--[2026-09-14 Mon 12:12] =>  1:01
 CLOCK: [2026-09-14 Mon 10:56]--[2026-09-14 Mon 10:57] =>  0:01
@@ -5669,6 +5715,27 @@ The adjectives carry the distinction that matters: a *clock* interval is **measu
 The two axes are *orthogonal*, and the second is implemented using the first: an attention interval is written with active timestamps precisely so it reaches the agenda, and clock intervals use inactive ones so they do not. That is the mechanism, not a synonym. So *"active interval" should not be written at all* — it is ambiguous in both directions, being both the rejected coinage and a true-but-useless statement about attention intervals.
 
 *Rule of thumb: say **timestamp** when discussing the mechanism and **interval** when discussing the thing being recorded. A sentence needing both words is probably conflating them.*
+
+*The user proposed a **derived** rule 2026-09-14, which reverses this heading's standing conclusion that attention intervals are manual work:* consecutive stretches of three or more ten-minute windows carrying agent activity become one solid interval, attributed at the slice level; periods between slices with any activity go to the meta-work category; the smallest interval is therefore thirty minutes.
+
+*Measured over the whole queue corpus, and it is viable — which is the part that changes the heading's direction.*
+
+| "active window" means | attention claimed | vs measured run time | worst day |
+| has agent **run time** | **60.0h** | 2.7x | 6.3h of an 11.5h elapsed day (55%) |
+| has any event at all | 134.5h | 6.0x | 8.8h of a 13.2h day (78%) |
+
+The any-event variant claims three quarters of a waking day on the strength of a lone =pause= and should be rejected. The run-time variant averages **2.4h/day over 25 days**, peaking at 6.3h, and its 2.7x ratio over agent run time is the *point* rather than an error — it is the reading and thinking between turns that run time excludes by construction, which is precisely what an attested interval is meant to carry.
+
+*The presence assumption — the obvious objection — survives measurement.* The worry was the user's own AFK discipline: pop in, queue a prompt during a long turn, pop out. A stretch of agent activity does not prove a human was there, and =996fd2bd= exists because a =pause=--=resume= gap cannot tell attending from absent. But across the 75 qualifying stretches the **median is 7 prompts**, distributed 1:2, 3:2, 4:12, 5:10, 6+:49. A prompt is direct evidence of presence, so 65 of 75 stretches carry four or more. Only **1.0h of the 60h** rests on two or fewer prompts, and requiring =>=3= prompts alongside =>=3= windows would remove exactly those two stretches.
+
+*The thirty-minute floor is a real and sizeable undercount, and should be chosen rather than inherited.* It discards 144 sub-threshold stretches covering 34.5h of wall-clock and containing **6.7h — 30% — of all measured agent run time**. A genuine twenty-minute working session scores zero.
+
+*What the derivation cannot see is exactly what this heading already said it could not:* time spent alone in Emacs with no session running produces no guideposts, so it produces no stretch. The derived rule therefore covers *agent-accompanied* attention only, and solo work stays manual. That narrows the "manual by design" conclusion rather than overturning it — the change is that the accompanied majority need no longer be hand-entered.
+
+*Two housekeeping notes.* This heading's =:BLOCKER:= names =df5afbbd=, the cleanup of the 55 mislabelled active annotations, and that is now **DONE** — the precondition this body called "a precondition rather than tidying" is satisfied. And the blocker is written =ids(df5afbbd...)=, a single id in the wrapper, which per =3f4fd744= enforces nothing; it happens not to matter now that the referent is closed.
+
+*A vocabulary slip worth recording because this heading is where the rule lives.* The request that prompted this work said "user/active intervals". Per the rule settled 2026-08-15 and recorded above, **"active interval" should not be written at all** — =active= is a property of a *timestamp* and the axis wanted here is =clock= versus =attention=. The term is **attention interval**. Noting it because a rule whose own heading tolerates violations in its own thread is not a rule.
+
 
 
 * TODO Bracket queued spans with WAIT transitions, so the heading guess stops latching :code:
