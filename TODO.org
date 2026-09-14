@@ -446,6 +446,21 @@ every =DONE=.
 :CREATED:  [2026-09-11 Fri 17:32]
 :CATEGORY: Apply
 :END:
+:DEBRIEF:
+*Shipped 2026-09-11* on =feature/join-transcript-to-record=, as the first heading adopted under the discovery rule. Newest-first is the default, behind =claude-code-ide-org-review-newest-first=; =s= toggles, following dired.
+
+*The load-bearing separation is that only the **drawing** is reversed.* =--review-items= stays chronological because apply walks it — writing CLOCK lines and replaying state transitions in list order — and a =TODO -> NEXT -> DOING= run applied backwards is three wrong transitions, not a cosmetic problem. =--review-display-items= returns a reversed *copy* and is never destructive; a test asserts the underlying list keeps both its order and its object identities, which is what keeps this a display preference rather than a change to the record.
+
+*One consequence that was not obvious until the group annotations moved.* A run is a run of *adjacent drawn lines*, so =--review-group-annotations= had to be computed over the display order; computed over the item order it would hang each annotation on the wrong heading.
+
+*The invariant this heading named is pinned in both directions.* Marking advances toward the bottom of the buffer whichever way it is sorted — the commands walk the buffer, not the clock, so the display decides what "next" means and never which way point travels. =s= restores point by *item identity* rather than line number, since every line moves; that is =9e80a32d='s distinction, and the interaction this body flagged turned out to be exactly where it mattered.
+
+*A test-suite consequence worth recording, since it will recur for any display default.* Almost no review test is *about* sort order, but every one reads a rendered buffer — so the shared fixture and eight hand-built review buffers now pin chronological order explicitly, with the reason in the fixture's docstring. Leaving them at the new default would have made every test depend on a setting none of them names.
+
+*Verified:* 628 tests, 0 unexpected, from 624. Three mutations run red — ignoring the display order, reversing the apply list in place, and dropping the identity-based point restore.
+
+*Closed 2026-09-14* on the user's review of the slice's shipped members.
+:END:
 :LOGBOOK:
 - State "REVIEW"     from "DOING"      [2026-09-11 Fri 20:21] \\
   shipped, invariant pinned both directions
@@ -455,20 +470,9 @@ CLOCK: [2026-09-11 Fri 20:16]--[2026-09-11 Fri 20:21] =>  0:05
 - [2026-09-11 Fri 20:16]--[2026-09-11 Fri 20:21] newest-first default and the s toggle
 :END:
 
-Items render oldest-first — `--review-items-from-queue` sorts ascending by `:ts`/`:start` and nothing offers another order — so a pass that cares about what just happened begins by scrolling to the bottom of a buffer whose top is days old. Asked by the user 2026-09-11: present descending by default, and bind a sort key (`s`, following dired's `s` for toggling name/date order) that reverses it. One invariant is explicit and must hold in both directions: the mark commands still advance *downward*, toward the bottom of the buffer, so `m m m` walks a run whichever order it is displayed in — the display order changes what "next" means, never which way point travels. Watch the interaction with `--review-goto-item` and the point-restoration `9e80a32d` fixed, since both key on position rather than identity.
+Items render oldest-first — =--review-items-from-queue= sorts ascending by =:ts=/=:start= and nothing offers another order — so a pass that cares about what just happened begins by scrolling to the bottom of a buffer whose top is days old. Asked by the user 2026-09-11: present descending by default, and bind a sort key (=s=, following dired) that reverses it. One invariant is explicit and must hold in both directions: the mark commands still advance *downward*, so =m m m= walks a run whichever order it is displayed in — the display order changes what "next" means, never which way point travels.
 
-*Shipped 2026-09-11* on =feature/join-transcript-to-record=, as the first heading adopted under the new discovery rule. Newest-first is the default, behind =claude-code-ide-org-review-newest-first=; =s= toggles, following dired.
-
-*The load-bearing separation is that only the **drawing** is reversed.* =--review-items= stays chronological because apply walks it — writing CLOCK lines and replaying state transitions in list order — and a =TODO -> NEXT -> DOING= run applied backwards is three wrong transitions, not a cosmetic problem. =--review-display-items= returns a reversed *copy* and is never destructive; a test asserts the underlying list keeps both its order and its object identities, which is what keeps this a display preference rather than a change to the record.
-
-*One consequence that was not obvious until the group annotations moved.* A run is a run of *adjacent drawn lines*, so =--review-group-annotations= had to be computed over the display order; computed over the item order it would hang each annotation on the wrong heading.
-
-*The invariant this heading named is pinned in both directions.* Marking advances toward the bottom of the buffer whichever way it is sorted — the commands walk the buffer, not the clock, so the display decides what "next" means and never which way point travels. =s= restores point by *item identity* rather than line number, since every line moves; that is =9e80a32d='s distinction, and the interaction this body flagged turned out to be exactly where it mattered.
-
-*A test-suite consequence worth recording, since it will recur for any display default.* Almost no review test is *about* sort order, but every one of them reads a rendered buffer — so the shared fixture and eight hand-built review buffers now pin chronological order explicitly, with the reason stated in the fixture's docstring. Leaving them at the new default would have made every test depend on a setting none of them names. The four tests that do exercise order set it themselves.
-
-*Verified:* 628 tests, 0 unexpected, from 624. Three mutations run red — ignoring the display order, reversing the apply list in place, and dropping the identity-based point restore.
-
+*Resolution:* the buffer opens newest-first behind a defcustom, =s= toggles and keeps point on its item, and only the *drawing* is reversed — the list apply walks stays chronological, which is what keeps this a display preference rather than a change to the record.
 
 * TODO Nothing can correct a closed slice's record, even when the correction is close-time truth :code:
 :PROPERTIES:
@@ -728,6 +732,19 @@ macOS's AutoFill heuristic fires on a delayed timer and asks Emacs for its selec
 :CREATED:  [2026-09-11 Fri 09:59]
 :CATEGORY: Apply
 :END:
+:DEBRIEF:
+*Shipped 2026-09-11* on =feature/join-transcript-to-record=. Prompt synopses render as evidence lines *under* each clock item — the item line is already dense, and those lines are unpropertized so =m=/=n= step over them as they do the existing evidence. One per run, capped at 5 with the remainder stated rather than silently cut. Three defcustoms carry the policy: =-prompt-join-tolerance= (2s), =-prompt-synopsis-width= (80), =-prompt-synopsis-max-lines= (5).
+
+*The join generalises well beyond this heading's premise.* =295cde3a= measured one session at 28/28; across the whole corpus it is **1137 of 1144 resume events matched inside two seconds (99.4%)** over 41 sessions, and 6 of the 7 misses are sessions whose transcript has aged out — i.e. one genuine miss. 96% of matches are prose; the rest are slash commands (unwrapped from their =<command-name>= tags) and subagent re-invocations (named, not quoted).
+
+*Three contamination classes, dropped at collection rather than at render*, because left in the candidate list any of them can win the nearest-match and *hide* the real prompt — which is exactly how the first was found, rendering in place of a slash command. Tool results carry their content as an array; =isMeta= entries are the harness's caveat preamble, written milliseconds before the command they preface; and =<bash-input>=/=<bash-stdout>= are the user's =!= shell escapes, 59 of one session's 80 filtered prompts. This is =9e627dc0='s trap answered structurally: nothing here enumerates user entries, it asks what was said at a known timestamp.
+
+*A span holding no guidepost at all was the case that nearly got missed.* A bracket opened and closed inside one turn contains no guidepost by construction — measured on the session that built this: fifteen minutes, two events, no =resume=. That is precisely the "unmeasured long turn" this heading exists to make legible, so it falls back to the prompt in effect when the span opened, labelled =[last prompt before this span]= and stamped with *that prompt's* own time so the distance is visible. It is deliberately not the measured join and must never read as though it were.
+
+*Verified on the real queue, not fixtures.* Every pending span said what it was — including =[2026-09-04 Fri 09:52]--[2026-09-04 Fri 09:58]=, a "0:06 span, no runs, 0 turns" item that read /"does a span with 0:03 span, no runs, 0 turns write anything into TODO.org?"/: the user asking about this very defect, in the span the defect made unreadable. 618 tests, 0 unexpected, from 611; five mutations run red.
+
+*Closed 2026-09-14* on the user's review of the slice's shipped members.
+:END:
 :LOGBOOK:
 - State "REVIEW"     from "DOING"      [2026-09-11 Fri 18:14] \\
   shipped and verified on the real queue
@@ -736,27 +753,9 @@ CLOCK: [2026-09-11 Fri 18:17]--[2026-09-11 Fri 18:18] =>  0:01
 - [2026-09-11 Fri 18:17]--[2026-09-11 Fri 18:18] tests, mutations and commits for the prompt join
 :END:
 CLOCK: [2026-09-11 Fri 09:43]--[2026-09-11 Fri 09:45] =>  0:02
-- [2026-09-11 Fri 09:43]--[2026-09-11 Fri 09:45] assigned at review
-CLOCK: [2026-09-11 Fri 09:50]--[2026-09-11 Fri 09:53] =>  0:03
-- [2026-09-11 Fri 09:50]--[2026-09-11 Fri 09:53] assigned at review
-- State "DOING"      from "TODO"       [2026-09-11 Fri 17:48] \\
-  building the transcript prompt join
-CLOCK: [2026-09-11 Fri 18:07]--[2026-09-11 Fri 18:16] =>  0:09
-- [2026-09-11 Fri 18:07]--[2026-09-11 Fri 18:16] suggested span, accepted at review
-:END:
+(Filing prose restored 2026-09-11 — the original capture note was discarded by =org_capture='s immediate path, by documented design.) The user's concrete reporting need, stated 2026-09-10: at review time they cannot discriminate a degenerate 0-run/0-turn span from an unmeasured long turn, because nothing says what was going on. The mechanism was decided and measured on =295cde3a=: join queue =resume= events to transcript user messages on timestamp. This closes exactly the =--review-annotation-label= gap — an item's synopsis is its enclosing clock event's note, so guidepost-reconstructed spans have none by construction. Retroactive across all recorded sessions; no hook change, no new durable field.
 
-(Filing prose restored 2026-09-11 — the original capture note was discarded by =org_capture='s immediate path, by documented design.) The user's concrete reporting need, stated 2026-09-10: at review time they cannot discriminate a degenerate 0-run/0-turn span from an unmeasured long turn, because nothing says what was going on. The mechanism is decided and measured on =295cde3a=: join queue =resume= events to transcript user messages on timestamp (28 of 28 within two seconds; the queue defines what a prompt is — raw =type:"user"= entries are contaminated, =9e627dc0='s trap). Build the surfacing: each run renders its opening prompt's first line, and a lone-timestamp span renders the abutting prompts either side, truncated. This closes exactly the =--review-annotation-label= gap: an item's synopsis is its enclosing clock event's note, so guidepost-reconstructed spans have none by construction. Retroactive across all recorded sessions; no hook change, no new durable field.
-
-*Shipped 2026-09-11* on =feature/join-transcript-to-record=. Prompt synopses render as evidence lines *under* each clock item — the item line is already dense, and those lines are unpropertized so =m=/=n= stepping steps over them as it does the existing evidence. One per run, capped at 5 with the remainder stated rather than silently cut. Three defcustoms carry the policy: =-prompt-join-tolerance= (2s), =-prompt-synopsis-width= (80), =-prompt-synopsis-max-lines= (5).
-
-*The join generalises well beyond this heading's premise.* =295cde3a= measured one session at 28/28; across the whole corpus it is **1137 of 1144 resume events matched inside two seconds (99.4%)** over 41 sessions, and 6 of the 7 misses are sessions whose transcript has aged out — i.e. one genuine miss. 96% of matches are prose; the rest are slash commands (unwrapped from their =<command-name>= tags) and subagent re-invocations (named, not quoted).
-
-*Three contamination classes, dropped at collection rather than at render*, because left in the candidate list any of them can win the nearest-match and *hide* the real prompt — which is exactly how the first was found, rendering in place of a slash command. Tool results carry their content as an array; =isMeta= entries are the harness's caveat preamble, written milliseconds before the command they preface; and =<bash-input>=/=<bash-stdout>= are the user's =!= shell escapes, 59 of one session's 80 filtered prompts. This is =9e627dc0='s trap answered structurally: nothing here enumerates user entries, it asks what was said at a known timestamp.
-
-*A span holding no guidepost at all was the case that nearly got missed.* A bracket opened and closed inside one turn contains no guidepost by construction — measured on the session that built this: fifteen minutes, two events, no =resume=. That is precisely the "unmeasured long turn" this heading exists to make legible, so it falls back to the prompt in effect when the span opened, labelled =[last prompt before this span]= and stamped with *that prompt's* own time so the distance is visible. It is deliberately not the measured join and must never read as though it were.
-
-*Verified on the real queue, not fixtures.* Every pending span now says what it was — including =[2026-09-04 Fri 09:52]--[2026-09-04 Fri 09:58]=, a "0:06 span, no runs, 0 turns" item that now reads /"does a span with 0:03 span, no runs, 0 turns write anything into TODO.org?"/: the user asking about this very defect, in the span the defect made unreadable. 618 tests, 0 unexpected, from 611; five mutations run red.
-
+*Resolution:* every span in the review buffer now carries the prompts that opened its runs, joined from the session transcript at 99.4% across the corpus, with a labelled fallback for spans holding no guidepost at all.
 
 * TODO claude-org-setup --org scaffolds or appends the consuming repo's .gitignore :code:
 :PROPERTIES:
@@ -780,6 +779,17 @@ Amended same day, at the provenance conversation: the symlink-ignore advice inve
 :CREATED:  [2026-09-10 Thu 14:49]
 :CATEGORY: Apply
 :END:
+:DEBRIEF:
+*Shipped 2026-09-11* on =feature/join-transcript-to-record=, in both renderers. A resolved =:ID:= annotates bare with the project containing the file it resolves in — the file apply will write; an id resolving to nothing (unassigned span, capture not yet created) has no destination, so the session =cwd= is offered and labelled =[cwd: ...]=; neither known renders nothing, which is every event older than [[id:5461c349-fd22-4b75-a508-50efbe4b87f8][5461c349]]'s field. Trailing, so the =c2132d3f= id and title columns do not move. The annotation is a fact about a *run* of items while the drawing loop knows only the item in hand, hence =--review-item-runs= and a per-render =eq= hash. The pending report got the same treatment in the same pass: it is the model-facing twin of the buffer and a reader of either was equally unable to say which project a group belonged to.
+
+*=--project-name= normalises to the git root*, which is what makes a cwd comparable to a tracked file's location at all — 722 events at this repo's root and 18 in =modules/tools/claude-code-ide-org= are one project, and the last path component would have reported two. A linked worktree normalises to its main checkout, which is the obligation =5461c349= named for its consumer; parsed from the =.git= pointer file rather than shelled out to =git rev-parse=, since this sits behind a render that must not block.
+
+*Verified against the real queue rather than fixtures.* Live, after reload: the tracker on resolved groups, =[cwd: ...]= on unassigned ones, and nothing at all on the =2026-09-04= group whose events predate the field. Across the whole queue history, 126 groups name a tracker, 176 fall back to cwd, and exactly two render =[cwd: agentic-euchre, claude-code-ide-org]=. 611 tests, 0 unexpected, from a 601 baseline; six mutations run red, each failing exactly the test that claims it.
+
+*It earned its keep on the first render.* Those two mixed groups are real interleaving — one already attributed to =308bf4b4= and carrying a 1:25 euchre run — an attribution defect the cwd field existed to expose and nothing had looked for. Filed as [[id:c9940558-b23e-4b2c-86e8-e75a377634aa][c9940558]].
+
+*Closed 2026-09-14* on the user's review of the slice's shipped members. The branch had not merged at close; per =e80f6ccf= that gates the *slice*, not its members.
+:END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-11 Fri 11:12] \\
   the slice's opening action: pure rendering, no join needed
@@ -791,16 +801,9 @@ CLOCK: [2026-09-11 Fri 17:26]--[2026-09-11 Fri 17:41] =>  0:15
   shipped and verified on the real queue
 :END:
 
-(Filing prose restored 2026-09-11 — the original capture note was discarded on the queued path too: the event carried 681 characters and =--capture-write= takes no note.) Asked by the user 2026-09-10, the day euchre joined the agenda list file (=308bf4b4=) and the queue became genuinely multi-project. The review group heading renders 8-char id + title only (the =c2132d3f= column rationale); the destination tracker is implicit in where the id resolves and never displayed, so two projects' headings interleave distinguishable only by title. Wanted: the group heading (or item line) carries the project — e.g. the id's file rendered as its repo directory name — and the unassigned-span groups likewise say which session =cwd= produced them, since the cwd signal (=5461c349=) is already on the events. Apply behavior is correct today; this is legibility only.
+(Filing prose restored 2026-09-11 — the original capture note was discarded on the queued path too: the event carried 681 characters and =--capture-write= takes no note.) Asked by the user 2026-09-10, the day euchre joined the agenda list file (=308bf4b4=) and the queue became genuinely multi-project. The review group heading rendered 8-char id + title only (the =c2132d3f= column rationale); the destination tracker was implicit in where the id resolved and never displayed, so two projects' headings interleaved distinguishable only by title. Wanted: the group heading carries the project, and the unassigned-span groups say which session =cwd= produced them.
 
-*Shipped 2026-09-11* on =feature/join-transcript-to-record=, in both renderers. A resolved =:ID:= annotates bare with the project containing the file it resolves in — the file apply will write; an id resolving to nothing (unassigned span, capture not yet created) has no destination, so the session =cwd= is offered and labelled =[cwd: ...]=; neither known renders nothing, which is every event older than [[id:5461c349-fd22-4b75-a508-50efbe4b87f8][5461c349]]'s field. Trailing, so the =c2132d3f= id and title columns do not move. The annotation is a fact about a *run* of items while the drawing loop knows only the item in hand, hence =--review-item-runs= and a per-render =eq= hash. The pending report got the same treatment in the same pass: it is the model-facing twin of the buffer and a reader of either was equally unable to say which project a group belonged to.
-
-*=--project-name= normalises to the git root*, which is what makes a cwd comparable to a tracked file's location at all — 722 events at this repo's root and 18 in =modules/tools/claude-code-ide-org= are one project, and the last path component would have reported two. A linked worktree normalises to its main checkout, which is the obligation =5461c349= named for its consumer; parsed from the =.git= pointer file rather than shelled out to =git rev-parse=, since this sits behind a render that must not block.
-
-*Verified against the real queue rather than fixtures.* Live, after reload: the tracker on resolved groups, =[cwd: ...]= on unassigned ones, and nothing at all on the =2026-09-04= group whose events predate the field. Across the whole queue history, 126 groups name a tracker, 176 fall back to cwd, and exactly two render =[cwd: agentic-euchre, claude-code-ide-org]=. 611 tests, 0 unexpected, from a 601 baseline; six mutations run red, each failing exactly the test that claims it.
-
-*It earned its keep on the first render.* Those two mixed groups are real interleaving — one already attributed to =308bf4b4= and carrying a 1:25 euchre run — which is an attribution defect the cwd field existed to expose and nothing had looked for. Filed as [[id:c9940558-b23e-4b2c-86e8-e75a377634aa][c9940558]].
-
+*Resolution:* group headings in both the review buffer and the pending report now name the tracker a resolved =:ID:= will be written to, falling back to the session =cwd= — labelled as such — when no heading resolves. It exposed a real attribution defect on its first render.
 
 * TODO The glue claims ownership of the whole wiring block, but the 202 override ships nowhere :code:
 :PROPERTIES:
@@ -3559,6 +3562,25 @@ and consults CLOCK lines for idempotency. Two different things, and I ran them t
 :ID:       96ddf1ef-67fd-4d3c-b8cc-01ebb14a687d
 :CREATED:  [2026-08-26 Wed 08:48]
 :END:
+:DEBRIEF:
+*Shipped 2026-09-11* on =feature/join-transcript-to-record=, in the shape this body specified: one heading per turn, the prompt in a quote block, each paragraph of prose a sub-heading, tool calls in a =:TOOLS:= drawer that =#+STARTUP: content= folds away. =M-x claude-code-ide-org-render-session=, and =T= in the review buffer renders the item's session and opens it at the turn nearest the span's start.
+
+*This heading's own warning is answered structurally rather than by care.* Turn boundaries come from the same shape test =325679af='s prompt join uses — user role, string content, not =isMeta=, not a =<bash-= escape — so the two agree by construction about what a prompt is, and the "218 of 231 are tool results" trap cannot be walked into separately by each.
+
+*Three drops, each a decision:* =thinking= blocks (107 against 36 of prose on a real session — keeping them triples the file without being what anyone is paging for), tool results, and a call's full input reduced to one label. The transcript stays on disk for the payload.
+
+*Escaping is load-bearing and was nearly missed.* A line of prose beginning with =*= would become a heading and silently restructure the document — the common case here, not an edge one, because the text was never written for org.
+
+*=b57c7515='s finding is built in rather than deferred.* Two transcripts opening at the same instant are one conversation re-keyed, so the truncated one names its longer sibling instead of pretending to be whole. Reported, never followed: a caller asking for a session gets that session.
+
+*Verified on real sessions, not fixtures.* The building session rendered to 1936 lines, 12 turns and 131 sub-headings from a 1287-line transcript, and its truncated first half correctly pointed at the complete one. 624 tests, 0 unexpected, from 618; four mutations run red.
+
+*One bug that only real data would have caught:* =json-parse-string= with =:object-type 'alist= yields **symbol** keys, so the first draft's string lookup matched nothing and rendered eleven consecutive lines reading "Bash" with no descriptor.
+
+*The =/config= experiment this heading was gated on was never tried and is moot as a blocker* — whatever =tui: "fullscreen"= turns out to do, the renderer is what survives it, which is what the original body predicted.
+
+*Closed 2026-09-14* on the user's review of the slice's shipped members.
+:END:
 :LOGBOOK:
 - State "REVIEW"     from "DOING"      [2026-09-11 Fri 20:15] \\
   shipped and verified on real sessions
@@ -3570,42 +3592,9 @@ CLOCK: [2026-09-11 Fri 20:07]--[2026-09-11 Fri 20:15] =>  0:08
 :LOGBOOK:
 - [2026-09-11 Fri 20:07]--[2026-09-11 Fri 20:15] render a session transcript to readable org
 :END:
-- State "MAYBE"      from              [2026-08-26 Wed 08:49] \\
-  gated on whether /config resolves it
-- State "TODO"       from "MAYBE"      [2026-09-11 Fri 09:59] \\
-  promoted at the user's word: the review-context need makes it concrete
-:END:
+*Prompted 2026-08-26 by the user*: composing a prompt often means re-reading something far back in the session, and submitting jumps the view to the bottom, losing both the spot and the train of thought. The transcript is already a plain file at =~/.claude/projects/<slug>/<session-id>.jsonl=, and the user works in Emacs — reading *there* has no scroll position to lose, gives isearch and folding, and does not move when the agent answers. Readable means one heading per turn, prose as body, tool calls collapsed into a drawer, since the raw file is one JSON object per line with tool calls dwarfing the prose.
 
-*Prompted 2026-08-26 by the user*: composing a prompt often means re-reading something far back in the session, and submitting jumps the view to the bottom, losing both the spot and the train of thought.
-
-*The proximate cause is probably configuration, not this.* =~/.claude/settings.json= carries =tui: "fullscreen"=, which uses the terminal's alternate screen buffer -- the client owns the viewport and re-renders it, so the terminal's own scrollback is bypassed. Changing that setting via =/config= is the one-line experiment and should be tried first. This heading is the fix that survives whatever that turns out to be.
-
-*The observation this rests on:* the transcript is already a plain file, at =~/.claude/projects/<project-slug>/<session-id>.jsonl=, and the user works in Emacs. Reading *there* while composing has no scroll position to lose, gives isearch and folding, and does not move when the agent answers.
-
-*Why a renderer rather than just reading the JSONL.* It is one JSON object per line with content as an array of typed blocks; tool calls and their results dwarf the prose. Readable means: one heading per turn, prose as body, tool calls collapsed into a drawer so =#+STARTUP: content= folds them away by default.
-
-*Already demonstrated to be worth having, twice in one session, both times by hand.* The footnote-discipline audit ([[id:2758f3a0-3c47-405e-9662-a7669dcb60cc][2758f3a0]]) replayed =bin/hooks/footnote-check='s logic over 84 assistant text blocks pulled out of this file. The sleep-window reconstruction ([[id:1a5a5254-f62d-46e7-9a6c-3d84f2f52873][1a5a5254]]) cross-checked queue events against scratch-file mtimes. Both were one-off shell pipelines that were thrown away.
-
-*Non-obvious detail worth capturing before it is rediscovered:* a =type: "user"= entry is *usually a tool result*, not a human turn. In this session's transcript, 218 of 231 were. Any renderer that treats them as prompts will report roughly twenty times too many turns -- which is exactly the error the footnote audit made on its first pass, reporting 81 of 83 blocks as end-of-turn before the filter was corrected to 11 of 84.
-
-*=MAYBE= deliberately.* The =/config= change may resolve the pain entirely, and this costs a script plus its tests. Worth building only if reading the transcript in Emacs turns out to be something the user actually does, rather than something that sounds useful.
-
-*Shipped 2026-09-11* on =feature/join-transcript-to-record=, in the shape this body specified: one heading per turn, the prompt in a quote block, each paragraph of prose a sub-heading, tool calls in a =:TOOLS:= drawer that =#+STARTUP: content= folds away. =M-x claude-code-ide-org-render-session=, and =T= in the review buffer renders the item's session and opens it at the turn nearest the span's start.
-
-*This heading's own warning is answered structurally rather than by care.* Turn boundaries come from the same shape test =325679af='s prompt join uses — user role, string content, not =isMeta=, not a =<bash-= escape — so the two agree by construction about what a prompt is, and the "218 of 231 are tool results" trap cannot be walked into separately by each.
-
-*Three drops, each a decision:* =thinking= blocks (107 against 36 of prose on a real session — keeping them triples the file without being what anyone is paging for), tool results, and a call's full input reduced to one label. The transcript stays on disk for the payload.
-
-*Escaping is load-bearing and was nearly missed.* A line of prose beginning with =*= would become a heading and silently restructure the document — the common case here, not an edge one, because the text was never written for org.
-
-*=b57c7515='s finding is built in rather than deferred.* Two transcripts opening at the same instant are one conversation re-keyed, so the truncated one names its longer sibling instead of pretending to be whole. Reported, never followed: a caller asking for a session gets that session.
-
-*Verified on real sessions, not fixtures.* This conversation renders to 1936 lines, 12 turns and 131 sub-headings from a 1287-line transcript, and its truncated first half correctly points at the complete one. 624 tests, 0 unexpected, from 618; four mutations run red.
-
-*One bug that only real data would have caught:* =json-parse-string= with =:object-type 'alist= yields **symbol** keys, so the first draft's string lookup matched nothing and rendered eleven consecutive lines reading "Bash" with no descriptor.
-
-*The =/config= experiment this heading was gated on remains untried and is now moot as a blocker* — whatever =tui: "fullscreen"= turns out to do, the renderer is the thing that survives it, which is what the original body predicted.
-
+*Resolution:* =claude-code-ide-org-render-session= writes a foldable org document per session — turn headings, prompts in quote blocks, prose as sub-headings, tool calls in a =:TOOLS:= drawer — outside any repo, regenerated only when the transcript is newer, and reachable from a span with =T=.
 
 * TODO Intervals on two different headings can overlap, and subtraction reaches only one :code:
 :PROPERTIES:
