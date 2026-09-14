@@ -5996,6 +5996,52 @@ wider items are easier to check against a calendar, which is the actual
 consumer. The 30-minute floor's 3 items/day was chosen on legibility
 grounds; attestation is the reason legibility was the right criterion.
 
+*The residue rule, settled 2026-09-14 by rendering last week three ways.*
+
+Sub-floor stretches — busy stretches shorter than the 30-minute floor —
+are not discarded (that would drop ~30% of busy time) and are not drawn
+as one block spanning the day. **They are rendered as two bookend
+intervals**: split the day's residue at the midpoint of its own min–max
+span, size each block to the minutes actually worked in it, and anchor
+the early block at the **earliest real timestamp** and the late block at
+the **latest**.
+
+**The property that makes this the right shape: every bookend has one
+observed edge.** Only the inner edges are constructed, so half the
+boundaries are evidence rather than assertion — and a residue side
+holding a single stretch has both edges observed. That is what the
+earlier renderings could not offer.
+
+Measured over the week of 2026-09-07, all on =claude-code-ide-org=:
+
+| rendering | agenda items | notional edges | intra-day overlaps |
+| one block, spanning | 15 | 8 of 8 | 2 |
+| one block, sized | 15 | 8 of 8 | 2 |
+| **bookends** | **19** | **4 of 8** | **1** |
+
+The span rendering was indefensible and is recorded only so it is not
+retried: Wednesday's residue read =07:52--16:45=, an 8.9-hour agenda
+block for 60 minutes of work. Sizing fixed the quantity and left the
+placement wrong — Wednesday's 16:14 and 16:45 stretches were drawn at
+8am. Bookends fix both, at four extra items across four days.
+
+**Labelling, and the open refinement.** A busy stretch is labelled by the
+slice that was in =DOING=/=REVIEW= at that moment, else =Review and
+planning= — the two options, per the user, since only one slice is worked
+at a time and both roll up to the project. *That premise was measured and
+held*: across every busy window last week, never more than one slice was
+open. Each bookend currently inherits the day's **modal** residue label,
+which is wrong in principle — a morning of slice work and an evening of
+review would share one label — and arguably wrong on 2026-09-08 already.
+Labelling each bookend from its own constituent stretches is the fix, not
+yet applied.
+
+Last week's readout under this rule: 12.8h over 19 items and 4 days —
+=c19fbbf5= 6.3h, Review and planning 5.2h, =afea7e4f= 0.8h, =ff7ccb2d=
+0.5h. Monday 2026-09-07 was Labor Day and shows no activity, which is a
+free check that the derivation invents nothing.
+
+
 
 
 
