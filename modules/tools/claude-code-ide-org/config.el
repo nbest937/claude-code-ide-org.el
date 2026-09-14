@@ -8852,6 +8852,15 @@ exists to prevent."
          'create)
       id)))
 
+(defvar claude-code-ide-org--review-apply-warnings nil
+  "Anomalies from the current apply pass that are not failures.
+
+Populated by `claude-code-ide-org--review-apply-item' when an item's
+change reached the file and something *after* it signalled.  Reset by
+`claude-code-ide-org--review-apply' at the start of each pass and
+reported at the end, so a pass can say \"this landed, and here is what
+complained\" instead of choosing between a false failure and silence.")
+
 (defun claude-code-ide-org--review-apply-item (item)
   "Apply one review ITEM. Returns nil on success, an error string on failure.
 
@@ -8954,7 +8963,44 @@ lands at all."
                 (save-buffer)
                 nil))))
         ;; --at-id returns an "Error: ..." string rather than throwing.
-        (and (stringp result) result)))))))
+        ;; Verify the outcome rather than trust the verdict.
+        ;;
+        ;; A state item can complete its transition and *then* have
+        ;; something downstream signal -- the drawer consolidation and
+        ;; the save both run inside this same lambda, after `org-todo'
+        ;; and after the note is stored. `--at-id' turns any of that into
+        ;; an error string, so the item is reported failed, is never
+        ;; watermarked, and returns on every future pass.
+        ;;
+        ;; Observed live 2026-09-14 (TODO.org :ID: b23e5bcc): an apply
+        ;; reported "Applied 8 item(s); 8 failed", every failure reading
+        ;; "Before first headline at position 1", and all eight keyword
+        ;; changes had landed correctly with their notes. The same
+        ;; symptom is recorded on `--at-id' from 2026-08-24 and went
+        ;; undiagnosed then for the reason it did now: the stored
+        ;; backtrace is captured after unwinding (:ID: 169df26b) and
+        ;; cannot name the signal site. Five hypotheses were reproduced
+        ;; against and falsified; the root cause is still open.
+        ;;
+        ;; So this is not a guess at the cause. It is the narrower claim
+        ;; that *the file is the record*: if the heading now carries the
+        ;; keyword the item asked for, the transition happened, and
+        ;; reporting failure contradicts the file. The downstream error
+        ;; is still surfaced, as a warning, because something did go
+        ;; wrong and silence would trade one wrong answer for another.
+        (if (and (stringp result)
+                 (eq (plist-get item :type) 'state)
+                 (equal (claude-code-ide-org--review-current-state
+                         (plist-get item :id))
+                        (plist-get item :to)))
+            (progn
+              (push (format "%s -> %s landed, but %s"
+                            (claude-code-ide-org--short-id (plist-get item :id))
+                            (plist-get item :to)
+                            (string-remove-prefix "Error: " result))
+                    claude-code-ide-org--review-apply-warnings)
+              nil)
+          (and (stringp result) result))))))))
 
 (defun claude-code-ide-org--review-apply-amend (item)
   "Append ITEM's text to the end of the target heading's own body.
@@ -9258,7 +9304,7 @@ ante rather than new damage."
 
 
 (defun claude-code-ide-org--review-apply (items)
-  "Apply ITEMS in order. Returns a plist (:applied N :errors ERRORS).
+  "Apply ITEMS in order. Returns a plist (:applied N :errors ERRORS :warnings W).
 
 Judges staleness across the whole batch first, via
 `claude-code-ide-org--review-projected-staleness', so a chain of
@@ -9283,6 +9329,10 @@ suppress, and the flag, its re-entrancy companion and the settle pass
 that re-ran what it skipped all went with it -- 163 lines whose whole
 purpose was guarding a trigger that wrote to the file on its own."
   (claude-code-ide-org--review-projected-staleness items)
+  ;; Reset per pass, for the same reason `--last-error-backtrace' is:
+  ;; a warning from the previous apply reported against this one is
+  ;; worse than no warning at all.
+  (setq claude-code-ide-org--review-apply-warnings nil)
   (let (applied errors)
     (progn
       (dolist (item items)
@@ -12623,12 +12673,23 @@ that re-evaluates staleness against the file as it now stands."
               (claude-code-ide-org--review-render)
               (goto-char (point-min))
               (forward-line (1- line)))
-            (message "Applied %d item(s)%s"
+            (message "Applied %d item(s)%s%s"
                      (plist-get result :applied)
                      (if (plist-get result :errors)
                          (format "; %d failed: %s"
                                  (length (plist-get result :errors))
                                  (string-join (plist-get result :errors) "; "))
+                       "")
+                     ;; Reported after the failures and phrased as a
+                     ;; separate clause, because these items *applied*:
+                     ;; folding them into the failure count is the
+                     ;; behaviour :ID: b23e5bcc exists to correct.
+                     (if claude-code-ide-org--review-apply-warnings
+                         (format "; %d applied with a complaint: %s"
+                                 (length claude-code-ide-org--review-apply-warnings)
+                                 (string-join
+                                  (reverse claude-code-ide-org--review-apply-warnings)
+                                  "; "))
                        "")))
         ;; An error mid-apply must not leave the user's guard disabled --
         ;; that failure window is the whole objection c8a97d9d raised

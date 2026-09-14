@@ -14426,6 +14426,72 @@ beside the link's target, not beside the link."
                       (claude-code-ide-org--capture-target-file))))))
       (delete-directory dir t))))
 
+(ert-deftest claude-code-ide-org-test-apply-trusts-the-file-over-the-verdict ()
+  "A state change that landed is reported applied, even if something
+after it signalled -- and one that did not land is still a failure.
+
+`--review-apply-item' runs the transition, the drawer consolidation and
+the save inside one lambda, and `--at-id' turns any error in that lambda
+into a failure string.  So a transition can reach the file and still be
+reported failed, never watermarked, and re-offered on every later pass
+(TODO.org :ID: b23e5bcc: eight such items in one live apply, all eight
+keyword changes correct on disk).
+
+Both halves in one test, because the fix is only sound if it
+discriminates: the claim is *the file is the record*, not \"ignore
+errors\".  A failure whose keyword did not change must still be a
+failure, or this would launder real breakage into silence."
+  (claude-code-ide-org-test--with-heading
+    (let ((claude-code-ide-org-consolidate-on-apply t)
+          (claude-code-ide-org--review-apply-warnings nil))
+      ;; Landed, then something downstream complained.
+      (cl-letf (((symbol-function
+                  'claude-code-ide-org--consolidate-drawer-at-point)
+                 (lambda (&rest _)
+                   (error "Before first headline at position 1 in buffer T.org"))))
+        (let ((result (claude-code-ide-org--review-apply-item
+                       (list :type 'state :id id :ts (current-time)
+                             :from "TODO" :to "DOING" :note "n" :events nil))))
+          (should-not result)
+          (should (equal "DOING"
+                         (claude-code-ide-org--review-current-state id)))
+          (should (= 1 (length claude-code-ide-org--review-apply-warnings)))
+          (should (string-match-p "landed, but"
+                                  (car claude-code-ide-org--review-apply-warnings)))))
+      ;; The control: the transition itself fails, so the keyword does
+      ;; not move and the item is reported failed as before.
+      (setq claude-code-ide-org--review-apply-warnings nil)
+      (cl-letf (((symbol-function 'claude-code-ide-org--review-apply-state)
+                 (lambda (&rest _) (error "could not write"))))
+        (let ((result (claude-code-ide-org--review-apply-item
+                       (list :type 'state :id id :ts (current-time)
+                             :from "DOING" :to "REVIEW" :note "n" :events nil))))
+          (should (stringp result))
+          (should (string-match-p "could not write" result))
+          ;; Still DOING: nothing laundered.
+          (should (equal "DOING"
+                         (claude-code-ide-org--review-current-state id)))
+          (should-not claude-code-ide-org--review-apply-warnings))))))
+
+(defun claude-code-ide-org-test--stale-repeater-line ()
+  "A `SCHEDULED:' line with a `++1d' repeater three days in the past.
+
+Computed from `current-time', never hard-coded, and that is the whole
+point.  `org-auto-repeat-maybe' gives up after **10** intervals and
+falls back to a `y-or-n-p' -- so a fixture pinned to a literal date
+quietly becomes a test that *prompts*, and then blocks on stdin or dies
+reading it, once that date is more than ten intervals old.
+
+Measured 2026-09-14: the literal was `2026-09-03', the suite was last
+green on 2026-09-11, and it expired on the eleventh day with nobody
+touching the code.  Three days back stays well inside the limit while
+still needing more than one interval, which is what these tests are
+about."
+  (format "SCHEDULED: <%s 07:00 ++1d>\n"
+          (format-time-string "%Y-%m-%d %a"
+                              (time-subtract (current-time) (days-to-time 3)))))
+
+
 (ert-deftest claude-code-ide-org-test-advance-repeater-survives-a-read-only-buffer ()
   "Advancing the ceremony repeater works against a read-only TODO.org.
 
@@ -14444,7 +14510,7 @@ silently disarm the user (TODO.org :ID: c8a97d9d)."
   (claude-code-ide-org-test--with-heading
     (claude-code-ide-org-test--add-child
      file (concat "* TODO Archive closed tasks daily\n"
-                  "SCHEDULED: <2026-09-03 Thu 07:00 ++1d>\n"
+                  (claude-code-ide-org-test--stale-repeater-line)
                   ":PROPERTIES:\n"
                   ":ID:       cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8\n"
                   ":CREATED:  [2026-08-01 Sat 09:00]\n:END:\n"))
@@ -14460,7 +14526,12 @@ silently disarm the user (TODO.org :ID: c8a97d9d)."
     (let ((text (claude-code-ide-org-test--disk-contents file)))
       (should (string-match "SCHEDULED: <\\([^>]+\\) 07:00 \\+\\+1d>" text))
       (let ((stamp (match-string 1 text)))
-        (should-not (string-match-p "2026-09-03" stamp))
+        ;; Advanced off its original date -- named relatively, for the
+        ;; same reason the fixture is.
+        (should-not (string-match-p
+                     (format-time-string
+                      "%Y-%m-%d" (time-subtract (current-time) (days-to-time 3)))
+                     stamp))
         (should (time-less-p (current-time)
                              (org-time-string-to-time
                               (concat "<" stamp " 07:00>")))))
@@ -14799,7 +14870,7 @@ not have -- the thing this test can see is the registration."
   (claude-code-ide-org-test--with-heading
     (claude-code-ide-org-test--add-child
      file (concat "* TODO Archive closed tasks daily\n"
-                  "SCHEDULED: <2026-09-03 Thu 07:00 ++1d>\n"
+                  (claude-code-ide-org-test--stale-repeater-line)
                   ":PROPERTIES:\n"
                   ":ID:       cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8\n"
                   ":CREATED:  [2026-08-01 Sat 09:00]\n:END:\n"))
@@ -14815,7 +14886,12 @@ not have -- the thing this test can see is the registration."
     (let ((text (claude-code-ide-org-test--disk-contents file)))
       (should (string-match "SCHEDULED: <\\([^>]+\\) 07:00 \\+\\+1d>" text))
       (let ((stamp (match-string 1 text)))
-        (should-not (string-match-p "2026-09-03" stamp))
+        ;; Advanced off its original date -- named relatively, for the
+        ;; same reason the fixture is.
+        (should-not (string-match-p
+                     (format-time-string
+                      "%Y-%m-%d" (time-subtract (current-time) (days-to-time 3)))
+                     stamp))
         (should (time-less-p (current-time)
                              (org-time-string-to-time
                               (concat "<" stamp " 07:00>")))))
