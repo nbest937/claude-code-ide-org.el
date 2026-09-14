@@ -5736,6 +5736,17 @@ The any-event variant claims three quarters of a waking day on the strength of a
 
 *A vocabulary slip worth recording because this heading is where the rule lives.* The request that prompted this work said "user/active intervals". Per the rule settled 2026-08-15 and recorded above, **"active interval" should not be written at all** — =active= is a property of a *timestamp* and the axis wanted here is =clock= versus =attention=. The term is **attention interval**. Noting it because a rule whose own heading tolerates violations in its own thread is not a rule.
 
+*Narrowing the "do not write it at all" rule, 2026-09-14, at the user's objection — which is correct and the rule as stated was too absolute.* The user: "two active timestamps put together form an active interval, something that will show up in an agenda view as a time period during which I was occupied."
+
+*That is a true and useful statement, and it is about the **construct**, not about the kind of interval.* =<ts>--<ts>= is an org timestamp range; joined and active, it renders in the agenda as an occupied period. This heading's own producer table records exactly that behaviour, and =df5afbbd= exists because 55 such ranges were reaching the agenda as attention when they were agent activity — so the mechanism is not merely documented here, it has already misfired here.
+
+*So the rule keeps its point and loses its absolutism.* What was rejected on 2026-08-15 was "active interval" as a **name for the thing being recorded**, because it answers the wrong question: the axis that matters is =clock= versus =attention= — measured by the agent, or attested by the human — and "active" answers neither, being a property of the timestamps used to write it. Naming the *construct* "an active interval" is a different act and a legitimate one.
+
+*Restated:* an **attention interval** *is implemented as* an active interval. The first names what it means and who vouches for it; the second names what it is made of. A sentence is wrong when it uses the second where the reader needs the first — not whenever the words appear.
+
+*Recorded because the previous flag was mine and it was wrong.* Reading the earlier request's "user/active intervals" as a vocabulary slip applied a naming rule to a mechanism description. The rule is worth keeping; enforcing it past its scope makes it noise.
+
+
 
 
 * TODO Bracket queued spans with WAIT transitions, so the heading guess stops latching :code:
