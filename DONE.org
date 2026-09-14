@@ -7,6 +7,535 @@ Archived entries from file /Users/neil.best/git/claude-code-ide-org/TODO.org
 * 2026
 
 ** 2026-09 September
+*** 2026-09-11 Friday
+**** DONE org_body drawer=: report an unterminated drawer as malformed, not missing :code:
+CLOSED: [2026-09-11 Fri 16:58]
+:PROPERTIES:
+:ID:       c4048784-f9be-4f95-9ca6-cd161932e74c
+:CREATED:  [2026-09-11 Fri 13:23]
+:CATEGORY: Tools
+:ARCHIVE_TIME: 2026-09-14 Mon 09:26
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Tools
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-11 Fri 12:51]--[2026-09-11 Fri 12:52] =>  0:01
+- [2026-09-11 Fri 12:51]--[2026-09-11 Fri 12:52] assigned at review
+CLOCK: [2026-09-11 Fri 12:58]--[2026-09-11 Fri 12:59] =>  0:01
+- [2026-09-11 Fri 12:58]--[2026-09-11 Fri 12:59] assigned at review
+CLOCK: [2026-09-11 Fri 13:01]--[2026-09-11 Fri 13:02] =>  0:01
+- [2026-09-11 Fri 13:01]--[2026-09-11 Fri 13:02] assigned at review
+CLOCK: [2026-09-11 Fri 13:20]--[2026-09-11 Fri 13:21] =>  0:01
+- [2026-09-11 Fri 13:20]--[2026-09-11 Fri 13:21] assigned at review
+CLOCK: [2026-09-11 Fri 13:23]--[2026-09-11 Fri 13:24] =>  0:01
+- [2026-09-11 Fri 13:23]--[2026-09-11 Fri 13:24] fix unterminated-drawer error message plus test
+- State "REVIEW"     from "DOING"      [2026-09-11 Fri 13:24] \\
+  landed on PR22, merges under human judgement
+CLOCK: [2026-09-11 Fri 15:31]--[2026-09-11 Fri 15:33] =>  0:02
+- [2026-09-11 Fri 15:31]--[2026-09-11 Fri 15:33] assigned at review
+CLOCK: [2026-09-11 Fri 15:44]--[2026-09-11 Fri 15:48] =>  0:04
+- [2026-09-11 Fri 15:44]--[2026-09-11 Fri 15:48] rewrite drawer read onto org-element
+- State "DONE"       from "REVIEW"     [2026-09-11 Fri 16:58] \\
+  merged in PR22
+:END:
+:PLAN:
+
+Found by the PR22 low-effort review pass: in claude-code-ide-org--drawer-text-at-point, a target drawer whose :NAME: line exists but never closes with :END: before the next heading leaves content nil and falls into the missing-drawer error branch -- which then lists that very drawer under "Drawers present:", telling the caller the drawer does not exist while showing that it does. Proposed: track the found-but-unterminated case distinctly and report the drawer as malformed, so the caller learns the fix is in the file, not in their next tool call. Fix plus a discriminating ERT test, landed as a fixup on feature/plugin-package while PR22 is open, since the function is part of that PR's diff ([[id:2a399034-5267-47ed-a129-20e371a77146][2a399034]] shipped it).
+
+:END:
+Resolved 2026-09-11 in two passes, and the second is the one that
+mattered. The first (=0f5f362=) fixed the contradictory error message
+this heading's title names. A =med= review pass then found the scanner
+*underneath* it wrong in a worse way: =--drawer-text-at-point= was a
+fourth copy of the search [[id:f42641ab-fdd6-4754-add9-490dd6b24ef8][f42641ab]] consolidated into one, and it
+repeated the bug that heading fixed. Measured before touching it: on a
+heading whose =:PLAN:= drawer quotes a bare =:DEBRIEF:= line — ordinary
+in a repo whose bodies discuss drawers constantly — =org_body
+drawer=DEBRIEF= returned the prose between the decoy and =:PLAN:='s own
+=:END:=, confidently wrong where an error was owed.
+
+=6633929= rewrote it onto =org-element=: =--drawers-at-point= enumerates
+the real drawers and requires the element to *begin* on the candidate
+line, without which =org-element-at-point= answers with the enclosing
+drawer and a decoy passes the type check anyway. It covers the property
+drawer, which =--find-drawer= excludes on purpose, so =drawer=PROPERTIES=
+still resolves rather than being denied.
+
+Two things worth keeping. The malformed-vs-missing distinction does not
+fall out of =org-element=, which declines an unterminated drawer and a
+decoy alike, so =--unterminated-drawer-p= carries it deliberately. And
+the new decoy test caught *my own* predicate calling a =:LOGBOOK:=
+inside =#+begin_example= malformed — nothing in an example block needs
+closing — which is why that predicate now tests the element type and its
+start position rather than the absence of an =:END:= alone. 601/601.
+
+
+**** DONE The capture reply names a basename, so it cannot say which tracker received the heading :code:
+CLOSED: [2026-09-11 Fri 16:58]
+:PROPERTIES:
+:ID:       86c11795-4972-45b5-acef-677a18b26134
+:CREATED:  [2026-09-11 Fri 15:45]
+:CATEGORY: Tools
+:ARCHIVE_TIME: 2026-09-14 Mon 09:26
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Tools
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-11 Fri 16:00]--[2026-09-11 Fri 16:02] =>  0:02
+- State "DOING"      from "TODO"       [2026-09-11 Fri 16:00] \\
+  make the reply name the tracker
+- [2026-09-11 Fri 16:00]--[2026-09-11 Fri 16:02] capture reply names the full tracker path
+- State "REVIEW"     from "DOING"      [2026-09-11 Fri 16:02] \\
+  lands on PR22, merges under judgement
+- State "DONE"       from "REVIEW"     [2026-09-11 Fri 16:58] \\
+  merged in PR22
+:END:
+:DEBRIEF:
+The lesson is about fixtures, not about paths. A test whose two possible
+outcomes differ in the fixture but *not* in production is green for the
+wrong reason, and nothing in the test's text shows it: here the fixture's
+fallback file was =capture.org= while production's is =TODO.org=, so the
+assertion discriminated in the suite and would not have discriminated in
+the field. Worth checking whenever a fixture renames something production
+does not — the convenience that makes a fixture readable is exactly what
+can make its assertion weaker than it looks.
+
+Note also that this heading was filed from a review finding that slightly
+overstated the defect, and the overstatement survived into a first draft
+of the test comment before being measured. The reviewed claim was
+directionally right and specifically wrong, which is the ordinary case,
+not a lapse.
+:END:
+:PLAN:
+
+Found by PR22's review pass. =:where= renders =(format "top of %s" (file-name-nondirectory default))=, which is =top of TODO.org= for every project, because routing only ever selects files literally named TODO.org. The comment two lines above says which tracker received the heading "is the fact the reply must carry" — the basename does not carry it; the project directory is the discriminating part. Cosmetic next to [[id:5e731a23-7708-4248-b055-9b4a531f147d][5e731a23]] and [[id:965f94eb-1558-4d00-9857-5727eb86fe6f][965f94eb]], but it is also what makes those two invisible from inside a session: the reply looks correct whichever file was written.
+
+:END:
+Resolved 2026-09-11. =:where= now renders =(abbreviate-file-name
+default)=, so a targetless capture answers "top of ~/git/<repo>/TODO.org"
+rather than "top of TODO.org"; the unresolvable-target error names the
+same path. =abbreviate-file-name= over a bare path because the review
+buffer renders this string and the line has to stay readable.
+
+One correction to this heading's own premise, found while testing.
+=claude-code-ide-org-test-capture-routes-to-the-sessions-project= *did*
+discriminate under the old basename assertion — but only because its
+fixture's fallback file is named =capture.org=. In production both
+candidates are a repo's =TODO.org=, where the basename separates nothing,
+so the fixture was proving a weaker claim than its docstring stated. The
+test now asserts the project path appears and the fallback path does not,
+and it was measured failing against a simulated misroute
+(=--session-project-capture-file= stubbed to nil), which is the condition
+it exists to catch.
+
+
+**** DONE doc-sync-check ships to consuming repos and asserts conventions they do not have :code:
+CLOSED: [2026-09-11 Fri 16:58]
+:PROPERTIES:
+:ID:       04125b0b-adf8-4b65-9afe-7a4724a62d34
+:CREATED:  [2026-09-11 Fri 15:45]
+:CATEGORY: Dev
+:ARCHIVE_TIME: 2026-09-14 Mon 09:26
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Dev
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-11 Fri 15:49]--[2026-09-11 Fri 15:54] =>  0:05
+- <2026-09-11 Fri 15:49>--<2026-09-11 Fri 15:54> assigned at review
+CLOCK: [2026-09-11 Fri 15:55]--[2026-09-11 Fri 15:56] =>  0:01
+- State "DOING"      from "TODO"       [2026-09-11 Fri 15:55] \\
+  deciding which hooks the plugin ships
+- [2026-09-11 Fri 15:55]--[2026-09-11 Fri 15:56] unship doc-sync-check from the plugin
+- State "REVIEW"     from "DOING"      [2026-09-11 Fri 15:56] \\
+  lands on PR22, merges under judgement
+- State "DONE"       from "REVIEW"     [2026-09-11 Fri 16:58] \\
+  merged in PR22
+:END:
+:DEBRIEF:
+The useful residue is a test for the next hook, since "is this session
+tracking or repo convention?" was not obvious from either script: **does
+the hook's subject exist in the consuming repo?** =footnote-check= asks
+the consumer's own org files what their ids are and passes; a hook naming
+a path only this repo has cannot. Worth applying before adding a row to
+=hooks/hooks.json=, because nothing mechanical catches it — there is no
+parity check between =hooks/hooks.json= and =.claude/settings.json=, and
+the divergence is now deliberate rather than drift.
+:END:
+:PLAN:
+
+Found by PR22's review pass. =hooks/hooks.json= wires =doc-sync-check= into the plugin, where =CLAUDE_PROJECT_DIR= is the *consumer's* root — so their own CLAUDE.md and README.md match and the hook injects this repo's overlap-zone convention, [[id:d7849119-8224-4993-a8ab-83e1434df53c][d7849119]], into a repo where it does not exist. Its =DOOM.md= and =skills/org/references/org-emacs-setup.md= rows are likewise paths only this repo has. The file's own description claims every script appends to or checks =~/.claude/org-updates/=, which this one does not: it is dev tooling for here, not session-tracking machinery, and =footnote-check= is arguably in the same position. Decide which hooks the plugin should actually ship.
+
+:END:
+Resolved 2026-09-11. =doc-sync-check= is removed from =hooks/hooks.json=
+and stays wired in this repo's own =.claude/settings.json=, which is
+where it belongs: its subject is this repo's CLAUDE.md/README.md overlap
+zone, named by ID in its own header, and under the plugin
+=CLAUDE_PROJECT_DIR= is the consumer's root.
+
+=footnote-check= was examined and *kept*, against the finding's
+suggestion that it is in the same position. It is not: it validates each
+candidate token against the =:ID:= lines of the *consuming* repo's
+tracked org files, so it enforces that repo's own ids and is inert where
+there are no org files. The convention it carries is the org
+way-of-working the plugin exists to teach, not a fact about this
+repository. =clock-target-check= ships for the same reason — it reads the
+queue.
+
+The description line was also wrong in the way the finding noted, and
+now states what it actually promises: every shipped script works against
+the queue or the consumer's own org files, and hooks enforcing this
+repo's conventions are deliberately absent.
+
+
+**** DONE The pre-push PR advisory false-positives on a catch-up merge that did arrive through a PR :code:
+CLOSED: [2026-09-11 Fri 16:58]
+:PROPERTIES:
+:ID:       e0094245-aa6b-4c1f-b5f8-bcdc8b9f910b
+:CREATED:  [2026-09-11 Fri 15:45]
+:CATEGORY: Dev
+:ARCHIVE_TIME: 2026-09-14 Mon 09:26
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Dev
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-11 Fri 15:58]--[2026-09-11 Fri 15:59] =>  0:01
+- State "DOING"      from "TODO"       [2026-09-11 Fri 15:58] \\
+  scope the advisory to first-parent history
+- [2026-09-11 Fri 15:58]--[2026-09-11 Fri 15:59] pre-push advisory first-parent fix
+- State "REVIEW"     from "DOING"      [2026-09-11 Fri 15:59] \\
+  lands on PR22, merges under judgement
+- State "DONE"       from "REVIEW"     [2026-09-11 Fri 16:58] \\
+  merged in PR22
+:END:
+:DEBRIEF:
+The git fact behind this is worth not rediscovering: for a merge commit
+=A=, the range =A~1..A= is **not** "just A" — it is A plus everything
+reachable from A's second parent, i.e. the entire merged branch. So any
+pre-push or CI check that reasons over =remote_sha..local_sha= is, by
+default, reasoning over the contents of every branch merged in that push,
+not over what landed on the target. =--first-parent= is the way to ask
+the question people think they are asking.
+
+Also worth noting: the hook's *existing* test case 0 passed throughout,
+because the one PR it sampled happened to have no in-branch merges. The
+suite tested the rule against history that could not discriminate — a
+reminder that a green check over real data still only covers the shapes
+that data contains.
+:END:
+:PLAN:
+
+Found by PR22's review pass. =.githooks/pre-push= flags every merge commit in the pushed range except those titled =Merge pull request=, which catches =Merge branch 'main' into feature/x= commits made on a feature branch to catch up — and those become reachable from main the moment that branch merges *via a PR*. So syncing main into a long-lived branch once produces a misleading reminder on the next push to main. Advisory only, so the cost is noise rather than a block; scanning =--first-parent= history of main would match what the rule ([[id:c7bf2121-755c-4e52-8bf2-e21e56b1e0c2][c7bf2121]]) is actually about.
+
+:END:
+Resolved 2026-09-11 by adding =--first-parent= to the advisory's
+=git log=. Measured on real history rather than argued: PR #2's range
+(=01da949~1..01da949=) carries two in-branch merges — the =Merge branch
+'main' into feature/event-queue-format= catch-up (=32f5c2a=) and a
+branch-into-branch merge (=7f6e6d6=) — and the old scan named both in an
+advisory about a branch that *did* arrive through a pull request. It now
+names none.
+
+A genuine local merge into main is still caught, because such a merge is
+a commit on main and so sits on main's own first-parent chain; the
+existing case-1 assertions on =fee51fd= still pass unchanged. Two new
+cases in =bin/pre-push-test=, both measured failing against the old hook.
+
+
+**** DONE apply-detect's last jq is its exit status, and the stamp advances before the report is emitted :code:
+CLOSED: [2026-09-11 Fri 16:58]
+:PROPERTIES:
+:ID:       31453a5e-c909-41ca-bbbf-5b17819a8804
+:CREATED:  [2026-09-11 Fri 15:45]
+:CATEGORY: Dev
+:ARCHIVE_TIME: 2026-09-14 Mon 09:26
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Dev
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-11 Fri 15:56]--[2026-09-11 Fri 15:58] =>  0:02
+- State "DOING"      from "TODO"       [2026-09-11 Fri 15:56] \\
+  fix exit status and stamp ordering
+- [2026-09-11 Fri 15:56]--[2026-09-11 Fri 15:58] apply-detect exit 0 and stamp after emit
+- State "REVIEW"     from "DOING"      [2026-09-11 Fri 15:58] \\
+  lands on PR22, merges under judgement
+- State "DONE"       from "REVIEW"     [2026-09-11 Fri 16:58] \\
+  merged in PR22
+:END:
+:DEBRIEF:
+Worth keeping: for an at-most-once notification, **the cheap failure and
+the expensive one are not symmetric**, so the order of emit and stamp is
+a real choice rather than style. Report-then-stamp risks saying it twice;
+stamp-then-report risks never saying it. The original wrote the stamp
+first, which bought nothing and chose the expensive side.
+
+Also worth noting for the hook family generally: =set -uo pipefail=
+without =-e= does not make a script exit 0 — the *last command's* status
+is the script's, so any hook whose final statement is a pipeline or a =jq=
+silently inherits it. An explicit trailing =exit 0= is the only thing that
+makes "every failure path exits 0" true, and the other hooks in
+=bin/hooks/= are worth a pass for the same shape.
+
+That pass was done immediately rather than filed, and found nothing:
+every other script in =bin/hooks/= already ends in an explicit =exit= —
+=exit 0= for the fire-and-forget ones, a deliberate =exit 2= for
+=clock-target-check= and =footnote-check=, which block on purpose — and
+=session-pause= ends in =exec queue-append pause=, inheriting that
+script's own =exit 0=. =apply-detect= was the only one, so there is no
+heading owed here.
+:END:
+:PLAN:
+
+Found by PR22's review pass, two defects in one script. The final =jq= determines =bin/hooks/apply-detect='s exit status, contradicting the header's promise that every failure path exits 0 silently: jq's *absence* is guarded, but a jq that fails for any other reason surfaces a hook-error banner on a prompt this hook is meant to be invisible to. Separately, the =.apply-seen= stamp is touched *before* the report is emitted, so a kill at the 10 s timeout loses the context while the stamp has already advanced — and that apply is then never reported at all. Both are in [[id:165ce65a-f87e-431c-8ee4-f0fbfffe14da][165ce65a]]'s new code.
+
+:END:
+Resolved 2026-09-11. The final =jq= is now wrapped in an =if= whose
+success gates the =touch=, and the script ends in an unconditional
+=exit 0= — so a report that fails for any reason other than jq's absence
+(already handled at the top) neither fails the hook nor advances the
+stamp.
+
+Ordering the two this way is the substantive decision. Emitting before
+stamping means a kill at the 10 s timeout leaves the apply still owed, so
+the next prompt announces it again: a duplicate sentence rather than an
+apply reported to nobody. Two tests in =bin/apply-detect-test=, both
+measured failing against the old script — a =jq= shim that passes the
+parse call through and fails only the =-cn= report call, which is the
+only path that reaches the final =jq=.
+
+
+**** DONE org_outline extracts every heading's body twice per call :code:
+CLOSED: [2026-09-11 Fri 16:58]
+:PROPERTIES:
+:ID:       64f649f3-d7ba-4ed9-9fe8-ccdad10ffb7f
+:CREATED:  [2026-09-11 Fri 15:45]
+:CATEGORY: Tools
+:ARCHIVE_TIME: 2026-09-14 Mon 09:26
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Tools
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-11 Fri 16:02]--[2026-09-11 Fri 16:04] =>  0:02
+- State "DOING"      from "TODO"       [2026-09-11 Fri 16:02] \\
+  hoist the body extraction
+- [2026-09-11 Fri 16:02]--[2026-09-11 Fri 16:04] outline body extracted once per heading
+- State "REVIEW"     from "DOING"      [2026-09-11 Fri 16:04] \\
+  lands on PR22, merges under judgement
+- State "DONE"       from "REVIEW"     [2026-09-11 Fri 16:58] \\
+  merged in PR22
+:END:
+:DEBRIEF:
+The measurement technique is the reusable part, and it is three lines:
+=advice-add= a counter =:before= the function under suspicion, run the
+real entry point over the real corpus, read the count. No timing, no
+profiler, no interpretation — for "is this called more often than it
+should be", a call count is the whole answer and it cannot be confounded
+by machine load. Worth reaching for before optimising anything in this
+file.
+
+The shape to watch for generally: a formatter called twice with different
+*filters* but the same *subject*. The filter difference is what makes the
+double call look necessary, and the subject being identical is what makes
+the second read waste. =--outline-map='s two calls had that shape in plain
+sight since the read split shipped.
+:END:
+:PLAN:
+
+Found by PR22's review pass. =--outline-map= calls =--outline-line= twice per heading (filtered and unfiltered) and now passes =bodies= to both, so =--outline-body-at-point= — an =org-end-of-meta-data= walk plus a =buffer-substring= — runs twice for every heading, on a path that is default-on over whole files, with only one of the two strings ever used. Hoisting the body once per entry and passing it into both calls halves it. Efficiency only, no wrong output; filed because the read split ([[id:2a399034-5267-47ed-a129-20e371a77146][2a399034]]) made this the common path rather than an opt-in.
+
+:END:
+Resolved 2026-09-11. =--outline-map= extracts the body once per heading
+and hands the text to both =--outline-line= calls, whose fourth argument
+changed from a =bodies= flag to the BODY text itself. =--outline-map= is
+its only caller, so the signature change is contained.
+
+Measured rather than asserted, by counting calls to
+=--outline-body-at-point= during a default =org_outline= over this repo's
+TODO.org: **320 extractions before, 160 after, for 160 headings** — from
+exactly two per heading to exactly one. 601/601.
+
+One secondary effect worth naming: a heading that =active_only= filters
+out used to cost one extraction (the unfiltered call always ran, the
+filtered one returned early) and still costs one now. The win is on
+surviving headings, which on an unfiltered whole-file call is all of
+them.
+
+
+**** DONE A slice can close while its integration point is still open, and post-close incidentals have nowhere to go :code:
+CLOSED: [2026-09-11 Fri 16:58]
+:PROPERTIES:
+:ID:       e80f6ccf-daa4-4032-b899-5de30146b27f
+:CREATED:  [2026-09-11 Fri 16:16]
+:CATEGORY: Slices
+:ARCHIVE_TIME: 2026-09-14 Mon 09:26
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Slices
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-11 Fri 16:08]--[2026-09-11 Fri 16:12] =>  0:04
+- <2026-09-11 Fri 16:08>--<2026-09-11 Fri 16:12> assigned at review
+CLOCK: [2026-09-11 Fri 16:34]--[2026-09-11 Fri 16:35] =>  0:01
+- [2026-09-11 Fri 16:34]--[2026-09-11 Fri 16:35] assigned at review
+CLOCK: [2026-09-11 Fri 16:39]--[2026-09-11 Fri 16:42] =>  0:03
+- State "DOING"      from "TODO"       [2026-09-11 Fri 16:39] \\
+  writing the close-at-integration-point rule
+- [2026-09-11 Fri 16:39]--[2026-09-11 Fri 16:42] slice closes at its integration point, via REVIEW
+- State "REVIEW"     from "DOING"      [2026-09-11 Fri 16:42] \\
+  convention written, lands on PR22
+- State "DONE"       from "REVIEW"     [2026-09-11 Fri 16:58] \\
+  merged in PR22
+:END:
+:DEBRIEF:
+The useful shape here: **a guard that refuses something you want is
+sometimes reporting that an earlier step was wrong.** The first instinct
+was to relax the closed-slice membership rule, which would have bought
+the edit and lost the only property that makes a closed cookie worth
+reading. Asking instead *why* the work arrived after the close found a
+close condition that was premature by construction — and then the guard
+needed no change at all.
+
+The generalisable test, since this will recur: when a rule blocks a
+change, check whether the thing it is protecting is still true. Here "the
+slice is finished" was not, so the refusal was accurate and the keyword
+was wrong.
+
+Also worth keeping: the cost of the old condition was invisible while
+every slice happened to merge the same day its members closed. =c19fbbf5=
+is the first slice whose PR outlived its last member by a day, which is
+why a condition wrong for every code slice went eleven slices without
+being noticed.
+
+*Correction, measured after writing the paragraph above.* The claim that
+=c19fbbf5= is the first slice whose PR outlived its last member is
+**false**, and it was inference rather than a reading. Comparing the eight
+closed slices' =CLOSED:= stamps against =gh pr list= merge times:
+=ec65b5d6= closed 2026-09-03 13:16 and its own PR (#9, which names it in
+the title) merged 2026-09-04 15:25 — about twenty-six hours later, the
+same gap as here. =ff7ccb2d= closed 2026-09-08 09:54 and =52bfafdf=
+13:16, both hours before the PRs of that evening.
+
+So the close condition has been wrong repeatedly, not once. What made
+=c19fbbf5= different is only that *something arrived in the window* —
+nine review findings needing a home — where the earlier gaps passed
+unused and so cost nothing visible. That is the better reading of why a
+condition wrong for every code slice survived eleven slices: not rarity,
+but that an empty window leaves no trace.
+:END:
+:PLAN:
+
+Surfaced 2026-09-11 trying to record three post-close closures on [[id:c19fbbf5-be1b-4c18-a38e-9b46d064abb8][c19fbbf5]]. =org_slice_add_member= refuses a closed slice because its list is a record — correct as far as it goes — but that slice closed on 2026-09-10 when its last member reached a terminal keyword, while its PR (#22) stayed open another day and kept accruing slice-incidental work. So the guard that protects a finished record also denies genuinely-belonging work its home, and the fallback is prose in the =:DEBRIEF:=, which no cookie or query can see. Candidate answers: close a slice when its integration point closes rather than when its members do; make the =Incidental:= section explicitly append-only after close; or ratify the prose fallback and say so in the conventions. A convention decision, not a bug.
+
+:END:
+Resolved 2026-09-11, the user choosing between the three candidates and
+adding the keyword: **a slice with an integration point closes when that
+lands, not when its last member goes terminal, and sits in =REVIEW=
+between the two.** The membership guard is untouched — it was never the
+defect. A slice with no integration point of its own still closes when
+its members finish.
+
+Written into the two shipped references and promoted: the slice
+conventions gain a "Closing a slice" section (the close condition, the
+floor-and-ceiling framing against the =:BLOCKER:=, and the
+consequent-versus-incidental distinction), and the state transitions
+reference defines =REVIEW= on a grouping next to the existing =DOING=
+sense. No new table rows were needed: entering =REVIEW= closes the
+grouping's clock only when the grouping holds the running one, which the
+=from DOING= rule already said.
+
+Two things recorded as limits rather than claims. =REVIEW= on a grouping
+is *new* — twelve slices had existed and none had carried it, so that
+paragraph is the whole of its grouping sense. And no retrofit:
+=c19fbbf5= keeps its 2026-09-10 close, its three post-close closures stay
+debrief prose, and the PR they landed on is the rest of the record.
+
+**** DONE org_capture accepts a note it silently discards, and five headings shipped bodiless :code:
+CLOSED: [2026-09-11 Fri 11:45]
+:PROPERTIES:
+:ID:       204d1b0a-e5de-41f3-8983-b60638ce196a
+:CREATED:  [2026-09-11 Fri 11:35]
+:CATEGORY: Tools
+:ARCHIVE_TIME: 2026-09-14 Mon 09:26
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Tools
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-11 Fri 11:33]--[2026-09-11 Fri 11:35] =>  0:02
+- [2026-09-11 Fri 11:33]--[2026-09-11 Fri 11:35] bug hunt: capture notes vanish on both paths
+CLOCK: [2026-09-11 Fri 11:41]--[2026-09-11 Fri 11:45] =>  0:04
+- State "DOING"      from "TODO"       [2026-09-11 Fri 11:41] \\
+  building the fix: note lands as initial body on both paths
+- [2026-09-11 Fri 11:41]--[2026-09-11 Fri 11:45] 204d1b0a closed
+- State "DONE"       from "DOING"      [2026-09-11 Fri 11:45] \\
+  fixed, tested red-first, proven live
+:END:
+:DEBRIEF:
+The fix rode the single-code-path design exactly as intended: =--capture-write= gained an optional =note= and both callers pass it — the immediate path from the tool argument, the apply path from the queued event, which already carried the text (measured 689 and 681 characters on the two deferred captures that shipped bodiless). Insertion reuses the amend idiom (=--end-of-body= + =--amend-separator=), not the capture template, because template text is scanned for %-escapes and user prose containing =%U= would expand instead of landing. Three-case ERT (immediate with a literal %U, apply-path with %i, omitted note leaves no stray line), proven red against HEAD; live probe =878f5843= captured and read back with its body present, then cancelled. The schema's old "short 3-10 word reason" description had said the truth quietly — the misuse happened anyway, which is why the fix is behavior rather than better prose.
+:END:
+:PLAN:
+
+Found 2026-09-11 when the user noticed =b112878e= had no prose. The docstring is
+explicit — "NOTE is a short reason, carried for the queue and unused on the
+immediate path" — and =--capture-write= takes no note parameter, so the queued
+path drops it at apply too (measured: events carrying 689 and 681 characters
+landed as bare headings). The contract is coherent (note = review-buffer
+annotation, like a clock note; body prose = the two-call composition via
+=org_amend=) but the *surface invites misuse*: the tool accepts arbitrarily long
+prose and reports "Captured" with no hint anything was discarded — six filings
+across two days shipped bodiless before anyone noticed, all restored by amend.
+Decide one of: (a) the immediate path writes the note as the initial body (and
+apply gains the same, changing the deferred contract); (b) the tool refuses or
+warns on notes beyond a sentence; (c) the schema description alone is sharpened
+to say the note never reaches the heading. Whichever lands, the reply should
+stop saying "Captured" as if everything given was kept. Probe evidence:
+=49e1556b= (scratch, cancelled same minute).
+
+:END:
+Resolved 2026-09-11, same day filed: option (a) — the note becomes the heading's initial body on both paths through =--capture-write=, inserted after =org-capture= finalizes so template %-escapes cannot expand user prose; the docstrings and tool schema now state the contract, and the reply's "Captured" is honest again.
+
+
+**** CANCELLED Scratch: note-fix probe (cancel me)
+CLOSED: [2026-09-11 Fri 11:44]
+:PROPERTIES:
+:ID:       878f5843-04de-4153-9e5d-66f0751c8dd3
+:CREATED:  [2026-09-11 Fri 11:44]
+:ARCHIVE_TIME: 2026-09-14 Mon 09:26
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: TODO
+:ARCHIVE_TODO: CANCELLED
+:END:
+:LOGBOOK:
+- State "CANCELLED"  from "TODO"       [2026-09-11 Fri 11:44] \\
+  probe confirmed the fix live
+:END:
+
+PROBE-2: this sentence must now appear as the heading's body.
+
+
+**** CANCELLED Scratch: capture-note probe (cancel me)
+CLOSED: [2026-09-11 Fri 11:35]
+:PROPERTIES:
+:ID:       49e1556b-e6b2-4172-b63e-fef38bea8910
+:CREATED:  [2026-09-11 Fri 11:33]
+:ARCHIVE_TIME: 2026-09-14 Mon 09:26
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: TODO
+:ARCHIVE_TODO: CANCELLED
+:END:
+:LOGBOOK:
+- [2026-09-11 Fri 11:13]--[2026-09-11 Fri 11:31] assigned at review
+- State "CANCELLED"  from "TODO"       [2026-09-11 Fri 11:35] \\
+  probe served its measurement
+- [2026-09-11 Fri 11:35]--[2026-09-11 Fri 11:40] assigned at review
+:END:
+
+
 *** 2026-09-10 Thursday
 **** DONE [19/19] Ship the plugin: make the machinery and its prose travel together :code:
 CLOSED: [2026-09-10 Thu 16:47]

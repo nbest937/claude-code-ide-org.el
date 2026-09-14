@@ -2,6 +2,57 @@
 #+TAGS: code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO The stored error backtrace is captured after unwinding, so it never shows where the error came from :code:
+:PROPERTIES:
+:ID:       169df26b-64a8-4de9-8919-ab58d510aaf6
+:CREATED:  [2026-09-14 Mon 10:05]
+:CATEGORY: Tools
+:END:
+
+=claude-code-ide-org--at-id= records =--last-error-backtrace= from inside its
+own =condition-case= handler, by which point the frames between the signal and
+the handler have already been unwound. What it stores is therefore the
+*handler's* frames — =backtrace-get-frames=, the =condition-case= form itself,
+=--at-id= — and never the code that actually signalled. Read live 2026-09-14
+while diagnosing =b23e5bcc=: the captured backtrace was fourteen frames of the
+capture machinery describing itself, and the erroring call did not appear at
+all. This is the diagnostic equivalent of a silent failure: it looks like
+evidence, so nobody reaches for a real reproduction, and the one question it
+exists to answer is the one it cannot. Proposed: capture with =debug-on-error=
+and =debugger= bound to a collector around the *body*, so the backtrace is taken
+at signal time before unwinding — org's own =org-lint= and Emacs's =ert= both
+take this approach. Failing that, say so in the variable's docstring, because a
+backtrace that cannot name a signal site should not be presented as one.
+
+
+* TODO A state item applies correctly and is then reported failed, so it is re-offered forever :code:
+:PROPERTIES:
+:ID:       b23e5bcc-1bfd-4862-a801-0c7ac6959924
+:CREATED:  [2026-09-14 Mon 10:05]
+:CATEGORY: Apply
+:END:
+
+Observed live 2026-09-14: an apply reported =Applied 8 item(s); 8 failed=, every
+failure reading =Error: Before first headline at position 1 in buffer TODO.org
+[state ...]= — and **every one of those eight state changes had in fact landed
+correctly**. Verified on disk: =489d6f61= carries =- State "TODO" from "MAYBE"
+[2026-09-14 Mon 09:23]= with its note, backdated, inside =:LOGBOOK:=;
+=325679af=, =96ddf1ef= and =f1e36a65= are =REVIEW=, =b57c7515= is =NEXT=. The
+=*Messages*= order is decisive — =TODO state changed to TODO=, then =Note
+stored=, *then* the error — so =org-todo= and the note both completed and
+something after them signalled. No corruption: the file header is intact and
+nothing was inserted at position 1. The consequence is not cosmetic. A failed
+item is never watermarked, so all eight came back on the next pass, now marked
+=STALE, heading is now X= by the staleness guard — correct behaviour that will
+nonetheless recur on every future pass until each is dismissed by hand, and
+**force-applying one would write a second =State= line for a transition that
+already happened**. Note the apply is otherwise sound, which is why this went
+unnoticed: the writes are right, only the verdict is wrong. Diagnosis is blocked
+on [[id:169df26b-64a8-4de9-8919-ab58d510aaf6][169df26b]] (the stored backtrace is captured after unwinding), so the next step
+is a reproduction with =debug-on-error= bound during =--review-apply-item=
+rather than more reading.
+
+
 * TODO Adopt the plugin in agentic-euchre, so the two projects stop being worked in parallel :code:
 :PROPERTIES:
 :ID:       6a207b00-8fa1-441e-8ee5-354702bc979b
@@ -9,7 +60,27 @@
 :CATEGORY: Dev
 :END:
 
-Stated by the user 2026-09-11 and previously unrecorded anywhere: "a number of things unresolved here are preventing me from applying this plugin and its conventions to the euchre project rather than working the two of them in parallel." That makes euchre adoption a *goal with a blocking set*, not an eventual nice-to-have, and it reframes priority — every item in that set is holding a second project in a worse workflow every day it stays open, which is a cost nothing in the tracker currently expresses. Candidates, offered for the user to confirm or correct rather than assumed: =965f94eb= (every standalone client shares one project context, chosen by unstable ordering), =5e731a23= (a deferred targetless capture loses its project routing at apply), =c9940558= (guidepost aggregation ignores =cwd=, so two projects' turns cluster into one span), =3f4fd744= (=:BLOCKER:= would ship to euchre enforcing nothing), =b0d55552= (=org_capture= cannot set =:CATEGORY:=, so a fresh tracker's headings arrive uncategorised), =784d80c5= (=claude-org-setup --org= and the consuming repo's =.gitignore=) and =af2f345e= (the glue claims the whole wiring block). Note =fbaf8009= and =d718f6b6= are already closed and were both multi-project defects, so the set is smaller than it was. **The =:BLOCKER:= is deliberately unset until the user names the real list** — a blocker invented from a plausible-looking survey is exactly the kind that reads as enforcement and enforces the wrong thing.
+Stated by the user 2026-09-11 and previously unrecorded anywhere: "a number of
+things unresolved here are preventing me from applying this plugin and its
+conventions to the euchre project rather than working the two of them in
+parallel." That makes euchre adoption a *goal with a blocking set*, not an
+eventual nice-to-have, and it reframes priority — every item in that set is
+holding a second project in a worse workflow every day it stays open, which is a
+cost nothing in the tracker currently expresses. Candidates, offered for the
+user to confirm or correct rather than assumed: =965f94eb= (every standalone
+client shares one project context, chosen by unstable ordering), =5e731a23= (a
+deferred targetless capture loses its project routing at apply), =c9940558=
+(guidepost aggregation ignores =cwd=, so two projects' turns cluster into one
+span), =3f4fd744= (=:BLOCKER:= would ship to euchre enforcing nothing),
+=b0d55552= (=org_capture= cannot set =:CATEGORY:=, so a fresh tracker's headings
+arrive uncategorised), =784d80c5= (=claude-org-setup --org= and the consuming
+repo's =.gitignore=) and =af2f345e= (the glue claims the whole wiring block).
+Note =fbaf8009= and =d718f6b6= are already closed and were both multi-project
+defects, so the set is smaller than it was. **The =:BLOCKER:= is deliberately
+unset until the user names the real list** — a blocker invented from a
+plausible-looking survey is exactly the kind that reads as enforcement and
+enforces the wrong thing.
+
 
 * TODO Unplanned work in flight belongs to no slice: planned is writable, incidental is closed-only :code:
 :PROPERTIES:
@@ -18,33 +89,127 @@ Stated by the user 2026-09-11 and previously unrecorded anywhere: "a number of t
 :CATEGORY: Slices
 :END:
 
-Work has three states relative to an open slice and only two can be represented. Planned-and-open is a member line; unplanned-and-*closed* is picked up automatically, since =--slice-incidental-ids= defines an incidental as "a heading whose close this slice owns" and is derived from closes, never curated (=58e6c6a0=, deliberately — a hand-kept list goes stale by the second day). But unplanned-and-*still-open* appears nowhere: not planned, because it wasn't; not incidental, because it hasn't closed. The consequence is the sharp part — such work cannot enter the derived =:BLOCKER:=, so a slice can reach =DONE= while work it caused is still open, which is =e80f6ccf='s class arriving from a second direction. Note what is *not* wrong: nothing forbids adding a member to an open slice — =org_slice_add_member= refuses only a CLOSED one — so the sanctioned move already exists, and the conventions already say review residue and incidental work "both become member lines, so the distinction lives in the debrief rather than in the list". What misleads is the vocabulary: =Planned:= is a structural anchor for the member parser (=a43cfaa0=), not a claim of foresight, and reading it as foresight makes the one writable list look unavailable for the very work that most needs it. Proposed: say so explicitly in the conventions — a mid-flight addition is a *declaration of membership*, not a retroactive claim to have foreseen it — and decide whether in-flight unplanned work should be marked as such at all, or left to the debrief as the review-residue rule already does. Raised by the user 2026-09-11 as "a stark inconsistency we should not abide".
+Work has three states relative to an open slice and only two can be represented.
+Planned-and-open is a member line; unplanned-and-*closed* is picked up
+automatically, since =--slice-incidental-ids= defines an incidental as "a
+heading whose close this slice owns" and is derived from closes, never curated
+(=58e6c6a0=, deliberately — a hand-kept list goes stale by the second day). But
+unplanned-and-*still-open* appears nowhere: not planned, because it wasn't; not
+incidental, because it hasn't closed. The consequence is the sharp part — such
+work cannot enter the derived =:BLOCKER:=, so a slice can reach =DONE= while
+work it caused is still open, which is =e80f6ccf='s class arriving from a second
+direction. Note what is *not* wrong: nothing forbids adding a member to an open
+slice — =org_slice_add_member= refuses only a CLOSED one — so the sanctioned
+move already exists, and the conventions already say review residue and
+incidental work "both become member lines, so the distinction lives in the
+debrief rather than in the list". What misleads is the vocabulary: =Planned:= is
+a structural anchor for the member parser (=a43cfaa0=), not a claim of
+foresight, and reading it as foresight makes the one writable list look
+unavailable for the very work that most needs it. Proposed: say so explicitly in
+the conventions — a mid-flight addition is a *declaration of membership*, not a
+retroactive claim to have foreseen it — and decide whether in-flight unplanned
+work should be marked as such at all, or left to the debrief as the
+review-residue rule already does. Raised by the user 2026-09-11 as "a stark
+inconsistency we should not abide".
 
-*The user's ruling, 2026-09-11, which settles the open question above and inverts the current default:* "issues that are **discovered** during the course of a slice are already by nature incidental. unless there is a reason to defer them, they **should** become a member, albeit unplanned, of the slice, because they have some bearing on achieving the desired end state of the slice."
+*The user's ruling, 2026-09-11, which settles the open question above and
+inverts the current default:* "issues that are **discovered** during the course
+of a slice are already by nature incidental. unless there is a reason to defer
+them, they **should** become a member, albeit unplanned, of the slice, because
+they have some bearing on achieving the desired end state of the slice."
 
-*What that changes.* An incidental is currently defined by its **close** — =--slice-incidental-ids= lists "a heading whose close this slice owns" — so unplanned work is adopted retroactively, only if it finishes inside the window, and never blocks anything. Under this ruling adoption happens at **discovery**, which is the only version that puts the issue into the derived =:BLOCKER:= and therefore stops the slice closing over it. Default becomes adopt; deferral becomes the exception that needs a stated reason. Mechanically it needs no new tool: =org_slice_add_member= already accepts an open slice, and =--slice-incidental-ids= excludes ids the slice already names, so an adopted member is not double-listed when it later closes.
+*What that changes.* An incidental is currently defined by its **close** —
+=--slice-incidental-ids= lists "a heading whose close this slice owns" — so
+unplanned work is adopted retroactively, only if it finishes inside the window,
+and never blocks anything. Under this ruling adoption happens at **discovery**,
+which is the only version that puts the issue into the derived =:BLOCKER:= and
+therefore stops the slice closing over it. Default becomes adopt; deferral
+becomes the exception that needs a stated reason. Mechanically it needs no new
+tool: =org_slice_add_member= already accepts an open slice, and
+=--slice-incidental-ids= excludes ids the slice already names, so an adopted
+member is not double-listed when it later closes.
 
-*The test that bounds it, and it is in the ruling's own "because" clause.* Read as a justification, "they have some bearing on achieving the desired end state" explains why adopt is the right default; read as a **test**, it is what keeps a slice from sprawling. The session that raised this is the counterexample: working =afea7e4f= produced five discoveries (=c9940558=, =2deb090f=, =b57c7515=, =3f4fd744=, =f1e36a65=), every one of them incidental by discovery and *none* bearing on the transcript join, which shipped complete without them. Adopting all five would have left that slice at =[0/9]=, unable to close, held open by three unrelated subsystems. So "no bearing on this slice's end state" is a legitimate reason to defer — and on this evidence it is the common case, not the rare one.
+*The test that bounds it, and it is in the ruling's own "because" clause.* Read
+as a justification, "they have some bearing on achieving the desired end state"
+explains why adopt is the right default; read as a **test**, it is what keeps a
+slice from sprawling. The session that raised this is the counterexample:
+working =afea7e4f= produced five discoveries (=c9940558=, =2deb090f=,
+=b57c7515=, =3f4fd744=, =f1e36a65=), every one of them incidental by discovery
+and *none* bearing on the transcript join, which shipped complete without them.
+Adopting all five would have left that slice at =[0/9]=, unable to close, held
+open by three unrelated subsystems. So "no bearing on this slice's end state" is
+a legitimate reason to defer — and on this evidence it is the common case, not
+the rare one.
 
-*Which leaves one genuinely open sub-question:* whether an adopted-unplanned member is *visibly* distinguished from a planned one. The conventions' existing answer for review residue is that both become member lines and the distinction lives in the debrief; the ruling's phrase "a member, albeit unplanned" may want more than that. A third parsed lead (=Adopted:=, beside =Planned:= and =Incidental:=) is the obvious shape but is a real parser change — the member scan bounds itself on those leads — so it should be decided rather than assumed.
+*Which leaves one genuinely open sub-question:* whether an adopted-unplanned
+member is *visibly* distinguished from a planned one. The conventions' existing
+answer for review residue is that both become member lines and the distinction
+lives in the debrief; the ruling's phrase "a member, albeit unplanned" may want
+more than that. A third parsed lead (=Adopted:=, beside =Planned:= and
+=Incidental:=) is the obvious shape but is a real parser change — the member
+scan bounds itself on those leads — so it should be decided rather than assumed.
 
-*Sharpened by the user, same day, and it corrects the paragraph above.* "Relationship" is the right word, not "bearing" — the sentiment to make matter-of-course is: **we understand it now, it is in context, the costs and risks are low, so we might as well take it on and be done with it.** Expected to be the rule rather than the exception: if feature A is landing shortly, the feature H that surfaced while working A — or while looking ahead to B through G — is very likely wanted too.
+*Sharpened by the user, same day, and it corrects the paragraph above.*
+"Relationship" is the right word, not "bearing" — the sentiment to make
+matter-of-course is: **we understand it now, it is in context, the costs and
+risks are low, so we might as well take it on and be done with it.** Expected to
+be the rule rather than the exception: if feature A is landing shortly, the
+feature H that surfaced while working A — or while looking ahead to B through G
+— is very likely wanted too.
 
-*My counterexample was overstated and is withdrawn in part.* It tested the narrow end state ("does the transcript join need this to ship?") rather than relationship to the work in hand. Re-read under the looser test, three or four of the session's five discoveries qualify: =c9940558= was discovered *by* the tracker annotation and lives in the same render path, and =b57c7515= bears on the join directly — the prompt lookup keys on =session_id=, and a re-key leaves two transcripts for one conversation. Only =3f4fd744= is genuinely unrelated. So "no bearing" is not the common case; the marginal cost of adjacent work while the context is already loaded really is the dominant term.
+*My counterexample was overstated and is withdrawn in part.* It tested the
+narrow end state ("does the transcript join need this to ship?") rather than
+relationship to the work in hand. Re-read under the looser test, three or four
+of the session's five discoveries qualify: =c9940558= was discovered *by* the
+tracker annotation and lives in the same render path, and =b57c7515= bears on
+the join directly — the prompt lookup keys on =session_id=, and a re-key leaves
+two transcripts for one conversation. Only =3f4fd744= is genuinely unrelated. So
+"no bearing" is not the common case; the marginal cost of adjacent work while
+the context is already loaded really is the dominant term.
 
-*What survives is not a filter on adoption but the absence of a stopping point.* If adoption is the rule, membership grows monotonically while the slice runs, and every adopted member can itself produce discoveries. The termination condition is then not "the work ran out" but "we decided to stop adopting" — and nothing in the conventions says when that is. That, rather than over-adoption, is what turns the sentiment into scope creep: the two are distinguished by the *existence of a closing gate*, not by the decision to take something on.
+*What survives is not a filter on adoption but the absence of a stopping point.*
+If adoption is the rule, membership grows monotonically while the slice runs,
+and every adopted member can itself produce discoveries. The termination
+condition is then not "the work ran out" but "we decided to stop adopting" — and
+nothing in the conventions says when that is. That, rather than over-adoption,
+is what turns the sentiment into scope creep: the two are distinguished by the
+*existence of a closing gate*, not by the decision to take something on.
 
-*Proposed gate, because it costs nothing and reuses a line that already exists:* **adoption is open while the slice is =DOING=; entering =REVIEW= closes it.** =REVIEW= on a grouping already means every member terminal and the work not yet integrated (=e80f6ccf=), so it is exactly the moment membership should stop moving. A discovery after that goes to the next slice or stands alone — which is also what gives the *next* slice its natural seed.
+*Proposed gate, because it costs nothing and reuses a line that already exists:*
+**adoption is open while the slice is =DOING=; entering =REVIEW= closes it.**
+=REVIEW= on a grouping already means every member terminal and the work not yet
+integrated (=e80f6ccf=), so it is exactly the moment membership should stop
+moving. A discovery after that goes to the next slice or stands alone — which is
+also what gives the *next* slice its natural seed.
 
-*One legibility consequence to expect rather than be surprised by.* Adopting at discovery inflates the cookie's denominator before its numerator, so a slice's progress visibly regresses — =[3/6]= becomes =[3/9]=. Incidentals never did this, being done on arrival. It is honest and it will read as a defect to anyone who has not been told, so it belongs in the convention text.
+*One legibility consequence to expect rather than be surprised by.* Adopting at
+discovery inflates the cookie's denominator before its numerator, so a slice's
+progress visibly regresses — =[3/6]= becomes =[3/9]=. Incidentals never did
+this, being done on arrival. It is honest and it will read as a defect to anyone
+who has not been told, so it belongs in the convention text.
 
-*Approved as a trial, 2026-09-11:* run the depth-one rule on the slice in hand "and one or two more to see how it affects us". So it stays **provisional** in the conventions rather than hardening — the exit condition is two or three slices' experience, and what to look for is whether adoption actually stops at depth one or whether the distinction between a planned member's discovery and an adopted member's discovery turns out to be unreadable in the moment.
+*Approved as a trial, 2026-09-11:* run the depth-one rule on the slice in hand
+"and one or two more to see how it affects us". So it stays **provisional** in
+the conventions rather than hardening — the exit condition is two or three
+slices' experience, and what to look for is whether adoption actually stops at
+depth one or whether the distinction between a planned member's discovery and an
+adopted member's discovery turns out to be unreadable in the moment.
 
-*The user's own risk analysis, which is the part that makes the trial cheap:* "the worst that can happen is that future open slices (not =DOING=) get =CANCELLED= or entirely reformulated — same effect once a new slice with any members that were in a =CANCELLED= slice is created." That is right, and it names a release valve the conventions had not: **cancelling and reformulating an open slice is a normal move, not a failure.** A =CANCELLED= slice keeps its body, which the composition section already says is usually the part worth keeping, and its members are free to be composed into a successor. The cost of an over-adopted slice is therefore bounded by one reformulation.
+*The user's own risk analysis, which is the part that makes the trial cheap:*
+"the worst that can happen is that future open slices (not =DOING=) get
+=CANCELLED= or entirely reformulated — same effect once a new slice with any
+members that were in a =CANCELLED= slice is created." That is right, and it
+names a release valve the conventions had not: **cancelling and reformulating an
+open slice is a normal move, not a failure.** A =CANCELLED= slice keeps its
+body, which the composition section already says is usually the part worth
+keeping, and its members are free to be composed into a successor. The cost of
+an over-adopted slice is therefore bounded by one reformulation.
 
-*And that valve has a named trigger:* "that should always be an option when feature Q is suddenly needed so that work on another project can proceed". Not hypothetical — see [[id:6a207b00-8fa1-441e-8ee5-354702bc979b][6a207b00]]: adopting the plugin in agentic-euchre is blocked by unresolved work here, and a slice standing between that and the user is a slice worth reformulating rather than finishing out of order.
-
-
+*And that valve has a named trigger:* "that should always be an option when
+feature Q is suddenly needed so that work on another project can proceed". Not
+hypothetical — see [[id:6a207b00-8fa1-441e-8ee5-354702bc979b][6a207b00]]: adopting the plugin in agentic-euchre is blocked by
+unresolved work here, and a slice standing between that and the user is a slice
+worth reformulating rather than finishing out of order.
 
 
 * TODO org_capture cannot set =:CATEGORY:=, so every captured heading is uncategorised and nothing notices :code:
@@ -81,7 +246,6 @@ since the capture reply already names where the heading landed.
 *So the fix has two halves and the order matters.* **Move the =:CATEGORY:= taxonomy to an always-loaded rule** — that is the root cause, and it repairs the discipline for humans and agents alike without any code. Then **give =org_capture= a =category= argument and =bin/lint-org= a rule**, so the discipline does not depend on being remembered at all. The user's framing settles the lint's scope: inheritance is the right answer for a child, and a *first-degree* heading must carry its own, so the rule is "a level-1 heading with no drawer-local value is an error".
 
 *Repaired in passing, not deferred:* categories were assigned by hand to the eight real headings (=165ce65a=, =204d1b0a=, =b112878e=, =489d6f61=, =325679af=, =784d80c5=, =fbaf8009=, =af2f345e=). The two that remain uncategorised are cancelled scratch probes.
-
 
 
 * TODO [0/6] A span is only as true as its owner, its edges and its payload :code:
@@ -136,7 +300,7 @@ its finished ten and this sequences what is left.
 Planned:
 
 - [[id:406e9200-c3e7-49ac-a8d0-d6ff8e061ce4][406e9200]] DOING Make the guidepost pipeline produce durations that mean what they say
-  - [ ] [[id:b57c7515-c511-4198-b311-26cefc52a60d][b57c7515]] TODO A session id that changes mid-work splits one clock bracket across two queue files
+  - [ ] [[id:b57c7515-c511-4198-b311-26cefc52a60d][b57c7515]] NEXT A session id that changes mid-work splits one clock bracket across two queue files
   - [ ] [[id:9202b39d-49e4-441c-89f2-382feb4ef1ea][9202b39d]] TODO A background job's first turn is bracketed across two session_ids
   - [ ] [[id:7d739afd-f879-445c-b0b6-65e295585a94][7d739afd]] TODO Concurrent sessions' turns must union, not sum, wherever time is totalled
   - [ ] [[id:c9940558-b23e-4b2c-86e8-e75a377634aa][c9940558]] TODO Guidepost aggregation ignores =cwd=, so two projects' turns cluster into one span
@@ -218,11 +382,19 @@ Emacs. So the parser that cannot read this syntax is the one actually guarding
 every =DONE=.
 
 
-* TODO Open the review buffer newest-first, with =s= to reverse it like dired :code:
+* REVIEW Open the review buffer newest-first, with =s= to reverse it like dired :code:
 :PROPERTIES:
 :ID:       f1e36a65-3469-4ae6-ac1f-fdfcd1c053c9
 :CREATED:  [2026-09-11 Fri 17:32]
 :CATEGORY: Apply
+:END:
+:LOGBOOK:
+- State "REVIEW"     from "DOING"      [2026-09-11 Fri 20:21] \\
+  shipped, invariant pinned both directions
+CLOCK: [2026-09-11 Fri 20:16]--[2026-09-11 Fri 20:21] =>  0:05
+- State "DOING"      from "TODO"       [2026-09-11 Fri 20:16] \\
+  newest-first review buffer with a sort key
+- [2026-09-11 Fri 20:16]--[2026-09-11 Fri 20:21] newest-first default and the s toggle
 :END:
 
 Items render oldest-first — `--review-items-from-queue` sorts ascending by `:ts`/`:start` and nothing offers another order — so a pass that cares about what just happened begins by scrolling to the bottom of a buffer whose top is days old. Asked by the user 2026-09-11: present descending by default, and bind a sort key (`s`, following dired's `s` for toggling name/date order) that reverses it. One invariant is explicit and must hold in both directions: the mark commands still advance *downward*, toward the bottom of the buffer, so `m m m` walks a run whichever order it is displayed in — the display order changes what "next" means, never which way point travels. Watch the interaction with `--review-goto-item` and the point-restoration `9e80a32d` fixed, since both key on position rather than identity.
@@ -238,7 +410,6 @@ Items render oldest-first — `--review-items-from-queue` sorts ascending by `:t
 *A test-suite consequence worth recording, since it will recur for any display default.* Almost no review test is *about* sort order, but every one of them reads a rendered buffer — so the shared fixture and eight hand-built review buffers now pin chronological order explicitly, with the reason stated in the fixture's docstring. Leaving them at the new default would have made every test depend on a setting none of them names. The four tests that do exercise order set it themselves.
 
 *Verified:* 628 tests, 0 unexpected, from 624. Three mutations run red — ignoring the display order, reversing the apply list in place, and dropping the identity-based point restore.
-
 
 
 * TODO Nothing can correct a closed slice's record, even when the correction is close-time truth :code:
@@ -282,310 +453,6 @@ this one is detection.* TODO org_query exposes four of org-ql's thirty-five pred
 The user asked on 2026-09-11 why a session reaches for =sed=/=awk= against TODO.org when =emacs-tools= exists; the answer is that the two questions at hand were not expressible. =org_query= advertises =todo:=, =tags:=, =priority:= and =heading:=, while the loaded org-ql defines 35 predicates (measured, not recalled: =(length org-ql-predicates)=) including =property=, =closed=, =ts=, =category=, =level=, =blocked=, =children=, =descendants=, =ancestors= and =rifle=. So "which headings carry =:KIND: slice=" and "what closed after this timestamp" both became hand-rolled awk — and the first attempt silently mis-paired ids with headings, because =CLOSED:= precedes the property drawer and the script did not model that. The engine already supports what is missing; this is about the exposed surface. =property=, =closed= and =category= look highest-value here, =blocked= notable since this project has bespoke code for it.
 
 
-* DONE A slice can close while its integration point is still open, and post-close incidentals have nowhere to go :code:
-CLOSED: [2026-09-11 Fri 16:58]
-:PROPERTIES:
-:ID:       e80f6ccf-daa4-4032-b899-5de30146b27f
-:CREATED:  [2026-09-11 Fri 16:16]
-:CATEGORY: Slices
-:END:
-:LOGBOOK:
-CLOCK: [2026-09-11 Fri 16:08]--[2026-09-11 Fri 16:12] =>  0:04
-- <2026-09-11 Fri 16:08>--<2026-09-11 Fri 16:12> assigned at review
-CLOCK: [2026-09-11 Fri 16:34]--[2026-09-11 Fri 16:35] =>  0:01
-- [2026-09-11 Fri 16:34]--[2026-09-11 Fri 16:35] assigned at review
-CLOCK: [2026-09-11 Fri 16:39]--[2026-09-11 Fri 16:42] =>  0:03
-- State "DOING"      from "TODO"       [2026-09-11 Fri 16:39] \\
-  writing the close-at-integration-point rule
-- [2026-09-11 Fri 16:39]--[2026-09-11 Fri 16:42] slice closes at its integration point, via REVIEW
-- State "REVIEW"     from "DOING"      [2026-09-11 Fri 16:42] \\
-  convention written, lands on PR22
-- State "DONE"       from "REVIEW"     [2026-09-11 Fri 16:58] \\
-  merged in PR22
-:END:
-:DEBRIEF:
-The useful shape here: **a guard that refuses something you want is
-sometimes reporting that an earlier step was wrong.** The first instinct
-was to relax the closed-slice membership rule, which would have bought
-the edit and lost the only property that makes a closed cookie worth
-reading. Asking instead *why* the work arrived after the close found a
-close condition that was premature by construction — and then the guard
-needed no change at all.
-
-The generalisable test, since this will recur: when a rule blocks a
-change, check whether the thing it is protecting is still true. Here "the
-slice is finished" was not, so the refusal was accurate and the keyword
-was wrong.
-
-Also worth keeping: the cost of the old condition was invisible while
-every slice happened to merge the same day its members closed. =c19fbbf5=
-is the first slice whose PR outlived its last member by a day, which is
-why a condition wrong for every code slice went eleven slices without
-being noticed.
-
-*Correction, measured after writing the paragraph above.* The claim that
-=c19fbbf5= is the first slice whose PR outlived its last member is
-**false**, and it was inference rather than a reading. Comparing the eight
-closed slices' =CLOSED:= stamps against =gh pr list= merge times:
-=ec65b5d6= closed 2026-09-03 13:16 and its own PR (#9, which names it in
-the title) merged 2026-09-04 15:25 — about twenty-six hours later, the
-same gap as here. =ff7ccb2d= closed 2026-09-08 09:54 and =52bfafdf=
-13:16, both hours before the PRs of that evening.
-
-So the close condition has been wrong repeatedly, not once. What made
-=c19fbbf5= different is only that *something arrived in the window* —
-nine review findings needing a home — where the earlier gaps passed
-unused and so cost nothing visible. That is the better reading of why a
-condition wrong for every code slice survived eleven slices: not rarity,
-but that an empty window leaves no trace.
-:END:
-:PLAN:
-
-Surfaced 2026-09-11 trying to record three post-close closures on [[id:c19fbbf5-be1b-4c18-a38e-9b46d064abb8][c19fbbf5]]. =org_slice_add_member= refuses a closed slice because its list is a record — correct as far as it goes — but that slice closed on 2026-09-10 when its last member reached a terminal keyword, while its PR (#22) stayed open another day and kept accruing slice-incidental work. So the guard that protects a finished record also denies genuinely-belonging work its home, and the fallback is prose in the =:DEBRIEF:=, which no cookie or query can see. Candidate answers: close a slice when its integration point closes rather than when its members do; make the =Incidental:= section explicitly append-only after close; or ratify the prose fallback and say so in the conventions. A convention decision, not a bug.
-
-:END:
-Resolved 2026-09-11, the user choosing between the three candidates and
-adding the keyword: **a slice with an integration point closes when that
-lands, not when its last member goes terminal, and sits in =REVIEW=
-between the two.** The membership guard is untouched — it was never the
-defect. A slice with no integration point of its own still closes when
-its members finish.
-
-Written into the two shipped references and promoted: the slice
-conventions gain a "Closing a slice" section (the close condition, the
-floor-and-ceiling framing against the =:BLOCKER:=, and the
-consequent-versus-incidental distinction), and the state transitions
-reference defines =REVIEW= on a grouping next to the existing =DOING=
-sense. No new table rows were needed: entering =REVIEW= closes the
-grouping's clock only when the grouping holds the running one, which the
-=from DOING= rule already said.
-
-Two things recorded as limits rather than claims. =REVIEW= on a grouping
-is *new* — twelve slices had existed and none had carried it, so that
-paragraph is the whole of its grouping sense. And no retrofit:
-=c19fbbf5= keeps its 2026-09-10 close, its three post-close closures stay
-debrief prose, and the PR they landed on is the rest of the record.
-
-
-* DONE org_outline extracts every heading's body twice per call :code:
-CLOSED: [2026-09-11 Fri 16:58]
-:PROPERTIES:
-:ID:       64f649f3-d7ba-4ed9-9fe8-ccdad10ffb7f
-:CREATED:  [2026-09-11 Fri 15:45]
-:CATEGORY: Tools
-:END:
-:LOGBOOK:
-CLOCK: [2026-09-11 Fri 16:02]--[2026-09-11 Fri 16:04] =>  0:02
-- State "DOING"      from "TODO"       [2026-09-11 Fri 16:02] \\
-  hoist the body extraction
-- [2026-09-11 Fri 16:02]--[2026-09-11 Fri 16:04] outline body extracted once per heading
-- State "REVIEW"     from "DOING"      [2026-09-11 Fri 16:04] \\
-  lands on PR22, merges under judgement
-- State "DONE"       from "REVIEW"     [2026-09-11 Fri 16:58] \\
-  merged in PR22
-:END:
-:DEBRIEF:
-The measurement technique is the reusable part, and it is three lines:
-=advice-add= a counter =:before= the function under suspicion, run the
-real entry point over the real corpus, read the count. No timing, no
-profiler, no interpretation — for "is this called more often than it
-should be", a call count is the whole answer and it cannot be confounded
-by machine load. Worth reaching for before optimising anything in this
-file.
-
-The shape to watch for generally: a formatter called twice with different
-*filters* but the same *subject*. The filter difference is what makes the
-double call look necessary, and the subject being identical is what makes
-the second read waste. =--outline-map='s two calls had that shape in plain
-sight since the read split shipped.
-:END:
-:PLAN:
-
-Found by PR22's review pass. =--outline-map= calls =--outline-line= twice per heading (filtered and unfiltered) and now passes =bodies= to both, so =--outline-body-at-point= — an =org-end-of-meta-data= walk plus a =buffer-substring= — runs twice for every heading, on a path that is default-on over whole files, with only one of the two strings ever used. Hoisting the body once per entry and passing it into both calls halves it. Efficiency only, no wrong output; filed because the read split ([[id:2a399034-5267-47ed-a129-20e371a77146][2a399034]]) made this the common path rather than an opt-in.
-
-:END:
-Resolved 2026-09-11. =--outline-map= extracts the body once per heading
-and hands the text to both =--outline-line= calls, whose fourth argument
-changed from a =bodies= flag to the BODY text itself. =--outline-map= is
-its only caller, so the signature change is contained.
-
-Measured rather than asserted, by counting calls to
-=--outline-body-at-point= during a default =org_outline= over this repo's
-TODO.org: **320 extractions before, 160 after, for 160 headings** — from
-exactly two per heading to exactly one. 601/601.
-
-One secondary effect worth naming: a heading that =active_only= filters
-out used to cost one extraction (the unfiltered call always ran, the
-filtered one returned early) and still costs one now. The win is on
-surviving headings, which on an unfiltered whole-file call is all of
-them.
-
-
-* DONE apply-detect's last jq is its exit status, and the stamp advances before the report is emitted :code:
-CLOSED: [2026-09-11 Fri 16:58]
-:PROPERTIES:
-:ID:       31453a5e-c909-41ca-bbbf-5b17819a8804
-:CREATED:  [2026-09-11 Fri 15:45]
-:CATEGORY: Dev
-:END:
-:LOGBOOK:
-CLOCK: [2026-09-11 Fri 15:56]--[2026-09-11 Fri 15:58] =>  0:02
-- State "DOING"      from "TODO"       [2026-09-11 Fri 15:56] \\
-  fix exit status and stamp ordering
-- [2026-09-11 Fri 15:56]--[2026-09-11 Fri 15:58] apply-detect exit 0 and stamp after emit
-- State "REVIEW"     from "DOING"      [2026-09-11 Fri 15:58] \\
-  lands on PR22, merges under judgement
-- State "DONE"       from "REVIEW"     [2026-09-11 Fri 16:58] \\
-  merged in PR22
-:END:
-:DEBRIEF:
-Worth keeping: for an at-most-once notification, **the cheap failure and
-the expensive one are not symmetric**, so the order of emit and stamp is
-a real choice rather than style. Report-then-stamp risks saying it twice;
-stamp-then-report risks never saying it. The original wrote the stamp
-first, which bought nothing and chose the expensive side.
-
-Also worth noting for the hook family generally: =set -uo pipefail=
-without =-e= does not make a script exit 0 — the *last command's* status
-is the script's, so any hook whose final statement is a pipeline or a =jq=
-silently inherits it. An explicit trailing =exit 0= is the only thing that
-makes "every failure path exits 0" true, and the other hooks in
-=bin/hooks/= are worth a pass for the same shape.
-
-That pass was done immediately rather than filed, and found nothing:
-every other script in =bin/hooks/= already ends in an explicit =exit= —
-=exit 0= for the fire-and-forget ones, a deliberate =exit 2= for
-=clock-target-check= and =footnote-check=, which block on purpose — and
-=session-pause= ends in =exec queue-append pause=, inheriting that
-script's own =exit 0=. =apply-detect= was the only one, so there is no
-heading owed here.
-:END:
-:PLAN:
-
-Found by PR22's review pass, two defects in one script. The final =jq= determines =bin/hooks/apply-detect='s exit status, contradicting the header's promise that every failure path exits 0 silently: jq's *absence* is guarded, but a jq that fails for any other reason surfaces a hook-error banner on a prompt this hook is meant to be invisible to. Separately, the =.apply-seen= stamp is touched *before* the report is emitted, so a kill at the 10 s timeout loses the context while the stamp has already advanced — and that apply is then never reported at all. Both are in [[id:165ce65a-f87e-431c-8ee4-f0fbfffe14da][165ce65a]]'s new code.
-
-:END:
-Resolved 2026-09-11. The final =jq= is now wrapped in an =if= whose
-success gates the =touch=, and the script ends in an unconditional
-=exit 0= — so a report that fails for any reason other than jq's absence
-(already handled at the top) neither fails the hook nor advances the
-stamp.
-
-Ordering the two this way is the substantive decision. Emitting before
-stamping means a kill at the 10 s timeout leaves the apply still owed, so
-the next prompt announces it again: a duplicate sentence rather than an
-apply reported to nobody. Two tests in =bin/apply-detect-test=, both
-measured failing against the old script — a =jq= shim that passes the
-parse call through and fails only the =-cn= report call, which is the
-only path that reaches the final =jq=.
-
-
-* DONE The pre-push PR advisory false-positives on a catch-up merge that did arrive through a PR :code:
-CLOSED: [2026-09-11 Fri 16:58]
-:PROPERTIES:
-:ID:       e0094245-aa6b-4c1f-b5f8-bcdc8b9f910b
-:CREATED:  [2026-09-11 Fri 15:45]
-:CATEGORY: Dev
-:END:
-:LOGBOOK:
-CLOCK: [2026-09-11 Fri 15:58]--[2026-09-11 Fri 15:59] =>  0:01
-- State "DOING"      from "TODO"       [2026-09-11 Fri 15:58] \\
-  scope the advisory to first-parent history
-- [2026-09-11 Fri 15:58]--[2026-09-11 Fri 15:59] pre-push advisory first-parent fix
-- State "REVIEW"     from "DOING"      [2026-09-11 Fri 15:59] \\
-  lands on PR22, merges under judgement
-- State "DONE"       from "REVIEW"     [2026-09-11 Fri 16:58] \\
-  merged in PR22
-:END:
-:DEBRIEF:
-The git fact behind this is worth not rediscovering: for a merge commit
-=A=, the range =A~1..A= is **not** "just A" — it is A plus everything
-reachable from A's second parent, i.e. the entire merged branch. So any
-pre-push or CI check that reasons over =remote_sha..local_sha= is, by
-default, reasoning over the contents of every branch merged in that push,
-not over what landed on the target. =--first-parent= is the way to ask
-the question people think they are asking.
-
-Also worth noting: the hook's *existing* test case 0 passed throughout,
-because the one PR it sampled happened to have no in-branch merges. The
-suite tested the rule against history that could not discriminate — a
-reminder that a green check over real data still only covers the shapes
-that data contains.
-:END:
-:PLAN:
-
-Found by PR22's review pass. =.githooks/pre-push= flags every merge commit in the pushed range except those titled =Merge pull request=, which catches =Merge branch 'main' into feature/x= commits made on a feature branch to catch up — and those become reachable from main the moment that branch merges *via a PR*. So syncing main into a long-lived branch once produces a misleading reminder on the next push to main. Advisory only, so the cost is noise rather than a block; scanning =--first-parent= history of main would match what the rule ([[id:c7bf2121-755c-4e52-8bf2-e21e56b1e0c2][c7bf2121]]) is actually about.
-
-:END:
-Resolved 2026-09-11 by adding =--first-parent= to the advisory's
-=git log=. Measured on real history rather than argued: PR #2's range
-(=01da949~1..01da949=) carries two in-branch merges — the =Merge branch
-'main' into feature/event-queue-format= catch-up (=32f5c2a=) and a
-branch-into-branch merge (=7f6e6d6=) — and the old scan named both in an
-advisory about a branch that *did* arrive through a pull request. It now
-names none.
-
-A genuine local merge into main is still caught, because such a merge is
-a commit on main and so sits on main's own first-parent chain; the
-existing case-1 assertions on =fee51fd= still pass unchanged. Two new
-cases in =bin/pre-push-test=, both measured failing against the old hook.
-
-
-* DONE doc-sync-check ships to consuming repos and asserts conventions they do not have :code:
-CLOSED: [2026-09-11 Fri 16:58]
-:PROPERTIES:
-:ID:       04125b0b-adf8-4b65-9afe-7a4724a62d34
-:CREATED:  [2026-09-11 Fri 15:45]
-:CATEGORY: Dev
-:END:
-:LOGBOOK:
-CLOCK: [2026-09-11 Fri 15:49]--[2026-09-11 Fri 15:54] =>  0:05
-- <2026-09-11 Fri 15:49>--<2026-09-11 Fri 15:54> assigned at review
-CLOCK: [2026-09-11 Fri 15:55]--[2026-09-11 Fri 15:56] =>  0:01
-- State "DOING"      from "TODO"       [2026-09-11 Fri 15:55] \\
-  deciding which hooks the plugin ships
-- [2026-09-11 Fri 15:55]--[2026-09-11 Fri 15:56] unship doc-sync-check from the plugin
-- State "REVIEW"     from "DOING"      [2026-09-11 Fri 15:56] \\
-  lands on PR22, merges under judgement
-- State "DONE"       from "REVIEW"     [2026-09-11 Fri 16:58] \\
-  merged in PR22
-:END:
-:DEBRIEF:
-The useful residue is a test for the next hook, since "is this session
-tracking or repo convention?" was not obvious from either script: **does
-the hook's subject exist in the consuming repo?** =footnote-check= asks
-the consumer's own org files what their ids are and passes; a hook naming
-a path only this repo has cannot. Worth applying before adding a row to
-=hooks/hooks.json=, because nothing mechanical catches it — there is no
-parity check between =hooks/hooks.json= and =.claude/settings.json=, and
-the divergence is now deliberate rather than drift.
-:END:
-:PLAN:
-
-Found by PR22's review pass. =hooks/hooks.json= wires =doc-sync-check= into the plugin, where =CLAUDE_PROJECT_DIR= is the *consumer's* root — so their own CLAUDE.md and README.md match and the hook injects this repo's overlap-zone convention, [[id:d7849119-8224-4993-a8ab-83e1434df53c][d7849119]], into a repo where it does not exist. Its =DOOM.md= and =skills/org/references/org-emacs-setup.md= rows are likewise paths only this repo has. The file's own description claims every script appends to or checks =~/.claude/org-updates/=, which this one does not: it is dev tooling for here, not session-tracking machinery, and =footnote-check= is arguably in the same position. Decide which hooks the plugin should actually ship.
-
-:END:
-Resolved 2026-09-11. =doc-sync-check= is removed from =hooks/hooks.json=
-and stays wired in this repo's own =.claude/settings.json=, which is
-where it belongs: its subject is this repo's CLAUDE.md/README.md overlap
-zone, named by ID in its own header, and under the plugin
-=CLAUDE_PROJECT_DIR= is the consumer's root.
-
-=footnote-check= was examined and *kept*, against the finding's
-suggestion that it is in the same position. It is not: it validates each
-candidate token against the =:ID:= lines of the *consuming* repo's
-tracked org files, so it enforces that repo's own ids and is inert where
-there are no org files. The convention it carries is the org
-way-of-working the plugin exists to teach, not a fact about this
-repository. =clock-target-check= ships for the same reason — it reads the
-queue.
-
-The description line was also wrong in the way the finding noted, and
-now states what it actually promises: every shipped script works against
-the queue or the consumer's own org files, and hooks enforcing this
-repo's conventions are deliberately absent.
-
-
 * TODO apply-detect reports an apply when the review pass only dismissed events :code:
 :PROPERTIES:
 :ID:       7b4f4f14-6c76-4822-84c1-67589bc74b82
@@ -594,62 +461,6 @@ repo's conventions are deliberately absent.
 :END:
 
 Found by PR22's review pass. =--queue-watermark-write= is the single writer for =<session>.applied= and is called from both =--queue-mark-applied= and the dismissal path, and it rewrites the file (atomic rename, new mtime) even when nothing new landed. So a pass where a human only dismisses stale events makes the next prompt carry "the review queue was applied since this session's last turn … keywords and clocks reflect the apply" when nothing on disk changed — the inverse of the freshness the hook exists to assert, and a claim a session will relay. Either the watermark must distinguish applied-something from pass-ran, or the hook must compare something other than its mtime. Introduced with [[id:165ce65a-f87e-431c-8ee4-f0fbfffe14da][165ce65a]].
-
-
-* DONE The capture reply names a basename, so it cannot say which tracker received the heading :code:
-CLOSED: [2026-09-11 Fri 16:58]
-:PROPERTIES:
-:ID:       86c11795-4972-45b5-acef-677a18b26134
-:CREATED:  [2026-09-11 Fri 15:45]
-:CATEGORY: Tools
-:END:
-:LOGBOOK:
-CLOCK: [2026-09-11 Fri 16:00]--[2026-09-11 Fri 16:02] =>  0:02
-- State "DOING"      from "TODO"       [2026-09-11 Fri 16:00] \\
-  make the reply name the tracker
-- [2026-09-11 Fri 16:00]--[2026-09-11 Fri 16:02] capture reply names the full tracker path
-- State "REVIEW"     from "DOING"      [2026-09-11 Fri 16:02] \\
-  lands on PR22, merges under judgement
-- State "DONE"       from "REVIEW"     [2026-09-11 Fri 16:58] \\
-  merged in PR22
-:END:
-:DEBRIEF:
-The lesson is about fixtures, not about paths. A test whose two possible
-outcomes differ in the fixture but *not* in production is green for the
-wrong reason, and nothing in the test's text shows it: here the fixture's
-fallback file was =capture.org= while production's is =TODO.org=, so the
-assertion discriminated in the suite and would not have discriminated in
-the field. Worth checking whenever a fixture renames something production
-does not — the convenience that makes a fixture readable is exactly what
-can make its assertion weaker than it looks.
-
-Note also that this heading was filed from a review finding that slightly
-overstated the defect, and the overstatement survived into a first draft
-of the test comment before being measured. The reviewed claim was
-directionally right and specifically wrong, which is the ordinary case,
-not a lapse.
-:END:
-:PLAN:
-
-Found by PR22's review pass. =:where= renders =(format "top of %s" (file-name-nondirectory default))=, which is =top of TODO.org= for every project, because routing only ever selects files literally named TODO.org. The comment two lines above says which tracker received the heading "is the fact the reply must carry" — the basename does not carry it; the project directory is the discriminating part. Cosmetic next to [[id:5e731a23-7708-4248-b055-9b4a531f147d][5e731a23]] and [[id:965f94eb-1558-4d00-9857-5727eb86fe6f][965f94eb]], but it is also what makes those two invisible from inside a session: the reply looks correct whichever file was written.
-
-:END:
-Resolved 2026-09-11. =:where= now renders =(abbreviate-file-name
-default)=, so a targetless capture answers "top of ~/git/<repo>/TODO.org"
-rather than "top of TODO.org"; the unresolvable-target error names the
-same path. =abbreviate-file-name= over a bare path because the review
-buffer renders this string and the line has to stay readable.
-
-One correction to this heading's own premise, found while testing.
-=claude-code-ide-org-test-capture-routes-to-the-sessions-project= *did*
-discriminate under the old basename assertion — but only because its
-fixture's fallback file is named =capture.org=. In production both
-candidates are a repo's =TODO.org=, where the basename separates nothing,
-so the fixture was proving a weaker claim than its docstring stated. The
-test now asserts the project path appears and the fallback path does not,
-and it was measured failing against a simulated misroute
-(=--session-project-capture-file= stubbed to nil), which is the condition
-it exists to catch.
 
 
 * TODO Every standalone client shares one project context, chosen by unstable ordering :code:
@@ -670,65 +481,6 @@ Found by PR22's review pass. The shipped =.mcp.json= pins =/mcp/warp=, so every 
 :END:
 
 Found by PR22's review pass. =--review-apply-capture= resolves a nil target through =--capture-target-file=, which consults the MCP session context — but upstream =let=-binds =--current-session-id= around the HTTP request only, so during =M-x claude-code-ide-org-review= it is nil and the heading falls back to the global capture file. So: capture with no target from project B while B's TODO.org has unsaved edits, the call defers and answers "top of TODO.org", a human applies, and the heading lands in project A's tracker. This is [[id:d718f6b6-5a33-4889-8b5a-8ea82553ccea][d718f6b6]] surviving on its queued half. The queue event already carries =cwd= (=bin/hooks/queue-append:229=) and nothing on the apply path reads it, which is the likely fix.
-
-
-* DONE org_body drawer=: report an unterminated drawer as malformed, not missing :code:
-CLOSED: [2026-09-11 Fri 16:58]
-:PROPERTIES:
-:ID:       c4048784-f9be-4f95-9ca6-cd161932e74c
-:CREATED:  [2026-09-11 Fri 13:23]
-:CATEGORY: Tools
-:END:
-:LOGBOOK:
-CLOCK: [2026-09-11 Fri 12:51]--[2026-09-11 Fri 12:52] =>  0:01
-- [2026-09-11 Fri 12:51]--[2026-09-11 Fri 12:52] assigned at review
-CLOCK: [2026-09-11 Fri 12:58]--[2026-09-11 Fri 12:59] =>  0:01
-- [2026-09-11 Fri 12:58]--[2026-09-11 Fri 12:59] assigned at review
-CLOCK: [2026-09-11 Fri 13:01]--[2026-09-11 Fri 13:02] =>  0:01
-- [2026-09-11 Fri 13:01]--[2026-09-11 Fri 13:02] assigned at review
-CLOCK: [2026-09-11 Fri 13:20]--[2026-09-11 Fri 13:21] =>  0:01
-- [2026-09-11 Fri 13:20]--[2026-09-11 Fri 13:21] assigned at review
-CLOCK: [2026-09-11 Fri 13:23]--[2026-09-11 Fri 13:24] =>  0:01
-- [2026-09-11 Fri 13:23]--[2026-09-11 Fri 13:24] fix unterminated-drawer error message plus test
-- State "REVIEW"     from "DOING"      [2026-09-11 Fri 13:24] \\
-  landed on PR22, merges under human judgement
-CLOCK: [2026-09-11 Fri 15:31]--[2026-09-11 Fri 15:33] =>  0:02
-- [2026-09-11 Fri 15:31]--[2026-09-11 Fri 15:33] assigned at review
-CLOCK: [2026-09-11 Fri 15:44]--[2026-09-11 Fri 15:48] =>  0:04
-- [2026-09-11 Fri 15:44]--[2026-09-11 Fri 15:48] rewrite drawer read onto org-element
-- State "DONE"       from "REVIEW"     [2026-09-11 Fri 16:58] \\
-  merged in PR22
-:END:
-:PLAN:
-
-Found by the PR22 low-effort review pass: in claude-code-ide-org--drawer-text-at-point, a target drawer whose :NAME: line exists but never closes with :END: before the next heading leaves content nil and falls into the missing-drawer error branch -- which then lists that very drawer under "Drawers present:", telling the caller the drawer does not exist while showing that it does. Proposed: track the found-but-unterminated case distinctly and report the drawer as malformed, so the caller learns the fix is in the file, not in their next tool call. Fix plus a discriminating ERT test, landed as a fixup on feature/plugin-package while PR22 is open, since the function is part of that PR's diff ([[id:2a399034-5267-47ed-a129-20e371a77146][2a399034]] shipped it).
-
-:END:
-Resolved 2026-09-11 in two passes, and the second is the one that
-mattered. The first (=0f5f362=) fixed the contradictory error message
-this heading's title names. A =med= review pass then found the scanner
-*underneath* it wrong in a worse way: =--drawer-text-at-point= was a
-fourth copy of the search [[id:f42641ab-fdd6-4754-add9-490dd6b24ef8][f42641ab]] consolidated into one, and it
-repeated the bug that heading fixed. Measured before touching it: on a
-heading whose =:PLAN:= drawer quotes a bare =:DEBRIEF:= line — ordinary
-in a repo whose bodies discuss drawers constantly — =org_body
-drawer=DEBRIEF= returned the prose between the decoy and =:PLAN:='s own
-=:END:=, confidently wrong where an error was owed.
-
-=6633929= rewrote it onto =org-element=: =--drawers-at-point= enumerates
-the real drawers and requires the element to *begin* on the candidate
-line, without which =org-element-at-point= answers with the enclosing
-drawer and a decoy passes the type check anyway. It covers the property
-drawer, which =--find-drawer= excludes on purpose, so =drawer=PROPERTIES=
-still resolves rather than being denied.
-
-Two things worth keeping. The malformed-vs-missing distinction does not
-fall out of =org-element=, which declines an unterminated drawer and a
-decoy alike, so =--unterminated-drawer-p= carries it deliberately. And
-the new decoy test caught *my own* predicate calling a =:LOGBOOK:=
-inside =#+begin_example= malformed — nothing in an example block needs
-closing — which is why that predicate now tests the element type and its
-start position rather than the absence of an =:END:= alone. 601/601.
 
 
 * REVIEW A hook tells the session the queue was applied, ending the "queue applied" announcements :code:
@@ -775,76 +527,6 @@ unambiguous when it happens. Note the earlier REVIEW note already
 anticipated this precisely — "the next session's unprompted reaction is
 the exit" — so accepting today's run would be weakening a criterion after
 seeing the result.
-
-
-* CANCELLED Scratch: note-fix probe (cancel me)
-CLOSED: [2026-09-11 Fri 11:44]
-:PROPERTIES:
-:ID:       878f5843-04de-4153-9e5d-66f0751c8dd3
-:CREATED:  [2026-09-11 Fri 11:44]
-:END:
-:LOGBOOK:
-- State "CANCELLED"  from "TODO"       [2026-09-11 Fri 11:44] \\
-  probe confirmed the fix live
-:END:
-
-PROBE-2: this sentence must now appear as the heading's body.
-
-
-* DONE org_capture accepts a note it silently discards, and five headings shipped bodiless :code:
-CLOSED: [2026-09-11 Fri 11:45]
-:PROPERTIES:
-:ID:       204d1b0a-e5de-41f3-8983-b60638ce196a
-:CREATED:  [2026-09-11 Fri 11:35]
-:CATEGORY: Tools
-:END:
-:LOGBOOK:
-CLOCK: [2026-09-11 Fri 11:33]--[2026-09-11 Fri 11:35] =>  0:02
-- [2026-09-11 Fri 11:33]--[2026-09-11 Fri 11:35] bug hunt: capture notes vanish on both paths
-CLOCK: [2026-09-11 Fri 11:41]--[2026-09-11 Fri 11:45] =>  0:04
-- State "DOING"      from "TODO"       [2026-09-11 Fri 11:41] \\
-  building the fix: note lands as initial body on both paths
-- [2026-09-11 Fri 11:41]--[2026-09-11 Fri 11:45] 204d1b0a closed
-- State "DONE"       from "DOING"      [2026-09-11 Fri 11:45] \\
-  fixed, tested red-first, proven live
-:END:
-:DEBRIEF:
-The fix rode the single-code-path design exactly as intended: =--capture-write= gained an optional =note= and both callers pass it — the immediate path from the tool argument, the apply path from the queued event, which already carried the text (measured 689 and 681 characters on the two deferred captures that shipped bodiless). Insertion reuses the amend idiom (=--end-of-body= + =--amend-separator=), not the capture template, because template text is scanned for %-escapes and user prose containing =%U= would expand instead of landing. Three-case ERT (immediate with a literal %U, apply-path with %i, omitted note leaves no stray line), proven red against HEAD; live probe =878f5843= captured and read back with its body present, then cancelled. The schema's old "short 3-10 word reason" description had said the truth quietly — the misuse happened anyway, which is why the fix is behavior rather than better prose.
-:END:
-:PLAN:
-
-Found 2026-09-11 when the user noticed =b112878e= had no prose. The docstring is
-explicit — "NOTE is a short reason, carried for the queue and unused on the
-immediate path" — and =--capture-write= takes no note parameter, so the queued
-path drops it at apply too (measured: events carrying 689 and 681 characters
-landed as bare headings). The contract is coherent (note = review-buffer
-annotation, like a clock note; body prose = the two-call composition via
-=org_amend=) but the *surface invites misuse*: the tool accepts arbitrarily long
-prose and reports "Captured" with no hint anything was discarded — six filings
-across two days shipped bodiless before anyone noticed, all restored by amend.
-Decide one of: (a) the immediate path writes the note as the initial body (and
-apply gains the same, changing the deferred contract); (b) the tool refuses or
-warns on notes beyond a sentence; (c) the schema description alone is sharpened
-to say the note never reaches the heading. Whichever lands, the reply should
-stop saying "Captured" as if everything given was kept. Probe evidence:
-=49e1556b= (scratch, cancelled same minute).
-
-:END:
-Resolved 2026-09-11, same day filed: option (a) — the note becomes the heading's initial body on both paths through =--capture-write=, inserted after =org-capture= finalizes so template %-escapes cannot expand user prose; the docstrings and tool schema now state the contract, and the reply's "Captured" is honest again.
-
-
-* CANCELLED Scratch: capture-note probe (cancel me)
-CLOSED: [2026-09-11 Fri 11:35]
-:PROPERTIES:
-:ID:       49e1556b-e6b2-4172-b63e-fef38bea8910
-:CREATED:  [2026-09-11 Fri 11:33]
-:END:
-:LOGBOOK:
-- [2026-09-11 Fri 11:13]--[2026-09-11 Fri 11:31] assigned at review
-- State "CANCELLED"  from "TODO"       [2026-09-11 Fri 11:35] \\
-  probe served its measurement
-- [2026-09-11 Fri 11:35]--[2026-09-11 Fri 11:40] assigned at review
-:END:
 
 
 * TODO org_slice_add_member cannot prepend or reorder, so declared order is append-only :code:
@@ -896,11 +578,11 @@ The record knows *when* work happened but not *what was going on* — a 0-run sp
 
 Planned:
 
-- [-] [[id:325679af-829e-4c7f-88b0-153c2c9683b3][325679af]] DOING The review buffer shows each run's opening prompt, joined from the transcript
-- [ ] [[id:96ddf1ef-67fd-4d3c-b8cc-01ebb14a687d][96ddf1ef]] TODO Render a session transcript to readable org, so scrollback stops being the index
+- [-] [[id:325679af-829e-4c7f-88b0-153c2c9683b3][325679af]] REVIEW The review buffer shows each run's opening prompt, joined from the transcript
+- [-] [[id:96ddf1ef-67fd-4d3c-b8cc-01ebb14a687d][96ddf1ef]] REVIEW Render a session transcript to readable org, so scrollback stops being the index
 - [ ] [[id:295cde3a-49a5-4960-a828-a4fc175d73c1][295cde3a]] TODO Attribute a turn to several tasks by weight, judged from the transcript with lag
 - [-] [[id:fbaf8009-b3dc-48ed-b099-63b74fc156a8][fbaf8009]] REVIEW The review buffer should name each item's tracker, now that two projects share the queue
-- [ ] [[id:f1e36a65-3469-4ae6-ac1f-fdfcd1c053c9][f1e36a65]] TODO Open the review buffer newest-first, with =s= to reverse it like dired
+- [-] [[id:f1e36a65-3469-4ae6-ac1f-fdfcd1c053c9][f1e36a65]] REVIEW Open the review buffer newest-first, with =s= to reverse it like dired
 
 *Adopted 2026-09-11 under the new discovery rule:* =f1e36a65= (open the review buffer newest-first, =s= to reverse) surfaced while this slice's first two members were being built — same buffer, unclaimed, cheap, and wanted — so it joins as an unplanned member rather than waiting to be listed as incidental after it closes. The cookie moves from =[0/4]= to =[0/5]=, which is the denominator-before-numerator regression the convention now warns about, not a loss of progress.
 
@@ -909,30 +591,58 @@ Planned:
 *One of those cross-references is worth reading before Step 3.* =b57c7515= established that a session id can change mid-work, leaving **two transcripts for one conversation** — the earlier truncated at the switch, the later complete from the original start. =96ddf1ef= renders a session transcript to org and would, keyed naively on session id, render that conversation twice with the first copy silently short. That is a design input, not a defect to fix here.
 
 
-
-* MAYBE Emacs died of a fatal signal at review-buffer quit, deadlocked in the mac port's shutdown
+* TODO Emacs died of a fatal signal at review-buffer quit, deadlocked in the mac port's shutdown
 :PROPERTIES:
 :ID:       489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938
 :CREATED:  [2026-09-11 Fri 09:59]
 :CATEGORY: Apply
 :END:
+:LOGBOOK:
+- State "TODO"       from "MAYBE"      [2026-09-14 Mon 09:23] \\
+  recurred 2026-09-14; second sample names the trigger
+:END:
 
 (Filing prose restored 2026-09-11 — the original capture note was discarded by =org_capture='s immediate path, by documented design.) 2026-09-11, one occurrence: the beachball after the ceremony's final =q= was a corpse — =sample= showed the lisp thread inside =handle_fatal_signal= → =shut_down_emacs= → =kill_buffer_processes= waiting on the GUI queue's semaphore while the GUI thread waited on the lisp queue (mac-port termination deadlock). All buffers were saved first: the ceremony's 85-heading archive sweep (~5,300 lines TODO.org → DONE.org) landed on disk at 09:42 and nothing was lost. Killed with SIGKILL, relaunched, glue re-wired unaided. The fatal signal's origin is unknown — the crash landed while idle-waiting in =really_call_select=, so the ceremony correlation may be timing, not cause. Promote if it recurs; a second sample is the next data point.
 
+*Mitigation applied 2026-09-14 10:10 by the user:* =defaults write org.gnu.Emacs NSAutoFillHeuristicControllerEnabled -bool false=. Read back as =NSAutoFillHeuristicControllerEnabled = 0=; the domain is confirmed correct from the crash sample's own header (=Identifier: org.gnu.Emacs=). Reversible with =defaults delete=.
 
-* DOING The review buffer shows each run's opening prompt, joined from the transcript :code:
+*The precondition, stated because the obvious reading of the next quiet week is wrong.* =NSUserDefaults= are read **at launch**. The Emacs running when this was written had started at 09:22:33 and therefore still had AutoFill enabled — so nothing that happens to *that* process is evidence in either direction. The experiment begins at the next restart.
+
+*What would count as evidence, and the asymmetry is the point.* A further crash carrying the =NSAutoFillHeuristicController -> selectedRange= stack, in an Emacs launched after the write, **falsifies** the mitigation immediately and cleanly. Absence of crashes confirms only weakly: the observed base rate is two events in three days, so a quiet week is consistent with the fix working *and* with ordinary variance.
+
+*A faster and more direct check than waiting.* Sample a freshly launched Emacs during normal use and grep the output for =NSAutoFillHeuristicController=. If the controller is genuinely disabled it should not be scheduling =_showOrHideAutoFillForCurrentTextInputContextIfAppropriate= at all, so its *absence from the call graph* is direct evidence about the mechanism rather than indirect evidence about outcomes. Its continued presence would mean the defaults domain is not consulted — which converts this from a local workaround into an upstream Emacs bug report, and is worth knowing early.
+
+*Withdrawing the "faster and more direct check" proposed above — it does not discriminate, and the control is what showed that.* The idea was that a sample of a post-fix Emacs showing no =NSAutoFillHeuristicController= frames would be direct evidence the controller is disabled. Tested 2026-09-14 against the pre-fix samples first: the crash sample carries 2 such frames, but the *other* pre-fix sample — the runaway-lisp wedge at 09:3x, an Emacs with AutoFill fully **enabled** — carries **0**. So absence is what a sample yields either way, and the check would have returned "0 frames" and been read as success no matter what the key did.
+
+*Measured on the restarted Emacs anyway, for the record and not as evidence:* launched 10:17:44 (after the 10:10:53 write), sampled 6 s — 0 AutoFill frames, 0 =selectedRange= frames. Consistent with the fix and equally consistent with the controller simply not having fired during six idle seconds.
+
+*Nor can the key be read from inside Emacs.* This is the **mac port** (=(featurep 'mac)= is t, =window-system= is =mac=), and =ns-get-resource= — the NS port's accessor for the application's defaults domain — is unbound here. So there is no in-process way to confirm the value was seen.
+
+*What remains is therefore only the asymmetric test already stated: the falsifier is sharp and the confirmer is slow.* Another crash carrying the =NSAutoFillHeuristicController -> selectedRange= stack, in an Emacs launched after 10:10:53, settles it negatively at once. Nothing available short of that settles it positively — a quiet week is consistent with both the fix working and a base rate of two events in three days. Resist reading the quiet as confirmation; that is exactly the reading this correction exists to prevent.
+
+
+
+* REVIEW The review buffer shows each run's opening prompt, joined from the transcript :code:
 :PROPERTIES:
 :ID:       325679af-829e-4c7f-88b0-153c2c9683b3
 :CREATED:  [2026-09-11 Fri 09:59]
 :CATEGORY: Apply
 :END:
 :LOGBOOK:
+- State "REVIEW"     from "DOING"      [2026-09-11 Fri 18:14] \\
+  shipped and verified on the real queue
+CLOCK: [2026-09-11 Fri 18:17]--[2026-09-11 Fri 18:18] =>  0:01
+:LOGBOOK:
+- [2026-09-11 Fri 18:17]--[2026-09-11 Fri 18:18] tests, mutations and commits for the prompt join
+:END:
 CLOCK: [2026-09-11 Fri 09:43]--[2026-09-11 Fri 09:45] =>  0:02
 - [2026-09-11 Fri 09:43]--[2026-09-11 Fri 09:45] assigned at review
 CLOCK: [2026-09-11 Fri 09:50]--[2026-09-11 Fri 09:53] =>  0:03
 - [2026-09-11 Fri 09:50]--[2026-09-11 Fri 09:53] assigned at review
 - State "DOING"      from "TODO"       [2026-09-11 Fri 17:48] \\
   building the transcript prompt join
+CLOCK: [2026-09-11 Fri 18:07]--[2026-09-11 Fri 18:16] =>  0:09
+- [2026-09-11 Fri 18:07]--[2026-09-11 Fri 18:16] suggested span, accepted at review
 :END:
 
 (Filing prose restored 2026-09-11 — the original capture note was discarded by =org_capture='s immediate path, by documented design.) The user's concrete reporting need, stated 2026-09-10: at review time they cannot discriminate a degenerate 0-run/0-turn span from an unmeasured long turn, because nothing says what was going on. The mechanism is decided and measured on =295cde3a=: join queue =resume= events to transcript user messages on timestamp (28 of 28 within two seconds; the queue defines what a prompt is — raw =type:"user"= entries are contaminated, =9e627dc0='s trap). Build the surfacing: each run renders its opening prompt's first line, and a lone-timestamp span renders the abutting prompts either side, truncated. This closes exactly the =--review-annotation-label= gap: an item's synopsis is its enclosing clock event's note, so guidepost-reconstructed spans have none by construction. Retroactive across all recorded sessions; no hook change, no new durable field.
@@ -946,7 +656,6 @@ CLOCK: [2026-09-11 Fri 09:50]--[2026-09-11 Fri 09:53] =>  0:03
 *A span holding no guidepost at all was the case that nearly got missed.* A bracket opened and closed inside one turn contains no guidepost by construction — measured on the session that built this: fifteen minutes, two events, no =resume=. That is precisely the "unmeasured long turn" this heading exists to make legible, so it falls back to the prompt in effect when the span opened, labelled =[last prompt before this span]= and stamped with *that prompt's* own time so the distance is visible. It is deliberately not the measured join and must never read as though it were.
 
 *Verified on the real queue, not fixtures.* Every pending span now says what it was — including =[2026-09-04 Fri 09:52]--[2026-09-04 Fri 09:58]=, a "0:06 span, no runs, 0 turns" item that now reads /"does a span with 0:03 span, no runs, 0 turns write anything into TODO.org?"/: the user asking about this very defect, in the span the defect made unreadable. 618 tests, 0 unexpected, from 611; five mutations run red.
-
 
 
 * TODO claude-org-setup --org scaffolds or appends the consuming repo's .gitignore :code:
@@ -1805,7 +1514,6 @@ deferral: it is decided *with* the portable half, so
 *Three hazards for this heading's own forecast-vs-record boundary,* which is why this belongs here rather than on a tooling heading. =SCHEDULED=/=DEADLINE= are active timestamps by construction — correct for a forecast, but it means the line to defend is that nothing *derived from clock measurement* ever becomes one. =org-log-reschedule= and =org-log-redeadline= are both nil today and should stay nil: either would write revision lines into =:LOGBOOK:=, the same drawer the CLOCK record lives in. And any cascade hung on =org-trigger-hook= would fire **during the human apply pass**, writing forecast dates in bursts and bypassing the queue outright — the queue has no event type for a proposed date change.
 
 *Provenance, stated because it bounds how far this should be trusted:* the org-edna behaviour above comes from reading its source, not from running it. It is not installed here.
-
 
 
 * TODO No tool edits a heading's title, so a rename goes behind Emacs or not at all :code:
@@ -3503,6 +3211,8 @@ The third is the important one: it is the known negative, confirmed independentl
 *Worth applying to the backlog once*, since the ledger reaches back to 2026-08-18 and the gaps are all still there to be scored.
 
 
+
+
 * Review attention
 :PROPERTIES:
 :CATEGORY: Meta
@@ -3510,12 +3220,7 @@ The third is the important one: it is the known negative, confirmed independentl
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
-CLOCK: [2026-09-11 Fri 17:51]--[2026-09-11 Fri 17:54] =>  0:03
-CLOCK: [2026-09-11 Fri 17:29]--[2026-09-11 Fri 17:34] =>  0:05
-CLOCK: [2026-09-11 Fri 16:47]--[2026-09-11 Fri 16:53] =>  0:06
-CLOCK: [2026-09-11 Fri 12:40]--[2026-09-11 Fri 12:42] =>  0:02
-CLOCK: [2026-09-11 Fri 11:47]--[2026-09-11 Fri 11:50] =>  0:03
-CLOCK: [2026-09-11 Fri 11:27]--[2026-09-11 Fri 11:29] =>  0:02
+CLOCK: [2026-09-14 Mon 10:19]
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
@@ -3600,6 +3305,14 @@ CLOCK: [2026-09-10 Thu 14:10]--[2026-09-10 Thu 14:14] =>  0:04
 - <2026-09-10 Thu 14:15>--<2026-09-10 Thu 14:15> review pass (buffer buried)
 CLOCK: [2026-09-10 Thu 14:45]--[2026-09-10 Thu 14:57] =>  0:12
 CLOCK: [2026-09-11 Fri 09:13]--[2026-09-11 Fri 09:42] =>  0:29
+CLOCK: [2026-09-11 Fri 11:27]--[2026-09-11 Fri 11:29] =>  0:02
+CLOCK: [2026-09-11 Fri 11:47]--[2026-09-11 Fri 11:50] =>  0:03
+CLOCK: [2026-09-11 Fri 12:40]--[2026-09-11 Fri 12:42] =>  0:02
+CLOCK: [2026-09-11 Fri 16:47]--[2026-09-11 Fri 16:53] =>  0:06
+CLOCK: [2026-09-11 Fri 17:29]--[2026-09-11 Fri 17:34] =>  0:05
+CLOCK: [2026-09-11 Fri 17:51]--[2026-09-11 Fri 17:54] =>  0:03
+CLOCK: [2026-09-14 Mon 09:23]--[2026-09-14 Mon 09:26] =>  0:03
+- <2026-09-14 Mon 09:23>--<2026-09-14 Mon 09:26> review pass (buffer buried)
 :END:
 
 
@@ -3728,14 +3441,32 @@ about the toggle.
 a human hand-editing a **CLOCK line in the file**, not the review flow, which writes an *annotation*
 and consults CLOCK lines for idempotency. Two different things, and I ran them together.
 
+*Correction 2026-09-14: the flip **is** on disk, and this body's "could not be located" is wrong.* It reads =<2026-09-04 Fri 10:16>--<2026-09-04 Fri 10:21> read the testdata report; planned the wrap-up sequence=, in the meta-work datetree's 2026-09-04 day node — not under =Review attention=, which is where the earlier search's one active =2026-09-04= hit (=review pass (buffer buried)= at =11:28--11:30=) came from. So the search looked in the right file and reported the wrong conclusion; the interval had been there the whole time.
 
-* TODO Render a session transcript to readable org, so scrollback stops being the index :code:
+*And locating it settles the question this heading left open, in the unwelcome direction.* The flip has **no =CLOCK:= line at all** — the day node's clocks run =[10:14]--[10:16]= and then jump to =[10:23]--[10:24]=. So the act of asserting those five minutes as the human's own attention recorded *zero* minutes: the annotation carries the claim, and =org-clock-sum= counts nothing. It is one of 18 such annotations totalling 99 minutes, measured on [[id:2deb090f-593d-40e3-9044-fda318d9b6de][2deb090f]].
+
+*Which sharpens this heading's scope again.* The keystroke it asks for would make flipping cheap — and on this evidence, cheaply producing an assertion that no report can see is not obviously an improvement. Bind the key **after** =2deb090f=, not before: the flip needs to write minutes before it is worth making easy.
+
+*Found because the user asked whether the =Review attention= / =Review and planning= audit had accounted for manually flipped intervals.* It had not, explicitly — the audit's conclusion held regardless, since it keys on the annotation *label* rather than the notation, and a flip changes brackets without touching labels. But the question was the right one to ask and it found this.
+
+
+* REVIEW Render a session transcript to readable org, so scrollback stops being the index :code:
 :PROPERTIES:
 :CATEGORY: Dev
 :ID:       96ddf1ef-67fd-4d3c-b8cc-01ebb14a687d
 :CREATED:  [2026-08-26 Wed 08:48]
 :END:
 :LOGBOOK:
+- State "REVIEW"     from "DOING"      [2026-09-11 Fri 20:15] \\
+  shipped and verified on real sessions
+- State "NEXT"       from "TODO"       [2026-09-11 Fri 18:15] \\
+  slice's next member after steps 1 and 2
+CLOCK: [2026-09-11 Fri 20:07]--[2026-09-11 Fri 20:15] =>  0:08
+- State "DOING"      from "NEXT"       [2026-09-11 Fri 20:07] \\
+  starting the readable session render
+:LOGBOOK:
+- [2026-09-11 Fri 20:07]--[2026-09-11 Fri 20:15] render a session transcript to readable org
+:END:
 - State "MAYBE"      from              [2026-08-26 Wed 08:49] \\
   gated on whether /config resolves it
 - State "TODO"       from "MAYBE"      [2026-09-11 Fri 09:59] \\
@@ -3773,7 +3504,6 @@ and consults CLOCK lines for idempotency. Two different things, and I ran them t
 *The =/config= experiment this heading was gated on remains untried and is now moot as a blocker* — whatever =tui: "fullscreen"= turns out to do, the renderer is the thing that survives it, which is what the original body predicted.
 
 
-
 * TODO Intervals on two different headings can overlap, and subtraction reaches only one :code:
 :PROPERTIES:
 :CATEGORY: Apply
@@ -3801,12 +3531,12 @@ What survives is the case this body already documents and subtraction structural
 
 
 * TODO Archive closed tasks daily
-SCHEDULED: <2026-09-12 Sat 07:00 ++1d>
+SCHEDULED: <2026-09-15 Tue 07:00 ++1d>
 :PROPERTIES:
 :CATEGORY: Meta
 :ID:       cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8
 :CREATED:  [2026-08-21 Fri 15:35]
-:LAST_REPEAT: [2026-09-11 Fri 09:42]
+:LAST_REPEAT: [2026-09-14 Mon 09:26]
 :END:
 :LOGBOOK:
 CLOCK: [2026-08-24 Mon 10:25]--[2026-08-24 Mon 10:28] =>  0:03
@@ -5528,6 +5258,16 @@ CLOCK: [2026-09-11 Fri 17:41]--[2026-09-11 Fri 17:47] =>  0:06
 
 Assigning a 0-run span and applying it writes a =:LOGBOOK:= annotation and no =CLOCK:= line at all — =--review-apply-clock='s =(unless observed ...)= branch — so the envelope is recorded as zero. Measured 2026-09-11 on the ten pending spans: seven have no run, including [2026-09-11 Fri 13:24]--[2026-09-11 Fri 13:46], and every one of them goes from 0s to its full envelope the moment =:suggested= is cleared. The user's position, stated the same day: a 0-run/0-turn span they choose to accept should carry all those minutes, because accepting it *is* the assertion that the time was their attention. Today the only way to say that is =e= — retyping both timestamps unchanged purely to set =:suggested nil= — so the act costs two timestamps and reads as an edit rather than a claim. Proposed: a way to accept the envelope as attention in one act, distinct from correcting bounds; note that the bracket style is a red herring here, since =:active= reaches only the annotation while the =CLOCK:= line is always written inactive by =org-clock-in=/=org-clock-out=. Reads with [[id:01849bef-fdc9-4c30-b467-00ca8606e8e0][01849bef]] (the same keystroke family, and the same question of what the assertion means), [[id:996fd2bd-be90-44b3-b2c5-9018255940b3][996fd2bd]] (the automatic half — a gap containing an apply timestamp is provably human), and [[id:44cef181-8dac-4735-8860-f123e132fdbc][44cef181]], which named this residue and said explicitly that it stopped the line implying the minutes were captured without capturing them.
 
+*Measured in the accumulated record 2026-09-14, which this heading had argued from mechanism alone.* Auditing the meta-work datetree and =Review attention= for annotations with no matching =CLOCK:= line: **18 annotations assert a real duration that nothing counts, totalling 99 minutes.** A further 10 have no CLOCK line and are *zero-width*, which is correct by design and costs nothing.
+
+The 18 range from 1 to 12 minutes and are overwhelmingly ordinary accepted spans — 15 read =assigned at review=, two =root-cause unattributed spans, file discipline fix=, one an authored note. They are spread across 2026-08-24 to 2026-09-10, so this is a steady leak rather than one bad pass.
+
+*This is the first number attached to the defect, and it reframes the size.* The body above establishes that a 0-run span applied as suggested writes an annotation and no CLOCK line; this says what that has actually cost on **one** heading family. The true total is larger: the audit covered only the meta-work node and =Review attention=, not the hundred-odd task headings where the same spans land.
+
+*The record is not wrong, and that is the uncomfortable part.* Every one of those 18 annotations is present, correct, and readable; a human scanning the drawer sees the interval and its label. Only =org-clock-sum= and every clocktable built on it skip them, because org totals CLOCK lines and annotations are prose. So the drawer says the work happened and the report says it did not, and neither is lying.
+
+*One of the 18 is the case [[id:01849bef-fdc9-4c30-b467-00ca8606e8e0][01849bef]] has been looking for* — =<2026-09-04 Fri 10:16>--<2026-09-04 Fri 10:21> read the testdata report; planned the wrap-up sequence=, the user's own flip to active notation. It is the sharpest illustration available: the interval was *deliberately* marked as the human's attention, and still records zero minutes.
+
 
 ** TODO Guidepost aggregation ignores =cwd=, so two projects' turns cluster into one span :code:
 :PROPERTIES:
@@ -5538,10 +5278,14 @@ Assigning a 0-run span and applying it writes a =:LOGBOOK:= annotation and no =C
 =--aggregate-guideposts= clusters by time alone, so guideposts from concurrent sessions in *different* projects merge into a single span — and accepting that span credits one project's minutes to the other's heading. Found 2026-09-11 the moment [[id:fbaf8009-b3dc-48ed-b099-63b74fc156a8][fbaf8009]]'s annotation made the cwd visible: over the whole queue history exactly two groups render =[cwd: agentic-euchre, claude-code-ide-org]=, and both are real — =[2026-09-10 Thu 14:49:24]--[2026-09-10 Thu 15:02:17]=, already attributed to =308bf4b4=, contains a 1:25 euchre run (14:59:33 resume, 15:00:58 pause), and =[2026-09-10 Thu 15:59:24]--[2026-09-10 Thu 16:03:05]=, unassigned, opens with a 23s euchre run before three claude-code-ide-org guideposts. Small today because euchre has 14 events against 722; it scales with the second project, and it is silent. Proposed: treat a cwd change like the exclusions =--aggregate-guideposts= already honours — a project boundary splits rather than clusters through — which also makes each resulting span's annotation name one tracker instead of two. This is the consumer half [[id:5461c349-fd22-4b75-a508-50efbe4b87f8][5461c349]] recorded the field for; note its other named consumer obligation, normalising a worktree's cwd to its main checkout, or a single project splits into one span per worktree.
 
 
-** TODO A session id that changes mid-work splits one clock bracket across two queue files :code:
+** NEXT A session id that changes mid-work splits one clock bracket across two queue files :code:
 :PROPERTIES:
 :ID:       b57c7515-c511-4198-b311-26cefc52a60d
 :CREATED:  [2026-09-11 Fri 18:17]
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-09-11 Fri 19:01] \\
+  story had no next action; first in the new sequence
 :END:
 
 The queue is keyed by =session_id= and =--lane-clock-pairs= pairs within a lane of =(session_id, agent_id)=, so a session whose id changes while work continues leaves an unmatched =clock_in= in the old lane and an orphan =clock_out= in the new one — neither pairs, and the bracket's attribution is lost in both directions. Observed 2026-09-11: =f2e44fdf= holds =clock_in= on =325679af= at 17:48:30 and =b71c8eec= holds the matching =clock_out= at 18:14:33, with all of that stretch's file-touching work in the second lane. =bin/hooks/clock-target-check= fired correctly and could only report the symptom, since from inside the new lane the earlier =clock_in= is invisible. Note the two failure modes compose badly with =58332dd1=: the orphaned =clock_in= is exactly the ever-widening span that heading describes, now arriving through a second route. Worth measuring before designing — how often an id changes mid-session, and whether the transcript's =sessionId= or a =leafUuid= chain can bridge the two files retroactively, since the events themselves carry enough to re-pair if something looked. The manual repair used this time was a fresh matched pair in the new lane as an attribution anchor, leaving the interval for a human to widen with =e=.
@@ -5559,7 +5303,6 @@ The queue is keyed by =session_id= and =--lane-clock-pairs= pairs within a lane 
 *So the design consequence is settled:* a session id is **not** a stable key for a stretch of work, and nothing in this project can make it one. Any repair has to reconcile lanes after the fact rather than assume the key holds — which is the same conclusion the =9202b39d= link above reaches from the other direction.
 
 *One consequence for [[id:96ddf1ef-67fd-4d3c-b8cc-01ebb14a687d][96ddf1ef]], which is =NEXT= and will hit this immediately:* the re-key leaves **two transcripts covering the same conversation**, the old one truncated at the switch and the new one complete from the original start. A renderer keyed on session id would render the same session twice under two ids, the first copy silently short. It needs a rule for that before it renders anything.
-
 
 
 * TODO Type a span's annotation at review time, not by hand-editing it after :code:
@@ -8667,6 +8410,9 @@ CLOCK: [2026-09-10 Thu 12:24]--[2026-09-10 Thu 12:25] =>  0:01
 CLOCK: [2026-09-10 Thu 12:34]--[2026-09-10 Thu 12:38] =>  0:04
 - [2026-09-10 Thu 12:34]--[2026-09-10 Thu 12:38] root-cause unattributed spans, file discipline fix
 - [2026-09-10 Thu 12:42]--[2026-09-10 Thu 12:50] root-cause unattributed spans, file discipline fix
+- [2026-09-10 Thu 12:52]--[2026-09-10 Thu 12:52] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-10 Thu 13:23]--[2026-09-10 Thu 13:24] =>  0:01
+- [2026-09-10 Thu 13:23]--[2026-09-10 Thu 13:24] filing the uppercase-uuid finding from the euchre exercise
 CLOCK: [2026-09-10 Thu 14:16]--[2026-09-10 Thu 14:17] =>  0:01
 - [2026-09-10 Thu 14:16]--[2026-09-10 Thu 14:17] assigned at review
 CLOCK: [2026-09-10 Thu 14:22]--[2026-09-10 Thu 14:23] =>  0:01
@@ -8677,6 +8423,8 @@ CLOCK: [2026-09-10 Thu 15:02]--[2026-09-10 Thu 15:03] =>  0:01
 - [2026-09-10 Thu 15:02]--[2026-09-10 Thu 15:03] closing e396f94a and 308bf4b4 on the null-test evidence
 CLOCK: [2026-09-10 Thu 16:04]--[2026-09-10 Thu 16:16] =>  0:12
 - <2026-09-10 Thu 16:04>--<2026-09-10 Thu 16:16> assigned at review
+CLOCK: [2026-09-10 Thu 16:32]--[2026-09-10 Thu 16:33] =>  0:01
+- [2026-09-10 Thu 16:32]--[2026-09-10 Thu 16:33] recording the skills-dir-is-canonical finding in the setup reference
 CLOCK: [2026-09-10 Thu 16:39]--[2026-09-10 Thu 16:42] =>  0:03
 - [2026-09-10 Thu 16:39]--[2026-09-10 Thu 16:42] restoring the manifest hooks; documenting the flag-plus-symlink double-load
 - [2026-09-10 Thu 16:43]--[2026-09-10 Thu 16:46] assigned at review
@@ -8699,6 +8447,7 @@ CLOCK: [2026-09-11 Fri 11:11]--[2026-09-11 Fri 11:13] =>  0:02
 - [2026-09-11 Fri 11:11]--[2026-09-11 Fri 11:13] fbaf8009 into the slice; nomination; next-session rewrite
 CLOCK: [2026-09-11 Fri 11:45]--[2026-09-11 Fri 11:52] =>  0:07
 - <2026-09-11 Fri 11:45>--<2026-09-11 Fri 11:52> assigned at review
+- [2026-09-11 Fri 13:24]--[2026-09-11 Fri 13:46] assigned at review
 CLOCK: [2026-09-11 Fri 14:10]--[2026-09-11 Fri 14:13] =>  0:03
 - <2026-09-11 Fri 14:10>--<2026-09-11 Fri 14:13> assigned at review
 CLOCK: [2026-09-11 Fri 16:14]--[2026-09-11 Fri 16:17] =>  0:03
@@ -8709,4 +8458,19 @@ CLOCK: [2026-09-11 Fri 17:04]--[2026-09-11 Fri 17:05] =>  0:01
 - [2026-09-11 Fri 17:04]--[2026-09-11 Fri 17:05] assigned at review
 CLOCK: [2026-09-11 Fri 17:16]--[2026-09-11 Fri 17:18] =>  0:02
 - [2026-09-11 Fri 17:16]--[2026-09-11 Fri 17:18] correct c19fbbf5's stale cookie and boxes
+CLOCK: [2026-09-11 Fri 18:40]--[2026-09-11 Fri 18:47] =>  0:07
+- [2026-09-11 Fri 18:40]--[2026-09-11 Fri 18:47] record the org-edna findings, weigh adoption
+CLOCK: [2026-09-11 Fri 18:49]--[2026-09-11 Fri 19:01] =>  0:12
+- [2026-09-11 Fri 18:49]--[2026-09-11 Fri 19:01] record the org-edna findings, weigh adoption
+CLOCK: [2026-09-11 Fri 19:19]--[2026-09-11 Fri 19:22] =>  0:03
+- [2026-09-11 Fri 19:19]--[2026-09-11 Fri 19:22] record the org-edna findings, weigh adoption
+CLOCK: [2026-09-11 Fri 19:25]--[2026-09-11 Fri 19:28] =>  0:03
+- [2026-09-11 Fri 19:25]--[2026-09-11 Fri 19:28] record the org-edna findings, weigh adoption
+CLOCK: [2026-09-11 Fri 19:37]--[2026-09-11 Fri 19:39] =>  0:02
+- [2026-09-11 Fri 19:37]--[2026-09-11 Fri 19:39] record the org-edna findings, weigh adoption
+CLOCK: [2026-09-11 Fri 19:47]--[2026-09-11 Fri 19:50] =>  0:03
+- [2026-09-11 Fri 19:47]--[2026-09-11 Fri 19:50] record the org-edna findings, weigh adoption
+CLOCK: [2026-09-11 Fri 20:04]--[2026-09-11 Fri 20:07] =>  0:03
+- [2026-09-11 Fri 20:04]--[2026-09-11 Fri 20:07] record the org-edna findings, weigh adoption
+- [2026-09-11 Fri 20:22]--[2026-09-11 Fri 20:22] assigned at review
 :END:
