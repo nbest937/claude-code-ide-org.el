@@ -5895,6 +5895,109 @@ Three consequences, recorded as the design position:
    it travels on the task rather than being asserted about it from
    outside.
 
+*The keyword nuance (the user, 2026-09-14), which settles the
+retroactivity question and relocates the problem.*
+
+**"Attention to a task prior to =DOING= is really disaggregated
+meta-work, and =DOING=/=REVIEW= periods don't usually start until after
+the slice has begun."** Both halves measured true, by reconstructing each
+heading's keyword at each moment from its =:LOGBOOK:= state lines (816
+transitions across 488 headings) and classifying each busy window by what
+its owner's keyword was *then*.
+
+**Retroactivity is 0.00h under every carry rule tried.** Not small —
+zero. And the mechanism is the one the user named: =4f8500e6= is the
+worked example, adopted into =afea7e4f= carrying prior attention, which
+is what produced the earlier alarming 60%. All of that attention was
+accrued while it sat =TODO=/=MAYBE=. Adopted headings are pre-=DOING= at
+adoption time, so a =DOING= period postdating its slice is structural
+rather than lucky.
+
+**This retires the design argument recorded above it.** "Slice totals
+must be a query, never a written record, because adoption rewrites a
+slice's past" loses its empirical support: keyword-gated, adoption
+imports only pre-=DOING= time, which is not task work. The
+query-versus-write distinction still holds on principle — membership is
+mutable and the past is not — but it should not be argued from this
+hazard, which does not exist.
+
+**What the keyword cut exposes instead is larger.** Two carry rules
+bracket it, over 60.7h of qualifying busy stretch time:
+
+| carry rule | task work (DOING+REVIEW) | explicit meta-work | no declared target |
+| =clock_out= ends attribution | 6.7h (11%) | 4.0h + 2.4h pre-DOING | 46.2h (76%) |
+| carry to next =clock_in= | 14.0h (23%) | 10.3h + 5.8h pre-DOING | 13.2h (22%) |
+
+**Declared task work is 11–23% of busy time, and the dominant bucket is
+time with no declared target** — which is =ccfd89ce='s unassigned-span
+problem reappearing as the binding constraint on every attribution
+scheme discussed here. No rollup axis and no interval rule addresses it;
+it is clock discipline.
+
+**The design that follows.** Classify each busy stretch by its owner's
+keyword at that moment. =DOING=/=REVIEW= is task attention —
+attributable, agenda-visible, rolled up to a slice or a =:CATEGORY:=.
+Everything else is meta-work: pre-=DOING= attention, the explicit
+=Review and planning= clock, and the residue between a =clock_out= and
+the next =clock_in=. That matches the user's framing exactly, with the
+caveat that meta-work is then the *majority* of the record rather than a
+residual bucket.
+
+**And the honest headline has changed.** The note above says slice
+attribution is a small report because slices overlay a minority of the
+work. Still true, now second-order. The first-order fact is that most
+busy time has no declared target, so any attention report built today
+describes roughly a quarter of the day. That is a finding about the
+record rather than about the derivation, and it belongs on the table
+before any of this is built.
+
+*Two measurement defects found on the way, worth not rediscovering.* The
+queue's =clock_in= ids are **heterogeneous** — 173 full UUIDs, 59 bare
+8-character prefixes, 64 titles (=Review and planning=) — so any analysis
+joining them to =:ID:= properties must resolve all three shapes or
+silently drop a fifth of the marks. And **=clock_out= must end
+attribution**: ignoring it credits a closed heading with everything until
+the next =clock_in=, which manufactured a spurious 14.0h =DONE= bucket
+larger than the =DOING= one.
+
+*The bar, stated by the user 2026-09-14 and load-bearing for everything
+above:* **this is an aid to attestation, not a final word on attention.**
+The output is reconciled against a calendar of external activities and
+hand-corrected. And **overlap of attention intervals across projects is
+acceptable** — the model does not require a partition of the day.
+
+Three things that reads differently under that bar.
+
+**The 11–23% declared-target figure stops being a blocker.** It is not a
+coverage failure; it is a **pre-fill rate** — how often the system can
+propose a label rather than leaving one for the human. The derived
+*interval* is evidence either way: busy windows bound when attention
+happened, and that half is measured. Only the label is uncertain, and the
+label is what the human was going to supply anyway.
+
+**=7771fc63='s objection does not reach this.** That rule refused a
+*guessed stop time* offered by the stale-interval report — a number with
+no evidence behind it, where a plausible suggestion is harder to reject
+than none. Here the boundaries are observations and only the attribution
+is proposed, which is the contract the review pass already keeps for
+spans. The distinction to preserve: **propose what is measured, ask for
+what is not.** An interval drawn from busy windows may be offered; a
+label the record cannot support must arrive blank rather than guessed.
+
+**Overlap tolerance removes the last of the allocation problem.** If
+intervals may overlap across projects, nothing needs splitting into
+fractional shares, and a heading worked inside two slices' windows may
+count in both. Note this does *not* license double-counting in a slice's
+**cookie**, where the existing prohibition is about membership and stays;
+time and membership are different quantities.
+
+*And it argues for the larger floor rather than the smaller.* Fewer,
+wider items are easier to check against a calendar, which is the actual
+consumer. The 30-minute floor's 3 items/day was chosen on legibility
+grounds; attestation is the reason legibility was the right criterion.
+
+
+
 
 
 
