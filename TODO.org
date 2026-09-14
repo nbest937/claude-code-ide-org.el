@@ -5840,6 +5840,62 @@ Unchanged by all of this: the interval derivation itself. 75 intervals,
 60.0h, a median of 3 agenda items per day are properties of the busy-window
 rule and are independent of how each interval is labelled.
 
+*Retraction, same session.* The attribution numbers above (39% with
+carry-forward, 42% of stretch time on non-member headings) are an
+artifact of the signal and should not be cited. Two defects in it:
+
+- **Id-bearing queue events are decision moments, not work moments.** A
+  =clock_in= fires once and the work then runs for hours emitting
+  nothing, so asking "which ids appear inside this stretch" misses every
+  stretch where work simply continued.
+- **=org_amend= queues an event only when it *fails* to write through.**
+  Counting =amend= events therefore counted deferred amends and ignored
+  successful ones — a signal biased toward whichever headings happened to
+  be open in a dirty buffer.
+
+**Re-measured with clock-forward attribution** — a =clock_in= owns the
+time until the next one, which is what the clock already means — over the
+same 296 marks and 60.5h of qualifying stretch time:
+
+| carry rule | attributed to a heading | unowned | of which slice member |
+| within the day | 47.3h (78%) | 13.2h (22%) | 6.8h (11% of all) |
+| indefinitely | 60.5h (100%) | 0.0h | 10.0h (17% of all) |
+
+**Same-day carry is the defensible one.** Carrying indefinitely reaches
+100% by letting a =clock_in= from three days ago own this morning's first
+window. The 13.2h it declines to claim is activity under no clock at
+all — which is the meta-work bucket in the user's sense of the term,
+arrived at as a residue rather than asserted.
+
+**The retroactivity question, which prompted this.** The user asked
+whether a rollup over current membership can assign a slice time that
+predates the slice. It can, and measured properly it is **0.8h of 10.0h
+(8%)** — not the 60% the bad signal reported. A =clock_in= is
+contemporaneous by construction: being clocked into a member usually
+means the slice already exists. (=749301a0='s phantom 1.3h, on a slice
+never worked, was the same artifact and does not survive.)
+
+Three consequences, recorded as the design position:
+
+1. **Slice totals are a query, never a written record.** A rollup reads
+   *current* membership, so adoption adds past hours, =:DROPPED:= removes
+   them, and moving a member migrates its history. Harmless for a
+   question asked now; fatal for an agenda item already written. So
+   attention intervals are written on **headings**, whose identity does
+   not change, and slice totals stay derived — the same grain as the
+   =:BLOCKER:= and the cookie.
+2. **Do not bound the rollup to the slice's life.** It would need
+   membership tenure, which the file does not record, to correct 0.8h in
+   10. And a slice asserts that its members belong together — a claim
+   about the work, not about a calendar window.
+3. **Slice-level attribution is a small report (11–17%), and that is what
+   slices are.** For a rollup that covers a working day the axis is
+   =:CATEGORY:=: every heading carries one, it inherits, org filters
+   agendas by it, and it has no membership-tenure problem at all, since
+   it travels on the task rather than being asserted about it from
+   outside.
+
+
 
 
 
