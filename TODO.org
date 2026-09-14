@@ -5774,6 +5774,73 @@ The contiguous =>=3= window rule yields 75 intervals and 60.0h, covering **70%**
 
 *One thing to settle before building, because it is the same provenance question the allocation scheme raised.* The recovery is complete for **attribution**; for **display** it depends on a choice. A day's leftovers are scattered, so rendering them as one agenda item means one active interval =<first>--<last>= that spans the gaps between them and claims time nobody worked. The alternatives are N separate items, which forfeits the item economy the floor exists for, or a block whose boundaries are admittedly notional. Given the floor's purpose the notional block is probably right — but it must *say* it is notional, or it reads as observation, which is the objection =7771fc63= raised against plausible fabricated numbers and the one this whole design has to keep answering.
 
+Three corrections from the user, 2026-09-14, and the measurement that
+followed them.
+
+*"Active" is the wrong word for a qualifying window.* Active vs inactive
+is a property of an org *timestamp*, and a window carrying agent run time
+is not that. The word is *busy*, with *idle* as its complement — no org
+meaning, no existing meaning here, and it reads in both the prose and the
+code. So: a **busy window**, a **busy stretch**.
+
+*The meta-work bucket is for activity between slices, not for a day's
+short stretches.* This session had quietly repurposed the name for the
+sub-threshold leftovers the 30-minute floor discards, which is a
+different set — a brief stretch can be solid work on a slice member; it
+is short, not unattributed. **The floor governs display, not
+attribution.** The arithmetic recorded above stands unchanged (all 26
+days qualify, 6.7h recovered, one extra agenda item per day); what was
+wrong was calling the recovered item meta-work. It is a day's short
+stretches, and it attributes exactly as the long ones do.
+
+*A busy stretch goes wholly to a slice when any of its members were
+worked* — no splitting among members, no weights. Simpler than the
+aggregation this heading previously described.
+
+**Measured against that rule, and it labels far less than expected.**
+Over the 75 qualifying stretches (60.0h), taking every id-bearing queue
+event (=todo=, =clock_in=, =clock_out=, =amend=, =capture=) as evidence a
+heading was worked:
+
+| what the stretch implicates | stretches | hours | share |
+| headings worked, none a slice member | 30 | 25.2 | 42% |
+| no heading identifiable at all | 22 | 16.3 | 27% |
+| exactly one slice | 15 | 12.3 | 21% |
+| two or more slices | 8 | 5.2 | 9% |
+
+Carry-forward — inheriting the previous stretch's slice when a stretch
+implicates no heading at all, within a day — recovers 4.7h, taking
+slice-attributed time to 23.2h of 60.0h (39%). It is small because
+unidentified stretches mostly neighbour other unidentified ones rather
+than slice work.
+
+**This is not an artifact of slices being young**, which was the obvious
+first explanation and is false. Split at the first slice's =:CREATED:=
+(2026-08-25), the two eras are within a point of each other: before,
+41% / 30% / 19%; after, 43% / 25% / 22%. Slices have never covered most
+of the work — they are a deliberate overlay on a minority of it, not a
+partition of it.
+
+**Narrowing the evidence makes it worse, not better.** Taking only
+=clock_in= as the signal — the one event that explicitly asserts "working
+this now" — attributes 7.2h of 60.0h (12%). The broad signal is the
+usable one, with the caveat that an apply or bookkeeping pass touches
+many headings at once and is the likely source of every multi-slice
+stretch (one implicates seven).
+
+**What follows for the design: the slice is a rollup, not the attribution
+unit.** A busy stretch attributes to the heading(s) worked in it; a slice
+view aggregates the stretches whose headings are its members. That gives
+the user's rule exactly where it applies and leaves the other 61% of
+measured time attributed to something rather than to nothing. The
+alternative — slice as the unit — writes no interval at all for most
+busy time, which is the failure mode this heading exists to avoid.
+
+Unchanged by all of this: the interval derivation itself. 75 intervals,
+60.0h, a median of 3 agenda items per day are properties of the busy-window
+rule and are independent of how each interval is labelled.
+
+
 
 
 
