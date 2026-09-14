@@ -2330,6 +2330,44 @@ argument about sampling parameters. All of it followed from weights and
 per-turn apportionment, and neither survives. The reasoning is in the
 history of this heading if the question reopens.
 
+*Implemented 2026-09-14.* =M-x claude-code-ide-org-allocation-report=
+over a date range, with =claude-code-ide-org-allocation-window-seconds=
+(1200) and =--worked-tool-names=. Windows, equal shares by largest
+remainder, laid end to end from the window's first observed run; a
+report only, writing no CLOCK line and touching no org file. Four tests,
+640 in the suite.
+
+*Running it found two things reasoning had not.*
+
+**=org_capture= is not evidence of work, and had to leave the tool
+list.** A filing burst creates a dozen headings inside one window, and
+the allocator read that as a dozen headings being worked at once — 15 in
+the worst window on 2026-09-10. Creating a task is planning; the time
+belongs to review and planning whole, not a minute each to tasks nobody
+had started. *The same shape as "mentions are not subjects", arriving
+through writes rather than prose*, which is where it was not expected.
+
+**The resolution floor is real at a 20-minute window and now says so.**
+That 15-heading window measured 6 minutes of run time, so 9 shares
+rounded under a minute and were dropped — the report used to write 6
+lines under a header claiming 15 and say nothing about the difference.
+It now reads =(15 headings sharing; 9 shares under a minute, not
+written)=. Surfacing it is the fix; hiding it made the report claim a
+completeness it never had.
+
+*A bookkeeping burst still inflates the sharing count* — =org_set_property=
+and =org_slice_add_member= during slice composition touch many headings
+in a window much as capture did. Unresolved, and the same judgement call
+the tool list already embodies: whether a bookkeeping write on a heading
+is work on it. Named here rather than decided.
+
+*Coverage is small and honestly so.* 2026-09-10 allocates 1.2h where the
+attention derivation gives roughly 5h for the day, because only windows
+carrying a write-tool call allocate at all. That is
+[[id:ccfd89ce-a55d-4ad4-bce7-707181deb510][ccfd89ce]]'s sparsity again, not a defect of the
+division.
+
+
 
 * TODO AFK markers are ground truth for the one judgement we cannot automate, and we discard them :code:
 :PROPERTIES:

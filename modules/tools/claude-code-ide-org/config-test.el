@@ -15589,3 +15589,64 @@ offer rather than a degenerate one."
 (ert-deftest claude-code-ide-org-test-attention-bookends-return-nothing-for-no-residue ()
   "No sub-floor stretches means no bookends, not an empty-looking one."
   (should-not (claude-code-ide-org--attention-bookends nil nil)))
+
+
+;;; Window allocation (TODO.org :ID: 295cde3a) ------------------------------
+
+(ert-deftest claude-code-ide-org-test-worked-tools-match-bare-and-mcp-names ()
+  "The write tools are recognised with or without the MCP prefix.
+
+A transcript records `mcp__emacs-tools__org_amend' when the call arrives
+through the server and `org_amend' when the name is already bare, so a
+test asserting only one form would leave half the corpus unreadable."
+  (should (claude-code-ide-org--worked-tool-p "org_amend"))
+  (should (claude-code-ide-org--worked-tool-p "mcp__emacs-tools__org_set_todo"))
+  ;; Reads name a heading without working it.
+  (should-not (claude-code-ide-org--worked-tool-p "org_body"))
+  (should-not (claude-code-ide-org--worked-tool-p "mcp__emacs-tools__org_outline"))
+  ;; Creating a task is planning, not work on the task.
+  (should-not (claude-code-ide-org--worked-tool-p "org_capture"))
+  ;; A suffix match must not admit an unrelated tool that merely ends the
+  ;; same way.
+  (should-not (claude-code-ide-org--worked-tool-p "not_org_amend")))
+
+(ert-deftest claude-code-ide-org-test-largest-remainder-conserves-the-total ()
+  "Shares sum to the window's measured minutes, never more.
+
+Naive rounding of an equal split does not conserve -- 11 minutes three
+ways rounds to 4/4/4 and claims a minute nothing measured -- and because
+the shares are laid end to end, an over-claim moves every boundary after
+it as well as the total."
+  (dolist (case '((12 3) (11 3) (10 3) (7 2) (5 5) (1 3) (20 6)))
+    (let* ((total (car case)) (parts (cadr case))
+           (shares (claude-code-ide-org--allocation-largest-remainder total parts)))
+      (should (= parts (length shares)))
+      (should (= total (apply #'+ shares)))
+      ;; Never off by more than one between any two shares: the split is
+      ;; equal, and the remainder is the only asymmetry allowed.
+      (should (<= (- (apply #'max shares) (apply #'min shares)) 1))))
+  ;; Degenerate inputs yield nothing rather than a zero-length share.
+  (should-not (claude-code-ide-org--allocation-largest-remainder 0 3))
+  (should-not (claude-code-ide-org--allocation-largest-remainder 5 0)))
+
+(ert-deftest claude-code-ide-org-test-largest-remainder-gives-the-extra-to-the-first ()
+  "The uneven minute goes to the earliest-appearing heading.
+
+Arbitrary but stated: something has to take it, and an unwritten rule is
+the one a later reader mistakes for significance."
+  (should (equal '(4 4 3) (claude-code-ide-org--allocation-largest-remainder 11 3)))
+  (should (equal '(3 3 3 3) (claude-code-ide-org--allocation-largest-remainder 12 4))))
+
+(ert-deftest claude-code-ide-org-test-allocation-clips-runs-to-the-window ()
+  "Only the part of a run inside the window counts toward its minutes."
+  (let ((runs (list (claude-code-ide-org-test--attention-run "09:50:00" "10:10:00")))
+        (start (float-time (date-to-time "2026-08-06T10:00:00-0500")))
+        (end (float-time (date-to-time "2026-08-06T10:20:00-0500"))))
+    ;; Ten of the twenty minutes fall inside.
+    (should (= 600 (round (claude-code-ide-org--allocation-clip-seconds
+                           runs start end))))
+    ;; And a run entirely outside contributes nothing.
+    (should (= 0 (round (claude-code-ide-org--allocation-clip-seconds
+                         (list (claude-code-ide-org-test--attention-run
+                                "08:00:00" "08:30:00"))
+                         start end))))))

@@ -14514,6 +14514,285 @@ observed edge, and each constructed edge says so in the body."
         (org-mode)))
     (pop-to-buffer buffer)))
 
+;;; Window allocation (TODO.org :ID: 295cde3a) ------------------------------
+;;
+;; A span says *when* the agent ran, never *on what*.  This divides each
+;; fixed window's measured run time equally among the headings that
+;; window worked, laid end to end.  Equal shares, no weights, no overlap
+;; -- the user's 2026-09-01 proposal as simplified 2026-09-14, the one
+;; change being that what gets divided is the *measured* run time rather
+;; than the window's nominal width, so nothing is invented and total
+;; allocated equals total measured.
+
+(defcustom claude-code-ide-org-allocation-window-seconds 1200
+  "Width in seconds of the window run time is allocated within.
+
+Twenty minutes, as proposed.  Wider than the attention window
+\(`claude-code-ide-org-attention-window-seconds') on purpose: attention
+asks when the human was occupied and wants fine boundaries, allocation
+asks which headings shared a stretch and wants enough turns in view to
+answer."
+  :type 'integer
+  :group 'claude-code-ide-org)
+
+(defconst claude-code-ide-org--worked-tool-names
+  '("org_amend" "org_set_todo" "org_clock_in" "org_clock_out"
+    "org_set_property" "org_slice_add_member" "org_divide" "org_refile"
+    "org_archive" "org_wrap_plan" "org_log_background_plan")
+  "Tool names whose call is evidence a heading was *worked*.
+
+Writes only.  `org_body', `org_outline', `org_query' and
+`org_clock_report' name a heading while merely *reading* it, which is
+orientation rather than work -- and orientation is exactly what a
+footnote-heavy turn does to thirty headings at once.
+
+*Mentions are not subjects*, and this list is where that distinction is
+enforced.  An id in prose is not evidence; an id in the arguments of a
+call that changed something is.
+
+`org_capture' is deliberately *absent*, found by running this: a filing
+burst creates a dozen headings in one window and made that window read
+as twelve headings being worked at once -- 15 in the worst case on
+2026-09-10.  Creating a task is planning, so the time belongs to review
+and planning as a whole rather than spread a minute at a time across
+tasks nobody had started.")
+
+(defun claude-code-ide-org--worked-tool-p (name)
+  "Non-nil when NAME is one of the write tools, MCP prefix or not.
+
+The transcript records a tool as `mcp__emacs-tools__org_amend' when it
+arrives through the MCP server and as `org_amend' when the name is
+already bare, so matching on the suffix is what makes this agree with
+itself across both."
+  (and (stringp name)
+       (seq-find (lambda (tool)
+                   (or (equal name tool)
+                       (string-suffix-p (concat "__" tool) name)))
+                 claude-code-ide-org--worked-tool-names)))
+
+(defun claude-code-ide-org--transcript-worked-ids (session-id)
+  "Return (TIME . ID) for every write-tool call in SESSION-ID's transcript.
+
+TIME is the assistant entry's own timestamp, so calls inside one turn
+are placed where they actually happened rather than all at the prompt.
+ID is whatever the call addressed -- a full `:ID:' or the 8-character
+prefix the tools accept, left as written and resolved by the caller.
+
+This exists rather than reusing `claude-code-ide-org--transcript-turns'
+because that one renders tool calls to a *label* for display and keeps
+only the turn's time; both are exactly the things needed here."
+  (when-let* ((file (claude-code-ide-org--transcript-file session-id)))
+    (with-temp-buffer
+      (insert-file-contents file)
+      (goto-char (point-min))
+      (let (worked)
+        (while (not (eobp))
+          (let ((line (buffer-substring-no-properties
+                       (line-beginning-position) (line-end-position))))
+            (when-let* (((string-search "\"tool_use\"" line))
+                        (obj (ignore-errors
+                               (json-parse-string line :object-type 'alist
+                                                  :null-object nil
+                                                  :false-object nil)))
+                        ((equal (alist-get 'type obj) "assistant"))
+                        (time (claude-code-ide-org--parse-iso8601
+                               (alist-get 'timestamp obj)))
+                        (content (alist-get 'content (alist-get 'message obj))))
+              (when (vectorp content)
+                (seq-doseq (block content)
+                  (when (and (equal (alist-get 'type block) "tool_use")
+                             (claude-code-ide-org--worked-tool-p
+                              (alist-get 'name block)))
+                    (let ((id (alist-get 'id (alist-get 'input block))))
+                      (when (stringp id)
+                        (push (cons time id) worked)))))))
+            (forward-line 1)))
+        (nreverse worked)))))
+
+(defun claude-code-ide-org--allocation-largest-remainder (total parts)
+  "Split TOTAL whole minutes into PARTS shares, conserving TOTAL exactly.
+
+Largest-remainder apportionment.  Naive rounding of an equal split does
+not conserve: 12 minutes three ways is 4/4/4, but 11 three ways rounds
+to 4/4/4 and claims a minute that was never measured.  Conservation is
+asserted by the caller's own arithmetic -- the shares are laid end to
+end, so a total that disagreed would move every boundary after it.
+
+Returns a list of PARTS integers, largest first, summing to TOTAL.  A
+share of zero is returned as zero and dropped by the caller rather than
+written as a `0:00' line."
+  (if (or (<= parts 0) (<= total 0))
+      nil
+    (let* ((base (/ total parts))
+           (remainder (- total (* base parts)))
+           shares)
+      (dotimes (i parts)
+        (push (+ base (if (< i remainder) 1 0)) shares))
+      (nreverse shares))))
+
+(defun claude-code-ide-org--allocation-clip-seconds (runs start end)
+  "Return the seconds of RUNS falling inside [START, END)."
+  (let ((total 0.0))
+    (dolist (run runs)
+      (let ((a (max start (float-time (car run))))
+            (b (min end (float-time (cdr run)))))
+        (when (< a b) (setq total (+ total (- b a))))))
+    total))
+
+(defun claude-code-ide-org-allocation-intervals (from to)
+  "Return the allocated intervals for the days FROM..TO, both inclusive.
+
+Each element is a plist: :start and :end as float seconds, :id the
+heading it is allocated to, :minutes its share, :window the window's own
+start, and :of how many headings shared that window.
+
+*Boundaries are an artefact of the division and durations are the
+claim.*  Nobody worked the second heading from 09:07 to 09:11; the
+shares are laid end to end from the window's first observed run so they
+neither overlap nor drift outside it.  Anything rendering these must say
+so -- a CLOCK line that does not is a fabricated measurement, which is
+`claude-code-ide-org--guess-stop-time''s retired sin exactly."
+  (let* ((events (claude-code-ide-org--queue-events nil t))
+         (width claude-code-ide-org-allocation-window-seconds)
+         (lo (float-time (org-time-string-to-time (concat from " 00:00"))))
+         (hi (+ 86400 (float-time (org-time-string-to-time (concat to " 00:00")))))
+         (table (claude-code-ide-org--id-index))
+         (by-session (make-hash-table :test 'equal))
+         runs worked)
+    (dolist (event events)
+      (push event (gethash (plist-get event :session-id) by-session)))
+    (maphash
+     (lambda (session session-events)
+       ;; Runs pair within a session, never across it -- see
+       ;; `claude-code-ide-org-attention-intervals' for what merging the
+       ;; streams costs.
+       (setq runs (append (claude-code-ide-org--raw-work-runs
+                           (nreverse session-events))
+                          runs))
+       (dolist (hit (claude-code-ide-org--transcript-worked-ids session))
+         (let ((full (claude-code-ide-org--expand-id-prefix (cdr hit) table)))
+           ;; An unresolvable id is dropped rather than allocated to: it
+           ;; names a heading that has been archived away or never
+           ;; existed, and allocating to it would put measured minutes
+           ;; somewhere nothing can read them back.
+           (when (stringp full)
+             (push (cons (float-time (car hit)) full) worked)))))
+     by-session)
+    (setq worked (sort worked (lambda (a b) (< (car a) (car b)))))
+    (let ((window (* width (floor lo width)))
+          result)
+      (while (< window hi)
+        (let* ((end (+ window width))
+               (seconds (claude-code-ide-org--allocation-clip-seconds
+                         runs window end))
+               (minutes (round (/ seconds 60)))
+               ids)
+          ;; Order of appearance, deduplicated: the first call naming a
+          ;; heading is where it enters the window.
+          (dolist (hit worked)
+            (when (and (>= (car hit) window) (< (car hit) end)
+                       (not (member (cdr hit) ids)))
+              (push (cdr hit) ids)))
+          (setq ids (nreverse ids))
+          (when (and ids (> minutes 0))
+            (let* ((shares (claude-code-ide-org--allocation-largest-remainder
+                            minutes (length ids)))
+                   (starts (delq nil
+                                 (mapcar (lambda (r)
+                                           (let ((s (float-time (car r))))
+                                             (and (>= s window) (< s end) s)))
+                                         runs)))
+                   (cursor (if starts (apply #'min starts) window))
+                   (count (length ids)))
+              ;; The extra minute of an uneven split goes to the heading
+              ;; that appeared first.  Arbitrary, but *stated*: something
+              ;; has to take it, and a rule nobody wrote down is the one
+              ;; a later reader mistakes for significance.
+              (while ids
+                (let ((id (pop ids))
+                      (share (pop shares)))
+                  (when (and share (> share 0))
+                    (push (list :start cursor
+                                :end (+ cursor (* 60 share))
+                                :id id :minutes share
+                                :window window :of count)
+                          result)
+                    (setq cursor (+ cursor (* 60 share))))))))
+          (setq window (+ window width))))
+      (nreverse result))))
+
+(defun claude-code-ide-org-allocation-report (from to)
+  "Render the window allocation for FROM..TO into a buffer.
+
+A *proposal*, like the attention report: it writes no CLOCK line and
+touches no org file.  Applying it is the review pass's business, and the
+annotation each line carries is what keeps a derived minute from reading
+as an observed one."
+  (interactive
+   (list (read-string "From (YYYY-MM-DD): ")
+         (read-string "To (YYYY-MM-DD): ")))
+  (let ((items (claude-code-ide-org-allocation-intervals from to))
+        (totals (make-hash-table :test 'equal))
+        (buffer (get-buffer-create "*org allocation*")))
+    (with-current-buffer buffer
+      (let ((inhibit-read-only t)
+            (window nil))
+        (erase-buffer)
+        (insert (format "#+TITLE: Window allocation %s..%s\n\n" from to)
+                "# Derived, not observed. Each window's MEASURED run time is\n"
+                "# divided equally among the headings a write tool acted on in\n"
+                "# it, laid end to end. Durations are the claim; the boundaries\n"
+                "# are an artefact of the division -- nobody worked the second\n"
+                "# heading from its start to its end. Window width "
+                (format "%d min.\n\n"
+                        (/ claude-code-ide-org-allocation-window-seconds 60)))
+        (dolist (item items)
+          (unless (equal window (plist-get item :window))
+            (setq window (plist-get item :window))
+            (let* ((of (plist-get item :of))
+                   (written (seq-count (lambda (i) (equal (plist-get i :window) window))
+                                       items))
+                   (dropped (- of written)))
+              (insert (format "\n* %s  (%d heading%s sharing%s)\n"
+                              (format-time-string "%Y-%m-%d %a %H:%M"
+                                                  (seconds-to-time window))
+                              of (if (= 1 of) "" "s")
+                              ;; Say what rounded away rather than
+                              ;; quietly writing fewer lines than the
+                              ;; count promises: a share under a minute
+                              ;; cannot be written, and a reader who
+                              ;; counts the lines deserves to know why
+                              ;; they do not match.
+                              (if (> dropped 0)
+                                  (format "; %d share%s under a minute, not written"
+                                          dropped (if (= 1 dropped) "" "s"))
+                                "")))))
+          (let ((title (or (claude-code-ide-org--review-heading-title
+                            (plist-get item :id))
+                           "(unknown heading)")))
+            (puthash title (+ (plist-get item :minutes)
+                              (or (gethash title totals) 0))
+                     totals)
+            (insert (format "  %s--%s => %2dm  [[id:%s][%s]] %s\n"
+                            (format-time-string "[%H:%M]"
+                                                (seconds-to-time (plist-get item :start)))
+                            (format-time-string "[%H:%M]"
+                                                (seconds-to-time (plist-get item :end)))
+                            (plist-get item :minutes)
+                            (plist-get item :id)
+                            (substring (plist-get item :id) 0 8)
+                            title))))
+        (insert "\n* Totals\n")
+        (let (rows (grand 0))
+          (maphash (lambda (k v) (push (cons k v) rows)) totals)
+          (dolist (row (sort rows (lambda (a b) (> (cdr a) (cdr b)))))
+            (setq grand (+ grand (cdr row)))
+            (insert (format "  - %5.1fh  %s\n" (/ (cdr row) 60.0) (car row))))
+          (insert (format "  - %5.1fh  TOTAL ALLOCATED\n" (/ grand 60.0))))
+        (goto-char (point-min))
+        (org-mode)))
+    (pop-to-buffer buffer)))
+
 ;;; MCP tool registration -------------------------------------------------
 
 ;;; :PLAN: drawer wrapping (TODO.org :ID: 3063c3e5)
