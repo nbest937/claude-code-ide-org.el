@@ -10390,9 +10390,11 @@ mean either \"one project\" or \"the lookup failed\", and the whole
 point is to be able to tell a misroute from a correctly routed pass."
   (let ((tracker (claude-code-ide-org--id-tracker (plist-get (car run) :id))))
     (if tracker
-        (format "  [%s]" tracker)
+        (propertize (format "  [%s]" tracker)
+                    'face 'claude-code-ide-org-review-tracker-face)
       (when-let* ((names (claude-code-ide-org--review-run-cwds run)))
-        (format "  [cwd: %s]" (string-join names ", "))))))
+        (propertize (format "  [cwd: %s]" (string-join names ", "))
+                    'face 'claude-code-ide-org-review-tracker-face)))))
 
 (defun claude-code-ide-org--review-group-annotations (items)
   "Map the item starting each of ITEMS' groups to that group's annotation.
@@ -11523,6 +11525,63 @@ means; it never decides which way point travels."
     (message "Sorted %s-first"
              (if claude-code-ide-org--review-newest-first "newest" "oldest"))))
 
+(defgroup claude-code-ide-org-review-faces nil
+  "Faces for the review buffer."
+  :group 'claude-code-ide-org)
+
+;; Every face inherits from a standard one rather than naming a colour.
+;; The buffer is read in whatever theme the user runs, and a literal
+;; colour that happens to suit one is unreadable in another -- while
+;; `bold', `shadow', `warning' and `font-lock-string-face' are exactly
+;; the four ideas this buffer needs and every theme defines them.
+;;
+;; Applied at render time rather than through font-lock keywords,
+;; because the buffer is erased and rebuilt on every mark keystroke, so
+;; there is no incremental refontification to preserve -- and because
+;; each faced run is a string this file *constructs*. Nothing here
+;; re-parses the buffer's own output to find what to colour, which is
+;; the failure mode a keyword list would invite (TODO.org :ID: f3a53bd4).
+
+(defface claude-code-ide-org-review-group-face
+  '((t :inherit bold))
+  "Face for a group heading: the id and title an item belongs to."
+  :group 'claude-code-ide-org-review-faces)
+
+(defface claude-code-ide-org-review-tracker-face
+  '((t :inherit shadow))
+  "Face for the `[tracker]' / `[cwd: ...]' annotation on a group heading.
+Dimmed deliberately: it answers \"which project\", which matters only
+when it is *not* the one you expected, so it should recede until it
+differs from its neighbours."
+  :group 'claude-code-ide-org-review-faces)
+
+(defface claude-code-ide-org-review-prompt-face
+  '((t :inherit font-lock-string-face))
+  "Face for a prompt synopsis joined from the session transcript.
+A string face because the line is quoted human speech -- the one thing
+in this buffer that was said rather than derived."
+  :group 'claude-code-ide-org-review-faces)
+
+(defface claude-code-ide-org-review-evidence-face
+  '((t :inherit shadow))
+  "Face for span evidence: commits and heading creations in the window.
+Dimmed for the reason the evidence exists -- it is material for a
+judgement, not the judgement, and it should not compete with the item."
+  :group 'claude-code-ide-org-review-faces)
+
+(defface claude-code-ide-org-review-attention-face
+  '((t :inherit warning))
+  "Face for an item that needs a decision before it can apply.
+A stale state transition or an unassigned span: the two cases where
+pressing `x' without reading first does something the reader did not
+mean."
+  :group 'claude-code-ide-org-review-faces)
+
+(defface claude-code-ide-org-review-mark-face
+  '((t :inherit font-lock-keyword-face))
+  "Face for the `[x]' of a marked item, so a marked run is scannable."
+  :group 'claude-code-ide-org-review-faces)
+
 (defun claude-code-ide-org--review-render ()
   "Render `claude-code-ide-org--review-items' into the current buffer.
 
@@ -11592,7 +11651,8 @@ rest from lighting up."
                                  (org-no-properties (org-get-heading t t t t)))))))
             (insert (propertize
                      (format "\n%s%s\n"
-                            (cond
+                            (propertize
+                             (cond
                              ;; A span nobody has assigned yet belongs to no
                              ;; heading, so it gets its own group rather than
                              ;; rendering the literal string "nil" as a title.
@@ -11612,6 +11672,7 @@ rest from lighting up."
                                             title))
                              (t (format "%s  (unresolved)"
                                         (claude-code-ide-org--short-id last-id))))
+                             'face 'claude-code-ide-org-review-group-face)
                             ;; Trailing, so the id column and the title
                             ;; column both stay exactly where `:ID:'
                             ;; c2132d3f put them: a variable-width field
@@ -11626,8 +11687,23 @@ rest from lighting up."
                      'claude-code-ide-org-line 'group))))
         (insert (propertize
                  (format "  [%s] %s\n"
-                         (if (plist-get item :marked) "x" " ")
-                         (claude-code-ide-org--review-describe item))
+                         (if (plist-get item :marked)
+                             (propertize "x" 'face
+                                         'claude-code-ide-org-review-mark-face)
+                           " ")
+                         ;; Faced only when the item needs a decision --
+                         ;; a stale transition or an unassigned span.
+                         ;; Facing every item by type was considered and
+                         ;; rejected: colouring the ordinary case teaches
+                         ;; the eye to ignore colour, which is the one
+                         ;; thing the exceptional case needs it for.
+                         (let ((text (claude-code-ide-org--review-describe item)))
+                           (if (or (plist-get item :unassigned)
+                                   (claude-code-ide-org--review-state-stale-p item))
+                               (propertize
+                                text 'face
+                                'claude-code-ide-org-review-attention-face)
+                             text)))
                  'claude-code-ide-org-item item))
         ;; Evidence goes under the unassigned spans only -- the items that
         ;; pose a question.  An assigned span has already been answered, and
@@ -11646,11 +11722,15 @@ rest from lighting up."
         ;; span has no enclosing event (TODO.org :ID: 325679af).
         (when (eq (plist-get item :type) 'clock)
           (dolist (line (claude-code-ide-org--span-prompt-lines-cached item))
-            (insert (format "          %s\n" line))))
+            (insert (propertize (format "          %s\n" line)
+                                'face
+                                'claude-code-ide-org-review-prompt-face))))
         (when (and (eq (plist-get item :type) 'clock)
                    (plist-get item :unassigned))
           (dolist (line (claude-code-ide-org--span-evidence-cached item))
-            (insert (format "          %s\n" line))))))
+            (insert (propertize (format "          %s\n" line)
+                                'face
+                                'claude-code-ide-org-review-evidence-face))))))
     (goto-char (point-min))))
 
 (defun claude-code-ide-org--review-set-mark (marked &optional advance)
