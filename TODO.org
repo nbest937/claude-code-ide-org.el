@@ -2,6 +2,14 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO A bookkeeping burst reads as many headings worked at once, and inflates every window it lands in :code:
+:PROPERTIES:
+:ID:       369ad62a-e2ce-4cab-b2ee-0e83ad24f249
+:CREATED:  [2026-09-14 Mon 17:16]
+:END:
+
+Residue from 295cde3a. The window allocator counts a heading as worked when a write tool named it, and org_capture had to leave that list because a filing burst creates a dozen headings inside one window and read as a dozen headings being worked — 15 in the worst window on 2026-09-10. The same shape survives in org_set_property and org_slice_add_member, which touch many headings during slice composition. Proposed: decide whether a bookkeeping write on a heading is work *on* that heading, and if not, split --worked-tool-names into work and bookkeeping so a composition pass lands on review and planning whole rather than a minute each across the headings it filed.
+
 * DONE The review buffer is one undifferentiated face, so its element kinds have to be parsed by eye :code:
 CLOSED: [2026-09-14 Mon 12:55]
 :PROPERTIES:
@@ -707,7 +715,7 @@ Planned:
 
 - [X] [[id:325679af-829e-4c7f-88b0-153c2c9683b3][325679af]] DONE The review buffer shows each run's opening prompt, joined from the transcript
 - [X] [[id:96ddf1ef-67fd-4d3c-b8cc-01ebb14a687d][96ddf1ef]] DONE Render a session transcript to readable org, so scrollback stops being the index
-- [ ] [[id:295cde3a-49a5-4960-a828-a4fc175d73c1][295cde3a]] NEXT Divide a window's run time among the headings the transcript shows it worked
+- [-] [[id:295cde3a-49a5-4960-a828-a4fc175d73c1][295cde3a]] DOING Divide a window's run time among the headings the transcript shows it worked
 - [X] [[id:fbaf8009-b3dc-48ed-b099-63b74fc156a8][fbaf8009]] DONE The review buffer should name each item's tracker, now that two projects share the queue
 - [X] [[id:f1e36a65-3469-4ae6-ac1f-fdfcd1c053c9][f1e36a65]] DONE Open the review buffer newest-first, with =s= to reverse it like dired
 - [X] [[id:f3a53bd4-60ab-47a1-84b0-07d2c1c5fd24][f3a53bd4]] DONE The review buffer is one undifferentiated face, so its element kinds have to be parsed by eye
@@ -2244,130 +2252,128 @@ having: markers *raise or lower confidence* on a span a human is going to judge 
 =5a6d2c75='s frame rather than an automatic classifier.
 
 
-* NEXT Divide a window's run time among the headings the transcript shows it worked :code:research:
+* DOING Divide a window's run time among the headings the transcript shows it worked :code:research:
 :PROPERTIES:
 :ID:       295cde3a-49a5-4960-a828-a4fc175d73c1
 :CREATED:  [2026-09-01 Tue 13:27]
 :CATEGORY: Clock
 :END:
-:LOGBOOK:
-- State "NEXT"       from "TODO"       [2026-09-14 Mon 12:24] \\
-  sole remaining member after four closed
+:DEBRIEF:
+*Shipped* =M-x claude-code-ide-org-allocation-report= over a date range,
+with =claude-code-ide-org-allocation-window-seconds= (1200) and
+=--worked-tool-names=. Windows, equal shares by largest remainder, laid
+end to end from the window's first observed run; a report only. Four
+tests, 640 in the suite, lint clean.
+
+*Two things running it found that reasoning had not.*
+
+**=org_capture= is not evidence of work, and had to leave the tool
+list.** A filing burst creates a dozen headings inside one window and the
+allocator read that as a dozen headings worked at once — 15 in the worst
+window on 2026-09-10. Creating a task is planning; the time belongs to
+review and planning whole, not a minute each to tasks nobody had
+started. The same shape as "mentions are not subjects", arriving through
+*writes* rather than prose, which is where it was not expected.
+
+**The resolution floor is real at a 20-minute window, and the report was
+hiding it.** That window measured 6 minutes of run time, so 9 of 15
+shares rounded under a minute and vanished — 6 lines under a header
+claiming 15, with nothing explaining the gap. It now names them.
+Surfacing it was the fix; the silent version claimed a completeness it
+never had.
+
+*Falsified along the way:* that the queue could say which headings a
+window worked. It cannot, and the reason is structural rather than a
+coverage gap — =org_amend= queues only when it fails to write through,
+so the signal is "the human had the file open", and six successful
+amends in one afternoon left no trace at all.
+
+*Left behind, and filed:* a bookkeeping burst still inflates the sharing
+count through =org_set_property= and =org_slice_add_member=
+([[id:369ad62a-e2ce-4cab-b2ee-0e83ad24f249][369ad62a]]). *Not filed, deliberately:* coverage is small
+— 2026-09-10 allocates 1.2h where the attention derivation gives roughly
+5h — but that is [[id:ccfd89ce-a55d-4ad4-bce7-707181deb510][ccfd89ce]]'s sparsity, already recorded,
+not this heading's residue.
 :END:
-
-Apply's spans say *when* the agent ran, not *on what*. This divides each
-fixed window's **measured run time** equally among the headings that
-window actually worked, laid end to end, and reads which headings those
-were from the **session transcript** rather than from the queue.
-
+:PLAN:
 *The shape, decided by the user 2026-09-01 and simplified 2026-09-14.*
 Fixed windows; equal shares; no weights; no overlap; contiguous
 intervals in order of appearance. The one change to the original
 proposal is what gets divided: the window's *measured run time*, not its
 nominal twenty minutes. That needs no utilisation gate, no lookup table
 and invents no minutes, and it makes total allocated equal total
-measured — the property that makes it defensible rather than merely
-explainable.
+measured.
 
 *Why a gate was proposed and why it is not needed.* The proposal applied
 the split "only in periods of maximum utilization". Measured over 399
-windows carrying any run time, **median utilisation is 13.8%**; one
-window reaches 90%, five reach 75%, thirteen reach 50%. A gate on
-maximum utilisation would fire on 1–3% of windows and record almost
-nothing — correct and inert. Dividing measured time removes the reason
-for it.
+windows carrying any run time, median utilisation is 13.8%; one window
+reaches 90%, five reach 75%, thirteen reach 50%. A gate on maximum
+utilisation would fire on 1–3% of windows and record almost nothing.
 
 *The empirical question the user asked, answered.* Over 362 windows
 carrying heading activity: 1 heading in 49%, 2 in 25%, 3 in 15%, 4 in
-6%, 5 in 3%, and **more than 5 in 1.7%**, the largest 9. So the 2–5
-range covers half of active windows and overflow is negligible. Note 1
-heading is the *most* common case and takes the whole window, which the
-original table left implied.
+6%, 5 in 3%, more than 5 in 1.7%, the largest 9. One heading is the
+*most* common case and takes the whole window.
 
-*The signal must be the transcript, and that is the finding that
-survived from the original title.* The measurement above read "worked"
-from id-bearing queue events — =todo=, =clock_in=, =clock_out=, =amend=,
-=capture=. Verified 2026-09-14 that this is the wrong source:
-**=org_amend= queues an event only when it *fails* to write through**,
-so a successful amend is invisible. Six successful amends to
-[[id:4f8500e6-b468-4fd4-a0f6-ebf04c7a57ba][4f8500e6]] that day produced zero queue events, while the
-four events present were all from a window when the buffer happened to
-be dirty. The queue's id-bearing events record *whether the human had
-the file open*, plus decision moments — not work.
+*The signal must be the transcript.* The measurement above read "worked"
+from id-bearing queue events. Verified 2026-09-14 that this is the wrong
+source: =org_amend= queues an event only when it *fails* to write
+through, so a successful amend is invisible — six to
+[[id:4f8500e6-b468-4fd4-a0f6-ebf04c7a57ba][4f8500e6]] that day produced zero events, while the four
+present all came from a window when the buffer happened to be dirty. The
+queue records whether the human had the file open, plus decision
+moments; not work. The transcript has no such gap, and
+[[id:e75d660f-5c0d-4707-a645-b5dea7d7ebc0][e75d660f]] measured the join as exact — 28 of 28 =resume=
+events match a transcript timestamp within two seconds.
 
-The transcript has no such gap: every =org_amend= call appears with its
-id, as does every other tool call. [[id:e75d660f-5c0d-4707-a645-b5dea7d7ebc0][e75d660f]] measured
-the join as exact — 28 of 28 =resume= events match a transcript
-timestamp within two seconds — and this slice has already built the
-parsing (=--transcript-turns=, =--transcript-prompts=).
-
-*Mentions are not subjects, and that distinction is what still needs
-judgement.* The heaviest turns name 36, 21 and 18 ids; those are
-footnote-heavy *responses* citing headings rather than working them. A
-tool call carrying an id is strong evidence of work; an id in prose is
-not. Extracting the candidate set is exact — a regex plus a corpus
-lookup — so only the *selection* among mentions needs a model, which
-bounds any non-determinism to the membership question rather than
-spreading it over numbers.
+*Mentions are not subjects.* The heaviest turns name 36, 21 and 18 ids;
+those are footnote-heavy responses citing headings rather than working
+them. A tool call carrying an id is evidence; an id in prose is not.
+Extracting the candidate set is exact, so only the selection among
+mentions would ever need a model.
 
 *One property to preserve.* An allocated interval's boundaries are an
-artefact of the division: nobody worked heading B from 9:07 to 9:11. The
-annotation must say so, or the CLOCK line reads as measurement — which
-is exactly [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]]'s objection to plausible fabricated
-numbers. Durations are the claim; boundaries are not.
+artefact of the division — nobody worked heading B from 9:07 to 9:11 —
+so the annotation must say so, or the line reads as measurement, which
+is [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]]'s objection exactly. Durations are the
+claim; boundaries are not.
 
 *And a run boundary is broader than it looks.* =--run-opening-kinds= is
 =resume=, =clock_in=, =block_end=; =--run-closing-kinds= is =pause=,
-=clock_out=, =block_start=. Any measurement of "run time" that pairs
-only =resume= and =pause= undercounts, which several ad-hoc analyses
-during this slice did.
+=clock_out=, =block_start=. Any measurement pairing only =resume= and
+=pause= undercounts, which several ad-hoc analyses during this slice did.
 
-*Superseded, and left to git rather than restated here:* the weighted
-=CLOCK:= representation with its =* 0.25= annotation, the per-turn
-resolution floor, largest-remainder rounding, the
+*Superseded, left to git rather than restated:* the weighted =CLOCK:=
+representation with its =* 0.25= annotation, the per-turn resolution
+floor, largest-remainder rounding as a correctness worry, the
 =--drawer-contains-line-p= idempotency collision, and the provenance
-argument about sampling parameters. All of it followed from weights and
-per-turn apportionment, and neither survives. The reasoning is in the
-history of this heading if the question reopens.
+argument about sampling parameters. All followed from weights and
+per-turn apportionment, and neither survives.
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-09-14 Mon 12:24] \\
+  sole remaining member after four closed
+CLOCK: [2026-09-14 Mon 14:02]--[2026-09-14 Mon 14:04] =>  0:02
+- State "DOING"      from "NEXT"       [2026-09-14 Mon 14:02] \\
+  user proposes a fixed-window allocation; measuring it
+- [2026-09-14 Mon 14:02]--[2026-09-14 Mon 14:04] measure headings worked per 20-minute window
+CLOCK: [2026-09-14 Mon 14:16]--[2026-09-14 Mon 14:17] =>  0:01
+- [2026-09-14 Mon 14:16]--[2026-09-14 Mon 14:17] measure headings worked per 20-minute window
+CLOCK: [2026-09-14 Mon 14:32]--[2026-09-14 Mon 14:34] =>  0:02
+- [2026-09-14 Mon 14:32]--[2026-09-14 Mon 14:34] measure headings worked per 20-minute window
+:END:
 
-*Implemented 2026-09-14.* =M-x claude-code-ide-org-allocation-report=
-over a date range, with =claude-code-ide-org-allocation-window-seconds=
-(1200) and =--worked-tool-names=. Windows, equal shares by largest
-remainder, laid end to end from the window's first observed run; a
-report only, writing no CLOCK line and touching no org file. Four tests,
-640 in the suite.
+Apply's spans say *when* the agent ran, never *on what*. This divides
+each fixed window's measured run time equally among the headings that
+window worked — equal shares, laid end to end, no weights and no overlap
+— and reads which headings those were from the session transcript rather
+than from the queue, the queue's id-bearing events having turned out to
+record whether the human had the file open rather than what was worked.
 
-*Running it found two things reasoning had not.*
-
-**=org_capture= is not evidence of work, and had to leave the tool
-list.** A filing burst creates a dozen headings inside one window, and
-the allocator read that as a dozen headings being worked at once — 15 in
-the worst window on 2026-09-10. Creating a task is planning; the time
-belongs to review and planning whole, not a minute each to tasks nobody
-had started. *The same shape as "mentions are not subjects", arriving
-through writes rather than prose*, which is where it was not expected.
-
-**The resolution floor is real at a 20-minute window and now says so.**
-That 15-heading window measured 6 minutes of run time, so 9 shares
-rounded under a minute and were dropped — the report used to write 6
-lines under a header claiming 15 and say nothing about the difference.
-It now reads =(15 headings sharing; 9 shares under a minute, not
-written)=. Surfacing it is the fix; hiding it made the report claim a
-completeness it never had.
-
-*A bookkeeping burst still inflates the sharing count* — =org_set_property=
-and =org_slice_add_member= during slice composition touch many headings
-in a window much as capture did. Unresolved, and the same judgement call
-the tool list already embodies: whether a bookkeeping write on a heading
-is work on it. Named here rather than decided.
-
-*Coverage is small and honestly so.* 2026-09-10 allocates 1.2h where the
-attention derivation gives roughly 5h for the day, because only windows
-carrying a write-tool call allocate at all. That is
-[[id:ccfd89ce-a55d-4ad4-bce7-707181deb510][ccfd89ce]]'s sparsity again, not a defect of the
-division.
-
-
+*Resolution:* shipped as =M-x claude-code-ide-org-allocation-report=, a
+proposal that writes no CLOCK line and touches no org file, since the
+boundaries are an artefact of the division and only the durations are
+claimed.
 
 * TODO AFK markers are ground truth for the one judgement we cannot automate, and we discard them :code:
 :PROPERTIES:
@@ -3421,6 +3427,7 @@ The third is the important one: it is the known negative, confirmed independentl
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-14 Mon 17:06]--[2026-09-14 Mon 17:08] =>  0:02
 CLOCK: [2026-09-14 Mon 13:40]--[2026-09-14 Mon 13:42] =>  0:02
 CLOCK: [2026-09-14 Mon 12:51]--[2026-09-14 Mon 13:39] =>  0:48
 CLOCK: [2026-09-14 Mon 12:16]--[2026-09-14 Mon 12:18] =>  0:02
@@ -5570,6 +5577,92 @@ conclusion the human draws from it — but neither requires the other.
 :CREATED:  [2026-08-14 Fri 11:35]
 :BLOCKER:  ids(df5afbbd-0eac-4032-be91-17cc22ef0cd7)
 :END:
+:DEBRIEF:
+*Shipped* =M-x claude-code-ide-org-attention-report= over a date range,
+with =claude-code-ide-org-attention-window-seconds= (600) and
+=-attention-floor-windows= (3). Six tests, 640 in the suite, lint clean.
+
+*Three things found by running it rather than by reasoning.*
+
+**=--span-work-runs= rewrites endpoints.** It promotes a sub-minute run's
+end to a full minute so the observation survives org's minute precision
+— right for a CLOCK line, wrong here, because window membership is
+computed *from* the endpoints: a ten-second turn at 09:09:40 becomes
+09:10:40 and marks a window nothing ran in. The pairing is now
+=--raw-work-runs=, and the test asserts the two functions *disagree* on
+that case rather than merely passing.
+
+**Guideposts must pair within a session.** =--queue-events= merges every
+session and re-sorts, so pairing the merged stream let one session's
+=resume= close against another's =pause=. With a background job and an
+interactive session overlapping constantly this was the common case.
+
+**A run boundary is broader than =resume=/=pause=.** =clock_in= and
+=block_end= also open; =clock_out= and =block_start= also close. Every
+ad-hoc figure quoted while designing this used the narrow pair and
+undercounts — last week is 17.4h, not the 12.8h reported at the time.
+
+*Falsified, and worth keeping because the first answer was confidently
+wrong.* That a slice rollup would assign time predating the slice: it
+does, and it is 0.8h of 10.0h, not the 60% an earlier measurement
+claimed. The 60% came from treating sparse decision events as dense work
+evidence; keyword-gating removes it entirely, for the reason the user
+gave — attention before =DOING= is disaggregated meta-work, and =DOING=
+periods postdate the slice by construction. That also retired this
+heading's own argument that slice totals must never be written, which
+had leaned on a hazard that does not exist.
+
+*Left behind:* nothing new. The declared-target gap — most busy time
+carries no clocked heading — is [[id:ccfd89ce-a55d-4ad4-bce7-707181deb510][ccfd89ce]] and already
+filed; rolling up by =:CATEGORY:= instead of by slice was proposed here
+and *declined* by the user in favour of the slice-or-review pair, so it
+is a closed question rather than residue.
+:END:
+:PLAN:
+*The derivation.* A **busy** window is one carrying agent run time —
+"busy", never "active", which in org names a timestamp shape and would
+read as the opposite of what is measured; its complement is *idle*. Ten
+minutes wide. Three consecutive busy windows make an attention interval,
+the 30-minute floor. Sub-floor stretches are not discarded — that would
+drop roughly 30% of busy time — but rendered as **bookends**: split the
+day's residue at the midpoint of its own min–max span, size each block
+to the busy time it represents, and anchor the early one at the earliest
+observed moment and the late one at the latest. Every bookend then has
+one observed edge, and a side holding a single stretch has both.
+
+*Why the floor is 30 minutes.* Median agenda items per day over 26 days:
+8 at a 10-minute floor, 6 at 20, 3 at 30, 1 at 60. Three windows is
+where a day's items become few enough to reconcile against a calendar,
+which is the only consumer.
+
+*The label vocabulary is two words wide:* the slice open in
+=DOING=/=REVIEW= at that moment, else =Review and planning= (the user,
+2026-09-14 — the two are the same kind of thing and both roll up to the
+project, which is the level attention is actually reported at). Measured
+over 803 busy windows: 268 had exactly one slice open, 535 none, two
+never. The premise is one human, stated as such.
+
+*Duration is end minus start, with no second number.* An earlier draft
+reported window-count times width alongside observed boundaries and the
+two disagreed — a stretch rendered 09:05–09:47 was labelled 50m against
+a 42-minute range. An org active interval's duration *is* its range.
+
+*What licenses proposing any of this.* The bar is an aid to attestation,
+not a final word (the user, 2026-09-14): the output is reconciled
+against a calendar of external activity and hand-corrected, and overlap
+across projects is acceptable. So [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]]'s refusal of
+a guessed stop time does not reach it — there the number had no evidence
+behind it; here the boundaries are observations and only the label is
+offered. The rule that survives is *propose what is measured, ask for
+what is not*.
+
+*Three renderings were tried and two rejected.* One block spanning
+first-start to last-end drew Wednesday as =07:52--16:45=, an 8.9-hour
+agenda block for 60 minutes of work. One block sized to the real minutes
+fixed the quantity and left the placement wrong — that day's 16:14 and
+16:45 stretches drawn at 8am. Bookends fix both, at four extra items
+across four days.
+:END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-14 Fri 11:36] \\
   manual pass, no blockers found
@@ -5585,456 +5678,39 @@ CLOCK: [2026-08-14 Fri 12:22]--[2026-08-14 Fri 12:28] =>  0:06
 - [2026-08-14 Fri 12:22]--[2026-08-14 Fri 12:28] suggested span, accepted at review
 CLOCK: [2026-08-14 Fri 12:31]--[2026-08-14 Fri 12:36] =>  0:05
 - [2026-08-14 Fri 12:31]--[2026-08-14 Fri 12:36] suggested span, accepted at review
+- [2026-09-14 Mon 14:35]--[2026-09-14 Mon 14:35] measure a derived attention-interval rule
+CLOCK: [2026-09-14 Mon 15:05]--[2026-09-14 Mon 15:06] =>  0:01
+- [2026-09-14 Mon 15:05]--[2026-09-14 Mon 15:06] measure a derived attention-interval rule
+CLOCK: [2026-09-14 Mon 15:10]--[2026-09-14 Mon 15:13] =>  0:03
+- [2026-09-14 Mon 15:10]--[2026-09-14 Mon 15:13] measure a derived attention-interval rule
+CLOCK: [2026-09-14 Mon 15:20]--[2026-09-14 Mon 15:25] =>  0:05
+- [2026-09-14 Mon 15:20]--[2026-09-14 Mon 15:25] measure a derived attention-interval rule
+CLOCK: [2026-09-14 Mon 15:30]--[2026-09-14 Mon 15:34] =>  0:04
+- [2026-09-14 Mon 15:30]--[2026-09-14 Mon 15:34] measure a derived attention-interval rule
+CLOCK: [2026-09-14 Mon 15:36]--[2026-09-14 Mon 15:40] =>  0:04
+- [2026-09-14 Mon 15:36]--[2026-09-14 Mon 15:40] measure a derived attention-interval rule
+CLOCK: [2026-09-14 Mon 15:48]--[2026-09-14 Mon 15:51] =>  0:03
+- [2026-09-14 Mon 15:48]--[2026-09-14 Mon 15:51] measure a derived attention-interval rule
+CLOCK: [2026-09-14 Mon 15:55]--[2026-09-14 Mon 15:57] =>  0:02
+- [2026-09-14 Mon 15:55]--[2026-09-14 Mon 15:57] measure a derived attention-interval rule
+CLOCK: [2026-09-14 Mon 16:02]--[2026-09-14 Mon 16:08] =>  0:06
+- [2026-09-14 Mon 16:02]--[2026-09-14 Mon 16:08] measure a derived attention-interval rule
+CLOCK: [2026-09-14 Mon 16:13]--[2026-09-14 Mon 16:25] =>  0:12
+- [2026-09-14 Mon 16:13]--[2026-09-14 Mon 16:25] measure a derived attention-interval rule
+CLOCK: [2026-09-14 Mon 16:34]--[2026-09-14 Mon 16:43] =>  0:09
+- [2026-09-14 Mon 16:34]--[2026-09-14 Mon 16:43] measure a derived attention-interval rule
 :END:
 
-*Named 2026-08-14, after establishing what the system does and does not
-record.* The queue records *Claude sessions*; it has never recorded the
-user's own attention. Clocking manually in Emacs writes a =CLOCK:= line
-and nothing else, because the active annotation is this module's
-apply-time addition rather than org's. So solo work lands in the same
-agenda-invisible bucket as unattended subagent work, for an entirely
-different reason:
-
-| producer                    | CLOCK | annotation   | clocktable | agenda |
-|-----------------------------+-------+--------------+------------+--------|
-| Claude session, via apply   | yes   | active =<>=  | yes        | yes    |
-| subagent, via apply         | yes   | inactive =[]=| yes        | no     |
-| the user, clocking in Emacs | yes   | none         | yes        | *no*   |
-
-Measured the same day: TODO.org holds 84 =CLOCK:= lines and 52 active
-annotations, and the ~33 without one all predate the 2026-08-11 cutover.
-
-*The intended granularity is coarse, and this is the load-bearing
-constraint.* Stated by the user: "I expect my attention intervals to be
-coarser and just a bulk representation of what did I do that day." *Not*
-one annotation per CLOCK line, and not an attempt to align with the
-recorded intervals at all. That rules out the obvious helper — a command
-that annotates the CLOCK line at point — which was offered and declined
-for exactly this reason. A day-level summary is a different artifact
-from a reconstruction of the clock.
-
-*Doing it through the review buffer does not work, and the reason is
-structural.* Spans are reconstructed from =pause=/=resume= guideposts,
-which come only from Claude Code's =Stop=/=UserPromptSubmit= hooks. No
-session running means no guideposts, means no span to review. The buffer
-can *correct* a span that exists (=e= for endpoints, =a= to assign) but
-cannot *create* one for a period the queue never saw. Time spent alone in
-Emacs is therefore outside it in every era, not merely before the
-cutover.
-
-*So this is manual work in Emacs, by design and by preference,* and what
-would help is small: =RET= from the review buffer now unfolds the target
-=:LOGBOOK:= (2026-08-14), and
-=claude-code-ide-org--consolidate-drawer-at-point= will re-sort a drawer
-after hand-editing — though it is not =(interactive)= yet, so it needs
-=M-:= or a two-line wrapper. Org inserts CLOCK lines newest-first while
-notes land in insertion order, so a hand-edited drawer drifts out of
-chronological order quickly.
-
-*Sequencing, worked out 2026-08-14.* Nothing pending changes how
-intervals are *derived*, so nothing blocks this: =ab75d6d2=,
-=d1cf852a=, =c954f650= and =2aeb65d6= are all irrelevant to it. The one
-apparent dependency, [[id:96a51c2f-ce11-4b40-bdff-11223d3d4eb7][96a51c2f]]
-(re-measure the guidepost gap threshold), is weaker than it looks: its
-own data found span count flat across 1200-1800s with no observations
-between 1061s and 2070s, so a re-measure is unlikely to change any
-reconstruction.
-
-The asymmetry that governs the order: the queue keeps every raw event
-and can be re-clustered at will, while annotations written into
-=:LOGBOOK:= *cannot be re-derived* — redoing them means hand-editing org
-files. So do this after anything that changes derivation, and before
-anything that puts raw material out of reach.
-
-*One thing to avoid meanwhile:* =M-x claude-code-ide-org-archive-finished-queues=.
-It is manual, so it will not fire on its own, but it has already moved
-seven sessions (back to 2026-08-08) out of the review buffer's sight,
-and its own docstring notes that a restored file which lost its
-watermark supports "only all-or-nothing" reprocessing.
-
-*The producer table above is superseded, same day it was written.*
-=claude-code-ide-org--review-format-annotation= used to branch on an
-item's =:agent:=, writing an *active* timestamp for anything without one.
-That is the row reading "Claude session, via apply | active =<>= | agenda
-yes". The branch was removed on 2026-08-14 — measured: all 68 events of
-one session carried =agent_id= nil, so every span it produced was
-published to the agenda as though the user had been at the keyboard. Apply
-now writes inactive timestamps unconditionally.
-
-*Which dissolves the contrast this heading was named around.* The
-paragraph above objects that solo work "lands in the same agenda-invisible
-bucket as unattended subagent work" while Claude-session work reaches the
-agenda. After the correction all three producers are agenda-invisible, so
-solo work is no longer the anomaly — it is the rule. The heading's purpose
-survives, but its motivating asymmetry does not; the reason to build
-attention intervals is now that *nothing* populates the agenda, rather
-than that the wrong thing does.
-
-*Left behind, and this is the part that bites:* 55 active =<>= annotations
-remain in TODO.org, dated 2026-08-10 through 2026-08-14, against 14
-inactive ones written since. The fix stopped the bleeding and cleaned
-nothing. Those 55 are agent-derived spans currently rendering in the
-agenda as human attention — and they occupy precisely the namespace this
-heading intends to fill. A first attention pass would be reading an agenda
-that is almost entirely mislabelled agent activity, which makes the
-cleanup a precondition rather than tidying. Tracked separately.
-
-*Vocabulary settled 2026-08-15, moved here 2026-08-31 from [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]], where it had been recorded because that session happened to need the words — but it is project-wide terminology and was buried inside one task's body.* This heading is where it belongs: it is phase 2, and it quotes the user's own coinage, "I expect my *attention intervals* to be coarser and just a bulk representation of what did I do that day."
-
-*The two phases, named by artifact rather than by ritual:*
-
-| phase | produces            | lives in    | status    | the act            |
-| 1     | clock intervals     | =:LOGBOOK:= | measured  | apply              |
-| 2     | attention intervals | the agenda  | attested  | the attention pass |
-
-The adjectives carry the distinction that matters: a *clock* interval is **measured by the agent**; an *attention* interval is **attested by the human**. That is exactly the difference between confirming what was observed and saying what one was actually doing.
-
-*The finding at the time was that this had already been settled and a session had drifted from it.* "Active intervals" appeared exactly twice in the whole repo, both written that same day — a fresh coinage competing with an existing term, corrected in both places. Which is why [[id:d5490814-d174-480a-a9e7-b809f94d71f2][search before coining]] is a standing habit rather than advice.
-
-*Rejected: "logbook entry" / "agenda entry"*, which was the user's own first proposal and closer than anything the session had produced. Three counts: =interval= is the established noun (334 uses against zero for =entry=); "agenda entry" collides with org's own meaning, where it is a TODO appearing in the agenda view rather than a span of time, and that collision would be silent; and "logbook entry" is literally correct but too narrow, since the drawer also carries state lines and annotations while the meaningful product is the interval. The instinct to name by artifact was right — the artifacts simply already had names.
-
-*"Active" does two unrelated jobs, and conflating them produced two ambiguous sentences within hours of the vocabulary being settled.*
-
-- *=active= vs =inactive= is a property of an org **timestamp**.* =<2026-08-15 Sat 10:00>= reaches the agenda; =[2026-08-15 Sat 10:00]= does not. org's own vocabulary, not ours to redefine.
-- *=clock= vs =attention= is a property of an **interval**.*
-
-The two axes are *orthogonal*, and the second is implemented using the first: an attention interval is written with active timestamps precisely so it reaches the agenda, and clock intervals use inactive ones so they do not. That is the mechanism, not a synonym. So *"active interval" should not be written at all* — it is ambiguous in both directions, being both the rejected coinage and a true-but-useless statement about attention intervals.
-
-*Rule of thumb: say **timestamp** when discussing the mechanism and **interval** when discussing the thing being recorded. A sentence needing both words is probably conflating them.*
-
-*The user proposed a **derived** rule 2026-09-14, which reverses this heading's standing conclusion that attention intervals are manual work:* consecutive stretches of three or more ten-minute windows carrying agent activity become one solid interval, attributed at the slice level; periods between slices with any activity go to the meta-work category; the smallest interval is therefore thirty minutes.
-
-*Measured over the whole queue corpus, and it is viable — which is the part that changes the heading's direction.*
-
-| "active window" means | attention claimed | vs measured run time | worst day |
-| has agent **run time** | **60.0h** | 2.7x | 6.3h of an 11.5h elapsed day (55%) |
-| has any event at all | 134.5h | 6.0x | 8.8h of a 13.2h day (78%) |
-
-The any-event variant claims three quarters of a waking day on the strength of a lone =pause= and should be rejected. The run-time variant averages **2.4h/day over 25 days**, peaking at 6.3h, and its 2.7x ratio over agent run time is the *point* rather than an error — it is the reading and thinking between turns that run time excludes by construction, which is precisely what an attested interval is meant to carry.
-
-*The presence assumption — the obvious objection — survives measurement.* The worry was the user's own AFK discipline: pop in, queue a prompt during a long turn, pop out. A stretch of agent activity does not prove a human was there, and =996fd2bd= exists because a =pause=--=resume= gap cannot tell attending from absent. But across the 75 qualifying stretches the **median is 7 prompts**, distributed 1:2, 3:2, 4:12, 5:10, 6+:49. A prompt is direct evidence of presence, so 65 of 75 stretches carry four or more. Only **1.0h of the 60h** rests on two or fewer prompts, and requiring =>=3= prompts alongside =>=3= windows would remove exactly those two stretches.
-
-*The thirty-minute floor is a real and sizeable undercount, and should be chosen rather than inherited.* It discards 144 sub-threshold stretches covering 34.5h of wall-clock and containing **6.7h — 30% — of all measured agent run time**. A genuine twenty-minute working session scores zero.
-
-*What the derivation cannot see is exactly what this heading already said it could not:* time spent alone in Emacs with no session running produces no guideposts, so it produces no stretch. The derived rule therefore covers *agent-accompanied* attention only, and solo work stays manual. That narrows the "manual by design" conclusion rather than overturning it — the change is that the accompanied majority need no longer be hand-entered.
-
-*Two housekeeping notes.* This heading's =:BLOCKER:= names =df5afbbd=, the cleanup of the 55 mislabelled active annotations, and that is now **DONE** — the precondition this body called "a precondition rather than tidying" is satisfied. And the blocker is written =ids(df5afbbd...)=, a single id in the wrapper, which per =3f4fd744= enforces nothing; it happens not to matter now that the referent is closed.
-
-*A vocabulary slip worth recording because this heading is where the rule lives.* The request that prompted this work said "user/active intervals". Per the rule settled 2026-08-15 and recorded above, **"active interval" should not be written at all** — =active= is a property of a *timestamp* and the axis wanted here is =clock= versus =attention=. The term is **attention interval**. Noting it because a rule whose own heading tolerates violations in its own thread is not a rule.
-
-*Narrowing the "do not write it at all" rule, 2026-09-14, at the user's objection — which is correct and the rule as stated was too absolute.* The user: "two active timestamps put together form an active interval, something that will show up in an agenda view as a time period during which I was occupied."
-
-*That is a true and useful statement, and it is about the **construct**, not about the kind of interval.* =<ts>--<ts>= is an org timestamp range; joined and active, it renders in the agenda as an occupied period. This heading's own producer table records exactly that behaviour, and =df5afbbd= exists because 55 such ranges were reaching the agenda as attention when they were agent activity — so the mechanism is not merely documented here, it has already misfired here.
-
-*So the rule keeps its point and loses its absolutism.* What was rejected on 2026-08-15 was "active interval" as a **name for the thing being recorded**, because it answers the wrong question: the axis that matters is =clock= versus =attention= — measured by the agent, or attested by the human — and "active" answers neither, being a property of the timestamps used to write it. Naming the *construct* "an active interval" is a different act and a legitimate one.
-
-*Restated:* an **attention interval** *is implemented as* an active interval. The first names what it means and who vouches for it; the second names what it is made of. A sentence is wrong when it uses the second where the reader needs the first — not whenever the words appear.
-
-*Recorded because the previous flag was mine and it was wrong.* Reading the earlier request's "user/active intervals" as a vocabulary slip applied a naming rule to a mechanism description. The rule is worth keeping; enforcing it past its scope makes it noise.
-
-*The user supplied the floor's actual purpose 2026-09-14, which answers the "choose it rather than inherit it" objection recorded above:* "the 30-minute floor limits the number of distinct agenda items to report on during a given working day." It is a **legibility** parameter, not an accuracy one — and measured against the corpus it is well calibrated rather than arbitrary:
-
-| floor | intervals | hours claimed | median agenda items/day | max/day | days with any |
-| 10 min | 221 | 94.8 | 8 | 13 | 26 |
-| 20 min | 138 | 81.0 | 6 | 10 | 26 |
-| **30 min** | **75** | **60.0** | **3** | **8** | 25 |
-| 40 min | 47 | 46.0 | 2 | 6 | 24 |
-| 60 min | 22 | 27.8 | 1 | 3 | 13 |
-
-Thirty minutes is the knee. It takes a working day from eight items to **three** and the worst day from thirteen to eight; forty buys one further item for another 14h discarded, and sixty erases half the working days outright (26 down to 13). So the 34.8h the floor drops relative to a ten-minute floor is the price of a day that can be read at a glance, which is a trade worth naming in those terms rather than as an undercount.
-
-*Slice-level attribution, clarified by the user the same day:* aggregate the derived intervals over the slice **members** that were being worked during that time, and carried over where that applies. So the unit of attribution is the member, not the slice — the slice is where the member-level attributions are summed. That dissolves the objection raised earlier, that most work here has never been inside a slice: an interval attaches to whatever was worked, and only rolls up to a slice when those headings happen to be its members. Everything else rolls up to the meta-work category, exactly as the proposal said.
-
-*The next measurement this wants, not yet done:* of the 60.0h the rule would claim, how much lands on headings that are slice members — directly or by carry-forward — versus the meta-work category. That is the number that says whether slice-level aggregation reports anything worth looking at, and it is answerable from the same material.
-
-*The user, same day: "that aggregation should mitigate the 30% of discarded time." Measured, and it does so completely.*
-
-The contiguous =>=3= window rule yields 75 intervals and 60.0h, covering **70%** of all measured agent run time; the 146 sub-threshold stretches it drops hold 34.8h of wall-clock and 6.7h of run time. Aggregating *each day's* discarded stretches into a single item and applying the floor to that total instead:
-
-- **all 26 days qualify** — every working day's leftovers exceed thirty minutes in aggregate;
-- **100% of the discarded run time is recovered**, taking coverage from 70% to **100%**;
-- the cost is **one extra agenda item per day**, moving the median from three to four.
-
-*And the recovered item is not a new category — it is the meta-work bucket the proposal already named.* A day's scattered sub-threshold stretches are by construction the work that belonged to no sustained push, which is exactly what "periods between slices where there is any activity go to the meta-work category" describes. The aggregation and the category fall out of each other rather than having to be reconciled.
-
-*One thing to settle before building, because it is the same provenance question the allocation scheme raised.* The recovery is complete for **attribution**; for **display** it depends on a choice. A day's leftovers are scattered, so rendering them as one agenda item means one active interval =<first>--<last>= that spans the gaps between them and claims time nobody worked. The alternatives are N separate items, which forfeits the item economy the floor exists for, or a block whose boundaries are admittedly notional. Given the floor's purpose the notional block is probably right — but it must *say* it is notional, or it reads as observation, which is the objection =7771fc63= raised against plausible fabricated numbers and the one this whole design has to keep answering.
-
-Three corrections from the user, 2026-09-14, and the measurement that
-followed them.
-
-*"Active" is the wrong word for a qualifying window.* Active vs inactive
-is a property of an org *timestamp*, and a window carrying agent run time
-is not that. The word is *busy*, with *idle* as its complement — no org
-meaning, no existing meaning here, and it reads in both the prose and the
-code. So: a **busy window**, a **busy stretch**.
-
-*The meta-work bucket is for activity between slices, not for a day's
-short stretches.* This session had quietly repurposed the name for the
-sub-threshold leftovers the 30-minute floor discards, which is a
-different set — a brief stretch can be solid work on a slice member; it
-is short, not unattributed. **The floor governs display, not
-attribution.** The arithmetic recorded above stands unchanged (all 26
-days qualify, 6.7h recovered, one extra agenda item per day); what was
-wrong was calling the recovered item meta-work. It is a day's short
-stretches, and it attributes exactly as the long ones do.
-
-*A busy stretch goes wholly to a slice when any of its members were
-worked* — no splitting among members, no weights. Simpler than the
-aggregation this heading previously described.
-
-**Measured against that rule, and it labels far less than expected.**
-Over the 75 qualifying stretches (60.0h), taking every id-bearing queue
-event (=todo=, =clock_in=, =clock_out=, =amend=, =capture=) as evidence a
-heading was worked:
-
-| what the stretch implicates | stretches | hours | share |
-| headings worked, none a slice member | 30 | 25.2 | 42% |
-| no heading identifiable at all | 22 | 16.3 | 27% |
-| exactly one slice | 15 | 12.3 | 21% |
-| two or more slices | 8 | 5.2 | 9% |
-
-Carry-forward — inheriting the previous stretch's slice when a stretch
-implicates no heading at all, within a day — recovers 4.7h, taking
-slice-attributed time to 23.2h of 60.0h (39%). It is small because
-unidentified stretches mostly neighbour other unidentified ones rather
-than slice work.
-
-**This is not an artifact of slices being young**, which was the obvious
-first explanation and is false. Split at the first slice's =:CREATED:=
-(2026-08-25), the two eras are within a point of each other: before,
-41% / 30% / 19%; after, 43% / 25% / 22%. Slices have never covered most
-of the work — they are a deliberate overlay on a minority of it, not a
-partition of it.
-
-**Narrowing the evidence makes it worse, not better.** Taking only
-=clock_in= as the signal — the one event that explicitly asserts "working
-this now" — attributes 7.2h of 60.0h (12%). The broad signal is the
-usable one, with the caveat that an apply or bookkeeping pass touches
-many headings at once and is the likely source of every multi-slice
-stretch (one implicates seven).
-
-**What follows for the design: the slice is a rollup, not the attribution
-unit.** A busy stretch attributes to the heading(s) worked in it; a slice
-view aggregates the stretches whose headings are its members. That gives
-the user's rule exactly where it applies and leaves the other 61% of
-measured time attributed to something rather than to nothing. The
-alternative — slice as the unit — writes no interval at all for most
-busy time, which is the failure mode this heading exists to avoid.
-
-Unchanged by all of this: the interval derivation itself. 75 intervals,
-60.0h, a median of 3 agenda items per day are properties of the busy-window
-rule and are independent of how each interval is labelled.
-
-*Retraction, same session.* The attribution numbers above (39% with
-carry-forward, 42% of stretch time on non-member headings) are an
-artifact of the signal and should not be cited. Two defects in it:
-
-- **Id-bearing queue events are decision moments, not work moments.** A
-  =clock_in= fires once and the work then runs for hours emitting
-  nothing, so asking "which ids appear inside this stretch" misses every
-  stretch where work simply continued.
-- **=org_amend= queues an event only when it *fails* to write through.**
-  Counting =amend= events therefore counted deferred amends and ignored
-  successful ones — a signal biased toward whichever headings happened to
-  be open in a dirty buffer.
-
-**Re-measured with clock-forward attribution** — a =clock_in= owns the
-time until the next one, which is what the clock already means — over the
-same 296 marks and 60.5h of qualifying stretch time:
-
-| carry rule | attributed to a heading | unowned | of which slice member |
-| within the day | 47.3h (78%) | 13.2h (22%) | 6.8h (11% of all) |
-| indefinitely | 60.5h (100%) | 0.0h | 10.0h (17% of all) |
-
-**Same-day carry is the defensible one.** Carrying indefinitely reaches
-100% by letting a =clock_in= from three days ago own this morning's first
-window. The 13.2h it declines to claim is activity under no clock at
-all — which is the meta-work bucket in the user's sense of the term,
-arrived at as a residue rather than asserted.
-
-**The retroactivity question, which prompted this.** The user asked
-whether a rollup over current membership can assign a slice time that
-predates the slice. It can, and measured properly it is **0.8h of 10.0h
-(8%)** — not the 60% the bad signal reported. A =clock_in= is
-contemporaneous by construction: being clocked into a member usually
-means the slice already exists. (=749301a0='s phantom 1.3h, on a slice
-never worked, was the same artifact and does not survive.)
-
-Three consequences, recorded as the design position:
-
-1. **Slice totals are a query, never a written record.** A rollup reads
-   *current* membership, so adoption adds past hours, =:DROPPED:= removes
-   them, and moving a member migrates its history. Harmless for a
-   question asked now; fatal for an agenda item already written. So
-   attention intervals are written on **headings**, whose identity does
-   not change, and slice totals stay derived — the same grain as the
-   =:BLOCKER:= and the cookie.
-2. **Do not bound the rollup to the slice's life.** It would need
-   membership tenure, which the file does not record, to correct 0.8h in
-   10. And a slice asserts that its members belong together — a claim
-   about the work, not about a calendar window.
-3. **Slice-level attribution is a small report (11–17%), and that is what
-   slices are.** For a rollup that covers a working day the axis is
-   =:CATEGORY:=: every heading carries one, it inherits, org filters
-   agendas by it, and it has no membership-tenure problem at all, since
-   it travels on the task rather than being asserted about it from
-   outside.
-
-*The keyword nuance (the user, 2026-09-14), which settles the
-retroactivity question and relocates the problem.*
-
-**"Attention to a task prior to =DOING= is really disaggregated
-meta-work, and =DOING=/=REVIEW= periods don't usually start until after
-the slice has begun."** Both halves measured true, by reconstructing each
-heading's keyword at each moment from its =:LOGBOOK:= state lines (816
-transitions across 488 headings) and classifying each busy window by what
-its owner's keyword was *then*.
-
-**Retroactivity is 0.00h under every carry rule tried.** Not small —
-zero. And the mechanism is the one the user named: =4f8500e6= is the
-worked example, adopted into =afea7e4f= carrying prior attention, which
-is what produced the earlier alarming 60%. All of that attention was
-accrued while it sat =TODO=/=MAYBE=. Adopted headings are pre-=DOING= at
-adoption time, so a =DOING= period postdating its slice is structural
-rather than lucky.
-
-**This retires the design argument recorded above it.** "Slice totals
-must be a query, never a written record, because adoption rewrites a
-slice's past" loses its empirical support: keyword-gated, adoption
-imports only pre-=DOING= time, which is not task work. The
-query-versus-write distinction still holds on principle — membership is
-mutable and the past is not — but it should not be argued from this
-hazard, which does not exist.
-
-**What the keyword cut exposes instead is larger.** Two carry rules
-bracket it, over 60.7h of qualifying busy stretch time:
-
-| carry rule | task work (DOING+REVIEW) | explicit meta-work | no declared target |
-| =clock_out= ends attribution | 6.7h (11%) | 4.0h + 2.4h pre-DOING | 46.2h (76%) |
-| carry to next =clock_in= | 14.0h (23%) | 10.3h + 5.8h pre-DOING | 13.2h (22%) |
-
-**Declared task work is 11–23% of busy time, and the dominant bucket is
-time with no declared target** — which is =ccfd89ce='s unassigned-span
-problem reappearing as the binding constraint on every attribution
-scheme discussed here. No rollup axis and no interval rule addresses it;
-it is clock discipline.
-
-**The design that follows.** Classify each busy stretch by its owner's
-keyword at that moment. =DOING=/=REVIEW= is task attention —
-attributable, agenda-visible, rolled up to a slice or a =:CATEGORY:=.
-Everything else is meta-work: pre-=DOING= attention, the explicit
-=Review and planning= clock, and the residue between a =clock_out= and
-the next =clock_in=. That matches the user's framing exactly, with the
-caveat that meta-work is then the *majority* of the record rather than a
-residual bucket.
-
-**And the honest headline has changed.** The note above says slice
-attribution is a small report because slices overlay a minority of the
-work. Still true, now second-order. The first-order fact is that most
-busy time has no declared target, so any attention report built today
-describes roughly a quarter of the day. That is a finding about the
-record rather than about the derivation, and it belongs on the table
-before any of this is built.
-
-*Two measurement defects found on the way, worth not rediscovering.* The
-queue's =clock_in= ids are **heterogeneous** — 173 full UUIDs, 59 bare
-8-character prefixes, 64 titles (=Review and planning=) — so any analysis
-joining them to =:ID:= properties must resolve all three shapes or
-silently drop a fifth of the marks. And **=clock_out= must end
-attribution**: ignoring it credits a closed heading with everything until
-the next =clock_in=, which manufactured a spurious 14.0h =DONE= bucket
-larger than the =DOING= one.
-
-*The bar, stated by the user 2026-09-14 and load-bearing for everything
-above:* **this is an aid to attestation, not a final word on attention.**
-The output is reconciled against a calendar of external activities and
-hand-corrected. And **overlap of attention intervals across projects is
-acceptable** — the model does not require a partition of the day.
-
-Three things that reads differently under that bar.
-
-**The 11–23% declared-target figure stops being a blocker.** It is not a
-coverage failure; it is a **pre-fill rate** — how often the system can
-propose a label rather than leaving one for the human. The derived
-*interval* is evidence either way: busy windows bound when attention
-happened, and that half is measured. Only the label is uncertain, and the
-label is what the human was going to supply anyway.
-
-**=7771fc63='s objection does not reach this.** That rule refused a
-*guessed stop time* offered by the stale-interval report — a number with
-no evidence behind it, where a plausible suggestion is harder to reject
-than none. Here the boundaries are observations and only the attribution
-is proposed, which is the contract the review pass already keeps for
-spans. The distinction to preserve: **propose what is measured, ask for
-what is not.** An interval drawn from busy windows may be offered; a
-label the record cannot support must arrive blank rather than guessed.
-
-**Overlap tolerance removes the last of the allocation problem.** If
-intervals may overlap across projects, nothing needs splitting into
-fractional shares, and a heading worked inside two slices' windows may
-count in both. Note this does *not* license double-counting in a slice's
-**cookie**, where the existing prohibition is about membership and stays;
-time and membership are different quantities.
-
-*And it argues for the larger floor rather than the smaller.* Fewer,
-wider items are easier to check against a calendar, which is the actual
-consumer. The 30-minute floor's 3 items/day was chosen on legibility
-grounds; attestation is the reason legibility was the right criterion.
-
-*The residue rule, settled 2026-09-14 by rendering last week three ways.*
-
-Sub-floor stretches — busy stretches shorter than the 30-minute floor —
-are not discarded (that would drop ~30% of busy time) and are not drawn
-as one block spanning the day. **They are rendered as two bookend
-intervals**: split the day's residue at the midpoint of its own min–max
-span, size each block to the minutes actually worked in it, and anchor
-the early block at the **earliest real timestamp** and the late block at
-the **latest**.
-
-**The property that makes this the right shape: every bookend has one
-observed edge.** Only the inner edges are constructed, so half the
-boundaries are evidence rather than assertion — and a residue side
-holding a single stretch has both edges observed. That is what the
-earlier renderings could not offer.
-
-Measured over the week of 2026-09-07, all on =claude-code-ide-org=:
-
-| rendering | agenda items | notional edges | intra-day overlaps |
-| one block, spanning | 15 | 8 of 8 | 2 |
-| one block, sized | 15 | 8 of 8 | 2 |
-| **bookends** | **19** | **4 of 8** | **1** |
-
-The span rendering was indefensible and is recorded only so it is not
-retried: Wednesday's residue read =07:52--16:45=, an 8.9-hour agenda
-block for 60 minutes of work. Sizing fixed the quantity and left the
-placement wrong — Wednesday's 16:14 and 16:45 stretches were drawn at
-8am. Bookends fix both, at four extra items across four days.
-
-**Labelling, and the open refinement.** A busy stretch is labelled by the
-slice that was in =DOING=/=REVIEW= at that moment, else =Review and
-planning= — the two options, per the user, since only one slice is worked
-at a time and both roll up to the project. *That premise was measured and
-held*: across every busy window last week, never more than one slice was
-open. Each bookend currently inherits the day's **modal** residue label,
-which is wrong in principle — a morning of slice work and an evening of
-review would share one label — and arguably wrong on 2026-09-08 already.
-Labelling each bookend from its own constituent stretches is the fix, not
-yet applied.
-
-Last week's readout under this rule: 12.8h over 19 items and 4 days —
-=c19fbbf5= 6.3h, Review and planning 5.2h, =afea7e4f= 0.8h, =ff7ccb2d=
-0.5h. Monday 2026-09-07 was Labor Day and shows no activity, which is a
-free check that the derivation invents nothing.
-
-
-
-
-
-
-
-
-
-
+A CLOCK line holds agent run time, measured; it is not the human's
+attention, which includes the reading and deciding between turns and
+runs about 2.7x longer. This derives coarse day-level **attention
+intervals** from busy windows — active timestamps, agenda-visible,
+attested rather than measured — so a working day can be reconciled
+against a calendar of external activity.
+
+*Resolution:* shipped as =M-x claude-code-ide-org-attention-report=,
+proposing intervals a human corrects; the qualifying ones carry two
+observed edges and the residue bookends one each.
 
 * TODO Bracket queued spans with WAIT transitions, so the heading guess stops latching :code:
 :PROPERTIES:
@@ -8979,6 +8655,9 @@ CLOCK: [2026-09-11 Fri 11:11]--[2026-09-11 Fri 11:13] =>  0:02
 - [2026-09-11 Fri 11:11]--[2026-09-11 Fri 11:13] fbaf8009 into the slice; nomination; next-session rewrite
 CLOCK: [2026-09-11 Fri 11:45]--[2026-09-11 Fri 11:52] =>  0:07
 - <2026-09-11 Fri 11:45>--<2026-09-11 Fri 11:52> assigned at review
+- [2026-09-11 Fri 11:52]--[2026-09-11 Fri 11:52] root-cause unattributed spans, file discipline fix
+- [2026-09-11 Fri 12:12]--[2026-09-11 Fri 12:12] root-cause unattributed spans, file discipline fix
+- [2026-09-11 Fri 12:16]--[2026-09-11 Fri 12:16] root-cause unattributed spans, file discipline fix
 - [2026-09-11 Fri 13:24]--[2026-09-11 Fri 13:46] assigned at review
 CLOCK: [2026-09-11 Fri 14:10]--[2026-09-11 Fri 14:13] =>  0:03
 - <2026-09-11 Fri 14:10>--<2026-09-11 Fri 14:13> assigned at review
