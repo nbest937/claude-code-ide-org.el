@@ -215,6 +215,42 @@ is rebuilt here, one line is removed from a rendered buffer.
 :ID:       40159d43-e48b-4f38-95eb-651145637049
 :CREATED:  [2026-09-14 Mon 09:42]
 :END:
+:DEBRIEF:
+*Shipped* =claude-code-ide-org--mechanism-owned-heading-p=, consulted by
+=--assign-candidates=. One test, 645 in the suite.
+
+*"It ranks high" was measured rather than assumed.* Against a real span
+on 2026-09-10, with the exclusion disabled the heading is candidate
+**#4 of 492**; with it enabled the list is 491 and the heading is absent.
+That is the whole claim of this heading, and it is now a number.
+
+*Compared by title, not by id, and that is the design choice.* The
+heading is *named* by a defcustom rather than pointed at, so a user who
+renames it renames the thing to exclude — an id would go stale on the
+rename where the title cannot. Nil defcustom means clocking is disabled
+and there is nothing to exclude.
+
+*The docstring's standing claim had to change with the code.*
+=--assign-candidates= said "*Nothing is excluded*, and that is the fix
+for =0d055205=" — a sentence recording why a previous exclusion was a
+bug (it dropped every heading created after the span, and
+=completing-read= runs with REQUIRE-MATCH, so those headings were simply
+unreachable). Leaving it would have left the file asserting the opposite
+of what it does. It now names the one exception and keeps the reason the
+general form stays forbidden.
+
+*The exposure was prospective, as the audit said.* Across 81 closed CLOCK
+lines on the heading, all 11 annotations came from
+=review-attention-stop= and none from an assignment, so nothing
+historical needed repair.
+
+*Left behind:* nothing. The body's second suggestion — renaming the
+heading so it cannot be misread as the meta-work node — is not needed now
+that it is unreachable from the assignment list, and
+[[id:591e7af3-4f37-4f90-86ba-62400c6e649b][591e7af3]] already owns that heading's other maintenance
+question.
+:END:
+:PLAN:
 
 =--assign-candidates= says of itself "*Nothing is excluded*, and that is the fix
 for =0d055205=", so the =Review attention= heading (=335dfa97=) is offered at
@@ -233,6 +269,13 @@ list, since it is a heading the *mechanism* owns and a human has no reason to
 pick — that is a narrower exclusion than =0d055205= reversed, which was about
 not hiding headings created after the span. Consider also naming it something
 that cannot be misread as the meta-work node.
+
+:END:
+*Resolution:* =--assign-candidates= now drops the one heading the
+mechanism owns, via =--mechanism-owned-heading-p=, which compares against
+the =claude-code-ide-org-review-attention-heading= defcustom so renaming
+the heading renames what is excluded.
+
 
 
 * TODO Nothing fills prose on write, so body text arrives as one long line and the human reflows it by hand :code:

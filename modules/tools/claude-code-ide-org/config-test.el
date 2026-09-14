@@ -15743,3 +15743,33 @@ distinguishes the two cases rather than passing on either."
       (goto-char (point-min))
       ;; The table may be aligned but must remain a single row line.
       (should (re-search-forward "^|.*cell.*|$" nil t)))))
+
+
+;;; Mechanism-owned headings (TODO.org :ID: 40159d43) ----------------------
+
+(ert-deftest claude-code-ide-org-test-mechanism-owned-heading-p ()
+  "The review-attention heading is excluded from assignment; nothing else is.
+
+Both directions matter.  Excluding too much is the bug :ID: 0d055205
+fixed -- `--assign-candidates' runs `completing-read' with
+REQUIRE-MATCH, so a heading dropped here is simply unreachable with no
+explanation.  Excluding too little is this heading's own complaint: the
+mechanism's heading ranks well by construction and reads like the
+meta-work node."
+  (let ((claude-code-ide-org-review-attention-heading "Review attention"))
+    (should (claude-code-ide-org--mechanism-owned-heading-p "Review attention"))
+    ;; The near-miss that motivated the exclusion is NOT itself excluded.
+    (should-not (claude-code-ide-org--mechanism-owned-heading-p
+                 "Review and planning"))
+    (should-not (claude-code-ide-org--mechanism-owned-heading-p "Some task"))
+    (should-not (claude-code-ide-org--mechanism-owned-heading-p nil)))
+  ;; It follows the defcustom rather than a hard-coded string, so renaming
+  ;; the heading renames what is excluded.
+  (let ((claude-code-ide-org-review-attention-heading "Attention pass"))
+    (should (claude-code-ide-org--mechanism-owned-heading-p "Attention pass"))
+    (should-not (claude-code-ide-org--mechanism-owned-heading-p
+                 "Review attention")))
+  ;; Disabled clocking leaves nothing to exclude.
+  (let ((claude-code-ide-org-review-attention-heading nil))
+    (should-not (claude-code-ide-org--mechanism-owned-heading-p
+                 "Review attention"))))

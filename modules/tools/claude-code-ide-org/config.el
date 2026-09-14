@@ -12274,6 +12274,29 @@ side."
           (setq claude-code-ide-org--review-items
                 (append claude-code-ide-org--review-items (list new))))))))
 
+(defvar claude-code-ide-org-review-attention-heading)
+
+(defun claude-code-ide-org--mechanism-owned-heading-p (title)
+  "Non-nil when TITLE names a heading the machinery owns, not a task.
+
+Today that is exactly the review-attention heading.  No human has a
+reason to assign a span to it -- the mechanism clocks it itself, in
+`claude-code-ide-org-review-attention-stop' -- while it ranks near the
+top of the assignment list, because candidates are ranked by time
+correlation with the span and this one is clocked at review time by
+construction.  Its display name differs from the meta-work datetree's by
+two words, so the wrong pick is one keystroke away and reads right
+afterwards.
+
+Compared by title rather than by id because the heading is *named* by a
+defcustom rather than pointed at: a user who renames it renames the
+thing this must exclude, where an id would go stale on the rename and
+the title cannot.  Nil when the defcustom is nil, which is how
+review-attention clocking is disabled -- with no heading there is
+nothing to exclude."
+  (let ((owned claude-code-ide-org-review-attention-heading))
+    (and owned (stringp title) (equal title owned))))
+
 (defun claude-code-ide-org--assign-candidates (span-start span-end)
   "Return (DISPLAY . ID) pairs for assigning SPAN-START--SPAN-END, best first.
 
@@ -12281,7 +12304,19 @@ Ranked by how close each heading's bracket
 \(`claude-code-ide-org--heading-bracket') sits to the span, nearest
 first, with overlap collapsing to zero.  TODO.org :ID: 49cbe319.
 
-*Nothing is excluded*, and that is the fix for :ID: 0d055205.  This
+*One heading is excluded, and nothing else is* -- the narrowness is the
+point, because the general form of exclusion here was a bug.  The
+exception is `claude-code-ide-org-review-attention-heading', which the
+*mechanism* owns: a human has no reason to assign a span to it, and it
+ranks *well* precisely because it is clocked at review time by
+construction, so it sits near the top of the list a human chooses from
+while differing from the meta-work datetree's name by two words
+(TODO.org :ID: 40159d43).  Audited when the exclusion was added: across
+81 closed CLOCK lines on it, all 11 annotations came from
+`claude-code-ide-org-review-attention-stop' and none from an assignment,
+so the exposure was prospective rather than historical.
+
+*Nothing else is excluded, and that is the fix for :ID: 0d055205.*  This
 previously dropped any heading whose `:CREATED:' was later than the
 span, calling it \"a hard impossibility\".  It is the normal case: work
 happens and the heading is written afterwards, which this project's own
@@ -12347,7 +12382,9 @@ sorts last rather than vanishing: absence of evidence rules nothing out."
                 (range (plist-get info :range))
                 (state (plist-get info :state))
                 (bracket (claude-code-ide-org--heading-bracket range created)))
-           (when title
+           (when (and title
+                      (not (claude-code-ide-org--mechanism-owned-heading-p
+                            title)))
              ;; Prefix first, matching every other rendering the reader
              ;; meets -- group headings, span lines, and this project's
              ;; own footnote convention in prose. The eye arrives
