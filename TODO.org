@@ -132,6 +132,7 @@ Planned:
 :PROPERTIES:
 :ID:       369ad62a-e2ce-4cab-b2ee-0e83ad24f249
 :CREATED:  [2026-09-14 Mon 17:16]
+:CATEGORY: Queue
 :END:
 
 Residue from 295cde3a. The window allocator counts a heading as worked when a
@@ -523,6 +524,29 @@ with no drawer-local value is an error".
 eight real headings (=165ce65a=, =204d1b0a=, =b112878e=, =489d6f61=, =325679af=,
 =784d80c5=, =fbaf8009=, =af2f345e=). The two that remain uncategorised are
 cancelled scratch probes.
+
+*The measurement trap is wider than this body says, found 2026-09-15 by
+falling into it twice in a row.* The warning above names
+=org-entry-get=; **=(org-entry-properties nil 'standard)= computes the
+same fallback**, despite =standard= sounding like "the drawer's own".
+Both reported *zero* level-1 headings without a =:CATEGORY:= while
+=369ad62a= plainly had none — its drawer holds =:ID:= and =:CREATED:=
+and nothing else. Only reading the property drawer as **text** found it.
+
+That matters for the lint rule this heading proposes, because the rule
+will be written in elisp by someone reaching for the obvious accessor,
+and a check that cannot fail is worse than no check — which is
+=542924c1='s subject, already closed in this slice's own theme.
+
+*So the rule's implementation needs a discriminating test*: a fixture
+heading with no =:CATEGORY:= in its drawer, asserted to be *reported*.
+Written against either accessor above, that test passes while the check
+does nothing.
+
+*One heading was still uncategorised at this writing* — =369ad62a=,
+captured 2026-09-14 — and has been given =Queue=. The count is now 0 of
+103, which is the number the fix has to hold rather than reach.
+
 
 
 * TODO [0/7] A span is only as true as its owner, its edges and its payload :code:
@@ -924,6 +948,53 @@ composition hits a wall.
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
 :END:
+:DEBRIEF:
+*Shipped:* the prompt join and tracker naming in the review buffer,
+newest-first ordering with =s=, six faces, the readable session render,
+=M-x claude-code-ide-org-attention-report=, =M-x
+claude-code-ide-org-allocation-report=, =M-x
+claude-code-ide-org-fill-prose=, and two apply defects fixed
+(=b23e5bcc=, =169df26b=). 654 ERT tests at close against 601 at
+composition.
+
+*This is the first slice to carry its own measurements, and the numbers
+are the baseline =next-session.md= asks the next one to beat.*
+
+| members | 11 (9 planned, 2 adopted) |
+| span | 2026-09-11 composed, 2026-09-15 merged — 5 calendar days, 3 working |
+| commits | 50 |
+| review findings | 7, i.e. 0.64 per member |
+| attention | **8.0 h** on the slice plus 2.2 h meta-work over the window |
+
+*Note what the attention figure is and is not.* 8.0 h is the human's
+*attention*, derived by this slice's own tooling — not agent run time,
+which is roughly a third of it. A slice measuring itself with the
+instrument it built is a pleasing result and a circular one: the number
+is only as good as the derivation, which nothing has yet reconciled
+against a calendar.
+
+*What went wrong, because it is the more useful half.* Three defects
+were introduced *and* survived a green suite: the fill sweep wrapped
+slice member lines and a later refresh orphaned their tails as duplicated
+prose; =fill-prose= reverted the buffer on its *dry-run* path, which was
+the interactive default, so its safest-looking invocation could destroy
+unsaved work; and a 604 KB =config.elc= was committed four times, able to
+shadow source edits silently. None was caught by =bin/test=, and two were
+caught only by an external review. That is =8a2eb687='s thesis
+demonstrated three times inside one slice, by the slice's own author.
+
+*Falsified along the way*, each recorded on its member: that a slice
+rollup would assign time predating the slice (0.8 h of 10.0 h, not the
+60% first measured); that the queue could say which headings a window
+worked (it records whether the human had the file open); and that
+=b23e5bcc= was blocked on =169df26b= (reading the call chain answered it).
+
+*Left behind, and filed:* =7ee3b71a= (=org_amend replace== erases a
+slice's checklist), now a member of =8a2eb687=; and =369ad62a= (a
+bookkeeping burst inflates a window's sharing count). Nothing else is
+outstanding — every review finding was fixed on the branch and every
+thread resolved before the merge.
+:END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-11 Fri 11:12] \\
   nominated: the Slices-category pick-up-next, at the user's word
@@ -1100,6 +1171,15 @@ recoverable-in-principle that stops being done.
 opened 2026-09-14 with 43 commits. Under the close condition settled on
 =e80f6ccf= this slice closes when that merges, not when its last member
 went terminal — which is why it sits at =REVIEW= now rather than =DONE=.
+
+*Resolution:* all eleven members shipped and
+[[https://github.com/nbest937/claude-code-ide-org.el/pull/23][PR #23]]
+merged 2026-09-15 as =3b1b14c=, which is this slice's close condition
+rather than its last member going terminal. The review buffer now
+answers *where* and *what* for every span, a session renders to readable
+org, and two derivations — attention intervals and window allocation —
+propose what the record cannot measure.
+
 
 
 * TODO Emacs died of a fatal signal at review-buffer quit, deadlocked in the mac port's shutdown
