@@ -2628,28 +2628,6 @@ defcustom or a different calling session takes effect immediately."
       claude-code-ide-org-capture-file
       org-default-notes-file))
 
-(defun claude-code-ide-org--capture-level-1-headings (file)
-  "The distinct :CATEGORY: values in use across FILE.
-
-*Was the titles of FILE's level-1 headings* until 2026-08-27, when
-TODO.org :ID: 29439196 dissolved that tier. A level-1 heading is now a
-task, so offering those titles as capture targets would invite filing a
-heading *under another task* by name -- both a nesting nobody asked for
-and an address-by-title, which this project forbids everywhere else.
-
-Kept as the answer to \"what categories exist?\", which is what
-`org_capture's schema sends a reader here for. Read from the drawer
-rather than `org-entry-get', which computes a fallback and would report
-the file name as a category on every uncategorised heading."
-  (with-current-buffer (find-file-noselect file)
-    (let (cats)
-      (org-with-wide-buffer
-       (goto-char (point-min))
-       (while (re-search-forward "^[ \t]*:CATEGORY:[ \t]+\\(\\S-.*?\\)[ \t]*$" nil t)
-         (let ((c (substring-no-properties (match-string 1))))
-           (unless (member c cats) (push c cats)))))
-      (nreverse cats))))
-
 (defun claude-code-ide-org--capture-target-spec (target)
   "Resolve TARGET to a plist (:spec SPEC :file FILE :where DESC).
 
@@ -2783,15 +2761,17 @@ because template text is scanned for %-escapes and user prose
 containing `%U' or `%i' would expand instead of landing verbatim.
 
 CATEGORY, when given, is written as a `:CATEGORY:' property in the same
-drawer, after `:CREATED:' (TODO.org :ID: b0d55552).  Written here rather
-than by a second `org-entry-put' so the deferred path produces the same
-drawer as the immediate one, and so a level-1 capture never exists,
-even briefly, without the property the lint requires."
+drawer, after `:CREATED:' (TODO.org :ID: b0d55552) -- by `org-entry-put'
+after the template finalizes, for NOTE's reason: a value interpolated
+into the template is scanned for %-escapes, and org-capture has no
+`%%' form, so \"R%UD\" landed as a timestamp (PR #24 review).  Both
+paths go through this function, so the deferred drawer still matches
+the immediate one."
   (let ((org-capture-templates
          (list (list "z" "Claude quick-capture (org_capture MCP tool)"
                      'entry
                      spec
-                     (format "* %s%%i%s\n%s:PROPERTIES:\n:ID:       %s\n:CREATED:  %s\n%s:END:\n"
+                     (format "* %s%%i%s\n%s:PROPERTIES:\n:ID:       %s\n:CREATED:  %s\n:END:\n"
                              (if (and initial-state
                                       (not (string-empty-p initial-state)))
                                  (concat initial-state " ")
@@ -2814,10 +2794,7 @@ even briefly, without the property the lint requires."
                                          claude-code-ide-org--outline-finished-keywords)
                                  (format "CLOSED: %s\n" created)
                                "")
-                             new-id created
-                             (if (and category (not (string-empty-p category)))
-                                 (format ":CATEGORY: %s\n" category)
-                               ""))
+                             new-id created)
                      :immediate-finish t
                      ;; Prepend only for a bare file target. TODO.org
                      ;; :ID: 29439196 flattened the categories, so a
@@ -2829,14 +2806,21 @@ even briefly, without the property the lint requires."
                      ;; a different decision nobody has taken.
                      :prepend (eq (car-safe spec) 'file)))))
     (org-capture-string title "z")
-    (when (and note (not (string-empty-p (string-trim note))))
-      (let ((m org-capture-last-stored-marker))
-        (when (and (markerp m) (marker-buffer m))
-          (org-with-point-at m
+    (let ((m org-capture-last-stored-marker)
+          (category (and category (not (string-empty-p category)) category))
+          (note (and note (not (string-empty-p (string-trim note))) note)))
+      (when (and (or category note) (markerp m) (marker-buffer m))
+        (org-with-point-at m
+          ;; After finalize, never via the template: see the docstring.
+          ;; `org-entry-put' appends to the drawer, so the property
+          ;; follows :CREATED: exactly as the template would have put it.
+          (when category
+            (org-entry-put nil "CATEGORY" category))
+          (when note
             (claude-code-ide-org--end-of-body)
             (insert (claude-code-ide-org--amend-separator note)
-                    (string-trim note) "\n")
-            (save-buffer)))))))
+                    (string-trim note) "\n"))
+          (save-buffer))))))
 
 (defun claude-code-ide-org--file-todo-keywords (file)
   "The TODO keywords FILE's own `#+TODO:' line declares, or nil.
@@ -4938,8 +4922,16 @@ The text-reading half of `claude-code-ide-org--category-property-p',
 for the same reason: org's own accessors compute a fallback."
   (save-excursion
     (org-back-to-heading t)
-    (let ((end (save-excursion (outline-next-heading) (point))))
-      (and (re-search-forward "^[ \t]*:CATEGORY:[ \t]+\\(\\S-.*?\\)[ \t]*$" end t)
+    ;; Bounded to the property drawer, not the entry: a body or LOGBOOK
+    ;; line of the same shape -- a debrief quoting a drawer line -- is
+    ;; not the heading's category, and read as one it would pass the
+    ;; lint and teach org_capture's in-use list a value the taxonomy
+    ;; rejects (PR #24 review, 2026-09-15).
+    (let ((range (org-get-property-block)))
+      (and range
+           (progn (goto-char (car range))
+                  (re-search-forward "^[ \t]*:CATEGORY:[ \t]+\\(\\S-.*?\\)[ \t]*$"
+                                     (cdr range) t))
            (match-string-no-properties 1)))))
 
 (defun claude-code-ide-org--grouping-heading-p ()
@@ -6126,8 +6118,14 @@ naming no ids yields nil, and the caller leaves it alone: the lint still
 reports it, and deleting would turn \"malformed\" into \"unblocked\"."
   (if (not (claude-code-ide-org--blocker-wrapped-p value))
       value
-    (let ((ids (claude-code-ide-org--lint-blocker-ids value)))
-      (and ids (string-join ids " ")))))
+    ;; Every token inside the wrapper survives, not only the uuid-shaped
+    ;; ones: `previous-sibling' is a word org-depend enforces, and an
+    ;; 8-character prefix is at least visible to the lint. Dropping
+    ;; either on a rewrite the lint's error text steers the user into
+    ;; would be loss with no report (PR #24 review, 2026-09-15).
+    (and (string-match "\\`[ \t]*ids(\\(.*\\))[ \t]*\\'" value)
+         (let ((toks (split-string (match-string 1 value) "[ \t\n]+" t)))
+           (and toks (string-join toks " "))))))
 
 (defun claude-code-ide-org-normalize-blocker-syntax (&optional dry-run)
   "Rewrite every `:BLOCKER:' in the tracked files from `ids(a b c)' to `a b c'.
@@ -10407,7 +10405,14 @@ vanishes silently is worse than one that explains itself
                              (concat (plist-get item :to) " ")
                            "")
                          (or (plist-get item :title) "(untitled)"))
-                 (or where (format "%s (UNRESOLVED)" (plist-get item :target)))
+                 ;; The category rides beside the destination: apply
+                 ;; writes it, so the human deciding the row must see
+                 ;; it -- a typo warned about only in the agent's reply
+                 ;; would otherwise reach the file unseen.
+                 (concat (or where (format "%s (UNRESOLVED)" (plist-get item :target)))
+                         (if (plist-get item :category)
+                             (format " [%s]" (plist-get item :category))
+                           ""))
                  (format-time-string "%m-%d %H:%M" (plist-get item :ts))
                  note)))
       ;; The target heading's *title*, not just its id, because an

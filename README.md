@@ -114,7 +114,8 @@ second scaffolds `TODO.org`/`DONE.org` from the shipped templates
 file (`~/org/agenda-files`) it appends the paths itself, immediately;
 without one it prints the legacy symlink-and-restart follow-ups. Once
 discoverable, the project registers its own MCP session at the next
-wire call and targetless `org_capture`s land in its own tracker.
+wire call and targetless `org_capture`s land in its own tracker (each
+with a `category`, since a top-level heading cannot inherit one).
 
 `skills/org/references/org-emacs-setup.md` is the full version of this
 section.

@@ -25,7 +25,7 @@ incident, and the reason the queue exists:
 | `org_clock_report`  | `org-clock-report`       | Clocktable summary; :ID:-scoped or all |
 | `org_archive`       | `org-archive-subtree`    | Respects `#+ARCHIVE:` directive        |
 | `org_query`         | `org-ql-select`          | Cross-file search; not :ID:-scoped     |
-| `org_capture`       | `org-capture`            | Quick-add a new TODO heading           |
+| `org_capture`       | `org-capture`            | Quick-add a new heading. **A targetless capture lands at level 1 and requires `category`** — the refusal lists the values the file already uses; under an `:ID:` target the child inherits. A value the file has never used is written with a warning (`:ID:` b0d55552) |
 | `org_refile`        | `org-refile`             | Move a subtree under a different parent |
 | `org_divide`        | custom (`org-demote-subtree`) | Task mitosis: insert a new parent above a heading and demote it under. The id, clock and history stay with the **child** |
 | `org_wrap_plan`     | custom (two insertions)  | Wrap the prospective part of a body in a `:PLAN:` drawer. No `until` wraps the whole body (the composition-time case); `until` marks where the debrief begins (the retroactive case). Lossless — nothing deleted or reflowed — and it refuses rather than guesses: an existing `:PLAN:` drawer, an empty body, or a missing/duplicated `until` are errors. Retroactive only since `org_amend` gained `drawer=` — composition never needs it; the two-call procedure is in the org-conventions rules ("The `:PLAN:` drawer") |

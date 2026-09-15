@@ -149,12 +149,17 @@ if [ "$org" = 1 ]; then
   ignored=0
   # A hand-kept file may end without a newline; appending straight
   # after it would glue the first new entry onto the last old line.
-  if [ -s "$ignore" ] && [ -n "$(tail -c1 "$ignore")" ]; then
-    printf '\n' >> "$ignore"
-  fi
+  # Shared with the agenda-list append below, which had the same
+  # exposure (PR #24 review).
+  append_line() { # file line
+    if [ -s "$1" ] && [ -n "$(tail -c1 "$1")" ]; then
+      printf '\n' >> "$1"
+    fi
+    printf '%s\n' "$2" >> "$1"
+  }
   ensure_ignored() { # line
     if ! grep -qxF "$1" "$ignore" 2>/dev/null; then
-      printf '%s\n' "$1" >> "$ignore"
+      append_line "$ignore" "$1"
       ignored=$((ignored + 1))
     fi
   }
@@ -174,18 +179,28 @@ if [ "$org" = 1 ]; then
   # considered and declined: a vendored second clone breaks the
   # per-clone port contract and forks the plugin revision per
   # consumer. Skipped when a user-scope link already enables the
-  # plugin everywhere, since both at once would load it twice.
-  pname="$(basename "$plugin_root")"
+  # plugin everywhere, since both at once would load it twice -- and
+  # skipped when the target IS the plugin, which would make the repo
+  # its own consumer and wire its hooks twice (PR #24 review).
+  #
+  # The link is NAMED by the plugin's fixed name, which is what the
+  # docs prescribe for the user-scope link too, so the guard compares
+  # like with like whatever the clone's directory is called; only the
+  # relative TARGET uses the directory name.
+  pname="claude-code-ide-org"
+  pdir="$(basename "$plugin_root")"
   link="$target/.claude/skills/$pname"
-  if [ -e "$link" ] || [ -L "$link" ]; then
+  if [ "$plugin_root" = "$target" ]; then
+    echo "skipped: $link -- the target is the plugin itself"
+  elif [ -e "$link" ] || [ -L "$link" ]; then
     echo "exists:  $link (left untouched)"
   elif [ -e "$HOME/.claude/skills/$pname" ] || [ -L "$HOME/.claude/skills/$pname" ]; then
     echo "skipped: $link -- ~/.claude/skills/$pname already enables the plugin user-wide"
   else
     mkdir -p "$target/.claude/skills"
     if [ "$(dirname "$plugin_root")" = "$(dirname "$target")" ]; then
-      ln -s "../../../$pname" "$link"
-      echo "linked:  $link -> ../../../$pname (relative: commit it)"
+      ln -s "../../../$pdir" "$link"
+      echo "linked:  $link -> ../../../$pdir (relative: commit it)"
     else
       ln -s "$plugin_root" "$link"
       ensure_ignored ".claude/skills/$pname"
@@ -203,7 +218,7 @@ if [ "$org" = 1 ]; then
       tilde="~${path#"$HOME"}"
       # Dedup against both spellings a hand-kept file may use.
       if ! grep -qxF "$path" "$listfile" && ! grep -qxF "$tilde" "$listfile"; then
-        printf '%s\n' "$path" >> "$listfile"
+        append_line "$listfile" "$path"
         appended=$((appended + 1))
       fi
     done
@@ -226,7 +241,8 @@ Two follow-ups only you can do:
      claude-org-setup
 
 Targetless org_capture calls from sessions in this project land in
-its own TODO.org immediately.
+its own TODO.org immediately -- pass category= on each, since a
+top-level heading cannot inherit one.
 EOF
   else
     cat <<EOF
@@ -264,7 +280,8 @@ org-emacs-setup reference.)
      claude-org-setup
 
 Targetless org_capture calls from sessions in this project will land
-in its own TODO.org once step 1 makes it discoverable.
+in its own TODO.org once step 1 makes it discoverable -- pass
+category= on each, since a top-level heading cannot inherit one.
 EOF
   fi
   exit 0

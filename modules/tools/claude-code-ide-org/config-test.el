@@ -2919,11 +2919,25 @@ nothing, which is the case both org accessors get wrong."
     (with-temp-file capture-file
       (insert "* A\n:PROPERTIES:\n:CATEGORY: Tools\n:END:\n"
               "* B\n:PROPERTIES:\n:ID: b\n:END:\n"
+              ;; A body line of the drawer's shape -- a debrief quoting
+              ;; one -- is NOT the heading's category (PR #24 review).
+              "A debrief that quotes a drawer line:\n:CATEGORY: Review\n"
               "** B child\n:PROPERTIES:\n:CATEGORY: Hidden\n:END:\n"
               "* C\n:PROPERTIES:\n:CATEGORY: Queue\n:END:\n"
               "* D\n:PROPERTIES:\n:CATEGORY: Tools\n:END:\n"))
+    (org-id-update-id-locations (list capture-file))
     (should (equal '("Tools" "Queue")
-                   (claude-code-ide-org--file-categories capture-file)))))
+                   (claude-code-ide-org--file-categories capture-file)))
+    ;; ...and the lint reads B as uncategorised despite that body line.
+    (org-with-point-at (org-id-find "b" 'marker)
+      (should-not (claude-code-ide-org--category-property-p)))))
+
+(ert-deftest claude-code-ide-org-test-capture-category-with-a-percent-lands-literally ()
+  "A `%' in the value must not expand as a template escape."
+  (claude-code-ide-org-test--with-capture-file
+    (claude-code-ide-org-capture "Percent" nil nil nil "TODO" "R%UD")
+    (should (string-match-p "^:CATEGORY: +R%UD$"
+                            (claude-code-ide-org-test--disk-contents capture-file)))))
 
 (ert-deftest claude-code-ide-org-test-capture-writes-no-todo-keyword ()
   "The heading is deliberately keyword-less: state is supplied at
@@ -10635,7 +10649,8 @@ will land and flags a target that no longer resolves, an amend names the
   (claude-code-ide-org-test--with-capture-file
     (claude-code-ide-org-test--with-review-buffer
         (list (list :type 'capture :id "cap-a" :ts (current-time)
-                    :title "New thing" :target nil :note "why" :events nil)
+                    :title "New thing" :target nil :note "why"
+                    :category "Queue" :events nil)
               (list :type 'capture :id "cap-b" :ts (current-time)
                     :title "Orphan" :target "No Such Category" :events nil)
               (list :type 'amend :id "nope" :ts (current-time)
@@ -10645,7 +10660,9 @@ will land and flags a target that no longer resolves, an amend names the
         ;; session project (:ID: d718f6b6) -- "top of file" said nothing.
         ;; Its full path, since every candidate shares the basename
         ;; (:ID: 86c11795).
-        (should (string-match-p (format "capture \"New thing\" +-> top of %s"
+        ;; The category shows beside the destination: apply writes it,
+        ;; so the row the human decides from must carry it.
+        (should (string-match-p (format "capture \"New thing\" +-> top of %s \\[Queue\\]"
                                         (regexp-quote (abbreviate-file-name capture-file)))
                                 text))
         (should (string-match-p "! capture \"Orphan\" +-> No Such Category (UNRESOLVED)" text))
@@ -13654,7 +13671,13 @@ and a second run changes nothing."
                               (claude-code-ide-org-test--disk-contents file)))
       (should-not (string-match-p "ids(" (claude-code-ide-org-test--disk-contents file)))
       (should (string-match-p "0 unwrapped"
-                              (claude-code-ide-org-normalize-blocker-syntax))))))
+                              (claude-code-ide-org-normalize-blocker-syntax))))
+    ;; Lossless means every token, not only uuid-shaped ones: org-depend
+    ;; enforces `previous-sibling' in a bare value, and a prefix is at
+    ;; least visible to the lint (PR #24 review).
+    (should (equal "aaaaaaaa-0000-4000-8000-000000000000 previous-sibling bbbbbbbb"
+                   (claude-code-ide-org--blocker-unwrapped
+                    "ids(aaaaaaaa-0000-4000-8000-000000000000 previous-sibling bbbbbbbb)")))))
 
 ;;; MCP notification status (TODO.org :ID: af2f345e) ----------------------
 

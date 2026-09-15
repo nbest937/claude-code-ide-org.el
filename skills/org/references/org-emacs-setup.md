@@ -171,7 +171,8 @@ upgrade. The old equivalent — symlinking
    discovery is immediate, and the only follow-up is a wire call (or
    the next Emacs start). Without one it prints the legacy follow-ups
    — `~/org` symlinks and a restart or `add-to-list`. Once
-   discoverable, targetless `org_capture` calls from this project's
+   discoverable, targetless `org_capture` calls (each with a
+   `category`, since a top-level heading inherits none) from this project's
    sessions land in its own tracker automatically.
 
 Two behaviours worth knowing before they surprise you:
