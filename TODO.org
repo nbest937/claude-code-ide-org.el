@@ -2,6 +2,15 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO No org tool edits a phrase in place: org_amend appends or replaces the whole body :code:
+:PROPERTIES:
+:ID:       dd4b9a9f-ba8a-4f1f-a3da-38388e0cdb76
+:CREATED:  [2026-09-15 Tue 13:25]
+:CATEGORY: Tools
+:END:
+
+Correcting one sentence in a body — 8a2eb687's "the previous slice", which had to become a named id — has no tool: org_amend appends, and replace=true rewrites the whole prose and so erases a slice's checklist (7ee3b71a). The fallback on 2026-09-15 was a hand-written emacsclient search-and-replace bounded to the entry, which met a read-only buffer and had to bind inhibit-read-only itself — exactly the signal the MCP-tools rules name as "the tool surface is missing something". Proposed: an org_edit (or an org_amend mode) that replaces one literal occurrence within a heading's own body, refusing when the text is absent or appears more than once, on the same write-through-or-queue gate as amend. Small, and the shape is org_wrap_plan's until= check.
+
 * TODO The :blocked: tag writer is org-depend, found after a7f4b40c cleared it by testing the wrong variable name :code:
 :PROPERTIES:
 :ID:       b0c843e3-4252-4e2b-a9e2-2cf91714a1ae
@@ -3767,8 +3776,8 @@ rather than nineteen.
 :END:
 
 *The theme, briefly, in place of a plan — the full prompt comes later.* The
-previous slice was about the gap between what the code *knows* and what it
-*says*. This one is about a gap one layer down: the record itself going wrong
+slice this one follows — =b36e6369=, still open when this was composed — was
+about the gap between what the code *knows* and what it *says*. This one is about a gap one layer down: the record itself going wrong
 while every check reports success.
 
 Three things happened on 2026-08-31/09-01 that share a shape. =bin/lint-org=
