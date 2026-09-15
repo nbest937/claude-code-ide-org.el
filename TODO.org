@@ -281,6 +281,12 @@ Planned:
 - [[orgit-rev:claude-code-ide-org::deb2e43][deb2e43]] [2026-09-15 Tue 12:2x]
   fourth member closed on the user's decision; all four terminal, slice to REVIEW pending PR #24
 
+- [[orgit-rev:claude-code-ide-org::2afaefd][2afaefd]] [2026-09-15 Tue 13:2x]
+  PR #24 reviewed: 8 confirmed findings (3 refuted), all fixed on the branch, threads resolved
+
+*Comparison, second instalment.* Review findings: **8 over 4 members, 2.0 per member** against =afea7e4f='s 0.64 — three times the rate on a slice a quarter the size. Worth reading before it is read as regression: five of the eight were in the =--org= script and its prose, the least-tested surface (76 shell checks against 664 ERT tests), and one was a batch-invisible template escape the reviewer found by running it. Every finding was in code written the same day, none in the corpus rewrite or the blocker fix. Commits now 11. Attention still pending the apply.
+
+
 
 * TODO A bookkeeping burst reads as many headings worked at once, and inflates every window it lands in :code:
 :PROPERTIES:
