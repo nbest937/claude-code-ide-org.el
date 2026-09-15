@@ -80,7 +80,10 @@ ln -s /path/to/claude-code-ide-org ~/.claude/skills/claude-code-ide-org # enable
 ```
 
 A symlink route auto-loads the full plugin from the clone in place —
-a `git pull` is live next session. Project scope (a consuming repo's
+a `git pull` is live next session. `claude-org-setup --org` makes the
+project-scope link itself (relative when the clone is a sibling, to
+commit; absolute and gitignored otherwise) and appends the ignore
+entries a consumer needs. Project scope (a consuming repo's
 `.claude/skills/`) is the recommended default: active only for
 sessions started at that project root, invisible elsewhere. Whatever
 the route, enabling is the consent that wires the session-tracking

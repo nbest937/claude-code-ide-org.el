@@ -109,19 +109,71 @@ rm -rf "$managed"
 #     whether the machine keeps a real ~/org/agenda-files -- and so
 #     they can never append temp paths to it.
 orgdir="$(mktemp -d)"
-out="$(env CLAUDE_ORG_AGENDA_LIST="$orgdir/no-such-list" "$setup" --org "$orgdir" 2>&1)"; rc=$?
+out="$(env HOME="$orgdir" CLAUDE_ORG_AGENDA_LIST="$orgdir/no-such-list" "$setup" --org "$orgdir" 2>&1)"; rc=$?
 check "--org exits 0 in an empty dir" "$([ $rc -eq 0 ] && echo ok || echo "rc=$rc: $out")"
 check "--org created TODO.org with the header" "$(head -1 "$orgdir/TODO.org" 2>/dev/null | grep -q '^#+TODO:' && echo ok || echo missing)"
 check "--org created DONE.org" "$([ -f "$orgdir/DONE.org" ] && echo ok || echo missing)"
 check "--org prints the symlink follow-up" "$(printf '%s' "$out" | grep -q 'ln -s' && echo ok || echo missing)"
 check "--org prints the restart note" "$(printf '%s' "$out" | grep -qi 'RESTART' && echo ok || echo missing)"
 check "--org prints the standalone-projects addition" "$(printf '%s' "$out" | grep -q 'standalone-projects' && echo ok || echo missing)"
+# 10a. --org and the consuming repo's .gitignore and skill link
+#      (TODO.org :ID: 784d80c5). HOME is pinned to a temp dir so the
+#      user-scope guard sees no link, whatever this machine has. The
+#      temp target is not a sibling of the clone, so the link is
+#      absolute and therefore ignored.
+n="$(grep -c . "$orgdir/.gitignore" 2>/dev/null)"
+check "--org created .gitignore with the four entries and the link" "$([ "$n" = 5 ] && echo ok || echo "got $n lines")"
+for l in .claude/settings.local.json .claude/worktrees/ clock-status.json .claude-code-ide-org-audit.jsonl; do
+  check "--org ignores $l" "$(grep -qxF "$l" "$orgdir/.gitignore" && echo ok || echo missing)"
+done
+check "--org created the skill link" "$([ -L "$orgdir/.claude/skills/claude-code-ide-org" ] && echo ok || echo missing)"
+linktarget="$(readlink "$orgdir/.claude/skills/claude-code-ide-org")"
+check "--org link is absolute when not a sibling" "$(printf '%s' "$linktarget" | grep -q '^/' && echo ok || echo "relative: $linktarget")"
+check "--org ignores the absolute link" "$(grep -qxF '.claude/skills/claude-code-ide-org' "$orgdir/.gitignore" && echo ok || echo missing)"
+check "--org reports the absolute link as gitignored" "$(printf '%s' "$out" | grep -q 'absolute: gitignored' && echo ok || echo "output: $out")"
 
 echo "custom content" > "$orgdir/TODO.org"
-out="$(env CLAUDE_ORG_AGENDA_LIST="$orgdir/no-such-list" "$setup" --org "$orgdir" 2>&1)"; rc=$?
+out="$(env HOME="$orgdir" CLAUDE_ORG_AGENDA_LIST="$orgdir/no-such-list" "$setup" --org "$orgdir" 2>&1)"; rc=$?
 check "--org leaves an existing file untouched" "$([ "$(cat "$orgdir/TODO.org")" = "custom content" ] && echo ok || echo clobbered)"
 check "--org reports the collision" "$(printf '%s' "$out" | grep -q 'exists:.*TODO.org' && echo ok || echo "output: $out")"
 check "--org still exits 0 on collision" "$([ $rc -eq 0 ] && echo ok || echo "rc=$rc")"
+check "--org re-run appends no ignore line" "$([ "$(grep -c . "$orgdir/.gitignore")" = 5 ] && printf '%s' "$out" | grep -q 'appended 0 line' && echo ok || echo "output: $out")"
+check "--org re-run leaves the link" "$(printf '%s' "$out" | grep -q 'exists:.*skills/claude-code-ide-org' && echo ok || echo "output: $out")"
+
+# A hand-kept .gitignore that already has one entry and no trailing
+# newline: the entry is kept once, the rest appended on their own
+# lines, nothing glued to the last old line.
+gdir="$(mktemp -d)"
+printf 'clock-status.json' > "$gdir/.gitignore"
+out="$(env HOME="$gdir" CLAUDE_ORG_AGENDA_LIST="$gdir/no-such-list" "$setup" --org "$gdir" 2>&1)"
+check "--org keeps an existing entry once" "$([ "$(grep -cxF clock-status.json "$gdir/.gitignore")" = 1 ] && echo ok || echo "count $(grep -cxF clock-status.json "$gdir/.gitignore")")"
+check "--org does not glue onto a missing trailing newline" "$(grep -q 'clock-status.json\.claude' "$gdir/.gitignore" && echo glued || echo ok)"
+check "--org appended the other four" "$(printf '%s' "$out" | grep -q 'appended 4 line' && echo ok || echo "output: $out")"
+rm -rf "$gdir"
+
+# A user-scope link already enables the plugin everywhere: the project
+# link is skipped, since both at once would load the plugin twice.
+uhome="$(mktemp -d)"; udir="$(mktemp -d)"
+mkdir -p "$uhome/.claude/skills"
+ln -s /nowhere "$uhome/.claude/skills/claude-code-ide-org"
+out="$(env HOME="$uhome" CLAUDE_ORG_AGENDA_LIST="$uhome/no-such-list" "$setup" --org "$udir" 2>&1)"
+check "--org skips the link when user scope has one" "$(printf '%s' "$out" | grep -q 'skipped:.*user-wide' && [ ! -L "$udir/.claude/skills/claude-code-ide-org" ] && echo ok || echo "output: $out")"
+check "--org (user scope) still writes the four ignore entries" "$([ "$(grep -c . "$udir/.gitignore")" = 4 ] && echo ok || echo "got $(grep -c . "$udir/.gitignore")")"
+rm -rf "$uhome" "$udir"
+
+# Sibling clones get a RELATIVE link, committed rather than ignored:
+# a plugin copy beside the consumer, with just what --org reads.
+sib="$(mktemp -d)"
+mkdir -p "$sib/claude-code-ide-org/bin" "$sib/claude-code-ide-org/templates" "$sib/consumer"
+cp "$setup" "$sib/claude-code-ide-org/bin/claude-org-setup"
+cp "$script_dir/../templates/TODO.org" "$script_dir/../templates/DONE.org" "$sib/claude-code-ide-org/templates/"
+out="$(env HOME="$sib" CLAUDE_ORG_AGENDA_LIST="$sib/no-such-list" "$sib/claude-code-ide-org/bin/claude-org-setup" --org "$sib/consumer" 2>&1)"; rc=$?
+check "--org (sibling) exits 0" "$([ $rc -eq 0 ] && echo ok || echo "rc=$rc: $out")"
+check "--org (sibling) link is relative" "$([ "$(readlink "$sib/consumer/.claude/skills/claude-code-ide-org")" = "../../../claude-code-ide-org" ] && echo ok || echo "got $(readlink "$sib/consumer/.claude/skills/claude-code-ide-org")")"
+check "--org (sibling) link resolves" "$([ -f "$sib/consumer/.claude/skills/claude-code-ide-org/bin/claude-org-setup" ] && echo ok || echo dangling)"
+check "--org (sibling) link is not ignored" "$(grep -q 'skills' "$sib/consumer/.gitignore" && echo ignored || echo ok)"
+check "--org (sibling) says to commit it" "$(printf '%s' "$out" | grep -q 'relative: commit it' && echo ok || echo "output: $out")"
+rm -rf "$sib"
 rm -rf "$orgdir"
 
 # 10b. --org with an agenda list file (TODO.org :ID: 308bf4b4): the

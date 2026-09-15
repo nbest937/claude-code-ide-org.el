@@ -107,7 +107,9 @@ fi
 
 # --org: scaffold the consuming project's org files from the shipped
 # templates (TODO.org :ID: 9b171907), collision-checked -- an existing
-# file is never touched, only reported. When the user keeps org's
+# file is never touched, only reported -- then append the ignore
+# entries the consumer needs and create the project-scope skill link
+# (TODO.org :ID: 784d80c5). When the user keeps org's
 # agenda list file (~/org/agenda-files, TODO.org :ID: 308bf4b4) the
 # scaffolded paths are APPENDED to it -- org re-reads that file on
 # every access, so discovery is immediate: no symlink, no restart.
@@ -129,6 +131,61 @@ if [ "$org" = 1 ]; then
       wrote=$((wrote + 1))
     fi
   done
+  # The consuming repo's .gitignore (TODO.org :ID: 784d80c5): appended
+  # to, never clobbered, with the same exact-line dedupe the agenda
+  # list gets below, and created when absent. Four entries every
+  # consumer needs: settings.local.json and worktrees/ are Claude
+  # Code's per-clone state; clock-status.json and the audit jsonl are
+  # this module's runtime state, written into the project root.
+  ignore="$target/.gitignore"
+  ignored=0
+  # A hand-kept file may end without a newline; appending straight
+  # after it would glue the first new entry onto the last old line.
+  if [ -s "$ignore" ] && [ -n "$(tail -c1 "$ignore")" ]; then
+    printf '\n' >> "$ignore"
+  fi
+  ensure_ignored() { # line
+    if ! grep -qxF "$1" "$ignore" 2>/dev/null; then
+      printf '%s\n' "$1" >> "$ignore"
+      ignored=$((ignored + 1))
+    fi
+  }
+  for line in .claude/settings.local.json .claude/worktrees/ \
+              clock-status.json .claude-code-ide-org-audit.jsonl; do
+    ensure_ignored "$line"
+  done
+
+  # The project-scope skill link that enables the plugin here (the
+  # org-emacs-setup reference, "Per-repo setup"). RELATIVE when the
+  # clone is a sibling of the target: then the committed link is
+  # provenance and enablement in one artifact, working wherever the
+  # clones are siblings and dangling harmlessly where they are not.
+  # ABSOLUTE otherwise, and then gitignored -- a machine's path is not
+  # the project's to commit. So the ignore line is for the absolute
+  # form only; a relative link should be committed. A submodule was
+  # considered and declined: a vendored second clone breaks the
+  # per-clone port contract and forks the plugin revision per
+  # consumer. Skipped when a user-scope link already enables the
+  # plugin everywhere, since both at once would load it twice.
+  pname="$(basename "$plugin_root")"
+  link="$target/.claude/skills/$pname"
+  if [ -e "$link" ] || [ -L "$link" ]; then
+    echo "exists:  $link (left untouched)"
+  elif [ -e "$HOME/.claude/skills/$pname" ] || [ -L "$HOME/.claude/skills/$pname" ]; then
+    echo "skipped: $link -- ~/.claude/skills/$pname already enables the plugin user-wide"
+  else
+    mkdir -p "$target/.claude/skills"
+    if [ "$(dirname "$plugin_root")" = "$(dirname "$target")" ]; then
+      ln -s "../../../$pname" "$link"
+      echo "linked:  $link -> ../../../$pname (relative: commit it)"
+    else
+      ln -s "$plugin_root" "$link"
+      ensure_ignored ".claude/skills/$pname"
+      echo "linked:  $link -> $plugin_root (absolute: gitignored)"
+    fi
+  fi
+  echo "ignored: appended $ignored line(s) to $ignore"
+
   name="$(basename "$target")"
   listfile="${CLAUDE_ORG_AGENDA_LIST:-$HOME/org/agenda-files}"
   if [ -f "$listfile" ]; then

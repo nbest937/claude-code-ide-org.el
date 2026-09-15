@@ -98,8 +98,17 @@ upgrade. The old equivalent — symlinking
 
      Active only for sessions whose *primary working directory* is
      that project root — a session launched in a subdirectory misses
-     it — and invisible everywhere else. Commit the symlink to share
-     it, or `.gitignore` it to keep it local.
+     it — and invisible everywhere else. **`claude-org-setup --org`
+     creates this link for you** (`:ID:` 784d80c5): *relative*
+     (`../../../claude-code-ide-org`) when the clone is a sibling of
+     the repo — commit it, it is provenance and enablement in one
+     artifact and dangles harmlessly where the clones are not
+     siblings — and *absolute* otherwise, in which case it is
+     gitignored, since one machine's path is not the project's to
+     commit. The same run appends the four ignore entries every
+     consumer needs (`.claude/settings.local.json`,
+     `.claude/worktrees/`, `clock-status.json`, the audit jsonl),
+     never clobbering an existing `.gitignore`.
 
    - **User scope** — `ln -s /path/to/claude-code-ide-org
      ~/.claude/skills/claude-code-ide-org` — every session in every
