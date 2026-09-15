@@ -2487,21 +2487,44 @@ state."
                            "** TODO Keywordless target is a no-op\n:PROPERTIES:\n"
                            ":ID:       11111111-1111-1111-1111-111111111111\n"
                            ":CREATED:  [2026-08-14 Fri 10:00]\n"
-                           ":BLOCKER:  ids(99999999-9999-9999-9999-999999999999)\n:END:\n"
+                           ":BLOCKER:  99999999-9999-9999-9999-999999999999\n:END:\n"
                            "** No keyword here\n:PROPERTIES:\n"
                            ":ID:       99999999-9999-9999-9999-999999999999\n"
                            ":CREATED:  [2026-08-14 Fri 10:00]\n:END:\n"
                            "** MAYBE Dormant\n:PROPERTIES:\n"
                            ":ID:       33333333-3333-3333-3333-333333333333\n"
                            ":CREATED:  [2026-08-14 Fri 10:00]\n"
-                           ":BLOCKER:  ids(11111111-1111-1111-1111-111111111111)\n:END:\n"
+                           ":BLOCKER:  11111111-1111-1111-1111-111111111111\n:END:\n"
                            "** TODO Names a ghost\n:PROPERTIES:\n"
                            ":ID:       44444444-4444-4444-4444-444444444444\n"
                            ":CREATED:  [2026-08-14 Fri 10:00]\n"
-                           ":BLOCKER:  ids(deadbeef-0000-0000-0000-000000000000)\n:END:\n"))))
+                           ":BLOCKER:  deadbeef-0000-0000-0000-000000000000\n:END:\n"))))
     (should (claude-code-ide-org-test--lint-matches findings 'error "keyword-less heading"))
     (should (claude-code-ide-org-test--lint-matches findings 'error "names unknown :ID:"))
     (should (claude-code-ide-org-test--lint-matches findings 'warn "MAYBE heading is dormant"))))
+
+(ert-deftest claude-code-ide-org-test-lint-catches-the-ids-wrapper ()
+  "A :BLOCKER: in the `ids(...)' form is an error: org-depend cannot
+parse it, so the heading reads as blocked in the outline while the
+DONE-time guard lets it through (:ID: 3f4fd744).  The bare form beside
+it is clean, so the rule fires once, not per property."
+  (let ((findings (claude-code-ide-org-test--lint
+                   (concat "* Category\n"
+                           "** TODO Wrapped\n:PROPERTIES:\n"
+                           ":ID:       11111111-1111-1111-1111-111111111111\n"
+                           ":CREATED:  [2026-09-15 Tue 10:00]\n"
+                           ":BLOCKER:  ids(33333333-3333-3333-3333-333333333333)\n:END:\n"
+                           "** TODO Bare\n:PROPERTIES:\n"
+                           ":ID:       22222222-2222-2222-2222-222222222222\n"
+                           ":CREATED:  [2026-09-15 Tue 10:00]\n"
+                           ":BLOCKER:  33333333-3333-3333-3333-333333333333\n:END:\n"
+                           "** TODO Target\n:PROPERTIES:\n"
+                           ":ID:       33333333-3333-3333-3333-333333333333\n"
+                           ":CREATED:  [2026-09-15 Tue 10:00]\n:END:\n"))))
+    (should (claude-code-ide-org-test--lint-matches findings 'error "ids(...) wrapper"))
+    (should (= 1 (seq-count (lambda (f) (string-match-p "wrapper" (cdr f))) findings)))
+    (should (claude-code-ide-org-test--lint-matches findings 'error "Wrapped$"))
+    (should-not (claude-code-ide-org-test--lint-matches findings 'error "Bare$"))))
 
 (ert-deftest claude-code-ide-org-test-lint-requires-a-cookie-on-containers ()
   "A heading that has acquired TODO children states its progress.
@@ -12928,7 +12951,9 @@ producing a diff every time it is run."
       (search-forward "** DOING")
       (should (claude-code-ide-org--refresh-slice-blocker-at-point))
       (let ((blocker (org-entry-get nil "BLOCKER")))
-        (should (string-prefix-p "ids(" blocker))
+        ;; Bare, not `ids(...)': the wrapper enforced nothing under
+        ;; org-depend (:ID: 3f4fd744).
+        (should-not (claude-code-ide-org--blocker-wrapped-p blocker))
         (should (= 2 (length (claude-code-ide-org--lint-blocker-ids blocker))))
         (should-not (string-match-p "44444444" blocker))
         (should-not (string-match-p "11111111" blocker)))
@@ -13055,28 +13080,28 @@ derived."
     (should (claude-code-ide-org-test--lint-matches
              (claude-code-ide-org-test--lint
               (concat cat "** DOING A slice\n:PROPERTIES:\n:KIND:     slice\n"
-                      ":BLOCKER:  ids(11111111-0000-0000-0000-000000000000 "
-                      "99999999-0000-0000-0000-000000000000)\n:END:\n\n" member))
+                      ":BLOCKER:  11111111-0000-0000-0000-000000000000 "
+                      "99999999-0000-0000-0000-000000000000\n:END:\n\n" member))
              'error "not an unfinished member"))
     ;; a *done* member is not in the blocker, and its absence is not drift
     (should-not (claude-code-ide-org-test--lint-matches
                  (claude-code-ide-org-test--lint
                   (concat cat "** DOING A slice\n:PROPERTIES:\n:KIND:     slice\n"
-                          ":BLOCKER:  ids(11111111-0000-0000-0000-000000000000)\n:END:\n\n"
+                          ":BLOCKER:  11111111-0000-0000-0000-000000000000\n:END:\n\n"
                           member done))
                  'error "omits"))
     ;; and naming it *is* drift, in the other direction
     (should (claude-code-ide-org-test--lint-matches
              (claude-code-ide-org-test--lint
               (concat cat "** DOING A slice\n:PROPERTIES:\n:KIND:     slice\n"
-                      ":BLOCKER:  ids(11111111-0000-0000-0000-000000000000 "
-                      "88888888-0000-0000-0000-000000000000)\n:END:\n\n" member done))
+                      ":BLOCKER:  11111111-0000-0000-0000-000000000000 "
+                      "88888888-0000-0000-0000-000000000000\n:END:\n\n" member done))
              'error "not an unfinished member"))
     ;; matching: silent
     (should-not (claude-code-ide-org-test--lint-matches
                  (claude-code-ide-org-test--lint
                   (concat cat "** DOING A slice\n:PROPERTIES:\n:KIND:     slice\n"
-                          ":BLOCKER:  ids(11111111-0000-0000-0000-000000000000)\n:END:\n\n"
+                          ":BLOCKER:  11111111-0000-0000-0000-000000000000\n:END:\n\n"
                           member))
                  'error "slice :BLOCKER:"))
     ;; same list, no tag: not a slice, not linted
@@ -13423,7 +13448,9 @@ the one thing a general property writer would get silently wrong."
     (should (string-prefix-p "Set BLOCKER"
                              (claude-code-ide-org-set-property id "BLOCKER" "aaaaaaaa")))
     (let ((v (org-with-point-at (org-id-find id 'marker) (org-entry-get nil "BLOCKER"))))
-      (should (equal "ids(aaaaaaaa-1111-2222-3333-444444444444)" v)))
+      ;; Bare: org-depend's grammar is "each word an id, exactly", so
+      ;; the wrapper written here until 2026-09-15 never blocked.
+      (should (equal "aaaaaaaa-1111-2222-3333-444444444444" v)))
     ;; append unions rather than replacing
     (claude-code-ide-org-set-property id "BLOCKER" "bbbbbbbb" t)
     (let ((v (org-with-point-at (org-id-find id 'marker) (org-entry-get nil "BLOCKER"))))
@@ -13433,6 +13460,91 @@ the one thing a general property writer would get silently wrong."
     (claude-code-ide-org-set-property id "BLOCKER" "bbbbbbbb")
     (let ((v (org-with-point-at (org-id-find id 'marker) (org-entry-get nil "BLOCKER"))))
       (should-not (string-match-p "aaaaaaaa" v)))))
+
+(ert-deftest claude-code-ide-org-test-blocker-written-by-the-tool-blocks-under-org-depend ()
+  "A :BLOCKER: the tool writes must make `org-depend-block-todo' refuse
+DONE while any named heading is unfinished, and permit it once all are.
+
+Asserted against the guard itself, not the property's text: a string
+assertion passed against the `ids(...)' wrapper too, and that wrapper
+enforced nothing (TODO.org :ID: 3f4fd744) -- org-depend splits on
+whitespace and matches each word as an id *exactly*, so `ids(A B C)'
+blocked on B alone.  Hence three blockers and the middle one finished
+FIRST: under the wrapper that case was already unblocked, so this test
+is red against the old write site and is the discriminating case."
+  (require 'org-depend)
+  (claude-code-ide-org-test--with-heading
+    (let ((gates '("a1111111-0000-4000-8000-000000000001"
+                   "a2222222-0000-4000-8000-000000000002"
+                   "a3333333-0000-4000-8000-000000000003")))
+      (dolist (g gates)
+        ;; Siblings of the fixture heading, not children, so nothing but
+        ;; org-depend can be what refuses.
+        (claude-code-ide-org-test--add-child
+         file (format "* TODO Gate %s\n:PROPERTIES:\n:ID:       %s\n:END:\n"
+                      (substring g 0 8) g)))
+      (should (string-prefix-p
+               "Set BLOCKER"
+               (claude-code-ide-org-set-property
+                id "BLOCKER" "a1111111 a2222222 a3333333")))
+      (let ((org-blocker-hook '(org-depend-block-todo))
+            (org-trigger-hook nil)
+            (org-inhibit-logging t)
+            (org-inhibit-blocking nil))
+        (cl-flet ((finish (target)
+                    (org-with-point-at (org-id-find target 'marker)
+                      (org-todo "DONE")))
+                  (state (target)
+                    (org-with-point-at (org-id-find target 'marker)
+                      (org-get-todo-state))))
+          ;; The middle gate first: exactly the id the wrapper enforced.
+          (finish (nth 1 gates))
+          (should (equal "DONE" (state (nth 1 gates))))
+          ;; Non-interactively org-todo refuses silently: the keyword
+          ;; simply does not change.
+          (finish id)
+          (should (equal "TODO" (state id)))
+          ;; The endpoints -- the ids the wrapper mangled.
+          (finish (nth 0 gates))
+          (finish (nth 2 gates))
+          (finish id)
+          (should (equal "DONE" (state id))))))))
+
+(ert-deftest claude-code-ide-org-test-normalize-blocker-syntax-unwraps-and-is-idempotent ()
+  "The corpus rewrite for :ID: 3f4fd744: a wrapped value becomes bare with
+its ids in order, a bare value is untouched, a dry run writes nothing,
+and a second run changes nothing."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--add-child
+     file (concat "* TODO Wrapped\n:PROPERTIES:\n"
+                  ":ID:       bbbbbbbb-0000-4000-8000-000000000001\n"
+                  ":BLOCKER:  ids(cccccccc-0000-4000-8000-000000000002 dddddddd-0000-4000-8000-000000000003)\n"
+                  ":END:\n"
+                  "* TODO Bare\n:PROPERTIES:\n"
+                  ":ID:       cccccccc-0000-4000-8000-000000000002\n"
+                  ":BLOCKER:  dddddddd-0000-4000-8000-000000000003\n"
+                  ":END:\n"
+                  "* TODO Target\n:PROPERTIES:\n"
+                  ":ID:       dddddddd-0000-4000-8000-000000000003\n:END:\n"))
+    (cl-flet ((blocker (target)
+                (org-with-point-at (org-id-find target 'marker)
+                  (org-entry-get nil "BLOCKER"))))
+      (let ((before (claude-code-ide-org-test--disk-contents file)))
+        (should (string-match-p "2 :BLOCKER: properties scanned, 1 carry the ids"
+                                (claude-code-ide-org-normalize-blocker-syntax t)))
+        (should (equal before (claude-code-ide-org-test--disk-contents file))))
+      (should (string-match-p "1 unwrapped from the ids"
+                              (claude-code-ide-org-normalize-blocker-syntax)))
+      (should (equal "cccccccc-0000-4000-8000-000000000002 dddddddd-0000-4000-8000-000000000003"
+                     (blocker "bbbbbbbb-0000-4000-8000-000000000001")))
+      (should (equal "dddddddd-0000-4000-8000-000000000003"
+                     (blocker "cccccccc-0000-4000-8000-000000000002")))
+      ;; On disk, not only in the buffer.
+      (should (string-match-p "BLOCKER:[ \t]*cccccccc-0000-4000-8000-000000000002 dddddddd"
+                              (claude-code-ide-org-test--disk-contents file)))
+      (should-not (string-match-p "ids(" (claude-code-ide-org-test--disk-contents file)))
+      (should (string-match-p "0 unwrapped"
+                              (claude-code-ide-org-normalize-blocker-syntax))))))
 
 (ert-deftest claude-code-ide-org-test-set-property-kind-slice-completes-the-declaration ()
   "KIND=slice writes everything a slice must carry that a mechanism can
@@ -13461,7 +13573,7 @@ is the backstop for a slice declared by hand in Emacs."
     (org-with-point-at (org-id-find "slice-c1" 'marker)
       (should (equal "slice" (org-entry-get nil "KIND")))
       (should (equal "checkbox recursive" (org-entry-get nil "COOKIE_DATA")))
-      (should (equal "ids(memb-1)" (org-entry-get nil "BLOCKER")))
+      (should (equal "memb-1" (org-entry-get nil "BLOCKER")))
       (should (string-prefix-p "[/] " (org-get-heading t t t t))))))
 
 (ert-deftest claude-code-ide-org-test-set-property-kind-slice-before-the-body ()
@@ -15014,7 +15126,7 @@ label."
       (should (string-match-p "\\[0/2\\] A nesting slice" disk))
       ;; The children enter the blocker on their own account; the
       ;; cookie-less label does not.
-      (should (string-match-p "BLOCKER:[ \t]*ids(kid-1 kid-2)" disk)))))
+      (should (string-match-p "BLOCKER:[ \t]*kid-1 kid-2\n" disk)))))
 
 (ert-deftest claude-code-ide-org-test-slice-add-member-parent-refusals ()
   "Each parent refusal names its rule and none of them writes: a parent

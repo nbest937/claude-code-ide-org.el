@@ -3396,10 +3396,17 @@ filter would silently pass everything.")
 
 (defun claude-code-ide-org--outline-blocker-ids (raw)
   "Extract the :ID:s named by RAW, an org-depend `:BLOCKER:' value.
-Handles the documented `ids(a b c)' form, and also a bare id written
-without the wrapper -- which org-depend itself would *not* honour, but
-which exists in this project's own files, so the reader should see it
-rather than silently treat the heading as dependency-free.  Returns nil
+Handles the bare space-separated form -- org-depend's actual grammar,
+and what this module writes since 2026-09-15 -- and also the
+`ids(a b c)' wrapper it wrote before then.  The wrapper is org-edna's
+finder, not org-depend's syntax: org-depend split it into `ids(<uuid>'
+and `<uuid>)', so a blocker in that form enforced nothing at its
+endpoints (TODO.org :ID: 3f4fd744).  Reading both keeps the index right
+over a corpus that has not yet been through
+`claude-code-ide-org-normalize-blocker-syntax'; the lint is what
+reports the wrapped form.  This docstring said the opposite -- that
+the wrapper was documented and the bare form the deviation -- for as
+long as the wrapper was written.  Returns nil
 for forms that name no ids at all (`previous-sibling',
 `chain-siblings(...)'), which is a different answer from \"no blockers\"
 and is handled by the caller."
@@ -4339,8 +4346,13 @@ declaring it :KIND: slice would make it both")
                                      (and m (not (org-with-point-at m
                                                    (org-get-todo-state))))))
                                  all)))
-                    (org-entry-put (point) "BLOCKER"
-                                   (format "ids(%s)" (string-join all " ")))
+                    ;; Bare and space-separated: org-depend's whole
+                    ;; grammar is "each word is an id, exactly".  The
+                    ;; `ids(...)' wrapper this wrote until 2026-09-15
+                    ;; (TODO.org :ID: 3f4fd744) is org-edna's finder, and
+                    ;; org-depend split it into `ids(<uuid>' and
+                    ;; `<uuid>)' -- so a one-id blocker enforced nothing.
+                    (org-entry-put (point) "BLOCKER" (string-join all " "))
                     (save-buffer)
                     (concat
                      (format "Set BLOCKER on \"%s\" to %d id%s"
@@ -6023,6 +6035,74 @@ Returns a human-readable summary."
             (when (buffer-modified-p) (save-buffer)))))
       (format "%d slice%s scanned, %d updated" n (if (= n 1) "" "s") changed))))
 
+(defun claude-code-ide-org--blocker-wrapped-p (value)
+  "Non-nil when VALUE, a `:BLOCKER:' property, carries the `ids(...)' wrapper."
+  (and value (string-match-p "\\`[ \t]*ids(" value)))
+
+(defun claude-code-ide-org--blocker-unwrapped (value)
+  "VALUE with the `ids(...)' wrapper removed and its ids space-separated.
+A value without the wrapper comes back unchanged.  A wrapped value
+naming no ids yields nil, and the caller leaves it alone: the lint still
+reports it, and deleting would turn \"malformed\" into \"unblocked\"."
+  (if (not (claude-code-ide-org--blocker-wrapped-p value))
+      value
+    (let ((ids (claude-code-ide-org--lint-blocker-ids value)))
+      (and ids (string-join ids " ")))))
+
+(defun claude-code-ide-org-normalize-blocker-syntax (&optional dry-run)
+  "Rewrite every `:BLOCKER:' in the tracked files from `ids(a b c)' to `a b c'.
+
+With DRY-RUN non-nil nothing is written and the report says what would
+change.  A bare `M-x' passes t, so the destructive form has to be asked
+for with a prefix argument -- and *from Lisp the default is reversed*:
+`(claude-code-ide-org-normalize-blocker-syntax)' writes.  Same shape as
+`claude-code-ide-org-consolidate-all-drawers', for the same reason.
+
+Why (TODO.org :ID: 3f4fd744): `org-depend-block-todo', the function
+actually on `org-blocker-hook', does `(split-string blocker)' and looks
+up each word as an id *exactly*.  The `ids(...)' wrapper is org-edna's
+finder, and under org-depend it arrives as `ids(<uuid>' and `<uuid>)',
+neither of which resolves -- so a one- or two-id blocker enforced
+nothing and a longer one skipped its endpoints.  Measured 2026-09-11:
+8 of TODO.org's 12 blockers enforced nothing at all.  This module wrote
+the wrapper at both its write sites until 2026-09-15, believing it the
+documented form; it was an honest misreading of org-depend's *TRIGGER*
+grammar, which does use parentheses.
+
+Lossless: the ids are extracted by the same reader the lint uses and
+written back in their original order, space-separated; a wrapped value
+naming no ids is counted but left alone, since deleting it would turn
+malformed into unblocked.  Idempotent: a bare value is left untouched,
+so this can sit in the ceremony beside the other normalisers.  Not `org-edna-mode': with it on, a *bare*
+value raises an unrecognised-form error that org-edna treats as a
+refusal, so every heading would block unconditionally.
+
+Returns a summary string."
+  (interactive (list (not current-prefix-arg)))
+  (let ((n 0) (fixed 0) (files nil))
+    (dolist (file (claude-code-ide-org--tracked-files))
+      (when (file-exists-p file)
+        (with-current-buffer (find-file-noselect file)
+          (org-with-wide-buffer
+           (goto-char (point-min))
+           (while (re-search-forward org-heading-regexp nil t)
+             (let ((raw (org-entry-get nil "BLOCKER")))
+               (when raw
+                 (setq n (1+ n))
+                 (when (claude-code-ide-org--blocker-wrapped-p raw)
+                   (setq fixed (1+ fixed))
+                   (cl-pushnew (file-name-nondirectory file) files :test #'equal)
+                   (unless dry-run
+                     (when-let ((bare (claude-code-ide-org--blocker-unwrapped raw)))
+                       (org-entry-put nil "BLOCKER" bare))))))))
+          (when (and (not dry-run) (buffer-modified-p))
+            (save-buffer)))))
+    (format "%d :BLOCKER: propert%s scanned, %d %s the ids(...) wrapper%s.%s"
+            n (if (= n 1) "y" "ies")
+            fixed (if dry-run "carry" "unwrapped from")
+            (if files (format " (%s)" (string-join (nreverse files) ", ")) "")
+            (if dry-run "  [dry run -- nothing written]" ""))))
+
 (defun claude-code-ide-org--update-slice-cookie-at-point ()
   "Rewrite the slice-at-point's *headline* cookie from its member lines.
 
@@ -6065,12 +6145,17 @@ Nothing below the headline can be touched, which is the entire point."
 (defun claude-code-ide-org--refresh-slice-blocker-at-point ()
   "Set or clear the slice-at-point's `:BLOCKER:'.  Non-nil if it changed."
   (let* ((ids (claude-code-ide-org--slice-blocker-ids))
-         (new (and ids (format "ids(%s)" (mapconcat #'identity ids " "))))
+         ;; Bare, space-separated: the only form org-depend parses.
+         ;; See `claude-code-ide-org-normalize-blocker-syntax' for the
+         ;; wrapper this wrote before 2026-09-15 and why it enforced
+         ;; nothing.
+         (new (and ids (mapconcat #'identity ids " ")))
          (old (org-entry-get nil "BLOCKER")))
     (unless (equal old new)
       ;; Removed rather than emptied when a slice has no blocking
-      ;; members: `ids()' would read as a declaration that nothing blocks,
-      ;; which the lint would then have to tell apart from "not built yet".
+      ;; members: an empty value would read as a declaration that nothing
+      ;; blocks, which the lint would then have to tell apart from "not
+      ;; built yet".
       (if new (org-entry-put nil "BLOCKER" new) (org-entry-delete nil "BLOCKER"))
       t)))
 
@@ -14141,6 +14226,17 @@ unfinished member (%s) -- a done, cancelled or deferred member must not block: %
                              title))))
                (let ((blocker (org-entry-get nil "BLOCKER")))
                  (when blocker
+                   ;; The wrapper is the one malformation the readers
+                   ;; above tolerate, so without this rule the outline
+                   ;; would report a heading blocked while the DONE-time
+                   ;; guard let it through -- the divergence 3f4fd744
+                   ;; measured on 8 of 12 properties.  An error rather
+                   ;; than a warning: the correct value is computable
+                   ;; and the normaliser writes it without asking.
+                   (when (claude-code-ide-org--blocker-wrapped-p blocker)
+                     (report 'error line ":BLOCKER: carries the ids(...) wrapper, \
+which org-depend cannot parse -- run claude-code-ide-org-normalize-blocker-syntax: %s"
+                             title))
                    (when (equal todo "MAYBE")
                      (report 'warn line ":BLOCKER: on a MAYBE heading is dormant \
 -- blocking is evaluated against the blocked heading's own state: %s" title))
@@ -14227,8 +14323,10 @@ which is where a gate has to work."
 
 (defun claude-code-ide-org--lint-blocker-ids (value)
   "Return the ids named by a :BLOCKER: property VALUE.
-Accepts org-depend's `ids(A B C)' form and the bare-id form this repo
-has also used; anything else yields nil rather than a guess."
+Accepts the bare space-separated form -- org-depend's grammar, and the
+one written since 2026-09-15 -- and the legacy `ids(A B C)' wrapper,
+which org-depend cannot parse (TODO.org :ID: 3f4fd744) and which the
+lint reports separately; anything else yields nil rather than a guess."
   (let ((inner (if (string-match "\\`[ \t]*ids(\\([^)]*\\))" value)
                    (match-string 1 value)
                  value)))

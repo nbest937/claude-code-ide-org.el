@@ -18,7 +18,10 @@
 #   - no repeating task sits under a completable ancestor, which could
 #     otherwise never reach DONE
 #   - every :BLOCKER: would actually block: the target exists AND carries
-#     a TODO keyword, and the blocked heading is not itself MAYBE
+#     a TODO keyword, the blocked heading is not itself MAYBE, and the
+#     value is bare ids rather than the ids(...) wrapper org-depend cannot
+#     parse (TODO.org :ID: 3f4fd744; claude-code-ide-org-normalize-blocker-syntax
+#     rewrites it)
 #   - every plan link points at a file that exists
 #
 # What it deliberately does NOT assert: anything requiring judgement, and
