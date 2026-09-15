@@ -15881,3 +15881,61 @@ string, which is precisely the reported-failed symptom."
           ;; The failure mode was an error STRING, not a signal.
           (should-not (and (stringp result)
                            (string-match-p "Before first headline" result))))))))
+
+
+;;; Review findings on PR #23 -----------------------------------------------
+
+(ert-deftest claude-code-ide-org-test-merge-overlapping-runs-unions-concurrency ()
+  "Concurrent runs union rather than sum.
+
+Two sessions running the same ten minutes is ten minutes of wall clock,
+not twenty.  Without the merge a 20-minute window could report 30
+minutes of measured run time, and the end-to-end shares would then run
+past the window's end -- contradicting the allocation's own promise that
+they neither overlap nor drift outside it."
+  (let* ((a (claude-code-ide-org-test--attention-run "09:00:00" "09:10:00"))
+         (b (claude-code-ide-org-test--attention-run "09:05:00" "09:15:00"))
+         (c (claude-code-ide-org-test--attention-run "09:30:00" "09:35:00"))
+         (merged (claude-code-ide-org--merge-overlapping-runs (list a b c))))
+    (should (= 2 (length merged)))
+    ;; The overlapping pair becomes one 15-minute run, not 20 minutes.
+    (should (= 900 (round (float-time (time-subtract (cdr (nth 0 merged))
+                                                     (car (nth 0 merged)))))))
+    ;; The disjoint one survives untouched.
+    (should (= 300 (round (float-time (time-subtract (cdr (nth 1 merged))
+                                                     (car (nth 1 merged)))))))
+    ;; And the totalled seconds now match wall clock rather than the sum.
+    (let ((start (float-time (date-to-time "2026-08-06T09:00:00-0500")))
+          (end (float-time (date-to-time "2026-08-06T09:20:00-0500"))))
+      (should (= 1200 (round (claude-code-ide-org--allocation-clip-seconds
+                              (list a b) start end))))   ; unmerged: 20 min
+      (should (= 900 (round (claude-code-ide-org--allocation-clip-seconds
+                             merged start end)))))))     ; merged: 15 min
+
+(ert-deftest claude-code-ide-org-test-fill-prose-refuses-a-dirty-buffer ()
+  "Filling refuses when the buffer holds unsaved changes.
+
+Both the refusal and the dry-run paths end in `revert-buffer', and
+`find-file-noselect' returns the buffer the human is already editing --
+so without this gate a plain interactive call, where dry-run is the
+default, would silently discard their work.  The test asserts the edit
+*survives*, which is the property that matters rather than the message."
+  (let* ((long (mapconcat #'identity (make-list 40 "alpha") " "))
+         (file (claude-code-ide-org-test--fill-fixture
+                (format "* TODO A heading\n\n%s\n" long)))
+         (buffer (find-file-noselect file)))
+    (unwind-protect
+        (progn
+          (with-current-buffer buffer
+            (goto-char (point-max))
+            (insert "an unsaved edit\n")
+            (should (buffer-modified-p)))
+          (claude-code-ide-org-fill-prose file t 40)
+          (with-current-buffer buffer
+            (should (buffer-modified-p))
+            (should (string-match-p "an unsaved edit" (buffer-string)))
+            ;; And nothing was filled behind their back.
+            (goto-char (point-min))
+            (should (re-search-forward "^.\\{41,\\}$" nil t))))
+      (with-current-buffer buffer (set-buffer-modified-p nil))
+      (kill-buffer buffer))))

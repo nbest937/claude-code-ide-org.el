@@ -14752,6 +14752,34 @@ written as a `0:00' line."
         (push (+ base (if (< i remainder) 1 0)) shares))
       (nreverse shares))))
 
+(defun claude-code-ide-org--merge-overlapping-runs (runs)
+  "Return RUNS with overlapping intervals merged, oldest first.
+
+Wall-clock time is a *union*, not a sum.  Two sessions running at once
+produce two runs covering the same minutes, and adding them claims more
+time than elapsed -- a 20-minute window can report 30 minutes of
+measured run time, after which the end-to-end shares run past the
+window's end and overlap the next one, which is exactly what the
+allocation docstring promises cannot happen.
+
+Concurrency here is ordinary rather than exceptional: a background job
+and an interactive session overlap constantly in this project, which is
+the same fact that forced guidepost pairing to be per-session.
+
+The attention derivation needs no equivalent, and the asymmetry is the
+point: it asks which *windows* carry run time, and marking one busy
+twice is idempotent.  Only a path that totals seconds can double-count."
+  (let ((sorted (sort (copy-sequence runs)
+                      (lambda (a b) (time-less-p (car a) (car b)))))
+        merged)
+    (dolist (run sorted)
+      (let ((last (car merged)))
+        (if (and last (not (time-less-p (cdr last) (car run))))
+            (when (time-less-p (cdr last) (cdr run))
+              (setcdr last (cdr run)))
+          (push (cons (car run) (cdr run)) merged))))
+    (nreverse merged)))
+
 (defun claude-code-ide-org--allocation-clip-seconds (runs start end)
   "Return the seconds of RUNS falling inside [START, END)."
   (let ((total 0.0))
@@ -14800,6 +14828,8 @@ so -- a CLOCK line that does not is a fabricated measurement, which is
            (when (stringp full)
              (push (cons (float-time (car hit)) full) worked)))))
      by-session)
+    ;; Union before totalling: see `--merge-overlapping-runs'.
+    (setq runs (claude-code-ide-org--merge-overlapping-runs runs))
     (setq worked (sort worked (lambda (a b) (< (car a) (car b)))))
     (let ((window (* width (floor lo width)))
           result)
@@ -15862,7 +15892,21 @@ the capture target; from Lisp, pass FILE.  DRY-RUN reports without
 saving."
   (interactive (list nil (not current-prefix-arg)))
   (let ((file (or file (claude-code-ide-org--capture-target-file))))
-    (with-current-buffer (find-file-noselect file)
+    (if (claude-code-ide-org--file-busy-p file)
+        ;; Refuse outright rather than work and undo.
+        ;;
+        ;; Both the refusal and the dry-run paths below end in
+        ;; `revert-buffer', which is safe only because nothing unsaved
+        ;; can be in the buffer by then.  `find-file-noselect' hands back
+        ;; the buffer the human is *already editing*, so without this
+        ;; gate a plain \[claude-code-ide-org-fill-prose] -- where
+        ;; dry-run is the interactive default -- would silently discard
+        ;; their unsaved TODO.org edits.  A formatting convenience must
+        ;; not be able to destroy work, and the same gate is what
+        ;; `org_capture' and `org_amend' already use.
+        (message "%s: REFUSED -- unsaved changes in that buffer; save first"
+                 file)
+      (with-current-buffer (find-file-noselect file)
       (let* ((buffer-read-only nil)
              (fill-column (or column fill-column))
              (before (claude-code-ide-org--nonspace-digest))
@@ -15897,7 +15941,7 @@ saving."
            (t
             (save-buffer)
             (message "%s: filled %d paragraph(s) to column %d, content identical"
-                     file filled fill-column))))))))
+                     file filled fill-column)))))))))
 
 ;;; :ID: prefix expansion at the write boundary
 ;;
