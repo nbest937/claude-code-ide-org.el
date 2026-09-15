@@ -397,6 +397,9 @@ unset until the user names the real list** — a blocker invented from a
 plausible-looking survey is exactly the kind that reads as enforcement and
 enforces the wrong thing.
 
+*Adoption step added 2026-09-15 from =3f4fd744=:* any =:BLOCKER:= euchre wrote before the plugin's 5f7ecdb carries the =ids(...)= wrapper and enforces nothing under org-depend. One run of =M-x claude-code-ide-org-normalize-blocker-syntax= there (prefix argument to write) rewrites them; its =bin/lint-org= will name each one until then.
+
+
 
 * TODO Unplanned work in flight belongs to no slice: planned is writable, incidental is closed-only :code:
 :PROPERTIES:
@@ -775,6 +778,9 @@ Planned:
 :CREATED:  [2026-09-11 Fri 18:08]
 :CATEGORY: Tools
 :END:
+:DEBRIEF:
+Shipped as proposed; the one design choice was where to close the read/enforce divergence, and it went to the lint rather than the readers — a strict reader would make a consuming repo's not-yet-normalised corpus read as dependency-free, which is the original defect in the other direction. Verified: the org-depend test red against HEAD at the discriminating assertion, green after; the lint rule fired 35 times on the real corpus before the rewrite and 0 after, which is the mutation evidence that it reaches the real path; the full suite 657 of 657. Measured: 35 of 39 corpus properties carried the wrapper (13 in TODO.org, 22 in DONE.org), not the "8 of 12" in the title — that figure counted TODO.org's unenforced ones only. Residue: a consuming repo that received the plugin before this fix — agentic-euchre, 2026-09-11 — carries the wrapped form and needs one run of the normaliser; noted on =6a207b00=, whose adoption work owns that step, rather than filed as its own heading.
+:END:
 :PLAN:
 *What this actually poses is which parser owns* =:BLOCKER:=, *and the corpus is
 larger than the filing counted.* Measured 2026-09-11 across both trackers: **36
@@ -889,6 +895,9 @@ validator already produces internally before it wraps.
 =org-depend-block-todo= is second of four on =org-blocker-hook= in the running
 Emacs. So the parser that cannot read this syntax is the one actually guarding
 every =DONE=.
+
+*Resolved 2026-09-15* ([[orgit-rev:claude-code-ide-org::5f7ecdb][5f7ecdb]], corpus [[orgit-rev:claude-code-ide-org::b41897d][b41897d]], first member of =35582d95=). Both write sites now emit the bare space-separated form. A test drives =org-depend-block-todo= itself — three blockers written by the tool, the middle one finished first, DONE refused, then permitted once the endpoints finish — and against HEAD's write site it fails at exactly the "still TODO" assertion, so it discriminates. The read/enforce divergence is closed by a lint rule rather than by making the readers strict: they still find ids under either form, so an un-normalised consumer corpus still indexes, and =bin/lint-org= reports the wrapper as an error naming =claude-code-ide-org-normalize-blocker-syntax=, the idempotent rewrite with a dry run. Run through the live Emacs after a reload: 39 properties scanned, 35 unwrapped, a diff of exactly 35 lines, lint from 35 errors to 0. =org-edna-mode= declined for the reason above.
+
 
 
 * TODO Nothing can correct a closed slice's record, even when the correction is close-time truth :code:
