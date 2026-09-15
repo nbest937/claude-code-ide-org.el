@@ -16537,6 +16537,69 @@ the caller decides how loud that should be."
         (when (re-search-forward "localhost:\\([0-9]+\\)" nil t)
           (string-to-number (match-string 1)))))))
 
+;;; MCP notification status (TODO.org :ID: af2f345e) ----------------------
+
+;; The two functions precede the defcustom deliberately: a `:set'
+;; runs when the defcustom is evaluated, and in a live Emacs whose
+;; server file is already loaded that call must find the function
+;; defined -- the first live reload of this block aborted on exactly
+;; that, while batch (feature not loaded) passed.
+(defun claude-code-ide-org--send-empty-response-202 (request)
+  "Send an empty HTTP 202 response for a notification.
+Upstream's function, status changed; see
+`claude-code-ide-org-accept-notifications-with-202'."
+  (with-slots (process) request
+    (ws-response-header process 202
+                        (cons "Content-Type" "text/plain")
+                        (cons "Content-Length" "0"))
+    (throw 'close-connection nil)))
+
+(defun claude-code-ide-org--apply-notification-status-advice ()
+  "Install or remove the 202 override, per
+`claude-code-ide-org-accept-notifications-with-202'.  Idempotent."
+  (if claude-code-ide-org-accept-notifications-with-202
+      (advice-add 'claude-code-ide-mcp-http-server--send-empty-response
+                  :override #'claude-code-ide-org--send-empty-response-202)
+    (advice-remove 'claude-code-ide-mcp-http-server--send-empty-response
+                   #'claude-code-ide-org--send-empty-response-202)))
+
+;; After the upstream file, not after `claude-code-ide': the server
+;; file is loaded on demand by the tools-server start, and advising a
+;; function before its `defun' runs is fine but advising before the
+;; feature exists would leave `featurep' false for the :set path.
+(defcustom claude-code-ide-org-accept-notifications-with-202 t
+  "Answer an MCP notification with `202 Accepted' rather than upstream's `200'.
+
+Upstream `claude-code-ide-mcp-http-server--send-empty-response' answers
+a JSON-RPC notification with HTTP 200 (upstream defect 8f986c6f).  The
+MCP Streamable HTTP transport requires 202 with no body, and strict
+clients -- Warp's own MCP client, the Python `mcp' SDK behind
+mcp-proxy -- reject the mismatch and drop the session.  That was the
+real bug behind the 2026-09 Warp investigation (DONE.org :ID:
+6a6d5b4e); the fix lived as a hand-kept override in one user's Doom
+config until 2026-09-15, which meant the plugin shipped to a second
+repo without it.
+
+Non-nil installs the override as `:override' advice on the upstream
+function the moment that file loads; nil removes it.  Setting it
+through Customize re-applies at once; a `setq' needs
+`claude-code-ide-org--apply-notification-status-advice' after it.
+
+*Retire this when upstream sends 202.*  The status is a literal inside
+a byte-compiled function and cannot be read back honestly, so nothing
+retires it automatically -- after a `claude-code-ide' update, check
+`claude-code-ide-mcp-http-server--send-empty-response''s source and
+delete this defcustom, the advice and its test together."
+  :type 'boolean
+  :group 'claude-code-ide-org
+  :set (lambda (sym val)
+         (set-default sym val)
+         (when (featurep 'claude-code-ide-mcp-http-server)
+           (claude-code-ide-org--apply-notification-status-advice))))
+
+(with-eval-after-load 'claude-code-ide-mcp-http-server
+  (claude-code-ide-org--apply-notification-status-advice))
+
 (defun claude-code-ide-org-standalone-wire ()
   "Wire the MCP tools server for standalone clients, loudly.
 Pins upstream's `claude-code-ide-mcp-server-port' to

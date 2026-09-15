@@ -66,9 +66,10 @@ duplicate declarations key-by-key with yours winning, so an existing
 root declaration is harmless. The generated glue owns the wiring: it enables the
 tools server, pins the port (`45571`, checked loudly against
 `.mcp.json`), and registers a session per tracked project, re-derived
-on every wire call. It does **not** own the 202-Accepted override of
-upstream's notification response, which strict MCP clients need and
-which ships nowhere yet — keep that by hand (`:ID:` af2f345e). A running Emacs server is a **hard prerequisite**
+on every wire call. The 202-Accepted answer to notifications that
+strict MCP clients need is the module's, as advice gated by
+`claude-code-ide-org-accept-notifications-with-202` (`:ID:` af2f345e)
+— a hand-kept override of upstream's function is redundant now. A running Emacs server is a **hard prerequisite**
 — every MCP tool goes through `emacsclient` — and the module needs
 **org 9.7+**, refusing loudly otherwise (Emacs 29's bundled 9.6.x is
 not enough; Doom's straight-managed org is).

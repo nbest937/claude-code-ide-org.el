@@ -54,15 +54,17 @@ upgrade. The old equivalent — symlinking
   (load! "claude-code-ide-org-glue" doom-user-dir t)
   ```
 
-  **What the glue does not own** (`:ID:` af2f345e): the 202-Accepted
-  override of `claude-code-ide-mcp-http-server--send-empty-response`.
-  Upstream still answers `200` to a notification where the MCP spec
-  requires `202`, and strict clients — Warp's own, the Python SDK's —
-  reject the mismatch. Neither the glue nor the module ships that fix,
-  so a hand-kept override stays in your `config.el` when you swap the
-  rest of the wiring block for the stub; the printed instructions say
-  so. Whether the override moves into the module, guarded and retired
-  when upstream fixes it, is that heading's open decision.
+  **The 202 answer to notifications is the module's, not the glue's
+  and not yours** (`:ID:` af2f345e, decided 2026-09-15). Upstream
+  still answers `200` to a notification where the MCP spec requires
+  `202`, and strict clients — Warp's own, the Python SDK's — reject
+  the mismatch. The module advises
+  `claude-code-ide-mcp-http-server--send-empty-response` to send 202,
+  gated by `claude-code-ide-org-accept-notifications-with-202`
+  (default `t`), so a hand-kept override of that function in your
+  `config.el` is redundant and should go with the rest of the wiring
+  block. The gate is retired by hand when upstream fixes the status;
+  its docstring says how to tell.
 
   The glue defers itself until `claude-code-ide` loads and derives the
   project list from the tracked files at every wire call — onboarding

@@ -13656,6 +13656,39 @@ and a second run changes nothing."
       (should (string-match-p "0 unwrapped"
                               (claude-code-ide-org-normalize-blocker-syntax))))))
 
+;;; MCP notification status (TODO.org :ID: af2f345e) ----------------------
+
+(ert-deftest claude-code-ide-org-test-notification-answered-202-when-gated-on ()
+  "With the gate on, upstream's empty response goes out as 202; with it
+off, upstream's own 200 is back.  Driven through the real upstream
+function and web-server's request class, with only the socket write
+stubbed -- so the assertion is on the status the client would see, and
+the off case is the discriminating control: it proves the advice is
+what makes the difference and that turning the gate off removes it."
+  (require 'web-server)
+  (require 'claude-code-ide-mcp-http-server)
+  (let ((request (ws-request :process 'fake-process))
+        (seen nil))
+    (cl-letf (((symbol-function 'ws-response-header)
+               (lambda (_proc code &rest _headers) (setq seen code))))
+      (cl-flet ((answer ()
+                  (setq seen nil)
+                  (catch 'close-connection
+                    (claude-code-ide-mcp-http-server--send-empty-response request))
+                  seen))
+        (let ((claude-code-ide-org-accept-notifications-with-202 t))
+          (claude-code-ide-org--apply-notification-status-advice)
+          (should (= 202 (answer)))
+          ;; Idempotent: applying twice does not stack.
+          (claude-code-ide-org--apply-notification-status-advice)
+          (should (= 202 (answer))))
+        (let ((claude-code-ide-org-accept-notifications-with-202 nil))
+          (claude-code-ide-org--apply-notification-status-advice)
+          (should (= 200 (answer))))
+        ;; Leave the running image as the default has it.
+        (claude-code-ide-org--apply-notification-status-advice)
+        (should (= 202 (answer)))))))
+
 (ert-deftest claude-code-ide-org-test-set-property-kind-slice-completes-the-declaration ()
   "KIND=slice writes everything a slice must carry that a mechanism can
 derive: :COOKIE_DATA:, the [/] cookie, and the :BLOCKER: from the
