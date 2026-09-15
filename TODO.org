@@ -1451,6 +1451,12 @@ what this slice actually planned. Without the link the grep degrades into
 guessing a commit by date, which is precisely the kind of
 recoverable-in-principle that stops being done.
 
+*Integration point:* [[https://github.com/nbest937/claude-code-ide-org.el/pull/23][PR #23]],
+opened 2026-09-14 with 43 commits. Under the close condition settled on
+=e80f6ccf= this slice closes when that merges, not when its last member
+went terminal — which is why it sits at =REVIEW= now rather than =DONE=.
+
+
 
 * TODO Emacs died of a fatal signal at review-buffer quit, deadlocked in the mac port's shutdown
 :PROPERTIES:
