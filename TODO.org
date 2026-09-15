@@ -234,6 +234,8 @@ CLOSED: [2026-09-15 Tue 13:28]
 *Falsified along the way:* that euchre needed the blocker normaliser (it carries no blocker and is not tracked by the live Emacs); that the MCP client caches a tool's argument schema for the session (a capture passed =category= from the session that added it); and that =%%= escapes a template value (org-capture has no such form — the property is written after finalize instead).
 
 *Left behind, and filed:* =dd4b9a9f=, no org tool edits a phrase in place, found correcting =8a2eb687='s unnamed "previous slice" the same afternoon. The two review cleanups left as noted — a pre-guard queued capture would apply uncategorised (zero live instances), the normaliser does not kill buffers it opens — are recorded on PR #24's summary comment and not worth headings. One follow-up is the user's: the hand-kept 202 override in =~/.config/doom/config.el= is now redundant.
+
+*Attention, measured after the closing apply* (=M-x claude-code-ide-org-attention-report= over 2026-09-15): **1.7 h** on the slice against =afea7e4f='s 8.0 h — two intervals, 10:52–12:23 and 13:18–13:31, the second being the review fixes. The report's own floor hides the stretch between them (PR creation, the decision on =af2f345e=, the next-session plan), which the queue records as sub-floor residue; and 0.8 h of the morning is labelled =afea7e4f= because that slice held REVIEW until its merge. So the honest reading is "under two hours attended, of a day that also planned the next slice", and the ratio to the baseline — a fifth of the attention for a third of the members — is the number to carry forward.
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-15 Tue 10:48] \\
