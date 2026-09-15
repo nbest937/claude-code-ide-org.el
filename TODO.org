@@ -5388,6 +5388,39 @@ lines, is the first thing to settle.
 *Nine headings currently make this visible*, measured 2026-08-26: 46 own CLOCK
 lines across four active and five finished groupings.
 
+*Re-measured 2026-09-15 at the user's question — still true, and the
+population is not frozen.* **Ten** groupings now carry their own CLOCK
+lines, **54** of them, against the nine and 46 recorded above. The growth
+is the mechanism working as the state-transitions rules describe rather
+than new clocking of groupings: a leaf clocked honestly acquires children
+and becomes a parent.
+
+*But the live exposure is two, not ten.* Eight of the ten are =DONE= and
+archived, where a clocktable is rarely run; only
+[[id:406e9200-c3e7-49ac-a8d0-d6ff8e061ce4][406e9200]] (=DOING=, 4 own lines) and
+[[id:a1d63f52-4c07-4b9e-8f31-6d2b90c4e7a5][a1d63f52]] (=TODO=, 9) are live. So the defect is real and
+its blast radius is small — which is the honest reading, and narrower
+than "ten groupings" sounds.
+
+*One of those two makes this timely.* =406e9200= is the story
+[[id:749301a0-0bd0-4fbd-b3f7-79739226e15a][749301a0]] sequences, and that slice is second of the four
+on =next-session.md=. Whoever works it will be reading clock data for
+precisely one of the ambiguous parents.
+
+*What changed against this heading, and it lowers priority without
+touching correctness.* When this was written the clocktable was the
+project's reporting surface. Since =afea7e4f= there are two others —
+=claude-code-ide-org-attention-report= and
+=claude-code-ide-org-allocation-report= — and **neither uses a clocktable
+or inherits this defect**. The questions a clocktable was being asked are
+partly answered elsewhere now, so the case for a =:formatter= is weaker
+than it was even though the gap it would close is unchanged.
+
+*Unchanged and re-confirmed:* org 9.8.7 still offers no own-time or
+non-recursive clocktable option, and nothing shipped in =afea7e4f= goes
+near =org-clock-sum=.
+
+
 
 * TODO A guidepost gap containing an apply timestamp is provably the human's attention :code:
 :PROPERTIES:
