@@ -275,6 +275,10 @@ Planned:
 
 *Comparison against =afea7e4f=, in flight — to be completed in the debrief at merge.* Members 4 against 11, all planned, none adopted. Span: composed 2026-09-15 10:08, PR opened the same afternoon — under a day against five calendar days, though the slice was chosen for being the smallest, so the ratio says less than it looks. Commits 7 against 50 (two of the seven are corpus and bookkeeping). Review findings: none yet, the PR being unreviewed; =afea7e4f= had 0.64 per member. Attention: not derivable until the queue is applied, since every clock event of this session is still pending — run =M-x claude-code-ide-org-attention-report= over the day after the apply and record it here. One process observation for the comparison's "did recent improvements help" question: every fix ran red first against a copy of HEAD's file, the lint rules were mutation-tested against the corpus, and the reload precondition was named before each live check — none of which surfaced a defect this time, which is either the practice working or the slice being too small to tell.
 
+- [[orgit-rev:claude-code-ide-org::deb2e43][deb2e43]] [2026-09-15 Tue 12:2x]
+  fourth member closed on the user's decision; all four terminal, slice to REVIEW pending PR #24
+
+
 
 
 * TODO A bookkeeping burst reads as many headings worked at once, and inflates every window it lands in :code:
@@ -404,6 +408,9 @@ plausible-looking survey is exactly the kind that reads as enforcement and
 enforces the wrong thing.
 
 *Adoption step added 2026-09-15 from =3f4fd744=:* any =:BLOCKER:= euchre wrote before the plugin's 5f7ecdb carries the =ids(...)= wrapper and enforces nothing under org-depend. One run of =M-x claude-code-ide-org-normalize-blocker-syntax= there (prefix argument to write) rewrites them; its =bin/lint-org= will name each one until then.
+
+*Correction, same day:* measured rather than assumed — euchre's TODO.org and DONE.org carry no =:BLOCKER:= property at all, and neither file is in the live Emacs's tracked set (=claude-code-ide-org--tracked-files= names none of them), so there is nothing for the normaliser to do there. The step above is dormant: any blocker euchre writes from now on comes out bare, since the plugin's own write sites do. If one ever needs it, =M-x claude-code-ide-org-normalize-blocker-syntax= runs over whatever files that Emacs tracks — bare =M-x= is a dry run, =C-u= writes.
+
 
 
 
@@ -1611,10 +1618,14 @@ script.
 :CREATED:  [2026-09-10 Thu 14:11]
 :CATEGORY: Dev
 :END:
+:DEBRIEF:
+Posed first, then decided by the user the same afternoon; the instruction fix shipped before the decision so it was right either way. Two defects surfaced only in the live reload, neither in batch: a defcustom =:set= runs at definition time and must find its function already defined — batch never loaded the upstream feature, so the setter's guard skipped the call there — and the org-dev skill check matched this block's =with-eval-after-load 'claude-code-ide-mcp-http-server= as a prefix of the registration block's anchor and reported the file unhealthy. Both are the reload rule's point: a passing batch run said nothing about the running image. One follow-up that is the user's, not the plugin's: the hand-kept override in =~/.config/doom/config.el= is now redundant and can be deleted; it does no harm meanwhile, both defining 202. Nothing left to file.
+:END:
 :LOGBOOK:
 CLOCK: [2026-09-10 Thu 14:11]--[2026-09-10 Thu 14:12] =>  0:01
 - [2026-09-10 Thu 14:11]--[2026-09-10 Thu 14:12] preparing the e396f94a swap walk-through; filing the glue-ownership gap
 :END:
+:PLAN:
 
 (Filing prose restored 2026-09-11 — the original capture note was discarded on
 the queued path: the event carried 689 characters and =--capture-write= takes no
@@ -1629,9 +1640,13 @@ self-retiring when upstream fixes =8f986c6f=) or soften the printed claim to
 name what the glue does not own. Until then the swap instructions must say KEEP
 the override by hand — which is what the actual swap did.
 
+:END:
 *Half resolved 2026-09-15* ([[orgit-rev:claude-code-ide-org::4a62bf9][4a62bf9]], fourth member of =35582d95=): the swap instruction now says KEEP the override, in the =--glue= printout, the README and the setup reference — the glue owns the port setq, register-session and mcp-start, and is explicit that it does not own the 202 response. Verified against the straight checkout of upstream (=1de17bb=): =--send-empty-response= still answers 200, so the override is live, not historical.
 
 *The decision is posed rather than taken, with a recommendation.* Two options, both defensible: (a) move the override into the module as =advice-add :override= on the upstream function, gated by a defcustom defaulting on, docstring naming the upstream defect so it is retired by hand when upstream fixes it — "self-retiring" cannot be done honestly, since the status code is not readable from a byte-compiled function; or (b) leave it as a documented hand-kept line, which is now the case. Recommended: (a). The fix is machinery every consumer needs for every strict client, which is the plugin's stated reason to exist, and a hand-kept line is the shape this slice was opened to remove. Cost: the user's own =config.el= override would then double-define the function and should be deleted at the same time — one more line in the swap instructions, in the other direction.
+
+*Resolved 2026-09-15* ([[orgit-rev:claude-code-ide-org::deb2e43][deb2e43]], the user having chosen option (a)). =claude-code-ide-org-accept-notifications-with-202= (default =t=) installs =:override= advice on upstream's =--send-empty-response= when that file loads; nil removes it; Customize re-applies. Not self-retiring — the docstring says why and how to retire it by hand after an upstream update. The =--glue= printout, README and setup reference now say a hand-kept override is redundant and should go with the rest of the wiring block. Verified live after a reload: advice member present, gate on, a notification to the pinned port answered 202 — though that probe cannot discriminate while the user's own override still exists, so the batch test carries the proof: 202 with the gate on, upstream's 200 with it off.
+
 
 
 
