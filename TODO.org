@@ -270,6 +270,12 @@ Planned:
 - [[orgit-rev:claude-code-ide-org::304bdc8][304bdc8]] [2026-09-15 Tue 10:2x]
   defined the slice and sequenced the four
 
+- [[orgit-rev:claude-code-ide-org::4a62bf9][4a62bf9]] [2026-09-15 Tue 13:0x]
+  three members closed, the fourth WAITING on a posed decision; PR #24 opened on =feature/plugin-day-one=
+
+*Comparison against =afea7e4f=, in flight — to be completed in the debrief at merge.* Members 4 against 11, all planned, none adopted. Span: composed 2026-09-15 10:08, PR opened the same afternoon — under a day against five calendar days, though the slice was chosen for being the smallest, so the ratio says less than it looks. Commits 7 against 50 (two of the seven are corpus and bookkeeping). Review findings: none yet, the PR being unreviewed; =afea7e4f= had 0.64 per member. Attention: not derivable until the queue is applied, since every clock event of this session is still pending — run =M-x claude-code-ide-org-attention-report= over the day after the apply and record it here. One process observation for the comparison's "did recent improvements help" question: every fix ran red first against a copy of HEAD's file, the lint rules were mutation-tested against the corpus, and the reload precondition was named before each live check — none of which surfaced a defect this time, which is either the practice working or the slice being too small to tell.
+
+
 
 * TODO A bookkeeping burst reads as many headings worked at once, and inflates every window it lands in :code:
 :PROPERTIES:
@@ -612,6 +618,10 @@ revision when the slice is picked up**, and this is its first recorded failure.
 :CREATED:  [2026-09-11 Fri 18:59]
 :CATEGORY: Tools
 :END:
+:DEBRIEF:
+Shipped with one decision the body had deferred — required rather than defaulted, at top level only — and one the body had not anticipated: a value new to the file warns instead of refusing, because the plugin ships to repos whose taxonomies this module cannot know. The lint half was smaller than planned: the rule and its drawer-as-text reader already existed as a warning, so the work was the severity, its comment, and the pre-commit test fixture that the escalation broke the same day (the fixture's "clean" task had no category — the exact lag the fixture's own comment records from 2026-08-27). Verified: 662 of 662 in the suite, the hook test's new category cases, the live tool refusing a top-level capture and listing nine values in use, and the mutation test on a corpus copy. Measured: 0 of 107 before and after — the fix's job was to hold the number, and the discipline had already repaired it by hand. One precondition worth stating for the next session: the MCP client caches a tool's argument schema at connect, so passing =category= through =org_capture= from an already-running Claude Code session may need that session restarted; the refusal path needs nothing, since it takes no new argument. Nothing left undone.
+:END:
+:PLAN:
 
 =org_capture= takes title, note, tags, target and initial_state — there is no
 category argument — so a heading created through the tool carries no
@@ -710,6 +720,10 @@ grep, as that sweep was — not lost data, and this is member two of the
 slice nominated to start next. Working it early would take half the
 fix (the prose move is explicitly ordered first) outside the slice that
 counts it, leaving the cookie lying about what remains.
+
+:END:
+*Resolved 2026-09-15* (prose [[orgit-rev:claude-code-ide-org::a2f770a][a2f770a]], code [[orgit-rev:claude-code-ide-org::bb8f3af][bb8f3af]], second member of =35582d95=). Root cause first: the ten values now live in =.claude/rules/org-categories.md= with no =paths:= scope, so every session loads them; the local conventions file keeps the history and points at the move. Then the mechanism: =org_capture= takes =category=, written into the drawer after =:CREATED:= on both the immediate and the deferred path (the hook maps it, the parser and apply carry it). The decision the body left open went to *required* — a top-level capture without one is refused, and the refusal names the values the file already uses; under an =:ID:= target the child inherits and nothing is required. A value the file has never used is written with a warning, not refused, since the taxonomy is the consuming repo's own. The lint's level-1 rule went from warn to error; it already read the drawer as text, which is why only the severity changed. Before: 107 level-1 headings, 0 missing. After: 107, 0 — the number held, and the mutation test (one =:CATEGORY:= line deleted from a copy) proves the error names the heading.
+
 
 
 * TODO [0/7] A span is only as true as its owner, its edges and its payload :code:
@@ -1557,10 +1571,14 @@ debugger can be entered, and =SIGKILL= is the only exit.
 :CREATED:  [2026-09-10 Thu 16:42]
 :CATEGORY: Dev
 :END:
+:DEBRIEF:
+Shipped as proposed, with the template-versus-inline question answered inline and one guard the body had not asked for: the link is skipped when =~/.claude/skills/= already carries one, since project and user scope both enabled would load the plugin twice. One thing the body's framing got slightly wrong and the implementation corrects: git ignores a *path*, not a link target, so "ignore only the absolute symlink" cannot be a static ignore line — it is a decision the script makes at link time, writing the ignore entry only in the absolute branch. Verified by the setup test suite, 72 checks including a hand-kept ignore file with no trailing newline (the glue case) and the sibling layout. Not measured against euchre itself: its link already exists in the relative form and its ignore file lacks only the audit jsonl, so the first real run there is a one-line append — noted here rather than filed, since =6a207b00= owns the adoption pass.
+:END:
 :LOGBOOK:
 CLOCK: [2026-09-10 Thu 16:48]--[2026-09-10 Thu 16:49] =>  0:01
 - [2026-09-10 Thu 16:48]--[2026-09-10 Thu 16:49] recording the relative-symlink provenance decision on 784d80c5
 :END:
+:PLAN:
 
 Amended same day, at the provenance conversation: the symlink-ignore advice
 inverts when the symlink is *relative* — a committed
@@ -1581,6 +1599,10 @@ absolute-vs-relative nuance the amendment above records. =--org= already
 collision-checks files; the same pattern appends missing ignore lines rather
 than clobbering. Decide whether the entries ship as a template or inline in the
 script.
+
+:END:
+*Resolved 2026-09-15* ([[orgit-rev:claude-code-ide-org::f718eaf][f718eaf]], third member of =35582d95=). =--org= now appends the four generalisable entries to the consumer's =.gitignore= with exact-line dedupe — created when absent, never clobbered, and a file ending without a newline gets one first so nothing is glued to its last line. Inline in the script rather than a template: the fifth entry is conditional and the append pattern already lived there for the agenda list. The fifth is the project-scope skill link, which =--org= now creates and which settles the relative-versus-absolute question: relative (=../../../claude-code-ide-org=) when the clone is a sibling of the target, to be committed; absolute otherwise, and then ignored. Skipped when a user-scope link already enables the plugin everywhere. Five test cases, including a plugin copy placed beside a consumer for the sibling case.
+
 
 
 * TODO The glue claims ownership of the whole wiring block, but the 202 override ships nowhere :code:
@@ -1606,6 +1628,11 @@ strict MCP client. Decide: move the override into the module (guarded,
 self-retiring when upstream fixes =8f986c6f=) or soften the printed claim to
 name what the glue does not own. Until then the swap instructions must say KEEP
 the override by hand — which is what the actual swap did.
+
+*Half resolved 2026-09-15* ([[orgit-rev:claude-code-ide-org::4a62bf9][4a62bf9]], fourth member of =35582d95=): the swap instruction now says KEEP the override, in the =--glue= printout, the README and the setup reference — the glue owns the port setq, register-session and mcp-start, and is explicit that it does not own the 202 response. Verified against the straight checkout of upstream (=1de17bb=): =--send-empty-response= still answers 200, so the override is live, not historical.
+
+*The decision is posed rather than taken, with a recommendation.* Two options, both defensible: (a) move the override into the module as =advice-add :override= on the upstream function, gated by a defcustom defaulting on, docstring naming the upstream defect so it is retired by hand when upstream fixes it — "self-retiring" cannot be done honestly, since the status code is not readable from a byte-compiled function; or (b) leave it as a documented hand-kept line, which is now the case. Recommended: (a). The fix is machinery every consumer needs for every strict client, which is the plugin's stated reason to exist, and a hand-kept line is the shape this slice was opened to remove. Cost: the user's own =config.el= override would then double-define the function and should be deleted at the same time — one more line in the swap instructions, in the other direction.
+
 
 
 * TODO Plans die at cleanupPeriodDays; decide plansDirectory or keep restoring :code:
