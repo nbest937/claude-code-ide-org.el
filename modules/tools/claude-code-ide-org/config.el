@@ -2760,7 +2760,8 @@ can carry a list at all."
     (if names (format " :%s:" (string-join names ":")) "")))
 
 (defun claude-code-ide-org--capture-write (title new-id created spec tags
-                                                 &optional initial-state note)
+                                                 &optional initial-state note
+                                                 category)
   "Insert TITLE as a heading at SPEC, carrying NEW-ID, CREATED and TAGS.
 Factored out of `claude-code-ide-org-capture' so the immediate path and
 the apply path insert headings through exactly one code path -- a
@@ -2779,12 +2780,18 @@ since 2026-09-11 (TODO.org :ID: 204d1b0a; before that it was accepted
 and silently discarded, and six filings shipped bodiless).  Inserted
 after `org-capture' finalizes rather than embedded in the template,
 because template text is scanned for %-escapes and user prose
-containing `%U' or `%i' would expand instead of landing verbatim."
+containing `%U' or `%i' would expand instead of landing verbatim.
+
+CATEGORY, when given, is written as a `:CATEGORY:' property in the same
+drawer, after `:CREATED:' (TODO.org :ID: b0d55552).  Written here rather
+than by a second `org-entry-put' so the deferred path produces the same
+drawer as the immediate one, and so a level-1 capture never exists,
+even briefly, without the property the lint requires."
   (let ((org-capture-templates
          (list (list "z" "Claude quick-capture (org_capture MCP tool)"
                      'entry
                      spec
-                     (format "* %s%%i%s\n%s:PROPERTIES:\n:ID:       %s\n:CREATED:  %s\n:END:\n"
+                     (format "* %s%%i%s\n%s:PROPERTIES:\n:ID:       %s\n:CREATED:  %s\n%s:END:\n"
                              (if (and initial-state
                                       (not (string-empty-p initial-state)))
                                  (concat initial-state " ")
@@ -2807,7 +2814,10 @@ containing `%U' or `%i' would expand instead of landing verbatim."
                                          claude-code-ide-org--outline-finished-keywords)
                                  (format "CLOSED: %s\n" created)
                                "")
-                             new-id created)
+                             new-id created
+                             (if (and category (not (string-empty-p category)))
+                                 (format ":CATEGORY: %s\n" category)
+                               ""))
                      :immediate-finish t
                      ;; Prepend only for a bare file target. TODO.org
                      ;; :ID: 29439196 flattened the categories, so a
@@ -2862,9 +2872,49 @@ a state, and anything stricter would refuse titles org handles fine."
     (when first
       (car (member first (claude-code-ide-org--file-todo-keywords file))))))
 
+(defun claude-code-ide-org--file-categories (file)
+  "Return the distinct `:CATEGORY:' values FILE's level-1 headings carry.
+
+Read from each heading's own drawer as text, in order of first
+appearance.  Not `org-entry-get', which *computes* a category and falls
+back to the file name, and not `(org-entry-properties nil 'standard)',
+which does the same despite its name -- both reported zero missing
+categories over a file that plainly had one (TODO.org :ID: b0d55552).
+Level 1 only: a child's value is usually inherited, and the question
+this answers is which values the file's taxonomy actually uses."
+  (let (values)
+    (with-current-buffer (find-file-noselect file)
+      (org-with-wide-buffer
+       (goto-char (point-min))
+       (while (re-search-forward "^\\* " nil t)
+         (let ((v (claude-code-ide-org--category-property-value)))
+           (when (and v (not (member v values)))
+             (push v values))))))
+    (nreverse values)))
+
+(defun claude-code-ide-org--capture-novel-category-warning (novel category file in-use)
+  "The reply suffix for a CATEGORY that FILE has never used, or \"\"."
+  (if novel
+      (format " -- WARNING: \"%s\" is a new category in %s, which so far uses %s; \
+check it is not a typo for one of those"
+              category (file-name-nondirectory file) (string-join in-use ", "))
+    ""))
+
 (cl-defun claude-code-ide-org-capture (title &optional target tags note
-                                             initial-state)
+                                             initial-state category)
   "Quick-add TITLE as a new heading via `org-capture'.
+
+CATEGORY is written as the heading's `:CATEGORY:' property.  *Required
+for a top-level capture* -- one with no TARGET, which lands at level 1
+where inheritance has nothing to offer -- and optional under an :ID:
+target, where the child inherits its parent's unless told otherwise.
+The refusal names the values the file already uses, so the caller can
+pick one without the taxonomy in context; a value the file has never
+seen is written but WARNED about, since the taxonomy is the consuming
+repo's own and a new word is more often a typo than a decision.  See
+TODO.org :ID: b0d55552: ten of 111 level-1 headings arrived without one
+in two days, every one of them captured through this tool in a session
+that had no `.org' file open and so never loaded the rule listing them.
 
 Writes a *keyword-less* heading carrying a freshly-generated :ID: and a
 :CREATED: stamp.  No TODO keyword: the state is supplied later, at
@@ -2945,7 +2995,14 @@ else."
                      (and tm (org-with-point-at tm
                                (claude-code-ide-org--enclosing-slice-title))))))
              (new-id (org-id-new))
-             (created (format-time-string "[%Y-%m-%d %a %H:%M]")))
+             (created (format-time-string "[%Y-%m-%d %a %H:%M]"))
+             (category (and category
+                            (not (string-empty-p (string-trim category)))
+                            (string-trim category)))
+             (top-level (eq (car-safe (plist-get resolved :spec)) 'file))
+             (in-use (and (or top-level category)
+                          (claude-code-ide-org--file-categories file)))
+             (novel (and category in-use (not (member category in-use)))))
         (cond
          ;; Validated against the *target file's* own #+TODO: line, the
          ;; same gate org_set_todo applies, and for the same reason:
@@ -3000,21 +3057,37 @@ else."
                           "note, or capture elsewhere and add the heading "
                           "to the member list")
                   target-slice))
+         ;; A level-1 heading with no :CATEGORY: is unfiled, and nothing
+         ;; else will file it: the property inherits, so only a top-level
+         ;; capture can go wrong, and bin/lint-org errors on exactly that.
+         ;; Refused here so the heading never exists uncategorised. The
+         ;; values in use are named so a session that never loaded the
+         ;; taxonomy can still choose from it (TODO.org :ID: b0d55552).
+         ((and top-level (not category))
+          (format (concat "Error: a top-level capture needs a category -- "
+                          "it lands at level 1, where :CATEGORY: cannot be "
+                          "inherited. Pass category=; %s uses: %s")
+                  (file-name-nondirectory file)
+                  (if in-use (string-join in-use ", ") "(none yet)")))
          ((claude-code-ide-org--file-busy-p file)
-          (format "%s\"%s\" (ID: %s) %s; pending review."
+          (format "%s\"%s\" (ID: %s) %s; pending review.%s"
                   claude-code-ide-org--reply-queued-capture
-                  title new-id (plist-get resolved :where)))
+                  title new-id (plist-get resolved :where)
+                  (claude-code-ide-org--capture-novel-category-warning
+                   novel category file in-use)))
          (t
           (claude-code-ide-org--capture-write
            title new-id created (plist-get resolved :spec) tags initial-state
-           note)
+           note category)
           ;; Registered against the file the target actually resolved to,
           ;; which is not necessarily the capture file: an :ID: target can
           ;; live anywhere org-id knows about.
           (org-id-add-location new-id (expand-file-name file))
-          (format "%s\"%s\" (ID: %s) %s"
+          (format "%s\"%s\" (ID: %s) %s%s"
                   claude-code-ide-org--reply-captured
-                  title new-id (plist-get resolved :where)))))
+                  title new-id (plist-get resolved :where)
+                  (claude-code-ide-org--capture-novel-category-warning
+                   novel category file in-use)))))
     (error (format "Error: %s" (error-message-string err)))))
 
 (defun claude-code-ide-org--end-of-body ()
@@ -4857,10 +4930,17 @@ That fallback is not incidental to this project -- it is the whole
 finding behind TODO.org :ID: 29439196. Across 274 headings the agenda's
 category column held exactly two distinct values, `TODO' and `DONE',
 because it was showing file names."
+  (and (claude-code-ide-org--category-property-value) t))
+
+(defun claude-code-ide-org--category-property-value ()
+  "The literal `:CATEGORY:' value in the heading-at-point's own drawer, or nil.
+The text-reading half of `claude-code-ide-org--category-property-p',
+for the same reason: org's own accessors compute a fallback."
   (save-excursion
     (org-back-to-heading t)
     (let ((end (save-excursion (outline-next-heading) (point))))
-      (and (re-search-forward "^[ \t]*:CATEGORY:[ \t]+\\S-" end t) t))))
+      (and (re-search-forward "^[ \t]*:CATEGORY:[ \t]+\\(\\S-.*?\\)[ \t]*$" end t)
+           (match-string-no-properties 1)))))
 
 (defun claude-code-ide-org--grouping-heading-p ()
   "Non-nil when the heading at point is a grouping -- a container or a
@@ -7079,6 +7159,7 @@ whole file. This is the single place that judgement is made."
                 :title (alist-get 'title obj)
                 :target (alist-get 'target obj)
                 :tags (alist-get 'tags obj)
+                :category (alist-get 'category obj)
                 :text (alist-get 'text obj)
                 ;; amend only: which drawer the text targets. Null for a
                 ;; body amend, and on events written before it existed.
@@ -8195,6 +8276,7 @@ from a skipped one."
                            :tags (plist-get event :tags)
                            :to (plist-get event :state)
                            :note (plist-get event :note)
+                           :category (plist-get event :category)
                            :events (list event))
                      items))
               ("amend"
@@ -9245,7 +9327,8 @@ exists to prevent (TODO.org :ID: b5f94b88)."
          (plist-get resolved :spec)
          (plist-get item :tags)
          (plist-get item :to)
-         (plist-get item :note))
+         (plist-get item :note)
+         (plist-get item :category))
         (org-id-add-location id (expand-file-name file))
         (with-current-buffer (find-file-noselect file) (save-buffer))
         nil)
@@ -13967,9 +14050,16 @@ year/month scaffolding and its day node: %s" level title))
                      (report 'warn line "level-1 task has no :CREATED:: %s" title))
                    ;; A task without a category is unfiled: nothing in the
                    ;; tree says where it belongs any more, which is exactly
-                   ;; what the flattening traded away. Warn rather than
-                   ;; error -- a freshly captured heading may legitimately
-                   ;; not have one yet.
+                   ;; what the flattening traded away. An error since
+                   ;; 2026-09-15 (TODO.org :ID: b0d55552): it was a warning
+                   ;; because "a freshly captured heading may legitimately
+                   ;; not have one yet", and that is the case that produced
+                   ;; ten unfiled headings in two days -- a warning nobody
+                   ;; reads is the same as no rule. org_capture now refuses
+                   ;; a top-level capture without one, so nothing produces
+                   ;; the shape this reports except a hand edit, and a hand
+                   ;; edit can add the property. Inheritance answers for a
+                   ;; child, which is why only level 1 is checked.
                    ;; Read the drawer, not `org-entry-get'. Org
                    ;; *computes* CATEGORY -- falling back to the file
                    ;; name, or "???" in a buffer with no file -- so it
@@ -13980,7 +14070,7 @@ year/month scaffolding and its day node: %s" level title))
                    ;; :ID: 29439196 in the first place. Measured, not
                    ;; assumed: a bare heading answers "???".
                    (unless (claude-code-ide-org--category-property-p)
-                     (report 'warn line "level-1 task has no :CATEGORY:: %s" title))))
+                     (report 'error line "level-1 task has no :CATEGORY:: %s" title))))
                 (t
                  (unless id (report 'error line "heading has no :ID:: %s" title))
                  (unless created
@@ -16746,9 +16836,11 @@ the project list."
                  "heading, e.g. a note rather than a task. Every SUBSEQUENT "
                  "transition still goes through org_set_todo, which queues it "
                  "for review so org logs it natively. "
-                 "Omit it to prepend at the top of the capture file. "
-                 "Category is a :CATEGORY: property now, not a heading, so there is "
-                 "nothing to file under by that name. "
+                 "Omit target to prepend at the top of the capture file. "
+                 "A top-level capture REQUIRES category: it lands at level 1, "
+                 "where :CATEGORY: cannot be inherited, and the refusal names "
+                 "the values the file already uses. Under an :ID: target the "
+                 "child inherits its parent's category unless one is passed. "
                  "Returns a confirmation containing the "
                  "new heading's real :ID: and where it landed. Writes "
                  "immediately when the target file is free; when the human "
@@ -16775,7 +16867,11 @@ the project list."
            (:name "initial_state"
             :type string
             :optional t
-            :description "Optional TODO keyword to write with the heading, e.g. \"TODO\" or \"NEXT\". A creation has no prior state, so there is no transition to log and nothing is hidden from the review pass -- but every later transition must still go through org_set_todo. Without this the heading is keywordless until a human applies the queue, which makes a :BLOCKER: naming it inert and bin/lint-org error. Must be a keyword the target file's own #+TODO: line declares.")))
+            :description "Optional TODO keyword to write with the heading, e.g. \"TODO\" or \"NEXT\". A creation has no prior state, so there is no transition to log and nothing is hidden from the review pass -- but every later transition must still go through org_set_todo. Without this the heading is keywordless until a human applies the queue, which makes a :BLOCKER: naming it inert and bin/lint-org error. Must be a keyword the target file's own #+TODO: line declares.")
+           (:name "category"
+            :type string
+            :optional t
+            :description "The :CATEGORY: value for the new heading, e.g. \"Tools\". Required when target is omitted (a level-1 heading cannot inherit one; the refusal lists the values the file uses), optional under an :ID: target. A value the file has never used is written with a warning -- check it is not a typo for an existing one. Case matters.")))
 
   (claude-code-ide-make-tool
    :function #'claude-code-ide-org-amend

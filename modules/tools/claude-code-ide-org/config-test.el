@@ -2443,7 +2443,10 @@ capture-then-categorise impossible."
                    (concat "* TODO Bare level-1 task                           :code:\n"))))
     (should (claude-code-ide-org-test--lint-matches findings 'error "level-1 task has no :ID:"))
     (should (claude-code-ide-org-test--lint-matches findings 'warn "level-1 task has no :CREATED:"))
-    (should (claude-code-ide-org-test--lint-matches findings 'warn "level-1 task has no :CATEGORY:")))
+    ;; An error since 2026-09-15 (:ID: b0d55552): the "freshly captured"
+    ;; excuse for a warning is exactly the case that produced ten unfiled
+    ;; headings, and org_capture now refuses that capture.
+    (should (claude-code-ide-org-test--lint-matches findings 'error "level-1 task has no :CATEGORY:")))
   ;; And a fully-formed one is silent about all three.
   (let ((findings (claude-code-ide-org-test--lint
                    (concat "* TODO A task                                      :code:\n"
@@ -2669,7 +2672,7 @@ transition from the review pass: `State \"TODO\" from \"\"' is noise
 rather than history. Every *subsequent* transition still queues."
   (claude-code-ide-org-test--with-capture-file
     (should (string-match-p "\\`Captured: "
-                            (claude-code-ide-org-capture "Task with a state" nil nil nil "NEXT")))
+                            (claude-code-ide-org-capture "Task with a state" nil nil nil "NEXT" "Test")))
     (should (string-match-p "^\\* NEXT Task with a state"
                             (claude-code-ide-org-test--disk-contents capture-file)))))
 
@@ -2678,14 +2681,14 @@ rather than history. Every *subsequent* transition still queues."
 A heading captured as a note rather than a task has no state, and that
 is the default the argument was specified to preserve."
   (claude-code-ide-org-test--with-capture-file
-    (claude-code-ide-org-capture "Just a note")
+    (claude-code-ide-org-capture "Just a note" nil nil nil nil "Test")
     (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
       (should (string-match-p "^\\* Just a note" disk))
       ;; Explicitly not any keyword the file declares.
       (should-not (string-match-p "^\\* [A-Z]+ Just a note" disk))))
   ;; The empty string must behave as omitted rather than writing "* ".
   (claude-code-ide-org-test--with-capture-file
-    (claude-code-ide-org-capture "Empty state" nil nil nil "")
+    (claude-code-ide-org-capture "Empty state" nil nil nil "" "Test")
     (should (string-match-p "^\\* Empty state"
                             (claude-code-ide-org-test--disk-contents capture-file)))))
 
@@ -2705,18 +2708,18 @@ recorded after the fact -- so the fix writes the line rather than
 refusing the state."
   (dolist (kw '("DONE" "CANCELLED"))
     (claude-code-ide-org-test--with-capture-file
-      (claude-code-ide-org-capture (concat "Born " kw) nil nil nil kw)
+      (claude-code-ide-org-capture (concat "Born " kw) nil nil nil kw "Test")
       (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
         (should (string-match-p (concat "^\\* " kw " Born " kw) disk))
         (should (string-match-p "^CLOSED: \\[" disk)))))
   ;; A live keyword must NOT get one -- that would be a false close.
   (claude-code-ide-org-test--with-capture-file
-    (claude-code-ide-org-capture "Still open" nil nil nil "NEXT")
+    (claude-code-ide-org-capture "Still open" nil nil nil "NEXT" "Test")
     (should-not (string-match-p
                  "CLOSED:" (claude-code-ide-org-test--disk-contents capture-file))))
   ;; Nor a keywordless capture.
   (claude-code-ide-org-test--with-capture-file
-    (claude-code-ide-org-capture "No keyword")
+    (claude-code-ide-org-capture "No keyword" nil nil nil nil "Test")
     (should-not (string-match-p
                  "CLOSED:" (claude-code-ide-org-test--disk-contents capture-file)))))
 
@@ -2728,7 +2731,7 @@ this is the only gate between a bad call and a heading carrying a
 keyword org does not recognise -- which org then reads as part of the
 title, invisibly and permanently."
   (claude-code-ide-org-test--with-capture-file
-    (let ((result (claude-code-ide-org-capture "Task" nil nil nil "NOPE")))
+    (let ((result (claude-code-ide-org-capture "Task" nil nil nil "NOPE" "Test")))
       (should (string-match-p "\\`Error: \"NOPE\" is not a TODO keyword" result))
       ;; The keyword set is named, so the caller can correct itself.
       (should (string-match-p "WAITING" result)))
@@ -2792,7 +2795,7 @@ ordinary titles and must be captured unchanged."
                      "next steps for the parser"
                      "Decide what NEXT means for a container"
                      "TODOs are not TODO"))
-      (let ((result (claude-code-ide-org-capture title)))
+      (let ((result (claude-code-ide-org-capture title nil nil nil nil "Test")))
         (should (string-match-p "\\`Captured: " result))))
     (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
       (should (string-match-p "NEXTGEN parser rewrite" disk))
@@ -2804,7 +2807,7 @@ ordinary titles and must be captured unchanged."
 
 (ert-deftest claude-code-ide-org-test-capture-creates-heading-with-id ()
   (claude-code-ide-org-test--with-capture-file
-    (let ((result (claude-code-ide-org-capture "Buy stamps")))
+    (let ((result (claude-code-ide-org-capture "Buy stamps" nil nil nil nil "Test")))
       (should (string-match-p "\\`Captured: \"Buy stamps\" (ID: [^)]+)" result))
       (string-match "(ID: \\([^)]+\\))" result)
       (let ((returned-id (match-string 1 result))
@@ -2815,12 +2818,119 @@ ordinary titles and must be captured unchanged."
         (should (string-match-p (concat "^:ID: +" (regexp-quote returned-id) "[ \t]*$") disk))
         (should (not (buffer-modified-p (get-file-buffer capture-file))))))))
 
+(ert-deftest claude-code-ide-org-test-capture-writes-category-into-the-drawer ()
+  "CATEGORY lands as a :CATEGORY: line in the property drawer, after
+:CREATED:, on the immediate path -- read back from the drawer's text,
+never `org-entry-get', which would answer the file name for a heading
+that has none (:ID: b0d55552)."
+  (claude-code-ide-org-test--with-capture-file
+    (should (string-prefix-p
+             claude-code-ide-org--reply-captured
+             (claude-code-ide-org-capture "Filed at birth" nil nil nil "TODO" "Queue")))
+    (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
+      (should (string-match-p
+               "^\\* TODO Filed at birth[ \t]*\n:PROPERTIES:\n:ID: +[^\n]+\n:CREATED: +\\[[^\n]+\\]\n:CATEGORY: +Queue\n:END:\n"
+               disk)))))
+
+(ert-deftest claude-code-ide-org-test-capture-refuses-a-top-level-heading-without-a-category ()
+  "A top-level capture with no CATEGORY is refused, nothing is written,
+and the refusal names the values the file already uses -- so a session
+that never loaded the taxonomy can still pick from it.  Under an :ID:
+target the child inherits, so no category is needed and none is
+written; passing one there is honoured."
+  (claude-code-ide-org-test--with-capture-file
+    (with-temp-file capture-file
+      (insert "#+TODO: TODO NEXT | DONE\n\n"
+              "* TODO Existing\n:PROPERTIES:\n:ID:       parent-1\n"
+              ":CREATED:  [2026-09-15 Tue 10:00]\n:CATEGORY: Queue\n:END:\n"
+              "* TODO Another\n:PROPERTIES:\n:ID:       parent-2\n"
+              ":CREATED:  [2026-09-15 Tue 10:00]\n:CATEGORY: Tools\n:END:\n"))
+    (org-id-update-id-locations (list capture-file))
+    (let ((reply (claude-code-ide-org-capture "Unfiled" nil nil nil "TODO")))
+      (should (string-prefix-p "Error:" reply))
+      (should (string-match-p "needs a category" reply))
+      (should (string-match-p "uses: Queue, Tools" reply))
+      (should-not (string-match-p "Unfiled"
+                                  (claude-code-ide-org-test--disk-contents capture-file))))
+    ;; A child inherits: accepted without one, and no drawer line written.
+    (should (string-prefix-p
+             claude-code-ide-org--reply-captured
+             (claude-code-ide-org-capture "Child" "parent-1" nil nil "TODO")))
+    (org-with-point-at (org-id-find "parent-1" 'marker)
+      (org-goto-first-child)
+      (should (equal "Child" (org-get-heading t t t t)))
+      (should-not (claude-code-ide-org--category-property-p))
+      (should (equal "Queue" (org-entry-get nil "CATEGORY" t))))
+    ;; ...and may still be given its own.
+    (should (string-prefix-p
+             claude-code-ide-org--reply-captured
+             (claude-code-ide-org-capture "Own child" "parent-2" nil nil "TODO" "Queue")))
+    (org-with-point-at (org-id-find "parent-2" 'marker)
+      (org-goto-first-child)
+      (should (equal "Queue" (claude-code-ide-org--category-property-value))))))
+
+(ert-deftest claude-code-ide-org-test-capture-warns-on-a-category-the-file-has-not-used ()
+  "A value the file has never seen is written -- the taxonomy is the
+repo's own, and the tool cannot know a new word is wrong -- but the
+reply warns, naming the values in use, since a new word is more often
+a typo (\"Tool\") than a decision.  A file with no categories yet warns
+about nothing: there is nothing to have mistyped."
+  (claude-code-ide-org-test--with-capture-file
+    ;; Nothing in use: no warning.
+    (let ((reply (claude-code-ide-org-capture "First ever" nil nil nil "TODO" "Queue")))
+      (should (string-prefix-p claude-code-ide-org--reply-captured reply))
+      (should-not (string-match-p "WARNING" reply)))
+    ;; Now Queue is in use, so Tool is novel.
+    (let ((reply (claude-code-ide-org-capture "Typo" nil nil nil "TODO" "Tool")))
+      (should (string-prefix-p claude-code-ide-org--reply-captured reply))
+      (should (string-match-p "WARNING: \"Tool\" is a new category" reply))
+      (should (string-match-p "uses Queue" reply))
+      (should (string-match-p "^:CATEGORY: +Tool$"
+                              (claude-code-ide-org-test--disk-contents capture-file))))
+    ;; And a value in use is silent.
+    (should-not (string-match-p
+                 "WARNING"
+                 (claude-code-ide-org-capture "Fine" nil nil nil "TODO" "Queue")))))
+
+(ert-deftest claude-code-ide-org-test-deferred-capture-applies-its-category ()
+  "The queued path lands the same drawer as the immediate one: the
+category rides the event (bin/hooks/queue-append maps `category') and
+apply writes it."
+  (claude-code-ide-org-test--with-capture-file
+    (claude-code-ide-org-test--with-queue
+      (claude-code-ide-org-test--queue-write
+       "sess-a" (claude-code-ide-org-test--capture-line
+                 "2026-01-15T09:14:00-0500" "cap-cat-1" "Queued and filed"
+                 nil nil nil "Apply"))
+      (let ((items (claude-code-ide-org--review-items-from-queue)))
+        (should (= 1 (length items)))
+        (should (equal "Apply" (plist-get (car items) :category)))
+        (should-not (claude-code-ide-org--review-apply-item (car items))))
+      (should (string-match-p
+               "^:ID: +cap-cat-1[ \t]*\n:CREATED: +[^\n]+\n:CATEGORY: +Apply$"
+               (claude-code-ide-org-test--disk-contents capture-file))))))
+
+(ert-deftest claude-code-ide-org-test-file-categories-reads-level-1-drawers-as-text ()
+  "The values a file uses, from each level-1 heading's own drawer, in
+first-appearance order, deduplicated -- and not from a child, whose
+value is normally inherited.  A heading with no drawer value contributes
+nothing, which is the case both org accessors get wrong."
+  (claude-code-ide-org-test--with-capture-file
+    (with-temp-file capture-file
+      (insert "* A\n:PROPERTIES:\n:CATEGORY: Tools\n:END:\n"
+              "* B\n:PROPERTIES:\n:ID: b\n:END:\n"
+              "** B child\n:PROPERTIES:\n:CATEGORY: Hidden\n:END:\n"
+              "* C\n:PROPERTIES:\n:CATEGORY: Queue\n:END:\n"
+              "* D\n:PROPERTIES:\n:CATEGORY: Tools\n:END:\n"))
+    (should (equal '("Tools" "Queue")
+                   (claude-code-ide-org--file-categories capture-file)))))
+
 (ert-deftest claude-code-ide-org-test-capture-writes-no-todo-keyword ()
   "The heading is deliberately keyword-less: state is supplied at
 ingestion so org logs the transition natively, rather than asserted live
 by a tool whose every other state write is queued."
   (claude-code-ide-org-test--with-capture-file
-    (claude-code-ide-org-capture "Keywordless task")
+    (claude-code-ide-org-capture "Keywordless task" nil nil nil nil "Test")
     (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
       (should (string-match-p "^\\* Keywordless task[ \t]*$" disk))
       (should-not (string-match-p "^\\* \\(TODO\\|NEXT\\|DOING\\) " disk)))))
@@ -2830,7 +2940,7 @@ by a tool whose every other state write is queued."
 fails to expand leaves a literal \"%U\" and still passes a naive
 is-the-property-there check."
   (claude-code-ide-org-test--with-capture-file
-    (claude-code-ide-org-capture "Stamped task")
+    (claude-code-ide-org-capture "Stamped task" nil nil nil nil "Test")
     (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
       (should (string-match-p
                "^:CREATED: +\\[[0-9]\\{4\\}-[0-9][0-9]-[0-9][0-9] [A-Z][a-z][a-z] [0-9][0-9]:[0-9][0-9]\\][ \t]*$"
@@ -2851,7 +2961,7 @@ clock in / set state on the new heading, so the ID must resolve
 right away with no rescan needed."
   (claude-code-ide-org-test--with-capture-file
     (let* ((org-agenda-files nil)
-           (result (claude-code-ide-org-capture "Round trip task")))
+           (result (claude-code-ide-org-capture "Round trip task" nil nil nil nil "Test")))
       (string-match "(ID: \\([^)]+\\))" result)
       (let ((returned-id (match-string 1 result)))
         (should (org-id-find returned-id 'marker))
@@ -2866,7 +2976,7 @@ survive into the heading verbatim via `%i', not get partially eaten
 as template escapes or regexp backreferences."
   (claude-code-ide-org-test--with-capture-file
     (let* ((title "Reply to Jane: 100% [urgent] re: \\1 in Q3 report")
-           (result (claude-code-ide-org-capture title)))
+           (result (claude-code-ide-org-capture title nil nil nil nil "Test")))
       (should (string-match-p (regexp-quote (format "Captured: \"%s\"" title)) result))
       (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
         (should (string-match-p (regexp-quote (concat "* " title)) disk))))))
@@ -3060,7 +3170,7 @@ Prepend rather than append, which is the other half: with no category
 heading to file under, recency is the ordering that remains."
   (claude-code-ide-org-test--with-capture-file
     (with-temp-file capture-file (insert "* TODO Already here\n"))
-    (let ((result (claude-code-ide-org-capture "Fresh capture")))
+    (let ((result (claude-code-ide-org-capture "Fresh capture" nil nil nil nil "Test")))
       (should (string-match-p "\\`Captured:" result)))
     (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
       (should (string-match-p "^\\* Fresh capture" disk))
@@ -3086,7 +3196,7 @@ nothing."
           ;; which is exactly what this test is about. The heading it
           ;; used to need to name is gone with the category tier.
           (with-temp-file notes-file (insert "* Inbox\n"))
-          (claude-code-ide-org-capture "Fallback target task")
+          (claude-code-ide-org-capture "Fallback target task" nil nil nil nil "Test")
           (let ((buf (get-file-buffer notes-file)))
             (when buf (with-current-buffer buf (save-buffer))))
           (should (file-exists-p notes-file))
@@ -10017,11 +10127,11 @@ pass on an implementation that only ever rendered the other."
 
 ;;; Capture/amend write-through and queueing ---------------------------------
 
-(defun claude-code-ide-org-test--capture-line (ts id title &optional target tags note)
+(defun claude-code-ide-org-test--capture-line (ts id title &optional target tags note category)
   "Return one encoded `capture' queue line, as bin/hooks/queue-append writes it."
   (json-encode `((ts . ,ts) (kind . "capture") (id . ,id) (state . nil)
                  (from . nil) (note . ,note) (title . ,title)
-                 (target . ,target) (tags . ,tags) (text . nil)
+                 (target . ,target) (tags . ,tags) (category . ,category) (text . nil)
                  (session_id . "sess-a") (agent_id . nil) (agent_type . nil)
                  (source . "mcp__emacs-tools__org_capture"))))
 
@@ -10048,7 +10158,7 @@ for (TODO.org :ID: b5f94b88)."
   (claude-code-ide-org-test--with-capture-file
     ;; Buffer exists and is clean -- the distinction under test.
     (find-file-noselect capture-file)
-    (let ((result (claude-code-ide-org-capture "Immediate task")))
+    (let ((result (claude-code-ide-org-capture "Immediate task" nil nil nil nil "Test")))
       (should (string-prefix-p claude-code-ide-org--reply-captured result))
       (should (string-match-p "^\\* Immediate task[ \t]*$"
                               (claude-code-ide-org-test--disk-contents capture-file))))))
@@ -10060,7 +10170,7 @@ reply that says queued while the heading also landed is the
 double-apply this gate exists to prevent."
   (claude-code-ide-org-test--with-capture-file
     (claude-code-ide-org-test--make-busy capture-file)
-    (let ((result (claude-code-ide-org-capture "Deferred task")))
+    (let ((result (claude-code-ide-org-capture "Deferred task" nil nil nil nil "Test")))
       (should (string-prefix-p claude-code-ide-org--reply-queued-capture result))
       ;; The id is still minted and reported, so the caller can act on it.
       (should (string-match "(ID: \\([^)]+\\))" result))
@@ -15273,7 +15383,7 @@ reply names the file it wrote."
             (let ((claude-code-ide-org-query-files (list capture-file proj-todo)))
               (cl-letf (((symbol-function 'claude-code-ide-mcp-server-get-session-context)
                          (lambda (&optional _id) (list :project-dir proj))))
-                (let ((reply (claude-code-ide-org-capture "Routed heading" nil nil nil "TODO")))
+                (let ((reply (claude-code-ide-org-capture "Routed heading" nil nil nil "TODO" "Test")))
                   ;; The reply must name the tracker it wrote, which means
                   ;; the PATH (:ID: 86c11795). The old assertion matched
                   ;; the basename "TODO.org" and did discriminate *here*,
@@ -15304,13 +15414,13 @@ to the global capture file exactly as before."
       ;; No context at all.
       (cl-letf (((symbol-function 'claude-code-ide-mcp-server-get-session-context)
                  (lambda (&optional _id) nil)))
-        (claude-code-ide-org-capture "No context" nil nil nil "TODO"))
+        (claude-code-ide-org-capture "No context" nil nil nil "TODO" "Test"))
       ;; A project-dir whose TODO.org is not tracked.
       (let ((stranger (make-temp-file "stranger" t)))
         (unwind-protect
             (cl-letf (((symbol-function 'claude-code-ide-mcp-server-get-session-context)
                        (lambda (&optional _id) (list :project-dir stranger))))
-              (claude-code-ide-org-capture "Untracked project" nil nil nil "TODO"))
+              (claude-code-ide-org-capture "Untracked project" nil nil nil "TODO" "Test"))
           (delete-directory stranger t)))
       (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
         (should (string-match-p "No context" disk))
@@ -15537,7 +15647,7 @@ so %-escapes in user prose land verbatim."
     ;; Immediate path.
     (claude-code-ide-org-capture
      "Task with prose" nil nil
-     "The filing reason, with a literal %U that must not expand." "TODO")
+     "The filing reason, with a literal %U that must not expand." "TODO" "Test")
     (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
       (should (string-match-p "The filing reason, with a literal %U" disk))
       ;; Body sits under the heading, after its drawer, not inside it.
@@ -15556,7 +15666,7 @@ so %-escapes in user prose land verbatim."
                               (claude-code-ide-org-test--disk-contents
                                capture-file))))
     ;; And an omitted note still yields a bare heading, not a stray line.
-    (claude-code-ide-org-capture "Task without prose" nil nil nil "TODO")
+    (claude-code-ide-org-capture "Task without prose" nil nil nil "TODO" "Test")
     (should-not (string-match-p "nil"
                                 (car (last (split-string
                                             (claude-code-ide-org-test--disk-contents

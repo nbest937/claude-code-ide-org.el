@@ -267,6 +267,18 @@ run capture '{"session_id":"sess-a","tool_input":{"title":"H"},"tool_response":"
 check "capture without initial_state records null" "null" \
   "$(jq -r '.state' <<<"$(queue_lines sess-a)")"
 
+# A capture carries its category, so the deferred path lands the same
+# drawer the immediate one would have (TODO.org :ID: b0d55552); absent,
+# null rather than the empty string, as with initial_state.
+reset_queue
+run capture '{"session_id":"sess-a","tool_input":{"title":"H","category":"Tools"},"tool_response":"Queued capture: \"H\" (ID: id-new) top of file; pending review."}'
+check "capture records category" "Tools" \
+  "$(jq -r '.category' <<<"$(queue_lines sess-a)")"
+reset_queue
+run capture '{"session_id":"sess-a","tool_input":{"title":"H"},"tool_response":"Queued capture: \"H\" (ID: id-new) top of file; pending review."}'
+check "capture without category records null" "null" \
+  "$(jq -r '.category' <<<"$(queue_lines sess-a)")"
+
 # A todo event must not start reading initial_state, and a capture must
 # not start reading state -- the keys are deliberately distinct.
 reset_queue

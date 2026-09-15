@@ -221,6 +221,7 @@ line="$(jq -n -c \
      title:  (if $kind == "capture" then ($payload.tool_input.title // null) else null end),
      target: (if $kind == "capture" then ($payload.tool_input.target // null) else null end),
      tags:   (if $kind == "capture" then ($payload.tool_input.tags // null) else null end),
+     category: (if $kind == "capture" then ($payload.tool_input.category // null) else null end),
      text:   (if $kind == "amend" then ($payload.tool_input.text // null) else null end),
      drawer: (if $kind == "amend" then ($payload.tool_input.drawer // null) else null end),
      tool_use_id: (if $kind == "block_start" or $kind == "block_end"
