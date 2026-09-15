@@ -8021,6 +8021,32 @@ corpus presented had exactly one. Multi-candidate ambiguity is untested; treat
 the rule as measured, not as general, and re-check it the first time two
 sessions have unclosed resumes when a background job's pause lands.
 
+*Closed 2026-09-15 by [[id:b57c7515-c511-4198-b311-26cefc52a60d][b57c7515]]'s
+alias map, and the surviving rule here is **subsumed rather than
+implemented**.* Checked before building: the leading-=pause= rule was never
+written into =config.el= — it existed only as a measurement on this body — so
+there was nothing to retire.
+
+*The measured result carries over exactly.* Of the three turns the alias
+recovers over the corpus, the first is this heading's: =330316ca= 10:47:22 →
+=6f28d85e= 11:24:35, **0.620 h**, the same 37 minutes this body records, now
+reached by a general mechanism rather than a special case.
+
+*And the other two are the shape the rule could never have found*, which is the
+argument for having generalised: =91ed1224= → =b48bf8c1= (0.022 h) and
+=5c87b720= → =d8e60858= (0.201 h) both open with a =resume=, so a test for a
+stream *opening* with a =pause= never fires on them. That is precisely the
+second shape =b57c7515= predicted from the other direction, and it is now
+measured rather than argued.
+
+*The untested caveat is retired too.* This body warned that the rule picked the
+*latest* open resume when several were candidates and that multi-candidate
+ambiguity was untested. The alias does not choose: a session belongs to exactly
+one conversation, identified by its transcript's first entry, and a group whose
+queue ranges overlap is refused rather than guessed at. There is no candidate
+set to disambiguate.
+
+
 
 ** DONE Name the floor on what gets written, so both floors are knobs :code:
 CLOSED: [2026-08-20 Thu 11:05]
@@ -8647,6 +8673,54 @@ have invented.
 alias is exact today and degrades silently as transcripts age out. Recording a
 stable conversation key *in the queue events themselves* would make it durable;
 filed separately rather than built here.
+
+*Shipped 2026-09-15* on =feature/span-owner-edges=. One alias map
+(=--session-alias-map=), consulted by =--canonical-session= at the **three**
+sites that build a lane key: =--lane-clock-pairs= and =--span-events= (the two
+pairings) and =--queue-events-by-id= (attribution, the half this body watched
+fail in production). An event's own =:session-id= is never rewritten — apply
+consumption and the =.applied= watermarks are per *file*, so the raw id has to
+survive for the write path to find it.
+
+*Verified three ways, deliberately, because each answers a different
+objection.* Six ERT tests, every one proved red first — two behaviourally
+rather than on a void function, and the attribution test red against the
+*previous commit*, so it discriminates its own change rather than the feature.
+A corpus replay through the patched elisp reproducing the independent
+measurement to the decimal: 14 alias entries / 7 groups, brackets 282 → 284
+pairs and 57.70 → 59.07 h, turns 1167 → 1170 runs and 75.76 → 76.60 h. And
+cost, since the map is built inside a loop: 0.022 s per =--queue-events-by-id=
+run over 4107 events, with 2 pending events gaining a heading (most historical
+re-keys are already applied, hence outside the pending set).
+
+*The replay is not a committed test and cannot become one* — it reads the live
+queue and the live transcripts, which is exactly what =bin/test= must not
+touch. What ships pinned is the pair of named cases, to the second: the 1563 s
+bracket and the 10:47:22 → 11:24:35 turn.
+
+*One latent defect had to be fixed first, and it is the more interesting
+find.* =--transcript-first-stamp= read a fixed 64 KB window. A transcript can
+open with scores of =custom-title=, =mode= and =file-history-snapshot= lines,
+and the snapshot entries carry a =timestamp= *nested* under =snapshot= rather
+than at top level — so one transcript of 74 buries its first real stamp at byte
+133196 and the fixed read returned nil. Silently, and indistinguishably from
+the nil an aged-out transcript gives, which is why it had never been noticed:
+it cost the alias one of the seven groups and disabled
+=--transcript-longer-sibling= for that session outright. The window now grows
+when it comes up empty.
+
+*Deferred, each filed rather than described:*
+[[id:4acd8ad0-4d26-420b-bf84-f66ae8a9dfc5][4acd8ad0]] (the bridge reads
+transcripts Claude Code prunes, so the alias decays silently — a conversation
+key on the event itself would make it durable) and
+[[id:0b600ab4-15b6-496b-8517-a0426f9f9ae5][0b600ab4]]
+(=--transcript-longer-sibling='s size rule is wrong on a near-tie, 1 of 7
+groups). Neither blocks this: canonicalisation only needs both ids to reach the
+same key, so *which* is canonical does not affect pairing.
+
+*Not yet reloaded.* The running Emacs holds the old definitions, so the next
+apply pass pairs the old way until =config.el= is loaded into it.
+
 
 
 
