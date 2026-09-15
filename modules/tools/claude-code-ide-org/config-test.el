@@ -15939,3 +15939,54 @@ default, would silently discard their work.  The test asserts the edit
             (should (re-search-forward "^.\\{41,\\}$" nil t))))
       (with-current-buffer buffer (set-buffer-modified-p nil))
       (kill-buffer buffer))))
+
+
+(ert-deftest claude-code-ide-org-test-worked-id-keys-cover-every-write-tool ()
+  "Every write tool's id argument is read, and only id-shaped values.
+
+Reading `id' alone let `org_slice_add_member' and `org_refile' match
+`--worked-tool-p' and then contribute nothing, so the windows where
+slice bookkeeping happened were under-allocated. The shape test is the
+other half: `target' takes an id *or* a title, and a title in the worked
+set resolves to nothing or prefix-matches something unrelated."
+  (should (claude-code-ide-org--heading-id-shaped-p
+           "b23e5bcc-1bfd-4862-a801-0c7ac6959924"))
+  (should (claude-code-ide-org--heading-id-shaped-p "b23e5bcc"))
+  ;; A heading title passed as `target' is not an id.
+  (should-not (claude-code-ide-org--heading-id-shaped-p "Review and planning"))
+  (should-not (claude-code-ide-org--heading-id-shaped-p "zzzzzzzz"))
+  (should-not (claude-code-ide-org--heading-id-shaped-p nil))
+  ;; A slice is a rollup target, never a heading work happens on.
+  (should (memq 'member_id claude-code-ide-org--worked-id-keys))
+  (should-not (memq 'slice_id claude-code-ide-org--worked-id-keys)))
+
+(ert-deftest claude-code-ide-org-test-org-escape-body-only-escapes-column-zero ()
+  "Only a line starting at column 0 can be a headline or a keyword.
+
+An indented `*' is a list bullet and an indented `#' is ordinary text.
+Escaping those mangled prose that needed nothing, and put the comma
+before the indentation rather than against the marker -- so a nested
+markdown bullet rendered with a stray leading comma."
+  (let ((out (claude-code-ide-org--org-escape-body
+              "* real headline\n  * nested bullet\n#+TITLE: keyword\n  # indented\nplain")))
+    (should (string-match-p "^,\\* real headline$" out))
+    (should (string-match-p "^,#\\+TITLE: keyword$" out))
+    ;; Indented lines are left exactly alone.
+    (should (string-match-p "^  \\* nested bullet$" out))
+    (should (string-match-p "^  # indented$" out))
+    (should (string-match-p "^plain$" out))))
+
+(ert-deftest claude-code-ide-org-test-hhmm-minutes-orders-across-midnight ()
+  "Minutes order correctly where the rendered strings do not.
+
+`string-lessp' puts \"00:15\" before \"22:00\", which is what left the
+session jump at `point-min' for any session crossing midnight."
+  (should (= 0 (claude-code-ide-org--hhmm-minutes "00:00")))
+  (should (= 1320 (claude-code-ide-org--hhmm-minutes "22:00")))
+  (should (= 15 (claude-code-ide-org--hhmm-minutes "00:15")))
+  ;; The comparison the old code got wrong, both ways round.
+  (should (string-lessp "00:15" "22:00"))
+  (should (< (+ 1440 (claude-code-ide-org--hhmm-minutes "00:15"))
+             (+ 1440 1440)))
+  (should (> (+ 1440 (claude-code-ide-org--hhmm-minutes "00:15"))
+             (claude-code-ide-org--hhmm-minutes "22:00"))))

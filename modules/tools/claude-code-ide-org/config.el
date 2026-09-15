@@ -9793,16 +9793,42 @@ common answer."
         ;; at -- if the render is stale the jump is stale with it, which
         ;; is visible, where a computed position would silently disagree.
         (when start
-          (let ((want (format-time-string "%H:%M" start))
-                (best (point-min)))
+          ;; Compare minutes, not the rendered strings.  The headings
+          ;; carry `HH:MM' and no date, so `string-lessp' puts 00:15
+          ;; before 22:00 and a session crossing midnight leaves BEST at
+          ;; `point-min' -- opening at the top of the file, which is the
+          ;; exact failure the jump exists to avoid.
+          ;;
+          ;; The render is chronological, so a heading whose time goes
+          ;; *backwards* is the next day: count those crossings and
+          ;; compare absolute minutes.  WANT is placed on the first day
+          ;; that puts it at or after the session's opening turn, which
+          ;; is what makes an 01:00 span belong to a session that began
+          ;; at 22:00 rather than to the morning before it.
+          (let ((want-minutes (claude-code-ide-org--hhmm-minutes
+                               (format-time-string "%H:%M" start)))
+                (best (point-min))
+                (day 0) previous want)
             (while (re-search-forward "^\\* \\([0-9][0-9]:[0-9][0-9]\\)  " nil t)
-              (when (string-lessp (match-string 1) want)
-                (setq best (line-beginning-position)))
-              (when (string= (match-string 1) want)
-                (setq best (line-beginning-position))))
+              (let ((minutes (claude-code-ide-org--hhmm-minutes
+                              (match-string 1))))
+                (when (and previous (< minutes previous))
+                  (setq day (1+ day)))
+                (setq previous minutes)
+                (unless want
+                  (setq want (if (< want-minutes minutes)
+                                 (+ want-minutes 1440)
+                               want-minutes)))
+                (when (<= (+ minutes (* 1440 day)) want)
+                  (setq best (line-beginning-position)))))
             (goto-char best)))
         (when (fboundp 'org-fold-show-entry) (ignore-errors (org-fold-show-entry)))
         (message "%s" (file-name-nondirectory file)))))))
+
+(defun claude-code-ide-org--hhmm-minutes (text)
+  "Return TEXT, an `HH:MM' string, as minutes since midnight."
+  (+ (* 60 (string-to-number (substring text 0 2)))
+     (string-to-number (substring text 3 5))))
 
 (defvar claude-code-ide-org-review-mode-map (make-sparse-keymap)
   "Keymap for `claude-code-ide-org-review-mode'.")
@@ -10850,7 +10876,14 @@ same treatment, since a stray keyword line can change how the file is
 parsed."
   (when (stringp text)
     (mapconcat (lambda (line)
-                 (if (string-match-p "\\`[ \t]*[*#]\\+?" line)
+                 ;; Column 0 only.  Org reads `*' as a headline and `#+'
+                 ;; as a keyword *only* at the start of a line -- an
+                 ;; indented `*' is a list bullet and an indented `#' is
+                 ;; ordinary text, so escaping those both mangles prose
+                 ;; that needed nothing and, worse, breaks a nested list
+                 ;; by putting the comma before its indentation rather
+                 ;; than against the marker.
+                 (if (string-match-p "\\`[*#]" line)
                      (concat "," line)
                    line))
                (split-string text "\n")
@@ -10984,17 +11017,24 @@ and gets that session; being silently handed a different file is how a
 reader ends up sure they are looking at something they are not."
   (when-let* ((file (claude-code-ide-org--transcript-file session-id))
               (first (claude-code-ide-org--transcript-first-stamp file))
-              (lines (claude-code-ide-org--file-line-count file)))
+              (size (file-attribute-size (file-attributes file))))
     (let (found)
       (dolist (other (file-expand-wildcards
                       (expand-file-name "projects/*/*.jsonl"
                                         (expand-file-name "~/.claude/"))
                       t))
+        ;; Size first: it is a `stat', where the stamp costs a 64 KB
+        ;; read, so the cheap test goes first and most files stop here.
+        ;; Size replaced a line count (TODO.org :ID: 33e6ff1a): both say
+        ;; "the continued copy is the bigger one", and one of them reads
+        ;; the whole file to say it -- twice over, since the subject was
+        ;; counted too, on every render, reachable from the review
+        ;; buffer's `T'.
         (unless (equal other file)
-          (when (and (equal first
-                            (claude-code-ide-org--transcript-first-stamp other))
-                     (> (or (claude-code-ide-org--file-line-count other) 0)
-                        lines))
+          (when (and (> (or (file-attribute-size (file-attributes other)) 0)
+                        size)
+                     (equal first
+                            (claude-code-ide-org--transcript-first-stamp other)))
             (setq found (file-name-base other)))))
       found)))
 
@@ -14692,6 +14732,31 @@ itself across both."
                        (string-suffix-p (concat "__" tool) name)))
                  claude-code-ide-org--worked-tool-names)))
 
+(defconst claude-code-ide-org--worked-id-keys '(id member_id target)
+  "Input keys that can name the heading a tool call worked on.
+
+`id' covers almost every tool; `member_id' is `org_slice_add_member''s,
+and `target' is `org_refile''s destination.  Reading only `id' silently
+dropped the calls that use the others -- they matched
+`claude-code-ide-org--worked-tool-p' and then contributed nothing, which
+under-allocated exactly the windows where slice bookkeeping happened.
+
+`slice_id' is deliberately absent.  A slice is the grouping work rolls
+*up* to, never a heading work happens *on*, so crediting it a share
+would put allocated minutes on a rollup target.")
+
+(defun claude-code-ide-org--heading-id-shaped-p (value)
+  "Non-nil when VALUE could be an `:ID:' -- a UUID or an 8-character prefix.
+
+The shape test matters because the keys above are not all id-only:
+`target' takes an id *or* a heading title, and a title pushed into the
+worked set would resolve to nothing and quietly vanish, or worse,
+prefix-match something unrelated."
+  (and (stringp value)
+       (let ((v (string-trim value)))
+         (or (string-match-p "\\`[0-9a-fA-F]\\{8\\}-[0-9a-fA-F-]\\{27\\}\\'" v)
+             (string-match-p "\\`[0-9a-fA-F]\\{8\\}\\'" v)))))
+
 (defun claude-code-ide-org--transcript-worked-ids (session-id)
   "Return (TIME . ID) for every write-tool call in SESSION-ID's transcript.
 
@@ -14725,9 +14790,11 @@ only the turn's time; both are exactly the things needed here."
                   (when (and (equal (alist-get 'type block) "tool_use")
                              (claude-code-ide-org--worked-tool-p
                               (alist-get 'name block)))
-                    (let ((id (alist-get 'id (alist-get 'input block))))
-                      (when (stringp id)
-                        (push (cons time id) worked)))))))
+                    (let ((input (alist-get 'input block)))
+                      (dolist (key claude-code-ide-org--worked-id-keys)
+                        (let ((value (alist-get key input)))
+                          (when (claude-code-ide-org--heading-id-shaped-p value)
+                            (push (cons time value) worked)))))))))
             (forward-line 1)))
         (nreverse worked)))))
 
