@@ -2,6 +2,57 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO The attention report renders to a buffer and persists nothing, so every reading is thrown away :code:
+:PROPERTIES:
+:ID:       8070db26-b11a-4008-9fb9-5dcd017d798f
+:CREATED:  [2026-09-15 Tue 10:53]
+:CATEGORY: Queue
+:END:
+:PLAN:
+*Four questions, and the order is roughly their difficulty.*
+
+**1. Where does an interval live?** Three candidates, each with a real
+objection. *On the slice heading* — but a slice carries no clock by
+convention, and though an attention interval is not a clock, putting
+durations on a grouping re-creates the ambiguity =64d34a64= measured, a
+parent's own share indistinguishable from its subtree's. *On the
+meta-work datetree's day node* — it is already the place a day's record
+gathers, already dated, and =Review and planning= is already half the
+label vocabulary; but a slice-labelled interval is not meta-work and
+would sit there under a foreign parent. *In its own file* — clean, and
+it puts the agenda's view of the human's day outside the tracker, which
+may be right or may be exactly the split that makes it get forgotten.
+
+**2. Written, or recomputed on demand?** Recomputation is always
+current and always loses the human's corrections, which is the one
+thing the derivation cannot supply. Writing keeps them and creates the
+idempotency problem =295cde3a= met head-on: a second run must recognise
+what it wrote last time rather than duplicate it.
+
+**3. How is an attested interval distinguished from a derived one?**
+This is the contract =4f8500e6= settled — *propose what is measured,
+ask for what is not* — and it survives only if a reader can tell which
+is which after the fact. A corrected interval and a freshly proposed
+one must not render identically; a marker is the cheap answer, and
+=:CLOSED_SOURCE: git= is the precedent for marking how a value was
+derived without building a provenance system.
+
+**4. What happens when the labelled slice closes and archives?**
+Intervals attached to a slice travel with it into DONE.org, which may
+be right — the record of a day's attention is history — or may put the
+agenda's data somewhere the agenda never looks.
+
+*Related and deliberately not merged into this.*
+[[id:01849bef-fdc9-4c30-b467-00ca8606e8e0][01849bef]] gives the review buffer a key for flipping a
+span's timestamps to active, which is the *manual* path to the same
+artifact and belongs to [[id:6521dd56-8772-416b-9435-6da78bb86b06][6521dd56]]. If both are built,
+they should write the same shape to the same place, and whichever lands
+first sets it — worth saying now, because the second one landing will
+otherwise discover the constraint as a conflict.
+:END:
+
+Follow-up to 4f8500e6, which shipped the derivation and deliberately stopped short of writing anything. M-x claude-code-ide-org-attention-report fills a *org attention* buffer and that is the whole of its output, so an attested reading survives only as long as the buffer does and the next run starts from nothing. Since the intervals are proposals a human corrects against a calendar, discarding the corrections is the one outcome that makes the whole exercise pointless.
+
 * TODO org_amend replace=true destroys a slice's member checklist, which is the one thing a slice declares :code:
 :PROPERTIES:
 :ID:       7ee3b71a-b85a-4610-a4ab-b9e06c8d79da
