@@ -53,6 +53,7 @@ otherwise discover the constraint as a conflict.
 
 Follow-up to 4f8500e6, which shipped the derivation and deliberately stopped short of writing anything. M-x claude-code-ide-org-attention-report fills a *org attention* buffer and that is the whole of its output, so an attested reading survives only as long as the buffer does and the next run starts from nothing. Since the intervals are proposals a human corrects against a calendar, discarding the corrections is the one outcome that makes the whole exercise pointless.
 
+
 * TODO org_amend replace=true destroys a slice's member checklist, which is the one thing a slice declares :code:
 :PROPERTIES:
 :ID:       7ee3b71a-b85a-4610-a4ab-b9e06c8d79da
@@ -109,8 +110,7 @@ one:* do not call =org_amend= with =replace== on a slice. Compose the body
 first and add members after, or amend rather than replace.
 
 
-
-* TODO [0/4] The plugin ships to a second repo unenforced, uncategorised and over-claimed :code:
+* NEXT [0/4] The plugin ships to a second repo unenforced, uncategorised and over-claimed :code:
 :PROPERTIES:
 :ID:       35582d95-003a-4735-9b19-36f7ad813f0d
 :CREATED:  [2026-09-15 Tue 10:08]
@@ -118,6 +118,10 @@ first and add members after, or amend rather than replace.
 :COOKIE_DATA: checkbox recursive
 :CATEGORY: Slices
 :BLOCKER:  ids(3f4fd744-4ba7-4be8-9fe4-54e46119515a b0d55552-6bbf-45b8-9897-f62e6bd779e3 784d80c5-8750-4ebe-b5e5-c213fc809d80 af2f345e-b7db-4025-9f63-c5fce09fdd8a)
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-09-15 Tue 10:48] \\
+  first of the four sequenced in next-session.md
 :END:
 :PLAN:
 *Why these four and not the other three.* The euchre blocking set named
@@ -175,8 +179,6 @@ Planned:
 - [ ] [[id:784d80c5-8750-4ebe-b5e5-c213fc809d80][784d80c5]] TODO claude-org-setup --org scaffolds or appends the consuming repo's .gitignore
 - [ ] [[id:af2f345e-b7db-4025-9f63-c5fce09fdd8a][af2f345e]] TODO The glue claims ownership of the whole wiring block, but the 202 override ships nowhere
 - [[orgit-rev:claude-code-ide-org::304bdc8][304bdc8]] [2026-09-15 Tue 10:2x] defined the slice and sequenced the four
-
-
 
 
 * TODO A bookkeeping burst reads as many headings worked at once, and inflates every window it lands in :code:
@@ -598,6 +600,24 @@ does nothing.
 captured 2026-09-14 — and has been given =Queue=. The count is now 0 of
 103, which is the number the fix has to hold rather than reach.
 
+*The miss rate measured on a live session, 2026-09-15, and the
+conditions matter more than the figure.* Five headings were captured
+during the session that composed =35582d95=: =369ad62a=, =496b665e=,
+=35582d95=, =7ee3b71a= and =8070db26=. Four carried a =:CATEGORY:=
+because the agent set one by hand immediately after each capture; one
+did not, and was found only by a loose-ends sweep the user happened to
+ask for. **One in five, and that is the optimistic case** — the agent
+had read this heading's body that same session and was primed by it. A
+session that has not read it has no such reflex, which is the whole
+point: the taxonomy is on the wrong side of a path-scoped rule.
+
+*Recorded as an argument against hotfixing it out of sequence rather
+than for it.* The damage is a missing property — repairable by a text
+grep, as that sweep was — not lost data, and this is member two of the
+slice nominated to start next. Working it early would take half the
+fix (the prose move is explicitly ordered first) outside the slice that
+counts it, leaving the cookie lying about what remains.
+
 
 
 * TODO [0/7] A span is only as true as its owner, its edges and its payload :code:
@@ -991,7 +1011,8 @@ Options: a =first= flag, a =before== parameter, or a dedicated reorder call;
 composition hits a wall.
 
 
-* REVIEW [11/11] Join the transcript to the record: span synopses, readable sessions, weighted attribution :code:
+* DONE [11/11] Join the transcript to the record: span synopses, readable sessions, weighted attribution :code:
+CLOSED: [2026-09-15 Tue 10:41]
 :PROPERTIES:
 :ID:       afea7e4f-41b3-4eda-83f1-39e1b9e7a61a
 :CREATED:  [2026-09-11 Fri 11:00]
@@ -1059,6 +1080,8 @@ CLOCK: [2026-09-15 Tue 08:33]--[2026-09-15 Tue 08:38] =>  0:05
 - [2026-09-15 Tue 08:33]--[2026-09-15 Tue 08:38] assigned at review
 CLOCK: [2026-09-15 Tue 09:43]--[2026-09-15 Tue 09:48] =>  0:05
 - [2026-09-15 Tue 09:43]--[2026-09-15 Tue 09:48] assigned at review
+- State "DONE"       from "REVIEW"     [2026-09-15 Tue 10:41] \\
+  PR #23 merged; slice complete
 :END:
 :PLAN:
 The foundation is one measured fact (=295cde3a=, 2026-09-01): every queue
@@ -1230,7 +1253,6 @@ rather than its last member going terminal. The review buffer now
 answers *where* and *what* for every span, a session renders to readable
 org, and two derivations — attention intervals and window allocation —
 propose what the record cannot measure.
-
 
 
 * TODO Emacs died of a fatal signal at review-buffer quit, deadlocked in the mac port's shutdown
@@ -3655,7 +3677,6 @@ the text says it is owned. That argues for making the region
 identifiable to any writer rather than adding a guard per writer.
 
 
-
 * TODO Three new ways to owe a footnote and not see it: marker, list, quotation :code:
 :PROPERTIES:
 :ID:       2a6a1355-615f-4c2c-a8af-c9ae8dcda09b
@@ -5439,6 +5460,7 @@ attention as it happens.
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-15 Tue 10:54]--[2026-09-15 Tue 10:55] =>  0:01
 CLOCK: [2026-09-15 Tue 10:09]--[2026-09-15 Tue 10:13] =>  0:04
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
@@ -11748,4 +11770,23 @@ CLOCK: [2026-09-14 Mon 11:14]--[2026-09-14 Mon 11:15] =>  0:01
 - [2026-09-14 Mon 11:14]--[2026-09-14 Mon 11:15] audit Review attention vs Review and planning populations
 CLOCK: [2026-09-14 Mon 12:15]--[2026-09-14 Mon 12:16] =>  0:01
 - [2026-09-14 Mon 12:15]--[2026-09-14 Mon 12:16] audit Review attention vs Review and planning populations
+:END:
+
+
+**** 2026-09-15 Tuesday
+:PROPERTIES:
+:ID:       2edbc473-d2e8-486d-bb8e-253e9cdbf4ee
+:CREATED:  [2026-09-15 Tue 10:09]
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-15 Tue 10:21]--[2026-09-15 Tue 10:27] =>  0:06
+- [2026-09-15 Tue 10:21]--[2026-09-15 Tue 10:27] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-15 Tue 10:31]--[2026-09-15 Tue 10:32] =>  0:01
+- [2026-09-15 Tue 10:31]--[2026-09-15 Tue 10:32] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-15 Tue 10:35]--[2026-09-15 Tue 10:37] =>  0:02
+- [2026-09-15 Tue 10:35]--[2026-09-15 Tue 10:37] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-15 Tue 10:48]--[2026-09-15 Tue 10:50] =>  0:02
+- [2026-09-15 Tue 10:48]--[2026-09-15 Tue 10:50] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-15 Tue 10:52]--[2026-09-15 Tue 10:53] =>  0:01
+- [2026-09-15 Tue 10:52]--[2026-09-15 Tue 10:53] root-cause unattributed spans, file discipline fix
 :END:
