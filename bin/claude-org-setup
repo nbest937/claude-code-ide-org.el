@@ -98,9 +98,17 @@ One stable line for your config.el (anywhere; it never changes again):
 
   (load! "claude-code-ide-org-glue" doom-user-dir t)
 
-Then delete any hand-rolled wiring block (port setq, register-session,
-mcp-start) -- the glue owns all of it, and re-running --glue refreshes
+Then delete the hand-rolled wiring block's port setq, register-session
+and mcp-start -- the glue owns those, and re-running --glue refreshes
 this file without touching yours.
+
+KEEP the 202-Accepted override of
+claude-code-ide-mcp-http-server--send-empty-response if your block
+carries one. The glue does NOT own it, and neither does the module:
+upstream still answers 200 to a notification where the MCP spec
+requires 202, strict clients (Warp's, the Python SDK's) reject the
+mismatch, and deleting the override re-breaks them (TODO.org
+:ID: af2f345e).
 EOF
   exit 0
 fi

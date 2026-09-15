@@ -63,10 +63,12 @@ Paste the printed lines — a `doom-module-load-path` entry plus the
 needs nothing: the module declares its own dependencies
 (`claude-code-ide` and org, both pinned; `org-ql`), and Doom merges
 duplicate declarations key-by-key with yours winning, so an existing
-root declaration is harmless. The generated glue owns the rest: it enables the
+root declaration is harmless. The generated glue owns the wiring: it enables the
 tools server, pins the port (`45571`, checked loudly against
 `.mcp.json`), and registers a session per tracked project, re-derived
-on every wire call. A running Emacs server is a **hard prerequisite**
+on every wire call. It does **not** own the 202-Accepted override of
+upstream's notification response, which strict MCP clients need and
+which ships nowhere yet — keep that by hand (`:ID:` af2f345e). A running Emacs server is a **hard prerequisite**
 — every MCP tool goes through `emacsclient` — and the module needs
 **org 9.7+**, refusing loudly otherwise (Emacs 29's bundled 9.6.x is
 not enough; Doom's straight-managed org is).
