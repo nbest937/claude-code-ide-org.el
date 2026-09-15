@@ -1,7 +1,7 @@
 # Next session
 
-A plan for `35582d95` — **The plugin ships to a second repo unenforced,
-uncategorised and over-claimed** — first of the four slices sequenced below.
+A plan for `749301a0` — **A span is only as true as its owner, its edges and
+its payload** — second of the four slices sequenced below.
 
 **The slice is the list.** Open it and read its checklist; this file gives
 the plan, not the membership. The two disagree only if one is stale, and the
@@ -59,7 +59,8 @@ work.
      165 commits behind while `origin/main` was current, so
      `git diff main...HEAD` reported 18 files and 28k lines for a PR that was
      7 files and 768. The branch was fine; only the `main` *label* lied, and
-     nothing announced it.
+     nothing announced it. (That form refuses while `main` is checked out;
+     `git fetch origin` and compare `main` to `origin/main` then.)
    - *Survey what is not in that base yet* —
      `git branch -a --no-merged main` for divergent branches, and
      `gh pr list --state open` for review in flight. Either may hold work
@@ -82,11 +83,28 @@ work.
    may land on `main` directly** and should: applying the queue, debriefing
    an already-merged heading, filing. A branch per bookkeeping commit is the
    jitter CLAUDE.md's rule was relaxed to stop.
+7a. **IMMUTABLE — rename the session to match the new branch.** The
+   moment `feature/<short-name>` is cut, the session's name becomes that
+   branch name: `/rename feature/<short-name>`. The agent cannot run a
+   slash command, so it asks the user for exactly that in the same
+   message that reports the cut — not later, and not as an option. A
+   session list that shows branch names is the only place the four
+   serial slices stay tellable apart after their contexts clear; a
+   session named for its opening question is named for the thing it
+   stopped being at step 7. Added 2026-09-15 at the user's direction;
+   this item carries forward unchanged with the rest of Step 0.
 8. **Do not run `org-id-update-id-locations` prophylactically after
    `org_capture`.** A previous revision of this file prescribed it. It did
    not fire once across five capture-then-amend pairs on 2026-09-03. If an
    amend fails with "no org heading found", *then* it is the fix — and that
    recurrence is worth recording.
+9. **When the apply hook says the queue was applied mid-session, commit the
+   org diff as its own bookkeeping commit before the next amend.** The
+   apply pass writes keywords, CLOCK lines and a slice blocker refresh
+   into `TODO.org` under you; an amend on top folds the human's pass into
+   a commit whose message describes your prose. On 2026-09-15 the diff was
+   checked with `git diff --stat` first and committed alone; it was 75
+   lines the amend's message would have misattributed.
 
 ---
 
@@ -98,8 +116,8 @@ cleared context. Each is its own branch and its own pull request, worked
 
 | | slice | why here |
 |---|---|---|
-| 1 | `35582d95` — this one | smallest, and every member is a day-one defect in the repo the plugin was already deployed to on 2026-09-11 |
-| 2 | `749301a0` | already sequenced internally, foundational — both new derivations rest on span correctness — and holds `c9940558`, itself a euchre blocker |
+| 1 | `35582d95` — **at `REVIEW`, PR #24 open** | smallest, and every member was a day-one defect in the repo the plugin was already deployed to on 2026-09-11 |
+| 2 | `749301a0` — this one | already sequenced internally, foundational — both new derivations rest on span correctness — and holds `c9940558`, itself a euchre blocker |
 | 3 | `8a2eb687` | the correctness slice; holds euchre blockers `965f94eb` and `5e731a23`, plus `2aeb65d6`, which is what would make future parallelism safe at all |
 | 4 | `6521dd56` | corpus passes, least urgent, and `e128e4fa` is inherently attended — the conventions call it "a per-heading act nobody should do by sweep" |
 
@@ -115,133 +133,166 @@ wrong for concurrent edits here until `2aeb65d6` lands.
 
 **And measure the slice itself.** The user's stated reason for holding the
 established rhythm is to find out whether recent improvements make slices go
-better. At close, compare against `afea7e4f`: members, elapsed days, commits,
-review findings per member, and — new, and the first slice able to answer
-it — `M-x claude-code-ide-org-attention-report` over the slice's span. Record
-the comparison in the debrief.
+better. At close, compare against `afea7e4f` *and* `35582d95`: members,
+elapsed days, commits, review findings per member, and
+`M-x claude-code-ide-org-attention-report` over the slice's span. Record
+the comparison in the debrief. `35582d95`'s own comparison is still open on
+its body — its review findings and attention number arrive with PR #24's
+review and the next apply — so the closing session of *this* slice may be
+the one that completes both.
 
 ---
 
 ## What is already true, so it is not re-derived
 
-- **`org-depend` cannot parse `ids(...)`.** Verified in batch against org
-  9.8.7 and the real `org-depend.el`, with a discriminating control: `ids(A)`
-  → DONE, `ids(A B)` → DONE, `ids(A B C)` → blocked but only by B, bare `A` →
-  blocked. The grammar is two rules — the literal `previous-sibling`, or words
-  each matched as an id **exactly equal** to the whole word.
-- **The wrapper was an honest misreading, not a typo.** org-depend *does* use
-  parentheses, on the `TRIGGER` side (`chain-siblings(KEYWORD)` and friends).
-  There is no parallel form for `BLOCKER`.
-- **`org-edna-mode` is a trap, not the second option it looks like.** With it
-  on, a `:BLOCKER:` holding *bare* uuids raises an unrecognised-form error and
-  org-edna treats every parse failure as a refusal — so those headings would
-  block unconditionally. Do not reach for it.
-- **The read side already disagrees with enforcement.**
-  `--outline-blocker-ids` extracts ids by UUID regexp and finds them all, so
-  `org_outline`'s `[blocked: …]` marker has been right while the `DONE`-time
-  refusal was not. The divergence bites at the human apply pass, which is
-  where the refusal was supposed to appear.
-- **The category regression has a cause and a date.** Commit `42a3221`
-  (2026-09-09) moved the ten `:CATEGORY:` values out of `CLAUDE.md`, which
-  loads in every session, into `.claude/rules/org-conventions-local.md`, which
-  carries `paths: ["**/*.org"]` and loads only when an org file is in play.
-  The first uncategorised capture is the next day; July and August are clean.
-  Capturing a heading is exactly a thing done with no `.org` file open.
-- **Measure categories from the drawer, never `org-entry-get`** — the latter
-  computes the file-name fallback that makes the defect invisible.
-- **The `.gitignore` advice inverts for a *relative* symlink.** A committed
-  `../../../claude-code-ide-org` is provenance and enablement in one artifact.
-  The ignore line is for *absolute* symlinks only.
-- **The 202 override ships nowhere.** `claude-org-setup --glue` prints that
-  the glue owns the whole wiring block, while the user's block also carries
-  the 202-Accepted override of
-  `claude-code-ide-mcp-http-server--send-empty-response` — the real fix from
-  the Warp investigation (upstream `8f986c6f`). A user following the printed
-  instruction re-breaks every strict MCP client.
+Every item below was measured on a member's body, most against the raw
+queue corpus. Do not re-run the falsified ones; do re-check the caveats.
+
+- **A session id is not a stable key for a stretch of work, and nothing in
+  this project can make it one.** Claude Code re-keys an interactive
+  session mid-work (`~/.claude/jobs/<id>/` appears 32 minutes in; upstream
+  #59848 closed, #76220 open). So every repair *reconciles lanes after the
+  fact*; none may assume the key holds. Two instances are measured on two
+  different event pairs: a turn's `resume`/`pause` (`9202b39d`) and a
+  clock bracket's `clock_in`/`clock_out` (`b57c7515`). They pair through
+  different functions (`--span-events` adjacency against
+  `--lane-clock-pairs`), so the question the slice opens with is whether
+  the repair belongs per-pairing-function or once, where lanes are formed.
+- **The depth counter is falsified, and not marginally.** Merged-stream
+  depth (`resume` +1, `pause` −1) latches: one lost `pause` and no run is
+  ever emitted again — 13.61 h against 22.79 h over the 844-guidepost
+  corpus, and a daily reset errs in both directions. Keying the open set on
+  `session_id` still latches (18.46 h). **Do not rebuild it.**
+- **"Compute runs per session, then union the results; never pool the
+  events first" stands as written** (`7d739afd`), vindicated by the run
+  that falsified the counter. The union's own magnitude is **0.11 h, 0.5%**
+  over ten days — an argument about *where*, not *whether*: wire
+  `--merge-time-intervals` (unwired since 2026-08-10) where totals cross
+  headings; leave per-heading CLOCK lines as computed. The CLOCK-line
+  versus report-time question is deliberately still open and "should not
+  be decided by whoever happens to touch this first".
+- **What survived `9202b39d` is a targeted linking rule**: a session whose
+  stream *opens* with a `pause` is a background job whose first turn began
+  elsewhere; pair it with the nearest preceding unclosed `resume` in
+  another session. Fires once over the corpus, recovers 0.62 h exactly.
+  Caveats: multi-candidate ambiguity untested (the implementation picks
+  the latest), and `b57c7515` shows a second shape it never fires on — a
+  lane that opens normally and still holds half a bracket opened elsewhere.
+- **The split-span loss has two causes, not one** (`c54c4215`). Splitting
+  emits only endpoints, never the complement — 369 s in three gaps on the
+  fixture. And *widowing*: a partial apply consumes a point's neighbour, so
+  the survivor degenerates to zero width; this compounds with how carefully
+  a human reviews. The complement fix does not touch widowing; that needs
+  the aggregator to see consumed events (`--queue-events` with
+  `include-consumed`, as `--review-suggest-heading` already does). The
+  fixture is on that heading's body — three 2026-08-25 guideposts, with
+  their session id — dismissed, not destroyed, replayable.
+- **The threshold is not the cause of any of this.** 935 s against 1200 s
+  clustered fine; exclusions split it. Raising the threshold changes
+  nothing, and the threshold no longer defends any duration anyway (the
+  session-tracking rules say why).
+- **A 0-run span applied as suggested writes an annotation and no CLOCK
+  line** (`2deb090f`) — `--review-apply-clock`'s `(unless observed …)`
+  branch. Measured 2026-09-14 on the meta-work node and `Review attention`
+  alone: **18 annotations asserting 99 minutes that nothing counts**, a
+  steady leak from 2026-08-24 on, and the task headings were not audited.
+  The user's position is settled: accepting such a span *is* the assertion
+  that the minutes were attention. Today only `e` — retyping both
+  timestamps unchanged — can say so.
+- **Two projects' guideposts already cluster into one span** (`c9940558`):
+  exactly two groups over the whole history render two cwds, and both are
+  real. Small because euchre has 14 events against 722; it scales with the
+  second project and it is silent. `5461c349` recorded the `cwd` field for
+  this and named a second obligation: normalise a worktree's cwd to its
+  main checkout, or one project splits into one span per worktree.
+- **The story above the slice is `406e9200`, `DOING`, 10 of 16**, with a
+  plan file (`~/.claude/plans/elegant-questing-lamport.md`) that governed
+  the finished ten and is *design*, not instruction, for these six. Its
+  standing decisions still bind: idle merges below the 120 s floor; the
+  auto-clock-in trigger stays silenced; the dead block logic stays
+  unactivated. Read the plan for why; do not re-decide them here.
 
 ---
 
-## Step 1 — `3f4fd744`: make the blocker actually block
+## The order, and why it is one direction of travel
 
-The sharpest member and first for a reason beyond severity: every
-`:BLOCKER:` written *during* this slice's own work inherits whatever syntax
-is in force, so fixing it last would mean fixing it twice.
+The slice body sets it: **owner, then edges, then payload.** A change to
+lane identity alters which events a boundary rule even sees; a boundary
+change alters what the writer is handed. Fixing the writer first would mean
+fixing it twice.
 
-Write the bare space-separated form — `:BLOCKER: uuid uuid uuid`, no
-wrapper — which is what the `org_set_property` validator already produces
-internally before wrapping it. Two write sites in `config.el`: the validator
-and the slice-blocker refresh. Then rewrite the existing corpus properties,
-which the validator itself can do.
+## Step 1 — `b57c7515` and `9202b39d`: one stretch of work, two lanes
 
-**The test that matters is not a string comparison.** Assert that
-`org-depend-block-todo` actually *refuses* a `DONE` while a named blocker is
-unfinished, and permits it once finished — a test on the property's text
-would pass against the broken form too. The `ids(A B C)` control above is the
-shape: a blocker naming three ids must block on all three, not on the middle
-one.
+Take the two together, because the first decision is shared: **does lane
+reconciliation happen once, where lanes are formed, or in each pairing
+function?** Both bodies reach "once" from opposite directions. Measure before
+designing, as `b57c7515` asks: how often an id changes mid-session over the
+whole queue history, and whether the transcript's `sessionId` or a
+`leafUuid` chain can bridge the two files retroactively — the events carry
+enough to re-pair if something looks.
 
-**Close the read/enforce divergence in the same step**, or say why not. A
-marker that reports blocked while the guard permits is worse than either
-alone.
+Then the two fixes, which stay two even if the reconciliation is one: the
+clock bracket (`--lane-clock-pairs`) and the turn (`--span-events`). The
+surviving leading-`pause` rule is a special case of whatever lands; keep its
+measured result (0.62 h, one firing) as a regression fixture, and add the
+second shape `b57c7515` found, which that rule never fires on.
 
-## Step 2 — `b0d55552`: categories, root cause first
+**The test that matters replays the corpus.** Each body carries exact
+timestamps and session ids; the fixture is the `.jsonl`, and the assertion is
+an hour total, not a string. The falsified counter was believed for three
+days because it was argued rather than run.
 
-Two halves and the order is load-bearing.
+## Step 2 — `7d739afd`: wire the union where totals cross headings
 
-**First, move the `:CATEGORY:` taxonomy to an always-loaded rule.** That is
-the root cause, it is prose rather than code, and it repairs the discipline
-for humans and agents alike. The conventions predicted this failure in their
-own opening paragraph — "a path-scoped rule that does not load is a rule that
-does not apply, and the failure is silent."
+The smallest member and mostly a wiring decision. Wire
+`--merge-time-intervals` at report time — clocktables and totals across
+headings — and leave CLOCK lines alone, which is what the 0.5% measurement
+recommends. **Do not decide the CLOCK-line half**; say in the debrief that it
+stays open, and why the number makes it cheap to leave open.
 
-**Then make it not depend on being remembered.** Give `org_capture` a
-`category` argument, and `bin/lint-org` a rule: a **level-1** heading with no
-drawer-local `:CATEGORY:` is an error. Inheritance is the right answer for a
-child; a first-degree heading must carry its own. Read from the drawer.
+## Step 3 — `c9940558`: a project boundary splits
 
-**Re-measure before and after.** The 2026-09-11 count was 10 of 111 level-1
-headings uncategorised, all created 09-10 or 09-11. Anything captured since —
-including this session's own captures — should be checked, and the count
-after the fix is the evidence the step worked.
+Treat a `cwd` change as `--aggregate-guideposts` already treats its
+exclusions: a boundary splits rather than clusters through. Two consequences
+to handle in the same change: each span's annotation then names one tracker,
+and a worktree's cwd must normalise to its main checkout first or one project
+becomes one span per worktree (`5461c349`'s second obligation — `config.el`
+already knows the `gitdir: <main>/.git/worktrees/<name>` shape). The two
+measured groups are the fixture. This is the euchre blocker in the slice;
+say so in its close.
 
-Decide, while here, whether a missing category should default from the
-target's parent or simply be required; the capture reply already names where
-the heading landed.
+## Step 4 — `c54c4215`: emit the complement, and see the consumed
 
-## Step 3 — `784d80c5`: `--org` and the consuming `.gitignore`
+Two halves, as the body says. Emit the complement segments of (span minus
+exclusions) — a span reduced to nothing yields no item; interior gaps yield
+one item each. Then widowing: let the aggregator consult consumed events when
+deciding whether a lone timestamp is genuinely lone. Decide whether the
+zero-width endpoints are still worth rendering once the gaps are offered;
+that is presentation, and it may answer itself.
 
-Append missing ignore lines rather than clobbering — `--org` already
-collision-checks files, so the pattern exists. Four entries generalize
-(`settings.local.json`, worktrees, `clock-status.json`, the audit jsonl); the
-fifth is the `.claude/skills/<plugin>` symlink, and that one carries the
-relative-versus-absolute nuance above: prefer creating and committing the
-relative form, and ignore only the absolute one.
+## Step 5 — `2deb090f`: accepting a 0-run span claims its minutes
 
-Decide whether the entries ship as a template or inline in the script. A
-submodule was considered and declined — a vendored second clone breaks the
-per-clone port contract and forks the plugin revision per consumer.
-
-## Step 4 — `af2f345e`: stop the glue over-claiming
-
-Decide one of two, and both are defensible: move the 202 override into the
-module, guarded and self-retiring when upstream fixes `8f986c6f`; or soften
-the printed claim to name what the glue does **not** own.
-
-Until it is decided, the swap instructions must say KEEP the override by
-hand — which is what the actual swap did, so the instruction is describing
-practice rather than inventing it.
+Last, because it is the writer, and everything above changes what it is
+handed. One act that accepts the envelope as attention, distinct from `e`'s
+correction of bounds; the bracket style is a red herring (the CLOCK line is
+always written inactive). Read `01849bef` first — same keystroke family, same
+question of what the assertion means — and `996fd2bd` for the automatic half.
+**Then audit the task headings**: the 99-minute figure covered one heading
+family; the true total is the number that belongs in the debrief.
 
 ### Where this will stop
 
-Steps 1 and 2 are the deliverable core: after them a consuming repo gets a
-`:BLOCKER:` that enforces and captures that carry a category, which is most
-of what "the plugin arrives usable" means. Steps 3 and 4 are smaller and
-partly decisions rather than builds.
+Step 1 is the deliverable core and the hardest: after it, one stretch of
+work has one owner however many session ids it crossed, and the corpus
+replay is the proof. Steps 2 and 3 are small once Step 1's lane model is
+settled. Steps 4 and 5 are the edges and the payload, each with a
+ready-made fixture.
 
-A session that ships Steps 1–2 with the enforcement test verified to
-discriminate, then poses Step 4's choice rather than picking it unilaterally,
-has done the slice's day well. **The slice closes when its pull request
-merges**, not when its last member goes terminal.
+A session that ships Step 1 with the corpus replay green, then Step 3 for
+the euchre blocker, has done the slice's day well. **The slice closes when
+its pull request merges**, not when its last member goes terminal — and
+when it does, `406e9200` has no open children left and wants its own close,
+which is that story's decision and not the slice's.
 
 ---
 
@@ -330,3 +381,23 @@ merges**, not when its last member goes terminal.
   tree was named out loud, which is §0's reload rule wearing a different
   coat: before a verification run, say which copy of the artifact the
   system under test reads, and check the edit landed there.
+- **A green batch run says nothing about the running image, and a
+  `defcustom` `:set` is the sharpest case.** On 2026-09-15 a `:set` that
+  called a function defined *later in the file* passed the whole suite —
+  batch never had the upstream feature loaded, so the setter's guard
+  skipped the call — and aborted the live `load-file` halfway through
+  `config.el`, leaving the running Emacs on a partial reload. The reload
+  rule's precondition was named and the check still lied until it was
+  run. Define what a setter calls before the setter, and after any live
+  reload check the *last* thing the file defines, not the first.
+- **`ln -s TARGET LINK` with LINK an existing symlink to a directory
+  creates the link *inside* that directory.** On 2026-09-15 a test check
+  did exactly that and dropped a dangling `nowhere` into the plugin's own
+  root, found only by `git status` before a push. After any test that
+  creates links, check the tree for strays — and write the check so the
+  link path cannot already exist.
+- **An anchor regexp without a boundary matches its own prefix.** The
+  org-dev skill check searched for `'claude-code-ide` and found
+  `'claude-code-ide-mcp-http-server` first, reporting a healthy file as
+  broken. Anchor to end of line or a symbol boundary; the same class as
+  the drawer-anchoring rule above, one level down.

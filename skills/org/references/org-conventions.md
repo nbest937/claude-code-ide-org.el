@@ -97,8 +97,9 @@ anchor now holds nothing but org's own nodes.
 ### Category values
 
 The values are per-project — a repo declares its own taxonomy (this
-plugin's home repo keeps its ten in
-`.claude/rules/org-conventions-local.md`). What transfers is the shape:
+plugin's home repo keeps its ten in `.claude/rules/org-categories.md`,
+deliberately *not* path-scoped, since a capture is made with no `.org`
+file open — `:ID:` b0d55552). What transfers is the shape:
 single words, capitalised, so a value is distinguishable at a glance
 from a TODO keyword and from a tag — and never a word that is *also* a
 TODO keyword, which would render an agenda line as `Review  REVIEW  Some

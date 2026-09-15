@@ -355,8 +355,13 @@ Moved to the plugin's **`skills/org/references/org-conventions.md`**,
 promoted by `bin/claude-org-setup` into
 `.claude/rules/org-conventions.md` — path-scoped to `**/*.org`, so it
 loads only when an org file is actually in play. This repo's own
-additions — the ten `:CATEGORY:` values and the history of the level-1
-tier — stay hand-maintained in `.claude/rules/org-conventions-local.md`.
+additions are hand-maintained in two files, and the split is
+load-bearing: **the ten `:CATEGORY:` values are in
+`.claude/rules/org-categories.md`, which is always loaded** (moved
+2026-09-15, `:ID:` b0d55552 — behind the path scope they went unseen
+by every capturing session, and ten headings arrived unfiled in two
+days), while the history of the level-1 tier stays path-scoped in
+`.claude/rules/org-conventions-local.md`.
 
 The test that used to govern what stayed in this file — a rule that must
 hold when no `.org` file is open cannot live in a path-scoped rule — is

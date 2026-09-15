@@ -2628,28 +2628,6 @@ defcustom or a different calling session takes effect immediately."
       claude-code-ide-org-capture-file
       org-default-notes-file))
 
-(defun claude-code-ide-org--capture-level-1-headings (file)
-  "The distinct :CATEGORY: values in use across FILE.
-
-*Was the titles of FILE's level-1 headings* until 2026-08-27, when
-TODO.org :ID: 29439196 dissolved that tier. A level-1 heading is now a
-task, so offering those titles as capture targets would invite filing a
-heading *under another task* by name -- both a nesting nobody asked for
-and an address-by-title, which this project forbids everywhere else.
-
-Kept as the answer to \"what categories exist?\", which is what
-`org_capture's schema sends a reader here for. Read from the drawer
-rather than `org-entry-get', which computes a fallback and would report
-the file name as a category on every uncategorised heading."
-  (with-current-buffer (find-file-noselect file)
-    (let (cats)
-      (org-with-wide-buffer
-       (goto-char (point-min))
-       (while (re-search-forward "^[ \t]*:CATEGORY:[ \t]+\\(\\S-.*?\\)[ \t]*$" nil t)
-         (let ((c (substring-no-properties (match-string 1))))
-           (unless (member c cats) (push c cats)))))
-      (nreverse cats))))
-
 (defun claude-code-ide-org--capture-target-spec (target)
   "Resolve TARGET to a plist (:spec SPEC :file FILE :where DESC).
 
@@ -2760,7 +2738,8 @@ can carry a list at all."
     (if names (format " :%s:" (string-join names ":")) "")))
 
 (defun claude-code-ide-org--capture-write (title new-id created spec tags
-                                                 &optional initial-state note)
+                                                 &optional initial-state note
+                                                 category)
   "Insert TITLE as a heading at SPEC, carrying NEW-ID, CREATED and TAGS.
 Factored out of `claude-code-ide-org-capture' so the immediate path and
 the apply path insert headings through exactly one code path -- a
@@ -2779,7 +2758,15 @@ since 2026-09-11 (TODO.org :ID: 204d1b0a; before that it was accepted
 and silently discarded, and six filings shipped bodiless).  Inserted
 after `org-capture' finalizes rather than embedded in the template,
 because template text is scanned for %-escapes and user prose
-containing `%U' or `%i' would expand instead of landing verbatim."
+containing `%U' or `%i' would expand instead of landing verbatim.
+
+CATEGORY, when given, is written as a `:CATEGORY:' property in the same
+drawer, after `:CREATED:' (TODO.org :ID: b0d55552) -- by `org-entry-put'
+after the template finalizes, for NOTE's reason: a value interpolated
+into the template is scanned for %-escapes, and org-capture has no
+`%%' form, so \"R%UD\" landed as a timestamp (PR #24 review).  Both
+paths go through this function, so the deferred drawer still matches
+the immediate one."
   (let ((org-capture-templates
          (list (list "z" "Claude quick-capture (org_capture MCP tool)"
                      'entry
@@ -2819,14 +2806,21 @@ containing `%U' or `%i' would expand instead of landing verbatim."
                      ;; a different decision nobody has taken.
                      :prepend (eq (car-safe spec) 'file)))))
     (org-capture-string title "z")
-    (when (and note (not (string-empty-p (string-trim note))))
-      (let ((m org-capture-last-stored-marker))
-        (when (and (markerp m) (marker-buffer m))
-          (org-with-point-at m
+    (let ((m org-capture-last-stored-marker)
+          (category (and category (not (string-empty-p category)) category))
+          (note (and note (not (string-empty-p (string-trim note))) note)))
+      (when (and (or category note) (markerp m) (marker-buffer m))
+        (org-with-point-at m
+          ;; After finalize, never via the template: see the docstring.
+          ;; `org-entry-put' appends to the drawer, so the property
+          ;; follows :CREATED: exactly as the template would have put it.
+          (when category
+            (org-entry-put nil "CATEGORY" category))
+          (when note
             (claude-code-ide-org--end-of-body)
             (insert (claude-code-ide-org--amend-separator note)
-                    (string-trim note) "\n")
-            (save-buffer)))))))
+                    (string-trim note) "\n"))
+          (save-buffer))))))
 
 (defun claude-code-ide-org--file-todo-keywords (file)
   "The TODO keywords FILE's own `#+TODO:' line declares, or nil.
@@ -2862,9 +2856,49 @@ a state, and anything stricter would refuse titles org handles fine."
     (when first
       (car (member first (claude-code-ide-org--file-todo-keywords file))))))
 
+(defun claude-code-ide-org--file-categories (file)
+  "Return the distinct `:CATEGORY:' values FILE's level-1 headings carry.
+
+Read from each heading's own drawer as text, in order of first
+appearance.  Not `org-entry-get', which *computes* a category and falls
+back to the file name, and not `(org-entry-properties nil 'standard)',
+which does the same despite its name -- both reported zero missing
+categories over a file that plainly had one (TODO.org :ID: b0d55552).
+Level 1 only: a child's value is usually inherited, and the question
+this answers is which values the file's taxonomy actually uses."
+  (let (values)
+    (with-current-buffer (find-file-noselect file)
+      (org-with-wide-buffer
+       (goto-char (point-min))
+       (while (re-search-forward "^\\* " nil t)
+         (let ((v (claude-code-ide-org--category-property-value)))
+           (when (and v (not (member v values)))
+             (push v values))))))
+    (nreverse values)))
+
+(defun claude-code-ide-org--capture-novel-category-warning (novel category file in-use)
+  "The reply suffix for a CATEGORY that FILE has never used, or \"\"."
+  (if novel
+      (format " -- WARNING: \"%s\" is a new category in %s, which so far uses %s; \
+check it is not a typo for one of those"
+              category (file-name-nondirectory file) (string-join in-use ", "))
+    ""))
+
 (cl-defun claude-code-ide-org-capture (title &optional target tags note
-                                             initial-state)
+                                             initial-state category)
   "Quick-add TITLE as a new heading via `org-capture'.
+
+CATEGORY is written as the heading's `:CATEGORY:' property.  *Required
+for a top-level capture* -- one with no TARGET, which lands at level 1
+where inheritance has nothing to offer -- and optional under an :ID:
+target, where the child inherits its parent's unless told otherwise.
+The refusal names the values the file already uses, so the caller can
+pick one without the taxonomy in context; a value the file has never
+seen is written but WARNED about, since the taxonomy is the consuming
+repo's own and a new word is more often a typo than a decision.  See
+TODO.org :ID: b0d55552: ten of 111 level-1 headings arrived without one
+in two days, every one of them captured through this tool in a session
+that had no `.org' file open and so never loaded the rule listing them.
 
 Writes a *keyword-less* heading carrying a freshly-generated :ID: and a
 :CREATED: stamp.  No TODO keyword: the state is supplied later, at
@@ -2945,7 +2979,14 @@ else."
                      (and tm (org-with-point-at tm
                                (claude-code-ide-org--enclosing-slice-title))))))
              (new-id (org-id-new))
-             (created (format-time-string "[%Y-%m-%d %a %H:%M]")))
+             (created (format-time-string "[%Y-%m-%d %a %H:%M]"))
+             (category (and category
+                            (not (string-empty-p (string-trim category)))
+                            (string-trim category)))
+             (top-level (eq (car-safe (plist-get resolved :spec)) 'file))
+             (in-use (and (or top-level category)
+                          (claude-code-ide-org--file-categories file)))
+             (novel (and category in-use (not (member category in-use)))))
         (cond
          ;; Validated against the *target file's* own #+TODO: line, the
          ;; same gate org_set_todo applies, and for the same reason:
@@ -3000,21 +3041,37 @@ else."
                           "note, or capture elsewhere and add the heading "
                           "to the member list")
                   target-slice))
+         ;; A level-1 heading with no :CATEGORY: is unfiled, and nothing
+         ;; else will file it: the property inherits, so only a top-level
+         ;; capture can go wrong, and bin/lint-org errors on exactly that.
+         ;; Refused here so the heading never exists uncategorised. The
+         ;; values in use are named so a session that never loaded the
+         ;; taxonomy can still choose from it (TODO.org :ID: b0d55552).
+         ((and top-level (not category))
+          (format (concat "Error: a top-level capture needs a category -- "
+                          "it lands at level 1, where :CATEGORY: cannot be "
+                          "inherited. Pass category=; %s uses: %s")
+                  (file-name-nondirectory file)
+                  (if in-use (string-join in-use ", ") "(none yet)")))
          ((claude-code-ide-org--file-busy-p file)
-          (format "%s\"%s\" (ID: %s) %s; pending review."
+          (format "%s\"%s\" (ID: %s) %s; pending review.%s"
                   claude-code-ide-org--reply-queued-capture
-                  title new-id (plist-get resolved :where)))
+                  title new-id (plist-get resolved :where)
+                  (claude-code-ide-org--capture-novel-category-warning
+                   novel category file in-use)))
          (t
           (claude-code-ide-org--capture-write
            title new-id created (plist-get resolved :spec) tags initial-state
-           note)
+           note category)
           ;; Registered against the file the target actually resolved to,
           ;; which is not necessarily the capture file: an :ID: target can
           ;; live anywhere org-id knows about.
           (org-id-add-location new-id (expand-file-name file))
-          (format "%s\"%s\" (ID: %s) %s"
+          (format "%s\"%s\" (ID: %s) %s%s"
                   claude-code-ide-org--reply-captured
-                  title new-id (plist-get resolved :where)))))
+                  title new-id (plist-get resolved :where)
+                  (claude-code-ide-org--capture-novel-category-warning
+                   novel category file in-use)))))
     (error (format "Error: %s" (error-message-string err)))))
 
 (defun claude-code-ide-org--end-of-body ()
@@ -3396,10 +3453,17 @@ filter would silently pass everything.")
 
 (defun claude-code-ide-org--outline-blocker-ids (raw)
   "Extract the :ID:s named by RAW, an org-depend `:BLOCKER:' value.
-Handles the documented `ids(a b c)' form, and also a bare id written
-without the wrapper -- which org-depend itself would *not* honour, but
-which exists in this project's own files, so the reader should see it
-rather than silently treat the heading as dependency-free.  Returns nil
+Handles the bare space-separated form -- org-depend's actual grammar,
+and what this module writes since 2026-09-15 -- and also the
+`ids(a b c)' wrapper it wrote before then.  The wrapper is org-edna's
+finder, not org-depend's syntax: org-depend split it into `ids(<uuid>'
+and `<uuid>)', so a blocker in that form enforced nothing at its
+endpoints (TODO.org :ID: 3f4fd744).  Reading both keeps the index right
+over a corpus that has not yet been through
+`claude-code-ide-org-normalize-blocker-syntax'; the lint is what
+reports the wrapped form.  This docstring said the opposite -- that
+the wrapper was documented and the bare form the deviation -- for as
+long as the wrapper was written.  Returns nil
 for forms that name no ids at all (`previous-sibling',
 `chain-siblings(...)'), which is a different answer from \"no blockers\"
 and is handled by the caller."
@@ -4339,8 +4403,13 @@ declaring it :KIND: slice would make it both")
                                      (and m (not (org-with-point-at m
                                                    (org-get-todo-state))))))
                                  all)))
-                    (org-entry-put (point) "BLOCKER"
-                                   (format "ids(%s)" (string-join all " ")))
+                    ;; Bare and space-separated: org-depend's whole
+                    ;; grammar is "each word is an id, exactly".  The
+                    ;; `ids(...)' wrapper this wrote until 2026-09-15
+                    ;; (TODO.org :ID: 3f4fd744) is org-edna's finder, and
+                    ;; org-depend split it into `ids(<uuid>' and
+                    ;; `<uuid>)' -- so a one-id blocker enforced nothing.
+                    (org-entry-put (point) "BLOCKER" (string-join all " "))
                     (save-buffer)
                     (concat
                      (format "Set BLOCKER on \"%s\" to %d id%s"
@@ -4845,10 +4914,25 @@ That fallback is not incidental to this project -- it is the whole
 finding behind TODO.org :ID: 29439196. Across 274 headings the agenda's
 category column held exactly two distinct values, `TODO' and `DONE',
 because it was showing file names."
+  (and (claude-code-ide-org--category-property-value) t))
+
+(defun claude-code-ide-org--category-property-value ()
+  "The literal `:CATEGORY:' value in the heading-at-point's own drawer, or nil.
+The text-reading half of `claude-code-ide-org--category-property-p',
+for the same reason: org's own accessors compute a fallback."
   (save-excursion
     (org-back-to-heading t)
-    (let ((end (save-excursion (outline-next-heading) (point))))
-      (and (re-search-forward "^[ \t]*:CATEGORY:[ \t]+\\S-" end t) t))))
+    ;; Bounded to the property drawer, not the entry: a body or LOGBOOK
+    ;; line of the same shape -- a debrief quoting a drawer line -- is
+    ;; not the heading's category, and read as one it would pass the
+    ;; lint and teach org_capture's in-use list a value the taxonomy
+    ;; rejects (PR #24 review, 2026-09-15).
+    (let ((range (org-get-property-block)))
+      (and range
+           (progn (goto-char (car range))
+                  (re-search-forward "^[ \t]*:CATEGORY:[ \t]+\\(\\S-.*?\\)[ \t]*$"
+                                     (cdr range) t))
+           (match-string-no-properties 1)))))
 
 (defun claude-code-ide-org--grouping-heading-p ()
   "Non-nil when the heading at point is a grouping -- a container or a
@@ -6023,6 +6107,80 @@ Returns a human-readable summary."
             (when (buffer-modified-p) (save-buffer)))))
       (format "%d slice%s scanned, %d updated" n (if (= n 1) "" "s") changed))))
 
+(defun claude-code-ide-org--blocker-wrapped-p (value)
+  "Non-nil when VALUE, a `:BLOCKER:' property, carries the `ids(...)' wrapper."
+  (and value (string-match-p "\\`[ \t]*ids(" value)))
+
+(defun claude-code-ide-org--blocker-unwrapped (value)
+  "VALUE with the `ids(...)' wrapper removed and its ids space-separated.
+A value without the wrapper comes back unchanged.  A wrapped value
+naming no ids yields nil, and the caller leaves it alone: the lint still
+reports it, and deleting would turn \"malformed\" into \"unblocked\"."
+  (if (not (claude-code-ide-org--blocker-wrapped-p value))
+      value
+    ;; Every token inside the wrapper survives, not only the uuid-shaped
+    ;; ones: `previous-sibling' is a word org-depend enforces, and an
+    ;; 8-character prefix is at least visible to the lint. Dropping
+    ;; either on a rewrite the lint's error text steers the user into
+    ;; would be loss with no report (PR #24 review, 2026-09-15).
+    (and (string-match "\\`[ \t]*ids(\\(.*\\))[ \t]*\\'" value)
+         (let ((toks (split-string (match-string 1 value) "[ \t\n]+" t)))
+           (and toks (string-join toks " "))))))
+
+(defun claude-code-ide-org-normalize-blocker-syntax (&optional dry-run)
+  "Rewrite every `:BLOCKER:' in the tracked files from `ids(a b c)' to `a b c'.
+
+With DRY-RUN non-nil nothing is written and the report says what would
+change.  A bare `M-x' passes t, so the destructive form has to be asked
+for with a prefix argument -- and *from Lisp the default is reversed*:
+`(claude-code-ide-org-normalize-blocker-syntax)' writes.  Same shape as
+`claude-code-ide-org-consolidate-all-drawers', for the same reason.
+
+Why (TODO.org :ID: 3f4fd744): `org-depend-block-todo', the function
+actually on `org-blocker-hook', does `(split-string blocker)' and looks
+up each word as an id *exactly*.  The `ids(...)' wrapper is org-edna's
+finder, and under org-depend it arrives as `ids(<uuid>' and `<uuid>)',
+neither of which resolves -- so a one- or two-id blocker enforced
+nothing and a longer one skipped its endpoints.  Measured 2026-09-11:
+8 of TODO.org's 12 blockers enforced nothing at all.  This module wrote
+the wrapper at both its write sites until 2026-09-15, believing it the
+documented form; it was an honest misreading of org-depend's *TRIGGER*
+grammar, which does use parentheses.
+
+Lossless: the ids are extracted by the same reader the lint uses and
+written back in their original order, space-separated; a wrapped value
+naming no ids is counted but left alone, since deleting it would turn
+malformed into unblocked.  Idempotent: a bare value is left untouched,
+so this can sit in the ceremony beside the other normalisers.  Not `org-edna-mode': with it on, a *bare*
+value raises an unrecognised-form error that org-edna treats as a
+refusal, so every heading would block unconditionally.
+
+Returns a summary string."
+  (interactive (list (not current-prefix-arg)))
+  (let ((n 0) (fixed 0) (files nil))
+    (dolist (file (claude-code-ide-org--tracked-files))
+      (when (file-exists-p file)
+        (with-current-buffer (find-file-noselect file)
+          (org-with-wide-buffer
+           (goto-char (point-min))
+           (while (re-search-forward org-heading-regexp nil t)
+             (let ((raw (org-entry-get nil "BLOCKER")))
+               (when raw
+                 (setq n (1+ n))
+                 (when (claude-code-ide-org--blocker-wrapped-p raw)
+                   (setq fixed (1+ fixed))
+                   (cl-pushnew (file-name-nondirectory file) files :test #'equal)
+                   (unless dry-run
+                     (when-let ((bare (claude-code-ide-org--blocker-unwrapped raw)))
+                       (org-entry-put nil "BLOCKER" bare))))))))
+          (when (and (not dry-run) (buffer-modified-p))
+            (save-buffer)))))
+    (format "%d :BLOCKER: propert%s scanned, %d %s the ids(...) wrapper%s.%s"
+            n (if (= n 1) "y" "ies")
+            fixed (if dry-run "carry" "unwrapped from")
+            (if files (format " (%s)" (string-join (nreverse files) ", ")) "")
+            (if dry-run "  [dry run -- nothing written]" ""))))
+
 (defun claude-code-ide-org--update-slice-cookie-at-point ()
   "Rewrite the slice-at-point's *headline* cookie from its member lines.
 
@@ -6065,12 +6223,17 @@ Nothing below the headline can be touched, which is the entire point."
 (defun claude-code-ide-org--refresh-slice-blocker-at-point ()
   "Set or clear the slice-at-point's `:BLOCKER:'.  Non-nil if it changed."
   (let* ((ids (claude-code-ide-org--slice-blocker-ids))
-         (new (and ids (format "ids(%s)" (mapconcat #'identity ids " "))))
+         ;; Bare, space-separated: the only form org-depend parses.
+         ;; See `claude-code-ide-org-normalize-blocker-syntax' for the
+         ;; wrapper this wrote before 2026-09-15 and why it enforced
+         ;; nothing.
+         (new (and ids (mapconcat #'identity ids " ")))
          (old (org-entry-get nil "BLOCKER")))
     (unless (equal old new)
       ;; Removed rather than emptied when a slice has no blocking
-      ;; members: `ids()' would read as a declaration that nothing blocks,
-      ;; which the lint would then have to tell apart from "not built yet".
+      ;; members: an empty value would read as a declaration that nothing
+      ;; blocks, which the lint would then have to tell apart from "not
+      ;; built yet".
       (if new (org-entry-put nil "BLOCKER" new) (org-entry-delete nil "BLOCKER"))
       t)))
 
@@ -6994,6 +7157,7 @@ whole file. This is the single place that judgement is made."
                 :title (alist-get 'title obj)
                 :target (alist-get 'target obj)
                 :tags (alist-get 'tags obj)
+                :category (alist-get 'category obj)
                 :text (alist-get 'text obj)
                 ;; amend only: which drawer the text targets. Null for a
                 ;; body amend, and on events written before it existed.
@@ -8110,6 +8274,7 @@ from a skipped one."
                            :tags (plist-get event :tags)
                            :to (plist-get event :state)
                            :note (plist-get event :note)
+                           :category (plist-get event :category)
                            :events (list event))
                      items))
               ("amend"
@@ -9160,7 +9325,8 @@ exists to prevent (TODO.org :ID: b5f94b88)."
          (plist-get resolved :spec)
          (plist-get item :tags)
          (plist-get item :to)
-         (plist-get item :note))
+         (plist-get item :note)
+         (plist-get item :category))
         (org-id-add-location id (expand-file-name file))
         (with-current-buffer (find-file-noselect file) (save-buffer))
         nil)
@@ -10239,7 +10405,14 @@ vanishes silently is worse than one that explains itself
                              (concat (plist-get item :to) " ")
                            "")
                          (or (plist-get item :title) "(untitled)"))
-                 (or where (format "%s (UNRESOLVED)" (plist-get item :target)))
+                 ;; The category rides beside the destination: apply
+                 ;; writes it, so the human deciding the row must see
+                 ;; it -- a typo warned about only in the agent's reply
+                 ;; would otherwise reach the file unseen.
+                 (concat (or where (format "%s (UNRESOLVED)" (plist-get item :target)))
+                         (if (plist-get item :category)
+                             (format " [%s]" (plist-get item :category))
+                           ""))
                  (format-time-string "%m-%d %H:%M" (plist-get item :ts))
                  note)))
       ;; The target heading's *title*, not just its id, because an
@@ -13882,9 +14055,16 @@ year/month scaffolding and its day node: %s" level title))
                      (report 'warn line "level-1 task has no :CREATED:: %s" title))
                    ;; A task without a category is unfiled: nothing in the
                    ;; tree says where it belongs any more, which is exactly
-                   ;; what the flattening traded away. Warn rather than
-                   ;; error -- a freshly captured heading may legitimately
-                   ;; not have one yet.
+                   ;; what the flattening traded away. An error since
+                   ;; 2026-09-15 (TODO.org :ID: b0d55552): it was a warning
+                   ;; because "a freshly captured heading may legitimately
+                   ;; not have one yet", and that is the case that produced
+                   ;; ten unfiled headings in two days -- a warning nobody
+                   ;; reads is the same as no rule. org_capture now refuses
+                   ;; a top-level capture without one, so nothing produces
+                   ;; the shape this reports except a hand edit, and a hand
+                   ;; edit can add the property. Inheritance answers for a
+                   ;; child, which is why only level 1 is checked.
                    ;; Read the drawer, not `org-entry-get'. Org
                    ;; *computes* CATEGORY -- falling back to the file
                    ;; name, or "???" in a buffer with no file -- so it
@@ -13895,7 +14075,7 @@ year/month scaffolding and its day node: %s" level title))
                    ;; :ID: 29439196 in the first place. Measured, not
                    ;; assumed: a bare heading answers "???".
                    (unless (claude-code-ide-org--category-property-p)
-                     (report 'warn line "level-1 task has no :CATEGORY:: %s" title))))
+                     (report 'error line "level-1 task has no :CATEGORY:: %s" title))))
                 (t
                  (unless id (report 'error line "heading has no :ID:: %s" title))
                  (unless created
@@ -14141,6 +14321,17 @@ unfinished member (%s) -- a done, cancelled or deferred member must not block: %
                              title))))
                (let ((blocker (org-entry-get nil "BLOCKER")))
                  (when blocker
+                   ;; The wrapper is the one malformation the readers
+                   ;; above tolerate, so without this rule the outline
+                   ;; would report a heading blocked while the DONE-time
+                   ;; guard let it through -- the divergence 3f4fd744
+                   ;; measured on 8 of 12 properties.  An error rather
+                   ;; than a warning: the correct value is computable
+                   ;; and the normaliser writes it without asking.
+                   (when (claude-code-ide-org--blocker-wrapped-p blocker)
+                     (report 'error line ":BLOCKER: carries the ids(...) wrapper, \
+which org-depend cannot parse -- run claude-code-ide-org-normalize-blocker-syntax: %s"
+                             title))
                    (when (equal todo "MAYBE")
                      (report 'warn line ":BLOCKER: on a MAYBE heading is dormant \
 -- blocking is evaluated against the blocked heading's own state: %s" title))
@@ -14227,8 +14418,10 @@ which is where a gate has to work."
 
 (defun claude-code-ide-org--lint-blocker-ids (value)
   "Return the ids named by a :BLOCKER: property VALUE.
-Accepts org-depend's `ids(A B C)' form and the bare-id form this repo
-has also used; anything else yields nil rather than a guess."
+Accepts the bare space-separated form -- org-depend's grammar, and the
+one written since 2026-09-15 -- and the legacy `ids(A B C)' wrapper,
+which org-depend cannot parse (TODO.org :ID: 3f4fd744) and which the
+lint reports separately; anything else yields nil rather than a guess."
   (let ((inner (if (string-match "\\`[ \t]*ids(\\([^)]*\\))" value)
                    (match-string 1 value)
                  value)))
@@ -16349,6 +16542,69 @@ the caller decides how loud that should be."
         (when (re-search-forward "localhost:\\([0-9]+\\)" nil t)
           (string-to-number (match-string 1)))))))
 
+;;; MCP notification status (TODO.org :ID: af2f345e) ----------------------
+
+;; The two functions precede the defcustom deliberately: a `:set'
+;; runs when the defcustom is evaluated, and in a live Emacs whose
+;; server file is already loaded that call must find the function
+;; defined -- the first live reload of this block aborted on exactly
+;; that, while batch (feature not loaded) passed.
+(defun claude-code-ide-org--send-empty-response-202 (request)
+  "Send an empty HTTP 202 response for a notification.
+Upstream's function, status changed; see
+`claude-code-ide-org-accept-notifications-with-202'."
+  (with-slots (process) request
+    (ws-response-header process 202
+                        (cons "Content-Type" "text/plain")
+                        (cons "Content-Length" "0"))
+    (throw 'close-connection nil)))
+
+(defun claude-code-ide-org--apply-notification-status-advice ()
+  "Install or remove the 202 override, per
+`claude-code-ide-org-accept-notifications-with-202'.  Idempotent."
+  (if claude-code-ide-org-accept-notifications-with-202
+      (advice-add 'claude-code-ide-mcp-http-server--send-empty-response
+                  :override #'claude-code-ide-org--send-empty-response-202)
+    (advice-remove 'claude-code-ide-mcp-http-server--send-empty-response
+                   #'claude-code-ide-org--send-empty-response-202)))
+
+;; After the upstream file, not after `claude-code-ide': the server
+;; file is loaded on demand by the tools-server start, and advising a
+;; function before its `defun' runs is fine but advising before the
+;; feature exists would leave `featurep' false for the :set path.
+(defcustom claude-code-ide-org-accept-notifications-with-202 t
+  "Answer an MCP notification with `202 Accepted' rather than upstream's `200'.
+
+Upstream `claude-code-ide-mcp-http-server--send-empty-response' answers
+a JSON-RPC notification with HTTP 200 (upstream defect 8f986c6f).  The
+MCP Streamable HTTP transport requires 202 with no body, and strict
+clients -- Warp's own MCP client, the Python `mcp' SDK behind
+mcp-proxy -- reject the mismatch and drop the session.  That was the
+real bug behind the 2026-09 Warp investigation (DONE.org :ID:
+6a6d5b4e); the fix lived as a hand-kept override in one user's Doom
+config until 2026-09-15, which meant the plugin shipped to a second
+repo without it.
+
+Non-nil installs the override as `:override' advice on the upstream
+function the moment that file loads; nil removes it.  Setting it
+through Customize re-applies at once; a `setq' needs
+`claude-code-ide-org--apply-notification-status-advice' after it.
+
+*Retire this when upstream sends 202.*  The status is a literal inside
+a byte-compiled function and cannot be read back honestly, so nothing
+retires it automatically -- after a `claude-code-ide' update, check
+`claude-code-ide-mcp-http-server--send-empty-response''s source and
+delete this defcustom, the advice and its test together."
+  :type 'boolean
+  :group 'claude-code-ide-org
+  :set (lambda (sym val)
+         (set-default sym val)
+         (when (featurep 'claude-code-ide-mcp-http-server)
+           (claude-code-ide-org--apply-notification-status-advice))))
+
+(with-eval-after-load 'claude-code-ide-mcp-http-server
+  (claude-code-ide-org--apply-notification-status-advice))
+
 (defun claude-code-ide-org-standalone-wire ()
   "Wire the MCP tools server for standalone clients, loudly.
 Pins upstream's `claude-code-ide-mcp-server-port' to
@@ -16648,9 +16904,11 @@ the project list."
                  "heading, e.g. a note rather than a task. Every SUBSEQUENT "
                  "transition still goes through org_set_todo, which queues it "
                  "for review so org logs it natively. "
-                 "Omit it to prepend at the top of the capture file. "
-                 "Category is a :CATEGORY: property now, not a heading, so there is "
-                 "nothing to file under by that name. "
+                 "Omit target to prepend at the top of the capture file. "
+                 "A top-level capture REQUIRES category: it lands at level 1, "
+                 "where :CATEGORY: cannot be inherited, and the refusal names "
+                 "the values the file already uses. Under an :ID: target the "
+                 "child inherits its parent's category unless one is passed. "
                  "Returns a confirmation containing the "
                  "new heading's real :ID: and where it landed. Writes "
                  "immediately when the target file is free; when the human "
@@ -16677,7 +16935,11 @@ the project list."
            (:name "initial_state"
             :type string
             :optional t
-            :description "Optional TODO keyword to write with the heading, e.g. \"TODO\" or \"NEXT\". A creation has no prior state, so there is no transition to log and nothing is hidden from the review pass -- but every later transition must still go through org_set_todo. Without this the heading is keywordless until a human applies the queue, which makes a :BLOCKER: naming it inert and bin/lint-org error. Must be a keyword the target file's own #+TODO: line declares.")))
+            :description "Optional TODO keyword to write with the heading, e.g. \"TODO\" or \"NEXT\". A creation has no prior state, so there is no transition to log and nothing is hidden from the review pass -- but every later transition must still go through org_set_todo. Without this the heading is keywordless until a human applies the queue, which makes a :BLOCKER: naming it inert and bin/lint-org error. Must be a keyword the target file's own #+TODO: line declares.")
+           (:name "category"
+            :type string
+            :optional t
+            :description "The :CATEGORY: value for the new heading, e.g. \"Tools\". Required when target is omitted (a level-1 heading cannot inherit one; the refusal lists the values the file uses), optional under an :ID: target. A value the file has never used is written with a warning -- check it is not a typo for an existing one. Case matters.")))
 
   (claude-code-ide-make-tool
    :function #'claude-code-ide-org-amend

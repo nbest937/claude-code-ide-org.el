@@ -2,6 +2,15 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO No org tool edits a phrase in place: org_amend appends or replaces the whole body :code:
+:PROPERTIES:
+:ID:       dd4b9a9f-ba8a-4f1f-a3da-38388e0cdb76
+:CREATED:  [2026-09-15 Tue 13:25]
+:CATEGORY: Tools
+:END:
+
+Correcting one sentence in a body — 8a2eb687's "the previous slice", which had to become a named id — has no tool: org_amend appends, and replace=true rewrites the whole prose and so erases a slice's checklist (7ee3b71a). The fallback on 2026-09-15 was a hand-written emacsclient search-and-replace bounded to the entry, which met a read-only buffer and had to bind inhibit-read-only itself — exactly the signal the MCP-tools rules name as "the tool surface is missing something". Proposed: an org_edit (or an org_amend mode) that replaces one literal occurrence within a heading's own body, refusing when the text is absent or appears more than once, on the same write-through-or-queue gate as amend. Small, and the shape is org_wrap_plan's until= check.
+
 * TODO The :blocked: tag writer is org-depend, found after a7f4b40c cleared it by testing the wrong variable name :code:
 :PROPERTIES:
 :ID:       b0c843e3-4252-4e2b-a9e2-2cf91714a1ae
@@ -199,18 +208,21 @@ one:* do not call =org_amend= with =replace== on a slice. Compose the body
 first and add members after, or amend rather than replace.
 
 
-* NEXT [0/4] The plugin ships to a second repo unenforced, uncategorised and over-claimed :code:
+* REVIEW [4/4] The plugin ships to a second repo unenforced, uncategorised and over-claimed :code:
 :PROPERTIES:
 :ID:       35582d95-003a-4735-9b19-36f7ad813f0d
 :CREATED:  [2026-09-15 Tue 10:08]
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
 :CATEGORY: Slices
-:BLOCKER:  ids(3f4fd744-4ba7-4be8-9fe4-54e46119515a b0d55552-6bbf-45b8-9897-f62e6bd779e3 784d80c5-8750-4ebe-b5e5-c213fc809d80 af2f345e-b7db-4025-9f63-c5fce09fdd8a)
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-15 Tue 10:48] \\
   first of the four sequenced in next-session.md
+- State "DOING"      from "NEXT"       [2026-09-15 Tue 11:50] \\
+  first member 3f4fd744 starting; branch cut
+- State "REVIEW"     from "DOING"      [2026-09-15 Tue 12:23] \\
+  all four members terminal; PR #24 awaits merge
 :END:
 :PLAN:
 *Why these four and not the other three.* The euchre blocking set named on
@@ -263,12 +275,26 @@ install-time defects.
 
 Planned:
 
-- [ ] [[id:3f4fd744-4ba7-4be8-9fe4-54e46119515a][3f4fd744]] TODO =:BLOCKER: ids(...)= is org-edna syntax; org-depend cannot parse it, so 8 of 12 blockers enforce nothing
-- [ ] [[id:b0d55552-6bbf-45b8-9897-f62e6bd779e3][b0d55552]] TODO org_capture cannot set =:CATEGORY:=, so every captured heading is uncategorised and nothing notices
-- [ ] [[id:784d80c5-8750-4ebe-b5e5-c213fc809d80][784d80c5]] TODO claude-org-setup --org scaffolds or appends the consuming repo's .gitignore
-- [ ] [[id:af2f345e-b7db-4025-9f63-c5fce09fdd8a][af2f345e]] TODO The glue claims ownership of the whole wiring block, but the 202 override ships nowhere
+- [X] [[id:3f4fd744-4ba7-4be8-9fe4-54e46119515a][3f4fd744]] DONE =:BLOCKER: ids(...)= is org-edna syntax; org-depend cannot parse it, so 8 of 12 blockers enforce nothing
+- [X] [[id:b0d55552-6bbf-45b8-9897-f62e6bd779e3][b0d55552]] DONE org_capture cannot set =:CATEGORY:=, so every captured heading is uncategorised and nothing notices
+- [X] [[id:784d80c5-8750-4ebe-b5e5-c213fc809d80][784d80c5]] DONE claude-org-setup --org scaffolds or appends the consuming repo's .gitignore
+- [X] [[id:af2f345e-b7db-4025-9f63-c5fce09fdd8a][af2f345e]] DONE The glue claims ownership of the whole wiring block, but the 202 override ships nowhere
 - [[orgit-rev:claude-code-ide-org::304bdc8][304bdc8]] [2026-09-15 Tue 10:2x]
   defined the slice and sequenced the four
+
+- [[orgit-rev:claude-code-ide-org::4a62bf9][4a62bf9]] [2026-09-15 Tue 13:0x]
+  three members closed, the fourth WAITING on a posed decision; PR #24 opened on =feature/plugin-day-one=
+
+*Comparison against =afea7e4f=, in flight — to be completed in the debrief at merge.* Members 4 against 11, all planned, none adopted. Span: composed 2026-09-15 10:08, PR opened the same afternoon — under a day against five calendar days, though the slice was chosen for being the smallest, so the ratio says less than it looks. Commits 7 against 50 (two of the seven are corpus and bookkeeping). Review findings: none yet, the PR being unreviewed; =afea7e4f= had 0.64 per member. Attention: not derivable until the queue is applied, since every clock event of this session is still pending — run =M-x claude-code-ide-org-attention-report= over the day after the apply and record it here. One process observation for the comparison's "did recent improvements help" question: every fix ran red first against a copy of HEAD's file, the lint rules were mutation-tested against the corpus, and the reload precondition was named before each live check — none of which surfaced a defect this time, which is either the practice working or the slice being too small to tell.
+
+- [[orgit-rev:claude-code-ide-org::deb2e43][deb2e43]] [2026-09-15 Tue 12:2x]
+  fourth member closed on the user's decision; all four terminal, slice to REVIEW pending PR #24
+
+- [[orgit-rev:claude-code-ide-org::2afaefd][2afaefd]] [2026-09-15 Tue 13:2x]
+  PR #24 reviewed: 8 confirmed findings (3 refuted), all fixed on the branch, threads resolved
+
+*Comparison, second instalment.* Review findings: **8 over 4 members, 2.0 per member** against =afea7e4f='s 0.64 — three times the rate on a slice a quarter the size. Worth reading before it is read as regression: five of the eight were in the =--org= script and its prose, the least-tested surface (76 shell checks against 664 ERT tests), and one was a batch-invisible template escape the reviewer found by running it. Every finding was in code written the same day, none in the corpus rewrite or the blocker fix. Commits now 11. Attention still pending the apply.
+
 
 
 * TODO A bookkeeping burst reads as many headings worked at once, and inflates every window it lands in :code:
@@ -369,7 +395,7 @@ whether a body that arrives *already* wrapped is left alone.
 :ID:       6a207b00-8fa1-441e-8ee5-354702bc979b
 :CREATED:  [2026-09-11 Fri 20:05]
 :CATEGORY: Dev
-:BLOCKER:  ids(35582d95-003a-4735-9b19-36f7ad813f0d 8a2eb687-28da-4d44-893b-db59298bdc5b 749301a0-0bd0-4fbd-b3f7-79739226e15a 6521dd56-8772-416b-9435-6da78bb86b06)
+:BLOCKER:  35582d95-003a-4735-9b19-36f7ad813f0d 8a2eb687-28da-4d44-893b-db59298bdc5b 749301a0-0bd0-4fbd-b3f7-79739226e15a 6521dd56-8772-416b-9435-6da78bb86b06
 :END:
 :LOGBOOK:
 - State "WAITING"    from "TODO"       [2026-09-15 Tue 10:09] \\
@@ -396,6 +422,10 @@ defects, so the set is smaller than it was. **The =:BLOCKER:= is deliberately
 unset until the user names the real list** — a blocker invented from a
 plausible-looking survey is exactly the kind that reads as enforcement and
 enforces the wrong thing.
+
+*Adoption step added 2026-09-15 from =3f4fd744=:* any =:BLOCKER:= euchre wrote before the plugin's 5f7ecdb carries the =ids(...)= wrapper and enforces nothing under org-depend. One run of =M-x claude-code-ide-org-normalize-blocker-syntax= there (prefix argument to write) rewrites them; its =bin/lint-org= will name each one until then.
+
+*Correction, same day:* measured rather than assumed — euchre's TODO.org and DONE.org carry no =:BLOCKER:= property at all, and neither file is in the live Emacs's tracked set (=claude-code-ide-org--tracked-files= names none of them), so there is nothing for the normaliser to do there. The step above is dormant: any blocker euchre writes from now on comes out bare, since the plugin's own write sites do. If one ever needs it, =M-x claude-code-ide-org-normalize-blocker-syntax= runs over whatever files that Emacs tracks — bare =M-x= is a dry run, =C-u= writes.
 
 
 * TODO Unplanned work in flight belongs to no slice: planned is writable, incidental is closed-only :code:
@@ -603,12 +633,25 @@ matters here is therefore not a new property but the existing one: link the plan
 revision when the slice is picked up**, and this is its first recorded failure.
 
 
-* TODO org_capture cannot set =:CATEGORY:=, so every captured heading is uncategorised and nothing notices :code:
+* DONE org_capture cannot set =:CATEGORY:=, so every captured heading is uncategorised and nothing notices :code:
+CLOSED: [2026-09-15 Tue 12:08]
 :PROPERTIES:
 :ID:       b0d55552-6bbf-45b8-9897-f62e6bd779e3
 :CREATED:  [2026-09-11 Fri 18:59]
 :CATEGORY: Tools
 :END:
+:LOGBOOK:
+CLOCK: [2026-09-15 Tue 11:59]--[2026-09-15 Tue 12:08] =>  0:09
+- State "DOING"      from "TODO"       [2026-09-15 Tue 11:59] \\
+  second member; taxonomy move first, then capture arg and lint
+- [2026-09-15 Tue 11:59]--[2026-09-15 Tue 12:08] categories: rule move, capture argument, lint rule
+- State "DONE"       from "DOING"      [2026-09-15 Tue 12:08] \\
+  a2f770a bb8f3af; 0 of 107 held
+:END:
+:DEBRIEF:
+Shipped with one decision the body had deferred — required rather than defaulted, at top level only — and one the body had not anticipated: a value new to the file warns instead of refusing, because the plugin ships to repos whose taxonomies this module cannot know. The lint half was smaller than planned: the rule and its drawer-as-text reader already existed as a warning, so the work was the severity, its comment, and the pre-commit test fixture that the escalation broke the same day (the fixture's "clean" task had no category — the exact lag the fixture's own comment records from 2026-08-27). Verified: 662 of 662 in the suite, the hook test's new category cases, the live tool refusing a top-level capture and listing nine values in use, and the mutation test on a corpus copy. Measured: 0 of 107 before and after — the fix's job was to hold the number, and the discipline had already repaired it by hand. One precondition worth stating for the next session: the MCP client caches a tool's argument schema at connect, so passing =category= through =org_capture= from an already-running Claude Code session may need that session restarted; the refusal path needs nothing, since it takes no new argument. Nothing left undone.
+:END:
+:PLAN:
 
 =org_capture= takes title, note, tags, target and initial_state — there is no
 category argument — so a heading created through the tool carries no
@@ -708,6 +751,9 @@ slice nominated to start next. Working it early would take half the
 fix (the prose move is explicitly ordered first) outside the slice that
 counts it, leaving the cookie lying about what remains.
 
+:END:
+*Resolved 2026-09-15* (prose [[orgit-rev:claude-code-ide-org::a2f770a][a2f770a]], code [[orgit-rev:claude-code-ide-org::bb8f3af][bb8f3af]], second member of =35582d95=). Root cause first: the ten values now live in =.claude/rules/org-categories.md= with no =paths:= scope, so every session loads them; the local conventions file keeps the history and points at the move. Then the mechanism: =org_capture= takes =category=, written into the drawer after =:CREATED:= on both the immediate and the deferred path (the hook maps it, the parser and apply carry it). The decision the body left open went to *required* — a top-level capture without one is refused, and the refusal names the values the file already uses; under an =:ID:= target the child inherits and nothing is required. A value the file has never used is written with a warning, not refused, since the taxonomy is the consuming repo's own. The lint's level-1 rule went from warn to error; it already read the drawer as text, which is why only the severity changed. Before: 107 level-1 headings, 0 missing. After: 107, 0 — the number held, and the mutation test (one =:CATEGORY:= line deleted from a copy) proves the error names the heading.
+
 
 * TODO [0/7] A span is only as true as its owner, its edges and its payload :code:
 :PROPERTIES:
@@ -716,7 +762,7 @@ counts it, leaving the cookie lying about what remains.
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(406e9200-c3e7-49ac-a8d0-d6ff8e061ce4 b57c7515-c511-4198-b311-26cefc52a60d 9202b39d-49e4-441c-89f2-382feb4ef1ea 7d739afd-f879-445c-b0b6-65e295585a94 c9940558-b23e-4b2c-86e8-e75a377634aa c54c4215-90e3-4e0c-9de1-990c0406a2b2 2deb090f-593d-40e3-9044-fda318d9b6de)
+:BLOCKER:  406e9200-c3e7-49ac-a8d0-d6ff8e061ce4 b57c7515-c511-4198-b311-26cefc52a60d 9202b39d-49e4-441c-89f2-382feb4ef1ea 7d739afd-f879-445c-b0b6-65e295585a94 c9940558-b23e-4b2c-86e8-e75a377634aa c54c4215-90e3-4e0c-9de1-990c0406a2b2 2deb090f-593d-40e3-9044-fda318d9b6de
 :END:
 :PLAN:
 *Why this order.* Each group hands its output to the next, so working them out
@@ -769,11 +815,23 @@ Planned:
   - [ ] [[id:2deb090f-593d-40e3-9044-fda318d9b6de][2deb090f]] TODO Accepting a 0-run span records none of its minutes, and only =e= can claim them
 
 
-* TODO =:BLOCKER: ids(...)= is org-edna syntax; org-depend cannot parse it, so 8 of 12 blockers enforce nothing :code:
+* DONE =:BLOCKER: ids(...)= is org-edna syntax; org-depend cannot parse it, so 8 of 12 blockers enforce nothing :code:
+CLOSED: [2026-09-15 Tue 11:59]
 :PROPERTIES:
 :ID:       3f4fd744-4ba7-4be8-9fe4-54e46119515a
 :CREATED:  [2026-09-11 Fri 18:08]
 :CATEGORY: Tools
+:END:
+:LOGBOOK:
+- State "DOING"      from "TODO"       [2026-09-15 Tue 11:50] \\
+  write bare BLOCKER form, discriminating test
+CLOCK: [2026-09-15 Tue 11:57]--[2026-09-15 Tue 11:59] =>  0:02
+- [2026-09-15 Tue 11:57]--[2026-09-15 Tue 11:59] make BLOCKER actually block under org-depend
+- State "DONE"       from "DOING"      [2026-09-15 Tue 11:59] \\
+  5f7ecdb b41897d; discriminating test verified red then green
+:END:
+:DEBRIEF:
+Shipped as proposed; the one design choice was where to close the read/enforce divergence, and it went to the lint rather than the readers — a strict reader would make a consuming repo's not-yet-normalised corpus read as dependency-free, which is the original defect in the other direction. Verified: the org-depend test red against HEAD at the discriminating assertion, green after; the lint rule fired 35 times on the real corpus before the rewrite and 0 after, which is the mutation evidence that it reaches the real path; the full suite 657 of 657. Measured: 35 of 39 corpus properties carried the wrapper (13 in TODO.org, 22 in DONE.org), not the "8 of 12" in the title — that figure counted TODO.org's unenforced ones only. Residue: a consuming repo that received the plugin before this fix — agentic-euchre, 2026-09-11 — carries the wrapped form and needs one run of the normaliser; noted on =6a207b00=, whose adoption work owns that step, rather than filed as its own heading.
 :END:
 :PLAN:
 *What this actually poses is which parser owns* =:BLOCKER:=, *and the corpus is
@@ -889,6 +947,8 @@ validator already produces internally before it wraps.
 =org-depend-block-todo= is second of four on =org-blocker-hook= in the running
 Emacs. So the parser that cannot read this syntax is the one actually guarding
 every =DONE=.
+
+*Resolved 2026-09-15* ([[orgit-rev:claude-code-ide-org::5f7ecdb][5f7ecdb]], corpus [[orgit-rev:claude-code-ide-org::b41897d][b41897d]], first member of =35582d95=). Both write sites now emit the bare space-separated form. A test drives =org-depend-block-todo= itself — three blockers written by the tool, the middle one finished first, DONE refused, then permitted once the endpoints finish — and against HEAD's write site it fails at exactly the "still TODO" assertion, so it discriminates. The read/enforce divergence is closed by a lint rule rather than by making the readers strict: they still find ids under either form, so an un-normalised consumer corpus still indexes, and =bin/lint-org= reports the wrapper as an error naming =claude-code-ide-org-normalize-blocker-syntax=, the idempotent rewrite with a dry run. Run through the live Emacs after a reload: 39 properties scanned, 35 unwrapped, a diff of exactly 35 lines, lint from 35 errors to 0. =org-edna-mode= declined for the reason above.
 
 
 * TODO Nothing can correct a closed slice's record, even when the correction is close-time truth :code:
@@ -1542,16 +1602,27 @@ alone leaves the flag set. Worth distinguishing from the crash case above, where
 debugger can be entered, and =SIGKILL= is the only exit.
 
 
-* TODO claude-org-setup --org scaffolds or appends the consuming repo's .gitignore :code:
+* DONE claude-org-setup --org scaffolds or appends the consuming repo's .gitignore :code:
+CLOSED: [2026-09-15 Tue 12:12]
 :PROPERTIES:
 :ID:       784d80c5-8750-4ebe-b5e5-c213fc809d80
 :CREATED:  [2026-09-10 Thu 16:42]
 :CATEGORY: Dev
 :END:
+:DEBRIEF:
+Shipped as proposed, with the template-versus-inline question answered inline and one guard the body had not asked for: the link is skipped when =~/.claude/skills/= already carries one, since project and user scope both enabled would load the plugin twice. One thing the body's framing got slightly wrong and the implementation corrects: git ignores a *path*, not a link target, so "ignore only the absolute symlink" cannot be a static ignore line — it is a decision the script makes at link time, writing the ignore entry only in the absolute branch. Verified by the setup test suite, 72 checks including a hand-kept ignore file with no trailing newline (the glue case) and the sibling layout. Not measured against euchre itself: its link already exists in the relative form and its ignore file lacks only the audit jsonl, so the first real run there is a one-line append — noted here rather than filed, since =6a207b00= owns the adoption pass.
+:END:
 :LOGBOOK:
 CLOCK: [2026-09-10 Thu 16:48]--[2026-09-10 Thu 16:49] =>  0:01
 - [2026-09-10 Thu 16:48]--[2026-09-10 Thu 16:49] recording the relative-symlink provenance decision on 784d80c5
+CLOCK: [2026-09-15 Tue 12:08]--[2026-09-15 Tue 12:12] =>  0:04
+- State "DOING"      from "TODO"       [2026-09-15 Tue 12:08] \\
+  third member; append ignore lines in --org
+- [2026-09-15 Tue 12:08]--[2026-09-15 Tue 12:12] --org appends the consuming repo's .gitignore
+- State "DONE"       from "DOING"      [2026-09-15 Tue 12:12] \\
+  f718eaf; 72 setup checks
 :END:
+:PLAN:
 
 Amended same day, at the provenance conversation: the symlink-ignore advice
 inverts when the symlink is *relative* — a committed
@@ -1573,17 +1644,38 @@ collision-checks files; the same pattern appends missing ignore lines rather
 than clobbering. Decide whether the entries ship as a template or inline in the
 script.
 
+:END:
+*Resolved 2026-09-15* ([[orgit-rev:claude-code-ide-org::f718eaf][f718eaf]], third member of =35582d95=). =--org= now appends the four generalisable entries to the consumer's =.gitignore= with exact-line dedupe — created when absent, never clobbered, and a file ending without a newline gets one first so nothing is glued to its last line. Inline in the script rather than a template: the fifth entry is conditional and the append pattern already lived there for the agenda list. The fifth is the project-scope skill link, which =--org= now creates and which settles the relative-versus-absolute question: relative (=../../../claude-code-ide-org=) when the clone is a sibling of the target, to be committed; absolute otherwise, and then ignored. Skipped when a user-scope link already enables the plugin everywhere. Five test cases, including a plugin copy placed beside a consumer for the sibling case.
 
-* TODO The glue claims ownership of the whole wiring block, but the 202 override ships nowhere :code:
+
+* DONE The glue claims ownership of the whole wiring block, but the 202 override ships nowhere :code:
+CLOSED: [2026-09-15 Tue 12:23]
 :PROPERTIES:
 :ID:       af2f345e-b7db-4025-9f63-c5fce09fdd8a
 :CREATED:  [2026-09-10 Thu 14:11]
 :CATEGORY: Dev
 :END:
+:DEBRIEF:
+Posed first, then decided by the user the same afternoon; the instruction fix shipped before the decision so it was right either way. Two defects surfaced only in the live reload, neither in batch: a defcustom =:set= runs at definition time and must find its function already defined — batch never loaded the upstream feature, so the setter's guard skipped the call there — and the org-dev skill check matched this block's =with-eval-after-load 'claude-code-ide-mcp-http-server= as a prefix of the registration block's anchor and reported the file unhealthy. Both are the reload rule's point: a passing batch run said nothing about the running image. One follow-up that is the user's, not the plugin's: the hand-kept override in =~/.config/doom/config.el= is now redundant and can be deleted; it does no harm meanwhile, both defining 202. Nothing left to file.
+:END:
 :LOGBOOK:
 CLOCK: [2026-09-10 Thu 14:11]--[2026-09-10 Thu 14:12] =>  0:01
 - [2026-09-10 Thu 14:11]--[2026-09-10 Thu 14:12] preparing the e396f94a swap walk-through; filing the glue-ownership gap
+CLOCK: [2026-09-15 Tue 12:11]--[2026-09-15 Tue 12:13] =>  0:02
+- State "DOING"      from "TODO"       [2026-09-15 Tue 12:11] \\
+  fourth member; decide where the 202 override lives
+- [2026-09-15 Tue 12:11]--[2026-09-15 Tue 12:13] glue over-claims ownership; 202 override ships nowhere
+- State "WAITING"    from "DOING"      [2026-09-15 Tue 12:13] \\
+  user decides: override into the module, or stay hand-kept
+- [2026-09-15 Tue 12:15]--[2026-09-15 Tue 12:19] assigned at review
+- State "DOING"      from "WAITING"    [2026-09-15 Tue 12:19] \\
+  user decided: override into the module as gated advice
+CLOCK: [2026-09-15 Tue 12:20]--[2026-09-15 Tue 12:23] =>  0:03
+- [2026-09-15 Tue 12:20]--[2026-09-15 Tue 12:23] gated 202 advice in the module
+- State "DONE"       from "DOING"      [2026-09-15 Tue 12:23] \\
+  deb2e43; batch test discriminates, live 202 confirmed
 :END:
+:PLAN:
 
 (Filing prose restored 2026-09-11 — the original capture note was discarded on
 the queued path: the event carried 689 characters and =--capture-write= takes no
@@ -1597,6 +1689,13 @@ strict MCP client. Decide: move the override into the module (guarded,
 self-retiring when upstream fixes =8f986c6f=) or soften the printed claim to
 name what the glue does not own. Until then the swap instructions must say KEEP
 the override by hand — which is what the actual swap did.
+
+:END:
+*Half resolved 2026-09-15* ([[orgit-rev:claude-code-ide-org::4a62bf9][4a62bf9]], fourth member of =35582d95=): the swap instruction now says KEEP the override, in the =--glue= printout, the README and the setup reference — the glue owns the port setq, register-session and mcp-start, and is explicit that it does not own the 202 response. Verified against the straight checkout of upstream (=1de17bb=): =--send-empty-response= still answers 200, so the override is live, not historical.
+
+*The decision is posed rather than taken, with a recommendation.* Two options, both defensible: (a) move the override into the module as =advice-add :override= on the upstream function, gated by a defcustom defaulting on, docstring naming the upstream defect so it is retired by hand when upstream fixes it — "self-retiring" cannot be done honestly, since the status code is not readable from a byte-compiled function; or (b) leave it as a documented hand-kept line, which is now the case. Recommended: (a). The fix is machinery every consumer needs for every strict client, which is the plugin's stated reason to exist, and a hand-kept line is the shape this slice was opened to remove. Cost: the user's own =config.el= override would then double-define the function and should be deleted at the same time — one more line in the swap instructions, in the other direction.
+
+*Resolved 2026-09-15* ([[orgit-rev:claude-code-ide-org::deb2e43][deb2e43]], the user having chosen option (a)). =claude-code-ide-org-accept-notifications-with-202= (default =t=) installs =:override= advice on upstream's =--send-empty-response= when that file loads; nil removes it; Customize re-applies. Not self-retiring — the docstring says why and how to retire it by hand after an upstream update. The =--glue= printout, README and setup reference now say a hand-kept override is redundant and should go with the rest of the wiring block. Verified live after a reload: advice member present, gate on, a notification to the pinned port answered 202 — though that probe cannot discriminate while the user's own override still exists, so the batch test carries the proof: 202 with the gate on, upstream's 200 with it off.
 
 
 * TODO Plans die at cleanupPeriodDays; decide plansDirectory or keep restoring :code:
@@ -1921,7 +2020,7 @@ sequence.
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(b7259ee4-9aa1-4b55-8cf2-fbbacdea5310 d350ff5b-3b1f-465e-800b-962264d2e841 63df67c7-de0d-43e7-9c6f-2b2979a40aba e128e4fa-b0d9-49f7-99eb-bae2d4b0676b e28933e9-f352-4ef9-8d53-8cd9a4318768 41cf5830-fc2e-4dc6-b243-a0c2718a53a3 8a23d6ec-ca45-454d-b65f-e46ea9204816 01849bef-fdc9-4c30-b467-00ca8606e8e0 ecf66d45-18b3-477f-bca8-08bec90604e8)
+:BLOCKER:  b7259ee4-9aa1-4b55-8cf2-fbbacdea5310 d350ff5b-3b1f-465e-800b-962264d2e841 63df67c7-de0d-43e7-9c6f-2b2979a40aba e128e4fa-b0d9-49f7-99eb-bae2d4b0676b e28933e9-f352-4ef9-8d53-8cd9a4318768 41cf5830-fc2e-4dc6-b243-a0c2718a53a3 8a23d6ec-ca45-454d-b65f-e46ea9204816 01849bef-fdc9-4c30-b467-00ca8606e8e0 ecf66d45-18b3-477f-bca8-08bec90604e8
 :END:
 :PLAN:
 Composed 2026-09-10 at the user's direction, absorbing the earlier
@@ -2369,7 +2468,7 @@ docstring against the function under it.
 :ID:       ecf66d45-18b3-477f-bca8-08bec90604e8
 :CREATED:  [2026-09-04 Fri 08:52]
 :CATEGORY: Skill
-:BLOCKER:  ids(b0e478f7-e894-4ac7-b0b6-b3c890b5b32a)
+:BLOCKER:  b0e478f7-e894-4ac7-b0b6-b3c890b5b32a
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-08 Tue 08:39] \\
@@ -3671,14 +3770,14 @@ rather than nineteen.
 :CREATED:  [2026-09-01 Tue 09:11]
 :CATEGORY: Slices
 :KIND:     slice
-:BLOCKER:  ids(39039bb6-c70a-4ba9-8b37-edd8dd6921f6 f12f9da4-2870-45b7-8c50-ea54415c7bc6 25e7b083-360b-4282-8fd0-bb768e2a0f13 3ad389be-2797-46c3-a51d-9f603053955a 7fa68d5c-b6c0-43df-85c6-764b1d56511f 381ea07d-633f-4640-abbb-89472a07acba 8ddd7fa8-e847-42e9-b82c-63bbe4c11b7b 53b0047d-c55c-486c-8eed-ba4994d97a1a 7ee3b71a-b85a-4610-a4ab-b9e06c8d79da 2aeb65d6-350e-4c75-811e-4a748044fe2c 2a6a1355-615f-4c2c-a8af-c9ae8dcda09b 60ed5b96-40e3-4676-a742-07a8ad6cc3b7 5e731a23-7708-4248-b055-9b4a531f147d 965f94eb-1558-4d00-9857-5727eb86fe6f 7b4f4f14-6c76-4822-84c1-67589bc74b82)
+:BLOCKER:  39039bb6-c70a-4ba9-8b37-edd8dd6921f6 f12f9da4-2870-45b7-8c50-ea54415c7bc6 25e7b083-360b-4282-8fd0-bb768e2a0f13 3ad389be-2797-46c3-a51d-9f603053955a 7fa68d5c-b6c0-43df-85c6-764b1d56511f 381ea07d-633f-4640-abbb-89472a07acba 8ddd7fa8-e847-42e9-b82c-63bbe4c11b7b 53b0047d-c55c-486c-8eed-ba4994d97a1a 7ee3b71a-b85a-4610-a4ab-b9e06c8d79da 2aeb65d6-350e-4c75-811e-4a748044fe2c 2a6a1355-615f-4c2c-a8af-c9ae8dcda09b 60ed5b96-40e3-4676-a742-07a8ad6cc3b7 5e731a23-7708-4248-b055-9b4a531f147d 965f94eb-1558-4d00-9857-5727eb86fe6f 7b4f4f14-6c76-4822-84c1-67589bc74b82
 :COOKIE_DATA: checkbox recursive
 :DROPPED:  542924c1-9152-4414-8da8-d530d3423611 d2a0f54c-b59a-4855-ae3d-c93a6d3aa177 72463b68-9f08-44b2-8213-87f71298138d
 :END:
 
 *The theme, briefly, in place of a plan — the full prompt comes later.* The
-previous slice was about the gap between what the code *knows* and what it
-*says*. This one is about a gap one layer down: the record itself going wrong
+slice this one follows — =b36e6369=, still open when this was composed — was
+about the gap between what the code *knows* and what it *says*. This one is about a gap one layer down: the record itself going wrong
 while every check reports success.
 
 Three things happened on 2026-08-31/09-01 that share a shape. =bin/lint-org=
@@ -4403,7 +4502,7 @@ in the story.*
 :ID:       b862fbf4-53b8-48b5-b773-1c7c0332dfb4
 :CREATED:  [2026-08-31 Mon 15:44]
 :CATEGORY: Queue
-:BLOCKER:  ids(b0e478f7-e894-4ac7-b0b6-b3c890b5b32a)
+:BLOCKER:  b0e478f7-e894-4ac7-b0b6-b3c890b5b32a
 :END:
 
 Split out of [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]] 2026-08-31.
@@ -5086,7 +5185,7 @@ combination is what does it.
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(d6fc47a5-b84d-4287-b973-aa5b37410270 591e7af3-4f37-4f90-86ba-62400c6e649b)
+:BLOCKER:  d6fc47a5-b84d-4287-b973-aa5b37410270 591e7af3-4f37-4f90-86ba-62400c6e649b
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-31 Mon 12:07]
@@ -5171,7 +5270,7 @@ into the day's existing clone, never append a second.
 :ID:       d6fc47a5-b84d-4287-b973-aa5b37410270
 :CREATED:  [2026-08-31 Mon 11:21]
 :CATEGORY: Meta
-:BLOCKER:  ids(33864a0f-5e13-4235-85a6-0bd9d2fe5252)
+:BLOCKER:  33864a0f-5e13-4235-85a6-0bd9d2fe5252
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-31 Mon 11:22]
@@ -5459,7 +5558,7 @@ orthogonal and was already noted there as independent.
 :CATEGORY: Clock
 :ID:       64d34a64-d336-40a8-a8e8-da8133d0da06
 :CREATED:  [2026-08-26 Wed 14:46]
-:BLOCKER:  ids(406e9200-c3e7-49ac-a8d0-d6ff8e061ce4)
+:BLOCKER:  406e9200-c3e7-49ac-a8d0-d6ff8e061ce4
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-26 Wed 14:46] \\
@@ -5634,6 +5733,7 @@ attention as it happens.
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-15 Tue 13:04]--[2026-09-15 Tue 13:06] =>  0:02
 CLOCK: [2026-09-15 Tue 11:42]--[2026-09-15 Tue 11:44] =>  0:02
 CLOCK: [2026-09-15 Tue 10:54]--[2026-09-15 Tue 10:55] =>  0:01
 CLOCK: [2026-09-15 Tue 10:09]--[2026-09-15 Tue 10:13] =>  0:04
@@ -10102,7 +10202,7 @@ CLOSED: [2026-08-21 Fri 13:21]
 :PROPERTIES:
 :ID:       cd1e974e-e006-4974-b770-cdc1cf2e4ab2
 :CREATED:  [2026-08-21 Fri 10:10]
-:BLOCKER:  ids(e30d52d7-960b-44f3-ab92-93846c81a1bd)
+:BLOCKER:  e30d52d7-960b-44f3-ab92-93846c81a1bd
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-21 Fri 10:11] \\
@@ -10261,7 +10361,7 @@ apply command clocks in through the same advised =org-clock-in=.
 :CATEGORY: Apply
 :ID:       118373e5-b89b-4001-ad52-1f68374745fb
 :CREATED:  [2026-08-07 Fri 15:54]
-:BLOCKER:  ids(720b2dcf-6af1-45f3-96a7-aa841e5651e1)
+:BLOCKER:  720b2dcf-6af1-45f3-96a7-aa841e5651e1
 :END:
 
 Captured 2026-08-07 from conversation, after pressing =h= in a live
@@ -10333,7 +10433,7 @@ children are 29 =DONE= and 2 =CANCELLED=, and it can close.
 :PROPERTIES:
 :CATEGORY: Apply
 :ID:       0c8644ff-f7b1-4789-ac1e-babf2e9fbc8e
-:BLOCKER:  ids(5ff5a4b8-2fee-472a-b5e1-c9de8cf96704 406e9200-c3e7-49ac-a8d0-d6ff8e061ce4)
+:BLOCKER:  5ff5a4b8-2fee-472a-b5e1-c9de8cf96704 406e9200-c3e7-49ac-a8d0-d6ff8e061ce4
 :CREATED:  [2026-08-07 Fri 08:05]
 :END:
 :PLAN:
@@ -11877,6 +11977,7 @@ CLOCK: [2026-09-10 Thu 16:46]--[2026-09-10 Thu 16:47] =>  0:01
 :LOGBOOK:
 CLOCK: [2026-09-11 Fri 09:58]--[2026-09-11 Fri 09:59] =>  0:01
 - [2026-09-11 Fri 09:58]--[2026-09-11 Fri 09:59] post-crash recovery: deferred filings, 96ddf1ef promotion, ceremony commit
+- [2026-09-11 Fri 10:59]--[2026-09-11 Fri 10:59] root-cause unattributed spans, file discipline fix
 CLOCK: [2026-09-11 Fri 11:00]--[2026-09-11 Fri 11:01] =>  0:01
 - [2026-09-11 Fri 11:00]--[2026-09-11 Fri 11:01] composing the transcript-join slice
 CLOCK: [2026-09-11 Fri 11:11]--[2026-09-11 Fri 11:13] =>  0:02
@@ -11976,4 +12077,6 @@ CLOCK: [2026-09-15 Tue 11:35]--[2026-09-15 Tue 11:37] =>  0:02
 - [2026-09-15 Tue 11:35]--[2026-09-15 Tue 11:37] root-cause unattributed spans, file discipline fix
 CLOCK: [2026-09-15 Tue 11:39]--[2026-09-15 Tue 11:41] =>  0:02
 - [2026-09-15 Tue 11:39]--[2026-09-15 Tue 11:41] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-15 Tue 11:46]--[2026-09-15 Tue 11:48] =>  0:02
+- [2026-09-15 Tue 11:46]--[2026-09-15 Tue 11:48] root-cause unattributed spans, file discipline fix
 :END:

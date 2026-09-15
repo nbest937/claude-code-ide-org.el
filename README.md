@@ -63,10 +63,13 @@ Paste the printed lines — a `doom-module-load-path` entry plus the
 needs nothing: the module declares its own dependencies
 (`claude-code-ide` and org, both pinned; `org-ql`), and Doom merges
 duplicate declarations key-by-key with yours winning, so an existing
-root declaration is harmless. The generated glue owns the rest: it enables the
+root declaration is harmless. The generated glue owns the wiring: it enables the
 tools server, pins the port (`45571`, checked loudly against
 `.mcp.json`), and registers a session per tracked project, re-derived
-on every wire call. A running Emacs server is a **hard prerequisite**
+on every wire call. The 202-Accepted answer to notifications that
+strict MCP clients need is the module's, as advice gated by
+`claude-code-ide-org-accept-notifications-with-202` (`:ID:` af2f345e)
+— a hand-kept override of upstream's function is redundant now. A running Emacs server is a **hard prerequisite**
 — every MCP tool goes through `emacsclient` — and the module needs
 **org 9.7+**, refusing loudly otherwise (Emacs 29's bundled 9.6.x is
 not enough; Doom's straight-managed org is).
@@ -80,7 +83,10 @@ ln -s /path/to/claude-code-ide-org ~/.claude/skills/claude-code-ide-org # enable
 ```
 
 A symlink route auto-loads the full plugin from the clone in place —
-a `git pull` is live next session. Project scope (a consuming repo's
+a `git pull` is live next session. `claude-org-setup --org` makes the
+project-scope link itself (relative when the clone is a sibling, to
+commit; absolute and gitignored otherwise) and appends the ignore
+entries a consumer needs. Project scope (a consuming repo's
 `.claude/skills/`) is the recommended default: active only for
 sessions started at that project root, invisible elsewhere. Whatever
 the route, enabling is the consent that wires the session-tracking
@@ -108,7 +114,8 @@ second scaffolds `TODO.org`/`DONE.org` from the shipped templates
 file (`~/org/agenda-files`) it appends the paths itself, immediately;
 without one it prints the legacy symlink-and-restart follow-ups. Once
 discoverable, the project registers its own MCP session at the next
-wire call and targetless `org_capture`s land in its own tracker.
+wire call and targetless `org_capture`s land in its own tracker (each
+with a `category`, since a top-level heading cannot inherit one).
 
 `skills/org/references/org-emacs-setup.md` is the full version of this
 section.

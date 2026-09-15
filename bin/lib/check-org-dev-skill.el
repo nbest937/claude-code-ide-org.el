@@ -98,12 +98,16 @@
     ;; anchor ("the last top-level form"), not line number, so a
     ;; config.el edit can't put the doc out of date.  Verify that claim
     ;; structurally: the block exists, and nothing is defined after it.
+    ;; Anchored to end of line since 2026-09-15: the 202 advice block
+    ;; (:ID: af2f345e) is `with-eval-after-load
+    ;; 'claude-code-ide-mcp-http-server', which a prefix match took for
+    ;; the registration block and failed the check on a healthy file.
     (let ((config-el (expand-file-name
                       "modules/tools/claude-code-ide-org/config.el" repo-root)))
       (with-temp-buffer
         (insert-file-contents config-el)
         (goto-char (point-min))
-        (if (not (re-search-forward "with-eval-after-load 'claude-code-ide" nil t))
+        (if (not (re-search-forward "with-eval-after-load 'claude-code-ide$" nil t))
             (ccio-dev-check-fail "config.el: with-eval-after-load 'claude-code-ide anchor not found")
           (let ((anchor-line (line-number-at-pos))
                 last-line)

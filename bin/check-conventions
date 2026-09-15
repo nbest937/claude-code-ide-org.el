@@ -84,6 +84,7 @@ done
 docs=()
 for rel in CLAUDE.md .claude/rules/org-conventions.md \
            .claude/rules/org-conventions-local.md \
+           .claude/rules/org-categories.md \
            .claude/skills/org/SKILL.md .claude/skills/org-dev/SKILL.md \
            .claude/commands/next-session.md \
            skills/org/references/org-conventions.md \

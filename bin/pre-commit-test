@@ -44,7 +44,9 @@ cp "$repo_root/modules/tools/claude-code-ide-org/config.el" \
 # asserted the superseded convention and the suite went red and stayed
 # red (TODO.org :ID: 0fa403f4). PLANNING went with it on 2026-08-28
 # (:ID: c954f650) and REVIEW is live, so the keyword line is corrected
-# here too.
+# here too. :CATEGORY: joined on 2026-09-15 (:ID: b0d55552), when a
+# level-1 heading without one became an error rather than a warning --
+# the same lag, caught the same day this time.
 header='#+TODO: TODO NEXT DOING REVIEW WAITING MAYBE | DONE CANCELLED
 #+TAGS: code
 '
@@ -52,6 +54,7 @@ clean_task='* TODO A task                                                       
 :PROPERTIES:
 :ID:       11111111-1111-1111-1111-111111111111
 :CREATED:  [2026-08-19 Wed 10:00]
+:CATEGORY: Dev
 :END:
 '
 

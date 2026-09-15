@@ -98,16 +98,26 @@ One stable line for your config.el (anywhere; it never changes again):
 
   (load! "claude-code-ide-org-glue" doom-user-dir t)
 
-Then delete any hand-rolled wiring block (port setq, register-session,
-mcp-start) -- the glue owns all of it, and re-running --glue refreshes
+Then delete the hand-rolled wiring block's port setq, register-session
+and mcp-start -- the glue owns those, and re-running --glue refreshes
 this file without touching yours.
+
+Delete a hand-kept 202-Accepted override of
+claude-code-ide-mcp-http-server--send-empty-response as well: since
+2026-09-15 the MODULE ships it, as advice gated by
+claude-code-ide-org-accept-notifications-with-202 (default t), so a
+copy in your config is redundant (TODO.org :ID: af2f345e). Upstream
+still answers 200 where the MCP spec requires 202 and strict clients
+reject that; the module's advice is what keeps them working now.
 EOF
   exit 0
 fi
 
 # --org: scaffold the consuming project's org files from the shipped
 # templates (TODO.org :ID: 9b171907), collision-checked -- an existing
-# file is never touched, only reported. When the user keeps org's
+# file is never touched, only reported -- then append the ignore
+# entries the consumer needs and create the project-scope skill link
+# (TODO.org :ID: 784d80c5). When the user keeps org's
 # agenda list file (~/org/agenda-files, TODO.org :ID: 308bf4b4) the
 # scaffolded paths are APPENDED to it -- org re-reads that file on
 # every access, so discovery is immediate: no symlink, no restart.
@@ -129,6 +139,76 @@ if [ "$org" = 1 ]; then
       wrote=$((wrote + 1))
     fi
   done
+  # The consuming repo's .gitignore (TODO.org :ID: 784d80c5): appended
+  # to, never clobbered, with the same exact-line dedupe the agenda
+  # list gets below, and created when absent. Four entries every
+  # consumer needs: settings.local.json and worktrees/ are Claude
+  # Code's per-clone state; clock-status.json and the audit jsonl are
+  # this module's runtime state, written into the project root.
+  ignore="$target/.gitignore"
+  ignored=0
+  # A hand-kept file may end without a newline; appending straight
+  # after it would glue the first new entry onto the last old line.
+  # Shared with the agenda-list append below, which had the same
+  # exposure (PR #24 review).
+  append_line() { # file line
+    if [ -s "$1" ] && [ -n "$(tail -c1 "$1")" ]; then
+      printf '\n' >> "$1"
+    fi
+    printf '%s\n' "$2" >> "$1"
+  }
+  ensure_ignored() { # line
+    if ! grep -qxF "$1" "$ignore" 2>/dev/null; then
+      append_line "$ignore" "$1"
+      ignored=$((ignored + 1))
+    fi
+  }
+  for line in .claude/settings.local.json .claude/worktrees/ \
+              clock-status.json .claude-code-ide-org-audit.jsonl; do
+    ensure_ignored "$line"
+  done
+
+  # The project-scope skill link that enables the plugin here (the
+  # org-emacs-setup reference, "Per-repo setup"). RELATIVE when the
+  # clone is a sibling of the target: then the committed link is
+  # provenance and enablement in one artifact, working wherever the
+  # clones are siblings and dangling harmlessly where they are not.
+  # ABSOLUTE otherwise, and then gitignored -- a machine's path is not
+  # the project's to commit. So the ignore line is for the absolute
+  # form only; a relative link should be committed. A submodule was
+  # considered and declined: a vendored second clone breaks the
+  # per-clone port contract and forks the plugin revision per
+  # consumer. Skipped when a user-scope link already enables the
+  # plugin everywhere, since both at once would load it twice -- and
+  # skipped when the target IS the plugin, which would make the repo
+  # its own consumer and wire its hooks twice (PR #24 review).
+  #
+  # The link is NAMED by the plugin's fixed name, which is what the
+  # docs prescribe for the user-scope link too, so the guard compares
+  # like with like whatever the clone's directory is called; only the
+  # relative TARGET uses the directory name.
+  pname="claude-code-ide-org"
+  pdir="$(basename "$plugin_root")"
+  link="$target/.claude/skills/$pname"
+  if [ "$plugin_root" = "$target" ]; then
+    echo "skipped: $link -- the target is the plugin itself"
+  elif [ -e "$link" ] || [ -L "$link" ]; then
+    echo "exists:  $link (left untouched)"
+  elif [ -e "$HOME/.claude/skills/$pname" ] || [ -L "$HOME/.claude/skills/$pname" ]; then
+    echo "skipped: $link -- ~/.claude/skills/$pname already enables the plugin user-wide"
+  else
+    mkdir -p "$target/.claude/skills"
+    if [ "$(dirname "$plugin_root")" = "$(dirname "$target")" ]; then
+      ln -s "../../../$pdir" "$link"
+      echo "linked:  $link -> ../../../$pdir (relative: commit it)"
+    else
+      ln -s "$plugin_root" "$link"
+      ensure_ignored ".claude/skills/$pname"
+      echo "linked:  $link -> $plugin_root (absolute: gitignored)"
+    fi
+  fi
+  echo "ignored: appended $ignored line(s) to $ignore"
+
   name="$(basename "$target")"
   listfile="${CLAUDE_ORG_AGENDA_LIST:-$HOME/org/agenda-files}"
   if [ -f "$listfile" ]; then
@@ -138,7 +218,7 @@ if [ "$org" = 1 ]; then
       tilde="~${path#"$HOME"}"
       # Dedup against both spellings a hand-kept file may use.
       if ! grep -qxF "$path" "$listfile" && ! grep -qxF "$tilde" "$listfile"; then
-        printf '%s\n' "$path" >> "$listfile"
+        append_line "$listfile" "$path"
         appended=$((appended + 1))
       fi
     done
@@ -161,7 +241,8 @@ Two follow-ups only you can do:
      claude-org-setup
 
 Targetless org_capture calls from sessions in this project land in
-its own TODO.org immediately.
+its own TODO.org immediately -- pass category= on each, since a
+top-level heading cannot inherit one.
 EOF
   else
     cat <<EOF
@@ -199,7 +280,8 @@ org-emacs-setup reference.)
      claude-org-setup
 
 Targetless org_capture calls from sessions in this project will land
-in its own TODO.org once step 1 makes it discoverable.
+in its own TODO.org once step 1 makes it discoverable -- pass
+category= on each, since a top-level heading cannot inherit one.
 EOF
   fi
   exit 0

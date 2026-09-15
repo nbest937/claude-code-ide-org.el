@@ -8,38 +8,22 @@ paths:
 The portable conventions are promoted into
 `.claude/rules/org-conventions.md` by `bin/claude-org-setup` from
 `skills/org/references/org-conventions.md`, where they ship with the
-plugin. This file carries what is this repo's alone: its `:CATEGORY:`
-taxonomy and the history of the level-1 category tier that preceded it.
+plugin. This file carries what is this repo's alone and is history: how the
+old category labels were split, and the level-1 category tier that
+preceded `:CATEGORY:`. The live taxonomy itself is in
+`.claude/rules/org-categories.md`, always loaded.
 
 ## The ten values
 
-Settled 2026-08-28 (`:ID:` 29439196, step 2). Single words, capitalised, so a
-value is distinguishable at a glance from a TODO keyword and from a tag:
-
-| value | what belongs here |
-|---|---|
-| `Queue` | the event queue itself — events, guideposts, spans, attribution |
-| `Apply` | the review buffer and the apply pass over that queue |
-| `Clock` | clock correctness proper — intervals, CLOCK lines, org-clock state |
-| `Skill` | what an agent must follow: CLAUDE.md, the skills, these conventions, keyword semantics |
-| `Tools` | the `org_*` MCP surface and its behaviour |
-| `Dev` | the repo's own machinery: `bin/`, lint, tests, hooks, packaging, the Doom and shell environment |
-| `Meta` | the meta-work datetree and the daily ceremony — the day node, archiving |
-| `Slices` | slice machinery: composition, refresh, the blocker and the cookie |
-| `Docs` | prose written for a human reader — README, procedures |
-| `Upstream` | defects belonging to `claude-code-ide.el`, not to this repo |
-
-**`Tools` versus `Dev` is one test: `Tools` is what Claude calls, `Dev` is
-what a developer runs.** They split 26/26 without being forced, which is why
-the seam is trusted. Note `Dev` names an *audience* where the others name
-subjects — read alone it would swallow the file, and the bound comes entirely
-from its sibling.
-
-**Not `Review`, deliberately.** `REVIEW` is also a TODO keyword, so
-`:CATEGORY: Review` would render an agenda line as `Review  REVIEW  Some
-task` — the one value that defeats the reason these are capitalised. It also
-read to its daily reader as naming the ceremony rather than the apply
-subsystem. `apply` is the project's own word for it by a wide margin.
+**Moved to `.claude/rules/org-categories.md` on 2026-09-15** (`:ID:`
+b0d55552), which carries no `paths:` scope and so loads in every
+session. They were here, behind this file's `**/*.org` scope, from
+commit `42a3221` (2026-09-09) — and a capture is done with no `.org`
+file open, so the sessions doing the capturing never saw them: ten
+level-1 headings arrived uncategorised in the next two days. The
+conventions' own opening paragraph predicted it — "a path-scoped rule
+that does not load is a rule that does not apply, and the failure is
+silent." What follows is the history those values replaced.
 
 ## Where the nine old labels went
 

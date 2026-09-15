@@ -54,6 +54,18 @@ upgrade. The old equivalent — symlinking
   (load! "claude-code-ide-org-glue" doom-user-dir t)
   ```
 
+  **The 202 answer to notifications is the module's, not the glue's
+  and not yours** (`:ID:` af2f345e, decided 2026-09-15). Upstream
+  still answers `200` to a notification where the MCP spec requires
+  `202`, and strict clients — Warp's own, the Python SDK's — reject
+  the mismatch. The module advises
+  `claude-code-ide-mcp-http-server--send-empty-response` to send 202,
+  gated by `claude-code-ide-org-accept-notifications-with-202`
+  (default `t`), so a hand-kept override of that function in your
+  `config.el` is redundant and should go with the rest of the wiring
+  block. The gate is retired by hand when upstream fixes the status;
+  its docstring says how to tell.
+
   The glue defers itself until `claude-code-ide` loads and derives the
   project list from the tracked files at every wire call — onboarding
   a repo is making its org files discoverable plus
@@ -98,8 +110,17 @@ upgrade. The old equivalent — symlinking
 
      Active only for sessions whose *primary working directory* is
      that project root — a session launched in a subdirectory misses
-     it — and invisible everywhere else. Commit the symlink to share
-     it, or `.gitignore` it to keep it local.
+     it — and invisible everywhere else. **`claude-org-setup --org`
+     creates this link for you** (`:ID:` 784d80c5): *relative*
+     (`../../../claude-code-ide-org`) when the clone is a sibling of
+     the repo — commit it, it is provenance and enablement in one
+     artifact and dangles harmlessly where the clones are not
+     siblings — and *absolute* otherwise, in which case it is
+     gitignored, since one machine's path is not the project's to
+     commit. The same run appends the four ignore entries every
+     consumer needs (`.claude/settings.local.json`,
+     `.claude/worktrees/`, `clock-status.json`, the audit jsonl),
+     never clobbering an existing `.gitignore`.
 
    - **User scope** — `ln -s /path/to/claude-code-ide-org
      ~/.claude/skills/claude-code-ide-org` — every session in every
@@ -150,7 +171,8 @@ upgrade. The old equivalent — symlinking
    discovery is immediate, and the only follow-up is a wire call (or
    the next Emacs start). Without one it prints the legacy follow-ups
    — `~/org` symlinks and a restart or `add-to-list`. Once
-   discoverable, targetless `org_capture` calls from this project's
+   discoverable, targetless `org_capture` calls (each with a
+   `category`, since a top-level heading inherits none) from this project's
    sessions land in its own tracker automatically.
 
 Two behaviours worth knowing before they surprise you:
