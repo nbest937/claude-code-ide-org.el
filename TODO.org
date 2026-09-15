@@ -206,7 +206,7 @@ first and add members after, or amend rather than replace.
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
 :CATEGORY: Slices
-:BLOCKER:  ids(3f4fd744-4ba7-4be8-9fe4-54e46119515a b0d55552-6bbf-45b8-9897-f62e6bd779e3 784d80c5-8750-4ebe-b5e5-c213fc809d80 af2f345e-b7db-4025-9f63-c5fce09fdd8a)
+:BLOCKER:  3f4fd744-4ba7-4be8-9fe4-54e46119515a b0d55552-6bbf-45b8-9897-f62e6bd779e3 784d80c5-8750-4ebe-b5e5-c213fc809d80 af2f345e-b7db-4025-9f63-c5fce09fdd8a
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-15 Tue 10:48] \\
@@ -369,7 +369,7 @@ whether a body that arrives *already* wrapped is left alone.
 :ID:       6a207b00-8fa1-441e-8ee5-354702bc979b
 :CREATED:  [2026-09-11 Fri 20:05]
 :CATEGORY: Dev
-:BLOCKER:  ids(35582d95-003a-4735-9b19-36f7ad813f0d 8a2eb687-28da-4d44-893b-db59298bdc5b 749301a0-0bd0-4fbd-b3f7-79739226e15a 6521dd56-8772-416b-9435-6da78bb86b06)
+:BLOCKER:  35582d95-003a-4735-9b19-36f7ad813f0d 8a2eb687-28da-4d44-893b-db59298bdc5b 749301a0-0bd0-4fbd-b3f7-79739226e15a 6521dd56-8772-416b-9435-6da78bb86b06
 :END:
 :LOGBOOK:
 - State "WAITING"    from "TODO"       [2026-09-15 Tue 10:09] \\
@@ -716,7 +716,7 @@ counts it, leaving the cookie lying about what remains.
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(406e9200-c3e7-49ac-a8d0-d6ff8e061ce4 b57c7515-c511-4198-b311-26cefc52a60d 9202b39d-49e4-441c-89f2-382feb4ef1ea 7d739afd-f879-445c-b0b6-65e295585a94 c9940558-b23e-4b2c-86e8-e75a377634aa c54c4215-90e3-4e0c-9de1-990c0406a2b2 2deb090f-593d-40e3-9044-fda318d9b6de)
+:BLOCKER:  406e9200-c3e7-49ac-a8d0-d6ff8e061ce4 b57c7515-c511-4198-b311-26cefc52a60d 9202b39d-49e4-441c-89f2-382feb4ef1ea 7d739afd-f879-445c-b0b6-65e295585a94 c9940558-b23e-4b2c-86e8-e75a377634aa c54c4215-90e3-4e0c-9de1-990c0406a2b2 2deb090f-593d-40e3-9044-fda318d9b6de
 :END:
 :PLAN:
 *Why this order.* Each group hands its output to the next, so working them out
@@ -1921,7 +1921,7 @@ sequence.
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(b7259ee4-9aa1-4b55-8cf2-fbbacdea5310 d350ff5b-3b1f-465e-800b-962264d2e841 63df67c7-de0d-43e7-9c6f-2b2979a40aba e128e4fa-b0d9-49f7-99eb-bae2d4b0676b e28933e9-f352-4ef9-8d53-8cd9a4318768 41cf5830-fc2e-4dc6-b243-a0c2718a53a3 8a23d6ec-ca45-454d-b65f-e46ea9204816 01849bef-fdc9-4c30-b467-00ca8606e8e0 ecf66d45-18b3-477f-bca8-08bec90604e8)
+:BLOCKER:  b7259ee4-9aa1-4b55-8cf2-fbbacdea5310 d350ff5b-3b1f-465e-800b-962264d2e841 63df67c7-de0d-43e7-9c6f-2b2979a40aba e128e4fa-b0d9-49f7-99eb-bae2d4b0676b e28933e9-f352-4ef9-8d53-8cd9a4318768 41cf5830-fc2e-4dc6-b243-a0c2718a53a3 8a23d6ec-ca45-454d-b65f-e46ea9204816 01849bef-fdc9-4c30-b467-00ca8606e8e0 ecf66d45-18b3-477f-bca8-08bec90604e8
 :END:
 :PLAN:
 Composed 2026-09-10 at the user's direction, absorbing the earlier
@@ -2369,7 +2369,7 @@ docstring against the function under it.
 :ID:       ecf66d45-18b3-477f-bca8-08bec90604e8
 :CREATED:  [2026-09-04 Fri 08:52]
 :CATEGORY: Skill
-:BLOCKER:  ids(b0e478f7-e894-4ac7-b0b6-b3c890b5b32a)
+:BLOCKER:  b0e478f7-e894-4ac7-b0b6-b3c890b5b32a
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-08 Tue 08:39] \\
@@ -3671,7 +3671,7 @@ rather than nineteen.
 :CREATED:  [2026-09-01 Tue 09:11]
 :CATEGORY: Slices
 :KIND:     slice
-:BLOCKER:  ids(39039bb6-c70a-4ba9-8b37-edd8dd6921f6 f12f9da4-2870-45b7-8c50-ea54415c7bc6 25e7b083-360b-4282-8fd0-bb768e2a0f13 3ad389be-2797-46c3-a51d-9f603053955a 7fa68d5c-b6c0-43df-85c6-764b1d56511f 381ea07d-633f-4640-abbb-89472a07acba 8ddd7fa8-e847-42e9-b82c-63bbe4c11b7b 53b0047d-c55c-486c-8eed-ba4994d97a1a 7ee3b71a-b85a-4610-a4ab-b9e06c8d79da 2aeb65d6-350e-4c75-811e-4a748044fe2c 2a6a1355-615f-4c2c-a8af-c9ae8dcda09b 60ed5b96-40e3-4676-a742-07a8ad6cc3b7 5e731a23-7708-4248-b055-9b4a531f147d 965f94eb-1558-4d00-9857-5727eb86fe6f 7b4f4f14-6c76-4822-84c1-67589bc74b82)
+:BLOCKER:  39039bb6-c70a-4ba9-8b37-edd8dd6921f6 f12f9da4-2870-45b7-8c50-ea54415c7bc6 25e7b083-360b-4282-8fd0-bb768e2a0f13 3ad389be-2797-46c3-a51d-9f603053955a 7fa68d5c-b6c0-43df-85c6-764b1d56511f 381ea07d-633f-4640-abbb-89472a07acba 8ddd7fa8-e847-42e9-b82c-63bbe4c11b7b 53b0047d-c55c-486c-8eed-ba4994d97a1a 7ee3b71a-b85a-4610-a4ab-b9e06c8d79da 2aeb65d6-350e-4c75-811e-4a748044fe2c 2a6a1355-615f-4c2c-a8af-c9ae8dcda09b 60ed5b96-40e3-4676-a742-07a8ad6cc3b7 5e731a23-7708-4248-b055-9b4a531f147d 965f94eb-1558-4d00-9857-5727eb86fe6f 7b4f4f14-6c76-4822-84c1-67589bc74b82
 :COOKIE_DATA: checkbox recursive
 :DROPPED:  542924c1-9152-4414-8da8-d530d3423611 d2a0f54c-b59a-4855-ae3d-c93a6d3aa177 72463b68-9f08-44b2-8213-87f71298138d
 :END:
@@ -4403,7 +4403,7 @@ in the story.*
 :ID:       b862fbf4-53b8-48b5-b773-1c7c0332dfb4
 :CREATED:  [2026-08-31 Mon 15:44]
 :CATEGORY: Queue
-:BLOCKER:  ids(b0e478f7-e894-4ac7-b0b6-b3c890b5b32a)
+:BLOCKER:  b0e478f7-e894-4ac7-b0b6-b3c890b5b32a
 :END:
 
 Split out of [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]] 2026-08-31.
@@ -5086,7 +5086,7 @@ combination is what does it.
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  ids(d6fc47a5-b84d-4287-b973-aa5b37410270 591e7af3-4f37-4f90-86ba-62400c6e649b)
+:BLOCKER:  d6fc47a5-b84d-4287-b973-aa5b37410270 591e7af3-4f37-4f90-86ba-62400c6e649b
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-31 Mon 12:07]
@@ -5171,7 +5171,7 @@ into the day's existing clone, never append a second.
 :ID:       d6fc47a5-b84d-4287-b973-aa5b37410270
 :CREATED:  [2026-08-31 Mon 11:21]
 :CATEGORY: Meta
-:BLOCKER:  ids(33864a0f-5e13-4235-85a6-0bd9d2fe5252)
+:BLOCKER:  33864a0f-5e13-4235-85a6-0bd9d2fe5252
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-31 Mon 11:22]
@@ -5459,7 +5459,7 @@ orthogonal and was already noted there as independent.
 :CATEGORY: Clock
 :ID:       64d34a64-d336-40a8-a8e8-da8133d0da06
 :CREATED:  [2026-08-26 Wed 14:46]
-:BLOCKER:  ids(406e9200-c3e7-49ac-a8d0-d6ff8e061ce4)
+:BLOCKER:  406e9200-c3e7-49ac-a8d0-d6ff8e061ce4
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-26 Wed 14:46] \\
@@ -10102,7 +10102,7 @@ CLOSED: [2026-08-21 Fri 13:21]
 :PROPERTIES:
 :ID:       cd1e974e-e006-4974-b770-cdc1cf2e4ab2
 :CREATED:  [2026-08-21 Fri 10:10]
-:BLOCKER:  ids(e30d52d7-960b-44f3-ab92-93846c81a1bd)
+:BLOCKER:  e30d52d7-960b-44f3-ab92-93846c81a1bd
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-21 Fri 10:11] \\
@@ -10261,7 +10261,7 @@ apply command clocks in through the same advised =org-clock-in=.
 :CATEGORY: Apply
 :ID:       118373e5-b89b-4001-ad52-1f68374745fb
 :CREATED:  [2026-08-07 Fri 15:54]
-:BLOCKER:  ids(720b2dcf-6af1-45f3-96a7-aa841e5651e1)
+:BLOCKER:  720b2dcf-6af1-45f3-96a7-aa841e5651e1
 :END:
 
 Captured 2026-08-07 from conversation, after pressing =h= in a live
@@ -10333,7 +10333,7 @@ children are 29 =DONE= and 2 =CANCELLED=, and it can close.
 :PROPERTIES:
 :CATEGORY: Apply
 :ID:       0c8644ff-f7b1-4789-ac1e-babf2e9fbc8e
-:BLOCKER:  ids(5ff5a4b8-2fee-472a-b5e1-c9de8cf96704 406e9200-c3e7-49ac-a8d0-d6ff8e061ce4)
+:BLOCKER:  5ff5a4b8-2fee-472a-b5e1-c9de8cf96704 406e9200-c3e7-49ac-a8d0-d6ff8e061ce4
 :CREATED:  [2026-08-07 Fri 08:05]
 :END:
 :PLAN:
