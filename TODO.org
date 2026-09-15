@@ -209,13 +209,31 @@ one:* do not call =org_amend= with =replace== on a slice. Compose the body
 first and add members after, or amend rather than replace.
 
 
-* REVIEW [4/4] The plugin ships to a second repo unenforced, uncategorised and over-claimed :code:
+* DONE [4/4] The plugin ships to a second repo unenforced, uncategorised and over-claimed :code:
+CLOSED: [2026-09-15 Tue 13:28]
 :PROPERTIES:
 :ID:       35582d95-003a-4735-9b19-36f7ad813f0d
 :CREATED:  [2026-09-15 Tue 10:08]
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
 :CATEGORY: Slices
+:END:
+:DEBRIEF:
+*Comparison against =afea7e4f=, as next-session.md asked, and the first slice to close against a baseline.*
+
+| members | 4 (4 planned, 0 adopted) against 11 |
+| span | composed 10:08, merged 18:28 the same day — under a day against 5 calendar days |
+| commits | 12 against 50 |
+| review findings | 8, **2.0 per member** against 0.64 |
+| attention | pending: the closing session's clocks were applied at 13:0x, the review-fix and planning clocks are still queued; run =M-x claude-code-ide-org-attention-report= over 2026-09-15 after the next apply and record it here |
+
+*Read the findings rate before reading it as regression.* Three times the baseline on a slice a quarter the size, but five of eight were in the =--org= shell script and its prose — the surface with 76 checks against 664 ERT tests — and one was a template escape only visible by running it, which the reviewer did. None was in the corpus rewrite or the blocker fix, the two members whose tests were run red first against a copy of HEAD. The lesson is where the tests are thin, not that the practice failed.
+
+*What the practice did catch, on its own, the same day:* every fix run red first; the lint rules mutation-tested against the corpus copy; the reload precondition named before each live check — and that last one caught two defects batch could not see, a defcustom =:set= that aborted a live reload and a skill-check anchor matching its own prefix. Three standing rules and one Step 0 item were added from those.
+
+*Falsified along the way:* that euchre needed the blocker normaliser (it carries no blocker and is not tracked by the live Emacs); that the MCP client caches a tool's argument schema for the session (a capture passed =category= from the session that added it); and that =%%= escapes a template value (org-capture has no such form — the property is written after finalize instead).
+
+*Left behind, and filed:* =dd4b9a9f=, no org tool edits a phrase in place, found correcting =8a2eb687='s unnamed "previous slice" the same afternoon. The two review cleanups left as noted — a pre-guard queued capture would apply uncategorised (zero live instances), the normaliser does not kill buffers it opens — are recorded on PR #24's summary comment and not worth headings. One follow-up is the user's: the hand-kept 202 override in =~/.config/doom/config.el= is now redundant.
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-15 Tue 10:48] \\
@@ -224,6 +242,12 @@ first and add members after, or amend rather than replace.
   first member 3f4fd744 starting; branch cut
 - State "REVIEW"     from "DOING"      [2026-09-15 Tue 12:23] \\
   all four members terminal; PR #24 awaits merge
+CLOCK: [2026-09-15 Tue 13:18]--[2026-09-15 Tue 13:22] =>  0:04
+- [2026-09-15 Tue 13:18]--[2026-09-15 Tue 13:22] fix PR #24 review findings on the branch
+- State "DONE"       from "REVIEW"     [2026-09-15 Tue 13:28] \\
+  PR #24 merged as d58dad7
+CLOCK: [2026-09-15 Tue 13:28]--[2026-09-15 Tue 13:31] =>  0:03
+- [2026-09-15 Tue 13:28]--[2026-09-15 Tue 13:31] assigned at review
 :END:
 :PLAN:
 *Why these four and not the other three.* The euchre blocking set named on
@@ -767,6 +791,8 @@ counts it, leaving the cookie lying about what remains.
 :BLOCKER:  406e9200-c3e7-49ac-a8d0-d6ff8e061ce4 b57c7515-c511-4198-b311-26cefc52a60d 9202b39d-49e4-441c-89f2-382feb4ef1ea 7d739afd-f879-445c-b0b6-65e295585a94 c9940558-b23e-4b2c-86e8-e75a377634aa c54c4215-90e3-4e0c-9de1-990c0406a2b2 2deb090f-593d-40e3-9044-fda318d9b6de
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-15 Tue 13:10]--[2026-09-15 Tue 13:12] =>  0:02
+- [2026-09-15 Tue 13:10]--[2026-09-15 Tue 13:12] compose the next-session plan for this slice
 - State "NEXT"       from "TODO"       [2026-09-15 Tue 13:12] \\
   nominated: next slice, plan composed in next-session.md
 :END:
@@ -5739,6 +5765,7 @@ attention as it happens.
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-15 Tue 13:31]--[2026-09-15 Tue 13:33] =>  0:02
 CLOCK: [2026-09-15 Tue 13:28]--[2026-09-15 Tue 13:30] =>  0:02
 CLOCK: [2026-09-15 Tue 13:04]--[2026-09-15 Tue 13:06] =>  0:02
 CLOCK: [2026-09-15 Tue 11:42]--[2026-09-15 Tue 11:44] =>  0:02
