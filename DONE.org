@@ -7,6 +7,1088 @@ Archived entries from file /Users/neil.best/git/claude-code-ide-org/TODO.org
 * 2026
 
 ** 2026-09 September
+*** 2026-09-14 Monday
+**** DONE A state item applies correctly and is then reported failed, so it is re-offered forever :code:
+CLOSED: [2026-09-14 Mon 17:57]
+:PROPERTIES:
+:ID:       b23e5bcc-1bfd-4862-a801-0c7ac6959924
+:CREATED:  [2026-09-14 Mon 10:05]
+:CATEGORY: Apply
+:ARCHIVE_TIME: 2026-09-15 Tue 08:09
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Apply
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-14 Mon 17:33]--[2026-09-14 Mon 17:41] =>  0:08
+- [2026-09-14 Mon 17:33]--[2026-09-14 Mon 17:41] assigned at review
+CLOCK: [2026-09-14 Mon 17:54]--[2026-09-14 Mon 17:58] =>  0:04
+- [2026-09-14 Mon 17:54]--[2026-09-14 Mon 17:58] assigned at review
+- State "DONE"       from "TODO"       [2026-09-14 Mon 17:57] \\
+  root cause fixed: point restored before the tidy-up
+:END:
+:DEBRIEF:
+*Root cause: the drawer tidy-up folded into every apply.*
+=--review-apply-item='s lambda calls =--consolidate-drawer-at-point=
+after the type dispatch, and that reaches =--find-drawer=, whose first
+act is =(org-back-to-heading t)=. It asks for \"the heading at point\",
+and a state apply does not promise to leave point there — it drives
+org's note-storing machinery, which moves point and ends in
+=set-window-configuration=. Point before the first heading, and the
+tidy-up signals *after* the keyword and the note have both been written
+correctly. That is the whole symptom: the writes are right, only the
+verdict is wrong.
+
+*Confirmed at the source rather than argued.* Running
+=--consolidate-drawer-at-point= from =point-min= in a scratch org buffer
+returns =\"Before first headline at position 1 in buffer *temp*\"= — the
+observed failure word for word, with only the buffer name differing.
+From the heading it returns cleanly.
+
+*Fixed by returning to where =--at-id= put us* before the tidy-up: the
+lambda keeps a marker from entry and restores buffer and point after the
+dispatch. Making the tidy-up tolerant instead was rejected — \"the
+heading at point\" is its contract and its other callers keep it; the
+apply path is what broke it.
+
+*The test simulates rather than reproduces*, which is the honest shape
+here: the live failure was intermittent and resisted reproduction
+through five falsified hypotheses, so the test injects the one condition
+that matters — an apply that leaves point before the first heading — and
+asserts the pass survives. Verified to discriminate by removing the fix:
+without it the test fails, with it 649 pass.
+
+*The earlier mitigation stays.* It keys on a returned string and
+compares the heading's actual state, so it still catches a landed change
+reported failed for any *other* reason. It was a symptom guard and is
+now a backstop, which is the right relationship.
+
+*On the blocker this heading declared:* diagnosis was said to be blocked
+on [[id:169df26b-64a8-4de9-8919-ab58d510aaf6][169df26b]], and it was not. The error message already
+carried the position; what was missing was the *caller*, which the cheap
+context facts cannot supply either. Reading the call chain answered it.
+Worth recording because \"blocked on an instrument\" delayed a diagnosis
+that a grep for =org-back-to-heading= would have reached.
+
+*Left behind:* nothing. The eight items from the 2026-09-14 pass were
+already dismissed by hand.
+:END:
+:PLAN:
+
+Observed live 2026-09-14: an apply reported =Applied 8 item(s); 8 failed=, every
+failure reading =Error: Before first headline at position 1 in buffer TODO.org
+[state ...]= — and **every one of those eight state changes had in fact landed
+correctly**. Verified on disk: =489d6f61= carries =- State "TODO" from "MAYBE"
+[2026-09-14 Mon 09:23]= with its note, backdated, inside =:LOGBOOK:=;
+=325679af=, =96ddf1ef= and =f1e36a65= are =REVIEW=, =b57c7515= is =NEXT=. The
+=*Messages*= order is decisive — =TODO state changed to TODO=, then =Note
+stored=, *then* the error — so =org-todo= and the note both completed and
+something after them signalled. No corruption: the file header is intact and
+nothing was inserted at position 1. The consequence is not cosmetic. A failed
+item is never watermarked, so all eight came back on the next pass, now marked
+=STALE, heading is now X= by the staleness guard — correct behaviour that will
+nonetheless recur on every future pass until each is dismissed by hand, and
+**force-applying one would write a second =State= line for a transition that
+already happened**. Note the apply is otherwise sound, which is why this went
+unnoticed: the writes are right, only the verdict is wrong. Diagnosis is blocked
+on [[id:169df26b-64a8-4de9-8919-ab58d510aaf6][169df26b]] (the stored backtrace
+is captured after unwinding), so the next step is a reproduction with
+=debug-on-error= bound during =--review-apply-item= rather than more reading.
+
+:END:
+*Resolution:* the apply lambda now returns to where =--at-id= put it
+before running the drawer tidy-up, which is the step that signalled.
+Root cause: the tidy-up asks for \"the heading at point\" and a state
+apply does not promise to leave point there.
+
+
+**** DONE The stored error backtrace is captured after unwinding, so it never shows where the error came from :code:
+CLOSED: [2026-09-14 Mon 17:57]
+:PROPERTIES:
+:ID:       169df26b-64a8-4de9-8919-ab58d510aaf6
+:CREATED:  [2026-09-14 Mon 10:05]
+:CATEGORY: Tools
+:ARCHIVE_TIME: 2026-09-15 Tue 08:09
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Tools
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+- State "DONE"       from "TODO"       [2026-09-14 Mon 17:57] \\
+  error context shipped; stack stays gated on Emacs 30
+:END:
+:DEBRIEF:
+*Shipped option 3 of the three the plan listed*, the one needing neither
+=handler-bind= nor ownership of a global: record the cheap facts instead
+of a stack. Three tests, 649 in the suite.
+
+*Why the other two stayed unavailable.* =handler-bind= runs a handler
+before unwinding and takes no global — the exact primitive — but it
+landed in **Emacs 30** and this machine runs **29.4**, verified rather
+than recalled. =signal-hook-function= fires at signal time and is a
+global, carrying the same objection as =debugger= in smaller form: a
+library cannot take one without stealing it from whoever else holds it,
+which ERT does, edebug does, and so does a human with
+\\[toggle-debug-on-error] while reproducing the very bug this would serve.
+
+*The instrument is honest about what it is.* The old =:backtrace= looked
+like evidence while describing only the capture machinery, which is
+worse than nothing because it stopped anyone reaching for a
+reproduction. The replacement claims only to say where =--at-id= was
+pointed, and the test asserts it *discriminates* — a marker at position
+1 reads \"NOT at a heading\" and one on a heading reads \"at a heading\" —
+because a context reporting the same string for both would be exactly as
+useless as the backtrace was.
+
+*And the thing it was built for did not need it.*
+[[id:b23e5bcc-1bfd-4862-a801-0c7ac6959924][b23e5bcc]] named this heading as its blocker, and the
+diagnosis in the end came from reading the call chain — the tidy-up
+folded into every apply asks for \"the heading at point\", and a state
+apply need not leave point there. So the blocker *dissolved* rather than
+being resolved, which is worth recording: the instrument would have
+named the position immediately, but the error message already carried
+it, and what was actually missing was the *caller*, which no cheap fact
+can supply.
+
+*Left behind:* nothing new. Capturing a real signal-site stack remains
+wanted and remains gated on Emacs 30; that is the plan's own note, not a
+fresh gap.
+:END:
+:PLAN:
+
+=claude-code-ide-org--at-id= records =--last-error-backtrace= from inside its
+own =condition-case= handler, by which point the frames between the signal and
+the handler have already been unwound. What it stores is therefore the
+*handler's* frames — =backtrace-get-frames=, the =condition-case= form itself,
+=--at-id= — and never the code that actually signalled. Read live 2026-09-14
+while diagnosing =b23e5bcc=: the captured backtrace was fourteen frames of the
+capture machinery describing itself, and the erroring call did not appear at
+all. This is the diagnostic equivalent of a silent failure: it looks like
+evidence, so nobody reaches for a real reproduction, and the one question it
+exists to answer is the one it cannot. Proposed: capture with =debug-on-error=
+and =debugger= bound to a collector around the *body*, so the backtrace is taken
+at signal time before unwinding — org's own =org-lint= and Emacs's =ert= both
+take this approach. Failing that, say so in the variable's docstring, because a
+backtrace that cannot name a signal site should not be presented as one.
+
+*Attempted 2026-09-14 and reverted. The mechanism works; binding =debugger=
+inside library code does not.*
+
+The fix proposed above was implemented: drop =--at-id='s =condition-case=, bind
+=debug-on-error= and =debugger= around =(funcall fn)=, capture
+=backtrace-get-frames= inside the debugger — which Emacs calls *before*
+unwinding — and =throw= to a =catch= to perform the non-local exit the handler
+used to. Verified in isolation, and the semantics are exactly right: a plain
+error reaches the debugger and is caught with its data, while an error =fn=
+handles internally never reaches it. Verified end to end outside ERT against the
+real =--review-apply-item= path: the error string, the warning and the keyword
+all came back correct.
+
+*Then the suite aborted, and the reason generalises past the suite.* ERT
+installs a =debugger= of its own, so a =throw= from ours arrives as an
+unexplained non-local exit — =ABORTED= rather than a failure, with no diagnosis.
+It hit =apply-trusts-the-file-over-the-verdict= and
+=move-sibling-boundary-errors=, the latter being a test whose whole job is that
+a real error inside =--at-id= becomes an error string. **Any framework that owns
+the debugger collides the same way** — edebug does, and so does a human with
+=toggle-debug-on-error= while reproducing a bug, which is precisely when this
+capture would matter most.
+
+*So the two are mutually exclusive in a stronger sense than first recorded.* Not
+merely "a =condition-case= suppresses the debugger", but: a library cannot take
+the debugger without stealing it from whoever else is using it. The instrument
+must not require ownership of a global.
+
+*What to try instead, in preference order.* =handler-bind= runs a handler
+**before** unwinding and takes no global — it is the exact primitive for this,
+and it landed in **Emacs 30**; this machine runs 29.4, so adopting it is gated
+on an upgrade and should be checked against =org-mode='s own floor before being
+made a requirement. Failing that, =signal-hook-function= fires at signal time
+and is likewise a global, so it carries the same objection in a smaller form. A
+third option is to stop trying to capture a stack at all and record the cheap
+facts a handler *can* still see — =(point)=, =(buffer-name)=, =(current-buffer)=
+— which would have named "point was at 1 in TODO.org" immediately and is most of
+what the two undiagnosed occurrences actually needed.
+
+*The revert leaves the gap open and the suite green at 629.* =b23e5bcc='s
+mitigation is unaffected: it was committed separately and keys on a returned
+string, not on a backtrace.
+
+:END:
+*Resolution:* the misleading =:backtrace= is gone and
+=--last-error-backtrace= is now =--last-error-context=, recording where
+the marker actually pointed — position, buffer size, file, whether that
+position is at a heading, whether the buffer is narrowed — computed in
+the handler, which is sound because unwinding restores point and buffer
+but does not move a marker.
+
+
+**** DONE Nothing stops a span being assigned to "Review attention", which ranks high and reads like "Review and planning" :code:
+CLOSED: [2026-09-14 Mon 17:30]
+:PROPERTIES:
+:ID:       40159d43-e48b-4f38-95eb-651145637049
+:CREATED:  [2026-09-14 Mon 09:42]
+:ARCHIVE_TIME: 2026-09-15 Tue 08:09
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: TODO
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-09-14 Mon 17:17] \\
+  next in the slice after two closes
+- State "DONE"       from "NEXT"       [2026-09-14 Mon 17:30] \\
+  mechanism-owned heading excluded from assignment
+:END:
+:DEBRIEF:
+*Shipped* =claude-code-ide-org--mechanism-owned-heading-p=, consulted by
+=--assign-candidates=. One test, 645 in the suite.
+
+*"It ranks high" was measured rather than assumed.* Against a real span
+on 2026-09-10, with the exclusion disabled the heading is candidate
+**#4 of 492**; with it enabled the list is 491 and the heading is absent.
+That is the whole claim of this heading, and it is now a number.
+
+*Compared by title, not by id, and that is the design choice.* The
+heading is *named* by a defcustom rather than pointed at, so a user who
+renames it renames the thing to exclude — an id would go stale on the
+rename where the title cannot. Nil defcustom means clocking is disabled
+and there is nothing to exclude.
+
+*The docstring's standing claim had to change with the code.*
+=--assign-candidates= said "*Nothing is excluded*, and that is the fix
+for =0d055205=" — a sentence recording why a previous exclusion was a
+bug (it dropped every heading created after the span, and
+=completing-read= runs with REQUIRE-MATCH, so those headings were simply
+unreachable). Leaving it would have left the file asserting the opposite
+of what it does. It now names the one exception and keeps the reason the
+general form stays forbidden.
+
+*The exposure was prospective, as the audit said.* Across 81 closed CLOCK
+lines on the heading, all 11 annotations came from
+=review-attention-stop= and none from an assignment, so nothing
+historical needed repair.
+
+*Left behind:* nothing. The body's second suggestion — renaming the heading so
+it cannot be misread as the meta-work node — is not needed now that it is
+unreachable from the assignment list, and [[id:591e7af3-4f37-4f90-86ba-62400c6e649b][591e7af3]] already owns that heading's
+other maintenance question.
+:END:
+:PLAN:
+
+=--assign-candidates= says of itself "*Nothing is excluded*, and that is the fix
+for =0d055205=", so the =Review attention= heading (=335dfa97=) is offered at
+=a= like any other — and it ranks *well*, because candidates are ranked by time
+correlation with the span and that heading is clocked at exactly review time by
+construction. Its display name differs from the meta-work datetree's by two
+words. Audited 2026-09-14 at the user's question and **the record is clean so
+far**: across 81 closed CLOCK lines (4.92 h) on =335dfa97=, every one of its 11
+annotations reads =review pass (buffer buried)=, whose only writer is
+=claude-code-ide-org-review-attention-stop=, and there are zero annotations from
+any other source — so no human-assigned span has ever landed there, and the 247
+CLOCK lines (17.17 h) of meta-work are all on the datetree where they belong.
+The exposure is prospective, not historical. Proposed: exclude
+=claude-code-ide-org-review-attention-heading= from the assignment candidate
+list, since it is a heading the *mechanism* owns and a human has no reason to
+pick — that is a narrower exclusion than =0d055205= reversed, which was about
+not hiding headings created after the span. Consider also naming it something
+that cannot be misread as the meta-work node.
+
+:END:
+*Resolution:* =--assign-candidates= now drops the one heading the
+mechanism owns, via =--mechanism-owned-heading-p=, which compares against
+the =claude-code-ide-org-review-attention-heading= defcustom so renaming
+the heading renames what is excluded.
+
+
+**** DONE Long prose lines accumulate in the trackers, and M-q by hand is the only thing wrapping them :code:
+CLOSED: [2026-09-14 Mon 17:26]
+:PROPERTIES:
+:ID:       496b665e-3370-4a66-814a-3c5bd2d3dddc
+:CREATED:  [2026-09-14 Mon 17:20]
+:ARCHIVE_TIME: 2026-09-15 Tue 08:09
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: TODO
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+- State "DONE"       from "DOING"      [2026-09-14 Mon 17:26] \\
+  fill-prose shipped, both trackers swept
+:END:
+:PLAN:
+Measured 2026-09-14: 916 prose lines over 100 characters in TODO.org and
+2197 in DONE.org, the longest 1554. The user has been reformatting by
+hand with \\[fill-paragraph].
+
+*There is no command for it*, which a read-only TODO.org buffer made
+explicit — a hand-written =emacsclient= call binds nothing, and reaching
+for one against a read-only buffer is the signal that the tool surface
+is missing something rather than a licence to clear the flag.
+
+*Proposed:* a normaliser beside
+=claude-code-ide-org-normalize-heading-separation= that fills paragraph
+and item elements only, skips =:PROPERTIES:= and =:LOGBOOK:=, defaults
+to the buffer's own =fill-column= so it produces what the human's own
+\\[fill-paragraph] would, and refuses unless the buffer's non-whitespace
+content is byte-identical afterwards.
+:END:
+:DEBRIEF:
+*Shipped* =claude-code-ide-org-fill-prose=: fills =paragraph=, =item=
+and =plain-list= elements, skips =:PROPERTIES:= and =:LOGBOOK:= because
+their contents are org's own records, and defaults to the buffer's own
+=fill-column= so the output is what a human's \\[fill-paragraph] would
+have produced rather than a second competing width. Four tests, 644 in
+the suite.
+
+*The safety property is the feature.* A formatting pass over thousands
+of lines is exactly the edit whose damage nobody can review by reading
+the diff, so the buffer's non-whitespace content is digested before and
+after and a change reverts rather than saves.
+
+*Verified independently of that digest*, since a check marking its own
+homework is worth little: whitespace stripped, DONE.org is byte-identical
+to the previous commit and TODO.org differs only by a heading captured
+after it. Note =git diff --ignore-all-space= is *not* a valid check here
+— it ignores whitespace within a line but still sees moved line breaks,
+so it reported 5,198 insertions on a pass that changed no word.
+
+*Two defects found by running it, both now covered.* =org-element-at-point=
+reports =plain-list= at a list's **first** item and =item= only at later
+ones, so a predicate naming =item= alone skipped the opening item of
+every list — 27 in TODO.org, the longest 588 characters. And an =:ID:= in
+a test fixture registers into =org-id-locations=, breaking an unrelated
+test twenty later with no visible connection to its cause.
+
+*What forced it to be a command rather than a one-liner:* TODO.org's
+buffer was read-only, and the rules are explicit that a hand-written
+=emacsclient= call binds nothing, so reaching for one there signals a
+missing tool rather than licensing the flag to be cleared. It binds
+=buffer-read-only= like its sibling.
+
+*Not addressed, and named rather than filed:* the source is that
+=org_capture= and =org_amend= write prose unwrapped. Filling at the write
+boundary would stop the drift instead of sweeping it, but it changes
+what every write does and deserves its own decision — the sweep is
+idempotent and cheap to re-run in the meantime.
+:END:
+
+=org_capture= and =org_amend= write prose exactly as it arrives, so a
+body composed in one call lands as a single line however long it is, and
+nothing but a human pressing \\[fill-paragraph] has ever wrapped one.
+Proposed: a normaliser that fills prose elements only and refuses unless
+the buffer's non-whitespace content is unchanged.
+
+*Resolution:* shipped as =M-x claude-code-ide-org-fill-prose=, beside
+=normalize-heading-separation= and for the same reason — the files drift
+out of the convention as a matter of course — and swept both trackers,
+941 paragraphs in TODO.org and 2265 in DONE.org.
+
+**** DONE Reconstruct coarse day-level attention intervals for the agenda :code:analysis:
+CLOSED: [2026-09-14 Mon 17:17]
+:PROPERTIES:
+:CATEGORY: Queue
+:ID:       4f8500e6-b468-4fd4-a0f6-ebf04c7a57ba
+:CREATED:  [2026-08-14 Fri 11:35]
+:BLOCKER:  ids(df5afbbd-0eac-4032-be91-17cc22ef0cd7)
+:ARCHIVE_TIME: 2026-09-15 Tue 08:09
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Queue
+:ARCHIVE_TODO: DONE
+:END:
+:DEBRIEF:
+*Shipped* =M-x claude-code-ide-org-attention-report= over a date range,
+with =claude-code-ide-org-attention-window-seconds= (600) and
+=-attention-floor-windows= (3). Six tests, 640 in the suite, lint clean.
+
+*Three things found by running it rather than by reasoning.*
+
+**=--span-work-runs= rewrites endpoints.** It promotes a sub-minute run's
+end to a full minute so the observation survives org's minute precision
+— right for a CLOCK line, wrong here, because window membership is
+computed *from* the endpoints: a ten-second turn at 09:09:40 becomes
+09:10:40 and marks a window nothing ran in. The pairing is now
+=--raw-work-runs=, and the test asserts the two functions *disagree* on
+that case rather than merely passing.
+
+**Guideposts must pair within a session.** =--queue-events= merges every
+session and re-sorts, so pairing the merged stream let one session's
+=resume= close against another's =pause=. With a background job and an
+interactive session overlapping constantly this was the common case.
+
+**A run boundary is broader than =resume=/=pause=.** =clock_in= and
+=block_end= also open; =clock_out= and =block_start= also close. Every
+ad-hoc figure quoted while designing this used the narrow pair and
+undercounts — last week is 17.4h, not the 12.8h reported at the time.
+
+*Falsified, and worth keeping because the first answer was confidently
+wrong.* That a slice rollup would assign time predating the slice: it
+does, and it is 0.8h of 10.0h, not the 60% an earlier measurement
+claimed. The 60% came from treating sparse decision events as dense work
+evidence; keyword-gating removes it entirely, for the reason the user
+gave — attention before =DOING= is disaggregated meta-work, and =DOING=
+periods postdate the slice by construction. That also retired this
+heading's own argument that slice totals must never be written, which
+had leaned on a hazard that does not exist.
+
+*Left behind:* nothing new. The declared-target gap — most busy time carries no
+clocked heading — is [[id:ccfd89ce-a55d-4ad4-bce7-707181deb510][ccfd89ce]] and
+already filed; rolling up by =:CATEGORY:= instead of by slice was proposed here
+and *declined* by the user in favour of the slice-or-review pair, so it is a
+closed question rather than residue.
+:END:
+:PLAN:
+*The derivation.* A **busy** window is one carrying agent run time —
+"busy", never "active", which in org names a timestamp shape and would
+read as the opposite of what is measured; its complement is *idle*. Ten
+minutes wide. Three consecutive busy windows make an attention interval,
+the 30-minute floor. Sub-floor stretches are not discarded — that would
+drop roughly 30% of busy time — but rendered as **bookends**: split the
+day's residue at the midpoint of its own min–max span, size each block
+to the busy time it represents, and anchor the early one at the earliest
+observed moment and the late one at the latest. Every bookend then has
+one observed edge, and a side holding a single stretch has both.
+
+*Why the floor is 30 minutes.* Median agenda items per day over 26 days:
+8 at a 10-minute floor, 6 at 20, 3 at 30, 1 at 60. Three windows is
+where a day's items become few enough to reconcile against a calendar,
+which is the only consumer.
+
+*The label vocabulary is two words wide:* the slice open in
+=DOING=/=REVIEW= at that moment, else =Review and planning= (the user,
+2026-09-14 — the two are the same kind of thing and both roll up to the
+project, which is the level attention is actually reported at). Measured
+over 803 busy windows: 268 had exactly one slice open, 535 none, two
+never. The premise is one human, stated as such.
+
+*Duration is end minus start, with no second number.* An earlier draft
+reported window-count times width alongside observed boundaries and the
+two disagreed — a stretch rendered 09:05–09:47 was labelled 50m against
+a 42-minute range. An org active interval's duration *is* its range.
+
+*What licenses proposing any of this.* The bar is an aid to attestation, not a
+final word (the user, 2026-09-14): the output is reconciled against a calendar
+of external activity and hand-corrected, and overlap across projects is
+acceptable. So [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]]'s refusal
+of a guessed stop time does not reach it — there the number had no evidence
+behind it; here the boundaries are observations and only the label is offered.
+The rule that survives is *propose what is measured, ask for what is not*.
+
+*Three renderings were tried and two rejected.* One block spanning
+first-start to last-end drew Wednesday as =07:52--16:45=, an 8.9-hour
+agenda block for 60 minutes of work. One block sized to the real minutes
+fixed the quantity and left the placement wrong — that day's 16:14 and
+16:45 stretches drawn at 8am. Bookends fix both, at four extra items
+across four days.
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-14 Fri 11:36] \\
+  manual pass, no blockers found
+CLOCK: [2026-08-14 Fri 11:46]--[2026-08-14 Fri 11:47] =>  0:01
+- [2026-08-14 Fri 11:46]--[2026-08-14 Fri 11:47] suggested span, accepted at review
+CLOCK: [2026-08-14 Fri 11:51]--[2026-08-14 Fri 11:52] =>  0:01
+- [2026-08-14 Fri 11:51]--[2026-08-14 Fri 11:52] suggested span, accepted at review
+CLOCK: [2026-08-14 Fri 12:07]--[2026-08-14 Fri 12:09] =>  0:02
+- [2026-08-14 Fri 12:07]--[2026-08-14 Fri 12:09] suggested span, accepted at review
+CLOCK: [2026-08-14 Fri 12:16]--[2026-08-14 Fri 12:18] =>  0:02
+- [2026-08-14 Fri 12:16]--[2026-08-14 Fri 12:18] suggested span, accepted at review
+CLOCK: [2026-08-14 Fri 12:22]--[2026-08-14 Fri 12:28] =>  0:06
+- [2026-08-14 Fri 12:22]--[2026-08-14 Fri 12:28] suggested span, accepted at review
+CLOCK: [2026-08-14 Fri 12:31]--[2026-08-14 Fri 12:36] =>  0:05
+- [2026-08-14 Fri 12:31]--[2026-08-14 Fri 12:36] suggested span, accepted at review
+CLOCK: [2026-09-14 Mon 14:34]--[2026-09-14 Mon 14:35] =>  0:01
+- [2026-09-14 Mon 14:34]--[2026-09-14 Mon 14:35] measure a derived attention-interval rule
+- [2026-09-14 Mon 14:35]--[2026-09-14 Mon 14:35] measure a derived attention-interval rule
+CLOCK: [2026-09-14 Mon 15:05]--[2026-09-14 Mon 15:06] =>  0:01
+- [2026-09-14 Mon 15:05]--[2026-09-14 Mon 15:06] measure a derived attention-interval rule
+CLOCK: [2026-09-14 Mon 15:06]--[2026-09-14 Mon 15:07] =>  0:01
+- [2026-09-14 Mon 15:06]--[2026-09-14 Mon 15:07] measure a derived attention-interval rule
+CLOCK: [2026-09-14 Mon 15:10]--[2026-09-14 Mon 15:13] =>  0:03
+- [2026-09-14 Mon 15:10]--[2026-09-14 Mon 15:13] measure a derived attention-interval rule
+CLOCK: [2026-09-14 Mon 15:13]--[2026-09-14 Mon 15:14] =>  0:01
+- [2026-09-14 Mon 15:13]--[2026-09-14 Mon 15:14] measure a derived attention-interval rule
+CLOCK: [2026-09-14 Mon 15:20]--[2026-09-14 Mon 15:25] =>  0:05
+- [2026-09-14 Mon 15:20]--[2026-09-14 Mon 15:25] measure a derived attention-interval rule
+CLOCK: [2026-09-14 Mon 15:25]--[2026-09-14 Mon 15:26] =>  0:01
+- [2026-09-14 Mon 15:25]--[2026-09-14 Mon 15:26] measure a derived attention-interval rule
+CLOCK: [2026-09-14 Mon 15:30]--[2026-09-14 Mon 15:34] =>  0:04
+- [2026-09-14 Mon 15:30]--[2026-09-14 Mon 15:34] measure a derived attention-interval rule
+CLOCK: [2026-09-14 Mon 15:34]--[2026-09-14 Mon 15:35] =>  0:01
+- [2026-09-14 Mon 15:34]--[2026-09-14 Mon 15:35] measure a derived attention-interval rule
+CLOCK: [2026-09-14 Mon 15:36]--[2026-09-14 Mon 15:40] =>  0:04
+- [2026-09-14 Mon 15:36]--[2026-09-14 Mon 15:40] measure a derived attention-interval rule
+CLOCK: [2026-09-14 Mon 15:40]--[2026-09-14 Mon 15:41] =>  0:01
+- [2026-09-14 Mon 15:40]--[2026-09-14 Mon 15:41] measure a derived attention-interval rule
+CLOCK: [2026-09-14 Mon 15:48]--[2026-09-14 Mon 15:51] =>  0:03
+- [2026-09-14 Mon 15:48]--[2026-09-14 Mon 15:51] measure a derived attention-interval rule
+CLOCK: [2026-09-14 Mon 15:51]--[2026-09-14 Mon 15:52] =>  0:01
+- [2026-09-14 Mon 15:51]--[2026-09-14 Mon 15:52] measure a derived attention-interval rule
+CLOCK: [2026-09-14 Mon 15:55]--[2026-09-14 Mon 15:57] =>  0:02
+- [2026-09-14 Mon 15:55]--[2026-09-14 Mon 15:57] measure a derived attention-interval rule
+CLOCK: [2026-09-14 Mon 15:57]--[2026-09-14 Mon 15:58] =>  0:01
+- [2026-09-14 Mon 15:57]--[2026-09-14 Mon 15:58] measure a derived attention-interval rule
+CLOCK: [2026-09-14 Mon 16:02]--[2026-09-14 Mon 16:08] =>  0:06
+- [2026-09-14 Mon 16:02]--[2026-09-14 Mon 16:08] measure a derived attention-interval rule
+CLOCK: [2026-09-14 Mon 16:08]--[2026-09-14 Mon 16:09] =>  0:01
+- [2026-09-14 Mon 16:08]--[2026-09-14 Mon 16:09] measure a derived attention-interval rule
+CLOCK: [2026-09-14 Mon 16:13]--[2026-09-14 Mon 16:25] =>  0:12
+- [2026-09-14 Mon 16:13]--[2026-09-14 Mon 16:25] measure a derived attention-interval rule
+CLOCK: [2026-09-14 Mon 16:25]--[2026-09-14 Mon 16:26] =>  0:01
+- [2026-09-14 Mon 16:25]--[2026-09-14 Mon 16:26] measure a derived attention-interval rule
+CLOCK: [2026-09-14 Mon 16:34]--[2026-09-14 Mon 16:43] =>  0:09
+- [2026-09-14 Mon 16:34]--[2026-09-14 Mon 16:43] measure a derived attention-interval rule
+CLOCK: [2026-09-14 Mon 16:43]--[2026-09-14 Mon 16:44] =>  0:01
+- [2026-09-14 Mon 16:43]--[2026-09-14 Mon 16:44] measure a derived attention-interval rule
+CLOCK: [2026-09-14 Mon 17:06]--[2026-09-14 Mon 17:07] =>  0:01
+- [2026-09-14 Mon 17:06]--[2026-09-14 Mon 17:07] measure a derived attention-interval rule
+CLOCK: [2026-09-14 Mon 17:12]--[2026-09-14 Mon 17:13] =>  0:01
+- [2026-09-14 Mon 17:12]--[2026-09-14 Mon 17:13] measure a derived attention-interval rule
+CLOCK: [2026-09-14 Mon 17:15]--[2026-09-14 Mon 17:16] =>  0:01
+- [2026-09-14 Mon 17:15]--[2026-09-14 Mon 17:16] measure a derived attention-interval rule
+- State "DONE"       from "DOING"      [2026-09-14 Mon 17:17] \\
+  attention report shipped and verified
+- State "DOING"      from "TODO"       [2026-09-14 Mon 17:17] \\
+  retroactive: worked and clocked 2026-09-14
+:END:
+
+A CLOCK line holds agent run time, measured; it is not the human's
+attention, which includes the reading and deciding between turns and
+runs about 2.7x longer. This derives coarse day-level **attention
+intervals** from busy windows — active timestamps, agenda-visible,
+attested rather than measured — so a working day can be reconciled
+against a calendar of external activity.
+
+*Resolution:* shipped as =M-x claude-code-ide-org-attention-report=,
+proposing intervals a human corrects; the qualifying ones carry two
+observed edges and the residue bookends one each.
+
+
+**** DONE Divide a window's run time among the headings the transcript shows it worked :code:research:
+CLOSED: [2026-09-14 Mon 17:16]
+:PROPERTIES:
+:ID:       295cde3a-49a5-4960-a828-a4fc175d73c1
+:CREATED:  [2026-09-01 Tue 13:27]
+:CATEGORY: Clock
+:ARCHIVE_TIME: 2026-09-15 Tue 08:09
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Clock
+:ARCHIVE_TODO: DONE
+:END:
+:DEBRIEF:
+*Shipped* =M-x claude-code-ide-org-allocation-report= over a date range,
+with =claude-code-ide-org-allocation-window-seconds= (1200) and
+=--worked-tool-names=. Windows, equal shares by largest remainder, laid
+end to end from the window's first observed run; a report only. Four
+tests, 640 in the suite, lint clean.
+
+*Two things running it found that reasoning had not.*
+
+**=org_capture= is not evidence of work, and had to leave the tool
+list.** A filing burst creates a dozen headings inside one window and the
+allocator read that as a dozen headings worked at once — 15 in the worst
+window on 2026-09-10. Creating a task is planning; the time belongs to
+review and planning whole, not a minute each to tasks nobody had
+started. The same shape as "mentions are not subjects", arriving through
+*writes* rather than prose, which is where it was not expected.
+
+**The resolution floor is real at a 20-minute window, and the report was
+hiding it.** That window measured 6 minutes of run time, so 9 of 15
+shares rounded under a minute and vanished — 6 lines under a header
+claiming 15, with nothing explaining the gap. It now names them.
+Surfacing it was the fix; the silent version claimed a completeness it
+never had.
+
+*Falsified along the way:* that the queue could say which headings a
+window worked. It cannot, and the reason is structural rather than a
+coverage gap — =org_amend= queues only when it fails to write through,
+so the signal is "the human had the file open", and six successful
+amends in one afternoon left no trace at all.
+
+*Left behind, and filed:* a bookkeeping burst still inflates the sharing count
+through =org_set_property= and =org_slice_add_member=
+([[id:369ad62a-e2ce-4cab-b2ee-0e83ad24f249][369ad62a]]). *Not filed,
+deliberately:* coverage is small — 2026-09-10 allocates 1.2h where the attention
+derivation gives roughly 5h — but that is
+[[id:ccfd89ce-a55d-4ad4-bce7-707181deb510][ccfd89ce]]'s sparsity, already
+recorded, not this heading's residue.
+:END:
+:PLAN:
+*The shape, decided by the user 2026-09-01 and simplified 2026-09-14.*
+Fixed windows; equal shares; no weights; no overlap; contiguous
+intervals in order of appearance. The one change to the original
+proposal is what gets divided: the window's *measured run time*, not its
+nominal twenty minutes. That needs no utilisation gate, no lookup table
+and invents no minutes, and it makes total allocated equal total
+measured.
+
+*Why a gate was proposed and why it is not needed.* The proposal applied
+the split "only in periods of maximum utilization". Measured over 399
+windows carrying any run time, median utilisation is 13.8%; one window
+reaches 90%, five reach 75%, thirteen reach 50%. A gate on maximum
+utilisation would fire on 1–3% of windows and record almost nothing.
+
+*The empirical question the user asked, answered.* Over 362 windows
+carrying heading activity: 1 heading in 49%, 2 in 25%, 3 in 15%, 4 in
+6%, 5 in 3%, more than 5 in 1.7%, the largest 9. One heading is the
+*most* common case and takes the whole window.
+
+*The signal must be the transcript.* The measurement above read "worked" from
+id-bearing queue events. Verified 2026-09-14 that this is the wrong source:
+=org_amend= queues an event only when it *fails* to write through, so a
+successful amend is invisible — six to
+[[id:4f8500e6-b468-4fd4-a0f6-ebf04c7a57ba][4f8500e6]] that day produced zero
+events, while the four present all came from a window when the buffer happened
+to be dirty. The queue records whether the human had the file open, plus
+decision moments; not work. The transcript has no such gap, and
+[[id:e75d660f-5c0d-4707-a645-b5dea7d7ebc0][e75d660f]] measured the join as exact
+— 28 of 28 =resume= events match a transcript timestamp within two seconds.
+
+*Mentions are not subjects.* The heaviest turns name 36, 21 and 18 ids;
+those are footnote-heavy responses citing headings rather than working
+them. A tool call carrying an id is evidence; an id in prose is not.
+Extracting the candidate set is exact, so only the selection among
+mentions would ever need a model.
+
+*One property to preserve.* An allocated interval's boundaries are an artefact
+of the division — nobody worked heading B from 9:07 to 9:11 — so the annotation
+must say so, or the line reads as measurement, which is
+[[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]]'s objection exactly.
+Durations are the claim; boundaries are not.
+
+*And a run boundary is broader than it looks.* =--run-opening-kinds= is
+=resume=, =clock_in=, =block_end=; =--run-closing-kinds= is =pause=,
+=clock_out=, =block_start=. Any measurement pairing only =resume= and
+=pause= undercounts, which several ad-hoc analyses during this slice did.
+
+*Superseded, left to git rather than restated:* the weighted =CLOCK:=
+representation with its =* 0.25= annotation, the per-turn resolution
+floor, largest-remainder rounding as a correctness worry, the
+=--drawer-contains-line-p= idempotency collision, and the provenance
+argument about sampling parameters. All followed from weights and
+per-turn apportionment, and neither survives.
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-09-14 Mon 12:24] \\
+  sole remaining member after four closed
+CLOCK: [2026-09-14 Mon 14:02]--[2026-09-14 Mon 14:04] =>  0:02
+- State "DOING"      from "NEXT"       [2026-09-14 Mon 14:02] \\
+  user proposes a fixed-window allocation; measuring it
+- [2026-09-14 Mon 14:02]--[2026-09-14 Mon 14:04] measure headings worked per 20-minute window
+CLOCK: [2026-09-14 Mon 14:16]--[2026-09-14 Mon 14:17] =>  0:01
+- [2026-09-14 Mon 14:16]--[2026-09-14 Mon 14:17] measure headings worked per 20-minute window
+CLOCK: [2026-09-14 Mon 14:32]--[2026-09-14 Mon 14:34] =>  0:02
+- [2026-09-14 Mon 14:32]--[2026-09-14 Mon 14:34] measure headings worked per 20-minute window
+- State "DONE"       from "DOING"      [2026-09-14 Mon 17:16] \\
+  allocation report shipped, residue filed
+:END:
+
+Apply's spans say *when* the agent ran, never *on what*. This divides
+each fixed window's measured run time equally among the headings that
+window worked — equal shares, laid end to end, no weights and no overlap
+— and reads which headings those were from the session transcript rather
+than from the queue, the queue's id-bearing events having turned out to
+record whether the human had the file open rather than what was worked.
+
+*Resolution:* shipped as =M-x claude-code-ide-org-allocation-report=, a
+proposal that writes no CLOCK line and touches no org file, since the
+boundaries are an artefact of the division and only the durations are
+claimed.
+
+
+**** DONE The review buffer is one undifferentiated face, so its element kinds have to be parsed by eye :code:
+CLOSED: [2026-09-14 Mon 12:55]
+:PROPERTIES:
+:ID:       f3a53bd4-60ab-47a1-84b0-07d2c1c5fd24
+:CREATED:  [2026-09-14 Mon 12:16]
+:CATEGORY: Apply
+:ARCHIVE_TIME: 2026-09-15 Tue 08:09
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Apply
+:ARCHIVE_TODO: DONE
+:END:
+:DEBRIEF:
+*Shipped 2026-09-14* (=6e31f4b=). Six faces, each inheriting from a standard one
+rather than naming a colour: group (=bold=), tracker (=shadow=), prompt
+(=font-lock-string-face=), evidence (=shadow=), attention (=warning=), mark
+(=font-lock-keyword-face=). A literal colour that suits one theme is unreadable
+in another, and =bold=/=shadow=/=warning=/string are exactly the four ideas this
+buffer needs while every theme defines them.
+
+*Applied at render time rather than through font-lock keywords*, for two reasons
+that point the same way: the buffer is erased and rebuilt on every mark
+keystroke, so there is no incremental refontification to preserve; and every
+faced run is a string this file *constructs*, so nothing re-parses the buffer's
+own output to decide what to colour — which is the failure mode a keyword list
+would have invited.
+
+*The deliberate omission is the design decision worth keeping.* Ordinary items
+get no face at all. Colouring every item by type teaches the eye to ignore
+colour, which is the one thing the exceptional case needs it for — so only a
+stale transition or an unassigned span carries the attention face.
+
+*Verified on a real render rather than by inspection*: 1590 characters of prompt
+face, 579 attention, 104 evidence, 89 group, 56 tracker, 1 mark. 629 tests, 0
+unexpected.
+
+*The rendered transcripts needed nothing* — they are =.org= files and Emacs
+highlights them already, which the user pointed out before any work started and
+which kept the scope to one buffer.
+
+*Written into this drawer at =REVIEW= rather than left as body prose.* The four
+members closed an hour earlier all had to be restructured at close because their
+journals sat in the body, which is the pre-=d5eb32a3= shape; doing it here at
+the point the work finished costs nothing and removes that step.
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-14 Mon 12:16]--[2026-09-14 Mon 12:20] =>  0:04
+- State "DOING"      from "TODO"       [2026-09-14 Mon 12:16] \\
+  highlighting the review buffer's element kinds
+- [2026-09-14 Mon 12:16]--[2026-09-14 Mon 12:20] faces for the review buffer's element kinds
+CLOCK: [2026-09-14 Mon 12:20]--[2026-09-14 Mon 12:24] =>  0:04
+- [2026-09-14 Mon 12:20]--[2026-09-14 Mon 12:24] faces for the review buffer's element kinds
+CLOCK: [2026-09-14 Mon 12:24]--[2026-09-14 Mon 12:25] =>  0:01
+- [2026-09-14 Mon 12:24]--[2026-09-14 Mon 12:25] faces for the review buffer's element kinds
+CLOCK: [2026-09-14 Mon 12:36]--[2026-09-14 Mon 12:39] =>  0:03
+- [2026-09-14 Mon 12:36]--[2026-09-14 Mon 12:39] faces for the review buffer's element kinds
+- State "REVIEW"     from "DOING"      [2026-09-14 Mon 12:39] \\
+  shipped and verified on a real render
+- State "DONE"       from "REVIEW"     [2026-09-14 Mon 12:55] \\
+  faces reviewed and accepted by the user
+CLOCK: [2026-09-14 Mon 12:55]--[2026-09-14 Mon 12:56] =>  0:01
+- [2026-09-14 Mon 12:55]--[2026-09-14 Mon 12:56] assigned at review
+:END:
+
+Asked by the user 2026-09-14 after reviewing the four shipped members of
+=afea7e4f=: the buffer carries genuinely distinct kinds of line and text — group
+headings, item lines, the =[tracker]= annotation, prompt synopses, span
+evidence, and the =!=/=STALE=/=UNASSIGNED= warnings — and every one rendered in
+the default face, so structure had to be parsed by column position and
+punctuation alone. It had gained three new element kinds in a week without
+gaining any way to tell them apart. The rendered *transcripts* need nothing:
+they are =.org= files and Emacs highlights them already.
+
+*Resolution:* six named faces inheriting from standard ones, applied at render
+time to strings this file constructs, with ordinary items deliberately left
+unfaced so colour still means something where it appears.
+
+
+**** DONE Render a session transcript to readable org, so scrollback stops being the index :code:
+CLOSED: [2026-09-14 Mon 12:23]
+:PROPERTIES:
+:CATEGORY: Dev
+:ID:       96ddf1ef-67fd-4d3c-b8cc-01ebb14a687d
+:CREATED:  [2026-08-26 Wed 08:48]
+:ARCHIVE_TIME: 2026-09-15 Tue 08:09
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Dev
+:ARCHIVE_TODO: DONE
+:END:
+:DEBRIEF:
+*Shipped 2026-09-11* on =feature/join-transcript-to-record=, in the shape this
+body specified: one heading per turn, the prompt in a quote block, each
+paragraph of prose a sub-heading, tool calls in a =:TOOLS:= drawer that
+=#+STARTUP: content= folds away. =M-x claude-code-ide-org-render-session=, and
+=T= in the review buffer renders the item's session and opens it at the turn
+nearest the span's start.
+
+*This heading's own warning is answered structurally rather than by care.* Turn
+boundaries come from the same shape test =325679af='s prompt join uses — user
+role, string content, not =isMeta=, not a =<bash-= escape — so the two agree by
+construction about what a prompt is, and the "218 of 231 are tool results" trap
+cannot be walked into separately by each.
+
+*Three drops, each a decision:* =thinking= blocks (107 against 36 of prose on a
+real session — keeping them triples the file without being what anyone is paging
+for), tool results, and a call's full input reduced to one label. The transcript
+stays on disk for the payload.
+
+*Escaping is load-bearing and was nearly missed.* A line of prose beginning with
+=*= would become a heading and silently restructure the document — the common
+case here, not an edge one, because the text was never written for org.
+
+*=b57c7515='s finding is built in rather than deferred.* Two transcripts opening
+at the same instant are one conversation re-keyed, so the truncated one names
+its longer sibling instead of pretending to be whole. Reported, never followed:
+a caller asking for a session gets that session.
+
+*Verified on real sessions, not fixtures.* The building session rendered to 1936
+lines, 12 turns and 131 sub-headings from a 1287-line transcript, and its
+truncated first half correctly pointed at the complete one. 624 tests, 0
+unexpected, from 618; four mutations run red.
+
+*One bug that only real data would have caught:* =json-parse-string= with
+=:object-type 'alist= yields **symbol** keys, so the first draft's string lookup
+matched nothing and rendered eleven consecutive lines reading "Bash" with no
+descriptor.
+
+*The =/config= experiment this heading was gated on was never tried and is moot
+as a blocker* — whatever =tui: "fullscreen"= turns out to do, the renderer is
+what survives it, which is what the original body predicted.
+
+*Closed 2026-09-14* on the user's review of the slice's shipped members.
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-09-11 Fri 18:15] \\
+  slice's next member after steps 1 and 2
+CLOCK: [2026-09-11 Fri 20:07]--[2026-09-11 Fri 20:15] =>  0:08
+- State "DOING"      from "NEXT"       [2026-09-11 Fri 20:07] \\
+  starting the readable session render
+:LOGBOOK:
+- [2026-09-11 Fri 20:07]--[2026-09-11 Fri 20:15] render a session transcript to readable org
+- State "REVIEW"     from "DOING"      [2026-09-11 Fri 20:15] \\
+  shipped and verified on real sessions
+- State "DONE"       from "REVIEW"     [2026-09-14 Mon 12:23] \\
+  reviewed and accepted by the user
+:END:
+*Prompted 2026-08-26 by the user*: composing a prompt often means re-reading
+something far back in the session, and submitting jumps the view to the bottom,
+losing both the spot and the train of thought. The transcript is already a plain
+file at =~/.claude/projects/<slug>/<session-id>.jsonl=, and the user works in
+Emacs — reading *there* has no scroll position to lose, gives isearch and
+folding, and does not move when the agent answers. Readable means one heading
+per turn, prose as body, tool calls collapsed into a drawer, since the raw file
+is one JSON object per line with tool calls dwarfing the prose.
+
+*Resolution:* =claude-code-ide-org-render-session= writes a foldable org
+document per session — turn headings, prompts in quote blocks, prose as
+sub-headings, tool calls in a =:TOOLS:= drawer — outside any repo, regenerated
+only when the transcript is newer, and reachable from a span with =T=.
+
+
+**** DONE The review buffer should name each item's tracker, now that two projects share the queue :code:
+CLOSED: [2026-09-14 Mon 12:23]
+:PROPERTIES:
+:ID:       fbaf8009-b3dc-48ed-b099-63b74fc156a8
+:CREATED:  [2026-09-10 Thu 14:49]
+:CATEGORY: Apply
+:ARCHIVE_TIME: 2026-09-15 Tue 08:09
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Apply
+:ARCHIVE_TODO: DONE
+:END:
+:DEBRIEF:
+*Shipped 2026-09-11* on =feature/join-transcript-to-record=, in both renderers.
+A resolved =:ID:= annotates bare with the project containing the file it
+resolves in — the file apply will write; an id resolving to nothing (unassigned
+span, capture not yet created) has no destination, so the session =cwd= is
+offered and labelled =[cwd: ...]=; neither known renders nothing, which is every
+event older than [[id:5461c349-fd22-4b75-a508-50efbe4b87f8][5461c349]]'s field.
+Trailing, so the =c2132d3f= id and title columns do not move. The annotation is
+a fact about a *run* of items while the drawing loop knows only the item in
+hand, hence =--review-item-runs= and a per-render =eq= hash. The pending report
+got the same treatment in the same pass: it is the model-facing twin of the
+buffer and a reader of either was equally unable to say which project a group
+belonged to.
+
+*=--project-name= normalises to the git root*, which is what makes a cwd
+comparable to a tracked file's location at all — 722 events at this repo's root
+and 18 in =modules/tools/claude-code-ide-org= are one project, and the last path
+component would have reported two. A linked worktree normalises to its main
+checkout, which is the obligation =5461c349= named for its consumer; parsed from
+the =.git= pointer file rather than shelled out to =git rev-parse=, since this
+sits behind a render that must not block.
+
+*Verified against the real queue rather than fixtures.* Live, after reload: the
+tracker on resolved groups, =[cwd: ...]= on unassigned ones, and nothing at all
+on the =2026-09-04= group whose events predate the field. Across the whole queue
+history, 126 groups name a tracker, 176 fall back to cwd, and exactly two render
+=[cwd: agentic-euchre, claude-code-ide-org]=. 611 tests, 0 unexpected, from a
+601 baseline; six mutations run red, each failing exactly the test that claims
+it.
+
+*It earned its keep on the first render.* Those two mixed groups are real
+interleaving — one already attributed to =308bf4b4= and carrying a 1:25 euchre
+run — an attribution defect the cwd field existed to expose and nothing had
+looked for. Filed as [[id:c9940558-b23e-4b2c-86e8-e75a377634aa][c9940558]].
+
+*Closed 2026-09-14* on the user's review of the slice's shipped members. The
+branch had not merged at close; per =e80f6ccf= that gates the *slice*, not its
+members.
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-09-11 Fri 11:12] \\
+  the slice's opening action: pure rendering, no join needed
+CLOCK: [2026-09-11 Fri 17:26]--[2026-09-11 Fri 17:41] =>  0:15
+- State "DOING"      from "NEXT"       [2026-09-11 Fri 17:26] \\
+  starting the tracker and cwd rendering
+- [2026-09-11 Fri 17:26]--[2026-09-11 Fri 17:41] render tracker and session cwd in review groups
+- State "REVIEW"     from "DOING"      [2026-09-11 Fri 17:47] \\
+  shipped and verified on the real queue
+- State "DONE"       from "REVIEW"     [2026-09-14 Mon 12:23] \\
+  reviewed and accepted by the user
+:END:
+
+(Filing prose restored 2026-09-11 — the original capture note was discarded on
+the queued path too: the event carried 681 characters and =--capture-write=
+takes no note.) Asked by the user 2026-09-10, the day euchre joined the agenda
+list file (=308bf4b4=) and the queue became genuinely multi-project. The review
+group heading rendered 8-char id + title only (the =c2132d3f= column rationale);
+the destination tracker was implicit in where the id resolved and never
+displayed, so two projects' headings interleaved distinguishable only by title.
+Wanted: the group heading carries the project, and the unassigned-span groups
+say which session =cwd= produced them.
+
+*Resolution:* group headings in both the review buffer and the pending report
+now name the tracker a resolved =:ID:= will be written to, falling back to the
+session =cwd= — labelled as such — when no heading resolves. It exposed a real
+attribution defect on its first render.
+
+
+**** DONE The review buffer shows each run's opening prompt, joined from the transcript :code:
+CLOSED: [2026-09-14 Mon 12:23]
+:PROPERTIES:
+:ID:       325679af-829e-4c7f-88b0-153c2c9683b3
+:CREATED:  [2026-09-11 Fri 09:59]
+:CATEGORY: Apply
+:ARCHIVE_TIME: 2026-09-15 Tue 08:09
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Apply
+:ARCHIVE_TODO: DONE
+:END:
+:DEBRIEF:
+*Shipped 2026-09-11* on =feature/join-transcript-to-record=. Prompt synopses
+render as evidence lines *under* each clock item — the item line is already
+dense, and those lines are unpropertized so =m=/=n= step over them as they do
+the existing evidence. One per run, capped at 5 with the remainder stated rather
+than silently cut. Three defcustoms carry the policy: =-prompt-join-tolerance=
+(2s), =-prompt-synopsis-width= (80), =-prompt-synopsis-max-lines= (5).
+
+*The join generalises well beyond this heading's premise.* =295cde3a= measured
+one session at 28/28; across the whole corpus it is **1137 of 1144 resume events
+matched inside two seconds (99.4%)** over 41 sessions, and 6 of the 7 misses are
+sessions whose transcript has aged out — i.e. one genuine miss. 96% of matches
+are prose; the rest are slash commands (unwrapped from their =<command-name>=
+tags) and subagent re-invocations (named, not quoted).
+
+*Three contamination classes, dropped at collection rather than at render*,
+because left in the candidate list any of them can win the nearest-match and
+*hide* the real prompt — which is exactly how the first was found, rendering in
+place of a slash command. Tool results carry their content as an array; =isMeta=
+entries are the harness's caveat preamble, written milliseconds before the
+command they preface; and =<bash-input>=/=<bash-stdout>= are the user's =!=
+shell escapes, 59 of one session's 80 filtered prompts. This is =9e627dc0='s
+trap answered structurally: nothing here enumerates user entries, it asks what
+was said at a known timestamp.
+
+*A span holding no guidepost at all was the case that nearly got missed.* A
+bracket opened and closed inside one turn contains no guidepost by construction
+— measured on the session that built this: fifteen minutes, two events, no
+=resume=. That is precisely the "unmeasured long turn" this heading exists to
+make legible, so it falls back to the prompt in effect when the span opened,
+labelled =[last prompt before this span]= and stamped with *that prompt's* own
+time so the distance is visible. It is deliberately not the measured join and
+must never read as though it were.
+
+*Verified on the real queue, not fixtures.* Every pending span said what it was
+— including =[2026-09-04 Fri 09:52]--[2026-09-04 Fri 09:58]=, a "0:06 span, no
+runs, 0 turns" item that read /"does a span with 0:03 span, no runs, 0 turns
+write anything into TODO.org?"/: the user asking about this very defect, in the
+span the defect made unreadable. 618 tests, 0 unexpected, from 611; five
+mutations run red.
+
+*Closed 2026-09-14* on the user's review of the slice's shipped members.
+:END:
+:LOGBOOK:
+- State "REVIEW"     from "DOING"      [2026-09-11 Fri 18:14] \\
+  shipped and verified on the real queue
+CLOCK: [2026-09-11 Fri 18:17]--[2026-09-11 Fri 18:18] =>  0:01
+:LOGBOOK:
+- [2026-09-11 Fri 18:17]--[2026-09-11 Fri 18:18] tests, mutations and commits for the prompt join
+- State "DONE"       from "REVIEW"     [2026-09-14 Mon 12:23] \\
+  reviewed and accepted by the user
+:END:
+CLOCK: [2026-09-11 Fri 09:43]--[2026-09-11 Fri 09:45] =>  0:02
+(Filing prose restored 2026-09-11 — the original capture note was discarded by
+=org_capture='s immediate path, by documented design.) The user's concrete
+reporting need, stated 2026-09-10: at review time they cannot discriminate a
+degenerate 0-run/0-turn span from an unmeasured long turn, because nothing says
+what was going on. The mechanism was decided and measured on =295cde3a=: join
+queue =resume= events to transcript user messages on timestamp. This closes
+exactly the =--review-annotation-label= gap — an item's synopsis is its
+enclosing clock event's note, so guidepost-reconstructed spans have none by
+construction. Retroactive across all recorded sessions; no hook change, no new
+durable field.
+
+*Resolution:* every span in the review buffer now carries the prompts that
+opened its runs, joined from the session transcript at 99.4% across the corpus,
+with a labelled fallback for spans holding no guidepost at all.
+
+
+**** DONE Open the review buffer newest-first, with =s= to reverse it like dired :code:
+CLOSED: [2026-09-14 Mon 12:23]
+:PROPERTIES:
+:ID:       f1e36a65-3469-4ae6-ac1f-fdfcd1c053c9
+:CREATED:  [2026-09-11 Fri 17:32]
+:CATEGORY: Apply
+:ARCHIVE_TIME: 2026-09-15 Tue 08:09
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Apply
+:ARCHIVE_TODO: DONE
+:END:
+:DEBRIEF:
+*Shipped 2026-09-11* on =feature/join-transcript-to-record=, as the first
+heading adopted under the discovery rule. Newest-first is the default, behind
+=claude-code-ide-org-review-newest-first=; =s= toggles, following dired.
+
+*The load-bearing separation is that only the **drawing** is reversed.*
+=--review-items= stays chronological because apply walks it — writing CLOCK
+lines and replaying state transitions in list order — and a =TODO -> NEXT ->
+DOING= run applied backwards is three wrong transitions, not a cosmetic problem.
+=--review-display-items= returns a reversed *copy* and is never destructive; a
+test asserts the underlying list keeps both its order and its object identities,
+which is what keeps this a display preference rather than a change to the
+record.
+
+*One consequence that was not obvious until the group annotations moved.* A run
+is a run of *adjacent drawn lines*, so =--review-group-annotations= had to be
+computed over the display order; computed over the item order it would hang each
+annotation on the wrong heading.
+
+*The invariant this heading named is pinned in both directions.* Marking
+advances toward the bottom of the buffer whichever way it is sorted — the
+commands walk the buffer, not the clock, so the display decides what "next"
+means and never which way point travels. =s= restores point by *item identity*
+rather than line number, since every line moves; that is =9e80a32d='s
+distinction, and the interaction this body flagged turned out to be exactly
+where it mattered.
+
+*A test-suite consequence worth recording, since it will recur for any display
+default.* Almost no review test is *about* sort order, but every one reads a
+rendered buffer — so the shared fixture and eight hand-built review buffers now
+pin chronological order explicitly, with the reason in the fixture's docstring.
+Leaving them at the new default would have made every test depend on a setting
+none of them names.
+
+*Verified:* 628 tests, 0 unexpected, from 624. Three mutations run red —
+ignoring the display order, reversing the apply list in place, and dropping the
+identity-based point restore.
+
+*Closed 2026-09-14* on the user's review of the slice's shipped members.
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-11 Fri 20:16]--[2026-09-11 Fri 20:21] =>  0:05
+- State "DOING"      from "TODO"       [2026-09-11 Fri 20:16] \\
+  newest-first review buffer with a sort key
+- [2026-09-11 Fri 20:16]--[2026-09-11 Fri 20:21] newest-first default and the s toggle
+- State "REVIEW"     from "DOING"      [2026-09-11 Fri 20:21] \\
+  shipped, invariant pinned both directions
+- State "DONE"       from "REVIEW"     [2026-09-14 Mon 12:23] \\
+  reviewed and accepted by the user
+:END:
+
+Items render oldest-first — =--review-items-from-queue= sorts ascending by
+=:ts=/=:start= and nothing offers another order — so a pass that cares about
+what just happened begins by scrolling to the bottom of a buffer whose top is
+days old. Asked by the user 2026-09-11: present descending by default, and bind
+a sort key (=s=, following dired) that reverses it. One invariant is explicit
+and must hold in both directions: the mark commands still advance *downward*, so
+=m m m= walks a run whichever order it is displayed in — the display order
+changes what "next" means, never which way point travels.
+
+*Resolution:* the buffer opens newest-first behind a defcustom, =s= toggles and
+keeps point on its item, and only the *drawing* is reversed — the list apply
+walks stays chronological, which is what keeps this a display preference rather
+than a change to the record.
+
+
 *** 2026-09-11 Friday
 **** DONE org_body drawer=: report an unterminated drawer as malformed, not missing :code:
 CLOSED: [2026-09-11 Fri 16:58]
