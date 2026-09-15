@@ -30,6 +30,34 @@ composing a slice. A habit formed on tasks migrated to slices inside one
 session — which is how a latent defect gets found, and worth recording
 because no code change would have predicted it.
 
+*Two defects this week share a shape, and the pair is the argument for how
+to fix this one.* The fill sweep wrapped member lines (=496b665e=) and
+=replace== erased them (here). **Neither was a code regression.** Both
+were existing writers meeting slice member lines for the first time,
+because a member line *looks like ordinary body prose* and nothing in the
+text says it is owned. =bin/lint-org= caught both — after the loss.
+
+*So the durable fix is not a fourth special case in a fourth writer.* It
+is that the member region should be identifiable to **any** writer, which
+is what =--generated-line-p= started doing for exactly one of them.
+Teaching =org_amend= to refuse =replace== on a =:KIND: slice= heading
+closes today's hole and leaves the next writer to rediscover it.
+
+*And the guard that caught this was luck rather than design.* The error
+came from the =:BLOCKER:= naming ids that were no longer members — so it
+fired only because the slice *had* a blocker. A slice whose members are
+all finished carries no =:BLOCKER:= at all (=0086614a= shrinks it to
+nothing), so destroying its checklist would leave cookie and blocker
+agreeing at empty and nothing to object. The conventions already record
+that exact shape as the worst direction to fail in: a slice whose members
+cannot be found "reports =[0/0]= as though it were empty rather than
+broken".
+
+*Until this lands, the mitigation is a practice and should be stated as
+one:* do not call =org_amend= with =replace== on a slice. Compose the body
+first and add members after, or amend rather than replace.
+
+
 
 * TODO [0/4] The plugin ships to a second repo unenforced, uncategorised and over-claimed :code:
 :PROPERTIES:
@@ -3365,13 +3393,13 @@ alternative — and unlike the current review pass, it is six questions a day
 rather than nineteen.
 
 
-* TODO [0/14] Everything passed and the file was still wrong :code:
+* TODO [0/15] Everything passed and the file was still wrong :code:
 :PROPERTIES:
 :ID:       8a2eb687-28da-4d44-893b-db59298bdc5b
 :CREATED:  [2026-09-01 Tue 09:11]
 :CATEGORY: Slices
 :KIND:     slice
-:BLOCKER:  ids(39039bb6-c70a-4ba9-8b37-edd8dd6921f6 f12f9da4-2870-45b7-8c50-ea54415c7bc6 25e7b083-360b-4282-8fd0-bb768e2a0f13 3ad389be-2797-46c3-a51d-9f603053955a 7fa68d5c-b6c0-43df-85c6-764b1d56511f 381ea07d-633f-4640-abbb-89472a07acba 8ddd7fa8-e847-42e9-b82c-63bbe4c11b7b 53b0047d-c55c-486c-8eed-ba4994d97a1a 2aeb65d6-350e-4c75-811e-4a748044fe2c 2a6a1355-615f-4c2c-a8af-c9ae8dcda09b 60ed5b96-40e3-4676-a742-07a8ad6cc3b7 5e731a23-7708-4248-b055-9b4a531f147d 965f94eb-1558-4d00-9857-5727eb86fe6f 7b4f4f14-6c76-4822-84c1-67589bc74b82)
+:BLOCKER:  ids(39039bb6-c70a-4ba9-8b37-edd8dd6921f6 f12f9da4-2870-45b7-8c50-ea54415c7bc6 25e7b083-360b-4282-8fd0-bb768e2a0f13 3ad389be-2797-46c3-a51d-9f603053955a 7fa68d5c-b6c0-43df-85c6-764b1d56511f 381ea07d-633f-4640-abbb-89472a07acba 8ddd7fa8-e847-42e9-b82c-63bbe4c11b7b 53b0047d-c55c-486c-8eed-ba4994d97a1a 7ee3b71a-b85a-4610-a4ab-b9e06c8d79da 2aeb65d6-350e-4c75-811e-4a748044fe2c 2a6a1355-615f-4c2c-a8af-c9ae8dcda09b 60ed5b96-40e3-4676-a742-07a8ad6cc3b7 5e731a23-7708-4248-b055-9b4a531f147d 965f94eb-1558-4d00-9857-5727eb86fe6f 7b4f4f14-6c76-4822-84c1-67589bc74b82)
 :COOKIE_DATA: checkbox recursive
 :DROPPED:  542924c1-9152-4414-8da8-d530d3423611 d2a0f54c-b59a-4855-ae3d-c93a6d3aa177 72463b68-9f08-44b2-8213-87f71298138d
 :END:
@@ -3418,6 +3446,7 @@ Planned:
 - [ ] [[id:381ea07d-633f-4640-abbb-89472a07acba][381ea07d]] TODO An archive pass wrote one subtree twice, and the mechanism is still unknown
 - [ ] [[id:8ddd7fa8-e847-42e9-b82c-63bbe4c11b7b][8ddd7fa8]] TODO Moving a heading between files by hand leaves org-id pointing at the old one
 - [ ] [[id:53b0047d-c55c-486c-8eed-ba4994d97a1a][53b0047d]] TODO Direct file writes to a live org buffer can desync org-clock-marker
+- [ ] [[id:7ee3b71a-b85a-4610-a4ab-b9e06c8d79da][7ee3b71a]] TODO org_amend replace=true destroys a slice's member checklist, which is the one thing a slice declares
 - [ ] [[id:2aeb65d6-350e-4c75-811e-4a748044fe2c][2aeb65d6]] TODO Concurrent sessions share one git index, and explicit staging protects nothing
 - [ ] [[id:2a6a1355-615f-4c2c-a8af-c9ae8dcda09b][2a6a1355]] TODO Three new ways to owe a footnote and not see it: marker, list, quotation
 - [ ] [[id:60ed5b96-40e3-4676-a742-07a8ad6cc3b7][60ed5b96]] TODO --review-format-annotation's docstring contradicts its own let*, four lines down
@@ -3465,6 +3494,35 @@ its place the same day by *happening* — a slice member line written to
 disk while a review pass sat unsaved in the buffer, each side unique,
 neither =revert-buffer= nor =C-x C-s= safe alone. Every check was
 green throughout, which is this slice's sentence.
+
+*=7ee3b71a= added 2026-09-15, after composition*, placed beside
+=53b0047d= and =2aeb65d6= for the reason those two sit together: a write
+by an ordinary action that destroys state and announces nothing.
+=org_amend= with =replace== erases a slice's member checklist — the one
+thing a slice declares, every other field being derived — because the
+checklist is body prose and =replace== rewrites body prose wholesale.
+It earned its place the same way =53b0047d= did, by *happening*: it
+destroyed =35582d95='s membership during that slice's own composition,
+in the documented order (add members, then write the body).
+
+*It belongs to the writes-that-half-succeed third, and it needed an
+argument to get there*, because =bin/lint-org= did catch it — which
+looks like the opposite of this slice's sentence. The catch was luck: the
+error came from the =:BLOCKER:= naming ids that were no longer members,
+so it fired only because that slice *had* a blocker. A slice whose
+members are all finished carries none (=0086614a= shrinks it away), and
+the destruction would then leave cookie and blocker agreeing at empty
+with nothing to object — reporting =[0/0]= as though the slice were
+empty rather than broken, which is the failure this project has already
+named as the worst direction.
+
+*Two in one week, and neither a regression*, which is the part that
+generalises past either: the fill sweep wrapped member lines and this
+erased them, both existing writers meeting a slice member line for the
+first time. A member line looks like ordinary body prose and nothing in
+the text says it is owned. That argues for making the region
+identifiable to any writer rather than adding a guard per writer.
+
 
 
 * TODO Three new ways to owe a footnote and not see it: marker, list, quotation :code:
