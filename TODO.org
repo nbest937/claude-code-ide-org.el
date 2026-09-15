@@ -53,6 +53,16 @@ otherwise discover the constraint as a conflict.
 
 Follow-up to 4f8500e6, which shipped the derivation and deliberately stopped short of writing anything. M-x claude-code-ide-org-attention-report fills a *org attention* buffer and that is the whole of its output, so an attested reading survives only as long as the buffer does and the next run starts from nothing. Since the intervals are proposals a human corrects against a calendar, discarding the corrections is the one outcome that makes the whole exercise pointless.
 
+*No =:BLOCKER:= between this and [[id:01849bef-fdc9-4c30-b467-00ca8606e8e0][01849bef]], deliberately,
+and the reason is worth stating so nobody adds one later.* The relation
+is a **coordination constraint, not an ordering**: both write an active
+interval, so they must agree on shape and destination, but neither needs
+the other finished first and either may land first. A =:BLOCKER:= would
+assert an order that does not exist — and pointing them at each other
+would assert a cycle. Whichever lands first sets the shape; the second
+reads what the first wrote.
+
+
 
 * TODO org_amend replace=true destroys a slice's member checklist, which is the one thing a slice declares :code:
 :PROPERTIES:
@@ -5340,6 +5350,7 @@ orthogonal and was already noted there as independent.
 :CATEGORY: Clock
 :ID:       64d34a64-d336-40a8-a8e8-da8133d0da06
 :CREATED:  [2026-08-26 Wed 14:46]
+:BLOCKER:  ids(406e9200-c3e7-49ac-a8d0-d6ff8e061ce4)
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-26 Wed 14:46] \\
@@ -5419,6 +5430,30 @@ than it was even though the gap it would close is unchanged.
 *Unchanged and re-confirmed:* org 9.8.7 still offers no own-time or
 non-recursive clocktable option, and nothing shipped in =afea7e4f= goes
 near =org-clock-sum=.
+
+*Blocked on [[id:406e9200-c3e7-49ac-a8d0-d6ff8e061ce4][406e9200]], set 2026-09-15.* The open
+question above — "whether every parent row wants a second number, or only
+the [ten] that currently carry own lines" — is a design decision with no
+evidence behind it yet, and the evidence is about to be generated:
+=406e9200= is one of the two live groupings with own time, and working
+its remaining children means reading exactly the ambiguous number. Either
+that work needs the own-time figure, which justifies the =:formatter=, or
+it works around it, which shows the gap is tolerable. Both are better
+inputs than deciding now.
+
+*The blocker names the story rather than the slice that sequences it.*
+[[id:749301a0-0bd0-4fbd-b3f7-79739226e15a][749301a0]] is what will drive the work, but a slice is a
+*declared* grouping that can be re-composed, dropped or split, where the
+story is the heading whose completion actually constitutes the evidence.
+Blocking on the more stable of the two is the point of preferring a
+property over a prose sentence.
+
+*Note the blocker is inert until [[id:3f4fd744-4ba7-4be8-9fe4-54e46119515a][3f4fd744]] lands.*
+=org_set_property= writes the =ids(...)= wrapper, which
+=org-depend-block-todo= cannot parse, so this refuses nothing today —
+which is the defect that heading exists to fix, demonstrating itself on
+the very next property written after it was measured.
+
 
 
 
