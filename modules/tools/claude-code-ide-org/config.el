@@ -7516,14 +7516,35 @@ That tracking is per *lane*, not per session: `agent_id' if the event
 came from a subagent, the main session otherwise. Subagents share their
 parent's `session_id', so concurrent ones interleave into a single
 stream and a session-wide `current' would let them clobber each other
--- which they did, observably (TODO.org :ID: 0d789b68)."
+-- which they did, observably (TODO.org :ID: 0d789b68).
+
+The partition is by *canonical* session, so a conversation Claude Code
+re-keyed mid-work keeps one stream and the new lane inherits the
+heading the old one was working on (TODO.org :ID: b57c7515).  This is
+the attribution half of that defect: before it, every guidepost after a
+re-key fell to the nil bucket until some later `clock_in\' named a
+heading again, and `bin/hooks/clock-target-check\' could only report
+the symptom, the earlier `clock_in\' being invisible from inside the new
+lane.  Crossing two streams is safe here precisely because
+`claude-code-ide-org--session-alias-map\' refuses to alias sessions
+whose ranges overlap -- a re-key hands work over, it does not run
+alongside.
+
+*Scoped to one SESSION-ID the bridge cannot apply*, since the other
+half of a re-keyed pair is in a different file and this reads only the
+one asked for.  The review pass\='s own path is unscoped, which is where
+it matters."
   (let ((by-session (make-hash-table :test 'equal))
         (groups (make-hash-table :test 'equal))
         order)
-    ;; Partition first: attribution is only meaningful within one session's
+    ;; Partition first: attribution is only meaningful within one lane's
     ;; own ordered stream, never across the interleaving of several.
-    (dolist (event (claude-code-ide-org--queue-events session-id))
-      (push event (gethash (plist-get event :session-id) by-session)))
+    (let* ((events (claude-code-ide-org--queue-events session-id))
+           (alias (claude-code-ide-org--session-alias-map events)))
+      (dolist (event events)
+        (push event (gethash (claude-code-ide-org--canonical-session
+                              (plist-get event :session-id) alias)
+                             by-session))))
     (maphash
      (lambda (_sid events)
        ;; One `current' per *lane*, not per session. A subagent shares

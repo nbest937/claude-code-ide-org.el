@@ -11615,6 +11615,49 @@ the alias map one of seven re-key groups."
                          "2026-08-17T15:38:13.924Z")))
       (delete-file file))))
 
+(ert-deftest claude-code-ide-org-test-a-rekeyed-lane-inherits-its-heading ()
+  "Guideposts after a re-key attribute to the heading the old lane opened.
+
+The attribution half of :ID: b57c7515, and the one its body watched fail
+in production: `f2e44fdf\=' opened a bracket on `325679af\=' and every
+file-touching act of that stretch landed in `b71c8eec\=', where the
+earlier `clock_in\=' is invisible.  `bin/hooks/clock-target-check\=' fired
+correctly and could only report the symptom.  Without the bridge the
+guideposts fall to the nil bucket, which is what unattributed spans at
+review are made of."
+  (claude-code-ide-org-test--with-rekeyed-sessions "sess-old" "sess-new"
+      "2026-09-11T22:24:27.000Z"
+    (claude-code-ide-org-test--with-queue
+      (claude-code-ide-org-test--queue-write
+       "sess-old" (claude-code-ide-org-test--queue-event
+                   "2026-09-11T17:48:30-0500" "clock_in" "id-a" nil "sess-old"))
+      (claude-code-ide-org-test--queue-write
+       "sess-new"
+       (claude-code-ide-org-test--queue-event
+        "2026-09-11T18:07:15-0500" "resume" nil nil "sess-new")
+       (claude-code-ide-org-test--queue-event
+        "2026-09-11T18:14:00-0500" "pause" nil nil "sess-new"))
+      (let ((groups (claude-code-ide-org--queue-events-by-id)))
+        (should (= 3 (length (alist-get "id-a" groups nil nil #'equal))))
+        (should-not (alist-get nil groups)))))
+  ;; Two unrelated conversations: the guideposts stay unattributed, which
+  ;; is what makes the assertion above a result rather than a tautology.
+  (claude-code-ide-org-test--with-rekeyed-sessions "sess-old" "unrelated"
+      "2026-09-11T22:24:27.000Z"
+    (claude-code-ide-org-test--with-queue
+      (claude-code-ide-org-test--queue-write
+       "sess-old" (claude-code-ide-org-test--queue-event
+                   "2026-09-11T17:48:30-0500" "clock_in" "id-a" nil "sess-old"))
+      (claude-code-ide-org-test--queue-write
+       "sess-new"
+       (claude-code-ide-org-test--queue-event
+        "2026-09-11T18:07:15-0500" "resume" nil nil "sess-new")
+       (claude-code-ide-org-test--queue-event
+        "2026-09-11T18:14:00-0500" "pause" nil nil "sess-new"))
+      (let ((groups (claude-code-ide-org--queue-events-by-id)))
+        (should (= 1 (length (alist-get "id-a" groups nil nil #'equal))))
+        (should (= 2 (length (alist-get nil groups))))))))
+
 ;;; :PLAN: drawer wrapping (TODO.org :ID: 3063c3e5)
 
 (defun claude-code-ide-org-test--body-of (id)
