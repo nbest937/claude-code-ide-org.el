@@ -11,6 +11,26 @@
 
 Found 2026-09-15 composing 35582d95. replace=true rewrites the body's prose wholesale, and a slice's Planned: lead and member lines ARE body prose, so composing a slice in the documented order — add members, then write the body — silently deletes the membership. The docstring's promise is about drawers ("rewrites only the prose below every drawer, so :PROPERTIES:, :LOGBOOK: and a :PLAN: drawer cannot be destroyed"), which is true and beside the point: the checklist is the one thing a slice actually declares, since every other field is derived. Caught by bin/lint-org, which noticed the :BLOCKER: naming ids that were no longer members — so the guard worked, but only after the loss. Same shape as the fill sweep wrapping member lines the same week: a tool rewriting a region another tool owns, where ownership is invisible in the text. Proposed: refuse replace=true on a :KIND: slice heading, or preserve the member region across the rewrite the way the drawers are preserved.
 
+*Not a regression from [[id:afea7e4f-41b3-4eda-83f1-39e1b9e7a61a][afea7e4f]], checked rather than
+assumed (the user's question, 2026-09-15).* =replace== arrived in
+=28d68db= on 2026-08-26, two weeks before that slice existed; both
+=claude-code-ide-org-amend= and =--replace-body= are **byte-identical
+between =origin/main= and the slice's HEAD**; and the one branch commit
+naming =--slice-member-regexp= (=e8f18e0=) only *reads* it, in the new
+=--generated-line-p= predicate. The defect is latent since the revision
+mode shipped.
+
+*What changed was practice, not code.* =replace== exists for a body that
+has become a transcript, which is a *task* heading accumulating
+corrections; a slice's body is written once at composition, so the
+combination had never arisen. On 2026-09-14 the user asked for
+=295cde3a='s forty paragraphs to be compressed, =replace== was the right
+tool for that, and hours later the same move was reached for while
+composing a slice. A habit formed on tasks migrated to slices inside one
+session — which is how a latent defect gets found, and worth recording
+because no code change would have predicted it.
+
+
 * TODO [0/4] The plugin ships to a second repo unenforced, uncategorised and over-claimed :code:
 :PROPERTIES:
 :ID:       35582d95-003a-4735-9b19-36f7ad813f0d
