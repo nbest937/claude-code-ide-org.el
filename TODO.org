@@ -2,6 +2,15 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO --transcript-longer-sibling picks the wrong sibling when the two copies are nearly the same size :code:
+:PROPERTIES:
+:ID:       0b600ab4-15b6-496b-8517-a0426f9f9ae5
+:CREATED:  [2026-09-15 Tue 18:40]
+:CATEGORY: Queue
+:END:
+
+Found 2026-09-15 measuring b57c7515. The function decides which of two re-keyed transcripts continues the conversation by file *size* — "the continued copy is the bigger one" — which is true when the re-key happens early and false when it happens late. Measured over the 7 re-key groups in the corpus: size and queue-order agree 6 times and disagree once. In =d79e3ed8= = {=91ed1224=, =b48bf8c1=} the sizes are 2654k against 2618k, a 1.4% gap, and the *smaller* file is the continuation — =b48bf8c1='s transcript ends 17:59:45 against =91ed1224='s 17:58:51, and its single queue event at 12:59:34 falls after =91ed1224='s last at 12:58. So the function reports =91ed1224= as superseding =b48bf8c1= when it is the other way round. The failure is silent and its own docstring is what makes it matter: the whole point is that a reader not be "sure they are looking at something they are not". Proposed: order by the transcript's *last* entry timestamp rather than its size, accepting the extra read, or fall back to it only when the sizes are within a few percent. Note size was itself a deliberate 2026 replacement for a line count (=33e6ff1a=) on cost grounds, so the fix should keep the cheap test first and pay for the tie-break only on a near-tie. Not blocking the alias map this was found from: lane canonicalisation only needs both ids to map to the *same* key, so which one is canonical does not affect pairing.
+
 * TODO The re-key bridge reads transcripts Claude Code prunes, so the alias decays silently :code:
 :PROPERTIES:
 :ID:       4acd8ad0-4d26-420b-bf84-f66ae8a9dfc5
