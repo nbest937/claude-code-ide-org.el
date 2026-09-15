@@ -75,6 +75,8 @@ Planned:
 - [ ] [[id:b0d55552-6bbf-45b8-9897-f62e6bd779e3][b0d55552]] TODO org_capture cannot set =:CATEGORY:=, so every captured heading is uncategorised and nothing notices
 - [ ] [[id:784d80c5-8750-4ebe-b5e5-c213fc809d80][784d80c5]] TODO claude-org-setup --org scaffolds or appends the consuming repo's .gitignore
 - [ ] [[id:af2f345e-b7db-4025-9f63-c5fce09fdd8a][af2f345e]] TODO The glue claims ownership of the whole wiring block, but the 202 override ships nowhere
+- [[orgit-rev:claude-code-ide-org::304bdc8][304bdc8]] [2026-09-15 Tue 10:2x] defined the slice and sequenced the four
+
 
 
 
