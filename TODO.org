@@ -2,6 +2,15 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO The re-key bridge reads transcripts Claude Code prunes, so the alias decays silently :code:
+:PROPERTIES:
+:ID:       4acd8ad0-4d26-420b-bf84-f66ae8a9dfc5
+:CREATED:  [2026-09-15 Tue 18:38]
+:CATEGORY: Queue
+:END:
+
+Split out of b57c7515 on 2026-09-15 rather than built there. That heading's fix reconciles a mid-work session re-key by grouping sessions whose transcripts share a first-entry =uuid= — measured exact over the corpus, 7 groups, 14 of 65 sessions. But the signal lives in =~/.claude/projects/*/*.jsonl=, which Claude Code prunes on its own schedule (=cleanupPeriodDays=), and the queue events carry no conversation key of their own. So the alias is exact for recent work and degrades to nothing for old work, with no symptom at the boundary — a re-key whose transcripts have aged out simply looks like two unrelated sessions again, which is the failure this whole line of work exists to remove. Proposed: have =queue-append= record a stable conversation key on the event itself (the transcript's first =uuid=, or the =transcript_path= the hook payload already carries), so the bridge stops depending on a file someone else garbage-collects. Note the constraint that shapes it: the hook family is plain POSIX shell precisely so a stopped Emacs costs nothing, so whatever is recorded must be one cheap read of the transcript's first line, not a parse.
+
 * TODO No org tool edits a phrase in place: org_amend appends or replaces the whole body :code:
 :PROPERTIES:
 :ID:       dd4b9a9f-ba8a-4f1f-a3da-38388e0cdb76
@@ -8553,6 +8562,83 @@ transcripts covering the same conversation**, the old one truncated at the
 switch and the new one complete from the original start. A renderer keyed on
 session id would render the same session twice under two ids, the first copy
 silently short. It needs a rule for that before it renders anything.
+
+*Measured 2026-09-15 over the whole queue corpus* — 4107 events, 65 sessions,
+2026-08-11 to 2026-09-15, five times the 844-guidepost corpus =9202b39d= was
+falsified against. The question this heading left open — whether the repair
+belongs per-pairing-function or once, where lanes are formed — is answered:
+**once**, and the key it needs is not in the events.
+
+*First, a schema fact that disqualifies the obvious repair.* =clock_out= carries
+a heading =id= on only **32 of 291** events; =clock_in= carries one on all 307.
+So an orphaned bracket cannot be re-paired by the heading it names — the half
+that would name it is the half that does not. The first attempt here matched
+orphans by heading id and reported **0** recoverable brackets across the whole
+corpus, which read as "the shape does not occur" and was in fact "the key does
+not exist". The shape occurs; =f2e44fdf='s =clock_in= on =325679af= at 17:48:30
+and =b71c8eec='s =clock_out= at 18:14:33 reproduce exactly as this body records
+them.
+
+*Second, the temporal repair is falsified, and in the same style as the depth
+counter — do not rebuild it.* Pairing each orphan =clock_out= with the latest
+preceding orphan =clock_in= in another session "recovers" **197.02 h**,
+including a single 144.79 h bracket and a 48.79 h one. It is not tunable: the
+09-15 case shows why. =9ac195c7= opens at 11:50:10, two minutes after
+=b71c8eec='s queue stops, and holds an orphan =clock_out= that adjacency pairs
+to =b71c8eec='s open "Review and planning" bracket. It is a **genuinely
+different session** — its own first uuid =2db4975b=, and a transcript start of
+11:49:41 matching its own queue start rather than a re-stamp. Adjacency cannot
+tell a re-key from the next session starting, because at the boundary they look
+identical.
+
+*What does work is the transcript's first-entry uuid, and it is exact.* A
+re-keyed session's transcript is re-stamped from the original's start, so both
+files carry the **same first =uuid=**. Over
+=~/.claude/projects/*/*.jsonl=: **8 groups of two sessions share a first uuid,
+7 of them with both members in the queue corpus, 0 spanning two project
+directories.** Fourteen of 65 sessions are affected — **22%**, so this is the
+ordinary case, not an incident. The groups found are exactly the two this slice
+already knew about, =e155f604= = {=f2e44fdf=, =b71c8eec=} (this heading) and
+=77fcb20e= = {=330316ca=, =6f28d85e=}
+([[id:9202b39d-49e4-441c-89f2-382feb4ef1ea][9202b39d]]'s), plus five more that
+were never noticed.
+
+*Direction comes from the queue, never the transcript.* Both members carry the
+*same* re-stamped start timestamp, so the transcript cannot say which id came
+first; ordering by queue first-event time can, and does in all seven.
+
+*One alias map, applied where lanes are formed, fixes both pairing functions —
+which is the design answer.* Keying the lane on the canonical id instead of the
+raw =session_id=:
+
+| pairing | key = =session_id= | key = alias | delta |
+|---------+--------------------+-------------+-------|
+| clock brackets (=--lane-clock-pairs=) | 282 pairs, 57.70 h | 284 pairs, 59.07 h | +2, +1.36 h |
+| turns (=--span-events= adjacency) | 1167 runs, 75.76 h | 1170 runs, 76.60 h | +3, +0.84 h |
+
+The two brackets recovered are precisely the two headings the two bodies name:
+=226ed53b= (0.93 h, =9202b39d='s) and =325679af= (0.43 h, this one's). The
+correction is **bounded and individually inspectable** — the property the depth
+counter lacked and the reason it was disqualifying rather than tunable.
+
+*The corpus is entirely serial, and that is a fact about the corpus rather than
+a guarantee.* All 7 groups have non-overlapping queue ranges. A conversation
+forked into two live terminals would share a first uuid and *overlap*, and
+aliasing those would re-create =0d789b68= — one lane's =clock_out= closing
+another's. So the alias must **refuse on overlap**, with the measured 0 as the
+fixture for that guard.
+
+*And where no bridge is found, the orphan stays an orphan.* That is
+[[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]]'s line held: a plausible pairing is harder to
+reject than none, and =9ac195c7= is the standing example of what adjacency would
+have invented.
+
+*One dependency worth naming, out of scope here.* The bridge reads
+=~/.claude/projects=, which Claude Code prunes on its own schedule — so the
+alias is exact today and degrades silently as transcripts age out. Recording a
+stable conversation key *in the queue events themselves* would make it durable;
+filed separately rather than built here.
+
 
 
 * TODO Type a span's annotation at review time, not by hand-editing it after :code:
