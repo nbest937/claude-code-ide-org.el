@@ -3027,6 +3027,37 @@ in the index) and retire the interim =bodies=false= advice in
 CLAUDE.md's "Reading the tracker" if the numbers support it. The full
 reminder lives in =2a399034='s =:DEBRIEF:=.
 
+*The org conventions were corrected against this heading 2026-09-15,
+having been stricter than their own source.* They summarised the
+paragraph above as "a per-heading act nobody should do by sweep", where
+this body says "human in the loop **or at minimum human-reviewed in
+batches**, never a *blind* sweep" — a prohibition where the source
+permits a reviewed pass. Caught when the user gave full latitude on this
+work and asked why that would be wrong; the honest answer was that the
+rule being quoted at them was not the rule. *That is the failure CLAUDE.md
+names in its opening section — a claim that loads every session
+outranking the artifact it describes — arriving in the conventions rather
+than in CLAUDE.md.*
+
+*And the correction added the shape this pass should take*, which was
+nowhere written: **three passes, not one.** Relocation is lossless and
+verifiable by a non-whitespace digest. Authoring a resolution is additive
+and *unverifiable* — =bin/lint-org= can assert one is present, never that
+it is true, and a folded heading shows the resolution *instead of* the
+body, so a wrong one displaces the record rather than sitting beside it.
+Condensation is the pare no later reader catches. So: relocate first and
+wholesale, author in reviewable batches, condense last and separately.
+
+*Checked at the same time and needing nothing:* whether
+[[id:d350ff5b-3b1f-465e-800b-962264d2e841][d350ff5b]] must precede this. It need not. =org_amend
+drawer=DEBRIEF= already writes the drawer in canonical position —
+verified on =496b665e=, whose order is =:PROPERTIES:=, =:LOGBOOK:=,
+=:PLAN:=, =:DEBRIEF:=, then body — so this pass creates no disorder for
+that one to clean up, and the two are independent in either order. The
+slice lists =d350ff5b= earlier, which is sequence rather than dependency;
+no =:BLOCKER:= is warranted.
+
+
 
 * TODO A boolean argument passed as false arrives as :false, which elisp reads as true :code:
 :PROPERTIES:

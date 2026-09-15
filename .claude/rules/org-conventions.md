@@ -850,9 +850,20 @@ summary, and it lands as the `:DEBRIEF:` content.
 
 **The corpus written before this convention is a separate, judgement-heavy
 pass** — every finished heading whose debrief still sits in its body needs
-an authored resolution before the debrief can move, and that is a
-per-heading act nobody should do by sweep. It has its own heading under
-the `4c834fdb` story; new closes follow this convention now regardless.
+an authored resolution before the debrief can move. That is per-heading
+judgement: a human in the loop, or at minimum human-reviewed in batches,
+never a *blind* sweep. It has its own heading under the `4c834fdb` story;
+new closes follow this convention now regardless.
+
+*Three passes, not one, because they carry different risk and different
+checks.* **Relocation** is lossless and verifiable — a non-whitespace
+digest proves nothing was lost. **Authoring a resolution** is additive and
+unverifiable: `bin/lint-org` can assert one is present, never that it is
+true, and a folded heading shows the resolution *instead of* the body, so
+a wrong one displaces the record rather than sitting beside it.
+**Condensation** is the pare that no later reader catches, per the rule
+above. Relocate first and wholesale; author in reviewable batches;
+condense last and separately.
 
 ## Citing code from a body
 
