@@ -295,6 +295,9 @@ Planned:
 
 *Comparison, second instalment.* Review findings: **8 over 4 members, 2.0 per member** against =afea7e4f='s 0.64 — three times the rate on a slice a quarter the size. Worth reading before it is read as regression: five of the eight were in the =--org= script and its prose, the least-tested surface (76 shell checks against 664 ERT tests), and one was a batch-invisible template escape the reviewer found by running it. Every finding was in code written the same day, none in the corpus rewrite or the blocker fix. Commits now 11. Attention still pending the apply.
 
+*Closed 2026-09-15 at the merge of PR #24* ([[orgit-rev:claude-code-ide-org::d58dad7][d58dad7]]), the same day it was composed. Four members, all planned, all shipped: the bare =:BLOCKER:= form with a corpus rewrite of 35 properties, the =:CATEGORY:= taxonomy moved to an always-loaded rule with =org_capture= requiring one at top level and the lint erroring, =--org= appending the consumer's ignore entries and making the skill link, and the 202 override moved into the module as gated advice on the user's decision. Eight review findings, all fixed on the branch before the merge. Twelve commits, of which three are bookkeeping and one the corpus rewrite.
+
+
 
 
 * TODO A bookkeeping burst reads as many headings worked at once, and inflates every window it lands in :code:
