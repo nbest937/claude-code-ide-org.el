@@ -11,6 +11,7 @@
 
 Correcting one sentence in a body — 8a2eb687's "the previous slice", which had to become a named id — has no tool: org_amend appends, and replace=true rewrites the whole prose and so erases a slice's checklist (7ee3b71a). The fallback on 2026-09-15 was a hand-written emacsclient search-and-replace bounded to the entry, which met a read-only buffer and had to bind inhibit-read-only itself — exactly the signal the MCP-tools rules name as "the tool surface is missing something". Proposed: an org_edit (or an org_amend mode) that replaces one literal occurrence within a heading's own body, refusing when the text is absent or appears more than once, on the same write-through-or-queue gate as amend. Small, and the shape is org_wrap_plan's until= check.
 
+
 * TODO The :blocked: tag writer is org-depend, found after a7f4b40c cleared it by testing the wrong variable name :code:
 :PROPERTIES:
 :ID:       b0c843e3-4252-4e2b-a9e2-2cf91714a1ae
@@ -296,8 +297,6 @@ Planned:
 *Comparison, second instalment.* Review findings: **8 over 4 members, 2.0 per member** against =afea7e4f='s 0.64 — three times the rate on a slice a quarter the size. Worth reading before it is read as regression: five of the eight were in the =--org= script and its prose, the least-tested surface (76 shell checks against 664 ERT tests), and one was a batch-invisible template escape the reviewer found by running it. Every finding was in code written the same day, none in the corpus rewrite or the blocker fix. Commits now 11. Attention still pending the apply.
 
 *Closed 2026-09-15 at the merge of PR #24* ([[orgit-rev:claude-code-ide-org::d58dad7][d58dad7]]), the same day it was composed. Four members, all planned, all shipped: the bare =:BLOCKER:= form with a corpus rewrite of 35 properties, the =:CATEGORY:= taxonomy moved to an always-loaded rule with =org_capture= requiring one at top level and the lint erroring, =--org= appending the consumer's ignore entries and making the skill link, and the 202 override moved into the module as gated advice on the user's decision. Eight review findings, all fixed on the branch before the merge. Twelve commits, of which three are bookkeeping and one the corpus rewrite.
-
-
 
 
 * TODO A bookkeeping burst reads as many headings worked at once, and inflates every window it lands in :code:
@@ -758,7 +757,7 @@ counts it, leaving the cookie lying about what remains.
 *Resolved 2026-09-15* (prose [[orgit-rev:claude-code-ide-org::a2f770a][a2f770a]], code [[orgit-rev:claude-code-ide-org::bb8f3af][bb8f3af]], second member of =35582d95=). Root cause first: the ten values now live in =.claude/rules/org-categories.md= with no =paths:= scope, so every session loads them; the local conventions file keeps the history and points at the move. Then the mechanism: =org_capture= takes =category=, written into the drawer after =:CREATED:= on both the immediate and the deferred path (the hook maps it, the parser and apply carry it). The decision the body left open went to *required* — a top-level capture without one is refused, and the refusal names the values the file already uses; under an =:ID:= target the child inherits and nothing is required. A value the file has never used is written with a warning, not refused, since the taxonomy is the consuming repo's own. The lint's level-1 rule went from warn to error; it already read the drawer as text, which is why only the severity changed. Before: 107 level-1 headings, 0 missing. After: 107, 0 — the number held, and the mutation test (one =:CATEGORY:= line deleted from a copy) proves the error names the heading.
 
 
-* TODO [0/7] A span is only as true as its owner, its edges and its payload :code:
+* NEXT [0/7] A span is only as true as its owner, its edges and its payload :code:
 :PROPERTIES:
 :ID:       749301a0-0bd0-4fbd-b3f7-79739226e15a
 :CREATED:  [2026-09-11 Fri 18:58]
@@ -766,6 +765,10 @@ counts it, leaving the cookie lying about what remains.
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
 :BLOCKER:  406e9200-c3e7-49ac-a8d0-d6ff8e061ce4 b57c7515-c511-4198-b311-26cefc52a60d 9202b39d-49e4-441c-89f2-382feb4ef1ea 7d739afd-f879-445c-b0b6-65e295585a94 c9940558-b23e-4b2c-86e8-e75a377634aa c54c4215-90e3-4e0c-9de1-990c0406a2b2 2deb090f-593d-40e3-9044-fda318d9b6de
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-09-15 Tue 13:12] \\
+  nominated: next slice, plan composed in next-session.md
 :END:
 :PLAN:
 *Why this order.* Each group hands its output to the next, so working them out
@@ -5736,6 +5739,7 @@ attention as it happens.
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-15 Tue 13:28]--[2026-09-15 Tue 13:30] =>  0:02
 CLOCK: [2026-09-15 Tue 13:04]--[2026-09-15 Tue 13:06] =>  0:02
 CLOCK: [2026-09-15 Tue 11:42]--[2026-09-15 Tue 11:44] =>  0:02
 CLOCK: [2026-09-15 Tue 10:54]--[2026-09-15 Tue 10:55] =>  0:01
@@ -12082,4 +12086,8 @@ CLOCK: [2026-09-15 Tue 11:39]--[2026-09-15 Tue 11:41] =>  0:02
 - [2026-09-15 Tue 11:39]--[2026-09-15 Tue 11:41] root-cause unattributed spans, file discipline fix
 CLOCK: [2026-09-15 Tue 11:46]--[2026-09-15 Tue 11:48] =>  0:02
 - [2026-09-15 Tue 11:46]--[2026-09-15 Tue 11:48] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-15 Tue 13:23]--[2026-09-15 Tue 13:24] =>  0:01
+- [2026-09-15 Tue 13:23]--[2026-09-15 Tue 13:24] fix unnamed "previous slice" references in open slices
+CLOCK: [2026-09-15 Tue 13:25]--[2026-09-15 Tue 13:26] =>  0:01
+- [2026-09-15 Tue 13:25]--[2026-09-15 Tue 13:26] edit 8a2eb687 through Emacs; file the in-place edit gap
 :END:
