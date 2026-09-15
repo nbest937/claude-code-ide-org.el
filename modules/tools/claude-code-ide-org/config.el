@@ -8113,6 +8113,161 @@ Each is a plist; see `claude-code-ide-org--review-items-from-queue'.")
   "Non-nil when EVENT is a pause/resume guidepost."
   (member (plist-get event :kind) '("pause" "resume")))
 
+;;; One stretch of work, one lane (TODO.org :ID: b57c7515) -------------------
+;;
+;; Claude Code re-keys a session mid-work -- measured over the whole queue
+;; corpus on 2026-09-15: 7 conversations arrive under two `session_id's, 14
+;; of 65 sessions, 22%.  Every pairing here keys on that id, so one stretch
+;; of work loses half of each pair in both directions: `--lane-clock-pairs'
+;; strands a `clock_in' in the old lane and an orphan `clock_out' in the new,
+;; and `--span-events' adjacency loses the turn whose `resume' and `pause'
+;; divide the same way (:ID: 9202b39d).
+;;
+;; *The repair is one alias map consulted where lanes are formed*, not a fix
+;; per pairing function.  Two things ruled out first, both measured:
+;;
+;;   - *Re-pairing by the heading a bracket names.*  `clock_out' carries an
+;;     `id' on 32 of 291 events and `clock_in' on all 307, so the half that
+;;     would name the heading is the half that does not.  A matcher keyed on
+;;     it reports 0 recoverable brackets corpus-wide, which reads as "the
+;;     shape does not occur" and means "the key does not exist".
+;;
+;;   - *Re-pairing by adjacency.*  Pairing each orphan `clock_out' with the
+;;     latest preceding orphan `clock_in' elsewhere "recovers" 197.02 h,
+;;     including a single 144.79 h bracket.  It is not tunable: `9ac195c7'
+;;     opens two minutes after `b71c8eec's queue stops and is a genuinely
+;;     different conversation -- at the boundary a re-key and the next
+;;     session starting look identical.  This is 7771fc63's line: where no
+;;     bridge is found the orphan stays an orphan, because a plausible
+;;     pairing is harder to reject than none.
+;;
+;; What does bridge them is the transcript.  A re-keyed session's transcript
+;; is re-stamped from the original's start, so both files open at the *same
+;; instant* -- which `claude-code-ide-org--transcript-longer-sibling' already
+;; relies on for the render warning.  This reuses that key rather than
+;; coining a second one; checked 2026-09-15, grouping by first entry
+;; *timestamp* and by first entry `uuid' give identical membership over the
+;; corpus (8 groups, 0 spanning two project directories).
+;;
+;; Aliasing is bounded and inspectable, which is what the falsified depth
+;; counter was not: brackets 282 -> 284 pairs (+1.36 h) and turns 1167 ->
+;; 1170 runs (+0.84 h), the two recovered brackets being exactly the two
+;; headings the two source headings name -- `226ed53b' and `325679af'.
+
+(defvar claude-code-ide-org--transcript-stamp-cache (make-hash-table :test 'equal)
+  "First-entry timestamps, keyed by (FILE . MTIME).
+
+`claude-code-ide-org--session-alias-map' wants one stamp per session on
+every call and a stamp costs a 64 KB read.  Keyed on the modification
+time as well as the path, so a *live* session -- whose transcript grows
+under us while its own review buffer is open -- re-reads instead of
+answering from a snapshot, exactly as
+`claude-code-ide-org--transcript-cache' does.")
+
+(defvar claude-code-ide-org--session-alias-cache (make-hash-table :test 'equal)
+  "Alias maps, keyed by the sorted session ids they were built from.
+
+`claude-code-ide-org--span-events' runs inside loops -- once per
+candidate bracket in a subdivision -- and building the map globs every
+transcript directory.  The key is the set of sessions actually present
+in EVENTS, so a subset recomputes and a repeat does not.")
+
+(defun claude-code-ide-org--session-first-stamp (session-id)
+  "Return SESSION-ID's transcript's first entry timestamp string, or nil.
+
+Nil is the ordinary answer, not an error: transcripts age out at about
+thirty days while the queue keeps its events forever, so a session with
+no transcript simply gets no alias and pairs under its own id."
+  (when-let* ((file (claude-code-ide-org--transcript-file session-id))
+              (attrs (file-attributes file))
+              (mtime (file-attribute-modification-time attrs)))
+    (let* ((key (cons file mtime))
+           (hit (gethash key claude-code-ide-org--transcript-stamp-cache 'miss)))
+      (if (eq hit 'miss)
+          (puthash key (claude-code-ide-org--transcript-first-stamp file)
+                   claude-code-ide-org--transcript-stamp-cache)
+        hit))))
+
+(defun claude-code-ide-org--session-ranges-overlap-p (sids ranges)
+  "Non-nil when two of SIDS' queue ranges in RANGES overlap.
+
+SIDS must already be ordered by range start; RANGES maps a session id to
+a (FIRST . LAST) pair of times.  Adjacent ranges do not overlap -- a
+re-key hands work from one id to the next, so they abut at worst."
+  (let ((rest sids) clash)
+    (while (and (not clash) (cdr rest))
+      (when (time-less-p (car (gethash (cadr rest) ranges))
+                         (cdr (gethash (car rest) ranges)))
+        (setq clash t))
+      (setq rest (cdr rest)))
+    clash))
+
+(defun claude-code-ide-org--session-alias-map (events)
+  "Map each re-keyed session id in EVENTS to its conversation's canonical id.
+
+Returns a hash table, or nil when nothing in EVENTS was re-keyed -- which
+is the common case and lets every caller skip the lookup entirely.
+
+The canonical id is the member whose queue activity starts first.  Which
+member is chosen does not affect pairing, since both map to the same
+key; it is the earliest so the lane keeps the id the conversation began
+under.  Deliberately *not* the bigger transcript, which is how
+`claude-code-ide-org--transcript-longer-sibling' decides and is wrong
+once the re-key happens late (TODO.org :ID: 0b600ab4).
+
+*A group whose ranges overlap is refused rather than aliased.*  All 7
+groups in the corpus are serial, but that is a fact about the corpus and
+not a guarantee: a conversation forked into two live terminals would
+share a first entry and run concurrently, and aliasing those would let
+one lane's `clock_out' close another's -- the defect :ID: 0d789b68
+already fixed once by putting the session into the lane key."
+  (let ((ranges (make-hash-table :test 'equal)))
+    (dolist (event events)
+      (let ((sid (plist-get event :session-id))
+            (ts (plist-get event :ts)))
+        (when (and sid ts)
+          (let ((cur (gethash sid ranges)))
+            (puthash sid
+                     (if cur
+                         (cons (if (time-less-p ts (car cur)) ts (car cur))
+                               (if (time-less-p (cdr cur) ts) ts (cdr cur)))
+                       (cons ts ts))
+                     ranges)))))
+    (let* ((sids (let (acc)
+                   (maphash (lambda (k _v) (push k acc)) ranges)
+                   (sort acc #'string<)))
+           (cached (gethash sids claude-code-ide-org--session-alias-cache 'miss)))
+      (if (not (eq cached 'miss))
+          cached
+        (let ((groups (make-hash-table :test 'equal))
+              (alias (make-hash-table :test 'equal)))
+          (dolist (sid sids)
+            (when-let* ((stamp (claude-code-ide-org--session-first-stamp sid)))
+              (puthash stamp (cons sid (gethash stamp groups)) groups)))
+          (maphash
+           (lambda (_stamp members)
+             (when (cdr members)
+               (let ((ordered (sort (copy-sequence members)
+                                    (lambda (a b)
+                                      (time-less-p (car (gethash a ranges))
+                                                   (car (gethash b ranges)))))))
+                 (unless (claude-code-ide-org--session-ranges-overlap-p ordered ranges)
+                   (let ((canon (car ordered)))
+                     (dolist (sid ordered) (puthash sid canon alias)))))))
+           groups)
+          (puthash sids
+                   (and (> (hash-table-count alias) 0) alias)
+                   claude-code-ide-org--session-alias-cache))))))
+
+(defun claude-code-ide-org--canonical-session (session-id alias)
+  "Return SESSION-ID's canonical id under ALIAS, or SESSION-ID itself.
+
+ALIAS may be nil, which is what `claude-code-ide-org--session-alias-map'
+returns when nothing was re-keyed.  Note this never rewrites an event's
+own `:session-id': apply consumption and the `.applied' watermarks are
+per *file*, so the raw id has to survive for the write path to find it."
+  (or (and alias session-id (gethash session-id alias)) session-id))
+
 (defun claude-code-ide-org--span-events (events agent &optional session)
   "Return EVENTS belonging to lane AGENT that bear on a span's shape.
 
@@ -8131,15 +8286,26 @@ AGENT selects the lane: nil means the main session, which is the only
 lane whose events carry no `agent_id'.  SESSION, when given, additionally
 restricts to one session's file -- required whenever EVENTS spans more
 than one, since every main lane shares a nil `agent_id' and would
-otherwise pool."
-  (seq-filter (lambda (e)
-                (and (or (claude-code-ide-org--review-guidepost-p e)
-                         (member (plist-get e :kind)
-                                 '("block_start" "block_end")))
-                     (equal (plist-get e :agent-id) agent)
-                     (or (null session)
-                         (equal (plist-get e :session-id) session))))
-              events))
+otherwise pool.
+
+SESSION is compared against each event's *canonical* session id, so a
+conversation Claude Code re-keyed mid-work stays one lane and the turn
+whose `resume\' and `pause\' straddle the switch still pairs (TODO.org
+:ID: b57c7515).  Callers pass whichever id they have; it is canonicalised
+too, so either half of a re-keyed pair selects the whole lane."
+  (let* ((alias (claude-code-ide-org--session-alias-map events))
+         (want (and session
+                    (claude-code-ide-org--canonical-session session alias))))
+    (seq-filter (lambda (e)
+                  (and (or (claude-code-ide-org--review-guidepost-p e)
+                           (member (plist-get e :kind)
+                                   '("block_start" "block_end")))
+                       (equal (plist-get e :agent-id) agent)
+                       (or (null session)
+                           (equal (claude-code-ide-org--canonical-session
+                                   (plist-get e :session-id) alias)
+                                  want))))
+                events)))
 
 (defun claude-code-ide-org--events-within (events start end agent &optional session)
   "Return lane AGENT/SESSION's span events from EVENTS inside START..END.
@@ -8167,6 +8333,7 @@ inventing an end for it is the class of guess :ID: 7771fc63 retired.  A
 `clock_out' with no open `clock_in' is likewise dropped rather than
 extended backwards."
   (let ((lanes (make-hash-table :test 'equal))
+        (alias (claude-code-ide-org--session-alias-map events))
         pairs)
     (dolist (event (sort (seq-filter
                           (lambda (e)
@@ -8181,7 +8348,8 @@ extended backwards."
       ;; bracket -- which only shows up once this function is run over
       ;; the full multi-session history, as the subdivision path below
       ;; must.
-      (let ((lane (cons (plist-get event :session-id)
+      (let ((lane (cons (claude-code-ide-org--canonical-session
+                         (plist-get event :session-id) alias)
                         (or (plist-get event :agent-id) :main))))
         (if (equal (plist-get event :kind) "clock_in")
             (puthash lane event lanes)
@@ -11212,10 +11380,43 @@ reader ends up sure they are looking at something they are not."
       found)))
 
 (defun claude-code-ide-org--transcript-first-stamp (file)
-  "Return FILE's first entry timestamp string, or nil."
+  "Return FILE's first entry timestamp string, or nil.
+
+Reads a window rather than the whole file: the caller asks once per
+session and only the *first* entry is wanted, so a 64 KB read answers
+almost every transcript.
+
+*The window grows when it comes up empty*, which is not an optimisation
+but a correctness fix.  A transcript can open with scores of
+`custom-title\', `ai-title\', `mode\' and `file-history-snapshot\'
+lines, none of which carries a top-level `timestamp\' -- the snapshot
+entries carry one *nested* under `snapshot\', which is not the same
+field and must not be read as it.  Measured 2026-09-15: one transcript
+of 74 buries its first real stamp at byte 133196, and a fixed window
+returned nil for it.  Silently -- and nil is also the honest answer for
+an aged-out transcript, so nothing distinguished the two.  That cost
+`claude-code-ide-org--session-alias-map\' one of the corpus\'s seven
+re-key groups and disabled
+`claude-code-ide-org--transcript-longer-sibling\' for that session
+outright (TODO.org :ID: b57c7515)."
+  (let ((size (or (file-attribute-size (file-attributes file)) 0))
+        (window 65536)
+        stamp)
+    (while (and (not stamp) (> window 0))
+      (setq stamp (claude-code-ide-org--transcript-stamp-within file window))
+      (setq window (cond (stamp 0)
+                         ((>= window size) 0)
+                         (t (min size (* window 4))))))
+    stamp))
+
+(defun claude-code-ide-org--transcript-stamp-within (file limit)
+  "Return the first top-level timestamp in FILE\='s first LIMIT bytes, or nil.
+
+A line truncated by LIMIT simply fails to parse and is skipped, so a
+partial read can never yield a partial stamp."
   (ignore-errors
     (with-temp-buffer
-      (insert-file-contents file nil 0 65536)
+      (insert-file-contents file nil 0 limit)
       (goto-char (point-min))
       (let (stamp)
         (while (and (not stamp) (not (eobp)))

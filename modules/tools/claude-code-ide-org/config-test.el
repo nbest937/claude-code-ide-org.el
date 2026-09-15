@@ -11432,6 +11432,189 @@ still exists."
       (should-not (eq (plist-get (car items) :origin) 'bracketed))
       (should (= 600 (claude-code-ide-org-test--written-seconds (car items)))))))
 
+;;; One stretch of work, one lane (TODO.org :ID: b57c7515)
+
+(defmacro claude-code-ide-org-test--with-rekeyed-sessions
+    (first second stamp &rest body)
+  "Plant FIRST and SECOND as two transcripts both opening at STAMP.
+
+That is the on-disk signature of a session Claude Code re-keyed
+mid-work: the continued copy carries the original's first entry
+verbatim, so the two files open at the same instant.  `HOME' is rebound
+for the same reason
+`claude-code-ide-org-test--with-raw-transcript' rebinds it -- the
+transcript location is Claude Code's and is deliberately not a variable
+production can point elsewhere.
+
+Both alias caches are rebound too, or one test's map answers the next
+test's question."
+  (declare (indent 3))
+  `(let* ((home (file-name-as-directory (make-temp-file "cciorg-home" t)))
+          (pdir (expand-file-name ".claude/projects/-p/" home))
+          (process-environment (cons (concat "HOME=" (directory-file-name home))
+                                     process-environment))
+          (claude-code-ide-org--transcript-stamp-cache (make-hash-table :test 'equal))
+          (claude-code-ide-org--session-alias-cache (make-hash-table :test 'equal)))
+     (unwind-protect
+         (progn
+           (make-directory pdir t)
+           (dolist (sid (list ,first ,second))
+             (with-temp-file (expand-file-name (concat sid ".jsonl") pdir)
+               (insert (json-encode (list (cons 'type "user")
+                                          (cons 'uuid "u1")
+                                          (cons 'timestamp ,stamp)))
+                       "\n")))
+           ,@body)
+       (delete-directory home t))))
+
+(defun claude-code-ide-org-test--events (&rest specs)
+  "Parse SPECS -- each the argument list of `...--queue-event' -- into events."
+  (mapcar (lambda (spec)
+            (claude-code-ide-org--queue-parse-line
+             (apply #'claude-code-ide-org-test--queue-event spec)))
+          specs))
+
+(ert-deftest claude-code-ide-org-test-session-alias-map-canonicalises-a-rekey ()
+  "Two sessions whose transcripts open together become one lane.
+
+The canonical id is the one whose *queue* activity starts first, not the
+bigger transcript: measured 2026-09-15, size and queue order disagree in
+1 of the corpus's 7 groups (TODO.org :ID: 0b600ab4), and the queue order
+is the one that is never ambiguous."
+  (claude-code-ide-org-test--with-rekeyed-sessions "sess-old" "sess-new"
+      "2026-09-11T22:24:27.000Z"
+    (let* ((events (claude-code-ide-org-test--events
+                    '("2026-09-11T17:25:00-0500" "resume" nil nil "sess-old")
+                    '("2026-09-11T18:07:00-0500" "resume" nil nil "sess-new")))
+           (alias (claude-code-ide-org--session-alias-map events)))
+      (should alias)
+      (should (equal (gethash "sess-old" alias) "sess-old"))
+      (should (equal (gethash "sess-new" alias) "sess-old")))))
+
+(ert-deftest claude-code-ide-org-test-a-rekeyed-clock-bracket-still-pairs ()
+  "A `clock_in' in the old lane pairs with the `clock_out' in the new one.
+
+The corpus case, to the second: `f2e44fdf' holds `clock_in' on `325679af'
+at 17:48:30 and `b71c8eec' holds the matching `clock_out' at 18:14:33,
+with every file-touching act of that stretch in the second lane.  Before
+the alias both halves were dropped -- an unmatched `clock_in' is left
+unconsumed and a `clock_out' with no open `clock_in' discarded -- so the
+bracket's 0.43 h went unattributed in both directions."
+  (let ((specs '(("2026-09-11T17:48:30-0500" "clock_in" "id-a" nil "sess-old")
+                 ("2026-09-11T18:14:33-0500" "clock_out" nil nil "sess-new"))))
+    ;; With the re-key signature on disk: one lane, one pair.
+    (claude-code-ide-org-test--with-rekeyed-sessions "sess-old" "sess-new"
+        "2026-09-11T22:24:27.000Z"
+      (let ((pairs (claude-code-ide-org--lane-clock-pairs
+                    (apply #'claude-code-ide-org-test--events specs))))
+        (should (= 1 (length pairs)))
+        (should (equal (plist-get (nth 0 (car pairs)) :id) "id-a"))
+        (should (= 1563 (round (float-time
+                                (time-subtract
+                                 (plist-get (nth 1 (car pairs)) :ts)
+                                 (plist-get (nth 0 (car pairs)) :ts))))))))
+    ;; Without it -- two genuinely different conversations -- nothing pairs,
+    ;; which is the assertion that makes the one above mean anything.
+    (claude-code-ide-org-test--with-rekeyed-sessions "sess-old" "other"
+        "2026-09-11T22:24:27.000Z"
+      (should-not (claude-code-ide-org--lane-clock-pairs
+                   (apply #'claude-code-ide-org-test--events specs))))))
+
+(ert-deftest claude-code-ide-org-test-a-rekeyed-turn-pairs-across-the-switch ()
+  "A turn whose `resume' and `pause' straddle the re-key is one lane's.
+
+:ID: 9202b39d's shape, on the other pairing function: the launching
+session holds the `resume' and the job's file the `pause'.  Either id
+selects the whole lane, so a caller that has only the new one still sees
+the turn that began under the old."
+  (let ((specs '(("2026-08-18T10:47:22-0500" "resume" nil nil "sess-old")
+                 ("2026-08-18T11:24:35-0500" "pause" nil nil "sess-new"))))
+    (claude-code-ide-org-test--with-rekeyed-sessions "sess-old" "sess-new"
+        "2026-08-18T15:47:22.000Z"
+      (let ((events (apply #'claude-code-ide-org-test--events specs)))
+        (should (= 2 (length (claude-code-ide-org--span-events
+                              events nil "sess-old"))))
+        (should (= 2 (length (claude-code-ide-org--span-events
+                              events nil "sess-new"))))))
+    (claude-code-ide-org-test--with-rekeyed-sessions "sess-old" "other"
+        "2026-08-18T15:47:22.000Z"
+      (should (= 1 (length (claude-code-ide-org--span-events
+                            (apply #'claude-code-ide-org-test--events specs)
+                            nil "sess-old")))))))
+
+(ert-deftest claude-code-ide-org-test-overlapping-sessions-are-never-aliased ()
+  "A shared first entry is not enough; the ranges must not overlap.
+
+All 7 groups in the corpus are serial, but that is a fact about the
+corpus rather than a guarantee -- a conversation forked into two live
+terminals would share a first entry and run concurrently.  Aliasing
+those would let one lane's `clock_out' close another's, which is the
+defect :ID: 0d789b68 fixed by putting the session into the lane key in
+the first place."
+  (claude-code-ide-org-test--with-rekeyed-sessions "sess-a" "sess-b"
+      "2026-09-11T22:24:27.000Z"
+    ;; sess-b opens *before* sess-a's last event: concurrent, not a re-key.
+    (let ((events (claude-code-ide-org-test--events
+                   '("2026-09-11T17:00:00-0500" "clock_in" "id-a" nil "sess-a")
+                   '("2026-09-11T17:30:00-0500" "clock_in" "id-b" nil "sess-b")
+                   '("2026-09-11T18:00:00-0500" "resume" nil nil "sess-a")
+                   '("2026-09-11T18:30:00-0500" "clock_out" nil nil "sess-b"))))
+      (should-not (claude-code-ide-org--session-alias-map events))
+      ;; and each lane keeps its own bracket rather than crossing
+      (let ((pairs (claude-code-ide-org--lane-clock-pairs events)))
+        (should (= 1 (length pairs)))
+        (should (equal (plist-get (nth 0 (car pairs)) :id) "id-b"))))))
+
+(ert-deftest claude-code-ide-org-test-an-aged-out-transcript-yields-no-alias ()
+  "No transcript, no bridge -- and the orphan stays an orphan.
+
+Transcripts age out at about thirty days while the queue keeps its
+events forever, so this is the ordinary condition for old work rather
+than an error.  What must not happen is a guess: :ID: 7771fc63 retired
+that class, and adjacency alone cannot tell a re-key from the next
+session starting two minutes later (`9ac195c7', measured 2026-09-15)."
+  (claude-code-ide-org-test--with-rekeyed-sessions "unrelated-a" "unrelated-b"
+      "2026-09-11T22:24:27.000Z"
+    (let ((events (claude-code-ide-org-test--events
+                   '("2026-09-11T17:48:30-0500" "clock_in" "id-a" nil "gone-old")
+                   '("2026-09-11T18:14:33-0500" "clock_out" nil nil "gone-new"))))
+      (should-not (claude-code-ide-org--session-alias-map events))
+      (should-not (claude-code-ide-org--lane-clock-pairs events)))))
+
+(ert-deftest claude-code-ide-org-test-first-stamp-window-grows-past-preamble ()
+  "A transcript whose first 64 KB carries no top-level timestamp still answers.
+
+Claude Code opens a transcript with `custom-title\=', `mode\=' and a run
+of `file-history-snapshot\=' entries.  The snapshot lines do carry a
+`timestamp\=', but *nested* under `snapshot\=', which is a different
+field; the first top-level one can sit well past a fixed window.
+Measured 2026-09-15: one transcript of 74 buries it at byte 133196, and
+the fixed read returned nil -- indistinguishable from the nil an
+aged-out transcript gives, which is why it went unnoticed while costing
+the alias map one of seven re-key groups."
+  (let ((file (make-temp-file "cciorg-preamble" nil ".jsonl")))
+    (unwind-protect
+        (progn
+          (with-temp-file file
+            ;; ~80 KB of preamble whose only timestamps are nested.
+            (dotimes (_ 700)
+              (insert (json-encode
+                       (list (cons 'type "file-history-snapshot")
+                             (cons 'snapshot
+                                   (list (cons 'timestamp "1999-01-01T00:00:00.000Z")
+                                         (cons 'filler (make-string 80 ?x))))))
+                      "\n"))
+            (insert (json-encode (list (cons 'type "user")
+                                       (cons 'timestamp "2026-08-17T15:38:13.924Z")))
+                    "\n"))
+          (should (> (file-attribute-size (file-attributes file)) 65536))
+          ;; The fixed window cannot see it -- the assertion that makes the
+          ;; next one mean something rather than merely pass.
+          (should-not (claude-code-ide-org--transcript-stamp-within file 65536))
+          (should (equal (claude-code-ide-org--transcript-first-stamp file)
+                         "2026-08-17T15:38:13.924Z")))
+      (delete-file file))))
+
 ;;; :PLAN: drawer wrapping (TODO.org :ID: 3063c3e5)
 
 (defun claude-code-ide-org-test--body-of (id)
