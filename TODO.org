@@ -2,6 +2,67 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO The :blocked: tag writer is org-depend, found after a7f4b40c cleared it by testing the wrong variable name :code:
+:PROPERTIES:
+:ID:       b0c843e3-4252-4e2b-a9e2-2cf91714a1ae
+:CREATED:  [2026-09-15 Tue 11:17]
+:CATEGORY: Skill
+:END:
+
+a7f4b40c investigated a stray :blocked: tag on c44c2119 in August, tested two
+candidates in batch, found both clear, and was CANCELLED on the user's report
+that the tag was an inadvertent hand-edit. One of those candidates was
+org-depend-tag-blocked-TASKS, which is void. The real name is
+org-depend-tag-blocked, it is a defcustom defaulting to t, and
+org-depend-block-todo ends with (org-toggle-tag "blocked" (if proceed-p 'off
+'on)). So org-depend has been the writer all along and the
+investigation cleared it on a name typo. Reproduced 2026-09-15: running org-ql's
+(blocked) predicate over TODO.org tagged five headings in the live buffer,
+unsaved. The tag is maintained in BOTH directions, which satisfies a7f4b40c's
+own stated condition for keeping it -- but it is only as fresh as the last
+evaluation, and today it encodes a partly-wrong answer because 3f4fd744's
+ids(...) wrapper means only middle blocker ids parse. Decide after 3f4fd744
+lands: declare it in #+TAGS: and let org-depend maintain it, or set
+org-depend-tag-blocked nil.
+
+
+* TODO Nothing answers who blocks whom; :BLOCKER: is a forward index with no inverse :code:
+:PROPERTIES:
+:ID:       0eecf8e7-a8d5-4da7-9d6d-f397542b2139
+:CREATED:  [2026-09-15 Tue 11:10]
+:CATEGORY: Tools
+:END:
+
+A :BLOCKER: on X names Y, so "what is X waiting for" is one property read, while
+"what is waiting on Y" requires scanning every :BLOCKER: value in both files and
+inverting. org_outline already marks [blocked: id ...] per read; the mirror,
+[blocks: id ...], would answer the other direction from the same scan. The user
+proposed a :blocker: tag alongside a :blocked: one for this, and a tag is the
+wrong shape for the reason a7f4b40c cancelled the first: blocked-ness is
+derivable and a tag is stored, so it goes stale the moment the last blocker
+finishes -- and a pair of tags must be maintained in step with each other AND
+with the property, which is three copies of one fact. Derive it per read
+instead.
+
+
+* TODO org_query cannot ask what is blocked, though org-ql has the predicate :code:
+:PROPERTIES:
+:ID:       5acca91b-b7bf-4046-9379-cd9a8f40f116
+:CREATED:  [2026-09-15 Tue 11:10]
+:CATEGORY: Tools
+:END:
+
+org-ql defines a blocked predicate and org_query does not expose it. Its parser
+documents todo:, tags:, priority: and heading:, so a bare "blocked" falls
+through to full-text search: measured 2026-09-15 over TODO.org, the sexp
+(blocked) returns 10 headings and the plain string returns 26, the difference
+being bodies that merely mention the word. Proposed: pass blocked (and its
+negation) through, which is the whole change. Worth pairing with a caution in
+the tool description, because the derived answer is a union of three mechanisms
+-- unfinished children, unchecked checkboxes, and :BLOCKER: via org-depend --
+and a reader asking "what is blocked" usually means only the third.
+
+
 * TODO The attention report renders to a buffer and persists nothing, so every reading is thrown away :code:
 :PROPERTIES:
 :ID:       8070db26-b11a-4008-9fb9-5dcd017d798f
@@ -43,25 +104,31 @@ be right — the record of a day's attention is history — or may put the
 agenda's data somewhere the agenda never looks.
 
 *Related and deliberately not merged into this.*
-[[id:01849bef-fdc9-4c30-b467-00ca8606e8e0][01849bef]] gives the review buffer a key for flipping a
-span's timestamps to active, which is the *manual* path to the same
-artifact and belongs to [[id:6521dd56-8772-416b-9435-6da78bb86b06][6521dd56]]. If both are built,
-they should write the same shape to the same place, and whichever lands
-first sets it — worth saying now, because the second one landing will
-otherwise discover the constraint as a conflict.
+[[id:01849bef-fdc9-4c30-b467-00ca8606e8e0][01849bef]] gives the review buffer a
+key for flipping a span's timestamps to active, which is the *manual* path to
+the same artifact and belongs to
+[[id:6521dd56-8772-416b-9435-6da78bb86b06][6521dd56]]. If both are built, they
+should write the same shape to the same place, and whichever lands first sets it
+— worth saying now, because the second one landing will otherwise discover the
+constraint as a conflict.
 :END:
 
-Follow-up to 4f8500e6, which shipped the derivation and deliberately stopped short of writing anything. M-x claude-code-ide-org-attention-report fills a *org attention* buffer and that is the whole of its output, so an attested reading survives only as long as the buffer does and the next run starts from nothing. Since the intervals are proposals a human corrects against a calendar, discarding the corrections is the one outcome that makes the whole exercise pointless.
+Follow-up to 4f8500e6, which shipped the derivation and deliberately stopped
+short of writing anything. M-x claude-code-ide-org-attention-report fills a *org
+attention* buffer and that is the whole of its output, so an attested reading
+survives only as long as the buffer does and the next run starts from nothing.
+Since the intervals are proposals a human corrects against a calendar,
+discarding the corrections is the one outcome that makes the whole exercise
+pointless.
 
-*No =:BLOCKER:= between this and [[id:01849bef-fdc9-4c30-b467-00ca8606e8e0][01849bef]], deliberately,
-and the reason is worth stating so nobody adds one later.* The relation
-is a **coordination constraint, not an ordering**: both write an active
-interval, so they must agree on shape and destination, but neither needs
-the other finished first and either may land first. A =:BLOCKER:= would
-assert an order that does not exist — and pointing them at each other
-would assert a cycle. Whichever lands first sets the shape; the second
-reads what the first wrote.
-
+*No =:BLOCKER:= between this and
+[[id:01849bef-fdc9-4c30-b467-00ca8606e8e0][01849bef]], deliberately, and the
+reason is worth stating so nobody adds one later.* The relation is a
+**coordination constraint, not an ordering**: both write an active interval, so
+they must agree on shape and destination, but neither needs the other finished
+first and either may land first. A =:BLOCKER:= would assert an order that does
+not exist — and pointing them at each other would assert a cycle. Whichever
+lands first sets the shape; the second reads what the first wrote.
 
 
 * TODO org_amend replace=true destroys a slice's member checklist, which is the one thing a slice declares :code:
@@ -71,16 +138,28 @@ reads what the first wrote.
 :CATEGORY: Tools
 :END:
 
-Found 2026-09-15 composing 35582d95. replace=true rewrites the body's prose wholesale, and a slice's Planned: lead and member lines ARE body prose, so composing a slice in the documented order — add members, then write the body — silently deletes the membership. The docstring's promise is about drawers ("rewrites only the prose below every drawer, so :PROPERTIES:, :LOGBOOK: and a :PLAN: drawer cannot be destroyed"), which is true and beside the point: the checklist is the one thing a slice actually declares, since every other field is derived. Caught by bin/lint-org, which noticed the :BLOCKER: naming ids that were no longer members — so the guard worked, but only after the loss. Same shape as the fill sweep wrapping member lines the same week: a tool rewriting a region another tool owns, where ownership is invisible in the text. Proposed: refuse replace=true on a :KIND: slice heading, or preserve the member region across the rewrite the way the drawers are preserved.
+Found 2026-09-15 composing 35582d95. replace=true rewrites the body's prose
+wholesale, and a slice's Planned: lead and member lines ARE body prose, so
+composing a slice in the documented order — add members, then write the body —
+silently deletes the membership. The docstring's promise is about drawers
+("rewrites only the prose below every drawer, so :PROPERTIES:, :LOGBOOK: and a
+:PLAN: drawer cannot be destroyed"), which is true and beside the point: the
+checklist is the one thing a slice actually declares, since every other field is
+derived. Caught by bin/lint-org, which noticed the :BLOCKER: naming ids that
+were no longer members — so the guard worked, but only after the loss. Same
+shape as the fill sweep wrapping member lines the same week: a tool rewriting a
+region another tool owns, where ownership is invisible in the text. Proposed:
+refuse replace=true on a :KIND: slice heading, or preserve the member region
+across the rewrite the way the drawers are preserved.
 
-*Not a regression from [[id:afea7e4f-41b3-4eda-83f1-39e1b9e7a61a][afea7e4f]], checked rather than
-assumed (the user's question, 2026-09-15).* =replace== arrived in
-=28d68db= on 2026-08-26, two weeks before that slice existed; both
-=claude-code-ide-org-amend= and =--replace-body= are **byte-identical
-between =origin/main= and the slice's HEAD**; and the one branch commit
-naming =--slice-member-regexp= (=e8f18e0=) only *reads* it, in the new
-=--generated-line-p= predicate. The defect is latent since the revision
-mode shipped.
+*Not a regression from [[id:afea7e4f-41b3-4eda-83f1-39e1b9e7a61a][afea7e4f]],
+checked rather than assumed (the user's question, 2026-09-15).* =replace==
+arrived in =28d68db= on 2026-08-26, two weeks before that slice existed; both
+=claude-code-ide-org-amend= and =--replace-body= are **byte-identical between
+=origin/main= and the slice's HEAD**; and the one branch commit naming
+=--slice-member-regexp= (=e8f18e0=) only *reads* it, in the new
+=--generated-line-p= predicate. The defect is latent since the revision mode
+shipped.
 
 *What changed was practice, not code.* =replace== exists for a body that
 has become a transcript, which is a *task* heading accumulating
@@ -134,16 +213,16 @@ first and add members after, or amend rather than replace.
   first of the four sequenced in next-session.md
 :END:
 :PLAN:
-*Why these four and not the other three.* The euchre blocking set named
-on [[id:6a207b00-8fa1-441e-8ee5-354702bc979b][6a207b00]] has seven candidates. Three already belong
-to other slices — =965f94eb= and =5e731a23= to
-[[id:8a2eb687-28da-4d44-893b-db59298bdc5b][8a2eb687]], =c9940558= to [[id:749301a0-0bd0-4fbd-b3f7-79739226e15a][749301a0]] — and
-a member counted by two slices makes two cookies disagree about the same
-work, so those stay where they are and are cross-referenced rather than
-adopted. This slice takes the four that belonged to no slice at all,
-which is also why the set is coherent: they are what a *second* repo
-meets and this one never does, because this repo grew each convention
-alongside its code and a second one receives it finished.
+*Why these four and not the other three.* The euchre blocking set named on
+[[id:6a207b00-8fa1-441e-8ee5-354702bc979b][6a207b00]] has seven candidates.
+Three already belong to other slices — =965f94eb= and =5e731a23= to
+[[id:8a2eb687-28da-4d44-893b-db59298bdc5b][8a2eb687]], =c9940558= to
+[[id:749301a0-0bd0-4fbd-b3f7-79739226e15a][749301a0]] — and a member counted by
+two slices makes two cookies disagree about the same work, so those stay where
+they are and are cross-referenced rather than adopted. This slice takes the four
+that belonged to no slice at all, which is also why the set is coherent: they
+are what a *second* repo meets and this one never does, because this repo grew
+each convention alongside its code and a second one receives it finished.
 
 *The order, and the reasoning.* Correctness first, then capture, then the
 two install-time defects.
@@ -158,11 +237,11 @@ two install-time defects.
 3. =784d80c5= and =af2f345e= are install-time and independent of each
    other, so they sort by encounter order rather than by dependency.
 
-*The standing hazard this slice exists to close.* =3f4fd744= is a
-convention that *looks* like enforcement and is not — the same failure
-shape as everything in [[id:8a2eb687-28da-4d44-893b-db59298bdc5b][8a2eb687]], and already deployed
-in euchre since 2026-09-11. A mechanism whose removal is invisible is
-the wrong mechanism; one that never fired and never said so is worse.
+*The standing hazard this slice exists to close.* =3f4fd744= is a convention
+that *looks* like enforcement and is not — the same failure shape as everything
+in [[id:8a2eb687-28da-4d44-893b-db59298bdc5b][8a2eb687]], and already deployed
+in euchre since 2026-09-11. A mechanism whose removal is invisible is the wrong
+mechanism; one that never fired and never said so is worse.
 
 *It is the first of four, sequenced on
 [[file:~/.claude/commands/next-session.md][next-session.md]]*: this,
@@ -188,7 +267,8 @@ Planned:
 - [ ] [[id:b0d55552-6bbf-45b8-9897-f62e6bd779e3][b0d55552]] TODO org_capture cannot set =:CATEGORY:=, so every captured heading is uncategorised and nothing notices
 - [ ] [[id:784d80c5-8750-4ebe-b5e5-c213fc809d80][784d80c5]] TODO claude-org-setup --org scaffolds or appends the consuming repo's .gitignore
 - [ ] [[id:af2f345e-b7db-4025-9f63-c5fce09fdd8a][af2f345e]] TODO The glue claims ownership of the whole wiring block, but the 202 override ships nowhere
-- [[orgit-rev:claude-code-ide-org::304bdc8][304bdc8]] [2026-09-15 Tue 10:2x] defined the slice and sequenced the four
+- [[orgit-rev:claude-code-ide-org::304bdc8][304bdc8]] [2026-09-15 Tue 10:2x]
+  defined the slice and sequenced the four
 
 
 * TODO A bookkeeping burst reads as many headings worked at once, and inflates every window it lands in :code:
@@ -627,7 +707,6 @@ grep, as that sweep was — not lost data, and this is member two of the
 slice nominated to start next. Working it early would take half the
 fix (the prose move is explicitly ordered first) outside the slice that
 counts it, leaving the cookie lying about what remains.
-
 
 
 * TODO [0/7] A span is only as true as its owner, its edges and its payload :code:
@@ -1251,10 +1330,11 @@ what this slice actually planned. Without the link the grep degrades into
 guessing a commit by date, which is precisely the kind of
 recoverable-in-principle that stops being done.
 
-*Integration point:* [[https://github.com/nbest937/claude-code-ide-org.el/pull/23][PR #23]],
-opened 2026-09-14 with 43 commits. Under the close condition settled on
-=e80f6ccf= this slice closes when that merges, not when its last member
-went terminal — which is why it sits at =REVIEW= now rather than =DONE=.
+*Integration point:*
+[[https://github.com/nbest937/claude-code-ide-org.el/pull/23][PR #23]], opened
+2026-09-14 with 43 commits. Under the close condition settled on =e80f6ccf= this
+slice closes when that merges, not when its last member went terminal — which is
+why it sits at =REVIEW= now rather than =DONE=.
 
 *Resolution:* all eleven members shipped and
 [[https://github.com/nbest937/claude-code-ide-org.el/pull/23][PR #23]]
@@ -3049,14 +3129,12 @@ Condensation is the pare no later reader catches. So: relocate first and
 wholesale, author in reviewable batches, condense last and separately.
 
 *Checked at the same time and needing nothing:* whether
-[[id:d350ff5b-3b1f-465e-800b-962264d2e841][d350ff5b]] must precede this. It need not. =org_amend
-drawer=DEBRIEF= already writes the drawer in canonical position —
-verified on =496b665e=, whose order is =:PROPERTIES:=, =:LOGBOOK:=,
-=:PLAN:=, =:DEBRIEF:=, then body — so this pass creates no disorder for
-that one to clean up, and the two are independent in either order. The
-slice lists =d350ff5b= earlier, which is sequence rather than dependency;
-no =:BLOCKER:= is warranted.
-
+[[id:d350ff5b-3b1f-465e-800b-962264d2e841][d350ff5b]] must precede this. It need
+not. =org_amend drawer=DEBRIEF= already writes the drawer in canonical position
+— verified on =496b665e=, whose order is =:PROPERTIES:=, =:LOGBOOK:=, =:PLAN:=,
+=:DEBRIEF:=, then body — so this pass creates no disorder for that one to clean
+up, and the two are independent in either order. The slice lists =d350ff5b=
+earlier, which is sequence rather than dependency; no =:BLOCKER:= is warranted.
 
 
 * TODO A boolean argument passed as false arrives as :false, which elisp reads as true :code:
@@ -5440,14 +5518,14 @@ and becomes a parent.
 *But the live exposure is two, not ten.* Eight of the ten are =DONE= and
 archived, where a clocktable is rarely run; only
 [[id:406e9200-c3e7-49ac-a8d0-d6ff8e061ce4][406e9200]] (=DOING=, 4 own lines) and
-[[id:a1d63f52-4c07-4b9e-8f31-6d2b90c4e7a5][a1d63f52]] (=TODO=, 9) are live. So the defect is real and
-its blast radius is small — which is the honest reading, and narrower
-than "ten groupings" sounds.
+[[id:a1d63f52-4c07-4b9e-8f31-6d2b90c4e7a5][a1d63f52]] (=TODO=, 9) are live. So
+the defect is real and its blast radius is small — which is the honest reading,
+and narrower than "ten groupings" sounds.
 
 *One of those two makes this timely.* =406e9200= is the story
-[[id:749301a0-0bd0-4fbd-b3f7-79739226e15a][749301a0]] sequences, and that slice is second of the four
-on =next-session.md=. Whoever works it will be reading clock data for
-precisely one of the ambiguous parents.
+[[id:749301a0-0bd0-4fbd-b3f7-79739226e15a][749301a0]] sequences, and that slice
+is second of the four on =next-session.md=. Whoever works it will be reading
+clock data for precisely one of the ambiguous parents.
 
 *What changed against this heading, and it lowers priority without
 touching correctness.* When this was written the clocktable was the
@@ -5462,30 +5540,27 @@ than it was even though the gap it would close is unchanged.
 non-recursive clocktable option, and nothing shipped in =afea7e4f= goes
 near =org-clock-sum=.
 
-*Blocked on [[id:406e9200-c3e7-49ac-a8d0-d6ff8e061ce4][406e9200]], set 2026-09-15.* The open
-question above — "whether every parent row wants a second number, or only
-the [ten] that currently carry own lines" — is a design decision with no
-evidence behind it yet, and the evidence is about to be generated:
-=406e9200= is one of the two live groupings with own time, and working
-its remaining children means reading exactly the ambiguous number. Either
-that work needs the own-time figure, which justifies the =:formatter=, or
-it works around it, which shows the gap is tolerable. Both are better
-inputs than deciding now.
+*Blocked on [[id:406e9200-c3e7-49ac-a8d0-d6ff8e061ce4][406e9200]], set
+2026-09-15.* The open question above — "whether every parent row wants a second
+number, or only the [ten] that currently carry own lines" — is a design decision
+with no evidence behind it yet, and the evidence is about to be generated:
+=406e9200= is one of the two live groupings with own time, and working its
+remaining children means reading exactly the ambiguous number. Either that work
+needs the own-time figure, which justifies the =:formatter=, or it works around
+it, which shows the gap is tolerable. Both are better inputs than deciding now.
 
 *The blocker names the story rather than the slice that sequences it.*
-[[id:749301a0-0bd0-4fbd-b3f7-79739226e15a][749301a0]] is what will drive the work, but a slice is a
-*declared* grouping that can be re-composed, dropped or split, where the
-story is the heading whose completion actually constitutes the evidence.
-Blocking on the more stable of the two is the point of preferring a
+[[id:749301a0-0bd0-4fbd-b3f7-79739226e15a][749301a0]] is what will drive the
+work, but a slice is a *declared* grouping that can be re-composed, dropped or
+split, where the story is the heading whose completion actually constitutes the
+evidence. Blocking on the more stable of the two is the point of preferring a
 property over a prose sentence.
 
-*Note the blocker is inert until [[id:3f4fd744-4ba7-4be8-9fe4-54e46119515a][3f4fd744]] lands.*
-=org_set_property= writes the =ids(...)= wrapper, which
-=org-depend-block-todo= cannot parse, so this refuses nothing today —
-which is the defect that heading exists to fix, demonstrating itself on
-the very next property written after it was measured.
-
-
+*Note the blocker is inert until
+[[id:3f4fd744-4ba7-4be8-9fe4-54e46119515a][3f4fd744]] lands.* =org_set_property=
+writes the =ids(...)= wrapper, which =org-depend-block-todo= cannot parse, so
+this refuses nothing today — which is the defect that heading exists to fix,
+demonstrating itself on the very next property written after it was measured.
 
 
 * TODO A guidepost gap containing an apply timestamp is provably the human's attention :code:
@@ -5559,6 +5634,7 @@ attention as it happens.
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-15 Tue 11:42]--[2026-09-15 Tue 11:44] =>  0:02
 CLOCK: [2026-09-15 Tue 10:54]--[2026-09-15 Tue 10:55] =>  0:01
 CLOCK: [2026-09-15 Tue 10:09]--[2026-09-15 Tue 10:13] =>  0:04
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
@@ -11888,4 +11964,16 @@ CLOCK: [2026-09-15 Tue 10:48]--[2026-09-15 Tue 10:50] =>  0:02
 - [2026-09-15 Tue 10:48]--[2026-09-15 Tue 10:50] root-cause unattributed spans, file discipline fix
 CLOCK: [2026-09-15 Tue 10:52]--[2026-09-15 Tue 10:53] =>  0:01
 - [2026-09-15 Tue 10:52]--[2026-09-15 Tue 10:53] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-15 Tue 10:59]--[2026-09-15 Tue 11:10] =>  0:11
+- [2026-09-15 Tue 10:59]--[2026-09-15 Tue 11:10] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-15 Tue 11:15]--[2026-09-15 Tue 11:19] =>  0:04
+- [2026-09-15 Tue 11:15]--[2026-09-15 Tue 11:19] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-15 Tue 11:22]--[2026-09-15 Tue 11:24] =>  0:02
+- [2026-09-15 Tue 11:22]--[2026-09-15 Tue 11:24] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-15 Tue 11:30]--[2026-09-15 Tue 11:31] =>  0:01
+- [2026-09-15 Tue 11:30]--[2026-09-15 Tue 11:31] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-15 Tue 11:35]--[2026-09-15 Tue 11:37] =>  0:02
+- [2026-09-15 Tue 11:35]--[2026-09-15 Tue 11:37] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-15 Tue 11:39]--[2026-09-15 Tue 11:41] =>  0:02
+- [2026-09-15 Tue 11:39]--[2026-09-15 Tue 11:41] root-cause unattributed spans, file discipline fix
 :END:
