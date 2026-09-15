@@ -505,6 +505,81 @@ Note the links cost nothing in `bin/lint-org` as of 2026-08-25 (`:ID:`
 warning, which would have made this convention degrade the report a
 little more with every slice.
 
+**A slice of slices needs no formalization** (the user, 2026-09-11).
+Nothing forbids one — `org_slice_add_member` refuses a non-slice target,
+a closed slice, a duplicate, the slice itself and a keyword-less member,
+and a member that happens to *be* a slice trips none of those — but no
+slice has ever named another, and sequencing slices is what
+`next-session.md`'s payload is already for. Do not coin a `:KIND:` value
+for it. If it is ever built anyway, the caveat to check first is
+incidental attribution: `--incidental-owner` resolves a tie by the
+latest clock before the close, and a parent and child slice both `DOING`
+would frequently tie, so closes would land nowhere rather than in the
+wrong place.
+
+### Adopting a discovery
+
+**Work discovered while a slice is being worked is adopted into it by
+default** (the user, 2026-09-11). The sentiment is deliberately
+matter-of-course: *we understand it now, it is in context, the costs and
+risks are low, so we might as well take it on and be done with it.* If
+feature A is landing shortly, the feature H that surfaced while working
+A — or while looking ahead to B through G — is very likely wanted too,
+and the marginal cost of adjacent work while the context is already
+loaded is the dominant term. **Adoption is the rule, not the exception**,
+and deferral is what needs a stated reason.
+
+The test is **relationship** to the work in hand, not bearing on the
+slice's stated end state. That distinction is not pedantry: read
+narrowly, "does the deliverable need this to ship?" excludes almost
+everything, and it excluded three of five real discoveries on the day
+this was written.
+
+**Adopt by adding a member line.** There is no other writable list — the
+`Incidental:` section is derived from *closes* and never curated — so a
+mid-flight addition goes in the planned checklist via
+`org_slice_add_member`, which accepts an open slice and refuses only a
+closed one. That is a **declaration of membership, not a retroactive
+claim to have foreseen it**; the `Planned:` lead is a structural anchor
+for the member parser, not an assertion of foresight.
+
+**Check no other slice already counts it.** A member counted twice makes
+two slices' cookies disagree about the same work; the dropping section
+has the full rule. In practice a discovery already claimed elsewhere is
+not adopted, it is cross-referenced.
+
+**Expect the cookie to regress.** Adopting at discovery inflates the
+denominator before the numerator, so `[3/6]` becomes `[3/9]` and progress
+appears to go backwards. Incidentals never did this, being done on
+arrival. It is honest, and it reads as a defect to anyone not told.
+
+#### Where adoption stops
+
+Adoption is the rule, so what bounds it is not a filter but a **gate**:
+the two are what separate this from scope creep, and the decision to take
+something on was never the problem.
+
+**Adoption is open while the slice is `DOING`. Entering `REVIEW` closes
+it** (the user, 2026-09-11). After that the bar rises to real defects and
+regressions — things incorrectly considered `DONE` that need further
+attention to reach acceptance. `REVIEW` on a grouping already means every
+member terminal and the work not yet integrated, so it is exactly the
+moment membership should stop moving, and a discovery arriving later
+seeds the *next* slice rather than being homeless.
+
+**Second, and proposed rather than settled: adopt at depth one.** The
+`REVIEW` gate binds at a boundary nothing compels a slice to reach —
+entering `REVIEW` requires every member terminal, adoption keeps adding
+members, so the target recedes and the gate never fires. Bounding the
+recursion fixes that without rationing the reflex: adopt discoveries made
+while working *planned* members freely; a discovery made while working an
+*adopted* member seeds the next slice. A defect in an adopted member's own
+fix is that member's work, not a new member.
+
+That terminates for a checkable reason rather than a felt one. The
+planned set is fixed at composition, so the adopted set is bounded by
+what work on a fixed set surfaces — finite, and unable to cascade.
+
 ### Closing a slice
 
 **A slice with an integration point closes when that lands, not when its

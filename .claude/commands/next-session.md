@@ -1,7 +1,7 @@
 # Next session
 
-A plan for `afea7e4f` — **Join the transcript to the record: span
-synopses, readable sessions, weighted attribution**.
+A plan for `35582d95` — **The plugin ships to a second repo unenforced,
+uncategorised and over-claimed** — first of the four slices sequenced below.
 
 **The slice is the list.** Open it and read its checklist; this file gives
 the plan, not the membership. The two disagree only if one is stale, and the
@@ -90,109 +90,158 @@ work.
 
 ---
 
+## The four slices, in order
+
+**Memoized 2026-09-15 at the user's direction**, so the sequence survives a
+cleared context. Each is its own branch and its own pull request, worked
+**serially**:
+
+| | slice | why here |
+|---|---|---|
+| 1 | `35582d95` — this one | smallest, and every member is a day-one defect in the repo the plugin was already deployed to on 2026-09-11 |
+| 2 | `749301a0` | already sequenced internally, foundational — both new derivations rest on span correctness — and holds `c9940558`, itself a euchre blocker |
+| 3 | `8a2eb687` | the correctness slice; holds euchre blockers `965f94eb` and `5e731a23`, plus `2aeb65d6`, which is what would make future parallelism safe at all |
+| 4 | `6521dd56` | corpus passes, least urgent, and `e128e4fa` is inherently attended — the conventions call it "a per-heading act nobody should do by sweep" |
+
+All four together unblock `6a207b00`, which is `WAITING` on exactly them.
+
+**Four concurrent branches were considered and declined**, and the reason is
+one number: **200 of the last 200 code commits touch `config.el`**, a single
+17,000-line file. Parallel branches would conflict in proportion to the work
+done, and resolving those merges is precisely the attended time the plan
+exists to save. Subagents remain right for *reading* — measuring, locating,
+reproducing, surveying — because a conclusion has no merge cost; they are
+wrong for concurrent edits here until `2aeb65d6` lands.
+
+**And measure the slice itself.** The user's stated reason for holding the
+established rhythm is to find out whether recent improvements make slices go
+better. At close, compare against `afea7e4f`: members, elapsed days, commits,
+review findings per member, and — new, and the first slice able to answer
+it — `M-x claude-code-ide-org-attention-report` over the slice's span. Record
+the comparison in the debrief.
+
+---
+
 ## What is already true, so it is not re-derived
 
-> **SLICE-SPECIFIC, and permanent as a *section*.** This heading always
-> appears and its contents never survive a rewrite: it exists so the next
-> session does not re-measure what this one already established. Keep it to
-> findings a session would otherwise spend real time rediscovering.
+- **`org-depend` cannot parse `ids(...)`.** Verified in batch against org
+  9.8.7 and the real `org-depend.el`, with a discriminating control: `ids(A)`
+  → DONE, `ids(A B)` → DONE, `ids(A B C)` → blocked but only by B, bare `A` →
+  blocked. The grammar is two rules — the literal `previous-sibling`, or words
+  each matched as an id **exactly equal** to the whole word.
+- **The wrapper was an honest misreading, not a typo.** org-depend *does* use
+  parentheses, on the `TRIGGER` side (`chain-siblings(KEYWORD)` and friends).
+  There is no parallel form for `BLOCKER`.
+- **`org-edna-mode` is a trap, not the second option it looks like.** With it
+  on, a `:BLOCKER:` holding *bare* uuids raises an unrecognised-form error and
+  org-edna treats every parse failure as a refusal — so those headings would
+  block unconditionally. Do not reach for it.
+- **The read side already disagrees with enforcement.**
+  `--outline-blocker-ids` extracts ids by UUID regexp and finds them all, so
+  `org_outline`'s `[blocked: …]` marker has been right while the `DONE`-time
+  refusal was not. The divergence bites at the human apply pass, which is
+  where the refusal was supposed to appear.
+- **The category regression has a cause and a date.** Commit `42a3221`
+  (2026-09-09) moved the ten `:CATEGORY:` values out of `CLAUDE.md`, which
+  loads in every session, into `.claude/rules/org-conventions-local.md`, which
+  carries `paths: ["**/*.org"]` and loads only when an org file is in play.
+  The first uncategorised capture is the next day; July and August are clean.
+  Capturing a heading is exactly a thing done with no `.org` file open.
+- **Measure categories from the drawer, never `org-entry-get`** — the latter
+  computes the file-name fallback that makes the defect invisible.
+- **The `.gitignore` advice inverts for a *relative* symlink.** A committed
+  `../../../claude-code-ide-org` is provenance and enablement in one artifact.
+  The ignore line is for *absolute* symlinks only.
+- **The 202 override ships nowhere.** `claude-org-setup --glue` prints that
+  the glue owns the whole wiring block, while the user's block also carries
+  the 202-Accepted override of
+  `claude-code-ide-mcp-http-server--send-empty-response` — the real fix from
+  the Warp investigation (upstream `8f986c6f`). A user following the printed
+  instruction re-breaks every strict MCP client.
 
-**PR #22 is the standing preliminary.** The whole plugin slice
-(`c19fbbf5`, ~95 commits on `feature/plugin-package`) is OPEN and
-unmerged. Step 0.5's survey will find it; the merge is the user's
-decision, and this slice's branch should be cut *after* it lands —
-GitHub closes a stacked PR when its base is deleted at merge (Standing
-rules, last entry but one).
+---
 
-**The join is measured, not hypothesized.** Every queue `resume` event
-in the measured session matched a transcript user message on timestamp —
-**28 of 28 within two seconds** (`295cde3a`, 2026-09-01). Transcripts
-live at `~/.claude/projects/<project-slug>/<session-id>.jsonl`, one JSON
-object per line, every user message ISO-timestamped. The join is
-retroactive over every session ever recorded; no hook change and no new
-durable field is needed anywhere in this slice.
+## Step 1 — `3f4fd744`: make the blocker actually block
 
-**The queue defines what a prompt is.** Raw `type:"user"` transcript
-entries are contaminated — stop-hook feedback and tool results are
-injected in the user role (45 raw against 36 real prompts in one
-session; 276 against ~25 in another). Filter to the queue's `resume`
-timestamps; this is `9e627dc0`'s trap, walked into twice already.
+The sharpest member and first for a reason beyond severity: every
+`:BLOCKER:` written *during* this slice's own work inherits whatever syntax
+is in force, so fixing it last would mean fixing it twice.
 
-**Why spans lack synopses today** (`--review-annotation-label`): an
-item's label is the note its *enclosing clock event* carried, authored
-at `org_clock_in`/`out` time. A span reconstructed from unbracketed
-guideposts has no enclosing event — that is what made it unattributed —
-so it gets only the synthesized provenance label. `325679af` fills
-exactly that hole with joined prompt text.
+Write the bare space-separated form — `:BLOCKER: uuid uuid uuid`, no
+wrapper — which is what the `org_set_property` validator already produces
+internally before wrapping it. Two write sites in `config.el`: the validator
+and the slice-blocker refresh. Then rewrite the existing corpus properties,
+which the validator itself can do.
 
-**`fbaf8009` executes FIRST despite sitting last on the checklist.**
-`org_slice_add_member` is append-only (`b112878e`, filed at
-composition), so the declared order could not be repaired; the slice's
-`:PLAN:` says so. It is pure rendering: the `cwd` is already on every
-queue event (`5461c349`) and the destination tracker falls out of where
-the `:ID:` resolves. No join, no transcript, cheapest first.
+**The test that matters is not a string comparison.** Assert that
+`org-depend-block-todo` actually *refuses* a `DONE` while a named blocker is
+unfinished, and permits it once finished — a test on the property's text
+would pass against the broken form too. The `ids(A B C)` control above is the
+shape: a blocker naming three ids must block on all three, not on the middle
+one.
 
-**The review buffer code to start from**: `--review-render`,
-`--review-annotation-label`, `--review-insert-remainders` in
-`config.el`. Multi-project data is live — euchre sessions append real
-events now — so `fbaf8009` can be verified against genuine two-project
-queues, not fixtures alone.
+**Close the read/enforce divergence in the same step**, or say why not. A
+marker that reports blocked while the guard permits is worse than either
+alone.
 
-**`96ddf1ef`'s promotion (MAYBE → TODO) may still be queued at pickup.**
-Step 0.1's staleness rule applies: the file shows MAYBE until the apply
-lands; do not fix it by hand.
+## Step 2 — `b0d55552`: categories, root cause first
 
-**The suite's baseline is 598/598** (as of the so-long guard,
-2026-09-10). Any failure is real. And if Emacs beachballs at a ceremony
-again, `sample <pid>` *before* killing it — `489d6f61` holds the one
-existing stack and is promoted by a second occurrence.
+Two halves and the order is load-bearing.
 
-## Step 1 — Where: the tracker and cwd rendering
+**First, move the `:CATEGORY:` taxonomy to an always-loaded rule.** That is
+the root cause, it is prose rather than code, and it repairs the discipline
+for humans and agents alike. The conventions predicted this failure in their
+own opening paragraph — "a path-scoped rule that does not load is a rule that
+does not apply, and the failure is silent."
 
-`fbaf8009` — group headings gain the destination tracker (the project
-directory name of the file the `:ID:` resolves in), and unassigned-span
-groups say which session `cwd` produced them. Rendering only; the
-column-alignment rationale in the group-heading code (`c2132d3f`) is
-the style to match, not fight. Verify against the real two-project
-queue.
+**Then make it not depend on being remembered.** Give `org_capture` a
+`category` argument, and `bin/lint-org` a rule: a **level-1** heading with no
+drawer-local `:CATEGORY:` is an error. Inheritance is the right answer for a
+child; a first-degree heading must carry its own. Read from the drawer.
 
-## Step 2 — What: the prompt join in the review buffer
+**Re-measure before and after.** The 2026-09-11 count was 10 of 111 level-1
+headings uncategorised, all created 09-10 or 09-11. Anything captured since —
+including this session's own captures — should be checked, and the count
+after the fix is the evidence the step worked.
 
-`325679af` — the slice's namesake. Each run renders its opening
-prompt's first line; a lone-timestamp span renders the abutting prompts
-either side, truncated. Elisp reads the session's transcript file,
-filters to `resume` timestamps (±2s tolerance, measured), truncates
-hard. Decide at build time: how much text, where it renders (same line
-or a detail on demand), and what happens when the transcript file has
-been cleaned up (30-day mortality — degrade to today's behavior,
-loudly).
+Decide, while here, whether a missing category should default from the
+target's parent or simply be required; the capture reply already names where
+the heading landed.
 
-## Step 3 — Pages: the readable session render
+## Step 3 — `784d80c5`: `--org` and the consuming `.gitignore`
 
-`96ddf1ef` — a transcript rendered to org for paging in Emacs. Its body
-carries the original observation; the design questions are where
-rendered files live (never in the repo), whether rendering is on-demand
-or cached, and how a review-buffer span links to its session's page.
-Buildable if Steps 1–2 leave room; otherwise its design conversation is
-a fine stopping point.
+Append missing ignore lines rather than clobbering — `--org` already
+collision-checks files, so the pattern exists. Four entries generalize
+(`settings.local.json`, worktrees, `clock-status.json`, the audit jsonl); the
+fifth is the `.claude/skills/<plugin>` symlink, and that one carries the
+relative-versus-absolute nuance above: prefer creating and committing the
+relative form, and ignore only the absolute one.
 
-## Step 4 — Meaning: weighted attribution, a conversation
+Decide whether the entries ship as a template or inline in the script. A
+submodule was considered and declined — a vendored second clone breaks the
+per-clone port contract and forks the plugin revision per consumer.
 
-`295cde3a` — research, explicitly. 84% of turns name at least one known
-heading id (mean 6.2), so a turn can be attributed to several tasks by
-weight, with lag. **Expect this step to end in a design or a refined
-question, not code**; it is the member that trusts the join furthest,
-and it waits on Steps 1–2 giving the user lived experience of the
-joined data.
+## Step 4 — `af2f345e`: stop the glue over-claiming
+
+Decide one of two, and both are defensible: move the 202 override into the
+module, guarded and self-retiring when upstream fixes `8f986c6f`; or soften
+the printed claim to name what the glue does **not** own.
+
+Until it is decided, the swap instructions must say KEEP the override by
+hand — which is what the actual swap did, so the instruction is describing
+practice rather than inventing it.
 
 ### Where this will stop
 
-Steps 1 and 2 are the deliverable core — after them the review buffer
-answers *where* and *what* for every span, which is the concrete need
-that declared this slice. Step 3 is a bonus build; Step 4 is a
-conversation. A session that ships Steps 1–2 verified against the real
-queue, then stops with Step 3's design questions posed, has done the
-slice's day well.
+Steps 1 and 2 are the deliverable core: after them a consuming repo gets a
+`:BLOCKER:` that enforces and captures that carry a category, which is most
+of what "the plugin arrives usable" means. Steps 3 and 4 are smaller and
+partly decisions rather than builds.
+
+A session that ships Steps 1–2 with the enforcement test verified to
+discriminate, then poses Step 4's choice rather than picking it unilaterally,
+has done the slice's day well. **The slice closes when its pull request
+merges**, not when its last member goes terminal.
 
 ---
 

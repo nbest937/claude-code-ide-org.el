@@ -77,13 +77,70 @@ to `org-default-notes-file' when nil, same convention as
 
 ;;; Helper ----------------------------------------------------------------
 
-(defvar claude-code-ide-org--last-error-backtrace nil
+(defvar claude-code-ide-org--last-error-context nil
   "Details of the most recent error `claude-code-ide-org--at-id' swallowed.
 
-A plist (:id ID :message MSG :backtrace STRING), or nil.  Overwritten by
+A plist (:id ID :message MSG :context STRING), or nil.  Overwritten by
 each conversion, so it answers \"what went wrong just now\" rather than
 keeping a history -- `claude-code-ide-org--review-apply' snapshots it per
-item, which is where a history is actually wanted.")
+item, which is where a history is actually wanted.
+
+*This carried a `:backtrace' until 2026-09-14 and it was worse than
+nothing* (TODO.org :ID: 169df26b).  The frames were captured inside the
+`condition-case' handler, by which point everything between the signal
+and the handler has unwound -- so what it stored was the *handler's*
+frames describing the capture machinery, fourteen of them, with the
+erroring call absent.  It looked like evidence, which stopped anyone
+reaching for a real reproduction.
+
+Capturing at signal time needs `handler-bind' (Emacs 30; this project
+runs 29.4) or ownership of a global -- `debugger' or
+`signal-hook-function' -- and a library cannot take the debugger without
+stealing it from whoever else holds it, which ERT does, edebug does, and
+so does a human with \[toggle-debug-on-error] while reproducing the very
+bug this would serve.  So it records the cheap facts instead, which is
+most of what the undiagnosed occurrences actually needed: see
+`claude-code-ide-org--error-context'.")
+
+(defun claude-code-ide-org--error-context (marker)
+  "Return a one-line description of where MARKER points, for a failure report.
+
+Computed inside the error handler rather than before the call, and that
+is sound for a reason worth stating: unwinding restores point and the
+current buffer, but it does not move a *marker*.  What is lost after
+unwinding is the dynamic state at signal time; where `--at-id' was
+pointed is still exactly recoverable.
+
+Reports the position, the buffer's size, the file, whether the position
+is actually at a heading, and whether the buffer is narrowed.  That set
+is not arbitrary: both undiagnosed failures read \"Before first headline
+at position 1\", and \"point 1 of 43982 in TODO.org, NOT at a heading\"
+names that outright -- the marker resolved to the top of the file, so
+`org-back-to-heading' had nothing behind it."
+  (if (not (markerp marker))
+      "no marker"
+    (let ((buffer (marker-buffer marker))
+          (position (marker-position marker)))
+      (cond
+       ((not (buffer-live-p buffer))
+        (format "position %s in a buffer that is no longer live" position))
+       (t
+        (with-current-buffer buffer
+          (let ((narrowed (buffer-narrowed-p))
+                (file (buffer-file-name)))
+            (save-excursion
+              (save-restriction
+                (widen)
+                (goto-char (max (point-min) (min position (point-max))))
+                (format "point %s of %d in %s%s, %s%s"
+                        position (point-max) (buffer-name)
+                        (if file
+                            (format " (%s)" (file-name-nondirectory file))
+                          " (no file)")
+                        (if (ignore-errors (org-at-heading-p))
+                            "at a heading"
+                          "NOT at a heading")
+                        (if narrowed ", buffer narrowed" "")))))))))))
 
 (defun claude-code-ide-org--at-id (id fn)
   "Find the org heading whose :ID: property equals ID.
@@ -107,11 +164,11 @@ cannot be resolved or FN signals an error."
          ;; "Before first headline at position 1" and nothing else, which
          ;; survived three wrong hypotheses before anyone could act on
          ;; them.
-         (setq claude-code-ide-org--last-error-backtrace
+         (setq claude-code-ide-org--last-error-context
                (list :id id
                      :message (error-message-string err)
-                     :backtrace (ignore-errors
-                                  (backtrace-to-string (backtrace-get-frames)))))
+                     :context (ignore-errors
+                                (claude-code-ide-org--error-context marker))))
          (format "Error: %s" (error-message-string err)))))))
 
 (defun claude-code-ide-org--at-id-writable (id fn)
@@ -6947,6 +7004,14 @@ whole file. This is the single place that judgement is made."
                 ;; kind (TODO.org :ID: f4e628ce).
                 :tool-use-id (alist-get 'tool_use_id obj)
                 :session-id (alist-get 'session_id obj)
+                ;; The session's working directory, written on every
+                ;; event since :ID: 5461c349 and read for the first time
+                ;; by the review buffer's tracker annotation (:ID:
+                ;; fbaf8009). Null on events written before the field
+                ;; existed -- 3028 of them on this queue the day it was
+                ;; read -- so every consumer must treat absence as
+                ;; "unknown" rather than as a project.
+                :cwd (alist-get 'cwd obj)
                 :agent-id (alist-get 'agent_id obj)
                 :agent-type (alist-get 'agent_type obj)
                 :source (alist-get 'source obj)))))))
@@ -7635,6 +7700,36 @@ buffer's \"writes N\" summary and the corpus measurement all read one
 implementation.  Sorts defensively: callers hand it a span's `:events',
 which are filtered from an already-sorted list, but nothing in the type
 says so."
+  ;; The blocks come from EVENTS themselves, so a caller that hands
+  ;; over a bracket's events gets the wait subtracted without having
+  ;; to know it was there.  Harmless where there are none: the
+  ;; barrier list is empty and the floor behaves exactly as before.
+  (claude-code-ide-org--apply-idle-floor
+   (claude-code-ide-org--raw-work-runs events)
+   floor
+   (claude-code-ide-org--block-intervals events)))
+
+(defun claude-code-ide-org--raw-work-runs (events)
+  "Return every `resume' -> `pause' adjacency in EVENTS as (START . END).
+
+The pairing alone: no idle floor, no permission-block subtraction, and
+none of the rendered-zero dropping `claude-code-ide-org--apply-idle-floor'
+performs.  `claude-code-ide-org--span-work-runs' is this plus that tail,
+and is what every CLOCK-writing path should call.
+
+Split out for the attention derivation (TODO.org :ID: 4f8500e6), which
+needs the runs *before* that tail for a reason specific to what it
+measures.  The tail **rewrites endpoints**: a run with a positive
+duration that would render `=>  0:00' has its end promoted to a full
+minute, deliberately, so the observation survives org's minute
+precision.  That is right for a CLOCK line and wrong here, because
+window membership is computed *from* the endpoints -- a ten-second turn
+at 09:09:40 is promoted to 09:10:40 and would mark the 09:10 window
+busy, inventing attention in a window nothing ran in.
+
+The idle floor is harmless by comparison (it cannot bridge a window, its
+default being far shorter), but the two arrive together and only the
+raw pairing is free of both.  Sorts defensively, as its caller documents."
   (let ((points (sort (mapcar (lambda (e)
                                 (cons (plist-get e :ts)
                                       (claude-code-ide-org--run-boundary-kind
@@ -7648,12 +7743,7 @@ says so."
                  (eq (cdr point) 'close))
         (push (cons (car previous) (car point)) runs))
       (setq previous point))
-    ;; The blocks come from EVENTS themselves, so a caller that hands
-    ;; over a bracket's events gets the wait subtracted without having
-    ;; to know it was there.  Harmless where there are none: the
-    ;; barrier list is empty and the floor behaves exactly as before.
-    (claude-code-ide-org--apply-idle-floor
-     (nreverse runs) floor (claude-code-ide-org--block-intervals events))))
+    (nreverse runs)))
 
 (defun claude-code-ide-org--renders-as-nothing-p (interval fmt)
   "Non-nil when INTERVAL would write a CLOCK line saying nothing.
@@ -8844,6 +8934,15 @@ exists to prevent."
          'create)
       id)))
 
+(defvar claude-code-ide-org--review-apply-warnings nil
+  "Anomalies from the current apply pass that are not failures.
+
+Populated by `claude-code-ide-org--review-apply-item' when an item's
+change reached the file and something *after* it signalled.  Reset by
+`claude-code-ide-org--review-apply' at the start of each pass and
+reported at the end, so a pass can say \"this landed, and here is what
+complained\" instead of choosing between a false failure and silence.")
+
 (defun claude-code-ide-org--review-apply-item (item)
   "Apply one review ITEM. Returns nil on success, an error string on failure.
 
@@ -8929,10 +9028,38 @@ lands at all."
               ;; rather than by archive time.
               (claude-code-ide-org--resolve-item-target item)
               (lambda ()
-                (pcase (plist-get item :type)
-                  ('clock (claude-code-ide-org--review-apply-clock item))
-                  ('state (claude-code-ide-org--review-apply-state item))
-                  ('amend (claude-code-ide-org--review-apply-amend item)))
+                ;; Where `--at-id' put us, kept across the apply.
+                ;;
+                ;; The tidy-up below asks for "the heading at point", and
+                ;; applying an item does not promise to leave point on
+                ;; it. A state apply in particular drives org's
+                ;; note-storing machinery, which moves point and ends in
+                ;; `set-window-configuration'; if point lands before the
+                ;; first heading, `--find-drawer' signals "Before first
+                ;; headline at position 1" *after* the keyword and the
+                ;; note have both been written correctly.
+                ;;
+                ;; That is TODO.org :ID: b23e5bcc, and its cost was not
+                ;; cosmetic: `--at-id' converts the signal into an error
+                ;; string, so a fully-applied item was reported failed,
+                ;; never watermarked, and re-offered on every later pass
+                ;; -- where force-applying it would write a second
+                ;; `State' line for a transition that already happened.
+                ;; Eight items in one pass on 2026-09-14.
+                ;;
+                ;; Returning here rather than making the tidy-up tolerant
+                ;; is deliberate: "the heading at point" is that
+                ;; function's contract and its other callers keep it. The
+                ;; apply path is what broke it.
+                (let ((origin (point-marker)))
+                  (pcase (plist-get item :type)
+                    ('clock (claude-code-ide-org--review-apply-clock item))
+                    ('state (claude-code-ide-org--review-apply-state item))
+                    ('amend (claude-code-ide-org--review-apply-amend item)))
+                  (when (marker-buffer origin)
+                    (set-buffer (marker-buffer origin))
+                    (goto-char origin))
+                  (set-marker origin nil))
                 ;; Fold the tidy-up into the write already being made,
                 ;; before `save-buffer' rather than after, so one apply
                 ;; is one write. org inserts CLOCK lines newest-first
@@ -8946,7 +9073,44 @@ lands at all."
                 (save-buffer)
                 nil))))
         ;; --at-id returns an "Error: ..." string rather than throwing.
-        (and (stringp result) result)))))))
+        ;; Verify the outcome rather than trust the verdict.
+        ;;
+        ;; A state item can complete its transition and *then* have
+        ;; something downstream signal -- the drawer consolidation and
+        ;; the save both run inside this same lambda, after `org-todo'
+        ;; and after the note is stored. `--at-id' turns any of that into
+        ;; an error string, so the item is reported failed, is never
+        ;; watermarked, and returns on every future pass.
+        ;;
+        ;; Observed live 2026-09-14 (TODO.org :ID: b23e5bcc): an apply
+        ;; reported "Applied 8 item(s); 8 failed", every failure reading
+        ;; "Before first headline at position 1", and all eight keyword
+        ;; changes had landed correctly with their notes. The same
+        ;; symptom is recorded on `--at-id' from 2026-08-24 and went
+        ;; undiagnosed then for the reason it did now: the stored
+        ;; backtrace is captured after unwinding (:ID: 169df26b) and
+        ;; cannot name the signal site. Five hypotheses were reproduced
+        ;; against and falsified; the root cause is still open.
+        ;;
+        ;; So this is not a guess at the cause. It is the narrower claim
+        ;; that *the file is the record*: if the heading now carries the
+        ;; keyword the item asked for, the transition happened, and
+        ;; reporting failure contradicts the file. The downstream error
+        ;; is still surfaced, as a warning, because something did go
+        ;; wrong and silence would trade one wrong answer for another.
+        (if (and (stringp result)
+                 (eq (plist-get item :type) 'state)
+                 (equal (claude-code-ide-org--review-current-state
+                         (plist-get item :id))
+                        (plist-get item :to)))
+            (progn
+              (push (format "%s -> %s landed, but %s"
+                            (claude-code-ide-org--short-id (plist-get item :id))
+                            (plist-get item :to)
+                            (string-remove-prefix "Error: " result))
+                    claude-code-ide-org--review-apply-warnings)
+              nil)
+          (and (stringp result) result))))))))
 
 (defun claude-code-ide-org--review-apply-amend (item)
   "Append ITEM's text to the end of the target heading's own body.
@@ -9010,19 +9174,19 @@ messages looked like on 2026-08-24: true, useless, and indistinguishable
 from each other.  Naming the item costs nothing and is the difference
 between a mystery and a defect report.
 
-The backtrace goes to *Messages* rather than into the returned string:
-the return value is rendered in the review buffer, where a stack would
-bury the summary, while *Messages* is where someone looks after being
-told something failed."
-  (let ((bt claude-code-ide-org--last-error-backtrace))
-    (when (plist-get bt :backtrace)
+The context line goes to *Messages* rather than into the returned
+string: the return value is rendered in the review buffer, where it
+would bury the summary, while *Messages* is where someone looks after
+being told something failed."
+  (let ((bt claude-code-ide-org--last-error-context))
+    (when (plist-get bt :context)
       (message "org-review: %s on %s item %s (%s)\n%s"
                (plist-get bt :message)
                (plist-get item :type)
                (or (plist-get item :id) "(no id)")
                (format-time-string
                 "%H:%M:%S" (or (plist-get item :ts) (plist-get item :start)))
-               (plist-get bt :backtrace)))
+               (plist-get bt :context)))
     (format "%s [%s %s %s]"
             error
             (plist-get item :type)
@@ -9250,7 +9414,7 @@ ante rather than new damage."
 
 
 (defun claude-code-ide-org--review-apply (items)
-  "Apply ITEMS in order. Returns a plist (:applied N :errors ERRORS).
+  "Apply ITEMS in order. Returns a plist (:applied N :errors ERRORS :warnings W).
 
 Judges staleness across the whole batch first, via
 `claude-code-ide-org--review-projected-staleness', so a chain of
@@ -9275,10 +9439,14 @@ suppress, and the flag, its re-entrancy companion and the settle pass
 that re-ran what it skipped all went with it -- 163 lines whose whole
 purpose was guarding a trigger that wrote to the file on its own."
   (claude-code-ide-org--review-projected-staleness items)
+  ;; Reset per pass, for the same reason `--last-error-context' is:
+  ;; a warning from the previous apply reported against this one is
+  ;; worse than no warning at all.
+  (setq claude-code-ide-org--review-apply-warnings nil)
   (let (applied errors)
     (progn
       (dolist (item items)
-        (setq claude-code-ide-org--last-error-backtrace nil)
+        (setq claude-code-ide-org--last-error-context nil)
         (let ((error (claude-code-ide-org--review-apply-item item)))
           (if error
               ;; Name the item. A bare error string cannot say WHICH of
@@ -9502,7 +9670,13 @@ the MCP layer."
                                           backing))))
              (headings (delete-dups (mapcar (lambda (i) (plist-get i :id)) items)))
              (lines nil)
-             (last-id 'none))
+             (last-id 'none)
+             ;; The same annotation the review buffer grew (:ID:
+             ;; fbaf8009), on the same items in the same order. This
+             ;; report is the model-facing twin of that buffer, and a
+             ;; reader of either was equally unable to say which project
+             ;; a group belonged to.
+             (annotations (claude-code-ide-org--review-group-annotations items)))
         (claude-code-ide-org--review-projected-staleness
          items (lambda (item) (plist-get item :marked)))
         (dolist (item items)
@@ -9530,7 +9704,8 @@ the MCP layer."
               ;; is true of neither (TODO.org :ID: 2b050e7a; the first
               ;; instance was :ID: 98700ea3, which fixed one branch and
               ;; left the shape).
-              (push (cond
+              (push (concat
+                     (cond
                      ((null last-id)
                       "\n(unassigned -- press `a' in the review buffer to choose a heading)")
                      (title (format "\n%s  {%s}" title last-id))
@@ -9543,6 +9718,7 @@ the MCP layer."
                       (format "\n(new heading, created when this is applied)  {%s}"
                               last-id))
                      (t (format "\n(unresolvable :ID:)  {%s}" last-id)))
+                     (or (gethash item annotations) ""))
                     lines)))
           (push (claude-code-ide-org--review-describe item) lines))
         (if (null items)
@@ -9578,6 +9754,82 @@ the MCP layer."
 
 ;;; Review buffer
 
+(defun claude-code-ide-org-review-open-session ()
+  "Render the session behind the item at point and open it at this span.
+
+The review buffer answers *when* and, since :ID: 325679af, *what was
+said*; this is the escape hatch to the whole conversation when the
+synopsis is not enough.  Point lands on the turn nearest at-or-before
+the span's start, so the file opens where the span begins rather than
+at the top of a session that may run for hours.
+
+Refuses rather than guesses when the item carries no session -- a
+state or capture item names a heading, not a stretch of time -- and
+says so when the transcript has aged out, which for old work is the
+common answer."
+  (interactive)
+  (let* ((item (claude-code-ide-org--review-item-at-point))
+         (events (and item (plist-get item :events)))
+         (session (seq-some (lambda (e)
+                              (let ((id (plist-get e :session-id)))
+                                (and id
+                                     (claude-code-ide-org--transcript-file id)
+                                     id)))
+                            events)))
+    (cond
+     ((null item) (user-error "%s" (claude-code-ide-org--review-no-item-message)))
+     ((null events)
+      (user-error "This item carries no session events to open a transcript for"))
+     ((null session)
+      (user-error "No transcript on disk for this item's session (aged out?)"))
+     (t
+      (let ((file (claude-code-ide-org-render-session session))
+            (start (plist-get item :start)))
+        (find-file-other-window file)
+        (goto-char (point-min))
+        ;; Nearest turn at or before the span's start. Scanning the
+        ;; rendered headings rather than recomputing from the transcript
+        ;; keeps this honest about what the reader is actually looking
+        ;; at -- if the render is stale the jump is stale with it, which
+        ;; is visible, where a computed position would silently disagree.
+        (when start
+          ;; Compare minutes, not the rendered strings.  The headings
+          ;; carry `HH:MM' and no date, so `string-lessp' puts 00:15
+          ;; before 22:00 and a session crossing midnight leaves BEST at
+          ;; `point-min' -- opening at the top of the file, which is the
+          ;; exact failure the jump exists to avoid.
+          ;;
+          ;; The render is chronological, so a heading whose time goes
+          ;; *backwards* is the next day: count those crossings and
+          ;; compare absolute minutes.  WANT is placed on the first day
+          ;; that puts it at or after the session's opening turn, which
+          ;; is what makes an 01:00 span belong to a session that began
+          ;; at 22:00 rather than to the morning before it.
+          (let ((want-minutes (claude-code-ide-org--hhmm-minutes
+                               (format-time-string "%H:%M" start)))
+                (best (point-min))
+                (day 0) previous want)
+            (while (re-search-forward "^\\* \\([0-9][0-9]:[0-9][0-9]\\)  " nil t)
+              (let ((minutes (claude-code-ide-org--hhmm-minutes
+                              (match-string 1))))
+                (when (and previous (< minutes previous))
+                  (setq day (1+ day)))
+                (setq previous minutes)
+                (unless want
+                  (setq want (if (< want-minutes minutes)
+                                 (+ want-minutes 1440)
+                               want-minutes)))
+                (when (<= (+ minutes (* 1440 day)) want)
+                  (setq best (line-beginning-position)))))
+            (goto-char best)))
+        (when (fboundp 'org-fold-show-entry) (ignore-errors (org-fold-show-entry)))
+        (message "%s" (file-name-nondirectory file)))))))
+
+(defun claude-code-ide-org--hhmm-minutes (text)
+  "Return TEXT, an `HH:MM' string, as minutes since midnight."
+  (+ (* 60 (string-to-number (substring text 0 2)))
+     (string-to-number (substring text 3 5))))
+
 (defvar claude-code-ide-org-review-mode-map (make-sparse-keymap)
   "Keymap for `claude-code-ide-org-review-mode'.")
 
@@ -9603,6 +9855,8 @@ the MCP layer."
                    ("N" . claude-code-ide-org-review-edit-note)
                    ("d" . claude-code-ide-org-review-dismiss)
                    ("RET" . claude-code-ide-org-review-goto)
+                   ("T" . claude-code-ide-org-review-open-session)
+                   ("s" . claude-code-ide-org-review-toggle-order)
                    ("x" . claude-code-ide-org-review-apply)
                    ("g" . claude-code-ide-org-review-refresh)
                    ("?" . claude-code-ide-org-review-help)))
@@ -9707,7 +9961,14 @@ all still pending.
   ;; worse to read than either extreme. Both are buffer-local, so a
   ;; global preference for truncation is untouched everywhere else.
   (setq-local truncate-lines nil)
-  (setq-local word-wrap t))
+  (setq-local word-wrap t)
+  ;; The defcustom is the default; the buffer-local is the state `s'
+  ;; toggles. Set here rather than as the `defvar-local' value so that
+  ;; changing the preference takes effect on the next buffer without a
+  ;; reload, and so a toggled buffer does not leak its direction into
+  ;; the next one (TODO.org :ID: f1e36a65).
+  (setq claude-code-ide-org--review-newest-first
+        claude-code-ide-org-review-newest-first))
 
 (defun claude-code-ide-org--review-item-at-point ()
   "Return the review item on the current line, or nil."
@@ -10174,6 +10435,749 @@ to eight (TODO.org :ID: 9575e65b, reported by the user)."
                  (org-no-properties (org-get-heading t t t t)))
           (set-marker marker nil)))))))
 
+;;; Which tracker an item belongs to (TODO.org :ID: fbaf8009) -----------------
+;;
+;; One queue serves every project a session runs in -- since 2026-09-10
+;; that is genuinely more than one -- while the review buffer's group
+;; heading renders eight characters of id and a title.  The destination
+;; tracker is implicit in where the id resolves and was never displayed,
+;; so two projects' headings interleaved distinguishable only by title.
+;; This is legibility: nothing here changes what apply writes.
+
+(defun claude-code-ide-org--id-tracker (id)
+  "Return the project name of the tracker ID will be written in, or nil.
+
+For an ordinary :ID: that is the project containing the file the id
+resolves in.  For the meta-work category *title* -- which names no
+heading yet, the day node being created at apply -- it is the project
+containing `claude-code-ide-org--capture-target-file', because that is
+where apply will create it.  Worth stating rather than hiding: at
+review time no MCP session is bound, so that file is the global default
+whichever project queued the span, and showing it is how a misroute
+becomes visible from outside the session that caused it.
+
+Nil when neither applies, which covers an unresolvable id and a capture
+whose heading apply has yet to create.
+
+Resolution is tried *before* the day-node test, and the order is not
+arbitrary: a real :ID: can never equal the category title, while
+`claude-code-ide-org--day-node-target-p' opens the capture file and
+searches it where `org-id-find' is a hash lookup.  This runs once per
+group per keystroke."
+  (when id
+    (or (when-let* ((marker (ignore-errors
+                              (claude-code-ide-org--id-find id 'marker))))
+          (prog1 (claude-code-ide-org--project-name
+                  (buffer-file-name (marker-buffer marker)))
+            (set-marker marker nil)))
+        (when (claude-code-ide-org--day-node-target-p id)
+          (claude-code-ide-org--project-name
+           (claude-code-ide-org--capture-target-file))))))
+
+(defun claude-code-ide-org--review-item-runs (items)
+  "Split ITEMS into runs of consecutive items sharing an :id, in order.
+
+A run is exactly what the renderers draw one group heading for -- both
+of them walk ITEMS comparing each item's :id against the last -- so
+anything computed per group has to be computed per run rather than per
+distinct id.  The same id legitimately starts several runs: items sort
+by time, and the meta-work node reappears whenever the day's work does."
+  (let (runs current (last-id 'none))
+    (dolist (item items)
+      (let ((id (plist-get item :id)))
+        (if (and current (equal id last-id))
+            (push item current)
+          (when current (push (nreverse current) runs))
+          (setq current (list item) last-id id))))
+    (when current (push (nreverse current) runs))
+    (nreverse runs)))
+
+(defun claude-code-ide-org--review-run-cwds (run)
+  "Distinct project names of the session `cwd's behind RUN's events.
+
+Sorted, so a group holding two sessions renders the same string on
+every keystroke.  Empty when no event carries a cwd, which is every
+event written before :ID: 5461c349 added the field."
+  (let (names)
+    (dolist (item run)
+      (dolist (event (plist-get item :events))
+        (when-let* ((name (claude-code-ide-org--project-name
+                           (plist-get event :cwd))))
+          (unless (member name names) (push name names)))))
+    (sort (nreverse names) #'string<)))
+
+(defun claude-code-ide-org--review-group-annotation (run)
+  "Return RUN's tracker annotation -- what its group heading ends with.
+
+Two different facts, labelled differently because they answer with
+different authority.  A resolved id names the file apply will *write*,
+so the project is stated bare.  An id that resolves to nothing -- an
+unassigned span, a capture whose heading does not exist yet -- has no
+destination to name, so the session `cwd' behind the events is offered
+instead and says so: where a session ran is evidence about where its
+work belongs, not the same claim as where it will land.
+
+Nil when neither is known, and the heading then renders exactly as it
+did before.  An annotation that cannot be trusted is worse than none.
+
+Rendered unconditionally rather than only when a buffer holds more than
+one project.  Suppressing the single-project case would make absence
+mean either \"one project\" or \"the lookup failed\", and the whole
+point is to be able to tell a misroute from a correctly routed pass."
+  (let ((tracker (claude-code-ide-org--id-tracker (plist-get (car run) :id))))
+    (if tracker
+        (propertize (format "  [%s]" tracker)
+                    'face 'claude-code-ide-org-review-tracker-face)
+      (when-let* ((names (claude-code-ide-org--review-run-cwds run)))
+        (propertize (format "  [cwd: %s]" (string-join names ", "))
+                    'face 'claude-code-ide-org-review-tracker-face)))))
+
+(defun claude-code-ide-org--review-group-annotations (items)
+  "Map the item starting each of ITEMS' groups to that group's annotation.
+
+Returned as an `eq' hash keyed by the item plist itself, so a renderer
+that already knows it has reached a new group looks the answer up in
+one call instead of finding the run again.  Computed in one pass per
+render, which is also what keeps `--id-tracker' from being asked the
+same question once per item."
+  (let ((table (make-hash-table :test 'eq)))
+    (dolist (run (claude-code-ide-org--review-item-runs items))
+      (puthash (car run)
+               (claude-code-ide-org--review-group-annotation run)
+               table))
+    table))
+
+;;; Joining the transcript to the record (TODO.org :ID: 325679af) -------------
+;;
+;; What was going on during a span, answered from the session's own
+;; transcript.  The record knows *when* work happened and not *what* --
+;; a 0-run span reads identically to an unmeasured long turn, and
+;; `--review-annotation-label' cannot help: an item's label is the note
+;; its enclosing clock event carried, and a span reconstructed from bare
+;; guideposts has no enclosing event, which is what made it
+;; unattributed in the first place.
+;;
+;; The join is by timestamp, and it is measured rather than assumed.
+;; Every queue `resume' is a `UserPromptSubmit', and the transcript
+;; records that same prompt within a second or two.  Across the whole
+;; corpus on 2026-09-11: 1144 resume events over 41 sessions, 1137
+;; matched inside two seconds (99.4%), 6 of the 7 misses being sessions
+;; whose transcript file has aged out.
+;;
+;; *The queue decides what a prompt is.*  Raw `type:"user"' transcript
+;; entries are contaminated -- tool results and injected notifications
+;; arrive in the user role, 319 entries against roughly twenty real
+;; prompts in one session -- so nothing here enumerates user entries.
+;; It asks "what was said at this resume's timestamp", which is a
+;; different question with a clean answer (:ID: 9e627dc0's trap, walked
+;; into twice before this was written).
+;;
+;; Nothing new is recorded anywhere: this is retroactive over every
+;; session ever queued, needs no hook change and no durable field.
+
+(defcustom claude-code-ide-org-prompt-join-tolerance 2
+  "Seconds a transcript prompt may differ from its `resume' event and still match.
+
+Measured, not chosen: across 1144 resume events on 2026-09-11, 1137
+matched a transcript prompt inside this window.  The two clocks are the
+hook's `date' and Claude Code's own writer, so they disagree by the time
+it takes a hook to run, not by anything that scales.
+
+Widening it trades precision for nothing.  Where two prompts fall inside
+one window -- 17 of 1137 -- the nearest wins, so a larger window only
+makes that tie-break decide more often."
+  :type 'integer
+  :group 'claude-code-ide-org)
+
+(defcustom claude-code-ide-org-prompt-synopsis-width 80
+  "Columns a rendered prompt synopsis is truncated to.
+
+The synopsis answers \"what was this\", not \"what did it say\" -- the
+transcript is still there for the latter.  Wide enough that a sentence
+survives, narrow enough that the line does not wrap in a buffer whose
+whole job is scanning."
+  :type 'integer
+  :group 'claude-code-ide-org)
+
+(defcustom claude-code-ide-org-prompt-synopsis-max-lines 5
+  "Most prompt synopses rendered beneath one span.
+
+A span can hold dozens of runs, and a review buffer that scrolls for a
+screen per item is not more legible than one that scrolls for none.
+What is dropped is *said* rather than silently cut, so a reader can tell
+a capped list from a complete one."
+  :type 'integer
+  :group 'claude-code-ide-org)
+
+(defvar claude-code-ide-org--transcript-cache (make-hash-table :test 'equal)
+  "Parsed transcript prompts, keyed by (SESSION-ID . MTIME).
+
+Keyed on the file's modification time as well as its session, so a
+*live* session -- whose transcript grows under us while its own review
+buffer is open -- re-reads instead of answering from a snapshot.  An
+entry for a superseded mtime is simply never hit again; the table is
+small and per-Emacs-session.")
+
+(defun claude-code-ide-org--transcript-file (session-id)
+  "Return the transcript file for SESSION-ID, or nil when none exists.
+
+Found by globbing every project directory rather than by deriving the
+project slug from a `cwd'.  The slug encodes the directory Claude Code
+started in, which is not always the repo root and is different again
+inside a linked worktree -- three ways to derive the wrong name for a
+file whose *basename is already the session id*, and session ids are
+uuids.  Searching for the id cannot be wrong.
+
+Nil is the normal answer for old work, not an error: transcripts age
+out at about thirty days while the queue keeps its events forever, so
+every consumer here has to degrade."
+  (when (and (stringp session-id)
+             ;; The one place an untrusted id reaches a glob pattern.
+             (string-match-p "\\`[A-Za-z0-9._-]+\\'" session-id))
+    (car (file-expand-wildcards
+          (expand-file-name (format "projects/*/%s.jsonl" session-id)
+                            (expand-file-name "~/.claude/"))
+          t))))
+
+(defun claude-code-ide-org--transcript-prompts (session-id)
+  "Return SESSION-ID's transcript prompts as a list of (TIME . TEXT).
+
+Ascending by time.  Only entries in the user role carrying *string*
+content are kept: a tool result arrives in the same role with its
+content as an array, so the shape does the first half of the filtering
+and the timestamp join does the rest.
+
+Lines are pre-filtered with a plain `string-search' before any JSON is
+parsed.  A transcript runs to thousands of lines of which the assistant
+turns -- much the largest -- can never match, and this is called from a
+render."
+  (when-let* ((file (claude-code-ide-org--transcript-file session-id))
+              (mtime (float-time (file-attribute-modification-time
+                                  (file-attributes file))))
+              (key (cons session-id mtime)))
+    (let ((hit (gethash key claude-code-ide-org--transcript-cache 'miss)))
+      (if (not (eq hit 'miss))
+          hit
+        (puthash
+         key
+         (ignore-errors
+           (with-temp-buffer
+             (insert-file-contents file)
+             (let (prompts)
+               (goto-char (point-min))
+               (while (not (eobp))
+                 (let ((line (buffer-substring-no-properties
+                              (line-beginning-position) (line-end-position))))
+                   (when (string-search "\"type\":\"user\"" line)
+                     (when-let* ((obj (ignore-errors
+                                        (json-parse-string
+                                         line :object-type 'alist
+                                         :null-object nil :false-object nil)))
+                                 ;; `isMeta' marks harness-injected text
+                                 ;; wearing the user's role -- the
+                                 ;; "Caveat: the messages below were
+                                 ;; generated by the user while running
+                                 ;; local commands" preamble. It is
+                                 ;; written within milliseconds of the
+                                 ;; command it prefaces, so dropping it
+                                 ;; is what lets the real prompt win the
+                                 ;; nearest-match; keeping it rendered
+                                 ;; the caveat and hid the command.
+                                 ((not (alist-get 'isMeta obj)))
+                                 (ts (alist-get 'timestamp obj))
+                                 (text (alist-get 'content
+                                                  (alist-get 'message obj)))
+                                 ((stringp text))
+                                 ;; The user's `!' shell escapes land in
+                                 ;; the user role as <bash-input> and
+                                 ;; <bash-stdout> pairs and fire no
+                                 ;; UserPromptSubmit, so they are never
+                                 ;; the prompt a `resume' refers to.
+                                 ;; Excluded here rather than at render:
+                                 ;; left in the candidate list one could
+                                 ;; win the nearest-match and hide the
+                                 ;; real prompt. 59 of one session's 80.
+                                 ((not (string-prefix-p "<bash-" text)))
+                                 (time (claude-code-ide-org--parse-iso8601 ts)))
+                       (push (cons time text) prompts))))
+                 (forward-line 1))
+               (sort (nreverse prompts)
+                     (lambda (a b) (time-less-p (car a) (car b)))))))
+         claude-code-ide-org--transcript-cache)))))
+
+(defun claude-code-ide-org--prompt-at (session-id time)
+  "Return the text said in SESSION-ID at TIME, or nil.
+
+The nearest prompt within `claude-code-ide-org-prompt-join-tolerance'.
+Nearest rather than first, because two prompts can fall inside one
+window -- 17 of 1137 on the corpus -- and a rule that picked either end
+would answer differently depending on which way the list was sorted."
+  (when (and session-id time)
+    (let ((best nil) (best-gap nil))
+      (dolist (prompt (claude-code-ide-org--transcript-prompts session-id))
+        (let ((gap (abs (float-time (time-subtract (car prompt) time)))))
+          (when (and (<= gap claude-code-ide-org-prompt-join-tolerance)
+                     (or (null best-gap) (< gap best-gap)))
+            (setq best (cdr prompt) best-gap gap))))
+      best)))
+
+(defun claude-code-ide-org--prompt-before (session-id time)
+  "Return the last thing said in SESSION-ID at or before TIME, or nil.
+
+The fallback for a span holding no `resume' at all, which is not the
+rare case it sounds like: a bracket opened and closed inside *one* turn
+contains no guidepost by construction, and a long turn carrying several
+mid-turn messages emits no `UserPromptSubmit' for them either.  Measured
+on this session while the feature was being built -- fifteen minutes of
+work between a clock_in and a clock_out, two events, no guideposts.
+
+That span is precisely the \"unmeasured long turn\" :ID: 325679af says a
+reader cannot tell from a degenerate one, so answering it with silence
+would miss the case the heading was filed for.  Unlike
+`claude-code-ide-org--prompt-at' this is not the measured join and must
+never be rendered as though it were: the caller labels it as the prompt
+*before* the span, and the line carries the prompt's own timestamp, so
+the distance is visible rather than asserted."
+  (when (and session-id time)
+    (let (best)
+      (dolist (prompt (claude-code-ide-org--transcript-prompts session-id))
+        (unless (time-less-p time (car prompt))
+          (setq best prompt)))
+      best)))
+
+(defun claude-code-ide-org--prompt-synopsis (text)
+  "Return TEXT as one short line, or nil when it says nothing useful.
+
+Three shapes reach here and only one is prose.  A slash command arrives
+wrapped in `<command-message>'/`<command-name>' tags, and the command
+*is* the synopsis -- 11 of 1137.  A subagent finishing re-invokes the
+agent, which submits a prompt nobody typed, so its `<task-notification>'
+is named as what it is rather than quoted -- 28 of 1137.  The remaining
+96% is what the human actually said, and its first non-blank line is
+taken whole."
+  (when (stringp text)
+    (let ((text (string-trim text)))
+      (cond
+       ((string-empty-p text) nil)
+       ((string-match "<command-name>\\([^<]+\\)</command-name>" text)
+        (string-trim (match-string 1 text)))
+       ((string-prefix-p "<task-notification" text) "(subagent finished)")
+       (t (let ((line (car (seq-remove #'string-empty-p
+                                       (mapcar #'string-trim
+                                               (split-string text "\n"))))))
+            (when line
+              (truncate-string-to-width
+               line claude-code-ide-org-prompt-synopsis-width nil nil t))))))))
+
+(defun claude-code-ide-org--span-prompt-lines (item)
+  "Return the prompt synopsis lines to render beneath ITEM.
+
+One line per run of work, in order, each labelled with the time its
+prompt was submitted -- which is what makes a 0-run span legible: it
+renders no run line at all, and the absence is then visibly an absence
+rather than a silence.
+
+A span whose transcripts have aged out says so instead of rendering
+nothing, because \"no prompts\" and \"no transcript\" are the two
+answers a reader must not confuse, and the second is the common one for
+old work.
+
+Capped at `claude-code-ide-org-prompt-synopsis-max-lines', with the
+remainder stated."
+  (let* ((events (plist-get item :events))
+         (resumes (seq-filter (lambda (e) (equal (plist-get e :kind) "resume"))
+                              events))
+         (sessions (delete-dups (delq nil (mapcar (lambda (e)
+                                                    (plist-get e :session-id))
+                                                  events))))
+         (have-transcript (seq-find #'claude-code-ide-org--transcript-file
+                                    sessions))
+         lines)
+    (cond
+     ;; No guideposts inside at all: answer with the prompt that was in
+     ;; effect when the span opened, labelled as being from before it.
+     ((and (null resumes) have-transcript)
+      ;; HAVE-TRANSCRIPT is the session id `seq-find' matched on, not a
+      ;; boolean -- so this asks the session that actually has a
+      ;; transcript rather than whichever happens to sort first.
+      (when-let* ((prompt (claude-code-ide-org--prompt-before
+                           have-transcript (plist-get item :start)))
+                  (synopsis (claude-code-ide-org--prompt-synopsis (cdr prompt))))
+        (list (format "%s  %s   [last prompt before this span]"
+                      (format-time-string "%H:%M" (car prompt))
+                      synopsis))))
+     ((null resumes) nil)
+     ((not have-transcript)
+      (list (format "no transcript for session %s (aged out); %d prompt(s) unreadable"
+                    (claude-code-ide-org--short-id (car sessions))
+                    (length resumes))))
+     (t
+      (dolist (event resumes)
+        (when-let* ((text (claude-code-ide-org--prompt-at
+                           (plist-get event :session-id)
+                           (plist-get event :ts)))
+                    (synopsis (claude-code-ide-org--prompt-synopsis text)))
+          (push (format "%s  %s"
+                        (format-time-string "%H:%M" (plist-get event :ts))
+                        synopsis)
+                lines)))
+      (setq lines (nreverse lines))
+      (let ((shown claude-code-ide-org-prompt-synopsis-max-lines))
+        (if (<= (length lines) shown)
+            lines
+          (append (seq-take lines shown)
+                  (list (format "... %d more prompt(s) in this span"
+                                (- (length lines) shown))))))))))
+
+;;; Rendering a session to readable org (TODO.org :ID: 96ddf1ef) --------------
+;;
+;; Composing a prompt often means re-reading something far back in the
+;; session, and submitting jumps the view to the bottom -- losing both
+;; the spot and the train of thought.  The transcript is already a plain
+;; file and the user works in Emacs, so reading *there* has no scroll
+;; position to lose, gives isearch and folding, and does not move when
+;; the agent answers.
+;;
+;; One heading per turn, the prose as body, the tool calls in a drawer
+;; so `#+STARTUP: content' folds them away.  Three things are dropped
+;; and each is a decision rather than an omission:
+;;
+;;   - `thinking' blocks.  Measured on one session: 107 of them against
+;;     36 of prose, so including them triples the file without being
+;;     what anyone is paging for.
+;;   - tool *results*, which is the trap this heading warned about --
+;;     a `type: "user"' entry is usually a tool result rather than a
+;;     human turn (218 of 231 in one session), and a renderer that
+;;     treats them as prompts reports twenty times too many turns.
+;;   - a tool call's full input, reduced to one label.  The transcript
+;;     stays on disk for anyone who wants the payload.
+
+(defcustom claude-code-ide-org-transcript-render-directory
+  (expand-file-name "org-renders/" "~/.claude/")
+  "Where rendered session transcripts are written.
+
+Deliberately outside any repository.  A render is derived, regenerable
+and often large; committing one would put a second copy of the
+conversation under version control, and adding it anywhere
+`org-agenda-files' reaches would feed a synthetic file to the agenda.
+Nothing here writes an `:ID:', so org-id has no reason to index it
+either."
+  :type 'directory
+  :group 'claude-code-ide-org)
+
+(defun claude-code-ide-org--org-escape-body (text)
+  "Return TEXT safe to insert as org body content.
+
+A line beginning with `*' would become a *heading* and silently
+restructure the file -- the render is generated from prose nobody wrote
+for org, so this is the common case rather than an edge one.  Org's own
+escape is a leading comma, which it strips on display.  `#+' gets the
+same treatment, since a stray keyword line can change how the file is
+parsed."
+  (when (stringp text)
+    (mapconcat (lambda (line)
+                 ;; Column 0 only.  Org reads `*' as a headline and `#+'
+                 ;; as a keyword *only* at the start of a line -- an
+                 ;; indented `*' is a list bullet and an indented `#' is
+                 ;; ordinary text, so escaping those both mangles prose
+                 ;; that needed nothing and, worse, breaks a nested list
+                 ;; by putting the comma before its indentation rather
+                 ;; than against the marker.
+                 (if (string-match-p "\\`[*#]" line)
+                     (concat "," line)
+                   line))
+               (split-string text "\n")
+               "\n")))
+
+(defconst claude-code-ide-org--tool-label-keys
+  '("description" "title" "query" "file_path" "id" "member_id" "slice_id"
+    "scope" "state" "property" "command" "text" "note" "pattern")
+  "Input keys tried, in order, for a one-line label of a tool call.
+
+Ordered by how well each names the *intent* rather than the mechanics:
+`description' is Bash's own summary of why it is being run, `title' is
+what a capture is called.  A command line or a prose payload is last
+because it describes the how.")
+
+(defun claude-code-ide-org--tool-label (name input)
+  "Return a one-line label for a tool call to NAME with INPUT, an alist.
+
+The MCP prefix is stripped -- `mcp__emacs-tools__org_capture' reads as
+`org_capture' -- because the server name is constant across a session
+and carries nothing a reader is scanning for."
+  (let* ((name (or name "?"))
+         (short (if (string-match "\\`mcp__[^_]+\\(?:__\\|_\\)\\(.*\\)\\'" name)
+                    (match-string 1 name)
+                  name))
+         ;; `json-parse-string' with :object-type 'alist yields SYMBOL
+         ;; keys, so a string lookup silently matches nothing -- which
+         ;; is exactly what shipped in the first draft and rendered
+         ;; eleven consecutive lines reading "Bash".
+         (value (seq-some (lambda (key)
+                            (let ((v (alist-get (intern key) input)))
+                              (and (stringp v)
+                                   (not (string-empty-p (string-trim v)))
+                                   (string-trim v))))
+                          claude-code-ide-org--tool-label-keys)))
+    (if value
+        (format "%s -- %s" short
+                (truncate-string-to-width
+                 (car (split-string value "\n" t)) 72 nil nil t))
+      short)))
+
+(defun claude-code-ide-org--transcript-turns (session-id)
+  "Return SESSION-ID's transcript as a list of turn plists.
+
+Each turn is (:time TIME :prompt TEXT :blocks LIST), opened by a human
+prompt and running until the next one.  BLOCKS is ordered, each element
+either (text . STRING) or (tool . LABEL), so the render can keep prose
+and tool calls in the order they happened.  Content before the
+first prompt is discarded: it is the harness's own preamble, and a turn
+is defined by the prompt that started it.
+
+Turn boundaries come from the same shape test
+`claude-code-ide-org--transcript-prompts' uses -- user role, string
+content, not `isMeta', not a `<bash-' escape -- so the two agree by
+construction about what a prompt is."
+  (when-let* ((file (claude-code-ide-org--transcript-file session-id)))
+    (with-temp-buffer
+      (insert-file-contents file)
+      (goto-char (point-min))
+      (let (turns current)
+        (while (not (eobp))
+          (let ((line (buffer-substring-no-properties
+                       (line-beginning-position) (line-end-position))))
+            (when-let* (((string-search "\"type\":\"" line))
+                        (obj (ignore-errors
+                               (json-parse-string line :object-type 'alist
+                                                  :null-object nil
+                                                  :false-object nil)))
+                        (type (alist-get 'type obj)))
+              (cond
+               ;; A human prompt opens a turn.
+               ((and (equal type "user")
+                     (not (alist-get 'isMeta obj))
+                     (let ((c (alist-get 'content (alist-get 'message obj))))
+                       (and (stringp c) (not (string-prefix-p "<bash-" c)))))
+                (when current (push (claude-code-ide-org--close-transcript-turn current) turns))
+                (setq current
+                      (list :time (claude-code-ide-org--parse-iso8601
+                                   (alist-get 'timestamp obj))
+                            :prompt (alist-get 'content
+                                               (alist-get 'message obj))
+                            :blocks nil)))
+               ;; Assistant blocks accumulate into the open turn.
+               ((and (equal type "assistant") current)
+                (let ((content (alist-get 'content (alist-get 'message obj))))
+                  (when (vectorp content)
+                    (seq-doseq (block content)
+                      (pcase (alist-get 'type block)
+                        ("text"
+                         (let ((text (alist-get 'text block)))
+                           (when (and (stringp text)
+                                      (not (string-empty-p (string-trim text))))
+                             (plist-put current :blocks
+                                        (cons (cons 'text text)
+                                              (plist-get current :blocks))))))
+                        ("tool_use"
+                         (plist-put current :blocks
+                                    (cons (cons 'tool
+                                                (claude-code-ide-org--tool-label
+                                                 (alist-get 'name block)
+                                                 (alist-get 'input block)))
+                                          (plist-get current :blocks))))
+                        ;; `thinking' and everything else: dropped.
+                        (_ nil))))))))
+            (forward-line 1)))
+        (when current (push (claude-code-ide-org--close-transcript-turn current) turns))
+        (nreverse turns)))))
+
+(defun claude-code-ide-org--close-transcript-turn (turn)
+  "Return TURN with its accumulated :blocks put back in order.
+Built by `push' for the usual reason and reversed once the turn closes.
+One ordered list rather than two, so prose and tool calls keep the
+interleaving they actually had -- which is what lets the render put
+each run of tool calls under the paragraph that prompted it."
+  (plist-put turn :blocks (nreverse (plist-get turn :blocks)))
+  turn)
+
+(defun claude-code-ide-org--transcript-longer-sibling (session-id)
+  "Return the id of a transcript that supersedes SESSION-ID's, or nil.
+
+A session re-keyed mid-work leaves **two transcripts for one
+conversation**: the earlier truncated at the switch, the later a copy
+re-stamped with the new id and continuing (TODO.org :ID: b57c7515).
+They are recognisable because they open at the *same instant* -- the
+copy carries the original's first entry verbatim -- so a sibling
+sharing this one's first timestamp and holding more lines is the same
+conversation, continued.
+
+Reported rather than followed.  The caller asked for a session by id
+and gets that session; being silently handed a different file is how a
+reader ends up sure they are looking at something they are not."
+  (when-let* ((file (claude-code-ide-org--transcript-file session-id))
+              (first (claude-code-ide-org--transcript-first-stamp file))
+              (size (file-attribute-size (file-attributes file))))
+    (let (found)
+      (dolist (other (file-expand-wildcards
+                      (expand-file-name "projects/*/*.jsonl"
+                                        (expand-file-name "~/.claude/"))
+                      t))
+        ;; Size first: it is a `stat', where the stamp costs a 64 KB
+        ;; read, so the cheap test goes first and most files stop here.
+        ;; Size replaced a line count (TODO.org :ID: 33e6ff1a): both say
+        ;; "the continued copy is the bigger one", and one of them reads
+        ;; the whole file to say it -- twice over, since the subject was
+        ;; counted too, on every render, reachable from the review
+        ;; buffer's `T'.
+        (unless (equal other file)
+          (when (and (> (or (file-attribute-size (file-attributes other)) 0)
+                        size)
+                     (equal first
+                            (claude-code-ide-org--transcript-first-stamp other)))
+            (setq found (file-name-base other)))))
+      found)))
+
+(defun claude-code-ide-org--transcript-first-stamp (file)
+  "Return FILE's first entry timestamp string, or nil."
+  (ignore-errors
+    (with-temp-buffer
+      (insert-file-contents file nil 0 65536)
+      (goto-char (point-min))
+      (let (stamp)
+        (while (and (not stamp) (not (eobp)))
+          (when-let* ((obj (ignore-errors
+                             (json-parse-string
+                              (buffer-substring-no-properties
+                               (line-beginning-position) (line-end-position))
+                              :object-type 'alist :null-object nil
+                              :false-object nil)))
+                      (ts (alist-get 'timestamp obj)))
+            (setq stamp ts))
+          (forward-line 1))
+        stamp))))
+
+(defun claude-code-ide-org--file-line-count (file)
+  "Return the number of lines in FILE, or nil when it cannot be read."
+  (ignore-errors
+    (with-temp-buffer
+      (insert-file-contents file)
+      (count-lines (point-min) (point-max)))))
+
+(defun claude-code-ide-org--render-transcript (session-id)
+  "Return SESSION-ID's transcript rendered as an org document string."
+  (let* ((turns (claude-code-ide-org--transcript-turns session-id))
+         (sibling (claude-code-ide-org--transcript-longer-sibling session-id))
+         (day (when-let* ((first (car turns)) (time (plist-get first :time)))
+                (format-time-string "%Y-%m-%d %a" time))))
+    (with-temp-buffer
+      (insert "#+TITLE: Session " (claude-code-ide-org--short-id session-id)
+              (if day (concat " -- " day) "") "\n"
+              ;; `content' so every turn's body is visible and the tool
+              ;; drawer is not: the drawer is the part nobody is paging
+              ;; for, and folding it is the whole reason it is a drawer.
+              "#+STARTUP: content\n"
+              "#+COMMENT: Generated by claude-code-ide-org-render-session. "
+              "Derived from the session transcript; edits here are lost on "
+              "the next render.\n\n")
+      (when sibling
+        (insert "* NOTE: this conversation continues in another transcript\n\n"
+                "  This session was re-keyed mid-work, so its transcript stops "
+                "at the switch\n  while "
+                (claude-code-ide-org--short-id sibling)
+                " carries the same conversation from the same start and\n"
+                "  continues past it.  Render that one for the whole thing.\n\n"))
+      (if (null turns)
+          (insert "* No turns found\n\n  The transcript has no human prompt in "
+                  "it, or has aged out.\n")
+        (dolist (turn turns)
+          (let* ((time (plist-get turn :time))
+                 (prompt (or (plist-get turn :prompt) ""))
+                 (headline (or (claude-code-ide-org--prompt-synopsis prompt)
+                               "(empty prompt)")))
+            (insert (format "* %s  %s\n" 
+                            (if time (format-time-string "%H:%M" time) "--:--")
+                            headline))
+            ;; The prompt in a quote block, because the one thing a
+            ;; reader must never have to guess is where their own words
+            ;; end and the answer begins -- and the first draft ran the
+            ;; two together with only a blank line between.
+            (insert "\n#+begin_quote\n"
+                    (claude-code-ide-org--org-escape-body (string-trim prompt))
+                    "\n#+end_quote\n")
+            ;; Each paragraph of prose becomes a level-2 heading, so a
+            ;; long turn has navigation points instead of being one
+            ;; unfoldable wall. Tool calls land under the paragraph they
+            ;; followed; calls made before any prose stay at turn level.
+            (let ((pending nil))
+              (dolist (block (plist-get turn :blocks))
+                (pcase (car block)
+                  ('tool (push (cdr block) pending))
+                  ('text
+                   (when pending
+                     (claude-code-ide-org--insert-tools-drawer (nreverse pending))
+                     (setq pending nil))
+                   (let* ((text (string-trim (cdr block)))
+                          (synopsis (or (claude-code-ide-org--prompt-synopsis text)
+                                        "(continued)"))
+                          ;; A one-line paragraph short enough to fit the
+                          ;; headline IS the headline; repeating it as a
+                          ;; body prints everything short twice.
+                          (more (or (string-search "\n" text)
+                                    (> (string-width text)
+                                       claude-code-ide-org-prompt-synopsis-width))))
+                     (insert (format "\n** %s\n" synopsis))
+                     (when more
+                       (insert "\n"
+                               (claude-code-ide-org--org-escape-body text)
+                               "\n"))))))
+              (when pending
+                (claude-code-ide-org--insert-tools-drawer (nreverse pending))))
+            (insert "\n"))))
+      (buffer-string))))
+
+(defun claude-code-ide-org--insert-tools-drawer (tools)
+  "Insert a :TOOLS: drawer listing TOOLS at point.
+A drawer rather than a list so `#+STARTUP: content' folds it away: the
+calls are provenance, wanted when a reader asks \"how did it do that\"
+and noise the rest of the time."
+  (when tools
+    (insert "\n:TOOLS:\n")
+    (dolist (tool tools) (insert "- " tool "\n"))
+    (insert ":END:\n")))
+
+(defun claude-code-ide-org-render-session (session-id &optional force)
+  "Render SESSION-ID's transcript to org and return the file path.
+
+Written under `claude-code-ide-org-transcript-render-directory', named
+for the session.  Regenerated only when the transcript is newer than
+the render, or with FORCE -- a live session's transcript grows while
+its render sits on disk, and re-reading thousands of lines to produce
+an identical file is a cost paid for nothing.
+
+Signals when the transcript cannot be found, because a caller asking
+for a specific session wants to know it is not there rather than to be
+handed an empty document."
+  (interactive (list (read-string "Session id: ") current-prefix-arg))
+  (let ((source (claude-code-ide-org--transcript-file session-id)))
+    (unless source
+      (error "No transcript for session %s (it may have aged out)" session-id))
+    (let* ((dir (file-name-as-directory
+                 claude-code-ide-org-transcript-render-directory))
+           (out (expand-file-name (concat session-id ".org") dir)))
+      (make-directory dir t)
+      (when (or force
+                (not (file-exists-p out))
+                (time-less-p (file-attribute-modification-time
+                              (file-attributes out))
+                             (file-attribute-modification-time
+                              (file-attributes source))))
+        (with-temp-file out
+          (insert (claude-code-ide-org--render-transcript session-id))))
+      (when (called-interactively-p 'any)
+        (find-file out))
+      out)))
+
 ;;; Span evidence ------------------------------------------------------------
 ;;
 ;; What was going on between two timestamps, answered from artefacts the
@@ -10189,6 +11193,109 @@ to eight (TODO.org :ID: 9575e65b, reported by the user)."
 ;; Deliberately evidence and not a recommendation.  The suggestion machinery
 ;; already guesses a heading; this shows the human what the guess is made of,
 ;; and a mechanical list is easier to reject than a fluent argument would be.
+
+(defvar claude-code-ide-org--project-name-cache
+  (make-hash-table :test 'equal)
+  "Memo for `claude-code-ide-org--project-name', keyed by the path given.
+
+Not an optimisation looking for a problem: the review buffer re-renders
+on every keystroke, and the cwd annotation asks this question once per
+queue event -- hundreds per pass -- each answer costing a `file-truename'
+and a walk up the tree looking for .git.  Cached for the Emacs session,
+which is the right lifetime because the answer only changes when a
+checkout moves on disk.  If one does, restart or clear this.")
+
+(defun claude-code-ide-org--worktree-main-checkout (root)
+  "Return the main checkout of the linked git worktree at ROOT, or nil.
+
+A linked worktree's `.git' is a regular *file* reading
+`gitdir: <main>/.git/worktrees/<name>', where an ordinary checkout has a
+directory.  Walking that pointer up to the `.git' component and taking
+its parent recovers the main checkout.
+
+This is the normalisation :ID: 5461c349 named as its consumer's
+obligation when it recorded `cwd': every id-addressed event resolves
+against the one tracker while a worktree's cwd differs from the main
+checkout's, so without this one project renders as one name per
+worktree -- and the annotation would report a split that does not exist.
+
+Parsed rather than shelled out to `git rev-parse --git-common-dir'.
+This runs behind a display path that must never signal and never block,
+and the pointer file's format is the stable thing being read; a
+subprocess per distinct path is the more expensive way to learn the
+same fact.  Anything unexpected -- an unreadable file, a pointer with
+no `.git' component -- answers nil, and the caller keeps ROOT."
+  (let ((link (expand-file-name ".git" root)))
+    (when (and (file-regular-p link) (file-readable-p link))
+      (when-let* ((text (ignore-errors
+                          (with-temp-buffer
+                            (insert-file-contents link nil 0 4096)
+                            (buffer-string))))
+                  ((string-match "^gitdir:[ \t]*\\(.+?\\)[ \t]*$" text))
+                  (gitdir (expand-file-name (match-string 1 text) root)))
+        (let ((dir (directory-file-name gitdir))
+              (parent nil))
+          ;; Bounded by the parent check rather than by a depth count:
+          ;; `file-name-directory' of "/" is "/", so a pointer that
+          ;; names no `.git' would otherwise spin forever.
+          (while (and dir (not (equal (file-name-nondirectory dir) ".git"))
+                      (progn (setq parent
+                                   (directory-file-name
+                                    (or (file-name-directory dir) "/")))
+                             (not (equal parent dir))))
+            (setq dir parent))
+          (when (equal (file-name-nondirectory dir) ".git")
+            (file-name-directory dir)))))))
+
+(defun claude-code-ide-org--project-name (path)
+  "Return the name of the project directory containing PATH, or nil.
+
+The *git root's* own directory name when PATH is inside a repository,
+and the containing directory's name otherwise.  The git root is what
+makes two paths comparable: a session `cwd' three levels down inside a
+checkout and the tracked org file at its top must answer with the same
+name, or the annotation this feeds would report one project as two.
+Measured on the live queue the day it was written -- 722 events at the
+repo root and 18 in `modules/tools/claude-code-ide-org' were one
+project, not two.
+
+Truenames first, for the reason `claude-code-ide-org--git-roots' gives:
+a tracked path may be a symlink into the repo, and walking up from the
+link's own directory finds no .git at all.  A *linked worktree* then
+normalises to its main checkout
+\(`claude-code-ide-org--worktree-main-checkout'), so one project does
+not render as one name per worktree.
+
+Nil for a path that is nil or no longer exists -- a session's cwd
+outlives the directory it names.  Display code degrades rather than
+signalling, and nil renders as no annotation, which is the honest
+answer.  Deliberately *not* the last path component in that case: for
+a nested cwd that would name a subdirectory and call it the project."
+  (when (and (stringp path) (not (string-empty-p path)))
+    (let ((cached (gethash path claude-code-ide-org--project-name-cache 'miss)))
+      (if (not (eq cached 'miss))
+          cached
+        (puthash
+         path
+         (when-let* ((true (ignore-errors (file-truename path)))
+                     ((file-exists-p true)))
+           (let* ((dir (file-name-as-directory
+                        (if (file-directory-p true)
+                            true
+                          (file-name-directory true))))
+                  (root (or (ignore-errors (locate-dominating-file dir ".git"))
+                            dir))
+                  ;; A linked worktree is the same project as its main
+                  ;; checkout, under a different directory name.
+                  (root (or (ignore-errors
+                              (claude-code-ide-org--worktree-main-checkout root))
+                            root))
+                  (name (file-name-nondirectory (directory-file-name root))))
+             ;; "" is what the filesystem root answers, and it would
+             ;; render as an empty pair of brackets -- a label that
+             ;; looks like a failed lookup rather than a project.
+             (unless (string-empty-p name) name)))
+         claude-code-ide-org--project-name-cache)))))
 
 (defun claude-code-ide-org--git-roots ()
   "Distinct git roots containing the tracked org files.
@@ -10380,6 +11487,36 @@ its commit and reporting it would be noise."
       (setq points (cdr points)))
     (nreverse gaps)))
 
+(defvar-local claude-code-ide-org--span-prompt-cache nil
+  "Hash table memoizing `claude-code-ide-org--span-prompt-lines' per window.
+
+Same reason and same shape as `claude-code-ide-org--span-evidence-cache'
+below: the render runs on every mark keystroke, and although the parsed
+transcript is itself cached, the join still compares every `resume' in
+the span against every prompt in the session.  Keyed on the window, so
+narrowing with `e' re-reads -- the prompts inside a smaller window are a
+different list.  Cleared by `g'.")
+
+(defun claude-code-ide-org--span-prompt-lines-cached (item)
+  "Prompt synopsis lines for ITEM, computed once per window per buffer."
+  (let ((start (plist-get item :start))
+        (end (plist-get item :end)))
+    (when (and start end)
+      (unless claude-code-ide-org--span-prompt-cache
+        (setq claude-code-ide-org--span-prompt-cache
+              (make-hash-table :test 'equal)))
+      (let* ((key (list (float-time start) (float-time end)))
+             (hit (gethash key claude-code-ide-org--span-prompt-cache 'miss)))
+        (if (eq hit 'miss)
+            (puthash key
+                     ;; Display code degrades, it does not signal: an
+                     ;; unreadable transcript must cost its own line, not
+                     ;; the buffer.
+                     (ignore-errors
+                       (claude-code-ide-org--span-prompt-lines item))
+                     claude-code-ide-org--span-prompt-cache)
+          hit)))))
+
 (defvar-local claude-code-ide-org--span-evidence-cache nil
   "Hash table memoizing `claude-code-ide-org--span-evidence' per window.
 
@@ -10492,6 +11629,109 @@ prompt's candidate list, and nothing in this buffer said so.  On
               missing (if (= missing 1) "" "s")
               misfiled))))
 
+(defcustom claude-code-ide-org-review-newest-first t
+  "Whether the review buffer opens with the newest item at the top.
+
+A pass usually cares about what just happened, and oldest-first means
+beginning every pass by scrolling to the bottom of a buffer whose top is
+days old.  Set nil to keep the chronological reading."
+  :type 'boolean
+  :group 'claude-code-ide-org)
+
+(defvar-local claude-code-ide-org--review-newest-first nil
+  "This buffer's current sort direction, toggled by `s'.
+Initialised from `claude-code-ide-org-review-newest-first' when the
+buffer is built, so the defcustom is the default and this is the state.")
+
+(defun claude-code-ide-org--review-display-items (items)
+  "Return ITEMS in the order they should be DRAWN.
+
+Never destructive, and never the list apply walks.  `--review-items' is
+chronological by contract: apply writes CLOCK lines and replays state
+transitions in list order, and a `TODO -> NEXT -> DOING' run applied
+backwards is three wrong transitions rather than a cosmetic problem.
+Reversing the *view* costs nothing; reversing the list would be a
+defect in the record (TODO.org :ID: f1e36a65)."
+  (if claude-code-ide-org--review-newest-first
+      (reverse items)
+    items))
+
+(defun claude-code-ide-org-review-toggle-order ()
+  "Flip the review buffer between newest-first and oldest-first.
+
+`s' follows dired, where it toggles the sort.  Point is kept on the
+same *item* rather than the same line, since every line moves.
+
+The mark commands still advance *downward*, whichever way the buffer is
+sorted -- they walk the buffer, not the clock, so `m m m' marks a run of
+adjacent lines in either order.  The display decides what \"next\"
+means; it never decides which way point travels."
+  (interactive)
+  (let ((here (claude-code-ide-org--review-item-at-point)))
+    (setq claude-code-ide-org--review-newest-first
+          (not claude-code-ide-org--review-newest-first))
+    (claude-code-ide-org--review-render)
+    (when here (claude-code-ide-org--review-goto-item here))
+    (message "Sorted %s-first"
+             (if claude-code-ide-org--review-newest-first "newest" "oldest"))))
+
+(defgroup claude-code-ide-org-review-faces nil
+  "Faces for the review buffer."
+  :group 'claude-code-ide-org)
+
+;; Every face inherits from a standard one rather than naming a colour.
+;; The buffer is read in whatever theme the user runs, and a literal
+;; colour that happens to suit one is unreadable in another -- while
+;; `bold', `shadow', `warning' and `font-lock-string-face' are exactly
+;; the four ideas this buffer needs and every theme defines them.
+;;
+;; Applied at render time rather than through font-lock keywords,
+;; because the buffer is erased and rebuilt on every mark keystroke, so
+;; there is no incremental refontification to preserve -- and because
+;; each faced run is a string this file *constructs*. Nothing here
+;; re-parses the buffer's own output to find what to colour, which is
+;; the failure mode a keyword list would invite (TODO.org :ID: f3a53bd4).
+
+(defface claude-code-ide-org-review-group-face
+  '((t :inherit bold))
+  "Face for a group heading: the id and title an item belongs to."
+  :group 'claude-code-ide-org-review-faces)
+
+(defface claude-code-ide-org-review-tracker-face
+  '((t :inherit shadow))
+  "Face for the `[tracker]' / `[cwd: ...]' annotation on a group heading.
+Dimmed deliberately: it answers \"which project\", which matters only
+when it is *not* the one you expected, so it should recede until it
+differs from its neighbours."
+  :group 'claude-code-ide-org-review-faces)
+
+(defface claude-code-ide-org-review-prompt-face
+  '((t :inherit font-lock-string-face))
+  "Face for a prompt synopsis joined from the session transcript.
+A string face because the line is quoted human speech -- the one thing
+in this buffer that was said rather than derived."
+  :group 'claude-code-ide-org-review-faces)
+
+(defface claude-code-ide-org-review-evidence-face
+  '((t :inherit shadow))
+  "Face for span evidence: commits and heading creations in the window.
+Dimmed for the reason the evidence exists -- it is material for a
+judgement, not the judgement, and it should not compete with the item."
+  :group 'claude-code-ide-org-review-faces)
+
+(defface claude-code-ide-org-review-attention-face
+  '((t :inherit warning))
+  "Face for an item that needs a decision before it can apply.
+A stale state transition or an unassigned span: the two cases where
+pressing `x' without reading first does something the reader did not
+mean."
+  :group 'claude-code-ide-org-review-faces)
+
+(defface claude-code-ide-org-review-mark-face
+  '((t :inherit font-lock-keyword-face))
+  "Face for the `[x]' of a marked item, so a marked run is scannable."
+  :group 'claude-code-ide-org-review-faces)
+
 (defun claude-code-ide-org--review-render ()
   "Render `claude-code-ide-org--review-items' into the current buffer.
 
@@ -10501,9 +11741,23 @@ excuse a later one.  With nothing marked the projection collapses to the
 file's own state and every line reads exactly as it did before chains
 were understood -- marking the first link of a chain is what stops the
 rest from lighting up."
-  (let ((inhibit-read-only t)
-        (items claude-code-ide-org--review-items)
-        (last-id nil))
+  (let* ((inhibit-read-only t)
+         (items claude-code-ide-org--review-items)
+         ;; The order items are DRAWN in, which is not the order they are
+         ;; held in. `--review-items' stays chronological because apply
+         ;; walks it and a clock line or a state transition applied out
+         ;; of time order is wrong; only the drawing is reversed
+         ;; (TODO.org :ID: f1e36a65).
+         (display (claude-code-ide-org--review-display-items items))
+         (last-id nil)
+         ;; Computed before the projection loops rather than beside the
+         ;; group heading that uses it: the annotation is a fact about a
+         ;; *run* of items, and the drawing loop below only ever knows
+         ;; the item in hand (TODO.org :ID: fbaf8009). Over DISPLAY, not
+         ;; ITEMS: a run is a run of adjacent *drawn* lines, so grouping
+         ;; computed on the other order would hang each annotation on the
+         ;; wrong heading.
+         (annotations (claude-code-ide-org--review-group-annotations display)))
     (claude-code-ide-org--review-projected-staleness
      items (lambda (item) (plist-get item :marked)))
     ;; After the projection, because markability depends on staleness and
@@ -10521,12 +11775,14 @@ rest from lighting up."
     (erase-buffer)
     (insert "Pending org updates.  m/u mark, M/U all, t invert, "
             "a assign, e interval, N note,\n"
-            "d dismiss, RET goto, x apply marked, g refresh, q quit\n\n")
+            "d dismiss, RET goto, T transcript, s "
+            (if claude-code-ide-org--review-newest-first "oldest" "newest")
+            "-first, x apply marked, g refresh, q quit\n\n")
     (let ((health-line (claude-code-ide-org--review-id-health-line)))
       (when health-line (insert health-line)))
-    (if (null items)
+    (if (null display)
         (insert "  Nothing pending.\n")
-      (dolist (item items)
+      (dolist (item display)
         (unless (equal (plist-get item :id) last-id)
           (setq last-id (plist-get item :id))
           ;; Resolved through `org-id-find' rather than
@@ -10544,8 +11800,9 @@ rest from lighting up."
                                (org-with-point-at marker
                                  (org-no-properties (org-get-heading t t t t)))))))
             (insert (propertize
-                     (format "\n%s\n"
-                            (cond
+                     (format "\n%s%s\n"
+                            (propertize
+                             (cond
                              ;; A span nobody has assigned yet belongs to no
                              ;; heading, so it gets its own group rather than
                              ;; rendering the literal string "nil" as a title.
@@ -10564,7 +11821,15 @@ rest from lighting up."
                                             (claude-code-ide-org--short-id last-id)
                                             title))
                              (t (format "%s  (unresolved)"
-                                        (claude-code-ide-org--short-id last-id)))))
+                                        (claude-code-ide-org--short-id last-id))))
+                             'face 'claude-code-ide-org-review-group-face)
+                            ;; Trailing, so the id column and the title
+                            ;; column both stay exactly where `:ID:'
+                            ;; c2132d3f put them: a variable-width field
+                            ;; inserted before the title would push every
+                            ;; title to a different place and undo the
+                            ;; one thing that makes this buffer scannable.
+                            (or (gethash item annotations) ""))
                      ;; Not decoration: it is what lets a refusal say
                      ;; "that is a heading" instead of the same five
                      ;; words every other blank line gets. TODO.org
@@ -10572,8 +11837,23 @@ rest from lighting up."
                      'claude-code-ide-org-line 'group))))
         (insert (propertize
                  (format "  [%s] %s\n"
-                         (if (plist-get item :marked) "x" " ")
-                         (claude-code-ide-org--review-describe item))
+                         (if (plist-get item :marked)
+                             (propertize "x" 'face
+                                         'claude-code-ide-org-review-mark-face)
+                           " ")
+                         ;; Faced only when the item needs a decision --
+                         ;; a stale transition or an unassigned span.
+                         ;; Facing every item by type was considered and
+                         ;; rejected: colouring the ordinary case teaches
+                         ;; the eye to ignore colour, which is the one
+                         ;; thing the exceptional case needs it for.
+                         (let ((text (claude-code-ide-org--review-describe item)))
+                           (if (or (plist-get item :unassigned)
+                                   (claude-code-ide-org--review-state-stale-p item))
+                               (propertize
+                                text 'face
+                                'claude-code-ide-org-review-attention-face)
+                             text)))
                  'claude-code-ide-org-item item))
         ;; Evidence goes under the unassigned spans only -- the items that
         ;; pose a question.  An assigned span has already been answered, and
@@ -10582,10 +11862,25 @@ rest from lighting up."
         ;; Left unpropertized on purpose: without the item property these
         ;; lines behave exactly as the group headings do, so `m', `n' and
         ;; `--review-forward-item' step over them rather than onto them.
+        ;; Prompt synopses go under EVERY clock item, where the evidence
+        ;; below goes only under unassigned ones -- and the difference is
+        ;; the point rather than an inconsistency. Evidence answers
+        ;; "which heading is this?", which an assigned span has already
+        ;; answered. The prompts answer "what was going on?", which is
+        ;; unanswered on an assigned span too: an item's label is its
+        ;; enclosing clock event's note, and a guidepost-reconstructed
+        ;; span has no enclosing event (TODO.org :ID: 325679af).
+        (when (eq (plist-get item :type) 'clock)
+          (dolist (line (claude-code-ide-org--span-prompt-lines-cached item))
+            (insert (propertize (format "          %s\n" line)
+                                'face
+                                'claude-code-ide-org-review-prompt-face))))
         (when (and (eq (plist-get item :type) 'clock)
                    (plist-get item :unassigned))
           (dolist (line (claude-code-ide-org--span-evidence-cached item))
-            (insert (format "          %s\n" line))))))
+            (insert (propertize (format "          %s\n" line)
+                                'face
+                                'claude-code-ide-org-review-evidence-face))))))
     (goto-char (point-min))))
 
 (defun claude-code-ide-org--review-set-mark (marked &optional advance)
@@ -11104,6 +12399,29 @@ side."
           (setq claude-code-ide-org--review-items
                 (append claude-code-ide-org--review-items (list new))))))))
 
+(defvar claude-code-ide-org-review-attention-heading)
+
+(defun claude-code-ide-org--mechanism-owned-heading-p (title)
+  "Non-nil when TITLE names a heading the machinery owns, not a task.
+
+Today that is exactly the review-attention heading.  No human has a
+reason to assign a span to it -- the mechanism clocks it itself, in
+`claude-code-ide-org-review-attention-stop' -- while it ranks near the
+top of the assignment list, because candidates are ranked by time
+correlation with the span and this one is clocked at review time by
+construction.  Its display name differs from the meta-work datetree's by
+two words, so the wrong pick is one keystroke away and reads right
+afterwards.
+
+Compared by title rather than by id because the heading is *named* by a
+defcustom rather than pointed at: a user who renames it renames the
+thing this must exclude, where an id would go stale on the rename and
+the title cannot.  Nil when the defcustom is nil, which is how
+review-attention clocking is disabled -- with no heading there is
+nothing to exclude."
+  (let ((owned claude-code-ide-org-review-attention-heading))
+    (and owned (stringp title) (equal title owned))))
+
 (defun claude-code-ide-org--assign-candidates (span-start span-end)
   "Return (DISPLAY . ID) pairs for assigning SPAN-START--SPAN-END, best first.
 
@@ -11111,7 +12429,19 @@ Ranked by how close each heading's bracket
 \(`claude-code-ide-org--heading-bracket') sits to the span, nearest
 first, with overlap collapsing to zero.  TODO.org :ID: 49cbe319.
 
-*Nothing is excluded*, and that is the fix for :ID: 0d055205.  This
+*One heading is excluded, and nothing else is* -- the narrowness is the
+point, because the general form of exclusion here was a bug.  The
+exception is `claude-code-ide-org-review-attention-heading', which the
+*mechanism* owns: a human has no reason to assign a span to it, and it
+ranks *well* precisely because it is clocked at review time by
+construction, so it sits near the top of the list a human chooses from
+while differing from the meta-work datetree's name by two words
+(TODO.org :ID: 40159d43).  Audited when the exclusion was added: across
+81 closed CLOCK lines on it, all 11 annotations came from
+`claude-code-ide-org-review-attention-stop' and none from an assignment,
+so the exposure was prospective rather than historical.
+
+*Nothing else is excluded, and that is the fix for :ID: 0d055205.*  This
 previously dropped any heading whose `:CREATED:' was later than the
 span, calling it \"a hard impossibility\".  It is the normal case: work
 happens and the heading is written afterwards, which this project's own
@@ -11177,7 +12507,9 @@ sorts last rather than vanishing: absence of evidence rules nothing out."
                 (range (plist-get info :range))
                 (state (plist-get info :state))
                 (bracket (claude-code-ide-org--heading-bracket range created)))
-           (when title
+           (when (and title
+                      (not (claude-code-ide-org--mechanism-owned-heading-p
+                            title)))
              ;; Prefix first, matching every other rendering the reader
              ;; meets -- group headings, span lines, and this project's
              ;; own footnote convention in prose. The eye arrives
@@ -11462,6 +12794,11 @@ the kind of thing a human presses it for."
         (user-error "Refresh cancelled; nothing discarded"))
       (setq claude-code-ide-org--review-stash claude-code-ide-org--review-items)))
   (setq claude-code-ide-org--span-evidence-cache nil)
+  ;; Cleared alongside the evidence, and for one reason the evidence does
+  ;; not have: a *live* session's transcript is still being written, so
+  ;; `g' is also how the prompts of a turn that happened since the buffer
+  ;; was drawn become readable.
+  (setq claude-code-ide-org--span-prompt-cache nil)
   ;; Recomputed here and only here, so the scan runs when the buffer is
   ;; built and when `g' is typed -- not on the redraw every mark triggers.
   ;; `g' already means "go and look again", which is exactly when a stale
@@ -11603,12 +12940,23 @@ that re-evaluates staleness against the file as it now stands."
               (claude-code-ide-org--review-render)
               (goto-char (point-min))
               (forward-line (1- line)))
-            (message "Applied %d item(s)%s"
+            (message "Applied %d item(s)%s%s"
                      (plist-get result :applied)
                      (if (plist-get result :errors)
                          (format "; %d failed: %s"
                                  (length (plist-get result :errors))
                                  (string-join (plist-get result :errors) "; "))
+                       "")
+                     ;; Reported after the failures and phrased as a
+                     ;; separate clause, because these items *applied*:
+                     ;; folding them into the failure count is the
+                     ;; behaviour :ID: b23e5bcc exists to correct.
+                     (if claude-code-ide-org--review-apply-warnings
+                         (format "; %d applied with a complaint: %s"
+                                 (length claude-code-ide-org--review-apply-warnings)
+                                 (string-join
+                                  (reverse claude-code-ide-org--review-apply-warnings)
+                                  "; "))
                        "")))
         ;; An error mid-apply must not leave the user's guard disabled --
         ;; that failure window is the whole objection c8a97d9d raised
@@ -12921,6 +14269,749 @@ silent run can never be mistaken for a passing one."
                    (length errors) (length warnings)))
     (when errors (kill-emacs 1))))
 
+;;; Attention intervals (TODO.org :ID: 4f8500e6) ----------------------------
+;;
+;; Phase 2 of the two-phase record.  A CLOCK line holds *agent run time*,
+;; measured; an attention interval holds *the human's*, attested.  This
+;; derivation proposes intervals and a human reconciles them against a
+;; calendar of external activity -- it is an aid to attestation, never a
+;; final word (the user, 2026-09-14), which is what licenses a proposal
+;; where `claude-code-ide-org--guess-stop-time' was refused: the
+;; boundaries here are observations and only the label is offered.
+;;
+;; Vocabulary.  A window carrying agent run time is *busy*, never
+;; "active" -- active/inactive names a timestamp shape in org and would
+;; read as the opposite of what is measured.  Its complement is *idle*.
+
+(defcustom claude-code-ide-org-attention-window-seconds 600
+  "Width in seconds of the window busy time is quantised into.
+
+Ten minutes, measured against the alternatives over 26 days of corpus:
+finer windows fragment one working stretch into more agenda items than a
+human will reconcile, coarser ones swallow genuine breaks."
+  :type 'integer
+  :group 'claude-code-ide-org)
+
+(defcustom claude-code-ide-org-attention-floor-windows 3
+  "Consecutive busy windows required before an attention interval is written.
+
+At the 600-second default this is the 30-minute floor.  Measured over 26
+days, median agenda items per day: 8 at a 10-minute floor, 6 at 20, 3 at
+30, 1 at 60.  Three windows is where a day's items become few enough to
+check against a calendar, which is the only consumer.
+
+Sub-floor stretches are *not* discarded -- that would drop roughly 30%
+of busy time.  They become the day's bookends; see
+`claude-code-ide-org--attention-bookends'."
+  :type 'integer
+  :group 'claude-code-ide-org)
+
+(defun claude-code-ide-org--attention-window-start (seconds width)
+  "Floor SECONDS to the start of its WIDTH-second window."
+  (* width (floor seconds width)))
+
+(defun claude-code-ide-org--attention-busy-windows (runs &optional width)
+  "Return the busy windows covering RUNS, oldest first.
+
+RUNS is a list of (START . END) time pairs, as
+`claude-code-ide-org--span-work-runs' returns.  Each result element is a
+plist: :start the window's own start as float seconds, :first and :last
+the earliest and latest *observed* moments inside it.
+
+Carrying the observed pair is what lets an interval's outer edges be
+evidence rather than assertion.  A window contributes its real
+boundaries, never its nominal ones."
+  (let ((width (or width claude-code-ide-org-attention-window-seconds))
+        (table (make-hash-table :test 'eql))
+        starts)
+    (dolist (run runs)
+      (let ((a (float-time (car run)))
+            (b (float-time (cdr run))))
+        (while (< a b)
+          (let* ((w (claude-code-ide-org--attention-window-start a width))
+                 (edge (min b (+ w width)))
+                 (cell (gethash w table)))
+            (if cell
+                (progn (setcar cell (min (car cell) a))
+                       (setcdr cell (max (cdr cell) edge)))
+              (puthash w (cons a edge) table)
+              (push w starts))
+            (setq a edge)))))
+    (mapcar (lambda (w)
+              (let ((cell (gethash w table)))
+                (list :start w :first (car cell) :last (cdr cell))))
+            (sort starts #'<))))
+
+(defun claude-code-ide-org--attention-stretches (windows &optional width)
+  "Group WINDOWS into lists of consecutive windows, oldest first."
+  (let ((width (or width claude-code-ide-org-attention-window-seconds))
+        stretches current)
+    (dolist (w windows)
+      (if (and current
+               (= (plist-get w :start)
+                  (+ width (plist-get (car current) :start))))
+          (push w current)
+        (when current (push (nreverse current) stretches))
+        (setq current (list w))))
+    (when current (push (nreverse current) stretches))
+    (nreverse stretches)))
+
+(defun claude-code-ide-org--attention-slice-states ()
+  "Return the state history of every declared slice.
+
+Each element is (ID TITLE . STATES), STATES a list of (TIME . KEYWORD)
+oldest first, read from the heading's own `:LOGBOOK:'.
+
+Slices rather than every heading, because a busy stretch is labelled by
+the slice that was *open* during it.  Only one slice is worked at a time
+(the user, 2026-09-14), which is what makes \"a slice, or review and
+planning\" the whole label vocabulary -- both rolling up to the project,
+which is the level the human's attention is actually reported at.
+
+*Measured over the whole corpus rather than assumed*: of 803 busy
+windows, 268 had exactly one slice open and 535 had none.  Two were
+never open at once, so the modal choice in
+`claude-code-ide-org--attention-label' has never yet had to break a tie.
+Note the 535 -- two thirds of busy windows carry no open slice at all,
+so review and planning is the *common* label, not the fallback it looks
+like.
+
+The premise is one human, stated as such: with two, \"the slice that was
+open\" would stop identifying anyone's attention and this would need a
+per-person answer."
+  (let (result)
+    (dolist (file (claude-code-ide-org--tracked-files))
+      (when (file-exists-p file)
+        (with-current-buffer (find-file-noselect file)
+          (org-map-entries
+           (lambda ()
+             (let ((id (org-entry-get nil "ID"))
+                   (title (org-get-heading t t t t))
+                   (end (save-excursion (org-end-of-subtree t t)))
+                   states)
+               (save-excursion
+                 (while (re-search-forward
+                         (concat "^[ \t]*- State[ \t]+\"\\([A-Z]+\\)\"[ \t]+"
+                                 "from[ \t]+\"?[A-Z]*\"?[ \t]+\\[\\([^]]+\\)\\]")
+                         end t)
+                   ;; Both groups are read *before* any call that parses a
+                   ;; time: `org-time-string-to-time' runs its own regexps
+                   ;; and resets the match data, so reading group 1 after
+                   ;; it is an args-out-of-range against this buffer.
+                   (let ((keyword (match-string 1))
+                         (stamp (match-string 2)))
+                     (push (cons (float-time (org-time-string-to-time stamp))
+                                 keyword)
+                           states))))
+               (when id
+                 (push (cons id (cons title
+                                      (sort (nreverse states)
+                                            (lambda (a b) (< (car a) (car b))))))
+                       result))))
+           "KIND=\"slice\"" 'file))))
+    result))
+
+(defun claude-code-ide-org--attention-open-slices (states time)
+  "Return (ID . TITLE) for every slice open at TIME, per STATES."
+  (let (open)
+    (dolist (entry states)
+      (let ((keyword nil))
+        (dolist (s (cddr entry))
+          (when (<= (car s) time) (setq keyword (cdr s))))
+        (when (member keyword '("DOING" "REVIEW"))
+          (push (cons (car entry) (cadr entry)) open))))
+    open))
+
+(defun claude-code-ide-org--attention-label (states stretch)
+  "Return STRETCH's label -- (ID . TITLE), or nil for review and planning.
+
+The modal open slice across the stretch's windows.  Nil is not a
+failure: it is the other of the two options, and it is where a slice's
+planning, the apply pass and every cross-cutting turn belong."
+  (let ((counts (make-hash-table :test 'equal)) best bestn)
+    (dolist (w stretch)
+      (dolist (s (claude-code-ide-org--attention-open-slices
+                  states (plist-get w :start)))
+        (puthash s (1+ (or (gethash s counts) 0)) counts)))
+    (maphash (lambda (k v)
+               (when (or (null bestn) (> v bestn)) (setq best k bestn v)))
+             counts)
+    best))
+
+(defun claude-code-ide-org--attention-stretch-bounds (stretch)
+  "Return (FIRST . LAST), the observed outer moments of STRETCH."
+  (cons (plist-get (car stretch) :first)
+        (plist-get (car (last stretch)) :last)))
+
+(defun claude-code-ide-org--attention-bookends (residue states)
+  "Return at most two bookend intervals covering RESIDUE.
+
+RESIDUE is one day's sub-floor stretches.  They are split at the
+midpoint of their own min-max span; the early group's block *begins* at
+the earliest observed moment and the late group's *ends* at the latest,
+each sized to the busy time it represents.
+
+So every bookend has one observed edge and one constructed one, and a
+group holding a single stretch has both observed.  That is the property
+the two rejected renderings could not offer: spanning first-to-last drew
+an 8.9-hour block for 60 minutes of work, and one sized block fixed the
+quantity while leaving the placement wrong.
+
+Zero, one or two are returned -- one when every stretch falls on the
+same side of the midpoint, which a lone stretch always does."
+  (when residue
+    (let* ((bounds (mapcar #'claude-code-ide-org--attention-stretch-bounds
+                           residue))
+           (lo (apply #'min (mapcar #'car bounds)))
+           (hi (apply #'max (mapcar #'cdr bounds)))
+           (mid (+ lo (/ (- hi lo) 2.0)))
+           early late)
+      (dolist (s residue)
+        (if (< (car (claude-code-ide-org--attention-stretch-bounds s)) mid)
+            (push s early)
+          (push s late)))
+      (setq early (nreverse early) late (nreverse late))
+      (delq nil
+            (list
+             (when early
+               (let ((secs (claude-code-ide-org--attention-busy-seconds early)))
+                 (list :start lo :end (+ lo secs)
+                       :label (claude-code-ide-org--attention-label
+                               states (apply #'append early))
+                       :residue 'early :parts early)))
+             (when late
+               (let ((secs (claude-code-ide-org--attention-busy-seconds late)))
+                 (list :start (- hi secs) :end hi
+                       :label (claude-code-ide-org--attention-label
+                               states (apply #'append late))
+                       :residue 'late :parts late))))))))
+
+(defun claude-code-ide-org--attention-busy-seconds (stretches)
+  "Return the attention seconds STRETCHES represent.
+
+One window's width per busy window -- not the run time inside it.  An
+attention interval claims the reading and deciding *between* turns,
+which is exactly the time a CLOCK line excludes by construction; a
+window with one live turn in it was attended throughout."
+  (* claude-code-ide-org-attention-window-seconds
+     (apply #'+ (mapcar #'length stretches))))
+
+(defun claude-code-ide-org--attention-day (seconds)
+  "Return the local YYYY-MM-DD date of float SECONDS."
+  (format-time-string "%Y-%m-%d" (seconds-to-time seconds)))
+
+(defun claude-code-ide-org-attention-intervals (from to)
+  "Return the attention intervals for the days FROM..TO, both inclusive.
+
+FROM and TO are `YYYY-MM-DD' strings.  The result is an alist of (DAY
+. INTERVALS), oldest first, each interval a plist:
+
+  :start  :end     float seconds -- the interval as it will be written
+  :label  (ID . TITLE) of the slice open through it, or nil for
+          review and planning
+  :residue `early', `late', or nil for a qualifying stretch
+  :parts  the stretches it was derived from
+
+*Duration is end minus start, and there is deliberately no second
+number.*  An earlier draft reported window-count times width alongside
+observed boundaries, and the two disagreed -- a stretch rendered
+09:05--09:47 was labelled 50m against a 42-minute range.  An org active
+interval's duration *is* its range, so a label that says otherwise is
+simply wrong."
+  (let* ((events (claude-code-ide-org--queue-events nil t))
+         (lo (float-time (org-time-string-to-time (concat from " 00:00"))))
+         (hi (+ 86400 (float-time (org-time-string-to-time (concat to " 00:00")))))
+         ;; Pair guideposts *within a session*, never across.
+         ;; `claude-code-ide-org--queue-events' merges every session and
+         ;; re-sorts by timestamp, so pairing the merged stream lets one
+         ;; session's `resume' close against another's `pause' and invent
+         ;; a run neither ran.  Concurrent sessions are ordinary here --
+         ;; a background job and an interactive one overlap constantly --
+         ;; so this is the common case, not an edge one.
+         (runs (let ((by-session (make-hash-table :test 'equal))
+                     paired)
+                 (dolist (event events)
+                   (push event (gethash (plist-get event :session-id) by-session)))
+                 (maphash (lambda (_ session-events)
+                            (setq paired
+                                  (append (claude-code-ide-org--raw-work-runs
+                                           (nreverse session-events))
+                                          paired)))
+                          by-session)
+                 paired))
+         (runs (seq-filter (lambda (r)
+                             (let ((s (float-time (car r))))
+                               (and (>= s lo) (< s hi))))
+                           runs))
+         (stretches (claude-code-ide-org--attention-stretches
+                     (claude-code-ide-org--attention-busy-windows runs)))
+         (states (claude-code-ide-org--attention-slice-states))
+         (by-day (make-hash-table :test 'equal))
+         days result)
+    (dolist (s stretches)
+      (let ((day (claude-code-ide-org--attention-day
+                  (car (claude-code-ide-org--attention-stretch-bounds s)))))
+        (unless (gethash day by-day) (push day days))
+        (puthash day (cons s (gethash day by-day)) by-day)))
+    (dolist (day (sort days #'string<))
+      (let (qualifying residue items)
+        (dolist (s (nreverse (gethash day by-day)))
+          (if (>= (length s) claude-code-ide-org-attention-floor-windows)
+              (push s qualifying)
+            (push s residue)))
+        (dolist (s (nreverse qualifying))
+          (let ((b (claude-code-ide-org--attention-stretch-bounds s)))
+            (push (list :start (car b) :end (cdr b)
+                        :label (claude-code-ide-org--attention-label states s)
+                        :residue nil :parts (list s))
+                  items)))
+        (setq items (append (nreverse items)
+                            (claude-code-ide-org--attention-bookends
+                             (nreverse residue) states)))
+        (push (cons day (sort items (lambda (a b)
+                                      (< (plist-get a :start)
+                                         (plist-get b :start)))))
+              result)))
+    (nreverse result)))
+
+(defun claude-code-ide-org--attention-label-string (label)
+  "Render LABEL -- (ID . TITLE) or nil -- as a heading."
+  (if label
+      (format "[[id:%s][%s]] %s" (car label) (substring (car label) 0 8)
+              (cdr label))
+    "Review and planning"))
+
+(defun claude-code-ide-org--attention-timestamp (seconds)
+  "Render float SECONDS as an org *active* timestamp.
+
+Active, because the whole point is to appear in an agenda view as a
+period the human was occupied.  Note the axes are independent:
+active-vs-inactive is a property of a *timestamp*, clock-vs-attention a
+property of an *interval*.  This is an attention interval implemented as
+an active one."
+  (format-time-string "<%Y-%m-%d %a %H:%M>" (seconds-to-time seconds)))
+
+(defun claude-code-ide-org--attention-minutes (interval)
+  "Return INTERVAL's duration in whole minutes."
+  (round (/ (- (plist-get interval :end) (plist-get interval :start)) 60)))
+
+(defun claude-code-ide-org-attention-report (from to)
+  "Render the attention intervals for FROM..TO into a buffer.
+
+Derived, not attested: the output is a *proposal* to reconcile against a
+calendar of external activity and edit freely.  That is what makes it
+defensible where `claude-code-ide-org--guess-stop-time' was not -- the
+boundaries of a qualifying interval are both observed, a bookend has one
+observed edge, and each constructed edge says so in the body."
+  (interactive
+   (list (read-string "From (YYYY-MM-DD): ")
+         (read-string "To (YYYY-MM-DD): ")))
+  (let ((days (claude-code-ide-org-attention-intervals from to))
+        (totals (make-hash-table :test 'equal))
+        (buffer (get-buffer-create "*org attention*")))
+    (with-current-buffer buffer
+      (let ((inhibit-read-only t))
+        (erase-buffer)
+        (insert (format "#+TITLE: Derived attention intervals %s..%s\n" from to)
+                "#+TAGS: residue\n\n"
+                "# Derived, not attested. Each heading is one active interval\n"
+                "# proposed for review against external records; edit freely.\n"
+                "#   busy window = "
+                (format "%d min carrying agent run time\n"
+                        (/ claude-code-ide-org-attention-window-seconds 60))
+                (format "#   interval    = %d+ consecutive busy windows\n"
+                        claude-code-ide-org-attention-floor-windows)
+                "#   label       = the slice in DOING/REVIEW then, else"
+                " Review and planning\n"
+                "#   residue     = sub-floor stretches, split at their own"
+                " min-max midpoint\n"
+                "#                 into bookends: the early one BEGINS at the"
+                " earliest real\n"
+                "#                 timestamp, the late one ENDS at the latest."
+                " 0, 1 or 2 a day.\n\n")
+        (dolist (entry days)
+          (insert (format "* %s\n" (car entry)))
+          (dolist (item (cdr entry))
+            (let* ((label (claude-code-ide-org--attention-label-string
+                           (plist-get item :label)))
+                   (mins (claude-code-ide-org--attention-minutes item))
+                   (residue (plist-get item :residue)))
+              (puthash label (+ mins (or (gethash label totals) 0)) totals)
+              (insert "** " label (if residue "    :residue:" "") "\n"
+                      "   "
+                      (claude-code-ide-org--attention-timestamp
+                       (plist-get item :start))
+                      "--"
+                      (claude-code-ide-org--attention-timestamp
+                       (plist-get item :end))
+                      "\n")
+              (when residue
+                (let ((parts (plist-get item :parts)))
+                  (insert (format "   - %s bookend of %d sub-floor stretch%s: %s\n"
+                                  residue (length parts)
+                                  (if (= 1 (length parts)) "" "es")
+                                  (mapconcat
+                                   (lambda (s)
+                                     (let ((b (claude-code-ide-org--attention-stretch-bounds s)))
+                                       (format "%s+%dm"
+                                               (format-time-string
+                                                "%H:%M" (seconds-to-time (car b)))
+                                               (/ (* (length s)
+                                                     claude-code-ide-org-attention-window-seconds)
+                                                  60))))
+                                   parts ", ")))
+                  (insert (format "   - %dm total; %s\n" mins
+                                  (if (eq residue 'early)
+                                      "start observed, end constructed"
+                                    "end observed, start constructed")))))))
+          (insert "\n"))
+        (insert "* Totals\n")
+        (let (rows (grand 0))
+          (maphash (lambda (k v) (push (cons k v) rows)) totals)
+          (dolist (row (sort rows (lambda (a b) (> (cdr a) (cdr b)))))
+            (setq grand (+ grand (cdr row)))
+            (insert (format "  - %.1fh  %s\n" (/ (cdr row) 60.0) (car row))))
+          (insert (format "  - %.1fh  TOTAL\n" (/ grand 60.0))))
+        (goto-char (point-min))
+        (org-mode)))
+    (pop-to-buffer buffer)))
+
+;;; Window allocation (TODO.org :ID: 295cde3a) ------------------------------
+;;
+;; A span says *when* the agent ran, never *on what*.  This divides each
+;; fixed window's measured run time equally among the headings that
+;; window worked, laid end to end.  Equal shares, no weights, no overlap
+;; -- the user's 2026-09-01 proposal as simplified 2026-09-14, the one
+;; change being that what gets divided is the *measured* run time rather
+;; than the window's nominal width, so nothing is invented and total
+;; allocated equals total measured.
+
+(defcustom claude-code-ide-org-allocation-window-seconds 1200
+  "Width in seconds of the window run time is allocated within.
+
+Twenty minutes, as proposed.  Wider than the attention window
+\(`claude-code-ide-org-attention-window-seconds') on purpose: attention
+asks when the human was occupied and wants fine boundaries, allocation
+asks which headings shared a stretch and wants enough turns in view to
+answer."
+  :type 'integer
+  :group 'claude-code-ide-org)
+
+(defconst claude-code-ide-org--worked-tool-names
+  '("org_amend" "org_set_todo" "org_clock_in" "org_clock_out"
+    "org_set_property" "org_slice_add_member" "org_divide" "org_refile"
+    "org_archive" "org_wrap_plan" "org_log_background_plan")
+  "Tool names whose call is evidence a heading was *worked*.
+
+Writes only.  `org_body', `org_outline', `org_query' and
+`org_clock_report' name a heading while merely *reading* it, which is
+orientation rather than work -- and orientation is exactly what a
+footnote-heavy turn does to thirty headings at once.
+
+*Mentions are not subjects*, and this list is where that distinction is
+enforced.  An id in prose is not evidence; an id in the arguments of a
+call that changed something is.
+
+`org_capture' is deliberately *absent*, found by running this: a filing
+burst creates a dozen headings in one window and made that window read
+as twelve headings being worked at once -- 15 in the worst case on
+2026-09-10.  Creating a task is planning, so the time belongs to review
+and planning as a whole rather than spread a minute at a time across
+tasks nobody had started.")
+
+(defun claude-code-ide-org--worked-tool-p (name)
+  "Non-nil when NAME is one of the write tools, MCP prefix or not.
+
+The transcript records a tool as `mcp__emacs-tools__org_amend' when it
+arrives through the MCP server and as `org_amend' when the name is
+already bare, so matching on the suffix is what makes this agree with
+itself across both."
+  (and (stringp name)
+       (seq-find (lambda (tool)
+                   (or (equal name tool)
+                       (string-suffix-p (concat "__" tool) name)))
+                 claude-code-ide-org--worked-tool-names)))
+
+(defconst claude-code-ide-org--worked-id-keys '(id member_id target)
+  "Input keys that can name the heading a tool call worked on.
+
+`id' covers almost every tool; `member_id' is `org_slice_add_member''s,
+and `target' is `org_refile''s destination.  Reading only `id' silently
+dropped the calls that use the others -- they matched
+`claude-code-ide-org--worked-tool-p' and then contributed nothing, which
+under-allocated exactly the windows where slice bookkeeping happened.
+
+`slice_id' is deliberately absent.  A slice is the grouping work rolls
+*up* to, never a heading work happens *on*, so crediting it a share
+would put allocated minutes on a rollup target.")
+
+(defun claude-code-ide-org--heading-id-shaped-p (value)
+  "Non-nil when VALUE could be an `:ID:' -- a UUID or an 8-character prefix.
+
+The shape test matters because the keys above are not all id-only:
+`target' takes an id *or* a heading title, and a title pushed into the
+worked set would resolve to nothing and quietly vanish, or worse,
+prefix-match something unrelated."
+  (and (stringp value)
+       (let ((v (string-trim value)))
+         (or (string-match-p "\\`[0-9a-fA-F]\\{8\\}-[0-9a-fA-F-]\\{27\\}\\'" v)
+             (string-match-p "\\`[0-9a-fA-F]\\{8\\}\\'" v)))))
+
+(defun claude-code-ide-org--transcript-worked-ids (session-id)
+  "Return (TIME . ID) for every write-tool call in SESSION-ID's transcript.
+
+TIME is the assistant entry's own timestamp, so calls inside one turn
+are placed where they actually happened rather than all at the prompt.
+ID is whatever the call addressed -- a full `:ID:' or the 8-character
+prefix the tools accept, left as written and resolved by the caller.
+
+This exists rather than reusing `claude-code-ide-org--transcript-turns'
+because that one renders tool calls to a *label* for display and keeps
+only the turn's time; both are exactly the things needed here."
+  (when-let* ((file (claude-code-ide-org--transcript-file session-id)))
+    (with-temp-buffer
+      (insert-file-contents file)
+      (goto-char (point-min))
+      (let (worked)
+        (while (not (eobp))
+          (let ((line (buffer-substring-no-properties
+                       (line-beginning-position) (line-end-position))))
+            (when-let* (((string-search "\"tool_use\"" line))
+                        (obj (ignore-errors
+                               (json-parse-string line :object-type 'alist
+                                                  :null-object nil
+                                                  :false-object nil)))
+                        ((equal (alist-get 'type obj) "assistant"))
+                        (time (claude-code-ide-org--parse-iso8601
+                               (alist-get 'timestamp obj)))
+                        (content (alist-get 'content (alist-get 'message obj))))
+              (when (vectorp content)
+                (seq-doseq (block content)
+                  (when (and (equal (alist-get 'type block) "tool_use")
+                             (claude-code-ide-org--worked-tool-p
+                              (alist-get 'name block)))
+                    (let ((input (alist-get 'input block)))
+                      (dolist (key claude-code-ide-org--worked-id-keys)
+                        (let ((value (alist-get key input)))
+                          (when (claude-code-ide-org--heading-id-shaped-p value)
+                            (push (cons time value) worked)))))))))
+            (forward-line 1)))
+        (nreverse worked)))))
+
+(defun claude-code-ide-org--allocation-largest-remainder (total parts)
+  "Split TOTAL whole minutes into PARTS shares, conserving TOTAL exactly.
+
+Largest-remainder apportionment.  Naive rounding of an equal split does
+not conserve: 12 minutes three ways is 4/4/4, but 11 three ways rounds
+to 4/4/4 and claims a minute that was never measured.  Conservation is
+asserted by the caller's own arithmetic -- the shares are laid end to
+end, so a total that disagreed would move every boundary after it.
+
+Returns a list of PARTS integers, largest first, summing to TOTAL.  A
+share of zero is returned as zero and dropped by the caller rather than
+written as a `0:00' line."
+  (if (or (<= parts 0) (<= total 0))
+      nil
+    (let* ((base (/ total parts))
+           (remainder (- total (* base parts)))
+           shares)
+      (dotimes (i parts)
+        (push (+ base (if (< i remainder) 1 0)) shares))
+      (nreverse shares))))
+
+(defun claude-code-ide-org--merge-overlapping-runs (runs)
+  "Return RUNS with overlapping intervals merged, oldest first.
+
+Wall-clock time is a *union*, not a sum.  Two sessions running at once
+produce two runs covering the same minutes, and adding them claims more
+time than elapsed -- a 20-minute window can report 30 minutes of
+measured run time, after which the end-to-end shares run past the
+window's end and overlap the next one, which is exactly what the
+allocation docstring promises cannot happen.
+
+Concurrency here is ordinary rather than exceptional: a background job
+and an interactive session overlap constantly in this project, which is
+the same fact that forced guidepost pairing to be per-session.
+
+The attention derivation needs no equivalent, and the asymmetry is the
+point: it asks which *windows* carry run time, and marking one busy
+twice is idempotent.  Only a path that totals seconds can double-count."
+  (let ((sorted (sort (copy-sequence runs)
+                      (lambda (a b) (time-less-p (car a) (car b)))))
+        merged)
+    (dolist (run sorted)
+      (let ((last (car merged)))
+        (if (and last (not (time-less-p (cdr last) (car run))))
+            (when (time-less-p (cdr last) (cdr run))
+              (setcdr last (cdr run)))
+          (push (cons (car run) (cdr run)) merged))))
+    (nreverse merged)))
+
+(defun claude-code-ide-org--allocation-clip-seconds (runs start end)
+  "Return the seconds of RUNS falling inside [START, END)."
+  (let ((total 0.0))
+    (dolist (run runs)
+      (let ((a (max start (float-time (car run))))
+            (b (min end (float-time (cdr run)))))
+        (when (< a b) (setq total (+ total (- b a))))))
+    total))
+
+(defun claude-code-ide-org-allocation-intervals (from to)
+  "Return the allocated intervals for the days FROM..TO, both inclusive.
+
+Each element is a plist: :start and :end as float seconds, :id the
+heading it is allocated to, :minutes its share, :window the window's own
+start, and :of how many headings shared that window.
+
+*Boundaries are an artefact of the division and durations are the
+claim.*  Nobody worked the second heading from 09:07 to 09:11; the
+shares are laid end to end from the window's first observed run so they
+neither overlap nor drift outside it.  Anything rendering these must say
+so -- a CLOCK line that does not is a fabricated measurement, which is
+`claude-code-ide-org--guess-stop-time''s retired sin exactly."
+  (let* ((events (claude-code-ide-org--queue-events nil t))
+         (width claude-code-ide-org-allocation-window-seconds)
+         (lo (float-time (org-time-string-to-time (concat from " 00:00"))))
+         (hi (+ 86400 (float-time (org-time-string-to-time (concat to " 00:00")))))
+         (table (claude-code-ide-org--id-index))
+         (by-session (make-hash-table :test 'equal))
+         runs worked)
+    (dolist (event events)
+      (push event (gethash (plist-get event :session-id) by-session)))
+    (maphash
+     (lambda (session session-events)
+       ;; Runs pair within a session, never across it -- see
+       ;; `claude-code-ide-org-attention-intervals' for what merging the
+       ;; streams costs.
+       (setq runs (append (claude-code-ide-org--raw-work-runs
+                           (nreverse session-events))
+                          runs))
+       (dolist (hit (claude-code-ide-org--transcript-worked-ids session))
+         (let ((full (claude-code-ide-org--expand-id-prefix (cdr hit) table)))
+           ;; An unresolvable id is dropped rather than allocated to: it
+           ;; names a heading that has been archived away or never
+           ;; existed, and allocating to it would put measured minutes
+           ;; somewhere nothing can read them back.
+           (when (stringp full)
+             (push (cons (float-time (car hit)) full) worked)))))
+     by-session)
+    ;; Union before totalling: see `--merge-overlapping-runs'.
+    (setq runs (claude-code-ide-org--merge-overlapping-runs runs))
+    (setq worked (sort worked (lambda (a b) (< (car a) (car b)))))
+    (let ((window (* width (floor lo width)))
+          result)
+      (while (< window hi)
+        (let* ((end (+ window width))
+               (seconds (claude-code-ide-org--allocation-clip-seconds
+                         runs window end))
+               (minutes (round (/ seconds 60)))
+               ids)
+          ;; Order of appearance, deduplicated: the first call naming a
+          ;; heading is where it enters the window.
+          (dolist (hit worked)
+            (when (and (>= (car hit) window) (< (car hit) end)
+                       (not (member (cdr hit) ids)))
+              (push (cdr hit) ids)))
+          (setq ids (nreverse ids))
+          (when (and ids (> minutes 0))
+            (let* ((shares (claude-code-ide-org--allocation-largest-remainder
+                            minutes (length ids)))
+                   (starts (delq nil
+                                 (mapcar (lambda (r)
+                                           (let ((s (float-time (car r))))
+                                             (and (>= s window) (< s end) s)))
+                                         runs)))
+                   (cursor (if starts (apply #'min starts) window))
+                   (count (length ids)))
+              ;; The extra minute of an uneven split goes to the heading
+              ;; that appeared first.  Arbitrary, but *stated*: something
+              ;; has to take it, and a rule nobody wrote down is the one
+              ;; a later reader mistakes for significance.
+              (while ids
+                (let ((id (pop ids))
+                      (share (pop shares)))
+                  (when (and share (> share 0))
+                    (push (list :start cursor
+                                :end (+ cursor (* 60 share))
+                                :id id :minutes share
+                                :window window :of count)
+                          result)
+                    (setq cursor (+ cursor (* 60 share))))))))
+          (setq window (+ window width))))
+      (nreverse result))))
+
+(defun claude-code-ide-org-allocation-report (from to)
+  "Render the window allocation for FROM..TO into a buffer.
+
+A *proposal*, like the attention report: it writes no CLOCK line and
+touches no org file.  Applying it is the review pass's business, and the
+annotation each line carries is what keeps a derived minute from reading
+as an observed one."
+  (interactive
+   (list (read-string "From (YYYY-MM-DD): ")
+         (read-string "To (YYYY-MM-DD): ")))
+  (let ((items (claude-code-ide-org-allocation-intervals from to))
+        (totals (make-hash-table :test 'equal))
+        (buffer (get-buffer-create "*org allocation*")))
+    (with-current-buffer buffer
+      (let ((inhibit-read-only t)
+            (window nil))
+        (erase-buffer)
+        (insert (format "#+TITLE: Window allocation %s..%s\n\n" from to)
+                "# Derived, not observed. Each window's MEASURED run time is\n"
+                "# divided equally among the headings a write tool acted on in\n"
+                "# it, laid end to end. Durations are the claim; the boundaries\n"
+                "# are an artefact of the division -- nobody worked the second\n"
+                "# heading from its start to its end. Window width "
+                (format "%d min.\n\n"
+                        (/ claude-code-ide-org-allocation-window-seconds 60)))
+        (dolist (item items)
+          (unless (equal window (plist-get item :window))
+            (setq window (plist-get item :window))
+            (let* ((of (plist-get item :of))
+                   (written (seq-count (lambda (i) (equal (plist-get i :window) window))
+                                       items))
+                   (dropped (- of written)))
+              (insert (format "\n* %s  (%d heading%s sharing%s)\n"
+                              (format-time-string "%Y-%m-%d %a %H:%M"
+                                                  (seconds-to-time window))
+                              of (if (= 1 of) "" "s")
+                              ;; Say what rounded away rather than
+                              ;; quietly writing fewer lines than the
+                              ;; count promises: a share under a minute
+                              ;; cannot be written, and a reader who
+                              ;; counts the lines deserves to know why
+                              ;; they do not match.
+                              (if (> dropped 0)
+                                  (format "; %d share%s under a minute, not written"
+                                          dropped (if (= 1 dropped) "" "s"))
+                                "")))))
+          (let ((title (or (claude-code-ide-org--review-heading-title
+                            (plist-get item :id))
+                           "(unknown heading)")))
+            (puthash title (+ (plist-get item :minutes)
+                              (or (gethash title totals) 0))
+                     totals)
+            (insert (format "  %s--%s => %2dm  [[id:%s][%s]] %s\n"
+                            (format-time-string "[%H:%M]"
+                                                (seconds-to-time (plist-get item :start)))
+                            (format-time-string "[%H:%M]"
+                                                (seconds-to-time (plist-get item :end)))
+                            (plist-get item :minutes)
+                            (plist-get item :id)
+                            (substring (plist-get item :id) 0 8)
+                            title))))
+        (insert "\n* Totals\n")
+        (let (rows (grand 0))
+          (maphash (lambda (k v) (push (cons k v) rows)) totals)
+          (dolist (row (sort rows (lambda (a b) (> (cdr a) (cdr b)))))
+            (setq grand (+ grand (cdr row)))
+            (insert (format "  - %5.1fh  %s\n" (/ (cdr row) 60.0) (car row))))
+          (insert (format "  - %5.1fh  TOTAL ALLOCATED\n" (/ grand 60.0))))
+        (goto-char (point-min))
+        (org-mode)))
+    (pop-to-buffer buffer)))
+
 ;;; MCP tool registration -------------------------------------------------
 
 ;;; :PLAN: drawer wrapping (TODO.org :ID: 3063c3e5)
@@ -13783,6 +15874,141 @@ Returns a summary string."
     (format "%s: %d heading(s) re-separated, %d already had %d blank line(s).%s"
             (file-name-nondirectory file) fixed already want
             (if dry-run "  [dry run -- nothing written]" ""))))
+
+;;; Prose filling (TODO.org :ID: 496b665e) -------------------------------
+
+(defun claude-code-ide-org--nonspace-digest ()
+  "Return a digest of the buffer with every whitespace character removed.
+
+The safety property for `claude-code-ide-org-fill-prose': wrapping may
+only move line breaks, so this must be identical before and after.  A
+lost word, a mangled link, a list item swallowed by a fill or a heading
+manufactured out of a wrapped `*' all change it, and any of them would
+otherwise be invisible in a diff thousands of lines long."
+  (secure-hash 'sha256
+               (replace-regexp-in-string
+                "[ \t\n\r\f]+" ""
+                (buffer-substring-no-properties (point-min) (point-max)))))
+
+(defun claude-code-ide-org--generated-line-p ()
+  "Non-nil when the line at point is machine-maintained, not prose.
+
+Today that means a slice member line, matched by
+`claude-code-ide-org--slice-member-regexp'.  Such a line is *derived*
+from its referent and rewritten wholesale by
+`claude-code-ide-org-refresh-slice', which operates on a **line** -- so a
+wrapped member line is not merely ugly, it is a latent corruption: the
+next refresh replaces the first line with the full text and leaves the
+wrapped remainder orphaned below it as duplicated prose.
+
+*Learned by doing exactly that.*  The first sweep wrapped 43 member
+lines in TODO.org and 170 in DONE.org; adding one member then ran the
+refresh, and every wrapped line in that slice grew a dangling tail --
+\"joined from the transcript\" followed by a bare line reading \"from the
+transcript\".  The whole-buffer digest did not catch it because the
+damage happened *later*, in a different function, and the sweep itself
+really had been lossless.
+
+The general form is worth keeping: **a formatting pass is safe only over
+lines nothing else owns.**  Ownership is not visible in the text -- a
+member line looks like an ordinary list item -- so it has to be asked
+about explicitly, which is what this predicate is for."
+  (save-excursion
+    (beginning-of-line)
+    (looking-at-p claude-code-ide-org--slice-member-regexp)))
+
+(defun claude-code-ide-org-fill-prose (&optional file dry-run column)
+  "Fill over-long prose in FILE to COLUMN, or report what it would fill.
+
+The counterpart to `claude-code-ide-org-normalize-heading-separation',
+and it exists for the same reason: the files drift out of the convention
+as a matter of course rather than by mistake.  `org_capture' and
+`org_amend' write prose exactly as it arrives, so a body composed in one
+call lands as a single line however long it is -- 916 prose lines over
+100 characters in TODO.org when this was written, the longest 1554.
+Until now the only thing wrapping them was a human pressing \\[fill-paragraph].
+
+COLUMN defaults to the buffer's own `fill-column', so the result is what
+that human's \\[fill-paragraph] would have produced rather than a second,
+competing width.
+
+*Only `paragraph', `item' and `plain-list' elements are touched.*  The
+third is not redundant: `org-element-at-point' reports `plain-list' at a
+list's *first* item and `item' only at subsequent ones, so omitting it
+skipped the opening item of every list -- 27 lines in TODO.org, the
+longest 588 characters, which is how the omission was found.  Tables,
+source and example blocks, fixed-width lines, headings and keywords are
+left
+exactly as they are because they are not prose, and `:PROPERTIES:' and
+`:LOGBOOK:' are skipped explicitly: their contents are org's own
+records, where a filled CLOCK line or state note would be corruption
+rather than formatting.  `:PLAN:' and `:DEBRIEF:' hold prose and are
+filled like anything else.
+
+*It refuses rather than trusting itself.*  The buffer's non-whitespace
+content is digested before and after, and a change reverts the buffer
+and reports failure.  A formatting pass over thousands of lines is
+exactly the edit whose damage a human cannot review by reading the diff,
+so the check is the feature.
+
+Binds `buffer-read-only' rather than clearing it, as every file-touching
+function here does: the flag comes back when the scope exits, including
+on a non-local exit, so refusing part-way through cannot leave the
+buffer writable.  Interactively, prompts for nothing and runs against
+the capture target; from Lisp, pass FILE.  DRY-RUN reports without
+saving."
+  (interactive (list nil (not current-prefix-arg)))
+  (let ((file (or file (claude-code-ide-org--capture-target-file))))
+    (if (claude-code-ide-org--file-busy-p file)
+        ;; Refuse outright rather than work and undo.
+        ;;
+        ;; Both the refusal and the dry-run paths below end in
+        ;; `revert-buffer', which is safe only because nothing unsaved
+        ;; can be in the buffer by then.  `find-file-noselect' hands back
+        ;; the buffer the human is *already editing*, so without this
+        ;; gate a plain \[claude-code-ide-org-fill-prose] -- where
+        ;; dry-run is the interactive default -- would silently discard
+        ;; their unsaved TODO.org edits.  A formatting convenience must
+        ;; not be able to destroy work, and the same gate is what
+        ;; `org_capture' and `org_amend' already use.
+        (message "%s: REFUSED -- unsaved changes in that buffer; save first"
+                 file)
+      (with-current-buffer (find-file-noselect file)
+      (let* ((buffer-read-only nil)
+             (fill-column (or column fill-column))
+             (before (claude-code-ide-org--nonspace-digest))
+             (filled 0))
+        (org-with-wide-buffer
+         (goto-char (point-min))
+         (while (not (eobp))
+           (when (> (- (line-end-position) (line-beginning-position))
+                    fill-column)
+             (let* ((element (org-element-at-point))
+                    (type (org-element-type element))
+                    (drawer (org-element-lineage
+                             element '(drawer property-drawer) t))
+                    (name (and drawer
+                               (org-element-property :drawer-name drawer))))
+               (when (and (memq type '(paragraph item plain-list))
+                          (not (eq (org-element-type drawer) 'property-drawer))
+                          (not (member name '("LOGBOOK" "PROPERTIES")))
+                          (not (claude-code-ide-org--generated-line-p)))
+                 (org-fill-paragraph)
+                 (setq filled (1+ filled)))))
+           (forward-line 1)))
+        (let ((after (claude-code-ide-org--nonspace-digest)))
+          (cond
+           ((not (equal before after))
+            (revert-buffer t t t)
+            (message "%s: REFUSED -- content changed, buffer reverted" file))
+           (dry-run
+            (revert-buffer t t t)
+            (message "%s: would fill %d paragraph(s) to column %d, content identical"
+                     file filled fill-column))
+           (t
+            (save-buffer)
+            (message "%s: filled %d paragraph(s) to column %d, content identical"
+                     file filled fill-column)))))))))
 
 ;;; :ID: prefix expansion at the write boundary
 ;;
