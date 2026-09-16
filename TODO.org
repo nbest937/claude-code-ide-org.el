@@ -1859,6 +1859,7 @@ CLOCK: [2026-09-04 Fri 12:15]--[2026-09-04 Fri 12:19] =>  0:04
 - State "NEXT"       from "TODO"       [2026-09-04 Fri 12:33] \\
   Dev nomination; category held none
 :END:
+:PLAN:
 
 =bin/hooks/footnote-check= validates a candidate by looking it up in the tracked
 org files:
@@ -1902,6 +1903,51 @@ Same problem, opposite ends.
 *The class this belongs to* is =acf46449='s, one layer over: an error is a
 report, and a report is not a mechanism. Here the mechanism already computed the
 answer.
+
+:END:
+*Shipped 2026-09-16, in the shape this body preferred:* the hook **emits** the
+footnote lines and stays advisory, rather than appending them itself. =resolve_id=
+replaces the =grep -qE= with one =awk= that keeps the heading it was already
+standing on, and the block message now ends with ready-to-paste lines —
+=`KEYWORD` `id` — Exact title= — one per unfootnoted citation.
+
+*Plain shell deliberately.* This is a =Stop= hook; routing the lookup through
+=emacsclient= would make footnoting fail precisely when Emacs is down. That was
+not hypothetical today.
+
+*Three bugs on the way, each caught by a test rather than by reading, and the
+third is the interesting one.*
+
+- **An end anchor found nothing.** =^:ID:[ \t]+id[ \t]*$= requires the line to
+  stop after eight characters, but candidates are *prefixes* and the line
+  carries the full uuid. The =grep= being replaced had no end anchor; parity was
+  the fix.
+- **An apostrophe in an awk comment closed the shell single-quote** wrapping the
+  whole program. Syntax error at the awk, reported against a line that looked
+  fine.
+- **The keyword assertion passed against the OLD hook too.** Asserting the bare
+  string =TODO= was satisfied by the hook's own instruction text — "its current
+  TODO keyword" — so the test proved nothing and looked green. Sharpened to
+  assert the rendered pairing =`TODO` `id`=, which fails against HEAD as it
+  should. A vacuous assertion satisfied by boilerplate is this project's
+  mutation-test lesson in a new place.
+
+*Both tests proved red against the previous hook*, and the existing 21 still
+pass — including the case that caught bug one.
+
+*What this does and does not close, measured against
+[[id:2a6a1355-615f-4c2c-a8af-c9ae8dcda09b][2a6a1355]]'s five modes*, since the
+user asked whether it subsumes that heading. **It does not.** Enumeration,
+quoted example and borrowed prose were already *detected* — the hook refused
+them; what it removes there is the cost, which is the whole point. The
+paraphrased-title mode becomes **structurally impossible**, because the correct
+string is now on screen at the moment the footnote is written, and that was the
+only one of the five producing a confidently wrong answer rather than a refusal.
+The **marker collision** stays: placement is the one thing a =Stop= hook cannot
+fix, since it may refuse and inform but never rewrite. So =2a6a1355= stays open
+for its marker-bookkeeping half, which is a different change to a different part
+of the same message.
+
 
 
 * TODO --review-format-annotation's docstring contradicts its own let*, four lines down
