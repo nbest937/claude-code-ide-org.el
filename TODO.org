@@ -11,6 +11,7 @@
 
 Asked by the user 2026-09-16, straight after =c= shipped: "will the 0-run/0-minute spans offered always be mine to claim? if so, why not offer them as such?" The first half is answered and the answer is **no** — [[id:996fd2bd-be90-44b3-b2c5-9018255940b3][996fd2bd]]'s known negative settles it, the 2026-08-25 16:56--17:50 sleeping-laptop gap being byte-identical in shape to an hour of careful reviewing. A =pause=--=resume= gap says only that the *agent* was idle. So a blanket default-to-claimed trades a silent undercount for a silent overcount, and gains nothing in visibility: a wrong CLOCK line looks exactly like a right one, so the error is no more catchable than the one it replaces. **But the population actually on offer makes the question narrower and more answerable than that.** Measured the same day: 13 zero-run spans totalling 27 minutes, envelopes of 8, 5, 3, 3, 2, 1, 1, 1, 1, 1, 1, 1 and 1 minutes — median one minute. At one minute, "I walked away" is not a competing explanation the way it is at 54; the human had just been handed output and the next turn started a minute later. So the arguable proposal is a **width-bounded** default: claim automatically below some envelope, ask above it. Three things to settle, none of them mine to decide. **Where the bound falls is a reporting decision**, and this project has form for naming such a knob without turning it (=claude-code-ide-org-span-minimum-interval=, "a named no-op, deliberately"). **Whether a defaulted claim should be marked as such** — a =(claimed)= line says a human asserted it, and a defaulted one did not, so it may want a third rendering rather than borrowing =c='s. **And whether it is worth it at all**: the entire exposure is 27 minutes, so this can wait behind anything with a larger number. Note the interaction with =c= itself: =c= exists precisely so the assertion is an act rather than an inaction, and a default undoes that property for the range it covers — which is the strongest argument against, and the reason this is filed as a question rather than a plan.
 
+
 * DONE Commenting out the 202 override took use-package!'s closing paren, silently disabling the MCP server :code:
 CLOSED: [2026-09-16 Wed 07:48]
 :PROPERTIES:
@@ -20,6 +21,7 @@ CLOSED: [2026-09-16 Wed 07:48]
 :END:
 
 Found and fixed 2026-09-16 while recovering from the =489d6f61= crash. =~/.config/doom/config.el= line 158 opens =(use-package! claude-code-ide=, and the form's closing paren lived on the last line of the local 202-Accepted HTTP override — =;;     (throw 'close-connection nil))))=. When that override was commented out (it was superseded; the real bug was the server answering 200 where the MCP spec requires 202), the =))))= went with it, and the final =)= was =use-package!='s. The form then swallowed the rest of the file and =load= signalled =(end-of-file ".../config.el")=, aborting Doom's boot at form 13 of 16. Everything after it silently never ran: =global-auto-revert-mode= (inside the form), =(load! "claude-code-ide-org-glue")= at 178, and =magit-repository-directories= at 187. No glue meant no =claude-code-ide-org-standalone-wire=, so **the MCP server never started and every =org_*= tool was dead** — =claude-code-ide-mcp-server-get-port= returned nil and =bin/check-conventions= failed with "expected '45571', got 'nil'". Fixed by inserting one =)= after line 176; the file then reads 16 forms instead of 13, the glue runs, and the port is 45571. Original kept at =~/.config/doom/config.el.broken-2026-09-16=. Three things worth keeping. **The failure was invisible for a day**: the config was edited 2026-09-15 13:02 while an Emacs from 2026-09-14 10:17 kept running the old, working image, so the breakage only appeared at the next restart — the §2 "needs a real restart" class exactly. **=check-parens= passed on the broken file**, so the obvious check does not catch this; what caught it was counting top-level forms read (13) against forms present (16). **And my own first test reported the bug as success**: a batch read-loop that catches =end-of-file= as its loop terminator printed "13 top-level forms, clean EOF" — the very condition under investigation, rendered as a pass. A read-loop must compare the form count against something independent, or assert it consumed to =point-max=.
+
 
 * TODO org_query reports a rejected query as "No matches", and drops the property predicate :code:
 :PROPERTIES:
@@ -584,14 +586,14 @@ matters here is therefore not a new property but the existing one: link the plan
 revision when the slice is picked up**, and this is its first recorded failure.
 
 
-* DOING [5/8] A span is only as true as its owner, its edges and its payload :code:
+* DOING [7/9] A span is only as true as its owner, its edges and its payload :code:
 :PROPERTIES:
 :ID:       749301a0-0bd0-4fbd-b3f7-79739226e15a
 :CREATED:  [2026-09-11 Fri 18:58]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  406e9200-c3e7-49ac-a8d0-d6ff8e061ce4 c54c4215-90e3-4e0c-9de1-990c0406a2b2 2deb090f-593d-40e3-9044-fda318d9b6de
+:BLOCKER:  406e9200-c3e7-49ac-a8d0-d6ff8e061ce4 2deb090f-593d-40e3-9044-fda318d9b6de
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-15 Tue 13:10]--[2026-09-15 Tue 13:12] =>  0:02
@@ -652,12 +654,13 @@ Planned:
   - [X] [[id:9202b39d-49e4-441c-89f2-382feb4ef1ea][9202b39d]] DONE A background job's first turn is bracketed across two session_ids
   - [X] [[id:7d739afd-f879-445c-b0b6-65e295585a94][7d739afd]] DONE Concurrent sessions' turns must union, not sum, wherever time is totalled
   - [X] [[id:c9940558-b23e-4b2c-86e8-e75a377634aa][c9940558]] DONE Guidepost aggregation ignores =cwd=, so two projects' turns cluster into one span
-  - [-] [[id:c54c4215-90e3-4e0c-9de1-990c0406a2b2][c54c4215]] DOING A split span drops the unowned gaps between the clock pairs that split it
-  - [ ] [[id:2deb090f-593d-40e3-9044-fda318d9b6de][2deb090f]] TODO Accepting a 0-run span records none of its minutes, and only =e= can claim them
+  - [X] [[id:c54c4215-90e3-4e0c-9de1-990c0406a2b2][c54c4215]] DONE A split span drops the unowned gaps between the clock pairs that split it
+  - [-] [[id:2deb090f-593d-40e3-9044-fda318d9b6de][2deb090f]] DOING Accepting a 0-run span records none of its minutes, and only =e= can claim them
 
 Incidental:
 
 - [X] [[id:0b600ab4-15b6-496b-8517-a0426f9f9ae5][0b600ab4]] DONE --transcript-longer-sibling picks the wrong sibling when the two copies are nearly the same size
+- [X] [[id:7e720ddf-fb7c-41a9-82d1-b8fbc14aeacd][7e720ddf]] DONE Commenting out the 202 override took use-package!'s closing paren, silently disabling the MCP server
 
 
 * TODO Nothing can correct a closed slice's record, even when the correction is close-time truth :code:
@@ -1130,6 +1133,44 @@ restart from a rebind. No startup prompt.
 [[id:c54c4215-90e3-4e0c-9de1-990c0406a2b2][c54c4215]]'s clock, which was open
 when the hang was found. Reassign it at review with =a= if it matters.
 
+*The signal's identity is still unknown, and two obvious ways to learn it are
+now ruled out — recorded so they are not re-walked.*
+
+**macOS crash reports: none exist, and there is a reason.** No =.crash= or
+=.ips= for =Emacs.app= anywhere in =~/Library/Logs/DiagnosticReports= or
+=/Library/Logs/DiagnosticReports=, for any occurrence. That is consistent
+rather than surprising: the crash reporter needs the process to *finish* dying,
+and this one deadlocks inside =shut_down_emacs= before it can. **The deadlock
+destroys the evidence of its own trigger.**
+
+*Three =.diag= files there are a red herring* and are named here so the next
+reader does not spend time on them: =emacs-29.4_2026-09-11-143708=,
+=emacs-29.4_2026-09-15-185922= and =Emacs_2026-09-14-091839.cpu_resource=.
+Despite the tempting 09-11 date, they are =/opt/homebrew= =emacs-29.4= under
+=Resource Coalition: "dev.warp.Warp-Stable"= — batch Emacs processes, flagged
+for **disk writes**, not crashes, and nothing to do with the GUI hang. (Worth a
+sideways glance on their own terms: 8.5 GB and 2.1 GB of file-backed memory
+dirtied. Not this heading's problem.)
+
+**The unified log has nothing either.** =log show --last 4h --predicate
+'processImagePath CONTAINS "Emacs"'= filtered for
+=fatal|signal|abort|segmentation|SIG= returns empty. Emacs *does* print "Fatal
+error N" on a fatal signal, but an app launched by =open -a= has its stderr
+going nowhere useful.
+
+*Two things that would actually name it, neither done:*
+
+- **Read the handler's own argument.** =handle_fatal_signal(int sig)= receives
+  the signal number, and =sample= shows the frame but not its arguments. Attach
+  =lldb -p <pid>= to the *hung* process before killing it and read =x0= at that
+  frame. This is the cheapest option and needs nothing set up in advance — only
+  the discipline of attaching before the SIGKILL, which is easy to forget in
+  the moment and is the reason this bullet is written down.
+- **Capture stderr by launching Emacs from a shell** rather than through
+  =open -a=: =/Applications/Emacs.app/Contents/MacOS/Emacs 2>~/emacs-stderr.log &=.
+  Then the next occurrence names the signal by itself, with no attach and no
+  timing pressure. Costs a change to how Emacs is started daily, which is why
+  it is offered rather than assumed.
 
 
 * TODO Plans die at cleanupPeriodDays; decide plansDirectory or keep restoring :code:
@@ -3745,7 +3786,6 @@ by =fboundp= alone. A =.gitignore= entry plus deletion, or a build step that
 never leaves one, is the durable fix and is not done here.
 
 
-
 * TODO Sixty minutes holding 2 turns is not sixty holding 40 [2/7]
 :PROPERTIES:
 :ID:       f90d745e-ccf9-49d6-a92e-df25c17b4dfb
@@ -5246,7 +5286,6 @@ arguing about. Filed separately rather than decided here, since where that bound
 falls is a reporting decision.
 
 
-
 * Review attention
 :PROPERTIES:
 :CATEGORY: Meta
@@ -6237,7 +6276,7 @@ rule that refuses to discard =TODO.org=/=DONE.org= working-tree changes
 without showing the diff first.
 
 
-* DOING [14/16] Make the guidepost pipeline produce durations that mean what they say :code:
+* DOING [15/16] Make the guidepost pipeline produce durations that mean what they say :code:
 :PROPERTIES:
 :CATEGORY: Queue
 :ID:       406e9200-c3e7-49ac-a8d0-d6ff8e061ce4
@@ -7919,10 +7958,56 @@ whole-line anchored pattern excluded them. A looser grep would have rewritten
 documentation.
 
 
-** DOING A split span drops the unowned gaps between the clock pairs that split it :code:
+** DONE A split span drops the unowned gaps between the clock pairs that split it :code:
+CLOSED: [2026-09-16 Wed 08:11]
 :PROPERTIES:
 :ID:       c54c4215-90e3-4e0c-9de1-990c0406a2b2
 :CREATED:  [2026-08-25 Tue 18:44]
+:END:
+:DEBRIEF:
+*Both halves resolved 2026-09-16, and only one of them needed code.*
+
+**The complement shipped.** The aggregator clusters *through* an exclusion and
+subtracts afterwards rather than refusing to cluster, so the owned minutes are
+removed by subtraction instead of by a split and the gaps between exclusions
+survive. Measured over 2855 guideposts against 289 real clock brackets: 183 →
+193 spans is the =cwd= change's contribution and 382 → 456 the complement's,
+covered time 120.47 → **133.11 h**. **12.64 h of real unattributed work now
+reaches review.** This body's own fixture reproduces to the second — 103, 198
+and 68 s, totalling the 369 s it recorded.
+
+*It answered this body's open presentation question more cleanly than the
+question assumed.* It asked whether the zero-width endpoints "become redundant
+once the gaps are offered". They are not redundant — they are **absorbed**,
+each sitting inside the first or last gap. 68 zero-width items down to 1.
+
+**Widowing needed no code, and that is the finding.** Measured before building:
+of 25 live review items exactly **1** is zero-width, and it is this session's
+own trailing =clock_in=, not a widow. The fixture this body preserved cannot
+recur either — session =1ad547fe= has **81 guideposts, all consumed, 0
+pending**. Two guards added for other reasons already cover it:
+[[id:355fa608-e311-4874-b2d3-bbc62172d09a][355fa608]]'s stranded-single-point drop, and the complement
+above, which absorbs the endpoints a split used to strand.
+
+*So the deliverable narrowed to a pinning test*, which is
+[[id:2c77f2cc-af07-4f4d-aa9d-1aa3bc8843f5][2c77f2cc]]'s precedent exactly: the guard already worked and
+the fix became a test rather than code. It constructs widowing deterministically
+— four guideposts, the widow's neighbour marked applied and the widow not — and
+asserts the widow yields no item **while the trailing point still does**. The
+second assertion is separate on purpose: a change suppressing *both* would
+otherwise pass, and =31f766ab= rejected blanket suppression because hiding an
+in-flight span makes a crashed session's last span vanish.
+
+*A passing pinning test proves nothing unless it can fail*, and this one cannot
+be run red against HEAD since the guard predates the work. Discrimination is
+proved by **mutation**: disabling the stranded-point drop fails this test and
+the pre-existing =355fa608= test, and nothing else.
+
+*One property worth carrying forward.* A complement segment is bounded by
+*exclusion edges* rather than guideposts. That is still evidence — an edge is a
+=clock_in= or =clock_out= timestamp — but it is a different event kind from the
+ones bounding an ordinary span, and anyone reconciling a span against a
+transcript should know which they are looking at.
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-25 Tue 18:45] \\
@@ -7931,6 +8016,8 @@ documentation.
   Step 4, now one zero-width span larger
 - State "DOING"      from "NEXT"       [2026-09-16 Wed 06:45] \\
   starting the complement half
+- State "DONE"       from "DOING"      [2026-09-16 Wed 08:11] \\
+  both halves: complement shipped, widowing pinned
 :END:
 :PLAN:
 
@@ -8073,7 +8160,7 @@ as =--review-suggest-heading= already does. The =1ad547fe= fixture on this body
 is untouched and still replayable.
 
 
-** TODO Accepting a 0-run span records none of its minutes, and only =e= can claim them :code:
+** DOING Accepting a 0-run span records none of its minutes, and only =e= can claim them :code:
 :PROPERTIES:
 :ID:       2deb090f-593d-40e3-9044-fda318d9b6de
 :CREATED:  [2026-09-11 Fri 17:41]
@@ -8081,6 +8168,10 @@ is untouched and still replayable.
 :LOGBOOK:
 CLOCK: [2026-09-11 Fri 17:41]--[2026-09-11 Fri 17:47] =>  0:06
 - [2026-09-11 Fri 17:41]--[2026-09-11 Fri 17:47] check the 0-run span attention reasoning, file it
+- State "DOING"      from "NEXT"       [2026-09-16 Wed 08:11] \\
+  starting the slice's last member
+- State "NEXT"       from "TODO"       [2026-09-16 Wed 08:11] \\
+  Step 5, the slice's last member
 :END:
 :PLAN:
 
@@ -8182,7 +8273,6 @@ written: 0 seconds before the claim, 1320 after.
 the leak; it does not repair the history, and repairing it would mean deciding
 retrospectively which of 81 annotations were attention — a judgement nobody can
 make from the drawer alone.
-
 
 
 ** DONE Guidepost aggregation ignores =cwd=, so two projects' turns cluster into one span :code:
