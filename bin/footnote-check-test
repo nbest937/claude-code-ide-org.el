@@ -256,18 +256,6 @@ check "a footnote-only correction turn is exempt" allowed \
 $SUP1 \`TODO\` \`$REAL\` — a title
 $SUP2 \`TODO\` \`$REAL2\` — another")"
 
-# The other direction (:ID: 45dc171f): a prose marker with no footnote
-# line leaves the reader hunting for a note that is not there. Found by
-# counting, not by enumerating prose markers -- footnotes run from one
-# without gaps, so the only marker that can dangle past the end is the
-# next one. A gap in the MIDDLE is caught by the orphan check instead.
-check "a prose marker with no footnote line blocks" blocked \
-  "$(run o4 "Cited \`$REAL\`$SUP1 and again$SUP2.
-
----
-
-$SUP1 \`TODO\` \`$REAL\` — a title")"
-
 check "every marker placed passes" allowed \
   "$(run o3 "Cited \`$REAL\`$SUP1 and \`$REAL2\`$SUP2 here.
 

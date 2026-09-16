@@ -232,6 +232,17 @@ while IFS= read -r id; do
 "
 done <<<"$candidates"
 
+# The MIRROR check -- a prose marker with no footnote line -- was built
+# here on 2026-09-16 and RETIRED the same hour. Do not rebuild it. It
+# cannot tell a citation from a superscript that is merely being shown:
+# quoting this hook's own message, which contains markers, tripped it
+# within minutes. That is 2a6a1355's quotation mode reaching markers
+# instead of ids. Narrowing it (require a non-space before the marker)
+# leaves ranges like `1-4' and enumerated markers still false, and the
+# motivating population was 21 of 924 responses. A check whose false
+# positives concentrate in the work of maintaining it is worse than no
+# check.
+#
 # ORPHANED FOOTNOTE MARKERS (TODO.org :ID: 45dc171f). A footnote whose
 # marker appears nowhere in the prose points the reader at nothing, and
 # the id check above cannot see it: that test asks whether each cited id
@@ -249,7 +260,6 @@ done <<<"$candidates"
 # duplicate-detection is deliberately absent, having occurred 0 times in
 # those same 924 responses.
 orphans=""
-dangling=""
 if [[ -n "$foot" ]]; then
   # A CORRECTION TURN carries no marker in its prose at all: the response
   # IS the footnote block, appended for an earlier response whose prose
@@ -270,25 +280,10 @@ if [[ -n "$foot" ]]; then
       orphans="$orphans${orphans:+ }$mk"
     done <<<"$foot"
 
-    # THE OTHER DIRECTION: a marker in the prose with no footnote line,
-    # which leaves the reader looking for a note that is not there.
-    #
-    # Checked by counting rather than by finding markers in the prose.
-    # Enumerating them would need superscript literals and multi-digit
-    # disambiguation -- is that a 1 and a 3, or a 13 -- which is the
-    # character arithmetic this shell does badly. But footnotes run from
-    # one without gaps, so the only marker that can dangle past the end
-    # is the next one: build it and look for it. A gap in the MIDDLE is
-    # already caught by the orphan check above, since the missing line
-    # cannot have its marker placed.
-    dangle_probe="$(num_to_sup $((marker_n + 1)))"
-    if grep -qF -- "$dangle_probe" <<<"$body"; then
-      dangling="$dangle_probe"
-    fi
   fi
 fi
 
-[[ -n "$missing" || -n "$orphans" || -n "$dangling" ]] || exit 0
+[[ -n "$missing" || -n "$orphans" ]] || exit 0
 
 # `mkdir -p' first: a bare `: > "$sentinel" 2>/dev/null' does NOT
 # suppress the failure when the directory is absent, because bash
@@ -328,7 +323,6 @@ mkdir -p "$queue_dir" 2>/dev/null
 if [[ -z "$missing" ]]; then
   cat >&2 <<EOF
 ${orphans:+Footnote marker(s) not present in the prose: $orphans -- place or drop them.
-}${dangling:+Prose marker $dangling has no footnote line.
 }
 EOF
   exit 2
@@ -341,7 +335,6 @@ footnotes already present, so they will not collide):
 
 $resolved
 ${orphans:+Also: marker(s) $orphans appear in the footnotes but not in the prose.
-}${dangling:+Also: prose marker $dangling has no footnote line.
 }
 EOF
 exit 2
