@@ -2,6 +2,16 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* DONE Commenting out the 202 override took use-package!'s closing paren, silently disabling the MCP server :code:
+CLOSED: [2026-09-16 Wed 07:48]
+:PROPERTIES:
+:ID:       7e720ddf-fb7c-41a9-82d1-b8fbc14aeacd
+:CREATED:  [2026-09-16 Wed 07:48]
+:CATEGORY: Dev
+:END:
+
+Found and fixed 2026-09-16 while recovering from the =489d6f61= crash. =~/.config/doom/config.el= line 158 opens =(use-package! claude-code-ide=, and the form's closing paren lived on the last line of the local 202-Accepted HTTP override — =;;     (throw 'close-connection nil))))=. When that override was commented out (it was superseded; the real bug was the server answering 200 where the MCP spec requires 202), the =))))= went with it, and the final =)= was =use-package!='s. The form then swallowed the rest of the file and =load= signalled =(end-of-file ".../config.el")=, aborting Doom's boot at form 13 of 16. Everything after it silently never ran: =global-auto-revert-mode= (inside the form), =(load! "claude-code-ide-org-glue")= at 178, and =magit-repository-directories= at 187. No glue meant no =claude-code-ide-org-standalone-wire=, so **the MCP server never started and every =org_*= tool was dead** — =claude-code-ide-mcp-server-get-port= returned nil and =bin/check-conventions= failed with "expected '45571', got 'nil'". Fixed by inserting one =)= after line 176; the file then reads 16 forms instead of 13, the glue runs, and the port is 45571. Original kept at =~/.config/doom/config.el.broken-2026-09-16=. Three things worth keeping. **The failure was invisible for a day**: the config was edited 2026-09-15 13:02 while an Emacs from 2026-09-14 10:17 kept running the old, working image, so the breakage only appeared at the next restart — the §2 "needs a real restart" class exactly. **=check-parens= passed on the broken file**, so the obvious check does not catch this; what caught it was counting top-level forms read (13) against forms present (16). **And my own first test reported the bug as success**: a batch read-loop that catches =end-of-file= as its loop terminator printed "13 top-level forms, clean EOF" — the very condition under investigation, rendered as a pass. A read-loop must compare the form count against something independent, or assert it consumed to =point-max=.
+
 * TODO org_query reports a rejected query as "No matches", and drops the property predicate :code:
 :PROPERTIES:
 :ID:       37bca83a-e83b-4070-9058-6318a58a24db
@@ -1045,6 +1055,72 @@ the debugger. Reported by the user as "the debugger is firing every time I use
 alone leaves the flag set. Worth distinguishing from the crash case above, where
 =SIGUSR2= is useless: a fatal-signal wedge is already past the point where the
 debugger can be entered, and =SIGKILL= is the only exit.
+
+*Third occurrence, 2026-09-16 ~07:27, sampled before the kill.* Sample kept at
+=scratchpad/emacs-hang-2026-09-16.txt= (229 KB).
+
+*This one is the experiment this body set up, and it neither confirms nor
+falsifies.* The process started **Mon Sep 14 10:17:44** — precisely the
+"launched 10:17:44 (after the 10:10:53 write)" Emacs recorded above, so it *was*
+running with =NSAutoFillHeuristicControllerEnabled= off. The stated falsifier
+was a further crash **carrying** the =NSAutoFillHeuristicController ->
+selectedRange= stack. This sample carries **0** such frames and **0**
+=selectedRange= frames. So the mitigation is not falsified — and, by this
+body's own withdrawn-check reasoning, 0 frames is what a sample yields either
+way, so it is not confirmed either. **What is new is that the crash class
+recurred at all with AutoFill demonstrably out of the picture**, which makes
+AutoFill less likely to have been the cause rather than more.
+
+*The deadlock signature reproduces exactly, and the sample names its entry
+point, which the earlier accounts did not:*
+
+: idle      read_char -> sit_for -> wait_reading_process_output -> mac_select
+:           -> thread_select -> really_call_select
+:           -> _pthread_mutex_firstfit_lock_wait      <- signal arrives here
+:           -> _sigtramp -> deliver_process_signal -> handle_fatal_signal
+: shutdown  terminate_due_to_signal -> shut_down_emacs -> kill_buffer_processes
+:           -> Fdelete_process -> status_notify -> remove_process -> Fdelq
+:           -> probably_quit -> process_pending_signals -> gobble_input
+:           -> mac_read_socket -> mac_within_gui_and_here
+:           -> _dispatch_semaphore_wait_slow          <- blocks
+: GUI       unset_global_focus_view_frame -> _dispatch_sync_f_slow
+:           -> __DISPATCH_WAIT_FOR_QUEUE__ -> kevent_id
+
+**=Fdelq= calling =probably_quit= is the specific mechanism**: the shutdown path
+re-enters input handling, which reaches for the GUI queue, while the GUI thread
+is already waiting on queue ownership. "Waiting on the GUI queue's semaphore" as
+recorded above is right but under-specified; this is where it enters.
+
+*The signal still arrives while idle in =really_call_select=*, as in 2026-09-11 —
+now with the added detail that it lands **inside
+=_pthread_mutex_firstfit_lock_wait=**, via =_sigtramp=. Its origin remains
+unknown.
+
+*The ceremony correlation is now 2 of 3 and should stop being treated as
+coincidence.* This crash also landed at the ceremony's end: the apply pass and
+the archive sweep had both reached disk (=TODO.org= −780, =DONE.org= +794) and
+were recovered intact — 0 lint errors, and every =:ID:= removed from =TODO.org=
+present in =DONE.org=. Committed from outside Emacs as =01e3013=. The
+2026-09-11 note hedged that the correlation "may be timing, not cause"; two of
+three is worth promoting to a hypothesis.
+
+*One new observation, offered as a lead rather than a finding.* The sample
+shows **four live =diff-hl--update= threads**. More buffer processes means more
+=Fdelete_process= calls inside =kill_buffer_processes=, which is more
+opportunities to hit the =probably_quit= re-entry above. That would make the
+deadlock's *probability* a function of how many async processes are live at
+shutdown — consistent with the ceremony correlation, since a ceremony ends with
+many buffers touched. Not tested.
+
+*Recovery went exactly as this body records:* SIGKILL, relaunch. The socket was
+cleaned up properly — inode =19433574= → =20399676=, so genuinely unlinked and
+recreated rather than reused, which is the check that distinguishes a clean
+restart from a rebind. No startup prompt.
+
+*Attribution note:* the time spent on this investigation sits on
+[[id:c54c4215-90e3-4e0c-9de1-990c0406a2b2][c54c4215]]'s clock, which was open
+when the hang was found. Reassign it at review with =a= if it matters.
+
 
 
 * TODO Plans die at cleanupPeriodDays; decide plansDirectory or keep restoring :code:
@@ -3615,6 +3691,50 @@ than load time is not the same as "the running Emacs is wrong", since an edit
 may not have touched anything loaded. The report should say what it knows — the
 file is newer than the load — and let the reader decide, exactly as the
 stale-interval report states a timestamp and asks rather than guessing.
+
+*Observed live 2026-09-16, with a concrete mechanism and a detection this
+heading did not previously carry.*
+
+After the =489d6f61= crash and relaunch, the fresh Emacs was running
+**two-day-old code**: =modules/tools/claude-code-ide-org/config.elc=, dated
+2026-09-14 17:55, loaded in preference to a =config.el= dated 2026-09-16 06:48.
+Every symbol from two days of work was simply absent —
+=--session-alias-map=, =--span-complement=, =--transcript-last-stamp= all
+unbound, and =--merge-overlapping-runs= *also* unbound, which is what gave it
+away: a function deleted the previous day was missing **and** so were its
+replacements, so the image could not be either version.
+
+*The title needs one correction, and it is the useful part.* Emacs **does** say
+so. =*Messages*= carried:
+
+: Source file '.../claude-code-ide-org/config.el' newer than byte-compiled file; using older file
+
+So the defect is not silence but **placement**: it is announced once, at boot,
+in a buffer nobody reads, and never again. Everything downstream looks healthy —
+=load-file= returns =t=, =fboundp= answers for whatever the =.elc= defined, and
+a behavioural check passes *against the old behaviour*.
+
+*A one-line detection, which is what this heading was missing:*
+
+: (symbol-file 'claude-code-ide-org-pending-updates 'defun)
+
+If that does not end in =.el=, the running image is not the source. It costs
+one =emacsclient= call and is the check the org-dev skill's §1 reload procedure
+should carry, since a reload cannot fix what a stale =.elc= will re-shadow at
+the next boot.
+
+*Where the stale artifact came from is worth recording, because the near-miss is
+instructive.* Commit =34ee154= (2026-09-15) is titled "PR #23 review: the two
+HIGH findings, **and untrack config.elc**". Untracking removed it from git and
+left it on disk, still winning the load. **Untracking is not deleting**, and the
+commit that untracks is exactly the moment the surviving artifact becomes
+invisible to everyone reading the repo.
+
+*Resolved for now by moving the =.elc= aside*; source is confirmed loaded
+(=symbol-file= ends =.el=) and behaviour verified against the corpus rather than
+by =fboundp= alone. A =.gitignore= entry plus deletion, or a build step that
+never leaves one, is the durable fix and is not done here.
+
 
 
 * TODO Sixty minutes holding 2 turns is not sixty holding 40 [2/7]
