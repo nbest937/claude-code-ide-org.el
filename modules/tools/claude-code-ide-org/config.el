@@ -11409,6 +11409,41 @@ each run of tool calls under the paragraph that prompted it."
   (plist-put turn :blocks (nreverse (plist-get turn :blocks)))
   turn)
 
+(defconst claude-code-ide-org--transcript-near-tie-fraction 0.1
+  "How close in size two transcript copies must be to earn a tail read.
+
+A candidate smaller than (1 - this) times the subject cannot be the
+continuation, and excluding it costs one `stat\='.  Measured 2026-09-15:
+the corpus\='s one disagreeing pair differs by 1.4%, so 10% is generous
+by a factor of seven while still excluding almost every file.")
+
+(defun claude-code-ide-org--transcript-last-stamp (file)
+  "Return FILE\='s last entry timestamp string, or nil.
+
+Reads a 64 KB *tail* rather than the file, for the same reason
+`claude-code-ide-org--transcript-first-stamp\=' reads a head: a
+transcript runs to megabytes and only the ends are wanted.  A line
+truncated by the window\='s left edge fails to parse and is skipped, so a
+partial read can never yield a partial stamp."
+  (ignore-errors
+    (let* ((size (or (file-attribute-size (file-attributes file)) 0))
+           (start (max 0 (- size 65536))))
+      (with-temp-buffer
+        (insert-file-contents file nil start size)
+        (goto-char (point-max))
+        (let (stamp)
+          (while (and (not stamp) (not (bobp)))
+            (forward-line -1)
+            (when-let* ((obj (ignore-errors
+                               (json-parse-string
+                                (buffer-substring-no-properties
+                                 (line-beginning-position) (line-end-position))
+                                :object-type 'alist :null-object nil
+                                :false-object nil)))
+                        (ts (alist-get 'timestamp obj)))
+              (setq stamp ts)))
+          stamp)))))
+
 (defun claude-code-ide-org--transcript-longer-sibling (session-id)
   "Return the id of a transcript that supersedes SESSION-ID's, or nil.
 
@@ -11426,7 +11461,8 @@ reader ends up sure they are looking at something they are not."
   (when-let* ((file (claude-code-ide-org--transcript-file session-id))
               (first (claude-code-ide-org--transcript-first-stamp file))
               (size (file-attribute-size (file-attributes file))))
-    (let (found)
+    (let ((floor (* size (- 1 claude-code-ide-org--transcript-near-tie-fraction)))
+          candidates)
       (dolist (other (file-expand-wildcards
                       (expand-file-name "projects/*/*.jsonl"
                                         (expand-file-name "~/.claude/"))
@@ -11438,13 +11474,35 @@ reader ends up sure they are looking at something they are not."
         ;; the whole file to say it -- twice over, since the subject was
         ;; counted too, on every render, reachable from the review
         ;; buffer's `T'.
+        ;;
+        ;; The threshold is the 0b600ab4 correction.  It was `> size',
+        ;; which makes size the *decision* rather than a filter; it is now
+        ;; a near-tie floor, so a copy slightly smaller than this one
+        ;; survives to be judged on where it ends.
         (unless (equal other file)
-          (when (and (> (or (file-attribute-size (file-attributes other)) 0)
-                        size)
-                     (equal first
-                            (claude-code-ide-org--transcript-first-stamp other)))
-            (setq found (file-name-base other)))))
-      found)))
+          (let ((osize (or (file-attribute-size (file-attributes other)) 0)))
+            (when (and (> osize floor)
+                       (equal first
+                              (claude-code-ide-org--transcript-first-stamp other)))
+              (push (list other osize
+                          (claude-code-ide-org--transcript-last-stamp other))
+                    candidates)))))
+      (when candidates
+        (let* ((entries (cons (list file size
+                                    (claude-code-ide-org--transcript-last-stamp file))
+                              candidates))
+               ;; Stamps are ISO-8601 UTC and fixed width, so `string>'
+               ;; orders them without parsing.
+               (by-end (when (seq-every-p (lambda (e) (nth 2 e)) entries)
+                         (car (sort (copy-sequence entries)
+                                    (lambda (a b) (string> (nth 2 a) (nth 2 b)))))))
+               ;; No end stamp somewhere: fall back to size, which is the
+               ;; pre-0b600ab4 behaviour and right six times in seven.
+               (winner (or by-end
+                           (car (sort (copy-sequence entries)
+                                      (lambda (a b) (> (nth 1 a) (nth 1 b))))))))
+          (unless (equal (nth 0 winner) file)
+            (file-name-base (nth 0 winner))))))))
 
 (defun claude-code-ide-org--transcript-first-stamp (file)
   "Return FILE's first entry timestamp string, or nil.

@@ -11745,6 +11745,58 @@ known ones must not mask a real boundary by resetting the comparison."
                            '("2026-09-10T09:02:00-0500" "resume" nil nil "s" nil nil nil "/p/ccio")
                            '("2026-09-10T09:02:30-0500" "pause"  nil nil "s" nil nil nil "/p/ccio"))))))))
 
+(ert-deftest claude-code-ide-org-test-longer-sibling-breaks-a-near-tie-by-end-time ()
+  "On a near-tie the copy that ENDS later continues, even when it is smaller.
+
+Size is a proxy for \"which copy continued\" and a good one: measured
+2026-09-15 over the corpus\='s seven re-key groups it agrees with end time
+six times.  The seventh is `d79e3ed8\=', where the two copies are within
+1.4% and the *smaller* file is the continuation -- its transcript ends
+17:59:45 against the other\='s 17:58:51.  Deciding on size there names the
+wrong session as superseding, and the function\='s own docstring is what
+makes that matter: the point is that a reader not end up \"sure they are
+looking at something they are not\" (TODO.org :ID: 0b600ab4).
+
+The fixture mirrors that shape -- `old\=' is the bigger file and ends
+first, `new\=' is ~5% smaller and ends later."
+  (let* ((home (file-name-as-directory (make-temp-file "cciorg-home" t)))
+         (pdir (expand-file-name ".claude/projects/-p/" home))
+         (process-environment (cons (concat "HOME=" (directory-file-name home))
+                                    process-environment))
+         (claude-code-ide-org--transcript-stamp-cache (make-hash-table :test 'equal))
+         (open "2026-08-21T12:48:24.000Z"))
+    (unwind-protect
+        (progn
+          (make-directory pdir t)
+          (cl-flet ((write-copy
+                      (name lines last)
+                      (with-temp-file (expand-file-name (concat name ".jsonl") pdir)
+                        (insert (json-encode (list (cons 'type "user")
+                                                   (cons 'timestamp open)))
+                                "\n")
+                        (dotimes (_ lines)
+                          (insert (json-encode
+                                   (list (cons 'type "assistant")
+                                         (cons 'timestamp "2026-08-21T14:00:00.000Z")))
+                                  "\n"))
+                        (insert (json-encode (list (cons 'type "user")
+                                                   (cons 'timestamp last)))
+                                "\n"))))
+            (write-copy "old" 100 "2026-08-21T17:58:51.000Z")
+            (write-copy "new"  95 "2026-08-21T17:59:45.000Z"))
+          (let ((old-size (file-attribute-size
+                           (file-attributes (expand-file-name "old.jsonl" pdir))))
+                (new-size (file-attribute-size
+                           (file-attributes (expand-file-name "new.jsonl" pdir)))))
+            ;; The fixture must actually be the shape under test: a near-tie
+            ;; in which the *bigger* file is the one that stops first.
+            (should (> old-size new-size))
+            (should (> (/ (float new-size) old-size) 0.9)))
+          (should (equal (claude-code-ide-org--transcript-longer-sibling "old") "new"))
+          ;; And the continuation has no sibling superseding *it*.
+          (should-not (claude-code-ide-org--transcript-longer-sibling "new")))
+      (delete-directory home t))))
+
 ;;; :PLAN: drawer wrapping (TODO.org :ID: 3063c3e5)
 
 (defun claude-code-ide-org-test--body-of (id)
