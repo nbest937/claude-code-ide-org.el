@@ -3919,6 +3919,9 @@ first time. A member line looks like ordinary body prose and nothing in
 the text says it is owned. That argues for making the region
 identifiable to any writer rather than adding a guard per writer.
 
+- [[orgit-rev:claude-code-ide-org::9ef4836][9ef4836]] [2026-09-16 Wed 18:45] sequenced six of the seventeen members and carried this cycle's measurements forward, chiefly =37bca83a='s re-diagnosis
+
+
 
 * REVIEW Three new ways to owe a footnote and not see it: marker, list, quotation :code:
 :PROPERTIES:
