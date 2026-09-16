@@ -203,6 +203,13 @@ and are the theme in miniature.
 sessions by design, and this file is a revision of the prompt rather than a
 new slice.
 
+**And neither euchre blocker is among the six**, though the sequence table
+above justifies this slice's position by holding them. That is deliberate,
+not staleness. `2aeb65d6` — one git index shared by concurrent sessions — is
+what makes any of this safe to work in parallel, and `965f94eb` and
+`5e731a23` are both project-routing defects that want it settled first. They
+are this slice's purpose and a later session's work.
+
 ## Step 1 — `f12f9da4`: make a stale load say so
 
 The precondition rule (`~/.claude/CLAUDE.md`, and the org-dev skill §0) asks
@@ -292,9 +299,11 @@ here and leave room for it.
 **And measure the slice itself**, as `749301a0` was asked to: members, elapsed
 days, commits, review findings per member, and
 `M-x claude-code-ide-org-attention-report` over its span, compared against
-`afea7e4f`, `35582d95` and `749301a0`. Three comparisons now exist, which is
-the first point at which the question "are slices going better?" has a trend
-rather than a pair.
+`afea7e4f`, `35582d95` and `749301a0`. **`749301a0`'s own numbers are not
+available yet** — it is back at `DOING` with a live member and an unmerged
+pull request, and review findings per member cannot be counted until its
+review is finished. So the trend has two points until PR #25 merges, exactly
+as the previous revision of this file said of `35582d95`.
 
 ## Standing rules, with what actually happened
 
