@@ -11658,6 +11658,93 @@ review are made of."
         (should (= 1 (length (alist-get "id-a" groups nil nil #'equal))))
         (should (= 2 (length (alist-get nil groups))))))))
 
+(defmacro claude-code-ide-org-test--with-projects (&rest body)
+  "Run BODY with two cwds pre-resolved to two project names.
+
+`claude-code-ide-org--project-name' consults its cache before touching
+the filesystem, so seeding it is enough and no temp repo is needed.  The
+normalisation itself -- git root, and a linked worktree folded into its
+main checkout -- is covered by
+`claude-code-ide-org-test-project-name-normalizes-to-the-git-root' and
+`...-normalizes-a-worktree\='; what these tests are about is what the
+aggregator does once two points disagree."
+  (declare (indent 0))
+  `(let ((claude-code-ide-org--project-name-cache (make-hash-table :test 'equal)))
+     (puthash "/p/euchre" "agentic-euchre" claude-code-ide-org--project-name-cache)
+     (puthash "/p/ccio" "claude-code-ide-org" claude-code-ide-org--project-name-cache)
+     ,@body))
+
+(ert-deftest claude-code-ide-org-test-a-project-boundary-splits-a-span ()
+  "Two projects' guideposts do not cluster into one span.
+
+Found 2026-09-11 the moment the cwd annotation made it visible: over the
+whole queue history exactly two groups rendered `[cwd: agentic-euchre,
+claude-code-ide-org]\=', and both were real.  Accepting such a span credits
+one project's minutes to the other project's heading -- silently, and it
+scales with the second project rather than staying small (TODO.org
+:ID: c9940558).
+
+The timestamps are deliberately well inside the gap threshold, so only
+the boundary can be what splits them."
+  (claude-code-ide-org-test--with-projects
+    (let ((spans (claude-code-ide-org--aggregate-guideposts
+                  (claude-code-ide-org-test--events
+                   '("2026-09-10T15:59:24-0500" "resume" nil nil "s" nil nil nil "/p/euchre")
+                   '("2026-09-10T15:59:47-0500" "pause"  nil nil "s" nil nil nil "/p/euchre")
+                   '("2026-09-10T16:01:00-0500" "resume" nil nil "s" nil nil nil "/p/ccio")
+                   '("2026-09-10T16:03:05-0500" "pause"  nil nil "s" nil nil nil "/p/ccio")))))
+      (should (= 2 (length spans))))))
+
+(ert-deftest claude-code-ide-org-test-one-project-still-clusters ()
+  "The same timings in one project remain a single span.
+
+The assertion that makes the split above a result rather than a
+tautology: nothing about these four timestamps forces two spans."
+  (claude-code-ide-org-test--with-projects
+    (let ((spans (claude-code-ide-org--aggregate-guideposts
+                  (claude-code-ide-org-test--events
+                   '("2026-09-10T15:59:24-0500" "resume" nil nil "s" nil nil nil "/p/ccio")
+                   '("2026-09-10T15:59:47-0500" "pause"  nil nil "s" nil nil nil "/p/ccio")
+                   '("2026-09-10T16:01:00-0500" "resume" nil nil "s" nil nil nil "/p/ccio")
+                   '("2026-09-10T16:03:05-0500" "pause"  nil nil "s" nil nil nil "/p/ccio")))))
+      (should (= 1 (length spans))))))
+
+(ert-deftest claude-code-ide-org-test-an-unrecorded-cwd-never-splits ()
+  "A missing `cwd\=' means unknown, never elsewhere.
+
+This is the guard that keeps the change from shredding the record.  The
+field has only been written since 2026-09-04 (:ID: 5461c349) and cannot
+be backfilled, so most of the corpus carries none: treating nil as a
+distinct project would split nearly every historical span into
+single-point spans, and each of those renders as a zero-width item a
+human would have to reject one at a time.
+
+The second half is the subtler one -- an unknown point *between* two
+known ones must not mask a real boundary by resetting the comparison."
+  (claude-code-ide-org-test--with-projects
+    ;; No cwd anywhere: one span, exactly as before the change.
+    (should (= 1 (length (claude-code-ide-org--aggregate-guideposts
+                          (claude-code-ide-org-test--events
+                           '("2026-08-20T09:00:00-0500" "resume" nil nil "s")
+                           '("2026-08-20T09:00:30-0500" "pause"  nil nil "s")
+                           '("2026-08-20T09:02:00-0500" "resume" nil nil "s")
+                           '("2026-08-20T09:02:30-0500" "pause"  nil nil "s"))))))
+    ;; A known project, then an unknown point, then the *other* project:
+    ;; the boundary still fires.
+    (should (= 2 (length (claude-code-ide-org--aggregate-guideposts
+                          (claude-code-ide-org-test--events
+                           '("2026-09-10T09:00:00-0500" "resume" nil nil "s" nil nil nil "/p/euchre")
+                           '("2026-09-10T09:00:30-0500" "pause"  nil nil "s")
+                           '("2026-09-10T09:02:00-0500" "resume" nil nil "s" nil nil nil "/p/ccio")
+                           '("2026-09-10T09:02:30-0500" "pause"  nil nil "s" nil nil nil "/p/ccio"))))))
+    ;; A known project, an unknown point, then the *same* project: no split.
+    (should (= 1 (length (claude-code-ide-org--aggregate-guideposts
+                          (claude-code-ide-org-test--events
+                           '("2026-09-10T09:00:00-0500" "resume" nil nil "s" nil nil nil "/p/ccio")
+                           '("2026-09-10T09:00:30-0500" "pause"  nil nil "s")
+                           '("2026-09-10T09:02:00-0500" "resume" nil nil "s" nil nil nil "/p/ccio")
+                           '("2026-09-10T09:02:30-0500" "pause"  nil nil "s" nil nil nil "/p/ccio"))))))))
+
 ;;; :PLAN: drawer wrapping (TODO.org :ID: 3063c3e5)
 
 (defun claude-code-ide-org-test--body-of (id)

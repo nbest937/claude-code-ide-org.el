@@ -7747,8 +7747,16 @@ other."
          ;; guideposts means opposite things depending on which kinds
          ;; bracket it, and the old code discarded `:kind' here -- which is
          ;; how a long turn came to be unmeasurable (TODO.org :ID: 226ed53b).
-         (points (sort (mapcar (lambda (e) (cons (plist-get e :ts)
-                                                 (plist-get e :kind)))
+         ;; (TS KIND PROJECT), the project being `cwd' normalised through
+         ;; `claude-code-ide-org--project-name' -- git root, and a linked
+         ;; worktree folded into its main checkout, which is the second
+         ;; obligation :ID: 5461c349 recorded the field for.  Without that
+         ;; normalisation one project splits into one span per worktree.
+         (points (sort (mapcar (lambda (e)
+                                 (list (plist-get e :ts)
+                                       (plist-get e :kind)
+                                       (claude-code-ide-org--project-name
+                                        (plist-get e :cwd))))
                                (seq-remove
                                 (lambda (e)
                                   (and blocks
@@ -7756,11 +7764,12 @@ other."
                                         (plist-get e :ts) blocks)))
                                 events))
                        (lambda (a b) (time-less-p (car a) (car b)))))
-         spans start previous previous-kind)
+         spans start previous previous-kind previous-project)
     (dolist (point points)
-      (let ((time (car point)) (kind (cdr point)))
+      (let ((time (nth 0 point)) (kind (nth 1 point)) (project (nth 2 point)))
         (cond
-         ((null start) (setq start time previous time previous-kind kind))
+         ((null start) (setq start time previous time previous-kind kind
+                             previous-project project))
          ;; A block between two timestamps breaks the span even when the
          ;; two are closer together than the gap threshold -- otherwise a
          ;; 54-minute wait bracketed by guideposts a minute apart on each
@@ -7794,10 +7803,27 @@ other."
                (not (seq-find (lambda (iv)
                                 (and (not (time-less-p (car iv) previous))
                                      (not (time-less-p time (cdr iv)))))
-                              blocks)))
-          (setq previous time previous-kind kind))
+                              blocks))
+               ;; A *project* boundary splits, like a block does: clustering
+               ;; across one credits one project's minutes to the other's
+               ;; heading, and the resulting annotation names two trackers
+               ;; (TODO.org :ID: c9940558).
+               ;;
+               ;; Both sides must be *known* and different.  `cwd' has only
+               ;; been recorded since 2026-09-04 (:ID: 5461c349) and cannot
+               ;; be backfilled, so nil means "unknown", never "elsewhere" --
+               ;; treating it as a project would shatter every span predating
+               ;; the field, which is most of the corpus.
+               (not (and previous-project project
+                         (not (equal previous-project project)))))
+          (setq previous time previous-kind kind
+                ;; An unknown project inherits the last known one, so a
+                ;; nil-`cwd' event between two known ones cannot mask the
+                ;; boundary by resetting the comparison.
+                previous-project (or project previous-project)))
          (t (push (cons start previous) spans)
-            (setq start time previous time previous-kind kind)))))
+            (setq start time previous time previous-kind kind
+                  previous-project project)))))
     (when start (push (cons start previous) spans))
     (nreverse spans)))
 
