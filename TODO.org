@@ -8036,6 +8036,7 @@ is untouched and still replayable.
 CLOCK: [2026-09-11 Fri 17:41]--[2026-09-11 Fri 17:47] =>  0:06
 - [2026-09-11 Fri 17:41]--[2026-09-11 Fri 17:47] check the 0-run span attention reasoning, file it
 :END:
+:PLAN:
 
 Assigning a 0-run span and applying it writes a =:LOGBOOK:= annotation and no
 =CLOCK:= line at all — =--review-apply-clock='s =(unless observed ...)= branch —
@@ -8089,6 +8090,53 @@ has been looking for* — =<2026-09-04 Fri 10:16>--<2026-09-04 Fri 10:21> read t
 testdata report; planned the wrap-up sequence=, the user's own flip to active
 notation. It is the sharpest illustration available: the interval was
 *deliberately* marked as the human's attention, and still records zero minutes.
+
+:END:
+*Shipped 2026-09-16 as =c=, and the audit this body asked for is done.*
+
+**The audit, whole corpus.** This body measured 18 annotations / 99 minutes on
+the meta-work node and =Review attention= alone, and said the true total was
+larger. Over all 5 tracked files and 546 headings: **81 annotations carry
+minutes no CLOCK line covers, totalling 850 minutes — 14.17 h.** Spread across
+55 headings, and the largest single offender is 193 minutes on one heading.
+That is **≈8.6× the figure this body had**, and the shape is confirmed: a
+steady leak across the corpus rather than one bad pass.
+
+*Two numbers, because the looser one is the tempting one and it overstates.*
+Pairing an annotation to a CLOCK line by *exact* timestamps gives 1367
+uncovered minutes. Subtracting each heading's actual CLOCK **coverage** —
+=--merge-time-intervals= over its CLOCK lines, then =--span-complement= of the
+annotation against that union, both written for
+[[id:c54c4215-90e3-4e0c-9de1-990c0406a2b2][c54c4215]] the same day — gives
+**850**. The 517-minute difference is annotations whose minutes *are* recorded
+under different bounds, typically a hand correction. The tighter figure is the
+one to quote.
+
+**The fix.** =c= clears =:suggested=, so
+=--review-intervals-to-write= returns the displayed interval instead of the
+runs, and sets =:claimed=. One act, no timestamps retyped, and distinct from
+=e='s correction of bounds — which was the whole complaint: the assertion could
+only be made by pretending to edit.
+
+*Three supporting pieces, each for a reason rather than for symmetry.* The line
+renders **=(claimed)=**, never =(agent)= — clearing =:suggested= previously made
+the line credit a human's assertion to the agent, and it is the only thing on
+the line telling the two apart. =--review-judgement-summary= counts =:claimed=,
+so =g= cannot silently discard one; every other decision in that buffer already
+leaves a counted flag. And it **deliberately does not touch =:active=**, this
+body's own guidance — bracket style reaches only the annotation, never the
+CLOCK line, and is
+[[id:01849bef-fdc9-4c30-b467-00ca8606e8e0][01849bef]]'s question.
+
+*Four tests, all red against HEAD first.* The core one asserts the **duration**,
+not the flag, because the flag is only interesting if it changes what is
+written: 0 seconds before the claim, 1320 after.
+
+*Not done here:* the 850 minutes already in the record stay uncounted. =c= stops
+the leak; it does not repair the history, and repairing it would mean deciding
+retrospectively which of 81 annotations were attention — a judgement nobody can
+make from the drawer alone.
+
 
 
 ** DONE Guidepost aggregation ignores =cwd=, so two projects' turns cluster into one span :code:
