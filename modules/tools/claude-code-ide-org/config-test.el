@@ -7449,8 +7449,15 @@ and threw that away on the way out, which is the shape TODO.org
     (should (string-match-p "\\`That is a heading"
                             (claude-code-ide-org--review-no-item-message)))
     ;; A blank line is a different answer, not the same one.
+    ;;
+    ;; FOUND BY SEARCH, not by counting lines from `point-min'. This read
+    ;; `(forward-line 2)', which was the blank line under a two-line key
+    ;; legend and became legend text the moment the legend grew a third
+    ;; (TODO.org :ID: 36698ca7). The test then failed for a reason with
+    ;; nothing to do with what it asserts.
     (goto-char (point-min))
-    (forward-line 2)
+    (re-search-forward "^[ \t]*$")
+    (beginning-of-line)
     (should (string-match-p "\\`Blank line"
                             (claude-code-ide-org--review-no-item-message)))))
 

@@ -12331,11 +12331,16 @@ rest from lighting up."
     (claude-code-ide-org--review-projected-staleness
      items (lambda (item) (plist-get item :marked)))
     (erase-buffer)
+    ;; A hand-maintained third copy of the binding table, and nothing
+    ;; checks it: `c' and `?' were both bound and both unlisted, so the
+    ;; one key that would have named the others was itself invisible
+    ;; (TODO.org :ID: 36698ca7).
     (insert "Pending org updates.  m/u mark, M/U all, t invert, "
-            "a assign, e interval, N note,\n"
-            "d dismiss, RET goto, T transcript, s "
+            "a assign, c claim, e interval,\n"
+            "N note, d dismiss, RET goto, T transcript, s "
             (if claude-code-ide-org--review-newest-first "oldest" "newest")
-            "-first, x apply marked, g refresh, q quit\n\n")
+            "-first,\n"
+            "x apply marked, g refresh, ? help, q quit\n\n")
     (let ((health-line (claude-code-ide-org--review-id-health-line)))
       (when health-line (insert health-line)))
     (if (null display)
