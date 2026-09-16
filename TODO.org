@@ -7942,6 +7942,22 @@ canonicalising that walk would have silently dropped half the evidence.
 =--review-describe-failure= and =review-dismiss= were checked and left raw:
 they are per-*file* operations, where the raw id is the correct key.
 
+*Correction, same day, because the paragraph above blames the wrong thing.* It
+says this heading's premise was "wrong rather than stale". It was **stale — by
+ten hours.** =git log -S= puts =--merge-overlapping-runs= in commit =34ee154=
+at **08:38 on 2026-09-15**, a PR #23 review fix; for the month before that the
+primitive genuinely was unwired and this body was accurate as written.
+
+So the failure worth recording is not that the heading mis-read the code. It is
+that a review fix **coined a new function for an operation the file already
+had** — "search before coining", inside the codebase rather than in prose — and
+the duplicate was ten hours old when it was folded back. Which makes the fold a
+correction to this morning's commit at least as much as a resolution of this
+heading, and is the more useful lesson of the two: the duplicate was written by
+someone fixing a real double-counting bug, correctly, who simply did not look
+for an existing union first.
+
+
 
 
 ** TODO A background job's first turn is bracketed across two session_ids :code:
