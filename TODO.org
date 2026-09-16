@@ -11,6 +11,55 @@
 
 Found 2026-09-16 when the user asked why only some =Review attention= LOGBOOK entries carry annotations. The annotations were the symptom; the clock is the defect. **=--attention-start= runs once, when the review buffer is created, and nothing ever restarts it.** =--review-write-one-interval= opens with "Close any running clock FIRST" — =(when (org-clocking-p) (org-clock-out nil t))= — and during a pass the running clock *is* the attention clock. So every attention interval measures **buffer opened → first interval applied**, not the pass. Of 101 CLOCK lines most read 0:01–0:05, while the handful that ran long (1:12, 1:01, 0:48, 0:29) are the passes that applied late or not at all — which is the signature, not a coincidence. The full taxonomy, measured against the drawer and confirmed against the code: **(1) a CLOCK line with no annotation — 86 of them** — the clock was closed by something other than =--attention-stop=, overwhelmingly apply; =--attention-stop= then finds =(org-clocking-p)= nil and writes nothing, since its annotation is inside that guard. **(2) an annotation matching its CLOCK line — 7** — the pass lasted a minute or more and ended by burying with its clock *intact*, which means no clock interval was applied during it. **(3) a zero-width annotation with no CLOCK line — 8** — the pass opened and was buried **within the same minute**: the clock existed and was closed normally, but =org-clock-out-remove-zero-time-clocks= is =t= (verified live) so org discarded the CLOCK line, while the annotation survived because =--append-to-drawer= writes it separately, and both its timestamps round to the same minute. Note what this rules out: shape (3) is **not** "started a review and quit without applying" — that is shape (2). The discriminator is *duration under one minute*, not whether =x= was pressed. *Backfilling annotations is the wrong remedy and would make things worse*: it would render a complete-looking record over intervals that are themselves truncated, which is the shape of the 850 uncounted minutes on =2deb090f= — present, readable, and not what it appears. *Shape of the fix, not chosen.* Either apply saves and restores the attention clock around each write, or attention is suspended for the duration of an apply and resumed after, or the pass is measured by something other than a native clock. The first fragments one pass into many CLOCK lines; the second needs a definition of when an apply ends; the third reopens =961f15b6='s decision. **What a review pass *is* has to be decided before the measurement can be fixed** — it is the same question as where the pass ends, which =961f15b6= answered for burying and never for applying.
 
+*Correction the same day: **this heading's title overstates what is
+established**, and the user's question is what exposed it.*
+
+Asked whether concurrent agent activity might be stealing the clock instead.
+**It cannot**, and that half is answerable by inspection: every native clock
+call in the system is =--trigger-auto-clock-in= (fires on a *hand* =C-c C-t=,
+and apply binds =--auto-clock-in-active= to suppress it), the apply path,
+=--attention-start=/=--attention-stop=, and =--clock-out-if-clocking= on
+=kill-emacs-hook=/=suspend-hook=. None is reachable from an MCP tool.
+=org_clock_in= queues and opens nothing, and since the cutover no hook reaches
+Emacs at all. A concurrent session cannot close this clock.
+
+*But asking the question properly meant trying to measure it, and the
+measurement does not support the title.* Two attempts, both failing on
+instrument grounds rather than returning a negative:
+
+- *Correlating attention-clock ends against other headings' CLOCK lines is
+  **invalid**.* Apply writes **backdated** intervals — both endpoints supplied
+  up front from when the work happened — so an apply-written line carries
+  timestamps nowhere near the moment of applying. The 34 of 101 that appeared
+  to match are noise.
+- *Correlating against real apply-**pass** timestamps gives **0 testable
+  cases**.* Only 17 such stamps exist, none overlaps an attention interval, and
+  most watermarks predate the field
+  ([[id:21c91613-76e0-4590-affe-e2af9f1321ca][21c91613]]) entirely.
+
+*So the honest position:* the code path is real — =--attention-start= runs once
+and =--review-write-one-interval= closes any running clock with nothing
+restarting it — which establishes apply as **a** cause. It does not establish
+it as **the** cause, and **what closes the other intervals is unknown**.
+=kill-emacs-hook=, a hand clock-in elsewhere, and =org-clock-out-when-done= (set
+=t= in the Doom config) are all candidates and nothing here separates them.
+
+*One adjacent agent-caused risk is real and already filed:*
+[[id:53b0047d-c55c-486c-8eed-ba4994d97a1a][53b0047d]] — a direct write to a live
+org buffer can desync =org-clock-marker=. That corrupts *where* a clock-out
+lands rather than *whether* one happens, so it does not explain a closed
+interval, but it is the one way agent activity touches this machinery at all.
+
+*What would actually settle it* is instrumenting the clock-out rather than
+inferring it: record which path closed the attention clock at the moment it
+closes. That is a one-line addition wherever the clock is stopped and it turns
+the whole question into a lookup — the same move
+=21c91613= made for apply, and the same move
+[[id:33c3eabc-00f2-4cf1-afb7-4071aa256d62][33c3eabc]] made for the footnote
+hook. Until then this heading should be read as a hypothesis with a mechanism,
+not a diagnosis.
+
+
 * DOING A marker and its footnote need not correspond, and nothing checks that they do :code:
 :PROPERTIES:
 :ID:       45dc171f-ab3f-4f50-a987-950f4e88ad3a
