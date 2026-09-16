@@ -2,6 +2,15 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO A marker and its footnote need not correspond, and nothing checks that they do :code:
+:PROPERTIES:
+:ID:       45dc171f-ab3f-4f50-a987-950f4e88ad3a
+:CREATED:  [2026-09-16 Wed 11:00]
+:CATEGORY: Dev
+:END:
+
+Found 2026-09-16 while measuring whether [[id:2a6a1355-615f-4c2c-a8af-c9ae8dcda09b][2a6a1355]]'s marker-collision detection was worth building. It is not — 0 duplicate markers across 924 footnoted responses — but the same scan of **6749 assistant responses** surfaced a fault an order of magnitude more common and never filed: **97 responses, roughly 10% of all footnoted ones, carry a marker and a footnote that do not correspond.** 77 have a footnote line whose marker appears nowhere in the prose; 20 have a prose marker with no footnote line. Spread across a month — 18 on 2026-08-27, 14 on 08-25, 5 on 09-15 — so it is a standing pattern rather than one session's habit. =bin/hooks/footnote-check= cannot see it: its test is whether each cited *id* appears somewhere in the footnote block, which a response satisfies while pointing the reader at the wrong line or at no line at all. That is the same shape as the paraphrased-title mode [[id:33c3eabc-00f2-4cf1-afb7-4071aa256d62][33c3eabc]] closed — a footnote that exists and misleads is worse than one that is missing, because nothing refuses it and the reader has no reason to doubt it. Proposed: for each footnote line, take the leading marker as a **byte string** and =grep -qF= it against the prose; report any that never appear, and any prose marker with no line. **The multibyte objection that killed collision detection does not apply**: correspondence needs fixed-string matching, never character arithmetic, so it is locale-independent and cheap in the byte-oriented shell a =Stop= hook must stay in. Two things to settle before building. Whether a *dangling prose marker* is even a fault — a footnote that arrives in a later correction turn legitimately has its marker placed first. And whether the 77 include a systematic false positive from the block-splitting rule, which takes everything after the last line that is exactly =---=; a response with a later horizontal rule would misplace the boundary. The scan was not validated against hand-checked examples, so treat 97 as an upper bound until it is.
+
 * TODO The complement's gap spans carry no events, so half the review buffer cannot be dismissed :code:
 :PROPERTIES:
 :ID:       445fe577-01ce-4e68-ab5f-c349c40a4643
@@ -3672,6 +3681,54 @@ detection rather than prevention** — the hook still cannot say "you have used
 this shell does no well. Whether that is worth having once collisions are
 prevented at the source is this heading's remaining question, and the honest
 answer may be no.
+
+*Measured 2026-09-16, because the user asked whether observing the new
+behaviour to the end of a session would settle the remaining question. It would
+not, and the measurement says why — then answers the question outright.*
+
+**Observation could not have worked, for a stated reason.** A marker collision
+only *blocks* when it also leaves an id unfootnoted. Two prose citations sharing
+=⁴= while both ids appear in the footnote block pass the id-presence check
+silently. So "no collisions this session" is indistinguishable from "collisions
+happened and nothing looked" — the failure is undetectable by construction,
+which is this project's own silent-failure class. A second gap makes it worse:
+**numbering only applies when the hook fires**, and a response footnoted
+correctly the first time is never numbered at all. That is the majority of
+responses.
+
+*The history is on disk, so waiting was unnecessary.* Scanned **6749 assistant
+responses, 924 carrying a footnote block**:
+
+| fault | occurrences |
+|---|---|
+| duplicate marker within the footnote block | **0** |
+| footnote line whose marker never appears in the prose | 77 |
+| prose marker with no footnote line | 20 |
+
+**The fault this heading proposed detecting has never occurred.** Zero in 924
+footnoted responses. By =7771fc63='s standing argument — and by this heading's
+own precedent, which measured the subagent question over 314 responses and
+declined on a clean negative — **collision detection should not be built**.
+That closes the remaining question with a no.
+
+*But the scan found a different fault, ten times more common and never filed.*
+97 responses (roughly **10% of all footnoted ones**) have a marker and a
+footnote that do not correspond: 77 where a footnote line's marker appears
+nowhere in the prose, 20 where a prose marker has no footnote line. Spread
+across a month — 18 on 08-27, 14 on 08-25, 5 on 09-15 — so it is not an
+artefact of one session's habits, and only 1 falls on the day of the scan.
+
+*And the objection that blocked the original idea does not apply to this one.*
+Detecting a *duplicate* needs the markers taken apart and compared as numbers,
+which a byte-oriented shell does badly. Detecting *correspondence* needs only
+**fixed-string matching**: take the leading marker off a footnote line as a byte
+string and =grep -qF= it against the prose. No character arithmetic, no
+multibyte parsing, no locale dependence. The check that is worth having is also
+the cheap one, and the expensive check is the one the evidence says to drop.
+
+*Filed rather than built here*, since it is a different check from this
+heading's subject and deserves its own decision.
+
 
 
 
