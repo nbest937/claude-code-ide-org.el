@@ -11858,6 +11858,55 @@ duration is unknown.  Inside an exclusion it is owned already and goes."
                  lone nil
                  (list (cons (funcall ts "17:55:00") (funcall ts "18:05:00")))))))
 
+(ert-deftest claude-code-ide-org-test-a-widowed-guidepost-offers-no-zero-width-item ()
+  "A point whose only neighbour was consumed does not become a review item.
+
+*Widowing*, the second half of :ID: c54c4215 and the half the complement
+does not touch.  A partial apply consumes a point\='s neighbour, so the
+survivor has nothing left to cluster with and degenerates to a lone
+timestamp.  It matters more than the split case for a stated reason: a
+split is machinery-made and stable, while widowing is produced by *the
+human\='s own reviewing* and compounds -- the more selectively the queue
+is applied, the more residue it leaves.
+
+This is a *pinning* test rather than a fix.  Measured 2026-09-16, the
+defect no longer reproduces: two guards added for other reasons already
+cover it.  :ID: 355fa608 drops a stranded single point, and the
+complement above absorbs the endpoints a split used to strand.  What is
+pinned here is that a widowed point stays dropped, and -- the half worth
+asserting separately -- that the *trailing* point is still kept, since
+:ID: 31f766ab rejected blanket suppression because hiding an in-flight
+span would make a crashed session\='s last span vanish."
+  (claude-code-ide-org-test--with-queue
+    (apply #'claude-code-ide-org-test--queue-write "sess-w"
+           (list (claude-code-ide-org-test--queue-event
+                  "2026-08-25T19:17:53-0500" "resume" nil nil "sess-w")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-25T19:32:51-0500" "pause" nil nil "sess-w")
+                 ;; 203 s later -- well inside the 1200 s threshold, so
+                 ;; these two would have clustered had the pause survived.
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-25T19:36:14-0500" "resume" nil nil "sess-w")
+                 ;; A later event, which is what makes the widow *stranded*
+                 ;; rather than trailing.
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-25T20:54:33-0500" "resume" nil nil "sess-w")))
+    ;; The partial apply: the widow's neighbour is consumed, it is not.
+    (claude-code-ide-org--queue-mark-applied
+     "sess-w" '("2026-08-25T19:17:53-0500" "2026-08-25T19:32:51-0500"))
+    (let* ((items (claude-code-ide-org--review-items-from-queue))
+           (zero (seq-filter (lambda (i)
+                               (and (eq (plist-get i :type) 'clock)
+                                    (time-equal-p (plist-get i :start)
+                                                  (plist-get i :end))))
+                             items))
+           (at (lambda (i) (format-time-string "%H:%M:%S" (plist-get i :start)))))
+      ;; The widow is gone; only the trailing point remains.
+      (should (equal (mapcar at zero) '("20:54:33")))
+      ;; Stated positively as well, so a future change that drops *both*
+      ;; fails here rather than passing on a weaker assertion.
+      (should-not (seq-find (lambda (i) (equal (funcall at i) "19:36:14")) zero)))))
+
 ;;; :PLAN: drawer wrapping (TODO.org :ID: 3063c3e5)
 
 (defun claude-code-ide-org-test--body-of (id)
