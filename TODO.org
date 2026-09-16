@@ -2,11 +2,33 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* TODO A marker and its footnote need not correspond, and nothing checks that they do :code:
+* DOING A marker and its footnote need not correspond, and nothing checks that they do :code:
 :PROPERTIES:
 :ID:       45dc171f-ab3f-4f50-a987-950f4e88ad3a
 :CREATED:  [2026-09-16 Wed 11:00]
 :CATEGORY: Dev
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-16 Wed 10:59]--[2026-09-16 Wed 11:00] =>  0:01
+- [2026-09-16 Wed 10:59]--[2026-09-16 Wed 11:00] measure the marker fault base rate
+- State "DOING"      from "TODO"       [2026-09-16 Wed 11:10] \\
+  validate the 97 before building anything
+CLOCK: [2026-09-16 Wed 11:13]--[2026-09-16 Wed 11:14] =>  0:01
+- [2026-09-16 Wed 11:13]--[2026-09-16 Wed 11:14] hand-check the marker correspondence sample
+- State "REVIEW"     from "DOING"      [2026-09-16 Wed 11:15] \\
+  51 of 72 closed; the 21 left deliberately
+- State "DOING"      from "REVIEW"     [2026-09-16 Wed 11:25] \\
+  the other direction, plus trim the message
+CLOCK: [2026-09-16 Wed 11:25]--[2026-09-16 Wed 11:28] =>  0:03
+- [2026-09-16 Wed 11:25]--[2026-09-16 Wed 11:28] suggested span, accepted at review
+- State "REVIEW"     from "DOING"      [2026-09-16 Wed 11:28] \\
+  both directions shipped; nothing deferred
+CLOCK: [2026-09-16 Wed 11:30]--[2026-09-16 Wed 11:31] =>  0:01
+- [2026-09-16 Wed 11:30]--[2026-09-16 Wed 11:31] retire the dangle check after a false positive
+CLOCK: [2026-09-16 Wed 11:40]--[2026-09-16 Wed 11:41] =>  0:01
+- [2026-09-16 Wed 11:40]--[2026-09-16 Wed 11:41] assigned at review
+- State "DOING"      from "REVIEW"     [2026-09-16 Wed 11:47] \\
+  rework from review: the loop guard's blind window
 :END:
 
 Found 2026-09-16 while measuring whether [[id:2a6a1355-615f-4c2c-a8af-c9ae8dcda09b][2a6a1355]]'s marker-collision detection was worth building. It is not — 0 duplicate markers across 924 footnoted responses — but the same scan of **6749 assistant responses** surfaced a fault an order of magnitude more common and never filed: **97 responses, roughly 10% of all footnoted ones, carry a marker and a footnote that do not correspond.** 77 have a footnote line whose marker appears nowhere in the prose; 20 have a prose marker with no footnote line. Spread across a month — 18 on 2026-08-27, 14 on 08-25, 5 on 09-15 — so it is a standing pattern rather than one session's habit. =bin/hooks/footnote-check= cannot see it: its test is whether each cited *id* appears somewhere in the footnote block, which a response satisfies while pointing the reader at the wrong line or at no line at all. That is the same shape as the paraphrased-title mode [[id:33c3eabc-00f2-4cf1-afb7-4071aa256d62][33c3eabc]] closed — a footnote that exists and misleads is worse than one that is missing, because nothing refuses it and the reader has no reason to doubt it. Proposed: for each footnote line, take the leading marker as a **byte string** and =grep -qF= it against the prose; report any that never appear, and any prose marker with no line. **The multibyte objection that killed collision detection does not apply**: correspondence needs fixed-string matching, never character arithmetic, so it is locale-independent and cheap in the byte-oriented shell a =Stop= hook must stay in. Two things to settle before building. Whether a *dangling prose marker* is even a fault — a footnote that arrives in a later correction turn legitimately has its marker placed first. And whether the 77 include a systematic false positive from the block-splitting rule, which takes everything after the last line that is exactly =---=; a response with a later horizontal rule would misplace the boundary. The scan was not validated against hand-checked examples, so treat 97 as an upper bound until it is.
@@ -115,8 +137,6 @@ and the deferral I called wrong an hour ago turns out to have been right for a
 reason I had not found.*
 
 
-
-
 * TODO The complement's gap spans carry no events, so half the review buffer cannot be dismissed :code:
 :PROPERTIES:
 :ID:       445fe577-01ce-4e68-ab5f-c349c40a4643
@@ -125,6 +145,7 @@ reason I had not found.*
 :END:
 
 Regression introduced by [[id:c54c4215-90e3-4e0c-9de1-990c0406a2b2][c54c4215]]'s complement, found 2026-09-16 when the user asked what the undismissable items were. **7 of 14 currently offered items carry no =:events=**, and =claude-code-ide-org-review-dismiss= refuses them: "Nothing to dismiss: this item carries no queue events". The refusal is correct on its own terms — dismissal works by marking an item's backing events consumed, and with none there is nothing to record, so refusing beats appearing to work. *What they are, confirmed against the raw queue rather than inferred:* every one is bounded by a =clock_out= at its start and a =clock_in= at its end — the gap after one heading's clock closed and before the next one's opened. They are exactly what this heading's parent set out to surface, and they carry no events **by construction**: their boundaries are bracket *edges*, not guideposts, and any guidepost inside them would sit inside a bracket and so already be owned. *The trade I made without noticing.* Before the complement, a split emitted zero-width *endpoints* sitting on real guideposts — those had events and could be dismissed. The complement replaced them with real-duration gaps that cannot. I measured the minutes recovered (12.64 h) and never checked what happened to reviewability; half the buffer is now undismissable. That is =355fa608='s "offered forever" in new clothes, and that guard does not reach it because it keys on *zero width* while these have real duration. *Two consequences, one benign.* =d= is unavailable, so the only exits are accepting the item or applying the sibling segments that share the cluster's guideposts, which dissolves the cluster and takes the gap with it. Applying is at least idempotent — =--recorded-intervals-at-point= subtracts what is already written, so a replay writes nothing and there is no double-count. *Shape of the fix, not chosen.* Either dismissal keys on the span's bounds rather than its events, which means a dismissal record that is not per-event and so a second shape in the watermark file; or the item carries its bounding =clock_out=/=clock_in= as read-only =:events= it may reference but must never consume, since consuming them would break the brackets they belong to. The first is more honest about what is being dismissed; the second reuses the existing path. Worth deciding against the 86-minute example the user surfaced (=0086614a= -> =c60a1c53=), where the gap is large enough that dismissing it is a real choice rather than tidying.
+
 
 * TODO Should a short 0-run span default to claimed, and where does the bound fall? :research:
 :PROPERTIES:
@@ -180,7 +201,6 @@ prose, since a cross-slice dependency is invisible from both ends.
 *Note the fix order is unchanged and this strengthens it:* surface the rejection
 first. Once a query org-ql would refuse says so, the set of dropped predicates
 enumerates itself instead of being discovered one survey at a time.
-
 
 
 * TODO The re-key bridge reads transcripts Claude Code prunes, so the alias decays silently :code:
@@ -1989,7 +2009,8 @@ question. **Not the org skill**: a skill loads on trigger match, possibly never,
 and a report that must fire at session start cannot depend on that.
 
 
-* NEXT footnote-check resolves every id and discards the answer, then asks for it
+* DONE footnote-check resolves every id and discards the answer, then asks for it
+CLOSED: [2026-09-16 Wed 09:40]
 :PROPERTIES:
 :ID:       33c3eabc-00f2-4cf1-afb7-4071aa256d62
 :CREATED:  [2026-09-04 Fri 12:24]
@@ -2000,6 +2021,14 @@ CLOCK: [2026-09-04 Fri 12:15]--[2026-09-04 Fri 12:19] =>  0:04
 - [2026-09-04 Fri 12:15]--[2026-09-04 Fri 12:19] assigned at review
 - State "NEXT"       from "TODO"       [2026-09-04 Fri 12:33] \\
   Dev nomination; category held none
+CLOCK: [2026-09-16 Wed 09:34]--[2026-09-16 Wed 09:40] =>  0:06
+- State "DOING"      from "NEXT"       [2026-09-16 Wed 09:34] \\
+  emit the footnote block the hook already computes
+- [2026-09-16 Wed 09:34]--[2026-09-16 Wed 09:40] emit id, keyword and title from the hook
+- State "DONE"       from "DOING"      [2026-09-16 Wed 09:40] \\
+  hook emits keyword and exact title
+CLOCK: [2026-09-16 Wed 09:43]--[2026-09-16 Wed 09:44] =>  0:01
+- [2026-09-16 Wed 09:43]--[2026-09-16 Wed 09:44] suggested span, accepted at review
 :END:
 :PLAN:
 
@@ -2089,7 +2118,6 @@ The **marker collision** stays: placement is the one thing a =Stop= hook cannot
 fix, since it may refuse and inform but never rewrite. So =2a6a1355= stays open
 for its marker-bookkeeping half, which is a different change to a different part
 of the same message.
-
 
 
 * TODO --review-format-annotation's docstring contradicts its own let*, four lines down
@@ -3499,7 +3527,7 @@ Planned:
 - [ ] [[id:53b0047d-c55c-486c-8eed-ba4994d97a1a][53b0047d]] TODO Direct file writes to a live org buffer can desync org-clock-marker
 - [ ] [[id:7ee3b71a-b85a-4610-a4ab-b9e06c8d79da][7ee3b71a]] TODO org_amend replace=true destroys a slice's member checklist, which is the one thing a slice declares
 - [ ] [[id:2aeb65d6-350e-4c75-811e-4a748044fe2c][2aeb65d6]] TODO Concurrent sessions share one git index, and explicit staging protects nothing
-- [ ] [[id:2a6a1355-615f-4c2c-a8af-c9ae8dcda09b][2a6a1355]] TODO Three new ways to owe a footnote and not see it: marker, list, quotation
+- [-] [[id:2a6a1355-615f-4c2c-a8af-c9ae8dcda09b][2a6a1355]] REVIEW Three new ways to owe a footnote and not see it: marker, list, quotation
 - [ ] [[id:60ed5b96-40e3-4676-a742-07a8ad6cc3b7][60ed5b96]] TODO --review-format-annotation's docstring contradicts its own let*, four lines down
 - [ ] [[id:5e731a23-7708-4248-b055-9b4a531f147d][5e731a23]] TODO A deferred targetless capture loses its project routing when the queue is applied
 - [ ] [[id:965f94eb-1558-4d00-9857-5727eb86fe6f][965f94eb]] TODO Every standalone client shares one project context, chosen by unstable ordering
@@ -3577,7 +3605,7 @@ the text says it is owned. That argues for making the region
 identifiable to any writer rather than adding a guard per writer.
 
 
-* TODO Three new ways to owe a footnote and not see it: marker, list, quotation :code:
+* REVIEW Three new ways to owe a footnote and not see it: marker, list, quotation :code:
 :PROPERTIES:
 :ID:       2a6a1355-615f-4c2c-a8af-c9ae8dcda09b
 :CREATED:  [2026-09-01 Tue 08:43]
@@ -3585,6 +3613,12 @@ identifiable to any writer rather than adding a guard per writer.
 :END:
 :LOGBOOK:
 - [2026-09-01 Tue 08:39]--[2026-09-01 Tue 08:42] assigned at review
+- State "DOING"      from "TODO"       [2026-09-16 Wed 09:46] \\
+  marker bookkeeping, the hook's remaining half
+CLOCK: [2026-09-16 Wed 09:49]--[2026-09-16 Wed 09:51] =>  0:02
+- [2026-09-16 Wed 09:49]--[2026-09-16 Wed 09:51] marker bookkeeping half of the hook
+- State "REVIEW"     from "DOING"      [2026-09-16 Wed 09:51] \\
+  four of five modes closed; detection question remains
 :END:
 
 *Asked by the user 2026-09-01 after a third stop-hook refusal in one session:*
@@ -3861,8 +3895,6 @@ the cheap one, and the expensive check is the one the evidence says to drop.
 
 *Filed rather than built here*, since it is a different check from this
 heading's subject and deserves its own decision.
-
-
 
 
 * TODO Report worked headings that carry no clock interval that day :code:
@@ -5585,6 +5617,7 @@ falls is a reporting decision.
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-16 Wed 11:47]--[2026-09-16 Wed 11:58] =>  0:11
 CLOCK: [2026-09-16 Wed 08:04]--[2026-09-16 Wed 09:16] =>  1:12
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
@@ -12549,4 +12582,10 @@ CLOCK: [2026-09-15 Tue 13:25]--[2026-09-15 Tue 13:26] =>  0:01
 :LOGBOOK:
 CLOCK: [2026-09-16 Wed 06:11]--[2026-09-16 Wed 06:13] =>  0:02
 - [2026-09-16 Wed 06:11]--[2026-09-16 Wed 06:13] assigned at review
+CLOCK: [2026-09-16 Wed 09:08]--[2026-09-16 Wed 09:13] =>  0:05
+- [2026-09-16 Wed 09:08]--[2026-09-16 Wed 09:13] assigned at review
+CLOCK: [2026-09-16 Wed 09:18]--[2026-09-16 Wed 09:19] =>  0:01
+- [2026-09-16 Wed 09:18]--[2026-09-16 Wed 09:19] diagnose undismissable complement gaps
+CLOCK: [2026-09-16 Wed 09:23]--[2026-09-16 Wed 09:25] =>  0:02
+- [2026-09-16 Wed 09:23]--[2026-09-16 Wed 09:25] diagnose undismissable complement gaps
 :END:
