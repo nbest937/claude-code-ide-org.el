@@ -79,12 +79,17 @@ conventions.
 
 ## What enforces it
 
-`bin/hooks/footnote-check`, wired as a `Stop` hook. It reads the turn's
-final assistant message, resolves every 8-hex candidate against the
+`bin/hooks/footnote-check`, wired as a `Stop` hook. It reads
+`last_assistant_message`, resolves every 8-hex candidate against the
 project's `TODO.org` and `DONE.org`, and blocks the stop when one
 resolves to a real heading and does not appear in the end matter. It
 hands back the exact lines to append, already in canonical form, so the
 convention is legible at the moment it fires.
+
+**`last_assistant_message` carries only the turn's final text block**,
+not the whole turn — an id cited in an earlier block is invisible to the
+hook. That is why the rule above is the rule and this hook is a
+backstop: it can confirm a debt, never rule one out.
 
 Three things about its reading, each of which has been got wrong:
 
