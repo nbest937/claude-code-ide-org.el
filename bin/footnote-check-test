@@ -205,6 +205,30 @@ else
     "\`$REAL_KW\` \`$REAL\`" yes
   assert_txt "the block carries the exact title" "$REAL_TITLE" yes
 fi
+
+# The marker half of :ID: 2a6a1355. Superscripts are built from UTF-8
+# BYTE ESCAPES here for the same reason the hook builds them that way:
+# the first implementation used literals and silently lost every
+# three-byte one, emitting lines with no marker at all while every
+# existing test still passed.
+SUP1="$(printf '\xc2\xb9')"
+SUP3="$(printf '\xc2\xb3')"
+
+out="$(run m1 "See \`$REAL\` for detail.")"
+assert_txt "the block carries a superscript marker" "$SUP1" yes
+
+# Continuation, not restart: two footnotes already present means the
+# next pasted line must be the third. An off-by-one here reintroduces
+# exactly the collision this change exists to prevent.
+out="$(run m2 "Cite \`$REAL\` here.
+
+---
+
+$SUP1 \`DONE\` \`$REAL2\` — something
+$(printf '\xc2\xb2') \`DONE\` \`$REALNUM\` — something else")"
+assert_txt "markers carry on from the footnotes already present" "$SUP3" yes
+
+out="$(run zz1 "See \`$REAL\` for detail.")"
 if [[ "$(rc_of "$out")" -eq 2 ]]; then
   printf 'ok   - blocks with exit code 2 (2)\n'; pass=$((pass+1))
 else

@@ -167,6 +167,46 @@ resolve_id () { # resolve_id <id> -> "KEYWORD<TAB>TITLE"
   ' "${org_files[@]}"
 }
 
+# Superscript digits, written as UTF-8 BYTE ESCAPES rather than as
+# literals. The first attempt used the characters themselves and lost
+# every three-byte one: U+00B9/B2/B3 are two bytes and survived the
+# editing pipeline, while U+2070 and U+2074..2079 are three and arrived
+# corrupted. Escapes are pure ASCII in the source, so no editor, heredoc
+# or shell quoting layer can damage them, and the bytes emitted are
+# exact.
+sup_digit () { # sup_digit <0-9> -> one superscript character
+  case "$1" in
+    0) printf '\xe2\x81\xb0' ;; 1) printf '\xc2\xb9'     ;;
+    2) printf '\xc2\xb2'     ;; 3) printf '\xc2\xb3'     ;;
+    4) printf '\xe2\x81\xb4' ;; 5) printf '\xe2\x81\xb5' ;;
+    6) printf '\xe2\x81\xb6' ;; 7) printf '\xe2\x81\xb7' ;;
+    8) printf '\xe2\x81\xb8' ;; 9) printf '\xe2\x81\xb9' ;;
+  esac
+}
+
+num_to_sup () { # num_to_sup <n> -> "<superscripts>"
+  local n="$1" out="" d
+  while [[ -n "$n" ]]; do
+    d="${n:0:1}"; n="${n:1}"
+    out="$out$(sup_digit "$d")"
+  done
+  printf '%s' "$out"
+}
+
+# Markers carry on from the footnotes the response already has, so a
+# pasted line cannot collide with one already in use -- the marker-reuse
+# mode of TODO.org :ID: 2a6a1355, where one superscript was attached to
+# two ids and only one footnote line existed. The hook refused that
+# correctly but described it as a missing footnote, which is the
+# recognition error rather than the numbering error that happened.
+#
+# Counted by footnote LINES carrying an id, never by parsing the
+# superscripts: counting is exact in a byte-oriented shell, and taking
+# multibyte markers apart is not. It assumes footnotes run from one
+# without gaps, which is the convention every response here follows.
+marker_n="$(grep -cE '\b[0-9a-f]{8}\b' <<<"$foot" 2>/dev/null)" || marker_n=0
+[[ "$marker_n" =~ ^[0-9]+$ ]] || marker_n=0
+
 missing=""
 resolved=""
 while IFS= read -r id; do
@@ -177,7 +217,8 @@ while IFS= read -r id; do
   missing="$missing${missing:+ }$id"
   kw="${found%%$'\t'*}"
   title="${found#*$'\t'}"
-  resolved="$resolved  \`$kw\` \`$id\` — $title
+  marker_n=$((marker_n + 1))
+  resolved="$resolved  $(num_to_sup "$marker_n") \`$kw\` \`$id\` — $title
 "
 done <<<"$candidates"
 [[ -n "$missing" ]] || exit 0
@@ -227,7 +268,9 @@ reader does not have that response on screen.
 
 The lookup is already done -- these are the exact keywords and titles, read
 from the org files just now. Add a superscript marker to each citation in the
-prose and append these lines, in order of first appearance:
+prose and append these lines. Each marker follows on from the footnotes this
+response already carries, so they will not collide; place them at the citations
+in the order the ids first appear:
 
 $resolved
 EOF
