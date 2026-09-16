@@ -2,12 +2,6 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* TODO The footnote convention now lives in two places that can drift, and one of them is user-scoped
-:PROPERTIES:
-:ID:       a0145ece-7242-4b05-90dd-8bdb4aa580d3
-:CREATED:  [2026-09-16 Wed 15:16]
-:CATEGORY: Skill
-:END:
 * TODO No tool retitles a heading or removes a property, so both reach for a raw emacsclient :code:
 :PROPERTIES:
 :ID:       9714f875-4a12-44e4-8f30-dfbd1b6e555e
