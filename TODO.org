@@ -2,6 +2,15 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Rebuild the 101 truncated review-attention intervals from the audit log :code:
+:PROPERTIES:
+:ID:       b5448133-4021-46b9-a90e-d88e149ae65d
+:CREATED:  [2026-09-16 Wed 13:57]
+:CATEGORY: Apply
+:END:
+
+Split out of [[id:e3d1531d-7562-4bad-bef2-fc819630c5f7][e3d1531d]] 2026-09-16 so it does not end up as residue inside a closed heading. That heading is the *code* fix — stop the clock being truncated; this is the *data* repair of the 101 intervals already written, and the two are independent enough that closing the first should not bury the second. **Do not start this before the truncation is fixed**: repairing history while the leak is open repairs downstream of it, and the next hundred intervals arrive wrong the same way. =2deb090f= got that order right. *What is reconstructible, measured.* Extending each interval to the **last =org_review_apply= record in the burst that closed it** — a moment the human demonstrably was still in the pass, since they were applying — moves the total from **9.05 h to 20.12 h, +11.07 h across 97 of 101 intervals**. The record currently understates review attention by more than half. *What is not.* The stretch between the last apply and the bury is unrecorded entirely: once apply closed the clock, =--attention-stop= writes nothing, because its annotation sits inside an =(org-clocking-p)= guard. So the reconstruction is a **floor**, and if it is written it must be labelled as one — an unlabelled floor is =7771fc63='s objection exactly, a plausible value being harder to reject than an absent one. *The evidence is durable but machine-local.* =.claude-code-ide-org-audit.jsonl= is append-only, never consumed and never rotated, so unlike =2deb090f='s consumed queue events this does not expire — but it is **gitignored**, so it lives only in this working copy and no push or clone carries it. That is a weaker guarantee than "permanent" and is the one thing that could force the decision early. *Open, and it is the same question the fix owes:* whether a repaired interval should end at the last apply (defensible floor), or whether the pass end should be reconstructed some other way, or whether the right answer is to leave the drawer alone and treat 9.05 h as a known undercount with this heading as its explanation. The third option is cheaper than it sounds and should not be dismissed.
+
 * TODO The audit log answers attribution questions nobody asks it :code:
 :PROPERTIES:
 :ID:       e9ee1a50-085f-4c37-b064-4aec71cecb41
@@ -116,6 +125,38 @@ never re-offered. This evidence is **append-only and permanent**: the audit log
 is not consumed, not rotated, and not in git's way. The retcon is available
 whenever it is wanted, on exactly the same terms, so there is no deadline
 forcing the decision now.
+
+*The data repair is split out as
+[[id:b5448133-4021-46b9-a90e-d88e149ae65d][b5448133]]*, so closing this heading
+cannot bury it. This one is the code fix.
+
+*And the fix has a smaller shape than the three options above suggested.* Those
+were "save and restore around each write", "suspend attention for the apply", or
+"measure the pass some other way" — the first fragmenting one pass into many
+CLOCK lines, the second needing a definition of when an apply ends, the third
+reopening [[id:961f15b6-d782-40b8-8ceb-ba086d188a3b][961f15b6]].
+
+**None of that is necessary, because org can reopen a clock at its original
+start.** =--review-write-one-interval= already calls =(org-clock-in nil start)=
+two lines below the clock-out that causes this — supplying a start time is a
+call the file makes to itself. So the repair is: before closing the running
+clock, note its marker and =org-clock-start-time=; after the interval is
+written, reopen it **at the original start**. The pass then yields **one**
+CLOCK line covering it end to end, exactly as if apply had never intervened,
+and no new concept of "when an apply ends" is needed.
+
+*Two things to check when building it, neither obvious.* Whether reopening
+re-enters =--trigger-auto-clock-in= (it is bound off during apply, so probably
+not, but the binding's scope should be confirmed rather than assumed). And
+whether a pass with *many* applied intervals ends up closing and reopening
+dozens of times — correct but noisy, and worth stashing once for the whole
+apply rather than per interval if so.
+
+*Note what this does not fix:* the annotation still only fires when a clock is
+running at bury, but once the clock survives the apply that condition is met,
+so the 86 unannotated intervals stop accumulating as a side effect rather than
+needing their own change.
+
 
 
 
