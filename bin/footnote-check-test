@@ -173,6 +173,38 @@ assert_txt () { # assert_txt <name> <pattern> <expect yes|no>
 assert_txt "the reason is on stderr" "without footnoting them" yes
 assert_txt "and names the missing id" "$REAL" yes
 assert_txt "no JSON is printed" "continue" no
+
+# The point of :ID: 33c3eabc: the hook already resolved this id to check
+# it was tracked, so it must hand back the keyword and the EXACT title
+# rather than asking for a lookup it has already performed. Asserted
+# against strings derived from the corpus, never written down, so the
+# case cannot rot into a tautology when a heading is renamed.
+REAL_KW="$(awk -v id="$REAL" '
+  FNR == 1 { h = "" }
+  /^\*+ / { h = $0 }
+  $0 ~ "^:ID:[ \t]+" id { sub(/^\*+[ \t]+/, "", h); print h; exit }
+' "$repo/TODO.org" "$repo/DONE.org" | awk '{print $1}')"
+REAL_TITLE="$(awk -v id="$REAL" '
+  FNR == 1 { h = "" }
+  /^\*+ / { h = $0 }
+  $0 ~ "^:ID:[ \t]+" id {
+    sub(/^\*+[ \t]+/, "", h)
+    sub(/^[A-Z]+[ \t]+/, "", h)
+    sub(/[ \t]+:[A-Za-z0-9_@#%:]+:[ \t]*$/, "", h)
+    print h; exit
+  }
+' "$repo/TODO.org" "$repo/DONE.org")"
+if [[ -z "$REAL_TITLE" ]]; then
+  printf 'FAIL - fixture: could not derive a title for %s\n' "$REAL"; fail=$((fail+1))
+else
+  # Asserted as the RENDERED PAIRING, not the bare keyword. The bare
+  # keyword passed against the old hook too, because its instruction text
+  # contains the literal word TODO ("its current TODO keyword") -- a
+  # vacuous pass satisfied by boilerplate rather than by resolved data.
+  assert_txt "the block pairs the keyword with the id" \
+    "\`$REAL_KW\` \`$REAL\`" yes
+  assert_txt "the block carries the exact title" "$REAL_TITLE" yes
+fi
 if [[ "$(rc_of "$out")" -eq 2 ]]; then
   printf 'ok   - blocks with exit code 2 (2)\n'; pass=$((pass+1))
 else

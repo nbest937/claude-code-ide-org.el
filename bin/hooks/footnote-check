@@ -129,12 +129,56 @@ foot="$(awk 'BEGIN{n=0} {l[NR]=$0; if ($0=="---") n=NR} END{if(n>0) for(i=n+1;i<
 candidates="$(grep -oE '\b[0-9a-f]{8}\b' <<<"$body" | sort -u)"
 [[ -n "$candidates" ]] || exit 0
 
+# Resolve a tracked id to `KEYWORD<TAB>TITLE', or print nothing when the
+# id is not a tracked heading. This is the lookup the script already did
+# and threw away: `grep -qE' reports existence and discards the location,
+# which is one awk from the heading above it -- the very keyword and
+# title the message below then demands be "looked up rather than
+# recalled" (TODO.org :ID: 33c3eabc).
+#
+# `FNR == 1' resets the remembered heading per file, or an id in the
+# second file could inherit a heading left over from the end of the first.
+#
+# Anchored on `^:ID:' -- a property line -- rather than on the bare id,
+# so an id quoted in some other heading's body cannot be mistaken for its
+# own definition. That is the entry-boundary trap the org-dev skill
+# records, and the anchor is what avoids it without needing Emacs.
+resolve_id () { # resolve_id <id> -> "KEYWORD<TAB>TITLE"
+  awk -v id="$1" '
+    FNR == 1 { heading = "" }
+    /^\*+ / { heading = $0 }
+    # No end anchor: candidates are 8-character PREFIXES while the :ID:
+    # line carries the full uuid, so anchoring the tail matches nothing.
+    # Same shape as the grep this replaced. (No apostrophes in here: the
+    # whole program is inside a shell single-quote.)
+    $0 ~ "^:ID:[ \t]+" id {
+      line = heading
+      sub(/^\*+[ \t]+/, "", line)
+      kw = "-"
+      if (match(line, /^(TODO|NEXT|DOING|REVIEW|WAITING|MAYBE|DONE|CANCELLED)[ \t]+/)) {
+        kw = substr(line, 1, RLENGTH)
+        sub(/[ \t]+$/, "", kw)
+        line = substr(line, RLENGTH + 1)
+      }
+      sub(/[ \t]+:[A-Za-z0-9_@#%:]+:[ \t]*$/, "", line)
+      printf "%s\t%s\n", kw, line
+      exit
+    }
+  ' "${org_files[@]}"
+}
+
 missing=""
+resolved=""
 while IFS= read -r id; do
   [[ -n "$id" ]] || continue
-  grep -qE "^:ID: +$id" "${org_files[@]}" || continue   # not a tracked heading
+  found="$(resolve_id "$id")"
+  [[ -n "$found" ]] || continue                         # not a tracked heading
   grep -qF "$id" <<<"$foot" && continue                 # already footnoted
   missing="$missing${missing:+ }$id"
+  kw="${found%%$'\t'*}"
+  title="${found#*$'\t'}"
+  resolved="$resolved  \`$kw\` \`$id\` — $title
+"
 done <<<"$candidates"
 [[ -n "$missing" ]] || exit 0
 
@@ -180,5 +224,11 @@ footnote line carrying the id, its current TODO keyword and its EXACT full \
 title, looked up rather than recalled. The rule is per RESPONSE: footnote an \
 id even if an earlier response in this conversation already did, because the \
 reader does not have that response on screen.
+
+The lookup is already done -- these are the exact keywords and titles, read
+from the org files just now. Add a superscript marker to each citation in the
+prose and append these lines, in order of first appearance:
+
+$resolved
 EOF
 exit 2
