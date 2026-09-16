@@ -5208,6 +5208,7 @@ attention as it happens.
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-16 Wed 08:04]
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
@@ -7885,6 +7886,7 @@ documentation.
 - State "DOING"      from "NEXT"       [2026-09-16 Wed 06:45] \\
   starting the complement half
 :END:
+:PLAN:
 
 *Found 2026-08-25 by the user*, who looked at two zero-minute spans left over
 from a review pass and asked whether they marked the beginning and end of
@@ -7981,6 +7983,7 @@ marks them consumed but *destroys nothing* -- =--queue-mark-dismissed= writes
 beside the queue and never touches the =.jsonl=, so undoing it is deleting one
 key from a small JSON file, and the events remain replayable.
 
+:END:
 *First half shipped 2026-09-16 — the complement. The widowing half is
 untouched and this heading stays open for it.*
 
