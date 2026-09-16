@@ -98,6 +98,17 @@ written down here until 2026-09-02. They apply in order:
 | `claude-code-ide-org-span-idle-floor` | 120 s | how much idle *inside* a span is absorbed rather than split on |
 | `claude-code-ide-org-span-minimum-interval` | 0 s | below which a run is dropped rather than written |
 
+**A fourth input is not a number, and it matters most to a repo that is
+not this one.** Guideposts are keyed on `(timestamp, kind, project)`, so
+a **project boundary splits a span** the way a permission block does.
+The queue is a single global directory under `~/.claude/org-updates/`,
+shared by every project a session runs in; before the change two repos'
+turns in the same window clustered into one span, crediting one
+project's minutes to the other's heading. Both sides must be *known* and
+different — `cwd` has only been recorded since 2026-09-04 and cannot be
+backfilled, so a missing value means "unknown", never "elsewhere", and a
+span predating the field is never shattered by it.
+
 **The threshold no longer defends any duration, and reading it as though
 it still does is the mistake this section exists to prevent.** A span
 used to be written as one CLOCK line end to end, so where the threshold

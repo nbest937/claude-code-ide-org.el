@@ -7736,6 +7736,12 @@ today means the `clock_in'/`clock_out' brackets that already have an
 owner (TODO.org :ID: eaeeb4ee).  Without it an unattributed span
 clusters straight across the brackets that partition it and the same
 minutes are offered twice.
+
+A *project* boundary splits a span the same way, when both sides are
+known and differ: clustering across one credits one project's minutes to
+the other's heading (TODO.org :ID: c9940558).  A nil `cwd' is unknown
+rather than elsewhere, so it never splits.
+
 Consecutive timestamps separated by less than THRESHOLD seconds (default
 `claude-code-ide-org-guidepost-gap-threshold') join one span; a larger
 gap starts a new one. A lone timestamp yields a zero-width span, which
