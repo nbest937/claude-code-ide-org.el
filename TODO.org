@@ -47,6 +47,38 @@ rather than comparing a known one, which means superscript literals in the
 script and the encoding hazard that already cost an afternoon. Worth doing only
 if the 21 turn out to matter; the 51 were the larger and cheaper half.
 
+*The other direction shipped too, 2026-09-16 — the reason for deferring it was
+wrong.*
+
+I left it because enumerating markers *in prose* needs superscript literals and
+multi-digit disambiguation: is that a =1= and a =3=, or a =13=. That is real,
+and it is the character arithmetic this shell does badly. **But the check does
+not need enumeration.** Footnotes run from one without gaps — the hook now
+maintains that itself — so the only marker that can dangle past the end is the
+**next** one. Build it with =num_to_sup= and =grep -F= for it. A gap in the
+*middle* is already caught by the orphan check, since a missing line cannot have
+its marker placed. Cheap, byte-safe, no literals anywhere.
+
+*Worth naming the mistake rather than just the fix.* The deferral was reasoned
+from the *general* problem — find every marker in the prose — when the check
+only ever needed a *bounded* one. Having the hook maintain the numbering is what
+made the bound available, and that had shipped an hour earlier; I did not
+revisit the deferral in light of it.
+
+*And the message is back under control.* My own change had grown it from ~6
+lines to ~15 — clutter the desktop app folds and the CLI does not, and the user
+reads in the CLI. Everything invariant is gone: the standing rule lives in
+CLAUDE.md and does not need restating on every firing. **8 lines for two ids**,
+most of it the pasteable payload.
+
+*Two test assertions corrected, and the second matters beyond this change.* One
+pinned the old wording. The other — the no-JSON check — grepped for the bare
+word =continue=, which has now matched ordinary English **twice**, blocking
+message changes that printed no JSON at all. Tightened to the JSON key
+="continue"=. A proxy that fires on prose is a proxy for the wrong thing, and it
+had been quietly constraining what the message could say.
+
+
 
 * TODO The complement's gap spans carry no events, so half the review buffer cannot be dismissed :code:
 :PROPERTIES:
