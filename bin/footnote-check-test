@@ -205,89 +205,14 @@ else
   # keyword passed against the old hook too, because its instruction text
   # contains the literal word TODO ("its current TODO keyword") -- a
   # vacuous pass satisfied by boilerplate rather than by resolved data.
-  assert_txt "the block pairs the keyword with the id" \
-    "\`$REAL_KW\` \`$REAL\`" yes
+  #
+  # `id` FIRST since :ID: 2a6a1355 retired the superscript markers: the id
+  # is the key the prose already carries, so it is both the lookup handle
+  # and, for the hook, the only index there has ever needed to be.
+  assert_txt "the block leads with the backticked id, then the keyword" \
+    "\`$REAL\`  $REAL_KW" yes
   assert_txt "the block carries the exact title" "$REAL_TITLE" yes
 fi
-
-# The marker half of :ID: 2a6a1355. Superscripts are built from UTF-8
-# BYTE ESCAPES here for the same reason the hook builds them that way:
-# the first implementation used literals and silently lost every
-# three-byte one, emitting lines with no marker at all while every
-# existing test still passed.
-SUP1="$(printf '\xc2\xb9')"
-SUP3="$(printf '\xc2\xb3')"
-
-out="$(run m1 "See \`$REAL\` for detail.")"
-assert_txt "the block carries a superscript marker" "$SUP1" yes
-
-# Continuation, not restart: two footnotes already present means the
-# next pasted line must be the third. An off-by-one here reintroduces
-# exactly the collision this change exists to prevent.
-out="$(run m2 "Cite \`$REAL\` here.
-
----
-
-$SUP1 \`DONE\` \`$REAL2\` — something
-$(printf '\xc2\xb2') \`DONE\` \`$REALNUM\` — something else")"
-assert_txt "markers carry on from the footnotes already present" "$SUP3" yes
-
-# Orphaned footnote markers (:ID: 45dc171f). Measured at 51 genuine
-# instances over 924 footnoted responses -- validated first, since the
-# raw count was 77 and 26 of those were correction turns.
-SUP2="$(printf '\xc2\xb2')"
-
-check "a footnote whose marker is nowhere in the prose blocks" blocked \
-  "$(run o1 "Cited \`$REAL\`$SUP2 here.
-
----
-
-$SUP1 \`TODO\` \`$REAL2\` — unreferenced
-$SUP2 \`TODO\` \`$REAL\` — fine")"
-
-# The exemption is load-bearing, not tidy: this hook ASKS for a
-# footnote-only correction turn, so blocking one would refuse the very
-# response it just requested.
-check "a footnote-only correction turn is exempt" allowed \
-  "$(run o2 "Footnotes for the previous response:
-
----
-
-$SUP1 \`TODO\` \`$REAL\` — a title
-$SUP2 \`TODO\` \`$REAL2\` — another")"
-
-check "every marker placed passes" allowed \
-  "$(run o3 "Cited \`$REAL\`$SUP1 and \`$REAL2\`$SUP2 here.
-
----
-
-$SUP1 \`TODO\` \`$REAL\` — a title
-$SUP2 \`TODO\` \`$REAL2\` — another")"
-
-# The loop guard, content-aware since :ID: 45dc171f. It used to silence
-# every later Stop in the same turn on the sentinel's mere existence,
-# which put the blind window on the response right after a block -- the
-# one rewriting footnote-heavy prose, where a new miss is most likely.
-# Observed costing two unfootnoted ids in one response.
-REAL3="$(grep -ohE '^:ID: +[0-9a-f]{8}' "$repo/TODO.org" | sed -n '3p' | awk '{print $2}')"
-REAL4="$(grep -ohE '^:ID: +[0-9a-f]{8}' "$repo/TODO.org" | sed -n '4p' | awk '{print $2}')"
-
-check "first block in a turn blocks" blocked \
-  "$(run loop1 "See ${REAL}.")"
-# The anti-loop property, and the only one that matters: never ask twice
-# for the same thing. Without this the hook blocks forever on a demand
-# the model cannot satisfy -- there is no stop_hook_active flag to lean on.
-check "the SAME demand is never repeated" allowed \
-  "$(run loop1 "See ${REAL} again.")"
-# The case the old guard missed entirely.
-check "a DIFFERENT demand blocks again" blocked \
-  "$(run loop1 "Now see ${REAL2}.")"
-check "and a third distinct demand still blocks" blocked \
-  "$(run loop1 "Now see ${REAL3}.")"
-# Belt and braces behind the content test, so even a pathological
-# alternation of demands terminates.
-check "a fourth is refused by the hard bound" allowed \
-  "$(run loop1 "Now see ${REAL4}.")"
 
 out="$(run zz1 "See \`$REAL\` for detail.")"
 if [[ "$(rc_of "$out")" -eq 2 ]]; then

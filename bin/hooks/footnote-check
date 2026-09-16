@@ -197,46 +197,6 @@ resolve_id () { # resolve_id <id> -> "KEYWORD<TAB>TITLE"
   ' "${org_files[@]}"
 }
 
-# Superscript digits, written as UTF-8 BYTE ESCAPES rather than as
-# literals. The first attempt used the characters themselves and lost
-# every three-byte one: U+00B9/B2/B3 are two bytes and survived the
-# editing pipeline, while U+2070 and U+2074..2079 are three and arrived
-# corrupted. Escapes are pure ASCII in the source, so no editor, heredoc
-# or shell quoting layer can damage them, and the bytes emitted are
-# exact.
-sup_digit () { # sup_digit <0-9> -> one superscript character
-  case "$1" in
-    0) printf '\xe2\x81\xb0' ;; 1) printf '\xc2\xb9'     ;;
-    2) printf '\xc2\xb2'     ;; 3) printf '\xc2\xb3'     ;;
-    4) printf '\xe2\x81\xb4' ;; 5) printf '\xe2\x81\xb5' ;;
-    6) printf '\xe2\x81\xb6' ;; 7) printf '\xe2\x81\xb7' ;;
-    8) printf '\xe2\x81\xb8' ;; 9) printf '\xe2\x81\xb9' ;;
-  esac
-}
-
-num_to_sup () { # num_to_sup <n> -> "<superscripts>"
-  local n="$1" out="" d
-  while [[ -n "$n" ]]; do
-    d="${n:0:1}"; n="${n:1}"
-    out="$out$(sup_digit "$d")"
-  done
-  printf '%s' "$out"
-}
-
-# Markers carry on from the footnotes the response already has, so a
-# pasted line cannot collide with one already in use -- the marker-reuse
-# mode of TODO.org :ID: 2a6a1355, where one superscript was attached to
-# two ids and only one footnote line existed. The hook refused that
-# correctly but described it as a missing footnote, which is the
-# recognition error rather than the numbering error that happened.
-#
-# Counted by footnote LINES carrying an id, never by parsing the
-# superscripts: counting is exact in a byte-oriented shell, and taking
-# multibyte markers apart is not. It assumes footnotes run from one
-# without gaps, which is the convention every response here follows.
-marker_n="$(grep -cE '\b[0-9a-f]{8}\b' <<<"$foot" 2>/dev/null)" || marker_n=0
-[[ "$marker_n" =~ ^[0-9]+$ ]] || marker_n=0
-
 missing=""
 resolved=""
 while IFS= read -r id; do
@@ -247,63 +207,16 @@ while IFS= read -r id; do
   missing="$missing${missing:+ }$id"
   kw="${found%%$'\t'*}"
   title="${found#*$'\t'}"
-  marker_n=$((marker_n + 1))
-  resolved="$resolved  $(num_to_sup "$marker_n") \`$kw\` \`$id\` — $title
+  # `id` FIRST: the id is the key the prose already carries, so it is what
+  # the eye scans for. The keyword is padded to a column because it is the
+  # volatile field and misalignment hides staleness. Backticked because the
+  # terminal renders code in a distinct face, which is the whole reason the
+  # id is findable at a glance (TODO.org :ID: 2a6a1355).
+  resolved="$resolved  \`$id\`  $(printf '%-9s' "$kw") $title
 "
 done <<<"$candidates"
 
-# The MIRROR check -- a prose marker with no footnote line -- was built
-# here on 2026-09-16 and RETIRED the same hour. Do not rebuild it. It
-# cannot tell a citation from a superscript that is merely being shown:
-# quoting this hook's own message, which contains markers, tripped it
-# within minutes. That is 2a6a1355's quotation mode reaching markers
-# instead of ids. Narrowing it (require a non-space before the marker)
-# leaves ranges like `1-4' and enumerated markers still false, and the
-# motivating population was 21 of 924 responses. A check whose false
-# positives concentrate in the work of maintaining it is worse than no
-# check.
-#
-# ORPHANED FOOTNOTE MARKERS (TODO.org :ID: 45dc171f). A footnote whose
-# marker appears nowhere in the prose points the reader at nothing, and
-# the id check above cannot see it: that test asks whether each cited id
-# is present SOMEWHERE in the block, which a response satisfies while
-# marking none of its citations.
-#
-# Measured over 6749 recorded responses, 924 with a footnote block: 51
-# genuine instances. Validated before building -- the raw count was 77,
-# and 26 of those were correction turns, which are not faults.
-#
-# Fixed-string matching throughout, never character arithmetic: the first
-# field of a footnote line IS the marker, `awk' splits on whitespace
-# without decomposing anything, and `grep -F' matches the bytes. That is
-# why this check is cheap where duplicate-detection was not -- and
-# duplicate-detection is deliberately absent, having occurred 0 times in
-# those same 924 responses.
-orphans=""
-if [[ -n "$foot" ]]; then
-  # A CORRECTION TURN carries no marker in its prose at all: the response
-  # IS the footnote block, appended for an earlier response whose prose
-  # holds the markers. Exempt, and the exemption is load-bearing rather
-  # than tidy -- this hook induces that turn, so blocking it would refuse
-  # the very response the hook just asked for. 26 of the 77 raw hits.
-  prose_has_marker=""
-  for d in 0 1 2 3 4 5 6 7 8 9; do
-    grep -qF -- "$(sup_digit "$d")" <<<"$body" && { prose_has_marker=yes; break; }
-  done
-  if [[ -n "$prose_has_marker" ]]; then
-    while IFS= read -r fline; do
-      [[ -n "$fline" ]] || continue
-      grep -qE '\b[0-9a-f]{8}\b' <<<"$fline" || continue   # not a footnote line
-      mk="$(awk '{print $1}' <<<"$fline")"
-      [[ -n "$mk" ]] || continue
-      grep -qF -- "$mk" <<<"$body" && continue             # marker is placed
-      orphans="$orphans${orphans:+ }$mk"
-    done <<<"$foot"
-
-  fi
-fi
-
-[[ -n "$missing" || -n "$orphans" ]] || exit 0
+[[ -n "$missing" ]] || exit 0
 
 # `mkdir -p' first: a bare `: > "$sentinel" 2>/dev/null' does NOT
 # suppress the failure when the directory is absent, because bash
@@ -316,7 +229,7 @@ fi
 # The demand this block makes, compared against the ones already made
 # this turn. Identical means we have asked and the model did not satisfy
 # it -- asking again is the loop the guard exists to prevent.
-demand="$missing|$orphans"
+demand="$missing"
 if [[ -n "$prior" ]] && grep -qxF -- "$demand" <<<"$prior"; then
   exit 0
 fi
@@ -348,21 +261,10 @@ printf '%s\n' "$demand" >> "$sentinel" 2>/dev/null
 # decision when it makes one, and your stderr text otherwise" -- so
 # emitting no decision leaves stderr as the message, which is the whole
 # point here.
-if [[ -z "$missing" ]]; then
-  cat >&2 <<EOF
-${orphans:+Footnote marker(s) not present in the prose: $orphans -- place or drop them.
-}
-EOF
-  exit 2
-fi
-
 cat >&2 <<EOF
-Unfootnoted tracked :ID:s: $missing. Footnoting is per response. Place a
-superscript at each citation and append these lines (markers continue from the
-footnotes already present, so they will not collide):
+Unfootnoted tracked :ID:s: $missing. Footnoting is per response. Append these
+lines to the end matter, after a \`---\` separator:
 
 $resolved
-${orphans:+Also: marker(s) $orphans appear in the footnotes but not in the prose.
-}
 EOF
 exit 2
