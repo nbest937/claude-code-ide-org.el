@@ -8594,6 +8594,49 @@ marks them consumed but *destroys nothing* -- =--queue-mark-dismissed= writes
 beside the queue and never touches the =.jsonl=, so undoing it is deleting one
 key from a small JSON file, and the events remain replayable.
 
+*First half shipped 2026-09-16 — the complement. The widowing half is
+untouched and this heading stays open for it.*
+
+The aggregator now **clusters through** an exclusion and subtracts afterwards
+(=--span-complement=) rather than refusing to cluster. The owned minutes are
+still never claimed — they are removed by subtraction instead of by a split —
+and the gaps between exclusions survive.
+
+*Measured over the whole guidepost history against 289 real clock brackets:*
+
+| | spans | zero-width | covered |
+|---+-------+------------+---------|
+| before | 382 | 68 | 120.47 h |
+| after | 456 | 1 | 133.11 h |
+
+**12.64 h of real, unattributed work now reaches review.** This body's own
+fixture reproduces to the second: the 935 s span with its 154 s and 412 s
+exclusions yields 103, 198 and 68 s — 369 s in three gaps.
+
+*The presentation question this body left open answers itself, and more
+cleanly than it guessed.* It asked whether the zero-width endpoints "become
+redundant once the gaps are offered". They are not redundant — they are
+**absorbed**: each endpoint now sits *inside* the first or last gap rather
+than being offered as a point. Corpus-wide that is 68 zero-width items down to
+1, the survivor being a genuinely lone guidepost.
+
+*One property worth stating because it is a real change in kind.* A complement
+segment's boundaries are *exclusion edges*, not guideposts. That is still
+evidence rather than assertion — an edge is a =clock_in= or =clock_out=
+timestamp from the queue — but it is a different event kind from the ones
+bounding an ordinary span, and a reader comparing a span to the transcript
+should know which they are looking at.
+
+*What remains here is widowing*, and it is the harder half for the reason this
+body already gives: a split is created by the machinery and is stable, while
+widowing is created by the human's own reviewing and compounds with how
+selectively the queue is applied. The complement does not touch it — the
+missing neighbour is gone from the pending set entirely — so it still needs the
+aggregator to consult consumed events via =--queue-events='s =include-consumed=,
+as =--review-suggest-heading= already does. The =1ad547fe= fixture on this body
+is untouched and still replayable.
+
+
 
 ** TODO Accepting a 0-run span records none of its minutes, and only =e= can claim them :code:
 :PROPERTIES:
