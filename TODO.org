@@ -78,6 +78,43 @@ message changes that printed no JSON at all. Tightened to the JSON key
 ="continue"=. A proxy that fires on prose is a proxy for the wrong thing, and it
 had been quietly constraining what the message could say.
 
+*Retracting the paragraph above: the other direction shipped and was **retired
+the same hour**, and the retraction is the more useful record.*
+
+It blocked my own next response within minutes. The response quoted this hook's
+own message — which contains superscript markers — so the check read a marker
+that was being **shown** as one that was being **used**. The hook's output is a
+source of false positives for the hook.
+
+*That is [[id:2a6a1355-615f-4c2c-a8af-c9ae8dcda09b][2a6a1355]]'s quotation mode,
+reaching markers instead of ids*, and it is the same coupling
+[[id:762b7836-52db-4619-a664-25a09f84da46][762b7836]] already carries for the
+fence: once a checker emits the tokens it checks for, its own output becomes
+input.
+
+*Not fixable by narrowing.* The obvious tightening — require a non-space before
+the marker, since a real citation is attached and a quoted one usually is not —
+still admits ranges like =¹–⁴= and any enumerated list of markers. Each patch
+buys one class and leaves the next.
+
+*So it is retired rather than reimplemented more cheaply*, which is
+=7771fc63='s standing argument, and the reason is written into the hook so it is
+not rebuilt. The motivating population was **21 of 924** responses; a check
+whose false positives concentrate in the work of maintaining it is worse than no
+check.
+
+**The orphan direction is untouched and still right, and the contrast is the
+finding.** It reads markers from the *structured* side — the first whitespace
+field of a footnote line — where nothing is ever quoted or illustrative. The
+prose side has no such guarantee. **A check is safe in the direction where its
+input has structure, and unsafe in the direction where it has prose**, which is
+worth carrying to any future check of this shape rather than discovering again.
+
+*Net: 51 of the 72 faults are caught, the other 21 are declined with a reason,
+and the deferral I called wrong an hour ago turns out to have been right for a
+reason I had not found.*
+
+
 
 
 * TODO The complement's gap spans carry no events, so half the review buffer cannot be dismissed :code:
