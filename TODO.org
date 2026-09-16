@@ -5968,6 +5968,43 @@ explicitly — the audit's conclusion held regardless, since it keys on the
 annotation *label* rather than the notation, and a flip changes brackets without
 touching labels. But the question was the right one to ask and it found this.
 
+*2026-09-16: this heading's own precondition is now met, and =c= satisfies most
+of what remained — but not all of it, so it stays open.*
+
+**Its instruction was "bind the key *after* =2deb090f=, not before: the flip
+needs to write minutes before it is worth making easy."**
+[[id:2deb090f-593d-40e3-9044-fda318d9b6de][2deb090f]] is now =DONE=, and the key
+it shipped — =c=, *claim envelope* — does **both** halves in one act: it clears
+=:suggested= so apply writes the envelope as minutes, and it sets =:active= so
+the annotation renders =<...>--<...>=. The objection this heading raised against
+its own request — that cheaply producing an assertion no report can see is not
+an improvement — no longer applies, because the assertion now carries minutes.
+
+*It answers all three of the design questions left open above, for the case it
+covers.* What the flip **means**: this envelope was the human's attention, which
+is why the same key writes the minutes. What it **applies to**: one item. Which
+**key**: =c=, which was free; =t= and =A= remain so.
+
+**What it does not cover, and this is the whole remainder.** =c= refuses a span
+that is not =:suggested= and one of zero width. So an interval with *runs* —
+where some agent work is genuinely recorded — still has no keystroke that says
+"and this window was also mine". Flipping that is still typing two timestamps at
+=e='s prompt.
+
+*Whether that case is even wanted is now the open question, and it is narrower
+and better than the one this heading started with.* For a span with runs the
+CLOCK lines are written from the runs regardless, so a flip there changes the
+annotation and nothing else — which is the "assertion no report can see" this
+body already argued against. On that reasoning the remainder may deserve
+**declining** rather than building. Left for the user rather than decided here,
+since the original request was theirs.
+
+*And the framing the user offered is right: these were two sides of one coin.*
+=2deb090f= was "the minutes are not recorded"; this was "the notation does not
+say whose they were". This body reached that conclusion independently when it
+ordered itself after =2deb090f=. One key now mints both.
+
+
 
 * TODO Intervals on two different headings can overlap, and subtraction reaches only one :code:
 :PROPERTIES:
@@ -8492,6 +8529,47 @@ CLOSED: [2026-09-16 Wed 08:21]
 :PROPERTIES:
 :ID:       2deb090f-593d-40e3-9044-fda318d9b6de
 :CREATED:  [2026-09-11 Fri 17:41]
+:END:
+:DEBRIEF:
+*Correction, 2026-09-16, after this heading was closed: =c= shipped with two
+defects, both found by the user pressing the key rather than by any test.*
+
+**Point jumped to the top of the buffer.** =c= called
+=--review-render=, which redraws everything, instead of =--review-redraw=,
+which redraws and puts point back on the item. The latter's own docstring names
+itself "the one path every command that *mutates an item* should take, so that
+point handling stops being each command's own decision to remember or forget",
+and records =a= and =e= both forgetting it. **This was the third time**, which
+says the docstring is not where that rule can live if it keeps being missed.
+Fixed with no =ADVANCE=: =c= makes the line *markable* rather than finished
+with, exactly as =a= does.
+
+**The annotation stayed in square brackets, and this one was a misreading of
+this very body.** I took "the bracket style is a red herring here" as *leave
+=:active= alone*. It says the style cannot fix the **minutes** — =:active=
+reaches only the annotation, since =org-clock-in= always writes the =CLOCK:=
+line inactive. It says nothing about what the line *means*, and an active
+timestamp is precisely how this record says a human attended an interval.
+Claiming an envelope **is** that assertion, so the two coincide. The user
+expected =<...>= and was right to; =c= now sets =:active= and the annotation
+renders =<2026-09-11 Fri 13:24>--<2026-09-11 Fri 13:46>=.
+
+*Two consequences of that, neither hidden.* The =CLOCK:= line stays inactive and
+=c= cannot change it — org writes it that way — so the drawer will read =<...>=
+on the annotation beside =[...]= on the CLOCK line. And an active timestamp
+**reaches org-agenda**, which is deliberate here (it is the point of saying the
+time was attended) and is exactly why =e= keeps inactive as *its* default, where
+the edit may be a mere correction of bounds.
+
+*The test that asserted =(should-not :active)= was mine and pinned the wrong
+reading.* It now asserts the opposite, with the reversal explained in place so
+it is not mistaken later for drift.
+
+*Worth naming the pattern rather than just the two bugs.* Both were invisible to
+the suite and to the corpus replay, because both are about **what the reviewer
+sees and where the cursor is** — properties no assertion in this project
+currently makes. The four tests I wrote all pass either way. A key is used, not
+computed, and nothing here tests use.
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-11 Fri 17:41]--[2026-09-11 Fri 17:47] =>  0:06
