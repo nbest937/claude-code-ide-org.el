@@ -188,9 +188,11 @@ CLOCK: [2026-09-16 Wed 11:40]--[2026-09-16 Wed 11:41] =>  0:01
 - State "DOING"      from "REVIEW"     [2026-09-16 Wed 11:47] \\
   rework from review: the loop guard's blind window
 :END:
+:PLAN:
 
 Found 2026-09-16 while measuring whether [[id:2a6a1355-615f-4c2c-a8af-c9ae8dcda09b][2a6a1355]]'s marker-collision detection was worth building. It is not — 0 duplicate markers across 924 footnoted responses — but the same scan of **6749 assistant responses** surfaced a fault an order of magnitude more common and never filed: **97 responses, roughly 10% of all footnoted ones, carry a marker and a footnote that do not correspond.** 77 have a footnote line whose marker appears nowhere in the prose; 20 have a prose marker with no footnote line. Spread across a month — 18 on 2026-08-27, 14 on 08-25, 5 on 09-15 — so it is a standing pattern rather than one session's habit. =bin/hooks/footnote-check= cannot see it: its test is whether each cited *id* appears somewhere in the footnote block, which a response satisfies while pointing the reader at the wrong line or at no line at all. That is the same shape as the paraphrased-title mode [[id:33c3eabc-00f2-4cf1-afb7-4071aa256d62][33c3eabc]] closed — a footnote that exists and misleads is worse than one that is missing, because nothing refuses it and the reader has no reason to doubt it. Proposed: for each footnote line, take the leading marker as a **byte string** and =grep -qF= it against the prose; report any that never appear, and any prose marker with no line. **The multibyte objection that killed collision detection does not apply**: correspondence needs fixed-string matching, never character arithmetic, so it is locale-independent and cheap in the byte-oriented shell a =Stop= hook must stay in. Two things to settle before building. Whether a *dangling prose marker* is even a fault — a footnote that arrives in a later correction turn legitimately has its marker placed first. And whether the 77 include a systematic false positive from the block-splitting rule, which takes everything after the last line that is exactly =---=; a response with a later horizontal rule would misplace the boundary. The scan was not validated against hand-checked examples, so treat 97 as an upper bound until it is.
 
+:END:
 *Validated first, then shipped, 2026-09-16 — and validation changed the
 number, which is the reason this body insisted on it.*
 
@@ -293,6 +295,39 @@ worth carrying to any future check of this shape rather than discovering again.
 *Net: 51 of the 72 faults are caught, the other 21 are declined with a reason,
 and the deferral I called wrong an hour ago turns out to have been right for a
 reason I had not found.*
+
+*Retracted in full 2026-09-16: **the orphan check is removed**, following the
+dangling check it was supposed to be the safe half of.*
+
+The argument recorded above was that this direction was safe because it reads
+markers from the *structured* side — the first field of a footnote line — where
+nothing is quoted or illustrative. That reasoning was sound about the *input*
+and wrong about the *view*: the check compares that marker against the prose,
+and =last_assistant_message= carries only the **final text block** of a
+response. A citation placed before a tool call is invisible to it, so its marker
+reads as orphaned. It fired on exactly that, on my own response, hours after
+shipping.
+
+*So both directions failed, for the same underlying reason stated two ways.*
+The dangling check could not tell a marker being *used* from one being *shown*;
+the orphan check could not see the whole response it was judging. Each is a case
+of the checker's view differing from the reader's — which is the hazard a
+*second* index always carries and the id never does, because the id is in the
+prose the reader actually has.
+
+*And the 51 faults it caught are not lost, they stop being faults.* Under the
+new form (=2a6a1355=) there are no markers to correspond: the end matter is
+keyed by identifier, so "does this footnote line point at something" and "is
+this id footnoted" are the **same question**, answered by the presence check
+that was here before any of this. 51 of 72 caught becomes 72 of 72 unreachable.
+
+*What survives is the measurement, and it is worth keeping for its method.*
+Scanning 6749 responses distinguished 26 correction turns from 51 genuine
+mismatches and falsified the block-splitting hypothesis outright — and the
+validation is what found the correction-turn exemption, without which the hook
+would have blocked the very turn it asks for. The number was right; what it
+measured has been abolished rather than repaired.
+
 
 
 * TODO The complement's gap spans carry no events, so half the review buffer cannot be dismissed :code:
@@ -2277,6 +2312,38 @@ fix, since it may refuse and inform but never rewrite. So =2a6a1355= stays open
 for its marker-bookkeeping half, which is a different change to a different part
 of the same message.
 
+*Reopened and partly retracted 2026-09-16: **the emission format changed, the
+central claim did not.***
+
+This heading's point — the hook resolves every id to check it is tracked and
+then throws the answer away, asking the model to look up what it had just
+computed — stands unchanged and is now the *only* thing the hook does beyond
+the presence check. What it emits, however, has been rewritten: the markers
+that came with it are gone (=2a6a1355=).
+
+*What was wrong with the shipped form.* It emitted =⁵ `TODO` `id` — title=,
+numbering each line so a pasted marker could not collide. That solved a problem
+the convention never posed: =~/.claude/CLAUDE.md= mentions superscripts zero
+times. The numbering was careful machinery for an accretion.
+
+*The form now:* after a =---= separator, sorted by identifier, =`id`= then the
+keyword padded to a column then the exact title. **No markers, and no numbering
+to get wrong.**
+
+*Which retires most of what this heading's follow-on built* — =sup_digit=,
+=num_to_sup=, =marker_n= and the orphan check, 189 lines removed against 16
+added. The encoding bug recorded above (literal superscripts losing every
+three-byte character) is now a bug in deleted code; it is kept in this body
+because the *lesson* outlived the code: 23 tests passed while the hook emitted
+lines with no marker at all, because not one of them looked.
+
+*One thing the rewrite confirms about the original.* The emission was already
+sorted by id — =sort -u= on the candidates does it — so the convention's
+"ordered by first appearance" had never described the output. The format change
+made the mechanism and the rule agree for the first time rather than changing
+what the mechanism did.
+
+
 
 * TODO --review-format-annotation's docstring contradicts its own let*, four lines down
 :PROPERTIES:
@@ -4053,6 +4120,53 @@ the cheap one, and the expensive check is the one the evidence says to drop.
 
 *Filed rather than built here*, since it is a different check from this
 heading's subject and deserves its own decision.
+
+*Retracted 2026-09-16: **the marker modes are retired rather than fixed**, and
+checking the premise found they were never the convention.*
+
+=~/.claude/CLAUDE.md= — the only place the footnote rule lives, the repo and
+plugin carrying no copy — mentions superscripts **zero times**. It says "cite
+the identifier in the prose and append a footnote list mapping each one to its
+exact, full title". The hook mentioned them **six times**. So the markers were
+the *hook's* accretion, and case 1 of this heading's three — a superscript
+reused for two ids — was a defect in a requirement no governing document ever
+made.
+
+**The argument that settles it: the identifier is already the key.** A marker
+exists to link a citation to its note when the citation has no natural handle.
+An =:ID:= *is* that handle — the prose says =c19fbbf5= and so does the line. The
+marker was a second and weaker index over data the id indexes perfectly, which
+is why it kept breaking.
+
+*Two false positives, both mine, both from machinery added the same day:*
+
+- The **dangling** check could not tell a citation from a superscript being
+  *shown*; quoting the hook's own message tripped it. Retired within the hour.
+- The **orphan** check then fired on a response whose citation sat in a text
+  block *before* the tool calls. =last_assistant_message= carries only the final
+  block, so a marker placed earlier reads as orphaned. The check could not see
+  the whole response it was judging.
+
+Both are marker faults. Neither can occur without markers.
+
+*What the new form is.* End matter after a =---= separator, one line per
+identifier, **sorted by identifier**: backticked id, TODO keyword padded to a
+column, exact title including any cookie. The id leads because it is what the
+eye scans for; the keyword is column-aligned because it is the volatile field
+and misalignment hides staleness; the cookie belongs to the title because
+=[8/9]= and =[16/16]= are the part most often wrong when recalled.
+
+*A detail worth keeping: the emission was already id-sorted.* =sort -u= on the
+candidate ids does it, so "ordered by first appearance" lived only in the
+instruction text and never in the output. The convention had been describing
+something the mechanism did not do.
+
+*Scope of the retraction.* Of the five modes, the three that were **marker
+faults cease to exist**. Enumeration and borrowed prose were always detected by
+the id check, which is untouched and is the one that was always doing the work.
+So this heading closes not because its modes were fixed but because the
+category most of them belonged to was removed.
+
 
 
 * TODO Report worked headings that carry no clock interval that day :code:
