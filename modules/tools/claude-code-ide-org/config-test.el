@@ -11941,9 +11941,14 @@ interesting if it changes what gets written."
     (should (= 1320 (claude-code-ide-org-test--written-seconds item)))
     (should-not (plist-get item :suggested))
     (should (plist-get item :claimed))
-    ;; The bracket style is a separate claim and must not be touched:
-    ;; :active reaches only the annotation, never the CLOCK line.
-    (should-not (plist-get item :active))))
+    ;; Active notation, because the claim and the notation are the same
+    ;; assertion. Reversed 2026-09-16: this asserted `should-not' on the
+    ;; reading that :ID: 2deb090f's \"bracket style is a red herring\" meant
+    ;; leave it alone. It means the style cannot fix the MINUTES -- :active
+    ;; reaches only the annotation, since org-clock-in always writes the
+    ;; CLOCK line inactive -- not that a claimed envelope should read as
+    ;; the agent's. The user expected <...> and was right to.
+    (should (plist-get item :active))))
 
 (ert-deftest claude-code-ide-org-test-a-claimed-line-says-claimed-not-agent ()
   "A claimed envelope renders as (claimed), never (agent).

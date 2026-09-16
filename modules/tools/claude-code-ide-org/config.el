@@ -12824,7 +12824,28 @@ to :ID: 01849bef rather than here."
       (user-error "A zero-width span has no envelope to claim"))
     (plist-put item :suggested nil)
     (plist-put item :claimed t)
-    (claude-code-ide-org--review-render)
+    ;; ACTIVE NOTATION, because the claim and the notation are the same
+    ;; assertion. :ID: 2deb090f calls bracket style "a red herring", and
+    ;; that is true of the MINUTES -- :active reaches only the annotation,
+    ;; while org-clock-in always writes the CLOCK line inactive. It is not
+    ;; true of what the line MEANS: an active timestamp is how this record
+    ;; says "a human attended this", and claiming an envelope is exactly
+    ;; that claim. The user's own 2026-09-04 flip to <...> on a span is
+    ;; the precedent, and :ID: 01849bef is the standing request for a key
+    ;; that does it without hand-editing.
+    ;;
+    ;; Note the consequence `e' records: an active timestamp reaches
+    ;; org-agenda. That is deliberate here rather than accidental -- it is
+    ;; the point of saying the time was attended -- but it is why `e'
+    ;; keeps inactive as ITS default, where the edit may be a mere
+    ;; correction of bounds.
+    (plist-put item :active t)
+    ;; `--review-redraw', never `--review-render': the redraw puts point
+    ;; back on the item. Its docstring records `a' and `e' both forgetting
+    ;; that and dropping point to the top of the buffer; this was the
+    ;; third time. No ADVANCE -- `c' makes the line markable rather than
+    ;; finished with, exactly as `a' does.
+    (claude-code-ide-org--review-redraw item)
     (message "Claimed %s as attention"
              (claude-code-ide-org--review-format-annotation item))))
 
