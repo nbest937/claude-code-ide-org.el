@@ -11907,6 +11907,94 @@ span would make a crashed session\='s last span vanish."
       ;; fails here rather than passing on a weaker assertion.
       (should-not (seq-find (lambda (i) (equal (funcall at i) "19:36:14")) zero)))))
 
+(defun claude-code-ide-org-test--zero-run-span (&optional start end)
+  "A suggested span whose backing guideposts yield no completed run.
+
+Two `resume\=' events and no `pause\=', which is what a span looks like
+when the turns inside it never closed -- `--span-work-runs\=' finds
+nothing to pair, so apply writes an annotation and no CLOCK line."
+  (let ((a (or start (date-to-time "2026-09-11T13:24:00-0500")))
+        (b (or end   (date-to-time "2026-09-11T13:46:00-0500"))))
+    (list :type 'clock :id "id-a" :start a :end b :suggested t
+          :events (list (list :kind "resume" :ts a)
+                        (list :kind "resume" :ts b)))))
+
+(ert-deftest claude-code-ide-org-test-claiming-an-envelope-records-its-minutes ()
+  "Claiming a 0-run span makes apply write its whole envelope.
+
+The defect, end to end: while the item is `:suggested\=' apply writes one
+CLOCK line per observed *run*, and a span with no run writes an
+annotation and nothing else -- so the drawer shows the interval and
+`org-clock-sum\=' counts zero.  Measured 2026-09-14 on one heading family
+alone: 18 annotations asserting 99 minutes that nothing counts
+(TODO.org :ID: 2deb090f).
+
+The assertion is the duration, not the flag, because the flag is only
+interesting if it changes what gets written."
+  (let ((item (claude-code-ide-org-test--zero-run-span)))
+    ;; Before: the envelope is 22 minutes and none of them are written.
+    (should (= 0 (claude-code-ide-org-test--written-seconds item)))
+    (claude-code-ide-org-test--with-review-buffer (list item)
+      (claude-code-ide-org-test--goto-nth-item 0)
+      (claude-code-ide-org-review-claim-envelope))
+    ;; After: the whole envelope is written, once.
+    (should (= 1320 (claude-code-ide-org-test--written-seconds item)))
+    (should-not (plist-get item :suggested))
+    (should (plist-get item :claimed))
+    ;; The bracket style is a separate claim and must not be touched:
+    ;; :active reaches only the annotation, never the CLOCK line.
+    (should-not (plist-get item :active))))
+
+(ert-deftest claude-code-ide-org-test-a-claimed-line-says-claimed-not-agent ()
+  "A claimed envelope renders as (claimed), never (agent).
+
+Clearing `:suggested\=' is what makes apply write the envelope, and the
+line previously read the absence of that flag as meaning the agent
+bracketed this.  Saying (agent) of an interval a human has just asserted credits
+the claim to the wrong party -- and it is the only thing on the line
+that distinguishes the two."
+  (let ((item (claude-code-ide-org-test--zero-run-span)))
+    (claude-code-ide-org-test--with-review-buffer (list item)
+      (should (string-match-p "(suggested)" (buffer-string)))
+      (claude-code-ide-org-test--goto-nth-item 0)
+      (claude-code-ide-org-review-claim-envelope)
+      (should (string-match-p "(claimed)" (buffer-string)))
+      (should-not (string-match-p "(agent)" (buffer-string)))
+      (should-not (string-match-p "(suggested)" (buffer-string))))))
+
+(ert-deftest claude-code-ide-org-test-a-claim-is-judgement-g-can-lose ()
+  "`g\=' counts a claimed envelope among the judgement at risk.
+
+Every other way of deciding something in this buffer leaves a flag the
+refresh guard counts -- `:marked\=', `:assigned\=', `:note-edited\=',
+`:edited\='.  A claim that left none would be discarded silently by a
+refresh, which is the one outcome the guard exists to prevent."
+  (let ((item (claude-code-ide-org-test--zero-run-span)))
+    (should-not (claude-code-ide-org--review-judgement-summary (list item)))
+    (plist-put item :suggested nil)
+    (plist-put item :claimed t)
+    (should (equal (claude-code-ide-org--review-judgement-summary (list item))
+                   "1 claimed envelope"))))
+
+(ert-deftest claude-code-ide-org-test-claim-refuses-what-it-cannot-assert ()
+  "The three refusals, each naming a different reason.
+
+A zero-width span has no envelope -- claiming it would assert minutes
+that do not exist, which is the guess :ID: 7771fc63 retired.  An
+already-written interval has nothing to claim.  Both refuse rather than
+silently doing nothing, so the key never looks like it worked."
+  (let ((zero (claude-code-ide-org-test--zero-run-span
+               (date-to-time "2026-09-11T13:24:00-0500")
+               (date-to-time "2026-09-11T13:24:00-0500")))
+        (done (claude-code-ide-org-test--zero-run-span)))
+    (plist-put done :suggested nil)
+    (claude-code-ide-org-test--with-review-buffer (list zero)
+      (claude-code-ide-org-test--goto-nth-item 0)
+      (should-error (claude-code-ide-org-review-claim-envelope) :type 'user-error))
+    (claude-code-ide-org-test--with-review-buffer (list done)
+      (claude-code-ide-org-test--goto-nth-item 0)
+      (should-error (claude-code-ide-org-review-claim-envelope) :type 'user-error))))
+
 ;;; :PLAN: drawer wrapping (TODO.org :ID: 3063c3e5)
 
 (defun claude-code-ide-org-test--body-of (id)

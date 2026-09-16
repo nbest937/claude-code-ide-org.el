@@ -10294,6 +10294,7 @@ common answer."
                    ("M" . claude-code-ide-org-review-mark-all)
                    ("U" . claude-code-ide-org-review-unmark-all)
                    ("a" . claude-code-ide-org-review-assign)
+                   ("c" . claude-code-ide-org-review-claim-envelope)
                    ("e" . claude-code-ide-org-review-edit-interval)
                    ("N" . claude-code-ide-org-review-edit-note)
                    ("d" . claude-code-ide-org-review-dismiss)
@@ -10662,7 +10663,13 @@ vanishes silently is worse than one that explains itself
                      (if written (concat "  " written) "")))
          (format "  clock   %s%s%s"
                  (claude-code-ide-org--review-format-annotation item)
-                 (if (plist-get item :suggested) "  (suggested)" "  (agent)")
+                 (cond ((plist-get item :suggested) "  (suggested)")
+                       ;; Not "(agent)": the interval is the agent's
+                       ;; reconstruction only until a human claims it, and
+                       ;; saying "agent" of a claimed envelope would credit
+                       ;; the assertion to the wrong party.
+                       ((plist-get item :claimed) "  (claimed)")
+                       (t "  (agent)"))
                  (let ((written (claude-code-ide-org--review-written-summary item)))
                    (if written (concat "  " written) "")))))
       ;; The target is resolved here, at render time, purely to say
@@ -12778,6 +12785,49 @@ would leave point moved and the command reported as failed."
           (beginning-of-line)
           (org-fold-hide-drawer-toggle 'off t))))))
 
+(defun claude-code-ide-org-review-claim-envelope ()
+  "Claim the span at point\='s whole envelope as attention.
+
+*Accepting a 0-run span is an assertion, and until now it could only be
+made by pretending to edit.*  Apply writes one CLOCK line per observed
+*run* while an item is `:suggested\=', so a span whose guideposts yield no
+run writes an annotation and no CLOCK line at all --
+`claude-code-ide-org--review-apply-clock\='s `(unless observed ...)\='
+branch.  The minutes are then visible in the drawer and invisible to
+`org-clock-sum\=' and every clocktable built on it, so the drawer says the
+work happened and the report says it did not, and neither is lying
+(TODO.org :ID: 2deb090f).
+
+The only way to say that those minutes were one's own was `e\=', retyping both
+timestamps unchanged purely to clear `:suggested\='.  That reads as a
+correction of bounds, which is a different claim, and costs two
+timestamps to make no change to them.
+
+This is that claim in one act.  It clears `:suggested\=', so
+`claude-code-ide-org--review-intervals-to-write\=' returns the displayed
+interval instead of the runs, and sets `:claimed\=' so the line says which
+of the two happened and `g\=' knows there is judgement to lose.
+
+*Deliberately does not touch `:active\='.*  Bracket style is a separate
+question -- it reaches only the annotation, never the CLOCK line, which
+`org-clock-in\='/`org-clock-out\=' always write inactive -- and it belongs
+to :ID: 01849bef rather than here."
+  (interactive)
+  (let ((item (claude-code-ide-org--review-item-at-point)))
+    (unless item (user-error "%s" (claude-code-ide-org--review-no-item-message)))
+    (unless (eq (plist-get item :type) 'clock)
+      (user-error "Only a span has an envelope to claim; this is a %s item"
+                  (plist-get item :type)))
+    (unless (plist-get item :suggested)
+      (user-error "This interval is already written as displayed; nothing to claim"))
+    (when (time-equal-p (plist-get item :start) (plist-get item :end))
+      (user-error "A zero-width span has no envelope to claim"))
+    (plist-put item :suggested nil)
+    (plist-put item :claimed t)
+    (claude-code-ide-org--review-render)
+    (message "Claimed %s as attention"
+             (claude-code-ide-org--review-format-annotation item))))
+
 (defun claude-code-ide-org-review-edit-interval ()
   "Edit the endpoints of the clock item at point.
 Reads both back as org timestamp strings, so a suggested span can be
@@ -13253,15 +13303,16 @@ touches no org file at all."
   "Return a phrase counting the unapplied judgement in ITEMS, or nil.
 
 Four kinds, and each leaves an unambiguous flag: `:marked' from `m'/`M',
-`:assigned' from `a', `:note-edited' from `N', and `:edited' from `e'.
-The last two needed a flag adding -- see
-`claude-code-ide-org-review-edit-interval' and
-`claude-code-ide-org-review-edit-note'.
+`:assigned' from `a', `:note-edited' from `N', `:edited' from `e', and
+`:claimed' from `c'.  The last three needed a flag adding -- see
+`claude-code-ide-org-review-edit-interval',
+`claude-code-ide-org-review-edit-note' and
+`claude-code-ide-org-review-claim-envelope'.
 
 Counted rather than merely detected, because \"3 marked, 1 assigned\"
 tells a human whether to care and a bare \"are you sure?\" does not
 (TODO.org :ID: 8d0716fe)."
-  (let ((marked 0) (assigned 0) (notes 0) (edited 0))
+  (let ((marked 0) (assigned 0) (notes 0) (edited 0) (claimed 0))
     (dolist (item items)
       ;; An auto-mark is not judgement -- nobody decided it, and
       ;; counting it would make `g' prompt on every refresh, turning the
@@ -13275,14 +13326,17 @@ tells a human whether to care and a bare \"are you sure?\" does not
       ;; `g' prompt on a freshly built buffer -- the same mistake
       ;; `:auto-marked' exists to prevent one field over.
       (when (plist-get item :note-edited) (setq notes (1+ notes)))
-      (when (plist-get item :edited) (setq edited (1+ edited))))
+      (when (plist-get item :edited) (setq edited (1+ edited)))
+      (when (plist-get item :claimed) (setq claimed (1+ claimed))))
     (let ((parts (delq nil
                        (list (and (> marked 0) (format "%d marked" marked))
                              (and (> assigned 0) (format "%d assigned" assigned))
                              (and (> notes 0) (format "%d note%s" notes
                                                       (if (= notes 1) "" "s")))
                              (and (> edited 0) (format "%d edited interval%s" edited
-                                                       (if (= edited 1) "" "s")))))))
+                                                       (if (= edited 1) "" "s")))
+                             (and (> claimed 0) (format "%d claimed envelope%s" claimed
+                                                        (if (= claimed 1) "" "s")))))))
       (and parts (string-join parts ", ")))))
 
 (defun claude-code-ide-org-review-undo-refresh ()
