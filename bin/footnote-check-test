@@ -228,6 +228,38 @@ $SUP1 \`DONE\` \`$REAL2\` — something
 $(printf '\xc2\xb2') \`DONE\` \`$REALNUM\` — something else")"
 assert_txt "markers carry on from the footnotes already present" "$SUP3" yes
 
+# Orphaned footnote markers (:ID: 45dc171f). Measured at 51 genuine
+# instances over 924 footnoted responses -- validated first, since the
+# raw count was 77 and 26 of those were correction turns.
+SUP2="$(printf '\xc2\xb2')"
+
+check "a footnote whose marker is nowhere in the prose blocks" blocked \
+  "$(run o1 "Cited \`$REAL\`$SUP2 here.
+
+---
+
+$SUP1 \`TODO\` \`$REAL2\` — unreferenced
+$SUP2 \`TODO\` \`$REAL\` — fine")"
+
+# The exemption is load-bearing, not tidy: this hook ASKS for a
+# footnote-only correction turn, so blocking one would refuse the very
+# response it just requested.
+check "a footnote-only correction turn is exempt" allowed \
+  "$(run o2 "Footnotes for the previous response:
+
+---
+
+$SUP1 \`TODO\` \`$REAL\` — a title
+$SUP2 \`TODO\` \`$REAL2\` — another")"
+
+check "every marker placed passes" allowed \
+  "$(run o3 "Cited \`$REAL\`$SUP1 and \`$REAL2\`$SUP2 here.
+
+---
+
+$SUP1 \`TODO\` \`$REAL\` — a title
+$SUP2 \`TODO\` \`$REAL2\` — another")"
+
 out="$(run zz1 "See \`$REAL\` for detail.")"
 if [[ "$(rc_of "$out")" -eq 2 ]]; then
   printf 'ok   - blocks with exit code 2 (2)\n'; pass=$((pass+1))

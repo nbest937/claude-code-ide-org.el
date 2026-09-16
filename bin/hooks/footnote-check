@@ -231,7 +231,47 @@ while IFS= read -r id; do
   resolved="$resolved  $(num_to_sup "$marker_n") \`$kw\` \`$id\` — $title
 "
 done <<<"$candidates"
-[[ -n "$missing" ]] || exit 0
+
+# ORPHANED FOOTNOTE MARKERS (TODO.org :ID: 45dc171f). A footnote whose
+# marker appears nowhere in the prose points the reader at nothing, and
+# the id check above cannot see it: that test asks whether each cited id
+# is present SOMEWHERE in the block, which a response satisfies while
+# marking none of its citations.
+#
+# Measured over 6749 recorded responses, 924 with a footnote block: 51
+# genuine instances. Validated before building -- the raw count was 77,
+# and 26 of those were correction turns, which are not faults.
+#
+# Fixed-string matching throughout, never character arithmetic: the first
+# field of a footnote line IS the marker, `awk' splits on whitespace
+# without decomposing anything, and `grep -F' matches the bytes. That is
+# why this check is cheap where duplicate-detection was not -- and
+# duplicate-detection is deliberately absent, having occurred 0 times in
+# those same 924 responses.
+orphans=""
+if [[ -n "$foot" ]]; then
+  # A CORRECTION TURN carries no marker in its prose at all: the response
+  # IS the footnote block, appended for an earlier response whose prose
+  # holds the markers. Exempt, and the exemption is load-bearing rather
+  # than tidy -- this hook induces that turn, so blocking it would refuse
+  # the very response the hook just asked for. 26 of the 77 raw hits.
+  prose_has_marker=""
+  for d in 0 1 2 3 4 5 6 7 8 9; do
+    grep -qF -- "$(sup_digit "$d")" <<<"$body" && { prose_has_marker=yes; break; }
+  done
+  if [[ -n "$prose_has_marker" ]]; then
+    while IFS= read -r fline; do
+      [[ -n "$fline" ]] || continue
+      grep -qE '\b[0-9a-f]{8}\b' <<<"$fline" || continue   # not a footnote line
+      mk="$(awk '{print $1}' <<<"$fline")"
+      [[ -n "$mk" ]] || continue
+      grep -qF -- "$mk" <<<"$body" && continue             # marker is placed
+      orphans="$orphans${orphans:+ }$mk"
+    done <<<"$foot"
+  fi
+fi
+
+[[ -n "$missing" || -n "$orphans" ]] || exit 0
 
 # `mkdir -p' first: a bare `: > "$sentinel" 2>/dev/null' does NOT
 # suppress the failure when the directory is absent, because bash
@@ -268,6 +308,16 @@ mkdir -p "$queue_dir" 2>/dev/null
 # decision when it makes one, and your stderr text otherwise" -- so
 # emitting no decision leaves stderr as the message, which is the whole
 # point here.
+if [[ -z "$missing" ]]; then
+  cat >&2 <<EOF
+This response has footnote marker(s) that appear nowhere in its prose: $orphans.
+A footnote nobody can find is worse than one that is missing, because nothing
+refuses it and the reader has no reason to doubt it. Place each marker at the
+citation it belongs to, or drop the footnote line.
+EOF
+  exit 2
+fi
+
 cat >&2 <<EOF
 This response cites tracked org :ID:s without footnoting them: $missing. \
 Append a footnote for each, superscript-marked in the prose (¹²³), each \
@@ -283,5 +333,7 @@ response already carries, so they will not collide; place them at the citations
 in the order the ids first appear:
 
 $resolved
+${orphans:+Also: marker(s) $orphans appear in the footnote block but nowhere in the prose.
+}
 EOF
 exit 2
