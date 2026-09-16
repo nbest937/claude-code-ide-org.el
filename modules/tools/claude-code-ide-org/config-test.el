@@ -16389,7 +16389,7 @@ string, which is precisely the reported-failed symptom."
 
 ;;; Review findings on PR #23 -----------------------------------------------
 
-(ert-deftest claude-code-ide-org-test-merge-overlapping-runs-unions-concurrency ()
+(ert-deftest claude-code-ide-org-test-merge-time-intervals-unions-concurrency ()
   "Concurrent runs union rather than sum.
 
 Two sessions running the same ten minutes is ten minutes of wall clock,
@@ -16400,7 +16400,7 @@ they neither overlap nor drift outside it."
   (let* ((a (claude-code-ide-org-test--attention-run "09:00:00" "09:10:00"))
          (b (claude-code-ide-org-test--attention-run "09:05:00" "09:15:00"))
          (c (claude-code-ide-org-test--attention-run "09:30:00" "09:35:00"))
-         (merged (claude-code-ide-org--merge-overlapping-runs (list a b c))))
+         (merged (claude-code-ide-org--merge-time-intervals (list a b c))))
     (should (= 2 (length merged)))
     ;; The overlapping pair becomes one 15-minute run, not 20 minutes.
     (should (= 900 (round (float-time (time-subtract (cdr (nth 0 merged))

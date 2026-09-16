@@ -1696,8 +1696,28 @@ START, then merge any that are adjacent or overlapping (END of one
 >= START of the next) into a single min-to-max span. Return the
 merged list, ascending by START.
 
-UNWIRED as of 2026-08-10, for the same reason and on the same terms as
-`claude-code-ide-org--round-time-to-5-minutes' — see its docstring."
+*Wall-clock time is a union, not a sum*, which is what this is for
+(TODO.org :ID: 7d739afd).  Two sessions running at once produce two runs
+covering the same minutes, and adding them claims more time than
+elapsed: a 20-minute window can report 30 minutes of measured run time,
+after which end-to-end shares run past the window's end and overlap the
+next one -- exactly what `claude-code-ide-org-allocation-intervals'
+promises cannot happen.  Concurrency here is ordinary rather than
+exceptional: a background job and an interactive session overlap
+constantly in this project, which is the same fact that forced guidepost
+pairing to be per-lane.
+
+*The attention derivation needs no union, and the asymmetry is the
+point*: it asks which *windows* carry run time, and marking one busy
+twice is idempotent.  Only a path that totals seconds can double-count.
+
+It carried an \"UNWIRED as of 2026-08-10\" note until 2026-09-15.  It was
+not unwired; it had been *duplicated* --
+`claude-code-ide-org--merge-overlapping-runs' was coined later with the
+same sort and the same merge condition, and wired into the allocation
+path.  Checked over 20000 random interval sets before the two were
+folded together: 0 disagreed.  The magnitude of what the union prevents
+is measured on 7d739afd's body -- 0.11 h over ten days, 0.5%."
   (let ((sorted (sort (copy-sequence intervals)
                        (lambda (a b) (time-less-p (car a) (car b)))))
         result)
@@ -14943,10 +14963,16 @@ simply wrong."
          ;; a run neither ran.  Concurrent sessions are ordinary here --
          ;; a background job and an interactive one overlap constantly --
          ;; so this is the common case, not an edge one.
+         (alias (claude-code-ide-org--session-alias-map events))
          (runs (let ((by-session (make-hash-table :test 'equal))
                      paired)
+                 ;; Keyed on the *canonical* session, so a conversation
+                 ;; Claude Code re-keyed mid-work stays one stream and the
+                 ;; turn straddling the switch is not lost (:ID: b57c7515).
                  (dolist (event events)
-                   (push event (gethash (plist-get event :session-id) by-session)))
+                   (push event (gethash (claude-code-ide-org--canonical-session
+                                         (plist-get event :session-id) alias)
+                                        by-session)))
                  (maphash (lambda (_ session-events)
                             (setq paired
                                   (append (claude-code-ide-org--raw-work-runs
@@ -15234,34 +15260,6 @@ written as a `0:00' line."
         (push (+ base (if (< i remainder) 1 0)) shares))
       (nreverse shares))))
 
-(defun claude-code-ide-org--merge-overlapping-runs (runs)
-  "Return RUNS with overlapping intervals merged, oldest first.
-
-Wall-clock time is a *union*, not a sum.  Two sessions running at once
-produce two runs covering the same minutes, and adding them claims more
-time than elapsed -- a 20-minute window can report 30 minutes of
-measured run time, after which the end-to-end shares run past the
-window's end and overlap the next one, which is exactly what the
-allocation docstring promises cannot happen.
-
-Concurrency here is ordinary rather than exceptional: a background job
-and an interactive session overlap constantly in this project, which is
-the same fact that forced guidepost pairing to be per-session.
-
-The attention derivation needs no equivalent, and the asymmetry is the
-point: it asks which *windows* carry run time, and marking one busy
-twice is idempotent.  Only a path that totals seconds can double-count."
-  (let ((sorted (sort (copy-sequence runs)
-                      (lambda (a b) (time-less-p (car a) (car b)))))
-        merged)
-    (dolist (run sorted)
-      (let ((last (car merged)))
-        (if (and last (not (time-less-p (cdr last) (car run))))
-            (when (time-less-p (cdr last) (cdr run))
-              (setcdr last (cdr run)))
-          (push (cons (car run) (cdr run)) merged))))
-    (nreverse merged)))
-
 (defun claude-code-ide-org--allocation-clip-seconds (runs start end)
   "Return the seconds of RUNS falling inside [START, END)."
   (let ((total 0.0))
@@ -15289,18 +15287,31 @@ so -- a CLOCK line that does not is a fabricated measurement, which is
          (lo (float-time (org-time-string-to-time (concat from " 00:00"))))
          (hi (+ 86400 (float-time (org-time-string-to-time (concat to " 00:00")))))
          (table (claude-code-ide-org--id-index))
+         (alias (claude-code-ide-org--session-alias-map events))
          (by-session (make-hash-table :test 'equal))
+         (raw-sessions (make-hash-table :test 'equal))
          runs worked)
+    ;; Two partitions of the same events, and the split is load-bearing.
+    ;; Runs pair within a *lane* -- never across it, see
+    ;; `claude-code-ide-org-attention-intervals' for what merging the
+    ;; streams costs -- and a lane is the canonical session, so a re-keyed
+    ;; conversation is one stream (:ID: b57c7515).  Transcripts are per
+    ;; *file*: a re-keyed conversation has two of them and both hold
+    ;; worked ids, so that walk keeps the raw ids and canonicalising it
+    ;; would silently drop half the evidence.
     (dolist (event events)
-      (push event (gethash (plist-get event :session-id) by-session)))
+      (push event (gethash (claude-code-ide-org--canonical-session
+                            (plist-get event :session-id) alias)
+                           by-session))
+      (puthash (plist-get event :session-id) t raw-sessions))
     (maphash
-     (lambda (session session-events)
-       ;; Runs pair within a session, never across it -- see
-       ;; `claude-code-ide-org-attention-intervals' for what merging the
-       ;; streams costs.
+     (lambda (_lane session-events)
        (setq runs (append (claude-code-ide-org--raw-work-runs
                            (nreverse session-events))
-                          runs))
+                          runs)))
+     by-session)
+    (maphash
+     (lambda (session _)
        (dolist (hit (claude-code-ide-org--transcript-worked-ids session))
          (let ((full (claude-code-ide-org--expand-id-prefix (cdr hit) table)))
            ;; An unresolvable id is dropped rather than allocated to: it
@@ -15309,9 +15320,9 @@ so -- a CLOCK line that does not is a fabricated measurement, which is
            ;; somewhere nothing can read them back.
            (when (stringp full)
              (push (cons (float-time (car hit)) full) worked)))))
-     by-session)
-    ;; Union before totalling: see `--merge-overlapping-runs'.
-    (setq runs (claude-code-ide-org--merge-overlapping-runs runs))
+     raw-sessions)
+    ;; Union before totalling: see `--merge-time-intervals'.
+    (setq runs (claude-code-ide-org--merge-time-intervals runs))
     (setq worked (sort worked (lambda (a b) (< (car a) (car b)))))
     (let ((window (* width (floor lo width)))
           result)
