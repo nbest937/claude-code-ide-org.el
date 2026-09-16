@@ -212,6 +212,20 @@ else
   assert_txt "the block leads with the backticked id, then the keyword" \
     "\`$REAL\`  $REAL_KW" yes
   assert_txt "the block carries the exact title" "$REAL_TITLE" yes
+
+  # FLUSH LEFT, and asserted separately because the pairing assertion
+  # above matches a substring and is blind to the prefix (TODO.org
+  # :ID: cfdfe119). The message says "Append these lines", so whatever
+  # indent the hook emits is what a reader copies -- and the canonical
+  # form this hook enforces, shipped as org-footnote-citations.md, has
+  # none. A grep for the line anchored at column zero is the whole test.
+  # ANCHORED with `^'. An embedded newline in the pattern does not work:
+  # grep reads it as a pattern separator, so "\n`id`" becomes an empty
+  # alternative that matches every line, and the assertion passes against
+  # the indenting hook it was written to catch. Proved by doing exactly
+  # that first.
+  assert_txt "the suggested line starts at column zero" \
+    "^\`$REAL\`" yes
 fi
 
 out="$(run zz1 "See \`$REAL\` for detail.")"

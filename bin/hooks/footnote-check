@@ -212,7 +212,10 @@ while IFS= read -r id; do
   # volatile field and misalignment hides staleness. Backticked because the
   # terminal renders code in a distinct face, which is the whole reason the
   # id is findable at a glance (TODO.org :ID: 2a6a1355).
-  resolved="$resolved  \`$id\`  $(printf '%-9s' "$kw") $title
+  # FLUSH LEFT: the message says "append these lines", so whatever indent
+  # is emitted is what gets copied, and the canonical form this hook
+  # enforces has none (TODO.org :ID: cfdfe119).
+  resolved="$resolved\`$id\`  $(printf '%-9s' "$kw") $title
 "
 done <<<"$candidates"
 
