@@ -11,6 +11,43 @@
 
 Found 2026-09-16 while measuring whether [[id:2a6a1355-615f-4c2c-a8af-c9ae8dcda09b][2a6a1355]]'s marker-collision detection was worth building. It is not — 0 duplicate markers across 924 footnoted responses — but the same scan of **6749 assistant responses** surfaced a fault an order of magnitude more common and never filed: **97 responses, roughly 10% of all footnoted ones, carry a marker and a footnote that do not correspond.** 77 have a footnote line whose marker appears nowhere in the prose; 20 have a prose marker with no footnote line. Spread across a month — 18 on 2026-08-27, 14 on 08-25, 5 on 09-15 — so it is a standing pattern rather than one session's habit. =bin/hooks/footnote-check= cannot see it: its test is whether each cited *id* appears somewhere in the footnote block, which a response satisfies while pointing the reader at the wrong line or at no line at all. That is the same shape as the paraphrased-title mode [[id:33c3eabc-00f2-4cf1-afb7-4071aa256d62][33c3eabc]] closed — a footnote that exists and misleads is worse than one that is missing, because nothing refuses it and the reader has no reason to doubt it. Proposed: for each footnote line, take the leading marker as a **byte string** and =grep -qF= it against the prose; report any that never appear, and any prose marker with no line. **The multibyte objection that killed collision detection does not apply**: correspondence needs fixed-string matching, never character arithmetic, so it is locale-independent and cheap in the byte-oriented shell a =Stop= hook must stay in. Two things to settle before building. Whether a *dangling prose marker* is even a fault — a footnote that arrives in a later correction turn legitimately has its marker placed first. And whether the 77 include a systematic false positive from the block-splitting rule, which takes everything after the last line that is exactly =---=; a response with a later horizontal rule would misplace the boundary. The scan was not validated against hand-checked examples, so treat 97 as an upper bound until it is.
 
+*Validated first, then shipped, 2026-09-16 — and validation changed the
+number, which is the reason this body insisted on it.*
+
+**The raw 97 was two populations.** Hand-checking the 77 orphan-marker hits
+split them into **26 correction turns** — footnote-only responses appended for
+an *earlier* response, whose prose legitimately holds the markers — and **51
+genuine mismatches**. The other inflation hypothesis this body named was
+falsified outright: **0 of the 77 carried more than one =---= line**, so the
+block-splitting rule was not misplacing the boundary anywhere.
+
+*The correction-turn exemption is load-bearing rather than tidy, and finding it
+was the point of validating.* This hook **asks for** that turn — it blocks, the
+model appends footnotes, and the reply is a footnote-only response. Blocking
+that would refuse the very thing just requested, and the 26 would have grown,
+because the hook induces the pattern. A response whose prose carries no marker
+at all is therefore exempt.
+
+*Shipped:* for each footnote line, the first whitespace field is the marker;
+if it appears nowhere in the prose the hook blocks and names it. Fixed-string
+matching throughout — =awk= splits on whitespace without decomposing anything
+and =grep -F= compares bytes — which is why this is cheap where
+[[id:2a6a1355-615f-4c2c-a8af-c9ae8dcda09b][2a6a1355]]'s duplicate detection was
+not, and why it is locale-independent in the byte-oriented shell a =Stop= hook
+must stay in.
+
+*Three tests; one proved red against the previous hook.* The other two pass
+either way **by design** — they are guards that the check does not *over*-fire
+(the correction turn, and the all-markers-placed case), and a guard that fails
+against the old code would mean the old code was already wrong.
+
+*Left undone, deliberately:* the other direction — a **prose marker with no
+footnote line**, 21 instances. Detecting it needs *finding* markers in prose
+rather than comparing a known one, which means superscript literals in the
+script and the encoding hazard that already cost an afternoon. Worth doing only
+if the 21 turn out to matter; the 51 were the larger and cheaper half.
+
+
 * TODO The complement's gap spans carry no events, so half the review buffer cannot be dismissed :code:
 :PROPERTIES:
 :ID:       445fe577-01ce-4e68-ab5f-c349c40a4643
@@ -49,6 +86,32 @@ Found and fixed 2026-09-16 while recovering from the =489d6f61= crash. =~/.confi
 :END:
 
 Found 2026-09-16 while answering "does 4acd8ad0 fit an open slice?". Measured four ways, and the defect is entirely in the wrapper — =org-ql= itself is correct on both counts. =(org-ql-select (org-agenda-files) '(property "KIND" "slice"))= returns **14**; the same query through =org_query= returns **"No matches."**. And =org-ql-select= with a nonsense predicate **signals =void-function=**, while =org_query= with =(no-such-predicate "banana")= returns **"No matches."** — byte-identical to an honest empty result. So two faults, one hiding the other: the wrapper swallows a rejected query into an empty result, and =property= never reaches =org-ql= at all, which suggests a predicate allowlist or a re-parse that discards what it does not recognise. Fix the error surfacing **first**: once a rejected query says so, a missing predicate announces itself instead of lying, and the second fault becomes self-reporting rather than silent. This cost a real session real work — the empty result was read as "no slices carry :KIND:", and the question was then answered with an =awk= scan reconstructing heading boundaries by regex, which is the entry-boundary class the org-dev skill §0b exists to prevent. The answer happened to be right, which is worse than wrong: nothing would have flagged it. Note the general shape is CLAUDE.md's own — of roughly a dozen wrong claims on 2026-08-11, three came from reading a silently-failing command's empty output as a result.
+
+*Broader than filed, measured 2026-09-16 while asking whether anything new
+belonged in slice
+[[id:6521dd56-8772-416b-9435-6da78bb86b06][6521dd56]].* The defect is not
+confined to =property=. =(tags "research")= returns **"No matches."** through
+=org_query= while =org-ql-select= finds **24** headings for the identical query.
+The control still works — =(todo "DONE")= returns 349 — so the wrapper is
+dropping *specific predicates*, not failing wholesale, and =todo= happens to be
+the one every earlier use of this tool relied on.
+
+*Which is why it went unnoticed for so long, and the shape is worth naming.* A
+tool that answers correctly for the predicate you always use, and silently
+answers "nothing" for the ones you rarely try, trains its user to trust it.
+Every empty result reads as a fact about the corpus.
+
+**It blocks
+[[id:e28933e9-f352-4ef9-8d53-8cd9a4318768][e28933e9]]** — "Survey all task
+history for a tag vocabulary worth searching on" — which is a tags query by
+definition. Run today, that survey would report an empty vocabulary and the
+report would look like a finding. Recorded as a =:BLOCKER:= rather than left as
+prose, since a cross-slice dependency is invisible from both ends.
+
+*Note the fix order is unchanged and this strengthens it:* surface the rejection
+first. Once a query org-ql would refuse says so, the set of dropped predicates
+enumerates itself instead of being discovered one survey at a time.
+
 
 
 * TODO The re-key bridge reads transcripts Claude Code prunes, so the alias decays silently :code:
@@ -1730,6 +1793,7 @@ item a normal bracket and prevented the whole class.
 :ID:       e28933e9-f352-4ef9-8d53-8cd9a4318768
 :CREATED:  [2026-09-09 Wed 08:07]
 :CATEGORY: Skill
+:BLOCKER:  37bca83a-e83b-4070-9058-6318a58a24db
 :END:
 :LOGBOOK:
 - [2026-09-09 Wed 08:03]--[2026-09-09 Wed 08:07] assigned at review
