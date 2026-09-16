@@ -66,7 +66,17 @@ done
 # the scan. An id inside ``` or ~~~ is a *transcript* -- tool output, a
 # file excerpt, a rendered slice checklist -- not a citation, and the
 # footnote convention exists to keep prose scannable while staying
-# recoverable. A transcript is already in its own context.
+# recoverable.
+#
+# The reason is PROVENANCE and SELF-DESCRIPTION, never how a fence looks.
+# Corrected 2026-09-16 (TODO.org :ID: 762b7836): an earlier wording said
+# "a transcript is already in its own context", which is a claim about
+# rendering -- and fences are far less prominent in the CLI than in the
+# desktop app, so that argument fails exactly where the reading happens.
+# What holds in any client is that the id arrived by transcription rather
+# than by anyone choosing to cite it, and that a block like a slice
+# checklist already carries the keyword and title a footnote would
+# restate. Do not extend this exemption on the visual argument.
 #
 # Found 2026-08-26 by this hook firing on a response that displayed a
 # slice's checklist: twelve ids, each demanding a footnote that restated
