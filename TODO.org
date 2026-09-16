@@ -2,6 +2,15 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO The audit log answers attribution questions nobody asks it :code:
+:PROPERTIES:
+:ID:       e9ee1a50-085f-4c37-b064-4aec71cecb41
+:CREATED:  [2026-09-16 Wed 13:47]
+:CATEGORY: Dev
+:END:
+
+Found 2026-09-16. =.claude-code-ide-org-audit.jsonl= holds **5053 records, 1.7 MB**, accumulated since August in the repo root (gitignored, =.gitignore:4=), and 2026-09-16 was the **first time anything ever read it**. It was built for one job — catching a mutation that did not reach disk, which is why each record carries before/after =sha256= and a =result= of =saved= or =UNSAVED-MISMATCH= — and it turns out to answer a second, larger class for free: **which tool changed which heading, when**. It settled [[id:e3d1531d-7562-4bad-bef2-fc819630c5f7][e3d1531d]] in one query after two purpose-built measurements had failed on instrument grounds, and it did so from data already on disk for weeks. *The gap is not more logging.* Four times in one session the answer was already built — =org-ql='s predicates behind a wrapper that dropped them, =--transcript-longer-sibling='s re-key detection, =--merge-time-intervals= duplicated as =--merge-overlapping-runs=, and now this. Adding instrumentation without a reader grows a file nobody queries; the standing habit to fix is reaching for construction before interrogation. *Proposed, in order of cheapness.* A one-line recipe in the org-dev skill — "before building a measurement, query the audit log" — with the two shapes that work: count by =tool= for a heading, and correlate a =timestamp= against an interval. Then, if it earns it, a small reader: =claude-code-ide-org-audit-report= taking an =:ID:= and returning tool counts and a timeline, so the query is a command rather than a =python3= one-liner reconstructed each time. *One real limitation, stated so the reader is not over-trusted.* It records that a tool touched a heading, never what it did to it. =e3d1531d= was answerable only because apply has no reason to touch =Review attention= except by closing its clock — an inference from the mechanism, not from the record. A log entry naming the *operation* would make that class of question direct rather than lucky, and that is the one place more instrumentation is genuinely warranted.
+
 * TODO The review-attention clock stops at the first apply, so 101 intervals measure the wrong thing :code:
 :PROPERTIES:
 :ID:       e3d1531d-7562-4bad-bef2-fc819630c5f7
@@ -58,6 +67,56 @@ the whole question into a lookup — the same move
 [[id:33c3eabc-00f2-4cf1-afb7-4071aa256d62][33c3eabc]] made for the footnote
 hook. Until then this heading should be read as a hypothesis with a mechanism,
 not a diagnosis.
+
+*Confirmed 2026-09-16, and the correction above is itself corrected. The
+evidence existed the whole time, in a file nothing had ever read.*
+
+=.claude-code-ide-org-audit.jsonl= records which tool mutated which heading.
+Queried for this heading: **246 records — 138 =hand-edit=, 108
+=org_review_apply=**. Apply has no reason to touch =Review attention= at all
+except by closing its clock. Correlated against the drawer: **95 of 101
+attention clock ENDS coincide with an =org_review_apply= record on this heading,
+6 with =hand-edit= only, and 0 with no record at all.**
+
+*So this is a diagnosis after all, not a hypothesis.* The hedge added an hour
+earlier was right about my two failed measurements and wrong about the
+conclusion — I treated "my instruments cannot see it" as "it is not
+established", when a third instrument was already on disk with five thousand
+records in it. Both errors are worth keeping: the overstatement, then the
+overcorrection.
+
+**What the truncation costs, measured.** Extending each interval to the *last*
+=org_review_apply= record in the burst that closed it — a moment the human
+demonstrably *was* still in the pass, since they were applying — gives:
+
+| | |
+|---+---|
+| currently recorded | **9.05 h** |
+| extended to last apply | **20.12 h** |
+| difference | **+11.07 h**, across 97 of 101 intervals |
+
+So the record understates review attention by **more than half**.
+
+*Can the drawer be retconned? Partially, and it should not be yet.* The
+extension above is a **floor**, not the truth: it is evidentially grounded at
+its new end, but the stretch between the last apply and the bury is unrecorded
+entirely — once apply closed the clock, =--attention-stop= writes nothing. A
+retcon would produce 97 rewritten CLOCK lines that are *less wrong and still
+wrong*, and would then read as authoritative, which is =7771fc63='s standing
+objection to a plausible value over an absent one.
+
+**The decisive argument is order: the mechanism still truncates.** Repairing
+history while the leak is open repairs downstream of it, and the next hundred
+intervals arrive wrong. =2deb090f= got this order right — it stopped the leak
+with =c= and declined the history.
+
+*But unlike that case, deferring costs nothing, and the asymmetry is worth
+naming.* =2deb090f='s history is unrecoverable because consumed queue events are
+never re-offered. This evidence is **append-only and permanent**: the audit log
+is not consumed, not rotated, and not in git's way. The retcon is available
+whenever it is wanted, on exactly the same terms, so there is no deadline
+forcing the decision now.
+
 
 
 * DOING A marker and its footnote need not correspond, and nothing checks that they do :code:
