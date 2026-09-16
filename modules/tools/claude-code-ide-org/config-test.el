@@ -11797,6 +11797,67 @@ first, `new\=' is ~5% smaller and ends later."
           (should-not (claude-code-ide-org--transcript-longer-sibling "new")))
       (delete-directory home t))))
 
+(ert-deftest claude-code-ide-org-test-a-split-span-offers-its-unowned-gaps ()
+  "The gaps between two owned intervals reach review instead of vanishing.
+
+The 2026-08-25 fixture from the heading, every number taken from the
+queue file: two guideposts 935 s apart -- inside the 1200 s threshold, so
+the threshold is not what separates them -- with two clock brackets
+between them totalling 566 s.  The old code split on each bracket and
+emitted only the endpoints, two zero-width items, losing **369 s in
+three gaps**.  Each gap was identifiable in the transcript as real
+meta-work: writing a measured note, committing and re-orienting, and
+composing the closing report (TODO.org :ID: c54c4215).
+
+Note what the fix does to the zero-width endpoints the heading asked
+about: they are *absorbed*.  17:58:09 and 18:13:44 now sit inside the
+first and last gap rather than being offered as points of their own, so
+the presentation question the heading left open answers itself."
+  (let* ((ts (lambda (s) (date-to-time (concat "2026-08-25T" s "-0500"))))
+         (exclusions (list (cons (funcall ts "17:59:52") (funcall ts "18:02:26"))
+                           (cons (funcall ts "18:05:44") (funcall ts "18:12:36"))))
+         (spans (claude-code-ide-org--aggregate-guideposts
+                 (claude-code-ide-org-test--events
+                  '("2026-08-25T17:58:09-0500" "resume" nil nil "s")
+                  '("2026-08-25T18:13:44-0500" "pause"  nil nil "s"))
+                 nil exclusions))
+         (secs (lambda (s) (round (float-time (time-subtract (cdr s) (car s)))))))
+    (should (= 3 (length spans)))
+    (should (equal (mapcar secs spans) '(103 198 68)))
+    (should (= 369 (apply #'+ (mapcar secs spans))))
+    ;; No zero-width item survives: the endpoints are inside the gaps now.
+    (should-not (seq-find (lambda (s) (= 0 (funcall secs s))) spans))))
+
+(ert-deftest claude-code-ide-org-test-a-fully-owned-span-yields-nothing ()
+  "A span its exclusions cover entirely offers no item at all.
+
+The other side of the complement, and the property that keeps the change
+from manufacturing work: subtracting must be able to reach zero.  Without
+this assertion an off-by-one in the sweep would show up only as an extra
+review item nobody could explain."
+  (let* ((ts (lambda (s) (date-to-time (concat "2026-08-25T" s "-0500")))))
+    (should-not (claude-code-ide-org--aggregate-guideposts
+                 (claude-code-ide-org-test--events
+                  '("2026-08-25T18:00:00-0500" "resume" nil nil "s")
+                  '("2026-08-25T18:10:00-0500" "pause"  nil nil "s"))
+                 nil
+                 (list (cons (funcall ts "17:59:00") (funcall ts "18:11:00")))))))
+
+(ert-deftest claude-code-ide-org-test-a-lone-timestamp-survives-as-a-point ()
+  "A lone guidepost outside any exclusion is still offered, at zero width.
+
+\"A lone timestamp yields a zero-width span, which is honest\" is the
+aggregator's own rule and the complement must not quietly retire it --
+the point is evidence that *something* happened then, even though its
+duration is unknown.  Inside an exclusion it is owned already and goes."
+  (let* ((ts (lambda (s) (date-to-time (concat "2026-08-25T" s "-0500"))))
+         (lone (claude-code-ide-org-test--events
+                '("2026-08-25T18:00:00-0500" "resume" nil nil "s"))))
+    (should (= 1 (length (claude-code-ide-org--aggregate-guideposts lone nil nil))))
+    (should-not (claude-code-ide-org--aggregate-guideposts
+                 lone nil
+                 (list (cons (funcall ts "17:55:00") (funcall ts "18:05:00")))))))
+
 ;;; :PLAN: drawer wrapping (TODO.org :ID: 3063c3e5)
 
 (defun claude-code-ide-org-test--body-of (id)

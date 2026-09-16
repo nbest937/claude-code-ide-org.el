@@ -7682,6 +7682,47 @@ the first version of this did."
                    (time-less-p time (cdr iv))))
             intervals))
 
+(defun claude-code-ide-org--span-complement (span intervals)
+  "Return the parts of SPAN not covered by INTERVALS, oldest first.
+
+The other half of a split.  Treating an exclusion as a boundary was
+always right -- the minutes inside it already have an owner and offering
+them twice is the defect :ID: eaeeb4ee fixed -- but the old code emitted
+only the *endpoints* either side, so the unowned gaps *between* two
+exclusions were dropped.  Measured on the 2026-08-25 fixture: a 935 s
+span carrying a 154 s and a 412 s exclusion emitted two zero-width items
+and lost **369 s in three gaps**, each identifiable in the transcript as
+real meta-work (TODO.org :ID: c54c4215).
+
+A span covered entirely by its exclusions correctly yields nothing.  A
+zero-width span is a lone timestamp, which is honest, and survives
+unless it sits inside an exclusion -- strictly inside, matching
+`claude-code-ide-org--time-within-any-p', so a point on an exclusion's
+own edge is kept.
+
+*The segment boundaries are exclusion edges rather than guideposts, and
+that is still evidence rather than assertion*: an edge is a `clock_in'
+or `clock_out' timestamp from the queue.  It is a different event kind
+from the ones bounding an ordinary span, not a weaker one."
+  (let ((start (car span))
+        (end (cdr span)))
+    (if (not (time-less-p start end))
+        (unless (claude-code-ide-org--time-within-any-p start intervals)
+          (list span))
+      (let ((cursor start) segments)
+        (dolist (iv (sort (copy-sequence intervals)
+                          (lambda (a b) (time-less-p (car a) (car b)))))
+          (let ((a (car iv)) (b (cdr iv)))
+            ;; Only intervals that actually overlap what is left.
+            (when (and (time-less-p a end) (not (time-less-p b cursor)))
+              (when (time-less-p cursor a)
+                (push (cons cursor a) segments))
+              (when (time-less-p cursor b)
+                (setq cursor b)))))
+        (when (time-less-p cursor end)
+          (push (cons cursor end) segments))
+        (nreverse segments)))))
+
 (defun claude-code-ide-org--aggregate-guideposts (events &optional threshold
                                                           exclusions)
   "Collapse EVENTS' timestamps into (START . END) spans for review.
@@ -7792,18 +7833,15 @@ other."
                    ;; splittable, which is what the bare-`:ts' fixture in
                    ;; config-test.el expects.
                    (and (equal previous-kind "resume") (equal kind "pause")))
-               ;; Non-strict on both sides: the two timestamps either side
-               ;; of a block are normally the block's own endpoints -- a
-               ;; `block_start' is the last event before the wait and a
-               ;; `block_end' the first after it, since no guidepost fires
-               ;; while a turn is stalled. A strict test therefore never
-               ;; fires in the case this exists for. Left outside the kind
-               ;; gate: a block is a certain fact about nothing running,
-               ;; and outranks the adjacency.
-               (not (seq-find (lambda (iv)
-                                (and (not (time-less-p (car iv) previous))
-                                     (not (time-less-p time (cdr iv)))))
-                              blocks))
+               ;; A block no longer splits *here*.  It used to, and the
+               ;; split emitted only the endpoints either side, dropping
+               ;; the unowned gaps between two blocks (:ID: c54c4215).
+               ;; Clustering through and subtracting afterwards with
+               ;; `claude-code-ide-org--span-complement' yields the same
+               ;; boundaries plus those gaps, so the blocked minutes are
+               ;; still never claimed -- they are removed by subtraction
+               ;; rather than by refusing to cluster.
+               ;;
                ;; A *project* boundary splits, like a block does: clustering
                ;; across one credits one project's minutes to the other's
                ;; heading, and the resulting annotation names two trackers
@@ -7825,7 +7863,11 @@ other."
             (setq start time previous time previous-kind kind
                   previous-project project)))))
     (when start (push (cons start previous) spans))
-    (nreverse spans)))
+    ;; Subtract the owned intervals from each cluster, emitting the
+    ;; complement rather than the endpoints.
+    (apply #'append
+           (mapcar (lambda (s) (claude-code-ide-org--span-complement s blocks))
+                   (nreverse spans)))))
 
 (defconst claude-code-ide-org--run-opening-kinds
   '("resume" "clock_in" "block_end")
