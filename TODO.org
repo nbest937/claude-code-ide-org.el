@@ -7898,6 +7898,51 @@ recommendation with a number behind it, not a decision: wire
 per-heading CLOCK lines written as computed, and let the 0.5% decide whether
 even that is worth doing now.
 
+*Resolved 2026-09-15, and the premise this heading rested on was wrong rather
+than stale.* The "UNWIRED as of 2026-08-10" note on
+=--merge-time-intervals= was true of that symbol and false of the
+operation. The union **was** wired — through
+=--merge-overlapping-runs=, coined later with the same sort and the same
+merge condition, carrying a docstring that reasons about this very
+heading without citing it. Two functions, one operation. Checked over
+**20000 random interval sets before folding them together: 0
+disagreed.**
+
+*So the wiring decision resolves to "one union function, not two".* The
+primitive survives under the name this heading names, carrying the duplicate's
+rationale; =--merge-overlapping-runs= is deleted and its concurrency test
+retargeted, the scenario being the part worth keeping.
+
+*The three totalling paths, each settled on its own terms:*
+
+- *Allocation* — already unions, now through the surviving primitive.
+- *Attention* — needs none, and the asymmetry is the point: it asks which
+  *windows* carry run time, and marking one busy twice is idempotent. Only a
+  path that totals seconds can double-count.
+- *org's own clocktable* (=claude-code-ide-org-clock-report=) — sums CLOCK
+  lines, and is **left alone deliberately**.
+
+*The open question stays open, exactly as this body demands.* Whether the union
+belongs at the CLOCK-line level is the half that "should not be decided by
+whoever happens to touch this first", and nothing here decides it. What the
+0.5% buys is the right to leave it open cheaply: at that magnitude there is no
+case for paying at write time, where the cost of being wrong is a refused CLOCK
+line that cannot be recovered, while the report-time half is recomputable and
+reversible and is now single-sourced.
+
+*This heading is also where two missed alias sites surfaced*, found by reading
+*every* =by-session= grouping rather than the three
+[[id:b57c7515-c511-4198-b311-26cefc52a60d][b57c7515]] already knew about.
+=attention-intervals= and =allocation-intervals= both paired runs on the raw
+=session_id=, so a re-keyed turn was lost to the very derivations that consume
+it. The allocation fix is the instructive one: its partition is now **two**,
+because runs pair per canonical lane while the transcript walk must keep raw
+ids — a re-keyed conversation has two transcripts and both hold worked ids, so
+canonicalising that walk would have silently dropped half the evidence.
+=--review-describe-failure= and =review-dismiss= were checked and left raw:
+they are per-*file* operations, where the raw id is the correct key.
+
+
 
 ** TODO A background job's first turn is bracketed across two session_ids :code:
 :PROPERTIES:
