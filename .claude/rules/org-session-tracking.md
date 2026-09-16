@@ -41,11 +41,27 @@ queue file and exits:
 | Hook                | Script                        | Appends       |
 |---------------------|-------------------------------|---------------|
 | `Stop`              | `bin/hooks/session-pause`     | `pause`       |
+| `Stop`              | `bin/hooks/footnote-check`    | nothing — *blocks the stop* when the response cites a tracked `:ID:` with no end-matter entry |
+| `Stop`              | `bin/hooks/clock-target-check`| nothing — *blocks the stop*, once per session, when write activity has no `clock_in` |
 | `UserPromptSubmit`  | `bin/hooks/session-resume`    | `resume`      |
 | `UserPromptSubmit`  | `bin/hooks/apply-detect`      | nothing — *injects context* when the queue was applied since the session's last turn |
 | `PermissionRequest` | `bin/hooks/block-start`       | `block_start` |
 | `PostToolUse` (unscoped) | `bin/hooks/block-end`    | `block_end`, if a block is open |
 | `PermissionDenied`  | `bin/hooks/block-end`         | `block_end`, if a block is open |
+
+**Two of the rows block rather than append**, and they are the reason
+the table is not simply a list of queue writers. `footnote-check`
+enforces the citation rules (`org-footnote-citations.md`, promoted
+alongside this file); `clock-target-check` backstops the rule that a
+session names the heading its first write belongs to, which lives in the
+state-transition rules. Neither touches the queue, and neither can name
+a heading — that judgement belongs to the rule, not the hook.
+
+*The table omits the five `PostToolUse` `queue-append` matchers*, which
+wire `org_clock_in`, `org_clock_out`, `org_set_todo`, `org_capture` and
+`org_amend` to the queue. They are the queued tools' own mechanism
+rather than session tracking, and `hooks/hooks.json` is where their
+wiring is read.
 
 **`apply-detect` is the one read-only row** (`:ID:` 165ce65a): the
 apply pass writes `.applied` watermark files, and this hook compares
