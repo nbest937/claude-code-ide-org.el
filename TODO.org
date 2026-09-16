@@ -11,6 +11,7 @@
 
 Found 2026-09-15 measuring b57c7515. The function decides which of two re-keyed transcripts continues the conversation by file *size* — "the continued copy is the bigger one" — which is true when the re-key happens early and false when it happens late. Measured over the 7 re-key groups in the corpus: size and queue-order agree 6 times and disagree once. In =d79e3ed8= = {=91ed1224=, =b48bf8c1=} the sizes are 2654k against 2618k, a 1.4% gap, and the *smaller* file is the continuation — =b48bf8c1='s transcript ends 17:59:45 against =91ed1224='s 17:58:51, and its single queue event at 12:59:34 falls after =91ed1224='s last at 12:58. So the function reports =91ed1224= as superseding =b48bf8c1= when it is the other way round. The failure is silent and its own docstring is what makes it matter: the whole point is that a reader not be "sure they are looking at something they are not". Proposed: order by the transcript's *last* entry timestamp rather than its size, accepting the extra read, or fall back to it only when the sizes are within a few percent. Note size was itself a deliberate 2026 replacement for a line count (=33e6ff1a=) on cost grounds, so the fix should keep the cheap test first and pay for the tie-break only on a near-tie. Not blocking the alias map this was found from: lane canonicalisation only needs both ids to map to the *same* key, so which one is canonical does not affect pairing.
 
+
 * TODO The re-key bridge reads transcripts Claude Code prunes, so the alias decays silently :code:
 :PROPERTIES:
 :ID:       4acd8ad0-4d26-420b-bf84-f66ae8a9dfc5
@@ -19,6 +20,7 @@ Found 2026-09-15 measuring b57c7515. The function decides which of two re-keyed 
 :END:
 
 Split out of b57c7515 on 2026-09-15 rather than built there. That heading's fix reconciles a mid-work session re-key by grouping sessions whose transcripts share a first-entry =uuid= — measured exact over the corpus, 7 groups, 14 of 65 sessions. But the signal lives in =~/.claude/projects/*/*.jsonl=, which Claude Code prunes on its own schedule (=cleanupPeriodDays=), and the queue events carry no conversation key of their own. So the alias is exact for recent work and degrades to nothing for old work, with no symptom at the boundary — a re-key whose transcripts have aged out simply looks like two unrelated sessions again, which is the failure this whole line of work exists to remove. Proposed: have =queue-append= record a stable conversation key on the event itself (the transcript's first =uuid=, or the =transcript_path= the hook payload already carries), so the bridge stops depending on a file someone else garbage-collects. Note the constraint that shapes it: the hook family is plain POSIX shell precisely so a stopped Emacs costs nothing, so whatever is recorded must be one cheap read of the transcript's first line, not a parse.
+
 
 * TODO No org tool edits a phrase in place: org_amend appends or replaces the whole body :code:
 :PROPERTIES:
@@ -801,7 +803,7 @@ counts it, leaving the cookie lying about what remains.
 *Resolved 2026-09-15* (prose [[orgit-rev:claude-code-ide-org::a2f770a][a2f770a]], code [[orgit-rev:claude-code-ide-org::bb8f3af][bb8f3af]], second member of =35582d95=). Root cause first: the ten values now live in =.claude/rules/org-categories.md= with no =paths:= scope, so every session loads them; the local conventions file keeps the history and points at the move. Then the mechanism: =org_capture= takes =category=, written into the drawer after =:CREATED:= on both the immediate and the deferred path (the hook maps it, the parser and apply carry it). The decision the body left open went to *required* — a top-level capture without one is refused, and the refusal names the values the file already uses; under an =:ID:= target the child inherits and nothing is required. A value the file has never used is written with a warning, not refused, since the taxonomy is the consuming repo's own. The lint's level-1 rule went from warn to error; it already read the drawer as text, which is why only the severity changed. Before: 107 level-1 headings, 0 missing. After: 107, 0 — the number held, and the mutation test (one =:CATEGORY:= line deleted from a copy) proves the error names the heading.
 
 
-* NEXT [0/7] A span is only as true as its owner, its edges and its payload :code:
+* DOING [0/7] A span is only as true as its owner, its edges and its payload :code:
 :PROPERTIES:
 :ID:       749301a0-0bd0-4fbd-b3f7-79739226e15a
 :CREATED:  [2026-09-11 Fri 18:58]
@@ -815,6 +817,8 @@ CLOCK: [2026-09-15 Tue 13:10]--[2026-09-15 Tue 13:12] =>  0:02
 - [2026-09-15 Tue 13:10]--[2026-09-15 Tue 13:12] compose the next-session plan for this slice
 - State "NEXT"       from "TODO"       [2026-09-15 Tue 13:12] \\
   nominated: next slice, plan composed in next-session.md
+- State "DOING"      from "NEXT"       [2026-09-15 Tue 18:29] \\
+  slice work starts; first member in the mail
 :END:
 :PLAN:
 *Why this order.* Each group hands its output to the next, so working them out
@@ -859,10 +863,10 @@ its finished ten and this sequences what is left.
 Planned:
 
 - [-] [[id:406e9200-c3e7-49ac-a8d0-d6ff8e061ce4][406e9200]] DOING Make the guidepost pipeline produce durations that mean what they say
-  - [ ] [[id:b57c7515-c511-4198-b311-26cefc52a60d][b57c7515]] NEXT A session id that changes mid-work splits one clock bracket across two queue files
-  - [ ] [[id:9202b39d-49e4-441c-89f2-382feb4ef1ea][9202b39d]] TODO A background job's first turn is bracketed across two session_ids
-  - [ ] [[id:7d739afd-f879-445c-b0b6-65e295585a94][7d739afd]] TODO Concurrent sessions' turns must union, not sum, wherever time is totalled
-  - [ ] [[id:c9940558-b23e-4b2c-86e8-e75a377634aa][c9940558]] TODO Guidepost aggregation ignores =cwd=, so two projects' turns cluster into one span
+  - [-] [[id:b57c7515-c511-4198-b311-26cefc52a60d][b57c7515]] REVIEW A session id that changes mid-work splits one clock bracket across two queue files
+  - [-] [[id:9202b39d-49e4-441c-89f2-382feb4ef1ea][9202b39d]] REVIEW A background job's first turn is bracketed across two session_ids
+  - [-] [[id:7d739afd-f879-445c-b0b6-65e295585a94][7d739afd]] REVIEW Concurrent sessions' turns must union, not sum, wherever time is totalled
+  - [ ] [[id:c9940558-b23e-4b2c-86e8-e75a377634aa][c9940558]] NEXT Guidepost aggregation ignores =cwd=, so two projects' turns cluster into one span
   - [ ] [[id:c54c4215-90e3-4e0c-9de1-990c0406a2b2][c54c4215]] TODO A split span drops the unowned gaps between the clock pairs that split it
   - [ ] [[id:2deb090f-593d-40e3-9044-fda318d9b6de][2deb090f]] TODO Accepting a 0-run span records none of its minutes, and only =e= can claim them
 
@@ -1283,6 +1287,7 @@ CLOCK: [2026-09-15 Tue 09:43]--[2026-09-15 Tue 09:48] =>  0:05
 - [2026-09-15 Tue 09:43]--[2026-09-15 Tue 09:48] assigned at review
 - State "DONE"       from "REVIEW"     [2026-09-15 Tue 10:41] \\
   PR #23 merged; slice complete
+- [2026-09-15 Tue 13:13]--[2026-09-15 Tue 13:17] assigned at review
 :END:
 :PLAN:
 The foundation is one measured fact (=295cde3a=, 2026-09-01): every queue
@@ -5785,6 +5790,8 @@ attention as it happens.
 :CREATED:  [2026-08-26 Wed 09:54]
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-16 Wed 06:15]--[2026-09-16 Wed 06:16] =>  0:01
+CLOCK: [2026-09-16 Wed 06:12]--[2026-09-16 Wed 06:14] =>  0:02
 CLOCK: [2026-09-15 Tue 13:31]--[2026-09-15 Tue 13:33] =>  0:02
 CLOCK: [2026-09-15 Tue 13:28]--[2026-09-15 Tue 13:30] =>  0:02
 CLOCK: [2026-09-15 Tue 13:04]--[2026-09-15 Tue 13:06] =>  0:02
@@ -6982,6 +6989,8 @@ CLOCK: [2026-08-18 Tue 10:44]--[2026-08-18 Tue 10:45] =>  0:01
 - [2026-08-18 Tue 10:44]--[2026-08-18 Tue 10:45] implement the two-mechanism fix
 CLOCK: [2026-08-18 Tue 10:47]--[2026-08-18 Tue 11:24] =>  0:37
 - [2026-08-18 Tue 10:47]--[2026-08-18 Tue 11:24] suggested span, accepted at review
+CLOCK: [2026-08-18 Tue 11:24]--[2026-08-18 Tue 11:25] =>  0:01
+- [2026-08-18 Tue 11:24]--[2026-08-18 Tue 11:25] step 2(b): per-run CLOCK lines with idle floor
 CLOCK: [2026-08-18 Tue 11:27]--[2026-08-18 Tue 11:44] =>  0:17
 - [2026-08-18 Tue 11:27]--[2026-08-18 Tue 11:44] assigned at review
 - State "REVIEW"     from "DOING"      [2026-08-18 Tue 11:43] \\
@@ -7811,7 +7820,7 @@ was in [[id:507754ba-ae82-4f04-b209-8d8c58ac268e][507754ba]], where a
 window-extension test asserted only that a line looked plausible.
 
 
-** TODO Concurrent sessions' turns must union, not sum, wherever time is totalled :code:
+** REVIEW Concurrent sessions' turns must union, not sum, wherever time is totalled :code:
 :PROPERTIES:
 :ID:       7d739afd-f879-445c-b0b6-65e295585a94
 :CREATED:  [2026-08-18 Tue 16:36]
@@ -7819,6 +7828,14 @@ window-extension test asserted only that a line looked plausible.
 :LOGBOOK:
 - State "TODO"       from              [2026-08-19 Wed 08:05] \\
   re-queued, lost to my git checkout
+- State "NEXT"       from "TODO"       [2026-09-15 Tue 18:56] \\
+  next in the slice's sequence, Step 2
+CLOCK: [2026-09-15 Tue 18:57]--[2026-09-15 Tue 19:01] =>  0:04
+- State "DOING"      from "NEXT"       [2026-09-15 Tue 18:57] \\
+  starting the union wiring
+- [2026-09-15 Tue 18:57]--[2026-09-15 Tue 19:01] wire merge-time-intervals at report time
+- State "REVIEW"     from "DOING"      [2026-09-15 Tue 19:01] \\
+  union single-sourced; CLOCK-line half left open
 :END:
 
 Stated by the user 2026-08-18: two sessions running at once produce
@@ -7958,9 +7975,7 @@ someone fixing a real double-counting bug, correctly, who simply did not look
 for an existing union first.
 
 
-
-
-** TODO A background job's first turn is bracketed across two session_ids :code:
+** REVIEW A background job's first turn is bracketed across two session_ids :code:
 :PROPERTIES:
 :ID:       9202b39d-49e4-441c-89f2-382feb4ef1ea
 :CREATED:  [2026-08-18 Tue 16:41]
@@ -7970,6 +7985,10 @@ for an existing union first.
   re-queued, lost to my git checkout
 CLOCK: [2026-08-21 Fri 08:20]--[2026-08-21 Fri 08:32] =>  0:12
 - [2026-08-21 Fri 08:20]--[2026-08-21 Fri 08:32] depth-counter verification, reassigned by hand from 420816ec
+- State "REVIEW"     from "DOING"      [2026-09-15 Tue 18:56] \\
+  subsumed by the alias; judgement remains
+- State "DOING"      from "TODO"       [2026-09-15 Tue 18:56] \\
+  retroactive; worked under b57c7515's clock
 :END:
 
 Measured 2026-08-18 while recomputing the accumulated record for
@@ -8106,7 +8125,6 @@ ambiguity was untested. The alias does not choose: a session belongs to exactly
 one conversation, identified by its transcript's first entry, and a group whose
 queue ranges overlap is refused rather than guessed at. There is no candidate
 set to disambiguate.
-
 
 
 ** DONE Name the floor on what gets written, so both floors are knobs :code:
@@ -8545,10 +8563,14 @@ notation. It is the sharpest illustration available: the interval was
 *deliberately* marked as the human's attention, and still records zero minutes.
 
 
-** TODO Guidepost aggregation ignores =cwd=, so two projects' turns cluster into one span :code:
+** NEXT Guidepost aggregation ignores =cwd=, so two projects' turns cluster into one span :code:
 :PROPERTIES:
 :ID:       c9940558-b23e-4b2c-86e8-e75a377634aa
 :CREATED:  [2026-09-11 Fri 17:43]
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-09-15 Tue 19:01] \\
+  Step 3, and the euchre blocker in this slice
 :END:
 
 =--aggregate-guideposts= clusters by time alone, so guideposts from concurrent
@@ -8571,7 +8593,7 @@ note its other named consumer obligation, normalising a worktree's cwd to its
 main checkout, or a single project splits into one span per worktree.
 
 
-** NEXT A session id that changes mid-work splits one clock bracket across two queue files :code:
+** REVIEW A session id that changes mid-work splits one clock bracket across two queue files :code:
 :PROPERTIES:
 :ID:       b57c7515-c511-4198-b311-26cefc52a60d
 :CREATED:  [2026-09-11 Fri 18:17]
@@ -8579,6 +8601,14 @@ main checkout, or a single project splits into one span per worktree.
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-11 Fri 19:01] \\
   story had no next action; first in the new sequence
+CLOCK: [2026-09-15 Tue 18:29]--[2026-09-15 Tue 18:30] =>  0:01
+- State "DOING"      from "NEXT"       [2026-09-15 Tue 18:29] \\
+  first member of the slice's sequence
+- [2026-09-15 Tue 18:29]--[2026-09-15 Tue 18:30] measure mid-session re-keys over queue corpus
+CLOCK: [2026-09-15 Tue 18:31]--[2026-09-15 Tue 18:56] =>  0:25
+- [2026-09-15 Tue 18:31]--[2026-09-15 Tue 18:56] measure mid-session re-keys over queue corpus
+- State "REVIEW"     from "DOING"      [2026-09-15 Tue 18:56] \\
+  alias shipped and measured; judgement remains
 :END:
 
 The queue is keyed by =session_id= and =--lane-clock-pairs= pairs within a lane
@@ -8781,8 +8811,6 @@ same key, so *which* is canonical does not affect pairing.
 
 *Not yet reloaded.* The running Emacs holds the old definitions, so the next
 apply pass pairs the old way until =config.el= is loaded into it.
-
-
 
 
 * TODO Type a span's annotation at review time, not by hand-editing it after :code:

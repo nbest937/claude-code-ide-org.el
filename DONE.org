@@ -987,6 +987,8 @@ mutations run red.
 *Closed 2026-09-14* on the user's review of the slice's shipped members.
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-11 Fri 18:07]--[2026-09-11 Fri 18:14] =>  0:07
+- [2026-09-11 Fri 18:07]--[2026-09-11 Fri 18:14] join transcript prompts to review spans
 - State "REVIEW"     from "DOING"      [2026-09-11 Fri 18:14] \\
   shipped and verified on the real queue
 CLOCK: [2026-09-11 Fri 18:17]--[2026-09-11 Fri 18:18] =>  0:01
