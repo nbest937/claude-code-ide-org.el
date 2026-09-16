@@ -8592,6 +8592,54 @@ tracker instead of two. This is the consumer half
 note its other named consumer obligation, normalising a worktree's cwd to its
 main checkout, or a single project splits into one span per worktree.
 
+*Shipped 2026-09-16.* A point in =--aggregate-guideposts= is now =(TS KIND
+PROJECT)=, and a boundary between two **known, different** projects splits the
+span exactly as a permission block does. The project is =cwd= normalised
+through =--project-name= — git root, and a linked worktree folded into its main
+checkout — which is
+[[id:5461c349-fd22-4b75-a508-50efbe4b87f8][5461c349]]'s second named
+obligation, already implemented and already tested. Nothing was coined.
+
+*The nil guard is the load-bearing part, not the split.* =cwd= has only been
+written since 2026-09-04 and cannot be backfilled — **626 of 2855 guideposts
+carry one** — so nil means *unknown*, never *elsewhere*. Treating it as a
+distinct project would shatter nearly every historical span into single points.
+An unknown point also **inherits** the last known project, so a nil-=cwd= event
+between two known ones cannot mask a real boundary by resetting the comparison;
+that half is its own assertion and the one that fails loudest when got wrong.
+
+*Measured over the whole guidepost history:*
+
+| | spans | zero-width | covered |
+|---+-------+------------+---------|
+| boundary off | 183 | 1 | 170.89 h |
+| boundary on | 193 | 2 | 170.33 h |
+
+**The 0.56 h that leaves the covered total is the point of the change** — it is
+time that was being clustered *across* a project boundary, and so credited to
+whichever tracker the span was accepted against. Fragmentation is modest and
+zero-width items barely move, which were the two risks worth checking before
+accepting this.
+
+*Correcting this heading's own estimate of scale, which was too small.* It
+expected "exactly two groups", counted from spans whose *annotation* rendered
+two cwds — and the annotation dedupes, so it counts renderings rather than
+boundaries. The real interleaving on 2026-09-10 is one =claude-code-ide-org=
+session (=5b42fc84=) running against **three separate** =agentic-euchre=
+sessions (=fdfa9296=, =edc98663=, =f765cf9f=), alternating throughout. A single
+four-hour span carried both projects for its whole length. The defect was
+larger than filed, not smaller — which is the opposite of how an estimate made
+from a rendering usually errs, and worth remembering the next time one is made
+that way.
+
+*One artefact handed to
+[[id:c54c4215-90e3-4e0c-9de1-990c0406a2b2][c54c4215]] rather than solved here.*
+The split adds one zero-width span, at =[2026-09-10 12:14:36]=, where a
+one-second return to =claude-code-ide-org= sits between two euchre turns. It is
+honest — the excursion is real — but whether a zero-width endpoint is worth
+rendering at all is that heading's question, and it is now one item larger.
+
+
 
 ** REVIEW A session id that changes mid-work splits one clock bracket across two queue files :code:
 :PROPERTIES:
