@@ -8407,6 +8407,49 @@ the pre-existing =355fa608= test, and nothing else.
 =clock_in= or =clock_out= timestamp — but it is a different event kind from the
 ones bounding an ordinary span, and anyone reconciling a span against a
 transcript should know which they are looking at.
+
+*Correction, 2026-09-16, after close: **"12.64 h of real unattributed work now
+reaches review" is wrong**, and it is wrong in the direction that flatters the
+change.*
+
+The figure is sound as a measurement and misleading as a claim. It came from
+=--queue-historical-guideposts=, which reads **every guidepost ever written and
+ignores the watermarks**. So it answers "what would the aggregator produce over
+all history" — a **counterfactual**, describing the record this pipeline would
+have built had it always worked this way. It is not a backlog, and nothing about
+it is waiting to be applied.
+
+*What is actually pending, measured the same day:* **10 complement-gap items
+totalling 2.49 h**, against 18 other items totalling 1.15 h. The remaining ten
+hours are backed by guideposts **already consumed** by earlier apply passes and
+will never be re-offered.
+
+*So the honest statement is:* the complement improves the record **from here
+forward**; it does not recover the past. Roughly two and a half hours of
+genuinely unowned time is newly visible and awaiting judgement. The difference
+between that and "12.64 h now reaches review" is the difference between a fix
+and a windfall.
+
+*Found because the user asked what "the record isn't tighter yet" meant* — and
+in answering I had to separate what the data *implies* from what it merely
+*permits*. The unowned envelope is implied, by arithmetic on timestamps. Whether
+any of it was the human's attention is not: a window where the agent was idle is
+undetermined between attending and absent, which is
+[[id:996fd2bd-be90-44b3-b2c5-9018255940b3][996fd2bd]]'s sleeping-laptop
+negative. The gap between machinery and record is therefore **questions awaiting
+a human**, not a derivation awaiting a run.
+
+*And it strengthens [[id:2deb090f-593d-40e3-9044-fda318d9b6de][2deb090f]]'s
+refusal to repair its own history*, on a ground that heading did not have. It
+declined because nobody can decide retrospectively which of 81 annotations were
+attention. This adds that for the analogous gaps the **evidence is gone from the
+pending set entirely** — consumed events are not re-offered — so the repair is
+not merely a hard judgement but one the review buffer cannot even pose.
+
+*The same phrase appears in this heading's =:PLAN:= half and is left there
+uncorrected, deliberately:* that half is the plan as written at the time, and a
+=DEBRIEF= correcting it is how this project records a number that was right and
+read wrong.
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-25 Tue 18:45] \\
