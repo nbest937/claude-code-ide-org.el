@@ -2,6 +2,15 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Should a short 0-run span default to claimed, and where does the bound fall? :research:
+:PROPERTIES:
+:ID:       a865f83c-ea37-40c4-a104-7cc50d2c20dd
+:CREATED:  [2026-09-16 Wed 08:44]
+:CATEGORY: Apply
+:END:
+
+Asked by the user 2026-09-16, straight after =c= shipped: "will the 0-run/0-minute spans offered always be mine to claim? if so, why not offer them as such?" The first half is answered and the answer is **no** — [[id:996fd2bd-be90-44b3-b2c5-9018255940b3][996fd2bd]]'s known negative settles it, the 2026-08-25 16:56--17:50 sleeping-laptop gap being byte-identical in shape to an hour of careful reviewing. A =pause=--=resume= gap says only that the *agent* was idle. So a blanket default-to-claimed trades a silent undercount for a silent overcount, and gains nothing in visibility: a wrong CLOCK line looks exactly like a right one, so the error is no more catchable than the one it replaces. **But the population actually on offer makes the question narrower and more answerable than that.** Measured the same day: 13 zero-run spans totalling 27 minutes, envelopes of 8, 5, 3, 3, 2, 1, 1, 1, 1, 1, 1, 1 and 1 minutes — median one minute. At one minute, "I walked away" is not a competing explanation the way it is at 54; the human had just been handed output and the next turn started a minute later. So the arguable proposal is a **width-bounded** default: claim automatically below some envelope, ask above it. Three things to settle, none of them mine to decide. **Where the bound falls is a reporting decision**, and this project has form for naming such a knob without turning it (=claude-code-ide-org-span-minimum-interval=, "a named no-op, deliberately"). **Whether a defaulted claim should be marked as such** — a =(claimed)= line says a human asserted it, and a defaulted one did not, so it may want a third rendering rather than borrowing =c='s. **And whether it is worth it at all**: the entire exposure is 27 minutes, so this can wait behind anything with a larger number. Note the interaction with =c= itself: =c= exists precisely so the assertion is an act rather than an inaction, and a default undoes that property for the range it covers — which is the strongest argument against, and the reason this is filed as a question rather than a plan.
+
 * DONE Commenting out the 202 override took use-package!'s closing paren, silently disabling the MCP server :code:
 CLOSED: [2026-09-16 Wed 07:48]
 :PROPERTIES:
@@ -5199,6 +5208,43 @@ attention as it happens.
 
 *Worth applying to the backlog once*, since the ledger reaches back to
 2026-08-18 and the gaps are all still there to be scored.
+
+*First measurement, 2026-09-16, prompted by the user asking whether 0-run spans
+are "always mine to claim" and, if so, why they are not offered that way.*
+
+**The predicate reaches none of them, and the reason is a population mismatch
+rather than a flaw.** Scored against the currently offered items: **13 zero-run
+spans totalling 27 minutes, and 0 of them contain an apply timestamp.**
+
+*Why zero, stated so the result is not read as a failure of the rule.* This
+heading's three worked cases are gaps of 6 and 10 minutes around review passes.
+The 0-run spans actually on offer today have envelopes of **8, 5, 3, 3, 2, 1, 1,
+1, 1, 1, 1, 1 and 1 minutes** — median **one minute**. They are the pauses
+*between an agent's turns*, not the gaps around a human's review pass. Nobody
+runs =M-x claude-code-ide-org-review= inside a one-minute gap, so the predicate
+correctly declines every one. It was built for a different population and still
+answers that one; it simply does not answer this one.
+
+*The ledger has a horizon, which this heading's "apply to the backlog once"
+should account for.* Watermark files come in two shapes: **17 apply-pass stamps
+are known, and 14 files predate =21c91613= entirely**, holding a bare vector of
+event timestamps with no pass time at all. A backlog scoring pass can therefore
+score only the newer half, and the older half is not merely unscored but
+unscoreable. Some newer entries also carry an *empty* pass time.
+
+*What this does not change:* the negative that makes this heading necessary
+still stands, and is the answer to the user's question. A =pause=--=resume= gap
+says the *agent* was idle; the 2026-08-25 16:56--17:50 sleeping-laptop gap is
+byte-identical in shape to an hour of careful reviewing. So 0-run spans are
+**not** always the human's to claim, and defaulting them to claimed would trade
+a silent undercount for a silent overcount — with no gain in visibility, since a
+wrong CLOCK line looks exactly like a right one.
+
+*What it does suggest:* for the *short* population above, absence is implausible
+in a way it is not at 54 minutes, so a width-bounded default is the shape worth
+arguing about. Filed separately rather than decided here, since where that bound
+falls is a reporting decision.
+
 
 
 * Review attention
