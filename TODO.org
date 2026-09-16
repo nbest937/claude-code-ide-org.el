@@ -6004,6 +6004,43 @@ since the original request was theirs.
 say whose they were". This body reached that conclusion independently when it
 ordered itself after =2deb090f=. One key now mints both.
 
+*The user, 2026-09-16, comparing directly against the day this heading was
+created:* "my expectation is that I will rarely if ever reach for =e=. the
+allocation of time feels so much tighter than it did on 2026-08-26 … when
+=01849bef= was created, that is."
+
+*That is testimony about the thing this heading was opened over*, so it is worth
+recording rather than treating as a pleasantry. On 2026-08-26 the complaint was
+two-part: flipping to active was tedious **and** it was being *forgotten* —
+"forgotten to represent my attention as active spans". This body argued a
+keystroke answers the first and not the second, since "an omission caused by
+having to remember is not repaired by making the remembering cheaper."
+
+**=c= answers the second as well, and that is why the feel changed.** It does not
+make a remembered act cheaper; it makes the act *offered* — a 0-run span is
+rendered =(suggested)= with its minutes visibly uncounted, so claiming is
+prompted by the line rather than recalled by the reviewer.
+
+*Measured the same day, across the 25 items then on offer:* **3.57 h of
+envelope, 2.57 h that would be recorded, 0.99 h unclaimed — and 12 of the 25
+are 0-run items**, which is where almost all of that hour sits. So the gap is
+now **visible and closable one keystroke at a time**, where on 2026-08-26 it was
+invisible: a 0-run span wrote nothing, said nothing about writing nothing, and
+could only be claimed by retyping two timestamps.
+
+*The prediction bears directly on this heading's remainder.* What is left is a
+keystroke for a span **with runs** — precisely the case where =e= is the current
+answer. A user who expects never to reach for =e= is saying that case does not
+arise for them in practice. Combined with the argument already above — that for
+such a span the CLOCK lines come from the runs regardless, so a flip changes the
+annotation and nothing else — **the remainder now has an argument from principle
+and an observation from use pointing the same way: decline it.**
+
+*Not closed here.* The prediction is a prediction; it is worth a month of use
+before acting on it, and =e= remains the escape hatch for bounds that are
+actually wrong, which is a different act from asserting attention.
+
+
 
 
 * TODO Intervals on two different headings can overlap, and subtraction reaches only one :code:
