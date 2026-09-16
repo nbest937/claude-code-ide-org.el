@@ -3821,13 +3821,13 @@ alternative — and unlike the current review pass, it is six questions a day
 rather than nineteen.
 
 
-* TODO [0/15] Everything passed and the file was still wrong :code:
+* TODO [0/16] Everything passed and the file was still wrong :code:
 :PROPERTIES:
 :ID:       8a2eb687-28da-4d44-893b-db59298bdc5b
 :CREATED:  [2026-09-01 Tue 09:11]
 :CATEGORY: Slices
 :KIND:     slice
-:BLOCKER:  39039bb6-c70a-4ba9-8b37-edd8dd6921f6 f12f9da4-2870-45b7-8c50-ea54415c7bc6 25e7b083-360b-4282-8fd0-bb768e2a0f13 3ad389be-2797-46c3-a51d-9f603053955a 7fa68d5c-b6c0-43df-85c6-764b1d56511f 381ea07d-633f-4640-abbb-89472a07acba 8ddd7fa8-e847-42e9-b82c-63bbe4c11b7b 53b0047d-c55c-486c-8eed-ba4994d97a1a 7ee3b71a-b85a-4610-a4ab-b9e06c8d79da 2aeb65d6-350e-4c75-811e-4a748044fe2c 2a6a1355-615f-4c2c-a8af-c9ae8dcda09b 60ed5b96-40e3-4676-a742-07a8ad6cc3b7 5e731a23-7708-4248-b055-9b4a531f147d 965f94eb-1558-4d00-9857-5727eb86fe6f 7b4f4f14-6c76-4822-84c1-67589bc74b82
+:BLOCKER:  39039bb6-c70a-4ba9-8b37-edd8dd6921f6 f12f9da4-2870-45b7-8c50-ea54415c7bc6 25e7b083-360b-4282-8fd0-bb768e2a0f13 3ad389be-2797-46c3-a51d-9f603053955a 7fa68d5c-b6c0-43df-85c6-764b1d56511f 381ea07d-633f-4640-abbb-89472a07acba 8ddd7fa8-e847-42e9-b82c-63bbe4c11b7b 53b0047d-c55c-486c-8eed-ba4994d97a1a 7ee3b71a-b85a-4610-a4ab-b9e06c8d79da 2aeb65d6-350e-4c75-811e-4a748044fe2c 2a6a1355-615f-4c2c-a8af-c9ae8dcda09b 60ed5b96-40e3-4676-a742-07a8ad6cc3b7 5e731a23-7708-4248-b055-9b4a531f147d 965f94eb-1558-4d00-9857-5727eb86fe6f 7b4f4f14-6c76-4822-84c1-67589bc74b82 4acd8ad0-4d26-420b-bf84-f66ae8a9dfc5
 :COOKIE_DATA: checkbox recursive
 :DROPPED:  542924c1-9152-4414-8da8-d530d3423611 d2a0f54c-b59a-4855-ae3d-c93a6d3aa177 72463b68-9f08-44b2-8213-87f71298138d
 :END:
@@ -3881,6 +3881,7 @@ Planned:
 - [ ] [[id:5e731a23-7708-4248-b055-9b4a531f147d][5e731a23]] TODO A deferred targetless capture loses its project routing when the queue is applied
 - [ ] [[id:965f94eb-1558-4d00-9857-5727eb86fe6f][965f94eb]] TODO Every standalone client shares one project context, chosen by unstable ordering
 - [ ] [[id:7b4f4f14-6c76-4822-84c1-67589bc74b82][7b4f4f14]] TODO apply-detect reports an apply when the review pass only dismissed events
+- [ ] [[id:4acd8ad0-4d26-420b-bf84-f66ae8a9dfc5][4acd8ad0]] TODO The re-key bridge reads transcripts Claude Code prunes, so the alias decays silently
 
 *=60ed5b96= added 2026-09-04, after composition.* It is the theme stated with
 the nouns changed: =--review-format-annotation='s docstring says "Always
@@ -7825,6 +7826,34 @@ window-extension test asserted only that a line looked plausible.
 :ID:       7d739afd-f879-445c-b0b6-65e295585a94
 :CREATED:  [2026-08-18 Tue 16:36]
 :END:
+:DEBRIEF:
+*The premise was stale by ten hours, not wrong.* =--merge-time-intervals= was
+never unwired — it was **duplicated** at 08:38 on 2026-09-15 by a PR #23 review
+fix that coined =--merge-overlapping-runs= for an operation the file already
+had. Proved equivalent over 20000 random interval sets (0 disagreed), then
+folded into one under the name this heading names.
+
+*The three totalling paths, each settled on its own terms*: allocation unions
+(now through the survivor); attention needs none, since it asks which *windows*
+carry run time and marking one busy twice is idempotent; org's own clocktable
+sums CLOCK lines and was **left alone deliberately**.
+
+*The open question is still open, which was the point.* Whether the union
+belongs at the CLOCK-line level is the half this body says must not be decided
+by whoever touches it first, and nothing here decided it. The 0.5% magnitude is
+what makes leaving it open cheap.
+
+*This heading is also where two missed alias sites surfaced* —
+=attention-intervals= and =allocation-intervals= both paired runs on the raw
+=session_id=. The allocation fix is the instructive one: its partition is now
+**two**, runs by canonical lane and transcripts by raw id, because a re-keyed
+conversation has two transcripts and both hold worked ids. Measured: all 7 of
+=f2e44fdf='s worked-id hits reappear identically in =b71c8eec=, so the =worked=
+list genuinely carries duplicates — absorbed by the existing per-window dedup,
+and pre-dating this change rather than introduced by it. "Absorbed by an
+existing dedup" is a weaker guarantee than "cannot happen", and is the line in
+this debrief most worth distrusting.
+:END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-19 Wed 08:05] \\
   re-queued, lost to my git checkout
@@ -7837,6 +7866,7 @@ CLOCK: [2026-09-15 Tue 18:57]--[2026-09-15 Tue 19:01] =>  0:04
 - State "REVIEW"     from "DOING"      [2026-09-15 Tue 19:01] \\
   union single-sourced; CLOCK-line half left open
 :END:
+:PLAN:
 
 Stated by the user 2026-08-18: two sessions running at once produce
 turns that overlap in wall-clock time, and those must *union*, not sum.
@@ -7915,6 +7945,7 @@ recommendation with a number behind it, not a decision: wire
 per-heading CLOCK lines written as computed, and let the 0.5% decide whether
 even that is worth doing now.
 
+:END:
 *Resolved 2026-09-15, and the premise this heading rested on was wrong rather
 than stale.* The "UNWIRED as of 2026-08-10" note on
 =--merge-time-intervals= was true of that symbol and false of the
@@ -7980,6 +8011,28 @@ for an existing union first.
 :ID:       9202b39d-49e4-441c-89f2-382feb4ef1ea
 :CREATED:  [2026-08-18 Tue 16:41]
 :END:
+:DEBRIEF:
+Closed with **no code of its own**, and that is the outcome rather than a gap.
+
+Its measurement was confirmed to the second and never needed correcting. Its
+proposed mechanism — the depth counter — was falsified in 2026-08 and stays
+falsified; do not rebuild it. Its *surviving* leading-=pause= rule turned out
+never to have been implemented at all, so
+[[id:b57c7515-c511-4198-b311-26cefc52a60d][b57c7515]]'s alias **subsumed** it
+rather than replacing it: checked before building, there was nothing to retire.
+
+The 0.620 h this body records is the first of the three turns the alias
+recovers. The other two open with a =resume=, so a test for a stream *opening*
+with a =pause= could never have fired on them — the second shape =b57c7515=
+predicted from the other direction, now measured rather than argued. The
+untested multi-candidate caveat retires with the rule: a session belongs to
+exactly one conversation, and an overlapping group is refused rather than
+guessed at, so there is no candidate set to disambiguate.
+
+Taken straight to DONE at the user's direction, skipping REVIEW, since the
+judgement it would have asked for is the same judgement
+[[id:b57c7515-c511-4198-b311-26cefc52a60d][b57c7515]] already carried.
+:END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-19 Wed 08:06] \\
   re-queued, lost to my git checkout
@@ -7990,6 +8043,7 @@ CLOCK: [2026-08-21 Fri 08:20]--[2026-08-21 Fri 08:32] =>  0:12
 - State "DOING"      from "TODO"       [2026-09-15 Tue 18:56] \\
   retroactive; worked under b57c7515's clock
 :END:
+:PLAN:
 
 Measured 2026-08-18 while recomputing the accumulated record for
 [[id:507754ba-ae82-4f04-b209-8d8c58ac268e][507754ba]]. Today's
@@ -8038,6 +8092,7 @@ the promotion would not fire. Narrow -- it needs =PLANNING= set by the
 very turn that launches a job -- and it has not been reproduced. Filed
 as a question, not a defect.
 
+:END:
 *Verified 2026-08-21 against the raw queue corpus* -- 844 guideposts, 13
 sessions, 2026-08-11 to 2026-08-21. The two halves of this heading came apart:
 the measurement holds exactly, the proposed mechanism does not.
@@ -8568,10 +8623,43 @@ notation. It is the sharpest illustration available: the interval was
 :ID:       c9940558-b23e-4b2c-86e8-e75a377634aa
 :CREATED:  [2026-09-11 Fri 17:43]
 :END:
+:DEBRIEF:
+*Shipped*: a point in =--aggregate-guideposts= carries =(TS KIND PROJECT)=, and
+a boundary between two **known, different** projects splits the span exactly as
+a permission block does. The project is =cwd= normalised through
+=--project-name= — git root, linked worktree folded into its main checkout —
+which is [[id:5461c349-fd22-4b75-a508-50efbe4b87f8][5461c349]]'s second
+obligation, already implemented and already tested. Nothing coined.
+
+*Measured over 2855 guideposts*: 183 → 193 spans, zero-width 1 → 2, covered
+170.89 → 170.33 h. The 0.56 h that leaves the total is the change — time
+clustered *across* a boundary and so credited to whichever tracker the span was
+accepted against.
+
+*The nil guard, not the split, is the load-bearing part.* =cwd= has been
+written only since 2026-09-04 and cannot be backfilled — 626 of 2855
+guideposts carry one — so nil means *unknown*, never *elsewhere*, and an
+unknown point inherits the last known project. Both halves are asserted
+separately; the inheritance half is the one that fails loudest when wrong.
+
+*This heading underestimated its own defect*, and the reason generalises: it
+counted spans whose *annotation* rendered two cwds, and the annotation dedupes,
+so it counted renderings rather than boundaries. The real 2026-09-10
+interleaving is one =claude-code-ide-org= session against **three** separate
+=agentic-euchre= sessions, alternating all morning, with one four-hour span
+carrying both projects end to end. An estimate taken from a rendering understates.
+
+*Handed on rather than solved*: the split adds one zero-width span at
+=[2026-09-10 12:14:36]=, a genuine one-second return between two euchre turns.
+Whether a zero-width endpoint is worth rendering is
+[[id:c54c4215-90e3-4e0c-9de1-990c0406a2b2][c54c4215]]'s question, now one item
+larger.
+:END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-15 Tue 19:01] \\
   Step 3, and the euchre blocker in this slice
 :END:
+:PLAN:
 
 =--aggregate-guideposts= clusters by time alone, so guideposts from concurrent
 sessions in *different* projects merge into a single span — and accepting that
@@ -8592,6 +8680,7 @@ tracker instead of two. This is the consumer half
 note its other named consumer obligation, normalising a worktree's cwd to its
 main checkout, or a single project splits into one span per worktree.
 
+:END:
 *Shipped 2026-09-16.* A point in =--aggregate-guideposts= is now =(TS KIND
 PROJECT)=, and a boundary between two **known, different** projects splits the
 span exactly as a permission block does. The project is =cwd= normalised
@@ -8646,6 +8735,46 @@ rendering at all is that heading's question, and it is now one item larger.
 :ID:       b57c7515-c511-4198-b311-26cefc52a60d
 :CREATED:  [2026-09-11 Fri 18:17]
 :END:
+:DEBRIEF:
+Closed on thorough testing rather than on a human re-deriving the numbers.
+
+*Shipped*: one session-alias map, consulted by =--canonical-session= at five
+lane sites — the two pairing functions, the attribution walk, and the attention
+and allocation derivations. An event's own =:session-id= is never rewritten,
+because apply consumption and the =.applied= watermarks are per *file*.
+
+*Verified*: six red-first ERT tests (two fail behaviourally rather than on a
+void function; the attribution test is red against the commit that already had
+the alias, so it discriminates its own change); a corpus replay reproducing an
+independent measurement to the decimal; and a cost number, 0.022 s per
+=--queue-events-by-id= run over 4107 events.
+
+*Landed in the record*: the recovered =325679af= bracket wrote a real CLOCK
+line, =[2026-09-11 18:07]--[18:14]=, at the first apply pass after the reload.
+That is the fix's first and so far only permanent effect.
+
+*The site count is the honest caveat.* Three sites were found by design, a
+fourth under challenge, a fifth by reading every =by-session= grouping. Two
+groupings are deliberately left keyed on the raw id — =review-dismiss= and
+=--review-describe-failure=, both per-*file* operations. If a sixth identity
+site exists, that is where a defect would be.
+
+*Residue, filed not described*:
+[[id:4acd8ad0-4d26-420b-bf84-f66ae8a9dfc5][4acd8ad0]] and
+[[id:0b600ab4-15b6-496b-8517-a0426f9f9ae5][0b600ab4]].
+
+*Carried out of =:PLAN:= deliberately, because it is a finding rather than a
+design and the drawer is skipped on a finished heading.* **A session id is not
+a stable key for a stretch of work, and nothing in this project can make it
+one.** Claude Code re-keys an interactive session mid-work — established
+2026-09-11 from the harness's own files: =~/.claude/jobs/<id>/= appears 32
+minutes into a session that until then had no job directory, the session
+continues under the job's id, and its transcript is re-stamped from the
+original start. Upstream: anthropics/claude-code #59848 (closed, and its
+headline symptom is fixed here) and #76220 (open). So every repair must
+reconcile lanes *after the fact*; none may assume the key holds. That premise
+outlives this heading and is the reason the alias exists at all.
+:END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-11 Fri 19:01] \\
   story had no next action; first in the new sequence
@@ -8658,6 +8787,7 @@ CLOCK: [2026-09-15 Tue 18:31]--[2026-09-15 Tue 18:56] =>  0:25
 - State "REVIEW"     from "DOING"      [2026-09-15 Tue 18:56] \\
   alias shipped and measured; judgement remains
 :END:
+:PLAN:
 
 The queue is keyed by =session_id= and =--lane-clock-pairs= pairs within a lane
 of =(session_id, agent_id)=, so a session whose id changes while work continues
@@ -8737,6 +8867,7 @@ switch and the new one complete from the original start. A renderer keyed on
 session id would render the same session twice under two ids, the first copy
 silently short. It needs a rule for that before it renders anything.
 
+:END:
 *Measured 2026-09-15 over the whole queue corpus* — 4107 events, 65 sessions,
 2026-08-11 to 2026-09-15, five times the 844-guidepost corpus =9202b39d= was
 falsified against. The question this heading left open — whether the repair
