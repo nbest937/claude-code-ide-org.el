@@ -1027,6 +1027,9 @@ Incidental:
 - [X] [[id:0b600ab4-15b6-496b-8517-a0426f9f9ae5][0b600ab4]] DONE --transcript-longer-sibling picks the wrong sibling when the two copies are nearly the same size
 - [X] [[id:7e720ddf-fb7c-41a9-82d1-b8fbc14aeacd][7e720ddf]] DONE Commenting out the 202 override took use-package!'s closing paren, silently disabling the MCP server
 
+Integration point: [[https://github.com/nbest937/claude-code-ide-org.el/pull/25][PR #25]], opened [2026-09-16 Wed 14:37] with 50 commits. The slice stays REVIEW until it merges.
+
+
 
 * TODO Nothing can correct a closed slice's record, even when the correction is close-time truth :code:
 :PROPERTIES:
