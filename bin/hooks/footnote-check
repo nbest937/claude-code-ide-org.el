@@ -249,6 +249,7 @@ done <<<"$candidates"
 # duplicate-detection is deliberately absent, having occurred 0 times in
 # those same 924 responses.
 orphans=""
+dangling=""
 if [[ -n "$foot" ]]; then
   # A CORRECTION TURN carries no marker in its prose at all: the response
   # IS the footnote block, appended for an earlier response whose prose
@@ -268,10 +269,26 @@ if [[ -n "$foot" ]]; then
       grep -qF -- "$mk" <<<"$body" && continue             # marker is placed
       orphans="$orphans${orphans:+ }$mk"
     done <<<"$foot"
+
+    # THE OTHER DIRECTION: a marker in the prose with no footnote line,
+    # which leaves the reader looking for a note that is not there.
+    #
+    # Checked by counting rather than by finding markers in the prose.
+    # Enumerating them would need superscript literals and multi-digit
+    # disambiguation -- is that a 1 and a 3, or a 13 -- which is the
+    # character arithmetic this shell does badly. But footnotes run from
+    # one without gaps, so the only marker that can dangle past the end
+    # is the next one: build it and look for it. A gap in the MIDDLE is
+    # already caught by the orphan check above, since the missing line
+    # cannot have its marker placed.
+    dangle_probe="$(num_to_sup $((marker_n + 1)))"
+    if grep -qF -- "$dangle_probe" <<<"$body"; then
+      dangling="$dangle_probe"
+    fi
   fi
 fi
 
-[[ -n "$missing" || -n "$orphans" ]] || exit 0
+[[ -n "$missing" || -n "$orphans" || -n "$dangling" ]] || exit 0
 
 # `mkdir -p' first: a bare `: > "$sentinel" 2>/dev/null' does NOT
 # suppress the failure when the directory is absent, because bash
@@ -310,30 +327,21 @@ mkdir -p "$queue_dir" 2>/dev/null
 # point here.
 if [[ -z "$missing" ]]; then
   cat >&2 <<EOF
-This response has footnote marker(s) that appear nowhere in its prose: $orphans.
-A footnote nobody can find is worse than one that is missing, because nothing
-refuses it and the reader has no reason to doubt it. Place each marker at the
-citation it belongs to, or drop the footnote line.
+${orphans:+Footnote marker(s) not present in the prose: $orphans -- place or drop them.
+}${dangling:+Prose marker $dangling has no footnote line.
+}
 EOF
   exit 2
 fi
 
 cat >&2 <<EOF
-This response cites tracked org :ID:s without footnoting them: $missing. \
-Append a footnote for each, superscript-marked in the prose (¹²³), each \
-footnote line carrying the id, its current TODO keyword and its EXACT full \
-title, looked up rather than recalled. The rule is per RESPONSE: footnote an \
-id even if an earlier response in this conversation already did, because the \
-reader does not have that response on screen.
-
-The lookup is already done -- these are the exact keywords and titles, read
-from the org files just now. Add a superscript marker to each citation in the
-prose and append these lines. Each marker follows on from the footnotes this
-response already carries, so they will not collide; place them at the citations
-in the order the ids first appear:
+Unfootnoted tracked :ID:s: $missing. Footnoting is per response. Place a
+superscript at each citation and append these lines (markers continue from the
+footnotes already present, so they will not collide):
 
 $resolved
-${orphans:+Also: marker(s) $orphans appear in the footnote block but nowhere in the prose.
+${orphans:+Also: marker(s) $orphans appear in the footnotes but not in the prose.
+}${dangling:+Also: prose marker $dangling has no footnote line.
 }
 EOF
 exit 2
