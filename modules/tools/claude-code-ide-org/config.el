@@ -7728,9 +7728,10 @@ from the ones bounding an ordinary span, not a weaker one."
   "Collapse EVENTS' timestamps into (START . END) spans for review.
 
 EXCLUSIONS is a list of (START . END) intervals treated exactly like a
-permission block: a timestamp strictly inside one is dropped, and one
-lying wholly between two timestamps splits the span rather than being
-clustered through.  Permission blocks are found in EVENTS themselves;
+permission block: a timestamp strictly inside one is dropped, and the
+interval is *subtracted* from the cluster that forms across it rather
+than splitting that cluster -- which is what emits the unowned gaps
+either side of it (TODO.org :ID: c54c4215).  It split, until then.  Permission blocks are found in EVENTS themselves;
 EXCLUSIONS is for intervals whose evidence is somewhere else, which
 today means the `clock_in'/`clock_out' brackets that already have an
 owner (TODO.org :ID: eaeeb4ee).  Without it an unattributed span
@@ -7817,10 +7818,13 @@ other."
         (cond
          ((null start) (setq start time previous time previous-kind kind
                              previous-project project))
-         ;; A block between two timestamps breaks the span even when the
-         ;; two are closer together than the gap threshold -- otherwise a
-         ;; 54-minute wait bracketed by guideposts a minute apart on each
-         ;; side would be clustered straight through.
+         ;; This clause decides only whether two adjacent timestamps
+         ;; *cluster*.  Blocks and exclusions no longer participate: they
+         ;; are subtracted afterwards, in the `--span-complement' call at
+         ;; the end of this function.  The comment here used to say a
+         ;; block breaks the span, which was true until :ID: c54c4215 and
+         ;; then outlived it by one commit -- the successor comment forty
+         ;; lines below said the opposite the whole time.
          ((and (or (<= (float-time (time-subtract time previous)) gap)
                    ;; A `resume' -> `pause' gap is a turn *running*, not a
                    ;; pause between turns, so it never splits however long

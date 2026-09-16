@@ -121,8 +121,9 @@ written down here until 2026-09-02. They apply in order:
 
 **A fourth input is not a number, and it matters most to a repo that is
 not this one.** Guideposts are keyed on `(timestamp, kind, project)`, so
-a **project boundary splits a span** the way a permission block does.
-The queue is a single global directory under `~/.claude/org-updates/`,
+a **project boundary splits a span** — and it is the only thing that
+still does, a permission block having become a subtraction rather than a
+split. The queue is a single global directory under `~/.claude/org-updates/`,
 shared by every project a session runs in; before the change two repos'
 turns in the same window clustered into one span, crediting one
 project's minutes to the other's heading. Both sides must be *known* and
