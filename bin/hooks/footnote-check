@@ -27,10 +27,24 @@
 # LOOP GUARD, and it is not optional: the docs describe no
 # `stop_hook_active' flag for a blocking Stop hook, so a hook that
 # blocks on a condition the model then fails to satisfy blocks forever.
-# This fires at most once per turn, using a per-session sentinel on the
-# model of bin/hooks/block-start's -- written when it blocks, cleared by
-# bin/hooks/session-resume when the next prompt starts a new turn. The
-# worst case is one extra continuation per turn, never a hang.
+# A per-session sentinel, on the model of bin/hooks/block-start's,
+# written when it blocks and cleared by bin/hooks/session-resume when the
+# next prompt starts a new turn.
+#
+# CONTENT-AWARE since 2026-09-16 (TODO.org :ID: 45dc171f). It used to
+# fire at most once per turn: the sentinel's mere existence silenced
+# every later Stop in the same turn. That put the blind window in the
+# worst possible place -- the response right after a footnote block is
+# the one REWRITING footnote-heavy prose, so it is where a new miss is
+# most likely, and it was exactly where the check was off. Observed
+# costing two unfootnoted ids in one response.
+#
+# The sentinel now records the DEMAND -- the missing ids and orphaned
+# markers it asked about. An identical demand is never repeated, which
+# is the anti-loop property and the only one that matters: the hook can
+# never ask twice for the same thing. A DIFFERENT demand blocks again,
+# which is the case above. A hard bound of three blocks per turn stands
+# behind that, so even a pathological alternation terminates.
 
 set -uo pipefail
 
@@ -45,8 +59,14 @@ esac
 
 queue_dir="${CLAUDE_ORG_QUEUE_DIR:-$HOME/.claude/org-updates}"
 sentinel="$queue_dir/$session_id.footnote-blocked"
-# Already blocked once this turn: let it stop rather than loop.
-[[ -e "$sentinel" ]] && exit 0
+# Prior demands this turn, one per line. Read rather than merely tested
+# for existence -- see LOOP GUARD above.
+prior=""
+[[ -e "$sentinel" ]] && prior="$(cat "$sentinel" 2>/dev/null)"
+# Hard bound, whatever the content: three asks in one turn is enough.
+if [[ -n "$prior" ]] && [[ "$(grep -c . <<<"$prior")" -ge 3 ]]; then
+  exit 0
+fi
 
 message="$(jq -r '.last_assistant_message // empty' <<<"$input" 2>/dev/null)"
 [[ -n "$message" ]] || exit 0
@@ -293,8 +313,16 @@ fi
 # optional, and without it a Stop hook that blocks on a condition the
 # model cannot satisfy blocks forever. Found 2026-08-26 by running the
 # hook against a queue directory that did not exist.
+# The demand this block makes, compared against the ones already made
+# this turn. Identical means we have asked and the model did not satisfy
+# it -- asking again is the loop the guard exists to prevent.
+demand="$missing|$orphans"
+if [[ -n "$prior" ]] && grep -qxF -- "$demand" <<<"$prior"; then
+  exit 0
+fi
+
 mkdir -p "$queue_dir" 2>/dev/null
-: > "$sentinel" 2>/dev/null
+printf '%s\n' "$demand" >> "$sentinel" 2>/dev/null
 
 # STDERR AND EXIT 2. Not JSON, and not exit 0 (TODO.org :ID: 5787bfc6).
 #

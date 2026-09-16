@@ -264,6 +264,31 @@ check "every marker placed passes" allowed \
 $SUP1 \`TODO\` \`$REAL\` — a title
 $SUP2 \`TODO\` \`$REAL2\` — another")"
 
+# The loop guard, content-aware since :ID: 45dc171f. It used to silence
+# every later Stop in the same turn on the sentinel's mere existence,
+# which put the blind window on the response right after a block -- the
+# one rewriting footnote-heavy prose, where a new miss is most likely.
+# Observed costing two unfootnoted ids in one response.
+REAL3="$(grep -ohE '^:ID: +[0-9a-f]{8}' "$repo/TODO.org" | sed -n '3p' | awk '{print $2}')"
+REAL4="$(grep -ohE '^:ID: +[0-9a-f]{8}' "$repo/TODO.org" | sed -n '4p' | awk '{print $2}')"
+
+check "first block in a turn blocks" blocked \
+  "$(run loop1 "See ${REAL}.")"
+# The anti-loop property, and the only one that matters: never ask twice
+# for the same thing. Without this the hook blocks forever on a demand
+# the model cannot satisfy -- there is no stop_hook_active flag to lean on.
+check "the SAME demand is never repeated" allowed \
+  "$(run loop1 "See ${REAL} again.")"
+# The case the old guard missed entirely.
+check "a DIFFERENT demand blocks again" blocked \
+  "$(run loop1 "Now see ${REAL2}.")"
+check "and a third distinct demand still blocks" blocked \
+  "$(run loop1 "Now see ${REAL3}.")"
+# Belt and braces behind the content test, so even a pathological
+# alternation of demands terminates.
+check "a fourth is refused by the hard bound" allowed \
+  "$(run loop1 "Now see ${REAL4}.")"
+
 out="$(run zz1 "See \`$REAL\` for detail.")"
 if [[ "$(rc_of "$out")" -eq 2 ]]; then
   printf 'ok   - blocks with exit code 2 (2)\n'; pass=$((pass+1))
