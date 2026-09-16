@@ -19856,6 +19856,51 @@ already looking at.
 the digit fix was =60f311b=). All three were found the same way: by the hook
 firing, in front of the user, on a case it was wrong about.
 
+*Qualified 2026-09-16 by the user, and the qualification is worth keeping
+because it separates a sound reason from a decorative one.*
+
+"**Fences are not rendered as prominently in the CLI as they are in the desktop
+app**" — and the user reads in the CLI, is considering the desktop app, and is
+not committed to either. Their stated constraint: *what we build should be as
+agnostic as possible.*
+
+*That makes one strand of this exemption's justification unusable, and it is the
+strand most likely to be quoted.* "A transcript is already in its own context"
+is a claim about **rendering**, and rendering is exactly what varies between the
+two clients. If the fence is visually quiet, an id inside one does not announce
+itself as transcript, and the premise weakens precisely where the reading
+happens.
+
+*The exemption survives intact, because its other two strands are
+renderer-independent:*
+
+- **Provenance.** An id inside a fence is tool output, a file excerpt, a
+  rendered checklist — it arrived by transcription rather than by anyone
+  choosing to cite it. That is a fact about how the token got there, true in any
+  client. It is also the pattern
+  [[id:2a6a1355-615f-4c2c-a8af-c9ae8dcda09b][2a6a1355]] arrives at from the
+  other direction: every footnote failure is an id the writer did not choose to
+  write.
+- **Self-description.** The case that prompted this exemption was a slice
+  checklist where each id sat beside its own keyword and title, so the demanded
+  footnote would have restated what the block already said. Whether that text is
+  present is a property of the content, not of how it is drawn.
+
+*So the rule is already agnostic and only its phrasing leans on prominence.*
+Read it as "a fenced id is not a citation, and a self-describing block needs no
+footnote" rather than "a fence looks different enough". The hook's own comment
+should be corrected to match before someone extends the exemption on the visual
+argument and finds it does not hold in their client.
+
+*One new dependency, created the same day.* Since
+[[id:33c3eabc-00f2-4cf1-afb7-4071aa256d62][33c3eabc]] the hook *emits* lines
+containing ids, and the natural way to quote its output back is inside a fence.
+This exemption is what stops the hook demanding footnotes for its own examples.
+That is benign on the reasoning above — the emitted line carries its own keyword
+and title, so it is self-describing by construction — but the coupling is now
+load-bearing and was not before.
+
+
 
 
 **** DONE org_outline is blind to a slice: scoped to one, it returns a single line :code:

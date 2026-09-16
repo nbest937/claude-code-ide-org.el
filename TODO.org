@@ -3631,6 +3631,49 @@ failure with no recorded occurrence — which is
 [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]]'s standing argument, and
 applies to a check as much as to a guess.
 
+*Marker numbering shipped 2026-09-16, immediately after
+[[id:33c3eabc-00f2-4cf1-afb7-4071aa256d62][33c3eabc]] and for the mode that
+heading explicitly could not reach.*
+
+The hook now assigns each emitted footnote line a marker **carrying on from the
+footnotes the response already has**, so a pasted line cannot collide with one
+in use. That addresses case 1 — the reused superscript — at its cause rather
+than its symptom: there is no longer an occasion to pick a number by hand, and
+the refusal that used to say "this id is unfootnoted" now hands over a line
+already numbered.
+
+*Counted by footnote lines carrying an id, never by parsing the superscripts.*
+Counting is exact in a byte-oriented shell; taking multibyte markers apart is
+not. It assumes footnotes run from one without gaps, which is the convention
+every response here follows and which the hook now maintains by construction.
+
+*The bug worth recording is not the feature.* The first implementation wrote the
+superscripts as literal characters and **silently lost every three-byte one** —
+=U+00B9/B2/B3= are two bytes and survived the editing pipeline, =U+2070= and
+=U+2074..2079= are three and arrived corrupted. The hook then emitted lines with
+**no marker at all** while all 23 existing tests passed, because not one of them
+looked at the marker. Rewritten as UTF-8 byte escapes: pure ASCII in the source,
+so no editor, heredoc or quoting layer can damage them. Two tests added, either
+of which would have caught it.
+
+*Two incidental fixes found the same way.* The new message contained the word
+"continue", which the suite greps for as its no-JSON proxy — a real collision
+between prose and a test's chosen sentinel. And the final rc check reused
+session id =s9=, already spent by an earlier case, so its loop-guard sentinel
+was set and the check measured the guard rather than the block. Both were
+passing-looking failures.
+
+*Scope, stated plainly, because this heading is not finished.* Of the five
+modes: enumeration, quoted example and borrowed prose were always *detected* and
+are now merely cheap; the paraphrased title became impossible with =33c3eabc=;
+the marker collision is now *prevented* rather than diagnosed. **What remains is
+detection rather than prevention** — the hook still cannot say "you have used
+⁴ twice" about markers already written, because that needs multibyte parsing
+this shell does no well. Whether that is worth having once collisions are
+prevented at the source is this heading's remaining question, and the honest
+answer may be no.
+
+
 
 * TODO Report worked headings that carry no clock interval that day :code:
 :PROPERTIES:
