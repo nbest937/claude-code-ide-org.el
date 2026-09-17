@@ -64,6 +64,20 @@ repeating — the reader makes the association from the id alone. But the
 rule is per *response*: the reader of the twentieth message does not have
 the fourth one on screen.
 
+**An id paired with its exact title *on one line* needs no end-matter
+entry at all.** The convention's purpose is already met by such a line:
+the prose is readable and the reference is recoverable. This is what a
+status summary looks like — a list of headings, each with its id and
+title — and repeating all of them below is pure duplication. Prefer the
+inline form there, and keep the end matter for ids cited in running
+prose, where the title would make the sentence unreadable.
+
+The pairing must be on the **same line**. An id in one paragraph and its
+title in another is the ordinary case and still owes an entry, because a
+reader scanning for the id does not find the title beside it — which is
+the guarantee the rule exists to give. `bin/hooks/footnote-check`
+enforces exactly that distinction.
+
 **The "exact, full" requirement is about the title only.** An
 8-character `:ID:` prefix is adequate on the identifier side, written the
 same short way the prose writes it. Writing an id *into* a file — an org
