@@ -8257,6 +8257,13 @@ So **68% of the spans the old aggregator produced are gone or altered**, and the
 
 *Method note.* The comparison runs each version exactly as its own production caller would: the old signature takes three arguments, the new takes four with the guidepost stream, and the probe falls back on =wrong-number-of-arguments= rather than forcing one shape on both. Run in batch against the real queue, writing nothing.
 
+*Answered in full 2026-09-17: the record is sound.* The follow-up this heading handed to =89351a23= has run. Comparing the **runs** rather than the span envelopes: 703 old against 704 new, **702 identical**, total recorded time falling by about seventy seconds across the whole month. One interval on 2026-09-10 splits in two as an 82-second idle gap stops being absorbed. =89351a23= closed =CANCELLED= on that number.
+
+*So the two measurements disagree violently and both are right.* 68% of spans moved their **boundaries**; the runs inside them did not move. Apply writes runs, so the accumulated record never depended on the boundaries that changed. Stating it that way is the useful form: a span is a *proposal*, and changing what is proposed does not change what was recorded once the proposals were accepted.
+
+*This heading's own condition is therefore satisfied* — "once the aggregator is fixed" holds again, now with evidence rather than by assumption, which is what its reopening this morning was for.
+
+
 
 
 ** DONE Decouple live "what is Claude attending to" visibility from the authoritative org clock :code:
@@ -9992,12 +9999,37 @@ apply pass pairs the old way until =config.el= is loaded into it.
 :CREATED:  [2026-09-17 Thu 09:58]
 :BLOCKER:  507754ba-ae82-4f04-b209-8d8c58ac268e
 :END:
+:PLAN:
 
 The re-derivation half of =507754ba=, split out so the two do not become a twin: that heading owns the **measurement** — how much of the accumulated record the four later fixes actually moved — and this one owns the **correction**, which is only worth running if the measurement says so. Same division as =e3d1531d= and =b5448133= this week, and for the same reason: a corpus rewrite whose scope has not been measured is the expensive thing to get wrong.
 
 Found reviewing =406e9200= for its close, 2026-09-17. =507754ba= closed 2026-08-19 and =057cec53='s fifty-six-line repair 2026-08-21; four aggregator changes landed after both — =b57c7515= and =c9940558= on 09-16 06:36, =c54c4215= at 08:11, =2deb090f= at 08:21. Two of those change what the pipeline *emits*, not merely what it computes: the complement now emits gap spans that did not exist before, and a project boundary now splits spans that previously clustered together. So the record corrected in August was corrected against an aggregator that has since changed in ways that alter which spans exist at all.
 
 This is deliberately **not** claiming the record is wrong. It is claiming nobody has looked since, which is the same gap =e3d1531d= turned out to be hiding — 95 of 101 intervals, found only because someone finally asked the audit log. Blocked on =507754ba='s measurement; if that comes back clean, close this as CANCELLED with the number recorded, which is a result worth keeping either way.
+
+:END:
+*Measured 2026-09-17, and the premise does not survive it.* Where =507754ba= compared the **spans offered**, this compared the **runs recorded** — one CLOCK line each, which is what actually reaches the record. Both versions run over identical input, =--span-work-runs= having the same signature in each so only the aggregator upstream differs.
+
+: OLD   703 runs   40.57 h
+: NEW   704 runs   40.55 h
+: identical 702, only-old 1, only-new 2
+
+**One interval in seven hundred and three.** A single run on 2026-09-10 splits in two:
+
+: only OLD   15:59:24--16:02:26   (3m02s)
+: only NEW   15:59:24--16:00:24   (1m00s)
+:            16:01:46--16:02:26   (0m40s)
+
+The 82-second idle gap between them is no longer absorbed. Total recorded time falls by 0.02 h — **about seventy seconds across a month**.
+
+*So the accumulated record is not wrong and does not want re-deriving.* The 68% of spans that moved moved their *boundaries*, not their contents: apply writes runs, and a span whose edges shift around the same guideposts yields the same runs. That is why the two measurements disagree so violently and why both are correct.
+
+*This is the outcome this heading was filed anticipating*, and recording the number is the point: "if that comes back clean, close this as CANCELLED with the number recorded, which is a result worth keeping either way." Closing =CANCELLED= on seventy seconds.
+
+*And it vindicates the split.* Had =507754ba= not been separated from the re-derivation this morning, the 68% figure alone would have justified a corpus rewrite of the whole CLOCK record — for one interval and eighty-two seconds. Measuring before correcting is what the =e3d1531d= / =b5448133= precedent exists for, and this is the second time in two days it has paid.
+
+*One defect in the probe, recorded because it nearly misreported the result.* The first run printed =n=1= for both versions: =nreverse= was called on the accumulator before its length was read, leaving the variable pointing at the last cons. The totals and the set comparison were computed independently and were unaffected, and the true counts came from the dumps — but a less redundant probe would have reported "one run" with a straight face.
+
 
 
 * TODO Type a span's annotation at review time, not by hand-editing it after :code:
