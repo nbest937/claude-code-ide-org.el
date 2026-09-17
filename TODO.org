@@ -53,6 +53,15 @@ Rough budget on an 80-column terminal, model name "Opus 5" at 6: chrome today is
 
 *One tension to settle rather than decide silently.* The earlier ask was to replicate the end matter, which puts the **keyword** second. The end matter's reason for it is that "misalignment is how a stale keyword goes unnoticed" — an argument about a *column of entries*, which a one-line statusline does not have. So the keyword's justification is weaker here than it is there, and it costs 4–8 characters of headline. Keep it, or drop it and let the star alone carry the pending signal? Not decided here.
 
+*Three constraints and questions from the user 2026-09-17.*
+
+**No alignment in the statusline.** Do not pad the keyword to a column or align anything else. The end matter aligns because it is a *column of entries* read against each other; a single line has nothing to align against, and padding there only spends headline characters to make one field start at a fixed offset nobody is scanning. This also removes the last argument for carrying the keyword at all — see the open question above — since alignment was the reason the end matter gives for it.
+
+**Open: does the statusLine payload carry terminal dimensions?** It matters directly, because the finding above is that the hardcoded 30 has to become a *derived* budget, and deriving it needs a width. =--statusline-model-name= reads only =model.display_name= from the payload, so the rest of the schema has never been looked at here. =claude_debug.log= records the invocation ("StatusLine [...] completed with status 0") but not the payload. A temporary probe was installed in =bin/statusline.sh= on 2026-09-17 to capture one payload and answer this empirically — **revert it once read**. If no width is passed, the fallbacks are =(window-width)= inside Emacs, =$COLUMNS=, or a conservative fixed budget, and the choice should be made on evidence rather than assumed.
+
+**Open: does the desktop app render a statusLine at all?** The user has the desktop app open alongside, sees the exchange echoed live, and *no statusline*. This repo wires it in =.claude/settings.json= as a =command= type and the plugin surface ships none, so the wiring is project-scoped and identical for any client that reads that file. Whether a given client *renders* the result is a client question this repo cannot answer from its own artifacts — do not assume it does. If the desktop app does not, that bounds the value of every improvement here to the terminal, which is worth knowing *before* the work rather than after.
+
+
 
 
 * TODO The statusline says "clocked in" when it means "agent mid-turn", and the heading is merely the last one named :code:observed:
