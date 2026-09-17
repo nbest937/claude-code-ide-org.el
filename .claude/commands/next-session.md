@@ -212,7 +212,8 @@ are this slice's purpose and a later session's work.
 
 ## Step 1 — `f12f9da4`: make a stale load say so
 
-The precondition rule (`~/.claude/CLAUDE.md`, and the org-dev skill §0) asks
+The precondition rule (the org-dev skill, §0 — its only home since
+2026-09-17) asks
 every session to *state* what must be reloaded. This step gives that
 statement something to check itself against. Both shapes need covering, and
 the second is the one no existing check sees: the file on disk and the
