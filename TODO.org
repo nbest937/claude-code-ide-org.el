@@ -2,6 +2,40 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO The prose still promises time tracking: README, CLAUDE.md, DOOM.md and the skill all describe a clock that no longer ships :code:
+:PROPERTIES:
+:ID:       1254c24b-0dda-436e-a3d4-213de283692f
+:CREATED:  [2026-09-17 Thu 12:47]
+:CATEGORY: Docs
+:END:
+:PLAN:
+
+The standing order is =c19fbbf5='s — the machinery and its prose travel together — and this slice breaks that unless the documents move with it. Measured 2026-09-17, mentions of clocking, guideposts or spans per file:
+
+: skills/org/references/org-state-transitions.md   56
+: skills/org/SKILL.md                              50
+: skills/org/references/org-session-tracking.md    44
+: skills/org/references/org-conventions.md         13
+: CLAUDE.md                                        11
+: README.md                                         9
+: skills/org/references/org-event-queue.md          8
+: skills/org/references/org-mcp-tools.md            5
+: skills/org/references/org-emacs-setup.md          3
+
+*Scope, stated against =36952d1f= so the two do not overlap.* That member owns the two **promoted rules** — =org-state-transitions.md='s clock column and =org-session-tracking.md=, which does not promote at all without the opt-in. This one owns everything else: =README.md=, =CLAUDE.md=, =DOOM.md=, =SKILL.md=, and the three references that mention clocking in passing.
+
+*README is the sharpest, because it is what a stranger reads first.* Its opening section is "State and clock changes are queued, not applied", it names =org_clock_in= in the second sentence, and its =bin/hooks/= row advertises "session pause/resume guideposts, permission-block brackets". None of that will be true of what ships.
+
+*=doc-sync-check= already pairs four of these* — =CLAUDE.md=, =DOOM.md=, =README.md= and =org-emacs-setup.md= — so editing one prompts a look at its sibling. It is inject-and-remind rather than blocking, so it helps and does not enforce.
+
+*One thing to decide rather than assume:* whether the prose describes time tracking as **absent** or as **available and unwired**. They are different promises, and the second is the accurate one given the scripts still ship. Say which, once, and let every file follow it.
+
+*=AGENTS.md= is untracked and local-only*, so it is outside this and outside version control. Worth asking whether it should be either.
+:END:
+
+Nine documents describe clocking, guideposts or spans, and none of it will be true of what ships — README most sharply, since its opening section is "State and clock changes are queued, not applied" and its =bin/hooks/= row advertises guideposts and permission-block brackets. =36952d1f= owns the two promoted rules; this owns README, CLAUDE.md, DOOM.md, the skill and three references. The decision to make once and apply everywhere: whether the prose calls time tracking **absent** or **available and unwired** — the second is accurate, since the scripts still ship.
+
+
 * CANCELLED An id already paired with its exact title in the body owes no separate end-matter entry :code:
 CLOSED: [2026-09-17 Thu 12:14]
 :PROPERTIES:
@@ -152,14 +186,14 @@ So cookie and =:KIND:= are a two-bit classifier and each carries a bit the other
 *Placement, decided 2026-09-17 so it is not re-decided:* the *definition* — a cookie is derived state, not part of a name — goes in =org-conventions.md= beside the passage introducing the cookie, together with the rewrite hazard, since both matter when an =.org= file is open and that file is path-scoped to =**/*.org=. The *instruction* — emit =:KIND:=, keep the cookie — goes in =org-footnote-citations.md=, which carries no path scope because ids are cited with no org file in play. State it once in each and cross-reference; two files each holding a full account is how =~/.claude/CLAUDE.md= and its promoted twin diverged within hours.
 
 
-* NEXT [0/8] Ship the tracker without the clock, so another project can use it while time tracking is still being built :code:
+* NEXT [0/9] Ship the tracker without the clock, so another project can use it while time tracking is still being built :code:
 :PROPERTIES:
 :ID:       8bbae3aa-55db-441c-8c33-405570ad879a
 :CREATED:  [2026-09-17 Thu 11:16]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  eb6c4a9b-8f78-42fa-9e86-484bf352fcf6 0c5577dc-ef15-440a-bdac-b3cb068aa7b2 36952d1f-5312-4cf2-a710-4290ce673e19 01f7a19c-4b71-447c-8ded-385410e5d607 6956a46e-da4b-44c2-a701-80196a2930c1 1b36c5bd-bafd-4c43-8aae-c94dee45c5eb d3149a81-91d2-4722-b6d8-68d4cee6fa4f 5fb70821-0f46-42d9-8bf3-93bc98025692
+:BLOCKER:  eb6c4a9b-8f78-42fa-9e86-484bf352fcf6 0c5577dc-ef15-440a-bdac-b3cb068aa7b2 36952d1f-5312-4cf2-a710-4290ce673e19 01f7a19c-4b71-447c-8ded-385410e5d607 6956a46e-da4b-44c2-a701-80196a2930c1 1b36c5bd-bafd-4c43-8aae-c94dee45c5eb d3149a81-91d2-4722-b6d8-68d4cee6fa4f 5fb70821-0f46-42d9-8bf3-93bc98025692 1254c24b-0dda-436e-a3d4-213de283692f
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-17 Thu 12:10] \\
@@ -186,6 +220,7 @@ Planned:
 - [ ] [[id:1b36c5bd-bafd-4c43-8aae-c94dee45c5eb][1b36c5bd]] TODO claude-org-setup gains an opt-in that restores the time-tracking wiring and its rules
 - [ ] [[id:d3149a81-91d2-4722-b6d8-68d4cee6fa4f][d3149a81]] TODO Verify the review buffer and apply pass on a queue that has never held a guidepost
 - [ ] [[id:5fb70821-0f46-42d9-8bf3-93bc98025692][5fb70821]] TODO Establish whether two plugin manifests can share one MCP server, which is what decides the two-plugin question
+- [ ] [[id:1254c24b-0dda-436e-a3d4-213de283692f][1254c24b]] TODO The prose still promises time tracking: README, CLAUDE.md, DOOM.md and the skill all describe a clock that no longer ships
 
 
 * TODO Verify the review buffer and apply pass on a queue that has never held a guidepost :code:
