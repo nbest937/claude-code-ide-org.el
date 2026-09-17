@@ -2,18 +2,37 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO The PLAN nag counts lines while the tools write paragraphs, so it cannot fire on their output :code:
+:PROPERTIES:
+:ID:       17f93758-694b-4f80-9b21-f21679b0699f
+:CREATED:  [2026-09-17 Thu 09:16]
+:CATEGORY: Dev
+:END:
+:PLAN:
+
+=bin/lint-org= warns on a finished heading with a substantial body and no =:PLAN:= drawer, and =claude-code-ide-org--lint-substantial-body-p= defines substantial as ten or more lines of prose. But =org_amend= writes each paragraph as a single unwrapped line, so a body the tools produced measures a handful of lines however long it is. Measured on =a3ee7033=: body of 1,084 characters across two prose lines — 836 and 248 — against a threshold of 10, so =substantial= is nil and the rule cannot fire. All five headings closed this session satisfied every other condition (finished keyword, CLOSED present and recent, no PLAN drawer, not a slice) and none was reported. Proposal: measure the body in characters, or in filled lines, rather than in physical newlines — the intent is "a body worth wrapping", and the current measure answers "a body someone typed with hard wraps". Related to =d90a02f2= by the same root: unwrapped paragraphs are also what drive maximum line length, TODO.org's longest being 2,717 characters.
+:END:
+
+=bin/lint-org= warns on a finished heading with a substantial body and no =:PLAN:= drawer, but measures "substantial" in physical lines while =org_amend= writes each paragraph unwrapped — so a 1,084-character body counts as two lines against a threshold of ten and the rule cannot fire. Five headings closed in one session met every other condition and none was reported. Proposal: measure characters, or filled lines, rather than newlines.
+
+
 * TODO The reload rule lost its always-loaded home, so two repo cross-references now point at a file that does not load :code:
 :PROPERTIES:
 :ID:       27bb4b08-d95f-4955-a518-efb2ecf6e51b
 :CREATED:  [2026-09-17 Thu 08:52]
 :CATEGORY: Skill
 :END:
+:PLAN:
 
 The user retired =~/.claude/CLAUDE.md= on 2026-09-17 (renamed to =.old=), having decided its footnote half was duplicated by =fc70b56d='s promoted rule and that neither rule was wanted in projects without this machinery. Two live references in this repo named it as a load-bearing home and are now false: the org-dev skill's §0, which said the rule's general form "lives in =~/.claude/CLAUDE.md=" and was "restated here", and =next-session.md='s Step 1, which cited both as the rule's homes.
 
 The consequence to state rather than paper over: the reload-precondition rule now has **no always-loaded home at all**. It lives in the org-dev skill, which is *triggered*, so a verification that is not Emacs- or Doom-shaped no longer meets it. That is an accepted trade, not an oversight — but §0 should own the rule outright instead of deferring to a file that is gone.
 
 =bin/hooks/doc-sync-check='s comment also names the file, and is deliberately left alone: it uses it as an illustration of why the hook matches full paths rather than basenames, and that argument does not depend on the file existing.
+:END:
+
+Retiring =~/.claude/CLAUDE.md= left two live repo references naming it as a load-bearing home for the reload-precondition rule: the org-dev skill's §0 and =next-session.md='s Step 1. Both corrected, with §0 now owning the rule outright. The accepted consequence, stated rather than papered over: a skill is triggered rather than always loaded, so a verification that is neither Emacs- nor Doom-shaped no longer meets the rule anywhere.
+
 
 * TODO Doom drops org files out of org-mode at 15,000 lines, and TODO.org is 1,600 away :code:
 :PROPERTIES:
@@ -21,6 +40,7 @@ The consequence to state rather than paper over: the reload-precondition rule no
 :CREATED:  [2026-09-17 Thu 08:40]
 :CATEGORY: Dev
 :END:
+:PLAN:
 
 The recurring warning =Warning (org-element): 'org-element-at-point' cannot be used in non-Org buffer #<buffer DONE.org> (so-long-mode)= is not cosmetic: while it holds, DONE.org is not an Org buffer and every org operation against it is degraded rather than merely noisy.
 
@@ -37,6 +57,10 @@ The recurring warning =Warning (org-element): 'org-element-at-point' cannot be u
 *Correction, 2026-09-17: the "urgent half" framing above overstated it, because TODO.org has a drain and this heading did not account for it.* The user pointed out that finished headings are archived into DONE.org each day tasks were closed. Measured rather than conceded: TODO.org is **13,455 lines**, of which 7 finished top-level headings hold **345 lines** — so today's pending archive would leave it at **13,110**, still about 1,900 short of the 15,000 threshold. The drain is real and roughly 2.6% of the file; it moves the date out, it does not remove the cliff.
 
 *And the drain makes the global picture worse rather than better, which is the part worth keeping.* Archiving relocates those lines into DONE.org — already **37,036 lines**, 22,000 *past* the same threshold and permanently over it. So the one file with a drain empties into the one without. Nothing about the archive cycle fixes so-long for either file; only the Doom threshold does. That is an argument for the one-line config fix and against treating archiving, or monthly chunking, as the remedy.
+:END:
+
+Doom's =doom-so-long-p= drops any file past 15,000 lines out of its major mode, so DONE.org at 37,036 lines is not an Org buffer and every org operation against it is degraded rather than merely noisy. The trigger is line count, not line length — the longest line is 1,422 against a 5,000 threshold. Fix: one =doom-file-lines-threshold-alist= entry exempting =.org= from the count test while leaving the long-line test in force.
+
 
 
 * TODO The unassigned-mark guard is conjunctive, so a clock item with no id marks and then fails at apply :code:
@@ -45,12 +69,17 @@ The recurring warning =Warning (org-element): 'org-element-at-point' cannot be u
 :CREATED:  [2026-09-16 Wed 21:14]
 :CATEGORY: Apply
 :END:
+:PLAN:
 
 Observed 2026-09-16: an apply of 67 items reported "2 failed", both =Error: no org heading found with :ID: "nil" [clock unassigned …]=. The quotes are a red herring — the id is genuinely nil and =(format "… :ID: \"%s\"" id)= renders it that way.
 
 =claude-code-ide-org--review-markable-p= refuses a mark only when the item is flagged =:unassigned= **and** its =:id= is nil: =(not (and (plist-get item :unassigned) (null (plist-get item :id))))=. A clock item with a nil id that does *not* carry the flag is therefore markable, and apply then looks a heading up by nil. Its own docstring names this outcome as the thing it exists to prevent — "refusing the mark is what makes that visible rather than letting apply fail later with a confusing error" — so the guard is not missing, it is one conjunction too narrow.
 
 A nil id on a clock item is expected rather than exotic: =clock_out= carries no id, the same asymmetry that returned zero from the first orphan matcher earlier the same day. Proposal: test the id alone — an item with no heading cannot be applied whatever flags it carries — and say so in the refusal the way the unassigned-span branch already does. Worth checking at the same time whether =:unassigned= should be *derived* from a nil id rather than set alongside it, since two fields encoding one fact is what let them disagree.
+:END:
+
+=--review-markable-p= refuses a mark only when an item is flagged =:unassigned= **and** carries a nil =:id=, so a clock item with no id and no flag marks cleanly and then fails at apply with =no org heading found with :ID: "nil"= — the exact outcome the guard's own docstring says it exists to prevent. A nil id on a clock item is ordinary, since =clock_out= carries none. Proposal: test the id alone, and consider deriving =:unassigned= from it rather than storing both, since two fields encoding one fact is what let them disagree.
+
 
 * TODO --session-alias-cache is keyed on the session set alone, so a nil map outlives the transcript that caused it :code:
 :PROPERTIES:
@@ -58,10 +87,15 @@ A nil id on a clock item is expected rather than exotic: =clock_out= carries no 
 :CREATED:  [2026-09-16 Wed 18:34]
 :CATEGORY: Queue
 :END:
+:PLAN:
 
 PR #25 review, MEDIUM, against code =b57c7515= introduced. The cache is keyed on the sorted session-id set and never invalidated, and it short-circuits before any stamp is read — so it defeats the live re-read =--transcript-stamp-cache= exists to provide: a mid-work re-key whose new transcript has not yet flushed its first entry caches a **nil** map for that sid set, and the bracket never pairs again for the life of the Emacs process. The key also omits the =ranges=, which are what decide the canonical member and what the =--session-ranges-overlap-p= refusal is computed from, so two event sets sharing a sid set but not a time span share an answer built from one of them.
 
 *Filed rather than fixed, because the obvious repair is wrong.* Not caching a nil result would defeat the cache in precisely its common case — the docstring says nil "is the common case", and the map globs every transcript directory while =--span-events= runs once per candidate bracket in a subdivision. So the key has to become something that changes when a transcript could have grown, which is a design question rather than an edit. Including a ranges digest is necessary and not sufficient.
+:END:
+
+=--session-alias-cache= is keyed on the sorted session-id set alone and never invalidated, so a nil alias map cached before a re-keyed transcript flushed its first entry persists for the life of the Emacs process and defeats the live re-read the stamp cache exists to provide. The key also omits the ranges that decide the canonical member. Filed rather than fixed: not caching nil would defeat the cache in its common case, so the key needs to reflect transcript growth — a design question, not an edit.
+
 
 
 
@@ -76,9 +110,11 @@ CLOSED: [2026-09-16 Wed 18:34]
 - State "DONE"       from "TODO"       [2026-09-16 Wed 18:34] \\
   flush-left, with an anchored assertion proved red first
 :END:
+:PLAN:
 
 PR #25 review, LOW. The hook built each suggested line as =$resolved  \=id\=  ...=, with a two-space prefix, while =org-footnote-citations.md= — shipped in the same PR — gives the canonical form flush-left. The message says "Append these lines", so the indent was what a reader copied, and the rule and its enforcement disagreed about the one thing the rule is precise about. =bin/footnote-check-test= was blind to it: its pairing assertion matches a substring and is indifferent to the prefix.
 
+:END:
 *Resolved:* two spaces dropped, plus a separate anchored assertion. Worth recording how that assertion was got wrong first: written with an embedded newline in the pattern, it PASSED against the indenting hook, because =grep= reads a newline as a pattern separator and the empty alternative matches every line. Anchored with =^= it failed as intended, then passed on the fix. 24 passed, was 23.
 
 
@@ -94,9 +130,11 @@ CLOSED: [2026-09-16 Wed 18:34]
 - State "DONE"       from "TODO"       [2026-09-16 Wed 18:34] \\
   both keys listed; the brittle test re-anchored
 :END:
+:PLAN:
 
 PR #25 review, LOW, and broader than the finding. The legend named m/u, M/U, t, a, e, N, d, RET, T, s, x, g and q; the keymap also binds =c= (claim the envelope, added by =2deb090f=) and =?= (=claude-code-ide-org-review-help=). So the one key that would list the others was itself unlisted. The =c= omission defeats exactly the case =2deb090f= was built for — a human reading the legend keeps reaching for =e=, which is the hand-editing the new key exists to replace, and the user predicted they would "rarely if ever reach for =e=" the same day.
 
+:END:
 *Resolved:* both keys added, and the legend's comment now records that it is a hand-maintained third copy of the binding table that nothing checks. Growing it to three lines broke a test that found "a blank line" by counting two lines from =point-min= — true only under a two-line legend — so that test was re-anchored on a search and now fails for its own reasons or not at all.
 
 
@@ -107,8 +145,13 @@ PR #25 review, LOW, and broader than the finding. The legend named m/u, M/U, t, 
 :CREATED:  [2026-09-16 Wed 14:50]
 :CATEGORY: Tools
 :END:
+:PLAN:
 
 Both gaps surfaced within a minute of each other while correcting =37bca83a=. Retitling has no tool at all: =org-edit-headline= exists in =config.el= but only inside the cookie inserters, so a rename goes through a hand =emacsclient= call, which binds nothing and dies on a read-only buffer — precisely the signal =org-mcp-tools.md= says means "the tool surface is missing something, not a licence to clear the flag". Removing a property has a near-miss: =org_set_property= accepts an empty value and *sets* it, leaving =:BLOCKER:= as a dangling empty line rather than deleting it, so lifting a blocker took a line-number =sed= and a buffer revert. Proposal: an =org_set_heading= (title only, keyword and tags untouched), and a delete mode on =org_set_property= — empty value should remove the line, since there is no case where an empty property says anything. Both are the shape =:ID:= 1cd2df62 and =420816ec= keep finding: the discouraged path stays cheaper than the preferred one until a tool closes it.
+:END:
+
+Nothing in the tool surface retitles a heading, and =org_set_property= sets an empty value rather than removing the property — so both operations fall back to a hand =emacsclient= call, which binds nothing and dies on a read-only buffer. Proposal: an =org_set_heading= that changes the title alone, and a delete mode on =org_set_property=, since an empty property says nothing worth storing.
+
 
 
 
@@ -137,9 +180,11 @@ CLOCK: [2026-09-16 Wed 18:28]--[2026-09-16 Wed 18:29] =>  0:01
 CLOCK: [2026-09-16 Wed 18:29]--[2026-09-16 Wed 18:29] =>  0:00
 - [2026-09-16 Wed 18:29]--[2026-09-16 Wed 18:29] suggested span, accepted at review
 :END:
+:PLAN:
 
 Since =c9940558= the aggregator keys its points on =(TS KIND PROJECT)= and a project boundary splits a span, while =--aggregate-guideposts='s own docstring documented only =THRESHOLD= and =EXCLUSIONS=, and the shipped =org-session-tracking.md= "three numbers" section still presented the gap threshold as what decides grouping. Nothing there was *false*; the omission is what mattered, and it matters to the consumer rather than to us: the queue is one global directory under =~/.claude/org-updates=, so before this branch two repos' turns in the same window clustered into a single span, and running the queue in more than one repo is the plugin's whole premise.
 
+:END:
 *Resolved:* a paragraph in the shipped reference and a clause in the docstring, both naming the project dimension and keeping the part that matters — both sides must be known and differ, so a nil =cwd= is unknown rather than elsewhere. The PR #25 review then caught a second fault in the same prose: it called the project split "the way a permission block does", which has been false since =c54c4215= made blocks a subtraction rather than a split. Corrected in all three copies, with the stale comment that misled me rewritten to record that it outlived the change.
 
 
@@ -159,9 +204,11 @@ CLOCK: [2026-09-16 Wed 14:50]--[2026-09-16 Wed 14:52] =>  0:02
 - State "DONE"       from "DOING"      [2026-09-16 Wed 14:52] \\
   32 ok, was 29; each assertion discriminates
 :END:
+:PLAN:
 
 =bin/check-conventions= asserts the TODO keyword set agrees across four places against this repo's own =#+TODO:= header, and its own comment records that the set has drifted before. Three further copies are outside it: the awk alternation =bin/hooks/footnote-check= gained on this branch, and the =#+TODO:= lines in =templates/TODO.org= and =templates/DONE.org=. Two of those three are *shipped* — the hook and the templates are what a consuming project actually runs and scaffolds from — so drift there is a consumer-visible failure nobody here would see. It fails silently and wrongly rather than emptily: the hook's awk defaults =kw= to =-= and leaves an unrecognised keyword in =line=, so the emitted entry shows a dash in the keyword column *and* leaks the keyword into the position the convention reserves for the exact title.
 
+:END:
 *Resolved:* three assertions added to the existing keyword-set section, same =keyword_set= helper and truth source; each proved red first by copying the file aside and removing =REVIEW= from it, and each failed naming its own source. 32 ok, was 29.
 
 
@@ -182,9 +229,11 @@ CLOCK: [2026-09-16 Wed 14:53]--[2026-09-16 Wed 14:55] =>  0:02
   promoted always-loaded; six references now travel
 - [2026-09-16 Wed 14:55]--[2026-09-16 Wed 15:16] suggested span, accepted at review
 :END:
+:PLAN:
 
 =hooks/hooks.json= wires =bin/hooks/footnote-check= as a =Stop= hook, so it blocks turns in every consuming project — and the string "footnote" appeared on the whole plugin surface exactly once, in that wiring line. The hooks table listed six rows and not this one; no reference stated the convention, which lived only in the author's private =~/.claude/CLAUDE.md= and travelled with nobody. The user confirmed 2026-09-16 that it *should* ship: tasks in any other project are expected to be cited by =:ID:= prefix exactly as here. So the gap was the rule, not the hook.
 
+:END:
 *Resolved:* =skills/org/references/org-footnote-citations.md=, promoted always-loaded — an id gets cited in a response about source, tests or commits with no =.org= file in play, so a path scope would make it a rule that does not load. It carries the canonical form, why the superscript markers were retired, and the three things about the hook's reading that have each been got wrong: the =---= separator, fenced blocks, and that it reports a strict subset. The hooks table gained its two missing =Stop= rows in the same pass. One correction after writing: the hook reads =last_assistant_message=, which carries only the turn's *final text block*, and the looser wording would have walked a consumer into the wall that killed this repo's orphan check.
 
 *Postscript, 2026-09-17:* the user retired =~/.claude/CLAUDE.md= once this shipped, on the ground that its footnote half was now duplicated and neither of its rules was wanted in projects without this machinery. The duplication this heading created was therefore resolved by deletion rather than by reconciliation — see =27bb4b08= for what that cost in cross-references.
@@ -197,8 +246,13 @@ CLOCK: [2026-09-16 Wed 14:53]--[2026-09-16 Wed 14:55] =>  0:02
 :CREATED:  [2026-09-16 Wed 14:50]
 :CATEGORY: Tools
 :END:
+:PLAN:
 
 =max_depth= is an *absolute* level test, deliberately (=:ID:= 9f3c35c7 — it is what makes the argument mean the same thing for a file and for a subtree). Nothing handles the case where the scoped heading is itself deeper than the limit: =scope=0fa403f4= with no =max_depth= prints the heading, and the identical call with =max_depth=1= prints the =:CREATED:=/=:CATEGORY:= front-matter block and nothing else. DONE.org's datetree is where it bites, those entries sitting at level 7, and the output is indistinguishable from a heading that simply has no children — an empty result that reads as a fact about the corpus. It falsified =98908aff='s one passing claim about this knob, that "=max_depth= is safe by contrast: it only ever drops the deepest lines, truncating leaves rather than severing an ancestor"; severing the scope root is exactly what it does. The ancestor-preservation =--outline-map= gained for =active_only= does not reach it, because a scoped root has nothing kept beneath it to hold it in. Proposal: a scoped call always emits its scope heading, whatever =max_depth= says — the caller named it, so it is not a line they filtered out.
+:END:
+
+A scoped =org_outline= call whose heading sits deeper than =max_depth= filters out the scope itself and returns the front-matter block alone — indistinguishable from a heading with no children, so an empty result reads as a fact about the corpus. DONE.org's datetree is where it bites, those entries sitting at level 7. Proposal: a scoped call always emits the heading the caller named, whatever the depth limit says.
+
 
 
 
