@@ -2550,7 +2550,7 @@ the same-lane-close pairing fix in this =:PLAN:= would have made the
 item a normal bracket and prevented the whole class.
 
 
-* TODO Make the corpus searchable by tag, by measurement where it can be and by decision where it cannot [0/2]
+* TODO [0/2] Make the corpus searchable by tag, by measurement where it can be and by decision where it cannot
 :PROPERTIES:
 :ID:       ee3e0fa2-d4a6-4575-a5fb-e4e25c49431a
 :CREATED:  [2026-09-17 Thu 11:26]
@@ -4968,7 +4968,7 @@ can never see this. The commit gate passed. The MCP tools answered. The only
 signal was a human pressing a key that did nothing, hours later.
 
 
-* TODO Sixty minutes holding 2 turns is not sixty holding 40 [2/7]
+* TODO [2/7] Sixty minutes holding 2 turns is not sixty holding 40
 :PROPERTIES:
 :ID:       f90d745e-ccf9-49d6-a92e-df25c17b4dfb
 :CREATED:  [2026-08-31 Mon 16:39]
@@ -12719,6 +12719,7 @@ call it done.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-17 Thu 12:18]
 CLOCK: [2026-09-17 Thu 11:41]--[2026-09-17 Thu 11:51] =>  0:10
 CLOCK: [2026-09-17 Thu 10:48]--[2026-09-17 Thu 10:58] =>  0:10
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
