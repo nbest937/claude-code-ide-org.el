@@ -4839,6 +4839,33 @@ on the other adjacency direction would pass the first and fail the second."
                           (list (list :ts t0)
                                 (list :ts (time-add t0 (* 69 60))))))))))
 
+(ert-deftest claude-code-ide-org-test-exemption-needs-adjacency-in-the-full-stream ()
+  "The `resume\=' -> `pause\=' exemption holds only for events that are
+adjacent in the FULL guidepost stream (TODO.org :ID: 5a9d877e).
+
+`claude-code-ide-org--review-items-from-queue\=' hands the aggregator a
+*filtered* stream -- orphans in one call, uncovered guideposts in the
+other -- and two events are adjacent there merely because everything
+between them was attributed elsewhere.  Reading that as one running turn
+produced clusters spanning days: measured on the live queue, 08-24 12:33
+to 08-31 18:13 over seven guideposts.
+
+Behavioural: both calls receive the same two events, and differ only in
+whether the caller also says what lay between them."
+  (let* ((t0 (date-to-time "2026-08-18T09:00:00-0500"))
+         (a (list :ts t0 :kind "resume"))
+         (b (list :ts (time-add t0 (* 69 60)) :kind "pause"))
+         (mid (list :ts (time-add t0 (* 30 60)) :kind "pause")))
+    ;; No stream given: unchanged, and every existing caller relies on it.
+    (should (= 1 (length (claude-code-ide-org--aggregate-guideposts (list a b)))))
+    ;; The full stream shows a guidepost between them, so they were never
+    ;; one turn and the 69-minute hole is an ordinary gap.
+    (should (= 2 (length (claude-code-ide-org--aggregate-guideposts
+                          (list a b) nil nil (list a mid b)))))
+    ;; And a stream that confirms adjacency leaves the exemption intact.
+    (should (= 1 (length (claude-code-ide-org--aggregate-guideposts
+                          (list a b) nil nil (list a b)))))))
+
 (ert-deftest claude-code-ide-org-test-aggregate-guideposts-does-not-round ()
   "Spans keep their exact endpoints, and consolidation now keeps them too.
 

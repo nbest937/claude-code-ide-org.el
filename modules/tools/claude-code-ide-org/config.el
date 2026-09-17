@@ -7723,8 +7723,26 @@ from the ones bounding an ordinary span, not a weaker one."
           (push (cons cursor end) segments))
         (nreverse segments)))))
 
+(defun claude-code-ide-org--guidepost-between-p (from to stream)
+  "Non-nil when some event in STREAM lies strictly between FROM and TO.
+
+Nil when STREAM is nil, which is how a caller says it does not know --
+`claude-code-ide-org--aggregate-guideposts' then behaves exactly as it
+did before the stream argument existed.
+
+Strictly between: an event AT either endpoint is one of the two being
+tested, not something that came between them."
+  (and stream
+       (seq-some (lambda (e)
+                   (let ((ts (plist-get e :ts)))
+                     (and ts
+                          (time-less-p from ts)
+                          (time-less-p ts to))))
+                 stream)
+       t))
+
 (defun claude-code-ide-org--aggregate-guideposts (events &optional threshold
-                                                          exclusions)
+                                                          exclusions stream)
   "Collapse EVENTS' timestamps into (START . END) spans for review.
 
 EXCLUSIONS is a list of (START . END) intervals treated exactly like a
@@ -7842,7 +7860,27 @@ other."
                    ;; missing `:kind' fails this test and so stays
                    ;; splittable, which is what the bare-`:ts' fixture in
                    ;; config-test.el expects.
-                   (and (equal previous-kind "resume") (equal kind "pause")))
+                   (and (equal previous-kind "resume") (equal kind "pause")
+                        ;; ...and only when the two were adjacent in the
+                        ;; FULL guidepost stream.  Callers hand this
+                        ;; function a *filtered* one -- orphans, or
+                        ;; guideposts outside a bracket -- where two
+                        ;; events are adjacent merely because everything
+                        ;; between them was attributed elsewhere.  Read
+                        ;; as one running turn, that produced clusters
+                        ;; spanning days: 08-24 12:33 to 08-31 18:13 over
+                        ;; seven guideposts, measured on the live queue
+                        ;; (TODO.org :ID: 5a9d877e).
+                        ;;
+                        ;; STREAM is guideposts, deliberately, not every
+                        ;; queue event: a genuine long turn emits queue
+                        ;; events for its own tool calls, and splitting
+                        ;; on those would break the exact case this
+                        ;; exemption exists to protect.  Nil means "not
+                        ;; told", which keeps every existing caller and
+                        ;; the bare-fixture tests unchanged.
+                        (not (claude-code-ide-org--guidepost-between-p
+                              previous time stream))))
                ;; A block no longer splits *here*.  It used to, and the
                ;; split emitted only the endpoints either side, dropping
                ;; the unowned gaps between two blocks (:ID: c54c4215).
@@ -8692,18 +8730,22 @@ from a skipped one."
           ;; `clock_in' whose work is still running and has no closing
           ;; bracket to be partitioned by.
           (let* ((covered main-brackets)
+                 ;; Bound once and passed as STREAM below: the exemption
+                 ;; needs to know what lay between two guideposts before
+                 ;; `covered' removed it (TODO.org :ID: 5a9d877e).
+                 (all-guideposts (claude-code-ide-org--span-events events nil))
                  (guideposts (seq-remove
                               (lambda (e)
                                 (claude-code-ide-org--time-within-any-p
                                  (plist-get e :ts) covered))
-                              (claude-code-ide-org--span-events events nil)))
+                              all-guideposts))
                  (label (car (delq nil
                                    (mapcar (lambda (e)
                                              (and (equal (plist-get e :kind) "clock_in")
                                                   (plist-get e :note)))
                                            events)))))
             (dolist (span (claude-code-ide-org--aggregate-guideposts
-                           guideposts nil covered))
+                           guideposts nil covered all-guideposts))
               (push (list :type 'clock :id id
                           :start (car span) :end (cdr span)
                           :note label :agent nil :suggested t
@@ -8759,7 +8801,13 @@ from a skipped one."
                                                  history))
                                     #'time-less-p)))))
       (dolist (span (claude-code-ide-org--aggregate-guideposts
-                     guideposts nil bracketed))
+                     ;; STREAM is the whole lane's guideposts, not the
+                     ;; orphan subset: two orphans are adjacent here only
+                     ;; because everything between them was bracketed,
+                     ;; and the exemption must not read that as one
+                     ;; running turn (TODO.org :ID: 5a9d877e).
+                     guideposts nil bracketed
+                     (claude-code-ide-org--span-events history nil)))
         ;; Drop a stranded single point.  A lone guidepost renders
         ;; `[13:03]--[13:03]', writes nothing, and can only ever be
         ;; answered `d' -- and when a *later* event exists it can never
