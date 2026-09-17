@@ -4580,7 +4580,22 @@ identifiable to any writer rather than adding a guard per writer.
 *Four siblings filed the same week stay in backlog for now* — =51bcec2c=, =aee8487e=, =cf483f5d=, =17f93758= — rather than being added one at a time. They should be judged together against this slice's shape when it is actually picked up, since deciding twice is how a list grows without anyone choosing.
 
 
-* REVIEW Three new ways to owe a footnote and not see it: marker, list, quotation :code:
+* DOING Separate the causes of unfootnoted ids, so each can be closed on its own [0/3]
+:PROPERTIES:
+:ID:       de6de108-0095-40f4-8177-fdef0503c578
+:CREATED:  [2026-09-17 Thu 16:17]
+:CATEGORY: Skill
+:END:
+
+Divided out of =2a6a1355= 2026-09-17 at the user's direction, whose diagnosis was that the body had become "out and out metastasism": one heading carrying several causes that were never separated, so each visit appended to the pile instead of landing somewhere of its own. Ten dated revision sections in seventeen days, 3,707 words, the largest heading in TODO.org at fifteen times the median and 4.7% of the file's prose. **The size was the symptom; the failure to separate causes was the disease.**
+
+*What the division claims, and it is deliberately a weak claim.* Two causes are filed as members because the evidence separates them cleanly: an id that arrives by *transcription* was never chosen by the writer, and an id cited in *bulk* was chosen by the writer every time. The parent heading's own unifying sentence — "every failure is an id the writer did not choose to write" — covers the first and is **false of the second**, which is what makes them two rather than one. That contradiction is the whole warrant for dividing.
+
+*What it does not claim.* That two is the right number. Three of the five recorded modes were marker faults and are dead, retired with the markers themselves rather than fixed, so they are not causes and get no member. Whether quotation and borrowed prose are one cause or two is left open on the member that holds them. **The user is reserving judgment on the division itself until the next session**, so this structure is a proposal to be judged, not a settled taxonomy.
+
+*Why the child's body was left intact.* Condensing its retracted third would have been policy-conformant and was declined: the accreted sections are the evidence of where the seams are, and the next pass needs to count them. Erasing them to save lines would destroy the only record of how the causes got tangled.
+
+** REVIEW Three new ways to owe a footnote and not see it: marker, list, quotation :code:
 :PROPERTIES:
 :ID:       2a6a1355-615f-4c2c-a8af-c9ae8dcda09b
 :CREATED:  [2026-09-01 Tue 08:43]
@@ -4971,8 +4986,30 @@ One thing the rule does not reach, and it is worth writing down rather than trea
 *That reframes the volume measured above.* 3,707 words, ten dated revision sections in 17 days, largest heading in TODO.org at 15x the median — that was read here as a writing-habit problem. The user's reading is that it is a *structural* signal: a body metastasises when one heading is carrying several causes that were never separated, and each visit appends to the pile instead of landing somewhere of its own. On that reading the size is a symptom to diagnose, not prose to condense — which is also why condensing it now would be the wrong move, since it would erase the evidence of the seams.
 
 *So the next session's first question is not "close it?" but "how many causes are in here?"* Candidate seams visible in the body, offered as a starting point and not as an answer: the marker faults (retired with markers, so possibly not a cause at all); enumeration; borrowed prose and quotation, which may be one cause — an id arriving by transcription; the paraphrased title, already made impossible by =33c3eabc=; and the volume/discipline question raised today, where the mechanism works and goes unused. Whether those are distinct causes or one cause seen five ways is exactly what has not been established.
+** TODO An id that arrives by transcription was never chosen, so care cannot catch it :code:
+:PROPERTIES:
+:ID:       490e6737-b977-47a7-abd7-b0dad1684093
+:CREATED:  [2026-09-17 Thu 16:18]
+:END:
 
+Candidate cause 1 of the division, and the one the parent heading's own body argues for most directly: "the rule the writer is actually following is 'footnote what I decided to reference', and the hook's rule is 'footnote every id present'. The gap between those two is exactly the set of ids that arrive by transcription."
 
+Three of the five recorded modes are this one cause: an id inside a *quoted example string*, an id inside a sentence *adapted* from another heading's prose, and a title *paraphrased* from a neighbour's body. In each the token is on the page because something was copied, not because a reference was made. Nothing on the surface marks the borrowed span, so there is no cue to check — which is why it is distinct from a discipline failure and why exhortation has never moved it.
+
+Partly addressed already: the paraphrased-title half became impossible when =33c3eabc= made the hook emit the exact title. The quoted and adapted halves are still merely *detected* by the id check.
+
+**Not established: that this is one cause rather than two.** Quotation is visible as quotation; borrowed prose is not. Whether that difference matters enough to split is a judgement for the pass that reviews this division.
+** TODO Bulk citation owes more entries than inline pairing can absorb, so the remedy goes unused :code:
+:PROPERTIES:
+:ID:       13aed7ca-1fad-4e89-bbca-9355f5c76265
+:CREATED:  [2026-09-17 Thu 16:18]
+:END:
+
+Candidate cause 2, and the reason it is filed apart from transcription is that here the writer **did** choose every id. A status summary or a portfolio list cites ten or fifteen headings deliberately; none of them arrives by copying. So the transcription account does not reach it, and the parent heading's unifying claim — that every failure is an id the writer did not choose to write — is false of this case.
+
+Measured 2026-09-17 across this session's 57 hook fires: mean ids demanded rose from 1.4 before 14:00Z to 4.3 after, peaking at 15, tracking the subject matter. The discharge rule shipped at 17:33Z and bought nothing — 4.3 after against 3.5 before. The hook was exonerated by direct test: three bare ids demand all three and exit 2, an id paired with its exact title on one line exits 0.
+
+**The mechanism works and goes unused, which is the actual defect and is not a discipline problem.** At twelve or fifteen ids the inline form means twelve or fifteen full titles inside the prose — precisely the unscannable paragraph the convention exists to prevent. So the remedy is unusable exactly where the debt is largest, and the writer correctly declines it. The open question is whether a response that is *structurally a list of headings* should owe end matter at all, or whether the hook should stand down on that shape.
 
 * TODO Report worked headings that carry no clock interval that day :code:
 :PROPERTIES:
