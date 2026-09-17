@@ -2,7 +2,75 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* TODO The cookie is state, not name: quoting it puts 84 rewritable tokens into prose and makes every citation stale :code:
+* MAYBE Revisit building the footnote block with org-ql or the agenda, once Emacs stops wedging :research:
+:PROPERTIES:
+:ID:       3e08732f-f737-4558-938d-b91276a70b8a
+:CREATED:  [2026-09-17 Thu 11:51]
+:CATEGORY: Tools
+:BLOCKER:  489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938
+:END:
+:PLAN:
+
+Asked by the user 2026-09-17 and deliberately parked rather than declined. =bin/hooks/footnote-check= resolves ids by grepping =TODO.org= and =DONE.org= with awk, which is why it can emit a keyword and an exact title without Emacs. Org's own facilities — =org-ql=, the agenda, =org-map-entries= — would do it better and would answer questions awk cannot: whether a heading has keyworded children, which is what separates a **story** from a task and is the one field =bf00d36a= had to leave out.
+
+*The blocker is not preference, it is availability.* The hook belongs to the survive-without-Emacs tier, alongside the queue-append family, "precisely so a stopped Emacs costs nothing". Routing it through =emacsclient= would block **every turn** whenever Emacs is unavailable — and on 2026-09-17 alone Emacs deadlocked six times, with the hook working throughout because it reads files directly. Under current conditions the change would trade a correct field for an unusable session.
+
+*So this waits on =489d6f61=*, recorded as a =:BLOCKER:= rather than as prose so it wakes by itself: a blocker on a =MAYBE= heading enforces nothing today and becomes live the moment this takes a working keyword. If the deadlock is fixed by an Emacs upgrade, a mac-port change or anything else, this is the consequence worth collecting — and the condition to re-test is narrow: how long the hook may block a =Stop= when Emacs is healthy, against the ~10 s hook timeout.
+
+*Worth deciding at the same time, if it is ever taken up:* whether the hook should fall back to awk when Emacs is unreachable rather than choosing one path forever. That keeps the guarantee and gets the better field when it is available, at the cost of two code paths that can disagree — which this project has twice found to be the expensive kind of duplication.
+:END:
+
+* TODO org_divide writes the statistics cookie at the end of the headline, where a narrow window truncates it :code:
+:PROPERTIES:
+:ID:       492a1a30-ac92-4f18-bb82-f9cd615b397c
+:CREATED:  [2026-09-17 Thu 11:31]
+:CATEGORY: Tools
+:END:
+
+Dividing =e28933e9= on 2026-09-17 produced a parent reading =* TODO Make the corpus searchable by tag, … by decision where it cannot [0/1]= — cookie at the end of the title.
+
+The convention is explicit that it goes **immediately after the TODO keyword**, and it is not cosmetic: "a trailing cookie is the part a narrow agenda window or a folded outline truncates away — which defeats the one thing the cookie is for, that progress is readable *without* unfolding". The user has already reported a slice as "missing its cookie" on exactly that basis when it was present at the end of a line they could not see the end of.
+
+*This is the same defect, in a second inserter.* =--ensure-statistics-cookie-at-point= wrote a trailing cookie and was fixed when the corpus was measured 13:1 against it (=:ID:= 28415ca8's reasoning). =org_divide= was not, so the fix landed in one of the two places that insert a cookie. Worth checking at the same time whether any third path does.
+
+Cheap, and the corpus check is already done and recorded, so this needs no re-measurement — only the same placement =--ensure-statistics-cookie-at-point= now uses.
+
+
+* TODO org_divide times out through MCP while the same call succeeds through emacsclient, and nothing says why :code:
+:PROPERTIES:
+:ID:       51bcec2c-242d-4e06-9610-0b9aeac1f92c
+:CREATED:  [2026-09-17 Thu 11:31]
+:CATEGORY: Tools
+:END:
+
+Observed 2026-09-17. =org_divide= timed out twice through MCP with the identical arguments; calling =claude-code-ide-org-divide= directly through =emacsclient= completed. Both timeouts persisted **nothing** — the safe failure mode =72463b68= was closed on, no phantom success — but the message is only "The operation timed out", so the only correct response is to go and read the file, which is what was done both times before retrying.
+
+*What was ruled out, so nobody re-measures it.* =org-id-update-id-locations= 0.0 s over five files. =--id-index= 0.0 s. =org-update-statistics-cookies= across the whole 13,000-line buffer 0.2 s. =--id-find= 0.0 s. The function's return value *is* propertized — it embeds =org-get-heading= through =format= — but prints to 284 characters against 103 clean, far too small to stall anything. No prompt anywhere in the call graph, which would have hung a non-interactive call exactly like this.
+
+*So the remaining suspects are all above our code*: Claude Code's MCP client and whatever timeout it enforces, the HTTP transport, and upstream's =claude-code-ide-mcp-server.el= / =claude-code-ide-make-tool=. Notably it is not the server generally — =org_capture=, =org_amend=, =org_slice_add_member=, =org_set_property= and =org_pending_updates= all answered normally in the same minutes.
+
+*Unmeasured and worth measuring first:* the duration of the successful direct call. It was made under a 150 s alarm and the timing was lost in the reply, so "slower than the MCP timeout" is assumed rather than known — it may have been fast, which would move the fault squarely upstream. Measure that before anything else.
+
+*Configuration note for whoever picks it up:* =.mcp.json= sets no timeout and the environment sets none, so the server runs on the client default. The =timeout: 10= values in =.claude/settings.json= are **hook** timeouts and unrelated. Claude Code exposes MCP timeouts through environment variables rather than =.mcp.json= keys; confirm the names and defaults against the docs rather than from memory. If the fault proves upstream it belongs with =9d6449c7=.
+
+
+* TODO Recenter after `m` advances, so the item under consideration is never at the bottom of the window :code:
+:PROPERTIES:
+:ID:       396fd1c3-70e0-4e1f-8839-670b5293a7d3
+:CREATED:  [2026-09-17 Thu 10:52]
+:CATEGORY: Apply
+:END:
+
+Requested by the user 2026-09-17. =m= marks and advances — that advance is what makes marking a run =m m m= rather than =m n m n m=, and it was "the single biggest complaint after the first real by-hand apply". But point walks steadily down the window, so after a few marks the item being decided sits at the bottom edge with no following context, and the human is reading the one line they are about to judge with everything after it off-screen. Do the equivalent of =C-l= once the advance has happened, bringing the next item to the centre.
+
+*Implementation note that will bite if missed: the recenter must come after the re-render, not before.* =--review-set-mark= re-renders the buffer on every keystroke, and centring against the pre-render line number would scroll to the wrong place — silently, and only sometimes, since the two agree until a render changes a line's height or position.
+
+*Prefer =(recenter)= to =(recenter-top-bottom)= despite the request naming =C-l=.* =recenter-top-bottom= deliberately *cycles* centre → top → bottom by consulting =last-command=, which is right for a human pressing =C-l= repeatedly and wrong here: called from Lisp after =m=, its behaviour would depend on what the human pressed previously, so a run of marks could start scrolling to the top instead of the centre. =(recenter)= always centres, which is what the request actually asks for.
+
+*Two open questions rather than assumptions.* Should =u= do the same? It advances identically, and symmetry argues yes, but unmarking is a correction and the eye may want to stay where it was. And should the recenter be suppressed at the end of the list, where there is no next item and centring would scroll the final line away from the bottom for no reason?
+
+
+* TODO Add :KIND: to the footnote and keep the cookie, but 84 cookie-shaped tokens in prose stay rewritable :code:
 :PROPERTIES:
 :ID:       bf00d36a-7a26-4f1a-bc98-fb0822d60065
 :CREATED:  [2026-09-17 Thu 11:39]
@@ -22,6 +90,25 @@
 :END:
 
 A statistics cookie is derived state recomputed from children, not part of a heading's name — =749301a0= wore five different ones in a single day — so quoting it in a footnote makes the citation stale on arrival and identifies nothing. It also puts cookie-shaped text into prose: 115 such tokens exist across the two files, only 31 of them on headlines, and a buffer-wide =org-update-statistics-cookies= silently zeroes the rest. Retracts the 2026-09-16 convention that the quoted title include the cookie; the hook must strip it too.
+
+*Corrected by the user 2026-09-17, within the hour, and the =:PLAN:= above is left standing with its wrong conclusion because the turn is the useful part.* The proposal there was to drop the cookie from quoted titles. The user does not want that: the cookie is what lets them tell a **task** from a **grouping** at a glance in the end matter, and they named the residual confusion themselves — story versus slice, which the cookie alone cannot separate.
+
+*So the cookie is being read as a type sigil, not as a count, and that dissolves most of the staleness objection.* If only presence carries meaning, a =[8/9]= that should now read =[13/14]= still says "grouping" correctly. Being wrong about the number costs nothing when the number is not what is being consulted.
+
+*Measured on the open corpus, 170 headings, no exceptions:*
+
+: slice   cookie + :KIND: slice     5
+: story   cookie, no :KIND:         6
+: task    no cookie               159
+
+So cookie and =:KIND:= are a two-bit classifier and each carries a bit the other does not. =:KIND:= cannot do it alone, because a **story is emergent and never declared** — it is detected by having keyworded children (=2e660571= measured its way out of declaring what the structure already states), so there is no property to read.
+
+*The change, then, is additive:* =bin/hooks/footnote-check= emits =:KIND:= alongside the keyword. It already greps the property drawer for =:ID:=, so reading one more property on the same pass costs nothing and needs no Emacs. What it must **not** attempt is deriving "story" — that needs org's entry boundaries, and reconstructing those in awk is precisely the failure the org-dev skill §0b exists to prevent. The cookie supplies that bit instead.
+
+*What survives from the original filing, unchanged:* 115 cookie-shaped tokens across the two files, 31 on headlines, so roughly **84 sit in body prose**, and =org-update-statistics-cookies= with a non-nil ALL silently recomputes every one of them to =[0/0]=. That hazard is independent of whether a citation should carry a cookie — it follows from quoting titles at all, which the footnote convention requires. The exposure is a human pressing =C-u C-c #=, or an agent running it without thinking, which is how the instance at TODO.org:4271 happened.
+
+*Placement, decided 2026-09-17 so it is not re-decided:* the *definition* — a cookie is derived state, not part of a name — goes in =org-conventions.md= beside the passage introducing the cookie, together with the rewrite hazard, since both matter when an =.org= file is open and that file is path-scoped to =**/*.org=. The *instruction* — emit =:KIND:=, keep the cookie — goes in =org-footnote-citations.md=, which carries no path scope because ids are cited with no org file in play. State it once in each and cross-reference; two files each holding a full account is how =~/.claude/CLAUDE.md= and its promoted twin diverged within hours.
+
 
 
 * TODO [0/8] Ship the tracker without the clock, so another project can use it while time tracking is still being built :code:
@@ -69,6 +156,7 @@ It is a claim, not a fact, and the corpus cannot test it: this repo's queue has 
 
 Two failure modes to probe rather than assume. =--queue-drained-p= is "yields no items", and archiving depends on it — a queue that drains differently may change when archiving fires. And =apply-detect= compares watermark mtimes; with fewer event kinds moving them, its "the record is fresh" message may fire less often or not at all.
 
+
 * TODO Establish whether two plugin manifests can share one MCP server, which is what decides the two-plugin question :research:
 :PROPERTIES:
 :ID:       5fb70821-0f46-42d9-8bf3-93bc98025692
@@ -84,6 +172,7 @@ The user asked 2026-09-17 whether this is becoming two plugins. The recommendati
 
 Answer it before the question is asked again, and record the answer either way. The trigger for revisiting the whole decision is narrower and worth writing down now: a consumer wanting the time half **without** the task half, which is incoherent today and would stop being so only if spans ever attributed to something other than org headings.
 
+
 * TODO claude-org-setup gains an opt-in that restores the time-tracking wiring and its rules :code:
 :PROPERTIES:
 :ID:       1b36c5bd-bafd-4c43-8aae-c94dee45c5eb
@@ -94,6 +183,7 @@ Answer it before the question is asked again, and record the answer either way. 
 If the scripts ship unwired, something has to make wiring them a single act rather than a hand edit of a JSON file the consumer did not write. =claude-org-setup= already promotes rules and scaffolds org files behind flags — =--doom=, =--org=, =--glue=, =--check= — so a =--time= flag is the established shape: it adds the guidepost, block and clock rows to the consumer's wiring and promotes =org-session-tracking.md= alongside them.
 
 Two constraints it inherits. The repo-versus-plugin wiring trap is already documented — "a repo must enable only one of the two, or every guidepost is appended twice" — so the flag has to know which wiring the consumer is using before adding rows to either. And =--check= should report the time-tracking wiring as present or absent rather than silently ignoring it, since a half-applied opt-in is exactly the state that produces events nobody applies.
+
 
 * TODO Decide whether org_clock_in and org_clock_out stay registered when nothing consumes what they queue :code:
 :PROPERTIES:
@@ -112,6 +202,7 @@ The two queued clock tools are registered by the shared Doom module, so they rem
 
 Note the tools are only half the invitation. =org_set_todo='s own description and the transition rules tell the agent when to call them, so gating registration without =36952d1f= leaves the instruction pointing at a tool that is gone — which is the louder failure of the two.
 
+
 * TODO The promoted rules instruct clocking unconditionally, so a consumer is told to call tools that do nothing :code:
 :PROPERTIES:
 :ID:       36952d1f-5312-4cf2-a710-4290ce673e19
@@ -124,6 +215,7 @@ Note the tools are only half the invitation. =org_set_todo='s own description an
 With clocking off these tell a consuming agent to make calls that queue events nobody will ever apply, and to follow a rule whose backstop has been removed. Worse than useless: the rules are the thing an agent is *most* likely to obey exactly.
 
 Two shapes to weigh. Promote a *variant* of the transition table without the clock column, which keeps each rules file coherent but forks a file that must then be kept in step. Or make the clock column conditional in prose — "when time tracking is enabled" — which keeps one file and asks the reader to hold a condition, something this project has found unreliable before (a path-scoped rule that does not load is a rule that does not apply). =org-session-tracking.md= is simpler: it should not promote at all unless the opt-in wiring is chosen.
+
 
 * TODO The SessionStart report mixes stale-interval recovery with the ceremony prompt, and only one half survives :code:
 :PROPERTIES:
@@ -138,6 +230,7 @@ They fall on opposite sides of this slice. The **stale-interval** half scans for
 
 So the hook cannot simply stay or go. Either the stale half is gated off when clocking is, or the two reports separate. The existing =[[ -s ]]= guard already drops an empty payload, so a stale half that always returns nothing degrades silently rather than breaking — which makes "leave it and let it return nothing" a legitimate cheapest option to weigh against the split.
 
+
 * TODO Take the guidepost, block and clock rows out of the shipped wiring, leaving every script on disk :code:
 :PROPERTIES:
 :ID:       0c5577dc-ef15-440a-bdac-b3cb068aa7b2
@@ -151,6 +244,7 @@ The change itself. Out of =hooks/hooks.json=: =session-pause=, =session-resume=,
 
 *Consequence to verify rather than assume:* with no guideposts in the queue, the review buffer should show only state changes, captures and amends — the item classes that have applied cleanly all along. That is the claim this whole slice rests on and it gets its own member.
 
+
 * TODO clock-target-check ships wired and enforces clocking, so it would block every turn once clocking is off :code:
 :PROPERTIES:
 :ID:       eb6c4a9b-8f78-42fa-9e86-484bf352fcf6
@@ -163,6 +257,7 @@ The change itself. Out of =hooks/hooks.json=: =session-pause=, =session-resume=,
 This is the sharpest item in the set because it fails *loudly and immediately* rather than degrading: a consumer's first real turn is blocked by a hook enforcing a feature they were never given. It must come out of the shipped wiring in the same change that removes the guideposts, not afterwards.
 
 Worth deciding at the same time whether it returns with the opt-in wiring. It backstops the rule that a session names the heading its first write belongs to — which is a *task*-tracking rule about attribution, not a time-tracking one — so there is an argument for a variant that checks for any queued activity on a heading rather than specifically a =clock_in=.
+
 
 * TODO Clock brackets of seconds around work of an hour, so nearly all real time lands in unowned gaps :code:
 :PROPERTIES:
@@ -236,7 +331,6 @@ Proposal: refuse when the span has runs, or require a confirmation naming both n
 :END:
 
 =claude-code-ide-org-review-claim-envelope= checks that the item is a span, is still =:suggested=, and is not zero-width — nothing about the evidence inside it. =2deb090f= built =c= for the 0-run case where the envelope is all there is, and complement segments broke that assumption: a 0-run span can now be a three-hour gap between clock brackets. Proposal: a confirmation naming both numbers rather than a refusal, since claiming an envelope over sparse evidence is sometimes the right assertion — what is wrong is making it without being shown the cost.
-
 
 
 * DONE The resume-pause exemption reads adjacency in a filtered stream as continuity, so clusters span days :code:
@@ -2430,12 +2524,14 @@ the same-lane-close pairing fix in this =:PLAN:= would have made the
 item a normal bracket and prevented the whole class.
 
 
-* TODO Make the corpus searchable by tag, by measurement where it can be and by decision where it cannot [0/1]
+* TODO Make the corpus searchable by tag, by measurement where it can be and by decision where it cannot [0/2]
 :PROPERTIES:
 :ID:       ee3e0fa2-d4a6-4575-a5fb-e4e25c49431a
 :CREATED:  [2026-09-17 Thu 11:26]
 :CATEGORY: Skill
 :END:
+
+
 ** TODO Survey all task history for a tag vocabulary worth searching on :research:
 :PROPERTIES:
 :ID:       e28933e9-f352-4ef9-8d53-8cd9a4318768
@@ -2473,6 +2569,27 @@ survives) and a taxonomy second — the =:CATEGORY:= exercise
 labels hide behind single words. Any proposed set should state, per
 tag, the query it exists to answer, and the =#+TAGS:= line and
 =org-conventions.md= §Tags are where an adopted set lands.
+
+
+** NEXT Adopt an `observed` tag for a defect seen in use, as the severity signal the keyword set does not carry :code:
+:PROPERTIES:
+:ID:       8b945c02-7ebe-40a2-b4cc-e35811afe57f
+:CREATED:  [2026-09-17 Thu 11:30]
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-09-17 Thu 11:30] \\
+  the cheap half; the survey stays parked
+:END:
+
+*The observation, 2026-09-17.* The user noted an implicit severity range among open TODOs, by impact on usability and correctness. Measured against the corpus's own declared priority mechanism — "priority is expressed through keyword choice" — there is none: time-tracking work sits at =MAYBE= 9.1% against 8.2% for everything else, and both are 80% plain =TODO=. The keyword is not ranking anything, because four headings in five hold the same one.
+
+*The recommendation: one tag, adopted by decision rather than derived by survey.* =:observed:= marks a defect **seen in use** rather than filed speculatively. The query it exists to answer — which this parent's sibling requires of any proposed tag — is *what is likely to break a consumer*, which is the question every slice composition has had to answer by re-reading the backlog.
+
+*Why a tag and not a =:SEVERITY:= property.* This project's evidence is that a declared field nobody derives goes stale invisibly: the slice checkbox is derived from the referent's keyword for exactly this reason, =:DROPPED:= replaced bare cookie-deletion because absence was ambiguous, and a =:BLOCKER:= on a =MAYBE= reads as enforcement while enforcing nothing. A severity field over 128 open headings needs triage now and re-triage forever. =:observed:= needs neither: it is applied at filing when the knowledge is freshest, and "was seen in use" never changes.
+
+*And why it does not wait on the survey.* The survey is deliberately parked as expensive; this is a same-day decision. Holding the cheap ready half hostage to the expensive unfinished one is what =8bbae3aa= exists to stop one tier up, and the same reasoning divides this heading from its sibling.
+
+*Scope, if adopted:* add to =#+TAGS:= in both files and the templates, a line in the org conventions' §Tags saying what it means and when to apply it, and a backfill decision — probably **no** blanket backfill, since "observed" is a claim about how a defect was found and cannot be reconstructed for old headings without re-reading them, which is the survey's job anyway.
 
 
 * TODO session-context.sh reports which groupings lack a NEXT, never which headings hold one
@@ -12563,6 +12680,7 @@ call it done.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-17 Thu 11:41]--[2026-09-17 Thu 11:51] =>  0:10
 CLOCK: [2026-09-17 Thu 10:48]--[2026-09-17 Thu 10:58] =>  0:10
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
@@ -12683,6 +12801,7 @@ CLOCK: [2026-09-16 Wed 11:47]--[2026-09-16 Wed 11:58] =>  0:11
 CLOCK: [2026-09-16 Wed 20:37]--[2026-09-16 Wed 21:03] =>  0:26
 CLOCK: [2026-09-17 Thu 09:24]--[2026-09-17 Thu 09:32] =>  0:08
 CLOCK: [2026-09-17 Thu 09:59]--[2026-09-17 Thu 10:14] =>  0:15
+- <2026-09-17 Thu 11:41>--<2026-09-17 Thu 11:51> review pass (buffer buried)
 :END:
 
 We created this heading on 2026-08-26. We deleted that property from its
