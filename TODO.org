@@ -2,6 +2,48 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Survey what has landed since August that the statusline should be using and is not :code:research:
+:PROPERTIES:
+:ID:       08d76f6a-9f4d-4a41-a2c6-05e96115237d
+:CREATED:  [2026-09-17 Thu 16:24]
+:CATEGORY: Dev
+:END:
+
+The user's broader point 2026-09-17: the statusline "may deserve revisiting — we have not touched it in quite some time, and work in the interim may present opportunities to improve it."
+
+*The interval is real.* Last substantive change =bc8696a= 2026-08-18, pointing it at the queue instead of the live clock; last rendering change =5c17021= 2026-08-04. Everything the project built after that — slices, spans and runs, the grouping predicate, the project dimension on guideposts, the blocker validation, the star notation — arrived without anyone asking what the statusline should show.
+
+*Deliberately a survey, with a bounded output: a list of candidates and a recommendation, not an implementation.* The two findings that already have headings (=1c7051da= the misleading label, =d88362e7=-adjacent presentation) came out of one incident in one turn, which is weak evidence that a deliberate pass would find more — and is exactly why the pass should be a *survey* rather than an open-ended rewrite.
+
+Candidates to consider, none argued for yet: whether a grouping should render differently from a leaf (=--grouping-heading-p= exists); whether a blocked heading should say so; whether the subtree total is the right number now that spans and runs exist and a =DOING= heading normally carries no running clock; whether the slice a heading belongs to is worth a field; and whether the =cwd= dimension matters on a line that is per-session but reads as per-project.
+
+**Do not let this become a container for every statusline idea** — the lesson from =2a6a1355= is that one heading carrying several causes closes none of them. Each candidate the survey endorses gets its own heading.
+
+* TODO Render the statusline like end matter: id first, then keyword, then title :code:
+:PROPERTIES:
+:ID:       63b84fe2-0066-4375-a588-60197956bd44
+:CREATED:  [2026-09-17 Thu 16:24]
+:CATEGORY: Dev
+:BLOCKER:  08d76f6a-9f4d-4a41-a2c6-05e96115237d
+:END:
+
+Requested by the user 2026-09-17: move the =:ID:= prefix to the front "to replicate the footnote presentation". The format string has not changed since =5c17021= on 2026-08-04, 44 days.
+
+Today: =| Bulk citation owes more entri… [13aed7ca] (clocked in, 0:00 total)=
+
+The end matter's argument applies here unchanged and was never carried across: **the id leads because it is what the eye scans for**, the keyword is second because it is the volatile field, and the title trails. The statusline puts the id in the middle, in brackets, after a truncated title — the exact inversion. One reader reading two surfaces should not have to re-orient between them.
+
+*And the statusline can do something the footnote hook cannot: star a queued state correctly.* =footnote-check= is plain shell that greps the org files and knows nothing of the queue, so it emits the on-disk keyword by design. =--statusline-queue-state= already **reads the queue**, so it holds both the applied keyword and the pending one and can render =NEXT*= from first-hand knowledge. The star notation (=d88362e7=) therefore has a more natural home here than anywhere it has been applied so far.
+
+Shape to aim at, not settled: =| 13aed7ca  NEXT*  Bulk citation owes more entri…  0:00=
+
+Note the keyword is *absent* from the line today, so this is an addition rather than a move. Interacts with =1c7051da=, which is about what the third field should say once "clocked in" stops claiming a clock; do them together or sequence them deliberately, since both rewrite the same format string.
+
+*Blocked on =08d76f6a= deliberately, and the blocker is a sequencing judgement rather than a dependency — say so if you would rather have the id move now and take the rework.* Three pending changes rewrite the same =format= call: this one, =1c7051da='s relabelling of the third field, and whatever the survey endorses. Landing them one at a time means rewriting one line three times and re-deciding the column layout each time, which is how a display string acquires an arbitrary shape nobody chose. The survey is cheap by construction — it outputs a list and a recommendation, not an implementation — so it is the right thing to put first.
+
+The cost of being wrong here is small and worth naming: if the survey finds nothing, this change was delayed for one bounded pass. If it finds two more fields, the layout is decided once.
+
+
 * TODO The statusline says "clocked in" when it means "agent mid-turn", and the heading is merely the last one named :code:observed:
 :PROPERTIES:
 :ID:       1c7051da-c020-41e1-b843-8cfc68f53e38
