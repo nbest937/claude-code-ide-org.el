@@ -35,6 +35,17 @@ The standing order is =c19fbbf5='s — the machinery and its prose travel togeth
 
 Nine documents describe clocking, guideposts or spans, and none of it will be true of what ships — README most sharply, since its opening section is "State and clock changes are queued, not applied" and its =bin/hooks/= row advertises guideposts and permission-block brackets. =36952d1f= owns the two promoted rules; this owns README, CLAUDE.md, DOOM.md, the skill and three references. The decision to make once and apply everywhere: whether the prose calls time tracking **absent** or **available and unwired** — the second is accurate, since the scripts still ship.
 
+*Corrected 2026-09-17, by the user, within the hour.* The body above framed "absent versus available-and-unwired" as a decision to make. It is not: the obvious and accurate description is the feature, its initial state (disabled) and how to toggle it. Nothing to weigh.
+
+*What is actually left is structural, and it is confined to two passages that borrow the clock to define something else.*
+
+**README's third paragraph defines the project by it:** "It has a second, **co-equal goal**: trustworthy tracking of where attention actually went… Much of the machinery here — the event queue, the session hooks, the review pass — exists for that goal rather than the first one." A co-equal goal cannot take a "(disabled by default)" annotation. The resolution is a distinction the file does not currently draw: the goal stays co-equal **for this project**, where development continues, while the feature ships off **in the artifact**. That is worth one careful sentence rather than a table row.
+
+**And the design section explains the queue through clocking:** "State and clock changes are queued, not applied. When a Claude session calls =org_set_todo= or =org_clock_in=…". The queue survives untouched — it exists because org's state-change logging needs an interactive command — but its explanation leans on a tool the consumer will not have. Rewrite it around =org_set_todo= alone; annotating will not do, because the sentence's example *is* the removed thing.
+
+*Everything else in the nine files is ordinary description* and follows the feature/state/toggle shape. Placement stays as the pairing already implies: README says the feature exists and is off, DOOM.md and =org-emacs-setup.md= say how to turn it on, since a =--time= flag is install detail and =doc-sync-check= already couples those files.
+
+
 
 * CANCELLED An id already paired with its exact title in the body owes no separate end-matter entry :code:
 CLOSED: [2026-09-17 Thu 12:14]
