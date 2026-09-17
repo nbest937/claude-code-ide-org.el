@@ -45,6 +45,13 @@ Nine documents describe clocking, guideposts or spans, and none of it will be tr
 
 *Everything else in the nine files is ordinary description* and follows the feature/state/toggle shape. Placement stays as the pairing already implies: README says the feature exists and is off, DOOM.md and =org-emacs-setup.md= say how to turn it on, since a =--time= flag is install detail and =doc-sync-check= already couples those files.
 
+*Settled 2026-09-17 by the user, which removes the one thing above that was genuinely open:* **time tracking is no longer a co-equal goal** — "we have prioritized the other goal by committing to providing the ability to disable the time-tracking features." The reasoning is on =8bbae3aa=; committing to a switch is itself the ordering.
+
+So there is no distinction to draw between the project's goals and the artifact's features, and the careful sentence I proposed is unnecessary. Both files simply demote it: natural-language org manipulation is the goal, attention tracking is a second, optional capability developed here and shipped off. =CLAUDE.md= line 9 matters more than =README= line 9, being loaded into every session by default.
+
+*Keep the history while changing the ranking.* "Much of the machinery here — the event queue, the session hooks, the review pass — exists for that goal" is true and explains why the architecture looks as it does. Demote the goal; do not delete the account of what built the machinery, or a future reader loses the only record of why the queue exists at all.
+
+
 
 
 * CANCELLED An id already paired with its exact title in the body owes no separate end-matter entry :code:
@@ -232,6 +239,17 @@ Planned:
 - [ ] [[id:d3149a81-91d2-4722-b6d8-68d4cee6fa4f][d3149a81]] TODO Verify the review buffer and apply pass on a queue that has never held a guidepost
 - [ ] [[id:5fb70821-0f46-42d9-8bf3-93bc98025692][5fb70821]] TODO Establish whether two plugin manifests can share one MCP server, which is what decides the two-plugin question
 - [ ] [[id:1254c24b-0dda-436e-a3d4-213de283692f][1254c24b]] TODO The prose still promises time tracking: README, CLAUDE.md, DOOM.md and the skill all describe a clock that no longer ships
+
+*Decided by the user 2026-09-17, and it is larger than this slice: **time tracking is no longer a co-equal goal**.* "We have prioritized the other goal by committing to providing the ability to disable the time-tracking features." Committing to a switch **is** the ordering — a feature you can turn off is not co-equal with the one you cannot.
+
+*That contradicts both always-loaded statements of what this project is for.* =README.md= opens "It has a second, co-equal goal: **trustworthy tracking of where attention actually went**… Much of the machinery here — the event queue, the session hooks, the review pass — exists for that goal rather than the first one." =CLAUDE.md= says the same at line 9, and is loaded into **every session by default**, which makes it the more consequential of the two: it is what each future session believes the project is for before reading anything else.
+
+*So the correction is not a wording pass, and =1254c24b= should not treat it as one.* The demotion needs saying once, plainly, in both files: natural-language org manipulation is the goal; attention tracking is a second, optional capability, developed here and shipped off. Everything downstream — the feature/state/toggle description, the rules, the skill — follows from that sentence and should not re-argue it.
+
+*One nuance worth preserving rather than flattening.* The =README= claim that "much of the machinery — the event queue, the session hooks, the review pass — exists for that goal" is **historically true** and stays true: the queue was built because concurrent sessions writing live clock state produced a run of desync bugs. What changes is the *ranking*, not the history. A demotion that erased why the machinery looks as it does would cost a future reader the only explanation on record.
+
+*And it sharpens this slice's own justification.* The measured case was behavioural — every failure and every unanswerable question of 2026-09-17 came from a span or a clock item. The ordering decision is the same conclusion reached from the other direction, by a human weighing goals rather than counting incidents.
+
 
 
 * TODO Verify the review buffer and apply pass on a queue that has never held a guidepost :code:
