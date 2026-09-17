@@ -33,7 +33,9 @@ padded to a column, then the exact title *including any cookie*:
 
 The id leads because it is what the eye scans for, having just met it in
 the prose. The keyword is second and column-aligned because it is the
-volatile field — misalignment is how a stale keyword goes unnoticed. The
+volatile field — misalignment is how a stale keyword goes unnoticed, and
+a trailing `*` on it means the state is queued rather than applied (see
+"How to apply"). The
 cookie belongs to the title, because `[8/9]` and `[16/16]` are the part
 most often wrong when recalled. Backticks earn their place separately:
 the terminal renders them in a distinct face, which is what makes the id
@@ -55,8 +57,33 @@ tests and summarising commits too.
 
 **Look each keyword and title up rather than recalling them.** A
 remembered title is where paraphrase creeps back in, and a stale keyword
-is the same failure. `org_outline` returns both. Where a change is queued
-and not yet applied, cite the on-disk state and say so.
+is the same failure. `org_outline` returns both.
+
+**Where a keyword change is queued and not yet applied, show the *queued*
+state and mark it with a trailing `*`** — `REVIEW*`, not `DOING` plus a
+sentence explaining that `REVIEW` is pending:
+
+```
+`2a6a1355`  REVIEW*   Three new ways to owe a footnote and not see it: marker, list, quotation
+```
+
+The `*` is the whole notation, and **it takes no note of its own** (the
+user, 2026-09-17). A parenthetical after the end matter saying which
+entries are queued is a footnote to the footnote: it re-opens in prose
+the thing the mark exists to close, and it grows with the number of
+starred lines while the marks do not.
+
+This reverses the earlier rule, which said to cite the on-disk state and
+say so. The reason is that the prose sentence was the expensive half.
+`DOING` with a trailing caveat makes the reader hold two states and a
+qualifier; `REVIEW*` is the state that will be true, flagged as not yet
+true, in one glyph — and the queued state is what the reader of the
+response actually needs, since it is what the session just did. The
+on-disk value remains recoverable: the mark says a change is pending, and
+`org_pending_updates` says what it is.
+
+Unstarred therefore means "applied, on disk" and carries its old meaning
+unchanged, so nothing is ambiguous about an ordinary line.
 
 **One entry per distinct identifier.** A re-mention later in the same
 response needs no second entry, and the passage itself never needs
@@ -99,6 +126,15 @@ project's `TODO.org` and `DONE.org`, and blocks the stop when one
 resolves to a real heading and does not appear in the end matter. It
 hands back the exact lines to append, already in canonical form, so the
 convention is legible at the moment it fires.
+
+**The hook emits the on-disk keyword and never a `*`, and that is
+correct** — it greps the org files and knows nothing of the queue.
+Starring a queued state is the writer's job, on a line the hook
+suggested. Nothing conflicts, because the hook tests whether each cited
+id *appears* in the end matter, not what keyword sits beside it. Do not
+"fix" the hook to resolve this; teaching a plain-shell `Stop` hook to
+read the queue would buy a cosmetic match at the cost of the property
+that makes it reliable.
 
 **`last_assistant_message` carries only the turn's final text block**,
 not the whole turn — an id cited in an earlier block is invisible to the

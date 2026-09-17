@@ -152,7 +152,6 @@ Cheap, and the corpus check is already done and recorded, so this needs no re-me
 `org_divide` appends the statistics cookie after the title text, so a narrow agenda or list window truncates the headline and takes the cookie with it. The cookie belongs at the front, where `org_slice_add_member` already puts it. Seen on `ee3e0fa2`.
 
 
-
 * TODO org_divide times out through MCP while the same call succeeds through emacsclient, and nothing says why :code:
 :PROPERTIES:
 :ID:       51bcec2c-242d-4e06-9610-0b9aeac1f92c
@@ -191,8 +190,6 @@ So the server rejected the parameters, replied with a well-formed JSON-RPC error
 Two consequences for this heading. The =emacsclient=-succeeds-where-MCP-times-out observation is consistent with a parameter mismatch rather than a transport limit, since a hand-written =emacsclient= call passes the elisp arguments directly and never crosses the schema. And the thing worth fixing may not be a timeout value at all: **an error response that reads as a timeout is the defect**, and it is the same silent-failure class as =:ID:= 4f9e552a — a failure indistinguishable from a different, more forgiving one. Establish which layer swallows the error body before touching =MCP_TIMEOUT=.
 
 
-
-
 * TODO Recenter after `m` advances, so the item under consideration is never at the bottom of the window :code:
 :PROPERTIES:
 :ID:       396fd1c3-70e0-4e1f-8839-670b5293a7d3
@@ -217,7 +214,6 @@ Requested by the user 2026-09-17. =m= marks and advances — that advance is wha
 :END:
 
 After `m` marks an item and advances, the next item can sit at the bottom of the window with none of its context visible. Do the equivalent of `C-l` (`recenter-top-bottom`) at the end of everything `m` already does, so the item under consideration is centred.
-
 
 
 * TODO Add :KIND: to the footnote and keep the cookie, but 84 cookie-shaped tokens in prose stay rewritable :code:
@@ -329,7 +325,6 @@ Two failure modes to probe rather than assume. =--queue-drained-p= is "yields no
 Every review pass this project has run has read a queue full of guideposts. With the hooks cut, a consumer's queue holds captures, amends and state changes and nothing else — a shape the review buffer and apply pass have never been exercised against. Verify before shipping, not after a consumer reports it.
 
 
-
 * TODO Establish whether two plugin manifests can share one MCP server, which is what decides the two-plugin question :research:
 :PROPERTIES:
 :ID:       5fb70821-0f46-42d9-8bf3-93bc98025692
@@ -350,7 +345,6 @@ Answer it before the question is asked again, and record the answer either way. 
 Splitting the tracker from the clock is only worth doing as two plugins if two manifests can share one MCP server registration; if they cannot, the split has to stay a flag on one plugin. Answer the mechanical question first — it decides the packaging, and the packaging decides how much of the rest of this slice is even possible.
 
 
-
 * TODO claude-org-setup gains an opt-in that restores the time-tracking wiring and its rules :code:
 :PROPERTIES:
 :ID:       1b36c5bd-bafd-4c43-8aae-c94dee45c5eb
@@ -365,7 +359,6 @@ Two constraints it inherits. The repo-versus-plugin wiring trap is already docum
 :END:
 
 The counterpart to the cut: a flag on `claude-org-setup` that puts the guidepost, block and clock rows back into the consuming repo's wiring and promotes the session-tracking reference alongside them. Disabled-by-default is only defensible if turning it on is one documented command.
-
 
 
 * TODO Decide whether org_clock_in and org_clock_out stay registered when nothing consumes what they queue :code:
@@ -390,7 +383,6 @@ Note the tools are only half the invitation. =org_set_todo='s own description an
 Separate from the hook wiring: the two MCP tools are registered by `config.el`, not by the manifest, so cutting the hooks leaves them callable. Decide whether an unconsumed queue event is harmless bookkeeping or a tool that should refuse, and say which.
 
 
-
 * TODO The promoted rules instruct clocking unconditionally, so a consumer is told to call tools that do nothing :code:
 :PROPERTIES:
 :ID:       36952d1f-5312-4cf2-a710-4290ce673e19
@@ -407,7 +399,6 @@ Two shapes to weigh. Promote a *variant* of the transition table without the clo
 :END:
 
 The promoted rules tell a consuming session to call `org_clock_in` before its first write and to close the clock on leaving `DOING`. With the wiring cut, those calls queue events nothing consumes. The prose has to say the feature is off by default and what turning it on restores.
-
 
 
 * TODO The SessionStart report mixes stale-interval recovery with the ceremony prompt, and only one half survives :code:
@@ -428,7 +419,6 @@ So the hook cannot simply stay or go. Either the stale half is gated off when cl
 One `SessionStart` hook carries two independent reports in one `additionalContext` string. Cutting the time-tracking half would take the ceremony prompt with it unless the payload is split first. Establish which half survives the cut and make the surviving one stand alone.
 
 
-
 * TODO Take the guidepost, block and clock rows out of the shipped wiring, leaving every script on disk :code:
 :PROPERTIES:
 :ID:       0c5577dc-ef15-440a-bdac-b3cb068aa7b2
@@ -447,7 +437,6 @@ The change itself. Out of =hooks/hooks.json=: =session-pause=, =session-resume=,
 The cut is made in the manifest, not on disk: `hooks/hooks.json` stops wiring the guidepost, permission-block and clock rows, and every script stays where it is so the opt-in can restore them by editing one file. This is the heading that actually performs the disable.
 
 
-
 * TODO clock-target-check ships wired and enforces clocking, so it would block every turn once clocking is off :code:
 :PROPERTIES:
 :ID:       eb6c4a9b-8f78-42fa-9e86-484bf352fcf6
@@ -464,7 +453,6 @@ Worth deciding at the same time whether it returns with the opt-in wiring. It ba
 :END:
 
 `clock-target-check` blocks the stop when a session writes without clocking in. With clocking gone from the shipped wiring, that condition is unsatisfiable and the hook would block every turn. Decide whether it comes out of `hooks/hooks.json` with the rest or gains a guard that stands down when no clock tools are wired.
-
 
 
 * TODO Clock brackets of seconds around work of an hour, so nearly all real time lands in unowned gaps :code:
@@ -2782,7 +2770,6 @@ What they share, and why one parent: both answer "which tags make this corpus wo
 The corpus answers "what did we decide" badly: a decision lives in one body and nothing indexes it. Two children carry the halves — tagging what can be measured, and tagging what can only be decided. Whether `org-agenda` or `org-ql` can build the view natively is an open question deferred until Emacs stops wedging.
 
 
-
 ** TODO Survey all task history for a tag vocabulary worth searching on :research:
 :PROPERTIES:
 :ID:       e28933e9-f352-4ef9-8d53-8cd9a4318768
@@ -2850,7 +2837,6 @@ tag, the query it exists to answer, and the =#+TAGS:= line and
 :END:
 
 The keyword set carries no severity, so a defect someone actually hit reads the same as one reasoned about. An `:observed:` tag is the cheapest signal that distinguishes them, and it is a fact rather than a judgement — either it was seen in use or it was not.
-
 
 
 * TODO session-context.sh reports which groupings lack a NEXT, never which headings hold one
@@ -4503,7 +4489,7 @@ Planned:
 - [ ] [[id:53b0047d-c55c-486c-8eed-ba4994d97a1a][53b0047d]] TODO Direct file writes to a live org buffer can desync org-clock-marker
 - [ ] [[id:7ee3b71a-b85a-4610-a4ab-b9e06c8d79da][7ee3b71a]] TODO org_amend replace=true destroys a slice's member checklist, which is the one thing a slice declares
 - [ ] [[id:2aeb65d6-350e-4c75-811e-4a748044fe2c][2aeb65d6]] TODO Concurrent sessions share one git index, and explicit staging protects nothing
-- [-] [[id:2a6a1355-615f-4c2c-a8af-c9ae8dcda09b][2a6a1355]] DOING Three new ways to owe a footnote and not see it: marker, list, quotation
+- [-] [[id:2a6a1355-615f-4c2c-a8af-c9ae8dcda09b][2a6a1355]] REVIEW Three new ways to owe a footnote and not see it: marker, list, quotation
 - [ ] [[id:60ed5b96-40e3-4676-a742-07a8ad6cc3b7][60ed5b96]] TODO --review-format-annotation's docstring contradicts its own let*, four lines down
 - [ ] [[id:5e731a23-7708-4248-b055-9b4a531f147d][5e731a23]] TODO A deferred targetless capture loses its project routing when the queue is applied
 - [ ] [[id:965f94eb-1558-4d00-9857-5727eb86fe6f][965f94eb]] TODO Every standalone client shares one project context, chosen by unstable ordering
@@ -4594,7 +4580,7 @@ identifiable to any writer rather than adding a guard per writer.
 *Four siblings filed the same week stay in backlog for now* — =51bcec2c=, =aee8487e=, =cf483f5d=, =17f93758= — rather than being added one at a time. They should be judged together against this slice's shape when it is actually picked up, since deciding twice is how a list grows without anyone choosing.
 
 
-* DOING Three new ways to owe a footnote and not see it: marker, list, quotation :code:
+* REVIEW Three new ways to owe a footnote and not see it: marker, list, quotation :code:
 :PROPERTIES:
 :ID:       2a6a1355-615f-4c2c-a8af-c9ae8dcda09b
 :CREATED:  [2026-09-01 Tue 08:43]
@@ -4631,6 +4617,14 @@ CLOCK: [2026-09-16 Wed 14:39]--[2026-09-16 Wed 14:40] =>  0:01
 - [2026-09-16 Wed 14:39]--[2026-09-16 Wed 14:40] suggested span, accepted at review
 CLOCK: [2026-09-16 Wed 14:40]--[2026-09-16 Wed 14:48] =>  0:08
 - [2026-09-16 Wed 14:40]--[2026-09-16 Wed 14:48] suggested span, accepted at review
+CLOCK: [2026-09-17 Thu 15:34]--[2026-09-17 Thu 15:36] =>  0:02
+- [2026-09-17 Thu 15:34]--[2026-09-17 Thu 15:36]
+CLOCK: [2026-09-17 Thu 15:50]--[2026-09-17 Thu 15:51] =>  0:01
+- [2026-09-17 Thu 15:50]--[2026-09-17 Thu 15:51]
+- State "REVIEW"     from "DOING"      [2026-09-17 Thu 15:53] \\
+  every question the heading posed is answered; the remaining call is yours
+CLOCK: [2026-09-17 Thu 15:54]--[2026-09-17 Thu 15:55] =>  0:01
+- [2026-09-17 Thu 15:54]--[2026-09-17 Thu 15:55] assigned at review
 :END:
 
 *Asked by the user 2026-09-01 after a third stop-hook refusal in one session:*
@@ -4971,6 +4965,12 @@ The sentence this heading turns on is that "the hook's test is *does the respons
 The working discharge rule landed at 17:33Z (commit =f608123=, the =-F -e= fix). Fires after it averaged 4.3 against 3.5 before, so it bought nothing measurable. Two candidate causes, and the hook is exonerated: driven directly with a scratch queue dir, a message citing three bare ids demands all three and exits 2, while the same id paired with its exact title on one line exits 0. The mechanism works. **What did not happen is my using it** — the large fires are bare id lists, which is the *enumeration* mode this heading already names. No new mode.
 
 One thing the rule does not reach, and it is worth writing down rather than treating as a miss. At 12 or 15 ids the inline form means 12 or 15 full titles inside the prose, which is precisely the unscannable paragraph the convention exists to prevent. There the end matter is the correct form and the block is the convention working. The discharge rule is a remedy for the two-to-five-id case; above that the volume is inherent to talking about that many headings at once.
+
+*Judgment reserved by the user 2026-09-17, and the =REVIEW= should not be read as agreement that this is finished.* Their position: **the root cause has not been identified yet.** If it turns out there are *multiple distinct root causes*, this heading "deserves to become a story so that each cause can be addressed individually, even if through a common mechanism" — which is mitosis via =org_divide=, the original staying as the child. Their word for the body's present state: "out and out metastasism."
+
+*That reframes the volume measured above.* 3,707 words, ten dated revision sections in 17 days, largest heading in TODO.org at 15x the median — that was read here as a writing-habit problem. The user's reading is that it is a *structural* signal: a body metastasises when one heading is carrying several causes that were never separated, and each visit appends to the pile instead of landing somewhere of its own. On that reading the size is a symptom to diagnose, not prose to condense — which is also why condensing it now would be the wrong move, since it would erase the evidence of the seams.
+
+*So the next session's first question is not "close it?" but "how many causes are in here?"* Candidate seams visible in the body, offered as a starting point and not as an answer: the marker faults (retired with markers, so possibly not a cause at all); enumeration; borrowed prose and quotation, which may be one cause — an id arriving by transcription; the paraphrased title, already made impossible by =33c3eabc=; and the volume/discipline question raised today, where the mechanism works and goes unused. Whether those are distinct causes or one cause seen five ways is exactly what has not been established.
 
 
 
@@ -13065,6 +13065,7 @@ call it done.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-17 Thu 15:55]--[2026-09-17 Thu 15:56] =>  0:01
 CLOCK: [2026-09-17 Thu 15:14]--[2026-09-17 Thu 15:17] =>  0:03
 CLOCK: [2026-09-17 Thu 13:35]--[2026-09-17 Thu 13:36] =>  0:01
 CLOCK: [2026-09-17 Thu 12:58]--[2026-09-17 Thu 13:04] =>  0:06
@@ -14072,4 +14073,6 @@ CLOCK: [2026-09-17 Thu 11:39]--[2026-09-17 Thu 11:40] =>  0:01
 - [2026-09-17 Thu 11:39]--[2026-09-17 Thu 11:40]
 CLOCK: [2026-09-17 Thu 14:29]--[2026-09-17 Thu 14:30] =>  0:01
 - [2026-09-17 Thu 14:29]--[2026-09-17 Thu 14:30] assigned at review
+CLOCK: [2026-09-17 Thu 15:18]--[2026-09-17 Thu 15:23] =>  0:05
+- [2026-09-17 Thu 15:18]--[2026-09-17 Thu 15:23] assigned at review
 :END:
