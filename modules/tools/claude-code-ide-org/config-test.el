@@ -11498,6 +11498,74 @@ is the one that is never ambiguous."
       (should (equal (gethash "sess-old" alias) "sess-old"))
       (should (equal (gethash "sess-new" alias) "sess-old")))))
 
+(ert-deftest claude-code-ide-org-test-alias-cache-does-not-pin-an-unresolved-nil ()
+  "A nil map computed while a transcript had not flushed must not be cached.
+
+The PR #25 review's MEDIUM finding (TODO.org :ID: 83773daf).  A re-key
+is detected by two sessions sharing a transcript first stamp, and
+`claude-code-ide-org--session-first-stamp\=' answers nil for a session
+whose transcript has not been written yet.  Such a session is skipped,
+no group forms, and the nil that results was cached against the
+session-id set -- so the bracket never paired again for the life of the
+Emacs process, defeating the growing-window re-read
+`claude-code-ide-org--transcript-stamp-cache\=' exists to provide.
+
+Behavioural on purpose: the second call differs from the first only in
+what is on disk between them."
+  (let* ((home (file-name-as-directory (make-temp-file "cciorg-home" t)))
+         (pdir (expand-file-name ".claude/projects/-p/" home))
+         (process-environment (cons (concat "HOME=" (directory-file-name home))
+                                    process-environment))
+         (claude-code-ide-org--transcript-stamp-cache (make-hash-table :test 'equal))
+         (claude-code-ide-org--session-alias-cache (make-hash-table :test 'equal))
+         (stamp "2026-09-11T22:24:27.000Z")
+         (write-one
+          (lambda (sid)
+            (with-temp-file (expand-file-name (concat sid ".jsonl") pdir)
+              (insert (json-encode (list (cons 'type "user")
+                                         (cons 'uuid "u1")
+                                         (cons 'timestamp stamp)))
+                      "\n"))))
+         (events (claude-code-ide-org-test--events
+                  '("2026-09-11T17:25:00-0500" "resume" nil nil "sess-old")
+                  '("2026-09-11T18:07:00-0500" "resume" nil nil "sess-new"))))
+    (unwind-protect
+        (progn
+          (make-directory pdir t)
+          ;; Only the old lane has flushed.  No group can form.
+          (funcall write-one "sess-old")
+          (should-not (claude-code-ide-org--session-alias-map events))
+          ;; The new lane's transcript lands a moment later.
+          (funcall write-one "sess-new")
+          (let ((alias (claude-code-ide-org--session-alias-map events)))
+            (should alias)
+            (should (equal (gethash "sess-new" alias) "sess-old"))))
+      (delete-directory home t))))
+
+(ert-deftest claude-code-ide-org-test-alias-cache-key-carries-the-ranges ()
+  "Same sessions, different queue order, different canonical member.
+
+The cache key was the sorted session-id set alone, but the ranges are
+what choose the canonical member -- the one whose queue activity starts
+first -- and what `claude-code-ide-org--session-ranges-overlap-p\=' is
+computed from.  Two event sets sharing a set of ids and nothing else
+therefore collided, and the second got the first\='s answer."
+  (claude-code-ide-org-test--with-rekeyed-sessions "sess-old" "sess-new"
+      "2026-09-11T22:24:27.000Z"
+    (let ((old-first (claude-code-ide-org-test--events
+                      '("2026-09-11T17:25:00-0500" "resume" nil nil "sess-old")
+                      '("2026-09-11T18:07:00-0500" "resume" nil nil "sess-new")))
+          (new-first (claude-code-ide-org-test--events
+                      '("2026-09-11T19:25:00-0500" "resume" nil nil "sess-old")
+                      '("2026-09-11T18:07:00-0500" "resume" nil nil "sess-new"))))
+      (should (equal (gethash "sess-new"
+                              (claude-code-ide-org--session-alias-map old-first))
+                     "sess-old"))
+      ;; Same two ids, but now the NEW lane opened first, so it is canonical.
+      (should (equal (gethash "sess-old"
+                              (claude-code-ide-org--session-alias-map new-first))
+                     "sess-new")))))
+
 (ert-deftest claude-code-ide-org-test-a-rekeyed-clock-bracket-still-pairs ()
   "A `clock_in' in the old lane pairs with the `clock_out' in the new one.
 

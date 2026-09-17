@@ -8355,14 +8355,32 @@ already fixed once by putting the session into the lane key."
     (let* ((sids (let (acc)
                    (maphash (lambda (k _v) (push k acc)) ranges)
                    (sort acc #'string<)))
-           (cached (gethash sids claude-code-ide-org--session-alias-cache 'miss)))
+           ;; The key carries the RANGES, not the ids alone.  The ranges
+           ;; choose the canonical member -- the lane whose queue
+           ;; activity starts first -- and are what
+           ;; `claude-code-ide-org--session-ranges-overlap-p' refuses on,
+           ;; so two event sets sharing a set of ids and nothing else are
+           ;; different questions and collided under the old key
+           ;; (TODO.org :ID: 83773daf, PR #25 review).
+           (key (mapcar (lambda (sid)
+                          (let ((r (gethash sid ranges)))
+                            (list sid (float-time (car r)) (float-time (cdr r)))))
+                        sids))
+           (cached (gethash key claude-code-ide-org--session-alias-cache 'miss)))
       (if (not (eq cached 'miss))
           cached
         (let ((groups (make-hash-table :test 'equal))
-              (alias (make-hash-table :test 'equal)))
+              (alias (make-hash-table :test 'equal))
+              (unresolved nil))
           (dolist (sid sids)
-            (when-let* ((stamp (claude-code-ide-org--session-first-stamp sid)))
-              (puthash stamp (cons sid (gethash stamp groups)) groups)))
+            (let ((stamp (claude-code-ide-org--session-first-stamp sid)))
+              (if stamp
+                  (puthash stamp (cons sid (gethash stamp groups)) groups)
+                ;; A session whose transcript has not flushed its first
+                ;; entry yet answers nil here and is skipped, so no group
+                ;; forms.  Remember that, because the nil it produces is
+                ;; PROVISIONAL.
+                (setq unresolved t))))
           (maphash
            (lambda (_stamp members)
              (when (cdr members)
@@ -8374,9 +8392,31 @@ already fixed once by putting the session into the lane key."
                    (let ((canon (car ordered)))
                      (dolist (sid ordered) (puthash sid canon alias)))))))
            groups)
-          (puthash sids
-                   (and (> (hash-table-count alias) 0) alias)
-                   claude-code-ide-org--session-alias-cache))))))
+          (let ((result (and (> (hash-table-count alias) 0) alias)))
+            ;; Cache a CONCLUSIVE answer only.  `nil' reached while some
+            ;; session was unresolved means "no re-key detected *yet*",
+            ;; and caching it pins that answer for the life of the Emacs
+            ;; process -- which defeats
+            ;; `claude-code-ide-org--transcript-stamp-cache', whose
+            ;; (file . mtime) key exists precisely so a growing
+            ;; transcript is re-read.  A mid-work re-key whose new
+            ;; transcript lands a moment later never paired again.
+            ;;
+            ;; The cost of not caching it: an event set naming a session
+            ;; whose transcript has aged out (:ID: 4acd8ad0) recomputes
+            ;; on every call.  That is bounded -- the stamp layer
+            ;; memoises the miss too, under a (file . nil) key -- and it
+            ;; is the right side to err on, since a wrong nil is silent
+            ;; and a recomputation is not.
+            ;;
+            ;; Known and deliberately not solved here: a NON-nil result
+            ;; is cached even when some session was unresolved, so a
+            ;; late-flushing member cannot join a group that already
+            ;; formed.  That window is strictly narrower than the one
+            ;; being closed.
+            (unless (and (null result) unresolved)
+              (puthash key result claude-code-ide-org--session-alias-cache))
+            result))))))
 
 (defun claude-code-ide-org--canonical-session (session-id alias)
   "Return SESSION-ID's canonical id under ALIAS, or SESSION-ID itself.
