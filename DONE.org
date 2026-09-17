@@ -11809,6 +11809,8 @@ CLOCK: [2026-09-02 Wed 12:11]--[2026-09-02 Wed 12:15] =>  0:04
 - State "REVIEW"     from "DOING"      [2026-09-02 Wed 12:11] \\
   cause fixed and tested, residue filed
 - [2026-09-02 Wed 12:11]--[2026-09-02 Wed 12:15] suggested span, accepted at review
+CLOCK: [2026-09-02 Wed 12:15]--[2026-09-02 Wed 12:16] =>  0:01
+- [2026-09-02 Wed 12:15]--[2026-09-02 Wed 12:16] suggested span, accepted at review
 CLOCK: [2026-09-02 Wed 13:13]--[2026-09-02 Wed 13:14] =>  0:01
 - [2026-09-02 Wed 13:13]--[2026-09-02 Wed 13:14] assigned at review
 CLOCK: [2026-09-02 Wed 13:20]--[2026-09-02 Wed 13:23] =>  0:03
@@ -12165,6 +12167,7 @@ CLOCK: [2026-09-02 Wed 12:15]--[2026-09-02 Wed 12:45] =>  0:30
 - [2026-09-02 Wed 12:15]--[2026-09-02 Wed 12:45] reorder DONE.org as a datetree
 - State "REVIEW"     from "DOING"      [2026-09-02 Wed 12:45] \\
   built and verified; ceremony is first live run
+- [2026-09-02 Wed 12:45]--[2026-09-02 Wed 12:52] suggested span, accepted at review
 - State "DONE"       from "REVIEW"     [2026-09-02 Wed 13:22] \\
   datetree shipped and archiving fixed
 :END:
@@ -13019,7 +13022,9 @@ CLOSED: [2026-09-01 Tue 09:10]
 CLOCK: [2026-09-01 Tue 09:03]--[2026-09-01 Tue 09:10] =>  0:07
 - State "DOING"      from "TODO"       [2026-09-01 Tue 09:03]
 - [2026-09-01 Tue 09:03]--[2026-09-01 Tue 09:10] sort TODO.org newest-first
+CLOCK: [2026-09-01 Tue 09:10]--[2026-09-01 Tue 09:13] =>  0:03
 - State "DONE"       from "DOING"      [2026-09-01 Tue 09:10]
+- <2026-09-01 Tue 09:10>--<2026-09-01 Tue 09:13> suggested span, accepted at review
 :END:
 :PLAN:
 
@@ -13199,7 +13204,9 @@ CLOSED: [2026-09-01 Tue 08:52]
 CLOCK: [2026-09-01 Tue 08:44]--[2026-09-01 Tue 08:52] =>  0:08
 - State "DOING"      from "TODO"       [2026-09-01 Tue 08:44]
 - [2026-09-01 Tue 08:44]--[2026-09-01 Tue 08:52] backfill CLOSED from git
+CLOCK: [2026-09-01 Tue 08:52]--[2026-09-01 Tue 09:03] =>  0:11
 - State "DONE"       from "DOING"      [2026-09-01 Tue 08:52]
+- [2026-09-01 Tue 08:52]--[2026-09-01 Tue 09:03] suggested span, accepted at review
 :END:
 :PLAN:
 
@@ -13427,7 +13434,9 @@ CLOSED: [2026-09-01 Tue 08:38]
 CLOCK: [2026-09-01 Tue 08:27]--[2026-09-01 Tue 08:38] =>  0:11
 - State "DOING"      from "TODO"       [2026-09-01 Tue 08:27]
 - [2026-09-01 Tue 08:27]--[2026-09-01 Tue 08:38] detect work a slice forgot
+CLOCK: [2026-09-01 Tue 08:38]--[2026-09-01 Tue 08:44] =>  0:06
 - State "DONE"       from "DOING"      [2026-09-01 Tue 08:38]
+- [2026-09-01 Tue 08:38]--[2026-09-01 Tue 08:44] suggested span, accepted at review
 :END:
 :PLAN:
 
@@ -13817,8 +13826,11 @@ CLOSED: [2026-09-01 Tue 07:02]
 CLOCK: [2026-08-31 Mon 18:03]--[2026-08-31 Mon 18:12] =>  0:09
 - State "DOING"      from "TODO"       [2026-08-31 Mon 18:03]
 - [2026-08-31 Mon 18:03]--[2026-08-31 Mon 18:12] generate a slice's incidental list
+- [2026-09-01 Tue 06:53]--[2026-09-01 Tue 06:54] suggested span, accepted at review
 CLOCK: [2026-09-01 Tue 06:54]--[2026-09-01 Tue 07:01] =>  0:07
 - [2026-09-01 Tue 06:54]--[2026-09-01 Tue 07:01] render the incidental section
+CLOCK: [2026-09-01 Tue 07:01]--[2026-09-01 Tue 08:27] =>  1:26
+- [2026-09-01 Tue 07:01]--[2026-09-01 Tue 08:27] suggested span, accepted at review
 - State "DONE"       from "DOING"      [2026-09-01 Tue 07:02]
 :END:
 :PLAN:
@@ -15985,6 +15997,8 @@ CLOCK: [2026-08-20 Thu 10:50]--[2026-08-20 Thu 11:09] =>  0:19
 CLOCK: [2026-08-31 Mon 13:11]--[2026-08-31 Mon 13:13] =>  0:02
 - State "DOING"      from "TODO"       [2026-08-31 Mon 13:11]
 - [2026-08-31 Mon 13:11]--[2026-08-31 Mon 13:13] anchor duration assertions to the table row
+CLOCK: [2026-08-31 Mon 13:13]--[2026-08-31 Mon 13:13] =>  0:00
+- [2026-08-31 Mon 13:13]--[2026-08-31 Mon 13:13] suggested span, accepted at review
 - State "DONE"       from "DOING"      [2026-08-31 Mon 13:48]
 :END:
 
@@ -16065,7 +16079,9 @@ CLOCK: [2026-08-31 Mon 13:44]--[2026-08-31 Mon 13:45] =>  0:01
 - [2026-08-31 Mon 13:44]--[2026-08-31 Mon 13:45] stop the block-today fixture crossing midnight
 CLOCK: [2026-08-31 Mon 13:45]--[2026-08-31 Mon 13:48] =>  0:03
 - [2026-08-31 Mon 13:45]--[2026-08-31 Mon 13:48] stop the block-today fixture crossing midnight
+CLOCK: [2026-08-31 Mon 13:48]--[2026-08-31 Mon 13:53] =>  0:05
 - State "DONE"       from "DOING"      [2026-08-31 Mon 13:48]
+- [2026-08-31 Mon 13:48]--[2026-08-31 Mon 13:53] suggested span, accepted at review
 :END:
 :PLAN:
 
@@ -16149,7 +16165,9 @@ CLOSED: [2026-08-31 Mon 13:11]
 CLOCK: [2026-08-31 Mon 13:09]--[2026-08-31 Mon 13:11] =>  0:02
 - State "DOING"      from "TODO"       [2026-08-31 Mon 13:09]
 - [2026-08-31 Mon 13:09]--[2026-08-31 Mon 13:11] remove dead synthetic-event overrides
+CLOCK: [2026-08-31 Mon 13:11]--[2026-08-31 Mon 13:11] =>  0:00
 - State "DONE"       from "DOING"      [2026-08-31 Mon 13:11]
+- [2026-08-31 Mon 13:11]--[2026-08-31 Mon 13:11] suggested span, accepted at review
 :END:
 
 =QUEUE_APPEND_ID=, =QUEUE_APPEND_STATE= and =QUEUE_APPEND_FROM= in
