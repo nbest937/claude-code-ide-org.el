@@ -2,6 +2,146 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO [0/8] Ship the tracker without the clock, so another project can use it while time tracking is still being built :code:
+:PROPERTIES:
+:ID:       8bbae3aa-55db-441c-8c33-405570ad879a
+:CREATED:  [2026-09-17 Thu 11:16]
+:CATEGORY: Slices
+:KIND:     slice
+:COOKIE_DATA: checkbox recursive
+:BLOCKER:  eb6c4a9b-8f78-42fa-9e86-484bf352fcf6 0c5577dc-ef15-440a-bdac-b3cb068aa7b2 36952d1f-5312-4cf2-a710-4290ce673e19 01f7a19c-4b71-447c-8ded-385410e5d607 6956a46e-da4b-44c2-a701-80196a2930c1 1b36c5bd-bafd-4c43-8aae-c94dee45c5eb d3149a81-91d2-4722-b6d8-68d4cee6fa4f 5fb70821-0f46-42d9-8bf3-93bc98025692
+:END:
+
+Composed 2026-09-17 at the user's direction, whose framing is the point: task tracking, dependency management and slice planning are ready to support real work elsewhere, and time tracking is not. Shipping them together holds the useful half hostage to the half still under construction.
+
+*The evidence is the session rather than the backlog.* Of 128 open headings, 55 sit in =Queue=, =Apply= and =Clock= — 43% — but weighting that by the corpus's own declared priority mechanism changes nothing: time-tracking work is deferred to =MAYBE= at 9.1% against 8.2% for everything else, and both sit at 80% plain =TODO=. The real asymmetry is behavioural. On 2026-09-17 every apply failure was a clock or span item, five of them; the user asked three separate times what a span represented; an eleven-hour overnight interval was offered as work, and a single keystroke would have recorded 3h11m over sixteen observed minutes. Against that, not one interruption came from capture, refile, blockers, slices, conventions or lint.
+
+*What survives the cut, which is most of the plugin:* capture with =:CATEGORY:= enforcement, refile, divide, query, outline, the slice machinery with derived cookies and blockers, the =:PLAN:=/=:DEBRIEF:= drawers, the conventions as promoted rules, =lint-org=, =check-conventions=, and the footnote hook. The queue and the review pass survive too — =org_set_todo= is queued because org's state-change logging needs a genuinely interactive command, which has nothing to do with time.
+
+*The shape decided before composing.* Scripts ship, wiring does not: a hook has no "disabled" state, so wired and unwired are the only forms available, and shipping unwired keeps the opt-in to one file edit. Not two plugins — time tracking is a **layer** on task tracking rather than a peer, since spans attribute to headings the task half manages and both share one queue, one review buffer and one watermark file. That decision carries one unmeasured assumption, which is a member here rather than a footnote.
+
+*This slice does not fix time tracking and does not pretend to.* The 55 open items stay open and stay this repo's work. What changes is that they stop blocking =6a207b00=.
+
+Planned:
+
+- [ ] [[id:eb6c4a9b-8f78-42fa-9e86-484bf352fcf6][eb6c4a9b]] TODO clock-target-check ships wired and enforces clocking, so it would block every turn once clocking is off
+- [ ] [[id:0c5577dc-ef15-440a-bdac-b3cb068aa7b2][0c5577dc]] TODO Take the guidepost, block and clock rows out of the shipped wiring, leaving every script on disk
+- [ ] [[id:36952d1f-5312-4cf2-a710-4290ce673e19][36952d1f]] TODO The promoted rules instruct clocking unconditionally, so a consumer is told to call tools that do nothing
+- [ ] [[id:01f7a19c-4b71-447c-8ded-385410e5d607][01f7a19c]] TODO Decide whether org_clock_in and org_clock_out stay registered when nothing consumes what they queue
+- [ ] [[id:6956a46e-da4b-44c2-a701-80196a2930c1][6956a46e]] TODO The SessionStart report mixes stale-interval recovery with the ceremony prompt, and only one half survives
+- [ ] [[id:1b36c5bd-bafd-4c43-8aae-c94dee45c5eb][1b36c5bd]] TODO claude-org-setup gains an opt-in that restores the time-tracking wiring and its rules
+- [ ] [[id:d3149a81-91d2-4722-b6d8-68d4cee6fa4f][d3149a81]] TODO Verify the review buffer and apply pass on a queue that has never held a guidepost
+- [ ] [[id:5fb70821-0f46-42d9-8bf3-93bc98025692][5fb70821]] TODO Establish whether two plugin manifests can share one MCP server, which is what decides the two-plugin question
+
+
+* TODO Verify the review buffer and apply pass on a queue that has never held a guidepost :code:
+:PROPERTIES:
+:ID:       d3149a81-91d2-4722-b6d8-68d4cee6fa4f
+:CREATED:  [2026-09-17 Thu 11:16]
+:CATEGORY: Apply
+:END:
+
+The claim this slice rests on: with no guideposts and no clock events, the review buffer shows only state changes, captures and amends — the item classes that have applied cleanly throughout, while every failure and every unanswerable question of 2026-09-17 came from a span or a clock item.
+
+It is a claim, not a fact, and the corpus cannot test it: this repo's queue has held guideposts since the 2026-08-11 cutover, so every existing test and every manual pass has run against a queue that has them. Wanted is a fixture whose queue contains only =todo=, =capture= and =amend= events, asserting that =--review-items-from-queue= yields exactly those items, that the buffer renders and applies them, and that nothing in the span or complement path is reached.
+
+Two failure modes to probe rather than assume. =--queue-drained-p= is "yields no items", and archiving depends on it — a queue that drains differently may change when archiving fires. And =apply-detect= compares watermark mtimes; with fewer event kinds moving them, its "the record is fresh" message may fire less often or not at all.
+
+* TODO Establish whether two plugin manifests can share one MCP server, which is what decides the two-plugin question :research:
+:PROPERTIES:
+:ID:       5fb70821-0f46-42d9-8bf3-93bc98025692
+:CREATED:  [2026-09-17 Thu 11:16]
+:CATEGORY: Dev
+:END:
+
+The user asked 2026-09-17 whether this is becoming two plugins. The recommendation was **not yet**, on three grounds — but one of them is an assumption that should be measured rather than carried.
+
+*The two settled grounds.* Time tracking is not a peer of task tracking, it is a **layer on it**: spans attribute to headings the task half manages, and both share one queue, one review buffer and one watermark file, so two peer plugins would misrepresent the dependency. And a second plugin would ship no code of its own — every tool is registered by one 17,000-line =config.el= that both would need — so its entire content would be hook wiring and one rules file.
+
+*The open one.* Whether Claude Code supports two manifests sharing a single MCP server at all. This repo has exactly one =.claude-plugin/plugin.json= and no nested manifests, so the mechanics are untested here. If two manifests *can* share a server, the thin second plugin becomes viable and the "ships no code" objection weakens considerably — the wiring would be its code.
+
+Answer it before the question is asked again, and record the answer either way. The trigger for revisiting the whole decision is narrower and worth writing down now: a consumer wanting the time half **without** the task half, which is incoherent today and would stop being so only if spans ever attributed to something other than org headings.
+
+* TODO claude-org-setup gains an opt-in that restores the time-tracking wiring and its rules :code:
+:PROPERTIES:
+:ID:       1b36c5bd-bafd-4c43-8aae-c94dee45c5eb
+:CREATED:  [2026-09-17 Thu 11:15]
+:CATEGORY: Dev
+:END:
+
+If the scripts ship unwired, something has to make wiring them a single act rather than a hand edit of a JSON file the consumer did not write. =claude-org-setup= already promotes rules and scaffolds org files behind flags — =--doom=, =--org=, =--glue=, =--check= — so a =--time= flag is the established shape: it adds the guidepost, block and clock rows to the consumer's wiring and promotes =org-session-tracking.md= alongside them.
+
+Two constraints it inherits. The repo-versus-plugin wiring trap is already documented — "a repo must enable only one of the two, or every guidepost is appended twice" — so the flag has to know which wiring the consumer is using before adding rows to either. And =--check= should report the time-tracking wiring as present or absent rather than silently ignoring it, since a half-applied opt-in is exactly the state that produces events nobody applies.
+
+* TODO Decide whether org_clock_in and org_clock_out stay registered when nothing consumes what they queue :code:
+:PROPERTIES:
+:ID:       01f7a19c-4b71-447c-8ded-385410e5d607
+:CREATED:  [2026-09-17 Thu 11:15]
+:CATEGORY: Tools
+:END:
+
+The two queued clock tools are registered by the shared Doom module, so they remain callable whatever =hooks.json= wires. Three options, and the choice is about what an agent is *invited* to do rather than about correctness.
+
+*Leave them registered.* Cheapest, and harmless in the narrow sense — they queue events and the review buffer shows clock items nobody has to apply. But a tool in the schema is an invitation, and this project's own evidence is that an agent calls what it is offered: the rules were followed exactly even when they produced fifteen-second brackets.
+
+*Gate registration on a =defcustom=.* Honest — the surface then matches the feature set — at the cost of a conditional registration block and a second configuration to test.
+
+*Remove them.* Not viable: this repo needs them, and they are the same module.
+
+Note the tools are only half the invitation. =org_set_todo='s own description and the transition rules tell the agent when to call them, so gating registration without =36952d1f= leaves the instruction pointing at a tool that is gone — which is the louder failure of the two.
+
+* TODO The promoted rules instruct clocking unconditionally, so a consumer is told to call tools that do nothing :code:
+:PROPERTIES:
+:ID:       36952d1f-5312-4cf2-a710-4290ce673e19
+:CREATED:  [2026-09-17 Thu 11:15]
+:CATEGORY: Skill
+:END:
+
+=org-state-transitions.md= is promoted into every consuming project and its transition table's whole right-hand column is clock instructions — "Open a CLOCK (call =org_clock_in=)" on four rows, "Close the CLOCK" on four more — plus the standing rule to clock in before a session's first write. =org-session-tracking.md= is promoted too and is *entirely* about time tracking: guideposts, the three numbers, permission blocks, stale-interval recovery.
+
+With clocking off these tell a consuming agent to make calls that queue events nobody will ever apply, and to follow a rule whose backstop has been removed. Worse than useless: the rules are the thing an agent is *most* likely to obey exactly.
+
+Two shapes to weigh. Promote a *variant* of the transition table without the clock column, which keeps each rules file coherent but forks a file that must then be kept in step. Or make the clock column conditional in prose — "when time tracking is enabled" — which keeps one file and asks the reader to hold a condition, something this project has found unreliable before (a path-scoped rule that does not load is a rule that does not apply). =org-session-tracking.md= is simpler: it should not promote at all unless the opt-in wiring is chosen.
+
+* TODO The SessionStart report mixes stale-interval recovery with the ceremony prompt, and only one half survives :code:
+:PROPERTIES:
+:ID:       6956a46e-da4b-44c2-a701-80196a2930c1
+:CREATED:  [2026-09-17 Thu 11:15]
+:CATEGORY: Meta
+:END:
+
+=session-start-recovery-check= carries two independent reports in one payload, deliberately — "one hook and one payload, because =additionalContext= is a single string and a second SessionStart hook would double the Emacs round-trip".
+
+They fall on opposite sides of this slice. The **stale-interval** half scans for an unclosed =CLOCK:= line and asks what time work stopped: pure time tracking, and with no clocking it can never find anything. The **ceremony** half names pending queue items, drawers out of order and unarchived headings, then asks whether to run the pass: pure task tracking, and a consuming project wants it.
+
+So the hook cannot simply stay or go. Either the stale half is gated off when clocking is, or the two reports separate. The existing =[[ -s ]]= guard already drops an empty payload, so a stale half that always returns nothing degrades silently rather than breaking — which makes "leave it and let it return nothing" a legitimate cheapest option to weigh against the split.
+
+* TODO Take the guidepost, block and clock rows out of the shipped wiring, leaving every script on disk :code:
+:PROPERTIES:
+:ID:       0c5577dc-ef15-440a-bdac-b3cb068aa7b2
+:CREATED:  [2026-09-17 Thu 11:15]
+:CATEGORY: Dev
+:END:
+
+The change itself. Out of =hooks/hooks.json=: =session-pause=, =session-resume=, =block-start=, both =block-end= rows, and the =queue-append clock_in= / =queue-append clock_out= matchers. Staying: =queue-append todo=, =capture=, =amend=, =apply-detect=, =footnote-check=, =session-context.sh=.
+
+*Scripts stay on disk, deliberately.* A hook has no "disabled" state — listing it in =hooks.json= is what enables it — so the only two forms available are wired and unwired. Shipping the scripts unwired costs nothing, keeps the opt-in path to one file edit, and means time tracking is *available* rather than removed. It also matches what this repo already does: the same scripts are wired here through =.claude/settings.json=.
+
+*Consequence to verify rather than assume:* with no guideposts in the queue, the review buffer should show only state changes, captures and amends — the item classes that have applied cleanly all along. That is the claim this whole slice rests on and it gets its own member.
+
+* TODO clock-target-check ships wired and enforces clocking, so it would block every turn once clocking is off :code:
+:PROPERTIES:
+:ID:       eb6c4a9b-8f78-42fa-9e86-484bf352fcf6
+:CREATED:  [2026-09-17 Thu 11:15]
+:CATEGORY: Dev
+:END:
+
+=hooks/hooks.json= wires =bin/hooks/clock-target-check= as a =Stop= hook. It blocks the stop, once per session, when the transcript shows write activity and the queue holds no =clock_in=. With the guidepost and clock rows removed there is never a =clock_in=, so it would fire on the first write of every session in every consuming project and keep firing.
+
+This is the sharpest item in the set because it fails *loudly and immediately* rather than degrading: a consumer's first real turn is blocked by a hook enforcing a feature they were never given. It must come out of the shipped wiring in the same change that removes the guideposts, not afterwards.
+
+Worth deciding at the same time whether it returns with the opt-in wiring. It backstops the rule that a session names the heading its first write belongs to — which is a *task*-tracking rule about attribution, not a time-tracking one — so there is an argument for a variant that checks for any queued activity on a heading rather than specifically a =clock_in=.
+
 * TODO Clock brackets of seconds around work of an hour, so nearly all real time lands in unowned gaps :code:
 :PROPERTIES:
 :ID:       a2fac2e7-bf88-4f6f-8ada-846e3bafde11
