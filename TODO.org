@@ -1870,6 +1870,9 @@ stays the backstop and passes once no dead live-link remains. The
 restore-from-archive procedure remains for the rare plan someone
 actually wants live again.
 
+*Another death 2026-09-17, and the interval holds exactly.* =parsed-stargazing-lynx.md=, archived copy dated 2026-08-18, missing from =~/.claude/plans= and caught by =bin/lint-org= refusing an unrelated commit — creation + 30 days, the same arithmetic this heading derived from the first casualties. Restored byte-for-byte from =plans/= (checksums equal, 32 plans in sync). Nothing new about the mechanism; recorded because the *decided* fix is what would have handled it — rewriting the dead =file:= link to the archived copy's =orgit= revision — and it does not exist yet, so the friction landed on a commit that had nothing to do with plans. That is the cost of the status quo arriving on schedule rather than a new symptom.
+
+
 
 * TODO Archived :ARCHIVE_FILE: paths are machine-absolute; audit their portability :code:
 :PROPERTIES:
