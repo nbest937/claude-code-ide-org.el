@@ -52,10 +52,19 @@ and a check run against a stale layer is indistinguishable from a passing
 one. Sections 1 and 2 below are the mechanics; this is the habit that
 makes them count.
 
-The general form of this rule (it is not specific to Emacs, or to this
-repo) lives in `~/.claude/CLAUDE.md`. It is restated here because this
-project's own contributors are the ones most likely to need it, and a
-skill should not depend on a personal config file existing.
+**This skill is the rule's only home, and the rule is not specific to
+Emacs or to this repo.** It was stated in the user's own
+`~/.claude/CLAUDE.md` until 2026-09-17 and restated here on the
+principle that a skill should not depend on a personal config file
+existing — which is what made the retirement of that file cost nothing
+to recover.
+
+One consequence is worth naming rather than papering over: a skill is
+*triggered*, not always loaded, so a verification that is neither Emacs-
+nor Doom-shaped no longer meets this rule anywhere. That is an accepted
+trade (TODO.org `:ID:` 27bb4b08), not an oversight. If it starts biting,
+the fix is a rule file in `.claude/rules/`, not a return to a personal
+config.
 
 ### Never invoke bare `emacs` for a batch check — use `command emacs`
 

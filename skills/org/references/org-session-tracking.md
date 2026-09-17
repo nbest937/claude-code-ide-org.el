@@ -36,11 +36,27 @@ queue file and exits:
 | Hook                | Script                        | Appends       |
 |---------------------|-------------------------------|---------------|
 | `Stop`              | `bin/hooks/session-pause`     | `pause`       |
+| `Stop`              | `bin/hooks/footnote-check`    | nothing — *blocks the stop* when the response cites a tracked `:ID:` with no end-matter entry |
+| `Stop`              | `bin/hooks/clock-target-check`| nothing — *blocks the stop*, once per session, when write activity has no `clock_in` |
 | `UserPromptSubmit`  | `bin/hooks/session-resume`    | `resume`      |
 | `UserPromptSubmit`  | `bin/hooks/apply-detect`      | nothing — *injects context* when the queue was applied since the session's last turn |
 | `PermissionRequest` | `bin/hooks/block-start`       | `block_start` |
 | `PostToolUse` (unscoped) | `bin/hooks/block-end`    | `block_end`, if a block is open |
 | `PermissionDenied`  | `bin/hooks/block-end`         | `block_end`, if a block is open |
+
+**Two of the rows block rather than append**, and they are the reason
+the table is not simply a list of queue writers. `footnote-check`
+enforces the citation rules (`org-footnote-citations.md`, promoted
+alongside this file); `clock-target-check` backstops the rule that a
+session names the heading its first write belongs to, which lives in the
+state-transition rules. Neither touches the queue, and neither can name
+a heading — that judgement belongs to the rule, not the hook.
+
+*The table omits the five `PostToolUse` `queue-append` matchers*, which
+wire `org_clock_in`, `org_clock_out`, `org_set_todo`, `org_capture` and
+`org_amend` to the queue. They are the queued tools' own mechanism
+rather than session tracking, and `hooks/hooks.json` is where their
+wiring is read.
 
 **`apply-detect` is the one read-only row** (`:ID:` 165ce65a): the
 apply pass writes `.applied` watermark files, and this hook compares
@@ -97,6 +113,18 @@ written down here until 2026-09-02. They apply in order:
 | `claude-code-ide-org-guidepost-gap-threshold` | 1200 s | how guideposts group into spans for review |
 | `claude-code-ide-org-span-idle-floor` | 120 s | how much idle *inside* a span is absorbed rather than split on |
 | `claude-code-ide-org-span-minimum-interval` | 0 s | below which a run is dropped rather than written |
+
+**A fourth input is not a number, and it matters most to a repo that is
+not this one.** Guideposts are keyed on `(timestamp, kind, project)`, so
+a **project boundary splits a span** — and it is the only thing that
+still does, a permission block having become a subtraction rather than a
+split. The queue is a single global directory under `~/.claude/org-updates/`,
+shared by every project a session runs in; before the change two repos'
+turns in the same window clustered into one span, crediting one
+project's minutes to the other's heading. Both sides must be *known* and
+different — `cwd` has only been recorded since 2026-09-04 and cannot be
+backfilled, so a missing value means "unknown", never "elsewhere", and a
+span predating the field is never shattered by it.
 
 **The threshold no longer defends any duration, and reading it as though
 it still does is the mistake this section exists to prevent.** A span

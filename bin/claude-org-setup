@@ -21,11 +21,17 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 plugin_root="$(cd "$script_dir/.." && pwd)"
 refs="$plugin_root/skills/org/references"
 
-# Promoted set: the path-scoped conventions plus the four always-loaded
+# Promoted set: the path-scoped conventions plus the five always-loaded
 # machinery rules. org-emacs-setup.md is deliberately absent — it is
 # install-time reading, not per-session context.
+#
+# org-footnote-citations.md carries no path scope on purpose (TODO.org
+# :ID: fc70b56d): an id gets cited in a response about source, tests or
+# commits, with no .org file in play, so a path-scoped copy would be a
+# rule that does not load — and bin/hooks/footnote-check ships enforcing
+# it either way.
 promote=(org-conventions.md org-event-queue.md org-state-transitions.md
-         org-mcp-tools.md org-session-tracking.md)
+         org-mcp-tools.md org-session-tracking.md org-footnote-citations.md)
 
 force=0
 check=0

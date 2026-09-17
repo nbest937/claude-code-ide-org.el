@@ -27,10 +27,24 @@
 # LOOP GUARD, and it is not optional: the docs describe no
 # `stop_hook_active' flag for a blocking Stop hook, so a hook that
 # blocks on a condition the model then fails to satisfy blocks forever.
-# This fires at most once per turn, using a per-session sentinel on the
-# model of bin/hooks/block-start's -- written when it blocks, cleared by
-# bin/hooks/session-resume when the next prompt starts a new turn. The
-# worst case is one extra continuation per turn, never a hang.
+# A per-session sentinel, on the model of bin/hooks/block-start's,
+# written when it blocks and cleared by bin/hooks/session-resume when the
+# next prompt starts a new turn.
+#
+# CONTENT-AWARE since 2026-09-16 (TODO.org :ID: 45dc171f). It used to
+# fire at most once per turn: the sentinel's mere existence silenced
+# every later Stop in the same turn. That put the blind window in the
+# worst possible place -- the response right after a footnote block is
+# the one REWRITING footnote-heavy prose, so it is where a new miss is
+# most likely, and it was exactly where the check was off. Observed
+# costing two unfootnoted ids in one response.
+#
+# The sentinel now records the DEMAND -- the missing ids and orphaned
+# markers it asked about. An identical demand is never repeated, which
+# is the anti-loop property and the only one that matters: the hook can
+# never ask twice for the same thing. A DIFFERENT demand blocks again,
+# which is the case above. A hard bound of three blocks per turn stands
+# behind that, so even a pathological alternation terminates.
 
 set -uo pipefail
 
@@ -45,8 +59,14 @@ esac
 
 queue_dir="${CLAUDE_ORG_QUEUE_DIR:-$HOME/.claude/org-updates}"
 sentinel="$queue_dir/$session_id.footnote-blocked"
-# Already blocked once this turn: let it stop rather than loop.
-[[ -e "$sentinel" ]] && exit 0
+# Prior demands this turn, one per line. Read rather than merely tested
+# for existence -- see LOOP GUARD above.
+prior=""
+[[ -e "$sentinel" ]] && prior="$(cat "$sentinel" 2>/dev/null)"
+# Hard bound, whatever the content: three asks in one turn is enough.
+if [[ -n "$prior" ]] && [[ "$(grep -c . <<<"$prior")" -ge 3 ]]; then
+  exit 0
+fi
 
 message="$(jq -r '.last_assistant_message // empty' <<<"$input" 2>/dev/null)"
 [[ -n "$message" ]] || exit 0
@@ -66,7 +86,17 @@ done
 # the scan. An id inside ``` or ~~~ is a *transcript* -- tool output, a
 # file excerpt, a rendered slice checklist -- not a citation, and the
 # footnote convention exists to keep prose scannable while staying
-# recoverable. A transcript is already in its own context.
+# recoverable.
+#
+# The reason is PROVENANCE and SELF-DESCRIPTION, never how a fence looks.
+# Corrected 2026-09-16 (TODO.org :ID: 762b7836): an earlier wording said
+# "a transcript is already in its own context", which is a claim about
+# rendering -- and fences are far less prominent in the CLI than in the
+# desktop app, so that argument fails exactly where the reading happens.
+# What holds in any client is that the id arrived by transcription rather
+# than by anyone choosing to cite it, and that a block like a slice
+# checklist already carries the keyword and title a footnote would
+# restate. Do not extend this exemption on the visual argument.
 #
 # Found 2026-08-26 by this hook firing on a response that displayed a
 # slice's checklist: twelve ids, each demanding a footnote that restated
@@ -129,13 +159,77 @@ foot="$(awk 'BEGIN{n=0} {l[NR]=$0; if ($0=="---") n=NR} END{if(n>0) for(i=n+1;i<
 candidates="$(grep -oE '\b[0-9a-f]{8}\b' <<<"$body" | sort -u)"
 [[ -n "$candidates" ]] || exit 0
 
+# Resolve a tracked id to `KEYWORD<TAB>TITLE', or print nothing when the
+# id is not a tracked heading. This is the lookup the script already did
+# and threw away: `grep -qE' reports existence and discards the location,
+# which is one awk from the heading above it -- the very keyword and
+# title the message below then demands be "looked up rather than
+# recalled" (TODO.org :ID: 33c3eabc).
+#
+# `FNR == 1' resets the remembered heading per file, or an id in the
+# second file could inherit a heading left over from the end of the first.
+#
+# Anchored on `^:ID:' -- a property line -- rather than on the bare id,
+# so an id quoted in some other heading's body cannot be mistaken for its
+# own definition. That is the entry-boundary trap the org-dev skill
+# records, and the anchor is what avoids it without needing Emacs.
+resolve_id () { # resolve_id <id> -> "KEYWORD<TAB>TITLE"
+  awk -v id="$1" '
+    FNR == 1 { heading = "" }
+    /^\*+ / { heading = $0 }
+    # No end anchor: candidates are 8-character PREFIXES while the :ID:
+    # line carries the full uuid, so anchoring the tail matches nothing.
+    # Same shape as the grep this replaced. (No apostrophes in here: the
+    # whole program is inside a shell single-quote.)
+    $0 ~ "^:ID:[ \t]+" id {
+      line = heading
+      sub(/^\*+[ \t]+/, "", line)
+      kw = "-"
+      if (match(line, /^(TODO|NEXT|DOING|REVIEW|WAITING|MAYBE|DONE|CANCELLED)[ \t]+/)) {
+        kw = substr(line, 1, RLENGTH)
+        sub(/[ \t]+$/, "", kw)
+        line = substr(line, RLENGTH + 1)
+      }
+      sub(/[ \t]+:[A-Za-z0-9_@#%:]+:[ \t]*$/, "", line)
+      printf "%s\t%s\n", kw, line
+      exit
+    }
+  ' "${org_files[@]}"
+}
+
 missing=""
+resolved=""
 while IFS= read -r id; do
   [[ -n "$id" ]] || continue
-  grep -qE "^:ID: +$id" "${org_files[@]}" || continue   # not a tracked heading
+  found="$(resolve_id "$id")"
+  [[ -n "$found" ]] || continue                         # not a tracked heading
   grep -qF "$id" <<<"$foot" && continue                 # already footnoted
+  kw="${found%%$'\t'*}"
+  title="${found#*$'\t'}"
+  # DISCHARGED IN PLACE: a body line carrying the id AND its exact title
+  # has already met the convention's purpose -- the prose stays readable
+  # and the reference stays recoverable -- so a separate end-matter entry
+  # would be pure duplication. This is exactly a status summary, and it
+  # is where this hook was loudest: a twelve-id unwind printed all twelve
+  # inline and was asked for all twelve again (TODO.org :ID: 2a6a1355).
+  #
+  # Same LINE, deliberately. An id in one paragraph and the title in
+  # another is the ordinary unfootnoted case: a reader scanning for the
+  # id does not find the title beside it, which is the whole guarantee.
+  grep -F "$id" <<<"$body" | grep -qF "$title" && continue
   missing="$missing${missing:+ }$id"
+  # `id` FIRST: the id is the key the prose already carries, so it is what
+  # the eye scans for. The keyword is padded to a column because it is the
+  # volatile field and misalignment hides staleness. Backticked because the
+  # terminal renders code in a distinct face, which is the whole reason the
+  # id is findable at a glance (TODO.org :ID: 2a6a1355).
+  # FLUSH LEFT: the message says "append these lines", so whatever indent
+  # is emitted is what gets copied, and the canonical form this hook
+  # enforces has none (TODO.org :ID: cfdfe119).
+  resolved="$resolved\`$id\`  $(printf '%-9s' "$kw") $title
+"
 done <<<"$candidates"
+
 [[ -n "$missing" ]] || exit 0
 
 # `mkdir -p' first: a bare `: > "$sentinel" 2>/dev/null' does NOT
@@ -146,8 +240,16 @@ done <<<"$candidates"
 # optional, and without it a Stop hook that blocks on a condition the
 # model cannot satisfy blocks forever. Found 2026-08-26 by running the
 # hook against a queue directory that did not exist.
+# The demand this block makes, compared against the ones already made
+# this turn. Identical means we have asked and the model did not satisfy
+# it -- asking again is the loop the guard exists to prevent.
+demand="$missing"
+if [[ -n "$prior" ]] && grep -qxF -- "$demand" <<<"$prior"; then
+  exit 0
+fi
+
 mkdir -p "$queue_dir" 2>/dev/null
-: > "$sentinel" 2>/dev/null
+printf '%s\n' "$demand" >> "$sentinel" 2>/dev/null
 
 # STDERR AND EXIT 2. Not JSON, and not exit 0 (TODO.org :ID: 5787bfc6).
 #
@@ -174,11 +276,9 @@ mkdir -p "$queue_dir" 2>/dev/null
 # emitting no decision leaves stderr as the message, which is the whole
 # point here.
 cat >&2 <<EOF
-This response cites tracked org :ID:s without footnoting them: $missing. \
-Append a footnote for each, superscript-marked in the prose (¹²³), each \
-footnote line carrying the id, its current TODO keyword and its EXACT full \
-title, looked up rather than recalled. The rule is per RESPONSE: footnote an \
-id even if an earlier response in this conversation already did, because the \
-reader does not have that response on screen.
+Unfootnoted tracked :ID:s: $missing. Footnoting is per response. Append these
+lines to the end matter, after a \`---\` separator:
+
+$resolved
 EOF
 exit 2

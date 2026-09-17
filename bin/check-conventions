@@ -220,10 +220,19 @@ fi
 
 # 2. The TODO keyword set agrees everywhere it is written down.
 #
-# Four copies exist and TODO.org's own `#+TODO:' line is the only one
-# org reads, so the other three are documentation that can drift. It has
-# drifted before: the org skill carried `WAIT' after the keyword became
-# `WAITING', and was missing REVIEW entirely.
+# Eight copies exist and TODO.org's own `#+TODO:' line is the only one
+# org reads, so the other seven are documentation or code that can
+# drift. It has drifted before: the org skill carried `WAIT' after the
+# keyword became `WAITING', and was missing REVIEW entirely.
+#
+# Two of the seven SHIP (TODO.org :ID: a3ee7033): the templates a
+# consuming project is scaffolded from, and the awk alternation in
+# bin/hooks/footnote-check, which hooks/hooks.json wires as a Stop hook
+# in every consumer. Drift there is a consumer-visible failure nobody
+# here would ever see, and it fails wrongly rather than emptily -- the
+# awk defaults kw to `-' and leaves an unrecognised keyword in `line',
+# so the entry shows a dash in the keyword column and leaks the keyword
+# into the position reserved for the exact title.
 #
 # Compared as a *set* rather than as a string. The orderings differ
 # legitimately -- the header is a sequence with a `|' separator, the
@@ -270,6 +279,27 @@ if [ -f "$header_file" ]; then
     got="$(grep -E '^\|' "$ref" | grep -oE '\`(TODO|NEXT|DOING|REVIEW|WAITING|MAYBE|DONE|CANCELLED|PLANNING|WAIT)\`' | tr -d '\`' | keyword_set)"
     check "keyword set: org-state-transitions reference table" "$got" "$truth"
   fi
+
+  # The shipped Stop hook resolves a cited :ID: to its keyword and
+  # title, so it carries the keyword set as an awk alternation. Matched
+  # on the one line that holds it rather than the whole file: the hook's
+  # commentary names keywords in prose, exactly the prose-vs-claim split
+  # the skill check above is scoped for.
+  hook="$root/bin/hooks/footnote-check"
+  if [ -f "$hook" ]; then
+    got="$(grep -m1 -F 'match(line, /^(TODO' "$hook" | keyword_set)"
+    check "keyword set: bin/hooks/footnote-check awk alternation" "$got" "$truth"
+  fi
+
+  # The scaffolding templates are what a consuming project's own
+  # `#+TODO:' line becomes, so they are the truth source over there.
+  for tmpl in TODO DONE; do
+    tf="$root/templates/$tmpl.org"
+    if [ -f "$tf" ]; then
+      got="$(head -1 "$tf" | keyword_set)"
+      check "keyword set: templates/$tmpl.org header" "$got" "$truth"
+    fi
+  done
 fi
 
 # 2b. The promoted rules copies match the plugin references

@@ -1696,8 +1696,28 @@ START, then merge any that are adjacent or overlapping (END of one
 >= START of the next) into a single min-to-max span. Return the
 merged list, ascending by START.
 
-UNWIRED as of 2026-08-10, for the same reason and on the same terms as
-`claude-code-ide-org--round-time-to-5-minutes' — see its docstring."
+*Wall-clock time is a union, not a sum*, which is what this is for
+(TODO.org :ID: 7d739afd).  Two sessions running at once produce two runs
+covering the same minutes, and adding them claims more time than
+elapsed: a 20-minute window can report 30 minutes of measured run time,
+after which end-to-end shares run past the window's end and overlap the
+next one -- exactly what `claude-code-ide-org-allocation-intervals'
+promises cannot happen.  Concurrency here is ordinary rather than
+exceptional: a background job and an interactive session overlap
+constantly in this project, which is the same fact that forced guidepost
+pairing to be per-lane.
+
+*The attention derivation needs no union, and the asymmetry is the
+point*: it asks which *windows* carry run time, and marking one busy
+twice is idempotent.  Only a path that totals seconds can double-count.
+
+It carried an \"UNWIRED as of 2026-08-10\" note until 2026-09-15.  It was
+not unwired; it had been *duplicated* --
+`claude-code-ide-org--merge-overlapping-runs' was coined later with the
+same sort and the same merge condition, and wired into the allocation
+path.  Checked over 20000 random interval sets before the two were
+folded together: 0 disagreed.  The magnitude of what the union prevents
+is measured on 7d739afd's body -- 0.11 h over ten days, 0.5%."
   (let ((sorted (sort (copy-sequence intervals)
                        (lambda (a b) (time-less-p (car a) (car b)))))
         result)
@@ -7516,14 +7536,35 @@ That tracking is per *lane*, not per session: `agent_id' if the event
 came from a subagent, the main session otherwise. Subagents share their
 parent's `session_id', so concurrent ones interleave into a single
 stream and a session-wide `current' would let them clobber each other
--- which they did, observably (TODO.org :ID: 0d789b68)."
+-- which they did, observably (TODO.org :ID: 0d789b68).
+
+The partition is by *canonical* session, so a conversation Claude Code
+re-keyed mid-work keeps one stream and the new lane inherits the
+heading the old one was working on (TODO.org :ID: b57c7515).  This is
+the attribution half of that defect: before it, every guidepost after a
+re-key fell to the nil bucket until some later `clock_in\' named a
+heading again, and `bin/hooks/clock-target-check\' could only report
+the symptom, the earlier `clock_in\' being invisible from inside the new
+lane.  Crossing two streams is safe here precisely because
+`claude-code-ide-org--session-alias-map\' refuses to alias sessions
+whose ranges overlap -- a re-key hands work over, it does not run
+alongside.
+
+*Scoped to one SESSION-ID the bridge cannot apply*, since the other
+half of a re-keyed pair is in a different file and this reads only the
+one asked for.  The review pass\='s own path is unscoped, which is where
+it matters."
   (let ((by-session (make-hash-table :test 'equal))
         (groups (make-hash-table :test 'equal))
         order)
-    ;; Partition first: attribution is only meaningful within one session's
+    ;; Partition first: attribution is only meaningful within one lane's
     ;; own ordered stream, never across the interleaving of several.
-    (dolist (event (claude-code-ide-org--queue-events session-id))
-      (push event (gethash (plist-get event :session-id) by-session)))
+    (let* ((events (claude-code-ide-org--queue-events session-id))
+           (alias (claude-code-ide-org--session-alias-map events)))
+      (dolist (event events)
+        (push event (gethash (claude-code-ide-org--canonical-session
+                              (plist-get event :session-id) alias)
+                             by-session))))
     (maphash
      (lambda (_sid events)
        ;; One `current' per *lane*, not per session. A subagent shares
@@ -7641,19 +7682,85 @@ the first version of this did."
                    (time-less-p time (cdr iv))))
             intervals))
 
+(defun claude-code-ide-org--span-complement (span intervals)
+  "Return the parts of SPAN not covered by INTERVALS, oldest first.
+
+The other half of a split.  Treating an exclusion as a boundary was
+always right -- the minutes inside it already have an owner and offering
+them twice is the defect :ID: eaeeb4ee fixed -- but the old code emitted
+only the *endpoints* either side, so the unowned gaps *between* two
+exclusions were dropped.  Measured on the 2026-08-25 fixture: a 935 s
+span carrying a 154 s and a 412 s exclusion emitted two zero-width items
+and lost **369 s in three gaps**, each identifiable in the transcript as
+real meta-work (TODO.org :ID: c54c4215).
+
+A span covered entirely by its exclusions correctly yields nothing.  A
+zero-width span is a lone timestamp, which is honest, and survives
+unless it sits inside an exclusion -- strictly inside, matching
+`claude-code-ide-org--time-within-any-p', so a point on an exclusion's
+own edge is kept.
+
+*The segment boundaries are exclusion edges rather than guideposts, and
+that is still evidence rather than assertion*: an edge is a `clock_in'
+or `clock_out' timestamp from the queue.  It is a different event kind
+from the ones bounding an ordinary span, not a weaker one."
+  (let ((start (car span))
+        (end (cdr span)))
+    (if (not (time-less-p start end))
+        (unless (claude-code-ide-org--time-within-any-p start intervals)
+          (list span))
+      (let ((cursor start) segments)
+        (dolist (iv (sort (copy-sequence intervals)
+                          (lambda (a b) (time-less-p (car a) (car b)))))
+          (let ((a (car iv)) (b (cdr iv)))
+            ;; Only intervals that actually overlap what is left.
+            (when (and (time-less-p a end) (not (time-less-p b cursor)))
+              (when (time-less-p cursor a)
+                (push (cons cursor a) segments))
+              (when (time-less-p cursor b)
+                (setq cursor b)))))
+        (when (time-less-p cursor end)
+          (push (cons cursor end) segments))
+        (nreverse segments)))))
+
+(defun claude-code-ide-org--guidepost-between-p (from to stream)
+  "Non-nil when some event in STREAM lies strictly between FROM and TO.
+
+Nil when STREAM is nil, which is how a caller says it does not know --
+`claude-code-ide-org--aggregate-guideposts' then behaves exactly as it
+did before the stream argument existed.
+
+Strictly between: an event AT either endpoint is one of the two being
+tested, not something that came between them."
+  (and stream
+       (seq-some (lambda (e)
+                   (let ((ts (plist-get e :ts)))
+                     (and ts
+                          (time-less-p from ts)
+                          (time-less-p ts to))))
+                 stream)
+       t))
+
 (defun claude-code-ide-org--aggregate-guideposts (events &optional threshold
-                                                          exclusions)
+                                                          exclusions stream)
   "Collapse EVENTS' timestamps into (START . END) spans for review.
 
 EXCLUSIONS is a list of (START . END) intervals treated exactly like a
-permission block: a timestamp strictly inside one is dropped, and one
-lying wholly between two timestamps splits the span rather than being
-clustered through.  Permission blocks are found in EVENTS themselves;
+permission block: a timestamp strictly inside one is dropped, and the
+interval is *subtracted* from the cluster that forms across it rather
+than splitting that cluster -- which is what emits the unowned gaps
+either side of it (TODO.org :ID: c54c4215).  It split, until then.  Permission blocks are found in EVENTS themselves;
 EXCLUSIONS is for intervals whose evidence is somewhere else, which
 today means the `clock_in'/`clock_out' brackets that already have an
 owner (TODO.org :ID: eaeeb4ee).  Without it an unattributed span
 clusters straight across the brackets that partition it and the same
 minutes are offered twice.
+
+A *project* boundary splits a span the same way, when both sides are
+known and differ: clustering across one credits one project's minutes to
+the other's heading (TODO.org :ID: c9940558).  A nil `cwd' is unknown
+rather than elsewhere, so it never splits.
+
 Consecutive timestamps separated by less than THRESHOLD seconds (default
 `claude-code-ide-org-guidepost-gap-threshold') join one span; a larger
 gap starts a new one. A lone timestamp yields a zero-width span, which
@@ -7706,8 +7813,16 @@ other."
          ;; guideposts means opposite things depending on which kinds
          ;; bracket it, and the old code discarded `:kind' here -- which is
          ;; how a long turn came to be unmeasurable (TODO.org :ID: 226ed53b).
-         (points (sort (mapcar (lambda (e) (cons (plist-get e :ts)
-                                                 (plist-get e :kind)))
+         ;; (TS KIND PROJECT), the project being `cwd' normalised through
+         ;; `claude-code-ide-org--project-name' -- git root, and a linked
+         ;; worktree folded into its main checkout, which is the second
+         ;; obligation :ID: 5461c349 recorded the field for.  Without that
+         ;; normalisation one project splits into one span per worktree.
+         (points (sort (mapcar (lambda (e)
+                                 (list (plist-get e :ts)
+                                       (plist-get e :kind)
+                                       (claude-code-ide-org--project-name
+                                        (plist-get e :cwd))))
                                (seq-remove
                                 (lambda (e)
                                   (and blocks
@@ -7715,15 +7830,19 @@ other."
                                         (plist-get e :ts) blocks)))
                                 events))
                        (lambda (a b) (time-less-p (car a) (car b)))))
-         spans start previous previous-kind)
+         spans start previous previous-kind previous-project)
     (dolist (point points)
-      (let ((time (car point)) (kind (cdr point)))
+      (let ((time (nth 0 point)) (kind (nth 1 point)) (project (nth 2 point)))
         (cond
-         ((null start) (setq start time previous time previous-kind kind))
-         ;; A block between two timestamps breaks the span even when the
-         ;; two are closer together than the gap threshold -- otherwise a
-         ;; 54-minute wait bracketed by guideposts a minute apart on each
-         ;; side would be clustered straight through.
+         ((null start) (setq start time previous time previous-kind kind
+                             previous-project project))
+         ;; This clause decides only whether two adjacent timestamps
+         ;; *cluster*.  Blocks and exclusions no longer participate: they
+         ;; are subtracted afterwards, in the `--span-complement' call at
+         ;; the end of this function.  The comment here used to say a
+         ;; block breaks the span, which was true until :ID: c54c4215 and
+         ;; then outlived it by one commit -- the successor comment forty
+         ;; lines below said the opposite the whole time.
          ((and (or (<= (float-time (time-subtract time previous)) gap)
                    ;; A `resume' -> `pause' gap is a turn *running*, not a
                    ;; pause between turns, so it never splits however long
@@ -7741,24 +7860,62 @@ other."
                    ;; missing `:kind' fails this test and so stays
                    ;; splittable, which is what the bare-`:ts' fixture in
                    ;; config-test.el expects.
-                   (and (equal previous-kind "resume") (equal kind "pause")))
-               ;; Non-strict on both sides: the two timestamps either side
-               ;; of a block are normally the block's own endpoints -- a
-               ;; `block_start' is the last event before the wait and a
-               ;; `block_end' the first after it, since no guidepost fires
-               ;; while a turn is stalled. A strict test therefore never
-               ;; fires in the case this exists for. Left outside the kind
-               ;; gate: a block is a certain fact about nothing running,
-               ;; and outranks the adjacency.
-               (not (seq-find (lambda (iv)
-                                (and (not (time-less-p (car iv) previous))
-                                     (not (time-less-p time (cdr iv)))))
-                              blocks)))
-          (setq previous time previous-kind kind))
+                   (and (equal previous-kind "resume") (equal kind "pause")
+                        ;; ...and only when the two were adjacent in the
+                        ;; FULL guidepost stream.  Callers hand this
+                        ;; function a *filtered* one -- orphans, or
+                        ;; guideposts outside a bracket -- where two
+                        ;; events are adjacent merely because everything
+                        ;; between them was attributed elsewhere.  Read
+                        ;; as one running turn, that produced clusters
+                        ;; spanning days: 08-24 12:33 to 08-31 18:13 over
+                        ;; seven guideposts, measured on the live queue
+                        ;; (TODO.org :ID: 5a9d877e).
+                        ;;
+                        ;; STREAM is guideposts, deliberately, not every
+                        ;; queue event: a genuine long turn emits queue
+                        ;; events for its own tool calls, and splitting
+                        ;; on those would break the exact case this
+                        ;; exemption exists to protect.  Nil means "not
+                        ;; told", which keeps every existing caller and
+                        ;; the bare-fixture tests unchanged.
+                        (not (claude-code-ide-org--guidepost-between-p
+                              previous time stream))))
+               ;; A block no longer splits *here*.  It used to, and the
+               ;; split emitted only the endpoints either side, dropping
+               ;; the unowned gaps between two blocks (:ID: c54c4215).
+               ;; Clustering through and subtracting afterwards with
+               ;; `claude-code-ide-org--span-complement' yields the same
+               ;; boundaries plus those gaps, so the blocked minutes are
+               ;; still never claimed -- they are removed by subtraction
+               ;; rather than by refusing to cluster.
+               ;;
+               ;; A *project* boundary splits, like a block does: clustering
+               ;; across one credits one project's minutes to the other's
+               ;; heading, and the resulting annotation names two trackers
+               ;; (TODO.org :ID: c9940558).
+               ;;
+               ;; Both sides must be *known* and different.  `cwd' has only
+               ;; been recorded since 2026-09-04 (:ID: 5461c349) and cannot
+               ;; be backfilled, so nil means "unknown", never "elsewhere" --
+               ;; treating it as a project would shatter every span predating
+               ;; the field, which is most of the corpus.
+               (not (and previous-project project
+                         (not (equal previous-project project)))))
+          (setq previous time previous-kind kind
+                ;; An unknown project inherits the last known one, so a
+                ;; nil-`cwd' event between two known ones cannot mask the
+                ;; boundary by resetting the comparison.
+                previous-project (or project previous-project)))
          (t (push (cons start previous) spans)
-            (setq start time previous time previous-kind kind)))))
+            (setq start time previous time previous-kind kind
+                  previous-project project)))))
     (when start (push (cons start previous) spans))
-    (nreverse spans)))
+    ;; Subtract the owned intervals from each cluster, emitting the
+    ;; complement rather than the endpoints.
+    (apply #'append
+           (mapcar (lambda (s) (claude-code-ide-org--span-complement s blocks))
+                   (nreverse spans)))))
 
 (defconst claude-code-ide-org--run-opening-kinds
   '("resume" "clock_in" "block_end")
@@ -8113,6 +8270,201 @@ Each is a plist; see `claude-code-ide-org--review-items-from-queue'.")
   "Non-nil when EVENT is a pause/resume guidepost."
   (member (plist-get event :kind) '("pause" "resume")))
 
+;;; One stretch of work, one lane (TODO.org :ID: b57c7515) -------------------
+;;
+;; Claude Code re-keys a session mid-work -- measured over the whole queue
+;; corpus on 2026-09-15: 7 conversations arrive under two `session_id's, 14
+;; of 65 sessions, 22%.  Every pairing here keys on that id, so one stretch
+;; of work loses half of each pair in both directions: `--lane-clock-pairs'
+;; strands a `clock_in' in the old lane and an orphan `clock_out' in the new,
+;; and `--span-events' adjacency loses the turn whose `resume' and `pause'
+;; divide the same way (:ID: 9202b39d).
+;;
+;; *The repair is one alias map consulted where lanes are formed*, not a fix
+;; per pairing function.  Two things ruled out first, both measured:
+;;
+;;   - *Re-pairing by the heading a bracket names.*  `clock_out' carries an
+;;     `id' on 32 of 291 events and `clock_in' on all 307, so the half that
+;;     would name the heading is the half that does not.  A matcher keyed on
+;;     it reports 0 recoverable brackets corpus-wide, which reads as "the
+;;     shape does not occur" and means "the key does not exist".
+;;
+;;   - *Re-pairing by adjacency.*  Pairing each orphan `clock_out' with the
+;;     latest preceding orphan `clock_in' elsewhere "recovers" 197.02 h,
+;;     including a single 144.79 h bracket.  It is not tunable: `9ac195c7'
+;;     opens two minutes after `b71c8eec's queue stops and is a genuinely
+;;     different conversation -- at the boundary a re-key and the next
+;;     session starting look identical.  This is 7771fc63's line: where no
+;;     bridge is found the orphan stays an orphan, because a plausible
+;;     pairing is harder to reject than none.
+;;
+;; What does bridge them is the transcript.  A re-keyed session's transcript
+;; is re-stamped from the original's start, so both files open at the *same
+;; instant* -- which `claude-code-ide-org--transcript-longer-sibling' already
+;; relies on for the render warning.  This reuses that key rather than
+;; coining a second one; checked 2026-09-15, grouping by first entry
+;; *timestamp* and by first entry `uuid' give identical membership over the
+;; corpus (8 groups, 0 spanning two project directories).
+;;
+;; Aliasing is bounded and inspectable, which is what the falsified depth
+;; counter was not: brackets 282 -> 284 pairs (+1.36 h) and turns 1167 ->
+;; 1170 runs (+0.84 h), the two recovered brackets being exactly the two
+;; headings the two source headings name -- `226ed53b' and `325679af'.
+
+(defvar claude-code-ide-org--transcript-stamp-cache (make-hash-table :test 'equal)
+  "First-entry timestamps, keyed by (FILE . MTIME).
+
+`claude-code-ide-org--session-alias-map' wants one stamp per session on
+every call and a stamp costs a 64 KB read.  Keyed on the modification
+time as well as the path, so a *live* session -- whose transcript grows
+under us while its own review buffer is open -- re-reads instead of
+answering from a snapshot, exactly as
+`claude-code-ide-org--transcript-cache' does.")
+
+(defvar claude-code-ide-org--session-alias-cache (make-hash-table :test 'equal)
+  "Alias maps, keyed by the sorted session ids they were built from.
+
+`claude-code-ide-org--span-events' runs inside loops -- once per
+candidate bracket in a subdivision -- and building the map globs every
+transcript directory.  The key is the set of sessions actually present
+in EVENTS, so a subset recomputes and a repeat does not.")
+
+(defun claude-code-ide-org--session-first-stamp (session-id)
+  "Return SESSION-ID's transcript's first entry timestamp string, or nil.
+
+Nil is the ordinary answer, not an error: transcripts age out at about
+thirty days while the queue keeps its events forever, so a session with
+no transcript simply gets no alias and pairs under its own id."
+  (when-let* ((file (claude-code-ide-org--transcript-file session-id))
+              (attrs (file-attributes file))
+              (mtime (file-attribute-modification-time attrs)))
+    (let* ((key (cons file mtime))
+           (hit (gethash key claude-code-ide-org--transcript-stamp-cache 'miss)))
+      (if (eq hit 'miss)
+          (puthash key (claude-code-ide-org--transcript-first-stamp file)
+                   claude-code-ide-org--transcript-stamp-cache)
+        hit))))
+
+(defun claude-code-ide-org--session-ranges-overlap-p (sids ranges)
+  "Non-nil when two of SIDS' queue ranges in RANGES overlap.
+
+SIDS must already be ordered by range start; RANGES maps a session id to
+a (FIRST . LAST) pair of times.  Adjacent ranges do not overlap -- a
+re-key hands work from one id to the next, so they abut at worst."
+  (let ((rest sids) clash)
+    (while (and (not clash) (cdr rest))
+      (when (time-less-p (car (gethash (cadr rest) ranges))
+                         (cdr (gethash (car rest) ranges)))
+        (setq clash t))
+      (setq rest (cdr rest)))
+    clash))
+
+(defun claude-code-ide-org--session-alias-map (events)
+  "Map each re-keyed session id in EVENTS to its conversation's canonical id.
+
+Returns a hash table, or nil when nothing in EVENTS was re-keyed -- which
+is the common case and lets every caller skip the lookup entirely.
+
+The canonical id is the member whose queue activity starts first.  Which
+member is chosen does not affect pairing, since both map to the same
+key; it is the earliest so the lane keeps the id the conversation began
+under.  Deliberately *not* the bigger transcript, which is how
+`claude-code-ide-org--transcript-longer-sibling' decides and is wrong
+once the re-key happens late (TODO.org :ID: 0b600ab4).
+
+*A group whose ranges overlap is refused rather than aliased.*  All 7
+groups in the corpus are serial, but that is a fact about the corpus and
+not a guarantee: a conversation forked into two live terminals would
+share a first entry and run concurrently, and aliasing those would let
+one lane's `clock_out' close another's -- the defect :ID: 0d789b68
+already fixed once by putting the session into the lane key."
+  (let ((ranges (make-hash-table :test 'equal)))
+    (dolist (event events)
+      (let ((sid (plist-get event :session-id))
+            (ts (plist-get event :ts)))
+        (when (and sid ts)
+          (let ((cur (gethash sid ranges)))
+            (puthash sid
+                     (if cur
+                         (cons (if (time-less-p ts (car cur)) ts (car cur))
+                               (if (time-less-p (cdr cur) ts) ts (cdr cur)))
+                       (cons ts ts))
+                     ranges)))))
+    (let* ((sids (let (acc)
+                   (maphash (lambda (k _v) (push k acc)) ranges)
+                   (sort acc #'string<)))
+           ;; The key carries the RANGES, not the ids alone.  The ranges
+           ;; choose the canonical member -- the lane whose queue
+           ;; activity starts first -- and are what
+           ;; `claude-code-ide-org--session-ranges-overlap-p' refuses on,
+           ;; so two event sets sharing a set of ids and nothing else are
+           ;; different questions and collided under the old key
+           ;; (TODO.org :ID: 83773daf, PR #25 review).
+           (key (mapcar (lambda (sid)
+                          (let ((r (gethash sid ranges)))
+                            (list sid (float-time (car r)) (float-time (cdr r)))))
+                        sids))
+           (cached (gethash key claude-code-ide-org--session-alias-cache 'miss)))
+      (if (not (eq cached 'miss))
+          cached
+        (let ((groups (make-hash-table :test 'equal))
+              (alias (make-hash-table :test 'equal))
+              (unresolved nil))
+          (dolist (sid sids)
+            (let ((stamp (claude-code-ide-org--session-first-stamp sid)))
+              (if stamp
+                  (puthash stamp (cons sid (gethash stamp groups)) groups)
+                ;; A session whose transcript has not flushed its first
+                ;; entry yet answers nil here and is skipped, so no group
+                ;; forms.  Remember that, because the nil it produces is
+                ;; PROVISIONAL.
+                (setq unresolved t))))
+          (maphash
+           (lambda (_stamp members)
+             (when (cdr members)
+               (let ((ordered (sort (copy-sequence members)
+                                    (lambda (a b)
+                                      (time-less-p (car (gethash a ranges))
+                                                   (car (gethash b ranges)))))))
+                 (unless (claude-code-ide-org--session-ranges-overlap-p ordered ranges)
+                   (let ((canon (car ordered)))
+                     (dolist (sid ordered) (puthash sid canon alias)))))))
+           groups)
+          (let ((result (and (> (hash-table-count alias) 0) alias)))
+            ;; Cache a CONCLUSIVE answer only.  `nil' reached while some
+            ;; session was unresolved means "no re-key detected *yet*",
+            ;; and caching it pins that answer for the life of the Emacs
+            ;; process -- which defeats
+            ;; `claude-code-ide-org--transcript-stamp-cache', whose
+            ;; (file . mtime) key exists precisely so a growing
+            ;; transcript is re-read.  A mid-work re-key whose new
+            ;; transcript lands a moment later never paired again.
+            ;;
+            ;; The cost of not caching it: an event set naming a session
+            ;; whose transcript has aged out (:ID: 4acd8ad0) recomputes
+            ;; on every call.  That is bounded -- the stamp layer
+            ;; memoises the miss too, under a (file . nil) key -- and it
+            ;; is the right side to err on, since a wrong nil is silent
+            ;; and a recomputation is not.
+            ;;
+            ;; Known and deliberately not solved here: a NON-nil result
+            ;; is cached even when some session was unresolved, so a
+            ;; late-flushing member cannot join a group that already
+            ;; formed.  That window is strictly narrower than the one
+            ;; being closed.
+            (unless (and (null result) unresolved)
+              (puthash key result claude-code-ide-org--session-alias-cache))
+            result))))))
+
+(defun claude-code-ide-org--canonical-session (session-id alias)
+  "Return SESSION-ID's canonical id under ALIAS, or SESSION-ID itself.
+
+ALIAS may be nil, which is what `claude-code-ide-org--session-alias-map'
+returns when nothing was re-keyed.  Note this never rewrites an event's
+own `:session-id': apply consumption and the `.applied' watermarks are
+per *file*, so the raw id has to survive for the write path to find it."
+  (or (and alias session-id (gethash session-id alias)) session-id))
+
 (defun claude-code-ide-org--span-events (events agent &optional session)
   "Return EVENTS belonging to lane AGENT that bear on a span's shape.
 
@@ -8131,15 +8483,26 @@ AGENT selects the lane: nil means the main session, which is the only
 lane whose events carry no `agent_id'.  SESSION, when given, additionally
 restricts to one session's file -- required whenever EVENTS spans more
 than one, since every main lane shares a nil `agent_id' and would
-otherwise pool."
-  (seq-filter (lambda (e)
-                (and (or (claude-code-ide-org--review-guidepost-p e)
-                         (member (plist-get e :kind)
-                                 '("block_start" "block_end")))
-                     (equal (plist-get e :agent-id) agent)
-                     (or (null session)
-                         (equal (plist-get e :session-id) session))))
-              events))
+otherwise pool.
+
+SESSION is compared against each event's *canonical* session id, so a
+conversation Claude Code re-keyed mid-work stays one lane and the turn
+whose `resume\' and `pause\' straddle the switch still pairs (TODO.org
+:ID: b57c7515).  Callers pass whichever id they have; it is canonicalised
+too, so either half of a re-keyed pair selects the whole lane."
+  (let* ((alias (claude-code-ide-org--session-alias-map events))
+         (want (and session
+                    (claude-code-ide-org--canonical-session session alias))))
+    (seq-filter (lambda (e)
+                  (and (or (claude-code-ide-org--review-guidepost-p e)
+                           (member (plist-get e :kind)
+                                   '("block_start" "block_end")))
+                       (equal (plist-get e :agent-id) agent)
+                       (or (null session)
+                           (equal (claude-code-ide-org--canonical-session
+                                   (plist-get e :session-id) alias)
+                                  want))))
+                events)))
 
 (defun claude-code-ide-org--events-within (events start end agent &optional session)
   "Return lane AGENT/SESSION's span events from EVENTS inside START..END.
@@ -8167,6 +8530,7 @@ inventing an end for it is the class of guess :ID: 7771fc63 retired.  A
 `clock_out' with no open `clock_in' is likewise dropped rather than
 extended backwards."
   (let ((lanes (make-hash-table :test 'equal))
+        (alias (claude-code-ide-org--session-alias-map events))
         pairs)
     (dolist (event (sort (seq-filter
                           (lambda (e)
@@ -8181,7 +8545,8 @@ extended backwards."
       ;; bracket -- which only shows up once this function is run over
       ;; the full multi-session history, as the subdivision path below
       ;; must.
-      (let ((lane (cons (plist-get event :session-id)
+      (let ((lane (cons (claude-code-ide-org--canonical-session
+                         (plist-get event :session-id) alias)
                         (or (plist-get event :agent-id) :main))))
         (if (equal (plist-get event :kind) "clock_in")
             (puthash lane event lanes)
@@ -8365,18 +8730,22 @@ from a skipped one."
           ;; `clock_in' whose work is still running and has no closing
           ;; bracket to be partitioned by.
           (let* ((covered main-brackets)
+                 ;; Bound once and passed as STREAM below: the exemption
+                 ;; needs to know what lay between two guideposts before
+                 ;; `covered' removed it (TODO.org :ID: 5a9d877e).
+                 (all-guideposts (claude-code-ide-org--span-events events nil))
                  (guideposts (seq-remove
                               (lambda (e)
                                 (claude-code-ide-org--time-within-any-p
                                  (plist-get e :ts) covered))
-                              (claude-code-ide-org--span-events events nil)))
+                              all-guideposts))
                  (label (car (delq nil
                                    (mapcar (lambda (e)
                                              (and (equal (plist-get e :kind) "clock_in")
                                                   (plist-get e :note)))
                                            events)))))
             (dolist (span (claude-code-ide-org--aggregate-guideposts
-                           guideposts nil covered))
+                           guideposts nil covered all-guideposts))
               (push (list :type 'clock :id id
                           :start (car span) :end (cdr span)
                           :note label :agent nil :suggested t
@@ -8432,7 +8801,13 @@ from a skipped one."
                                                  history))
                                     #'time-less-p)))))
       (dolist (span (claude-code-ide-org--aggregate-guideposts
-                     guideposts nil bracketed))
+                     ;; STREAM is the whole lane's guideposts, not the
+                     ;; orphan subset: two orphans are adjacent here only
+                     ;; because everything between them was bracketed,
+                     ;; and the exemption must not read that as one
+                     ;; running turn (TODO.org :ID: 5a9d877e).
+                     guideposts nil bracketed
+                     (claude-code-ide-org--span-events history nil)))
         ;; Drop a stranded single point.  A lone guidepost renders
         ;; `[13:03]--[13:03]', writes nothing, and can only ever be
         ;; answered `d' -- and when a *later* event exists it can never
@@ -10017,6 +10392,7 @@ common answer."
                    ("M" . claude-code-ide-org-review-mark-all)
                    ("U" . claude-code-ide-org-review-unmark-all)
                    ("a" . claude-code-ide-org-review-assign)
+                   ("c" . claude-code-ide-org-review-claim-envelope)
                    ("e" . claude-code-ide-org-review-edit-interval)
                    ("N" . claude-code-ide-org-review-edit-note)
                    ("d" . claude-code-ide-org-review-dismiss)
@@ -10385,7 +10761,13 @@ vanishes silently is worse than one that explains itself
                      (if written (concat "  " written) "")))
          (format "  clock   %s%s%s"
                  (claude-code-ide-org--review-format-annotation item)
-                 (if (plist-get item :suggested) "  (suggested)" "  (agent)")
+                 (cond ((plist-get item :suggested) "  (suggested)")
+                       ;; Not "(agent)": the interval is the agent's
+                       ;; reconstruction only until a human claims it, and
+                       ;; saying "agent" of a claimed envelope would credit
+                       ;; the assertion to the wrong party.
+                       ((plist-get item :claimed) "  (claimed)")
+                       (t "  (agent)"))
                  (let ((written (claude-code-ide-org--review-written-summary item)))
                    (if written (concat "  " written) "")))))
       ;; The target is resolved here, at render time, purely to say
@@ -11174,6 +11556,41 @@ each run of tool calls under the paragraph that prompted it."
   (plist-put turn :blocks (nreverse (plist-get turn :blocks)))
   turn)
 
+(defconst claude-code-ide-org--transcript-near-tie-fraction 0.1
+  "How close in size two transcript copies must be to earn a tail read.
+
+A candidate smaller than (1 - this) times the subject cannot be the
+continuation, and excluding it costs one `stat\='.  Measured 2026-09-15:
+the corpus\='s one disagreeing pair differs by 1.4%, so 10% is generous
+by a factor of seven while still excluding almost every file.")
+
+(defun claude-code-ide-org--transcript-last-stamp (file)
+  "Return FILE\='s last entry timestamp string, or nil.
+
+Reads a 64 KB *tail* rather than the file, for the same reason
+`claude-code-ide-org--transcript-first-stamp\=' reads a head: a
+transcript runs to megabytes and only the ends are wanted.  A line
+truncated by the window\='s left edge fails to parse and is skipped, so a
+partial read can never yield a partial stamp."
+  (ignore-errors
+    (let* ((size (or (file-attribute-size (file-attributes file)) 0))
+           (start (max 0 (- size 65536))))
+      (with-temp-buffer
+        (insert-file-contents file nil start size)
+        (goto-char (point-max))
+        (let (stamp)
+          (while (and (not stamp) (not (bobp)))
+            (forward-line -1)
+            (when-let* ((obj (ignore-errors
+                               (json-parse-string
+                                (buffer-substring-no-properties
+                                 (line-beginning-position) (line-end-position))
+                                :object-type 'alist :null-object nil
+                                :false-object nil)))
+                        (ts (alist-get 'timestamp obj)))
+              (setq stamp ts)))
+          stamp)))))
+
 (defun claude-code-ide-org--transcript-longer-sibling (session-id)
   "Return the id of a transcript that supersedes SESSION-ID's, or nil.
 
@@ -11191,7 +11608,8 @@ reader ends up sure they are looking at something they are not."
   (when-let* ((file (claude-code-ide-org--transcript-file session-id))
               (first (claude-code-ide-org--transcript-first-stamp file))
               (size (file-attribute-size (file-attributes file))))
-    (let (found)
+    (let ((floor (* size (- 1 claude-code-ide-org--transcript-near-tie-fraction)))
+          candidates)
       (dolist (other (file-expand-wildcards
                       (expand-file-name "projects/*/*.jsonl"
                                         (expand-file-name "~/.claude/"))
@@ -11203,19 +11621,74 @@ reader ends up sure they are looking at something they are not."
         ;; the whole file to say it -- twice over, since the subject was
         ;; counted too, on every render, reachable from the review
         ;; buffer's `T'.
+        ;;
+        ;; The threshold is the 0b600ab4 correction.  It was `> size',
+        ;; which makes size the *decision* rather than a filter; it is now
+        ;; a near-tie floor, so a copy slightly smaller than this one
+        ;; survives to be judged on where it ends.
         (unless (equal other file)
-          (when (and (> (or (file-attribute-size (file-attributes other)) 0)
-                        size)
-                     (equal first
-                            (claude-code-ide-org--transcript-first-stamp other)))
-            (setq found (file-name-base other)))))
-      found)))
+          (let ((osize (or (file-attribute-size (file-attributes other)) 0)))
+            (when (and (> osize floor)
+                       (equal first
+                              (claude-code-ide-org--transcript-first-stamp other)))
+              (push (list other osize
+                          (claude-code-ide-org--transcript-last-stamp other))
+                    candidates)))))
+      (when candidates
+        (let* ((entries (cons (list file size
+                                    (claude-code-ide-org--transcript-last-stamp file))
+                              candidates))
+               ;; Stamps are ISO-8601 UTC and fixed width, so `string>'
+               ;; orders them without parsing.
+               (by-end (when (seq-every-p (lambda (e) (nth 2 e)) entries)
+                         (car (sort (copy-sequence entries)
+                                    (lambda (a b) (string> (nth 2 a) (nth 2 b)))))))
+               ;; No end stamp somewhere: fall back to size, which is the
+               ;; pre-0b600ab4 behaviour and right six times in seven.
+               (winner (or by-end
+                           (car (sort (copy-sequence entries)
+                                      (lambda (a b) (> (nth 1 a) (nth 1 b))))))))
+          (unless (equal (nth 0 winner) file)
+            (file-name-base (nth 0 winner))))))))
 
 (defun claude-code-ide-org--transcript-first-stamp (file)
-  "Return FILE's first entry timestamp string, or nil."
+  "Return FILE's first entry timestamp string, or nil.
+
+Reads a window rather than the whole file: the caller asks once per
+session and only the *first* entry is wanted, so a 64 KB read answers
+almost every transcript.
+
+*The window grows when it comes up empty*, which is not an optimisation
+but a correctness fix.  A transcript can open with scores of
+`custom-title\', `ai-title\', `mode\' and `file-history-snapshot\'
+lines, none of which carries a top-level `timestamp\' -- the snapshot
+entries carry one *nested* under `snapshot\', which is not the same
+field and must not be read as it.  Measured 2026-09-15: one transcript
+of 74 buries its first real stamp at byte 133196, and a fixed window
+returned nil for it.  Silently -- and nil is also the honest answer for
+an aged-out transcript, so nothing distinguished the two.  That cost
+`claude-code-ide-org--session-alias-map\' one of the corpus\'s seven
+re-key groups and disabled
+`claude-code-ide-org--transcript-longer-sibling\' for that session
+outright (TODO.org :ID: b57c7515)."
+  (let ((size (or (file-attribute-size (file-attributes file)) 0))
+        (window 65536)
+        stamp)
+    (while (and (not stamp) (> window 0))
+      (setq stamp (claude-code-ide-org--transcript-stamp-within file window))
+      (setq window (cond (stamp 0)
+                         ((>= window size) 0)
+                         (t (min size (* window 4))))))
+    stamp))
+
+(defun claude-code-ide-org--transcript-stamp-within (file limit)
+  "Return the first top-level timestamp in FILE\='s first LIMIT bytes, or nil.
+
+A line truncated by LIMIT simply fails to parse and is skipped, so a
+partial read can never yield a partial stamp."
   (ignore-errors
     (with-temp-buffer
-      (insert-file-contents file nil 0 65536)
+      (insert-file-contents file nil 0 limit)
       (goto-char (point-min))
       (let (stamp)
         (while (and (not stamp) (not (eobp)))
@@ -11946,11 +12419,16 @@ rest from lighting up."
     (claude-code-ide-org--review-projected-staleness
      items (lambda (item) (plist-get item :marked)))
     (erase-buffer)
+    ;; A hand-maintained third copy of the binding table, and nothing
+    ;; checks it: `c' and `?' were both bound and both unlisted, so the
+    ;; one key that would have named the others was itself invisible
+    ;; (TODO.org :ID: 36698ca7).
     (insert "Pending org updates.  m/u mark, M/U all, t invert, "
-            "a assign, e interval, N note,\n"
-            "d dismiss, RET goto, T transcript, s "
+            "a assign, c claim, e interval,\n"
+            "N note, d dismiss, RET goto, T transcript, s "
             (if claude-code-ide-org--review-newest-first "oldest" "newest")
-            "-first, x apply marked, g refresh, q quit\n\n")
+            "-first,\n"
+            "x apply marked, g refresh, ? help, q quit\n\n")
     (let ((health-line (claude-code-ide-org--review-id-health-line)))
       (when health-line (insert health-line)))
     (if (null display)
@@ -12409,6 +12887,70 @@ would leave point moved and the command reported as failed."
         (when (re-search-forward "^[ \t]*:LOGBOOK:" limit t)
           (beginning-of-line)
           (org-fold-hide-drawer-toggle 'off t))))))
+
+(defun claude-code-ide-org-review-claim-envelope ()
+  "Claim the span at point\='s whole envelope as attention.
+
+*Accepting a 0-run span is an assertion, and until now it could only be
+made by pretending to edit.*  Apply writes one CLOCK line per observed
+*run* while an item is `:suggested\=', so a span whose guideposts yield no
+run writes an annotation and no CLOCK line at all --
+`claude-code-ide-org--review-apply-clock\='s `(unless observed ...)\='
+branch.  The minutes are then visible in the drawer and invisible to
+`org-clock-sum\=' and every clocktable built on it, so the drawer says the
+work happened and the report says it did not, and neither is lying
+(TODO.org :ID: 2deb090f).
+
+The only way to say that those minutes were one's own was `e\=', retyping both
+timestamps unchanged purely to clear `:suggested\='.  That reads as a
+correction of bounds, which is a different claim, and costs two
+timestamps to make no change to them.
+
+This is that claim in one act.  It clears `:suggested\=', so
+`claude-code-ide-org--review-intervals-to-write\=' returns the displayed
+interval instead of the runs, and sets `:claimed\=' so the line says which
+of the two happened and `g\=' knows there is judgement to lose.
+
+*Deliberately does not touch `:active\='.*  Bracket style is a separate
+question -- it reaches only the annotation, never the CLOCK line, which
+`org-clock-in\='/`org-clock-out\=' always write inactive -- and it belongs
+to :ID: 01849bef rather than here."
+  (interactive)
+  (let ((item (claude-code-ide-org--review-item-at-point)))
+    (unless item (user-error "%s" (claude-code-ide-org--review-no-item-message)))
+    (unless (eq (plist-get item :type) 'clock)
+      (user-error "Only a span has an envelope to claim; this is a %s item"
+                  (plist-get item :type)))
+    (unless (plist-get item :suggested)
+      (user-error "This interval is already written as displayed; nothing to claim"))
+    (when (time-equal-p (plist-get item :start) (plist-get item :end))
+      (user-error "A zero-width span has no envelope to claim"))
+    (plist-put item :suggested nil)
+    (plist-put item :claimed t)
+    ;; ACTIVE NOTATION, because the claim and the notation are the same
+    ;; assertion. :ID: 2deb090f calls bracket style "a red herring", and
+    ;; that is true of the MINUTES -- :active reaches only the annotation,
+    ;; while org-clock-in always writes the CLOCK line inactive. It is not
+    ;; true of what the line MEANS: an active timestamp is how this record
+    ;; says "a human attended this", and claiming an envelope is exactly
+    ;; that claim. The user's own 2026-09-04 flip to <...> on a span is
+    ;; the precedent, and :ID: 01849bef is the standing request for a key
+    ;; that does it without hand-editing.
+    ;;
+    ;; Note the consequence `e' records: an active timestamp reaches
+    ;; org-agenda. That is deliberate here rather than accidental -- it is
+    ;; the point of saying the time was attended -- but it is why `e'
+    ;; keeps inactive as ITS default, where the edit may be a mere
+    ;; correction of bounds.
+    (plist-put item :active t)
+    ;; `--review-redraw', never `--review-render': the redraw puts point
+    ;; back on the item. Its docstring records `a' and `e' both forgetting
+    ;; that and dropping point to the top of the buffer; this was the
+    ;; third time. No ADVANCE -- `c' makes the line markable rather than
+    ;; finished with, exactly as `a' does.
+    (claude-code-ide-org--review-redraw item)
+    (message "Claimed %s as attention"
+             (claude-code-ide-org--review-format-annotation item))))
 
 (defun claude-code-ide-org-review-edit-interval ()
   "Edit the endpoints of the clock item at point.
@@ -12885,15 +13427,16 @@ touches no org file at all."
   "Return a phrase counting the unapplied judgement in ITEMS, or nil.
 
 Four kinds, and each leaves an unambiguous flag: `:marked' from `m'/`M',
-`:assigned' from `a', `:note-edited' from `N', and `:edited' from `e'.
-The last two needed a flag adding -- see
-`claude-code-ide-org-review-edit-interval' and
-`claude-code-ide-org-review-edit-note'.
+`:assigned' from `a', `:note-edited' from `N', `:edited' from `e', and
+`:claimed' from `c'.  The last three needed a flag adding -- see
+`claude-code-ide-org-review-edit-interval',
+`claude-code-ide-org-review-edit-note' and
+`claude-code-ide-org-review-claim-envelope'.
 
 Counted rather than merely detected, because \"3 marked, 1 assigned\"
 tells a human whether to care and a bare \"are you sure?\" does not
 (TODO.org :ID: 8d0716fe)."
-  (let ((marked 0) (assigned 0) (notes 0) (edited 0))
+  (let ((marked 0) (assigned 0) (notes 0) (edited 0) (claimed 0))
     (dolist (item items)
       ;; An auto-mark is not judgement -- nobody decided it, and
       ;; counting it would make `g' prompt on every refresh, turning the
@@ -12907,14 +13450,17 @@ tells a human whether to care and a bare \"are you sure?\" does not
       ;; `g' prompt on a freshly built buffer -- the same mistake
       ;; `:auto-marked' exists to prevent one field over.
       (when (plist-get item :note-edited) (setq notes (1+ notes)))
-      (when (plist-get item :edited) (setq edited (1+ edited))))
+      (when (plist-get item :edited) (setq edited (1+ edited)))
+      (when (plist-get item :claimed) (setq claimed (1+ claimed))))
     (let ((parts (delq nil
                        (list (and (> marked 0) (format "%d marked" marked))
                              (and (> assigned 0) (format "%d assigned" assigned))
                              (and (> notes 0) (format "%d note%s" notes
                                                       (if (= notes 1) "" "s")))
                              (and (> edited 0) (format "%d edited interval%s" edited
-                                                       (if (= edited 1) "" "s")))))))
+                                                       (if (= edited 1) "" "s")))
+                             (and (> claimed 0) (format "%d claimed envelope%s" claimed
+                                                        (if (= claimed 1) "" "s")))))))
       (and parts (string-join parts ", ")))))
 
 (defun claude-code-ide-org-review-undo-refresh ()
@@ -14721,10 +15267,16 @@ simply wrong."
          ;; a run neither ran.  Concurrent sessions are ordinary here --
          ;; a background job and an interactive one overlap constantly --
          ;; so this is the common case, not an edge one.
+         (alias (claude-code-ide-org--session-alias-map events))
          (runs (let ((by-session (make-hash-table :test 'equal))
                      paired)
+                 ;; Keyed on the *canonical* session, so a conversation
+                 ;; Claude Code re-keyed mid-work stays one stream and the
+                 ;; turn straddling the switch is not lost (:ID: b57c7515).
                  (dolist (event events)
-                   (push event (gethash (plist-get event :session-id) by-session)))
+                   (push event (gethash (claude-code-ide-org--canonical-session
+                                         (plist-get event :session-id) alias)
+                                        by-session)))
                  (maphash (lambda (_ session-events)
                             (setq paired
                                   (append (claude-code-ide-org--raw-work-runs
@@ -15012,34 +15564,6 @@ written as a `0:00' line."
         (push (+ base (if (< i remainder) 1 0)) shares))
       (nreverse shares))))
 
-(defun claude-code-ide-org--merge-overlapping-runs (runs)
-  "Return RUNS with overlapping intervals merged, oldest first.
-
-Wall-clock time is a *union*, not a sum.  Two sessions running at once
-produce two runs covering the same minutes, and adding them claims more
-time than elapsed -- a 20-minute window can report 30 minutes of
-measured run time, after which the end-to-end shares run past the
-window's end and overlap the next one, which is exactly what the
-allocation docstring promises cannot happen.
-
-Concurrency here is ordinary rather than exceptional: a background job
-and an interactive session overlap constantly in this project, which is
-the same fact that forced guidepost pairing to be per-session.
-
-The attention derivation needs no equivalent, and the asymmetry is the
-point: it asks which *windows* carry run time, and marking one busy
-twice is idempotent.  Only a path that totals seconds can double-count."
-  (let ((sorted (sort (copy-sequence runs)
-                      (lambda (a b) (time-less-p (car a) (car b)))))
-        merged)
-    (dolist (run sorted)
-      (let ((last (car merged)))
-        (if (and last (not (time-less-p (cdr last) (car run))))
-            (when (time-less-p (cdr last) (cdr run))
-              (setcdr last (cdr run)))
-          (push (cons (car run) (cdr run)) merged))))
-    (nreverse merged)))
-
 (defun claude-code-ide-org--allocation-clip-seconds (runs start end)
   "Return the seconds of RUNS falling inside [START, END)."
   (let ((total 0.0))
@@ -15067,18 +15591,31 @@ so -- a CLOCK line that does not is a fabricated measurement, which is
          (lo (float-time (org-time-string-to-time (concat from " 00:00"))))
          (hi (+ 86400 (float-time (org-time-string-to-time (concat to " 00:00")))))
          (table (claude-code-ide-org--id-index))
+         (alias (claude-code-ide-org--session-alias-map events))
          (by-session (make-hash-table :test 'equal))
+         (raw-sessions (make-hash-table :test 'equal))
          runs worked)
+    ;; Two partitions of the same events, and the split is load-bearing.
+    ;; Runs pair within a *lane* -- never across it, see
+    ;; `claude-code-ide-org-attention-intervals' for what merging the
+    ;; streams costs -- and a lane is the canonical session, so a re-keyed
+    ;; conversation is one stream (:ID: b57c7515).  Transcripts are per
+    ;; *file*: a re-keyed conversation has two of them and both hold
+    ;; worked ids, so that walk keeps the raw ids and canonicalising it
+    ;; would silently drop half the evidence.
     (dolist (event events)
-      (push event (gethash (plist-get event :session-id) by-session)))
+      (push event (gethash (claude-code-ide-org--canonical-session
+                            (plist-get event :session-id) alias)
+                           by-session))
+      (puthash (plist-get event :session-id) t raw-sessions))
     (maphash
-     (lambda (session session-events)
-       ;; Runs pair within a session, never across it -- see
-       ;; `claude-code-ide-org-attention-intervals' for what merging the
-       ;; streams costs.
+     (lambda (_lane session-events)
        (setq runs (append (claude-code-ide-org--raw-work-runs
                            (nreverse session-events))
-                          runs))
+                          runs)))
+     by-session)
+    (maphash
+     (lambda (session _)
        (dolist (hit (claude-code-ide-org--transcript-worked-ids session))
          (let ((full (claude-code-ide-org--expand-id-prefix (cdr hit) table)))
            ;; An unresolvable id is dropped rather than allocated to: it
@@ -15087,9 +15624,9 @@ so -- a CLOCK line that does not is a fabricated measurement, which is
            ;; somewhere nothing can read them back.
            (when (stringp full)
              (push (cons (float-time (car hit)) full) worked)))))
-     by-session)
-    ;; Union before totalling: see `--merge-overlapping-runs'.
-    (setq runs (claude-code-ide-org--merge-overlapping-runs runs))
+     raw-sessions)
+    ;; Union before totalling: see `--merge-time-intervals'.
+    (setq runs (claude-code-ide-org--merge-time-intervals runs))
     (setq worked (sort worked (lambda (a b) (< (car a) (car b)))))
     (let ((window (* width (floor lo width)))
           result)
