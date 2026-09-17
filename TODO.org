@@ -1383,14 +1383,14 @@ matters here is therefore not a new property but the existing one: link the plan
 revision when the slice is picked up**, and this is its first recorded failure.
 
 
-* DOING [13/14] A span is only as true as its owner, its edges and its payload :code:
+* DOING [13/15] A span is only as true as its owner, its edges and its payload :code:
 :PROPERTIES:
 :ID:       749301a0-0bd0-4fbd-b3f7-79739226e15a
 :CREATED:  [2026-09-11 Fri 18:58]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  406e9200-c3e7-49ac-a8d0-d6ff8e061ce4
+:BLOCKER:  507754ba-ae82-4f04-b209-8d8c58ac268e 89351a23-8bfc-4939-8a30-f1fe7e93c72f
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-15 Tue 13:10]--[2026-09-15 Tue 13:12] =>  0:02
@@ -1451,13 +1451,15 @@ its finished ten and this sequences what is left.
 
 Planned:
 
-- [-] [[id:406e9200-c3e7-49ac-a8d0-d6ff8e061ce4][406e9200]] REVIEW Make the guidepost pipeline produce durations that mean what they say
+- [[id:406e9200-c3e7-49ac-a8d0-d6ff8e061ce4][406e9200]] REVIEW Make the guidepost pipeline produce durations that mean what they say
   - [X] [[id:b57c7515-c511-4198-b311-26cefc52a60d][b57c7515]] DONE A session id that changes mid-work splits one clock bracket across two queue files
   - [X] [[id:9202b39d-49e4-441c-89f2-382feb4ef1ea][9202b39d]] DONE A background job's first turn is bracketed across two session_ids
   - [X] [[id:7d739afd-f879-445c-b0b6-65e295585a94][7d739afd]] DONE Concurrent sessions' turns must union, not sum, wherever time is totalled
   - [X] [[id:c9940558-b23e-4b2c-86e8-e75a377634aa][c9940558]] DONE Guidepost aggregation ignores =cwd=, so two projects' turns cluster into one span
   - [X] [[id:c54c4215-90e3-4e0c-9de1-990c0406a2b2][c54c4215]] DONE A split span drops the unowned gaps between the clock pairs that split it
   - [X] [[id:2deb090f-593d-40e3-9044-fda318d9b6de][2deb090f]] DONE Accepting a 0-run span records none of its minutes, and only =e= can claim them
+  - [-] [[id:507754ba-ae82-4f04-b209-8d8c58ac268e][507754ba]] DOING Correct the accumulated record once the aggregator is fixed
+  - [ ] [[id:89351a23-8bfc-4939-8a30-f1fe7e93c72f][89351a23]] TODO Re-derive the corrected record against the aggregator as it now stands
 - [X] [[id:36698ca7-9358-41ca-862c-962af49691cd][36698ca7]] DONE The review buffer's legend omits two of its own keys, one of them the help key
 - [X] [[id:cfdfe119-34ad-4ee5-9477-d71dc450eabd][cfdfe119]] DONE footnote-check indents the lines it tells you to append, and the canonical form is flush-left
 - [X] [[id:83773daf-df07-4665-b5fc-0445e0da6211][83773daf]] DONE --session-alias-cache is keyed on the session set alone, so a nil map outlives the transcript that caused it
