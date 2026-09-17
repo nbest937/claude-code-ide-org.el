@@ -27,6 +27,20 @@ Proposal: the exemption should require the two events be adjacent in the **full*
 
 The aggregator never splits a =resume= -> =pause= adjacency however long the gap, which is correct for a contiguous stream and wrong for the orphan stream it is actually handed — two orphans are adjacent there only because everything between them was bracketed, so a days-long hole reads as one running turn. Measured: clusters spanning seven days over seven guideposts. Proposal: require adjacency in the full event stream, which the caller knows and the callee does not see.
 
+*Fixed 2026-09-17, commit =4f2a1c8=-adjacent on =feature/span-owner-edges=.* =--aggregate-guideposts= gained an optional =STREAM= argument, nil meaning "not told", so every existing caller and the bare-=:ts= fixtures are unchanged. Both production callers now pass the unfiltered guidepost list they already had in scope.
+
+*Measured end to end on the live queue*, passing the same consumed-inclusive stream production passes:
+
+: before: 14 clusters, three over two hours -- 173.7 h, 21.6 h, 20.5 h
+: after:  17 clusters, none over two hours
+
+*STREAM carries guideposts, not every queue event, and that choice is load-bearing.* A genuine long turn emits queue events for its own tool calls — =org_amend=, =org_capture= — so testing "any event between" would split the exact case the exemption exists to protect. Turn boundaries are the only events that answer "were these two consecutive?".
+
+*One wrong turn worth recording, because it nearly became a false negative.* The first end-to-end probe reported **no effect** — identical clusters before and after — and I briefly concluded the production wiring was wrong. It was the probe that was wrong: it built its stream with =(claude-code-ide-org--queue-events nil)=, the pending remnant, where production's =history= is bound at =--review-items-from-queue='s head as =(claude-code-ide-org--queue-events session-id t)=, consumed events included. Feeding the remnant as "the full stream" adds nothing by construction, since the remnant is what the filtered stream was drawn from. The lesson is narrow and sharp: a probe that simulates a caller must take its inputs from the caller, not rebuild them from the same names.
+
+*What this does not fix.* =445fe577= blocks on this heading, and the complement will still emit interior gaps — that is =c54c4215='s feature working. What ends is the inter-bracket, overnight and multi-day pieces, which existed only because the cluster had no business spanning them.
+
+
 
 * TODO The PLAN nag counts lines while the tools write paragraphs, so it cannot fire on their output :code:
 :PROPERTIES:
