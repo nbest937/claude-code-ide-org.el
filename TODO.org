@@ -2,24 +2,67 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO The reload rule lost its always-loaded home, so two repo cross-references now point at a file that does not load :code:
+:PROPERTIES:
+:ID:       27bb4b08-d95f-4955-a518-efb2ecf6e51b
+:CREATED:  [2026-09-17 Thu 08:52]
+:CATEGORY: Skill
+:END:
+
+The user retired =~/.claude/CLAUDE.md= on 2026-09-17 (renamed to =.old=), having decided its footnote half was duplicated by =fc70b56d='s promoted rule and that neither rule was wanted in projects without this machinery. Two live references in this repo named it as a load-bearing home and are now false: the org-dev skill's §0, which said the rule's general form "lives in =~/.claude/CLAUDE.md=" and was "restated here", and =next-session.md='s Step 1, which cited both as the rule's homes.
+
+The consequence to state rather than paper over: the reload-precondition rule now has **no always-loaded home at all**. It lives in the org-dev skill, which is *triggered*, so a verification that is not Emacs- or Doom-shaped no longer meets it. That is an accepted trade, not an oversight — but §0 should own the rule outright instead of deferring to a file that is gone.
+
+=bin/hooks/doc-sync-check='s comment also names the file, and is deliberately left alone: it uses it as an illustration of why the hook matches full paths rather than basenames, and that argument does not depend on the file existing.
+
 * TODO Doom drops org files out of org-mode at 15,000 lines, and TODO.org is 1,600 away :code:
 :PROPERTIES:
 :ID:       d90a02f2-6fa5-4a62-869a-7484fb9b2dc2
 :CREATED:  [2026-09-17 Thu 08:40]
 :CATEGORY: Dev
 :END:
+
+The recurring warning =Warning (org-element): 'org-element-at-point' cannot be used in non-Org buffer #<buffer DONE.org> (so-long-mode)= is not cosmetic: while it holds, DONE.org is not an Org buffer and every org operation against it is degraded rather than merely noisy.
+
+*Trigger nailed 2026-09-17, and it is line COUNT, not line length.* Doom replaces the stock =so-long-predicate= with =doom-so-long-p=, which fires when the longest line exceeds =so-long-threshold= **or** the buffer's line count exceeds its match in =doom-file-lines-threshold-alist=. That alist is a single entry, =(("." . 15000))= — the pattern matches every file — while the docstring says the default is 20k. Measured: DONE.org is **37,036 lines**, longest line **1,422**, mean 52.6; =so-long-threshold= is 5,000. So the length test never fired and never could; the count test has been true for a long time. Running the predicate against the live buffer returns =t=.
+
+*Two details that explain why it looks intermittent.* =org-mode= derives from =text-mode=, which is in =so-long-target-modes=, so org buffers are in scope at all. And =so-long-detected-p= is =permanent-local=, so it survives =revert-buffer= — the buffer can be back in =org-mode= with the flag still set, which is exactly the state observed.
+
+*The urgent half is TODO.org, not DONE.org.* It is **13,366 lines** — roughly 1,600 under the same threshold, on a file that grows with every apply and every amend.
+
+*Fix shape: raise the threshold for org files in =~/.config/doom/config.el=*, by adding an =\\.org\\'= entry to =doom-file-lines-threshold-alist= ahead of the ="."= catch-all. One line, no blast radius, and it is the user's file so it is theirs to apply. Per the org-dev skill this is =after!=/config territory — verify on a fresh Emacs, not a live reload.
+
+*Splitting DONE.org by month was considered and is NOT this fix.* It would not help TODO.org, which is the nearer problem, and it costs real breakage: eleven scripts hard-code the two-file layout, =bin/hooks/footnote-check= among them, which resolves every cited id against exactly =$repo/TODO.org= and =$repo/DONE.org=. Split the archive and citations to older headings silently stop resolving. Revisit chunking on its own merits, not as a workaround for a threshold.
+
+*Correction, 2026-09-17: the "urgent half" framing above overstated it, because TODO.org has a drain and this heading did not account for it.* The user pointed out that finished headings are archived into DONE.org each day tasks were closed. Measured rather than conceded: TODO.org is **13,455 lines**, of which 7 finished top-level headings hold **345 lines** — so today's pending archive would leave it at **13,110**, still about 1,900 short of the 15,000 threshold. The drain is real and roughly 2.6% of the file; it moves the date out, it does not remove the cliff.
+
+*And the drain makes the global picture worse rather than better, which is the part worth keeping.* Archiving relocates those lines into DONE.org — already **37,036 lines**, 22,000 *past* the same threshold and permanently over it. So the one file with a drain empties into the one without. Nothing about the archive cycle fixes so-long for either file; only the Doom threshold does. That is an argument for the one-line config fix and against treating archiving, or monthly chunking, as the remedy.
+
+
 * TODO The unassigned-mark guard is conjunctive, so a clock item with no id marks and then fails at apply :code:
 :PROPERTIES:
 :ID:       653fea66-f9d5-4431-8ce3-5d355560b475
 :CREATED:  [2026-09-16 Wed 21:14]
 :CATEGORY: Apply
 :END:
+
+Observed 2026-09-16: an apply of 67 items reported "2 failed", both =Error: no org heading found with :ID: "nil" [clock unassigned …]=. The quotes are a red herring — the id is genuinely nil and =(format "… :ID: \"%s\"" id)= renders it that way.
+
+=claude-code-ide-org--review-markable-p= refuses a mark only when the item is flagged =:unassigned= **and** its =:id= is nil: =(not (and (plist-get item :unassigned) (null (plist-get item :id))))=. A clock item with a nil id that does *not* carry the flag is therefore markable, and apply then looks a heading up by nil. Its own docstring names this outcome as the thing it exists to prevent — "refusing the mark is what makes that visible rather than letting apply fail later with a confusing error" — so the guard is not missing, it is one conjunction too narrow.
+
+A nil id on a clock item is expected rather than exotic: =clock_out= carries no id, the same asymmetry that returned zero from the first orphan matcher earlier the same day. Proposal: test the id alone — an item with no heading cannot be applied whatever flags it carries — and say so in the refusal the way the unassigned-span branch already does. Worth checking at the same time whether =:unassigned= should be *derived* from a nil id rather than set alongside it, since two fields encoding one fact is what let them disagree.
+
 * TODO --session-alias-cache is keyed on the session set alone, so a nil map outlives the transcript that caused it :code:
 :PROPERTIES:
 :ID:       83773daf-df07-4665-b5fc-0445e0da6211
 :CREATED:  [2026-09-16 Wed 18:34]
 :CATEGORY: Queue
 :END:
+
+PR #25 review, MEDIUM, against code =b57c7515= introduced. The cache is keyed on the sorted session-id set and never invalidated, and it short-circuits before any stamp is read — so it defeats the live re-read =--transcript-stamp-cache= exists to provide: a mid-work re-key whose new transcript has not yet flushed its first entry caches a **nil** map for that sid set, and the bracket never pairs again for the life of the Emacs process. The key also omits the =ranges=, which are what decide the canonical member and what the =--session-ranges-overlap-p= refusal is computed from, so two event sets sharing a sid set but not a time span share an answer built from one of them.
+
+*Filed rather than fixed, because the obvious repair is wrong.* Not caching a nil result would defeat the cache in precisely its common case — the docstring says nil "is the common case", and the map globs every transcript directory while =--span-events= runs once per candidate bracket in a subdivision. So the key has to become something that changes when a transcript could have grown, which is a design question rather than an edit. Including a ranges digest is necessary and not sufficient.
+
 
 
 * DONE footnote-check indents the lines it tells you to append, and the canonical form is flush-left :code:
@@ -34,6 +77,11 @@ CLOSED: [2026-09-16 Wed 18:34]
   flush-left, with an anchored assertion proved red first
 :END:
 
+PR #25 review, LOW. The hook built each suggested line as =$resolved  \=id\=  ...=, with a two-space prefix, while =org-footnote-citations.md= — shipped in the same PR — gives the canonical form flush-left. The message says "Append these lines", so the indent was what a reader copied, and the rule and its enforcement disagreed about the one thing the rule is precise about. =bin/footnote-check-test= was blind to it: its pairing assertion matches a substring and is indifferent to the prefix.
+
+*Resolved:* two spaces dropped, plus a separate anchored assertion. Worth recording how that assertion was got wrong first: written with an embedded newline in the pattern, it PASSED against the indenting hook, because =grep= reads a newline as a pattern separator and the empty alternative matches every line. Anchored with =^= it failed as intended, then passed on the fix. 24 passed, was 23.
+
+
 
 * DONE The review buffer's legend omits two of its own keys, one of them the help key :code:
 CLOSED: [2026-09-16 Wed 18:34]
@@ -47,6 +95,11 @@ CLOSED: [2026-09-16 Wed 18:34]
   both keys listed; the brittle test re-anchored
 :END:
 
+PR #25 review, LOW, and broader than the finding. The legend named m/u, M/U, t, a, e, N, d, RET, T, s, x, g and q; the keymap also binds =c= (claim the envelope, added by =2deb090f=) and =?= (=claude-code-ide-org-review-help=). So the one key that would list the others was itself unlisted. The =c= omission defeats exactly the case =2deb090f= was built for — a human reading the legend keeps reaching for =e=, which is the hand-editing the new key exists to replace, and the user predicted they would "rarely if ever reach for =e=" the same day.
+
+*Resolved:* both keys added, and the legend's comment now records that it is a hand-maintained third copy of the binding table that nothing checks. Growing it to three lines broke a test that found "a blank line" by counting two lines from =point-min= — true only under a two-line legend — so that test was re-anchored on a search and now fails for its own reasons or not at all.
+
+
 
 * TODO No tool retitles a heading or removes a property, so both reach for a raw emacsclient :code:
 :PROPERTIES:
@@ -54,6 +107,9 @@ CLOSED: [2026-09-16 Wed 18:34]
 :CREATED:  [2026-09-16 Wed 14:50]
 :CATEGORY: Tools
 :END:
+
+Both gaps surfaced within a minute of each other while correcting =37bca83a=. Retitling has no tool at all: =org-edit-headline= exists in =config.el= but only inside the cookie inserters, so a rename goes through a hand =emacsclient= call, which binds nothing and dies on a read-only buffer — precisely the signal =org-mcp-tools.md= says means "the tool surface is missing something, not a licence to clear the flag". Removing a property has a near-miss: =org_set_property= accepts an empty value and *sets* it, leaving =:BLOCKER:= as a dangling empty line rather than deleting it, so lifting a blocker took a line-number =sed= and a buffer revert. Proposal: an =org_set_heading= (title only, keyword and tags untouched), and a delete mode on =org_set_property= — empty value should remove the line, since there is no case where an empty property says anything. Both are the shape =:ID:= 1cd2df62 and =420816ec= keep finding: the discouraged path stays cheaper than the preferred one until a tool closes it.
+
 
 
 * DONE A project boundary splits a span, and the shipped reference still presents the threshold as the whole rule :code:
@@ -82,6 +138,11 @@ CLOCK: [2026-09-16 Wed 18:29]--[2026-09-16 Wed 18:29] =>  0:00
 - [2026-09-16 Wed 18:29]--[2026-09-16 Wed 18:29] suggested span, accepted at review
 :END:
 
+Since =c9940558= the aggregator keys its points on =(TS KIND PROJECT)= and a project boundary splits a span, while =--aggregate-guideposts='s own docstring documented only =THRESHOLD= and =EXCLUSIONS=, and the shipped =org-session-tracking.md= "three numbers" section still presented the gap threshold as what decides grouping. Nothing there was *false*; the omission is what mattered, and it matters to the consumer rather than to us: the queue is one global directory under =~/.claude/org-updates=, so before this branch two repos' turns in the same window clustered into a single span, and running the queue in more than one repo is the plugin's whole premise.
+
+*Resolved:* a paragraph in the shipped reference and a clause in the docstring, both naming the project dimension and keeping the part that matters — both sides must be known and differ, so a nil =cwd= is unknown rather than elsewhere. The PR #25 review then caught a second fault in the same prose: it called the project split "the way a permission block does", which has been false since =c54c4215= made blocks a subtraction rather than a split. Corrected in all three copies, with the stale comment that misled me rewritten to record that it outlived the change.
+
+
 
 * DONE Three copies of the keyword set sit outside check-conventions, and two of them ship :code:
 CLOSED: [2026-09-16 Wed 14:52]
@@ -98,6 +159,11 @@ CLOCK: [2026-09-16 Wed 14:50]--[2026-09-16 Wed 14:52] =>  0:02
 - State "DONE"       from "DOING"      [2026-09-16 Wed 14:52] \\
   32 ok, was 29; each assertion discriminates
 :END:
+
+=bin/check-conventions= asserts the TODO keyword set agrees across four places against this repo's own =#+TODO:= header, and its own comment records that the set has drifted before. Three further copies are outside it: the awk alternation =bin/hooks/footnote-check= gained on this branch, and the =#+TODO:= lines in =templates/TODO.org= and =templates/DONE.org=. Two of those three are *shipped* — the hook and the templates are what a consuming project actually runs and scaffolds from — so drift there is a consumer-visible failure nobody here would see. It fails silently and wrongly rather than emptily: the hook's awk defaults =kw= to =-= and leaves an unrecognised keyword in =line=, so the emitted entry shows a dash in the keyword column *and* leaks the keyword into the position the convention reserves for the exact title.
+
+*Resolved:* three assertions added to the existing keyword-set section, same =keyword_set= helper and truth source; each proved red first by copying the file aside and removing =REVIEW= from it, and each failed naming its own source. 32 ok, was 29.
+
 
 
 * DONE The footnote convention ships as an enforcing hook and as no rule anyone can read :code:
@@ -117,6 +183,13 @@ CLOCK: [2026-09-16 Wed 14:53]--[2026-09-16 Wed 14:55] =>  0:02
 - [2026-09-16 Wed 14:55]--[2026-09-16 Wed 15:16] suggested span, accepted at review
 :END:
 
+=hooks/hooks.json= wires =bin/hooks/footnote-check= as a =Stop= hook, so it blocks turns in every consuming project — and the string "footnote" appeared on the whole plugin surface exactly once, in that wiring line. The hooks table listed six rows and not this one; no reference stated the convention, which lived only in the author's private =~/.claude/CLAUDE.md= and travelled with nobody. The user confirmed 2026-09-16 that it *should* ship: tasks in any other project are expected to be cited by =:ID:= prefix exactly as here. So the gap was the rule, not the hook.
+
+*Resolved:* =skills/org/references/org-footnote-citations.md=, promoted always-loaded — an id gets cited in a response about source, tests or commits with no =.org= file in play, so a path scope would make it a rule that does not load. It carries the canonical form, why the superscript markers were retired, and the three things about the hook's reading that have each been got wrong: the =---= separator, fenced blocks, and that it reports a strict subset. The hooks table gained its two missing =Stop= rows in the same pass. One correction after writing: the hook reads =last_assistant_message=, which carries only the turn's *final text block*, and the looser wording would have walked a consumer into the wall that killed this repo's orphan check.
+
+*Postscript, 2026-09-17:* the user retired =~/.claude/CLAUDE.md= once this shipped, on the ground that its footnote half was now duplicated and neither of its rules was wanted in projects without this machinery. The duplication this heading created was therefore resolved by deletion rather than by reconciliation — see =27bb4b08= for what that cost in cross-references.
+
+
 
 * TODO org_outline's max_depth filters out the scoped heading itself, and the front matter reads as a result :code:
 :PROPERTIES:
@@ -124,6 +197,9 @@ CLOCK: [2026-09-16 Wed 14:53]--[2026-09-16 Wed 14:55] =>  0:02
 :CREATED:  [2026-09-16 Wed 14:50]
 :CATEGORY: Tools
 :END:
+
+=max_depth= is an *absolute* level test, deliberately (=:ID:= 9f3c35c7 — it is what makes the argument mean the same thing for a file and for a subtree). Nothing handles the case where the scoped heading is itself deeper than the limit: =scope=0fa403f4= with no =max_depth= prints the heading, and the identical call with =max_depth=1= prints the =:CREATED:=/=:CATEGORY:= front-matter block and nothing else. DONE.org's datetree is where it bites, those entries sitting at level 7, and the output is indistinguishable from a heading that simply has no children — an empty result that reads as a fact about the corpus. It falsified =98908aff='s one passing claim about this knob, that "=max_depth= is safe by contrast: it only ever drops the deepest lines, truncating leaves rather than severing an ancestor"; severing the scope root is exactly what it does. The ancestor-preservation =--outline-map= gained for =active_only= does not reach it, because a scoped root has nothing kept beneath it to hold it in. Proposal: a scoped call always emits its scope heading, whatever =max_depth= says — the caller named it, so it is not a line they filtered out.
+
 
 
 * TODO Rebuild the 101 truncated review-attention intervals from the audit log :code:
@@ -12273,6 +12349,15 @@ argument does not merely fail to apply — an =org_outline= call passing
 invented =file= and =max_level= returned the unrestricted default
 while appearing scoped, silently substituting a different answer to a
 different question.
+
+*Second occurrence, 2026-09-16/17, and it is the strongest argument this report has.* =org_capture= was called **eleven** times with =body=, an argument it does not have — the same tool and the same invented name as the five failures of 2026-08-20 that produced =1cd2df62=. Every call returned ="Captured: … (ID: …)"=, every body was discarded, and the loss was invisible from the tool's reply, =bin/lint-org=, =bin/check-conventions=, the test suite and the review queue alike. It was found by the *user reading the file* and noticing that recently filed tasks had no prose — the same way the first occurrence was found, by accident, five hours late.
+
+*What the recurrence adds, beyond doubling the count.* =1cd2df62= closed on the finding that "the tool was not at fault… the documentation was correct, prominent, and unread", and audited the whole fourteen-tool surface clean. That diagnosis still holds — and is exactly why documentation cannot be the fix. Four weeks later, with the correct parameter (=note=) documented in the schema the caller could have read, the identical wrong name was used eleven times running. A silent no-op teaches nothing at the moment of the mistake; a =-32602= would have failed the first call and cost one correction instead of eleven bodies.
+
+*Damage and repair.* Eleven headings landed with a title, a =:PROPERTIES:= drawer and nothing else; five of them were subsequently closed, so they became finished headings carrying a =CLOSED:= stamp, a clock and no prose at all — which is precisely what the two-call close convention exists to prevent. All eleven bodies were restored by =org_amend= from the session transcript, which is luck rather than a safety net: the same loss in a session that ended, or whose context had rolled over, would have been unrecoverable.
+
+*For the report itself:* the asymmetry already noted — missing-required signals =-32602= while unknown-key is unguarded — now has a measured cost on both sides of a four-week gap, in the same tool, from the same failure mode, with the documentation correct throughout.
+
 
 
 ** CANCELLED Unknown MCP methods signal an undefined error symbol and answer nothing :code:
