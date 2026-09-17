@@ -2,6 +2,21 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO The statusline says "clocked in" when it means "agent mid-turn", and the heading is merely the last one named :code:observed:
+:PROPERTIES:
+:ID:       1c7051da-c020-41e1-b843-8cfc68f53e38
+:CREATED:  [2026-09-17 Thu 16:21]
+:CATEGORY: Dev
+:END:
+
+Observed 2026-09-17: the user read =| Bulk citation owes more entri… [13aed7ca] (clocked in, 0:00 total)= as meaning that heading was clocked, and asked whether work was being booked against it. Nothing was. The queue's last clock event was =clock_out 2a6a1355=; =13aed7ca='s only event was a queued =todo NEXT=.
+
+*The function is behaving as documented, which is why this is a naming defect rather than a bug.* =--statusline-queue-state= returns =(ID . RUNNING-P)= where ID is "the heading named by the newest event that names one -- a =todo= or =clock_in=" and RUNNING-P is "non-nil when the newest guidepost is a =resume=". So the two halves answer *different questions*: the id says what was last named, the flag says whether the agent is mid-turn. Neither is about a clock, and =--statusline-task-string= then renders the flag as the literal words "clocked in".
+
+*Why it misleads in exactly the worst case.* Post-cutover a =DOING= heading normally has no running clock, so a reader cannot use "is a clock actually open" as a sanity check — the statusline is the only clock-ish signal on screen. And the id half moves on a mere =org_set_todo=, so setting =NEXT= on a heading nobody is working retargets the line to it. =0:00 total= is honest and is the one part that hints something is off.
+
+*Candidate fixes, none chosen.* Relabel to what it means ("working", "mid-turn", or a bare =▸=); or split the two facts, since conflating them is the actual error; or make the id half prefer the newest =clock_in= over the newest =todo=, so a state change alone cannot retarget it. The third is the smallest and would have prevented this instance outright.
+
 * TODO Apply consumes an event whose transition org refused, so the change is lost and never re-offered :code:
 :PROPERTIES:
 :ID:       b693c444-9ade-4103-a7b6-93eea0926763
@@ -4580,7 +4595,7 @@ identifiable to any writer rather than adding a guard per writer.
 *Four siblings filed the same week stay in backlog for now* — =51bcec2c=, =aee8487e=, =cf483f5d=, =17f93758= — rather than being added one at a time. They should be judged together against this slice's shape when it is actually picked up, since deciding twice is how a list grows without anyone choosing.
 
 
-* DOING Separate the causes of unfootnoted ids, so each can be closed on its own [0/3]
+* DOING Separate the causes of unfootnoted ids, so each can be closed on its own [0/4]
 :PROPERTIES:
 :ID:       de6de108-0095-40f4-8177-fdef0503c578
 :CREATED:  [2026-09-17 Thu 16:17]
@@ -5010,6 +5025,21 @@ Candidate cause 2, and the reason it is filed apart from transcription is that h
 Measured 2026-09-17 across this session's 57 hook fires: mean ids demanded rose from 1.4 before 14:00Z to 4.3 after, peaking at 15, tracking the subject matter. The discharge rule shipped at 17:33Z and bought nothing — 4.3 after against 3.5 before. The hook was exonerated by direct test: three bare ids demand all three and exit 2, an id paired with its exact title on one line exits 0.
 
 **The mechanism works and goes unused, which is the actual defect and is not a discipline problem.** At twelve or fifteen ids the inline form means twelve or fifteen full titles inside the prose — precisely the unscannable paragraph the convention exists to prevent. So the remedy is unusable exactly where the debt is largest, and the writer correctly declines it. The open question is whether a response that is *structurally a list of headings* should owe end matter at all, or whether the hook should stand down on that shape.
+** DOING Mark a queued keyword in end matter with a trailing star, and give the star no note of its own :code:
+:PROPERTIES:
+:ID:       d88362e7-8554-4a78-b8c4-a64c442b4fcf
+:CREATED:  [2026-09-17 Thu 16:20]
+:END:
+
+Requested by the user 2026-09-17 and shipped the same turn, but never given a heading until now — which is the gap this capture closes, since the work has a commit, a rationale and a convention change behind it.
+
+Reverses "cite the on-disk state and say so". The prose caveat was the expensive half: =DOING= plus a trailing sentence makes the reader hold two states and a qualifier, where =REVIEW*= is the state that will be true, flagged as not yet true, in one glyph. The queued state is also what the reader needs, being what the session just did.
+
+**The star takes no note of its own**, at the user's direction: a parenthetical naming which entries are queued is a footnote to the footnote — it re-opens in prose exactly what the mark exists to close, and it grows with the number of starred lines while the marks do not.
+
+Recorded alongside: the hook emits the on-disk keyword and never a star, which is correct. It greps the org files and knows nothing of the queue, and it tests id *presence* rather than the keyword beside it, so nothing conflicts. Written into the reference so nobody teaches a plain-shell =Stop= hook to read the queue for a cosmetic match.
+
+Shipped in the canonical reference and promoted; check-conventions 32 ok, footnote-check-test 27/27, lint-org 0 errors.
 
 * TODO Report worked headings that carry no clock interval that day :code:
 :PROPERTIES:
