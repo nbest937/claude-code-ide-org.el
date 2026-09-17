@@ -43,6 +43,17 @@ Note the keyword is *absent* from the line today, so this is an addition rather 
 
 The cost of being wrong here is small and worth naming: if the survey finds nothing, this change was delayed for one bounded pass. If it finds two more fields, the layout is decided once.
 
+*Sharpened by the user 2026-09-17, and it reframes the whole heading:* "even saying 'clocked in' or anything in the statusline may be superfluous. I just want it to remind me what we are working on *right now*. I would rather see more of the headline at that moment."
+
+So the line has **one job** — name the current work — and every other field is spending characters that the headline should have. That is a stronger claim than "reorder the fields", and it makes the chrome negotiable rather than given.
+
+*The mechanical finding that matters, because dropping chrome alone buys nothing:* the title is truncated at a **hardcoded 30 characters** — =(if (> (length name) 30) (concat (substring name 0 29) "…") name)= — not at a width derived from the terminal or from what the rest of the line leaves over. Free up every other field and the headline still stops at 30. **The constant is the limiter; the chrome is only the excuse for it.** Any version of this change that does not derive the budget will look like it did nothing.
+
+Rough budget on an 80-column terminal, model name "Opus 5" at 6: chrome today is about 39 characters (=" | "=, the bracketed id, and ="(clocked in, 0:00 total)"=) against 30 of title. Leading with a bare id and dropping the parenthetical leaves roughly 61 for the title — double — and about 54 if the keyword stays.
+
+*One tension to settle rather than decide silently.* The earlier ask was to replicate the end matter, which puts the **keyword** second. The end matter's reason for it is that "misalignment is how a stale keyword goes unnoticed" — an argument about a *column of entries*, which a one-line statusline does not have. So the keyword's justification is weaker here than it is there, and it costs 4–8 characters of headline. Keep it, or drop it and let the star alone carry the pending signal? Not decided here.
+
+
 
 * TODO The statusline says "clocked in" when it means "agent mid-turn", and the heading is merely the last one named :code:observed:
 :PROPERTIES:
@@ -58,6 +69,13 @@ Observed 2026-09-17: the user read =| Bulk citation owes more entri… [13aed7ca
 *Why it misleads in exactly the worst case.* Post-cutover a =DOING= heading normally has no running clock, so a reader cannot use "is a clock actually open" as a sanity check — the statusline is the only clock-ish signal on screen. And the id half moves on a mere =org_set_todo=, so setting =NEXT= on a heading nobody is working retargets the line to it. =0:00 total= is honest and is the one part that hints something is off.
 
 *Candidate fixes, none chosen.* Relabel to what it means ("working", "mid-turn", or a bare =▸=); or split the two facts, since conflating them is the actual error; or make the id half prefer the newest =clock_in= over the newest =todo=, so a state change alone cannot retarget it. The third is the smallest and would have prevented this instance outright.
+
+*Probably superseded rather than fixable, 2026-09-17.* The user's follow-on — "even saying 'clocked in' or anything in the statusline may be superfluous" — points at deleting the field rather than relabelling it. If that lands, **this defect ceases to exist instead of being repaired**, the way the marker modes on =2a6a1355= were retired with the markers rather than fixed.
+
+Left =TODO= deliberately, not cancelled: the field's removal is still a proposal on =63b84fe2=, and cancelling on an intention is how a real defect gets lost when the intention changes. *If the status field survives in any form, the misleading label is still live and this heading still applies.* If it is deleted, close this as CANCELLED citing that commit, and do not spend a line relabelling something on its way out.
+
+The analysis above stays useful either way, because it is the record of *why* the field misleads — which is the argument for deleting it, not merely for renaming it.
+
 
 * TODO Apply consumes an event whose transition org refused, so the change is lost and never re-offered :code:
 :PROPERTIES:
