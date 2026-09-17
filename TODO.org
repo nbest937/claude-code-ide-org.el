@@ -2,6 +2,12 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Doom drops org files out of org-mode at 15,000 lines, and TODO.org is 1,600 away :code:
+:PROPERTIES:
+:ID:       d90a02f2-6fa5-4a62-869a-7484fb9b2dc2
+:CREATED:  [2026-09-17 Thu 08:40]
+:CATEGORY: Dev
+:END:
 * TODO The unassigned-mark guard is conjunctive, so a clock item with no id marks and then fails at apply :code:
 :PROPERTIES:
 :ID:       653fea66-f9d5-4431-8ce3-5d355560b475
