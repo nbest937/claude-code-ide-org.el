@@ -184,6 +184,13 @@ So the "slower than the MCP timeout" assumption recorded above is **false**, and
 
 The same `org_divide` call timed out through MCP and completed through `emacsclient`, so the work is in the transport rather than the tool. MCP timeouts are client-side env vars (`MCP_TIMEOUT`, `MCP_TOOL_TIMEOUT`), not settings in `.mcp.json` — establish which limit fired and whether the wrapper we inherit from `claude-code-ide` imposes its own.
 
+*Evidence 2026-09-17 that the premise may be wrong: at least some of these "timeouts" are not timeouts.* Two consecutive =org_set_todo= calls returned "The operation timed out" to the model and queued nothing. Emacs had in fact answered immediately, and the user relayed what it showed: =peculiar error: -32602, "Missing required argument: state"=. The call had passed =keyword=, not =state=.
+
+So the server rejected the parameters, replied with a well-formed JSON-RPC error, and **the client surfaced that as a timeout**. The model retried verbatim, because a timeout is the one failure that invites a retry and a =-32602= is the one that never should — the second attempt could not have succeeded and the diagnosis was unreachable from this side.
+
+Two consequences for this heading. The =emacsclient=-succeeds-where-MCP-times-out observation is consistent with a parameter mismatch rather than a transport limit, since a hand-written =emacsclient= call passes the elisp arguments directly and never crosses the schema. And the thing worth fixing may not be a timeout value at all: **an error response that reads as a timeout is the defect**, and it is the same silent-failure class as =:ID:= 4f9e552a — a failure indistinguishable from a different, more forgiving one. Establish which layer swallows the error body before touching =MCP_TIMEOUT=.
+
+
 
 
 * TODO Recenter after `m` advances, so the item under consideration is never at the bottom of the window :code:
