@@ -4238,7 +4238,7 @@ alternative — and unlike the current review pass, it is six questions a day
 rather than nineteen.
 
 
-* TODO [0/18] Everything passed and the file was still wrong :code:
+* TODO [3/21] Everything passed and the file was still wrong :code:
 :PROPERTIES:
 :ID:       8a2eb687-28da-4d44-893b-db59298bdc5b
 :CREATED:  [2026-09-01 Tue 09:11]
@@ -4285,11 +4285,11 @@ Planned:
 
 - [ ] [[id:39039bb6-c70a-4ba9-8b37-edd8dd6921f6][39039bb6]] TODO bin/lint-org does not detect a duplicate :ID: across TODO.org and DONE.org
 - [ ] [[id:f12f9da4-2870-45b7-8c50-ea54415c7bc6][f12f9da4]] TODO The running Emacs can be running a stale config.el and nothing says so
-- [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]] DONE Verification traps: a check with no way to fail, and a fixture that never takes the real path
+- [X] [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]] DONE Verification traps: a check with no way to fail, and a fixture that never takes the real path
   a check with no way to fail, and a fixture that never takes the real path
-- [[id:d2a0f54c-b59a-4855-ae3d-c93a6d3aa177][d2a0f54c]] DONE Generalize bin/check-org-dev-skill into bin/check-conventions, wired into pre-commit
+- [X] [[id:d2a0f54c-b59a-4855-ae3d-c93a6d3aa177][d2a0f54c]] DONE Generalize bin/check-org-dev-skill into bin/check-conventions, wired into pre-commit
   bin/check-org-dev-skill into bin/check-conventions, wired into pre-commit
-- [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]] DONE MCP tools that write an org file time out; one reports success and persists nothing
+- [X] [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]] DONE MCP tools that write an org file time out; one reports success and persists nothing
   write an org file time out; one reports success and persists nothing
 - [ ] [[id:25e7b083-360b-4282-8fd0-bb768e2a0f13][25e7b083]] TODO org_capture's target refuses an 8-character :ID: prefix that every other tool accepts
 - [ ] [[id:3ad389be-2797-46c3-a51d-9f603053955a][3ad389be]] TODO An Emacs outage strands every org write, because the tools are Emacs
@@ -8236,6 +8236,25 @@ plan-drift pattern this epic keeps producing.
 *What is not being claimed.* Nothing here says the record is wrong. It says nobody has checked since the aggregator changed, which is exactly the shape =e3d1531d= turned out to be hiding — 95 of 101 intervals measuring the wrong thing, found only when someone finally asked the audit log rather than reasoning about it.
 
 *=057cec53= sits in the same position* — its fifty-six-line repair closed 2026-08-21, also before all four — and is deliberately left closed: it repaired a specific, enumerated set of lines rather than standing on a condition, so it is history rather than a claim that expired. If the measurement here finds those lines moved again, that is this heading's finding to record, not a second reopening.
+
+*Measured 2026-09-17, and the answer is: it moves, substantially.* Both aggregator versions were run over **identical input** — every guidepost in the full history including consumed events, with the full bracket set as exclusions — so nothing but the code differs. Baseline =4d53b5e= (2026-09-15 19:01), before =c9940558=, =c54c4215=, =2deb090f= and =5a9d877e= landed.
+
+: input      4591 events, 3003 guideposts, 331 brackets
+: OLD        442 spans, 112.99 h envelope
+: NEW        500 spans, 121.72 h envelope
+
+: identical spans   142   (32% of the old reconstruction)
+: only in OLD       300
+: only in NEW       358
+
+So **68% of the spans the old aggregator produced are gone or altered**, and the envelope grows by 8.73 h. The growth direction is expected rather than alarming: =c54c4215= made the complement *emit* gaps that were previously dropped, so more time is offered, not more claimed.
+
+*The limit of this measurement, and it is the whole of what remains open.* This compares **spans offered**, not **CLOCK lines recorded**. Apply writes one line per run *inside* an accepted span, and a span whose boundaries moved may contain exactly the same runs. So 68% is an upper bound on how much the record could have changed, not an estimate of how much it did.
+
+*Which makes the next question precise rather than open-ended*, and it belongs to [[id:89351a23-8bfc-4939-8a30-f1fe7e93c72f][89351a23]]: compare the **runs** the two versions yield within their spans, or compare the reconstructed runs against the CLOCK lines actually in the corpus. Either is a bounded computation now that the harness exists — two batch Emacsen, the same queue, a dump and a =comm=.
+
+*Method note.* The comparison runs each version exactly as its own production caller would: the old signature takes three arguments, the new takes four with the guidepost stream, and the probe falls back on =wrong-number-of-arguments= rather than forcing one shape on both. Run in batch against the real queue, writing nothing.
+
 
 
 ** DONE Decouple live "what is Claude attending to" visibility from the authoritative org clock :code:
