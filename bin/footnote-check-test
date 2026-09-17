@@ -218,6 +218,20 @@ else
     "\`$REAL\`  $REAL_KW" yes
   assert_txt "the block carries the exact title" "$REAL_TITLE" yes
 
+  # DISCHARGED IN PLACE. A body line already carrying the id AND its
+  # exact title has met the convention's whole purpose -- the prose is
+  # readable and the reference recoverable -- so demanding a separate
+  # end-matter entry is pure duplication. That is what a status summary
+  # looks like, and it is where this hook was loudest: a twelve-id
+  # unwind printed all twelve inline and was then asked for all twelve
+  # again (TODO.org :ID: 1203168b).
+  check "an id paired with its exact title in the body is discharged" allowed \
+    "$(run dp1 "\`$REAL\` $REAL_TITLE -- and nothing else to say.")"
+  # The pairing must be on ONE line: an id here and a title elsewhere is
+  # the ordinary unfootnoted case, not a discharge.
+  check "id and title on separate lines still blocks" blocked \
+    "$(run dp2 "See \`$REAL\` for detail."$'\n'"Unrelated: $REAL_TITLE")"
+
   # FLUSH LEFT, and asserted separately because the pairing assertion
   # above matches a substring and is blind to the prefix (TODO.org
   # :ID: cfdfe119). The message says "Append these lines", so whatever
