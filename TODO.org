@@ -1427,6 +1427,27 @@ revision when the slice is picked up**, and this is its first recorded failure.
 :COOKIE_DATA: checkbox recursive
 :BLOCKER:  507754ba-ae82-4f04-b209-8d8c58ac268e 89351a23-8bfc-4939-8a30-f1fe7e93c72f
 :END:
+:DEBRIEF:
+*Composed 2026-09-11, merged and closed 2026-09-17.* Fifteen members, 94 commits, PR #25.
+
+*The three parts of the title, and what each cost.* **Owner**: =b57c7515= and =9202b39d= — a session Claude Code re-keys mid-work split one clock bracket across two queue files, joined by the transcript's shared first uuid. **Edges**: =7d739afd=, where the union was duplicated rather than missing and the two copies had drifted ten hours apart, and =c9940558=, a project boundary splitting spans that used to pool. **Payload**: =c54c4215=, emitting the unowned gaps a split span dropped, and =2deb090f=, the =c= key that claims a 0-run envelope in one act.
+
+*The review earned its place, which is the argument for the =REVIEW= window existing at all.* Six findings, three adopted and fixed (=36698ca7=, =cfdfe119=, =83773daf=), one declined on =887eaba3='s membership test as =main='s defect, two left open with their work outstanding. Two were reproduced here rather than trusted, and both held. Findings per member: 6/15 = **0.4**.
+
+*The largest thing found was not in the review.* Asking why a review buffer was full of undismissable spans led to =5a9d877e=: the =resume= -> =pause= exemption, correct for a contiguous stream, was being handed a *filtered* one where two events are adjacent only because everything between them was attributed elsewhere. It was joining clusters across **days** — one spanning 08-24 to 08-31 over seven guideposts. Found by probing, not by reading.
+
+*Comparison against its predecessors, as the prompt asked.*
+
+: afea7e4f  2026-09-11 -> 09-15   4 days   11 members
+: 35582d95  2026-09-15 -> 09-15   3 hours   4 members
+: 749301a0  2026-09-11 -> 09-17   6 days   15 members, 94 commits, 0.4 findings/member
+
+*Three points now exist, and the honest reading is that they are not comparable.* =35582d95= was four members in an afternoon; this was fifteen over six days with a review, a merge and an unplanned diagnosis. Size dominates everything else, so "are slices going better" still has no answer — what it has is a method, and the next comparison should hold size roughly constant or admit it cannot.
+
+*What closing it required that was not foreseen.* The slice could not close on its own members: =406e9200= reopened during review because =507754ba='s conditional — "once the aggregator is fixed" — had silently stopped holding. Measuring that took two passes with opposite-looking answers: **68% of spans differ**, **702 of 703 runs identical**. A span is an offer and a run is a record, and only the second bears on the corpus.
+
+*Left behind, filed not forgotten:* =445fe577= and the four review-buffer findings of 2026-09-17, =e3d1531d= and =b5448133=, =4acd8ad0= dropped from =8a2eb687= as time-tracking work. All of it stays this repo's, and none of it blocks =6a207b00= now that =8bbae3aa= takes time tracking out of what ships.
+:END:
 :LOGBOOK:
 CLOCK: [2026-09-15 Tue 13:10]--[2026-09-15 Tue 13:12] =>  0:02
 - [2026-09-15 Tue 13:10]--[2026-09-15 Tue 13:12] compose the next-session plan for this slice
@@ -1519,6 +1540,9 @@ Integration point: [[https://github.com/nbest937/claude-code-ide-org.el/pull/25]
 *One finding was declined, on =887eaba3='s test.* A stale contract comment in =bin/hooks/session-resume=: that file predates this branch and this PR never touched it, so it is =main='s defect. Folding it in would make this slice's title false in the direction =0fa403f4= was kept out for.
 
 *So the slice returns to =DOING=.* Every member was terminal when it entered =REVIEW=; one no longer is, which is what that transition is for — the review found something missing. It cannot reach =DONE= until =83773daf= is resolved or explicitly dropped.
+
+*Closed 2026-09-17, six days after composition, on the merge of PR #25 and the close of =406e9200= behind it.* Fifteen members: the six planned, the review's three findings, and six adopted along the way. A span now carries its owner, its edges and its payload — and the last doubt about the record it produced was settled by measurement rather than by rewriting it.
+
 
 
 * TODO Nothing can correct a closed slice's record, even when the correction is close-time truth :code:
@@ -7502,6 +7526,21 @@ without showing the diff first.
 :ID:       406e9200-c3e7-49ac-a8d0-d6ff8e061ce4
 :CREATED:  [2026-08-18 Tue 08:15]
 :END:
+:DEBRIEF:
+*Opened 2026-08-18, closed 2026-09-17: a month, seventeen members.*
+
+*What shipped, in one line each.* Phantom resume guideposts from background notifications; two clock mechanisms disagreeing, one predating the cutover; spans that could only be dismissed; the accumulated-record correction; live attention visibility decoupled from the authoritative clock; a session-start line that had stopped discriminating; an error string rendered where a title belonged; the union of concurrent turns; a background job's first turn bracketed across two session ids; the floor on what gets written named as a knob; a review buffer predicting a duration org does not write; fifty-six CLOCK lines disagreeing with their own timestamps; the unowned gaps a split span dropped; the 0-run envelope and the =c= key that claims it; =cwd= ignored so two projects clustered as one; and a session id changing mid-work splitting one bracket across two queue files.
+
+*What the close nearly got wrong, and it is the most useful thing here.* This story reached =[16/16]= and =REVIEW= on 2026-09-16 and would have closed there. Reviewing it for that close found =507754ba= — "Correct the accumulated record **once the aggregator is fixed**" — closed 2026-08-19 on a *conditional* that had silently stopped holding: four more aggregator changes landed on 09-16 and 09-17, two of which alter what the pipeline *emits* rather than only what it computes. A member that closes on a condition can be un-closed by later work without anyone touching it.
+
+*Measured rather than assumed, and the two measurements disagree violently.* Running the pre-fix and post-fix aggregators over identical input — 4,591 events, 3,003 guideposts, 331 brackets — **68% of spans differ**: 142 of 442 survive unchanged, and the envelope grows 8.73 h because the complement now emits gaps it used to drop. But comparing the **runs**, which is what apply actually writes: **702 of 703 identical**, one interval on 2026-09-10 splitting as an 82-second idle gap stops being absorbed, and total recorded time falling by about seventy seconds.
+
+*So the record was sound and the proposals were not.* A span is an offer; a run is a record. Changing what is offered does not change what was written once the offers were accepted. Both figures are correct and only the second bears on the corpus — which is why =89351a23= closed =CANCELLED= on the number instead of rewriting a month of CLOCK lines.
+
+*The practice that saved it.* Splitting the measurement from the correction, the same shape =e3d1531d= and =b5448133= took two days earlier. Without it the 68% would have justified the rewrite on its own.
+
+*Left open deliberately, and not this story's work:* =445fe577=, whose complement gap spans still cannot be dismissed; =e3d1531d= and =b5448133=, the review-attention truncation and its retcon; and the four filed this week against the review buffer's rendering and the =c= key. Time tracking continues here while =8bbae3aa= takes it out of what ships.
+:END:
 :LOGBOOK:
 - [2026-08-18 Tue 08:20]--[2026-08-18 Tue 08:22] assigned at review
 - State "PLANNING"   from "TODO"       [2026-08-18 Tue 08:22] \\
@@ -7520,6 +7559,7 @@ CLOCK: [2026-08-18 Tue 10:01]--[2026-08-18 Tue 10:03] =>  0:02
 - State "REVIEW"     from "DOING"      [2026-09-16 Wed 14:08] \\
   16/16 terminal; awaiting the PR merge
 :END:
+:PLAN:
 
 A span's duration is currently wrong in both directions, and the error
 enters at three separate stages. Measured 2026-08-17 across all 834
@@ -7569,6 +7609,10 @@ that recurring measurement is *for* needs restating.
 [[file:~/.claude/plans/elegant-questing-lamport.md][Plan]] — approved
 2026-08-18. Covers all five children; each links this same file rather than
 carrying one of its own, following 02aaae22 / c556a9ed.
+
+:END:
+*Resolved 2026-09-17.* Seventeen members, every one terminal. The pipeline now produces durations that mean what they say — and the last question it held open, whether the accumulated record needed re-deriving after the aggregator changed four more times, was answered by measurement rather than by rewriting: 702 of 703 runs identical, seventy seconds of drift across a month.
+
 
 
 ** DONE Background-task notifications write phantom resume guideposts :code:
