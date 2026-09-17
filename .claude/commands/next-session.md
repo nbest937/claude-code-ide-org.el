@@ -1,7 +1,7 @@
 # Next session
 
-A plan for `8a2eb687` — **Everything passed and the file was still wrong** —
-third of the four slices sequenced below.
+A plan for `8bbae3aa` — **Ship the tracker without the clock** — which took
+the nomination on 2026-09-17, ahead of the sequence below.
 
 **The slice is the list.** Open it and read its checklist; this file gives
 the plan, not the membership. The two disagree only if one is stale, and the
@@ -108,203 +108,174 @@ work.
 
 ---
 
-## The four slices, in order
+## The sequence, re-cut 2026-09-17
 
-**Memoized 2026-09-15 at the user's direction**, so the sequence survives a
-cleared context. Each is its own branch and its own pull request, worked
-**serially**:
+**The old order assumed time tracking was on the critical path.** It is not, and
+that is the whole reason this file changed hands. Of 128 open headings, 55 sit
+in `Queue`, `Apply` and `Clock`; weighting by the corpus's own priority
+mechanism changes nothing, but the behavioural evidence is overwhelming — on
+2026-09-17 every apply failure and every unanswerable review question came from
+a span or a clock item, and none from capture, refile, blockers, slices,
+conventions or lint. So the useful half was being held hostage by the half still
+under construction.
 
-| | slice | why here |
+| | slice | where it stands |
 |---|---|---|
-| 1 | `35582d95` — **PR #24** | smallest, and every member was a day-one defect in the repo the plugin was already deployed to on 2026-09-11 |
-| 2 | `749301a0` — **PR #25 open, back at `DOING`** | its review adopted three findings; `83773daf` is the one still live, and the slice cannot close until it is resolved or dropped |
-| 3 | `8a2eb687` — this one | the correctness slice; holds euchre blockers `965f94eb` and `5e731a23`, plus `2aeb65d6`, which is what would make future parallelism safe at all |
-| 4 | `6521dd56` | corpus passes, least urgent, and `e128e4fa` is inherently attended — the conventions call it "a per-heading act nobody should do by sweep" |
+| — | `35582d95` | merged, PR #24 |
+| — | `749301a0` | **merged 2026-09-17, PR #25 — but not closed**, see below |
+| 1 | `8bbae3aa` — this one | shortest path to `6a207b00`, which is `WAITING` on the slices and would then wait on one |
+| 2 | `8a2eb687` | the correctness slice; re-scope it when it comes up, since `4acd8ad0` is time-tracking work that belongs with the backlog rather than here |
+| 3 | `6521dd56` | corpus pass, internal |
+| 4 | `f9fe9fac` | datetree, internal |
 
-All four together unblock `6a207b00`, which is `WAITING` on exactly them.
+**Finish `749301a0` before starting this one** (the user, 2026-09-17). Its last
+member is `406e9200`, which reopened during its own review: `507754ba`'s
+condition — *"once the aggregator is fixed"* — stopped holding when four more
+aggregator fixes landed after it closed in August, and `89351a23` was filed for
+the re-derivation. Neither is a feature this slice disables; both are
+corrections to **this repo's** accumulated record, and time tracking stays on
+here. So the test the user set — defer anything that is about to be disabled —
+does not fire, and no cookie is dropped.
 
-**Four concurrent branches were considered and declined**, and the reason is
-one number: **200 of the last 200 code commits touch `config.el`**, a single
-17,000-line file. Parallel branches would conflict in proportion to the work
-done, and resolving those merges is precisely the attended time the plan
-exists to save. Subagents remain right for *reading* — measuring, locating,
-reproducing, surveying — because a conclusion has no merge cost; they are
-wrong for concurrent edits here until `2aeb65d6` lands.
-
-**And measure the slice itself.** The user's stated reason for holding the
-established rhythm is to find out whether recent improvements make slices go
-better. At close, compare against `afea7e4f` *and* `35582d95`: members,
-elapsed days, commits, review findings per member, and
-`M-x claude-code-ide-org-attention-report` over the slice's span. Record
-the comparison in the debrief. `35582d95`'s own comparison is still open on
-its body — its review findings and attention number arrive with PR #24's
-review and the next apply — so the closing session of *this* slice may be
-the one that completes both.
+*The honest caveat: that tail is unbounded.* `507754ba` is a measurement of
+unknown size and `89351a23`'s size depends on its result. If the measurement
+comes back clean, `89351a23` closes `CANCELLED` with the number and the slice
+closes behind it quickly. If it does not, weigh the re-derivation against
+starting here — the user's instruction was to finish first, not to finish at any
+price.
 
 ---
 
 ## What is already true, so it is not re-derived
 
-Every item below was measured this cycle, most of it while auditing
-`749301a0`'s own branch. Do not re-derive the falsified ones; do re-check the
-caveats.
+- **The shape is decided, not open.** Scripts ship, wiring does not: a hook has
+  no "disabled" state, so wired and unwired are the only forms available, and
+  shipping unwired keeps the opt-in to a single file edit. **Not two plugins** —
+  time tracking is a *layer* on task tracking rather than a peer, since spans
+  attribute to headings the task half manages and both share one queue, one
+  review buffer and one watermark file. The one unmeasured assumption under that
+  decision is a member, `5fb70821`, not a footnote.
 
-- **`37bca83a` is re-diagnosed, and its old body is wrong on purpose.**
-  `org_query` drops no predicate and never did — its input is org-ql's
-  *plain-string* mini-language, so every sexp ever passed to it was parsed as
-  whitespace-separated full-text terms. Measured 2026-09-16:
-  `tags:research` → 24 headings, `todo:REVIEW` → the three live ones,
-  `property:KIND=slice` → every slice. **Do not re-measure "which predicates
-  are dropped."** The fix is one decision: a query whose first non-blank
-  character is `(` is a sexp, so either parse it as one (`org-ql-select`
-  takes sexps natively) or refuse it naming the mini-language. The earlier
-  paragraphs on that heading are left standing and are *known false*; read
-  the correction at the bottom.
+- **What survives the cut, measured against the shipped surface:** capture with
+  `:CATEGORY:` enforcement, refile, divide, query, outline, the slice machinery
+  with derived cookies and blockers, the `:PLAN:`/`:DEBRIEF:` drawers, the
+  conventions as promoted rules, `lint-org`, `check-conventions`, the footnote
+  hook. The queue and the review pass survive too: `org_set_todo` is queued
+  because org's state-change logging needs a genuinely interactive command,
+  which has nothing to do with time.
 
-- **`f12f9da4` has two shapes, not one**, both recorded 2026-09-16 while
-  recovering a hung Emacs: a stale `.elc` shadowing the source, and the same
-  file loaded from an older state with nothing saying so. Any check run
-  against either looks exactly like a passing one, which is this slice's
-  whole theme in one heading.
+- **The hook inventory is already taken.** Out: `session-pause`,
+  `session-resume`, `block-start`, both `block-end` rows, and the
+  `queue-append clock_in` / `clock_out` matchers. Staying: `queue-append todo`,
+  `capture`, `amend`, `apply-detect`, `footnote-check`, `session-context.sh`.
+  `clock-target-check` is the sharp one and has its own member.
 
-- **The `[0/17]` cookie counts three members that are already `DONE` and
-  dropped** — `542924c1`, `d2a0f54c`, `72463b68`. The cookie is right and the
-  denominator is not the work.
-
-- **`2a6a1355` sits at `REVIEW`** and is *not* in this session's sequence. Its
-  marker half was retired rather than fixed on `749301a0`'s branch; what
-  remains is a judgement call, not an implementation.
-
-- **`4acd8ad0` is downstream of work that just landed.** The re-key bridge
-  shipped in `749301a0`; this member is the observation that the transcripts
-  it reads are pruned by Claude Code, so the alias decays silently. It wants
-  the bridge in hand, which it now is.
+- **`org_divide` times out through MCP and it is not our code.** 0.013 s in
+  batch against full-size copies. Do not re-measure it; see `51bcec2c`. If a
+  member needs a divide, call it and check the file rather than retrying.
 
 ---
 
 ## The order, and why it is one direction of travel
 
-The theme is a check that cannot fail, so the sequence runs from *what makes
-a verification trustworthy* outward to *what a verification is asked about*.
+`eb6c4a9b` first, because it is the only member that fails *loudly*:
+`clock-target-check` blocks a stop when write activity has no `clock_in`, so the
+moment clocking is off it blocks the first real turn of every consuming session.
+It must come out in the same change as the guideposts, not after.
 
-Starting anywhere else re-runs the same risk the slice is about: every later
-step is verified in a live Emacs, and until `f12f9da4` lands there is no
-signal distinguishing "the fix works" from "the fix was never loaded." That
-is not a theoretical ordering argument — it cost this cycle a hung Emacs and
-three separate faults before anything was measurable.
+Then the wiring itself (`0c5577dc`), then the two surfaces that *instruct* —
+the promoted rules (`36952d1f`) and the tool registrations (`01f7a19c`) — in
+that order, because a rule telling an agent to call a tool that is gone is a
+louder failure than a tool nobody is told to call.
 
-Then the two tools that *answer questions* about the corpus (`39039bb6`,
-`37bca83a`), because a wrong answer from either is silent and is read as a
-fact. Then the one that *destroys* an answer (`7ee3b71a`). Then two places
-where prose and behaviour disagree (`7b4f4f14`, `60ed5b96`), which are small
-and are the theme in miniature.
+Then the two that straddle the cut: `6956a46e`, where one SessionStart payload
+carries a time-tracking report and a task-tracking one, and `1b36c5bd`, the
+opt-in that puts the wiring back.
 
-**Six members, not seventeen.** The rest stay in the slice; a slice spans
-sessions by design, and this file is a revision of the prompt rather than a
-new slice.
+`d3149a81` last among the doing, because it verifies the claim the whole slice
+rests on. `5fb70821` is research and can run at any point; it decides nothing
+this slice does, only whether the two-plugin question reopens later.
 
-**And neither euchre blocker is among the six**, though the sequence table
-above justifies this slice's position by holding them. That is deliberate,
-not staleness. `2aeb65d6` — one git index shared by concurrent sessions — is
-what makes any of this safe to work in parallel, and `965f94eb` and
-`5e731a23` are both project-routing defects that want it settled first. They
-are this slice's purpose and a later session's work.
+## Step 1 — `eb6c4a9b`: the hook that enforces what is being removed
 
-## Step 1 — `f12f9da4`: make a stale load say so
+Take it out of `hooks/hooks.json` with the guideposts. Decide in the same breath
+whether it returns with the opt-in: it backstops the rule that a session names
+the heading its first write belongs to, which is a *task*-tracking rule about
+attribution, so a variant checking for any queued activity rather than
+specifically a `clock_in` may be worth more than deletion.
 
-The precondition rule (the org-dev skill, §0 — its only home since
-2026-09-17) asks
-every session to *state* what must be reloaded. This step gives that
-statement something to check itself against. Both shapes need covering, and
-the second is the one no existing check sees: the file on disk and the
-definition in the image can differ with no `.elc` involved at all.
+## Step 2 — `0c5577dc`: the wiring change
 
-Land it first and use it for every step after. If it cannot be made to work,
-say so and reorder deliberately — do not proceed on the assumption that a
-green check means a loaded fix.
+The rows listed above, out. Every script stays on disk. State the reload
+precondition when verifying: `hooks.json` is read at session start, so a change
+here cannot be observed in the session that makes it.
 
-## Step 2 — `39039bb6`: a duplicate `:ID:` across the two files
+## Step 3 — `36952d1f`: rules that instruct clocking
 
-`bin/lint-org` is the backstop for corpus integrity and it checks each file
-alone, so an id present in both `TODO.org` and `DONE.org` passes twice. Every
-tool here addresses headings by `:ID:`, and `org-id` resolves to whichever it
-finds — so a duplicate is not a cosmetic problem, it is two headings wearing
-one address.
+`org-state-transitions.md`'s transition table has clock instructions in four
+rows and clock-closing in four more; `org-session-tracking.md` is *entirely*
+time tracking and should simply not promote without the opt-in. The open
+question is a forked table versus a conditional clause, and the conditional has
+a bad record here — a path-scoped rule that does not load is a rule that does
+not apply, and a reader holding a condition is the same bet.
 
-Check the corpus for existing instances *before* writing the rule, and say
-the number either way: a rule added while clean is the cheap case this repo
-prefers, and a rule added while dirty needs the repair sequenced with it.
+## Step 4 — `01f7a19c`: the clock tools' registration
 
-## Step 3 — `37bca83a`: refuse a sexp, or parse it
+Leave registered, gate on a `defcustom`, or remove. Removal is not viable — this
+repo needs them and it is the same module. The argument for gating is that a
+tool in the schema is an invitation, and this project's evidence is that an
+agent calls what it is offered.
 
-The mechanism is settled (above), so this is an implementation, not an
-investigation. Two shapes, and picking one is the whole step:
+## Step 5 — `6956a46e`: one payload, two reports
 
-- **Refuse**, naming the mini-language. Cheapest, and it makes the tool's
-  contract visible at the moment it is violated.
-- **Parse it as a sexp.** `org-ql-select` takes one natively, so this is
-  plausible and strictly more useful — at the cost of a tool that accepts two
-  languages, which is how the confusion started.
+The stale-interval half is pure time tracking and can never fire with clocking
+off; the ceremony half is pure task tracking and a consumer wants it. Weigh
+splitting against leaving the stale half to return nothing, which the existing
+`[[ -s ]]` guard already degrades silently.
 
-Either way the *silent* path must go: "No matches." may never again be the
-answer to a query the tool did not understand. Note that every caller in this
-repo's history got the language wrong, which is evidence about the tool
-description as much as about the callers.
+## Step 6 — `1b36c5bd`: the opt-in
 
-## Step 4 — `7ee3b71a`: `org_amend replace=true` over a slice's checklist
+A `--time` flag on `claude-org-setup`, in the shape of the existing `--doom` /
+`--org` / `--glue`. It inherits the wiring trap: a repo must enable the plugin's
+hooks or its own, never both, so the flag has to know which the consumer uses.
+`--check` should report the time wiring present or absent rather than ignoring
+it.
 
-The one thing a slice *declares* is membership and order; everything else is
-derived. A `replace=true` amend over a slice body destroys exactly that, and
-the refresh will not rebuild it, because the refresh reads the checklist to
-know what the members are.
+## Step 7 — `d3149a81`: verify a guidepost-free queue
 
-Guard it at the tool, not in prose. Note the shape this repo keeps finding —
-`org_set_property` refuses `:ID:` and `:CREATED:` for the same reason — and
-check whether the guard belongs to slices alone or to any body carrying a
-structure a tool derives from.
+The claim the slice rests on, and the corpus cannot test it — this repo's queue
+has held guideposts since the 2026-08-11 cutover. Build a fixture whose queue
+holds only `todo`, `capture` and `amend`. Probe two things that are not obvious:
+`--queue-drained-p` is "yields no items" and archiving depends on it, and
+`apply-detect` compares watermark mtimes with fewer kinds moving them.
 
-## Step 5 — `7b4f4f14`: `apply-detect` on a dismiss-only pass
+## Step 8 — `5fb70821`: can two manifests share one MCP server?
 
-The hook compares `.applied` watermark mtimes and injects "the record is
-fresh, a tracker diff may await a bookkeeping commit." A pass that only
-*dismissed* events moves the watermark and wrote nothing to an org file, so
-the session is told to go look for a diff that does not exist.
-
-Small, and worth it because the hook exists precisely to stop a session
-announcing something untrue.
-
-## Step 6 — `60ed5b96`: a docstring contradicting its own `let*`
-
-Four lines apart, in `--review-format-annotation`. The smallest member here
-and the purest statement of the slice's title: nothing failed, nothing was
-wrong at runtime, and the file said something false to every reader.
-
-Read the `let*` and rewrite the docstring to it — not the reverse, unless the
-code turns out to be the thing that drifted, which is a finding worth saying
-out loud.
+Research, and the answer decides whether the two-plugin question ever reopens.
+Record it either way. The trigger worth writing down now: a consumer wanting the
+time half *without* the task half, which is incoherent today and would stop
+being so only if spans ever attributed to something other than org headings.
 
 ---
 
 ## Where this will stop
 
-Six of seventeen. A session that lands Step 1 and Step 3 has done the slice's
-day well: the first makes every later verification mean something, and the
-third closes a defect that has already misled one session into answering a
-corpus question with `awk`.
+**This slice has an integration point, so it closes when its pull request
+merges** — not when its last member goes terminal. `749301a0` is the standing
+demonstration: merged 2026-09-17 and still open, because a member reopened
+during review.
 
-**The slice closes when its pull request merges**, not when its last member
-goes terminal — `749301a0` is the standing demonstration, having gone back to
-`DOING` from `REVIEW` when its own review found three things. Expect the same
-here and leave room for it.
+A session that lands Steps 1 and 2 has done the slice's day: after those two a
+consuming project can install the plugin and not be blocked on the first turn,
+which is the whole point. Steps 3 and 4 make it *honest*; the rest make it
+*supported*.
 
-**And measure the slice itself**, as `749301a0` was asked to: members, elapsed
+**And measure the slice**, as its predecessors were asked to: members, elapsed
 days, commits, review findings per member, and
-`M-x claude-code-ide-org-attention-report` over its span, compared against
-`afea7e4f`, `35582d95` and `749301a0`. **`749301a0`'s own numbers are not
-available yet** — it is back at `DOING` with a live member and an unmerged
-pull request, and review findings per member cannot be counted until its
-review is finished. So the trend has two points until PR #25 merges, exactly
-as the previous revision of this file said of `35582d95`.
+`M-x claude-code-ide-org-attention-report` over its span, against `afea7e4f`,
+`35582d95` and `749301a0`. `749301a0`'s numbers are available now that it has
+merged, so this is the first comparison with three complete points rather than
+two.
 
 ## Standing rules, with what actually happened
 
