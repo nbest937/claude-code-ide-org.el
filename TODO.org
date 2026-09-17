@@ -2,11 +2,97 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* TODO The resume-pause exemption reads adjacency in a filtered stream as continuity, so clusters span days :code:
+* TODO Clock brackets of seconds around work of an hour, so nearly all real time lands in unowned gaps :code:
+:PROPERTIES:
+:ID:       a2fac2e7-bf88-4f6f-8ada-846e3bafde11
+:CREATED:  [2026-09-17 Thu 11:02]
+:CATEGORY: Skill
+:END:
+:PLAN:
+
+Measured on 2026-09-17's own queue. Every clock bracket the agent wrote that morning:
+
+: 08:52:05 -> 08:56:31  27bb4b08  4m 26s
+: 09:51:32 -> 09:51:47  83773daf     15s
+: 09:58:03 -> 09:58:34  507754ba     31s
+
+Between the first two lies a 55-minute stretch containing **24 guideposts** — the body restoration, filing =17f93758=, wrapping twelve headings. Real work, none of it inside any bracket.
+
+*The mechanism is the shape of the calls, not forgetfulness.* =org_clock_in= and =org_clock_out= were issued in the same batch of tool calls, so the bracket encloses the *announcement* of the work rather than the work, and everything after it runs unclocked until the next heading is announced. Fifteen seconds is not a plausible duration for anything; it is the round-trip of two queued events.
+
+*Two consequences, and the second is why this is filed against practice rather than left as a habit.* Every heading's recorded time is understated by roughly the whole of its work. And the unbracketed remainder becomes the "unowned" gaps that =--span-complement= offers for review — which is what filled the user's buffer with spans they could not attribute, and what made them ask three separate times what a span represented. =5a9d877e= stopped those gaps spanning days; nothing can make them meaningful while the brackets they are measured against are seconds long.
+
+*The standing rule covers the open and not the close.* "Clock in before the first thing that writes" is followed; what is missing is clocking **out** when the heading is actually left. The correction: =clock_out= belongs at the moment attention moves to another heading, not at the end of the announcing turn, and a stretch of work on one heading should produce one bracket that covers it.
+
+*Checkable rather than resolved, which is the point of filing it.* The ratio of bracketed time to guidepost-covered time is computable straight from the queue, so "did this improve" has an answer that does not depend on anyone remembering. Today's figure is the baseline: three brackets totalling 5m 12s against a morning of work.
+:END:
+
+The agent's clock brackets enclose the announcement of work rather than the work: three brackets on 2026-09-17 totalling 5m 12s, one of them 15 seconds, against a morning whose unbracketed gaps held 24 guideposts. Every heading's time is understated by most of its work, and the remainder becomes the unowned spans that fill the review buffer. The standing rule covers clocking *in*; the correction belongs at the close — =clock_out= when attention leaves the heading, not when the announcing turn ends.
+
+
+* TODO A span with no readable evidence prints nothing about itself, so absence is the only signal :code:
+:PROPERTIES:
+:ID:       cf483f5d-2d25-4454-a580-db7935c8cb81
+:CREATED:  [2026-09-17 Thu 11:01]
+:CATEGORY: Apply
+:END:
+:PLAN:
+
+=--review-written-summary= returns the phrase "0:11 span, 0:01 in 1 run, 6 turns" for a span whose events carry a readable =:kind=, and **nil** otherwise — printing nothing at all. So an item with no usable evidence renders exactly like an ordinary one minus its summary line, and the reader is left to notice an absence.
+
+It does not work. The user asked three times in one morning what such a line represented — of =[15:17]--[18:28]=, of =[14:55]--[15:16]=, and of =[08:56]--[09:51]= — each time saying they could not tell because no minutes, runs or turns were reported. Three asks about three instances of one thing is the measurement.
+
+*The function already promises the opposite, which is what makes this a defect rather than a missing feature.* Its own docstring closes: "Says the runs are absent rather than falling silent when none survives. That is a real outcome … and it is the one a human most needs before marking, since the item will otherwise look applied and leave no CLOCK line behind." The branch that would say it is never reached, because the guard =(and (plist-get item :suggested) (--span-kinds-known-p (plist-get item :events)))= short-circuits first.
+
+Proposal: when =:suggested= but the kinds are unknown, return a phrase rather than nil — naming *why* there is nothing to report, since the two causes want different answers. No events inside at all means the item is bounded by clock brackets rather than by turns, and =d= will refuse it (=445fe577=). Events present but kind-less is the hand-built or fixture case. Either way the line should say what it is, not leave a gap where a summary goes.
+
+Worth deciding at the same time whether such an item should carry a visible marker in the item line itself, not only in the summary, since the summary is what a skimming eye passes over.
+:END:
+
+A span whose events carry no readable =:kind= gets no summary line at all, so it renders as an ordinary item minus its evidence and the reader must notice an absence — which they do not: the user asked three times in one morning what such a line meant. Proposal: when the kinds are unknown, say so and say which cause, since "no events inside at all" and "events without kinds" want different answers from the human.
+
+
+* TODO `c` claims an envelope whatever runs it contains, so one keystroke can record 3h11m over 16 minutes :code:
+:PROPERTIES:
+:ID:       aee8487e-0650-4396-bc5c-193ca3efcecb
+:CREATED:  [2026-09-17 Thu 10:08]
+:CATEGORY: Apply
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-17 Thu 10:07]--[2026-09-17 Thu 10:08] =>  0:01
+- [2026-09-17 Thu 10:07]--[2026-09-17 Thu 10:08]
+:END:
+:PLAN:
+
+=claude-code-ide-org-review-claim-envelope= guards three things — that the item is a span, that it is still =:suggested=, and that it is not zero-width — and nothing about whether the span carries runs. But =2deb090f= built it for the **0-run** case, where the envelope is all there is; its docstring argues from "a span whose guideposts yield no run writes an annotation and no CLOCK line at all". On a span that does carry runs, =c= clears =:suggested=, so =--review-intervals-to-write= returns the displayed interval instead of the runs, and the whole envelope is recorded.
+
+Found in use 2026-09-17, with numbers. The pending span =[2026-09-16 Wed 15:17]--[2026-09-16 Wed 18:28]= is a complement segment whose endpoints are owned-bracket edges — a =clock_out= on Review and planning at 15:17:09 and a =clock_in= on =27788fd1= at 18:28:15 — so clustering's 20-minute threshold never applied to it. Inside are three runs totalling about sixteen minutes, and a **2h53m hole with zero events** between 15:34:07 and 18:27:11, which the user confirmed was time away from the keyboard. Pressing =c= there records 3h11m of attention: a ratio of roughly twelve to one.
+
+The ordinary path is safe and that is the point — apply writes one CLOCK line per run while the item stays =:suggested=, so accepting it normally records the sixteen minutes correctly. Only =c= inflates, and it does so silently and in one keystroke.
+
+Proposal: refuse when the span has runs, or require a confirmation naming both numbers ("claim 3:11 where 0:16 was observed?"). The second is probably right — claiming an envelope over observed runs is occasionally legitimate, since a human may have been working without producing turns, and that is exactly the assertion =c= exists to let them make. What is wrong is making it without being told what it costs. Related bound already recorded on =445fe577=: emitting these gap spans is the feature, and the sharp edge is a large one.
+:END:
+
+=claude-code-ide-org-review-claim-envelope= checks that the item is a span, is still =:suggested=, and is not zero-width — nothing about the evidence inside it. =2deb090f= built =c= for the 0-run case where the envelope is all there is, and complement segments broke that assumption: a 0-run span can now be a three-hour gap between clock brackets. Proposal: a confirmation naming both numbers rather than a refusal, since claiming an envelope over sparse evidence is sometimes the right assertion — what is wrong is making it without being shown the cost.
+
+
+
+* DONE The resume-pause exemption reads adjacency in a filtered stream as continuity, so clusters span days :code:
+CLOSED: [2026-09-17 Thu 10:38]
 :PROPERTIES:
 :ID:       5a9d877e-b492-46c7-a672-fd5971ffb0b0
 :CREATED:  [2026-09-17 Thu 10:30]
 :CATEGORY: Queue
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-17 Thu 10:34]--[2026-09-17 Thu 10:38] =>  0:04
+- State "DOING"      from "TODO"       [2026-09-17 Thu 10:34] \\
+  implementing the full-stream adjacency test
+- [2026-09-17 Thu 10:34]--[2026-09-17 Thu 10:38]
+CLOCK: [2026-09-17 Thu 10:38]--[2026-09-17 Thu 10:39] =>  0:01
+- State "DONE"       from "DOING"      [2026-09-17 Thu 10:38] \\
+  173.7h cluster gone; 686 tests
+- <2026-09-17 Thu 10:38>--<2026-09-17 Thu 10:39> assigned at review
 :END:
 :PLAN:
 
@@ -39,7 +125,6 @@ The aggregator never splits a =resume= -> =pause= adjacency however long the gap
 *One wrong turn worth recording, because it nearly became a false negative.* The first end-to-end probe reported **no effect** — identical clusters before and after — and I briefly concluded the production wiring was wrong. It was the probe that was wrong: it built its stream with =(claude-code-ide-org--queue-events nil)=, the pending remnant, where production's =history= is bound at =--review-items-from-queue='s head as =(claude-code-ide-org--queue-events session-id t)=, consumed events included. Feeding the remnant as "the full stream" adds nothing by construction, since the remnant is what the filtered stream was drawn from. The lesson is narrow and sharp: a probe that simulates a caller must take its inputs from the caller, not rebuild them from the same names.
 
 *What this does not fix.* =445fe577= blocks on this heading, and the complement will still emit interior gaps — that is =c54c4215='s feature working. What ends is the inter-bracket, overnight and multi-day pieces, which existed only because the cluster had no business spanning them.
-
 
 
 * TODO The PLAN nag counts lines while the tools write paragraphs, so it cannot fire on their output :code:
@@ -313,7 +398,7 @@ so the 86 unannotated intervals stop accumulating as a side effect rather than
 needing their own change.
 
 
-* TODO The complement's gap spans carry no events, so half the review buffer cannot be dismissed :code:
+* DOING The complement's gap spans carry no events, so half the review buffer cannot be dismissed :code:
 :PROPERTIES:
 :ID:       445fe577-01ce-4e68-ab5f-c349c40a4643
 :CREATED:  [2026-09-16 Wed 09:24]
@@ -323,6 +408,20 @@ needing their own change.
 :LOGBOOK:
 CLOCK: [2026-09-16 Wed 18:29]--[2026-09-16 Wed 18:34] =>  0:05
 - [2026-09-16 Wed 18:29]--[2026-09-16 Wed 18:34]
+- State "DOING"      from "TODO"       [2026-09-17 Thu 10:14] \\
+  blocking the review pass; dismissal by bounds
+CLOCK: [2026-09-17 Thu 10:17]--[2026-09-17 Thu 10:18] =>  0:01
+- [2026-09-17 Thu 10:17]--[2026-09-17 Thu 10:18]
+CLOCK: [2026-09-17 Thu 10:21]--[2026-09-17 Thu 10:22] =>  0:01
+- [2026-09-17 Thu 10:21]--[2026-09-17 Thu 10:22]
+CLOCK: [2026-09-17 Thu 10:24]--[2026-09-17 Thu 10:26] =>  0:02
+- [2026-09-17 Thu 10:24]--[2026-09-17 Thu 10:26] suggested span, accepted at review
+CLOCK: [2026-09-17 Thu 10:28]--[2026-09-17 Thu 10:31] =>  0:03
+- [2026-09-17 Thu 10:28]--[2026-09-17 Thu 10:31]
+CLOCK: [2026-09-17 Thu 10:33]--[2026-09-17 Thu 10:34] =>  0:01
+- [2026-09-17 Thu 10:33]--[2026-09-17 Thu 10:34]
+CLOCK: [2026-09-17 Thu 10:34]--[2026-09-17 Thu 10:34] =>  0:00
+- [2026-09-17 Thu 10:34]--[2026-09-17 Thu 10:34] suggested span, accepted at review
 :END:
 
 Regression introduced by [[id:c54c4215-90e3-4e0c-9de1-990c0406a2b2][c54c4215]]'s complement, found 2026-09-16 when the user asked what the undismissable items were. **7 of 14 currently offered items carry no =:events=**, and =claude-code-ide-org-review-dismiss= refuses them: "Nothing to dismiss: this item carries no queue events". The refusal is correct on its own terms — dismissal works by marking an item's backing events consumed, and with none there is nothing to record, so refusing beats appearing to work. *What they are, confirmed against the raw queue rather than inferred:* every one is bounded by a =clock_out= at its start and a =clock_in= at its end — the gap after one heading's clock closed and before the next one's opened. They are exactly what this heading's parent set out to surface, and they carry no events **by construction**: their boundaries are bracket *edges*, not guideposts, and any guidepost inside them would sit inside a bracket and so already be owned. *The trade I made without noticing.* Before the complement, a split emitted zero-width *endpoints* sitting on real guideposts — those had events and could be dismissed. The complement replaced them with real-duration gaps that cannot. I measured the minutes recovered (12.64 h) and never checked what happened to reviewability; half the buffer is now undismissable. That is =355fa608='s "offered forever" in new clothes, and that guard does not reach it because it keys on *zero width* while these have real duration. *Two consequences, one benign.* =d= is unavailable, so the only exits are accepting the item or applying the sibling segments that share the cluster's guideposts, which dissolves the cluster and takes the gap with it. Applying is at least idempotent — =--recorded-intervals-at-point= subtracts what is already written, so a replay writes nothing and there is no double-count. *Shape of the fix, not chosen.* Either dismissal keys on the span's bounds rather than its events, which means a dismissal record that is not per-event and so a second shape in the watermark file; or the item carries its bounding =clock_out=/=clock_in= as read-only =:events= it may reference but must never consume, since consuming them would break the brackets they belong to. The first is more honest about what is being dismissed; the second reuses the existing path. Worth deciding against the 86-minute example the user surfaced (=0086614a= -> =c60a1c53=), where the gap is large enough that dismissing it is a real choice rather than tidying.
@@ -365,8 +464,6 @@ Seven days holding seven guideposts. No gap threshold of 1200 s can produce that
 *Fix shape, with a location:* the exemption should require the two events be adjacent in the **full** event stream rather than in the filtered one the function was handed — the caller knows both, the callee currently sees only one. No invented threshold and no new storage, and it restores =c54c4215='s complement to what its own title says: the gaps between clock pairs *that split a span*, not the interval between every adjacent pair of brackets in the corpus.
 
 *Probe limitation, stated because it bounds the claim:* only three brackets survive in the live queue, the rest consumed by applies, so step 2 of the probe could not reproduce the current item list and is inconclusive. Step 1 needs no brackets and is what the finding rests on. A synthetic fixture is what the fix's test should use.
-
-
 
 
 * TODO Should a short 0-run span default to claimed, and where does the bound fall? :research:
@@ -985,7 +1082,7 @@ matters here is therefore not a new property but the existing one: link the plan
 revision when the slice is picked up**, and this is its first recorded failure.
 
 
-* DOING [12/13] A span is only as true as its owner, its edges and its payload :code:
+* DOING [13/14] A span is only as true as its owner, its edges and its payload :code:
 :PROPERTIES:
 :ID:       749301a0-0bd0-4fbd-b3f7-79739226e15a
 :CREATED:  [2026-09-11 Fri 18:58]
@@ -1069,6 +1166,7 @@ Incidental:
 - [X] [[id:0b600ab4-15b6-496b-8517-a0426f9f9ae5][0b600ab4]] DONE --transcript-longer-sibling picks the wrong sibling when the two copies are nearly the same size
 - [X] [[id:7e720ddf-fb7c-41a9-82d1-b8fbc14aeacd][7e720ddf]] DONE Commenting out the 202 override took use-package!'s closing paren, silently disabling the MCP server
 - [X] [[id:27bb4b08-d95f-4955-a518-efb2ecf6e51b][27bb4b08]] DONE The reload rule lost its always-loaded home, so two repo cross-references now point at a file that does not load
+- [X] [[id:5a9d877e-b492-46c7-a672-fd5971ffb0b0][5a9d877e]] DONE The resume-pause exemption reads adjacency in a filtered stream as continuity, so clusters span days
 
 Integration point: [[https://github.com/nbest937/claude-code-ide-org.el/pull/25][PR #25]], opened [2026-09-16 Wed 14:24] with 50 commits. The slice stays REVIEW until it merges.
 
@@ -7650,8 +7748,16 @@ CLOCK: [2026-08-18 Tue 16:56]--[2026-08-18 Tue 17:26] =>  0:30
 - [2026-08-18 Tue 16:56]--[2026-08-18 Tue 17:26] recompute the accumulated CLOCK lines
 - State "DONE"       from "TODO"       [2026-08-19 Wed 08:05] \\
   re-queued, lost to my git checkout
+CLOCK: [2026-09-17 Thu 09:58]--[2026-09-17 Thu 09:59] =>  0:01
 - State "DOING"      from "DONE"       [2026-09-17 Thu 09:58] \\
   its condition recurred: four aggregator fixes landed after it closed
+- [2026-09-17 Thu 09:58]--[2026-09-17 Thu 09:59]
+CLOCK: [2026-09-17 Thu 09:59]--[2026-09-17 Thu 10:00] =>  0:01
+- [2026-09-17 Thu 09:59]--[2026-09-17 Thu 10:00] suggested span, accepted at review
+CLOCK: [2026-09-17 Thu 10:05]--[2026-09-17 Thu 10:07] =>  0:02
+- [2026-09-17 Thu 10:05]--[2026-09-17 Thu 10:07] suggested span, accepted at review
+CLOCK: [2026-09-17 Thu 10:10]--[2026-09-17 Thu 10:11] =>  0:01
+- [2026-09-17 Thu 10:10]--[2026-09-17 Thu 10:11] suggested span, accepted at review
 :END:
 :PLAN:
 
@@ -12289,6 +12395,7 @@ call it done.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-17 Thu 10:48]--[2026-09-17 Thu 10:58] =>  0:10
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04

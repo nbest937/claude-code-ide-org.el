@@ -7,7 +7,469 @@ Archived entries from file /Users/neil.best/git/claude-code-ide-org/TODO.org
 * 2026
 
 ** 2026-09 September
+*** 2026-09-17 Thursday
+**** DONE --session-alias-cache is keyed on the session set alone, so a nil map outlives the transcript that caused it :code:
+CLOSED: [2026-09-17 Thu 09:51]
+:PROPERTIES:
+:ID:       83773daf-df07-4665-b5fc-0445e0da6211
+:CREATED:  [2026-09-16 Wed 18:34]
+:CATEGORY: Queue
+:ARCHIVE_TIME: 2026-09-17 Thu 10:14
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Queue
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+- State "DONE"       from "DOING"      [2026-09-17 Thu 09:51] \\
+  685 tests; PR #25 thread resolved
+CLOCK: [2026-09-17 Thu 09:51]--[2026-09-17 Thu 09:52] =>  0:01
+- State "DOING"      from "TODO"       [2026-09-17 Thu 09:51] \\
+  PR #25 review finding; fixing now
+- [2026-09-17 Thu 09:51]--[2026-09-17 Thu 09:52]
+CLOCK: [2026-09-17 Thu 09:52]--[2026-09-17 Thu 09:58] =>  0:06
+- [2026-09-17 Thu 09:52]--[2026-09-17 Thu 09:58] suggested span, accepted at review
+:END:
+:PLAN:
+
+PR #25 review, MEDIUM, against code =b57c7515= introduced. The cache is keyed on the sorted session-id set and never invalidated, and it short-circuits before any stamp is read — so it defeats the live re-read =--transcript-stamp-cache= exists to provide: a mid-work re-key whose new transcript has not yet flushed its first entry caches a **nil** map for that sid set, and the bracket never pairs again for the life of the Emacs process. The key also omits the =ranges=, which are what decide the canonical member and what the =--session-ranges-overlap-p= refusal is computed from, so two event sets sharing a sid set but not a time span share an answer built from one of them.
+
+*Filed rather than fixed, because the obvious repair is wrong.* Not caching a nil result would defeat the cache in precisely its common case — the docstring says nil "is the common case", and the map globs every transcript directory while =--span-events= runs once per candidate bracket in a subdivision. So the key has to become something that changes when a transcript could have grown, which is a design question rather than an edit. Including a ranges digest is necessary and not sufficient.
+:END:
+
+=--session-alias-cache= is keyed on the sorted session-id set alone and never invalidated, so a nil alias map cached before a re-keyed transcript flushed its first entry persists for the life of the Emacs process and defeats the live re-read the stamp cache exists to provide. The key also omits the ranges that decide the canonical member. Filed rather than fixed: not caching nil would defeat the cache in its common case, so the key needs to reflect transcript growth — a design question, not an edit.
+
+*Fixed 2026-09-17, commit =9116821=, and what settled the design was reading the layer below.* =--transcript-stamp-cache= is keyed on =(file . mtime)=, so it *already* self-invalidates when a transcript grows — the alias cache was not racing it, it was short-circuiting before any stamp was read. That makes the cut a semantic one rather than a timing one: "no re-key detected **yet**" and "no re-key **exists**" are different answers, and only the second is cacheable.
+
+Two changes. The key now carries each session's range alongside its id, since the ranges choose the canonical member and are what =--session-ranges-overlap-p= refuses on — two event sets sharing only a set of ids were genuinely different questions colliding on one answer. And a nil result reached while any session failed to resolve a first stamp is no longer cached at all.
+
+*Both costs are written into the code rather than left to be rediscovered.* An event set naming a transcript that has aged out (=4acd8ad0=) now recomputes on every call; that is bounded, because the stamp layer memoises the miss too, under a =(file . nil)= key. And a **non-nil** result is still cached when some session was unresolved, so a late-flushing member cannot join a group that already formed — a window strictly narrower than the one closed, and deliberately left.
+
+*Both tests were proved red first and are behavioural rather than structural.* One differs between its two calls only in what is on disk between them — the second transcript lands between the first call and the second — which is the defect stated as an observation rather than as an assertion about a cache. The other hands the same two session ids opposite queue order and expects the canonical member to follow. 685 tests, was 683; =bin/lint-org= 0 errors; =bin/check-conventions= 32 ok once a working Emacs was available to answer the twenty checks that ask it.
+
+
+**** DONE The reload rule lost its always-loaded home, so two repo cross-references now point at a file that does not load :code:
+CLOSED: [2026-09-17 Thu 08:56]
+:PROPERTIES:
+:ID:       27bb4b08-d95f-4955-a518-efb2ecf6e51b
+:CREATED:  [2026-09-17 Thu 08:52]
+:CATEGORY: Skill
+:ARCHIVE_TIME: 2026-09-17 Thu 10:14
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Skill
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+- State "DOING"      from "TODO"       [2026-09-17 Thu 08:52] \\
+  fixing the two cross-references
+CLOCK: [2026-09-17 Thu 08:55]--[2026-09-17 Thu 08:56] =>  0:01
+- [2026-09-17 Thu 08:55]--[2026-09-17 Thu 08:56]
+- State "DONE"       from "DOING"      [2026-09-17 Thu 08:56] \\
+  org-dev §0 owns the rule; next-session follows; check-org-dev-skill 20 ok
+CLOCK: [2026-09-17 Thu 09:11]--[2026-09-17 Thu 09:12] =>  0:01
+- [2026-09-17 Thu 09:11]--[2026-09-17 Thu 09:12] suggested span, accepted at review
+CLOCK: [2026-09-17 Thu 09:13]--[2026-09-17 Thu 09:14] =>  0:01
+- [2026-09-17 Thu 09:13]--[2026-09-17 Thu 09:14] suggested span, accepted at review
+CLOCK: [2026-09-17 Thu 09:17]--[2026-09-17 Thu 09:19] =>  0:02
+- [2026-09-17 Thu 09:17]--[2026-09-17 Thu 09:19] suggested span, accepted at review
+CLOCK: [2026-09-17 Thu 09:22]--[2026-09-17 Thu 09:23] =>  0:01
+- [2026-09-17 Thu 09:22]--[2026-09-17 Thu 09:23] suggested span, accepted at review
+:END:
+:PLAN:
+
+The user retired =~/.claude/CLAUDE.md= on 2026-09-17 (renamed to =.old=), having decided its footnote half was duplicated by =fc70b56d='s promoted rule and that neither rule was wanted in projects without this machinery. Two live references in this repo named it as a load-bearing home and are now false: the org-dev skill's §0, which said the rule's general form "lives in =~/.claude/CLAUDE.md=" and was "restated here", and =next-session.md='s Step 1, which cited both as the rule's homes.
+
+The consequence to state rather than paper over: the reload-precondition rule now has **no always-loaded home at all**. It lives in the org-dev skill, which is *triggered*, so a verification that is not Emacs- or Doom-shaped no longer meets it. That is an accepted trade, not an oversight — but §0 should own the rule outright instead of deferring to a file that is gone.
+
+=bin/hooks/doc-sync-check='s comment also names the file, and is deliberately left alone: it uses it as an illustration of why the hook matches full paths rather than basenames, and that argument does not depend on the file existing.
+:END:
+
+Retiring =~/.claude/CLAUDE.md= left two live repo references naming it as a load-bearing home for the reload-precondition rule: the org-dev skill's §0 and =next-session.md='s Step 1. Both corrected, with §0 now owning the rule outright. The accepted consequence, stated rather than papered over: a skill is triggered rather than always loaded, so a verification that is neither Emacs- nor Doom-shaped no longer meets the rule anywhere.
+
 *** 2026-09-16 Wednesday
+**** DONE The review buffer's legend omits two of its own keys, one of them the help key :code:
+CLOSED: [2026-09-16 Wed 18:34]
+:PROPERTIES:
+:ID:       36698ca7-9358-41ca-862c-962af49691cd
+:CREATED:  [2026-09-16 Wed 18:30]
+:CATEGORY: Apply
+:ARCHIVE_TIME: 2026-09-17 Thu 10:14
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Apply
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+- State "DONE"       from "TODO"       [2026-09-16 Wed 18:34] \\
+  both keys listed; the brittle test re-anchored
+:END:
+:PLAN:
+
+PR #25 review, LOW, and broader than the finding. The legend named m/u, M/U, t, a, e, N, d, RET, T, s, x, g and q; the keymap also binds =c= (claim the envelope, added by =2deb090f=) and =?= (=claude-code-ide-org-review-help=). So the one key that would list the others was itself unlisted. The =c= omission defeats exactly the case =2deb090f= was built for — a human reading the legend keeps reaching for =e=, which is the hand-editing the new key exists to replace, and the user predicted they would "rarely if ever reach for =e=" the same day.
+
+:END:
+*Resolved:* both keys added, and the legend's comment now records that it is a hand-maintained third copy of the binding table that nothing checks. Growing it to three lines broke a test that found "a blank line" by counting two lines from =point-min= — true only under a two-line legend — so that test was re-anchored on a search and now fails for its own reasons or not at all.
+
+
+**** DONE footnote-check indents the lines it tells you to append, and the canonical form is flush-left :code:
+CLOSED: [2026-09-16 Wed 18:34]
+:PROPERTIES:
+:ID:       cfdfe119-34ad-4ee5-9477-d71dc450eabd
+:CREATED:  [2026-09-16 Wed 18:31]
+:CATEGORY: Skill
+:ARCHIVE_TIME: 2026-09-17 Thu 10:14
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Skill
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+- State "DONE"       from "TODO"       [2026-09-16 Wed 18:34] \\
+  flush-left, with an anchored assertion proved red first
+:END:
+:PLAN:
+
+PR #25 review, LOW. The hook built each suggested line as =$resolved  \=id\=  ...=, with a two-space prefix, while =org-footnote-citations.md= — shipped in the same PR — gives the canonical form flush-left. The message says "Append these lines", so the indent was what a reader copied, and the rule and its enforcement disagreed about the one thing the rule is precise about. =bin/footnote-check-test= was blind to it: its pairing assertion matches a substring and is indifferent to the prefix.
+
+:END:
+*Resolved:* two spaces dropped, plus a separate anchored assertion. Worth recording how that assertion was got wrong first: written with an embedded newline in the pattern, it PASSED against the indenting hook, because =grep= reads a newline as a pattern separator and the empty alternative matches every line. Anchored with =^= it failed as intended, then passed on the fix. 24 passed, was 23.
+
+**** DONE A project boundary splits a span, and the shipped reference still presents the threshold as the whole rule :code:
+CLOSED: [2026-09-16 Wed 18:29]
+:PROPERTIES:
+:ID:       27788fd1-e9d3-43a6-9a68-4e37ebfe9518
+:CREATED:  [2026-09-16 Wed 14:50]
+:CATEGORY: Queue
+:ARCHIVE_TIME: 2026-09-17 Thu 10:14
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Queue
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-16 Wed 14:52]--[2026-09-16 Wed 14:53] =>  0:01
+- State "DOING"      from "TODO"       [2026-09-16 Wed 14:52] \\
+  documenting the project dimension
+- [2026-09-16 Wed 14:52]--[2026-09-16 Wed 14:53]
+CLOCK: [2026-09-16 Wed 14:53]--[2026-09-16 Wed 14:53] =>  0:00
+- State "DONE"       from "DOING"      [2026-09-16 Wed 14:53] \\
+  both copies agree with the code; promotion clean
+- [2026-09-16 Wed 14:53]--[2026-09-16 Wed 14:53] suggested span, accepted at review
+CLOCK: [2026-09-16 Wed 18:27]--[2026-09-16 Wed 18:28] =>  0:01
+- <2026-09-16 Wed 18:27>--<2026-09-16 Wed 18:28> assigned at review
+CLOCK: [2026-09-16 Wed 18:28]--[2026-09-16 Wed 18:29] =>  0:01
+- State "DOING"      from "DONE"       [2026-09-16 Wed 18:28] \\
+  review found the analogy false; reopening before the DONE applies
+- [2026-09-16 Wed 18:28]--[2026-09-16 Wed 18:29]
+CLOCK: [2026-09-16 Wed 18:29]--[2026-09-16 Wed 18:29] =>  0:00
+CLOCK: [2026-09-16 Wed 18:29]--[2026-09-16 Wed 18:29] =>  0:00
+- State "DONE"       from "DOING"      [2026-09-16 Wed 18:29] \\
+  corrected after review; the earlier DONE note was written before the finding
+CLOCK: [2026-09-16 Wed 18:29]--[2026-09-16 Wed 18:29] =>  0:00
+- [2026-09-16 Wed 18:29]--[2026-09-16 Wed 18:29] suggested span, accepted at review
+:END:
+:PLAN:
+
+Since =c9940558= the aggregator keys its points on =(TS KIND PROJECT)= and a project boundary splits a span, while =--aggregate-guideposts='s own docstring documented only =THRESHOLD= and =EXCLUSIONS=, and the shipped =org-session-tracking.md= "three numbers" section still presented the gap threshold as what decides grouping. Nothing there was *false*; the omission is what mattered, and it matters to the consumer rather than to us: the queue is one global directory under =~/.claude/org-updates=, so before this branch two repos' turns in the same window clustered into a single span, and running the queue in more than one repo is the plugin's whole premise.
+
+:END:
+*Resolved:* a paragraph in the shipped reference and a clause in the docstring, both naming the project dimension and keeping the part that matters — both sides must be known and differ, so a nil =cwd= is unknown rather than elsewhere. The PR #25 review then caught a second fault in the same prose: it called the project split "the way a permission block does", which has been false since =c54c4215= made blocks a subtraction rather than a split. Corrected in all three copies, with the stale comment that misled me rewritten to record that it outlived the change.
+
+
+**** DONE The footnote convention ships as an enforcing hook and as no rule anyone can read :code:
+CLOSED: [2026-09-16 Wed 14:55]
+:PROPERTIES:
+:ID:       fc70b56d-2008-4821-8728-fc9d67060e74
+:CREATED:  [2026-09-16 Wed 14:50]
+:CATEGORY: Skill
+:ARCHIVE_TIME: 2026-09-17 Thu 10:14
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Skill
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-16 Wed 14:53]--[2026-09-16 Wed 14:55] =>  0:02
+- State "DOING"      from "TODO"       [2026-09-16 Wed 14:53] \\
+  the user confirmed the hook should ship; writing the rule
+- [2026-09-16 Wed 14:53]--[2026-09-16 Wed 14:55]
+CLOCK: [2026-09-16 Wed 14:55]--[2026-09-16 Wed 15:16] =>  0:21
+- State "DONE"       from "DOING"      [2026-09-16 Wed 14:55] \\
+  promoted always-loaded; six references now travel
+- [2026-09-16 Wed 14:55]--[2026-09-16 Wed 15:16] suggested span, accepted at review
+:END:
+:PLAN:
+
+=hooks/hooks.json= wires =bin/hooks/footnote-check= as a =Stop= hook, so it blocks turns in every consuming project — and the string "footnote" appeared on the whole plugin surface exactly once, in that wiring line. The hooks table listed six rows and not this one; no reference stated the convention, which lived only in the author's private =~/.claude/CLAUDE.md= and travelled with nobody. The user confirmed 2026-09-16 that it *should* ship: tasks in any other project are expected to be cited by =:ID:= prefix exactly as here. So the gap was the rule, not the hook.
+
+:END:
+*Resolved:* =skills/org/references/org-footnote-citations.md=, promoted always-loaded — an id gets cited in a response about source, tests or commits with no =.org= file in play, so a path scope would make it a rule that does not load. It carries the canonical form, why the superscript markers were retired, and the three things about the hook's reading that have each been got wrong: the =---= separator, fenced blocks, and that it reports a strict subset. The hooks table gained its two missing =Stop= rows in the same pass. One correction after writing: the hook reads =last_assistant_message=, which carries only the turn's *final text block*, and the looser wording would have walked a consumer into the wall that killed this repo's orphan check.
+
+*Postscript, 2026-09-17:* the user retired =~/.claude/CLAUDE.md= once this shipped, on the ground that its footnote half was now duplicated and neither of its rules was wanted in projects without this machinery. The duplication this heading created was therefore resolved by deletion rather than by reconciliation — see =27bb4b08= for what that cost in cross-references.
+
+
+**** DONE Three copies of the keyword set sit outside check-conventions, and two of them ship :code:
+CLOSED: [2026-09-16 Wed 14:52]
+:PROPERTIES:
+:ID:       a3ee7033-dc77-4227-ab87-dc6c27310b8f
+:CREATED:  [2026-09-16 Wed 14:50]
+:CATEGORY: Dev
+:ARCHIVE_TIME: 2026-09-17 Thu 10:14
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Dev
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-16 Wed 14:50]--[2026-09-16 Wed 14:52] =>  0:02
+- State "DOING"      from "TODO"       [2026-09-16 Wed 14:50] \\
+  extending the keyword-set section
+- [2026-09-16 Wed 14:50]--[2026-09-16 Wed 14:52]
+CLOCK: [2026-09-16 Wed 14:52]--[2026-09-16 Wed 14:52] =>  0:00
+- State "DONE"       from "DOING"      [2026-09-16 Wed 14:52] \\
+  32 ok, was 29; each assertion discriminates
+- [2026-09-16 Wed 14:52]--[2026-09-16 Wed 14:52] suggested span, accepted at review
+:END:
+:PLAN:
+
+=bin/check-conventions= asserts the TODO keyword set agrees across four places against this repo's own =#+TODO:= header, and its own comment records that the set has drifted before. Three further copies are outside it: the awk alternation =bin/hooks/footnote-check= gained on this branch, and the =#+TODO:= lines in =templates/TODO.org= and =templates/DONE.org=. Two of those three are *shipped* — the hook and the templates are what a consuming project actually runs and scaffolds from — so drift there is a consumer-visible failure nobody here would see. It fails silently and wrongly rather than emptily: the hook's awk defaults =kw= to =-= and leaves an unrecognised keyword in =line=, so the emitted entry shows a dash in the keyword column *and* leaks the keyword into the position the convention reserves for the exact title.
+
+:END:
+*Resolved:* three assertions added to the existing keyword-set section, same =keyword_set= helper and truth source; each proved red first by copying the file aside and removing =REVIEW= from it, and each failed naming its own source. 32 ok, was 29.
+
+
+**** CANCELLED A marker and its footnote need not correspond, and nothing checks that they do :code:
+CLOSED: [2026-09-16 Wed 14:18]
+:PROPERTIES:
+:ID:       45dc171f-ab3f-4f50-a987-950f4e88ad3a
+:CREATED:  [2026-09-16 Wed 11:00]
+:CATEGORY: Dev
+:ARCHIVE_TIME: 2026-09-17 Thu 10:14
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Dev
+:ARCHIVE_TODO: CANCELLED
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-16 Wed 10:59]--[2026-09-16 Wed 11:00] =>  0:01
+- [2026-09-16 Wed 10:59]--[2026-09-16 Wed 11:00] measure the marker fault base rate
+CLOCK: [2026-09-16 Wed 11:00]--[2026-09-16 Wed 11:10] =>  0:10
+- <2026-09-16 Wed 11:00>--<2026-09-16 Wed 11:10> assigned at review
+- State "DOING"      from "TODO"       [2026-09-16 Wed 11:10] \\
+  validate the 97 before building anything
+CLOCK: [2026-09-16 Wed 11:13]--[2026-09-16 Wed 11:14] =>  0:01
+- [2026-09-16 Wed 11:13]--[2026-09-16 Wed 11:14] hand-check the marker correspondence sample
+CLOCK: [2026-09-16 Wed 11:14]--[2026-09-16 Wed 11:25] =>  0:11
+- [2026-09-16 Wed 11:14]--[2026-09-16 Wed 11:25] suggested span, accepted at review
+- State "REVIEW"     from "DOING"      [2026-09-16 Wed 11:15] \\
+  51 of 72 closed; the 21 left deliberately
+- State "DOING"      from "REVIEW"     [2026-09-16 Wed 11:25] \\
+  the other direction, plus trim the message
+CLOCK: [2026-09-16 Wed 11:25]--[2026-09-16 Wed 11:28] =>  0:03
+- [2026-09-16 Wed 11:25]--[2026-09-16 Wed 11:28] suggested span, accepted at review
+CLOCK: [2026-09-16 Wed 11:28]--[2026-09-16 Wed 11:30] =>  0:02
+- State "REVIEW"     from "DOING"      [2026-09-16 Wed 11:28] \\
+  both directions shipped; nothing deferred
+- [2026-09-16 Wed 11:28]--[2026-09-16 Wed 11:30] suggested span, accepted at review
+CLOCK: [2026-09-16 Wed 11:30]--[2026-09-16 Wed 11:31] =>  0:01
+- [2026-09-16 Wed 11:30]--[2026-09-16 Wed 11:31] retire the dangle check after a false positive
+CLOCK: [2026-09-16 Wed 11:31]--[2026-09-16 Wed 11:40] =>  0:09
+- [2026-09-16 Wed 11:31]--[2026-09-16 Wed 11:40] assigned at review
+CLOCK: [2026-09-16 Wed 11:40]--[2026-09-16 Wed 11:41] =>  0:01
+- [2026-09-16 Wed 11:40]--[2026-09-16 Wed 11:41] assigned at review
+CLOCK: [2026-09-16 Wed 11:41]--[2026-09-16 Wed 11:47] =>  0:06
+- [2026-09-16 Wed 11:41]--[2026-09-16 Wed 11:47] assigned at review
+- State "DOING"      from "REVIEW"     [2026-09-16 Wed 11:47] \\
+  rework from review: the loop guard's blind window
+- State "REVIEW"     from "DOING"      [2026-09-16 Wed 11:49] \\
+  review rework done; back for judgement
+- [2026-09-16 Wed 11:49]--[2026-09-16 Wed 11:52] suggested span, accepted at review
+- State "CANCELLED"  from "REVIEW"     [2026-09-16 Wed 14:18] \\
+  its subject abolished, not repaired
+:END:
+:PLAN:
+
+Found 2026-09-16 while measuring whether [[id:2a6a1355-615f-4c2c-a8af-c9ae8dcda09b][2a6a1355]]'s marker-collision detection was worth building. It is not — 0 duplicate markers across 924 footnoted responses — but the same scan of **6749 assistant responses** surfaced a fault an order of magnitude more common and never filed: **97 responses, roughly 10% of all footnoted ones, carry a marker and a footnote that do not correspond.** 77 have a footnote line whose marker appears nowhere in the prose; 20 have a prose marker with no footnote line. Spread across a month — 18 on 2026-08-27, 14 on 08-25, 5 on 09-15 — so it is a standing pattern rather than one session's habit. =bin/hooks/footnote-check= cannot see it: its test is whether each cited *id* appears somewhere in the footnote block, which a response satisfies while pointing the reader at the wrong line or at no line at all. That is the same shape as the paraphrased-title mode [[id:33c3eabc-00f2-4cf1-afb7-4071aa256d62][33c3eabc]] closed — a footnote that exists and misleads is worse than one that is missing, because nothing refuses it and the reader has no reason to doubt it. Proposed: for each footnote line, take the leading marker as a **byte string** and =grep -qF= it against the prose; report any that never appear, and any prose marker with no line. **The multibyte objection that killed collision detection does not apply**: correspondence needs fixed-string matching, never character arithmetic, so it is locale-independent and cheap in the byte-oriented shell a =Stop= hook must stay in. Two things to settle before building. Whether a *dangling prose marker* is even a fault — a footnote that arrives in a later correction turn legitimately has its marker placed first. And whether the 77 include a systematic false positive from the block-splitting rule, which takes everything after the last line that is exactly =---=; a response with a later horizontal rule would misplace the boundary. The scan was not validated against hand-checked examples, so treat 97 as an upper bound until it is.
+
+:END:
+*Validated first, then shipped, 2026-09-16 — and validation changed the
+number, which is the reason this body insisted on it.*
+
+**The raw 97 was two populations.** Hand-checking the 77 orphan-marker hits
+split them into **26 correction turns** — footnote-only responses appended for
+an *earlier* response, whose prose legitimately holds the markers — and **51
+genuine mismatches**. The other inflation hypothesis this body named was
+falsified outright: **0 of the 77 carried more than one =---= line**, so the
+block-splitting rule was not misplacing the boundary anywhere.
+
+*The correction-turn exemption is load-bearing rather than tidy, and finding it
+was the point of validating.* This hook **asks for** that turn — it blocks, the
+model appends footnotes, and the reply is a footnote-only response. Blocking
+that would refuse the very thing just requested, and the 26 would have grown,
+because the hook induces the pattern. A response whose prose carries no marker
+at all is therefore exempt.
+
+*Shipped:* for each footnote line, the first whitespace field is the marker;
+if it appears nowhere in the prose the hook blocks and names it. Fixed-string
+matching throughout — =awk= splits on whitespace without decomposing anything
+and =grep -F= compares bytes — which is why this is cheap where
+[[id:2a6a1355-615f-4c2c-a8af-c9ae8dcda09b][2a6a1355]]'s duplicate detection was
+not, and why it is locale-independent in the byte-oriented shell a =Stop= hook
+must stay in.
+
+*Three tests; one proved red against the previous hook.* The other two pass
+either way **by design** — they are guards that the check does not *over*-fire
+(the correction turn, and the all-markers-placed case), and a guard that fails
+against the old code would mean the old code was already wrong.
+
+*Left undone, deliberately:* the other direction — a **prose marker with no
+footnote line**, 21 instances. Detecting it needs *finding* markers in prose
+rather than comparing a known one, which means superscript literals in the
+script and the encoding hazard that already cost an afternoon. Worth doing only
+if the 21 turn out to matter; the 51 were the larger and cheaper half.
+
+*The other direction shipped too, 2026-09-16 — the reason for deferring it was
+wrong.*
+
+I left it because enumerating markers *in prose* needs superscript literals and
+multi-digit disambiguation: is that a =1= and a =3=, or a =13=. That is real,
+and it is the character arithmetic this shell does badly. **But the check does
+not need enumeration.** Footnotes run from one without gaps — the hook now
+maintains that itself — so the only marker that can dangle past the end is the
+**next** one. Build it with =num_to_sup= and =grep -F= for it. A gap in the
+*middle* is already caught by the orphan check, since a missing line cannot have
+its marker placed. Cheap, byte-safe, no literals anywhere.
+
+*Worth naming the mistake rather than just the fix.* The deferral was reasoned
+from the *general* problem — find every marker in the prose — when the check
+only ever needed a *bounded* one. Having the hook maintain the numbering is what
+made the bound available, and that had shipped an hour earlier; I did not
+revisit the deferral in light of it.
+
+*And the message is back under control.* My own change had grown it from ~6
+lines to ~15 — clutter the desktop app folds and the CLI does not, and the user
+reads in the CLI. Everything invariant is gone: the standing rule lives in
+CLAUDE.md and does not need restating on every firing. **8 lines for two ids**,
+most of it the pasteable payload.
+
+*Two test assertions corrected, and the second matters beyond this change.* One
+pinned the old wording. The other — the no-JSON check — grepped for the bare
+word =continue=, which has now matched ordinary English **twice**, blocking
+message changes that printed no JSON at all. Tightened to the JSON key
+="continue"=. A proxy that fires on prose is a proxy for the wrong thing, and it
+had been quietly constraining what the message could say.
+
+*Retracting the paragraph above: the other direction shipped and was **retired
+the same hour**, and the retraction is the more useful record.*
+
+It blocked my own next response within minutes. The response quoted this hook's
+own message — which contains superscript markers — so the check read a marker
+that was being **shown** as one that was being **used**. The hook's output is a
+source of false positives for the hook.
+
+*That is [[id:2a6a1355-615f-4c2c-a8af-c9ae8dcda09b][2a6a1355]]'s quotation mode,
+reaching markers instead of ids*, and it is the same coupling
+[[id:762b7836-52db-4619-a664-25a09f84da46][762b7836]] already carries for the
+fence: once a checker emits the tokens it checks for, its own output becomes
+input.
+
+*Not fixable by narrowing.* The obvious tightening — require a non-space before
+the marker, since a real citation is attached and a quoted one usually is not —
+still admits ranges like =¹–⁴= and any enumerated list of markers. Each patch
+buys one class and leaves the next.
+
+*So it is retired rather than reimplemented more cheaply*, which is
+=7771fc63='s standing argument, and the reason is written into the hook so it is
+not rebuilt. The motivating population was **21 of 924** responses; a check
+whose false positives concentrate in the work of maintaining it is worse than no
+check.
+
+**The orphan direction is untouched and still right, and the contrast is the
+finding.** It reads markers from the *structured* side — the first whitespace
+field of a footnote line — where nothing is ever quoted or illustrative. The
+prose side has no such guarantee. **A check is safe in the direction where its
+input has structure, and unsafe in the direction where it has prose**, which is
+worth carrying to any future check of this shape rather than discovering again.
+
+*Net: 51 of the 72 faults are caught, the other 21 are declined with a reason,
+and the deferral I called wrong an hour ago turns out to have been right for a
+reason I had not found.*
+
+*Retracted in full 2026-09-16: **the orphan check is removed**, following the
+dangling check it was supposed to be the safe half of.*
+
+The argument recorded above was that this direction was safe because it reads
+markers from the *structured* side — the first field of a footnote line — where
+nothing is quoted or illustrative. That reasoning was sound about the *input*
+and wrong about the *view*: the check compares that marker against the prose,
+and =last_assistant_message= carries only the **final text block** of a
+response. A citation placed before a tool call is invisible to it, so its marker
+reads as orphaned. It fired on exactly that, on my own response, hours after
+shipping.
+
+*So both directions failed, for the same underlying reason stated two ways.*
+The dangling check could not tell a marker being *used* from one being *shown*;
+the orphan check could not see the whole response it was judging. Each is a case
+of the checker's view differing from the reader's — which is the hazard a
+*second* index always carries and the id never does, because the id is in the
+prose the reader actually has.
+
+*And the 51 faults it caught are not lost, they stop being faults.* Under the
+new form (=2a6a1355=) there are no markers to correspond: the end matter is
+keyed by identifier, so "does this footnote line point at something" and "is
+this id footnoted" are the **same question**, answered by the presence check
+that was here before any of this. 51 of 72 caught becomes 72 of 72 unreachable.
+
+*What survives is the measurement, and it is worth keeping for its method.*
+Scanning 6749 responses distinguished 26 correction turns from 51 genuine
+mismatches and falsified the block-splitting hypothesis outright — and the
+validation is what found the correction-turn exemption, without which the hook
+would have blocked the very turn it asks for. The number was right; what it
+measured has been abolished rather than repaired.
+
+*Rework from review, 2026-09-16, at the user's direction — the review found the
+checks were right and the **guard** was wrong.*
+
+Two tracked ids went unfootnoted in a response and the hook said nothing. Not a
+gap in either check: the **loop guard** fired at most once per turn, silencing
+every later =Stop= on the sentinel's mere existence. So the response
+immediately after a footnote block was unchecked — and that is the response
+*rewriting footnote-heavy prose*, where a new miss is most likely. The blind
+window sat exactly where the risk was highest.
+
+*The sentinel now records the **demand*** — the missing ids and orphaned
+markers — one per line, rather than merely existing. An **identical** demand is
+never repeated, which is the anti-loop property and the only one that matters:
+there is no =stop_hook_active= flag for a blocking =Stop= hook, so a condition
+the model cannot satisfy must still terminate, and it does because the hook can
+never ask twice for the same thing. A **different** demand blocks again, which
+is the case that was missed. A hard bound of three blocks per turn stands
+behind that, so even a pathological alternation of demands ends.
+
+*Five tests covering the ladder* — first block, same demand silenced, different
+demand blocks, third distinct demand blocks, fourth refused by the bound. Two
+proved red against the previous guard; the other three assert the anti-loop
+property the old code also had and must keep, so they pass either way by
+design.
+
+*Worth noting what the review actually caught*, since it is not what either
+check was about. Both checks were working. The failure was in the machinery
+*around* them, and it was invisible from inside: a hook that exits 0 says
+nothing, so a silenced check is indistinguishable from a passing one. That is
+the same silent-failure shape this session kept meeting — in =org_query='s empty
+result, in the audit that scanned no files, in the batch run that lost every
+three-byte character — and the tell each time was a check reporting success
+while looking at nothing.
+
+
+**** DONE Commenting out the 202 override took use-package!'s closing paren, silently disabling the MCP server :code:
+CLOSED: [2026-09-16 Wed 07:48]
+:PROPERTIES:
+:ID:       7e720ddf-fb7c-41a9-82d1-b8fbc14aeacd
+:CREATED:  [2026-09-16 Wed 07:48]
+:CATEGORY: Dev
+:ARCHIVE_TIME: 2026-09-17 Thu 10:14
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Dev
+:ARCHIVE_TODO: DONE
+:END:
+
+Found and fixed 2026-09-16 while recovering from the =489d6f61= crash. =~/.config/doom/config.el= line 158 opens =(use-package! claude-code-ide=, and the form's closing paren lived on the last line of the local 202-Accepted HTTP override — =;;     (throw 'close-connection nil))))=. When that override was commented out (it was superseded; the real bug was the server answering 200 where the MCP spec requires 202), the =))))= went with it, and the final =)= was =use-package!='s. The form then swallowed the rest of the file and =load= signalled =(end-of-file ".../config.el")=, aborting Doom's boot at form 13 of 16. Everything after it silently never ran: =global-auto-revert-mode= (inside the form), =(load! "claude-code-ide-org-glue")= at 178, and =magit-repository-directories= at 187. No glue meant no =claude-code-ide-org-standalone-wire=, so **the MCP server never started and every =org_*= tool was dead** — =claude-code-ide-mcp-server-get-port= returned nil and =bin/check-conventions= failed with "expected '45571', got 'nil'". Fixed by inserting one =)= after line 176; the file then reads 16 forms instead of 13, the glue runs, and the port is 45571. Original kept at =~/.config/doom/config.el.broken-2026-09-16=. Three things worth keeping. **The failure was invisible for a day**: the config was edited 2026-09-15 13:02 while an Emacs from 2026-09-14 10:17 kept running the old, working image, so the breakage only appeared at the next restart — the §2 "needs a real restart" class exactly. **=check-parens= passed on the broken file**, so the obvious check does not catch this; what caught it was counting top-level forms read (13) against forms present (16). **And my own first test reported the bug as success**: a batch read-loop that catches =end-of-file= as its loop terminator printed "13 top-level forms, clean EOF" — the very condition under investigation, rendered as a pass. A read-loop must compare the form count against something independent, or assert it consumed to =point-max=.
+
+
 **** DONE --transcript-longer-sibling picks the wrong sibling when the two copies are nearly the same size :code:
 CLOSED: [2026-09-16 Wed 06:44]
 :PROPERTIES:
@@ -60,6 +522,7 @@ post-change one by name alone.
 :END:
 
 Found 2026-09-15 measuring b57c7515. The function decides which of two re-keyed transcripts continues the conversation by file *size* — "the continued copy is the bigger one" — which is true when the re-key happens early and false when it happens late. Measured over the 7 re-key groups in the corpus: size and queue-order agree 6 times and disagree once. In =d79e3ed8= = {=91ed1224=, =b48bf8c1=} the sizes are 2654k against 2618k, a 1.4% gap, and the *smaller* file is the continuation — =b48bf8c1='s transcript ends 17:59:45 against =91ed1224='s 17:58:51, and its single queue event at 12:59:34 falls after =91ed1224='s last at 12:58. So the function reports =91ed1224= as superseding =b48bf8c1= when it is the other way round. The failure is silent and its own docstring is what makes it matter: the whole point is that a reader not be "sure they are looking at something they are not". Proposed: order by the transcript's *last* entry timestamp rather than its size, accepting the extra read, or fall back to it only when the sizes are within a few percent. Note size was itself a deliberate 2026 replacement for a line count (=33e6ff1a=) on cost grounds, so the fix should keep the cheap test first and pay for the tie-break only on a near-tie. Not blocking the alias map this was found from: lane canonicalisation only needs both ids to map to the *same* key, so which one is canonical does not affect pairing.
+
 
 *** 2026-09-15 Tuesday
 **** DONE [4/4] The plugin ships to a second repo unenforced, uncategorised and over-claimed :code:
