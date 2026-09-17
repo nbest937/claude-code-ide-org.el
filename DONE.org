@@ -11131,6 +11131,7 @@ CLOSED: [2026-09-02 Wed 18:21]
 :LOGBOOK:
 - State "TODO"       from              [2026-08-28 Fri 17:38] \\
   next slice, composed and awaiting review
+- [2026-08-31 Mon 13:03]--[2026-08-31 Mon 13:09] assigned at review
 - State "DOING"      from "TODO"       [2026-09-01 Tue 13:19]
 - State "DONE"       from "DOING"      [2026-09-02 Wed 18:21] \\
   all 48 declared members landed
@@ -14543,7 +14544,9 @@ CLOSED: [2026-08-31 Mon 15:54]
 CLOCK: [2026-08-31 Mon 15:52]--[2026-08-31 Mon 15:54] =>  0:02
 - State "DOING"      from "TODO"       [2026-08-31 Mon 15:52]
 - [2026-08-31 Mon 15:52]--[2026-08-31 Mon 15:54] guard g against discarding review judgement
+CLOCK: [2026-08-31 Mon 15:54]--[2026-08-31 Mon 16:38] =>  0:44
 - State "DONE"       from "DOING"      [2026-08-31 Mon 15:54]
+- [2026-08-31 Mon 15:54]--[2026-08-31 Mon 16:38] suggested span, accepted at review
 :END:
 :PLAN:
 
@@ -14665,7 +14668,9 @@ CLOSED: [2026-08-31 Mon 15:51]
 CLOCK: [2026-08-31 Mon 15:48]--[2026-08-31 Mon 15:51] =>  0:03
 - State "DOING"      from "TODO"       [2026-08-31 Mon 15:48]
 - [2026-08-31 Mon 15:48]--[2026-08-31 Mon 15:51] skip a state event that has become a no-op
+CLOCK: [2026-08-31 Mon 15:51]--[2026-08-31 Mon 15:52] =>  0:01
 - State "DONE"       from "DOING"      [2026-08-31 Mon 15:51]
+- [2026-08-31 Mon 15:51]--[2026-08-31 Mon 15:52] suggested span, accepted at review
 :END:
 :PLAN:
 
@@ -14892,7 +14897,9 @@ CLOSED: [2026-08-31 Mon 15:42]
 CLOCK: [2026-08-31 Mon 15:39]--[2026-08-31 Mon 15:42] =>  0:03
 - State "DOING"      from "TODO"       [2026-08-31 Mon 15:39]
 - [2026-08-31 Mon 15:39]--[2026-08-31 Mon 15:42] lead assign candidates with the id prefix
+CLOCK: [2026-08-31 Mon 15:42]--[2026-08-31 Mon 15:48] =>  0:06
 - State "DONE"       from "DOING"      [2026-08-31 Mon 15:42]
+- [2026-08-31 Mon 15:42]--[2026-08-31 Mon 15:48] suggested span, accepted at review
 :END:
 :PLAN:
 
@@ -15255,7 +15262,9 @@ CLOSED: [2026-08-31 Mon 15:31]
 CLOCK: [2026-08-31 Mon 15:27]--[2026-08-31 Mon 15:31] =>  0:04
 - State "DOING"      from "TODO"       [2026-08-31 Mon 15:27]
 - [2026-08-31 Mon 15:27]--[2026-08-31 Mon 15:31] audit the review buffer wording
+CLOCK: [2026-08-31 Mon 15:31]--[2026-08-31 Mon 15:39] =>  0:08
 - State "DONE"       from "DOING"      [2026-08-31 Mon 15:31]
+- [2026-08-31 Mon 15:31]--[2026-08-31 Mon 15:39] suggested span, accepted at review
 :END:
 :PLAN:
 
@@ -15386,7 +15395,9 @@ CLOSED: [2026-08-31 Mon 15:26]
 CLOCK: [2026-08-31 Mon 15:20]--[2026-08-31 Mon 15:26] =>  0:06
 - State "DOING"      from "TODO"       [2026-08-31 Mon 15:20]
 - [2026-08-31 Mon 15:20]--[2026-08-31 Mon 15:26] add a whole-heading body read
+CLOCK: [2026-08-31 Mon 15:26]--[2026-08-31 Mon 15:27] =>  0:01
 - State "DONE"       from "DOING"      [2026-08-31 Mon 15:26]
+- [2026-08-31 Mon 15:26]--[2026-08-31 Mon 15:27] suggested span, accepted at review
 :END:
 :PLAN:
 
@@ -15515,6 +15526,8 @@ CLOSED: [2026-08-31 Mon 15:20]
 CLOCK: [2026-08-31 Mon 15:15]--[2026-08-31 Mon 15:19] =>  0:04
 - State "DOING"      from "TODO"       [2026-08-31 Mon 15:15]
 - [2026-08-31 Mon 15:15]--[2026-08-31 Mon 15:19] org_capture gains initial_state
+CLOCK: [2026-08-31 Mon 15:19]--[2026-08-31 Mon 15:20] =>  0:01
+- [2026-08-31 Mon 15:19]--[2026-08-31 Mon 15:20] suggested span, accepted at review
 - State "DONE"       from "DOING"      [2026-08-31 Mon 15:20]
 :END:
 :PLAN:
@@ -15666,10 +15679,14 @@ CLOSED: [2026-08-31 Mon 15:14]
 :LOGBOOK:
 - State "TODO"       from              [2026-08-26 Wed 18:50] \\
   still open; guard not yet written
+CLOCK: [2026-08-31 Mon 14:04]--[2026-08-31 Mon 15:11] =>  1:07
+- [2026-08-31 Mon 14:04]--[2026-08-31 Mon 15:11] assigned at review
 CLOCK: [2026-08-31 Mon 15:11]--[2026-08-31 Mon 15:14] =>  0:03
 - State "DOING"      from "TODO"       [2026-08-31 Mon 15:11]
 - [2026-08-31 Mon 15:11]--[2026-08-31 Mon 15:14] stop capture swallowing a leading TODO keyword
+CLOCK: [2026-08-31 Mon 15:14]--[2026-08-31 Mon 15:15] =>  0:01
 - State "DONE"       from "DOING"      [2026-08-31 Mon 15:14]
+- [2026-08-31 Mon 15:14]--[2026-08-31 Mon 15:15] suggested span, accepted at review
 :END:
 :PLAN:
 
@@ -15998,6 +16015,7 @@ CLOCK: [2026-08-31 Mon 13:11]--[2026-08-31 Mon 13:13] =>  0:02
 - State "DOING"      from "TODO"       [2026-08-31 Mon 13:11]
 - [2026-08-31 Mon 13:11]--[2026-08-31 Mon 13:13] anchor duration assertions to the table row
 CLOCK: [2026-08-31 Mon 13:13]--[2026-08-31 Mon 13:13] =>  0:00
+CLOCK: [2026-08-31 Mon 13:13]--[2026-08-31 Mon 13:13] =>  0:00
 - [2026-08-31 Mon 13:13]--[2026-08-31 Mon 13:13] suggested span, accepted at review
 - State "DONE"       from "DOING"      [2026-08-31 Mon 13:48]
 :END:
@@ -16082,6 +16100,8 @@ CLOCK: [2026-08-31 Mon 13:45]--[2026-08-31 Mon 13:48] =>  0:03
 CLOCK: [2026-08-31 Mon 13:48]--[2026-08-31 Mon 13:53] =>  0:05
 - State "DONE"       from "DOING"      [2026-08-31 Mon 13:48]
 - [2026-08-31 Mon 13:48]--[2026-08-31 Mon 13:53] suggested span, accepted at review
+CLOCK: [2026-08-31 Mon 13:53]--[2026-08-31 Mon 13:54] =>  0:01
+- [2026-08-31 Mon 13:53]--[2026-08-31 Mon 13:54] suggested span, accepted at review
 :END:
 :PLAN:
 
@@ -16165,6 +16185,7 @@ CLOSED: [2026-08-31 Mon 13:11]
 CLOCK: [2026-08-31 Mon 13:09]--[2026-08-31 Mon 13:11] =>  0:02
 - State "DOING"      from "TODO"       [2026-08-31 Mon 13:09]
 - [2026-08-31 Mon 13:09]--[2026-08-31 Mon 13:11] remove dead synthetic-event overrides
+CLOCK: [2026-08-31 Mon 13:11]--[2026-08-31 Mon 13:11] =>  0:00
 CLOCK: [2026-08-31 Mon 13:11]--[2026-08-31 Mon 13:11] =>  0:00
 - State "DONE"       from "DOING"      [2026-08-31 Mon 13:11]
 - [2026-08-31 Mon 13:11]--[2026-08-31 Mon 13:11] suggested span, accepted at review

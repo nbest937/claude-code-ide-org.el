@@ -16,11 +16,28 @@
 =bin/lint-org= warns on a finished heading with a substantial body and no =:PLAN:= drawer, but measures "substantial" in physical lines while =org_amend= writes each paragraph unwrapped — so a 1,084-character body counts as two lines against a threshold of ten and the rule cannot fire. Five headings closed in one session met every other condition and none was reported. Proposal: measure characters, or filled lines, rather than newlines.
 
 
-* TODO The reload rule lost its always-loaded home, so two repo cross-references now point at a file that does not load :code:
+* DONE The reload rule lost its always-loaded home, so two repo cross-references now point at a file that does not load :code:
+CLOSED: [2026-09-17 Thu 08:56]
 :PROPERTIES:
 :ID:       27bb4b08-d95f-4955-a518-efb2ecf6e51b
 :CREATED:  [2026-09-17 Thu 08:52]
 :CATEGORY: Skill
+:END:
+:LOGBOOK:
+- State "DOING"      from "TODO"       [2026-09-17 Thu 08:52] \\
+  fixing the two cross-references
+CLOCK: [2026-09-17 Thu 08:55]--[2026-09-17 Thu 08:56] =>  0:01
+- [2026-09-17 Thu 08:55]--[2026-09-17 Thu 08:56]
+- State "DONE"       from "DOING"      [2026-09-17 Thu 08:56] \\
+  org-dev §0 owns the rule; next-session follows; check-org-dev-skill 20 ok
+CLOCK: [2026-09-17 Thu 09:11]--[2026-09-17 Thu 09:12] =>  0:01
+- [2026-09-17 Thu 09:11]--[2026-09-17 Thu 09:12] suggested span, accepted at review
+CLOCK: [2026-09-17 Thu 09:13]--[2026-09-17 Thu 09:14] =>  0:01
+- [2026-09-17 Thu 09:13]--[2026-09-17 Thu 09:14] suggested span, accepted at review
+CLOCK: [2026-09-17 Thu 09:17]--[2026-09-17 Thu 09:19] =>  0:02
+- [2026-09-17 Thu 09:17]--[2026-09-17 Thu 09:19] suggested span, accepted at review
+CLOCK: [2026-09-17 Thu 09:22]--[2026-09-17 Thu 09:23] =>  0:01
+- [2026-09-17 Thu 09:22]--[2026-09-17 Thu 09:23] suggested span, accepted at review
 :END:
 :PLAN:
 
@@ -34,11 +51,20 @@ The consequence to state rather than paper over: the reload-precondition rule no
 Retiring =~/.claude/CLAUDE.md= left two live repo references naming it as a load-bearing home for the reload-precondition rule: the org-dev skill's §0 and =next-session.md='s Step 1. Both corrected, with §0 now owning the rule outright. The accepted consequence, stated rather than papered over: a skill is triggered rather than always loaded, so a verification that is neither Emacs- nor Doom-shaped no longer meets the rule anywhere.
 
 
-* TODO Doom drops org files out of org-mode at 15,000 lines, and TODO.org is 1,600 away :code:
+* DOING Doom drops org files out of org-mode at 15,000 lines, and TODO.org is 1,600 away :code:
 :PROPERTIES:
 :ID:       d90a02f2-6fa5-4a62-869a-7484fb9b2dc2
 :CREATED:  [2026-09-17 Thu 08:40]
 :CATEGORY: Dev
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-17 Thu 08:40]--[2026-09-17 Thu 08:41] =>  0:01
+- State "DOING"      from "TODO"       [2026-09-17 Thu 08:40] \\
+  trigger diagnosed; the one-line fix is the user's config
+- [2026-09-17 Thu 08:40]--[2026-09-17 Thu 08:41]
+- [2026-09-17 Thu 08:40]--[2026-09-17 Thu 08:42] suggested span, accepted at review
+CLOCK: [2026-09-17 Thu 08:48]--[2026-09-17 Thu 08:49] =>  0:01
+- [2026-09-17 Thu 08:48]--[2026-09-17 Thu 08:49] suggested span, accepted at review
 :END:
 :PLAN:
 
@@ -60,7 +86,6 @@ The recurring warning =Warning (org-element): 'org-element-at-point' cannot be u
 :END:
 
 Doom's =doom-so-long-p= drops any file past 15,000 lines out of its major mode, so DONE.org at 37,036 lines is not an Org buffer and every org operation against it is degraded rather than merely noisy. The trigger is line count, not line length — the longest line is 1,422 against a 5,000 threshold. Fix: one =doom-file-lines-threshold-alist= entry exempting =.org= from the count test while leaving the long-line test in force.
-
 
 
 * TODO The unassigned-mark guard is conjunctive, so a clock item with no id marks and then fails at apply :code:
@@ -96,6 +121,13 @@ PR #25 review, MEDIUM, against code =b57c7515= introduced. The cache is keyed on
 
 =--session-alias-cache= is keyed on the sorted session-id set alone and never invalidated, so a nil alias map cached before a re-keyed transcript flushed its first entry persists for the life of the Emacs process and defeats the live re-read the stamp cache exists to provide. The key also omits the ranges that decide the canonical member. Filed rather than fixed: not caching nil would defeat the cache in its common case, so the key needs to reflect transcript growth — a design question, not an edit.
 
+*Fixed 2026-09-17, commit =9116821=, and what settled the design was reading the layer below.* =--transcript-stamp-cache= is keyed on =(file . mtime)=, so it *already* self-invalidates when a transcript grows — the alias cache was not racing it, it was short-circuiting before any stamp was read. That makes the cut a semantic one rather than a timing one: "no re-key detected **yet**" and "no re-key **exists**" are different answers, and only the second is cacheable.
+
+Two changes. The key now carries each session's range alongside its id, since the ranges choose the canonical member and are what =--session-ranges-overlap-p= refuses on — two event sets sharing only a set of ids were genuinely different questions colliding on one answer. And a nil result reached while any session failed to resolve a first stamp is no longer cached at all.
+
+*Both costs are written into the code rather than left to be rediscovered.* An event set naming a transcript that has aged out (=4acd8ad0=) now recomputes on every call; that is bounded, because the stamp layer memoises the miss too, under a =(file . nil)= key. And a **non-nil** result is still cached when some session was unresolved, so a late-flushing member cannot join a group that already formed — a window strictly narrower than the one closed, and deliberately left.
+
+*Both tests were proved red first and are behavioural rather than structural.* One differs between its two calls only in what is on disk between them — the second transcript lands between the first call and the second — which is the defect stated as an observation rather than as an assertion about a cache. The other hands the same two session ids opposite queue order and expects the canonical member to follow. 685 tests, was 683; =bin/lint-org= 0 errors; =bin/check-conventions= 32 ok once a working Emacs was available to answer the twenty checks that ask it.
 
 
 
@@ -118,7 +150,6 @@ PR #25 review, LOW. The hook built each suggested line as =$resolved  \=id\=  ..
 *Resolved:* two spaces dropped, plus a separate anchored assertion. Worth recording how that assertion was got wrong first: written with an embedded newline in the pattern, it PASSED against the indenting hook, because =grep= reads a newline as a pattern separator and the empty alternative matches every line. Anchored with =^= it failed as intended, then passed on the fix. 24 passed, was 23.
 
 
-
 * DONE The review buffer's legend omits two of its own keys, one of them the help key :code:
 CLOSED: [2026-09-16 Wed 18:34]
 :PROPERTIES:
@@ -138,7 +169,6 @@ PR #25 review, LOW, and broader than the finding. The legend named m/u, M/U, t, 
 *Resolved:* both keys added, and the legend's comment now records that it is a hand-maintained third copy of the binding table that nothing checks. Growing it to three lines broke a test that found "a blank line" by counting two lines from =point-min= — true only under a two-line legend — so that test was re-anchored on a search and now fails for its own reasons or not at all.
 
 
-
 * TODO No tool retitles a heading or removes a property, so both reach for a raw emacsclient :code:
 :PROPERTIES:
 :ID:       9714f875-4a12-44e4-8f30-dfbd1b6e555e
@@ -153,8 +183,6 @@ Both gaps surfaced within a minute of each other while correcting =37bca83a=. Re
 Nothing in the tool surface retitles a heading, and =org_set_property= sets an empty value rather than removing the property — so both operations fall back to a hand =emacsclient= call, which binds nothing and dies on a read-only buffer. Proposal: an =org_set_heading= that changes the title alone, and a delete mode on =org_set_property=, since an empty property says nothing worth storing.
 
 
-
-
 * DONE A project boundary splits a span, and the shipped reference still presents the threshold as the whole rule :code:
 CLOSED: [2026-09-16 Wed 18:29]
 :PROPERTIES:
@@ -167,14 +195,17 @@ CLOCK: [2026-09-16 Wed 14:52]--[2026-09-16 Wed 14:53] =>  0:01
 - State "DOING"      from "TODO"       [2026-09-16 Wed 14:52] \\
   documenting the project dimension
 - [2026-09-16 Wed 14:52]--[2026-09-16 Wed 14:53]
+CLOCK: [2026-09-16 Wed 14:53]--[2026-09-16 Wed 14:53] =>  0:00
 - State "DONE"       from "DOING"      [2026-09-16 Wed 14:53] \\
   both copies agree with the code; promotion clean
+- [2026-09-16 Wed 14:53]--[2026-09-16 Wed 14:53] suggested span, accepted at review
 CLOCK: [2026-09-16 Wed 18:27]--[2026-09-16 Wed 18:28] =>  0:01
 - <2026-09-16 Wed 18:27>--<2026-09-16 Wed 18:28> assigned at review
 CLOCK: [2026-09-16 Wed 18:28]--[2026-09-16 Wed 18:29] =>  0:01
 - State "DOING"      from "DONE"       [2026-09-16 Wed 18:28] \\
   review found the analogy false; reopening before the DONE applies
 - [2026-09-16 Wed 18:28]--[2026-09-16 Wed 18:29]
+CLOCK: [2026-09-16 Wed 18:29]--[2026-09-16 Wed 18:29] =>  0:00
 - State "DONE"       from "DOING"      [2026-09-16 Wed 18:29] \\
   corrected after review; the earlier DONE note was written before the finding
 CLOCK: [2026-09-16 Wed 18:29]--[2026-09-16 Wed 18:29] =>  0:00
@@ -186,7 +217,6 @@ Since =c9940558= the aggregator keys its points on =(TS KIND PROJECT)= and a pro
 
 :END:
 *Resolved:* a paragraph in the shipped reference and a clause in the docstring, both naming the project dimension and keeping the part that matters — both sides must be known and differ, so a nil =cwd= is unknown rather than elsewhere. The PR #25 review then caught a second fault in the same prose: it called the project split "the way a permission block does", which has been false since =c54c4215= made blocks a subtraction rather than a split. Corrected in all three copies, with the stale comment that misled me rewritten to record that it outlived the change.
-
 
 
 * DONE Three copies of the keyword set sit outside check-conventions, and two of them ship :code:
@@ -201,8 +231,10 @@ CLOCK: [2026-09-16 Wed 14:50]--[2026-09-16 Wed 14:52] =>  0:02
 - State "DOING"      from "TODO"       [2026-09-16 Wed 14:50] \\
   extending the keyword-set section
 - [2026-09-16 Wed 14:50]--[2026-09-16 Wed 14:52]
+CLOCK: [2026-09-16 Wed 14:52]--[2026-09-16 Wed 14:52] =>  0:00
 - State "DONE"       from "DOING"      [2026-09-16 Wed 14:52] \\
   32 ok, was 29; each assertion discriminates
+- [2026-09-16 Wed 14:52]--[2026-09-16 Wed 14:52] suggested span, accepted at review
 :END:
 :PLAN:
 
@@ -210,7 +242,6 @@ CLOCK: [2026-09-16 Wed 14:50]--[2026-09-16 Wed 14:52] =>  0:02
 
 :END:
 *Resolved:* three assertions added to the existing keyword-set section, same =keyword_set= helper and truth source; each proved red first by copying the file aside and removing =REVIEW= from it, and each failed naming its own source. 32 ok, was 29.
-
 
 
 * DONE The footnote convention ships as an enforcing hook and as no rule anyone can read :code:
@@ -225,6 +256,7 @@ CLOCK: [2026-09-16 Wed 14:53]--[2026-09-16 Wed 14:55] =>  0:02
 - State "DOING"      from "TODO"       [2026-09-16 Wed 14:53] \\
   the user confirmed the hook should ship; writing the rule
 - [2026-09-16 Wed 14:53]--[2026-09-16 Wed 14:55]
+CLOCK: [2026-09-16 Wed 14:55]--[2026-09-16 Wed 15:16] =>  0:21
 - State "DONE"       from "DOING"      [2026-09-16 Wed 14:55] \\
   promoted always-loaded; six references now travel
 - [2026-09-16 Wed 14:55]--[2026-09-16 Wed 15:16] suggested span, accepted at review
@@ -239,7 +271,6 @@ CLOCK: [2026-09-16 Wed 14:53]--[2026-09-16 Wed 14:55] =>  0:02
 *Postscript, 2026-09-17:* the user retired =~/.claude/CLAUDE.md= once this shipped, on the ground that its footnote half was now duplicated and neither of its rules was wanted in projects without this machinery. The duplication this heading created was therefore resolved by deletion rather than by reconciliation — see =27bb4b08= for what that cost in cross-references.
 
 
-
 * TODO org_outline's max_depth filters out the scoped heading itself, and the front matter reads as a result :code:
 :PROPERTIES:
 :ID:       80d8264e-5181-48a8-84e9-1c47c0c68956
@@ -252,8 +283,6 @@ CLOCK: [2026-09-16 Wed 14:53]--[2026-09-16 Wed 14:55] =>  0:02
 :END:
 
 A scoped =org_outline= call whose heading sits deeper than =max_depth= filters out the scope itself and returns the front-matter block alone — indistinguishable from a heading with no children, so an empty result reads as a fact about the corpus. DONE.org's datetree is where it bites, those entries sitting at level 7. Proposal: a scoped call always emits the heading the caller named, whatever the depth limit says.
-
-
 
 
 * TODO Rebuild the 101 truncated review-attention intervals from the audit log :code:
@@ -708,6 +737,8 @@ CLOCK: [2026-09-16 Wed 14:48]--[2026-09-16 Wed 14:50] =>  0:02
 - State "DOING"      from "TODO"       [2026-09-16 Wed 14:48] \\
   correcting the diagnosis: no predicate is dropped
 - [2026-09-16 Wed 14:48]--[2026-09-16 Wed 14:50]
+CLOCK: [2026-09-16 Wed 14:50]--[2026-09-16 Wed 14:50] =>  0:00
+- [2026-09-16 Wed 14:50]--[2026-09-16 Wed 14:50] suggested span, accepted at review
 :END:
 
 Found 2026-09-16 while answering "does 4acd8ad0 fit an open slice?". Measured four ways, and the defect is entirely in the wrapper — =org-ql= itself is correct on both counts. =(org-ql-select (org-agenda-files) '(property "KIND" "slice"))= returns **14**; the same query through =org_query= returns **"No matches."**. And =org-ql-select= with a nonsense predicate **signals =void-function=**, while =org_query= with =(no-such-predicate "banana")= returns **"No matches."** — byte-identical to an honest empty result. So two faults, one hiding the other: the wrapper swallows a rejected query into an empty result, and =property= never reaches =org-ql= at all, which suggests a predicate allowlist or a re-parse that discards what it does not recognise. Fix the error surfacing **first**: once a rejected query says so, a missing predicate announces itself instead of lying, and the second fault becomes self-reporting rather than silent. This cost a real session real work — the empty result was read as "no slices carry :KIND:", and the question was then answered with an =awk= scan reconstructing heading boundaries by regex, which is the entry-boundary class the org-dev skill §0b exists to prevent. The answer happened to be right, which is worse than wrong: nothing would have flagged it. Note the general shape is CLAUDE.md's own — of roughly a dozen wrong claims on 2026-08-11, three came from reading a silently-failing command's empty output as a result.
@@ -1301,7 +1332,7 @@ matters here is therefore not a new property but the existing one: link the plan
 revision when the slice is picked up**, and this is its first recorded failure.
 
 
-* DOING [10/12] A span is only as true as its owner, its edges and its payload :code:
+* DOING [11/13] A span is only as true as its owner, its edges and its payload :code:
 :PROPERTIES:
 :ID:       749301a0-0bd0-4fbd-b3f7-79739226e15a
 :CREATED:  [2026-09-11 Fri 18:58]
@@ -1383,6 +1414,7 @@ Incidental:
 
 - [X] [[id:0b600ab4-15b6-496b-8517-a0426f9f9ae5][0b600ab4]] DONE --transcript-longer-sibling picks the wrong sibling when the two copies are nearly the same size
 - [X] [[id:7e720ddf-fb7c-41a9-82d1-b8fbc14aeacd][7e720ddf]] DONE Commenting out the 202 override took use-package!'s closing paren, silently disabling the MCP server
+- [X] [[id:27bb4b08-d95f-4955-a518-efb2ecf6e51b][27bb4b08]] DONE The reload rule lost its always-loaded home, so two repo cross-references now point at a file that does not load
 
 Integration point: [[https://github.com/nbest937/claude-code-ide-org.el/pull/25][PR #25]], opened [2026-09-16 Wed 14:24] with 50 commits. The slice stays REVIEW until it merges.
 
@@ -1607,7 +1639,7 @@ Options: a =first= flag, a =before== parameter, or a dedicated reorder call;
 composition hits a wall.
 
 
-* TODO Emacs died of a fatal signal at review-buffer quit, deadlocked in the mac port's shutdown
+* DOING Emacs died of a fatal signal at review-buffer quit, deadlocked in the mac port's shutdown
 :PROPERTIES:
 :ID:       489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938
 :CREATED:  [2026-09-11 Fri 09:59]
@@ -1620,6 +1652,26 @@ CLOCK: [2026-09-14 Mon 09:23]--[2026-09-14 Mon 09:24] =>  0:01
 - [2026-09-14 Mon 09:23]--[2026-09-14 Mon 09:24] second occurrence sampled, trigger identified
 CLOCK: [2026-09-14 Mon 09:35]--[2026-09-14 Mon 09:42] =>  0:07
 - [2026-09-14 Mon 09:35]--[2026-09-14 Mon 09:42] second occurrence sampled, trigger identified
+CLOCK: [2026-09-16 Wed 21:14]--[2026-09-16 Wed 21:15] =>  0:01
+- State "DOING"      from "TODO"       [2026-09-16 Wed 21:14] \\
+  fourth occurrence, sampled; new trigger
+- [2026-09-16 Wed 21:14]--[2026-09-16 Wed 21:15]
+CLOCK: [2026-09-16 Wed 21:15]--[2026-09-16 Wed 21:16] =>  0:01
+- [2026-09-16 Wed 21:15]--[2026-09-16 Wed 21:16] suggested span, accepted at review
+CLOCK: [2026-09-16 Wed 21:24]--[2026-09-16 Wed 21:25] =>  0:01
+- [2026-09-16 Wed 21:24]--[2026-09-16 Wed 21:25] suggested span, accepted at review
+CLOCK: [2026-09-16 Wed 21:28]--[2026-09-16 Wed 21:29] =>  0:01
+- [2026-09-16 Wed 21:28]--[2026-09-16 Wed 21:29] suggested span, accepted at review
+CLOCK: [2026-09-17 Thu 08:03]--[2026-09-17 Thu 08:05] =>  0:02
+- [2026-09-17 Thu 08:03]--[2026-09-17 Thu 08:05] suggested span, accepted at review
+CLOCK: [2026-09-17 Thu 08:12]--[2026-09-17 Thu 08:13] =>  0:01
+- [2026-09-17 Thu 08:12]--[2026-09-17 Thu 08:13] suggested span, accepted at review
+CLOCK: [2026-09-17 Thu 08:15]--[2026-09-17 Thu 08:16] =>  0:01
+- [2026-09-17 Thu 08:15]--[2026-09-17 Thu 08:16] suggested span, accepted at review
+CLOCK: [2026-09-17 Thu 08:18]--[2026-09-17 Thu 08:19] =>  0:01
+- [2026-09-17 Thu 08:18]--[2026-09-17 Thu 08:19] suggested span, accepted at review
+CLOCK: [2026-09-17 Thu 08:36]--[2026-09-17 Thu 08:37] =>  0:01
+- [2026-09-17 Thu 08:36]--[2026-09-17 Thu 08:37] suggested span, accepted at review
 :END:
 
 (Filing prose restored 2026-09-11 — the original capture note was discarded by
@@ -1928,7 +1980,6 @@ So the **GUI thread is waiting for ownership of a dispatch queue it never receiv
 *What this changes about the heading.* The title says "at review-buffer quit", which is now too narrow: three at quit and one at apply, with one stack common to both. The fault is in the mac port's frame-update path, not in what the review buffer was doing when it ran. The full sample is preserved outside the repo at =emacs-hang-489d6f61-4th.txt=.
 
 
-
 * TODO Plans die at cleanupPeriodDays; decide plansDirectory or keep restoring :code:
 :PROPERTIES:
 :ID:       ff1bec00-1b18-4aea-9968-09c99818565e
@@ -1938,6 +1989,8 @@ So the **GUI thread is waiting for ownership of a dispatch queue it never receiv
 :LOGBOOK:
 CLOCK: [2026-09-10 Thu 12:01]--[2026-09-10 Thu 12:04] =>  0:03
 - [2026-09-10 Thu 12:01]--[2026-09-10 Thu 12:04] assigned at review
+CLOCK: [2026-09-17 Thu 08:42]--[2026-09-17 Thu 08:43] =>  0:01
+- [2026-09-17 Thu 08:42]--[2026-09-17 Thu 08:43]
 :END:
 :PLAN:
 The user asked why plans keep disappearing from =~/.claude/plans=
@@ -2001,7 +2054,6 @@ restore-from-archive procedure remains for the rare plan someone
 actually wants live again.
 
 *Another death 2026-09-17, and the interval holds exactly.* =parsed-stargazing-lynx.md=, archived copy dated 2026-08-18, missing from =~/.claude/plans= and caught by =bin/lint-org= refusing an unrelated commit — creation + 30 days, the same arithmetic this heading derived from the first casualties. Restored byte-for-byte from =plans/= (checksums equal, 32 plans in sync). Nothing new about the mechanism; recorded because the *decided* fix is what would have handled it — rewriting the dead =file:= link to the archived copy's =orgit= revision — and it does not exist yet, so the friction landed on a commit that had nothing to do with plans. That is the cost of the status quo arriving on schedule rather than a new symptom.
-
 
 
 * TODO Archived :ARCHIVE_FILE: paths are machine-absolute; audit their portability :code:
@@ -4254,10 +4306,16 @@ CLOCK: [2026-09-16 Wed 14:15]--[2026-09-16 Wed 14:18] =>  0:03
 - [2026-09-16 Wed 14:15]--[2026-09-16 Wed 14:18] retire markers; id-keyed end matter
 CLOCK: [2026-09-16 Wed 14:18]--[2026-09-16 Wed 14:19] =>  0:01
 - [2026-09-16 Wed 14:18]--[2026-09-16 Wed 14:19] suggested span, accepted at review
+CLOCK: [2026-09-16 Wed 14:19]--[2026-09-16 Wed 14:23] =>  0:04
+- [2026-09-16 Wed 14:19]--[2026-09-16 Wed 14:23] suggested span, accepted at review
 CLOCK: [2026-09-16 Wed 14:23]--[2026-09-16 Wed 14:34] =>  0:11
 - [2026-09-16 Wed 14:23]--[2026-09-16 Wed 14:34] suggested span, accepted at review
+CLOCK: [2026-09-16 Wed 14:34]--[2026-09-16 Wed 14:39] =>  0:05
+- [2026-09-16 Wed 14:34]--[2026-09-16 Wed 14:39] suggested span, accepted at review
 CLOCK: [2026-09-16 Wed 14:39]--[2026-09-16 Wed 14:40] =>  0:01
 - [2026-09-16 Wed 14:39]--[2026-09-16 Wed 14:40] suggested span, accepted at review
+CLOCK: [2026-09-16 Wed 14:40]--[2026-09-16 Wed 14:48] =>  0:08
+- [2026-09-16 Wed 14:40]--[2026-09-16 Wed 14:48] suggested span, accepted at review
 :END:
 
 *Asked by the user 2026-09-01 after a third stop-hook refusal in one session:*
@@ -4887,6 +4945,7 @@ CLOCK: [2026-08-31 Mon 16:38]--[2026-08-31 Mon 16:43] =>  0:05
 - State "DOING"      from "TODO"       [2026-08-31 Mon 16:38]
 - [2026-08-31 Mon 16:38]--[2026-08-31 Mon 16:43] mitosis and prose redistribution
 - State "DONE"       from "DOING"      [2026-08-31 Mon 16:43]
+- [2026-08-31 Mon 16:43]--[2026-08-31 Mon 16:45] suggested span, accepted at review
 :END:
 :PLAN:
 
@@ -12413,7 +12472,6 @@ different question.
 *For the report itself:* the asymmetry already noted — missing-required signals =-32602= while unknown-key is unguarded — now has a measured cost on both sides of a four-week gap, in the same tool, from the same failure mode, with the documentation correct throughout.
 
 
-
 ** CANCELLED Unknown MCP methods signal an undefined error symbol and answer nothing :code:
 CLOSED: [2026-09-09 Wed 17:44]
 :PROPERTIES:
@@ -12554,6 +12612,7 @@ call it done.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-17 Thu 09:24]--[2026-09-17 Thu 09:32] =>  0:08
 CLOCK: [2026-09-16 Wed 20:37]--[2026-09-16 Wed 21:03] =>  0:26
 CLOCK: [2026-09-16 Wed 11:47]--[2026-09-16 Wed 11:58] =>  0:11
 CLOCK: [2026-09-16 Wed 08:04]--[2026-09-16 Wed 09:16] =>  1:12
@@ -13509,6 +13568,10 @@ CLOCK: [2026-09-16 Wed 15:16]--[2026-09-16 Wed 15:17] =>  0:01
 - [2026-09-16 Wed 15:16]--[2026-09-16 Wed 15:17]
 CLOCK: [2026-09-16 Wed 15:17]--[2026-09-16 Wed 15:19] =>  0:02
 - [2026-09-16 Wed 15:17]--[2026-09-16 Wed 15:19] assigned at review
+CLOCK: [2026-09-16 Wed 15:19]--[2026-09-16 Wed 15:32] =>  0:13
+- [2026-09-16 Wed 15:19]--[2026-09-16 Wed 15:32] assigned at review
 CLOCK: [2026-09-16 Wed 15:32]--[2026-09-16 Wed 15:34] =>  0:02
 - [2026-09-16 Wed 15:32]--[2026-09-16 Wed 15:34] assigned at review
+CLOCK: [2026-09-16 Wed 15:34]--[2026-09-16 Wed 18:28] =>  2:54
+- [2026-09-16 Wed 15:34]--[2026-09-16 Wed 18:28] assigned at review
 :END:
