@@ -2,6 +2,32 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO The resume-pause exemption reads adjacency in a filtered stream as continuity, so clusters span days :code:
+:PROPERTIES:
+:ID:       5a9d877e-b492-46c7-a672-fd5971ffb0b0
+:CREATED:  [2026-09-17 Thu 10:30]
+:CATEGORY: Queue
+:END:
+:PLAN:
+
+=claude-code-ide-org--aggregate-guideposts= never splits a =resume= -> =pause= adjacency, however long the gap: "a turn *running*, not a pause between turns", and that is right for a contiguous stream. It is wrong for the **orphan** stream, which is what =--review-items-from-queue= hands it. Two orphans are adjacent there only because everything between them was bracketed and attributed elsewhere — so the exemption reads a days-long hole as one continuous turn.
+
+Measured 2026-09-17 by running the aggregator on the live orphan guideposts with **no exclusions at all**:
+
+: 08-24 12:33..08-31 18:13  inside=7
+: 09-02 15:41..09-03 13:17  inside=3
+: 09-16 13:58..09-17 10:27  inside=35
+
+Seven days holding seven guideposts. No 1200 s threshold can produce that.
+
+*The hazard is already named in the code, one line above the call*, which is why this is a wrong fix rather than an unseen case: the comment warns that two orphans "are *adjacent* in the orphan stream, because everything between them is bracketed… A =resume= -> =pause= adjacency never splits however long the gap, so the span would straddle all four brackets by construction and offer their fifteen minutes a second time." The mitigation chosen was to subtract the brackets afterwards. That removes the bracketed intervals and leaves the cluster still straddling days, so =--span-complement= then carves it into the interval between every adjacent pair of brackets — which is =445fe577=, thirteen of fifteen pending spans carrying no events, including an eleven-hour overnight one.
+
+Proposal: the exemption should require the two events be adjacent in the **full** event stream, not in the filtered one the function was handed. The caller knows both; the callee currently sees only one. No invented threshold and no new storage. Its test wants a synthetic fixture rather than the live queue, since applies consume the brackets the live case depends on.
+:END:
+
+The aggregator never splits a =resume= -> =pause= adjacency however long the gap, which is correct for a contiguous stream and wrong for the orphan stream it is actually handed — two orphans are adjacent there only because everything between them was bracketed, so a days-long hole reads as one running turn. Measured: clusters spanning seven days over seven guideposts. Proposal: require adjacency in the full event stream, which the caller knows and the callee does not see.
+
+
 * TODO The PLAN nag counts lines while the tools write paragraphs, so it cannot fire on their output :code:
 :PROPERTIES:
 :ID:       17f93758-694b-4f80-9b21-f21679b0699f
@@ -14,41 +40,6 @@
 :END:
 
 =bin/lint-org= warns on a finished heading with a substantial body and no =:PLAN:= drawer, but measures "substantial" in physical lines while =org_amend= writes each paragraph unwrapped — so a 1,084-character body counts as two lines against a threshold of ten and the rule cannot fire. Five headings closed in one session met every other condition and none was reported. Proposal: measure characters, or filled lines, rather than newlines.
-
-
-* DONE The reload rule lost its always-loaded home, so two repo cross-references now point at a file that does not load :code:
-CLOSED: [2026-09-17 Thu 08:56]
-:PROPERTIES:
-:ID:       27bb4b08-d95f-4955-a518-efb2ecf6e51b
-:CREATED:  [2026-09-17 Thu 08:52]
-:CATEGORY: Skill
-:END:
-:LOGBOOK:
-- State "DOING"      from "TODO"       [2026-09-17 Thu 08:52] \\
-  fixing the two cross-references
-CLOCK: [2026-09-17 Thu 08:55]--[2026-09-17 Thu 08:56] =>  0:01
-- [2026-09-17 Thu 08:55]--[2026-09-17 Thu 08:56]
-- State "DONE"       from "DOING"      [2026-09-17 Thu 08:56] \\
-  org-dev §0 owns the rule; next-session follows; check-org-dev-skill 20 ok
-CLOCK: [2026-09-17 Thu 09:11]--[2026-09-17 Thu 09:12] =>  0:01
-- [2026-09-17 Thu 09:11]--[2026-09-17 Thu 09:12] suggested span, accepted at review
-CLOCK: [2026-09-17 Thu 09:13]--[2026-09-17 Thu 09:14] =>  0:01
-- [2026-09-17 Thu 09:13]--[2026-09-17 Thu 09:14] suggested span, accepted at review
-CLOCK: [2026-09-17 Thu 09:17]--[2026-09-17 Thu 09:19] =>  0:02
-- [2026-09-17 Thu 09:17]--[2026-09-17 Thu 09:19] suggested span, accepted at review
-CLOCK: [2026-09-17 Thu 09:22]--[2026-09-17 Thu 09:23] =>  0:01
-- [2026-09-17 Thu 09:22]--[2026-09-17 Thu 09:23] suggested span, accepted at review
-:END:
-:PLAN:
-
-The user retired =~/.claude/CLAUDE.md= on 2026-09-17 (renamed to =.old=), having decided its footnote half was duplicated by =fc70b56d='s promoted rule and that neither rule was wanted in projects without this machinery. Two live references in this repo named it as a load-bearing home and are now false: the org-dev skill's §0, which said the rule's general form "lives in =~/.claude/CLAUDE.md=" and was "restated here", and =next-session.md='s Step 1, which cited both as the rule's homes.
-
-The consequence to state rather than paper over: the reload-precondition rule now has **no always-loaded home at all**. It lives in the org-dev skill, which is *triggered*, so a verification that is not Emacs- or Doom-shaped no longer meets it. That is an accepted trade, not an oversight — but §0 should own the rule outright instead of deferring to a file that is gone.
-
-=bin/hooks/doc-sync-check='s comment also names the file, and is deliberately left alone: it uses it as an illustration of why the hook matches full paths rather than basenames, and that argument does not depend on the file existing.
-:END:
-
-Retiring =~/.claude/CLAUDE.md= left two live repo references naming it as a load-bearing home for the reload-precondition rule: the org-dev skill's §0 and =next-session.md='s Step 1. Both corrected, with §0 now owning the rule outright. The accepted consequence, stated rather than papered over: a skill is triggered rather than always loaded, so a verification that is neither Emacs- nor Doom-shaped no longer meets the rule anywhere.
 
 
 * DOING Doom drops org files out of org-mode at 15,000 lines, and TODO.org is 1,600 away :code:
@@ -106,69 +97,6 @@ A nil id on a clock item is expected rather than exotic: =clock_out= carries no 
 =--review-markable-p= refuses a mark only when an item is flagged =:unassigned= **and** carries a nil =:id=, so a clock item with no id and no flag marks cleanly and then fails at apply with =no org heading found with :ID: "nil"= — the exact outcome the guard's own docstring says it exists to prevent. A nil id on a clock item is ordinary, since =clock_out= carries none. Proposal: test the id alone, and consider deriving =:unassigned= from it rather than storing both, since two fields encoding one fact is what let them disagree.
 
 
-* TODO --session-alias-cache is keyed on the session set alone, so a nil map outlives the transcript that caused it :code:
-:PROPERTIES:
-:ID:       83773daf-df07-4665-b5fc-0445e0da6211
-:CREATED:  [2026-09-16 Wed 18:34]
-:CATEGORY: Queue
-:END:
-:PLAN:
-
-PR #25 review, MEDIUM, against code =b57c7515= introduced. The cache is keyed on the sorted session-id set and never invalidated, and it short-circuits before any stamp is read — so it defeats the live re-read =--transcript-stamp-cache= exists to provide: a mid-work re-key whose new transcript has not yet flushed its first entry caches a **nil** map for that sid set, and the bracket never pairs again for the life of the Emacs process. The key also omits the =ranges=, which are what decide the canonical member and what the =--session-ranges-overlap-p= refusal is computed from, so two event sets sharing a sid set but not a time span share an answer built from one of them.
-
-*Filed rather than fixed, because the obvious repair is wrong.* Not caching a nil result would defeat the cache in precisely its common case — the docstring says nil "is the common case", and the map globs every transcript directory while =--span-events= runs once per candidate bracket in a subdivision. So the key has to become something that changes when a transcript could have grown, which is a design question rather than an edit. Including a ranges digest is necessary and not sufficient.
-:END:
-
-=--session-alias-cache= is keyed on the sorted session-id set alone and never invalidated, so a nil alias map cached before a re-keyed transcript flushed its first entry persists for the life of the Emacs process and defeats the live re-read the stamp cache exists to provide. The key also omits the ranges that decide the canonical member. Filed rather than fixed: not caching nil would defeat the cache in its common case, so the key needs to reflect transcript growth — a design question, not an edit.
-
-*Fixed 2026-09-17, commit =9116821=, and what settled the design was reading the layer below.* =--transcript-stamp-cache= is keyed on =(file . mtime)=, so it *already* self-invalidates when a transcript grows — the alias cache was not racing it, it was short-circuiting before any stamp was read. That makes the cut a semantic one rather than a timing one: "no re-key detected **yet**" and "no re-key **exists**" are different answers, and only the second is cacheable.
-
-Two changes. The key now carries each session's range alongside its id, since the ranges choose the canonical member and are what =--session-ranges-overlap-p= refuses on — two event sets sharing only a set of ids were genuinely different questions colliding on one answer. And a nil result reached while any session failed to resolve a first stamp is no longer cached at all.
-
-*Both costs are written into the code rather than left to be rediscovered.* An event set naming a transcript that has aged out (=4acd8ad0=) now recomputes on every call; that is bounded, because the stamp layer memoises the miss too, under a =(file . nil)= key. And a **non-nil** result is still cached when some session was unresolved, so a late-flushing member cannot join a group that already formed — a window strictly narrower than the one closed, and deliberately left.
-
-*Both tests were proved red first and are behavioural rather than structural.* One differs between its two calls only in what is on disk between them — the second transcript lands between the first call and the second — which is the defect stated as an observation rather than as an assertion about a cache. The other hands the same two session ids opposite queue order and expects the canonical member to follow. 685 tests, was 683; =bin/lint-org= 0 errors; =bin/check-conventions= 32 ok once a working Emacs was available to answer the twenty checks that ask it.
-
-
-
-* DONE footnote-check indents the lines it tells you to append, and the canonical form is flush-left :code:
-CLOSED: [2026-09-16 Wed 18:34]
-:PROPERTIES:
-:ID:       cfdfe119-34ad-4ee5-9477-d71dc450eabd
-:CREATED:  [2026-09-16 Wed 18:31]
-:CATEGORY: Skill
-:END:
-:LOGBOOK:
-- State "DONE"       from "TODO"       [2026-09-16 Wed 18:34] \\
-  flush-left, with an anchored assertion proved red first
-:END:
-:PLAN:
-
-PR #25 review, LOW. The hook built each suggested line as =$resolved  \=id\=  ...=, with a two-space prefix, while =org-footnote-citations.md= — shipped in the same PR — gives the canonical form flush-left. The message says "Append these lines", so the indent was what a reader copied, and the rule and its enforcement disagreed about the one thing the rule is precise about. =bin/footnote-check-test= was blind to it: its pairing assertion matches a substring and is indifferent to the prefix.
-
-:END:
-*Resolved:* two spaces dropped, plus a separate anchored assertion. Worth recording how that assertion was got wrong first: written with an embedded newline in the pattern, it PASSED against the indenting hook, because =grep= reads a newline as a pattern separator and the empty alternative matches every line. Anchored with =^= it failed as intended, then passed on the fix. 24 passed, was 23.
-
-
-* DONE The review buffer's legend omits two of its own keys, one of them the help key :code:
-CLOSED: [2026-09-16 Wed 18:34]
-:PROPERTIES:
-:ID:       36698ca7-9358-41ca-862c-962af49691cd
-:CREATED:  [2026-09-16 Wed 18:30]
-:CATEGORY: Apply
-:END:
-:LOGBOOK:
-- State "DONE"       from "TODO"       [2026-09-16 Wed 18:34] \\
-  both keys listed; the brittle test re-anchored
-:END:
-:PLAN:
-
-PR #25 review, LOW, and broader than the finding. The legend named m/u, M/U, t, a, e, N, d, RET, T, s, x, g and q; the keymap also binds =c= (claim the envelope, added by =2deb090f=) and =?= (=claude-code-ide-org-review-help=). So the one key that would list the others was itself unlisted. The =c= omission defeats exactly the case =2deb090f= was built for — a human reading the legend keeps reaching for =e=, which is the hand-editing the new key exists to replace, and the user predicted they would "rarely if ever reach for =e=" the same day.
-
-:END:
-*Resolved:* both keys added, and the legend's comment now records that it is a hand-maintained third copy of the binding table that nothing checks. Growing it to three lines broke a test that found "a blank line" by counting two lines from =point-min= — true only under a two-line legend — so that test was re-anchored on a search and now fails for its own reasons or not at all.
-
-
 * TODO No tool retitles a heading or removes a property, so both reach for a raw emacsclient :code:
 :PROPERTIES:
 :ID:       9714f875-4a12-44e4-8f30-dfbd1b6e555e
@@ -181,94 +109,6 @@ Both gaps surfaced within a minute of each other while correcting =37bca83a=. Re
 :END:
 
 Nothing in the tool surface retitles a heading, and =org_set_property= sets an empty value rather than removing the property — so both operations fall back to a hand =emacsclient= call, which binds nothing and dies on a read-only buffer. Proposal: an =org_set_heading= that changes the title alone, and a delete mode on =org_set_property=, since an empty property says nothing worth storing.
-
-
-* DONE A project boundary splits a span, and the shipped reference still presents the threshold as the whole rule :code:
-CLOSED: [2026-09-16 Wed 18:29]
-:PROPERTIES:
-:ID:       27788fd1-e9d3-43a6-9a68-4e37ebfe9518
-:CREATED:  [2026-09-16 Wed 14:50]
-:CATEGORY: Queue
-:END:
-:LOGBOOK:
-CLOCK: [2026-09-16 Wed 14:52]--[2026-09-16 Wed 14:53] =>  0:01
-- State "DOING"      from "TODO"       [2026-09-16 Wed 14:52] \\
-  documenting the project dimension
-- [2026-09-16 Wed 14:52]--[2026-09-16 Wed 14:53]
-CLOCK: [2026-09-16 Wed 14:53]--[2026-09-16 Wed 14:53] =>  0:00
-- State "DONE"       from "DOING"      [2026-09-16 Wed 14:53] \\
-  both copies agree with the code; promotion clean
-- [2026-09-16 Wed 14:53]--[2026-09-16 Wed 14:53] suggested span, accepted at review
-CLOCK: [2026-09-16 Wed 18:27]--[2026-09-16 Wed 18:28] =>  0:01
-- <2026-09-16 Wed 18:27>--<2026-09-16 Wed 18:28> assigned at review
-CLOCK: [2026-09-16 Wed 18:28]--[2026-09-16 Wed 18:29] =>  0:01
-- State "DOING"      from "DONE"       [2026-09-16 Wed 18:28] \\
-  review found the analogy false; reopening before the DONE applies
-- [2026-09-16 Wed 18:28]--[2026-09-16 Wed 18:29]
-CLOCK: [2026-09-16 Wed 18:29]--[2026-09-16 Wed 18:29] =>  0:00
-- State "DONE"       from "DOING"      [2026-09-16 Wed 18:29] \\
-  corrected after review; the earlier DONE note was written before the finding
-CLOCK: [2026-09-16 Wed 18:29]--[2026-09-16 Wed 18:29] =>  0:00
-- [2026-09-16 Wed 18:29]--[2026-09-16 Wed 18:29] suggested span, accepted at review
-:END:
-:PLAN:
-
-Since =c9940558= the aggregator keys its points on =(TS KIND PROJECT)= and a project boundary splits a span, while =--aggregate-guideposts='s own docstring documented only =THRESHOLD= and =EXCLUSIONS=, and the shipped =org-session-tracking.md= "three numbers" section still presented the gap threshold as what decides grouping. Nothing there was *false*; the omission is what mattered, and it matters to the consumer rather than to us: the queue is one global directory under =~/.claude/org-updates=, so before this branch two repos' turns in the same window clustered into a single span, and running the queue in more than one repo is the plugin's whole premise.
-
-:END:
-*Resolved:* a paragraph in the shipped reference and a clause in the docstring, both naming the project dimension and keeping the part that matters — both sides must be known and differ, so a nil =cwd= is unknown rather than elsewhere. The PR #25 review then caught a second fault in the same prose: it called the project split "the way a permission block does", which has been false since =c54c4215= made blocks a subtraction rather than a split. Corrected in all three copies, with the stale comment that misled me rewritten to record that it outlived the change.
-
-
-* DONE Three copies of the keyword set sit outside check-conventions, and two of them ship :code:
-CLOSED: [2026-09-16 Wed 14:52]
-:PROPERTIES:
-:ID:       a3ee7033-dc77-4227-ab87-dc6c27310b8f
-:CREATED:  [2026-09-16 Wed 14:50]
-:CATEGORY: Dev
-:END:
-:LOGBOOK:
-CLOCK: [2026-09-16 Wed 14:50]--[2026-09-16 Wed 14:52] =>  0:02
-- State "DOING"      from "TODO"       [2026-09-16 Wed 14:50] \\
-  extending the keyword-set section
-- [2026-09-16 Wed 14:50]--[2026-09-16 Wed 14:52]
-CLOCK: [2026-09-16 Wed 14:52]--[2026-09-16 Wed 14:52] =>  0:00
-- State "DONE"       from "DOING"      [2026-09-16 Wed 14:52] \\
-  32 ok, was 29; each assertion discriminates
-- [2026-09-16 Wed 14:52]--[2026-09-16 Wed 14:52] suggested span, accepted at review
-:END:
-:PLAN:
-
-=bin/check-conventions= asserts the TODO keyword set agrees across four places against this repo's own =#+TODO:= header, and its own comment records that the set has drifted before. Three further copies are outside it: the awk alternation =bin/hooks/footnote-check= gained on this branch, and the =#+TODO:= lines in =templates/TODO.org= and =templates/DONE.org=. Two of those three are *shipped* — the hook and the templates are what a consuming project actually runs and scaffolds from — so drift there is a consumer-visible failure nobody here would see. It fails silently and wrongly rather than emptily: the hook's awk defaults =kw= to =-= and leaves an unrecognised keyword in =line=, so the emitted entry shows a dash in the keyword column *and* leaks the keyword into the position the convention reserves for the exact title.
-
-:END:
-*Resolved:* three assertions added to the existing keyword-set section, same =keyword_set= helper and truth source; each proved red first by copying the file aside and removing =REVIEW= from it, and each failed naming its own source. 32 ok, was 29.
-
-
-* DONE The footnote convention ships as an enforcing hook and as no rule anyone can read :code:
-CLOSED: [2026-09-16 Wed 14:55]
-:PROPERTIES:
-:ID:       fc70b56d-2008-4821-8728-fc9d67060e74
-:CREATED:  [2026-09-16 Wed 14:50]
-:CATEGORY: Skill
-:END:
-:LOGBOOK:
-CLOCK: [2026-09-16 Wed 14:53]--[2026-09-16 Wed 14:55] =>  0:02
-- State "DOING"      from "TODO"       [2026-09-16 Wed 14:53] \\
-  the user confirmed the hook should ship; writing the rule
-- [2026-09-16 Wed 14:53]--[2026-09-16 Wed 14:55]
-CLOCK: [2026-09-16 Wed 14:55]--[2026-09-16 Wed 15:16] =>  0:21
-- State "DONE"       from "DOING"      [2026-09-16 Wed 14:55] \\
-  promoted always-loaded; six references now travel
-- [2026-09-16 Wed 14:55]--[2026-09-16 Wed 15:16] suggested span, accepted at review
-:END:
-:PLAN:
-
-=hooks/hooks.json= wires =bin/hooks/footnote-check= as a =Stop= hook, so it blocks turns in every consuming project — and the string "footnote" appeared on the whole plugin surface exactly once, in that wiring line. The hooks table listed six rows and not this one; no reference stated the convention, which lived only in the author's private =~/.claude/CLAUDE.md= and travelled with nobody. The user confirmed 2026-09-16 that it *should* ship: tasks in any other project are expected to be cited by =:ID:= prefix exactly as here. So the gap was the rule, not the hook.
-
-:END:
-*Resolved:* =skills/org/references/org-footnote-citations.md=, promoted always-loaded — an id gets cited in a response about source, tests or commits with no =.org= file in play, so a path scope would make it a rule that does not load. It carries the canonical form, why the superscript markers were retired, and the three things about the hook's reading that have each been got wrong: the =---= separator, fenced blocks, and that it reports a strict subset. The hooks table gained its two missing =Stop= rows in the same pass. One correction after writing: the hook reads =last_assistant_message=, which carries only the turn's *final text block*, and the looser wording would have walked a consumer into the wall that killed this repo's orphan check.
-
-*Postscript, 2026-09-17:* the user retired =~/.claude/CLAUDE.md= once this shipped, on the ground that its footnote half was now duplicated and neither of its rules was wanted in projects without this machinery. The duplication this heading created was therefore resolved by deletion rather than by reconciliation — see =27bb4b08= for what that cost in cross-references.
 
 
 * TODO org_outline's max_depth filters out the scoped heading itself, and the front matter reads as a result :code:
@@ -459,230 +299,12 @@ so the 86 unannotated intervals stop accumulating as a side effect rather than
 needing their own change.
 
 
-* CANCELLED A marker and its footnote need not correspond, and nothing checks that they do :code:
-CLOSED: [2026-09-16 Wed 14:18]
-:PROPERTIES:
-:ID:       45dc171f-ab3f-4f50-a987-950f4e88ad3a
-:CREATED:  [2026-09-16 Wed 11:00]
-:CATEGORY: Dev
-:END:
-:LOGBOOK:
-CLOCK: [2026-09-16 Wed 10:59]--[2026-09-16 Wed 11:00] =>  0:01
-- [2026-09-16 Wed 10:59]--[2026-09-16 Wed 11:00] measure the marker fault base rate
-CLOCK: [2026-09-16 Wed 11:00]--[2026-09-16 Wed 11:10] =>  0:10
-- <2026-09-16 Wed 11:00>--<2026-09-16 Wed 11:10> assigned at review
-- State "DOING"      from "TODO"       [2026-09-16 Wed 11:10] \\
-  validate the 97 before building anything
-CLOCK: [2026-09-16 Wed 11:13]--[2026-09-16 Wed 11:14] =>  0:01
-- [2026-09-16 Wed 11:13]--[2026-09-16 Wed 11:14] hand-check the marker correspondence sample
-CLOCK: [2026-09-16 Wed 11:14]--[2026-09-16 Wed 11:25] =>  0:11
-- [2026-09-16 Wed 11:14]--[2026-09-16 Wed 11:25] suggested span, accepted at review
-- State "REVIEW"     from "DOING"      [2026-09-16 Wed 11:15] \\
-  51 of 72 closed; the 21 left deliberately
-- State "DOING"      from "REVIEW"     [2026-09-16 Wed 11:25] \\
-  the other direction, plus trim the message
-CLOCK: [2026-09-16 Wed 11:25]--[2026-09-16 Wed 11:28] =>  0:03
-- [2026-09-16 Wed 11:25]--[2026-09-16 Wed 11:28] suggested span, accepted at review
-CLOCK: [2026-09-16 Wed 11:28]--[2026-09-16 Wed 11:30] =>  0:02
-- State "REVIEW"     from "DOING"      [2026-09-16 Wed 11:28] \\
-  both directions shipped; nothing deferred
-- [2026-09-16 Wed 11:28]--[2026-09-16 Wed 11:30] suggested span, accepted at review
-CLOCK: [2026-09-16 Wed 11:30]--[2026-09-16 Wed 11:31] =>  0:01
-- [2026-09-16 Wed 11:30]--[2026-09-16 Wed 11:31] retire the dangle check after a false positive
-CLOCK: [2026-09-16 Wed 11:31]--[2026-09-16 Wed 11:40] =>  0:09
-- [2026-09-16 Wed 11:31]--[2026-09-16 Wed 11:40] assigned at review
-CLOCK: [2026-09-16 Wed 11:40]--[2026-09-16 Wed 11:41] =>  0:01
-- [2026-09-16 Wed 11:40]--[2026-09-16 Wed 11:41] assigned at review
-CLOCK: [2026-09-16 Wed 11:41]--[2026-09-16 Wed 11:47] =>  0:06
-- [2026-09-16 Wed 11:41]--[2026-09-16 Wed 11:47] assigned at review
-- State "DOING"      from "REVIEW"     [2026-09-16 Wed 11:47] \\
-  rework from review: the loop guard's blind window
-- State "REVIEW"     from "DOING"      [2026-09-16 Wed 11:49] \\
-  review rework done; back for judgement
-- [2026-09-16 Wed 11:49]--[2026-09-16 Wed 11:52] suggested span, accepted at review
-- State "CANCELLED"  from "REVIEW"     [2026-09-16 Wed 14:18] \\
-  its subject abolished, not repaired
-:END:
-:PLAN:
-
-Found 2026-09-16 while measuring whether [[id:2a6a1355-615f-4c2c-a8af-c9ae8dcda09b][2a6a1355]]'s marker-collision detection was worth building. It is not — 0 duplicate markers across 924 footnoted responses — but the same scan of **6749 assistant responses** surfaced a fault an order of magnitude more common and never filed: **97 responses, roughly 10% of all footnoted ones, carry a marker and a footnote that do not correspond.** 77 have a footnote line whose marker appears nowhere in the prose; 20 have a prose marker with no footnote line. Spread across a month — 18 on 2026-08-27, 14 on 08-25, 5 on 09-15 — so it is a standing pattern rather than one session's habit. =bin/hooks/footnote-check= cannot see it: its test is whether each cited *id* appears somewhere in the footnote block, which a response satisfies while pointing the reader at the wrong line or at no line at all. That is the same shape as the paraphrased-title mode [[id:33c3eabc-00f2-4cf1-afb7-4071aa256d62][33c3eabc]] closed — a footnote that exists and misleads is worse than one that is missing, because nothing refuses it and the reader has no reason to doubt it. Proposed: for each footnote line, take the leading marker as a **byte string** and =grep -qF= it against the prose; report any that never appear, and any prose marker with no line. **The multibyte objection that killed collision detection does not apply**: correspondence needs fixed-string matching, never character arithmetic, so it is locale-independent and cheap in the byte-oriented shell a =Stop= hook must stay in. Two things to settle before building. Whether a *dangling prose marker* is even a fault — a footnote that arrives in a later correction turn legitimately has its marker placed first. And whether the 77 include a systematic false positive from the block-splitting rule, which takes everything after the last line that is exactly =---=; a response with a later horizontal rule would misplace the boundary. The scan was not validated against hand-checked examples, so treat 97 as an upper bound until it is.
-
-:END:
-*Validated first, then shipped, 2026-09-16 — and validation changed the
-number, which is the reason this body insisted on it.*
-
-**The raw 97 was two populations.** Hand-checking the 77 orphan-marker hits
-split them into **26 correction turns** — footnote-only responses appended for
-an *earlier* response, whose prose legitimately holds the markers — and **51
-genuine mismatches**. The other inflation hypothesis this body named was
-falsified outright: **0 of the 77 carried more than one =---= line**, so the
-block-splitting rule was not misplacing the boundary anywhere.
-
-*The correction-turn exemption is load-bearing rather than tidy, and finding it
-was the point of validating.* This hook **asks for** that turn — it blocks, the
-model appends footnotes, and the reply is a footnote-only response. Blocking
-that would refuse the very thing just requested, and the 26 would have grown,
-because the hook induces the pattern. A response whose prose carries no marker
-at all is therefore exempt.
-
-*Shipped:* for each footnote line, the first whitespace field is the marker;
-if it appears nowhere in the prose the hook blocks and names it. Fixed-string
-matching throughout — =awk= splits on whitespace without decomposing anything
-and =grep -F= compares bytes — which is why this is cheap where
-[[id:2a6a1355-615f-4c2c-a8af-c9ae8dcda09b][2a6a1355]]'s duplicate detection was
-not, and why it is locale-independent in the byte-oriented shell a =Stop= hook
-must stay in.
-
-*Three tests; one proved red against the previous hook.* The other two pass
-either way **by design** — they are guards that the check does not *over*-fire
-(the correction turn, and the all-markers-placed case), and a guard that fails
-against the old code would mean the old code was already wrong.
-
-*Left undone, deliberately:* the other direction — a **prose marker with no
-footnote line**, 21 instances. Detecting it needs *finding* markers in prose
-rather than comparing a known one, which means superscript literals in the
-script and the encoding hazard that already cost an afternoon. Worth doing only
-if the 21 turn out to matter; the 51 were the larger and cheaper half.
-
-*The other direction shipped too, 2026-09-16 — the reason for deferring it was
-wrong.*
-
-I left it because enumerating markers *in prose* needs superscript literals and
-multi-digit disambiguation: is that a =1= and a =3=, or a =13=. That is real,
-and it is the character arithmetic this shell does badly. **But the check does
-not need enumeration.** Footnotes run from one without gaps — the hook now
-maintains that itself — so the only marker that can dangle past the end is the
-**next** one. Build it with =num_to_sup= and =grep -F= for it. A gap in the
-*middle* is already caught by the orphan check, since a missing line cannot have
-its marker placed. Cheap, byte-safe, no literals anywhere.
-
-*Worth naming the mistake rather than just the fix.* The deferral was reasoned
-from the *general* problem — find every marker in the prose — when the check
-only ever needed a *bounded* one. Having the hook maintain the numbering is what
-made the bound available, and that had shipped an hour earlier; I did not
-revisit the deferral in light of it.
-
-*And the message is back under control.* My own change had grown it from ~6
-lines to ~15 — clutter the desktop app folds and the CLI does not, and the user
-reads in the CLI. Everything invariant is gone: the standing rule lives in
-CLAUDE.md and does not need restating on every firing. **8 lines for two ids**,
-most of it the pasteable payload.
-
-*Two test assertions corrected, and the second matters beyond this change.* One
-pinned the old wording. The other — the no-JSON check — grepped for the bare
-word =continue=, which has now matched ordinary English **twice**, blocking
-message changes that printed no JSON at all. Tightened to the JSON key
-="continue"=. A proxy that fires on prose is a proxy for the wrong thing, and it
-had been quietly constraining what the message could say.
-
-*Retracting the paragraph above: the other direction shipped and was **retired
-the same hour**, and the retraction is the more useful record.*
-
-It blocked my own next response within minutes. The response quoted this hook's
-own message — which contains superscript markers — so the check read a marker
-that was being **shown** as one that was being **used**. The hook's output is a
-source of false positives for the hook.
-
-*That is [[id:2a6a1355-615f-4c2c-a8af-c9ae8dcda09b][2a6a1355]]'s quotation mode,
-reaching markers instead of ids*, and it is the same coupling
-[[id:762b7836-52db-4619-a664-25a09f84da46][762b7836]] already carries for the
-fence: once a checker emits the tokens it checks for, its own output becomes
-input.
-
-*Not fixable by narrowing.* The obvious tightening — require a non-space before
-the marker, since a real citation is attached and a quoted one usually is not —
-still admits ranges like =¹–⁴= and any enumerated list of markers. Each patch
-buys one class and leaves the next.
-
-*So it is retired rather than reimplemented more cheaply*, which is
-=7771fc63='s standing argument, and the reason is written into the hook so it is
-not rebuilt. The motivating population was **21 of 924** responses; a check
-whose false positives concentrate in the work of maintaining it is worse than no
-check.
-
-**The orphan direction is untouched and still right, and the contrast is the
-finding.** It reads markers from the *structured* side — the first whitespace
-field of a footnote line — where nothing is ever quoted or illustrative. The
-prose side has no such guarantee. **A check is safe in the direction where its
-input has structure, and unsafe in the direction where it has prose**, which is
-worth carrying to any future check of this shape rather than discovering again.
-
-*Net: 51 of the 72 faults are caught, the other 21 are declined with a reason,
-and the deferral I called wrong an hour ago turns out to have been right for a
-reason I had not found.*
-
-*Retracted in full 2026-09-16: **the orphan check is removed**, following the
-dangling check it was supposed to be the safe half of.*
-
-The argument recorded above was that this direction was safe because it reads
-markers from the *structured* side — the first field of a footnote line — where
-nothing is quoted or illustrative. That reasoning was sound about the *input*
-and wrong about the *view*: the check compares that marker against the prose,
-and =last_assistant_message= carries only the **final text block** of a
-response. A citation placed before a tool call is invisible to it, so its marker
-reads as orphaned. It fired on exactly that, on my own response, hours after
-shipping.
-
-*So both directions failed, for the same underlying reason stated two ways.*
-The dangling check could not tell a marker being *used* from one being *shown*;
-the orphan check could not see the whole response it was judging. Each is a case
-of the checker's view differing from the reader's — which is the hazard a
-*second* index always carries and the id never does, because the id is in the
-prose the reader actually has.
-
-*And the 51 faults it caught are not lost, they stop being faults.* Under the
-new form (=2a6a1355=) there are no markers to correspond: the end matter is
-keyed by identifier, so "does this footnote line point at something" and "is
-this id footnoted" are the **same question**, answered by the presence check
-that was here before any of this. 51 of 72 caught becomes 72 of 72 unreachable.
-
-*What survives is the measurement, and it is worth keeping for its method.*
-Scanning 6749 responses distinguished 26 correction turns from 51 genuine
-mismatches and falsified the block-splitting hypothesis outright — and the
-validation is what found the correction-turn exemption, without which the hook
-would have blocked the very turn it asks for. The number was right; what it
-measured has been abolished rather than repaired.
-
-*Rework from review, 2026-09-16, at the user's direction — the review found the
-checks were right and the **guard** was wrong.*
-
-Two tracked ids went unfootnoted in a response and the hook said nothing. Not a
-gap in either check: the **loop guard** fired at most once per turn, silencing
-every later =Stop= on the sentinel's mere existence. So the response
-immediately after a footnote block was unchecked — and that is the response
-*rewriting footnote-heavy prose*, where a new miss is most likely. The blind
-window sat exactly where the risk was highest.
-
-*The sentinel now records the **demand*** — the missing ids and orphaned
-markers — one per line, rather than merely existing. An **identical** demand is
-never repeated, which is the anti-loop property and the only one that matters:
-there is no =stop_hook_active= flag for a blocking =Stop= hook, so a condition
-the model cannot satisfy must still terminate, and it does because the hook can
-never ask twice for the same thing. A **different** demand blocks again, which
-is the case that was missed. A hard bound of three blocks per turn stands
-behind that, so even a pathological alternation of demands ends.
-
-*Five tests covering the ladder* — first block, same demand silenced, different
-demand blocks, third distinct demand blocks, fourth refused by the bound. Two
-proved red against the previous guard; the other three assert the anti-loop
-property the old code also had and must keep, so they pass either way by
-design.
-
-*Worth noting what the review actually caught*, since it is not what either
-check was about. Both checks were working. The failure was in the machinery
-*around* them, and it was invisible from inside: a hook that exits 0 says
-nothing, so a silenced check is indistinguishable from a passing one. That is
-the same silent-failure shape this session kept meeting — in =org_query='s empty
-result, in the audit that scanned no files, in the batch run that lost every
-three-byte character — and the tell each time was a check reporting success
-while looking at nothing.
-
-
 * TODO The complement's gap spans carry no events, so half the review buffer cannot be dismissed :code:
 :PROPERTIES:
 :ID:       445fe577-01ce-4e68-ab5f-c349c40a4643
 :CREATED:  [2026-09-16 Wed 09:24]
 :CATEGORY: Apply
+:BLOCKER:  5a9d877e-b492-46c7-a672-fd5971ffb0b0
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-16 Wed 18:29]--[2026-09-16 Wed 18:34] =>  0:05
@@ -704,6 +326,34 @@ The middle span's endpoints are *bracket edges*, so no guidepost lies within it 
 
 *So the two halves want one fix, not two.* Whatever gives a gap span a queue item to dismiss is also what would give it events to split on. Attaching the bracket endpoints themselves as synthetic =block_start=/=block_end= events is the obvious shape and is not yet argued — it would make =kinds-known-p= true and the runs computable, at the cost of inventing events, which this project has refused before.
 
+*Measured 2026-09-17, and the title understates it.* Of nine spans offered for yesterday afternoon, **eight carry zero events**; across the whole pending set it is thirteen of fifteen. The two exceptions are instructive: the ones that still report minutes are those whose guideposts have *not* been consumed by an apply — =13:58--14:15=, which survived only because it was one of the three items that failed with =:ID: "nil"=, and today's =09:58= and =10:08=.
+
+*What is actually being offered.* =[2026-09-16 21:14]--[2026-09-17 08:40]=, eleven hours overnight, suggested against =489d6f61= because that heading held the last clock before it. =[18:34]--[21:14]=, two hours forty. =[15:17]--[18:28]=, the AFK stretch. These are not gaps *within* a span of activity — they are the interval between every adjacent pair of clock brackets, emitted whether or not a single turn occurred inside.
+
+*That is not what =c54c4215= set out to recover*, and its own title says so: "the unowned gaps between the clock pairs **that split it**" — gaps interior to a span that real guideposts had formed. An inter-bracket interval containing no guidepost was never part of any span, so there is nothing in it that was previously dropped.
+
+*Consequences, all of which the user hit in one morning.* Such an item cannot be dismissed (no events to record against), reports no minutes, runs or turns (=--review-written-summary= short-circuits on =--span-kinds-known-p=), writes no CLOCK line if applied while =:suggested=, consumes no watermark, and so returns at every pass forever. Where it inherits a suggested heading it looks answerable and is not.
+
+*Fix direction, stated but not implemented.* Emit a complement piece only when it carries at least one guidepost — the same conservative shape =355fa608= used for the stranded single point, and with the same justification recorded there: "Nothing is lost: the guidepost itself stays in the queue file, which is the durable record. Only the *proposal* is dropped." Dismissal-by-bounds, considered earlier today, treats the symptom and would leave the human retiring overnight gaps one at a time forever.
+
+*Not yet established, and it should be before the fix lands:* whether an eleven-hour overnight interval can form a cluster at all, or whether these pieces escape clustering entirely. The =resume= -> =pause= exemption never splits however long the gap, and an interrupted turn emits no =pause= — so a crashed session may be leaving exactly the adjacency that lets a cluster span a night.
+
+*Mechanism settled 2026-09-17 by probe, and it is upstream of everything recorded above.* Running =--aggregate-guideposts= on the orphan guideposts **with no exclusions at all** yields clusters spanning days:
+
+: 08-24 12:33..08-31 18:13  inside=7
+: 09-02 15:41..09-03 13:17  inside=3
+: 09-16 13:58..09-17 10:27  inside=35
+
+Seven days holding seven guideposts. No gap threshold of 1200 s can produce that, so the =resume= -> =pause= exemption is what joins them — "a turn *running*, so it never splits however long it is". The premise fails on the **orphan stream**: two events are adjacent there only because everything between them was bracketed and attributed elsewhere, so the exemption reads a days-long hole as one continuous turn. Adjacency in a filtered stream is not consecutiveness in time.
+
+*The code half-knows this already.* The comment above the call warns that two orphans "are *adjacent* in the orphan stream, because everything between them is bracketed… A =resume= -> =pause= adjacency never splits however long the gap, so the span would straddle all four brackets by construction". The mitigation chosen was to subtract the brackets afterwards — which removes the bracketed intervals but leaves the cluster straddling days, and the complement then carves that into inter-bracket pieces. Those pieces are the event-less spans measured above. So the complement is the messenger, not the cause.
+
+*Fix shape, with a location:* the exemption should require the two events be adjacent in the **full** event stream rather than in the filtered one the function was handed — the caller knows both, the callee currently sees only one. No invented threshold and no new storage, and it restores =c54c4215='s complement to what its own title says: the gaps between clock pairs *that split a span*, not the interval between every adjacent pair of brackets in the corpus.
+
+*Probe limitation, stated because it bounds the claim:* only three brackets survive in the live queue, the rest consumed by applies, so step 2 of the probe could not reproduce the current item list and is inconclusive. Step 1 needs no brackets and is what the finding rests on. A synthetic fixture is what the fix's test should use.
+
+
+
 
 * TODO Should a short 0-run span default to claimed, and where does the bound fall? :research:
 :PROPERTIES:
@@ -713,17 +363,6 @@ The middle span's endpoints are *bracket edges*, so no guidepost lies within it 
 :END:
 
 Asked by the user 2026-09-16, straight after =c= shipped: "will the 0-run/0-minute spans offered always be mine to claim? if so, why not offer them as such?" The first half is answered and the answer is **no** — [[id:996fd2bd-be90-44b3-b2c5-9018255940b3][996fd2bd]]'s known negative settles it, the 2026-08-25 16:56--17:50 sleeping-laptop gap being byte-identical in shape to an hour of careful reviewing. A =pause=--=resume= gap says only that the *agent* was idle. So a blanket default-to-claimed trades a silent undercount for a silent overcount, and gains nothing in visibility: a wrong CLOCK line looks exactly like a right one, so the error is no more catchable than the one it replaces. **But the population actually on offer makes the question narrower and more answerable than that.** Measured the same day: 13 zero-run spans totalling 27 minutes, envelopes of 8, 5, 3, 3, 2, 1, 1, 1, 1, 1, 1, 1 and 1 minutes — median one minute. At one minute, "I walked away" is not a competing explanation the way it is at 54; the human had just been handed output and the next turn started a minute later. So the arguable proposal is a **width-bounded** default: claim automatically below some envelope, ask above it. Three things to settle, none of them mine to decide. **Where the bound falls is a reporting decision**, and this project has form for naming such a knob without turning it (=claude-code-ide-org-span-minimum-interval=, "a named no-op, deliberately"). **Whether a defaulted claim should be marked as such** — a =(claimed)= line says a human asserted it, and a defaulted one did not, so it may want a third rendering rather than borrowing =c='s. **And whether it is worth it at all**: the entire exposure is 27 minutes, so this can wait behind anything with a larger number. Note the interaction with =c= itself: =c= exists precisely so the assertion is an act rather than an inaction, and a default undoes that property for the range it covers — which is the strongest argument against, and the reason this is filed as a question rather than a plan.
-
-
-* DONE Commenting out the 202 override took use-package!'s closing paren, silently disabling the MCP server :code:
-CLOSED: [2026-09-16 Wed 07:48]
-:PROPERTIES:
-:ID:       7e720ddf-fb7c-41a9-82d1-b8fbc14aeacd
-:CREATED:  [2026-09-16 Wed 07:48]
-:CATEGORY: Dev
-:END:
-
-Found and fixed 2026-09-16 while recovering from the =489d6f61= crash. =~/.config/doom/config.el= line 158 opens =(use-package! claude-code-ide=, and the form's closing paren lived on the last line of the local 202-Accepted HTTP override — =;;     (throw 'close-connection nil))))=. When that override was commented out (it was superseded; the real bug was the server answering 200 where the MCP spec requires 202), the =))))= went with it, and the final =)= was =use-package!='s. The form then swallowed the rest of the file and =load= signalled =(end-of-file ".../config.el")=, aborting Doom's boot at form 13 of 16. Everything after it silently never ran: =global-auto-revert-mode= (inside the form), =(load! "claude-code-ide-org-glue")= at 178, and =magit-repository-directories= at 187. No glue meant no =claude-code-ide-org-standalone-wire=, so **the MCP server never started and every =org_*= tool was dead** — =claude-code-ide-mcp-server-get-port= returned nil and =bin/check-conventions= failed with "expected '45571', got 'nil'". Fixed by inserting one =)= after line 176; the file then reads 16 forms instead of 13, the glue runs, and the port is 45571. Original kept at =~/.config/doom/config.el.broken-2026-09-16=. Three things worth keeping. **The failure was invisible for a day**: the config was edited 2026-09-15 13:02 while an Emacs from 2026-09-14 10:17 kept running the old, working image, so the breakage only appeared at the next restart — the §2 "needs a real restart" class exactly. **=check-parens= passed on the broken file**, so the obvious check does not catch this; what caught it was counting top-level forms read (13) against forms present (16). **And my own first test reported the bug as success**: a batch read-loop that catches =end-of-file= as its loop terminator printed "13 top-level forms, clean EOF" — the very condition under investigation, rendered as a pass. A read-loop must compare the form count against something independent, or assert it consumed to =point-max=.
 
 
 * DOING org_query silently text-searches a sexp query, so the wrong language reads as no matches :code:
@@ -1332,14 +971,14 @@ matters here is therefore not a new property but the existing one: link the plan
 revision when the slice is picked up**, and this is its first recorded failure.
 
 
-* DOING [11/13] A span is only as true as its owner, its edges and its payload :code:
+* DOING [12/13] A span is only as true as its owner, its edges and its payload :code:
 :PROPERTIES:
 :ID:       749301a0-0bd0-4fbd-b3f7-79739226e15a
 :CREATED:  [2026-09-11 Fri 18:58]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  406e9200-c3e7-49ac-a8d0-d6ff8e061ce4 83773daf-df07-4665-b5fc-0445e0da6211
+:BLOCKER:  406e9200-c3e7-49ac-a8d0-d6ff8e061ce4
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-15 Tue 13:10]--[2026-09-15 Tue 13:12] =>  0:02
@@ -1356,6 +995,7 @@ CLOCK: [2026-09-16 Wed 06:37]--[2026-09-16 Wed 06:38] =>  0:01
   all six members terminal; awaiting the PR merge
 - State "DOING"      from "REVIEW"     [2026-09-16 Wed 18:34] \\
   PR #25 review: three findings adopted, one still live
+- [2026-09-16 Wed 18:34]--[2026-09-16 Wed 18:41] assigned at review
 :END:
 :PLAN:
 *Why this order.* Each group hands its output to the next, so working them out
@@ -1408,7 +1048,7 @@ Planned:
   - [X] [[id:2deb090f-593d-40e3-9044-fda318d9b6de][2deb090f]] DONE Accepting a 0-run span records none of its minutes, and only =e= can claim them
 - [X] [[id:36698ca7-9358-41ca-862c-962af49691cd][36698ca7]] DONE The review buffer's legend omits two of its own keys, one of them the help key
 - [X] [[id:cfdfe119-34ad-4ee5-9477-d71dc450eabd][cfdfe119]] DONE footnote-check indents the lines it tells you to append, and the canonical form is flush-left
-- [ ] [[id:83773daf-df07-4665-b5fc-0445e0da6211][83773daf]] TODO --session-alias-cache is keyed on the session set alone, so a nil map outlives the transcript that caused it
+- [X] [[id:83773daf-df07-4665-b5fc-0445e0da6211][83773daf]] DONE --session-alias-cache is keyed on the session set alone, so a nil map outlives the transcript that caused it
 
 Incidental:
 
@@ -6754,12 +6394,12 @@ before the fix and still says.
 
 
 * TODO Archive closed tasks daily
-SCHEDULED: <2026-09-17 Thu 07:00 ++1d>
+SCHEDULED: <2026-09-18 Fri 07:00 ++1d>
 :PROPERTIES:
 :CATEGORY: Meta
 :ID:       cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8
 :CREATED:  [2026-08-21 Fri 15:35]
-:LAST_REPEAT: [2026-09-16 Wed 07:23]
+:LAST_REPEAT: [2026-09-17 Thu 10:15]
 :END:
 :LOGBOOK:
 CLOCK: [2026-08-24 Mon 10:25]--[2026-08-24 Mon 10:28] =>  0:03
@@ -7335,7 +6975,7 @@ rule that refuses to discard =TODO.org=/=DONE.org= working-tree changes
 without showing the diff first.
 
 
-* REVIEW [16/17] Make the guidepost pipeline produce durations that mean what they say :code:
+* REVIEW [15/17] Make the guidepost pipeline produce durations that mean what they say :code:
 :PROPERTIES:
 :CATEGORY: Queue
 :ID:       406e9200-c3e7-49ac-a8d0-d6ff8e061ce4
@@ -7984,8 +7624,7 @@ turns out wrong in use, the measurement above is the baseline to compare
 against.
 
 
-** DONE Correct the accumulated record once the aggregator is fixed :code:
-CLOSED: [2026-08-19 Wed 08:05]
+** DOING Correct the accumulated record once the aggregator is fixed :code:
 :PROPERTIES:
 :ID:       507754ba-ae82-4f04-b209-8d8c58ac268e
 :CREATED:  [2026-08-18 Tue 08:15]
@@ -7997,6 +7636,8 @@ CLOCK: [2026-08-18 Tue 16:56]--[2026-08-18 Tue 17:26] =>  0:30
 - [2026-08-18 Tue 16:56]--[2026-08-18 Tue 17:26] recompute the accumulated CLOCK lines
 - State "DONE"       from "TODO"       [2026-08-19 Wed 08:05] \\
   re-queued, lost to my git checkout
+- State "DOING"      from "DONE"       [2026-09-17 Thu 09:58] \\
+  its condition recurred: four aggregator fixes landed after it closed
 :END:
 :PLAN:
 
@@ -8103,7 +7744,6 @@ plan-drift pattern this epic keeps producing.
 *What is not being claimed.* Nothing here says the record is wrong. It says nobody has checked since the aggregator changed, which is exactly the shape =e3d1531d= turned out to be hiding — 95 of 101 intervals measuring the wrong thing, found only when someone finally asked the audit log rather than reasoning about it.
 
 *=057cec53= sits in the same position* — its fifty-six-line repair closed 2026-08-21, also before all four — and is deliberately left closed: it repaired a specific, enumerated set of lines rather than standing on a condition, so it is history rather than a claim that expired. If the measurement here finds those lines moved again, that is this heading's finding to record, not a second reopening.
-
 
 
 ** DONE Decouple live "what is Claude attending to" visibility from the authoritative org clock :code:
@@ -9831,6 +9471,8 @@ same key, so *which* is canonical does not affect pairing.
 
 *Not yet reloaded.* The running Emacs holds the old definitions, so the next
 apply pass pairs the old way until =config.el= is loaded into it.
+
+
 ** TODO Re-derive the corrected record against the aggregator as it now stands :code:
 :PROPERTIES:
 :ID:       89351a23-8bfc-4939-8a30-f1fe7e93c72f
@@ -9843,6 +9485,7 @@ The re-derivation half of =507754ba=, split out so the two do not become a twin:
 Found reviewing =406e9200= for its close, 2026-09-17. =507754ba= closed 2026-08-19 and =057cec53='s fifty-six-line repair 2026-08-21; four aggregator changes landed after both — =b57c7515= and =c9940558= on 09-16 06:36, =c54c4215= at 08:11, =2deb090f= at 08:21. Two of those change what the pipeline *emits*, not merely what it computes: the complement now emits gap spans that did not exist before, and a project boundary now splits spans that previously clustered together. So the record corrected in August was corrected against an aggregator that has since changed in ways that alter which spans exist at all.
 
 This is deliberately **not** claiming the record is wrong. It is claiming nobody has looked since, which is the same gap =e3d1531d= turned out to be hiding — 95 of 101 intervals, found only because someone finally asked the audit log. Blocked on =507754ba='s measurement; if that comes back clean, close this as CANCELLED with the number recorded, which is a result worth keeping either way.
+
 
 * TODO Type a span's annotation at review time, not by hand-editing it after :code:
 :PROPERTIES:
@@ -12632,10 +12275,6 @@ call it done.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
-CLOCK: [2026-09-17 Thu 09:24]--[2026-09-17 Thu 09:32] =>  0:08
-CLOCK: [2026-09-16 Wed 20:37]--[2026-09-16 Wed 21:03] =>  0:26
-CLOCK: [2026-09-16 Wed 11:47]--[2026-09-16 Wed 11:58] =>  0:11
-CLOCK: [2026-09-16 Wed 08:04]--[2026-09-16 Wed 09:16] =>  1:12
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
@@ -12750,6 +12389,11 @@ CLOCK: [2026-09-15 Tue 13:31]--[2026-09-15 Tue 13:33] =>  0:02
 CLOCK: [2026-09-16 Wed 06:12]--[2026-09-16 Wed 06:14] =>  0:02
 CLOCK: [2026-09-16 Wed 06:15]--[2026-09-16 Wed 06:16] =>  0:01
 CLOCK: [2026-09-16 Wed 07:18]--[2026-09-16 Wed 07:22] =>  0:04
+CLOCK: [2026-09-16 Wed 08:04]--[2026-09-16 Wed 09:16] =>  1:12
+CLOCK: [2026-09-16 Wed 11:47]--[2026-09-16 Wed 11:58] =>  0:11
+CLOCK: [2026-09-16 Wed 20:37]--[2026-09-16 Wed 21:03] =>  0:26
+CLOCK: [2026-09-17 Thu 09:24]--[2026-09-17 Thu 09:32] =>  0:08
+CLOCK: [2026-09-17 Thu 09:59]--[2026-09-17 Thu 10:14] =>  0:15
 :END:
 
 We created this heading on 2026-08-26. We deleted that property from its
@@ -13594,4 +13238,25 @@ CLOCK: [2026-09-16 Wed 15:32]--[2026-09-16 Wed 15:34] =>  0:02
 - [2026-09-16 Wed 15:32]--[2026-09-16 Wed 15:34] assigned at review
 CLOCK: [2026-09-16 Wed 15:34]--[2026-09-16 Wed 18:28] =>  2:54
 - [2026-09-16 Wed 15:34]--[2026-09-16 Wed 18:28] assigned at review
+CLOCK: [2026-09-16 Wed 20:54]--[2026-09-16 Wed 20:55] =>  0:01
+- [2026-09-16 Wed 20:54]--[2026-09-16 Wed 20:55] assigned at review
+CLOCK: [2026-09-16 Wed 21:09]--[2026-09-16 Wed 21:10] =>  0:01
+- [2026-09-16 Wed 21:09]--[2026-09-16 Wed 21:10] assigned at review
+:END:
+
+
+**** 2026-09-17 Thursday
+:PROPERTIES:
+:ID:       80a55cdf-1e30-4f6c-86b5-7556d1d5721a
+:CREATED:  [2026-09-17 Thu 09:29]
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-17 Thu 09:29]--[2026-09-17 Thu 09:30] =>  0:01
+- [2026-09-17 Thu 09:29]--[2026-09-17 Thu 09:30] assigned at review
+CLOCK: [2026-09-17 Thu 09:35]--[2026-09-17 Thu 09:37] =>  0:02
+- [2026-09-17 Thu 09:35]--[2026-09-17 Thu 09:37] assigned at review
+CLOCK: [2026-09-17 Thu 09:41]--[2026-09-17 Thu 09:47] =>  0:06
+- [2026-09-17 Thu 09:41]--[2026-09-17 Thu 09:47] assigned at review
+CLOCK: [2026-09-17 Thu 09:54]--[2026-09-17 Thu 09:55] =>  0:01
+- [2026-09-17 Thu 09:54]--[2026-09-17 Thu 09:55] assigned at review
 :END:
