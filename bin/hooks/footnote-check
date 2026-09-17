@@ -216,7 +216,13 @@ while IFS= read -r id; do
   # Same LINE, deliberately. An id in one paragraph and the title in
   # another is the ordinary unfootnoted case: a reader scanning for the
   # id does not find the title beside it, which is the whole guarantee.
-  grep -F "$id" <<<"$body" | grep -qF "$title" && continue
+  # `-e', not a bare argument: a title beginning with `-' is read as an
+  # option otherwise, and grep prints a usage message straight into the
+  # user's terminal. Fixed in the test harness the same morning and
+  # reintroduced here within hours -- the corpus has titles starting
+  # `--transcript-longer-sibling', `--session-alias-cache' and
+  # `--review-format-annotation'.
+  grep -F -e "$id" <<<"$body" | grep -qF -e "$title" && continue
   missing="$missing${missing:+ }$id"
   # `id` FIRST: the id is the key the prose already carries, so it is what
   # the eye scans for. The keyword is padded to a column because it is the

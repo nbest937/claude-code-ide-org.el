@@ -227,6 +227,14 @@ else
   # again (TODO.org :ID: 2a6a1355).
   check "an id paired with its exact title in the body is discharged" allowed \
     "$(run dp1 "\`$REAL\` $REAL_TITLE -- and nothing else to say.")"
+  # A TITLE BEGINNING WITH `-' must not be read as an option. The same
+  # leading-dash defect was fixed in assert_txt earlier the same day and
+  # reintroduced here within hours; it surfaced as a raw grep usage
+  # message in the user's terminal, from a heading whose title starts
+  # `--review-format-annotation'.
+  check "a title starting with a dash does not break the check" blocked \
+    "$(run dash1 "See \`$REAL\` for detail.")"
+
   # The pairing must be on ONE line: an id here and a title elsewhere is
   # the ordinary unfootnoted case, not a discharge.
   check "id and title on separate lines still blocks" blocked \
