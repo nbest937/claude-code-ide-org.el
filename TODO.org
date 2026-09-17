@@ -19,6 +19,28 @@ Candidates to consider, none argued for yet: whether a grouping should render di
 
 **Do not let this become a container for every statusline idea** — the lesson from =2a6a1355= is that one heading carrying several causes closes none of them. Each candidate the survey endorses gets its own heading.
 
+*The survey gained its first hard data 2026-09-17, and it is larger than expected: the statusLine payload is rich and this repo reads exactly one field of it.* =--statusline-model-name= takes =model.display_name= and nothing else. The captured payload also carries:
+
+| field | example |
+|---+---|
+| =session_name= | =span-owner-edges= |
+| =context_window.used_percentage= / =remaining_percentage= | 22 / 78 |
+| =exceeds_200k_tokens= | =t= |
+| =rate_limits.five_hour.used_percentage= | 13 |
+| =rate_limits.seven_day.used_percentage= | 40 |
+| =cost.total_cost_usd=, =total_duration_ms=, =total_lines_added/removed= | — |
+| =prompt_cache.hit_ratio=, =warm=, =ttl=, =expires_at= | 0.997, =t=, 1h |
+| =workspace.repo.host/owner/name= | github.com / nbest937 / claude-code-ide-org.el |
+| =effort.level=, =fast_mode=, =thinking.enabled= | high, nil, t |
+| =scratchpad_dir=, =prompt_id=, =version=, =output_style.name= | — |
+
+*And the survey's answer to most of that should be no, which is the useful part.* The user's constraint, stated the same day, is that the line has **one job** — "remind me what we are working on right now" — and that everything else is spending characters the headline should have. Nearly every field above is *interesting* and none of it is that. Recording them here is inventory, **not a backlog**: the discipline this heading was filed with was "do not let this become a container for every statusline idea", and a newly discovered buffet is exactly the pressure that rule exists to resist.
+
+*Two that might survive the test, offered without endorsement.* =session_name= is a candidate because it names the current work at a coarser grain than the heading does, so it is arguably the same job rather than a different one. And =context_window.remaining_percentage= is the one field that changes what the user would *do next* — but it is a property of the session, not of the work, and the line is about the work.
+
+*What the payload does **not** carry is the finding that actually blocks =63b84fe2=:* no terminal width, under any key.
+
+
 * TODO Render the statusline like end matter: id first, then keyword, then title :code:
 :PROPERTIES:
 :ID:       63b84fe2-0066-4375-a588-60197956bd44
@@ -60,6 +82,15 @@ Rough budget on an 80-column terminal, model name "Opus 5" at 6: chrome today is
 **Open: does the statusLine payload carry terminal dimensions?** It matters directly, because the finding above is that the hardcoded 30 has to become a *derived* budget, and deriving it needs a width. =--statusline-model-name= reads only =model.display_name= from the payload, so the rest of the schema has never been looked at here. =claude_debug.log= records the invocation ("StatusLine [...] completed with status 0") but not the payload. A temporary probe was installed in =bin/statusline.sh= on 2026-09-17 to capture one payload and answer this empirically — **revert it once read**. If no width is passed, the fallbacks are =(window-width)= inside Emacs, =$COLUMNS=, or a conservative fixed budget, and the choice should be made on evidence rather than assumed.
 
 **Open: does the desktop app render a statusLine at all?** The user has the desktop app open alongside, sees the exchange echoed live, and *no statusline*. This repo wires it in =.claude/settings.json= as a =command= type and the plugin surface ships none, so the wiring is project-scoped and identical for any client that reads that file. Whether a given client *renders* the result is a client question this repo cannot answer from its own artifacts — do not assume it does. If the desktop app does not, that bounds the value of every improvement here to the terminal, which is worth knowing *before* the work rather than after.
+
+*Answered by probe 2026-09-17: **the statusLine payload carries no terminal dimensions**.* The captured payload has 50-odd keys — =session_id=, =transcript_path=, =cwd=, =scratchpad_dir=, =prompt_id=, =effort=, =session_name=, =model=, =workspace= (with =repo= host/owner/name), =version=, =output_style=, =cost=, =context_window=, =prompt_cache=, =fast_mode=, =thinking=, =rate_limits= — and **not one of =columns=, =width=, =lines= or =terminal=**. So deriving the budget from the payload is off the table.
+
+*The user then asked the right follow-up: aren't the dimensions in the calling shell's environment?* Preliminary evidence says no, and it is worth stating why rather than just concluding. Measured in a sibling process spawned the same way: =COLUMNS=0= — **set but zero**, which is worse than unset because a naive =${COLUMNS:-80}= silently yields 0; stdout is *not* a tty, so =tput cols= has nothing to interrogate and falls back to terminfo's default; and =/dev/tty= reports "device not configured", meaning the process has **no controlling terminal** and =stty size </dev/tty= cannot work either. =TERM= is set (=xterm-256color=) but names a terminal *type*, never its current size.
+
+That is consistent with how the hook is run — Claude Code spawns it and captures stdout, so the pipe is the point. A confirming probe inside =bin/statusline.sh= itself is installed and reports on the next render; **do not treat the above as final until it does**, since a sibling process is evidence about the shape of the environment, not proof about this one.
+
+*If it confirms, the remaining options are all approximations and should be labelled as such:* =(window-width)= inside Emacs (wrong — it measures an Emacs window, not the terminal running Claude Code); a =defcustom= the user sets once to their actual width; or a fixed conservative budget. **A =defcustom= is the honest one** — it is the only option that is *correct* rather than a guess, and the cost is one line of config for a value that changes rarely.
+
 
 
 
