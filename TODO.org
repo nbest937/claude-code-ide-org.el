@@ -2,11 +2,16 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* DOING An id already paired with its exact title in the body owes no separate end-matter entry :code:
+* CANCELLED An id already paired with its exact title in the body owes no separate end-matter entry :code:
+CLOSED: [2026-09-17 Thu 12:14]
 :PROPERTIES:
 :ID:       1203168b-ac54-4a05-805a-8419a4538b7c
 :CREATED:  [2026-09-17 Thu 12:11]
 :CATEGORY: Skill
+:END:
+:LOGBOOK:
+- State "CANCELLED"  from "DOING"      [2026-09-17 Thu 12:14] \\
+  twin of 2a6a1355's enumeration mode; work recorded there
 :END:
 
 The user reported the hook's output as "way too much" for the second time, 2026-09-17. The immediate cause is misses — the hook only speaks when a footnote was owed and not paid, and it spoke about twenty-five times that day, each time printing the full suggested block which the reply then printed again.
@@ -16,6 +21,7 @@ But part of it was structural and fixable. A **status summary** pairs every id w
 *Implemented the same day.* =bin/hooks/footnote-check= already resolves each id's exact title in order to print the suggestion, so the test costs one comparison against a string it has in hand: if a line of the body contains both the id and that title, the debt is discharged.
 
 *Same line, deliberately.* An id in one paragraph and its title in another is the ordinary unfootnoted case — a reader scanning for the id does not find the title beside it, which is the guarantee the rule exists to give. Both directions are asserted: paired on one line passes, split across lines still blocks.
+
 
 * MAYBE Revisit building the footnote block with org-ql or the agenda, once Emacs stops wedging :research:
 :PROPERTIES:
@@ -34,6 +40,7 @@ Asked by the user 2026-09-17 and deliberately parked rather than declined. =bin/
 
 *Worth deciding at the same time, if it is ever taken up:* whether the hook should fall back to awk when Emacs is unreachable rather than choosing one path forever. That keeps the guarantee and gets the better field when it is available, at the cost of two code paths that can disagree — which this project has twice found to be the expensive kind of duplication.
 :END:
+
 
 * TODO org_divide writes the statistics cookie at the end of the headline, where a narrow window truncates it :code:
 :PROPERTIES:
@@ -79,12 +86,17 @@ So the "slower than the MCP timeout" assumption recorded above is **false**, and
 *Method note, recorded because the first attempt did damage.* This measurement was originally taken against the live Emacs buffer, and that same session ran =(org-update-statistics-cookies t)= there as a "timing probe" — a whole-buffer mutation under =inhibit-read-only= — which rewrote a quoted title in body prose from =[1/1]= to =[0/0]= and left the buffer dirty (=bf00d36a=). A timing probe must not mutate, and must not run against a live buffer when a scratch copy will do. The figure above was taken on copies, in batch, touching nothing.
 
 
-
 * TODO Recenter after `m` advances, so the item under consideration is never at the bottom of the window :code:
 :PROPERTIES:
 :ID:       396fd1c3-70e0-4e1f-8839-670b5293a7d3
 :CREATED:  [2026-09-17 Thu 10:52]
 :CATEGORY: Apply
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-17 Thu 10:51]--[2026-09-17 Thu 10:52] =>  0:01
+CLOCK: [2026-09-17 Thu 10:51]--[2026-09-17 Thu 10:51] =>  0:00
+- <2026-09-17 Thu 10:51>--<2026-09-17 Thu 10:51> assigned at review
+- [2026-09-17 Thu 10:51]--[2026-09-17 Thu 10:52]
 :END:
 
 Requested by the user 2026-09-17. =m= marks and advances — that advance is what makes marking a run =m m m= rather than =m n m n m=, and it was "the single biggest complaint after the first real by-hand apply". But point walks steadily down the window, so after a few marks the item being decided sits at the bottom edge with no following context, and the human is reading the one line they are about to judge with everything after it off-screen. Do the equivalent of =C-l= once the advance has happened, bringing the next item to the centre.
@@ -101,6 +113,10 @@ Requested by the user 2026-09-17. =m= marks and advances — that advance is wha
 :ID:       bf00d36a-7a26-4f1a-bc98-fb0822d60065
 :CREATED:  [2026-09-17 Thu 11:39]
 :CATEGORY: Skill
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-17 Thu 11:36]--[2026-09-17 Thu 11:37] =>  0:01
+- [2026-09-17 Thu 11:36]--[2026-09-17 Thu 11:37] assigned at review
 :END:
 :PLAN:
 
@@ -136,8 +152,7 @@ So cookie and =:KIND:= are a two-bit classifier and each carries a bit the other
 *Placement, decided 2026-09-17 so it is not re-decided:* the *definition* — a cookie is derived state, not part of a name — goes in =org-conventions.md= beside the passage introducing the cookie, together with the rewrite hazard, since both matter when an =.org= file is open and that file is path-scoped to =**/*.org=. The *instruction* — emit =:KIND:=, keep the cookie — goes in =org-footnote-citations.md=, which carries no path scope because ids are cited with no org file in play. State it once in each and cross-reference; two files each holding a full account is how =~/.claude/CLAUDE.md= and its promoted twin diverged within hours.
 
 
-
-* TODO [0/8] Ship the tracker without the clock, so another project can use it while time tracking is still being built :code:
+* NEXT [0/8] Ship the tracker without the clock, so another project can use it while time tracking is still being built :code:
 :PROPERTIES:
 :ID:       8bbae3aa-55db-441c-8c33-405570ad879a
 :CREATED:  [2026-09-17 Thu 11:16]
@@ -145,6 +160,10 @@ So cookie and =:KIND:= are a two-bit classifier and each carries a bit the other
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
 :BLOCKER:  eb6c4a9b-8f78-42fa-9e86-484bf352fcf6 0c5577dc-ef15-440a-bdac-b3cb068aa7b2 36952d1f-5312-4cf2-a710-4290ce673e19 01f7a19c-4b71-447c-8ded-385410e5d607 6956a46e-da4b-44c2-a701-80196a2930c1 1b36c5bd-bafd-4c43-8aae-c94dee45c5eb d3149a81-91d2-4722-b6d8-68d4cee6fa4f 5fb70821-0f46-42d9-8bf3-93bc98025692
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-09-17 Thu 12:10] \\
+  shortest path to a usable plugin elsewhere
 :END:
 
 Composed 2026-09-17 at the user's direction, whose framing is the point: task tracking, dependency management and slice planning are ready to support real work elsewhere, and time tracking is not. Shipping them together holds the useful half hostage to the half still under construction.
@@ -1449,6 +1468,7 @@ Incidental:
 - [X] [[id:7e720ddf-fb7c-41a9-82d1-b8fbc14aeacd][7e720ddf]] DONE Commenting out the 202 override took use-package!'s closing paren, silently disabling the MCP server
 - [X] [[id:27bb4b08-d95f-4955-a518-efb2ecf6e51b][27bb4b08]] DONE The reload rule lost its always-loaded home, so two repo cross-references now point at a file that does not load
 - [X] [[id:5a9d877e-b492-46c7-a672-fd5971ffb0b0][5a9d877e]] DONE The resume-pause exemption reads adjacency in a filtered stream as continuity, so clusters span days
+- [[id:1203168b-ac54-4a05-805a-8419a4538b7c][1203168b]] CANCELLED An id already paired with its exact title in the body owes no separate end-matter entry
 
 Integration point: [[https://github.com/nbest937/claude-code-ide-org.el/pull/25][PR #25]], opened [2026-09-16 Wed 14:24] with 50 commits. The slice stays REVIEW until it merges.
 
@@ -2557,6 +2577,12 @@ item a normal bracket and prevented the whole class.
 :CATEGORY: Skill
 :END:
 
+Divided out of =e28933e9= on 2026-09-17, which becomes the child and keeps its id, clock and history. The two halves want different schedules and that is the whole reason for the split: the **survey** is deliberately parked as expensive in time and tokens, while a tag adopted **by decision** is a same-day act. Holding the ready half hostage to the parked one is what =8bbae3aa= exists to stop one tier up, and the same argument divides this heading.
+
+The division also names a real seam rather than a convenience. =e28933e9= derives a vocabulary *from* the corpus — "a measurement first and a taxonomy second", in its own words. Its sibling declares one *for* a purpose, with no measurement available to it: whether a defect was observed in use is a fact about how it was found, not a pattern latent in the text. A survey cannot recover it and should not try.
+
+What they share, and why one parent: both answer "which tags make this corpus worth searching", and both land in the same two places — the =#+TAGS:= line and the org conventions' §Tags section. An adopted tag from either half constrains the other, so they should not drift apart in separate parts of the file.
+
 
 ** TODO Survey all task history for a tag vocabulary worth searching on :research:
 :PROPERTIES:
@@ -2568,6 +2594,11 @@ item a normal bracket and prevented the whole class.
 - [2026-09-09 Wed 08:03]--[2026-09-09 Wed 08:07] assigned at review
 CLOCK: [2026-09-09 Wed 08:07]--[2026-09-09 Wed 08:08] =>  0:01
 - [2026-09-09 Wed 08:07]--[2026-09-09 Wed 08:08] file the tag-survey task
+- [2026-09-17 Thu 11:17]--[2026-09-17 Thu 11:22] assigned at review
+CLOCK: [2026-09-17 Thu 11:26]--[2026-09-17 Thu 11:27] =>  0:01
+- [2026-09-17 Thu 11:26]--[2026-09-17 Thu 11:27]
+CLOCK: [2026-09-17 Thu 11:29]--[2026-09-17 Thu 11:30] =>  0:01
+- [2026-09-17 Thu 11:29]--[2026-09-17 Thu 11:30]
 :END:
 
 Captured 2026-09-09 at the user's ask, deliberately *not* started: the
@@ -4207,19 +4238,21 @@ alternative — and unlike the current review pass, it is six questions a day
 rather than nineteen.
 
 
-* NEXT [0/17] Everything passed and the file was still wrong :code:
+* TODO [0/18] Everything passed and the file was still wrong :code:
 :PROPERTIES:
 :ID:       8a2eb687-28da-4d44-893b-db59298bdc5b
 :CREATED:  [2026-09-01 Tue 09:11]
 :CATEGORY: Slices
 :KIND:     slice
-:BLOCKER:  39039bb6-c70a-4ba9-8b37-edd8dd6921f6 f12f9da4-2870-45b7-8c50-ea54415c7bc6 25e7b083-360b-4282-8fd0-bb768e2a0f13 3ad389be-2797-46c3-a51d-9f603053955a 7fa68d5c-b6c0-43df-85c6-764b1d56511f 381ea07d-633f-4640-abbb-89472a07acba 8ddd7fa8-e847-42e9-b82c-63bbe4c11b7b 53b0047d-c55c-486c-8eed-ba4994d97a1a 7ee3b71a-b85a-4610-a4ab-b9e06c8d79da 2aeb65d6-350e-4c75-811e-4a748044fe2c 2a6a1355-615f-4c2c-a8af-c9ae8dcda09b 60ed5b96-40e3-4676-a742-07a8ad6cc3b7 5e731a23-7708-4248-b055-9b4a531f147d 965f94eb-1558-4d00-9857-5727eb86fe6f 7b4f4f14-6c76-4822-84c1-67589bc74b82 4acd8ad0-4d26-420b-bf84-f66ae8a9dfc5 37bca83a-e83b-4070-9058-6318a58a24db
+:BLOCKER:  39039bb6-c70a-4ba9-8b37-edd8dd6921f6 f12f9da4-2870-45b7-8c50-ea54415c7bc6 25e7b083-360b-4282-8fd0-bb768e2a0f13 3ad389be-2797-46c3-a51d-9f603053955a 7fa68d5c-b6c0-43df-85c6-764b1d56511f 381ea07d-633f-4640-abbb-89472a07acba 8ddd7fa8-e847-42e9-b82c-63bbe4c11b7b 53b0047d-c55c-486c-8eed-ba4994d97a1a 7ee3b71a-b85a-4610-a4ab-b9e06c8d79da 2aeb65d6-350e-4c75-811e-4a748044fe2c 2a6a1355-615f-4c2c-a8af-c9ae8dcda09b 60ed5b96-40e3-4676-a742-07a8ad6cc3b7 5e731a23-7708-4248-b055-9b4a531f147d 965f94eb-1558-4d00-9857-5727eb86fe6f 7b4f4f14-6c76-4822-84c1-67589bc74b82 4acd8ad0-4d26-420b-bf84-f66ae8a9dfc5 37bca83a-e83b-4070-9058-6318a58a24db 492a1a30-ac92-4f18-bb82-f9cd615b397c
 :COOKIE_DATA: checkbox recursive
-:DROPPED:  542924c1-9152-4414-8da8-d530d3423611 d2a0f54c-b59a-4855-ae3d-c93a6d3aa177 72463b68-9f08-44b2-8213-87f71298138d
+:DROPPED:  4acd8ad0
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-16 Wed 06:45] \\
   the slice to pick up after this one
+- State "TODO"       from "NEXT"       [2026-09-17 Thu 12:10] \\
+  yields the Slices nomination to 8bbae3aa
 :END:
 
 *The theme, briefly, in place of a plan — the full prompt comes later.* The
@@ -4273,6 +4306,7 @@ Planned:
 - [ ] [[id:7b4f4f14-6c76-4822-84c1-67589bc74b82][7b4f4f14]] TODO apply-detect reports an apply when the review pass only dismissed events
 - [ ] [[id:4acd8ad0-4d26-420b-bf84-f66ae8a9dfc5][4acd8ad0]] TODO The re-key bridge reads transcripts Claude Code prunes, so the alias decays silently
 - [-] [[id:37bca83a-e83b-4070-9058-6318a58a24db][37bca83a]] DOING org_query silently text-searches a sexp query, so the wrong language reads as no matches
+- [ ] [[id:492a1a30-ac92-4f18-bb82-f9cd615b397c][492a1a30]] TODO org_divide writes the statistics cookie at the end of the headline, where a narrow window truncates it
 
 *=60ed5b96= added 2026-09-04, after composition.* It is the theme stated with
 the nouns changed: =--review-format-annotation='s docstring says "Always
@@ -4345,6 +4379,17 @@ identifiable to any writer rather than adding a guard per writer.
 
 - [[orgit-rev:claude-code-ide-org::9ef4836][9ef4836]] [2026-09-16 Wed 18:45] sequenced six of the seventeen members and carried this cycle's measurements forward, chiefly =37bca83a='s re-diagnosis
 
+*Re-scoped 2026-09-17, on the day time tracking came off the critical path.*
+
+*Added: =492a1a30=* — =org_divide= writes the statistics cookie at the end of the headline. It belongs here almost definitionally. =28415ca8= measured the corpus 13:1 for the leading position and fixed =--ensure-statistics-cookie-at-point=; =org_divide=, the *other* inserter, went on writing them at the end. Every test passed, =bin/lint-org= stayed clean, and the file was wrong until the user spotted it by eye — which is this slice's title, verbatim. The one-line fix is not the value; the absence of any check across inserters is.
+
+*Dropped: =4acd8ad0=* — the re-key bridge reading transcripts Claude Code prunes. It fits the *theme* (a silent decay is exactly this slice's shape) but no longer fits the *schedule*: it is span-attribution work, and =8bbae3aa= takes time tracking out of the shipped plugin, so it cannot affect a consuming project. Leaving it counted would hold this slice open for work that has stopped bearing on what the slice is now for.
+
+*It goes to no other slice, deliberately.* =749301a0= is the span slice and has merged; adding a member would reopen a closed integration point, which is the failure =30a340fd= recorded. =8bbae3aa= is about removing time tracking, not fixing it. So =4acd8ad0= returns to backlog with the other 54 time-tracking items, which is where the work now lives.
+
+*Four siblings filed the same week stay in backlog for now* — =51bcec2c=, =aee8487e=, =cf483f5d=, =17f93758= — rather than being added one at a time. They should be judged together against this slice's shape when it is actually picked up, since deciding twice is how a list grows without anyone choosing.
+
+
 
 * DOING Three new ways to owe a footnote and not see it: marker, list, quotation :code:
 :PROPERTIES:
@@ -4363,6 +4408,10 @@ CLOCK: [2026-09-16 Wed 09:49]--[2026-09-16 Wed 09:51] =>  0:02
 - [2026-09-16 Wed 09:51]--[2026-09-16 Wed 09:52] suggested span, accepted at review
 CLOCK: [2026-09-16 Wed 10:57]--[2026-09-16 Wed 10:59] =>  0:02
 - <2026-09-16 Wed 10:57>--<2026-09-16 Wed 10:59> assigned at review
+CLOCK: [2026-09-16 Wed 14:03]--[2026-09-16 Wed 14:04] =>  0:01
+- [2026-09-16 Wed 14:03]--[2026-09-16 Wed 14:04] assigned at review
+CLOCK: [2026-09-16 Wed 14:07]--[2026-09-16 Wed 14:08] =>  0:01
+- [2026-09-16 Wed 14:07]--[2026-09-16 Wed 14:08] assigned at review
 - State "DOING"      from "REVIEW"     [2026-09-16 Wed 14:15] \\
   rework: the marker half is retired
 CLOCK: [2026-09-16 Wed 14:15]--[2026-09-16 Wed 14:18] =>  0:03
@@ -4713,7 +4762,6 @@ The sentence this heading turns on is that "the hook's test is *does the respons
 *Same line, deliberately.* An id in one paragraph and its title in another is the ordinary unfootnoted case: a reader scanning for the id does not find the title beside it, which is the guarantee being protected. Both directions are asserted — paired on one line passes, split across lines still blocks — and the passing case was proved red before the hook changed. 26 tests, was 24.
 
 *Recorded here rather than on its own heading at the user's direction*; =1203168b= is cancelled as its twin.
-
 
 
 * TODO Report worked headings that carry no clock interval that day :code:
@@ -12719,7 +12767,7 @@ call it done.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
-CLOCK: [2026-09-17 Thu 12:18]
+CLOCK: [2026-09-17 Thu 12:18]--[2026-09-17 Thu 12:25] =>  0:07
 CLOCK: [2026-09-17 Thu 11:41]--[2026-09-17 Thu 11:51] =>  0:10
 CLOCK: [2026-09-17 Thu 10:48]--[2026-09-17 Thu 10:58] =>  0:10
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
@@ -13707,4 +13755,16 @@ CLOCK: [2026-09-17 Thu 09:41]--[2026-09-17 Thu 09:47] =>  0:06
 - [2026-09-17 Thu 09:41]--[2026-09-17 Thu 09:47] assigned at review
 CLOCK: [2026-09-17 Thu 09:54]--[2026-09-17 Thu 09:55] =>  0:01
 - [2026-09-17 Thu 09:54]--[2026-09-17 Thu 09:55] assigned at review
+CLOCK: [2026-09-17 Thu 10:57]--[2026-09-17 Thu 10:58] =>  0:01
+- [2026-09-17 Thu 10:57]--[2026-09-17 Thu 10:58] assigned at review
+CLOCK: [2026-09-17 Thu 11:01]--[2026-09-17 Thu 11:02] =>  0:01
+- [2026-09-17 Thu 11:01]--[2026-09-17 Thu 11:02]
+CLOCK: [2026-09-17 Thu 11:08]--[2026-09-17 Thu 11:11] =>  0:03
+- [2026-09-17 Thu 11:08]--[2026-09-17 Thu 11:11] assigned at review
+CLOCK: [2026-09-17 Thu 11:16]--[2026-09-17 Thu 11:17] =>  0:01
+- [2026-09-17 Thu 11:16]--[2026-09-17 Thu 11:17]
+CLOCK: [2026-09-17 Thu 11:30]--[2026-09-17 Thu 11:31] =>  0:01
+- [2026-09-17 Thu 11:30]--[2026-09-17 Thu 11:31]
+CLOCK: [2026-09-17 Thu 11:39]--[2026-09-17 Thu 11:40] =>  0:01
+- [2026-09-17 Thu 11:39]--[2026-09-17 Thu 11:40]
 :END:
