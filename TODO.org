@@ -4959,6 +4959,13 @@ The sentence this heading turns on is that "the hook's test is *does the respons
 
 *Recorded here rather than on its own heading at the user's direction*; =1203168b= is cancelled as its twin.
 
+*Measured 2026-09-17, against this session's own transcript: the discharge rule shipped and the demands did not fall.* 57 fires. Mean ids demanded per fire was 1.4 before 14:00Z and 4.3 after, peaking at 15 — the rise tracks the subject matter, not a regression: the afternoon was portfolio bookkeeping, where a response *is* a list of headings.
+
+The working discharge rule landed at 17:33Z (commit =f608123=, the =-F -e= fix). Fires after it averaged 4.3 against 3.5 before, so it bought nothing measurable. Two candidate causes, and the hook is exonerated: driven directly with a scratch queue dir, a message citing three bare ids demands all three and exits 2, while the same id paired with its exact title on one line exits 0. The mechanism works. **What did not happen is my using it** — the large fires are bare id lists, which is the *enumeration* mode this heading already names. No new mode.
+
+One thing the rule does not reach, and it is worth writing down rather than treating as a miss. At 12 or 15 ids the inline form means 12 or 15 full titles inside the prose, which is precisely the unscannable paragraph the convention exists to prevent. There the end matter is the correct form and the block is the convention working. The discharge rule is a remedy for the two-to-five-id case; above that the volume is inherent to talking about that many headings at once.
+
+
 
 * TODO Report worked headings that carry no clock interval that day :code:
 :PROPERTIES:
