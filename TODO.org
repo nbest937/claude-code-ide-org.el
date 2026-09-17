@@ -2,6 +2,28 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO The cookie is state, not name: quoting it puts 84 rewritable tokens into prose and makes every citation stale :code:
+:PROPERTIES:
+:ID:       bf00d36a-7a26-4f1a-bc98-fb0822d60065
+:CREATED:  [2026-09-17 Thu 11:39]
+:CATEGORY: Skill
+:END:
+:PLAN:
+
+*This retracts a convention shipped 2026-09-16*, which said the end-matter line carries "the exact title *including any cookie*", on the reasoning that =[8/9]= and =[16/16]= "are the part most often wrong when recalled". The better answer is that they cannot be wrong if they are not there.
+
+*A cookie is derived state, not part of a name.* =749301a0= read =[8/9]=, =[10/12]=, =[11/13]=, =[12/13]= and =[13/14]= within one session on 2026-09-17 — five different "titles" for one heading in a day. The conventions already say the cookie "is not yours to remember"; it is computed by machinery from children and checkboxes. Citing it makes a footnote stale within hours and identifies nothing, which is the opposite of what the exact-title rule is for.
+
+*And it puts rewritable text into prose, measured 2026-09-17.* 115 cookie-shaped tokens across TODO.org and DONE.org; **31** sit on headlines where they belong, **none** on checkbox lines, so roughly **84 are in body prose** — quoted titles, mostly, because the footnote convention put them there. =org-update-statistics-cookies= with a non-nil ALL argument rewrites every one, recomputing a quoted =[1/1]= to =[0/0]= because no children sit beneath a paragraph. The damage reads as plausible text, not as corruption. Observed by the user as a buffer/disk diff at TODO.org line 4271, where a quoted title had been zeroed.
+
+*Exposure is narrow but real.* The ceremony is safe — it runs drawer consolidation and heading separation, not cookies. =org_divide= and the slice refresh are safe, updating at point or through the refresh path. What is exposed is a human pressing =C-u C-c #= in either file, or an agent running the command without thinking, which is exactly how the instance above happened.
+
+*The fix has three parts.* The convention drops the cookie from quoted titles, in =~/.claude/CLAUDE.md='s successor and in the shipped =org-footnote-citations.md=. =bin/hooks/footnote-check= strips it when emitting, since it currently hands back the title as read from the file. And the existing footnote lines in bodies are left alone — they are historical statements, already stale, and rewriting them is churn of the kind =5fc7b934= declined for line-number citations.
+:END:
+
+A statistics cookie is derived state recomputed from children, not part of a heading's name — =749301a0= wore five different ones in a single day — so quoting it in a footnote makes the citation stale on arrival and identifies nothing. It also puts cookie-shaped text into prose: 115 such tokens exist across the two files, only 31 of them on headlines, and a buffer-wide =org-update-statistics-cookies= silently zeroes the rest. Retracts the 2026-09-16 convention that the quoted title include the cookie; the hook must strip it too.
+
+
 * TODO [0/8] Ship the tracker without the clock, so another project can use it while time tracking is still being built :code:
 :PROPERTIES:
 :ID:       8bbae3aa-55db-441c-8c33-405570ad879a
