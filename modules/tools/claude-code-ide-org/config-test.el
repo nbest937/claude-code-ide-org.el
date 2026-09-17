@@ -16938,3 +16938,42 @@ session jump at `point-min' for any session crossing midnight."
              (+ 1440 1440)))
   (should (> (+ 1440 (claude-code-ide-org--hhmm-minutes "00:15"))
              (claude-code-ide-org--hhmm-minutes "22:00"))))
+
+(ert-deftest claude-code-ide-org-test-apply-refuses-to-consume-a-blocked-transition ()
+  "A transition org silently refuses is reported failed, not marked applied.
+
+`org-todo' does not signal when `org-blocker-hook' declines a change
+non-interactively -- org.el says \"Fail silently\" and throws `exit'.
+Apply therefore saw no error and consumed the event, losing the
+transition for good, since a consumed event is never re-offered
+\(TODO.org :ID: b693c444).  Three items went that way in one pass on
+2026-09-17.
+
+Blocked here through `--blocker-clock-running-p', which refuses DONE
+while the heading's own clock runs.  It is one of this repo's two live
+`org-blocker-hook' entries, so the test exercises the production path;
+org's own `org-block-todo-from-children-or-siblings-or-parent' is not
+installed under batch, which is why `org-enforce-todo-dependencies'
+alone cannot stage this."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--clock-in-for-real id)
+    (let ((item (list :type 'state :id id :to "DONE"
+                      :ts (date-to-time "2026-09-17T13:40:00-0500")
+                      :events nil)))
+      (let ((result (claude-code-ide-org--review-apply-item item)))
+        ;; Reported as a failure, so --review-apply-items never pushes it
+        ;; onto `applied' and --review-record-applied never watermarks it.
+        (should (stringp result))
+        (should (string-match-p "did not take effect" result))
+        (should (string-match-p "Left pending" result)))
+      ;; And the file agrees: nothing moved.
+      (should (equal (claude-code-ide-org--review-current-state id) "TODO")))))
+
+(ert-deftest claude-code-ide-org-test-apply-still-consumes-a-transition-that-lands ()
+  "The guard above must not refuse an ordinary, successful transition."
+  (claude-code-ide-org-test--with-heading
+    (let ((item (list :type 'state :id id :to "DONE"
+                      :ts (date-to-time "2026-09-17T13:40:00-0500")
+                      :events nil)))
+      (should-not (claude-code-ide-org--review-apply-item item))
+      (should (equal (claude-code-ide-org--review-current-state id) "DONE")))))

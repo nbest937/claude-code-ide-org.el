@@ -91,6 +91,21 @@ That is consistent with how the hook is run — Claude Code spawns it and captur
 
 *If it confirms, the remaining options are all approximations and should be labelled as such:* =(window-width)= inside Emacs (wrong — it measures an Emacs window, not the terminal running Claude Code); a =defcustom= the user sets once to their actual width; or a fixed conservative budget. **A =defcustom= is the honest one** — it is the only option that is *correct* rather than a guess, and the cost is one line of config for a value that changes rarely.
 
+*Corrected 2026-09-17 by the confirming probe: **the width is available after all**, and the preliminary reading above was wrong.* The user asked whether terminal dimensions are in the calling shell's environment. Measured inside =bin/statusline.sh= itself:
+
+: COLUMNS=[108]  LINES=[92]  TERM=[xterm-256color]
+: stdin tty: no   stdout tty: no   stderr tty: no
+: tput cols: 108
+
+**=COLUMNS= is set and correct, and =tput cols= agrees.** The earlier =COLUMNS=0= came from a *sibling* process spawned differently, and generalising from it was the error — which is exactly why that paragraph said not to treat it as final until this probe ran. Retain the hedge, not the conclusion: the =defcustom= is **no longer the honest option**, because the environment carries the true value and a hand-set constant would go stale on every window resize.
+
+=/dev/tty= is readable but =stty size= fails with "Device not configured", and no descriptor is a tty, so =COLUMNS= is the signal to use — not =stty=, not a tty probe.
+
+*Warp specifically carries nothing extra.* The user noted we are in Warp and it may have a native mechanism. Its variables are =WARP_TERMINAL_SESSION_UUID=, =WARP_HONOR_PS1=, =WARP_IS_LOCAL_SHELL_SESSION=, =WARP_CLI_AGENT_PROTOCOL_VERSION=, =TERM_PROGRAM=WarpTerminal= and a version — all identity and configuration, **none dimensional**. So the portable answer and the Warp answer are the same one.
+
+*One design consequence, and it bends a convention slightly.* =COLUMNS= belongs to the *shell*; the Emacs process behind =emacsclient= does not have it. So =bin/statusline.sh= — whose stated job is to shuttle bytes and hold no logic — has to pass the width into the elisp call. That is passing an *environment fact* rather than adding logic, which is defensible under "maximum Emacs, minimal shell", but it should be a deliberate note in the script rather than an unremarked argument.
+
+
 
 
 
@@ -139,6 +154,31 @@ Proposal: the watermark should advance only on a transition org actually perform
 :END:
 
 Three transitions were marked applied in the watermark and none took effect: =89351a23='s =CANCELLED= stalled on the =@=-cookie note prompt, which left it =DOING=, which then correctly blocked =406e9200= (=org-enforce-todo-dependencies=) and =749301a0= (=:BLOCKER:=). The guards were right; the watermark advancing was not. Consumed events are never re-offered, so the change is simply lost and the heading reads as though it never closed. Proposal: advance the watermark only when the heading's state after the call matches the event's target, and report an escaped =@= prompt as a failure rather than a no-op.
+
+*Fixed 2026-09-17 on =feature/apply-verifies-transitions=. The root cause is confirmed from primary source and is more general than the =@=-prompt hypothesis this heading opened with.*
+
+=org-todo='s `org-blocker-hook' branch in org.el decides what a refused transition does, and its own comment names the behaviour:
+
+#+begin_src elisp
+(if (called-interactively-p 'interactive)
+    (user-error "TODO state change from %s to %s blocked (by %s)" ...)
+  ;; Fail silently.
+  (message "TODO state change from %s to %s blocked (by %s)" ...)
+  (throw 'exit nil))
+#+end_src
+
+Apply calls =org-todo= from a lambda, never interactively, so **every blocked transition takes the silent branch**: it messages, throws =exit=, and returns nil. =--at-id= sees no error, =--review-apply-item= returns nil, the item joins =applied=, and =--review-record-applied= watermarks it. The event is consumed having changed nothing, and a consumed event is never re-offered.
+
+*So the =@=-cookie note prompt was a hypothesis and is not needed to explain this.* Whatever stalled =89351a23=, the two parents were refused by the guards — =org-enforce-todo-dependencies= and =org-depend-block-todo= on the =:BLOCKER:= — and *that* path is now proven to be silent by construction rather than by accident.
+
+*The fix checks the outcome, not the cause*, which is what makes it cover all three casualties and the =@= case together. =--review-apply-item= already had a one-directional check: reported failure plus a heading that shows the target keyword becomes success-with-a-warning (=b23e5bcc=). It now has the inverse — **no error reported plus a heading that does not show the target keyword becomes a reported failure** — so the item stays pending instead of being consumed. =unresolved= fails the test too: never consume an event whose effect cannot be verified.
+
+*Proved to discriminate rather than merely to pass.* =claude-code-ide-org-test-apply-refuses-to-consume-a-blocked-transition= is red against the old code and green against the new — 687/1 reverted, 688/0 fixed. A second test pins that an ordinary successful transition still applies and is still consumed, since a guard that refuses everything would also have passed the first one.
+
+*Staged through =--blocker-clock-running-p=, one of this repo's two live =org-blocker-hook= entries, deliberately.* org's own =org-block-todo-from-children-or-siblings-or-parent= is **not installed under batch**, so =org-enforce-todo-dependencies= alone cannot stage a block there — found by probe when the first version of the test passed against the broken code for that reason.
+
+*Left open, as filed:* the seven audit records for =89351a23= at 13:04:39 with four distinct =before_sha256= values. Untouched here and still a hypothesis about attribution leaking across a batch of writes.
+
 
 
 * TODO The prose still promises time tracking: README, CLAUDE.md, DOOM.md and the skill all describe a clock that no longer ships :code:
