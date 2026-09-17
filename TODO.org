@@ -2408,7 +2408,13 @@ the same-lane-close pairing fix in this =:PLAN:= would have made the
 item a normal bracket and prevented the whole class.
 
 
-* TODO Survey all task history for a tag vocabulary worth searching on :research:
+* TODO Make the corpus searchable by tag, by measurement where it can be and by decision where it cannot [0/1]
+:PROPERTIES:
+:ID:       ee3e0fa2-d4a6-4575-a5fb-e4e25c49431a
+:CREATED:  [2026-09-17 Thu 11:26]
+:CATEGORY: Skill
+:END:
+** TODO Survey all task history for a tag vocabulary worth searching on :research:
 :PROPERTIES:
 :ID:       e28933e9-f352-4ef9-8d53-8cd9a4318768
 :CREATED:  [2026-09-09 Wed 08:07]
