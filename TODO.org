@@ -2,6 +2,185 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Survey what has landed since August that the statusline should be using and is not :code:research:
+:PROPERTIES:
+:ID:       08d76f6a-9f4d-4a41-a2c6-05e96115237d
+:CREATED:  [2026-09-17 Thu 16:24]
+:CATEGORY: Dev
+:END:
+
+The user's broader point 2026-09-17: the statusline "may deserve revisiting — we have not touched it in quite some time, and work in the interim may present opportunities to improve it."
+
+*The interval is real.* Last substantive change =bc8696a= 2026-08-18, pointing it at the queue instead of the live clock; last rendering change =5c17021= 2026-08-04. Everything the project built after that — slices, spans and runs, the grouping predicate, the project dimension on guideposts, the blocker validation, the star notation — arrived without anyone asking what the statusline should show.
+
+*Deliberately a survey, with a bounded output: a list of candidates and a recommendation, not an implementation.* The two findings that already have headings (=1c7051da= the misleading label, =d88362e7=-adjacent presentation) came out of one incident in one turn, which is weak evidence that a deliberate pass would find more — and is exactly why the pass should be a *survey* rather than an open-ended rewrite.
+
+Candidates to consider, none argued for yet: whether a grouping should render differently from a leaf (=--grouping-heading-p= exists); whether a blocked heading should say so; whether the subtree total is the right number now that spans and runs exist and a =DOING= heading normally carries no running clock; whether the slice a heading belongs to is worth a field; and whether the =cwd= dimension matters on a line that is per-session but reads as per-project.
+
+**Do not let this become a container for every statusline idea** — the lesson from =2a6a1355= is that one heading carrying several causes closes none of them. Each candidate the survey endorses gets its own heading.
+
+*The survey gained its first hard data 2026-09-17, and it is larger than expected: the statusLine payload is rich and this repo reads exactly one field of it.* =--statusline-model-name= takes =model.display_name= and nothing else. The captured payload also carries:
+
+| field | example |
+|---+---|
+| =session_name= | =span-owner-edges= |
+| =context_window.used_percentage= / =remaining_percentage= | 22 / 78 |
+| =exceeds_200k_tokens= | =t= |
+| =rate_limits.five_hour.used_percentage= | 13 |
+| =rate_limits.seven_day.used_percentage= | 40 |
+| =cost.total_cost_usd=, =total_duration_ms=, =total_lines_added/removed= | — |
+| =prompt_cache.hit_ratio=, =warm=, =ttl=, =expires_at= | 0.997, =t=, 1h |
+| =workspace.repo.host/owner/name= | github.com / nbest937 / claude-code-ide-org.el |
+| =effort.level=, =fast_mode=, =thinking.enabled= | high, nil, t |
+| =scratchpad_dir=, =prompt_id=, =version=, =output_style.name= | — |
+
+*And the survey's answer to most of that should be no, which is the useful part.* The user's constraint, stated the same day, is that the line has **one job** — "remind me what we are working on right now" — and that everything else is spending characters the headline should have. Nearly every field above is *interesting* and none of it is that. Recording them here is inventory, **not a backlog**: the discipline this heading was filed with was "do not let this become a container for every statusline idea", and a newly discovered buffet is exactly the pressure that rule exists to resist.
+
+*Two that might survive the test, offered without endorsement.* =session_name= is a candidate because it names the current work at a coarser grain than the heading does, so it is arguably the same job rather than a different one. And =context_window.remaining_percentage= is the one field that changes what the user would *do next* — but it is a property of the session, not of the work, and the line is about the work.
+
+*What the payload does **not** carry is the finding that actually blocks =63b84fe2=:* no terminal width, under any key.
+
+
+* TODO Render the statusline like end matter: id first, then keyword, then title :code:
+:PROPERTIES:
+:ID:       63b84fe2-0066-4375-a588-60197956bd44
+:CREATED:  [2026-09-17 Thu 16:24]
+:CATEGORY: Dev
+:BLOCKER:  08d76f6a-9f4d-4a41-a2c6-05e96115237d
+:END:
+
+Requested by the user 2026-09-17: move the =:ID:= prefix to the front "to replicate the footnote presentation". The format string has not changed since =5c17021= on 2026-08-04, 44 days.
+
+Today: =| Bulk citation owes more entri… [13aed7ca] (clocked in, 0:00 total)=
+
+The end matter's argument applies here unchanged and was never carried across: **the id leads because it is what the eye scans for**, the keyword is second because it is the volatile field, and the title trails. The statusline puts the id in the middle, in brackets, after a truncated title — the exact inversion. One reader reading two surfaces should not have to re-orient between them.
+
+*And the statusline can do something the footnote hook cannot: star a queued state correctly.* =footnote-check= is plain shell that greps the org files and knows nothing of the queue, so it emits the on-disk keyword by design. =--statusline-queue-state= already **reads the queue**, so it holds both the applied keyword and the pending one and can render =NEXT*= from first-hand knowledge. The star notation (=d88362e7=) therefore has a more natural home here than anywhere it has been applied so far.
+
+Shape to aim at, not settled: =| 13aed7ca  NEXT*  Bulk citation owes more entri…  0:00=
+
+Note the keyword is *absent* from the line today, so this is an addition rather than a move. Interacts with =1c7051da=, which is about what the third field should say once "clocked in" stops claiming a clock; do them together or sequence them deliberately, since both rewrite the same format string.
+
+*Blocked on =08d76f6a= deliberately, and the blocker is a sequencing judgement rather than a dependency — say so if you would rather have the id move now and take the rework.* Three pending changes rewrite the same =format= call: this one, =1c7051da='s relabelling of the third field, and whatever the survey endorses. Landing them one at a time means rewriting one line three times and re-deciding the column layout each time, which is how a display string acquires an arbitrary shape nobody chose. The survey is cheap by construction — it outputs a list and a recommendation, not an implementation — so it is the right thing to put first.
+
+The cost of being wrong here is small and worth naming: if the survey finds nothing, this change was delayed for one bounded pass. If it finds two more fields, the layout is decided once.
+
+*Sharpened by the user 2026-09-17, and it reframes the whole heading:* "even saying 'clocked in' or anything in the statusline may be superfluous. I just want it to remind me what we are working on *right now*. I would rather see more of the headline at that moment."
+
+So the line has **one job** — name the current work — and every other field is spending characters that the headline should have. That is a stronger claim than "reorder the fields", and it makes the chrome negotiable rather than given.
+
+*The mechanical finding that matters, because dropping chrome alone buys nothing:* the title is truncated at a **hardcoded 30 characters** — =(if (> (length name) 30) (concat (substring name 0 29) "…") name)= — not at a width derived from the terminal or from what the rest of the line leaves over. Free up every other field and the headline still stops at 30. **The constant is the limiter; the chrome is only the excuse for it.** Any version of this change that does not derive the budget will look like it did nothing.
+
+Rough budget on an 80-column terminal, model name "Opus 5" at 6: chrome today is about 39 characters (=" | "=, the bracketed id, and ="(clocked in, 0:00 total)"=) against 30 of title. Leading with a bare id and dropping the parenthetical leaves roughly 61 for the title — double — and about 54 if the keyword stays.
+
+*One tension to settle rather than decide silently.* The earlier ask was to replicate the end matter, which puts the **keyword** second. The end matter's reason for it is that "misalignment is how a stale keyword goes unnoticed" — an argument about a *column of entries*, which a one-line statusline does not have. So the keyword's justification is weaker here than it is there, and it costs 4–8 characters of headline. Keep it, or drop it and let the star alone carry the pending signal? Not decided here.
+
+*Three constraints and questions from the user 2026-09-17.*
+
+**No alignment in the statusline.** Do not pad the keyword to a column or align anything else. The end matter aligns because it is a *column of entries* read against each other; a single line has nothing to align against, and padding there only spends headline characters to make one field start at a fixed offset nobody is scanning. This also removes the last argument for carrying the keyword at all — see the open question above — since alignment was the reason the end matter gives for it.
+
+**Open: does the statusLine payload carry terminal dimensions?** It matters directly, because the finding above is that the hardcoded 30 has to become a *derived* budget, and deriving it needs a width. =--statusline-model-name= reads only =model.display_name= from the payload, so the rest of the schema has never been looked at here. =claude_debug.log= records the invocation ("StatusLine [...] completed with status 0") but not the payload. A temporary probe was installed in =bin/statusline.sh= on 2026-09-17 to capture one payload and answer this empirically — **revert it once read**. If no width is passed, the fallbacks are =(window-width)= inside Emacs, =$COLUMNS=, or a conservative fixed budget, and the choice should be made on evidence rather than assumed.
+
+**Open: does the desktop app render a statusLine at all?** The user has the desktop app open alongside, sees the exchange echoed live, and *no statusline*. This repo wires it in =.claude/settings.json= as a =command= type and the plugin surface ships none, so the wiring is project-scoped and identical for any client that reads that file. Whether a given client *renders* the result is a client question this repo cannot answer from its own artifacts — do not assume it does. If the desktop app does not, that bounds the value of every improvement here to the terminal, which is worth knowing *before* the work rather than after.
+
+*Answered by probe 2026-09-17: **the statusLine payload carries no terminal dimensions**.* The captured payload has 50-odd keys — =session_id=, =transcript_path=, =cwd=, =scratchpad_dir=, =prompt_id=, =effort=, =session_name=, =model=, =workspace= (with =repo= host/owner/name), =version=, =output_style=, =cost=, =context_window=, =prompt_cache=, =fast_mode=, =thinking=, =rate_limits= — and **not one of =columns=, =width=, =lines= or =terminal=**. So deriving the budget from the payload is off the table.
+
+*The user then asked the right follow-up: aren't the dimensions in the calling shell's environment?* Preliminary evidence says no, and it is worth stating why rather than just concluding. Measured in a sibling process spawned the same way: =COLUMNS=0= — **set but zero**, which is worse than unset because a naive =${COLUMNS:-80}= silently yields 0; stdout is *not* a tty, so =tput cols= has nothing to interrogate and falls back to terminfo's default; and =/dev/tty= reports "device not configured", meaning the process has **no controlling terminal** and =stty size </dev/tty= cannot work either. =TERM= is set (=xterm-256color=) but names a terminal *type*, never its current size.
+
+That is consistent with how the hook is run — Claude Code spawns it and captures stdout, so the pipe is the point. A confirming probe inside =bin/statusline.sh= itself is installed and reports on the next render; **do not treat the above as final until it does**, since a sibling process is evidence about the shape of the environment, not proof about this one.
+
+*If it confirms, the remaining options are all approximations and should be labelled as such:* =(window-width)= inside Emacs (wrong — it measures an Emacs window, not the terminal running Claude Code); a =defcustom= the user sets once to their actual width; or a fixed conservative budget. **A =defcustom= is the honest one** — it is the only option that is *correct* rather than a guess, and the cost is one line of config for a value that changes rarely.
+
+*Corrected 2026-09-17 by the confirming probe: **the width is available after all**, and the preliminary reading above was wrong.* The user asked whether terminal dimensions are in the calling shell's environment. Measured inside =bin/statusline.sh= itself:
+
+: COLUMNS=[108]  LINES=[92]  TERM=[xterm-256color]
+: stdin tty: no   stdout tty: no   stderr tty: no
+: tput cols: 108
+
+**=COLUMNS= is set and correct, and =tput cols= agrees.** The earlier =COLUMNS=0= came from a *sibling* process spawned differently, and generalising from it was the error — which is exactly why that paragraph said not to treat it as final until this probe ran. Retain the hedge, not the conclusion: the =defcustom= is **no longer the honest option**, because the environment carries the true value and a hand-set constant would go stale on every window resize.
+
+=/dev/tty= is readable but =stty size= fails with "Device not configured", and no descriptor is a tty, so =COLUMNS= is the signal to use — not =stty=, not a tty probe.
+
+*Warp specifically carries nothing extra.* The user noted we are in Warp and it may have a native mechanism. Its variables are =WARP_TERMINAL_SESSION_UUID=, =WARP_HONOR_PS1=, =WARP_IS_LOCAL_SHELL_SESSION=, =WARP_CLI_AGENT_PROTOCOL_VERSION=, =TERM_PROGRAM=WarpTerminal= and a version — all identity and configuration, **none dimensional**. So the portable answer and the Warp answer are the same one.
+
+*One design consequence, and it bends a convention slightly.* =COLUMNS= belongs to the *shell*; the Emacs process behind =emacsclient= does not have it. So =bin/statusline.sh= — whose stated job is to shuttle bytes and hold no logic — has to pass the width into the elisp call. That is passing an *environment fact* rather than adding logic, which is defensible under "maximum Emacs, minimal shell", but it should be a deliberate note in the script rather than an unremarked argument.
+
+
+
+
+
+
+* TODO The statusline says "clocked in" when it means "agent mid-turn", and the heading is merely the last one named :code:observed:
+:PROPERTIES:
+:ID:       1c7051da-c020-41e1-b843-8cfc68f53e38
+:CREATED:  [2026-09-17 Thu 16:21]
+:CATEGORY: Dev
+:END:
+
+Observed 2026-09-17: the user read =| Bulk citation owes more entri… [13aed7ca] (clocked in, 0:00 total)= as meaning that heading was clocked, and asked whether work was being booked against it. Nothing was. The queue's last clock event was =clock_out 2a6a1355=; =13aed7ca='s only event was a queued =todo NEXT=.
+
+*The function is behaving as documented, which is why this is a naming defect rather than a bug.* =--statusline-queue-state= returns =(ID . RUNNING-P)= where ID is "the heading named by the newest event that names one -- a =todo= or =clock_in=" and RUNNING-P is "non-nil when the newest guidepost is a =resume=". So the two halves answer *different questions*: the id says what was last named, the flag says whether the agent is mid-turn. Neither is about a clock, and =--statusline-task-string= then renders the flag as the literal words "clocked in".
+
+*Why it misleads in exactly the worst case.* Post-cutover a =DOING= heading normally has no running clock, so a reader cannot use "is a clock actually open" as a sanity check — the statusline is the only clock-ish signal on screen. And the id half moves on a mere =org_set_todo=, so setting =NEXT= on a heading nobody is working retargets the line to it. =0:00 total= is honest and is the one part that hints something is off.
+
+*Candidate fixes, none chosen.* Relabel to what it means ("working", "mid-turn", or a bare =▸=); or split the two facts, since conflating them is the actual error; or make the id half prefer the newest =clock_in= over the newest =todo=, so a state change alone cannot retarget it. The third is the smallest and would have prevented this instance outright.
+
+*Probably superseded rather than fixable, 2026-09-17.* The user's follow-on — "even saying 'clocked in' or anything in the statusline may be superfluous" — points at deleting the field rather than relabelling it. If that lands, **this defect ceases to exist instead of being repaired**, the way the marker modes on =2a6a1355= were retired with the markers rather than fixed.
+
+Left =TODO= deliberately, not cancelled: the field's removal is still a proposal on =63b84fe2=, and cancelling on an intention is how a real defect gets lost when the intention changes. *If the status field survives in any form, the misleading label is still live and this heading still applies.* If it is deleted, close this as CANCELLED citing that commit, and do not spend a line relabelling something on its way out.
+
+The analysis above stays useful either way, because it is the record of *why* the field misleads — which is the argument for deleting it, not merely for renaming it.
+
+
+* TODO Apply consumes an event whose transition org refused, so the change is lost and never re-offered :code:
+:PROPERTIES:
+:ID:       b693c444-9ade-4103-a7b6-93eea0926763
+:CREATED:  [2026-09-17 Thu 13:40]
+:CATEGORY: Apply
+:END:
+:PLAN:
+
+Observed 2026-09-17. Three queued transitions — =89351a23= to =CANCELLED=, =406e9200= and =749301a0= to =DONE= — are recorded in the =.applied= watermark and **none of them took effect**. On disk the headings still read =DOING=, =REVIEW= and =DOING=. The events are consumed, so nothing will ever offer them again, and the user found it only by noticing the transitions were absent from the review buffer.
+
+*One cause, three casualties.* =CANCELLED(c@)= is one of only two keywords here carrying an =@= cookie, so org **prompts for a note** on entry — the asymmetry the state-transition rules already name as a reason state changes go through the queue. The prompt was evidently not completed, so =89351a23= stayed =DOING=. =org-enforce-todo-dependencies= is =t=, so =406e9200= could not close over a =DOING= child; and =749301a0='s =:BLOCKER:= named =89351a23=, so =org-depend-block-todo= refused it too. Both parents' refusals are *correct* — the guards did their job. What is wrong is that the watermark advanced anyway.
+
+*The audit log corroborates the refusals and nothing else.* It holds **no** =org_review_apply= record for either parent, consistent with the change never reaching =org-after-todo-state-change-hook=. So the two guards fired before any write, exactly as designed.
+
+*Unexplained, and deliberately not guessed at:* the audit log holds **seven** records for =89351a23= at 13:04:39, all =result: saved=, with four distinct =before_sha256= values converging on one =after_sha256=. Seven records for one heading with differing befores looks like attribution leaking across a batch of writes rather than seven writes to that heading, but that is a hypothesis. It may be a second defect and should be established before anything is built on it.
+
+*Why this is the serious class rather than an annoyance.* The queue's guarantee is that an event survives until a human accepts it. A refused transition marked applied breaks that silently and in the worst direction: the record is wrong, the evidence is gone, and every later reader sees a heading that simply never closed. Compare =05c71d99=, which was apply *logging* a self-transition — noise. This is the inverse and it loses data.
+
+Proposal: the watermark should advance only on a transition org actually performed. The signal exists — =org-todo= leaves the keyword readable at point — so apply can compare the heading's state after the call against the event's target and treat a mismatch as a failure, which it already knows how to report. Worth deciding at the same time whether an =@=-cookie prompt that is escaped should be a *reported failure* rather than a silent no-op, since that is the trigger here and it will recur for every =CANCELLED= and =WAITING=.
+:END:
+
+Three transitions were marked applied in the watermark and none took effect: =89351a23='s =CANCELLED= stalled on the =@=-cookie note prompt, which left it =DOING=, which then correctly blocked =406e9200= (=org-enforce-todo-dependencies=) and =749301a0= (=:BLOCKER:=). The guards were right; the watermark advancing was not. Consumed events are never re-offered, so the change is simply lost and the heading reads as though it never closed. Proposal: advance the watermark only when the heading's state after the call matches the event's target, and report an escaped =@= prompt as a failure rather than a no-op.
+
+*Fixed 2026-09-17 on =feature/apply-verifies-transitions=. The root cause is confirmed from primary source and is more general than the =@=-prompt hypothesis this heading opened with.*
+
+=org-todo='s `org-blocker-hook' branch in org.el decides what a refused transition does, and its own comment names the behaviour:
+
+#+begin_src elisp
+(if (called-interactively-p 'interactive)
+    (user-error "TODO state change from %s to %s blocked (by %s)" ...)
+  ;; Fail silently.
+  (message "TODO state change from %s to %s blocked (by %s)" ...)
+  (throw 'exit nil))
+#+end_src
+
+Apply calls =org-todo= from a lambda, never interactively, so **every blocked transition takes the silent branch**: it messages, throws =exit=, and returns nil. =--at-id= sees no error, =--review-apply-item= returns nil, the item joins =applied=, and =--review-record-applied= watermarks it. The event is consumed having changed nothing, and a consumed event is never re-offered.
+
+*So the =@=-cookie note prompt was a hypothesis and is not needed to explain this.* Whatever stalled =89351a23=, the two parents were refused by the guards — =org-enforce-todo-dependencies= and =org-depend-block-todo= on the =:BLOCKER:= — and *that* path is now proven to be silent by construction rather than by accident.
+
+*The fix checks the outcome, not the cause*, which is what makes it cover all three casualties and the =@= case together. =--review-apply-item= already had a one-directional check: reported failure plus a heading that shows the target keyword becomes success-with-a-warning (=b23e5bcc=). It now has the inverse — **no error reported plus a heading that does not show the target keyword becomes a reported failure** — so the item stays pending instead of being consumed. =unresolved= fails the test too: never consume an event whose effect cannot be verified.
+
+*Proved to discriminate rather than merely to pass.* =claude-code-ide-org-test-apply-refuses-to-consume-a-blocked-transition= is red against the old code and green against the new — 687/1 reverted, 688/0 fixed. A second test pins that an ordinary successful transition still applies and is still consumed, since a guard that refuses everything would also have passed the first one.
+
+*Staged through =--blocker-clock-running-p=, one of this repo's two live =org-blocker-hook= entries, deliberately.* org's own =org-block-todo-from-children-or-siblings-or-parent= is **not installed under batch**, so =org-enforce-todo-dependencies= alone cannot stage a block there — found by probe when the first version of the test passed against the broken code for that reason.
+
+*Left open, as filed:* the seven audit records for =89351a23= at 13:04:39 with four distinct =before_sha256= values. Untouched here and still a hypothesis about attribution leaking across a batch of writes.
+
+
+
 * TODO The prose still promises time tracking: README, CLAUDE.md, DOOM.md and the skill all describe a clock that no longer ships :code:
 :PROPERTIES:
 :ID:       1254c24b-0dda-436e-a3d4-213de283692f
@@ -114,6 +293,7 @@ Asked by the user 2026-09-17 and deliberately parked rather than declined. =bin/
 :CREATED:  [2026-09-17 Thu 11:31]
 :CATEGORY: Tools
 :END:
+:PLAN:
 
 Dividing =e28933e9= on 2026-09-17 produced a parent reading =* TODO Make the corpus searchable by tag, … by decision where it cannot [0/1]= — cookie at the end of the title.
 
@@ -122,6 +302,9 @@ The convention is explicit that it goes **immediately after the TODO keyword**, 
 *This is the same defect, in a second inserter.* =--ensure-statistics-cookie-at-point= wrote a trailing cookie and was fixed when the corpus was measured 13:1 against it (=:ID:= 28415ca8's reasoning). =org_divide= was not, so the fix landed in one of the two places that insert a cookie. Worth checking at the same time whether any third path does.
 
 Cheap, and the corpus check is already done and recorded, so this needs no re-measurement — only the same placement =--ensure-statistics-cookie-at-point= now uses.
+:END:
+
+`org_divide` appends the statistics cookie after the title text, so a narrow agenda or list window truncates the headline and takes the cookie with it. The cookie belongs at the front, where `org_slice_add_member` already puts it. Seen on `ee3e0fa2`.
 
 
 * TODO org_divide times out through MCP while the same call succeeds through emacsclient, and nothing says why :code:
@@ -130,6 +313,7 @@ Cheap, and the corpus check is already done and recorded, so this needs no re-me
 :CREATED:  [2026-09-17 Thu 11:31]
 :CATEGORY: Tools
 :END:
+:PLAN:
 
 Observed 2026-09-17. =org_divide= timed out twice through MCP with the identical arguments; calling =claude-code-ide-org-divide= directly through =emacsclient= completed. Both timeouts persisted **nothing** — the safe failure mode =72463b68= was closed on, no phantom success — but the message is only "The operation timed out", so the only correct response is to go and read the file, which is what was done both times before retrying.
 
@@ -150,6 +334,15 @@ So the "slower than the MCP timeout" assumption recorded above is **false**, and
 *One free thing to do regardless:* the tool's return value is propertized, embedding =org-get-heading= through =format=. At 284 printed characters against 103 clean it cannot be the cause, but a handler that walks or serialises text properties is a plausible home for a cost that scales with something other than length, and =substring-no-properties= costs nothing.
 
 *Method note, recorded because the first attempt did damage.* This measurement was originally taken against the live Emacs buffer, and that same session ran =(org-update-statistics-cookies t)= there as a "timing probe" — a whole-buffer mutation under =inhibit-read-only= — which rewrote a quoted title in body prose from =[1/1]= to =[0/0]= and left the buffer dirty (=bf00d36a=). A timing probe must not mutate, and must not run against a live buffer when a scratch copy will do. The figure above was taken on copies, in batch, touching nothing.
+:END:
+
+The same `org_divide` call timed out through MCP and completed through `emacsclient`, so the work is in the transport rather than the tool. MCP timeouts are client-side env vars (`MCP_TIMEOUT`, `MCP_TOOL_TIMEOUT`), not settings in `.mcp.json` — establish which limit fired and whether the wrapper we inherit from `claude-code-ide` imposes its own.
+
+*Evidence 2026-09-17 that the premise may be wrong: at least some of these "timeouts" are not timeouts.* Two consecutive =org_set_todo= calls returned "The operation timed out" to the model and queued nothing. Emacs had in fact answered immediately, and the user relayed what it showed: =peculiar error: -32602, "Missing required argument: state"=. The call had passed =keyword=, not =state=.
+
+So the server rejected the parameters, replied with a well-formed JSON-RPC error, and **the client surfaced that as a timeout**. The model retried verbatim, because a timeout is the one failure that invites a retry and a =-32602= is the one that never should — the second attempt could not have succeeded and the diagnosis was unreachable from this side.
+
+Two consequences for this heading. The =emacsclient=-succeeds-where-MCP-times-out observation is consistent with a parameter mismatch rather than a transport limit, since a hand-written =emacsclient= call passes the elisp arguments directly and never crosses the schema. And the thing worth fixing may not be a timeout value at all: **an error response that reads as a timeout is the defect**, and it is the same silent-failure class as =:ID:= 4f9e552a — a failure indistinguishable from a different, more forgiving one. Establish which layer swallows the error body before touching =MCP_TIMEOUT=.
 
 
 * TODO Recenter after `m` advances, so the item under consideration is never at the bottom of the window :code:
@@ -164,6 +357,7 @@ CLOCK: [2026-09-17 Thu 10:51]--[2026-09-17 Thu 10:51] =>  0:00
 - <2026-09-17 Thu 10:51>--<2026-09-17 Thu 10:51> assigned at review
 - [2026-09-17 Thu 10:51]--[2026-09-17 Thu 10:52]
 :END:
+:PLAN:
 
 Requested by the user 2026-09-17. =m= marks and advances — that advance is what makes marking a run =m m m= rather than =m n m n m=, and it was "the single biggest complaint after the first real by-hand apply". But point walks steadily down the window, so after a few marks the item being decided sits at the bottom edge with no following context, and the human is reading the one line they are about to judge with everything after it off-screen. Do the equivalent of =C-l= once the advance has happened, bringing the next item to the centre.
 
@@ -172,6 +366,9 @@ Requested by the user 2026-09-17. =m= marks and advances — that advance is wha
 *Prefer =(recenter)= to =(recenter-top-bottom)= despite the request naming =C-l=.* =recenter-top-bottom= deliberately *cycles* centre → top → bottom by consulting =last-command=, which is right for a human pressing =C-l= repeatedly and wrong here: called from Lisp after =m=, its behaviour would depend on what the human pressed previously, so a run of marks could start scrolling to the top instead of the centre. =(recenter)= always centres, which is what the request actually asks for.
 
 *Two open questions rather than assumptions.* Should =u= do the same? It advances identically, and symmetry argues yes, but unmarking is a correction and the eye may want to stay where it was. And should the recenter be suppressed at the end of the list, where there is no next item and centring would scroll the final line away from the bottom for no reason?
+:END:
+
+After `m` marks an item and advances, the next item can sit at the bottom of the window with none of its context visible. Do the equivalent of `C-l` (`recenter-top-bottom`) at the end of everything `m` already does, so the item under consideration is centred.
 
 
 * TODO Add :KIND: to the footnote and keep the cookie, but 84 cookie-shaped tokens in prose stay rewritable :code:
@@ -271,12 +468,16 @@ Planned:
 :CREATED:  [2026-09-17 Thu 11:16]
 :CATEGORY: Apply
 :END:
+:PLAN:
 
 The claim this slice rests on: with no guideposts and no clock events, the review buffer shows only state changes, captures and amends — the item classes that have applied cleanly throughout, while every failure and every unanswerable question of 2026-09-17 came from a span or a clock item.
 
 It is a claim, not a fact, and the corpus cannot test it: this repo's queue has held guideposts since the 2026-08-11 cutover, so every existing test and every manual pass has run against a queue that has them. Wanted is a fixture whose queue contains only =todo=, =capture= and =amend= events, asserting that =--review-items-from-queue= yields exactly those items, that the buffer renders and applies them, and that nothing in the span or complement path is reached.
 
 Two failure modes to probe rather than assume. =--queue-drained-p= is "yields no items", and archiving depends on it — a queue that drains differently may change when archiving fires. And =apply-detect= compares watermark mtimes; with fewer event kinds moving them, its "the record is fresh" message may fire less often or not at all.
+:END:
+
+Every review pass this project has run has read a queue full of guideposts. With the hooks cut, a consumer's queue holds captures, amends and state changes and nothing else — a shape the review buffer and apply pass have never been exercised against. Verify before shipping, not after a consumer reports it.
 
 
 * TODO Establish whether two plugin manifests can share one MCP server, which is what decides the two-plugin question :research:
@@ -285,6 +486,7 @@ Two failure modes to probe rather than assume. =--queue-drained-p= is "yields no
 :CREATED:  [2026-09-17 Thu 11:16]
 :CATEGORY: Dev
 :END:
+:PLAN:
 
 The user asked 2026-09-17 whether this is becoming two plugins. The recommendation was **not yet**, on three grounds — but one of them is an assumption that should be measured rather than carried.
 
@@ -293,6 +495,9 @@ The user asked 2026-09-17 whether this is becoming two plugins. The recommendati
 *The open one.* Whether Claude Code supports two manifests sharing a single MCP server at all. This repo has exactly one =.claude-plugin/plugin.json= and no nested manifests, so the mechanics are untested here. If two manifests *can* share a server, the thin second plugin becomes viable and the "ships no code" objection weakens considerably — the wiring would be its code.
 
 Answer it before the question is asked again, and record the answer either way. The trigger for revisiting the whole decision is narrower and worth writing down now: a consumer wanting the time half **without** the task half, which is incoherent today and would stop being so only if spans ever attributed to something other than org headings.
+:END:
+
+Splitting the tracker from the clock is only worth doing as two plugins if two manifests can share one MCP server registration; if they cannot, the split has to stay a flag on one plugin. Answer the mechanical question first — it decides the packaging, and the packaging decides how much of the rest of this slice is even possible.
 
 
 * TODO claude-org-setup gains an opt-in that restores the time-tracking wiring and its rules :code:
@@ -301,10 +506,14 @@ Answer it before the question is asked again, and record the answer either way. 
 :CREATED:  [2026-09-17 Thu 11:15]
 :CATEGORY: Dev
 :END:
+:PLAN:
 
 If the scripts ship unwired, something has to make wiring them a single act rather than a hand edit of a JSON file the consumer did not write. =claude-org-setup= already promotes rules and scaffolds org files behind flags — =--doom=, =--org=, =--glue=, =--check= — so a =--time= flag is the established shape: it adds the guidepost, block and clock rows to the consumer's wiring and promotes =org-session-tracking.md= alongside them.
 
 Two constraints it inherits. The repo-versus-plugin wiring trap is already documented — "a repo must enable only one of the two, or every guidepost is appended twice" — so the flag has to know which wiring the consumer is using before adding rows to either. And =--check= should report the time-tracking wiring as present or absent rather than silently ignoring it, since a half-applied opt-in is exactly the state that produces events nobody applies.
+:END:
+
+The counterpart to the cut: a flag on `claude-org-setup` that puts the guidepost, block and clock rows back into the consuming repo's wiring and promotes the session-tracking reference alongside them. Disabled-by-default is only defensible if turning it on is one documented command.
 
 
 * TODO Decide whether org_clock_in and org_clock_out stay registered when nothing consumes what they queue :code:
@@ -313,6 +522,7 @@ Two constraints it inherits. The repo-versus-plugin wiring trap is already docum
 :CREATED:  [2026-09-17 Thu 11:15]
 :CATEGORY: Tools
 :END:
+:PLAN:
 
 The two queued clock tools are registered by the shared Doom module, so they remain callable whatever =hooks.json= wires. Three options, and the choice is about what an agent is *invited* to do rather than about correctness.
 
@@ -323,6 +533,9 @@ The two queued clock tools are registered by the shared Doom module, so they rem
 *Remove them.* Not viable: this repo needs them, and they are the same module.
 
 Note the tools are only half the invitation. =org_set_todo='s own description and the transition rules tell the agent when to call them, so gating registration without =36952d1f= leaves the instruction pointing at a tool that is gone — which is the louder failure of the two.
+:END:
+
+Separate from the hook wiring: the two MCP tools are registered by `config.el`, not by the manifest, so cutting the hooks leaves them callable. Decide whether an unconsumed queue event is harmless bookkeeping or a tool that should refuse, and say which.
 
 
 * TODO The promoted rules instruct clocking unconditionally, so a consumer is told to call tools that do nothing :code:
@@ -331,12 +544,16 @@ Note the tools are only half the invitation. =org_set_todo='s own description an
 :CREATED:  [2026-09-17 Thu 11:15]
 :CATEGORY: Skill
 :END:
+:PLAN:
 
 =org-state-transitions.md= is promoted into every consuming project and its transition table's whole right-hand column is clock instructions — "Open a CLOCK (call =org_clock_in=)" on four rows, "Close the CLOCK" on four more — plus the standing rule to clock in before a session's first write. =org-session-tracking.md= is promoted too and is *entirely* about time tracking: guideposts, the three numbers, permission blocks, stale-interval recovery.
 
 With clocking off these tell a consuming agent to make calls that queue events nobody will ever apply, and to follow a rule whose backstop has been removed. Worse than useless: the rules are the thing an agent is *most* likely to obey exactly.
 
 Two shapes to weigh. Promote a *variant* of the transition table without the clock column, which keeps each rules file coherent but forks a file that must then be kept in step. Or make the clock column conditional in prose — "when time tracking is enabled" — which keeps one file and asks the reader to hold a condition, something this project has found unreliable before (a path-scoped rule that does not load is a rule that does not apply). =org-session-tracking.md= is simpler: it should not promote at all unless the opt-in wiring is chosen.
+:END:
+
+The promoted rules tell a consuming session to call `org_clock_in` before its first write and to close the clock on leaving `DOING`. With the wiring cut, those calls queue events nothing consumes. The prose has to say the feature is off by default and what turning it on restores.
 
 
 * TODO The SessionStart report mixes stale-interval recovery with the ceremony prompt, and only one half survives :code:
@@ -345,12 +562,16 @@ Two shapes to weigh. Promote a *variant* of the transition table without the clo
 :CREATED:  [2026-09-17 Thu 11:15]
 :CATEGORY: Meta
 :END:
+:PLAN:
 
 =session-start-recovery-check= carries two independent reports in one payload, deliberately — "one hook and one payload, because =additionalContext= is a single string and a second SessionStart hook would double the Emacs round-trip".
 
 They fall on opposite sides of this slice. The **stale-interval** half scans for an unclosed =CLOCK:= line and asks what time work stopped: pure time tracking, and with no clocking it can never find anything. The **ceremony** half names pending queue items, drawers out of order and unarchived headings, then asks whether to run the pass: pure task tracking, and a consuming project wants it.
 
 So the hook cannot simply stay or go. Either the stale half is gated off when clocking is, or the two reports separate. The existing =[[ -s ]]= guard already drops an empty payload, so a stale half that always returns nothing degrades silently rather than breaking — which makes "leave it and let it return nothing" a legitimate cheapest option to weigh against the split.
+:END:
+
+One `SessionStart` hook carries two independent reports in one `additionalContext` string. Cutting the time-tracking half would take the ceremony prompt with it unless the payload is split first. Establish which half survives the cut and make the surviving one stand alone.
 
 
 * TODO Take the guidepost, block and clock rows out of the shipped wiring, leaving every script on disk :code:
@@ -359,12 +580,16 @@ So the hook cannot simply stay or go. Either the stale half is gated off when cl
 :CREATED:  [2026-09-17 Thu 11:15]
 :CATEGORY: Dev
 :END:
+:PLAN:
 
 The change itself. Out of =hooks/hooks.json=: =session-pause=, =session-resume=, =block-start=, both =block-end= rows, and the =queue-append clock_in= / =queue-append clock_out= matchers. Staying: =queue-append todo=, =capture=, =amend=, =apply-detect=, =footnote-check=, =session-context.sh=.
 
 *Scripts stay on disk, deliberately.* A hook has no "disabled" state — listing it in =hooks.json= is what enables it — so the only two forms available are wired and unwired. Shipping the scripts unwired costs nothing, keeps the opt-in path to one file edit, and means time tracking is *available* rather than removed. It also matches what this repo already does: the same scripts are wired here through =.claude/settings.json=.
 
 *Consequence to verify rather than assume:* with no guideposts in the queue, the review buffer should show only state changes, captures and amends — the item classes that have applied cleanly all along. That is the claim this whole slice rests on and it gets its own member.
+:END:
+
+The cut is made in the manifest, not on disk: `hooks/hooks.json` stops wiring the guidepost, permission-block and clock rows, and every script stays where it is so the opt-in can restore them by editing one file. This is the heading that actually performs the disable.
 
 
 * TODO clock-target-check ships wired and enforces clocking, so it would block every turn once clocking is off :code:
@@ -373,12 +598,16 @@ The change itself. Out of =hooks/hooks.json=: =session-pause=, =session-resume=,
 :CREATED:  [2026-09-17 Thu 11:15]
 :CATEGORY: Dev
 :END:
+:PLAN:
 
 =hooks/hooks.json= wires =bin/hooks/clock-target-check= as a =Stop= hook. It blocks the stop, once per session, when the transcript shows write activity and the queue holds no =clock_in=. With the guidepost and clock rows removed there is never a =clock_in=, so it would fire on the first write of every session in every consuming project and keep firing.
 
 This is the sharpest item in the set because it fails *loudly and immediately* rather than degrading: a consumer's first real turn is blocked by a hook enforcing a feature they were never given. It must come out of the shipped wiring in the same change that removes the guideposts, not afterwards.
 
 Worth deciding at the same time whether it returns with the opt-in wiring. It backstops the rule that a session names the heading its first write belongs to — which is a *task*-tracking rule about attribution, not a time-tracking one — so there is an argument for a variant that checks for any queued activity on a heading rather than specifically a =clock_in=.
+:END:
+
+`clock-target-check` blocks the stop when a session writes without clocking in. With clocking gone from the shipped wiring, that condition is unsatisfiable and the hook would block every turn. Decide whether it comes out of `hooks/hooks.json` with the rest or gains a guard that stands down when no clock tools are wired.
 
 
 * TODO Clock brackets of seconds around work of an hour, so nearly all real time lands in unowned gaps :code:
@@ -1460,14 +1689,14 @@ matters here is therefore not a new property but the existing one: link the plan
 revision when the slice is picked up**, and this is its first recorded failure.
 
 
-* DOING [14/15] A span is only as true as its owner, its edges and its payload :code:blocked:
+* DONE [14/14] A span is only as true as its owner, its edges and its payload :code:
+CLOSED: [2026-09-17 Thu 13:40]
 :PROPERTIES:
 :ID:       749301a0-0bd0-4fbd-b3f7-79739226e15a
 :CREATED:  [2026-09-11 Fri 18:58]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  89351a23-8bfc-4939-8a30-f1fe7e93c72f
 :END:
 :DEBRIEF:
 *Composed 2026-09-11, merged and closed 2026-09-17.* Fifteen members, 94 commits, PR #25.
@@ -1506,6 +1735,12 @@ CLOCK: [2026-09-16 Wed 06:37]--[2026-09-16 Wed 06:38] =>  0:01
 - State "DOING"      from "REVIEW"     [2026-09-16 Wed 18:34] \\
   PR #25 review: three findings adopted, one still live
 - [2026-09-16 Wed 18:34]--[2026-09-16 Wed 18:41] assigned at review
+CLOCK: [2026-09-17 Thu 13:13]--[2026-09-17 Thu 13:15] =>  0:02
+- [2026-09-17 Thu 13:13]--[2026-09-17 Thu 13:15] assigned at review
+CLOCK: [2026-09-17 Thu 13:34]--[2026-09-17 Thu 13:41] =>  0:07
+- [2026-09-17 Thu 13:34]--[2026-09-17 Thu 13:41] assigned at review
+- State "DONE"       from "DOING"      [2026-09-17 Thu 13:40] \\
+  re-queued: :BLOCKER: named 89351a23, consumed anyway
 :END:
 :PLAN:
 *Why this order.* Each group hands its output to the next, so working them out
@@ -1549,7 +1784,7 @@ its finished ten and this sequences what is left.
 
 Planned:
 
-- [[id:406e9200-c3e7-49ac-a8d0-d6ff8e061ce4][406e9200]] REVIEW Make the guidepost pipeline produce durations that mean what they say
+- [[id:406e9200-c3e7-49ac-a8d0-d6ff8e061ce4][406e9200]] DONE Make the guidepost pipeline produce durations that mean what they say
   - [X] [[id:b57c7515-c511-4198-b311-26cefc52a60d][b57c7515]] DONE A session id that changes mid-work splits one clock bracket across two queue files
   - [X] [[id:9202b39d-49e4-441c-89f2-382feb4ef1ea][9202b39d]] DONE A background job's first turn is bracketed across two session_ids
   - [X] [[id:7d739afd-f879-445c-b0b6-65e295585a94][7d739afd]] DONE Concurrent sessions' turns must union, not sum, wherever time is totalled
@@ -1557,7 +1792,7 @@ Planned:
   - [X] [[id:c54c4215-90e3-4e0c-9de1-990c0406a2b2][c54c4215]] DONE A split span drops the unowned gaps between the clock pairs that split it
   - [X] [[id:2deb090f-593d-40e3-9044-fda318d9b6de][2deb090f]] DONE Accepting a 0-run span records none of its minutes, and only =e= can claim them
   - [X] [[id:507754ba-ae82-4f04-b209-8d8c58ac268e][507754ba]] DONE Correct the accumulated record once the aggregator is fixed
-  - [-] [[id:89351a23-8bfc-4939-8a30-f1fe7e93c72f][89351a23]] DOING Re-derive the corrected record against the aggregator as it now stands
+  - [[id:89351a23-8bfc-4939-8a30-f1fe7e93c72f][89351a23]] CANCELLED Re-derive the corrected record against the aggregator as it now stands
 - [X] [[id:36698ca7-9358-41ca-862c-962af49691cd][36698ca7]] DONE The review buffer's legend omits two of its own keys, one of them the help key
 - [X] [[id:cfdfe119-34ad-4ee5-9477-d71dc450eabd][cfdfe119]] DONE footnote-check indents the lines it tells you to append, and the canonical form is flush-left
 - [X] [[id:83773daf-df07-4665-b5fc-0445e0da6211][83773daf]] DONE --session-alias-cache is keyed on the session set alone, so a nil map outlives the transcript that caused it
@@ -2678,12 +2913,16 @@ item a normal bracket and prevented the whole class.
 :CREATED:  [2026-09-17 Thu 11:26]
 :CATEGORY: Skill
 :END:
+:PLAN:
 
 Divided out of =e28933e9= on 2026-09-17, which becomes the child and keeps its id, clock and history. The two halves want different schedules and that is the whole reason for the split: the **survey** is deliberately parked as expensive in time and tokens, while a tag adopted **by decision** is a same-day act. Holding the ready half hostage to the parked one is what =8bbae3aa= exists to stop one tier up, and the same argument divides this heading.
 
 The division also names a real seam rather than a convenience. =e28933e9= derives a vocabulary *from* the corpus — "a measurement first and a taxonomy second", in its own words. Its sibling declares one *for* a purpose, with no measurement available to it: whether a defect was observed in use is a fact about how it was found, not a pattern latent in the text. A survey cannot recover it and should not try.
 
 What they share, and why one parent: both answer "which tags make this corpus worth searching", and both land in the same two places — the =#+TAGS:= line and the org conventions' §Tags section. An adopted tag from either half constrains the other, so they should not drift apart in separate parts of the file.
+:END:
+
+The corpus answers "what did we decide" badly: a decision lives in one body and nothing indexes it. Two children carry the halves — tagging what can be measured, and tagging what can only be decided. Whether `org-agenda` or `org-ql` can build the view natively is an open question deferred until Emacs stops wedging.
 
 
 ** TODO Survey all task history for a tag vocabulary worth searching on :research:
@@ -2739,6 +2978,7 @@ tag, the query it exists to answer, and the =#+TAGS:= line and
 - State "NEXT"       from "TODO"       [2026-09-17 Thu 11:30] \\
   the cheap half; the survey stays parked
 :END:
+:PLAN:
 
 *The observation, 2026-09-17.* The user noted an implicit severity range among open TODOs, by impact on usability and correctness. Measured against the corpus's own declared priority mechanism — "priority is expressed through keyword choice" — there is none: time-tracking work sits at =MAYBE= 9.1% against 8.2% for everything else, and both are 80% plain =TODO=. The keyword is not ranking anything, because four headings in five hold the same one.
 
@@ -2749,6 +2989,9 @@ tag, the query it exists to answer, and the =#+TAGS:= line and
 *And why it does not wait on the survey.* The survey is deliberately parked as expensive; this is a same-day decision. Holding the cheap ready half hostage to the expensive unfinished one is what =8bbae3aa= exists to stop one tier up, and the same reasoning divides this heading from its sibling.
 
 *Scope, if adopted:* add to =#+TAGS:= in both files and the templates, a line in the org conventions' §Tags saying what it means and when to apply it, and a backfill decision — probably **no** blanket backfill, since "observed" is a claim about how a defect was found and cannot be reconstructed for old headings without re-reading them, which is the survey's job anyway.
+:END:
+
+The keyword set carries no severity, so a defect someone actually hit reads the same as one reasoned about. An `:observed:` tag is the cheapest signal that distinguishes them, and it is a fact rather than a judgement — either it was seen in use or it was not.
 
 
 * TODO session-context.sh reports which groupings lack a NEXT, never which headings hold one
@@ -4401,7 +4644,7 @@ Planned:
 - [ ] [[id:53b0047d-c55c-486c-8eed-ba4994d97a1a][53b0047d]] TODO Direct file writes to a live org buffer can desync org-clock-marker
 - [ ] [[id:7ee3b71a-b85a-4610-a4ab-b9e06c8d79da][7ee3b71a]] TODO org_amend replace=true destroys a slice's member checklist, which is the one thing a slice declares
 - [ ] [[id:2aeb65d6-350e-4c75-811e-4a748044fe2c][2aeb65d6]] TODO Concurrent sessions share one git index, and explicit staging protects nothing
-- [-] [[id:2a6a1355-615f-4c2c-a8af-c9ae8dcda09b][2a6a1355]] DOING Three new ways to owe a footnote and not see it: marker, list, quotation
+- [-] [[id:2a6a1355-615f-4c2c-a8af-c9ae8dcda09b][2a6a1355]] REVIEW Three new ways to owe a footnote and not see it: marker, list, quotation
 - [ ] [[id:60ed5b96-40e3-4676-a742-07a8ad6cc3b7][60ed5b96]] TODO --review-format-annotation's docstring contradicts its own let*, four lines down
 - [ ] [[id:5e731a23-7708-4248-b055-9b4a531f147d][5e731a23]] TODO A deferred targetless capture loses its project routing when the queue is applied
 - [ ] [[id:965f94eb-1558-4d00-9857-5727eb86fe6f][965f94eb]] TODO Every standalone client shares one project context, chosen by unstable ordering
@@ -4492,7 +4735,22 @@ identifiable to any writer rather than adding a guard per writer.
 *Four siblings filed the same week stay in backlog for now* — =51bcec2c=, =aee8487e=, =cf483f5d=, =17f93758= — rather than being added one at a time. They should be judged together against this slice's shape when it is actually picked up, since deciding twice is how a list grows without anyone choosing.
 
 
-* DOING Three new ways to owe a footnote and not see it: marker, list, quotation :code:
+* DOING Separate the causes of unfootnoted ids, so each can be closed on its own [0/4]
+:PROPERTIES:
+:ID:       de6de108-0095-40f4-8177-fdef0503c578
+:CREATED:  [2026-09-17 Thu 16:17]
+:CATEGORY: Skill
+:END:
+
+Divided out of =2a6a1355= 2026-09-17 at the user's direction, whose diagnosis was that the body had become "out and out metastasism": one heading carrying several causes that were never separated, so each visit appended to the pile instead of landing somewhere of its own. Ten dated revision sections in seventeen days, 3,707 words, the largest heading in TODO.org at fifteen times the median and 4.7% of the file's prose. **The size was the symptom; the failure to separate causes was the disease.**
+
+*What the division claims, and it is deliberately a weak claim.* Two causes are filed as members because the evidence separates them cleanly: an id that arrives by *transcription* was never chosen by the writer, and an id cited in *bulk* was chosen by the writer every time. The parent heading's own unifying sentence — "every failure is an id the writer did not choose to write" — covers the first and is **false of the second**, which is what makes them two rather than one. That contradiction is the whole warrant for dividing.
+
+*What it does not claim.* That two is the right number. Three of the five recorded modes were marker faults and are dead, retired with the markers themselves rather than fixed, so they are not causes and get no member. Whether quotation and borrowed prose are one cause or two is left open on the member that holds them. **The user is reserving judgment on the division itself until the next session**, so this structure is a proposal to be judged, not a settled taxonomy.
+
+*Why the child's body was left intact.* Condensing its retracted third would have been policy-conformant and was declined: the accreted sections are the evidence of where the seams are, and the next pass needs to count them. Erasing them to save lines would destroy the only record of how the causes got tangled.
+
+** REVIEW Three new ways to owe a footnote and not see it: marker, list, quotation :code:
 :PROPERTIES:
 :ID:       2a6a1355-615f-4c2c-a8af-c9ae8dcda09b
 :CREATED:  [2026-09-01 Tue 08:43]
@@ -4529,6 +4787,14 @@ CLOCK: [2026-09-16 Wed 14:39]--[2026-09-16 Wed 14:40] =>  0:01
 - [2026-09-16 Wed 14:39]--[2026-09-16 Wed 14:40] suggested span, accepted at review
 CLOCK: [2026-09-16 Wed 14:40]--[2026-09-16 Wed 14:48] =>  0:08
 - [2026-09-16 Wed 14:40]--[2026-09-16 Wed 14:48] suggested span, accepted at review
+CLOCK: [2026-09-17 Thu 15:34]--[2026-09-17 Thu 15:36] =>  0:02
+- [2026-09-17 Thu 15:34]--[2026-09-17 Thu 15:36]
+CLOCK: [2026-09-17 Thu 15:50]--[2026-09-17 Thu 15:51] =>  0:01
+- [2026-09-17 Thu 15:50]--[2026-09-17 Thu 15:51]
+- State "REVIEW"     from "DOING"      [2026-09-17 Thu 15:53] \\
+  every question the heading posed is answered; the remaining call is yours
+CLOCK: [2026-09-17 Thu 15:54]--[2026-09-17 Thu 15:55] =>  0:01
+- [2026-09-17 Thu 15:54]--[2026-09-17 Thu 15:55] assigned at review
 :END:
 
 *Asked by the user 2026-09-01 after a third stop-hook refusal in one session:*
@@ -4864,6 +5130,56 @@ The sentence this heading turns on is that "the hook's test is *does the respons
 
 *Recorded here rather than on its own heading at the user's direction*; =1203168b= is cancelled as its twin.
 
+*Measured 2026-09-17, against this session's own transcript: the discharge rule shipped and the demands did not fall.* 57 fires. Mean ids demanded per fire was 1.4 before 14:00Z and 4.3 after, peaking at 15 — the rise tracks the subject matter, not a regression: the afternoon was portfolio bookkeeping, where a response *is* a list of headings.
+
+The working discharge rule landed at 17:33Z (commit =f608123=, the =-F -e= fix). Fires after it averaged 4.3 against 3.5 before, so it bought nothing measurable. Two candidate causes, and the hook is exonerated: driven directly with a scratch queue dir, a message citing three bare ids demands all three and exits 2, while the same id paired with its exact title on one line exits 0. The mechanism works. **What did not happen is my using it** — the large fires are bare id lists, which is the *enumeration* mode this heading already names. No new mode.
+
+One thing the rule does not reach, and it is worth writing down rather than treating as a miss. At 12 or 15 ids the inline form means 12 or 15 full titles inside the prose, which is precisely the unscannable paragraph the convention exists to prevent. There the end matter is the correct form and the block is the convention working. The discharge rule is a remedy for the two-to-five-id case; above that the volume is inherent to talking about that many headings at once.
+
+*Judgment reserved by the user 2026-09-17, and the =REVIEW= should not be read as agreement that this is finished.* Their position: **the root cause has not been identified yet.** If it turns out there are *multiple distinct root causes*, this heading "deserves to become a story so that each cause can be addressed individually, even if through a common mechanism" — which is mitosis via =org_divide=, the original staying as the child. Their word for the body's present state: "out and out metastasism."
+
+*That reframes the volume measured above.* 3,707 words, ten dated revision sections in 17 days, largest heading in TODO.org at 15x the median — that was read here as a writing-habit problem. The user's reading is that it is a *structural* signal: a body metastasises when one heading is carrying several causes that were never separated, and each visit appends to the pile instead of landing somewhere of its own. On that reading the size is a symptom to diagnose, not prose to condense — which is also why condensing it now would be the wrong move, since it would erase the evidence of the seams.
+
+*So the next session's first question is not "close it?" but "how many causes are in here?"* Candidate seams visible in the body, offered as a starting point and not as an answer: the marker faults (retired with markers, so possibly not a cause at all); enumeration; borrowed prose and quotation, which may be one cause — an id arriving by transcription; the paraphrased title, already made impossible by =33c3eabc=; and the volume/discipline question raised today, where the mechanism works and goes unused. Whether those are distinct causes or one cause seen five ways is exactly what has not been established.
+** TODO An id that arrives by transcription was never chosen, so care cannot catch it :code:
+:PROPERTIES:
+:ID:       490e6737-b977-47a7-abd7-b0dad1684093
+:CREATED:  [2026-09-17 Thu 16:18]
+:END:
+
+Candidate cause 1 of the division, and the one the parent heading's own body argues for most directly: "the rule the writer is actually following is 'footnote what I decided to reference', and the hook's rule is 'footnote every id present'. The gap between those two is exactly the set of ids that arrive by transcription."
+
+Three of the five recorded modes are this one cause: an id inside a *quoted example string*, an id inside a sentence *adapted* from another heading's prose, and a title *paraphrased* from a neighbour's body. In each the token is on the page because something was copied, not because a reference was made. Nothing on the surface marks the borrowed span, so there is no cue to check — which is why it is distinct from a discipline failure and why exhortation has never moved it.
+
+Partly addressed already: the paraphrased-title half became impossible when =33c3eabc= made the hook emit the exact title. The quoted and adapted halves are still merely *detected* by the id check.
+
+**Not established: that this is one cause rather than two.** Quotation is visible as quotation; borrowed prose is not. Whether that difference matters enough to split is a judgement for the pass that reviews this division.
+** TODO Bulk citation owes more entries than inline pairing can absorb, so the remedy goes unused :code:
+:PROPERTIES:
+:ID:       13aed7ca-1fad-4e89-bbca-9355f5c76265
+:CREATED:  [2026-09-17 Thu 16:18]
+:END:
+
+Candidate cause 2, and the reason it is filed apart from transcription is that here the writer **did** choose every id. A status summary or a portfolio list cites ten or fifteen headings deliberately; none of them arrives by copying. So the transcription account does not reach it, and the parent heading's unifying claim — that every failure is an id the writer did not choose to write — is false of this case.
+
+Measured 2026-09-17 across this session's 57 hook fires: mean ids demanded rose from 1.4 before 14:00Z to 4.3 after, peaking at 15, tracking the subject matter. The discharge rule shipped at 17:33Z and bought nothing — 4.3 after against 3.5 before. The hook was exonerated by direct test: three bare ids demand all three and exit 2, an id paired with its exact title on one line exits 0.
+
+**The mechanism works and goes unused, which is the actual defect and is not a discipline problem.** At twelve or fifteen ids the inline form means twelve or fifteen full titles inside the prose — precisely the unscannable paragraph the convention exists to prevent. So the remedy is unusable exactly where the debt is largest, and the writer correctly declines it. The open question is whether a response that is *structurally a list of headings* should owe end matter at all, or whether the hook should stand down on that shape.
+** DOING Mark a queued keyword in end matter with a trailing star, and give the star no note of its own :code:
+:PROPERTIES:
+:ID:       d88362e7-8554-4a78-b8c4-a64c442b4fcf
+:CREATED:  [2026-09-17 Thu 16:20]
+:END:
+
+Requested by the user 2026-09-17 and shipped the same turn, but never given a heading until now — which is the gap this capture closes, since the work has a commit, a rationale and a convention change behind it.
+
+Reverses "cite the on-disk state and say so". The prose caveat was the expensive half: =DOING= plus a trailing sentence makes the reader hold two states and a qualifier, where =REVIEW*= is the state that will be true, flagged as not yet true, in one glyph. The queued state is also what the reader needs, being what the session just did.
+
+**The star takes no note of its own**, at the user's direction: a parenthetical naming which entries are queued is a footnote to the footnote — it re-opens in prose exactly what the mark exists to close, and it grows with the number of starred lines while the marks do not.
+
+Recorded alongside: the hook emits the on-disk keyword and never a star, which is correct. It greps the org files and knows nothing of the queue, and it tests id *presence* rather than the keyword beside it, so nothing conflicts. Written into the reference so nobody teaches a plain-shell =Stop= hook to read the queue for a cosmetic match.
+
+Shipped in the canonical reference and promoted; check-conventions 32 ok, footnote-check-test 27/27, lint-org 0 errors.
 
 * TODO Report worked headings that carry no clock interval that day :code:
 :PROPERTIES:
@@ -7560,7 +7876,8 @@ rule that refuses to discard =TODO.org=/=DONE.org= working-tree changes
 without showing the diff first.
 
 
-* REVIEW [16/17] Make the guidepost pipeline produce durations that mean what they say :code:
+* DONE [17/17] Make the guidepost pipeline produce durations that mean what they say :code:
+CLOSED: [2026-09-17 Thu 13:40]
 :PROPERTIES:
 :CATEGORY: Queue
 :ID:       406e9200-c3e7-49ac-a8d0-d6ff8e061ce4
@@ -7598,6 +7915,8 @@ CLOCK: [2026-08-18 Tue 10:01]--[2026-08-18 Tue 10:03] =>  0:02
 - [2026-08-18 Tue 10:01]--[2026-08-18 Tue 10:03] plan span pipeline end to end
 - State "REVIEW"     from "DOING"      [2026-09-16 Wed 14:08] \\
   16/16 terminal; awaiting the PR merge
+- State "DONE"       from "REVIEW"     [2026-09-17 Thu 13:40] \\
+  re-queued: blocked by 89351a23 still DOING, consumed anyway
 :END:
 :PLAN:
 
@@ -10114,7 +10433,8 @@ same key, so *which* is canonical does not affect pairing.
 apply pass pairs the old way until =config.el= is loaded into it.
 
 
-** DOING Re-derive the corrected record against the aggregator as it now stands :code:blocked:
+** CANCELLED Re-derive the corrected record against the aggregator as it now stands :code:
+CLOSED: [2026-09-17 Thu 13:40]
 :PROPERTIES:
 :ID:       89351a23-8bfc-4939-8a30-f1fe7e93c72f
 :CREATED:  [2026-09-17 Thu 09:58]
@@ -10129,6 +10449,8 @@ CLOCK: [2026-09-17 Thu 12:44]--[2026-09-17 Thu 12:45] =>  0:01
 - [2026-09-17 Thu 12:44]--[2026-09-17 Thu 12:45]
 CLOCK: [2026-09-17 Thu 12:49]--[2026-09-17 Thu 12:55] =>  0:06
 - [2026-09-17 Thu 12:49]--[2026-09-17 Thu 12:55] suggested span, accepted at review
+- State "CANCELLED"  from "DOING"      [2026-09-17 Thu 13:40] \\
+  re-queued: the first CANCELLED was consumed without taking effect
 :END:
 :PLAN:
 
@@ -12950,6 +13272,9 @@ call it done.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-17 Thu 15:55]--[2026-09-17 Thu 15:56] =>  0:01
+CLOCK: [2026-09-17 Thu 15:14]--[2026-09-17 Thu 15:17] =>  0:03
+CLOCK: [2026-09-17 Thu 13:35]--[2026-09-17 Thu 13:36] =>  0:01
 CLOCK: [2026-09-17 Thu 12:58]--[2026-09-17 Thu 13:04] =>  0:06
 CLOCK: [2026-09-17 Thu 12:18]--[2026-09-17 Thu 12:25] =>  0:07
 CLOCK: [2026-09-17 Thu 11:41]--[2026-09-17 Thu 11:51] =>  0:10
@@ -13074,6 +13399,8 @@ CLOCK: [2026-09-16 Wed 20:37]--[2026-09-16 Wed 21:03] =>  0:26
 CLOCK: [2026-09-17 Thu 09:24]--[2026-09-17 Thu 09:32] =>  0:08
 CLOCK: [2026-09-17 Thu 09:59]--[2026-09-17 Thu 10:14] =>  0:15
 - <2026-09-17 Thu 11:41>--<2026-09-17 Thu 11:51> review pass (buffer buried)
+- <2026-09-17 Thu 13:35>--<2026-09-17 Thu 13:36> review pass (buffer buried)
+- <2026-09-17 Thu 13:36>--<2026-09-17 Thu 13:36> review pass (buffer buried)
 :END:
 
 We created this heading on 2026-08-26. We deleted that property from its
@@ -13951,4 +14278,8 @@ CLOCK: [2026-09-17 Thu 11:30]--[2026-09-17 Thu 11:31] =>  0:01
 - [2026-09-17 Thu 11:30]--[2026-09-17 Thu 11:31]
 CLOCK: [2026-09-17 Thu 11:39]--[2026-09-17 Thu 11:40] =>  0:01
 - [2026-09-17 Thu 11:39]--[2026-09-17 Thu 11:40]
+CLOCK: [2026-09-17 Thu 14:29]--[2026-09-17 Thu 14:30] =>  0:01
+- [2026-09-17 Thu 14:29]--[2026-09-17 Thu 14:30] assigned at review
+CLOCK: [2026-09-17 Thu 15:18]--[2026-09-17 Thu 15:23] =>  0:05
+- [2026-09-17 Thu 15:18]--[2026-09-17 Thu 15:23] assigned at review
 :END:

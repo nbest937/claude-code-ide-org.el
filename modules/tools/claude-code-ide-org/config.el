@@ -9638,19 +9638,49 @@ lands at all."
         ;; reporting failure contradicts the file. The downstream error
         ;; is still surfaced, as a warning, because something did go
         ;; wrong and silence would trade one wrong answer for another.
-        (if (and (stringp result)
-                 (eq (plist-get item :type) 'state)
-                 (equal (claude-code-ide-org--review-current-state
-                         (plist-get item :id))
-                        (plist-get item :to)))
-            (progn
-              (push (format "%s -> %s landed, but %s"
-                            (claude-code-ide-org--short-id (plist-get item :id))
-                            (plist-get item :to)
-                            (string-remove-prefix "Error: " result))
-                    claude-code-ide-org--review-apply-warnings)
-              nil)
-          (and (stringp result) result))))))))
+        ;; And the inverse, which is the one that loses data (TODO.org
+        ;; :ID: b693c444).  `org-todo' does not signal when
+        ;; `org-blocker-hook' refuses a transition non-interactively --
+        ;; org.el's own comment is "Fail silently":
+        ;;
+        ;;     (if (called-interactively-p 'interactive)
+        ;;         (user-error "TODO state change from %s to %s blocked ...")
+        ;;       ;; Fail silently.
+        ;;       (message "TODO state change from %s to %s blocked ...")
+        ;;       (throw 'exit nil))
+        ;;
+        ;; Apply calls it from a lambda, so the throw returns nil, no
+        ;; error string reaches here, and the item is marked applied
+        ;; having changed nothing.  A consumed event is never re-offered,
+        ;; so the transition is simply lost.  Observed 2026-09-17 on
+        ;; three items in one pass: one CANCELLED, and the two parents
+        ;; that `org-enforce-todo-dependencies' and a `:BLOCKER:' then
+        ;; correctly refused because the first had not moved.
+        ;;
+        ;; The check is deliberately on the *outcome* rather than on the
+        ;; cause, so it covers the blocked case, the escaped `@'-cookie
+        ;; note prompt and anything else that leaves the keyword
+        ;; unchanged without signalling.  `unresolved' fails it too:
+        ;; never consume an event whose effect cannot be verified.
+        (let* ((state-item-p (eq (plist-get item :type) 'state))
+               (now (and state-item-p
+                         (claude-code-ide-org--review-current-state
+                          (plist-get item :id))))
+               (landed (and state-item-p (equal now (plist-get item :to)))))
+          (cond
+           ((and (stringp result) landed)
+            (push (format "%s -> %s landed, but %s"
+                          (claude-code-ide-org--short-id (plist-get item :id))
+                          (plist-get item :to)
+                          (string-remove-prefix "Error: " result))
+                  claude-code-ide-org--review-apply-warnings)
+            nil)
+           ((and state-item-p (not (stringp result)) (not landed))
+            (format "Error: %s -> %s did not take effect; the heading reads %s. Left pending rather than consumed."
+                    (claude-code-ide-org--short-id (plist-get item :id))
+                    (plist-get item :to)
+                    (if (eq now 'unresolved) "unresolved" (or now "no keyword"))))
+           (t (and (stringp result) result))))))))))
 
 (defun claude-code-ide-org--review-apply-amend (item)
   "Append ITEM's text to the end of the target heading's own body.
