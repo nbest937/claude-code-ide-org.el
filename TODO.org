@@ -2,6 +2,30 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Apply consumes an event whose transition org refused, so the change is lost and never re-offered :code:
+:PROPERTIES:
+:ID:       b693c444-9ade-4103-a7b6-93eea0926763
+:CREATED:  [2026-09-17 Thu 13:40]
+:CATEGORY: Apply
+:END:
+:PLAN:
+
+Observed 2026-09-17. Three queued transitions — =89351a23= to =CANCELLED=, =406e9200= and =749301a0= to =DONE= — are recorded in the =.applied= watermark and **none of them took effect**. On disk the headings still read =DOING=, =REVIEW= and =DOING=. The events are consumed, so nothing will ever offer them again, and the user found it only by noticing the transitions were absent from the review buffer.
+
+*One cause, three casualties.* =CANCELLED(c@)= is one of only two keywords here carrying an =@= cookie, so org **prompts for a note** on entry — the asymmetry the state-transition rules already name as a reason state changes go through the queue. The prompt was evidently not completed, so =89351a23= stayed =DOING=. =org-enforce-todo-dependencies= is =t=, so =406e9200= could not close over a =DOING= child; and =749301a0='s =:BLOCKER:= named =89351a23=, so =org-depend-block-todo= refused it too. Both parents' refusals are *correct* — the guards did their job. What is wrong is that the watermark advanced anyway.
+
+*The audit log corroborates the refusals and nothing else.* It holds **no** =org_review_apply= record for either parent, consistent with the change never reaching =org-after-todo-state-change-hook=. So the two guards fired before any write, exactly as designed.
+
+*Unexplained, and deliberately not guessed at:* the audit log holds **seven** records for =89351a23= at 13:04:39, all =result: saved=, with four distinct =before_sha256= values converging on one =after_sha256=. Seven records for one heading with differing befores looks like attribution leaking across a batch of writes rather than seven writes to that heading, but that is a hypothesis. It may be a second defect and should be established before anything is built on it.
+
+*Why this is the serious class rather than an annoyance.* The queue's guarantee is that an event survives until a human accepts it. A refused transition marked applied breaks that silently and in the worst direction: the record is wrong, the evidence is gone, and every later reader sees a heading that simply never closed. Compare =05c71d99=, which was apply *logging* a self-transition — noise. This is the inverse and it loses data.
+
+Proposal: the watermark should advance only on a transition org actually performed. The signal exists — =org-todo= leaves the keyword readable at point — so apply can compare the heading's state after the call against the event's target and treat a mismatch as a failure, which it already knows how to report. Worth deciding at the same time whether an =@=-cookie prompt that is escaped should be a *reported failure* rather than a silent no-op, since that is the trigger here and it will recur for every =CANCELLED= and =WAITING=.
+:END:
+
+Three transitions were marked applied in the watermark and none took effect: =89351a23='s =CANCELLED= stalled on the =@=-cookie note prompt, which left it =DOING=, which then correctly blocked =406e9200= (=org-enforce-todo-dependencies=) and =749301a0= (=:BLOCKER:=). The guards were right; the watermark advancing was not. Consumed events are never re-offered, so the change is simply lost and the heading reads as though it never closed. Proposal: advance the watermark only when the heading's state after the call matches the event's target, and report an escaped =@= prompt as a failure rather than a no-op.
+
+
 * TODO The prose still promises time tracking: README, CLAUDE.md, DOOM.md and the skill all describe a clock that no longer ships :code:
 :PROPERTIES:
 :ID:       1254c24b-0dda-436e-a3d4-213de283692f
@@ -12950,6 +12974,7 @@ call it done.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-17 Thu 13:35]--[2026-09-17 Thu 13:36] =>  0:01
 CLOCK: [2026-09-17 Thu 12:58]--[2026-09-17 Thu 13:04] =>  0:06
 CLOCK: [2026-09-17 Thu 12:18]--[2026-09-17 Thu 12:25] =>  0:07
 CLOCK: [2026-09-17 Thu 11:41]--[2026-09-17 Thu 11:51] =>  0:10
@@ -13074,6 +13099,8 @@ CLOCK: [2026-09-16 Wed 20:37]--[2026-09-16 Wed 21:03] =>  0:26
 CLOCK: [2026-09-17 Thu 09:24]--[2026-09-17 Thu 09:32] =>  0:08
 CLOCK: [2026-09-17 Thu 09:59]--[2026-09-17 Thu 10:14] =>  0:15
 - <2026-09-17 Thu 11:41>--<2026-09-17 Thu 11:51> review pass (buffer buried)
+- <2026-09-17 Thu 13:35>--<2026-09-17 Thu 13:36> review pass (buffer buried)
+- <2026-09-17 Thu 13:36>--<2026-09-17 Thu 13:36> review pass (buffer buried)
 :END:
 
 We created this heading on 2026-08-26. We deleted that property from its
