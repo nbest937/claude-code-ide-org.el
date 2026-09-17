@@ -211,7 +211,7 @@ while IFS= read -r id; do
   # and the reference stays recoverable -- so a separate end-matter entry
   # would be pure duplication. This is exactly a status summary, and it
   # is where this hook was loudest: a twelve-id unwind printed all twelve
-  # inline and was asked for all twelve again (TODO.org :ID: 1203168b).
+  # inline and was asked for all twelve again (TODO.org :ID: 2a6a1355).
   #
   # Same LINE, deliberately. An id in one paragraph and the title in
   # another is the ordinary unfootnoted case: a reader scanning for the

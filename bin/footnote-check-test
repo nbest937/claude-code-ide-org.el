@@ -224,7 +224,7 @@ else
   # end-matter entry is pure duplication. That is what a status summary
   # looks like, and it is where this hook was loudest: a twelve-id
   # unwind printed all twelve inline and was then asked for all twelve
-  # again (TODO.org :ID: 1203168b).
+  # again (TODO.org :ID: 2a6a1355).
   check "an id paired with its exact title in the body is discharged" allowed \
     "$(run dp1 "\`$REAL\` $REAL_TITLE -- and nothing else to say.")"
   # The pairing must be on ONE line: an id here and a title elsewhere is

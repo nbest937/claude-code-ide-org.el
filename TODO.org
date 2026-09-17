@@ -2,6 +2,21 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* DOING An id already paired with its exact title in the body owes no separate end-matter entry :code:
+:PROPERTIES:
+:ID:       1203168b-ac54-4a05-805a-8419a4538b7c
+:CREATED:  [2026-09-17 Thu 12:11]
+:CATEGORY: Skill
+:END:
+
+The user reported the hook's output as "way too much" for the second time, 2026-09-17. The immediate cause is misses — the hook only speaks when a footnote was owed and not paid, and it spoke about twenty-five times that day, each time printing the full suggested block which the reply then printed again.
+
+But part of it was structural and fixable. A **status summary** pairs every id with its exact title inline, in prose; the end matter then repeats all of them verbatim. The convention's purpose — prose readable, every reference recoverable — is already met by such a line, so the second copy is pure duplication. One unwind cited twelve ids that way and was asked for all twelve again.
+
+*Implemented the same day.* =bin/hooks/footnote-check= already resolves each id's exact title in order to print the suggestion, so the test costs one comparison against a string it has in hand: if a line of the body contains both the id and that title, the debt is discharged.
+
+*Same line, deliberately.* An id in one paragraph and its title in another is the ordinary unfootnoted case — a reader scanning for the id does not find the title beside it, which is the guarantee the rule exists to give. Both directions are asserted: paired on one line passes, split across lines still blocks.
+
 * MAYBE Revisit building the footnote block with org-ql or the agenda, once Emacs stops wedging :research:
 :PROPERTIES:
 :ID:       3e08732f-f737-4558-938d-b91276a70b8a
@@ -52,6 +67,17 @@ Observed 2026-09-17. =org_divide= timed out twice through MCP with the identical
 *Unmeasured and worth measuring first:* the duration of the successful direct call. It was made under a 150 s alarm and the timing was lost in the reply, so "slower than the MCP timeout" is assumed rather than known — it may have been fast, which would move the fault squarely upstream. Measure that before anything else.
 
 *Configuration note for whoever picks it up:* =.mcp.json= sets no timeout and the environment sets none, so the server runs on the client default. The =timeout: 10= values in =.claude/settings.json= are **hook** timeouts and unrelated. Claude Code exposes MCP timeouts through environment variables rather than =.mcp.json= keys; confirm the names and defaults against the docs rather than from memory. If the fault proves upstream it belongs with =9d6449c7=.
+
+*Measured 2026-09-17: **0.013 s**, and it settles the attribution.* =claude-code-ide-org-divide= run in a batch Emacs against full-size copies of TODO.org and DONE.org, with a freshly built id index, on the same heading that timed out twice through MCP. Thirteen milliseconds — a fraction of a percent of any plausible tool timeout.
+
+So the "slower than the MCP timeout" assumption recorded above is **false**, and with it the last suspect inside this repo. The operation is effectively instantaneous; whatever consumed the time lives in Claude Code's MCP client, the HTTP transport, or upstream's =claude-code-ide-mcp-server.el= / =claude-code-ide-make-tool=. This belongs with =9d6449c7=.
+
+*What a report needs next, which this repo cannot produce:* server-side instrumentation — when the request arrived, when the handler was entered, when the reply was written. Without it there is no way to tell a slow handler from a slow transport from a client giving up early, and all three are consistent with what was observed.
+
+*One free thing to do regardless:* the tool's return value is propertized, embedding =org-get-heading= through =format=. At 284 printed characters against 103 clean it cannot be the cause, but a handler that walks or serialises text properties is a plausible home for a cost that scales with something other than length, and =substring-no-properties= costs nothing.
+
+*Method note, recorded because the first attempt did damage.* This measurement was originally taken against the live Emacs buffer, and that same session ran =(org-update-statistics-cookies t)= there as a "timing probe" — a whole-buffer mutation under =inhibit-read-only= — which rewrote a quoted title in body prose from =[1/1]= to =[0/0]= and left the buffer dirty (=bf00d36a=). A timing probe must not mutate, and must not run against a live buffer when a scratch copy will do. The figure above was taken on copies, in batch, touching nothing.
+
 
 
 * TODO Recenter after `m` advances, so the item under consideration is never at the bottom of the window :code:
@@ -4675,6 +4701,19 @@ faults cease to exist**. Enumeration and borrowed prose were always detected by
 the id check, which is untouched and is the one that was always doing the work.
 So this heading closes not because its modes were fixed but because the
 category most of them belonged to was removed.
+
+*Shipped 2026-09-17: an id already paired with its exact title in the body discharges the debt — which is this heading's central observation acted on from the hook's side.*
+
+The sentence this heading turns on is that "the hook's test is *does the response contain this token*; the writer's test is *am I referring to a heading here*", and that the two diverge whenever an id appears for some other reason. The **enumeration** mode is the live case: a status summary lists each id beside its exact title, the eye reads a row rather than a reference, and the end matter then repeats all of them verbatim. One unwind on 2026-09-17 cited twelve ids that way and was asked for all twelve again — the user's second report of the hook being "way too much".
+
+*But the enumeration mode was mis-described here, and the correction matters.* This heading recorded enumeration as a case that "was always detected" and is "now merely cheap" — treating detection as the whole job. It is not: a listed id paired with its title has **already satisfied the convention**. The prose is readable and the reference is recoverable, which is the entire purpose. Demanding a separate entry is duplication, and the duplication is what the user was seeing.
+
+*The test costs nothing.* =footnote-check= already resolves each id's exact title in order to print the suggestion, so the check is one fixed-string comparison against a value in hand — no parsing, no arithmetic, the same cheapness argument that chose correspondence-checking over collision-detection above.
+
+*Same line, deliberately.* An id in one paragraph and its title in another is the ordinary unfootnoted case: a reader scanning for the id does not find the title beside it, which is the guarantee being protected. Both directions are asserted — paired on one line passes, split across lines still blocks — and the passing case was proved red before the hook changed. 26 tests, was 24.
+
+*Recorded here rather than on its own heading at the user's direction*; =1203168b= is cancelled as its twin.
+
 
 
 * TODO Report worked headings that carry no clock interval that day :code:
