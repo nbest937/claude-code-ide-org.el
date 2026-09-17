@@ -52,8 +52,6 @@ So there is no distinction to draw between the project's goals and the artifact'
 *Keep the history while changing the ranking.* "Much of the machinery here — the event queue, the session hooks, the review pass — exists for that goal" is true and explains why the architecture looks as it does. Demote the goal; do not delete the account of what built the machinery, or a future reader loses the only record of why the queue exists at all.
 
 
-
-
 * CANCELLED An id already paired with its exact title in the body owes no separate end-matter entry :code:
 CLOSED: [2026-09-17 Thu 12:14]
 :PROPERTIES:
@@ -62,8 +60,24 @@ CLOSED: [2026-09-17 Thu 12:14]
 :CATEGORY: Skill
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-17 Thu 11:40]--[2026-09-17 Thu 11:41] =>  0:01
+- [2026-09-17 Thu 11:40]--[2026-09-17 Thu 11:41] assigned at review
+CLOCK: [2026-09-17 Thu 11:46]--[2026-09-17 Thu 11:47] =>  0:01
+- [2026-09-17 Thu 11:46]--[2026-09-17 Thu 11:47] assigned at review
+CLOCK: [2026-09-17 Thu 11:50]--[2026-09-17 Thu 11:56] =>  0:06
+- [2026-09-17 Thu 11:50]--[2026-09-17 Thu 11:56] assigned at review
+CLOCK: [2026-09-17 Thu 12:01]--[2026-09-17 Thu 12:03] =>  0:02
+- [2026-09-17 Thu 12:01]--[2026-09-17 Thu 12:03] assigned at review
+CLOCK: [2026-09-17 Thu 12:09]--[2026-09-17 Thu 12:14] =>  0:05
+- [2026-09-17 Thu 12:09]--[2026-09-17 Thu 12:14] assigned at review
 - State "CANCELLED"  from "DOING"      [2026-09-17 Thu 12:14] \\
   twin of 2a6a1355's enumeration mode; work recorded there
+CLOCK: [2026-09-17 Thu 12:18]--[2026-09-17 Thu 12:22] =>  0:04
+- [2026-09-17 Thu 12:18]--[2026-09-17 Thu 12:22] assigned at review
+CLOCK: [2026-09-17 Thu 12:27]--[2026-09-17 Thu 12:28] =>  0:01
+- [2026-09-17 Thu 12:27]--[2026-09-17 Thu 12:28] assigned at review
+CLOCK: [2026-09-17 Thu 12:31]--[2026-09-17 Thu 12:32] =>  0:01
+- [2026-09-17 Thu 12:31]--[2026-09-17 Thu 12:32] assigned at review
 :END:
 
 The user reported the hook's output as "way too much" for the second time, 2026-09-17. The immediate cause is misses — the hook only speaks when a footnote was owed and not paid, and it spoke about twenty-five times that day, each time printing the full suggested block which the reply then printed again.
@@ -249,7 +263,6 @@ Planned:
 *One nuance worth preserving rather than flattening.* The =README= claim that "much of the machinery — the event queue, the session hooks, the review pass — exists for that goal" is **historically true** and stays true: the queue was built because concurrent sessions writing live clock state produced a run of desync bugs. What changes is the *ranking*, not the history. A demotion that erased why the machinery looks as it does would cost a future reader the only explanation on record.
 
 *And it sharpens this slice's own justification.* The measured case was behavioural — every failure and every unanswerable question of 2026-09-17 came from a span or a clock item. The ordering decision is the same conclusion reached from the other direction, by a human weighing goals rather than counting incidents.
-
 
 
 * TODO Verify the review buffer and apply pass on a queue that has never held a guidepost :code:
@@ -1447,14 +1460,14 @@ matters here is therefore not a new property but the existing one: link the plan
 revision when the slice is picked up**, and this is its first recorded failure.
 
 
-* DOING [13/15] A span is only as true as its owner, its edges and its payload :code:
+* DOING [14/15] A span is only as true as its owner, its edges and its payload :code:blocked:
 :PROPERTIES:
 :ID:       749301a0-0bd0-4fbd-b3f7-79739226e15a
 :CREATED:  [2026-09-11 Fri 18:58]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  507754ba-ae82-4f04-b209-8d8c58ac268e 89351a23-8bfc-4939-8a30-f1fe7e93c72f
+:BLOCKER:  89351a23-8bfc-4939-8a30-f1fe7e93c72f
 :END:
 :DEBRIEF:
 *Composed 2026-09-11, merged and closed 2026-09-17.* Fifteen members, 94 commits, PR #25.
@@ -1543,8 +1556,8 @@ Planned:
   - [X] [[id:c9940558-b23e-4b2c-86e8-e75a377634aa][c9940558]] DONE Guidepost aggregation ignores =cwd=, so two projects' turns cluster into one span
   - [X] [[id:c54c4215-90e3-4e0c-9de1-990c0406a2b2][c54c4215]] DONE A split span drops the unowned gaps between the clock pairs that split it
   - [X] [[id:2deb090f-593d-40e3-9044-fda318d9b6de][2deb090f]] DONE Accepting a 0-run span records none of its minutes, and only =e= can claim them
-  - [-] [[id:507754ba-ae82-4f04-b209-8d8c58ac268e][507754ba]] DOING Correct the accumulated record once the aggregator is fixed
-  - [ ] [[id:89351a23-8bfc-4939-8a30-f1fe7e93c72f][89351a23]] TODO Re-derive the corrected record against the aggregator as it now stands
+  - [X] [[id:507754ba-ae82-4f04-b209-8d8c58ac268e][507754ba]] DONE Correct the accumulated record once the aggregator is fixed
+  - [-] [[id:89351a23-8bfc-4939-8a30-f1fe7e93c72f][89351a23]] DOING Re-derive the corrected record against the aggregator as it now stands
 - [X] [[id:36698ca7-9358-41ca-862c-962af49691cd][36698ca7]] DONE The review buffer's legend omits two of its own keys, one of them the help key
 - [X] [[id:cfdfe119-34ad-4ee5-9477-d71dc450eabd][cfdfe119]] DONE footnote-check indents the lines it tells you to append, and the canonical form is flush-left
 - [X] [[id:83773daf-df07-4665-b5fc-0445e0da6211][83773daf]] DONE --session-alias-cache is keyed on the session set alone, so a nil map outlives the transcript that caused it
@@ -1571,7 +1584,6 @@ Integration point: [[https://github.com/nbest937/claude-code-ide-org.el/pull/25]
 *So the slice returns to =DOING=.* Every member was terminal when it entered =REVIEW=; one no longer is, which is what that transition is for — the review found something missing. It cannot reach =DONE= until =83773daf= is resolved or explicitly dropped.
 
 *Closed 2026-09-17, six days after composition, on the merge of PR #25 and the close of =406e9200= behind it.* Fifteen members: the six planned, the review's three findings, and six adopted along the way. A span now carries its owner, its edges and its payload — and the last doubt about the record it produced was settled by measurement rather than by rewriting it.
-
 
 
 * TODO Nothing can correct a closed slice's record, even when the correction is close-time truth :code:
@@ -4478,7 +4490,6 @@ identifiable to any writer rather than adding a guard per writer.
 *It goes to no other slice, deliberately.* =749301a0= is the span slice and has merged; adding a member would reopen a closed integration point, which is the failure =30a340fd= recorded. =8bbae3aa= is about removing time tracking, not fixing it. So =4acd8ad0= returns to backlog with the other 54 time-tracking items, which is where the work now lives.
 
 *Four siblings filed the same week stay in backlog for now* — =51bcec2c=, =aee8487e=, =cf483f5d=, =17f93758= — rather than being added one at a time. They should be judged together against this slice's shape when it is actually picked up, since deciding twice is how a list grows without anyone choosing.
-
 
 
 * DOING Three new ways to owe a footnote and not see it: marker, list, quotation :code:
@@ -7549,7 +7560,7 @@ rule that refuses to discard =TODO.org=/=DONE.org= working-tree changes
 without showing the diff first.
 
 
-* REVIEW [15/17] Make the guidepost pipeline produce durations that mean what they say :code:
+* REVIEW [16/17] Make the guidepost pipeline produce durations that mean what they say :code:
 :PROPERTIES:
 :CATEGORY: Queue
 :ID:       406e9200-c3e7-49ac-a8d0-d6ff8e061ce4
@@ -7641,7 +7652,6 @@ carrying one of its own, following 02aaae22 / c556a9ed.
 
 :END:
 *Resolved 2026-09-17.* Seventeen members, every one terminal. The pipeline now produces durations that mean what they say — and the last question it held open, whether the accumulated record needed re-deriving after the aggregator changed four more times, was answered by measurement rather than by rewriting: 702 of 703 runs identical, seventy seconds of drift across a month.
-
 
 
 ** DONE Background-task notifications write phantom resume guideposts :code:
@@ -8218,7 +8228,8 @@ turns out wrong in use, the measurement above is the baseline to compare
 against.
 
 
-** DOING Correct the accumulated record once the aggregator is fixed :code:
+** DONE Correct the accumulated record once the aggregator is fixed :code:
+CLOSED: [2026-09-17 Thu 12:46]
 :PROPERTIES:
 :ID:       507754ba-ae82-4f04-b209-8d8c58ac268e
 :CREATED:  [2026-08-18 Tue 08:15]
@@ -8240,6 +8251,10 @@ CLOCK: [2026-09-17 Thu 10:05]--[2026-09-17 Thu 10:07] =>  0:02
 - [2026-09-17 Thu 10:05]--[2026-09-17 Thu 10:07] suggested span, accepted at review
 CLOCK: [2026-09-17 Thu 10:10]--[2026-09-17 Thu 10:11] =>  0:01
 - [2026-09-17 Thu 10:10]--[2026-09-17 Thu 10:11] suggested span, accepted at review
+CLOCK: [2026-09-17 Thu 12:39]--[2026-09-17 Thu 12:41] =>  0:02
+- [2026-09-17 Thu 12:39]--[2026-09-17 Thu 12:41]
+- State "DONE"       from "DOING"      [2026-09-17 Thu 12:46] \\
+  measured: 702/703 runs identical; the record is sound
 :END:
 :PLAN:
 
@@ -8370,8 +8385,6 @@ So **68% of the spans the old aggregator produced are gone or altered**, and the
 *So the two measurements disagree violently and both are right.* 68% of spans moved their **boundaries**; the runs inside them did not move. Apply writes runs, so the accumulated record never depended on the boundaries that changed. Stating it that way is the useful form: a span is a *proposal*, and changing what is proposed does not change what was recorded once the proposals were accepted.
 
 *This heading's own condition is therefore satisfied* — "once the aggregator is fixed" holds again, now with evidence rather than by assumption, which is what its reopening this morning was for.
-
-
 
 
 ** DONE Decouple live "what is Claude attending to" visibility from the authoritative org clock :code:
@@ -10101,11 +10114,21 @@ same key, so *which* is canonical does not affect pairing.
 apply pass pairs the old way until =config.el= is loaded into it.
 
 
-** TODO Re-derive the corrected record against the aggregator as it now stands :code:
+** DOING Re-derive the corrected record against the aggregator as it now stands :code:blocked:
 :PROPERTIES:
 :ID:       89351a23-8bfc-4939-8a30-f1fe7e93c72f
 :CREATED:  [2026-09-17 Thu 09:58]
 :BLOCKER:  507754ba-ae82-4f04-b209-8d8c58ac268e
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-17 Thu 12:41]--[2026-09-17 Thu 12:43] =>  0:02
+- [2026-09-17 Thu 12:41]--[2026-09-17 Thu 12:43] assigned at review
+CLOCK: [2026-09-17 Thu 12:44]--[2026-09-17 Thu 12:45] =>  0:01
+- State "DOING"      from "TODO"       [2026-09-17 Thu 12:44] \\
+  measuring the runs, not the envelopes
+- [2026-09-17 Thu 12:44]--[2026-09-17 Thu 12:45]
+CLOCK: [2026-09-17 Thu 12:49]--[2026-09-17 Thu 12:55] =>  0:06
+- [2026-09-17 Thu 12:49]--[2026-09-17 Thu 12:55] suggested span, accepted at review
 :END:
 :PLAN:
 
@@ -10137,7 +10160,6 @@ The 82-second idle gap between them is no longer absorbed. Total recorded time f
 *And it vindicates the split.* Had =507754ba= not been separated from the re-derivation this morning, the 68% figure alone would have justified a corpus rewrite of the whole CLOCK record — for one interval and eighty-two seconds. Measuring before correcting is what the =e3d1531d= / =b5448133= precedent exists for, and this is the second time in two days it has paid.
 
 *One defect in the probe, recorded because it nearly misreported the result.* The first run printed =n=1= for both versions: =nreverse= was called on the accumulator before its length was read, leaving the variable pointing at the last cons. The totals and the set comparison were computed independently and were unaffected, and the true counts came from the dumps — but a less redundant probe would have reported "one run" with a straight face.
-
 
 
 * TODO Type a span's annotation at review time, not by hand-editing it after :code:
@@ -12928,6 +12950,7 @@ call it done.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-17 Thu 12:58]--[2026-09-17 Thu 13:04] =>  0:06
 CLOCK: [2026-09-17 Thu 12:18]--[2026-09-17 Thu 12:25] =>  0:07
 CLOCK: [2026-09-17 Thu 11:41]--[2026-09-17 Thu 11:51] =>  0:10
 CLOCK: [2026-09-17 Thu 10:48]--[2026-09-17 Thu 10:58] =>  0:10
