@@ -1189,6 +1189,19 @@ The counterpart to the cut: a flag on `claude-org-setup` that puts the guidepost
 :CREATED:  [2026-09-17 Thu 11:15]
 :CATEGORY: Tools
 :END:
+:DEBRIEF:
+*Shipped* in [[orgit-rev:claude-code-ide-org::1d3be39][1d3be39]]. Of the plan's three options, one was already ruled out and self-gating ruled out a second, which left the third with a gap the plan had not named.
+
+*Why gating registration became actively wrong rather than merely costly.* The plan priced it as "a conditional registration block and a second configuration to test". After =1b36c5bd= the price is higher: the feature's gate is the plugin's =time_tracking= =userConfig= option, stored in =~/.claude/settings.json= under =pluginConfigs= and read by hook processes. **Emacs cannot see it.** So an elisp =defcustom= gating registration would be a *second, independent switch for one feature*, and the two could disagree — tools absent while the hooks record, or tools present while they decline. One switch is the whole point of the arrangement.
+
+*So they stay registered, which was the cheap option, and the plan's objection to it still stands unanswered by that fact.* "A tool in the schema is an invitation, and this project's own evidence is that an agent calls what it is offered." True, and untouched by any of the above.
+
+*What was actually missing was that the schema said nothing.* The prose had been scoped in =org-mcp-tools.md= earlier the same day, but a promoted rules file is not what an agent reads when it decides to call a tool — the =:description= is. Both now state the condition and end with the sentence that matters: **being offered this tool is not evidence the feature is on.** That is the same correction made to =org-time-tracking.md='s opening this morning, one layer down, and it is the only place it actually intercepts the invitation.
+
+*The suite caught the first attempt, and the catch is worth recording.* The wording tripped =claude-code-ide-org-test-no-source-line-claims-the-trigger-is-off=, a phrase-level ban on "off by default" across =config.el= and =config-test.el= (=:ID:= 6a21e08b). It was a **false positive in meaning** — the sentence described the plugin option, not =--trigger-auto-clock-in= — and a **true positive in form**, which is exactly what that guard's docstring argues for: "the phrasing is what a reader takes as current, whatever clause follows it". Reworded rather than exempted. The result names the condition instead of a default, which reads better anyway, and the guard keeps the bluntness that makes it work.
+
+*Verification:* =config.el= reads as 515 top-level forms, =check-conventions= green, =bin/test= 688/688 after the reword and 687/688 before it — which is the discrimination, unlooked-for.
+:END:
 :PLAN:
 
 The two queued clock tools are registered by the shared Doom module, so they remain callable whatever =hooks.json= wires. Three options, and the choice is about what an agent is *invited* to do rather than about correctness.
@@ -1203,6 +1216,9 @@ Note the tools are only half the invitation. =org_set_todo='s own description an
 :END:
 
 Separate from the hook wiring: the two MCP tools are registered by `config.el`, not by the manifest, so cutting the hooks leaves them callable. Decide whether an unconsumed queue event is harmless bookkeeping or a tool that should refuse, and say which.
+
+*Resolved 2026-09-18: they stay registered, and the descriptions now carry the condition.* Self-gating decided it — the gate is a plugin option in =~/.claude/settings.json=, which =config.el= cannot read, so a =defcustom= gating registration would be a second switch for one feature, free to disagree with the first.
+
 
 
 * DONE The promoted rules instruct clocking unconditionally, so a consumer is told to call tools that do nothing :code:
