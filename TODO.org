@@ -1097,6 +1097,27 @@ Splitting the tracker from the clock is only worth doing as two plugins if two m
 :CREATED:  [2026-09-17 Thu 11:15]
 :CATEGORY: Dev
 :END:
+:DEBRIEF:
+*Shipped* in [[orgit-rev:claude-code-ide-org::c257553][c257553]]. The member's *goal* — "disabled-by-default is only defensible if turning it on is one documented command" — is met; its *mechanism* is not the one planned, and the route to that is the whole story.
+
+*The plan's assumption collapsed on first contact.* "It adds the guidepost, block and clock rows to the consumer's wiring" presumes =claude-org-setup= writes hook wiring. It never has — it promotes rules, scaffolds org files, links the skill, writes Doom glue, and touches neither =settings.json= nor =hooks.json=. So =--time= was a new capability, not an extension, and its first question was *where does it write*.
+
+*Every answer to that question was bad, and chasing them is what found the real one.* Into the consumer's =.claude/settings.json= needs an absolute path to the plugin — machine-specific, in a committed file, the objection the symlink code already records. Into =settings.local.json= answers that but makes the opt-in per-clone. A second plugin would let =${CLAUDE_PLUGIN_ROOT}= resolve correctly, which is why =5fb70821= was promoted ahead of this member — and its answer was no, because the thin plugin would have to duplicate the 244-line =queue-append=. Confirmed from the docs along the way, having been flagged as an assumption: **=${CLAUDE_PLUGIN_ROOT}= does not expand in a project's own =settings.json=**, only in a plugin's =hooks.json=.
+
+*The answer was in the same documentation page as that confirmation.* Plugins declare =userConfig= options in =plugin.json= — =type: boolean=, with a =default= — and Claude Code exports them to hook processes as =CLAUDE_PLUGIN_OPTION_<KEY>=. So a hook can be **wired and self-gating**, which is the third state the slice was composed believing did not exist. Nothing writes wiring; the consumer flips a toggle in =/config=.
+
+*What shipped.* =userConfig.time_tracking=, boolean, =default: false=. Three guards — =queue-append= kind-scoped (so =todo=/=capture=/=amend= stay unconditional), =block-start= (writes its sentinel directly), =clock-target-check= (blocks the =Stop=, never touches the queue). Four of the five time scripts route through =queue-append=, which is why three guards cover six scripts. =hooks/hooks.json= restored byte-identically to its pre-cut state.
+
+*The default is the load-bearing choice.* Off, because the absent-variable case must fail safe: a consumer whose Claude Code predates =userConfig= sees no variable at all, and defaulting on would hand them guideposts they never asked for — the exact outcome the slice exists to prevent. The cost is the mirror image, an old client that cannot turn it *on*, which is the right direction to fail.
+
+*And this repo needed an answer too.* It wires the same scripts through its own =.claude/settings.json=, where there is no plugin option to read, so its eight time rows set =CLAUDE_PLUGIN_OPTION_TIME_TRACKING=true= in the command string. **Wiring the row is the opt-in there** — which is why the two wirings stopped being mirrors, now stated correctly in =CLAUDE.md=.
+
+*Verified, and made to discriminate rather than merely pass.* Against a temp queue directory: =clock_in= wrote 0 lines with the option unset, 0 with it =false=, 1 with it =true=; =todo= wrote with the option unset; =pause= did not. =block-start= created no sentinel when off and one when on; =clock-target-check= exited 0 when off. =claude plugin validate= accepts the manifest (one pre-existing warning about =CLAUDE.md= at the plugin root). =check-conventions= green, =bin/test= 688/688, rules re-promoted and in sync.
+
+*One planned sub-goal is now moot, deliberately.* "=--check= should report the time-tracking wiring present or absent" cannot be done: the state lives in =~/.claude/settings.json= under =pluginConfigs=, which =claude-org-setup= has no business reading. =/config= is where a consumer sees it, and =org-time-tracking.md= says so.
+
+*Cost, recorded honestly:* this reversed =eb6c4a9b= and =0c5577dc= hours after they closed. Both keep their analysis — the row inventory was reused verbatim, and the =block-end=-wired-twice finding still holds — and both carry the supersession in their own debriefs.
+:END:
 :PLAN:
 
 If the scripts ship unwired, something has to make wiring them a single act rather than a hand edit of a JSON file the consumer did not write. =claude-org-setup= already promotes rules and scaffolds org files behind flags — =--doom=, =--org=, =--glue=, =--check= — so a =--time= flag is the established shape: it adds the guidepost, block and clock rows to the consumer's wiring and promotes =org-session-tracking.md= alongside them.
@@ -1117,6 +1138,9 @@ Three candidate shapes, and the difference is where the scripts' path comes from
 :END:
 
 The counterpart to the cut: a flag on `claude-org-setup` that puts the guidepost, block and clock rows back into the consuming repo's wiring and promotes the session-tracking reference alongside them. Disabled-by-default is only defensible if turning it on is one documented command.
+
+*Resolved 2026-09-18 — the opt-in shipped, but not as a =claude-org-setup= flag, so this title names a mechanism that was replaced before it was built.* Time tracking is gated by a =time_tracking= boolean in the plugin's =userConfig=, read by the hook scripts themselves; nothing writes wiring anywhere, which is what dissolved every problem this member had accumulated.
+
 
 
 * TODO Decide whether org_clock_in and org_clock_out stay registered when nothing consumes what they queue :code:
@@ -1240,6 +1264,16 @@ CLOSED: [2026-09-18 Fri 08:22]
 *The claim the plan asked to verify is still unverified, by design.* That a guidepost-free queue yields a review buffer of only state changes, captures and amends is =d3149a81='s member, and this heading deliberately does not pre-empt it.
 
 *One thing the plan did not anticipate.* The manifest's =description= string asserted that it "Mirrors this repo's own .claude/settings.json wiring", which stopped being true the moment the rows came out. It was rewritten to say time tracking ships unwired and name =claude-org-setup --time= as the way back — a forward reference to =1b36c5bd=, which does not exist yet. That is a deliberate small debt, not an oversight: the alternative was a description that described nothing.
+
+*Superseded the same day, 2026-09-18, by* [[orgit-rev:claude-code-ide-org::c257553][c257553]]. =hooks/hooks.json= is restored **byte-identically** to its pre-cut state — all fifteen rows, none altered — and the rows now gate themselves on the plugin's =time_tracking= =userConfig= option instead of being absent.
+
+*The premise this member executed was false, and nobody had checked it.* "A hook has no 'disabled' state, so wired and unwired are the only forms available" was the slice's founding sentence and this heading's justification. A third form exists: =userConfig= in =plugin.json=, exported to hook processes as =CLAUDE_PLUGIN_OPTION_<KEY>=. Found while researching =1b36c5bd=, whose own problem — where a setup flag could write wiring — evaporated with it.
+
+*What survives intact, which is most of the value.* The row inventory was correct and was reused verbatim to decide which scripts get guards: the eight rows this member removed are exactly the eight that =.claude/settings.json= now prefixes in this repo. The =block-end=-is-wired-twice finding still matters, and still catches an inventory that counts scripts rather than rows. The set-comparison verification method ("8 removed, **0 added**") was what proved the restore was byte-identical, run in the other direction.
+
+*What was wrong was the conclusion only.* Removal was one correct answer to "how do you ship a hook that should not run"; gating is the better one, because it keeps the opt-in to a toggle rather than a file edit and removes the question of whose file gets edited.
+
+*Left DONE rather than reopened.* What this heading did — inventory the rows, verify the change, record why =block-end= appears twice — all happened and is not undone. The reversal is new work, and it belongs to =1b36c5bd=, which owns the opt-in mechanism.
 :END:
 :PLAN:
 
@@ -1281,6 +1315,16 @@ CLOCK: [2026-09-18 Fri 08:17]--[2026-09-18 Fri 08:21] =>  0:04
 *Verification, and its honest limit.* A structural row diff over =hooks/hooks.json= (event, matcher, command) showed exactly eight rows removed and zero added; =bin/hooks/clock-target-check= is still present and executable; =bin/check-conventions= green, =bin/test= 688/688. **None of that exercises the hook's absence**, because this repo wires these scripts through its own =.claude/settings.json= and never reads =hooks/hooks.json= — so the change cannot be observed from a session here, now or after any reload. Demonstrating it needs a consuming install, which is =d3149a81='s job and not a gap left by this heading.
 
 *Nothing was left behind.* The opt-in that restores this row is =1b36c5bd=, already a member.
+
+*Superseded 2026-09-18 by* [[orgit-rev:claude-code-ide-org::c257553][c257553]]: =clock-target-check= is back in the shipped wiring, and gates itself on the plugin's =time_tracking= option — exiting 0 when the feature is off, so it blocks nothing in a task-only install.
+
+*The reasoning that removed it was right and still is; only the remedy changed.* The harm this hook defends against — a span reaching review UNASSIGNED — is unreachable with no spans, so it must not fire when time tracking is off. Removal achieved that. A guard achieves it too, and additionally brings the hook back the moment a consumer turns the feature on, which removal did not.
+
+*The declined variant stays declined, and for the same reason.* Re-keying it on "any queued activity" would enforce a filing mandate on a session that only edits code. Nothing about self-gating changes that.
+
+*Verified rather than assumed:* with the option unset the hook exits 0 against a payload that would otherwise reach its write-evidence scan. It is one of only two scripts needing its own guard — it never touches the queue, so =queue-append='s kind-scoped gate does not cover it.
+
+*Left DONE.* The question this heading asked — remove, or guard — was answered correctly on the evidence available, and the evidence changed.
 :END:
 :PLAN:
 
