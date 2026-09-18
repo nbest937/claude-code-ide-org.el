@@ -1,5 +1,31 @@
 # Next session
 
+> **CONSUMED 2026-09-18. Do not work from the middle band below.**
+> `8bbae3aa` is in `REVIEW` with PR #28 open; all nine members closed.
+> This file is a plan, not a convention — the next composer replaces
+> everything from *What is already true* to *Where this will stop*.
+>
+> **Four things it got wrong, kept here because the next plan can avoid
+> them rather than because they matter now.** Three premises were false
+> and one member was mis-sequenced, and *all four came from this file
+> while none came from the headings themselves*:
+>
+> - `org-session-tracking.md` is **not** "entirely time tracking" — its
+>   first section is mixed, and dropping it would have taken
+>   `apply-detect`, `footnote-check` and the whole ceremony with it.
+> - `claude-org-setup` does **not** write hook wiring, so `--time` was a
+>   new capability rather than an extension — and it was never built,
+>   because a plugin `userConfig` option replaced it.
+> - The stale-interval report does **not** stop finding things when
+>   clocking is off; it scans file text and still catches a hand-clocked
+>   interval.
+> - `5fb70821` was placed last as "deciding nothing", while its own body
+>   said it sequences first. Its body was right.
+>
+> The pattern, which is the useful part: each wrong claim was written
+> while looking at the *slice*, and each heading that contradicted it was
+> written while looking at the *thing*. Prefer the heading.
+
 A plan for `8bbae3aa` — **Ship the tracker without the clock** — which took
 the nomination on 2026-09-17, ahead of the sequence below.
 
