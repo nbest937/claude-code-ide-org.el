@@ -432,7 +432,8 @@ every guidepost is appended twice.
 which **defaults to off** — Claude Code exports it to hook processes as
 `CLAUDE_PLUGIN_OPTION_TIME_TRACKING`, and `queue-append` (for the six
 time kinds only), `block-start` and `clock-target-check` each refuse
-when it is not `true`. A consumer turns it on in `/config`. This repo
+when it is not `true`. A consumer turns it on with Claude Code's
+`/config` command — a slash command typed in a session, not a path. This repo
 has no plugin option to read, so its own rows set that variable in the
 command string: **wiring the row is the opt-in here**, which is why
 `.claude/settings.json` looks different from the manifest it used to

@@ -17,8 +17,10 @@ guidepost is ever appended, and no span is ever offered.
 **Do not read this file's presence as evidence the feature is on.** It is
 promoted unconditionally, because `claude-org-setup` cannot see a plugin
 option — so it loads in repos where none of it applies. Turn it on in
-`/config`, or at install with `claude plugin install … --config
-time_tracking=true`; `/config` is also where you check which it is.
+Claude Code's `/config` command (a slash command typed in a session, not
+a path), or at install with `claude plugin install … --config
+time_tracking=true`. The `/config` command is also where you check which
+it is.
 
 **One value, every project.** The option is stored per-user
 (`~/.claude/settings.json`, under `pluginConfigs`), not per-repo, so it

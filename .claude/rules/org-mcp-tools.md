@@ -26,7 +26,8 @@ incident, and the reason the queue exists:
 **The two clock tools stay registered with time tracking off, and calling
 them accomplishes nothing.** They queue events no review pass consumes,
 because the hooks that would carry the guideposts around them are gated.
-Registration is not an invitation here: check `/config` before reaching
+Registration is not an invitation here: check Claude Code's `/config`
+command before reaching
 for either, and see `org-time-tracking.md`. `org_set_todo` is unaffected
 and is queued for a reason that has nothing to do with time — org's
 state-change logging needs a genuinely interactive command.
