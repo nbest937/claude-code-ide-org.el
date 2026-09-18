@@ -1175,6 +1175,19 @@ Integration point: [[https://github.com/nbest937/claude-code-ide-org.el/pull/28]
 
 *The reversal is the slice's real event.* Composed on "a hook has no disabled state, so wired and unwired are the only forms available", it shipped the third form instead. Two members closed on the removal decision and were superseded hours later; both keep their analysis, which was reused verbatim, and carry the reversal in their own debriefs.
 
+*Observed in a real consumer 2026-09-18, which this slice's PR body says is the one thing it could not demonstrate.* =~/git/agentic-euchre= loads the plugin from this clone by symlink, so it has been running the branch's gated wiring since the restart. Its queue events, grouped by =cwd= across every session file:
+
+: 1766  claude-code-ide-org
+:   26  agentic-euchre
+:    2  consumer
+
+All 26 of euchre's are guideposts — 12 =pause=, 13 =resume=, 1 =block_start= — and **every one is dated 2026-09-10 to 09-15**. Zero after 14:05 today, when the gate landed, across an afternoon of real turns there. With =time_tracking= unset the guideposts stopped, and nothing else about the session changed: hooks still fire, the skill still loads, the plugin still appears in =/plugin='s Installed tab.
+
+*Two qualifications, because this is observation rather than a test.* It rests on euchre having completed turns after its restart, which the session's own reports imply but which was not instrumented. And euchre records **no** =todo=/=capture=/=amend= either — not because those are gated, but because it has no MCP config and therefore no org tools at all (=805bf287=). So this confirms the *negative* half — guideposts stop — and the positive half, that task events still flow with the feature off, remains unobserved in a consumer and is pinned only by =d3149a81='s fixture.
+
+*The incidental finding that prompted it:* euchre has no repo-level =.claude/settings.json=, and that is **correct rather than missing**. A consumer takes the plugin's =hooks/hooks.json=; this repo takes its own wiring because =claude-org-setup= refuses to make it its own consumer. A consumer that had both would append every queue line twice, which is the trap the wiring rule already names.
+
+
 
 * DONE Verify the review buffer and apply pass on a queue that has never held a guidepost :code:
 CLOSED: [2026-09-18 Fri 14:35]
