@@ -705,8 +705,21 @@ kind of quiet."
   (when-let* ((file (buffer-file-name
                      (buffer-base-buffer (or buffer (current-buffer)))))
               (true (file-truename file)))
-    (seq-some (lambda (f) (equal true (file-truename f)))
-              (claude-code-ide-org--tracked-files))))
+    ;; Unscoped, explicitly.  This is a CONSENT gate, and consent cannot
+    ;; depend on what some report happens to be looking at: the reports
+    ;; bind `claude-code-ide-org--report-scope' and then call
+    ;; `find-file-noselect', which runs `find-file-hook', which runs
+    ;; `claude-code-ide-org--revert-so-long-takeover', which asks this.
+    ;; With the binding live a genuinely tracked file from another
+    ;; project answers nil, `so-long-revert' never fires, and the buffer
+    ;; stays in `so-long-mode' for the rest of the session -- which is
+    ;; TODO.org :ID: 045459f6 reintroduced, and its whole point was that
+    ;; the tools go on to *write* these buffers.  Reachable rather than
+    ;; theoretical: a consumer's scoped report opens this repo's TODO.org
+    ;; via `claude-code-ide-org--review-attention-target'.
+    (let ((claude-code-ide-org--report-scope nil))
+      (seq-some (lambda (f) (equal true (file-truename f)))
+                (claude-code-ide-org--tracked-files)))))
 
 (defun claude-code-ide-org--revert-so-long-takeover ()
   "Restore the real major mode when so-long has replaced it in a
@@ -939,6 +952,38 @@ a slice has no children, so the subtree is its own body."
                           (or (org-entry-get nil "ID") "?"))
                          out)))))))))))
 
+(defun claude-code-ide-org--items-in-report-scope (items)
+  "ITEMS whose events name a `cwd\' under `--report-scope\'.
+
+Unscoped, every item.  Scoped, this is what stops a consumer being told
+\"Waiting: N queued item(s)\" about another project\'s events: the queue
+is a single global directory, so `--review-items-from-queue\' is
+global by construction and filtering `--tracked-files\' does nothing
+for it (TODO.org :ID: 43d479c8).
+
+**An event with no `cwd\' is excluded when scoped**, which is the
+opposite of the span rule, deliberately.  There, a missing value means
+\"unknown, never elsewhere\", so a span predating the field is not
+shattered by it.  Here the question is whether to *show someone else\'s
+work as theirs*, and the two errors are not symmetric: omitting an item
+understates a count, while claiming one restates the very defect this
+scoping exists to fix.  `cwd\' has been recorded since 2026-09-04, so
+in practice this drops only pre-cutover events."
+  (if (not claude-code-ide-org--report-scope)
+      items
+    (let ((root (file-name-as-directory
+                 (file-truename claude-code-ide-org--report-scope))))
+      (seq-filter
+       (lambda (item)
+         (seq-some
+          (lambda (e)
+            (let ((cwd (plist-get e :cwd)))
+              (and cwd (file-directory-p cwd)
+                   (string-prefix-p
+                    root (file-name-as-directory (file-truename cwd))))))
+          (plist-get item :events)))
+       items))))
+
 (defun claude-code-ide-org--ceremony-status ()
   "Return a plist of what the ceremony has waiting: (:pending N :drifted N
 :archivable N :unlinked IDS), or nil when the ceremony has already run today.
@@ -965,7 +1010,8 @@ why this returns numbers and the formatter below asks a question."
   ;; quiet.  It is what separates "nobody has been here today" from
   ;; "someone was, and it did not complete".
   (unless (claude-code-ide-org--ceremony-done-today-p)
-    (let ((pending (length (claude-code-ide-org--review-items-from-queue)))
+    (let ((pending (length (claude-code-ide-org--items-in-report-scope
+                            (claude-code-ide-org--review-items-from-queue))))
           (drifted (nth 1 (claude-code-ide-org--consolidate-drawers-1 t)))
           (archivable 0))
       (dolist (file (claude-code-ide-org--tracked-files))
@@ -13845,8 +13891,23 @@ Non-nil exactly while a human review interval is open.")
 Created as a level-2 heading under the meta-work category, since it is
 meta-work by definition and this project reserves level 1 for
 categories."
-  (let ((title claude-code-ide-org-review-attention-heading)
-        (file (claude-code-ide-org--capture-target-file)))
+  (let* ((title claude-code-ide-org-review-attention-heading)
+         (file (claude-code-ide-org--capture-target-file))
+         ;; Respect a report's scope (TODO.org :ID: 43d479c8).
+         ;; `--capture-target-file' falls back to this repo's own capture
+         ;; file outside an MCP session, so a consumer's scoped report
+         ;; asked about OUR review-attention heading and answered
+         ;; `:reviewed-today' from it.  Refusing when the resolved file
+         ;; lies outside the scope makes the answer absent rather than
+         ;; foreign -- and absent is what the ceremony report already
+         ;; degrades on gracefully.
+         (file (and file
+                    (or (not claude-code-ide-org--report-scope)
+                        (string-prefix-p
+                         (file-name-as-directory
+                          (file-truename claude-code-ide-org--report-scope))
+                         (file-truename file)))
+                    file)))
     (when (and title file (file-readable-p file))
       (with-current-buffer (find-file-noselect file)
         (org-with-wide-buffer

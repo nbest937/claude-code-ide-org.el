@@ -17138,3 +17138,38 @@ Reporting \"off\" there would be exactly the confident falsehood
   (should-not (claude-code-ide-org--time-tracking-line ""))
   ;; Anything unrecognised is also unknown rather than assumed false.
   (should-not (claude-code-ide-org--time-tracking-line "yes")))
+
+(ert-deftest claude-code-ide-org-test-consent-gate-ignores-the-report-scope ()
+  "`--tracked-buffer-p' answers about tracking, not about a report's scope.
+
+The leak this pins: the SessionStart reports bind `--report-scope' and
+then call `find-file-noselect', which runs `find-file-hook' ->
+`--revert-so-long-takeover' -> this predicate.  While the binding was
+honoured here, a genuinely tracked file belonging to another project
+answered nil, `so-long-revert' never fired, and the buffer stayed in
+`so-long-mode' for the rest of the Emacs session -- :ID: 045459f6
+reintroduced, whose point was that the tools then *write* these
+buffers.  Reachable rather than theoretical: a consumer's scoped report
+opens this repo's TODO.org via `--review-attention-target'."
+  (let* ((mine (file-name-as-directory (make-temp-file "cioo-consent-a" t)))
+         (other (file-name-as-directory (make-temp-file "cioo-consent-b" t)))
+         (f (expand-file-name "TODO.org" mine)))
+    (unwind-protect
+        (progn
+          (with-temp-file f (insert "* TODO mine\n"))
+          (let ((claude-code-ide-org-query-files (list f)))
+            (with-current-buffer (find-file-noselect f)
+              (unwind-protect
+                  (progn
+                    (should (claude-code-ide-org--tracked-buffer-p))
+                    ;; The whole assertion: a scope naming somewhere else
+                    ;; must not revoke consent for a tracked file.
+                    (let ((claude-code-ide-org--report-scope other))
+                      (should (claude-code-ide-org--tracked-buffer-p)))
+                    ;; And the scope still works where it is meant to.
+                    (let ((claude-code-ide-org--report-scope other))
+                      (should-not (claude-code-ide-org--tracked-files))))
+                (set-buffer-modified-p nil)
+                (kill-buffer)))))
+      (delete-directory mine t)
+      (delete-directory other t))))
