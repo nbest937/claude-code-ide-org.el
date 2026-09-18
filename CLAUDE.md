@@ -410,10 +410,23 @@ here as `.claude/rules/`, because this repo runs time tracking.
 The wiring exists twice on purpose — this repo through
 `.claude/settings.json`, consumers through the plugin's
 `hooks/hooks.json` — and a repo must enable only one of the two, or
-every guidepost is appended twice. **Since 2026-09-18 the two are no
-longer mirrors**: `hooks.json` ships the time rows unwired and
-`.claude/settings.json` keeps them, which is what makes time tracking
-this repo's own and optional everywhere else.
+every guidepost is appended twice.
+
+**Both carry the time rows; what differs is how each says yes**
+(2026-09-18, `:ID:` 1b36c5bd). The plugin's rows gate themselves on the
+`time_tracking` boolean in `.claude-plugin/plugin.json`'s `userConfig`,
+which **defaults to off** — Claude Code exports it to hook processes as
+`CLAUDE_PLUGIN_OPTION_TIME_TRACKING`, and `queue-append` (for the six
+time kinds only), `block-start` and `clock-target-check` each refuse
+when it is not `true`. A consumer turns it on in `/config`. This repo
+has no plugin option to read, so its own rows set that variable in the
+command string: **wiring the row is the opt-in here**, which is why
+`.claude/settings.json` looks different from the manifest it used to
+mirror.
+
+The gate lives in the scripts because `hooks.json` has no conditional
+form — the premise this arrangement replaced was that wired and unwired
+were the only two available states, and `userConfig` is the third.
 
 ---
 

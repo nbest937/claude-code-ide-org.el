@@ -13,7 +13,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PROJECT_DIR}/bin/hooks/queue-append clock_in",
+            "command": "CLAUDE_PLUGIN_OPTION_TIME_TRACKING=true ${CLAUDE_PROJECT_DIR}/bin/hooks/queue-append clock_in",
             "timeout": 10
           }
         ]
@@ -23,7 +23,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PROJECT_DIR}/bin/hooks/queue-append clock_out",
+            "command": "CLAUDE_PLUGIN_OPTION_TIME_TRACKING=true ${CLAUDE_PROJECT_DIR}/bin/hooks/queue-append clock_out",
             "timeout": 10
           }
         ]
@@ -73,7 +73,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PROJECT_DIR}/bin/hooks/block-end",
+            "command": "CLAUDE_PLUGIN_OPTION_TIME_TRACKING=true ${CLAUDE_PROJECT_DIR}/bin/hooks/block-end",
             "timeout": 10
           }
         ]
@@ -84,7 +84,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PROJECT_DIR}/bin/hooks/session-pause",
+            "command": "CLAUDE_PLUGIN_OPTION_TIME_TRACKING=true ${CLAUDE_PROJECT_DIR}/bin/hooks/session-pause",
             "timeout": 10
           }
         ]
@@ -102,7 +102,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PROJECT_DIR}/bin/hooks/clock-target-check",
+            "command": "CLAUDE_PLUGIN_OPTION_TIME_TRACKING=true ${CLAUDE_PROJECT_DIR}/bin/hooks/clock-target-check",
             "timeout": 10
           }
         ]
@@ -113,7 +113,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PROJECT_DIR}/bin/hooks/session-resume",
+            "command": "CLAUDE_PLUGIN_OPTION_TIME_TRACKING=true ${CLAUDE_PROJECT_DIR}/bin/hooks/session-resume",
             "timeout": 10
           },
           {
@@ -150,7 +150,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PROJECT_DIR}/bin/hooks/block-start",
+            "command": "CLAUDE_PLUGIN_OPTION_TIME_TRACKING=true ${CLAUDE_PROJECT_DIR}/bin/hooks/block-start",
             "timeout": 10
           }
         ]
@@ -162,7 +162,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PROJECT_DIR}/bin/hooks/block-end",
+            "command": "CLAUDE_PLUGIN_OPTION_TIME_TRACKING=true ${CLAUDE_PROJECT_DIR}/bin/hooks/block-end",
             "timeout": 10
           }
         ]

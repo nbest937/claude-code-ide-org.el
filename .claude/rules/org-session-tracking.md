@@ -12,9 +12,9 @@
 
 **Time tracking is not here.** Guideposts, spans, clock rules, the three
 interval numbers and stale-interval recovery moved to
-`org-time-tracking.md`, which is promoted **only** where the
-time-tracking hooks are wired (`claude-org-setup --time`). This file
-carries the hooks that ship unconditionally. If you are looking for why a
+`org-time-tracking.md`. Those hooks ship wired but **gated off** by the
+plugin's `time_tracking` option; this file carries the hooks that are
+never gated. If you are looking for why a
 `DOING` heading has no running clock, or what a span is, it is in that
 file and its absence means the feature is not installed.
 

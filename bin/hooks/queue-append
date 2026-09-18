@@ -64,6 +64,29 @@ case "$kind" in
   *) exit 0 ;;
 esac
 
+# Time tracking self-gates here, because hooks.json has no conditional
+# form: a shipped-but-disabled hook has to refuse for itself. The plugin
+# declares a `time_tracking' boolean in .claude-plugin/plugin.json's
+# userConfig, and Claude Code exports it to hook processes as
+# CLAUDE_PLUGIN_OPTION_TIME_TRACKING.
+#
+# DEFAULT OFF, and the absent case is the one that matters: a consumer
+# who never sets it gets task tracking only, and so does one whose Claude
+# Code predates userConfig, where the variable simply never appears.
+# Defaulting on would hand that consumer guideposts they never asked for,
+# which is the thing this whole arrangement exists to prevent.
+#
+# A repo wiring these scripts through its OWN .claude/settings.json sets
+# the variable in the command string -- wiring the row is the opt-in
+# there, and there is no plugin option to read.
+#
+# todo, capture and amend are deliberately absent below: they are task
+# tracking and ship unconditionally.
+case "$kind" in
+  clock_in|clock_out|pause|resume|block_start|block_end)
+    [ "${CLAUDE_PLUGIN_OPTION_TIME_TRACKING:-false}" = "true" ] || exit 0 ;;
+esac
+
 command -v jq >/dev/null 2>&1 || exit 0
 
 input="$(cat)"

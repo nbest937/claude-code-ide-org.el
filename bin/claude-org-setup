@@ -33,11 +33,13 @@ refs="$plugin_root/skills/org/references"
 promote=(org-conventions.md org-event-queue.md org-state-transitions.md
          org-mcp-tools.md org-session-tracking.md org-footnote-citations.md)
 
-# Time-tracking rules. Promoted unconditionally for now: the --time flag
-# that should gate them is TODO.org :ID: 1b36c5bd and does not exist yet,
-# so this is the status quo for a consumer rather than a regression --
-# the prose says plainly, in its own opening, that nothing in it applies
-# with the default wiring. Gate this append when that flag lands.
+# Time-tracking rules, promoted unconditionally and deliberately so.
+# The feature is gated by the plugin's `time_tracking' userConfig option,
+# which the hook scripts read at run time and this script cannot see --
+# promotion happens here, the option lives in ~/.claude/settings.json.
+# Promoting the file regardless costs a consumer one unread reference and
+# keeps the gate in exactly one place; its own opening says plainly that
+# its presence is not evidence the feature is on.
 promote+=(org-time-tracking.md)
 
 force=0

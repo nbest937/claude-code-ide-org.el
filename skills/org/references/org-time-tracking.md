@@ -1,23 +1,37 @@
 # Time tracking (guideposts, spans, clocks)
 
-> Ships with the **claude-code-ide-org** plugin, and is promoted **only
-> when the time-tracking hooks are wired** (`claude-org-setup --time`).
-> Its companion `org-session-tracking.md` promotes unconditionally and
-> carries the task-tracking hooks. The consuming project's own rules take
+> Ships with the **claude-code-ide-org** plugin and is promoted
+> unconditionally, because promotion cannot see a plugin option. What
+> gates the *feature* is the `time_tracking` option, described below.
+> Its companion `org-session-tracking.md` carries the task-tracking
+> hooks, which are never gated. The consuming project's own rules take
 > priority over this file.
 
-**Nothing here applies with the default wiring.** Time tracking ships as
-scripts under `bin/hooks/` that `hooks/hooks.json` does not wire, so in a
-default install `org_clock_in` and `org_clock_out` queue events that
-nothing consumes, no guidepost is ever appended, and no span is ever
-offered.
+**Nothing here applies unless time tracking is switched on.** The hooks
+ship *wired*, but every time-tracking script gates itself on the plugin's
+`time_tracking` option — declared in `.claude-plugin/plugin.json`'s
+`userConfig` and **defaulting to off**. In a default install
+`org_clock_in` and `org_clock_out` queue events that nothing consumes, no
+guidepost is ever appended, and no span is ever offered.
 
-**Do not read this file's presence as evidence the feature is
-installed.** Until `claude-org-setup` grows the `--time` flag that should
-gate it (TODO.org `:ID:` 1b36c5bd), it is promoted unconditionally, so it
-loads in repos where none of it applies. Check `hooks/hooks.json` for a
-`session-pause` row — that, not this file, is what says the wiring is
-present.
+**Do not read this file's presence as evidence the feature is on.** It is
+promoted unconditionally, because `claude-org-setup` cannot see a plugin
+option — so it loads in repos where none of it applies. Turn it on in
+`/config`, or at install with `claude plugin install … --config
+time_tracking=true`; `/config` is also where you check which it is.
+
+**One value, every project.** The option is stored per-user
+(`~/.claude/settings.json`, under `pluginConfigs`), not per-repo, so it
+cannot be on for one project and off for another. That matches what sits
+underneath it: the queue is a single global directory and the review
+buffer is one buffer, which is why spans split on a project boundary
+rather than being kept apart by separate queues.
+
+**A repo wiring these scripts through its own `.claude/settings.json`**
+rather than the plugin's has no option to read. There, wiring the row
+*is* the opt-in, and the command sets
+`CLAUDE_PLUGIN_OPTION_TIME_TRACKING=true` itself — which is what this
+repository does.
 
 **`:LOGBOOK:` CLOCK entries** (org's own, native mechanism) hold
   *confirmed intervals* — work time a human accepted at a review pass.
