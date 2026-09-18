@@ -1039,6 +1039,19 @@ One `SessionStart` hook carries two independent reports in one `additionalContex
 :CREATED:  [2026-09-17 Thu 11:15]
 :CATEGORY: Dev
 :END:
+:DEBRIEF:
+*Shipped* in [[orgit-rev:claude-code-ide-org::e5eb79f][e5eb79f]], one commit with =eb6c4a9b=. Fifteen rows to seven.
+
+*Out* (8): the =queue-append clock_in= and =clock_out= =PostToolUse= matchers; =session-pause= and =clock-target-check= on =Stop=; =session-resume= on =UserPromptSubmit=; =block-start= on =PermissionRequest=; and =block-end= on **both** its events — the unscoped =PostToolUse= matcher and =PermissionDenied=. That last pair is the one worth naming: =block-end= was wired twice, so an inventory counting scripts rather than rows would have undercounted by one. *Staying* (7): =queue-append= for =todo=, =capture= and =amend=; =footnote-check=; =apply-detect=; and both =SessionStart= reports.
+
+*How it was verified, and why not by reading the diff.* The rows were extracted from before and after as =(event, matcher, command)= triples and compared as sets — 8 removed, **0 added**. The "0 added" half is the one a diff read by eye does not give you, and it is what proves no row was silently re-shaped while its neighbours moved. Each removed command was then resolved back to a path and checked present: all six scripts on disk. =jq= parsed the result; =bin/check-conventions= green including "promoted rules match the plugin references"; =bin/test= 688/688, 0 unexpected.
+
+*What could not be verified here, stated rather than glossed.* This repo wires the same scripts through its own =.claude/settings.json=, and never reads =hooks/hooks.json= — the two are mirrors by convention, with nothing mechanical enforcing the mirror (checked: no test and no lint references the file). So the change has **no observable effect in this repo at all**, and no reload makes it observable. Time tracking stays on here, which is intended.
+
+*The claim the plan asked to verify is still unverified, by design.* That a guidepost-free queue yields a review buffer of only state changes, captures and amends is =d3149a81='s member, and this heading deliberately does not pre-empt it.
+
+*One thing the plan did not anticipate.* The manifest's =description= string asserted that it "Mirrors this repo's own .claude/settings.json wiring", which stopped being true the moment the rows came out. It was rewritten to say time tracking ships unwired and name =claude-org-setup --time= as the way back — a forward reference to =1b36c5bd=, which does not exist yet. That is a deliberate small debt, not an oversight: the alternative was a description that described nothing.
+:END:
 :PLAN:
 
 The change itself. Out of =hooks/hooks.json=: =session-pause=, =session-resume=, =block-start=, both =block-end= rows, and the =queue-append clock_in= / =queue-append clock_out= matchers. Staying: =queue-append todo=, =capture=, =amend=, =apply-detect=, =footnote-check=, =session-context.sh=.
@@ -1050,12 +1063,26 @@ The change itself. Out of =hooks/hooks.json=: =session-pause=, =session-resume=,
 
 The cut is made in the manifest, not on disk: `hooks/hooks.json` stops wiring the guidepost, permission-block and clock rows, and every script stays where it is so the opt-in can restore them by editing one file. This is the heading that actually performs the disable.
 
+*Resolved 2026-09-18: the manifest drops from 15 hook rows to 7, and no script is deleted.* The plan's inventory proved exact — the eight rows it named are the eight that came out, with =clock-target-check= joining them from =eb6c4a9b= in the same commit.
+
+
 
 * TODO clock-target-check ships wired and enforces clocking, so it would block every turn once clocking is off :code:
 :PROPERTIES:
 :ID:       eb6c4a9b-8f78-42fa-9e86-484bf352fcf6
 :CREATED:  [2026-09-17 Thu 11:15]
 :CATEGORY: Dev
+:END:
+:DEBRIEF:
+*Shipped* in [[orgit-rev:claude-code-ide-org::e5eb79f][e5eb79f]], together with =0c5577dc= — the plan required both in one change, since a =Stop= hook enforcing clocking outlives the guideposts by even one commit is a hook that blocks every turn in between.
+
+*What decided it was the hook's own message, not the plan's reasoning.* It ends "so its time will reach review UNASSIGNED" — the harm it defends against is a span reaching the review buffer with no owner. With the guideposts unwired a consuming project produces no spans at all, so the harm is not mitigated, it is *unreachable*. That is a stronger argument for removal than the plan had, which was only that the check would misfire.
+
+*The floated variant was declined on what it would cost, not on what it would catch.* Re-keying the check on "any queued activity on a heading" turns an attribution backstop into a filing mandate: a consuming session that edits code and touches no org file has done nothing wrong, and would be blocked. The rule it backstops here — a session names the heading its first write belongs to — is this repo's discipline, and shipping it to consumers was never the intent.
+
+*Verification, and its honest limit.* A structural row diff over =hooks/hooks.json= (event, matcher, command) showed exactly eight rows removed and zero added; =bin/hooks/clock-target-check= is still present and executable; =bin/check-conventions= green, =bin/test= 688/688. **None of that exercises the hook's absence**, because this repo wires these scripts through its own =.claude/settings.json= and never reads =hooks/hooks.json= — so the change cannot be observed from a session here, now or after any reload. Demonstrating it needs a consuming install, which is =d3149a81='s job and not a gap left by this heading.
+
+*Nothing was left behind.* The opt-in that restores this row is =1b36c5bd=, already a member.
 :END:
 :PLAN:
 
@@ -1067,6 +1094,9 @@ Worth deciding at the same time whether it returns with the opt-in wiring. It ba
 :END:
 
 `clock-target-check` blocks the stop when a session writes without clocking in. With clocking gone from the shipped wiring, that condition is unsatisfiable and the hook would block every turn. Decide whether it comes out of `hooks/hooks.json` with the rest or gains a guard that stands down when no clock tools are wired.
+
+*Resolved 2026-09-18: removed from the shipped wiring rather than guarded or rewritten.* The variant its plan floated — checking for any queued activity instead of a =clock_in= specifically — was declined, because it would enforce a rule nobody has asked for: that every session file a heading.
+
 
 
 * TODO Clock brackets of seconds around work of an hour, so nearly all real time lands in unowned gaps :code:
