@@ -17265,11 +17265,17 @@ the project list."
    :name "org_clock_in"
    :description (concat
                  "Record the start of work on an org-mode task, identified by "
-                 "its :ID: property. Always call this when transitioning a task "
+                 "its :ID: property. Call this when transitioning a task "
                  "to DOING state. Queues the event for human review; it does NOT "
                  "open a clock or change the file. Nothing reaches an org file "
                  "until a person runs the review-and-apply command, so do not "
-                 "expect a later read to reflect it.")
+                 "expect a later read to reflect it. "
+                 "ONLY MEANINGFUL WHERE TIME TRACKING IS SWITCHED ON: the "
+                 "plugin ships with its `time_tracking\' option unset, and "
+                 "until someone sets it the hooks carrying the surrounding "
+                 "guideposts all decline, so this event is queued and nothing "
+                 "ever consumes it. Being offered this tool is not evidence "
+                 "the feature is on.")
    :args '((:name "id"
             :type string
             :description "The :ID: property value of the target org heading. For cross-cutting meta-work -- review, planning, deciding what to do rather than doing it -- pass the exact title of the meta-work category (\"Review and planning\") instead of an :ID:, and the interval is filed against that day\'s node in its datetree. The day node is created when the event is applied and dated from this event, so a late apply still files the work under the day it happened. There is deliberately no way to learn the day node\'s own :ID:; the category title is the handle.")
@@ -17283,11 +17289,13 @@ the project list."
    :name "org_clock_out"
    :description (concat
                  "Record the end of work on the task most recently started "
-                 "with org_clock_in. Always call this when transitioning away "
+                 "with org_clock_in. Call this when transitioning away "
                  "from DOING (to DONE, WAITING, or CANCELLED). Takes no id -- it "
                  "closes whatever this session last started. Queues the event "
                  "for human review; it does NOT close a clock or change the "
-                 "file.")
+                 "file. "
+                 "ONLY MEANINGFUL WHERE TIME TRACKING IS SWITCHED ON, exactly "
+                 "as for org_clock_in -- see that tool.")
    :args '((:name "note"
             :type string
             :optional t
