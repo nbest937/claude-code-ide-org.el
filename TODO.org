@@ -1046,6 +1046,22 @@ What that would look like: =userConfig.time_tracking= as a boolean defaulting =f
 
 Not acted on: this is the user's call, and it reverses a composed decision mid-slice.
 
+Integration point: [[https://github.com/nbest937/claude-code-ide-org.el/pull/28][PR #28]], opened [2026-09-18 Fri 14:40] with 23 commits across 23 files. The slice stays =REVIEW= until it merges.
+
+*Measured against its predecessors, as the plan asked.*
+
+: afea7e4f  2026-09-11 -> 09-15   4 days    11 members
+: 35582d95  2026-09-15 -> 09-15   3 hours    4 members
+: 749301a0  2026-09-11 -> 09-17   6 days    15 members, 94 commits, 0.4 findings/member
+: 8bbae3aa  2026-09-17 -> 09-18   2 days     9 members, 23 commits, review pending
+
+*This is the first pair close enough in size to compare, and the comparison says the opposite of what the numbers suggest.* Against =749301a0= — 15 members, 94 commits, six days — this is nine members and 23 commits in two. Four times the commits for less than twice the members there; here, roughly 2.5 commits per member against 6.3. The difference is not productivity: =749301a0= was *debugging a pipeline*, where a commit is a hypothesis, and this was *restructuring by decision*, where a commit is a conclusion. Size held roughly constant and the shapes still did not compare, which sharpens the caveat that slice rather than removing it — **what varies is the kind of work, and no count captures it.**
+
+*One number that does mean something across all four: three of nine plan premises were false.* =36952d1f='s "entirely time tracking", =1b36c5bd='s "adds rows to the consumer's wiring", =6956a46e='s "can never find anything". A fourth ordering error put =5fb70821= last when its own body said it sequences first. **All four came from =next-session.md=; none from the headings.** The headings were written while looking at the thing; the plan was written while looking at the slice. That is a claim about how plans get composed here, and it belongs wherever the next one gets written.
+
+*The reversal is the slice's real event.* Composed on "a hook has no disabled state, so wired and unwired are the only forms available", it shipped the third form instead. Two members closed on the removal decision and were superseded hours later; both keep their analysis, which was reused verbatim, and carry the reversal in their own debriefs.
+
+
 
 * TODO Verify the review buffer and apply pass on a queue that has never held a guidepost :code:
 :PROPERTIES:
