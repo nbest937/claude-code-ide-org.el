@@ -10469,6 +10469,19 @@ different question.
 
 *For the report itself:* the asymmetry already noted — missing-required signals =-32602= while unknown-key is unguarded — now has a measured cost on both sides of a four-week gap, in the same tool, from the same failure mode, with the documentation correct throughout.
 
+*Third occurrence, 2026-09-18 — same tool, same invented name, two calls.* =org_capture= called twice with =body=; both returned ="Captured: … (ID: …)"= and both headings landed as a title and a =:PROPERTIES:= drawer with no prose (=2cd74268=, =0b5cacf5=). The session was working *in this repository*, with this heading and its two prior occurrences already on disk. Restored by =org_amend= from the transcript, as before.
+
+*What this occurrence adds, beyond a third tally mark.*
+
+**The failure is self-concealing, and it took a second instance to expose the first.** =2cd74268= was captured, reported to the user as carrying a substantial body, and discussed at length over roughly two hours — its contents argued about, its open questions enumerated — while the heading was in fact empty. Nothing in that stretch touched the file in a way that would reveal it. It surfaced only when a *second* capture's =git diff --stat= read =6 insertions= where about thirty were expected. One silent loss hid indefinitely; two were needed before either was visible.
+
+**Detection was earlier than the previous two occurrences and still accidental.** 2026-08-20 was found five hours late by chance; 2026-09-16/17 by the user reading the file. This one was found by a line count in a routine pre-commit =--stat=, minutes rather than hours later — but only because the capture happened to be followed by a diff check. A session that captures and moves on has no signal at all, and the tool's reply is actively reassuring in every case.
+
+**Documentation was not merely available but *adjacent*.** The parameter is documented as =note= in the same =:args= list the session read — forty minutes *after* the failure, while investigating it. The earlier diagnosis that "the documentation was correct, prominent, and unread" is confirmed a third time, four weeks on, and the conclusion drawn from it holds harder: the schema being right is not a mechanism. Only a =-32602= at the first call is.
+
+*A cost note for the report.* Across the three occurrences the count is now 5 + 11 + 2 = **eighteen discarded bodies in one tool**, every one recovered only because a transcript was still in reach. The recovery rate is 18/18 and it is entirely luck — none of it was recovered by a check, a lint, a test or the queue.
+
+
 
 ** CANCELLED Unknown MCP methods signal an undefined error symbol and answer nothing :code:
 CLOSED: [2026-09-09 Wed 17:44]
