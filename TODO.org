@@ -2,6 +2,31 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* MAYBE Deploy and test the plugin under Warp's agentic framework :research:
+:PROPERTIES:
+:ID:       27e16e9a-5f71-402e-8db0-259bb8a0ad4c
+:CREATED:  [2026-09-18 Fri 18:02]
+:CATEGORY: Dev
+:END:
+
+Deferred 2026-09-18 by the maintainer: =.warp/.mcp.json= "currently has no consumers; it is a vestige of an early experiment", and there is no adequate Warp setup to take it further at this time. Filed =MAYBE= rather than dropped because the file and its Emacs-side machinery are still in the tree.
+
+*What the deferral just changed.* The maintainer repointed =.warp/.mcp.json= from =/mcp/warp= to =/mcp/claude-code-ide-org=, so it now matches the root =.mcp.json= byte for byte. That resolves a review finding on PR #28 — the twin had been left naming the order-dependent alias — but by a different route than the reviewer assumed: not "Warp needs the alias", but "nothing needs it".
+
+*Which leaves the alias with no consumer at all.* =config.el= line 17311 still runs =(claude-code-ide-mcp-server-register-session "warp" (car projects) nil)=, and the =defcustom= docstring justifies it as "the id the shipped =.mcp.json= URL (=/mcp/warp=) names, kept because that seam is the one verified against Warp's own agent". No shipped config names that URL any more. So the registration is now dead, and the question this heading really gates is whether it comes back or comes out.
+
+*Five places still describe it as live*, found 2026-09-18 and left standing deliberately until this is decided — removing the alias and correcting its prose are one act, not two:
+
+- =config.el= 17110 — a comment asserting the shipped =.mcp.json= names =/mcp/warp=
+- =skills/org/references/org-emacs-setup.md= 77 — "the session id the shipped =/mcp/warp= URL names"
+- =.claude/skills/org-dev/SKILL.md= 296 — "matching =.mcp.json='s =http://localhost:45571/mcp/warp="
+- =config-test.el= 15895 — the same claim in a docstring; its fixture at 15861 legitimately uses the URL and needs no change
+- =DOOM.md= 48 — an illustrative alternate port, stale rather than wrong
+
+*If this is ever picked up*, the thing to establish first is whether Warp's project-scoped MCP support still works the way =6a6d5b4e= found it: approval-gated, session-scoped, re-toggled after a restart, and reading only =~/.warp/.mcp.json= and the project's =.warp/.mcp.json=. That investigation is the reason the file exists, and its real yield was not the proxy it chased but the =200=-versus-=202= defect in this project's own HTTP server.
+
+*If it is not picked up*, the cheap close is to delete the alias registration, correct the four false claims, and decide whether =.warp/.mcp.json= stays as a zero-cost convention or goes with it. That is a bounded pass and does not need Warp to exist.
+
 * TODO The plugin has never been tagged or version-bumped, and nothing would notice :code:
 :PROPERTIES:
 :ID:       827e1c42-708e-4f1d-bf25-d8b8b980b7ef
