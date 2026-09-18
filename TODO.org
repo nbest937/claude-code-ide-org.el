@@ -2,6 +2,12 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Let a task-only install auto-apply state transitions, behind a toggle :code:
+:PROPERTIES:
+:ID:       2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd
+:CREATED:  [2026-09-18 Fri 09:03]
+:CATEGORY: Apply
+:END:
 * TODO Survey what has landed since August that the statusline should be using and is not :code:research:
 :PROPERTIES:
 :ID:       08d76f6a-9f4d-4a41-a2c6-05e96115237d
@@ -612,11 +618,19 @@ Shipped in the canonical reference and promoted; check-conventions 32 ok, footno
 **Resolution:** a queued keyword is now written as the queued state with a trailing =*=, the star carries no note of its own, and the rule ships in the canonical reference and its promoted copy.
 
 
-* TODO The prose still promises time tracking: README, CLAUDE.md, DOOM.md and the skill all describe a clock that no longer ships :code:
+* NEXT The prose still promises time tracking: README, CLAUDE.md, DOOM.md and the skill all describe a clock that no longer ships :code:
 :PROPERTIES:
 :ID:       1254c24b-0dda-436e-a3d4-213de283692f
 :CREATED:  [2026-09-17 Thu 12:47]
 :CATEGORY: Docs
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-09-18 Fri 08:36] \\
+  nominated: the slot the user chose for it, and the skill's 48 clock mentions are now its surface
+CLOCK: [2026-09-18 Fri 08:41]--[2026-09-18 Fri 08:42] =>  0:01
+- [2026-09-18 Fri 08:41]--[2026-09-18 Fri 08:42] assigned at review
+CLOCK: [2026-09-18 Fri 08:45]--[2026-09-18 Fri 08:48] =>  0:03
+- [2026-09-18 Fri 08:45]--[2026-09-18 Fri 08:48] assigned at review
 :END:
 :PLAN:
 
@@ -870,18 +884,28 @@ tag, the query it exists to answer, and the =#+TAGS:= line and
 The keyword set carries no severity, so a defect someone actually hit reads the same as one reasoned about. An `:observed:` tag is the cheapest signal that distinguishes them, and it is a fact rather than a judgement — either it was seen in use or it was not.
 
 
-* NEXT [0/9] Ship the tracker without the clock, so another project can use it while time tracking is still being built :code:
+* DOING [3/9] Ship the tracker without the clock, so another project can use it while time tracking is still being built :code:
 :PROPERTIES:
 :ID:       8bbae3aa-55db-441c-8c33-405570ad879a
 :CREATED:  [2026-09-17 Thu 11:16]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  eb6c4a9b-8f78-42fa-9e86-484bf352fcf6 0c5577dc-ef15-440a-bdac-b3cb068aa7b2 36952d1f-5312-4cf2-a710-4290ce673e19 01f7a19c-4b71-447c-8ded-385410e5d607 6956a46e-da4b-44c2-a701-80196a2930c1 1b36c5bd-bafd-4c43-8aae-c94dee45c5eb d3149a81-91d2-4722-b6d8-68d4cee6fa4f 5fb70821-0f46-42d9-8bf3-93bc98025692 1254c24b-0dda-436e-a3d4-213de283692f
+:BLOCKER:  01f7a19c-4b71-447c-8ded-385410e5d607 6956a46e-da4b-44c2-a701-80196a2930c1 1b36c5bd-bafd-4c43-8aae-c94dee45c5eb d3149a81-91d2-4722-b6d8-68d4cee6fa4f 5fb70821-0f46-42d9-8bf3-93bc98025692 1254c24b-0dda-436e-a3d4-213de283692f
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-17 Thu 12:10] \\
   shortest path to a usable plugin elsewhere
+CLOCK: [2026-09-17 Thu 16:52]--[2026-09-17 Thu 16:57] =>  0:05
+- [2026-09-17 Thu 16:52]--[2026-09-17 Thu 16:57] assigned at review
+CLOCK: [2026-09-17 Thu 17:09]--[2026-09-17 Thu 17:10] =>  0:01
+- [2026-09-17 Thu 17:09]--[2026-09-17 Thu 17:10] assigned at review
+CLOCK: [2026-09-18 Fri 08:16]--[2026-09-18 Fri 08:17] =>  0:01
+- <2026-09-18 Fri 08:16>--<2026-09-18 Fri 08:17> assigned at review
+- State "DOING"      from "NEXT"       [2026-09-18 Fri 08:17] \\
+  slice work starts on feature/ship-without-clock; first member in the mail
+CLOCK: [2026-09-18 Fri 08:27]--[2026-09-18 Fri 08:27] =>  0:00
+- <2026-09-18 Fri 08:27>--<2026-09-18 Fri 08:27> assigned at review
 :END:
 
 Composed 2026-09-17 at the user's direction, whose framing is the point: task tracking, dependency management and slice planning are ready to support real work elsewhere, and time tracking is not. Shipping them together holds the useful half hostage to the half still under construction.
@@ -896,15 +920,15 @@ Composed 2026-09-17 at the user's direction, whose framing is the point: task tr
 
 Planned:
 
-- [ ] [[id:eb6c4a9b-8f78-42fa-9e86-484bf352fcf6][eb6c4a9b]] TODO clock-target-check ships wired and enforces clocking, so it would block every turn once clocking is off
-- [ ] [[id:0c5577dc-ef15-440a-bdac-b3cb068aa7b2][0c5577dc]] TODO Take the guidepost, block and clock rows out of the shipped wiring, leaving every script on disk
-- [ ] [[id:36952d1f-5312-4cf2-a710-4290ce673e19][36952d1f]] TODO The promoted rules instruct clocking unconditionally, so a consumer is told to call tools that do nothing
+- [X] [[id:eb6c4a9b-8f78-42fa-9e86-484bf352fcf6][eb6c4a9b]] DONE clock-target-check ships wired and enforces clocking, so it would block every turn once clocking is off
+- [X] [[id:0c5577dc-ef15-440a-bdac-b3cb068aa7b2][0c5577dc]] DONE Take the guidepost, block and clock rows out of the shipped wiring, leaving every script on disk
+- [X] [[id:36952d1f-5312-4cf2-a710-4290ce673e19][36952d1f]] DONE The promoted rules instruct clocking unconditionally, so a consumer is told to call tools that do nothing
 - [ ] [[id:01f7a19c-4b71-447c-8ded-385410e5d607][01f7a19c]] TODO Decide whether org_clock_in and org_clock_out stay registered when nothing consumes what they queue
 - [ ] [[id:6956a46e-da4b-44c2-a701-80196a2930c1][6956a46e]] TODO The SessionStart report mixes stale-interval recovery with the ceremony prompt, and only one half survives
 - [ ] [[id:1b36c5bd-bafd-4c43-8aae-c94dee45c5eb][1b36c5bd]] TODO claude-org-setup gains an opt-in that restores the time-tracking wiring and its rules
 - [ ] [[id:d3149a81-91d2-4722-b6d8-68d4cee6fa4f][d3149a81]] TODO Verify the review buffer and apply pass on a queue that has never held a guidepost
 - [ ] [[id:5fb70821-0f46-42d9-8bf3-93bc98025692][5fb70821]] NEXT Establish whether two plugin manifests can share one MCP server, which is what decides the two-plugin question
-- [ ] [[id:1254c24b-0dda-436e-a3d4-213de283692f][1254c24b]] TODO The prose still promises time tracking: README, CLAUDE.md, DOOM.md and the skill all describe a clock that no longer ships
+- [ ] [[id:1254c24b-0dda-436e-a3d4-213de283692f][1254c24b]] NEXT The prose still promises time tracking: README, CLAUDE.md, DOOM.md and the skill all describe a clock that no longer ships
 
 *Decided by the user 2026-09-17, and it is larger than this slice: **time tracking is no longer a co-equal goal**.* "We have prioritized the other goal by committing to providing the ability to disable the time-tracking features." Committing to a switch **is** the ordering — a feature you can turn off is not co-equal with the one you cannot.
 
@@ -997,11 +1021,23 @@ Note the tools are only half the invitation. =org_set_todo='s own description an
 Separate from the hook wiring: the two MCP tools are registered by `config.el`, not by the manifest, so cutting the hooks leaves them callable. Decide whether an unconsumed queue event is harmless bookkeeping or a tool that should refuse, and say which.
 
 
-* TODO The promoted rules instruct clocking unconditionally, so a consumer is told to call tools that do nothing :code:
+* DONE The promoted rules instruct clocking unconditionally, so a consumer is told to call tools that do nothing :code:
+CLOSED: [2026-09-18 Fri 08:36]
 :PROPERTIES:
 :ID:       36952d1f-5312-4cf2-a710-4290ce673e19
 :CREATED:  [2026-09-17 Thu 11:15]
 :CATEGORY: Skill
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-09-18 Fri 08:22] \\
+  nominated: next in the slice's order, and the louder of the two instructing surfaces
+CLOCK: [2026-09-18 Fri 08:27]--[2026-09-18 Fri 08:36] =>  0:09
+- State "DOING"      from "NEXT"       [2026-09-18 Fri 08:27] \\
+  fork at file level chosen by the user; the mixed-file finding refutes the plan's premise
+- [2026-09-18 Fri 08:27]--[2026-09-18 Fri 08:36]
+- State "DONE"       from "DOING"      [2026-09-18 Fri 08:36] \\
+  forked at file level in 373e60a and 199ab6f; the plan's "entirely time tracking" premise was measured false first
+- [2026-09-18 Fri 08:36]--[2026-09-18 Fri 08:39] suggested span, accepted at review
 :END:
 :DEBRIEF:
 *Shipped* in [[orgit-rev:claude-code-ide-org::373e60a][373e60a]] and [[orgit-rev:claude-code-ide-org::199ab6f][199ab6f]], split so the reviewable units match the risk: the first is a relocation with a new file, the second is per-passage surgery.
@@ -1043,7 +1079,6 @@ The promoted rules tell a consuming session to call `org_clock_in` before its fi
 *Resolved 2026-09-18: forked at file level, not conditioned in place.* The clock content moved into a new =org-time-tracking.md= that promotes only under =--time=; =org-session-tracking.md= and =org-state-transitions.md= keep what is true regardless of wiring and point at it.
 
 
-
 * TODO The SessionStart report mixes stale-interval recovery with the ceremony prompt, and only one half survives :code:
 :PROPERTIES:
 :ID:       6956a46e-da4b-44c2-a701-80196a2930c1
@@ -1062,11 +1097,16 @@ So the hook cannot simply stay or go. Either the stale half is gated off when cl
 One `SessionStart` hook carries two independent reports in one `additionalContext` string. Cutting the time-tracking half would take the ceremony prompt with it unless the payload is split first. Establish which half survives the cut and make the surviving one stand alone.
 
 
-* TODO Take the guidepost, block and clock rows out of the shipped wiring, leaving every script on disk :code:
+* DONE Take the guidepost, block and clock rows out of the shipped wiring, leaving every script on disk :code:
+CLOSED: [2026-09-18 Fri 08:22]
 :PROPERTIES:
 :ID:       0c5577dc-ef15-440a-bdac-b3cb068aa7b2
 :CREATED:  [2026-09-17 Thu 11:15]
 :CATEGORY: Dev
+:END:
+:LOGBOOK:
+- State "DONE"       from "TODO"       [2026-09-18 Fri 08:22] \\
+  15 hook rows to 7 in e5eb79f; 8 removed, 0 added, all 6 scripts on disk
 :END:
 :DEBRIEF:
 *Shipped* in [[orgit-rev:claude-code-ide-org::e5eb79f][e5eb79f]], one commit with =eb6c4a9b=. Fifteen rows to seven.
@@ -1095,12 +1135,21 @@ The cut is made in the manifest, not on disk: `hooks/hooks.json` stops wiring th
 *Resolved 2026-09-18: the manifest drops from 15 hook rows to 7, and no script is deleted.* The plan's inventory proved exact — the eight rows it named are the eight that came out, with =clock-target-check= joining them from =eb6c4a9b= in the same commit.
 
 
-
-* TODO clock-target-check ships wired and enforces clocking, so it would block every turn once clocking is off :code:
+* DONE clock-target-check ships wired and enforces clocking, so it would block every turn once clocking is off :code:
+CLOSED: [2026-09-18 Fri 08:21]
 :PROPERTIES:
 :ID:       eb6c4a9b-8f78-42fa-9e86-484bf352fcf6
 :CREATED:  [2026-09-17 Thu 11:15]
 :CATEGORY: Dev
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-18 Fri 08:17]--[2026-09-18 Fri 08:21] =>  0:04
+- State "DOING"      from "TODO"       [2026-09-18 Fri 08:17] \\
+  first member: the hook that would block every consuming session's first turn
+- [2026-09-18 Fri 08:17]--[2026-09-18 Fri 08:21]
+- State "DONE"       from "DOING"      [2026-09-18 Fri 08:21] \\
+  removed from shipped wiring in e5eb79f; variant declined as an unasked-for filing mandate
+- [2026-09-18 Fri 08:21]--[2026-09-18 Fri 08:26] suggested span, accepted at review
 :END:
 :DEBRIEF:
 *Shipped* in [[orgit-rev:claude-code-ide-org::e5eb79f][e5eb79f]], together with =0c5577dc= — the plan required both in one change, since a =Stop= hook enforcing clocking outlives the guideposts by even one commit is a hook that blocks every turn in between.
@@ -1125,7 +1174,6 @@ Worth deciding at the same time whether it returns with the opt-in wiring. It ba
 `clock-target-check` blocks the stop when a session writes without clocking in. With clocking gone from the shipped wiring, that condition is unsatisfiable and the hook would block every turn. Decide whether it comes out of `hooks/hooks.json` with the rest or gains a guard that stands down when no clock tools are wired.
 
 *Resolved 2026-09-18: removed from the shipped wiring rather than guarded or rewritten.* The variant its plan floated — checking for any queued activity instead of a =clock_in= specifically — was declined, because it would enforce a rule nobody has asked for: that every session file a heading.
-
 
 
 * TODO Clock brackets of seconds around work of an hour, so nearly all real time lands in unowned gaps :code:
@@ -10493,6 +10541,7 @@ call it done.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-18 Fri 08:54]--[2026-09-18 Fri 08:59] =>  0:05
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
