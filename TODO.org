@@ -77,6 +77,7 @@ Open questions:
 
 Not a member of =8bbae3aa= and not prioritized: this is backlog, to be promoted into a future slice when completing it matters. The subtasks named above — the digest reset, the graduation threshold, the =config.el= split — belong under this heading rather than beside it.
 
+
 * TODO Survey what has landed since August that the statusline should be using and is not :code:research:
 :PROPERTIES:
 :ID:       08d76f6a-9f4d-4a41-a2c6-05e96115237d
@@ -687,7 +688,7 @@ Shipped in the canonical reference and promoted; check-conventions 32 ok, footno
 **Resolution:** a queued keyword is now written as the queued state with a trailing =*=, the star carries no note of its own, and the rule ships in the canonical reference and its promoted copy.
 
 
-* NEXT The prose still promises time tracking: README, CLAUDE.md, DOOM.md and the skill all describe a clock that no longer ships :code:
+* DOING The prose still promises time tracking: README, CLAUDE.md, DOOM.md and the skill all describe a clock that no longer ships :code:
 :PROPERTIES:
 :ID:       1254c24b-0dda-436e-a3d4-213de283692f
 :CREATED:  [2026-09-17 Thu 12:47]
@@ -700,6 +701,8 @@ CLOCK: [2026-09-18 Fri 08:41]--[2026-09-18 Fri 08:42] =>  0:01
 - [2026-09-18 Fri 08:41]--[2026-09-18 Fri 08:42] assigned at review
 CLOCK: [2026-09-18 Fri 08:45]--[2026-09-18 Fri 08:48] =>  0:03
 - [2026-09-18 Fri 08:45]--[2026-09-18 Fri 08:48] assigned at review
+- State "DOING"      from "NEXT"       [2026-09-18 Fri 12:28] \\
+  the prose demotion: goal restated once, plainly, in both always-loaded files
 :END:
 :PLAN:
 
@@ -953,14 +956,14 @@ tag, the query it exists to answer, and the =#+TAGS:= line and
 The keyword set carries no severity, so a defect someone actually hit reads the same as one reasoned about. An `:observed:` tag is the cheapest signal that distinguishes them, and it is a fact rather than a judgement — either it was seen in use or it was not.
 
 
-* DOING [3/9] Ship the tracker without the clock, so another project can use it while time tracking is still being built :code:
+* DOING [5/9] Ship the tracker without the clock, so another project can use it while time tracking is still being built :code:
 :PROPERTIES:
 :ID:       8bbae3aa-55db-441c-8c33-405570ad879a
 :CREATED:  [2026-09-17 Thu 11:16]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  01f7a19c-4b71-447c-8ded-385410e5d607 6956a46e-da4b-44c2-a701-80196a2930c1 1b36c5bd-bafd-4c43-8aae-c94dee45c5eb d3149a81-91d2-4722-b6d8-68d4cee6fa4f 5fb70821-0f46-42d9-8bf3-93bc98025692 1254c24b-0dda-436e-a3d4-213de283692f
+:BLOCKER:  01f7a19c-4b71-447c-8ded-385410e5d607 6956a46e-da4b-44c2-a701-80196a2930c1 d3149a81-91d2-4722-b6d8-68d4cee6fa4f 1254c24b-0dda-436e-a3d4-213de283692f
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-17 Thu 12:10] \\
@@ -994,10 +997,10 @@ Planned:
 - [X] [[id:36952d1f-5312-4cf2-a710-4290ce673e19][36952d1f]] DONE The promoted rules instruct clocking unconditionally, so a consumer is told to call tools that do nothing
 - [ ] [[id:01f7a19c-4b71-447c-8ded-385410e5d607][01f7a19c]] TODO Decide whether org_clock_in and org_clock_out stay registered when nothing consumes what they queue
 - [ ] [[id:6956a46e-da4b-44c2-a701-80196a2930c1][6956a46e]] TODO The SessionStart report mixes stale-interval recovery with the ceremony prompt, and only one half survives
-- [ ] [[id:1b36c5bd-bafd-4c43-8aae-c94dee45c5eb][1b36c5bd]] TODO claude-org-setup gains an opt-in that restores the time-tracking wiring and its rules
+- [X] [[id:1b36c5bd-bafd-4c43-8aae-c94dee45c5eb][1b36c5bd]] DONE claude-org-setup gains an opt-in that restores the time-tracking wiring and its rules
 - [ ] [[id:d3149a81-91d2-4722-b6d8-68d4cee6fa4f][d3149a81]] TODO Verify the review buffer and apply pass on a queue that has never held a guidepost
-- [ ] [[id:5fb70821-0f46-42d9-8bf3-93bc98025692][5fb70821]] NEXT Establish whether two plugin manifests can share one MCP server, which is what decides the two-plugin question
-- [ ] [[id:1254c24b-0dda-436e-a3d4-213de283692f][1254c24b]] NEXT The prose still promises time tracking: README, CLAUDE.md, DOOM.md and the skill all describe a clock that no longer ships
+- [X] [[id:5fb70821-0f46-42d9-8bf3-93bc98025692][5fb70821]] DONE Establish whether two plugin manifests can share one MCP server, which is what decides the two-plugin question
+- [-] [[id:1254c24b-0dda-436e-a3d4-213de283692f][1254c24b]] DOING The prose still promises time tracking: README, CLAUDE.md, DOOM.md and the skill all describe a clock that no longer ships
 
 *Decided by the user 2026-09-17, and it is larger than this slice: **time tracking is no longer a co-equal goal**.* "We have prioritized the other goal by committing to providing the ability to disable the time-tracking features." Committing to a switch **is** the ordering — a feature you can turn off is not co-equal with the one you cannot.
 
@@ -1022,7 +1025,6 @@ What that would look like: =userConfig.time_tracking= as a boolean defaulting =f
 Not acted on: this is the user's call, and it reverses a composed decision mid-slice.
 
 
-
 * TODO Verify the review buffer and apply pass on a queue that has never held a guidepost :code:
 :PROPERTIES:
 :ID:       d3149a81-91d2-4722-b6d8-68d4cee6fa4f
@@ -1041,7 +1043,8 @@ Two failure modes to probe rather than assume. =--queue-drained-p= is "yields no
 Every review pass this project has run has read a queue full of guideposts. With the hooks cut, a consumer's queue holds captures, amends and state changes and nothing else — a shape the review buffer and apply pass have never been exercised against. Verify before shipping, not after a consumer reports it.
 
 
-* NEXT Establish whether two plugin manifests can share one MCP server, which is what decides the two-plugin question :research:
+* DONE Establish whether two plugin manifests can share one MCP server, which is what decides the two-plugin question :research:
+CLOSED: [2026-09-18 Fri 12:32]
 :PROPERTIES:
 :ID:       5fb70821-0f46-42d9-8bf3-93bc98025692
 :CREATED:  [2026-09-17 Thu 11:16]
@@ -1073,6 +1076,12 @@ And the case we actually care about is thinner still: a time plugin would declar
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-17 Thu 16:50] \\
   answers the assumption the slice's not-two-plugins decision rests on, so it sequences first
+CLOCK: [2026-09-18 Fri 12:30]--[2026-09-18 Fri 12:32] =>  0:02
+- State "DOING"      from "NEXT"       [2026-09-18 Fri 12:30] \\
+  promoted ahead of 1b36c5bd: --time's shape depends on this, exactly as this heading's own body predicted
+- [2026-09-18 Fri 12:30]--[2026-09-18 Fri 12:32]
+- State "DONE"       from "DOING"      [2026-09-18 Fri 12:32] \\
+  not two plugins, measured: the sharing question dissolves, but a thin plugin must duplicate the 244-line queue-append
 :END:
 :PLAN:
 
@@ -1090,12 +1099,22 @@ Splitting the tracker from the clock is only worth doing as two plugins if two m
 *Answered 2026-09-18: two manifests never need to share an MCP server, because a time plugin would declare none.* The tools are served over HTTP by the running Emacs at a fixed URL, so a second plugin shipping only hooks and a rules file reaches them through the first plugin's registration. The question as posed has no force — but a different obstacle takes its place, and it is decisive: =${CLAUDE_PLUGIN_ROOT}= would resolve to the *second* plugin's root, and =session-pause= resolves =queue-append= as a **sibling**, so the thin plugin must carry its own copy of all six scripts including the 244-line shared one. Recommendation unchanged, now measured: **not two plugins.**
 
 
-
-* TODO claude-org-setup gains an opt-in that restores the time-tracking wiring and its rules :code:
+* DONE claude-org-setup gains an opt-in that restores the time-tracking wiring and its rules :code:
+CLOSED: [2026-09-18 Fri 14:07]
 :PROPERTIES:
 :ID:       1b36c5bd-bafd-4c43-8aae-c94dee45c5eb
 :CREATED:  [2026-09-17 Thu 11:15]
 :CATEGORY: Dev
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-18 Fri 12:37]--[2026-09-18 Fri 12:38] =>  0:01
+- State "DOING"      from "TODO"       [2026-09-18 Fri 12:37] \\
+  researching the opt-in mechanism; userConfig may replace the flag entirely
+- [2026-09-18 Fri 12:37]--[2026-09-18 Fri 12:38]
+CLOCK: [2026-09-18 Fri 13:56]--[2026-09-18 Fri 14:07] =>  0:11
+- [2026-09-18 Fri 13:56]--[2026-09-18 Fri 14:07]
+- State "DONE"       from "DOING"      [2026-09-18 Fri 14:07] \\
+  shipped as a userConfig gate in c257553, not a setup flag; nothing writes wiring anywhere
 :END:
 :DEBRIEF:
 *Shipped* in [[orgit-rev:claude-code-ide-org::c257553][c257553]]. The member's *goal* — "disabled-by-default is only defensible if turning it on is one documented command" — is met; its *mechanism* is not the one planned, and the route to that is the whole story.
@@ -1140,7 +1159,6 @@ Three candidate shapes, and the difference is where the scripts' path comes from
 The counterpart to the cut: a flag on `claude-org-setup` that puts the guidepost, block and clock rows back into the consuming repo's wiring and promotes the session-tracking reference alongside them. Disabled-by-default is only defensible if turning it on is one documented command.
 
 *Resolved 2026-09-18 — the opt-in shipped, but not as a =claude-org-setup= flag, so this title names a mechanism that was replaced before it was built.* Time tracking is gated by a =time_tracking= boolean in the plugin's =userConfig=, read by the hook scripts themselves; nothing writes wiring anywhere, which is what dissolved every problem this member had accumulated.
-
 
 
 * TODO Decide whether org_clock_in and org_clock_out stay registered when nothing consumes what they queue :code:
@@ -10577,7 +10595,6 @@ different question.
 *A cost note for the report.* Across the three occurrences the count is now 5 + 11 + 2 = **eighteen discarded bodies in one tool**, every one recovered only because a transcript was still in reach. The recovery rate is 18/18 and it is entirely luck — none of it was recovered by a check, a lint, a test or the queue.
 
 
-
 ** CANCELLED Unknown MCP methods signal an undefined error symbol and answer nothing :code:
 CLOSED: [2026-09-09 Wed 17:44]
 :PROPERTIES:
@@ -10718,6 +10735,7 @@ call it done.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-18 Fri 14:15]--[2026-09-18 Fri 14:20] =>  0:05
 CLOCK: [2026-09-18 Fri 08:54]--[2026-09-18 Fri 08:59] =>  0:05
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
@@ -11734,4 +11752,31 @@ CLOCK: [2026-09-17 Thu 16:10]--[2026-09-17 Thu 16:12] =>  0:02
 - [2026-09-17 Thu 16:10]--[2026-09-17 Thu 16:12] assigned at review
 CLOCK: [2026-09-17 Thu 16:17]--[2026-09-17 Thu 16:19] =>  0:02
 - [2026-09-17 Thu 16:17]--[2026-09-17 Thu 16:19] assigned at review
+:END:
+
+
+**** 2026-09-18 Friday
+:PROPERTIES:
+:ID:       9c284e2a-3d66-4d4b-a155-47ce11d3dea6
+:CREATED:  [2026-09-18 Fri 09:02]
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-18 Fri 09:02]--[2026-09-18 Fri 09:04] =>  0:02
+- <2026-09-18 Fri 09:02>--<2026-09-18 Fri 09:04> assigned at review
+CLOCK: [2026-09-18 Fri 09:07]--[2026-09-18 Fri 09:08] =>  0:01
+- [2026-09-18 Fri 09:07]--[2026-09-18 Fri 09:08] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-18 Fri 09:38]--[2026-09-18 Fri 09:39] =>  0:01
+- [2026-09-18 Fri 09:38]--[2026-09-18 Fri 09:39] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-18 Fri 10:41]--[2026-09-18 Fri 10:42] =>  0:01
+- [2026-09-18 Fri 10:41]--[2026-09-18 Fri 10:42] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-18 Fri 10:45]--[2026-09-18 Fri 10:46] =>  0:01
+- [2026-09-18 Fri 10:45]--[2026-09-18 Fri 10:46] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-18 Fri 10:52]--[2026-09-18 Fri 10:53] =>  0:01
+- [2026-09-18 Fri 10:52]--[2026-09-18 Fri 10:53] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-18 Fri 11:30]--[2026-09-18 Fri 11:31] =>  0:01
+- [2026-09-18 Fri 11:30]--[2026-09-18 Fri 11:31] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-18 Fri 11:41]--[2026-09-18 Fri 11:44] =>  0:03
+- [2026-09-18 Fri 11:41]--[2026-09-18 Fri 11:44] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-18 Fri 11:49]--[2026-09-18 Fri 11:50] =>  0:01
+- [2026-09-18 Fri 11:49]--[2026-09-18 Fri 11:50] root-cause unattributed spans, file discipline fix
 :END:
