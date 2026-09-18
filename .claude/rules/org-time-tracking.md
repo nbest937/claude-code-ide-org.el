@@ -15,8 +15,14 @@
 scripts under `bin/hooks/` that `hooks/hooks.json` does not wire, so in a
 default install `org_clock_in` and `org_clock_out` queue events that
 nothing consumes, no guidepost is ever appended, and no span is ever
-offered. If this file is loaded, the wiring is present and everything
-below is live.
+offered.
+
+**Do not read this file's presence as evidence the feature is
+installed.** Until `claude-org-setup` grows the `--time` flag that should
+gate it (TODO.org `:ID:` 1b36c5bd), it is promoted unconditionally, so it
+loads in repos where none of it applies. Check `hooks/hooks.json` for a
+`session-pause` row — that, not this file, is what says the wiring is
+present.
 
 **`:LOGBOOK:` CLOCK entries** (org's own, native mechanism) hold
   *confirmed intervals* — work time a human accepted at a review pass.
