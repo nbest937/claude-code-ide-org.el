@@ -47,3 +47,10 @@ oversight to fix later.
 archive, and sort remain as immediate and Emacs-chord-free as the opening
 goal promises. Queuing is scoped narrowly to state transitions and clock
 start/stop — the two categories that caused every incident.
+
+**With time tracking off, only the state half of that is live.**
+`org_clock_in` and `org_clock_out` still queue, and nothing consumes what
+they queue, because the guidepost hooks around them are gated off by
+default (`org-time-tracking.md`). None of this section changes: the queue
+exists for org's state-change logging, which needs a genuinely
+interactive command whether or not a clock is ever involved.

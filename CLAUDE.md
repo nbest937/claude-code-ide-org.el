@@ -6,14 +6,28 @@ plus org-mode skills for Claude Code sessions.
 The goal is natural-language manipulation of `.org` files from within Emacs,
 via `claude-code-ide`, without needing to internalise Emacs chord sequences.
 
-A second, co-equal goal — never spelled out until now, though a large share
-of this project's actual work has gone toward it — is trustworthy tracking
-of where attention/time actually went on tracked tasks. What "trustworthy"
-requires in practice (interval granularity, how much manual confirmation is
-acceptable, what reports actually need to come out the other end) is
-deliberately left open here, not pinned to whatever CLOCK-drawer mechanics
-happen to exist at a given point: it should be driven by concrete reporting
-needs, most of which haven't been fully articulated yet.
+Trustworthy tracking of where attention/time actually went on tracked
+tasks is a second, **optional** capability: developed here, shipped
+switched off, and turned on per-user with the plugin's `time_tracking`
+option. What "trustworthy" requires in practice (interval granularity,
+how much manual confirmation is acceptable, what reports need to come out
+the other end) is deliberately left open, driven by concrete reporting
+needs rather than by whatever CLOCK-drawer mechanics exist at a given
+point.
+
+**It was a co-equal goal until 2026-09-18** (`:ID:` 8bbae3aa), and the
+ordering changed when this project committed to making it disableable —
+committing to a switch *is* the ordering. Natural-language org
+manipulation is the goal; attention tracking is developed here and
+shipped off.
+
+**That reorders the goals without rewriting the history.** Much of the
+machinery — the event queue, the session hooks, the review pass — exists
+for the second goal rather than the first, and that is why the code looks
+as it does: the queue was built because concurrent sessions writing live
+clock state produced a sustained run of desync bugs. The ranking changed;
+the account of what built the machinery did not, and it is the only
+record of why the queue exists at all.
 
 ---
 
