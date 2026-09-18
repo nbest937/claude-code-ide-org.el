@@ -1024,6 +1024,10 @@ Separate from the hook wiring: the two MCP tools are registered by `config.el`, 
 *Left for the members that own them, not filed as residue:* =skills/org/SKILL.md= instructs clocking in 48 places including its own transition table — that is =1254c24b='s surface, and its CLOCK-*parsing* sections should survive there, since a consumer with time tracking off still reads =.org= files whose drawers were written by hand. =org-mcp-tools.md= and =org-event-queue.md= still name the clock tools, which stays correct until =01f7a19c= decides whether they remain registered.
 
 *Checks:* =claude-org-setup --check= in sync across 7 files, =check-conventions= green including "keyword set: org-state-transitions reference table" and "promoted rules match the plugin references", =check-org-dev-skill= green, =bin/test= 688/688.
+
+*Correction to the paragraph above, same day.* "Six in the second" undercounts: the loss scan also flagged the side-effect preamble, the =REVIEW=-is-experimental paragraph and the "Two consequences … amnesty" block, none of which is among the six enumerated. **Nine, not six.** The scan was read and every miss accounted for at the time — what was inexact is this record of it, which is the same failure as a comment overstating a guard.
+
+*And one defect this debrief did not catch, fixed in* [[orgit-rev:claude-code-ide-org::990fd10][990fd10]]: =org-time-tracking.md= opened by telling the reader that its own presence proved the wiring was installed. False for every consumer until =1b36c5bd=, since the file promotes unconditionally — it loads exactly where none of it applies. The "accepted, not overlooked" paragraph above covers the *promotion* and missed the *assertion*, which is the more dangerous half: a promotion gap is visible in =claude-org-setup=, a false sentence in an always-loaded rule is not.
 :END:
 :PLAN:
 
