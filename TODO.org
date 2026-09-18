@@ -1285,6 +1285,21 @@ The promoted rules tell a consuming session to call `org_clock_in` before its fi
 :CREATED:  [2026-09-17 Thu 11:15]
 :CATEGORY: Meta
 :END:
+:DEBRIEF:
+*Closed with no code change, 2026-09-18, because the question dissolved under checking.* This heading's plan says the stale-interval half is "pure time tracking, and with no clocking it can never find anything". Read against the implementation, that is wrong.
+
+*What the scan actually depends on — nothing this slice touches.* =claude-code-ide-org-find-stale-open-intervals= walks =--tracked-files= with =org-map-entries=, and =--entry-open-interval= matches =^[ \t]*CLOCK: \(\[[^]]+\]\)[ \t]*$= — an open CLOCK line in the **file text**. Not the queue, not the hooks, not =org-clocking-p=, and not the =time_tracking= option. It finds an open interval however it got there.
+
+*Which inverts the conclusion rather than weakening it.* With the feature off, this project's own machinery writes no CLOCK lines — so the only way one appears is a human clocking deliberately in Emacs (=C-c C-x C-i=), which the conventions explicitly permit and defend: "a grouping's own coordination time is real work and may be clocked on purpose". A hand-opened interval has *no* hook watching for its close, and no =Stop= guidepost bracketing it. The recovery report is the only thing that would ever notice it. **It is more load-bearing per CLOCK line with time tracking off, not less.**
+
+*So neither half is gated and the payload stays one string.* The plan's "cheapest option" — leave it and let it return nothing — turns out not to be the thing being chosen: it does not return nothing. The =[[ -s ]]= guard still drops an empty payload on the days both halves are quiet.
+
+*And the marginal cost is zero, which is the original merge argument still holding.* The ceremony half needs the Emacs round-trip regardless, so scanning for open intervals in the same call costs nothing extra — "one hook and one payload, because a second SessionStart hook would double the Emacs round-trip". Splitting them would have *added* a round-trip to buy a gate that turns out not to be wanted.
+
+*Third plan premise today that did not survive contact*, after =36952d1f='s "entirely time tracking" and =1b36c5bd='s "adds rows to the consumer's wiring". Worth noting as a pattern rather than three coincidences: each was written while composing the slice, from the shape of the thing rather than from its source.
+
+*No code changed, so nothing to verify beyond the reading itself* — recorded here rather than left as a silent no-op, since a member closed without a diff otherwise looks skipped.
+:END:
 :PLAN:
 
 =session-start-recovery-check= carries two independent reports in one payload, deliberately — "one hook and one payload, because =additionalContext= is a single string and a second SessionStart hook would double the Emacs round-trip".
@@ -1295,6 +1310,9 @@ So the hook cannot simply stay or go. Either the stale half is gated off when cl
 :END:
 
 One `SessionStart` hook carries two independent reports in one `additionalContext` string. Cutting the time-tracking half would take the ceremony prompt with it unless the payload is split first. Establish which half survives the cut and make the surviving one stand alone.
+
+*Resolved 2026-09-18: neither half is gated and the payload does not split — the premise that the stale half "can never find anything" is false.* It scans tracked org files' **text** for an unclosed =CLOCK:= line and depends on nothing this slice touches, so it still catches an interval a human opened by hand with =C-c C-x C-i= — which, with the feature off, is the only way a CLOCK line appears at all.
+
 
 
 * DONE Take the guidepost, block and clock rows out of the shipped wiring, leaving every script on disk :code:
