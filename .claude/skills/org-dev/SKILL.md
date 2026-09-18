@@ -286,14 +286,14 @@ not just a live reload.
 
 ## 3. Post-restart re-verification
 
-After a restart, the Warp-wiring block in the Doom config
-(`claude-code-ide-org--wire-warp-tools`) re-runs automatically at
+After a restart, the standalone-wiring block in the generated Doom glue
+(`claude-code-ide-org-standalone-wire`) re-runs automatically at
 startup — don't call it by hand. Instead confirm it actually came back
 up. Note the wiring starts *two separate things*, and only one of them
 writes a lockfile — don't conflate them.
 
-**MCP server port** (pinned to `45571` in this user's Doom config,
-matching `.mcp.json`'s `http://localhost:45571/mcp/warp`):
+**MCP server port** (pinned to `45571`, matching `.mcp.json`'s
+`http://localhost:45571/mcp/claude-code-ide-org`):
 
 ```
 emacsclient -e '(claude-code-ide-mcp-server-get-port)'
@@ -330,7 +330,7 @@ worth flagging; an entry whose PID does *not* match the current Emacs
 process is a stale lockfile left behind by a previous (crashed or
 uncleanly killed) Emacs process, not evidence about the current one.
 
-**Warp session reachability** — the most direct evidence the `"warp"`
+**Session reachability** — the most direct evidence this project's
 session actually registered is that an `org_*` MCP tool call over the
 `.mcp.json`-configured `emacs-tools` server succeeds. A connection error
 there means check the port above (and the PID-matched lockfile) before

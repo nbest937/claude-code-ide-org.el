@@ -17106,8 +17106,8 @@ Write the 8-character prefix -- [[id:eaeeb4ee][eaeeb4ee]] -- and it is expanded 
 ;; The block this replaces lived in one user's personal Doom config
 ;; (TODO.org :ID: e396f94a): a bare `setq' of upstream's port, a
 ;; hardcoded project path, and three upstream calls.  Packaging turned
-;; that private coincidence into a contract -- the plugin's .mcp.json
-;; names http://localhost:45571/mcp/warp -- so the module owns it here,
+;; that private coincidence into a contract -- each repo's .mcp.json
+;; names http://localhost:45571/mcp/<project> -- so the module owns it here,
 ;; behind an explicitly *called* setup function rather than acting at
 ;; load: a module configures its own behaviour and does not silently
 ;; reconfigure the user's (TODO.org :ID: 1caed585).
@@ -17140,8 +17140,8 @@ land in ~/.config/doom instead of the repo.")
 
 (defcustom claude-code-ide-org-standalone-port 45571
   "Port the standalone MCP tools server is pinned to.
-Must agree with the URL in the plugin's .mcp.json (and its .warp
-duplicate): those files are static, so the port cannot vary per
+Must agree with the URL in the repo's .mcp.json (and in .warp/.mcp.json
+where that exists): those files are static, so the port cannot vary per
 session.  `claude-code-ide-org-standalone-wire' checks the agreement
 loudly rather than trusting it."
   :type 'integer
@@ -17150,9 +17150,11 @@ loudly rather than trusting it."
 (defcustom claude-code-ide-org-standalone-projects nil
   "Directories to register standalone MCP sessions for.
 Each entry is registered under its directory basename as the session
-id, and the FIRST entry additionally as \"warp\" -- the id the shipped
-.mcp.json URL (/mcp/warp) names, kept because that seam is the one
-verified against Warp's own agent.  nil starts the tools server with
+id, which is what a project's own .mcp.json URL names.  An extra alias
+registration for the FIRST entry was removed 2026-09-18 (TODO.org
+:ID: 27e16e9a): it pointed at `(car projects)', so which project it
+meant was decided by `org-agenda-files' order, and no shipped config
+ever needed it.  nil starts the tools server with
 no per-project session: the org tools still work (they scope by
 `org-agenda-files', not by project), but project-scoped tools have no
 context.
@@ -17264,8 +17266,8 @@ already alive on a different port, and refusing if the pin disagrees
 with what the repo's .mcp.json actually names, since that static file
 is the contract every client reads.  Then starts the server and
 registers a session per entry of
-`claude-code-ide-org-standalone-projects' (basename as session id;
-the first entry also as \"warp\").  Idempotent: call it from your
+`claude-code-ide-org-standalone-projects' (basename as session id).
+Idempotent: call it from your
 config after claude-code-ide loads, or interactively after changing
 the project list."
   (interactive)
@@ -17307,11 +17309,8 @@ the project list."
         (if (fboundp 'claude-code-ide-mcp-start)
             (claude-code-ide-mcp-start dir)
           (message "claude-code-ide-org: IDE companion unavailable; tools server only")))
-      (when projects
-        (claude-code-ide-mcp-server-register-session "warp" (car projects) nil))
-      (message "claude-code-ide-org: standalone tools wired on port %d, %d project session(s)%s"
-               pin (length projects)
-               (if projects " plus \"warp\"" "")))))
+      (message "claude-code-ide-org: standalone tools wired on port %d, %d project session(s)"
+               pin (length projects)))))
 
 (with-eval-after-load 'claude-code-ide
 

@@ -15858,7 +15858,7 @@ not have -- the thing this test can see is the registration."
 missing file is nil rather than an error -- the caller owns the
 loudness."
   (let ((f (make-temp-file "mcp-json" nil ".json"
-                           "{\"mcpServers\":{\"emacs-tools\":{\"type\":\"http\",\"url\":\"http://localhost:45571/mcp/warp\"}}}")))
+                           "{\"mcpServers\":{\"emacs-tools\":{\"type\":\"http\",\"url\":\"http://localhost:45571/mcp/some-project\"}}}")))
     (unwind-protect
         (should (= 45571 (claude-code-ide-org--mcp-json-port f)))
       (delete-file f)))
@@ -15890,10 +15890,16 @@ clients are actually connected to."
                (lambda () (ert-fail "ensure-server reached past the refusal"))))
       (should-error (claude-code-ide-org-standalone-wire) :type 'user-error))))
 
-(ert-deftest claude-code-ide-org-test-standalone-wire-registers-per-repo-plus-warp ()
-  "Each project registers under its basename, and the first also as
-\"warp\" -- the session id the shipped /mcp/warp URL names.  The pin
-lands in upstream's variable only on the success path."
+(ert-deftest claude-code-ide-org-test-standalone-wire-registers-per-repo ()
+  "Each project registers under its basename and nothing else.  The pin
+lands in upstream's variable only on the success path.
+
+*The \"and nothing else\" is the assertion with teeth.*  Until
+2026-09-18 the first entry was additionally registered under a fixed
+alias, so which project that alias meant was decided by
+`org-agenda-files\' order -- and no shipped config ever named it
+(TODO.org :ID: 27e16e9a).  Asserting the exact list, rather than
+membership, is what stops an alias being reintroduced silently."
   (let ((claude-code-ide-org-standalone-port 45571)
         (claude-code-ide-org-standalone-projects
          '("/tmp/repo-alpha" "/tmp/repo-beta"))
@@ -15914,8 +15920,7 @@ lands in upstream's variable only on the success path."
       (setq registered (nreverse registered))
       (should (equal registered
                      '(("repo-alpha" . "/tmp/repo-alpha")
-                       ("repo-beta" . "/tmp/repo-beta")
-                       ("warp" . "/tmp/repo-alpha"))))
+                       ("repo-beta" . "/tmp/repo-beta"))))
       (should (equal (nreverse started) '("/tmp/repo-alpha" "/tmp/repo-beta")))
       (should (= claude-code-ide-mcp-server-port 45571)))))
 

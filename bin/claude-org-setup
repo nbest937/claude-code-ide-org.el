@@ -174,9 +174,10 @@ if [ "$org" = 1 ]; then
   # registers one session per tracked project under its directory
   # basename, and that basename is by definition unknown at packaging
   # time. A static shipped file can only ever name someone else's
-  # project. (The plugin used to declare one naming "warp" -- an alias
-  # for whichever project sorted FIRST in org-agenda-files order, so it
-  # was not even stable here; the manifest no longer declares it.)
+  # project. (The plugin used to declare one naming a fixed alias that
+  # resolved to whichever project sorted FIRST in org-agenda-files
+  # order, so it was not stable even here. Both the declaration and the
+  # alias are gone -- TODO.org :ID: 27e16e9a.)
   #
   # The port is read from the plugin's own .mcp.json rather than
   # written twice: that file is what `claude-code-ide-org--mcp-json-port'

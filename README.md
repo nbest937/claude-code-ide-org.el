@@ -103,9 +103,12 @@ entries a consumer needs. Project scope (a consuming repo's
 `.claude/skills/`) is the recommended default: active only for
 sessions started at that project root, invisible elsewhere. Whatever
 the route, enabling is the consent that wires the session-tracking
-hooks (they write to `~/.claude/org-updates/`), registers the
-`emacs-tools` MCP server, puts `bin/` on `PATH`, and exposes the org
-skill. The setup reference carries the details, including the
+hooks (they write to `~/.claude/org-updates/`), puts `bin/` on `PATH`,
+and exposes the org skill. **It does not register the `emacs-tools` MCP
+server** — the plugin ships no MCP config, because the server's URL
+carries a session name that is the consumer's own project and cannot be
+known at packaging time. `claude-org-setup --org` writes that file; see
+step 3. The setup reference carries the details, including the
 mandatory companion step when enabling user-wide.
 
 **Do not enable the plugin's hooks inside this repo itself**: it wires

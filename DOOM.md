@@ -45,8 +45,8 @@ every client reads. **The contract is per-clone.** So the sandbox gets
 its own contract:
 
 - edit the *sandbox clone's* `.mcp.json` (and `.warp/.mcp.json`) to a
-  free port, e.g. `http://localhost:45572/mcp/warp` — a local working
-  tree edit, never committed;
+  free port, e.g. `http://localhost:45572/mcp/claude-code-ide-org` — a
+  local working tree edit, never committed;
 - set the matching pin in the sandbox `config.el` (step 4).
 
 Both Emacsen can then run at once, each serving its own port, and the
