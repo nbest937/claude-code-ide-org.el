@@ -1,27 +1,7 @@
 {
-  "description": "Session-tracking hooks for the org event queue. Every script here works against the queue (~/.claude/org-updates/<session>.jsonl) or the consuming repo's own tracked org files, and survives a stopped Emacs; none writes to an org file. Hooks that enforce claude-code-ide-org's OWN repo conventions are deliberately not shipped — they would assert conventions a consuming repo does not have, since CLAUDE_PROJECT_DIR is the consumer's root (doc-sync-check was removed for exactly that). Mirrors this repo's own .claude/settings.json wiring for the hooks it does carry — a repo with that wiring should NOT also enable this plugin's hooks, or every guidepost is appended twice.",
+  "description": "Task-tracking hooks for the org event queue. Every script here works against the queue (~/.claude/org-updates/<session>.jsonl) or the consuming repo's own tracked org files, and survives a stopped Emacs; none writes to an org file. Hooks that enforce claude-code-ide-org's OWN repo conventions are deliberately not shipped — they would assert conventions a consuming repo does not have, since CLAUDE_PROJECT_DIR is the consumer's root (doc-sync-check was removed for exactly that). TIME TRACKING IS NOT WIRED HERE: the guidepost, permission-block and clock rows ship as scripts under bin/hooks/ but are left unwired, because a hook has no disabled state — wired and unwired are the only forms available. `claude-org-setup --time` adds them back. A repo with its own .claude/settings.json wiring should NOT also enable this plugin's hooks, or every queue line is appended twice.",
   "hooks": {
     "PostToolUse": [
-      {
-        "matcher": "mcp__emacs-tools__org_clock_in",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/bin/hooks/queue-append clock_in",
-            "timeout": 10
-          }
-        ]
-      },
-      {
-        "matcher": "mcp__emacs-tools__org_clock_out",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/bin/hooks/queue-append clock_out",
-            "timeout": 10
-          }
-        ]
-      },
       {
         "matcher": "mcp__emacs-tools__org_set_todo",
         "hooks": [
@@ -51,28 +31,9 @@
             "timeout": 10
           }
         ]
-      },
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/bin/hooks/block-end",
-            "timeout": 10
-          }
-        ]
       }
     ],
     "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/bin/hooks/session-pause",
-            "timeout": 10
-          }
-        ]
-      },
       {
         "hooks": [
           {
@@ -81,27 +42,9 @@
             "timeout": 10
           }
         ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/bin/hooks/clock-target-check",
-            "timeout": 10
-          }
-        ]
       }
     ],
     "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/bin/hooks/session-resume",
-            "timeout": 10
-          }
-        ]
-      },
       {
         "hooks": [
           {
@@ -127,30 +70,6 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/.claude/hooks/session-context.sh",
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "PermissionRequest": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/bin/hooks/block-start",
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "PermissionDenied": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/bin/hooks/block-end",
             "timeout": 10
           }
         ]
