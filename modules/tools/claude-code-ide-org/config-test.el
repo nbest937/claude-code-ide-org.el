@@ -17050,3 +17050,69 @@ running task tracking alone would hit."
     ;; An id the queue never mentions stays nil, which is the half that
     ;; makes the other half mean anything.
     (should-not (claude-code-ide-org--pending-capture "cap-never-seen"))))
+
+;;; Report scope (TODO.org :ID: 43d479c8) -----------------------------------
+;;
+;; The SessionStart reports must speak about the session's own project
+;; and nothing else; the org tools must stay global. Both halves are
+;; asserted here, because getting the asymmetry backwards is the easy
+;; mistake and neither direction announces itself.
+
+(ert-deftest claude-code-ide-org-test-report-scope-confines-tracked-files ()
+  "`--report-scope' filters the tracked set; unbound, nothing changes.
+
+The second assertion is the load-bearing one.  A scope that filtered
+unconditionally would break `org_query' and `org_clock_report', whose
+whole value is answering across every tracked project -- so \"global by
+default\" is the property, and a test that only checked the filtering
+would pass while that was broken."
+  (let* ((root (file-name-as-directory (make-temp-file "cioo-scope-a" t)))
+         (other (file-name-as-directory (make-temp-file "cioo-scope-b" t)))
+         (mine (expand-file-name "TODO.org" root))
+         (theirs (expand-file-name "TODO.org" other)))
+    (unwind-protect
+        (progn
+          (with-temp-file mine (insert "* TODO mine\n"))
+          (with-temp-file theirs (insert "* TODO theirs\n"))
+          (let ((claude-code-ide-org-query-files (list mine theirs)))
+            ;; Unscoped: the tools see everything.
+            (should (equal (list mine theirs)
+                           (claude-code-ide-org--tracked-files)))
+            ;; Scoped: only this project's file.
+            (let ((claude-code-ide-org--report-scope root))
+              (should (equal (list mine) (claude-code-ide-org--tracked-files))))
+            (let ((claude-code-ide-org--report-scope other))
+              (should (equal (list theirs) (claude-code-ide-org--tracked-files))))
+            ;; An empty scope directory yields nothing rather than
+            ;; everything -- failing closed, so a mis-scoped report is
+            ;; silent instead of wrong.
+            (let ((claude-code-ide-org--report-scope
+                   (file-name-as-directory (make-temp-file "cioo-scope-c" t))))
+              (should-not (claude-code-ide-org--tracked-files)))))
+      (delete-directory root t)
+      (delete-directory other t))))
+
+(ert-deftest claude-code-ide-org-test-report-scope-resolves-symlinks ()
+  "A tracked file reached through a symlink is still matched.
+
+This is how the real corpus is shaped: `org-agenda-files' collects
+paths under ~/org, which are symlinks into the repositories, so a raw
+string-prefix test against the project root discards every one of them
+and the report goes empty.  Failing closed makes that quiet, which is
+why it is pinned rather than trusted."
+  (let* ((real (file-name-as-directory (make-temp-file "cioo-real" t)))
+         (link-parent (file-name-as-directory (make-temp-file "cioo-link" t)))
+         (target (expand-file-name "TODO.org" real))
+         (via-link (expand-file-name "TODO.org" link-parent)))
+    (unwind-protect
+        (progn
+          (with-temp-file target (insert "* TODO real\n"))
+          (delete-file via-link)
+          (make-symbolic-link target via-link)
+          (let ((claude-code-ide-org-query-files (list via-link))
+                (claude-code-ide-org--report-scope real))
+            ;; Matched by truename, though the path given is elsewhere.
+            (should (equal (list via-link)
+                           (claude-code-ide-org--tracked-files)))))
+      (delete-directory real t)
+      (delete-directory link-parent t))))

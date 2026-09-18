@@ -27,7 +27,7 @@
 cat >/dev/null
 
 out="$(mktemp)"
-emacsclient -e "(claude-code-ide-org-write-session-start-report \"$out\")" >/dev/null 2>&1
+emacsclient -e "(claude-code-ide-org-write-session-start-report \"$out\" \"${CLAUDE_PROJECT_DIR:-}\")" >/dev/null 2>&1
 
 if [[ -s "$out" ]]; then
   cat "$out"

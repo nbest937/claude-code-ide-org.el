@@ -649,13 +649,41 @@ inventing seconds that did not elapse."
 ;; every session; naturally self-limiting to "first thing each day"
 ;; since it only reports intervals whose open timestamp predates today.
 
+(defvar claude-code-ide-org--report-scope nil
+  "When non-nil, an absolute directory `--tracked-files\' is confined to.
+
+Bound only around the SessionStart *reports*, never around the tools.
+That asymmetry is the whole point and is easy to get backwards: the
+org tools are deliberately global -- `org_query\' and
+`org_clock_report\' answer across every tracked project, which is what
+makes one Emacs serve many repos -- while anything that *reports to a
+session* must speak about that session\'s own project and nothing else.
+
+The defect this exists for (TODO.org :ID: 43d479c8): a session in a
+consuming repo was handed a SessionStart report naming this
+repository\'s headings, because the report was computed over
+`org-agenda-files\', which is per-user.  It read as authoritative --
+real ids, real titles -- and would have become undetectable the moment
+that repo had a backlog of its own to confuse them with.")
+
 (defun claude-code-ide-org--tracked-files ()
   "Files to scan for stale open intervals, org_query, and
-org_clock_report.  Calls the `org-agenda-files' function, not the
+org_clock_report.  Calls the `org-agenda-files\' function, not the
 variable of the same name, so directory entries (e.g. a bare
 \"~/org\") are actually expanded to their contained files rather than
-passed through as an unusable directory string."
-  (or claude-code-ide-org-query-files (org-agenda-files)))
+passed through as an unusable directory string.
+
+Confined to `claude-code-ide-org--report-scope\' when that is bound.
+Compared by truename on both sides: tracked files reach this list
+through `~/org\' symlinks into their repositories, so a raw string
+prefix test would discard every one of them."
+  (let ((files (or claude-code-ide-org-query-files (org-agenda-files))))
+    (if (not claude-code-ide-org--report-scope)
+        files
+      (let ((root (file-name-as-directory
+                   (file-truename claude-code-ide-org--report-scope))))
+        (seq-filter (lambda (f) (string-prefix-p root (file-truename f)))
+                    files)))))
 
 (defun claude-code-ide-org--tracked-buffer-p (&optional buffer)
   "Non-nil when BUFFER (default current) visits a tracked org file.
@@ -1067,13 +1095,22 @@ are."
           . ((hookEventName . "SessionStart")
              (additionalContext . ,(mapconcat #'identity parts "\n\n")))))))))
 
-(defun claude-code-ide-org-write-session-start-report (output-path)
+(defun claude-code-ide-org-write-session-start-report (output-path &optional project)
   "Write the SessionStart hook JSON payload to OUTPUT-PATH.
-Called directly via `emacsclient -e' by the SessionStart hook
+Called directly via `emacsclient -e\' by the SessionStart hook
 script, which then just cats the file — avoids any need to
-unescape emacsclient's printed-representation output in shell."
-  (with-temp-file output-path
-    (insert (claude-code-ide-org--session-start-hook-json))))
+unescape emacsclient\'s printed-representation output in shell.
+
+PROJECT confines the report to org files under that directory, and the
+hook passes CLAUDE_PROJECT_DIR.  Optional, and nil means every tracked
+file, which is what this repo\'s own wiring passed before the argument
+existed -- so an old caller keeps its old behaviour rather than
+silently reporting nothing.  An empty string is treated as absent,
+because that is what an unset shell variable interpolates to."
+  (let ((claude-code-ide-org--report-scope
+         (and project (not (string-empty-p project)) project)))
+    (with-temp-file output-path
+      (insert (claude-code-ide-org--session-start-hook-json)))))
 
 ;;; Session context (SessionStart "what was I last doing") -------------------
 ;;
@@ -1443,7 +1480,7 @@ session-context summary."
           . ((hookEventName . "SessionStart")
              (additionalContext . ,context))))))))
 
-(defun claude-code-ide-org-write-session-context-report (output-path)
+(defun claude-code-ide-org-write-session-context-report (output-path &optional project)
   "Write the SessionStart hook JSON payload for \"what was I last
 doing\" context to OUTPUT-PATH. Called directly via `emacsclient -e'
 by the session-context.sh hook script, which then just cats the
@@ -1453,9 +1490,18 @@ condition-case: if scanning ever throws, OUTPUT-PATH is left empty
 (the temp file is created but never written to, or is never created
 at all), and the shell script's `[[ -s ... ]]' check treats that
 identically to \"Emacs unreachable\" — fail soft either way, same
-convention as `claude-code-ide-org-write-session-start-report'."
-  (with-temp-file output-path
-    (insert (claude-code-ide-org--session-context-hook-json))))
+convention as `claude-code-ide-org-write-session-start-report\'.
+
+PROJECT confines the scan to org files under that directory, exactly as
+for the other SessionStart report and for the same defect (TODO.org
+:ID: 43d479c8).  This one carries it too because \"what was I last
+doing\" is *more* misleading unscoped than the ceremony is: a WAITING
+heading from another repository reads as this session\'s own unfinished
+work."
+  (let ((claude-code-ide-org--report-scope
+         (and project (not (string-empty-p project)) project)))
+    (with-temp-file output-path
+      (insert (claude-code-ide-org--session-context-hook-json)))))
 
 ;;; Statusline (bin/statusline) ------------------------------------------
 ;;
