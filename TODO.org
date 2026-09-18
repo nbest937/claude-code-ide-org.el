@@ -2,6 +2,23 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO check-org-dev-skill verifies org's symbols but not the module's, so a phantom function passed for weeks :code:
+:PROPERTIES:
+:ID:       9ad0e497-cc43-4d7c-87a9-3b6262cb2d8a
+:CREATED:  [2026-09-18 Fri 18:33]
+:CATEGORY: Dev
+:END:
+
+Found 2026-09-18 while excising the =warp= alias. =.claude/skills/org-dev/SKILL.md= told readers that =claude-code-ide-org--wire-warp-tools= "re-runs automatically at startup — don't call it by hand". **No such function has ever existed.** =git log -S= across all history finds the string in exactly two commits: =a2a8c7c=, which introduced it, and =d5c9398=, which removed it. It is absent from the live =~/.config/doom/config.el= too.
+
+*It arrived as prose, not as a rename.* =a2a8c7c= is "Migrate org/org-dev skills from zip archives to native SKILL.md format" — the name came out of the binary =org-dev.skill= archive that preceded plain text. The likeliest history is that it described a block in the maintainer's personal Doom config, which packaging later moved into the module as =claude-code-ide-org-standalone-wire= (=:ID:= e396f94a, =1caed585=), and the skill's prose was never updated. So it was outlived rather than replaced.
+
+*The gap is specific and the fix is cheap.* =bin/check-org-dev-skill= already asserts that org's own facilities still exist — =org-add-archive-files=, =org-id-locations=, =org-datetree-find-create-hierarchy= and five more — by name. It does **not** assert the same for the =claude-code-ide-org-*= symbols the skill names, which is the one category the skill is most likely to get wrong, because those are this project's own and churn fastest. An =fboundp= sweep over every =claude-code-ide-org-…= symbol appearing in backticks in =SKILL.md= is about as cheap a check as exists, and it would have caught this the day it landed.
+
+*Worth extending to the org skill too*, and to the promoted references: they name module functions in prose constantly (=--grouping-heading-p=, =--container-heading-p=, =--trigger-auto-clock-in=, =--queue-file-drained-p=). One of those was already found wrong on 2026-09-18 — =config.el='s own comment said =--queue-drained-p=, which does not exist either (corrected in =ea6e603=). Two phantoms in one day, from two different files, is the argument for mechanising rather than re-reading.
+
+*One caveat on scope, so the check does not become a nuisance:* a skill legitimately names *retired* functions when explaining history — =--trigger-auto-promote-sole-todo= is gone on purpose and the state-transition rules say so. The check therefore wants the same treatment =check-conventions= gives cited =:ID:=s: assert the symbol resolves, unless the prose marks it as retired. Deciding that marker is the only design question here.
+
 * MAYBE Deploy and test the plugin under Warp's agentic framework :research:
 :PROPERTIES:
 :ID:       27e16e9a-5f71-402e-8db0-259bb8a0ad4c
