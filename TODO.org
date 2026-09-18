@@ -2,12 +2,66 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO The conventions never say how stories and slices compose, and "not declared" reads as a ban on composing one :code:
+:PROPERTIES:
+:ID:       0b5cacf5-9299-499d-9036-2da2625c1233
+:CREATED:  [2026-09-18 Fri 11:39]
+:CATEGORY: Skill
+:END:
+
+Raised by the user 2026-09-18, after an exposition on slices and stories that they suspected ran afoul of the governing documents. Checked: two parts were already documented, one sentence genuinely misleads, and three ideas are absent entirely.
+
+*The misleading sentence.* =org-conventions.md= says a story "is not declared, it is emergent... **Don't classify a heading as one when writing it**", and =CLAUDE.md= compresses that to "detected and never declared". Strictly this is about *labelling* — there is no =:KIND: story=, and a story is detected from its keyworded children by =--container-heading-p=. Naturally read, it forbids *composing* a task together with its subtasks, which is ordinary and fine. It misled a session on 2026-09-18 into arguing that a deliberate parent-with-subtasks shape was disallowed and that a slice was therefore the only option. The fix is to separate *detection* from *composition* in the wording, not to change the practice.
+
+*Three ideas absent from every governing document*, each stated by the user and none written down:
+
+- *A well-composed story brings all of its subtasks into a slice*, and a slice that closes several whole stories is the highest expression of the two concepts working together. The conventions define both groupings on an emergent-vs-declared axis and never say how they compose.
+- *Partial stories inside slices are historical*, not a pattern to copy: the story work predates the slice mechanism. Without this a reader infers that partial adoption is the intended shape.
+- *The lifecycle, which is the load-bearing omission.* A task — story or not — first exists **outside** a slice, and a slice **promotes** it from the backlog when completing it has been prioritized. So slice membership *means* "this is prioritized for near-term completion". Grepped 2026-09-18: nothing in =org-conventions.md=, =CLAUDE.md= or the org skill describes promotion from a backlog. The only documented way into a slice is adoption-on-discovery, which is the mid-flight exception rather than the ordinary path — so the conventions currently describe the exception and omit the rule.
+
+*Two things checked and found already correct*, recorded so they are not re-opened: deferral by deleting a member's checkbox cookie while keeping its reference line is documented (the dropping section, and "A cancelled or deferred member has its checkbox cookie deleted"), and the dual-membership guard is documented ("Check no other slice already counts it... a discovery already claimed elsewhere is not adopted, it is cross-referenced"). The user's deferral exception is *consistent* with that guard rather than in tension with it: dropping the checkbox is exactly what stops two cookies counting the same work.
+
+*Why this is ordinary rather than a defect in the framework, in the user's own framing:* "this framework is a means, not an end in and of itself. As such it has also served as a means of improving itself." The vocabulary was arrived at by working the system, and it sharpens by being wrestled with — this heading is an instance of that, not an exception to it.
+
+Proposed: revise the story section of =org-conventions.md= to split detection from composition, add the story/slice composition rule and the backlog-promotion lifecycle, and note the historical reason partial stories exist. =CLAUDE.md='s one-screen map repeats "detected and never declared" and needs the same correction. Re-run =bin/claude-org-setup= and =bin/check-conventions=, since the promoted copies are generated.
+
+Not a member of =8bbae3aa=: that slice's proximate goal is making the plugin usable in another project, and this is convention refinement that can wait for a slice of its own.
+
 * TODO Let a task-only install auto-apply state transitions, behind a toggle :code:
 :PROPERTIES:
 :ID:       2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd
 :CREATED:  [2026-09-18 Fri 09:03]
 :CATEGORY: Apply
 :END:
+
+Raised by the user 2026-09-18, while =8bbae3aa= was taking time tracking out of what ships: "if state transitions are the only thing that comes through when time tracking is disabled then review seems unnecessary."
+
+*The premise is half right, and the half that is wrong is the interesting one.* Review cannot simply go away: the queue is load-bearing for three reasons that have nothing to do with time. Org's state-change logging breaks when driven naively — =org-add-log-note= =pop-to-buffer=s =*Org Note*= *before* it checks whether a note is wanted, so every keyword carrying a logging cookie defers through it (=3d576d29=). =org_amend= and =org_capture= defer into the queue when the human's buffer is dirty, and the queue is where that text lives. And =--pending-capture= is what lets a deferred capture's =:ID:= resolve before its heading exists (=b5f94b88=). All three survive the cut.
+
+*But the mechanism is not what needs a human — the judgement is.* =--review-apply-state= already performs the whole non-interactive sequence in code: shadow =org-current-effective-time= (let-binding =org-log-note-effective-time= is futile, =org-add-log-setup= setqs it), clear =org-log-note-marker= *before* =org-todo=, =remove-hook= the deferred =org-add-log-note=, then drive =org-store-log-note= against an empty =*Org Note*=. Its own comments note it runs under batch. So "apply is human-triggered" is a statement about who decides, not about what org can do.
+
+*Which matters now because the judgement content collapses with time tracking off.* What a human actually adjudicates today is span attribution — which heading a stretch of guideposts belongs to, whether an overnight interval was work. Those items do not exist in a task-only install.
+
+*The shape the user wants, corrected 2026-09-18 from an earlier reading of this heading as a plain toggle.* Human-in-the-loop is the **debug mode**, and it is also the **default on first deployment**. Automatic is *earned* by observation, not chosen — and the earning is **invalidated by any change to the apply code path**, which forces a return to supervised mode in production for long enough to re-establish confidence. Only applies where time tracking is disabled.
+
+That is a ratchet with a reset condition rather than a preference, and it needs two mechanisms doing different jobs:
+
+- *The reset — a digest.* A checksum over the apply path, stored alongside the value confidence was established at, compared at apply time. Different means the code is no longer what was approved, so supervised mode regardless of the setting. A digest answers "is this the same thing I approved", never "what changed" — that is all a reset trigger needs. Two places: a **runtime guard** in the apply path (protects the consumer) and a **pin** in =bin/check-conventions= (fails *us* at commit when the digest moves and the confirmed value does not, making a reset a decision rather than an accident).
+- *The graduation — something log-shaped.* "Observed enough" needs a unit. Elapsed time is the loosest reading and the easiest to satisfy vacuously; a count of applications that landed and were not corrected measures the thing confidence is actually about. The queue is already log-shaped and the =.applied= watermarks already mark passes, so the raw material may largely exist.
+
+*What the digest covers is the design problem, not the hashing.* Everything lives in one 17,769-line =config.el=, so a file digest is useless — it would change on nearly every commit. The apply path is about eleven =defun=s, and =--append-to-drawer= is shared across four call sites in four sections, only two of them apply. Drawer writing is where both of this project's data-loss incidents lived (=ba8249c1=, =b74e0f19=, per =c084553c=), so it is the worst possible thing for a digest to miss. A =config.el= split along its 45 existing =;;;= sections would turn the enumeration into a boundary — new functions included automatically instead of needing to be listed — which is a real argument, though not on its own a reason to restructure.
+
+*And one boundary no file arrangement reaches:* =--review-apply-state= calls =org-todo= and =org-store-log-note= directly, so an org upgrade changes behaviour with nothing of ours changing. =3d576d29= hit exactly that class when a live trigger hook swallowed a note that batch had written fine.
+
+Open questions:
+
+- *What happens to a transition org refuses.* =b693c444= established that apply must verify the transition landed before consuming its event; auto-apply has no human to re-offer it to, so a refusal needs somewhere to go.
+- *Whether captures and amends follow.* A deferred amend exists precisely because a human was mid-edit, so auto-applying into a dirty buffer is the collision the deferral avoids. Likely they stay queued even in this mode, which makes the toggle narrower than "no review".
+- *Whether the =@= keywords participate.* =WAITING= and =CANCELLED= prompt for note text; auto-apply would supply the queued =note=, which is what =--review-apply-state= already does — so probably yes, but the agent's note becomes the permanent record with no human pass over it.
+- *Whether this is wanted at all.* =d3149a81= should report first: if a task-only review buffer is merely short rather than burdensome, the ratchet is machinery in search of a problem, and this project's precedent is observation before machinery.
+
+Not a member of =8bbae3aa= and not prioritized: this is backlog, to be promoted into a future slice when completing it matters. The subtasks named above — the digest reset, the graduation threshold, the =config.el= split — belong under this heading rather than beside it.
+
 * TODO Survey what has landed since August that the statusline should be using and is not :code:research:
 :PROPERTIES:
 :ID:       08d76f6a-9f4d-4a41-a2c6-05e96115237d
