@@ -2,6 +2,37 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO The plugin has never been tagged or version-bumped, and nothing would notice :code:
+:PROPERTIES:
+:ID:       827e1c42-708e-4f1d-bf25-d8b8b980b7ef
+:CREATED:  [2026-09-18 Fri 17:18]
+:CATEGORY: Dev
+:END:
+
+Asked for 2026-09-18: create a version tag, and find a way to keep the tag and the manifest version in step automatically.
+
+*Where things stand, measured.* =.claude-plugin/plugin.json= says =0.1.0= and has said so since the manifest was written — four commits have touched that file and **none** bumped the version, across the packaging slice, =749301a0=, and =8bbae3aa='s thirteen members. The repo carries two tags, =archive/review-ui-fixes-presplit= and =archive/span-pipeline-planning=, neither version-shaped. So there is no release history at all, and =claude plugin list= cheerfully reports "Version: 0.1.0" to anyone who asks.
+
+*Half the ask already exists, and it is better than expected.* =claude plugin tag= creates a ={name}--v{version}= tag **from the manifest**, validating that =plugin.json= and any enclosing marketplace entry agree, with =--dry-run=, =-m= (=%s= interpolates the version), =--push= and =--remote=. It refuses on a dirty tree or an existing tag unless forced. So tag *creation* needs no invention — the open question is narrower than it looked.
+
+*What is actually missing is the discipline, which is exactly what this project's evidence says not to leave to memory.* Three failures, in order of likelihood:
+
+- *The version is never bumped.* It has not been, once, through everything above.
+- *A bump happens and no tag follows*, so the manifest claims a release that has no commit.
+- *A tag exists and the manifest has moved on*, the same drift one direction over.
+
+*Why it has not bitten yet, and why that is the trap rather than a reprieve.* Every consumer today loads the plugin **in place** — euchre by a relative symlink into a clone — and the docs are explicit that a plugin loaded in place, or from a =command= source, updates regardless of the version field. So the version is currently **inert**: wrong, visible, and consequence-free. It starts mattering the moment anything is installed from a marketplace, at which point "users only receive updates when you bump this field" makes a stale =0.1.0= a silent refusal to ship updates.
+
+*Candidate mechanisms, weighted.* The shape that fits this repo's precedent is a **check that refuses**, not a reminder:
+
+- =.githooks/pre-push= already refuses a push while the =plans/= archive is stale, so the pattern and the file both exist. A version-versus-tag assertion there would fire at the one moment that matters — sharing.
+- =bin/check-conventions= is the other candidate and is weaker for this: it runs pre-commit on a narrow staged set, and a version bump is not a =.org= or rules edit.
+- =claude plugin tag --dry-run= is the validator to call rather than reimplement; it already knows how to compare the manifest against a marketplace entry, which a hand-rolled =git tag -l= grep would not.
+
+*What has to be decided rather than assumed.* **When a bump is due** — every merged slice, every PR, or only at a deliberate release — because a check can only enforce a rule that exists. The slice/PR cadence is the one this project actually has, and =8bbae3aa= merging would be the natural first bump. And **what the first tag should be**: =0.1.0= against today's HEAD records a release that is not what =0.1.0= ever described, while bumping first and tagging that is honest but discards the history the tag was supposed to give.
+
+*One thing to verify rather than assume when this is worked:* whether =claude plugin tag= objects to this repo having no marketplace entry at all. Its validation is described as covering "any enclosing marketplace entry", which reads as tolerant of none — but that is a reading, not a test, and =--dry-run= settles it in one command.
+
 * DONE Every SessionStart report a consumer gets is computed over all tracked projects, so it names other repos' work :code:
 CLOSED: [2026-09-18 Fri 16:48]
 :PROPERTIES:
