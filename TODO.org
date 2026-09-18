@@ -2,6 +2,48 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO claude-org-setup --check reports only the promoted rules, so a clean run overstates how current a repo is :code:
+:PROPERTIES:
+:ID:       827bb778-deca-47b6-acd3-0977493a14aa
+:CREATED:  [2026-09-18 Fri 15:16]
+:CATEGORY: Dev
+:END:
+
+=--check= renders what promotion would write and =cmp=s it against each file in =.claude/rules/=, printing =ok:= / =drifted:= / =missing:= and exiting non-zero. That part works — run against =~/git/agentic-euchre= on 2026-09-18 it correctly found five drifted and two missing, and exited 1.
+
+*What it does not examine is everything else a consumer deployed*: the generated Doom glue in =$DOOMDIR=, the elisp module itself, and the =time_tracking= option. So a repo can pass =--check= cleanly while its glue predates a change to the glue template and its module is weeks stale. **The output implies "up to date" and means "the rules match"** — the same class as the defect fixed in =org-time-tracking.md= the same day, where a file implied its own presence proved the feature was installed.
+
+*Measured on the live case.* Euchre was set up 2026-09-11 and had been running five-day-stale rules for a week with nothing saying so — including a *missing* =org-footnote-citations.md= while =bin/hooks/footnote-check= shipped wired and enforcing that convention. Drift is only ever found by someone choosing to look, and nothing prompts the looking.
+
+*Two things to decide rather than assume.* Whether =--check= should widen (it can compare the glue, and it knows the module path) or whether the overstatement is better fixed by *narrowing what it claims* — renaming the output so "ok" reads as "rules match" rather than "current". Widening it to the option is **not** available: that lives in =~/.claude/settings.json= under =pluginConfigs=, which this script has no business reading, and =1b36c5bd='s debrief already records that as settled.
+
+*The glue case has its own wrinkle worth keeping:* on 2026-09-18 the advice "re-run =--glue=, you set up before it changed" was given and was wrong — the *generated file* was byte-identical across that span, and only the *printed instructions* had changed. So glue drift is not a content diff, and a naive comparison would report ok on a repo that had never performed an instruction it was given. Whatever this becomes must not repeat that reasoning-from-commit-dates.
+
+*Related but distinct:* nothing tells a session whether time tracking is on, filed separately. Both are "the system knows and will not say".
+
+Sibling: [[id:2082eeb3-afd8-4439-8774-81b48b1df9a1][2082eeb3]], nothing telling a session whether time tracking is on.
+
+
+* TODO Nothing tells a session whether time tracking is on, though SessionStart could say it in one line :code:
+:PROPERTIES:
+:ID:       2082eeb3-afd8-4439-8774-81b48b1df9a1
+:CREATED:  [2026-09-18 Fri 15:16]
+:CATEGORY: Dev
+:END:
+
+Raised by the user 2026-09-18, twice in one conversation: how do I tell whether =time_tracking= is on *before* starting a session, and how do I tell *from inside* one. Neither has a direct answer today.
+
+*Measured, not assumed.* The Bash tool's environment carries =CLAUDE_CODE_SESSION_ID=, =CLAUDE_EFFORT=, =CLAUDE_PID= and friends — and **no =CLAUDE_PLUGIN_OPTION_*= and no =CLAUDE_PLUGIN_ROOT=**. Those reach *hook processes* only. So an agent cannot read the option at all; the best it can do is infer from behaviour: =jq -r '.kind' ~/.claude/org-updates/$CLAUDE_CODE_SESSION_ID.jsonl | sort | uniq -c= and look for =pause=/=resume=. That works, and it has a bad failure mode — an empty or absent queue file means "no turn has ended yet", not "off", so absence of evidence reads as evidence of absence, which is the shape of several defects already on this tracker.
+
+*The fix is cheap and lands at the right moment.* =.claude/hooks/session-context.sh= already runs at =SessionStart= and already injects =additionalContext=. It runs as a **plugin hook**, so unlike =claude-org-setup= or Emacs it *does* see =CLAUDE_PLUGIN_OPTION_TIME_TRACKING=. One line in its payload — time tracking on, or off — answers both questions for every consumer, with nobody needing to know that queue files exist.
+
+*Worth deciding rather than assuming:* whether to report it always or only when off. Always is honest and costs a line; only-when-off is quieter but makes the absence of a line carry meaning, which is the same trap as above one level up.
+
+*Related but distinct:* =claude-org-setup --check= has the mirror-image gap and is filed separately. Both are "the system knows and will not say".
+
+Sibling: [[id:827bb778-deca-47b6-acd3-0977493a14aa][827bb778]], =--check= overstating how current a repo is.
+
+
 * TODO The conventions never say how stories and slices compose, and "not declared" reads as a ban on composing one :code:
 :PROPERTIES:
 :ID:       0b5cacf5-9299-499d-9036-2da2625c1233
