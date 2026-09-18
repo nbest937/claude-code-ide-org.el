@@ -77,19 +77,12 @@ done
 # second edit. Same clobber contract as the rules promotion: files
 # this script wrote (marker) are refreshed; anything else refuses
 # without --force.
-if [ "$glue" = 1 ]; then
-  doomdir="${DOOMDIR:-$HOME/.config/doom}"
-  if [ ! -d "$doomdir" ]; then
-    echo "claude-org-setup: no Doom config dir at $doomdir (set DOOMDIR?)" >&2
-    exit 1
-  fi
-  dest="$doomdir/claude-code-ide-org-glue.el"
-  if [ -f "$dest" ] && ! grep -q "$marker" "$dest" && [ "$force" = 0 ]; then
-    echo "claude-org-setup: refusing to overwrite hand-maintained file: $dest" >&2
-    echo "re-run with --force to replace it" >&2
-    exit 1
-  fi
-  cat > "$dest" <<EOF
+# Render the generated Doom glue to $1. Factored out so `--check' can
+# compare a consumer's copy against it without running `--glue''s side
+# effects -- writing into $DOOMDIR and printing follow-up instructions
+# (TODO.org :ID: 827bb778).
+render_glue() { # dest
+  cat > "$1" <<EOF
 ;;; claude-code-ide-org-glue.el -*- lexical-binding: t; -*-
 ;; $marker from the claude-code-ide-org plugin.
 ;; Do not edit: re-run claude-org-setup --glue to refresh.
@@ -106,6 +99,21 @@ if [ "$glue" = 1 ]; then
   (setq claude-code-ide-org-standalone-projects 'derive)
   (claude-code-ide-org-standalone-wire))
 EOF
+}
+
+if [ "$glue" = 1 ]; then
+  doomdir="${DOOMDIR:-$HOME/.config/doom}"
+  if [ ! -d "$doomdir" ]; then
+    echo "claude-org-setup: no Doom config dir at $doomdir (set DOOMDIR?)" >&2
+    exit 1
+  fi
+  dest="$doomdir/claude-code-ide-org-glue.el"
+  if [ -f "$dest" ] && ! grep -q "$marker" "$dest" && [ "$force" = 0 ]; then
+    echo "claude-org-setup: refusing to overwrite hand-maintained file: $dest" >&2
+    echo "re-run with --force to replace it" >&2
+    exit 1
+  fi
+  render_glue "$dest"
   echo "wrote $dest"
   cat <<EOF
 
@@ -442,6 +450,68 @@ if [ "$check" = 1 ]; then
     fi
     rm -f "$tmp"
   done
+
+  # The Doom glue, in the USER's $DOOMDIR rather than the consumer's
+  # repo (TODO.org :ID: 827bb778). Read-only, and a missing Doom config
+  # degrades to a skip: a consumer may reasonably not have one yet.
+  #
+  # Two checks, because content alone is the weaker signal and we know
+  # exactly how it fails. On 2026-09-15 the glue's generated file was
+  # BYTE-IDENTICAL across a change while the instructions it prints
+  # changed -- "delete your hand-kept 202 override, the module ships it
+  # now". A content diff reports ok: on that, which is how a repo can be
+  # told it is current while carrying a redundant override. So the
+  # INSTRUCTIONS are checked by their consequences, which are the part
+  # that actually has to happen.
+  doomdir="${DOOMDIR:-$HOME/.config/doom}"
+  glue_dest="$doomdir/claude-code-ide-org-glue.el"
+  if [ ! -d "$doomdir" ]; then
+    echo "skipped: no Doom config at $doomdir (nothing to check)"
+  else
+    if [ ! -f "$glue_dest" ]; then
+      echo "missing: $glue_dest (run claude-org-setup --glue)"
+      drifted=1
+    else
+      tmp="$(mktemp)"
+      render_glue "$tmp"
+      if cmp -s "$tmp" "$glue_dest"; then
+        echo "ok:      $glue_dest"
+      else
+        echo "drifted: $glue_dest (re-run claude-org-setup --glue)"
+        drifted=1
+      fi
+      rm -f "$tmp"
+    fi
+    # Consequence 1: the one stable stub --glue asks for. Without it the
+    # generated file is never loaded and everything above is inert --
+    # which no content comparison would ever notice.
+    if grep -q 'claude-code-ide-org-glue' "$doomdir/config.el" 2>/dev/null; then
+      echo "ok:      load! stub present in $doomdir/config.el"
+    else
+      echo "missing: load! stub in $doomdir/config.el -- run claude-org-setup --glue and paste the printed line"
+      drifted=1
+    fi
+    # Consequence 2: the override --glue asks you to delete. The module
+    # has shipped it as gated advice since 2026-09-15 (:ID: af2f345e),
+    # so a live copy in the user's config is redundant and shadows it.
+    if grep -qE '^[[:space:]]*\(defun claude-code-ide-mcp-http-server--send-empty-response' \
+         "$doomdir/config.el" 2>/dev/null; then
+      echo "drifted: $doomdir/config.el still defines a 202 override -- the module ships it now; delete it"
+      drifted=1
+    else
+      echo "ok:      no stale 202 override in $doomdir/config.el"
+    fi
+  fi
+
+  # Say what was NOT checked. The heading this closes exists because a
+  # clean run read as "up to date" and meant "the rules match"; naming
+  # the gaps is half the fix and the cheaper half.
+  echo
+  echo "Checked: promoted rules, Doom glue."
+  echo "NOT checked: whether the running Emacs has loaded the current"
+  echo "  module (needs a digest; TODO.org :ID: 2cd74268), or the"
+  echo "  time_tracking option -- that is per-user and lives in"
+  echo "  ~/.claude/settings.json; a session reports it at SessionStart."
   exit "$drifted"
 fi
 
