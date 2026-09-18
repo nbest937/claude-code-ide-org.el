@@ -51,6 +51,21 @@ Found by a session running in =~/git/agentic-euchre= 2026-09-18: its =SessionSta
 :CREATED:  [2026-09-18 Fri 15:39]
 :CATEGORY: Dev
 :END:
+:DEBRIEF:
+*Shipped* in [[orgit-rev:claude-code-ide-org::a6eee44][a6eee44]].
+
+*The finding, not the patch, is that a shipped =.mcp.json= is impossible.* The URL carries a **session name**; =standalone-wire= registers one session per tracked project under its directory basename; a basename is unknown at packaging time. Every static file can only name someone else's project. The diagnosis walked through approval gates and symlink traversal before arriving here — both retracted above — and the answer was never "why does it fail to load" but "why does it exist".
+
+*Three changes.* =--org= generates =$target/.mcp.json= from the target basename, collision-checked exactly like the org templates, with the port read from the plugin's own =.mcp.json= so there is one place a port can be wrong. This repo's =.mcp.json= names =/mcp/claude-code-ide-org= instead of the alias. =plugin.json= no longer declares =mcpServers=.
+
+*=.warp/.mcp.json= keeps =/mcp/warp=, deliberately.* That alias is Warp's verified seam and the reason it exists; the registration stays for it. What stopped is *Claude Code* depending on an alias that resolves by =org-agenda-files= order.
+
+*The verification is the part worth keeping.* The generator's output for euchre is **byte-identical** to the file hand-written there an hour earlier, independently, from the same reasoning — and that file is live and connected. So this is not "the code produces something plausible"; it reproduces an artifact already proven against a running server. Re-running reports =left untouched=, so it is idempotent and cannot take out a consumer's existing MCP servers.
+
+*One residual risk, stated rather than closed.* A =.mcp.json= at a plugin root is documented as auto-discovered *regardless* of the manifest. Removing the declaration does not provably stop discovery — it was observably not reaching euchre, which is why that repo had none, but "observably not happening" is weaker than "cannot happen". If discovery ever starts working, a consumer would see this repo's server definition alongside their own, both named =emacs-tools=. The name cannot change: every tool is addressed as =mcp__emacs-tools__*=.
+
+*A method note.* Testing the generator against a scratch directory appended two temp paths to the real =~/org/agenda-files=, because =--org= makes its target discoverable — that is its job. Removed immediately and verified back to five entries. A generator with environment side effects needs a sandboxed agenda list to test against, which this repo does not have.
+:END:
 
 Reported from a session in =~/git/agentic-euchre= 2026-09-18: "hooks, rules and the skill reach this repo, but the org MCP tools never register because the plugin is only symlinked as a skills directory." Confirmed from outside, three ways.
 
@@ -101,6 +116,9 @@ Measured today: the derived order is =claude-code-ide-org= then =agentic-euchre=
 - So the shipped =.mcp.json= does not merely name the wrong project for a consumer, as recorded above. It names **whichever project happened to sort first on the packager's machine**, which is not a meaningful referent anywhere else and is not stable even here.
 
 *This subsumes the earlier "ship a config naming =warp=" framing.* The question is not which project the shipped URL should name. It is that a *static* file cannot name a *derived, ordered* alias correctly, and the alias exists only to preserve a URL that was verified against a different client years of this project ago. Candidate resolutions, in the order they should be weighed: have =claude-org-setup --org= generate the consumer's =.mcp.json= from its own basename (removes the alias from the consumer's path entirely); keep =warp= for this repo's verified Warp seam but stop shipping it; or register =warp= against an explicitly named project rather than =(car projects)=, so position stops deciding identity.
+
+*Fixed 2026-09-18: =claude-org-setup --org= generates the consumer's =.mcp.json= from its own basename, and the plugin stops shipping one.* A static file cannot name a session whose name is the consumer's project — so the fix is to generate rather than to ship. Euchre now reports =emacs-tools: http://localhost:45571/mcp/agentic-euchre - ✔ Connected=.
+
 
 
 
