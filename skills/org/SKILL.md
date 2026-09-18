@@ -387,8 +387,8 @@ transition has to be recorded some other way.
   the state logging, and any clock edits, natively at apply time. With
   time tracking off the clock tools still exist and still queue, but
   nothing consumes what they queue, so calling them accomplishes nothing;
-  `org-time-tracking.md` is promoted when the feature is documented and
-  says in its opening how to tell whether it is on. Never hand-write CLOCK lines, keywords, or `- State` notes
+  `org-time-tracking.md` is promoted unconditionally and says in its
+  opening how to tell whether the feature is on. Never hand-write CLOCK lines, keywords, or `- State` notes
   there, and never expect a read-back to show the new state before a
   human applies the queue. The plugin's `references/org-state-transitions.md`
   is the authoritative copy of the transition table; this one mirrors it.

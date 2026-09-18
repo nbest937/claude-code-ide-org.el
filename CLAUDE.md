@@ -417,9 +417,11 @@ human-run.
 `skills/org/references/org-session-tracking.md`. Everything time-shaped
 — guideposts, the three numbers that shape a recorded interval,
 permission blocks, stale-interval recovery and the transition table's
-clock column — is `skills/org/references/org-time-tracking.md`, which a
-consumer gets only where the time-tracking hooks are wired. Both load
-here as `.claude/rules/`, because this repo runs time tracking.
+clock column — is `skills/org/references/org-time-tracking.md`. **Both promote
+unconditionally**, here and in every consumer: promotion cannot see a
+plugin option, so what is gated is the *feature*, never the prose. The
+time file's own opening says its presence is not evidence the feature is
+on, and names the check.
 
 The wiring exists twice on purpose — this repo through
 `.claude/settings.json`, consumers through the plugin's

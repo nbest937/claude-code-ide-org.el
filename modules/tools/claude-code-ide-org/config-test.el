@@ -17148,12 +17148,37 @@ repo wiring these scripts through its own .claude/settings.json -- and
 this repository is the second case with time tracking very much on.
 Reporting \"off\" there would be exactly the confident falsehood
 :ID: 43d479c8 was fixed for, so nil is the assertion with teeth."
-  (should (string-match-p "ON" (claude-code-ide-org--time-tracking-line "true")))
-  (should (string-match-p "OFF" (claude-code-ide-org--time-tracking-line "false")))
-  (should-not (claude-code-ide-org--time-tracking-line nil))
-  (should-not (claude-code-ide-org--time-tracking-line ""))
-  ;; Anything unrecognised is also unknown rather than assumed false.
-  (should-not (claude-code-ide-org--time-tracking-line "yes")))
+  (let ((claude-code-ide-org-queue-directory (make-temp-file "cioo-tt" t)))
+    (should (string-match-p "ON" (claude-code-ide-org--time-tracking-line "true")))
+    (should (string-match-p "OFF" (claude-code-ide-org--time-tracking-line "false")))
+    (should-not (claude-code-ide-org--time-tracking-line nil))
+    (should-not (claude-code-ide-org--time-tracking-line ""))
+    ;; Anything unrecognised is also unknown rather than assumed false.
+    (should-not (claude-code-ide-org--time-tracking-line "yes"))))
+
+(ert-deftest claude-code-ide-org-test-time-tracking-off-line-is-said-once-a-day ()
+  "The OFF line is rate-limited; the ON line is not, and needs not to be.
+
+Every sibling report here is limited -- the ceremony by
+`ceremony-last-run', the stale-interval report by its predates-today
+test, `apply-detect' by `.apply-seen' -- and this one is true forever
+while being actionable once.  :ID: 2758f3a0 measured what unlimited
+re-mention costs: an instruction stopped being followed 41 times in 45,
+every miss on a re-mention.
+
+The ON line is deliberately unlimited and that asymmetry is the second
+assertion: it is not an instruction, it is a statement of fact a session
+may want on any turn, and it costs one line."
+  (let ((claude-code-ide-org-queue-directory (make-temp-file "cioo-tt-limit" t)))
+    (should (claude-code-ide-org--time-tracking-line "false"))
+    (should-not (claude-code-ide-org--time-tracking-line "false"))
+    (should-not (claude-code-ide-org--time-tracking-line "false"))
+    ;; A fresh queue directory is a fresh day.
+    (let ((claude-code-ide-org-queue-directory (make-temp-file "cioo-tt-day2" t)))
+      (should (claude-code-ide-org--time-tracking-line "false")))
+    ;; ON is unaffected, however often it is asked.
+    (should (claude-code-ide-org--time-tracking-line "true"))
+    (should (claude-code-ide-org--time-tracking-line "true"))))
 
 (ert-deftest claude-code-ide-org-test-consent-gate-ignores-the-report-scope ()
   "`--tracked-buffer-p' answers about tracking, not about a report's scope.

@@ -650,32 +650,32 @@ inventing seconds that did not elapse."
 ;; since it only reports intervals whose open timestamp predates today.
 
 (defvar claude-code-ide-org--report-scope nil
-  "When non-nil, an absolute directory `--tracked-files\' is confined to.
+  "When non-nil, an absolute directory `--tracked-files' is confined to.
 
 Bound only around the SessionStart *reports*, never around the tools.
 That asymmetry is the whole point and is easy to get backwards: the
-org tools are deliberately global -- `org_query\' and
-`org_clock_report\' answer across every tracked project, which is what
+org tools are deliberately global -- `org_query' and
+`org_clock_report' answer across every tracked project, which is what
 makes one Emacs serve many repos -- while anything that *reports to a
-session* must speak about that session\'s own project and nothing else.
+session* must speak about that session's own project and nothing else.
 
 The defect this exists for (TODO.org :ID: 43d479c8): a session in a
 consuming repo was handed a SessionStart report naming this
-repository\'s headings, because the report was computed over
-`org-agenda-files\', which is per-user.  It read as authoritative --
+repository's headings, because the report was computed over
+`org-agenda-files', which is per-user.  It read as authoritative --
 real ids, real titles -- and would have become undetectable the moment
 that repo had a backlog of its own to confuse them with.")
 
 (defun claude-code-ide-org--tracked-files ()
   "Files to scan for stale open intervals, org_query, and
-org_clock_report.  Calls the `org-agenda-files\' function, not the
+org_clock_report.  Calls the `org-agenda-files' function, not the
 variable of the same name, so directory entries (e.g. a bare
 \"~/org\") are actually expanded to their contained files rather than
 passed through as an unusable directory string.
 
-Confined to `claude-code-ide-org--report-scope\' when that is bound.
+Confined to `claude-code-ide-org--report-scope' when that is bound.
 Compared by truename on both sides: tracked files reach this list
-through `~/org\' symlinks into their repositories, so a raw string
+through `~/org' symlinks into their repositories, so a raw string
 prefix test would discard every one of them."
   (let ((files (or claude-code-ide-org-query-files (org-agenda-files))))
     (if (not claude-code-ide-org--report-scope)
@@ -953,21 +953,21 @@ a slice has no children, so the subtree is its own body."
                          out)))))))))))
 
 (defun claude-code-ide-org--items-in-report-scope (items)
-  "ITEMS whose events name a `cwd\' under `--report-scope\'.
+  "ITEMS whose events name a `cwd' under `--report-scope'.
 
 Unscoped, every item.  Scoped, this is what stops a consumer being told
-\"Waiting: N queued item(s)\" about another project\'s events: the queue
-is a single global directory, so `--review-items-from-queue\' is
-global by construction and filtering `--tracked-files\' does nothing
+\"Waiting: N queued item(s)\" about another project's events: the queue
+is a single global directory, so `--review-items-from-queue' is
+global by construction and filtering `--tracked-files' does nothing
 for it (TODO.org :ID: 43d479c8).
 
-**An event with no `cwd\' is excluded when scoped**, which is the
+**An event with no `cwd' is excluded when scoped**, which is the
 opposite of the span rule, deliberately.  There, a missing value means
 \"unknown, never elsewhere\", so a span predating the field is not
-shattered by it.  Here the question is whether to *show someone else\'s
+shattered by it.  Here the question is whether to *show someone else's
 work as theirs*, and the two errors are not symmetric: omitting an item
 understates a count, while claiming one restates the very defect this
-scoping exists to fix.  `cwd\' has been recorded since 2026-09-04, so
+scoping exists to fix.  `cwd' has been recorded since 2026-09-04, so
 in practice this drops only pre-cutover events."
   (if (not claude-code-ide-org--report-scope)
       items
@@ -1143,13 +1143,13 @@ are."
 
 (defun claude-code-ide-org-write-session-start-report (output-path &optional project)
   "Write the SessionStart hook JSON payload to OUTPUT-PATH.
-Called directly via `emacsclient -e\' by the SessionStart hook
+Called directly via `emacsclient -e' by the SessionStart hook
 script, which then just cats the file — avoids any need to
-unescape emacsclient\'s printed-representation output in shell.
+unescape emacsclient's printed-representation output in shell.
 
 PROJECT confines the report to org files under that directory, and the
 hook passes CLAUDE_PROJECT_DIR.  Optional, and nil means every tracked
-file, which is what this repo\'s own wiring passed before the argument
+file, which is what this repo's own wiring passed before the argument
 existed -- so an old caller keeps its old behaviour rather than
 silently reporting nothing.  An empty string is treated as absent,
 because that is what an unset shell variable interpolates to."
@@ -1513,14 +1513,32 @@ can treat an empty result as \"nothing worth injecting\"."
          (lines (append (when clocked (list clocked)) waits nominations)))
     (mapconcat #'identity lines "\n")))
 
+(defun claude-code-ide-org--time-tracking-notice-due-p ()
+  "Non-nil at most once a day, and stamp it as said.
+
+The same shape as `claude-code-ide-org--ceremony-done-today-p\': a stamp
+file in the queue directory whose *mtime* carries the date.  Fails OPEN
+-- an unwritable queue directory returns non-nil -- because the cost of
+saying it twice is noise and the cost of never saying it is a consumer
+who never learns the feature exists."
+  (let* ((dir claude-code-ide-org-queue-directory)
+         (stamp (expand-file-name "time-tracking-notice-last" dir)))
+    (if (and (file-exists-p stamp)
+             (claude-code-ide-org--today-p
+              (file-attribute-modification-time (file-attributes stamp))))
+        nil
+      (ignore-errors (make-directory dir t))
+      (ignore-errors (write-region "" nil stamp nil 'quiet))
+      t)))
+
 (defun claude-code-ide-org--time-tracking-line (setting)
   "A one-line report of the time-tracking SETTING, or nil to say nothing.
 
-SETTING is the plugin\'s `time_tracking\' userConfig value as the hook
+SETTING is the plugin's `time_tracking' userConfig value as the hook
 saw it -- \"true\", \"false\", or absent.  Claude Code exports it to hook
 processes as CLAUDE_PLUGIN_OPTION_TIME_TRACKING, which is the only
 place its value is legible: Emacs cannot read it (it lives in
-~/.claude/settings.json under `pluginConfigs\') and neither can the
+~/.claude/settings.json under `pluginConfigs') and neither can the
 Bash tool, so a session had no way to answer \"am I being tracked?\"
 at all (TODO.org :ID: 2082eeb3).
 
@@ -1536,17 +1554,32 @@ worse than none (:ID: 7771fc63)."
    ((equal setting "true")
     "Time tracking is ON: turn boundaries are recorded as guideposts for the review pass.")
    ((equal setting "false")
-    "Time tracking is OFF: no guideposts are recorded, so spans will not appear at review. Turn it on with Claude Code\'s /config command.")
+    ;; Once per day, not once per session.  Every sibling report here is
+    ;; rate-limited -- the ceremony by `ceremony-last-run\', the
+    ;; stale-interval report by its predates-today test, `apply-detect\'
+    ;; by `.apply-seen\', `clock-target-check\' by a per-session sentinel
+    ;; -- and this one is actionable exactly once while being true
+    ;; forever.  TODO.org :ID: 2758f3a0 measured what unlimited
+    ;; re-mention does: a repeated instruction stopped being followed 41
+    ;; times in 45, every miss on a re-mention.  Caught by the PR #28
+    ;; review, which noted this was the only new report with no limiter.
+    ;;
+    ;; A stamp file rather than a session sentinel, and dated rather than
+    ;; boolean, for the same reason the ceremony chose one: "already said
+    ;; today" is the honest unit for a fact that does not change within a
+    ;; day, and a new session per hour should not re-say it.
+    (when (claude-code-ide-org--time-tracking-notice-due-p)
+      "Time tracking is OFF: no guideposts are recorded, so spans will not appear at review. Turn it on with Claude Code\'s /config command."))
    (t nil)))
 
 (defun claude-code-ide-org--session-context-hook-json (&optional time-tracking)
   "Return the SessionStart hook JSON payload for
-`claude-code-ide-org-session-context\': an empty object if there is
+`claude-code-ide-org-session-context': an empty object if there is
 nothing to report, otherwise one with additionalContext set to the
 session-context summary.
 
-TIME-TRACKING is the raw `time_tracking\' option value; see
-`claude-code-ide-org--time-tracking-line\', which decides whether it is
+TIME-TRACKING is the raw `time_tracking' option value; see
+`claude-code-ide-org--time-tracking-line', which decides whether it is
 reportable at all.  It is appended rather than prepended: \"what was I
 last doing\" is what the session asked for, and the feature state is
 context on the answer."
@@ -1572,13 +1605,13 @@ condition-case: if scanning ever throws, OUTPUT-PATH is left empty
 (the temp file is created but never written to, or is never created
 at all), and the shell script's `[[ -s ... ]]' check treats that
 identically to \"Emacs unreachable\" — fail soft either way, same
-convention as `claude-code-ide-org-write-session-start-report\'.
+convention as `claude-code-ide-org-write-session-start-report'.
 
 PROJECT confines the scan to org files under that directory, exactly as
 for the other SessionStart report and for the same defect (TODO.org
 :ID: 43d479c8).  This one carries it too because \"what was I last
 doing\" is *more* misleading unscoped than the ceremony is: a WAITING
-heading from another repository reads as this session\'s own unfinished
+heading from another repository reads as this session's own unfinished
 work."
   (let ((claude-code-ide-org--report-scope
          (and project (not (string-empty-p project)) project)))
@@ -17415,7 +17448,7 @@ the project list."
                  "until a person runs the review-and-apply command, so do not "
                  "expect a later read to reflect it. "
                  "ONLY MEANINGFUL WHERE TIME TRACKING IS SWITCHED ON: the "
-                 "plugin ships with its `time_tracking\' option unset, and "
+                 "plugin ships with its `time_tracking' option unset, and "
                  "until someone sets it the hooks carrying the surrounding "
                  "guideposts all decline, so this event is queued and nothing "
                  "ever consumes it. Being offered this tool is not evidence "

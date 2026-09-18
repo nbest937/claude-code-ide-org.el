@@ -193,7 +193,27 @@ if [ "$org" = 1 ]; then
   if [ -z "$mcp_port" ]; then
     echo "claude-org-setup: no port found in $mcp_src; skipping .mcp.json" >&2
   elif [ -e "$mcp_dest" ]; then
-    echo "exists:  $mcp_dest (left untouched)"
+    # Never merged -- a consumer may have MCP servers of their own and a
+    # blind overwrite would take them out. But this cannot be SILENT the
+    # way the org templates can: a pre-existing .mcp.json without an
+    # emacs-tools entry means no org tools at all, which is the entire
+    # product, and one unremarkable `exists:' line among a dozen is not a
+    # warning (review finding on PR #28). So say what is missing, and
+    # print the exact block rather than describing it.
+    if grep -q '"emacs-tools"' "$mcp_dest" 2>/dev/null; then
+      echo "exists:  $mcp_dest (left untouched; names emacs-tools already)"
+    else
+      echo "ACTION:  $mcp_dest exists but names no emacs-tools server."
+      echo "         Without it this project gets no org_* tools at all."
+      echo "         Merge this into its mcpServers object by hand:"
+      echo ""
+      echo "             \"emacs-tools\": {"
+      echo "               \"type\": \"http\","
+      echo "               \"url\": \"http://localhost:$mcp_port/mcp/$(basename "$target")\""
+      echo "             }"
+      echo ""
+      mcp_action=1
+    fi
   else
     session="$(basename "$target")"
     cat > "$mcp_dest" <<MCPEOF
@@ -504,11 +524,34 @@ if [ "$check" = 1 ]; then
     fi
   fi
 
+  # The consumer's own .mcp.json (review finding on PR #28). Checked
+  # here rather than only named in the footer below, because it is the
+  # one artifact whose staleness means NO TOOLS AT ALL: the session name
+  # is baked in at --org time, so a clone under another name, a directory
+  # rename, or a port change in the plugin's own .mcp.json all leave a
+  # file that resolves to a session `standalone-wire' never registered.
+  # Only the session name and port are asserted -- not the whole file --
+  # because a consumer may legitimately have added servers of their own.
+  mcp_src="$plugin_root/.mcp.json"
+  mcp_dest="$target/.mcp.json"
+  mcp_port="$(sed -n 's|.*http://localhost:\([0-9][0-9]*\)/mcp/.*|\1|p' "$mcp_src" 2>/dev/null | head -1)"
+  want_url="http://localhost:$mcp_port/mcp/$(basename "$target")"
+  if [ ! -f "$mcp_dest" ]; then
+    echo "missing: $mcp_dest -- this project has no org tools (run claude-org-setup --org)"
+    drifted=1
+  elif grep -qF "$want_url" "$mcp_dest" 2>/dev/null; then
+    echo "ok:      $mcp_dest names $want_url"
+  else
+    echo "drifted: $mcp_dest does not name $want_url"
+    echo "         (a renamed directory, a clone under another name, or a port change)"
+    drifted=1
+  fi
+
   # Say what was NOT checked. The heading this closes exists because a
   # clean run read as "up to date" and meant "the rules match"; naming
   # the gaps is half the fix and the cheaper half.
   echo
-  echo "Checked: promoted rules, Doom glue."
+  echo "Checked: promoted rules, Doom glue, this project's .mcp.json."
   echo "NOT checked: whether the running Emacs has loaded the current"
   echo "  module (needs a digest; TODO.org :ID: 2cd74268), or the"
   echo "  time_tracking option -- that is per-user and lives in"

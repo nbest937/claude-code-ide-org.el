@@ -9,8 +9,7 @@ chord sequences.
 **Trustworthy tracking of where attention actually went** on tracked
 tasks is a second, *optional* capability: developed in this repository,
 shipped switched off, and turned on with the plugin's `time_tracking`
-option — set with Claude Code's `/config` command, or with
-`--config time_tracking=true` at install. It
+option — set with Claude Code's `/config` command. It
 was a co-equal goal until 2026-09-18; committing to a switch is itself
 the ordering.
 
@@ -143,12 +142,15 @@ all work without it; what it adds is turn-boundary guideposts and clock
 events, which the review pass clusters into intervals a human confirms
 before they become `:LOGBOOK:` CLOCK lines.
 
-```sh
-claude plugin install claude-code-ide-org --config time_tracking=true
-```
+Run Claude Code's `/config` command and flip **Time tracking**. That is
+the only route that works today: the plugin is installed by symlink or
+`--plugin-dir` from a clone, never from a marketplace, so there is no
+`claude plugin install` invocation to pass a flag to. (`--config
+key=value` *is* a real flag of that subcommand — verified against its
+`--help` — and would be the shorter path if this plugin were ever
+published.)
 
-or run Claude Code's `/config` command and flip **Time tracking** at any
-time. The hooks ship wired
+It takes effect at the next session start. The hooks ship wired
 and each one gates itself on that option, so turning it on takes no file
 edit and no re-run of setup.
 
