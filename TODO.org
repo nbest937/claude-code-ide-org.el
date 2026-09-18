@@ -27,6 +27,21 @@ Proposed: revise the story section of =org-conventions.md= to split detection fr
 
 Not a member of =8bbae3aa=: that slice's proximate goal is making the plugin usable in another project, and this is convention refinement that can wait for a slice of its own.
 
+*Measured 2026-09-18, and it inverts the premise the conventions rest on.* Of the six live groupings in =TODO.org= — level-1 headings with keyworded children — **five carry no CLOCK line of their own**, meaning they never worked as leaves and so never accidentally acquired children. They were *composed*. Only one (=a1d63f52=, 9 own CLOCK lines) is the accidental shape the conventions describe.
+
+=CLAUDE.md='s account — "each was clocked honestly while it was still a leaf, and became a grouping later by acquiring children or by a refile" — is true of the *historical* corpus it was written against, and is now the minority case. The prose describes a world the practice has left. (Caveat: this counted level-1 headings in =TODO.org= only, by a crude scan; =DONE.org= was not included, and the nine-groupings figure in =CLAUDE.md= presumably spans both.)
+
+*So deliberate composition is the norm, which is the evidence behind every gap above* — the conventions read as though a story happens to you.
+
+*And it raises a property the user offered: =:KIND: story=.* Better founded than it first looks, but conditional, and the condition is a consumer rather than a preference. The project has retired declared state that nothing read — =PLANNING= went for exactly that, 7 uses in 432 transitions.
+
+The asymmetry to preserve: a **slice** must be declared because its members are *links*, so there is nothing to detect and declaration is the only option. A **story's** children are structurally present and already detected by =--container-heading-p=, so a label is a *second* source of truth that can disagree with the tree — marked with no children, or children with no mark. That asymmetry is why the two differ today and it is a real reason, not an oversight.
+
+Which makes the decision clean: **=:KIND: story= earns its place if and only if the "well-composed" lint is wanted** — *does this story have all of its subtasks in one slice?* That question cannot be asked of a heading that merely happens to have children; it can only be asked of one someone asserted was a story. With that check the property is load-bearing. Without it, it is a label with no reader, which is the thing this project deletes.
+
+*Separately, and not a gap:* there is **no rule requiring a story's members to share a =:CATEGORY:=**. Checked 2026-09-18 — no convention text, and =bin/lint-org='s only category rule is "level-1 task has no =:CATEGORY:=" (=config.el= 14654), which never looks at children. =org_capture= makes =category= "optional under an =:ID:= target", i.e. explicitly permitted on a child, and one override already exists in the corpus (a =Tools= child under a =Meta= parent). Inheritance is already a default rather than a constraint. Worth *stating* in the revision only because the absence of a rule reads as a prohibition — which is how this came up.
+
+
 * TODO Let a task-only install auto-apply state transitions, behind a toggle :code:
 :PROPERTIES:
 :ID:       2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd
