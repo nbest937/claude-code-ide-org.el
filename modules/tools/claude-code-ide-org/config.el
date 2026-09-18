@@ -8827,7 +8827,7 @@ from a skipped one."
         ;; Nothing is lost: the guidepost itself stays in the queue
         ;; file, which is the durable record.  Only the *proposal* is
         ;; dropped.  And it repairs a second thing --
-        ;; `claude-code-ide-org--queue-drained-p' is "yields no items",
+        ;; `claude-code-ide-org--queue-file-drained-p' is "yields no items",
         ;; so a queue whose only leftovers were stranded points never
         ;; drained and so never archived.
         (unless (and (time-equal-p (car span) (cdr span))

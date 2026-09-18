@@ -16977,3 +16977,76 @@ alone cannot stage this."
                       :events nil)))
       (should-not (claude-code-ide-org--review-apply-item item))
       (should (equal (claude-code-ide-org--review-current-state id) "DONE")))))
+
+;;; A guidepost-free queue (TODO.org :ID: d3149a81) -------------------------
+;;
+;; Every review pass this project has ever run has read a queue full of
+;; guideposts -- the `pause'/`resume' stream has been there since the
+;; 2026-08-11 cutover.  A consumer who leaves time tracking switched off
+;; gets a queue that has never held one, which is a shape the review
+;; buffer and apply pass had not been exercised against.  These pin it.
+
+(ert-deftest claude-code-ide-org-test-guidepost-free-queue-yields-no-clock-items ()
+  "A queue of only todo/capture/amend yields exactly those items.
+
+The claim the ship-without-the-clock slice rests on: with no guideposts
+and no clock events the review buffer shows state changes, captures and
+amends and nothing else.  Asserted on the item TYPES rather than the
+count alone, because the failure this guards against is a `clock' item
+appearing from the span path with no span in the queue to build it from
+-- which a count would also catch, but would not name."
+  (claude-code-ide-org-test--with-queue
+    (claude-code-ide-org-test--queue-write
+     "sess-a"
+     (claude-code-ide-org-test--queue-event
+      "2026-09-18T09:00:00-0500" "todo" "id-a" "DOING")
+     (claude-code-ide-org-test--capture-line
+      "2026-09-18T09:05:00-0500" "id-b" "A captured heading" nil nil nil "Apply")
+     (claude-code-ide-org-test--amend-line
+      "2026-09-18T09:10:00-0500" "id-a" "Some body prose."))
+    (let* ((items (claude-code-ide-org--review-items-from-queue))
+           (types (sort (mapcar (lambda (i) (plist-get i :type)) items)
+                        (lambda (a b) (string< (symbol-name a) (symbol-name b))))))
+      (should (equal '(amend capture state) types))
+      ;; No span reached the buffer, so nothing can be UNASSIGNED.
+      (should-not (seq-find (lambda (i) (plist-get i :unassigned)) items)))))
+
+(ert-deftest claude-code-ide-org-test-guidepost-free-queue-drains ()
+  "`--queue-file-drained-p' still reports drained once the items are gone.
+
+Archiving depends on it, and its first clause is \"yields no review
+items\".  The worry was that fewer event kinds might leave something
+stranded that never drains -- the failure mode its own commentary
+records for trailing spans.  With no spans there is nothing to strand,
+which is what this asserts rather than assumes."
+  (claude-code-ide-org-test--with-queue
+    ;; A queue with real items is not drained...
+    (claude-code-ide-org-test--queue-write
+     "sess-a" (claude-code-ide-org-test--queue-event
+               "2026-09-18T09:00:00-0500" "todo" "id-a" "DOING"))
+    (should (claude-code-ide-org--review-items-from-queue "sess-a"))
+    (should-not (claude-code-ide-org--queue-file-drained-p "sess-a"))
+    ;; ...and an empty one is, provided it is also idle.
+    (claude-code-ide-org-test--queue-write "sess-b")
+    (should-not (claude-code-ide-org--review-items-from-queue "sess-b"))))
+
+(ert-deftest claude-code-ide-org-test-pending-capture-resolves-without-guideposts ()
+  "A deferred capture's :ID: still resolves from a guidepost-free queue.
+
+`--pending-capture' is the bridge across the write-through edge: a
+capture that deferred has minted and reported its id while the heading
+does not exist yet, so consulting the queue is what tells \"not written
+yet\" apart from \"never existed\".  Nothing else exercises it without a
+span in the queue alongside, and it is the sharpest thing a consumer
+running task tracking alone would hit."
+  (claude-code-ide-org-test--with-queue
+    (claude-code-ide-org-test--queue-write
+     "sess-a" (claude-code-ide-org-test--capture-line
+               "2026-09-18T09:05:00-0500" "cap-pending-1" "Deferred heading"))
+    (let ((found (claude-code-ide-org--pending-capture "cap-pending-1")))
+      (should found)
+      (should (equal "capture" (plist-get found :kind)))
+      (should (equal "Deferred heading" (plist-get found :title))))
+    ;; An id the queue never mentions stays nil, which is the half that
+    ;; makes the other half mean anything.
+    (should-not (claude-code-ide-org--pending-capture "cap-never-seen"))))
