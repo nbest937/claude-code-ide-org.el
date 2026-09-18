@@ -396,14 +396,24 @@ human-run.
 
 ## Session tracking (`.claude/settings.json`, `bin/hooks/`)
 
-**Moved into the plugin, 2026-09-09**: the hooks table, the three
-numbers that shape a recorded interval, permission blocks and
-stale-interval recovery ship as
-`skills/org/references/org-session-tracking.md` and load here as
-`.claude/rules/org-session-tracking.md`. The wiring exists twice on
-purpose — this repo through `.claude/settings.json`, consumers through
-the plugin's `hooks/hooks.json` — and a repo must enable only one of
-the two, or every guidepost is appended twice.
+**Moved into the plugin, 2026-09-09; split in two, 2026-09-18**
+(`:ID:` 36952d1f). The hooks that ship unconditionally — `footnote-check`,
+`apply-detect`, the `queue-append` matchers for `org_set_todo`/
+`org_capture`/`org_amend`, and the daily ceremony prompt — are
+`skills/org/references/org-session-tracking.md`. Everything time-shaped
+— guideposts, the three numbers that shape a recorded interval,
+permission blocks, stale-interval recovery and the transition table's
+clock column — is `skills/org/references/org-time-tracking.md`, which a
+consumer gets only where the time-tracking hooks are wired. Both load
+here as `.claude/rules/`, because this repo runs time tracking.
+
+The wiring exists twice on purpose — this repo through
+`.claude/settings.json`, consumers through the plugin's
+`hooks/hooks.json` — and a repo must enable only one of the two, or
+every guidepost is appended twice. **Since 2026-09-18 the two are no
+longer mirrors**: `hooks.json` ships the time rows unwired and
+`.claude/settings.json` keeps them, which is what makes time tracking
+this repo's own and optional everywhere else.
 
 ---
 
