@@ -2,6 +2,27 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Every SessionStart report a consumer gets is computed over all tracked projects, so it names other repos' work :code:
+:PROPERTIES:
+:ID:       43d479c8-bbaa-49ec-a3be-0d8ee90425e1
+:CREATED:  [2026-09-18 Fri 16:36]
+:CATEGORY: Dev
+:END:
+
+Found by a session running in =~/git/agentic-euchre= 2026-09-18: its =SessionStart= report listed stale-=DOING= and un-nominated-grouping entries "in TODO.org" — naming =8bbae3aa=, =33c3eabc= and others — while **that project's own TODO.org has no headings at all**. Every entry belonged to this repository.
+
+*Confirmed three ways from here.* =claude-code-ide-org-write-session-start-report= takes =(output-path)= and **nothing else** — no project argument exists in its signature. =bin/hooks/session-start-recovery-check= is four lines and passes none: =emacsclient -e "(claude-code-ide-org-write-session-start-report \"$out\")"=, with no =$CLAUDE_PROJECT_DIR= and no cwd. And =--tracked-files= today returns five files across three locations — this repo's pair, =~/org/notes.org=, and euchre's pair — because =claude-code-ide-org-query-files= defaults to nil and falls back to =org-agenda-files=, which is per-*user*, not per-project.
+
+*All three reports in the payload inherit it*: stale-interval recovery, the daily ceremony, and the nomination-candidates report. Each is composed over the same global file list.
+
+*Why this is worse than a cosmetic leak.* It is **always on** — every session start, in every consuming project, with no way to notice from inside. It is **confidently wrong**: real ids, real titles, real keywords, so it reads as authoritative rather than as noise. And it **degrades as adoption succeeds** — today euchre has no headings, which is the only reason the session spotted it at all; the moment a consumer has a backlog of its own, another project's entries sit indistinguishably among them. The reporting session's own sentence is the one to keep: "the kind of thing that is very hard to notice once this repo has headings of its own to confuse them with."
+
+*The fix has an obvious shape.* =CLAUDE_PROJECT_DIR= is available to hook commands, so the hook can pass it and the report can filter =--tracked-files= to that root. Note this repo's own =.claude/settings.json= calls the same script and would need the same argument — and that its correct answer is *this* repo, so the change is testable here rather than only in a consumer.
+
+*What will not work, so it is not re-proposed:* setting =claude-code-ide-org-query-files= per project. It is one =defcustom= in one Emacs serving every project at once; that is the same mistake one level down.
+
+*This is the third instance today of one pattern, and the pattern is worth naming more than any single fix.* =805bf287='s =warp= alias, =--standalone-derive-projects='s ordering, and this report all assume **one user, one project** while the deployment model is one Emacs serving many. The org tools themselves escape it by scoping on =org-agenda-files= deliberately — the tools genuinely are global — but everything that *reports* to a session needs the session's project and does not have it.
+
 * TODO A consuming repo gets the hooks, rules and skill but no org tools: the plugin's MCP server never registers :code:
 :PROPERTIES:
 :ID:       805bf287-1401-44ab-bb6c-6e09b5b63b59
