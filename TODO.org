@@ -730,7 +730,8 @@ Shipped in the canonical reference and promoted; check-conventions 32 ok, footno
 **Resolution:** a queued keyword is now written as the queued state with a trailing =*=, the star carries no note of its own, and the rule ships in the canonical reference and its promoted copy.
 
 
-* DOING The prose still promises time tracking: README, CLAUDE.md, DOOM.md and the skill all describe a clock that no longer ships :code:
+* DONE The prose still promises time tracking: README, CLAUDE.md, DOOM.md and the skill all describe a clock that no longer ships :code:
+CLOSED: [2026-09-18 Fri 14:26]
 :PROPERTIES:
 :ID:       1254c24b-0dda-436e-a3d4-213de283692f
 :CREATED:  [2026-09-17 Thu 12:47]
@@ -764,6 +765,15 @@ CLOCK: [2026-09-18 Fri 08:45]--[2026-09-18 Fri 08:48] =>  0:03
 - [2026-09-18 Fri 08:45]--[2026-09-18 Fri 08:48] assigned at review
 - State "DOING"      from "NEXT"       [2026-09-18 Fri 12:28] \\
   the prose demotion: goal restated once, plainly, in both always-loaded files
+CLOCK: [2026-09-18 Fri 14:07]--[2026-09-18 Fri 14:23] =>  0:16
+- <2026-09-18 Fri 14:07>--<2026-09-18 Fri 14:23> root-cause unattributed spans, file discipline fix
+- [2026-09-18 Fri 14:07]--[2026-09-18 Fri 14:22]
+CLOCK: [2026-09-18 Fri 14:23]--[2026-09-18 Fri 14:26] =>  0:03
+- [2026-09-18 Fri 14:23]--[2026-09-18 Fri 14:26]
+- State "DONE"       from "DOING"      [2026-09-18 Fri 14:26] \\
+  demotion stated once per always-loaded file in 82c0400; smaller than planned since the clock still ships
+CLOCK: [2026-09-18 Fri 14:26]--[2026-09-18 Fri 14:30] =>  0:04
+- [2026-09-18 Fri 14:26]--[2026-09-18 Fri 14:30] root-cause unattributed spans, file discipline fix
 :END:
 :PLAN:
 
@@ -809,7 +819,6 @@ So there is no distinction to draw between the project's goals and the artifact'
 *Keep the history while changing the ranking.* "Much of the machinery here — the event queue, the session hooks, the review pass — exists for that goal" is true and explains why the architecture looks as it does. Demote the goal; do not delete the account of what built the machinery, or a future reader loses the only record of why the queue exists at all.
 
 *Resolved 2026-09-18.* The demotion is stated once in =CLAUDE.md= and once in =README=, both keeping the sentence about what the machinery was built for; every other file follows from it in feature/state/toggle shape. Smaller than this heading assumed, because self-gating landed first: the clock still ships, so nothing had to describe an absence.
-
 
 
 * MAYBE Revisit building the footnote block with org-ql or the agenda, once Emacs stops wedging :research:
@@ -1020,14 +1029,13 @@ tag, the query it exists to answer, and the =#+TAGS:= line and
 The keyword set carries no severity, so a defect someone actually hit reads the same as one reasoned about. An `:observed:` tag is the cheapest signal that distinguishes them, and it is a fact rather than a judgement — either it was seen in use or it was not.
 
 
-* DOING [5/9] Ship the tracker without the clock, so another project can use it while time tracking is still being built :code:
+* REVIEW [9/9] Ship the tracker without the clock, so another project can use it while time tracking is still being built :code:
 :PROPERTIES:
 :ID:       8bbae3aa-55db-441c-8c33-405570ad879a
 :CREATED:  [2026-09-17 Thu 11:16]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  01f7a19c-4b71-447c-8ded-385410e5d607 6956a46e-da4b-44c2-a701-80196a2930c1 d3149a81-91d2-4722-b6d8-68d4cee6fa4f 1254c24b-0dda-436e-a3d4-213de283692f
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-17 Thu 12:10] \\
@@ -1042,6 +1050,10 @@ CLOCK: [2026-09-18 Fri 08:16]--[2026-09-18 Fri 08:17] =>  0:01
   slice work starts on feature/ship-without-clock; first member in the mail
 CLOCK: [2026-09-18 Fri 08:27]--[2026-09-18 Fri 08:27] =>  0:00
 - <2026-09-18 Fri 08:27>--<2026-09-18 Fri 08:27> assigned at review
+CLOCK: [2026-09-18 Fri 14:31]--[2026-09-18 Fri 15:17] =>  0:46
+- <2026-09-18 Fri 14:31>--<2026-09-18 Fri 15:17> root-cause unattributed spans, file discipline fix
+- State "REVIEW"     from "DOING"      [2026-09-18 Fri 14:36] \\
+  all nine members terminal; awaiting the PR merge
 :END:
 
 Composed 2026-09-17 at the user's direction, whose framing is the point: task tracking, dependency management and slice planning are ready to support real work elsewhere, and time tracking is not. Shipping them together holds the useful half hostage to the half still under construction.
@@ -1059,12 +1071,12 @@ Planned:
 - [X] [[id:eb6c4a9b-8f78-42fa-9e86-484bf352fcf6][eb6c4a9b]] DONE clock-target-check ships wired and enforces clocking, so it would block every turn once clocking is off
 - [X] [[id:0c5577dc-ef15-440a-bdac-b3cb068aa7b2][0c5577dc]] DONE Take the guidepost, block and clock rows out of the shipped wiring, leaving every script on disk
 - [X] [[id:36952d1f-5312-4cf2-a710-4290ce673e19][36952d1f]] DONE The promoted rules instruct clocking unconditionally, so a consumer is told to call tools that do nothing
-- [ ] [[id:01f7a19c-4b71-447c-8ded-385410e5d607][01f7a19c]] TODO Decide whether org_clock_in and org_clock_out stay registered when nothing consumes what they queue
-- [ ] [[id:6956a46e-da4b-44c2-a701-80196a2930c1][6956a46e]] TODO The SessionStart report mixes stale-interval recovery with the ceremony prompt, and only one half survives
+- [X] [[id:01f7a19c-4b71-447c-8ded-385410e5d607][01f7a19c]] DONE Decide whether org_clock_in and org_clock_out stay registered when nothing consumes what they queue
+- [X] [[id:6956a46e-da4b-44c2-a701-80196a2930c1][6956a46e]] DONE The SessionStart report mixes stale-interval recovery with the ceremony prompt, and only one half survives
 - [X] [[id:1b36c5bd-bafd-4c43-8aae-c94dee45c5eb][1b36c5bd]] DONE claude-org-setup gains an opt-in that restores the time-tracking wiring and its rules
-- [ ] [[id:d3149a81-91d2-4722-b6d8-68d4cee6fa4f][d3149a81]] TODO Verify the review buffer and apply pass on a queue that has never held a guidepost
+- [X] [[id:d3149a81-91d2-4722-b6d8-68d4cee6fa4f][d3149a81]] DONE Verify the review buffer and apply pass on a queue that has never held a guidepost
 - [X] [[id:5fb70821-0f46-42d9-8bf3-93bc98025692][5fb70821]] DONE Establish whether two plugin manifests can share one MCP server, which is what decides the two-plugin question
-- [-] [[id:1254c24b-0dda-436e-a3d4-213de283692f][1254c24b]] DOING The prose still promises time tracking: README, CLAUDE.md, DOOM.md and the skill all describe a clock that no longer ships
+- [X] [[id:1254c24b-0dda-436e-a3d4-213de283692f][1254c24b]] DONE The prose still promises time tracking: README, CLAUDE.md, DOOM.md and the skill all describe a clock that no longer ships
 
 *Decided by the user 2026-09-17, and it is larger than this slice: **time tracking is no longer a co-equal goal**.* "We have prioritized the other goal by committing to providing the ability to disable the time-tracking features." Committing to a switch **is** the ordering — a feature you can turn off is not co-equal with the one you cannot.
 
@@ -1104,12 +1116,18 @@ Integration point: [[https://github.com/nbest937/claude-code-ide-org.el/pull/28]
 *The reversal is the slice's real event.* Composed on "a hook has no disabled state, so wired and unwired are the only forms available", it shipped the third form instead. Two members closed on the removal decision and were superseded hours later; both keep their analysis, which was reused verbatim, and carry the reversal in their own debriefs.
 
 
-
-* TODO Verify the review buffer and apply pass on a queue that has never held a guidepost :code:
+* DONE Verify the review buffer and apply pass on a queue that has never held a guidepost :code:
+CLOSED: [2026-09-18 Fri 14:35]
 :PROPERTIES:
 :ID:       d3149a81-91d2-4722-b6d8-68d4cee6fa4f
 :CREATED:  [2026-09-17 Thu 11:16]
 :CATEGORY: Apply
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-09-18 Fri 14:31] \\
+  last member: verifies the claim the slice rests on, and its scope grew with self-gating
+- State "DONE"       from "NEXT"       [2026-09-18 Fri 14:35] \\
+  three tests pin it, proved discriminating by mutation; the slice's premise holds
 :END:
 :DEBRIEF:
 *Shipped* in [[orgit-rev:claude-code-ide-org::ea6e603][ea6e603]]. Three tests, 688 → 691.
@@ -1142,7 +1160,6 @@ Two failure modes to probe rather than assume. =--queue-drained-p= is "yields no
 Every review pass this project has run has read a queue full of guideposts. With the hooks cut, a consumer's queue holds captures, amends and state changes and nothing else — a shape the review buffer and apply pass have never been exercised against. Verify before shipping, not after a consumer reports it.
 
 *Resolved 2026-09-18: three ERT tests pin the shape, and the claim holds.* A queue of only =todo=/=capture=/=amend= yields exactly those three item types with nothing =:unassigned=; =--queue-file-drained-p= reports correctly; and =--pending-capture= still bridges a deferred capture's =:ID:= with no span in the queue beside it.
-
 
 
 * DONE Establish whether two plugin manifests can share one MCP server, which is what decides the two-plugin question :research:
@@ -1263,11 +1280,18 @@ The counterpart to the cut: a flag on `claude-org-setup` that puts the guidepost
 *Resolved 2026-09-18 — the opt-in shipped, but not as a =claude-org-setup= flag, so this title names a mechanism that was replaced before it was built.* Time tracking is gated by a =time_tracking= boolean in the plugin's =userConfig=, read by the hook scripts themselves; nothing writes wiring anywhere, which is what dissolved every problem this member had accumulated.
 
 
-* TODO Decide whether org_clock_in and org_clock_out stay registered when nothing consumes what they queue :code:
+* DONE Decide whether org_clock_in and org_clock_out stay registered when nothing consumes what they queue :code:
+CLOSED: [2026-09-18 Fri 14:29]
 :PROPERTIES:
 :ID:       01f7a19c-4b71-447c-8ded-385410e5d607
 :CREATED:  [2026-09-17 Thu 11:15]
 :CATEGORY: Tools
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-09-18 Fri 14:26] \\
+  nominated: self-gating already answers its question, so it is now a short confirmation rather than a decision
+- State "DONE"       from "NEXT"       [2026-09-18 Fri 14:29] \\
+  stay registered; a defcustom gate would be a second switch Emacs cannot reconcile with the plugin option
 :END:
 :DEBRIEF:
 *Shipped* in [[orgit-rev:claude-code-ide-org::1d3be39][1d3be39]]. Of the plan's three options, one was already ruled out and self-gating ruled out a second, which left the third with a gap the plan had not named.
@@ -1298,7 +1322,6 @@ Note the tools are only half the invitation. =org_set_todo='s own description an
 Separate from the hook wiring: the two MCP tools are registered by `config.el`, not by the manifest, so cutting the hooks leaves them callable. Decide whether an unconsumed queue event is harmless bookkeeping or a tool that should refuse, and say which.
 
 *Resolved 2026-09-18: they stay registered, and the descriptions now carry the condition.* Self-gating decided it — the gate is a plugin option in =~/.claude/settings.json=, which =config.el= cannot read, so a =defcustom= gating registration would be a second switch for one feature, free to disagree with the first.
-
 
 
 * DONE The promoted rules instruct clocking unconditionally, so a consumer is told to call tools that do nothing :code:
@@ -1359,11 +1382,22 @@ The promoted rules tell a consuming session to call `org_clock_in` before its fi
 *Resolved 2026-09-18: forked at file level, not conditioned in place.* The clock content moved into a new =org-time-tracking.md= that promotes only under =--time=; =org-session-tracking.md= and =org-state-transitions.md= keep what is true regardless of wiring and point at it.
 
 
-* TODO The SessionStart report mixes stale-interval recovery with the ceremony prompt, and only one half survives :code:
+* DONE The SessionStart report mixes stale-interval recovery with the ceremony prompt, and only one half survives :code:
+CLOSED: [2026-09-18 Fri 14:31]
 :PROPERTIES:
 :ID:       6956a46e-da4b-44c2-a701-80196a2930c1
 :CREATED:  [2026-09-17 Thu 11:15]
 :CATEGORY: Meta
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-09-18 Fri 14:29] \\
+  nominated: the last member that changes shipped behaviour; d3149a81 verifies after it
+CLOCK: [2026-09-18 Fri 14:30]--[2026-09-18 Fri 14:31] =>  0:01
+- State "DOING"      from "NEXT"       [2026-09-18 Fri 14:30] \\
+  checking whether the stale half really can never fire with clocking off
+- [2026-09-18 Fri 14:30]--[2026-09-18 Fri 14:31]
+- State "DONE"       from "DOING"      [2026-09-18 Fri 14:31] \\
+  no split, no gate: the stale scan reads file text and still catches a hand-clocked interval
 :END:
 :DEBRIEF:
 *Closed with no code change, 2026-09-18, because the question dissolved under checking.* This heading's plan says the stale-interval half is "pure time tracking, and with no clocking it can never find anything". Read against the implementation, that is wrong.
@@ -1392,7 +1426,6 @@ So the hook cannot simply stay or go. Either the stale half is gated off when cl
 One `SessionStart` hook carries two independent reports in one `additionalContext` string. Cutting the time-tracking half would take the ceremony prompt with it unless the payload is split first. Establish which half survives the cut and make the surviving one stand alone.
 
 *Resolved 2026-09-18: neither half is gated and the payload does not split — the premise that the stale half "can never find anything" is false.* It scans tracked org files' **text** for an unclosed =CLOCK:= line and depends on nothing this slice touches, so it still catches an interval a human opened by hand with =C-c C-x C-i= — which, with the feature off, is the only way a CLOCK line appears at all.
-
 
 
 * DONE Take the guidepost, block and clock rows out of the shipped wiring, leaving every script on disk :code:
@@ -10871,6 +10904,7 @@ call it done.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-18 Fri 15:19]--[2026-09-18 Fri 15:24] =>  0:05
 CLOCK: [2026-09-18 Fri 14:15]--[2026-09-18 Fri 14:20] =>  0:05
 CLOCK: [2026-09-18 Fri 08:54]--[2026-09-18 Fri 08:59] =>  0:05
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
@@ -11003,6 +11037,7 @@ CLOCK: [2026-09-17 Thu 13:35]--[2026-09-17 Thu 13:36] =>  0:01
 CLOCK: [2026-09-17 Thu 15:14]--[2026-09-17 Thu 15:17] =>  0:03
 CLOCK: [2026-09-17 Thu 15:55]--[2026-09-17 Thu 15:56] =>  0:01
 CLOCK: [2026-09-18 Fri 08:14]--[2026-09-18 Fri 08:15] =>  0:01
+- <2026-09-18 Fri 15:25>--<2026-09-18 Fri 15:25> review pass (buffer buried)
 :END:
 
 We created this heading on 2026-08-26. We deleted that property from its
@@ -11899,12 +11934,16 @@ CLOCK: [2026-09-17 Thu 16:17]--[2026-09-17 Thu 16:19] =>  0:02
 :LOGBOOK:
 CLOCK: [2026-09-18 Fri 09:02]--[2026-09-18 Fri 09:04] =>  0:02
 - <2026-09-18 Fri 09:02>--<2026-09-18 Fri 09:04> assigned at review
+- [2026-09-18 Fri 09:05]--[2026-09-18 Fri 09:05] root-cause unattributed spans, file discipline fix
 CLOCK: [2026-09-18 Fri 09:07]--[2026-09-18 Fri 09:08] =>  0:01
 - [2026-09-18 Fri 09:07]--[2026-09-18 Fri 09:08] root-cause unattributed spans, file discipline fix
 CLOCK: [2026-09-18 Fri 09:38]--[2026-09-18 Fri 09:39] =>  0:01
 - [2026-09-18 Fri 09:38]--[2026-09-18 Fri 09:39] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-18 Fri 09:41]--[2026-09-18 Fri 09:42] =>  0:01
+- [2026-09-18 Fri 09:41]--[2026-09-18 Fri 09:42] root-cause unattributed spans, file discipline fix
 CLOCK: [2026-09-18 Fri 10:41]--[2026-09-18 Fri 10:42] =>  0:01
 - [2026-09-18 Fri 10:41]--[2026-09-18 Fri 10:42] root-cause unattributed spans, file discipline fix
+- [2026-09-18 Fri 10:41]--[2026-09-18 Fri 12:30] root-cause unattributed spans, file discipline fix
 CLOCK: [2026-09-18 Fri 10:45]--[2026-09-18 Fri 10:46] =>  0:01
 - [2026-09-18 Fri 10:45]--[2026-09-18 Fri 10:46] root-cause unattributed spans, file discipline fix
 CLOCK: [2026-09-18 Fri 10:52]--[2026-09-18 Fri 10:53] =>  0:01
@@ -11915,4 +11954,6 @@ CLOCK: [2026-09-18 Fri 11:41]--[2026-09-18 Fri 11:44] =>  0:03
 - [2026-09-18 Fri 11:41]--[2026-09-18 Fri 11:44] root-cause unattributed spans, file discipline fix
 CLOCK: [2026-09-18 Fri 11:49]--[2026-09-18 Fri 11:50] =>  0:01
 - [2026-09-18 Fri 11:49]--[2026-09-18 Fri 11:50] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-18 Fri 12:32]--[2026-09-18 Fri 12:37] =>  0:05
+- [2026-09-18 Fri 12:32]--[2026-09-18 Fri 12:37] root-cause unattributed spans, file discipline fix
 :END:
