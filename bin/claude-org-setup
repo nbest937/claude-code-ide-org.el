@@ -154,6 +154,53 @@ if [ "$org" = 1 ]; then
       wrote=$((wrote + 1))
     fi
   done
+
+  # The consumer's own .mcp.json (TODO.org :ID: 805bf287). Without it a
+  # consuming repo gets the hooks, the rules and the skill but NO org
+  # tools at all -- which is the entire product -- because nothing names
+  # the MCP server. Measured 2026-09-18 in a real consumer: `claude mcp
+  # list' showed emacs-tools here and nothing there.
+  #
+  # It cannot ship with the plugin, which is why this generates it. The
+  # URL carries a SESSION NAME, `claude-code-ide-org-standalone-wire'
+  # registers one session per tracked project under its directory
+  # basename, and that basename is by definition unknown at packaging
+  # time. A static shipped file can only ever name someone else's
+  # project. (The plugin used to declare one naming "warp" -- an alias
+  # for whichever project sorted FIRST in org-agenda-files order, so it
+  # was not even stable here; the manifest no longer declares it.)
+  #
+  # The port is read from the plugin's own .mcp.json rather than
+  # written twice: that file is what `claude-code-ide-org--mcp-json-port'
+  # checks the live server against, so there is exactly one place a port
+  # can be wrong.
+  #
+  # Collision-checked like the org templates: an existing file is
+  # reported and left alone, never merged. A consumer may already have
+  # MCP servers of their own, and a blind overwrite would take them out.
+  mcp_src="$plugin_root/.mcp.json"
+  mcp_dest="$target/.mcp.json"
+  mcp_port="$(sed -n 's|.*http://localhost:\([0-9][0-9]*\)/mcp/.*|\1|p' "$mcp_src" 2>/dev/null | head -1)"
+  if [ -z "$mcp_port" ]; then
+    echo "claude-org-setup: no port found in $mcp_src; skipping .mcp.json" >&2
+  elif [ -e "$mcp_dest" ]; then
+    echo "exists:  $mcp_dest (left untouched)"
+  else
+    session="$(basename "$target")"
+    cat > "$mcp_dest" <<MCPEOF
+{
+  "mcpServers": {
+    "emacs-tools": {
+      "type": "http",
+      "url": "http://localhost:$mcp_port/mcp/$session"
+    }
+  }
+}
+MCPEOF
+    echo "created: $mcp_dest (session \"$session\", port $mcp_port)"
+    wrote=$((wrote + 1))
+  fi
+
   # The consuming repo's .gitignore (TODO.org :ID: 784d80c5): appended
   # to, never clobbered, with the same exact-line dedupe the agenda
   # list gets below, and created when absent. Four entries every

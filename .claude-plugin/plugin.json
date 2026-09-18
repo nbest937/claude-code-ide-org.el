@@ -22,6 +22,5 @@
       "description": "Record turn-boundary guideposts and clock events for the human-run review pass, so finished work carries CLOCK intervals. Off by default: the org tools, the queue and the review pass all work without it. One value for every project, since the queue is per-user and global.",
       "default": false
     }
-  },
-  "mcpServers": "./.mcp.json"
+  }
 }
