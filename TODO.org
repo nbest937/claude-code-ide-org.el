@@ -2,6 +2,36 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO A consuming repo gets the hooks, rules and skill but no org tools: the plugin's MCP server never registers :code:
+:PROPERTIES:
+:ID:       805bf287-1401-44ab-bb6c-6e09b5b63b59
+:CREATED:  [2026-09-18 Fri 15:39]
+:CATEGORY: Dev
+:END:
+
+Reported from a session in =~/git/agentic-euchre= 2026-09-18: "hooks, rules and the skill reach this repo, but the org MCP tools never register because the plugin is only symlinked as a skills directory." Confirmed from outside, three ways.
+
+*The evidence.* =claude mcp list= run in this repo shows =emacs-tools: http://localhost:45571/mcp/warp (HTTP) - ✔ Connected=; run in euchre it does **not appear at all** — not "needs authentication", not "disabled for this project", absent. =claude plugin details claude-code-ide-org= from euchre reports **MCP servers (0)** against a manifest that declares one. And euchre has no =.mcp.json= of its own, because =bin/claude-org-setup= never writes one: grepped, **zero** occurrences of =mcp.json= in the whole script.
+
+*So this repo's org tools come from its own root =.mcp.json=, not from the plugin* — and that is why the gap was invisible here. This repo is deliberately not its own consumer, so it has never once exercised the path a consumer takes.
+
+*The manifest is not obviously at fault.* Checked against the plugin reference: =mcpServers= accepts =string|array|object=, a string path such as =./.mcp.json= is explicitly valid, and a =.mcp.json= at the plugin root is auto-discovered **without** being declared at all. So the declaration is correct twice over. Two candidates remain, and neither is resolvable from outside a session: a project-scope skills-dir plugin's MCP servers "go through the same per-server approval as a project =.mcp.json=", and an unapproved server may simply not list; or plugin-root discovery does not traverse the **symlink** that is the skills-dir entry.
+
+*Why this matters more than its size.* =README= §2 states that enabling the plugin "registers the =emacs-tools= MCP server". For a consumer that is **false**, and it is the one claim a consumer cannot work around by reading further — without the server there are no =org_*= tools, which is the entire product. It blocks =6a207b00=.
+
+*The cheap unblock, available now:* copy this repo's =.mcp.json= into the consuming repo. It is 122 bytes, the port is pinned and already matches the user's Doom config, and it is exactly how this repo gets its own tools. =claude-org-setup --org= is the natural home — it already writes into the consumer and already appends =.gitignore= entries.
+
+*What to decide rather than assume:* whether the fix is to deploy an =.mcp.json= (proven, under our control, one more file in the consumer) or to make the plugin's own declaration work (fewer moving parts, but the cause is unknown and may be a per-server approval that no amount of packaging removes). **Find the cause first** — if it is approval, deploying a second =.mcp.json= hits the same gate and fixes nothing.
+
+*Verify from inside a euchre session*, which is the one vantage this investigation lacked: whether an approval prompt appears at =SessionStart=, and what =/mcp= lists there.
+
+*Confound, learned minutes after filing and before any work started:* the reporting session's **startup was interrupted with =C-c=** — the user said it "looked weird and was taking a long time". That is exactly the shape of a per-server MCP approval prompt waiting for input, and aborting it would leave the server unregistered for reasons that are not a packaging defect.
+
+So the session's report is **evidence of the symptom, not of the cause**, and this heading should not be worked until a session there has been allowed to start cleanly. What survives the confound unchanged: =claude-org-setup= writes no =.mcp.json= (grepped, zero occurrences), euchre has none, and =claude mcp list= — a separate invocation, not the interrupted session — showed no =emacs-tools= there while showing it Connected here. That last is the one observation the interrupt does not obviously explain, and it is the one to re-take first.
+
+**Next step is an observation, not a fix:** start a clean session in euchre, do not interrupt it, and record whether an approval prompt appears, what =/mcp= lists, and how long startup takes. If approval is the answer, the "deploy an =.mcp.json=" remedy proposed above is wrong — it would hit the same gate.
+
+
 * TODO claude-org-setup --check reports only the promoted rules, so a clean run overstates how current a repo is :code:
 :PROPERTIES:
 :ID:       827bb778-deca-47b6-acd3-0977493a14aa
