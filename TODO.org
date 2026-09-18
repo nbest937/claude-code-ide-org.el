@@ -47,6 +47,19 @@ So =standalone-projects 'derive= did its job the moment euchre's org files becam
 
 *Retracted from the filing above:* the approval-gate and symlink-traversal hypotheses, and the "cheap unblock: copy this repo's =.mcp.json=" remedy — which would have connected euchre to the =warp= session and quietly pointed it at this repo. The =C-c= confound is also moot; it explained nothing, though it was right to record it rather than diagnose around it.
 
+*Sharpened: =warp= is not a project, it is an order-dependent alias.* =claude-code-ide-org-standalone-projects='s docstring says each directory registers under its basename "and the FIRST entry additionally as =warp= — the id the shipped =.mcp.json= URL (=/mcp/warp=) names, kept because that seam is the one verified against Warp's own agent". The registration is literally =(claude-code-ide-mcp-server-register-session "warp" (car projects) nil)=, and =--standalone-derive-projects= returns tracked =TODO.org= directories "in tracked-set order", i.e. =org-agenda-files= order.
+
+Measured today: the derived order is =claude-code-ide-org= then =agentic-euchre=, so =warp= aliases this repo **by position, not by identity**.
+
+*Three consequences, and the third is the defect.*
+
+- This repo's own tools reach it through an alias that is only *incidentally* correct. Nothing names this repo; it simply sorts first.
+- **If the agenda-files order ever changed, =/mcp/warp= would silently point somewhere else.** Euchre is second today. Were it first, every session using the shipped config — including this repo's own — would operate against euchre's tracker while reporting success. Order here is a directory-scan artifact, not a declared sequence.
+- So the shipped =.mcp.json= does not merely name the wrong project for a consumer, as recorded above. It names **whichever project happened to sort first on the packager's machine**, which is not a meaningful referent anywhere else and is not stable even here.
+
+*This subsumes the earlier "ship a config naming =warp=" framing.* The question is not which project the shipped URL should name. It is that a *static* file cannot name a *derived, ordered* alias correctly, and the alias exists only to preserve a URL that was verified against a different client years of this project ago. Candidate resolutions, in the order they should be weighed: have =claude-org-setup --org= generate the consumer's =.mcp.json= from its own basename (removes the alias from the consumer's path entirely); keep =warp= for this repo's verified Warp seam but stop shipping it; or register =warp= against an explicitly named project rather than =(car projects)=, so position stops deciding identity.
+
+
 
 
 * TODO claude-org-setup --check reports only the promoted rules, so a clean run overstates how current a repo is :code:
