@@ -1110,13 +1110,14 @@ tag, the query it exists to answer, and the =#+TAGS:= line and
 The keyword set carries no severity, so a defect someone actually hit reads the same as one reasoned about. An `:observed:` tag is the cheapest signal that distinguishes them, and it is a fact rather than a judgement — either it was seen in use or it was not.
 
 
-* REVIEW [9/9] Ship the tracker without the clock, so another project can use it while time tracking is still being built :code:
+* REVIEW [9/13] Ship the tracker without the clock, so another project can use it while time tracking is still being built :code:
 :PROPERTIES:
 :ID:       8bbae3aa-55db-441c-8c33-405570ad879a
 :CREATED:  [2026-09-17 Thu 11:16]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
+:BLOCKER:  43d479c8-bbaa-49ec-a3be-0d8ee90425e1 2082eeb3-afd8-4439-8774-81b48b1df9a1 805bf287-1401-44ab-bb6c-6e09b5b63b59 827bb778-deca-47b6-acd3-0977493a14aa
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-17 Thu 12:10] \\
@@ -1158,6 +1159,10 @@ Planned:
 - [X] [[id:d3149a81-91d2-4722-b6d8-68d4cee6fa4f][d3149a81]] DONE Verify the review buffer and apply pass on a queue that has never held a guidepost
 - [X] [[id:5fb70821-0f46-42d9-8bf3-93bc98025692][5fb70821]] DONE Establish whether two plugin manifests can share one MCP server, which is what decides the two-plugin question
 - [X] [[id:1254c24b-0dda-436e-a3d4-213de283692f][1254c24b]] DONE The prose still promises time tracking: README, CLAUDE.md, DOOM.md and the skill all describe a clock that no longer ships
+- [ ] [[id:43d479c8-bbaa-49ec-a3be-0d8ee90425e1][43d479c8]] TODO Every SessionStart report a consumer gets is computed over all tracked projects, so it names other repos' work
+- [ ] [[id:2082eeb3-afd8-4439-8774-81b48b1df9a1][2082eeb3]] TODO Nothing tells a session whether time tracking is on, though SessionStart could say it in one line
+- [ ] [[id:805bf287-1401-44ab-bb6c-6e09b5b63b59][805bf287]] TODO A consuming repo gets the hooks, rules and skill but no org tools: the plugin's MCP server never registers
+- [ ] [[id:827bb778-deca-47b6-acd3-0977493a14aa][827bb778]] TODO claude-org-setup --check reports only the promoted rules, so a clean run overstates how current a repo is
 
 *Decided by the user 2026-09-17, and it is larger than this slice: **time tracking is no longer a co-equal goal**.* "We have prioritized the other goal by committing to providing the ability to disable the time-tracking features." Committing to a switch **is** the ordering — a feature you can turn off is not co-equal with the one you cannot.
 
@@ -1207,6 +1212,20 @@ All 26 of euchre's are guideposts — 12 =pause=, 13 =resume=, 1 =block_start= �
 *Two qualifications, because this is observation rather than a test.* It rests on euchre having completed turns after its restart, which the session's own reports imply but which was not instrumented. And euchre records **no** =todo=/=capture=/=amend= either — not because those are gated, but because it has no MCP config and therefore no org tools at all (=805bf287=). So this confirms the *negative* half — guideposts stop — and the positive half, that task events still flow with the feature off, remains unobserved in a consumer and is pinned only by =d3149a81='s fixture.
 
 *The incidental finding that prompted it:* euchre has no repo-level =.claude/settings.json=, and that is **correct rather than missing**. A consumer takes the plugin's =hooks/hooks.json=; this repo takes its own wiring because =claude-org-setup= refuses to make it its own consumer. A consumer that had both would append every queue line twice, which is the trap the wiring rule already names.
+
+*Reopened =REVIEW= → =DOING= 2026-09-18 and four members adopted, at the user's direction.* Testing the branch in =~/git/agentic-euchre= — the first time this plugin has been exercised by a project that is not its author — found four defects that between them make this slice's own title false. A consumer could not use it.
+
+- =43d479c8= — every =SessionStart= report is computed over all tracked projects, so euchre's named *this* repo's headings.
+- =2082eeb3= — nothing tells a session whether time tracking is on, which is the very switch this slice added.
+- =805bf287= — a consumer gets no =org_*= tools at all, and the shipped =.mcp.json= names an order-dependent alias.
+- =827bb778= — =--check= reports "ok" while the glue and module go unexamined, and this slice *created* the drift it fails to report.
+
+*The transition is the one =REVIEW= exists for*: "going back to =DOING= means the review found something *missing or broken* — it is rework, not the normal close". These arrived exactly as the state-transition rules predict findings do — after every member was terminal, because an implementation cannot be tested until it is implemented.
+
+*Why adopt rather than defer to a successor.* The slice's claim is "so another project can use it", and the four are the difference between that being true and being aspirational. Closing on the original nine would have asserted something the testing disproved. The cost is accepted and named: =827bb778= is the least defined of the four — its own body says two things must be decided rather than assumed, and glue drift is not a content diff — so the slice cannot close until that is settled.
+
+*One thing the reopening proves about the process rather than the code.* Nine members closed on analysis, tests and review; four more appeared within an hour of a real consumer trying to use the result. The pattern named on =43d479c8= — one user, one project, versus one Emacs serving many — was invisible from inside the repo that is its own only user.
+
 
 
 
