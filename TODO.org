@@ -1053,6 +1053,25 @@ Not acted on: this is the user's call, and it reverses a composed decision mid-s
 :CREATED:  [2026-09-17 Thu 11:16]
 :CATEGORY: Apply
 :END:
+:DEBRIEF:
+*Shipped* in [[orgit-rev:claude-code-ide-org::ea6e603][ea6e603]]. Three tests, 688 → 691.
+
+*The claim held, which was not guaranteed.* This member existed because the corpus could not test its own premise: every review pass this project has run has read a queue full of guideposts, the =pause=/=resume= stream having been there since the 2026-08-11 cutover. The fixture is the first queue in this repo's history that has never held one.
+
+*What each pins, and why the assertion is shaped as it is.*
+
+- =guidepost-free-queue-yields-no-clock-items= asserts the item **types** — =(amend capture state)= — rather than a count. The failure it guards against is a =clock= item arriving from the span path with no span in the queue to build it from; a count would catch that too but would not name it, and the name is what a later reader needs.
+- =guidepost-free-queue-drains= exercises =--queue-file-drained-p=, which archiving depends on. Its own commentary records a real stranding — a trailing span whose proposal was dropped left a file that "never drained and so never archived". With no spans there is nothing to strand, and this asserts that rather than reasoning it.
+- =pending-capture-resolves-without-guideposts= is the sharpest, and it was not in this member's plan. =--pending-capture= is the bridge across the write-through edge: a deferred capture has minted and *reported* an =:ID:= whose heading does not exist yet, so reading the queue is what tells "not written yet" from "never existed". Nothing else exercises it without a span alongside, and it is exactly what a consumer running task tracking alone would hit first. Both directions asserted — a known id resolves, an unknown one stays nil — because the second is what makes the first mean anything.
+
+*Proved discriminating rather than merely green.* A passing test proves nothing until it is shown to fail for the right reason. Putting a =resume=/=pause= pair into the "guidepost-free" fixture made the first test fail with a clock item; restoring the file returned 691/691. Run with the file copied aside rather than stashed.
+
+*Scope grew with the slice.* The plan was written when the premise was *unwired hooks*; after =1b36c5bd= the queue is guidepost-free because the hooks **decline**, which is a different cause with the same shape — so the fixture tests the outcome rather than the mechanism, and stays true under either.
+
+*One defect found in passing.* Both this member's plan and a comment in =config.el= named =claude-code-ide-org--queue-drained-p=. No such function exists; it is =--queue-file-drained-p=. The wrong name in the plan is how it nearly reached the test — caught because the test had to actually call it.
+
+*Not attempted, and stated so it is not mistaken for covered:* =apply-detect= with fewer event kinds moving the watermarks. It is a shell hook comparing mtimes, exercised by neither =bin/test= nor a fixture queue, and testing it honestly needs a real apply pass rather than an ERT deftest. The risk it carries is a *missing* context injection, not a wrong one, which is the benign direction.
+:END:
 :PLAN:
 
 The claim this slice rests on: with no guideposts and no clock events, the review buffer shows only state changes, captures and amends — the item classes that have applied cleanly throughout, while every failure and every unanswerable question of 2026-09-17 came from a span or a clock item.
@@ -1063,6 +1082,9 @@ Two failure modes to probe rather than assume. =--queue-drained-p= is "yields no
 :END:
 
 Every review pass this project has run has read a queue full of guideposts. With the hooks cut, a consumer's queue holds captures, amends and state changes and nothing else — a shape the review buffer and apply pass have never been exercised against. Verify before shipping, not after a consumer reports it.
+
+*Resolved 2026-09-18: three ERT tests pin the shape, and the claim holds.* A queue of only =todo=/=capture=/=amend= yields exactly those three item types with nothing =:unassigned=; =--queue-file-drained-p= reports correctly; and =--pending-capture= still bridges a deferred capture's =:ID:= with no span in the queue beside it.
+
 
 
 * DONE Establish whether two plugin manifests can share one MCP server, which is what decides the two-plugin question :research:
