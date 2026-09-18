@@ -1009,6 +1009,19 @@ Planned:
 
 *And it sharpens this slice's own justification.* The measured case was behavioural — every failure and every unanswerable question of 2026-09-17 came from a span or a clock item. The ordering decision is the same conclusion reached from the other direction, by a human weighing goals rather than counting incidents.
 
+*The shape decision's premise is false, found 2026-09-18 while researching =1b36c5bd=.* The slice was composed on "a hook has no 'disabled' state, so wired and unwired are the only forms available". **A third form exists.** Claude Code plugins declare user-configurable options in =plugin.json='s =userConfig=, with =type: boolean= and a =default=; the values reach hook processes as =CLAUDE_PLUGIN_OPTION_<KEY>=. A hook can therefore be *wired but self-gating* — one line at the top of each script, exiting 0 when the option is off. Confirmed against the docs and against this machine's Claude Code **2.1.272**, past the 2.1.271 the option picker requires.
+
+What that would look like: =userConfig.time_tracking= as a boolean defaulting =false=; the six time scripts each open with a guard on =$CLAUDE_PLUGIN_OPTION_TIME_TRACKING=; =hooks/hooks.json= keeps every row it had. The consumer turns it on in =/config=, or at install with =claude plugin install ... --config time_tracking=true=.
+
+*Why this is better than what the slice chose, on the slice's own terms.* It removes =1b36c5bd='s whole problem rather than solving it — no flag has to write hook wiring anywhere, so the absolute-path objection and the =${CLAUDE_PLUGIN_ROOT}=-does-not-expand-in-settings.json finding both become moot. The toggle is discoverable where a consumer already looks, and flipping it edits no JSON by hand. The per-event cost is one env-var test and an exit, which is the shape =block-end= was already written to have.
+
+*What it costs, stated plainly:* it **reopens =eb6c4a9b= and =0c5577dc=**, both closed today on the removal decision. Under self-gating their rows go back into =hooks/hooks.json= and each script gains a guard — so the work is not discarded (the inventory, the row-level verification and the =clock-target-check= reasoning all still apply) but the commit is substantially rewritten. It also makes the plugin depend on a Claude Code version supporting =userConfig=.
+
+*And one thing it does not solve:* rules promotion. =claude-org-setup= cannot see a plugin option, so =org-time-tracking.md= would stay promoted unconditionally — which is where it already is, and its opening already tells the reader not to infer the feature is installed from its presence. Under self-gating that preamble should point at the option rather than at a =session-pause= row.
+
+Not acted on: this is the user's call, and it reverses a composed decision mid-slice.
+
+
 
 * TODO Verify the review buffer and apply pass on a queue that has never held a guidepost :code:
 :PROPERTIES:
