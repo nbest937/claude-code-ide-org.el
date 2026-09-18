@@ -31,6 +31,23 @@ So the session's report is **evidence of the symptom, not of the cause**, and th
 
 **Next step is an observation, not a fix:** start a clean session in euchre, do not interrupt it, and record whether an approval prompt appears, what =/mcp= lists, and how long startup takes. If approval is the answer, the "deploy an =.mcp.json=" remedy proposed above is wrong — it would hit the same gate.
 
+*Diagnosed 2026-09-18, and it is neither the interrupt nor an approval gate.* The Emacs side is **already correct**: =claude-code-ide-mcp-server--sessions= holds three registered sessions, and euchre has one —
+
+: claude-code-ide-org    :project-dir ~/git/claude-code-ide-org/
+: agentic-euchre         :project-dir ~/git/agentic-euchre/
+: warp                   :project-dir ~/git/claude-code-ide-org/
+
+So =standalone-projects 'derive= did its job the moment euchre's org files became discoverable. What is missing is the **client** half: euchre has no =.mcp.json=, so nothing tells Claude Code that =http://localhost:45571/mcp/agentic-euchre= exists.
+
+*And the plugin's own =.mcp.json= would not fix it — it would be wrong.* It hardcodes =/mcp/warp=, and =warp='s =:project-dir= is **this repository**. A consumer that successfully loaded the shipped config would connect to a session pointed at someone else's project. That is worse than the current failure, which is at least loud: no tools at all beats tools operating against the wrong tree.
+
+*Which reframes the defect.* The question is not "why does the plugin's MCP config not load" but "**why does the plugin ship an MCP config at all**". The URL carries a session name, the session name is the project name, and the project name is by definition not known at packaging time. =.mcp.json= is irreducibly per-consumer, so it belongs to =claude-org-setup --org= — which already writes into the consumer, already knows the target directory, and already derives a project name for the skill link.
+
+*Two things to decide.* Whether the plugin's root =.mcp.json= should be **removed** from the shipped surface, or kept for this repo's own use and excluded from the manifest — it is what gives this repo its tools today, so it cannot simply be deleted. And whether the generated file should pin the port from the same source =check-org-dev-skill= already asserts against, rather than being another hand-copied =45571=.
+
+*Retracted from the filing above:* the approval-gate and symlink-traversal hypotheses, and the "cheap unblock: copy this repo's =.mcp.json=" remedy — which would have connected euchre to the =warp= session and quietly pointed it at this repo. The =C-c= confound is also moot; it explained nothing, though it was right to record it rather than diagnose around it.
+
+
 
 * TODO claude-org-setup --check reports only the promoted rules, so a clean run overstates how current a repo is :code:
 :PROPERTIES:
