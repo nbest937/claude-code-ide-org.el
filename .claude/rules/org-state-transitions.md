@@ -148,14 +148,30 @@ nothing announced it, and three state changes went through `emacsclient`
 and never reached the queue. Nothing in the transcript looked wrong at the
 time. The user should not have to ask for this check.
 
-**And it can hang.** The `#+TODO:` line carries per-keyword logging
-cookies: `!` records a timestamp on entry, `@` *prompts for a note*. In
-this project `WAITING(w@/!)` and `CANCELLED(c@)` carry `@` and nothing else
-does — so a transition driven non-interactively through `emacsclient -e`
-blocks on a prompt for **those two keywords and only those two**. That
-asymmetry is one of the reasons state changes go through the queue rather
-than being applied live: apply runs inside a genuinely interactive command,
-where the prompt is answerable.
+**And it can hang — for any keyword that logs, not just the ones that
+prompt.** `org-add-log-note` `pop-to-buffer`s `*Org Note*` **before** it
+checks whether a note is even wanted, so every keyword carrying a
+logging cookie in `#+TODO:` defers through it and breaks a transition
+driven non-interactively through `emacsclient -e`. Measured against org
+9.8.7 (`:ID:` 3d576d29): even a bare `!` defers, and its note then fails
+to land.
+
+`@` versus `!` decides only whether a *human must type something* into
+the buffer that has already popped — it is not what decides whether the
+call breaks. In this project `WAITING(w@/!)` and `CANCELLED(c@)` carry
+`@`, and every other keyword carries `!`, so today the answer is all
+eight.
+
+**Do not read that as a fact about org.** It is a fact about *this*
+`#+TODO:` line. A consuming repo's may carry any cookies at all, or
+none, and nothing in the plugin pins them — `check-conventions` compares
+keyword *names* (its `keyword_set` strips cookies) and `bin/lint-org`
+never reads the line. A repo bootstrapped from `templates/` inherits
+these cookies by copy, not by enforcement.
+
+This is the reason state changes go through the queue rather than being
+applied live: apply runs inside a genuinely interactive command, where
+the deferred note can be driven to completion.
 **`PLANNING` was retired 2026-08-28** (`:ID:` c954f650), and with it the
 `ExitPlanMode` promotion hook, the cross-session owner guard, and four
 rows of the table above. Measured across the project's whole history
