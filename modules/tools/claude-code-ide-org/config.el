@@ -1467,20 +1467,56 @@ can treat an empty result as \"nothing worth injecting\"."
          (lines (append (when clocked (list clocked)) waits nominations)))
     (mapconcat #'identity lines "\n")))
 
-(defun claude-code-ide-org--session-context-hook-json ()
+(defun claude-code-ide-org--time-tracking-line (setting)
+  "A one-line report of the time-tracking SETTING, or nil to say nothing.
+
+SETTING is the plugin\'s `time_tracking\' userConfig value as the hook
+saw it -- \"true\", \"false\", or absent.  Claude Code exports it to hook
+processes as CLAUDE_PLUGIN_OPTION_TIME_TRACKING, which is the only
+place its value is legible: Emacs cannot read it (it lives in
+~/.claude/settings.json under `pluginConfigs\') and neither can the
+Bash tool, so a session had no way to answer \"am I being tracked?\"
+at all (TODO.org :ID: 2082eeb3).
+
+**Absent yields nil, deliberately.**  It means two different things --
+a Claude Code predating plugin userConfig, or a repo wiring these
+scripts through its own .claude/settings.json where there is no plugin
+option to read -- and this repository is the second case while having
+time tracking very much ON.  Reporting \"off\" there would be a
+confident falsehood of exactly the kind :ID: 43d479c8 was just fixed
+for.  Saying nothing follows the standing precedent that a guess is
+worse than none (:ID: 7771fc63)."
+  (cond
+   ((equal setting "true")
+    "Time tracking is ON: turn boundaries are recorded as guideposts for the review pass.")
+   ((equal setting "false")
+    "Time tracking is OFF: no guideposts are recorded, so spans will not appear at review. Turn it on with Claude Code\'s /config command.")
+   (t nil)))
+
+(defun claude-code-ide-org--session-context-hook-json (&optional time-tracking)
   "Return the SessionStart hook JSON payload for
-`claude-code-ide-org-session-context': an empty object if there is
+`claude-code-ide-org-session-context\': an empty object if there is
 nothing to report, otherwise one with additionalContext set to the
-session-context summary."
-  (let ((context (claude-code-ide-org-session-context)))
-    (if (equal context "")
+session-context summary.
+
+TIME-TRACKING is the raw `time_tracking\' option value; see
+`claude-code-ide-org--time-tracking-line\', which decides whether it is
+reportable at all.  It is appended rather than prepended: \"what was I
+last doing\" is what the session asked for, and the feature state is
+context on the answer."
+  (let* ((context (claude-code-ide-org-session-context))
+         (tt (claude-code-ide-org--time-tracking-line time-tracking))
+         (parts (delq nil (list (unless (equal context "") context) tt)))
+         (body (mapconcat #'identity parts "\n")))
+    (if (equal body "")
         "{}"
       (json-encode
        `((hookSpecificOutput
           . ((hookEventName . "SessionStart")
-             (additionalContext . ,context))))))))
+             (additionalContext . ,body))))))))
 
-(defun claude-code-ide-org-write-session-context-report (output-path &optional project)
+(defun claude-code-ide-org-write-session-context-report
+    (output-path &optional project time-tracking)
   "Write the SessionStart hook JSON payload for \"what was I last
 doing\" context to OUTPUT-PATH. Called directly via `emacsclient -e'
 by the session-context.sh hook script, which then just cats the
@@ -1501,7 +1537,9 @@ work."
   (let ((claude-code-ide-org--report-scope
          (and project (not (string-empty-p project)) project)))
     (with-temp-file output-path
-      (insert (claude-code-ide-org--session-context-hook-json)))))
+      (insert (claude-code-ide-org--session-context-hook-json
+               (and time-tracking (not (string-empty-p time-tracking))
+                    time-tracking))))))
 
 ;;; Statusline (bin/statusline) ------------------------------------------
 ;;

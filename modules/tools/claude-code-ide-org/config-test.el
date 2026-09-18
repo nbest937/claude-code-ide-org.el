@@ -17116,3 +17116,20 @@ why it is pinned rather than trusted."
                            (claude-code-ide-org--tracked-files)))))
       (delete-directory real t)
       (delete-directory link-parent t))))
+
+(ert-deftest claude-code-ide-org-test-time-tracking-line-says-nothing-when-unset ()
+  "Absent means unknown, and unknown says nothing.
+
+The two reportable values are easy and are checked for completeness.
+The third is the one that matters: CLAUDE_PLUGIN_OPTION_TIME_TRACKING
+is absent both on a Claude Code predating plugin userConfig AND in a
+repo wiring these scripts through its own .claude/settings.json -- and
+this repository is the second case with time tracking very much on.
+Reporting \"off\" there would be exactly the confident falsehood
+:ID: 43d479c8 was fixed for, so nil is the assertion with teeth."
+  (should (string-match-p "ON" (claude-code-ide-org--time-tracking-line "true")))
+  (should (string-match-p "OFF" (claude-code-ide-org--time-tracking-line "false")))
+  (should-not (claude-code-ide-org--time-tracking-line nil))
+  (should-not (claude-code-ide-org--time-tracking-line ""))
+  ;; Anything unrecognised is also unknown rather than assumed false.
+  (should-not (claude-code-ide-org--time-tracking-line "yes")))

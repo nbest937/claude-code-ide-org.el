@@ -15,7 +15,7 @@
 cat >/dev/null
 
 out="$(mktemp)"
-emacsclient -e "(claude-code-ide-org-write-session-context-report \"$out\" \"${CLAUDE_PROJECT_DIR:-}\")" >/dev/null 2>&1
+emacsclient -e "(claude-code-ide-org-write-session-context-report \"$out\" \"${CLAUDE_PROJECT_DIR:-}\" \"${CLAUDE_PLUGIN_OPTION_TIME_TRACKING:-}\")" >/dev/null 2>&1
 
 if [[ -s "$out" ]]; then
   cat "$out"
