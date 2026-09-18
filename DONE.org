@@ -8,6 +8,2926 @@ Archived entries from file /Users/neil.best/git/claude-code-ide-org/TODO.org
 
 ** 2026-09 September
 *** 2026-09-17 Thursday
+**** DONE Apply consumes an event whose transition org refused, so the change is lost and never re-offered :code:
+CLOSED: [2026-09-17 Thu 16:50]
+:PROPERTIES:
+:ID:       b693c444-9ade-4103-a7b6-93eea0926763
+:CREATED:  [2026-09-17 Thu 13:40]
+:CATEGORY: Apply
+:ARCHIVE_TIME: 2026-09-18 Fri 08:15
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Apply
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-17 Thu 16:36]--[2026-09-17 Thu 16:43] =>  0:07
+- State "DOING"      from "TODO"       [2026-09-17 Thu 16:36] \\
+  severe: silent loss of a human-approved transition, recurring on every @-cookie keyword
+- [2026-09-17 Thu 16:36]--[2026-09-17 Thu 16:43]
+CLOCK: [2026-09-17 Thu 16:46]--[2026-09-17 Thu 16:50] =>  0:04
+- [2026-09-17 Thu 16:46]--[2026-09-17 Thu 16:50]
+- State "DONE"       from "DOING"      [2026-09-17 Thu 16:50] \\
+  merged as PR #27; test proved to discriminate 687/1 against 688/0
+:END:
+:DEBRIEF:
+*Shipped* in =--review-apply-item= as the inverse of the check =b23e5bcc= added: no error reported plus a heading that does not show the target keyword is now a reported failure, so the item stays pending instead of being watermarked. =unresolved= fails it too — never consume an event whose effect cannot be verified. Merged as PR #27, commit =bde1ece=.
+
+*Verified, and proved to discriminate rather than merely to pass.* =…-apply-refuses-to-consume-a-blocked-transition= is red against the old code and green against the new: **687/1 reverted, 688/0 fixed**. A second test pins that an ordinary successful transition still applies and is still consumed, because a guard that refused everything would have passed the first test too. =bin/test= 688/688, =check-conventions= 32 ok, =lint-org= 0 errors on =main= after the merge.
+
+*What was falsified.* This heading opened believing the =@=-cookie note prompt was the cause. It is not needed to explain any of the three casualties: =org-todo='s =org-blocker-hook= branch takes a *silent* path whenever it is not called interactively — org's own comment is "Fail silently" — messaging and throwing =exit= rather than signalling. Apply calls it from a lambda, so a refusal has always been invisible to it. The =@= hypothesis may still explain what stalled =89351a23= specifically; it explains nothing about why the watermark advanced.
+
+*What differed from the plan.* The filed proposal was to compare state after the call against the event's target, which is what shipped — but the *reach* is wider than proposed, because checking the outcome instead of the cause covers the blocked case, an escaped note prompt and anything else that leaves the keyword unchanged without signalling. One deliberate strictness beyond the proposal: an unresolvable =:ID:= also fails, since "cannot verify" must not mean "consume".
+
+*A trap found in the writing, worth not rediscovering.* The first version of the test staged its block with =org-enforce-todo-dependencies= and an unfinished child, and **passed against the broken code** — org's own =org-block-todo-from-children-or-siblings-or-parent= is not installed under batch, so nothing blocked and the transition simply succeeded. It was restaged through =--blocker-clock-running-p=, one of this repo's two live =org-blocker-hook= entries, which also makes it the production path.
+
+*Left open and untouched:* the seven audit records for =89351a23= at 13:04:39 carrying four distinct =before_sha256= values that converge on one =after_sha256=. Still a hypothesis about attribution leaking across a batch of writes, and still worth establishing before anything is built on it.
+:END:
+:PLAN:
+
+Observed 2026-09-17. Three queued transitions — =89351a23= to =CANCELLED=, =406e9200= and =749301a0= to =DONE= — are recorded in the =.applied= watermark and **none of them took effect**. On disk the headings still read =DOING=, =REVIEW= and =DOING=. The events are consumed, so nothing will ever offer them again, and the user found it only by noticing the transitions were absent from the review buffer.
+
+*One cause, three casualties.* =CANCELLED(c@)= is one of only two keywords here carrying an =@= cookie, so org **prompts for a note** on entry — the asymmetry the state-transition rules already name as a reason state changes go through the queue. The prompt was evidently not completed, so =89351a23= stayed =DOING=. =org-enforce-todo-dependencies= is =t=, so =406e9200= could not close over a =DOING= child; and =749301a0='s =:BLOCKER:= named =89351a23=, so =org-depend-block-todo= refused it too. Both parents' refusals are *correct* — the guards did their job. What is wrong is that the watermark advanced anyway.
+
+*The audit log corroborates the refusals and nothing else.* It holds **no** =org_review_apply= record for either parent, consistent with the change never reaching =org-after-todo-state-change-hook=. So the two guards fired before any write, exactly as designed.
+
+*Unexplained, and deliberately not guessed at:* the audit log holds **seven** records for =89351a23= at 13:04:39, all =result: saved=, with four distinct =before_sha256= values converging on one =after_sha256=. Seven records for one heading with differing befores looks like attribution leaking across a batch of writes rather than seven writes to that heading, but that is a hypothesis. It may be a second defect and should be established before anything is built on it.
+
+*Why this is the serious class rather than an annoyance.* The queue's guarantee is that an event survives until a human accepts it. A refused transition marked applied breaks that silently and in the worst direction: the record is wrong, the evidence is gone, and every later reader sees a heading that simply never closed. Compare =05c71d99=, which was apply *logging* a self-transition — noise. This is the inverse and it loses data.
+
+Proposal: the watermark should advance only on a transition org actually performed. The signal exists — =org-todo= leaves the keyword readable at point — so apply can compare the heading's state after the call against the event's target and treat a mismatch as a failure, which it already knows how to report. Worth deciding at the same time whether an =@=-cookie prompt that is escaped should be a *reported failure* rather than a silent no-op, since that is the trigger here and it will recur for every =CANCELLED= and =WAITING=.
+:END:
+
+Three transitions were marked applied in the watermark and none took effect: =89351a23='s =CANCELLED= stalled on the =@=-cookie note prompt, which left it =DOING=, which then correctly blocked =406e9200= (=org-enforce-todo-dependencies=) and =749301a0= (=:BLOCKER:=). The guards were right; the watermark advancing was not. Consumed events are never re-offered, so the change is simply lost and the heading reads as though it never closed. Proposal: advance the watermark only when the heading's state after the call matches the event's target, and report an escaped =@= prompt as a failure rather than a no-op.
+
+*Fixed 2026-09-17 on =feature/apply-verifies-transitions=. The root cause is confirmed from primary source and is more general than the =@=-prompt hypothesis this heading opened with.*
+
+=org-todo='s `org-blocker-hook' branch in org.el decides what a refused transition does, and its own comment names the behaviour:
+
+#+begin_src elisp
+(if (called-interactively-p 'interactive)
+    (user-error "TODO state change from %s to %s blocked (by %s)" ...)
+  ;; Fail silently.
+  (message "TODO state change from %s to %s blocked (by %s)" ...)
+  (throw 'exit nil))
+#+end_src
+
+Apply calls =org-todo= from a lambda, never interactively, so **every blocked transition takes the silent branch**: it messages, throws =exit=, and returns nil. =--at-id= sees no error, =--review-apply-item= returns nil, the item joins =applied=, and =--review-record-applied= watermarks it. The event is consumed having changed nothing, and a consumed event is never re-offered.
+
+*So the =@=-cookie note prompt was a hypothesis and is not needed to explain this.* Whatever stalled =89351a23=, the two parents were refused by the guards — =org-enforce-todo-dependencies= and =org-depend-block-todo= on the =:BLOCKER:= — and *that* path is now proven to be silent by construction rather than by accident.
+
+*The fix checks the outcome, not the cause*, which is what makes it cover all three casualties and the =@= case together. =--review-apply-item= already had a one-directional check: reported failure plus a heading that shows the target keyword becomes success-with-a-warning (=b23e5bcc=). It now has the inverse — **no error reported plus a heading that does not show the target keyword becomes a reported failure** — so the item stays pending instead of being consumed. =unresolved= fails the test too: never consume an event whose effect cannot be verified.
+
+*Proved to discriminate rather than merely to pass.* =claude-code-ide-org-test-apply-refuses-to-consume-a-blocked-transition= is red against the old code and green against the new — 687/1 reverted, 688/0 fixed. A second test pins that an ordinary successful transition still applies and is still consumed, since a guard that refuses everything would also have passed the first one.
+
+*Staged through =--blocker-clock-running-p=, one of this repo's two live =org-blocker-hook= entries, deliberately.* org's own =org-block-todo-from-children-or-siblings-or-parent= is **not installed under batch**, so =org-enforce-todo-dependencies= alone cannot stage a block there — found by probe when the first version of the test passed against the broken code for that reason.
+
+*Left open, as filed:* the seven audit records for =89351a23= at 13:04:39 with four distinct =before_sha256= values. Untouched here and still a hypothesis about attribution leaking across a batch of writes.
+
+**Resolution:** apply now refuses to consume a state event whose transition did not land, checking the heading's keyword after the call rather than trusting =org-todo='s silence. Merged as PR #27.
+
+**** DONE [17/17] Make the guidepost pipeline produce durations that mean what they say :code:
+CLOSED: [2026-09-17 Thu 13:40]
+:PROPERTIES:
+:CATEGORY: Queue
+:ID:       406e9200-c3e7-49ac-a8d0-d6ff8e061ce4
+:CREATED:  [2026-08-18 Tue 08:15]
+:ARCHIVE_TIME: 2026-09-18 Fri 08:15
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Queue
+:ARCHIVE_TODO: DONE
+:END:
+:DEBRIEF:
+*Opened 2026-08-18, closed 2026-09-17: a month, seventeen members.*
+
+*What shipped, in one line each.* Phantom resume guideposts from background notifications; two clock mechanisms disagreeing, one predating the cutover; spans that could only be dismissed; the accumulated-record correction; live attention visibility decoupled from the authoritative clock; a session-start line that had stopped discriminating; an error string rendered where a title belonged; the union of concurrent turns; a background job's first turn bracketed across two session ids; the floor on what gets written named as a knob; a review buffer predicting a duration org does not write; fifty-six CLOCK lines disagreeing with their own timestamps; the unowned gaps a split span dropped; the 0-run envelope and the =c= key that claims it; =cwd= ignored so two projects clustered as one; and a session id changing mid-work splitting one bracket across two queue files.
+
+*What the close nearly got wrong, and it is the most useful thing here.* This story reached =[16/16]= and =REVIEW= on 2026-09-16 and would have closed there. Reviewing it for that close found =507754ba= — "Correct the accumulated record **once the aggregator is fixed**" — closed 2026-08-19 on a *conditional* that had silently stopped holding: four more aggregator changes landed on 09-16 and 09-17, two of which alter what the pipeline *emits* rather than only what it computes. A member that closes on a condition can be un-closed by later work without anyone touching it.
+
+*Measured rather than assumed, and the two measurements disagree violently.* Running the pre-fix and post-fix aggregators over identical input — 4,591 events, 3,003 guideposts, 331 brackets — **68% of spans differ**: 142 of 442 survive unchanged, and the envelope grows 8.73 h because the complement now emits gaps it used to drop. But comparing the **runs**, which is what apply actually writes: **702 of 703 identical**, one interval on 2026-09-10 splitting as an 82-second idle gap stops being absorbed, and total recorded time falling by about seventy seconds.
+
+*So the record was sound and the proposals were not.* A span is an offer; a run is a record. Changing what is offered does not change what was written once the offers were accepted. Both figures are correct and only the second bears on the corpus — which is why =89351a23= closed =CANCELLED= on the number instead of rewriting a month of CLOCK lines.
+
+*The practice that saved it.* Splitting the measurement from the correction, the same shape =e3d1531d= and =b5448133= took two days earlier. Without it the 68% would have justified the rewrite on its own.
+
+*Left open deliberately, and not this story's work:* =445fe577=, whose complement gap spans still cannot be dismissed; =e3d1531d= and =b5448133=, the review-attention truncation and its retcon; and the four filed this week against the review buffer's rendering and the =c= key. Time tracking continues here while =8bbae3aa= takes it out of what ships.
+:END:
+:LOGBOOK:
+- [2026-08-18 Tue 08:20]--[2026-08-18 Tue 08:22] assigned at review
+- State "PLANNING"   from "TODO"       [2026-08-18 Tue 08:22] \\
+  plan the pipeline epic and its four children
+- [2026-08-18 Tue 08:38]--[2026-08-18 Tue 08:38] plan span pipeline end to end
+CLOCK: [2026-08-18 Tue 08:42]--[2026-08-18 Tue 08:43] =>  0:01
+- [2026-08-18 Tue 08:42]--[2026-08-18 Tue 08:43] plan span pipeline end to end
+- State "DOING"      from "PLANNING"   [2026-08-18 Tue 08:54]
+- [2026-08-18 Tue 08:56]--[2026-08-18 Tue 08:56] plan span pipeline end to end
+CLOCK: [2026-08-18 Tue 09:32]--[2026-08-18 Tue 09:33] =>  0:01
+- [2026-08-18 Tue 09:32]--[2026-08-18 Tue 09:33] plan span pipeline end to end
+CLOCK: [2026-08-18 Tue 09:52]--[2026-08-18 Tue 09:54] =>  0:02
+- [2026-08-18 Tue 09:52]--[2026-08-18 Tue 09:54] plan span pipeline end to end
+CLOCK: [2026-08-18 Tue 10:01]--[2026-08-18 Tue 10:03] =>  0:02
+- [2026-08-18 Tue 10:01]--[2026-08-18 Tue 10:03] plan span pipeline end to end
+- State "REVIEW"     from "DOING"      [2026-09-16 Wed 14:08] \\
+  16/16 terminal; awaiting the PR merge
+- State "DONE"       from "REVIEW"     [2026-09-17 Thu 13:40] \\
+  re-queued: blocked by 89351a23 still DOING, consumed anyway
+:END:
+:PLAN:
+
+A span's duration is currently wrong in both directions, and the error
+enters at three separate stages. Measured 2026-08-17 across all 834
+post-cutover guideposts: kind-blind clustering totals *39.10 h* against
+*21.59 h* for =resume= -> =pause= pairing — an overcount of 17.50 h, about
+45%, because every idle gap under twenty minutes is absorbed into the
+surrounding span. In the other direction, six turns exceeded the
+threshold and were rendered as zero-width points, 4.88 h invisible.
+
+*The three stages, which is why this is a parent rather than one fix:*
+
+- *Input* — guideposts that record something that did not happen. A
+  background task completing re-invokes the model, fires
+  =UserPromptSubmit=, and appends a =resume= with no user present.
+- *Transform* — =--aggregate-guideposts= maps =:ts= over events and never
+  reads =:kind:=, so it clusters an undifferentiated stream. But
+  =pause= -> =resume= means nobody was there and =resume= -> =pause=
+  means one turn was running; the threshold was tuned for the first and
+  inverts on the second. Separately, =--trigger-auto-clock-in= opens a
+  live clock that nothing stops, so two mechanisms write CLOCK lines
+  with no knowledge of each other.
+- *Output* — a lone timestamp becomes a zero-width item that can only be
+  dismissed. That is the transform's failure made visible, not a
+  cosmetic annoyance.
+- *Record* — 98 post-cutover CLOCK lines across TODO.org and DONE.org
+  carry the accumulated error.
+
+*Why now, and not later.* The bias profile inverts under the working mode
+this project is moving toward. Long unattended stretches mean fewer turn
+boundaries, so the overcount shrinks and the long-turn undercount grows —
+the defect becomes dominant exactly when the human is least able to notice
+it, and the work least observed becomes the work least accurately
+recorded. That is the opposite of what CLAUDE.md's second stated goal
+asks for.
+
+*Deliberately not a child:
+[[id:96a51c2f-ce11-4b40-bdff-11223d3d4eb7][96a51c2f]].* It carries a
+=+1m= repeater and never reaches =DONE=, and its own body records being
+promoted out of an epic for exactly that reason — "a recurring
+measurement has no terminal state and therefore no completable parent".
+Making it a child here would repeat the trap
+[[id:38b92521-bba4-4bb5-9cd9-465862471a72][38b92521]] sat in. It is
+referenced instead, and its subject changes if this work lands: the
+threshold is not the lever once the aggregator reads =:kind:=, so what
+that recurring measurement is *for* needs restating.
+
+[[file:~/.claude/plans/elegant-questing-lamport.md][Plan]] — approved
+2026-08-18. Covers all five children; each links this same file rather than
+carrying one of its own, following 02aaae22 / c556a9ed.
+
+:END:
+*Resolved 2026-09-17.* Seventeen members, every one terminal. The pipeline now produces durations that mean what they say — and the last question it held open, whether the accumulated record needed re-deriving after the aggregator changed four more times, was answered by measurement rather than by rewriting: 702 of 703 runs identical, seventy seconds of drift across a month.
+
+
+***** DONE Background-task notifications write phantom resume guideposts :code:
+CLOSED: [2026-08-19 Wed 08:05]
+:PROPERTIES:
+:ID:       09c134c4-31eb-4f6c-aa10-f836d1d28f16
+:CREATED:  [2026-08-12 Wed 17:46]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-12 Wed 17:47] \\
+  phantom resume inflates human-present time
+CLOCK: [2026-08-18 Tue 18:14]--[2026-08-18 Tue 18:16] =>  0:02
+- [2026-08-18 Tue 18:14]--[2026-08-18 Tue 18:16] classify unmatched resumes from data on disk
+- State "DONE"       from "TODO"       [2026-08-19 Wed 08:05] \\
+  re-queued, lost to my git checkout
+:END:
+:PLAN:
+
+Observed 2026-08-12 during the subagent experiment behind
+[[id:0d789b68-faca-4911-868a-fdd70acbfd40][0d789b68]]. A background
+task completing re-invokes the model, which fires =UserPromptSubmit=,
+which appends a =resume= guidepost — with no user having sent anything:
+
+: 17:22:41  resume  UserPromptSubmit   (agent 1 finished ~17:21:47)
+: 17:23:50  resume  UserPromptSubmit   (agent 2 finished ~17:23:15)
+
+The events are byte-identical to a genuine prompt's; no field
+distinguishes them. This matters because CLAUDE.md defines the
+pause/resume stream as tracking *active work time only* — "paused the
+moment Claude Code stops and is waiting on the user, resumed the moment
+the user sends the next prompt." A robot wake-up now reads as the human
+returning to the keyboard, and since
+=--aggregate-guideposts= reconstructs human spans from exactly these
+timestamps, the effect is to inflate apparent human-present time in
+every =:suggested:= interval that spans a background completion.
+
+Affects any background task, not just subagents. Note the guidepost
+carries =agent_id: nil= even when the notification came from an agent —
+the hook fires in the parent's turn, not the agent's — so filtering on
+=agent_id= is *not* the fix.
+
+Not yet investigated: whether the hook payload distinguishes a real
+submission from a task-completion re-invocation at all. If it does not,
+the honest options are to accept the inflation and document it, or to
+stop treating =resume= as evidence of human presence.
+
+*Promoted out of [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] on
+2026-08-14,* alongside
+[[id:f4e628ce-e653-429a-8f3c-0f5d4241b139][f4e628ce]], which it pairs
+with directly — both are about guideposts that are missing or phantom,
+and [[id:d1cf852a-696a-4195-a4a7-039439c1f4b7][d1cf852a]] already notes
+that a bracket bounds the damage from either. Filed under the epic by
+proximity rather than membership: the queue is complete without it.
+
+[[file:~/.claude/plans/elegant-questing-lamport.md][Plan]] — the epic's plan
+document, which carries this child's design rather than a file of its own.
+
+:END:
+*Ran the free check 2026-08-18, and it says do not instrument.* The plan
+asked for this before writing any code: 891 post-cutover guideposts
+across 16 sessions, classified from data already on disk.
+
+| unmatched =resume=                                | 2 |
+| ...handoff to a background job                    | 1 |
+| ...in flight, the stream still open               | 1 |
+| ...unexplained                                    | 0 |
+| =resume= -> =resume= adjacencies                  | 9 |
+| ...with an agent finishing within 5 minutes       | 0 |
+| ...followed by real work (a =pause= 8s-1959s on)  | 9 |
+
+Every one of the nine is an interrupt or a queued follow-up — a second
+=UserPromptSubmit= before the first turn's =Stop= fired, with gaps of
+30s to 1705s and genuine work after each. That is exactly the hypothesis
+the plan proposed testing first, and it holds with nothing left over.
+The one handoff is
+[[id:9202b39d-49e4-441c-89f2-382feb4ef1ea][9202b39d]], found earlier
+today and not a phantom either.
+
+*Not phantom-free evidence, and it must not be read that way.* Only
+*two* subagent runs exist post-cutover (2 =clock_in=, 2 =clock_out=,
+2 distinct agents). The condition that produced the original observation
+barely occurred, so "no phantoms found" is close to uninformative on its
+own. The case for closing rests on the next paragraph, not this one.
+
+*The harm has no mechanism left, whether or not phantoms still fire.*
+This heading's stated defect is that a robot wake-up "reads as the human
+returning to the keyboard" and so "inflates apparent human-present
+time". Nothing claims human-present time any more.
+[[id:b8e6007a-ae13-4b13-bb2e-a5df39435af0][b8e6007a]] made every
+queue-derived annotation *inactive*, on the finding that the queue
+records agent activity and nothing else, and that conflating the two
+makes the agenda unreadable. And since
+[[id:226ed53b-c302-4529-870f-a42962b50bde][226ed53b]]'s step 2(b) the
+only thing written as duration is a =resume= -> =pause= run. A phantom
+=resume= marks the moment the model was genuinely re-invoked and began
+working; the run that follows it is real agent time, and counting it is
+*correct* under the semantics the record now has.
+
+So the defect dissolved sideways — not by anything done to it, but
+because the quantity it corrupted stopped being claimed. Worth naming as
+the same shape as
+[[id:31f766ab-90ed-4950-bc5b-787528c8fe84][31f766ab]]'s cause 2, which
+the plan *predicted* would dissolve and did not: predictions about which
+defects evaporate under a refactor have now been wrong once and right
+once, so neither should be trusted without the check.
+
+*The one residual is a sentence, not a mechanism.* CLAUDE.md still says
+a clock is "resumed the moment the user sends the next prompt", which is
+precisely what a background wake-up falsifies. That line is already
+owned by [[id:d39f5f0d-bee3-4aa4-8494-0bddd07e9067][d39f5f0d]], so it is
+left there rather than duplicated here.
+
+*Nothing was built, deliberately.* The plan's fallback — record
+=transcript_path= plus an offset in =bin/hooks/queue-append= — is not
+warranted: it would answer a question whose answer no longer changes any
+number.
+
+
+***** DONE Two clock mechanisms disagree, and one of them predates the cutover :code:
+CLOSED: [2026-08-19 Wed 17:48]
+:PROPERTIES:
+:ID:       226ed53b-c302-4529-870f-a42962b50bde
+:CREATED:  [2026-08-18 Tue 07:20]
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-18 Tue 07:14]--[2026-08-18 Tue 07:21] =>  0:07
+- [2026-08-18 Tue 07:14]--[2026-08-18 Tue 07:21] assigned at review
+CLOCK: [2026-08-18 Tue 07:23]--[2026-08-18 Tue 07:27] =>  0:04
+- [2026-08-18 Tue 07:23]--[2026-08-18 Tue 07:27] assigned at review
+CLOCK: [2026-08-18 Tue 07:30]--[2026-08-18 Tue 07:36] =>  0:06
+- [2026-08-18 Tue 07:30]--[2026-08-18 Tue 07:36] assigned at review
+CLOCK: [2026-08-18 Tue 07:42]--[2026-08-18 Tue 07:43] =>  0:01
+- [2026-08-18 Tue 07:42]--[2026-08-18 Tue 07:43] assigned at review
+CLOCK: [2026-08-18 Tue 07:54]--[2026-08-18 Tue 07:56] =>  0:02
+- [2026-08-18 Tue 07:54]--[2026-08-18 Tue 07:56] assigned at review
+- State "DOING"      from "TODO"       [2026-08-18 Tue 10:18] \\
+  kind-aware clustering, per-run lines, silence trigger
+CLOCK: [2026-08-18 Tue 10:24]--[2026-08-18 Tue 10:27] =>  0:03
+- [2026-08-18 Tue 10:24]--[2026-08-18 Tue 10:27] implement the two-mechanism fix
+CLOCK: [2026-08-18 Tue 10:31]--[2026-08-18 Tue 10:33] =>  0:02
+- [2026-08-18 Tue 10:31]--[2026-08-18 Tue 10:33] implement the two-mechanism fix
+CLOCK: [2026-08-18 Tue 10:39]--[2026-08-18 Tue 10:40] =>  0:01
+- [2026-08-18 Tue 10:39]--[2026-08-18 Tue 10:40] implement the two-mechanism fix
+CLOCK: [2026-08-18 Tue 10:44]--[2026-08-18 Tue 10:45] =>  0:01
+- [2026-08-18 Tue 10:44]--[2026-08-18 Tue 10:45] implement the two-mechanism fix
+CLOCK: [2026-08-18 Tue 10:47]--[2026-08-18 Tue 11:24] =>  0:37
+- [2026-08-18 Tue 10:47]--[2026-08-18 Tue 11:24] suggested span, accepted at review
+CLOCK: [2026-08-18 Tue 11:24]--[2026-08-18 Tue 11:25] =>  0:01
+- [2026-08-18 Tue 11:24]--[2026-08-18 Tue 11:25] step 2(b): per-run CLOCK lines with idle floor
+CLOCK: [2026-08-18 Tue 11:27]--[2026-08-18 Tue 11:44] =>  0:17
+- [2026-08-18 Tue 11:27]--[2026-08-18 Tue 11:44] assigned at review
+- State "REVIEW"     from "DOING"      [2026-08-18 Tue 11:43] \\
+  2(a)(b)(c) all shipped, handed back for judgement
+- State "DONE"       from "REVIEW"     [2026-08-19 Wed 17:48] \\
+  both review decisions made, mechanisms compose
+:END:
+
+*Where this ended up.* Two mechanisms were writing clock time by
+different rules, and the intended one counted your idle time between
+turns as work. Three changes fixed it: *2(a)* made clustering
+kind-aware so a long turn survives (=a931eb1=); *2(b)* made apply
+write one CLOCK line per run of work rather than one per span,
+removing a ~45% overcount (=e297bbd=); *2(c)* silenced the
+pre-cutover auto-clock-in trigger, leaving one mechanism (=c9fc1a3=).
+The accumulated record was recomputed separately under
+[[id:507754ba-ae82-4f04-b209-8d8c58ac268e][507754ba]].
+
+*Two decisions are yours, and are the only reason this is REVIEW
+rather than DONE.* Is a 5-16 line drawer readable, at
+=claude-code-ide-org-span-idle-floor= 120s? Raising it to 300s reads
+better and re-absorbs about 8 h of idle. And do you want =C-c C-t= to
+start a clock again (=claude-code-ide-org-auto-clock-in-on-doing= ->
+t)? Both are one-line changes either way.
+
+Everything below is the original diagnosis followed by three shipping
+journals, in the order they were written.
+
+=38b92521='s :LOGBOOK: claimed *3:59* for a session that ran 15:28 to
+18:50. Corrected to 2:44 by hand on 2026-08-17. The overcount came from
+two mechanisms writing CLOCK lines into the same drawer with no knowledge
+of each other.
+
+*Mechanism 1, the intended one.* The review pass turns pause/resume
+guideposts into spans and writes them on apply. Six such spans were in
+that drawer, totalling 1:07, each annotated "assigned at review".
+
+*Mechanism 2, which should not exist post-cutover.*
+=claude-code-ide-org--trigger-auto-clock-in= opened a live clock when the
+user set PLANNING by hand with =C-c C-t=, and it ran *continuously* until
+closed — one 2:52 interval straight through every pause, overlapping
+almost all of mechanism 1's spans. This is precisely the pre-cutover
+behaviour the refactor removed from the hooks: =session-pause= and
+=session-resume= no longer clock, so nothing stops a live clock any more.
+The trigger reintroduces it by a path nobody intended.
+
+*The third finding, and the most serious: the guidepost model is blind to
+long turns.* Guideposts mark *turn boundaries*. A single long turn emits
+none, so =--aggregate-guideposts= sees one lone timestamp and produces a
+zero-width span. Measured on this heading: 15:28→16:37 was one 69-minute
+turn (exploration, planning, writing the plan) and 16:49→17:17 another of
+28 minutes. Both are real work. Both were invisible to the review pass,
+which is why they had to be added by hand. Together they are 1:37 — more
+than the 1:07 the review pass did record.
+
+That reframes [[id:31f766ab-90ed-4950-bc5b-787528c8fe84][31f766ab]]. Its
+zero-length spans are not merely annoying: each one is the review buffer's way
+of reporting *a long turn it cannot measure*. The aggregator's docstring calls a
+lone timestamp "honest — one interaction point is not evidence of a duration",
+which is true of the evidence and false of the world.
+
+*Directions, since decided* — recorded as open on the morning of
+2026-08-18 and settled by that evening. The first shipped as 2(c)
+below. The second was never taken. The third is *not* moot, though
+this paragraph said so for a day: 2(b) makes the written lines
+shorter, not non-overlapping, so a human's own CLOCK line can still
+contain several of them. It is the enabling fix for accepting
+hand-set transitions gracefully — see
+[[id:dadc08cf-9e12-4e93-bde8-68c241622b0f][dadc08cf]]:
+
+- Exempt hand-set PLANNING/DOING from the auto-clock-in trigger, or have
+  the trigger queue a =clock_in= event instead of opening a live clock, so
+  there is only one mechanism.
+- Emit a guidepost on some interval *within* a turn, not only at its
+  boundaries, so long turns stop being invisible. Changes what a guidepost
+  means.
+- Have apply refuse to write a span that overlaps an existing CLOCK line
+  on the same heading. Catches the symptom wherever it comes from.
+
+*Related but distinct:* [[id:ab75d6d2-0e59-405d-92c6-2c67488db133][ab75d6d2]]
+shipped the container exemption for this same trigger, so the trigger is already
+known to need scoping. And [[id:d39f5f0d-bee3-4aa4-8494-0bddd07e9067][d39f5f0d]]
+says CLAUDE.md's "Session tracking" section describes a clocking mechanism that
+no longer exists. This paragraph then said the mechanism *did* still exist,
+which was true until 2(c) silenced it that same evening. So CLAUDE.md is wrong
+about it for a third distinct reason now: the mechanism exists, and is off by
+default.
+
+-----
+
+*The mechanism, demonstrated 2026-08-17 rather than argued.* A long turn
+does *not* emit zero guideposts — it emits exactly two, its own
+boundaries. =Stop= fires =pause= when a turn ends, =UserPromptSubmit=
+fires =resume= when the next begins, and nothing fires in between. So a
+turn of duration D contributes two timestamps D apart, and the only thing
+that decides their fate is D against the 1200-second threshold:
+
+: SHORT turn (10 min):  [10:00]--[10:10]  =>  10 min
+: LONG  turn (69 min):  [10:00]--[10:00]  =>   0 min
+:                       [11:09]--[11:09]  =>   0 min
+
+Identical evidence, opposite outcome. Worse, in the real 15:28 case the
+long turn's closing =pause= was absorbed into the *following* cluster,
+where it described a 3-minute turn it had nothing to do with — so the
+duration is not merely lost, part of its evidence is re-attributed.
+
+*Root cause: =--aggregate-guideposts= never reads =:kind:=.* It maps
+=:ts= over the events and clusters an undifferentiated stream of
+timestamps. But the two gap types mean opposite things — =pause= ->
+=resume= is nobody being there, =resume= -> =pause= is one turn running.
+The threshold was tuned for the first (bimodal latency over four days,
+:ID: 96a51c2f). Applied to the second it inverts: the strongest evidence
+of continuous work reads as absence. *The fix is therefore not retuning
+1200* — raising it swallows real idle, lowering it fragments more turns.
+The distinction is already on every event and is discarded before
+clustering.
+
+*Measured across the whole post-cutover record, and it corrects the
+direction stated above.* 834 guideposts, 2026-08-11 onward:
+
+| method                                  | total   |
+|-----------------------------------------+---------|
+| kind-blind clustering (what runs today) | 39.10 h |
+| =resume= -> =pause= pairing             | 21.59 h |
+| difference                              | −17.50 h |
+
+*The net bias is overcounting, not undercounting* — about 45%. Clustering
+absorbs every idle gap under 20 minutes into the surrounding span, and
+CLAUDE.md defines a CLOCK entry as active work only. The long-turn
+blindness is real but minor beside it: *six* turns in the entire
+post-cutover history exceeded the threshold, 4.88 h in total. Two opposite
+biases, and the smaller one is the one that gets noticed because it
+produces a visible zero-width item.
+
+*A post-cutover regression, specifically.* Before 2026-08-11 the hooks
+clocked directly — the clock ran *through* a turn and stopped at its
+boundary, which is method B. The refactor replaced a mechanism that
+handled long turns correctly with one that cannot see them.
+
+*On correcting the historical record: measure, do not rewrite.* Raw
+=pause=/=resume= events survive from 2026-08-07 (910 of them, live and
+archived queue files). But 31 of DONE.org's 114 CLOCK lines predate the
+queue and are unrecoverable; pre-cutover lines are not affected anyway;
+and every post-cutover span carries "suggested span, accepted at review"
+or "assigned at review" — a human looked and said yes. Silently replacing
+those with recomputed values is what
+[[id:b74e0f19-5a26-4c83-9d70-8e1c5a2f6b04][b74e0f19]] was filed against,
+where rounding destroyed a reviewed interval. The archive should keep a
+documented bias rather than acquire a silent recomputation.
+
+[[file:~/.claude/plans/elegant-questing-lamport.md][Plan]] — the epic's plan
+document, which carries this child's design rather than a file of its own.
+
+*Step 2(b) shipped 2026-08-18* (=e297bbd=): apply writes one CLOCK line
+per run of work rather than one across the span.
+=claude-code-ide-org--span-work-runs= is the pure decision layer, and
+=claude-code-ide-org-span-idle-floor= (new =defcustom=, 120 s) is the
+only value that now decides which idle is recorded.
+
+*Verified, not just implemented:* =bin/test= 305/305, with each new test
+checked against a mutation of the thing it pins -- floor =<== instead of
+=<=, the rendered-zero filter removed, any adjacency counted as work, the
+=:suggested= guard dropped, apply never splitting, remainders clustered
+together again, the review line's summary removed. Each mutation failed
+exactly the test that claims to cover it and nothing else, except "any
+adjacency counts as work", which correctly failed six. =bin/lint-org=
+unchanged at 0 errors / 28 warnings. Reloaded into the running Emacs and
+the real pending queue rendered =writes 0:01 in 1= and =writes nothing=
+on its two items.
+
+*Corpus, 870 post-cutover guideposts in 40 spans*, pooled the way the
+39.10 h baseline was taken: displayed 46.04 h (unchanged by 2(b), correct
+after 2(a) -- spans now cover the long turns), written *23.05 h*, zero
+zero-width spans. Raw =resume= -> =pause= pairing over the same corpus is
+20.76 h, so the floor absorbs 2.29 h of sub-two-minute idle. Grouped per
+session, which is how production actually clusters, written is *26.67 h*:
+pooling interleaves concurrent sessions and destroys real adjacencies, so
+the baseline's own grouping slightly *under*counts. Nothing in the epic's
+figures was taken per session before, which is worth knowing before step
+5 recomputes the accumulated record against them.
+
+*What differed from the plan.* The plan expected 2-4 CLOCK lines per span
+at a 120 s floor. Measured: median 5, p90 16, max 39. A floor sweep says
+raising it does not pay -- 300 s gives median 3 and max 15 but writes
+30.89 h, re-absorbing nearly 8 h of the idle 2(b) exists to stop
+recording. 120 s is kept as the better trade, with the =defcustom= there
+for anyone who disagrees.
+
+*The floor does not, on its own, prevent* =>  0:00=. It merges across
+short *idle*; a sub-minute turn isolated by more than the floor on both
+sides survives the merge as its own run. 55 of 412 turn-pairs render as a
+single minute. So =--span-work-runs= drops any run whose *rendered*
+endpoints match, on the same "an interval that was never observed"
+grounds the zero-width span already used. This was not anticipated during
+planning and is the one place the design changed under measurement.
+
+/Correction to the paragraph above, same day:/ "each mutation failed
+exactly the test that claims to cover it and nothing else" is not what
+the runs showed. Two mutations failed more than one test, not one:
+"apply never splits" failed three (one-line-per-run, per-run
+idempotency, and no-run-is-annotated-only -- all three genuinely depend
+on it), and "any adjacency counts as work" failed six. The other five
+mutations failed exactly one test each. The discriminating claim holds;
+the precision claim was written from memory of the last run rather than
+from the runs, which is the thing this project's own conventions warn
+about.
+
+*Step 2(c) shipped 2026-08-18*: the auto-clock-in trigger is silent by
+default, behind a new =claude-code-ide-org-auto-clock-in-on-doing=
+(=defcustom=, nil). That closes the last open slice of this heading.
+
+*Reviewing the plan against the code first turned up three divergences,
+and one of them changed the design.*
+
+1. /The plan's instruction to keep the =--auto-clock-in-active= binding
+   was incoherent as written./ It said the binding's second job --
+   stopping the trigger destroying a pending state-change note during
+   =--review-apply-state= -- "survives regardless". It does not: that
+   variable's only reader is the trigger's own guard, so unregistering
+   the trigger would have left a variable bound during every apply and
+   read by nothing. Gating instead of unhooking is what makes the plan's
+   instruction true, since a user who opts back in needs the guard
+   exactly as before. This is why the change is a =defcustom= and not a
+   deleted =add-hook=.
+
+2. /The plan said =--blocker-clock-running-p= "goes quiet: nothing opens
+   a clock outside apply"./ Too strong — =org-clock-in= is a user-facing
+   command and nothing here takes it away, so a hand clock-in followed by
+   =C-c C-t= to DONE still reaches the blocker. Corrected in that
+   function's own docstring rather than in the plan, since that is where
+   someone will read it.
+
+3. /2(c) reverses a decision the cutover took deliberately./ DONE.org's
+   deviation table records "retire =--trigger-auto-clock-in=" against
+   "kept, and suppressed during apply via the re-entrancy guard", with
+   the stated reason that a human's own =C-c C-t= should still open a
+   clock. The reversal is right — a trigger-opened clock is in no queue,
+   so no review pass can see or correct it, which is the second
+   mechanism this heading is named for — but it costs the user that
+   behaviour, and the =defcustom= exists so the cost is opt-outable
+   rather than argued away.
+
+*Verified, not just implemented:* =bin/test= 306/306. The new test
+=trigger-is-silent-by-default= reads the real default rather than binding
+it, which is what makes it the only test in the file that would notice a
+change to that default -- every other trigger test now binds the flag to
+t, since they pin the opt-in behaviour. Both mutations (default flipped
+to t; gate removed from the trigger entirely) failed exactly that test
+and nothing else. =bin/lint-org= unchanged at 0 errors / 28 warnings.
+
+*Confirmed in the running Emacs, not only in batch:* after =load-file=,
+=org-todo "DOING"= on a scratch heading left =org-clocking-p= nil, wrote
+no CLOCK line, and still made the transition -- with the trigger still
+present on =org-trigger-hook=, gated rather than unhooked.
+
+*Corpus unchanged, as expected:* 23.70 h written over 872 guideposts
+against 23.05 h over 870 before, the difference being this session's own
+two new guideposts. Same 40 spans, same 255 CLOCK lines, same
+distribution -- 2(c) removes a *producer* of live clocks and touches no
+aggregation.
+
+*Two things went quiet along with the trigger*, both recorded rather than
+discovered later. =--clocked-heading-context= now always returns nil, so
+=SessionStart= loses its "Currently clocked in" line; and the
+clock-status file rests at idle between review passes. The third,
+=--attention-headings-context= reporting every DOING leaf as "DOING, not
+clocked", has its own heading -- see
+[[id:e0904e93-b99d-44ad-b641-e3e13aced8c4][e0904e93]], which also records
+why it is not a regression 2(c) introduced.
+
+*Both decisions made 2026-08-19, and this heading closes.*
+
+1. /The line count and the 120s idle floor are fine./ No change to
+   =claude-code-ide-org-span-idle-floor=. Whether that value survives a
+   month of data is
+   [[id:96a51c2f-ce11-4b40-bdff-11223d3d4eb7][96a51c2f]]'s question, not
+   this one's.
+2. /=C-c C-t= clocks again./ =claude-code-ide-org-auto-clock-in-on-doing=
+   is back to =t=, but only after
+   [[id:dadc08cf-9e12-4e93-bde8-68c241622b0f][dadc08cf]] made apply
+   subtract what the trigger already recorded. So the two mechanisms
+   that this heading is named for no longer disagree — they compose, and
+   the double count that produced =38b92521='s 3:59-for-3:22 is
+   unreachable rather than merely unlikely.
+
+That is a better ending than the one 2(c) left. Silencing the trigger
+removed the conflict by removing a mechanism; subtracting removes the
+conflict and keeps both.
+
+
+***** DONE The review buffer proposes spans that can only be dismissed :code:
+CLOSED: [2026-08-18 Tue 15:38]
+:PROPERTIES:
+:ID:       31f766ab-90ed-4950-bc5b-787528c8fe84
+:CREATED:  [2026-08-17 Mon 19:06]
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-18 Tue 15:33]--[2026-08-18 Tue 15:39] =>  0:06
+- [2026-08-18 Tue 15:33]--[2026-08-18 Tue 15:39] assigned at review
+- State "DOING"      from "TODO"       [2026-08-18 Tue 15:34] \\
+  verify both zero-width causes after 2(a)+2(b)
+- State "DONE"       from "DOING"      [2026-08-18 Tue 15:38] \\
+  verified, decided, and no-op items now self-explaining
+CLOCK: [2026-08-18 Tue 15:55]--[2026-08-18 Tue 16:01] =>  0:06
+- [2026-08-18 Tue 15:55]--[2026-08-18 Tue 16:01] assigned at review
+:END:
+:PLAN:
+
+Three times on 2026-08-17 the review buffer offered a span reading
+=[HH:MM]--[HH:MM]=, identical endpoints. Such an item cannot be assigned
+usefully — an interval of zero duration records nothing — so its only
+outcome is =d=. Each dismissal is a decision the human is asked to make
+about a thing that carries no information.
+
+*Two distinct causes produce the identical symptom, and they want
+different fixes.*
+
+1. *A real sub-minute span that does not cross a minute boundary.*
+   Observed: =resume= at =15:20:22=, =pause= at =15:20:50= — twenty-eight
+   seconds of genuine agent activity. Org timestamps are minute-precision,
+   so it renders as =15:20--15:20= and is *indistinguishable from* the
+   degenerate case. The span is real; only its display is lossy.
+
+2. *The cluster is still open when the buffer is rendered.* Observed:
+   =resume= at =18:51:39= with no =pause= yet when =org_pending_updates=
+   was called. The current cluster held exactly one timestamp, so start
+   and end were the same point. This is the more interesting defect: *the
+   review buffer is offering the interval the session is still inside*,
+   asking a human to assign work that has not finished.
+
+*Not the same thing as
+[[id:293ac49e-3324-421c-8495-de1a46fc04ac][293ac49e]]*, which is about
+=org-clock-out-remove-zero-time-clocks= erasing short CLOCK lines org
+itself wrote. This is upstream of any CLOCK line: it is about what the
+review buffer *proposes*, and nothing has been written yet.
+
+*Directions, none chosen:*
+
+- Exclude the trailing open cluster from proposals entirely — the
+  session's current span is not reviewable until it ends. Cheapest, and
+  addresses cause 2 exactly.
+- Suppress items below some duration floor. Addresses both symptoms but
+  silently discards cause 1's real twenty-eight seconds, which is the sort
+  of erasure [[id:293ac49e-3324-421c-8495-de1a46fc04ac][293ac49e]] was
+  filed against. Cheap and probably wrong.
+- Render sub-minute spans with seconds, so a real short span is legible as
+  such and only the degenerate one looks degenerate. Fixes the ambiguity
+  rather than the annoyance.
+
+*Measured, and it is not rare.* Three in one working day, all dismissed
+without comment. The cost is not the dismissal itself but what repeated
+no-op items do to a review buffer: they train the eye to skim, which is
+the exact failure
+[[id:8e969114-0982-4c39-9258-3b25a5425e09][8e969114]] avoided by staying
+silent when it has nothing to report.
+
+[[file:~/.claude/plans/elegant-questing-lamport.md][Plan]] — the epic's plan
+document, which carries this child's design rather than a file of its own.
+
+:END:
+*Verified 2026-08-18, and the plan's expectation for this heading was
+wrong.* The epic plan said cause 2 "dissolves as a consequence of (a) --
+verify rather than implement". It does not dissolve. 2(a) made clustering
+kind-aware, which never touched the case: a trailing =resume= with no
+=pause= yet still forms a cluster of one timestamp, and
+=--aggregate-guideposts= closes it as =(ts . ts)=. Nothing in the
+kind-aware predicate applies to a cluster with a single point in it.
+
+Step 2(a)'s own outcome already said so -- "1 zero-width remaining (a
+turn in flight, correct)" -- and that was never reconciled against this
+child's premise, which had been written before 2(a) ran.
+
+*Measured over the post-cutover corpus, per session, which is how the
+review buffer actually builds items* (pooling sessions, as the epic's
+other figures do, merges streams and gives the wrong answer here):
+16 sessions, 57 spans.
+
+| kind                                                    | count |
+|---------------------------------------------------------+-------|
+| cause 2 -- true zero-width, =start= = =end=              |     2 |
+| ...of those, the session's trailing cluster              |     2 |
+| ...interior, i.e. a clustering artifact                  |     0 |
+| cause 1 -- real span rendering inside one minute         |     2 |
+| write nothing after 2(b), total                          |     4 |
+| ...that nonetheless *look* like a real interval          |     0 |
+
+Two findings in that table. Cause 2 is now *entirely* confined to the
+trailing in-flight cluster -- zero interior occurrences -- so it is a
+fact about a live session rather than a clustering defect, which is a
+narrower thing than the heading assumed. And the last row is a negative
+result worth having: 2(b) introduced no new class of deceptive item.
+Every span that writes nothing already looks degenerate; none of them
+renders as a plausible interval while silently recording zero.
+
+The two cause-1 instances are =08-11 13:16:14--13:16:25= (11s) and
+=08-15 19:32:00--19:32:48= (48s), both =resume,pause= -- real turns, as
+the heading said.
+
+*Decision: explain, do not suppress.* Every no-op item now says which
+kind it is, at the point of decision --
+=writes nothing (a single point, not an interval)=,
+=writes nothing (11s of turns, none crossing a minute)=, or
+=writes nothing (no completed turn in it)=. Confirmed live in the
+running Emacs on the trailing in-flight span of this very session.
+
+Both suppression directions were rejected, with reasons:
+
+- /Suppress below a duration floor/ discards cause 1's real seconds,
+  which is exactly what [[id:293ac49e-3324-421c-8495-de1a46fc04ac][293ac49e]]
+  was filed against. The heading already called this "cheap and probably
+  wrong"; the measurement agrees -- it would erase 2 real turns to
+  silence 2 artifacts.
+- /Exclude the trailing open cluster/ needs a liveness signal, and the
+  only one available is queue-file mtime with an hour's idle threshold
+  (=claude-code-ide-org-queue-idle-seconds=). A crashed session's last
+  span would then be invisible for an hour, which is worse than the
+  annoyance. The case is self-resolving in any event: the next =pause=
+  grows the cluster and the item stops being degenerate.
+
+*What is deliberately not claimed:* the buffer still proposes items whose
+only answer is =d=, 4 in 57. The recorded cost was never the keystroke,
+it was that repeated no-op items train the eye to skim; an item that
+states its own reason is not skimmed the same way. If that judgement
+turns out wrong in use, the measurement above is the baseline to compare
+against.
+
+
+***** DONE Correct the accumulated record once the aggregator is fixed :code:
+CLOSED: [2026-09-17 Thu 12:46]
+:PROPERTIES:
+:ID:       507754ba-ae82-4f04-b209-8d8c58ac268e
+:CREATED:  [2026-08-18 Tue 08:15]
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-18 Tue 16:36]--[2026-08-18 Tue 16:43] =>  0:07
+- [2026-08-18 Tue 16:36]--[2026-08-18 Tue 16:43] recompute the accumulated CLOCK lines
+CLOCK: [2026-08-18 Tue 16:56]--[2026-08-18 Tue 17:26] =>  0:30
+- [2026-08-18 Tue 16:56]--[2026-08-18 Tue 17:26] recompute the accumulated CLOCK lines
+- State "DONE"       from "TODO"       [2026-08-19 Wed 08:05] \\
+  re-queued, lost to my git checkout
+CLOCK: [2026-09-17 Thu 09:58]--[2026-09-17 Thu 09:59] =>  0:01
+- State "DOING"      from "DONE"       [2026-09-17 Thu 09:58] \\
+  its condition recurred: four aggregator fixes landed after it closed
+- [2026-09-17 Thu 09:58]--[2026-09-17 Thu 09:59]
+CLOCK: [2026-09-17 Thu 09:59]--[2026-09-17 Thu 10:00] =>  0:01
+- [2026-09-17 Thu 09:59]--[2026-09-17 Thu 10:00] suggested span, accepted at review
+CLOCK: [2026-09-17 Thu 10:05]--[2026-09-17 Thu 10:07] =>  0:02
+- [2026-09-17 Thu 10:05]--[2026-09-17 Thu 10:07] suggested span, accepted at review
+CLOCK: [2026-09-17 Thu 10:10]--[2026-09-17 Thu 10:11] =>  0:01
+- [2026-09-17 Thu 10:10]--[2026-09-17 Thu 10:11] suggested span, accepted at review
+CLOCK: [2026-09-17 Thu 12:39]--[2026-09-17 Thu 12:41] =>  0:02
+- [2026-09-17 Thu 12:39]--[2026-09-17 Thu 12:41]
+- State "DONE"       from "DOING"      [2026-09-17 Thu 12:46] \\
+  measured: 702/703 runs identical; the record is sound
+:END:
+:PLAN:
+
+98 post-cutover CLOCK lines carry the pipeline's error — 38 in TODO.org,
+60 in DONE.org. The other 60 in DONE.org predate 2026-08-11 and need
+nothing: the hooks clocked directly then, running *through* a turn and
+stopping at its boundary, which is already the right method.
+
+*Sequenced last on purpose: "corrected" is not defined until the
+aggregator is.* Recomputing now with =resume= -> =pause= pairing would
+bake in a method the fix might not adopt, leaving the archive carrying a
+third convention — neither the original nor the final one. This runs
+through whatever the fixed aggregator produces.
+
+*The human contribution splits in two, and only one half is
+recomputable.* Which heading a span belongs to is judgement exercised at
+review — 36 spans carry "assigned at review" — and guideposts carry no
+heading at all, so it cannot be derived. How long a span was *is*
+mechanically derivable and is the part that is wrong. *Preserve every
+attribution; recompute only durations.*
+
+*The objection that no longer applies.* This was initially argued against
+on the grounds that recomputation would overwrite reviewed decisions, per
+[[id:b74e0f19-5a26-4c83-9d70-8e1c5a2f6b04][b74e0f19]], where rounding
+destroyed a reviewed interval. The user withdrew that on 2026-08-18:
+those ratifications were "done uncritically with imperfect recall", so
+there is little judgement to protect in the durations. The b74e0f19
+caution still holds for *attribution*, which is why it is preserved.
+
+*Write the deltas before applying them* — a reviewable list of "this
+heading moves from 2:52 to 1:56", not a 98-line diff. The raw evidence
+survives from 2026-08-07 (910 =pause=/=resume= events, live and archived
+queue files), so the recomputation is auditable against its inputs.
+
+*Open, and the user's to settle:* what the record must be able to answer.
+CLAUDE.md leaves this deliberately open — "what reports actually need to
+come out the other end ... driven by concrete reporting needs, most of
+which haven't been fully articulated yet". Per-heading totals make a 45%
+error disqualifying; a "what was I doing Thursday" view barely notices
+it. The scope of this correction should follow that answer.
+
+[[file:~/.claude/plans/elegant-questing-lamport.md][Plan]] — the epic's plan
+document, which carries this child's design rather than a file of its own.
+
+:END:
+*Applied 2026-08-18* (=6df5043=, =47cabb8=, =79f23b5=), option A: correct
+what was recorded, rather than reconcile the record against everything
+the queue knows. The second would have needed a human to re-attribute
+about 9 hours that no guidepost carries a heading for, and the queue is
+append-only, so A forecloses nothing — B stays available.
+
+*Result.* 122 headings with a =:LOGBOOK:= scanned, 44 rewritten. The
+post-cutover portion, which is what was recomputed, falls *41.32 h ->
+19.95 h*. Counting all CLOCK lines including the pre-cutover ones this
+never touches: TODO.org 18.17 -> 11.83 h, DONE.org 49.27 -> 36.67 h. Line
+count roughly doubles, 170 -> 316, because a span written end-to-end
+becomes one line per run with the idle between them no longer recorded.
+Every heading attribution is preserved — the recompute rewrites intervals
+inside the drawer it found them in and never moves a line between
+headings.
+
+*Three simpler versions were wrong, and each failure is the same shape:
+silent, plausible, and in the direction that looks like the fix working.*
+
+1. /Per-session pairing/ lost a background job's first turn entirely,
+   because its =resume= is in the launching session's file and its
+   =pause= in the job's
+   ([[id:9202b39d-49e4-441c-89f2-382feb4ef1ea][9202b39d]]). 37 minutes on
+   one line, which "corrected" to =0:00=. Replaced by a depth counter,
+   which also gives
+   [[id:7d739afd-f879-445c-b0b6-65e295585a94][7d739afd]]'s union rule for
+   free.
+2. /Reading only live queue files/ missed 7 archived sessions out of 18 —
+   41 drawers seen against 44. Archiving takes the *oldest* sessions
+   first, so what it hid was exactly the evidence behind the oldest CLOCK
+   lines.
+3. /Dropping only degenerate endpoints/ still wrote nine =>  0:00= lines
+   into the real files, because a 20-second turn across a minute boundary
+   renders =[08:14]--[08:15]= and looks ordinary. Caught by reading the
+   diff, not by the suite. The files were reverted and the command re-run
+   from the original record, so what landed is one clean application
+   rather than two stacked.
+
+*Verified:* no =>  0:00= line in either file; a second dry run reports 0
+drawers to rewrite, so the result is a fixed point; =bin/test= 315/315
+with each new test checked against a mutation of what it claims to pin;
+=bin/lint-org= unchanged at 0 errors / 28 warnings.
+
+*One test was found to verify nothing* and was rewritten. The window
+extension to END + 60s was asserted by checking the line did not become
+=0:00= — which passed with the extension removed, because closing an
+unmatched turn at its window bound produces a perfectly plausible line.
+It now asserts the =>= total, the only thing that can differ. The
+docstring was corrected with it: the extension recovers under a minute
+per line, worth 0.52 h across the corpus, not the rescue-from-zero the
+first draft claimed. That claim was true of the superseded pairing
+implementation and had been carried across unexamined — the same
+plan-drift pattern this epic keeps producing.
+
+*Reopened 2026-09-17, reviewing =406e9200= for its close — and the reason is in this heading's own title.* "Once the aggregator is fixed" is a **conditional**, and it was satisfied as of 2026-08-19. It stopped being satisfied four weeks later: =b57c7515= and =c9940558= landed 09-16 06:36, =c54c4215= at 08:11, =2deb090f= at 08:21, all after this closed. Two of them change what the pipeline *emits* rather than only what it computes — the complement now emits gap spans that did not previously exist, and a project boundary now splits spans that used to cluster — so the August correction was made against an aggregator that no longer describes how spans are formed.
+
+*Scope, so this does not become a twin of its own follow-up.* This heading now owns the **measurement**: how much of the accumulated record those four changes actually move, answered against the queue corpus rather than by inference. The **re-derivation** is [[id:89351a23-8bfc-4939-8a30-f1fe7e93c72f][89351a23]], filed under the same story and blocked on this. Same split as =e3d1531d= and =b5448133= took this week, for the same reason: a corpus rewrite whose scope has not been measured is the expensive thing to get wrong, and a measurement that comes back clean is a result worth keeping.
+
+*What is not being claimed.* Nothing here says the record is wrong. It says nobody has checked since the aggregator changed, which is exactly the shape =e3d1531d= turned out to be hiding — 95 of 101 intervals measuring the wrong thing, found only when someone finally asked the audit log rather than reasoning about it.
+
+*=057cec53= sits in the same position* — its fifty-six-line repair closed 2026-08-21, also before all four — and is deliberately left closed: it repaired a specific, enumerated set of lines rather than standing on a condition, so it is history rather than a claim that expired. If the measurement here finds those lines moved again, that is this heading's finding to record, not a second reopening.
+
+*Measured 2026-09-17, and the answer is: it moves, substantially.* Both aggregator versions were run over **identical input** — every guidepost in the full history including consumed events, with the full bracket set as exclusions — so nothing but the code differs. Baseline =4d53b5e= (2026-09-15 19:01), before =c9940558=, =c54c4215=, =2deb090f= and =5a9d877e= landed.
+
+: input      4591 events, 3003 guideposts, 331 brackets
+: OLD        442 spans, 112.99 h envelope
+: NEW        500 spans, 121.72 h envelope
+
+: identical spans   142   (32% of the old reconstruction)
+: only in OLD       300
+: only in NEW       358
+
+So **68% of the spans the old aggregator produced are gone or altered**, and the envelope grows by 8.73 h. The growth direction is expected rather than alarming: =c54c4215= made the complement *emit* gaps that were previously dropped, so more time is offered, not more claimed.
+
+*The limit of this measurement, and it is the whole of what remains open.* This compares **spans offered**, not **CLOCK lines recorded**. Apply writes one line per run *inside* an accepted span, and a span whose boundaries moved may contain exactly the same runs. So 68% is an upper bound on how much the record could have changed, not an estimate of how much it did.
+
+*Which makes the next question precise rather than open-ended*, and it belongs to [[id:89351a23-8bfc-4939-8a30-f1fe7e93c72f][89351a23]]: compare the **runs** the two versions yield within their spans, or compare the reconstructed runs against the CLOCK lines actually in the corpus. Either is a bounded computation now that the harness exists — two batch Emacsen, the same queue, a dump and a =comm=.
+
+*Method note.* The comparison runs each version exactly as its own production caller would: the old signature takes three arguments, the new takes four with the guidepost stream, and the probe falls back on =wrong-number-of-arguments= rather than forcing one shape on both. Run in batch against the real queue, writing nothing.
+
+*Answered in full 2026-09-17: the record is sound.* The follow-up this heading handed to =89351a23= has run. Comparing the **runs** rather than the span envelopes: 703 old against 704 new, **702 identical**, total recorded time falling by about seventy seconds across the whole month. One interval on 2026-09-10 splits in two as an 82-second idle gap stops being absorbed. =89351a23= closed =CANCELLED= on that number.
+
+*So the two measurements disagree violently and both are right.* 68% of spans moved their **boundaries**; the runs inside them did not move. Apply writes runs, so the accumulated record never depended on the boundaries that changed. Stating it that way is the useful form: a span is a *proposal*, and changing what is proposed does not change what was recorded once the proposals were accepted.
+
+*This heading's own condition is therefore satisfied* — "once the aggregator is fixed" holds again, now with evidence rather than by assumption, which is what its reopening this morning was for.
+
+
+***** DONE Decouple live "what is Claude attending to" visibility from the authoritative org clock :code:
+CLOSED: [2026-08-18 Tue 10:16]
+:PROPERTIES:
+:ID:       290b6fc5-3ebb-4827-9a97-5a3542e354b6
+:CREATED:  [2026-08-06 Thu 10:47]
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-14 Fri 14:47]--[2026-08-14 Fri 14:51] =>  0:04
+- [2026-08-14 Fri 14:47]--[2026-08-14 Fri 14:51] reallocated from e51d6ba1's mis-suggested span
+- State "DOING"      from "TODO"       [2026-08-18 Tue 10:10] \\
+  point the statusline at the queue
+CLOCK: [2026-08-18 Tue 10:11]--[2026-08-18 Tue 10:16] =>  0:05
+- [2026-08-18 Tue 10:11]--[2026-08-18 Tue 10:16] statusline reads the queue not the clock
+- State "DONE"       from "DOING"      [2026-08-18 Tue 10:16] \\
+  queue-backed statusline shipped and verified
+:END:
+:PLAN:
+
+Point the statusline (=claude-code-ide-org--statusline-task-string=)
+at the *queue* files' latest event across all sessions, rather than
+=org-clocking-p=/=org-clock-marker=, once those stop being live in
+real time. Arguably more honest than today's version regardless of
+this refactor's fate — reflects "what Claude is doing" rather than
+"what's been recorded," and can't desync the way marker-based state
+can, since it's just reading append-only files.
+
+Explicit instruction, added 2026-08-06: don't stop at a bare
+event-name swap. Now that a pending-queue-inspection tool
+([[id:63a642c7-b04d-42dc-b6ec-3fb13df3ae04][63a642c7]]) exists in this
+same plan — and, since
+[[id:c9292ce8-8fb5-41c0-8de1-bbf74ffa7fce][c9292ce8]] was cancelled,
+is the *only* place queue state gets surfaced outside the review
+command — consider whether the statusline should surface that
+same information glanceably from the terminal — e.g. a pending-review
+count ("3 updates awaiting review"), or a visible distinction between
+"applied" and "queued, not yet reviewed" for whatever heading it
+names — rather than just relocating today's single clocked-in/out
+label to a different data source with the same one-line shape.
+
+*Third requirement, folded in from
+[[id:4cda6bf7-441b-47b2-b3d5-b8c7e7a207a5][4cda6bf7]] on 2026-08-14,
+which was cancelled in favour of this heading:* the label must
+distinguish the *states*, not just the clock. Today's binary collapses
+four distinct situations into two words — =PLANNING= and =DOING= both
+read "clocked in" though one is still designing and the other
+implementing; =WAIT= and =DONE= both read "clocked out" though one is
+blocked and the other finished.
+
+That heading proposed getting the keyword from =org-get-todo-state= at
+the clock marker. *Do not do that here* — it is the reason it was
+cancelled rather than merged as-is. The on-disk keyword lags the queue
+by an entire review pass, so it would report a heading as =TODO= while
+this session has already queued =DOING= on it. The keyword this
+statusline should show is *the one the queue last recorded*, which is
+the same source everything else in this heading reads from, and which is
+also the only version that answers "what is Claude attending to" rather
+than "what did the last review pass write down."
+
+Practical consequence for whoever builds this: the five existing
+=--statusline-task-string= regression tests assert on the literal
+"clocked in"/"clocked out" strings and will need rewriting. Doing both
+changes here means rewriting them once rather than twice.
+
+*Promoted out of [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] on
+2026-08-14.* A capability the epic *enables* rather than one it
+requires — the same test that promoted
+[[id:5ff5a4b8-2fee-472a-b5e1-c9de8cf96704][5ff5a4b8]] and
+[[id:d1cf852a-696a-4195-a4a7-039439c1f4b7][d1cf852a]] out on 2026-08-13.
+Decoupling live visibility is worth doing whether or not the epic ever
+closes, and the epic closes whether or not this is done.
+
+[[file:~/.claude/plans/elegant-questing-lamport.md][Plan]] — the epic's plan
+document, which carries this child's design rather than a file of its own.
+
+:END:
+*Verified, not just implemented* — shipped 2026-08-18 as step 1 of
+[[id:406e9200-c3e7-49ac-a8d0-d6ff8e061ce4][406e9200]].
+
+=--statusline-task-string= now asks the queue first, via two new helpers:
+=--queue-latest-session-id= (newest queue by mtime, so one file is read
+rather than every session's) and =--statusline-queue-state= (the heading
+named by the newest id-bearing event, plus whether the newest guidepost is
+a =resume=). It reads with INCLUDE-CONSUMED on purpose — an *applied*
+event is the strongest evidence of what was being worked on, and filtering
+to pending would blank the statusline right after every review pass.
+
+*The live check is the one worth keeping.* After reload, with
+=org-clocking-p= returning *nil* — no live clock anywhere — the statusline
+still read =Decouple live "what is Claude… [290b6fc5] (clocked in, 0:07
+total)=. That is precisely the regression this heading exists to prevent,
+demonstrated *before*
+[[id:226ed53b-c302-4529-870f-a42962b50bde][226ed53b]] silences the
+trigger.
+
+*A defect in the first draft, caught by the existing suite.* It returned
+the empty string when the queue named a heading that would not resolve.
+Wrong: an archived or deleted id is exactly that case, and the queue
+having an opinion is not the same as that opinion being usable. Five
+statusline tests failed — because they run against the real
+=~/.claude/org-updates= and so the queue *did* have something to say. The
+fix falls through to the clock when the queue id does not resolve.
+
+*Test honesty:* three tests added, two of which fail when the change is
+stashed. The third asserts the fallback and cannot discriminate, since the
+old code read the clock unconditionally; it is a characterisation test and
+is labelled as one.
+
+*Not done here, and deliberately:* the second half of this heading's
+original brief — surfacing pending-review state glanceably in the
+statusline — is untouched. This landed only what step 2 requires.
+
+
+***** DONE The session-start report's "DOING, not clocked" line has stopped discriminating :code:
+CLOSED: [2026-08-21 Fri 08:31]
+:PROPERTIES:
+:ID:       e0904e93-b99d-44ad-b641-e3e13aced8c4
+:CREATED:  [2026-08-18 Tue 11:41]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-18 Tue 11:41] \\
+  found while silencing the auto-clock trigger
+CLOCK: [2026-08-18 Tue 12:10]--[2026-08-18 Tue 12:12] =>  0:02
+- [2026-08-18 Tue 12:10]--[2026-08-18 Tue 12:12] assigned at review
+- State "NEXT"       from "TODO"       [2026-08-19 Wed 18:56] \\
+  Auto-promoted: sole remaining TODO in its sibling group.
+CLOCK: [2026-08-21 Fri 08:31]--[2026-08-21 Fri 08:32] =>  0:01
+- State "DONE"       from "DOING"      [2026-08-21 Fri 08:31] \\
+  shipped, mutation-tested, verified live
+- State "DOING"      from "NEXT"       [2026-08-21 Fri 08:31] \\
+  re-key session report on queue divergence
+- [2026-08-21 Fri 08:31]--[2026-08-21 Fri 08:32] re-key session report on queue divergence
+:END:
+:PLAN:
+
+=claude-code-ide-org--attention-headings-context= reports a leaf as
+"DOING, not clocked" when it is not the heading =org-clock-marker= points
+at. The comment beside its sibling exclusion states the standard the line
+has to meet: "a report that always says the same thing stops being read,
+which defeats the only purpose this one has."
+
+It no longer meets it. The exclusion is keyed on a *live* clock, and
+after [[id:226ed53b-c302-4529-870f-a42962b50bde][226ed53b]]'s step 2(c)
+nothing holds one open outside a review pass, so every DOING leaf matches
+every time. This session's own =SessionStart= showed two such lines and
+no "Currently clocked in" line at all.
+
+*Not a regression 2(c) introduced, which is the point worth recording.*
+The 2026-08-11 cutover already stopped the MCP tools from clocking; the
+trigger was the last producer, and it only ever fired on a hand-edit. So
+the line has been drifting toward constant for a week and 2(c) merely
+finishes the drift. Nothing to roll back — the input the exclusion reads
+is simply gone.
+
+*Not yet decided:* what the line should key on instead. The obvious
+candidate is the queue rather than the marker, the same move
+[[id:290b6fc5-3ebb-4827-9a97-5a3542e354b6][290b6fc5]] made for the
+statusline — "has this heading seen a guidepost recently" is answerable
+from the queue files and is closer to what the report is actually trying
+to say. The alternative is that the line has no job left and should go.
+Deciding needs a look at what a session actually wants told to it, not
+just a mechanical port of the predicate.
+
+*Decided and shipped 2026-08-21: keep the line, re-key it on file-versus-queue
+divergence, and retire the word "clocked".* The body left two options open --
+port the predicate to the queue, or conclude the line has no job. Neither was
+taken as written. The queue port was right about the *source* and wrong about
+the *question*: "has this heading seen a guidepost recently" is still a
+statement about activity, and the report's actual job is to say where the file
+and the record disagree.
+
+=claude-code-ide-org--attention-headings-context= now emits three kinds, backed
+by a new =claude-code-ide-org--queue-heading-divergence= that maps each heading
+:ID: to its most recent *pending* =todo= event and the timestamp of its most
+recent pending event of any kind:
+
+- =DOING in file, queued -> X, not yet applied= -- the file is behind.
+- =queued DOING, not yet applied= -- the queue is ahead, and the file may carry
+  no keyword at all.
+- =DOING in file, nothing queued since <ts>= -- genuinely walked away from,
+  using the same before-today test
+  =claude-code-ide-org-write-session-start-report= already uses, so both reports
+  answer "first thing each day" the same way.
+
+*It discriminates by construction*, which is the standard this heading was
+opened to restore: it goes silent exactly when the file and the queue agree.
+Pending events only -- an applied event is one the file already matches, so
+counting it would report a divergence at the instant it was resolved.
+
+:END:
+*Verified live against the real files and the real queue, after =load-file=* --
+the running Emacs held the old definition and would otherwise have answered for
+it. Two lines, both true and neither constant: 420816ec as =queued DOING, not
+yet applied ... file says TODO=, and befaed0a as =DOING in file, queued -> DONE,
+not yet applied=. The two DOING containers were correctly silent. Under the old
+predicate the first was unreportable and the second read only "not clocked".
+
+*Both directions were live specimens on the day, which is why both are
+implemented.* The old line named befaed0a, which was finished; it said nothing
+about c6fc6f46, which was keywordless in the file while a session actively
+worked it.
+
+*Verified by mutation, not by a green suite.* Three mutations each fail the new
+test: deleting the file-behind branch, deleting the queue-ahead branch, and
+making the abandoned branch unconditional -- the last being the old always-on
+behaviour restored, so the test fails if the report ever goes constant again.
+330/330 with the file restored.
+
+*One boundary left deliberately unreported.* A keywordless heading whose queue
+holds a pending =DONE= is a real divergence and is *not* reported: by then the
+heading is finished as far as the record is concerned, and "the queue has
+unapplied items" is =org_pending_updates='s question, not this report's.
+c6fc6f46 was in exactly that state by the end of the session and stayed silent,
+correctly.
+
+*One test changed, and the reason matters more than the wording.*
+=...-includes-abandoned-doing-leaf= asserted the old string; it now asserts
+=nothing ever queued for it= and is wrapped in
+=claude-code-ide-org-test--with-queue=. Without that wrapper it read the user's
+real =~/.claude/org-updates=, which the report's new input made load-bearing --
+a suite that consults live user state can flake on it.
+
+
+***** DONE An unassigned span's group heading renders an error string where a title belongs :code:
+CLOSED: [2026-08-18 Tue 19:47]
+:PROPERTIES:
+:ID:       98700ea3-6770-429b-84dd-1fddde60afed
+:CREATED:  [2026-08-18 Tue 16:00]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-18 Tue 16:00] \\
+  cosmetic review-buffer rendering defect
+- State "DONE"       from "TODO"       [2026-08-18 Tue 19:47] \\
+  fixed, tested, confirmed live
+:END:
+:PLAN:
+
+Observed live 2026-08-18 in =org_pending_updates=, grouping two
+unassigned spans:
+
+: Error: no org heading found with :ID: "nil"  {nil}
+:   ! span  - [2026-08-18 Tue 12:10]--[2026-08-18 Tue 12:12] ... UNASSIGNED
+
+An unassigned span carries =:id nil= until a human presses =a=, which is
+the normal, expected state for it — not an error. But the grouping code
+resolves the id to build the group's title, and =--at-id= *returns* its
+failure message as a string rather than signalling, so the message lands
+where a title belongs.
+
+*This is [[id:c2132d3f-dd78-4498-ba87-0ca814dc2f77][c2132d3f]] again by a
+different route.* That heading fixed exactly this shape — an =--at-id=
+error string rendered as a group heading — for an :ID: that does not
+resolve, and its own note explains the mechanism: "a =cond= clause of the
+form =((--at-id ...))= yields its own test, and =--at-id= returns its
+error rather than signalling". The nil-id path was not covered, and it is
+the one case where the missing id is *routine* rather than a defect, so
+it is the case that shows up most.
+
+Cosmetic — the spans are assignable with =a= and nothing is lost. Worth
+fixing because an "Error:" in the review buffer trains the reader to
+ignore errors there, which is the opposite of what that column is for.
+
+*Filed here for findability, not because it belongs to this epic's goal.*
+It was found while verifying
+[[id:31f766ab-90ed-4950-bc5b-787528c8fe84][31f766ab]] and is independent
+of the guidepost pipeline; refile freely.
+
+:END:
+*Fixed 2026-08-18* (=4ff1b53=). The grouping code now uses
+=claude-code-ide-org--review-heading-title=, which returns *nil* when an
+id does not resolve — which is what lets a =cond= tell three cases
+apart: unassigned, resolvable, unresolvable. The review buffer already
+had that =cond= from
+[[id:c2132d3f-dd78-4498-ba87-0ca814dc2f77][c2132d3f]]; only
+=org_pending_updates= was left on =--at-id=.
+
+*The test did not discriminate on the first attempt, and the reason is
+worth keeping.* It asserted =(string-match-p "unassigned -- press"
+report)=, which passed with the fix mutated away — because
+=string-match-p= honours =case-fold-search=, defaulting to =t=, so it
+was matching the *item* line's =UNASSIGNED -- press `a'...= rather than
+the group heading at all. Now binds =case-fold-search= nil and anchors
+on the opening paren, which only the group line carries. Caught by
+mutating the branch away, not by reading the test.
+
+That is the second fake assertion this practice caught today — the other
+was in [[id:507754ba-ae82-4f04-b209-8d8c58ac268e][507754ba]], where a
+window-extension test asserted only that a line looked plausible.
+
+
+***** DONE Concurrent sessions' turns must union, not sum, wherever time is totalled :code:
+CLOSED: [2026-09-16 Wed 06:36]
+:PROPERTIES:
+:ID:       7d739afd-f879-445c-b0b6-65e295585a94
+:CREATED:  [2026-08-18 Tue 16:36]
+:END:
+:DEBRIEF:
+*The premise was stale by ten hours, not wrong.* =--merge-time-intervals= was
+never unwired — it was **duplicated** at 08:38 on 2026-09-15 by a PR #23 review
+fix that coined =--merge-overlapping-runs= for an operation the file already
+had. Proved equivalent over 20000 random interval sets (0 disagreed), then
+folded into one under the name this heading names.
+
+*The three totalling paths, each settled on its own terms*: allocation unions
+(now through the survivor); attention needs none, since it asks which *windows*
+carry run time and marking one busy twice is idempotent; org's own clocktable
+sums CLOCK lines and was **left alone deliberately**.
+
+*The open question is still open, which was the point.* Whether the union
+belongs at the CLOCK-line level is the half this body says must not be decided
+by whoever touches it first, and nothing here decided it. The 0.5% magnitude is
+what makes leaving it open cheap.
+
+*This heading is also where two missed alias sites surfaced* —
+=attention-intervals= and =allocation-intervals= both paired runs on the raw
+=session_id=. The allocation fix is the instructive one: its partition is now
+**two**, runs by canonical lane and transcripts by raw id, because a re-keyed
+conversation has two transcripts and both hold worked ids. Measured: all 7 of
+=f2e44fdf='s worked-id hits reappear identically in =b71c8eec=, so the =worked=
+list genuinely carries duplicates — absorbed by the existing per-window dedup,
+and pre-dating this change rather than introduced by it. "Absorbed by an
+existing dedup" is a weaker guarantee than "cannot happen", and is the line in
+this debrief most worth distrusting.
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-19 Wed 08:05] \\
+  re-queued, lost to my git checkout
+- State "NEXT"       from "TODO"       [2026-09-15 Tue 18:56] \\
+  next in the slice's sequence, Step 2
+CLOCK: [2026-09-15 Tue 18:57]--[2026-09-15 Tue 19:01] =>  0:04
+- State "DOING"      from "NEXT"       [2026-09-15 Tue 18:57] \\
+  starting the union wiring
+- [2026-09-15 Tue 18:57]--[2026-09-15 Tue 19:01] wire merge-time-intervals at report time
+- State "REVIEW"     from "DOING"      [2026-09-15 Tue 19:01] \\
+  union single-sourced; CLOCK-line half left open
+- State "DONE"       from "REVIEW"     [2026-09-16 Wed 06:36] \\
+  union single-sourced; CLOCK-line half stays open
+:END:
+:PLAN:
+
+Stated by the user 2026-08-18: two sessions running at once produce
+turns that overlap in wall-clock time, and those must *union*, not sum.
+=[10:00]--[10:20]= plus =[10:10]--[10:30]= is *30 minutes*, not 40 --
+one stretch of elapsed time during which the agent was busy, not two
+separate stretches laid end to end.
+
+*The primitive already exists and is unwired.*
+=claude-code-ide-org--merge-time-intervals= sorts
+=(START . END)= conses and merges anything adjacent or overlapping into
+a min-to-max span -- exactly this operation. It has carried an
+"UNWIRED as of 2026-08-10" note ever since. So this is a wiring
+decision, not a design one, and nothing needs coining.
+
+*Where it already bites, found while scoping
+[[id:507754ba-ae82-4f04-b209-8d8c58ac268e][507754ba]]:* pooling
+guideposts from several sessions and running
+=claude-code-ide-org--span-work-runs= over the merged stream does not
+merely double-count -- it *mangles* the pairing. Sorted, two overlapping
+turns read =resume, resume, pause, pause=, and the run finder pairs only
+the inner =resume= -> =pause=, yielding 10 minutes where the
+truth is 30. Too high and too low are both reachable from the same defect,
+depending on the interleaving.
+
+The fix wherever runs are computed over multiple sessions is the same
+shape: compute runs *per session*, then union the results. Never pool
+the events first.
+
+*Not the same as the overlap note in*
+[[id:226ed53b-c302-4529-870f-a42962b50bde][226ed53b]], which proposes
+apply refusing to write a span overlapping an existing CLOCK line on the
+same heading. That is one heading's record disagreeing with itself; this
+is two sessions' real, simultaneous work being counted twice.
+
+*Open:* whether the union applies at the CLOCK-line level (never write
+overlapping lines) or only at report time (clocktables and totals
+de-duplicate). Those differ when two sessions genuinely work on two
+*different* headings at once -- each heading's own interval is honestly
+its own, and only the sum across headings overstates elapsed time. That
+distinction has not been decided and should not be decided by whoever
+happens to touch this first.
+
+*Vindicated 2026-08-21, having nearly been retired.*
+[[id:9202b39d-49e4-441c-89f2-382feb4ef1ea][9202b39d]] proposed a depth counter
+over the merged stream and claimed it "gives 7d739afd's union for free, so one
+mechanism answers both" -- which, taken at face value, retires this heading's
+central instruction. It was taken at face value, in conversation, before anyone
+ran it.
+
+Running it settles the matter the other way. Over the 844-guidepost corpus the
+depth counter returns 13.61 h against this heading's per-session-then-union at
+22.79 h, because it latches: one missing =pause= leaves depth permanently above
+zero and no run is ever emitted again. Full numbers are in 9202b39d's body.
+*"Compute runs per session, then union the results. Never pool the events first"
+stands as written* -- pooling is exactly what fails, and it fails for the reason
+stated here in the first place.
+
+*The magnitude of this heading's own concern, measured for the first time.*
+Across the same 10-day corpus, per-session runs sum to 22.79 h and union to
+22.68 h. The double-count this heading exists to prevent is *0.11 h -- 0.5%*.
+Real, reproducible, and small.
+
+That number is an argument about *where*, not *whether*. At 0.5% there is no
+case for paying for the union at write time, where the cost of being wrong is a
+CLOCK line that was refused and cannot be recovered. The report-time half is
+recomputable, reversible, and already written:
+=claude-code-ide-org--merge-time-intervals= has carried an "UNWIRED as of
+2026-08-10" note for eleven days and does precisely this operation.
+
+*The open question above is deliberately still open.* Its own words -- the
+CLOCK-line-versus-report-time call "should not be decided by whoever happens to
+touch this first" -- and the ratification that would have closed it was
+conditional on a verification that failed. What the measurement adds is a
+recommendation with a number behind it, not a decision: wire
+=--merge-time-intervals= wherever a total is taken *across* headings, leave
+per-heading CLOCK lines written as computed, and let the 0.5% decide whether
+even that is worth doing now.
+
+:END:
+*Resolved 2026-09-15, and the premise this heading rested on was wrong rather
+than stale.* The "UNWIRED as of 2026-08-10" note on
+=--merge-time-intervals= was true of that symbol and false of the
+operation. The union **was** wired — through
+=--merge-overlapping-runs=, coined later with the same sort and the same
+merge condition, carrying a docstring that reasons about this very
+heading without citing it. Two functions, one operation. Checked over
+**20000 random interval sets before folding them together: 0
+disagreed.**
+
+*So the wiring decision resolves to "one union function, not two".* The
+primitive survives under the name this heading names, carrying the duplicate's
+rationale; =--merge-overlapping-runs= is deleted and its concurrency test
+retargeted, the scenario being the part worth keeping.
+
+*The three totalling paths, each settled on its own terms:*
+
+- *Allocation* — already unions, now through the surviving primitive.
+- *Attention* — needs none, and the asymmetry is the point: it asks which
+  *windows* carry run time, and marking one busy twice is idempotent. Only a
+  path that totals seconds can double-count.
+- *org's own clocktable* (=claude-code-ide-org-clock-report=) — sums CLOCK
+  lines, and is **left alone deliberately**.
+
+*The open question stays open, exactly as this body demands.* Whether the union
+belongs at the CLOCK-line level is the half that "should not be decided by
+whoever happens to touch this first", and nothing here decides it. What the
+0.5% buys is the right to leave it open cheaply: at that magnitude there is no
+case for paying at write time, where the cost of being wrong is a refused CLOCK
+line that cannot be recovered, while the report-time half is recomputable and
+reversible and is now single-sourced.
+
+*This heading is also where two missed alias sites surfaced*, found by reading
+*every* =by-session= grouping rather than the three
+[[id:b57c7515-c511-4198-b311-26cefc52a60d][b57c7515]] already knew about.
+=attention-intervals= and =allocation-intervals= both paired runs on the raw
+=session_id=, so a re-keyed turn was lost to the very derivations that consume
+it. The allocation fix is the instructive one: its partition is now **two**,
+because runs pair per canonical lane while the transcript walk must keep raw
+ids — a re-keyed conversation has two transcripts and both hold worked ids, so
+canonicalising that walk would have silently dropped half the evidence.
+=--review-describe-failure= and =review-dismiss= were checked and left raw:
+they are per-*file* operations, where the raw id is the correct key.
+
+*Correction, same day, because the paragraph above blames the wrong thing.* It
+says this heading's premise was "wrong rather than stale". It was **stale — by
+ten hours.** =git log -S= puts =--merge-overlapping-runs= in commit =34ee154=
+at **08:38 on 2026-09-15**, a PR #23 review fix; for the month before that the
+primitive genuinely was unwired and this body was accurate as written.
+
+So the failure worth recording is not that the heading mis-read the code. It is
+that a review fix **coined a new function for an operation the file already
+had** — "search before coining", inside the codebase rather than in prose — and
+the duplicate was ten hours old when it was folded back. Which makes the fold a
+correction to this morning's commit at least as much as a resolution of this
+heading, and is the more useful lesson of the two: the duplicate was written by
+someone fixing a real double-counting bug, correctly, who simply did not look
+for an existing union first.
+
+
+***** DONE A background job's first turn is bracketed across two session_ids :code:
+CLOSED: [2026-09-16 Wed 06:36]
+:PROPERTIES:
+:ID:       9202b39d-49e4-441c-89f2-382feb4ef1ea
+:CREATED:  [2026-08-18 Tue 16:41]
+:END:
+:DEBRIEF:
+Closed with **no code of its own**, and that is the outcome rather than a gap.
+
+Its measurement was confirmed to the second and never needed correcting. Its
+proposed mechanism — the depth counter — was falsified in 2026-08 and stays
+falsified; do not rebuild it. Its *surviving* leading-=pause= rule turned out
+never to have been implemented at all, so
+[[id:b57c7515-c511-4198-b311-26cefc52a60d][b57c7515]]'s alias **subsumed** it
+rather than replacing it: checked before building, there was nothing to retire.
+
+The 0.620 h this body records is the first of the three turns the alias
+recovers. The other two open with a =resume=, so a test for a stream *opening*
+with a =pause= could never have fired on them — the second shape =b57c7515=
+predicted from the other direction, now measured rather than argued. The
+untested multi-candidate caveat retires with the rule: a session belongs to
+exactly one conversation, and an overlapping group is refused rather than
+guessed at, so there is no candidate set to disambiguate.
+
+Taken straight to DONE at the user's direction, skipping REVIEW, since the
+judgement it would have asked for is the same judgement
+[[id:b57c7515-c511-4198-b311-26cefc52a60d][b57c7515]] already carried.
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-19 Wed 08:06] \\
+  re-queued, lost to my git checkout
+CLOCK: [2026-08-21 Fri 08:20]--[2026-08-21 Fri 08:32] =>  0:12
+- [2026-08-21 Fri 08:20]--[2026-08-21 Fri 08:32] depth-counter verification, reassigned by hand from 420816ec
+- State "REVIEW"     from "DOING"      [2026-09-15 Tue 18:56] \\
+  subsumed by the alias; judgement remains
+- State "DOING"      from "TODO"       [2026-09-15 Tue 18:56] \\
+  retroactive; worked under b57c7515's clock
+- State "DONE"       from "REVIEW"     [2026-09-16 Wed 06:36] \\
+  subsumed by the alias; no code of its own
+:END:
+:PLAN:
+
+Measured 2026-08-18 while recomputing the accumulated record for
+[[id:507754ba-ae82-4f04-b209-8d8c58ac268e][507754ba]]. Today's
+guideposts, grouped by =session_id=:
+
+| session_id | resume | pause | first    | last     |
+|------------+--------+-------+----------+----------|
+| =0c504277= |     21 |    21 | 07:14:33 | 10:45:46 |
+| =330316ca= |      1 |     0 | 10:47:22 | 10:47:22 |
+| =6f28d85e= |      9 |     8 | 11:24:35 | 16:35:15 |
+
+=330316ca= is the interactive session; its single =resume= at 10:47:22
+is the =UserPromptSubmit= that *launched a background job*. =6f28d85e=
+is that job, and its stream opens with the matching =pause= at 11:24:35
+-- 37 minutes later, the end of the job's first turn.
+
+So a background job's first turn has its =resume= in the launching
+session's queue file and its =pause= in the job's. The two halves of one
+real turn are in different files.
+
+*What this breaks.* Any computation that pairs =resume= -> =pause=
+*within* a session loses that turn entirely. In the recompute it cost
+37 minutes on one CLOCK line, silently, and the line corrected to
+=0:00= -- a plausible-looking answer with nothing to flag it. The fix
+adopted there is a depth counter over the merged stream rather than
+per-session pairing: =resume= increments, =pause= decrements, busy while
+depth > 0. That also happens to give
+[[id:7d739afd-f879-445c-b0b6-65e295585a94][7d739afd]]'s union for free,
+so one mechanism answers both.
+
+*This is a third explanation for
+[[id:09c134c4-31eb-4f6c-aa10-f836d1d28f16][09c134c4]]'s unmatched
+resumes*, and it is not the one that heading proposes. Its hypothesis is
+"an interrupt or a queued follow-up" -- two =UserPromptSubmit= with no
+intervening =Stop=. Here the =Stop= exists; it is simply filed elsewhere.
+Worth checking how many of the 8 unmatched resumes are job launches
+before instrumenting anything, since that costs nothing and this one is
+already confirmed.
+
+*Possible consequence, not verified:* CLAUDE.md says the =ExitPlanMode=
+cross-session guard "comes free from the file being per-session --
+another session's =PLANNING= is simply not in it to be found". If a
+background job is launched by a turn that queued =PLANNING=, that event
+is in the launching session's file and the job's hook reads its own, so
+the promotion would not fire. Narrow -- it needs =PLANNING= set by the
+very turn that launches a job -- and it has not been reproduced. Filed
+as a question, not a defect.
+
+:END:
+*Verified 2026-08-21 against the raw queue corpus* -- 844 guideposts, 13
+sessions, 2026-08-11 to 2026-08-21. The two halves of this heading came apart:
+the measurement holds exactly, the proposed mechanism does not.
+
+*The measurement is confirmed, independently and to the second.* Reproduced
+straight from the =.jsonl= files: =330316ca='s lone =resume= at 10:47:22 with no
+=pause=, =6f28d85e='s stream opening with a =pause= at 11:24:35, gap 37 minutes.
+The table above is right and nothing in it needs correcting.
+
+*The depth counter is falsified, and not marginally.* Implemented exactly as
+this body specifies -- merged stream, =resume= increments, =pause= decrements,
+busy while depth > 0 -- it produces *13.61 h* against per-session adjacency's
+*22.79 h*. It loses 9.18 h.
+
+*The failure is a latch, which is why it is disqualifying rather than tunable.*
+Depth has no way back down once an expected =pause= never arrives. At
+=2026-08-17 13:09:03= depth reached 2 and never returned to 0 again for the
+remaining 3.8 days of the corpus, climbing to 9 and ending there. After that
+instant *no run is ever emitted*, because a run only closes when depth hits
+zero. The corpus supplies 11 unmatched =resume= -> =resume= adjacencies and 2
+sessions whose stream ends on an unclosed =resume=; any one of them is enough,
+permanently.
+
+*Compare the failure modes, which is the whole argument.* Per-session adjacency
+degrades *locally* -- a lost =pause= costs exactly one run, and the next
+=resume= starts clean. The depth counter degrades *unboundedly and silently* --
+one lost =pause= corrupts every subsequent day. A pipeline whose stated goal is
+durations that mean what they say cannot adopt the second.
+
+*Tested generously and it still fails.* Resetting the counter daily -- the
+framing under which the one-off =507754ba= recompute would have looked correct,
+since a single day's stream is usually balanced -- gives 19.95 h against 22.79
+h, and errs in *both directions*: =-2.63 h= on 08-17, =+1.85 h= on 08-19. The
+08-19 overcount is the one that settles it. Depth held above zero across an idle
+gap and re-absorbed the human's thinking time -- which is precisely the ~45%
+overcount [[id:406e9200-c3e7-49ac-a8d0-d6ff8e061ce4][406e9200]] exists to
+eliminate. The mechanism reintroduces its own parent's defect.
+
+*The obvious repair also latches.* Keying the open set on =session_id= instead
+of counting makes a duplicate =resume= idempotent, so unmatched resumes stop
+accumulating -- but the 2 sessions that never close still pin the set open
+forever. 18.46 h; better, still 4.33 h short, still latching.
+
+*So "one mechanism answers both" is withdrawn.* This heading and
+[[id:7d739afd-f879-445c-b0b6-65e295585a94][7d739afd]] need two mechanisms, and
+each is cheap on its own. That heading's "compute runs per session, then union
+the results, never pool the events first" is *vindicated* by the same run, not
+superseded.
+
+*What survives here is a targeted linking rule, not a counter.* A session whose
+stream *opens* with a =pause= is a background job whose first turn began
+elsewhere; pair that =pause= with the nearest preceding unclosed =resume= in
+another session. Measured over the corpus: 3 sessions open with a =pause=, the
+rule fires once, recovers *0.62 h* -- exactly the 37 minutes above -- and
+correctly leaves the other two alone, since neither had any open =resume= to
+pair with.
+
+*One caveat, recorded because the corpus could not test it.* The implementation
+picks the *latest* open resume when several are candidates, and every case the
+corpus presented had exactly one. Multi-candidate ambiguity is untested; treat
+the rule as measured, not as general, and re-check it the first time two
+sessions have unclosed resumes when a background job's pause lands.
+
+*Closed 2026-09-15 by [[id:b57c7515-c511-4198-b311-26cefc52a60d][b57c7515]]'s
+alias map, and the surviving rule here is **subsumed rather than
+implemented**.* Checked before building: the leading-=pause= rule was never
+written into =config.el= — it existed only as a measurement on this body — so
+there was nothing to retire.
+
+*The measured result carries over exactly.* Of the three turns the alias
+recovers over the corpus, the first is this heading's: =330316ca= 10:47:22 →
+=6f28d85e= 11:24:35, **0.620 h**, the same 37 minutes this body records, now
+reached by a general mechanism rather than a special case.
+
+*And the other two are the shape the rule could never have found*, which is the
+argument for having generalised: =91ed1224= → =b48bf8c1= (0.022 h) and
+=5c87b720= → =d8e60858= (0.201 h) both open with a =resume=, so a test for a
+stream *opening* with a =pause= never fires on them. That is precisely the
+second shape =b57c7515= predicted from the other direction, and it is now
+measured rather than argued.
+
+*The untested caveat is retired too.* This body warned that the rule picked the
+*latest* open resume when several were candidates and that multi-candidate
+ambiguity was untested. The alias does not choose: a session belongs to exactly
+one conversation, identified by its transcript's first entry, and a group whose
+queue ranges overlap is refused rather than guessed at. There is no candidate
+set to disambiguate.
+
+
+***** DONE Name the floor on what gets written, so both floors are knobs :code:
+CLOSED: [2026-08-20 Thu 11:05]
+:PROPERTIES:
+:ID:       e0c55d26-706c-42b6-9405-54e9d5ed4750
+:CREATED:  [2026-08-19 Wed 08:43]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-19 Wed 08:43] \\
+  form now, value in September
+CLOCK: [2026-08-20 Thu 10:19]--[2026-08-20 Thu 10:22] =>  0:03
+- [2026-08-20 Thu 10:19]--[2026-08-20 Thu 10:22] assigned at review
+- State "DOING"      from "TODO"       [2026-08-20 Thu 10:53] \\
+  name the write floor as a defcustom
+- State "DONE"       from "DOING"      [2026-08-20 Thu 11:05] \\
+  shipped as a defcustom defaulting to 0; sweep recorded for 96a51c2f
+:END:
+:PLAN:
+
+=claude-code-ide-org-span-idle-floor= is a named =defcustom=. The floor
+on what gets *written* is not: it is two conditions inside
+=claude-code-ide-org--apply-idle-floor= — drop when the rendered
+endpoints share a minute, or when the duration rounds to =0:00= — giving
+an effective minimum near 30s. Shortest run actually written: 39s.
+
+Give it a name and a default preserving today's behaviour, so both
+floors have the same shape and either can be tuned without editing code.
+
+*The value is deliberately not set here.* Measured 2026-08-19 over the
+272 runs the current code writes (28.36 h), for whoever decides later:
+
+| cutoff | lines dropped | time dropped |
+|--------+---------------+--------------|
+| 60s    | 25 (9.2%)     | 0.34 h (1.2%) |
+| 120s   | 89 (32.7%)    | 1.84 h (6.5%) |
+| 180s   | 127 (46.7%)   | 3.36 h (11.9%) |
+
+24% of written lines currently read =>  0:01=. A 120s floor buys
+symmetry with the idle floor and a one-number rule of thumb, at 6.5% of
+recorded time. Decide against a month of data, not these eight days —
+[[id:96a51c2f-ce11-4b40-bdff-11223d3d4eb7][96a51c2f]].
+
+*Two mechanisms considered and rejected*, both raised 2026-08-19: counting
+=[10:00]--[10:01]= as two minutes puts a =>= total on the line that
+=org-clock-sum= contradicts from the same timestamps; bumping an endpoint
+outward fabricates time — about an hour across the 65 lines that would move —
+which is [[id:b74e0f19-5a26-4c83-9d70-8e1c5a2f6b04][b74e0f19]]'s rounding
+incident pointed the other way.
+
+:END:
+*Shipped 2026-08-20 as =claude-code-ide-org-span-minimum-interval=, defaulting
+to 0.* Zero is the point: it reproduces today's behaviour exactly, so naming the
+floor moved nothing. What had been holding the line was two rendering conditions
+inside =claude-code-ide-org--apply-idle-floor= — endpoints inside one minute, or
+a duration rounding to =0:00= — which are consequences of the clock format, not
+a policy anyone chose. Both remain; the new variable is a third condition that
+does nothing until set.
+
+*Verified by mutation, not by a green suite.* Three separate mutations each fail
+a distinct assertion: deleting the drop condition, defaulting it to 120, and
+relaxing =<= to =<==. Strictly-less matches
+=claude-code-ide-org-span-idle-floor=, so the two read the same way at their
+boundary.
+
+*Measured for September rather than decided now.* Post-cutover corpus, 283 lines
+/ 36.88 h: 120s drops 23.7% of lines for 3.03% of recorded time; 180s, 40.6% for
+7.37%; 300s, 63.6% for 17.71%; 60s drops nothing, confirming the rendering
+conditions already cover that range. The sweep lives in the docstring and the
+value belongs to [[id:96a51c2f-ce11-4b40-bdff-11223d3d4eb7][96a51c2f]].
+
+*The measurement that did not replicate is the more useful half.* 96a51c2f
+recorded 6.5% of recorded time for the same 120s value on 2026-08-18; the same
+measurement on 2026-08-20 gives 3.03%. No code changed — the corpus grew and the
+mix shifted. That heading's instruction to re-derive rather than confirm now has
+a two-day counterexample behind it, and its body was corrected to say so.
+
+
+***** DONE The review buffer predicts a duration org does not write :code:
+CLOSED: [2026-08-21 Fri 07:52]
+:PROPERTIES:
+:ID:       c6fc6f46-4954-4fdf-9d7e-7c8bf3a1a952
+:CREATED:  [2026-08-20 Thu 16:43]
+:END:
+:LOGBOOK:
+CLOCK: [2026-08-20 Thu 16:28]--[2026-08-20 Thu 16:29] =>  0:01
+- [2026-08-20 Thu 16:28]--[2026-08-20 Thu 16:29] assigned at review
+CLOCK: [2026-08-20 Thu 16:41]--[2026-08-20 Thu 16:46] =>  0:05
+- [2026-08-20 Thu 16:41]--[2026-08-20 Thu 16:46] assigned at review
+- State "TODO"       from              [2026-08-20 Thu 16:45] \\
+  captured keywordless; state never set
+CLOCK: [2026-08-21 Fri 07:48]--[2026-08-21 Fri 07:52] =>  0:04
+- State "DOING"      from "TODO"       [2026-08-21 Fri 07:48] \\
+  one root cause, three sites; 56 written lines already self-inconsistent
+- [2026-08-21 Fri 07:48]--[2026-08-21 Fri 07:52]
+- State "DONE"       from "DOING"      [2026-08-21 Fri 07:52] \\
+  root cause fixed at all three sites; the 56 stale lines left for a separate approval
+:END:
+:PLAN:
+
+=claude-code-ide-org--review-written-summary= sums raw seconds across a span's
+runs. org computes a CLOCK line's duration from the two *minute-truncated*
+timestamps it records. The two disagree by a minute whenever the seconds fall
+either side of a boundary.
+
+Caught on a real line, 2026-08-20. The review buffer previewed =writes 0:02= for
+the 10:19--10:22 span; apply wrote =CLOCK:
+[2026-08-20 Thu 10:19]--[2026-08-20 Thu 10:22] => 0:03=. Guideposts were
+10:19:49 and 10:22:18 -- 149s, which rounds to 2, while org subtracts 10:19 from
+10:22 and gets 3.
+
+*Measured across the whole queue corpus:* of 361 runs where either method writes
+a minute, *25.5% disagree* -- 43 runs (11.9%) where org writes one minute less
+than previewed, 49 (13.6%) where it writes one more. Near-symmetric, so
+aggregate totals barely move; the error is per-line and does not cancel for a
+human reading one line.
+
+*This is the function failing its own stated contract*, which is what makes it
+worth fixing rather than tolerating. Its docstring says it returns "what apply
+will *really* write", and the reasoning recorded there is that confirming a
+number which exists nowhere is worse than the overcount it replaced. A
+prediction that is wrong a quarter of the time reintroduces exactly that
+failure, one minute at a time.
+
+*Approach:* compute the preview the way org does -- truncate each run's
+endpoints to the minute, then subtract -- rather than summing float seconds.
+That also makes the preview agree with =--apply-idle-floor='s own
+rendered-endpoint test, which already truncates, so the two would stop reasoning
+about time in different units.
+
+*Verify:* a test pinning a run of 10:19:49--10:22:18 to a preview of =0:03=, and
+failing on the current =0:02=.
+
+/Body restored 2026-08-20 by =org_amend=; the original capture silently
+discarded it -- see/ [[id:1cd2df62-35e9-47dc-bcce-dda7bae3c522][1cd2df62]].
+
+:END:
+*Fixed 2026-08-21, and the reported symptom was the smaller half.* Chasing the
+root cause found that *56 of the 353 CLOCK lines standing in TODO.org and
+DONE.org disagree with their own printed timestamps* -- 35 printing a minute
+less than their stamps imply, 21 a minute more. Same cause: raw seconds summed
+and rounded, where org derives a line's total by subtracting two
+minute-precision stamps.
+
+*Nothing could have surfaced those 56.* A clocktable recomputes from the
+timestamps and never reads the =>= field, so =org_clock_report= has been quietly
+reporting different totals than the drawer a human was reading, with no error
+anywhere. The lines are *not* repaired here -- that is a data change and belongs
+to its own approved step.
+
+New =claude-code-ide-org--clock-minutes= truncates both endpoints before
+subtracting; =--format-clock-line= derives its total from it, so a line agrees
+with its own stamps by construction. The preview computes *per run* rather than
+pooling, because org writes each line separately and summing raw seconds first
+also invents a minute out of combined remainders.
+
+*Two of the three sites were live, one was not, and saying which matters.* The
+preview and =--format-clock-line= via the recompute caller are where the 56 came
+from. =claude-code-ide-org-close-open-interval= and the consolidate caller are
+fed endpoints already parsed from org timestamps, so raw rounding was exact
+there today -- routed through the helper anyway so the invariant survives either
+input gaining seconds. *Latent, not fixed.*
+
+*One existing test had to be rewritten rather than re-expected, which is the
+more interesting finding.* =test-recompute-window-reaches-past-the-minute=
+pinned the =>= figure to prove the 60-second window extension mattered. Under
+correct arithmetic it cannot: any guidepost inside that extension truncates to
+the same minute as END *by construction*, so it can never move a total. Verified
+by removing the extension -- byte-identical output, exactly the "verified
+nothing" failure that test's own docstring was written to warn about. It now
+asserts on *membership* instead: a lone =pause= at 09:10:30 drops the line when
+the window includes it and leaves it whole when it does not, a difference no
+rounding coincidence can imitate.
+
+*Known limit, flagged not chased.* Even corrected, the preview cannot model the
+already-recorded-interval subtraction apply performs at point, because an
+unassigned span has no heading to read a drawer from. The truncation fix removes
+the 25.5% class; that residual is inherent to previewing before assignment.
+
+Mutation-tested three ways -- reverting to raw rounding, truncating only one
+endpoint, and removing the window extension each fail a distinct test. 329
+tests.
+
+
+***** DONE Fifty-six CLOCK lines disagree with their own timestamps :code:
+CLOSED: [2026-08-21 Fri 08:01]
+:PROPERTIES:
+:ID:       057cec53-d10e-45d0-b9ef-32713411c439
+:CREATED:  [2026-08-21 Fri 07:52]
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-21 Fri 07:53] \\
+  data repair, awaiting approval; writer already fixed
+CLOCK: [2026-08-21 Fri 08:00]--[2026-08-21 Fri 08:01] =>  0:01
+- State "DOING"      from "TODO"       [2026-08-21 Fri 08:00] \\
+  approved; all 56 are post-cutover so the era question is moot
+- [2026-08-21 Fri 08:00]--[2026-08-21 Fri 08:01]
+- State "DONE"       from "DOING"      [2026-08-21 Fri 08:01] \\
+  56 repaired, 0 remaining; all post-cutover
+:END:
+:PLAN:
+
+Measured 2026-08-21: of 353 CLOCK lines across TODO.org and DONE.org, *56 print
+a =>= total that does not match their own two timestamps* -- 35 a minute low, 21
+a minute high. Example, TODO.org:184: =[...09:31]--[...09:36] => 0:04=, where
+the stamps say five minutes.
+
+The cause is fixed ([[id:c6fc6f46-4954-4fdf-9d7e-7c8bf3a1a952][c6fc6f46]]) and
+no new line can be written this way. These are the ones already on disk.
+
+*Why nobody noticed, and why it still matters.* A clocktable recomputes from the
+timestamps and never reads the =>= field, so =org_clock_report= has been
+silently disagreeing with the drawer a human reads. Neither number is corrupt;
+they simply cannot both be right, and the *timestamps are the record* -- they
+are what org itself computes from, and what every report already uses.
+
+*Deliberately not repaired at the same time as the code.* Rewriting the
+accumulated record in bulk is the shape behind
+[[id:79c224ab-188a-4ed4-a606-c28ee2cfe72d][79c224ab]] and the =b74e0f19=
+rounding incident, and the one comparable pass (the =507754ba= recompute) was
+explicitly approved first. Fixing the writer is safe on its own; rewriting
+history is a separate decision with a separate blast radius.
+
+*Approach when approved.* A targeted totals-only rewrite: for each matching
+CLOCK line, recompute =>= from the two stamps already printed on it and replace
+*only that field*. Not a =--consolidate-logbook-text= pass, which rewrites whole
+drawers and is exactly the incident shape. The endpoints are never touched, so
+no interval changes, only the derived label agrees with the interval again.
+
+*Verification is already written* -- the same script that found the 56 re-run
+after, expecting 0. Sequencing: commit first, write on disk with the buffers
+unmodified, =revert-buffer= without =preserve-modes=, lint, separate commit.
+
+*Open, and the reason this is not simply a chore.* Whether pre-cutover lines
+should be repaired at all. They were written by the old aggregator against a
+different model of what an interval meant, and
+=claude-code-ide-org-span-minimum-interval='s docstring already treats them as a
+population deliberately left alone. Making their labels self-consistent is
+defensible; so is leaving them visibly of their era.
+
+*Repaired 2026-08-21 on the user's approval, commit =7db9a4b=.* All 56 lines now
+agree with their own timestamps; the finder re-run reports 353 CLOCK lines and 0
+disagreements.
+
+*The open question above answered itself.* All 56 turned out to be
+*post-cutover* -- 36 in DONE.org, 20 in TODO.org -- so nothing written by the
+old aggregator was touched, and the judgement about whether to leave pre-cutover
+lines visibly of their era never had to be made. Worth recording as the reason,
+rather than leaving the impression it was decided.
+
+:END:
+*Verified three ways rather than one.* The script that found the 56, re-run: 0
+remaining. The diff: exactly 112 lines, 56 pairs, *no pair differing anywhere
+before* =>= -- so no endpoint moved and no interval changed, only the derived
+label. And no non-CLOCK line touched at all.
+
+*Net effect: +14 minutes across 65.65 h*, 35 lines gaining a minute and 21
+losing one. Small in aggregate, which is exactly what a near-symmetric rounding
+error predicts -- and exactly why aggregate totals were never going to surface
+this. The individual lines were wrong in both directions.
+
+*One thing the repair confirmed about the earlier count.* 365 lines in the two
+files carry a =>= H:MM= string but only 353 are CLOCK entries; the other twelve
+are prose discussing clock lines, including this heading's own body. A
+whole-line anchored pattern excluded them. A looser grep would have rewritten
+documentation.
+
+
+***** DONE A split span drops the unowned gaps between the clock pairs that split it :code:
+CLOSED: [2026-09-16 Wed 08:11]
+:PROPERTIES:
+:ID:       c54c4215-90e3-4e0c-9de1-990c0406a2b2
+:CREATED:  [2026-08-25 Tue 18:44]
+:END:
+:DEBRIEF:
+*Both halves resolved 2026-09-16, and only one of them needed code.*
+
+**The complement shipped.** The aggregator clusters *through* an exclusion and
+subtracts afterwards rather than refusing to cluster, so the owned minutes are
+removed by subtraction instead of by a split and the gaps between exclusions
+survive. Measured over 2855 guideposts against 289 real clock brackets: 183 →
+193 spans is the =cwd= change's contribution and 382 → 456 the complement's,
+covered time 120.47 → **133.11 h**. **12.64 h of real unattributed work now
+reaches review.** This body's own fixture reproduces to the second — 103, 198
+and 68 s, totalling the 369 s it recorded.
+
+*It answered this body's open presentation question more cleanly than the
+question assumed.* It asked whether the zero-width endpoints "become redundant
+once the gaps are offered". They are not redundant — they are **absorbed**,
+each sitting inside the first or last gap. 68 zero-width items down to 1.
+
+**Widowing needed no code, and that is the finding.** Measured before building:
+of 25 live review items exactly **1** is zero-width, and it is this session's
+own trailing =clock_in=, not a widow. The fixture this body preserved cannot
+recur either — session =1ad547fe= has **81 guideposts, all consumed, 0
+pending**. Two guards added for other reasons already cover it:
+[[id:355fa608-e311-4874-b2d3-bbc62172d09a][355fa608]]'s stranded-single-point drop, and the complement
+above, which absorbs the endpoints a split used to strand.
+
+*So the deliverable narrowed to a pinning test*, which is
+[[id:2c77f2cc-af07-4f4d-aa9d-1aa3bc8843f5][2c77f2cc]]'s precedent exactly: the guard already worked and
+the fix became a test rather than code. It constructs widowing deterministically
+— four guideposts, the widow's neighbour marked applied and the widow not — and
+asserts the widow yields no item **while the trailing point still does**. The
+second assertion is separate on purpose: a change suppressing *both* would
+otherwise pass, and =31f766ab= rejected blanket suppression because hiding an
+in-flight span makes a crashed session's last span vanish.
+
+*A passing pinning test proves nothing unless it can fail*, and this one cannot
+be run red against HEAD since the guard predates the work. Discrimination is
+proved by **mutation**: disabling the stranded-point drop fails this test and
+the pre-existing =355fa608= test, and nothing else.
+
+*One property worth carrying forward.* A complement segment is bounded by
+*exclusion edges* rather than guideposts. That is still evidence — an edge is a
+=clock_in= or =clock_out= timestamp — but it is a different event kind from the
+ones bounding an ordinary span, and anyone reconciling a span against a
+transcript should know which they are looking at.
+
+*Correction, 2026-09-16, after close: **"12.64 h of real unattributed work now
+reaches review" is wrong**, and it is wrong in the direction that flatters the
+change.*
+
+The figure is sound as a measurement and misleading as a claim. It came from
+=--queue-historical-guideposts=, which reads **every guidepost ever written and
+ignores the watermarks**. So it answers "what would the aggregator produce over
+all history" — a **counterfactual**, describing the record this pipeline would
+have built had it always worked this way. It is not a backlog, and nothing about
+it is waiting to be applied.
+
+*What is actually pending, measured the same day:* **10 complement-gap items
+totalling 2.49 h**, against 18 other items totalling 1.15 h. The remaining ten
+hours are backed by guideposts **already consumed** by earlier apply passes and
+will never be re-offered.
+
+*So the honest statement is:* the complement improves the record **from here
+forward**; it does not recover the past. Roughly two and a half hours of
+genuinely unowned time is newly visible and awaiting judgement. The difference
+between that and "12.64 h now reaches review" is the difference between a fix
+and a windfall.
+
+*Found because the user asked what "the record isn't tighter yet" meant* — and
+in answering I had to separate what the data *implies* from what it merely
+*permits*. The unowned envelope is implied, by arithmetic on timestamps. Whether
+any of it was the human's attention is not: a window where the agent was idle is
+undetermined between attending and absent, which is
+[[id:996fd2bd-be90-44b3-b2c5-9018255940b3][996fd2bd]]'s sleeping-laptop
+negative. The gap between machinery and record is therefore **questions awaiting
+a human**, not a derivation awaiting a run.
+
+*And it strengthens [[id:2deb090f-593d-40e3-9044-fda318d9b6de][2deb090f]]'s
+refusal to repair its own history*, on a ground that heading did not have. It
+declined because nobody can decide retrospectively which of 81 annotations were
+attention. This adds that for the analogous gaps the **evidence is gone from the
+pending set entirely** — consumed events are not re-offered — so the repair is
+not merely a hard judgement but one the review buffer cannot even pose.
+
+*The same phrase appears in this heading's =:PLAN:= half and is left there
+uncorrected, deliberately:* that half is the plan as written at the time, and a
+=DEBRIEF= correcting it is how this project records a number that was right and
+read wrong.
+:END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-25 Tue 18:45] \\
+  captured keywordless, setting initial state
+- State "NEXT"       from "TODO"       [2026-09-16 Wed 06:24] \\
+  Step 4, now one zero-width span larger
+- State "DOING"      from "NEXT"       [2026-09-16 Wed 06:45] \\
+  starting the complement half
+CLOCK: [2026-09-16 Wed 08:11]--[2026-09-16 Wed 08:11] =>  0:00
+- State "DONE"       from "DOING"      [2026-09-16 Wed 08:11] \\
+  both halves: complement shipped, widowing pinned
+- [2026-09-16 Wed 08:11]--[2026-09-16 Wed 08:11] suggested span, accepted at review
+CLOCK: [2026-09-16 Wed 12:39]--[2026-09-16 Wed 12:40] =>  0:01
+- [2026-09-16 Wed 12:39]--[2026-09-16 Wed 12:40] assigned at review
+CLOCK: [2026-09-16 Wed 12:42]--[2026-09-16 Wed 12:43] =>  0:01
+- [2026-09-16 Wed 12:42]--[2026-09-16 Wed 12:43] assigned at review
+CLOCK: [2026-09-16 Wed 12:46]--[2026-09-16 Wed 12:47] =>  0:01
+- [2026-09-16 Wed 12:46]--[2026-09-16 Wed 12:47] correct the 12.64 h framing
+:END:
+:PLAN:
+
+*Found 2026-08-25 by the user*, who looked at two zero-minute spans left over
+from a review pass and asked whether they marked the beginning and end of
+meta-work. They do, and the duration between them is thrown away.
+
+*The mechanism, from =--aggregate-guideposts='s own docstring rather than
+inferred.* EXCLUSIONS -- today the =clock_in=/=clock_out= brackets that already
+have an owner ([[id:eaeeb4ee-ceee-4094-8598-bbcdc8214b66][eaeeb4ee]]) -- are
+treated like a permission block: one "lying wholly between two timestamps
+*splits* the span rather than being clustered through". Split a two-timestamp
+span twice and both timestamps are left alone, and "a lone timestamp yields a
+zero-width span, which is honest".
+
+*Each step is right and the composition loses time.* Not double-counting an
+owned interval is correct. Refusing to claim a duration for a lone point is
+correct. But splitting emits only the *endpoints* and never the *complement* --
+the unowned gaps that lie between the exclusions inside the original span. Those
+gaps are real, unattributed work, and nothing else will ever offer them.
+
+*Today's window is a ready-made fixture, with every number checked against the
+queue file:*
+
+: guideposts  17:58:09 resume ... 18:13:44 pause      935 s apart
+: threshold   claude-code-ide-org-guidepost-gap-threshold = 1200 s
+: so          935 < 1200 -- these would have been ONE span
+: exclusion   17:59:52--18:02:26  e1284bdb   154 s
+: exclusion   18:05:44--18:12:36  f421c5c3   412 s
+: emitted     [17:58]--[17:58] and [18:13]--[18:13], both zero-width
+: dropped     935 - 566 = 369 s in three gaps
+
+*The three dropped gaps, each identifiable from the transcript*, which is what
+makes this a loss rather than a rounding artefact: 1:43 writing a measured note
+onto [[id:1a5a5254-f62d-46e7-9a6c-3d84f2f52873][1a5a5254]]; 3:18 committing,
+re-orienting onto the next heading and loading a skill; 1:08 composing the
+session's closing report. All of it meta-work, and all of it exactly the residue
+the day node exists to absorb.
+
+*Note the threshold is not the cause*, which is worth stating because it is the
+first thing anyone will suspect. At 935 s against a 1200 s threshold these
+guideposts clustered fine; it is the exclusion split that separated them.
+Raising the threshold would change nothing.
+
+*Shape of the fix, not chosen:* emit the complement segments of (span minus
+exclusions) instead of only the split endpoints. A span reduced to nothing by
+its exclusions correctly yields no item at all; a span with interior gaps should
+yield one item per gap. Whether a zero-width endpoint is still worth rendering
+afterwards is a separate presentation question -- it may be that the endpoints
+become redundant once the gaps are offered.
+
+*Related but distinct.* [[id:2d100d0d-2d04-43b9-af1e-f4d6b52bbada][2d100d0d]] is
+the opposite failure -- a span and an explicit interval both applying,
+double-counting. This is what the fix for that traded away, so the two want
+reading together.
+
+*A second mechanism produces the same symptom, found 2026-08-26 and not
+described above.* Three zero-width points survived a review pass, and only two
+of them were splits.
+
+: 18:36:39  split -- meta-work clock pair 18:37:22--18:39:19 lies between it and 18:42:11
+: 20:54:33  split -- two owned pairs between it and 20:38:35 (7ae6562d, then aa1ba915)
+: 19:36:14  NOT a split -- widowed by partial apply
+
+*Widowing is the new one.* =19:36:14= sits 203 s from =19:32:51=, comfortably
+inside the 1200 s threshold, with no exclusion between them -- they would have
+clustered into a span of about 3:23. But =19:32:51= was *consumed by the apply
+pass of 2026-08-26T08:08:06*, along with =19:17:53=, so the survivor has no
+unconsumed neighbour left to cluster with and degenerates to a point.
+
+*Read from the ledger, which could not have answered this a day earlier.* The
+per-event apply time [[id:21c91613-76e0-4590-affe-e2af9f1321ca][21c91613]]
+shipped is what makes "consumed by *which* pass" a lookup rather than a
+reconstruction; six distinct passes are cleanly separable in the file. This is
+that field's first real use, and it was used to diagnose a defect rather than to
+undo anything.
+
+*Why it matters more than the split case.* A split is created by the machinery
+and is stable -- the same events always split the same way. Widowing is created
+by *the human's own reviewing*, and it compounds: every partial apply can orphan
+another survivor, so the zero-width points accumulate in proportion to how
+carefully someone reviews. The more selectively the queue is applied, the more
+residue it leaves.
+
+*So the fix has two halves, not one.* Emitting the complement segments of (span
+minus exclusions) addresses the splits. It does *not* address widowing, where
+the missing neighbour is gone from the pending set entirely -- that needs the
+aggregator to see consumed events when deciding whether a lone timestamp is
+genuinely lone, which =--queue-events= already supports via =include-consumed=
+and which =--review-suggest-heading= already uses for exactly that kind of
+question.
+
+*Fixture, recorded here so it survives dismissal.* Session =1ad547fe=,
+guideposts at =2026-08-25T18:36:39=, =19:36:14= and =20:54:33=. Dismissing them
+marks them consumed but *destroys nothing* -- =--queue-mark-dismissed= writes
+beside the queue and never touches the =.jsonl=, so undoing it is deleting one
+key from a small JSON file, and the events remain replayable.
+
+:END:
+*First half shipped 2026-09-16 — the complement. The widowing half is
+untouched and this heading stays open for it.*
+
+The aggregator now **clusters through** an exclusion and subtracts afterwards
+(=--span-complement=) rather than refusing to cluster. The owned minutes are
+still never claimed — they are removed by subtraction instead of by a split —
+and the gaps between exclusions survive.
+
+*Measured over the whole guidepost history against 289 real clock brackets:*
+
+| | spans | zero-width | covered |
+|---+-------+------------+---------|
+| before | 382 | 68 | 120.47 h |
+| after | 456 | 1 | 133.11 h |
+
+**12.64 h of real, unattributed work now reaches review.** This body's own
+fixture reproduces to the second: the 935 s span with its 154 s and 412 s
+exclusions yields 103, 198 and 68 s — 369 s in three gaps.
+
+*The presentation question this body left open answers itself, and more
+cleanly than it guessed.* It asked whether the zero-width endpoints "become
+redundant once the gaps are offered". They are not redundant — they are
+**absorbed**: each endpoint now sits *inside* the first or last gap rather
+than being offered as a point. Corpus-wide that is 68 zero-width items down to
+1, the survivor being a genuinely lone guidepost.
+
+*One property worth stating because it is a real change in kind.* A complement
+segment's boundaries are *exclusion edges*, not guideposts. That is still
+evidence rather than assertion — an edge is a =clock_in= or =clock_out=
+timestamp from the queue — but it is a different event kind from the ones
+bounding an ordinary span, and a reader comparing a span to the transcript
+should know which they are looking at.
+
+*What remains here is widowing*, and it is the harder half for the reason this
+body already gives: a split is created by the machinery and is stable, while
+widowing is created by the human's own reviewing and compounds with how
+selectively the queue is applied. The complement does not touch it — the
+missing neighbour is gone from the pending set entirely — so it still needs the
+aggregator to consult consumed events via =--queue-events='s =include-consumed=,
+as =--review-suggest-heading= already does. The =1ad547fe= fixture on this body
+is untouched and still replayable.
+
+
+***** DONE Accepting a 0-run span records none of its minutes, and only =e= can claim them :code:
+CLOSED: [2026-09-16 Wed 08:21]
+:PROPERTIES:
+:ID:       2deb090f-593d-40e3-9044-fda318d9b6de
+:CREATED:  [2026-09-11 Fri 17:41]
+:END:
+:DEBRIEF:
+*Correction, 2026-09-16, after this heading was closed: =c= shipped with two
+defects, both found by the user pressing the key rather than by any test.*
+
+**Point jumped to the top of the buffer.** =c= called
+=--review-render=, which redraws everything, instead of =--review-redraw=,
+which redraws and puts point back on the item. The latter's own docstring names
+itself "the one path every command that *mutates an item* should take, so that
+point handling stops being each command's own decision to remember or forget",
+and records =a= and =e= both forgetting it. **This was the third time**, which
+says the docstring is not where that rule can live if it keeps being missed.
+Fixed with no =ADVANCE=: =c= makes the line *markable* rather than finished
+with, exactly as =a= does.
+
+**The annotation stayed in square brackets, and this one was a misreading of
+this very body.** I took "the bracket style is a red herring here" as *leave
+=:active= alone*. It says the style cannot fix the **minutes** — =:active=
+reaches only the annotation, since =org-clock-in= always writes the =CLOCK:=
+line inactive. It says nothing about what the line *means*, and an active
+timestamp is precisely how this record says a human attended an interval.
+Claiming an envelope **is** that assertion, so the two coincide. The user
+expected =<...>= and was right to; =c= now sets =:active= and the annotation
+renders =<2026-09-11 Fri 13:24>--<2026-09-11 Fri 13:46>=.
+
+*Two consequences of that, neither hidden.* The =CLOCK:= line stays inactive and
+=c= cannot change it — org writes it that way — so the drawer will read =<...>=
+on the annotation beside =[...]= on the CLOCK line. And an active timestamp
+**reaches org-agenda**, which is deliberate here (it is the point of saying the
+time was attended) and is exactly why =e= keeps inactive as *its* default, where
+the edit may be a mere correction of bounds.
+
+*The test that asserted =(should-not :active)= was mine and pinned the wrong
+reading.* It now asserts the opposite, with the reversal explained in place so
+it is not mistaken later for drift.
+
+*Worth naming the pattern rather than just the two bugs.* Both were invisible to
+the suite and to the corpus replay, because both are about **what the reviewer
+sees and where the cursor is** — properties no assertion in this project
+currently makes. The four tests I wrote all pass either way. A key is used, not
+computed, and nothing here tests use.
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-11 Fri 17:41]--[2026-09-11 Fri 17:47] =>  0:06
+- [2026-09-11 Fri 17:41]--[2026-09-11 Fri 17:47] check the 0-run span attention reasoning, file it
+CLOCK: [2026-09-16 Wed 08:11]--[2026-09-16 Wed 08:21] =>  0:10
+- State "DOING"      from "NEXT"       [2026-09-16 Wed 08:11] \\
+  starting the slice's last member
+- State "NEXT"       from "TODO"       [2026-09-16 Wed 08:11] \\
+  Step 5, the slice's last member
+- [2026-09-16 Wed 08:11]--[2026-09-16 Wed 08:21] accepting a 0-run span claims its minutes
+- State "DONE"       from "DOING"      [2026-09-16 Wed 08:21] \\
+  c shipped and audited; leak stopped
+CLOCK: [2026-09-16 Wed 08:24]--[2026-09-16 Wed 08:28] =>  0:04
+- [2026-09-16 Wed 08:24]--[2026-09-16 Wed 08:28] suggested span, accepted at review
+CLOCK: [2026-09-16 Wed 11:55]--[2026-09-16 Wed 11:57] =>  0:02
+- [2026-09-16 Wed 11:55]--[2026-09-16 Wed 11:57] assigned at review
+CLOCK: [2026-09-16 Wed 12:04]--[2026-09-16 Wed 12:05] =>  0:01
+- [2026-09-16 Wed 12:04]--[2026-09-16 Wed 12:05] record two defects found in use
+:END:
+:PLAN:
+
+Assigning a 0-run span and applying it writes a =:LOGBOOK:= annotation and no
+=CLOCK:= line at all — =--review-apply-clock='s =(unless observed ...)= branch —
+so the envelope is recorded as zero. Measured 2026-09-11 on the ten pending
+spans: seven have no run, including
+[2026-09-11 Fri 13:24]--[2026-09-11 Fri 13:46], and every one of them goes from
+0s to its full envelope the moment =:suggested= is cleared. The user's position,
+stated the same day: a 0-run/0-turn span they choose to accept should carry all
+those minutes, because accepting it *is* the assertion that the time was their
+attention. Today the only way to say that is =e= — retyping both timestamps
+unchanged purely to set =:suggested nil= — so the act costs two timestamps and
+reads as an edit rather than a claim. Proposed: a way to accept the envelope as
+attention in one act, distinct from correcting bounds; note that the bracket
+style is a red herring here, since =:active= reaches only the annotation while
+the =CLOCK:= line is always written inactive by =org-clock-in=/=org-clock-out=.
+Reads with [[id:01849bef-fdc9-4c30-b467-00ca8606e8e0][01849bef]] (the same
+keystroke family, and the same question of what the assertion means),
+[[id:996fd2bd-be90-44b3-b2c5-9018255940b3][996fd2bd]] (the automatic half — a
+gap containing an apply timestamp is provably human), and
+[[id:44cef181-8dac-4735-8860-f123e132fdbc][44cef181]], which named this residue
+and said explicitly that it stopped the line implying the minutes were captured
+without capturing them.
+
+*Measured in the accumulated record 2026-09-14, which this heading had argued
+from mechanism alone.* Auditing the meta-work datetree and =Review attention=
+for annotations with no matching =CLOCK:= line: **18 annotations assert a real
+duration that nothing counts, totalling 99 minutes.** A further 10 have no CLOCK
+line and are *zero-width*, which is correct by design and costs nothing.
+
+The 18 range from 1 to 12 minutes and are overwhelmingly ordinary accepted spans
+— 15 read =assigned at review=, two =root-cause unattributed spans, file
+discipline fix=, one an authored note. They are spread across 2026-08-24 to
+2026-09-10, so this is a steady leak rather than one bad pass.
+
+*This is the first number attached to the defect, and it reframes the size.* The
+body above establishes that a 0-run span applied as suggested writes an
+annotation and no CLOCK line; this says what that has actually cost on **one**
+heading family. The true total is larger: the audit covered only the meta-work
+node and =Review attention=, not the hundred-odd task headings where the same
+spans land.
+
+*The record is not wrong, and that is the uncomfortable part.* Every one of
+those 18 annotations is present, correct, and readable; a human scanning the
+drawer sees the interval and its label. Only =org-clock-sum= and every
+clocktable built on it skip them, because org totals CLOCK lines and annotations
+are prose. So the drawer says the work happened and the report says it did not,
+and neither is lying.
+
+*One of the 18 is the case [[id:01849bef-fdc9-4c30-b467-00ca8606e8e0][01849bef]]
+has been looking for* — =<2026-09-04 Fri 10:16>--<2026-09-04 Fri 10:21> read the
+testdata report; planned the wrap-up sequence=, the user's own flip to active
+notation. It is the sharpest illustration available: the interval was
+*deliberately* marked as the human's attention, and still records zero minutes.
+
+:END:
+*Shipped 2026-09-16 as =c=, and the audit this body asked for is done.*
+
+**The audit, whole corpus.** This body measured 18 annotations / 99 minutes on
+the meta-work node and =Review attention= alone, and said the true total was
+larger. Over all 5 tracked files and 546 headings: **81 annotations carry
+minutes no CLOCK line covers, totalling 850 minutes — 14.17 h.** Spread across
+55 headings, and the largest single offender is 193 minutes on one heading.
+That is **≈8.6× the figure this body had**, and the shape is confirmed: a
+steady leak across the corpus rather than one bad pass.
+
+*Two numbers, because the looser one is the tempting one and it overstates.*
+Pairing an annotation to a CLOCK line by *exact* timestamps gives 1367
+uncovered minutes. Subtracting each heading's actual CLOCK **coverage** —
+=--merge-time-intervals= over its CLOCK lines, then =--span-complement= of the
+annotation against that union, both written for
+[[id:c54c4215-90e3-4e0c-9de1-990c0406a2b2][c54c4215]] the same day — gives
+**850**. The 517-minute difference is annotations whose minutes *are* recorded
+under different bounds, typically a hand correction. The tighter figure is the
+one to quote.
+
+**The fix.** =c= clears =:suggested=, so
+=--review-intervals-to-write= returns the displayed interval instead of the
+runs, and sets =:claimed=. One act, no timestamps retyped, and distinct from
+=e='s correction of bounds — which was the whole complaint: the assertion could
+only be made by pretending to edit.
+
+*Three supporting pieces, each for a reason rather than for symmetry.* The line
+renders **=(claimed)=**, never =(agent)= — clearing =:suggested= previously made
+the line credit a human's assertion to the agent, and it is the only thing on
+the line telling the two apart. =--review-judgement-summary= counts =:claimed=,
+so =g= cannot silently discard one; every other decision in that buffer already
+leaves a counted flag. And it **deliberately does not touch =:active=**, this
+body's own guidance — bracket style reaches only the annotation, never the
+CLOCK line, and is
+[[id:01849bef-fdc9-4c30-b467-00ca8606e8e0][01849bef]]'s question.
+
+*Four tests, all red against HEAD first.* The core one asserts the **duration**,
+not the flag, because the flag is only interesting if it changes what is
+written: 0 seconds before the claim, 1320 after.
+
+*Not done here:* the 850 minutes already in the record stay uncounted. =c= stops
+the leak; it does not repair the history, and repairing it would mean deciding
+retrospectively which of 81 annotations were attention — a judgement nobody can
+make from the drawer alone.
+
+
+***** DONE Guidepost aggregation ignores =cwd=, so two projects' turns cluster into one span :code:
+CLOSED: [2026-09-16 Wed 06:36]
+:PROPERTIES:
+:ID:       c9940558-b23e-4b2c-86e8-e75a377634aa
+:CREATED:  [2026-09-11 Fri 17:43]
+:END:
+:DEBRIEF:
+*Shipped*: a point in =--aggregate-guideposts= carries =(TS KIND PROJECT)=, and
+a boundary between two **known, different** projects splits the span exactly as
+a permission block does. The project is =cwd= normalised through
+=--project-name= — git root, linked worktree folded into its main checkout —
+which is [[id:5461c349-fd22-4b75-a508-50efbe4b87f8][5461c349]]'s second
+obligation, already implemented and already tested. Nothing coined.
+
+*Measured over 2855 guideposts*: 183 → 193 spans, zero-width 1 → 2, covered
+170.89 → 170.33 h. The 0.56 h that leaves the total is the change — time
+clustered *across* a boundary and so credited to whichever tracker the span was
+accepted against.
+
+*The nil guard, not the split, is the load-bearing part.* =cwd= has been
+written only since 2026-09-04 and cannot be backfilled — 626 of 2855
+guideposts carry one — so nil means *unknown*, never *elsewhere*, and an
+unknown point inherits the last known project. Both halves are asserted
+separately; the inheritance half is the one that fails loudest when wrong.
+
+*This heading underestimated its own defect*, and the reason generalises: it
+counted spans whose *annotation* rendered two cwds, and the annotation dedupes,
+so it counted renderings rather than boundaries. The real 2026-09-10
+interleaving is one =claude-code-ide-org= session against **three** separate
+=agentic-euchre= sessions, alternating all morning, with one four-hour span
+carrying both projects end to end. An estimate taken from a rendering understates.
+
+*Handed on rather than solved*: the split adds one zero-width span at
+=[2026-09-10 12:14:36]=, a genuine one-second return between two euchre turns.
+Whether a zero-width endpoint is worth rendering is
+[[id:c54c4215-90e3-4e0c-9de1-990c0406a2b2][c54c4215]]'s question, now one item
+larger.
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-09-15 Tue 19:01] \\
+  Step 3, and the euchre blocker in this slice
+- State "DOING"      from "NEXT"       [2026-09-16 Wed 06:18] \\
+  starting the cwd boundary split
+CLOCK: [2026-09-16 Wed 06:19]--[2026-09-16 Wed 06:23] =>  0:04
+- [2026-09-16 Wed 06:19]--[2026-09-16 Wed 06:23] split spans on a cwd boundary
+- State "REVIEW"     from "DOING"      [2026-09-16 Wed 06:24] \\
+  boundary split shipped; euchre blocker cleared
+- State "DONE"       from "REVIEW"     [2026-09-16 Wed 06:36] \\
+  boundary split shipped and measured
+:END:
+:PLAN:
+
+=--aggregate-guideposts= clusters by time alone, so guideposts from concurrent
+sessions in *different* projects merge into a single span — and accepting that
+span credits one project's minutes to the other's heading. Found 2026-09-11 the
+moment [[id:fbaf8009-b3dc-48ed-b099-63b74fc156a8][fbaf8009]]'s annotation made
+the cwd visible: over the whole queue history exactly two groups render =[cwd:
+agentic-euchre, claude-code-ide-org]=, and both are real —
+=[2026-09-10 Thu 14:49:24]--[2026-09-10 Thu 15:02:17]=, already attributed to
+=308bf4b4=, contains a 1:25 euchre run (14:59:33 resume, 15:00:58 pause), and
+=[2026-09-10 Thu 15:59:24]--[2026-09-10 Thu 16:03:05]=, unassigned, opens with a
+23s euchre run before three claude-code-ide-org guideposts. Small today because
+euchre has 14 events against 722; it scales with the second project, and it is
+silent. Proposed: treat a cwd change like the exclusions
+=--aggregate-guideposts= already honours — a project boundary splits rather than
+clusters through — which also makes each resulting span's annotation name one
+tracker instead of two. This is the consumer half
+[[id:5461c349-fd22-4b75-a508-50efbe4b87f8][5461c349]] recorded the field for;
+note its other named consumer obligation, normalising a worktree's cwd to its
+main checkout, or a single project splits into one span per worktree.
+
+:END:
+*Shipped 2026-09-16.* A point in =--aggregate-guideposts= is now =(TS KIND
+PROJECT)=, and a boundary between two **known, different** projects splits the
+span exactly as a permission block does. The project is =cwd= normalised
+through =--project-name= — git root, and a linked worktree folded into its main
+checkout — which is
+[[id:5461c349-fd22-4b75-a508-50efbe4b87f8][5461c349]]'s second named
+obligation, already implemented and already tested. Nothing was coined.
+
+*The nil guard is the load-bearing part, not the split.* =cwd= has only been
+written since 2026-09-04 and cannot be backfilled — **626 of 2855 guideposts
+carry one** — so nil means *unknown*, never *elsewhere*. Treating it as a
+distinct project would shatter nearly every historical span into single points.
+An unknown point also **inherits** the last known project, so a nil-=cwd= event
+between two known ones cannot mask a real boundary by resetting the comparison;
+that half is its own assertion and the one that fails loudest when got wrong.
+
+*Measured over the whole guidepost history:*
+
+| | spans | zero-width | covered |
+|---+-------+------------+---------|
+| boundary off | 183 | 1 | 170.89 h |
+| boundary on | 193 | 2 | 170.33 h |
+
+**The 0.56 h that leaves the covered total is the point of the change** — it is
+time that was being clustered *across* a project boundary, and so credited to
+whichever tracker the span was accepted against. Fragmentation is modest and
+zero-width items barely move, which were the two risks worth checking before
+accepting this.
+
+*Correcting this heading's own estimate of scale, which was too small.* It
+expected "exactly two groups", counted from spans whose *annotation* rendered
+two cwds — and the annotation dedupes, so it counts renderings rather than
+boundaries. The real interleaving on 2026-09-10 is one =claude-code-ide-org=
+session (=5b42fc84=) running against **three separate** =agentic-euchre=
+sessions (=fdfa9296=, =edc98663=, =f765cf9f=), alternating throughout. A single
+four-hour span carried both projects for its whole length. The defect was
+larger than filed, not smaller — which is the opposite of how an estimate made
+from a rendering usually errs, and worth remembering the next time one is made
+that way.
+
+*One artefact handed to
+[[id:c54c4215-90e3-4e0c-9de1-990c0406a2b2][c54c4215]] rather than solved here.*
+The split adds one zero-width span, at =[2026-09-10 12:14:36]=, where a
+one-second return to =claude-code-ide-org= sits between two euchre turns. It is
+honest — the excursion is real — but whether a zero-width endpoint is worth
+rendering at all is that heading's question, and it is now one item larger.
+
+
+***** DONE A session id that changes mid-work splits one clock bracket across two queue files :code:
+CLOSED: [2026-09-16 Wed 06:36]
+:PROPERTIES:
+:ID:       b57c7515-c511-4198-b311-26cefc52a60d
+:CREATED:  [2026-09-11 Fri 18:17]
+:END:
+:DEBRIEF:
+Closed on thorough testing rather than on a human re-deriving the numbers.
+
+*Shipped*: one session-alias map, consulted by =--canonical-session= at five
+lane sites — the two pairing functions, the attribution walk, and the attention
+and allocation derivations. An event's own =:session-id= is never rewritten,
+because apply consumption and the =.applied= watermarks are per *file*.
+
+*Verified*: six red-first ERT tests (two fail behaviourally rather than on a
+void function; the attribution test is red against the commit that already had
+the alias, so it discriminates its own change); a corpus replay reproducing an
+independent measurement to the decimal; and a cost number, 0.022 s per
+=--queue-events-by-id= run over 4107 events.
+
+*Landed in the record*: the recovered =325679af= bracket wrote a real CLOCK
+line, =[2026-09-11 18:07]--[18:14]=, at the first apply pass after the reload.
+That is the fix's first and so far only permanent effect.
+
+*The site count is the honest caveat.* Three sites were found by design, a
+fourth under challenge, a fifth by reading every =by-session= grouping. Two
+groupings are deliberately left keyed on the raw id — =review-dismiss= and
+=--review-describe-failure=, both per-*file* operations. If a sixth identity
+site exists, that is where a defect would be.
+
+*Residue, filed not described*:
+[[id:4acd8ad0-4d26-420b-bf84-f66ae8a9dfc5][4acd8ad0]] and
+[[id:0b600ab4-15b6-496b-8517-a0426f9f9ae5][0b600ab4]].
+
+*Carried out of =:PLAN:= deliberately, because it is a finding rather than a
+design and the drawer is skipped on a finished heading.* **A session id is not
+a stable key for a stretch of work, and nothing in this project can make it
+one.** Claude Code re-keys an interactive session mid-work — established
+2026-09-11 from the harness's own files: =~/.claude/jobs/<id>/= appears 32
+minutes into a session that until then had no job directory, the session
+continues under the job's id, and its transcript is re-stamped from the
+original start. Upstream: anthropics/claude-code #59848 (closed, and its
+headline symptom is fixed here) and #76220 (open). So every repair must
+reconcile lanes *after the fact*; none may assume the key holds. That premise
+outlives this heading and is the reason the alias exists at all.
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-09-11 Fri 19:01] \\
+  story had no next action; first in the new sequence
+CLOCK: [2026-09-15 Tue 18:29]--[2026-09-15 Tue 18:30] =>  0:01
+- State "DOING"      from "NEXT"       [2026-09-15 Tue 18:29] \\
+  first member of the slice's sequence
+- [2026-09-15 Tue 18:29]--[2026-09-15 Tue 18:30] measure mid-session re-keys over queue corpus
+CLOCK: [2026-09-15 Tue 18:31]--[2026-09-15 Tue 18:56] =>  0:25
+- [2026-09-15 Tue 18:31]--[2026-09-15 Tue 18:56] measure mid-session re-keys over queue corpus
+- State "REVIEW"     from "DOING"      [2026-09-15 Tue 18:56] \\
+  alias shipped and measured; judgement remains
+- State "DONE"       from "REVIEW"     [2026-09-16 Wed 06:36] \\
+  closed on thorough testing
+:END:
+:PLAN:
+
+The queue is keyed by =session_id= and =--lane-clock-pairs= pairs within a lane
+of =(session_id, agent_id)=, so a session whose id changes while work continues
+leaves an unmatched =clock_in= in the old lane and an orphan =clock_out= in the
+new one — neither pairs, and the bracket's attribution is lost in both
+directions. Observed 2026-09-11: =f2e44fdf= holds =clock_in= on =325679af= at
+17:48:30 and =b71c8eec= holds the matching =clock_out= at 18:14:33, with all of
+that stretch's file-touching work in the second lane.
+=bin/hooks/clock-target-check= fired correctly and could only report the
+symptom, since from inside the new lane the earlier =clock_in= is invisible.
+Note the two failure modes compose badly with =58332dd1=: the orphaned
+=clock_in= is exactly the ever-widening span that heading describes, now
+arriving through a second route. Worth measuring before designing — how often an
+id changes mid-session, and whether the transcript's =sessionId= or a =leafUuid=
+chain can bridge the two files retroactively, since the events themselves carry
+enough to re-pair if something looked. The manual repair used this time was a
+fresh matched pair in the new lane as an attribution anchor, leaving the
+interval for a human to widen with =e=.
+
+*Related, and deliberately not merged:*
+[[id:9202b39d-49e4-441c-89f2-382feb4ef1ea][9202b39d]] filed the same root cause
+on 2026-08-18 — one working stretch spanning two =session_id=s — for a different
+event pair. That heading is about a **turn**, whose =resume= sits in the
+launching session's file and whose =pause= lands in the job's; this is about a
+**clock bracket**, whose =clock_in= and =clock_out= divide the same way.
+Different pairing functions (=--span-events= adjacency against
+=--lane-clock-pairs=), so two fixes, not one. Recording the link because two
+headings on one cause with no reference between them is how a twin forms.
+
+*And this case falsifies the generality of that heading's surviving rule, which
+is the useful part.* What survived =9202b39d='s falsified depth counter is a
+targeted linking rule: "a session whose stream **opens with a =pause=** is a
+background job whose first turn began elsewhere". Measured here, =b71c8eec=
+opens with a =resume= at 18:07:15 and carries its orphan =clock_out= at 18:14:33
+— so the leading-=pause= test never fires, and the rule leaves this split
+untouched. A second shape exists: a lane that opens normally and still holds
+half of a bracket opened elsewhere.
+
+*Which suggests the general statement is worth having before either fix is
+built:* **any pairing keyed on =session_id= breaks when one stretch of work
+spans two.** Two instances are now measured, on two different event pairs; the
+question is whether the repair belongs per-pairing-function or once, at the
+point where lanes are formed.
+
+*The cause is upstream, established 2026-09-11 from the harness's own files, and
+it means this condition is to be **tolerated**, not prevented.* Claude Code
+re-keyed this session mid-work: =f2e44fdf='s transcript runs 17:24:27--17:55:49
+and stops; =~/.claude/jobs/b71c8eec/= is created at **17:56:04** — 32 minutes
+into an interactive session that until then had no job directory at all — and a
+second job dir appears in the *same second*. The session then continues under
+the job's own id, with its transcript re-stamped from the original 17:24:27
+start, and =state.json= carrying =template: "bg"= and =respawnFlags=. An =API
+Error: Connection lost mid-response= at 17:57:52 sits in that job's timeline
+*after* the switch, so it is a consequence rather than the trigger.
+
+*Known upstream, and reported less precisely than our own evidence states it.*
+anthropics/claude-code
+[[https://github.com/anthropics/claude-code/issues/59848][#59848]] ("Interactive
+=claude= sessions are classified as background jobs post-2.1.139") describes
+every session being *born* with =$CLAUDE_JOB_DIR= and =template: "bg"=; ours was
+not — it ran half an hour without one, and the records appeared in a batch
+mid-flight. That issue is **closed**, confirmed against 2.1.143, and its
+headline symptom (the worktree-isolation guard) is indeed fixed here on 2.1.236,
+while the classification it rested on is not.
+[[https://github.com/anthropics/claude-code/issues/76220][#76220]] is the later
+open report.
+
+*So the design consequence is settled:* a session id is **not** a stable key for
+a stretch of work, and nothing in this project can make it one. Any repair has
+to reconcile lanes after the fact rather than assume the key holds — which is
+the same conclusion the =9202b39d= link above reaches from the other direction.
+
+*One consequence for [[id:96ddf1ef-67fd-4d3c-b8cc-01ebb14a687d][96ddf1ef]],
+which is =NEXT= and will hit this immediately:* the re-key leaves **two
+transcripts covering the same conversation**, the old one truncated at the
+switch and the new one complete from the original start. A renderer keyed on
+session id would render the same session twice under two ids, the first copy
+silently short. It needs a rule for that before it renders anything.
+
+:END:
+*Measured 2026-09-15 over the whole queue corpus* — 4107 events, 65 sessions,
+2026-08-11 to 2026-09-15, five times the 844-guidepost corpus =9202b39d= was
+falsified against. The question this heading left open — whether the repair
+belongs per-pairing-function or once, where lanes are formed — is answered:
+**once**, and the key it needs is not in the events.
+
+*First, a schema fact that disqualifies the obvious repair.* =clock_out= carries
+a heading =id= on only **32 of 291** events; =clock_in= carries one on all 307.
+So an orphaned bracket cannot be re-paired by the heading it names — the half
+that would name it is the half that does not. The first attempt here matched
+orphans by heading id and reported **0** recoverable brackets across the whole
+corpus, which read as "the shape does not occur" and was in fact "the key does
+not exist". The shape occurs; =f2e44fdf='s =clock_in= on =325679af= at 17:48:30
+and =b71c8eec='s =clock_out= at 18:14:33 reproduce exactly as this body records
+them.
+
+*Second, the temporal repair is falsified, and in the same style as the depth
+counter — do not rebuild it.* Pairing each orphan =clock_out= with the latest
+preceding orphan =clock_in= in another session "recovers" **197.02 h**,
+including a single 144.79 h bracket and a 48.79 h one. It is not tunable: the
+09-15 case shows why. =9ac195c7= opens at 11:50:10, two minutes after
+=b71c8eec='s queue stops, and holds an orphan =clock_out= that adjacency pairs
+to =b71c8eec='s open "Review and planning" bracket. It is a **genuinely
+different session** — its own first uuid =2db4975b=, and a transcript start of
+11:49:41 matching its own queue start rather than a re-stamp. Adjacency cannot
+tell a re-key from the next session starting, because at the boundary they look
+identical.
+
+*What does work is the transcript's first-entry uuid, and it is exact.* A
+re-keyed session's transcript is re-stamped from the original's start, so both
+files carry the **same first =uuid=**. Over
+=~/.claude/projects/*/*.jsonl=: **8 groups of two sessions share a first uuid,
+7 of them with both members in the queue corpus, 0 spanning two project
+directories.** Fourteen of 65 sessions are affected — **22%**, so this is the
+ordinary case, not an incident. The groups found are exactly the two this slice
+already knew about, =e155f604= = {=f2e44fdf=, =b71c8eec=} (this heading) and
+=77fcb20e= = {=330316ca=, =6f28d85e=}
+([[id:9202b39d-49e4-441c-89f2-382feb4ef1ea][9202b39d]]'s), plus five more that
+were never noticed.
+
+*Direction comes from the queue, never the transcript.* Both members carry the
+*same* re-stamped start timestamp, so the transcript cannot say which id came
+first; ordering by queue first-event time can, and does in all seven.
+
+*One alias map, applied where lanes are formed, fixes both pairing functions —
+which is the design answer.* Keying the lane on the canonical id instead of the
+raw =session_id=:
+
+| pairing | key = =session_id= | key = alias | delta |
+|---------+--------------------+-------------+-------|
+| clock brackets (=--lane-clock-pairs=) | 282 pairs, 57.70 h | 284 pairs, 59.07 h | +2, +1.36 h |
+| turns (=--span-events= adjacency) | 1167 runs, 75.76 h | 1170 runs, 76.60 h | +3, +0.84 h |
+
+The two brackets recovered are precisely the two headings the two bodies name:
+=226ed53b= (0.93 h, =9202b39d='s) and =325679af= (0.43 h, this one's). The
+correction is **bounded and individually inspectable** — the property the depth
+counter lacked and the reason it was disqualifying rather than tunable.
+
+*The corpus is entirely serial, and that is a fact about the corpus rather than
+a guarantee.* All 7 groups have non-overlapping queue ranges. A conversation
+forked into two live terminals would share a first uuid and *overlap*, and
+aliasing those would re-create =0d789b68= — one lane's =clock_out= closing
+another's. So the alias must **refuse on overlap**, with the measured 0 as the
+fixture for that guard.
+
+*And where no bridge is found, the orphan stays an orphan.* That is
+[[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]]'s line held: a plausible pairing is harder to
+reject than none, and =9ac195c7= is the standing example of what adjacency would
+have invented.
+
+*One dependency worth naming, out of scope here.* The bridge reads
+=~/.claude/projects=, which Claude Code prunes on its own schedule — so the
+alias is exact today and degrades silently as transcripts age out. Recording a
+stable conversation key *in the queue events themselves* would make it durable;
+filed separately rather than built here.
+
+*Shipped 2026-09-15* on =feature/span-owner-edges=. One alias map
+(=--session-alias-map=), consulted by =--canonical-session= at the **three**
+sites that build a lane key: =--lane-clock-pairs= and =--span-events= (the two
+pairings) and =--queue-events-by-id= (attribution, the half this body watched
+fail in production). An event's own =:session-id= is never rewritten — apply
+consumption and the =.applied= watermarks are per *file*, so the raw id has to
+survive for the write path to find it.
+
+*Verified three ways, deliberately, because each answers a different
+objection.* Six ERT tests, every one proved red first — two behaviourally
+rather than on a void function, and the attribution test red against the
+*previous commit*, so it discriminates its own change rather than the feature.
+A corpus replay through the patched elisp reproducing the independent
+measurement to the decimal: 14 alias entries / 7 groups, brackets 282 → 284
+pairs and 57.70 → 59.07 h, turns 1167 → 1170 runs and 75.76 → 76.60 h. And
+cost, since the map is built inside a loop: 0.022 s per =--queue-events-by-id=
+run over 4107 events, with 2 pending events gaining a heading (most historical
+re-keys are already applied, hence outside the pending set).
+
+*The replay is not a committed test and cannot become one* — it reads the live
+queue and the live transcripts, which is exactly what =bin/test= must not
+touch. What ships pinned is the pair of named cases, to the second: the 1563 s
+bracket and the 10:47:22 → 11:24:35 turn.
+
+*One latent defect had to be fixed first, and it is the more interesting
+find.* =--transcript-first-stamp= read a fixed 64 KB window. A transcript can
+open with scores of =custom-title=, =mode= and =file-history-snapshot= lines,
+and the snapshot entries carry a =timestamp= *nested* under =snapshot= rather
+than at top level — so one transcript of 74 buries its first real stamp at byte
+133196 and the fixed read returned nil. Silently, and indistinguishably from
+the nil an aged-out transcript gives, which is why it had never been noticed:
+it cost the alias one of the seven groups and disabled
+=--transcript-longer-sibling= for that session outright. The window now grows
+when it comes up empty.
+
+*Deferred, each filed rather than described:*
+[[id:4acd8ad0-4d26-420b-bf84-f66ae8a9dfc5][4acd8ad0]] (the bridge reads
+transcripts Claude Code prunes, so the alias decays silently — a conversation
+key on the event itself would make it durable) and
+[[id:0b600ab4-15b6-496b-8517-a0426f9f9ae5][0b600ab4]]
+(=--transcript-longer-sibling='s size rule is wrong on a near-tie, 1 of 7
+groups). Neither blocks this: canonicalisation only needs both ids to reach the
+same key, so *which* is canonical does not affect pairing.
+
+*Not yet reloaded.* The running Emacs holds the old definitions, so the next
+apply pass pairs the old way until =config.el= is loaded into it.
+
+
+***** CANCELLED Re-derive the corrected record against the aggregator as it now stands :code:
+CLOSED: [2026-09-17 Thu 13:40]
+:PROPERTIES:
+:ID:       89351a23-8bfc-4939-8a30-f1fe7e93c72f
+:CREATED:  [2026-09-17 Thu 09:58]
+:BLOCKER:  507754ba-ae82-4f04-b209-8d8c58ac268e
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-17 Thu 12:41]--[2026-09-17 Thu 12:43] =>  0:02
+- [2026-09-17 Thu 12:41]--[2026-09-17 Thu 12:43] assigned at review
+CLOCK: [2026-09-17 Thu 12:44]--[2026-09-17 Thu 12:45] =>  0:01
+- State "DOING"      from "TODO"       [2026-09-17 Thu 12:44] \\
+  measuring the runs, not the envelopes
+- [2026-09-17 Thu 12:44]--[2026-09-17 Thu 12:45]
+CLOCK: [2026-09-17 Thu 12:49]--[2026-09-17 Thu 12:55] =>  0:06
+- [2026-09-17 Thu 12:49]--[2026-09-17 Thu 12:55] suggested span, accepted at review
+- State "CANCELLED"  from "DOING"      [2026-09-17 Thu 13:40] \\
+  re-queued: the first CANCELLED was consumed without taking effect
+:END:
+:PLAN:
+
+The re-derivation half of =507754ba=, split out so the two do not become a twin: that heading owns the **measurement** — how much of the accumulated record the four later fixes actually moved — and this one owns the **correction**, which is only worth running if the measurement says so. Same division as =e3d1531d= and =b5448133= this week, and for the same reason: a corpus rewrite whose scope has not been measured is the expensive thing to get wrong.
+
+Found reviewing =406e9200= for its close, 2026-09-17. =507754ba= closed 2026-08-19 and =057cec53='s fifty-six-line repair 2026-08-21; four aggregator changes landed after both — =b57c7515= and =c9940558= on 09-16 06:36, =c54c4215= at 08:11, =2deb090f= at 08:21. Two of those change what the pipeline *emits*, not merely what it computes: the complement now emits gap spans that did not exist before, and a project boundary now splits spans that previously clustered together. So the record corrected in August was corrected against an aggregator that has since changed in ways that alter which spans exist at all.
+
+This is deliberately **not** claiming the record is wrong. It is claiming nobody has looked since, which is the same gap =e3d1531d= turned out to be hiding — 95 of 101 intervals, found only because someone finally asked the audit log. Blocked on =507754ba='s measurement; if that comes back clean, close this as CANCELLED with the number recorded, which is a result worth keeping either way.
+
+:END:
+*Measured 2026-09-17, and the premise does not survive it.* Where =507754ba= compared the **spans offered**, this compared the **runs recorded** — one CLOCK line each, which is what actually reaches the record. Both versions run over identical input, =--span-work-runs= having the same signature in each so only the aggregator upstream differs.
+
+: OLD   703 runs   40.57 h
+: NEW   704 runs   40.55 h
+: identical 702, only-old 1, only-new 2
+
+**One interval in seven hundred and three.** A single run on 2026-09-10 splits in two:
+
+: only OLD   15:59:24--16:02:26   (3m02s)
+: only NEW   15:59:24--16:00:24   (1m00s)
+:            16:01:46--16:02:26   (0m40s)
+
+The 82-second idle gap between them is no longer absorbed. Total recorded time falls by 0.02 h — **about seventy seconds across a month**.
+
+*So the accumulated record is not wrong and does not want re-deriving.* The 68% of spans that moved moved their *boundaries*, not their contents: apply writes runs, and a span whose edges shift around the same guideposts yields the same runs. That is why the two measurements disagree so violently and why both are correct.
+
+*This is the outcome this heading was filed anticipating*, and recording the number is the point: "if that comes back clean, close this as CANCELLED with the number recorded, which is a result worth keeping either way." Closing =CANCELLED= on seventy seconds.
+
+*And it vindicates the split.* Had =507754ba= not been separated from the re-derivation this morning, the 68% figure alone would have justified a corpus rewrite of the whole CLOCK record — for one interval and eighty-two seconds. Measuring before correcting is what the =e3d1531d= / =b5448133= precedent exists for, and this is the second time in two days it has paid.
+
+*One defect in the probe, recorded because it nearly misreported the result.* The first run printed =n=1= for both versions: =nreverse= was called on the accumulator before its length was read, leaving the variable pointing at the last cons. The totals and the set comparison were computed independently and were unaffected, and the true counts came from the dumps — but a less redundant probe would have reported "one run" with a straight face.
+
+
+**** DONE [14/14] A span is only as true as its owner, its edges and its payload :code:
+CLOSED: [2026-09-17 Thu 13:40]
+:PROPERTIES:
+:ID:       749301a0-0bd0-4fbd-b3f7-79739226e15a
+:CREATED:  [2026-09-11 Fri 18:58]
+:CATEGORY: Slices
+:KIND:     slice
+:COOKIE_DATA: checkbox recursive
+:ARCHIVE_TIME: 2026-09-18 Fri 08:15
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Slices
+:ARCHIVE_TODO: DONE
+:END:
+:DEBRIEF:
+*Composed 2026-09-11, merged and closed 2026-09-17.* Fifteen members, 94 commits, PR #25.
+
+*The three parts of the title, and what each cost.* **Owner**: =b57c7515= and =9202b39d= — a session Claude Code re-keys mid-work split one clock bracket across two queue files, joined by the transcript's shared first uuid. **Edges**: =7d739afd=, where the union was duplicated rather than missing and the two copies had drifted ten hours apart, and =c9940558=, a project boundary splitting spans that used to pool. **Payload**: =c54c4215=, emitting the unowned gaps a split span dropped, and =2deb090f=, the =c= key that claims a 0-run envelope in one act.
+
+*The review earned its place, which is the argument for the =REVIEW= window existing at all.* Six findings, three adopted and fixed (=36698ca7=, =cfdfe119=, =83773daf=), one declined on =887eaba3='s membership test as =main='s defect, two left open with their work outstanding. Two were reproduced here rather than trusted, and both held. Findings per member: 6/15 = **0.4**.
+
+*The largest thing found was not in the review.* Asking why a review buffer was full of undismissable spans led to =5a9d877e=: the =resume= -> =pause= exemption, correct for a contiguous stream, was being handed a *filtered* one where two events are adjacent only because everything between them was attributed elsewhere. It was joining clusters across **days** — one spanning 08-24 to 08-31 over seven guideposts. Found by probing, not by reading.
+
+*Comparison against its predecessors, as the prompt asked.*
+
+: afea7e4f  2026-09-11 -> 09-15   4 days   11 members
+: 35582d95  2026-09-15 -> 09-15   3 hours   4 members
+: 749301a0  2026-09-11 -> 09-17   6 days   15 members, 94 commits, 0.4 findings/member
+
+*Three points now exist, and the honest reading is that they are not comparable.* =35582d95= was four members in an afternoon; this was fifteen over six days with a review, a merge and an unplanned diagnosis. Size dominates everything else, so "are slices going better" still has no answer — what it has is a method, and the next comparison should hold size roughly constant or admit it cannot.
+
+*What closing it required that was not foreseen.* The slice could not close on its own members: =406e9200= reopened during review because =507754ba='s conditional — "once the aggregator is fixed" — had silently stopped holding. Measuring that took two passes with opposite-looking answers: **68% of spans differ**, **702 of 703 runs identical**. A span is an offer and a run is a record, and only the second bears on the corpus.
+
+*Left behind, filed not forgotten:* =445fe577= and the four review-buffer findings of 2026-09-17, =e3d1531d= and =b5448133=, =4acd8ad0= dropped from =8a2eb687= as time-tracking work. All of it stays this repo's, and none of it blocks =6a207b00= now that =8bbae3aa= takes time tracking out of what ships.
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-15 Tue 13:10]--[2026-09-15 Tue 13:12] =>  0:02
+- [2026-09-15 Tue 13:10]--[2026-09-15 Tue 13:12] compose the next-session plan for this slice
+- State "NEXT"       from "TODO"       [2026-09-15 Tue 13:12] \\
+  nominated: next slice, plan composed in next-session.md
+- State "DOING"      from "NEXT"       [2026-09-15 Tue 18:29] \\
+  slice work starts; first member in the mail
+CLOCK: [2026-09-16 Wed 06:28]--[2026-09-16 Wed 06:29] =>  0:01
+- [2026-09-16 Wed 06:28]--[2026-09-16 Wed 06:29] assigned at review
+CLOCK: [2026-09-16 Wed 06:37]--[2026-09-16 Wed 06:38] =>  0:01
+- [2026-09-16 Wed 06:37]--[2026-09-16 Wed 06:38] debrief and close four slice members
+- State "REVIEW"     from "DOING"      [2026-09-16 Wed 08:21] \\
+  all six members terminal; awaiting the PR merge
+- State "DOING"      from "REVIEW"     [2026-09-16 Wed 18:34] \\
+  PR #25 review: three findings adopted, one still live
+- [2026-09-16 Wed 18:34]--[2026-09-16 Wed 18:41] assigned at review
+CLOCK: [2026-09-17 Thu 13:13]--[2026-09-17 Thu 13:15] =>  0:02
+- [2026-09-17 Thu 13:13]--[2026-09-17 Thu 13:15] assigned at review
+CLOCK: [2026-09-17 Thu 13:34]--[2026-09-17 Thu 13:41] =>  0:07
+- [2026-09-17 Thu 13:34]--[2026-09-17 Thu 13:41] assigned at review
+- State "DONE"       from "DOING"      [2026-09-17 Thu 13:40] \\
+  re-queued: :BLOCKER: named 89351a23, consumed anyway
+:END:
+:PLAN:
+*Why this order.* Each group hands its output to the next, so working them out
+of sequence means re-doing the later ones. **Ownership first** — until a stretch
+of events has one owner, no boundary rule can be evaluated, because which events
+a rule *sees* depends on how lanes are keyed. =b57c7515= leads rather than
+=9202b39d= even though the latter is older and already carries a measured rule:
+=b57c7515= poses the question that decides whether that rule is the right
+*shape* ("per pairing function, or once where lanes are formed"), and
+=9202b39d='s leading-=pause= test demonstrably misses the second shape. Answer
+the shape question, then implement. =7d739afd= closes the group, since
+union-not-sum is the arithmetic that only makes sense once lanes are settled.
+
+**Boundaries second.** =c9940558= and =c54c4215= both decide where a span may
+divide — on a project change and around an exclusion respectively — and both
+operate on whatever the ownership work leaves them.
+
+**Payload last.** =2deb090f= is what actually reaches the =:LOGBOOK:=, and it is
+the only member whose correct answer depends on all five others: a rule for what
+a 0-run span writes is worth nothing while the span's extent is still moving.
+
+*What this slice is not.* It does not reopen =406e9200='s finished ten, and it
+adds no new work — every member already existed as a child of that story. The
+story keeps its own record and its cookie; this only sequences the residue and
+gives it an integration point, which is the thing a story cannot do.
+
+*Not started.* Composed open, as its own proposal, with no =next-session.md=
+revision link — that link arrives when a slice is actually picked up.
+:END:
+
+The six open children remaining under =406e9200= fail in three distinct places
+rather than one: who *owns* a stretch of events (=b57c7515=, =9202b39d=,
+=7d739afd=), where a span is allowed to *divide* (=c9940558=, =c54c4215=), and
+what finally *lands* in the drawer (=2deb090f=). None is independent of the
+others — a change to lane identity alters which events a boundary rule even
+sees, and a boundary change alters what the writer is handed. Proposed: take
+them in that order, as one integration point, so the pipeline is corrected in a
+single direction of travel rather than three overlapping ones. Composed
+2026-09-11 at the user's motion, as the story's open residue; the story keeps
+its finished ten and this sequences what is left.
+
+Planned:
+
+- [[id:406e9200-c3e7-49ac-a8d0-d6ff8e061ce4][406e9200]] DONE Make the guidepost pipeline produce durations that mean what they say
+  - [X] [[id:b57c7515-c511-4198-b311-26cefc52a60d][b57c7515]] DONE A session id that changes mid-work splits one clock bracket across two queue files
+  - [X] [[id:9202b39d-49e4-441c-89f2-382feb4ef1ea][9202b39d]] DONE A background job's first turn is bracketed across two session_ids
+  - [X] [[id:7d739afd-f879-445c-b0b6-65e295585a94][7d739afd]] DONE Concurrent sessions' turns must union, not sum, wherever time is totalled
+  - [X] [[id:c9940558-b23e-4b2c-86e8-e75a377634aa][c9940558]] DONE Guidepost aggregation ignores =cwd=, so two projects' turns cluster into one span
+  - [X] [[id:c54c4215-90e3-4e0c-9de1-990c0406a2b2][c54c4215]] DONE A split span drops the unowned gaps between the clock pairs that split it
+  - [X] [[id:2deb090f-593d-40e3-9044-fda318d9b6de][2deb090f]] DONE Accepting a 0-run span records none of its minutes, and only =e= can claim them
+  - [X] [[id:507754ba-ae82-4f04-b209-8d8c58ac268e][507754ba]] DONE Correct the accumulated record once the aggregator is fixed
+  - [[id:89351a23-8bfc-4939-8a30-f1fe7e93c72f][89351a23]] CANCELLED Re-derive the corrected record against the aggregator as it now stands
+- [X] [[id:36698ca7-9358-41ca-862c-962af49691cd][36698ca7]] DONE The review buffer's legend omits two of its own keys, one of them the help key
+- [X] [[id:cfdfe119-34ad-4ee5-9477-d71dc450eabd][cfdfe119]] DONE footnote-check indents the lines it tells you to append, and the canonical form is flush-left
+- [X] [[id:83773daf-df07-4665-b5fc-0445e0da6211][83773daf]] DONE --session-alias-cache is keyed on the session set alone, so a nil map outlives the transcript that caused it
+
+Incidental:
+
+- [X] [[id:0b600ab4-15b6-496b-8517-a0426f9f9ae5][0b600ab4]] DONE --transcript-longer-sibling picks the wrong sibling when the two copies are nearly the same size
+- [X] [[id:7e720ddf-fb7c-41a9-82d1-b8fbc14aeacd][7e720ddf]] DONE Commenting out the 202 override took use-package!'s closing paren, silently disabling the MCP server
+- [X] [[id:27bb4b08-d95f-4955-a518-efb2ecf6e51b][27bb4b08]] DONE The reload rule lost its always-loaded home, so two repo cross-references now point at a file that does not load
+- [X] [[id:5a9d877e-b492-46c7-a672-fd5971ffb0b0][5a9d877e]] DONE The resume-pause exemption reads adjacency in a filtered stream as continuity, so clusters span days
+- [[id:1203168b-ac54-4a05-805a-8419a4538b7c][1203168b]] CANCELLED An id already paired with its exact title in the body owes no separate end-matter entry
+
+Integration point: [[https://github.com/nbest937/claude-code-ide-org.el/pull/25][PR #25]], opened [2026-09-16 Wed 14:24] with 50 commits. The slice stays REVIEW until it merges.
+
+*The PR #25 review, 2026-09-16, and what it did to this list.* Six findings, posted as inline comments against =419ade7=. Three are adopted as members above and are **consequent** rather than incidental — the predictable output of a phase the checklist never enumerates:
+
+- =36698ca7= and =cfdfe119=, both shipped the same afternoon. Each made shipped behaviour disagree with shipped prose.
+- =83773daf=, the one still open, and the only finding whose fix is a design question rather than an edit.
+
+*Two findings were verified here rather than taken on trust, and both held.* The block analogy in =27788fd1='s own prose was false — I had read the comment above the clustering clause instead of the clause, and that comment has been contradicted by its successor forty lines below since =c54c4215=. And the complement's gap spans reproduce exactly as reported, with a second consequence beyond the dismissal defect already filed; the reproduction and its bounds are on =445fe577=.
+
+*One finding was declined, on =887eaba3='s test.* A stale contract comment in =bin/hooks/session-resume=: that file predates this branch and this PR never touched it, so it is =main='s defect. Folding it in would make this slice's title false in the direction =0fa403f4= was kept out for.
+
+*So the slice returns to =DOING=.* Every member was terminal when it entered =REVIEW=; one no longer is, which is what that transition is for — the review found something missing. It cannot reach =DONE= until =83773daf= is resolved or explicitly dropped.
+
+*Closed 2026-09-17, six days after composition, on the merge of PR #25 and the close of =406e9200= behind it.* Fifteen members: the six planned, the review's three findings, and six adopted along the way. A span now carries its owner, its edges and its payload — and the last doubt about the record it produced was settled by measurement rather than by rewriting it.
+
+
+**** CANCELLED An id already paired with its exact title in the body owes no separate end-matter entry :code:
+CLOSED: [2026-09-17 Thu 12:14]
+:PROPERTIES:
+:ID:       1203168b-ac54-4a05-805a-8419a4538b7c
+:CREATED:  [2026-09-17 Thu 12:11]
+:CATEGORY: Skill
+:ARCHIVE_TIME: 2026-09-18 Fri 08:15
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Skill
+:ARCHIVE_TODO: CANCELLED
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-17 Thu 11:40]--[2026-09-17 Thu 11:41] =>  0:01
+- [2026-09-17 Thu 11:40]--[2026-09-17 Thu 11:41] assigned at review
+CLOCK: [2026-09-17 Thu 11:46]--[2026-09-17 Thu 11:47] =>  0:01
+- [2026-09-17 Thu 11:46]--[2026-09-17 Thu 11:47] assigned at review
+CLOCK: [2026-09-17 Thu 11:50]--[2026-09-17 Thu 11:56] =>  0:06
+- [2026-09-17 Thu 11:50]--[2026-09-17 Thu 11:56] assigned at review
+CLOCK: [2026-09-17 Thu 12:01]--[2026-09-17 Thu 12:03] =>  0:02
+- [2026-09-17 Thu 12:01]--[2026-09-17 Thu 12:03] assigned at review
+CLOCK: [2026-09-17 Thu 12:09]--[2026-09-17 Thu 12:14] =>  0:05
+- [2026-09-17 Thu 12:09]--[2026-09-17 Thu 12:14] assigned at review
+- State "CANCELLED"  from "DOING"      [2026-09-17 Thu 12:14] \\
+  twin of 2a6a1355's enumeration mode; work recorded there
+CLOCK: [2026-09-17 Thu 12:18]--[2026-09-17 Thu 12:22] =>  0:04
+- [2026-09-17 Thu 12:18]--[2026-09-17 Thu 12:22] assigned at review
+CLOCK: [2026-09-17 Thu 12:27]--[2026-09-17 Thu 12:28] =>  0:01
+- [2026-09-17 Thu 12:27]--[2026-09-17 Thu 12:28] assigned at review
+CLOCK: [2026-09-17 Thu 12:31]--[2026-09-17 Thu 12:32] =>  0:01
+- [2026-09-17 Thu 12:31]--[2026-09-17 Thu 12:32] assigned at review
+:END:
+
+The user reported the hook's output as "way too much" for the second time, 2026-09-17. The immediate cause is misses — the hook only speaks when a footnote was owed and not paid, and it spoke about twenty-five times that day, each time printing the full suggested block which the reply then printed again.
+
+But part of it was structural and fixable. A **status summary** pairs every id with its exact title inline, in prose; the end matter then repeats all of them verbatim. The convention's purpose — prose readable, every reference recoverable — is already met by such a line, so the second copy is pure duplication. One unwind cited twelve ids that way and was asked for all twelve again.
+
+*Implemented the same day.* =bin/hooks/footnote-check= already resolves each id's exact title in order to print the suggestion, so the test costs one comparison against a string it has in hand: if a line of the body contains both the id and that title, the debt is discharged.
+
+*Same line, deliberately.* An id in one paragraph and its title in another is the ordinary unfootnoted case — a reader scanning for the id does not find the title beside it, which is the guarantee the rule exists to give. Both directions are asserted: paired on one line passes, split across lines still blocks.
+
+
+**** DONE The resume-pause exemption reads adjacency in a filtered stream as continuity, so clusters span days :code:
+CLOSED: [2026-09-17 Thu 10:38]
+:PROPERTIES:
+:ID:       5a9d877e-b492-46c7-a672-fd5971ffb0b0
+:CREATED:  [2026-09-17 Thu 10:30]
+:CATEGORY: Queue
+:ARCHIVE_TIME: 2026-09-18 Fri 08:15
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Queue
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-17 Thu 10:34]--[2026-09-17 Thu 10:38] =>  0:04
+- State "DOING"      from "TODO"       [2026-09-17 Thu 10:34] \\
+  implementing the full-stream adjacency test
+- [2026-09-17 Thu 10:34]--[2026-09-17 Thu 10:38]
+CLOCK: [2026-09-17 Thu 10:38]--[2026-09-17 Thu 10:39] =>  0:01
+- State "DONE"       from "DOING"      [2026-09-17 Thu 10:38] \\
+  173.7h cluster gone; 686 tests
+- <2026-09-17 Thu 10:38>--<2026-09-17 Thu 10:39> assigned at review
+:END:
+:PLAN:
+
+=claude-code-ide-org--aggregate-guideposts= never splits a =resume= -> =pause= adjacency, however long the gap: "a turn *running*, not a pause between turns", and that is right for a contiguous stream. It is wrong for the **orphan** stream, which is what =--review-items-from-queue= hands it. Two orphans are adjacent there only because everything between them was bracketed and attributed elsewhere — so the exemption reads a days-long hole as one continuous turn.
+
+Measured 2026-09-17 by running the aggregator on the live orphan guideposts with **no exclusions at all**:
+
+: 08-24 12:33..08-31 18:13  inside=7
+: 09-02 15:41..09-03 13:17  inside=3
+: 09-16 13:58..09-17 10:27  inside=35
+
+Seven days holding seven guideposts. No 1200 s threshold can produce that.
+
+*The hazard is already named in the code, one line above the call*, which is why this is a wrong fix rather than an unseen case: the comment warns that two orphans "are *adjacent* in the orphan stream, because everything between them is bracketed… A =resume= -> =pause= adjacency never splits however long the gap, so the span would straddle all four brackets by construction and offer their fifteen minutes a second time." The mitigation chosen was to subtract the brackets afterwards. That removes the bracketed intervals and leaves the cluster still straddling days, so =--span-complement= then carves it into the interval between every adjacent pair of brackets — which is =445fe577=, thirteen of fifteen pending spans carrying no events, including an eleven-hour overnight one.
+
+Proposal: the exemption should require the two events be adjacent in the **full** event stream, not in the filtered one the function was handed. The caller knows both; the callee currently sees only one. No invented threshold and no new storage. Its test wants a synthetic fixture rather than the live queue, since applies consume the brackets the live case depends on.
+:END:
+
+The aggregator never splits a =resume= -> =pause= adjacency however long the gap, which is correct for a contiguous stream and wrong for the orphan stream it is actually handed — two orphans are adjacent there only because everything between them was bracketed, so a days-long hole reads as one running turn. Measured: clusters spanning seven days over seven guideposts. Proposal: require adjacency in the full event stream, which the caller knows and the callee does not see.
+
+*Fixed 2026-09-17, commit =4f2a1c8=-adjacent on =feature/span-owner-edges=.* =--aggregate-guideposts= gained an optional =STREAM= argument, nil meaning "not told", so every existing caller and the bare-=:ts= fixtures are unchanged. Both production callers now pass the unfiltered guidepost list they already had in scope.
+
+*Measured end to end on the live queue*, passing the same consumed-inclusive stream production passes:
+
+: before: 14 clusters, three over two hours -- 173.7 h, 21.6 h, 20.5 h
+: after:  17 clusters, none over two hours
+
+*STREAM carries guideposts, not every queue event, and that choice is load-bearing.* A genuine long turn emits queue events for its own tool calls — =org_amend=, =org_capture= — so testing "any event between" would split the exact case the exemption exists to protect. Turn boundaries are the only events that answer "were these two consecutive?".
+
+*One wrong turn worth recording, because it nearly became a false negative.* The first end-to-end probe reported **no effect** — identical clusters before and after — and I briefly concluded the production wiring was wrong. It was the probe that was wrong: it built its stream with =(claude-code-ide-org--queue-events nil)=, the pending remnant, where production's =history= is bound at =--review-items-from-queue='s head as =(claude-code-ide-org--queue-events session-id t)=, consumed events included. Feeding the remnant as "the full stream" adds nothing by construction, since the remnant is what the filtered stream was drawn from. The lesson is narrow and sharp: a probe that simulates a caller must take its inputs from the caller, not rebuild them from the same names.
+
+*What this does not fix.* =445fe577= blocks on this heading, and the complement will still emit interior gaps — that is =c54c4215='s feature working. What ends is the inter-bracket, overnight and multi-day pieces, which existed only because the cluster had no business spanning them.
+
+
 **** DONE --session-alias-cache is keyed on the session set alone, so a nil map outlives the transcript that caused it :code:
 CLOSED: [2026-09-17 Thu 09:51]
 :PROPERTIES:
@@ -84,6 +3004,7 @@ The consequence to state rather than paper over: the reload-precondition rule no
 :END:
 
 Retiring =~/.claude/CLAUDE.md= left two live repo references naming it as a load-bearing home for the reload-precondition rule: the org-dev skill's §0 and =next-session.md='s Step 1. Both corrected, with §0 now owning the rule outright. The accepted consequence, stated rather than papered over: a skill is triggered rather than always loaded, so a verification that is neither Emacs- nor Doom-shaped no longer meets the rule anywhere.
+
 
 *** 2026-09-16 Wednesday
 **** DONE The review buffer's legend omits two of its own keys, one of them the help key :code:
