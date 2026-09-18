@@ -17031,9 +17031,22 @@ which is what this asserts rather than assumes."
                "2026-09-18T09:00:00-0500" "todo" "id-a" "DOING"))
     (should (claude-code-ide-org--review-items-from-queue "sess-a"))
     (should-not (claude-code-ide-org--queue-file-drained-p "sess-a"))
-    ;; ...and an empty one is, provided it is also idle.
+    ;; ...and an empty one is, PROVIDED IT IS ALSO IDLE -- both clauses
+    ;; asserted, because yielding no items is only the first half and a
+    ;; test stopping there would pass for a queue that never drains and
+    ;; so never archives.
     (claude-code-ide-org-test--queue-write "sess-b")
-    (should-not (claude-code-ide-org--review-items-from-queue "sess-b"))))
+    (should-not (claude-code-ide-org--review-items-from-queue "sess-b"))
+    ;; Freshly written, so the idle clause refuses even though the items
+    ;; clause is satisfied. This is the conjunction doing its job: a
+    ;; live session sitting at a prompt is not a finished one.
+    (should-not (claude-code-ide-org--queue-file-drained-p "sess-b"))
+    ;; Gone quiet, and now it drains.
+    (let ((claude-code-ide-org-queue-idle-seconds -1))
+      (should (claude-code-ide-org--queue-file-drained-p "sess-b")))
+    ;; And idleness alone is not enough either -- sess-a has items.
+    (let ((claude-code-ide-org-queue-idle-seconds -1))
+      (should-not (claude-code-ide-org--queue-file-drained-p "sess-a")))))
 
 (ert-deftest claude-code-ide-org-test-pending-capture-resolves-without-guideposts ()
   "A deferred capture's :ID: still resolves from a guidepost-free queue.
@@ -17073,6 +17086,7 @@ default\" is the property, and a test that only checked the filtering
 would pass while that was broken."
   (let* ((root (file-name-as-directory (make-temp-file "cioo-scope-a" t)))
          (other (file-name-as-directory (make-temp-file "cioo-scope-b" t)))
+         (empty (file-name-as-directory (make-temp-file "cioo-scope-c" t)))
          (mine (expand-file-name "TODO.org" root))
          (theirs (expand-file-name "TODO.org" other)))
     (unwind-protect
@@ -17090,12 +17104,14 @@ would pass while that was broken."
               (should (equal (list theirs) (claude-code-ide-org--tracked-files))))
             ;; An empty scope directory yields nothing rather than
             ;; everything -- failing closed, so a mis-scoped report is
-            ;; silent instead of wrong.
-            (let ((claude-code-ide-org--report-scope
-                   (file-name-as-directory (make-temp-file "cioo-scope-c" t))))
+            ;; silent instead of wrong.  Reuses `empty' from the `let*'
+            ;; so `unwind-protect' actually cleans it: created inline
+            ;; here it leaked one directory per `bin/test' run.
+            (let ((claude-code-ide-org--report-scope empty))
               (should-not (claude-code-ide-org--tracked-files)))))
       (delete-directory root t)
-      (delete-directory other t))))
+      (delete-directory other t)
+      (delete-directory empty t))))
 
 (ert-deftest claude-code-ide-org-test-report-scope-resolves-symlinks ()
   "A tracked file reached through a symlink is still matched.

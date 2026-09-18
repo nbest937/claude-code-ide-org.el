@@ -35,6 +35,24 @@
 
 set -uo pipefail
 
+# Time tracking self-gates here, exactly as in block-start and
+# queue-append, and this script is the one that most needs it: it is
+# wired at `PostToolUse' with a `*' matcher, so it runs on EVERY tool
+# call. Ungated, a consumer with the feature off paid bash + cat + jq
+# hundreds of times a day to reach a sentinel test that can never
+# succeed -- block-start having declined, there is never a sentinel to
+# find. The gate goes BEFORE `cat', so the common path is one string
+# comparison and an exit.
+#
+# Its own header promises "one stat and an exit"; that promise was only
+# true once the feature was on. See TODO.org :ID: 1b36c5bd for the
+# option, and the review finding on PR #28 that caught this.
+#
+# Turning tracking off mid-session can leave an orphaned sentinel. That
+# is already documented above as harmless: the review-time reader drops
+# an unmatched start rather than inventing an end for it.
+[ "${CLAUDE_PLUGIN_OPTION_TIME_TRACKING:-false}" = "true" ] || exit 0
+
 input="$(cat)"
 
 command -v jq >/dev/null 2>&1 || exit 0
