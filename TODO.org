@@ -8,6 +8,25 @@
 :CREATED:  [2026-09-18 Fri 16:36]
 :CATEGORY: Dev
 :END:
+:DEBRIEF:
+*Shipped* in [[orgit-rev:claude-code-ide-org::d2edfa2][d2edfa2]].
+
+*Shape: a dynamic variable, not threaded arguments.* All three report builders — =find-stale-open-intervals=, =--ceremony-status=, =--nomination-candidates-context= — call =--tracked-files= themselves, so a =defvar= bound around composition scopes all of them without touching three signatures. =write-session-start-report= and =write-session-context-report= each gained an optional =PROJECT=, and both hook scripts pass =${CLAUDE_PROJECT_DIR:-}=.
+
+*The asymmetry is the whole fix and inverting it is the easy mistake.* The org tools stay **global** — =org_query= and =org_clock_report= answering across every tracked project is what makes one Emacs serve many repos, and it is deliberate rather than accidental. Only what *reports to* a session is confined. Both halves are asserted in the test, because a filter that applied unconditionally would break the tools while every scoping assertion still passed.
+
+*Truename on both sides, and this is not defensive coding.* Tracked files reach the list through =~/org= symlinks into their repositories, so a raw string-prefix test against a project root discards **every one of them** and the report goes silently empty. Pinned by its own test rather than trusted.
+
+*Empty scope yields no files rather than all of them* — failing closed, so a mis-scoped report is silent instead of wrong. Given what this defect was, loud-and-wrong is the failure to avoid.
+
+*The end-to-end run earned its place, and that is the transferable part.* ERT passed while the feature was broken: my first edit doubled the backslashes in both hook scripts, closing the shell string early, so the elisp returned 3176 bytes and the hooks emitted **nothing**. Every unit test was green. It surfaced only by running the actual scripts and finding zero where the direct elisp call gave thousands — the same lesson as =:ID:= 4f9e552a one layer over: a check that cannot distinguish "correct" from "never ran" is not a check.
+
+*Proved discriminating by mutation:* dropping the truename from the file side fails the scope test; restoring returns 693/693.
+
+*Measured outcome.* Context report: 3045 bytes unscoped, 3045 scoped here, empty scoped to euchre. The 3045 is precisely what euchre had been receiving.
+
+*Not covered, stated rather than implied:* the statusline reader and =org_query= itself remain global by design, and a consumer running with no =CLAUDE_PROJECT_DIR= set gets the old unscoped behaviour rather than nothing — an old caller keeps its old answer instead of silently reporting emptiness.
+:END:
 
 Found by a session running in =~/git/agentic-euchre= 2026-09-18: its =SessionStart= report listed stale-=DOING= and un-nominated-grouping entries "in TODO.org" — naming =8bbae3aa=, =33c3eabc= and others — while **that project's own TODO.org has no headings at all**. Every entry belonged to this repository.
 
@@ -22,6 +41,9 @@ Found by a session running in =~/git/agentic-euchre= 2026-09-18: its =SessionSta
 *What will not work, so it is not re-proposed:* setting =claude-code-ide-org-query-files= per project. It is one =defcustom= in one Emacs serving every project at once; that is the same mistake one level down.
 
 *This is the third instance today of one pattern, and the pattern is worth naming more than any single fix.* =805bf287='s =warp= alias, =--standalone-derive-projects='s ordering, and this report all assume **one user, one project** while the deployment model is one Emacs serving many. The org tools themselves escape it by scoping on =org-agenda-files= deliberately — the tools genuinely are global — but everything that *reports* to a session needs the session's project and does not have it.
+
+*Fixed 2026-09-18: a dynamic =--report-scope= that =--tracked-files= honours, bound by both report entry points and passed =CLAUDE_PROJECT_DIR= by both hook scripts.* The org tools stay global deliberately; only what *reports to* a session is scoped. Measured end to end: the context report is 3045 bytes unscoped, 3045 scoped to this repo, and **empty** scoped to euchre — which is exactly the 3045 bytes euchre was being handed.
+
 
 * TODO A consuming repo gets the hooks, rules and skill but no org tools: the plugin's MCP server never registers :code:
 :PROPERTIES:
@@ -111,6 +133,21 @@ Sibling: [[id:2082eeb3-afd8-4439-8774-81b48b1df9a1][2082eeb3]], nothing telling 
 :CREATED:  [2026-09-18 Fri 15:16]
 :CATEGORY: Dev
 :END:
+:DEBRIEF:
+*Shipped* in [[orgit-rev:claude-code-ide-org::1809fa1][1809fa1]], immediately after =43d479c8= because both edit the same hook and the same payload.
+
+*The mechanism was already sitting there.* =session-context.sh= runs at =SessionStart= and, as a *plugin* hook, sees =CLAUDE_PLUGIN_OPTION_TIME_TRACKING= — the one context in which the value is legible at all. It now forwards it, and =--time-tracking-line= turns it into one sentence.
+
+*The whole design is in the absent case.* Missing means two unrelated things: a Claude Code predating plugin =userConfig=, and a repo wiring these scripts through its own =.claude/settings.json= where no plugin option exists to read. **This repository is the second, with time tracking very much on.** So =nil= rather than "off" — reporting off here would be the same confident falsehood =43d479c8= had just been fixed for, one file away. An unrecognised value is treated as unknown too, rather than defaulting to false.
+
+That also decided the *shape*: rather than have this repo set the variable on a task-tracking hook so it could report accurately, saying nothing when it cannot know is both truer and cheaper. Standing precedent (=:ID:= 7771fc63): a plausible guess is harder to reject than none.
+
+*Verified end to end against the real hook*, scoped to euchre — unset gives an empty payload, =false= the OFF line, =true= the ON line — and this repo still receives its context with **zero** time-tracking claims attached.
+
+*One methodological finding worth more than the fix.* The first draft contained =(mapconcat #\\'identity ...)=. The Emacs reader **accepted** it: the file still reported "reads as 517 forms", the check I had been using all session as evidence a load would succeed. It means something else entirely. Caught only by *calling* the function. Reading is not evaluating, and "parses cleanly" is the same class of non-evidence as a silent =emacs --batch= (=:ID:= 4f9e552a) — both answer a question adjacent to the one being asked.
+
+*Not attempted:* reporting the state to a session that has no plugin wiring at all. There is nothing to read there, and the honest answer is the silence it now gets.
+:END:
 
 Raised by the user 2026-09-18, twice in one conversation: how do I tell whether =time_tracking= is on *before* starting a session, and how do I tell *from inside* one. Neither has a direct answer today.
 
@@ -123,6 +160,9 @@ Raised by the user 2026-09-18, twice in one conversation: how do I tell whether 
 *Related but distinct:* =claude-org-setup --check= has the mirror-image gap and is filed separately. Both are "the system knows and will not say".
 
 Sibling: [[id:827bb778-deca-47b6-acd3-0977493a14aa][827bb778]], =--check= overstating how current a repo is.
+
+*Fixed 2026-09-18: =session-context.sh= passes =CLAUDE_PLUGIN_OPTION_TIME_TRACKING= and the payload carries one line.* Absent yields **nothing** rather than "off", because the variable is missing both on an older Claude Code and in a repo wiring these scripts itself — and this repository is the second case with the feature on.
+
 
 
 * TODO The conventions never say how stories and slices compose, and "not declared" reads as a ban on composing one :code:
