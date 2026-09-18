@@ -10,43 +10,46 @@
 > loaded there; until that runs it is on-demand reading, like any skill
 > reference. The consuming project's own rules take priority over it.
 
-**"Side effect" below means the call you must make, not something that
-happens to the file.** Every entry queues an event; the CLOCK line appears
-when a human applies it. The rules are unchanged by that — you still make
-exactly these calls, in exactly these places — but nothing in this table
-edits an org file at the moment you act.
+**A state change has no side effect of its own.** `org_set_todo` queues
+an event and edits nothing; a human applies it later. These are the
+transitions this project uses:
 
-| Transition                | Side effect                         |
-|---------------------------|-------------------------------------|
-| `TODO`     → `NEXT`       | None                                |
-| `TODO`     → `DOING`      | Open a CLOCK (call `org_clock_in`)  |
-| `NEXT`     → `DOING`      | Open a CLOCK (call `org_clock_in`)  |
-| `DOING`    → `DONE`       | Close the CLOCK (call `org_clock_out`) |
-| `DOING`    → `WAITING`       | Close the CLOCK (call `org_clock_out`) |
-| `DOING`    → `REVIEW`     | Close the CLOCK (call `org_clock_out`) |
-| `DOING`    → `CANCELLED`  | Close the CLOCK (call `org_clock_out`) |
-| `WAITING`     → `DOING`      | Open a CLOCK (call `org_clock_in`)  |
-| `REVIEW`   → `DOING`      | Open a CLOCK (call `org_clock_in`)  |
-| `REVIEW`   → `DONE`       | None                                |
-| Any        → `MAYBE`      | None                                |
+| Transition                |
+|---------------------------|
+| `TODO`     → `NEXT`       |
+| `TODO`     → `DOING`      |
+| `NEXT`     → `DOING`      |
+| `DOING`    → `DONE`       |
+| `DOING`    → `WAITING`    |
+| `DOING`    → `REVIEW`     |
+| `DOING`    → `CANCELLED`  |
+| `WAITING`  → `DOING`      |
+| `REVIEW`   → `DOING`      |
+| `REVIEW`   → `DONE`       |
+| Any        → `MAYBE`      |
+
+**Where the time-tracking hooks are wired, several of these rows also
+open or close a clock.** That column, and every rule governing it, is in
+`org-time-tracking.md` — which is promoted only where the feature is
+installed. With the default wiring there is nothing to call: `org_clock_in`
+and `org_clock_out` queue events that nothing consumes. If that file is
+not loaded, read this one as complete.
 
 **The table describes setting a keyword because the work is happening
 now.** Under `DOING`'s looser sense — started and owed, not executing —
-a keyword can also be set *retroactively*, and then none of the clock
-column applies. See the rules below.
+a keyword can also be set *retroactively*. See the rules below.
 
 `REVIEW` is **experimental** (TODO.org `:ID:` c954f650) — finished work
-handed back for human judgement. Clock-wise it behaves exactly like
-`WAITING`: entering it closes the clock, leaving it for `DOING` opens one,
-and `REVIEW` → `DONE` touches nothing because no clock is running. These
-rows were added 2026-08-21; until then the keyword was in live use with
-its clock semantics written down nowhere.
+handed back for human judgement. It behaves exactly like `WAITING`, and
+`REVIEW` → `DONE` is a no-op beyond the keyword. These rows were added
+2026-08-21; until then the keyword was in live use with its semantics
+written down nowhere.
 
 **`REVIEW` → `DONE` is the expected exit; `REVIEW` → `DOING` is the
 exception** (the user, 2026-08-26). Going back to `DOING` means the review
 found something *missing or broken* — it is rework, not the normal close.
-Read the two rows above in that light: the clock reopens only because
-work resumed, and most `REVIEW` headings should never reach that row at
+Read the two rows above in that light: work resumed because something
+was missing, and most `REVIEW` headings should never reach that row at
 all.
 
 Which makes the keyword a claim worth being careful with. Setting
@@ -57,22 +60,19 @@ heading parked there to mean "not sure yet" is misusing it — that is
 **`DOING` means started and owed a return — not executing right now.**
 The useful metaphor is *in the mail*: we have begun and need to circle
 back as soon as possible. It is durable and **plural**; several headings
-may be `DOING` at once. What records actual execution is the *clock*,
-not the keyword, and at most one heading carries a running clock because
-org runs one.
+may be `DOING` at once — the keyword records what is *owed*, never what
+is executing at this instant.
 
 On a **grouping** — a story or a slice — the same word reads one level
-up: at least one member is in the mail. That sense opens *no automatic*
-clock, and takes no `NEXT` either, since both belong to a member.
+up: at least one member is in the mail. It takes no `NEXT`, since a next
+action belongs to a member.
 
 **`REVIEW` on a grouping means every member is terminal and the work has
 not yet integrated** (the user, 2026-09-11). It names the window between
 the last member closing and the grouping's own deliverable landing — for
 a slice carrying code, between the final commit and the pull request
-merging. The clock column needs nothing new: entering it closes the
-grouping's clock only if the grouping holds the running one, exactly as
-the `from DOING` rule already says, and `REVIEW` → `DONE` at the merge
-touches nothing.
+merging. Nothing new is needed for it, and `REVIEW` → `DONE` at the
+merge touches nothing.
 
 The window needs a name because review findings on a branch arrive
 *after* every member is terminal, by construction — an implementation
@@ -87,25 +87,13 @@ twelve slices had existed and not one had ever carried `REVIEW`, so this
 paragraph is the whole of its grouping sense — expect it to need
 sharpening in use rather than to be settled.
 
-**A grouping may still be clocked deliberately, and that is not a
-defect.** `:ID:` 3964c575 proposed that groupings carry no clock at all;
-declined 2026-08-26. A parent's own coordination and planning time is
-real work, and a blanket "only leaves may be clocked" rule discards it —
-which is what `--container-heading-p`'s docstring has said all along. So
-the exemption is deliberately narrow: it suppresses the *automatic*
-clock a state change would open, never a deliberate `C-c C-x C-i`.
-
-Two consequences worth stating, since both have been read backwards. The
-nine groupings carrying their own CLOCK lines today are **history, not
-debt** — each was clocked honestly while it was still a leaf, and became
-a grouping later by acquiring children or by a refile. Nothing is to be
-migrated. **That is amnesty for what already happened, not a licence to
-make more**: each of those arose by accident, and choosing the shape
-deliberately today is the error the story conventions now name (org
-skill, "Dividing a heading that outgrew itself"). And the resulting ambiguity is a **reporting** problem, not a
-data one: measured 2026-08-26, a clocktable row for a parent shows own
-plus subtree as one number and its own share appears nowhere, recoverable
-only by subtracting every child (`:ID:` 64d34a64). Both triggers
+**Choosing a grouping shape deliberately is not a licence to clock it.**
+Nine groupings carry their own CLOCK lines today; each was clocked
+honestly while it was still a leaf and became a grouping later, so they
+are history rather than debt and nothing is to be migrated. Making more
+on purpose is the error the story conventions name (org skill, "Dividing
+a heading that outgrew itself"). The clock rules themselves are in
+`org-time-tracking.md`. Both triggers
 now ask `claude-code-ide-org--grouping-heading-p`, which is the union of
 the two ways a heading can be one: a container is *emergent* (it acquired
 keyworded children) and a slice is *declared* (`:KIND: slice`). Until
@@ -133,46 +121,12 @@ Consequences, each of which has been got wrong in practice:
   earlier draft of this section, which claimed the keyword tracks
   attention rather than progress and that no "started but resting" state
   should exist; that is exactly the state `DOING` is for.
-- **Setting `DOING` retroactively is safe through the queue, and only
-  through the queue.** `org_set_todo` opens no clock by itself, and apply
-  binds `--trigger-auto-clock-in` off for every item it lands — measured
-  2026-08-26, and pinned by
-  `claude-code-ide-org-test-review-suppresses-the-auto-clock-in-trigger`.
-  A hand `C-c C-t` to `DOING` in Emacs *does* clock in at once, so
-  recording that something *was* started is a queue action rather than a
-  keystroke. See `:ID:` 4f6a6bb1.
+- **Setting `DOING` retroactively is safe through the queue.**
+  Recording that something *was* started earlier is an ordinary queued
+  transition. Where time tracking is wired there is a reason it must be
+  the queue rather than a keystroke, and it is in `org-time-tracking.md`.
+  See `:ID:` 4f6a6bb1.
 
-**Rule**: a transition *to* `DOING` opens a clock **when you are starting
-work now** — the ordinary case, and what the table above describes. One
-exception: a **retroactive** `DOING` — recording that a heading was started earlier — opens nothing,
-because the work did not happen now. **The queue honours that exception,
-so such a transition may be queued freely.** This said the opposite until
-2026-08-26 and was wrong the whole time (`:ID:` 4f6a6bb1): `org_set_todo`
-and `org_clock_in` are separate calls precisely so state and clock are
-decided separately, and apply suppresses the trigger outright. The one
-path that does *not* honour it is a hand `C-c C-t` in Emacs — where a
-human is present to know which act they are performing.
-
-**A second exception: a _grouping_.** A story or a slice entering
-`DOING` opens no automatic clock, because on a grouping the keyword
-means "at least one member is in the mail" rather than "work is
-happening here". `--trigger-auto-clock-in` declines when
-`--grouping-heading-p` is true.
-
-**Note where that exemption actually bites, because it is narrower than
-it reads.** The trigger tests `--auto-clock-in-active` *before* it tests
-for a grouping, and apply binds that variable around the whole pass — so
-on the apply path the trigger short-circuits for **every** heading,
-grouping or leaf, and the grouping test is never reached. The exemption
-therefore does its work in exactly one place: a TODO state changed *by
-hand* in Emacs (`C-c C-t`, `S-right`). And it suppresses only the
-*automatic* clock, never a deliberate `C-c C-x C-i` — a grouping's own
-coordination time is real work and may be clocked on purpose.
-
-**Rule**: a transition *from* `DOING` closes the clock **if this
-heading's clock is the one running**. Because `DOING` is plural, a
-heading can be `DOING` with no clock — another heading holds it — and
-there is then nothing to close.
 **Rule**: always use the MCP tools for state changes and clocking — do not
 edit CLOCK entries or TODO keywords by hand when the tools are available.
 If the `emacs-tools` MCP server is *not* connected, prefer stopping and
@@ -221,20 +175,11 @@ state change of its own** — a heading is `DOING` while it is being
 planned and implemented, which is what `DOING` already meant.
 
 **Rule**: before a session's first act that changes anything — a repo
-edit, a capture, an amend, any immediate org tool — name the heading the
-work belongs to and call `org_clock_in` on it, or on "Review and
-planning" (that exact title) for cross-cutting meta-work: review,
-planning, deciding what to do rather than doing it. No heading yet means
-capture one first, with an `initial_state`. The trigger is the *first
-write, not the ask*: a session that opens as a question drifts into
-tracked work, and the drift is invisible from inside the session doing
-it — on 2026-09-03 three sessions worked through the immediate tools
-alone and every span reached review UNASSIGNED (`:ID:` ccfd89ce). A
-purely read-only session owes nothing. `bin/hooks/clock-target-check`
-backstops this at turn end, once per session: write activity in the
-transcript with no `clock_in` in the queue blocks the stop with a
-reminder. It reports; it cannot name the heading — that judgement is
-this rule's alone.
+edit, a capture, an amend, any immediate org tool — know which heading
+the work belongs to, and capture one first (with an `initial_state`) if
+none exists. Where time tracking is wired this rule also requires an
+`org_clock_in` naming that heading, and a `Stop` hook backstops it; both
+are in `org-time-tracking.md`. A purely read-only session owes nothing.
 
 **Rule**: when asked to start work on a task tracked as an org heading with
 a `:ID:`, transition it to `DOING` via `org_set_todo` *before* beginning,
@@ -246,11 +191,10 @@ the mechanics of a transition once it's triggered — and that safety net
 after it was). On `org-blocker-hook`: `org-depend-block-todo` (refuses
 DONE while a `:BLOCKER:` names unfinished work) and
 `claude-code-ide-org--blocker-clock-running-p` (refuses DONE while the
-heading's own clock is running). On `org-trigger-hook`:
-`--trigger-auto-clock-in` (opens the clock the moment DOING is
-set by hand — gated by `claude-code-ide-org-auto-clock-in-on-doing`,
-default `t`), plus `--trigger-demote-conflicting-next`, live and
-ungated **inside a container**.
+heading's own clock is running — inert with no clock to run). On
+`org-trigger-hook`: `--trigger-demote-conflicting-next`, live and ungated
+**inside a container**, plus `--trigger-auto-clock-in` where time
+tracking is wired (`org-time-tracking.md`).
 
 **`NEXT` belongs to a container's *members*, and nothing sets it by
 itself** (`:ID:` 62b65ad0, 2026-08-26). Read that carefully: `NEXT` is

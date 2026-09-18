@@ -206,3 +206,108 @@ and saves the buffer. It does not touch the live clock.
 lives on the heading that declined it (`:ID:` 7771fc63). Distinct from
 `:ID:` 1a5a5254, which proposes power assertions as a review-time
 *attribution* signal and is unaffected.
+
+## Clock side effects of state transitions
+
+**Everything in this section is inert with the default wiring.** It
+applies only where the time-tracking hooks are installed; the keyword
+semantics themselves, which apply always, are in
+`org-state-transitions.md`.
+
+**"Side effect" means the call you must make, not something that happens
+to the file.** Every entry queues an event; the CLOCK line appears when a
+human applies it. You still make exactly these calls, in exactly these
+places — but nothing here edits an org file at the moment you act.
+
+| Transition                | Side effect                         |
+|---------------------------|-------------------------------------|
+| `TODO`     → `NEXT`       | None                                |
+| `TODO`     → `DOING`      | Open a CLOCK (call `org_clock_in`)  |
+| `NEXT`     → `DOING`      | Open a CLOCK (call `org_clock_in`)  |
+| `DOING`    → `DONE`       | Close the CLOCK (call `org_clock_out`) |
+| `DOING`    → `WAITING`    | Close the CLOCK (call `org_clock_out`) |
+| `DOING`    → `REVIEW`     | Close the CLOCK (call `org_clock_out`) |
+| `DOING`    → `CANCELLED`  | Close the CLOCK (call `org_clock_out`) |
+| `WAITING`  → `DOING`      | Open a CLOCK (call `org_clock_in`)  |
+| `REVIEW`   → `DOING`      | Open a CLOCK (call `org_clock_in`)  |
+| `REVIEW`   → `DONE`       | None                                |
+| Any        → `MAYBE`      | None                                |
+
+`REVIEW` behaves exactly like `WAITING`: entering it closes the clock,
+leaving it for `DOING` opens one, and `REVIEW` → `DONE` touches nothing
+because no clock is running. On a *grouping*, entering `REVIEW` closes
+the grouping's clock only if the grouping holds the running one, exactly
+as the `from DOING` rule below says.
+
+**At most one heading carries a running clock**, because org runs one —
+which is why `DOING` being plural is not a contradiction. What records
+actual execution is the clock; the keyword records what is owed.
+
+**Rule**: a transition *to* `DOING` opens a clock **when you are starting
+work now** — the ordinary case, and what the table above describes. One
+exception: a **retroactive** `DOING` — recording that a heading was started earlier — opens nothing,
+because the work did not happen now. **The queue honours that exception,
+so such a transition may be queued freely.** This said the opposite until
+2026-08-26 and was wrong the whole time (`:ID:` 4f6a6bb1): `org_set_todo`
+and `org_clock_in` are separate calls precisely so state and clock are
+decided separately, and apply suppresses the trigger outright. The one
+path that does *not* honour it is a hand `C-c C-t` in Emacs — where a
+human is present to know which act they are performing.
+
+**A second exception: a _grouping_.** A story or a slice entering
+`DOING` opens no automatic clock, because on a grouping the keyword
+means "at least one member is in the mail" rather than "work is
+happening here". `--trigger-auto-clock-in` declines when
+`--grouping-heading-p` is true.
+
+**Note where that exemption actually bites, because it is narrower than
+it reads.** The trigger tests `--auto-clock-in-active` *before* it tests
+for a grouping, and apply binds that variable around the whole pass — so
+on the apply path the trigger short-circuits for **every** heading,
+grouping or leaf, and the grouping test is never reached. The exemption
+therefore does its work in exactly one place: a TODO state changed *by
+hand* in Emacs (`C-c C-t`, `S-right`). And it suppresses only the
+*automatic* clock, never a deliberate `C-c C-x C-i` — a grouping's own
+coordination time is real work and may be clocked on purpose.
+
+**Rule**: a transition *from* `DOING` closes the clock **if this
+heading's clock is the one running**. Because `DOING` is plural, a
+heading can be `DOING` with no clock — another heading holds it — and
+there is then nothing to close.
+
+**Rule**: before a session's first act that changes anything — a repo
+edit, a capture, an amend, any immediate org tool — name the heading the
+work belongs to and call `org_clock_in` on it, or on "Review and
+planning" (that exact title) for cross-cutting meta-work: review,
+planning, deciding what to do rather than doing it. No heading yet means
+capture one first, with an `initial_state`. The trigger is the *first
+write, not the ask*: a session that opens as a question drifts into
+tracked work, and the drift is invisible from inside the session doing
+it — on 2026-09-03 three sessions worked through the immediate tools
+alone and every span reached review UNASSIGNED (`:ID:` ccfd89ce). A
+purely read-only session owes nothing. `bin/hooks/clock-target-check`
+backstops this at turn end, once per session: write activity in the
+transcript with no `clock_in` in the queue blocks the stop with a
+reminder. It reports; it cannot name the heading — that judgement is
+this rule's alone.
+
+**Setting `DOING` retroactively opens nothing, and the queue is what
+makes that safe.** `org_set_todo` opens no clock by itself, and apply
+binds `--trigger-auto-clock-in` off for every item it lands — measured
+2026-08-26, and pinned by
+`claude-code-ide-org-test-review-suppresses-the-auto-clock-in-trigger`.
+A hand `C-c C-t` to `DOING` in Emacs *does* clock in at once, so
+recording that something *was* started is a queue action rather than a
+keystroke. See `:ID:` 4f6a6bb1.
+
+**A grouping may still be clocked deliberately, and that is not a
+defect.** `:ID:` 3964c575 proposed that groupings carry no clock at all;
+declined 2026-08-26. A parent's own coordination and planning time is
+real work, and a blanket "only leaves may be clocked" rule discards it —
+which is what `--container-heading-p`'s docstring has said all along. So
+the exemption is deliberately narrow: it suppresses the *automatic*
+clock a state change would open, never a deliberate `C-c C-x C-i`. The
+resulting ambiguity is a **reporting** problem, not a data one: measured
+2026-08-26, a clocktable row for a parent shows own plus subtree as one
+number and its own share appears nowhere, recoverable only by
+subtracting every child (`:ID:` 64d34a64).
