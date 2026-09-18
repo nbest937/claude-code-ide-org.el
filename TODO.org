@@ -694,6 +694,25 @@ Shipped in the canonical reference and promoted; check-conventions 32 ok, footno
 :CREATED:  [2026-09-17 Thu 12:47]
 :CATEGORY: Docs
 :END:
+:DEBRIEF:
+*Shipped* in [[orgit-rev:claude-code-ide-org::82c0400][82c0400]].
+
+*The title stopped being true before the work started.* It says the files "describe a clock that no longer ships". After =1b36c5bd= the clock **does** still ship — wired, gated off by a =userConfig= option — so every passage needed *feature, state, toggle* rather than deletion. That is the shape the body had already settled on 2026-09-17; what changed is that it became the only option rather than one of two.
+
+*The demotion, said once in each always-loaded file.* =CLAUDE.md= line 9 and =README='s third paragraph both now read: natural-language org manipulation is the goal; attention tracking is a second, **optional** capability, developed here and shipped off. Both name 2026-09-18 and the reason — committing to a switch *is* the ordering.
+
+*And both keep the history, which was the one thing the composition warned not to flatten.* "Much of the machinery — the event queue, the session hooks, the review pass — exists for that goal" survives verbatim in =README= and is restated in =CLAUDE.md=, because it is the only record of why the queue looks as it does. The ranking changed; the account of what built it did not.
+
+*The sharpest edit was not the demotion.* =README='s design section explained the queue *through clocking* — "when a Claude session calls =org_set_todo= or =org_clock_in=" — which would have read to a consumer as though the queue were a time-tracking device. It now gives the actual reason: =org-add-log-note= opens a note buffer before it checks whether a note is wanted, so **any** keyword carrying a logging cookie hangs a non-interactive transition. That is what the queue routes around, and it has nothing to do with time. The desync history is kept as the second reason rather than the first.
+
+*=README= gained an install step rather than a caveat.* Time tracking is step 4, off by default, with the two things a consumer needs *before* flipping it: it is **one value for every project** — the option, the queue and the review buffer are all per-user — and it **cannot be turned on at all** on a Claude Code predating plugin =userConfig=, where the gate defaults off, which is the safe direction.
+
+*Three things deliberately left alone, each for a stated reason.* =DOOM.md= needed nothing — it has **no clock mentions at all**, despite this heading's own measured table listing it. =org-conventions.md= keeps its thirteen: they are descriptive rules about what a slice or story does *if* clocked ("a slice carries state but never a clock"), not instructions to call a tool. And the skill keeps its CLOCK-*parsing* sections, including "Clocking & time tracking" in its capability list — reading a =:LOGBOOK:= written by hand or by Emacs is a general org capability, independent of whether this plugin records one. Scoping those would have made the skill worse at the job it is for.
+
+*What did change in the skill:* the transition table's third column now says *only where time tracking is on*, with a paragraph stating that the whole column is conditional and the meanings are not; and the side-effect bullet no longer pairs =org_clock_in= with =org_set_todo= unconditionally.
+
+*Checks:* =check-conventions= green, =check-org-dev-skill= green, rules re-promoted and in sync across 7 files, =bin/test= 688/688.
+:END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-18 Fri 08:36] \\
   nominated: the slot the user chose for it, and the skill's 48 clock mentions are now its surface
@@ -746,6 +765,9 @@ Nine documents describe clocking, guideposts or spans, and none of it will be tr
 So there is no distinction to draw between the project's goals and the artifact's features, and the careful sentence I proposed is unnecessary. Both files simply demote it: natural-language org manipulation is the goal, attention tracking is a second, optional capability developed here and shipped off. =CLAUDE.md= line 9 matters more than =README= line 9, being loaded into every session by default.
 
 *Keep the history while changing the ranking.* "Much of the machinery here — the event queue, the session hooks, the review pass — exists for that goal" is true and explains why the architecture looks as it does. Demote the goal; do not delete the account of what built the machinery, or a future reader loses the only record of why the queue exists at all.
+
+*Resolved 2026-09-18.* The demotion is stated once in =CLAUDE.md= and once in =README=, both keeping the sentence about what the machinery was built for; every other file follows from it in feature/state/toggle shape. Smaller than this heading assumed, because self-gating landed first: the clock still ships, so nothing had to describe an absence.
+
 
 
 * MAYBE Revisit building the footnote block with org-ql or the agenda, once Emacs stops wedging :research:
