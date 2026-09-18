@@ -1034,6 +1034,29 @@ Every review pass this project has run has read a queue full of guideposts. With
 :CREATED:  [2026-09-17 Thu 11:16]
 :CATEGORY: Dev
 :END:
+:DEBRIEF:
+*Answered by reading this repo's own packaging rather than by experiment, 2026-09-18.* No second plugin was built; everything below is read off files that exist.
+
+*Why the question dissolves.* =.claude-plugin/plugin.json= declares ="mcpServers": "./.mcp.json"=, and that file declares =emacs-tools= as ={"type": "http", "url": "http://localhost:45571/mcp/warp"}=. The server is **not a process a plugin spawns** — it is the running Emacs, at a well-known URL. "Sharing" a stdio server would be a question about process ownership; sharing an HTTP endpoint is not a question at all, because any number of clients may point at one URL.
+
+And the case we actually care about is thinner still: a time plugin would declare **no MCP server whatsoever**. =org_clock_in= and =org_clock_out= are registered by =config.el= and served by the same endpoint the task plugin already points at, so the second plugin's whole content would be =hooks/hooks.json= plus =org-time-tracking.md=. Nothing to share.
+
+*The obstacle that replaces it, and it is the reason the answer is still "no".* The shipped wiring reaches its scripts through =${CLAUDE_PLUGIN_ROOT}=, which resolves to *the declaring plugin's* root. A time plugin's rows would therefore point into the time plugin — where the scripts are not. And they cannot simply be referenced across, because =bin/hooks/session-pause= ends:
+
+: exec "$(dirname "${BASH_SOURCE[0]}")/queue-append" pause
+
+**Sibling resolution.** So a time plugin must ship its own =queue-append= beside its own =session-pause=. Measured: =session-pause= 22 lines, =session-resume= 37, =block-start= 62, =block-end= 67, =clock-target-check= 143, and =queue-append= **244** — and that last one is the file the *task* plugin also needs, for its =todo=/=capture=/=amend= rows. Two plugins means two copies of one 244-line script, free to drift, with no mechanism that would notice.
+
+*One thing that is genuinely fine, and worth recording so it is not raised as an objection later.* The queue directory is =${CLAUDE_ORG_QUEUE_DIR:-$HOME/.claude/org-updates}= — **global, not per-plugin** — so two copies of =queue-append= would still append to one queue and one review buffer. There is no split-brain risk. The cost is duplication, not divergence of the record.
+
+*So the original decision holds, and its weakest leg is now measured rather than assumed.* The composition heading rejected two plugins partly because the second "would ship no code of its own". That understated it: the second would ship **duplicated** code, which is worse than none.
+
+*Two claims below the evidentiary bar, flagged rather than asserted.* That a =PostToolUse= matcher in plugin B fires for a tool served by plugin A's MCP server is *expected* — the matcher matches the tool name =mcp__emacs-tools__org_clock_in=, which is a property of the server rather than of the declaring plugin — but it was reasoned, not observed. And whether =${CLAUDE_PLUGIN_ROOT}= expands in a *project's* own =.claude/settings.json= (as opposed to a plugin's =hooks.json=) is still unverified; it is the question that now decides =1b36c5bd='s shape, and it is recorded there.
+
+*The revisit trigger is unchanged and still narrow:* a consumer wanting the time half **without** the task half. That is incoherent while spans attribute to org headings the task half manages, and would become coherent only if they ever attributed to something else.
+
+*Sequencing note, because the record should show the plan file was wrong and the heading was right.* =next-session.md= placed this member last, saying it "decides nothing this slice does, only whether the two-plugin question reopens later". This heading's own body said the opposite — "Answer the mechanical question first — it decides the packaging, and the packaging decides how much of the rest of this slice is even possible" — and its =NEXT= nomination note said it "sequences first". It was promoted ahead of =1b36c5bd= on 2026-09-18 after that member's own assumption collapsed, which rediscovered the same ordering independently.
+:END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-17 Thu 16:50] \\
   answers the assumption the slice's not-two-plugins decision rests on, so it sequences first
@@ -1051,6 +1074,9 @@ Answer it before the question is asked again, and record the answer either way. 
 
 Splitting the tracker from the clock is only worth doing as two plugins if two manifests can share one MCP server registration; if they cannot, the split has to stay a flag on one plugin. Answer the mechanical question first — it decides the packaging, and the packaging decides how much of the rest of this slice is even possible.
 
+*Answered 2026-09-18: two manifests never need to share an MCP server, because a time plugin would declare none.* The tools are served over HTTP by the running Emacs at a fixed URL, so a second plugin shipping only hooks and a rules file reaches them through the first plugin's registration. The question as posed has no force — but a different obstacle takes its place, and it is decisive: =${CLAUDE_PLUGIN_ROOT}= would resolve to the *second* plugin's root, and =session-pause= resolves =queue-append= as a **sibling**, so the thin plugin must carry its own copy of all six scripts including the 244-line shared one. Recommendation unchanged, now measured: **not two plugins.**
+
+
 
 * TODO claude-org-setup gains an opt-in that restores the time-tracking wiring and its rules :code:
 :PROPERTIES:
@@ -1063,6 +1089,18 @@ Splitting the tracker from the clock is only worth doing as two plugins if two m
 If the scripts ship unwired, something has to make wiring them a single act rather than a hand edit of a JSON file the consumer did not write. =claude-org-setup= already promotes rules and scaffolds org files behind flags — =--doom=, =--org=, =--glue=, =--check= — so a =--time= flag is the established shape: it adds the guidepost, block and clock rows to the consumer's wiring and promotes =org-session-tracking.md= alongside them.
 
 Two constraints it inherits. The repo-versus-plugin wiring trap is already documented — "a repo must enable only one of the two, or every guidepost is appended twice" — so the flag has to know which wiring the consumer is using before adding rows to either. And =--check= should report the time-tracking wiring as present or absent rather than silently ignoring it, since a half-applied opt-in is exactly the state that produces events nobody applies.
+
+*Found 2026-09-18, before starting: the plan's central assumption does not hold.* "It adds the guidepost, block and clock rows to the consumer's wiring" presumes =claude-org-setup= writes hook wiring. **It never has.** It promotes rules, scaffolds org files, links the skill and writes Doom glue; grepped for =settings.json= and =hooks.json= and it touches neither. So =--time= is not an extension of an existing capability, it is a new one, and where it writes is an open question rather than a detail.
+
+Three candidate shapes, and the difference is where the scripts' path comes from:
+
+- *Into the consumer's =.claude/settings.json=.* This repo wires the same scripts that way — but with =${CLAUDE_PROJECT_DIR}=, which works only because the scripts *are* in this project. A consumer's are in the plugin, so the rows would need an absolute path to the plugin root: machine-specific, in a version-controlled file, which is precisely the objection the symlink code already records ("a machine's path is not the project's to commit").
+- *Into =.claude/settings.local.json=*, which is the conventional home for uncommitted machine-local settings. That answers the path objection and makes the opt-in per-machine rather than per-repo — arguably correct, since whose attention is being tracked is a property of the person, not the project. This is the cheapest shape and should be disproved before the third is considered.
+- *A second plugin carrying the time hooks*, installed alongside. This is the only shape where =${CLAUDE_PLUGIN_ROOT}= resolves correctly for the consumer without anyone writing a path — and it is blocked on =5fb70821=, whose whole question is whether two manifests can share one MCP server.
+
+*Consequence for the slice's order:* =5fb70821= was about to be deferred as research that "decides nothing this slice does". That is no longer true — it decides between shape two and shape three here, so it moves ahead of this member rather than out of the slice.
+
+*One thing to verify rather than assume before any of this:* whether =${CLAUDE_PLUGIN_ROOT}= is expanded in a project's own =settings.json= hooks, or only in a plugin's =hooks.json=. If the former, shape one loses its path objection entirely and this gets much simpler.
 :END:
 
 The counterpart to the cut: a flag on `claude-org-setup` that puts the guidepost, block and clock rows back into the consuming repo's wiring and promotes the session-tracking reference alongside them. Disabled-by-default is only defensible if turning it on is one documented command.
