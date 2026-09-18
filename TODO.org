@@ -2,11 +2,20 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* TODO Every SessionStart report a consumer gets is computed over all tracked projects, so it names other repos' work :code:
+* DONE Every SessionStart report a consumer gets is computed over all tracked projects, so it names other repos' work :code:
+CLOSED: [2026-09-18 Fri 16:48]
 :PROPERTIES:
 :ID:       43d479c8-bbaa-49ec-a3be-0d8ee90425e1
 :CREATED:  [2026-09-18 Fri 16:36]
 :CATEGORY: Dev
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-18 Fri 16:43]--[2026-09-18 Fri 16:48] =>  0:05
+- State "DOING"      from "TODO"       [2026-09-18 Fri 16:43] \\
+  first of the four: scope the SessionStart report to the session's own project
+- [2026-09-18 Fri 16:43]--[2026-09-18 Fri 16:48]
+- State "DONE"       from "DOING"      [2026-09-18 Fri 16:48] \\
+  scoped via --report-scope in d2edfa2; euchre's report goes from 3045 bytes of our work to empty
 :END:
 :DEBRIEF:
 *Shipped* in [[orgit-rev:claude-code-ide-org::d2edfa2][d2edfa2]].
@@ -45,11 +54,18 @@ Found by a session running in =~/git/agentic-euchre= 2026-09-18: its =SessionSta
 *Fixed 2026-09-18: a dynamic =--report-scope= that =--tracked-files= honours, bound by both report entry points and passed =CLAUDE_PROJECT_DIR= by both hook scripts.* The org tools stay global deliberately; only what *reports to* a session is scoped. Measured end to end: the context report is 3045 bytes unscoped, 3045 scoped to this repo, and **empty** scoped to euchre — which is exactly the 3045 bytes euchre was being handed.
 
 
-* TODO A consuming repo gets the hooks, rules and skill but no org tools: the plugin's MCP server never registers :code:
+* DONE A consuming repo gets the hooks, rules and skill but no org tools: the plugin's MCP server never registers :code:
+CLOSED: [2026-09-18 Fri 16:56]
 :PROPERTIES:
 :ID:       805bf287-1401-44ab-bb6c-6e09b5b63b59
 :CREATED:  [2026-09-18 Fri 15:39]
 :CATEGORY: Dev
+:END:
+:LOGBOOK:
+- State "DOING"      from "TODO"       [2026-09-18 Fri 16:52] \\
+  generate the consumer's .mcp.json from its own basename; stop shipping one that cannot be right
+- State "DONE"       from "DOING"      [2026-09-18 Fri 16:56] \\
+  --org generates it; euchre connected. A shipped .mcp.json cannot name a consumer's session and no longer tries
 :END:
 :DEBRIEF:
 *Shipped* in [[orgit-rev:claude-code-ide-org::a6eee44][a6eee44]].
@@ -120,14 +136,16 @@ Measured today: the derived order is =claude-code-ide-org= then =agentic-euchre=
 *Fixed 2026-09-18: =claude-org-setup --org= generates the consumer's =.mcp.json= from its own basename, and the plugin stops shipping one.* A static file cannot name a session whose name is the consumer's project — so the fix is to generate rather than to ship. Euchre now reports =emacs-tools: http://localhost:45571/mcp/agentic-euchre - ✔ Connected=.
 
 
-
-
-
-* TODO claude-org-setup --check reports only the promoted rules, so a clean run overstates how current a repo is :code:
+* DONE claude-org-setup --check reports only the promoted rules, so a clean run overstates how current a repo is :code:
+CLOSED: [2026-09-18 Fri 17:06]
 :PROPERTIES:
 :ID:       827bb778-deca-47b6-acd3-0977493a14aa
 :CREATED:  [2026-09-18 Fri 15:16]
 :CATEGORY: Dev
+:END:
+:LOGBOOK:
+- State "DONE"       from "TODO"       [2026-09-18 Fri 17:06] \\
+  glue checked by content and by consequence; footer names what is still unchecked
 :END:
 :DEBRIEF:
 *Shipped* in [[orgit-rev:claude-code-ide-org::50b7361][50b7361]].
@@ -164,12 +182,20 @@ Sibling: [[id:2082eeb3-afd8-4439-8774-81b48b1df9a1][2082eeb3]], nothing telling 
 *Fixed 2026-09-18, by widening and narrowing at once.* =--check= now covers the Doom glue — by content *and* by the two consequences its instructions ask for — and prints a footer naming what it still does not check. The decision was made with the user: cover the glue, defer the running image to =2cd74268=, and let one command answer across both scopes rather than two that get run singly.
 
 
-
-* TODO Nothing tells a session whether time tracking is on, though SessionStart could say it in one line :code:
+* DONE Nothing tells a session whether time tracking is on, though SessionStart could say it in one line :code:
+CLOSED: [2026-09-18 Fri 16:52]
 :PROPERTIES:
 :ID:       2082eeb3-afd8-4439-8774-81b48b1df9a1
 :CREATED:  [2026-09-18 Fri 15:16]
 :CATEGORY: Dev
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-18 Fri 16:49]--[2026-09-18 Fri 16:52] =>  0:03
+- State "DOING"      from "TODO"       [2026-09-18 Fri 16:49] \\
+  report the option in the session-context payload; unset must say nothing rather than guess
+- [2026-09-18 Fri 16:49]--[2026-09-18 Fri 16:52]
+- State "DONE"       from "DOING"      [2026-09-18 Fri 16:52] \\
+  one line in the session-context payload; absent says nothing rather than guessing off
 :END:
 :DEBRIEF:
 *Shipped* in [[orgit-rev:claude-code-ide-org::1809fa1][1809fa1]], immediately after =43d479c8= because both edit the same hook and the same payload.
@@ -200,7 +226,6 @@ Raised by the user 2026-09-18, twice in one conversation: how do I tell whether 
 Sibling: [[id:827bb778-deca-47b6-acd3-0977493a14aa][827bb778]], =--check= overstating how current a repo is.
 
 *Fixed 2026-09-18: =session-context.sh= passes =CLAUDE_PLUGIN_OPTION_TIME_TRACKING= and the payload carries one line.* Absent yields **nothing** rather than "off", because the variable is missing both on an older Claude Code and in a repo wiring these scripts itself — and this repository is the second case with the feature on.
-
 
 
 * TODO The conventions never say how stories and slices compose, and "not declared" reads as a ban on composing one :code:
@@ -1188,14 +1213,13 @@ tag, the query it exists to answer, and the =#+TAGS:= line and
 The keyword set carries no severity, so a defect someone actually hit reads the same as one reasoned about. An `:observed:` tag is the cheapest signal that distinguishes them, and it is a fact rather than a judgement — either it was seen in use or it was not.
 
 
-* REVIEW [9/13] Ship the tracker without the clock, so another project can use it while time tracking is still being built :code:
+* DOING [13/13] Ship the tracker without the clock, so another project can use it while time tracking is still being built :code:
 :PROPERTIES:
 :ID:       8bbae3aa-55db-441c-8c33-405570ad879a
 :CREATED:  [2026-09-17 Thu 11:16]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  43d479c8-bbaa-49ec-a3be-0d8ee90425e1 2082eeb3-afd8-4439-8774-81b48b1df9a1 805bf287-1401-44ab-bb6c-6e09b5b63b59 827bb778-deca-47b6-acd3-0977493a14aa
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-17 Thu 12:10] \\
@@ -1214,6 +1238,28 @@ CLOCK: [2026-09-18 Fri 14:31]--[2026-09-18 Fri 15:17] =>  0:46
 - <2026-09-18 Fri 14:31>--<2026-09-18 Fri 15:17> root-cause unattributed spans, file discipline fix
 - State "REVIEW"     from "DOING"      [2026-09-18 Fri 14:36] \\
   all nine members terminal; awaiting the PR merge
+CLOCK: [2026-09-18 Fri 15:33]--[2026-09-18 Fri 15:35] =>  0:02
+- [2026-09-18 Fri 15:33]--[2026-09-18 Fri 15:35] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-18 Fri 15:38]--[2026-09-18 Fri 15:40] =>  0:02
+- [2026-09-18 Fri 15:38]--[2026-09-18 Fri 15:40] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-18 Fri 15:45]--[2026-09-18 Fri 15:46] =>  0:01
+- [2026-09-18 Fri 15:45]--[2026-09-18 Fri 15:46] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-18 Fri 15:49]--[2026-09-18 Fri 15:51] =>  0:02
+- [2026-09-18 Fri 15:49]--[2026-09-18 Fri 15:51] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-18 Fri 16:19]--[2026-09-18 Fri 16:25] =>  0:06
+- [2026-09-18 Fri 16:19]--[2026-09-18 Fri 16:25] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-18 Fri 16:27]--[2026-09-18 Fri 16:28] =>  0:01
+- [2026-09-18 Fri 16:27]--[2026-09-18 Fri 16:28] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-18 Fri 16:29]--[2026-09-18 Fri 16:30] =>  0:01
+- [2026-09-18 Fri 16:29]--[2026-09-18 Fri 16:30] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-18 Fri 16:35]--[2026-09-18 Fri 16:38] =>  0:03
+- [2026-09-18 Fri 16:35]--[2026-09-18 Fri 16:38] root-cause unattributed spans, file discipline fix
+- State "DOING"      from "REVIEW"     [2026-09-18 Fri 16:41] \\
+  rework: testing the branch in a real consumer found four defects that make the slice's own claim false
+CLOCK: [2026-09-18 Fri 16:59]--[2026-09-18 Fri 17:01] =>  0:02
+- [2026-09-18 Fri 16:59]--[2026-09-18 Fri 17:01] assigned at review
+CLOCK: [2026-09-18 Fri 17:04]--[2026-09-18 Fri 17:08] =>  0:04
+- [2026-09-18 Fri 17:04]--[2026-09-18 Fri 17:08] assigned at review
 :END:
 
 Composed 2026-09-17 at the user's direction, whose framing is the point: task tracking, dependency management and slice planning are ready to support real work elsewhere, and time tracking is not. Shipping them together holds the useful half hostage to the half still under construction.
@@ -1237,10 +1283,10 @@ Planned:
 - [X] [[id:d3149a81-91d2-4722-b6d8-68d4cee6fa4f][d3149a81]] DONE Verify the review buffer and apply pass on a queue that has never held a guidepost
 - [X] [[id:5fb70821-0f46-42d9-8bf3-93bc98025692][5fb70821]] DONE Establish whether two plugin manifests can share one MCP server, which is what decides the two-plugin question
 - [X] [[id:1254c24b-0dda-436e-a3d4-213de283692f][1254c24b]] DONE The prose still promises time tracking: README, CLAUDE.md, DOOM.md and the skill all describe a clock that no longer ships
-- [ ] [[id:43d479c8-bbaa-49ec-a3be-0d8ee90425e1][43d479c8]] TODO Every SessionStart report a consumer gets is computed over all tracked projects, so it names other repos' work
-- [ ] [[id:2082eeb3-afd8-4439-8774-81b48b1df9a1][2082eeb3]] TODO Nothing tells a session whether time tracking is on, though SessionStart could say it in one line
-- [ ] [[id:805bf287-1401-44ab-bb6c-6e09b5b63b59][805bf287]] TODO A consuming repo gets the hooks, rules and skill but no org tools: the plugin's MCP server never registers
-- [ ] [[id:827bb778-deca-47b6-acd3-0977493a14aa][827bb778]] TODO claude-org-setup --check reports only the promoted rules, so a clean run overstates how current a repo is
+- [X] [[id:43d479c8-bbaa-49ec-a3be-0d8ee90425e1][43d479c8]] DONE Every SessionStart report a consumer gets is computed over all tracked projects, so it names other repos' work
+- [X] [[id:2082eeb3-afd8-4439-8774-81b48b1df9a1][2082eeb3]] DONE Nothing tells a session whether time tracking is on, though SessionStart could say it in one line
+- [X] [[id:805bf287-1401-44ab-bb6c-6e09b5b63b59][805bf287]] DONE A consuming repo gets the hooks, rules and skill but no org tools: the plugin's MCP server never registers
+- [X] [[id:827bb778-deca-47b6-acd3-0977493a14aa][827bb778]] DONE claude-org-setup --check reports only the promoted rules, so a clean run overstates how current a repo is
 
 *Decided by the user 2026-09-17, and it is larger than this slice: **time tracking is no longer a co-equal goal**.* "We have prioritized the other goal by committing to providing the ability to disable the time-tracking features." Committing to a switch **is** the ordering — a feature you can turn off is not co-equal with the one you cannot.
 
@@ -1303,8 +1349,6 @@ All 26 of euchre's are guideposts — 12 =pause=, 13 =resume=, 1 =block_start= �
 *Why adopt rather than defer to a successor.* The slice's claim is "so another project can use it", and the four are the difference between that being true and being aspirational. Closing on the original nine would have asserted something the testing disproved. The cost is accepted and named: =827bb778= is the least defined of the four — its own body says two things must be decided rather than assumed, and glue drift is not a content diff — so the slice cannot close until that is settled.
 
 *One thing the reopening proves about the process rather than the code.* Nine members closed on analysis, tests and review; four more appeared within an hour of a real consumer trying to use the result. The pattern named on =43d479c8= — one user, one project, versus one Emacs serving many — was invisible from inside the repo that is its own only user.
-
-
 
 
 * DONE Verify the review buffer and apply pass on a queue that has never held a guidepost :code:
@@ -11095,6 +11139,7 @@ call it done.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-18 Fri 17:09]--[2026-09-18 Fri 17:12] =>  0:03
 CLOCK: [2026-09-18 Fri 15:19]--[2026-09-18 Fri 15:24] =>  0:05
 CLOCK: [2026-09-18 Fri 14:15]--[2026-09-18 Fri 14:20] =>  0:05
 CLOCK: [2026-09-18 Fri 08:54]--[2026-09-18 Fri 08:59] =>  0:05
@@ -11229,6 +11274,7 @@ CLOCK: [2026-09-17 Thu 15:14]--[2026-09-17 Thu 15:17] =>  0:03
 CLOCK: [2026-09-17 Thu 15:55]--[2026-09-17 Thu 15:56] =>  0:01
 CLOCK: [2026-09-18 Fri 08:14]--[2026-09-18 Fri 08:15] =>  0:01
 - <2026-09-18 Fri 15:25>--<2026-09-18 Fri 15:25> review pass (buffer buried)
+- <2026-09-18 Fri 17:08>--<2026-09-18 Fri 17:08> review pass (buffer buried)
 :END:
 
 We created this heading on 2026-08-26. We deleted that property from its
