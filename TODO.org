@@ -1003,6 +1003,28 @@ Separate from the hook wiring: the two MCP tools are registered by `config.el`, 
 :CREATED:  [2026-09-17 Thu 11:15]
 :CATEGORY: Skill
 :END:
+:DEBRIEF:
+*Shipped* in [[orgit-rev:claude-code-ide-org::373e60a][373e60a]] and [[orgit-rev:claude-code-ide-org::199ab6f][199ab6f]], split so the reviewable units match the risk: the first is a relocation with a new file, the second is per-passage surgery.
+
+*The plan's premise was false, and measuring it first changed the work.* =next-session.md= said =org-session-tracking.md= is "*entirely* time tracking" and should simply not promote. It is three sections and the first is mixed: the =queue-append= matchers for =todo=/=capture=/=amend=, =footnote-check=, =apply-detect= and its whole paragraph, and the ceremony half of =SessionStart= are all task-tracking. These rules load in **every** session, so dropping the file would have taken task guidance away from a consumer — the opposite of the slice's point. Had the plan been followed as written the regression would have shipped.
+
+*Fork over conditional, decided by the user against the project's own evidence.* A conditional clause is read as an instruction whatever its condition — the same bet as a path-scoped rule that does not load — and =01f7a19c='s argument that "an agent calls what it is offered" applies to prose as much as to a tool schema. The file-level split means a consumer without the feature never sees the instruction at all.
+
+| always promoted | promoted with =--time= |
+|---|---|
+| =footnote-check=, =apply-detect=, the three =queue-append= matchers, the daily ceremony | guideposts, =:LOGBOOK:= CLOCK mechanics, permission blocks, the three numbers, stale-interval recovery |
+| =DOING=/=REVIEW=/=WAITING= semantics, plural =DOING=, =NEXT= and nomination, the =@=-cookie hang, capture, =:CREATED:=, Plan Mode | the transition table's side-effect column, both to/from-=DOING= rules, the retroactive and grouping exceptions, the =org_clock_in=-before-first-write rule |
+
+*How relocation was verified.* Every non-blank line of each original was tested for a verbatim match in the new pair, and the misses enumerated: five paragraphs in the first file and six in the second, each a deliberate rewrite with a named replacement. That is the conventions' own "relocation is lossless and verifiable" discipline, run as a check rather than asserted. One trap worth recording: =grep= treats a line beginning =-= as an option, so four bullets reported as missing until the scan was re-run with =-e= — a false alarm that looked exactly like real loss.
+
+*The transition table now exists in both files on purpose.* =bin/check-conventions= parses it for the keyword set, so the transitions copy keeps all eight keywords and drops only the clock column. Removing it outright would have failed a check that exists to catch keyword drift.
+
+*Accepted, not overlooked:* the new file promotes **unconditionally** until =1b36c5bd= lands =--time=. That is the status quo for a consumer rather than a regression, and the file's own opening says nothing in it applies with the default wiring. =CLAUDE.md='s pointer, which claimed the three numbers and stale-interval recovery live in =org-session-tracking.md=, was corrected in the same commit and now records that =hooks.json= and =.claude/settings.json= are deliberately no longer mirrors.
+
+*Left for the members that own them, not filed as residue:* =skills/org/SKILL.md= instructs clocking in 48 places including its own transition table — that is =1254c24b='s surface, and its CLOCK-*parsing* sections should survive there, since a consumer with time tracking off still reads =.org= files whose drawers were written by hand. =org-mcp-tools.md= and =org-event-queue.md= still name the clock tools, which stays correct until =01f7a19c= decides whether they remain registered.
+
+*Checks:* =claude-org-setup --check= in sync across 7 files, =check-conventions= green including "keyword set: org-state-transitions reference table" and "promoted rules match the plugin references", =check-org-dev-skill= green, =bin/test= 688/688.
+:END:
 :PLAN:
 
 =org-state-transitions.md= is promoted into every consuming project and its transition table's whole right-hand column is clock instructions — "Open a CLOCK (call =org_clock_in=)" on four rows, "Close the CLOCK" on four more — plus the standing rule to clock in before a session's first write. =org-session-tracking.md= is promoted too and is *entirely* about time tracking: guideposts, the three numbers, permission blocks, stale-interval recovery.
@@ -1013,6 +1035,9 @@ Two shapes to weigh. Promote a *variant* of the transition table without the clo
 :END:
 
 The promoted rules tell a consuming session to call `org_clock_in` before its first write and to close the clock on leaving `DOING`. With the wiring cut, those calls queue events nothing consumes. The prose has to say the feature is off by default and what turning it on restores.
+
+*Resolved 2026-09-18: forked at file level, not conditioned in place.* The clock content moved into a new =org-time-tracking.md= that promotes only under =--time=; =org-session-tracking.md= and =org-state-transitions.md= keep what is true regardless of wiring and point at it.
+
 
 
 * TODO The SessionStart report mixes stale-interval recovery with the ceremony prompt, and only one half survives :code:
