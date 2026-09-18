@@ -129,6 +129,23 @@ Measured today: the derived order is =claude-code-ide-org= then =agentic-euchre=
 :CREATED:  [2026-09-18 Fri 15:16]
 :CATEGORY: Dev
 :END:
+:DEBRIEF:
+*Shipped* in [[orgit-rev:claude-code-ide-org::50b7361][50b7361]].
+
+*The design question was settled with the user rather than decided here*, because the two halves pull opposite ways: widen the checks to match the claim, or narrow the claim to match the checks. The answer was both, plus an explicit deferral.
+
+*Why content alone would not have done.* This is the wrinkle the heading was filed with and it survived into the fix. On 2026-09-15 the generated glue was **byte-identical** across a change while the instructions it *prints* changed — "delete your hand-kept 202 override, the module ships it now". A content diff reports =ok:= on exactly that, which is how a repo gets told it is current while carrying an override that shadows the module's own. So the instructions are checked by their **consequences**: the =load!= stub present in =config.el=, and no uncommented 202 override. Both verified grep-able before the option was offered, rather than proposed and hoped for.
+
+*The stub check earns its place independently.* Without that line the generated glue is never loaded and everything the content check verifies is **inert** — a state no comparison of file contents could ever detect, since the file would be perfect.
+
+*=render_glue= was factored out of the =--glue= block* so =--check= can render without the side effects — writing into =$DOOMDIR= and printing follow-ups. Verified behaviour-preserving before anything was built on it: its output is byte-identical to the live glue.
+
+*Blast radius, decided deliberately.* =--check= now reads the user's =$DOOMDIR=, read-only, where before it touched only the consuming repo. Precedent: =check-org-dev-skill= already reads the Doom config for the port. A missing Doom config degrades to =skipped:=, not an error, since a consumer may reasonably not have one. The alternative — a second command — was declined on the grounds that it invites running one and not the other, which is precisely how this heading came to exist.
+
+*Each new check proved discriminating against a fake =$DOOMDIR=,* never the real one: glue absent → exit 1; stub absent → exit 1; 202 override present → exit 1 *with both other checks green*, so the attribution is unambiguous; no Doom config → exit 0.
+
+*What is still not checked, and now says so out loud:* whether the running Emacs has loaded the module on disk — that needs a digest, and it is =2cd74268='s, named in the output so the deferral is visible rather than forgotten — and the =time_tracking= option, which is per-user and which a session now reports at =SessionStart= (=2082eeb3=), so =--check= does not need it.
+:END:
 
 =--check= renders what promotion would write and =cmp=s it against each file in =.claude/rules/=, printing =ok:= / =drifted:= / =missing:= and exiting non-zero. That part works — run against =~/git/agentic-euchre= on 2026-09-18 it correctly found five drifted and two missing, and exited 1.
 
@@ -143,6 +160,9 @@ Measured today: the derived order is =claude-code-ide-org= then =agentic-euchre=
 *Related but distinct:* nothing tells a session whether time tracking is on, filed separately. Both are "the system knows and will not say".
 
 Sibling: [[id:2082eeb3-afd8-4439-8774-81b48b1df9a1][2082eeb3]], nothing telling a session whether time tracking is on.
+
+*Fixed 2026-09-18, by widening and narrowing at once.* =--check= now covers the Doom glue — by content *and* by the two consequences its instructions ask for — and prints a footer naming what it still does not check. The decision was made with the user: cover the glue, defer the running image to =2cd74268=, and let one command answer across both scopes rather than two that get run singly.
+
 
 
 * TODO Nothing tells a session whether time tracking is on, though SessionStart could say it in one line :code:
