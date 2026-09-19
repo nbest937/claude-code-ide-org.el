@@ -2,119 +2,6 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* DOING [5/5] Address the PR #28 review: fifteen findings, four of them defects in work already closed :code:
-:PROPERTIES:
-:ID:       0784a826-d0b6-4829-a49b-c312dc446830
-:CREATED:  [2026-09-19 Sat 05:51]
-:CATEGORY: Dev
-:END:
-:DEBRIEF:
-*Five commits, fifteen findings, five children.* =d5c9398= =36c9986= =cc3b57e= =bb455c4= =b055a10=, each answerable on its own child. Every inline comment carries a reply naming the commit and what changed; all fifteen threads resolved, zero outstanding.
-
-*The review's value was not proportional to its politeness.* Nine members had closed on analysis, tests and a prior review. One adversarial pass then found fifteen things, **four of them defects in members already marked DONE** — three in =43d479c8= alone, where I had asserted the scoping was complete and it reached one of four inputs. The lesson is not "review more"; it is that *closing a member is not evidence it works*, and the only things that produced evidence here were a real consumer and an adversarial reader.
-
-*Three findings were wrong, and answering them was as valuable as fixing the rest.* Obeying a review uncritically would have made the code worse in two of the three: the =\\'= claim would have churned 230 pre-existing lines including genuine regexp anchors, and the drains assertion as requested was simply false — the predicate's second clause is idleness, which the request did not know. The third, =--config=, was half right in a way only a =--help= call could separate.
-
-*Two fixes were wrong first, both from the same root.* =(getenv ...)= inside =emacsclient -e= reads the **server's** environment, so it silently unscoped every report while every test stayed green. And =(mapconcat #\\'identity ...)= *read* as 519 valid forms while meaning something else. Both were caught by re-running a *comparison* — three payload sizes, a function call — not by any check that already existed. **Reading is not evaluating, and a green suite is not a working feature**: the two most expensive minutes of the day were the ones spent re-measuring something that looked done.
-
-*The pattern under most of it is one thing.* This repository is its own only user. =warp= aliased =(car projects)= and nobody noticed for weeks; the reports were computed over =org-agenda-files=; the consumer's =.mcp.json= could not exist because the plugin tried to ship one. Every such assumption is invisible from inside the only project where it holds. That is also why the four consumer defects arrived within an hour of =agentic-euchre= actually running the branch, and why =6a207b00= is the real test rather than this repo.
-
-*Residue, filed not forgotten:* =9ad0e497= (the skill check asserts org's symbols and not the module's, which let a phantom function stand), =96ad6e95= (promotion never removes and =--check= never looks, so a dropped rule would linger in every consumer), =27e16e9a= (the Warp experiment, deferred =MAYBE=), =827e1c42= (no version tag, nothing would notice). None blocks the slice.
-:END:
-
-The =xhigh= review of PR #28 on 2026-09-18 returned fifteen findings, posted as inline comments and all now replied to and resolved. Composed as a story afterwards, at the user's direction, because the actions were discrete and worth being separately answerable — the commits carry the detail, these children carry what each one *taught*.
-
-*The headline is not the count.* **Four were defects in members this slice had already closed**, three of them in =43d479c8=, which I had closed asserting the scoping was done. The review arrived in the window =REVIEW= exists for — after every member is terminal, because an implementation cannot be reviewed until it is implemented — and it found that the fix reached one of four inputs.
-
-*Three findings were wrong or half-wrong, and saying so mattered as much as fixing the rest.* The =\'= escapes were 30 added and **0 removed**, so no existing line was churned and the claimed diff-hunks-over-unchanged-text did not exist. =--config= **is** a real flag of =claude plugin install=, verified against its =--help=; what was wrong was the install route. And the drains assertion the review asked for **failed when written**, because the predicate's second clause is idleness — so the fix is stronger than the request.
-
-*Two fixes were wrong on the first attempt, both caught only by re-running a comparison rather than trusting a green suite.* Escaping =CLAUDE_PROJECT_DIR= via =(getenv ...)= silently unscoped every report, because =emacsclient -e= evaluates in the **server's** process — three cases returned an identical 2321 bytes where one should have returned 2. And =(mapconcat #\\'identity ...)= *read* cleanly as 519 forms while meaning something else. Reading is not evaluating; a green suite is not a working feature.
-
-*What the review was worth, stated plainly.* Nine members closed on analysis, tests and review. Fifteen findings arrived from one adversarial pass, and four more defects had already arrived within an hour of a real consumer trying the branch. The pattern under most of them is one thing: **this repository is its own only user**, and every assumption that holds for one user with one project was invisible from inside it.
-
-*Resolved 2026-09-19: all fifteen findings addressed across five commits, every inline comment replied to and every thread resolved.* Three of the fifteen were wrong or half-wrong and were answered rather than obeyed; two of the fixes were wrong on the first attempt and were caught by re-running a comparison rather than by a green suite.
-
-** DONE Excise the accidental session alias and the two docs that promised an MCP server :code:
-CLOSED: [2026-09-19 Sat 05:52]
-:PROPERTIES:
-:ID:       71affb60-ca4b-44b0-b472-df9132c78ee4
-:CREATED:  [2026-09-19 Sat 05:52]
-:END:
-
-Findings 1 and 2, shipped in [[orgit-rev:claude-code-ide-org::d5c9398][d5c9398]].
-
-The review found =.warp/.mcp.json= still naming =/mcp/warp= after =.mcp.json= was fixed, and assumed Warp needed the alias. The maintainer's answer dissolved it: the alias "was always accidental and meaningless. I just never noticed and it never mattered until today." So rather than preserve it, everything went — the registration, its message, three docstrings, the section comment, and the test that *pinned* it, which now pins its **absence** by asserting the exact registration list rather than membership. Proved discriminating: re-adding the registration fails it.
-
-*One phantom surfaced on the way.* =org-dev/SKILL.md= told readers =claude-code-ide-org--wire-warp-tools= re-runs at startup. =git log -S= finds that string in exactly two commits — the one that introduced it *as prose*, migrating the skill out of a zip archive, and the one that removed it. **It never existed as code, anywhere.** Filed as =9ad0e497=: the skill check asserts eight of org's own facilities by name and none of the module's.
-
-Finding 2 rode along because it is the same class — =README= and =org-emacs-setup.md= both claimed enabling the plugin "registers the =emacs-tools= MCP server", which the manifest change made false. I had written that this claim "is false" in =805bf287='s own body and then left it standing, which is the failure worth remembering.
-** DONE Finish the report scoping: the consent gate and the ceremony's two global sources :code:
-CLOSED: [2026-09-19 Sat 05:52]
-:PROPERTIES:
-:ID:       30408acf-30be-4684-a59a-d47057f0c9ee
-:CREATED:  [2026-09-19 Sat 05:52]
-:END:
-
-Findings 4 and 5, shipped in [[orgit-rev:claude-code-ide-org::36c9986][36c9986]]. **Both are defects in =43d479c8=, which I closed claiming the scoping was done.**
-
-*The leak was the sharpest finding of the fifteen.* =--report-scope= is a dynamic binding and the reports call =find-file-noselect= inside it, so =find-file-hook= → =--revert-so-long-takeover= → =--tracked-buffer-p= saw the narrowed list and answered nil for a genuinely tracked file — leaving it in =so-long-mode= for the session, which is =045459f6= reintroduced, and *that* heading's point was that the tools go on to **write** these buffers. My docstring asserted the binding never reaches the tools; dynamic binding does not honour assertions.
-
-Fixed at the gate, not the call site, and the reason generalises: all four hook functions that touch the file list reach it through =--tracked-buffer-p=, so one fix covers them; and consent cannot depend on what a report happens to be looking at. The review's reachability claim was exact — =--review-attention-target= opens this repo's =TODO.org= from inside a consumer's scoped report.
-
-*The ceremony reached one of four inputs.* =:drifted= and =:archivable= scoped because they walk =--tracked-files=; =:pending= read the global queue and =:reviewed-today= resolved through =--capture-target-file='s fallback to *this repo's* capture file. Now =--items-in-report-scope= matches on each item's events' =cwd= (7 unscoped → 6 here → **0** for the consumer), and the attention target refuses a file outside the scope.
-
-*One judgement worth flagging:* a queue event with no =cwd= is **excluded** when scoped, inverting the span rule's "unknown, never elsewhere". The errors are not symmetric — omitting understates a count, claiming restates the defect being fixed.
-** DONE Gate block-end, pin both clauses of drained-ness, and stop interpolating paths into elisp :code:
-CLOSED: [2026-09-19 Sat 05:52]
-:PROPERTIES:
-:ID:       4cea9cec-c2f0-4723-a3d0-571a19c8d4ce
-:CREATED:  [2026-09-19 Sat 05:52]
-:END:
-
-Findings 6, 8, 13 and 14, shipped in [[orgit-rev:claude-code-ide-org::cc3b57e][cc3b57e]].
-
-*=block-end= was the one time script with no gate*, while =hooks.json='s own description claimed every permission-block row self-gates. Wired at =PostToolUse '*'=, so a consumer with the feature off paid =bash= + =cat= + =jq= on every tool call to reach a sentinel test that could never succeed. Gated **before** =cat=, which is what its header always promised.
-
-*The drains assertion failed when written, and that was the yield.* The review asked for =--queue-file-drained-p= to be asserted; doing so failed, because its second clause is idleness and a freshly written fixture is not idle. So the test now pins the conjunction in all three directions — empty but fresh is not drained, empty and idle is, idle but non-empty is not — which is stronger than the request and matches what the predicate promises.
-
-*And the escaping fix was wrong first, in the instructive way.* =CLAUDE_PROJECT_DIR= interpolated raw into an elisp string literal breaks on a quote, invisibly, because output is discarded and the =[[ -s ]]= guard treats empty as "Emacs unreachable". I replaced it with =(getenv "CLAUDE_PROJECT_DIR")= — which **silently unscoped every report**, because =emacsclient -e= evaluates in the *server's* process and read Emacs's own environment. Caught only by re-running the scoping comparison: all three cases returned an identical 2321 bytes where the consumer should have returned 2. A =sed=-based escaper replaced it; a path containing a quote now yields an empty payload rather than a broken form.
-
-The leaked temp directory (finding 14) rode along: bound in the =let*= so the existing =unwind-protect= cleans it.
-** DONE Tell a consumer when its MCP config is wrong, and stop four documents disagreeing :code:
-CLOSED: [2026-09-19 Sat 05:52]
-:PROPERTIES:
-:ID:       fc9de33b-e461-454f-a474-d1e4ec4d58ab
-:CREATED:  [2026-09-19 Sat 05:52]
-:END:
-
-Findings 3, 7, 9, 11, 12 and 15, shipped in [[orgit-rev:claude-code-ide-org::bb455c4][bb455c4]].
-
-*The one that could still leave a consumer with no tools* was =--org='s silent =exists:= line. Any pre-existing =.mcp.json= — one unrelated MCP server is enough — reproduced =805bf287= in full while printing one unremarkable line among a dozen. It now distinguishes, and prints the exact JSON block to merge. =--check= gained the matching assertion rather than only a footer disclaimer, since the session name is baked in at =--org= time and a clone under another name, a rename or a port change all break it silently.
-
-*Three documents claimed promotion was conditional* when it is unconditional and the **feature** is what is gated — including the always-loaded =org-state-transitions.md=, so a reader drew exactly the inference =org-time-tracking.md= opens by forbidding.
-
-*The OFF line had no limiter* while every sibling report does. Now once a day via a dated stamp, for the reason =2758f3a0= measured: an instruction stopped being followed 41 times in 45, every miss on a re-mention. Fails **open**, because saying it twice is noise and never saying it is a consumer who never learns the feature exists. The ON line stays unlimited and a test asserts the asymmetry — it is a fact, not an instruction.
-
-*Two findings were partly wrong, and the corrections are the record.* =--config <key=value>= **is** a real flag of =claude plugin install=, verified against its =--help=; the *route* was wrong, since this plugin installs from a clone and not a marketplace. And the =\\'= escapes were **30 added, 0 removed** — no existing line churned, so the claimed diff noise over unchanged text did not exist. 27 replaced, only on lines this branch added, leaving 230 pre-existing ones — some genuine regexp anchors — untouched.
-** DONE Split the time-tracking derivations out of the always-loaded rules :code:
-CLOSED: [2026-09-19 Sat 05:53]
-:PROPERTIES:
-:ID:       428afa68-80ec-460a-a16c-446041963fc4
-:CREATED:  [2026-09-19 Sat 05:53]
-:END:
-
-Finding 10, shipped in [[orgit-rev:claude-code-ide-org::b055a10][b055a10]] — the only one of the fifteen that was a *decision* rather than a defect, and the only one settled with the user rather than alone.
-
-=org-time-tracking.md= had reached 335 lines, **29% of the always-loaded rules**, in a default install whose own first line says nothing in it applies.
-
-*Cut by actionable versus derivation, not by section*, which is why the stale-interval **recovery call** stays promoted while its mechanism does not: a session handed that report needs to know which function to invoke and does not need to know why =pmset= was declined. Promoted keeps 261 lines; =org-time-tracking-internals.md= takes 123 and is deliberately not promoted, the same choice =org-emacs-setup.md= already made. Always-loaded rules 1149 → 1079; time tracking's share 29% → 24%.
-
-*Byte-lossless* — every non-blank line of the original appears verbatim in one of the two files, the summary prose purely additive. Unlike the two earlier splits that day there were no deliberate rewrites to enumerate.
-
-*It honours the recorded decision rather than overturning it*, which is why the disposition took two exchanges to settle. =1b36c5bd= established that the gate is the **feature**, in one place, never the prose; nothing here is newly switchable, so a consumer who turns time tracking on still receives every rule — which the review's own alternative, leaving the file unpromoted entirely, would have cost them. Its other alternative, a =--time-tracking= promotion flag, **was** at odds with that decision and with =01f7a19c='s rejection of a second switch, and was declined.
-
-*What the finding actually corrected was the cost estimate, not the logic.* "Costs a consumer one unread reference" is fair for a short file and wrong by an order of magnitude for a 335-line one — and wrong in the direction that made the decision look free.
-
 * TODO Promotion never removes, and --check never looks, so a dropped rule file would linger in every consumer :code:
 :PROPERTIES:
 :ID:       96ad6e95-452d-4be2-9bc7-b2c2efa44988
@@ -136,6 +23,7 @@ Asked by the user 2026-09-19 while the promoted set was being changed: does the 
 
 *Related, and worth checking in the same pass:* the same question applies to =templates/= and to the skill symlink, neither of which is reconciled either. And =bin/sync-plans --check= solved the mirror-image problem for =plans/= — drift between a directory and a source of truth — so its shape is the precedent to read first.
 
+
 * TODO check-org-dev-skill verifies org's symbols but not the module's, so a phantom function passed for weeks :code:
 :PROPERTIES:
 :ID:       9ad0e497-cc43-4d7c-87a9-3b6262cb2d8a
@@ -152,6 +40,7 @@ Found 2026-09-18 while excising the =warp= alias. =.claude/skills/org-dev/SKILL.
 *Worth extending to the org skill too*, and to the promoted references: they name module functions in prose constantly (=--grouping-heading-p=, =--container-heading-p=, =--trigger-auto-clock-in=, =--queue-file-drained-p=). One of those was already found wrong on 2026-09-18 — =config.el='s own comment said =--queue-drained-p=, which does not exist either (corrected in =ea6e603=). Two phantoms in one day, from two different files, is the argument for mechanising rather than re-reading.
 
 *One caveat on scope, so the check does not become a nuisance:* a skill legitimately names *retired* functions when explaining history — =--trigger-auto-promote-sole-todo= is gone on purpose and the state-transition rules say so. The check therefore wants the same treatment =check-conventions= gives cited =:ID:=s: assert the symbol resolves, unless the prose marks it as retired. Deciding that marker is the only design question here.
+
 
 * MAYBE Deploy and test the plugin under Warp's agentic framework :research:
 :PROPERTIES:
@@ -177,6 +66,7 @@ Deferred 2026-09-18 by the maintainer: =.warp/.mcp.json= "currently has no consu
 *If this is ever picked up*, the thing to establish first is whether Warp's project-scoped MCP support still works the way =6a6d5b4e= found it: approval-gated, session-scoped, re-toggled after a restart, and reading only =~/.warp/.mcp.json= and the project's =.warp/.mcp.json=. That investigation is the reason the file exists, and its real yield was not the proxy it chased but the =200=-versus-=202= defect in this project's own HTTP server.
 
 *If it is not picked up*, the cheap close is to delete the alias registration, correct the four false claims, and decide whether =.warp/.mcp.json= stays as a zero-cost convention or goes with it. That is a bounded pass and does not need Warp to exist.
+
 
 * TODO The plugin has never been tagged or version-bumped, and nothing would notice :code:
 :PROPERTIES:
@@ -208,231 +98,6 @@ Asked for 2026-09-18: create a version tag, and find a way to keep the tag and t
 *What has to be decided rather than assumed.* **When a bump is due** — every merged slice, every PR, or only at a deliberate release — because a check can only enforce a rule that exists. The slice/PR cadence is the one this project actually has, and =8bbae3aa= merging would be the natural first bump. And **what the first tag should be**: =0.1.0= against today's HEAD records a release that is not what =0.1.0= ever described, while bumping first and tagging that is honest but discards the history the tag was supposed to give.
 
 *One thing to verify rather than assume when this is worked:* whether =claude plugin tag= objects to this repo having no marketplace entry at all. Its validation is described as covering "any enclosing marketplace entry", which reads as tolerant of none — but that is a reading, not a test, and =--dry-run= settles it in one command.
-
-* DONE Every SessionStart report a consumer gets is computed over all tracked projects, so it names other repos' work :code:
-CLOSED: [2026-09-18 Fri 16:48]
-:PROPERTIES:
-:ID:       43d479c8-bbaa-49ec-a3be-0d8ee90425e1
-:CREATED:  [2026-09-18 Fri 16:36]
-:CATEGORY: Dev
-:END:
-:LOGBOOK:
-CLOCK: [2026-09-18 Fri 16:43]--[2026-09-18 Fri 16:48] =>  0:05
-- State "DOING"      from "TODO"       [2026-09-18 Fri 16:43] \\
-  first of the four: scope the SessionStart report to the session's own project
-- [2026-09-18 Fri 16:43]--[2026-09-18 Fri 16:48]
-- State "DONE"       from "DOING"      [2026-09-18 Fri 16:48] \\
-  scoped via --report-scope in d2edfa2; euchre's report goes from 3045 bytes of our work to empty
-:END:
-:DEBRIEF:
-*Shipped* in [[orgit-rev:claude-code-ide-org::d2edfa2][d2edfa2]].
-
-*Shape: a dynamic variable, not threaded arguments.* All three report builders — =find-stale-open-intervals=, =--ceremony-status=, =--nomination-candidates-context= — call =--tracked-files= themselves, so a =defvar= bound around composition scopes all of them without touching three signatures. =write-session-start-report= and =write-session-context-report= each gained an optional =PROJECT=, and both hook scripts pass =${CLAUDE_PROJECT_DIR:-}=.
-
-*The asymmetry is the whole fix and inverting it is the easy mistake.* The org tools stay **global** — =org_query= and =org_clock_report= answering across every tracked project is what makes one Emacs serve many repos, and it is deliberate rather than accidental. Only what *reports to* a session is confined. Both halves are asserted in the test, because a filter that applied unconditionally would break the tools while every scoping assertion still passed.
-
-*Truename on both sides, and this is not defensive coding.* Tracked files reach the list through =~/org= symlinks into their repositories, so a raw string-prefix test against a project root discards **every one of them** and the report goes silently empty. Pinned by its own test rather than trusted.
-
-*Empty scope yields no files rather than all of them* — failing closed, so a mis-scoped report is silent instead of wrong. Given what this defect was, loud-and-wrong is the failure to avoid.
-
-*The end-to-end run earned its place, and that is the transferable part.* ERT passed while the feature was broken: my first edit doubled the backslashes in both hook scripts, closing the shell string early, so the elisp returned 3176 bytes and the hooks emitted **nothing**. Every unit test was green. It surfaced only by running the actual scripts and finding zero where the direct elisp call gave thousands — the same lesson as =:ID:= 4f9e552a one layer over: a check that cannot distinguish "correct" from "never ran" is not a check.
-
-*Proved discriminating by mutation:* dropping the truename from the file side fails the scope test; restoring returns 693/693.
-
-*Measured outcome.* Context report: 3045 bytes unscoped, 3045 scoped here, empty scoped to euchre. The 3045 is precisely what euchre had been receiving.
-
-*Not covered, stated rather than implied:* the statusline reader and =org_query= itself remain global by design, and a consumer running with no =CLAUDE_PROJECT_DIR= set gets the old unscoped behaviour rather than nothing — an old caller keeps its old answer instead of silently reporting emptiness.
-:END:
-
-Found by a session running in =~/git/agentic-euchre= 2026-09-18: its =SessionStart= report listed stale-=DOING= and un-nominated-grouping entries "in TODO.org" — naming =8bbae3aa=, =33c3eabc= and others — while **that project's own TODO.org has no headings at all**. Every entry belonged to this repository.
-
-*Confirmed three ways from here.* =claude-code-ide-org-write-session-start-report= takes =(output-path)= and **nothing else** — no project argument exists in its signature. =bin/hooks/session-start-recovery-check= is four lines and passes none: =emacsclient -e "(claude-code-ide-org-write-session-start-report \"$out\")"=, with no =$CLAUDE_PROJECT_DIR= and no cwd. And =--tracked-files= today returns five files across three locations — this repo's pair, =~/org/notes.org=, and euchre's pair — because =claude-code-ide-org-query-files= defaults to nil and falls back to =org-agenda-files=, which is per-*user*, not per-project.
-
-*All three reports in the payload inherit it*: stale-interval recovery, the daily ceremony, and the nomination-candidates report. Each is composed over the same global file list.
-
-*Why this is worse than a cosmetic leak.* It is **always on** — every session start, in every consuming project, with no way to notice from inside. It is **confidently wrong**: real ids, real titles, real keywords, so it reads as authoritative rather than as noise. And it **degrades as adoption succeeds** — today euchre has no headings, which is the only reason the session spotted it at all; the moment a consumer has a backlog of its own, another project's entries sit indistinguishably among them. The reporting session's own sentence is the one to keep: "the kind of thing that is very hard to notice once this repo has headings of its own to confuse them with."
-
-*The fix has an obvious shape.* =CLAUDE_PROJECT_DIR= is available to hook commands, so the hook can pass it and the report can filter =--tracked-files= to that root. Note this repo's own =.claude/settings.json= calls the same script and would need the same argument — and that its correct answer is *this* repo, so the change is testable here rather than only in a consumer.
-
-*What will not work, so it is not re-proposed:* setting =claude-code-ide-org-query-files= per project. It is one =defcustom= in one Emacs serving every project at once; that is the same mistake one level down.
-
-*This is the third instance today of one pattern, and the pattern is worth naming more than any single fix.* =805bf287='s =warp= alias, =--standalone-derive-projects='s ordering, and this report all assume **one user, one project** while the deployment model is one Emacs serving many. The org tools themselves escape it by scoping on =org-agenda-files= deliberately — the tools genuinely are global — but everything that *reports* to a session needs the session's project and does not have it.
-
-*Fixed 2026-09-18: a dynamic =--report-scope= that =--tracked-files= honours, bound by both report entry points and passed =CLAUDE_PROJECT_DIR= by both hook scripts.* The org tools stay global deliberately; only what *reports to* a session is scoped. Measured end to end: the context report is 3045 bytes unscoped, 3045 scoped to this repo, and **empty** scoped to euchre — which is exactly the 3045 bytes euchre was being handed.
-
-
-* DONE A consuming repo gets the hooks, rules and skill but no org tools: the plugin's MCP server never registers :code:
-CLOSED: [2026-09-18 Fri 16:56]
-:PROPERTIES:
-:ID:       805bf287-1401-44ab-bb6c-6e09b5b63b59
-:CREATED:  [2026-09-18 Fri 15:39]
-:CATEGORY: Dev
-:END:
-:LOGBOOK:
-- State "DOING"      from "TODO"       [2026-09-18 Fri 16:52] \\
-  generate the consumer's .mcp.json from its own basename; stop shipping one that cannot be right
-- State "DONE"       from "DOING"      [2026-09-18 Fri 16:56] \\
-  --org generates it; euchre connected. A shipped .mcp.json cannot name a consumer's session and no longer tries
-:END:
-:DEBRIEF:
-*Shipped* in [[orgit-rev:claude-code-ide-org::a6eee44][a6eee44]].
-
-*The finding, not the patch, is that a shipped =.mcp.json= is impossible.* The URL carries a **session name**; =standalone-wire= registers one session per tracked project under its directory basename; a basename is unknown at packaging time. Every static file can only name someone else's project. The diagnosis walked through approval gates and symlink traversal before arriving here — both retracted above — and the answer was never "why does it fail to load" but "why does it exist".
-
-*Three changes.* =--org= generates =$target/.mcp.json= from the target basename, collision-checked exactly like the org templates, with the port read from the plugin's own =.mcp.json= so there is one place a port can be wrong. This repo's =.mcp.json= names =/mcp/claude-code-ide-org= instead of the alias. =plugin.json= no longer declares =mcpServers=.
-
-*=.warp/.mcp.json= keeps =/mcp/warp=, deliberately.* That alias is Warp's verified seam and the reason it exists; the registration stays for it. What stopped is *Claude Code* depending on an alias that resolves by =org-agenda-files= order.
-
-*The verification is the part worth keeping.* The generator's output for euchre is **byte-identical** to the file hand-written there an hour earlier, independently, from the same reasoning — and that file is live and connected. So this is not "the code produces something plausible"; it reproduces an artifact already proven against a running server. Re-running reports =left untouched=, so it is idempotent and cannot take out a consumer's existing MCP servers.
-
-*One residual risk, stated rather than closed.* A =.mcp.json= at a plugin root is documented as auto-discovered *regardless* of the manifest. Removing the declaration does not provably stop discovery — it was observably not reaching euchre, which is why that repo had none, but "observably not happening" is weaker than "cannot happen". If discovery ever starts working, a consumer would see this repo's server definition alongside their own, both named =emacs-tools=. The name cannot change: every tool is addressed as =mcp__emacs-tools__*=.
-
-*A method note.* Testing the generator against a scratch directory appended two temp paths to the real =~/org/agenda-files=, because =--org= makes its target discoverable — that is its job. Removed immediately and verified back to five entries. A generator with environment side effects needs a sandboxed agenda list to test against, which this repo does not have.
-:END:
-
-Reported from a session in =~/git/agentic-euchre= 2026-09-18: "hooks, rules and the skill reach this repo, but the org MCP tools never register because the plugin is only symlinked as a skills directory." Confirmed from outside, three ways.
-
-*The evidence.* =claude mcp list= run in this repo shows =emacs-tools: http://localhost:45571/mcp/warp (HTTP) - ✔ Connected=; run in euchre it does **not appear at all** — not "needs authentication", not "disabled for this project", absent. =claude plugin details claude-code-ide-org= from euchre reports **MCP servers (0)** against a manifest that declares one. And euchre has no =.mcp.json= of its own, because =bin/claude-org-setup= never writes one: grepped, **zero** occurrences of =mcp.json= in the whole script.
-
-*So this repo's org tools come from its own root =.mcp.json=, not from the plugin* — and that is why the gap was invisible here. This repo is deliberately not its own consumer, so it has never once exercised the path a consumer takes.
-
-*The manifest is not obviously at fault.* Checked against the plugin reference: =mcpServers= accepts =string|array|object=, a string path such as =./.mcp.json= is explicitly valid, and a =.mcp.json= at the plugin root is auto-discovered **without** being declared at all. So the declaration is correct twice over. Two candidates remain, and neither is resolvable from outside a session: a project-scope skills-dir plugin's MCP servers "go through the same per-server approval as a project =.mcp.json=", and an unapproved server may simply not list; or plugin-root discovery does not traverse the **symlink** that is the skills-dir entry.
-
-*Why this matters more than its size.* =README= §2 states that enabling the plugin "registers the =emacs-tools= MCP server". For a consumer that is **false**, and it is the one claim a consumer cannot work around by reading further — without the server there are no =org_*= tools, which is the entire product. It blocks =6a207b00=.
-
-*The cheap unblock, available now:* copy this repo's =.mcp.json= into the consuming repo. It is 122 bytes, the port is pinned and already matches the user's Doom config, and it is exactly how this repo gets its own tools. =claude-org-setup --org= is the natural home — it already writes into the consumer and already appends =.gitignore= entries.
-
-*What to decide rather than assume:* whether the fix is to deploy an =.mcp.json= (proven, under our control, one more file in the consumer) or to make the plugin's own declaration work (fewer moving parts, but the cause is unknown and may be a per-server approval that no amount of packaging removes). **Find the cause first** — if it is approval, deploying a second =.mcp.json= hits the same gate and fixes nothing.
-
-*Verify from inside a euchre session*, which is the one vantage this investigation lacked: whether an approval prompt appears at =SessionStart=, and what =/mcp= lists there.
-
-*Confound, learned minutes after filing and before any work started:* the reporting session's **startup was interrupted with =C-c=** — the user said it "looked weird and was taking a long time". That is exactly the shape of a per-server MCP approval prompt waiting for input, and aborting it would leave the server unregistered for reasons that are not a packaging defect.
-
-So the session's report is **evidence of the symptom, not of the cause**, and this heading should not be worked until a session there has been allowed to start cleanly. What survives the confound unchanged: =claude-org-setup= writes no =.mcp.json= (grepped, zero occurrences), euchre has none, and =claude mcp list= — a separate invocation, not the interrupted session — showed no =emacs-tools= there while showing it Connected here. That last is the one observation the interrupt does not obviously explain, and it is the one to re-take first.
-
-**Next step is an observation, not a fix:** start a clean session in euchre, do not interrupt it, and record whether an approval prompt appears, what =/mcp= lists, and how long startup takes. If approval is the answer, the "deploy an =.mcp.json=" remedy proposed above is wrong — it would hit the same gate.
-
-*Diagnosed 2026-09-18, and it is neither the interrupt nor an approval gate.* The Emacs side is **already correct**: =claude-code-ide-mcp-server--sessions= holds three registered sessions, and euchre has one —
-
-: claude-code-ide-org    :project-dir ~/git/claude-code-ide-org/
-: agentic-euchre         :project-dir ~/git/agentic-euchre/
-: warp                   :project-dir ~/git/claude-code-ide-org/
-
-So =standalone-projects 'derive= did its job the moment euchre's org files became discoverable. What is missing is the **client** half: euchre has no =.mcp.json=, so nothing tells Claude Code that =http://localhost:45571/mcp/agentic-euchre= exists.
-
-*And the plugin's own =.mcp.json= would not fix it — it would be wrong.* It hardcodes =/mcp/warp=, and =warp='s =:project-dir= is **this repository**. A consumer that successfully loaded the shipped config would connect to a session pointed at someone else's project. That is worse than the current failure, which is at least loud: no tools at all beats tools operating against the wrong tree.
-
-*Which reframes the defect.* The question is not "why does the plugin's MCP config not load" but "**why does the plugin ship an MCP config at all**". The URL carries a session name, the session name is the project name, and the project name is by definition not known at packaging time. =.mcp.json= is irreducibly per-consumer, so it belongs to =claude-org-setup --org= — which already writes into the consumer, already knows the target directory, and already derives a project name for the skill link.
-
-*Two things to decide.* Whether the plugin's root =.mcp.json= should be **removed** from the shipped surface, or kept for this repo's own use and excluded from the manifest — it is what gives this repo its tools today, so it cannot simply be deleted. And whether the generated file should pin the port from the same source =check-org-dev-skill= already asserts against, rather than being another hand-copied =45571=.
-
-*Retracted from the filing above:* the approval-gate and symlink-traversal hypotheses, and the "cheap unblock: copy this repo's =.mcp.json=" remedy — which would have connected euchre to the =warp= session and quietly pointed it at this repo. The =C-c= confound is also moot; it explained nothing, though it was right to record it rather than diagnose around it.
-
-*Sharpened: =warp= is not a project, it is an order-dependent alias.* =claude-code-ide-org-standalone-projects='s docstring says each directory registers under its basename "and the FIRST entry additionally as =warp= — the id the shipped =.mcp.json= URL (=/mcp/warp=) names, kept because that seam is the one verified against Warp's own agent". The registration is literally =(claude-code-ide-mcp-server-register-session "warp" (car projects) nil)=, and =--standalone-derive-projects= returns tracked =TODO.org= directories "in tracked-set order", i.e. =org-agenda-files= order.
-
-Measured today: the derived order is =claude-code-ide-org= then =agentic-euchre=, so =warp= aliases this repo **by position, not by identity**.
-
-*Three consequences, and the third is the defect.*
-
-- This repo's own tools reach it through an alias that is only *incidentally* correct. Nothing names this repo; it simply sorts first.
-- **If the agenda-files order ever changed, =/mcp/warp= would silently point somewhere else.** Euchre is second today. Were it first, every session using the shipped config — including this repo's own — would operate against euchre's tracker while reporting success. Order here is a directory-scan artifact, not a declared sequence.
-- So the shipped =.mcp.json= does not merely name the wrong project for a consumer, as recorded above. It names **whichever project happened to sort first on the packager's machine**, which is not a meaningful referent anywhere else and is not stable even here.
-
-*This subsumes the earlier "ship a config naming =warp=" framing.* The question is not which project the shipped URL should name. It is that a *static* file cannot name a *derived, ordered* alias correctly, and the alias exists only to preserve a URL that was verified against a different client years of this project ago. Candidate resolutions, in the order they should be weighed: have =claude-org-setup --org= generate the consumer's =.mcp.json= from its own basename (removes the alias from the consumer's path entirely); keep =warp= for this repo's verified Warp seam but stop shipping it; or register =warp= against an explicitly named project rather than =(car projects)=, so position stops deciding identity.
-
-*Fixed 2026-09-18: =claude-org-setup --org= generates the consumer's =.mcp.json= from its own basename, and the plugin stops shipping one.* A static file cannot name a session whose name is the consumer's project — so the fix is to generate rather than to ship. Euchre now reports =emacs-tools: http://localhost:45571/mcp/agentic-euchre - ✔ Connected=.
-
-
-* DONE claude-org-setup --check reports only the promoted rules, so a clean run overstates how current a repo is :code:
-CLOSED: [2026-09-18 Fri 17:06]
-:PROPERTIES:
-:ID:       827bb778-deca-47b6-acd3-0977493a14aa
-:CREATED:  [2026-09-18 Fri 15:16]
-:CATEGORY: Dev
-:END:
-:LOGBOOK:
-- State "DONE"       from "TODO"       [2026-09-18 Fri 17:06] \\
-  glue checked by content and by consequence; footer names what is still unchecked
-:END:
-:DEBRIEF:
-*Shipped* in [[orgit-rev:claude-code-ide-org::50b7361][50b7361]].
-
-*The design question was settled with the user rather than decided here*, because the two halves pull opposite ways: widen the checks to match the claim, or narrow the claim to match the checks. The answer was both, plus an explicit deferral.
-
-*Why content alone would not have done.* This is the wrinkle the heading was filed with and it survived into the fix. On 2026-09-15 the generated glue was **byte-identical** across a change while the instructions it *prints* changed — "delete your hand-kept 202 override, the module ships it now". A content diff reports =ok:= on exactly that, which is how a repo gets told it is current while carrying an override that shadows the module's own. So the instructions are checked by their **consequences**: the =load!= stub present in =config.el=, and no uncommented 202 override. Both verified grep-able before the option was offered, rather than proposed and hoped for.
-
-*The stub check earns its place independently.* Without that line the generated glue is never loaded and everything the content check verifies is **inert** — a state no comparison of file contents could ever detect, since the file would be perfect.
-
-*=render_glue= was factored out of the =--glue= block* so =--check= can render without the side effects — writing into =$DOOMDIR= and printing follow-ups. Verified behaviour-preserving before anything was built on it: its output is byte-identical to the live glue.
-
-*Blast radius, decided deliberately.* =--check= now reads the user's =$DOOMDIR=, read-only, where before it touched only the consuming repo. Precedent: =check-org-dev-skill= already reads the Doom config for the port. A missing Doom config degrades to =skipped:=, not an error, since a consumer may reasonably not have one. The alternative — a second command — was declined on the grounds that it invites running one and not the other, which is precisely how this heading came to exist.
-
-*Each new check proved discriminating against a fake =$DOOMDIR=,* never the real one: glue absent → exit 1; stub absent → exit 1; 202 override present → exit 1 *with both other checks green*, so the attribution is unambiguous; no Doom config → exit 0.
-
-*What is still not checked, and now says so out loud:* whether the running Emacs has loaded the module on disk — that needs a digest, and it is =2cd74268='s, named in the output so the deferral is visible rather than forgotten — and the =time_tracking= option, which is per-user and which a session now reports at =SessionStart= (=2082eeb3=), so =--check= does not need it.
-:END:
-
-=--check= renders what promotion would write and =cmp=s it against each file in =.claude/rules/=, printing =ok:= / =drifted:= / =missing:= and exiting non-zero. That part works — run against =~/git/agentic-euchre= on 2026-09-18 it correctly found five drifted and two missing, and exited 1.
-
-*What it does not examine is everything else a consumer deployed*: the generated Doom glue in =$DOOMDIR=, the elisp module itself, and the =time_tracking= option. So a repo can pass =--check= cleanly while its glue predates a change to the glue template and its module is weeks stale. **The output implies "up to date" and means "the rules match"** — the same class as the defect fixed in =org-time-tracking.md= the same day, where a file implied its own presence proved the feature was installed.
-
-*Measured on the live case.* Euchre was set up 2026-09-11 and had been running five-day-stale rules for a week with nothing saying so — including a *missing* =org-footnote-citations.md= while =bin/hooks/footnote-check= shipped wired and enforcing that convention. Drift is only ever found by someone choosing to look, and nothing prompts the looking.
-
-*Two things to decide rather than assume.* Whether =--check= should widen (it can compare the glue, and it knows the module path) or whether the overstatement is better fixed by *narrowing what it claims* — renaming the output so "ok" reads as "rules match" rather than "current". Widening it to the option is **not** available: that lives in =~/.claude/settings.json= under =pluginConfigs=, which this script has no business reading, and =1b36c5bd='s debrief already records that as settled.
-
-*The glue case has its own wrinkle worth keeping:* on 2026-09-18 the advice "re-run =--glue=, you set up before it changed" was given and was wrong — the *generated file* was byte-identical across that span, and only the *printed instructions* had changed. So glue drift is not a content diff, and a naive comparison would report ok on a repo that had never performed an instruction it was given. Whatever this becomes must not repeat that reasoning-from-commit-dates.
-
-*Related but distinct:* nothing tells a session whether time tracking is on, filed separately. Both are "the system knows and will not say".
-
-Sibling: [[id:2082eeb3-afd8-4439-8774-81b48b1df9a1][2082eeb3]], nothing telling a session whether time tracking is on.
-
-*Fixed 2026-09-18, by widening and narrowing at once.* =--check= now covers the Doom glue — by content *and* by the two consequences its instructions ask for — and prints a footer naming what it still does not check. The decision was made with the user: cover the glue, defer the running image to =2cd74268=, and let one command answer across both scopes rather than two that get run singly.
-
-
-* DONE Nothing tells a session whether time tracking is on, though SessionStart could say it in one line :code:
-CLOSED: [2026-09-18 Fri 16:52]
-:PROPERTIES:
-:ID:       2082eeb3-afd8-4439-8774-81b48b1df9a1
-:CREATED:  [2026-09-18 Fri 15:16]
-:CATEGORY: Dev
-:END:
-:LOGBOOK:
-CLOCK: [2026-09-18 Fri 16:49]--[2026-09-18 Fri 16:52] =>  0:03
-- State "DOING"      from "TODO"       [2026-09-18 Fri 16:49] \\
-  report the option in the session-context payload; unset must say nothing rather than guess
-- [2026-09-18 Fri 16:49]--[2026-09-18 Fri 16:52]
-- State "DONE"       from "DOING"      [2026-09-18 Fri 16:52] \\
-  one line in the session-context payload; absent says nothing rather than guessing off
-:END:
-:DEBRIEF:
-*Shipped* in [[orgit-rev:claude-code-ide-org::1809fa1][1809fa1]], immediately after =43d479c8= because both edit the same hook and the same payload.
-
-*The mechanism was already sitting there.* =session-context.sh= runs at =SessionStart= and, as a *plugin* hook, sees =CLAUDE_PLUGIN_OPTION_TIME_TRACKING= — the one context in which the value is legible at all. It now forwards it, and =--time-tracking-line= turns it into one sentence.
-
-*The whole design is in the absent case.* Missing means two unrelated things: a Claude Code predating plugin =userConfig=, and a repo wiring these scripts through its own =.claude/settings.json= where no plugin option exists to read. **This repository is the second, with time tracking very much on.** So =nil= rather than "off" — reporting off here would be the same confident falsehood =43d479c8= had just been fixed for, one file away. An unrecognised value is treated as unknown too, rather than defaulting to false.
-
-That also decided the *shape*: rather than have this repo set the variable on a task-tracking hook so it could report accurately, saying nothing when it cannot know is both truer and cheaper. Standing precedent (=:ID:= 7771fc63): a plausible guess is harder to reject than none.
-
-*Verified end to end against the real hook*, scoped to euchre — unset gives an empty payload, =false= the OFF line, =true= the ON line — and this repo still receives its context with **zero** time-tracking claims attached.
-
-*One methodological finding worth more than the fix.* The first draft contained =(mapconcat #\\'identity ...)=. The Emacs reader **accepted** it: the file still reported "reads as 517 forms", the check I had been using all session as evidence a load would succeed. It means something else entirely. Caught only by *calling* the function. Reading is not evaluating, and "parses cleanly" is the same class of non-evidence as a silent =emacs --batch= (=:ID:= 4f9e552a) — both answer a question adjacent to the one being asked.
-
-*Not attempted:* reporting the state to a session that has no plugin wiring at all. There is nothing to read there, and the honest answer is the silence it now gets.
-:END:
-
-Raised by the user 2026-09-18, twice in one conversation: how do I tell whether =time_tracking= is on *before* starting a session, and how do I tell *from inside* one. Neither has a direct answer today.
-
-*Measured, not assumed.* The Bash tool's environment carries =CLAUDE_CODE_SESSION_ID=, =CLAUDE_EFFORT=, =CLAUDE_PID= and friends — and **no =CLAUDE_PLUGIN_OPTION_*= and no =CLAUDE_PLUGIN_ROOT=**. Those reach *hook processes* only. So an agent cannot read the option at all; the best it can do is infer from behaviour: =jq -r '.kind' ~/.claude/org-updates/$CLAUDE_CODE_SESSION_ID.jsonl | sort | uniq -c= and look for =pause=/=resume=. That works, and it has a bad failure mode — an empty or absent queue file means "no turn has ended yet", not "off", so absence of evidence reads as evidence of absence, which is the shape of several defects already on this tracker.
-
-*The fix is cheap and lands at the right moment.* =.claude/hooks/session-context.sh= already runs at =SessionStart= and already injects =additionalContext=. It runs as a **plugin hook**, so unlike =claude-org-setup= or Emacs it *does* see =CLAUDE_PLUGIN_OPTION_TIME_TRACKING=. One line in its payload — time tracking on, or off — answers both questions for every consumer, with nobody needing to know that queue files exist.
-
-*Worth deciding rather than assuming:* whether to report it always or only when off. Always is honest and costs a line; only-when-off is quieter but makes the absence of a line carry meaning, which is the same trap as above one level up.
-
-*Related but distinct:* =claude-org-setup --check= has the mirror-image gap and is filed separately. Both are "the system knows and will not say".
-
-Sibling: [[id:827bb778-deca-47b6-acd3-0977493a14aa][827bb778]], =--check= overstating how current a repo is.
-
-*Fixed 2026-09-18: =session-context.sh= passes =CLAUDE_PLUGIN_OPTION_TIME_TRACKING= and the payload carries one line.* Absent yields **nothing** rather than "off", because the variable is missing both on an older Claude Code and in a repo wiring these scripts itself — and this repository is the second case with the feature on.
 
 
 * TODO The conventions never say how stories and slices compose, and "not declared" reads as a ban on composing one :code:
@@ -1121,97 +786,6 @@ Shipped in the canonical reference and promoted; check-conventions 32 ok, footno
 **Resolution:** a queued keyword is now written as the queued state with a trailing =*=, the star carries no note of its own, and the rule ships in the canonical reference and its promoted copy.
 
 
-* DONE The prose still promises time tracking: README, CLAUDE.md, DOOM.md and the skill all describe a clock that no longer ships :code:
-CLOSED: [2026-09-18 Fri 14:26]
-:PROPERTIES:
-:ID:       1254c24b-0dda-436e-a3d4-213de283692f
-:CREATED:  [2026-09-17 Thu 12:47]
-:CATEGORY: Docs
-:END:
-:DEBRIEF:
-*Shipped* in [[orgit-rev:claude-code-ide-org::82c0400][82c0400]].
-
-*The title stopped being true before the work started.* It says the files "describe a clock that no longer ships". After =1b36c5bd= the clock **does** still ship — wired, gated off by a =userConfig= option — so every passage needed *feature, state, toggle* rather than deletion. That is the shape the body had already settled on 2026-09-17; what changed is that it became the only option rather than one of two.
-
-*The demotion, said once in each always-loaded file.* =CLAUDE.md= line 9 and =README='s third paragraph both now read: natural-language org manipulation is the goal; attention tracking is a second, **optional** capability, developed here and shipped off. Both name 2026-09-18 and the reason — committing to a switch *is* the ordering.
-
-*And both keep the history, which was the one thing the composition warned not to flatten.* "Much of the machinery — the event queue, the session hooks, the review pass — exists for that goal" survives verbatim in =README= and is restated in =CLAUDE.md=, because it is the only record of why the queue looks as it does. The ranking changed; the account of what built it did not.
-
-*The sharpest edit was not the demotion.* =README='s design section explained the queue *through clocking* — "when a Claude session calls =org_set_todo= or =org_clock_in=" — which would have read to a consumer as though the queue were a time-tracking device. It now gives the actual reason: =org-add-log-note= opens a note buffer before it checks whether a note is wanted, so **any** keyword carrying a logging cookie hangs a non-interactive transition. That is what the queue routes around, and it has nothing to do with time. The desync history is kept as the second reason rather than the first.
-
-*=README= gained an install step rather than a caveat.* Time tracking is step 4, off by default, with the two things a consumer needs *before* flipping it: it is **one value for every project** — the option, the queue and the review buffer are all per-user — and it **cannot be turned on at all** on a Claude Code predating plugin =userConfig=, where the gate defaults off, which is the safe direction.
-
-*Three things deliberately left alone, each for a stated reason.* =DOOM.md= needed nothing — it has **no clock mentions at all**, despite this heading's own measured table listing it. =org-conventions.md= keeps its thirteen: they are descriptive rules about what a slice or story does *if* clocked ("a slice carries state but never a clock"), not instructions to call a tool. And the skill keeps its CLOCK-*parsing* sections, including "Clocking & time tracking" in its capability list — reading a =:LOGBOOK:= written by hand or by Emacs is a general org capability, independent of whether this plugin records one. Scoping those would have made the skill worse at the job it is for.
-
-*What did change in the skill:* the transition table's third column now says *only where time tracking is on*, with a paragraph stating that the whole column is conditional and the meanings are not; and the side-effect bullet no longer pairs =org_clock_in= with =org_set_todo= unconditionally.
-
-*Checks:* =check-conventions= green, =check-org-dev-skill= green, rules re-promoted and in sync across 7 files, =bin/test= 688/688.
-:END:
-:LOGBOOK:
-- State "NEXT"       from "TODO"       [2026-09-18 Fri 08:36] \\
-  nominated: the slot the user chose for it, and the skill's 48 clock mentions are now its surface
-CLOCK: [2026-09-18 Fri 08:41]--[2026-09-18 Fri 08:42] =>  0:01
-- [2026-09-18 Fri 08:41]--[2026-09-18 Fri 08:42] assigned at review
-CLOCK: [2026-09-18 Fri 08:45]--[2026-09-18 Fri 08:48] =>  0:03
-- [2026-09-18 Fri 08:45]--[2026-09-18 Fri 08:48] assigned at review
-- State "DOING"      from "NEXT"       [2026-09-18 Fri 12:28] \\
-  the prose demotion: goal restated once, plainly, in both always-loaded files
-CLOCK: [2026-09-18 Fri 14:07]--[2026-09-18 Fri 14:23] =>  0:16
-- <2026-09-18 Fri 14:07>--<2026-09-18 Fri 14:23> root-cause unattributed spans, file discipline fix
-- [2026-09-18 Fri 14:07]--[2026-09-18 Fri 14:22]
-CLOCK: [2026-09-18 Fri 14:23]--[2026-09-18 Fri 14:26] =>  0:03
-- [2026-09-18 Fri 14:23]--[2026-09-18 Fri 14:26]
-- State "DONE"       from "DOING"      [2026-09-18 Fri 14:26] \\
-  demotion stated once per always-loaded file in 82c0400; smaller than planned since the clock still ships
-CLOCK: [2026-09-18 Fri 14:26]--[2026-09-18 Fri 14:30] =>  0:04
-- [2026-09-18 Fri 14:26]--[2026-09-18 Fri 14:30] root-cause unattributed spans, file discipline fix
-:END:
-:PLAN:
-
-The standing order is =c19fbbf5='s — the machinery and its prose travel together — and this slice breaks that unless the documents move with it. Measured 2026-09-17, mentions of clocking, guideposts or spans per file:
-
-: skills/org/references/org-state-transitions.md   56
-: skills/org/SKILL.md                              50
-: skills/org/references/org-session-tracking.md    44
-: skills/org/references/org-conventions.md         13
-: CLAUDE.md                                        11
-: README.md                                         9
-: skills/org/references/org-event-queue.md          8
-: skills/org/references/org-mcp-tools.md            5
-: skills/org/references/org-emacs-setup.md          3
-
-*Scope, stated against =36952d1f= so the two do not overlap.* That member owns the two **promoted rules** — =org-state-transitions.md='s clock column and =org-session-tracking.md=, which does not promote at all without the opt-in. This one owns everything else: =README.md=, =CLAUDE.md=, =DOOM.md=, =SKILL.md=, and the three references that mention clocking in passing.
-
-*README is the sharpest, because it is what a stranger reads first.* Its opening section is "State and clock changes are queued, not applied", it names =org_clock_in= in the second sentence, and its =bin/hooks/= row advertises "session pause/resume guideposts, permission-block brackets". None of that will be true of what ships.
-
-*=doc-sync-check= already pairs four of these* — =CLAUDE.md=, =DOOM.md=, =README.md= and =org-emacs-setup.md= — so editing one prompts a look at its sibling. It is inject-and-remind rather than blocking, so it helps and does not enforce.
-
-*One thing to decide rather than assume:* whether the prose describes time tracking as **absent** or as **available and unwired**. They are different promises, and the second is the accurate one given the scripts still ship. Say which, once, and let every file follow it.
-
-*=AGENTS.md= is untracked and local-only*, so it is outside this and outside version control. Worth asking whether it should be either.
-:END:
-
-Nine documents describe clocking, guideposts or spans, and none of it will be true of what ships — README most sharply, since its opening section is "State and clock changes are queued, not applied" and its =bin/hooks/= row advertises guideposts and permission-block brackets. =36952d1f= owns the two promoted rules; this owns README, CLAUDE.md, DOOM.md, the skill and three references. The decision to make once and apply everywhere: whether the prose calls time tracking **absent** or **available and unwired** — the second is accurate, since the scripts still ship.
-
-*Corrected 2026-09-17, by the user, within the hour.* The body above framed "absent versus available-and-unwired" as a decision to make. It is not: the obvious and accurate description is the feature, its initial state (disabled) and how to toggle it. Nothing to weigh.
-
-*What is actually left is structural, and it is confined to two passages that borrow the clock to define something else.*
-
-**README's third paragraph defines the project by it:** "It has a second, **co-equal goal**: trustworthy tracking of where attention actually went… Much of the machinery here — the event queue, the session hooks, the review pass — exists for that goal rather than the first one." A co-equal goal cannot take a "(disabled by default)" annotation. The resolution is a distinction the file does not currently draw: the goal stays co-equal **for this project**, where development continues, while the feature ships off **in the artifact**. That is worth one careful sentence rather than a table row.
-
-**And the design section explains the queue through clocking:** "State and clock changes are queued, not applied. When a Claude session calls =org_set_todo= or =org_clock_in=…". The queue survives untouched — it exists because org's state-change logging needs an interactive command — but its explanation leans on a tool the consumer will not have. Rewrite it around =org_set_todo= alone; annotating will not do, because the sentence's example *is* the removed thing.
-
-*Everything else in the nine files is ordinary description* and follows the feature/state/toggle shape. Placement stays as the pairing already implies: README says the feature exists and is off, DOOM.md and =org-emacs-setup.md= say how to turn it on, since a =--time= flag is install detail and =doc-sync-check= already couples those files.
-
-*Settled 2026-09-17 by the user, which removes the one thing above that was genuinely open:* **time tracking is no longer a co-equal goal** — "we have prioritized the other goal by committing to providing the ability to disable the time-tracking features." The reasoning is on =8bbae3aa=; committing to a switch is itself the ordering.
-
-So there is no distinction to draw between the project's goals and the artifact's features, and the careful sentence I proposed is unnecessary. Both files simply demote it: natural-language org manipulation is the goal, attention tracking is a second, optional capability developed here and shipped off. =CLAUDE.md= line 9 matters more than =README= line 9, being loaded into every session by default.
-
-*Keep the history while changing the ranking.* "Much of the machinery here — the event queue, the session hooks, the review pass — exists for that goal" is true and explains why the architecture looks as it does. Demote the goal; do not delete the account of what built the machinery, or a future reader loses the only record of why the queue exists at all.
-
-*Resolved 2026-09-18.* The demotion is stated once in =CLAUDE.md= and once in =README=, both keeping the sentence about what the machinery was built for; every other file follows from it in feature/state/toggle shape. Smaller than this heading assumed, because self-gating landed first: the clock still ships, so nothing had to describe an absence.
-
-
 * MAYBE Revisit building the footnote block with org-ql or the agenda, once Emacs stops wedging :research:
 :PROPERTIES:
 :ID:       3e08732f-f737-4558-938d-b91276a70b8a
@@ -1420,7 +994,7 @@ tag, the query it exists to answer, and the =#+TAGS:= line and
 The keyword set carries no severity, so a defect someone actually hit reads the same as one reasoned about. An `:observed:` tag is the cheapest signal that distinguishes them, and it is a fact rather than a judgement — either it was seen in use or it was not.
 
 
-* DOING [13/13] Ship the tracker without the clock, so another project can use it while time tracking is still being built :code:
+* REVIEW [13/13] Ship the tracker without the clock, so another project can use it while time tracking is still being built :code:
 :PROPERTIES:
 :ID:       8bbae3aa-55db-441c-8c33-405570ad879a
 :CREATED:  [2026-09-17 Thu 11:16]
@@ -1467,6 +1041,12 @@ CLOCK: [2026-09-18 Fri 16:59]--[2026-09-18 Fri 17:01] =>  0:02
 - [2026-09-18 Fri 16:59]--[2026-09-18 Fri 17:01] assigned at review
 CLOCK: [2026-09-18 Fri 17:04]--[2026-09-18 Fri 17:08] =>  0:04
 - [2026-09-18 Fri 17:04]--[2026-09-18 Fri 17:08] assigned at review
+- State "REVIEW"     from "DOING"      [2026-09-18 Fri 17:14] \\
+  all thirteen members terminal; awaiting the PR merge
+CLOCK: [2026-09-18 Fri 17:14]--[2026-09-18 Fri 17:15] =>  0:01
+- [2026-09-18 Fri 17:14]--[2026-09-18 Fri 17:15] assigned at review
+CLOCK: [2026-09-18 Fri 17:25]--[2026-09-18 Fri 17:40] =>  0:15
+- [2026-09-18 Fri 17:25]--[2026-09-18 Fri 17:40] root-cause unattributed spans, file discipline fix
 :END:
 
 Composed 2026-09-17 at the user's direction, whose framing is the point: task tracking, dependency management and slice planning are ready to support real work elsewhere, and time tracking is not. Shipping them together holds the useful half hostage to the half still under construction.
@@ -1556,417 +1136,6 @@ All 26 of euchre's are guideposts — 12 =pause=, 13 =resume=, 1 =block_start= �
 *Why adopt rather than defer to a successor.* The slice's claim is "so another project can use it", and the four are the difference between that being true and being aspirational. Closing on the original nine would have asserted something the testing disproved. The cost is accepted and named: =827bb778= is the least defined of the four — its own body says two things must be decided rather than assumed, and glue drift is not a content diff — so the slice cannot close until that is settled.
 
 *One thing the reopening proves about the process rather than the code.* Nine members closed on analysis, tests and review; four more appeared within an hour of a real consumer trying to use the result. The pattern named on =43d479c8= — one user, one project, versus one Emacs serving many — was invisible from inside the repo that is its own only user.
-
-
-* DONE Verify the review buffer and apply pass on a queue that has never held a guidepost :code:
-CLOSED: [2026-09-18 Fri 14:35]
-:PROPERTIES:
-:ID:       d3149a81-91d2-4722-b6d8-68d4cee6fa4f
-:CREATED:  [2026-09-17 Thu 11:16]
-:CATEGORY: Apply
-:END:
-:LOGBOOK:
-- State "NEXT"       from "TODO"       [2026-09-18 Fri 14:31] \\
-  last member: verifies the claim the slice rests on, and its scope grew with self-gating
-- State "DONE"       from "NEXT"       [2026-09-18 Fri 14:35] \\
-  three tests pin it, proved discriminating by mutation; the slice's premise holds
-:END:
-:DEBRIEF:
-*Shipped* in [[orgit-rev:claude-code-ide-org::ea6e603][ea6e603]]. Three tests, 688 → 691.
-
-*The claim held, which was not guaranteed.* This member existed because the corpus could not test its own premise: every review pass this project has run has read a queue full of guideposts, the =pause=/=resume= stream having been there since the 2026-08-11 cutover. The fixture is the first queue in this repo's history that has never held one.
-
-*What each pins, and why the assertion is shaped as it is.*
-
-- =guidepost-free-queue-yields-no-clock-items= asserts the item **types** — =(amend capture state)= — rather than a count. The failure it guards against is a =clock= item arriving from the span path with no span in the queue to build it from; a count would catch that too but would not name it, and the name is what a later reader needs.
-- =guidepost-free-queue-drains= exercises =--queue-file-drained-p=, which archiving depends on. Its own commentary records a real stranding — a trailing span whose proposal was dropped left a file that "never drained and so never archived". With no spans there is nothing to strand, and this asserts that rather than reasoning it.
-- =pending-capture-resolves-without-guideposts= is the sharpest, and it was not in this member's plan. =--pending-capture= is the bridge across the write-through edge: a deferred capture has minted and *reported* an =:ID:= whose heading does not exist yet, so reading the queue is what tells "not written yet" from "never existed". Nothing else exercises it without a span alongside, and it is exactly what a consumer running task tracking alone would hit first. Both directions asserted — a known id resolves, an unknown one stays nil — because the second is what makes the first mean anything.
-
-*Proved discriminating rather than merely green.* A passing test proves nothing until it is shown to fail for the right reason. Putting a =resume=/=pause= pair into the "guidepost-free" fixture made the first test fail with a clock item; restoring the file returned 691/691. Run with the file copied aside rather than stashed.
-
-*Scope grew with the slice.* The plan was written when the premise was *unwired hooks*; after =1b36c5bd= the queue is guidepost-free because the hooks **decline**, which is a different cause with the same shape — so the fixture tests the outcome rather than the mechanism, and stays true under either.
-
-*One defect found in passing.* Both this member's plan and a comment in =config.el= named =claude-code-ide-org--queue-drained-p=. No such function exists; it is =--queue-file-drained-p=. The wrong name in the plan is how it nearly reached the test — caught because the test had to actually call it.
-
-*Not attempted, and stated so it is not mistaken for covered:* =apply-detect= with fewer event kinds moving the watermarks. It is a shell hook comparing mtimes, exercised by neither =bin/test= nor a fixture queue, and testing it honestly needs a real apply pass rather than an ERT deftest. The risk it carries is a *missing* context injection, not a wrong one, which is the benign direction.
-:END:
-:PLAN:
-
-The claim this slice rests on: with no guideposts and no clock events, the review buffer shows only state changes, captures and amends — the item classes that have applied cleanly throughout, while every failure and every unanswerable question of 2026-09-17 came from a span or a clock item.
-
-It is a claim, not a fact, and the corpus cannot test it: this repo's queue has held guideposts since the 2026-08-11 cutover, so every existing test and every manual pass has run against a queue that has them. Wanted is a fixture whose queue contains only =todo=, =capture= and =amend= events, asserting that =--review-items-from-queue= yields exactly those items, that the buffer renders and applies them, and that nothing in the span or complement path is reached.
-
-Two failure modes to probe rather than assume. =--queue-drained-p= is "yields no items", and archiving depends on it — a queue that drains differently may change when archiving fires. And =apply-detect= compares watermark mtimes; with fewer event kinds moving them, its "the record is fresh" message may fire less often or not at all.
-:END:
-
-Every review pass this project has run has read a queue full of guideposts. With the hooks cut, a consumer's queue holds captures, amends and state changes and nothing else — a shape the review buffer and apply pass have never been exercised against. Verify before shipping, not after a consumer reports it.
-
-*Resolved 2026-09-18: three ERT tests pin the shape, and the claim holds.* A queue of only =todo=/=capture=/=amend= yields exactly those three item types with nothing =:unassigned=; =--queue-file-drained-p= reports correctly; and =--pending-capture= still bridges a deferred capture's =:ID:= with no span in the queue beside it.
-
-
-* DONE Establish whether two plugin manifests can share one MCP server, which is what decides the two-plugin question :research:
-CLOSED: [2026-09-18 Fri 12:32]
-:PROPERTIES:
-:ID:       5fb70821-0f46-42d9-8bf3-93bc98025692
-:CREATED:  [2026-09-17 Thu 11:16]
-:CATEGORY: Dev
-:END:
-:DEBRIEF:
-*Answered by reading this repo's own packaging rather than by experiment, 2026-09-18.* No second plugin was built; everything below is read off files that exist.
-
-*Why the question dissolves.* =.claude-plugin/plugin.json= declares ="mcpServers": "./.mcp.json"=, and that file declares =emacs-tools= as ={"type": "http", "url": "http://localhost:45571/mcp/warp"}=. The server is **not a process a plugin spawns** — it is the running Emacs, at a well-known URL. "Sharing" a stdio server would be a question about process ownership; sharing an HTTP endpoint is not a question at all, because any number of clients may point at one URL.
-
-And the case we actually care about is thinner still: a time plugin would declare **no MCP server whatsoever**. =org_clock_in= and =org_clock_out= are registered by =config.el= and served by the same endpoint the task plugin already points at, so the second plugin's whole content would be =hooks/hooks.json= plus =org-time-tracking.md=. Nothing to share.
-
-*The obstacle that replaces it, and it is the reason the answer is still "no".* The shipped wiring reaches its scripts through =${CLAUDE_PLUGIN_ROOT}=, which resolves to *the declaring plugin's* root. A time plugin's rows would therefore point into the time plugin — where the scripts are not. And they cannot simply be referenced across, because =bin/hooks/session-pause= ends:
-
-: exec "$(dirname "${BASH_SOURCE[0]}")/queue-append" pause
-
-**Sibling resolution.** So a time plugin must ship its own =queue-append= beside its own =session-pause=. Measured: =session-pause= 22 lines, =session-resume= 37, =block-start= 62, =block-end= 67, =clock-target-check= 143, and =queue-append= **244** — and that last one is the file the *task* plugin also needs, for its =todo=/=capture=/=amend= rows. Two plugins means two copies of one 244-line script, free to drift, with no mechanism that would notice.
-
-*One thing that is genuinely fine, and worth recording so it is not raised as an objection later.* The queue directory is =${CLAUDE_ORG_QUEUE_DIR:-$HOME/.claude/org-updates}= — **global, not per-plugin** — so two copies of =queue-append= would still append to one queue and one review buffer. There is no split-brain risk. The cost is duplication, not divergence of the record.
-
-*So the original decision holds, and its weakest leg is now measured rather than assumed.* The composition heading rejected two plugins partly because the second "would ship no code of its own". That understated it: the second would ship **duplicated** code, which is worse than none.
-
-*Two claims below the evidentiary bar, flagged rather than asserted.* That a =PostToolUse= matcher in plugin B fires for a tool served by plugin A's MCP server is *expected* — the matcher matches the tool name =mcp__emacs-tools__org_clock_in=, which is a property of the server rather than of the declaring plugin — but it was reasoned, not observed. And whether =${CLAUDE_PLUGIN_ROOT}= expands in a *project's* own =.claude/settings.json= (as opposed to a plugin's =hooks.json=) is still unverified; it is the question that now decides =1b36c5bd='s shape, and it is recorded there.
-
-*The revisit trigger is unchanged and still narrow:* a consumer wanting the time half **without** the task half. That is incoherent while spans attribute to org headings the task half manages, and would become coherent only if they ever attributed to something else.
-
-*Sequencing note, because the record should show the plan file was wrong and the heading was right.* =next-session.md= placed this member last, saying it "decides nothing this slice does, only whether the two-plugin question reopens later". This heading's own body said the opposite — "Answer the mechanical question first — it decides the packaging, and the packaging decides how much of the rest of this slice is even possible" — and its =NEXT= nomination note said it "sequences first". It was promoted ahead of =1b36c5bd= on 2026-09-18 after that member's own assumption collapsed, which rediscovered the same ordering independently.
-:END:
-:LOGBOOK:
-- State "NEXT"       from "TODO"       [2026-09-17 Thu 16:50] \\
-  answers the assumption the slice's not-two-plugins decision rests on, so it sequences first
-CLOCK: [2026-09-18 Fri 12:30]--[2026-09-18 Fri 12:32] =>  0:02
-- State "DOING"      from "NEXT"       [2026-09-18 Fri 12:30] \\
-  promoted ahead of 1b36c5bd: --time's shape depends on this, exactly as this heading's own body predicted
-- [2026-09-18 Fri 12:30]--[2026-09-18 Fri 12:32]
-- State "DONE"       from "DOING"      [2026-09-18 Fri 12:32] \\
-  not two plugins, measured: the sharing question dissolves, but a thin plugin must duplicate the 244-line queue-append
-:END:
-:PLAN:
-
-The user asked 2026-09-17 whether this is becoming two plugins. The recommendation was **not yet**, on three grounds — but one of them is an assumption that should be measured rather than carried.
-
-*The two settled grounds.* Time tracking is not a peer of task tracking, it is a **layer on it**: spans attribute to headings the task half manages, and both share one queue, one review buffer and one watermark file, so two peer plugins would misrepresent the dependency. And a second plugin would ship no code of its own — every tool is registered by one 17,000-line =config.el= that both would need — so its entire content would be hook wiring and one rules file.
-
-*The open one.* Whether Claude Code supports two manifests sharing a single MCP server at all. This repo has exactly one =.claude-plugin/plugin.json= and no nested manifests, so the mechanics are untested here. If two manifests *can* share a server, the thin second plugin becomes viable and the "ships no code" objection weakens considerably — the wiring would be its code.
-
-Answer it before the question is asked again, and record the answer either way. The trigger for revisiting the whole decision is narrower and worth writing down now: a consumer wanting the time half **without** the task half, which is incoherent today and would stop being so only if spans ever attributed to something other than org headings.
-:END:
-
-Splitting the tracker from the clock is only worth doing as two plugins if two manifests can share one MCP server registration; if they cannot, the split has to stay a flag on one plugin. Answer the mechanical question first — it decides the packaging, and the packaging decides how much of the rest of this slice is even possible.
-
-*Answered 2026-09-18: two manifests never need to share an MCP server, because a time plugin would declare none.* The tools are served over HTTP by the running Emacs at a fixed URL, so a second plugin shipping only hooks and a rules file reaches them through the first plugin's registration. The question as posed has no force — but a different obstacle takes its place, and it is decisive: =${CLAUDE_PLUGIN_ROOT}= would resolve to the *second* plugin's root, and =session-pause= resolves =queue-append= as a **sibling**, so the thin plugin must carry its own copy of all six scripts including the 244-line shared one. Recommendation unchanged, now measured: **not two plugins.**
-
-
-* DONE claude-org-setup gains an opt-in that restores the time-tracking wiring and its rules :code:
-CLOSED: [2026-09-18 Fri 14:07]
-:PROPERTIES:
-:ID:       1b36c5bd-bafd-4c43-8aae-c94dee45c5eb
-:CREATED:  [2026-09-17 Thu 11:15]
-:CATEGORY: Dev
-:END:
-:LOGBOOK:
-CLOCK: [2026-09-18 Fri 12:37]--[2026-09-18 Fri 12:38] =>  0:01
-- State "DOING"      from "TODO"       [2026-09-18 Fri 12:37] \\
-  researching the opt-in mechanism; userConfig may replace the flag entirely
-- [2026-09-18 Fri 12:37]--[2026-09-18 Fri 12:38]
-CLOCK: [2026-09-18 Fri 13:56]--[2026-09-18 Fri 14:07] =>  0:11
-- [2026-09-18 Fri 13:56]--[2026-09-18 Fri 14:07]
-- State "DONE"       from "DOING"      [2026-09-18 Fri 14:07] \\
-  shipped as a userConfig gate in c257553, not a setup flag; nothing writes wiring anywhere
-:END:
-:DEBRIEF:
-*Shipped* in [[orgit-rev:claude-code-ide-org::c257553][c257553]]. The member's *goal* — "disabled-by-default is only defensible if turning it on is one documented command" — is met; its *mechanism* is not the one planned, and the route to that is the whole story.
-
-*The plan's assumption collapsed on first contact.* "It adds the guidepost, block and clock rows to the consumer's wiring" presumes =claude-org-setup= writes hook wiring. It never has — it promotes rules, scaffolds org files, links the skill, writes Doom glue, and touches neither =settings.json= nor =hooks.json=. So =--time= was a new capability, not an extension, and its first question was *where does it write*.
-
-*Every answer to that question was bad, and chasing them is what found the real one.* Into the consumer's =.claude/settings.json= needs an absolute path to the plugin — machine-specific, in a committed file, the objection the symlink code already records. Into =settings.local.json= answers that but makes the opt-in per-clone. A second plugin would let =${CLAUDE_PLUGIN_ROOT}= resolve correctly, which is why =5fb70821= was promoted ahead of this member — and its answer was no, because the thin plugin would have to duplicate the 244-line =queue-append=. Confirmed from the docs along the way, having been flagged as an assumption: **=${CLAUDE_PLUGIN_ROOT}= does not expand in a project's own =settings.json=**, only in a plugin's =hooks.json=.
-
-*The answer was in the same documentation page as that confirmation.* Plugins declare =userConfig= options in =plugin.json= — =type: boolean=, with a =default= — and Claude Code exports them to hook processes as =CLAUDE_PLUGIN_OPTION_<KEY>=. So a hook can be **wired and self-gating**, which is the third state the slice was composed believing did not exist. Nothing writes wiring; the consumer flips a toggle in =/config=.
-
-*What shipped.* =userConfig.time_tracking=, boolean, =default: false=. Three guards — =queue-append= kind-scoped (so =todo=/=capture=/=amend= stay unconditional), =block-start= (writes its sentinel directly), =clock-target-check= (blocks the =Stop=, never touches the queue). Four of the five time scripts route through =queue-append=, which is why three guards cover six scripts. =hooks/hooks.json= restored byte-identically to its pre-cut state.
-
-*The default is the load-bearing choice.* Off, because the absent-variable case must fail safe: a consumer whose Claude Code predates =userConfig= sees no variable at all, and defaulting on would hand them guideposts they never asked for — the exact outcome the slice exists to prevent. The cost is the mirror image, an old client that cannot turn it *on*, which is the right direction to fail.
-
-*And this repo needed an answer too.* It wires the same scripts through its own =.claude/settings.json=, where there is no plugin option to read, so its eight time rows set =CLAUDE_PLUGIN_OPTION_TIME_TRACKING=true= in the command string. **Wiring the row is the opt-in there** — which is why the two wirings stopped being mirrors, now stated correctly in =CLAUDE.md=.
-
-*Verified, and made to discriminate rather than merely pass.* Against a temp queue directory: =clock_in= wrote 0 lines with the option unset, 0 with it =false=, 1 with it =true=; =todo= wrote with the option unset; =pause= did not. =block-start= created no sentinel when off and one when on; =clock-target-check= exited 0 when off. =claude plugin validate= accepts the manifest (one pre-existing warning about =CLAUDE.md= at the plugin root). =check-conventions= green, =bin/test= 688/688, rules re-promoted and in sync.
-
-*One planned sub-goal is now moot, deliberately.* "=--check= should report the time-tracking wiring present or absent" cannot be done: the state lives in =~/.claude/settings.json= under =pluginConfigs=, which =claude-org-setup= has no business reading. =/config= is where a consumer sees it, and =org-time-tracking.md= says so.
-
-*Cost, recorded honestly:* this reversed =eb6c4a9b= and =0c5577dc= hours after they closed. Both keep their analysis — the row inventory was reused verbatim, and the =block-end=-wired-twice finding still holds — and both carry the supersession in their own debriefs.
-:END:
-:PLAN:
-
-If the scripts ship unwired, something has to make wiring them a single act rather than a hand edit of a JSON file the consumer did not write. =claude-org-setup= already promotes rules and scaffolds org files behind flags — =--doom=, =--org=, =--glue=, =--check= — so a =--time= flag is the established shape: it adds the guidepost, block and clock rows to the consumer's wiring and promotes =org-session-tracking.md= alongside them.
-
-Two constraints it inherits. The repo-versus-plugin wiring trap is already documented — "a repo must enable only one of the two, or every guidepost is appended twice" — so the flag has to know which wiring the consumer is using before adding rows to either. And =--check= should report the time-tracking wiring as present or absent rather than silently ignoring it, since a half-applied opt-in is exactly the state that produces events nobody applies.
-
-*Found 2026-09-18, before starting: the plan's central assumption does not hold.* "It adds the guidepost, block and clock rows to the consumer's wiring" presumes =claude-org-setup= writes hook wiring. **It never has.** It promotes rules, scaffolds org files, links the skill and writes Doom glue; grepped for =settings.json= and =hooks.json= and it touches neither. So =--time= is not an extension of an existing capability, it is a new one, and where it writes is an open question rather than a detail.
-
-Three candidate shapes, and the difference is where the scripts' path comes from:
-
-- *Into the consumer's =.claude/settings.json=.* This repo wires the same scripts that way — but with =${CLAUDE_PROJECT_DIR}=, which works only because the scripts *are* in this project. A consumer's are in the plugin, so the rows would need an absolute path to the plugin root: machine-specific, in a version-controlled file, which is precisely the objection the symlink code already records ("a machine's path is not the project's to commit").
-- *Into =.claude/settings.local.json=*, which is the conventional home for uncommitted machine-local settings. That answers the path objection and makes the opt-in per-machine rather than per-repo — arguably correct, since whose attention is being tracked is a property of the person, not the project. This is the cheapest shape and should be disproved before the third is considered.
-- *A second plugin carrying the time hooks*, installed alongside. This is the only shape where =${CLAUDE_PLUGIN_ROOT}= resolves correctly for the consumer without anyone writing a path — and it is blocked on =5fb70821=, whose whole question is whether two manifests can share one MCP server.
-
-*Consequence for the slice's order:* =5fb70821= was about to be deferred as research that "decides nothing this slice does". That is no longer true — it decides between shape two and shape three here, so it moves ahead of this member rather than out of the slice.
-
-*One thing to verify rather than assume before any of this:* whether =${CLAUDE_PLUGIN_ROOT}= is expanded in a project's own =settings.json= hooks, or only in a plugin's =hooks.json=. If the former, shape one loses its path objection entirely and this gets much simpler.
-:END:
-
-The counterpart to the cut: a flag on `claude-org-setup` that puts the guidepost, block and clock rows back into the consuming repo's wiring and promotes the session-tracking reference alongside them. Disabled-by-default is only defensible if turning it on is one documented command.
-
-*Resolved 2026-09-18 — the opt-in shipped, but not as a =claude-org-setup= flag, so this title names a mechanism that was replaced before it was built.* Time tracking is gated by a =time_tracking= boolean in the plugin's =userConfig=, read by the hook scripts themselves; nothing writes wiring anywhere, which is what dissolved every problem this member had accumulated.
-
-
-* DONE Decide whether org_clock_in and org_clock_out stay registered when nothing consumes what they queue :code:
-CLOSED: [2026-09-18 Fri 14:29]
-:PROPERTIES:
-:ID:       01f7a19c-4b71-447c-8ded-385410e5d607
-:CREATED:  [2026-09-17 Thu 11:15]
-:CATEGORY: Tools
-:END:
-:LOGBOOK:
-- State "NEXT"       from "TODO"       [2026-09-18 Fri 14:26] \\
-  nominated: self-gating already answers its question, so it is now a short confirmation rather than a decision
-- State "DONE"       from "NEXT"       [2026-09-18 Fri 14:29] \\
-  stay registered; a defcustom gate would be a second switch Emacs cannot reconcile with the plugin option
-:END:
-:DEBRIEF:
-*Shipped* in [[orgit-rev:claude-code-ide-org::1d3be39][1d3be39]]. Of the plan's three options, one was already ruled out and self-gating ruled out a second, which left the third with a gap the plan had not named.
-
-*Why gating registration became actively wrong rather than merely costly.* The plan priced it as "a conditional registration block and a second configuration to test". After =1b36c5bd= the price is higher: the feature's gate is the plugin's =time_tracking= =userConfig= option, stored in =~/.claude/settings.json= under =pluginConfigs= and read by hook processes. **Emacs cannot see it.** So an elisp =defcustom= gating registration would be a *second, independent switch for one feature*, and the two could disagree — tools absent while the hooks record, or tools present while they decline. One switch is the whole point of the arrangement.
-
-*So they stay registered, which was the cheap option, and the plan's objection to it still stands unanswered by that fact.* "A tool in the schema is an invitation, and this project's own evidence is that an agent calls what it is offered." True, and untouched by any of the above.
-
-*What was actually missing was that the schema said nothing.* The prose had been scoped in =org-mcp-tools.md= earlier the same day, but a promoted rules file is not what an agent reads when it decides to call a tool — the =:description= is. Both now state the condition and end with the sentence that matters: **being offered this tool is not evidence the feature is on.** That is the same correction made to =org-time-tracking.md='s opening this morning, one layer down, and it is the only place it actually intercepts the invitation.
-
-*The suite caught the first attempt, and the catch is worth recording.* The wording tripped =claude-code-ide-org-test-no-source-line-claims-the-trigger-is-off=, a phrase-level ban on "off by default" across =config.el= and =config-test.el= (=:ID:= 6a21e08b). It was a **false positive in meaning** — the sentence described the plugin option, not =--trigger-auto-clock-in= — and a **true positive in form**, which is exactly what that guard's docstring argues for: "the phrasing is what a reader takes as current, whatever clause follows it". Reworded rather than exempted. The result names the condition instead of a default, which reads better anyway, and the guard keeps the bluntness that makes it work.
-
-*Verification:* =config.el= reads as 515 top-level forms, =check-conventions= green, =bin/test= 688/688 after the reword and 687/688 before it — which is the discrimination, unlooked-for.
-:END:
-:PLAN:
-
-The two queued clock tools are registered by the shared Doom module, so they remain callable whatever =hooks.json= wires. Three options, and the choice is about what an agent is *invited* to do rather than about correctness.
-
-*Leave them registered.* Cheapest, and harmless in the narrow sense — they queue events and the review buffer shows clock items nobody has to apply. But a tool in the schema is an invitation, and this project's own evidence is that an agent calls what it is offered: the rules were followed exactly even when they produced fifteen-second brackets.
-
-*Gate registration on a =defcustom=.* Honest — the surface then matches the feature set — at the cost of a conditional registration block and a second configuration to test.
-
-*Remove them.* Not viable: this repo needs them, and they are the same module.
-
-Note the tools are only half the invitation. =org_set_todo='s own description and the transition rules tell the agent when to call them, so gating registration without =36952d1f= leaves the instruction pointing at a tool that is gone — which is the louder failure of the two.
-:END:
-
-Separate from the hook wiring: the two MCP tools are registered by `config.el`, not by the manifest, so cutting the hooks leaves them callable. Decide whether an unconsumed queue event is harmless bookkeeping or a tool that should refuse, and say which.
-
-*Resolved 2026-09-18: they stay registered, and the descriptions now carry the condition.* Self-gating decided it — the gate is a plugin option in =~/.claude/settings.json=, which =config.el= cannot read, so a =defcustom= gating registration would be a second switch for one feature, free to disagree with the first.
-
-
-* DONE The promoted rules instruct clocking unconditionally, so a consumer is told to call tools that do nothing :code:
-CLOSED: [2026-09-18 Fri 08:36]
-:PROPERTIES:
-:ID:       36952d1f-5312-4cf2-a710-4290ce673e19
-:CREATED:  [2026-09-17 Thu 11:15]
-:CATEGORY: Skill
-:END:
-:LOGBOOK:
-- State "NEXT"       from "TODO"       [2026-09-18 Fri 08:22] \\
-  nominated: next in the slice's order, and the louder of the two instructing surfaces
-CLOCK: [2026-09-18 Fri 08:27]--[2026-09-18 Fri 08:36] =>  0:09
-- State "DOING"      from "NEXT"       [2026-09-18 Fri 08:27] \\
-  fork at file level chosen by the user; the mixed-file finding refutes the plan's premise
-- [2026-09-18 Fri 08:27]--[2026-09-18 Fri 08:36]
-- State "DONE"       from "DOING"      [2026-09-18 Fri 08:36] \\
-  forked at file level in 373e60a and 199ab6f; the plan's "entirely time tracking" premise was measured false first
-- [2026-09-18 Fri 08:36]--[2026-09-18 Fri 08:39] suggested span, accepted at review
-:END:
-:DEBRIEF:
-*Shipped* in [[orgit-rev:claude-code-ide-org::373e60a][373e60a]] and [[orgit-rev:claude-code-ide-org::199ab6f][199ab6f]], split so the reviewable units match the risk: the first is a relocation with a new file, the second is per-passage surgery.
-
-*The plan's premise was false, and measuring it first changed the work.* =next-session.md= said =org-session-tracking.md= is "*entirely* time tracking" and should simply not promote. It is three sections and the first is mixed: the =queue-append= matchers for =todo=/=capture=/=amend=, =footnote-check=, =apply-detect= and its whole paragraph, and the ceremony half of =SessionStart= are all task-tracking. These rules load in **every** session, so dropping the file would have taken task guidance away from a consumer — the opposite of the slice's point. Had the plan been followed as written the regression would have shipped.
-
-*Fork over conditional, decided by the user against the project's own evidence.* A conditional clause is read as an instruction whatever its condition — the same bet as a path-scoped rule that does not load — and =01f7a19c='s argument that "an agent calls what it is offered" applies to prose as much as to a tool schema. The file-level split means a consumer without the feature never sees the instruction at all.
-
-| always promoted | promoted with =--time= |
-|---|---|
-| =footnote-check=, =apply-detect=, the three =queue-append= matchers, the daily ceremony | guideposts, =:LOGBOOK:= CLOCK mechanics, permission blocks, the three numbers, stale-interval recovery |
-| =DOING=/=REVIEW=/=WAITING= semantics, plural =DOING=, =NEXT= and nomination, the =@=-cookie hang, capture, =:CREATED:=, Plan Mode | the transition table's side-effect column, both to/from-=DOING= rules, the retroactive and grouping exceptions, the =org_clock_in=-before-first-write rule |
-
-*How relocation was verified.* Every non-blank line of each original was tested for a verbatim match in the new pair, and the misses enumerated: five paragraphs in the first file and six in the second, each a deliberate rewrite with a named replacement. That is the conventions' own "relocation is lossless and verifiable" discipline, run as a check rather than asserted. One trap worth recording: =grep= treats a line beginning =-= as an option, so four bullets reported as missing until the scan was re-run with =-e= — a false alarm that looked exactly like real loss.
-
-*The transition table now exists in both files on purpose.* =bin/check-conventions= parses it for the keyword set, so the transitions copy keeps all eight keywords and drops only the clock column. Removing it outright would have failed a check that exists to catch keyword drift.
-
-*Accepted, not overlooked:* the new file promotes **unconditionally** until =1b36c5bd= lands =--time=. That is the status quo for a consumer rather than a regression, and the file's own opening says nothing in it applies with the default wiring. =CLAUDE.md='s pointer, which claimed the three numbers and stale-interval recovery live in =org-session-tracking.md=, was corrected in the same commit and now records that =hooks.json= and =.claude/settings.json= are deliberately no longer mirrors.
-
-*Left for the members that own them, not filed as residue:* =skills/org/SKILL.md= instructs clocking in 48 places including its own transition table — that is =1254c24b='s surface, and its CLOCK-*parsing* sections should survive there, since a consumer with time tracking off still reads =.org= files whose drawers were written by hand. =org-mcp-tools.md= and =org-event-queue.md= still name the clock tools, which stays correct until =01f7a19c= decides whether they remain registered.
-
-*Checks:* =claude-org-setup --check= in sync across 7 files, =check-conventions= green including "keyword set: org-state-transitions reference table" and "promoted rules match the plugin references", =check-org-dev-skill= green, =bin/test= 688/688.
-
-*Correction to the paragraph above, same day.* "Six in the second" undercounts: the loss scan also flagged the side-effect preamble, the =REVIEW=-is-experimental paragraph and the "Two consequences … amnesty" block, none of which is among the six enumerated. **Nine, not six.** The scan was read and every miss accounted for at the time — what was inexact is this record of it, which is the same failure as a comment overstating a guard.
-
-*And one defect this debrief did not catch, fixed in* [[orgit-rev:claude-code-ide-org::990fd10][990fd10]]: =org-time-tracking.md= opened by telling the reader that its own presence proved the wiring was installed. False for every consumer until =1b36c5bd=, since the file promotes unconditionally — it loads exactly where none of it applies. The "accepted, not overlooked" paragraph above covers the *promotion* and missed the *assertion*, which is the more dangerous half: a promotion gap is visible in =claude-org-setup=, a false sentence in an always-loaded rule is not.
-:END:
-:PLAN:
-
-=org-state-transitions.md= is promoted into every consuming project and its transition table's whole right-hand column is clock instructions — "Open a CLOCK (call =org_clock_in=)" on four rows, "Close the CLOCK" on four more — plus the standing rule to clock in before a session's first write. =org-session-tracking.md= is promoted too and is *entirely* about time tracking: guideposts, the three numbers, permission blocks, stale-interval recovery.
-
-With clocking off these tell a consuming agent to make calls that queue events nobody will ever apply, and to follow a rule whose backstop has been removed. Worse than useless: the rules are the thing an agent is *most* likely to obey exactly.
-
-Two shapes to weigh. Promote a *variant* of the transition table without the clock column, which keeps each rules file coherent but forks a file that must then be kept in step. Or make the clock column conditional in prose — "when time tracking is enabled" — which keeps one file and asks the reader to hold a condition, something this project has found unreliable before (a path-scoped rule that does not load is a rule that does not apply). =org-session-tracking.md= is simpler: it should not promote at all unless the opt-in wiring is chosen.
-:END:
-
-The promoted rules tell a consuming session to call `org_clock_in` before its first write and to close the clock on leaving `DOING`. With the wiring cut, those calls queue events nothing consumes. The prose has to say the feature is off by default and what turning it on restores.
-
-*Resolved 2026-09-18: forked at file level, not conditioned in place.* The clock content moved into a new =org-time-tracking.md= that promotes only under =--time=; =org-session-tracking.md= and =org-state-transitions.md= keep what is true regardless of wiring and point at it.
-
-
-* DONE The SessionStart report mixes stale-interval recovery with the ceremony prompt, and only one half survives :code:
-CLOSED: [2026-09-18 Fri 14:31]
-:PROPERTIES:
-:ID:       6956a46e-da4b-44c2-a701-80196a2930c1
-:CREATED:  [2026-09-17 Thu 11:15]
-:CATEGORY: Meta
-:END:
-:LOGBOOK:
-- State "NEXT"       from "TODO"       [2026-09-18 Fri 14:29] \\
-  nominated: the last member that changes shipped behaviour; d3149a81 verifies after it
-CLOCK: [2026-09-18 Fri 14:30]--[2026-09-18 Fri 14:31] =>  0:01
-- State "DOING"      from "NEXT"       [2026-09-18 Fri 14:30] \\
-  checking whether the stale half really can never fire with clocking off
-- [2026-09-18 Fri 14:30]--[2026-09-18 Fri 14:31]
-- State "DONE"       from "DOING"      [2026-09-18 Fri 14:31] \\
-  no split, no gate: the stale scan reads file text and still catches a hand-clocked interval
-:END:
-:DEBRIEF:
-*Closed with no code change, 2026-09-18, because the question dissolved under checking.* This heading's plan says the stale-interval half is "pure time tracking, and with no clocking it can never find anything". Read against the implementation, that is wrong.
-
-*What the scan actually depends on — nothing this slice touches.* =claude-code-ide-org-find-stale-open-intervals= walks =--tracked-files= with =org-map-entries=, and =--entry-open-interval= matches =^[ \t]*CLOCK: \(\[[^]]+\]\)[ \t]*$= — an open CLOCK line in the **file text**. Not the queue, not the hooks, not =org-clocking-p=, and not the =time_tracking= option. It finds an open interval however it got there.
-
-*Which inverts the conclusion rather than weakening it.* With the feature off, this project's own machinery writes no CLOCK lines — so the only way one appears is a human clocking deliberately in Emacs (=C-c C-x C-i=), which the conventions explicitly permit and defend: "a grouping's own coordination time is real work and may be clocked on purpose". A hand-opened interval has *no* hook watching for its close, and no =Stop= guidepost bracketing it. The recovery report is the only thing that would ever notice it. **It is more load-bearing per CLOCK line with time tracking off, not less.**
-
-*So neither half is gated and the payload stays one string.* The plan's "cheapest option" — leave it and let it return nothing — turns out not to be the thing being chosen: it does not return nothing. The =[[ -s ]]= guard still drops an empty payload on the days both halves are quiet.
-
-*And the marginal cost is zero, which is the original merge argument still holding.* The ceremony half needs the Emacs round-trip regardless, so scanning for open intervals in the same call costs nothing extra — "one hook and one payload, because a second SessionStart hook would double the Emacs round-trip". Splitting them would have *added* a round-trip to buy a gate that turns out not to be wanted.
-
-*Third plan premise today that did not survive contact*, after =36952d1f='s "entirely time tracking" and =1b36c5bd='s "adds rows to the consumer's wiring". Worth noting as a pattern rather than three coincidences: each was written while composing the slice, from the shape of the thing rather than from its source.
-
-*No code changed, so nothing to verify beyond the reading itself* — recorded here rather than left as a silent no-op, since a member closed without a diff otherwise looks skipped.
-:END:
-:PLAN:
-
-=session-start-recovery-check= carries two independent reports in one payload, deliberately — "one hook and one payload, because =additionalContext= is a single string and a second SessionStart hook would double the Emacs round-trip".
-
-They fall on opposite sides of this slice. The **stale-interval** half scans for an unclosed =CLOCK:= line and asks what time work stopped: pure time tracking, and with no clocking it can never find anything. The **ceremony** half names pending queue items, drawers out of order and unarchived headings, then asks whether to run the pass: pure task tracking, and a consuming project wants it.
-
-So the hook cannot simply stay or go. Either the stale half is gated off when clocking is, or the two reports separate. The existing =[[ -s ]]= guard already drops an empty payload, so a stale half that always returns nothing degrades silently rather than breaking — which makes "leave it and let it return nothing" a legitimate cheapest option to weigh against the split.
-:END:
-
-One `SessionStart` hook carries two independent reports in one `additionalContext` string. Cutting the time-tracking half would take the ceremony prompt with it unless the payload is split first. Establish which half survives the cut and make the surviving one stand alone.
-
-*Resolved 2026-09-18: neither half is gated and the payload does not split — the premise that the stale half "can never find anything" is false.* It scans tracked org files' **text** for an unclosed =CLOCK:= line and depends on nothing this slice touches, so it still catches an interval a human opened by hand with =C-c C-x C-i= — which, with the feature off, is the only way a CLOCK line appears at all.
-
-
-* DONE Take the guidepost, block and clock rows out of the shipped wiring, leaving every script on disk :code:
-CLOSED: [2026-09-18 Fri 08:22]
-:PROPERTIES:
-:ID:       0c5577dc-ef15-440a-bdac-b3cb068aa7b2
-:CREATED:  [2026-09-17 Thu 11:15]
-:CATEGORY: Dev
-:END:
-:LOGBOOK:
-- State "DONE"       from "TODO"       [2026-09-18 Fri 08:22] \\
-  15 hook rows to 7 in e5eb79f; 8 removed, 0 added, all 6 scripts on disk
-:END:
-:DEBRIEF:
-*Shipped* in [[orgit-rev:claude-code-ide-org::e5eb79f][e5eb79f]], one commit with =eb6c4a9b=. Fifteen rows to seven.
-
-*Out* (8): the =queue-append clock_in= and =clock_out= =PostToolUse= matchers; =session-pause= and =clock-target-check= on =Stop=; =session-resume= on =UserPromptSubmit=; =block-start= on =PermissionRequest=; and =block-end= on **both** its events — the unscoped =PostToolUse= matcher and =PermissionDenied=. That last pair is the one worth naming: =block-end= was wired twice, so an inventory counting scripts rather than rows would have undercounted by one. *Staying* (7): =queue-append= for =todo=, =capture= and =amend=; =footnote-check=; =apply-detect=; and both =SessionStart= reports.
-
-*How it was verified, and why not by reading the diff.* The rows were extracted from before and after as =(event, matcher, command)= triples and compared as sets — 8 removed, **0 added**. The "0 added" half is the one a diff read by eye does not give you, and it is what proves no row was silently re-shaped while its neighbours moved. Each removed command was then resolved back to a path and checked present: all six scripts on disk. =jq= parsed the result; =bin/check-conventions= green including "promoted rules match the plugin references"; =bin/test= 688/688, 0 unexpected.
-
-*What could not be verified here, stated rather than glossed.* This repo wires the same scripts through its own =.claude/settings.json=, and never reads =hooks/hooks.json= — the two are mirrors by convention, with nothing mechanical enforcing the mirror (checked: no test and no lint references the file). So the change has **no observable effect in this repo at all**, and no reload makes it observable. Time tracking stays on here, which is intended.
-
-*The claim the plan asked to verify is still unverified, by design.* That a guidepost-free queue yields a review buffer of only state changes, captures and amends is =d3149a81='s member, and this heading deliberately does not pre-empt it.
-
-*One thing the plan did not anticipate.* The manifest's =description= string asserted that it "Mirrors this repo's own .claude/settings.json wiring", which stopped being true the moment the rows came out. It was rewritten to say time tracking ships unwired and name =claude-org-setup --time= as the way back — a forward reference to =1b36c5bd=, which does not exist yet. That is a deliberate small debt, not an oversight: the alternative was a description that described nothing.
-
-*Superseded the same day, 2026-09-18, by* [[orgit-rev:claude-code-ide-org::c257553][c257553]]. =hooks/hooks.json= is restored **byte-identically** to its pre-cut state — all fifteen rows, none altered — and the rows now gate themselves on the plugin's =time_tracking= =userConfig= option instead of being absent.
-
-*The premise this member executed was false, and nobody had checked it.* "A hook has no 'disabled' state, so wired and unwired are the only forms available" was the slice's founding sentence and this heading's justification. A third form exists: =userConfig= in =plugin.json=, exported to hook processes as =CLAUDE_PLUGIN_OPTION_<KEY>=. Found while researching =1b36c5bd=, whose own problem — where a setup flag could write wiring — evaporated with it.
-
-*What survives intact, which is most of the value.* The row inventory was correct and was reused verbatim to decide which scripts get guards: the eight rows this member removed are exactly the eight that =.claude/settings.json= now prefixes in this repo. The =block-end=-is-wired-twice finding still matters, and still catches an inventory that counts scripts rather than rows. The set-comparison verification method ("8 removed, **0 added**") was what proved the restore was byte-identical, run in the other direction.
-
-*What was wrong was the conclusion only.* Removal was one correct answer to "how do you ship a hook that should not run"; gating is the better one, because it keeps the opt-in to a toggle rather than a file edit and removes the question of whose file gets edited.
-
-*Left DONE rather than reopened.* What this heading did — inventory the rows, verify the change, record why =block-end= appears twice — all happened and is not undone. The reversal is new work, and it belongs to =1b36c5bd=, which owns the opt-in mechanism.
-:END:
-:PLAN:
-
-The change itself. Out of =hooks/hooks.json=: =session-pause=, =session-resume=, =block-start=, both =block-end= rows, and the =queue-append clock_in= / =queue-append clock_out= matchers. Staying: =queue-append todo=, =capture=, =amend=, =apply-detect=, =footnote-check=, =session-context.sh=.
-
-*Scripts stay on disk, deliberately.* A hook has no "disabled" state — listing it in =hooks.json= is what enables it — so the only two forms available are wired and unwired. Shipping the scripts unwired costs nothing, keeps the opt-in path to one file edit, and means time tracking is *available* rather than removed. It also matches what this repo already does: the same scripts are wired here through =.claude/settings.json=.
-
-*Consequence to verify rather than assume:* with no guideposts in the queue, the review buffer should show only state changes, captures and amends — the item classes that have applied cleanly all along. That is the claim this whole slice rests on and it gets its own member.
-:END:
-
-The cut is made in the manifest, not on disk: `hooks/hooks.json` stops wiring the guidepost, permission-block and clock rows, and every script stays where it is so the opt-in can restore them by editing one file. This is the heading that actually performs the disable.
-
-*Resolved 2026-09-18: the manifest drops from 15 hook rows to 7, and no script is deleted.* The plan's inventory proved exact — the eight rows it named are the eight that came out, with =clock-target-check= joining them from =eb6c4a9b= in the same commit.
-
-
-* DONE clock-target-check ships wired and enforces clocking, so it would block every turn once clocking is off :code:
-CLOSED: [2026-09-18 Fri 08:21]
-:PROPERTIES:
-:ID:       eb6c4a9b-8f78-42fa-9e86-484bf352fcf6
-:CREATED:  [2026-09-17 Thu 11:15]
-:CATEGORY: Dev
-:END:
-:LOGBOOK:
-CLOCK: [2026-09-18 Fri 08:17]--[2026-09-18 Fri 08:21] =>  0:04
-- State "DOING"      from "TODO"       [2026-09-18 Fri 08:17] \\
-  first member: the hook that would block every consuming session's first turn
-- [2026-09-18 Fri 08:17]--[2026-09-18 Fri 08:21]
-- State "DONE"       from "DOING"      [2026-09-18 Fri 08:21] \\
-  removed from shipped wiring in e5eb79f; variant declined as an unasked-for filing mandate
-- [2026-09-18 Fri 08:21]--[2026-09-18 Fri 08:26] suggested span, accepted at review
-:END:
-:DEBRIEF:
-*Shipped* in [[orgit-rev:claude-code-ide-org::e5eb79f][e5eb79f]], together with =0c5577dc= — the plan required both in one change, since a =Stop= hook enforcing clocking outlives the guideposts by even one commit is a hook that blocks every turn in between.
-
-*What decided it was the hook's own message, not the plan's reasoning.* It ends "so its time will reach review UNASSIGNED" — the harm it defends against is a span reaching the review buffer with no owner. With the guideposts unwired a consuming project produces no spans at all, so the harm is not mitigated, it is *unreachable*. That is a stronger argument for removal than the plan had, which was only that the check would misfire.
-
-*The floated variant was declined on what it would cost, not on what it would catch.* Re-keying the check on "any queued activity on a heading" turns an attribution backstop into a filing mandate: a consuming session that edits code and touches no org file has done nothing wrong, and would be blocked. The rule it backstops here — a session names the heading its first write belongs to — is this repo's discipline, and shipping it to consumers was never the intent.
-
-*Verification, and its honest limit.* A structural row diff over =hooks/hooks.json= (event, matcher, command) showed exactly eight rows removed and zero added; =bin/hooks/clock-target-check= is still present and executable; =bin/check-conventions= green, =bin/test= 688/688. **None of that exercises the hook's absence**, because this repo wires these scripts through its own =.claude/settings.json= and never reads =hooks/hooks.json= — so the change cannot be observed from a session here, now or after any reload. Demonstrating it needs a consuming install, which is =d3149a81='s job and not a gap left by this heading.
-
-*Nothing was left behind.* The opt-in that restores this row is =1b36c5bd=, already a member.
-
-*Superseded 2026-09-18 by* [[orgit-rev:claude-code-ide-org::c257553][c257553]]: =clock-target-check= is back in the shipped wiring, and gates itself on the plugin's =time_tracking= option — exiting 0 when the feature is off, so it blocks nothing in a task-only install.
-
-*The reasoning that removed it was right and still is; only the remedy changed.* The harm this hook defends against — a span reaching review UNASSIGNED — is unreachable with no spans, so it must not fire when time tracking is off. Removal achieved that. A guard achieves it too, and additionally brings the hook back the moment a consumer turns the feature on, which removal did not.
-
-*The declined variant stays declined, and for the same reason.* Re-keying it on "any queued activity" would enforce a filing mandate on a session that only edits code. Nothing about self-gating changes that.
-
-*Verified rather than assumed:* with the option unset the hook exits 0 against a payload that would otherwise reach its write-evidence scan. It is one of only two scripts needing its own guard — it never touches the queue, so =queue-append='s kind-scoped gate does not cover it.
-
-*Left DONE.* The question this heading asked — remove, or guard — was answered correctly on the evidence available, and the evidence changed.
-:END:
-:PLAN:
-
-=hooks/hooks.json= wires =bin/hooks/clock-target-check= as a =Stop= hook. It blocks the stop, once per session, when the transcript shows write activity and the queue holds no =clock_in=. With the guidepost and clock rows removed there is never a =clock_in=, so it would fire on the first write of every session in every consuming project and keep firing.
-
-This is the sharpest item in the set because it fails *loudly and immediately* rather than degrading: a consumer's first real turn is blocked by a hook enforcing a feature they were never given. It must come out of the shipped wiring in the same change that removes the guideposts, not afterwards.
-
-Worth deciding at the same time whether it returns with the opt-in wiring. It backstops the rule that a session names the heading its first write belongs to — which is a *task*-tracking rule about attribution, not a time-tracking one — so there is an argument for a variant that checks for any queued activity on a heading rather than specifically a =clock_in=.
-:END:
-
-`clock-target-check` blocks the stop when a session writes without clocking in. With clocking gone from the shipped wiring, that condition is unsatisfiable and the hook would block every turn. Decide whether it comes out of `hooks/hooks.json` with the rest or gains a guard that stands down when no clock tools are wired.
-
-*Resolved 2026-09-18: removed from the shipped wiring rather than guarded or rewritten.* The variant its plan floated — checking for any queued activity instead of a =clock_in= specifically — was declined, because it would enforce a rule nobody has asked for: that every session file a heading.
 
 
 * TODO Clock brackets of seconds around work of an hour, so nearly all real time lands in unowned gaps :code:
@@ -7965,12 +7134,12 @@ before the fix and still says.
 
 
 * TODO Archive closed tasks daily
-SCHEDULED: <2026-09-19 Sat 07:00 ++1d>
+SCHEDULED: <2026-09-20 Sun 07:00 ++1d>
 :PROPERTIES:
 :CATEGORY: Meta
 :ID:       cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8
 :CREATED:  [2026-08-21 Fri 15:35]
-:LAST_REPEAT: [2026-09-18 Fri 08:15]
+:LAST_REPEAT: [2026-09-19 Sat 07:24]
 :END:
 :LOGBOOK:
 CLOCK: [2026-08-24 Mon 10:25]--[2026-08-24 Mon 10:28] =>  0:03
@@ -11346,10 +10515,6 @@ call it done.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
-CLOCK: [2026-09-18 Fri 17:09]--[2026-09-18 Fri 17:12] =>  0:03
-CLOCK: [2026-09-18 Fri 15:19]--[2026-09-18 Fri 15:24] =>  0:05
-CLOCK: [2026-09-18 Fri 14:15]--[2026-09-18 Fri 14:20] =>  0:05
-CLOCK: [2026-09-18 Fri 08:54]--[2026-09-18 Fri 08:59] =>  0:05
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
@@ -11480,8 +10645,13 @@ CLOCK: [2026-09-17 Thu 13:35]--[2026-09-17 Thu 13:36] =>  0:01
 CLOCK: [2026-09-17 Thu 15:14]--[2026-09-17 Thu 15:17] =>  0:03
 CLOCK: [2026-09-17 Thu 15:55]--[2026-09-17 Thu 15:56] =>  0:01
 CLOCK: [2026-09-18 Fri 08:14]--[2026-09-18 Fri 08:15] =>  0:01
+CLOCK: [2026-09-18 Fri 08:54]--[2026-09-18 Fri 08:59] =>  0:05
+CLOCK: [2026-09-18 Fri 14:15]--[2026-09-18 Fri 14:20] =>  0:05
+CLOCK: [2026-09-18 Fri 15:19]--[2026-09-18 Fri 15:24] =>  0:05
 - <2026-09-18 Fri 15:25>--<2026-09-18 Fri 15:25> review pass (buffer buried)
 - <2026-09-18 Fri 17:08>--<2026-09-18 Fri 17:08> review pass (buffer buried)
+CLOCK: [2026-09-18 Fri 17:09]--[2026-09-18 Fri 17:12] =>  0:03
+CLOCK: [2026-09-19 Sat 07:22]--[2026-09-19 Sat 07:24] =>  0:02
 :END:
 
 We created this heading on 2026-08-26. We deleted that property from its
@@ -12400,4 +11570,35 @@ CLOCK: [2026-09-18 Fri 11:49]--[2026-09-18 Fri 11:50] =>  0:01
 - [2026-09-18 Fri 11:49]--[2026-09-18 Fri 11:50] root-cause unattributed spans, file discipline fix
 CLOCK: [2026-09-18 Fri 12:32]--[2026-09-18 Fri 12:37] =>  0:05
 - [2026-09-18 Fri 12:32]--[2026-09-18 Fri 12:37] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-18 Fri 16:40]--[2026-09-18 Fri 16:41] =>  0:01
+- [2026-09-18 Fri 16:40]--[2026-09-18 Fri 16:41] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-18 Fri 16:48]--[2026-09-18 Fri 16:49] =>  0:01
+- [2026-09-18 Fri 16:48]--[2026-09-18 Fri 16:49] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-18 Fri 17:38]--[2026-09-18 Fri 17:40] =>  0:02
+- [2026-09-18 Fri 17:38]--[2026-09-18 Fri 17:40] assigned at review
+CLOCK: [2026-09-18 Fri 18:01]--[2026-09-18 Fri 18:03] =>  0:02
+- [2026-09-18 Fri 18:01]--[2026-09-18 Fri 18:03] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-18 Fri 18:11]--[2026-09-18 Fri 18:21] =>  0:10
+- [2026-09-18 Fri 18:11]--[2026-09-18 Fri 18:21] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-18 Fri 18:27]--[2026-09-18 Fri 18:29] =>  0:02
+- [2026-09-18 Fri 18:27]--[2026-09-18 Fri 18:29] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-18 Fri 18:32]--[2026-09-18 Fri 18:45] =>  0:13
+- [2026-09-18 Fri 18:32]--[2026-09-18 Fri 18:45] root-cause unattributed spans, file discipline fix
+:END:
+
+
+**** 2026-09-19 Saturday
+:PROPERTIES:
+:ID:       0c027d84-653b-4668-a7a1-ad8b3e127712
+:CREATED:  [2026-09-19 Sat 05:37]
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-19 Sat 05:37]--[2026-09-19 Sat 05:38] =>  0:01
+- [2026-09-19 Sat 05:37]--[2026-09-19 Sat 05:38] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-19 Sat 05:41]--[2026-09-19 Sat 05:45] =>  0:04
+- [2026-09-19 Sat 05:41]--[2026-09-19 Sat 05:45] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-19 Sat 05:49]--[2026-09-19 Sat 05:54] =>  0:05
+- [2026-09-19 Sat 05:49]--[2026-09-19 Sat 05:54] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-19 Sat 07:18]--[2026-09-19 Sat 07:21] =>  0:03
+- [2026-09-19 Sat 07:18]--[2026-09-19 Sat 07:21] root-cause unattributed spans, file discipline fix
 :END:
