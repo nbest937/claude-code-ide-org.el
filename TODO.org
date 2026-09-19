@@ -2,6 +2,119 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* DOING [5/5] Address the PR #28 review: fifteen findings, four of them defects in work already closed :code:
+:PROPERTIES:
+:ID:       0784a826-d0b6-4829-a49b-c312dc446830
+:CREATED:  [2026-09-19 Sat 05:51]
+:CATEGORY: Dev
+:END:
+:DEBRIEF:
+*Five commits, fifteen findings, five children.* =d5c9398= =36c9986= =cc3b57e= =bb455c4= =b055a10=, each answerable on its own child. Every inline comment carries a reply naming the commit and what changed; all fifteen threads resolved, zero outstanding.
+
+*The review's value was not proportional to its politeness.* Nine members had closed on analysis, tests and a prior review. One adversarial pass then found fifteen things, **four of them defects in members already marked DONE** — three in =43d479c8= alone, where I had asserted the scoping was complete and it reached one of four inputs. The lesson is not "review more"; it is that *closing a member is not evidence it works*, and the only things that produced evidence here were a real consumer and an adversarial reader.
+
+*Three findings were wrong, and answering them was as valuable as fixing the rest.* Obeying a review uncritically would have made the code worse in two of the three: the =\\'= claim would have churned 230 pre-existing lines including genuine regexp anchors, and the drains assertion as requested was simply false — the predicate's second clause is idleness, which the request did not know. The third, =--config=, was half right in a way only a =--help= call could separate.
+
+*Two fixes were wrong first, both from the same root.* =(getenv ...)= inside =emacsclient -e= reads the **server's** environment, so it silently unscoped every report while every test stayed green. And =(mapconcat #\\'identity ...)= *read* as 519 valid forms while meaning something else. Both were caught by re-running a *comparison* — three payload sizes, a function call — not by any check that already existed. **Reading is not evaluating, and a green suite is not a working feature**: the two most expensive minutes of the day were the ones spent re-measuring something that looked done.
+
+*The pattern under most of it is one thing.* This repository is its own only user. =warp= aliased =(car projects)= and nobody noticed for weeks; the reports were computed over =org-agenda-files=; the consumer's =.mcp.json= could not exist because the plugin tried to ship one. Every such assumption is invisible from inside the only project where it holds. That is also why the four consumer defects arrived within an hour of =agentic-euchre= actually running the branch, and why =6a207b00= is the real test rather than this repo.
+
+*Residue, filed not forgotten:* =9ad0e497= (the skill check asserts org's symbols and not the module's, which let a phantom function stand), =96ad6e95= (promotion never removes and =--check= never looks, so a dropped rule would linger in every consumer), =27e16e9a= (the Warp experiment, deferred =MAYBE=), =827e1c42= (no version tag, nothing would notice). None blocks the slice.
+:END:
+
+The =xhigh= review of PR #28 on 2026-09-18 returned fifteen findings, posted as inline comments and all now replied to and resolved. Composed as a story afterwards, at the user's direction, because the actions were discrete and worth being separately answerable — the commits carry the detail, these children carry what each one *taught*.
+
+*The headline is not the count.* **Four were defects in members this slice had already closed**, three of them in =43d479c8=, which I had closed asserting the scoping was done. The review arrived in the window =REVIEW= exists for — after every member is terminal, because an implementation cannot be reviewed until it is implemented — and it found that the fix reached one of four inputs.
+
+*Three findings were wrong or half-wrong, and saying so mattered as much as fixing the rest.* The =\'= escapes were 30 added and **0 removed**, so no existing line was churned and the claimed diff-hunks-over-unchanged-text did not exist. =--config= **is** a real flag of =claude plugin install=, verified against its =--help=; what was wrong was the install route. And the drains assertion the review asked for **failed when written**, because the predicate's second clause is idleness — so the fix is stronger than the request.
+
+*Two fixes were wrong on the first attempt, both caught only by re-running a comparison rather than trusting a green suite.* Escaping =CLAUDE_PROJECT_DIR= via =(getenv ...)= silently unscoped every report, because =emacsclient -e= evaluates in the **server's** process — three cases returned an identical 2321 bytes where one should have returned 2. And =(mapconcat #\\'identity ...)= *read* cleanly as 519 forms while meaning something else. Reading is not evaluating; a green suite is not a working feature.
+
+*What the review was worth, stated plainly.* Nine members closed on analysis, tests and review. Fifteen findings arrived from one adversarial pass, and four more defects had already arrived within an hour of a real consumer trying the branch. The pattern under most of them is one thing: **this repository is its own only user**, and every assumption that holds for one user with one project was invisible from inside it.
+
+*Resolved 2026-09-19: all fifteen findings addressed across five commits, every inline comment replied to and every thread resolved.* Three of the fifteen were wrong or half-wrong and were answered rather than obeyed; two of the fixes were wrong on the first attempt and were caught by re-running a comparison rather than by a green suite.
+
+** DONE Excise the accidental session alias and the two docs that promised an MCP server :code:
+CLOSED: [2026-09-19 Sat 05:52]
+:PROPERTIES:
+:ID:       71affb60-ca4b-44b0-b472-df9132c78ee4
+:CREATED:  [2026-09-19 Sat 05:52]
+:END:
+
+Findings 1 and 2, shipped in [[orgit-rev:claude-code-ide-org::d5c9398][d5c9398]].
+
+The review found =.warp/.mcp.json= still naming =/mcp/warp= after =.mcp.json= was fixed, and assumed Warp needed the alias. The maintainer's answer dissolved it: the alias "was always accidental and meaningless. I just never noticed and it never mattered until today." So rather than preserve it, everything went — the registration, its message, three docstrings, the section comment, and the test that *pinned* it, which now pins its **absence** by asserting the exact registration list rather than membership. Proved discriminating: re-adding the registration fails it.
+
+*One phantom surfaced on the way.* =org-dev/SKILL.md= told readers =claude-code-ide-org--wire-warp-tools= re-runs at startup. =git log -S= finds that string in exactly two commits — the one that introduced it *as prose*, migrating the skill out of a zip archive, and the one that removed it. **It never existed as code, anywhere.** Filed as =9ad0e497=: the skill check asserts eight of org's own facilities by name and none of the module's.
+
+Finding 2 rode along because it is the same class — =README= and =org-emacs-setup.md= both claimed enabling the plugin "registers the =emacs-tools= MCP server", which the manifest change made false. I had written that this claim "is false" in =805bf287='s own body and then left it standing, which is the failure worth remembering.
+** DONE Finish the report scoping: the consent gate and the ceremony's two global sources :code:
+CLOSED: [2026-09-19 Sat 05:52]
+:PROPERTIES:
+:ID:       30408acf-30be-4684-a59a-d47057f0c9ee
+:CREATED:  [2026-09-19 Sat 05:52]
+:END:
+
+Findings 4 and 5, shipped in [[orgit-rev:claude-code-ide-org::36c9986][36c9986]]. **Both are defects in =43d479c8=, which I closed claiming the scoping was done.**
+
+*The leak was the sharpest finding of the fifteen.* =--report-scope= is a dynamic binding and the reports call =find-file-noselect= inside it, so =find-file-hook= → =--revert-so-long-takeover= → =--tracked-buffer-p= saw the narrowed list and answered nil for a genuinely tracked file — leaving it in =so-long-mode= for the session, which is =045459f6= reintroduced, and *that* heading's point was that the tools go on to **write** these buffers. My docstring asserted the binding never reaches the tools; dynamic binding does not honour assertions.
+
+Fixed at the gate, not the call site, and the reason generalises: all four hook functions that touch the file list reach it through =--tracked-buffer-p=, so one fix covers them; and consent cannot depend on what a report happens to be looking at. The review's reachability claim was exact — =--review-attention-target= opens this repo's =TODO.org= from inside a consumer's scoped report.
+
+*The ceremony reached one of four inputs.* =:drifted= and =:archivable= scoped because they walk =--tracked-files=; =:pending= read the global queue and =:reviewed-today= resolved through =--capture-target-file='s fallback to *this repo's* capture file. Now =--items-in-report-scope= matches on each item's events' =cwd= (7 unscoped → 6 here → **0** for the consumer), and the attention target refuses a file outside the scope.
+
+*One judgement worth flagging:* a queue event with no =cwd= is **excluded** when scoped, inverting the span rule's "unknown, never elsewhere". The errors are not symmetric — omitting understates a count, claiming restates the defect being fixed.
+** DONE Gate block-end, pin both clauses of drained-ness, and stop interpolating paths into elisp :code:
+CLOSED: [2026-09-19 Sat 05:52]
+:PROPERTIES:
+:ID:       4cea9cec-c2f0-4723-a3d0-571a19c8d4ce
+:CREATED:  [2026-09-19 Sat 05:52]
+:END:
+
+Findings 6, 8, 13 and 14, shipped in [[orgit-rev:claude-code-ide-org::cc3b57e][cc3b57e]].
+
+*=block-end= was the one time script with no gate*, while =hooks.json='s own description claimed every permission-block row self-gates. Wired at =PostToolUse '*'=, so a consumer with the feature off paid =bash= + =cat= + =jq= on every tool call to reach a sentinel test that could never succeed. Gated **before** =cat=, which is what its header always promised.
+
+*The drains assertion failed when written, and that was the yield.* The review asked for =--queue-file-drained-p= to be asserted; doing so failed, because its second clause is idleness and a freshly written fixture is not idle. So the test now pins the conjunction in all three directions — empty but fresh is not drained, empty and idle is, idle but non-empty is not — which is stronger than the request and matches what the predicate promises.
+
+*And the escaping fix was wrong first, in the instructive way.* =CLAUDE_PROJECT_DIR= interpolated raw into an elisp string literal breaks on a quote, invisibly, because output is discarded and the =[[ -s ]]= guard treats empty as "Emacs unreachable". I replaced it with =(getenv "CLAUDE_PROJECT_DIR")= — which **silently unscoped every report**, because =emacsclient -e= evaluates in the *server's* process and read Emacs's own environment. Caught only by re-running the scoping comparison: all three cases returned an identical 2321 bytes where the consumer should have returned 2. A =sed=-based escaper replaced it; a path containing a quote now yields an empty payload rather than a broken form.
+
+The leaked temp directory (finding 14) rode along: bound in the =let*= so the existing =unwind-protect= cleans it.
+** DONE Tell a consumer when its MCP config is wrong, and stop four documents disagreeing :code:
+CLOSED: [2026-09-19 Sat 05:52]
+:PROPERTIES:
+:ID:       fc9de33b-e461-454f-a474-d1e4ec4d58ab
+:CREATED:  [2026-09-19 Sat 05:52]
+:END:
+
+Findings 3, 7, 9, 11, 12 and 15, shipped in [[orgit-rev:claude-code-ide-org::bb455c4][bb455c4]].
+
+*The one that could still leave a consumer with no tools* was =--org='s silent =exists:= line. Any pre-existing =.mcp.json= — one unrelated MCP server is enough — reproduced =805bf287= in full while printing one unremarkable line among a dozen. It now distinguishes, and prints the exact JSON block to merge. =--check= gained the matching assertion rather than only a footer disclaimer, since the session name is baked in at =--org= time and a clone under another name, a rename or a port change all break it silently.
+
+*Three documents claimed promotion was conditional* when it is unconditional and the **feature** is what is gated — including the always-loaded =org-state-transitions.md=, so a reader drew exactly the inference =org-time-tracking.md= opens by forbidding.
+
+*The OFF line had no limiter* while every sibling report does. Now once a day via a dated stamp, for the reason =2758f3a0= measured: an instruction stopped being followed 41 times in 45, every miss on a re-mention. Fails **open**, because saying it twice is noise and never saying it is a consumer who never learns the feature exists. The ON line stays unlimited and a test asserts the asymmetry — it is a fact, not an instruction.
+
+*Two findings were partly wrong, and the corrections are the record.* =--config <key=value>= **is** a real flag of =claude plugin install=, verified against its =--help=; the *route* was wrong, since this plugin installs from a clone and not a marketplace. And the =\\'= escapes were **30 added, 0 removed** — no existing line churned, so the claimed diff noise over unchanged text did not exist. 27 replaced, only on lines this branch added, leaving 230 pre-existing ones — some genuine regexp anchors — untouched.
+** DONE Split the time-tracking derivations out of the always-loaded rules :code:
+CLOSED: [2026-09-19 Sat 05:53]
+:PROPERTIES:
+:ID:       428afa68-80ec-460a-a16c-446041963fc4
+:CREATED:  [2026-09-19 Sat 05:53]
+:END:
+
+Finding 10, shipped in [[orgit-rev:claude-code-ide-org::b055a10][b055a10]] — the only one of the fifteen that was a *decision* rather than a defect, and the only one settled with the user rather than alone.
+
+=org-time-tracking.md= had reached 335 lines, **29% of the always-loaded rules**, in a default install whose own first line says nothing in it applies.
+
+*Cut by actionable versus derivation, not by section*, which is why the stale-interval **recovery call** stays promoted while its mechanism does not: a session handed that report needs to know which function to invoke and does not need to know why =pmset= was declined. Promoted keeps 261 lines; =org-time-tracking-internals.md= takes 123 and is deliberately not promoted, the same choice =org-emacs-setup.md= already made. Always-loaded rules 1149 → 1079; time tracking's share 29% → 24%.
+
+*Byte-lossless* — every non-blank line of the original appears verbatim in one of the two files, the summary prose purely additive. Unlike the two earlier splits that day there were no deliberate rewrites to enumerate.
+
+*It honours the recorded decision rather than overturning it*, which is why the disposition took two exchanges to settle. =1b36c5bd= established that the gate is the **feature**, in one place, never the prose; nothing here is newly switchable, so a consumer who turns time tracking on still receives every rule — which the review's own alternative, leaving the file unpromoted entirely, would have cost them. Its other alternative, a =--time-tracking= promotion flag, **was** at odds with that decision and with =01f7a19c='s rejection of a second switch, and was declined.
+
+*What the finding actually corrected was the cost estimate, not the logic.* "Costs a consumer one unread reference" is fair for a short file and wrong by an order of magnitude for a 335-line one — and wrong in the direction that made the decision look free.
+
 * TODO Promotion never removes, and --check never looks, so a dropped rule file would linger in every consumer :code:
 :PROPERTIES:
 :ID:       96ad6e95-452d-4be2-9bc7-b2c2efa44988
