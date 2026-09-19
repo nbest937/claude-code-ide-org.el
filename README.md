@@ -163,9 +163,11 @@ Two consequences worth knowing before you do:
   `userConfig`**, where the option simply does not exist. The gate
   defaults to off in that case, which is the safe direction.
 
-`.claude/rules/org-time-tracking.md` is promoted either way — promotion
-cannot see a plugin option — so its presence is not evidence the feature
-is on. The `/config` command is.
+`.claude/rules/org-time-tracking.md` is promoted only by
+`claude-org-setup --time-tracking` — setup cannot see the plugin option,
+so say so when you turn the feature on, and a plain re-run removes the
+copy again. Unpromoted it costs a session nothing; promoted it is 260
+always-loaded lines.
 
 ### Developing this repo
 

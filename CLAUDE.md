@@ -417,11 +417,14 @@ human-run.
 `skills/org/references/org-session-tracking.md`. Everything time-shaped
 — guideposts, the three numbers that shape a recorded interval,
 permission blocks, stale-interval recovery and the transition table's
-clock column — is `skills/org/references/org-time-tracking.md`. **Both promote
-unconditionally**, here and in every consumer: promotion cannot see a
-plugin option, so what is gated is the *feature*, never the prose. The
-time file's own opening says its presence is not evidence the feature is
-on, and names the check.
+clock column — is `skills/org/references/org-time-tracking.md`. **The first
+promotes always; the time file only where setup was told the feature is
+on** (2026-09-19, `:ID:` 1b69fe4e) — `--time-tracking`, the hooks' own
+variable, or a repo whose `.claude/settings.json` wires that variable,
+which is how this repo still gets it. Promotion cannot see the plugin
+option, so the feature's gate stays in the scripts; but an unscoped rule
+is read at launch, and 260 lines for a feature that is off was not the
+"one unread reference" the old choice assumed.
 
 The wiring exists twice on purpose — this repo through
 `.claude/settings.json`, consumers through the plugin's

@@ -5,9 +5,9 @@
 
 # Time tracking (guideposts, spans, clocks)
 
-> Ships with the **claude-code-ide-org** plugin and is promoted
-> unconditionally, because promotion cannot see a plugin option. What
-> gates the *feature* is the `time_tracking` option, described below.
+> Ships with the **claude-code-ide-org** plugin and is promoted only
+> where `claude-org-setup` was told time tracking is on (`:ID:` 1b69fe4e).
+> What gates the *feature* is the `time_tracking` option, described below.
 > Its companion `org-session-tracking.md` carries the task-tracking
 > hooks, which are never gated. The consuming project's own rules take
 > priority over this file.
@@ -19,9 +19,11 @@ ship *wired*, but every time-tracking script gates itself on the plugin's
 `org_clock_in` and `org_clock_out` queue events that nothing consumes, no
 guidepost is ever appended, and no span is ever offered.
 
-**Do not read this file's presence as evidence the feature is on.** It is
-promoted unconditionally, because `claude-org-setup` cannot see a plugin
-option — so it loads in repos where none of it applies. Turn it on with
+**This file is loaded because setup was told the feature is on** —
+`claude-org-setup --time-tracking`, the hooks' own variable in setup's
+environment, or a repo whose `.claude/settings.json` wires that variable
+itself. Setup cannot see the plugin option, so the two can still
+disagree; the option is what the hooks obey. Turn it on with
 Claude Code's `/config` command — a slash command typed in a session,
 not a path — which is also where you check which it is. (A marketplace
 install could pass `--config time_tracking=true` instead; this plugin is

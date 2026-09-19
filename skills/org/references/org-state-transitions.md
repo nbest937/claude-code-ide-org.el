@@ -25,10 +25,9 @@ transitions this project uses:
 
 **Where the time-tracking hooks are wired, several of these rows also
 open or close a clock.** That column, and every rule governing it, is in
-`org-time-tracking.md`. That file is promoted **unconditionally** —
-promotion cannot see a plugin option — so its presence says nothing about
-whether the feature is on; its own opening says so and says how to check.
-With the feature off there is nothing to call: `org_clock_in` and
+`org-time-tracking.md`, which `claude-org-setup` promotes only where it
+was told the feature is on — so if that file is not loaded, none of this
+applies. With the feature off there is nothing to call: `org_clock_in` and
 `org_clock_out` queue events that nothing consumes.
 
 **The table describes setting a keyword because the work is happening
