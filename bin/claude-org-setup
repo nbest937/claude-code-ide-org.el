@@ -188,9 +188,13 @@ if [ "$org" = 1 ]; then
   # Collision-checked like the org templates: an existing file is
   # reported and left alone, never merged. A consumer may already have
   # MCP servers of their own, and a blind overwrite would take them out.
+  # `|| true' below: under set -e and pipefail a missing $mcp_src fails
+  # the substitution and kills the script there, so the "no port found;
+  # skipping" branch was unreachable -- found 2026-09-19 by a test
+  # fixture with no .mcp.json (TODO.org :ID: 94e6b615).
   mcp_src="$plugin_root/.mcp.json"
   mcp_dest="$target/.mcp.json"
-  mcp_port="$(sed -n 's|.*http://localhost:\([0-9][0-9]*\)/mcp/.*|\1|p' "$mcp_src" 2>/dev/null | head -1)"
+  mcp_port="$(sed -n 's|.*http://localhost:\([0-9][0-9]*\)/mcp/.*|\1|p' "$mcp_src" 2>/dev/null | head -1 || true)"
   if [ -z "$mcp_port" ]; then
     echo "claude-org-setup: no port found in $mcp_src; skipping .mcp.json" >&2
   elif [ -e "$mcp_dest" ]; then
@@ -535,7 +539,7 @@ if [ "$check" = 1 ]; then
   # because a consumer may legitimately have added servers of their own.
   mcp_src="$plugin_root/.mcp.json"
   mcp_dest="$target/.mcp.json"
-  mcp_port="$(sed -n 's|.*http://localhost:\([0-9][0-9]*\)/mcp/.*|\1|p' "$mcp_src" 2>/dev/null | head -1)"
+  mcp_port="$(sed -n 's|.*http://localhost:\([0-9][0-9]*\)/mcp/.*|\1|p' "$mcp_src" 2>/dev/null | head -1 || true)"
   want_url="http://localhost:$mcp_port/mcp/$(basename "$target")"
   if [ ! -f "$mcp_dest" ]; then
     echo "missing: $mcp_dest -- this project has no org tools (run claude-org-setup --org)"
