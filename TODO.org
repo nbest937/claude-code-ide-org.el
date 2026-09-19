@@ -2,6 +2,30 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* NEXT config.el is the last place time tracking and task tracking are still entangled, 30% of 18k lines :code:
+:PROPERTIES:
+:ID:       a7f844ba-7b70-48c6-833c-cd7e4e38cf14
+:CREATED:  [2026-09-19 Sat 08:08]
+:CATEGORY: Dev
+:END:
+
+=8bbae3aa= separated time tracking from task tracking everywhere except the module. The hooks self-gate, the rules forked into =org-time-tracking.md=, the manifest declares the option, the prose demoted the goal — and =modules/tools/claude-code-ide-org/config.el= still holds both in one file of **17,954 lines**, every line of which a consumer loads whether or not the feature is on.
+
+*Measured 2026-09-19.* The file declares **45 =;;;= sections**, and eight of them are time-shaped — =Span evidence= (1859), =One stretch of work, one lane= (1767), and the clock, guidepost, stale-interval and attention machinery — totalling **5405 lines, 30% of the file**. The remaining 37 sections are 12,504 lines. No section dominates: the largest is 1991 lines and a dozen sit between 400 and 2000, so the decomposition is broad rather than lopsided.
+
+*Four motivations, ranked, because only some are independent:*
+
+1. *The time/task seam.* The strongest, the only one that benefits a **consumer**, and a direct continuation of =8bbae3aa= rather than a new idea. A default install loads 5405 lines that can never run for it.
+2. *The structure already exists.* Splitting would **materialise** a decomposition already documented in comments — =Capture=, =Refile=, =Write-through gate=, =Native transition enforcement= — not invent one. That is what makes this a move rather than a redesign.
+3. *Size alone.* Real, and the weakest: a large file is not wrong.
+4. *A digest boundary.* What prompted the idea, and now the least of it. =2cd74268= wants a checksum over the apply path; a digest over eleven *named* functions is fragile to additions, where a file boundary includes new ones automatically. Filed as a sibling of that heading rather than a child precisely because motivation 1 outlives the ratchet being cancelled.
+
+*Two costs to name before committing.* =claude-code-ide-org--append-to-drawer= has four call sites across four sections, only two of them on the apply path, so shared helpers need a home and the split is not mechanical — and drawer writing is where **both** of this project's data-loss incidents lived (=ba8249c1=, =b74e0f19=, per =c084553c='s survey). And =bin/check-conventions= asserts "config.el tool-registration block is the last top-level form", which exists for a reason and needs rethinking rather than deleting.
+
+*Also to establish first, cheaply:* whether the module is loaded by Doom as one file or by path. It is symlinked into =~/.config/doom/modules/tools/= and enabled via =:tools claude-code-ide-org=, so splitting turns implicit single-file loading into explicit ordering — and the =org-clock-persist-load= trap (org-dev skill §2) is the standing evidence that load *order* in this module is not a free variable.
+
+*Not a member of any slice.* Its strongest motivation continues a closed one; it earns a slice of its own or joins whichever is nominated next.
+
 * TODO Promotion never removes, and --check never looks, so a dropped rule file would linger in every consumer :code:
 :PROPERTIES:
 :ID:       96ad6e95-452d-4be2-9bc7-b2c2efa44988
@@ -174,6 +198,27 @@ Open questions:
 - *Whether this is wanted at all.* =d3149a81= should report first: if a task-only review buffer is merely short rather than burdensome, the ratchet is machinery in search of a problem, and this project's precedent is observation before machinery.
 
 Not a member of =8bbae3aa= and not prioritized: this is backlog, to be promoted into a future slice when completing it matters. The subtasks named above — the digest reset, the graduation threshold, the =config.el= split — belong under this heading rather than beside it.
+
+*The gating question is answered, 2026-09-19, and the answer is the opposite of what this body predicted.* "Whether this is wanted at all" deferred to =d3149a81=, which closed having measured **correctness** — that a guidepost-free queue yields the right items and drains — and never measured *burden*. So the question had no owner. Measured now, across all 74 queue files in =~/.claude/org-updates/= and its =archive/=:
+
+: task events (todo/capture/amend)   970
+: time events (guideposts, clocks)  4287
+
+Task events map **1:1 to review items** — the builder pushes one proposal per event, deliberately, so two amendments to one heading stay separately acceptable — while thousands of guideposts collapse into a handful of spans. So items per pass is a direct count:
+
+: sessions with zero task items    40 of 74
+: of those with any, median         16
+: mean                              28.5
+: heaviest                          96
+
+*The burden is bimodal, not small.* Most sessions would offer nothing; a working session offers a median of 16 discrete accept/reject decisions and routinely 30–96. This body's guess — "if a task-only review buffer is merely short rather than burdensome, the ratchet is machinery in search of a problem" — does not survive its own measurement. **The ratchet is wanted.**
+
+*Two limits on what that measures, both cutting the same way.* It counts items, not minutes: a keyword change is a faster judgement than attributing a span, so 16 task items is less work than 16 mixed ones. And it is measured on *this* repo, the most active org consumer that will ever exist; a typical consumer's sessions likely sit in the 40-of-74 bucket. Neither rescues the 96-item case.
+
+*Scope corrected at the same time, and this heading is smaller than it looked.* The =digest= half does **not** belong here: =f12f9da4= — "The running Emacs can be running a stale =config.el= and nothing says so", an open member of =8a2eb687= — is already its home, and building it here would have made a twin. And the =config.el= split is filed standalone, because its strongest motivation is the time/task seam (5405 lines, 30% of the module) and it outlives this heading being cancelled.
+
+*What remains here is two things*: the toggle itself, and what "observed enough" counts. Not divided, deliberately — at two subtasks the parent would be a container holding almost nothing, and the reset it depends on lives elsewhere.
+
 
 
 * TODO Survey what has landed since August that the statusline should be using and is not :code:research:
@@ -2300,6 +2345,17 @@ and reordering =org-agenda-files= silently re-points it. Secondary defect in the
 same place: using the directory basename as the session id means two tracked
 repos sharing a basename collide, the later registration overwriting the
 earlier. Sibling of [[id:d718f6b6-5a33-4889-8b5a-8ea82553ccea][d718f6b6]].
+
+*Largely closed 2026-09-18/19 by work that did not know this heading existed*, which is worth recording as much as the fix. The =warp= alias was rediscovered from scratch during =8bbae3aa= — traced from a consuming session having no org tools, through =claude mcp list=, to =(car projects)= — and excised in [[orgit-rev:claude-code-ide-org::d5c9398][d5c9398]]. This heading had described the same defect eight days earlier, on 2026-09-11, in the same terms. Nobody looked.
+
+*The primary defect is gone.* No shipped config names =/mcp/warp=: the root =.mcp.json= names =/mcp/claude-code-ide-org=, =.warp/.mcp.json= was repointed by the maintainer, =plugin.json= no longer declares =mcpServers= at all, and =claude-org-setup --org= generates each consumer's file from its own basename. The =(register-session "warp" (car projects) nil)= call is deleted, and =test-standalone-wire-registers-per-repo= now asserts the **exact** registration list rather than membership, so an alias cannot return silently — proved by re-adding it and watching the test fail. Verified against a cold boot, not a reload: a fresh Emacs registers two sessions, neither named =warp=.
+
+*The secondary defect survives untouched, and is now the whole of this heading.* "Using the directory basename as the session id means two tracked repos sharing a basename collide, the later registration overwriting the earlier." Nothing done in =8bbae3aa= addressed that. It is also strictly harder than the part that got fixed, because a basename is what a consumer's generated =.mcp.json= names — so a collision is not just an Emacs-side overwrite, it is two repos' static configs pointing at one session id with no way to tell them apart.
+
+*So this heading should be re-scoped rather than closed*, and its title now overstates what remains: ordering is no longer the instability, collision is. Whoever picks it up should also check =d718f6b6=, named here as its sibling, for the same overlap.
+
+*The lesson is not about the alias.* A heading filed by a review pass sat in an open slice for eight days while the identical defect was rediscovered from first principles by a session that had read =TODO.org= that morning. The org-dev skill's standing rule — "the tracker first, a past session may have already done the reading" — is exactly what would have caught it, and it is written down.
+
 
 
 * TODO A deferred targetless capture loses its project routing when the queue is applied :code:
