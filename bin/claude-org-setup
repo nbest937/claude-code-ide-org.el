@@ -22,7 +22,8 @@ plugin_root="$(cd "$script_dir/.." && pwd)"
 refs="$plugin_root/skills/org/references"
 
 # Promoted set: the path-scoped conventions plus the five always-loaded
-# machinery rules. org-emacs-setup.md is deliberately absent — it is
+# machinery rules. org-emacs-setup.md and org-time-tracking-internals.md
+# are deliberately absent — both are
 # install-time reading, not per-session context.
 #
 # org-footnote-citations.md carries no path scope on purpose (TODO.org
