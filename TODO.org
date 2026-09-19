@@ -26,6 +26,7 @@
 
 *Not a member of any slice.* Its strongest motivation continues a closed one; it earns a slice of its own or joins whichever is nominated next.
 
+
 * TODO Promotion never removes, and --check never looks, so a dropped rule file would linger in every consumer :code:
 :PROPERTIES:
 :ID:       96ad6e95-452d-4be2-9bc7-b2c2efa44988
@@ -218,7 +219,6 @@ Task events map **1:1 to review items** — the builder pushes one proposal per 
 *Scope corrected at the same time, and this heading is smaller than it looked.* The =digest= half does **not** belong here: =f12f9da4= — "The running Emacs can be running a stale =config.el= and nothing says so", an open member of =8a2eb687= — is already its home, and building it here would have made a twin. And the =config.el= split is filed standalone, because its strongest motivation is the time/task seam (5405 lines, 30% of the module) and it outlives this heading being cancelled.
 
 *What remains here is two things*: the toggle itself, and what "observed enough" counts. Not divided, deliberately — at two subtasks the parent would be a container holding almost nothing, and the reset it depends on lives elsewhere.
-
 
 
 * TODO Survey what has landed since August that the statusline should be using and is not :code:research:
@@ -2355,7 +2355,6 @@ earlier. Sibling of [[id:d718f6b6-5a33-4889-8b5a-8ea82553ccea][d718f6b6]].
 *So this heading should be re-scoped rather than closed*, and its title now overstates what remains: ordering is no longer the instability, collision is. Whoever picks it up should also check =d718f6b6=, named here as its sibling, for the same overlap.
 
 *The lesson is not about the alias.* A heading filed by a review pass sat in an open slice for eight days while the identical defect was rediscovered from first principles by a session that had read =TODO.org= that morning. The org-dev skill's standing rule — "the tracker first, a past session may have already done the reading" — is exactly what would have caught it, and it is written down.
-
 
 
 * TODO A deferred targetless capture loses its project routing when the queue is applied :code:
@@ -4929,7 +4928,7 @@ alternative — and unlike the current review pass, it is six questions a day
 rather than nineteen.
 
 
-* TODO [3/21] Everything passed and the file was still wrong :code:
+* NEXT [3/21] Everything passed and the file was still wrong :code:
 :PROPERTIES:
 :ID:       8a2eb687-28da-4d44-893b-db59298bdc5b
 :CREATED:  [2026-09-01 Tue 09:11]
@@ -4944,6 +4943,8 @@ rather than nineteen.
   the slice to pick up after this one
 - State "TODO"       from "NEXT"       [2026-09-17 Thu 12:10] \\
   yields the Slices nomination to 8bbae3aa
+- State "NEXT"       from "TODO"       [2026-09-19 Sat 08:14] \\
+  Slices had no nomination after 8bbae3aa closed; it already owns f12f9da4 and 965f94eb, and today produced three fresh instances of its theme
 :END:
 
 *The theme, briefly, in place of a plan — the full prompt comes later.* The
@@ -10714,6 +10715,7 @@ CLOCK: [2026-09-18 Fri 15:19]--[2026-09-18 Fri 15:24] =>  0:05
 - <2026-09-18 Fri 17:08>--<2026-09-18 Fri 17:08> review pass (buffer buried)
 CLOCK: [2026-09-18 Fri 17:09]--[2026-09-18 Fri 17:12] =>  0:03
 CLOCK: [2026-09-19 Sat 07:22]--[2026-09-19 Sat 07:24] =>  0:02
+- <2026-09-19 Sat 08:12>--<2026-09-19 Sat 08:12> review pass (buffer buried)
 :END:
 
 We created this heading on 2026-08-26. We deleted that property from its
@@ -11663,4 +11665,18 @@ CLOCK: [2026-09-19 Sat 05:49]--[2026-09-19 Sat 05:54] =>  0:05
 - [2026-09-19 Sat 05:49]--[2026-09-19 Sat 05:54] root-cause unattributed spans, file discipline fix
 CLOCK: [2026-09-19 Sat 07:18]--[2026-09-19 Sat 07:21] =>  0:03
 - [2026-09-19 Sat 07:18]--[2026-09-19 Sat 07:21] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-19 Sat 07:32]--[2026-09-19 Sat 07:36] =>  0:04
+- [2026-09-19 Sat 07:32]--[2026-09-19 Sat 07:36] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-19 Sat 07:40]--[2026-09-19 Sat 07:41] =>  0:01
+- [2026-09-19 Sat 07:40]--[2026-09-19 Sat 07:41] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-19 Sat 07:44]--[2026-09-19 Sat 07:45] =>  0:01
+- [2026-09-19 Sat 07:44]--[2026-09-19 Sat 07:45] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-19 Sat 07:52]--[2026-09-19 Sat 07:53] =>  0:01
+- [2026-09-19 Sat 07:52]--[2026-09-19 Sat 07:53] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-19 Sat 07:57]--[2026-09-19 Sat 07:59] =>  0:02
+- [2026-09-19 Sat 07:57]--[2026-09-19 Sat 07:59] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-19 Sat 08:07]--[2026-09-19 Sat 08:09] =>  0:02
+- [2026-09-19 Sat 08:07]--[2026-09-19 Sat 08:09] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-19 Sat 08:14]--[2026-09-19 Sat 08:17] =>  0:03
+- [2026-09-19 Sat 08:14]--[2026-09-19 Sat 08:17] root-cause unattributed spans, file discipline fix
 :END:
