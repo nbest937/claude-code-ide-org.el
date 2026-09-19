@@ -2,6 +2,557 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO sync-plans reads any mention of a plan filename as a link, so prose naming an orphan re-links it :code:observed:
+:PROPERTIES:
+:ID:       ecb1dde8-fd3b-4e26-9bdf-a69db30d5e2c
+:CREATED:  [2026-09-19 Sat 14:38]
+:CATEGORY: Dev
+:END:
+
+Observed 2026-09-19: the first plan unlinked under the drawer convention was deleted from the archive directory, and =bin/sync-plans --check= immediately reported it "out of date" and wanted it back — because a body amendment on =ff1bec00= had named the file in =…= quotes as the first orphan. The matcher is a substring grep for the archive directory's name followed by a slug and the markdown extension, so a mention is a link. Rephrasing the sentence cleared it. Small in itself; it matters because the drawer convention will produce orphans on purpose, and prose that names them. Match the org =file:= link form, not the substring — and note that =bin/lint-org='s plan-link check has the same appetite: the first draft of this very body spelled the path pattern literally and lint reported a plan link to a missing file. Whether either is worth fixing before the whole mechanism retires is decided with =ff1bec00=.
+* TODO Twins are caught by review and nothing reviews for them: a checker subagent with a saturated context, run as a pass :code:
+:PROPERTIES:
+:ID:       9fb8c1fb-1f86-4dc1-9203-6c7abfd27594
+:CREATED:  [2026-09-19 Sat 14:01]
+:CATEGORY: Meta
+:END:
+:PLAN:
+*Why a subagent and not a rule, in this project's own terms.* The five
+tiers of enforcement recorded on the drift slice run from prose the model
+must recall up to a tool that performs the step itself. Judgement cannot
+be performed by a tool, so twin detection cannot reach the top tier — but
+it can leave the bottom one. A subagent whose whole context is "here are
+the org conventions' story and twin paragraphs, here are these twelve
+headings and their bodies, which are the same work?" is not carrying the
+1,573-line standing surface, and that narrowing is the entire claim: the
+same judgement the orchestrator makes badly mid-task, made well because
+nothing else is in the window.
+
+*The invocation is the hard part, and §4.5 says why.* "Ask the checker
+before asking the user" is itself a rule competing for recall, so a
+subagent the orchestrator must remember to call is tier one again. The
+three invocations that are not: (1) a *pass* — the ceremony extension
+[[id:527be4e3-d77a-487b-b309-ee677c109b13][527be4e3]] already proposes
+for membership, extended to twins, spawned by the session that runs the
+ceremony rather than by the session doing work; (2) a scheduled run
+outside any working session, which the project has never had and
+[[id:527be4e3-d77a-487b-b309-ee677c109b13][527be4e3]] weighs as "only if
+scheduled rituals become first-class"; (3) the last-resort form, a
+=SessionStart= injection naming the candidates, which is tier three and
+only as good as the model relaying it. Start with (1): it costs no new
+machinery and runs when a human is already reviewing.
+
+*It proposes; it never restructures.* A twin finding is a suggestion
+to the human — merge, refile, or declare them distinct and say why in a
+body. Both of the analysis's constraints hold here unchanged, and the
+project's own precedent for what happens when membership-shaped
+judgement is mechanised is the retired auto-promotion trigger.
+
+*Input.* The same query [[id:c8773ec2-1b29-4128-80b3-5c21845f4ca3][c8773ec2]]
+runs per capture, run over the corpus — recent captures against all live
+headings, plus =DONE.org= for the "already fixed" case the transcript in
+the analysis shows. One query, two consumers.
+
+*Relationship to the sweep.* [[id:527be4e3-d77a-487b-b309-ee677c109b13][527be4e3]]
+asks "which grouping does this belong to"; this asks "does this already
+exist". Same pass, same input, different question — close enough that
+they should ship as one pass with two findings, and far enough that the
+findings must not be conflated: a twin is an error, an unattached task is
+not.
+
+*Measured against what.* [[id:63713df3-4ed9-42be-b971-8ac4485e76c2][63713df3]]
+counts hook-visible misses; a twin is not one of those and never will be,
+so this pass's own count — twins found per pass — is a second series,
+kept beside the first, not folded into it.
+:END:
+
+The conventions say a twin — two headings for the same work — "is caught by review, never by the composer", and no review looks for one: the ceremony names pending items, drawer order and unarchived closes, and a twin is none of those. The drift analysis's §4.4, as revised 2026-09-19, names the mechanism for judgement-level curation that this project had not: a subagent invoked for one question, holding the relevant convention section and the query result and nothing else, run as a pass rather than remembered mid-task.
+
+* NEXT [0/8] A rule the agent can recite and still misses is a rule in the wrong place: count the misses, then move the rules out of recall :code:
+:PROPERTIES:
+:ID:       f6d160c2-c0ac-4c4b-a298-fe581ea3962a
+:CREATED:  [2026-09-19 Sat 13:50]
+:CATEGORY: Slices
+:KIND:     slice
+:COOKIE_DATA: checkbox recursive
+:BLOCKER:  63713df3-4ed9-42be-b971-8ac4485e76c2 436e0991-c8ac-40fb-860d-a6c4c381bee5 1b69fe4e-3dab-4b11-b21b-96320bf9d4e0 bf7e0b8e-f83a-4d4a-9950-3ab23a225156 3cd7b7d3-25eb-4f30-ae90-9174a6876674 c8773ec2-1b29-4128-80b3-5c21845f4ca3 9fb8c1fb-1f86-4dc1-9203-6c7abfd27594 f2030ce9-3759-407c-b459-fe4ba4de8854
+:END:
+:PLAN:
+Composed 2026-09-19 at the user's direction from the convention-drift
+analysis (=convention-drift-analysis.md=, untracked at composition): seven
+headings sharing one deliverable, a miss rate that can be seen and shown
+to fall. The analysis's thrust is that the agent forgets rules it can
+recite; each member removes one reason, and the first member is the
+number the others are measured against.
+
+*Order, and why.* [[id:63713df3-4ed9-42be-b971-8ac4485e76c2][63713df3]]
+leads: a slice that cannot show its number moving has nothing to close
+on, and its instrumentation is cheap. Then the two load-path defects,
+[[id:436e0991-c8ac-40fb-860d-a6c4c381bee5][436e0991]] and
+[[id:1b69fe4e-3dab-4b11-b21b-96320bf9d4e0][1b69fe4e]], since a rule that
+does not load cannot be recalled and no compression helps it. Then the
+budget ([[id:bf7e0b8e-f83a-4d4a-9950-3ab23a225156][bf7e0b8e]]) and the
+enforcement audit ([[id:3cd7b7d3-25eb-4f30-ae90-9174a6876674][3cd7b7d3]])
+together, one sitting over the same files. Then the structural fix for
+the case study itself, [[id:c8773ec2-1b29-4128-80b3-5c21845f4ca3][c8773ec2]],
+which the audit will have confirmed as the shape to copy. Last the
+ratchet, [[id:f2030ce9-3759-407c-b459-fe4ba4de8854][f2030ce9]], blocked
+on the budget it asserts.
+
+*Candidates not adopted at composition*, each waiting on an amendment
+drafted the same day and not yet written:
+[[id:8a23d6ec-ca45-454d-b65f-e46ea9204816][8a23d6ec]] (comma-escaping,
+inverted to enforcement-first) and
+[[id:7eb7dd8d-2d9b-4a63-afbd-5878298e42a4][7eb7dd8d]] (the judgement half
+of the duplicate check). [[id:3cb3f955-f10a-47cd-84ab-e629d73ea59d][3cb3f955]]
+is the opposite case: under this slice's discipline it is retired, not
+adopted, because the uncommitted capture is the approval window.
+
+*The slice was composed through the defect it exists to reduce.* Every
+member's =org_capture= body was silently dropped and restored by hand
+hours later ([[id:bbf9fb77-f081-48c5-bb01-1b4d4f201969][bbf9fb77]],
+fourth occurrence), and =org_slice_add_member= timed out through MCP and
+succeeded through =emacsclient=
+([[id:51bcec2c-242d-4e06-9610-0b9aeac1f92c][51bcec2c]]). Neither is a
+member; both are evidence for the first one.
+
+*Correction, same day.* Two lines above are stale. "[[id:7eb7dd8d-2d9b-4a63-afbd-5878298e42a4][7eb7dd8d]] (the judgement half of the duplicate check)": that heading was narrowed and retitled the same afternoon to the *dependency* check — a request against open work in either direction — and the duplicate judgement now lives per-capture in the reader of [[id:c8773ec2-1b29-4128-80b3-5c21845f4ca3][c8773ec2]]'s result and corpus-wide in [[id:9fb8c1fb-1f86-4dc1-9203-6c7abfd27594][9fb8c1fb]], which joined as the seventh member. Its residue is a candidate third finding of that pass, not a member here. And "[[id:3cb3f955-f10a-47cd-84ab-e629d73ea59d][3cb3f955]] is retired": recommended, not done — its amendment records the reasoning and leaves the keyword to the user.
+
+*Settled the same evening.* The user kept the existing practice: sessions commit their own captures and bookkeeping without asking, so [[id:3cb3f955-f10a-47cd-84ab-e629d73ea59d][3cb3f955]] is neither retired nor adopted here — it narrows to writing down its safety predicate. "Under this slice's discipline it is retired" above is withdrawn; the slice's discipline is *capture without asking, commit without asking*, and the approval is after the fact.
+:END:
+
+Planned:
+
+- [ ] [[id:63713df3-4ed9-42be-b971-8ac4485e76c2][63713df3]] TODO "Forgets frequently" has no number: the only recorded misses are once-per-session sentinels, so the rate cannot be seen or shown to fall
+- [ ] [[id:436e0991-c8ac-40fb-860d-a6c4c381bee5][436e0991]] TODO Path-scoped rules load on a Read, which the org tools exist to replace, so the conventions load only on the discouraged path
+- [ ] [[id:1b69fe4e-3dab-4b11-b21b-96320bf9d4e0][1b69fe4e]] TODO org-time-tracking.md promotes with no path scope, so a consumer with the feature off loads 260 lines about it every session
+- [ ] [[id:bf7e0b8e-f83a-4d4a-9950-3ab23a225156][bf7e0b8e]] TODO The always-loaded surface is 1,573 lines, and the split that shrank CLAUDE.md is what grew it
+- [ ] [[id:3cd7b7d3-25eb-4f30-ae90-9174a6876674][3cd7b7d3]] TODO Audit the always-loaded rules for clauses a hook could enforce, since prose recall is what fails
+- [ ] [[id:c8773ec2-1b29-4128-80b3-5c21845f4ca3][c8773ec2]] TODO org_capture should run the duplicate query itself, so the check the rule asks for cannot be skipped
+- [ ] [[id:9fb8c1fb-1f86-4dc1-9203-6c7abfd27594][9fb8c1fb]] TODO Twins are caught by review and nothing reviews for them: a checker subagent with a saturated context, run as a pass
+- [ ] [[id:f2030ce9-3759-407c-b459-fe4ba4de8854][f2030ce9]] TODO Nothing bounds the always-loaded rule surface, so every new rule is free at the point of writing
+
+* TODO "Forgets frequently" has no number: the only recorded misses are once-per-session sentinels, so the rate cannot be seen or shown to fall :code:research:
+:PROPERTIES:
+:ID:       63713df3-4ed9-42be-b971-8ac4485e76c2
+:CREATED:  [2026-09-19 Sat 13:44]
+:CATEGORY: Skill
+:END:
+:PLAN:
+*Why this is a separate heading from the mechanisms.* The user's report is
+"routinely violates conventions it has been told about — sometimes for the
+third time in a day". Six headings filed 2026-09-19 each attack a cause:
+the always-loaded budget ([[id:bf7e0b8e-f83a-4d4a-9950-3ab23a225156][bf7e0b8e]]),
+the enforcement audit ([[id:3cd7b7d3-25eb-4f30-ae90-9174a6876674][3cd7b7d3]]),
+the duplicate query inside =org_capture= ([[id:c8773ec2-1b29-4128-80b3-5c21845f4ca3][c8773ec2]]),
+the load trigger ([[id:436e0991-c8ac-40fb-860d-a6c4c381bee5][436e0991]]),
+the unconditional time-file promotion ([[id:1b69fe4e-3dab-4b11-b21b-96320bf9d4e0][1b69fe4e]]).
+Each is a hypothesis about *why*, and the project's rule is that a
+proposed mechanism is measured before it is recommended. Nothing measures
+the thing they are all for.
+
+*What exists, counted 2026-09-19 in =~/.claude/org-updates/=:* 67 session
+queue files; 5 =.footnote-blocked= and 2 =.clock-target-nagged= sentinels.
+Three limits make that not a rate. Each sentinel fires at most once per
+session, so it says "at least one", never how many. Only two rules have
+a blocking hook at all — the category refusal in =org_capture= and the
+=PLAN= nag are the others, and neither records a hit. And the hooks see a
+fraction: =footnote-check= reads only the turn's final text block, and
+=clock-target-check= reads a queue that under-reports the very writes it
+looks for (its own header says so). The misses that reach the human — "did
+you check?" — reach no file at all.
+
+*The cheap instrumentation is already half-built.* Every backstop hook that
+blocks, refuses or injects could append one line to the session's queue
+file — =kind: miss=, the rule's name, the turn — through =queue-append=,
+which is the plain-shell, Emacs-free path the hooks already use. The apply
+pass already ignores kinds it does not render. Then a rate per session,
+per rule, per day is one =jq= over the directory, and the daily ceremony
+report has a number to print beside the pending count. This is the sentinel
+mechanism generalised from a once-per-session boolean to a count, and it
+removes the sentinels' second job as the record.
+
+*What it cannot count, and should say so:* misses caught by the human in
+conversation, which are the ones the drift analysis is about. Two options,
+neither free. A hook on =UserPromptSubmit= cannot classify a prompt as a
+correction without judgement. A lightweight convention — the user's
+correction is answered with a capture or amend that cites the rule missed
+— turns the human's catch into a queue event through the tools' existing
+=PostToolUse= matchers, at the cost of being itself a rule the agent must
+remember, which is the failure being measured. The honest baseline may be
+the hook-visible subset, stated as a floor.
+
+*Precedents that already argue this shape:* [[id:c5b02503-1700-47fd-bf89-bd3296b24af2][c5b02503]]
+(injected context is only as reliable as the model relaying it — the same
+tier-three limit) and [[id:43aa25b2-1e21-4117-bf15-b92f3081b60d][43aa25b2]]
+(a forgotten state got a watcher, not a stronger sentence).
+
+*Composition, for the user to decide:* the six mechanism headings and this
+one share a single deliverable — a lower miss rate — and are the shape the
+conventions call a slice. This heading would be its first member, since a
+slice that cannot show its number closing has nothing to close on.
+:END:
+
+The drift analysis's thrust is to make the agent stop forgetting; every heading filed from it fixes a cause, and none owns the outcome. What is recorded today: 5 footnote-blocked and 2 clock-target-nagged sentinels across 67 session queue files — each meaning "at least once", from hooks that see only a fraction of misses. No mechanism heading can be shown to work against that.
+
+* TODO org-time-tracking.md promotes with no path scope, so a consumer with the feature off loads 260 lines about it every session :code:
+:PROPERTIES:
+:ID:       1b69fe4e-3dab-4b11-b21b-96320bf9d4e0
+:CREATED:  [2026-09-19 Sat 09:11]
+:CATEGORY: Dev
+:END:
+:PLAN:
+*The false premise, quoted from =bin/claude-org-setup= at the promote list:*
+"Promoting the file regardless costs a consumer one unread reference and
+keeps the gate in exactly one place." The second half is true; the first is
+not. The file is written into =.claude/rules/= with no =paths:= frontmatter,
+and the Claude Code memory docs are explicit that such a rule is "loaded at
+launch with the same priority as =.claude/CLAUDE.md=". Unread references
+live in =skills/org/references/=; this one is promoted precisely so that it
+is read.
+
+*Measured 2026-09-19:* 260 lines / 2,192 words in the file, plus 54 lines
+mentioning clocks, guideposts or spans across the other four machinery
+files (25 in =org-state-transitions.md=, 13 in =org-event-queue.md=, 8 each
+in =org-mcp-tools.md= and =org-session-tracking.md=). Against the plugin's
+1,003-line imposed surface that is about 30%, in a configuration where
+=org_clock_in= queues an event nothing consumes.
+
+*The fix is small and the constraint is real.* Setup cannot read the
+=userConfig= option — that is why the gate went into the hook scripts. But
+setup can take a flag, and already prints advice about the option at the
+end of a run. =--time-tracking= (or reading the same variable the hooks
+read, =CLAUDE_PLUGIN_OPTION_TIME_TRACKING=, when it happens to be set)
+promotes the file; otherwise it is left in the references as the
+install-time reading its own header says it is. The gate stays in exactly
+one place for the *feature*; this is a second place for the *prose*, and
+the file's own opening — "do not read this file's presence as evidence the
+feature is on" — becomes unnecessary once its presence is evidence.
+
+*What this does not cover:* the 54 scattered lines. Those are the seam
+[[id:a7f844ba-7b70-48c6-833c-cd7e4e38cf14][a7f844ba]] names in =config.el=,
+showing up in prose; pull them into the time file where it is cheap, and
+leave the rest to the deletion pass
+([[id:bf7e0b8e-f83a-4d4a-9950-3ab23a225156][bf7e0b8e]]). Related:
+[[id:96ad6e95-452d-4be2-9bc7-b2c2efa44988][96ad6e95]] — once promotion is
+conditional, a consumer who turns the feature off later has an orphan, which
+is the removal case that heading says nothing handles.
+:END:
+
+bin/claude-org-setup promotes the time-tracking rules unconditionally on the stated premise that it "costs a consumer one unread reference". A promoted rule with no paths: frontmatter is read at launch, every session — so with the default toggle a consumer pays 26% of the plugin's imposed context for a feature that is off, before any of their own CLAUDE.md.
+
+* TODO Path-scoped rules load on a Read, which the org tools exist to replace, so the conventions load only on the discouraged path :code:observed:
+:PROPERTIES:
+:ID:       436e0991-c8ac-40fb-860d-a6c4c381bee5
+:CREATED:  [2026-09-19 Sat 09:08]
+:CATEGORY: Skill
+:END:
+:PLAN:
+*What "open" means, from the Claude Code memory docs, fetched 2026-09-19:*
+"Path-scoped rules trigger when Claude reads files matching the pattern, not
+on every tool use." The same page attributes the evaluation to the Read tool
+("one invalid pattern made the Read tool fail for every file the rule was
+evaluated against"), and after =/compact= such rules "reload as Claude reads
+files they apply to". So the trigger is Claude Code's own file tools on a
+matching path. Three things that look like opening and are not: an Emacs
+buffer holding the file; a Bash =sed=/=awk=/=grep= over it; and any =org_*=
+tool, which Claude Code sees as an MCP call carrying no path.
+
+*Which means the scope keys on the one thing the plugin tells sessions not to
+do.* The reading rules say "start with =org_outline=, not a file read"; the
+design note says text editing is for what does not need org's internals and
+the tools are for everything else. A session obeying both never Reads
+=TODO.org=, so =org-conventions.md= (1,082 lines) and
+=org-conventions-local.md= never enter its context. The rule surface is
+anti-correlated with correct tool use.
+
+*Observed, not inferred.* This session: five captures, five body amendments,
+one property set, all through the tools, plus a dozen Bash reads of
+=TODO.org= — and the conventions were never injected. That is
+[[id:b0d55552-6bbf-45b8-9897-f62e6bd779e3][b0d55552]]'s failure reproduced in
+the session that filed the finding, and it answers the "why" that heading
+left at "loads only when an =.org= file is open": the capturing sessions were
+not being careless, they were using =org_capture=.
+[[id:befaed0a-18ed-445e-b997-8b9c2965ad45][befaed0a]] verified lazy loading
+with a session that *Read* =TODO.org= — the discouraged path — so the
+verification passed for the case that does not occur.
+
+*Consequence for the budget question
+([[id:bf7e0b8e-f83a-4d4a-9950-3ab23a225156][bf7e0b8e]]).* The path-scoped
+bucket is not "words moved out of the budget"; it is words that mostly do
+not load. Whatever in those 1,195 lines must hold during tool-driven org work
+is currently held by CLAUDE.md pointers, by the org skill when it happens to
+trigger, or by luck.
+
+*Remedies, keyed on the right signal — undecided:*
+1. A =PostToolUse= matcher on the first =org_*= call of a session that injects
+   the conventions as =additionalContext=. The machinery exists
+   (=apply-detect= does exactly this shape), and the trigger is the act the
+   conventions govern. Cost: one large injection per session, only in
+   sessions that do org work.
+2. Fold the load-bearing parts into the org skill's =SKILL.md=, which loads
+   when the skill triggers. Cost: trigger-matching is fuzzy, which
+   [[id:c10bfb15-d0c7-47c0-b482-e944558711e9][c10bfb15]] already names as
+   the silent failure in another coat.
+3. Have the tools carry the rules: =org_capture='s refusal already lists the
+   categories in use, and that is the one convention no session has missed
+   since. Rules that ride on the tool result cannot fail to load.
+Option 3 is the same shape as the enforcement audit
+([[id:3cd7b7d3-25eb-4f30-ae90-9174a6876674][3cd7b7d3]]) and should be
+decided with it; 1 is the cheap interim.
+:END:
+
+"Open" means Claude Code's own Read tool touched a matching path — not an Emacs buffer, not a Bash read, not an org_* tool. A session that follows "start with org_outline, not a file read" therefore never loads org-conventions.md, and the better it behaves the less it sees. Observed live 2026-09-19: this session captured five headings and amended five bodies through the tools and never had the conventions in context.
+
+* TODO Nothing bounds the always-loaded rule surface, so every new rule is free at the point of writing :code:
+:PROPERTIES:
+:ID:       f2030ce9-3759-407c-b459-fe4ba4de8854
+:CREATED:  [2026-09-19 Sat 09:00]
+:CATEGORY: Dev
+:BLOCKER:  bf7e0b8e-f83a-4d4a-9950-3ab23a225156
+:END:
+:PLAN:
+*The ratchet.* [[id:bf7e0b8e-f83a-4d4a-9950-3ab23a225156][bf7e0b8e]] measures
+the always-loaded surface and decides a budget; this asserts it. Without the
+assertion the pattern that produced 1,573 lines runs again — new rule,
+exception, counter-rule, meta-rule against re-tightening — because the cost
+of a rule is paid by every later session and never by the commit that adds
+it. The two are ordered by the =:BLOCKER:=, since a check with no number to
+check is a check that always passes.
+
+*Where.* =bin/check-conventions=, which already runs at the commit gate and
+already knows the promoted-rule list. One more block: sum lines over
+=CLAUDE.md= plus every =.claude/rules/*.md= whose first line is not =---=
+(real YAML frontmatter, not the string =paths:= appearing in prose), compare
+to a number kept in one place, fail with the per-file table on overrun.
+
+*Two things it must not do.* Count the path-scoped files — they are exactly
+the words that were successfully moved out of the budget, and counting them
+would push the next split back into CLAUDE.md. And be satisfiable by
+relocation: a promoted machinery file carries no scope by design, so words
+moved from CLAUDE.md into a reference still count. That is the property that
+makes the number honest.
+
+*Undecided, and belongs to the budget heading:* the number itself, and
+whether the unit is lines or words — lines are what befaed0a's target used
+and what the corpus reports in; words are what a session actually pays.
+
+*Correction, same day.* The paragraph above calls the path-scoped files "the
+words that were successfully moved out of the budget". Not quite: they were
+moved out of the *always-loaded* budget, and the sibling finding filed an hour
+later is that they were thereby moved out of most sessions entirely, since a
+path-scoped rule triggers on Claude's =Read= of a matching file and the org
+tools exist so that no such read happens. The check should still not count
+them — but the reason is now "they are a separate problem", not "they are
+solved".
+:END:
+
+The rule count has only ever grown, one incident at a time, and no gate notices. Once a budget exists, bin/check-conventions asserts it at commit, so a compression pass cannot be silently undone by the next six postmortems.
+
+* TODO Audit the always-loaded rules for clauses a hook could enforce, since prose recall is what fails :code:
+:PROPERTIES:
+:ID:       3cd7b7d3-25eb-4f30-ae90-9174a6876674
+:CREATED:  [2026-09-19 Sat 09:00]
+:CATEGORY: Skill
+:END:
+:PLAN:
+*The claim, from an outside drift analysis read 2026-09-19:* the observed
+convention misses trace to rules that are mechanically checkable but
+implemented as prose recall. The project's own evidence agrees — the
+=Stop=-hook family exists because "cite the title" and "name the heading
+before the first write" did not survive as sentences — but the conversion has
+happened one incident at a time, never as a sweep.
+
+*The read-through, one pass over the eight always-loaded files:* for each
+clause of the shape "before/after X, do Y", classify Y.
+- *Mechanical and cheap* — a search, a lookup, a fixed call: convert to a
+  hook or a tool contract, and delete the sentence once the mechanism is
+  wired. Known members: comma-escaping headline lines inside a block
+  ([[id:8a23d6ec-ca45-454d-b65f-e46ea9204816][8a23d6ec]]), committing a fresh
+  capture ([[id:3cb3f955-f10a-47cd-84ab-e629d73ea59d][3cb3f955]]), the
+  duplicate query before a capture ([[id:c8773ec2-1b29-4128-80b3-5c21845f4ca3][c8773ec2]]).
+- *Judgement* — is this a slice or maintenance, is this heading a twin, which
+  member is next: stays prose, because no fixed procedure decides it. This is
+  the only category that earns always-loaded words.
+- *Neither* — a rule whose trigger no longer occurs, or whose mechanism is
+  already wired and merely described: retire the sentence.
+
+*What this is not.* It does not decide the word budget or delete history;
+that is [[id:bf7e0b8e-f83a-4d4a-9950-3ab23a225156][bf7e0b8e]], and the two
+share a read-through of the same files, so work them in one sitting. And it
+is not a licence to mechanise judgement: the retired auto-promotion trigger
+is the standing evidence for what a hook does with a membership-shaped
+question, and every surviving report asks rather than acts.
+
+*One caution the analysis itself supplies:* a reminder injected by a hook is
+still a sentence competing for attention. Prefer the shape that makes the
+omitted step *impossible* (the tool runs the check) over the shape that
+*reminds* (a =Stop= block naming what was missed), and reserve blocking for
+what cannot be done inside the tool.
+:END:
+
+Every rule of the shape "before X, always do Y" where Y is fixed and cheap is a hook candidate, and each one left as prose is a sentence competing for a turn's attention. One read-through of the always-loaded files, sorting each such clause into convert, keep, or retire.
+
+* TODO org_capture should run the duplicate query itself, so the check the rule asks for cannot be skipped :code:
+:PROPERTIES:
+:ID:       c8773ec2-1b29-4128-80b3-5c21845f4ca3
+:CREATED:  [2026-09-19 Sat 08:56]
+:CATEGORY: Tools
+:END:
+:PLAN:
+*The observed miss, 2026-09-19*, from a transcript quoted in an outside drift
+analysis: a session noticed that =org_capture= silently discards an
+unrecognised argument, offered to file it, and was asked "did you check?" —
+[[id:bbf9fb77-f081-48c5-bb01-1b4d4f201969][bbf9fb77]] had held that defect
+since 2026-09-08, with two prior occurrences already recorded. The session
+could state the duplicate-check rule verbatim the moment it was challenged.
+That is an execution-ordering failure, not a knowledge failure, and no
+wording fixes it.
+
+*The shape that works.* =org_capture= runs the query itself, before writing,
+and returns near-matches from =TODO.org= and =DONE.org= alongside the capture
+it made — or refuses and returns them, if the match is strong. The check then
+runs whether or not the session remembered it.
+
+*Two weaker shapes, and why they are weaker.* The analysis proposes a tool
+that takes the search result as an argument, as evidence the search ran. An
+argument the model fills is an argument the model can fill from recall, which
+is the exact failure being fixed, so that converts a miss into a fabrication
+with nothing checking it. A =PreToolUse= hook inspecting the turn's transcript
+for a query is genuinely enforcing, but inherits a known defect:
+[[id:4acd8ad0-4d26-420b-bf84-f66ae8a9dfc5][4acd8ad0]] records that Claude Code
+prunes transcripts, so transcript-reading decays silently. Doing it inside the
+tool needs neither.
+
+*Undecided:* what "near" means. Title-token overlap is cheap and dumb;
+=org-ql= over titles plus bodies is better and slower; an embedding is neither
+available nor wanted. Start with the cheap one and measure its misses against
+this corpus, which has a known duplicate pair to test on.
+
+*Relationship to [[id:7eb7dd8d-2d9b-4a63-afbd-5878298e42a4][7eb7dd8d]]*, which
+must not become a twin of this: that heading is the *judgement* half — does
+this request match an existing heading, including a =DONE= one — and it sits
+in the org skill. This is the mechanical half: the query runs, unconditionally,
+and its results are put in front of whoever decides. Split that way they
+compose; stated as one they duplicate.
+
+*Revised the same day, after the drift analysis's §4.4 was rewritten to
+name its mechanism.* The paragraph above places the judgement half — does
+this candidate actually match — in the org skill, mid-task. The revision's
+point is that mid-task is where judgement fails, for the same reason a
+rule buried in standing context fails: the orchestrator is juggling
+everything else. So the split is now three-way. This tool returns the
+candidates (mechanical, unskippable). The *per-capture* judgement stays
+with whoever reads the tool result, because the candidates are data in
+front of the reader, not a rule to recall — that is as good as the
+in-loop case gets. And the *corpus-wide* judgement — twins that no single
+capture put side by side — moves out of the loop entirely, to a checker
+subagent with a saturated context, run as a pass: the heading filed
+alongside this one in Meta. What this tool must therefore do is return
+its candidates in a form the pass can also consume, so the two share one
+query.
+:END:
+
+The duplicate check before a capture is a rule a session must remember at the moment of acting, and it is the rule an outside drift analysis caught being missed live. Moving it inside the tool makes the omission unreachable rather than rare, and costs no new tool.
+
+* TODO The always-loaded surface is 1,573 lines, and the split that shrank CLAUDE.md is what grew it :code:
+:PROPERTIES:
+:ID:       bf7e0b8e-f83a-4d4a-9950-3ab23a225156
+:CREATED:  [2026-09-19 Sat 08:55]
+:CATEGORY: Skill
+:END:
+:PLAN:
+*The measurement, 2026-09-19.* Always loaded, every session, regardless of
+what the session is doing:
+
+| file                        | lines | words |
+|-----------------------------+-------+-------|
+| =CLAUDE.md=                   |   494 |  3841 |
+| =org-state-transitions.md=    |   363 |  3282 |
+| =org-time-tracking.md=        |   265 |  2223 |
+| =org-footnote-citations.md=   |   158 |  1374 |
+| =org-mcp-tools.md=            |    99 |  1213 |
+| =org-session-tracking.md=     |    87 |   723 |
+| =org-event-queue.md=          |    61 |   514 |
+| =org-categories.md=           |    46 |   420 |
+| *total*                       | *1573* | *13590* |
+
+Path-scoped, and therefore not in this budget: =org-conventions.md= (1082
+lines) and =org-conventions-local.md= (113).
+
+*The finding.* [[id:befaed0a-18ed-445e-b997-8b9c2965ad45][befaed0a]] set a
+documented target of under 200 lines for CLAUDE.md when it was 640. CLAUDE.md
+is now 494 — a 23% reduction — while the always-loaded *surface* it was split
+into is 1,573 lines, roughly two and a half times the file the target was
+written against. Every promoted machinery file carries no path scope by
+design, so each promotion added unconditional words. The split succeeded at
+its own goal and the budget it was meant to serve got worse.
+
+*So the pass is deletion, not relocation, and two precedents say why.*
+[[id:b0d55552-6bbf-45b8-9897-f62e6bd779e3][b0d55552]]: the ten =:CATEGORY:=
+values were path-scoped, went unseen by every capturing session, and ten
+headings arrived unfiled in two days — the file was moved back to
+always-loaded. And [[id:befaed0a-18ed-445e-b997-8b9c2965ad45][befaed0a]]
+settled the test that governs the whole question: a rule that must hold when
+no =.org= file is open cannot live in a path-scoped rule, because a rule that
+does not load is a rule that does not apply and the failure is silent. There
+is no scoping budget left to spend; what is left is words that should not be
+there.
+
+*What is in scope to delete, and what is not.* [[id:9d009401-93dd-40e5-a243-7a30a8a5bd55][9d009401]]
+already swept dated history and branch archaeology once, so that seam is
+worked but not closed. The category the outside analysis proposes — move
+rationale one hop away — is *declined as stated*: CLAUDE.md's own thesis is
+that rationale is the one thing the artifact cannot recover ("distrust the
+file's account of what is; do not distrust its account of why"), and the
+counter-rules that exist because someone re-derived the wrong thing (the
+maintenance clause, the do-not-re-tighten note) are load-bearing precisely as
+rationale. The honest form: rationale stays iff it is what stops a specific
+reversal; incident narrative that stops nothing is journal.
+
+*Acceptance:* a before/after line and word count, and a stated budget for the
+sibling check to assert. Re-running the measurement is one shell loop over
+=CLAUDE.md= and =.claude/rules/*.md=, testing for real YAML frontmatter rather
+than the string =paths:= — the prose in =org-categories.md= says "carries no
+=paths:= scope" and a naive grep reads that as scoped.
+
+*Amended the same hour.* "Path-scoped, and therefore not in this budget"
+above is true and misleading: [[id:436e0991-c8ac-40fb-860d-a6c4c381bee5][436e0991]]
+finds that the path-scoped bucket loads only on a Read of an =.org= file,
+which the tools exist to make unnecessary — so those 1,195 lines are not
+deferred, they are mostly absent. The deletion pass here should treat them as
+a second problem, not a solved one, and should not move anything *into* that
+bucket to make the number.
+
+*The number depends on the mode, and there are two* (the user, 2026-09-19):
+this repo governing itself, and a consumer running the plugin. Measured from
+the shipped references, which is what a consumer receives:
+
+| mode                              | always-loaded lines | words |
+|-----------------------------------+---------------------+-------|
+| self-hosting (this repo)          |                1573 | 13590 |
+| consumer, plugin's share only     |                1003 |  9143 |
+| …of which =org-time-tracking.md=    |                 260 |  2192 |
+
+The consumer figure excludes their own CLAUDE.md, which the plugin cannot
+see, and the three-line generated header on each promoted copy. The
+self-hosting figure is the consumer figure plus CLAUDE.md (494) and
+=org-categories.md= (46) — so 570 lines of the 1,573 are this repo's own,
+and the deletion pass has two audiences with two budgets.
+
+*The time-tracking toggle is the third dimension.* The plugin's default is
+off, and the 260-line file is promoted regardless — plus 54 clock-shaped
+lines scattered across the other four machinery files (25 in
+=org-state-transitions.md= alone). A default-install consumer therefore
+carries roughly 300 lines describing a feature that does nothing, about 30%
+of what the plugin imposes. Filed as its own defect
+([[id:1b69fe4e-3dab-4b11-b21b-96320bf9d4e0][1b69fe4e]]), since the fix is in
+=claude-org-setup=; the budget here should be stated per mode and per toggle,
+or it will be met in one configuration and missed in the other three.
+:END:
+
+Measured 2026-09-19, prompted by an outside drift analysis that asserted a standing-context volume problem without numbers. The numbers hold, and they say something the analysis did not: relocation moved words, it did not retire them. A compression pass is owed, and it has to delete.
+
 * NEXT config.el is the last place time tracking and task tracking are still entangled, 30% of 18k lines :code:
 :PROPERTIES:
 :ID:       a7f844ba-7b70-48c6-833c-cd7e4e38cf14
@@ -163,6 +714,9 @@ The asymmetry to preserve: a **slice** must be declared because its members are 
 Which makes the decision clean: **=:KIND: story= earns its place if and only if the "well-composed" lint is wanted** — *does this story have all of its subtasks in one slice?* That question cannot be asked of a heading that merely happens to have children; it can only be asked of one someone asserted was a story. With that check the property is load-bearing. Without it, it is a label with no reader, which is the thing this project deletes.
 
 *Separately, and not a gap:* there is **no rule requiring a story's members to share a =:CATEGORY:=**. Checked 2026-09-18 — no convention text, and =bin/lint-org='s only category rule is "level-1 task has no =:CATEGORY:=" (=config.el= 14654), which never looks at children. =org_capture= makes =category= "optional under an =:ID:= target", i.e. explicitly permitted on a child, and one override already exists in the corpus (a =Tools= child under a =Meta= parent). Inheritance is already a default rather than a constraint. Worth *stating* in the revision only because the absence of a rule reads as a prohibition — which is how this came up.
+
+*Amended 2026-09-19 against the drift analysis and the slice =f6d160c2=.* The proposal above adds three ideas to the conventions and corrects one sentence in CLAUDE.md; where each lands is now a constraint rather than a choice. The three additions go in =org-conventions.md=, which is path-scoped — and, per [[id:436e0991-c8ac-40fb-860d-a6c4c381bee5][436e0991]], loads only on a Read of an =.org= file, so the practice they describe must also survive their not being loaded (the tools' own refusals are the only rules no session has missed). The CLAUDE.md half is a *net deletion*: a one-screen compression that misled a session is evidence the map should point at the conventions rather than paraphrase them, so the fix removes "detected and never declared" instead of expanding it. Acceptance: the always-loaded line count ([[id:bf7e0b8e-f83a-4d4a-9950-3ab23a225156][bf7e0b8e]], 1,573 today) does not rise from this change, and =check-conventions= passes after re-promotion.
+
 
 
 * TODO Let a task-only install auto-apply state transitions, behind a toggle :code:
@@ -950,6 +1504,9 @@ The same `org_divide` call timed out through MCP and completed through `emacscli
 So the server rejected the parameters, replied with a well-formed JSON-RPC error, and **the client surfaced that as a timeout**. The model retried verbatim, because a timeout is the one failure that invites a retry and a =-32602= is the one that never should — the second attempt could not have succeeded and the diagnosis was unreachable from this side.
 
 Two consequences for this heading. The =emacsclient=-succeeds-where-MCP-times-out observation is consistent with a parameter mismatch rather than a transport limit, since a hand-written =emacsclient= call passes the elisp arguments directly and never crosses the schema. And the thing worth fixing may not be a timeout value at all: **an error response that reads as a timeout is the defect**, and it is the same silent-failure class as =:ID:= 4f9e552a — a failure indistinguishable from a different, more forgiving one. Establish which layer swallows the error body before touching =MCP_TIMEOUT=.
+
+*Same class, second tool, 2026-09-19:* =org_slice_add_member= timed out through MCP twice in a row while =org_pending_updates= answered between the attempts, and the identical call through =emacsclient -e '(claude-code-ide-org-slice-add-member …)'= returned in well under a second, seven times running. Neither timed-out call reached the file. So the fault is not the function's cost and not Emacs being wedged; it is something on the MCP path that both =org_divide= and this tool cross and =org_amend= does not — the structural tools share a refresh that the prose tools skip, which is where to look first.
+
 
 
 * TODO [0/2] Make the corpus searchable by tag, by measurement where it can be and by decision where it cannot
@@ -2878,6 +3435,9 @@ actually wants live again.
 
 *Another death 2026-09-17, and the interval holds exactly.* =parsed-stargazing-lynx.md=, archived copy dated 2026-08-18, missing from =~/.claude/plans= and caught by =bin/lint-org= refusing an unrelated commit — creation + 30 days, the same arithmetic this heading derived from the first casualties. Restored byte-for-byte from =plans/= (checksums equal, 32 plans in sync). Nothing new about the mechanism; recorded because the *decided* fix is what would have handled it — rewriting the dead =file:= link to the archived copy's =orgit= revision — and it does not exist yet, so the friction landed on a commit that had nothing to do with plans. That is the cost of the status quo arriving on schedule rather than a new symptom.
 
+*A third answer, stated by the user 2026-09-19 while unlinking a plan from =7eb7dd8d=:* "the convention now is to keep the plan in the =:PLAN:= drawer and use that to write its part of the slice plan in the next revision of =next-session.md=." Neither =plansDirectory= nor restoring — the plan file stops being the record, and a heading's drawer is. That dissolves this heading's question rather than deciding it: a plan that lives in the tracker cannot die at =cleanupPeriodDays=. What it leaves behind is machinery built on the link: the CLAUDE.md rule that writes one at =ExitPlanMode=, =bin/sync-plans= and its =plans/= archive, the =.githooks/pre-push= refusal, and the org skill's plan-link prose — all of which now describe a convention that has been superseded for new work, while 31 archived plans still hold the design of finished headings. First orphan under the new rule: the archive copy of the plan just unlinked, reported by =--check= and left in place. Whether this heading retitles to the retirement, or that is filed separately, is the user's call; nothing here is done.
+
+
 
 * TODO Archived :ARCHIVE_FILE: paths are machine-absolute; audit their portability :code:
 :PROPERTIES:
@@ -3120,6 +3680,9 @@ positive permissions in the shipped conventions' story paragraphs,
 the test, the collector exception — executed when this member comes
 up in [[id:6521dd56-8772-416b-9435-6da78bb86b06][6521dd56]]'s
 sequence.
+
+*One criterion added 2026-09-19, from the drift analysis via =f6d160c2=, and bounded.* A merge of story and slice would delete a vocabulary band from the always-loaded map — the epic/story/slice/twin paragraph in CLAUDE.md and its counterpart in the conventions — and concept count is itself a cost every session pays ([[id:bf7e0b8e-f83a-4d4a-9950-3ab23a225156][bf7e0b8e]]). That is a *tiebreaker*, not a thumb on the scale: the against-the-merge argument above is semantic (containment versus reference, tentative versus committed), and a worse model adopted to save a paragraph costs more in misfiled work than the paragraph. So: if the two scenarios come out realistic and distinct, keep both groupings and shorten the prose; if they collapse, count the deletion as a benefit, not as the reason.
+
 
 
 * TODO [0/9] Make the notes org-native: links, drawers, tags, one corpus pass :code:
@@ -7306,6 +7869,12 @@ asymmetry at the portfolio tier is otherwise invisible from inside either.
 Related and deliberately deferred: one-NEXT-per-slice has no lint or report yet;
 observe the days-old rule before building machinery for it.
 
+*One input to the format, from the user 2026-09-19:* a slice member's part of the next-session plan is written *from its =:PLAN:= drawer*, which is where the plan now lives (the plan-file link is retired for new work; see =ff1bec00=). So the prompt is a composition over member drawers, in slice order, rather than an authored document — which makes "every item states whether it carries an unresolved decision" a property the drawer should already hold, and the composition step the place a checker can assert it.
+
+*Second input, 2026-09-19: the trigger.* The home decided above — a user-scoped skill — is on-demand, the right side of the always-loaded budget ([[id:bf7e0b8e-f83a-4d4a-9950-3ab23a225156][bf7e0b8e]]); but a skill loads only when its description matches the prompt, and end-of-session prompts are various. A skill that never loads is [[id:befaed0a-18ed-445e-b997-8b9c2965ad45][befaed0a]]'s silent failure in another coat, the same shape [[id:436e0991-c8ac-40fb-860d-a6c4c381bee5][436e0991]] found for path-scoped rules. Two consequences. The description is written for the trigger and tested against real end-of-session prompts rather than assumed — CLAUDE.md's engineering rule already exempts trigger-matching from deterministic testing, so a documented manual pass. And the decision marker is a literal token a script can assert on the composed prompt, because that assertion is the one part of the format that cannot fail to load.
+
+
+
 
 * TODO Open today's node
 SCHEDULED: <2026-08-24 Mon 07:00 ++1d>
@@ -7435,6 +8004,9 @@ for the case it actually addresses.
 certainly does parse, so the probe was broken rather than the syntax. The
 outline and babel results above stand on their own mechanisms and do not depend
 on it.
+
+*Inverted 2026-09-19 against the drift analysis (§4.1) and the slice =f6d160c2=.* This heading's own measurement made the case: unescaped example headings corrupt =org_outline=, =--container-heading-p=, the cookies and =lint-org=, each *silently* — so the writer who needed the rule never learns they broke it, and a rule whose violation is invisible to its violator is the one prose cannot carry. The deliverable is therefore the enforcement, and the prose is the residue. Two mechanisms, strongest first: =org_amend= and =org_capture= escape a =^\*+ = line inside a =#+BEGIN_= block on write, which makes the omission impossible on the tool path; and =bin/lint-org= errors on an unescaped one, which catches the hand-edit path at commit. The conventions then need one sentence naming the mechanism, in =org-conventions.md= beside the existing passage on documenting org structure — and given [[id:436e0991-c8ac-40fb-860d-a6c4c381bee5][436e0991]] that sentence is documentation, not the safeguard. Candidate for the slice's enforcement audit, [[id:3cd7b7d3-25eb-4f30-ae90-9174a6876674][3cd7b7d3]], as the first clause it would convert.
+
 
 
 * TODO Decide how far the review-apply cycle can be automated, given the interactive constraint :code:
@@ -10039,6 +10611,15 @@ get tangled up with other unrelated uncommitted changes"). Not merging them
 here; worth deciding during planning whether they should be one task, sequenced,
 or just cross-referenced as they are now.
 
+*Reconsidered 2026-09-19 against the drift analysis's §4.5 and the slice =f6d160c2=; the recommendation is retirement, and the decision is the user's.* This heading's premise is that an uncommitted capture "sits until a human notices" and that the sitting is a cost. Under the discipline the slice adopts — a session captures without asking, and the human's approval is the tracker diff at the bookkeeping commit — the sitting *is* the approval window, and committing at capture would delete the one place a capture is seen before it is history. The morning's draft amendment said the opposite (a =PostToolUse= matcher on =org_capture=, pathspec-scoped for [[id:2aeb65d6-350e-4c75-811e-4a748044fe2c][2aeb65d6]]) and was wrong in an instructive way: it enforced the step without asking whether the step should exist, which is the analysis's §4.1 applied without its §4.5. The path that keeps a capture-time commit is [[id:b5f94b88-76e3-4a3c-ac73-729f34d33691][b5f94b88]]'s queued captures, where the apply pass commits what it applied — and there the commit is the apply pass's job, not this heading's. What survives either way is the safety predicate named above — only the touched =.org= files staged, never mid-rebase — which belongs to whatever does commit. Recommend =CANCELLED= with that debrief once the discipline is confirmed; not queued here.
+
+*A fact the reconsideration above missed, found 2026-09-19 when the user asked why sessions had stopped proposing bookkeeping commits.* Sessions have been committing captures themselves, promptly and unasked, for some time: of the 25 commits before this session's work, 24 are session-authored, among them "File 9ad0e497", "File 827e1c42" and "File 43d479c8" — each a capture committed by the session that made it — and four "Apply pass" commits. No rule prescribes it; the maintenance clause permits it and =next-session.md='s Step 0 item 9 prescribes only the apply-diff case. So this heading's behaviour has been de facto practice without being built, and the "uncommitted capture is the approval window" argued above describes a window that has mostly not existed. The two positions are now a real choice rather than a recommendation: keep the practice (then this heading is done by habit, and wants only its safety predicate written down), or adopt commit-as-approval (then "File …" commits stop, and the human's bookkeeping commit becomes a step sessions wait for). The session that wrote this held its commits only because its own instructions said to commit when asked.
+
+*Decided by the user, 2026-09-19: keep the practice.* Sessions commit their own captures and bookkeeping, unasked, as they have been. The retirement recommended two paragraphs up is withdrawn, and with it the claim that an uncommitted capture is an approval window — approval is after the fact, on a small commit named for the heading. What this heading still owes is therefore narrow: the safety predicate written down where a session will meet it (only the touched =.org= files staged, never mid-rebase or mid-merge, =git diff --stat= first so a human's apply pass is not swept in), since today it lives only in habit and in =next-session.md='s standing rules.
+
+
+
+
 
 * MAYBE Make org-blocker-hook actually consult :BLOCKER: :code:
 :PROPERTIES:
@@ -10103,84 +10684,51 @@ open question for planning — =org-depend= itself implements both, but
 this project may only need one direction enforced.
 
 
-* MAYBE Org skill: auto-capture and dedupe modification requests against existing TODOs :code:
+* TODO Nothing checks a request against open work in either direction, so a dependency is found only when it bites :code:
 :PROPERTIES:
 :CATEGORY: Tools
 :ID:       7eb7dd8d-2d9b-4a63-afbd-5878298e42a4
 :CREATED:  [2026-08-04 Tue 17:30]
 :BLOCKER:  b95b9fba-f78e-48fe-8546-988709cce309
 :END:
+:PLAN:
+*The residue, and its two halves.* A request to change something may
+depend on unfinished work, or unfinished work may depend on the thing
+being changed, and today both directions are found only when one bites.
+The mechanical half is [[id:0eecf8e7-a8d5-4da7-9d6d-f397542b2139][0eecf8e7]]:
+=:BLOCKER:= is a forward index with no inverse, so "what depends on this
+heading" has no answer a tool can give, and the check cannot start until
+it does. The judgement half — does *this request* touch *that heading* —
+is the shape [[id:9fb8c1fb-1f86-4dc1-9203-6c7abfd27594][9fb8c1fb]]
+runs as a pass over the same candidate query, and is a natural third
+finding of it: twin, unattached, and now *entangled*. The findings must
+stay distinct in the report — a twin is an error, an unattached task is
+not, and an entanglement is a warning about ordering.
+
+*Not decided here:* whether the per-request case fires at all, or only
+the pass. The drift analysis's argument against mid-task judgement
+applies; the counter-argument is that a dependency is cheapest to see at
+the moment the request is made. If the tool that answers 0eecf8e7 can
+return its answer beside =org_capture='s candidates, the per-request case
+becomes data in a tool result rather than a rule, which is the only form
+that has held up.
+
+*Design carried over from the plan file unlinked 2026-09-19*
+(the user's convention now keeps a plan in this drawer and writes its
+part of the slice plan into the next revision of =next-session.md=; the
+file's other sections described the retired scope). Forward: read the
+target's own =:BLOCKER:= and resolve each id's keyword. Backward: search
+both trackers for a =:BLOCKER:= naming the target's id — which is the
+inverse index [[id:0eecf8e7-a8d5-4da7-9d6d-f397542b2139][0eecf8e7]] wants
+as a tool, done by grep. =org_query= has no property-value predicate,
+which is still the reason it is a text search.
+:END:
 :LOGBOOK:
+- State "TODO"       from "MAYBE"      [2026-09-19 Sat 14:20]
 CLOCK: [2026-08-06 Thu 09:35]--[2026-08-06 Thu 09:40] =>  0:05
 CLOCK: [2026-08-06 Thu 10:00]--[2026-08-06 Thu 10:05] =>  0:05
 :END:
-[[file:~/.claude/plans/todo-autocapture-dedupe.md][Plan]]
-
-Blocked on the sibling heading above (=Add a PLANNING TODO state,
-driven by the ExitPlanMode matcher=, ID
-b95b9fba-f78e-48fe-8546-988709cce309), recorded via the project's
-=:BLOCKER:= convention (native org-depend syntax; see the org skill
-for the full documentation) — not currently enforced by this
-project's own =org-blocker-hook= function, which only blocks on a
-running clock, not on =:BLOCKER:= (see the sibling heading below for
-closing that gap). *Update 2026-08-05: the blocker is now satisfied*
-— =b95b9fba= is =DONE=, =PLANNING= is fully implemented, so this
-task's prerequisite has landed and implementation could start.
-Property left in place regardless (a satisfied =:BLOCKER:= is
-harmless under org-depend semantics and preserves why this was
-sequenced after that work).
-
-Captured 2026-08-04 from conversation, deliberately at "capture the
-idea" depth, not fully designed yet:
-
-Whenever the user says to modify some feature (in the org skill's
-scope), first check whether the request matches any existing TODO
-heading, including =DONE= ones:
-- If it matches an existing heading, ask the user for clarification
-  (e.g. "this looks like it overlaps with <heading> — same task, or
-  something new?") rather than silently creating a duplicate or
-  silently assuming it's the same thing.
-- If it doesn't match anything, create a new heading, capture it (via
-  =org_capture=), set it to =PLANNING=, ask the user any necessary
-  clarifying questions, and then offer to plan it properly (i.e. enter
-  Plan Mode). If the user declines planning, revert the heading back
-  to =TODO= for later planning rather than leaving it stuck in
-  =PLANNING=.
-
-Separately, also check whether the proposed change interacts with any
-*open* (non-DONE, non-CANCELLED) task via a depends-on relationship in
-either direction — i.e. either the new change depends on unfinished
-work, or some existing open task depends on the thing being changed —
-and surface that to the user.
-
-Open questions deferred to actual planning, not resolved here: how
-"matches an existing TODO" is actually determined (semantic search via
-=org_query=? something else?), whether discovering an existing
-=:BLOCKER:= depends-on link (this heading's own, above) is sufficient
-or whether the check also needs to search prose for informal
-cross-references that predate this convention, and exactly when in the
-org skill's flow this check should fire.
-
-*Considered for promotion 2026-09-03 while composing =ff7ccb2d=, and held at
-=MAYBE= for a reason the satisfied blocker hides.* The prerequisite landing is
-not the constraint any more; the *design is stale*. The behaviour specified
-above sets a new heading to =PLANNING= and reverts it to =TODO= if the user
-declines to plan — and =PLANNING= was **retired 2026-08-28** (=c954f650=), along
-with the =ExitPlanMode= promotion hook, after measuring 7 transitions in 432.
-Nothing replaced it, deliberately.
-
-So this heading cannot be implemented as written, and the part that survives —
-check a modification request against existing headings before creating a
-duplicate, and surface depends-on relationships in either direction — needs
-restating without the keyword it was built around. That is a rewrite, not a
-start, and it should happen before the heading is picked up rather than by
-whoever picks it up.
-
-Reconsidered at =ff7ccb2d='s Step 6 (2026-09-08, the user): stays
-=MAYBE=, still owed the restating its body names — it is specified in
-terms of the retired =PLANNING= keyword and cannot start as written.
-Its sibling =3cb3f955= was promoted the same pass.
-
+Narrowed 2026-09-19 to one of the three behaviours it was captured with, at the user's direction, against the drift slice =f6d160c2=. The match check is now [[id:c8773ec2-1b29-4128-80b3-5c21845f4ca3][c8773ec2]] (the tool runs the query) plus [[id:9fb8c1fb-1f86-4dc1-9203-6c7abfd27594][9fb8c1fb]] (the corpus-wide judgement); the no-match branch was stale twice over — =PLANNING= retired, and a capture no longer asks first. What remains is the dependency check: a requested change that depends on open work, or that open work depends on, is caught by nobody in either direction. The =:BLOCKER:= property is historical (satisfied 2026-08-05, its premise since retired) and the original body is in git history at this heading's id.
 
 * TODO Worktree-based session partitioning, with a canonical-file caveat :code:
 :PROPERTIES:
@@ -10435,6 +10983,9 @@ different question.
 **Documentation was not merely available but *adjacent*.** The parameter is documented as =note= in the same =:args= list the session read — forty minutes *after* the failure, while investigating it. The earlier diagnosis that "the documentation was correct, prominent, and unread" is confirmed a third time, four weeks on, and the conclusion drawn from it holds harder: the schema being right is not a mechanism. Only a =-32602= at the first call is.
 
 *A cost note for the report.* Across the three occurrences the count is now 5 + 11 + 2 = **eighteen discarded bodies in one tool**, every one recovered only because a transcript was still in reach. The recovery rate is 18/18 and it is entirely luck — none of it was recovered by a check, a lint, a test or the queue.
+
+*Fourth occurrence, 2026-09-19, and the worst-shaped one so far.* Eight =org_capture= calls in one session each passed a =body= argument; every heading landed as a title with an empty body, and the drop was noticed only because a slice heading was inspected by hand for a different reason, five hours after the first. The session was, at the time, filing headings from a drift analysis whose own case study is this defect. The bodies were restored through =org_amend=. Two things this occurrence adds: the correct argument name was never surfaced (the capture reply reports success and the location, nothing about what it discarded), and the =org_amend= calls that *did* land — into =:PLAN:= — masked the loss, because a heading with a full plan drawer looks composed at a glance.
+
 
 
 ** CANCELLED Unknown MCP methods signal an undefined error symbol and answer nothing :code:
