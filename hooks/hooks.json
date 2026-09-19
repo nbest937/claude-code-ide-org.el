@@ -59,6 +59,11 @@
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/bin/hooks/queue-append refusal",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/bin/hooks/conventions-inject",
+            "timeout": 10
           }
         ]
       },

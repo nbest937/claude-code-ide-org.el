@@ -34,6 +34,13 @@ wire `org_set_todo`, `org_capture` and `org_amend` to the queue. They are
 the queued tools' own mechanism rather than session tracking, and
 `hooks/hooks.json` is where their wiring is read.
 
+**The first `org_*` call of a session injects a pointer to the org
+conventions** (`bin/hooks/conventions-inject`, `:ID:` 436e0991). They are
+path-scoped, and a path scope fires only on a Read of a matching file —
+never on an org tool — so tool-driven work would otherwise never load
+them. A pointer and a generated section list, not the text: the
+injection cap is 10,000 characters and the file is six times that.
+
 **Every backstop that fires is counted** (`:ID:` 63713df3): a hook that
 blocks a stop, and any `org_*` call whose reply is an `Error:` refusal,
 appends one `miss` line naming the rule. The review pass never sees the
