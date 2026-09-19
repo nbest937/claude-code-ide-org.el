@@ -6,24 +6,36 @@ for Claude Code sessions — so `.org` files can be read, queried, and
 managed in natural language from within Emacs, without memorising org's
 chord sequences.
 
-It has a second, co-equal goal: **trustworthy tracking of where
-attention actually went** on tracked tasks. Much of the machinery here —
-the event queue, the session hooks, the review pass — exists for that
-goal rather than the first one.
+**Trustworthy tracking of where attention actually went** on tracked
+tasks is a second, *optional* capability: developed in this repository,
+shipped switched off, and turned on with the plugin's `time_tracking`
+option — set with Claude Code's `/config` command. It
+was a co-equal goal until 2026-09-18; committing to a switch is itself
+the ordering.
+
+Much of the machinery here — the event queue, the session hooks, the
+review pass — exists for that second goal rather than the first. That is
+why the code looks as it does, and the reordering does not change it.
 
 ## The one design decision to understand first
 
-**State and clock changes are queued, not applied.** When a Claude
-session calls `org_set_todo` or `org_clock_in`, no org file changes.
-The event lands in a per-session queue file; a human later runs
-`M-x claude-code-ide-org-review`, inspects the accumulated events, and
-applies the approved ones through org's own native commands.
+**State changes are queued, not applied.** When a Claude session calls
+`org_set_todo`, no org file changes. The event lands in a per-session
+queue file; a human later runs `M-x claude-code-ide-org-review`,
+inspects the accumulated events, and applies the approved ones through
+org's own native commands.
 
-This is deliberate. Org's clock and logging model assumes one human at
-one buffer; concurrent agent sessions writing live state produced a
-sustained run of desync and ownership bugs before the queue existed. The
-trade: the org record is only as fresh as the last review pass, but once
-confirmed it is actually correct.
+This is deliberate, and it is not about time. Org's state-change logging
+only completes inside a genuinely interactive command — every keyword
+carrying a logging cookie in `#+TODO:` defers through `org-add-log-note`,
+which opens a note buffer before it checks whether a note is wanted, so a
+transition driven non-interactively hangs. The queue is what routes
+around that. Concurrent agent sessions writing live state added a
+sustained run of desync and ownership bugs on top.
+
+The trade: the org record is only as fresh as the last review pass, but
+once confirmed it is actually correct. With time tracking on,
+`org_clock_in` and `org_clock_out` queue the same way.
 
 Read-only queries, capture, refile, archive, and body amendments remain
 immediate.
@@ -35,7 +47,7 @@ immediate.
 | `.claude-plugin/plugin.json` | the Claude Code plugin manifest — this repo *is* the plugin |
 | `modules/tools/claude-code-ide-org/` | the elisp module (`config.el`) and its ERT suite |
 | `bin/` | test suites (`test`, `lint-org`, `check-conventions`, …) and `claude-org-setup` |
-| `bin/hooks/` | Claude Code hook scripts (session pause/resume guideposts, permission-block bracketing, queue append) |
+| `bin/hooks/` | Claude Code hook scripts (queue append, citation and clock-target checks, and — gated off by default — session pause/resume guideposts and permission-block bracketing) |
 | `hooks/hooks.json` | the plugin's hook wiring — the same scripts this repo wires via `.claude/settings.json` |
 | `skills/org/` | the org skill and its `references/` (conventions + machinery prose); `.claude/skills/org` is a symlink into it |
 | `.claude/skills/org-dev/` | the module-development skill, testbed-only, not shipped |
@@ -90,9 +102,12 @@ entries a consumer needs. Project scope (a consuming repo's
 `.claude/skills/`) is the recommended default: active only for
 sessions started at that project root, invisible elsewhere. Whatever
 the route, enabling is the consent that wires the session-tracking
-hooks (they write to `~/.claude/org-updates/`), registers the
-`emacs-tools` MCP server, puts `bin/` on `PATH`, and exposes the org
-skill. The setup reference carries the details, including the
+hooks (they write to `~/.claude/org-updates/`), puts `bin/` on `PATH`,
+and exposes the org skill. **It does not register the `emacs-tools` MCP
+server** — the plugin ships no MCP config, because the server's URL
+carries a session name that is the consumer's own project and cannot be
+known at packaging time. `claude-org-setup --org` writes that file; see
+step 3. The setup reference carries the details, including the
 mandatory companion step when enabling user-wide.
 
 **Do not enable the plugin's hooks inside this repo itself**: it wires
@@ -119,6 +134,38 @@ with a `category`, since a top-level heading cannot inherit one).
 
 `skills/org/references/org-emacs-setup.md` is the full version of this
 section.
+
+### 4. Time tracking — optional, off by default
+
+Nothing above turns it on. Task tracking, the queue and the review pass
+all work without it; what it adds is turn-boundary guideposts and clock
+events, which the review pass clusters into intervals a human confirms
+before they become `:LOGBOOK:` CLOCK lines.
+
+Run Claude Code's `/config` command and flip **Time tracking**. That is
+the only route that works today: the plugin is installed by symlink or
+`--plugin-dir` from a clone, never from a marketplace, so there is no
+`claude plugin install` invocation to pass a flag to. (`--config
+key=value` *is* a real flag of that subcommand — verified against its
+`--help` — and would be the shorter path if this plugin were ever
+published.)
+
+It takes effect at the next session start. The hooks ship wired
+and each one gates itself on that option, so turning it on takes no file
+edit and no re-run of setup.
+
+Two consequences worth knowing before you do:
+
+- **It is one value for every project.** The option is stored per-user,
+  and so is the queue (`~/.claude/org-updates/`) and the review buffer.
+  You cannot have it on for one repo and off for another.
+- **It cannot be turned on at all on a Claude Code that predates plugin
+  `userConfig`**, where the option simply does not exist. The gate
+  defaults to off in that case, which is the safe direction.
+
+`.claude/rules/org-time-tracking.md` is promoted either way — promotion
+cannot see a plugin option — so its presence is not evidence the feature
+is on. The `/config` command is.
 
 ### Developing this repo
 
@@ -148,13 +195,17 @@ clock state.
 
 These read as bugs and are not; each is a recorded trade-off.
 
-- **The org record lags.** TODO keywords and clocks reflect the last
-  human review pass, not live state. A `DOING` heading normally has *no*
-  running clock, and CLOCK lines arrive in bursts when someone applies.
-- **A resumed session can briefly credit the wrong task.** If your next
-  prompt is about a different task than the one that paused, the resume
-  guidepost still points at the last-paused one. It self-corrects at the
-  next real `org_clock_in`; the cost is a short stray interval.
+- **The org record lags.** TODO keywords reflect the last human review
+  pass, not live state.
+- **With time tracking on, a `DOING` heading normally has *no* running
+  clock**, and CLOCK lines arrive in bursts when someone applies rather
+  than continuously as work happens. Their timestamps describe when the
+  work was, never when the line was written.
+- **With time tracking on, a resumed session can briefly credit the
+  wrong task.** If your next prompt is about a different task than the
+  one that paused, the resume guidepost still points at the last-paused
+  one. It self-corrects at the next real `org_clock_in`; the cost is a
+  short stray interval.
 - **Tracked-file discovery follows org's agenda list file.** With
   `org-agenda-files` set to a list-file name (`~/org/agenda-files`),
   org re-reads it on every access — `claude-org-setup --org` appends a

@@ -649,13 +649,41 @@ inventing seconds that did not elapse."
 ;; every session; naturally self-limiting to "first thing each day"
 ;; since it only reports intervals whose open timestamp predates today.
 
+(defvar claude-code-ide-org--report-scope nil
+  "When non-nil, an absolute directory `--tracked-files' is confined to.
+
+Bound only around the SessionStart *reports*, never around the tools.
+That asymmetry is the whole point and is easy to get backwards: the
+org tools are deliberately global -- `org_query' and
+`org_clock_report' answer across every tracked project, which is what
+makes one Emacs serve many repos -- while anything that *reports to a
+session* must speak about that session's own project and nothing else.
+
+The defect this exists for (TODO.org :ID: 43d479c8): a session in a
+consuming repo was handed a SessionStart report naming this
+repository's headings, because the report was computed over
+`org-agenda-files', which is per-user.  It read as authoritative --
+real ids, real titles -- and would have become undetectable the moment
+that repo had a backlog of its own to confuse them with.")
+
 (defun claude-code-ide-org--tracked-files ()
   "Files to scan for stale open intervals, org_query, and
 org_clock_report.  Calls the `org-agenda-files' function, not the
 variable of the same name, so directory entries (e.g. a bare
 \"~/org\") are actually expanded to their contained files rather than
-passed through as an unusable directory string."
-  (or claude-code-ide-org-query-files (org-agenda-files)))
+passed through as an unusable directory string.
+
+Confined to `claude-code-ide-org--report-scope' when that is bound.
+Compared by truename on both sides: tracked files reach this list
+through `~/org' symlinks into their repositories, so a raw string
+prefix test would discard every one of them."
+  (let ((files (or claude-code-ide-org-query-files (org-agenda-files))))
+    (if (not claude-code-ide-org--report-scope)
+        files
+      (let ((root (file-name-as-directory
+                   (file-truename claude-code-ide-org--report-scope))))
+        (seq-filter (lambda (f) (string-prefix-p root (file-truename f)))
+                    files)))))
 
 (defun claude-code-ide-org--tracked-buffer-p (&optional buffer)
   "Non-nil when BUFFER (default current) visits a tracked org file.
@@ -677,8 +705,21 @@ kind of quiet."
   (when-let* ((file (buffer-file-name
                      (buffer-base-buffer (or buffer (current-buffer)))))
               (true (file-truename file)))
-    (seq-some (lambda (f) (equal true (file-truename f)))
-              (claude-code-ide-org--tracked-files))))
+    ;; Unscoped, explicitly.  This is a CONSENT gate, and consent cannot
+    ;; depend on what some report happens to be looking at: the reports
+    ;; bind `claude-code-ide-org--report-scope' and then call
+    ;; `find-file-noselect', which runs `find-file-hook', which runs
+    ;; `claude-code-ide-org--revert-so-long-takeover', which asks this.
+    ;; With the binding live a genuinely tracked file from another
+    ;; project answers nil, `so-long-revert' never fires, and the buffer
+    ;; stays in `so-long-mode' for the rest of the session -- which is
+    ;; TODO.org :ID: 045459f6 reintroduced, and its whole point was that
+    ;; the tools go on to *write* these buffers.  Reachable rather than
+    ;; theoretical: a consumer's scoped report opens this repo's TODO.org
+    ;; via `claude-code-ide-org--review-attention-target'.
+    (let ((claude-code-ide-org--report-scope nil))
+      (seq-some (lambda (f) (equal true (file-truename f)))
+                (claude-code-ide-org--tracked-files)))))
 
 (defun claude-code-ide-org--revert-so-long-takeover ()
   "Restore the real major mode when so-long has replaced it in a
@@ -911,6 +952,38 @@ a slice has no children, so the subtree is its own body."
                           (or (org-entry-get nil "ID") "?"))
                          out)))))))))))
 
+(defun claude-code-ide-org--items-in-report-scope (items)
+  "ITEMS whose events name a `cwd' under `--report-scope'.
+
+Unscoped, every item.  Scoped, this is what stops a consumer being told
+\"Waiting: N queued item(s)\" about another project's events: the queue
+is a single global directory, so `--review-items-from-queue' is
+global by construction and filtering `--tracked-files' does nothing
+for it (TODO.org :ID: 43d479c8).
+
+**An event with no `cwd' is excluded when scoped**, which is the
+opposite of the span rule, deliberately.  There, a missing value means
+\"unknown, never elsewhere\", so a span predating the field is not
+shattered by it.  Here the question is whether to *show someone else's
+work as theirs*, and the two errors are not symmetric: omitting an item
+understates a count, while claiming one restates the very defect this
+scoping exists to fix.  `cwd' has been recorded since 2026-09-04, so
+in practice this drops only pre-cutover events."
+  (if (not claude-code-ide-org--report-scope)
+      items
+    (let ((root (file-name-as-directory
+                 (file-truename claude-code-ide-org--report-scope))))
+      (seq-filter
+       (lambda (item)
+         (seq-some
+          (lambda (e)
+            (let ((cwd (plist-get e :cwd)))
+              (and cwd (file-directory-p cwd)
+                   (string-prefix-p
+                    root (file-name-as-directory (file-truename cwd))))))
+          (plist-get item :events)))
+       items))))
+
 (defun claude-code-ide-org--ceremony-status ()
   "Return a plist of what the ceremony has waiting: (:pending N :drifted N
 :archivable N :unlinked IDS), or nil when the ceremony has already run today.
@@ -937,7 +1010,8 @@ why this returns numbers and the formatter below asks a question."
   ;; quiet.  It is what separates "nobody has been here today" from
   ;; "someone was, and it did not complete".
   (unless (claude-code-ide-org--ceremony-done-today-p)
-    (let ((pending (length (claude-code-ide-org--review-items-from-queue)))
+    (let ((pending (length (claude-code-ide-org--items-in-report-scope
+                            (claude-code-ide-org--review-items-from-queue))))
           (drifted (nth 1 (claude-code-ide-org--consolidate-drawers-1 t)))
           (archivable 0))
       (dolist (file (claude-code-ide-org--tracked-files))
@@ -1067,13 +1141,22 @@ are."
           . ((hookEventName . "SessionStart")
              (additionalContext . ,(mapconcat #'identity parts "\n\n")))))))))
 
-(defun claude-code-ide-org-write-session-start-report (output-path)
+(defun claude-code-ide-org-write-session-start-report (output-path &optional project)
   "Write the SessionStart hook JSON payload to OUTPUT-PATH.
 Called directly via `emacsclient -e' by the SessionStart hook
 script, which then just cats the file — avoids any need to
-unescape emacsclient's printed-representation output in shell."
-  (with-temp-file output-path
-    (insert (claude-code-ide-org--session-start-hook-json))))
+unescape emacsclient's printed-representation output in shell.
+
+PROJECT confines the report to org files under that directory, and the
+hook passes CLAUDE_PROJECT_DIR.  Optional, and nil means every tracked
+file, which is what this repo's own wiring passed before the argument
+existed -- so an old caller keeps its old behaviour rather than
+silently reporting nothing.  An empty string is treated as absent,
+because that is what an unset shell variable interpolates to."
+  (let ((claude-code-ide-org--report-scope
+         (and project (not (string-empty-p project)) project)))
+    (with-temp-file output-path
+      (insert (claude-code-ide-org--session-start-hook-json)))))
 
 ;;; Session context (SessionStart "what was I last doing") -------------------
 ;;
@@ -1430,20 +1513,89 @@ can treat an empty result as \"nothing worth injecting\"."
          (lines (append (when clocked (list clocked)) waits nominations)))
     (mapconcat #'identity lines "\n")))
 
-(defun claude-code-ide-org--session-context-hook-json ()
+(defun claude-code-ide-org--time-tracking-notice-due-p ()
+  "Non-nil at most once a day, and stamp it as said.
+
+The same shape as `claude-code-ide-org--ceremony-done-today-p\': a stamp
+file in the queue directory whose *mtime* carries the date.  Fails OPEN
+-- an unwritable queue directory returns non-nil -- because the cost of
+saying it twice is noise and the cost of never saying it is a consumer
+who never learns the feature exists."
+  (let* ((dir claude-code-ide-org-queue-directory)
+         (stamp (expand-file-name "time-tracking-notice-last" dir)))
+    (if (and (file-exists-p stamp)
+             (claude-code-ide-org--today-p
+              (file-attribute-modification-time (file-attributes stamp))))
+        nil
+      (ignore-errors (make-directory dir t))
+      (ignore-errors (write-region "" nil stamp nil 'quiet))
+      t)))
+
+(defun claude-code-ide-org--time-tracking-line (setting)
+  "A one-line report of the time-tracking SETTING, or nil to say nothing.
+
+SETTING is the plugin's `time_tracking' userConfig value as the hook
+saw it -- \"true\", \"false\", or absent.  Claude Code exports it to hook
+processes as CLAUDE_PLUGIN_OPTION_TIME_TRACKING, which is the only
+place its value is legible: Emacs cannot read it (it lives in
+~/.claude/settings.json under `pluginConfigs') and neither can the
+Bash tool, so a session had no way to answer \"am I being tracked?\"
+at all (TODO.org :ID: 2082eeb3).
+
+**Absent yields nil, deliberately.**  It means two different things --
+a Claude Code predating plugin userConfig, or a repo wiring these
+scripts through its own .claude/settings.json where there is no plugin
+option to read -- and this repository is the second case while having
+time tracking very much ON.  Reporting \"off\" there would be a
+confident falsehood of exactly the kind :ID: 43d479c8 was just fixed
+for.  Saying nothing follows the standing precedent that a guess is
+worse than none (:ID: 7771fc63)."
+  (cond
+   ((equal setting "true")
+    "Time tracking is ON: turn boundaries are recorded as guideposts for the review pass.")
+   ((equal setting "false")
+    ;; Once per day, not once per session.  Every sibling report here is
+    ;; rate-limited -- the ceremony by `ceremony-last-run\', the
+    ;; stale-interval report by its predates-today test, `apply-detect\'
+    ;; by `.apply-seen\', `clock-target-check\' by a per-session sentinel
+    ;; -- and this one is actionable exactly once while being true
+    ;; forever.  TODO.org :ID: 2758f3a0 measured what unlimited
+    ;; re-mention does: a repeated instruction stopped being followed 41
+    ;; times in 45, every miss on a re-mention.  Caught by the PR #28
+    ;; review, which noted this was the only new report with no limiter.
+    ;;
+    ;; A stamp file rather than a session sentinel, and dated rather than
+    ;; boolean, for the same reason the ceremony chose one: "already said
+    ;; today" is the honest unit for a fact that does not change within a
+    ;; day, and a new session per hour should not re-say it.
+    (when (claude-code-ide-org--time-tracking-notice-due-p)
+      "Time tracking is OFF: no guideposts are recorded, so spans will not appear at review. Turn it on with Claude Code\'s /config command."))
+   (t nil)))
+
+(defun claude-code-ide-org--session-context-hook-json (&optional time-tracking)
   "Return the SessionStart hook JSON payload for
 `claude-code-ide-org-session-context': an empty object if there is
 nothing to report, otherwise one with additionalContext set to the
-session-context summary."
-  (let ((context (claude-code-ide-org-session-context)))
-    (if (equal context "")
+session-context summary.
+
+TIME-TRACKING is the raw `time_tracking' option value; see
+`claude-code-ide-org--time-tracking-line', which decides whether it is
+reportable at all.  It is appended rather than prepended: \"what was I
+last doing\" is what the session asked for, and the feature state is
+context on the answer."
+  (let* ((context (claude-code-ide-org-session-context))
+         (tt (claude-code-ide-org--time-tracking-line time-tracking))
+         (parts (delq nil (list (unless (equal context "") context) tt)))
+         (body (mapconcat #'identity parts "\n")))
+    (if (equal body "")
         "{}"
       (json-encode
        `((hookSpecificOutput
           . ((hookEventName . "SessionStart")
-             (additionalContext . ,context))))))))
+             (additionalContext . ,body))))))))
 
-(defun claude-code-ide-org-write-session-context-report (output-path)
+(defun claude-code-ide-org-write-session-context-report
+    (output-path &optional project time-tracking)
   "Write the SessionStart hook JSON payload for \"what was I last
 doing\" context to OUTPUT-PATH. Called directly via `emacsclient -e'
 by the session-context.sh hook script, which then just cats the
@@ -1453,9 +1605,20 @@ condition-case: if scanning ever throws, OUTPUT-PATH is left empty
 (the temp file is created but never written to, or is never created
 at all), and the shell script's `[[ -s ... ]]' check treats that
 identically to \"Emacs unreachable\" — fail soft either way, same
-convention as `claude-code-ide-org-write-session-start-report'."
-  (with-temp-file output-path
-    (insert (claude-code-ide-org--session-context-hook-json))))
+convention as `claude-code-ide-org-write-session-start-report'.
+
+PROJECT confines the scan to org files under that directory, exactly as
+for the other SessionStart report and for the same defect (TODO.org
+:ID: 43d479c8).  This one carries it too because \"what was I last
+doing\" is *more* misleading unscoped than the ceremony is: a WAITING
+heading from another repository reads as this session's own unfinished
+work."
+  (let ((claude-code-ide-org--report-scope
+         (and project (not (string-empty-p project)) project)))
+    (with-temp-file output-path
+      (insert (claude-code-ide-org--session-context-hook-json
+               (and time-tracking (not (string-empty-p time-tracking))
+                    time-tracking))))))
 
 ;;; Statusline (bin/statusline) ------------------------------------------
 ;;
@@ -8827,7 +8990,7 @@ from a skipped one."
         ;; Nothing is lost: the guidepost itself stays in the queue
         ;; file, which is the durable record.  Only the *proposal* is
         ;; dropped.  And it repairs a second thing --
-        ;; `claude-code-ide-org--queue-drained-p' is "yields no items",
+        ;; `claude-code-ide-org--queue-file-drained-p' is "yields no items",
         ;; so a queue whose only leftovers were stranded points never
         ;; drained and so never archived.
         (unless (and (time-equal-p (car span) (cdr span))
@@ -13761,8 +13924,23 @@ Non-nil exactly while a human review interval is open.")
 Created as a level-2 heading under the meta-work category, since it is
 meta-work by definition and this project reserves level 1 for
 categories."
-  (let ((title claude-code-ide-org-review-attention-heading)
-        (file (claude-code-ide-org--capture-target-file)))
+  (let* ((title claude-code-ide-org-review-attention-heading)
+         (file (claude-code-ide-org--capture-target-file))
+         ;; Respect a report's scope (TODO.org :ID: 43d479c8).
+         ;; `--capture-target-file' falls back to this repo's own capture
+         ;; file outside an MCP session, so a consumer's scoped report
+         ;; asked about OUR review-attention heading and answered
+         ;; `:reviewed-today' from it.  Refusing when the resolved file
+         ;; lies outside the scope makes the answer absent rather than
+         ;; foreign -- and absent is what the ceremony report already
+         ;; degrades on gracefully.
+         (file (and file
+                    (or (not claude-code-ide-org--report-scope)
+                        (string-prefix-p
+                         (file-name-as-directory
+                          (file-truename claude-code-ide-org--report-scope))
+                         (file-truename file)))
+                    file)))
     (when (and title file (file-readable-p file))
       (with-current-buffer (find-file-noselect file)
         (org-with-wide-buffer
@@ -17022,8 +17200,8 @@ Write the 8-character prefix -- [[id:eaeeb4ee][eaeeb4ee]] -- and it is expanded 
 ;; The block this replaces lived in one user's personal Doom config
 ;; (TODO.org :ID: e396f94a): a bare `setq' of upstream's port, a
 ;; hardcoded project path, and three upstream calls.  Packaging turned
-;; that private coincidence into a contract -- the plugin's .mcp.json
-;; names http://localhost:45571/mcp/warp -- so the module owns it here,
+;; that private coincidence into a contract -- each repo's .mcp.json
+;; names http://localhost:45571/mcp/<project> -- so the module owns it here,
 ;; behind an explicitly *called* setup function rather than acting at
 ;; load: a module configures its own behaviour and does not silently
 ;; reconfigure the user's (TODO.org :ID: 1caed585).
@@ -17056,8 +17234,8 @@ land in ~/.config/doom instead of the repo.")
 
 (defcustom claude-code-ide-org-standalone-port 45571
   "Port the standalone MCP tools server is pinned to.
-Must agree with the URL in the plugin's .mcp.json (and its .warp
-duplicate): those files are static, so the port cannot vary per
+Must agree with the URL in the repo's .mcp.json (and in .warp/.mcp.json
+where that exists): those files are static, so the port cannot vary per
 session.  `claude-code-ide-org-standalone-wire' checks the agreement
 loudly rather than trusting it."
   :type 'integer
@@ -17066,9 +17244,11 @@ loudly rather than trusting it."
 (defcustom claude-code-ide-org-standalone-projects nil
   "Directories to register standalone MCP sessions for.
 Each entry is registered under its directory basename as the session
-id, and the FIRST entry additionally as \"warp\" -- the id the shipped
-.mcp.json URL (/mcp/warp) names, kept because that seam is the one
-verified against Warp's own agent.  nil starts the tools server with
+id, which is what a project's own .mcp.json URL names.  An extra alias
+registration for the FIRST entry was removed 2026-09-18 (TODO.org
+:ID: 27e16e9a): it pointed at `(car projects)', so which project it
+meant was decided by `org-agenda-files' order, and no shipped config
+ever needed it.  nil starts the tools server with
 no per-project session: the org tools still work (they scope by
 `org-agenda-files', not by project), but project-scoped tools have no
 context.
@@ -17180,8 +17360,8 @@ already alive on a different port, and refusing if the pin disagrees
 with what the repo's .mcp.json actually names, since that static file
 is the contract every client reads.  Then starts the server and
 registers a session per entry of
-`claude-code-ide-org-standalone-projects' (basename as session id;
-the first entry also as \"warp\").  Idempotent: call it from your
+`claude-code-ide-org-standalone-projects' (basename as session id).
+Idempotent: call it from your
 config after claude-code-ide loads, or interactively after changing
 the project list."
   (interactive)
@@ -17223,11 +17403,8 @@ the project list."
         (if (fboundp 'claude-code-ide-mcp-start)
             (claude-code-ide-mcp-start dir)
           (message "claude-code-ide-org: IDE companion unavailable; tools server only")))
-      (when projects
-        (claude-code-ide-mcp-server-register-session "warp" (car projects) nil))
-      (message "claude-code-ide-org: standalone tools wired on port %d, %d project session(s)%s"
-               pin (length projects)
-               (if projects " plus \"warp\"" "")))))
+      (message "claude-code-ide-org: standalone tools wired on port %d, %d project session(s)"
+               pin (length projects)))))
 
 (with-eval-after-load 'claude-code-ide
 
@@ -17265,11 +17442,17 @@ the project list."
    :name "org_clock_in"
    :description (concat
                  "Record the start of work on an org-mode task, identified by "
-                 "its :ID: property. Always call this when transitioning a task "
+                 "its :ID: property. Call this when transitioning a task "
                  "to DOING state. Queues the event for human review; it does NOT "
                  "open a clock or change the file. Nothing reaches an org file "
                  "until a person runs the review-and-apply command, so do not "
-                 "expect a later read to reflect it.")
+                 "expect a later read to reflect it. "
+                 "ONLY MEANINGFUL WHERE TIME TRACKING IS SWITCHED ON: the "
+                 "plugin ships with its `time_tracking' option unset, and "
+                 "until someone sets it the hooks carrying the surrounding "
+                 "guideposts all decline, so this event is queued and nothing "
+                 "ever consumes it. Being offered this tool is not evidence "
+                 "the feature is on.")
    :args '((:name "id"
             :type string
             :description "The :ID: property value of the target org heading. For cross-cutting meta-work -- review, planning, deciding what to do rather than doing it -- pass the exact title of the meta-work category (\"Review and planning\") instead of an :ID:, and the interval is filed against that day\'s node in its datetree. The day node is created when the event is applied and dated from this event, so a late apply still files the work under the day it happened. There is deliberately no way to learn the day node\'s own :ID:; the category title is the handle.")
@@ -17283,11 +17466,13 @@ the project list."
    :name "org_clock_out"
    :description (concat
                  "Record the end of work on the task most recently started "
-                 "with org_clock_in. Always call this when transitioning away "
+                 "with org_clock_in. Call this when transitioning away "
                  "from DOING (to DONE, WAITING, or CANCELLED). Takes no id -- it "
                  "closes whatever this session last started. Queues the event "
                  "for human review; it does NOT close a clock or change the "
-                 "file.")
+                 "file. "
+                 "ONLY MEANINGFUL WHERE TIME TRACKING IS SWITCHED ON, exactly "
+                 "as for org_clock_in -- see that tool.")
    :args '((:name "note"
             :type string
             :optional t

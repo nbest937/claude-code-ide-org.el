@@ -6,14 +6,28 @@ plus org-mode skills for Claude Code sessions.
 The goal is natural-language manipulation of `.org` files from within Emacs,
 via `claude-code-ide`, without needing to internalise Emacs chord sequences.
 
-A second, co-equal goal — never spelled out until now, though a large share
-of this project's actual work has gone toward it — is trustworthy tracking
-of where attention/time actually went on tracked tasks. What "trustworthy"
-requires in practice (interval granularity, how much manual confirmation is
-acceptable, what reports actually need to come out the other end) is
-deliberately left open here, not pinned to whatever CLOCK-drawer mechanics
-happen to exist at a given point: it should be driven by concrete reporting
-needs, most of which haven't been fully articulated yet.
+Trustworthy tracking of where attention/time actually went on tracked
+tasks is a second, **optional** capability: developed here, shipped
+switched off, and turned on per-user with the plugin's `time_tracking`
+option. What "trustworthy" requires in practice (interval granularity,
+how much manual confirmation is acceptable, what reports need to come out
+the other end) is deliberately left open, driven by concrete reporting
+needs rather than by whatever CLOCK-drawer mechanics exist at a given
+point.
+
+**It was a co-equal goal until 2026-09-18** (`:ID:` 8bbae3aa), and the
+ordering changed when this project committed to making it disableable —
+committing to a switch *is* the ordering. Natural-language org
+manipulation is the goal; attention tracking is developed here and
+shipped off.
+
+**That reorders the goals without rewriting the history.** Much of the
+machinery — the event queue, the session hooks, the review pass — exists
+for the second goal rather than the first, and that is why the code looks
+as it does: the queue was built because concurrent sessions writing live
+clock state produced a sustained run of desync bugs. The ranking changed;
+the account of what built the machinery did not, and it is the only
+record of why the queue exists at all.
 
 ---
 
@@ -396,14 +410,40 @@ human-run.
 
 ## Session tracking (`.claude/settings.json`, `bin/hooks/`)
 
-**Moved into the plugin, 2026-09-09**: the hooks table, the three
-numbers that shape a recorded interval, permission blocks and
-stale-interval recovery ship as
-`skills/org/references/org-session-tracking.md` and load here as
-`.claude/rules/org-session-tracking.md`. The wiring exists twice on
-purpose — this repo through `.claude/settings.json`, consumers through
-the plugin's `hooks/hooks.json` — and a repo must enable only one of
-the two, or every guidepost is appended twice.
+**Moved into the plugin, 2026-09-09; split in two, 2026-09-18**
+(`:ID:` 36952d1f). The hooks that ship unconditionally — `footnote-check`,
+`apply-detect`, the `queue-append` matchers for `org_set_todo`/
+`org_capture`/`org_amend`, and the daily ceremony prompt — are
+`skills/org/references/org-session-tracking.md`. Everything time-shaped
+— guideposts, the three numbers that shape a recorded interval,
+permission blocks, stale-interval recovery and the transition table's
+clock column — is `skills/org/references/org-time-tracking.md`. **Both promote
+unconditionally**, here and in every consumer: promotion cannot see a
+plugin option, so what is gated is the *feature*, never the prose. The
+time file's own opening says its presence is not evidence the feature is
+on, and names the check.
+
+The wiring exists twice on purpose — this repo through
+`.claude/settings.json`, consumers through the plugin's
+`hooks/hooks.json` — and a repo must enable only one of the two, or
+every guidepost is appended twice.
+
+**Both carry the time rows; what differs is how each says yes**
+(2026-09-18, `:ID:` 1b36c5bd). The plugin's rows gate themselves on the
+`time_tracking` boolean in `.claude-plugin/plugin.json`'s `userConfig`,
+which **defaults to off** — Claude Code exports it to hook processes as
+`CLAUDE_PLUGIN_OPTION_TIME_TRACKING`, and `queue-append` (for the six
+time kinds only), `block-start` and `clock-target-check` each refuse
+when it is not `true`. A consumer turns it on with Claude Code's
+`/config` command — a slash command typed in a session, not a path. This repo
+has no plugin option to read, so its own rows set that variable in the
+command string: **wiring the row is the opt-in here**, which is why
+`.claude/settings.json` looks different from the manifest it used to
+mirror.
+
+The gate lives in the scripts because `hooks.json` has no conditional
+form — the premise this arrangement replaced was that wired and unwired
+were the only two available states, and `userConfig` is the third.
 
 ---
 

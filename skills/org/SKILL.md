@@ -347,7 +347,7 @@ what makes it safe against files the user has open.
 
 When helping the user move a task between states, follow these conventions:
 
-| Transition              | Meaning                              | Clock side effect            |
+| Transition              | Meaning                              | Clock side effect *(only where time tracking is on)* |
 |-------------------------|--------------------------------------|------------------------------|
 | `TODO` → `NEXT`         | Decided to do it soon                | None                         |
 | `TODO` → `DOING`        | Starting work immediately            | Open a CLOCK                 |
@@ -360,6 +360,12 @@ When helping the user move a task between states, follow these conventions:
 | `REVIEW` → `DOING`      | Judgement sent it back               | Open a CLOCK                 |
 | `REVIEW` → `DONE`       | Judgement accepted it                | None                         |
 | Any → `MAYBE`           | Deferring indefinitely               | None                         |
+
+**The whole right-hand column is conditional.** In a repo running
+claude-code-ide-org, time tracking is off unless its `time_tracking`
+option is on, and then `org_clock_in`/`org_clock_out` queue events
+nothing consumes — so every row's side effect is None and the middle
+column is the whole table. The *meanings* apply always.
 
 **The table is the ordinary case: setting a keyword because the work is
 happening now.** `DOING` also covers *started and owed a return* — several
@@ -375,10 +381,14 @@ transition has to be recorded some other way.
 
 - **In a repo using the claude-code-ide-org event queue** (this project;
   the `org_*` MCP tools are the tell), the side effect is the **call you
-  must make** — `org_clock_in` / `org_clock_out` alongside `org_set_todo`
-  — and *nothing edits the file when you call it*. Events queue for human
-  review and org performs the clock edits and LOGBOOK logging natively at
-  apply time. Never hand-write CLOCK lines, keywords, or `- State` notes
+  must make** — `org_set_todo`, plus `org_clock_in` / `org_clock_out`
+  **only where time tracking is switched on** — and *nothing edits the
+  file when you call it*. Events queue for human review and org performs
+  the state logging, and any clock edits, natively at apply time. With
+  time tracking off the clock tools still exist and still queue, but
+  nothing consumes what they queue, so calling them accomplishes nothing;
+  `org-time-tracking.md` is promoted unconditionally and says in its
+  opening how to tell whether the feature is on. Never hand-write CLOCK lines, keywords, or `- State` notes
   there, and never expect a read-back to show the new state before a
   human applies the queue. The plugin's `references/org-state-transitions.md`
   is the authoritative copy of the transition table; this one mirrors it.

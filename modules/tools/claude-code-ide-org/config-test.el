@@ -15858,7 +15858,7 @@ not have -- the thing this test can see is the registration."
 missing file is nil rather than an error -- the caller owns the
 loudness."
   (let ((f (make-temp-file "mcp-json" nil ".json"
-                           "{\"mcpServers\":{\"emacs-tools\":{\"type\":\"http\",\"url\":\"http://localhost:45571/mcp/warp\"}}}")))
+                           "{\"mcpServers\":{\"emacs-tools\":{\"type\":\"http\",\"url\":\"http://localhost:45571/mcp/some-project\"}}}")))
     (unwind-protect
         (should (= 45571 (claude-code-ide-org--mcp-json-port f)))
       (delete-file f)))
@@ -15890,10 +15890,16 @@ clients are actually connected to."
                (lambda () (ert-fail "ensure-server reached past the refusal"))))
       (should-error (claude-code-ide-org-standalone-wire) :type 'user-error))))
 
-(ert-deftest claude-code-ide-org-test-standalone-wire-registers-per-repo-plus-warp ()
-  "Each project registers under its basename, and the first also as
-\"warp\" -- the session id the shipped /mcp/warp URL names.  The pin
-lands in upstream's variable only on the success path."
+(ert-deftest claude-code-ide-org-test-standalone-wire-registers-per-repo ()
+  "Each project registers under its basename and nothing else.  The pin
+lands in upstream's variable only on the success path.
+
+*The \"and nothing else\" is the assertion with teeth.*  Until
+2026-09-18 the first entry was additionally registered under a fixed
+alias, so which project that alias meant was decided by
+`org-agenda-files\' order -- and no shipped config ever named it
+(TODO.org :ID: 27e16e9a).  Asserting the exact list, rather than
+membership, is what stops an alias being reintroduced silently."
   (let ((claude-code-ide-org-standalone-port 45571)
         (claude-code-ide-org-standalone-projects
          '("/tmp/repo-alpha" "/tmp/repo-beta"))
@@ -15914,8 +15920,7 @@ lands in upstream's variable only on the success path."
       (setq registered (nreverse registered))
       (should (equal registered
                      '(("repo-alpha" . "/tmp/repo-alpha")
-                       ("repo-beta" . "/tmp/repo-beta")
-                       ("warp" . "/tmp/repo-alpha"))))
+                       ("repo-beta" . "/tmp/repo-beta"))))
       (should (equal (nreverse started) '("/tmp/repo-alpha" "/tmp/repo-beta")))
       (should (= claude-code-ide-mcp-server-port 45571)))))
 
@@ -16977,3 +16982,235 @@ alone cannot stage this."
                       :events nil)))
       (should-not (claude-code-ide-org--review-apply-item item))
       (should (equal (claude-code-ide-org--review-current-state id) "DONE")))))
+
+;;; A guidepost-free queue (TODO.org :ID: d3149a81) -------------------------
+;;
+;; Every review pass this project has ever run has read a queue full of
+;; guideposts -- the `pause'/`resume' stream has been there since the
+;; 2026-08-11 cutover.  A consumer who leaves time tracking switched off
+;; gets a queue that has never held one, which is a shape the review
+;; buffer and apply pass had not been exercised against.  These pin it.
+
+(ert-deftest claude-code-ide-org-test-guidepost-free-queue-yields-no-clock-items ()
+  "A queue of only todo/capture/amend yields exactly those items.
+
+The claim the ship-without-the-clock slice rests on: with no guideposts
+and no clock events the review buffer shows state changes, captures and
+amends and nothing else.  Asserted on the item TYPES rather than the
+count alone, because the failure this guards against is a `clock' item
+appearing from the span path with no span in the queue to build it from
+-- which a count would also catch, but would not name."
+  (claude-code-ide-org-test--with-queue
+    (claude-code-ide-org-test--queue-write
+     "sess-a"
+     (claude-code-ide-org-test--queue-event
+      "2026-09-18T09:00:00-0500" "todo" "id-a" "DOING")
+     (claude-code-ide-org-test--capture-line
+      "2026-09-18T09:05:00-0500" "id-b" "A captured heading" nil nil nil "Apply")
+     (claude-code-ide-org-test--amend-line
+      "2026-09-18T09:10:00-0500" "id-a" "Some body prose."))
+    (let* ((items (claude-code-ide-org--review-items-from-queue))
+           (types (sort (mapcar (lambda (i) (plist-get i :type)) items)
+                        (lambda (a b) (string< (symbol-name a) (symbol-name b))))))
+      (should (equal '(amend capture state) types))
+      ;; No span reached the buffer, so nothing can be UNASSIGNED.
+      (should-not (seq-find (lambda (i) (plist-get i :unassigned)) items)))))
+
+(ert-deftest claude-code-ide-org-test-guidepost-free-queue-drains ()
+  "`--queue-file-drained-p' still reports drained once the items are gone.
+
+Archiving depends on it, and its first clause is \"yields no review
+items\".  The worry was that fewer event kinds might leave something
+stranded that never drains -- the failure mode its own commentary
+records for trailing spans.  With no spans there is nothing to strand,
+which is what this asserts rather than assumes."
+  (claude-code-ide-org-test--with-queue
+    ;; A queue with real items is not drained...
+    (claude-code-ide-org-test--queue-write
+     "sess-a" (claude-code-ide-org-test--queue-event
+               "2026-09-18T09:00:00-0500" "todo" "id-a" "DOING"))
+    (should (claude-code-ide-org--review-items-from-queue "sess-a"))
+    (should-not (claude-code-ide-org--queue-file-drained-p "sess-a"))
+    ;; ...and an empty one is, PROVIDED IT IS ALSO IDLE -- both clauses
+    ;; asserted, because yielding no items is only the first half and a
+    ;; test stopping there would pass for a queue that never drains and
+    ;; so never archives.
+    (claude-code-ide-org-test--queue-write "sess-b")
+    (should-not (claude-code-ide-org--review-items-from-queue "sess-b"))
+    ;; Freshly written, so the idle clause refuses even though the items
+    ;; clause is satisfied. This is the conjunction doing its job: a
+    ;; live session sitting at a prompt is not a finished one.
+    (should-not (claude-code-ide-org--queue-file-drained-p "sess-b"))
+    ;; Gone quiet, and now it drains.
+    (let ((claude-code-ide-org-queue-idle-seconds -1))
+      (should (claude-code-ide-org--queue-file-drained-p "sess-b")))
+    ;; And idleness alone is not enough either -- sess-a has items.
+    (let ((claude-code-ide-org-queue-idle-seconds -1))
+      (should-not (claude-code-ide-org--queue-file-drained-p "sess-a")))))
+
+(ert-deftest claude-code-ide-org-test-pending-capture-resolves-without-guideposts ()
+  "A deferred capture's :ID: still resolves from a guidepost-free queue.
+
+`--pending-capture' is the bridge across the write-through edge: a
+capture that deferred has minted and reported its id while the heading
+does not exist yet, so consulting the queue is what tells \"not written
+yet\" apart from \"never existed\".  Nothing else exercises it without a
+span in the queue alongside, and it is the sharpest thing a consumer
+running task tracking alone would hit."
+  (claude-code-ide-org-test--with-queue
+    (claude-code-ide-org-test--queue-write
+     "sess-a" (claude-code-ide-org-test--capture-line
+               "2026-09-18T09:05:00-0500" "cap-pending-1" "Deferred heading"))
+    (let ((found (claude-code-ide-org--pending-capture "cap-pending-1")))
+      (should found)
+      (should (equal "capture" (plist-get found :kind)))
+      (should (equal "Deferred heading" (plist-get found :title))))
+    ;; An id the queue never mentions stays nil, which is the half that
+    ;; makes the other half mean anything.
+    (should-not (claude-code-ide-org--pending-capture "cap-never-seen"))))
+
+;;; Report scope (TODO.org :ID: 43d479c8) -----------------------------------
+;;
+;; The SessionStart reports must speak about the session's own project
+;; and nothing else; the org tools must stay global. Both halves are
+;; asserted here, because getting the asymmetry backwards is the easy
+;; mistake and neither direction announces itself.
+
+(ert-deftest claude-code-ide-org-test-report-scope-confines-tracked-files ()
+  "`--report-scope' filters the tracked set; unbound, nothing changes.
+
+The second assertion is the load-bearing one.  A scope that filtered
+unconditionally would break `org_query' and `org_clock_report', whose
+whole value is answering across every tracked project -- so \"global by
+default\" is the property, and a test that only checked the filtering
+would pass while that was broken."
+  (let* ((root (file-name-as-directory (make-temp-file "cioo-scope-a" t)))
+         (other (file-name-as-directory (make-temp-file "cioo-scope-b" t)))
+         (empty (file-name-as-directory (make-temp-file "cioo-scope-c" t)))
+         (mine (expand-file-name "TODO.org" root))
+         (theirs (expand-file-name "TODO.org" other)))
+    (unwind-protect
+        (progn
+          (with-temp-file mine (insert "* TODO mine\n"))
+          (with-temp-file theirs (insert "* TODO theirs\n"))
+          (let ((claude-code-ide-org-query-files (list mine theirs)))
+            ;; Unscoped: the tools see everything.
+            (should (equal (list mine theirs)
+                           (claude-code-ide-org--tracked-files)))
+            ;; Scoped: only this project's file.
+            (let ((claude-code-ide-org--report-scope root))
+              (should (equal (list mine) (claude-code-ide-org--tracked-files))))
+            (let ((claude-code-ide-org--report-scope other))
+              (should (equal (list theirs) (claude-code-ide-org--tracked-files))))
+            ;; An empty scope directory yields nothing rather than
+            ;; everything -- failing closed, so a mis-scoped report is
+            ;; silent instead of wrong.  Reuses `empty' from the `let*'
+            ;; so `unwind-protect' actually cleans it: created inline
+            ;; here it leaked one directory per `bin/test' run.
+            (let ((claude-code-ide-org--report-scope empty))
+              (should-not (claude-code-ide-org--tracked-files)))))
+      (delete-directory root t)
+      (delete-directory other t)
+      (delete-directory empty t))))
+
+(ert-deftest claude-code-ide-org-test-report-scope-resolves-symlinks ()
+  "A tracked file reached through a symlink is still matched.
+
+This is how the real corpus is shaped: `org-agenda-files' collects
+paths under ~/org, which are symlinks into the repositories, so a raw
+string-prefix test against the project root discards every one of them
+and the report goes empty.  Failing closed makes that quiet, which is
+why it is pinned rather than trusted."
+  (let* ((real (file-name-as-directory (make-temp-file "cioo-real" t)))
+         (link-parent (file-name-as-directory (make-temp-file "cioo-link" t)))
+         (target (expand-file-name "TODO.org" real))
+         (via-link (expand-file-name "TODO.org" link-parent)))
+    (unwind-protect
+        (progn
+          (with-temp-file target (insert "* TODO real\n"))
+          (delete-file via-link)
+          (make-symbolic-link target via-link)
+          (let ((claude-code-ide-org-query-files (list via-link))
+                (claude-code-ide-org--report-scope real))
+            ;; Matched by truename, though the path given is elsewhere.
+            (should (equal (list via-link)
+                           (claude-code-ide-org--tracked-files)))))
+      (delete-directory real t)
+      (delete-directory link-parent t))))
+
+(ert-deftest claude-code-ide-org-test-time-tracking-line-says-nothing-when-unset ()
+  "Absent means unknown, and unknown says nothing.
+
+The two reportable values are easy and are checked for completeness.
+The third is the one that matters: CLAUDE_PLUGIN_OPTION_TIME_TRACKING
+is absent both on a Claude Code predating plugin userConfig AND in a
+repo wiring these scripts through its own .claude/settings.json -- and
+this repository is the second case with time tracking very much on.
+Reporting \"off\" there would be exactly the confident falsehood
+:ID: 43d479c8 was fixed for, so nil is the assertion with teeth."
+  (let ((claude-code-ide-org-queue-directory (make-temp-file "cioo-tt" t)))
+    (should (string-match-p "ON" (claude-code-ide-org--time-tracking-line "true")))
+    (should (string-match-p "OFF" (claude-code-ide-org--time-tracking-line "false")))
+    (should-not (claude-code-ide-org--time-tracking-line nil))
+    (should-not (claude-code-ide-org--time-tracking-line ""))
+    ;; Anything unrecognised is also unknown rather than assumed false.
+    (should-not (claude-code-ide-org--time-tracking-line "yes"))))
+
+(ert-deftest claude-code-ide-org-test-time-tracking-off-line-is-said-once-a-day ()
+  "The OFF line is rate-limited; the ON line is not, and needs not to be.
+
+Every sibling report here is limited -- the ceremony by
+`ceremony-last-run', the stale-interval report by its predates-today
+test, `apply-detect' by `.apply-seen' -- and this one is true forever
+while being actionable once.  :ID: 2758f3a0 measured what unlimited
+re-mention costs: an instruction stopped being followed 41 times in 45,
+every miss on a re-mention.
+
+The ON line is deliberately unlimited and that asymmetry is the second
+assertion: it is not an instruction, it is a statement of fact a session
+may want on any turn, and it costs one line."
+  (let ((claude-code-ide-org-queue-directory (make-temp-file "cioo-tt-limit" t)))
+    (should (claude-code-ide-org--time-tracking-line "false"))
+    (should-not (claude-code-ide-org--time-tracking-line "false"))
+    (should-not (claude-code-ide-org--time-tracking-line "false"))
+    ;; A fresh queue directory is a fresh day.
+    (let ((claude-code-ide-org-queue-directory (make-temp-file "cioo-tt-day2" t)))
+      (should (claude-code-ide-org--time-tracking-line "false")))
+    ;; ON is unaffected, however often it is asked.
+    (should (claude-code-ide-org--time-tracking-line "true"))
+    (should (claude-code-ide-org--time-tracking-line "true"))))
+
+(ert-deftest claude-code-ide-org-test-consent-gate-ignores-the-report-scope ()
+  "`--tracked-buffer-p' answers about tracking, not about a report's scope.
+
+The leak this pins: the SessionStart reports bind `--report-scope' and
+then call `find-file-noselect', which runs `find-file-hook' ->
+`--revert-so-long-takeover' -> this predicate.  While the binding was
+honoured here, a genuinely tracked file belonging to another project
+answered nil, `so-long-revert' never fired, and the buffer stayed in
+`so-long-mode' for the rest of the Emacs session -- :ID: 045459f6
+reintroduced, whose point was that the tools then *write* these
+buffers.  Reachable rather than theoretical: a consumer's scoped report
+opens this repo's TODO.org via `--review-attention-target'."
+  (let* ((mine (file-name-as-directory (make-temp-file "cioo-consent-a" t)))
+         (other (file-name-as-directory (make-temp-file "cioo-consent-b" t)))
+         (f (expand-file-name "TODO.org" mine)))
+    (unwind-protect
+        (progn
+          (with-temp-file f (insert "* TODO mine\n"))
+          (let ((claude-code-ide-org-query-files (list f)))
+            (with-current-buffer (find-file-noselect f)
+              (unwind-protect
+                  (progn
+                    (should (claude-code-ide-org--tracked-buffer-p))
+                    ;; The whole assertion: a scope naming somewhere else
+                    ;; must not revoke consent for a tracked file.
+                    (let ((claude-code-ide-org--report-scope other))
+                      (should (claude-code-ide-org--tracked-buffer-p)))
+                    ;; And the scope still works where it is meant to.
+                    (let ((claude-code-ide-org--report-scope other))
+                      (should-not (claude-code-ide-org--tracked-files))))
+                (set-buffer-modified-p nil)
+                (kill-buffer)))))
+      (delete-directory mine t)
+      (delete-directory other t))))

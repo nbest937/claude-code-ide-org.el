@@ -73,8 +73,8 @@ upgrade. The old equivalent — symlinking
   The wire pins the port (`claude-code-ide-org-standalone-port`, default
   `45571`, checked **loudly** against what the shipped `.mcp.json`
   actually names), starts the tools server, and registers a session
-  per listed project — each under its directory basename, the first
-  also as `warp`, the session id the shipped `/mcp/warp` URL names.
+  per listed project — each under its directory basename, which is the
+  session id that project's own `.mcp.json` URL names.
   The port stays pinned by design: the static `.mcp.json` is the
   contract every client reads, and a dynamic port would need
   discovery machinery that standalone clients do not have.
@@ -96,8 +96,8 @@ upgrade. The old equivalent — symlinking
 1. **Enable the plugin.** Per session: `claude --plugin-dir
    /path/to/claude-code-ide-org`. **Enable once instead** (`:ID:`
    7dbb82e0, against Claude Code's docs 2026-09-10), at either scope —
-   both load the full plugin (hooks, MCP server with a one-time
-   per-server approval, skills) from the clone in place, so a
+   both load the full plugin (hooks and skills) from the clone in
+   place, so a
    `git pull` or local edit is live next session:
 
    - **Project scope, the recommended default** — in the consuming

@@ -8,6 +8,19 @@
   },
   "repository": "https://github.com/nbest937/claude-code-ide-org.el",
   "license": "MIT",
-  "keywords": ["org-mode", "emacs", "gtd", "time-tracking", "mcp"],
-  "mcpServers": "./.mcp.json"
+  "keywords": [
+    "org-mode",
+    "emacs",
+    "gtd",
+    "time-tracking",
+    "mcp"
+  ],
+  "userConfig": {
+    "time_tracking": {
+      "type": "boolean",
+      "title": "Time tracking",
+      "description": "Record turn-boundary guideposts and clock events for the human-run review pass, so finished work carries CLOCK intervals. Off by default: the org tools, the queue and the review pass all work without it. One value for every project, since the queue is per-user and global.",
+      "default": false
+    }
+  }
 }
