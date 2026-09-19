@@ -179,6 +179,15 @@ Planned:
 :CREATED:  [2026-09-19 Sat 13:44]
 :CATEGORY: Skill
 :END:
+:DEBRIEF:
+Shipped 2026-09-19 in [[orgit-rev:claude-code-ide-org::f733179][f733179]]. =queue-append= takes =miss RULE DETAIL= (called by a hook that has blocked) and =refusal= (a =PostToolUse= row on every =org_*= tool, a miss only when the reply is an =Error:=). =footnote-check= and =clock-target-check= append one per block from a slim payload; =--queue-kinds= deliberately omits the kind so nothing reaches review, pinned from both sides. =--miss-counts= puts the number in the ceremony report, since the last stamp, scoped like the pending count, never raising the report by itself; =bin/miss-rate= is the =jq= over the directory. Every test ran red first. Every surface says *floor*.
+
+*Baseline:* zero over 7 days and 31 sessions, because nothing wrote the kind before today — the series starts now. The plan's "5 =.footnote-blocked=" was already 14 when re-counted the same day: =session-resume= clears that sentinel, so the figure never was a count of anything.
+
+*Not done, deliberately:* the sentinels stay, as loop guards — only their second job as the record is retired. The =SessionStart= reports and =doc-sync-check= are not counted: they describe state or remind on every edit, and would count sessions rather than misses. The git-hook refusals (=lint-org=, =check-conventions=) carry no =session_id= and are not counted; not filed, since a commit-time refusal is already visible to the human. *Live without a restart:* settings-file hooks are re-read while a session runs (docs, and observed the same hour), so the =refusal= row took effect at once; only the ceremony number needs =config.el= reloaded.
+
+Filed from this work: [[id:94e6b615-3778-426b-b40a-306b517a837f][94e6b615]].
+:END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-19 Sat 13:50] \\
   first member of the drift slice: the number before the mechanisms
@@ -240,20 +249,22 @@ slice that cannot show its number closing has nothing to close on.
 
 The drift analysis's thrust is to make the agent stop forgetting; every heading filed from it fixes a cause, and none owns the outcome. What is recorded today: 5 footnote-blocked and 2 clock-target-nagged sentinels across 67 session queue files — each meaning "at least once", from hooks that see only a fraction of misses. No mechanism heading can be shown to work against that.
 
-*Shipped 2026-09-19* in [[orgit-rev:claude-code-ide-org::f733179][f733179]]. =queue-append= takes =miss RULE DETAIL= (called by a hook that has blocked) and =refusal= (a =PostToolUse= row on every =org_*= tool, a miss only when the reply is an =Error:=). =footnote-check= and =clock-target-check= append one per block from a slim payload; =--queue-kinds= deliberately omits the kind so nothing reaches review, pinned from both sides. =--miss-counts= puts the number in the ceremony report, since the last stamp, scoped like the pending count, never raising the report by itself; =bin/miss-rate= is the =jq= over the directory. Every test ran red first. Every surface says *floor*.
-
-*Baseline:* zero over 7 days and 31 sessions, because nothing wrote the kind before today — the series starts now. The plan's "5 =.footnote-blocked=" was already 14 when re-counted the same day: =session-resume= clears that sentinel, so the figure never was a count of anything.
-
-*Not done, deliberately:* the sentinels stay, as loop guards — only their second job as the record is retired. The =SessionStart= reports and =doc-sync-check= are not counted: they describe state or remind on every edit, and would count sessions rather than misses. The git-hook refusals (=lint-org=, =check-conventions=) carry no =session_id= and are not counted; not filed, since a commit-time refusal is already visible to the human. *Live without a restart:* settings-file hooks are re-read while a session runs (docs, and observed the same hour), so the =refusal= row took effect at once; only the ceremony number needs =config.el= reloaded.
-
-*Open, the user's:* whether a correction in conversation is answered with a capture or amend citing the rule missed. Filed from this work: [[id:94e6b615-3778-426b-b40a-306b517a837f][94e6b615]].
-
+*Resolved 2026-09-19:* every backstop that fires now appends a =miss= naming its rule, and the ceremony report and =bin/miss-rate= print the count — a floor, starting from zero that day. *Open, the user's:* whether a correction in conversation is answered with a capture or amend citing the rule missed, which is the only way the misses a human catches would reach the number.
 
 * TODO org-time-tracking.md promotes with no path scope, so a consumer with the feature off loads 260 lines about it every session :code:
 :PROPERTIES:
 :ID:       1b69fe4e-3dab-4b11-b21b-96320bf9d4e0
 :CREATED:  [2026-09-19 Sat 09:11]
 :CATEGORY: Dev
+:END:
+:DEBRIEF:
+Shipped in [[orgit-rev:claude-code-ide-org::5f3ae30][5f3ae30]]. Three signals, any one: =--time-tracking=; =CLAUDE_PLUGIN_OPTION_TIME_TRACKING=true= in setup's environment; or a target whose =.claude/settings.json= sets that variable in a hook command. *The third was not in the plan* and is why this repo needs no flag — without it a plain re-run here would have deleted a tracked rule file. Off, a generated copy is removed (the marker is the licence; a hand-maintained file is left alone), which is [[id:96ad6e95-452d-4be2-9bc7-b2c2efa44988][96ad6e95]]'s removal case for this one file only. =--check= reads the file's presence as the signal and never calls an absent copy missing.
+
+Verified: ten new cases in =claude-org-setup-test=, run red first (five failed before the change); self-hosted =--check= exits 0; all fourteen shell suites exit 0. Five prose passages that said "promoted unconditionally" or "presence is not evidence" corrected, the file's own opening among them. *Weaker than the plan hoped:* presence is evidence that *setup was told*, not that the option is on — the two can disagree and the prose now says so.
+
+The suite had to be made green first: nine failures predating the branch, one a real bug in setup — [[orgit-rev:claude-code-ide-org::7f54503][7f54503]], recorded on [[id:94e6b615-3778-426b-b40a-306b517a837f][94e6b615]].
+
+Not done: the 54 clock-shaped lines in the other four machinery files. Told to [[id:bf7e0b8e-f83a-4d4a-9950-3ab23a225156][bf7e0b8e]] by an amend on that heading, not only named here. Not verified: a real consumer install.
 :END:
 :PLAN:
 *The false premise, quoted from =bin/claude-org-setup= at the promote list:*
@@ -294,6 +305,9 @@ is the removal case that heading says nothing handles.
 :END:
 
 bin/claude-org-setup promotes the time-tracking rules unconditionally on the stated premise that it "costs a consumer one unread reference". A promoted rule with no paths: frontmatter is read at launch, every session — so with the default toggle a consumer pays 26% of the plugin's imposed context for a feature that is off, before any of their own CLAUDE.md.
+
+*Resolved 2026-09-19:* setup promotes the time file only where it is told the feature is on, and removes a copy it wrote when it is not; a default consumer's always-loaded plugin surface fell from 1,047 lines to 780.
+
 
 
 * TODO Path-scoped rules load on a Read, which the org tools exist to replace, so the conventions load only on the discouraged path :code:observed:
@@ -623,6 +637,8 @@ or it will be met in one configuration and missed in the other three.
 *Why it belongs to this heading and not only to housekeeping.* Every property this heading worries about holds more strongly there. It is always-loaded, and outside every budget: [[id:f2030ce9-3759-407c-b459-fe4ba4de8854][f2030ce9]]'s ratchet sums CLAUDE.md and =.claude/rules/= and cannot see it. It is unversioned, so drift leaves no diff. It is unchecked — =check-conventions= resolves the ids this repo cites and never reads that directory. And it is keyed to this machine and this path, so a consumer of the plugin gets none of it and a second machine gets none of it, which makes it the wrong home for anything the project depends on. Every stale claim was true when written; nothing re-reads a memory once saved. That is CLAUDE.md's own thesis about itself — an accurate-looking always-loaded file outranks the truth until someone checks — in a file with no mechanism to check it.
 
 *For the deletion pass:* count the index in the budget; decide which memories are project rules in the wrong place (the stash rule, the footnote form and the commit practice are all already in the repo, so the memory is a second copy that can disagree — as one just did); and consider a =check-conventions= clause that at least resolves the ids and paths the memories cite, which would have caught four of the six.
+
+*Inherited 2026-09-19 from [[id:1b69fe4e-3dab-4b11-b21b-96320bf9d4e0][1b69fe4e]], which closed without it:* the 54 clock-, guidepost- and span-shaped lines outside the time file (25 in =org-state-transitions.md=, 13 in =org-event-queue.md=, 8 each in =org-mcp-tools.md= and =org-session-tracking.md=, as counted that morning). The time file is now promoted only where the feature is on, so each of those lines is either moved into it — and then costs a default consumer nothing — or deleted. Re-count first. *The measured start for this pass, same day:* a consumer's always-loaded plugin surface is 780 lines with the feature off and 1,047 with it on.
 :END:
 
 Measured 2026-09-19, prompted by an outside drift analysis that asserted a standing-context volume problem without numbers. The numbers hold, and they say something the analysis did not: relocation moved words, it did not retire them. A compression pass is owed, and it has to delete.
