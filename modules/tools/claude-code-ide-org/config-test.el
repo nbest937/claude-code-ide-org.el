@@ -12490,6 +12490,81 @@ report, which asks the stop time and forbids guessing one."
     ;; And no status at all (already run today) is also silence.
     (should-not (claude-code-ide-org--format-ceremony-report nil))))
 
+;;; Misses (TODO.org :ID: 63713df3)
+
+(defun claude-code-ide-org-test--miss-line (ts rule &optional cwd)
+  "One `miss' queue line at TS for RULE, in bin/hooks/queue-append's shape."
+  (json-encode `((ts . ,ts) (kind . "miss") (rule . ,rule)
+                 (session_id . "sess-a") ,@(and cwd `((cwd . ,cwd))))))
+
+(ert-deftest claude-code-ide-org-test-a-miss-never-reaches-review ()
+  "A `miss' is a measurement, not a proposal: the reader drops it.
+The writer relies on this -- bin/hooks/queue-append emits the kind
+precisely because `--queue-kinds' does not list it."
+  (should-not (member "miss" claude-code-ide-org--queue-kinds))
+  (claude-code-ide-org-test--with-queue
+    (claude-code-ide-org-test--queue-write
+     "sess-a"
+     (claude-code-ide-org-test--miss-line "2026-09-19T09:00:00-0500" "footnote"))
+    (should-not (claude-code-ide-org--queue-events))))
+
+(ert-deftest claude-code-ide-org-test-miss-counts-group-by-rule ()
+  "Counts per rule, most frequent first, across every session's file;
+a SINCE bound drops older lines, and torn lines cost one line."
+  (claude-code-ide-org-test--with-queue
+    (claude-code-ide-org-test--queue-write
+     "sess-a"
+     (claude-code-ide-org-test--miss-line "2026-09-18T09:00:00-0500" "footnote")
+     (claude-code-ide-org-test--miss-line "2026-09-19T09:00:00-0500" "footnote")
+     "{\"ts\":\"2026-09-19T09:01:00-0500\",\"kind\":\"miss\",\"ru" ; torn
+     (claude-code-ide-org-test--queue-event
+      "2026-09-19T09:02:00-0500" "pause"))
+    (claude-code-ide-org-test--queue-write
+     "sess-b"
+     (claude-code-ide-org-test--miss-line "2026-09-19T10:00:00-0500" "footnote")
+     (claude-code-ide-org-test--miss-line "2026-09-19T10:01:00-0500"
+                                          "refusal:org_capture"))
+    (should (equal '(("footnote" . 3) ("refusal:org_capture" . 1))
+                   (claude-code-ide-org--miss-counts)))
+    (should (equal '(("footnote" . 2) ("refusal:org_capture" . 1))
+                   (claude-code-ide-org--miss-counts
+                    (date-to-time "2026-09-19T00:00:00-0500"))))))
+
+(ert-deftest claude-code-ide-org-test-miss-counts-respect-the-report-scope ()
+  "Scoped, another project's misses are not this one's -- and a miss
+with no cwd is excluded, as `--items-in-report-scope' excludes an item."
+  (claude-code-ide-org-test--with-queue
+    (let* ((here (file-name-as-directory (make-temp-file "here" t)))
+           (there (file-name-as-directory (make-temp-file "there" t)))
+           (claude-code-ide-org--report-scope here))
+      (unwind-protect
+          (progn
+            (claude-code-ide-org-test--queue-write
+             "sess-a"
+             (claude-code-ide-org-test--miss-line "2026-09-19T09:00:00-0500" "footnote" here)
+             (claude-code-ide-org-test--miss-line "2026-09-19T09:01:00-0500" "footnote" there)
+             (claude-code-ide-org-test--miss-line "2026-09-19T09:02:00-0500" "footnote"))
+            (should (equal '(("footnote" . 1))
+                           (claude-code-ide-org--miss-counts))))
+        (delete-directory here t)
+        (delete-directory there t)))))
+
+(ert-deftest claude-code-ide-org-test-ceremony-report-states-the-miss-floor ()
+  "The number rides beside the pending count, by rule, and says it is a floor."
+  (let ((text (claude-code-ide-org--format-ceremony-report
+               '(:pending 1 :drifted 0 :archivable 0
+                 :misses (("footnote" . 3) ("refusal:org_capture" . 1))))))
+    (should (string-match-p "fired 4 time" text))
+    (should (string-match-p "footnote 3, refusal:org_capture 1" text))
+    (should (string-match-p "floor" text)))
+  ;; No misses: no sentence, rather than a cheerful zero.
+  (should-not (string-match-p "fired"
+                              (claude-code-ide-org--format-ceremony-report
+                               '(:pending 1 :drifted 0 :archivable 0))))
+  ;; Misses alone do not raise the ceremony: it is a number, not a task.
+  (should-not (claude-code-ide-org--format-ceremony-report
+               '(:pending 0 :drifted 0 :archivable 0 :misses (("footnote" . 3))))))
+
 (ert-deftest claude-code-ide-org-test-ceremony-report-names-unlinked-worked-slices ()
   "A worked slice without its prompt link is named, not counted.
 

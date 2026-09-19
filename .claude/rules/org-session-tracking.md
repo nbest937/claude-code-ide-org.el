@@ -34,6 +34,12 @@ wire `org_set_todo`, `org_capture` and `org_amend` to the queue. They are
 the queued tools' own mechanism rather than session tracking, and
 `hooks/hooks.json` is where their wiring is read.
 
+**Every backstop that fires is counted** (`:ID:` 63713df3): a hook that
+blocks a stop, and any `org_*` call whose reply is an `Error:` refusal,
+appends one `miss` line naming the rule. The review pass never sees the
+kind; `bin/miss-rate` and the ceremony report read it. It is a floor —
+what a hook or tool caught, never what the user caught in conversation.
+
 **`footnote-check` blocks rather than appends**, which is why this table
 is not simply a list of queue writers. It enforces the citation rules
 (`org-footnote-citations.md`, promoted alongside this file). It touches

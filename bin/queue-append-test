@@ -35,6 +35,13 @@ fail=0
 
 # Every invocation writes into a throwaway queue dir, never ~/.claude.
 export CLAUDE_ORG_QUEUE_DIR="$work/queue"
+# The scripts under test gate themselves on the plugin's time_tracking
+# option and default to OFF, so the suite must opt in the way a wired row
+# does. Without this every gated case fails on a bare run -- which all
+# three gated suites did from the gate landing (PR #28) until 2026-09-19,
+# unnoticed because nothing runs them automatically. THE GATE section at
+# the foot unsets it again to test the refusal itself.
+export CLAUDE_PLUGIN_OPTION_TIME_TRACKING=true
 
 reset_queue() { rm -rf "$CLAUDE_ORG_QUEUE_DIR"; }
 
@@ -426,6 +433,74 @@ for name in reply-queued-capture reply-queued-amend; do
   check "queue-append matches on --$name's literal" "yes" \
     "$(grep -qF "\"$literal\"" "$script" && echo yes || echo no)"
 done
+
+# --- MISSES (TODO.org :ID: 63713df3) ------------------------------------
+#
+# A backstop that fires appends a `miss' naming the rule, so the rate is
+# a count rather than a once-per-session sentinel. Two entry points: a
+# hook that blocked calls `queue-append miss RULE DETAIL' itself, and a
+# PostToolUse row calls `queue-append refusal', which becomes a miss only
+# when the tool's reply was an "Error: ..." refusal.
+reset_queue
+run_miss() { printf '%s' "$3" | "$script" miss "$1" "$2"; }
+run_miss footnote "aaaaaaaa bbbbbbbb" '{"session_id":"sess-m","cwd":"/tmp/proj-m","hook_event_name":"Stop","last_assistant_message":"a very long message that must not be copied"}'
+line="$(queue_lines sess-m)"
+check "miss records kind" "miss" "$(jq -r '.kind' <<<"$line")"
+check "miss records the rule" "footnote" "$(jq -r '.rule' <<<"$line")"
+check "miss records the detail" "aaaaaaaa bbbbbbbb" "$(jq -r '.detail' <<<"$line")"
+check "miss names no heading" "null" "$(jq -r '.id' <<<"$line")"
+check "miss records cwd" "/tmp/proj-m" "$(jq -r '.cwd' <<<"$line")"
+check "miss records the hook as source" "Stop" "$(jq -r '.source' <<<"$line")"
+check "miss does not copy the message" "no" \
+  "$(grep -q 'very long message' <<<"$line" && echo yes || echo no)"
+
+reset_queue
+printf '%s' '{"session_id":"sess-m"}' | "$script" miss
+check "a miss with no rule is dropped" "" "$(queue_lines sess-m)"
+
+# Misses are task tracking, not time tracking: recorded with the option off.
+reset_queue
+printf '%s' '{"session_id":"sess-m"}' | env -u CLAUDE_PLUGIN_OPTION_TIME_TRACKING "$script" miss footnote x
+check "a miss is recorded with time tracking off" "miss" "$(jq -r '.kind' <<<"$(queue_lines sess-m)")"
+
+# refusal: live content-block shape, because that is what PostToolUse carries.
+reset_queue
+run refusal '{"session_id":"sess-m","tool_name":"mcp__emacs-tools__org_capture","tool_input":{"title":"x"},"tool_response":[{"type":"text","text":"Error: a top-level capture needs a category -- one of: Queue, Apply"}]}'
+line="$(queue_lines sess-m)"
+check "a refused tool call is a miss" "miss" "$(jq -r '.kind' <<<"$line")"
+check "the rule names the tool, short" "refusal:org_capture" "$(jq -r '.rule' <<<"$line")"
+check "the detail is the refusal text" "Error: a top-level capture needs a category -- one of: Queue, Apply" "$(jq -r '.detail' <<<"$line")"
+check "a refusal names no heading" "null" "$(jq -r '.id' <<<"$line")"
+
+reset_queue
+run refusal '{"session_id":"sess-m","tool_name":"mcp__emacs-tools__org_capture","tool_input":{"title":"x"},"tool_response":[{"type":"text","text":"Captured: \"x\" (ID: abc)"}]}'
+check "a successful tool call is not a miss" "" "$(queue_lines sess-m)"
+
+reset_queue
+long="$(printf 'Error: %0400d' 0)"
+run refusal "$(jq -n -c --arg r "$long" '{session_id:"sess-m",tool_name:"mcp__emacs-tools__org_query",tool_response:$r}')"
+check "a long refusal is truncated to 300" "300" "$(jq -r '.detail | length' <<<"$(queue_lines sess-m)")"
+
+# The reader must skip the kind, or every miss shows up at review. This
+# asserts the agreement, not the behaviour -- ERT covers the skip itself.
+check "config.el's queue-kinds does not list miss" "no" \
+  "$(sed -n '/defconst claude-code-ide-org--queue-kinds/,/^  "/p' "$repo_root/modules/tools/claude-code-ide-org/config.el" | grep -q '"miss"' && echo yes || echo no)"
+
+# --- THE GATE: time kinds are dropped with the option off or absent -----
+for k in clock_in clock_out pause resume block_start block_end; do
+  reset_queue
+  printf '%s' '{"session_id":"sess-g","tool_input":{"id":"x"},"tool_response":"ok"}' \
+    | env -u CLAUDE_PLUGIN_OPTION_TIME_TRACKING "$script" "$k"
+  check "$k is dropped with the option absent" "" "$(queue_lines sess-g)"
+done
+reset_queue
+printf '%s' '{"session_id":"sess-g","tool_input":{"id":"x"},"tool_response":"ok"}' \
+  | CLAUDE_PLUGIN_OPTION_TIME_TRACKING=false "$script" clock_in
+check "clock_in is dropped with the option false" "" "$(queue_lines sess-g)"
+reset_queue
+printf '%s' '{"session_id":"sess-g","tool_input":{"id":"x","state":"DOING"},"tool_response":"TODO state set to DOING (was NEXT): \"x\""}' \
+  | env -u CLAUDE_PLUGIN_OPTION_TIME_TRACKING "$script" todo
+check "todo is task tracking: recorded with the option absent" "todo" "$(jq -r '.kind' <<<"$(queue_lines sess-g)")"
 
 # --- the script never fails its caller ---------------------------------
 printf '%s' 'garbage' | "$script" pause >/dev/null 2>&1

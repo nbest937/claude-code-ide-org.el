@@ -984,6 +984,56 @@ in practice this drops only pre-cutover events."
           (plist-get item :events)))
        items))))
 
+(defun claude-code-ide-org--miss-counts (&optional since)
+  "Count `miss' queue lines by rule: ((RULE . N) ...), most frequent first.
+
+A `miss' is what a backstop appends when it fires -- a hook that blocked
+a stop, a tool that refused a call (TODO.org :ID: 63713df3).  The reader
+drops the kind on purpose, it being a measurement and not a proposal, so
+this reads the files itself rather than through `--queue-events'.
+
+SINCE, a time value, drops lines at or before it.  Under
+`--report-scope' a line counts only when its `cwd' is inside the scope,
+and a line with no `cwd' is excluded -- the same asymmetry, for the same
+reason, as `--items-in-report-scope'.
+
+*A floor, never the rate*: it counts what a hook or a tool caught.  The
+misses a human catches in conversation reach no file, and they are the
+ones the number most wants."
+  (let ((root (and claude-code-ide-org--report-scope
+                   (file-name-as-directory
+                    (file-truename claude-code-ide-org--report-scope))))
+        counts)
+    (dolist (file (claude-code-ide-org--queue-files))
+      (with-temp-buffer
+        (insert-file-contents file)
+        (goto-char (point-min))
+        ;; The literal is the writer's own compact encoding (`jq -c'), and
+        ;; only a prefilter: a queue file is mostly guideposts, and an
+        ;; amend's prose can contain the literal, so the parse decides.
+        (while (search-forward "\"kind\":\"miss\"" nil t)
+          (let* ((obj (ignore-errors
+                        (json-parse-string
+                         (buffer-substring-no-properties
+                          (line-beginning-position) (line-end-position))
+                         :object-type 'alist :null-object nil)))
+                 (ts (claude-code-ide-org--parse-iso8601 (alist-get 'ts obj)))
+                 (rule (alist-get 'rule obj))
+                 (cwd (alist-get 'cwd obj)))
+            (when (and (equal (alist-get 'kind obj) "miss")
+                       (stringp rule) ts
+                       (or (null since) (time-less-p since ts))
+                       (or (null root)
+                           (and cwd (file-directory-p cwd)
+                                (string-prefix-p
+                                 root (file-name-as-directory
+                                       (file-truename cwd))))))
+              (cl-incf (alist-get rule counts 0 nil #'equal))))
+          (forward-line 1))))
+    (sort counts (lambda (a b)
+                   (or (> (cdr a) (cdr b))
+                       (and (= (cdr a) (cdr b)) (string< (car a) (car b))))))))
+
 (defun claude-code-ide-org--ceremony-status ()
   "Return a plist of what the ceremony has waiting: (:pending N :drifted N
 :archivable N :unlinked IDS), or nil when the ceremony has already run today.
@@ -1028,6 +1078,14 @@ why this returns numbers and the formatter below asks a question."
              nil 'file))))
       (list :pending pending :drifted drifted :archivable archivable
             :unlinked (claude-code-ide-org--worked-unlinked-slices)
+            ;; Since the ceremony last completed, which is the window the
+            ;; rest of this report already speaks in; every miss on
+            ;; record when it never has.
+            :misses (claude-code-ide-org--miss-counts
+                     (let ((f (claude-code-ide-org--ceremony-stamp-file)))
+                       (and (file-exists-p f)
+                            (file-attribute-modification-time
+                             (file-attributes f)))))
             :reviewed-today (claude-code-ide-org--ceremony-reviewed-today-p)
             :last-done (let ((f (claude-code-ide-org--ceremony-stamp-file)))
                          (when (file-exists-p f)
@@ -1054,6 +1112,7 @@ before it was unwelcome."
          (drifted (or (plist-get status :drifted) 0))
          (archivable (or (plist-get status :archivable) 0))
          (unlinked (plist-get status :unlinked))
+         (misses (plist-get status :misses))
          (reviewed (plist-get status :reviewed-today)))
     (when (and status (> (+ pending drifted archivable (length unlinked)) 0))
       (concat
@@ -1075,6 +1134,16 @@ before it was unwelcome."
                ;; answers "how long has this been slipping", which earns
                ;; a line when the report is firing anyway.
                (or (plist-get status :last-done) "never"))
+       ;; A number, not a task: it rides along when the report fires and
+       ;; never raises it, so it is absent from the sum guarding this
+       ;; `when' (TODO.org :ID: 63713df3).
+       (when misses
+         (format "Backstops fired %d time(s) since then (%s) -- a floor: it \
+counts what a hook or a tool caught, never what the user caught in \
+conversation. "
+                 (apply #'+ (mapcar #'cdr misses))
+                 (mapconcat (lambda (m) (format "%s %d" (car m) (cdr m)))
+                            misses ", ")))
        ;; Named rather than counted, and separate from the counts above:
        ;; the ceremony's automated steps cannot fix this one -- only the
        ;; composer knows which prompt revision applies -- so the report

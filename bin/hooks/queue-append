@@ -18,6 +18,9 @@
 #   PostToolUse org_amend      -> amend     (only when it deferred)
 #   Stop                       -> pause
 #   UserPromptSubmit           -> resume
+#   a backstop that fired      -> miss      (rule as $2, detail as $3)
+#   PostToolUse org_*          -> refusal   (a miss, only when the reply
+#                                            was an "Error: ..." refusal)
 #
 # capture and amend differ from the rest: those tools write the file
 # immediately when it is free and only queue when the human has unsaved
@@ -61,8 +64,26 @@ case "$kind" in
   # Paired by tool_use_id at review time, not here: this script stays a
   # dumb appender and never reads back what it has written.
   block_start|block_end) ;;
+  # A backstop fired: a hook blocked, or a tool refused (TODO.org :ID:
+  # 63713df3). The sentinels that guard those hooks say "at least once
+  # this session" and are cleared or never cleared for loop-guard
+  # reasons, so neither is a count; this line is. `miss' is called by a
+  # hook that has already decided, with the rule as $2; `refusal' is
+  # wired to PostToolUse and decides here, on the reply.
+  #
+  # NOT in config.el's `--queue-kinds', deliberately: the reader drops an
+  # unknown kind, so a miss never reaches the review buffer. It is a
+  # measurement, not a proposal, and there is nothing to apply.
+  #
+  # A FLOOR, never the rate. It counts what a hook or a tool caught. The
+  # misses a human catches in conversation reach no file at all.
+  miss|refusal) ;;
   *) exit 0 ;;
 esac
+
+rule="${2:-}"
+detail="${3:-}"
+[[ "$kind" != miss || -n "$rule" ]] || exit 0
 
 # Time tracking self-gates here, because hooks.json has no conditional
 # form: a shipped-but-disabled hook has to refuse for itself. The plugin
@@ -125,15 +146,25 @@ esac
 # the older reply shapes are unaffected.
 response=""
 if [[ "$kind" == todo || "$kind" == clock_in || "$kind" == clock_out \
-   || "$kind" == capture || "$kind" == amend ]]; then
+   || "$kind" == capture || "$kind" == amend || "$kind" == refusal ]]; then
   response="$(jq -r '
     def totext:
       if type == "object" then (.text // .content // .result // "" | totext)
       elif type == "array" then (map(totext) | join(" "))
       else tostring end;
     (.tool_response // "") | totext' <<<"$input" 2>/dev/null)"
-  case "$response" in
-    Error:*) exit 0 ;;
+  # The same test read both ways: for the queued tools an error means
+  # nothing happened and nothing is queued; for `refusal' the error IS
+  # the event, and anything else is an ordinary call and not a miss.
+  case "$kind:$response" in
+    refusal:Error:*)
+      rule="refusal:$(jq -r '.tool_name // "unknown" | sub("^mcp__.*__"; "")' <<<"$input" 2>/dev/null)"
+      # Truncated: a refusal can quote a whole query or list every
+      # category, and the line must stay under the atomic-append size.
+      detail="${response:0:300}"
+      kind=miss ;;
+    refusal:*) exit 0 ;;
+    *:Error:*) exit 0 ;;
   esac
 fi
 
@@ -223,11 +254,13 @@ line="$(jq -n -c \
   --arg session_id "$session_id" \
   --arg recovered_id "$recovered_id" \
   --arg recovered_from "$recovered_from" \
+  --arg rule "$rule" \
+  --arg detail "$detail" \
   --argjson payload "$(jq -c '.' <<<"$input" 2>/dev/null || echo '{}')" \
   '{
      ts: $ts,
      kind: $kind,
-     id: (if $kind == "pause" or $kind == "resume"
+     id: (if $kind == "pause" or $kind == "resume" or $kind == "miss"
              or $kind == "block_start" or $kind == "block_end" then null
           else ($payload.tool_input.id
                 // (if $recovered_id == "" then null else $recovered_id end))
@@ -238,7 +271,7 @@ line="$(jq -n -c \
              else null end),
      from: (if $kind == "todo" and $recovered_from != "" then $recovered_from
             else null end),
-     note: (if $kind == "pause" or $kind == "resume"
+     note: (if $kind == "pause" or $kind == "resume" or $kind == "miss"
                or $kind == "block_start" or $kind == "block_end" then null
             else ($payload.tool_input.note // null) end),
      title:  (if $kind == "capture" then ($payload.tool_input.title // null) else null end),
@@ -247,6 +280,8 @@ line="$(jq -n -c \
      category: (if $kind == "capture" then ($payload.tool_input.category // null) else null end),
      text:   (if $kind == "amend" then ($payload.tool_input.text // null) else null end),
      drawer: (if $kind == "amend" then ($payload.tool_input.drawer // null) else null end),
+     rule:   (if $kind == "miss" then $rule else null end),
+     detail: (if $kind == "miss" and $detail != "" then $detail else null end),
      tool_use_id: (if $kind == "block_start" or $kind == "block_end"
                    then ($payload.tool_use_id // null) else null end),
      session_id: $session_id,

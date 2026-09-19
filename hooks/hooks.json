@@ -53,6 +53,16 @@
         ]
       },
       {
+        "matcher": "mcp__emacs-tools__org_.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/bin/hooks/queue-append refusal",
+            "timeout": 10
+          }
+        ]
+      },
+      {
         "matcher": "*",
         "hooks": [
           {

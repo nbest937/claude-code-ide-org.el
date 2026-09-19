@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# Shell test harness for bin/miss-rate. Same register as
+# bin/queue-append-test: fixtures in, positive assertions out.
+set -uo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+tmp="$(mktemp -d)"
+trap 'rm -rf "$tmp"' EXIT
+export CLAUDE_ORG_QUEUE_DIR="$tmp"
+
+failures=0
+check() {
+  local what="$1" want="$2" got="$3"
+  if [[ "$want" == "$got" ]]; then echo "ok   - $what"
+  else echo "FAIL - $what: wanted [$want], got [$got]"; failures=$((failures + 1)); fi
+}
+
+today="$(date '+%Y-%m-%d')"
+old="2001-01-01"
+ev() { printf '{"ts":"%sT09:00:00-0500","kind":"%s","rule":%s,"session_id":"%s","cwd":"%s"}\n' "$1" "$2" "$3" "$4" "$5"; }
+
+check "an empty directory says so and exits 0" "0" "$("$repo_root/bin/miss-rate" >/dev/null; echo $?)"
+
+{
+  ev "$today" miss '"footnote"' s1 /p/a
+  ev "$today" miss '"footnote"' s1 /p/a
+  ev "$today" miss '"refusal:org_capture"' s1 /p/a/sub
+  ev "$today" todo null s1 /p/a
+  echo '{"ts":"'"$today"'T09:00:00-0500","kind":"mi'          # torn
+  ev "$old" miss '"footnote"' s1 /p/a                          # outside the window
+} > "$tmp/s1.jsonl"
+ev "$today" todo null s2 /p/a > "$tmp/s2.jsonl"
+ev "$today" miss '"footnote"' s3 /p/ab > "$tmp/s3.jsonl"       # a sibling, not beneath /p/a
+
+out="$("$repo_root/bin/miss-rate")"
+row="$(grep "^$today" <<<"$out")"
+check "sessions that day" "3" "$(awk '{print $2}' <<<"$row")"
+check "sessions with a miss" "2" "$(awk '{print $3}' <<<"$row")"
+check "misses that day, torn line skipped" "4" "$(awk '{print $4}' <<<"$row")"
+check "rules are counted by name" "yes" "$(grep -q 'footnote 3' <<<"$row" && echo yes || echo no)"
+check "a line outside the window is dropped" "no" "$(grep -q "^$old" <<<"$out" && echo yes || echo no)"
+check "the total says it is a floor" "yes" "$(grep -q '^total.*floor' <<<"$out" && echo yes || echo no)"
+
+row="$("$repo_root/bin/miss-rate" --project /p/a | grep "^$today")"
+check "--project keeps the project and what is beneath it" "3" "$(awk '{print $4}' <<<"$row")"
+check "--project does not match a sibling by prefix" "2" "$(awk '{print $2}' <<<"$row")"
+
+echo
+if [[ $failures -eq 0 ]]; then echo "miss-rate-test: all checks passed"
+else echo "miss-rate-test: $failures check(s) failed"; fi
+exit $((failures > 0))

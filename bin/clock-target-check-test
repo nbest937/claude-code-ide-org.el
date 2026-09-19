@@ -136,6 +136,16 @@ check "the block carries a message, not an empty stderr" "yes" \
 check "the message names the tool that wrote" "yes" \
   "$(grep -q 'first: Edit' "$tmp/stderr" && echo yes || echo no)"
 
+# --- the nag is counted (TODO.org :ID: 63713df3) -----------------------
+reset; write_transcript
+run_hook >/dev/null
+check "a block appends one miss" 1 \
+  "$(jq -c 'select(.kind == "miss")' "$tmp/queue/sess-x.jsonl" 2>/dev/null | grep -c .)"
+check "the miss names the rule" "clock-target" \
+  "$(jq -r 'select(.kind == "miss") | .rule' "$tmp/queue/sess-x.jsonl" 2>/dev/null)"
+check "the detail is the first write" "Edit" \
+  "$(jq -r 'select(.kind == "miss") | .detail' "$tmp/queue/sess-x.jsonl" 2>/dev/null)"
+
 # --- THE GATE: no nag with the option off or absent ---------------------
 reset; write_transcript
 check "the hook stays silent with the option absent" 0 \
