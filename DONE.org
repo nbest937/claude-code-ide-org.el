@@ -126,6 +126,9 @@ CLOSED: [2026-09-19 Sat 05:53]
 :ID:       428afa68-80ec-460a-a16c-446041963fc4
 :CREATED:  [2026-09-19 Sat 05:53]
 :END:
+:LOGBOOK:
+- [2026-09-19 Sat 05:35]--[2026-09-19 Sat 05:37] root-cause unattributed spans, file discipline fix
+:END:
 
 Finding 10, shipped in [[orgit-rev:claude-code-ide-org::b055a10][b055a10]] — the only one of the fifteen that was a *decision* rather than a defect, and the only one settled with the user rather than alone.
 
