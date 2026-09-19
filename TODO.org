@@ -2,6 +2,15 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Nothing runs the shell hook suites, so three sat red for a day and a merge without anyone seeing :code:
+:PROPERTIES:
+:ID:       94e6b615-3778-426b-b40a-306b517a837f
+:CREATED:  [2026-09-19 Sat 16:34]
+:CATEGORY: Dev
+:END:
+
+=bin/test= runs the ERT suite only. The eleven =bin/*-test= shell suites run when someone remembers, and neither git hook nor any runner calls them. Found 2026-09-19 starting [[id:63713df3-4ed9-42be-b971-8ac4485e76c2][63713df3]]: =queue-append-test=, =block-hooks-test= and =clock-target-check-test= had 40, 9 and 6 failures on a bare run since PR #28 gated their scripts on =CLAUDE_PLUGIN_OPTION_TIME_TRACKING= — fixed in [[orgit-rev:~/git/claude-code-ide-org/::1b4b3be][1b4b3be]] and [[orgit-rev:~/git/claude-code-ide-org/::f733179][f733179]]. Second instance of the class; the first is DONE.org's "bin/pre-commit-test has three failures that predate the branch fixing them". Proposal: one runner (=bin/test-all=, or =bin/test --all=) that runs every suite and checks each exit code, named in Step 0 as what a branch runs before its PR. Whether pre-push should call it is a cost question — measure the wall time first.
+
 * TODO sync-plans reads any mention of a plan filename as a link, so prose naming an orphan re-links it :code:observed:
 :PROPERTIES:
 :ID:       ecb1dde8-fd3b-4e26-9bdf-a69db30d5e2c
@@ -228,6 +237,15 @@ slice that cannot show its number closing has nothing to close on.
 :END:
 
 The drift analysis's thrust is to make the agent stop forgetting; every heading filed from it fixes a cause, and none owns the outcome. What is recorded today: 5 footnote-blocked and 2 clock-target-nagged sentinels across 67 session queue files — each meaning "at least once", from hooks that see only a fraction of misses. No mechanism heading can be shown to work against that.
+
+*Shipped 2026-09-19* in [[orgit-rev:~/git/claude-code-ide-org/::f733179][f733179]]. =queue-append= takes =miss RULE DETAIL= (called by a hook that has blocked) and =refusal= (a =PostToolUse= row on every =org_*= tool, a miss only when the reply is an =Error:=). =footnote-check= and =clock-target-check= append one per block from a slim payload; =--queue-kinds= deliberately omits the kind so nothing reaches review, pinned from both sides. =--miss-counts= puts the number in the ceremony report, since the last stamp, scoped like the pending count, never raising the report by itself; =bin/miss-rate= is the =jq= over the directory. Every test ran red first. Every surface says *floor*.
+
+*Baseline:* zero over 7 days and 31 sessions, because nothing wrote the kind before today — the series starts now. The plan's "5 =.footnote-blocked=" was already 14 when re-counted the same day: =session-resume= clears that sentinel, so the figure never was a count of anything.
+
+*Not done, deliberately:* the sentinels stay, as loop guards — only their second job as the record is retired. The =SessionStart= reports and =doc-sync-check= are not counted: they describe state or remind on every edit, and would count sessions rather than misses. The git-hook refusals (=lint-org=, =check-conventions=) carry no =session_id= and are not counted; not filed, since a commit-time refusal is already visible to the human. *Live in this session:* the hook scripts yes; the =refusal= row needs a new session (hooks are read at start) and the ceremony number needs =config.el= reloaded.
+
+*Open, the user's:* whether a correction in conversation is answered with a capture or amend citing the rule missed. Filed from this work: [[id:94e6b615-3778-426b-b40a-306b517a837f][94e6b615]].
+
 
 
 * TODO org-time-tracking.md promotes with no path scope, so a consumer with the feature off loads 260 lines about it every session :code:
