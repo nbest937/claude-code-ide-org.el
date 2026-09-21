@@ -21,6 +21,7 @@ Order within the slice: after =e128e4fa=, since that pass is what produces the s
 
 The SOP's instruction to give a drawerless member a =:PLAN:= is scaffolding for a pre-convention corpus. When =6521dd56='s pass makes the shape universal, the lint should enforce it and the clause should be deleted.
 
+
 * TODO A PreToolUse guard for hand edits to keywords, CLOCK lines and slice checklists in the org files :code:
 :PROPERTIES:
 :ID:       b69ecfe4-abcd-41a9-b8f3-ad10b4d1d5df
@@ -96,7 +97,6 @@ The plan-file link rule was retired 2026-09-21 (a plan lives in the :PLAN: drawe
 *Half done 2026-09-21, after another agent pointed at "Plan Mode checkpoint":* =SKILL.md= no longer tells anyone to write a plan-file link. The checkpoint section now says to write the plan into =:PLAN:= and explicitly not to link; the body-lifecycle paragraph drops "the plan link"; and the background-planning procedure has its agents return the plan as their final report, written back one at a time with =org_amend= =drawer=PLAN=. *Still owed:* =org_log_background_plan= itself is registered and listed in =org-mcp-tools.md= — the skill now says not to call it, which is a recalled rule standing in for a decision. Retire the tool or repoint it at the drawer. And the two remaining mentions, in =org-conventions.md='s =:PLAN:= section and =org-state-transitions.md= (the latter already reworded in the deletion pass), need the same read.
 
 - [2026-09-21 Mon] The conventions half is done. The =:PLAN:= section's first paragraph no longer mentions a plan-file link ([[orgit-rev:claude-code-ide-org::b35b73b][b35b73b]]). What remains is =org_log_background_plan=: retire it, or repoint it.
-
 
 
 * DOING [0/11] The misses a human catches reach no record: one heading per kind of miss, amended at each catch, so the catch is counted :code:
@@ -890,6 +890,7 @@ CLOCK: [2026-09-21 Mon 10:52]--[2026-09-21 Mon 10:53] =>  0:01
 - [2026-09-21 Mon 10:52]--[2026-09-21 Mon 10:53] measure title-token overlap on the corpus
 CLOCK: [2026-09-21 Mon 11:38]--[2026-09-21 Mon 11:40] =>  0:02
 - [2026-09-21 Mon 11:38]--[2026-09-21 Mon 11:40] measure title-token overlap on the corpus
+- [2026-09-21 Mon 12:34]--[2026-09-21 Mon 12:34] measure title-token overlap on the corpus
 :END:
 :DEBRIEF:
 Shipped in [[orgit-rev:claude-code-ide-org::4a9387b][4a9387b]]. *Measured before anything was chosen,* as the plan asked, leave-one-out over the 563 scorable titles in this tracker. Plain Jaccard was useless here — titles are whole claims, and the known duplicate pair scored 0.27. The score adopted is the idf-weighted share of the *new* title's tokens found in the candidate, at least two shared: asymmetric on purpose, because the question is "is this already said", not "are these alike". At 0.4, 43 headings (7.6%) would have been shown a candidate; at 0.5, 16, about eleven of them true relatives; the known pair scores 0.59 one way and 0.32 the other.
@@ -1451,7 +1452,7 @@ Left =TODO= deliberately, not cancelled: the field's removal is still a proposal
 The analysis above stays useful either way, because it is the record of *why* the field misleads — which is the argument for deleting it, not merely for renaming it.
 
 
-* DOING Separate the causes of unfootnoted ids, so each can be closed on its own [1/4]
+* DOING [1/6] Separate the causes of unfootnoted ids, so each can be closed on its own
 :PROPERTIES:
 :ID:       de6de108-0095-40f4-8177-fdef0503c578
 :CREATED:  [2026-09-17 Thu 16:17]
@@ -1933,6 +1934,20 @@ Recorded alongside: the hook emits the on-disk keyword and never a star, which i
 Shipped in the canonical reference and promoted; check-conventions 32 ok, footnote-check-test 27/27, lint-org 0 errors.
 
 **Resolution:** a queued keyword is now written as the queued state with a trailing =*=, the star carries no note of its own, and the rule ships in the canonical reference and its promoted copy.
+
+
+** TODO footnote-check reads only the turn's final text block, so an id cited before a tool call is never checked
+:PROPERTIES:
+:ID:       c247d8f3-9f3f-464a-b3a0-543b1bb9de4f
+:CREATED:  [2026-09-21 Mon 13:25]
+:END:
+
+
+** TODO A heading discussed by subject and never by id owes a citation no token scan can see
+:PROPERTIES:
+:ID:       eadb3607-aa3d-41ee-b8cc-e293cc924f26
+:CREATED:  [2026-09-21 Mon 13:25]
+:END:
 
 
 * MAYBE Revisit building the footnote block with org-ql or the agenda, once Emacs stops wedging :research:
@@ -2864,7 +2879,6 @@ one:* do not call =org_amend= with =replace== on a slice. Compose the body
 first and add members after, or amend rather than replace.
 
 *The inverse, observed 2026-09-21: the member refresh destroyed a region it does not own.* 8a2eb687's new =:PLAN:= drawer listed its members as =- [[id:…][…]]= lines. The apply pass's slice refresh took all twenty for members, because =--slice-member-regexp= makes the checkbox optional and nothing excludes drawers. It rewrote each line to a member line, put a =Planned:= lead inside the drawer, and took the cookie from [3/23] to [3/43]. The plan prose survived only in git ([[orgit-rev:claude-code-ide-org::259e07b][259e07b]] records the damage, and the following commit restores it with plain ids). So ownership is invisible in both directions: other writers cannot see the member region, and the member scan cannot see where that region ends. Whatever marks the region fixes both, and the scan should at least skip drawers.
-
 
 
 * TODO A bookkeeping burst reads as many headings worked at once, and inflates every window it lands in :code:
@@ -5971,6 +5985,8 @@ CLOCK: [2026-09-21 Mon 12:25]--[2026-09-21 Mon 12:26] =>  0:01
 - [2026-09-21 Mon 12:25]--[2026-09-21 Mon 12:26] assigned at review
 CLOCK: [2026-09-21 Mon 12:28]--[2026-09-21 Mon 12:29] =>  0:01
 - [2026-09-21 Mon 12:28]--[2026-09-21 Mon 12:29] assigned at review
+CLOCK: [2026-09-21 Mon 12:39]--[2026-09-21 Mon 12:40] =>  0:01
+- [2026-09-21 Mon 12:39]--[2026-09-21 Mon 12:40] assigned at review
 :END:
 
 *The theme, briefly, in place of a plan — the full prompt comes later.* The
@@ -11589,6 +11605,7 @@ call it done.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-21 Mon 13:26]--[2026-09-21 Mon 13:27] =>  0:01
 CLOCK: [2026-09-21 Mon 12:32]--[2026-09-21 Mon 12:34] =>  0:02
 CLOCK: [2026-09-21 Mon 11:32]--[2026-09-21 Mon 11:33] =>  0:01
 CLOCK: [2026-09-21 Mon 10:46]--[2026-09-21 Mon 10:51] =>  0:05
@@ -12723,4 +12740,22 @@ CLOCK: [2026-09-21 Mon 10:03]--[2026-09-21 Mon 10:04] =>  0:01
 - [2026-09-21 Mon 10:03]--[2026-09-21 Mon 10:04] assigned at review
 CLOCK: [2026-09-21 Mon 12:18]--[2026-09-21 Mon 12:21] =>  0:03
 - [2026-09-21 Mon 12:18]--[2026-09-21 Mon 12:21] open the PR, measure the slice, plan 8a2e
+CLOCK: [2026-09-21 Mon 12:35]--[2026-09-21 Mon 12:38] =>  0:03
+- [2026-09-21 Mon 12:35]--[2026-09-21 Mon 12:38] commit apply, restore 8a2e plan, static next-session
+CLOCK: [2026-09-21 Mon 12:49]--[2026-09-21 Mon 12:50] =>  0:01
+- [2026-09-21 Mon 12:49]--[2026-09-21 Mon 12:50] adopt the member-plan SOP; 8a2e decisions
+CLOCK: [2026-09-21 Mon 13:05]--[2026-09-21 Mon 13:06] =>  0:01
+CLOCK: [2026-09-21 Mon 13:05]--[2026-09-21 Mon 13:06] =>  0:01
+- [2026-09-21 Mon 13:05]--[2026-09-21 Mon 13:06] adopt the member-plan SOP; 8a2e decisions
+CLOCK: [2026-09-21 Mon 13:06]--[2026-09-21 Mon 13:07] =>  0:01
+- [2026-09-21 Mon 13:06]--[2026-09-21 Mon 13:07] adopt the member-plan SOP; 8a2e decisions
+CLOCK: [2026-09-21 Mon 13:07]--[2026-09-21 Mon 13:08] =>  0:01
+- [2026-09-21 Mon 13:07]--[2026-09-21 Mon 13:08] adopt the member-plan SOP; 8a2e decisions
+CLOCK: [2026-09-21 Mon 13:08]--[2026-09-21 Mon 13:09] =>  0:01
+CLOCK: [2026-09-21 Mon 13:08]--[2026-09-21 Mon 13:09] =>  0:01
+- [2026-09-21 Mon 13:08]--[2026-09-21 Mon 13:09] adopt the member-plan SOP; 8a2e decisions
+CLOCK: [2026-09-21 Mon 13:23]--[2026-09-21 Mon 13:24] =>  0:01
+- [2026-09-21 Mon 13:23]--[2026-09-21 Mon 13:24] adopt the member-plan SOP; 8a2e decisions
+CLOCK: [2026-09-21 Mon 13:25]--[2026-09-21 Mon 13:26] =>  0:01
+- [2026-09-21 Mon 13:25]--[2026-09-21 Mon 13:26] adopt the member-plan SOP; 8a2e decisions
 :END:
