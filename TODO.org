@@ -214,6 +214,8 @@ Found 2026-09-19 as a leftover branch: on 2026-09-17 a session committed twice t
 The conventions are path-scoped and tool-driven work never loads them (436e0991). Two instances 2026-09-19, both self-caught after the new pointer notice: four orgit-rev links written in path form, and a debrief left in a body at REVIEW. One dated line per catch.
 
 - [2026-09-21 Mon] Caught by the user: "per our convention 8a2e should list all of the children of de6d indented below itself". The session added story de6de108 to slice 8a2eb687 as a single line and never read "When a member is a story, its relevant children get indented member lines beneath it" (conventions, Slices). It read the section only after the catch. The same turn had already read "Dropping a member" before acting, so the reading happened for the act it expected and not for the one it performed.
+- [2026-09-21 Mon] Caught by the user: "I see a number of task prose paragraphs that need to be wrapped." Recording 8a2eb687's decisions, the session created =:PLAN:= drawers with =org_amend= on nine pre-convention headings (94e6b615, f12f9da4, 3ad389be, 37bca83a, 965f94eb, 25e7b083, 490e6737, 13aed7ca, 2a6a1355). It left each body's plan prose unwrapped, without reading "Revising a pre-convention body". The existing drawer now makes =org_wrap_plan= refuse all nine. The session's own SOP had allowed it ("=org_wrap_plan= … or a short =org_amend=") and was corrected the same turn.
+
 
 
 ** TODO Miss: a prediction or a claim about state reported as fact without checking the artifact

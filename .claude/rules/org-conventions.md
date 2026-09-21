@@ -792,9 +792,13 @@ to *that member's* drawer as `Decided <date> (<who>): …`. The session
 implementing the step then reads it on arrival, and the slice's drawer
 never goes stale on it. Where the two disagree, the member wins.
 
-**A member with no drawer gets one before its step is worked**, using
-`org_wrap_plan` on a pre-convention body or a short `org_amend
-drawer=PLAN`, so that a decision always has somewhere to land. *This clause
+**A member with no drawer gets one before its step is worked**, so that a
+decision always has somewhere to land. **On a pre-convention body, wrap
+first, with `org_wrap_plan`**, whole when the seam is uncertain, then
+append the decision with `org_amend drawer=PLAN`. Creating the drawer by
+amend first leaves the old plan in the body, and `org_wrap_plan` then
+refuses the heading for good (nine headings, 2026-09-21). A plain
+`org_amend drawer=PLAN` is only for a body with no prospective prose. *This clause
 is scaffolding.* It lapses once `6521dd56`'s corpus pass leaves every open
 heading in canonical shape and the lint requires that shape, and that
 slice carries the member that retires it.
