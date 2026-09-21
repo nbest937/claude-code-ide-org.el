@@ -2,6 +2,15 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Work after a mid-turn clock_out belongs to no run, so it reaches review as nothing at all rather than UNASSIGNED :code:observed:
+:PROPERTIES:
+:ID:       b09aca60-127b-47a4-9177-a86ac90d8fac
+:CREATED:  [2026-09-21 Mon 08:02]
+:CATEGORY: Queue
+:END:
+
+=clock_out= is a run-closing kind (=--run-closing-kinds=), and nothing reopens a run until the next =resume= or =clock_in=. So when a session clocks out and keeps working in the same turn, the stretch up to the turn's =pause= is between two closing edges and is no run. Observed 2026-09-19, session =9e00a7a2=: =clock_out= at 16:39:38, =pause= at 16:46:55, and in between two code commits and a heading's close ([[id:1b69fe4e-3dab-4b11-b21b-96320bf9d4e0][1b69fe4e]]). =org_pending_updates= offers no span for it, assigned or not — the user noticed, the session had predicted UNASSIGNED. This is quieter than the failure [[id:ccfd89ce-a55d-4ad4-bce7-707181deb510][ccfd89ce]]'s rule guards against: that one leaves a span to assign, this leaves nothing to notice. =clock-target-check= cannot see it either, since a =clock_in= exists. Not yet decided: whether a =clock_out= followed by more tool activity before the =pause= should open an unowned run, or whether the fix is on the agent side (never clock out before the last write of a turn). Reproduce with a fixture first — one ad hoc call to =--span-work-runs= gave runs that disagreed with the report's own counts, unexplained.
+
 * TODO Nothing runs the shell hook suites, so three sat red for a day and a merge without anyone seeing :code:
 :PROPERTIES:
 :ID:       94e6b615-3778-426b-b40a-306b517a837f
