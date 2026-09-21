@@ -8,6 +8,32 @@
 :CREATED:  [2026-09-21 Mon 18:20]
 :CATEGORY: Slices
 :END:
+:DEBRIEF:
+It triggers on =UserPromptSubmit= for =/code-review= or =/ultrareview=,
+and on a Bash =PostToolUse= for =gh pr edit --add-reviewer= or a
+=requested_reviewers= call. The first trigger was measured before
+building: the forked skill still fires =UserPromptSubmit= with the command
+as the prompt, and a =resume= event was logged at the exact second.
+
+It writes an ordinary todo event through =queue-append= from a
+synthesized =org_set_todo= payload, so =from= is recovered as for any
+transition, the source reads =review-start=, and a human applies it. It
+acts only when exactly one slice is DOING, every unfinished member is
+REVIEW, and no session holds that slice queued to REVIEW unapplied and
+undismissed, judged through each session's watermark. That last
+condition was added at the user's question. Otherwise it says why it
+did not act. The real tracker and review reader were checked end to end.
+=bin/review-start-test= is 17/17. It is wired in both hook configs and
+documented in the session-tracking table and "Closing a slice".
+:END:
+
+A slice enters REVIEW when its pull request's review starts, but that was
+a sentence to recall, and f6d160c2 stayed DOING through its whole
+=/code-review=. Built as an incidental of that slice.
+
+*Resolved 2026-09-21:* =bin/hooks/review-start= queues the transition
+when a review starts.
+
 * DONE The rule-copy drift guard compares the working tree, not what is staged
 CLOSED: [2026-09-21 Mon 17:56]
 :PROPERTIES:
