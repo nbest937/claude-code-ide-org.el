@@ -89,6 +89,10 @@ run_merge () { (cd "$1" && "$hooks/pre-merge-commit" >/dev/null 2>&1); echo $?; 
 git -C "$r" merge -q --no-ff --no-commit feature/x >/dev/null 2>&1
 check "merging a feature branch into main locally is refused" 1 "$(run_merge "$r")"
 check "ALLOW_LOCAL_MERGE=1 overrides" 0 "$(cd "$r" && ALLOW_LOCAL_MERGE=1 "$hooks/pre-merge-commit" >/dev/null 2>&1; echo $?)"
+# A merge that stops (on conflicts, or --no-commit as here) is concluded
+# with `git commit', which runs pre-commit and never pre-merge-commit
+# (PR #29 review, :ID: a72a0d63). The guards must refuse it too.
+check "concluding it with git commit is refused as well" 1 "$(cd "$r" && EMACSCLIENT=false "$hooks/pre-commit-guards" >/dev/null 2>&1; echo $?)"
 git -C "$r" merge --abort
 
 # A catch-up merge: origin/main moved (a PR merged upstream) while local

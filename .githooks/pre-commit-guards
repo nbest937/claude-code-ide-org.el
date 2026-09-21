@@ -13,6 +13,14 @@ repo_root="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
 staged="$(git diff --cached --name-only --diff-filter=ACMR 2>/dev/null)"
 status=0
 
+# 0. A local merge into main, concluded by `git commit'. A merge that
+#    stops -- on conflicts, or --no-commit -- is finished with a plain
+#    commit, which runs this hook and never pre-merge-commit, so the refusal
+#    there was skipped (PR #29 review, TODO.org :ID: a72a0d63). That hook
+#    already tests MERGE_HEAD, main and the catch-up exemption, and the two
+#    paths never both run for one commit, so it is simply called here.
+"$(dirname "${BASH_SOURCE[0]}")/pre-merge-commit" || status=1
+
 # 1. A branch origin/main already contains. On 2026-09-17 a session kept
 #    committing to a branch six minutes after its PR merged, then
 #    cherry-picked to main and left the originals behind. "Has had commits
