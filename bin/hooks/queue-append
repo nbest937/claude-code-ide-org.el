@@ -146,10 +146,26 @@ detail="${3:-}"
 #
 # todo, capture and amend are deliberately absent below: they are task
 # tracking and ship unconditionally.
-case "$kind" in
-  clock_in|clock_out|pause|resume|block_start|block_end)
-    [ "${CLAUDE_PLUGIN_OPTION_TIME_TRACKING:-false}" = "true" ] || exit 0 ;;
-esac
+if [ "${CLAUDE_PLUGIN_OPTION_TIME_TRACKING:-false}" != "true" ]; then
+  case "$kind" in
+    clock_in|clock_out)
+      # The caller asked for a clock and the feature is off. This script
+      # is the one thing that can see the option, so it says so here, once
+      # per session, instead of three always-loaded files telling every
+      # session to go and check /config first (TODO.org :ID: 3cd7b7d3).
+      command -v jq >/dev/null 2>&1 || exit 0
+      sid="$(jq -r '.session_id // empty' 2>/dev/null)"
+      case "$sid" in ''|*[!A-Za-z0-9._-]*|.|..) exit 0 ;; esac
+      qd="${CLAUDE_ORG_QUEUE_DIR:-$HOME/.claude/org-updates}"
+      [ -e "$qd/$sid.clock-off-noticed" ] && exit 0
+      mkdir -p "$qd" 2>/dev/null
+      if jq -cn '{hookSpecificOutput: {hookEventName: "PostToolUse", additionalContext: "Time tracking is off here, so that clock call did nothing: the event is queued and nothing will ever consume it. Skip org_clock_in and org_clock_out for the rest of this session; org_set_todo is unaffected. The user turns the feature on with Claude Code\u0027s /config command (the plugin\u0027s time_tracking option). This notice fires once per session."}}'; then
+        : > "$qd/$sid.clock-off-noticed" 2>/dev/null
+      fi
+      exit 0 ;;
+    pause|resume|block_start|block_end) exit 0 ;;
+  esac
+fi
 
 command -v jq >/dev/null 2>&1 || exit 0
 

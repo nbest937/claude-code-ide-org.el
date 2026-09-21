@@ -18,14 +18,10 @@ incident, and the reason the queue exists:
 | `org_clock_in`      | Records the start of work. **Opens no clock.** Call when entering DOING — *only where time tracking is on* |
 | `org_clock_out`     | Records the end of work. **Closes no clock.** Call when leaving DOING — *only where time tracking is on* |
 
-**The two clock tools stay registered with time tracking off, and calling
-them accomplishes nothing.** They queue events no review pass consumes,
-because the hooks that would carry the guideposts around them are gated.
-Registration is not an invitation here: check Claude Code's `/config`
-command before reaching
-for either, and see `org-time-tracking.md`. `org_set_todo` is unaffected
-and is queued for a reason that has nothing to do with time — org's
-state-change logging needs a genuinely interactive command.
+**With time tracking off the two clock tools stay registered and do
+nothing** — a hook says so on the first call. `org_set_todo` is
+unaffected, and is queued for a reason that has nothing to do with time:
+org's state-change logging needs a genuinely interactive command.
 
 **Immediate (act on the file when called)**:
 

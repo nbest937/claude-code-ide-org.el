@@ -633,6 +633,24 @@ printf '%s' '{"session_id":"sess-g","tool_input":{"id":"x","state":"DOING"},"too
   | env -u CLAUDE_PLUGIN_OPTION_TIME_TRACKING "$script" todo
 check "todo is task tracking: recorded with the option absent" "todo" "$(jq -r '.kind' <<<"$(queue_lines sess-g)")"
 
+# --- with time tracking off, a clock call is told so, once ----------------
+# TODO.org :ID: 3cd7b7d3. The rule was "check /config before reaching for
+# either clock tool", in three always-loaded files. The hook is the one
+# thing that can see the option, so it says so at the moment of the call.
+reset_queue
+clock_off() { printf '%s' '{"session_id":"sess-o","hook_event_name":"PostToolUse","tool_name":"mcp__emacs-tools__org_clock_in","tool_input":{"id":"x"},"tool_response":"Queued clock_in"}' | env -u CLAUDE_PLUGIN_OPTION_TIME_TRACKING "$script" "$1"; }
+out="$(clock_off clock_in)"
+check "a clock_in with the feature off injects a notice" "PostToolUse" "$(jq -r '.hookSpecificOutput.hookEventName' <<<"$out" 2>/dev/null)"
+check "the notice says the call did nothing and how to turn it on" "yes" \
+  "$(jq -r '.hookSpecificOutput.additionalContext' <<<"$out" 2>/dev/null | grep -q '/config' && echo yes || echo no)"
+check "and still queues nothing" "" "$(queue_lines sess-o)"
+check "the second clock call in the session is silent" "" "$(clock_off clock_out)"
+check "a guidepost with the feature off is never told anything" "" \
+  "$(printf '%s' '{"session_id":"sess-o2","hook_event_name":"Stop"}' | env -u CLAUDE_PLUGIN_OPTION_TIME_TRACKING "$script" pause)"
+reset_queue
+check "with the feature on there is no notice" "" \
+  "$(printf '%s' '{"session_id":"sess-o3","tool_input":{"id":"x"},"tool_response":"Queued clock_in"}' | "$script" clock_in)"
+
 # --- the script never fails its caller ---------------------------------
 printf '%s' 'garbage' | "$script" pause >/dev/null 2>&1
 check "always exits 0" "0" "$?"
