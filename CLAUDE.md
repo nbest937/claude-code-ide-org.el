@@ -15,19 +15,12 @@ the other end) is deliberately left open, driven by concrete reporting
 needs rather than by whatever CLOCK-drawer mechanics exist at a given
 point.
 
-**It was a co-equal goal until 2026-09-18** (`:ID:` 8bbae3aa), and the
-ordering changed when this project committed to making it disableable —
-committing to a switch *is* the ordering. Natural-language org
-manipulation is the goal; attention tracking is developed here and
-shipped off.
-
-**That reorders the goals without rewriting the history.** Much of the
-machinery — the event queue, the session hooks, the review pass — exists
-for the second goal rather than the first, and that is why the code looks
-as it does: the queue was built because concurrent sessions writing live
-clock state produced a sustained run of desync bugs. The ranking changed;
-the account of what built the machinery did not, and it is the only
-record of why the queue exists at all.
+**It was a co-equal goal until 2026-09-18** (`:ID:` 8bbae3aa); committing
+to a switch *is* the ordering. That reorders the goals without rewriting
+the history: the event queue, the session hooks and the review pass exist
+for the second goal, and the queue was built because concurrent sessions
+writing live clock state produced a sustained run of desync bugs. This is
+the only record of why the queue exists at all.
 
 ---
 
@@ -56,13 +49,11 @@ quoted here rather than left to a lookup. Distrust the file's account of
 what *is*; do not distrust its account of *why*.
 
 **And accuracy does not retire the risk — it disguises it.** An accurate
-CLAUDE.md makes answering from it more often correct, which makes the
-habit of answering from it instead of from the artifact harder to notice:
-the same behaviour with better odds. The evidence is that most wrong
-claims never came from this file. On 2026-08-11, of roughly a dozen wrong
-claims, only four traced here; the rest came from unchecked inference,
-from a session's own earlier summaries, and three times from reading a
-silently-failing command's empty output as a result.
+CLAUDE.md makes answering from it instead of from the artifact harder to
+notice. Most wrong claims never came from this file: of roughly a dozen
+on 2026-08-11, four traced here; the rest were unchecked inference, a
+session's own earlier summaries, and a silently-failing command's empty
+output read as a result.
 
 `bin/check-conventions` mechanises the part of this that can be
 mechanised — that cited `:ID:`s resolve and the keyword set agrees
@@ -105,19 +96,10 @@ written weeks ago is not. TODO.org exists to inform planning, orchestration
 and coordination of *future* work — read it for what to do next, not for
 what the system currently is.
 
-(`--outline-map` keeps a filtered-out heading that is an *ancestor* of a
-surviving one, so `active_only` never re-parents a live child; `:ID:`
-98908aff has the history.)
-
 **DONE.org is reference, never orientation.** Do not survey it to start a
 session; it will not tell you what to work on. Open it when something live
 names an ID in it — a `:BLOCKER:`, a body cross-reference, a docstring, or
 this file.
-
-The exception to "the code is authoritative" is *why* a decision went the
-way it did, which lives only in a body — which is why the load-bearing ones
-(the `.warp/.mcp.json` investigation, the retired guess heuristic) are
-quoted directly in this file rather than left to a lookup.
 
 ---
 
@@ -162,21 +144,16 @@ Five things you would not guess:
 - **`.warp/.mcp.json`** — see below; do not delete it.
 
 **`.warp/.mcp.json` is Warp's own project-scope MCP config — do not
-"clean it up."** Verified against Warp's docs 2026-09-10 (correcting
-the account this paragraph carried before, which said Warp could read
-the root file directly — it cannot): Warp reads MCP config only from
-`~/.warp/.mcp.json` and the project's `.warp/.mcp.json`, so the file is
-Warp's *required* convention, not an optional duplicate. MCP
-standardises the `mcpServers` schema, not a config location, so two
-files is the correct minimum, and the divergence seam is real: Claude
-Code's `.mcp.json` supports `${VAR:-default}` expansion in `url`, which
-Warp does not document — a symlink would forbid the one improvement the
-Claude side can take. Warp's project-scoped servers are approval-gated
-and session-scoped (re-toggle after a Warp restart). The original
-investigation is archived in DONE.org
-(`:ID: 6a6d5b4e-0327-4578-a44a-356576870ceb`) — the proxy it chased was
-unnecessary; the real bug was this project's HTTP server answering
-`200` where the MCP spec requires `202 Accepted`.
+"clean it up."** Warp reads MCP config only from `~/.warp/.mcp.json` and
+the project's `.warp/.mcp.json` (verified against its docs 2026-09-10), so
+the file is required, not a duplicate. MCP standardises the `mcpServers`
+schema, not a location, so two files is the correct minimum — and a
+symlink would forbid the one improvement the Claude side can take,
+`${VAR:-default}` expansion in `url`. Warp's project servers are
+approval-gated and session-scoped. The original investigation
+(`:ID: 6a6d5b4e-0327-4578-a44a-356576870ceb`, DONE.org) chased a proxy
+that was unnecessary; the real bug was this project's HTTP server
+answering `200` where the MCP spec requires `202 Accepted`.
 
 **One-time setup, required for `.githooks/` to do anything:**
 
@@ -185,12 +162,8 @@ git config core.hooksPath .githooks
 ```
 
 That setting lives in `.git/config`, which is not version controlled, so a
-fresh clone silently has no hooks until it is run. The hooks themselves are
-tracked precisely so they are reviewable and shared — putting them in
-`.git/hooks/` instead would make them invisible local state, which is the
-same problem the `plans/` archive exists to fix. Note that `core.hooksPath`
-redirects *every* hook: check `.git/hooks/` holds nothing but `.sample`
-files before setting it (it did here, 2026-08-11).
+fresh clone silently has no hooks until it is run. It redirects *every*
+hook: check `.git/hooks/` holds nothing but `.sample` files first.
 
 Run the tests with `bin/test`. They exercise the four wrapper functions
 against scratch org files in a temp directory — no Doom, no real Emacs
@@ -316,49 +289,31 @@ design the drawer already holds.
 
 **Composition, close, revision: in the conventions.** The two-call
 composition (`org_amend` with `drawer=PLAN`, then the short body), the
-two-call close (the authored resolution, then `drawer=DEBRIEF`,
-`:ID:` d5eb32a3), the read-direction rule — skip `:PLAN:` on a finished
-heading, read it on a live one, read `:DEBRIEF:` always — and the
-policy for revising pre-convention bodies all ship in the org
-conventions' `:PLAN:`/`:DEBRIEF:` sections
-(`.claude/rules/org-conventions.md`), moved there 2026-09-09 with the
-evidence that settled them. A heading closed by the two-call close owes
-archiving nothing further, and delegated-subagent work follows the same
-shape: ask for a one-paragraph outcome summary in the final report, not
+two-call close (the authored resolution, then `drawer=DEBRIEF`, `:ID:`
+d5eb32a3) and the read-direction rule — skip `:PLAN:` on a finished
+heading, read it on a live one, read `:DEBRIEF:` always — ship in the org
+conventions' `:PLAN:`/`:DEBRIEF:` sections. Delegated-subagent work
+follows the same shape: ask for a one-paragraph outcome summary, not
 per-checkbox status.
 
-What stays here is this repo's own. *The backlog pass*: its rule was
-"wrap unedited" and is retired (`:ID:` f099379b) — `cbe282ec` chose it
-to keep 30 purely prospective bodies cheap, but measured 2026-09-02, 88
-of 93 unwrapped headings carry a debrief a blind wrap would bury, and
-no lexical marker finds the seam. The pass is `:ID:` 35d25265, which
-reads each body; there is no cheaper honest option. *And the standing
-example*: `:ID:` b5f94b88 has both a plan and a substantial body — the
-"epic wearing a child's clothes" reasoning and the plan-file-overwrite
-incident are journal, not design, and belong in neither drawer.
+This repo's own: the backlog of pre-convention bodies is *not* wrapped
+blind (`:ID:` f099379b) — measured 2026-09-02, 88 of 93 carried a debrief a
+blind wrap would bury, and no lexical marker finds the seam, so the pass
+(`:ID:` 35d25265) reads each body.
 
 ---
 
 ## Org-mode conventions
 
-Moved to the plugin's **`skills/org/references/org-conventions.md`**,
-promoted by `bin/claude-org-setup` into
-`.claude/rules/org-conventions.md` — path-scoped to `**/*.org`, so it
-loads only when an org file is actually in play. This repo's own
-additions are hand-maintained in two files, and the split is
-load-bearing: **the ten `:CATEGORY:` values are in
-`.claude/rules/org-categories.md`, which is always loaded** (moved
-2026-09-15, `:ID:` b0d55552 — behind the path scope they went unseen
-by every capturing session, and ten headings arrived unfiled in two
-days), while the history of the level-1 tier stays path-scoped in
+They ship as the plugin's `skills/org/references/org-conventions.md`,
+promoted into `.claude/rules/org-conventions.md` and path-scoped to
+`**/*.org`. A path scope fires only on a Read of a matching file, never on
+an org tool, so the first `org_*` call of a session injects a pointer to
+them (`:ID:` 436e0991) — Read the section that governs the act. **The ten
+`:CATEGORY:` values are in `.claude/rules/org-categories.md`, always
+loaded** (`:ID:` b0d55552: behind the path scope, ten headings arrived
+unfiled in two days); the history of the level-1 tier stays path-scoped in
 `.claude/rules/org-conventions-local.md`.
-
-The test that used to govern what stayed in this file — a rule that must
-hold when no `.org` file is open cannot live in a path-scoped rule — is
-now met by the promoted machinery rules instead, which carry no path
-scope and load in every session: the queue architecture, the state
-transitions, the tool tables and session tracking all live there, and
-their sections below are pointer stubs.
 
 ---
 
@@ -386,43 +341,25 @@ human-run.
 
 ## Session tracking (`.claude/settings.json`, `bin/hooks/`)
 
-**Moved into the plugin, 2026-09-09; split in two, 2026-09-18**
-(`:ID:` 36952d1f). The hooks that ship unconditionally — `footnote-check`,
-`apply-detect`, the `queue-append` matchers for `org_set_todo`/
-`org_capture`/`org_amend`, and the daily ceremony prompt — are
-`skills/org/references/org-session-tracking.md`. Everything time-shaped
-— guideposts, the three numbers that shape a recorded interval,
-permission blocks, stale-interval recovery and the transition table's
-clock column — is `skills/org/references/org-time-tracking.md`. **The first
-promotes always; the time file only where setup was told the feature is
-on** (2026-09-19, `:ID:` 1b69fe4e) — `--time-tracking`, the hooks' own
-variable, or a repo whose `.claude/settings.json` wires that variable,
-which is how this repo still gets it. Promotion cannot see the plugin
-option, so the feature's gate stays in the scripts; but an unscoped rule
-is read at launch, and 260 lines for a feature that is off was not the
-"one unread reference" the old choice assumed.
+**Two references** (`:ID:` 36952d1f). The hooks that ship unconditionally —
+`footnote-check`, `apply-detect`, the guards, the miss counter, the
+`queue-append` matchers for `org_set_todo`/`org_capture`/`org_amend`, the
+daily ceremony prompt — are `skills/org/references/org-session-tracking.md`.
+Everything time-shaped is `skills/org/references/org-time-tracking.md`,
+**promoted only where setup was told the feature is on** (`:ID:` 1b69fe4e):
+`--time-tracking`, the hooks' own variable, or a repo whose
+`.claude/settings.json` wires that variable, which is how this repo gets it.
 
 The wiring exists twice on purpose — this repo through
-`.claude/settings.json`, consumers through the plugin's
-`hooks/hooks.json` — and a repo must enable only one of the two, or
-every guidepost is appended twice.
-
-**Both carry the time rows; what differs is how each says yes**
-(2026-09-18, `:ID:` 1b36c5bd). The plugin's rows gate themselves on the
-`time_tracking` boolean in `.claude-plugin/plugin.json`'s `userConfig`,
-which **defaults to off** — Claude Code exports it to hook processes as
-`CLAUDE_PLUGIN_OPTION_TIME_TRACKING`, and `queue-append` (for the six
-time kinds only), `block-start` and `clock-target-check` each refuse
-when it is not `true`. A consumer turns it on with Claude Code's
-`/config` command — a slash command typed in a session, not a path. This repo
-has no plugin option to read, so its own rows set that variable in the
-command string: **wiring the row is the opt-in here**, which is why
-`.claude/settings.json` looks different from the manifest it used to
-mirror.
-
-The gate lives in the scripts because `hooks.json` has no conditional
-form — the premise this arrangement replaced was that wired and unwired
-were the only two available states, and `userConfig` is the third.
+`.claude/settings.json`, consumers through the plugin's `hooks/hooks.json`
+— and a repo must enable only one, or every queue line is appended twice.
+The plugin's time rows gate themselves on the `time_tracking` boolean in
+`.claude-plugin/plugin.json`'s `userConfig`, **default off**, exported to
+hooks as `CLAUDE_PLUGIN_OPTION_TIME_TRACKING`; a consumer sets it with
+Claude Code's `/config` command. This repo has no plugin option to read,
+so its rows set that variable in the command string: **wiring the row is
+the opt-in here** (`:ID:` 1b36c5bd). The gate is in the scripts because
+`hooks.json` has no conditional form.
 
 ---
 
@@ -467,7 +404,4 @@ into rules: it is read at install time, not needed every session).
   model actually cares about, and shorter names reduce per-request schema
   overhead.
 
-(The `org-clock-persist-load` trap — why calling it inside `(after! org
-...)` breaks org-mode outright, and why the breakage only shows on a fresh
-boot — lives in the **org-dev skill, §2**, which triggers when the Doom
-config is being changed. It used to be duplicated here.)
+(The `org-clock-persist-load` trap lives in the **org-dev skill, §2**.)
