@@ -148,6 +148,9 @@ The miss rate (63713df3) is a floor: it counts what a hook or a tool caught, and
 
 Hook-backed (footnote-check, rule =footnote=), but the hook reads only a turn's final text block, so a catch by the user is still possible and is logged here. One dated line per catch.
 
+- [2026-09-21 Mon] Self-caught: two end-matter blocks carried titles for =0175f154=, =b0d55552= and =2b8930da= that were recalled rather than looked up, and all three were wrong. The hook passed both blocks, since it checks that an id is present and not what title stands beside it. Found only when =org_outline= returned =0175f154='s real title for another reason. This is the silent mode 2a6a1355 recorded as the most serious.
+
+
 
 ** TODO Miss: tracked work done under no clock, the wrong clock, or a clock closed before the work ended
 :PROPERTIES:
@@ -568,6 +571,8 @@ Filed from this work: [[id:94e6b615-3778-426b-b40a-306b517a837f][94e6b615]].
 *Also from the review:* the miss count now rides in the ceremony's one-line =systemMessage=, which Claude Code shows the user itself, rather than only in the context a session may or may not relay.
 
 *Correction.* This debrief says git-hook refusals "carry no =session_id= and are not counted". The first half was never checked and is false: a Bash tool call exports =CLAUDE_CODE_SESSION_ID=, equal to the id the hook payloads carry. So the three git guards added the same day can count their own refusals and do not yet, which biases the by-kind comparison on the miss story — a kind converted to a git hook reads zero because nothing records it. To be closed under the enforcement audit.
+
+*Closed 2026-09-21 on the user's verdict.* The correction above is itself closed: the git guards count their refusals through =.githooks/count-miss= (3cd7b7d3). The first counted day exposed that the hook suites leaked their fixtures into the calling session's queue, which was fixed in [[orgit-rev:claude-code-ide-org::bc23c76][bc23c76]] and the 24 leaked lines deleted. The day then read 8 genuine misses, the baseline 158d7e80 is read against on 2026-10-12.
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-19 Sat 13:50] \\
@@ -3458,6 +3463,9 @@ nothing on the apply path reads it, which is the likely fix.
 :CREATED:  [2026-09-11 Fri 11:53]
 :CATEGORY: Apply
 :END:
+:DEBRIEF:
+=bin/hooks/apply-detect= on =UserPromptSubmit= compares the apply pass's =.applied= watermarks against a per-session =.apply-seen= stamp and injects =additionalContext= once per apply. It is silent on quiet turns and on a session's first prompt, and exits 0 on every failure path. It was left in REVIEW for ten days rather than closed on the 2026-09-11 run, where the user's own "applied." arrived with the hook. On 2026-09-21 it answered two unannounced applies, and both were committed unprompted. Residue: 7b4f4f14, filed.
+:END:
 :LOGBOOK:
 CLOCK: [2026-09-11 Fri 11:52]--[2026-09-11 Fri 11:53] =>  0:01
 - [2026-09-11 Fri 11:52]--[2026-09-11 Fri 11:53] filing the apply-detection hook design
@@ -3474,6 +3482,7 @@ CLOCK: [2026-09-11 Fri 12:44]--[2026-09-11 Fri 12:46] =>  0:02
 CLOCK: [2026-09-11 Fri 12:50]--[2026-09-11 Fri 12:51] =>  0:01
 - [2026-09-11 Fri 12:50]--[2026-09-11 Fri 12:51] assigned at review
 :END:
+:PLAN:
 
 Asked by the user 2026-09-11. The signal already exists: apply writes .applied
 watermark files in ~/.claude/org-updates/, so no elisp changes. Build a
@@ -3488,6 +3497,7 @@ rides natural turn boundaries instead of interrupting. Wire in both
 .claude/settings.json and the plugin's hooks/hooks.json, one or the other per
 repo as ever.
 
+:END:
 Built same day: =bin/hooks/apply-detect= on =UserPromptSubmit=, comparing the
 apply pass's =.applied= watermarks against a per-session =.apply-seen= stamp and
 injecting =additionalContext= once per apply — silent on quiet turns, silent on
@@ -3514,6 +3524,9 @@ unambiguous when it happens. Note the earlier REVIEW note already
 anticipated this precisely — "the next session's unprompted reaction is
 the exit" — so accepting today's run would be weakening a criterion after
 seeing the result.
+
+*Resolved 2026-09-21: the exit test was met, twice, in a session that did not build the hook.* The user applied the queue twice without announcing it. Both prompts were about something else ("yes, make it static and push both." and "I saved the repaired cookie."). Each time the hook's context arrived, and the session committed the apply diff as its own bookkeeping commit before any other write ([[orgit-rev:claude-code-ide-org::259e07b][259e07b]], [[orgit-rev:claude-code-ide-org::16561dd][16561dd]]). The one known defect is 7b4f4f14: the hook claims an apply when a pass only dismissed events. It is filed and sequenced in 8a2eb687.
+
 
 
 * TODO org_slice_add_member cannot prepend or reorder, so declared order is append-only :code:
@@ -4012,6 +4025,7 @@ default form never hits that path.
 :CREATED:  [2026-09-10 Thu 09:25]
 :CATEGORY: Tools
 :END:
+:PLAN:
 
 Measured 2026-09-10 when the user noticed two examples: 12 of 192
 headings carried no effective =:CATEGORY:= (via
@@ -4026,6 +4040,10 @@ at filing time, and a =bin/lint-org= *warning* on a live top-level
 heading without an explicit category — a warning not an error, since
 the ten values are this repo's local taxonomy and a fresh consuming
 repo has none yet.
+
+:END:
+*Cancelled 2026-09-21 at the user's direction: b0d55552 did both halves.* =org_capture= now requires =category= for a top-level capture and names the values in use when it refuses. =bin/lint-org= errors, stronger than the warning proposed here, on a level-1 heading with no drawer-local =:CATEGORY:=. Found by the twin pass on 2026-09-21.
+
 
 
 * TODO A recurring sweep offers new and amended tasks to the groupings they fit :code:
@@ -4522,6 +4540,9 @@ and a report that must fire at session start cannot depend on that.
 :CREATED:  [2026-09-04 Fri 12:24]
 :CATEGORY: Dev
 :END:
+:DEBRIEF:
+=footnote-check='s =resolve_id= keeps the heading it matched, and the block message ends with ready-to-paste end-matter lines: backticked id, padded keyword, exact title, sorted by id, no markers. It is plain shell, so it works with Emacs down. It shipped 2026-09-16 and was reshaped the same day when the markers were retired, removing 189 lines against 16 added. Its limit is by design: it verifies that an id is present in the end matter, never that the title beside it is right. So a title recalled from memory passes; the rule to look titles up is still the defence there.
+:END:
 :LOGBOOK:
 CLOCK: [2026-09-04 Fri 12:15]--[2026-09-04 Fri 12:19] =>  0:04
 - [2026-09-04 Fri 12:15]--[2026-09-04 Fri 12:19] assigned at review
@@ -4663,6 +4684,9 @@ sorted by id — =sort -u= on the candidates does it — so the convention's
 "ordered by first appearance" had never described the output. The format change
 made the mechanism and the rule agree for the first time rather than changing
 what the mechanism did.
+
+*Resolved 2026-09-21.* The hook hands back each missing end-matter line with the exact keyword and title it resolved. It did so the same day for =ccfd89ce=, whose line was pasted as given. It was the only title in that response that was not wrong: three others had been recalled rather than looked up, which no presence check can catch. The marker half this body once left to 2a6a1355 was retired with the markers. Nothing is left here.
+
 
 
 * TODO --review-format-annotation's docstring contradicts its own let*, four lines down
