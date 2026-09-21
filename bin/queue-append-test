@@ -583,6 +583,15 @@ jq -n -c --arg cwd "$proj" \
     tool_response:[{type:"text",text:"Amended: \"x\""}]}' \
   | CLAUDE_PROJECT_DIR="$proj" "$script" refusal
 check "the prefix is read loosely: case and punctuation" "caught:example-kind/user" "$(jq -r '.rule' <<<"$(queue_lines sess-c)")"
+# Only the first line decides (PR #29 review, :ID: de2e377a): sed prints
+# every matching line, so "user:" then "self:" made a rule "user\nself".
+reset_queue
+jq -n -c --arg cwd "$proj" \
+  '{session_id:"sess-c", cwd:$cwd, tool_name:"mcp__emacs-tools__org_amend",
+    tool_input:{id:"bbbbbbbb-0000-0000-0000-000000000002", text:"x", note:"user: caught it\nself: and fixed it"},
+    tool_response:[{type:"text",text:"Amended: \"x\""}]}' \
+  | CLAUDE_PROJECT_DIR="$proj" "$script" refusal
+check "a multi-line note is attributed by its first line alone" "caught:example-kind/user" "$(jq -r '.rule' <<<"$(queue_lines sess-c)")"
 reset_queue
 caught bbbbbbbb-0000-0000-0000-000000000002 '{"drawer":"PLAN"}' 'Amended: "x" (into :PLAN:)'
 check "a drawer amend is composition, not a catch" "" "$(queue_lines sess-c)"

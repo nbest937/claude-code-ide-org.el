@@ -265,7 +265,10 @@ if [[ "$kind" == todo || "$kind" == clock_in || "$kind" == clock_out \
       # what it repairs on its own, are different measurements. Anything
       # else is `unmarked' rather than a guess. (sed -E: BSD sed has no
       # alternation in basic regexps, and macOS is where this runs.)
-      who="$(tr '[:upper:]' '[:lower:]' <<<"$detail" | sed -nE 's/^[[:space:]]*(user|self)[^[:alnum:]].*/\1/p')"
+      # First line only (PR #29 review, TODO.org :ID: de2e377a): sed prints
+      # every matching line, so a note with a later "self:" line made a rule
+      # of two words.
+      who="$(head -n 1 <<<"$detail" | tr '[:upper:]' '[:lower:]' | sed -nE 's/^[[:space:]]*(user|self)[^[:alnum:]].*/\1/p')"
       rule="caught:$slug/${who:-unmarked}"
       kind=miss ;;
     *:Error:*) exit 0 ;;
