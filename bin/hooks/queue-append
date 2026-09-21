@@ -202,8 +202,15 @@ if [[ "$kind" == todo || "$kind" == clock_in || "$kind" == clock_out \
       # made while working in a consumer project still resolves. `cwd' on
       # the line records where it happened.
       [ -n "$slug" ] || exit 0
-      rule="caught:$slug"
       detail="$(jq -r '.tool_input.note // ""' <<<"$input" 2>/dev/null)"
+      # Who caught it, from the note's first word: `user: ...' or
+      # `self: ...'. Kept in the RULE so every reader splits the two
+      # series without parsing detail -- what gets past the session, and
+      # what it repairs on its own, are different measurements. Anything
+      # else is `unmarked' rather than a guess. (sed -E: BSD sed has no
+      # alternation in basic regexps, and macOS is where this runs.)
+      who="$(tr '[:upper:]' '[:lower:]' <<<"$detail" | sed -nE 's/^[[:space:]]*(user|self)[^[:alnum:]].*/\1/p')"
+      rule="caught:$slug/${who:-unmarked}"
       kind=miss ;;
     *:Error:*) exit 0 ;;
   esac

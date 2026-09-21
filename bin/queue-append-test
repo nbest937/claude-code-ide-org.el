@@ -509,8 +509,28 @@ reset_queue
 caught bbbbbbbb-0000-0000-0000-000000000002 '{}' 'Amended: "Miss: an example kind"'
 line="$(queue_lines sess-c)"
 check "a body amend onto a miss heading is a caught miss" "miss" "$(jq -r '.kind' <<<"$line")"
-check "the rule is caught:<slug>" "caught:example-kind" "$(jq -r '.rule' <<<"$line")"
+check "an unmarked catch says so in its rule" "caught:example-kind/unmarked" "$(jq -r '.rule' <<<"$line")"
 check "the detail is the amend's note, not its text" "why" "$(jq -r '.detail' <<<"$line")"
+# Who caught it rides in the note's prefix and lands in the rule, so both
+# readers (bin/miss-rate, the ceremony report) split the series for free.
+# The two measure different things: what gets past the session, and what
+# the session repairs on its own.
+for who in user self; do
+  reset_queue
+  jq -n -c --arg n "$who: said so in passing" --arg cwd "$proj" \
+    '{session_id:"sess-c", cwd:$cwd, tool_name:"mcp__emacs-tools__org_amend",
+      tool_input:{id:"bbbbbbbb-0000-0000-0000-000000000002", text:"x", note:$n},
+      tool_response:[{type:"text",text:"Amended: \"x\""}]}' \
+    | CLAUDE_PROJECT_DIR="$proj" "$script" refusal
+  check "a note beginning '$who:' marks the catch as $who's" "caught:example-kind/$who" "$(jq -r '.rule' <<<"$(queue_lines sess-c)")"
+done
+reset_queue
+jq -n -c --arg cwd "$proj" \
+  '{session_id:"sess-c", cwd:$cwd, tool_name:"mcp__emacs-tools__org_amend",
+    tool_input:{id:"bbbbbbbb-0000-0000-0000-000000000002", text:"x", note:"USER - capitalised, dash"},
+    tool_response:[{type:"text",text:"Amended: \"x\""}]}' \
+  | CLAUDE_PROJECT_DIR="$proj" "$script" refusal
+check "the prefix is read loosely: case and punctuation" "caught:example-kind/user" "$(jq -r '.rule' <<<"$(queue_lines sess-c)")"
 reset_queue
 caught bbbbbbbb-0000-0000-0000-000000000002 '{"drawer":"PLAN"}' 'Amended: "x" (into :PLAN:)'
 check "a drawer amend is composition, not a catch" "" "$(queue_lines sess-c)"
@@ -538,7 +558,7 @@ jq -n -c --arg id "$real_id" --arg cwd "$consumer" \
   | CLAUDE_PROJECT_DIR="$consumer" "$script" refusal
 line="$(queue_lines sess-c)"
 check "the plugin tracker has the catch-all miss heading" "yes" "$([[ -n "$real_id" ]] && echo yes || echo no)"
-check "a catch in a consumer project resolves against the plugin's tracker" "caught:uncategorised" "$(jq -r '.rule' <<<"$line")"
+check "a catch in a consumer project resolves against the plugin's tracker" "caught:uncategorised/unmarked" "$(jq -r '.rule' <<<"$line")"
 check "and records the consumer as where it happened" "$consumer" "$(jq -r '.cwd' <<<"$line")"
 
 # The reader must skip the kind, or every miss shows up at review. This
