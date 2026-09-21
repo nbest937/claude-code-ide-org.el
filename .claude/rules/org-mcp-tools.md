@@ -73,27 +73,10 @@ generating new headings, and time reporting. `org_query` now covers
 structured cross-file reads (e.g. "what's blocked," "everything :research:
 and not DONE") that used to mean Claude reading whole files by hand.
 
-**Read-only buffers: nothing to do.** The file-touching tools bind
-`inhibit-read-only` themselves, so a buffer the user has toggled
-read-only (`C-x C-q`) is written normally and the flag is still set
-afterwards. **The clear-and-restore convention that stood here until
-2026-08-31 is retired** (`:ID:` c8a97d9d) — do not clear
-`buffer-read-only` by hand, and do not report having done so.
-
-It is a *binding*, never a `setq`, and that is the whole safety
-property: the flag comes back when the scope exits, including on a
-non-local exit, so a tool erroring part-way through cannot leave the
-buffer writable. The old convention could, and the failure window was
-not theoretical — restoring the flag *correctly* after an `org_amend`
-is what broke a human's own apply pass on 2026-08-25.
-
-Two things this deliberately does not cover. **Interactive commands
-still ask**: `M-x claude-code-ide-org-review` prompts before apply
-(`--review-ensure-writable`), because clearing a human's guard is the
-human's call when a human is present to make it. And a **hand-written
-`emacsclient` call** is not a tool and binds nothing — if you find
-yourself reaching for one against a read-only buffer, that is a signal
-the tool surface is missing something, not a licence to clear the flag.
-
-If the user ever wants a specific buffer left alone, they'll say so
-explicitly; that overrides this for that instance only.
+**Read-only buffers: nothing to do.** The file-touching tools *bind*
+`inhibit-read-only` themselves, so a buffer toggled read-only (`C-x C-q`)
+is written normally and the flag is still set afterwards, even on a
+non-local exit (`:ID:` c8a97d9d). Do not clear `buffer-read-only` by hand.
+Interactive commands still ask, because a human is present to decide;
+and a hand-written `emacsclient` call binds nothing — reaching for one
+against a read-only buffer means the tool surface is missing something.

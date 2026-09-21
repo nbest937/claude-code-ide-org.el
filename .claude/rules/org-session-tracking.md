@@ -69,35 +69,25 @@ report, not this hook's.
 
 `SessionStart` → `bin/hooks/session-start-recovery-check` →
 `claude-code-ide-org-write-session-start-report` injects the ceremony
-prompt as `additionalContext`, which Claude is expected to relay to the
-user as a question — the hook itself has no way to literally prompt.
+report as `additionalContext` and shows the user a one-line
+`systemMessage`, so it arrives whether or not the session relays it. It
+names what is waiting — pending queue items, drawers out of order,
+finished headings not yet archived, the miss count by rule — and then
+**asks**. Apply is the human's alone, so a session must not offer to run
+the pass; the steps after apply run on leaving the review buffer, which
+stamps `ceremony-last-run` only if every step succeeded.
 
-The ceremony half names what is waiting — pending queue items, drawers
-out of order, finished headings not yet archived — and then **asks**. It
-is explicit that apply is the human's alone, so a session must not offer
-to run the pass. Its "already done today" test is a stamp file,
-`ceremony-last-run` in the queue directory, whose *mtime* carries the
-date; `M-x claude-code-ide-org-mark-ceremony-done` writes it. A day node
-or a falling pending count were both rejected for conflating "the
-ceremony was performed" with "something happened".
+**The report asks; it never proposes.** A plausible suggestion is harder
+to reject than none at all (measured and retired 2026-08-14, `:ID:`
+7771fc63).
 
-**The report asks; it never proposes.** A guess would be worse than none
-— a plausible suggestion is harder to reject than no suggestion at all
-(measured and retired 2026-08-14, `:ID:` 7771fc63).
+The two commands the ceremony runs after apply,
+`claude-code-ide-org-consolidate-all-drawers` (`:ID:` 7ae6562d) and
+`claude-code-ide-org-normalize-heading-separation` (`:ID:` e1284bdb), are
+idempotent and default to a dry run interactively; **from Lisp both
+default to writing**.
 
-The two commands the ceremony runs after apply are
-`claude-code-ide-org-consolidate-all-drawers` (`:ID:` 7ae6562d — reaches
-every drawer, not only ones an apply pass happened to touch) and
-`claude-code-ide-org-normalize-heading-separation` (`:ID:` e1284bdb).
-Both are idempotent and both default to a dry run interactively; **from
-Lisp both default to writing**, which is the one thing to know before
-calling either from code.
-
-**Where time tracking is also wired, this one hook carries a second,
-independent report** (TODO.org `:ID:` aa1ba915): the stale-interval
-recovery prompt, documented in `org-time-tracking.md`. One hook and one
-payload, because `additionalContext` is a single string and a second
-`SessionStart` hook would double the Emacs round-trip. Either half may be
-absent; the payload is `{}` only when both are, and the script's
-`[[ -s ]]` guard drops it. With time tracking unwired the stale half can
-never fire, so the ceremony is the whole payload.
+**Where time tracking is on, the same hook carries a second, independent
+report** (`:ID:` aa1ba915): the stale-interval recovery prompt, documented
+in `org-time-tracking.md`. One hook and one payload; either half may be
+absent.

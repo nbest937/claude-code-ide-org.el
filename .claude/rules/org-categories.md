@@ -35,12 +35,9 @@ the seam is trusted. Note `Dev` names an *audience* where the others name
 subjects — read alone it would swallow the file, and the bound comes entirely
 from its sibling.
 
-**Not `Review`, deliberately.** `REVIEW` is also a TODO keyword, so
-`:CATEGORY: Review` would render an agenda line as `Review  REVIEW  Some
-task` — the one value that defeats the reason these are capitalised. It also
-read to its daily reader as naming the ceremony rather than the apply
-subsystem. `apply` is the project's own word for it by a wide margin.
+**Not `Review`, deliberately.** `REVIEW` is also a TODO keyword, so an
+agenda line would read `Review  REVIEW  Some task` — the one value that
+defeats the capitalisation. `Apply` is the project's own word for it.
 
-How the nine labels that preceded these were split, and the level-1
-category tier they replaced, are history and stay path-scoped in
-`org-conventions-local.md`.
+How the nine labels that preceded these were split is history, and stays
+path-scoped in `org-conventions-local.md`.

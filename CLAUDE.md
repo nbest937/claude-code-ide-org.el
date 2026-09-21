@@ -64,14 +64,11 @@ most of them.
 
 ## Architecture: the event queue
 
-**Moved into the plugin, 2026-09-09** (`:ID:` b0e478f7): the full text
-ships as `skills/org/references/org-event-queue.md` and is promoted by
-`bin/claude-org-setup` into `.claude/rules/org-event-queue.md`, which is
-the copy every session here loads. The one line that must survive even a
+Ships as `skills/org/references/org-event-queue.md` and loads here as
+`.claude/rules/org-event-queue.md`. The one line that must survive a
 broken promotion: **state and clock changes are queued, not applied** —
-`org_set_todo`, `org_clock_in` and `org_clock_out` append events for
-human review and change nothing when called; `org_pending_updates` shows
-what waits.
+`org_set_todo`, `org_clock_in` and `org_clock_out` change nothing when
+called; `org_pending_updates` shows what waits.
 
 ---
 
@@ -82,10 +79,9 @@ carries each heading's own body summary beneath its line (`:ID:`
 2a399034 — the read split), so it answers most orientation questions
 outright; drawers stay behind an explicit `org_body` call (`drawer=PLAN`
 / `DEBRIEF` / `LOGBOOK` for one drawer, no argument for the heading
-whole). Pass `bodies=false` when only the tree matters — worth doing on
-full-file calls until the `e128e4fa` corpus pass shortens the
-pre-convention bodies, which are long enough to swamp an unscoped
-index. Drop to `org_query` for a predicate ("what's blocked",
+whole). Pass `bodies=false` on a full-file call: pre-convention bodies are long
+enough to swamp an unscoped index (`:ID:` e128e4fa).
+Drop to `org_query` for a predicate ("what's blocked",
 "everything `:research:` and not DONE") and to a targeted read only once
 you have an `:ID:` and a reason.
 
@@ -195,10 +191,8 @@ under `.claude/skills/`, testbed-only and unshipped.
 - **Test harnesses and dev tooling are bash**, unremarkably.
 - **No fish.** It reached the commit gate (`bin/check-conventions`)
   undeclared, which is what turned a style question into this decision.
-- **Python was considered and declined** for JSON handling: Emacs is
-  already the harder, always-present dependency — every such script
-  ends in `emacsclient` anyway — so elisp avoids adding a runtime
-  rather than trading one.
+- **Python was considered and declined** for JSON handling: every such
+  script ends in `emacsclient` anyway, so elisp avoids adding a runtime.
 
 ---
 
@@ -317,25 +311,12 @@ unfiled in two days); the history of the level-1 tier stays path-scoped in
 
 ---
 
-## State transition rules
+## State transitions and MCP tools
 
-**Moved into the plugin, 2026-09-09**: the transition table, every clock
-rule, and the `NEXT`/nomination invariants ship as
-`skills/org/references/org-state-transitions.md` and load here as
-`.claude/rules/org-state-transitions.md`. They are unchanged by the
-move — follow that file exactly as this section was followed.
-
----
-
-## MCP tools (`modules/tools/claude-code-ide-org/config.el`)
-
-**Moved into the plugin, 2026-09-09**: the tool tables — queued,
-immediate, conditional, read-only — ship as
-`skills/org/references/org-mcp-tools.md` and load here as
+They load here as `.claude/rules/org-state-transitions.md` and
 `.claude/rules/org-mcp-tools.md`. The headline that must not be lost:
-the three queued tools change nothing when called, and there is no MCP
-tool that applies the queue — apply is `M-x claude-code-ide-org-review`,
-human-run.
+**no MCP tool applies the queue** — apply is
+`M-x claude-code-ide-org-review`, human-run.
 
 ---
 
@@ -366,42 +347,27 @@ the opt-in here** (`:ID:` 1b36c5bd). The gate is in the scripts because
 ## Emacs integration
 
 **A reachable Emacs server is a hard prerequisite** — every MCP tool
-goes through `emacsclient`; if tools fail, check that first. The
-install and wiring guidance — Doom module, the org 9.7 floor, the
-pinned port, per-repo setup — ships as
-`skills/org/references/org-emacs-setup.md` (deliberately not promoted
-into rules: it is read at install time, not needed every session).
+goes through it; if tools fail, check that first. Install and wiring
+guidance ships as `skills/org/references/org-emacs-setup.md`, read at
+install time, so not promoted.
 
 ---
 
 ## Design notes
 
-- **Why MCP tools over text editing for clock/state/archive?**
-  Native org functions handle LOGBOOK formatting, timestamp arithmetic, and
-  internal state (the running clock timer) correctly and atomically. Text
-  editing risks malformed CLOCK entries or stale timer state.
-
-- **Why text editing for everything else?**
-  Tag changes, new headings, and time report summaries don't require
-  org-mode's internal state — they're straightforward text operations the
-  org skill handles well. Keeping the MCP tool surface small reduces
-  per-request token overhead. Cross-file reads used to fall in this bucket
-  too, but were slow enough in practice (whole-file reads to answer
-  one-line questions) to justify `org_query` as a dedicated tool instead.
-
-- **Why IDs rather than heading titles?**
-  Titles are not unique and can change. `:ID:` properties are stable
-  references that survive renames and refiling.
-
-- **Why short snake_case tool names rather than upstream's convention?**
-  Upstream `claude-code-ide` registers each MCP tool's name as the verbatim
-  elisp function name (e.g. `claude-code-ide-mcp-xref-find-references`).
-  This module deliberately diverges: elisp identifiers follow elisp
-  convention (full `claude-code-ide-org-` package prefix), while
-  model-facing tool names follow MCP convention — short snake_case with an
-  `org_` namespace prefix (e.g. `org_clock_in`). snake_case is the
-  prevailing style for MCP tools, the `org_` prefix names the domain the
-  model actually cares about, and shorter names reduce per-request schema
-  overhead.
+- **MCP tools for clock, state and archive; text editing for the rest.**
+  Native org functions handle LOGBOOK formatting, timestamp arithmetic and
+  the running clock correctly and atomically; text editing risks malformed
+  CLOCK entries. Tags, new headings and report summaries need none of
+  that, and a small tool surface costs fewer tokens per request.
+  `org_query` earned its place because whole-file reads to answer one-line
+  questions were slow in practice.
+- **IDs rather than titles**: titles are not unique and change; an `:ID:`
+  survives renames and refiling.
+- **Short snake_case tool names**, diverging from upstream
+  `claude-code-ide`, which registers the verbatim elisp function name:
+  elisp identifiers keep the full `claude-code-ide-org-` prefix, while
+  model-facing names follow MCP convention with an `org_` namespace —
+  the domain the model cares about, and a shorter schema.
 
 (The `org-clock-persist-load` trap lives in the **org-dev skill, §2**.)
