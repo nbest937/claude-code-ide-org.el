@@ -370,6 +370,11 @@ Shipped in [[orgit-rev:claude-code-ide-org::4051533][4051533]]. *The reproductio
 :CATEGORY: Dev
 :END:
 :PLAN:
+Proposal: one runner
+(=bin/test-all=, or =bin/test --all=) that runs every suite and checks each exit
+code, named in Step 0 as what a branch runs before its PR. Whether pre-push
+should call it is a cost question — measure the wall time first.
+
 The plan is the body's proposal: one runner, =bin/test --all= or =bin/test-all=,
 that runs every =bin/*-test= suite and =bin/test= and checks each exit code and
 the =Ran N= line.
@@ -389,11 +394,7 @@ and [[orgit-rev:claude-code-ide-org::f733179][f733179]]. *Still red, and not fix
 identical in a clean worktree at [[orgit-rev:claude-code-ide-org::2193612][2193612]] — "five files written: got 7" (the
 rule-file count moved) and the =--org= link cases; causes not investigated.
 Second instance of the class; the first is DONE.org's "bin/pre-commit-test has
-three failures that predate the branch fixing them". Proposal: one runner
-(=bin/test-all=, or =bin/test --all=) that runs every suite and checks each exit
-code, named in Step 0 as what a branch runs before its PR. Whether pre-push
-should call it is a cost question — measure the wall time first.
-
+three failures that predate the branch fixing them".
 *Correction, same day:* =claude-org-setup-test= is green as of [[orgit-rev:claude-code-ide-org::7f54503][7f54503]], and one
 of its three causes was a real bug rather than a stale fixture — setup's
 graceful "no port found; skipping .mcp.json" branch was unreachable under =set
@@ -2870,6 +2871,17 @@ Asked by the user 2026-09-16, straight after =c= shipped: "will the 0-run/0-minu
 :CATEGORY: Tools
 :END:
 :PLAN:
+*Note the fix order is unchanged and this strengthens it:* surface the rejection
+first. Once a query org-ql would refuse says so, the set of dropped predicates
+enumerates itself instead of being discovered one survey at a time.
+
+*The fix shape changes with the diagnosis.* Not "restore the dropped predicates"
+— there are none to restore. A query whose first non-blank character is =(= is a
+sexp, and the tool should either parse it as one (=org-ql-select= takes sexps
+natively) or refuse it naming the mini-language. The original fix order still
+holds and is now the whole fix: surface the rejection. There is nothing behind
+it.
+
 *Refuse, naming the syntax* (the user, 2026-09-21). A query whose first
 non-blank character is =(= returns an =Error:= giving the plain-string
 equivalent where one is obvious (=(tags "x")= becomes =tags:x=,
@@ -2928,10 +2940,6 @@ would report an empty vocabulary and the report would look like a finding.
 Recorded as a =:BLOCKER:= rather than left as prose, since a cross-slice
 dependency is invisible from both ends.
 
-*Note the fix order is unchanged and this strengthens it:* surface the rejection
-first. Once a query org-ql would refuse says so, the set of dropped predicates
-enumerates itself instead of being discovered one survey at a time.
-
 *Re-measured 2026-09-16, and the mechanism above is wrong in a way that matters:
 no predicate is dropped, and none ever was.* =org_query='s input is org-ql's
 **plain-string mini-language**, not a sexp —
@@ -2952,13 +2960,6 @@ query nobody meant to ask**. The =(no-such-predicate "banana")= result has the
 same cause, not an allowlist. And =(todo "DONE")= returning 349 was never a
 working control: it was a text search for entries containing those tokens, which
 is exactly why it looked like the one predicate that survived.
-
-*The fix shape changes with the diagnosis.* Not "restore the dropped predicates"
-— there are none to restore. A query whose first non-blank character is =(= is a
-sexp, and the tool should either parse it as one (=org-ql-select= takes sexps
-natively) or refuse it naming the mini-language. The original fix order still
-holds and is now the whole fix: surface the rejection. There is nothing behind
-it.
 
 *=:BLOCKER:= lifted from [[id:e28933e9-f352-4ef9-8d53-8cd9a4318768][e28933e9]].* That survey is a =tags:= query, =tags:=
 works today, and the block rested entirely on the claim corrected here.
@@ -6586,6 +6587,40 @@ right for the wrong reason.
 :CATEGORY: Dev
 :END:
 :PLAN:
+*Proposed fix: make the failure loud rather than the discipline stronger.* A
+trigger that depends on model judgement has now failed silently for a whole
+session, and the answer this project reaches for is a mechanism that reports
+rather than a rule to remember. Sketch, and it is cheap:
+
+- =config.el= sets a =claude-code-ide-org--loaded-at= timestamp at load time.
+  Confirmed absent today, so this is a new =defvar= plus one =setq= at top
+  level.
+- Anything already round-tripping to Emacs compares it against
+  =(file-attribute-modification-time (file-attributes config-path))= and says so
+  when the file is newer.
+- The natural home is the =SessionStart= report, which already carries the
+  stale-interval and ceremony prompts and already follows the *ask, never act*
+  contract. A second line there costs nothing.
+
+*Deliberately not proposed: auto-reloading on edit.* It looks tidier and is
+worse — §2 of the skill lists changes a live reload cannot cover, so an
+automatic =load-file= would sometimes produce a *confident* wrong answer, which
+is the failure mode this project consistently rates as worse than an absent one.
+
+*Note the check has a real limit worth writing into it:* file mtime is newer
+than load time is not the same as "the running Emacs is wrong", since an edit
+may not have touched anything loaded. The report should say what it knows — the
+file is newer than the load — and let the reader decide, exactly as the
+stale-interval report states a timestamp and asks rather than guessing.
+
+*Whether it belongs in =bin/check-conventions= is a judgement I am not making
+alone.* That script already queries the live Emacs for the MCP port and fails
+on it, so the live image is in scope. But it runs at the commit gate, and a
+stale image is an *environment* condition rather than a property of the commit:
+editing, testing in batch and committing without reloading is a perfectly
+coherent sequence, and blocking it would be a new obligation. A warning would
+nudge without obstructing. The choice is the user's.
+
 The check is the one the body measured: every =(defun claude-code-ide-org...= in
 =config.el= tested with =fboundp= against the running image (394 defuns, 0
 unbound when healthy). It catches both shapes, the stale =.elc= and an older
@@ -6644,32 +6679,6 @@ therefore not evidence of absence.
 skill records 2026-08-11, when the =:SESSIONS:= drawer was retired, every writer
 deleted, all 49 drawers removed, suite green — and minutes later a clock-out
 recreated one, because =config.el= had been edited on disk and never reloaded.
-
-*Proposed fix: make the failure loud rather than the discipline stronger.* A
-trigger that depends on model judgement has now failed silently for a whole
-session, and the answer this project reaches for is a mechanism that reports
-rather than a rule to remember. Sketch, and it is cheap:
-
-- =config.el= sets a =claude-code-ide-org--loaded-at= timestamp at load time.
-  Confirmed absent today, so this is a new =defvar= plus one =setq= at top
-  level.
-- Anything already round-tripping to Emacs compares it against
-  =(file-attribute-modification-time (file-attributes config-path))= and says so
-  when the file is newer.
-- The natural home is the =SessionStart= report, which already carries the
-  stale-interval and ceremony prompts and already follows the *ask, never act*
-  contract. A second line there costs nothing.
-
-*Deliberately not proposed: auto-reloading on edit.* It looks tidier and is
-worse — §2 of the skill lists changes a live reload cannot cover, so an
-automatic =load-file= would sometimes produce a *confident* wrong answer, which
-is the failure mode this project consistently rates as worse than an absent one.
-
-*Note the check has a real limit worth writing into it:* file mtime is newer
-than load time is not the same as "the running Emacs is wrong", since an edit
-may not have touched anything loaded. The report should say what it knows — the
-file is newer than the load — and let the reader decide, exactly as the
-stale-interval report states a timestamp and asks rather than guessing.
 
 *Observed live 2026-09-16, with a concrete mechanism and a detection this
 heading did not previously carry.*
@@ -6735,14 +6744,6 @@ image. **394 defuns, 0 unbound** after the reload; before it, the new command
 would have been the one failure. It needs nothing but the file and
 =emacsclient=, and it generalises — a deleted function shows up as the
 inverse, since =load-file= never unbinds what was removed.
-
-*Whether it belongs in =bin/check-conventions= is a judgement I am not making
-alone.* That script already queries the live Emacs for the MCP port and fails
-on it, so the live image is in scope. But it runs at the commit gate, and a
-stale image is an *environment* condition rather than a property of the commit:
-editing, testing in batch and committing without reloading is a perfectly
-coherent sequence, and blocking it would be a new obligation. A warning would
-nudge without obstructing. The choice is the user's.
 
 *Worth noting how it was found, because it is this heading's own thesis.*
 Nothing announced it. Batch tests passed — they load the file fresh, so they
@@ -7344,6 +7345,30 @@ is the point — it cannot be backfilled.
 :CATEGORY: Tools
 :END:
 :PLAN:
+*Where to look:* =claude-code-ide-org--capture-target-spec=. It appears to
+consult =--id-find= already, so the failure may be a fallback path or an
+ordering issue rather than a missing call; the error string it produced is not
+=--id-find='s own wording, which is the thread to pull. Worth checking
+=org_refile='s =target_id= and =org_divide= for the same shape while there — the
+twin question this project asks of any list.
+
+*Cheap verification when fixed:* the four captures above, re-run with the
+prefix, plus a test asserting a prefix target resolves. Note the fixture trap
+found the same day: =--with-known-ids= leaves its ids unknown to org, so it is
+the wrong fixture for anything walking =org-id-locations=.
+
+*So the pattern now has three known shapes*, and the third is the dangerous one:
+an argument that resolves through =--id-find= (fine), one that resolves some
+other way and *errors* (=org_capture='s target), and one that resolves by string
+comparison and *silently selects nothing*. A sweep should look for the third
+first.
+
+*Worth checking in the same pass:* every other function taking an =id= or
+=target= argument that does not route through =claude-code-ide-org--id-find=.
+The docstring on =--id-find= records that fourteen such sites existed the first
+time this was fixed; two more have now surfaced by use rather than by search,
+which suggests the sweep was by call *shape* rather than by argument.
+
 =:DROPPED:= is a fourth site, and a silent one: expand its prefixes through
 =--id-find= in the refresh, and have =org_set_property= validate =:DROPPED:=
 the way it already validates =:BLOCKER:=.
@@ -7371,18 +7396,6 @@ sessions with correct prefixes and wrong tails. A tool that demands the full id
 pushes the caller straight back into the failure mode the expansion exists to
 remove — and the natural workaround is to type it from memory.
 
-*Where to look:* =claude-code-ide-org--capture-target-spec=. It appears to
-consult =--id-find= already, so the failure may be a fallback path or an
-ordering issue rather than a missing call; the error string it produced is not
-=--id-find='s own wording, which is the thread to pull. Worth checking
-=org_refile='s =target_id= and =org_divide= for the same shape while there — the
-twin question this project asks of any list.
-
-*Cheap verification when fixed:* the four captures above, re-run with the
-prefix, plus a test asserting a prefix target resolves. Note the fixture trap
-found the same day: =--with-known-ids= leaves its ids unknown to org, so it is
-the wrong fixture for anything walking =org-id-locations=.
-
 *A second call site, found 2026-09-01 by using it.*
 =claude-code-ide-org-refresh-slice='s own =ID= argument compares with =equal=
 against the full =:ID:=:
@@ -7394,18 +7407,6 @@ so =(claude-code-ide-org-refresh-slice "b36e6369")= matches nothing and returns
 exactly like a working no-op* — a plausible answer for a slice that was already
 up to date — which is worse than the capture case, where the reply at least said
 =Error: Cannot find target ID=.
-
-*So the pattern now has three known shapes*, and the third is the dangerous one:
-an argument that resolves through =--id-find= (fine), one that resolves some
-other way and *errors* (=org_capture='s target), and one that resolves by string
-comparison and *silently selects nothing*. A sweep should look for the third
-first.
-
-*Worth checking in the same pass:* every other function taking an =id= or
-=target= argument that does not route through =claude-code-ide-org--id-find=.
-The docstring on =--id-find= records that fourteen such sites existed the first
-time this was fixed; two more have now surfaced by use rather than by search,
-which suggests the sweep was by call *shape* rather than by argument.
 
 - [2026-09-21 Mon] A fourth site, and the silent shape: the slice refresh
   ignores an 8-character prefix in =:DROPPED:=. On 8a2eb687, =4acd8ad0= (a
@@ -7568,6 +7569,26 @@ and only an instrument outside the clock system answers it.
 :CATEGORY: Queue
 :END:
 :PLAN:
+*This heading is a question, not a design.* Restoring the overrides is the
+obvious move and probably the wrong one: a synthetic event has no
+=tool_response= to recover =from= from, so the staleness check =recovered_from=
+feeds would go blind on exactly the events written when the system is least
+healthy. Worth deciding among at least:
+
+1. Tools fail *loudly and durably* rather than silently — a timed-out MCP write
+   leaves a marker that the next =SessionStart= reports, so the record of what
+   could not be recorded is itself in the system. This is the option that
+   composes with the existing recovery report rather than adding a second path.
+2. A narrow, non-hook CLI writer for todo/clock on a known =:ID:=, with =from=
+   honestly null rather than fabricated.
+3. Nothing, on the grounds that an Emacs crash is rare and a human was present.
+   This is a real option and may well be the right one — today's cost was two
+   debriefs delayed, not lost.
+
+Whatever is chosen, the shape to avoid is the current one, where the failure is
+silent per call and only a human noticing a timeout keeps the work attached to
+its heading.
+
 *Option 1, loud and durable* (the user, 2026-09-21; options 2 and 3 declined).
 When an =org_*= call fails because Emacs is unreachable, a plain-shell hook
 writes a marker naming the tool and its arguments into the session's queue
@@ -7621,26 +7642,6 @@ Emacs involved. That removal was correct on its own terms: its consumer had been
 dead since the =PLANNING= retirement, and its own tests proved the branch was
 live only in the sense of being covered. But the use case that would have wanted
 it did not exist when it was written, and does now.
-
-*This heading is a question, not a design.* Restoring the overrides is the
-obvious move and probably the wrong one: a synthetic event has no
-=tool_response= to recover =from= from, so the staleness check =recovered_from=
-feeds would go blind on exactly the events written when the system is least
-healthy. Worth deciding among at least:
-
-1. Tools fail *loudly and durably* rather than silently — a timed-out MCP write
-   leaves a marker that the next =SessionStart= reports, so the record of what
-   could not be recorded is itself in the system. This is the option that
-   composes with the existing recovery report rather than adding a second path.
-2. A narrow, non-hook CLI writer for todo/clock on a known =:ID:=, with =from=
-   honestly null rather than fabricated.
-3. Nothing, on the grounds that an Emacs crash is rare and a human was present.
-   This is a real option and may well be the right one — today's cost was two
-   debriefs delayed, not lost.
-
-Whatever is chosen, the shape to avoid is the current one, where the failure is
-silent per call and only a human noticing a timeout keeps the work attached to
-its heading.
 
 *Related but distinct:* [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]] is
 about =org_capture= and =org_set_property= hanging over MCP *while Emacs is
