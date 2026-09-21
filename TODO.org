@@ -20,6 +20,9 @@ Row 9 of the enforcement audit's convert list (3cd7b7d3), not built. Three rules
 
 Row 5 of the enforcement audit's convert list (3cd7b7d3), set aside there as the user's decision. "Call org_clock_in when entering DOING and org_clock_out when leaving" is an eleven-row table in org-time-tracking.md and the most mechanical clause left in the always-loaded rules: queue-append sees every todo event and could append the clock event itself, unless the call is marked retroactive. Against it: org_set_todo and org_clock_in are separate calls on purpose, so that state and clock are decided separately (4f6a6bb1), and a retroactive DOING or a grouping's DOING must open nothing. And clock timing has its own open defect: work after a mid-turn clock_out reaches review as nothing (b09aca60), which derived events would make more common, not less, since every transition out of DOING would close the run. Decide after b09aca60 is fixed. WAITING on the user.
 
+*The user, 2026-09-21: leave it as it is* — state and clock stay separate calls — and fix b09aca60 first. Still parked; revisit only if, with clock-out timing made safe, the second call is still being missed often enough to show in the miss count.
+
+
 * TODO org_set_todo's no-change check reads the file and ignores the queue, so a state set and reverted between applies cannot be queued back :code:observed:
 :PROPERTIES:
 :ID:       57f37f0e-4461-42f4-8b33-cde59318b93a
@@ -232,8 +235,24 @@ The catch-all, so that answering a catch is always an amend and never a decision
 :CREATED:  [2026-09-21 Mon 08:02]
 :CATEGORY: Queue
 :END:
+:DEBRIEF:
+Shipped in [[orgit-rev:claude-code-ide-org::4051533][4051533]]. *The reproduction corrected the diagnosis.* The body says the stretch "belongs to no run" because =clock_out= is a run-closing kind. True, but the span itself was never lost: =--span-complement= already emitted the unowned remainder as an item. What it lacked was *events* — the remainder of the turn holds only the =pause=, because its opening edge is the =clock_out=, which is not a guidepost. No =open= → =close= adjacency, so the item wrote nothing. The fix is therefore at the item's event list, not in the run-closing kinds: =--with-bracket-edges= adds a synthetic =resume= where a span starts at a bracket's end, or a synthetic =pause= where it ends at a bracket's start, when =--lane-running-at-p= says the turn guideposts either side had the agent running.
+
+*Two properties that make it safe.* The synthetic events carry no =:session-id= and no =:ts-string=, and apply and dismiss mark events consumed by exactly those keys, so they are skipped by construction. And spans under a minute are left alone: a sub-minute run is promoted to a full rendered minute when written, which for a piece abutting a bracket overlaps the bracket's own edge — and a session that clocks out as its last call, as the rule now asks, leaves such a sliver before the =pause= on every turn.
+
+*An existing test had pinned the defect.* =unassigned-span-excludes-bracketed-minutes= used this very shape of queue and asserted the unassigned items wrote zero seconds — stronger than its own comment, which asked only that none of it be the bracket's minutes. It now asserts disjointness and that the 8m21s tail is written. Found because the fix broke it, not by reading.
+
+*Verified:* the new test run red first, 716 ERT tests and nineteen shell suites green, reloaded live under the org-dev rule. The live queue then showed the stretch after that morning's 11:06 clock-out as an offered span. The 2026-09-19 stretch itself cannot be recovered this way: its =pause= was consumed by an earlier apply.
+
+*The unexplained =--span-work-runs= result in the body is explained:* that ad hoc call handed it a whole session's events, clock events included, and a non-boundary event between an opener and a closer breaks the adjacency. The review path never does that.
+
+*Noticed, not investigated:* the live queue showed a 10:52–10:54 bracket labelled with c8773ec2's clock-in note from an hour earlier. =clock_out= carries no id and pairs positionally, so a partial apply may leave pairs mislabelled. Not filed — one sighting, no reproduction.
+:END:
 
 =clock_out= is a run-closing kind (=--run-closing-kinds=), and nothing reopens a run until the next =resume= or =clock_in=. So when a session clocks out and keeps working in the same turn, the stretch up to the turn's =pause= is between two closing edges and is no run. Observed 2026-09-19, session =9e00a7a2=: =clock_out= at 16:39:38, =pause= at 16:46:55, and in between two code commits and a heading's close ([[id:1b69fe4e-3dab-4b11-b21b-96320bf9d4e0][1b69fe4e]]). =org_pending_updates= offers no span for it, assigned or not — the user noticed, the session had predicted UNASSIGNED. This is quieter than the failure [[id:ccfd89ce-a55d-4ad4-bce7-707181deb510][ccfd89ce]]'s rule guards against: that one leaves a span to assign, this leaves nothing to notice. =clock-target-check= cannot see it either, since a =clock_in= exists. Not yet decided: whether a =clock_out= followed by more tool activity before the =pause= should open an unowned run, or whether the fix is on the agent side (never clock out before the last write of a turn). Reproduce with a fixture first — one ad hoc call to =--span-work-runs= gave runs that disagreed with the report's own counts, unexplained.
+
+*Resolved 2026-09-21:* an unowned span that abuts a clock bracket the agent ran straight through now gains that edge, so the stretch is offered for review with its run instead of as an item that writes nothing.
+
 
 
 * TODO Nothing runs the shell hook suites, so three sat red for a day and a merge without anyone seeing :code:
