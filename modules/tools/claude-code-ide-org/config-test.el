@@ -3063,6 +3063,35 @@ drives the apply path directly rather than the tool."
       (should (string-match-p "^\\* DOING Deferred with a state"
                               (claude-code-ide-org-test--disk-contents capture-file))))))
 
+(ert-deftest claude-code-ide-org-test-deferred-writes-escape-block-headlines ()
+  "A deferred capture or amend is escaped exactly as a direct one is.
+The queue holds the tool's raw input -- `queue-append' writes it from
+the hook payload, before any elisp runs -- so the escaping has to
+happen again at apply, or a raw `* ' line inside a block becomes a
+heading in the tracker (PR #29 review, TODO.org :ID: 00aa6a85)."
+  (claude-code-ide-org-test--with-capture-file
+    (let ((block "#+begin_example\n* Fake\n#+end_example"))
+      (should-not (claude-code-ide-org--review-apply-capture
+                   (list :type 'capture :id "test-deferred-esc-1"
+                         :ts (date-to-time "2026-09-21T15:00:00-0500")
+                         :title "Deferred with a block" :target nil
+                         :to "TODO" :note block)))
+      (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
+        (should (string-match-p "^,\\* Fake$" disk))
+        (should-not (string-match-p "^\\* Fake$" disk)))
+      (org-id-update-id-locations (list capture-file))
+      (claude-code-ide-org--at-id
+       "test-deferred-esc-1"
+       (lambda ()
+         (claude-code-ide-org--review-apply-amend
+          (list :type 'amend :text (concat "Amended.\n" block)))
+         (save-buffer)))
+      (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
+        (should (= 2 (with-temp-buffer
+                       (insert disk)
+                       (how-many "^,\\* Fake$" (point-min) (point-max)))))
+        (should-not (string-match-p "^\\* Fake$" disk))))))
+
 (ert-deftest claude-code-ide-org-test-capture-refuses-a-leading-todo-keyword ()
   "A title starting with a TODO keyword must be refused, not written.
 

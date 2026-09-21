@@ -10276,7 +10276,10 @@ An item carrying a :drawer lands inside that drawer instead, and a
 list item continues a list rather than starting a second one -- the
 deferred write must mean what the immediate one would have."
   (let ((drawer (plist-get item :drawer))
-        (text (plist-get item :text)))
+        (text ;; Escaped again here: the queue holds the tool's raw input, written by
+        ;; the hook before any elisp ran (PR #29 review, TODO.org :ID:
+        ;; 00aa6a85).  Idempotent, so text already escaped is unchanged.
+        (claude-code-ide-org--escape-block-headlines (plist-get item :text))))
     (if drawer
         (claude-code-ide-org--amend-into-drawer drawer text)
       (claude-code-ide-org--end-of-body)
@@ -10311,7 +10314,8 @@ exists to prevent (TODO.org :ID: b5f94b88)."
          (plist-get resolved :spec)
          (plist-get item :tags)
          (plist-get item :to)
-         (plist-get item :note)
+         ;; Escaped as the direct write escapes it; see the amend above.
+         (claude-code-ide-org--escape-block-headlines (plist-get item :note))
          (plist-get item :category))
         (org-id-add-location id (expand-file-name file))
         (with-current-buffer (find-file-noselect file) (save-buffer))
