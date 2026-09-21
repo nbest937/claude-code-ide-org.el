@@ -2,22 +2,6 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* TODO The slice refresh strips the checkbox from every story with nested members, though a story undertaken whole may keep one
-:PROPERTIES:
-:ID:       dea171a4-5678-4048-bc8b-a4e1d238c04c
-:CREATED:  [2026-09-21 Mon 13:39]
-:CATEGORY: Slices
-:END:
-:PLAN:
-Found 2026-09-21 nesting de6de108's six children under it in 8a2eb687, at the user's direction, where the user committed to working de6de108 to conclusion. The conventions (Slices, the nesting rule, from 758a8b78) say "a story the slice undertakes whole may stay a checkboxed member". Only *partial* coverage makes the parent a cookie-less grouping label, because a checkbox over partial coverage could never tick. The refresh does not make that distinction. Any member line with indented members beneath it is derived as a grouping label, and =org_slice_add_member='s =parent== says so in its own reply ("whose line is now a grouping label"). So a story undertaken whole cannot be rendered the way the conventions allow, and a checkbox added by hand is stripped at the next refresh.
-
-Proposed: derive the parent's box from coverage. When every open keyworded child of the story has a nested member line, it is full coverage and the parent keeps its checkbox, derived from its own keyword like any member. Otherwise it is a grouping label, as now. Tests: full coverage keeps =[-]= on a DOING story, and dropping one child's line turns the parent into a label.
-
-One question for the implementer, not the user: whether a checkboxed parent counts in the cookie in addition to its children. It would, under =checkbox recursive=, so a story of six children adds seven. That matches how a story's own work is counted elsewhere, but it should be stated in the conventions when this lands.
-:END:
-
-The refresh derives every story with nested member lines as a cookie-less grouping label. The conventions reserve that for a story the slice covers only partly; one undertaken whole may keep its checkbox. Derive the parent's box from coverage instead. Seen on de6de108 in 8a2eb687.
-
 * TODO The member-drawer backfill clause is scaffolding: once every open heading has its canonical shape, the lint should require it and the clause retire
 :PROPERTIES:
 :ID:       fce6bd35-27ad-4724-8dbb-c9df4b68fb10
