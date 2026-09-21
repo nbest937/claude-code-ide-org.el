@@ -9449,17 +9449,74 @@ from a skipped one."
                     ;; the assignment decision is made.
                     :note nil :agent nil :suggested t
                     :unassigned t :origin 'unbracketed
-                    :events (seq-filter
-                             (lambda (e)
-                               (let ((ts (plist-get e :ts)))
-                                 (and (not (time-less-p ts (car span)))
-                                      (not (time-less-p (cdr span) ts)))))
-                             guideposts))
+                    :events (claude-code-ide-org--with-bracket-edges
+                             span bracketed history
+                             (seq-filter
+                              (lambda (e)
+                                (let ((ts (plist-get e :ts)))
+                                  (and (not (time-less-p ts (car span)))
+                                       (not (time-less-p (cdr span) ts)))))
+                              guideposts)))
                 items))))
     (sort (nreverse items)
           (lambda (a b)
             (time-less-p (or (plist-get a :ts) (plist-get a :start))
                          (or (plist-get b :ts) (plist-get b :start)))))))
+
+(defun claude-code-ide-org--lane-running-at-p (time history)
+  "Non-nil when the last turn guidepost in HISTORY before TIME opened a run.
+
+Turn guideposts only -- `resume', `pause' and the permission-block pair.
+A clock event says whose the time is, never whether the agent is
+running, which is the distinction this exists to restore."
+  (let (last)
+    (dolist (e history)
+      (let ((ts (plist-get e :ts)))
+        (when (and ts (time-less-p ts time)
+                   (member (plist-get e :kind)
+                           '("resume" "pause" "block_start" "block_end"))
+                   (or (null last) (time-less-p (plist-get last :ts) ts)))
+          (setq last e))))
+    (and last (member (plist-get last :kind) '("resume" "block_end")) t)))
+
+(defun claude-code-ide-org--with-bracket-edges (span brackets history events)
+  "EVENTS for the unowned SPAN, plus an edge where SPAN abuts a bracket
+the agent ran straight through.
+
+A `clock_out' ends a heading's *ownership*, not the turn: the agent keeps
+running until the `pause'.  But the unowned remainder of that turn holds
+only the `pause' -- its opening edge is the `clock_out', which is not a
+guidepost -- so it had no `open' -> `close' adjacency, wrote nothing, and
+reached review as nothing at all (TODO.org :ID: b09aca60; observed
+2026-09-19 as seven minutes holding two code commits).  The mirror case
+is a `clock_in' some way into a turn, whose unowned head holds only the
+`resume'.
+
+So where SPAN starts at a bracket's end and the lane was running there, a
+synthetic `resume' is added at that instant; where it ends at a bracket's
+start, a synthetic `pause'.  *Evidence, not assertion*: both instants are
+clock events from the queue, and \"running\" is read off the turn
+guideposts either side.  The synthetic events carry no `:session-id' and
+no `:ts-string', so apply and dismiss -- which mark events consumed by
+those two keys -- skip them by construction.
+
+Only for a SPAN of a minute or more; see the binding below."
+  (let ((start (car span)) (end (cdr span)) (out events)
+        ;; Under a minute, leave it as it was.  A sub-minute run is
+        ;; promoted to a full rendered minute when written, which for a
+        ;; piece abutting a bracket means overlapping that bracket's own
+        ;; first or last minute -- and a well-behaved session, clocking
+        ;; out as its last call, leaves exactly such a sliver before the
+        ;; `pause' on every turn.
+        (brackets (and (>= (float-time (time-subtract (cdr span) (car span))) 60)
+                       brackets)))
+    (when (and (seq-some (lambda (b) (time-equal-p (cdr b) start)) brackets)
+               (claude-code-ide-org--lane-running-at-p start history))
+      (push (list :ts start :kind "resume" :synthetic t) out))
+    (when (and (seq-some (lambda (b) (time-equal-p (car b) end)) brackets)
+               (claude-code-ide-org--lane-running-at-p end history))
+      (setq out (append out (list (list :ts end :kind "pause" :synthetic t)))))
+    out))
 
 (defconst claude-code-ide-org--work-in-progress-keywords '("DOING")
   "Keywords asserting that work is happening on a heading right now.

@@ -187,9 +187,9 @@ ccfd89ce). A purely read-only session owes nothing.
 session; it reports and cannot name the heading.
 
 **Rule**: `org_clock_out` is the last call of the turn, after the last
-write. A `clock_out` closes the run and nothing reopens one before the
-turn's `pause`, so work done after it reaches review as *nothing* — not
-even an unassigned span (`:ID:` b09aca60).
+write. A `clock_out` ends the heading's ownership, not the turn, so work
+done after it reaches review *unassigned* and a human has to place it
+(`:ID:` b09aca60; before 2026-09-21 it reached review as nothing).
 
 **A grouping may still be clocked deliberately** (`:ID:` 3964c575,
 declined): a parent's own coordination time is real work. The cost is a

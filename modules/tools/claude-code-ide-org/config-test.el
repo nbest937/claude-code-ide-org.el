@@ -11723,8 +11723,25 @@ while the brackets that named them correctly sat right there."
                                   (claude-code-ide-org-test--clock-items))))
       ;; Whatever is offered unassigned, none of it may be the bracket's
       ;; own 13:07:36--13:16:20.
-      (dolist (item unassigned)
-        (should (zerop (claude-code-ide-org-test--written-seconds item)))))))
+      ;;
+      ;; This used to assert that the unassigned items wrote ZERO seconds,
+      ;; which is stronger than the sentence above and encoded a defect:
+      ;; the 8m21s the agent went on working after the `clock_out' was
+      ;; written as nothing (TODO.org :ID: b09aca60).  The intent is
+      ;; disjointness, so that is what is asserted -- and the tail is
+      ;; asserted to be there.
+      (let ((b-start (date-to-time "2026-08-21T13:07:36-0500"))
+            (b-end (date-to-time "2026-08-21T13:16:20-0500"))
+            (runs (apply #'append
+                         (mapcar #'claude-code-ide-org--review-intervals-to-write
+                                 unassigned))))
+        (dolist (run runs)
+          (should (or (not (time-less-p b-start (cdr run)))
+                      (not (time-less-p (car run) b-end)))))
+        (should (equal '("13:16--13:24")
+                       (mapcar (lambda (r) (concat (format-time-string "%H:%M" (car r)) "--"
+                                                   (format-time-string "%H:%M" (cdr r))))
+                               runs)))))))
 
 (ert-deftest claude-code-ide-org-test-each-bracket-carries-its-own-note ()
   "Two brackets on one heading get two labels, not the first one twice.
@@ -12794,6 +12811,40 @@ report, which asks the stop time and forbids guessing one."
                  '(:pending 0 :drifted 0 :archivable 0)))
     ;; And no status at all (already run today) is also silence.
     (should-not (claude-code-ide-org--format-ceremony-report nil))))
+
+;;; Work after a mid-turn clock_out (TODO.org :ID: b09aca60)
+
+(ert-deftest claude-code-ide-org-test-work-after-a-mid-turn-clock-out-is-offered ()
+  "A `clock_out' ends a heading's ownership, not the turn: the agent keeps
+running until the `pause'.  Observed 2026-09-19 -- clock_out 16:39:38,
+pause 16:46:55, two code commits between them, and review offered
+nothing for the stretch, assigned or not."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--with-queue
+      (claude-code-ide-org-test--queue-write
+       "sess-a"
+       (claude-code-ide-org-test--queue-event "2026-09-19T16:35:00-0500" "resume")
+       (claude-code-ide-org-test--queue-event "2026-09-19T16:35:19-0500" "clock_in" "test-0001")
+       (claude-code-ide-org-test--queue-event "2026-09-19T16:39:38-0500" "clock_out" "test-0001")
+       (claude-code-ide-org-test--queue-event "2026-09-19T16:46:55-0500" "pause"))
+      (let* ((items (claude-code-ide-org--review-items-from-queue))
+             (hm (lambda (i k) (format-time-string "%H:%M" (plist-get i k))))
+             (tail (seq-find (lambda (i) (equal "16:39" (funcall hm i :start))) items)))
+        ;; the owned interval is still offered, to its heading
+        (should (seq-find (lambda (i) (and (equal "test-0001" (plist-get i :id))
+                                           (equal "16:35" (funcall hm i :start))
+                                           (equal "16:39" (funcall hm i :end))))
+                          items))
+        ;; and so is what came after it, to nobody
+        (should tail)
+        (should (equal "16:46" (funcall hm tail :end)))
+        (should-not (plist-get tail :id))
+        ;; with its seven minutes as a run apply would write, not an
+        ;; annotation over nothing
+        (should (equal '("16:39--16:46")
+                       (mapcar (lambda (r) (concat (format-time-string "%H:%M" (car r)) "--"
+                                                   (format-time-string "%H:%M" (cdr r))))
+                               (claude-code-ide-org--review-intervals-to-write tail))))))))
 
 ;;; Misses (TODO.org :ID: 63713df3)
 
