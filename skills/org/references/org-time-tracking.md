@@ -110,24 +110,12 @@ changing one; you do not need it to act.
 
 ### Stale interval recovery
 
-A crash can leave a CLOCK line open indefinitely. `SessionStart` reports
-any interval whose open timestamp predates today, as a question.
-
-**The report asks; it never proposes.** It states the timestamp the
-interval opened at and asks what time work actually stopped. **Do not
-invent one** — a plausible suggestion is harder to reject than no
-suggestion at all (measured and retired 2026-08-14, `:ID:` 7771fc63).
-
-**Recovery**: once the user confirms or corrects a stop time, call
-`claude-code-ide-org-close-open-interval` (via `emacsclient`, not an MCP
-tool — this is a text-level fix for a stale interval, unrelated to
-whatever may currently be clocking) with the heading's `:ID:` and an org
-timestamp string. It closes the open CLOCK line, computes the duration,
-and saves the buffer. It does not touch the live clock.
-
-How detection works, the two `defcustom`s that configure it, and the
-`pmset` signal that was declined are in
-`org-time-tracking-internals.md`.
+A crash can leave a CLOCK line open. `SessionStart` reports any interval
+opened before today, and the report carries its own instructions — it
+states when the interval opened, asks when work stopped, and names the
+recovery call. **Do not invent a stop time**: a plausible suggestion is
+harder to reject than none (`:ID:` 7771fc63). Detection and its two
+`defcustom`s are in `org-time-tracking-internals.md`.
 
 ## Clock side effects of state transitions
 
