@@ -587,7 +587,7 @@ the moment `/code-review` is run on it, or a reviewer is requested — not
 when the last finding closes (the user, 2026-09-21). A member still in
 `REVIEW` does not hold it back, since that member is finished and awaits
 only judgement. Findings arrive inside the window by construction and
-are filed as members; that is the consequent work the section below
+are filed as one review story; that is the consequent work the section below
 describes, and it does not return the slice to `DOING`. `f6d160c2` is why:
 it stayed `DOING` through its whole review, six findings filed and fixed,
 and reached `REVIEW` only when its last verdict came in. **The step is a
@@ -622,9 +622,17 @@ them before a review landed nine findings inside one.
 **Review residue is not incidental work**, a distinction worth keeping now
 that the window has a name. Incidental means unplanned work done along the
 way; a finding against the slice's own deliverable is *consequent* — the
-predictable output of a phase the checklist never enumerates. Both become
-member lines, so the distinction lives in the debrief rather than in the
-list.
+predictable output of a phase the checklist never enumerates.
+
+**Everything a code review uncovers goes into one story** (the user,
+2026-09-21): a heading titled for the review — "Address the PR #28
+review: fifteen findings, …" (`0784a826`) — with one child per finding,
+or per remediation where one fix answers several. The story joins the
+slice as a single member, undertaken whole, its children indented
+beneath it. The review then reads as one unit in the checklist, and its
+debrief can say what the review found in aggregate, which six scattered
+members cannot. `f6d160c2` filed its six findings as separate members,
+and that is the shape this replaces.
 
 No retrofit. `c19fbbf5` keeps its 2026-09-10 close and records its three
 post-close closures as debrief prose which, with the pull request they
