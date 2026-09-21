@@ -3574,52 +3574,15 @@ the hook must compare something other than its mtime. Introduced with
   path.
 :END:
 
-Found by PR22's review pass. The shipped =.mcp.json= pins =/mcp/warp=, so every
-standalone session — Warp, or =claude= in any terminal in any repo — resolves to
-the session id =warp=, registered against =(car projects)=; under the glue's
-='derive= setting that car is whatever =org-agenda-files= happens to list first.
-A =claude= session started in repo B therefore captures into repo A's TODO.org,
-and reordering =org-agenda-files= silently re-points it. Secondary defect in the
-same place: using the directory basename as the session id means two tracked
-repos sharing a basename collide, the later registration overwriting the
-earlier. Sibling of [[id:d718f6b6-5a33-4889-8b5a-8ea82553ccea][d718f6b6]].
+The standalone wiring registers each tracked repo under its directory
+basename as the MCP session id, and =claude-org-setup --org= writes that
+same basename into the repo's generated =.mcp.json=. Two tracked repos
+that share a basename therefore collide: the later registration
+overwrites the earlier, and both static configs name the one surviving
+id, with nothing to tell them apart. Nothing reports the collision.
 
-*Largely closed 2026-09-18/19 by work that did not know this heading existed*,
-which is worth recording as much as the fix. The =warp= alias was rediscovered
-from scratch during =8bbae3aa= — traced from a consuming session having no org
-tools, through =claude mcp list=, to =(car projects)= — and excised in [[orgit-rev:claude-code-ide-org::d5c9398][d5c9398]].
-This heading had described the same defect eight days earlier, on 2026-09-11, in
-the same terms. Nobody looked.
-
-*The primary defect is gone.* No shipped config names =/mcp/warp=: the root
-=.mcp.json= names =/mcp/claude-code-ide-org=, =.warp/.mcp.json= was repointed by
-the maintainer, =plugin.json= no longer declares =mcpServers= at all, and
-=claude-org-setup --org= generates each consumer's file from its own basename.
-The =(register-session "warp" (car projects) nil)= call is deleted, and
-=test-standalone-wire-registers-per-repo= now asserts the **exact** registration
-list rather than membership, so an alias cannot return silently — proved by
-re-adding it and watching the test fail. Verified against a cold boot, not a
-reload: a fresh Emacs registers two sessions, neither named =warp=.
-
-*The secondary defect survives untouched, and is now the whole of this heading.*
-"Using the directory basename as the session id means two tracked repos sharing
-a basename collide, the later registration overwriting the earlier." Nothing
-done in =8bbae3aa= addressed that. It is also strictly harder than the part that
-got fixed, because a basename is what a consumer's generated =.mcp.json= names —
-so a collision is not just an Emacs-side overwrite, it is two repos' static
-configs pointing at one session id with no way to tell them apart.
-
-*So this heading should be re-scoped rather than closed*, and its title now
-overstates what remains: ordering is no longer the instability, collision is.
-Whoever picks it up should also check =d718f6b6=, named here as its sibling, for
-the same overlap.
-
-*The lesson is not about the alias.* A heading filed by a review pass sat in an
-open slice for eight days while the identical defect was rediscovered from first
-principles by a session that had read =TODO.org= that morning. The org-dev
-skill's standing rule — "the tracker first, a past session may have already done
-the reading" — is exactly what would have caught it, and it is written down.
-
+Found by PR #22's review. The warp alias and ordering half of the
+original filing closed in 8bbae3aa (d5c9398); this is what remains.
 
 * TODO A deferred targetless capture loses its project routing when the queue is applied :code:
 :PROPERTIES:
