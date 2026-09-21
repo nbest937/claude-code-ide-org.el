@@ -767,10 +767,15 @@ wrap the debrief into a drawer readers are told to skip. See `:ID:` f421c5c3.
 `:PLAN:` holds that member's design and decisions** (the user, 2026-09-21).
 The slice's drawer gives each member one line saying where it falls and
 why, and nothing that member's own drawer should hold. A decision about a
-member, whether made in conversation or ahead of its session, is appended
-to *that member's* drawer as `Decided <date> (<who>): …`. The session
-implementing the step then reads it on arrival, and the slice's drawer
-never goes stale on it. Where the two disagree, the member wins.
+member, whether made in conversation or ahead of its session, is written
+*into that member's plan* where it applies, with its provenance in a
+parenthetical ("pre-push runs it (the user, 2026-09-21)"). It is never
+a dated list entry: the drawer is the design doc, and a dated list turns
+it into a journal. The session implementing the step then reads the
+current plan on arrival, and the slice's drawer never goes stale on it.
+Where the two disagree, the member wins. A member's plan is normally
+longer than its body, since the body is two to five sentences plus what
+happened.
 
 **A member with no drawer gets one before its step is worked**, so that a
 decision always has somewhere to land. **On a pre-convention body, wrap

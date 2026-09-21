@@ -35,8 +35,8 @@ the plan, not the membership.
   claim in the 2026-09-18 plan came from the plan, and none came from a
   heading.
 - **At each step, read that member's own `:PLAN:` before starting.** The
-  slice's drawer gives the order. The member's drawer gives the design and
-  every decision already made, recorded as `Decided <date> (<who>)` lines.
+  slice's drawer gives the order. The member's drawer gives the design,
+  with every decision already made written into it.
   An open question found there that is not decided goes to the user
   *before* the step, never partway through it. The rule is in the org
   conventions, "A slice's plan, and its members'".

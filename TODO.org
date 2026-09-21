@@ -2,6 +2,36 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO org_wrap_plan saves a buffer holding the human's unsaved edits, where org_amend would queue and org_slice_add_member refuses
+:PROPERTIES:
+:ID:       60d6ab6e-a898-4894-82be-9f6086daf62d
+:CREATED:  [2026-09-21 Mon 15:59]
+:CATEGORY: Tools
+:END:
+:PLAN:
+=claude-code-ide-org-wrap-plan= runs through =--at-id-writable= and
+calls =save-buffer=, and it never asks whether the buffer holds unsaved
+human edits. The other writers do ask. =org_amend= defers to the queue
+behind the write-through gate (b5f94b88), and =org_slice_add_member= and
+=org_set_property= refuse and ask for a retry once saved. So a wrap
+invoked while the human is mid-edit saves their half-done text along
+with the wrap, and whatever commits next carries it under a message
+that does not describe it.
+
+Put =org_wrap_plan= behind the same refusal the other structural writers
+use. It is a structural write, not prose, so it should refuse rather
+than queue. Then sweep every caller of =--at-id-writable= for the same
+gap: the refusal belongs in one shared place, not per tool. The
+regression test modifies a buffer, calls the wrap, and asserts both a
+refusal and that the file on disk is unchanged.
+:END:
+
+Observed 2026-09-21. The user reflowed 94e6b615's =:PLAN:= drawer and
+did not save. A session's =org_wrap_plan= on b52df20b saved the buffer,
+and the reflow landed in that session's commit ffc67a7 under a message
+about b52df20b. Nothing was lost, but only by luck. Refuse on unsaved
+edits, as the other structural writers do.
+
 * TODO The member-drawer backfill clause is scaffolding: once every open heading has its canonical shape, the lint should require it and the clause retire
 :PROPERTIES:
 :ID:       fce6bd35-27ad-4724-8dbb-c9df4b68fb10
@@ -288,6 +318,8 @@ Measured once at 15 relays in 24 session starts (c5b02503), which is why the cer
 The catch-all, so that answering a catch is always an amend and never a decision about filing. One dated line per catch, naming the rule missed. When the same rule appears here a second time it earns its own sibling, and these lines move with it.
 
 - [2026-09-21 Mon] Self-caught from =org_pending_updates=: missed the rule "=org_clock_out= is the last call of the turn". The session clocked out after committing, then read six member bodies and answered, so 11:52–12:13 reached review UNASSIGNED. b09aca60's fix is what made the miss visible at all; before 2026-09-21 it would have reached review as nothing.
+- [2026-09-21 Mon] Caught by the user: "why the bare list item there? it looks like the beginning of a journal by date rather than a plan … I expect the plan to be bigger than the body." The session's own SOP said to append decisions to a member's =:PLAN:= "as =Decided <date> (<who>): …=", and it wrote them as dated list items in six drawers, turning the design doc into a journal. That contradicts the always-loaded rule that the drawer is the design doc and the body the journal. It was recited, and missed while the session wrote the rule that broke it. The SOP now folds decisions into the plan's prose.
+
 
 
 * DONE Work after a mid-turn clock_out belongs to no run, so it reaches review as nothing at all rather than UNASSIGNED :code:observed:
