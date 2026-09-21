@@ -271,11 +271,13 @@ the member wins — the 2026-09-18 slice plan got four things wrong from the
 slice's altitude and none of them came from a heading. Older headings keep
 their links; see `plans/` above.
 
-**Rule**: the heading body is a **journal, not a design doc** — the
-`:PLAN:` drawer is the design doc. The body carries what
-happened: what shipped, how it was verified, what was measured, what was
-falsified, and why a decision went the way it did. It does not restate
-design the drawer already holds.
+**Rule**: the heading body is a **record of what holds, not a design
+doc** — the `:PLAN:` drawer is the design doc. The body carries a short
+statement, then what shipped, was verified, was measured or was ruled
+out, and why a decision went the way it did. It is **not a log**: a
+dated, blow-by-blow body implies a completeness it never has, so readers
+take what is absent as not having happened (the user, 2026-09-21). It
+does not restate design the drawer already holds.
 
 **Composition, close, revision: in the conventions.** The two-call
 composition (`org_amend` with `drawer=PLAN`, then the short body), the

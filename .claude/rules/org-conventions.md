@@ -817,6 +817,24 @@ now by inference, which is the only thing "relitigating" ever meant.
 **Anything whose seam you are unsure of** — wrap it whole and condense
 nothing; uncertainty is a reason to relocate rather than to stop.
 
+**A live heading's body is a record, not a log** (the user, 2026-09-21).
+A pre-convention body that grew by dated visits reads as a complete
+journal, and it is not one: it holds whatever a session wrote when it
+happened to look, so a reader takes what is absent as not having
+happened. Condense it to three parts:
+
+- *a statement*, two to five sentences: what is wrong now and why it
+  matters;
+- *what is established*: measured facts that still hold, provenance in a
+  parenthetical rather than as a dated entry;
+- *what is ruled out*: each dead end or wrong diagnosis in a line, what
+  was believed and what falsified it. This is the part that stops a
+  mistake being repeated, and it survives the condensing.
+
+Narrative, superseded status and "worth noting" asides go. A finished
+heading's debrief is a different thing, a summary of what happened, and
+is left alone.
+
 *Condense in a separate commit from the wrap, never the same one.* A bad
 pare inside `:PLAN:` is invisible by design, since readers are told to
 skip the drawer — it is the one edit here that no later reader will
@@ -829,7 +847,7 @@ carried confident design claims that were later found wrong —
 already existed, `:ID:` 4cda6bf7 specified reading a keyword at the clock
 marker after the cutover had superseded that path, and `:ID:` 7771fc63
 declared a crash scenario unreachable while a hand-edit still reached it.
-Not one journal claim needed correcting in the same period. Design is the
+Not one claim about what happened needed correcting in the same period. Design is the
 perishable half and belongs where it can be revised; the record of what
 happened accumulates.
 

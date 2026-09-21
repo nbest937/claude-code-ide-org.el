@@ -530,7 +530,7 @@ narrower word.
 
 **Date-stamp proposal prose so it stays true after shipping.** *"The fix is
 one condition"* goes stale the moment it ships; *"Proposed 2026-08-21: one
-condition"* is a permanent fact. This is the journal principle applied to
+condition"* is a permanent fact. This is the record principle applied to
 the design half rather than exempting it, and it is what makes the prose
 compatible with append-only — nothing later has to be revised. That last
 clause is now a convenience rather than a constraint, since a prospective
