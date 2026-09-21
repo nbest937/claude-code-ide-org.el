@@ -2797,6 +2797,61 @@ title, compared loosely, is the one case worth stopping for, and
       (should (>= (plist-get (car found) :score)
                   (plist-get (car (last found)) :score))))))
 
+;;; The twin pass's input (TODO.org :ID: 9fb8c1fb)
+
+(defun claude-code-ide-org-test--seed-dated (file keyword title id created)
+  "Like `--seed-heading', with a :CREATED: stamp."
+  (with-temp-buffer
+    (when (file-exists-p file) (insert-file-contents file))
+    (goto-char (point-max))
+    (insert (format "* %s %s\n:PROPERTIES:\n:ID:       %s\n:CREATED:  %s\n:CATEGORY: Tools\n:END:\n"
+                    keyword title id created))
+    (write-region (point-min) (point-max) file nil 'silent)))
+
+(ert-deftest claude-code-ide-org-test-twin-candidates-pair-recent-live-headings ()
+  "Recent live headings against everything, archive included; one query,
+two consumers.  A pair is reported once, from the recent side."
+  (claude-code-ide-org-test--with-capture-file
+    (let ((done (expand-file-name "DONE.org" (file-name-directory capture-file)))
+          (recent (format-time-string "[%Y-%m-%d %a %H:%M]"))
+          (old "[2026-01-05 Mon 10:00]"))
+      (dotimes (i 24)
+        (claude-code-ide-org-test--seed-dated
+         capture-file "TODO"
+         (format "Unrelated heading number %d concerning topic%d and matter%d" i i i)
+         (format "eeeeeeee-0000-4000-8000-0000000000%02d" i) old))
+      (claude-code-ide-org-test--seed-dated
+       done "DONE" "Record cwd on queue events, so a span can be attributed to a project"
+       "cccccccc-0000-4000-8000-000000000003" old)
+      (claude-code-ide-org-test--seed-dated
+       capture-file "TODO" "Record the originating project's cwd in queue events"
+       "ffffffff-0000-4000-8000-000000000004" recent)
+      (claude-code-ide-org-test--seed-dated
+       capture-file "DONE" "Record the project's cwd in queue events, again"
+       "99999999-0000-4000-8000-000000000005" recent)
+      (let ((pairs (claude-code-ide-org--twin-candidates capture-file 14)))
+        ;; Only the recent LIVE heading is a subject: the old ones are not
+        ;; recent and the recent DONE one is not live.
+        (should (equal '("ffffffff-0000-4000-8000-000000000004")
+                       (mapcar (lambda (p) (plist-get (car p) :id)) pairs)))
+        (let ((ids (mapcar (lambda (c) (plist-get c :id)) (cdr (car pairs)))))
+          (should (member "cccccccc-0000-4000-8000-000000000003" ids))
+          ;; never paired with itself
+          (should-not (member "ffffffff-0000-4000-8000-000000000004" ids))))
+      (let ((text (claude-code-ide-org-twin-candidates-report capture-file 14)))
+        (should (string-match-p "ffffffff" text))
+        (should (string-match-p "cccccccc" text))
+        (should (string-match-p "1 recent heading" text))))))
+
+(ert-deftest claude-code-ide-org-test-twin-candidates-report-says-when-there-are-none ()
+  (claude-code-ide-org-test--with-capture-file
+    (claude-code-ide-org-test--seed-dated
+     capture-file "TODO" "Emacs deadlocks in the mac port at a frame update"
+     "ffffffff-0000-4000-8000-000000000004"
+     (format-time-string "[%Y-%m-%d %a %H:%M]"))
+    (should (string-match-p "\\`No recent live heading"
+                            (claude-code-ide-org-twin-candidates-report capture-file 14)))))
+
 (ert-deftest claude-code-ide-org-test-capture-writes-initial-state ()
   "`initial_state' must put the keyword on the heading at creation.
 
@@ -12703,6 +12758,24 @@ with no cwd is excluded, as `--items-in-report-scope' excludes an item."
   ;; Misses alone do not raise the ceremony: it is a number, not a task.
   (should-not (claude-code-ide-org--format-ceremony-report
                '(:pending 0 :drifted 0 :archivable 0 :misses (("footnote" . 3))))))
+
+(ert-deftest claude-code-ide-org-test-ceremony-report-offers-the-twin-pass ()
+  "The pass is invoked from the ceremony, where a human is already
+reviewing -- a checker the working session must remember to call would
+be a recalled rule again (TODO.org :ID: 9fb8c1fb).  It offers; it never
+says it will run."
+  (let ((text (claude-code-ide-org--format-ceremony-report
+               '(:pending 1 :drifted 0 :archivable 0 :twins 3))))
+    (should (string-match-p "3 recent heading" text))
+    (should (string-match-p "twin-checker" text))
+    (should (string-match-p "offer" text)))
+  (should-not (string-match-p "twin"
+                              (claude-code-ide-org--format-ceremony-report
+                               '(:pending 1 :drifted 0 :archivable 0 :twins 0))))
+  ;; Possible twins alone are reason enough to raise the report: unlike the
+  ;; miss count they are something to do.
+  (should (claude-code-ide-org--format-ceremony-report
+           '(:pending 0 :drifted 0 :archivable 0 :twins 2))))
 
 (ert-deftest claude-code-ide-org-test-ceremony-report-names-unlinked-worked-slices ()
   "A worked slice without its prompt link is named, not counted.

@@ -1086,6 +1086,15 @@ why this returns numbers and the formatter below asks a question."
                        (and (file-exists-p f)
                             (file-attribute-modification-time
                              (file-attributes f)))))
+            ;; How many recent live headings have a possible twin.
+            ;; `fboundp' and `ignore-errors' because a half-reloaded image
+            ;; must never take the SessionStart report down with it.
+            :twins (or (ignore-errors
+                         (and (fboundp 'claude-code-ide-org--twin-candidates)
+                              (length (claude-code-ide-org--twin-candidates
+                                       (claude-code-ide-org--capture-target-file)
+                                       14))))
+                       0)
             :reviewed-today (claude-code-ide-org--ceremony-reviewed-today-p)
             :last-done (let ((f (claude-code-ide-org--ceremony-stamp-file)))
                          (when (file-exists-p f)
@@ -1113,8 +1122,9 @@ before it was unwelcome."
          (archivable (or (plist-get status :archivable) 0))
          (unlinked (plist-get status :unlinked))
          (misses (plist-get status :misses))
+         (twins (or (plist-get status :twins) 0))
          (reviewed (plist-get status :reviewed-today)))
-    (when (and status (> (+ pending drifted archivable (length unlinked)) 0))
+    (when (and status (> (+ pending drifted archivable (length unlinked) twins) 0))
       (concat
        (format (concat (if reviewed
                            (concat "A review pass ran today but the ceremony "
@@ -1144,6 +1154,14 @@ conversation. "
                  (apply #'+ (mapcar #'cdr misses))
                  (mapconcat (lambda (m) (format "%s %d" (car m) (cdr m)))
                             misses ", ")))
+       ;; The twin pass (TODO.org :ID: 9fb8c1fb).  Offered here because
+       ;; this is the one moment a human is already reviewing; the
+       ;; judgement is the agent's and the decision the human's.
+       (when (> twins 0)
+         (format "%d recent heading(s) have a possible twin by title overlap. \
+Alongside the question below, offer to run the twin-checker agent over them \
+(it reads both bodies and proposes; it changes nothing). "
+                 twins))
        ;; Named rather than counted, and separate from the counts above:
        ;; the ceremony's automated steps cannot fix this one -- only the
        ;; composer knows which prompt revision applies -- so the report
@@ -3225,30 +3243,40 @@ on every capture, and the archive is the larger file."
                      ;; The heading's OWN drawer: it must open on the next
                      ;; line or two, or an id quoted in a body is taken
                      ;; for this heading's.
-                     (id (save-excursion
-                           (forward-line 1)
-                           (when (looking-at "\\(?:[ \t]*\\(?:CLOSED\\|SCHEDULED\\|DEADLINE\\):.*\n\\)?[ \t]*:PROPERTIES:[ \t]*$")
-                             (let ((end (save-excursion
-                                          (re-search-forward "^[ \t]*:END:" nil t))))
-                               (and end
-                                    (re-search-forward
-                                     "^[ \t]*:ID:[ \t]+\\([^ \t\n]+\\)" end t)
-                                    (match-string 1)))))))
+                     (drawer-end
+                      (save-excursion
+                        (forward-line 1)
+                        (when (looking-at "\\(?:[ \t]*\\(?:CLOSED\\|SCHEDULED\\|DEADLINE\\):.*\n\\)?[ \t]*:PROPERTIES:[ \t]*$")
+                          (save-excursion
+                            (re-search-forward "^[ \t]*:END:" nil t)))))
+                     (id (and drawer-end
+                              (save-excursion
+                                (and (re-search-forward
+                                      "^[ \t]*:ID:[ \t]+\\([^ \t\n]+\\)" drawer-end t)
+                                     (match-string 1)))))
+                     (created (and drawer-end
+                                   (save-excursion
+                                     (and (re-search-forward
+                                           "^[ \t]*:CREATED:[ \t]+\\[\\([0-9-]+\\)" drawer-end t)
+                                          (match-string 1))))))
                 ;; A datetree node is a date, not a claim.
                 (unless (or (string-match-p "\\`[0-9]\\{4\\}\\(-[0-9][0-9]\\)*\\( \\|\\'\\)" title)
                             (string-empty-p title))
                   (push (list :title title :keyword keyword :id id
+                              :created created
                               :file (file-name-nondirectory f))
                         out))))))))))
 
-(defun claude-code-ide-org--duplicate-candidates (title file &optional limit)
+(defun claude-code-ide-org--duplicate-candidates (title file &optional limit
+                                                       corpus except-id)
   "Headings whose titles already say what TITLE says, best first.
 
 Plists of (:score :title :keyword :id :file :exact), at most LIMIT
 \(default 3), drawn from FILE and the DONE.org beside it.  `:exact' marks
 a loosely-equal title.  Data rather than prose, so the twin pass
-\(TODO.org :ID: 9fb8c1fb) can share the query."
-  (let* ((corpus (claude-code-ide-org--duplicate-corpus file))
+\(TODO.org :ID: 9fb8c1fb) can share the query: it passes CORPUS, built
+once, and EXCEPT-ID so a heading is never its own twin."
+  (let* ((corpus (or corpus (claude-code-ide-org--duplicate-corpus file)))
          (query (claude-code-ide-org--title-tokens title))
          (loose (claude-code-ide-org--title-loosely title))
          (n (length corpus))
@@ -3267,7 +3295,8 @@ a loosely-equal title.  Data rather than prose, so the twin pass
                  (score (if (and (>= (length shared) 2) (> denominator 0))
                             (/ (apply #'+ (mapcar #'idf shared)) denominator)
                           0.0)))
-            (when (or exact (>= score claude-code-ide-org-duplicate-near-threshold))
+            (when (and (not (and except-id (equal except-id (plist-get h :id))))
+                       (or exact (>= score claude-code-ide-org-duplicate-near-threshold)))
               (push (list :score (if exact 1.0 score) :exact exact
                           :title (plist-get h :title)
                           :keyword (plist-get h :keyword)
@@ -3275,6 +3304,63 @@ a loosely-equal title.  Data rather than prose, so the twin pass
                     scored))))))
     (seq-take (sort scored (lambda (a b) (> (plist-get a :score) (plist-get b :score))))
               (or limit 3))))
+
+;;; The twin pass's input (TODO.org :ID: 9fb8c1fb)
+;;
+;; A twin is two headings for the same work, and the conventions say it is
+;; "caught by review, never by the composer" -- while no review looked for
+;; one.  The judgement cannot be mechanised (the retired auto-promotion
+;; trigger is the standing evidence for what happens when a
+;; membership-shaped question is), so this only gathers the pairs.  The
+;; `twin-checker' agent reads them with nothing else in its window, and a
+;; human decides.  Run as a *pass*, from the ceremony session: a checker
+;; the working session must remember to call would be a recalled rule
+;; again.
+
+(defun claude-code-ide-org--twin-candidates (file days)
+  "Recent live headings in FILE, each with its possible twins.
+
+A list of (SUBJECT . CANDIDATES), both plists from
+`claude-code-ide-org--duplicate-corpus'.  SUBJECT is a heading created
+within DAYS days that is not finished; CANDIDATES come from FILE and the
+DONE.org beside it -- the archive is where \"already fixed\" lives.
+Subjects with no candidate are omitted."
+  (let* ((corpus (claude-code-ide-org--duplicate-corpus file))
+         (cutoff (format-time-string
+                  "%Y-%m-%d" (time-subtract (current-time) (days-to-time days))))
+         out)
+    (dolist (h corpus (nreverse out))
+      (when (and (plist-get h :id)
+                 (plist-get h :created)
+                 (not (string< (plist-get h :created) cutoff))
+                 (not (member (plist-get h :keyword)
+                              claude-code-ide-org--outline-finished-keywords)))
+        (let ((found (claude-code-ide-org--duplicate-candidates
+                      (plist-get h :title) file 3 corpus (plist-get h :id))))
+          (when found (push (cons h found) out)))))))
+
+(defun claude-code-ide-org-twin-candidates-report (&optional file days)
+  "The twin pass's input as text: each recent live heading and its
+possible twins.  FILE defaults to the capture file, DAYS to 14.
+
+Called through `emacsclient' by bin/twin-candidates.  Read-only."
+  (let* ((file (or file (claude-code-ide-org--capture-target-file)))
+         (days (or days 14))
+         (pairs (claude-code-ide-org--twin-candidates file days)))
+    (if (null pairs)
+        (format "No recent live heading (last %d days) has a possible twin." days)
+      (concat
+       (format "%d recent heading(s) with a possible twin (last %d days). \
+Scores are title overlap only -- read both bodies before judging.\n"
+               (length pairs) days)
+       (mapconcat
+        (lambda (p)
+          (format "\n%s {%s}  %s\n%s"
+                  (or (plist-get (car p) :keyword) "-")
+                  (substring (plist-get (car p) :id) 0 8)
+                  (plist-get (car p) :title)
+                  (claude-code-ide-org--format-duplicate-candidates (cdr p))))
+        pairs "\n")))))
 
 (defun claude-code-ide-org--format-duplicate-candidates (candidates)
   "CANDIDATES as reply lines.  Ids in braces, never as \"(ID: ...)\":
