@@ -7427,52 +7427,29 @@ against a stopped Emacs before building.
 - State "TODO"       from              [2026-08-31 Mon 13:52]
 :END:
 
-The queue's premise is that a session can record work without a running Emacs:
-=bin/hooks/queue-append= is plain shell and jq, and CLAUDE.md says so outright —
-"this script must stay runnable with no Emacs at all, which is the premise the
-whole queue rests on."
+The queue's premise is that work can be recorded with no Emacs running.
+That holds for the hooks, which are plain shell, and fails for the org
+tools, which are served from inside Emacs: when Emacs is gone
+=org_set_todo=, =org_clock_out= and =org_amend= time out and record
+nothing. The guidepost hooks keep appending meanwhile, so a total
+failure looks partial.
 
-*That premise holds for hooks and fails for tools.* =org_set_todo=,
-=org_clock_out= and =org_amend= do not write the queue directly; they are served
-by the MCP server running *inside* Emacs, so when Emacs is gone they time out
-and record nothing. Meanwhile the guidepost stream keeps flowing, because hooks
-are shell — which makes a total failure look partial: =org_pending_updates=
-still reports events accumulating while nothing a session actually *decides* can
-be written.
+*Established:*
+- On 2026-08-31 Emacs wedged for about twenty minutes. The mac port's
+  GUI thread took a SIGSEGV in =NSAutoFillHeuristicController=, and the
+  Lisp thread blocked waiting on it, so =emacsclient= got "connection
+  refused" from a live process. Two headings could not be closed. Their
+  debriefs survived only because a human was present to be told, and
+  were written to a scratchpad in the meantime.
+- It is distinct from 72463b68, where =org_capture= and
+  =org_set_property= hung over MCP while Emacs was healthy and other
+  tools answered.
 
-*Measured 2026-08-31.* Emacs wedged at ~13:27. The GUI thread took a SIGSEGV
-inside =NSAutoFillHeuristicController= calling =-[EmacsMainView selectedRange]=,
-which recursed into itself; the Lisp thread then blocked in =mac_select= waiting
-on a thread already parked in =deliver_fatal_thread_signal=. Neither could
-proceed, so =debug-on-event= was no help either — it needs the Lisp thread to
-reach a safe point, and the Lisp thread was the one waiting. Symptom was a
-beachball at 99% CPU and =emacsclient= getting *connection refused* from a live
-process. Two finished headings could not be closed and two debriefs could not be
-written for roughly twenty minutes.
-
-*What it actually cost, stated honestly:* nothing was lost. The debriefs went to
-a session scratchpad and were written to org once Emacs came back. But they
-survived because a human was present to be told — and a scratchpad file is
-exactly the "path to becoming invisible" CLAUDE.md warns about for residue named
-only in prose.
-
-*The uncomfortable part, recorded rather than acted on.* Four hours earlier this
-same session removed =QUEUE_APPEND_ID/STATE/FROM= from =queue-append=
-([[id:46d225c7-7541-4867-af72-929a572df2a5][46d225c7]]) — the one mechanism in
-the repo that could write a todo or clock event for a named heading with no
-Emacs involved. That removal was correct on its own terms: its consumer had been
-dead since the =PLANNING= retirement, and its own tests proved the branch was
-live only in the sense of being covered. But the use case that would have wanted
-it did not exist when it was written, and does now.
-
-*Related but distinct:* [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]] is
-about =org_capture= and =org_set_property= hanging over MCP *while Emacs is
-healthy and other tools answer*. This one is about every tool failing because
-Emacs is not there at all. They were confirmed separate on 2026-08-31: after the
-restart, =org_capture= over MCP timed out again and persisted nothing — buffer
-unmodified, not read-only, no prompt open, =recursion-depth= 0 — while the same
-function through =emacsclient= completed in under a second.
-
+*Ruled out:*
+- Restoring =QUEUE_APPEND_ID/STATE/FROM=, removed hours earlier in
+  46d225c7 as dead. A synthetic event carries no =tool_response= to
+  recover =from= from, so the staleness check would go blind on exactly
+  the events written when the system is least healthy.
 
 * TODO An archive pass wrote one subtree twice, and the mechanism is still unknown :code:
 :PROPERTIES:
