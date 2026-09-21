@@ -2684,6 +2684,119 @@ the temp directory afterwards."
            (kill-buffer buf)))
        (delete-directory dir t))))
 
+;;; The duplicate query inside org_capture (TODO.org :ID: c8773ec2)
+
+(defun claude-code-ide-org-test--seed-heading (file keyword title id)
+  "Append a KEYWORD heading TITLE with :ID: ID to FILE."
+  (with-temp-buffer
+    (when (file-exists-p file) (insert-file-contents file))
+    (goto-char (point-max))
+    (insert (format "* %s %s\n:PROPERTIES:\n:ID:       %s\n:CATEGORY: Tools\n:END:\n"
+                    keyword title id))
+    (write-region (point-min) (point-max) file nil 'silent)))
+
+(ert-deftest claude-code-ide-org-test-capture-returns-near-matches ()
+  "The query runs inside the tool, so it runs whether or not the caller
+remembered it.  The fixture is the corpus's own known pair: on 2026-09-19
+a session offered to file the first title while the second had held the
+defect for eleven days."
+  (claude-code-ide-org-test--with-capture-file
+    (claude-code-ide-org-test--seed-heading
+     capture-file "TODO"
+     "org_capture accepts a note it silently discards, and five headings shipped empty"
+     "bbf9fb77-0000-4000-8000-000000000001")
+    (claude-code-ide-org-test--seed-heading
+     capture-file "TODO" "The statusline truncates a long heading title"
+     "aaaaaaaa-0000-4000-8000-000000000002")
+    (let ((reply (claude-code-ide-org-capture
+                  "org_capture accepts a note argument it never records"
+                  nil nil nil "TODO" "Tools")))
+      (should (string-prefix-p claude-code-ide-org--reply-captured reply))
+      (should (string-match-p "Possible duplicates" reply))
+      (should (string-match-p "bbf9fb77" reply))
+      (should (string-match-p "silently discards" reply))
+      (should-not (string-match-p "statusline" reply))
+      ;; bin/hooks/queue-append recovers the new id from "(ID: ...)" with
+      ;; a line-wise sed, so exactly one line may carry that shape.
+      (should (= 1 (seq-count (lambda (l) (string-match-p "(ID: " l))
+                              (split-string reply "\n")))))))
+
+(ert-deftest claude-code-ide-org-test-capture-says-nothing-when-nothing-is-near ()
+  (claude-code-ide-org-test--with-capture-file
+    (claude-code-ide-org-test--seed-heading
+     capture-file "TODO" "The statusline truncates a long heading title"
+     "aaaaaaaa-0000-4000-8000-000000000002")
+    (should-not (string-match-p
+                 "Possible duplicates"
+                 (claude-code-ide-org-capture
+                  "Emacs deadlocks in the mac port at a frame update"
+                  nil nil nil "TODO" "Dev")))))
+
+(ert-deftest claude-code-ide-org-test-capture-refuses-an-exact-title ()
+  "Overlap never refuses -- measured on the corpus, the four strongest
+pairs were half true duplicates and half deliberate siblings.  The same
+title, compared loosely, is the one case worth stopping for, and
+`allow_duplicate' overrides it."
+  (claude-code-ide-org-test--with-capture-file
+    (claude-code-ide-org-test--seed-heading
+     capture-file "DOING" "The statusline truncates a long heading title"
+     "aaaaaaaa-0000-4000-8000-000000000002")
+    (let ((before (with-temp-buffer (insert-file-contents capture-file)
+                                    (buffer-string)))
+          (reply (claude-code-ide-org-capture
+                  "the statusline  truncates a long heading title."
+                  nil nil nil "TODO" "Tools")))
+      (should (string-prefix-p "Error: " reply))
+      (should (string-match-p "aaaaaaaa" reply))
+      (should (string-match-p "allow_duplicate" reply))
+      (should (equal before (with-temp-buffer (insert-file-contents capture-file)
+                                              (buffer-string)))))
+    (should (string-prefix-p
+             claude-code-ide-org--reply-captured
+             (claude-code-ide-org-capture
+              "The statusline truncates a long heading title"
+              nil nil nil "TODO" "Tools" "true")))))
+
+(ert-deftest claude-code-ide-org-test-capture-searches-the-archive-beside-the-file ()
+  "A finished heading is the likelier twin: the work was done and forgotten."
+  (claude-code-ide-org-test--with-capture-file
+    (claude-code-ide-org-test--seed-heading
+     (expand-file-name "DONE.org" (file-name-directory capture-file)) "DONE"
+     "Record cwd on queue events, so a span can be attributed to a project"
+     "cccccccc-0000-4000-8000-000000000003")
+    (let ((reply (claude-code-ide-org-capture
+                  "Record the originating project's cwd in queue events"
+                  nil nil nil "TODO" "Queue")))
+      (should (string-match-p "cccccccc" reply))
+      (should (string-match-p "DONE" reply))
+      (should (string-match-p "DONE\\.org" reply)))))
+
+(ert-deftest claude-code-ide-org-test-duplicate-candidates-are-data ()
+  "Ranked plists, best first and capped, so the twin pass can share the query."
+  (claude-code-ide-org-test--with-capture-file
+    ;; Unrelated headings first: idf means nothing in a six-heading file,
+    ;; where the shared words are also the common ones.  That is a real
+    ;; limit of the score in a very small tracker, and the docstring says
+    ;; so; this fixture is sized like a tracker worth searching.
+    (dotimes (i 24)
+      (claude-code-ide-org-test--seed-heading
+       capture-file "TODO"
+       (format "Unrelated heading number %d concerning topic%d and matter%d" i i i)
+       (format "eeeeeeee-0000-4000-8000-0000000000%02d" i)))
+    (dotimes (i 5)
+      (claude-code-ide-org-test--seed-heading
+       capture-file "TODO"
+       (format "org_capture accepts a note it discards, variant %d of the defect" i)
+       (format "dddddddd-0000-4000-8000-00000000000%d" i)))
+    (let ((found (claude-code-ide-org--duplicate-candidates
+                  "org_capture accepts a note argument it never records"
+                  capture-file)))
+      (should (= 3 (length found)))
+      (should (plist-get (car found) :id))
+      (should (equal "TODO" (plist-get (car found) :keyword)))
+      (should (>= (plist-get (car found) :score)
+                  (plist-get (car (last found)) :score))))))
+
 (ert-deftest claude-code-ide-org-test-capture-writes-initial-state ()
   "`initial_state' must put the keyword on the heading at creation.
 

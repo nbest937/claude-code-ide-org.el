@@ -3136,8 +3136,160 @@ check it is not a typo for one of those"
               category (file-name-nondirectory file) (string-join in-use ", "))
     ""))
 
+;;; The duplicate query (TODO.org :ID: c8773ec2)
+;;
+;; "Search before you file" was a rule a session could recite and still
+;; skip: on 2026-09-19 one offered to file a defect another heading had
+;; held for eleven days, and stated the rule verbatim when challenged.
+;; So the query runs inside `org_capture', unconditionally, and its
+;; results ride on the reply -- data in front of the reader, not a rule
+;; to recall.  The *judgement* stays the reader's: a candidate is a
+;; heading to look at, never a verdict.
+
+(defconst claude-code-ide-org--duplicate-stopwords
+  '("the" "and" "for" "are" "was" "its" "that" "this" "with" "from" "not"
+    "but" "when" "which" "than" "then" "into" "out" "can" "has" "have"
+    "had" "does" "did" "one" "two" "only" "still" "never" "always" "every"
+    "any" "all" "own" "their" "there" "what" "who" "how" "why" "after"
+    "before" "while" "where" "about")
+  "Words that carry no subject.  Titles here are whole claims, so without
+this list every pair shares its connectives and nothing else.")
+
+(defcustom claude-code-ide-org-duplicate-near-threshold 0.4
+  "Score at or above which `org_capture' names a heading as a possible duplicate.
+
+The score is the idf-weighted share of the *new* title's tokens found in
+the candidate's, with at least two tokens shared.  Measured leave-one-out
+on this project's 563 scorable titles, 2026-09-21: at 0.4, 43 headings
+(7.6%) would have been shown a candidate; at 0.5, 16, of which about
+eleven were true relatives.  The corpus's known duplicate pair scores
+0.59 one way and 0.32 the other, which is why the threshold sits below
+0.5 and why the query is asymmetric -- it asks whether the new title is
+already said, not whether the two are alike.
+
+In a tracker of a few dozen headings idf carries little signal -- the
+shared words are also the common ones -- so the score understates; such
+a file is short enough to read, and the exact-title refusal still holds.
+
+*There is deliberately no refusal threshold.*  The four strongest pairs
+in that measurement (>= 0.7) were two real supersessions and two
+deliberate siblings; refusing on overlap would have been wrong half the
+time.  Only a loosely-equal title refuses."
+  :type 'number
+  :group 'claude-code-ide-org)
+
+(defun claude-code-ide-org--title-tokens (title)
+  "TITLE as a list of distinct subject-bearing tokens."
+  (let (out)
+    (dolist (w (split-string
+                (downcase (replace-regexp-in-string "[`=~]" "" title))
+                "[^a-z0-9_:-]+" t))
+      (when (and (> (length w) 2)
+                 (not (member w claude-code-ide-org--duplicate-stopwords)))
+        (cl-pushnew w out :test #'equal)))
+    out))
+
+(defun claude-code-ide-org--title-loosely (title)
+  "TITLE reduced to what makes two titles the same: case, cookie and
+punctuation dropped."
+  (string-trim
+   (replace-regexp-in-string
+    "[^a-z0-9]+" " "
+    (downcase (replace-regexp-in-string "\\`\\[[0-9/%]*\\][ \t]*" "" title)))))
+
+(defun claude-code-ide-org--duplicate-corpus (file)
+  "Every titled heading in FILE and in the DONE.org beside it, as plists
+\(:title :keyword :id :file).  Read as text, not through org: this runs
+on every capture, and the archive is the larger file."
+  (let* ((dir (file-name-directory (expand-file-name file)))
+         (files (delete-dups
+                 (list (expand-file-name file) (expand-file-name "DONE.org" dir))))
+         (keywords (or (claude-code-ide-org--file-todo-keywords file)
+                       '("TODO" "NEXT" "DOING" "REVIEW" "WAITING" "MAYBE"
+                         "DONE" "CANCELLED")))
+         (kw-re (concat "\\`\\(" (regexp-opt keywords) "\\)[ \t]+"))
+         out)
+    (dolist (f files (nreverse out))
+      (when (file-readable-p f)
+        (with-temp-buffer
+          (insert-file-contents f)
+          (goto-char (point-min))
+          (let ((case-fold-search nil))
+            (while (re-search-forward "^\\*+[ \t]+\\(.*\\)$" nil t)
+              (let* ((raw (replace-regexp-in-string
+                           "[ \t]+:[[:alnum:]_@#%:]+:[ \t]*\\'" "" (match-string 1)))
+                     (keyword (and (string-match kw-re raw) (match-string 1 raw)))
+                     (title (replace-regexp-in-string
+                             "\\`\\[[0-9/%]*\\][ \t]*" ""
+                             (if keyword (substring raw (match-end 0)) raw)))
+                     ;; The heading's OWN drawer: it must open on the next
+                     ;; line or two, or an id quoted in a body is taken
+                     ;; for this heading's.
+                     (id (save-excursion
+                           (forward-line 1)
+                           (when (looking-at "\\(?:[ \t]*\\(?:CLOSED\\|SCHEDULED\\|DEADLINE\\):.*\n\\)?[ \t]*:PROPERTIES:[ \t]*$")
+                             (let ((end (save-excursion
+                                          (re-search-forward "^[ \t]*:END:" nil t))))
+                               (and end
+                                    (re-search-forward
+                                     "^[ \t]*:ID:[ \t]+\\([^ \t\n]+\\)" end t)
+                                    (match-string 1)))))))
+                ;; A datetree node is a date, not a claim.
+                (unless (or (string-match-p "\\`[0-9]\\{4\\}\\(-[0-9][0-9]\\)*\\( \\|\\'\\)" title)
+                            (string-empty-p title))
+                  (push (list :title title :keyword keyword :id id
+                              :file (file-name-nondirectory f))
+                        out))))))))))
+
+(defun claude-code-ide-org--duplicate-candidates (title file &optional limit)
+  "Headings whose titles already say what TITLE says, best first.
+
+Plists of (:score :title :keyword :id :file :exact), at most LIMIT
+\(default 3), drawn from FILE and the DONE.org beside it.  `:exact' marks
+a loosely-equal title.  Data rather than prose, so the twin pass
+\(TODO.org :ID: 9fb8c1fb) can share the query."
+  (let* ((corpus (claude-code-ide-org--duplicate-corpus file))
+         (query (claude-code-ide-org--title-tokens title))
+         (loose (claude-code-ide-org--title-loosely title))
+         (n (length corpus))
+         (df (make-hash-table :test 'equal))
+         scored)
+    (dolist (h corpus)
+      (let ((toks (claude-code-ide-org--title-tokens (plist-get h :title))))
+        (plist-put h :tokens toks)
+        (dolist (w toks) (puthash w (1+ (gethash w df 0)) df))))
+    (cl-flet ((idf (w) (1+ (log (/ (1+ (float n)) (1+ (gethash w df 0)))))))
+      (let ((denominator (apply #'+ (mapcar #'idf query))))
+        (dolist (h corpus)
+          (let* ((shared (seq-intersection query (plist-get h :tokens) #'equal))
+                 (exact (equal loose (claude-code-ide-org--title-loosely
+                                      (plist-get h :title))))
+                 (score (if (and (>= (length shared) 2) (> denominator 0))
+                            (/ (apply #'+ (mapcar #'idf shared)) denominator)
+                          0.0)))
+            (when (or exact (>= score claude-code-ide-org-duplicate-near-threshold))
+              (push (list :score (if exact 1.0 score) :exact exact
+                          :title (plist-get h :title)
+                          :keyword (plist-get h :keyword)
+                          :id (plist-get h :id) :file (plist-get h :file))
+                    scored))))))
+    (seq-take (sort scored (lambda (a b) (> (plist-get a :score) (plist-get b :score))))
+              (or limit 3))))
+
+(defun claude-code-ide-org--format-duplicate-candidates (candidates)
+  "CANDIDATES as reply lines.  Ids in braces, never as \"(ID: ...)\":
+bin/hooks/queue-append recovers the *new* heading's id from that shape."
+  (mapconcat
+   (lambda (c)
+     (format "  %.2f  %-9s {%s}  %s  [%s]"
+             (plist-get c :score) (or (plist-get c :keyword) "-")
+             (if (plist-get c :id) (substring (plist-get c :id) 0 8) "no id")
+             (plist-get c :title) (plist-get c :file)))
+   candidates "\n"))
+
 (cl-defun claude-code-ide-org-capture (title &optional target tags note
-                                             initial-state category)
+                                             initial-state category
+                                             allow-duplicate)
   "Quick-add TITLE as a new heading via `org-capture'.
 
 CATEGORY is written as the heading's `:CATEGORY:' property.  *Required
@@ -3238,8 +3390,30 @@ else."
              (top-level (eq (car-safe (plist-get resolved :spec)) 'file))
              (in-use (and (or top-level category)
                           (claude-code-ide-org--file-categories file)))
-             (novel (and category in-use (not (member category in-use)))))
+             (novel (and category in-use (not (member category in-use))))
+             ;; The duplicate query: run here, unconditionally, so that it
+             ;; cannot be skipped (TODO.org :ID: c8773ec2).
+             (candidates (claude-code-ide-org--duplicate-candidates title file))
+             (exact (seq-find (lambda (c) (plist-get c :exact)) candidates))
+             (allow-duplicate (member allow-duplicate '(t "true" "t" "yes")))
+             (near (if candidates
+                       (concat "\nPossible duplicates (title overlap; look before "
+                               "composing -- a candidate is a heading to read, "
+                               "not a verdict):\n"
+                               (claude-code-ide-org--format-duplicate-candidates
+                                candidates))
+                     "")))
         (cond
+         ;; The same title, compared loosely, is the one overlap worth
+         ;; stopping for; everything weaker is reported, never refused.
+         ((and exact (not allow-duplicate))
+          (format (concat "Error: a heading already carries this title -- "
+                          "%s {%s} in %s. Amend that one, or pass "
+                          "allow_duplicate=true if a second heading is what "
+                          "you mean.")
+                  (or (plist-get exact :keyword) "(no keyword)")
+                  (if (plist-get exact :id) (substring (plist-get exact :id) 0 8) "no id")
+                  (plist-get exact :file)))
          ;; Validated against the *target file's* own #+TODO: line, the
          ;; same gate org_set_todo applies, and for the same reason:
          ;; bin/hooks/queue-append drops any reply starting with
@@ -3306,11 +3480,12 @@ else."
                   (file-name-nondirectory file)
                   (if in-use (string-join in-use ", ") "(none yet)")))
          ((claude-code-ide-org--file-busy-p file)
-          (format "%s\"%s\" (ID: %s) %s; pending review.%s"
+          (format "%s\"%s\" (ID: %s) %s; pending review.%s%s"
                   claude-code-ide-org--reply-queued-capture
                   title new-id (plist-get resolved :where)
                   (claude-code-ide-org--capture-novel-category-warning
-                   novel category file in-use)))
+                   novel category file in-use)
+                  near))
          (t
           (claude-code-ide-org--capture-write
            title new-id created (plist-get resolved :spec) tags initial-state
@@ -3319,11 +3494,12 @@ else."
           ;; which is not necessarily the capture file: an :ID: target can
           ;; live anywhere org-id knows about.
           (org-id-add-location new-id (expand-file-name file))
-          (format "%s\"%s\" (ID: %s) %s%s"
+          (format "%s\"%s\" (ID: %s) %s%s%s"
                   claude-code-ide-org--reply-captured
                   title new-id (plist-get resolved :where)
                   (claude-code-ide-org--capture-novel-category-warning
-                   novel category file in-use)))))
+                   novel category file in-use)
+                  near))))
     (error (format "Error: %s" (error-message-string err)))))
 
 (defun claude-code-ide-org--end-of-body ()
@@ -17772,7 +17948,11 @@ the project list."
            (:name "category"
             :type string
             :optional t
-            :description "The :CATEGORY: value for the new heading, e.g. \"Tools\". Required when target is omitted (a level-1 heading cannot inherit one; the refusal lists the values the file uses), optional under an :ID: target. A value the file has never used is written with a warning -- check it is not a typo for an existing one. Case matters.")))
+            :description "The :CATEGORY: value for the new heading, e.g. \"Tools\". Required when target is omitted (a level-1 heading cannot inherit one; the refusal lists the values the file uses), optional under an :ID: target. A value the file has never used is written with a warning -- check it is not a typo for an existing one. Case matters.")
+           (:name "allow_duplicate"
+            :type string
+            :optional t
+            :description "\"true\" to file a heading whose title an existing heading already carries. The tool searches TODO.org and the DONE.org beside it on every capture: near matches are listed in the reply (read them before composing), and only a same-title match is refused.")))
 
   (claude-code-ide-make-tool
    :function #'claude-code-ide-org-amend
