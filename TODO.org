@@ -2,6 +2,25 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO The member-drawer backfill clause is scaffolding: once every open heading has its canonical shape, the lint should require it and the clause retire
+:PROPERTIES:
+:ID:       fce6bd35-27ad-4724-8dbb-c9df4b68fb10
+:CREATED:  [2026-09-21 Mon 12:50]
+:CATEGORY: Skill
+:END:
+:PLAN:
+The SOP adopted 2026-09-21 (org conventions, "A slice's plan, and its members'") says a member with no =:PLAN:= drawer gets one before its step is worked. That clause exists only because most open headings predate the convention. Once =6521dd56='s corpus pass has given every open heading its canonical shape, the clause describes a state that cannot occur. Prose describing an impossible state is exactly what =bf7e0b8e='s deletion pass removed.
+
+So, after the corpus pass lands:
+1. =bin/lint-org= errors on a member of an open slice that has no =:PLAN:= drawer. That keeps the shape enforced and stops it depending on anyone remembering.
+2. Delete the backfill clause from the conventions, keeping the rule that a decision lands in the member's drawer.
+3. Re-run =bin/claude-org-setup= so the promoted copy follows.
+
+Order within the slice: after =e128e4fa=, since that pass is what produces the shape.
+:END:
+
+The SOP's instruction to give a drawerless member a =:PLAN:= is scaffolding for a pre-convention corpus. When =6521dd56='s pass makes the shape universal, the lint should enforce it and the clause should be deleted.
+
 * TODO A PreToolUse guard for hand edits to keywords, CLOCK lines and slice checklists in the org files :code:
 :PROPERTIES:
 :ID:       b69ecfe4-abcd-41a9-b8f3-ad10b4d1d5df
@@ -75,6 +94,9 @@ CLOCK: [2026-09-21 Mon 10:34]--[2026-09-21 Mon 10:36] =>  0:02
 The plan-file link rule was retired 2026-09-21 (a plan lives in the :PLAN: drawer; ~/.claude/plans is left to evaporate), and CLAUDE.md, lint and sync-plans were changed the same day. The plugin's own prose was not: SKILL.md still says to add the Plan link as soon as the plan file is finalized (near "Plan Mode checkpoint"), lists the link as drawer content, and documents a background-planning workflow whose write-back tool, org_log_background_plan, exists only to insert that link; org-conventions.md's :PLAN: section and org-state-transitions.md's plan-approval rule mention it too. A consumer therefore still receives the old instruction. Proposal: rewrite those passages to the drawer form, and decide whether the tool is retired or repointed at the drawer. Related, not the same: the sync-plans substring matcher defect.
 
 *Half done 2026-09-21, after another agent pointed at "Plan Mode checkpoint":* =SKILL.md= no longer tells anyone to write a plan-file link. The checkpoint section now says to write the plan into =:PLAN:= and explicitly not to link; the body-lifecycle paragraph drops "the plan link"; and the background-planning procedure has its agents return the plan as their final report, written back one at a time with =org_amend= =drawer=PLAN=. *Still owed:* =org_log_background_plan= itself is registered and listed in =org-mcp-tools.md= — the skill now says not to call it, which is a recalled rule standing in for a decision. Retire the tool or repoint it at the drawer. And the two remaining mentions, in =org-conventions.md='s =:PLAN:= section and =org-state-transitions.md= (the latter already reworded in the deletion pass), need the same read.
+
+- [2026-09-21 Mon] The conventions half is done. The =:PLAN:= section's first paragraph no longer mentions a plan-file link ([[orgit-rev:claude-code-ide-org::b35b73b][b35b73b]]). What remains is =org_log_background_plan=: retire it, or repoint it.
+
 
 
 * DOING [0/11] The misses a human catches reach no record: one heading per kind of miss, amended at each catch, so the catch is counted :code:
@@ -4068,14 +4090,14 @@ sequence.
 *One criterion added 2026-09-19, from the drift analysis via =f6d160c2=, and bounded.* A merge of story and slice would delete a vocabulary band from the always-loaded map — the epic/story/slice/twin paragraph in CLAUDE.md and its counterpart in the conventions — and concept count is itself a cost every session pays ([[id:bf7e0b8e-f83a-4d4a-9950-3ab23a225156][bf7e0b8e]]). That is a *tiebreaker*, not a thumb on the scale: the against-the-merge argument above is semantic (containment versus reference, tentative versus committed), and a worse model adopted to save a paragraph costs more in misfiled work than the paragraph. So: if the two scenarios come out realistic and distinct, keep both groupings and shorten the prose; if they collapse, count the deletion as a benefit, not as the reason.
 
 
-* TODO [0/9] Make the notes org-native: links, drawers, tags, one corpus pass :code:
+* TODO [0/10] Make the notes org-native: links, drawers, tags, one corpus pass :code:
 :PROPERTIES:
 :ID:       6521dd56-8772-416b-9435-6da78bb86b06
 :CREATED:  [2026-09-10 Thu 08:57]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  b7259ee4-9aa1-4b55-8cf2-fbbacdea5310 d350ff5b-3b1f-465e-800b-962264d2e841 63df67c7-de0d-43e7-9c6f-2b2979a40aba e128e4fa-b0d9-49f7-99eb-bae2d4b0676b e28933e9-f352-4ef9-8d53-8cd9a4318768 41cf5830-fc2e-4dc6-b243-a0c2718a53a3 8a23d6ec-ca45-454d-b65f-e46ea9204816 01849bef-fdc9-4c30-b467-00ca8606e8e0 ecf66d45-18b3-477f-bca8-08bec90604e8
+:BLOCKER:  b7259ee4-9aa1-4b55-8cf2-fbbacdea5310 d350ff5b-3b1f-465e-800b-962264d2e841 63df67c7-de0d-43e7-9c6f-2b2979a40aba e128e4fa-b0d9-49f7-99eb-bae2d4b0676b fce6bd35-27ad-4724-8dbb-c9df4b68fb10 e28933e9-f352-4ef9-8d53-8cd9a4318768 41cf5830-fc2e-4dc6-b243-a0c2718a53a3 8a23d6ec-ca45-454d-b65f-e46ea9204816 01849bef-fdc9-4c30-b467-00ca8606e8e0 ecf66d45-18b3-477f-bca8-08bec90604e8
 :END:
 :PLAN:
 Composed 2026-09-10 at the user's direction, absorbing the earlier
@@ -4131,6 +4153,7 @@ Planned:
 - [ ] [[id:d350ff5b-3b1f-465e-800b-962264d2e841][d350ff5b]] TODO Canonical drawer order: PROPERTIES, LOGBOOK, PLAN, DEBRIEF, then body
 - [ ] [[id:63df67c7-de0d-43e7-9c6f-2b2979a40aba][63df67c7]] TODO Revisit the story definition: sanction clustering and speculative breakdown
 - [ ] [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]] NEXT Move the 88 pre-convention debriefs into :DEBRIEF:, authoring each resolution
+- [ ] [[id:fce6bd35-27ad-4724-8dbb-c9df4b68fb10][fce6bd35]] TODO The member-drawer backfill clause is scaffolding: once every open heading has its canonical shape, the lint should require it and the clause retire
 - [ ] [[id:e28933e9-f352-4ef9-8d53-8cd9a4318768][e28933e9]] TODO Survey all task history for a tag vocabulary worth searching on
 - [ ] [[id:41cf5830-fc2e-4dc6-b243-a0c2718a53a3][41cf5830]] TODO Index a heading's git history from a drawer, so the body never has to narrate it
 - [ ] [[id:8a23d6ec-ca45-454d-b65f-e46ea9204816][8a23d6ec]] TODO Comma-escape headline lines when documenting org structure inside a body
