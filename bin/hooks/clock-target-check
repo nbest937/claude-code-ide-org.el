@@ -121,7 +121,7 @@ first_write="$(jq -r -n --arg repo "$repo" '
     | .message.content[]?
     | select(.type == "tool_use")
     | select(
-        (.name | test("^mcp__emacs-tools__org_(capture|amend|set_property|refile|divide|archive|move_sibling|sort_children|wrap_plan|log_background_plan)$"))
+        (.name | test("^mcp__emacs-tools__org_(capture|amend|set_property|refile|divide|archive|move_sibling|sort_children|wrap_plan)$"))
         or ((.name | test("^(Edit|Write|NotebookEdit)$"))
             and ((.input.file_path // "") | startswith($repo)))
       )

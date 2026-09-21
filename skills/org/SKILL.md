@@ -752,13 +752,7 @@ argument was the load-bearing half anyway.)
 The write-back never touches `:LOGBOOK:`, the TODO keyword, or the clock
 — the single-clock model can't represent true parallelism honestly, so
 this path doesn't try. (`org_log_background_plan`, which inserted a
-plan-file link, belongs to the retired pattern; do not call it.)
-
-It still takes a synthetic `session_id`, but no longer records it
-anywhere: that was a `:SESSIONS:` drawer entry, and the drawer was
-retired 2026-08-11 (TODO.org `:ID: 9d2fcdad-…`). Pass it anyway — the
-argument is still validated, and it is the natural hook if per-session
-attribution comes back as a queued event.
+plan-file link, was retired with that link on 2026-09-21.)
 
 ---
 

@@ -7407,52 +7407,6 @@ in `condition-case', same reasoning as the in-handler."
     (unless (org-clocking-p)
       (claude-code-ide-org--clock-status-hook-out))))
 
-;;; Background planning write-back ----------------------------------------
-
-(defun claude-code-ide-org--insert-plan-link (plan-file)
-  "Insert a `[[file:PLAN-FILE][Plan]]' link into the body of the
-heading at point, unless a Plan link is already present there.
-Inserted after the property drawer and any :LOGBOOK:
-drawers, per this project's Plan-link convention (see CLAUDE.md).
-Idempotent regardless of PLAN-FILE's value -- a heading only ever
-carries one Plan link, matching CLAUDE.md's \"the link is written
-once and never needs updating\" rule for plan revisions."
-  (org-back-to-heading t)
-  (let ((end (save-excursion (outline-next-heading) (point))))
-    (unless (save-excursion
-              (re-search-forward "\\[\\[file:[^]]*\\]\\[Plan\\]\\]" end t))
-      (org-end-of-meta-data t)
-      (unless (bolp) (insert "\n"))
-      (insert (format "[[file:%s][Plan]]\n\n" plan-file)))))
-
-(defun claude-code-ide-org-log-background-plan (id plan-file session-id)
-  "Record a completed background-planning pass on the heading whose
-:ID: property equals ID by inserting a Plan-file link (idempotent, see
-`claude-code-ide-org--insert-plan-link').  Never transitions TODO state
-and never touches the clock -- the single shared clock cannot represent
-true parallelism honestly, so this tool structurally cannot produce a
-CLOCK/:LOGBOOK: entry.
-
-SESSION-ID is accepted and no longer recorded.  It used to tag a
-\"Background-planned\" entry in the heading's :SESSIONS: drawer with a
-*synthetic* id (e.g. \"<real-session-id>-bg1\"), so unattended research
-time was never misattributed as the orchestrating session's own
-interactive work.  That drawer was retired 2026-08-11 (TODO.org :ID:
-9d2fcdad-9bf7-47b6-8018-223b13ec4577) and its entries deleted, including
-these -- a deliberate choice, made knowing this was the only record of
-which session background-planned a heading and when.  The argument
-against keeping them: a drawer surviving for one rare entry is worse
-than either clean outcome, and the queue is where per-session
-attribution belongs now.  The parameter stays in the signature so the
-MCP tool schema and its callers are unaffected; wire it to a queued
-event if that attribution is ever wanted back."
-  (claude-code-ide-org--at-id-writable
-   id
-   (lambda ()
-     (claude-code-ide-org--insert-plan-link plan-file)
-     (save-buffer)
-     (format "Logged background plan for \"%s\"." (org-get-heading t t t t)))))
-
 ;;; Event queue ------------------------------------------------------------
 ;;
 ;; The read side of the append-only event queue (TODO.org :ID:
@@ -16165,7 +16119,10 @@ answer."
 (defconst claude-code-ide-org--worked-tool-names
   '("org_amend" "org_set_todo" "org_clock_in" "org_clock_out"
     "org_set_property" "org_slice_add_member" "org_divide" "org_refile"
-    "org_archive" "org_wrap_plan" "org_log_background_plan")
+    "org_archive" "org_wrap_plan"
+    ;; Retired 2026-09-21 with the plan-file link (:ID: f9fdea91); kept
+    ;; so older records that name it still read as worked.
+    "org_log_background_plan")
   "Tool names whose call is evidence a heading was *worked*.
 
 Writes only.  `org_body', `org_outline', `org_query' and
@@ -18429,24 +18386,6 @@ the project list."
             :type string
             :optional t
             :description "Optional explicit range end, as an org timestamp string. Ignored if block is given.")))
-
-  (claude-code-ide-make-tool
-   :function #'claude-code-ide-org-log-background-plan
-   :name "org_log_background_plan"
-   :description (concat
-                 "Record a completed background-planning pass on an org-mode "
-                 "heading, identified by its :ID: property: insert a Plan-file "
-                 "link (idempotent). Never transitions TODO state and never "
-                 "touches the clock.")
-   :args '((:name "id"
-            :type string
-            :description "The :ID: property value of the target org heading.")
-           (:name "plan_file"
-            :type string
-            :description "Absolute path to the plan markdown file, e.g. ~/.claude/plans/<slug>.md.")
-           (:name "session_id"
-            :type string
-            :description "Synthetic id for this write, never the orchestrating session's own real session id, e.g. <orchestrating-session-id>-bg1.")))
 
   (claude-code-ide-make-tool
    :function #'claude-code-ide-org-pending-updates
