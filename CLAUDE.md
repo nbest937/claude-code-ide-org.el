@@ -139,7 +139,7 @@ Five things you would not guess:
   prose and conventions. `bin/claude-org-setup` promotes those references
   into a consuming repo's `.claude/rules/` — this repo runs it on itself,
   so the machinery files under `.claude/rules/` are **generated**, marked
-  by their header; edit the reference and re-run setup, never the copy.
+  by their header; hooks refuse an edit to a copy, so edit the reference.
 
 - **`plans/` is a frozen archive.** Plan Mode's files in
   `~/.claude/plans` used to be linked from headings and copied here; that
@@ -158,7 +158,7 @@ Five things you would not guess:
   a convention: expect it to be rewritten or deleted once consumed, unlike
   everything else under `.claude/`, which is standing configuration.
 - **`bin/check-org-dev-skill`** checks the org-dev skill's own claims still
-  hold — run it after editing that skill.
+  hold; pre-commit runs it whenever that skill is staged.
 - **`.warp/.mcp.json`** — see below; do not delete it.
 
 **`.warp/.mcp.json` is Warp's own project-scope MCP config — do not
@@ -274,11 +274,9 @@ feature-vs-bugfix has never predicted the practice; wanting an
 integration point is the whole test.
 
 **Rule**: a branch merges to `main` through a **pull request**, never a
-local merge (`:ID:` c7bf2121). Ten consecutive integrations did so
-while the practice lived only in git history, and on 2026-09-08 two
-local `--no-ff` merges broke the streak without tripping anything —
-`gh pr create` when the branch is ready. The trap that broke it is
-worth naming: a question offering "merge now or hold" decides *timing*
+local merge (`:ID:` c7bf2121) — `gh pr create` when the branch is ready.
+Git hooks refuse a local merge on `main` and a commit onto a branch that
+has already merged. The trap that first broke the practice: a question offering "merge now or hold" decides *timing*
 and silently decides *mechanism* too; ask which, or say which. (Whether
 this covers a merge carrying only bookkeeping is an open question on
 the heading — no bookkeeping-only branch has ever existed, since

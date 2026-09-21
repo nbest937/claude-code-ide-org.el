@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# PreToolUse on Bash: block a state or clock change driven straight
+# through emacsclient.
+#
+# TODO.org :ID: 3cd7b7d3. The rule was "if the emacs-tools server is not
+# connected, stop and say so rather than reaching for emacsclient": a
+# direct `org-todo' applies at once and writes NOTHING to the queue, so
+# the change is invisible to the review pass and to org_pending_updates --
+# and for any keyword that logs, the call hangs on `*Org Note*'. On
+# 2026-08-15 three state changes went that way and nothing in the
+# transcript looked wrong. The fallback is tempting exactly when the tools
+# are down, which is when a sentence is least likely to be recalled.
+#
+# Narrow: only a command that invokes emacsclient AND calls one of the
+# three commands as a function -- an opening paren directly before the
+# name, a delimiter directly after. Reading state, the documented
+# `claude-code-ide-org-close-open-interval' recovery call, and grepping
+# source for the string are all untouched.
+#
+# Blocks with exit 2 and stderr, the documented PreToolUse path, and
+# counts itself as a miss. Plain bash + jq; fails open.
+
+set -uo pipefail
+
+command -v jq >/dev/null 2>&1 || exit 0
+input="$(cat)"
+cmd="$(jq -r '.tool_input.command // empty' <<<"$input" 2>/dev/null)"
+[[ -n "$cmd" ]] || exit 0
+
+grep -q 'emacsclient' <<<"$cmd" || exit 0
+grep -qE '\((org-todo|org-clock-in|org-clock-out)([[:space:])"'"'"']|$)' <<<"$cmd" || exit 0
+
+jq -c '{session_id, cwd, hook_event_name}' <<<"$input" 2>/dev/null \
+  | "$(dirname "${BASH_SOURCE[0]}")/queue-append" miss emacsclient-state "${cmd:0:200}" 2>/dev/null
+
+cat >&2 <<'MSG'
+Blocked: this drives org-todo / org-clock-in / org-clock-out directly
+through emacsclient. That applies immediately and writes nothing to the
+queue, so the review pass and org_pending_updates never see it -- and for
+a keyword that logs, the call hangs on *Org Note*. Use org_set_todo /
+org_clock_in / org_clock_out, which queue the change. If the emacs-tools
+server is unreachable, stop and tell the user instead.
+MSG
+exit 2

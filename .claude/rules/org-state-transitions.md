@@ -129,11 +129,10 @@ Consequences, each of which has been got wrong in practice:
 
 **Rule**: always use the MCP tools for state changes and clocking — do not
 edit CLOCK entries or TODO keywords by hand when the tools are available.
-If the `emacs-tools` MCP server is *not* connected, prefer stopping and
-saying so over reaching for `emacsclient`: a direct `org-todo` call applies
-immediately and writes **nothing** to the queue, so the change is invisible
-to the review pass and to `org_pending_updates`. That is a real divergence
-between the file and the record, not a harmless shortcut.
+If the `emacs-tools` MCP server is *not* connected, stop and say so. The
+`emacsclient` fallback is blocked by a hook: a direct `org-todo` applies
+immediately and writes **nothing** to the queue, so the review pass and
+`org_pending_updates` never see it.
 
 **Rule**: confirm the `emacs-tools` server is actually reachable *before*
 the first state or clock call of a session, rather than discovering it
