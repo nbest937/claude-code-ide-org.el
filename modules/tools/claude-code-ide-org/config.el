@@ -15182,8 +15182,20 @@ which org-depend cannot parse -- run claude-code-ide-org-normalize-blocker-synta
           (goto-char (point-min))
           (while (re-search-forward "\\[\\[file:\\([^]]*plans/[^]]+\\)\\]" nil t)
             (let ((path (expand-file-name (match-string 1))))
+              ;; A source that is gone is fine when the archive beside
+              ;; this file holds the plan: Claude Code deletes
+              ;; ~/.claude/plans files after its retention period, and
+              ;; since 2026-09-21 that is left to happen -- plan files are
+              ;; no longer written, and plans/ is the frozen record of the
+              ;; ones that were.  Only a plan in NEITHER place is a loss.
               (unless (or (not (string-suffix-p ".md" path))
-                          (file-exists-p path))
+                          (file-exists-p path)
+                          ;; FILE, not `buffer-file-name': the scan
+                          ;; runs in a temp buffer that visits nothing.
+                          (file-exists-p
+                           (expand-file-name
+                            (concat "plans/" (file-name-nondirectory path))
+                            (file-name-directory (expand-file-name file)))))
                 (report 'error (line-number-at-pos)
                         "plan link points at a missing file: %s"
                         (match-string 1))))))

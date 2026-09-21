@@ -2590,6 +2590,32 @@ heading linking a plan file that is not there."
                     "[[file:~/.claude/plans/no-such-plan-98f3a.md][Plan]]\n"))
            'error "plan link points at a missing file")))
 
+(ert-deftest claude-code-ide-org-test-lint-accepts-an-evaporated-plan-that-is-archived ()
+  "Claude Code deletes ~/.claude/plans files after its retention period,
+and since 2026-09-21 that is left to happen: the archived copy under
+plans/ beside the org file is the record.  A link whose source is gone
+is an error only when the archive lacks it too."
+  (let* ((dir (file-name-as-directory (make-temp-file "lint-test" t)))
+         (file (expand-file-name "TODO.org" dir)))
+    (unwind-protect
+        (progn
+          (make-directory (expand-file-name "plans" dir))
+          (with-temp-file (expand-file-name "plans/evaporated-98f3a.md" dir)
+            (insert "# archived\n"))
+          (with-temp-file file
+            (insert "#+TODO: TODO NEXT DOING WAITING MAYBE | DONE CANCELLED\n"
+                    "* TODO T\n:PROPERTIES:\n"
+                    ":ID:       11111111-1111-1111-1111-111111111111\n"
+                    ":CREATED:  [2026-08-14 Fri 10:00]\n:CATEGORY: Dev\n:END:\n"
+                    "[[file:~/.claude/plans/evaporated-98f3a.md][Plan]]\n"
+                    "[[file:~/.claude/plans/never-archived-98f3a.md][Plan]]\n"))
+          (let ((findings (claude-code-ide-org-lint (list file) nil)))
+            (should-not (claude-code-ide-org-test--lint-matches
+                         findings 'error "missing file: .*evaporated-98f3a"))
+            (should (claude-code-ide-org-test--lint-matches
+                     findings 'error "missing file: .*never-archived-98f3a"))))
+      (delete-directory dir t))))
+
 (ert-deftest claude-code-ide-org-test-lint-catches-a-heading-glued-to-prose ()
   "The malformation the lint found on its first real run, introduced
 2026-08-13 in f39944f: a heading with no newline before it is not a

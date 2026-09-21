@@ -141,12 +141,13 @@ Five things you would not guess:
   so the machinery files under `.claude/rules/` are **generated**, marked
   by their header; edit the reference and re-run setup, never the copy.
 
-- **`plans/` is the archive, not the working copy.** Claude Code owns
-  `~/.claude/plans` and Plan Mode writes there, so that is the file org
-  headings link and a revision edits. A plan is copied here *iff* some
-  heading in TODO.org or DONE.org links it, which is what makes an
-  unlinked plan history-less. `bin/sync-plans --check` reports drift;
-  `.githooks/pre-push` refuses a push while the archive is stale.
+- **`plans/` is a frozen archive.** Plan Mode's files in
+  `~/.claude/plans` used to be linked from headings and copied here; that
+  pattern is retired (below), and Claude Code deletes the originals after
+  its retention period, which is left to happen. The copies here are the
+  record for the headings that still link one — which is why
+  `bin/sync-plans --check` and `bin/lint-org` accept a plan that is gone
+  from the source but archived, and refuse only one that is in neither.
 - **`.claude/hooks/session-context.sh` is the one hook not under
   `bin/hooks/`**, for no recorded reason. It produces the "what was I last
   doing" context injected at `SessionStart`. Whether the two directories
@@ -298,45 +299,22 @@ and forgetting the other is arbitrary, and it is caught by review,
 never by the composer. A worked heading is never simply given children:
 it *divides* (`org_divide`), and the original becomes the **child**.
 
-**Rule**: work planned via Claude Code's own Plan Mode gets a single
-permanent link — `[[file:~/.claude/plans/<slug>.md][Plan]]` — written
-into the heading's **`:PLAN:` drawer**, added as soon as the first round
-of planning finishes (right after `ExitPlanMode` is called and the plan
-file is finalized), not gated on the heading later transitioning to
-`DOING`. This matters because approval and the `DOING` transition don't
-always happen in the same beat as planning — e.g. the user may
-deliberately stop right after a plan is written, before deciding whether
-to implement it — and the link should exist the moment a real plan file
-does, independent of what happens next. A plan link *is* planning
-content, so it belongs with the rest of the prospective prose (`:ID:`
-b75d553a): planning before composition simply includes the link in the
-normal two-call composition below. When the drawer already exists before
-a Plan Mode session, `org_amend` with `drawer=PLAN` appends the link
-inside it directly (`:ID:` 501a8422). Revisions
-(re-entering Plan Mode on the same
-task) edit that same plan file in place — Claude Code reuses the
-existing plan file path for a continuation of the same task — so the
-link is written once and never needs updating to point at a new file. No
-transcription of the plan into org, ever; the link is the record.
+**Rule**: a plan lives in its heading's **`:PLAN:` drawer**, not in a
+plan file (the user, 2026-09-19; the plan-file link rule that stood here
+was retired 2026-09-21). Plan Mode is still worth entering for its
+read-only phase and its approval checkpoint, but what it produces is
+written into the drawer with `org_amend` `drawer=PLAN`, and no
+`[[file:~/.claude/plans/…]]` link is written. `/next-session` is composed
+*from* the members' drawers, and where the two disagree the drawer wins —
+the 2026-09-18 slice plan got four things wrong from the slice's altitude
+and none of them came from a heading. Older headings keep their links;
+see `plans/` above.
 
-Nothing moves at `DONE`: the link has lived in `:PLAN:` since
-composition (2026-09-02, `:ID:` b75d553a), which is what keeps a
-forward-looking pointer out of the retrospective readout a finished body
-becomes. (A pre-convention heading's link still travels into the drawer
-whenever its body is retroactively wrapped.) A task with no separate Plan Mode
-session simply carries no link — that's expected, not a gap to fill in.
-
-The link is also what makes the plan durable, which is why it is not
-gated on anything: `bin/sync-plans` copies only those plans some heading
-links, so an *unlinked* plan is never archived and has no history at all.
-Verified 2026-08-14 — the sync refused a freshly written plan until its
-heading linked it.
-
-**Rule**: where a plan is linked, the heading body is a **journal, not a
-design doc** — the plan is the design doc. The body carries what
+**Rule**: the heading body is a **journal, not a design doc** — the
+`:PLAN:` drawer is the design doc. The body carries what
 happened: what shipped, how it was verified, what was measured, what was
 falsified, and why a decision went the way it did. It does not restate
-design the linked plan already holds.
+design the drawer already holds.
 
 **Composition, close, revision: in the conventions.** The two-call
 composition (`org_amend` with `drawer=PLAN`, then the short body), the

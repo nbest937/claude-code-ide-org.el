@@ -48,15 +48,24 @@ referenced="$(grep -oh 'plans/[a-z0-9-]*\.md' "${org_files[@]}" 2>/dev/null \
 
 [[ -n "$referenced" ]] || { echo "sync-plans: no plan links found in ${org_files[*]}" >&2; exit 2; }
 
-changed=0 missing=0
+changed=0 missing=0 evaporated=0
 declare -a wanted=()
 
 while IFS= read -r name; do
   [[ -n "$name" ]] || continue
   wanted+=("$name")
   if [[ ! -f "$src/$name" ]]; then
-    echo "  MISSING  $name (linked from org, absent from $src)"
-    missing=$((missing + 1))
+    # Gone from the source but archived: expected, not drift. Claude Code
+    # deletes plan files after its retention period and since 2026-09-21
+    # that is left to happen -- the archive is the record. Only a plan in
+    # neither place is a loss worth refusing a push over.
+    if [[ -f "$dest/$name" ]]; then
+      echo "  evaporated  $name (gone from $src; the archived copy is the record)"
+      evaporated=$((evaporated + 1))
+    else
+      echo "  MISSING  $name (linked from org, absent from $src and from the archive)"
+      missing=$((missing + 1))
+    fi
     continue
   fi
   if [[ ! -f "$dest/$name" ]]; then
