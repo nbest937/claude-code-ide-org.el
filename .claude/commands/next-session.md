@@ -1,9 +1,8 @@
 # Next session
 
-A plan for `f6d160c2` — **A rule the agent can recite and still misses is a
-rule in the wrong place: count the misses, then move the rules out of
-recall** — which took the Slices nomination on 2026-09-19, displacing
-`8a2eb687` (its demotion is queued, not applied).
+A plan for `8a2eb687`, **Everything passed and the file was still wrong**.
+It took the Slices nomination back on 2026-09-21, when `f6d160c2` went to
+its pull request (#29). The `NEXT` is queued, not applied.
 
 **The slice is the list.** Open it and read its checklist; this file gives
 the plan, not the membership. The two disagree only if one is stale, and the
@@ -17,15 +16,14 @@ the copy nothing regenerates.
 > *Where this will stop* is replaced wholesale, and this heading names which
 > slice the middle is about.
 
-> **This revision is composed differently from its predecessors, on
-> purpose.** Each member's step below is written *from that member's
-> `:PLAN:` drawer*, in slice order — the user's convention as of
-> 2026-09-19: a plan lives in the heading's drawer, not in a plan file, and
-> this file is the composition over the drawers. Where a step and a drawer
-> disagree, the drawer wins for the same reason the slice wins on
-> membership. Every step ends with a **Decision** line naming what is
-> unresolved and whose it is, or `none`; that line is the marker `c10bfb15`
-> asks for, written as a literal token so a check can assert it.
+> **This file is composed from the slice's `:PLAN:` drawer**, which was
+> itself composed from the members. Only three members carry a drawer of
+> their own; the rest are pre-convention, so their plans are read from
+> their bodies. Where a step here and a heading disagree, the heading wins,
+> for the same reason the slice wins on membership. Every step ends with a
+> **Decision** line naming what is unresolved and whose it is, or `none`.
+> That line is the marker `c10bfb15` asks for, written as a literal token so
+> a check can assert it.
 
 ---
 
@@ -128,280 +126,141 @@ work.
 
 ---
 
-## The sequence, re-cut 2026-09-19
-
-**The nomination moved because the problem the analysis names is upstream of
-every other slice.** A correctness slice, a corpus pass and a datetree fix are
-all executed by sessions that forget rules they can recite, and each of those
-slices has already paid for that: the 2026-09-18 plan got three premises wrong
-from the slice's altitude, and this one was composed through two of the
-defects it exists to reduce (Step 0 item 10, and *What is already true*
-below). Lowering the miss rate first makes the others cheaper; the reverse is
-not true.
+## The sequence, as of 2026-09-21
 
 | | slice | where it stands |
 |---|---|---|
-| — | `8bbae3aa` | merged, PR #28; closed |
-| 1 | `f6d160c2` — this one | measurement first, then the load path, then compression, then the tools |
-| 2 | `8a2eb687` | the correctness slice, demotion queued; re-scope it when it comes up, since `4acd8ad0` is time-tracking work that belongs with the backlog rather than here |
-| 3 | `6521dd56` | corpus pass, internal |
-| 4 | `f9fe9fac` | datetree, internal |
+| — | `f6d160c2` | PR #29 open. `63713df3` is awaiting the user's verdict, and `436e0991` still needs its fresh-session check (below) |
+| 1 | `8a2eb687` — this one | the gate, then the tools that answer wrongly, then checks and ownership, then divergent copies, then the outage |
+| 2 | `6521dd56` | corpus pass, internal |
+| 3 | `f9fe9fac` | datetree, internal |
 
-`6a207b00` stays `WAITING` on `8a2eb687` and `6521dd56`; this slice does not
-change that, though members 2, 3 and 6 each change what a consumer receives
-and should be verified against a consumer install, not only here.
+`6a207b00` (the euchre adoption) waits on `f6d160c2`'s merge, not on this
+slice. Every member here that changes what a consumer receives should be
+checked against a consumer install as well as here: `5e731a23`, `965f94eb`,
+`3ad389be` and `7fa68d5c`.
 
-**The branch is `feature/miss-rate`** — or whatever name the user prefers at
-step 7; the slice carries code in six of eight members, so it is not
-maintenance.
+**Branch:** `feature/<short-name>` at step 7, cut from `main` *after* #29
+merges. This slice carries code in every member but one.
 
 ---
 
 ## What is already true, so it is not re-derived
 
-- **The numbers.** Always loaded, every session, in this repo: **1,573 lines /
-  13,590 words** across CLAUDE.md (494) and seven unscoped rule files. A
-  consumer receives the plugin's share of that, **1,003 lines / 9,143 words**,
-  of which `org-time-tracking.md` is 260 lines for a feature that defaults to
-  off. `befaed0a`'s target was *under 200 lines* for CLAUDE.md alone; CLAUDE.md
-  fell 23% while the surface it was split into grew to two and a half times
-  the file the target was set against. Path-scoped and therefore *not* in the
-  budget — but see member 2 — `org-conventions.md` (1,082) and
-  `org-conventions-local.md` (113). Re-measure with one loop over CLAUDE.md
-  and `.claude/rules/*.md`, testing for real YAML frontmatter (first line
-  `---`), not the string `paths:` — `org-categories.md` says "carries no
-  `paths:` scope" in prose and a naive grep reads it as scoped.
-
-- **What "open" means for a path-scoped rule.** Claude Code's memory docs:
-  "Path-scoped rules trigger when Claude reads files matching the pattern, not
-  on every tool use" — the Read tool on a matching path. An Emacs buffer is
-  not open; a Bash `sed` is not open; an `org_*` call is an MCP call carrying
-  no path and is not open. A session that obeys "start with `org_outline`, not
-  a file read" therefore never loads the conventions. Verified on the session
-  that composed this slice: five captures and a dozen Bash reads of
-  `TODO.org`, and the conventions were never injected.
-
-- **The tiers of enforcement, strongest last**, because members 5, 6 and 7
-  place themselves on them: prose the model must recall; an argument the
-  model must fill (a recall miss becomes a fabrication, and nothing checks
-  it); a hook reading a record the model did not write (real, but transcripts
-  are pruned — `4acd8ad0` — and `last_assistant_message` is only the final
-  block); the tool doing the step itself and *returning* evidence. Only the
-  last makes the omission unreachable. Judgement can never reach it, but a
-  narrowed context lets judgement leave the first tier, which is what a
-  checker subagent is for.
-
-- **Two decisions the analysis proposed that this slice does *not* adopt**,
-  so they are not re-argued: *push harder on path-scoping* (falsified twice
-  here — `b0d55552` and `befaed0a`'s own test: a rule that must hold with no
-  `.org` open cannot be scoped, and the failure is silent); and *separate rule
-  from rationale* as stated (CLAUDE.md's thesis is that rationale is the one
-  thing the artifact cannot recover; the honest form is *rationale stays iff
-  it stops a specific reversal*, and that is member 4's rule).
-
-- **`org_divide` and `org_slice_add_member` time out through MCP and succeed
-  through `emacsclient`** — the same call, at once, seven times running on
-  2026-09-19 while `org_pending_updates` answered between the failed
-  attempts. See `51bcec2c`. If a member needs either, call it once, check the
-  file, and fall through to `emacsclient -e '(claude-code-ide-org-…)'` rather
-  than retrying the tool.
-
-- **Captures do not ask first, and the session commits them.** Decided by
-  the user 2026-09-19: *keep the practice* the log already shows — a session
-  files a heading and commits it itself ("File <id>: …"), by explicit path,
-  without asking; 24 of the 25 commits before this slice was composed were
-  made that way. Approval for a capture is therefore after the fact: the
-  commit is small, named for the heading, and cheap to amend or revert. The
-  review buffer is not the gate — a capture appears there only on the
-  deferred path (Emacs unreachable). `3cb3f955` is this practice written
-  down, and what it still owes is its safety predicate: only the touched
-  `.org` files staged, never mid-rebase, `git diff --stat` first. The
-  plan-derived gate on a new heading's *wording* is untouched by this and
-  stays the user's to retire; `24c7b537` (a retitle tool) is what would make
-  "fix it after" cheap enough to consider it.
+- **Membership was left exactly as found, at the user's direction.** Three
+  members are time-tracking only: `53b0047d`, `60ed5b96` and `4acd8ad0`. The
+  body already drops `4acd8ad0` in prose (2026-09-17), but the checklist still
+  lists it. Do not reconcile that without asking.
+- **By count, about four-fifths of the open members benefit a project with
+  time tracking off.** Nobody has estimated effort, so do not quote the
+  fraction as weighted.
+- **Loud failures raise the miss count.** Since `63713df3`, every genuine
+  `org_*` refusal appends a `miss` line. A member that turns a silent wrong
+  answer into a refusal adds lines where there were none. Read `bin/miss-rate`
+  by rule, and expect this slice's rules to *rise*.
+- **Carried over from `f6d160c2`: `436e0991`'s check.** In a fresh session
+  that uses *only* the org tools on `TODO.org` (no Read of an `.org` file),
+  confirm the conventions notice arrives on the first `org_*` call. Then
+  queue `436e0991` for `REVIEW` with the evidence. It needs a new session by
+  construction, so it is the first thing that session does.
 
 ---
 
-## The order, and why it is one direction of travel
+## Step 1 — `94e6b615`: one runner for every suite
 
-The number first, because a slice that cannot show its number moving has
-nothing to close on and its instrumentation is cheap. Then the two members
-that decide whether a rule *loads at all* — a rule that does not load cannot
-be recalled and no compression helps it. Then the budget and the audit
-together, one sitting over the same eight files. Then the two tools that move
-a judgement out of recall, mechanical first. The ratchet last, blocked on the
-budget it asserts.
+`bin/test` runs ERT only, and the shell suites run when someone remembers.
+Three sat red for a day, and on 2026-09-21 the suites turned out to be
+writing their provoked refusals into the calling session's real queue: 24
+of the first 29 counted misses. Both are this slice's sentence. Build
+`bin/test --all` (or `bin/test-all`): every suite, with each exit code
+checked and the `Ran N` line read. Name it in Step 0 as what a branch runs
+before its PR.
 
-## Step 1 — `63713df3`: the miss rate
+**Decision (user):** whether pre-push calls it. Measure its wall time first.
 
-What exists: 67 session queue files in `~/.claude/org-updates/`; 5
-`.footnote-blocked` and 2 `.clock-target-nagged` sentinels. Not a rate, three
-times over — each sentinel fires at most once per session, only two rules have
-a blocking hook, and the hooks see a fraction (`footnote-check` reads the
-final text block; `clock-target-check` reads a queue that under-reports the
-writes it looks for, by its own header).
+## Step 2 — the tools that answer wrongly and look right
 
-Do: every backstop that blocks, refuses or injects appends one line to the
-session's queue file — `kind: miss`, the rule's name, the turn — through
-`queue-append`, the plain-shell path the hooks already use. The apply pass
-ignores kinds it does not render. Then a rate per session, per rule, per day
-is one `jq` over the directory, and the ceremony has a number to print beside
-the pending count. Retire the sentinels' second job as the record.
+Six small members, each shipped with a test proved red first:
 
-Say what it cannot count: the misses the user catches in conversation, which
-are the ones the analysis is about. State the hook-visible subset as a floor.
+- `37bca83a` (already DOING): a query whose first non-blank character is
+  `(` is a sexp. Refuse it and name the mini-language, or run it through
+  `org-ql-select`. No predicate is dropped, and none ever was.
+- `25e7b083`: sweep by *argument*, not by call shape, and take the silent
+  shape first. `refresh-slice` still compares ids with `equal` at two sites.
+  The capture target resolves through `--id-find` but passes the prefix into
+  the `id` spec, so write the failing test before assuming it works.
+- `57f37f0e`: the no-change check reads the effective state, meaning the
+  file plus the heading's pending todo events. A set-and-revert cancels the
+  pair.
+- `492a1a30`: `org_divide` still writes `" [/]"` after the title. Use
+  `--ensure-statistics-cookie-at-point`'s placement, and look for a third
+  inserter.
+- `60ed5b96`: the docstring still opens "Always *inactive*". Say what
+  `:active` means and who sets it.
+- `7b4f4f14`: the watermark distinguishes "applied something" from "a pass
+  ran".
 
-**Decision (user):** whether the user's corrections should be answered with a
-capture or amend citing the rule missed — which makes the human's catch a
-queue event through the existing matchers, at the cost of being one more rule
-the agent must remember. Do not adopt it silently.
+**Decision:** none.
 
-## Step 2 — `436e0991`: rules that load only on the discouraged path
+## Step 3 — `39039bb6` and `7ee3b71a`: a check that does not catch, a region nobody owns
 
-The conventions load on a Read of an `.org` file; the tools exist so that no
-such Read happens. Three remedies, keyed on the right signal:
+- `bin/lint-org` errors on a heading `:ID:` that appears twice across the
+  tracked files, naming both locations. Only heading properties count.
+- Make the slice member region identifiable to *any* writer, so that
+  `replace=` preserves it the way it preserves drawers. Refusing `replace=`
+  on a `:KIND: slice` heading is the fallback, not the fix.
 
-1. a `PostToolUse` matcher on the first `org_*` call of a session that
-   injects the conventions as `additionalContext` — the `apply-detect` shape,
-   costs one large injection per session and only in sessions doing org work;
-2. fold the load-bearing parts into the org skill's `SKILL.md` — trigger
-   matching is fuzzy, the failure `c10bfb15` already names;
-3. the tools carry the rules: `org_capture`'s refusal already lists the
-   categories in use, and that is the one convention no session has missed
-   since. Rules that ride on a tool result cannot fail to load.
+**Decision:** none.
 
-Start with (1) as the cheap interim; (3) is the same shape as Step 5 and is
-decided there. Re-run `befaed0a`'s verification honestly this time: a fresh
-session that uses *only the tools* on `TODO.org`, and check what loaded.
+## Step 4 — two copies of the truth
 
-**Decision (session):** which of the conventions' 1,082 lines are load-bearing
-during tool-driven work. Measure by which rules the tools' refusals already
-enforce; the remainder is the injection.
+- `2aeb65d6` leads this step because it gates the user's concurrent
+  sessions. `pre-commit-guards` refuses a whole-index commit while the real
+  index is non-empty and `CLAUDE_CODE_SESSION_ID` is set, and it counts a
+  miss like the other guards. The design and the measured `GIT_INDEX_FILE`
+  table are in its drawer. **Decision (user):** an `ALLOW_SWEEP` escape for
+  `--amend`.
+- `f12f9da4`: compare every defun in `config.el` against the running image
+  with `fboundp` (394 measured, 0 unbound). That catches the stale `.elc`
+  and an older load of the right file alike. **Decision (user):** warn or
+  block. My recommendation is a SessionStart line, not a commit-gate block.
+- `8ddd7fa8`: `--at-id` falls back to a scan when the index misses, and its
+  error distinguishes "nowhere" from "not where the index says".
+- `5e731a23`: apply reads the queued event's `cwd` for a deferred targetless
+  capture.
+- `965f94eb`: only the basename collision remains. Propose a retitle.
+- `53b0047d`: detect a live modified buffer diverging from disk before a
+  tool writes. Its clock half is time-tracking only.
 
-## Step 3 — `1b69fe4e`: the time file promoted for a feature that is off
+## Step 5 — the outage and the unknown
 
-`bin/claude-org-setup` promotes `org-time-tracking.md` unconditionally on the
-premise that it "costs a consumer one unread reference". It is read at launch
-every session. Setup cannot read the `userConfig` option — that is why the
-gate went into the hook scripts — but it can take a flag: `--time-tracking`
-(or the same `CLAUDE_PLUGIN_OPTION_TIME_TRACKING` the hooks read, when set)
-promotes the file; otherwise it stays in `references/` as the install-time
-reading its own header claims to be. The file's opening disclaimer becomes
-unnecessary once its presence *is* evidence.
+- `3ad389be`. **Decision (user)** among its three options. My
+  recommendation is option 1: a timed-out tool write leaves a durable marker
+  that SessionStart reports.
+- `7fa68d5c`: its "rarely used" caveat is stale, because capture is now the
+  normal creation path. Build the fallback once `3ad389be` has decided the
+  shared shape.
+- `381ea07d`: a timeboxed attempt to reproduce it, with a buffer put through
+  revert, consolidate, normalise, then archive. If it does not reproduce,
+  the post-condition guard stands and the heading says so.
 
-Also: the 54 clock-shaped lines scattered across the other four machinery
-files (25 in `org-state-transitions.md`) — pull into the time file where
-cheap, leave the rest to Step 4. And name the removal case: a consumer who
-turns the feature off later has an orphan, which is `96ad6e95`'s gap.
+## Not sequenced
 
-**Decision:** none. The constraint (setup cannot see the option) is measured
-and the flag is the shape the script already uses.
-
-## Step 4 — `bf7e0b8e`: the deletion pass, with a budget
-
-Delete, do not relocate — relocation is what produced 1,573 lines, and the
-path-scoped bucket is not "deferred" (Step 2). In scope: dated history and
-incident narrative that stops no specific reversal (`9d009401` swept this seam
-once; it is worked, not closed); prose describing a mechanism that is wired
-and merely narrated; anything Step 5 converts. Out of scope: rationale that is
-what stops a reversal — the maintenance clause, the do-not-re-tighten note.
-
-Two audiences, two budgets, one toggle: state the number per mode
-(self-hosting, consumer) and per `time_tracking` value, or it will be met in
-one configuration and missed in three. Acceptance is the before/after table
-and the number Step 8 asserts.
-
-**Decision (user):** the budget itself, and the unit — lines are what
-`befaed0a`'s target used and the corpus reports in; words are what a session
-pays. Propose both numbers, let the user pick.
-
-## Step 5 — `3cd7b7d3`: the enforcement audit
-
-One read-through of the eight always-loaded files, in the same sitting as
-Step 4. For each clause of the shape "before/after X, do Y", sort Y:
-*mechanical and cheap* → convert to a hook or tool contract and delete the
-sentence once wired (known members: `8a23d6ec` comma-escaping, `3cb3f955`'s
-predicate, the duplicate query of Step 6); *judgement* → stays, the only
-category that earns always-loaded words; *neither* → retire. Prefer the shape
-that makes the omitted step impossible over the shape that reminds; reserve
-blocking for what cannot be done inside a tool. Do not mechanise
-membership-shaped judgement — the retired auto-promotion trigger is the
-evidence.
-
-**Decision (user):** the convert list, before conversion. Present it as a
-table — clause, tier today, tier proposed, cost — and convert only what is
-approved; this is the step that changes what every session is told.
-
-## Step 6 — `c8773ec2`: `org_capture` runs the duplicate query itself
-
-The transcript in the analysis: a session offered to file a defect
-`bbf9fb77` already held, could recite the duplicate-check rule when
-challenged, and had not run it. Put the query inside the tool: before
-writing, search `TODO.org` and `DONE.org`, return near-matches beside the
-capture — or refuse and return them when the match is strong. The check then
-runs whether or not the session remembered it. The two weaker shapes (an
-evidence argument the model fills; a transcript-reading hook) are on the tier
-list above and are not built.
-
-Return the candidates in a form Step 7's pass can consume, so the two share
-one query. Start with title-token overlap and measure its misses on this
-corpus, which has a known duplicate pair to test on.
-
-**Decision (session):** what "near" means and where "strong" refuses; measure
-first, then propose the thresholds with the false-positive count.
-
-## Step 7 — `9fb8c1fb`: the twin pass, a checker subagent with a saturated context
-
-Twins are "caught by review, never by the composer", and no review looks for
-one. A subagent whose whole context is the conventions' story and twin
-paragraphs plus the candidate headings and their bodies — not the 1,573-line
-standing surface — makes the judgement the orchestrator makes badly mid-task.
-The invocation is the hard part: "ask the checker first" is a rule again, so
-it runs as a *pass* — the ceremony session spawns it when a human is already
-reviewing, extending `527be4e3`'s sweep with a second finding. It proposes,
-never restructures; a twin is an error, an unattached task is not, and the
-report keeps them apart. Its count — twins found per pass — is a second series
-beside Step 1's, never folded in; a twin will never be hook-visible.
-
-`7eb7dd8d`'s residue — a request against open work in either direction — is a
-candidate third finding once `0eecf8e7` gives it an inverse index; not a
-member, note it and move on.
-
-**Decision (user):** whether the pass runs from the ceremony session (the
-only invocation that costs no new machinery) or waits for scheduled rituals
-to be first-class. Recommend the ceremony; say so and ask.
-
-## Step 8 — `f2030ce9`: the ratchet
-
-`bin/check-conventions` sums lines over CLAUDE.md plus every
-`.claude/rules/*.md` whose first line is not `---`, compares to a number kept
-in one place, fails with the per-file table on overrun. It must not count the
-path-scoped files (they are a separate problem, not a solved one — Step 2),
-and it must not be satisfiable by relocation into a promoted reference, which
-carries no scope by design. Blocked on Step 4 by `:BLOCKER:`, since a check
-with no number always passes.
-
-**Decision:** none once Step 4 has decided the number and unit.
+- `2a6a1355` is REVIEW. The question is the user's: how many root causes it
+  holds. Bring the candidate seams; the user decides whether it divides.
+- `4acd8ad0`: see *What is already true*.
 
 ---
 
 ## Where this will stop
 
-**This slice has an integration point, so it closes when its pull request
-merges** — not when its last member goes terminal. `REVIEW` is the window
-between the last member closing and the merge, and review findings arrive
-there by construction.
+**The slice closes when its pull request merges**, not when its last member
+goes terminal. A session that lands Steps 1 and 2 has done the slice's day.
 
-A session that lands Steps 1 and 2 has done the slice's day: after those two
-the rate is visible and the conventions reach the sessions that do org work.
-Steps 3–5 make the surface *honest*; 6–8 make the fix *structural*.
-
-**And measure the slice** as its predecessors were: members, elapsed days,
-commits, review findings per member, and
-`M-x claude-code-ide-org-attention-report` over its span, against
-`8bbae3aa`, `749301a0` and `35582d95` — plus, uniquely, **its own number**:
-the miss rate from Step 1, before and after. If that number does not move,
-the slice did not do what it said, whatever else it shipped.
+**Measure it**: members, elapsed days, commits, and review findings per
+member. Also read the miss rate for the rules it touches against the
+prediction above; `158d7e80`'s 2026-10-12 reading falls inside this slice's
+window.
 
 ## Standing rules, with what actually happened
 
@@ -525,3 +384,11 @@ the slice did not do what it said, whatever else it shipped.
   `--check` demanded the deleted archive back (`ecb1dde8`, 2026-09-19).
   Name the thing, not the path, when writing about a file that is meant to
   be gone.
+- **A test run from a session is part of that session.** A Bash tool call
+  exports `CLAUDE_CODE_SESSION_ID`, and the git guards count their refusals
+  under it. On 2026-09-21 four runs of `bin/git-guards-test` wrote 24
+  provoked refusals into the real queue as the session's own misses, and the
+  slice's first measurement read 29 where 4 were genuine. Found only because
+  the number was read line by line before being reported. A suite that
+  drives anything which records must isolate *both* the queue directory and
+  the session id, from its first case.
