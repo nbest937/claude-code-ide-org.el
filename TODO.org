@@ -27,16 +27,17 @@ further =clock_out=s produce no further suggestion for that heading.
 Time-tracking only. It never arises with the feature off.
 :END:
 
-Session 9e00a7a2 queued one =clock_in= on c8773ec2, at 2026-09-21 10:06:31.
-Successive reviews then suggested spans for it with that clock_in's note
-at 11:38, 13:56 and 14:34, and those three were applied as CLOCK lines
-into the DONE heading's LOGBOOK. The queue still offers two more, at 14:44
-and 15:26. The same shape was sighted that morning at 10:52 and not filed.
+A single =clock_in= goes on producing suggested spans for its heading at
+review after review, labelled with its note, and each one applied writes
+another CLOCK line into that heading's LOGBOOK, even after the heading
+is DONE.
 
-By the evening apply, c8773ec2's LOGBOOK held eight phantom annotations
-with that note (10:52, 11:38, 12:34, 13:26, 13:56, 14:34, 14:44 and
-15:26), against one real span, 10:06 to 10:12.
-
+*Established (2026-09-21):* session 9e00a7a2 queued one =clock_in= on
+c8773ec2, at 10:06:31. By the evening apply, c8773ec2's LOGBOOK held
+eight phantom annotations with that note (10:52, 11:38, 12:34, 13:26,
+13:56, 14:34, 14:44 and 15:26) against its one real span, 10:06 to
+10:12. The 10:52 one was noticed that morning and not filed until the
+pattern had repeated.
 
 
 * TODO org_wrap_plan saves a buffer holding the human's unsaved edits, where org_amend would queue and org_slice_add_member refuses
