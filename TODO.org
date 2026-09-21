@@ -74,6 +74,9 @@ The conventions are path-scoped and tool-driven work never loads them (436e0991)
 :END:
 
 CLAUDE.md's own opening names this as the largest source of wrong claims. Caught by the user 2026-09-21: "will reach review UNASSIGNED" was predicted twice and was false — the stretch reached review as nothing (b09aca60). Same session, self-corrected: "needs a new session" for a hook row the docs say reloads live, and a classifier escape hatch the docs do not list. Judgement, so it likely never closes; the count is the point. One dated line per catch.
+
+- [2026-09-21 Mon] Caught by the user: "I was not offered an UNASSIGNED span at that time." The session had said twice that 16:39–16:46 on 2026-09-19 "will reach review UNASSIGNED", inferred from the clock-in rule's wording and never checked against =org_pending_updates=. It reached review as nothing (b09aca60).
+
 ** TODO Miss: a heading closed with its unfinished part left in prose, or its group left un-nominated
 :PROPERTIES:
 :ID:       906477b8-1bdc-491e-a4ce-b9b77d56624d
@@ -397,6 +400,9 @@ The drift analysis's thrust is to make the agent stop forgetting; every heading 
 
 *Resolved 2026-09-19:* every backstop that fires now appends a =miss= naming its rule, and the ceremony report and =bin/miss-rate= print the count — a floor, starting from zero that day. *Open, the user's:* whether a correction in conversation is answered with a capture or amend citing the rule missed, which is the only way the misses a human catches would reach the number.
 
+*The open question dissolved 2026-09-21:* the user had a story filed with one heading per kind of miss ([[id:158d7e80-6d72-4518-a804-d8abf2e7e693][158d7e80]]), so answering a catch is always an amend, and a body amend onto a =:MISS_RULE:= heading is counted as =caught:<slug>=. First counted catch the same day.
+
+
 
 * DOING Path-scoped rules load on a Read, which the org tools exist to replace, so the conventions load only on the discouraged path :code:observed:
 :PROPERTIES:
@@ -562,6 +568,8 @@ still a sentence competing for attention. Prefer the shape that makes the
 omitted step *impossible* (the tool runs the check) over the shape that
 *reminds* (a =Stop= block naming what was missed), and reserve blocking for
 what cannot be done inside the tool.
+
+*The convert list was presented 2026-09-21 as nineteen rows and the user deferred to the session on all but one.* First, all small and all "make the omission impossible": pre-commit refuses an apply-shaped org diff under a non-apply message (3cb3f955's predicate; broken that morning); a =PreToolUse= Bash row blocks =emacsclient= calls to =org-todo=/=org-clock-=; edits to generated rule copies are refused and pre-commit runs =claude-org-setup --check=; =pre-merge-commit= refuses a local merge on main; pre-commit refuses a branch already contained in =origin/main=; pre-commit runs =check-org-dev-skill= when that skill is staged. Then the medium rows: escaping in the tools (8a23d6ec), nomination detection in =org_set_todo='s reply, a once-per-session "time tracking is off" notice, =replace= refusing over an uncommitted diff, the report-borne recovery instructions. Decide separately: =queue-append= deriving clock events from =DOING= transitions, which reverses 4f6a6bb1's separation. Retire as already wired: the =:CREATED:= sentence, the read-only-buffer history, "relay the ceremony prompt". *Row 19, the plan-file link rule, is the user's:* see the conversation of that date; the recommendation was to retire it prospectively and freeze the archive.
 :END:
 
 Every rule of the shape "before X, always do Y" where Y is fixed and cheap is a hook candidate, and each one left as prose is a sentence competing for a turn's attention. One read-through of the always-loaded files, sorting each such clause into convert, keep, or retire.
@@ -738,6 +746,8 @@ or it will be met in one configuration and missed in the other three.
 *For the deletion pass:* count the index in the budget; decide which memories are project rules in the wrong place (the stash rule, the footnote form and the commit practice are all already in the repo, so the memory is a second copy that can disagree — as one just did); and consider a =check-conventions= clause that at least resolves the ids and paths the memories cite, which would have caught four of the six.
 
 *Inherited 2026-09-19 from [[id:1b69fe4e-3dab-4b11-b21b-96320bf9d4e0][1b69fe4e]], which closed without it:* the 54 clock-, guidepost- and span-shaped lines outside the time file (25 in =org-state-transitions.md=, 13 in =org-event-queue.md=, 8 each in =org-mcp-tools.md= and =org-session-tracking.md=, as counted that morning). The time file is now promoted only where the feature is on, so each of those lines is either moved into it — and then costs a default consumer nothing — or deleted. Re-count first. *The measured start for this pass, same day:* a consumer's always-loaded plugin surface is 780 lines with the feature off and 1,047 with it on.
+
+*Unit decided by the user 2026-09-21: words.* The numbers first proposed (8,500 / 4,500 / 6,300) were a flat ~38% cut with no bottom-up basis, and the consumer figure was below what deleting every dated paragraph outright would reach. Measured the same day, words in paragraphs carrying a date, as a proxy for history and incident narrative: 4,114 of 13,802 always-loaded (30%), and two files hold 77% of it — CLAUDE.md 1,715 of 3,880 and =org-state-transitions.md= 1,454 of 3,272. Floors if every dated paragraph went whole: 9,688 self-hosting, 5,513 consumer with time tracking off, 7,128 with it on. The proxy errs both ways (a dated paragraph can hold a live rule; undated narration is missed). Revised proposal, awaiting the user: 10,000 / 5,800 / 7,500.
 :END:
 
 Measured 2026-09-19, prompted by an outside drift analysis that asserted a standing-context volume problem without numbers. The numbers hold, and they say something the analysis did not: relocation moved words, it did not retire them. A compression pass is owed, and it has to delete.
@@ -3397,6 +3407,9 @@ So the **GUI thread is waiting for ownership of a dispatch queue it never receiv
 *Two cleanup facts worth keeping.* The server socket survived the kill and would have been left for the next boot to reconcile. And **all four** =~/.claude/ide/*.lock= files named dead pids — two from =81777= (this crash) and two from =53709=, an *older* crashed Emacs from 2026-09-14 that nobody had noticed. Each Emacs registers two, so the lockfile directory accumulates a pair per crash and nothing prunes it.
 
 *What this changes about the heading.* The title says "at review-buffer quit", which is now too narrow: three at quit and one at apply, with one stack common to both. The fault is in the mac port's frame-update path, not in what the review buffer was doing when it ran. The full sample is preserved outside the repo at =emacs-hang-489d6f61-4th.txt=.
+
+*A second deadlock, not at shutdown, 2026-09-21 ~08:40.* Right after an apply pass finished archiving, Emacs (pid 78949, up 2 days) stopped serving: =emacsclient= refused, MCP calls timed out, the process slept at 0% CPU with its port still listening. A =sample= showed the GUI main thread in =mac_gui_loop= → =__mac_update_frame_end_block_invoke= → =unset_global_focus_view_frame= → =dispatch_sync=, waiting on the lisp thread, which sat in =command_loop= — the same two-thread shape as the shutdown case, reached from a frame update. =SIGUSR2= did nothing and =SIGTERM= was ignored; =SIGKILL= and a relaunch restored service in about three seconds. No lock files existed, so nothing unsaved was lost. The sample itself was in a session scratchpad and is not kept.
+
 
 
 * TODO Plans die at cleanupPeriodDays; decide plansDirectory or keep restoring :code:
