@@ -505,6 +505,13 @@ Incidental:
 
 - [X] [[id:b09aca60-127b-47a4-9177-a86ac90d8fac][b09aca60]] DONE Work after a mid-turn clock_out belongs to no run, so it reaches review as nothing at all rather than UNASSIGNED
 
+*Measured 2026-09-21, at the pull request.*
+
+- *The always-loaded surface:* 13,802 words at composition, 9,856 now against a self-hosting budget of 10,000. A consumer loads 5,028 of 5,800 with time tracking off and 6,672 of 7,500 with it on. =bin/word-budget= refuses any overrun from here.
+- *The miss rate is a baseline, not yet a fall.* Every day before 2026-09-21 reads zero across 49 sessions because nothing counted, so it is an absent instrument and not a zero. On the first counted day =bin/miss-rate= reported 29 misses in 1 of 2 sessions, and 25 of those were not the agent's. 24 were the hook suites' own deliberately provoked refusals, leaking into the calling session's queue through the inherited =CLAUDE_CODE_SESSION_ID=; that is fixed in [[orgit-rev:claude-code-ide-org::bc23c76][bc23c76]], and a full run now leaves the count unchanged. The 25th was a deliberate live check of =generated-guard=. That leaves 4 genuine misses: a fabricated =:ID:= that =org_amend= refused (counted under the pre-narrowing slug =refusal:org_amend=), one footnote block, and two =caught:unverified-claim=, one from the user and one self-caught.
+- *The number this slice exists for* is due 2026-10-12 on [[id:158d7e80-6d72-4518-a804-d8abf2e7e693][158d7e80]]: three weeks of counted sessions, read by rule, against this baseline of 4 genuine misses in one long session.
+
+
 
 * REVIEW "Forgets frequently" has no number: the only recorded misses are once-per-session sentinels, so the rate cannot be seen or shown to fall :code:research:
 :PROPERTIES:
