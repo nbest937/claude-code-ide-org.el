@@ -724,9 +724,9 @@ is not in it?*
 ## The `:PLAN:` drawer
 
 **Write the plan into the drawer from the start.** A heading's prospective
-prose — motivation, options, the reasoning behind an approach, and the
-`[[file:~/.claude/plans/...][Plan]]` link if there is one — goes into `:PLAN:`
-at the moment it is composed, not at `DONE`. The body carries a brief
+prose — motivation, options, the reasoning behind an approach — goes into
+`:PLAN:` at the moment it is composed, not at `DONE`. The drawer *is* the
+plan; no link to a plan file is written (retired 2026-09-21). The body carries a brief
 statement of the problem and the proposed solution, two to five sentences. At
 `DONE` the debrief is appended to the body.
 
@@ -780,6 +780,29 @@ when a finished heading has a substantial body and no `:PLAN:` drawer, and
 the last moment anyone knows where the seam is. Before the empty drawer
 existed, the only way to satisfy the warning on a debrief-only heading was to
 wrap the debrief into a drawer readers are told to skip. See `:ID:` f421c5c3.
+
+### A slice's plan, and its members'
+
+**A slice's `:PLAN:` holds the order and the reasons for it. Each member's
+`:PLAN:` holds that member's design and decisions** (the user, 2026-09-21).
+The slice's drawer gives each member one line saying where it falls and
+why, and nothing that member's own drawer should hold. A decision about a
+member, whether made in conversation or ahead of its session, is appended
+to *that member's* drawer as `Decided <date> (<who>): …`. The session
+implementing the step then reads it on arrival, and the slice's drawer
+never goes stale on it. Where the two disagree, the member wins.
+
+**A member with no drawer gets one before its step is worked**, using
+`org_wrap_plan` on a pre-convention body or a short `org_amend
+drawer=PLAN`, so that a decision always has somewhere to land. *This clause
+is scaffolding.* It lapses once `6521dd56`'s corpus pass leaves every open
+heading in canonical shape and the lint requires that shape, and that
+slice carries the member that retires it.
+
+**Never open a list item in a slice's drawer with an `id:` link.** The
+member scan reads any `- [[id:…]]` line in a slice heading as a member,
+drawers included, and rewrites it (`7ee3b71a`). Lead with the id as plain
+text instead.
 
 ### Revising a pre-convention body
 

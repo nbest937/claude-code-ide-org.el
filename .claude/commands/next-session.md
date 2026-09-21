@@ -34,15 +34,14 @@ the plan, not the membership.
   wins.** Plans get premises wrong from the slice's altitude. Every wrong
   claim in the 2026-09-18 plan came from the plan, and none came from a
   heading.
-- **Every step ends with a `Decision` line** naming what is unresolved and
-  whose it is, or `none`. That line is the marker `c10bfb15` asks for.
-  Surface the user's decisions before doing the step that depends on them.
-- **No drawer, or one too thin to act on: stop and ask for a plan.** Do not
-  compose one silently from the slice's title.
-- **Never start a drawer list item with an `id:` link.** The slice refresh
-  reads any `- [[id:…]]` line in the heading as a member and rewrites it
-  (`7ee3b71a`, 2026-09-21). Write the id as plain text at the start of the
-  line.
+- **At each step, read that member's own `:PLAN:` before starting.** The
+  slice's drawer gives the order. The member's drawer gives the design and
+  every decision already made, recorded as `Decided <date> (<who>)` lines.
+  An open question found there that is not decided goes to the user
+  *before* the step, never partway through it. The rule is in the org
+  conventions, "A slice's plan, and its members'".
+- **No slice drawer, or one too thin to act on: stop and ask for a plan.**
+  Do not compose one silently from the slice's title.
 
 ---
 
