@@ -7228,45 +7228,31 @@ a test per site and the four 2026-08-31 captures re-run with the prefix.
 =org-id-locations=: it leaves its ids unknown to org.
 :END:
 
-*Found 2026-08-31 by using it.* Filing four children under [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]] with
-=(claude-code-ide-org-capture TITLE "9e627dc0" ...)= returned =Error: Cannot
-find target ID "9e627dc0"= four times. The same prefix resolves fine everywhere
-else — =org_body=, =org_amend=, =org_set_todo=, =org_outline='s scope — and the
-capture succeeded immediately when handed the full UUID.
+Some =id= and =target= arguments do not resolve through
+=claude-code-ide-org--id-find=, so an 8-character prefix that every
+other tool accepts either errors or, worse, silently selects nothing.
+Prefix expansion exists so that no caller ever types a full UUID, and a
+tool that demands one pushes the caller back to typing it from memory,
+the failure that produced nine fabricated ids across two sessions.
 
-*This is the exact defect =--id-find='s own docstring is a monument to*,
-recurring at a call site that predates or bypasses it. That docstring records
-the first version of the fix expanding prefixes inside =--at-id= only, a commit
-message claiming that therefore covered every tool taking an =id=, and it not
-being true — =claude-code-ide-org-amend= did its own =org-id-find= first.
-*Fourteen such call sites existed.* This is a fifteenth, in the *target*
-argument rather than the =id= argument, which is presumably why the sweep missed
-it.
+*Established:*
+- =org_capture='s target: four captures under =9e627dc0= failed with
+  =Cannot find target ID= and succeeded with the full UUID (2026-08-31).
+- =claude-code-ide-org-refresh-slice='s own =ID= compares with =equal=,
+  so a prefix matches nothing and the reply reads as a clean no-op:
+  =0 slices refreshed, 0 member lines rewritten= (2026-09-01).
+- =:DROPPED:= in the slice refresh: a prefix there is ignored. On
+  8a2eb687, =4acd8ad0= kept its checkbox and its =:BLOCKER:= place for
+  four days while a full id added the same day dropped correctly
+  (2026-09-21).
+- =--id-find='s docstring records fourteen such sites fixed the first
+  time. These three surfaced by use, not by search, which suggests that
+  sweep went by call shape rather than by argument.
 
-*Why it matters more than the keystrokes.* The whole point of prefix expansion
-is that a caller never has to produce a full UUID, and this project's memory
-rule is to never type one from recall because nine were fabricated across two
-sessions with correct prefixes and wrong tails. A tool that demands the full id
-pushes the caller straight back into the failure mode the expansion exists to
-remove — and the natural workaround is to type it from memory.
-
-*A second call site, found 2026-09-01 by using it.*
-=claude-code-ide-org-refresh-slice='s own =ID= argument compares with =equal=
-against the full =:ID:=:
-
-: (equal (downcase (or (org-entry-get nil "ID") "")) (downcase id))
-
-so =(claude-code-ide-org-refresh-slice "b36e6369")= matches nothing and returns
-=0 slices refreshed, 0 member lines rewritten, 0 blockers updated=. *It looks
-exactly like a working no-op* — a plausible answer for a slice that was already
-up to date — which is worse than the capture case, where the reply at least said
-=Error: Cannot find target ID=.
-
-- [2026-09-21 Mon] A fourth site, and the silent shape: the slice refresh
-  ignores an 8-character prefix in =:DROPPED:=. On 8a2eb687, =4acd8ad0= (a
-  prefix, written 2026-09-17) kept its checkbox and its =:BLOCKER:= place for
-  four days, while a full id added the same day dropped correctly.
-
+*Ruled out:*
+- That fixing =--at-id= covered every tool taking an id. A commit
+  claimed so, and =claude-code-ide-org-amend= did its own =org-id-find=
+  first.
 
 
 * TODO A/B the clock record across the phase-3 fixes, since much of what is logged now is bogus :code:research:
