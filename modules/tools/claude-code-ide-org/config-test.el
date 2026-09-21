@@ -2684,6 +2684,51 @@ the temp directory afterwards."
            (kill-buffer buf)))
        (delete-directory dir t))))
 
+;;; org_amend replace= and git (TODO.org :ID: 3cd7b7d3)
+
+(ert-deftest claude-code-ide-org-test-amend-replace-refuses-over-an-uncommitted-diff ()
+  "\"COMMIT FIRST: git is the undo, and it is the only one\" was a sentence
+in the tool's description.  The tool can see whether the file is
+committed, so it checks: a replace is refused while the heading's file
+carries an uncommitted diff, and allowed once it is clean.  Outside a
+git repository it cannot tell, and allows."
+  (let* ((dir (file-name-as-directory (make-temp-file "cciorg-replace" t)))
+         (org (expand-file-name "TODO.org" dir))
+         (org-id-locations-file (expand-file-name ".org-id-locations" dir))
+         (org-id-locations (make-hash-table :test 'equal))
+         (org-id-files nil)
+         (id "abababab-0000-4000-8000-000000000001"))
+    (unwind-protect
+        (progn
+          (with-temp-file org
+            (insert "#+TODO: TODO DOING | DONE\n* TODO A heading\n:PROPERTIES:\n:ID:       "
+                    id "\n:END:\nThe first body.\n"))
+          (claude-code-ide-org-test--git dir "init" "-q")
+          (claude-code-ide-org-test--git dir "add" "TODO.org")
+          (claude-code-ide-org-test--git dir "-c" "user.email=t@e" "-c" "user.name=T"
+                                         "commit" "-q" "-m" "seed")
+          (org-id-add-location id org)
+          ;; Clean: allowed.
+          (should (string-prefix-p "Revised: "
+                                   (claude-code-ide-org-amend id "A second body." nil t)))
+          ;; That write is now an uncommitted diff: the next replace is refused,
+          ;; and the body it would have destroyed is still there.
+          (let ((reply (claude-code-ide-org-amend id "A third body." nil t)))
+            (should (string-prefix-p "Error: " reply))
+            (should (string-match-p "commit" reply)))
+          (should (string-match-p "A second body"
+                                  (with-temp-buffer (insert-file-contents org) (buffer-string))))
+          ;; An append is never refused: it destroys nothing.
+          (should (string-prefix-p "Amended: "
+                                   (claude-code-ide-org-amend id "An appended line.")))
+          (claude-code-ide-org-test--git dir "-c" "user.email=t@e" "-c" "user.name=T"
+                                         "commit" "-q" "-am" "second")
+          (should (string-prefix-p "Revised: "
+                                   (claude-code-ide-org-amend id "A third body." nil t))))
+      (let ((buf (get-file-buffer org)))
+        (when buf (with-current-buffer buf (set-buffer-modified-p nil)) (kill-buffer buf)))
+      (delete-directory dir t))))
+
 ;;; The duplicate query inside org_capture (TODO.org :ID: c8773ec2)
 
 (defun claude-code-ide-org-test--seed-heading (file keyword title id)

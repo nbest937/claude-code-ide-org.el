@@ -3728,6 +3728,32 @@ the item rather than a write."
             (insert sep (string-trim (or text "")) "\n")))
         nil))))
 
+;;; A replace is refused while git could not undo it (TODO.org :ID: 3cd7b7d3)
+
+(defun claude-code-ide-org--id-file-uncommitted-p (id)
+  "Non-nil when the file holding ID carries an uncommitted diff.
+
+\"Commit first: git is the undo, and it is the only one\" was a sentence
+in `org_amend's description, recalled or not.  The tool can see the
+answer, so it asks.  Nil when ID does not resolve, when the file is in no
+git repository, or when git cannot be run -- it refuses only when it
+*knows* the undo is missing."
+  (let* ((marker (ignore-errors (claude-code-ide-org--id-find id 'marker)))
+         (file (and marker (buffer-file-name (marker-buffer marker)))))
+    (when marker (set-marker marker nil))
+    (when file
+      (let ((default-directory (file-name-directory file))
+            (name (file-name-nondirectory file)))
+        (cl-flet ((git (&rest args)
+                    (ignore-errors (apply #'call-process "git" nil nil nil args))))
+          ;; Tracked-in-a-repository is asked FIRST.  Outside one,
+          ;; `git diff A B' silently becomes a --no-index comparison of two
+          ;; paths and exits 1, which read as "uncommitted" for every file
+          ;; in no repository at all -- caught by the existing replace
+          ;; tests, which run in a temp directory.
+          (and (eql 0 (git "ls-files" "--error-unmatch" "--" name))
+               (eql 1 (git "diff" "--quiet" "HEAD" "--" name))))))))
+
 (defun claude-code-ide-org-amend (id text &optional note replace drawer)
   "Append TEXT to the body of the heading with :ID: ID.
 
@@ -3809,6 +3835,9 @@ appended there would corrupt the record silently."
     "Error: replace into a drawer is not offered -- wholesale revision of \
 drawer content is invisible to later readers, who are told to skip it on \
 finished headings. Append, or revise by hand and say so.")
+   ((and replace (claude-code-ide-org--id-file-uncommitted-p id))
+    "Error: this heading's file has uncommitted changes, and replace is \
+undone only through git. Commit the file first, then revise.")
    (t
   ;; Resolve `[[id:...]]' links first, so a fabricated UUID is refused
   ;; rather than written and caught later by `bin/lint-org'. An

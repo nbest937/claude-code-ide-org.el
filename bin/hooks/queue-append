@@ -83,7 +83,8 @@ is identity, not annotation|identity-property
 drawer must be one of|drawer-misuse
 replace into a drawer is not offered|drawer-misuse
 is closed, and a closed slice|slice-membership
-carries no TODO keyword on disk|slice-membership'
+carries no TODO keyword on disk|slice-membership
+uncommitted changes, and replace|replace-uncommitted'
 
 if [ "${1:-}" = "--refusal-fragments" ]; then
   printf '%s\n' "$refusal_table" | cut -d'|' -f1

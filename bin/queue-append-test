@@ -502,6 +502,7 @@ org_amend|Error: drawer must be one of PLAN, DEBRIEF. :PROPERTIES: and :LOGBOOK:
 org_amend|Error: replace into a drawer is not offered -- wholesale revision|drawer-misuse
 org_slice_add_member|Error: "S" is closed, and a closed slice's list is a record|slice-membership
 org_slice_add_member|Error: "x" carries no TODO keyword on disk, and org-depend blocks only|slice-membership
+org_amend|Error: this heading's file has uncommitted changes, and replace is undone only through git.|replace-uncommitted
 CASES
 
 while IFS='|' read -r tool message why; do
