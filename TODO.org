@@ -513,6 +513,17 @@ decided with it; 1 is the cheap interim.
 :CATEGORY: Dev
 :BLOCKER:  bf7e0b8e-f83a-4d4a-9950-3ab23a225156
 :END:
+:DEBRIEF:
+Shipped in the commit titled "The ratchet: a word budget on the always-loaded rules, enforced at commit" on =feature/rules-in-wrong-places=. *Different from the plan:* words rather than lines, three budgets rather than one number (10,000 / 5,800 / 7,500, the user's), and a standalone script that =check-conventions= calls, so the numbers have exactly one home and the test suite can run it against a fixture root.
+
+*Verified three ways.* Fourteen checks against a fixture, including the two traps the plan named: a path-scoped file is not counted, and prose containing the string "paths:" does not make a file scoped (frontmatter is parsed, not grepped). A mutation on the real repo — two words appended to CLAUDE.md — took the live figure to 10,001 and the script to exit 1. And the wired path: a real =git commit= of that mutation was refused by pre-commit with "self-hosting OVER 10001 / 10000"; the file was restored and =HEAD= did not move. My first draft of the test expected 247 where the fixture held 246 — the script was right and the arithmetic in the test was not.
+
+*Settled here, inherited from bf7e0b8e:* the generated headers count, because the promoted copies are measured as rendered.
+
+*What it cannot see, and its header says so:* relocation into a path-scoped file or into =SKILL.md= escapes the sum. Not filed: a relocation check would need to know what a sentence *is*, and the budget's pressure plus the header's warning are the honest limit of a mechanical check. *No always-loaded prose announces the ratchet* — the surface has one word of headroom (9,999), and a check that refuses with its own message is the slice's thesis applied to itself.
+
+The commit: [[orgit-rev:claude-code-ide-org::58499f7][58499f7]].
+:END:
 :PLAN:
 *The ratchet.* [[id:bf7e0b8e-f83a-4d4a-9950-3ab23a225156][bf7e0b8e]] measures
 the always-loaded surface and decides a budget; this asserts it. Without the
@@ -552,6 +563,9 @@ solved".
 :END:
 
 The rule count has only ever grown, one incident at a time, and no gate notices. Once a budget exists, bin/check-conventions asserts it at commit, so a compression pass cannot be silently undone by the next six postmortems.
+
+*Resolved 2026-09-21:* =bin/word-budget= sums the always-loaded words in three configurations against budgets kept in that one file, =check-conventions= runs it in both modes, and pre-commit therefore refuses the commit that overruns — proven on the real repo with a two-word mutation.
+
 
 
 * TODO Audit the always-loaded rules for clauses a hook could enforce, since prose recall is what fails :code:
