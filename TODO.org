@@ -2,6 +2,15 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO The duplicate query reads titles only, so a paraphrase gets past it — including the case that motivated it :code:observed:
+:PROPERTIES:
+:ID:       12033cc8-3b15-44b1-a80c-068f63f21025
+:CREATED:  [2026-09-21 Mon 10:12]
+:CATEGORY: Tools
+:END:
+
+org_capture now searches TODO.org and DONE.org on every capture by idf-weighted title-token overlap (c8773ec2). Probed against the real corpus 2026-09-21, it found the mac-port deadlock heading, the unrun-suites heading and the twin-pass heading from reworded titles — and found nothing for "org_capture silently drops an argument it does not recognise", whose twin is bbf9fb77, "An MCP tool accepts arguments it does not have, and says nothing". That is the transcript the whole heading was filed from. The two share no pair of subject tokens: "argument" and "arguments" differ, and everything else is paraphrase. Candidate remedies, unmeasured: fold simple plurals; match the new title's identifier-shaped tokens (org_capture, a function name, a file name) against candidate *bodies*, which would have caught this one; or leave paraphrase to the twin pass (9fb8c1fb), which reads bodies with judgement. Measure each on the corpus before choosing — the first two cost noise.
+
 * TODO The shipped skill and org_log_background_plan still teach the retired plan-file link :code:
 :PROPERTIES:
 :ID:       f9fdea91-c93a-4e96-8d49-133cb50d6dfb
@@ -212,6 +221,8 @@ not.
 counts hook-visible misses; a twin is not one of those and never will be,
 so this pass's own count — twins found per pass — is a second series,
 kept beside the first, not folded into it.
+
+*Decided by the user 2026-09-21: the twin pass runs from the ceremony session* ("adding the twin pass to the ceremonies feels right") — not deferred until scheduled rituals are first-class. It is the one invocation that costs no new machinery, and a human is already reviewing when it reports.
 :END:
 
 The conventions say a twin — two headings for the same work — "is caught by review, never by the composer", and no review looks for one: the ceremony names pending items, drawer order and unarchived closes, and a twin is none of those. The drift analysis's §4.4, as revised 2026-09-19, names the mechanism for judgement-level curation that this project had not: a subagent invoked for one question, holding the relevant convention section and the query result and nothing else, run as a pass rather than remembered mid-task.
@@ -628,6 +639,17 @@ Every rule of the shape "before X, always do Y" where Y is fixed and cheap is a 
 :CREATED:  [2026-09-19 Sat 08:56]
 :CATEGORY: Tools
 :END:
+:DEBRIEF:
+Shipped in [[orgit-rev:claude-code-ide-org::4a9387b][4a9387b]]. *Measured before anything was chosen,* as the plan asked, leave-one-out over the 563 scorable titles in this tracker. Plain Jaccard was useless here — titles are whole claims, and the known duplicate pair scored 0.27. The score adopted is the idf-weighted share of the *new* title's tokens found in the candidate, at least two shared: asymmetric on purpose, because the question is "is this already said", not "are these alike". At 0.4, 43 headings (7.6%) would have been shown a candidate; at 0.5, 16, about eleven of them true relatives; the known pair scores 0.59 one way and 0.32 the other.
+
+*"Strong" refuses nothing, which differs from the plan.* The four pairs at 0.7 and above were two real supersessions and two deliberate siblings, so a refusal on overlap would have been wrong half the time. Only a loosely-equal title refuses, and =allow_duplicate=true= overrides it.
+
+*Verified:* five ERT tests, run red first, including that exactly one reply line carries the "(ID: ...)" shape =queue-append= recovers the new id from (candidates print ids in braces). Probed on the real corpus in a batch Emacs with the org-id cache pointed at a scratch file: three reworded titles found their headings, two unrelated titles found nothing, 0.18 s per capture over 574 headings. *Its miss is the motivating case* — see the body.
+
+*Candidates are data:* =--duplicate-candidates= returns plists, which is the form the twin pass is to consume. In a tracker of a few dozen headings idf carries little signal and the score understates; the docstring says so. *No always-loaded prose was added* — the surface had one word of headroom and the reply carries the rule.
+
+*Not live until the module is reloaded:* the running Emacs was restarted at 08:50 that morning, before this existed.
+:END:
 :PLAN:
 *The observed miss, 2026-09-19*, from a transcript quoted in an outside drift
 analysis: a session noticed that =org_capture= silently discards an
@@ -683,6 +705,9 @@ query.
 :END:
 
 The duplicate check before a capture is a rule a session must remember at the moment of acting, and it is the rule an outside drift analysis caught being missed live. Moving it inside the tool makes the omission unreachable rather than rare, and costs no new tool.
+
+*Resolved 2026-09-21:* =org_capture= now searches =TODO.org= and the =DONE.org= beside it on every capture and lists up to three near matches in its reply; only a loosely-equal title is refused. It would not have caught the transcript this heading was filed from — a paraphrase — and that is filed as [[id:12033cc8-3b15-44b1-a80c-068f63f21025][12033cc8]].
+
 
 
 * NEXT The always-loaded surface is 1,573 lines, and the split that shrank CLAUDE.md is what grew it :code:
