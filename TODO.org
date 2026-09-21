@@ -756,6 +756,36 @@ The conventions say a twin — two headings for the same work — "is caught by 
 :COOKIE_DATA: checkbox recursive
 :BLOCKER:  436e0991-c8ac-40fb-860d-a6c4c381bee5
 :END:
+:DEBRIEF:
+Eight planned members, b09aca60 adopted, six review findings filed as
+members and fixed, and one incidental (a9d37aee). Worked from 2026-09-19
+to 2026-09-21 and merged as PR #29.
+
+*What shipped:* misses counted by every blocking hook, every genuine
+=org_*= refusal and every git guard, read per day by =bin/miss-rate= and
+in the ceremony; the conventions pointer on the first org call; the time
+rules promoted only where tracking is on; the always-loaded surface cut
+from 13,802 words to under 10,000 and ratcheted by =bin/word-budget=; the
+duplicate query inside =org_capture=; the twin pass; the plan in the
+=:PLAN:= drawer with plan-file links retired; and a static
+=/next-session=.
+
+*Measured:* a baseline of 8 genuine misses in one session on the first
+counted day, once 24 leaked test-fixture misses had been found and
+removed. The fall, or not, is due 2026-10-12 on 158d7e80.
+
+*The review window:* =/code-review= found six defects, all real: a
+setup re-run deleting a consumer's time rules, deferred writes skipping
+escaping, archived misses leaving the count, a conflicted local merge
+slipping the refusal, a two-line note making a bogus rule, and the drift
+guard reading the working tree. Each was reproduced with a failing test
+and fixed on the branch. The slice should have entered REVIEW when that
+review started. That is now a rule, and a hook (a9d37aee).
+
+*Handed on:* the consumer install checks are 2b8930da's; whether sessions
+act on the conventions notice is counted on d606eaff; the NEXT slice is
+8a2eb687.
+:END:
 :LOGBOOK:
 CLOCK: [2026-09-19 Sat 08:29]--[2026-09-19 Sat 08:32] =>  0:03
 - [2026-09-19 Sat 08:29]--[2026-09-19 Sat 08:32] assigned at review
@@ -904,6 +934,12 @@ Incidental:
 - *The miss rate is a baseline, not yet a fall.* Every day before 2026-09-21 reads zero across 49 sessions because nothing counted, so it is an absent instrument and not a zero. On the first counted day =bin/miss-rate= reported 29 misses in 1 of 2 sessions, and 25 of those were not the agent's. 24 were the hook suites' own deliberately provoked refusals, leaking into the calling session's queue through the inherited =CLAUDE_CODE_SESSION_ID=; that is fixed in [[orgit-rev:claude-code-ide-org::bc23c76][bc23c76]], and a full run now leaves the count unchanged. The 25th was a deliberate live check of =generated-guard=. That leaves 4 genuine misses: a fabricated =:ID:= that =org_amend= refused (counted under the pre-narrowing slug =refusal:org_amend=), one footnote block, and two =caught:unverified-claim=, one from the user and one self-caught.
 - *The number this slice exists for* is due 2026-10-12 on [[id:158d7e80-6d72-4518-a804-d8abf2e7e693][158d7e80]]: three weeks of counted sessions, read by rule, against this baseline of 4 genuine misses in one long session.
 - [2026-09-21 Mon] At the user's direction, the 24 leaked test-fixture misses were deleted from this session's queue file. These were the four =bin/git-guards-test= runs between 10:56 and 11:29, each line checked to be a =miss= before removal, with a backup kept in the session scratchpad. =bin/miss-rate= now reads 9 for the day. Eight are genuine (among them the footnote block on =ccfd89ce= and three later catches), and one is the deliberate 09:28 =generated-guard= check, which was kept. So the 2026-10-12 reading starts from a clean baseline of 8 genuine misses in one session.
+
+*Resolved 2026-09-21:* merged as PR #29
+([[orgit-rev:claude-code-ide-org::9476516][9476516]]). Misses are now
+counted and the listed rules moved out of recall into hooks, guards and
+tools. Whether the miss rate falls is 158d7e80's reading on 2026-10-12.
+
 
 
 * DONE "Forgets frequently" has no number: the only recorded misses are once-per-session sentinels, so the rate cannot be seen or shown to fall :code:research:
