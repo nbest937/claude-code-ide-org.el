@@ -158,6 +158,9 @@ Hook-backed (footnote-check, rule =footnote=), but the hook reads only a turn's 
 
 Hook-backed only for the no-clock case (clock-target-check, rule =clock-target=). First instance of the third case 2026-09-19: a mid-turn clock_out left seven minutes of commits in no run at all (b09aca60). One dated line per catch.
 
+- [2026-09-21 Mon] Self-caught: the turn that nested de6de108's children in 8a2eb687 edited =TODO.org= (a hand deletion and six member adds) before any =org_clock_in=. The clock-in came after the writes, so the work reaches review unassigned. =clock-target-check= did not fire, because it nags once per session and this session had long since been nagged. That is the sentinel limit 63713df3 was filed about.
+
+
 
 ** TODO Miss: a heading filed, or offered, without first searching for the one that already holds it
 :PROPERTIES:
