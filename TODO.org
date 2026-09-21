@@ -596,6 +596,13 @@ what cannot be done inside the tool.
 
 Every rule of the shape "before X, always do Y" where Y is fixed and cheap is a hook candidate, and each one left as prose is a sentence competing for a turn's attention. One read-through of the always-loaded files, sorting each such clause into convert, keep, or retire.
 
+*The six small conversions shipped 2026-09-21*, in [[orgit-rev:claude-code-ide-org::30df9b7][30df9b7]] (git hooks) and [[orgit-rev:claude-code-ide-org::77eae9e][77eae9e]] (=PreToolUse= guards). =commit-msg= refuses net-new State/CLOCK lines under a message naming no apply pass; =pre-merge-commit= refuses a local merge on main, a catch-up excepted; =pre-commit-guards= refuses a commit onto a branch =origin/main= already contains, refuses rule copies out of step with their references, and runs the org-dev skill's check when that skill is staged; =emacsclient-guard= and =generated-guard= are the repo's first =PreToolUse= hooks and ship in the plugin too. Every guard names its override and fails open.
+
+*Verified:* 22 + 19 new checks, all sixteen shell suites and the 701 ERT tests green. The tool guards were proven to discriminate (9 failures with both stubbed open). =generated-guard= was tripped once live, deliberately, and blocked the edit — so the queue holds one =generated-edit= miss from 2026-09-21 that was a test, not a miss. The git hooks ran on their own commit. *Caught by the suite:* the merged-branch guard's first draft was silently dead — =grep -q= in a pipe under =pipefail=.
+
+*What the conversions did to the budget: almost nothing.* CLAUDE.md 3,652 → 3,646 words. Each sentence was replaced by a shorter one naming the mechanism rather than deleted, because a reader still needs to know the hook exists. The words come out in the deletion pass, not here. *Remaining:* the medium rows, and the separate decision on deriving clock events.
+
+
 
 * TODO org_capture should run the duplicate query itself, so the check the rule asks for cannot be skipped :code:
 :PROPERTIES:
