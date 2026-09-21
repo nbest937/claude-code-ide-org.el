@@ -2,6 +2,15 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Nothing in the drift slice was exercised in a consumer install: the new hooks, the conditional time-file promotion, the twin-checker agent :code:
+:PROPERTIES:
+:ID:       2b8930da-5223-4b75-b4f6-251a28552d1b
+:CREATED:  [2026-09-21 Mon 10:21]
+:CATEGORY: Dev
+:END:
+
+Every consumer-facing change on feature/rules-in-wrong-places was verified in this repo only, which wires its hooks through .claude/settings.json and links .claude/agents by hand. Unverified in a plugin consumer: that hooks.json's two PreToolUse guards, the org_.* refusal/conventions-inject row and the session marker fire; that claude-org-setup leaves org-time-tracking.md unpromoted with the feature off and removes a stale copy; that conventions-inject falls back to the shipped reference where nothing is promoted; that a catch amended from the consumer resolves against the plugin's tracker; and whether a plugin's agents/ directory is offered to the consumer at all — the manifest names no agents key. agentic-euchre is the available consumer; its skill link resolves to the worktree claude-code-ide-org-swc, to be moved forward when the slice merges. Do it then, before resuming work there.
+
 * TODO The duplicate query reads titles only, so a paraphrase gets past it — including the case that motivated it :code:observed:
 :PROPERTIES:
 :ID:       12033cc8-3b15-44b1-a80c-068f63f21025
@@ -173,6 +182,19 @@ Observed 2026-09-19: the first plan unlinked under the drawer convention was del
 :CREATED:  [2026-09-19 Sat 14:01]
 :CATEGORY: Meta
 :END:
+:DEBRIEF:
+Shipped on =feature/rules-in-wrong-places= in the commit titled "The twin pass: candidates from the shared query, a checker agent, offered at the ceremony". =--twin-candidates= pairs each live heading created in the last 14 days with up to three candidates from the tracker and its archive, building the corpus once and never pairing a heading with itself; =bin/twin-candidates= is the thin stub, and =--record M N= appends this pass's own series to =twin-pass.log=, beside the miss rate and never folded into it. =agents/twin-checker.md= (linked into =.claude/agents=) holds the judgement, with no tool that changes a heading. The ceremony report counts the pairs and tells the session to *offer* the pass; possible twins raise the report on their own, since unlike the miss count they are something to do.
+
+*Verified.* Three ERT tests run red first, eight Emacs-free checks on the stub, 709 ERT tests and eighteen shell suites green. Reloaded in the running Emacs under the org-dev skill's rule — precondition stated, new symbols and the file's *last* defun confirmed bound, port still serving — and the stub then returned the same three pairs the batch run had.
+
+*The first pass, run for real in a fresh context, 2026-09-21:* three pairs, 69 seconds, 87k tokens. One *sibling*, found from the bodies citing each other as a deliberate code/data split; one *unrelated*, shared vocabulary only; one *already done* — a live TODO filed 2026-09-10 whose two proposed halves both shipped under a DONE heading filed a day later, which the checker confirmed by finding the refusal string, the tool argument and the lint rule in =config.el=. It also noticed the one real difference (the live heading wanted the lint as a warning; what shipped is an error) and said that would be a new, narrower heading. It changed nothing; the proposal went to the user. Log line: pairs=3 twins=1.
+
+*The narrowing claim held, on one run.* The orchestrating session had those two titles side by side in its own output and did not look; the checker, with nothing else in its window, read six bodies and checked the code. One run is an existence proof, not a rate.
+
+*Two instructions were ambiguous and were sharpened from its report:* what to read when a heading has neither drawer, and how *sibling* differs from *unrelated*.
+
+*Not done.* [[id:527be4e3-d77a-487b-b309-ee677c109b13][527be4e3]]'s membership finding is not built — the pass has one finding, and that heading was not told anything new, since its own plan already expects to extend this pass. The candidates inherit the title-only query's blindness to paraphrase ([[id:12033cc8-3b15-44b1-a80c-068f63f21025][12033cc8]]); the brief asks the checker to report twins it notices that the list missed, which is a weak net. Whether the plugin ships =agents/= to a consumer is unverified: the manifest names no agents key, and only this repo's =.claude/agents= link was exercised.
+:END:
 :PLAN:
 *Why a subagent and not a rule, in this project's own terms.* The five
 tiers of enforcement recorded on the drift slice run from prose the model
@@ -226,6 +248,9 @@ kept beside the first, not folded into it.
 :END:
 
 The conventions say a twin — two headings for the same work — "is caught by review, never by the composer", and no review looks for one: the ceremony names pending items, drawer order and unarchived closes, and a twin is none of those. The drift analysis's §4.4, as revised 2026-09-19, names the mechanism for judgement-level curation that this project had not: a subagent invoked for one question, holding the relevant convention section and the query result and nothing else, run as a pass rather than remembered mid-task.
+
+*Resolved 2026-09-21:* the twin pass exists — candidates from the query =org_capture= runs, a =twin-checker= agent that reads both bodies and only proposes, and an offer in the ceremony report. Its first run judged three pairs in 69 seconds and found one live heading whose work had already shipped.
+
 
 
 * DOING [1/8] A rule the agent can recite and still misses is a rule in the wrong place: count the misses, then move the rules out of recall :code:
@@ -2701,7 +2726,7 @@ whether a body that arrives *already* wrapped is left alone.
 :ID:       6a207b00-8fa1-441e-8ee5-354702bc979b
 :CREATED:  [2026-09-11 Fri 20:05]
 :CATEGORY: Dev
-:BLOCKER:  35582d95-003a-4735-9b19-36f7ad813f0d 8a2eb687-28da-4d44-893b-db59298bdc5b 749301a0-0bd0-4fbd-b3f7-79739226e15a 6521dd56-8772-416b-9435-6da78bb86b06
+:BLOCKER:  35582d95-003a-4735-9b19-36f7ad813f0d 8a2eb687-28da-4d44-893b-db59298bdc5b 749301a0-0bd0-4fbd-b3f7-79739226e15a 6521dd56-8772-416b-9435-6da78bb86b06 2b8930da-5223-4b75-b4f6-251a28552d1b
 :END:
 :LOGBOOK:
 - State "WAITING"    from "TODO"       [2026-09-15 Tue 10:09] \\

@@ -19,8 +19,10 @@ The session that filed a heading was busy with something else; you are not.
    heading with up to three candidates, scored by title overlap. **The
    score is only why the pair is in front of you. It is not evidence.**
 2. For every pair, read both headings whole with `org_body` (an 8-character
-   id prefix works). For a finished candidate read its `:DEBRIEF:`; for a
-   live one read its `:PLAN:`. Judge from the bodies, never from titles.
+   id prefix works). On a finished heading the `:DEBRIEF:` is what
+   happened; on a live one the `:PLAN:` is the fullest statement of intent.
+   Older headings have neither drawer — the whole-heading read is then the
+   evidence. Judge from the bodies, never from titles.
 3. Sort each pair into exactly one of:
    - **twin** — the same work. Both would be closed by the same change.
    - **already done** — the candidate is finished and its debrief shows the
@@ -28,9 +30,11 @@ The session that filed a heading was busy with something else; you are not.
      test where one is named; a debrief can be wrong.
    - **residue** — the candidate is finished and the recent heading is what
      it left undone. Not a twin; the pair should cite each other.
-   - **sibling** — related, deliberately distinct. Say what distinguishes
-     them in one clause.
-   - **unrelated** — the overlap was vocabulary.
+   - **sibling** — parts of one piece of work, deliberately distinct; the
+     bodies usually say so or cite each other. Say what distinguishes them
+     in one clause.
+   - **unrelated** — the overlap was vocabulary: same subsystem or the same
+     words, but no change to one would touch the other.
 4. When unsure between *twin* and *sibling*, say *sibling* and say what you
    could not tell. A false twin costs a human a merge they must undo.
 
