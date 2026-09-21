@@ -12759,6 +12759,18 @@ with no cwd is excluded, as `--items-in-report-scope' excludes an item."
   (should-not (claude-code-ide-org--format-ceremony-report
                '(:pending 0 :drifted 0 :archivable 0 :misses (("footnote" . 3))))))
 
+(ert-deftest claude-code-ide-org-test-ceremony-summary-shows-the-user-the-miss-count ()
+  "The full report is `additionalContext', which reaches the user only if
+the session relays it -- measured at 15 of 24 (TODO.org :ID: c5b02503).
+The one-line `systemMessage' is shown by Claude Code itself, so the miss
+count rides there too and the user sees it every day regardless."
+  (should (equal "the daily ceremony is waiting"
+                 (claude-code-ide-org--ceremony-summary '(:pending 1))))
+  (should (equal "the daily ceremony is waiting; backstops fired 4 time(s) since the last one (footnote 3, refusal:category-missing 1)"
+                 (claude-code-ide-org--ceremony-summary
+                  '(:pending 1 :misses (("footnote" . 3)
+                                        ("refusal:category-missing" . 1)))))))
+
 (ert-deftest claude-code-ide-org-test-ceremony-report-offers-the-twin-pass ()
   "The pass is invoked from the ceremony, where a human is already
 reviewing -- a checker the working session must remember to call would

@@ -464,22 +464,73 @@ printf '%s' '{"session_id":"sess-m"}' | env -u CLAUDE_PLUGIN_OPTION_TIME_TRACKIN
 check "a miss is recorded with time tracking off" "miss" "$(jq -r '.kind' <<<"$(queue_lines sess-m)")"
 
 # refusal: live content-block shape, because that is what PostToolUse carries.
-reset_queue
-run refusal '{"session_id":"sess-m","tool_name":"mcp__emacs-tools__org_capture","tool_input":{"title":"x"},"tool_response":[{"type":"text","text":"Error: a top-level capture needs a category -- one of: Queue, Apply"}]}'
-line="$(queue_lines sess-m)"
+#
+# ONLY GENUINE MISSES (the user, 2026-09-21, at 63713df3's review). An
+# "Error:" reply is a miss when the caller broke a rule it had been given;
+# a probe for a drawer that is not there, "no change", an unsaved buffer
+# or an internal error is not. The hook holds a table of message fragments
+# -> rule slugs, and the rule is refusal:<slug>, never the tool's name.
+refuse() { # refuse TOOL MESSAGE -> the queue line, if any
+  reset_queue
+  jq -n -c --arg t "mcp__emacs-tools__$1" --arg r "$2" \
+    '{session_id:"sess-m", tool_name:$t, tool_input:{}, tool_response:[{type:"text",text:$r}]}' \
+    | "$script" refusal
+  queue_lines sess-m
+}
+line="$(refuse org_capture 'Error: a top-level capture needs a category -- it lands at level 1. Pass category=; TODO.org uses: Queue, Apply')"
 check "a refused tool call is a miss" "miss" "$(jq -r '.kind' <<<"$line")"
-check "the rule names the tool, short" "refusal:org_capture" "$(jq -r '.rule' <<<"$line")"
-check "the detail is the refusal text" "Error: a top-level capture needs a category -- one of: Queue, Apply" "$(jq -r '.detail' <<<"$line")"
+check "the rule names what was missed, not the tool" "refusal:category-missing" "$(jq -r '.rule' <<<"$line")"
+check "the detail is the refusal text" "yes" "$(jq -r '.detail' <<<"$line" | grep -q 'needs a category' && echo yes || echo no)"
+check "the tool is still on the line, as source" "mcp__emacs-tools__org_capture" "$(jq -r '.source' <<<"$line")"
 check "a refusal names no heading" "null" "$(jq -r '.id' <<<"$line")"
 
-reset_queue
-run refusal '{"session_id":"sess-m","tool_name":"mcp__emacs-tools__org_capture","tool_input":{"title":"x"},"tool_response":[{"type":"text","text":"Captured: \"x\" (ID: abc)"}]}'
-check "a successful tool call is not a miss" "" "$(queue_lines sess-m)"
+while IFS='|' read -r tool message slug; do
+  [[ -n "$tool" ]] || continue
+  check "genuine: $slug ($tool)" "refusal:$slug" "$(jq -r '.rule' <<<"$(refuse "$tool" "$message")")"
+done <<'CASES'
+org_capture|Error: a heading already carries this title -- TODO {aaaaaaaa} in TODO.org.|duplicate-check
+org_capture|Error: title begins with the TODO keyword "DONE", which org would read as the state|keyword-in-title
+org_capture|Error: capturing a keyworded heading here would give slice "S" keyworded children|slice-hybrid
+org_refile|Error: refiling "x" here would give slice "S" keyworded children|slice-hybrid
+org_set_property|Error: this heading has keyworded children, so it is a story -- a slice's members are references|slice-hybrid
+org_amend|Error: unresolvable :ID: link(s): ccfd89ce-0000 (resolves to no heading). Write the 8-character prefix|id-from-memory
+org_set_todo|Error: no org heading found with :ID: "bogus"|id-from-memory
+org_body|Error: :ID: "deadbeef" resolves to no heading. Pass a full :ID:|id-from-memory
+org_set_todo|Error: PLANNING is not a TODO keyword in this file (have: TODO NEXT)|unknown-keyword
+org_set_property|Error: ID is written at capture and is identity, not annotation; refusing|identity-property
+org_amend|Error: drawer must be one of PLAN, DEBRIEF. :PROPERTIES: and :LOGBOOK: are org-managed|drawer-misuse
+org_amend|Error: replace into a drawer is not offered -- wholesale revision|drawer-misuse
+org_slice_add_member|Error: "S" is closed, and a closed slice's list is a record|slice-membership
+org_slice_add_member|Error: "x" carries no TODO keyword on disk, and org-depend blocks only|slice-membership
+CASES
 
-reset_queue
-long="$(printf 'Error: %0400d' 0)"
-run refusal "$(jq -n -c --arg r "$long" '{session_id:"sess-m",tool_name:"mcp__emacs-tools__org_query",tool_response:$r}')"
-check "a long refusal is truncated to 300" "300" "$(jq -r '.detail | length' <<<"$(queue_lines sess-m)")"
+while IFS='|' read -r tool message why; do
+  [[ -n "$tool" ]] || continue
+  check "not a miss: $why" "" "$(refuse "$tool" "$message")"
+done <<'CASES'
+org_body|Error: this heading has no :PLAN: drawer. Drawers present: LOGBOOK.|a probe for a drawer
+org_set_todo|Error: no change -- "x" already holds DOING, so nothing was queued|nothing to change
+org_set_property|Error: TODO.org has unsaved changes in Emacs; retry once it is saved|the human is editing
+org_query|Error: could not parse query: "(todo"|a query-language slip
+org_amend|Error: Wrong type argument: stringp, nil|an internal error
+org_divide|Error: The operation timed out.|a timeout
+org_wrap_plan|Error: "x" already has a :PLAN: drawer; nothing done.|already done
+CASES
+
+check "a successful tool call is not a miss" "" "$(refuse org_capture 'Captured: "x" (ID: abc)')"
+
+long="$(printf 'Error: a top-level capture needs a category %0400d' 0)"
+check "a long refusal is truncated to 300" "300" "$(jq -r '.detail | length' <<<"$(refuse org_capture "$long")")"
+
+# The table is a contract with config.el's wording, the same kind as the
+# reply prefixes further down: reword a refusal on the elisp side alone
+# and it silently stops being counted. So every fragment must still be
+# there. (A test of the agreement, not of today's spelling.)
+while IFS= read -r fragment; do
+  [[ -n "$fragment" ]] || continue
+  check "config.el still says: $fragment" "yes" \
+    "$(grep -qF -- "$fragment" "$repo_root/modules/tools/claude-code-ide-org/config.el" && echo yes || echo no)"
+done < <("$script" --refusal-fragments)
 
 # --- a catch by the human (TODO.org :ID: 158d7e80) -----------------------
 # A body amend onto a heading carrying :MISS_RULE: is one caught miss,
@@ -541,8 +592,8 @@ reset_queue
 caught aaaaaaaa-0000-0000-0000-000000000001 '{}' 'Amended: "An ordinary heading"'
 check "a heading that merely quotes the property is not a miss heading" "" "$(queue_lines sess-c)"
 reset_queue
-caught bbbbbbbb-0000-0000-0000-000000000002 '{}' 'Error: no org heading found'
-check "a failed amend onto a miss heading is a refusal, not a catch" "refusal:org_amend" "$(jq -r '.rule' <<<"$(queue_lines sess-c)")"
+caught bbbbbbbb-0000-0000-0000-000000000002 '{}' 'Error: no org heading found with :ID: "bbbbbbbb-0000-0000-0000-000000000002"'
+check "a failed amend onto a miss heading is a refusal, not a catch" "refusal:id-from-memory" "$(jq -r '.rule' <<<"$(queue_lines sess-c)")"
 
 # A consumer project's tracker has no Miss: headings -- they live in the
 # plugin's own TODO.org, since the rules missed are the plugin's. The

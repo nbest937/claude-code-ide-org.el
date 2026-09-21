@@ -2,6 +2,15 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO org_set_todo's no-change check reads the file and ignores the queue, so a state set and reverted between applies cannot be queued back :code:observed:
+:PROPERTIES:
+:ID:       57f37f0e-4461-42f4-8b33-cde59318b93a
+:CREATED:  [2026-09-21 Mon 10:42]
+:CATEGORY: Tools
+:END:
+
+Observed 2026-09-21 on 63713df3. The file said REVIEW; the session queued REVIEW -> DOING for a piece of rework, did it, and then called org_set_todo REVIEW — refused with "no change — already holds REVIEW, so nothing was queued", because the check compares the requested state with the keyword on disk and the queued DOING is not on disk yet. The queue is left holding only the outbound half, so the next apply lands DOING on a heading that is back in REVIEW, and the only remedy is for the human to dismiss that item by hand. The no-change refusal exists for a good reason (a queued no-op is noise), so the fix is for the check to read the heading's effective state — the file's keyword as modified by this heading's pending todo events, which org_pending_updates already computes — and then either queue the return transition or, better, cancel the pair.
+
 * TODO Nothing in the drift slice was exercised in a consumer install: the new hooks, the conditional time-file promotion, the twin-checker agent :code:
 :PROPERTIES:
 :ID:       2b8930da-5223-4b75-b4f6-251a28552d1b
@@ -394,6 +403,12 @@ Shipped 2026-09-19 in [[orgit-rev:claude-code-ide-org::f733179][f733179]]. =queu
 *Not done, deliberately:* the sentinels stay, as loop guards — only their second job as the record is retired. The =SessionStart= reports and =doc-sync-check= are not counted: they describe state or remind on every edit, and would count sessions rather than misses. The git-hook refusals (=lint-org=, =check-conventions=) carry no =session_id= and are not counted; not filed, since a commit-time refusal is already visible to the human. *Live without a restart:* settings-file hooks are re-read while a session runs (docs, and observed the same hour), so the =refusal= row took effect at once; only the ceremony number needs =config.el= reloaded.
 
 Filed from this work: [[id:94e6b615-3778-426b-b40a-306b517a837f][94e6b615]].
+
+*Rework from the user's review, 2026-09-21.* The =refusal= row counted every =Error:= reply, which measured the tools' chattiness as much as recall. It now counts only a refusal for a rule the caller broke, named by what was missed rather than by tool: =refusal:category-missing=, =duplicate-check=, =keyword-in-title=, =slice-hybrid=, =id-from-memory=, =unknown-keyword=, =identity-property=, =drawer-misuse=, =slice-membership=. Not counted: a probe for an absent drawer, "no change", an unsaved buffer, a query-language slip, a timeout, an internal error, and any refusal not yet in the table — the safe direction. The table is message fragments in =queue-append=, and the suite asserts each fragment still appears in =config.el=, the same contract the reply prefixes have. One line from before the change survives in the queue as =refusal:org_amend=.
+
+*Also from the review:* the miss count now rides in the ceremony's one-line =systemMessage=, which Claude Code shows the user itself, rather than only in the context a session may or may not relay.
+
+*Correction.* This debrief says git-hook refusals "carry no =session_id= and are not counted". The first half was never checked and is false: a Bash tool call exports =CLAUDE_CODE_SESSION_ID=, equal to the id the hook payloads carry. So the three git guards added the same day can count their own refusals and do not yet, which biases the by-kind comparison on the miss story — a kind converted to a git hook reads zero because nothing records it. To be closed under the enforcement audit.
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-19 Sat 13:50] \\
@@ -652,6 +667,8 @@ omitted step *impossible* (the tool runs the check) over the shape that
 what cannot be done inside the tool.
 
 *The convert list was presented 2026-09-21 as nineteen rows and the user deferred to the session on all but one.* First, all small and all "make the omission impossible": pre-commit refuses an apply-shaped org diff under a non-apply message (3cb3f955's predicate; broken that morning); a =PreToolUse= Bash row blocks =emacsclient= calls to =org-todo=/=org-clock-=; edits to generated rule copies are refused and pre-commit runs =claude-org-setup --check=; =pre-merge-commit= refuses a local merge on main; pre-commit refuses a branch already contained in =origin/main=; pre-commit runs =check-org-dev-skill= when that skill is staged. Then the medium rows: escaping in the tools (8a23d6ec), nomination detection in =org_set_todo='s reply, a once-per-session "time tracking is off" notice, =replace= refusing over an uncommitted diff, the report-borne recovery instructions. Decide separately: =queue-append= deriving clock events from =DOING= transitions, which reverses 4f6a6bb1's separation. Retire as already wired: the =:CREATED:= sentence, the read-only-buffer history, "relay the ceremony prompt". *Row 19, the plan-file link rule, is the user's:* see the conversation of that date; the recommendation was to retire it prospectively and freeze the archive.
+
+*Inherited 2026-09-21 from the review of 63713df3:* the three git guards (=commit-msg=, =pre-merge-commit=, =pre-commit-guards=) refuse without recording a miss. They can: a Bash tool call exports =CLAUDE_CODE_SESSION_ID=, the same id the hook payloads carry, so each guard can pipe a slim payload to =queue-append miss= when it is set, and stay silent for a human committing by hand. Until that is done the miss story's by-kind comparison is biased for exactly the kinds these guards converted — =unchecked-commit= and =wrong-branch= read zero because nothing writes the line.
 :END:
 
 Every rule of the shape "before X, always do Y" where Y is fixed and cheap is a hook candidate, and each one left as prose is a sentence competing for a turn's attention. One read-through of the always-loaded files, sorting each such clause into convert, keep, or retire.

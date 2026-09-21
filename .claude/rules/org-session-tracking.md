@@ -42,8 +42,8 @@ them. A pointer and a generated section list, not the text: the
 injection cap is 10,000 characters and the file is six times that.
 
 **Every backstop that fires is counted** (`:ID:` 63713df3): a hook that
-blocks a stop, and any `org_*` call whose reply is an `Error:` refusal,
-appends one `miss` line naming the rule. The review pass never sees the
+blocks, and an `org_*` refusal for a rule the caller broke, appends one
+`miss` line naming the rule. The review pass never sees the
 kind; `bin/miss-rate` and the ceremony report read it. **A miss caught in
 conversation, by the user or the session, gets one dated body line on the
 matching `Miss:` heading** (`:ID:` 158d7e80; `uncategorised` when none

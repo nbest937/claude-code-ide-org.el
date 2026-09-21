@@ -1182,6 +1182,19 @@ line to add by hand, not a step the ceremony can run. "
        "So the thing to ask for is the apply; the rest follows from leaving "
        "the buffer."))))
 
+(defun claude-code-ide-org--ceremony-summary (status)
+  "The ceremony's half of the user-facing `systemMessage', from STATUS.
+Carries the miss count because this line is the only part of the report
+Claude Code shows the user itself; the rest is the session's to relay."
+  (let ((misses (plist-get status :misses)))
+    (concat "the daily ceremony is waiting"
+            (if misses
+                (format "; backstops fired %d time(s) since the last one (%s)"
+                        (apply #'+ (mapcar #'cdr misses))
+                        (mapconcat (lambda (m) (format "%s %d" (car m) (cdr m)))
+                                   misses ", "))
+              ""))))
+
 (defun claude-code-ide-org--session-start-hook-json ()
   "Return the SessionStart hook JSON payload: an empty object if there is
 nothing to report, otherwise one whose additionalContext carries every
@@ -1199,8 +1212,8 @@ are."
   (let* ((findings (claude-code-ide-org-find-stale-open-intervals))
          (stale (and findings
                      (claude-code-ide-org--format-stale-interval-report findings)))
-         (ceremony (claude-code-ide-org--format-ceremony-report
-                    (claude-code-ide-org--ceremony-status)))
+         (status (claude-code-ide-org--ceremony-status))
+         (ceremony (claude-code-ide-org--format-ceremony-report status))
          (parts (delq nil (list stale ceremony)))
          ;; The user's channel (TODO.org :ID: d585d33e).  Measured on
          ;; this project's transcripts (:ID: c5b02503), additionalContext
@@ -1217,7 +1230,8 @@ are."
                            (format "%d stale open CLOCK interval%s from before today"
                                    (length findings)
                                    (if (= 1 (length findings)) "" "s")))
-                      (and ceremony "the daily ceremony is waiting")))))
+                      (and ceremony
+                           (claude-code-ide-org--ceremony-summary status))))))
     (if (null parts)
         "{}"
       (json-encode

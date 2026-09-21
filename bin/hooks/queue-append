@@ -58,6 +58,38 @@
 
 set -uo pipefail
 
+# Which refusals are MISSES (TODO.org :ID: 63713df3; narrowed at its review,
+# 2026-09-21). An "Error:" reply is a miss when the caller broke a rule it
+# had been given. A probe for a drawer that is not there, "no change", an
+# unsaved buffer, a query-language slip, a timeout or an internal error is
+# not -- counting those measured the tools' chattiness, not recall.
+#
+# `fragment|slug', first match wins. The fragments are config.el's own
+# wording, so this is a contract of the same kind as the reply prefixes
+# below: bin/queue-append-test asserts every fragment still appears there,
+# because a refusal reworded on the elisp side alone silently stops being
+# counted. A NEW refusal counts nothing until it is added here, which is
+# the safe direction.
+refusal_table='a heading already carries this title|duplicate-check
+a top-level capture needs a category|category-missing
+title begins with the TODO keyword|keyword-in-title
+give slice|slice-hybrid
+so it is a story|slice-hybrid
+unresolvable :ID: link|id-from-memory
+no org heading found with|id-from-memory
+resolves to no heading|id-from-memory
+is not a TODO keyword|unknown-keyword
+is identity, not annotation|identity-property
+drawer must be one of|drawer-misuse
+replace into a drawer is not offered|drawer-misuse
+is closed, and a closed slice|slice-membership
+carries no TODO keyword on disk|slice-membership'
+
+if [ "${1:-}" = "--refusal-fragments" ]; then
+  printf '%s\n' "$refusal_table" | cut -d'|' -f1
+  exit 0
+fi
+
 kind="${1:-}"
 case "$kind" in
   todo|clock_in|clock_out|pause|resume|capture|amend) ;;
@@ -169,7 +201,14 @@ if [[ "$kind" == todo || "$kind" == clock_in || "$kind" == clock_out \
   # the event, and anything else is an ordinary call and not a miss.
   case "$kind:$response" in
     refusal:Error:*)
-      rule="refusal:$(jq -r '.tool_name // "unknown" | sub("^mcp__.*__"; "")' <<<"$input" 2>/dev/null)"
+      slug=""
+      while IFS='|' read -r fragment candidate; do
+        [ -n "$fragment" ] || continue
+        case "$response" in *"$fragment"*) slug="$candidate"; break ;; esac
+      done <<<"$refusal_table"
+      # Not in the table: an error, but not a rule missed.
+      [ -n "$slug" ] || exit 0
+      rule="refusal:$slug"
       # Truncated: a refusal can quote a whole query or list every
       # category, and the line must stay under the atomic-append size.
       detail="${response:0:300}"
