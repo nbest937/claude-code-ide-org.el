@@ -5995,50 +5995,44 @@ rather than nineteen.
 :CREATED:  [2026-09-01 Tue 09:11]
 :CATEGORY: Slices
 :KIND:     slice
-:BLOCKER:  39039bb6-c70a-4ba9-8b37-edd8dd6921f6 f12f9da4-2870-45b7-8c50-ea54415c7bc6 25e7b083-360b-4282-8fd0-bb768e2a0f13 3ad389be-2797-46c3-a51d-9f603053955a 7fa68d5c-b6c0-43df-85c6-764b1d56511f 381ea07d-633f-4640-abbb-89472a07acba 8ddd7fa8-e847-42e9-b82c-63bbe4c11b7b 53b0047d-c55c-486c-8eed-ba4994d97a1a 7ee3b71a-b85a-4610-a4ab-b9e06c8d79da 2aeb65d6-350e-4c75-811e-4a748044fe2c 2a6a1355-615f-4c2c-a8af-c9ae8dcda09b 60ed5b96-40e3-4676-a742-07a8ad6cc3b7 5e731a23-7708-4248-b055-9b4a531f147d 965f94eb-1558-4d00-9857-5727eb86fe6f 7b4f4f14-6c76-4822-84c1-67589bc74b82 4acd8ad0-4d26-420b-bf84-f66ae8a9dfc5 37bca83a-e83b-4070-9058-6318a58a24db 492a1a30-ac92-4f18-bb82-f9cd615b397c 94e6b615-3778-426b-b40a-306b517a837f 57f37f0e-4461-42f4-8b33-cde59318b93a
+:BLOCKER:  39039bb6-c70a-4ba9-8b37-edd8dd6921f6 de6de108-0095-40f4-8177-fdef0503c578 f12f9da4-2870-45b7-8c50-ea54415c7bc6 25e7b083-360b-4282-8fd0-bb768e2a0f13 3ad389be-2797-46c3-a51d-9f603053955a 7fa68d5c-b6c0-43df-85c6-764b1d56511f 381ea07d-633f-4640-abbb-89472a07acba 8ddd7fa8-e847-42e9-b82c-63bbe4c11b7b 53b0047d-c55c-486c-8eed-ba4994d97a1a 7ee3b71a-b85a-4610-a4ab-b9e06c8d79da 2aeb65d6-350e-4c75-811e-4a748044fe2c 60ed5b96-40e3-4676-a742-07a8ad6cc3b7 5e731a23-7708-4248-b055-9b4a531f147d 965f94eb-1558-4d00-9857-5727eb86fe6f 7b4f4f14-6c76-4822-84c1-67589bc74b82 4acd8ad0-4d26-420b-bf84-f66ae8a9dfc5 37bca83a-e83b-4070-9058-6318a58a24db 492a1a30-ac92-4f18-bb82-f9cd615b397c 94e6b615-3778-426b-b40a-306b517a837f 57f37f0e-4461-42f4-8b33-cde59318b93a
 :COOKIE_DATA: checkbox recursive
-:DROPPED:  4acd8ad0
+:DROPPED:  4acd8ad0 2a6a1355-615f-4c2c-a8af-c9ae8dcda09b
 :END:
 :PLAN:
-Sequenced 2026-09-21 at the user's direction. Membership was left exactly as found. Only three members carry a =:PLAN:= drawer: [[id:2aeb65d6-350e-4c75-811e-4a748044fe2c][2aeb65d6]], [[id:492a1a30-ac92-4f18-bb82-f9cd615b397c][492a1a30]] and [[id:7ee3b71a-b85a-4610-a4ab-b9e06c8d79da][7ee3b71a]]. The rest are pre-convention, so their plans are read from their bodies. Each claim below was checked against =config.el= the same day, and every defect named is still present unless the line says otherwise.
+Sequenced 2026-09-21 at the user's direction, and cut to the order the same day under the member-plan SOP (org conventions, "A slice's plan, and its members'"). Design and decisions live in each member's own =:PLAN:=, so read the member's drawer at its step. A member with no drawer gets one before its step is worked.
 
-*The slice's sentence decides the order: everything passed and the file was still wrong.* So the gate comes first. Then come the tools a session uses daily that answer wrongly while looking right, since each is small and each is a lie told every day. Then the checks and the owned region. Then the places where two copies of the truth diverge. The outage and the unknown come last, because both open with a decision rather than a fix.
+*The slice's sentence decides the order: everything passed and the file was still wrong.* The gate comes first. Then the tools a session uses daily that answer wrongly while looking right, since each is small and each lies every day. Then the checks that do not catch, and the region nobody owns. Then the places where two copies of the truth diverge. The outage and the unknown come last, because both open with work that must precede a fix.
 
-*Prediction, so the 2026-10-12 number is not misread:* turning silent failures into loud refusals *raises* the counted miss rate. A =refusal:= line appears where a quiet wrong answer used to be. A rise in those rules during this slice is the slice working.
+*Prediction, so the 2026-10-12 number is not misread:* turning silent failures into loud refusals *raises* the counted miss rate. A rise in these rules during this slice is the slice working.
 
-*1. The gate.*
-- =94e6b615=: one runner for every suite, named in Step 0 as what a branch runs before its PR. On 2026-09-21 the suites also leaked their provoked refusals into the calling session's queue (fixed in f6d160c2's branch), which is this slice's sentence again. *Decision (user):* whether pre-push calls it, once its wall time is measured.
+1. /The gate./
+   - =94e6b615=: every other step is verified by it.
+2. /Tools that answer wrongly and look right./ Small, each with a test.
+   - =37bca83a=: already DOING.
+   - =25e7b083=: four known sites; the silent ones first.
+   - =57f37f0e=
+   - =492a1a30=
+   - =60ed5b96=
+   - =7b4f4f14=
+3. /Checks that do not catch, and a region nobody owns./
+   - =39039bb6=
+   - =de6de108=: six children, each closing on one measurement or one decision. It is committed to close in this slice.
+   - =7ee3b71a=: both directions are now observed.
+4. /Two copies of the truth./
+   - =2aeb65d6= first, because it gates the user's concurrent sessions.
+   - =f12f9da4=
+   - =8ddd7fa8=
+   - =5e731a23=
+   - =965f94eb=
+   - =53b0047d=: its clock half is time-tracking only.
+5. /The outage and the unknown./
+   - =3ad389be=, then =7fa68d5c=, which builds on the path it chooses.
+   - =381ea07d=: a timeboxed reproduction.
 
-*2. Tools that answer wrongly and look right.* Each is small and ships with a test.
-- =37bca83a= (already DOING, diagnosis done): a query whose first non-blank character is =(= is a sexp. Refuse it and name the mini-language, or run it through =org-ql-select=. No predicate is dropped, and none ever was.
-- =25e7b083=: sweep by /argument/, not by call shape, and take the silent shape first. =refresh-slice= still compares ids with =equal= at two sites. The capture target now resolves through =--id-find=, but passes the prefix rather than the expanded id into the =id= spec, so write the failing test before assuming it is fixed.
-- =57f37f0e=: the no-change check reads the /effective/ state, meaning the file plus this heading's pending todo events. A set-and-revert then cancels the pair.
-- =492a1a30=: =org_divide= still writes the cookie as =" [/]"= after the title. Use =--ensure-statistics-cookie-at-point='s placement, and check whether a third inserter exists.
-- =60ed5b96=: the docstring still opens "Always *inactive*". Say what =:active= means, who sets it, and that inference from queue fields is what was rejected.
-- =7b4f4f14=: the watermark distinguishes "applied something" from "a pass ran".
+*Not sequenced:* =4acd8ad0=, dropped in intent on 2026-09-17 and left as found. =2a6a1355= moved into =de6de108=.
 
-*3. A check that does not catch, and a region nobody owns.*
-- =39039bb6=: =bin/lint-org= errors on a heading =:ID:= that appears twice across the tracked files, naming both locations. Only heading properties count, never body prose.
-- =7ee3b71a=: make the member region identifiable to /any/ writer, so that =replace== preserves it the way it preserves drawers. Refusing =replace== on a =:KIND: slice= heading is the fallback, not the fix.
-
-*4. Two copies of the truth.*
-- =2aeb65d6= leads this group because it gates the user's concurrent sessions. =.githooks/pre-commit-guards= refuses a whole-index commit while the real index is non-empty and =CLAUDE_CODE_SESSION_ID= is set; the design and its measurements are in the member's drawer. It counts a miss the way the other guards do. *Decision (user):* an =ALLOW_SWEEP= escape for =--amend=, which is indistinguishable from the sweep.
-- =f12f9da4=: compare every defun in =config.el= against the running image with =fboundp= (measured at 394 with 0 unbound), which catches both the stale =.elc= and the older load of the right file. *Decision (user):* warn or block. My recommendation is a SessionStart report line, not a block at the commit gate.
-- =8ddd7fa8=: =--at-id= falls back to a scan when the index misses, and the error distinguishes "nowhere" from "not where the index says".
-- =5e731a23=: apply reads the queued event's =cwd= for a deferred targetless capture. That value is already recorded, and nothing reads it.
-- =965f94eb=: what remains is only the basename collision, since the ordering half closed in 8bbae3aa. Propose a retitle when it is picked up.
-- =53b0047d=: the general form, a live modified buffer diverging from disk, detected before a tool writes. Its org-clock half is time-tracking only.
-
-*5. The outage and the unknown.*
-- =3ad389be= *Decision (user)* among its three options. My recommendation is option 1: a timed-out tool write leaves a durable marker that SessionStart reports.
-- =7fa68d5c=: its own caveat, that =org_capture= is rarely used, is stale. Capture is now the normal creation path, with category, target and the duplicate query. So the fallback is worth building, after 3ad389be decides the shape of the shared path.
-- =381ea07d=: a timeboxed attempt to reproduce it, putting a buffer through revert, consolidate, normalise, then archive. If it does not reproduce, the post-condition guard stands and the heading says so.
-
-*Not sequenced.*
-- =2a6a1355= is REVIEW, and the question it holds is the user's: how many root causes are in it. A session brings the candidate seams, and the user decides whether it divides.
-- =4acd8ad0=: the body dropped it in prose on 2026-09-17, but the checklist still lists it. It is left as is at the user's direction, and comes after everything else.
-
-*Where it stops.* The slice closes when its pull request merges. Measure members, elapsed days and review findings per member. Also measure the miss rate for the rules this slice touches, read against the prediction above.
+*Where it stops.* The slice closes when its pull request merges. Measure members, elapsed days and review findings per member, and the miss rate for the rules it touches, read against the prediction.
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-16 Wed 06:45] \\
@@ -6096,6 +6090,7 @@ the incidental list is generated.
 Planned:
 
 - [ ] [[id:39039bb6-c70a-4ba9-8b37-edd8dd6921f6][39039bb6]] TODO bin/lint-org does not detect a duplicate :ID: across TODO.org and DONE.org
+- [-] [[id:de6de108-0095-40f4-8177-fdef0503c578][de6de108]] DOING Separate the causes of unfootnoted ids, so each can be closed on its own
 - [ ] [[id:f12f9da4-2870-45b7-8c50-ea54415c7bc6][f12f9da4]] TODO The running Emacs can be running a stale config.el and nothing says so
 - [X] [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]] DONE Verification traps: a check with no way to fail, and a fixture that never takes the real path
   a check with no way to fail, and a fixture that never takes the real path
@@ -6111,10 +6106,10 @@ Planned:
 - [ ] [[id:53b0047d-c55c-486c-8eed-ba4994d97a1a][53b0047d]] TODO Direct file writes to a live org buffer can desync org-clock-marker
 - [ ] [[id:7ee3b71a-b85a-4610-a4ab-b9e06c8d79da][7ee3b71a]] TODO org_amend replace=true destroys a slice's member checklist, which is the one thing a slice declares
 - [ ] [[id:2aeb65d6-350e-4c75-811e-4a748044fe2c][2aeb65d6]] TODO Concurrent sessions share one git index, and explicit staging protects nothing
-- [-] [[id:2a6a1355-615f-4c2c-a8af-c9ae8dcda09b][2a6a1355]] REVIEW Three new ways to owe a footnote and not see it: marker, list, quotation
+- [[id:2a6a1355-615f-4c2c-a8af-c9ae8dcda09b][2a6a1355]] REVIEW Three new ways to owe a footnote and not see it: marker, list, quotation
 - [ ] [[id:60ed5b96-40e3-4676-a742-07a8ad6cc3b7][60ed5b96]] TODO --review-format-annotation's docstring contradicts its own let*, four lines down
 - [ ] [[id:5e731a23-7708-4248-b055-9b4a531f147d][5e731a23]] TODO A deferred targetless capture loses its project routing when the queue is applied
-- [ ] [[id:965f94eb-1558-4d00-9857-5727eb86fe6f][965f94eb]] TODO Every standalone client shares one project context, chosen by unstable ordering
+- [ ] [[id:965f94eb-1558-4d00-9857-5727eb86fe6f][965f94eb]] TODO Two tracked repos sharing a directory basename collide on one MCP session id
 - [ ] [[id:7b4f4f14-6c76-4822-84c1-67589bc74b82][7b4f4f14]] TODO apply-detect reports an apply when the review pass only dismissed events
 - [ ] [[id:4acd8ad0-4d26-420b-bf84-f66ae8a9dfc5][4acd8ad0]] TODO The re-key bridge reads transcripts Claude Code prunes, so the alias decays silently
 - [-] [[id:37bca83a-e83b-4070-9058-6318a58a24db][37bca83a]] DOING org_query silently text-searches a sexp query, so the wrong language reads as no matches
@@ -6202,6 +6197,11 @@ identifiable to any writer rather than adding a guard per writer.
 *It goes to no other slice, deliberately.* =749301a0= is the span slice and has merged; adding a member would reopen a closed integration point, which is the failure =30a340fd= recorded. =8bbae3aa= is about removing time tracking, not fixing it. So =4acd8ad0= returns to backlog with the other 54 time-tracking items, which is where the work now lives.
 
 *Four siblings filed the same week stay in backlog for now* — =51bcec2c=, =aee8487e=, =cf483f5d=, =17f93758= — rather than being added one at a time. They should be judged together against this slice's shape when it is actually picked up, since deciding twice is how a list grows without anyone choosing.
+
+*2a6a1355 replaced by its parent story de6de108, 2026-09-21, at the user's direction.* The member should always have been the story, since 2a6a1355 is the child left behind when its causes were divided out on 2026-09-17. The two causes it still named without a heading were filed as siblings (c247d8f3, eadb3607). Every child now has a =:PLAN:= drawer, and the user committed de6de108 to close within this slice. 2a6a1355 is in =:DROPPED:= as moved, and its line stays.
+
+*Also found:* =:DROPPED:= has held =4acd8ad0= since 2026-09-17, but as an 8-character prefix, and the refresh ignores it. The member kept its checkbox and its place in the =:BLOCKER:=. The full id added the same day dropped correctly. This is 25e7b083's silent shape in a fourth place. The value is left as found.
+
 
 
 * TODO Report worked headings that carry no clock interval that day :code:
@@ -7053,6 +7053,9 @@ is the point — it cannot be backfilled.
 :ID:       25e7b083-360b-4282-8fd0-bb768e2a0f13
 :CREATED:  [2026-08-31 Mon 15:45]
 :CATEGORY: Tools
+:END:
+:PLAN:
+- Found 2026-09-21: a fourth site, and it is the silent shape. The slice refresh reads =:DROPPED:= and ignores an 8-character prefix in it. On 8a2eb687, =4acd8ad0= (a prefix, written 2026-09-17) kept its checkbox and its =:BLOCKER:= place for four days, while a full id added the same day dropped correctly. Fix it by expanding prefixes through =--id-find=, and have =org_set_property= validate =:DROPPED:= the way it already validates =:BLOCKER:=.
 :END:
 
 *Found 2026-08-31 by using it.* Filing four children under
