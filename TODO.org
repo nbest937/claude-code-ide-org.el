@@ -729,6 +729,9 @@ decided with it; 1 is the cheap interim.
 
 *Not done:* the honest re-run of [[id:befaed0a-18ed-445e-b997-8b9c2965ad45][befaed0a]]'s verification — a *fresh* session using only the tools — needs a session that is not this one. Remedy 3 (rules riding on tool replies) is [[id:3cd7b7d3-25eb-4f30-ae90-9174a6876674][3cd7b7d3]]'s. Whether a consumer install receives the notice is unverified; the fallback path is tested only against a fixture.
 
+*The fresh-session re-run, done 2026-09-21: it passed.* This was a new session that never Read an =.org= file. At launch its context held neither =org-conventions.md= nor =org-conventions-local.md=, which is the failure this heading describes, reproduced. Its first =org_*= call was =org_body=, a read-only tool rather than =org_pending_updates=, and it carried the notice: both files, their line counts and their section lists. The second call, =org_outline=, carried no notice, so the once-per-session guard holds. The check covers delivery only. Whether a session goes on to Read the section that governs the act is the injected-context tier's weakness and is unchanged. The one item still open is the consumer install.
+
+
 
 * DONE Nothing bounds the always-loaded rule surface, so every new rule is free at the point of writing :code:
 CLOSED: [2026-09-21 Mon 09:55]
