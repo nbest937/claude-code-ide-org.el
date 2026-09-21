@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# count-miss RULE [DETAIL] -- record that a git guard refused, when the
+# commit is being made from inside a Claude session.
+#
+# TODO.org :ID: 3cd7b7d3. A Bash tool call exports CLAUDE_CODE_SESSION_ID,
+# the same id Claude Code's hook payloads carry, so a git hook can write
+# to that session's queue. Without this a rule converted to a git guard
+# reads zero misses because nothing records the refusal -- which would
+# look like the conversion working. A human committing by hand has no
+# such variable and is never counted. Fire-and-forget: never the reason a
+# hook fails, or succeeds.
+[ -n "${CLAUDE_CODE_SESSION_ID:-}" ] || exit 0
+command -v jq >/dev/null 2>&1 || exit 0
+append="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." 2>/dev/null && pwd)/bin/hooks/queue-append"
+[ -x "$append" ] || exit 0
+jq -n -c --arg s "$CLAUDE_CODE_SESSION_ID" --arg cwd "$(pwd -P)" --arg h "git:${0##*/}" \
+  '{session_id: $s, cwd: $cwd, hook_event_name: "git-hook"}' 2>/dev/null \
+  | "$append" miss "${1:-}" "${2:-}" 2>/dev/null
+exit 0

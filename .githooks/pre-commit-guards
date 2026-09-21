@@ -26,6 +26,7 @@ if [ -n "$branch" ] && [ "$branch" != main ] && [ "${ALLOW_MERGED_BRANCH:-0}" !=
    && git rev-parse -q --verify origin/main >/dev/null \
    && git merge-base --is-ancestor HEAD origin/main 2>/dev/null \
    && grep -qE ': commit( \(|:)' <<<"$(git reflog show "$branch" 2>/dev/null)"; then
+  "$(dirname "${BASH_SOURCE[0]}")/count-miss" wrong-branch "$branch"
   cat >&2 <<MSG
 pre-commit: '$branch' is already contained in origin/main -- its work has
 merged, and a commit here lands on a branch nobody will integrate.
@@ -45,6 +46,9 @@ setup="$repo_root/bin/claude-org-setup"
 if [ -x "$setup" ] && grep -qE '^(skills/org/references/|\.claude/rules/org-)' <<<"$staged"; then
   drift="$("$setup" --check "$repo_root" 2>/dev/null | grep -E '^(drifted|missing): .*/\.claude/rules/' || true)"
   if [ -n "$drift" ]; then
+    # The same kind the PreToolUse edit guard counts: this is the path
+    # that guard cannot see (a redirect, another editor, a stale copy).
+    "$(dirname "${BASH_SOURCE[0]}")/count-miss" generated-edit "$(printf '%s' "$drift" | head -1)"
     {
       echo "pre-commit: promoted rule copies are out of step with skills/org/references/:"
       printf '%s\n' "$drift" | sed 's/^/  /'

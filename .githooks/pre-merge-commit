@@ -29,6 +29,7 @@ while IFS= read -r head; do
      && git merge-base --is-ancestor "$head" origin/main 2>/dev/null; then
     continue    # already upstream: a catch-up
   fi
+  "$(dirname "${BASH_SOURCE[0]}")/count-miss" local-merge "$head"
   cat >&2 <<MSG
 pre-merge-commit: refusing a local merge into main. A branch integrates
 through a pull request here (TODO.org :ID: c7bf2121):

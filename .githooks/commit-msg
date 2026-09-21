@@ -38,6 +38,8 @@ removed="$(grep -E "$shape" <<<"$diff" | grep -c '^-' || true)"
 # Comment lines are not the message.
 grep -v '^#' "$msg_file" | grep -qi 'apply pass' && exit 0
 
+"$(dirname "${BASH_SOURCE[0]}")/count-miss" unchecked-commit "$((added - removed)) net-new State/CLOCK line(s)"
+
 cat >&2 <<MSG
 commit-msg: this commit adds $((added - removed)) net-new State/CLOCK line(s) to the org
 files, which only the review pass writes -- but the message does not

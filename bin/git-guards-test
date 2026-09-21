@@ -143,5 +143,45 @@ check "with Emacs unreachable it warns and does not block" 0 "$(run_guards "$r" 
 printf '#!/bin/sh\nexit 0\n' > "$r/bin/check-org-dev-skill"
 check "a passing skill check allows it" 0 "$(run_guards "$r" true)"
 
+# --- a refusal made inside a Claude session counts itself as a miss ------
+# TODO.org :ID: 3cd7b7d3. A Bash tool call exports CLAUDE_CODE_SESSION_ID,
+# the same id the hook payloads carry, so a git guard can write the line.
+# Without it a converted kind reads zero because nothing records it, which
+# biases the by-kind comparison on the miss story. A human committing by
+# hand has no such variable and is never counted.
+export CLAUDE_ORG_QUEUE_DIR="$work/queue"
+rule_of () { jq -r 'select(.kind == "miss") | .rule' "$work/queue/$1.jsonl" 2>/dev/null | tail -1; }
+
+r="$work/msg"
+# One more State line than the committed file holds: net-new, so refused.
+printf -- '- State "DOING"      from "DONE"       [2026-09-03 Thu 10:00]\n' >> "$r/TODO.org"
+git -C "$r" add TODO.org
+printf 'File a heading\n' > "$msg"
+(cd "$r" && CLAUDE_CODE_SESSION_ID=sess-g1 "$hooks/commit-msg" "$msg" >/dev/null 2>&1)
+check "a refused apply-shaped commit is counted" "unchecked-commit" "$(rule_of sess-g1)"
+check "with where it happened" "$(cd "$r" && pwd -P)" "$(jq -r 'select(.kind=="miss") | .cwd' "$work/queue/sess-g1.jsonl" 2>/dev/null | tail -1)"
+(cd "$r" && env -u CLAUDE_CODE_SESSION_ID "$hooks/commit-msg" "$msg" >/dev/null 2>&1)
+check "a human's refusal, with no session, writes nothing" "1" "$(ls "$work/queue" 2>/dev/null | wc -l | tr -d ' ')"
+printf 'Apply pass: fine\n' > "$msg"
+(cd "$r" && CLAUDE_CODE_SESSION_ID=sess-g2 "$hooks/commit-msg" "$msg" >/dev/null 2>&1)
+check "an accepted commit counts nothing" "" "$(rule_of sess-g2)"
+git -C "$r" reset -q --hard
+
+r="$work/merge"
+git -C "$r" switch -q main
+git -C "$r" merge -q --no-ff --no-commit feature/x >/dev/null 2>&1
+(cd "$r" && CLAUDE_CODE_SESSION_ID=sess-g3 "$hooks/pre-merge-commit" >/dev/null 2>&1)
+check "a refused local merge is counted" "local-merge" "$(rule_of sess-g3)"
+git -C "$r" merge --abort
+
+r="$work/merged"
+(cd "$r" && CLAUDE_CODE_SESSION_ID=sess-g4 EMACSCLIENT=false "$hooks/pre-commit-guards" >/dev/null 2>&1)
+check "a refused commit onto a merged branch is counted" "wrong-branch" "$(rule_of sess-g4)"
+
+r="$work/gen"
+printf 'hand edit\n' >> "$r/.claude/rules/org-event-queue.md"; git -C "$r" add -A
+(cd "$r" && CLAUDE_CODE_SESSION_ID=sess-g5 EMACSCLIENT=false "$hooks/pre-commit-guards" >/dev/null 2>&1)
+check "a refused out-of-step rule copy is counted, as the edit guard's kind" "generated-edit" "$(rule_of sess-g5)"
+
 printf '\ngit-guards-test: %d passed, %d failed\n' "$pass" "$fail"
 [[ $fail -eq 0 ]]
