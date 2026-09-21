@@ -3582,8 +3582,9 @@ overwrites the earlier, and both static configs name the one surviving
 id, with nothing to tell them apart. Nothing reports the collision.
 
 Found by PR #22's review. The warp alias and ordering half of the
-original filing closed in 8bbae3aa (d5c9398); this is what remains.
-
+original filing closed in 8bbae3aa
+([[orgit-rev:claude-code-ide-org::d5c9398][d5c9398]]); this is what
+remains.
 * TODO A deferred targetless capture loses its project routing when the queue is applied :code:
 :PROPERTIES:
 :ID:       5e731a23-7708-4248-b055-9b4a531f147d
