@@ -8,6 +8,17 @@
 :CREATED:  [2026-09-21 Mon 08:44]
 :CATEGORY: Skill
 :END:
+:PLAN:
+*What this is for, and why it is not a member of the drift slice (decided with the user 2026-09-21).* It is an instrument, not a deliverable: it is read to decide which rule to move out of recall next, and to tell whether a conversion worked. A slice closes on its pull request; this stays open while it is useful, so membership would hold the slice open for a reason unrelated to its code.
+
+*No clean "before" exists, and none is needed.* The slice's conversions land before any baseline could accumulate, and delaying them to collect one was declined. The comparison is therefore *by kind, not by date*: a kind whose rule was mechanised should fall to zero counted misses, while the kinds left as judgement are the control. If an unconverted kind falls just as far, the conversions explain nothing.
+
+*How long, stated as volume rather than calendar.* Two events on the first day. Ranking eleven kinds needs on the order of thirty counted events; at that rate, two to three working weeks. Read it at the daily ceremony (the report already prints the count by rule), and review it properly at thirty events or on 2026-10-12, whichever comes first — then close the children whose kinds are both mechanised and silent, and give any kind that reached the catch-all twice its own sibling.
+
+*Conditions that make the number mean something.* A catch counts only when the session records it, so an unrecorded catch is itself a miss of this convention and goes on the catch-all when noticed. The denominator is sessions that wrote at least one queue line, which =bin/miss-rate= reports per day and per project.
+
+*Consumer projects.* The kinds live here because the rules missed are the plugin's; a catch made in another project amends these headings and its queue line carries that project's =cwd=, so =bin/miss-rate --project= separates them. Requires the consumer to run a plugin checkout that has the miss code and to have re-run =claude-org-setup=. For agentic-euchre on 2026-09-21 neither was true: its skill link resolves to the worktree =claude-code-ide-org-swc=, detached at 656fc16, twenty-two commits before the counter existed. Unverified: whether that link wires the plugin's hooks at all — euchre's last queue lines are from 2026-09-15.
+:END:
 
 The miss rate (63713df3) is a floor: it counts what a hook or a tool caught, and the misses the user catches in conversation — the ones the drift analysis is about — reach no file. Decided by the user 2026-09-21: each kind of miss gets a child heading here, and a catch is answered by one dated body line amended onto the matching child, naming what happened. "Capture or amend" therefore dissolves to amend; a kind nothing covers goes on the catch-all child until it earns its own. A child closes when its rule has been moved out of recall.
 ** TODO Miss: a tracked :ID: cited with no end-matter entry, or with a recalled title or keyword

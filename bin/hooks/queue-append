@@ -188,7 +188,11 @@ if [[ "$kind" == todo || "$kind" == clock_in || "$kind" == clock_out \
         indrawer && /^:END:[ \t]*$/ { if (hit && rule != "") { print rule; exit } indrawer = 0 }
         indrawer && $1 == ":ID:" && index($2, id) == 1 { hit = 1 }
         indrawer && $1 == ":MISS_RULE:" { rule = $2 }
-      ' "$org_root/TODO.org" 2>/dev/null)"
+      ' "$org_root/TODO.org" "$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/TODO.org" 2>/dev/null | head -1)"
+      # The second file is the plugin's own tracker: the Miss: headings
+      # live there, since the rules missed are the plugin's, so a catch
+      # made while working in a consumer project still resolves. `cwd' on
+      # the line records where it happened.
       [ -n "$slug" ] || exit 0
       rule="caught:$slug"
       detail="$(jq -r '.tool_input.note // ""' <<<"$input" 2>/dev/null)"
