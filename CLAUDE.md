@@ -151,15 +151,10 @@ approval-gated and session-scoped. The original investigation
 that was unnecessary; the real bug was this project's HTTP server
 answering `200` where the MCP spec requires `202 Accepted`.
 
-**One-time setup, required for `.githooks/` to do anything:**
-
-```sh
-git config core.hooksPath .githooks
-```
-
-That setting lives in `.git/config`, which is not version controlled, so a
-fresh clone silently has no hooks until it is run. It redirects *every*
-hook: check `.git/hooks/` holds nothing but `.sample` files first.
+**One-time setup per clone:** `git config core.hooksPath .githooks` —
+the setting is not version controlled, and a `SessionStart` check says so
+when it is missing. It redirects *every* hook, so check `.git/hooks/`
+holds nothing but `.sample` files first.
 
 Run the tests with `bin/test`. They exercise the four wrapper functions
 against scratch org files in a temp directory — no Doom, no real Emacs

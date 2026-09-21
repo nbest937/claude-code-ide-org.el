@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# SessionStart: say so when this clone's git hooks are not switched on.
+#
+# TODO.org :ID: 3cd7b7d3. `git config core.hooksPath .githooks' lives in
+# .git/config, which is not version controlled, so a fresh clone silently
+# has no hooks -- and since 2026-09-21 those hooks are where five recalled
+# rules went (the apply-shaped commit, the local merge, the merged
+# branch, rule copies out of step, the word budget). CLAUDE.md asked for
+# the command to be remembered; this notices when it was not.
+#
+# This repo's own wiring only: the plugin ships no .githooks, so a
+# consumer has nothing to switch on. Silent when all is well. Plain bash
+# + jq, always exit 0.
+
+set -uo pipefail
+command -v jq >/dev/null 2>&1 || exit 0
+root="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+[ -d "$root/.githooks" ] || exit 0
+git -C "$root" rev-parse --git-dir >/dev/null 2>&1 || exit 0
+[ "$(git -C "$root" config --get core.hooksPath 2>/dev/null)" = ".githooks" ] && exit 0
+
+jq -cn '{
+  systemMessage: "git: this clone has .githooks but core.hooksPath is not set, so none of its guards run — git config core.hooksPath .githooks",
+  hookSpecificOutput: {hookEventName: "SessionStart",
+    additionalContext: "This clone has a .githooks directory but core.hooksPath is not set to it, so the commit guards (apply-shaped commits, local merges, merged branches, rule copies out of step, the word budget, the org lint) do not run. Tell the user, and offer: git config core.hooksPath .githooks -- after checking .git/hooks holds nothing but .sample files, since the setting redirects every hook."}}'
+exit 0

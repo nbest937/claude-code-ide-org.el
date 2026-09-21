@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Shell test harness for bin/hooks/hookspath-check.
+set -uo pipefail
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+hook="$repo_root/bin/hooks/hookspath-check"
+tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
+failures=0
+check() { if [[ "$2" == "$3" ]]; then echo "ok   - $1"; else echo "FAIL - $1: wanted [$2], got [$3]"; failures=$((failures + 1)); fi; }
+run() { printf '{}' | CLAUDE_PROJECT_DIR="$1" "$hook"; }
+
+r="$tmp/r"; mkdir -p "$r/.githooks"; git init -q "$r"
+out="$(run "$r")"
+check "hooks present but not switched on: the user is told" "yes" "$(jq -r '.systemMessage' <<<"$out" | grep -q 'core.hooksPath' && echo yes || echo no)"
+check "and the session is given the command" "yes" "$(jq -r '.hookSpecificOutput.additionalContext' <<<"$out" | grep -q 'git config core.hooksPath .githooks' && echo yes || echo no)"
+git -C "$r" config core.hooksPath .githooks
+check "switched on: silent" "" "$(run "$r")"
+git -C "$r" config core.hooksPath somewhere/else
+check "pointed elsewhere: told" "yes" "$([[ -n "$(run "$r")" ]] && echo yes || echo no)"
+n="$tmp/n"; mkdir -p "$n"; git init -q "$n"
+check "a repo with no .githooks: silent" "" "$(run "$n")"
+mkdir -p "$tmp/plain/.githooks"
+check "not a git repo: silent" "" "$(run "$tmp/plain")"
+check "the real repo is switched on" "" "$(run "$repo_root")"
+echo
+if [[ $failures -eq 0 ]]; then echo "hookspath-check-test: all checks passed"; else echo "hookspath-check-test: $failures check(s) failed"; fi
+exit $((failures > 0))
