@@ -317,6 +317,18 @@ if [ "$root" = "$repo_root" ]; then
   fi
 fi
 
+# The always-loaded word budget (TODO.org :ID: f2030ce9). Not gated on
+# --docs-only: a commit that stages CLAUDE.md or a rule file is exactly
+# the commit that spends the words, and pre-commit runs this script in
+# that mode. The numbers live in bin/word-budget and nowhere else.
+if [ -x "$repo_root/bin/word-budget" ]; then
+  if budget_out="$("$repo_root/bin/word-budget" "$root" 2>&1)"; then
+    check_ok "always-loaded rules are inside the word budget ($(printf '%s' "$budget_out" | awk 'NR==1{print $(NF-2) "/" $NF}'))"
+  else
+    check_fail "always-loaded rules are over the word budget -- $(printf '%s\n' "$budget_out" | grep OVER | awk '{$1=$1};1' | tr '\n' ';') run bin/word-budget for the per-file table"
+  fi
+fi
+
 # 3. The single-file check runs last and folds its verdict in, so
 # callers need one command. Skipped against a fixture root, where it
 # would be asserting things about the real repo.
