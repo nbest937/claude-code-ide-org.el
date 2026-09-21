@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+# Shell test harness for bin/hooks/review-start (TODO.org :ID: a9d37aee).
+# Fixture trackers in a scratch project, a scratch queue, positive
+# assertions -- the register of bin/queue-append-test.
+set -uo pipefail
+unset CLAUDE_CODE_SESSION_ID
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+hook="$repo_root/bin/hooks/review-start"
+work="$(mktemp -d)"
+trap 'rm -rf "$work"' EXIT
+export CLAUDE_ORG_QUEUE_DIR="$work/queue"
+export CLAUDE_PROJECT_DIR="$work/proj"
+mkdir -p "$CLAUDE_PROJECT_DIR"
+
+pass=0 fail=0
+check() { # name expected actual
+  if [[ "$2" == "$3" ]]; then printf '  ok    %s\n' "$1"; pass=$((pass + 1))
+  else printf '  FAIL  %s (expected [%s], got [%s])\n' "$1" "$2" "$3"; fail=$((fail + 1)); fi
+}
+
+slice() { # slice ID KEYWORD BLOCKER...
+  local id="$1" kw="$2"; shift 2
+  printf '* %s [0/1] Slice %s\n:PROPERTIES:\n:ID:       %s\n:KIND:     slice\n:BLOCKER:  %s\n:END:\n\n' \
+    "$kw" "${id:0:4}" "$id" "$*"
+}
+task() { printf '* %s Task %s\n:PROPERTIES:\n:ID:       %s\n:END:\n\n' "$2" "${1:0:4}" "$1"; }
+
+S1=aaaaaaaa-0000-0000-0000-000000000001
+S2=bbbbbbbb-0000-0000-0000-000000000002
+M1=cccccccc-0000-0000-0000-000000000003
+M2=dddddddd-0000-0000-0000-000000000004
+
+prompt() { # prompt SESSION TEXT -> hook output
+  jq -n -c --arg s "$1" --arg p "$2" --arg cwd "$CLAUDE_PROJECT_DIR" \
+    '{session_id: $s, cwd: $cwd, hook_event_name: "UserPromptSubmit", prompt: $p}' | "$hook"
+}
+bash_call() { # bash_call SESSION COMMAND -> hook output
+  jq -n -c --arg s "$1" --arg c "$2" --arg cwd "$CLAUDE_PROJECT_DIR" \
+    '{session_id: $s, cwd: $cwd, hook_event_name: "PostToolUse", tool_name: "Bash", tool_input: {command: $c}}' | "$hook"
+}
+lines() { cat "$CLAUDE_ORG_QUEUE_DIR/$1.jsonl" 2>/dev/null | grep -c '"kind":"todo"'; }
+
+# --- the ordinary case --------------------------------------------------
+{ slice "$S1" DOING "$M1"; task "$M1" REVIEW; } > "$CLAUDE_PROJECT_DIR/TODO.org"
+out="$(prompt s1 "an ordinary prompt")"
+check "an ordinary prompt does nothing" "0|" "$(lines s1)|$out"
+
+out="$(prompt s1 "/code-review high --comment PR29")"
+line="$(grep '"kind":"todo"' "$CLAUDE_ORG_QUEUE_DIR/s1.jsonl")"
+check "/code-review queues the DOING slice" "$S1" "$(jq -r '.id' <<<"$line")"
+check "to REVIEW" "REVIEW" "$(jq -r '.state' <<<"$line")"
+check "from DOING, recovered as any todo event is" "DOING" "$(jq -r '.from' <<<"$line")"
+check "and says where it came from" "review-start" "$(jq -r '.source' <<<"$line")"
+check "the session is told" "yes" "$(jq -r '.hookSpecificOutput.additionalContext' <<<"$out" | grep -q 'queued to REVIEW' && echo yes || echo no)"
+
+prompt s1 "/code-review" >/dev/null
+check "a second review start in the session queues nothing more" "1" "$(lines s1)"
+
+out="$(prompt s1b "/ultrareview")"
+check "another session does not queue it again while s1's is pending" "0" "$(lines s1b)"
+
+# Pending means in no session's watermark, applied or dismissed. Once s1's
+# event is applied the slice is REVIEW on disk and is skipped anyway; a
+# dismissed one leaves it DOING, and a new review start should queue it.
+ts="$(jq -r 'select(.kind == "todo") | .ts' "$CLAUDE_ORG_QUEUE_DIR/s1.jsonl")"
+jq -n -c --arg t "$ts" '{applied: {}, dismissed: {($t): "2026-09-21T18:00:00-0500"}}' > "$CLAUDE_ORG_QUEUE_DIR/s1.applied"
+prompt s1c "/ultrareview" >/dev/null
+check "once dismissed, the deprecated alias queues it anew" "1" "$(lines s1c)"
+rm -f "$CLAUDE_ORG_QUEUE_DIR"/s1*.jsonl "$CLAUDE_ORG_QUEUE_DIR"/s1*.applied
+
+# --- a reviewer requested from a Bash call ------------------------------
+bash_call s2 "gh pr edit 29 --add-reviewer someone" >/dev/null
+check "gh pr edit --add-reviewer queues it" "1" "$(lines s2)"
+bash_call s3 "gh pr view 29" >/dev/null
+check "another gh call does not" "0" "$(lines s3)"
+
+# --- when it must not act -----------------------------------------------
+{ slice "$S1" DOING "$M1 $M2"; task "$M1" REVIEW; task "$M2" TODO; } > "$CLAUDE_PROJECT_DIR/TODO.org"
+out="$(prompt s4 "/code-review")"
+check "an unfinished member stops it" "0" "$(lines s4)"
+check "and is named" "yes" "$(jq -r '.hookSpecificOutput.additionalContext' <<<"$out" | grep -q 'dddddddd(TODO)' && echo yes || echo no)"
+
+{ slice "$S1" DOING; slice "$S2" DOING; } > "$CLAUDE_PROJECT_DIR/TODO.org"
+out="$(prompt s5 "/code-review")"
+check "two DOING slices queue neither" "0" "$(lines s5)"
+check "and both are named" "yes" "$(jq -r '.hookSpecificOutput.additionalContext' <<<"$out" | grep -q 'aaaaaaaa bbbbbbbb' && echo yes || echo no)"
+
+{ slice "$S1" REVIEW; task "$M1" TODO; } > "$CLAUDE_PROJECT_DIR/TODO.org"
+out="$(prompt s6 "/code-review")"
+check "no DOING slice: silent" "0|" "$(lines s6)|$out"
+
+rm -f "$CLAUDE_ORG_QUEUE_DIR"/*   # each case that expects a line starts from an empty queue
+# A member keyword quoted in a body must not be read as the heading's.
+{ slice "$S1" DOING "$M1"; printf '* REVIEW Task cccc\n:PROPERTIES:\n:ID:       %s\n:END:\nA body naming :ID: %s as TODO.\n\n' "$M1" "$M2"; } > "$CLAUDE_PROJECT_DIR/TODO.org"
+prompt s7 "/code-review" >/dev/null
+check "ids in a body are not headings" "1" "$(lines s7)"
+
+echo
+echo "review-start-test: $pass passed, $fail failed"
+exit $((fail > 0))

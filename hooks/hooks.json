@@ -76,6 +76,16 @@
             "timeout": 10
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/bin/hooks/review-start",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "Stop": [
@@ -122,6 +132,15 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/bin/hooks/apply-detect",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/bin/hooks/review-start",
             "timeout": 10
           }
         ]

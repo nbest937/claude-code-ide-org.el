@@ -27,6 +27,7 @@ line to the session's queue file and exits, or blocks, or injects context:
 |---------------------|-------------------------------|---------------|
 | `Stop`              | `bin/hooks/footnote-check`    | nothing — *blocks the stop* when the response cites a tracked `:ID:` with no end-matter entry |
 | `UserPromptSubmit`  | `bin/hooks/apply-detect`      | nothing — *injects context* when the queue was applied since the session's last turn |
+| `UserPromptSubmit`, `PostToolUse` (Bash) | `bin/hooks/review-start` | `todo` → `REVIEW` for the one `DOING` slice when a PR review starts (`/code-review`, a reviewer requested) and its unfinished members are all `REVIEW` |
 | `SessionStart`      | `bin/hooks/session-start-recovery-check` | nothing — *injects* the daily ceremony prompt (and, where time tracking is wired, the stale-interval report) |
 
 *The table omits the three `PostToolUse` `queue-append` matchers*, which

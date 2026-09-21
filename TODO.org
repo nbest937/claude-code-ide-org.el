@@ -2,6 +2,12 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* DOING Starting a pull request's review should queue its slice to REVIEW, not wait for someone to remember
+:PROPERTIES:
+:ID:       a9d37aee-3cc0-4e5f-80ff-6659aba34db0
+:CREATED:  [2026-09-21 Mon 18:20]
+:CATEGORY: Slices
+:END:
 * DONE The rule-copy drift guard compares the working tree, not what is staged
 CLOSED: [2026-09-21 Mon 17:56]
 :PROPERTIES:

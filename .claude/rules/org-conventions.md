@@ -590,7 +590,10 @@ only judgement. Findings arrive inside the window by construction and
 are filed as members; that is the consequent work the section below
 describes, and it does not return the slice to `DOING`. `f6d160c2` is why:
 it stayed `DOING` through its whole review, six findings filed and fixed,
-and reached `REVIEW` only when its last verdict came in.
+and reached `REVIEW` only when its last verdict came in. **The step is a
+hook's now** (`bin/hooks/review-start`, `:ID:` a9d37aee): it queues the
+transition itself when exactly one slice is `DOING` and its unfinished
+members are all `REVIEW`, and otherwise tells the session why it did not.
 
 **The `:BLOCKER:` is the floor; this is the ceiling.** The blocker stops a
 slice reaching `DONE` before its members do. Nothing stopped it closing
