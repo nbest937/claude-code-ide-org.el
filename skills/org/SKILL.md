@@ -412,14 +412,13 @@ heading to `DOING`, or making any code/file
 edits the plan describes. This holds regardless of whether the heading
 the plan is for already existed or is newly created as part of the plan.
 
-**The Plan link is not gated by this checkpoint** — add it as soon as the
-plan file is finalized, per the project's `:PLAN:` rule. This wording used to gate
-it alongside the two above, contradicting that rule; the contradiction
-was resolved in that rule's favour on 2026-08-14 for a mechanical reason,
-not a stylistic one. `bin/sync-plans` archives only those plans some
-heading links, so an unlinked plan is never copied into `plans/` and has
-no history at all — waiting for confirmation costs the plan its archive
-while protecting nothing, since a link commits you to no work.
+**Writing the plan down is not gated by this checkpoint.** A plan lives
+in its heading's `:PLAN:` drawer — `org_amend` with `drawer=PLAN` — and
+goes there as soon as it is settled, since recording a plan commits you
+to no work. **Do not write a `[[file:~/.claude/plans/…]]` link**: that
+pattern was retired 2026-09-21, Claude Code deletes those files after its
+retention period, and a heading whose plan is a link loses its plan with
+them. Older headings keep the links they have.
 
 ### Before editing: check for an unsaved buffer
 
@@ -478,8 +477,8 @@ overwrite it.
 
 **A body has two lives, and since 2026-08-24 they live in different
 places, from the moment each is written.** The prospective half —
-motivation, options, the reasoning behind an approach, and the plan link if
-there is one — goes into a `:PLAN:` drawer beside `:PROPERTIES:` and
+motivation, options, the reasoning behind an approach, the plan itself —
+goes into a `:PLAN:` drawer beside `:PROPERTIES:` and
 `:LOGBOOK:` *when it is composed*, not at `DONE`. The body carries a brief
 statement of the problem and the proposed solution, two to five sentences.
 At `DONE` the debrief is appended to the body: what the solution turned out
@@ -724,8 +723,8 @@ When asked to kick off planning for several open `NEXT`/`TODO` headings at
 once (rather than one heading at a time, interactively), parallelize the
 *research* but keep the *write-back* serialized. There is exactly one org
 clock, shared across every session touching the file, so N sessions
-cannot each hold one. Only read-only research that writes solely to its
-own plan file (`~/.claude/plans/<slug>.md`) is safe to genuinely run in
+cannot each hold one. Only read-only research that writes nothing and
+returns its plan as its final report is safe to genuinely run in
 parallel.
 
 (This paragraph used to argue the point via `PLANNING` ownership and a
@@ -738,27 +737,22 @@ argument was the load-bearing half anyway.)
    Plan-Mode-workflow convention of launching up to 3 Explore agents in
    parallel).
 3. Launch one background agent per heading (the `Agent` tool), each doing
-   read-only research and `Write`-ing its own plan file. Each agent's
-   brief must state explicitly: never call `org_set_todo`, `org_clock_in`,
-   or any other state/clock-mutating tool — research and plan-file writing
+   read-only research and returning its plan as its final report. Each
+   agent's brief must state explicitly: never call `org_set_todo`,
+   `org_clock_in`, `org_amend` or any other tool that writes — research
    only.
-4. As each agent reports its plan file is finalized, call
-   `org_log_background_plan` for that heading — **one call at a time**,
-   only after that specific agent is done, never in parallel with another
-   heading's write-back. Pass `session_id` as
-   `<this session's own real session id>-bg<N>` (the Nth agent in the
-   batch) — a synthetic id derived from, but never equal to, the
-   orchestrating session's real id, so unattended background research time
-   is never misattributed as that session's own interactive work.
+4. As each agent reports, write its plan into that heading's `:PLAN:`
+   drawer with `org_amend` `drawer=PLAN` — **one call at a time**, never in
+   parallel with another heading's write-back.
 5. Leave TODO state as-is (still `NEXT`/`TODO`). Promoting a heading to
    `DOING` on the strength of a background plan is a separate,
    later, interactive decision — not part of this batch.
 6. Don't auto-commit the resulting diff. Leave it for explicit review.
 
-`org_log_background_plan` inserts the `[[file:...][Plan]]` link
-(idempotent — a heading only ever carries one). It never touches
-`:LOGBOOK:`, the TODO keyword, or the clock — the single-clock model
-can't represent true parallelism honestly, so this path doesn't try.
+The write-back never touches `:LOGBOOK:`, the TODO keyword, or the clock
+— the single-clock model can't represent true parallelism honestly, so
+this path doesn't try. (`org_log_background_plan`, which inserted a
+plan-file link, belongs to the retired pattern; do not call it.)
 
 It still takes a synthetic `session_id`, but no longer records it
 anywhere: that was a `:SESSIONS:` drawer entry, and the drawer was
