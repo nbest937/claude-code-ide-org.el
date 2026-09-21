@@ -11,6 +11,7 @@
 
 Row 9 of the enforcement audit's convert list (3cd7b7d3), not built. Three rules still rest on recall: prefer org_amend over Edit for body text on a tracked heading, never hand-edit a TODO keyword or a CLOCK line, never hand-edit a slice's member checklist. A PreToolUse row on Edit and Write for TODO.org and DONE.org could block a hunk whose old or new text touches a heading's keyword, a CLOCK: or "- State" line, or a "- [ ] [[id:" member line, and remind otherwise. Held back because of false positives: Edit's old_string is a fragment, so the guard sees text without knowing whether it sits on a heading line or in a body quoting one, and this tracker's bodies quote such lines constantly. Measure on the transcripts first: how many past Edits to the org files would it have blocked, and how many of those were wrong to make. commit-msg already catches the worst case after the fact.
 
+
 * WAITING Decide whether queue-append should derive clock events from DOING transitions, reversing the separation 4f6a6bb1 chose :code:
 :PROPERTIES:
 :ID:       55125136-5939-434e-9676-96ea66a75770
@@ -229,11 +230,20 @@ Measured once at 15 relays in 24 session starts (c5b02503), which is why the cer
 The catch-all, so that answering a catch is always an amend and never a decision about filing. One dated line per catch, naming the rule missed. When the same rule appears here a second time it earns its own sibling, and these lines move with it.
 
 
-* TODO Work after a mid-turn clock_out belongs to no run, so it reaches review as nothing at all rather than UNASSIGNED :code:observed:
+* DONE Work after a mid-turn clock_out belongs to no run, so it reaches review as nothing at all rather than UNASSIGNED :code:observed:
+CLOSED: [2026-09-21 Mon 11:30]
 :PROPERTIES:
 :ID:       b09aca60-127b-47a4-9177-a86ac90d8fac
 :CREATED:  [2026-09-21 Mon 08:02]
 :CATEGORY: Queue
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-21 Mon 11:24]--[2026-09-21 Mon 11:31] =>  0:07
+- State "DOING"      from "TODO"       [2026-09-21 Mon 11:24] \\
+  reproduce with a fixture, then fix
+- [2026-09-21 Mon 11:24]--[2026-09-21 Mon 11:31] reproduce the lost run after a mid-turn clock_out
+- State "DONE"       from "DOING"      [2026-09-21 Mon 11:30] \\
+  tail spans gain their bracket edge; pinned defect un-pinned
 :END:
 :DEBRIEF:
 Shipped in [[orgit-rev:claude-code-ide-org::4051533][4051533]]. *The reproduction corrected the diagnosis.* The body says the stretch "belongs to no run" because =clock_out= is a run-closing kind. True, but the span itself was never lost: =--span-complement= already emitted the unowned remainder as an item. What it lacked was *events* — the remainder of the turn holds only the =pause=, because its opening edge is the =clock_out=, which is not a guidepost. No =open= → =close= adjacency, so the item wrote nothing. The fix is therefore at the item's event list, not in the run-closing kinds: =--with-bracket-edges= adds a synthetic =resume= where a span starts at a bracket's end, or a synthetic =pause= where it ends at a bracket's start, when =--lane-running-at-p= says the turn guideposts either side had the agent running.
@@ -252,7 +262,6 @@ Shipped in [[orgit-rev:claude-code-ide-org::4051533][4051533]]. *The reproductio
 =clock_out= is a run-closing kind (=--run-closing-kinds=), and nothing reopens a run until the next =resume= or =clock_in=. So when a session clocks out and keeps working in the same turn, the stretch up to the turn's =pause= is between two closing edges and is no run. Observed 2026-09-19, session =9e00a7a2=: =clock_out= at 16:39:38, =pause= at 16:46:55, and in between two code commits and a heading's close ([[id:1b69fe4e-3dab-4b11-b21b-96320bf9d4e0][1b69fe4e]]). =org_pending_updates= offers no span for it, assigned or not — the user noticed, the session had predicted UNASSIGNED. This is quieter than the failure [[id:ccfd89ce-a55d-4ad4-bce7-707181deb510][ccfd89ce]]'s rule guards against: that one leaves a span to assign, this leaves nothing to notice. =clock-target-check= cannot see it either, since a =clock_in= exists. Not yet decided: whether a =clock_out= followed by more tool activity before the =pause= should open an unowned run, or whether the fix is on the agent side (never clock out before the last write of a turn). Reproduce with a fixture first — one ad hoc call to =--span-work-runs= gave runs that disagreed with the report's own counts, unexplained.
 
 *Resolved 2026-09-21:* an unowned span that abuts a clock bracket the agent ran straight through now gains that edge, so the stretch is offered for review with its run instead of as an item that writes nothing.
-
 
 
 * TODO Nothing runs the shell hook suites, so three sat red for a day and a merge without anyone seeing :code:
@@ -364,14 +373,14 @@ The conventions say a twin — two headings for the same work — "is caught by 
 *Resolved 2026-09-21:* the twin pass exists — candidates from the query =org_capture= runs, a =twin-checker= agent that reads both bodies and only proposes, and an offer in the ceremony report. Its first run judged three pairs in 69 seconds and found one live heading whose work had already shipped.
 
 
-* DOING [5/8] A rule the agent can recite and still misses is a rule in the wrong place: count the misses, then move the rules out of recall :code:
+* DOING [7/9] A rule the agent can recite and still misses is a rule in the wrong place: count the misses, then move the rules out of recall :code:
 :PROPERTIES:
 :ID:       f6d160c2-c0ac-4c4b-a298-fe581ea3962a
 :CREATED:  [2026-09-19 Sat 13:50]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  63713df3-4ed9-42be-b971-8ac4485e76c2 436e0991-c8ac-40fb-860d-a6c4c381bee5 3cd7b7d3-25eb-4f30-ae90-9174a6876674
+:BLOCKER:  63713df3-4ed9-42be-b971-8ac4485e76c2 436e0991-c8ac-40fb-860d-a6c4c381bee5
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-19 Sat 08:29]--[2026-09-19 Sat 08:32] =>  0:03
@@ -487,10 +496,14 @@ Planned:
 - [-] [[id:436e0991-c8ac-40fb-860d-a6c4c381bee5][436e0991]] DOING Path-scoped rules load on a Read, which the org tools exist to replace, so the conventions load only on the discouraged path
 - [X] [[id:1b69fe4e-3dab-4b11-b21b-96320bf9d4e0][1b69fe4e]] DONE org-time-tracking.md promotes with no path scope, so a consumer with the feature off loads 260 lines about it every session
 - [X] [[id:bf7e0b8e-f83a-4d4a-9950-3ab23a225156][bf7e0b8e]] DONE The always-loaded surface is 1,573 lines, and the split that shrank CLAUDE.md is what grew it
-- [-] [[id:3cd7b7d3-25eb-4f30-ae90-9174a6876674][3cd7b7d3]] DOING Audit the always-loaded rules for clauses a hook could enforce, since prose recall is what fails
+- [X] [[id:3cd7b7d3-25eb-4f30-ae90-9174a6876674][3cd7b7d3]] DONE Audit the always-loaded rules for clauses a hook could enforce, since prose recall is what fails
 - [X] [[id:c8773ec2-1b29-4128-80b3-5c21845f4ca3][c8773ec2]] DONE org_capture should run the duplicate query itself, so the check the rule asks for cannot be skipped
 - [X] [[id:9fb8c1fb-1f86-4dc1-9203-6c7abfd27594][9fb8c1fb]] DONE Twins are caught by review and nothing reviews for them: a checker subagent with a saturated context, run as a pass
 - [X] [[id:f2030ce9-3759-407c-b459-fe4ba4de8854][f2030ce9]] DONE Nothing bounds the always-loaded rule surface, so every new rule is free at the point of writing
+
+Incidental:
+
+- [X] [[id:b09aca60-127b-47a4-9177-a86ac90d8fac][b09aca60]] DONE Work after a mid-turn clock_out belongs to no run, so it reaches review as nothing at all rather than UNASSIGNED
 
 
 * REVIEW "Forgets frequently" has no number: the only recorded misses are once-per-session sentinels, so the rate cannot be seen or shown to fall :code:research:
@@ -529,6 +542,10 @@ CLOCK: [2026-09-21 Mon 10:39]--[2026-09-21 Mon 10:43] =>  0:04
 - [2026-09-21 Mon 10:39]--[2026-09-21 Mon 10:43] rework from review: count only genuine refusals
 CLOCK: [2026-09-21 Mon 10:45]--[2026-09-21 Mon 10:46] =>  0:01
 - [2026-09-21 Mon 10:45]--[2026-09-21 Mon 10:46] suggested span, accepted at review
+CLOCK: [2026-09-21 Mon 11:15]--[2026-09-21 Mon 11:16] =>  0:01
+- [2026-09-21 Mon 11:15]--[2026-09-21 Mon 11:16] suggested span, accepted at review
+CLOCK: [2026-09-21 Mon 11:24]--[2026-09-21 Mon 11:25] =>  0:01
+- [2026-09-21 Mon 11:24]--[2026-09-21 Mon 11:25] suggested span, accepted at review
 :END:
 :PLAN:
 *Why this is a separate heading from the mechanisms.* The user's report is
@@ -742,7 +759,8 @@ The rule count has only ever grown, one incident at a time, and no gate notices.
 *Resolved 2026-09-21:* =bin/word-budget= sums the always-loaded words in three configurations against budgets kept in that one file, =check-conventions= runs it in both modes, and pre-commit therefore refuses the commit that overruns — proven on the real repo with a two-word mutation.
 
 
-* DOING Audit the always-loaded rules for clauses a hook could enforce, since prose recall is what fails :code:
+* DONE Audit the always-loaded rules for clauses a hook could enforce, since prose recall is what fails :code:
+CLOSED: [2026-09-21 Mon 11:06]
 :PROPERTIES:
 :ID:       3cd7b7d3-25eb-4f30-ae90-9174a6876674
 :CREATED:  [2026-09-19 Sat 09:00]
@@ -768,6 +786,10 @@ Seventeen of the nineteen rows are done on =feature/rules-in-wrong-places=; two 
   convert list approved; first six conversions
 CLOCK: [2026-09-21 Mon 09:48]--[2026-09-21 Mon 09:49] =>  0:01
 - [2026-09-21 Mon 09:48]--[2026-09-21 Mon 09:49] suggested span, accepted at review
+CLOCK: [2026-09-21 Mon 10:54]--[2026-09-21 Mon 11:06] =>  0:12
+- [2026-09-21 Mon 10:54]--[2026-09-21 Mon 11:06] git guards record their own refusals
+- State "DONE"       from "DOING"      [2026-09-21 Mon 11:06] \\
+  17 of 19 converted; 2 filed
 :END:
 :PLAN:
 *The claim, from an outside drift analysis read 2026-09-19:* the observed
@@ -820,7 +842,6 @@ Every rule of the shape "before X, always do Y" where Y is fixed and cheap is a 
 *Resolved 2026-09-21:* seventeen of nineteen clauses now refuse or report at the moment of the act — five git guards, two =PreToolUse= guards, four tool contracts, two hook notices — and each counts its own firing as a miss. The two left are filed: one is the user's decision, one needs a measurement first.
 
 
-
 * DONE org_capture should run the duplicate query itself, so the check the rule asks for cannot be skipped :code:
 CLOSED: [2026-09-21 Mon 10:12]
 :PROPERTIES:
@@ -835,6 +856,8 @@ CLOSED: [2026-09-21 Mon 10:12]
   measure title overlap, then build the query into org_capture
 - State "DONE"       from "DOING"      [2026-09-21 Mon 10:12] \\
   query runs in the tool; paraphrase miss filed as 12033cc8
+CLOCK: [2026-09-21 Mon 10:52]--[2026-09-21 Mon 10:53] =>  0:01
+- [2026-09-21 Mon 10:52]--[2026-09-21 Mon 10:53] measure title-token overlap on the corpus
 :END:
 :DEBRIEF:
 Shipped in [[orgit-rev:claude-code-ide-org::4a9387b][4a9387b]]. *Measured before anything was chosen,* as the plan asked, leave-one-out over the 563 scorable titles in this tracker. Plain Jaccard was useless here — titles are whole claims, and the known duplicate pair scored 0.27. The score adopted is the idf-weighted share of the *new* title's tokens found in the candidate, at least two shared: asymmetric on purpose, because the question is "is this already said", not "are these alike". At 0.4, 43 headings (7.6%) would have been shown a candidate; at 0.5, 16, about eleven of them true relatives; the known pair scores 0.59 one way and 0.32 the other.
@@ -8357,7 +8380,6 @@ on it.
 *The enforcement half is done, 2026-09-21* (under 3cd7b7d3): =org_amend= and =org_capture='s note comma-escape raw =^\*+ = lines inside any =#+begin_=…=#+end_= block on the way in, idempotently, so the convention no longer has to be recalled on the tool path. Still true and still prose: a hand edit, and text that defers to the queue, are not covered.
 
 
-
 * TODO Decide how far the review-apply cycle can be automated, given the interactive constraint :code:
 :PROPERTIES:
 :CATEGORY: Apply
@@ -11474,6 +11496,7 @@ call it done.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-21 Mon 11:32]--[2026-09-21 Mon 11:33] =>  0:01
 CLOCK: [2026-09-21 Mon 10:46]--[2026-09-21 Mon 10:51] =>  0:05
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
