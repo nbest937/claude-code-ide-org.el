@@ -9837,60 +9837,6 @@ invitation to challenge the reframe.
   Auto-demoted: superseded by sibling [[id:95087d8f-e16d-45d3-bdea-9b179dc672b4][Lint for headings that are valid org but structurally unintended]] becoming NEXT.
 :END:
 :PLAN:
-
-*This one actually happened, deliberately, as a resilience test.* On
-2026-08-12 two sessions ran against this same checkout. This session
-wrote a heading to TODO.org, staged it with an explicit pathspec (=git
-add -- TODO.org=), and went to commit. The commit failed with =nothing
-to commit, working tree clean=: the other session had already committed,
-and its pathspec-less =git commit= took the whole index, sweeping this
-session's 69 staged lines into =a8dc693=, a commit whose message
-describes unrelated work and names two unrelated heading =:ID:=s.
-Content survived; attribution did not. =36410e2= is an empty commit
-recording that, since =a8dc693= was already pushed.
-
-*The mechanism is the index, not the files.* Every convention this
-project had was about file contents — check for a modified buffer, stage
-explicitly, never =git add -A=. None touch the actual shared mutable
-state, which is =.git/index=: one per checkout, not one per session.
-Worse, following the convention *increased* the damage — staging early
-loaded this session's work into the index *before* the other session
-committed. Had this session not staged at all, its work would have been
-left alone.
-
-*Worktrees do not fix this; they fix everything around it.*
-[[id:2e09adb7-6e29-499c-a40e-98cd2b327cff][2e09adb7]] concludes that one
-checkout and branch per session handles the *code* side, and that only
-the org files need to stay a single canonical copy in the main checkout.
-Read against this incident the two halves collide: the file swept up
-*was* TODO.org, which by that heading's own =:ID:=-uniqueness and
-clock-fragmentation argument is exactly the file that cannot be
-partitioned into a worktree. So a worktree session still commits
-TODO.org through the main checkout's index and hits this identically.
-New information for 2e09adb7, which assumed the code side was the whole
-problem.
-
-*Related but distinct:*
-[[id:3cb3f955-f10a-47cd-84ab-e629d73ea59d][3cb3f955]] asks whether =git
-commit -- TODO.org= is safe, scoped to a *single* session not sweeping
-up its own unrelated hunks in one file. This is the cross-session case:
-another session's *staged* work, in any file. Same command, different
-failure. Worth answering together.
-
-*One mitigation is verified.* Tested 2026-08-12 in a scratch repo: with
-=A.txt= staged, =git commit -- B.txt= commits B only, leaves A staged,
-and does not commit A. So a pathspec-scoped commit is genuinely safe for
-the *other* session's work. The catch is that it constrains the wrong
-party — safety depends on the *committing* session complying, and the
-session at risk cannot enforce it.
-
-*Caveat found while defining the hook:* =git commit -- <paths>= *fails
-on an untracked file* (=pathspec 'NEW.txt' did not match any file(s)
-known to git=). A new file must be =git add=-ed first, so for brand-new
-content the staging window this mitigation exists to avoid is
-unavoidable. The mitigation is complete only for already-tracked files —
-which is where this incident happened, TODO.org being tracked.
-
 *Options, none chosen:*
 - *Convention only:* ban =git add= in favour of =git commit -- <paths>=,
   in CLAUDE.md and the org skill. Cheapest, verified, and binds only
@@ -9956,6 +9902,60 @@ with =ALLOW_SWEEP=1=* (the user, 2026-09-21), shaped like
 =count-miss=, so habitual use shows up in the rate. There is no ownership
 tracking: the command form alone discriminates, as measured above.
 :END:
+
+*This one actually happened, deliberately, as a resilience test.* On
+2026-08-12 two sessions ran against this same checkout. This session
+wrote a heading to TODO.org, staged it with an explicit pathspec (=git
+add -- TODO.org=), and went to commit. The commit failed with =nothing
+to commit, working tree clean=: the other session had already committed,
+and its pathspec-less =git commit= took the whole index, sweeping this
+session's 69 staged lines into =a8dc693=, a commit whose message
+describes unrelated work and names two unrelated heading =:ID:=s.
+Content survived; attribution did not. =36410e2= is an empty commit
+recording that, since =a8dc693= was already pushed.
+
+*The mechanism is the index, not the files.* Every convention this
+project had was about file contents — check for a modified buffer, stage
+explicitly, never =git add -A=. None touch the actual shared mutable
+state, which is =.git/index=: one per checkout, not one per session.
+Worse, following the convention *increased* the damage — staging early
+loaded this session's work into the index *before* the other session
+committed. Had this session not staged at all, its work would have been
+left alone.
+
+*Worktrees do not fix this; they fix everything around it.*
+[[id:2e09adb7-6e29-499c-a40e-98cd2b327cff][2e09adb7]] concludes that one
+checkout and branch per session handles the *code* side, and that only
+the org files need to stay a single canonical copy in the main checkout.
+Read against this incident the two halves collide: the file swept up
+*was* TODO.org, which by that heading's own =:ID:=-uniqueness and
+clock-fragmentation argument is exactly the file that cannot be
+partitioned into a worktree. So a worktree session still commits
+TODO.org through the main checkout's index and hits this identically.
+New information for 2e09adb7, which assumed the code side was the whole
+problem.
+
+*Related but distinct:*
+[[id:3cb3f955-f10a-47cd-84ab-e629d73ea59d][3cb3f955]] asks whether =git
+commit -- TODO.org= is safe, scoped to a *single* session not sweeping
+up its own unrelated hunks in one file. This is the cross-session case:
+another session's *staged* work, in any file. Same command, different
+failure. Worth answering together.
+
+*One mitigation is verified.* Tested 2026-08-12 in a scratch repo: with
+=A.txt= staged, =git commit -- B.txt= commits B only, leaves A staged,
+and does not commit A. So a pathspec-scoped commit is genuinely safe for
+the *other* session's work. The catch is that it constrains the wrong
+party — safety depends on the *committing* session complying, and the
+session at risk cannot enforce it.
+
+*Caveat found while defining the hook:* =git commit -- <paths>= *fails
+on an untracked file* (=pathspec 'NEW.txt' did not match any file(s)
+known to git=). A new file must be =git add=-ed first, so for brand-new
+content the staging window this mitigation exists to avoid is
+unavoidable. The mitigation is complete only for already-tracked files —
+which is where this incident happened, TODO.org being tracked.
+
 *Where this stands, 2026-09-01.*
 
 Nothing here has been built, and one premise has moved:
