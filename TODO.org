@@ -254,6 +254,8 @@ CLAUDE.md's own opening names this as the largest source of wrong claims. Caught
 
 - [2026-09-21 Mon] Caught by the user: "I was not offered an UNASSIGNED span at that time." The session had said twice that 16:39–16:46 on 2026-09-19 "will reach review UNASSIGNED", inferred from the clock-in rule's wording and never checked against =org_pending_updates=. It reached review as nothing (b09aca60).
 - [2026-09-21 Mon] Self-caught while answering what 63713df3's review should judge: its debrief says git-hook refusals "carry no =session_id= and are not counted". Never checked. A Bash tool call exports =CLAUDE_CODE_SESSION_ID=, and it equals the id the hook payloads carry (a queue file exists under it), so a git hook run from a session *can* count its own refusal. The claim shaped a design decision for two days.
+- [2026-09-21 Mon] Caught by the user: "list line should not be filled the way paragraph bodies are." The session's width sweep reported 8a2eb687's slice member lines as unfilled prose (13 lines), without checking what the lines were, and offered to fill all 44 headings in one =org-fill-paragraph= pass. That would have repeated 496b665e, the fill sweep that wrapped member lines, recorded in 8a2eb687's own body, on every slice. The fragments that sweep left in 8a2eb687's list were visible in the first outline read that day and went unmentioned. The user removed them by hand.
+
 
 
 ** TODO Miss: a heading closed with its unfinished part left in prose, or its group left un-nominated
@@ -3574,17 +3576,17 @@ the hook must compare something other than its mtime. Introduced with
   path.
 :END:
 
-The standalone wiring registers each tracked repo under its directory
-basename as the MCP session id, and =claude-org-setup --org= writes that
-same basename into the repo's generated =.mcp.json=. Two tracked repos
-that share a basename therefore collide: the later registration
-overwrites the earlier, and both static configs name the one surviving
-id, with nothing to tell them apart. Nothing reports the collision.
+The standalone wiring registers each tracked repo under its directory basename
+as the MCP session id, and =claude-org-setup --org= writes that same basename
+into the repo's generated =.mcp.json=. Two tracked repos that share a basename
+therefore collide: the later registration overwrites the earlier, and both
+static configs name the one surviving id, with nothing to tell them apart.
+Nothing reports the collision.
 
-Found by PR #22's review. The warp alias and ordering half of the
-original filing closed in 8bbae3aa
-([[orgit-rev:claude-code-ide-org::d5c9398][d5c9398]]); this is what
-remains.
+Found by PR #22's review. The warp alias and ordering half of the original
+filing closed in 8bbae3aa ([[orgit-rev:claude-code-ide-org::d5c9398][d5c9398]]); this is what remains.
+
+
 * TODO A deferred targetless capture loses its project routing when the queue is applied :code:
 :PROPERTIES:
 :ID:       5e731a23-7708-4248-b055-9b4a531f147d
@@ -6302,11 +6304,8 @@ Planned:
   - [ ] [[id:eadb3607-aa3d-41ee-b8cc-e293cc924f26][eadb3607]] TODO A heading discussed by subject and never by id owes a citation no token scan can see
 - [ ] [[id:f12f9da4-2870-45b7-8c50-ea54415c7bc6][f12f9da4]] TODO The running Emacs can be running a stale config.el and nothing says so
 - [X] [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]] DONE Verification traps: a check with no way to fail, and a fixture that never takes the real path
-  a check with no way to fail, and a fixture that never takes the real path
-- [X] [[id:d2a0f54c-b59a-4855-ae3d-c93a6d3aa177][d2a0f54c]] DONE Generalize bin/check-org-dev-skill into bin/check-conventions, wired into pre-commit
-  bin/check-org-dev-skill into bin/check-conventions, wired into pre-commit
+  - [X] [[id:d2a0f54c-b59a-4855-ae3d-c93a6d3aa177][d2a0f54c]] DONE Generalize bin/check-org-dev-skill into bin/check-conventions, wired into pre-commit
 - [X] [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]] DONE MCP tools that write an org file time out; one reports success and persists nothing
-  write an org file time out; one reports success and persists nothing
 - [ ] [[id:25e7b083-360b-4282-8fd0-bb768e2a0f13][25e7b083]] TODO org_capture's target refuses an 8-character :ID: prefix that every other tool accepts
 - [ ] [[id:3ad389be-2797-46c3-a51d-9f603053955a][3ad389be]] TODO An Emacs outage strands every org write, because the tools are Emacs
 - [ ] [[id:7fa68d5c-b6c0-43df-85c6-764b1d56511f][7fa68d5c]] TODO Fall back to the queue when org_capture cannot reach Emacs
