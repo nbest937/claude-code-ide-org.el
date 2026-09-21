@@ -2916,77 +2916,32 @@ CLOCK: [2026-09-16 Wed 14:50]--[2026-09-16 Wed 14:50] =>  0:00
 - [2026-09-16 Wed 14:50]--[2026-09-16 Wed 14:50] suggested span, accepted at review
 :END:
 
-Found 2026-09-16 while answering "does 4acd8ad0 fit an open slice?". Measured
-four ways, and the defect is entirely in the wrapper — =org-ql= itself is
-correct on both counts. =(org-ql-select (org-agenda-files) '(property "KIND"
-"slice"))= returns **14**; the same query through =org_query= returns **"No
-matches."**. And =org-ql-select= with a nonsense predicate **signals
-=void-function=**, while =org_query= with =(no-such-predicate "banana")= returns
-**"No matches."** — byte-identical to an honest empty result. So two faults, one
-hiding the other: the wrapper swallows a rejected query into an empty result,
-and =property= never reaches =org-ql= at all, which suggests a predicate
-allowlist or a re-parse that discards what it does not recognise. Fix the error
-surfacing **first**: once a rejected query says so, a missing predicate
-announces itself instead of lying, and the second fault becomes self-reporting
-rather than silent. This cost a real session real work — the empty result was
-read as "no slices carry :KIND:", and the question was then answered with an
-=awk= scan reconstructing heading boundaries by regex, which is the
-entry-boundary class the org-dev skill §0b exists to prevent. The answer
-happened to be right, which is worse than wrong: nothing would have flagged it.
-Note the general shape is CLAUDE.md's own — of roughly a dozen wrong claims on
-2026-08-11, three came from reading a silently-failing command's empty output as
-a result.
+=org_query= takes org-ql's plain-string mini-language. A sexp such as
+=(tags "research")= is not refused. It is parsed as full-text terms
+(=(tags= and ="research")=), and "No matches." comes back looking exactly
+like an honest empty result. An empty answer reads as a fact about the
+corpus, so a wrong-language query costs real work downstream.
 
-*Broader than filed, measured 2026-09-16 while asking whether anything new
-belonged in slice [[id:6521dd56-8772-416b-9435-6da78bb86b06][6521dd56]].* The defect is not confined to =property=. =(tags
-"research")= returns **"No matches."** through =org_query= while =org-ql-select=
-finds **24** headings for the identical query. The control still works — =(todo
-"DONE")= returns 349 — so the wrapper is dropping *specific predicates*, not
-failing wholesale, and =todo= happens to be the one every earlier use of this
-tool relied on.
+*Established (2026-09-16):*
+- =claude-code-ide-org--parse-query-string= is one call,
+  =(org-ql--query-string-to-sexp query 'and)=. The plain-string forms
+  work: =tags:research= returns 24 and =todo:REVIEW= the live REVIEW
+  headings.
+- It cost a session work: the empty answer was read as "no slice
+  carries =:KIND:=", and the question was re-answered with an =awk= scan
+  that reconstructs heading boundaries by regex, the class the org-dev
+  skill's §0b warns against.
 
-*Which is why it went unnoticed for so long, and the shape is worth naming.* A
-tool that answers correctly for the predicate you always use, and silently
-answers "nothing" for the ones you rarely try, trains its user to trust it.
-Every empty result reads as a fact about the corpus.
-
-**It blocks [[id:e28933e9-f352-4ef9-8d53-8cd9a4318768][e28933e9]]** — "Survey all task history for a tag vocabulary worth
-searching on" — which is a tags query by definition. Run today, that survey
-would report an empty vocabulary and the report would look like a finding.
-Recorded as a =:BLOCKER:= rather than left as prose, since a cross-slice
-dependency is invisible from both ends.
-
-*Re-measured 2026-09-16, and the mechanism above is wrong in a way that matters:
-no predicate is dropped, and none ever was.* =org_query='s input is org-ql's
-**plain-string mini-language**, not a sexp —
-=claude-code-ide-org--parse-query-string= is one line,
-=(org-ql--query-string-to-sexp query 'and)=, and the tool's own description says
-so. Run with that syntax, =tags:research= returns **24**, the exact number this
-body records =org-ql-select= finding and the tool "dropping", and =todo:REVIEW=
-returns the three live REVIEW headings correctly. So both measurements above
-compared =org-ql-select= given a *sexp* against =org_query= given the *same
-sexp*, which is two different languages, and the wrapper was blamed for the
-mismatch.
-
-*What actually happens to a sexp is worse than being refused: it is parsed.*
-=org-ql='s string parser reads =(tags "research")= as whitespace-separated
-full-text terms — =(tags= and ="research")= — and searches entry text for them.
-Nothing contains those literals, so "No matches." is an **honest answer to a
-query nobody meant to ask**. The =(no-such-predicate "banana")= result has the
-same cause, not an allowlist. And =(todo "DONE")= returning 349 was never a
-working control: it was a text search for entries containing those tokens, which
-is exactly why it looked like the one predicate that survived.
-
-*=:BLOCKER:= lifted from [[id:e28933e9-f352-4ef9-8d53-8cd9a4318768][e28933e9]].* That survey is a =tags:= query, =tags:=
-works today, and the block rested entirely on the claim corrected here.
-
-*The earlier paragraphs are left standing rather than rewritten.* What they got
-wrong is not a detail — a tool was carrying a defect it did not have for ten
-hours, and the corpus was searched by other means on that basis. A body that
-quietly agrees with itself afterwards would lose the one thing worth keeping:
-that the control which made the diagnosis credible was the same mistake as the
-finding.
-
+*Ruled out:*
+- Dropped predicates. For ten hours this heading claimed the wrapper
+  dropped =property= and =tags= and kept =todo=. Every one of those
+  measurements had passed a sexp to =org_query= and compared it with
+  =org-ql-select= given the same sexp, two different languages. Even
+  the "working control", =(todo "DONE")= returning 349, was a text
+  search for those tokens. So no predicate is dropped, and nothing sits
+  behind the rejection to restore.
+- Blocking e28933e9 on this. The block rested on the dropped-predicate
+  claim and was lifted when the claim fell.
 
 * TODO The re-key bridge reads transcripts Claude Code prunes, so the alias decays silently :code:
 :PROPERTIES:
