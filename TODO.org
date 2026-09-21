@@ -2,6 +2,37 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO One clock_in keeps pairing with later clock_outs, so a closed heading collects phantom spans at every review
+:PROPERTIES:
+:ID:       c3aa23fb-c9dd-4eb6-83f7-ec8e8c803a11
+:CREATED:  [2026-09-21 Mon 16:11]
+:CATEGORY: Queue
+:END:
+:PLAN:
+Reproduce before fixing. Take session 9e00a7a2's queue file and the
+applied watermarks from 2026-09-21, and replay the review's span
+derivation across successive applies. Find which =clock_out= each phantom
+span is built from, and why the one =clock_in= at 10:06:31 is still
+available to pair with it after the span it opened was applied.
+Hypothesis, unverified: pairing is positional, and applying a span
+consumes the =clock_out= but not the =clock_in=, so every later orphan
+=clock_out= re-pairs with it.
+
+The fix follows from the reproduction. Once a =clock_in= has opened an
+applied span it cannot open another, and a =clock_out= with no unconsumed
+=clock_in= becomes an unassigned span, not a suggestion for the last
+heading clocked. Add a regression test: one =clock_in=, an apply, then two
+further =clock_out=s produce no further suggestion for that heading.
+
+Time-tracking only. It never arises with the feature off.
+:END:
+
+Session 9e00a7a2 queued one =clock_in= on c8773ec2, at 2026-09-21 10:06:31.
+Successive reviews then suggested spans for it with that clock_in's note
+at 11:38, 13:56 and 14:34, and those three were applied as CLOCK lines
+into the DONE heading's LOGBOOK. The queue still offers two more, at 14:44
+and 15:26. The same shape was sighted that morning at 10:52 and not filed.
+
 * TODO org_wrap_plan saves a buffer holding the human's unsaved edits, where org_amend would queue and org_slice_add_member refuses
 :PROPERTIES:
 :ID:       60d6ab6e-a898-4894-82be-9f6086daf62d
