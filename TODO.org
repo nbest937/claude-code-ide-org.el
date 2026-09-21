@@ -80,6 +80,9 @@ org_capture now searches TODO.org and DONE.org on every capture by idf-weighted 
 :CREATED:  [2026-09-21 Mon 09:08]
 :CATEGORY: Skill
 :END:
+:DEBRIEF:
+Both halves done 2026-09-21. The conventions' =:PLAN:= section and =SKILL.md='s Plan Mode checkpoint no longer describe a plan-file link. =org_log_background_plan= is removed ([[orgit-rev:claude-code-ide-org::95a48f6][95a48f6]]): the registration, the function and its =--insert-plan-link= helper, four tests, the tools-table row and a hook regex entry. The live image was unbound and deregistered the same hour. Only =--worked-tool-names= still carries the name, deliberately, so that older records read correctly. No residue.
+:END:
 :LOGBOOK:
 - [2026-09-21 Mon 10:21]--[2026-09-21 Mon 10:27] assigned at review
 CLOCK: [2026-09-21 Mon 10:27]--[2026-09-21 Mon 10:28] =>  0:01
@@ -97,6 +100,9 @@ The plan-file link rule was retired 2026-09-21 (a plan lives in the :PLAN: drawe
 *Half done 2026-09-21, after another agent pointed at "Plan Mode checkpoint":* =SKILL.md= no longer tells anyone to write a plan-file link. The checkpoint section now says to write the plan into =:PLAN:= and explicitly not to link; the body-lifecycle paragraph drops "the plan link"; and the background-planning procedure has its agents return the plan as their final report, written back one at a time with =org_amend= =drawer=PLAN=. *Still owed:* =org_log_background_plan= itself is registered and listed in =org-mcp-tools.md= — the skill now says not to call it, which is a recalled rule standing in for a decision. Retire the tool or repoint it at the drawer. And the two remaining mentions, in =org-conventions.md='s =:PLAN:= section and =org-state-transitions.md= (the latter already reworded in the deletion pass), need the same read.
 
 - [2026-09-21 Mon] The conventions half is done. The =:PLAN:= section's first paragraph no longer mentions a plan-file link ([[orgit-rev:claude-code-ide-org::b35b73b][b35b73b]]). What remains is =org_log_background_plan=: retire it, or repoint it.
+
+*Resolved 2026-09-21: nothing teaches the link any more.* =org_log_background_plan= is retired along with the link it wrote, at the user's direction ([[orgit-rev:claude-code-ide-org::95a48f6][95a48f6]]). The skill, the tools table and the conventions describe only the =:PLAN:= drawer.
+
 
 
 * DOING [0/11] The misses a human catches reach no record: one heading per kind of miss, amended at each catch, so the catch is counted :code:
