@@ -12824,6 +12824,21 @@ a SINCE bound drops older lines, and torn lines cost one line."
                    (claude-code-ide-org--miss-counts
                     (date-to-time "2026-09-19T00:00:00-0500"))))))
 
+(ert-deftest claude-code-ide-org-test-miss-counts-read-the-archive ()
+  "A drained file is archived, and its misses still count.
+A session whose file holds only miss lines yields no review items, so
+once idle `archive-drained-queues' moves it out of the directory every
+reader scans (PR #29 review, TODO.org :ID: fd7d9715)."
+  (claude-code-ide-org-test--with-queue
+    (claude-code-ide-org-test--queue-write
+     "sess-a"
+     (claude-code-ide-org-test--miss-line "2026-09-19T09:00:00-0500" "footnote"))
+    (let ((file (claude-code-ide-org--queue-file "sess-a")))
+      (rename-file file (expand-file-name
+                         (file-name-nondirectory file)
+                         (claude-code-ide-org--queue-archive-directory))))
+    (should (equal '(("footnote" . 1)) (claude-code-ide-org--miss-counts)))))
+
 (ert-deftest claude-code-ide-org-test-miss-counts-respect-the-report-scope ()
   "Scoped, another project's misses are not this one's -- and a miss
 with no cwd is excluded, as `--items-in-report-scope' excludes an item."

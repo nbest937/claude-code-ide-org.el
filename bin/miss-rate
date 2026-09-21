@@ -35,7 +35,12 @@ command -v jq >/dev/null 2>&1 || { echo "miss-rate: jq not found" >&2; exit 2; }
 
 queue_dir="${CLAUDE_ORG_QUEUE_DIR:-$HOME/.claude/org-updates}"
 shopt -s nullglob
-files=("$queue_dir"/*.jsonl)
+# archive/ too: a file holding only miss and session lines yields no
+# review items, so once idle the ceremony archives it as drained, and its
+# misses would leave the series (PR #29 review, TODO.org :ID: fd7d9715).
+# restore-queue moves a file back rather than copying it, so no line is
+# ever read twice.
+files=("$queue_dir"/*.jsonl "$queue_dir"/archive/*.jsonl)
 if [[ ${#files[@]} -eq 0 ]]; then
   echo "miss-rate: no queue files in $queue_dir"
   exit 0

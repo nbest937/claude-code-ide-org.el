@@ -45,6 +45,15 @@ row="$("$repo_root/bin/miss-rate" --project /p/a | grep "^$today")"
 check "--project keeps the project and what is beneath it" "3" "$(awk '{print $4}' <<<"$row")"
 check "--project does not match a sibling by prefix" "2" "$(awk '{print $2}' <<<"$row")"
 
+# A session whose file holds only miss and session lines yields no
+# review items, so once idle the ceremony archives it as drained. Its
+# misses must stay in the series (PR #29 review, :ID: fd7d9715).
+mkdir -p "$tmp/archive"
+ev "$today" miss '"footnote"' s4 /p/a > "$tmp/archive/s4.jsonl"
+row="$("$repo_root/bin/miss-rate" | grep "^$today")"
+check "an archived session's misses still count" "5" "$(awk '{print $4}' <<<"$row")"
+check "and the session still counts in the denominator" "4" "$(awk '{print $2}' <<<"$row")"
+
 echo
 if [[ $failures -eq 0 ]]; then echo "miss-rate-test: all checks passed"
 else echo "miss-rate-test: $failures check(s) failed"; fi

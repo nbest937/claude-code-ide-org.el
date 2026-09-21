@@ -971,7 +971,16 @@ ones the number most wants."
                    (file-name-as-directory
                     (file-truename claude-code-ide-org--report-scope))))
         counts)
-    (dolist (file (claude-code-ide-org--queue-files))
+    ;; The archive too: a file holding only miss lines yields no review
+    ;; items, so `archive-drained-queues' moves it out of the directory
+    ;; `--queue-files' scans, and its misses would silently leave the
+    ;; count (PR #29 review, TODO.org :ID: fd7d9715).  `restore-queue'
+    ;; moves rather than copies, so no file is ever in both places.
+    (dolist (file (append (claude-code-ide-org--queue-files)
+                          (let ((archive (expand-file-name
+                                          "archive" claude-code-ide-org-queue-directory)))
+                            (and (file-directory-p archive)
+                                 (directory-files archive t "\\.jsonl\\'")))))
       (with-temp-buffer
         (insert-file-contents file)
         (goto-char (point-min))
