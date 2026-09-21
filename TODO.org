@@ -121,6 +121,8 @@ The conventions are path-scoped and tool-driven work never loads them (436e0991)
 CLAUDE.md's own opening names this as the largest source of wrong claims. Caught by the user 2026-09-21: "will reach review UNASSIGNED" was predicted twice and was false — the stretch reached review as nothing (b09aca60). Same session, self-corrected: "needs a new session" for a hook row the docs say reloads live, and a classifier escape hatch the docs do not list. Judgement, so it likely never closes; the count is the point. One dated line per catch.
 
 - [2026-09-21 Mon] Caught by the user: "I was not offered an UNASSIGNED span at that time." The session had said twice that 16:39–16:46 on 2026-09-19 "will reach review UNASSIGNED", inferred from the clock-in rule's wording and never checked against =org_pending_updates=. It reached review as nothing (b09aca60).
+- [2026-09-21 Mon] Self-caught while answering what 63713df3's review should judge: its debrief says git-hook refusals "carry no =session_id= and are not counted". Never checked. A Bash tool call exports =CLAUDE_CODE_SESSION_ID=, and it equals the id the hook payloads carry (a queue file exists under it), so a git hook run from a session *can* count its own refusal. The claim shaped a design decision for two days.
+
 
 ** TODO Miss: a heading closed with its unfinished part left in prose, or its group left un-nominated
 :PROPERTIES:
