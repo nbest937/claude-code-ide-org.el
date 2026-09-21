@@ -54,6 +54,8 @@ doom=0
 org=0
 glue=0
 time_flag=0
+time_off=0
+time_kept=0
 target="$PWD"
 for a in "$@"; do
   case "$a" in
@@ -63,9 +65,10 @@ for a in "$@"; do
     --org) org=1 ;;
     --glue) glue=1 ;;
     --time-tracking) time_flag=1 ;;
+    --no-time-tracking) time_off=1 ;;
     --*)
       echo "claude-org-setup: unknown option: $a" >&2
-      echo "usage: claude-org-setup [--force|--check|--doom|--org|--glue|--time-tracking] [TARGET_DIR]" >&2
+      echo "usage: claude-org-setup [--force|--check|--doom|--org|--glue|--time-tracking|--no-time-tracking] [TARGET_DIR]" >&2
       exit 2
       ;;
     *)
@@ -86,6 +89,17 @@ time_on=0
 [ "$time_flag" = 1 ] && time_on=1
 [ "${CLAUDE_PLUGIN_OPTION_TIME_TRACKING:-}" = "true" ] && time_on=1
 grep -q 'CLAUDE_PLUGIN_OPTION_TIME_TRACKING=true' "$target/.claude/settings.json" 2>/dev/null && time_on=1
+# Off is said only explicitly: --no-time-tracking, or the variable set to
+# false. Setup cannot see a plugin consumer's option, so silence is not
+# off -- a generated copy already present is the earlier decision and is
+# kept, the same rule --check applies (PR #29 review, TODO.org :ID:
+# 5fbc34cb). Before, a plain re-run deleted the time rules of a consumer
+# with tracking on, and the pre-commit guard's own hint is a plain re-run.
+[ "${CLAUDE_PLUGIN_OPTION_TIME_TRACKING:-}" = "false" ] && time_off=1
+if [ "$time_on" = 0 ] && [ "$time_off" = 0 ] \
+   && grep -q "$marker" "$target/.claude/rules/$time_file" 2>/dev/null; then
+  time_on=1 time_kept=1
+fi
 [ "$time_on" = 1 ] && promote+=("$time_file")
 
 # --glue: write the generated elisp glue into the user's Doom config
@@ -621,9 +635,10 @@ done
 # orphan it. Only a generated copy -- the marker is the licence, exactly
 # as it is for overwriting. This is the removal case TODO.org :ID:
 # 96ad6e95 says nothing handles, for this one file.
-if [ "$time_on" = 0 ] && grep -q "$marker" "$rules_dir/$time_file" 2>/dev/null; then
+if [ "$time_off" = 1 ] && grep -q "$marker" "$rules_dir/$time_file" 2>/dev/null; then
   rm -f "$rules_dir/$time_file"
   echo "removed $rules_dir/$time_file (time tracking is off; --time-tracking promotes it)"
 fi
+[ "$time_kept" = 1 ] && echo "kept $rules_dir/$time_file (already promoted; --no-time-tracking removes it)"
 
 echo "claude-org-setup: promoted $wrote rule file(s) into $rules_dir"

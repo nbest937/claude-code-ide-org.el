@@ -18,7 +18,8 @@ guidepost is ever appended, and no span is ever offered.
 `claude-org-setup --time-tracking`, the hooks' own variable in setup's
 environment, or a repo whose `.claude/settings.json` wires that variable
 itself. Setup cannot see the plugin option, so the two can still
-disagree; the option is what the hooks obey. Turn it on with
+disagree; the option is what the hooks obey. A plain re-run keeps this
+file once promoted; only `--no-time-tracking` removes it. Turn it on with
 Claude Code's `/config` command — a slash command typed in a session,
 not a path — which is also where you check which it is. (A marketplace
 install could pass `--config time_tracking=true` instead; this plugin is
