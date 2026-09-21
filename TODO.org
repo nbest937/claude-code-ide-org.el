@@ -370,19 +370,13 @@ Shipped in [[orgit-rev:claude-code-ide-org::4051533][4051533]]. *The reproductio
 :CATEGORY: Dev
 :END:
 :PLAN:
-Proposal: one runner
-(=bin/test-all=, or =bin/test --all=) that runs every suite and checks each exit
-code, named in Step 0 as what a branch runs before its PR. Whether pre-push
-should call it is a cost question — measure the wall time first.
-
-The plan is the body's proposal: one runner, =bin/test --all= or =bin/test-all=,
-that runs every =bin/*-test= suite and =bin/test= and checks each exit code and
-the =Ran N= line.
-
-*Pre-push runs it, not pre-commit* (the user, 2026-09-21). The full run
-measured 41s that day (24s shell, 17s ERT), which is tolerable per push and too
-heavy per commit, since most commits here are bookkeeping that touches only
-=TODO.org=. Step 0 also names it as what a branch runs before its PR.
+One runner, =bin/test --all= (or =bin/test-all=), that runs every =bin/*-test=
+suite and =bin/test=, checks each exit code, and reads the =Ran N= line rather
+than trusting silence. Pre-push calls it, not pre-commit (the user,
+2026-09-21): the full run measured 41s that day (24s shell, 17s ERT), which is
+tolerable per push and too heavy per commit, since most commits here are
+bookkeeping that touches only =TODO.org=. Step 0 names it as what a branch runs
+before its PR.
 :END:
 
 =bin/test= runs the ERT suite only. The shell =bin/*-test= suites run when
@@ -2871,25 +2865,16 @@ Asked by the user 2026-09-16, straight after =c= shipped: "will the 0-run/0-minu
 :CATEGORY: Tools
 :END:
 :PLAN:
-*Note the fix order is unchanged and this strengthens it:* surface the rejection
-first. Once a query org-ql would refuse says so, the set of dropped predicates
-enumerates itself instead of being discovered one survey at a time.
+A query whose first non-blank character is =(= is a sexp, and =org_query=
+refuses it rather than text-searching its tokens (the user, 2026-09-21). The
+refusal is an =Error:= giving the plain-string equivalent where one is obvious
+(=(tags "x")= becomes =tags:x=, =(property "K" "v")= becomes =property:K=v=),
+and otherwise naming the mini-language. It is not run as a sexp: one language,
+and a wrong query can no longer pass for an empty result. No predicate is
+dropped and none ever was, so surfacing the rejection is the whole fix.
 
-*The fix shape changes with the diagnosis.* Not "restore the dropped predicates"
-— there are none to restore. A query whose first non-blank character is =(= is a
-sexp, and the tool should either parse it as one (=org-ql-select= takes sexps
-natively) or refuse it naming the mini-language. The original fix order still
-holds and is now the whole fix: surface the rejection. There is nothing behind
-it.
-
-*Refuse, naming the syntax* (the user, 2026-09-21). A query whose first
-non-blank character is =(= returns an =Error:= giving the plain-string
-equivalent where one is obvious (=(tags "x")= becomes =tags:x=,
-=(property "K" "v")= becomes =property:K=v=), and otherwise names the
-mini-language. It is not run as a sexp: one language, and a wrong query can no
-longer pass for an empty result. Add the fragment to =queue-append='s refusal
-table so the refusal counts as a miss, and extend the =--refusal-fragments=
-contract test.
+Add the fragment to =queue-append='s refusal table so the refusal counts as a
+miss, and extend the =--refusal-fragments= contract test.
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-16 Wed 14:48]--[2026-09-16 Wed 14:50] =>  0:02
@@ -6587,50 +6572,23 @@ right for the wrong reason.
 :CATEGORY: Dev
 :END:
 :PLAN:
-*Proposed fix: make the failure loud rather than the discipline stronger.* A
-trigger that depends on model judgement has now failed silently for a whole
-session, and the answer this project reaches for is a mechanism that reports
-rather than a rule to remember. Sketch, and it is cheap:
+Make a stale image loud rather than the reload discipline stronger. Two shapes
+are measured: a stale =.elc= shadowing =config.el=, and an older load of the
+right file, which =symbol-file= cannot see. One check catches both: test every
+=(defun claude-code-ide-org...= in =config.el= with =fboundp= against the
+running image (394 defuns, 0 unbound when healthy). A deleted function shows up
+as the inverse, since =load-file= never unbinds.
 
-- =config.el= sets a =claude-code-ide-org--loaded-at= timestamp at load time.
-  Confirmed absent today, so this is a new =defvar= plus one =setq= at top
-  level.
-- Anything already round-tripping to Emacs compares it against
-  =(file-attribute-modification-time (file-attributes config-path))= and says so
-  when the file is newer.
-- The natural home is the =SessionStart= report, which already carries the
-  stale-interval and ceremony prompts and already follows the *ask, never act*
-  contract. A second line there costs nothing.
+It reports in two places (the user, 2026-09-21): a =SessionStart= report line,
+and a non-blocking warning at the commit gate. It never blocks, because
+editing, batch-testing and committing without a reload is a coherent sequence.
+It states what it knows (N defuns unbound, or the file newer than the load) and
+asks, following the ceremony's ask-never-act contract, and says so when Emacs
+is unreachable rather than passing silently.
 
-*Deliberately not proposed: auto-reloading on edit.* It looks tidier and is
-worse — §2 of the skill lists changes a live reload cannot cover, so an
-automatic =load-file= would sometimes produce a *confident* wrong answer, which
-is the failure mode this project consistently rates as worse than an absent one.
-
-*Note the check has a real limit worth writing into it:* file mtime is newer
-than load time is not the same as "the running Emacs is wrong", since an edit
-may not have touched anything loaded. The report should say what it knows — the
-file is newer than the load — and let the reader decide, exactly as the
-stale-interval report states a timestamp and asks rather than guessing.
-
-*Whether it belongs in =bin/check-conventions= is a judgement I am not making
-alone.* That script already queries the live Emacs for the MCP port and fails
-on it, so the live image is in scope. But it runs at the commit gate, and a
-stale image is an *environment* condition rather than a property of the commit:
-editing, testing in batch and committing without reloading is a perfectly
-coherent sequence, and blocking it would be a new obligation. A warning would
-nudge without obstructing. The choice is the user's.
-
-The check is the one the body measured: every =(defun claude-code-ide-org...= in
-=config.el= tested with =fboundp= against the running image (394 defuns, 0
-unbound when healthy). It catches both shapes, the stale =.elc= and an older
-load of the right file. =symbol-file= alone catches only the first.
-
-*A SessionStart report line plus a non-blocking warning at the commit gate*
-(the user, 2026-09-21). No block, because editing, batch-testing and committing
-without a reload is a coherent sequence. The report states what it knows (N
-defuns unbound, file newer than load) and asks, following the ceremony's
-ask-never-act contract. Emacs unreachable means say so, not pass silently.
+Not proposed: reloading on edit. A live reload cannot cover every change (the
+org-dev skill, section 2), so an automatic =load-file= would sometimes give a
+confident wrong answer.
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-16 Wed 11:52]--[2026-09-16 Wed 11:53] =>  0:01
@@ -7345,33 +7303,23 @@ is the point — it cannot be backfilled.
 :CATEGORY: Tools
 :END:
 :PLAN:
-*Where to look:* =claude-code-ide-org--capture-target-spec=. It appears to
-consult =--id-find= already, so the failure may be a fallback path or an
-ordering issue rather than a missing call; the error string it produced is not
-=--id-find='s own wording, which is the thread to pull. Worth checking
-=org_refile='s =target_id= and =org_divide= for the same shape while there — the
-twin question this project asks of any list.
+Every function taking an =id= or =target= argument resolves it through
+=claude-code-ide-org--id-find=. Sweep by *argument*, not by call shape, and
+take the silent shape first: an argument compared by string selects nothing
+and reports a clean no-op. The known sites:
 
-*Cheap verification when fixed:* the four captures above, re-run with the
-prefix, plus a test asserting a prefix target resolves. Note the fixture trap
-found the same day: =--with-known-ids= leaves its ids unknown to org, so it is
-the wrong fixture for anything walking =org-id-locations=.
+- =org_capture='s target: =--capture-target-spec= now calls =--id-find= but
+  passes the prefix, not the expanded id, into the =id= spec. Write the failing
+  test before assuming it works.
+- =refresh-slice='s own =ID=: an =equal= comparison, at two sites.
+- =:DROPPED:=, which the refresh ignores when it holds a prefix. Expand it
+  there, and have =org_set_property= validate it the way it validates
+  =:BLOCKER:=.
 
-*So the pattern now has three known shapes*, and the third is the dangerous one:
-an argument that resolves through =--id-find= (fine), one that resolves some
-other way and *errors* (=org_capture='s target), and one that resolves by string
-comparison and *silently selects nothing*. A sweep should look for the third
-first.
-
-*Worth checking in the same pass:* every other function taking an =id= or
-=target= argument that does not route through =claude-code-ide-org--id-find=.
-The docstring on =--id-find= records that fourteen such sites existed the first
-time this was fixed; two more have now surfaced by use rather than by search,
-which suggests the sweep was by call *shape* rather than by argument.
-
-=:DROPPED:= is a fourth site, and a silent one: expand its prefixes through
-=--id-find= in the refresh, and have =org_set_property= validate =:DROPPED:=
-the way it already validates =:BLOCKER:=.
+Check =org_refile='s =target_id= and =org_divide= in the same pass. Verify with
+a test per site and the four 2026-08-31 captures re-run with the prefix.
+=--with-known-ids= is the wrong fixture for anything walking
+=org-id-locations=: it leaves its ids unknown to org.
 :END:
 
 *Found 2026-08-31 by using it.* Filing four children under [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]] with
@@ -7569,37 +7517,19 @@ and only an instrument outside the clock system answers it.
 :CATEGORY: Queue
 :END:
 :PLAN:
-*This heading is a question, not a design.* Restoring the overrides is the
-obvious move and probably the wrong one: a synthetic event has no
-=tool_response= to recover =from= from, so the staleness check =recovered_from=
-feeds would go blind on exactly the events written when the system is least
-healthy. Worth deciding among at least:
-
-1. Tools fail *loudly and durably* rather than silently — a timed-out MCP write
-   leaves a marker that the next =SessionStart= reports, so the record of what
-   could not be recorded is itself in the system. This is the option that
-   composes with the existing recovery report rather than adding a second path.
-2. A narrow, non-hook CLI writer for todo/clock on a known =:ID:=, with =from=
-   honestly null rather than fabricated.
-3. Nothing, on the grounds that an Emacs crash is rare and a human was present.
-   This is a real option and may well be the right one — today's cost was two
-   debriefs delayed, not lost.
-
-Whatever is chosen, the shape to avoid is the current one, where the failure is
-silent per call and only a human noticing a timeout keeps the work attached to
-its heading.
-
-*Option 1, loud and durable* (the user, 2026-09-21; options 2 and 3 declined).
 When an =org_*= call fails because Emacs is unreachable, a plain-shell hook
 writes a marker naming the tool and its arguments into the session's queue
 directory, since Emacs, being what failed, cannot write it. The next
 =SessionStart= reports it beside the stale-interval report, so what could not
-be recorded is itself recorded. =7fa68d5c='s capture fallback builds on the
+be recorded is itself recorded (the user, 2026-09-21). Declined: a CLI writer
+for todo and clock events, whose synthetic events would blind the staleness
+check exactly when the system is least healthy; and doing nothing, which
+leaves the failure silent per call. =7fa68d5c='s capture fallback builds on the
 same path afterwards.
 
-Open for the implementing session, and not the user's: which hook event sees an
-MCP timeout (=PostToolUse= with an error response, or a separate failure event).
-Measure it against a stopped Emacs before building.
+Open for the implementing session: which hook event sees an MCP timeout
+(=PostToolUse= with an error response, or a separate failure event). Measure it
+against a stopped Emacs before building.
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-31 Mon 13:52]
@@ -9837,23 +9767,8 @@ invitation to challenge the reframe.
   Auto-demoted: superseded by sibling [[id:95087d8f-e16d-45d3-bdea-9b179dc672b4][Lint for headings that are valid org but structurally unintended]] becoming NEXT.
 :END:
 :PLAN:
-*Options, none chosen:*
-- *Convention only:* ban =git add= in favour of =git commit -- <paths>=,
-  in CLAUDE.md and the org skill. Cheapest, verified, and binds only
-  sessions that follow it. Less hollow than it sounds when both sessions
-  are Claude Code reading the same CLAUDE.md — but it is guidance, and
-  the user asked for a mechanism.
-- *A =pre-commit= hook*, defined below. The only option that is a
-  mechanism rather than guidance, and cheaper than first assumed.
-- *Route git writes through the event queue* of
-  [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]], which already
-  carries =session_id=/=agent_id= and exists to stop concurrent sessions
-  mutating shared state directly. Heaviest, and most consistent with
-  where the project is going.
-
-*The =pre-commit= option, defined.* Measured 2026-08-12 in a scratch
-repo with a hook that printed its own environment. =GIT_INDEX_FILE=
-identifies which command form invoked the commit:
+Refuse the sweep at commit time, in =.githooks/pre-commit-guards=.
+=GIT_INDEX_FILE= identifies the command form (measured 2026-08-12):
 
 | Command                 | =GIT_INDEX_FILE=             | Sweeps a staged file? |
 |-------------------------+------------------------------+-----------------------|
@@ -9862,45 +9777,23 @@ identifies which command form invoked the commit:
 | =git commit -a=         | =.git/index.lock=            | yes                   |
 | =git commit -- <paths>= | =.git/next-index-<pid>.lock= | no                    |
 
-The hook can read *both* views at once: what the commit will contain
-(=git diff --cached=) and what the real index holds
-(=GIT_INDEX_FILE=$(git rev-parse --git-dir)/index git diff --cached=).
-In the pathspec case those differ exactly as they should.
-=CLAUDE_CODE_SESSION_ID= also propagates into the hook, confirmed by
-printing it.
+Refuse when the form is a whole-index one (basename =index= or =index.lock=)
+and the real index is non-empty, and only when =CLAUDE_CODE_SESSION_ID= is set.
+=git commit -- <paths>= always passes, =git commit -a= against an empty index
+passes, and a human at a plain terminal is never affected. The message names
+the staged paths and prints the pathspec form to use instead. The hook reads
+both views: =git diff --cached= for what the commit will contain, and the same
+with =GIT_INDEX_FILE= set to the real index for what that holds.
 
-*Proposed rule:* refuse when the form is a whole-index one (basename of
-=GIT_INDEX_FILE= is =index= or =index.lock=) *and* the real index is
-non-empty; fire only when =CLAUDE_CODE_SESSION_ID= is set. That is the
-sweep case and nothing else. =git commit -- <paths>= always passes; =git
-commit -a= against an empty index passes; a human committing from a
-plain terminal is never affected. The message should name the staged
-paths and print the pathspec form to use instead.
+=--amend= reports =.git/index= like the sweep, so it escapes with
+=ALLOW_SWEEP=1= (the user, 2026-09-21), shaped like =ALLOW_MERGED_BRANCH= and
+=ALLOW_LOCAL_MERGE=; each use counts a =miss= through =count-miss=. There is no
+ownership tracking: the command form alone discriminates.
 
-*This retires the "needs ownership tracking" objection,* which the first
-version of this heading asserted and which is wrong: the command *form*
-is a sufficient discriminator and the safe form is self-identifying.
-Per-session ownership of staged paths would only be needed for a more
-permissive rule ("allow the sweep if everything staged is mine"). If it
-ever is, the precedent for where such state lives is
-=claude-code-ide-org-queue-directory=.
-
-*Known limitations, accepted rather than solved:* =--amend= is
-indistinguishable from a plain pathspec-less commit — both report
-=.git/index= — so it gets refused too, absent an =ALLOW_SWEEP= escape
-hatch. =--no-verify= bypasses the hook entirely, making the mistake loud
-rather than impossible. Merge/rebase/cherry-pick paths are *untested*;
-the scratch-repo run errored before reaching them. And it is opt-in per
-clone via =core.hooksPath=, inheriting =pre-push='s setup caveat.
-
-*Testing* would follow the existing =bin/*-test= pattern: a scratch
-repo, each of the four command forms, asserting exit status and message.
-
-*The guard lives in =.githooks/pre-commit-guards=, and =--amend= escapes it
-with =ALLOW_SWEEP=1=* (the user, 2026-09-21), shaped like
-=ALLOW_MERGED_BRANCH= and =ALLOW_LOCAL_MERGE=. Each use counts a =miss= through
-=count-miss=, so habitual use shows up in the rate. There is no ownership
-tracking: the command form alone discriminates, as measured above.
+Accepted limits: =--no-verify= bypasses it, making the mistake loud rather than
+impossible; the merge, rebase and cherry-pick paths are untested; and it is
+opt-in per clone through =core.hooksPath=. Test it the =bin/*-test= way: a
+scratch repo, each of the four forms, asserting exit status and message.
 :END:
 
 *This one actually happened, deliberately, as a resilience test.* On
