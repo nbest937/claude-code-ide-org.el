@@ -11,6 +11,7 @@
 
 Observed 2026-09-21 on 63713df3. The file said REVIEW; the session queued REVIEW -> DOING for a piece of rework, did it, and then called org_set_todo REVIEW — refused with "no change — already holds REVIEW, so nothing was queued", because the check compares the requested state with the keyword on disk and the queued DOING is not on disk yet. The queue is left holding only the outbound half, so the next apply lands DOING on a heading that is back in REVIEW, and the only remedy is for the human to dismiss that item by hand. The no-change refusal exists for a good reason (a queued no-op is noise), so the fix is for the check to read the heading's effective state — the file's keyword as modified by this heading's pending todo events, which org_pending_updates already computes — and then either queue the return transition or, better, cancel the pair.
 
+
 * TODO Nothing in the drift slice was exercised in a consumer install: the new hooks, the conditional time-file promotion, the twin-checker agent :code:
 :PROPERTIES:
 :ID:       2b8930da-5223-4b75-b4f6-251a28552d1b
@@ -19,6 +20,7 @@ Observed 2026-09-21 on 63713df3. The file said REVIEW; the session queued REVIEW
 :END:
 
 Every consumer-facing change on feature/rules-in-wrong-places was verified in this repo only, which wires its hooks through .claude/settings.json and links .claude/agents by hand. Unverified in a plugin consumer: that hooks.json's two PreToolUse guards, the org_.* refusal/conventions-inject row and the session marker fire; that claude-org-setup leaves org-time-tracking.md unpromoted with the feature off and removes a stale copy; that conventions-inject falls back to the shipped reference where nothing is promoted; that a catch amended from the consumer resolves against the plugin's tracker; and whether a plugin's agents/ directory is offered to the consumer at all — the manifest names no agents key. agentic-euchre is the available consumer; its skill link resolves to the worktree claude-code-ide-org-swc, to be moved forward when the slice merges. Do it then, before resuming work there.
+
 
 * TODO The duplicate query reads titles only, so a paraphrase gets past it — including the case that motivated it :code:observed:
 :PROPERTIES:
@@ -29,11 +31,23 @@ Every consumer-facing change on feature/rules-in-wrong-places was verified in th
 
 org_capture now searches TODO.org and DONE.org on every capture by idf-weighted title-token overlap (c8773ec2). Probed against the real corpus 2026-09-21, it found the mac-port deadlock heading, the unrun-suites heading and the twin-pass heading from reworded titles — and found nothing for "org_capture silently drops an argument it does not recognise", whose twin is bbf9fb77, "An MCP tool accepts arguments it does not have, and says nothing". That is the transcript the whole heading was filed from. The two share no pair of subject tokens: "argument" and "arguments" differ, and everything else is paraphrase. Candidate remedies, unmeasured: fold simple plurals; match the new title's identifier-shaped tokens (org_capture, a function name, a file name) against candidate *bodies*, which would have caught this one; or leave paraphrase to the twin pass (9fb8c1fb), which reads bodies with judgement. Measure each on the corpus before choosing — the first two cost noise.
 
-* TODO The shipped skill and org_log_background_plan still teach the retired plan-file link :code:
+
+* DOING The shipped skill and org_log_background_plan still teach the retired plan-file link :code:
 :PROPERTIES:
 :ID:       f9fdea91-c93a-4e96-8d49-133cb50d6dfb
 :CREATED:  [2026-09-21 Mon 09:08]
 :CATEGORY: Skill
+:END:
+:LOGBOOK:
+- [2026-09-21 Mon 10:21]--[2026-09-21 Mon 10:27] assigned at review
+CLOCK: [2026-09-21 Mon 10:27]--[2026-09-21 Mon 10:28] =>  0:01
+- State "DOING"      from "TODO"       [2026-09-21 Mon 10:27] \\
+  fixing the live contradiction in the checkpoint section
+- [2026-09-21 Mon 10:27]--[2026-09-21 Mon 10:28] remove the add-a-plan-link instruction from SKILL.md
+- [2026-09-21 Mon 10:27]--[2026-09-21 Mon 10:29] suggested span, accepted at review
+- [2026-09-21 Mon 10:29]--[2026-09-21 Mon 10:33] suggested span, accepted at review
+CLOCK: [2026-09-21 Mon 10:34]--[2026-09-21 Mon 10:36] =>  0:02
+- [2026-09-21 Mon 10:34]--[2026-09-21 Mon 10:36] suggested span, accepted at review
 :END:
 
 The plan-file link rule was retired 2026-09-21 (a plan lives in the :PLAN: drawer; ~/.claude/plans is left to evaporate), and CLAUDE.md, lint and sync-plans were changed the same day. The plugin's own prose was not: SKILL.md still says to add the Plan link as soon as the plan file is finalized (near "Plan Mode checkpoint"), lists the link as drawer content, and documents a background-planning workflow whose write-back tool, org_log_background_plan, exists only to insert that link; org-conventions.md's :PLAN: section and org-state-transitions.md's plan-approval rule mention it too. A consumer therefore still receives the old instruction. Proposal: rewrite those passages to the drawer form, and decide whether the tool is retired or repointed at the drawer. Related, not the same: the sync-plans substring matcher defect.
@@ -41,12 +55,26 @@ The plan-file link rule was retired 2026-09-21 (a plan lives in the :PLAN: drawe
 *Half done 2026-09-21, after another agent pointed at "Plan Mode checkpoint":* =SKILL.md= no longer tells anyone to write a plan-file link. The checkpoint section now says to write the plan into =:PLAN:= and explicitly not to link; the body-lifecycle paragraph drops "the plan link"; and the background-planning procedure has its agents return the plan as their final report, written back one at a time with =org_amend= =drawer=PLAN=. *Still owed:* =org_log_background_plan= itself is registered and listed in =org-mcp-tools.md= — the skill now says not to call it, which is a recalled rule standing in for a decision. Retire the tool or repoint it at the drawer. And the two remaining mentions, in =org-conventions.md='s =:PLAN:= section and =org-state-transitions.md= (the latter already reworded in the deletion pass), need the same read.
 
 
-* TODO [0/11] The misses a human catches reach no record: one heading per kind of miss, amended at each catch, so the catch is counted :code:
+* DOING [0/11] The misses a human catches reach no record: one heading per kind of miss, amended at each catch, so the catch is counted :code:
 DEADLINE: <2026-10-12 Mon>
 :PROPERTIES:
 :ID:       158d7e80-6d72-4518-a804-d8abf2e7e693
 :CREATED:  [2026-09-21 Mon 08:44]
 :CATEGORY: Skill
+:END:
+:LOGBOOK:
+- State "DOING"      from "TODO"       [2026-09-21 Mon 08:44] \\
+  composing at the user's direction
+CLOCK: [2026-09-21 Mon 08:44]--[2026-09-21 Mon 08:49] =>  0:05
+- [2026-09-21 Mon 08:44]--[2026-09-21 Mon 08:49] compose the caught-miss story and its counter
+- [2026-09-21 Mon 08:49]--[2026-09-21 Mon 09:08] assigned at review
+- [2026-09-21 Mon 09:04]--[2026-09-21 Mon 09:04] compose the caught-miss story and its counter
+CLOCK: [2026-09-21 Mon 09:19]--[2026-09-21 Mon 09:20] =>  0:01
+- [2026-09-21 Mon 09:19]--[2026-09-21 Mon 09:20] make the denominator work with time tracking off
+CLOCK: [2026-09-21 Mon 10:29]--[2026-09-21 Mon 10:30] =>  0:01
+- [2026-09-21 Mon 10:29]--[2026-09-21 Mon 10:30] record a self-caught unverified claim
+CLOCK: [2026-09-21 Mon 10:33]--[2026-09-21 Mon 10:34] =>  0:01
+- [2026-09-21 Mon 10:33]--[2026-09-21 Mon 10:34] add the review deadline
 :END:
 :PLAN:
 *What this is for, and why it is not a member of the drift slice (decided with the user 2026-09-21).* It is an instrument, not a deliverable: it is read to decide which rule to move out of recall next, and to tell whether a conversion worked. A slice closes on its pull request; this stays open while it is useful, so membership would hold the slice open for a reason unrelated to its code.
@@ -65,6 +93,8 @@ DEADLINE: <2026-10-12 Mon>
 :END:
 
 The miss rate (63713df3) is a floor: it counts what a hook or a tool caught, and the misses the user catches in conversation — the ones the drift analysis is about — reach no file. Decided by the user 2026-09-21: each kind of miss gets a child heading here, and a catch is answered by one dated body line amended onto the matching child, naming what happened. "Capture or amend" therefore dissolves to amend; a kind nothing covers goes on the catch-all child until it earns its own. A child closes when its rule has been moved out of recall.
+
+
 ** TODO Miss: a tracked :ID: cited with no end-matter entry, or with a recalled title or keyword
 :PROPERTIES:
 :ID:       e74ca757-5e2f-4a9c-b97b-4af9164bce9d
@@ -73,6 +103,8 @@ The miss rate (63713df3) is a floor: it counts what a hook or a tool caught, and
 :END:
 
 Hook-backed (footnote-check, rule =footnote=), but the hook reads only a turn's final text block, so a catch by the user is still possible and is logged here. One dated line per catch.
+
+
 ** TODO Miss: tracked work done under no clock, the wrong clock, or a clock closed before the work ended
 :PROPERTIES:
 :ID:       a4005ebc-8be7-4def-b551-2911020333a9
@@ -81,6 +113,8 @@ Hook-backed (footnote-check, rule =footnote=), but the hook reads only a turn's 
 :END:
 
 Hook-backed only for the no-clock case (clock-target-check, rule =clock-target=). First instance of the third case 2026-09-19: a mid-turn clock_out left seven minutes of commits in no run at all (b09aca60). One dated line per catch.
+
+
 ** TODO Miss: a heading filed, or offered, without first searching for the one that already holds it
 :PROPERTIES:
 :ID:       11c580f6-e7b9-4167-aa8b-42d77a71c8d9
@@ -89,6 +123,8 @@ Hook-backed only for the no-clock case (clock-target-check, rule =clock-target=)
 :END:
 
 The transcript that started the drift slice: a session offered to file a defect bbf9fb77 already held, and could recite the rule. Closes when org_capture runs the query itself (c8773ec2). One dated line per catch.
+
+
 ** TODO Miss: an identifier written from memory instead of looked up
 :PROPERTIES:
 :ID:       8f075f78-686d-4a24-ae7f-74cbf20cb906
@@ -97,6 +133,8 @@ The transcript that started the drift slice: a session offered to file a defect 
 :END:
 
 UUIDs, SHAs, titles, keywords. Tool-backed where a tool resolves the id: on 2026-09-21 org_amend refused a full UUID padded out from a remembered prefix, which was the miss counter's first event. A recalled title or a wrong SHA has no backstop. One dated line per catch.
+
+
 ** TODO Miss: a commit that swept in a change its message does not describe
 :PROPERTIES:
 :ID:       128af16f-4284-4c40-8935-36c906b80349
@@ -105,6 +143,8 @@ UUIDs, SHAs, titles, keywords. Tool-backed where a tool resolves the id: on 2026
 :END:
 
 The standing rule is to read git diff --stat before committing a file someone else may have touched. Third instance 2026-09-21: a filing commit ran the stat and the commit in one command and swept the user's apply pass under its message; split afterwards at the user's direction. Closes when pre-commit refuses an apply-shaped org diff under any other message. One dated line per catch.
+
+
 ** TODO Miss: work committed to the wrong branch, or to one already merged
 :PROPERTIES:
 :ID:       fb995c2f-d923-4f95-9bf9-e4c252980369
@@ -113,6 +153,8 @@ The standing rule is to read git diff --stat before committing a file someone el
 :END:
 
 Found 2026-09-19 as a leftover branch: on 2026-09-17 a session committed twice to feature/span-owner-edges after PR #26 had merged it, then cherry-picked to main and left the originals. Also covers org bookkeeping on a stale branch. Closes when pre-commit refuses a branch already contained in origin/main. One dated line per catch.
+
+
 ** TODO Miss: an org act performed before reading the convention that governs it
 :PROPERTIES:
 :ID:       d606eaff-8cde-4c21-94ab-2d4115200ff9
@@ -121,6 +163,8 @@ Found 2026-09-19 as a leftover branch: on 2026-09-17 a session committed twice t
 :END:
 
 The conventions are path-scoped and tool-driven work never loads them (436e0991). Two instances 2026-09-19, both self-caught after the new pointer notice: four orgit-rev links written in path form, and a debrief left in a body at REVIEW. One dated line per catch.
+
+
 ** TODO Miss: a prediction or a claim about state reported as fact without checking the artifact
 :PROPERTIES:
 :ID:       cf617ecd-81d7-4ca1-b3bb-60a088ecabde
@@ -142,6 +186,8 @@ CLAUDE.md's own opening names this as the largest source of wrong claims. Caught
 :END:
 
 The residue rule and the nomination rule, which fail at the same moment. The standing instance is aa1ba915, closed with its gap described as belonging to a heading that was never told. Detection of an un-nominated group can move into org_set_todo's reply; what to file stays judgement. One dated line per catch.
+
+
 ** TODO Miss: a hook's injected question or notice that never reached the user
 :PROPERTIES:
 :ID:       d852e36e-19cf-4633-8569-8a906d8aa4c3
@@ -150,6 +196,8 @@ The residue rule and the nomination rule, which fail at the same moment. The sta
 :END:
 
 Measured once at 15 relays in 24 session starts (c5b02503), which is why the ceremony report gained a systemMessage. Instance 2026-09-21: the ceremony question arrived at session start and was not relayed; the user got it from the systemMessage anyway. One dated line per catch.
+
+
 ** TODO Miss: a kind nothing here covers yet
 :PROPERTIES:
 :ID:       59861867-e807-43a8-a0fa-5ca227167022
@@ -158,6 +206,7 @@ Measured once at 15 relays in 24 session starts (c5b02503), which is why the cer
 :END:
 
 The catch-all, so that answering a catch is always an amend and never a decision about filing. One dated line per catch, naming the rule missed. When the same rule appears here a second time it earns its own sibling, and these lines move with it.
+
 
 * TODO Work after a mid-turn clock_out belongs to no run, so it reaches review as nothing at all rather than UNASSIGNED :code:observed:
 :PROPERTIES:
@@ -191,11 +240,22 @@ The catch-all, so that answering a catch is always an amend and never a decision
 Observed 2026-09-19: the first plan unlinked under the drawer convention was deleted from the archive directory, and =bin/sync-plans --check= immediately reported it "out of date" and wanted it back — because a body amendment on =ff1bec00= had named the file in =…= quotes as the first orphan. The matcher is a substring grep for the archive directory's name followed by a slug and the markdown extension, so a mention is a link. Rephrasing the sentence cleared it. Small in itself; it matters because the drawer convention will produce orphans on purpose, and prose that names them. Match the org =file:= link form, not the substring — and note that =bin/lint-org='s plan-link check has the same appetite: the first draft of this very body spelled the path pattern literally and lint reported a plan link to a missing file. Whether either is worth fixing before the whole mechanism retires is decided with =ff1bec00=.
 
 
-* TODO Twins are caught by review and nothing reviews for them: a checker subagent with a saturated context, run as a pass :code:
+* DONE Twins are caught by review and nothing reviews for them: a checker subagent with a saturated context, run as a pass :code:
+CLOSED: [2026-09-21 Mon 10:21]
 :PROPERTIES:
 :ID:       9fb8c1fb-1f86-4dc1-9203-6c7abfd27594
 :CREATED:  [2026-09-19 Sat 14:01]
 :CATEGORY: Meta
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-09-21 Mon 10:12] \\
+  nominated: the pass that catches what the query cannot
+CLOCK: [2026-09-21 Mon 10:13]--[2026-09-21 Mon 10:21] =>  0:08
+- State "DOING"      from "NEXT"       [2026-09-21 Mon 10:13] \\
+  building the twin pass on the shared query
+- [2026-09-21 Mon 10:13]--[2026-09-21 Mon 10:21] twin pass: candidate report and checker agent
+- State "DONE"       from "DOING"      [2026-09-21 Mon 10:21] \\
+  pass built and run once; residue filed as 2b8930da
 :END:
 :DEBRIEF:
 Shipped on =feature/rules-in-wrong-places= in the commit titled "The twin pass: candidates from the shared query, a checker agent, offered at the ceremony". =--twin-candidates= pairs each live heading created in the last 14 days with up to three candidates from the tracker and its archive, building the corpus once and never pairing a heading with itself; =bin/twin-candidates= is the thin stub, and =--record M N= appends this pass's own series to =twin-pass.log=, beside the miss rate and never folded into it. =agents/twin-checker.md= (linked into =.claude/agents=) holds the judgement, with no tool that changes a heading. The ceremony report counts the pairs and tells the session to *offer* the pass; possible twins raise the report on their own, since unlike the miss count they are something to do.
@@ -267,15 +327,14 @@ The conventions say a twin — two headings for the same work — "is caught by 
 *Resolved 2026-09-21:* the twin pass exists — candidates from the query =org_capture= runs, a =twin-checker= agent that reads both bodies and only proposes, and an offer in the ceremony report. Its first run judged three pairs in 69 seconds and found one live heading whose work had already shipped.
 
 
-
-* DOING [1/8] A rule the agent can recite and still misses is a rule in the wrong place: count the misses, then move the rules out of recall :code:
+* DOING [5/8] A rule the agent can recite and still misses is a rule in the wrong place: count the misses, then move the rules out of recall :code:
 :PROPERTIES:
 :ID:       f6d160c2-c0ac-4c4b-a298-fe581ea3962a
 :CREATED:  [2026-09-19 Sat 13:50]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  63713df3-4ed9-42be-b971-8ac4485e76c2 436e0991-c8ac-40fb-860d-a6c4c381bee5 bf7e0b8e-f83a-4d4a-9950-3ab23a225156 3cd7b7d3-25eb-4f30-ae90-9174a6876674 c8773ec2-1b29-4128-80b3-5c21845f4ca3 9fb8c1fb-1f86-4dc1-9203-6c7abfd27594 f2030ce9-3759-407c-b459-fe4ba4de8854
+:BLOCKER:  63713df3-4ed9-42be-b971-8ac4485e76c2 436e0991-c8ac-40fb-860d-a6c4c381bee5 3cd7b7d3-25eb-4f30-ae90-9174a6876674
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-19 Sat 08:29]--[2026-09-19 Sat 08:32] =>  0:03
@@ -332,6 +391,14 @@ CLOCK: [2026-09-19 Sat 16:03]--[2026-09-19 Sat 16:04] =>  0:01
 - [2026-09-19 Sat 16:03]--[2026-09-19 Sat 16:04] analyze convention-drift-analysis.md against the content tasks; amend and capture
 - State "DOING"      from "NEXT"       [2026-09-19 Sat 16:19] \\
   slice work starts with member 63713df3
+CLOCK: [2026-09-21 Mon 07:58]--[2026-09-21 Mon 07:59] =>  0:01
+- [2026-09-21 Mon 07:58]--[2026-09-21 Mon 07:59] assigned at review
+CLOCK: [2026-09-21 Mon 08:04]--[2026-09-21 Mon 08:05] =>  0:01
+- [2026-09-21 Mon 08:04]--[2026-09-21 Mon 08:05] assigned at review
+CLOCK: [2026-09-21 Mon 08:13]--[2026-09-21 Mon 08:16] =>  0:03
+- [2026-09-21 Mon 08:13]--[2026-09-21 Mon 08:16] assigned at review
+CLOCK: [2026-09-21 Mon 08:20]--[2026-09-21 Mon 08:26] =>  0:06
+- [2026-09-21 Mon 08:20]--[2026-09-21 Mon 08:26] assigned at review
 :END:
 :PLAN:
 Composed 2026-09-19 at the user's direction from the convention-drift
@@ -382,11 +449,11 @@ Planned:
 - [-] [[id:63713df3-4ed9-42be-b971-8ac4485e76c2][63713df3]] REVIEW "Forgets frequently" has no number: the only recorded misses are once-per-session sentinels, so the rate cannot be seen or shown to fall
 - [-] [[id:436e0991-c8ac-40fb-860d-a6c4c381bee5][436e0991]] DOING Path-scoped rules load on a Read, which the org tools exist to replace, so the conventions load only on the discouraged path
 - [X] [[id:1b69fe4e-3dab-4b11-b21b-96320bf9d4e0][1b69fe4e]] DONE org-time-tracking.md promotes with no path scope, so a consumer with the feature off loads 260 lines about it every session
-- [ ] [[id:bf7e0b8e-f83a-4d4a-9950-3ab23a225156][bf7e0b8e]] NEXT The always-loaded surface is 1,573 lines, and the split that shrank CLAUDE.md is what grew it
-- [ ] [[id:3cd7b7d3-25eb-4f30-ae90-9174a6876674][3cd7b7d3]] TODO Audit the always-loaded rules for clauses a hook could enforce, since prose recall is what fails
-- [ ] [[id:c8773ec2-1b29-4128-80b3-5c21845f4ca3][c8773ec2]] TODO org_capture should run the duplicate query itself, so the check the rule asks for cannot be skipped
-- [ ] [[id:9fb8c1fb-1f86-4dc1-9203-6c7abfd27594][9fb8c1fb]] TODO Twins are caught by review and nothing reviews for them: a checker subagent with a saturated context, run as a pass
-- [ ] [[id:f2030ce9-3759-407c-b459-fe4ba4de8854][f2030ce9]] TODO Nothing bounds the always-loaded rule surface, so every new rule is free at the point of writing
+- [X] [[id:bf7e0b8e-f83a-4d4a-9950-3ab23a225156][bf7e0b8e]] DONE The always-loaded surface is 1,573 lines, and the split that shrank CLAUDE.md is what grew it
+- [-] [[id:3cd7b7d3-25eb-4f30-ae90-9174a6876674][3cd7b7d3]] DOING Audit the always-loaded rules for clauses a hook could enforce, since prose recall is what fails
+- [X] [[id:c8773ec2-1b29-4128-80b3-5c21845f4ca3][c8773ec2]] DONE org_capture should run the duplicate query itself, so the check the rule asks for cannot be skipped
+- [X] [[id:9fb8c1fb-1f86-4dc1-9203-6c7abfd27594][9fb8c1fb]] DONE Twins are caught by review and nothing reviews for them: a checker subagent with a saturated context, run as a pass
+- [X] [[id:f2030ce9-3759-407c-b459-fe4ba4de8854][f2030ce9]] DONE Nothing bounds the always-loaded rule surface, so every new rule is free at the point of writing
 
 
 * REVIEW "Forgets frequently" has no number: the only recorded misses are once-per-session sentinels, so the rate cannot be seen or shown to fall :code:research:
@@ -421,6 +488,10 @@ CLOCK: [2026-09-19 Sat 16:21]--[2026-09-19 Sat 16:34] =>  0:13
 - [2026-09-19 Sat 16:21]--[2026-09-19 Sat 16:34] instrument backstops to record misses
 - State "REVIEW"     from "DOING"      [2026-09-19 Sat 16:34] \\
   shipped in f733179; one user decision open
+CLOCK: [2026-09-21 Mon 10:39]--[2026-09-21 Mon 10:43] =>  0:04
+- [2026-09-21 Mon 10:39]--[2026-09-21 Mon 10:43] rework from review: count only genuine refusals
+CLOCK: [2026-09-21 Mon 10:45]--[2026-09-21 Mon 10:46] =>  0:01
+- [2026-09-21 Mon 10:45]--[2026-09-21 Mon 10:46] suggested span, accepted at review
 :END:
 :PLAN:
 *Why this is a separate heading from the mechanisms.* The user's report is
@@ -482,7 +553,6 @@ The drift analysis's thrust is to make the agent stop forgetting; every heading 
 *Resolved 2026-09-19:* every backstop that fires now appends a =miss= naming its rule, and the ceremony report and =bin/miss-rate= print the count — a floor, starting from zero that day. *Open, the user's:* whether a correction in conversation is answered with a capture or amend citing the rule missed, which is the only way the misses a human catches would reach the number.
 
 *The open question dissolved 2026-09-21:* the user had a story filed with one heading per kind of miss ([[id:158d7e80-6d72-4518-a804-d8abf2e7e693][158d7e80]]), so answering a catch is always an amend, and a body amend onto a =:MISS_RULE:= heading is counted as =caught:<slug>=. First counted catch the same day.
-
 
 
 * DOING Path-scoped rules load on a Read, which the org tools exist to replace, so the conventions load only on the discouraged path :code:observed:
@@ -563,12 +633,23 @@ decided with it; 1 is the cheap interim.
 *Not done:* the honest re-run of [[id:befaed0a-18ed-445e-b997-8b9c2965ad45][befaed0a]]'s verification — a *fresh* session using only the tools — needs a session that is not this one. Remedy 3 (rules riding on tool replies) is [[id:3cd7b7d3-25eb-4f30-ae90-9174a6876674][3cd7b7d3]]'s. Whether a consumer install receives the notice is unverified; the fallback path is tested only against a fixture.
 
 
-* TODO Nothing bounds the always-loaded rule surface, so every new rule is free at the point of writing :code:
+* DONE Nothing bounds the always-loaded rule surface, so every new rule is free at the point of writing :code:
+CLOSED: [2026-09-21 Mon 09:55]
 :PROPERTIES:
 :ID:       f2030ce9-3759-407c-b459-fe4ba4de8854
 :CREATED:  [2026-09-19 Sat 09:00]
 :CATEGORY: Dev
 :BLOCKER:  bf7e0b8e-f83a-4d4a-9950-3ab23a225156
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-09-21 Mon 09:37] \\
+  nominated: unblocked by bf7e0b8e, no headroom to lose
+CLOCK: [2026-09-21 Mon 09:51]--[2026-09-21 Mon 09:55] =>  0:04
+- State "DOING"      from "NEXT"       [2026-09-21 Mon 09:51] \\
+  building the word-budget ratchet
+- [2026-09-21 Mon 09:51]--[2026-09-21 Mon 09:55] word-budget check wired into check-conventions
+- State "DONE"       from "DOING"      [2026-09-21 Mon 09:55] \\
+  ratchet enforced at commit; proven by mutation
 :END:
 :DEBRIEF:
 Shipped in the commit titled "The ratchet: a word budget on the always-loaded rules, enforced at commit" on =feature/rules-in-wrong-places=. *Different from the plan:* words rather than lines, three budgets rather than one number (10,000 / 5,800 / 7,500, the user's), and a standalone script that =check-conventions= calls, so the numbers have exactly one home and the test suite can run it against a fixture root.
@@ -624,12 +705,17 @@ The rule count has only ever grown, one incident at a time, and no gate notices.
 *Resolved 2026-09-21:* =bin/word-budget= sums the always-loaded words in three configurations against budgets kept in that one file, =check-conventions= runs it in both modes, and pre-commit therefore refuses the commit that overruns — proven on the real repo with a two-word mutation.
 
 
-
-* TODO Audit the always-loaded rules for clauses a hook could enforce, since prose recall is what fails :code:
+* DOING Audit the always-loaded rules for clauses a hook could enforce, since prose recall is what fails :code:
 :PROPERTIES:
 :ID:       3cd7b7d3-25eb-4f30-ae90-9174a6876674
 :CREATED:  [2026-09-19 Sat 09:00]
 :CATEGORY: Skill
+:END:
+:LOGBOOK:
+- State "DOING"      from "TODO"       [2026-09-21 Mon 09:23] \\
+  convert list approved; first six conversions
+CLOCK: [2026-09-21 Mon 09:48]--[2026-09-21 Mon 09:49] =>  0:01
+- [2026-09-21 Mon 09:48]--[2026-09-21 Mon 09:49] suggested span, accepted at review
 :END:
 :PLAN:
 *The claim, from an outside drift analysis read 2026-09-19:* the observed
@@ -680,12 +766,20 @@ Every rule of the shape "before X, always do Y" where Y is fixed and cheap is a 
 *What the conversions did to the budget: almost nothing.* CLAUDE.md 3,652 → 3,646 words. Each sentence was replaced by a shorter one naming the mechanism rather than deleted, because a reader still needs to know the hook exists. The words come out in the deletion pass, not here. *Remaining:* the medium rows, and the separate decision on deriving clock events.
 
 
-
-* TODO org_capture should run the duplicate query itself, so the check the rule asks for cannot be skipped :code:
+* DONE org_capture should run the duplicate query itself, so the check the rule asks for cannot be skipped :code:
+CLOSED: [2026-09-21 Mon 10:12]
 :PROPERTIES:
 :ID:       c8773ec2-1b29-4128-80b3-5c21845f4ca3
 :CREATED:  [2026-09-19 Sat 08:56]
 :CATEGORY: Tools
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-09-21 Mon 09:55] \\
+  nominated: next unstarted member of the drift slice
+- State "DOING"      from "NEXT"       [2026-09-21 Mon 10:06] \\
+  measure title overlap, then build the query into org_capture
+- State "DONE"       from "DOING"      [2026-09-21 Mon 10:12] \\
+  query runs in the tool; paraphrase miss filed as 12033cc8
 :END:
 :DEBRIEF:
 Shipped in [[orgit-rev:claude-code-ide-org::4a9387b][4a9387b]]. *Measured before anything was chosen,* as the plan asked, leave-one-out over the 563 scorable titles in this tracker. Plain Jaccard was useless here — titles are whole claims, and the known duplicate pair scored 0.27. The score adopted is the idf-weighted share of the *new* title's tokens found in the candidate, at least two shared: asymmetric on purpose, because the question is "is this already said", not "are these alike". At 0.4, 43 headings (7.6%) would have been shown a candidate; at 0.5, 16, about eleven of them true relatives; the known pair scores 0.59 one way and 0.32 the other.
@@ -757,8 +851,8 @@ The duplicate check before a capture is a rule a session must remember at the mo
 *Resolved 2026-09-21:* =org_capture= now searches =TODO.org= and the =DONE.org= beside it on every capture and lists up to three near matches in its reply; only a loosely-equal title is refused. It would not have caught the transcript this heading was filed from — a paraphrase — and that is filed as [[id:12033cc8-3b15-44b1-a80c-068f63f21025][12033cc8]].
 
 
-
-* NEXT The always-loaded surface is 1,573 lines, and the split that shrank CLAUDE.md is what grew it :code:
+* DONE The always-loaded surface is 1,573 lines, and the split that shrank CLAUDE.md is what grew it :code:
+CLOSED: [2026-09-21 Mon 09:37]
 :PROPERTIES:
 :ID:       bf7e0b8e-f83a-4d4a-9950-3ab23a225156
 :CREATED:  [2026-09-19 Sat 08:55]
@@ -780,6 +874,16 @@ Five commits on =feature/rules-in-wrong-places=, one per file or group so each i
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-19 Sat 16:45] \\
   nominated; needs the user's budget decision first
+CLOCK: [2026-09-21 Mon 09:08]--[2026-09-21 Mon 09:09] =>  0:01
+- State "DOING"      from "NEXT"       [2026-09-21 Mon 09:08] \\
+  budget approved; retiring the plan-file pattern first
+- [2026-09-21 Mon 09:08]--[2026-09-21 Mon 09:09] retire the plan-file link rule from CLAUDE.md
+- [2026-09-21 Mon 09:09]--[2026-09-21 Mon 09:19] suggested span, accepted at review
+- [2026-09-21 Mon 09:20]--[2026-09-21 Mon 09:29] suggested span, accepted at review
+CLOCK: [2026-09-21 Mon 09:29]--[2026-09-21 Mon 09:37] =>  0:08
+- [2026-09-21 Mon 09:29]--[2026-09-21 Mon 09:37] deletion pass over org-state-transitions.md
+- State "DONE"       from "DOING"      [2026-09-21 Mon 09:37] \\
+  all three word budgets met; residue filed
 :END:
 :PLAN:
 *The measurement, 2026-09-19.* Always loaded, every session, regardless of
@@ -888,7 +992,6 @@ or it will be met in one configuration and missed in the other three.
 Measured 2026-09-19, prompted by an outside drift analysis that asserted a standing-context volume problem without numbers. The numbers hold, and they say something the analysis did not: relocation moved words, it did not retire them. A compression pass is owed, and it has to delete.
 
 *Resolved 2026-09-21:* the always-loaded surface went from 13,802 words to 10,000 self-hosting, 7,230 to 5,080 for a consumer with time tracking off and 9,472 to 6,806 with it on — all three inside the budgets the user set that day, with no rule removed.
-
 
 
 * NEXT config.el is the last place time tracking and task tracking are still entangled, 30% of 18k lines :code:
@@ -3547,7 +3650,6 @@ So the **GUI thread is waiting for ownership of a dispatch queue it never receiv
 *What this changes about the heading.* The title says "at review-buffer quit", which is now too narrow: three at quit and one at apply, with one stack common to both. The fault is in the mac port's frame-update path, not in what the review buffer was doing when it ran. The full sample is preserved outside the repo at =emacs-hang-489d6f61-4th.txt=.
 
 *A second deadlock, not at shutdown, 2026-09-21 ~08:40.* Right after an apply pass finished archiving, Emacs (pid 78949, up 2 days) stopped serving: =emacsclient= refused, MCP calls timed out, the process slept at 0% CPU with its port still listening. A =sample= showed the GUI main thread in =mac_gui_loop= → =__mac_update_frame_end_block_invoke= → =unset_global_focus_view_frame= → =dispatch_sync=, waiting on the lisp thread, which sat in =command_loop= — the same two-thread shape as the shutdown case, reached from a frame update. =SIGUSR2= did nothing and =SIGTERM= was ignored; =SIGKILL= and a relaunch restored service in about three seconds. No lock files existed, so nothing unsaved was lost. The sample itself was in a session scratchpad and is not kept.
-
 
 
 * TODO Plans die at cleanupPeriodDays; decide plansDirectory or keep restoring :code:
@@ -11314,6 +11416,7 @@ call it done.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-21 Mon 10:46]--[2026-09-21 Mon 10:51] =>  0:05
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
@@ -12432,4 +12535,15 @@ CLOCK: [2026-09-19 Sat 16:12]--[2026-09-19 Sat 16:14] =>  0:02
 - [2026-09-19 Sat 16:12]--[2026-09-19 Sat 16:14] assigned at review
 CLOCK: [2026-09-19 Sat 16:17]--[2026-09-19 Sat 16:18] =>  0:01
 - [2026-09-19 Sat 16:17]--[2026-09-19 Sat 16:18] assigned at review
+:END:
+
+
+**** 2026-09-21 Monday
+:PROPERTIES:
+:ID:       10b9e75a-3d9f-4ca2-922e-1403f9e8192f
+:CREATED:  [2026-09-21 Mon 09:55]
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-21 Mon 10:03]--[2026-09-21 Mon 10:04] =>  0:01
+- [2026-09-21 Mon 10:03]--[2026-09-21 Mon 10:04] assigned at review
 :END:
