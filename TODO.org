@@ -2,6 +2,42 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO The rule-copy drift guard compares the working tree, not what is staged
+:PROPERTIES:
+:ID:       006a50e4-b236-44d4-8445-62d4c61a12c7
+:CREATED:  [2026-09-21 Mon 17:38]
+:CATEGORY: Dev
+:END:
+* TODO The catch attribution reads every line of a note, so user: and self: on two lines make a bogus rule
+:PROPERTIES:
+:ID:       de2e377a-8c92-410b-9109-8aa7e244f3c9
+:CREATED:  [2026-09-21 Mon 17:38]
+:CATEGORY: Queue
+:END:
+* TODO A local merge on main that stops on conflicts is concluded with git commit, which pre-merge-commit never sees
+:PROPERTIES:
+:ID:       a72a0d63-ab44-45df-b832-c8fc38f2c43e
+:CREATED:  [2026-09-21 Mon 17:38]
+:CATEGORY: Dev
+:END:
+* TODO A queue file holding only miss and session lines is archived as drained, and its misses leave the count
+:PROPERTIES:
+:ID:       fd7d9715-860c-4082-853d-fa27b09045e3
+:CREATED:  [2026-09-21 Mon 17:38]
+:CATEGORY: Queue
+:END:
+* TODO A deferred amend or capture is applied without the block-headline escaping the direct write gets
+:PROPERTIES:
+:ID:       00aa6a85-fcd1-4343-82c4-5430c3483dbb
+:CREATED:  [2026-09-21 Mon 17:38]
+:CATEGORY: Tools
+:END:
+* TODO A plain claude-org-setup re-run deletes org-time-tracking.md where the plugin option has tracking on
+:PROPERTIES:
+:ID:       5fbc34cb-b5bd-4d9c-b8cb-29063f492b45
+:CREATED:  [2026-09-21 Mon 17:38]
+:CATEGORY: Dev
+:END:
 * TODO One clock_in keeps pairing with later clock_outs, so a closed heading collects phantom spans at every review
 :PROPERTIES:
 :ID:       c3aa23fb-c9dd-4eb6-83f7-ec8e8c803a11
@@ -538,14 +574,14 @@ The conventions say a twin — two headings for the same work — "is caught by 
 *Resolved 2026-09-21:* the twin pass exists — candidates from the query =org_capture= runs, a =twin-checker= agent that reads both bodies and only proposes, and an offer in the ceremony report. Its first run judged three pairs in 69 seconds and found one live heading whose work had already shipped.
 
 
-* DOING [11/12] A rule the agent can recite and still misses is a rule in the wrong place: count the misses, then move the rules out of recall :code:
+* DOING [11/18] A rule the agent can recite and still misses is a rule in the wrong place: count the misses, then move the rules out of recall :code:
 :PROPERTIES:
 :ID:       f6d160c2-c0ac-4c4b-a298-fe581ea3962a
 :CREATED:  [2026-09-19 Sat 13:50]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  436e0991-c8ac-40fb-860d-a6c4c381bee5
+:BLOCKER:  436e0991-c8ac-40fb-860d-a6c4c381bee5 5fbc34cb-b5bd-4d9c-b8cb-29063f492b45 fd7d9715-860c-4082-853d-fa27b09045e3 00aa6a85-fcd1-4343-82c4-5430c3483dbb a72a0d63-ab44-45df-b832-c8fc38f2c43e de2e377a-8c92-410b-9109-8aa7e244f3c9 006a50e4-b236-44d4-8445-62d4c61a12c7
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-19 Sat 08:29]--[2026-09-19 Sat 08:32] =>  0:03
@@ -667,6 +703,12 @@ Planned:
 - [X] [[id:c8773ec2-1b29-4128-80b3-5c21845f4ca3][c8773ec2]] DONE org_capture should run the duplicate query itself, so the check the rule asks for cannot be skipped
 - [X] [[id:9fb8c1fb-1f86-4dc1-9203-6c7abfd27594][9fb8c1fb]] DONE Twins are caught by review and nothing reviews for them: a checker subagent with a saturated context, run as a pass
 - [X] [[id:f2030ce9-3759-407c-b459-fe4ba4de8854][f2030ce9]] DONE Nothing bounds the always-loaded rule surface, so every new rule is free at the point of writing
+- [ ] [[id:5fbc34cb-b5bd-4d9c-b8cb-29063f492b45][5fbc34cb]] TODO A plain claude-org-setup re-run deletes org-time-tracking.md where the plugin option has tracking on
+- [ ] [[id:fd7d9715-860c-4082-853d-fa27b09045e3][fd7d9715]] TODO A queue file holding only miss and session lines is archived as drained, and its misses leave the count
+- [ ] [[id:00aa6a85-fcd1-4343-82c4-5430c3483dbb][00aa6a85]] TODO A deferred amend or capture is applied without the block-headline escaping the direct write gets
+- [ ] [[id:a72a0d63-ab44-45df-b832-c8fc38f2c43e][a72a0d63]] TODO A local merge on main that stops on conflicts is concluded with git commit, which pre-merge-commit never sees
+- [ ] [[id:de2e377a-8c92-410b-9109-8aa7e244f3c9][de2e377a]] TODO The catch attribution reads every line of a note, so user: and self: on two lines make a bogus rule
+- [ ] [[id:006a50e4-b236-44d4-8445-62d4c61a12c7][006a50e4]] TODO The rule-copy drift guard compares the working tree, not what is staged
 
 Incidental:
 
