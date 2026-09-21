@@ -23,7 +23,7 @@ printf '%s\n' '---' 'paths: ["**/*.org"]' '---' '# Org-file conventions' 'prose'
   > "$proj/.claude/rules/org-conventions.md"
 export CLAUDE_PROJECT_DIR="$proj"
 
-payload() { printf '{"session_id":"%s","hook_event_name":"PostToolUse","tool_name":"mcp__emacs-tools__org_outline"%s}' "$1" "${2:-}"; }
+payload() { printf '{"session_id":"%s","cwd":"/p/consumer","hook_event_name":"PostToolUse","tool_name":"mcp__emacs-tools__org_outline"%s}' "$1" "${2:-}"; }
 ctx() { jq -r '.hookSpecificOutput.additionalContext // empty' <<<"$1"; }
 
 out="$(payload s1 | "$hook")"
@@ -34,6 +34,13 @@ check "a fenced line is not a section" "no" "$(ctx "$out" | grep -q 'not a headi
 check "it says why: the tools never trigger the path scope" "yes" "$(ctx "$out" | grep -qi 'Read tool' && echo yes || echo no)"
 check "it stays under the 10,000-character cap" "yes" "$([[ "$(ctx "$out" | wc -c)" -lt 10000 ]] && echo yes || echo no)"
 
+# The miss rate's denominator (TODO.org :ID: 158d7e80). With time tracking
+# off no guidepost is written, so a session that misses nothing and queues
+# nothing wrote no line at all and was invisible to bin/miss-rate -- every
+# consumer's default. The first org call marks the session, ungated.
+check "the first org call marks the session in the queue" "session" \
+  "$(env -u CLAUDE_PLUGIN_OPTION_TIME_TRACKING true; jq -r '.kind' "$tmp/queue/s1.jsonl" 2>/dev/null)"
+check "and records where" "/p/consumer" "$(jq -r '.cwd' "$tmp/queue/s1.jsonl" 2>/dev/null)"
 check "the second call in the session is silent" "" "$(payload s1 | "$hook")"
 check "another session gets its own" "yes" "$([[ -n "$(payload s2 | "$hook")" ]] && echo yes || echo no)"
 check "a subagent has its own context, so its own injection" "yes" \
@@ -51,6 +58,7 @@ out="$(payload s4 | CLAUDE_PROJECT_DIR="$bare" "$hook")"
 check "with nothing promoted it names the shipped reference" "yes" \
   "$(ctx "$out" | grep -qF "skills/org/references/org-conventions.md" && echo yes || echo no)"
 
+check "one mark per session, not per call" "1" "$(grep -c '"kind":"session"' "$tmp/queue/s1.jsonl" 2>/dev/null)"
 check "a traversing session_id is refused" "" "$(payload ../x | "$hook")"
 check "and wrote nothing outside the queue" "no" "$([[ -e "$tmp/x.conventions-seen" ]] && echo yes || echo no)"
 printf 'garbage' | "$hook" >/dev/null 2>&1

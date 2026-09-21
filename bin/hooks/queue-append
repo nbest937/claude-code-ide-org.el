@@ -81,6 +81,14 @@ case "$kind" in
   # A FLOOR, never the rate. It counts what a hook or a tool caught. The
   # misses a human catches in conversation reach no file at all.
   miss|refusal) ;;
+  # One per session that did org work, written by conventions-inject on
+  # the first org_* call (TODO.org :ID: 158d7e80). It exists to be the
+  # miss rate's denominator: with time tracking off -- every consumer's
+  # default -- no guidepost is written, so a session that missed nothing
+  # and queued nothing left no line and could not be counted. Ungated for
+  # that reason, and absent from config.el's `--queue-kinds' like `miss',
+  # so the reader drops it.
+  session) ;;
   *) exit 0 ;;
 esac
 
@@ -293,7 +301,7 @@ line="$(jq -n -c \
   '{
      ts: $ts,
      kind: $kind,
-     id: (if $kind == "pause" or $kind == "resume" or $kind == "miss"
+     id: (if $kind == "pause" or $kind == "resume" or $kind == "miss" or $kind == "session"
              or $kind == "block_start" or $kind == "block_end" then null
           else ($payload.tool_input.id
                 // (if $recovered_id == "" then null else $recovered_id end))
@@ -304,7 +312,7 @@ line="$(jq -n -c \
              else null end),
      from: (if $kind == "todo" and $recovered_from != "" then $recovered_from
             else null end),
-     note: (if $kind == "pause" or $kind == "resume" or $kind == "miss"
+     note: (if $kind == "pause" or $kind == "resume" or $kind == "miss" or $kind == "session"
                or $kind == "block_start" or $kind == "block_end" then null
             else ($payload.tool_input.note // null) end),
      title:  (if $kind == "capture" then ($payload.tool_input.title // null) else null end),

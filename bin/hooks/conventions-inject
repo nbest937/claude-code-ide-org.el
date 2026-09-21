@@ -52,6 +52,17 @@ sentinel="$queue_dir/$session_id${agent_id:+.$agent_id}.conventions-seen"
 [[ -e "$sentinel" ]] && exit 0
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+
+# Mark the session in the queue before anything that can exit early: this
+# line is the miss rate's denominator and must not depend on whether a
+# conventions file happens to be found. Behind the sentinel check above,
+# so once per context. A slim payload -- queue-append embeds what it gets.
+# Main thread only: a subagent is a context of its own for the notice but
+# not a session of its own for the count.
+if [[ -z "$agent_id" ]]; then
+  jq -c '{session_id, cwd, hook_event_name}' <<<"$input" 2>/dev/null \
+    | "$here/bin/hooks/queue-append" session 2>/dev/null
+fi
 root="${CLAUDE_PROJECT_DIR:-$here}"
 
 # Promoted copy first -- it is the one Claude Code's own scope would load

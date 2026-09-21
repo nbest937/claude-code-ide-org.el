@@ -29,7 +29,7 @@ check "an empty directory says so and exits 0" "0" "$("$repo_root/bin/miss-rate"
   echo '{"ts":"'"$today"'T09:00:00-0500","kind":"mi'          # torn
   ev "$old" miss '"footnote"' s1 /p/a                          # outside the window
 } > "$tmp/s1.jsonl"
-ev "$today" todo null s2 /p/a > "$tmp/s2.jsonl"
+ev "$today" session null s2 /p/a > "$tmp/s2.jsonl"          # a quiet session, time tracking off
 ev "$today" miss '"footnote"' s3 /p/ab > "$tmp/s3.jsonl"       # a sibling, not beneath /p/a
 
 out="$("$repo_root/bin/miss-rate")"
