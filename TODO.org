@@ -294,6 +294,11 @@ Shipped in [[orgit-rev:claude-code-ide-org::4051533][4051533]]. *The reproductio
 :CREATED:  [2026-09-19 Sat 16:34]
 :CATEGORY: Dev
 :END:
+:PLAN:
+The plan is the body's proposal: one runner, =bin/test --all= or =bin/test-all=, that runs every =bin/*-test= suite and =bin/test= and checks each exit code and the =Ran N= line.
+
+- Decided 2026-09-21 (the user): *pre-push runs it*, not pre-commit. The full run measured 41s that day (24s shell, 17s ERT). That is tolerable per push and too heavy per commit, since most commits here are bookkeeping that touches only =TODO.org=. Step 0 also names it as what a branch runs before its PR.
+:END:
 
 =bin/test= runs the ERT suite only. The shell =bin/*-test= suites run when someone remembers, and neither git hook nor any runner calls them. Found 2026-09-19 starting [[id:63713df3-4ed9-42be-b971-8ac4485e76c2][63713df3]]: =queue-append-test=, =block-hooks-test= and =clock-target-check-test= had 40, 9 and 6 failures on a bare run since PR #28 gated their scripts on =CLAUDE_PLUGIN_OPTION_TIME_TRACKING= — fixed in [[orgit-rev:claude-code-ide-org::1b4b3be][1b4b3be]] and [[orgit-rev:claude-code-ide-org::f733179][f733179]]. *Still red, and not fixed:* =claude-org-setup-test=, 9 of 76, identical in a clean worktree at [[orgit-rev:claude-code-ide-org::2193612][2193612]] — "five files written: got 7" (the rule-file count moved) and the =--org= link cases; causes not investigated. Second instance of the class; the first is DONE.org's "bin/pre-commit-test has three failures that predate the branch fixing them". Proposal: one runner (=bin/test-all=, or =bin/test --all=) that runs every suite and checks each exit code, named in Step 0 as what a branch runs before its PR. Whether pre-push should call it is a cost question — measure the wall time first.
 
@@ -1458,6 +1463,9 @@ The analysis above stays useful either way, because it is the record of *why* th
 :CREATED:  [2026-09-17 Thu 16:17]
 :CATEGORY: Skill
 :END:
+:PLAN:
+Committed 2026-09-21 by the user to close within =8a2eb687=, where it replaces its child =2a6a1355= as the member. It closes when all six children are terminal. =d88362e7= is already DONE. =2a6a1355= closes on its resolution. =c247d8f3= and =eadb3607= each close on one measurement, CANCELLED if nothing is found. =490e6737= and =13aed7ca= each close on one user decision recorded in its own drawer. Each child's plan is its own drawer; this one holds only the close condition.
+:END:
 
 Divided out of =2a6a1355= 2026-09-17 at the user's direction, whose diagnosis was that the body had become "out and out metastasism": one heading carrying several causes that were never separated, so each visit appended to the pile instead of landing somewhere of its own. Ten dated revision sections in seventeen days, 3,707 words, the largest heading in TODO.org at fifteen times the median and 4.7% of the file's prose. **The size was the symptom; the failure to separate causes was the disease.**
 
@@ -1473,6 +1481,20 @@ Divided out of =2a6a1355= 2026-09-17 at the user's direction, whose diagnosis wa
 :ID:       2a6a1355-615f-4c2c-a8af-c9ae8dcda09b
 :CREATED:  [2026-09-01 Tue 08:43]
 :CATEGORY: Skill
+:END:
+:PLAN:
+Composed 2026-09-21, when the user divided the rest of this heading's causes into siblings under =de6de108=. Nothing is left to build here. It closes REVIEW → DONE with a resolution line that places each of its five recorded modes:
+
+- the reused-marker bookkeeping fault: retired with the markers on 2026-09-16, so there was nothing to fix;
+- enumeration: =13aed7ca=;
+- quotation and borrowed prose: =490e6737=;
+- the title paraphrased from a neighbour's body: made impossible by =33c3eabc=;
+
+and the two causes the body named that no mode covered: the final-block blind spot, =c247d8f3=, and discussion by subject, =eadb3607=.
+
+The body is left intact, as =de6de108= argued: it is the evidence of where the seams were.
+
+Decision (user): the REVIEW → DONE verdict itself, which is yours as with any REVIEW.
 :END:
 :LOGBOOK:
 - [2026-09-01 Tue 08:39]--[2026-09-01 Tue 08:42] assigned at review
@@ -1866,6 +1888,16 @@ One thing the rule does not reach, and it is worth writing down rather than trea
 :ID:       490e6737-b977-47a7-abd7-b0dad1684093
 :CREATED:  [2026-09-17 Thu 16:18]
 :END:
+:PLAN:
+Composed 2026-09-21, when =de6de108= was committed to close within =8a2eb687=.
+
+The hook already *detects* every instance: an id that arrives by transcription is present in the text and unfootnoted, and the Stop hook blocks. So nothing escapes silently, and "care cannot catch it" is true and also not the whole story, because the backstop does catch it. What is still open is whether anything beyond detection is worth building.
+
+1. *Settle one cause or two.* Quotation is visible on the page as quotation; borrowed prose is not. Read the =footnote= misses =bin/miss-rate= has recorded since 2026-09-21. If the quoted and adapted cases are ever told apart there, the split is real. If nothing distinguishes them in the record, they are one cause.
+2. *Close on detection* unless the record shows a transcribed id reaching the user unfootnoted. That can happen only where =c247d8f3='s final-block gap hides it, which makes this heading depend on that one's measurement. Close DONE with the argument that the hook is the mechanism for a failure care cannot prevent, and that its cost is one retry.
+
+Decision (user): accept "detected and retried" as this cause's resolution, rather than a preventive mechanism. The session brings the miss-rate evidence to that question.
+:END:
 
 Candidate cause 1 of the division, and the one the parent heading's own body argues for most directly: "the rule the writer is actually following is 'footnote what I decided to reference', and the hook's rule is 'footnote every id present'. The gap between those two is exactly the set of ids that arrive by transcription."
 
@@ -1880,6 +1912,19 @@ Partly addressed already: the paraphrased-title half became impossible when =33c
 :PROPERTIES:
 :ID:       13aed7ca-1fad-4e89-bbca-9355f5c76265
 :CREATED:  [2026-09-17 Thu 16:18]
+:END:
+:PLAN:
+Composed 2026-09-21, when =de6de108= was committed to close within =8a2eb687=.
+
+The open question is the body's own: should a response that is *structurally a list of headings* owe end matter at all? Three shapes:
+
+1. *Accept the end matter above about five ids.* The body already concludes that at twelve or fifteen ids the end matter is the correct form and the block is the convention working. Nothing is built; the rule text says so.
+2. *Discharge a list shape.* A list whose every item pairs its id with its exact title already discharges, and that shipped 2026-09-17. The failure is that bare-id lists get written. Change the writing guidance, not the hook.
+3. *Stand the hook down* on a response whose ids all sit in list items. That is cheap, but it loses the guarantee for a list of bare ids, which is the enumeration mode exactly.
+
+Recommendation: 1 with 2. The end matter stays the rule for many ids, and the citation rules say plainly that a status list should pair each id with its title inline. Decline 3.
+
+Decision (user): which shape. The session asks before its step.
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-17 Thu 16:18] \\
@@ -1941,6 +1986,18 @@ Shipped in the canonical reference and promoted; check-conventions 32 ok, footno
 :ID:       c247d8f3-9f3f-464a-b3a0-543b1bb9de4f
 :CREATED:  [2026-09-21 Mon 13:25]
 :END:
+:PLAN:
+Divided out of =2a6a1355= 2026-09-21, one of its candidate causes that had no heading. The Stop hook's =last_assistant_message= carries only the turn's final text block (=org-footnote-citations.md=, "What enforces it"), so an id cited in a text block before a tool call is never scanned. The citation rules call the hook "a backstop that can confirm a debt, never rule one out". This heading asks whether it can be made to rule one out.
+
+1. *Measure first.* Across this machine's transcripts, count turns where an earlier text block cites a tracked id that the turn's final end matter lacks. If the count is zero, this closes CANCELLED with the number, per =7771fc63='s standing argument.
+2. *If it occurs:* the Stop payload also carries =transcript_path=. Read the current turn's assistant text blocks from it with =jq= (plain shell; the hook family must survive a stopped Emacs), and scan all of them. The transcript for the turn in progress is present by construction, so pruning (=4acd8ad0=) does not bite here.
+3. Tests follow =bin/footnote-check-test='s pattern, with a fixture transcript carrying two text blocks.
+
+Decision: none. The measurement decides.
+:END:
+
+=footnote-check= reads =last_assistant_message=, which is only the turn's final text block, so footnote debt in any earlier block passes unseen. Measure how often that happens. If it happens at all, scan every text block of the turn from the transcript.
+
 
 
 ** TODO A heading discussed by subject and never by id owes a citation no token scan can see
@@ -1948,6 +2005,21 @@ Shipped in the canonical reference and promoted; check-conventions 32 ok, footno
 :ID:       eadb3607-aa3d-41ee-b8cc-e293cc924f26
 :CREATED:  [2026-09-21 Mon 13:25]
 :END:
+:PLAN:
+Divided out of =2a6a1355= 2026-09-21. The hook asks whether every id present is footnoted. It cannot ask whether every heading *discussed* was cited, because a response can describe a heading at length by its subject and never write its id. That is a judgement about aboutness, which no regex makes.
+
+*What is already measured:* 0 occurrences across 314 responses of a heading's four-word title phrase appearing while its id did not. That rules out verbatim uncited discussion and says nothing about paraphrase, which only a model can detect. So the evidence is circular unless a human adjudicates.
+
+1. Run one pass with a subagent over a sample of recent responses (about 100), flagging each heading it believes a response discussed without citing.
+2. The user adjudicates the flagged cases, which should be about ten.
+3. Zero confirmed: close CANCELLED with the sample and the verdicts. Build nothing for an unobserved failure (=7771fc63=).
+4. One or more confirmed: file the mechanism as its own heading and close this one on the measurement.
+
+Decision (user): the adjudication in step 2. Everything before it is the session's.
+:END:
+
+A response can discuss a heading by subject and never write its id. It then owes a citation that no token scan detects. Verbatim uncited discussion measured zero in 314 responses, and the paraphrased kind has never been measured. Settle it with one adjudicated sample, and build only if a case is confirmed.
+
 
 
 * MAYBE Revisit building the footnote block with org-ql or the agenda, once Emacs stops wedging :research:
@@ -2614,6 +2686,9 @@ Asked by the user 2026-09-16, straight after =c= shipped: "will the 0-run/0-minu
 :ID:       37bca83a-e83b-4070-9058-6318a58a24db
 :CREATED:  [2026-09-16 Wed 06:41]
 :CATEGORY: Tools
+:END:
+:PLAN:
+- Decided 2026-09-21 (the user): *refuse, naming the syntax.* A query whose first non-blank character is =(= returns an =Error:= giving the plain-string equivalent where one is obvious (=(tags "x")= becomes =tags:x=, =(property "K" "v")= becomes =property:K=v=), and otherwise names the mini-language. It is not run as a sexp: one language, and a wrong query can no longer pass for an empty result. Add the fragment to =queue-append='s refusal table so the refusal counts as a miss, and extend the =--refusal-fragments= contract test.
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-16 Wed 14:48]--[2026-09-16 Wed 14:50] =>  0:02
@@ -3303,11 +3378,14 @@ the hook must compare something other than its mtime. Introduced with
 [[id:165ce65a-f87e-431c-8ee4-f0fbfffe14da][165ce65a]].
 
 
-* TODO Every standalone client shares one project context, chosen by unstable ordering :code:
+* TODO Two tracked repos sharing a directory basename collide on one MCP session id :code:
 :PROPERTIES:
 :ID:       965f94eb-1558-4d00-9857-5727eb86fe6f
 :CREATED:  [2026-09-11 Fri 15:45]
 :CATEGORY: Tools
+:END:
+:PLAN:
+- Decided 2026-09-21 (the user): retitled the same day to the part that remains, the basename collision. The ordering half closed in =8bbae3aa=. The fix still needs choosing: a session id that stays unique when two repos share a basename, and that a consumer's generated =.mcp.json= can name statically. The candidate to measure first is the basename plus a short hash of the absolute path.
 :END:
 
 Found by PR22's review pass. The shipped =.mcp.json= pins =/mcp/warp=, so every
@@ -6225,6 +6303,11 @@ right for the wrong reason.
 :CREATED:  [2026-08-31 Mon 17:47]
 :CATEGORY: Dev
 :END:
+:PLAN:
+The check is the one the body measured: every =(defun claude-code-ide-org...= in =config.el= tested with =fboundp= against the running image (394 defuns, 0 unbound when healthy). It catches both shapes, the stale =.elc= and an older load of the right file. =symbol-file= alone catches only the first.
+
+- Decided 2026-09-21 (the user): *a SessionStart report line plus a non-blocking warning at the commit gate.* No block, because editing, batch-testing and committing without a reload is a coherent sequence. The report states what it knows (N defuns unbound, file newer than load) and asks, following the ceremony's ask-never-act contract. Emacs unreachable means say so, not pass silently.
+:END:
 :LOGBOOK:
 CLOCK: [2026-09-16 Wed 11:52]--[2026-09-16 Wed 11:53] =>  0:01
 - [2026-09-16 Wed 11:52]--[2026-09-16 Wed 11:53] a second staleness shape and its detection
@@ -7184,6 +7267,11 @@ and only an instrument outside the clock system answers it.
 :ID:       3ad389be-2797-46c3-a51d-9f603053955a
 :CREATED:  [2026-08-31 Mon 13:50]
 :CATEGORY: Queue
+:END:
+:PLAN:
+- Decided 2026-09-21 (the user): *option 1, loud and durable.* When an =org_*= call fails because Emacs is unreachable, a plain-shell hook writes a marker naming the tool and its arguments into the session's queue directory (Emacs cannot write it, since Emacs is what failed). The next =SessionStart= reports it, beside the stale-interval report, so what could not be recorded is itself recorded. Options 2 and 3 are declined. =7fa68d5c='s capture fallback builds on the same path afterwards.
+
+Open for the implementing session, and not the user's: which hook event sees an MCP timeout (=PostToolUse= with an error response, or a separate failure event). Measure it against a stopped Emacs before building.
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-31 Mon 13:52]
@@ -9554,6 +9642,7 @@ clone via =core.hooksPath=, inheriting =pre-push='s setup caveat.
 *Testing* would follow the existing =bin/*-test= pattern: a scratch
 repo, each of the four command forms, asserting exit status and message.
 
+- Decided 2026-09-21 (the user): the guard lives in =.githooks/pre-commit-guards=, and =--amend= escapes it with *=ALLOW_SWEEP=1=*, shaped like =ALLOW_MERGED_BRANCH= and =ALLOW_LOCAL_MERGE=. Each use counts a =miss= through =count-miss=, so habitual use shows up in the rate. There is no ownership tracking; the command form alone discriminates, as measured above.
 :END:
 *Where this stands, 2026-09-01.*
 
