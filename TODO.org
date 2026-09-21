@@ -33,6 +33,7 @@ The plan-file link rule was retired 2026-09-21 (a plan lives in the :PLAN: drawe
 
 
 * TODO [0/11] The misses a human catches reach no record: one heading per kind of miss, amended at each catch, so the catch is counted :code:
+DEADLINE: <2026-10-12 Mon>
 :PROPERTIES:
 :ID:       158d7e80-6d72-4518-a804-d8abf2e7e693
 :CREATED:  [2026-09-21 Mon 08:44]
