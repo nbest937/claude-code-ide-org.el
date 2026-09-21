@@ -58,12 +58,6 @@ repository does.
   applies**, not continuously as work happens, so their timestamps
   describe when the work was, never when the line was written.
 
-  **Churn relocates; it does not disappear.** Guideposts still accumulate
-  every turn, into the queue file — cheap, disposable, no Emacs required.
-  What ended is churn in the *org record*.
-
-The `:SESSIONS:` drawer is retired (2026-08-11, `:ID:` 9d2fcdad); the
-queue holds the same stream undecimated.
 The time-tracking rows of `hooks/hooks.json`. None reaches Emacs — each
 appends a line to the session's queue file and exits:
 
@@ -88,38 +82,17 @@ judgement belongs to the rule, not the hook.
 
 `session-pause` and `session-resume` are one line each — `exec
 queue-append pause` / `resume`. They are *guideposts*: timestamps marking
-when the agent was running, which the review pass clusters into spans.
-They no longer call `org-clock-out`/`org-clock-in-last`, so a stopped
-Emacs costs nothing.
+when the agent was running, which the review pass clusters into spans. A
+stopped Emacs costs nothing.
 
-**Permission blocks** (TODO.org `:ID:` f4e628ce). `Stop` fires when a
-*turn* ends, and a turn stalled waiting on a permission prompt has not
-ended — so the run of guideposts used to continue straight across the
-wait, crediting the human's decision latency as agent work. `block-start`
-and `block-end` bracket that wait, and the review pass removes the
-bracketed interval so the span splits around it.
-
-The pair is coordinated by a **sentinel**: an empty file at
-`~/.claude/org-updates/<session_id>.block-open`, whose existence is the
-whole message. `block-end` runs on every tool call in the session, so its
-common path must be one `stat` and an exit rather than a queue read.
-
-Two measured facts worth not rediscovering:
-
-- **`PermissionRequest` carries no `tool_use_id`.** `PostToolUse` does.
-  So the pair cannot be keyed by tool call, and is not — the sentinel is
-  one unkeyed slot per session.
-- **Prompts serialise.** Two tool calls dispatched in one parallel block
-  still produce the second `PermissionRequest` only after the first is
-  approved, so at most one block is open at a time and there is nothing
-  to tell apart.
-
-**Known edge case:** if the user's next prompt is about a different task
-than the one that got paused, `session-resume` still resumes the wrong
-(last-paused) one. This self-corrects the moment Claude actually starts
-the new task and calls `org_clock_in` on it — `org-clock-in` always closes
-whatever clock is currently running first — so the cost is a short, stray
-CLOCK interval on the wrong heading, not lost time or a stuck state.
+**Permission blocks** (`:ID:` f4e628ce). `Stop` fires when a *turn* ends,
+and a turn stalled on a permission prompt has not ended — so the wait
+used to be credited as agent work. `block-start` and `block-end` bracket
+it and the review pass removes the bracketed interval. The pair shares
+one **sentinel** per session, `<session_id>.block-open`, because
+`PermissionRequest` carries no `tool_use_id` to key on and prompts
+serialise, so at most one block is ever open; `block-end` runs on every
+tool call, so its common path is one `stat`.
 
 ### The three numbers that shape a recorded interval
 
@@ -198,31 +171,16 @@ which is why `DOING` being plural is not a contradiction. What records
 actual execution is the clock; the keyword records what is owed.
 
 **Rule**: a transition *to* `DOING` opens a clock **when you are starting
-work now** — the ordinary case, and what the table above describes. One
-exception: a **retroactive** `DOING` — recording that a heading was started earlier — opens nothing,
-because the work did not happen now. **The queue honours that exception,
-so such a transition may be queued freely.** This said the opposite until
-2026-08-26 and was wrong the whole time (`:ID:` 4f6a6bb1): `org_set_todo`
-and `org_clock_in` are separate calls precisely so state and clock are
-decided separately, and apply suppresses the trigger outright. The one
-path that does *not* honour it is a hand `C-c C-t` in Emacs — where a
-human is present to know which act they are performing.
-
-**A second exception: a _grouping_.** A story or a slice entering
-`DOING` opens no automatic clock, because on a grouping the keyword
-means "at least one member is in the mail" rather than "work is
-happening here". `--trigger-auto-clock-in` declines when
-`--grouping-heading-p` is true.
-
-**Note where that exemption actually bites, because it is narrower than
-it reads.** The trigger tests `--auto-clock-in-active` *before* it tests
-for a grouping, and apply binds that variable around the whole pass — so
-on the apply path the trigger short-circuits for **every** heading,
-grouping or leaf, and the grouping test is never reached. The exemption
-therefore does its work in exactly one place: a TODO state changed *by
-hand* in Emacs (`C-c C-t`, `S-right`). And it suppresses only the
-*automatic* clock, never a deliberate `C-c C-x C-i` — a grouping's own
-coordination time is real work and may be clocked on purpose.
+work now**. Two exceptions. A **retroactive** `DOING` — recording that a
+heading was started earlier — opens nothing, and the queue honours that:
+`org_set_todo` and `org_clock_in` are separate calls precisely so state
+and clock are decided separately, and apply suppresses the auto-clock
+trigger for every item it lands (`:ID:` 4f6a6bb1). A hand `C-c C-t` in
+Emacs *does* clock in at once, so recording that something *was* started
+is a queue action, not a keystroke. And a **grouping** entering `DOING`
+opens no automatic clock, because there the keyword means "a member is in
+the mail"; that exemption bites only on a state changed by hand, and
+never suppresses a deliberate `C-c C-x C-i`.
 
 **Rule**: a transition *from* `DOING` closes the clock **if this
 heading's clock is the one running**. Because `DOING` is plural, a
@@ -232,36 +190,20 @@ there is then nothing to close.
 **Rule**: before a session's first act that changes anything — a repo
 edit, a capture, an amend, any immediate org tool — name the heading the
 work belongs to and call `org_clock_in` on it, or on "Review and
-planning" (that exact title) for cross-cutting meta-work: review,
-planning, deciding what to do rather than doing it. No heading yet means
-capture one first, with an `initial_state`. The trigger is the *first
-write, not the ask*: a session that opens as a question drifts into
-tracked work, and the drift is invisible from inside the session doing
-it — on 2026-09-03 three sessions worked through the immediate tools
-alone and every span reached review UNASSIGNED (`:ID:` ccfd89ce). A
-purely read-only session owes nothing. `bin/hooks/clock-target-check`
-backstops this at turn end, once per session: write activity in the
-transcript with no `clock_in` in the queue blocks the stop with a
-reminder. It reports; it cannot name the heading — that judgement is
-this rule's alone.
+planning" (that exact title) for cross-cutting meta-work. No heading yet
+means capture one first, with an `initial_state`. The trigger is the
+*first write, not the ask*: a session that opens as a question drifts
+into tracked work, and the drift is invisible from inside it (`:ID:`
+ccfd89ce). A purely read-only session owes nothing.
+`bin/hooks/clock-target-check` backstops this at turn end, once per
+session; it reports and cannot name the heading.
 
-**Setting `DOING` retroactively opens nothing, and the queue is what
-makes that safe.** `org_set_todo` opens no clock by itself, and apply
-binds `--trigger-auto-clock-in` off for every item it lands — measured
-2026-08-26, and pinned by
-`claude-code-ide-org-test-review-suppresses-the-auto-clock-in-trigger`.
-A hand `C-c C-t` to `DOING` in Emacs *does* clock in at once, so
-recording that something *was* started is a queue action rather than a
-keystroke. See `:ID:` 4f6a6bb1.
+**Rule**: `org_clock_out` is the last call of the turn, after the last
+write. A `clock_out` closes the run and nothing reopens one before the
+turn's `pause`, so work done after it reaches review as *nothing* — not
+even an unassigned span (`:ID:` b09aca60).
 
-**A grouping may still be clocked deliberately, and that is not a
-defect.** `:ID:` 3964c575 proposed that groupings carry no clock at all;
-declined 2026-08-26. A parent's own coordination and planning time is
-real work, and a blanket "only leaves may be clocked" rule discards it —
-which is what `--container-heading-p`'s docstring has said all along. So
-the exemption is deliberately narrow: it suppresses the *automatic*
-clock a state change would open, never a deliberate `C-c C-x C-i`. The
-resulting ambiguity is a **reporting** problem, not a data one: measured
-2026-08-26, a clocktable row for a parent shows own plus subtree as one
-number and its own share appears nowhere, recoverable only by
-subtracting every child (`:ID:` 64d34a64).
+**A grouping may still be clocked deliberately** (`:ID:` 3964c575,
+declined): a parent's own coordination time is real work. The cost is a
+reporting one — a clocktable row for a parent shows own plus subtree as
+one number (`:ID:` 64d34a64).
