@@ -2,6 +2,15 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO The shipped skill and org_log_background_plan still teach the retired plan-file link :code:
+:PROPERTIES:
+:ID:       f9fdea91-c93a-4e96-8d49-133cb50d6dfb
+:CREATED:  [2026-09-21 Mon 09:08]
+:CATEGORY: Skill
+:END:
+
+The plan-file link rule was retired 2026-09-21 (a plan lives in the :PLAN: drawer; ~/.claude/plans is left to evaporate), and CLAUDE.md, lint and sync-plans were changed the same day. The plugin's own prose was not: SKILL.md still says to add the Plan link as soon as the plan file is finalized (near "Plan Mode checkpoint"), lists the link as drawer content, and documents a background-planning workflow whose write-back tool, org_log_background_plan, exists only to insert that link; org-conventions.md's :PLAN: section and org-state-transitions.md's plan-approval rule mention it too. A consumer therefore still receives the old instruction. Proposal: rewrite those passages to the drawer form, and decide whether the tool is retired or repointed at the drawer. Related, not the same: the sync-plans substring matcher defect.
+
 * TODO [0/11] The misses a human catches reach no record: one heading per kind of miss, amended at each catch, so the catch is counted :code:
 :PROPERTIES:
 :ID:       158d7e80-6d72-4518-a804-d8abf2e7e693
@@ -759,6 +768,8 @@ or it will be met in one configuration and missed in the other three.
 *Inherited 2026-09-19 from [[id:1b69fe4e-3dab-4b11-b21b-96320bf9d4e0][1b69fe4e]], which closed without it:* the 54 clock-, guidepost- and span-shaped lines outside the time file (25 in =org-state-transitions.md=, 13 in =org-event-queue.md=, 8 each in =org-mcp-tools.md= and =org-session-tracking.md=, as counted that morning). The time file is now promoted only where the feature is on, so each of those lines is either moved into it — and then costs a default consumer nothing — or deleted. Re-count first. *The measured start for this pass, same day:* a consumer's always-loaded plugin surface is 780 lines with the feature off and 1,047 with it on.
 
 *Unit decided by the user 2026-09-21: words.* The numbers first proposed (8,500 / 4,500 / 6,300) were a flat ~38% cut with no bottom-up basis, and the consumer figure was below what deleting every dated paragraph outright would reach. Measured the same day, words in paragraphs carrying a date, as a proxy for history and incident narrative: 4,114 of 13,802 always-loaded (30%), and two files hold 77% of it — CLAUDE.md 1,715 of 3,880 and =org-state-transitions.md= 1,454 of 3,272. Floors if every dated paragraph went whole: 9,688 self-hosting, 5,513 consumer with time tracking off, 7,128 with it on. The proxy errs both ways (a dated paragraph can hold a live rule; undated narration is missed). Revised proposal, awaiting the user: 10,000 / 5,800 / 7,500.
+
+*Budget approved by the user 2026-09-21, in words:* 10,000 self-hosting, 5,800 consumer with time tracking off, 7,500 with it on. This is the number [[id:f2030ce9-3759-407c-b459-fe4ba4de8854][f2030ce9]] asserts. *First deletion the same day:* the plan-file link rule, retired at the user's decision — CLAUDE.md 3,880 → 3,652 words. The shipped skill's copies of that rule were not touched and are [[id:f9fdea91-c93a-4e96-8d49-133cb50d6dfb][f9fdea91]].
 :END:
 
 Measured 2026-09-19, prompted by an outside drift analysis that asserted a standing-context volume problem without numbers. The numbers hold, and they say something the analysis did not: relocation moved words, it did not retire them. A compression pass is owed, and it has to delete.
