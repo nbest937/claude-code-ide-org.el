@@ -6304,7 +6304,7 @@ Planned:
   - [ ] [[id:eadb3607-aa3d-41ee-b8cc-e293cc924f26][eadb3607]] TODO A heading discussed by subject and never by id owes a citation no token scan can see
 - [ ] [[id:f12f9da4-2870-45b7-8c50-ea54415c7bc6][f12f9da4]] TODO The running Emacs can be running a stale config.el and nothing says so
 - [X] [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]] DONE Verification traps: a check with no way to fail, and a fixture that never takes the real path
-  - [X] [[id:d2a0f54c-b59a-4855-ae3d-c93a6d3aa177][d2a0f54c]] DONE Generalize bin/check-org-dev-skill into bin/check-conventions, wired into pre-commit
+- [X] [[id:d2a0f54c-b59a-4855-ae3d-c93a6d3aa177][d2a0f54c]] DONE Generalize bin/check-org-dev-skill into bin/check-conventions, wired into pre-commit
 - [X] [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]] DONE MCP tools that write an org file time out; one reports success and persists nothing
 - [ ] [[id:25e7b083-360b-4282-8fd0-bb768e2a0f13][25e7b083]] TODO org_capture's target refuses an 8-character :ID: prefix that every other tool accepts
 - [ ] [[id:3ad389be-2797-46c3-a51d-9f603053955a][3ad389be]] TODO An Emacs outage strands every org write, because the tools are Emacs

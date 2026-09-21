@@ -471,35 +471,23 @@ because it is a sequencing declaration rather than a place work happens
 — there is no coordination to record that is not already one of its
 members'.
 
-**The plan that drove the slice is linked at the end of the body, as one
-`orgit-rev:` link per revision of it.** `.claude/commands/next-session.md`
-is rewritten in place, so a single reference names whatever it says today
-rather than what it said when the slice opened. Each commit that revised
-the prompt gets a link, oldest first, with its date and what the revision
-did:
+**A slice no longer records the revisions of `next-session.md`** (the
+user, 2026-09-21). Until then the plan that drove a slice was linked at
+the end of its body, one `orgit-rev:` link per commit that revised the
+prompt, because the file was rewritten per slice and its history *was*
+the slice's plan history. The file is now static and names no slice, and
+the plan is the slice's own `:PLAN:` drawer, so a link to a revision of
+the file records nothing about the slice. The ceremony's report of
+"worked slices with no prompt link" went with it. Links written before
+the change stay in their bodies as history; the member scan already
+ignores them, since it requires an `id:` link.
 
-```org
-- [[orgit-rev:claude-code-ide-org::97e1ef2][97e1ef2]] [2026-08-24 Mon 15:39] defined the slice
-```
-
-This is deliberately *not* the `plans/` pattern. A copied snapshot was
-built first and removed the same day (`:ID:` 637ee73d): `plans/` exists
-because `~/.claude/plans` is outside the repo and would otherwise have no
-history, whereas this file is committed and only lacks a stable identity
-— which is exactly what an `orgit-rev:` link is, at no cost in sync
-scripts or drift checks.
-
-**Several links, not one, is what lets a slice outlive a session.** A CLI
-restart or a cleared context is a *revision of the prompt*, not a new
-slice, so unfinished members stay put instead of being deferred into a
-successor slice that has not earned them. Deferral proliferates mentions
-of tasks that were planned and never reached the top of the stack; a
-slice that can span sessions mostly removes the need for it.
-
-Note the links cost nothing in `bin/lint-org` as of 2026-08-25 (`:ID:`
-43201e64) — before that each one added a permanent unresolvable-location
-warning, which would have made this convention degrade the report a
-little more with every slice.
+**A slice outlives a session.** A CLI restart or a cleared context
+continues the slice in hand — `/next-session` picks the `DOING` slice
+whose pull request is not yet open — so unfinished members stay put
+instead of being deferred into a successor slice that has not earned
+them. Deferral proliferates mentions of tasks that were planned and
+never reached the top of the stack.
 
 **A slice of slices needs no formalization** (the user, 2026-09-11).
 Nothing forbids one — `org_slice_add_member` refuses a non-slice target,
@@ -701,10 +689,7 @@ keeping.
 
 **Nothing replaces the `MAYBE` signal, deliberately** (the user,
 2026-09-08). An unstarted slice is visibly uncommitted without a
-keyword saying so: it has no clocked members, nothing `DOING`, and no
-prompt link — the `next-session.md` revision link arrives only when a
-slice is actually picked up, since that is what a slice is *worked*
-from, not what it is composed into.
+keyword saying so: it has no clocked members and nothing `DOING`.
 
 **Review the composed list for twins before work begins.** A *twin* is
 two headings describing the same defect, or the same class of work,

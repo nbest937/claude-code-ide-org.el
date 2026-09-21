@@ -919,39 +919,6 @@ failing (:ID: 2758f3a0, 41 of 45, every miss on re-mention)."
                 (setq found t))))
           found)))))
 
-(defun claude-code-ide-org--worked-unlinked-slices ()
-  "8-character prefixes of open slices worked but carrying no prompt link.
-
-The convention says a slice being worked carries one `orgit-rev:' link
-per revision of the prompt that drives it -- and nothing ensured it
-did: `ff7ccb2d' went without until a human noticed an hour later
-(TODO.org :ID: d749ebd5, inherited from the cancelled 198dd00e).  The
-ceremony can *report* the absence even though it cannot supply the
-value, since only the composer knows which revision applies.
-
-Worked means the slice's own subtree carries a CLOCK line -- spans are
-assigned to the slice itself at review when it is being executed -- and
-a slice has no children, so the subtree is its own body."
-  (let (out)
-    (dolist (file (claude-code-ide-org--tracked-files) (nreverse out))
-      (when (file-exists-p file)
-        (with-current-buffer (find-file-noselect file)
-          (org-with-wide-buffer
-           (goto-char (point-min))
-           (while (re-search-forward org-heading-regexp nil t)
-             (when (and (claude-code-ide-org--slice-p)
-                        (not (member (org-get-todo-state)
-                                     claude-code-ide-org--outline-finished-keywords)))
-               (let* ((end (save-excursion (org-end-of-subtree t t) (point)))
-                      (worked (save-excursion
-                                (re-search-forward "^[ \t]*CLOCK:" end t)))
-                      (linked (save-excursion
-                                (re-search-forward "orgit-rev:" end t))))
-                 (when (and worked (not linked))
-                   (push (claude-code-ide-org--id-prefix
-                          (or (org-entry-get nil "ID") "?"))
-                         out)))))))))))
-
 (defun claude-code-ide-org--items-in-report-scope (items)
   "ITEMS whose events name a `cwd' under `--report-scope'.
 
@@ -1036,7 +1003,7 @@ ones the number most wants."
 
 (defun claude-code-ide-org--ceremony-status ()
   "Return a plist of what the ceremony has waiting: (:pending N :drifted N
-:archivable N :unlinked IDS), or nil when the ceremony has already run today.
+:archivable N ...), or nil when the ceremony has already run today.
 
 Counts only.  Deciding what to do about them is the human's, which is
 why this returns numbers and the formatter below asks a question."
@@ -1077,7 +1044,6 @@ why this returns numbers and the formatter below asks a question."
                  (setq archivable (1+ archivable))))
              nil 'file))))
       (list :pending pending :drifted drifted :archivable archivable
-            :unlinked (claude-code-ide-org--worked-unlinked-slices)
             ;; Since the ceremony last completed, which is the window the
             ;; rest of this report already speaks in; every miss on
             ;; record when it never has.
@@ -1120,11 +1086,10 @@ before it was unwelcome."
   (let* ((pending (or (plist-get status :pending) 0))
          (drifted (or (plist-get status :drifted) 0))
          (archivable (or (plist-get status :archivable) 0))
-         (unlinked (plist-get status :unlinked))
          (misses (plist-get status :misses))
          (twins (or (plist-get status :twins) 0))
          (reviewed (plist-get status :reviewed-today)))
-    (when (and status (> (+ pending drifted archivable (length unlinked) twins) 0))
+    (when (and status (> (+ pending drifted archivable twins) 0))
       (concat
        (format (concat (if reviewed
                            (concat "A review pass ran today but the ceremony "
@@ -1162,16 +1127,6 @@ conversation. "
 Alongside the question below, offer to run the twin-checker agent over them \
 (it reads both bodies and proposes; it changes nothing). "
                  twins))
-       ;; Named rather than counted, and separate from the counts above:
-       ;; the ceremony's automated steps cannot fix this one -- only the
-       ;; composer knows which prompt revision applies -- so the report
-       ;; says which slice, and the human supplies the link (TODO.org
-       ;; :ID: d749ebd5).
-       (when unlinked
-         (format "Worked slice(s) %s carry no orgit-rev: prompt link; only \
-the composer knows which next-session.md revision applies, so this is a \
-line to add by hand, not a step the ceremony can run. "
-                 (string-join unlinked " ")))
        "Ask the user whether they want to run it now; do not announce that you "
        "will, and do not run any part of it unasked. Apply is theirs alone -- "
        "M-x claude-code-ide-org-review -- because org's state-change logging "
