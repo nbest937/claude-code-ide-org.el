@@ -131,10 +131,11 @@ Five things you would not guess:
   doing" context injected at `SessionStart`. Whether the two directories
   should be consolidated is open.
 - **`.claude/commands/`** holds prompt files
-  Claude Code exposes as slash commands — `next-session.md` is `/next-session`,
-  the sequenced slice of work queued for the next session. It is a *plan*, not
-  a convention: expect it to be rewritten or deleted once consumed, unlike
-  everything else under `.claude/`, which is standing configuration.
+  Claude Code exposes as slash commands — `next-session.md` is `/next-session`.
+  Since 2026-09-21 it is **static**: it names no slice, finds the one in hand
+  (the `DOING` slice with no open PR, else the `NEXT` one), and points at
+  that slice's `:PLAN:` drawer. Only Step 0 and the standing rules live
+  there, and they grow by addition.
 - **`bin/check-org-dev-skill`** checks the org-dev skill's own claims still
   hold; pre-commit runs it whenever that skill is staged.
 - **`.warp/.mcp.json`** — see below; do not delete it.
@@ -264,11 +265,11 @@ plan file (the user, 2026-09-19; the plan-file link rule that stood here
 was retired 2026-09-21). Plan Mode is still worth entering for its
 read-only phase and its approval checkpoint, but what it produces is
 written into the drawer with `org_amend` `drawer=PLAN`, and no
-`[[file:~/.claude/plans/…]]` link is written. `/next-session` is composed
-*from* the members' drawers, and where the two disagree the drawer wins —
-the 2026-09-18 slice plan got four things wrong from the slice's altitude
-and none of them came from a heading. Older headings keep their links;
-see `plans/` above.
+`[[file:~/.claude/plans/…]]` link is written. A slice's plan is its own
+drawer, composed from its members', and where it and a member disagree
+the member wins — the 2026-09-18 slice plan got four things wrong from the
+slice's altitude and none of them came from a heading. Older headings keep
+their links; see `plans/` above.
 
 **Rule**: the heading body is a **journal, not a design doc** — the
 `:PLAN:` drawer is the design doc. The body carries what

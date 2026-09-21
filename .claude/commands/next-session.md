@@ -1,39 +1,56 @@
 # Next session
 
-A plan for `8a2eb687`, **Everything passed and the file was still wrong**.
-It took the Slices nomination back on 2026-09-21, when `f6d160c2` went to
-its pull request (#29). The `NEXT` is queued, not applied.
+**This file names no slice, and it is not rewritten between slices.** The
+plan lives in the slice's own `:PLAN:` drawer. This file says how to find
+that slice and what every session does first. It changes only when a
+session earns a new Step 0 item or standing rule, and then only by
+addition (decided 2026-09-21: two copies of one plan drift, and the drawer
+already won every disagreement).
 
-**The slice is the list.** Open it and read its checklist; this file gives
-the plan, not the membership. The two disagree only if one is stale, and the
-slice wins — which is also why no cookie or member count appears here. A
-count in two places is a count that can disagree with itself, and this is
-the copy nothing regenerates.
+## Which slice
 
-> **The line above is the only slice-specific text outside the middle
-> band.** Read the file as three parts: *Step 0* and *Standing rules* carry
-> forward verbatim between slices, everything from *What is already true* to
-> *Where this will stop* is replaced wholesale, and this heading names which
-> slice the middle is about.
+Find the open slices, *after* Step 0's first item (the queue applied), so
+keywords are current:
 
-> **This file is composed from the slice's `:PLAN:` drawer**, which was
-> itself composed from the members. Only three members carry a drawer of
-> their own; the rest are pre-convention, so their plans are read from
-> their bodies. Where a step here and a heading disagree, the heading wins,
-> for the same reason the slice wins on membership. Every step ends with a
-> **Decision** line naming what is unresolved and whose it is, or `none`.
-> That line is the marker `c10bfb15` asks for, written as a literal token so
-> a check can assert it.
+```
+org_query "property:KIND=slice !todo:DONE,CANCELLED"
+```
+
+1. A `DOING` slice whose pull request is **not yet open** is the one in
+   hand. Continue it. `gh pr list --state open` tells a slice still being
+   worked apart from one waiting on review.
+2. Otherwise, the `NEXT` slice. There is at most one, because a category
+   holds at most one top-level `NEXT`.
+3. **Neither, or more than one: stop and ask.** Do not choose by reading
+   titles.
+
+## The plan
+
+`org_body` on that slice with `drawer=PLAN`. Read the `org_outline` of the
+slice for its checklist, since **the slice is the list** and the drawer is
+the plan, not the membership.
+
+- **Where the drawer and a member's own heading disagree, the heading
+  wins.** Plans get premises wrong from the slice's altitude. Every wrong
+  claim in the 2026-09-18 plan came from the plan, and none came from a
+  heading.
+- **Every step ends with a `Decision` line** naming what is unresolved and
+  whose it is, or `none`. That line is the marker `c10bfb15` asks for.
+  Surface the user's decisions before doing the step that depends on them.
+- **No drawer, or one too thin to act on: stop and ask for a plan.** Do not
+  compose one silently from the slice's title.
+- **Never start a drawer list item with an `id:` link.** The slice refresh
+  reads any `- [[id:…]]` line in the heading as a member and rewrites it
+  (`7ee3b71a`, 2026-09-21). Write the id as plain text at the start of the
+  line.
 
 ---
 
 ## Step 0 — preliminaries
 
-> **CARRY FORWARD VERBATIM.** Nothing below is specific to a slice. When this
-> file is rewritten for the next one, this section and *Standing rules* at the
-> foot move across unchanged; everything between them is replaced. Amend these
-> two only when a session earns a new entry — never to describe the slice in
-> hand.
+> **Nothing below is specific to a slice.** Amend this section and
+> *Standing rules* only when a session earns a new entry, and never to
+> describe the slice in hand. That belongs in its drawer.
 
 Every item here is on the list because skipping it cost a past session real
 work.
@@ -126,145 +143,9 @@ work.
 
 ---
 
-## The sequence, as of 2026-09-21
-
-| | slice | where it stands |
-|---|---|---|
-| — | `f6d160c2` | PR #29 open. `63713df3` is awaiting the user's verdict, and `436e0991` still needs its fresh-session check (below) |
-| 1 | `8a2eb687` — this one | the gate, then the tools that answer wrongly, then checks and ownership, then divergent copies, then the outage |
-| 2 | `6521dd56` | corpus pass, internal |
-| 3 | `f9fe9fac` | datetree, internal |
-
-`6a207b00` (the euchre adoption) waits on `f6d160c2`'s merge, not on this
-slice. Every member here that changes what a consumer receives should be
-checked against a consumer install as well as here: `5e731a23`, `965f94eb`,
-`3ad389be` and `7fa68d5c`.
-
-**Branch:** `feature/<short-name>` at step 7, cut from `main` *after* #29
-merges. This slice carries code in every member but one.
-
----
-
-## What is already true, so it is not re-derived
-
-- **Membership was left exactly as found, at the user's direction.** Three
-  members are time-tracking only: `53b0047d`, `60ed5b96` and `4acd8ad0`. The
-  body already drops `4acd8ad0` in prose (2026-09-17), but the checklist still
-  lists it. Do not reconcile that without asking.
-- **By count, about four-fifths of the open members benefit a project with
-  time tracking off.** Nobody has estimated effort, so do not quote the
-  fraction as weighted.
-- **Loud failures raise the miss count.** Since `63713df3`, every genuine
-  `org_*` refusal appends a `miss` line. A member that turns a silent wrong
-  answer into a refusal adds lines where there were none. Read `bin/miss-rate`
-  by rule, and expect this slice's rules to *rise*.
-- **Carried over from `f6d160c2`: `436e0991`'s check.** In a fresh session
-  that uses *only* the org tools on `TODO.org` (no Read of an `.org` file),
-  confirm the conventions notice arrives on the first `org_*` call. Then
-  queue `436e0991` for `REVIEW` with the evidence. It needs a new session by
-  construction, so it is the first thing that session does.
-
----
-
-## Step 1 — `94e6b615`: one runner for every suite
-
-`bin/test` runs ERT only, and the shell suites run when someone remembers.
-Three sat red for a day, and on 2026-09-21 the suites turned out to be
-writing their provoked refusals into the calling session's real queue: 24
-of the first 29 counted misses. Both are this slice's sentence. Build
-`bin/test --all` (or `bin/test-all`): every suite, with each exit code
-checked and the `Ran N` line read. Name it in Step 0 as what a branch runs
-before its PR.
-
-**Decision (user):** whether pre-push calls it. Measure its wall time first.
-
-## Step 2 — the tools that answer wrongly and look right
-
-Six small members, each shipped with a test proved red first:
-
-- `37bca83a` (already DOING): a query whose first non-blank character is
-  `(` is a sexp. Refuse it and name the mini-language, or run it through
-  `org-ql-select`. No predicate is dropped, and none ever was.
-- `25e7b083`: sweep by *argument*, not by call shape, and take the silent
-  shape first. `refresh-slice` still compares ids with `equal` at two sites.
-  The capture target resolves through `--id-find` but passes the prefix into
-  the `id` spec, so write the failing test before assuming it works.
-- `57f37f0e`: the no-change check reads the effective state, meaning the
-  file plus the heading's pending todo events. A set-and-revert cancels the
-  pair.
-- `492a1a30`: `org_divide` still writes `" [/]"` after the title. Use
-  `--ensure-statistics-cookie-at-point`'s placement, and look for a third
-  inserter.
-- `60ed5b96`: the docstring still opens "Always *inactive*". Say what
-  `:active` means and who sets it.
-- `7b4f4f14`: the watermark distinguishes "applied something" from "a pass
-  ran".
-
-**Decision:** none.
-
-## Step 3 — `39039bb6` and `7ee3b71a`: a check that does not catch, a region nobody owns
-
-- `bin/lint-org` errors on a heading `:ID:` that appears twice across the
-  tracked files, naming both locations. Only heading properties count.
-- Make the slice member region identifiable to *any* writer, so that
-  `replace=` preserves it the way it preserves drawers. Refusing `replace=`
-  on a `:KIND: slice` heading is the fallback, not the fix.
-
-**Decision:** none.
-
-## Step 4 — two copies of the truth
-
-- `2aeb65d6` leads this step because it gates the user's concurrent
-  sessions. `pre-commit-guards` refuses a whole-index commit while the real
-  index is non-empty and `CLAUDE_CODE_SESSION_ID` is set, and it counts a
-  miss like the other guards. The design and the measured `GIT_INDEX_FILE`
-  table are in its drawer. **Decision (user):** an `ALLOW_SWEEP` escape for
-  `--amend`.
-- `f12f9da4`: compare every defun in `config.el` against the running image
-  with `fboundp` (394 measured, 0 unbound). That catches the stale `.elc`
-  and an older load of the right file alike. **Decision (user):** warn or
-  block. My recommendation is a SessionStart line, not a commit-gate block.
-- `8ddd7fa8`: `--at-id` falls back to a scan when the index misses, and its
-  error distinguishes "nowhere" from "not where the index says".
-- `5e731a23`: apply reads the queued event's `cwd` for a deferred targetless
-  capture.
-- `965f94eb`: only the basename collision remains. Propose a retitle.
-- `53b0047d`: detect a live modified buffer diverging from disk before a
-  tool writes. Its clock half is time-tracking only.
-
-## Step 5 — the outage and the unknown
-
-- `3ad389be`. **Decision (user)** among its three options. My
-  recommendation is option 1: a timed-out tool write leaves a durable marker
-  that SessionStart reports.
-- `7fa68d5c`: its "rarely used" caveat is stale, because capture is now the
-  normal creation path. Build the fallback once `3ad389be` has decided the
-  shared shape.
-- `381ea07d`: a timeboxed attempt to reproduce it, with a buffer put through
-  revert, consolidate, normalise, then archive. If it does not reproduce,
-  the post-condition guard stands and the heading says so.
-
-## Not sequenced
-
-- `2a6a1355` is REVIEW. The question is the user's: how many root causes it
-  holds. Bring the candidate seams; the user decides whether it divides.
-- `4acd8ad0`: see *What is already true*.
-
----
-
-## Where this will stop
-
-**The slice closes when its pull request merges**, not when its last member
-goes terminal. A session that lands Steps 1 and 2 has done the slice's day.
-
-**Measure it**: members, elapsed days, commits, and review findings per
-member. Also read the miss rate for the rules it touches against the
-prediction above; `158d7e80`'s 2026-10-12 reading falls inside this slice's
-window.
-
 ## Standing rules, with what actually happened
 
-> **CARRY FORWARD VERBATIM**, with Step 0. The dates are not staleness — they
+> **Add to this list; never refresh it.** The dates are not staleness — they
 > are the evidence that turns a platitude into a rule, so keep them and add to
 > the list rather than refreshing it. A rule whose incident is forgotten is a
 > rule nobody follows.
