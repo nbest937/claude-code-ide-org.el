@@ -285,6 +285,13 @@ CLAUDE.md's own opening names this as the largest source of wrong claims. Caught
 - [2026-09-21 Mon] Caught by the user: "I was not offered an UNASSIGNED span at that time." The session had said twice that 16:39–16:46 on 2026-09-19 "will reach review UNASSIGNED", inferred from the clock-in rule's wording and never checked against =org_pending_updates=. It reached review as nothing (b09aca60).
 - [2026-09-21 Mon] Self-caught while answering what 63713df3's review should judge: its debrief says git-hook refusals "carry no =session_id= and are not counted". Never checked. A Bash tool call exports =CLAUDE_CODE_SESSION_ID=, and it equals the id the hook payloads carry (a queue file exists under it), so a git hook run from a session *can* count its own refusal. The claim shaped a design decision for two days.
 - [2026-09-21 Mon] Caught by the user: "list line should not be filled the way paragraph bodies are." The session's width sweep reported 8a2eb687's slice member lines as unfilled prose (13 lines), without checking what the lines were, and offered to fill all 44 headings in one =org-fill-paragraph= pass. That would have repeated 496b665e, the fill sweep that wrapped member lines, recorded in 8a2eb687's own body, on every slice. The fragments that sweep left in 8a2eb687's list were visible in the first outline read that day and went unmentioned. The user removed them by hand.
+- [2026-09-21 Mon] Caught by the user, the second time the same day: "what
+  you are calling an unfilled paragraph in 37bc's PLAN drawer appears to be a
+  variation of what I just reported for 94e6. stop doing that." The width
+  check again counted a list item as unfilled prose, this time the session's
+  own dated =- Decided= entry, and reported it as the user's incomplete reflow.
+  Width checks now skip list items.
+
 
 
 
@@ -367,10 +374,10 @@ The plan is the body's proposal: one runner, =bin/test --all= or =bin/test-all=,
 that runs every =bin/*-test= suite and =bin/test= and checks each exit code and
 the =Ran N= line.
 
-- Decided 2026-09-21 (the user): *pre-push runs it*, not pre-commit. The full
-  run measured 41s that day (24s shell, 17s ERT). That is tolerable per push and
-  too heavy per commit, since most commits here are bookkeeping that touches
-  only =TODO.org=. Step 0 also names it as what a branch runs before its PR.
+*Pre-push runs it, not pre-commit* (the user, 2026-09-21). The full run
+measured 41s that day (24s shell, 17s ERT), which is tolerable per push and too
+heavy per commit, since most commits here are bookkeeping that touches only
+=TODO.org=. Step 0 also names it as what a branch runs before its PR.
 :END:
 
 =bin/test= runs the ERT suite only. The shell =bin/*-test= suites run when
@@ -2863,7 +2870,14 @@ Asked by the user 2026-09-16, straight after =c= shipped: "will the 0-run/0-minu
 :CATEGORY: Tools
 :END:
 :PLAN:
-- Decided 2026-09-21 (the user): *refuse, naming the syntax.* A query whose first non-blank character is =(= returns an =Error:= giving the plain-string equivalent where one is obvious (=(tags "x")= becomes =tags:x=, =(property "K" "v")= becomes =property:K=v=), and otherwise names the mini-language. It is not run as a sexp: one language, and a wrong query can no longer pass for an empty result. Add the fragment to =queue-append='s refusal table so the refusal counts as a miss, and extend the =--refusal-fragments= contract test.
+*Refuse, naming the syntax* (the user, 2026-09-21). A query whose first
+non-blank character is =(= returns an =Error:= giving the plain-string
+equivalent where one is obvious (=(tags "x")= becomes =tags:x=,
+=(property "K" "v")= becomes =property:K=v=), and otherwise names the
+mini-language. It is not run as a sexp: one language, and a wrong query can no
+longer pass for an empty result. Add the fragment to =queue-append='s refusal
+table so the refusal counts as a miss, and extend the =--refusal-fragments=
+contract test.
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-16 Wed 14:48]--[2026-09-16 Wed 14:50] =>  0:02
@@ -3628,12 +3642,11 @@ the hook must compare something other than its mtime. Introduced with
 :CATEGORY: Tools
 :END:
 :PLAN:
-- Decided 2026-09-21 (the user): retitled the same day to the part that remains,
-  the basename collision. The ordering half closed in =8bbae3aa=. The fix still
-  needs choosing: a session id that stays unique when two repos share a
-  basename, and that a consumer's generated =.mcp.json= can name statically. The
-  candidate to measure first is the basename plus a short hash of the absolute
-  path.
+The fix still needs choosing: a session id that stays unique when two repos
+share a basename, and that a consumer's generated =.mcp.json= can name
+statically. Measure first the basename plus a short hash of the absolute path.
+(Re-scoped to the collision by the user, 2026-09-21; the ordering half closed
+in =8bbae3aa=.)
 :END:
 
 The standalone wiring registers each tracked repo under its directory basename
@@ -6578,12 +6591,11 @@ The check is the one the body measured: every =(defun claude-code-ide-org...= in
 unbound when healthy). It catches both shapes, the stale =.elc= and an older
 load of the right file. =symbol-file= alone catches only the first.
 
-- Decided 2026-09-21 (the user): *a SessionStart report line plus a non-blocking
-  warning at the commit gate.* No block, because editing, batch-testing and
-  committing without a reload is a coherent sequence. The report states what it
-  knows (N defuns unbound, file newer than load) and asks, following the
-  ceremony's ask-never-act contract. Emacs unreachable means say so, not pass
-  silently.
+*A SessionStart report line plus a non-blocking warning at the commit gate*
+(the user, 2026-09-21). No block, because editing, batch-testing and committing
+without a reload is a coherent sequence. The report states what it knows (N
+defuns unbound, file newer than load) and asks, following the ceremony's
+ask-never-act contract. Emacs unreachable means say so, not pass silently.
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-16 Wed 11:52]--[2026-09-16 Wed 11:53] =>  0:01
@@ -7332,13 +7344,9 @@ is the point — it cannot be backfilled.
 :CATEGORY: Tools
 :END:
 :PLAN:
-- Found 2026-09-21: a fourth site, and it is the silent shape. The slice refresh
-  reads =:DROPPED:= and ignores an 8-character prefix in it. On 8a2eb687,
-  =4acd8ad0= (a prefix, written 2026-09-17) kept its checkbox and its
-  =:BLOCKER:= place for four days, while a full id added the same day dropped
-  correctly. Fix it by expanding prefixes through =--id-find=, and have
-  =org_set_property= validate =:DROPPED:= the way it already validates
-  =:BLOCKER:=.
+=:DROPPED:= is a fourth site, and a silent one: expand its prefixes through
+=--id-find= in the refresh, and have =org_set_property= validate =:DROPPED:=
+the way it already validates =:BLOCKER:=.
 :END:
 
 *Found 2026-08-31 by using it.* Filing four children under [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]] with
@@ -7398,6 +7406,12 @@ first.
 The docstring on =--id-find= records that fourteen such sites existed the first
 time this was fixed; two more have now surfaced by use rather than by search,
 which suggests the sweep was by call *shape* rather than by argument.
+
+- [2026-09-21 Mon] A fourth site, and the silent shape: the slice refresh
+  ignores an 8-character prefix in =:DROPPED:=. On 8a2eb687, =4acd8ad0= (a
+  prefix, written 2026-09-17) kept its checkbox and its =:BLOCKER:= place for
+  four days, while a full id added the same day dropped correctly.
+
 
 
 * TODO A/B the clock record across the phase-3 fixes, since much of what is logged now is bogus :code:research:
@@ -7554,13 +7568,13 @@ and only an instrument outside the clock system answers it.
 :CATEGORY: Queue
 :END:
 :PLAN:
-- Decided 2026-09-21 (the user): *option 1, loud and durable.* When an =org_*=
-  call fails because Emacs is unreachable, a plain-shell hook writes a marker
-  naming the tool and its arguments into the session's queue directory (Emacs
-  cannot write it, since Emacs is what failed). The next =SessionStart= reports
-  it, beside the stale-interval report, so what could not be recorded is itself
-  recorded. Options 2 and 3 are declined. =7fa68d5c='s capture fallback builds
-  on the same path afterwards.
+*Option 1, loud and durable* (the user, 2026-09-21; options 2 and 3 declined).
+When an =org_*= call fails because Emacs is unreachable, a plain-shell hook
+writes a marker naming the tool and its arguments into the session's queue
+directory, since Emacs, being what failed, cannot write it. The next
+=SessionStart= reports it beside the stale-interval report, so what could not
+be recorded is itself recorded. =7fa68d5c='s capture fallback builds on the
+same path afterwards.
 
 Open for the implementing session, and not the user's: which hook event sees an
 MCP timeout (=PostToolUse= with an error response, or a separate failure event).
@@ -9935,7 +9949,11 @@ clone via =core.hooksPath=, inheriting =pre-push='s setup caveat.
 *Testing* would follow the existing =bin/*-test= pattern: a scratch
 repo, each of the four command forms, asserting exit status and message.
 
-- Decided 2026-09-21 (the user): the guard lives in =.githooks/pre-commit-guards=, and =--amend= escapes it with *=ALLOW_SWEEP=1=*, shaped like =ALLOW_MERGED_BRANCH= and =ALLOW_LOCAL_MERGE=. Each use counts a =miss= through =count-miss=, so habitual use shows up in the rate. There is no ownership tracking; the command form alone discriminates, as measured above.
+*The guard lives in =.githooks/pre-commit-guards=, and =--amend= escapes it
+with =ALLOW_SWEEP=1=* (the user, 2026-09-21), shaped like
+=ALLOW_MERGED_BRANCH= and =ALLOW_LOCAL_MERGE=. Each use counts a =miss= through
+=count-miss=, so habitual use shows up in the rate. There is no ownership
+tracking: the command form alone discriminates, as measured above.
 :END:
 *Where this stands, 2026-09-01.*
 
