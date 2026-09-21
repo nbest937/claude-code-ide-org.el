@@ -410,26 +410,30 @@ bookkeeping that touches only =TODO.org=. Step 0 names it as what a branch runs
 before its PR.
 :END:
 
-=bin/test= runs the ERT suite only. The shell =bin/*-test= suites run when
-someone remembers, and neither git hook nor any runner calls them. Found
-2026-09-19 starting [[id:63713df3-4ed9-42be-b971-8ac4485e76c2][63713df3]]: =queue-append-test=, =block-hooks-test= and
-=clock-target-check-test= had 40, 9 and 6 failures on a bare run since PR #28
-gated their scripts on =CLAUDE_PLUGIN_OPTION_TIME_TRACKING= — fixed in [[orgit-rev:claude-code-ide-org::1b4b3be][1b4b3be]]
-and [[orgit-rev:claude-code-ide-org::f733179][f733179]]. *Still red, and not fixed:* =claude-org-setup-test=, 9 of 76,
-identical in a clean worktree at [[orgit-rev:claude-code-ide-org::2193612][2193612]] — "five files written: got 7" (the
-rule-file count moved) and the =--org= link cases; causes not investigated.
-Second instance of the class; the first is DONE.org's "bin/pre-commit-test has
-three failures that predate the branch fixing them".
-*Correction, same day:* =claude-org-setup-test= is green as of [[orgit-rev:claude-code-ide-org::7f54503][7f54503]], and one
-of its three causes was a real bug rather than a stale fixture — setup's
-graceful "no port found; skipping .mcp.json" branch was unreachable under =set
--e= and =pipefail=. The other two were the expected file count (five, now seven)
-and a =--check= fixture predating the =.mcp.json= check, which had also let both
-"=--check= fails on…" cases pass vacuously. All fourteen suites exit 0 on
-2026-09-19; across four suites that is 64 failures nobody saw. Still open here:
-the runner. Also noticed, not fixed: =--check= reads the real =~/.config/doom=,
-so that suite is not hermetic.
+=bin/test= runs the ERT suite only. The shell =bin/*-test= suites run
+when someone remembers, and no git hook or runner calls them, so a suite
+can sit red through a merge with nobody seeing.
 
+*Established:*
+- Three suites went red when PR #28 gated their scripts on
+  =CLAUDE_PLUGIN_OPTION_TIME_TRACKING= (=queue-append-test= 40 failures,
+  =block-hooks-test= 9, =clock-target-check-test= 6), and nobody saw them
+  until 2026-09-19. With =claude-org-setup-test='s 9, that was 64
+  failures across four suites. All were fixed that day
+  ([[orgit-rev:claude-code-ide-org::1b4b3be][1b4b3be]],
+  [[orgit-rev:claude-code-ide-org::f733179][f733179]],
+  [[orgit-rev:claude-code-ide-org::7f54503][7f54503]]), and one was a
+  real bug: setup's "no port found" branch was unreachable under =set -e=
+  and =pipefail=.
+- The earlier instance of the class is in DONE.org: =bin/pre-commit-test=
+  had three failures that predated the branch fixing them.
+- On 2026-09-21 the suites were also found writing their provoked
+  refusals into the calling session's queue, fixed in
+  [[orgit-rev:claude-code-ide-org::bc23c76][bc23c76]].
+- A full run of every suite takes 41s (24s shell, 17s ERT, 2026-09-21).
+
+Also noticed, not fixed: =claude-org-setup --check= reads the real
+=~/.config/doom=, so its suite is not hermetic.
 
 * TODO sync-plans reads any mention of a plan filename as a link, so prose naming an orphan re-links it :code:observed:
 :PROPERTIES:
