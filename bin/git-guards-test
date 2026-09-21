@@ -21,6 +21,13 @@ check () { # name expected actual
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 
+# Run from a Bash tool call, this suite inherits the calling session's
+# CLAUDE_CODE_SESSION_ID, and every refusal it provokes on purpose used to
+# land in that session's real queue as a miss: 24 of the first 29 counted.
+# Only the counting cases below name a session, and only into $work.
+unset CLAUDE_CODE_SESSION_ID
+export CLAUDE_ORG_QUEUE_DIR="$work/queue"
+
 # A repo with a bare "origin", so origin/main is a real remote-tracking ref.
 new_repo () { # new_repo NAME -> path
   local r="$work/$1"
@@ -149,7 +156,6 @@ check "a passing skill check allows it" 0 "$(run_guards "$r" true)"
 # Without it a converted kind reads zero because nothing records it, which
 # biases the by-kind comparison on the miss story. A human committing by
 # hand has no such variable and is never counted.
-export CLAUDE_ORG_QUEUE_DIR="$work/queue"
 rule_of () { jq -r 'select(.kind == "miss") | .rule' "$work/queue/$1.jsonl" 2>/dev/null | tail -1; }
 
 r="$work/msg"

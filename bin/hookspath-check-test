@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Shell test harness for bin/hooks/hookspath-check.
 set -uo pipefail
+unset CLAUDE_CODE_SESSION_ID  # else a provoked refusal counts as a miss in the calling session
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 hook="$repo_root/bin/hooks/hookspath-check"
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
