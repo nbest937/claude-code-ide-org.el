@@ -573,9 +573,19 @@ code the integration point is its pull request, since a branch reaches
 bookkeeping or convention work — closes when its members finish, because
 that is all there is.
 
-Between the two it sits in `REVIEW`: every member terminal, the work not
-yet integrated. The state transitions reference defines that sense of the
-keyword on a grouping, and notes it is new.
+Between the two it sits in `REVIEW`, the work not yet integrated. The
+state transitions reference defines that sense of the keyword on a
+grouping.
+
+**Queue `REVIEW` on the slice when its pull request's review starts** —
+the moment `/code-review` is run on it, or a reviewer is requested — not
+when the last finding closes (the user, 2026-09-21). A member still in
+`REVIEW` does not hold it back, since that member is finished and awaits
+only judgement. Findings arrive inside the window by construction and
+are filed as members; that is the consequent work the section below
+describes, and it does not return the slice to `DOING`. `f6d160c2` is why:
+it stayed `DOING` through its whole review, six findings filed and fixed,
+and reached `REVIEW` only when its last verdict came in.
 
 **The `:BLOCKER:` is the floor; this is the ceiling.** The blocker stops a
 slice reaching `DONE` before its members do. Nothing stopped it closing

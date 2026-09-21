@@ -59,10 +59,12 @@ finished and only judgement remains — a heading parked there to mean "not
 sure yet" is `WAITING`, or still `DOING`.
 
 **On a grouping — a story or a slice — the words read one level up.**
-`DOING` means at least one member is in the mail. `REVIEW` means every
-member is terminal and the work has not yet integrated: for a slice
-carrying code, the window between the final commit and the pull request
-merging. The window needs a name because review findings arrive *after*
+`DOING` means at least one member is in the mail. `REVIEW` means the work
+is handed to review and has not yet integrated: for a slice carrying
+code, it is entered **when its pull request's review starts** — a
+`/code-review` run or a requested reviewer — with every member terminal
+or itself in `REVIEW`, and it lasts until the merge (the user,
+2026-09-21). The window needs a name because review findings arrive *after*
 every member is terminal, by construction — `:ID:` c19fbbf5 closed on
 "all members done" and its review's findings had nowhere to go. The
 close condition is in the org conventions, "Closing a slice".
