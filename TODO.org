@@ -990,6 +990,29 @@ The drift analysis's thrust is to make the agent stop forgetting; every heading 
 :CREATED:  [2026-09-19 Sat 09:08]
 :CATEGORY: Skill
 :END:
+:DEBRIEF:
+=bin/hooks/conventions-inject= rides an =org_.*= =PostToolUse= row and,
+once per context (session, or session plus =agent_id=), injects the
+conventions file's path and a section list generated from it. It is a
+pointer, not the text, because =additionalContext= is capped at 10,000
+characters and the file is about 58,000
+([[orgit-rev:claude-code-ide-org::65d01c8][65d01c8]]). It was verified
+twice. In the building session it prompted a read that caught four
+path-form =orgit-rev:= links the same hour. In a fresh session
+(a09fc75d, 2026-09-21) that Read no =.org= file, the notice arrived on the
+first org call and on no later one.
+
+*Handed on, not unfinished:*
+- Whether a plugin consumer receives the notice, including the fallback
+  to the shipped reference where nothing is promoted, is one of
+  2b8930da's checks, done after the merge.
+- Whether a session *acts* on the notice is the known weakness of
+  injected context. d606eaff counts it: three convention-unread catches
+  on 2026-09-21, all after the notice had arrived. 158d7e80's
+  2026-10-12 reading decides whether a stronger remedy is needed, the
+  candidate being targeted pointers in tool replies (3cd7b7d3's remedy
+  3).
+:END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-19 Sat 16:34] \\
   nominated: next member of the drift slice
@@ -1076,6 +1099,11 @@ decided with it; 1 is the cheap interim.
 *Not done:* the honest re-run of [[id:befaed0a-18ed-445e-b997-8b9c2965ad45][befaed0a]]'s verification — a *fresh* session using only the tools — needs a session that is not this one. Remedy 3 (rules riding on tool replies) is [[id:3cd7b7d3-25eb-4f30-ae90-9174a6876674][3cd7b7d3]]'s. Whether a consumer install receives the notice is unverified; the fallback path is tested only against a fixture.
 
 *The fresh-session re-run, done 2026-09-21: it passed.* This was a new session that never Read an =.org= file. At launch its context held neither =org-conventions.md= nor =org-conventions-local.md=, which is the failure this heading describes, reproduced. Its first =org_*= call was =org_body=, a read-only tool rather than =org_pending_updates=, and it carried the notice: both files, their line counts and their section lists. The second call, =org_outline=, carried no notice, so the once-per-session guard holds. The check covers delivery only. Whether a session goes on to Read the section that governs the act is the injected-context tier's weakness and is unchanged. The one item still open is the consumer install.
+
+*Resolved 2026-09-21:* the first =org_*= call of a context now carries a
+pointer to the conventions and their section list, verified in a fresh
+tools-only session. The consumer check belongs to 2b8930da.
+
 
 
 * DONE Nothing bounds the always-loaded rule surface, so every new rule is free at the point of writing :code:
