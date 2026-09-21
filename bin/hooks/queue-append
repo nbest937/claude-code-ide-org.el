@@ -20,7 +20,10 @@
 #   UserPromptSubmit           -> resume
 #   a backstop that fired      -> miss      (rule as $2, detail as $3)
 #   PostToolUse org_*          -> refusal   (a miss, only when the reply
-#                                            was an "Error: ..." refusal)
+#                                            was an "Error: ..." refusal --
+#                                            or a body amend onto a heading
+#                                            carrying :MISS_RULE:, which is
+#                                            a catch by the human)
 #
 # capture and amend differ from the rest: those tools write the file
 # immediately when it is free and only queue when the human has unsaved
@@ -163,7 +166,33 @@ if [[ "$kind" == todo || "$kind" == clock_in || "$kind" == clock_out \
       # category, and the line must stay under the atomic-append size.
       detail="${response:0:300}"
       kind=miss ;;
-    refusal:*) exit 0 ;;
+    refusal:*)
+      # Not a refusal -- but it may be a CATCH (TODO.org :ID: 158d7e80). A
+      # body amend onto a heading that carries :MISS_RULE: is the session
+      # recording a miss the human caught, and the write-through gate
+      # below would drop it: an immediate amend never reaches the queue.
+      # Body amends only -- a drawer amend is composition and a replace
+      # is revision, so setting such a heading up counts nothing.
+      [ "$(jq -r '(.tool_name // "") | test("org_amend$")' <<<"$input" 2>/dev/null)" = true ] || exit 0
+      [ "$(jq -r '.tool_input | ((.drawer // "") == "" and (.replace // false) != true)' <<<"$input" 2>/dev/null)" = true ] || exit 0
+      amend_id="$(jq -r '.tool_input.id // empty' <<<"$input" 2>/dev/null)"
+      case "$amend_id" in ''|*[!A-Za-z0-9-]*) exit 0 ;; esac
+      org_root="${CLAUDE_PROJECT_DIR:-$(jq -r '.cwd // empty' <<<"$input" 2>/dev/null)}"
+      # Anchored on the heading's OWN property drawer, never on the bare
+      # strings: an id or the property name quoted in some other body
+      # must not make that heading a miss heading. footnote-check's
+      # resolve_id is the same shape, for the same recorded reason.
+      slug="$(awk -v id="$amend_id" '
+        /^\*+ / { indrawer = 0; hit = 0; rule = "" }
+        /^:PROPERTIES:[ \t]*$/ { indrawer = 1; next }
+        indrawer && /^:END:[ \t]*$/ { if (hit && rule != "") { print rule; exit } indrawer = 0 }
+        indrawer && $1 == ":ID:" && index($2, id) == 1 { hit = 1 }
+        indrawer && $1 == ":MISS_RULE:" { rule = $2 }
+      ' "$org_root/TODO.org" 2>/dev/null)"
+      [ -n "$slug" ] || exit 0
+      rule="caught:$slug"
+      detail="$(jq -r '.tool_input.note // ""' <<<"$input" 2>/dev/null)"
+      kind=miss ;;
     *:Error:*) exit 0 ;;
   esac
 fi

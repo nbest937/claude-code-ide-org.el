@@ -39,8 +39,11 @@ injection cap is 10,000 characters and the file is six times that.
 **Every backstop that fires is counted** (`:ID:` 63713df3): a hook that
 blocks a stop, and any `org_*` call whose reply is an `Error:` refusal,
 appends one `miss` line naming the rule. The review pass never sees the
-kind; `bin/miss-rate` and the ceremony report read it. It is a floor —
-what a hook or tool caught, never what the user caught in conversation.
+kind; `bin/miss-rate` and the ceremony report read it. **A miss the user
+catches is answered with one dated body line amended onto the matching
+`Miss:` heading** (`:ID:` 158d7e80; `uncategorised` when none fits) — a
+body amend onto a heading carrying `:MISS_RULE:` is counted as
+`caught:<slug>`. Still a floor: a catch nobody records counts nothing.
 
 **`footnote-check` blocks rather than appends**, which is why this table
 is not simply a list of queue writers. It enforces the citation rules

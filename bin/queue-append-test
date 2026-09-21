@@ -481,6 +481,49 @@ long="$(printf 'Error: %0400d' 0)"
 run refusal "$(jq -n -c --arg r "$long" '{session_id:"sess-m",tool_name:"mcp__emacs-tools__org_query",tool_response:$r}')"
 check "a long refusal is truncated to 300" "300" "$(jq -r '.detail | length' <<<"$(queue_lines sess-m)")"
 
+# --- a catch by the human (TODO.org :ID: 158d7e80) -----------------------
+# A body amend onto a heading carrying :MISS_RULE: is one caught miss,
+# rule `caught:<slug>'. The write-through gate drops an immediate amend
+# from the queue, so without this the human's catch reaches no record.
+proj="$work/proj"; mkdir -p "$proj"
+cat > "$proj/TODO.org" <<'ORG'
+* TODO An ordinary heading
+:PROPERTIES:
+:ID:       aaaaaaaa-0000-0000-0000-000000000001
+:END:
+quotes :MISS_RULE: decoy and :ID: bbbbbbbb-0000-0000-0000-000000000002 in its body
+** TODO Miss: an example kind
+:PROPERTIES:
+:ID:       bbbbbbbb-0000-0000-0000-000000000002
+:MISS_RULE: example-kind
+:END:
+ORG
+caught() { # caught ID EXTRA_INPUT_JSON REPLY
+  jq -n -c --arg id "$1" --argjson extra "$2" --arg r "$3" --arg cwd "$proj" \
+    '{session_id:"sess-c", cwd:$cwd, tool_name:"mcp__emacs-tools__org_amend",
+      tool_input:({id:$id, text:"x", note:"why"} + $extra),
+      tool_response:[{type:"text",text:$r}]}' \
+  | CLAUDE_PROJECT_DIR="$proj" "$script" refusal
+}
+reset_queue
+caught bbbbbbbb-0000-0000-0000-000000000002 '{}' 'Amended: "Miss: an example kind"'
+line="$(queue_lines sess-c)"
+check "a body amend onto a miss heading is a caught miss" "miss" "$(jq -r '.kind' <<<"$line")"
+check "the rule is caught:<slug>" "caught:example-kind" "$(jq -r '.rule' <<<"$line")"
+check "the detail is the amend's note, not its text" "why" "$(jq -r '.detail' <<<"$line")"
+reset_queue
+caught bbbbbbbb-0000-0000-0000-000000000002 '{"drawer":"PLAN"}' 'Amended: "x" (into :PLAN:)'
+check "a drawer amend is composition, not a catch" "" "$(queue_lines sess-c)"
+reset_queue
+caught bbbbbbbb-0000-0000-0000-000000000002 '{"replace":true}' 'Revised: "x"'
+check "a replace is revision, not a catch" "" "$(queue_lines sess-c)"
+reset_queue
+caught aaaaaaaa-0000-0000-0000-000000000001 '{}' 'Amended: "An ordinary heading"'
+check "a heading that merely quotes the property is not a miss heading" "" "$(queue_lines sess-c)"
+reset_queue
+caught bbbbbbbb-0000-0000-0000-000000000002 '{}' 'Error: no org heading found'
+check "a failed amend onto a miss heading is a refusal, not a catch" "refusal:org_amend" "$(jq -r '.rule' <<<"$(queue_lines sess-c)")"
+
 # The reader must skip the kind, or every miss shows up at review. This
 # asserts the agreement, not the behaviour -- ERT covers the skip itself.
 check "config.el's queue-kinds does not list miss" "no" \
