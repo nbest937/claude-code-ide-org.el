@@ -3629,7 +3629,7 @@ else."
          (t
           (claude-code-ide-org--capture-write
            title new-id created (plist-get resolved :spec) tags initial-state
-           note category)
+           (claude-code-ide-org--escape-block-headlines note) category)
           ;; Registered against the file the target actually resolved to,
           ;; which is not necessarily the capture file: an :ID: target can
           ;; live anywhere org-id knows about.
@@ -3768,6 +3768,34 @@ the item rather than a write."
             (insert sep (string-trim (or text "")) "\n")))
         nil))))
 
+;;; Headline lines inside a block (TODO.org :ID: 8a23d6ec)
+
+(defun claude-code-ide-org--escape-block-headlines (text)
+  "TEXT with every raw headline line inside a `#+begin_'...`#+end_' block
+comma-escaped.
+
+Example org inside a block is not example org: measured on 8a23d6ec, a
+raw `* Fake' line is walked into by `org-map-entries' whatever the block
+type, so it corrupts the outline, container detection, statistics
+cookies and the lint -- silently.  \"Comma-escape headline lines\" was a
+convention to recall; the write path does it instead.
+
+Only `^\\*+ ' lines, which are the dangerous ones, and only inside a
+block.  Already-escaped lines are left alone, so this is idempotent --
+unlike `org-escape-code-in-string', which would add a second comma and
+is meant for text org will unescape once."
+  (when text
+    (let ((in-block nil) out)
+      (dolist (line (split-string text "\n"))
+        (let ((case-fold-search t))
+          (cond
+           ((string-match-p "\\`[ \t]*#\\+end_" line) (setq in-block nil))
+           ((string-match-p "\\`[ \t]*#\\+begin_" line) (setq in-block t))
+           ((and in-block (string-match-p "\\`\\*+ " line))
+            (setq line (concat "," line)))))
+        (push line out))
+      (mapconcat #'identity (nreverse out) "\n"))))
+
 ;;; A replace is refused while git could not undo it (TODO.org :ID: 3cd7b7d3)
 
 (defun claude-code-ide-org--id-file-uncommitted-p (id)
@@ -3886,7 +3914,8 @@ undone only through git. Commit the file first, then revise.")
   ;; Nine fabrications across two sessions preceded this, every one with a
   ;; correct prefix and a wrong tail, and a memory forbidding it
   ;; throughout.
-  (let ((resolved (claude-code-ide-org-resolve-id-links text)))
+  (let ((resolved (claude-code-ide-org-resolve-id-links
+                   (claude-code-ide-org--escape-block-headlines text))))
     (unless (car resolved) (setq id nil))
     (when (car resolved) (setq text (cdr resolved)))
     (if (null id) (cdr resolved)

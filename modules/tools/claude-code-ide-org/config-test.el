@@ -2722,6 +2722,34 @@ the reply carries it; choosing which member stays the caller's."
     (should-not (string-match-p "no member is NEXT"
                                 (claude-code-ide-org-set-todo "test-0001" "DONE")))))
 
+;;; Headline lines inside a block are escaped by the tool (TODO.org :ID: 8a23d6ec)
+
+(ert-deftest claude-code-ide-org-test-escape-block-headlines ()
+  "A raw `* Fake' inside a block is a real heading to org, whatever the
+block type -- measured on 8a23d6ec.  The comma is the whole mechanism."
+  (should (equal "Prose.\n#+begin_example\n,* Fake A\n,** Fake B\nnot a heading\n#+end_example\nAfter."
+                 (claude-code-ide-org--escape-block-headlines
+                  "Prose.\n#+begin_example\n* Fake A\n** Fake B\nnot a heading\n#+end_example\nAfter.")))
+  ;; idempotent: an already-escaped line gains no second comma
+  (should (equal "#+BEGIN_SRC org\n,* Fake\n#+END_SRC"
+                 (claude-code-ide-org--escape-block-headlines "#+BEGIN_SRC org\n,* Fake\n#+END_SRC")))
+  ;; emphasis at the start of a line is not a headline: no space after the stars
+  (should (equal "#+begin_quote\n*bold* text\n#+end_quote"
+                 (claude-code-ide-org--escape-block-headlines "#+begin_quote\n*bold* text\n#+end_quote")))
+  ;; nothing outside a block is touched
+  (should (equal "*Why this.* A sentence." (claude-code-ide-org--escape-block-headlines "*Why this.* A sentence.")))
+  (should-not (claude-code-ide-org--escape-block-headlines nil)))
+
+(ert-deftest claude-code-ide-org-test-amend-cannot-mint-a-heading-from-an-example ()
+  (claude-code-ide-org-test--with-heading
+    (let ((before (length (org-map-entries #'point nil (list file)))))
+      (claude-code-ide-org-amend
+       "test-0001" "An example:\n#+begin_example\n* TODO Fake heading\n#+end_example")
+      (with-current-buffer (find-file-noselect file)
+        (revert-buffer t t)
+        (should (= before (length (org-map-entries #'point))))
+        (should (string-match-p "^,\\* TODO Fake heading" (buffer-string)))))))
+
 ;;; org_amend replace= and git (TODO.org :ID: 3cd7b7d3)
 
 (ert-deftest claude-code-ide-org-test-amend-replace-refuses-over-an-uncommitted-diff ()
