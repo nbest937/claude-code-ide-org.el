@@ -2841,6 +2841,9 @@ broken".
 one:* do not call =org_amend= with =replace== on a slice. Compose the body
 first and add members after, or amend rather than replace.
 
+*The inverse, observed 2026-09-21: the member refresh destroyed a region it does not own.* 8a2eb687's new =:PLAN:= drawer listed its members as =- [[id:…][…]]= lines. The apply pass's slice refresh took all twenty for members, because =--slice-member-regexp= makes the checkbox optional and nothing excludes drawers. It rewrote each line to a member line, put a =Planned:= lead inside the drawer, and took the cookie from [3/23] to [3/43]. The plan prose survived only in git ([[orgit-rev:claude-code-ide-org::259e07b][259e07b]] records the damage, and the following commit restores it with plain ids). So ownership is invisible in both directions: other writers cannot see the member region, and the member scan cannot see where that region ends. Whatever marks the region fixes both, and the scan should at least skip drawers.
+
+
 
 * TODO A bookkeeping burst reads as many headings worked at once, and inflates every window it lands in :code:
 :PROPERTIES:
