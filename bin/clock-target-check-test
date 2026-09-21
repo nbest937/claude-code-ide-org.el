@@ -32,6 +32,13 @@ trap 'chmod -R u+w "$tmp" 2>/dev/null; rm -rf "$tmp"' EXIT
 
 export CLAUDE_ORG_QUEUE_DIR="$tmp/queue"
 export CLAUDE_PROJECT_DIR="$repo_root"
+# The scripts under test gate themselves on the plugin's time_tracking
+# option and default to OFF, so the suite must opt in the way a wired row
+# does. Without this every gated case fails on a bare run -- which all
+# three gated suites did from the gate landing (PR #28) until 2026-09-19,
+# unnoticed because nothing runs them automatically. THE GATE section at
+# the foot unsets it again to test the refusal itself.
+export CLAUDE_PLUGIN_OPTION_TIME_TRACKING=true
 
 failures=0
 
@@ -128,6 +135,24 @@ check "the block carries a message, not an empty stderr" "yes" \
   "$([[ -s "$tmp/stderr" ]] && echo yes || echo no)"
 check "the message names the tool that wrote" "yes" \
   "$(grep -q 'first: Edit' "$tmp/stderr" && echo yes || echo no)"
+
+# --- the nag is counted (TODO.org :ID: 63713df3) -----------------------
+reset; write_transcript
+run_hook >/dev/null
+check "a block appends one miss" 1 \
+  "$(jq -c 'select(.kind == "miss")' "$tmp/queue/sess-x.jsonl" 2>/dev/null | grep -c .)"
+check "the miss names the rule" "clock-target" \
+  "$(jq -r 'select(.kind == "miss") | .rule' "$tmp/queue/sess-x.jsonl" 2>/dev/null)"
+check "the detail is the first write" "Edit" \
+  "$(jq -r 'select(.kind == "miss") | .detail' "$tmp/queue/sess-x.jsonl" 2>/dev/null)"
+
+# --- THE GATE: no nag with the option off or absent ---------------------
+reset; write_transcript
+check "the hook stays silent with the option absent" 0 \
+  "$(printf '%s' '{"session_id":"sess-x","transcript_path":"'"$tmp/transcript.jsonl"'"}' \
+     | env -u CLAUDE_PLUGIN_OPTION_TIME_TRACKING "$hook" 2>/dev/null; echo $?)"
+check "and arms no sentinel" "no" \
+  "$([[ -e "$tmp/queue/sess-x.clock-target-nagged" ]] && echo yes || echo no)"
 
 echo
 if [[ $failures -eq 0 ]]; then

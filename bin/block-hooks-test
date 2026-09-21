@@ -28,6 +28,13 @@ set -uo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 export CLAUDE_ORG_QUEUE_DIR="$(mktemp -d)"
 trap 'rm -rf "$CLAUDE_ORG_QUEUE_DIR"' EXIT
+# The scripts under test gate themselves on the plugin's time_tracking
+# option and default to OFF, so the suite must opt in the way a wired row
+# does. Without this every gated case fails on a bare run -- which all
+# three gated suites did from the gate landing (PR #28) until 2026-09-19,
+# unnoticed because nothing runs them automatically. THE GATE section at
+# the foot unsets it again to test the refusal itself.
+export CLAUDE_PLUGIN_OPTION_TIME_TRACKING=true
 
 failures=0
 
@@ -114,6 +121,16 @@ reset
 echo '{"session_id":"../escape","hook_event_name":"PostToolUse"}' \
   | "$repo_root/bin/hooks/block-end"
 check "block-end refuses a traversing session_id" "0" "$(events)"
+
+# --- THE GATE: both scripts refuse with the option off or absent --------
+reset
+printf '%s' "$start" | env -u CLAUDE_PLUGIN_OPTION_TIME_TRACKING "$repo_root/bin/hooks/block-start"
+check "block-start appends nothing with the option absent" "0" "$(events)"
+check "block-start sets no sentinel with the option absent" "no" "$(sentinel)"
+reset
+printf '%s' "$start" | "$repo_root/bin/hooks/block-start"
+printf '%s' "$end" | CLAUDE_PLUGIN_OPTION_TIME_TRACKING=false "$repo_root/bin/hooks/block-end"
+check "block-end appends nothing with the option false" "1" "$(events)"
 
 echo
 if [[ $failures -eq 0 ]]; then

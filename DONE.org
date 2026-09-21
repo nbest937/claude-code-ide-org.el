@@ -8,6 +8,227 @@ Archived entries from file /Users/neil.best/git/claude-code-ide-org/TODO.org
 
 ** 2026-09 September
 *** 2026-09-19 Saturday
+**** DONE org-time-tracking.md promotes with no path scope, so a consumer with the feature off loads 260 lines about it every session :code:
+CLOSED: [2026-09-19 Sat 16:45]
+:PROPERTIES:
+:ID:       1b69fe4e-3dab-4b11-b21b-96320bf9d4e0
+:CREATED:  [2026-09-19 Sat 09:11]
+:CATEGORY: Dev
+:ARCHIVE_TIME: 2026-09-21 Mon 08:17
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Dev
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+- State "DONE"       from "DOING"      [2026-09-19 Sat 16:45] \\
+  shipped in 5f3ae30; residue told to bf7e0b8e
+- State "DOING"      from "TODO"       [2026-09-19 Sat 16:45] \\
+  retroactive: worked this session
+:END:
+:DEBRIEF:
+Shipped in [[orgit-rev:claude-code-ide-org::5f3ae30][5f3ae30]]. Three signals, any one: =--time-tracking=; =CLAUDE_PLUGIN_OPTION_TIME_TRACKING=true= in setup's environment; or a target whose =.claude/settings.json= sets that variable in a hook command. *The third was not in the plan* and is why this repo needs no flag — without it a plain re-run here would have deleted a tracked rule file. Off, a generated copy is removed (the marker is the licence; a hand-maintained file is left alone), which is [[id:96ad6e95-452d-4be2-9bc7-b2c2efa44988][96ad6e95]]'s removal case for this one file only. =--check= reads the file's presence as the signal and never calls an absent copy missing.
+
+Verified: ten new cases in =claude-org-setup-test=, run red first (five failed before the change); self-hosted =--check= exits 0; all fourteen shell suites exit 0. Five prose passages that said "promoted unconditionally" or "presence is not evidence" corrected, the file's own opening among them. *Weaker than the plan hoped:* presence is evidence that *setup was told*, not that the option is on — the two can disagree and the prose now says so.
+
+The suite had to be made green first: nine failures predating the branch, one a real bug in setup — [[orgit-rev:claude-code-ide-org::7f54503][7f54503]], recorded on [[id:94e6b615-3778-426b-b40a-306b517a837f][94e6b615]].
+
+Not done: the 54 clock-shaped lines in the other four machinery files. Told to [[id:bf7e0b8e-f83a-4d4a-9950-3ab23a225156][bf7e0b8e]] by an amend on that heading, not only named here. Not verified: a real consumer install.
+:END:
+:PLAN:
+*The false premise, quoted from =bin/claude-org-setup= at the promote list:*
+"Promoting the file regardless costs a consumer one unread reference and
+keeps the gate in exactly one place." The second half is true; the first is
+not. The file is written into =.claude/rules/= with no =paths:= frontmatter,
+and the Claude Code memory docs are explicit that such a rule is "loaded at
+launch with the same priority as =.claude/CLAUDE.md=". Unread references
+live in =skills/org/references/=; this one is promoted precisely so that it
+is read.
+
+*Measured 2026-09-19:* 260 lines / 2,192 words in the file, plus 54 lines
+mentioning clocks, guideposts or spans across the other four machinery
+files (25 in =org-state-transitions.md=, 13 in =org-event-queue.md=, 8 each
+in =org-mcp-tools.md= and =org-session-tracking.md=). Against the plugin's
+1,003-line imposed surface that is about 30%, in a configuration where
+=org_clock_in= queues an event nothing consumes.
+
+*The fix is small and the constraint is real.* Setup cannot read the
+=userConfig= option — that is why the gate went into the hook scripts. But
+setup can take a flag, and already prints advice about the option at the
+end of a run. =--time-tracking= (or reading the same variable the hooks
+read, =CLAUDE_PLUGIN_OPTION_TIME_TRACKING=, when it happens to be set)
+promotes the file; otherwise it is left in the references as the
+install-time reading its own header says it is. The gate stays in exactly
+one place for the *feature*; this is a second place for the *prose*, and
+the file's own opening — "do not read this file's presence as evidence the
+feature is on" — becomes unnecessary once its presence is evidence.
+
+*What this does not cover:* the 54 scattered lines. Those are the seam
+[[id:a7f844ba-7b70-48c6-833c-cd7e4e38cf14][a7f844ba]] names in =config.el=,
+showing up in prose; pull them into the time file where it is cheap, and
+leave the rest to the deletion pass
+([[id:bf7e0b8e-f83a-4d4a-9950-3ab23a225156][bf7e0b8e]]). Related:
+[[id:96ad6e95-452d-4be2-9bc7-b2c2efa44988][96ad6e95]] — once promotion is
+conditional, a consumer who turns the feature off later has an orphan, which
+is the removal case that heading says nothing handles.
+:END:
+
+bin/claude-org-setup promotes the time-tracking rules unconditionally on the stated premise that it "costs a consumer one unread reference". A promoted rule with no paths: frontmatter is read at launch, every session — so with the default toggle a consumer pays 26% of the plugin's imposed context for a feature that is off, before any of their own CLAUDE.md.
+
+*Resolved 2026-09-19:* setup promotes the time file only where it is told the feature is on, and removes a copy it wrote when it is not; a default consumer's always-loaded plugin surface fell from 1,047 lines to 780.
+
+**** DONE [13/13] Ship the tracker without the clock, so another project can use it while time tracking is still being built :code:
+CLOSED: [2026-09-19 Sat 07:29]
+:PROPERTIES:
+:ID:       8bbae3aa-55db-441c-8c33-405570ad879a
+:CREATED:  [2026-09-17 Thu 11:16]
+:CATEGORY: Slices
+:KIND:     slice
+:COOKIE_DATA: checkbox recursive
+:ARCHIVE_TIME: 2026-09-21 Mon 08:17
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Slices
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-09-17 Thu 12:10] \\
+  shortest path to a usable plugin elsewhere
+CLOCK: [2026-09-17 Thu 16:52]--[2026-09-17 Thu 16:57] =>  0:05
+- [2026-09-17 Thu 16:52]--[2026-09-17 Thu 16:57] assigned at review
+CLOCK: [2026-09-17 Thu 17:09]--[2026-09-17 Thu 17:10] =>  0:01
+- [2026-09-17 Thu 17:09]--[2026-09-17 Thu 17:10] assigned at review
+CLOCK: [2026-09-18 Fri 08:16]--[2026-09-18 Fri 08:17] =>  0:01
+- <2026-09-18 Fri 08:16>--<2026-09-18 Fri 08:17> assigned at review
+- State "DOING"      from "NEXT"       [2026-09-18 Fri 08:17] \\
+  slice work starts on feature/ship-without-clock; first member in the mail
+CLOCK: [2026-09-18 Fri 08:27]--[2026-09-18 Fri 08:27] =>  0:00
+- <2026-09-18 Fri 08:27>--<2026-09-18 Fri 08:27> assigned at review
+CLOCK: [2026-09-18 Fri 14:31]--[2026-09-18 Fri 15:17] =>  0:46
+- <2026-09-18 Fri 14:31>--<2026-09-18 Fri 15:17> root-cause unattributed spans, file discipline fix
+- State "REVIEW"     from "DOING"      [2026-09-18 Fri 14:36] \\
+  all nine members terminal; awaiting the PR merge
+CLOCK: [2026-09-18 Fri 15:33]--[2026-09-18 Fri 15:35] =>  0:02
+- [2026-09-18 Fri 15:33]--[2026-09-18 Fri 15:35] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-18 Fri 15:38]--[2026-09-18 Fri 15:40] =>  0:02
+- [2026-09-18 Fri 15:38]--[2026-09-18 Fri 15:40] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-18 Fri 15:45]--[2026-09-18 Fri 15:46] =>  0:01
+- [2026-09-18 Fri 15:45]--[2026-09-18 Fri 15:46] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-18 Fri 15:49]--[2026-09-18 Fri 15:51] =>  0:02
+- [2026-09-18 Fri 15:49]--[2026-09-18 Fri 15:51] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-18 Fri 16:19]--[2026-09-18 Fri 16:25] =>  0:06
+- [2026-09-18 Fri 16:19]--[2026-09-18 Fri 16:25] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-18 Fri 16:27]--[2026-09-18 Fri 16:28] =>  0:01
+- [2026-09-18 Fri 16:27]--[2026-09-18 Fri 16:28] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-18 Fri 16:29]--[2026-09-18 Fri 16:30] =>  0:01
+- [2026-09-18 Fri 16:29]--[2026-09-18 Fri 16:30] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-18 Fri 16:35]--[2026-09-18 Fri 16:38] =>  0:03
+- [2026-09-18 Fri 16:35]--[2026-09-18 Fri 16:38] root-cause unattributed spans, file discipline fix
+- State "DOING"      from "REVIEW"     [2026-09-18 Fri 16:41] \\
+  rework: testing the branch in a real consumer found four defects that make the slice's own claim false
+CLOCK: [2026-09-18 Fri 16:59]--[2026-09-18 Fri 17:01] =>  0:02
+- [2026-09-18 Fri 16:59]--[2026-09-18 Fri 17:01] assigned at review
+CLOCK: [2026-09-18 Fri 17:04]--[2026-09-18 Fri 17:08] =>  0:04
+- [2026-09-18 Fri 17:04]--[2026-09-18 Fri 17:08] assigned at review
+- State "REVIEW"     from "DOING"      [2026-09-18 Fri 17:14] \\
+  all thirteen members terminal; awaiting the PR merge
+CLOCK: [2026-09-18 Fri 17:14]--[2026-09-18 Fri 17:15] =>  0:01
+- [2026-09-18 Fri 17:14]--[2026-09-18 Fri 17:15] assigned at review
+CLOCK: [2026-09-18 Fri 17:25]--[2026-09-18 Fri 17:40] =>  0:15
+- [2026-09-18 Fri 17:25]--[2026-09-18 Fri 17:40] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-19 Sat 07:26]--[2026-09-19 Sat 07:30] =>  0:04
+- [2026-09-19 Sat 07:26]--[2026-09-19 Sat 07:30] root-cause unattributed spans, file discipline fix
+- State "DONE"       from "REVIEW"     [2026-09-19 Sat 07:29] \\
+  PR #28 merged as 7d64ca6; the integration point landed, which is what closes a slice
+:END:
+
+Composed 2026-09-17 at the user's direction, whose framing is the point: task tracking, dependency management and slice planning are ready to support real work elsewhere, and time tracking is not. Shipping them together holds the useful half hostage to the half still under construction.
+
+*The evidence is the session rather than the backlog.* Of 128 open headings, 55 sit in =Queue=, =Apply= and =Clock= — 43% — but weighting that by the corpus's own declared priority mechanism changes nothing: time-tracking work is deferred to =MAYBE= at 9.1% against 8.2% for everything else, and both sit at 80% plain =TODO=. The real asymmetry is behavioural. On 2026-09-17 every apply failure was a clock or span item, five of them; the user asked three separate times what a span represented; an eleven-hour overnight interval was offered as work, and a single keystroke would have recorded 3h11m over sixteen observed minutes. Against that, not one interruption came from capture, refile, blockers, slices, conventions or lint.
+
+*What survives the cut, which is most of the plugin:* capture with =:CATEGORY:= enforcement, refile, divide, query, outline, the slice machinery with derived cookies and blockers, the =:PLAN:=/=:DEBRIEF:= drawers, the conventions as promoted rules, =lint-org=, =check-conventions=, and the footnote hook. The queue and the review pass survive too — =org_set_todo= is queued because org's state-change logging needs a genuinely interactive command, which has nothing to do with time.
+
+*The shape decided before composing.* Scripts ship, wiring does not: a hook has no "disabled" state, so wired and unwired are the only forms available, and shipping unwired keeps the opt-in to one file edit. Not two plugins — time tracking is a **layer** on task tracking rather than a peer, since spans attribute to headings the task half manages and both share one queue, one review buffer and one watermark file. That decision carries one unmeasured assumption, which is a member here rather than a footnote.
+
+*This slice does not fix time tracking and does not pretend to.* The 55 open items stay open and stay this repo's work. What changes is that they stop blocking =6a207b00=.
+
+Planned:
+
+- [X] [[id:eb6c4a9b-8f78-42fa-9e86-484bf352fcf6][eb6c4a9b]] DONE clock-target-check ships wired and enforces clocking, so it would block every turn once clocking is off
+- [X] [[id:0c5577dc-ef15-440a-bdac-b3cb068aa7b2][0c5577dc]] DONE Take the guidepost, block and clock rows out of the shipped wiring, leaving every script on disk
+- [X] [[id:36952d1f-5312-4cf2-a710-4290ce673e19][36952d1f]] DONE The promoted rules instruct clocking unconditionally, so a consumer is told to call tools that do nothing
+- [X] [[id:01f7a19c-4b71-447c-8ded-385410e5d607][01f7a19c]] DONE Decide whether org_clock_in and org_clock_out stay registered when nothing consumes what they queue
+- [X] [[id:6956a46e-da4b-44c2-a701-80196a2930c1][6956a46e]] DONE The SessionStart report mixes stale-interval recovery with the ceremony prompt, and only one half survives
+- [X] [[id:1b36c5bd-bafd-4c43-8aae-c94dee45c5eb][1b36c5bd]] DONE claude-org-setup gains an opt-in that restores the time-tracking wiring and its rules
+- [X] [[id:d3149a81-91d2-4722-b6d8-68d4cee6fa4f][d3149a81]] DONE Verify the review buffer and apply pass on a queue that has never held a guidepost
+- [X] [[id:5fb70821-0f46-42d9-8bf3-93bc98025692][5fb70821]] DONE Establish whether two plugin manifests can share one MCP server, which is what decides the two-plugin question
+- [X] [[id:1254c24b-0dda-436e-a3d4-213de283692f][1254c24b]] DONE The prose still promises time tracking: README, CLAUDE.md, DOOM.md and the skill all describe a clock that no longer ships
+- [X] [[id:43d479c8-bbaa-49ec-a3be-0d8ee90425e1][43d479c8]] DONE Every SessionStart report a consumer gets is computed over all tracked projects, so it names other repos' work
+- [X] [[id:2082eeb3-afd8-4439-8774-81b48b1df9a1][2082eeb3]] DONE Nothing tells a session whether time tracking is on, though SessionStart could say it in one line
+- [X] [[id:805bf287-1401-44ab-bb6c-6e09b5b63b59][805bf287]] DONE A consuming repo gets the hooks, rules and skill but no org tools: the plugin's MCP server never registers
+- [X] [[id:827bb778-deca-47b6-acd3-0977493a14aa][827bb778]] DONE claude-org-setup --check reports only the promoted rules, so a clean run overstates how current a repo is
+
+*Decided by the user 2026-09-17, and it is larger than this slice: **time tracking is no longer a co-equal goal**.* "We have prioritized the other goal by committing to providing the ability to disable the time-tracking features." Committing to a switch **is** the ordering — a feature you can turn off is not co-equal with the one you cannot.
+
+*That contradicts both always-loaded statements of what this project is for.* =README.md= opens "It has a second, co-equal goal: **trustworthy tracking of where attention actually went**… Much of the machinery here — the event queue, the session hooks, the review pass — exists for that goal rather than the first one." =CLAUDE.md= says the same at line 9, and is loaded into **every session by default**, which makes it the more consequential of the two: it is what each future session believes the project is for before reading anything else.
+
+*So the correction is not a wording pass, and =1254c24b= should not treat it as one.* The demotion needs saying once, plainly, in both files: natural-language org manipulation is the goal; attention tracking is a second, optional capability, developed here and shipped off. Everything downstream — the feature/state/toggle description, the rules, the skill — follows from that sentence and should not re-argue it.
+
+*One nuance worth preserving rather than flattening.* The =README= claim that "much of the machinery — the event queue, the session hooks, the review pass — exists for that goal" is **historically true** and stays true: the queue was built because concurrent sessions writing live clock state produced a run of desync bugs. What changes is the *ranking*, not the history. A demotion that erased why the machinery looks as it does would cost a future reader the only explanation on record.
+
+*And it sharpens this slice's own justification.* The measured case was behavioural — every failure and every unanswerable question of 2026-09-17 came from a span or a clock item. The ordering decision is the same conclusion reached from the other direction, by a human weighing goals rather than counting incidents.
+
+*The shape decision's premise is false, found 2026-09-18 while researching =1b36c5bd=.* The slice was composed on "a hook has no 'disabled' state, so wired and unwired are the only forms available". **A third form exists.** Claude Code plugins declare user-configurable options in =plugin.json='s =userConfig=, with =type: boolean= and a =default=; the values reach hook processes as =CLAUDE_PLUGIN_OPTION_<KEY>=. A hook can therefore be *wired but self-gating* — one line at the top of each script, exiting 0 when the option is off. Confirmed against the docs and against this machine's Claude Code **2.1.272**, past the 2.1.271 the option picker requires.
+
+What that would look like: =userConfig.time_tracking= as a boolean defaulting =false=; the six time scripts each open with a guard on =$CLAUDE_PLUGIN_OPTION_TIME_TRACKING=; =hooks/hooks.json= keeps every row it had. The consumer turns it on in =/config=, or at install with =claude plugin install ... --config time_tracking=true=.
+
+*Why this is better than what the slice chose, on the slice's own terms.* It removes =1b36c5bd='s whole problem rather than solving it — no flag has to write hook wiring anywhere, so the absolute-path objection and the =${CLAUDE_PLUGIN_ROOT}=-does-not-expand-in-settings.json finding both become moot. The toggle is discoverable where a consumer already looks, and flipping it edits no JSON by hand. The per-event cost is one env-var test and an exit, which is the shape =block-end= was already written to have.
+
+*What it costs, stated plainly:* it **reopens =eb6c4a9b= and =0c5577dc=**, both closed today on the removal decision. Under self-gating their rows go back into =hooks/hooks.json= and each script gains a guard — so the work is not discarded (the inventory, the row-level verification and the =clock-target-check= reasoning all still apply) but the commit is substantially rewritten. It also makes the plugin depend on a Claude Code version supporting =userConfig=.
+
+*And one thing it does not solve:* rules promotion. =claude-org-setup= cannot see a plugin option, so =org-time-tracking.md= would stay promoted unconditionally — which is where it already is, and its opening already tells the reader not to infer the feature is installed from its presence. Under self-gating that preamble should point at the option rather than at a =session-pause= row.
+
+Not acted on: this is the user's call, and it reverses a composed decision mid-slice.
+
+Integration point: [[https://github.com/nbest937/claude-code-ide-org.el/pull/28][PR #28]], opened [2026-09-18 Fri 14:40] with 23 commits across 23 files. The slice stays =REVIEW= until it merges.
+
+*Measured against its predecessors, as the plan asked.*
+
+: afea7e4f  2026-09-11 -> 09-15   4 days    11 members
+: 35582d95  2026-09-15 -> 09-15   3 hours    4 members
+: 749301a0  2026-09-11 -> 09-17   6 days    15 members, 94 commits, 0.4 findings/member
+: 8bbae3aa  2026-09-17 -> 09-18   2 days     9 members, 23 commits, review pending
+
+*This is the first pair close enough in size to compare, and the comparison says the opposite of what the numbers suggest.* Against =749301a0= — 15 members, 94 commits, six days — this is nine members and 23 commits in two. Four times the commits for less than twice the members there; here, roughly 2.5 commits per member against 6.3. The difference is not productivity: =749301a0= was *debugging a pipeline*, where a commit is a hypothesis, and this was *restructuring by decision*, where a commit is a conclusion. Size held roughly constant and the shapes still did not compare, which sharpens the caveat that slice rather than removing it — **what varies is the kind of work, and no count captures it.**
+
+*One number that does mean something across all four: three of nine plan premises were false.* =36952d1f='s "entirely time tracking", =1b36c5bd='s "adds rows to the consumer's wiring", =6956a46e='s "can never find anything". A fourth ordering error put =5fb70821= last when its own body said it sequences first. **All four came from =next-session.md=; none from the headings.** The headings were written while looking at the thing; the plan was written while looking at the slice. That is a claim about how plans get composed here, and it belongs wherever the next one gets written.
+
+*The reversal is the slice's real event.* Composed on "a hook has no disabled state, so wired and unwired are the only forms available", it shipped the third form instead. Two members closed on the removal decision and were superseded hours later; both keep their analysis, which was reused verbatim, and carry the reversal in their own debriefs.
+
+*Observed in a real consumer 2026-09-18, which this slice's PR body says is the one thing it could not demonstrate.* =~/git/agentic-euchre= loads the plugin from this clone by symlink, so it has been running the branch's gated wiring since the restart. Its queue events, grouped by =cwd= across every session file:
+
+: 1766  claude-code-ide-org
+:   26  agentic-euchre
+:    2  consumer
+
+All 26 of euchre's are guideposts — 12 =pause=, 13 =resume=, 1 =block_start= — and **every one is dated 2026-09-10 to 09-15**. Zero after 14:05 today, when the gate landed, across an afternoon of real turns there. With =time_tracking= unset the guideposts stopped, and nothing else about the session changed: hooks still fire, the skill still loads, the plugin still appears in =/plugin='s Installed tab.
+
+*Two qualifications, because this is observation rather than a test.* It rests on euchre having completed turns after its restart, which the session's own reports imply but which was not instrumented. And euchre records **no** =todo=/=capture=/=amend= either — not because those are gated, but because it has no MCP config and therefore no org tools at all (=805bf287=). So this confirms the *negative* half — guideposts stop — and the positive half, that task events still flow with the feature off, remains unobserved in a consumer and is pinned only by =d3149a81='s fixture.
+
+*The incidental finding that prompted it:* euchre has no repo-level =.claude/settings.json=, and that is **correct rather than missing**. A consumer takes the plugin's =hooks/hooks.json=; this repo takes its own wiring because =claude-org-setup= refuses to make it its own consumer. A consumer that had both would append every queue line twice, which is the trap the wiring rule already names.
+
+*Reopened =REVIEW= → =DOING= 2026-09-18 and four members adopted, at the user's direction.* Testing the branch in =~/git/agentic-euchre= — the first time this plugin has been exercised by a project that is not its author — found four defects that between them make this slice's own title false. A consumer could not use it.
+
+- =43d479c8= — every =SessionStart= report is computed over all tracked projects, so euchre's named *this* repo's headings.
+- =2082eeb3= — nothing tells a session whether time tracking is on, which is the very switch this slice added.
+- =805bf287= — a consumer gets no =org_*= tools at all, and the shipped =.mcp.json= names an order-dependent alias.
+- =827bb778= — =--check= reports "ok" while the glue and module go unexamined, and this slice *created* the drift it fails to report.
+
+*The transition is the one =REVIEW= exists for*: "going back to =DOING= means the review found something *missing or broken* — it is rework, not the normal close". These arrived exactly as the state-transition rules predict findings do — after every member was terminal, because an implementation cannot be tested until it is implemented.
+
+*Why adopt rather than defer to a successor.* The slice's claim is "so another project can use it", and the four are the difference between that being true and being aspirational. Closing on the original nine would have asserted something the testing disproved. The cost is accepted and named: =827bb778= is the least defined of the four — its own body says two things must be decided rather than assumed, and glue drift is not a content diff — so the slice cannot close until that is settled.
+
+*One thing the reopening proves about the process rather than the code.* Nine members closed on analysis, tests and review; four more appeared within an hour of a real consumer trying to use the result. The pattern named on =43d479c8= — one user, one project, versus one Emacs serving many — was invisible from inside the repo that is its own only user.
+
+
 **** DONE [5/5] Address the PR #28 review: fifteen findings, four of them defects in work already closed :code:
 CLOSED: [2026-09-19 Sat 05:53]
 :PROPERTIES:
@@ -141,6 +362,7 @@ Finding 10, shipped in [[orgit-rev:claude-code-ide-org::b055a10][b055a10]] — t
 *It honours the recorded decision rather than overturning it*, which is why the disposition took two exchanges to settle. =1b36c5bd= established that the gate is the **feature**, in one place, never the prose; nothing here is newly switchable, so a consumer who turns time tracking on still receives every rule — which the review's own alternative, leaving the file unpromoted entirely, would have cost them. Its other alternative, a =--time-tracking= promotion flag, **was** at odds with that decision and with =01f7a19c='s rejection of a second switch, and was declined.
 
 *What the finding actually corrected was the cost estimate, not the logic.* "Costs a consumer one unread reference" is fair for a short file and wrong by an order of magnitude for a 335-line one — and wrong in the direction that made the decision look free.
+
 
 *** 2026-09-18 Friday
 **** DONE claude-org-setup --check reports only the promoted rules, so a clean run overstates how current a repo is :code:

@@ -1,0 +1,130 @@
+#!/usr/bin/env bash
+# review-start: when a pull request's review starts, queue the slice in
+# hand to REVIEW.
+#
+# TODO.org :ID: a9d37aee. The rule (org conventions, "Closing a slice";
+# the state transitions, "On a grouping") is that a slice enters REVIEW
+# when its PR's review starts, not when the last finding closes. It was a
+# sentence to recall, and on 2026-09-21 f6d160c2 stayed DOING through its
+# whole /code-review. This does the step.
+#
+# Two triggers, one script:
+#   UserPromptSubmit -- a prompt that is `/code-review' (or its deprecated
+#     alias `/ultrareview'). Measured: the forked skill still fires this
+#     event, with the command text as the prompt.
+#   PostToolUse on Bash -- `gh pr edit ... --add-reviewer', or a POST to
+#     a PR's requested_reviewers, i.e. a reviewer requested from here.
+#
+# What it queues is an ordinary todo event, written by queue-append from
+# a synthesized org_set_todo payload, so the review buffer shows it like
+# any other and a human applies it. Nothing here edits an org file.
+#
+# It acts only when the answer is unambiguous, and says why when not:
+#   - exactly one open slice is DOING (the one in hand);
+#   - every unfinished member (its :BLOCKER:) is itself REVIEW -- the rule
+#     counts a member awaiting judgement as finished;
+#   - this session has not already queued that slice to REVIEW.
+# Plain shell, like the rest of the hook family: no Emacs involved.
+
+set -uo pipefail
+
+input="$(cat)"
+command -v jq >/dev/null 2>&1 || exit 0
+
+event="$(jq -r '.hook_event_name // ""' <<<"$input" 2>/dev/null)"
+case "$event" in
+  UserPromptSubmit)
+    prompt="$(jq -r '.prompt // ""' <<<"$input" 2>/dev/null)"
+    grep -qE '^[[:space:]]*/(code-review|ultrareview)([[:space:]]|$)' <<<"$prompt" || exit 0
+    how="/code-review" ;;
+  PostToolUse)
+    cmd="$(jq -r '.tool_input.command // ""' <<<"$input" 2>/dev/null)"
+    grep -qE 'gh +pr +edit .*--add-reviewer|requested_reviewers' <<<"$cmd" || exit 0
+    how="a reviewer request" ;;
+  *) exit 0 ;;
+esac
+
+say() { # say TEXT -- inject context for the session, and exit
+  jq -n -c --arg e "$event" --arg t "$1" \
+    '{hookSpecificOutput: {hookEventName: $e, additionalContext: $t}}'
+  exit 0
+}
+
+org="${CLAUDE_PROJECT_DIR:-$(jq -r '.cwd // ""' <<<"$input")}/TODO.org"
+[ -f "$org" ] || exit 0
+
+# One pass: every heading's keyword by id, and each DOING slice's id,
+# title and :BLOCKER:. Anchored on the heading's own property drawer, so
+# an id quoted in a body is never read as the heading's.
+slices="$(awk '
+  /^\*+ / {
+    kw = ""; title = $0; sub(/^\*+ /, "", title)
+    if (match(title, /^(TODO|NEXT|DOING|REVIEW|WAITING|MAYBE|DONE|CANCELLED) /)) {
+      kw = substr(title, 1, RLENGTH - 1); title = substr(title, RLENGTH + 1)
+    }
+    id = ""; slice = 0; blk = ""; inprops = 0; next
+  }
+  /^:PROPERTIES:$/ { inprops = 1; next }
+  inprops && /^:END:$/ {
+    inprops = 0
+    if (id != "") { key[id] = kw }
+    if (slice && kw == "DOING") { n++; sid[n] = id; st[n] = title; sb[n] = blk }
+    next
+  }
+  inprops && /^:ID:/      { id = $2 }
+  inprops && /^:KIND:/    { if ($2 == "slice") slice = 1 }
+  inprops && /^:BLOCKER:/ { blk = $0; sub(/^:BLOCKER:[ \t]*/, "", blk) }
+  END {
+    for (i = 1; i <= n; i++) {
+      open = ""
+      m = split(sb[i], b, /[ \t]+/)
+      for (j = 1; j <= m; j++)
+        if (b[j] != "" && key[b[j]] != "REVIEW") open = open " " substr(b[j], 1, 8) "(" key[b[j]] ")"
+      print sid[i] "\t" st[i] "\t" open
+    }
+  }' "$org")"
+
+count="$(grep -c . <<<"$slices")"
+[ "$count" -eq 0 ] && exit 0
+if [ "$count" -gt 1 ]; then
+  say "A pull request's review started ($how), and more than one slice is DOING, so none was queued to REVIEW: $(cut -f1 <<<"$slices" | cut -c1-8 | tr '\n' ' '). Queue the one this review is for with org_set_todo (conventions, \"Closing a slice\")."
+fi
+
+id="$(cut -f1 <<<"$slices")"
+title="$(cut -f2 <<<"$slices")"
+open="$(cut -f3 <<<"$slices" | sed 's/^ //')"
+short="${id:0:8}"
+if [ -n "$open" ]; then
+  say "A pull request's review started ($how). Slice $short is DOING but was not queued to REVIEW, because members are still unfinished: $open. The rule counts only a member in REVIEW as finished (conventions, \"Closing a slice\")."
+fi
+
+session="$(jq -r '.session_id // ""' <<<"$input")"
+queue_dir="${CLAUDE_ORG_QUEUE_DIR:-$HOME/.claude/org-updates}"
+# Redundant if ANY session already has this slice queued to REVIEW and
+# not yet applied or dismissed -- a second session running /code-review
+# must not queue it again. Applied events stay in the files, so each
+# session's watermark (event ts -> when) decides what is still pending.
+# An applied REVIEW needs no check here: the slice is then REVIEW on disk,
+# and only DOING slices reach this point.
+shopt -s nullglob
+for f in "$queue_dir"/*.jsonl; do
+  wm="${f%.jsonl}.applied"
+  done_ts='[]'
+  [ -f "$wm" ] && done_ts="$(jq -c '[(.applied // {} | keys[]), (.dismissed // {} | keys[])]' "$wm" 2>/dev/null || echo '[]')"
+  if jq -R -n -e --arg id "$id" --argjson done "$done_ts" \
+       '[inputs | fromjson? | select(.kind == "todo" and .id == $id and .state == "REVIEW")
+         | select(.ts as $t | $done | index($t) | not)] | length > 0' < "$f" >/dev/null 2>&1; then
+    exit 0
+  fi
+done
+
+jq -n -c --arg s "$session" --arg cwd "$(jq -r '.cwd // ""' <<<"$input")" \
+  --arg id "$id" --arg title "$title" --arg how "$how" \
+  '{session_id: $s, cwd: $cwd, hook_event_name: "PostToolUse",
+    tool_name: "review-start",
+    tool_input: {id: $id, state: "REVIEW", note: ("its pull request review started: " + $how)},
+    tool_response: [{type: "text",
+      text: ("Queued todo -> REVIEW (was DOING): \"" + $title + "\"; pending review.")}]}' \
+  | "$(dirname "${BASH_SOURCE[0]}")/queue-append" todo >/dev/null 2>&1
+
+say "A pull request's review started ($how), so slice $short (\"$title\") is queued to REVIEW; a human applies it. Review findings are filed as members and do not return it to DOING (conventions, \"Closing a slice\")."

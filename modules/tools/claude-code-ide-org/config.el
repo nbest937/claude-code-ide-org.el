@@ -919,39 +919,6 @@ failing (:ID: 2758f3a0, 41 of 45, every miss on re-mention)."
                 (setq found t))))
           found)))))
 
-(defun claude-code-ide-org--worked-unlinked-slices ()
-  "8-character prefixes of open slices worked but carrying no prompt link.
-
-The convention says a slice being worked carries one `orgit-rev:' link
-per revision of the prompt that drives it -- and nothing ensured it
-did: `ff7ccb2d' went without until a human noticed an hour later
-(TODO.org :ID: d749ebd5, inherited from the cancelled 198dd00e).  The
-ceremony can *report* the absence even though it cannot supply the
-value, since only the composer knows which revision applies.
-
-Worked means the slice's own subtree carries a CLOCK line -- spans are
-assigned to the slice itself at review when it is being executed -- and
-a slice has no children, so the subtree is its own body."
-  (let (out)
-    (dolist (file (claude-code-ide-org--tracked-files) (nreverse out))
-      (when (file-exists-p file)
-        (with-current-buffer (find-file-noselect file)
-          (org-with-wide-buffer
-           (goto-char (point-min))
-           (while (re-search-forward org-heading-regexp nil t)
-             (when (and (claude-code-ide-org--slice-p)
-                        (not (member (org-get-todo-state)
-                                     claude-code-ide-org--outline-finished-keywords)))
-               (let* ((end (save-excursion (org-end-of-subtree t t) (point)))
-                      (worked (save-excursion
-                                (re-search-forward "^[ \t]*CLOCK:" end t)))
-                      (linked (save-excursion
-                                (re-search-forward "orgit-rev:" end t))))
-                 (when (and worked (not linked))
-                   (push (claude-code-ide-org--id-prefix
-                          (or (org-entry-get nil "ID") "?"))
-                         out)))))))))))
-
 (defun claude-code-ide-org--items-in-report-scope (items)
   "ITEMS whose events name a `cwd' under `--report-scope'.
 
@@ -984,9 +951,68 @@ in practice this drops only pre-cutover events."
           (plist-get item :events)))
        items))))
 
+(defun claude-code-ide-org--miss-counts (&optional since)
+  "Count `miss' queue lines by rule: ((RULE . N) ...), most frequent first.
+
+A `miss' is what a backstop appends when it fires -- a hook that blocked
+a stop, a tool that refused a call (TODO.org :ID: 63713df3).  The reader
+drops the kind on purpose, it being a measurement and not a proposal, so
+this reads the files itself rather than through `--queue-events'.
+
+SINCE, a time value, drops lines at or before it.  Under
+`--report-scope' a line counts only when its `cwd' is inside the scope,
+and a line with no `cwd' is excluded -- the same asymmetry, for the same
+reason, as `--items-in-report-scope'.
+
+*A floor, never the rate*: it counts what a hook or a tool caught.  The
+misses a human catches in conversation reach no file, and they are the
+ones the number most wants."
+  (let ((root (and claude-code-ide-org--report-scope
+                   (file-name-as-directory
+                    (file-truename claude-code-ide-org--report-scope))))
+        counts)
+    ;; The archive too: a file holding only miss lines yields no review
+    ;; items, so `archive-drained-queues' moves it out of the directory
+    ;; `--queue-files' scans, and its misses would silently leave the
+    ;; count (PR #29 review, TODO.org :ID: fd7d9715).  `restore-queue'
+    ;; moves rather than copies, so no file is ever in both places.
+    (dolist (file (append (claude-code-ide-org--queue-files)
+                          (let ((archive (expand-file-name
+                                          "archive" claude-code-ide-org-queue-directory)))
+                            (and (file-directory-p archive)
+                                 (directory-files archive t "\\.jsonl\\'")))))
+      (with-temp-buffer
+        (insert-file-contents file)
+        (goto-char (point-min))
+        ;; The literal is the writer's own compact encoding (`jq -c'), and
+        ;; only a prefilter: a queue file is mostly guideposts, and an
+        ;; amend's prose can contain the literal, so the parse decides.
+        (while (search-forward "\"kind\":\"miss\"" nil t)
+          (let* ((obj (ignore-errors
+                        (json-parse-string
+                         (buffer-substring-no-properties
+                          (line-beginning-position) (line-end-position))
+                         :object-type 'alist :null-object nil)))
+                 (ts (claude-code-ide-org--parse-iso8601 (alist-get 'ts obj)))
+                 (rule (alist-get 'rule obj))
+                 (cwd (alist-get 'cwd obj)))
+            (when (and (equal (alist-get 'kind obj) "miss")
+                       (stringp rule) ts
+                       (or (null since) (time-less-p since ts))
+                       (or (null root)
+                           (and cwd (file-directory-p cwd)
+                                (string-prefix-p
+                                 root (file-name-as-directory
+                                       (file-truename cwd))))))
+              (cl-incf (alist-get rule counts 0 nil #'equal))))
+          (forward-line 1))))
+    (sort counts (lambda (a b)
+                   (or (> (cdr a) (cdr b))
+                       (and (= (cdr a) (cdr b)) (string< (car a) (car b))))))))
+
 (defun claude-code-ide-org--ceremony-status ()
   "Return a plist of what the ceremony has waiting: (:pending N :drifted N
-:archivable N :unlinked IDS), or nil when the ceremony has already run today.
+:archivable N ...), or nil when the ceremony has already run today.
 
 Counts only.  Deciding what to do about them is the human's, which is
 why this returns numbers and the formatter below asks a question."
@@ -1027,7 +1053,23 @@ why this returns numbers and the formatter below asks a question."
                  (setq archivable (1+ archivable))))
              nil 'file))))
       (list :pending pending :drifted drifted :archivable archivable
-            :unlinked (claude-code-ide-org--worked-unlinked-slices)
+            ;; Since the ceremony last completed, which is the window the
+            ;; rest of this report already speaks in; every miss on
+            ;; record when it never has.
+            :misses (claude-code-ide-org--miss-counts
+                     (let ((f (claude-code-ide-org--ceremony-stamp-file)))
+                       (and (file-exists-p f)
+                            (file-attribute-modification-time
+                             (file-attributes f)))))
+            ;; How many recent live headings have a possible twin.
+            ;; `fboundp' and `ignore-errors' because a half-reloaded image
+            ;; must never take the SessionStart report down with it.
+            :twins (or (ignore-errors
+                         (and (fboundp 'claude-code-ide-org--twin-candidates)
+                              (length (claude-code-ide-org--twin-candidates
+                                       (claude-code-ide-org--capture-target-file)
+                                       14))))
+                       0)
             :reviewed-today (claude-code-ide-org--ceremony-reviewed-today-p)
             :last-done (let ((f (claude-code-ide-org--ceremony-stamp-file)))
                          (when (file-exists-p f)
@@ -1053,9 +1095,10 @@ before it was unwelcome."
   (let* ((pending (or (plist-get status :pending) 0))
          (drifted (or (plist-get status :drifted) 0))
          (archivable (or (plist-get status :archivable) 0))
-         (unlinked (plist-get status :unlinked))
+         (misses (plist-get status :misses))
+         (twins (or (plist-get status :twins) 0))
          (reviewed (plist-get status :reviewed-today)))
-    (when (and status (> (+ pending drifted archivable (length unlinked)) 0))
+    (when (and status (> (+ pending drifted archivable twins) 0))
       (concat
        (format (concat (if reviewed
                            (concat "A review pass ran today but the ceremony "
@@ -1075,16 +1118,24 @@ before it was unwelcome."
                ;; answers "how long has this been slipping", which earns
                ;; a line when the report is firing anyway.
                (or (plist-get status :last-done) "never"))
-       ;; Named rather than counted, and separate from the counts above:
-       ;; the ceremony's automated steps cannot fix this one -- only the
-       ;; composer knows which prompt revision applies -- so the report
-       ;; says which slice, and the human supplies the link (TODO.org
-       ;; :ID: d749ebd5).
-       (when unlinked
-         (format "Worked slice(s) %s carry no orgit-rev: prompt link; only \
-the composer knows which next-session.md revision applies, so this is a \
-line to add by hand, not a step the ceremony can run. "
-                 (string-join unlinked " ")))
+       ;; A number, not a task: it rides along when the report fires and
+       ;; never raises it, so it is absent from the sum guarding this
+       ;; `when' (TODO.org :ID: 63713df3).
+       (when misses
+         (format "Backstops fired %d time(s) since then (%s) -- a floor: it \
+counts what a hook or a tool caught, never what the user caught in \
+conversation. "
+                 (apply #'+ (mapcar #'cdr misses))
+                 (mapconcat (lambda (m) (format "%s %d" (car m) (cdr m)))
+                            misses ", ")))
+       ;; The twin pass (TODO.org :ID: 9fb8c1fb).  Offered here because
+       ;; this is the one moment a human is already reviewing; the
+       ;; judgement is the agent's and the decision the human's.
+       (when (> twins 0)
+         (format "%d recent heading(s) have a possible twin by title overlap. \
+Alongside the question below, offer to run the twin-checker agent over them \
+(it reads both bodies and proposes; it changes nothing). "
+                 twins))
        "Ask the user whether they want to run it now; do not announce that you "
        "will, and do not run any part of it unasked. Apply is theirs alone -- "
        "M-x claude-code-ide-org-review -- because org's state-change logging "
@@ -1094,6 +1145,19 @@ line to add by hand, not a step the ceremony can run. "
        "archiving, and stamps the ceremony done only if every step succeeds. "
        "So the thing to ask for is the apply; the rest follows from leaving "
        "the buffer."))))
+
+(defun claude-code-ide-org--ceremony-summary (status)
+  "The ceremony's half of the user-facing `systemMessage', from STATUS.
+Carries the miss count because this line is the only part of the report
+Claude Code shows the user itself; the rest is the session's to relay."
+  (let ((misses (plist-get status :misses)))
+    (concat "the daily ceremony is waiting"
+            (if misses
+                (format "; backstops fired %d time(s) since the last one (%s)"
+                        (apply #'+ (mapcar #'cdr misses))
+                        (mapconcat (lambda (m) (format "%s %d" (car m) (cdr m)))
+                                   misses ", "))
+              ""))))
 
 (defun claude-code-ide-org--session-start-hook-json ()
   "Return the SessionStart hook JSON payload: an empty object if there is
@@ -1112,8 +1176,8 @@ are."
   (let* ((findings (claude-code-ide-org-find-stale-open-intervals))
          (stale (and findings
                      (claude-code-ide-org--format-stale-interval-report findings)))
-         (ceremony (claude-code-ide-org--format-ceremony-report
-                    (claude-code-ide-org--ceremony-status)))
+         (status (claude-code-ide-org--ceremony-status))
+         (ceremony (claude-code-ide-org--format-ceremony-report status))
          (parts (delq nil (list stale ceremony)))
          ;; The user's channel (TODO.org :ID: d585d33e).  Measured on
          ;; this project's transcripts (:ID: c5b02503), additionalContext
@@ -1130,7 +1194,8 @@ are."
                            (format "%d stale open CLOCK interval%s from before today"
                                    (length findings)
                                    (if (= 1 (length findings)) "" "s")))
-                      (and ceremony "the daily ceremony is waiting")))))
+                      (and ceremony
+                           (claude-code-ide-org--ceremony-summary status))))))
     (if (null parts)
         "{}"
       (json-encode
@@ -2592,7 +2657,47 @@ unresolved."
                 state
                 (or (org-get-todo-state) "none")
                 (org-get-heading t t t t))
-        (or (claude-code-ide-org--unwrapped-plan-nudge state) "")))))))))
+        (or (claude-code-ide-org--unwrapped-plan-nudge state) "")
+        (or (claude-code-ide-org--unnominated-group-note state) "")))))))))
+
+(defun claude-code-ide-org--unnominated-group-note (state)
+  "A reply line naming the group that closing the heading at point leaves
+with no next action, or nil.
+
+\"Every transition to DONE inside a grouping nominates the next action\"
+was a rule to recall at the busiest moment of a task (TODO.org :ID:
+3cd7b7d3).  Whether a group is un-nominated is mechanical, so the tool
+reports it at the moment of the call; *which* member comes next is
+judgement and stays the caller's -- the retired auto-promotion trigger
+is the evidence for not going further.
+
+Only for a finishing STATE, and only for a *story*: the heading's parent,
+when the parent is a container.  A slice that lists this heading is left
+to the `SessionStart' nomination report, since finding it means scanning
+every slice on every close.  Reads the file, so a NEXT queued this
+session for a sibling is not seen -- the line says \"on disk\"."
+  (when (member state claude-code-ide-org--outline-finished-keywords)
+    (let ((self (org-no-properties (org-get-heading t t t t))))
+      (save-excursion
+        (when (and (org-up-heading-safe)
+                   (claude-code-ide-org--container-heading-p))
+          (let* ((group (org-no-properties (org-get-heading t t t t)))
+                 (states (seq-remove
+                          (lambda (m) (equal (cdr m) self))
+                          (claude-code-ide-org--member-keywords nil)))
+                 (live (seq-remove
+                        (lambda (m) (member (car m)
+                                            claude-code-ide-org--outline-finished-keywords))
+                        states))
+                 (todos (seq-filter (lambda (m) (equal (car m) "TODO")) live)))
+            (when (and todos (not (assoc "NEXT" live)))
+              (format "\nNomination: closing this leaves \"%s\" with live members \
+and no member is NEXT on disk. Set NEXT on one, or say why none -- %s."
+                      group
+                      (if (= 1 (length todos))
+                          (format "one candidate, \"%s\"" (cdr (car todos)))
+                        (format "%d candidates, e.g. \"%s\""
+                                (length todos) (cdr (car todos))))))))))))
 
 (defun claude-code-ide-org--archive-datetree-target-p (location)
   "Non-nil when archive LOCATION names a datetree.
@@ -3067,8 +3172,228 @@ check it is not a typo for one of those"
               category (file-name-nondirectory file) (string-join in-use ", "))
     ""))
 
+;;; The duplicate query (TODO.org :ID: c8773ec2)
+;;
+;; "Search before you file" was a rule a session could recite and still
+;; skip: on 2026-09-19 one offered to file a defect another heading had
+;; held for eleven days, and stated the rule verbatim when challenged.
+;; So the query runs inside `org_capture', unconditionally, and its
+;; results ride on the reply -- data in front of the reader, not a rule
+;; to recall.  The *judgement* stays the reader's: a candidate is a
+;; heading to look at, never a verdict.
+
+(defconst claude-code-ide-org--duplicate-stopwords
+  '("the" "and" "for" "are" "was" "its" "that" "this" "with" "from" "not"
+    "but" "when" "which" "than" "then" "into" "out" "can" "has" "have"
+    "had" "does" "did" "one" "two" "only" "still" "never" "always" "every"
+    "any" "all" "own" "their" "there" "what" "who" "how" "why" "after"
+    "before" "while" "where" "about")
+  "Words that carry no subject.  Titles here are whole claims, so without
+this list every pair shares its connectives and nothing else.")
+
+(defcustom claude-code-ide-org-duplicate-near-threshold 0.4
+  "Score at or above which `org_capture' names a heading as a possible duplicate.
+
+The score is the idf-weighted share of the *new* title's tokens found in
+the candidate's, with at least two tokens shared.  Measured leave-one-out
+on this project's 563 scorable titles, 2026-09-21: at 0.4, 43 headings
+(7.6%) would have been shown a candidate; at 0.5, 16, of which about
+eleven were true relatives.  The corpus's known duplicate pair scores
+0.59 one way and 0.32 the other, which is why the threshold sits below
+0.5 and why the query is asymmetric -- it asks whether the new title is
+already said, not whether the two are alike.
+
+In a tracker of a few dozen headings idf carries little signal -- the
+shared words are also the common ones -- so the score understates; such
+a file is short enough to read, and the exact-title refusal still holds.
+
+*There is deliberately no refusal threshold.*  The four strongest pairs
+in that measurement (>= 0.7) were two real supersessions and two
+deliberate siblings; refusing on overlap would have been wrong half the
+time.  Only a loosely-equal title refuses."
+  :type 'number
+  :group 'claude-code-ide-org)
+
+(defun claude-code-ide-org--title-tokens (title)
+  "TITLE as a list of distinct subject-bearing tokens."
+  (let (out)
+    (dolist (w (split-string
+                (downcase (replace-regexp-in-string "[`=~]" "" title))
+                "[^a-z0-9_:-]+" t))
+      (when (and (> (length w) 2)
+                 (not (member w claude-code-ide-org--duplicate-stopwords)))
+        (cl-pushnew w out :test #'equal)))
+    out))
+
+(defun claude-code-ide-org--title-loosely (title)
+  "TITLE reduced to what makes two titles the same: case, cookie and
+punctuation dropped."
+  (string-trim
+   (replace-regexp-in-string
+    "[^a-z0-9]+" " "
+    (downcase (replace-regexp-in-string "\\`\\[[0-9/%]*\\][ \t]*" "" title)))))
+
+(defun claude-code-ide-org--duplicate-corpus (file)
+  "Every titled heading in FILE and in the DONE.org beside it, as plists
+\(:title :keyword :id :file).  Read as text, not through org: this runs
+on every capture, and the archive is the larger file."
+  (let* ((dir (file-name-directory (expand-file-name file)))
+         (files (delete-dups
+                 (list (expand-file-name file) (expand-file-name "DONE.org" dir))))
+         (keywords (or (claude-code-ide-org--file-todo-keywords file)
+                       '("TODO" "NEXT" "DOING" "REVIEW" "WAITING" "MAYBE"
+                         "DONE" "CANCELLED")))
+         (kw-re (concat "\\`\\(" (regexp-opt keywords) "\\)[ \t]+"))
+         out)
+    (dolist (f files (nreverse out))
+      (when (file-readable-p f)
+        (with-temp-buffer
+          (insert-file-contents f)
+          (goto-char (point-min))
+          (let ((case-fold-search nil))
+            (while (re-search-forward "^\\*+[ \t]+\\(.*\\)$" nil t)
+              (let* ((raw (replace-regexp-in-string
+                           "[ \t]+:[[:alnum:]_@#%:]+:[ \t]*\\'" "" (match-string 1)))
+                     (keyword (and (string-match kw-re raw) (match-string 1 raw)))
+                     (title (replace-regexp-in-string
+                             "\\`\\[[0-9/%]*\\][ \t]*" ""
+                             (if keyword (substring raw (match-end 0)) raw)))
+                     ;; The heading's OWN drawer: it must open on the next
+                     ;; line or two, or an id quoted in a body is taken
+                     ;; for this heading's.
+                     (drawer-end
+                      (save-excursion
+                        (forward-line 1)
+                        (when (looking-at "\\(?:[ \t]*\\(?:CLOSED\\|SCHEDULED\\|DEADLINE\\):.*\n\\)?[ \t]*:PROPERTIES:[ \t]*$")
+                          (save-excursion
+                            (re-search-forward "^[ \t]*:END:" nil t)))))
+                     (id (and drawer-end
+                              (save-excursion
+                                (and (re-search-forward
+                                      "^[ \t]*:ID:[ \t]+\\([^ \t\n]+\\)" drawer-end t)
+                                     (match-string 1)))))
+                     (created (and drawer-end
+                                   (save-excursion
+                                     (and (re-search-forward
+                                           "^[ \t]*:CREATED:[ \t]+\\[\\([0-9-]+\\)" drawer-end t)
+                                          (match-string 1))))))
+                ;; A datetree node is a date, not a claim.
+                (unless (or (string-match-p "\\`[0-9]\\{4\\}\\(-[0-9][0-9]\\)*\\( \\|\\'\\)" title)
+                            (string-empty-p title))
+                  (push (list :title title :keyword keyword :id id
+                              :created created
+                              :file (file-name-nondirectory f))
+                        out))))))))))
+
+(defun claude-code-ide-org--duplicate-candidates (title file &optional limit
+                                                       corpus except-id)
+  "Headings whose titles already say what TITLE says, best first.
+
+Plists of (:score :title :keyword :id :file :exact), at most LIMIT
+\(default 3), drawn from FILE and the DONE.org beside it.  `:exact' marks
+a loosely-equal title.  Data rather than prose, so the twin pass
+\(TODO.org :ID: 9fb8c1fb) can share the query: it passes CORPUS, built
+once, and EXCEPT-ID so a heading is never its own twin."
+  (let* ((corpus (or corpus (claude-code-ide-org--duplicate-corpus file)))
+         (query (claude-code-ide-org--title-tokens title))
+         (loose (claude-code-ide-org--title-loosely title))
+         (n (length corpus))
+         (df (make-hash-table :test 'equal))
+         scored)
+    (dolist (h corpus)
+      (let ((toks (claude-code-ide-org--title-tokens (plist-get h :title))))
+        (plist-put h :tokens toks)
+        (dolist (w toks) (puthash w (1+ (gethash w df 0)) df))))
+    (cl-flet ((idf (w) (1+ (log (/ (1+ (float n)) (1+ (gethash w df 0)))))))
+      (let ((denominator (apply #'+ (mapcar #'idf query))))
+        (dolist (h corpus)
+          (let* ((shared (seq-intersection query (plist-get h :tokens) #'equal))
+                 (exact (equal loose (claude-code-ide-org--title-loosely
+                                      (plist-get h :title))))
+                 (score (if (and (>= (length shared) 2) (> denominator 0))
+                            (/ (apply #'+ (mapcar #'idf shared)) denominator)
+                          0.0)))
+            (when (and (not (and except-id (equal except-id (plist-get h :id))))
+                       (or exact (>= score claude-code-ide-org-duplicate-near-threshold)))
+              (push (list :score (if exact 1.0 score) :exact exact
+                          :title (plist-get h :title)
+                          :keyword (plist-get h :keyword)
+                          :id (plist-get h :id) :file (plist-get h :file))
+                    scored))))))
+    (seq-take (sort scored (lambda (a b) (> (plist-get a :score) (plist-get b :score))))
+              (or limit 3))))
+
+;;; The twin pass's input (TODO.org :ID: 9fb8c1fb)
+;;
+;; A twin is two headings for the same work, and the conventions say it is
+;; "caught by review, never by the composer" -- while no review looked for
+;; one.  The judgement cannot be mechanised (the retired auto-promotion
+;; trigger is the standing evidence for what happens when a
+;; membership-shaped question is), so this only gathers the pairs.  The
+;; `twin-checker' agent reads them with nothing else in its window, and a
+;; human decides.  Run as a *pass*, from the ceremony session: a checker
+;; the working session must remember to call would be a recalled rule
+;; again.
+
+(defun claude-code-ide-org--twin-candidates (file days)
+  "Recent live headings in FILE, each with its possible twins.
+
+A list of (SUBJECT . CANDIDATES), both plists from
+`claude-code-ide-org--duplicate-corpus'.  SUBJECT is a heading created
+within DAYS days that is not finished; CANDIDATES come from FILE and the
+DONE.org beside it -- the archive is where \"already fixed\" lives.
+Subjects with no candidate are omitted."
+  (let* ((corpus (claude-code-ide-org--duplicate-corpus file))
+         (cutoff (format-time-string
+                  "%Y-%m-%d" (time-subtract (current-time) (days-to-time days))))
+         out)
+    (dolist (h corpus (nreverse out))
+      (when (and (plist-get h :id)
+                 (plist-get h :created)
+                 (not (string< (plist-get h :created) cutoff))
+                 (not (member (plist-get h :keyword)
+                              claude-code-ide-org--outline-finished-keywords)))
+        (let ((found (claude-code-ide-org--duplicate-candidates
+                      (plist-get h :title) file 3 corpus (plist-get h :id))))
+          (when found (push (cons h found) out)))))))
+
+(defun claude-code-ide-org-twin-candidates-report (&optional file days)
+  "The twin pass's input as text: each recent live heading and its
+possible twins.  FILE defaults to the capture file, DAYS to 14.
+
+Called through `emacsclient' by bin/twin-candidates.  Read-only."
+  (let* ((file (or file (claude-code-ide-org--capture-target-file)))
+         (days (or days 14))
+         (pairs (claude-code-ide-org--twin-candidates file days)))
+    (if (null pairs)
+        (format "No recent live heading (last %d days) has a possible twin." days)
+      (concat
+       (format "%d recent heading(s) with a possible twin (last %d days). \
+Scores are title overlap only -- read both bodies before judging.\n"
+               (length pairs) days)
+       (mapconcat
+        (lambda (p)
+          (format "\n%s {%s}  %s\n%s"
+                  (or (plist-get (car p) :keyword) "-")
+                  (substring (plist-get (car p) :id) 0 8)
+                  (plist-get (car p) :title)
+                  (claude-code-ide-org--format-duplicate-candidates (cdr p))))
+        pairs "\n")))))
+
+(defun claude-code-ide-org--format-duplicate-candidates (candidates)
+  "CANDIDATES as reply lines.  Ids in braces, never as \"(ID: ...)\":
+bin/hooks/queue-append recovers the *new* heading's id from that shape."
+  (mapconcat
+   (lambda (c)
+     (format "  %.2f  %-9s {%s}  %s  [%s]"
+             (plist-get c :score) (or (plist-get c :keyword) "-")
+             (if (plist-get c :id) (substring (plist-get c :id) 0 8) "no id")
+             (plist-get c :title) (plist-get c :file)))
+   candidates "\n"))
+
 (cl-defun claude-code-ide-org-capture (title &optional target tags note
-                                             initial-state category)
+                                             initial-state category
+                                             allow-duplicate)
   "Quick-add TITLE as a new heading via `org-capture'.
 
 CATEGORY is written as the heading's `:CATEGORY:' property.  *Required
@@ -3169,8 +3494,30 @@ else."
              (top-level (eq (car-safe (plist-get resolved :spec)) 'file))
              (in-use (and (or top-level category)
                           (claude-code-ide-org--file-categories file)))
-             (novel (and category in-use (not (member category in-use)))))
+             (novel (and category in-use (not (member category in-use))))
+             ;; The duplicate query: run here, unconditionally, so that it
+             ;; cannot be skipped (TODO.org :ID: c8773ec2).
+             (candidates (claude-code-ide-org--duplicate-candidates title file))
+             (exact (seq-find (lambda (c) (plist-get c :exact)) candidates))
+             (allow-duplicate (member allow-duplicate '(t "true" "t" "yes")))
+             (near (if candidates
+                       (concat "\nPossible duplicates (title overlap; look before "
+                               "composing -- a candidate is a heading to read, "
+                               "not a verdict):\n"
+                               (claude-code-ide-org--format-duplicate-candidates
+                                candidates))
+                     "")))
         (cond
+         ;; The same title, compared loosely, is the one overlap worth
+         ;; stopping for; everything weaker is reported, never refused.
+         ((and exact (not allow-duplicate))
+          (format (concat "Error: a heading already carries this title -- "
+                          "%s {%s} in %s. Amend that one, or pass "
+                          "allow_duplicate=true if a second heading is what "
+                          "you mean.")
+                  (or (plist-get exact :keyword) "(no keyword)")
+                  (if (plist-get exact :id) (substring (plist-get exact :id) 0 8) "no id")
+                  (plist-get exact :file)))
          ;; Validated against the *target file's* own #+TODO: line, the
          ;; same gate org_set_todo applies, and for the same reason:
          ;; bin/hooks/queue-append drops any reply starting with
@@ -3237,24 +3584,26 @@ else."
                   (file-name-nondirectory file)
                   (if in-use (string-join in-use ", ") "(none yet)")))
          ((claude-code-ide-org--file-busy-p file)
-          (format "%s\"%s\" (ID: %s) %s; pending review.%s"
+          (format "%s\"%s\" (ID: %s) %s; pending review.%s%s"
                   claude-code-ide-org--reply-queued-capture
                   title new-id (plist-get resolved :where)
                   (claude-code-ide-org--capture-novel-category-warning
-                   novel category file in-use)))
+                   novel category file in-use)
+                  near))
          (t
           (claude-code-ide-org--capture-write
            title new-id created (plist-get resolved :spec) tags initial-state
-           note category)
+           (claude-code-ide-org--escape-block-headlines note) category)
           ;; Registered against the file the target actually resolved to,
           ;; which is not necessarily the capture file: an :ID: target can
           ;; live anywhere org-id knows about.
           (org-id-add-location new-id (expand-file-name file))
-          (format "%s\"%s\" (ID: %s) %s%s"
+          (format "%s\"%s\" (ID: %s) %s%s%s"
                   claude-code-ide-org--reply-captured
                   title new-id (plist-get resolved :where)
                   (claude-code-ide-org--capture-novel-category-warning
-                   novel category file in-use)))))
+                   novel category file in-use)
+                  near))))
     (error (format "Error: %s" (error-message-string err)))))
 
 (defun claude-code-ide-org--end-of-body ()
@@ -3383,6 +3732,60 @@ the item rather than a write."
             (insert sep (string-trim (or text "")) "\n")))
         nil))))
 
+;;; Headline lines inside a block (TODO.org :ID: 8a23d6ec)
+
+(defun claude-code-ide-org--escape-block-headlines (text)
+  "TEXT with every raw headline line inside a `#+begin_'...`#+end_' block
+comma-escaped.
+
+Example org inside a block is not example org: measured on 8a23d6ec, a
+raw `* Fake' line is walked into by `org-map-entries' whatever the block
+type, so it corrupts the outline, container detection, statistics
+cookies and the lint -- silently.  \"Comma-escape headline lines\" was a
+convention to recall; the write path does it instead.
+
+Only `^\\*+ ' lines, which are the dangerous ones, and only inside a
+block.  Already-escaped lines are left alone, so this is idempotent --
+unlike `org-escape-code-in-string', which would add a second comma and
+is meant for text org will unescape once."
+  (when text
+    (let ((in-block nil) out)
+      (dolist (line (split-string text "\n"))
+        (let ((case-fold-search t))
+          (cond
+           ((string-match-p "\\`[ \t]*#\\+end_" line) (setq in-block nil))
+           ((string-match-p "\\`[ \t]*#\\+begin_" line) (setq in-block t))
+           ((and in-block (string-match-p "\\`\\*+ " line))
+            (setq line (concat "," line)))))
+        (push line out))
+      (mapconcat #'identity (nreverse out) "\n"))))
+
+;;; A replace is refused while git could not undo it (TODO.org :ID: 3cd7b7d3)
+
+(defun claude-code-ide-org--id-file-uncommitted-p (id)
+  "Non-nil when the file holding ID carries an uncommitted diff.
+
+\"Commit first: git is the undo, and it is the only one\" was a sentence
+in `org_amend's description, recalled or not.  The tool can see the
+answer, so it asks.  Nil when ID does not resolve, when the file is in no
+git repository, or when git cannot be run -- it refuses only when it
+*knows* the undo is missing."
+  (let* ((marker (ignore-errors (claude-code-ide-org--id-find id 'marker)))
+         (file (and marker (buffer-file-name (marker-buffer marker)))))
+    (when marker (set-marker marker nil))
+    (when file
+      (let ((default-directory (file-name-directory file))
+            (name (file-name-nondirectory file)))
+        (cl-flet ((git (&rest args)
+                    (ignore-errors (apply #'call-process "git" nil nil nil args))))
+          ;; Tracked-in-a-repository is asked FIRST.  Outside one,
+          ;; `git diff A B' silently becomes a --no-index comparison of two
+          ;; paths and exits 1, which read as "uncommitted" for every file
+          ;; in no repository at all -- caught by the existing replace
+          ;; tests, which run in a temp directory.
+          (and (eql 0 (git "ls-files" "--error-unmatch" "--" name))
+               (eql 1 (git "diff" "--quiet" "HEAD" "--" name))))))))
+
 (defun claude-code-ide-org-amend (id text &optional note replace drawer)
   "Append TEXT to the body of the heading with :ID: ID.
 
@@ -3464,6 +3867,9 @@ appended there would corrupt the record silently."
     "Error: replace into a drawer is not offered -- wholesale revision of \
 drawer content is invisible to later readers, who are told to skip it on \
 finished headings. Append, or revise by hand and say so.")
+   ((and replace (claude-code-ide-org--id-file-uncommitted-p id))
+    "Error: this heading's file has uncommitted changes, and replace is \
+undone only through git. Commit the file first, then revise.")
    (t
   ;; Resolve `[[id:...]]' links first, so a fabricated UUID is refused
   ;; rather than written and caught later by `bin/lint-org'. An
@@ -3472,7 +3878,8 @@ finished headings. Append, or revise by hand and say so.")
   ;; Nine fabrications across two sessions preceded this, every one with a
   ;; correct prefix and a wrong tail, and a memory forbidding it
   ;; throughout.
-  (let ((resolved (claude-code-ide-org-resolve-id-links text)))
+  (let ((resolved (claude-code-ide-org-resolve-id-links
+                   (claude-code-ide-org--escape-block-headlines text))))
     (unless (car resolved) (setq id nil))
     (when (car resolved) (setq text (cdr resolved)))
     (if (null id) (cdr resolved)
@@ -6964,52 +7371,6 @@ in `condition-case', same reasoning as the in-handler."
     (unless (org-clocking-p)
       (claude-code-ide-org--clock-status-hook-out))))
 
-;;; Background planning write-back ----------------------------------------
-
-(defun claude-code-ide-org--insert-plan-link (plan-file)
-  "Insert a `[[file:PLAN-FILE][Plan]]' link into the body of the
-heading at point, unless a Plan link is already present there.
-Inserted after the property drawer and any :LOGBOOK:
-drawers, per this project's Plan-link convention (see CLAUDE.md).
-Idempotent regardless of PLAN-FILE's value -- a heading only ever
-carries one Plan link, matching CLAUDE.md's \"the link is written
-once and never needs updating\" rule for plan revisions."
-  (org-back-to-heading t)
-  (let ((end (save-excursion (outline-next-heading) (point))))
-    (unless (save-excursion
-              (re-search-forward "\\[\\[file:[^]]*\\]\\[Plan\\]\\]" end t))
-      (org-end-of-meta-data t)
-      (unless (bolp) (insert "\n"))
-      (insert (format "[[file:%s][Plan]]\n\n" plan-file)))))
-
-(defun claude-code-ide-org-log-background-plan (id plan-file session-id)
-  "Record a completed background-planning pass on the heading whose
-:ID: property equals ID by inserting a Plan-file link (idempotent, see
-`claude-code-ide-org--insert-plan-link').  Never transitions TODO state
-and never touches the clock -- the single shared clock cannot represent
-true parallelism honestly, so this tool structurally cannot produce a
-CLOCK/:LOGBOOK: entry.
-
-SESSION-ID is accepted and no longer recorded.  It used to tag a
-\"Background-planned\" entry in the heading's :SESSIONS: drawer with a
-*synthetic* id (e.g. \"<real-session-id>-bg1\"), so unattended research
-time was never misattributed as the orchestrating session's own
-interactive work.  That drawer was retired 2026-08-11 (TODO.org :ID:
-9d2fcdad-9bf7-47b6-8018-223b13ec4577) and its entries deleted, including
-these -- a deliberate choice, made knowing this was the only record of
-which session background-planned a heading and when.  The argument
-against keeping them: a drawer surviving for one rare entry is worse
-than either clean outcome, and the queue is where per-session
-attribution belongs now.  The parameter stays in the signature so the
-MCP tool schema and its callers are unaffected; wire it to a queued
-event if that attribution is ever wanted back."
-  (claude-code-ide-org--at-id-writable
-   id
-   (lambda ()
-     (claude-code-ide-org--insert-plan-link plan-file)
-     (save-buffer)
-     (format "Logged background plan for \"%s\"." (org-get-heading t t t t)))))
-
 ;;; Event queue ------------------------------------------------------------
 ;;
 ;; The read side of the append-only event queue (TODO.org :ID:
@@ -9006,17 +9367,74 @@ from a skipped one."
                     ;; the assignment decision is made.
                     :note nil :agent nil :suggested t
                     :unassigned t :origin 'unbracketed
-                    :events (seq-filter
-                             (lambda (e)
-                               (let ((ts (plist-get e :ts)))
-                                 (and (not (time-less-p ts (car span)))
-                                      (not (time-less-p (cdr span) ts)))))
-                             guideposts))
+                    :events (claude-code-ide-org--with-bracket-edges
+                             span bracketed history
+                             (seq-filter
+                              (lambda (e)
+                                (let ((ts (plist-get e :ts)))
+                                  (and (not (time-less-p ts (car span)))
+                                       (not (time-less-p (cdr span) ts)))))
+                              guideposts)))
                 items))))
     (sort (nreverse items)
           (lambda (a b)
             (time-less-p (or (plist-get a :ts) (plist-get a :start))
                          (or (plist-get b :ts) (plist-get b :start)))))))
+
+(defun claude-code-ide-org--lane-running-at-p (time history)
+  "Non-nil when the last turn guidepost in HISTORY before TIME opened a run.
+
+Turn guideposts only -- `resume', `pause' and the permission-block pair.
+A clock event says whose the time is, never whether the agent is
+running, which is the distinction this exists to restore."
+  (let (last)
+    (dolist (e history)
+      (let ((ts (plist-get e :ts)))
+        (when (and ts (time-less-p ts time)
+                   (member (plist-get e :kind)
+                           '("resume" "pause" "block_start" "block_end"))
+                   (or (null last) (time-less-p (plist-get last :ts) ts)))
+          (setq last e))))
+    (and last (member (plist-get last :kind) '("resume" "block_end")) t)))
+
+(defun claude-code-ide-org--with-bracket-edges (span brackets history events)
+  "EVENTS for the unowned SPAN, plus an edge where SPAN abuts a bracket
+the agent ran straight through.
+
+A `clock_out' ends a heading's *ownership*, not the turn: the agent keeps
+running until the `pause'.  But the unowned remainder of that turn holds
+only the `pause' -- its opening edge is the `clock_out', which is not a
+guidepost -- so it had no `open' -> `close' adjacency, wrote nothing, and
+reached review as nothing at all (TODO.org :ID: b09aca60; observed
+2026-09-19 as seven minutes holding two code commits).  The mirror case
+is a `clock_in' some way into a turn, whose unowned head holds only the
+`resume'.
+
+So where SPAN starts at a bracket's end and the lane was running there, a
+synthetic `resume' is added at that instant; where it ends at a bracket's
+start, a synthetic `pause'.  *Evidence, not assertion*: both instants are
+clock events from the queue, and \"running\" is read off the turn
+guideposts either side.  The synthetic events carry no `:session-id' and
+no `:ts-string', so apply and dismiss -- which mark events consumed by
+those two keys -- skip them by construction.
+
+Only for a SPAN of a minute or more; see the binding below."
+  (let ((start (car span)) (end (cdr span)) (out events)
+        ;; Under a minute, leave it as it was.  A sub-minute run is
+        ;; promoted to a full rendered minute when written, which for a
+        ;; piece abutting a bracket means overlapping that bracket's own
+        ;; first or last minute -- and a well-behaved session, clocking
+        ;; out as its last call, leaves exactly such a sliver before the
+        ;; `pause' on every turn.
+        (brackets (and (>= (float-time (time-subtract (cdr span) (car span))) 60)
+                       brackets)))
+    (when (and (seq-some (lambda (b) (time-equal-p (cdr b) start)) brackets)
+               (claude-code-ide-org--lane-running-at-p start history))
+      (push (list :ts start :kind "resume" :synthetic t) out))
+    (when (and (seq-some (lambda (b) (time-equal-p (car b) end)) brackets)
+               (claude-code-ide-org--lane-running-at-p end history))
+      (setq out (append out (list (list :ts end :kind "pause" :synthetic t)))))
+    out))
 
 (defconst claude-code-ide-org--work-in-progress-keywords '("DOING")
   "Keywords asserting that work is happening on a heading right now.
@@ -9858,7 +10276,10 @@ An item carrying a :drawer lands inside that drawer instead, and a
 list item continues a list rather than starting a second one -- the
 deferred write must mean what the immediate one would have."
   (let ((drawer (plist-get item :drawer))
-        (text (plist-get item :text)))
+        (text ;; Escaped again here: the queue holds the tool's raw input, written by
+        ;; the hook before any elisp ran (PR #29 review, TODO.org :ID:
+        ;; 00aa6a85).  Idempotent, so text already escaped is unchanged.
+        (claude-code-ide-org--escape-block-headlines (plist-get item :text))))
     (if drawer
         (claude-code-ide-org--amend-into-drawer drawer text)
       (claude-code-ide-org--end-of-body)
@@ -9893,7 +10314,8 @@ exists to prevent (TODO.org :ID: b5f94b88)."
          (plist-get resolved :spec)
          (plist-get item :tags)
          (plist-get item :to)
-         (plist-get item :note)
+         ;; Escaped as the direct write escapes it; see the amend above.
+         (claude-code-ide-org--escape-block-headlines (plist-get item :note))
          (plist-get item :category))
         (org-id-add-location id (expand-file-name file))
         (with-current-buffer (find-file-noselect file) (save-buffer))
@@ -15113,8 +15535,20 @@ which org-depend cannot parse -- run claude-code-ide-org-normalize-blocker-synta
           (goto-char (point-min))
           (while (re-search-forward "\\[\\[file:\\([^]]*plans/[^]]+\\)\\]" nil t)
             (let ((path (expand-file-name (match-string 1))))
+              ;; A source that is gone is fine when the archive beside
+              ;; this file holds the plan: Claude Code deletes
+              ;; ~/.claude/plans files after its retention period, and
+              ;; since 2026-09-21 that is left to happen -- plan files are
+              ;; no longer written, and plans/ is the frozen record of the
+              ;; ones that were.  Only a plan in NEITHER place is a loss.
               (unless (or (not (string-suffix-p ".md" path))
-                          (file-exists-p path))
+                          (file-exists-p path)
+                          ;; FILE, not `buffer-file-name': the scan
+                          ;; runs in a temp buffer that visits nothing.
+                          (file-exists-p
+                           (expand-file-name
+                            (concat "plans/" (file-name-nondirectory path))
+                            (file-name-directory (expand-file-name file)))))
                 (report 'error (line-number-at-pos)
                         "plan link points at a missing file: %s"
                         (match-string 1))))))
@@ -15653,7 +16087,10 @@ answer."
 (defconst claude-code-ide-org--worked-tool-names
   '("org_amend" "org_set_todo" "org_clock_in" "org_clock_out"
     "org_set_property" "org_slice_add_member" "org_divide" "org_refile"
-    "org_archive" "org_wrap_plan" "org_log_background_plan")
+    "org_archive" "org_wrap_plan"
+    ;; Retired 2026-09-21 with the plan-file link (:ID: f9fdea91); kept
+    ;; so older records that name it still read as worked.
+    "org_log_background_plan")
   "Tool names whose call is evidence a heading was *worked*.
 
 Writes only.  `org_body', `org_outline', `org_query' and
@@ -17691,7 +18128,11 @@ the project list."
            (:name "category"
             :type string
             :optional t
-            :description "The :CATEGORY: value for the new heading, e.g. \"Tools\". Required when target is omitted (a level-1 heading cannot inherit one; the refusal lists the values the file uses), optional under an :ID: target. A value the file has never used is written with a warning -- check it is not a typo for an existing one. Case matters.")))
+            :description "The :CATEGORY: value for the new heading, e.g. \"Tools\". Required when target is omitted (a level-1 heading cannot inherit one; the refusal lists the values the file uses), optional under an :ID: target. A value the file has never used is written with a warning -- check it is not a typo for an existing one. Case matters.")
+           (:name "allow_duplicate"
+            :type string
+            :optional t
+            :description "\"true\" to file a heading whose title an existing heading already carries. The tool searches TODO.org and the DONE.org beside it on every capture: near matches are listed in the reply (read them before composing), and only a same-title match is refused.")))
 
   (claude-code-ide-make-tool
    :function #'claude-code-ide-org-amend
@@ -17913,24 +18354,6 @@ the project list."
             :type string
             :optional t
             :description "Optional explicit range end, as an org timestamp string. Ignored if block is given.")))
-
-  (claude-code-ide-make-tool
-   :function #'claude-code-ide-org-log-background-plan
-   :name "org_log_background_plan"
-   :description (concat
-                 "Record a completed background-planning pass on an org-mode "
-                 "heading, identified by its :ID: property: insert a Plan-file "
-                 "link (idempotent). Never transitions TODO state and never "
-                 "touches the clock.")
-   :args '((:name "id"
-            :type string
-            :description "The :ID: property value of the target org heading.")
-           (:name "plan_file"
-            :type string
-            :description "Absolute path to the plan markdown file, e.g. ~/.claude/plans/<slug>.md.")
-           (:name "session_id"
-            :type string
-            :description "Synthetic id for this write, never the orchestrating session's own real session id, e.g. <orchestrating-session-id>-bg1.")))
 
   (claude-code-ide-make-tool
    :function #'claude-code-ide-org-pending-updates

@@ -23,14 +23,10 @@ incident, and the reason the queue exists:
 | `org_clock_in`      | Records the start of work. **Opens no clock.** Call when entering DOING — *only where time tracking is on* |
 | `org_clock_out`     | Records the end of work. **Closes no clock.** Call when leaving DOING — *only where time tracking is on* |
 
-**The two clock tools stay registered with time tracking off, and calling
-them accomplishes nothing.** They queue events no review pass consumes,
-because the hooks that would carry the guideposts around them are gated.
-Registration is not an invitation here: check Claude Code's `/config`
-command before reaching
-for either, and see `org-time-tracking.md`. `org_set_todo` is unaffected
-and is queued for a reason that has nothing to do with time — org's
-state-change logging needs a genuinely interactive command.
+**With time tracking off the two clock tools stay registered and do
+nothing** — a hook says so on the first call. `org_set_todo` is
+unaffected, and is queued for a reason that has nothing to do with time:
+org's state-change logging needs a genuinely interactive command.
 
 **Immediate (act on the file when called)**:
 
@@ -47,7 +43,6 @@ state-change logging needs a genuinely interactive command.
 | `org_move_sibling`  | `org-move-subtree-up/down` | Move a heading up/down among siblings |
 | `org_sort_children` | `org-sort-entries`       | Sort a heading's direct children       |
 | `org_slice_add_member` | custom (insert + refresh) | Add a heading to a slice's planned checklist, with `after` for ordering; the line, cookie and `:BLOCKER:` are derived by the refresh it runs. Refuses closed slices, duplicates and keyword-less members — never hand-edit a checklist while this exists |
-| `org_log_background_plan` | custom (insert-plan-link) | Write-back for background-planned headings: inserts the Plan link. Still accepts `session_id`, but no longer records it — that went with `:SESSIONS:`; never touches TODO state or the clock |
 
 **Conditional** — writes through Emacs when it can, queues when it can't:
 
@@ -73,27 +68,10 @@ generating new headings, and time reporting. `org_query` now covers
 structured cross-file reads (e.g. "what's blocked," "everything :research:
 and not DONE") that used to mean Claude reading whole files by hand.
 
-**Read-only buffers: nothing to do.** The file-touching tools bind
-`inhibit-read-only` themselves, so a buffer the user has toggled
-read-only (`C-x C-q`) is written normally and the flag is still set
-afterwards. **The clear-and-restore convention that stood here until
-2026-08-31 is retired** (`:ID:` c8a97d9d) — do not clear
-`buffer-read-only` by hand, and do not report having done so.
-
-It is a *binding*, never a `setq`, and that is the whole safety
-property: the flag comes back when the scope exits, including on a
-non-local exit, so a tool erroring part-way through cannot leave the
-buffer writable. The old convention could, and the failure window was
-not theoretical — restoring the flag *correctly* after an `org_amend`
-is what broke a human's own apply pass on 2026-08-25.
-
-Two things this deliberately does not cover. **Interactive commands
-still ask**: `M-x claude-code-ide-org-review` prompts before apply
-(`--review-ensure-writable`), because clearing a human's guard is the
-human's call when a human is present to make it. And a **hand-written
-`emacsclient` call** is not a tool and binds nothing — if you find
-yourself reaching for one against a read-only buffer, that is a signal
-the tool surface is missing something, not a licence to clear the flag.
-
-If the user ever wants a specific buffer left alone, they'll say so
-explicitly; that overrides this for that instance only.
+**Read-only buffers: nothing to do.** The file-touching tools *bind*
+`inhibit-read-only` themselves, so a buffer toggled read-only (`C-x C-q`)
+is written normally and the flag is still set afterwards, even on a
+non-local exit (`:ID:` c8a97d9d). Do not clear `buffer-read-only` by hand.
+Interactive commands still ask, because a human is present to decide;
+and a hand-written `emacsclient` call binds nothing — reaching for one
+against a read-only buffer means the tool surface is missing something.

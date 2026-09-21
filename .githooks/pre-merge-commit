@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# pre-merge-commit hook: a branch reaches main through a pull request,
+# never a local merge.
+#
+# TODO.org :ID: 3cd7b7d3 (the rule is :ID: c7bf2121). Ten integrations
+# went through a PR while the practice lived only in git history, and on
+# 2026-09-08 two local `--no-ff' merges broke the streak without tripping
+# anything. The pre-push advisory reports it afterwards; this refuses the
+# merge commit itself.
+#
+# Narrow on purpose. Only while ON main, and only when what is being
+# merged is not already upstream: merging origin/main into a local main
+# that holds unpushed commits is a catch-up, not an integration decision
+# -- the advisory's false positive (DONE.org) was exactly that case. A
+# fast-forward never reaches this hook at all.
+#
+# Override: ALLOW_LOCAL_MERGE=1 git merge ...   (--no-verify also skips it)
+
+set -uo pipefail
+
+[ "${ALLOW_LOCAL_MERGE:-0}" = 1 ] && exit 0
+[ "$(git symbolic-ref --short -q HEAD)" = main ] || exit 0
+
+git_dir="$(git rev-parse --git-dir)"
+[ -r "$git_dir/MERGE_HEAD" ] || exit 0
+while IFS= read -r head; do
+  [ -n "$head" ] || continue
+  if git rev-parse -q --verify origin/main >/dev/null \
+     && git merge-base --is-ancestor "$head" origin/main 2>/dev/null; then
+    continue    # already upstream: a catch-up
+  fi
+  "$(dirname "${BASH_SOURCE[0]}")/count-miss" local-merge "$head"
+  cat >&2 <<MSG
+pre-merge-commit: refusing a local merge into main. A branch integrates
+through a pull request here (TODO.org :ID: c7bf2121):
+
+  git merge --abort && gh pr create
+
+  Override: ALLOW_LOCAL_MERGE=1 git merge ...
+MSG
+  exit 1
+done < "$git_dir/MERGE_HEAD"
+exit 0

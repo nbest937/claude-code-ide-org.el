@@ -18,6 +18,12 @@
 #   PostToolUse org_amend      -> amend     (only when it deferred)
 #   Stop                       -> pause
 #   UserPromptSubmit           -> resume
+#   a backstop that fired      -> miss      (rule as $2, detail as $3)
+#   PostToolUse org_*          -> refusal   (a miss, only when the reply
+#                                            was an "Error: ..." refusal --
+#                                            or a body amend onto a heading
+#                                            carrying :MISS_RULE:, which is
+#                                            a catch by the human)
 #
 # capture and amend differ from the rest: those tools write the file
 # immediately when it is free and only queue when the human has unsaved
@@ -52,6 +58,39 @@
 
 set -uo pipefail
 
+# Which refusals are MISSES (TODO.org :ID: 63713df3; narrowed at its review,
+# 2026-09-21). An "Error:" reply is a miss when the caller broke a rule it
+# had been given. A probe for a drawer that is not there, "no change", an
+# unsaved buffer, a query-language slip, a timeout or an internal error is
+# not -- counting those measured the tools' chattiness, not recall.
+#
+# `fragment|slug', first match wins. The fragments are config.el's own
+# wording, so this is a contract of the same kind as the reply prefixes
+# below: bin/queue-append-test asserts every fragment still appears there,
+# because a refusal reworded on the elisp side alone silently stops being
+# counted. A NEW refusal counts nothing until it is added here, which is
+# the safe direction.
+refusal_table='a heading already carries this title|duplicate-check
+a top-level capture needs a category|category-missing
+title begins with the TODO keyword|keyword-in-title
+give slice|slice-hybrid
+so it is a story|slice-hybrid
+unresolvable :ID: link|id-from-memory
+no org heading found with|id-from-memory
+resolves to no heading|id-from-memory
+is not a TODO keyword|unknown-keyword
+is identity, not annotation|identity-property
+drawer must be one of|drawer-misuse
+replace into a drawer is not offered|drawer-misuse
+is closed, and a closed slice|slice-membership
+carries no TODO keyword on disk|slice-membership
+uncommitted changes, and replace|replace-uncommitted'
+
+if [ "${1:-}" = "--refusal-fragments" ]; then
+  printf '%s\n' "$refusal_table" | cut -d'|' -f1
+  exit 0
+fi
+
 kind="${1:-}"
 case "$kind" in
   todo|clock_in|clock_out|pause|resume|capture|amend) ;;
@@ -61,8 +100,34 @@ case "$kind" in
   # Paired by tool_use_id at review time, not here: this script stays a
   # dumb appender and never reads back what it has written.
   block_start|block_end) ;;
+  # A backstop fired: a hook blocked, or a tool refused (TODO.org :ID:
+  # 63713df3). The sentinels that guard those hooks say "at least once
+  # this session" and are cleared or never cleared for loop-guard
+  # reasons, so neither is a count; this line is. `miss' is called by a
+  # hook that has already decided, with the rule as $2; `refusal' is
+  # wired to PostToolUse and decides here, on the reply.
+  #
+  # NOT in config.el's `--queue-kinds', deliberately: the reader drops an
+  # unknown kind, so a miss never reaches the review buffer. It is a
+  # measurement, not a proposal, and there is nothing to apply.
+  #
+  # A FLOOR, never the rate. It counts what a hook or a tool caught. The
+  # misses a human catches in conversation reach no file at all.
+  miss|refusal) ;;
+  # One per session that did org work, written by conventions-inject on
+  # the first org_* call (TODO.org :ID: 158d7e80). It exists to be the
+  # miss rate's denominator: with time tracking off -- every consumer's
+  # default -- no guidepost is written, so a session that missed nothing
+  # and queued nothing left no line and could not be counted. Ungated for
+  # that reason, and absent from config.el's `--queue-kinds' like `miss',
+  # so the reader drops it.
+  session) ;;
   *) exit 0 ;;
 esac
+
+rule="${2:-}"
+detail="${3:-}"
+[[ "$kind" != miss || -n "$rule" ]] || exit 0
 
 # Time tracking self-gates here, because hooks.json has no conditional
 # form: a shipped-but-disabled hook has to refuse for itself. The plugin
@@ -82,10 +147,26 @@ esac
 #
 # todo, capture and amend are deliberately absent below: they are task
 # tracking and ship unconditionally.
-case "$kind" in
-  clock_in|clock_out|pause|resume|block_start|block_end)
-    [ "${CLAUDE_PLUGIN_OPTION_TIME_TRACKING:-false}" = "true" ] || exit 0 ;;
-esac
+if [ "${CLAUDE_PLUGIN_OPTION_TIME_TRACKING:-false}" != "true" ]; then
+  case "$kind" in
+    clock_in|clock_out)
+      # The caller asked for a clock and the feature is off. This script
+      # is the one thing that can see the option, so it says so here, once
+      # per session, instead of three always-loaded files telling every
+      # session to go and check /config first (TODO.org :ID: 3cd7b7d3).
+      command -v jq >/dev/null 2>&1 || exit 0
+      sid="$(jq -r '.session_id // empty' 2>/dev/null)"
+      case "$sid" in ''|*[!A-Za-z0-9._-]*|.|..) exit 0 ;; esac
+      qd="${CLAUDE_ORG_QUEUE_DIR:-$HOME/.claude/org-updates}"
+      [ -e "$qd/$sid.clock-off-noticed" ] && exit 0
+      mkdir -p "$qd" 2>/dev/null
+      if jq -cn '{hookSpecificOutput: {hookEventName: "PostToolUse", additionalContext: "Time tracking is off here, so that clock call did nothing: the event is queued and nothing will ever consume it. Skip org_clock_in and org_clock_out for the rest of this session; org_set_todo is unaffected. The user turns the feature on with Claude Code\u0027s /config command (the plugin\u0027s time_tracking option). This notice fires once per session."}}'; then
+        : > "$qd/$sid.clock-off-noticed" 2>/dev/null
+      fi
+      exit 0 ;;
+    pause|resume|block_start|block_end) exit 0 ;;
+  esac
+fi
 
 command -v jq >/dev/null 2>&1 || exit 0
 
@@ -125,15 +206,72 @@ esac
 # the older reply shapes are unaffected.
 response=""
 if [[ "$kind" == todo || "$kind" == clock_in || "$kind" == clock_out \
-   || "$kind" == capture || "$kind" == amend ]]; then
+   || "$kind" == capture || "$kind" == amend || "$kind" == refusal ]]; then
   response="$(jq -r '
     def totext:
       if type == "object" then (.text // .content // .result // "" | totext)
       elif type == "array" then (map(totext) | join(" "))
       else tostring end;
     (.tool_response // "") | totext' <<<"$input" 2>/dev/null)"
-  case "$response" in
-    Error:*) exit 0 ;;
+  # The same test read both ways: for the queued tools an error means
+  # nothing happened and nothing is queued; for `refusal' the error IS
+  # the event, and anything else is an ordinary call and not a miss.
+  case "$kind:$response" in
+    refusal:Error:*)
+      slug=""
+      while IFS='|' read -r fragment candidate; do
+        [ -n "$fragment" ] || continue
+        case "$response" in *"$fragment"*) slug="$candidate"; break ;; esac
+      done <<<"$refusal_table"
+      # Not in the table: an error, but not a rule missed.
+      [ -n "$slug" ] || exit 0
+      rule="refusal:$slug"
+      # Truncated: a refusal can quote a whole query or list every
+      # category, and the line must stay under the atomic-append size.
+      detail="${response:0:300}"
+      kind=miss ;;
+    refusal:*)
+      # Not a refusal -- but it may be a CATCH (TODO.org :ID: 158d7e80). A
+      # body amend onto a heading that carries :MISS_RULE: is the session
+      # recording a miss the human caught, and the write-through gate
+      # below would drop it: an immediate amend never reaches the queue.
+      # Body amends only -- a drawer amend is composition and a replace
+      # is revision, so setting such a heading up counts nothing.
+      [ "$(jq -r '(.tool_name // "") | test("org_amend$")' <<<"$input" 2>/dev/null)" = true ] || exit 0
+      [ "$(jq -r '.tool_input | ((.drawer // "") == "" and (.replace // false) != true)' <<<"$input" 2>/dev/null)" = true ] || exit 0
+      amend_id="$(jq -r '.tool_input.id // empty' <<<"$input" 2>/dev/null)"
+      case "$amend_id" in ''|*[!A-Za-z0-9-]*) exit 0 ;; esac
+      org_root="${CLAUDE_PROJECT_DIR:-$(jq -r '.cwd // empty' <<<"$input" 2>/dev/null)}"
+      # Anchored on the heading's OWN property drawer, never on the bare
+      # strings: an id or the property name quoted in some other body
+      # must not make that heading a miss heading. footnote-check's
+      # resolve_id is the same shape, for the same recorded reason.
+      slug="$(awk -v id="$amend_id" '
+        /^\*+ / { indrawer = 0; hit = 0; rule = "" }
+        /^:PROPERTIES:[ \t]*$/ { indrawer = 1; next }
+        indrawer && /^:END:[ \t]*$/ { if (hit && rule != "") { print rule; exit } indrawer = 0 }
+        indrawer && $1 == ":ID:" && index($2, id) == 1 { hit = 1 }
+        indrawer && $1 == ":MISS_RULE:" { rule = $2 }
+      ' "$org_root/TODO.org" "$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/TODO.org" 2>/dev/null | head -1)"
+      # The second file is the plugin's own tracker: the Miss: headings
+      # live there, since the rules missed are the plugin's, so a catch
+      # made while working in a consumer project still resolves. `cwd' on
+      # the line records where it happened.
+      [ -n "$slug" ] || exit 0
+      detail="$(jq -r '.tool_input.note // ""' <<<"$input" 2>/dev/null)"
+      # Who caught it, from the note's first word: `user: ...' or
+      # `self: ...'. Kept in the RULE so every reader splits the two
+      # series without parsing detail -- what gets past the session, and
+      # what it repairs on its own, are different measurements. Anything
+      # else is `unmarked' rather than a guess. (sed -E: BSD sed has no
+      # alternation in basic regexps, and macOS is where this runs.)
+      # First line only (PR #29 review, TODO.org :ID: de2e377a): sed prints
+      # every matching line, so a note with a later "self:" line made a rule
+      # of two words.
+      who="$(head -n 1 <<<"$detail" | tr '[:upper:]' '[:lower:]' | sed -nE 's/^[[:space:]]*(user|self)[^[:alnum:]].*/\1/p')"
+      rule="caught:$slug/${who:-unmarked}"
+      kind=miss ;;
+    *:Error:*) exit 0 ;;
   esac
 fi
 
@@ -223,11 +361,13 @@ line="$(jq -n -c \
   --arg session_id "$session_id" \
   --arg recovered_id "$recovered_id" \
   --arg recovered_from "$recovered_from" \
+  --arg rule "$rule" \
+  --arg detail "$detail" \
   --argjson payload "$(jq -c '.' <<<"$input" 2>/dev/null || echo '{}')" \
   '{
      ts: $ts,
      kind: $kind,
-     id: (if $kind == "pause" or $kind == "resume"
+     id: (if $kind == "pause" or $kind == "resume" or $kind == "miss" or $kind == "session"
              or $kind == "block_start" or $kind == "block_end" then null
           else ($payload.tool_input.id
                 // (if $recovered_id == "" then null else $recovered_id end))
@@ -238,7 +378,7 @@ line="$(jq -n -c \
              else null end),
      from: (if $kind == "todo" and $recovered_from != "" then $recovered_from
             else null end),
-     note: (if $kind == "pause" or $kind == "resume"
+     note: (if $kind == "pause" or $kind == "resume" or $kind == "miss" or $kind == "session"
                or $kind == "block_start" or $kind == "block_end" then null
             else ($payload.tool_input.note // null) end),
      title:  (if $kind == "capture" then ($payload.tool_input.title // null) else null end),
@@ -247,6 +387,8 @@ line="$(jq -n -c \
      category: (if $kind == "capture" then ($payload.tool_input.category // null) else null end),
      text:   (if $kind == "amend" then ($payload.tool_input.text // null) else null end),
      drawer: (if $kind == "amend" then ($payload.tool_input.drawer // null) else null end),
+     rule:   (if $kind == "miss" then $rule else null end),
+     detail: (if $kind == "miss" and $detail != "" then $detail else null end),
      tool_use_id: (if $kind == "block_start" or $kind == "block_end"
                    then ($payload.tool_use_id // null) else null end),
      session_id: $session_id,

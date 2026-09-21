@@ -1,0 +1,104 @@
+#!/usr/bin/env bash
+# Guards run first by .githooks/pre-commit. Each replaces a sentence a
+# session could recite and still missed (TODO.org :ID: 3cd7b7d3). Separate
+# from pre-commit itself because that script exits early in several places
+# and these must not depend on which.
+#
+# Never the reason a commit is impossible for an unrelated cause: every
+# guard fails open when it cannot tell.
+
+set -uo pipefail
+
+repo_root="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+staged="$(git diff --cached --name-only --diff-filter=ACMR 2>/dev/null)"
+status=0
+
+# 0. A local merge into main, concluded by `git commit'. A merge that
+#    stops -- on conflicts, or --no-commit -- is finished with a plain
+#    commit, which runs this hook and never pre-merge-commit, so the refusal
+#    there was skipped (PR #29 review, TODO.org :ID: a72a0d63). That hook
+#    already tests MERGE_HEAD, main and the catch-up exemption, and the two
+#    paths never both run for one commit, so it is simply called here.
+"$(dirname "${BASH_SOURCE[0]}")/pre-merge-commit" || status=1
+
+# 1. A branch origin/main already contains. On 2026-09-17 a session kept
+#    committing to a branch six minutes after its PR merged, then
+#    cherry-picked to main and left the originals behind. "Has had commits
+#    of its own" is what tells a merged branch from a freshly cut one,
+#    whose tip is trivially an ancestor of origin/main too. (A here-string,
+#    not a pipe: under pipefail `grep -q' exits at its first match, git
+#    takes SIGPIPE, and the pipeline reads as false -- which silently
+#    disabled this guard in its first draft.)
+branch="$(git symbolic-ref --short -q HEAD || true)"
+if [ -n "$branch" ] && [ "$branch" != main ] && [ "${ALLOW_MERGED_BRANCH:-0}" != 1 ] \
+   && git rev-parse -q --verify origin/main >/dev/null \
+   && git merge-base --is-ancestor HEAD origin/main 2>/dev/null \
+   && grep -qE ': commit( \(|:)' <<<"$(git reflog show "$branch" 2>/dev/null)"; then
+  "$(dirname "${BASH_SOURCE[0]}")/count-miss" wrong-branch "$branch"
+  cat >&2 <<MSG
+pre-commit: '$branch' is already contained in origin/main -- its work has
+merged, and a commit here lands on a branch nobody will integrate.
+
+  Maintenance:  git switch main
+  New work:     git switch -c feature/<short-name> main
+  Override:     ALLOW_MERGED_BRANCH=1 git commit ...
+MSG
+  status=1
+fi
+
+# 2. Generated rule copies in step with their references. The rule was
+#    "edit the reference and re-run setup, never the copy". Only the rules
+#    lines of --check are read: its Doom-glue and .mcp.json findings are
+#    about the machine, not this commit.
+#    Checked against the INDEX, not the working tree (PR #29 review,
+#    TODO.org :ID: 006a50e4): a reference staged with its re-promoted copy
+#    left unstaged would commit out of step, and an unrelated unstaged
+#    edit would block. The staged setup script, references, copies and
+#    settings (which decide whether the time file is promoted) are
+#    exported to a scratch tree, and --check runs there.
+setup="$repo_root/bin/claude-org-setup"
+if [ -x "$setup" ] && grep -qE '^(skills/org/references/|\.claude/rules/org-)' <<<"$staged"; then
+  snap="$(mktemp -d)"
+  git ls-files -- bin/claude-org-setup skills/org/references .claude/rules .claude/settings.json \
+    | git checkout-index --prefix="$snap/" --stdin 2>/dev/null
+  drift=""
+  if [ -x "$snap/bin/claude-org-setup" ]; then
+    drift="$("$snap/bin/claude-org-setup" --check "$snap" 2>/dev/null \
+             | grep -E '^(drifted|missing): .*/\.claude/rules/' | sed "s|$snap/||" || true)"
+  fi
+  rm -rf "$snap"
+  if [ -n "$drift" ]; then
+    # The same kind the PreToolUse edit guard counts: this is the path
+    # that guard cannot see (a redirect, another editor, a stale copy).
+    "$(dirname "${BASH_SOURCE[0]}")/count-miss" generated-edit "$(printf '%s' "$drift" | head -1)"
+    {
+      echo "pre-commit: promoted rule copies are out of step with skills/org/references/:"
+      printf '%s\n' "$drift" | sed 's/^/  /'
+      echo
+      echo "  Fix:  edit the reference (never the copy), then bin/claude-org-setup && git add .claude/rules"
+    } >&2
+    status=1
+  fi
+fi
+
+# 3. The org-dev skill's own claims, when that skill is staged. Its check
+#    needs the running Emacs, so with none reachable this warns and lets
+#    the commit through -- which is why pre-commit otherwise passes
+#    --docs-only to bin/check-conventions.
+skill_check="$repo_root/bin/check-org-dev-skill"
+if [ -x "$skill_check" ] && grep -q '^\.claude/skills/org-dev/' <<<"$staged"; then
+  if "${EMACSCLIENT:-emacsclient}" -e t >/dev/null 2>&1; then
+    if ! out="$("$skill_check" 2>&1)"; then
+      {
+        echo "pre-commit: the org-dev skill is staged and its own check fails:"
+        printf '%s\n' "$out" | tail -8 | sed 's/^/  /'
+        echo "  Check: bin/check-org-dev-skill"
+      } >&2
+      status=1
+    fi
+  else
+    echo "pre-commit: org-dev skill staged but Emacs is unreachable; run bin/check-org-dev-skill later." >&2
+  fi
+fi
+
+exit $status

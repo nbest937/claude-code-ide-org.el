@@ -292,5 +292,27 @@ else
   printf 'FAIL - blocks with exit code 2: got %s\n' "$(rc_of "$out")"; fail=$((fail+1))
 fi
 
+# --- a block is counted, not just remembered (TODO.org :ID: 63713df3) ---
+# The sentinel is a loop guard and session-resume clears it, so it was
+# never a count. Each block appends one `miss' to the session's queue.
+misses () { # misses <session> -> count of miss lines
+  local f="$tmp/$1.jsonl"
+  if [[ -e "$f" ]]; then jq -c 'select(.kind == "miss")' "$f" | grep -c . ; else echo 0; fi
+}
+eq () { # eq <name> <want> <got>
+  if [[ "$2" == "$3" ]]; then printf 'ok   - %s\n' "$1"; pass=$((pass+1))
+  else printf 'FAIL - %s: wanted [%s], got [%s]\n' "$1" "$2" "$3"; fail=$((fail+1)); fi
+}
+run m1 "See \`$REAL\` for detail." >/dev/null
+eq "a block appends one miss" 1 "$(misses m1)"
+eq "the miss names the rule" footnote "$(jq -r 'select(.kind=="miss") | .rule' "$tmp/m1.jsonl" 2>/dev/null)"
+eq "the miss's detail is the ids demanded" "$REAL" "$(jq -r 'select(.kind=="miss") | .detail' "$tmp/m1.jsonl" 2>/dev/null)"
+eq "the miss does not copy the response" no \
+  "$(grep -q 'for detail' "$tmp/m1.jsonl" 2>/dev/null && echo yes || echo no)"
+run m1 "See \`$REAL\` for detail." >/dev/null
+eq "an identical demand, not repeated, is not counted twice" 1 "$(misses m1)"
+run m2 "Nothing tracked is cited here." >/dev/null
+eq "an allowed stop appends no miss" 0 "$(misses m2)"
+
 printf 'footnote-check-test: %d passed, %d failed\n' "$pass" "$fail"
 [[ $fail -eq 0 ]]

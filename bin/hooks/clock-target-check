@@ -121,7 +121,7 @@ first_write="$(jq -r -n --arg repo "$repo" '
     | .message.content[]?
     | select(.type == "tool_use")
     | select(
-        (.name | test("^mcp__emacs-tools__org_(capture|amend|set_property|refile|divide|archive|move_sibling|sort_children|wrap_plan|log_background_plan)$"))
+        (.name | test("^mcp__emacs-tools__org_(capture|amend|set_property|refile|divide|archive|move_sibling|sort_children|wrap_plan)$"))
         or ((.name | test("^(Edit|Write|NotebookEdit)$"))
             and ((.input.file_path // "") | startswith($repo)))
       )
@@ -144,6 +144,15 @@ first_write="$(jq -r -n --arg repo "$repo" '
 # empty-session_id exits at the top (TODO.org :ID: ae4e4b04).
 mkdir -p "$queue_dir" 2>/dev/null
 : > "$sentinel" 2>/dev/null || exit 0
+
+# COUNTED (TODO.org :ID: 63713df3): the sentinel above is a loop guard,
+# not a record -- it says "at least once" and is cleared or kept for
+# reasons unrelated to counting. One `miss' line per block is the record.
+# A slim payload, never "$input": queue-append embeds what it is given,
+# and the response text has no business in the queue. Fire-and-forget,
+# after the guard is armed and before the block, so neither depends on it.
+jq -c '{session_id, cwd, hook_event_name}' <<<"$input" 2>/dev/null \
+  | "$(dirname "${BASH_SOURCE[0]}")/queue-append" miss clock-target "$first_write" 2>/dev/null
 
 # Exit 2 with the message on stderr: the documented blocking path for
 # Stop, per footnote-check's hard-won header. Exit 0 would block with an

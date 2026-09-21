@@ -471,35 +471,23 @@ because it is a sequencing declaration rather than a place work happens
 — there is no coordination to record that is not already one of its
 members'.
 
-**The plan that drove the slice is linked at the end of the body, as one
-`orgit-rev:` link per revision of it.** `.claude/commands/next-session.md`
-is rewritten in place, so a single reference names whatever it says today
-rather than what it said when the slice opened. Each commit that revised
-the prompt gets a link, oldest first, with its date and what the revision
-did:
+**A slice no longer records the revisions of `next-session.md`** (the
+user, 2026-09-21). Until then the plan that drove a slice was linked at
+the end of its body, one `orgit-rev:` link per commit that revised the
+prompt, because the file was rewritten per slice and its history *was*
+the slice's plan history. The file is now static and names no slice, and
+the plan is the slice's own `:PLAN:` drawer, so a link to a revision of
+the file records nothing about the slice. The ceremony's report of
+"worked slices with no prompt link" went with it. Links written before
+the change stay in their bodies as history; the member scan already
+ignores them, since it requires an `id:` link.
 
-```org
-- [[orgit-rev:claude-code-ide-org::97e1ef2][97e1ef2]] [2026-08-24 Mon 15:39] defined the slice
-```
-
-This is deliberately *not* the `plans/` pattern. A copied snapshot was
-built first and removed the same day (`:ID:` 637ee73d): `plans/` exists
-because `~/.claude/plans` is outside the repo and would otherwise have no
-history, whereas this file is committed and only lacks a stable identity
-— which is exactly what an `orgit-rev:` link is, at no cost in sync
-scripts or drift checks.
-
-**Several links, not one, is what lets a slice outlive a session.** A CLI
-restart or a cleared context is a *revision of the prompt*, not a new
-slice, so unfinished members stay put instead of being deferred into a
-successor slice that has not earned them. Deferral proliferates mentions
-of tasks that were planned and never reached the top of the stack; a
-slice that can span sessions mostly removes the need for it.
-
-Note the links cost nothing in `bin/lint-org` as of 2026-08-25 (`:ID:`
-43201e64) — before that each one added a permanent unresolvable-location
-warning, which would have made this convention degrade the report a
-little more with every slice.
+**A slice outlives a session.** A CLI restart or a cleared context
+continues the slice in hand — `/next-session` picks the `DOING` slice
+whose pull request is not yet open — so unfinished members stay put
+instead of being deferred into a successor slice that has not earned
+them. Deferral proliferates mentions of tasks that were planned and
+never reached the top of the stack.
 
 **A slice of slices needs no formalization** (the user, 2026-09-11).
 Nothing forbids one — `org_slice_add_member` refuses a non-slice target,
@@ -585,9 +573,22 @@ code the integration point is its pull request, since a branch reaches
 bookkeeping or convention work — closes when its members finish, because
 that is all there is.
 
-Between the two it sits in `REVIEW`: every member terminal, the work not
-yet integrated. The state transitions reference defines that sense of the
-keyword on a grouping, and notes it is new.
+Between the two it sits in `REVIEW`, the work not yet integrated. The
+state transitions reference defines that sense of the keyword on a
+grouping.
+
+**Queue `REVIEW` on the slice when its pull request's review starts** —
+the moment `/code-review` is run on it, or a reviewer is requested — not
+when the last finding closes (the user, 2026-09-21). A member still in
+`REVIEW` does not hold it back, since that member is finished and awaits
+only judgement. Findings arrive inside the window by construction and
+are filed as members; that is the consequent work the section below
+describes, and it does not return the slice to `DOING`. `f6d160c2` is why:
+it stayed `DOING` through its whole review, six findings filed and fixed,
+and reached `REVIEW` only when its last verdict came in. **The step is a
+hook's now** (`bin/hooks/review-start`, `:ID:` a9d37aee): it queues the
+transition itself when exactly one slice is `DOING` and its unfinished
+members are all `REVIEW`, and otherwise tells the session why it did not.
 
 **The `:BLOCKER:` is the floor; this is the ceiling.** The blocker stops a
 slice reaching `DONE` before its members do. Nothing stopped it closing
@@ -701,10 +702,7 @@ keeping.
 
 **Nothing replaces the `MAYBE` signal, deliberately** (the user,
 2026-09-08). An unstarted slice is visibly uncommitted without a
-keyword saying so: it has no clocked members, nothing `DOING`, and no
-prompt link — the `next-session.md` revision link arrives only when a
-slice is actually picked up, since that is what a slice is *worked*
-from, not what it is composed into.
+keyword saying so: it has no clocked members and nothing `DOING`.
 
 **Review the composed list for twins before work begins.** A *twin* is
 two headings describing the same defect, or the same class of work,
@@ -719,9 +717,9 @@ is not in it?*
 ## The `:PLAN:` drawer
 
 **Write the plan into the drawer from the start.** A heading's prospective
-prose — motivation, options, the reasoning behind an approach, and the
-`[[file:~/.claude/plans/...][Plan]]` link if there is one — goes into `:PLAN:`
-at the moment it is composed, not at `DONE`. The body carries a brief
+prose — motivation, options, the reasoning behind an approach — goes into
+`:PLAN:` at the moment it is composed, not at `DONE`. The drawer *is* the
+plan; no link to a plan file is written (retired 2026-09-21). The body carries a brief
 statement of the problem and the proposed solution, two to five sentences. At
 `DONE` the debrief is appended to the body.
 
@@ -776,6 +774,38 @@ the last moment anyone knows where the seam is. Before the empty drawer
 existed, the only way to satisfy the warning on a debrief-only heading was to
 wrap the debrief into a drawer readers are told to skip. See `:ID:` f421c5c3.
 
+### A slice's plan, and its members'
+
+**A slice's `:PLAN:` holds the order and the reasons for it. Each member's
+`:PLAN:` holds that member's design and decisions** (the user, 2026-09-21).
+The slice's drawer gives each member one line saying where it falls and
+why, and nothing that member's own drawer should hold. A decision about a
+member, whether made in conversation or ahead of its session, is written
+*into that member's plan* where it applies, with its provenance in a
+parenthetical ("pre-push runs it (the user, 2026-09-21)"). It is never
+a dated list entry: the drawer is the design doc, and a dated list turns
+it into a journal. The session implementing the step then reads the
+current plan on arrival, and the slice's drawer never goes stale on it.
+Where the two disagree, the member wins. A member's plan is normally
+longer than its body, since the body is two to five sentences plus what
+happened.
+
+**A member with no drawer gets one before its step is worked**, so that a
+decision always has somewhere to land. **On a pre-convention body, wrap
+first, with `org_wrap_plan`**, whole when the seam is uncertain, then
+append the decision with `org_amend drawer=PLAN`. Creating the drawer by
+amend first leaves the old plan in the body, and `org_wrap_plan` then
+refuses the heading for good (nine headings, 2026-09-21). A plain
+`org_amend drawer=PLAN` is only for a body with no prospective prose. *This clause
+is scaffolding.* It lapses once `6521dd56`'s corpus pass leaves every open
+heading in canonical shape and the lint requires that shape, and that
+slice carries the member that retires it.
+
+**Never open a list item in a slice's drawer with an `id:` link.** The
+member scan reads any `- [[id:…]]` line in a slice heading as a member,
+drawers included, and rewrites it (`7ee3b71a`). Lead with the id as plain
+text instead.
+
 ### Revising a pre-convention body
 
 *Revision is expected, not forbidden* (reversed 2026-08-24; this rule
@@ -795,6 +825,24 @@ now by inference, which is the only thing "relitigating" ever meant.
 **Anything whose seam you are unsure of** — wrap it whole and condense
 nothing; uncertainty is a reason to relocate rather than to stop.
 
+**A live heading's body is a record, not a log** (the user, 2026-09-21).
+A pre-convention body that grew by dated visits reads as a complete
+journal, and it is not one: it holds whatever a session wrote when it
+happened to look, so a reader takes what is absent as not having
+happened. Condense it to three parts:
+
+- *a statement*, two to five sentences: what is wrong now and why it
+  matters;
+- *what is established*: measured facts that still hold, provenance in a
+  parenthetical rather than as a dated entry;
+- *what is ruled out*: each dead end or wrong diagnosis in a line, what
+  was believed and what falsified it. This is the part that stops a
+  mistake being repeated, and it survives the condensing.
+
+Narrative, superseded status and "worth noting" asides go. A finished
+heading's debrief is a different thing, a summary of what happened, and
+is left alone.
+
 *Condense in a separate commit from the wrap, never the same one.* A bad
 pare inside `:PLAN:` is invisible by design, since readers are told to
 skip the drawer — it is the one edit here that no later reader will
@@ -807,7 +855,7 @@ carried confident design claims that were later found wrong —
 already existed, `:ID:` 4cda6bf7 specified reading a keyword at the clock
 marker after the cutover had superseded that path, and `:ID:` 7771fc63
 declared a crash scenario unreachable while a hand-edit still reached it.
-Not one journal claim needed correcting in the same period. Design is the
+Not one claim about what happened needed correcting in the same period. Design is the
 perishable half and belongs where it can be revised; the record of what
 happened accumulates.
 

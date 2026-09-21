@@ -16,6 +16,7 @@
 # that green.
 
 set -uo pipefail
+unset CLAUDE_CODE_SESSION_ID  # else a provoked refusal counts as a miss in the calling session
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 failures=0

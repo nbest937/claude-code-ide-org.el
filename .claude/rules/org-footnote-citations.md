@@ -41,13 +41,10 @@ most often wrong when recalled. Backticks earn their place separately:
 the terminal renders them in a distinct face, which is what makes the id
 findable at a glance.
 
-**No superscript markers, and no ordering by appearance.** Both were the
-convention here until 2026-09-16 and are retired. *The identifier is
-already the key* — the prose says `c19fbbf5` and so does the line, so a
-marker is a second and weaker index over data the id indexes perfectly.
-Sorting by id then makes each entry's position deterministic, which
-ordering-by-appearance never was. Markdown footnote syntax (`[^1]`) was
-never right either: the terminal renders the brackets literally.
+**No superscript markers, and no ordering by appearance** (retired
+2026-09-16). *The identifier is already the key*, and sorting by it makes
+each entry's position deterministic. Markdown footnote syntax (`[^1]`)
+renders its brackets literally in the terminal.
 
 ## How to apply
 
@@ -68,22 +65,9 @@ sentence explaining that `REVIEW` is pending:
 ```
 
 The `*` is the whole notation, and **it takes no note of its own** (the
-user, 2026-09-17). A parenthetical after the end matter saying which
-entries are queued is a footnote to the footnote: it re-opens in prose
-the thing the mark exists to close, and it grows with the number of
-starred lines while the marks do not.
-
-This reverses the earlier rule, which said to cite the on-disk state and
-say so. The reason is that the prose sentence was the expensive half.
-`DOING` with a trailing caveat makes the reader hold two states and a
-qualifier; `REVIEW*` is the state that will be true, flagged as not yet
-true, in one glyph — and the queued state is what the reader of the
-response actually needs, since it is what the session just did. The
-on-disk value remains recoverable: the mark says a change is pending, and
-`org_pending_updates` says what it is.
-
-Unstarred therefore means "applied, on disk" and carries its old meaning
-unchanged, so nothing is ambiguous about an ordinary line.
+user, 2026-09-17): a parenthetical saying which entries are queued is a
+footnote to the footnote. Unstarred means "applied, on disk"; the on-disk
+value stays recoverable through `org_pending_updates`.
 
 **One entry per distinct identifier.** A re-mention later in the same
 response needs no second entry, and the passage itself never needs
@@ -129,12 +113,9 @@ convention is legible at the moment it fires.
 
 **The hook emits the on-disk keyword and never a `*`, and that is
 correct** — it greps the org files and knows nothing of the queue.
-Starring a queued state is the writer's job, on a line the hook
-suggested. Nothing conflicts, because the hook tests whether each cited
-id *appears* in the end matter, not what keyword sits beside it. Do not
-"fix" the hook to resolve this; teaching a plain-shell `Stop` hook to
-read the queue would buy a cosmetic match at the cost of the property
-that makes it reliable.
+Starring a queued state is the writer's job. Do not "fix" the hook to
+read the queue; it tests whether each cited id *appears* in the end
+matter, not what keyword sits beside it.
 
 **`last_assistant_message` carries only the turn's final text block**,
 not the whole turn — an id cited in an earlier block is invisible to the

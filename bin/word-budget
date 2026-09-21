@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+# The ratchet on the always-loaded rule surface.
+#
+# TODO.org :ID: f2030ce9. Every rule used to be free at the point of
+# writing: a sentence added to CLAUDE.md or an unscoped rule file costs
+# every session its words for ever, and nothing said so. By 2026-09-19 the
+# surface was 13,802 words, and the split that had shrunk CLAUDE.md is
+# what grew it. :ID: bf7e0b8e cut it to these budgets, which the user set
+# 2026-09-21 -- in WORDS, because a session pays in words and a line
+# budget is met by re-wrapping.
+#
+# THE NUMBERS LIVE HERE AND NOWHERE ELSE. Raising one is a decision:
+# change it in its own commit and say what earned the words.
+budget_self=10000          # this repo: CLAUDE.md + every unscoped rule file
+budget_consumer_off=5800   # a consumer: the promoted machinery rules
+budget_consumer_on=7500    # ... plus org-time-tracking.md
+#
+# WHAT COUNTS. CLAUDE.md, and every .claude/rules/*.md that Claude Code
+# loads at launch -- one with no `paths:' key in real YAML frontmatter
+# (first line `---'). Not the string "paths:" anywhere: org-categories.md
+# says "carries no `paths:` scope" in prose and a grep reads it as scoped.
+# The promoted copies are measured as RENDERED, generated header included,
+# because that is what loads.
+#
+# WHAT THIS CANNOT SEE, stated so nobody takes a pass for more than it is:
+#   - Relocation into a path-scoped file or into SKILL.md escapes the sum.
+#     Path-scoped is not "deferred cost" here -- those rules mostly do not
+#     load at all during tool-driven work (:ID: 436e0991) -- so moving a
+#     rule there is closer to deleting it than to filing it.
+#   - A consumer's own CLAUDE.md is theirs; the consumer figures are the
+#     plugin's share only.
+#
+# Usage: bin/word-budget [ROOT]      exit 1 on any overrun, with the table
+# The WORD_BUDGET_* variables override the numbers, for the test suite.
+
+set -uo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+root="${1:-$repo_root}"
+budget_self="${WORD_BUDGET_SELF:-$budget_self}"
+budget_consumer_off="${WORD_BUDGET_CONSUMER_OFF:-$budget_consumer_off}"
+budget_consumer_on="${WORD_BUDGET_CONSUMER_ON:-$budget_consumer_on}"
+
+# The plugin's unconditionally promoted machinery rules, and the one that
+# is promoted only where time tracking is on. Mirrors claude-org-setup's
+# promote list minus the path-scoped conventions.
+machinery="org-event-queue.md org-state-transitions.md org-mcp-tools.md org-session-tracking.md org-footnote-citations.md"
+time_file="org-time-tracking.md"
+
+scoped() { # scoped FILE -> 0 when real frontmatter carries a paths: key
+  awk 'NR == 1 { if ($0 != "---") exit 1; next }
+       $0 == "---" { exit 1 }
+       /^paths:/ { found = 1; exit 0 }
+       END { if (!found) exit 1 }' "$1"
+}
+
+total=0 off=0 on=0 table=""
+add() { # add FILE LABEL
+  local w; w="$(wc -w < "$1" | tr -d ' ')"
+  total=$((total + w))
+  table+="$(printf '  %6d  %s' "$w" "$2")"$'\n'
+  case " $machinery " in *" $(basename "$1") "*) off=$((off + w)); on=$((on + w)) ;; esac
+  [ "$(basename "$1")" = "$time_file" ] && on=$((on + w))
+  return 0
+}
+
+[ -f "$root/CLAUDE.md" ] && add "$root/CLAUDE.md" "CLAUDE.md"
+for f in "$root"/.claude/rules/*.md; do
+  [ -f "$f" ] || continue
+  scoped "$f" && continue
+  add "$f" ".claude/rules/$(basename "$f")"
+done
+
+status=0
+line() { # line LABEL ACTUAL BUDGET
+  local mark="ok  "
+  if [ "$2" -gt "$3" ]; then mark="OVER"; status=1; fi
+  printf '%-24s %s  %6d / %-6d\n' "$1" "$mark" "$2" "$3"
+}
+line "self-hosting" "$total" "$budget_self"
+line "consumer, tracking off" "$off" "$budget_consumer_off"
+line "consumer, tracking on" "$on" "$budget_consumer_on"
+
+if [ "$status" -ne 0 ]; then
+  echo
+  echo "Always-loaded words, by file:"
+  printf '%s' "$table" | sort -rn
+  echo
+  echo "Delete to make room; do not relocate into a path-scoped file (it mostly"
+  echo "does not load). Raising a budget is a decision: bin/word-budget, its own commit."
+fi
+exit "$status"

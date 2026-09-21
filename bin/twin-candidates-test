@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Shell test harness for bin/twin-candidates -- the parts that need no
+# Emacs. The report itself is elisp and is covered by ERT.
+set -uo pipefail
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+script="$repo_root/bin/twin-candidates"
+tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
+export CLAUDE_ORG_QUEUE_DIR="$tmp/queue"
+failures=0
+check() { if [[ "$2" == "$3" ]]; then echo "ok   - $1"; else echo "FAIL - $1: wanted [$2], got [$3]"; failures=$((failures + 1)); fi; }
+
+check "--record exits 0" 0 "$("$script" --record 3 1 >/dev/null 2>&1; echo $?)"
+check "and appends one line" 1 "$(wc -l < "$tmp/queue/twin-pass.log" | tr -d ' ')"
+check "carrying both counts" yes "$(grep -q 'pairs=3.*twins=1' "$tmp/queue/twin-pass.log" && echo yes || echo no)"
+"$script" --record 5 0 >/dev/null 2>&1
+check "a second pass appends, never rewrites" 2 "$(wc -l < "$tmp/queue/twin-pass.log" | tr -d ' ')"
+check "--record with a non-number is a usage error" 2 "$("$script" --record three 1 >/dev/null 2>&1; echo $?)"
+check "and writes nothing" 2 "$(wc -l < "$tmp/queue/twin-pass.log" | tr -d ' ')"
+check "a non-numeric window is a usage error" 2 "$("$script" soon >/dev/null 2>&1; echo $?)"
+check "an unreachable Emacs exits 1 and says why" "1 yes" \
+  "$(out="$(PATH="/usr/bin:/bin" EMACS_SERVER_FILE=/nonexistent "$script" 7 2>&1)"; rc=$?; echo "$rc $(grep -q 'unreachable' <<<"$out" && echo yes || echo no)")"
+
+echo
+if [[ $failures -eq 0 ]]; then echo "twin-candidates-test: all checks passed"; else echo "twin-candidates-test: $failures check(s) failed"; fi
+exit $((failures > 0))

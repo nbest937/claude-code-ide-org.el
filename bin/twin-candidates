@@ -1,0 +1,37 @@
+#!/bin/sh
+# The twin pass's input: recent live headings and their possible twins.
+#
+# TODO.org :ID: 9fb8c1fb. A thin stub, per the scripting conventions: the
+# logic is elisp (`claude-code-ide-org-twin-candidates-report'), and this
+# only moves bytes. Read-only.
+#
+#   bin/twin-candidates [DAYS]           print the pairs (default 14 days)
+#   bin/twin-candidates --record M N     log that a pass judged M pairs and
+#                                        found N twins
+#
+# The log is this pass's own series -- twins found per pass -- kept beside
+# the miss rate and never folded into it: a twin is not a hook-visible
+# miss and never will be.
+
+set -u
+
+log="${CLAUDE_ORG_QUEUE_DIR:-$HOME/.claude/org-updates}/twin-pass.log"
+
+if [ "${1:-}" = "--record" ]; then
+  case "${2:-}${3:-}" in ''|*[!0-9]*) echo "usage: twin-candidates --record PAIRS TWINS" >&2; exit 2 ;; esac
+  mkdir -p "$(dirname "$log")" || exit 1
+  printf '%s\tpairs=%s\ttwins=%s\tcwd=%s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z')" "$2" "$3" "$PWD" >> "$log"
+  echo "recorded: $2 pair(s) judged, $3 twin(s) found"
+  exit 0
+fi
+
+days="${1:-14}"
+case "$days" in ''|*[!0-9]*) echo "usage: twin-candidates [DAYS]" >&2; exit 2 ;; esac
+
+out="$(mktemp)"
+trap 'rm -f "$out"' EXIT
+if ! emacsclient -e "(with-temp-file \"$out\" (insert (claude-code-ide-org-twin-candidates-report nil $days)))" >/dev/null 2>&1; then
+  echo "twin-candidates: Emacs is unreachable, or the running module predates this command (reload it)." >&2
+  exit 1
+fi
+cat "$out"

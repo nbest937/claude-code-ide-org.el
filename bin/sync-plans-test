@@ -80,10 +80,21 @@ check "--check exits 0 when in sync" "0" "$rc"
 setup; run >/dev/null
 rm "$work/src/beta-plan.md"
 out="$(run)"; rc=$?
-check "missing source plan is reported" "1" "$(grep -c 'MISSING  beta-plan.md' <<<"$out")"
-check "missing source plan is a failure" "1" "$rc"
+# Claude Code deletes plan files after its retention period, and since
+# 2026-09-21 that is left to happen: the archived copy is the record, so
+# an evaporated source is reported and is NOT a failure. It used to be,
+# which would have refused every push from the day the first file aged out.
+check "an evaporated source plan is reported as archived" "1" "$(grep -c 'evaporated  beta-plan.md' <<<"$out")"
+check "and is not a failure" "0" "$rc"
 check "its archived copy is left alone" "1" \
   "$([[ -f "$work/dest/beta-plan.md" ]] && echo 1 || echo 0)"
+
+# --- linked, gone from the source AND never archived: a real loss ------
+setup; run >/dev/null
+rm "$work/src/beta-plan.md" "$work/dest/beta-plan.md"
+out="$(run)"; rc=$?
+check "a plan in neither place is MISSING" "1" "$(grep -c 'MISSING  beta-plan.md' <<<"$out")"
+check "and that is a failure" "1" "$rc"
 
 # --- an archived plan no longer linked ---------------------------------
 setup; run >/dev/null

@@ -11,6 +11,7 @@
 # blocking half doing its job, not a defect here.
 
 set -uo pipefail
+unset CLAUDE_CODE_SESSION_ID  # else a provoked refusal counts as a miss in the calling session
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 hook="$script_dir/../.githooks/pre-push"

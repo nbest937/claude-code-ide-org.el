@@ -15,19 +15,12 @@ the other end) is deliberately left open, driven by concrete reporting
 needs rather than by whatever CLOCK-drawer mechanics exist at a given
 point.
 
-**It was a co-equal goal until 2026-09-18** (`:ID:` 8bbae3aa), and the
-ordering changed when this project committed to making it disableable —
-committing to a switch *is* the ordering. Natural-language org
-manipulation is the goal; attention tracking is developed here and
-shipped off.
-
-**That reorders the goals without rewriting the history.** Much of the
-machinery — the event queue, the session hooks, the review pass — exists
-for the second goal rather than the first, and that is why the code looks
-as it does: the queue was built because concurrent sessions writing live
-clock state produced a sustained run of desync bugs. The ranking changed;
-the account of what built the machinery did not, and it is the only
-record of why the queue exists at all.
+**It was a co-equal goal until 2026-09-18** (`:ID:` 8bbae3aa); committing
+to a switch *is* the ordering. That reorders the goals without rewriting
+the history: the event queue, the session hooks and the review pass exist
+for the second goal, and the queue was built because concurrent sessions
+writing live clock state produced a sustained run of desync bugs. This is
+the only record of why the queue exists at all.
 
 ---
 
@@ -56,13 +49,11 @@ quoted here rather than left to a lookup. Distrust the file's account of
 what *is*; do not distrust its account of *why*.
 
 **And accuracy does not retire the risk — it disguises it.** An accurate
-CLAUDE.md makes answering from it more often correct, which makes the
-habit of answering from it instead of from the artifact harder to notice:
-the same behaviour with better odds. The evidence is that most wrong
-claims never came from this file. On 2026-08-11, of roughly a dozen wrong
-claims, only four traced here; the rest came from unchecked inference,
-from a session's own earlier summaries, and three times from reading a
-silently-failing command's empty output as a result.
+CLAUDE.md makes answering from it instead of from the artifact harder to
+notice. Most wrong claims never came from this file: of roughly a dozen
+on 2026-08-11, four traced here; the rest were unchecked inference, a
+session's own earlier summaries, and a silently-failing command's empty
+output read as a result.
 
 `bin/check-conventions` mechanises the part of this that can be
 mechanised — that cited `:ID:`s resolve and the keyword set agrees
@@ -73,14 +64,11 @@ most of them.
 
 ## Architecture: the event queue
 
-**Moved into the plugin, 2026-09-09** (`:ID:` b0e478f7): the full text
-ships as `skills/org/references/org-event-queue.md` and is promoted by
-`bin/claude-org-setup` into `.claude/rules/org-event-queue.md`, which is
-the copy every session here loads. The one line that must survive even a
+Ships as `skills/org/references/org-event-queue.md` and loads here as
+`.claude/rules/org-event-queue.md`. The one line that must survive a
 broken promotion: **state and clock changes are queued, not applied** —
-`org_set_todo`, `org_clock_in` and `org_clock_out` append events for
-human review and change nothing when called; `org_pending_updates` shows
-what waits.
+`org_set_todo`, `org_clock_in` and `org_clock_out` change nothing when
+called; `org_pending_updates` shows what waits.
 
 ---
 
@@ -91,10 +79,9 @@ carries each heading's own body summary beneath its line (`:ID:`
 2a399034 — the read split), so it answers most orientation questions
 outright; drawers stay behind an explicit `org_body` call (`drawer=PLAN`
 / `DEBRIEF` / `LOGBOOK` for one drawer, no argument for the heading
-whole). Pass `bodies=false` when only the tree matters — worth doing on
-full-file calls until the `e128e4fa` corpus pass shortens the
-pre-convention bodies, which are long enough to swamp an unscoped
-index. Drop to `org_query` for a predicate ("what's blocked",
+whole). Pass `bodies=false` on a full-file call: pre-convention bodies are long
+enough to swamp an unscoped index (`:ID:` e128e4fa).
+Drop to `org_query` for a predicate ("what's blocked",
 "everything `:research:` and not DONE") and to a targeted read only once
 you have an `:ID:` and a reason.
 
@@ -105,19 +92,10 @@ written weeks ago is not. TODO.org exists to inform planning, orchestration
 and coordination of *future* work — read it for what to do next, not for
 what the system currently is.
 
-(`--outline-map` keeps a filtered-out heading that is an *ancestor* of a
-surviving one, so `active_only` never re-parents a live child; `:ID:`
-98908aff has the history.)
-
 **DONE.org is reference, never orientation.** Do not survey it to start a
 session; it will not tell you what to work on. Open it when something live
 names an ID in it — a `:BLOCKER:`, a body cross-reference, a docstring, or
 this file.
-
-The exception to "the code is authoritative" is *why* a decision went the
-way it did, which lives only in a body — which is why the load-bearing ones
-(the `.warp/.mcp.json` investigation, the retired guess heuristic) are
-quoted directly in this file rather than left to a lookup.
 
 ---
 
@@ -139,57 +117,45 @@ Five things you would not guess:
   prose and conventions. `bin/claude-org-setup` promotes those references
   into a consuming repo's `.claude/rules/` — this repo runs it on itself,
   so the machinery files under `.claude/rules/` are **generated**, marked
-  by their header; edit the reference and re-run setup, never the copy.
+  by their header; hooks refuse an edit to a copy, so edit the reference.
 
-- **`plans/` is the archive, not the working copy.** Claude Code owns
-  `~/.claude/plans` and Plan Mode writes there, so that is the file org
-  headings link and a revision edits. A plan is copied here *iff* some
-  heading in TODO.org or DONE.org links it, which is what makes an
-  unlinked plan history-less. `bin/sync-plans --check` reports drift;
-  `.githooks/pre-push` refuses a push while the archive is stale.
+- **`plans/` is a frozen archive.** Plan Mode's files in
+  `~/.claude/plans` used to be linked from headings and copied here; that
+  pattern is retired (below), and Claude Code deletes the originals after
+  its retention period, which is left to happen. The copies here are the
+  record for the headings that still link one — which is why
+  `bin/sync-plans --check` and `bin/lint-org` accept a plan that is gone
+  from the source but archived, and refuse only one that is in neither.
 - **`.claude/hooks/session-context.sh` is the one hook not under
   `bin/hooks/`**, for no recorded reason. It produces the "what was I last
   doing" context injected at `SessionStart`. Whether the two directories
   should be consolidated is open.
 - **`.claude/commands/`** holds prompt files
-  Claude Code exposes as slash commands — `next-session.md` is `/next-session`,
-  the sequenced slice of work queued for the next session. It is a *plan*, not
-  a convention: expect it to be rewritten or deleted once consumed, unlike
-  everything else under `.claude/`, which is standing configuration.
+  Claude Code exposes as slash commands — `next-session.md` is `/next-session`.
+  Since 2026-09-21 it is **static**: it names no slice, finds the one in hand
+  (the `DOING` slice with no open PR, else the `NEXT` one), and points at
+  that slice's `:PLAN:` drawer. Only Step 0 and the standing rules live
+  there, and they grow by addition.
 - **`bin/check-org-dev-skill`** checks the org-dev skill's own claims still
-  hold — run it after editing that skill.
+  hold; pre-commit runs it whenever that skill is staged.
 - **`.warp/.mcp.json`** — see below; do not delete it.
 
 **`.warp/.mcp.json` is Warp's own project-scope MCP config — do not
-"clean it up."** Verified against Warp's docs 2026-09-10 (correcting
-the account this paragraph carried before, which said Warp could read
-the root file directly — it cannot): Warp reads MCP config only from
-`~/.warp/.mcp.json` and the project's `.warp/.mcp.json`, so the file is
-Warp's *required* convention, not an optional duplicate. MCP
-standardises the `mcpServers` schema, not a config location, so two
-files is the correct minimum, and the divergence seam is real: Claude
-Code's `.mcp.json` supports `${VAR:-default}` expansion in `url`, which
-Warp does not document — a symlink would forbid the one improvement the
-Claude side can take. Warp's project-scoped servers are approval-gated
-and session-scoped (re-toggle after a Warp restart). The original
-investigation is archived in DONE.org
-(`:ID: 6a6d5b4e-0327-4578-a44a-356576870ceb`) — the proxy it chased was
-unnecessary; the real bug was this project's HTTP server answering
-`200` where the MCP spec requires `202 Accepted`.
+"clean it up."** Warp reads MCP config only from `~/.warp/.mcp.json` and
+the project's `.warp/.mcp.json` (verified against its docs 2026-09-10), so
+the file is required, not a duplicate. MCP standardises the `mcpServers`
+schema, not a location, so two files is the correct minimum — and a
+symlink would forbid the one improvement the Claude side can take,
+`${VAR:-default}` expansion in `url`. Warp's project servers are
+approval-gated and session-scoped. The original investigation
+(`:ID: 6a6d5b4e-0327-4578-a44a-356576870ceb`, DONE.org) chased a proxy
+that was unnecessary; the real bug was this project's HTTP server
+answering `200` where the MCP spec requires `202 Accepted`.
 
-**One-time setup, required for `.githooks/` to do anything:**
-
-```sh
-git config core.hooksPath .githooks
-```
-
-That setting lives in `.git/config`, which is not version controlled, so a
-fresh clone silently has no hooks until it is run. The hooks themselves are
-tracked precisely so they are reviewable and shared — putting them in
-`.git/hooks/` instead would make them invisible local state, which is the
-same problem the `plans/` archive exists to fix. Note that `core.hooksPath`
-redirects *every* hook: check `.git/hooks/` holds nothing but `.sample`
-files before setting it (it did here, 2026-08-11).
+**One-time setup per clone:** `git config core.hooksPath .githooks` —
+the setting is not version controlled, and a `SessionStart` check says so
+when it is missing. It redirects *every* hook, so check `.git/hooks/`
+holds nothing but `.sample` files first.
 
 Run the tests with `bin/test`. They exercise the four wrapper functions
 against scratch org files in a temp directory — no Doom, no real Emacs
@@ -221,10 +187,8 @@ under `.claude/skills/`, testbed-only and unshipped.
 - **Test harnesses and dev tooling are bash**, unremarkably.
 - **No fish.** It reached the commit gate (`bin/check-conventions`)
   undeclared, which is what turned a style question into this decision.
-- **Python was considered and declined** for JSON handling: Emacs is
-  already the harder, always-present dependency — every such script
-  ends in `emacsclient` anyway — so elisp avoids adding a runtime
-  rather than trading one.
+- **Python was considered and declined** for JSON handling: every such
+  script ends in `emacsclient` anyway, so elisp avoids adding a runtime.
 
 ---
 
@@ -273,11 +237,9 @@ feature-vs-bugfix has never predicted the practice; wanting an
 integration point is the whole test.
 
 **Rule**: a branch merges to `main` through a **pull request**, never a
-local merge (`:ID:` c7bf2121). Ten consecutive integrations did so
-while the practice lived only in git history, and on 2026-09-08 two
-local `--no-ff` merges broke the streak without tripping anything —
-`gh pr create` when the branch is ready. The trap that broke it is
-worth naming: a question offering "merge now or hold" decides *timing*
+local merge (`:ID:` c7bf2121) — `gh pr create` when the branch is ready.
+Git hooks refuse a local merge on `main` and a commit onto a branch that
+has already merged. The trap that first broke the practice: a question offering "merge now or hold" decides *timing*
 and silently decides *mechanism* too; ask which, or say which. (Whether
 this covers a merge carrying only bookkeeping is an open question on
 the heading — no bookkeeping-only branch has ever existed, since
@@ -298,197 +260,112 @@ and forgetting the other is arbitrary, and it is caught by review,
 never by the composer. A worked heading is never simply given children:
 it *divides* (`org_divide`), and the original becomes the **child**.
 
-**Rule**: work planned via Claude Code's own Plan Mode gets a single
-permanent link — `[[file:~/.claude/plans/<slug>.md][Plan]]` — written
-into the heading's **`:PLAN:` drawer**, added as soon as the first round
-of planning finishes (right after `ExitPlanMode` is called and the plan
-file is finalized), not gated on the heading later transitioning to
-`DOING`. This matters because approval and the `DOING` transition don't
-always happen in the same beat as planning — e.g. the user may
-deliberately stop right after a plan is written, before deciding whether
-to implement it — and the link should exist the moment a real plan file
-does, independent of what happens next. A plan link *is* planning
-content, so it belongs with the rest of the prospective prose (`:ID:`
-b75d553a): planning before composition simply includes the link in the
-normal two-call composition below. When the drawer already exists before
-a Plan Mode session, `org_amend` with `drawer=PLAN` appends the link
-inside it directly (`:ID:` 501a8422). Revisions
-(re-entering Plan Mode on the same
-task) edit that same plan file in place — Claude Code reuses the
-existing plan file path for a continuation of the same task — so the
-link is written once and never needs updating to point at a new file. No
-transcription of the plan into org, ever; the link is the record.
+**Rule**: a plan lives in its heading's **`:PLAN:` drawer**, not in a
+plan file (the user, 2026-09-19; the plan-file link rule that stood here
+was retired 2026-09-21). Plan Mode is still worth entering for its
+read-only phase and its approval checkpoint, but what it produces is
+written into the drawer with `org_amend` `drawer=PLAN`, and no
+`[[file:~/.claude/plans/…]]` link is written. A slice's plan is its own
+drawer, composed from its members', and where it and a member disagree
+the member wins — the 2026-09-18 slice plan got four things wrong from the
+slice's altitude and none of them came from a heading. Older headings keep
+their links; see `plans/` above.
 
-Nothing moves at `DONE`: the link has lived in `:PLAN:` since
-composition (2026-09-02, `:ID:` b75d553a), which is what keeps a
-forward-looking pointer out of the retrospective readout a finished body
-becomes. (A pre-convention heading's link still travels into the drawer
-whenever its body is retroactively wrapped.) A task with no separate Plan Mode
-session simply carries no link — that's expected, not a gap to fill in.
-
-The link is also what makes the plan durable, which is why it is not
-gated on anything: `bin/sync-plans` copies only those plans some heading
-links, so an *unlinked* plan is never archived and has no history at all.
-Verified 2026-08-14 — the sync refused a freshly written plan until its
-heading linked it.
-
-**Rule**: where a plan is linked, the heading body is a **journal, not a
-design doc** — the plan is the design doc. The body carries what
-happened: what shipped, how it was verified, what was measured, what was
-falsified, and why a decision went the way it did. It does not restate
-design the linked plan already holds.
+**Rule**: the heading body is a **record of what holds, not a design
+doc** — the `:PLAN:` drawer is the design doc. The body carries a short
+statement, then what shipped, was verified, was measured or was ruled
+out, and why a decision went the way it did. It is **not a log**: a
+dated, blow-by-blow body implies a completeness it never has, so readers
+take what is absent as not having happened (the user, 2026-09-21). It
+does not restate design the drawer already holds.
 
 **Composition, close, revision: in the conventions.** The two-call
 composition (`org_amend` with `drawer=PLAN`, then the short body), the
-two-call close (the authored resolution, then `drawer=DEBRIEF`,
-`:ID:` d5eb32a3), the read-direction rule — skip `:PLAN:` on a finished
-heading, read it on a live one, read `:DEBRIEF:` always — and the
-policy for revising pre-convention bodies all ship in the org
-conventions' `:PLAN:`/`:DEBRIEF:` sections
-(`.claude/rules/org-conventions.md`), moved there 2026-09-09 with the
-evidence that settled them. A heading closed by the two-call close owes
-archiving nothing further, and delegated-subagent work follows the same
-shape: ask for a one-paragraph outcome summary in the final report, not
+two-call close (the authored resolution, then `drawer=DEBRIEF`, `:ID:`
+d5eb32a3) and the read-direction rule — skip `:PLAN:` on a finished
+heading, read it on a live one, read `:DEBRIEF:` always — ship in the org
+conventions' `:PLAN:`/`:DEBRIEF:` sections. Delegated-subagent work
+follows the same shape: ask for a one-paragraph outcome summary, not
 per-checkbox status.
 
-What stays here is this repo's own. *The backlog pass*: its rule was
-"wrap unedited" and is retired (`:ID:` f099379b) — `cbe282ec` chose it
-to keep 30 purely prospective bodies cheap, but measured 2026-09-02, 88
-of 93 unwrapped headings carry a debrief a blind wrap would bury, and
-no lexical marker finds the seam. The pass is `:ID:` 35d25265, which
-reads each body; there is no cheaper honest option. *And the standing
-example*: `:ID:` b5f94b88 has both a plan and a substantial body — the
-"epic wearing a child's clothes" reasoning and the plan-file-overwrite
-incident are journal, not design, and belong in neither drawer.
+This repo's own: the backlog of pre-convention bodies is *not* wrapped
+blind (`:ID:` f099379b) — measured 2026-09-02, 88 of 93 carried a debrief a
+blind wrap would bury, and no lexical marker finds the seam, so the pass
+(`:ID:` 35d25265) reads each body.
 
 ---
 
 ## Org-mode conventions
 
-Moved to the plugin's **`skills/org/references/org-conventions.md`**,
-promoted by `bin/claude-org-setup` into
-`.claude/rules/org-conventions.md` — path-scoped to `**/*.org`, so it
-loads only when an org file is actually in play. This repo's own
-additions are hand-maintained in two files, and the split is
-load-bearing: **the ten `:CATEGORY:` values are in
-`.claude/rules/org-categories.md`, which is always loaded** (moved
-2026-09-15, `:ID:` b0d55552 — behind the path scope they went unseen
-by every capturing session, and ten headings arrived unfiled in two
-days), while the history of the level-1 tier stays path-scoped in
+They ship as the plugin's `skills/org/references/org-conventions.md`,
+promoted into `.claude/rules/org-conventions.md` and path-scoped to
+`**/*.org`. A path scope fires only on a Read of a matching file, never on
+an org tool, so the first `org_*` call of a session injects a pointer to
+them (`:ID:` 436e0991) — Read the section that governs the act. **The ten
+`:CATEGORY:` values are in `.claude/rules/org-categories.md`, always
+loaded** (`:ID:` b0d55552: behind the path scope, ten headings arrived
+unfiled in two days); the history of the level-1 tier stays path-scoped in
 `.claude/rules/org-conventions-local.md`.
 
-The test that used to govern what stayed in this file — a rule that must
-hold when no `.org` file is open cannot live in a path-scoped rule — is
-now met by the promoted machinery rules instead, which carry no path
-scope and load in every session: the queue architecture, the state
-transitions, the tool tables and session tracking all live there, and
-their sections below are pointer stubs.
-
 ---
 
-## State transition rules
+## State transitions and MCP tools
 
-**Moved into the plugin, 2026-09-09**: the transition table, every clock
-rule, and the `NEXT`/nomination invariants ship as
-`skills/org/references/org-state-transitions.md` and load here as
-`.claude/rules/org-state-transitions.md`. They are unchanged by the
-move — follow that file exactly as this section was followed.
-
----
-
-## MCP tools (`modules/tools/claude-code-ide-org/config.el`)
-
-**Moved into the plugin, 2026-09-09**: the tool tables — queued,
-immediate, conditional, read-only — ship as
-`skills/org/references/org-mcp-tools.md` and load here as
+They load here as `.claude/rules/org-state-transitions.md` and
 `.claude/rules/org-mcp-tools.md`. The headline that must not be lost:
-the three queued tools change nothing when called, and there is no MCP
-tool that applies the queue — apply is `M-x claude-code-ide-org-review`,
-human-run.
+**no MCP tool applies the queue** — apply is
+`M-x claude-code-ide-org-review`, human-run.
 
 ---
 
 ## Session tracking (`.claude/settings.json`, `bin/hooks/`)
 
-**Moved into the plugin, 2026-09-09; split in two, 2026-09-18**
-(`:ID:` 36952d1f). The hooks that ship unconditionally — `footnote-check`,
-`apply-detect`, the `queue-append` matchers for `org_set_todo`/
-`org_capture`/`org_amend`, and the daily ceremony prompt — are
-`skills/org/references/org-session-tracking.md`. Everything time-shaped
-— guideposts, the three numbers that shape a recorded interval,
-permission blocks, stale-interval recovery and the transition table's
-clock column — is `skills/org/references/org-time-tracking.md`. **Both promote
-unconditionally**, here and in every consumer: promotion cannot see a
-plugin option, so what is gated is the *feature*, never the prose. The
-time file's own opening says its presence is not evidence the feature is
-on, and names the check.
+**Two references** (`:ID:` 36952d1f). The hooks that ship unconditionally —
+`footnote-check`, `apply-detect`, the guards, the miss counter, the
+`queue-append` matchers for `org_set_todo`/`org_capture`/`org_amend`, the
+daily ceremony prompt — are `skills/org/references/org-session-tracking.md`.
+Everything time-shaped is `skills/org/references/org-time-tracking.md`,
+**promoted only where setup was told the feature is on** (`:ID:` 1b69fe4e):
+`--time-tracking`, the hooks' own variable, or a repo whose
+`.claude/settings.json` wires that variable, which is how this repo gets it.
 
 The wiring exists twice on purpose — this repo through
-`.claude/settings.json`, consumers through the plugin's
-`hooks/hooks.json` — and a repo must enable only one of the two, or
-every guidepost is appended twice.
-
-**Both carry the time rows; what differs is how each says yes**
-(2026-09-18, `:ID:` 1b36c5bd). The plugin's rows gate themselves on the
-`time_tracking` boolean in `.claude-plugin/plugin.json`'s `userConfig`,
-which **defaults to off** — Claude Code exports it to hook processes as
-`CLAUDE_PLUGIN_OPTION_TIME_TRACKING`, and `queue-append` (for the six
-time kinds only), `block-start` and `clock-target-check` each refuse
-when it is not `true`. A consumer turns it on with Claude Code's
-`/config` command — a slash command typed in a session, not a path. This repo
-has no plugin option to read, so its own rows set that variable in the
-command string: **wiring the row is the opt-in here**, which is why
-`.claude/settings.json` looks different from the manifest it used to
-mirror.
-
-The gate lives in the scripts because `hooks.json` has no conditional
-form — the premise this arrangement replaced was that wired and unwired
-were the only two available states, and `userConfig` is the third.
+`.claude/settings.json`, consumers through the plugin's `hooks/hooks.json`
+— and a repo must enable only one, or every queue line is appended twice.
+The plugin's time rows gate themselves on the `time_tracking` boolean in
+`.claude-plugin/plugin.json`'s `userConfig`, **default off**, exported to
+hooks as `CLAUDE_PLUGIN_OPTION_TIME_TRACKING`; a consumer sets it with
+Claude Code's `/config` command. This repo has no plugin option to read,
+so its rows set that variable in the command string: **wiring the row is
+the opt-in here** (`:ID:` 1b36c5bd). The gate is in the scripts because
+`hooks.json` has no conditional form.
 
 ---
 
 ## Emacs integration
 
 **A reachable Emacs server is a hard prerequisite** — every MCP tool
-goes through `emacsclient`; if tools fail, check that first. The
-install and wiring guidance — Doom module, the org 9.7 floor, the
-pinned port, per-repo setup — ships as
-`skills/org/references/org-emacs-setup.md` (deliberately not promoted
-into rules: it is read at install time, not needed every session).
+goes through it; if tools fail, check that first. Install and wiring
+guidance ships as `skills/org/references/org-emacs-setup.md`, read at
+install time, so not promoted.
 
 ---
 
 ## Design notes
 
-- **Why MCP tools over text editing for clock/state/archive?**
-  Native org functions handle LOGBOOK formatting, timestamp arithmetic, and
-  internal state (the running clock timer) correctly and atomically. Text
-  editing risks malformed CLOCK entries or stale timer state.
+- **MCP tools for clock, state and archive; text editing for the rest.**
+  Native org functions handle LOGBOOK formatting, timestamp arithmetic and
+  the running clock correctly and atomically; text editing risks malformed
+  CLOCK entries. Tags, new headings and report summaries need none of
+  that, and a small tool surface costs fewer tokens per request.
+  `org_query` earned its place because whole-file reads to answer one-line
+  questions were slow in practice.
+- **IDs rather than titles**: titles are not unique and change; an `:ID:`
+  survives renames and refiling.
+- **Short snake_case tool names**, diverging from upstream
+  `claude-code-ide`, which registers the verbatim elisp function name:
+  elisp identifiers keep the full `claude-code-ide-org-` prefix, while
+  model-facing names follow MCP convention with an `org_` namespace —
+  the domain the model cares about, and a shorter schema.
 
-- **Why text editing for everything else?**
-  Tag changes, new headings, and time report summaries don't require
-  org-mode's internal state — they're straightforward text operations the
-  org skill handles well. Keeping the MCP tool surface small reduces
-  per-request token overhead. Cross-file reads used to fall in this bucket
-  too, but were slow enough in practice (whole-file reads to answer
-  one-line questions) to justify `org_query` as a dedicated tool instead.
-
-- **Why IDs rather than heading titles?**
-  Titles are not unique and can change. `:ID:` properties are stable
-  references that survive renames and refiling.
-
-- **Why short snake_case tool names rather than upstream's convention?**
-  Upstream `claude-code-ide` registers each MCP tool's name as the verbatim
-  elisp function name (e.g. `claude-code-ide-mcp-xref-find-references`).
-  This module deliberately diverges: elisp identifiers follow elisp
-  convention (full `claude-code-ide-org-` package prefix), while
-  model-facing tool names follow MCP convention — short snake_case with an
-  `org_` namespace prefix (e.g. `org_clock_in`). snake_case is the
-  prevailing style for MCP tools, the `org_` prefix names the domain the
-  model actually cares about, and shorter names reduce per-request schema
-  overhead.
-
-(The `org-clock-persist-load` trap — why calling it inside `(after! org
-...)` breaks org-mode outright, and why the breakage only shows on a fresh
-boot — lives in the **org-dev skill, §2**, which triggers when the Doom
-config is being changed. It used to be duplicated here.)
+(The `org-clock-persist-load` trap lives in the **org-dev skill, §2**.)

@@ -1,0 +1,124 @@
+#!/usr/bin/env bash
+# PostToolUse on the org tools: on a session's FIRST org_* call, tell it
+# where the org conventions are and that it has not loaded them.
+#
+# TODO.org :ID: 436e0991. The conventions are path-scoped to **/*.org, and
+# Claude Code's docs are explicit about what that means: "Path-scoped rules
+# trigger when Claude reads files matching the pattern, not on every tool
+# use" -- the Read tool, on a matching path. An org_* call is an MCP call
+# carrying no path. So a session that does what the plugin asks -- "start
+# with org_outline, not a file read" -- never loads the rules for the work
+# it is doing, and the better it behaves the less it knows. Observed, not
+# inferred: the session that filed this made five captures and a dozen
+# Bash reads of TODO.org and the conventions were never injected.
+#
+# The trigger here is the act the conventions govern, which is the signal
+# the path scope was reaching for.
+#
+# A POINTER, NOT THE TEXT, and the reason is a measured limit rather than
+# taste: a hook's additionalContext is capped at 10,000 characters (over
+# that, Claude Code substitutes a 2,000-character preview and a file
+# path), and the conventions are ~58,000. A hand-written digest that fits
+# would be a second copy, and a second copy is how this project's prose
+# goes stale. So the section list below is generated from the file on
+# every run and the instruction is to Read it -- which also makes Claude
+# Code's own path-scoped load fire, late but whole.
+#
+# That leaves this on the "injected context" tier: it is only as good as
+# the model acting on it (TODO.org :ID: c5b02503 measured that at well
+# under certain). The tier above -- rules riding on a tool's own reply,
+# which cannot fail to load -- is remedy 3 on the heading and belongs to
+# the enforcement audit. This is the cheap interim the plan names.
+#
+# ONCE PER CONTEXT, not per session: a subagent has its own context and
+# the same payload carries its agent_id, so the sentinel is keyed on
+# both. Survive-without-Emacs tier: plain bash + jq, always exit 0.
+
+set -uo pipefail
+
+command -v jq >/dev/null 2>&1 || exit 0
+input="$(cat)"
+
+session_id="$(jq -r '.session_id // empty' <<<"$input" 2>/dev/null)"
+agent_id="$(jq -r '.agent_id // empty' <<<"$input" 2>/dev/null)"
+[[ -n "$session_id" ]] || exit 0
+# Both reach a path below; refuse anything that is not a plain component.
+case "$session_id$agent_id" in
+  *[!A-Za-z0-9._-]*|.|..) exit 0 ;;
+esac
+
+queue_dir="${CLAUDE_ORG_QUEUE_DIR:-$HOME/.claude/org-updates}"
+sentinel="$queue_dir/$session_id${agent_id:+.$agent_id}.conventions-seen"
+[[ -e "$sentinel" ]] && exit 0
+
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+
+# Mark the session in the queue before anything that can exit early: this
+# line is the miss rate's denominator and must not depend on whether a
+# conventions file happens to be found. Behind the sentinel check above,
+# so once per context. A slim payload -- queue-append embeds what it gets.
+# Main thread only: a subagent is a context of its own for the notice but
+# not a session of its own for the count.
+if [[ -z "$agent_id" ]]; then
+  jq -c '{session_id, cwd, hook_event_name}' <<<"$input" 2>/dev/null \
+    | "$here/bin/hooks/queue-append" session 2>/dev/null
+fi
+root="${CLAUDE_PROJECT_DIR:-$here}"
+
+# Promoted copy first -- it is the one Claude Code's own scope would load
+# -- then the plugin's shipped reference, for a consumer who never ran
+# claude-org-setup. The local additions only ever exist promoted.
+files=()
+if [[ -r "$root/.claude/rules/org-conventions.md" ]]; then
+  files+=("$root/.claude/rules/org-conventions.md")
+elif [[ -r "$here/skills/org/references/org-conventions.md" ]]; then
+  files+=("$here/skills/org/references/org-conventions.md")
+fi
+[[ -r "$root/.claude/rules/org-conventions-local.md" ]] \
+  && files+=("$root/.claude/rules/org-conventions-local.md")
+[[ ${#files[@]} -gt 0 ]] || exit 0
+
+# Headings only, fences and frontmatter skipped: a `## ' inside a code
+# block is an example, and listing it would send a reader to a section
+# that does not exist.
+sections() {
+  awk '
+    NR == 1 && $0 == "---" { fm = 1; next }
+    fm { if ($0 == "---") fm = 0; next }
+    /^[ \t]*(```|~~~)/ { fence = !fence; next }
+    !fence && /^##+ / {
+      depth = match($0, / /) - 3
+      sub(/^#+ /, "")
+      printf "%*s- %s\n", depth * 2, "", $0
+    }' "$1"
+}
+
+listing=""
+for f in "${files[@]}"; do
+  listing+="$f ($(wc -l < "$f" | tr -d ' ') lines):
+$(sections "$f")
+"
+done
+
+context="This session has just used an org tool and has NOT loaded the org \
+conventions. They are path-scoped to **/*.org, and a path scope fires only \
+when the Read tool opens a matching file -- never on an org_* call, a Bash \
+read, or an Emacs buffer -- so working through the tools, as intended, is \
+exactly what keeps them out of context. Before you compose a heading or a \
+slice, close one, write a :PLAN: or :DEBRIEF: drawer, set a :BLOCKER:, \
+archive, or cite a commit in a body, Read the file below (whole, or the \
+section that governs the act). Sections, from the file itself:
+
+$listing
+This notice fires once per session."
+
+mkdir -p "$queue_dir" 2>/dev/null
+# Emit first, then arm -- apply-detect's order, for its reason: a notice
+# sent twice costs a paragraph, one never sent is the failure this exists
+# to prevent.
+if jq -cn --arg ctx "$context" \
+     '{hookSpecificOutput: {hookEventName: "PostToolUse", additionalContext: $ctx}}'; then
+  : > "$sentinel" 2>/dev/null
+fi
+
+exit 0

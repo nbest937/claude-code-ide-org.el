@@ -7,6 +7,7 @@
 # settings.json, and add the Claude-Session line from
 # CLAUDE_CODE_BRIDGE_SESSION_ID when absent. Never block a commit.
 set -uo pipefail
+unset CLAUDE_CODE_SESSION_ID  # else a provoked refusal counts as a miss in the calling session
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 hook="$repo_root/.githooks/prepare-commit-msg"
 work="$(mktemp -d)"; trap 'rm -rf "$work"' EXIT

@@ -59,6 +59,21 @@
         ]
       },
       {
+        "matcher": "mcp__emacs-tools__org_.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/bin/hooks/queue-append refusal",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/bin/hooks/conventions-inject",
+            "timeout": 10
+          }
+        ]
+      },
+      {
         "matcher": "Edit|Write",
         "hooks": [
           {
@@ -74,6 +89,16 @@
           {
             "type": "command",
             "command": "CLAUDE_PLUGIN_OPTION_TIME_TRACKING=true ${CLAUDE_PROJECT_DIR}/bin/hooks/block-end",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/bin/hooks/review-start",
             "timeout": 10
           }
         ]
@@ -120,6 +145,11 @@
             "type": "command",
             "command": "${CLAUDE_PROJECT_DIR}/bin/hooks/apply-detect",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/bin/hooks/review-start",
+            "timeout": 10
           }
         ]
       }
@@ -139,6 +169,15 @@
           {
             "type": "command",
             "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/session-context.sh",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/bin/hooks/hookspath-check",
             "timeout": 10
           }
         ]
@@ -163,6 +202,28 @@
           {
             "type": "command",
             "command": "CLAUDE_PLUGIN_OPTION_TIME_TRACKING=true ${CLAUDE_PROJECT_DIR}/bin/hooks/block-end",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/bin/hooks/emacsclient-guard",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/bin/hooks/generated-guard",
             "timeout": 10
           }
         ]

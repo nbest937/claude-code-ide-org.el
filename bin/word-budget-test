@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+# Shell test harness for bin/word-budget (TODO.org :ID: f2030ce9). Same
+# register as bin/queue-append-test: a fixture root, positive assertions.
+set -uo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+script="$repo_root/bin/word-budget"
+tmp="$(mktemp -d)"
+trap 'rm -rf "$tmp"' EXIT
+
+failures=0
+check() {
+  if [[ "$2" == "$3" ]]; then echo "ok   - $1"
+  else echo "FAIL - $1: wanted [$2], got [$3]"; failures=$((failures + 1)); fi
+}
+words() { local n="$1" i; for ((i = 0; i < n; i++)); do printf 'w '; done; printf '\n'; }
+
+r="$tmp/root"; mkdir -p "$r/.claude/rules"
+words 100 > "$r/CLAUDE.md"
+words 50  > "$r/.claude/rules/org-event-queue.md"          # consumer machinery
+words 40  > "$r/.claude/rules/org-time-tracking.md"        # consumer, feature on
+words 30  > "$r/.claude/rules/org-categories.md"           # this repo's own
+{ printf -- '---\npaths:\n  - "**/*.org"\n---\n'; words 5000; } > "$r/.claude/rules/org-conventions.md"
+# Says "paths:" in prose and carries no frontmatter: unscoped, must count.
+{ printf 'This file carries no paths: scope.\n'; words 20; } > "$r/.claude/rules/org-footnote-citations.md"
+
+run() { # run SELF OFF ON -> exit code; output in $tmp/out
+  WORD_BUDGET_SELF="$1" WORD_BUDGET_CONSUMER_OFF="$2" WORD_BUDGET_CONSUMER_ON="$3" \
+    "$script" "$r" > "$tmp/out" 2>&1; echo $?
+}
+figure() { awk -v k="$1" '$0 ~ "^"k {print $(NF-2)}' "$tmp/out"; }
+
+# The fixture: 100 + 50 + 40 + 30 + 26 (the prose line is 6 words) = 246.
+check "inside all three budgets exits 0" 0 "$(run 1000 1000 1000)"
+check "self-hosting sums CLAUDE.md and every unscoped rule file" 246 "$(figure 'self-hosting')"
+check "consumer-off is the promoted machinery without the time file" 76 "$(figure 'consumer, tracking off')"
+check "consumer-on adds the time file" 116 "$(figure 'consumer, tracking on')"
+check "inside budget, no table is printed" no "$(grep -q 'CLAUDE.md' "$tmp/out" && echo yes || echo no)"
+
+check "over the self-hosting budget exits 1" 1 "$(run 245 1000 1000)"
+check "the overrun is marked on its own line" yes "$(grep -q '^self-hosting .*OVER' "$tmp/out" && echo yes || echo no)"
+check "and the per-file table is printed" yes "$(grep -q 'CLAUDE.md' "$tmp/out" && echo yes || echo no)"
+check "a path-scoped file is not in the table" no "$(grep -q 'org-conventions.md' "$tmp/out" && echo yes || echo no)"
+check "prose saying 'paths:' does not make a file scoped" yes "$(grep -q 'org-footnote-citations.md' "$tmp/out" && echo yes || echo no)"
+check "this repo's own rule file counts toward self-hosting" yes "$(grep -q 'org-categories.md' "$tmp/out" && echo yes || echo no)"
+check "exactly at the budget is inside it" 0 "$(run 246 76 116)"
+check "over a consumer budget alone exits 1" 1 "$(run 1000 75 1000)"
+
+# Relocation inside the counted set changes nothing: the sum is the test.
+words 60 > "$r/CLAUDE.md"; words 90 > "$r/.claude/rules/org-event-queue.md"
+run 1000 1000 1000 >/dev/null
+check "moving 40 words from CLAUDE.md into a rule file leaves the total" 246 "$(figure 'self-hosting')"
+
+check "the real repo is inside its real budgets" 0 "$("$script" >/dev/null 2>&1; echo $?)"
+
+echo
+if [[ $failures -eq 0 ]]; then echo "word-budget-test: all checks passed"
+else echo "word-budget-test: $failures check(s) failed"; fi
+exit $((failures > 0))

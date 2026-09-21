@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+# The miss rate: how often a backstop fired, per day and per rule.
+#
+# TODO.org :ID: 63713df3. Reads the `miss' lines bin/hooks/queue-append
+# writes when a hook blocks a stop or an org tool refuses a call. One jq
+# over the queue directory, no Emacs -- the ceremony report prints the
+# same count from elisp (`claude-code-ide-org--miss-counts').
+#
+# A FLOOR, NEVER THE RATE. It counts what a hook or a tool caught. The
+# misses a human catches in conversation reach no file at all, and they
+# are the ones the number most wants. Read a falling series as "the
+# hook-visible subset fell", and nothing stronger.
+#
+# The denominator is sessions that wrote ANY queue line that day, which
+# is every session only where time tracking is on (guideposts); with it
+# off, a session that queued nothing is invisible and the rate reads high.
+#
+# Usage: bin/miss-rate [--project DIR] [--days N]
+#   --project DIR   count only lines whose cwd is DIR or beneath it
+#   --days N        the last N days (default 14)
+
+set -uo pipefail
+
+project=""
+days=14
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --project) project="${2:-}"; shift 2 ;;
+    --days) days="${2:-14}"; shift 2 ;;
+    *) echo "usage: bin/miss-rate [--project DIR] [--days N]" >&2; exit 2 ;;
+  esac
+done
+
+command -v jq >/dev/null 2>&1 || { echo "miss-rate: jq not found" >&2; exit 2; }
+
+queue_dir="${CLAUDE_ORG_QUEUE_DIR:-$HOME/.claude/org-updates}"
+shopt -s nullglob
+# archive/ too: a file holding only miss and session lines yields no
+# review items, so once idle the ceremony archives it as drained, and its
+# misses would leave the series (PR #29 review, TODO.org :ID: fd7d9715).
+# restore-queue moves a file back rather than copying it, so no line is
+# ever read twice.
+files=("$queue_dir"/*.jsonl "$queue_dir"/archive/*.jsonl)
+if [[ ${#files[@]} -eq 0 ]]; then
+  echo "miss-rate: no queue files in $queue_dir"
+  exit 0
+fi
+
+since="$(date -v-"$((days - 1))"d '+%Y-%m-%d' 2>/dev/null \
+         || date -d "$((days - 1)) days ago" '+%Y-%m-%d')"
+
+# -R + fromjson?: a torn line costs one line, never the file -- the same
+# tolerance, for the same reason, as clock-target-check's queue scan.
+cat "${files[@]}" | jq -R -r -n --arg since "$since" --arg project "${project%/}" '
+  [ inputs | fromjson?
+    | select(.ts != null and (.ts[0:10] >= $since))
+    | select($project == "" or ((.cwd // "") | . == $project or startswith($project + "/")))
+    | {day: .ts[0:10], sid: .session_id, kind, rule} ]
+  | group_by(.day)
+  | map({
+      day: .[0].day,
+      sessions: (map(.sid) | unique | length),
+      missed: (map(select(.kind == "miss") | .sid) | unique | length),
+      misses: (map(select(.kind == "miss")) | length),
+      rules: (map(select(.kind == "miss") | .rule) | group_by(.) | map("\(.[0]) \(length)") | join(", "))
+    })
+  | (["day", "sessions", "with-a-miss", "misses", "by rule"] | @tsv),
+    (.[] | [.day, .sessions, .missed, .misses, (if .rules == "" then "-" else .rules end)] | @tsv),
+    (["total", (map(.sessions) | add // 0), (map(.missed) | add // 0), (map(.misses) | add // 0), "(a floor: hook- and tool-visible only)"] | @tsv)
+' | column -t -s "$(printf '\t')"

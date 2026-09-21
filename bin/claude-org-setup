@@ -34,20 +34,28 @@ refs="$plugin_root/skills/org/references"
 promote=(org-conventions.md org-event-queue.md org-state-transitions.md
          org-mcp-tools.md org-session-tracking.md org-footnote-citations.md)
 
-# Time-tracking rules, promoted unconditionally and deliberately so.
-# The feature is gated by the plugin's `time_tracking' userConfig option,
-# which the hook scripts read at run time and this script cannot see --
-# promotion happens here, the option lives in ~/.claude/settings.json.
-# Promoting the file regardless costs a consumer one unread reference and
-# keeps the gate in exactly one place; its own opening says plainly that
-# its presence is not evidence the feature is on.
-promote+=(org-time-tracking.md)
+# Time-tracking rules: promoted only where time tracking is on (TODO.org
+# :ID: 1b69fe4e). Until 2026-09-19 this was unconditional, on the premise
+# that it "costs a consumer one unread reference". It does not: the file
+# carries no path scope, so promoted it is loaded at launch by every
+# session -- 260 lines about a feature that defaults to off.
+#
+# The constraint behind the old choice is real: the `time_tracking'
+# userConfig option is read by the hook scripts at run time and this
+# script cannot see it. So the FEATURE's gate stays in the scripts, and
+# the PROSE gets its own, decided after the arguments are parsed (below)
+# from the three signals this script can see. Unpromoted, the file is
+# still in skills/org/references/, as install-time reading.
+time_file=org-time-tracking.md
 
 force=0
 check=0
 doom=0
 org=0
 glue=0
+time_flag=0
+time_off=0
+time_kept=0
 target="$PWD"
 for a in "$@"; do
   case "$a" in
@@ -56,9 +64,11 @@ for a in "$@"; do
     --doom) doom=1 ;;
     --org) org=1 ;;
     --glue) glue=1 ;;
+    --time-tracking) time_flag=1 ;;
+    --no-time-tracking) time_off=1 ;;
     --*)
       echo "claude-org-setup: unknown option: $a" >&2
-      echo "usage: claude-org-setup [--force|--check|--doom|--org|--glue] [TARGET_DIR]" >&2
+      echo "usage: claude-org-setup [--force|--check|--doom|--org|--glue|--time-tracking|--no-time-tracking] [TARGET_DIR]" >&2
       exit 2
       ;;
     *)
@@ -69,6 +79,28 @@ for a in "$@"; do
       ;;
   esac
 done
+
+# Is time tracking on? Any one of: the flag; the variable the hooks
+# themselves read, when the caller's environment happens to carry it; or
+# a target whose own .claude/settings.json sets that variable in a hook
+# command -- which is what "wiring the row is the opt-in" means for a
+# repo that wires the scripts itself rather than through the plugin.
+time_on=0
+[ "$time_flag" = 1 ] && time_on=1
+[ "${CLAUDE_PLUGIN_OPTION_TIME_TRACKING:-}" = "true" ] && time_on=1
+grep -q 'CLAUDE_PLUGIN_OPTION_TIME_TRACKING=true' "$target/.claude/settings.json" 2>/dev/null && time_on=1
+# Off is said only explicitly: --no-time-tracking, or the variable set to
+# false. Setup cannot see a plugin consumer's option, so silence is not
+# off -- a generated copy already present is the earlier decision and is
+# kept, the same rule --check applies (PR #29 review, TODO.org :ID:
+# 5fbc34cb). Before, a plain re-run deleted the time rules of a consumer
+# with tracking on, and the pre-commit guard's own hint is a plain re-run.
+[ "${CLAUDE_PLUGIN_OPTION_TIME_TRACKING:-}" = "false" ] && time_off=1
+if [ "$time_on" = 0 ] && [ "$time_off" = 0 ] \
+   && grep -q "$marker" "$target/.claude/rules/$time_file" 2>/dev/null; then
+  time_on=1 time_kept=1
+fi
+[ "$time_on" = 1 ] && promote+=("$time_file")
 
 # --glue: write the generated elisp glue into the user's Doom config
 # tree (TODO.org :ID: 7c86ab4c), resolved the way doom.el resolves it
@@ -188,9 +220,13 @@ if [ "$org" = 1 ]; then
   # Collision-checked like the org templates: an existing file is
   # reported and left alone, never merged. A consumer may already have
   # MCP servers of their own, and a blind overwrite would take them out.
+  # `|| true' below: under set -e and pipefail a missing $mcp_src fails
+  # the substitution and kills the script there, so the "no port found;
+  # skipping" branch was unreachable -- found 2026-09-19 by a test
+  # fixture with no .mcp.json (TODO.org :ID: 94e6b615).
   mcp_src="$plugin_root/.mcp.json"
   mcp_dest="$target/.mcp.json"
-  mcp_port="$(sed -n 's|.*http://localhost:\([0-9][0-9]*\)/mcp/.*|\1|p' "$mcp_src" 2>/dev/null | head -1)"
+  mcp_port="$(sed -n 's|.*http://localhost:\([0-9][0-9]*\)/mcp/.*|\1|p' "$mcp_src" 2>/dev/null | head -1 || true)"
   if [ -z "$mcp_port" ]; then
     echo "claude-org-setup: no port found in $mcp_src; skipping .mcp.json" >&2
   elif [ -e "$mcp_dest" ]; then
@@ -455,6 +491,12 @@ render() {
 # drift. Exit 1 on any drifted or missing copy; writes nothing.
 if [ "$check" = 1 ]; then
   drifted=0
+  # --check takes the file's PRESENCE as the signal rather than deciding
+  # again: a copy this script wrote is checked for drift however the
+  # feature was switched on, and an absent one is not called missing.
+  if [ "$time_on" = 0 ] && grep -q "$marker" "$rules_dir/$time_file" 2>/dev/null; then
+    promote+=("$time_file")
+  fi
   for f in "${promote[@]}"; do
     dest="$rules_dir/$f"
     if [ ! -f "$dest" ]; then
@@ -535,7 +577,7 @@ if [ "$check" = 1 ]; then
   # because a consumer may legitimately have added servers of their own.
   mcp_src="$plugin_root/.mcp.json"
   mcp_dest="$target/.mcp.json"
-  mcp_port="$(sed -n 's|.*http://localhost:\([0-9][0-9]*\)/mcp/.*|\1|p' "$mcp_src" 2>/dev/null | head -1)"
+  mcp_port="$(sed -n 's|.*http://localhost:\([0-9][0-9]*\)/mcp/.*|\1|p' "$mcp_src" 2>/dev/null | head -1 || true)"
   want_url="http://localhost:$mcp_port/mcp/$(basename "$target")"
   if [ ! -f "$mcp_dest" ]; then
     echo "missing: $mcp_dest -- this project has no org tools (run claude-org-setup --org)"
@@ -588,5 +630,15 @@ for f in "${promote[@]}"; do
   wrote=$((wrote + 1))
   echo "wrote $dest"
 done
+
+# Off, and a copy this script wrote is still here: remove it rather than
+# orphan it. Only a generated copy -- the marker is the licence, exactly
+# as it is for overwriting. This is the removal case TODO.org :ID:
+# 96ad6e95 says nothing handles, for this one file.
+if [ "$time_off" = 1 ] && grep -q "$marker" "$rules_dir/$time_file" 2>/dev/null; then
+  rm -f "$rules_dir/$time_file"
+  echo "removed $rules_dir/$time_file (time tracking is off; --time-tracking promotes it)"
+fi
+[ "$time_kept" = 1 ] && echo "kept $rules_dir/$time_file (already promoted; --no-time-tracking removes it)"
 
 echo "claude-org-setup: promoted $wrote rule file(s) into $rules_dir"
