@@ -2684,6 +2684,44 @@ the temp directory afterwards."
            (kill-buffer buf)))
        (delete-directory dir t))))
 
+;;; org_set_todo names an un-nominated group (TODO.org :ID: 3cd7b7d3)
+
+(ert-deftest claude-code-ide-org-test-set-todo-done-names-the-unnominated-group ()
+  "\"Every DONE inside a grouping nominates the next action\" was a rule
+recalled at the busiest moment of a task.  Detection is mechanical, so
+the reply carries it; choosing which member stays the caller's."
+  (claude-code-ide-org-test--with-story
+    (goto-char (point-max))
+    (insert "** TODO Second child\n:PROPERTIES:\n:ID:       test-0003\n:END:\n")
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    (let ((reply (claude-code-ide-org-set-todo "test-0002" "DONE")))
+      (should (string-prefix-p "Queued todo -> DONE" reply))
+      (should (string-match-p "no member is NEXT" reply))
+      (should (string-match-p "Second child" reply))
+      ;; the heading being closed is not its own successor
+      (should-not (string-match-p "candidate.*Child heading" reply))
+      ;; bin/hooks/queue-append recovers the prior state from "(was X)"
+      ;; line-wise, so only the first line may carry that shape.
+      (should (= 1 (seq-count (lambda (l) (string-match-p "(was " l))
+                              (split-string reply "\n")))))
+    ;; A sibling already NEXT: nothing to say.
+    (org-with-point-at (org-id-find "test-0003" 'marker)
+      (let ((org-log-done nil) (org-todo-log-states nil)) (org-todo "NEXT"))
+      (save-buffer))
+    (should-not (string-match-p "NEXT" (replace-regexp-in-string
+                                        "\\`[^\n]*" ""
+                                        (claude-code-ide-org-set-todo "test-0002" "DONE"))))
+    ;; Not a closing transition: nothing to say.
+    (should-not (string-match-p "no member is NEXT"
+                                (claude-code-ide-org-set-todo "test-0002" "DOING")))))
+
+(ert-deftest claude-code-ide-org-test-set-todo-done-at-top-level-says-nothing ()
+  "Closing a top-level task nominates nothing, because it has no group."
+  (claude-code-ide-org-test--with-heading
+    (should-not (string-match-p "no member is NEXT"
+                                (claude-code-ide-org-set-todo "test-0001" "DONE")))))
+
 ;;; org_amend replace= and git (TODO.org :ID: 3cd7b7d3)
 
 (ert-deftest claude-code-ide-org-test-amend-replace-refuses-over-an-uncommitted-diff ()

@@ -2693,7 +2693,47 @@ unresolved."
                 state
                 (or (org-get-todo-state) "none")
                 (org-get-heading t t t t))
-        (or (claude-code-ide-org--unwrapped-plan-nudge state) "")))))))))
+        (or (claude-code-ide-org--unwrapped-plan-nudge state) "")
+        (or (claude-code-ide-org--unnominated-group-note state) "")))))))))
+
+(defun claude-code-ide-org--unnominated-group-note (state)
+  "A reply line naming the group that closing the heading at point leaves
+with no next action, or nil.
+
+\"Every transition to DONE inside a grouping nominates the next action\"
+was a rule to recall at the busiest moment of a task (TODO.org :ID:
+3cd7b7d3).  Whether a group is un-nominated is mechanical, so the tool
+reports it at the moment of the call; *which* member comes next is
+judgement and stays the caller's -- the retired auto-promotion trigger
+is the evidence for not going further.
+
+Only for a finishing STATE, and only for a *story*: the heading's parent,
+when the parent is a container.  A slice that lists this heading is left
+to the `SessionStart' nomination report, since finding it means scanning
+every slice on every close.  Reads the file, so a NEXT queued this
+session for a sibling is not seen -- the line says \"on disk\"."
+  (when (member state claude-code-ide-org--outline-finished-keywords)
+    (let ((self (org-no-properties (org-get-heading t t t t))))
+      (save-excursion
+        (when (and (org-up-heading-safe)
+                   (claude-code-ide-org--container-heading-p))
+          (let* ((group (org-no-properties (org-get-heading t t t t)))
+                 (states (seq-remove
+                          (lambda (m) (equal (cdr m) self))
+                          (claude-code-ide-org--member-keywords nil)))
+                 (live (seq-remove
+                        (lambda (m) (member (car m)
+                                            claude-code-ide-org--outline-finished-keywords))
+                        states))
+                 (todos (seq-filter (lambda (m) (equal (car m) "TODO")) live)))
+            (when (and todos (not (assoc "NEXT" live)))
+              (format "\nNomination: closing this leaves \"%s\" with live members \
+and no member is NEXT on disk. Set NEXT on one, or say why none -- %s."
+                      group
+                      (if (= 1 (length todos))
+                          (format "one candidate, \"%s\"" (cdr (car todos)))
+                        (format "%d candidates, e.g. \"%s\""
+                                (length todos) (cdr (car todos))))))))))))
 
 (defun claude-code-ide-org--archive-datetree-target-p (location)
   "Non-nil when archive LOCATION names a datetree.
