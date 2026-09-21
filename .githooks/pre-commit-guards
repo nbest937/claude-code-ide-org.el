@@ -50,9 +50,23 @@ fi
 #    "edit the reference and re-run setup, never the copy". Only the rules
 #    lines of --check are read: its Doom-glue and .mcp.json findings are
 #    about the machine, not this commit.
+#    Checked against the INDEX, not the working tree (PR #29 review,
+#    TODO.org :ID: 006a50e4): a reference staged with its re-promoted copy
+#    left unstaged would commit out of step, and an unrelated unstaged
+#    edit would block. The staged setup script, references, copies and
+#    settings (which decide whether the time file is promoted) are
+#    exported to a scratch tree, and --check runs there.
 setup="$repo_root/bin/claude-org-setup"
 if [ -x "$setup" ] && grep -qE '^(skills/org/references/|\.claude/rules/org-)' <<<"$staged"; then
-  drift="$("$setup" --check "$repo_root" 2>/dev/null | grep -E '^(drifted|missing): .*/\.claude/rules/' || true)"
+  snap="$(mktemp -d)"
+  git ls-files -- bin/claude-org-setup skills/org/references .claude/rules .claude/settings.json \
+    | git checkout-index --prefix="$snap/" --stdin 2>/dev/null
+  drift=""
+  if [ -x "$snap/bin/claude-org-setup" ]; then
+    drift="$("$snap/bin/claude-org-setup" --check "$snap" 2>/dev/null \
+             | grep -E '^(drifted|missing): .*/\.claude/rules/' | sed "s|$snap/||" || true)"
+  fi
+  rm -rf "$snap"
   if [ -n "$drift" ]; then
     # The same kind the PreToolUse edit guard counts: this is the path
     # that guard cannot see (a redirect, another editor, a stale copy).

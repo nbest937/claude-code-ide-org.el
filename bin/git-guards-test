@@ -144,6 +144,18 @@ printf 'hand edit\n' >> "$r/.claude/rules/org-event-queue.md"
 git -C "$r" add -A
 check "a hand-edited generated copy is refused" 1 "$(run_guards "$r")"
 git -C "$r" reset -q --hard
+# The check is of what is STAGED, not the working tree (PR #29 review,
+# :ID: 006a50e4). A reference staged with its re-promoted copy left
+# unstaged commits out of step; an unrelated unstaged edit blocked.
+printf '\nAnother sentence.\n' >> "$r/skills/org/references/org-event-queue.md"
+(cd "$r" && env -u CLAUDE_PLUGIN_OPTION_TIME_TRACKING bin/claude-org-setup . >/dev/null 2>&1)
+git -C "$r" add skills
+check "a reference staged without its re-promoted copy is refused" 1 "$(run_guards "$r")"
+git -C "$r" add -A; commit "$r" "in step again"
+printf 'unstaged\n' >> "$r/.claude/rules/org-event-queue.md"
+printf 'x\n' > "$r/.claude/rules/org-note.txt"; git -C "$r" add .claude/rules/org-note.txt
+check "an unstaged edit to a copy does not block a commit in step" 0 "$(run_guards "$r")"
+git -C "$r" reset -q --hard
 
 # --- pre-commit-guards: the org-dev skill's own check --------------------
 mkdir -p "$r/.claude/skills/org-dev"
