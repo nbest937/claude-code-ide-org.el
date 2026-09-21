@@ -38,6 +38,12 @@
 set -uo pipefail
 
 repo_root="$(git rev-parse --show-toplevel)"
+
+# The guards that replaced recalled rules run first and on every commit,
+# before any of the early exits below (TODO.org :ID: 3cd7b7d3).
+guards="$repo_root/.githooks/pre-commit-guards"
+if [ -x "$guards" ]; then "$guards" || exit 1; fi
+
 lint="$repo_root/bin/lint-org"
 
 # Never be the reason a commit is impossible: an older checkout, or a

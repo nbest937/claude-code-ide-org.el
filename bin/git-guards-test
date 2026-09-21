@@ -1,0 +1,147 @@
+#!/usr/bin/env bash
+# Shell test harness for the git-side guards that replaced recalled rules
+# (TODO.org :ID: 3cd7b7d3): .githooks/commit-msg, .githooks/pre-merge-commit
+# and .githooks/pre-commit-guards. Same register as bin/pre-commit-test:
+# scratch repos, the real hook scripts, positive assertions.
+#
+# Each hook is run directly rather than through `git commit', so a case
+# asserts one guard's exit code and nothing else's.
+
+set -uo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+hooks="$repo_root/.githooks"
+pass=0 fail=0
+
+check () { # name expected actual
+  if [[ "$2" == "$3" ]]; then printf '  ok    %s\n' "$1"; pass=$((pass + 1))
+  else printf '  FAIL  %s (expected %s, got %s)\n' "$1" "$2" "$3"; fail=$((fail + 1)); fi
+}
+
+work="$(mktemp -d)"
+trap 'rm -rf "$work"' EXIT
+
+# A repo with a bare "origin", so origin/main is a real remote-tracking ref.
+new_repo () { # new_repo NAME -> path
+  local r="$work/$1"
+  git init -q --bare "$work/$1.git"
+  git init -q -b main "$r"
+  git -C "$r" config user.email t@example.com
+  git -C "$r" config user.name Test
+  git -C "$r" remote add origin "$work/$1.git"
+  printf 'seed\n' > "$r/README"
+  git -C "$r" add README && git -C "$r" commit -q -m seed
+  git -C "$r" push -q origin main
+  printf '%s' "$r"
+}
+commit () { git -C "$1" add -A && git -C "$1" commit -q --no-verify -m "$2"; }
+
+# --- commit-msg: an apply-shaped org diff under any other message --------
+r="$(new_repo msg)"
+printf '* TODO A\n:LOGBOOK:\n- State "TODO"       from              [2026-09-01 Tue 10:00]\n:END:\n' > "$r/TODO.org"
+: > "$r/DONE.org"
+commit "$r" "Apply pass: seed the tracker"
+msg="$work/commit-message.txt"  # not MSG: macOS is case-insensitive and $work/msg is the repo
+run_msg () { printf '%s\n' "$2" > "$msg"; (cd "$1" && "$hooks/commit-msg" "$msg" >/dev/null 2>&1); echo $?; }
+
+printf '* TODO A\nbody prose\n:LOGBOOK:\n- State "TODO"       from              [2026-09-01 Tue 10:00]\n:END:\n' > "$r/TODO.org"
+git -C "$r" add TODO.org
+check "prose added to an org file commits under any message" 0 "$(run_msg "$r" "File a heading")"
+
+printf '* DONE A\nbody prose\n:LOGBOOK:\n- State "DONE"       from "TODO"       [2026-09-02 Wed 10:00]\n- State "TODO"       from              [2026-09-01 Tue 10:00]\n:END:\n' > "$r/TODO.org"
+git -C "$r" add TODO.org
+check "a new State line under a filing message is refused" 1 "$(run_msg "$r" "File a heading")"
+check "the same diff under an Apply pass message is accepted" 0 "$(run_msg "$r" "Apply pass: A closes")"
+check "naming the apply pass in the body is enough" 0 "$(run_msg "$r" "File a heading
+
+Also carries the user's apply pass, swept in.")"
+commit "$r" "Apply pass: A closes"
+
+printf '* DONE A\nbody prose\n:LOGBOOK:\nCLOCK: [2026-09-02 Wed 09:00]--[2026-09-02 Wed 10:00] =>  1:00\n- State "DONE"       from "TODO"       [2026-09-02 Wed 10:00]\n- State "TODO"       from              [2026-09-01 Tue 10:00]\n:END:\n' > "$r/TODO.org"
+git -C "$r" add TODO.org
+check "a new CLOCK line under a filing message is refused" 1 "$(run_msg "$r" "Amend a body")"
+commit "$r" "Apply pass: a clock lands"
+
+# An archive MOVES a logbook between the two files: nothing net-new.
+cat "$r/TODO.org" > "$r/DONE.org"; : > "$r/TODO.org"
+git -C "$r" add TODO.org DONE.org
+check "moving a logbook from TODO.org to DONE.org is not apply-shaped" 0 "$(run_msg "$r" "Archive A")"
+git -C "$r" reset -q --hard
+
+printf 'x\n' >> "$r/README"; git -C "$r" add README
+check "a commit staging no org file is never refused" 0 "$(run_msg "$r" "Touch the readme")"
+
+# --- pre-merge-commit: a local merge on main ------------------------------
+r="$(new_repo merge)"
+git -C "$r" switch -q -c feature/x
+printf 'f\n' > "$r/f"; commit "$r" "feature work"
+git -C "$r" switch -q main
+printf 'm\n' > "$r/m"; commit "$r" "main work"
+run_merge () { (cd "$1" && "$hooks/pre-merge-commit" >/dev/null 2>&1); echo $?; }
+
+git -C "$r" merge -q --no-ff --no-commit feature/x >/dev/null 2>&1
+check "merging a feature branch into main locally is refused" 1 "$(run_merge "$r")"
+check "ALLOW_LOCAL_MERGE=1 overrides" 0 "$(cd "$r" && ALLOW_LOCAL_MERGE=1 "$hooks/pre-merge-commit" >/dev/null 2>&1; echo $?)"
+git -C "$r" merge --abort
+
+# A catch-up merge: origin/main moved (a PR merged upstream) while local
+# main holds an unpushed commit. That is not an integration decision.
+other="$work/other"; git clone -q "$work/merge.git" "$other"
+git -C "$other" config user.email t@example.com; git -C "$other" config user.name Test
+printf 'u\n' > "$other/u"; commit "$other" "upstream work"; git -C "$other" push -q origin main
+git -C "$r" fetch -q origin
+git -C "$r" merge -q --no-ff --no-commit origin/main >/dev/null 2>&1
+check "a catch-up merge of origin/main into main is allowed" 0 "$(run_merge "$r")"
+git -C "$r" merge --abort
+
+git -C "$r" switch -q feature/x
+git -C "$r" merge -q --no-ff --no-commit main >/dev/null 2>&1
+check "merging main into a feature branch is allowed" 0 "$(run_merge "$r")"
+git -C "$r" merge --abort
+
+# --- pre-commit-guards: a branch that has already merged -----------------
+r="$(new_repo merged)"
+run_guards () { (cd "$1" && EMACSCLIENT="${2:-false}" "$hooks/pre-commit-guards" >/dev/null 2>&1); echo $?; }
+
+check "committing on main is allowed" 0 "$(run_guards "$r")"
+git -C "$r" switch -q -c feature/y
+check "the first commit on a freshly cut branch is allowed" 0 "$(run_guards "$r")"
+printf 'y\n' > "$r/y"; commit "$r" "feature work"
+check "a branch with unmerged work is allowed" 0 "$(run_guards "$r")"
+# The PR merges upstream and the branch is left checked out.
+git -C "$r" push -q origin feature/y:main
+git -C "$r" fetch -q origin
+printf 'late\n' > "$r/late"; git -C "$r" add late
+check "a commit onto a branch origin/main already contains is refused" 1 "$(run_guards "$r")"
+check "ALLOW_MERGED_BRANCH=1 overrides" 0 "$(cd "$r" && ALLOW_MERGED_BRANCH=1 EMACSCLIENT=false "$hooks/pre-commit-guards" >/dev/null 2>&1; echo $?)"
+
+# --- pre-commit-guards: generated rule copies out of step ----------------
+r="$(new_repo gen)"
+mkdir -p "$r/bin" "$r/skills/org"
+cp "$repo_root/bin/claude-org-setup" "$r/bin/"
+cp -R "$repo_root/skills/org/references" "$r/skills/org/"
+(cd "$r" && env -u CLAUDE_PLUGIN_OPTION_TIME_TRACKING bin/claude-org-setup . >/dev/null 2>&1)
+commit "$r" "promote"
+printf '\nA new sentence.\n' >> "$r/skills/org/references/org-event-queue.md"
+git -C "$r" add skills
+check "a reference staged without re-promoting is refused" 1 "$(run_guards "$r")"
+(cd "$r" && env -u CLAUDE_PLUGIN_OPTION_TIME_TRACKING bin/claude-org-setup . >/dev/null 2>&1)
+git -C "$r" add -A
+check "re-promoted and staged together, it is allowed" 0 "$(run_guards "$r")"
+commit "$r" "in step"
+printf 'hand edit\n' >> "$r/.claude/rules/org-event-queue.md"
+git -C "$r" add -A
+check "a hand-edited generated copy is refused" 1 "$(run_guards "$r")"
+git -C "$r" reset -q --hard
+
+# --- pre-commit-guards: the org-dev skill's own check --------------------
+mkdir -p "$r/.claude/skills/org-dev"
+printf '#!/bin/sh\nexit 1\n' > "$r/bin/check-org-dev-skill"; chmod +x "$r/bin/check-org-dev-skill"
+printf 'skill\n' > "$r/.claude/skills/org-dev/SKILL.md"; git -C "$r" add -A
+check "a failing skill check refuses the commit when Emacs answers" 1 "$(run_guards "$r" true)"
+check "with Emacs unreachable it warns and does not block" 0 "$(run_guards "$r" false)"
+printf '#!/bin/sh\nexit 0\n' > "$r/bin/check-org-dev-skill"
+check "a passing skill check allows it" 0 "$(run_guards "$r" true)"
+
+printf '\ngit-guards-test: %d passed, %d failed\n' "$pass" "$fail"
+[[ $fail -eq 0 ]]

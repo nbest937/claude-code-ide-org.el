@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# commit-msg hook: refuse an apply-shaped org diff under a message that
+# does not say so.
+#
+# TODO.org :ID: 3cd7b7d3, and the predicate :ID: 3cb3f955 was waiting on.
+# The review pass is the only thing that writes `- State "..."' and
+# `CLOCK:' lines, and the human runs it whenever they choose -- including
+# while a session is mid-turn. `git commit -- TODO.org' commits the whole
+# file's diff, so a session's filing commit sweeps the human's pass under
+# a message describing something else. The rule was "read git diff --stat
+# first"; it was recited and missed three times, the last on 2026-09-21
+# with stat and commit in one command.
+#
+# NET-NEW lines, across both files together: archiving MOVES a logbook
+# from TODO.org to DONE.org, which adds as many such lines as it removes
+# and is not a pass.
+#
+# The message only has to NAME the pass -- "apply pass", anywhere, any
+# case -- so a commit that deliberately carries both can say so, which is
+# what the standing rule asked for after the fact.
+#
+# Here rather than in pre-commit because pre-commit never sees the message.
+# Bypass with `git commit --no-verify' when you mean to.
+
+set -uo pipefail
+
+msg_file="${1:-}"
+[ -n "$msg_file" ] && [ -r "$msg_file" ] || exit 0
+
+diff="$(git diff --cached -U0 -- TODO.org DONE.org 2>/dev/null)" || exit 0
+[ -n "$diff" ] || exit 0
+
+shape='^[+-][ \t]*(- State "|CLOCK: \[)'
+added="$(grep -E "$shape" <<<"$diff" | grep -c '^+' || true)"
+removed="$(grep -E "$shape" <<<"$diff" | grep -c '^-' || true)"
+[ "$added" -gt "$removed" ] || exit 0
+
+# Comment lines are not the message.
+grep -v '^#' "$msg_file" | grep -qi 'apply pass' && exit 0
+
+cat >&2 <<MSG
+commit-msg: this commit adds $((added - removed)) net-new State/CLOCK line(s) to the org
+files, which only the review pass writes -- but the message does not
+mention an apply pass. A human's pass has probably been swept in.
+
+  Look:  git diff --cached --stat -- TODO.org DONE.org
+  Fix:   commit the pass on its own ("Apply pass: ..."), then your change
+  Or:    name it -- include the words "apply pass" in this message
+  Skip:  git commit --no-verify
+MSG
+exit 1
