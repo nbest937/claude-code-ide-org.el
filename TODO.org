@@ -2,6 +2,103 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO [0/11] The misses a human catches reach no record: one heading per kind of miss, amended at each catch, so the catch is counted :code:
+:PROPERTIES:
+:ID:       158d7e80-6d72-4518-a804-d8abf2e7e693
+:CREATED:  [2026-09-21 Mon 08:44]
+:CATEGORY: Skill
+:END:
+
+The miss rate (63713df3) is a floor: it counts what a hook or a tool caught, and the misses the user catches in conversation — the ones the drift analysis is about — reach no file. Decided by the user 2026-09-21: each kind of miss gets a child heading here, and a catch is answered by one dated body line amended onto the matching child, naming what happened. "Capture or amend" therefore dissolves to amend; a kind nothing covers goes on the catch-all child until it earns its own. A child closes when its rule has been moved out of recall.
+** TODO Miss: a tracked :ID: cited with no end-matter entry, or with a recalled title or keyword
+:PROPERTIES:
+:ID:       e74ca757-5e2f-4a9c-b97b-4af9164bce9d
+:CREATED:  [2026-09-21 Mon 08:45]
+:MISS_RULE: footnote
+:END:
+
+Hook-backed (footnote-check, rule =footnote=), but the hook reads only a turn's final text block, so a catch by the user is still possible and is logged here. One dated line per catch.
+** TODO Miss: tracked work done under no clock, the wrong clock, or a clock closed before the work ended
+:PROPERTIES:
+:ID:       a4005ebc-8be7-4def-b551-2911020333a9
+:CREATED:  [2026-09-21 Mon 08:45]
+:MISS_RULE: clock-target
+:END:
+
+Hook-backed only for the no-clock case (clock-target-check, rule =clock-target=). First instance of the third case 2026-09-19: a mid-turn clock_out left seven minutes of commits in no run at all (b09aca60). One dated line per catch.
+** TODO Miss: a heading filed, or offered, without first searching for the one that already holds it
+:PROPERTIES:
+:ID:       11c580f6-e7b9-4167-aa8b-42d77a71c8d9
+:CREATED:  [2026-09-21 Mon 08:45]
+:MISS_RULE: duplicate-check
+:END:
+
+The transcript that started the drift slice: a session offered to file a defect bbf9fb77 already held, and could recite the rule. Closes when org_capture runs the query itself (c8773ec2). One dated line per catch.
+** TODO Miss: an identifier written from memory instead of looked up
+:PROPERTIES:
+:ID:       8f075f78-686d-4a24-ae7f-74cbf20cb906
+:CREATED:  [2026-09-21 Mon 08:45]
+:MISS_RULE: id-from-memory
+:END:
+
+UUIDs, SHAs, titles, keywords. Tool-backed where a tool resolves the id: on 2026-09-21 org_amend refused a full UUID padded out from a remembered prefix, which was the miss counter's first event. A recalled title or a wrong SHA has no backstop. One dated line per catch.
+** TODO Miss: a commit that swept in a change its message does not describe
+:PROPERTIES:
+:ID:       128af16f-4284-4c40-8935-36c906b80349
+:CREATED:  [2026-09-21 Mon 08:45]
+:MISS_RULE: unchecked-commit
+:END:
+
+The standing rule is to read git diff --stat before committing a file someone else may have touched. Third instance 2026-09-21: a filing commit ran the stat and the commit in one command and swept the user's apply pass under its message; split afterwards at the user's direction. Closes when pre-commit refuses an apply-shaped org diff under any other message. One dated line per catch.
+** TODO Miss: work committed to the wrong branch, or to one already merged
+:PROPERTIES:
+:ID:       fb995c2f-d923-4f95-9bf9-e4c252980369
+:CREATED:  [2026-09-21 Mon 08:45]
+:MISS_RULE: wrong-branch
+:END:
+
+Found 2026-09-19 as a leftover branch: on 2026-09-17 a session committed twice to feature/span-owner-edges after PR #26 had merged it, then cherry-picked to main and left the originals. Also covers org bookkeeping on a stale branch. Closes when pre-commit refuses a branch already contained in origin/main. One dated line per catch.
+** TODO Miss: an org act performed before reading the convention that governs it
+:PROPERTIES:
+:ID:       d606eaff-8cde-4c21-94ab-2d4115200ff9
+:CREATED:  [2026-09-21 Mon 08:45]
+:MISS_RULE: convention-unread
+:END:
+
+The conventions are path-scoped and tool-driven work never loads them (436e0991). Two instances 2026-09-19, both self-caught after the new pointer notice: four orgit-rev links written in path form, and a debrief left in a body at REVIEW. One dated line per catch.
+** TODO Miss: a prediction or a claim about state reported as fact without checking the artifact
+:PROPERTIES:
+:ID:       cf617ecd-81d7-4ca1-b3bb-60a088ecabde
+:CREATED:  [2026-09-21 Mon 08:45]
+:MISS_RULE: unverified-claim
+:END:
+
+CLAUDE.md's own opening names this as the largest source of wrong claims. Caught by the user 2026-09-21: "will reach review UNASSIGNED" was predicted twice and was false — the stretch reached review as nothing (b09aca60). Same session, self-corrected: "needs a new session" for a hook row the docs say reloads live, and a classifier escape hatch the docs do not list. Judgement, so it likely never closes; the count is the point. One dated line per catch.
+** TODO Miss: a heading closed with its unfinished part left in prose, or its group left un-nominated
+:PROPERTIES:
+:ID:       906477b8-1bdc-491e-a4ce-b9b77d56624d
+:CREATED:  [2026-09-21 Mon 08:45]
+:MISS_RULE: residue-unfiled
+:END:
+
+The residue rule and the nomination rule, which fail at the same moment. The standing instance is aa1ba915, closed with its gap described as belonging to a heading that was never told. Detection of an un-nominated group can move into org_set_todo's reply; what to file stays judgement. One dated line per catch.
+** TODO Miss: a hook's injected question or notice that never reached the user
+:PROPERTIES:
+:ID:       d852e36e-19cf-4633-8569-8a906d8aa4c3
+:CREATED:  [2026-09-21 Mon 08:45]
+:MISS_RULE: context-not-relayed
+:END:
+
+Measured once at 15 relays in 24 session starts (c5b02503), which is why the ceremony report gained a systemMessage. Instance 2026-09-21: the ceremony question arrived at session start and was not relayed; the user got it from the systemMessage anyway. One dated line per catch.
+** TODO Miss: a kind nothing here covers yet
+:PROPERTIES:
+:ID:       59861867-e807-43a8-a0fa-5ca227167022
+:CREATED:  [2026-09-21 Mon 08:45]
+:MISS_RULE: uncategorised
+:END:
+
+The catch-all, so that answering a catch is always an amend and never a decision about filing. One dated line per catch, naming the rule missed. When the same rule appears here a second time it earns its own sibling, and these lines move with it.
+
 * TODO Work after a mid-turn clock_out belongs to no run, so it reaches review as nothing at all rather than UNASSIGNED :code:observed:
 :PROPERTIES:
 :ID:       b09aca60-127b-47a4-9177-a86ac90d8fac
