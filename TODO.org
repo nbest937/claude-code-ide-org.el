@@ -33,6 +33,7 @@ at 11:38, 13:56 and 14:34, and those three were applied as CLOCK lines
 into the DONE heading's LOGBOOK. The queue still offers two more, at 14:44
 and 15:26. The same shape was sighted that morning at 10:52 and not filed.
 
+
 * TODO org_wrap_plan saves a buffer holding the human's unsaved edits, where org_amend would queue and org_slice_add_member refuses
 :PROPERTIES:
 :ID:       60d6ab6e-a898-4894-82be-9f6086daf62d
@@ -62,6 +63,7 @@ did not save. A session's =org_wrap_plan= on b52df20b saved the buffer,
 and the reflow landed in that session's commit ffc67a7 under a message
 about b52df20b. Nothing was lost, but only by luck. Refuse on unsaved
 edits, as the other structural writers do.
+
 
 * TODO The member-drawer backfill clause is scaffolding: once every open heading has its canonical shape, the lint should require it and the clause retire
 :PROPERTIES:
@@ -324,8 +326,6 @@ CLAUDE.md's own opening names this as the largest source of wrong claims. Caught
   Width checks now skip list items.
 
 
-
-
 ** TODO Miss: a heading closed with its unfinished part left in prose, or its group left un-nominated
 :PROPERTIES:
 :ID:       906477b8-1bdc-491e-a4ce-b9b77d56624d
@@ -357,7 +357,6 @@ The catch-all, so that answering a catch is always an amend and never a decision
 
 - [2026-09-21 Mon] Self-caught from =org_pending_updates=: missed the rule "=org_clock_out= is the last call of the turn". The session clocked out after committing, then read six member bodies and answered, so 11:52–12:13 reached review UNASSIGNED. b09aca60's fix is what made the miss visible at all; before 2026-09-21 it would have reached review as nothing.
 - [2026-09-21 Mon] Caught by the user: "why the bare list item there? it looks like the beginning of a journal by date rather than a plan … I expect the plan to be bigger than the body." The session's own SOP said to append decisions to a member's =:PLAN:= "as =Decided <date> (<who>): …=", and it wrote them as dated list items in six drawers, turning the design doc into a journal. That contradicts the always-loaded rule that the drawer is the design doc and the body the journal. It was recited, and missed while the session wrote the rule that broke it. The SOP now folds decisions into the plan's prose.
-
 
 
 * DONE Work after a mid-turn clock_out belongs to no run, so it reaches review as nothing at all rather than UNASSIGNED :code:observed:
@@ -434,6 +433,7 @@ can sit red through a merge with nobody seeing.
 
 Also noticed, not fixed: =claude-org-setup --check= reads the real
 =~/.config/doom=, so its suite is not hermetic.
+
 
 * TODO sync-plans reads any mention of a plan filename as a link, so prose naming an orphan re-links it :code:observed:
 :PROPERTIES:
@@ -1059,6 +1059,8 @@ CLOCK: [2026-09-21 Mon 11:38]--[2026-09-21 Mon 11:40] =>  0:02
 - [2026-09-21 Mon 13:26]--[2026-09-21 Mon 13:28] measure title-token overlap on the corpus
 - [2026-09-21 Mon 13:56]--[2026-09-21 Mon 13:56] measure title-token overlap on the corpus
 - [2026-09-21 Mon 14:34]--[2026-09-21 Mon 14:34] measure title-token overlap on the corpus
+- [2026-09-21 Mon 14:44]--[2026-09-21 Mon 14:44] measure title-token overlap on the corpus
+- [2026-09-21 Mon 15:26]--[2026-09-21 Mon 15:28] measure title-token overlap on the corpus
 :END:
 :DEBRIEF:
 Shipped in [[orgit-rev:claude-code-ide-org::4a9387b][4a9387b]]. *Measured before anything was chosen,* as the plan asked, leave-one-out over the 563 scorable titles in this tracker. Plain Jaccard was useless here — titles are whole claims, and the known duplicate pair scored 0.27. The score adopted is the idf-weighted share of the *new* title's tokens found in the candidate, at least two shared: asymmetric on purpose, because the question is "is this already said", not "are these alike". At 0.4, 43 headings (7.6%) would have been shown a candidate; at 0.5, 16, about eleven of them true relatives; the known pair scores 0.59 one way and 0.32 the other.
@@ -2947,6 +2949,7 @@ corpus, so a wrong-language query costs real work downstream.
 - Blocking e28933e9 on this. The block rested on the dropped-predicate
   claim and was lifted when the claim fell.
 
+
 * TODO The re-key bridge reads transcripts Claude Code prunes, so the alias decays silently :code:
 :PROPERTIES:
 :ID:       4acd8ad0-4d26-420b-bf84-f66ae8a9dfc5
@@ -3279,7 +3282,6 @@ share of headings with a line over 300 characters rose from 20% to 46%
 between July and September. Fill paragraphs in the write path, and
 leave list items, tables and blocks untouched, so the property holds
 whoever sends the text.
-
 
 
 * WAITING Adopt the plugin in agentic-euchre, so the two projects stop being worked in parallel :code:
@@ -3616,6 +3618,10 @@ the hook must compare something other than its mtime. Introduced with
 :ID:       965f94eb-1558-4d00-9857-5727eb86fe6f
 :CREATED:  [2026-09-11 Fri 15:45]
 :CATEGORY: Tools
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-21 Mon 15:28]--[2026-09-21 Mon 15:29] =>  0:01
+- [2026-09-21 Mon 15:28]--[2026-09-21 Mon 15:29] re-scope to the basename collision
 :END:
 :PLAN:
 The fix still needs choosing: a session id that stays unique when two repos
@@ -6315,6 +6321,10 @@ CLOCK: [2026-09-21 Mon 12:28]--[2026-09-21 Mon 12:29] =>  0:01
 - [2026-09-21 Mon 12:28]--[2026-09-21 Mon 12:29] assigned at review
 CLOCK: [2026-09-21 Mon 12:39]--[2026-09-21 Mon 12:40] =>  0:01
 - [2026-09-21 Mon 12:39]--[2026-09-21 Mon 12:40] assigned at review
+CLOCK: [2026-09-21 Mon 16:02]--[2026-09-21 Mon 16:04] =>  0:02
+- [2026-09-21 Mon 16:02]--[2026-09-21 Mon 16:04] assigned at review
+CLOCK: [2026-09-21 Mon 16:04]--[2026-09-21 Mon 16:05] =>  0:01
+- [2026-09-21 Mon 16:04]--[2026-09-21 Mon 16:05] move members' proposals into their drawers
 :END:
 
 *The theme, briefly, in place of a plan — the full prompt comes later.* The
@@ -6618,6 +6628,7 @@ visible, so its absence from reports is not evidence of absence.
   prompt would only have been a second copy.
 - =symbol-file= as the check: it tells which file was loaded, never
   which version, so it passes the older-load shape.
+
 
 * TODO [2/7] Sixty minutes holding 2 turns is not sixty holding 40
 :PROPERTIES:
@@ -7454,6 +7465,7 @@ failure looks partial.
   46d225c7 as dead. A synthetic event carries no =tool_response= to
   recover =from= from, so the staleness check would go blind on exactly
   the events written when the system is least healthy.
+
 
 * TODO An archive pass wrote one subtree twice, and the mechanism is still unknown :code:
 :PROPERTIES:
@@ -9699,6 +9711,7 @@ until a mechanism prevents it, so this gates concurrent work generally.
   tells the sweep apart from a pathspec commit, so no ownership state
   is needed.
 
+
 * TODO Read power assertions as a review-time attribution signal :code:research:
 :PROPERTIES:
 :CATEGORY: Queue
@@ -11732,6 +11745,7 @@ call it done.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-21 Mon 16:29]--[2026-09-21 Mon 16:32] =>  0:03
 CLOCK: [2026-09-21 Mon 15:22]--[2026-09-21 Mon 15:24] =>  0:02
 CLOCK: [2026-09-21 Mon 13:57]--[2026-09-21 Mon 14:04] =>  0:07
 CLOCK: [2026-09-21 Mon 13:26]--[2026-09-21 Mon 13:27] =>  0:01
@@ -12906,4 +12920,38 @@ CLOCK: [2026-09-21 Mon 14:36]--[2026-09-21 Mon 14:37] =>  0:01
 - [2026-09-21 Mon 14:36]--[2026-09-21 Mon 14:37] cancel 0175f154, close 165ce65a and 33c3eabc
 CLOCK: [2026-09-21 Mon 14:37]--[2026-09-21 Mon 14:38] =>  0:01
 - [2026-09-21 Mon 14:37]--[2026-09-21 Mon 14:38] record the unwrapped-body miss; fix the SOP clause
+CLOCK: [2026-09-21 Mon 15:28]--[2026-09-21 Mon 15:29] =>  0:01
+- [2026-09-21 Mon 15:28]--[2026-09-21 Mon 15:29] check the user's reflow; sweep for unfilled prose
+CLOCK: [2026-09-21 Mon 15:35]--[2026-09-21 Mon 15:36] =>  0:01
+- [2026-09-21 Mon 15:35]--[2026-09-21 Mon 15:36] assigned at review
+CLOCK: [2026-09-21 Mon 15:36]--[2026-09-21 Mon 15:37] =>  0:01
+- [2026-09-21 Mon 15:36]--[2026-09-21 Mon 15:37] record the fill-sweep miss; commit the user's list fix
+CLOCK: [2026-09-21 Mon 15:37]--[2026-09-21 Mon 15:38] =>  0:01
+- [2026-09-21 Mon 15:37]--[2026-09-21 Mon 15:38] assigned at review
+CLOCK: [2026-09-21 Mon 15:38]--[2026-09-21 Mon 15:39] =>  0:01
+- [2026-09-21 Mon 15:38]--[2026-09-21 Mon 15:39] assigned at review
+CLOCK: [2026-09-21 Mon 15:46]--[2026-09-21 Mon 15:48] =>  0:02
+- [2026-09-21 Mon 15:46]--[2026-09-21 Mon 15:48] assigned at review
+CLOCK: [2026-09-21 Mon 15:49]--[2026-09-21 Mon 15:50] =>  0:01
+- [2026-09-21 Mon 15:49]--[2026-09-21 Mon 15:50] retire the next-session revision-link practice
+CLOCK: [2026-09-21 Mon 15:50]--[2026-09-21 Mon 15:51] =>  0:01
+- [2026-09-21 Mon 15:50]--[2026-09-21 Mon 15:51] assigned at review
+CLOCK: [2026-09-21 Mon 15:57]--[2026-09-21 Mon 15:58] =>  0:01
+- [2026-09-21 Mon 15:57]--[2026-09-21 Mon 15:58] assigned at review
+CLOCK: [2026-09-21 Mon 16:00]--[2026-09-21 Mon 16:02] =>  0:02
+- [2026-09-21 Mon 16:00]--[2026-09-21 Mon 16:02] add b52df20b to 8a2e; fix the plan-drawer shape
+CLOCK: [2026-09-21 Mon 16:04]--[2026-09-21 Mon 16:08] =>  0:04
+- [2026-09-21 Mon 16:04]--[2026-09-21 Mon 16:08] move members' proposals into their drawers
+CLOCK: [2026-09-21 Mon 16:08]--[2026-09-21 Mon 16:09] =>  0:01
+- [2026-09-21 Mon 16:08]--[2026-09-21 Mon 16:09] assigned at review
+CLOCK: [2026-09-21 Mon 16:10]--[2026-09-21 Mon 16:11] =>  0:01
+- [2026-09-21 Mon 16:10]--[2026-09-21 Mon 16:11] assigned at review
+CLOCK: [2026-09-21 Mon 16:11]--[2026-09-21 Mon 16:12] =>  0:01
+- [2026-09-21 Mon 16:11]--[2026-09-21 Mon 16:12] file the recurring c8773ec2 phantom span
+CLOCK: [2026-09-21 Mon 16:12]--[2026-09-21 Mon 16:13] =>  0:01
+- [2026-09-21 Mon 16:12]--[2026-09-21 Mon 16:13] assigned at review
+CLOCK: [2026-09-21 Mon 16:16]--[2026-09-21 Mon 16:18] =>  0:02
+- [2026-09-21 Mon 16:16]--[2026-09-21 Mon 16:18] assigned at review
+CLOCK: [2026-09-21 Mon 16:18]--[2026-09-21 Mon 16:23] =>  0:05
+- [2026-09-21 Mon 16:18]--[2026-09-21 Mon 16:23] body as record, not journal; condense six bodies
 :END:
