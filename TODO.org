@@ -161,7 +161,6 @@ Hook-backed only for the no-clock case (clock-target-check, rule =clock-target=)
 - [2026-09-21 Mon] Self-caught: the turn that nested de6de108's children in 8a2eb687 edited =TODO.org= (a hand deletion and six member adds) before any =org_clock_in=. The clock-in came after the writes, so the work reaches review unassigned. =clock-target-check= did not fire, because it nags once per session and this session had long since been nagged. That is the sentinel limit 63713df3 was filed about.
 
 
-
 ** TODO Miss: a heading filed, or offered, without first searching for the one that already holds it
 :PROPERTIES:
 :ID:       11c580f6-e7b9-4167-aa8b-42d77a71c8d9
@@ -212,7 +211,6 @@ Found 2026-09-19 as a leftover branch: on 2026-09-17 a session committed twice t
 The conventions are path-scoped and tool-driven work never loads them (436e0991). Two instances 2026-09-19, both self-caught after the new pointer notice: four orgit-rev links written in path form, and a debrief left in a body at REVIEW. One dated line per catch.
 
 - [2026-09-21 Mon] Caught by the user: "per our convention 8a2e should list all of the children of de6d indented below itself". The session added story de6de108 to slice 8a2eb687 as a single line and never read "When a member is a story, its relevant children get indented member lines beneath it" (conventions, Slices). It read the section only after the catch. The same turn had already read "Dropping a member" before acting, so the reading happened for the act it expected and not for the one it performed.
-
 
 
 ** TODO Miss: a prediction or a claim about state reported as fact without checking the artifact
@@ -480,6 +478,8 @@ CLOCK: [2026-09-21 Mon 08:13]--[2026-09-21 Mon 08:16] =>  0:03
 - [2026-09-21 Mon 08:13]--[2026-09-21 Mon 08:16] assigned at review
 CLOCK: [2026-09-21 Mon 08:20]--[2026-09-21 Mon 08:26] =>  0:06
 - [2026-09-21 Mon 08:20]--[2026-09-21 Mon 08:26] assigned at review
+CLOCK: [2026-09-21 Mon 13:43]--[2026-09-21 Mon 13:46] =>  0:03
+- [2026-09-21 Mon 13:43]--[2026-09-21 Mon 13:46] assigned at review
 :END:
 :PLAN:
 Composed 2026-09-19 at the user's direction from the convention-drift
@@ -528,7 +528,7 @@ member; both are evidence for the first one.
 Planned:
 
 - [-] [[id:63713df3-4ed9-42be-b971-8ac4485e76c2][63713df3]] REVIEW "Forgets frequently" has no number: the only recorded misses are once-per-session sentinels, so the rate cannot be seen or shown to fall
-- [-] [[id:436e0991-c8ac-40fb-860d-a6c4c381bee5][436e0991]] DOING Path-scoped rules load on a Read, which the org tools exist to replace, so the conventions load only on the discouraged path
+- [-] [[id:436e0991-c8ac-40fb-860d-a6c4c381bee5][436e0991]] REVIEW Path-scoped rules load on a Read, which the org tools exist to replace, so the conventions load only on the discouraged path
 - [X] [[id:1b69fe4e-3dab-4b11-b21b-96320bf9d4e0][1b69fe4e]] DONE org-time-tracking.md promotes with no path scope, so a consumer with the feature off loads 260 lines about it every session
 - [X] [[id:bf7e0b8e-f83a-4d4a-9950-3ab23a225156][bf7e0b8e]] DONE The always-loaded surface is 1,573 lines, and the split that shrank CLAUDE.md is what grew it
 - [X] [[id:3cd7b7d3-25eb-4f30-ae90-9174a6876674][3cd7b7d3]] DONE Audit the always-loaded rules for clauses a hook could enforce, since prose recall is what fails
@@ -546,7 +546,6 @@ Incidental:
 - *The miss rate is a baseline, not yet a fall.* Every day before 2026-09-21 reads zero across 49 sessions because nothing counted, so it is an absent instrument and not a zero. On the first counted day =bin/miss-rate= reported 29 misses in 1 of 2 sessions, and 25 of those were not the agent's. 24 were the hook suites' own deliberately provoked refusals, leaking into the calling session's queue through the inherited =CLAUDE_CODE_SESSION_ID=; that is fixed in [[orgit-rev:claude-code-ide-org::bc23c76][bc23c76]], and a full run now leaves the count unchanged. The 25th was a deliberate live check of =generated-guard=. That leaves 4 genuine misses: a fabricated =:ID:= that =org_amend= refused (counted under the pre-narrowing slug =refusal:org_amend=), one footnote block, and two =caught:unverified-claim=, one from the user and one self-caught.
 - *The number this slice exists for* is due 2026-10-12 on [[id:158d7e80-6d72-4518-a804-d8abf2e7e693][158d7e80]]: three weeks of counted sessions, read by rule, against this baseline of 4 genuine misses in one long session.
 - [2026-09-21 Mon] At the user's direction, the 24 leaked test-fixture misses were deleted from this session's queue file. These were the four =bin/git-guards-test= runs between 10:56 and 11:29, each line checked to be a =miss= before removal, with a backup kept in the session scratchpad. =bin/miss-rate= now reads 9 for the day. Eight are genuine (among them the footnote block on =ccfd89ce= and three later catches), and one is the deliberate 09:28 =generated-guard= check, which was kept. So the 2026-10-12 reading starts from a clean baseline of 8 genuine misses in one session.
-
 
 
 * REVIEW "Forgets frequently" has no number: the only recorded misses are once-per-session sentinels, so the rate cannot be seen or shown to fall :code:research:
@@ -589,6 +588,8 @@ CLOCK: [2026-09-21 Mon 11:15]--[2026-09-21 Mon 11:16] =>  0:01
 - [2026-09-21 Mon 11:15]--[2026-09-21 Mon 11:16] suggested span, accepted at review
 CLOCK: [2026-09-21 Mon 11:24]--[2026-09-21 Mon 11:25] =>  0:01
 - [2026-09-21 Mon 11:24]--[2026-09-21 Mon 11:25] suggested span, accepted at review
+CLOCK: [2026-09-21 Mon 13:46]--[2026-09-21 Mon 13:47] =>  0:01
+- [2026-09-21 Mon 13:46]--[2026-09-21 Mon 13:47] record an unrecorded self-caught miss
 :END:
 :PLAN:
 *Why this is a separate heading from the mechanisms.* The user's report is
@@ -652,7 +653,7 @@ The drift analysis's thrust is to make the agent stop forgetting; every heading 
 *The open question dissolved 2026-09-21:* the user had a story filed with one heading per kind of miss ([[id:158d7e80-6d72-4518-a804-d8abf2e7e693][158d7e80]]), so answering a catch is always an amend, and a body amend onto a =:MISS_RULE:= heading is counted as =caught:<slug>=. First counted catch the same day.
 
 
-* DOING Path-scoped rules load on a Read, which the org tools exist to replace, so the conventions load only on the discouraged path :code:observed:
+* REVIEW Path-scoped rules load on a Read, which the org tools exist to replace, so the conventions load only on the discouraged path :code:observed:
 :PROPERTIES:
 :ID:       436e0991-c8ac-40fb-860d-a6c4c381bee5
 :CREATED:  [2026-09-19 Sat 09:08]
@@ -665,6 +666,20 @@ CLOCK: [2026-09-19 Sat 16:35]--[2026-09-19 Sat 16:39] =>  0:04
 - State "DOING"      from "NEXT"       [2026-09-19 Sat 16:35] \\
   starting the load-path remedy
 - [2026-09-19 Sat 16:35]--[2026-09-19 Sat 16:39] inject conventions on first org tool call
+CLOCK: [2026-09-21 Mon 13:47]--[2026-09-21 Mon 13:48] =>  0:01
+- [2026-09-21 Mon 13:47]--[2026-09-21 Mon 13:48] assigned at review
+CLOCK: [2026-09-21 Mon 13:48]--[2026-09-21 Mon 13:50] =>  0:02
+- [2026-09-21 Mon 13:48]--[2026-09-21 Mon 13:50] delete the 24 leaked test misses
+CLOCK: [2026-09-21 Mon 13:50]--[2026-09-21 Mon 13:52] =>  0:02
+- [2026-09-21 Mon 13:50]--[2026-09-21 Mon 13:52] assigned at review
+CLOCK: [2026-09-21 Mon 13:52]--[2026-09-21 Mon 13:53] =>  0:01
+- [2026-09-21 Mon 13:52]--[2026-09-21 Mon 13:53] record the fresh-session tools-only verification
+CLOCK: [2026-09-21 Mon 13:53]--[2026-09-21 Mon 13:55] =>  0:02
+- [2026-09-21 Mon 13:53]--[2026-09-21 Mon 13:55] assigned at review
+- State "REVIEW"     from "DOING"      [2026-09-21 Mon 13:55] \\
+  fresh-session tools-only check passed; consumer via 2b8930da
+CLOCK: [2026-09-21 Mon 13:55]--[2026-09-21 Mon 13:56] =>  0:01
+- [2026-09-21 Mon 13:55]--[2026-09-21 Mon 13:56] verify and record 436e0991's fresh-session check
 :END:
 :PLAN:
 *What "open" means, from the Claude Code memory docs, fetched 2026-09-19:*
@@ -730,7 +745,6 @@ decided with it; 1 is the cheap interim.
 *Not done:* the honest re-run of [[id:befaed0a-18ed-445e-b997-8b9c2965ad45][befaed0a]]'s verification — a *fresh* session using only the tools — needs a session that is not this one. Remedy 3 (rules riding on tool replies) is [[id:3cd7b7d3-25eb-4f30-ae90-9174a6876674][3cd7b7d3]]'s. Whether a consumer install receives the notice is unverified; the fallback path is tested only against a fixture.
 
 *The fresh-session re-run, done 2026-09-21: it passed.* This was a new session that never Read an =.org= file. At launch its context held neither =org-conventions.md= nor =org-conventions-local.md=, which is the failure this heading describes, reproduced. Its first =org_*= call was =org_body=, a read-only tool rather than =org_pending_updates=, and it carried the notice: both files, their line counts and their section lists. The second call, =org_outline=, carried no notice, so the once-per-session guard holds. The check covers delivery only. Whether a session goes on to Read the section that governs the act is the injected-context tier's weakness and is unchanged. The one item still open is the consumer install.
-
 
 
 * DONE Nothing bounds the always-loaded rule surface, so every new rule is free at the point of writing :code:
@@ -907,6 +921,7 @@ CLOCK: [2026-09-21 Mon 10:52]--[2026-09-21 Mon 10:53] =>  0:01
 CLOCK: [2026-09-21 Mon 11:38]--[2026-09-21 Mon 11:40] =>  0:02
 - [2026-09-21 Mon 11:38]--[2026-09-21 Mon 11:40] measure title-token overlap on the corpus
 - [2026-09-21 Mon 12:34]--[2026-09-21 Mon 12:34] measure title-token overlap on the corpus
+- [2026-09-21 Mon 13:26]--[2026-09-21 Mon 13:28] measure title-token overlap on the corpus
 :END:
 :DEBRIEF:
 Shipped in [[orgit-rev:claude-code-ide-org::4a9387b][4a9387b]]. *Measured before anything was chosen,* as the plan asked, leave-one-out over the 563 scorable titles in this tracker. Plain Jaccard was useless here — titles are whole claims, and the known duplicate pair scored 0.27. The score adopted is the idf-weighted share of the *new* title's tokens found in the candidate, at least two shared: asymmetric on purpose, because the question is "is this already said", not "are these alike". At 0.4, 43 headings (7.6%) would have been shown a candidate; at 0.5, 16, about eleven of them true relatives; the known pair scores 0.59 one way and 0.32 the other.
@@ -2010,7 +2025,6 @@ Decision: none. The measurement decides.
 =footnote-check= reads =last_assistant_message=, which is only the turn's final text block, so footnote debt in any earlier block passes unseen. Measure how often that happens. If it happens at all, scan every text block of the turn from the transcript.
 
 
-
 ** TODO A heading discussed by subject and never by id owes a citation no token scan can see
 :PROPERTIES:
 :ID:       eadb3607-aa3d-41ee-b8cc-e293cc924f26
@@ -2030,7 +2044,6 @@ Decision (user): the adjudication in step 2. Everything before it is the session
 :END:
 
 A response can discuss a heading by subject and never write its id. It then owes a citation that no token scan detects. Verbatim uncited discussion measured zero in 314 responses, and the paraphrased kind has never been measured. Settle it with one adjudicated sample, and build only if a case is confirmed.
-
 
 
 * MAYBE Revisit building the footnote block with org-ql or the agenda, once Emacs stops wedging :research:
@@ -6217,7 +6230,6 @@ identifiable to any writer rather than adding a guard per writer.
 *2a6a1355 replaced by its parent story de6de108, 2026-09-21, at the user's direction.* The member should always have been the story, since 2a6a1355 is the child left behind when its causes were divided out on 2026-09-17. The two causes it still named without a heading were filed as siblings (c247d8f3, eadb3607). Every child now has a =:PLAN:= drawer, and the user committed de6de108 to close within this slice. 2a6a1355 is in =:DROPPED:= as moved, and its line stays.
 
 *Also found:* =:DROPPED:= has held =4acd8ad0= since 2026-09-17, but as an 8-character prefix, and the refresh ignores it. The member kept its checkbox and its place in the =:BLOCKER:=. The full id added the same day dropped correctly. This is 25e7b083's silent shape in a fourth place. The value is left as found.
-
 
 
 * TODO Report worked headings that carry no clock interval that day :code:
@@ -11713,6 +11725,7 @@ call it done.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-21 Mon 13:57]--[2026-09-21 Mon 14:04] =>  0:07
 CLOCK: [2026-09-21 Mon 13:26]--[2026-09-21 Mon 13:27] =>  0:01
 CLOCK: [2026-09-21 Mon 12:32]--[2026-09-21 Mon 12:34] =>  0:02
 CLOCK: [2026-09-21 Mon 11:32]--[2026-09-21 Mon 11:33] =>  0:01
@@ -12866,4 +12879,19 @@ CLOCK: [2026-09-21 Mon 13:23]--[2026-09-21 Mon 13:24] =>  0:01
 - [2026-09-21 Mon 13:23]--[2026-09-21 Mon 13:24] adopt the member-plan SOP; 8a2e decisions
 CLOCK: [2026-09-21 Mon 13:25]--[2026-09-21 Mon 13:26] =>  0:01
 - [2026-09-21 Mon 13:25]--[2026-09-21 Mon 13:26] adopt the member-plan SOP; 8a2e decisions
+CLOCK: [2026-09-21 Mon 13:28]--[2026-09-21 Mon 13:31] =>  0:03
+- [2026-09-21 Mon 13:28]--[2026-09-21 Mon 13:31] record 8a2e decisions, plan de6d's children
+CLOCK: [2026-09-21 Mon 13:37]--[2026-09-21 Mon 13:39] =>  0:02
+- [2026-09-21 Mon 13:37]--[2026-09-21 Mon 13:39] assigned at review
+CLOCK: [2026-09-21 Mon 13:39]--[2026-09-21 Mon 13:40] =>  0:01
+- [2026-09-21 Mon 13:39]--[2026-09-21 Mon 13:39] nest de6d's children in 8a2e (late clock-in)
+- <2026-09-21 Mon 13:39>--<2026-09-21 Mon 13:40> assigned at review
+CLOCK: [2026-09-21 Mon 13:40]--[2026-09-21 Mon 13:41] =>  0:01
+- [2026-09-21 Mon 13:40]--[2026-09-21 Mon 13:41] unfile dea171a4 at the user's direction
+CLOCK: [2026-09-21 Mon 13:41]--[2026-09-21 Mon 13:42] =>  0:01
+- [2026-09-21 Mon 13:41]--[2026-09-21 Mon 13:42] assigned at review
+CLOCK: [2026-09-21 Mon 13:43]--[2026-09-21 Mon 13:44] =>  0:01
+- [2026-09-21 Mon 13:43]--[2026-09-21 Mon 13:44] assigned at review
+CLOCK: [2026-09-21 Mon 13:44]--[2026-09-21 Mon 13:45] =>  0:01
+- [2026-09-21 Mon 13:44]--[2026-09-21 Mon 13:45] make the 4acd8ad0 drop take effect
 :END:
