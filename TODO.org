@@ -8,36 +8,137 @@
 :CREATED:  [2026-09-21 Mon 17:38]
 :CATEGORY: Dev
 :END:
+:DEBRIEF:
+The guard exports the staged =bin/claude-org-setup=, the references, the
+promoted copies and =.claude/settings.json= to a scratch tree with
+=git checkout-index=, then runs =--check= there. The settings file matters
+because it decides whether the time file is promoted. Two cases were
+added, one per direction, both red before the change; the suite is 32/32
+after, and this repo's own staged state checks clean.
+:END:
+
+The rule-copy drift guard ran =claude-org-setup --check= on the working
+tree, so a reference staged without its re-promoted copy committed out of
+step, and an unstaged edit blocked unrelated commits. Found by the PR #29
+review.
+
+*Resolved 2026-09-21:* the guard checks a snapshot of the index.
+
 * TODO The catch attribution reads every line of a note, so user: and self: on two lines make a bogus rule
 :PROPERTIES:
 :ID:       de2e377a-8c92-410b-9109-8aa7e244f3c9
 :CREATED:  [2026-09-21 Mon 17:38]
 :CATEGORY: Queue
 :END:
+:DEBRIEF:
+=queue-append= pipes =head -n 1= of the note before the case fold and the
+=sed=. =bin/queue-append-test= gained a two-line note, =user:= then
+=self:=, which must attribute to the user. It was red before the change,
+and the suite is green after.
+:END:
+
+The catch attribution read every line of an amend's note, so =user:= and
+=self:= on separate lines made the rule =caught:<slug>/user\nself=, which
+both readers counted as a rule of its own. Found by the PR #29 review.
+
+*Resolved 2026-09-21:* only the note's first line decides.
+
 * TODO A local merge on main that stops on conflicts is concluded with git commit, which pre-merge-commit never sees
 :PROPERTIES:
 :ID:       a72a0d63-ab44-45df-b832-c8fc38f2c43e
 :CREATED:  [2026-09-21 Mon 17:38]
 :CATEGORY: Dev
 :END:
+:DEBRIEF:
+=pre-merge-commit= already tests =MERGE_HEAD=, being on main, and the
+catch-up exemption, so the guard only has to call it. The two hooks never
+both run for one commit, so no refusal is counted twice.
+=bin/git-guards-test= gained the case with a =--no-commit= merge, which
+leaves the state a conflicted merge does. It was red before the change,
+and the suite is 30/30 after.
+:END:
+
+A merge on main that stops on conflicts is finished with =git commit=,
+which runs =pre-commit= and never =pre-merge-commit=, so the local-merge
+refusal was skipped. Found by the PR #29 review.
+
+*Resolved 2026-09-21:* =pre-commit-guards= calls =pre-merge-commit=, so
+the refusal covers both ways a merge commit is made.
+
 * TODO A queue file holding only miss and session lines is archived as drained, and its misses leave the count
 :PROPERTIES:
 :ID:       fd7d9715-860c-4082-853d-fa27b09045e3
 :CREATED:  [2026-09-21 Mon 17:38]
 :CATEGORY: Queue
 :END:
+:DEBRIEF:
+Both readers append =archive/*.jsonl= to what they scan. =restore-queue=
+moves a file back rather than copying it, so no line is read twice. Each
+reader gained a case with a miss that lives only in =archive/=, and both
+were red before the change. It matters for the 2026-10-12 reading on
+158d7e80: without it, every quiet session would drop out of both the
+count and the denominator as soon as the ceremony archived it.
+:END:
+
+A queue file holding only =miss= and =session= lines yields no review
+items, so once idle the ceremony archives it as drained, and both miss
+readers scanned only the top-level queue directory. Found by the PR #29
+review.
+
+*Resolved 2026-09-21:* =bin/miss-rate= and =--miss-counts= now read
+=archive/= as well.
+
 * TODO A deferred amend or capture is applied without the block-headline escaping the direct write gets
 :PROPERTIES:
 :ID:       00aa6a85-fcd1-4343-82c4-5430c3483dbb
 :CREATED:  [2026-09-21 Mon 17:38]
 :CATEGORY: Tools
 :END:
+:DEBRIEF:
+=--review-apply-amend= escapes the item's text and =--review-apply-capture=
+its note, using =--escape-block-headlines=, which is idempotent, so text
+already escaped is unchanged. A new test drives both apply functions with
+a raw =* Fake= inside an example block. It failed against the previous
+code and passes after, 712/712, and the live image was reloaded and
+checked. My first version of the test used =how-many= on a string, which
+it does not take, and that was caught because it failed after the fix.
+:END:
+
+The block-headline escaping ran only on the direct write. The queue holds
+the tool's raw input, so a deferred amend or capture inserted a raw =* =
+line inside a block and the tracker gained a heading. Found by the PR #29
+review.
+
+*Resolved 2026-09-21:* both apply functions now escape as the direct
+path does.
+
 * TODO A plain claude-org-setup re-run deletes org-time-tracking.md where the plugin option has tracking on
 :PROPERTIES:
 :ID:       5fbc34cb-b5bd-4d9c-b8cb-29063f492b45
 :CREATED:  [2026-09-21 Mon 17:38]
 :CATEGORY: Dev
 :END:
+:DEBRIEF:
+An existing generated copy now counts as the earlier decision, which is
+the rule =--check= already applied, so write mode and check mode agree.
+=--no-time-tracking= is new, and =CLAUDE_PLUGIN_OPTION_TIME_TRACKING=false=
+also removes the file; each outcome is announced. The old test asserted
+the deletion. It now asserts the keep and both removals, and it was red
+before the change and 89/89 after. =org-time-tracking.md= says so in one
+sentence. Not done, and not worth filing on its own: reading the option
+from =~/.claude/settings.json='s =pluginConfigs=, which the time rules
+name as its home. It was absent on this machine, so the location is
+unverified.
+:END:
+
+Setup cannot see a plugin consumer's =time_tracking= option, so it read
+"no flag, no variable" as off, and a plain re-run deleted
+=org-time-tracking.md= from a consumer with tracking on. The pre-commit
+guard's own fix hint is exactly that re-run. Found by the PR #29 review.
+
+*Resolved 2026-09-21:* a promoted copy is kept by a plain re-run, and
+only =--no-time-tracking= or the variable set to =false= removes it.
+
 * TODO One clock_in keeps pairing with later clock_outs, so a closed heading collects phantom spans at every review
 :PROPERTIES:
 :ID:       c3aa23fb-c9dd-4eb6-83f7-ec8e8c803a11
