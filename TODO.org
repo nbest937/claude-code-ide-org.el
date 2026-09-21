@@ -3531,6 +3531,13 @@ member line arrives untouched.
 
 *Where it lands:* in =8a2eb687=, beside =7ee3b71a=, since both are about
 a writer meeting a region it does not own.
+
+*Both write paths, not one* (learned from 00aa6a85, 2026-09-21). The
+queue holds a tool's raw input, written by =queue-append= from the hook
+payload before any elisp runs, so a fill applied only where
+=org_amend= and =org_capture= write directly leaves every deferred write
+unfilled. Fill in =--review-apply-amend= and =--review-apply-capture= as
+well, as the block-headline escaping now does, and test both paths.
 :END:
 
 =org_capture= and =org_amend= write text exactly as sent, so paragraphs
@@ -6551,7 +6558,9 @@ Sequenced 2026-09-21 at the user's direction, and cut to the order the same day 
    - =3ad389be=, then =7fa68d5c=, which builds on the path it chooses.
    - =381ea07d=: a timeboxed reproduction.
 
-*Not sequenced:* =4acd8ad0=, dropped in intent on 2026-09-17 and left as found. =2a6a1355= moved into =de6de108=.
+*Not sequenced:* =4acd8ad0=, dropped (its =:DROPPED:= entry was a
+prefix the refresh ignored until it was rewritten as a full id on
+2026-09-21). =2a6a1355= moved into =de6de108=.
 
 *Where it stops.* The slice closes when its pull request merges. Measure members, elapsed days and review findings per member, and the miss rate for the rules it touches, read against the prediction.
 :END:
