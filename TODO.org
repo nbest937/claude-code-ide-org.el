@@ -13,6 +13,7 @@
 
 *Correction, same day:* =claude-org-setup-test= is green as of [[orgit-rev:claude-code-ide-org::7f54503][7f54503]], and one of its three causes was a real bug rather than a stale fixture — setup's graceful "no port found; skipping .mcp.json" branch was unreachable under =set -e= and =pipefail=. The other two were the expected file count (five, now seven) and a =--check= fixture predating the =.mcp.json= check, which had also let both "=--check= fails on…" cases pass vacuously. All fourteen suites exit 0 on 2026-09-19; across four suites that is 64 failures nobody saw. Still open here: the runner. Also noticed, not fixed: =--check= reads the real =~/.config/doom=, so that suite is not hermetic.
 
+
 * TODO sync-plans reads any mention of a plan filename as a link, so prose naming an orphan re-links it :code:observed:
 :PROPERTIES:
 :ID:       ecb1dde8-fd3b-4e26-9bdf-a69db30d5e2c
@@ -82,14 +83,14 @@ kept beside the first, not folded into it.
 The conventions say a twin — two headings for the same work — "is caught by review, never by the composer", and no review looks for one: the ceremony names pending items, drawer order and unarchived closes, and a twin is none of those. The drift analysis's §4.4, as revised 2026-09-19, names the mechanism for judgement-level curation that this project had not: a subagent invoked for one question, holding the relevant convention section and the query result and nothing else, run as a pass rather than remembered mid-task.
 
 
-* NEXT [0/8] A rule the agent can recite and still misses is a rule in the wrong place: count the misses, then move the rules out of recall :code:
+* DOING [1/8] A rule the agent can recite and still misses is a rule in the wrong place: count the misses, then move the rules out of recall :code:
 :PROPERTIES:
 :ID:       f6d160c2-c0ac-4c4b-a298-fe581ea3962a
 :CREATED:  [2026-09-19 Sat 13:50]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  63713df3-4ed9-42be-b971-8ac4485e76c2 436e0991-c8ac-40fb-860d-a6c4c381bee5 1b69fe4e-3dab-4b11-b21b-96320bf9d4e0 bf7e0b8e-f83a-4d4a-9950-3ab23a225156 3cd7b7d3-25eb-4f30-ae90-9174a6876674 c8773ec2-1b29-4128-80b3-5c21845f4ca3 9fb8c1fb-1f86-4dc1-9203-6c7abfd27594 f2030ce9-3759-407c-b459-fe4ba4de8854
+:BLOCKER:  63713df3-4ed9-42be-b971-8ac4485e76c2 436e0991-c8ac-40fb-860d-a6c4c381bee5 bf7e0b8e-f83a-4d4a-9950-3ab23a225156 3cd7b7d3-25eb-4f30-ae90-9174a6876674 c8773ec2-1b29-4128-80b3-5c21845f4ca3 9fb8c1fb-1f86-4dc1-9203-6c7abfd27594 f2030ce9-3759-407c-b459-fe4ba4de8854
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-19 Sat 08:29]--[2026-09-19 Sat 08:32] =>  0:03
@@ -116,6 +117,8 @@ CLOCK: [2026-09-19 Sat 14:37]--[2026-09-19 Sat 14:38] =>  0:01
 - [2026-09-19 Sat 14:37]--[2026-09-19 Sat 14:38] analyze convention-drift-analysis.md against the content tasks; amend and capture
 CLOCK: [2026-09-19 Sat 14:49]--[2026-09-19 Sat 14:55] =>  0:06
 - [2026-09-19 Sat 14:49]--[2026-09-19 Sat 14:55] analyze convention-drift-analysis.md against the content tasks; amend and capture
+- State "DOING"      from "NEXT"       [2026-09-19 Sat 16:19] \\
+  slice work starts with member 63713df3
 :END:
 :PLAN:
 Composed 2026-09-19 at the user's direction from the convention-drift
@@ -163,17 +166,17 @@ member; both are evidence for the first one.
 
 Planned:
 
-- [ ] [[id:63713df3-4ed9-42be-b971-8ac4485e76c2][63713df3]] NEXT "Forgets frequently" has no number: the only recorded misses are once-per-session sentinels, so the rate cannot be seen or shown to fall
-- [ ] [[id:436e0991-c8ac-40fb-860d-a6c4c381bee5][436e0991]] TODO Path-scoped rules load on a Read, which the org tools exist to replace, so the conventions load only on the discouraged path
-- [ ] [[id:1b69fe4e-3dab-4b11-b21b-96320bf9d4e0][1b69fe4e]] TODO org-time-tracking.md promotes with no path scope, so a consumer with the feature off loads 260 lines about it every session
-- [ ] [[id:bf7e0b8e-f83a-4d4a-9950-3ab23a225156][bf7e0b8e]] TODO The always-loaded surface is 1,573 lines, and the split that shrank CLAUDE.md is what grew it
+- [-] [[id:63713df3-4ed9-42be-b971-8ac4485e76c2][63713df3]] REVIEW "Forgets frequently" has no number: the only recorded misses are once-per-session sentinels, so the rate cannot be seen or shown to fall
+- [-] [[id:436e0991-c8ac-40fb-860d-a6c4c381bee5][436e0991]] DOING Path-scoped rules load on a Read, which the org tools exist to replace, so the conventions load only on the discouraged path
+- [X] [[id:1b69fe4e-3dab-4b11-b21b-96320bf9d4e0][1b69fe4e]] DONE org-time-tracking.md promotes with no path scope, so a consumer with the feature off loads 260 lines about it every session
+- [ ] [[id:bf7e0b8e-f83a-4d4a-9950-3ab23a225156][bf7e0b8e]] NEXT The always-loaded surface is 1,573 lines, and the split that shrank CLAUDE.md is what grew it
 - [ ] [[id:3cd7b7d3-25eb-4f30-ae90-9174a6876674][3cd7b7d3]] TODO Audit the always-loaded rules for clauses a hook could enforce, since prose recall is what fails
 - [ ] [[id:c8773ec2-1b29-4128-80b3-5c21845f4ca3][c8773ec2]] TODO org_capture should run the duplicate query itself, so the check the rule asks for cannot be skipped
 - [ ] [[id:9fb8c1fb-1f86-4dc1-9203-6c7abfd27594][9fb8c1fb]] TODO Twins are caught by review and nothing reviews for them: a checker subagent with a saturated context, run as a pass
 - [ ] [[id:f2030ce9-3759-407c-b459-fe4ba4de8854][f2030ce9]] TODO Nothing bounds the always-loaded rule surface, so every new rule is free at the point of writing
 
 
-* NEXT "Forgets frequently" has no number: the only recorded misses are once-per-session sentinels, so the rate cannot be seen or shown to fall :code:research:
+* REVIEW "Forgets frequently" has no number: the only recorded misses are once-per-session sentinels, so the rate cannot be seen or shown to fall :code:research:
 :PROPERTIES:
 :ID:       63713df3-4ed9-42be-b971-8ac4485e76c2
 :CREATED:  [2026-09-19 Sat 13:44]
@@ -191,6 +194,10 @@ Filed from this work: [[id:94e6b615-3778-426b-b40a-306b517a837f][94e6b615]].
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-19 Sat 13:50] \\
   first member of the drift slice: the number before the mechanisms
+- State "DOING"      from "NEXT"       [2026-09-19 Sat 16:19] \\
+  starting the miss-rate instrumentation
+- State "REVIEW"     from "DOING"      [2026-09-19 Sat 16:34] \\
+  shipped in f733179; one user decision open
 :END:
 :PLAN:
 *Why this is a separate heading from the mechanisms.* The user's report is
@@ -251,11 +258,19 @@ The drift analysis's thrust is to make the agent stop forgetting; every heading 
 
 *Resolved 2026-09-19:* every backstop that fires now appends a =miss= naming its rule, and the ceremony report and =bin/miss-rate= print the count — a floor, starting from zero that day. *Open, the user's:* whether a correction in conversation is answered with a capture or amend citing the rule missed, which is the only way the misses a human catches would reach the number.
 
-* TODO org-time-tracking.md promotes with no path scope, so a consumer with the feature off loads 260 lines about it every session :code:
+
+* DONE org-time-tracking.md promotes with no path scope, so a consumer with the feature off loads 260 lines about it every session :code:
+CLOSED: [2026-09-19 Sat 16:45]
 :PROPERTIES:
 :ID:       1b69fe4e-3dab-4b11-b21b-96320bf9d4e0
 :CREATED:  [2026-09-19 Sat 09:11]
 :CATEGORY: Dev
+:END:
+:LOGBOOK:
+- State "DONE"       from "DOING"      [2026-09-19 Sat 16:45] \\
+  shipped in 5f3ae30; residue told to bf7e0b8e
+- State "DOING"      from "TODO"       [2026-09-19 Sat 16:45] \\
+  retroactive: worked this session
 :END:
 :DEBRIEF:
 Shipped in [[orgit-rev:claude-code-ide-org::5f3ae30][5f3ae30]]. Three signals, any one: =--time-tracking=; =CLAUDE_PLUGIN_OPTION_TIME_TRACKING=true= in setup's environment; or a target whose =.claude/settings.json= sets that variable in a hook command. *The third was not in the plan* and is why this repo needs no flag — without it a plain re-run here would have deleted a tracked rule file. Off, a generated copy is removed (the marker is the licence; a hand-maintained file is left alone), which is [[id:96ad6e95-452d-4be2-9bc7-b2c2efa44988][96ad6e95]]'s removal case for this one file only. =--check= reads the file's presence as the signal and never calls an absent copy missing.
@@ -309,12 +324,19 @@ bin/claude-org-setup promotes the time-tracking rules unconditionally on the sta
 *Resolved 2026-09-19:* setup promotes the time file only where it is told the feature is on, and removes a copy it wrote when it is not; a default consumer's always-loaded plugin surface fell from 1,047 lines to 780.
 
 
-
-* TODO Path-scoped rules load on a Read, which the org tools exist to replace, so the conventions load only on the discouraged path :code:observed:
+* DOING Path-scoped rules load on a Read, which the org tools exist to replace, so the conventions load only on the discouraged path :code:observed:
 :PROPERTIES:
 :ID:       436e0991-c8ac-40fb-860d-a6c4c381bee5
 :CREATED:  [2026-09-19 Sat 09:08]
 :CATEGORY: Skill
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-09-19 Sat 16:34] \\
+  nominated: next member of the drift slice
+CLOCK: [2026-09-19 Sat 16:35]--[2026-09-19 Sat 16:39] =>  0:04
+- State "DOING"      from "NEXT"       [2026-09-19 Sat 16:35] \\
+  starting the load-path remedy
+- [2026-09-19 Sat 16:35]--[2026-09-19 Sat 16:39] inject conventions on first org tool call
 :END:
 :PLAN:
 *What "open" means, from the Claude Code memory docs, fetched 2026-09-19:*
@@ -378,7 +400,6 @@ decided with it; 1 is the cheap interim.
 *Verified live, and it caught something within the hour.* The first org call after wiring carried the notice (hooks are re-read without a restart). Acting on it, the session read "Referring to a commit" and found it had written four =orgit-rev:= links in path form across two bodies that afternoon — the convention says repo name, never a path. Corrected. One instance, and the injected-context tier's weakness stands: it worked because the session chose to act on it.
 
 *Not done:* the honest re-run of [[id:befaed0a-18ed-445e-b997-8b9c2965ad45][befaed0a]]'s verification — a *fresh* session using only the tools — needs a session that is not this one. Remedy 3 (rules riding on tool replies) is [[id:3cd7b7d3-25eb-4f30-ae90-9174a6876674][3cd7b7d3]]'s. Whether a consumer install receives the notice is unverified; the fallback path is tested only against a fixture.
-
 
 
 * TODO Nothing bounds the always-loaded rule surface, so every new rule is free at the point of writing :code:
@@ -535,11 +556,15 @@ query.
 The duplicate check before a capture is a rule a session must remember at the moment of acting, and it is the rule an outside drift analysis caught being missed live. Moving it inside the tool makes the omission unreachable rather than rare, and costs no new tool.
 
 
-* TODO The always-loaded surface is 1,573 lines, and the split that shrank CLAUDE.md is what grew it :code:
+* NEXT The always-loaded surface is 1,573 lines, and the split that shrank CLAUDE.md is what grew it :code:
 :PROPERTIES:
 :ID:       bf7e0b8e-f83a-4d4a-9950-3ab23a225156
 :CREATED:  [2026-09-19 Sat 08:55]
 :CATEGORY: Skill
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-09-19 Sat 16:45] \\
+  nominated; needs the user's budget decision first
 :END:
 :PLAN:
 *The measurement, 2026-09-19.* Always loaded, every session, regardless of
@@ -3527,7 +3552,6 @@ actually wants live again.
 *A third answer, stated by the user 2026-09-19 while unlinking a plan from =7eb7dd8d=:* "the convention now is to keep the plan in the =:PLAN:= drawer and use that to write its part of the slice plan in the next revision of =next-session.md=." Neither =plansDirectory= nor restoring — the plan file stops being the record, and a heading's drawer is. That dissolves this heading's question rather than deciding it: a plan that lives in the tracker cannot die at =cleanupPeriodDays=. What it leaves behind is machinery built on the link: the CLAUDE.md rule that writes one at =ExitPlanMode=, =bin/sync-plans= and its =plans/= archive, the =.githooks/pre-push= refusal, and the org skill's plan-link prose — all of which now describe a convention that has been superseded for new work, while 31 archived plans still hold the design of finished headings. First orphan under the new rule: the archive copy of the plan just unlinked, reported by =--check= and left in place. Whether this heading retitles to the retirement, or that is filed separately, is the user's call; nothing here is done.
 
 *The memory directory is one more surface built on plan links, found 2026-09-19 in an audit the user asked for.* Claude Code's per-project memory (outside the repo, unversioned) held three claims that depend on this heading's question. One was simply wrong and is corrected: a memory described the original Warp proxy plan as "kept for the record" in the plans directory, when DONE.org records it as deleted on the user's call — so not every vanished plan is a =cleanupPeriodDays= casualty, and a session reading that memory would have gone looking for a file that was removed on purpose. One is new and records the drawer convention stated above, with the caveat that CLAUDE.md's =ExitPlanMode= link rule still says the opposite. And one was deliberately *left alone*: the new-task-heading approval gate lists "any Plan-file link" among what a fresh heading carries; the gate itself stands (the user kept it), and only that phrase is superseded — it should be corrected when this heading settles, not before, so the memory does not get ahead of the rule. Add the memory directory to the list of things the retirement touches; the audit's full account is on [[id:bf7e0b8e-f83a-4d4a-9950-3ab23a225156][bf7e0b8e]].
-
 
 
 * TODO Archived :ARCHIVE_FILE: paths are machine-absolute; audit their portability :code:
@@ -11214,6 +11238,7 @@ call it done.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-21 Mon 07:55]--[2026-09-21 Mon 08:02] =>  0:07
 CLOCK: [2026-09-19 Sat 15:58]--[2026-09-19 Sat 16:02] =>  0:04
 CLOCK: [2026-09-19 Sat 07:31]--[2026-09-19 Sat 07:32] =>  0:01
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
@@ -12325,4 +12350,10 @@ CLOCK: [2026-09-19 Sat 15:46]--[2026-09-19 Sat 15:47] =>  0:01
 - [2026-09-19 Sat 15:46]--[2026-09-19 Sat 15:47] analyze convention-drift-analysis.md against the content tasks; amend and capture
 CLOCK: [2026-09-19 Sat 15:49]--[2026-09-19 Sat 15:50] =>  0:01
 - [2026-09-19 Sat 15:49]--[2026-09-19 Sat 15:50] analyze convention-drift-analysis.md against the content tasks; amend and capture
+CLOCK: [2026-09-19 Sat 16:06]--[2026-09-19 Sat 16:08] =>  0:02
+- [2026-09-19 Sat 16:06]--[2026-09-19 Sat 16:08] assigned at review
+CLOCK: [2026-09-19 Sat 16:12]--[2026-09-19 Sat 16:14] =>  0:02
+- [2026-09-19 Sat 16:12]--[2026-09-19 Sat 16:14] assigned at review
+CLOCK: [2026-09-19 Sat 16:17]--[2026-09-19 Sat 16:18] =>  0:01
+- [2026-09-19 Sat 16:17]--[2026-09-19 Sat 16:18] assigned at review
 :END:
