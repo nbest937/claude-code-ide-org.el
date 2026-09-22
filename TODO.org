@@ -2,14 +2,14 @@
 #+TAGS: analysis code comms research review spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* TODO [0/20] The review pass asks for judgement it cannot support, and the clock beneath it is still wrong :code:
+* TODO [0/27] The review pass asks for judgement it cannot support, and the clock beneath it is still wrong :code:
 :PROPERTIES:
 :ID:       c7619140-f269-4329-bc05-a38ea151e202
 :CREATED:  [2026-09-22 Tue 16:07]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  55125136-5939-434e-9676-96ea66a75770 361e2708-8124-4bd1-9c44-f97ca97aca4a 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 aee8487e-0650-4396-bc5c-193ca3efcecb 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 653fea66-f9d5-4431-8ce3-5d355560b475 445fe577-01ce-4e68-ab5f-c349c40a4643 2c733857-a280-42cc-bd7c-e182a4fb6ea3 79c224ab-188a-4ed4-a606-c28ee2cfe72d 001fb310-69f7-4417-81be-a224a3bf83e0 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46 cf483f5d-2d25-4454-a580-db7935c8cb81 8028e875-3032-4ade-949e-414d9861b928 01849bef-fdc9-4c30-b467-00ca8606e8e0 ee3c22c9-f99c-4d41-9c3d-8f39af916fff e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 6c64cc9c-33a9-4a20-af19-c188a690c755 a865f83c-ea37-40c4-a104-7cc50d2c20dd
+:BLOCKER:  55125136-5939-434e-9676-96ea66a75770 361e2708-8124-4bd1-9c44-f97ca97aca4a 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 aee8487e-0650-4396-bc5c-193ca3efcecb 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 653fea66-f9d5-4431-8ce3-5d355560b475 445fe577-01ce-4e68-ab5f-c349c40a4643 2c733857-a280-42cc-bd7c-e182a4fb6ea3 79c224ab-188a-4ed4-a606-c28ee2cfe72d 001fb310-69f7-4417-81be-a224a3bf83e0 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46 cf483f5d-2d25-4454-a580-db7935c8cb81 8028e875-3032-4ade-949e-414d9861b928 01849bef-fdc9-4c30-b467-00ca8606e8e0 ee3c22c9-f99c-4d41-9c3d-8f39af916fff e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 6c64cc9c-33a9-4a20-af19-c188a690c755 a865f83c-ea37-40c4-a104-7cc50d2c20dd e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 20cecd53-2338-4237-ab06-f8129e10a2c8 37147e9e-468b-43ee-91f9-45d9647c6164 445ec1f1-095a-462b-abbd-7a3a00925ddb 64d34a64-d336-40a8-a8e8-da8133d0da06 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd
 :END:
 
 Thirty-four live headings carry `:CATEGORY: Apply` or `Clock`, and three
@@ -44,6 +44,13 @@ Planned:
 - [ ] [[id:396fd1c3-70e0-4e1f-8839-670b5293a7d3][396fd1c3]] TODO Recenter after `m` advances, so the item under consideration is never at the bottom of the window
 - [ ] [[id:6c64cc9c-33a9-4a20-af19-c188a690c755][6c64cc9c]] TODO claude-code-ide-org-review should return point and windows to where I entered from
 - [ ] [[id:a865f83c-ea37-40c4-a104-7cc50d2c20dd][a865f83c]] TODO Should a short 0-run span default to claimed, and where does the bound fall?
+- [ ] [[id:e3d1531d-7562-4bad-bef2-fc819630c5f7][e3d1531d]] TODO The review-attention clock stops at the first apply, so 101 intervals measure the wrong thing
+- [ ] [[id:b5448133-4021-46b9-a90e-d88e149ae65d][b5448133]] TODO Rebuild the 101 truncated review-attention intervals from the audit log
+- [ ] [[id:20cecd53-2338-4237-ab06-f8129e10a2c8][20cecd53]] TODO The human half of the ratio is already recorded, and thrown away
+- [ ] [[id:37147e9e-468b-43ee-91f9-45d9647c6164][37147e9e]] TODO Report worked headings that carry no clock interval that day
+- [ ] [[id:445ec1f1-095a-462b-abbd-7a3a00925ddb][445ec1f1]] TODO A/B the clock record across the phase-3 fixes, since much of what is logged now is bogus
+- [ ] [[id:64d34a64-d336-40a8-a8e8-da8133d0da06][64d34a64]] NEXT A clocktable never shows a parent's own time, only own-plus-subtree
+- [ ] [[id:2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd][2cd74268]] TODO Let a task-only install auto-apply state transitions, behind a toggle
 
 
 * TODO A turn can end holding an open clock and nothing says so: 9 of 39 session queues end on a clock_in :code:bounded:
@@ -702,7 +709,7 @@ It gates earnest work in euchre, taking over from 6a207b00 (closed
 org_capture now searches TODO.org and DONE.org on every capture by idf-weighted title-token overlap (c8773ec2). Probed against the real corpus 2026-09-21, it found the mac-port deadlock heading, the unrun-suites heading and the twin-pass heading from reworded titles — and found nothing for "org_capture silently drops an argument it does not recognise", whose twin is bbf9fb77, "An MCP tool accepts arguments it does not have, and says nothing". That is the transcript the whole heading was filed from. The two share no pair of subject tokens: "argument" and "arguments" differ, and everything else is paraphrase. Candidate remedies, unmeasured: fold simple plurals; match the new title's identifier-shaped tokens (org_capture, a function name, a file name) against candidate *bodies*, which would have caught this one; or leave paraphrase to the twin pass (9fb8c1fb), which reads bodies with judgement. Measure each on the corpus before choosing — the first two cost noise.
 
 
-* DOING [0/11] The misses a human catches reach no record: one heading per kind of miss, amended at each catch, so the catch is counted :code:
+* DOING [0/12] The misses a human catches reach no record: one heading per kind of miss, amended at each catch, so the catch is counted :code:
 DEADLINE: <2026-10-12 Mon>
 :PROPERTIES:
 :ID:       158d7e80-6d72-4518-a804-d8abf2e7e693
@@ -931,10 +938,14 @@ The tool half of that catch was already filed:
   unremoved. So the second face of the catch is the always-loaded rule that
   silence is not a passing check — an intermediate with zero rows was used
   as a filter without ever being looked at.
+** TODO Miss: an org question answered by scraping text instead of asking org
+:PROPERTIES:
+:ID:       67861ff3-3a72-4c53-8fd8-1cae9a31bc77
+:CREATED:  [2026-09-22 Tue 16:10]
+:MISS_RULE: text-scrape
+:END:
 
-
-
-
+Earned its own sibling on 2026-09-22, the day the rule was caught twice, per the catch-all's note that a rule appearing a second time stops being uncategorised. The rule is the org-dev skill's §0b: before answering a question, ask whether org's own semantics decide it — entry boundaries, membership, property inheritance, keyword sets — and if so ask Emacs, which is the parser that writes these files. A regex over org text is a second implementation of those semantics, and it disagrees silently, in the direction of looking right. Both PreToolUse guards this repo has are guards on *writes*; nothing guards a read, so this rule is still enforced by recitation alone — the condition that guard family exists to remove. One dated line per catch.
 
 * TODO Nothing runs the shell hook suites, so three sat red for a day and a merge without anyone seeing :code:
 :PROPERTIES:
