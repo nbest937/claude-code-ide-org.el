@@ -1,7 +1,13 @@
 #+TODO: TODO(t!) NEXT(n!) DOING(d!) REVIEW(r!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)
-#+TAGS: analysis code comms research review
+#+TAGS: analysis code comms research review spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* DOING pre-commit lints templates/TODO.org as TODO.org, so staging the template breaks every link into the tracker
+:PROPERTIES:
+:ID:       b28467b5-f54f-4818-a6a0-ba8527c7e978
+:CREATED:  [2026-09-22 Tue 10:37]
+:CATEGORY: Dev
+:END:
 * DONE The state rules say a heading is DOING while it is planned, but planning is TODO-phase and DOING begins with implementation :code:
 CLOSED: [2026-09-22 Tue 09:43]
 :PROPERTIES:
@@ -2077,6 +2083,16 @@ survives) and a taxonomy second — the =:CATEGORY:= exercise
 labels hide behind single words. Any proposed set should state, per
 tag, the query it exists to answer, and the =#+TAGS:= line and
 =org-conventions.md= §Tags are where an adopted set lands.
+
+*Three tags adopted ahead of this survey* (the user, 2026-09-22):
+=:spike:=, =:bounded:= and =:arch:=, the brainstorming skill's paths
+(4ae7a04b). They are set only by that skill at capture, at most one per
+heading (=bin/lint-org= checks it). Each answers one query: which work was
+classified how, and whether a spike's code was ever kept. The user's first
+idea, folding "bounded" into =:code:=, was set aside because =:code:= sits
+on 529 headings and earns its place through its negation. The survey
+should take these as given, not re-derive them.
+
 
 
 ** NEXT Adopt an `observed` tag for a defect seen in use, as the severity signal the keyword set does not carry :code:

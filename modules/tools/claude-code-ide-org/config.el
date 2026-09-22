@@ -15275,7 +15275,20 @@ probably punctuation read as structure: %S" title))
                (let ((tags (org-get-tags nil t)))
                  (unless (= (length tags) (length (delete-dups (copy-sequence tags))))
                    (report 'error line "heading repeats a tag %S: %s"
-                           tags title)))
+                           tags title))
+                 ;; At most one brainstorming path tag (TODO.org :ID:
+                 ;; 4ae7a04b). A heading is on one path at a time, and
+                 ;; the path only ever moves up, which replaces the tag;
+                 ;; two at once is a replacement missed. Tags rather than
+                 ;; a one-valued property so they filter in the agenda,
+                 ;; which is why this check exists at all.
+                 (let ((paths (seq-filter
+                               (lambda (tag) (member tag '("spike" "bounded" "arch")))
+                               tags)))
+                   (when (cdr paths)
+                     (report 'error line
+                             "heading carries more than one brainstorming path tag %S: %s"
+                             paths title))))
                ;; A heading that has acquired TODO-carrying children is a
                ;; container, and a container states its progress in a
                ;; statistics cookie so the count is visible without

@@ -24,7 +24,7 @@ Every `.org` file in this project should start with:
 
 ```org
 #+TODO: TODO(t!) NEXT(n!) DOING(d!) REVIEW(r!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)
-#+TAGS: code comms research review
+#+TAGS: code comms research review spike bounded arch
 #+ARCHIVE: DONE.org::
 #+STARTUP: logdrawer logdone content
 ```
@@ -78,6 +78,14 @@ The four standard tags (`:code:` `:comms:` `:research:` `:review:`), their
 meanings, and the archiving convention are in the **org skill** — including
 the per-heading `:ARCHIVE:` override. Tags are free-form beyond those four;
 declare additional ones in `#+TAGS:`.
+
+**`:spike:`, `:bounded:` and `:arch:` are the brainstorming paths** (the
+user, 2026-09-22; `:ID:` 4ae7a04b), set only by that skill at capture, at
+most one per heading, which `bin/lint-org` checks. They were adopted ahead
+of the tag survey (`:ID:` e28933e9), each for one query: which work was
+classified how, and whether a spike's code was ever kept. `:code:` keeps
+its meaning; "bounded" was not folded into it, since `:code:` sits on most
+of the corpus and is useful mainly through its negation.
 
 Don't write the same tag twice on one headline. `org-get-tags` does not
 deduplicate, so `:code:code:` survives untouched and org-lint says nothing;

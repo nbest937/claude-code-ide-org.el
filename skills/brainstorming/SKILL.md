@@ -45,8 +45,9 @@ that heading's `:PLAN:`, not in a new heading.
 
 The dialogue is read-only, so run it inside Plan Mode (the user,
 2026-09-22). **`ExitPlanMode` is the design approval.** Only after it:
-capture the heading with `org_capture` (with an `initial_state`, and a
-`category` when it is top-level), then write the approved design with
+capture the heading with `org_capture` (with an `initial_state`, a
+`category` when it is top-level, and the path's tag in `tags`: `spike`,
+`bounded` or `arch`), then write the approved design with
 `org_amend` `drawer=PLAN`, then a body of two to five sentences with
 `org_amend`. Writing the design down is not gated; implementation and the
 transition to `DOING` are, by a separate yes — org skill, "Plan Mode
@@ -102,6 +103,11 @@ When in doubt between two paths, take the heavier one. The ratchet is
 one-way: hidden complexity discovered mid-task upgrades the path —
 stop, say so, and step up. Nothing downgrades mid-task.
 
+The path is recorded as the heading's tag, `:spike:`, `:bounded:` or
+`:arch:`, set at capture. A heading carries one; stepping up replaces it
+on the headline, and `bin/lint-org` errors on two. `:code:` is not a path
+tag and combines with any of them.
+
 ## Anti-Pattern: "Too Simple To Need Approval"
 
 Every path ends with your human partner approving the required design
@@ -132,14 +138,14 @@ Classify first, announce the path, then work through its items in order.
 2. **Present question + probe plan** — 2-3 sentences
 3. **Get approval** — a nod is enough
 4. **Investigate** — as cheaply as correctness allows
-5. **Report findings** — a recommendation; label anything built as throwaway; capture a heading only if asked
+5. **Report findings** — a recommendation; label anything built as throwaway; capture a heading, tagged `spike`, only if asked
 
 **Bounded:**
 1. **Explore project context** — check files, docs, recent commits, and the tracker
 2. **Ask clarifying questions** — one at a time, the ones that matter
 3. **Present short design in chat** — approach, files touched, testing
 4. **Get approval** — STOP and wait for an explicit yes
-5. **Capture and record** — `org_capture` with an `initial_state`, the design into `:PLAN:` with `org_amend` `drawer=PLAN`, a short body
+5. **Capture and record** — `org_capture` with an `initial_state` and `tags` `bounded`, the design into `:PLAN:` with `org_amend` `drawer=PLAN`, a short body
 6. **Implement** — after the separate yes, through the normal workflow
 
 **Architectural:**
@@ -149,7 +155,7 @@ Classify first, announce the path, then work through its items in order.
 4. **Propose 2-3 approaches** — with trade-offs and your recommendation
 5. **Present design** — in sections scaled to their complexity, get approval after each section
 6. **Approval at `ExitPlanMode`** — the design as a whole
-7. **Capture the heading** — `org_capture` with an `initial_state` of `TODO`; `DOING` waits for the separate yes
+7. **Capture the heading** — `org_capture` with an `initial_state` of `TODO` and `tags` `arch`; `DOING` waits for the separate yes
 8. **Write the design into `:PLAN:`** — `org_amend` `drawer=PLAN`, then a two-to-five-sentence body
 9. **Plan self-review** — placeholders, contradictions, scope, ambiguity; fix inline (see below)
 10. **User reviews the drawer** — as they would a spec
