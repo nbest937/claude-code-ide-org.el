@@ -2,6 +2,15 @@
 #+TAGS: analysis code comms research review spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO org_amend replace=true eats the blank lines before the next heading, so org stops seeing it :code:observed:
+:PROPERTIES:
+:ID:       5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997
+:CREATED:  [2026-09-22 Tue 16:14]
+:CATEGORY: Tools
+:END:
+
+claude-code-ide-org--replace-body deletes the body region and inserts (string-trim text), so replacing the last body before a heading takes the blank lines separating them with the trim and glues the heading onto the final line. Observed 2026-09-22 on 59861867: TODO.org:1008 became "written.** TODO Miss: ..." and org stopped parsing a heading there at all — org_outline reported the new id as resolving to no heading while org_amend, which locates by property, still wrote to it happily, and bin/lint-org reported 0 errors throughout. The damage is silent in both directions and the repair was a hand edit, which is itself against the rules. Proposed: --replace-body re-establishes the separation it found, or defers to claude-code-ide-org-heading-separator-lines; and bin/lint-org gains a check for a heading not at the start of its own line, which is the class org-lint calls "possibly misplaced heading" and only warns about.
+
 * TODO [0/27] The review pass asks for judgement it cannot support, and the clock beneath it is still wrong :code:
 :PROPERTIES:
 :ID:       c7619140-f269-4329-bc05-a38ea151e202
