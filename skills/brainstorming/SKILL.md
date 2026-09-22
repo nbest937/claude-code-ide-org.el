@@ -117,6 +117,11 @@ When in doubt between two paths, take the heavier one. The ratchet is
 one-way: hidden complexity discovered mid-task upgrades the path —
 stop, say so, and step up. Nothing downgrades mid-task.
 
+**On stepping up, earlier approvals lapse.** A yes given to the lighter
+path's design does not approve the heavier path. Resume at the heavier
+path's earliest step not yet done: from bounded to architectural, that
+is the approaches and the sectioned design.
+
 The path is recorded as the heading's tag, `:spike:`, `:bounded:` or
 `:arch:`. A heading carries one; stepping up replaces it on the headline,
 and `bin/lint-org` errors on two. `:code:` is not a path tag and combines
@@ -135,6 +140,21 @@ first for an unsaved buffer as the org skill requires
 (org skill, "Before editing: check for an unsaved buffer").
 Tag only the heading in hand: the tags record classifications actually
 made, so do not sweep the backlog.
+
+**Log every tag change on an existing heading** in its `:LOGBOOK:`, as a
+line of its own that cannot be mistaken for a keyword transition:
+
+```
+- Tags ":code:arch:" from ":code:bounded:" [2026-09-22 Tue 10:30] \\
+  stepped up: the fix changes how three writers treat the file
+```
+
+The two values are the whole tag sets, after and before; the note says
+what surfaced. Org logs no tag changes itself, and replacing a tag would
+otherwise erase the earlier classification. The line sorts into the
+drawer's timeline like a state line. It goes in with the same headline
+edit, under the same unsaved-buffer check, until the tag tool da6a2fba
+adds writes it. A heading's first tag, at capture, needs no line.
 
 ## Anti-Pattern: "Too Simple To Need Approval"
 

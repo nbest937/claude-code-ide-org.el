@@ -80,12 +80,21 @@ the per-heading `:ARCHIVE:` override. Tags are free-form beyond those four;
 declare additional ones in `#+TAGS:`.
 
 **`:spike:`, `:bounded:` and `:arch:` are the brainstorming paths** (the
-user, 2026-09-22; `:ID:` 4ae7a04b), set only by that skill at capture, at
-most one per heading, which `bin/lint-org` checks. They were adopted ahead
+user, 2026-09-22; `:ID:` 4ae7a04b), set only by that skill, at capture or
+when it classifies an existing heading, at most one per heading, which
+`bin/lint-org` checks. They were adopted ahead
 of the tag survey (`:ID:` e28933e9), each for one query: which work was
 classified how, and whether a spike's code was ever kept. `:code:` keeps
 its meaning; "bounded" was not folded into it, since `:code:` sits on most
 of the corpus and is useful mainly through its negation.
+
+**A tag change on an existing heading is logged in its `:LOGBOOK:`**, as
+`- Tags ":after:" from ":before:" [timestamp] \\` with an indented note
+(the user, 2026-09-22). Org logs no tag changes, and a replaced tag would
+otherwise erase the classification it replaced. The leading word keeps it
+distinct from a `- State` line, and consolidation sorts it into the same
+timeline, so a step-up reads in order against the state changes around
+it. A heading's tags at capture need no line.
 
 Don't write the same tag twice on one headline. `org-get-tags` does not
 deduplicate, so `:code:code:` survives untouched and org-lint says nothing;
