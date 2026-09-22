@@ -53,6 +53,17 @@ refusal on a busy buffer, a no-op with no save, inherited tags not copied,
 an unknown id). Prove the replacement test discriminates by disabling the
 displacement and watching it fail. Live: reload the module, call the tool
 on a scratch heading, and check the headline, the lint and the tool list.
+
+*The tool also logs the change* (the user, 2026-09-22). Every change it
+makes appends a line to the heading's =:LOGBOOK:=, distinct from a
+keyword transition:
+=- Tags ":after:" from ":before:" [timestamp] \\= with the caller's note
+indented beneath, so =org_set_tags= takes an optional =note=. Both values
+are the whole local tag sets. A no-op writes no line. Consolidation
+already sorts such a line into the drawer's timeline and keeps its note
+attached (tested 2026-09-22). Until this tool exists, the brainstorming
+skill writes the line by hand with the headline edit; once it does, that
+paragraph of the skill becomes one call.
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-22 Tue 11:24]--[2026-09-22 Tue 11:25] =>  0:01
