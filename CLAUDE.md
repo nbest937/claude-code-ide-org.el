@@ -166,8 +166,10 @@ and enabled in `~/.config/doom/init.el` under `:tools claude-code-ide-org`.
 
 The org skill's canonical home is `skills/org/` — the plugin's unit of
 travel — with `.claude/skills/org` a symlink into it, so this repo's
-sessions discover it exactly as before. `org-dev` stays a real directory
-under `.claude/skills/`, testbed-only and unshipped.
+sessions discover it exactly as before. `skills/brainstorming/` ships the
+same way, ported from superpowers (its `.upstream` names the source).
+`org-dev` stays a real directory under `.claude/skills/`, testbed-only
+and unshipped.
 
 ## Scripting conventions
 
