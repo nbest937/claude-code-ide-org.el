@@ -68,6 +68,13 @@ yes — the rule of the org skill's "Plan Mode checkpoint", applied without
 Plan Mode. Ask for the two in separate messages, and never read one as
 the other.
 
+**Close the clock when you hand the drawer back.** A brainstorm clocks
+in on its heading like any other work, but it ends *waiting* rather than
+finishing, which is where `org_clock_out` gets forgotten — the first
+verification run left one open, so every guidepost after it still
+attributed to that heading. Call it as the turn's last call, after the
+drawer and the body are written.
+
 <HARD-GATE>
 Before taking any implementation action — writing product code,
 scaffolding, installing dependencies, or creating an external project —
