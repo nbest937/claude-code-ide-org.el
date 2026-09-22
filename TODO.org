@@ -11,6 +11,89 @@
 :COOKIE_DATA: checkbox recursive
 :BLOCKER:  55125136-5939-434e-9676-96ea66a75770 361e2708-8124-4bd1-9c44-f97ca97aca4a 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 aee8487e-0650-4396-bc5c-193ca3efcecb 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 653fea66-f9d5-4431-8ce3-5d355560b475 445fe577-01ce-4e68-ab5f-c349c40a4643 2c733857-a280-42cc-bd7c-e182a4fb6ea3 79c224ab-188a-4ed4-a606-c28ee2cfe72d 001fb310-69f7-4417-81be-a224a3bf83e0 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46 cf483f5d-2d25-4454-a580-db7935c8cb81 8028e875-3032-4ade-949e-414d9861b928 01849bef-fdc9-4c30-b467-00ca8606e8e0 ee3c22c9-f99c-4d41-9c3d-8f39af916fff e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 6c64cc9c-33a9-4a20-af19-c188a690c755 a865f83c-ea37-40c4-a104-7cc50d2c20dd e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 20cecd53-2338-4237-ab06-f8129e10a2c8 37147e9e-468b-43ee-91f9-45d9647c6164 445ec1f1-095a-462b-abbd-7a3a00925ddb 64d34a64-d336-40a8-a8e8-da8133d0da06 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd
 :END:
+:PLAN:
+*What this slice is, and what it is not.* Two closed slices already
+worked this subject and neither is being reopened. `749301a0` made a
+span's owner, edges and payload well defined; `c44c2119` hardened the
+pass's own mechanics — its cost, its error reporting, its undo. What
+neither touched is the *judgement* the pass asks for: a human is shown a
+span, told nothing about why it exists, and asked to accept it, with
+keystrokes that claim more than they mean, over clock machinery that is
+still demonstrably wrong. That is the whole of this slice. Membership is
+every live `:CATEGORY: Apply` and `Clock` heading that no slice already
+holds, less the four `MAYBE`s, which stay in the backlog because a slice
+member with no cookie reads as one this slice considered and dropped.
+
+*Deliberately not `NEXT`, and not a decision to start.* Time tracking
+stopped being a co-equal goal on 2026-09-18 (`8bbae3aa`); this declares
+the body of work and its sequence so that picking it up later is a
+choice rather than an archaeology. Thirty-odd un-grouped headings is how
+a next action gets chosen by recency.
+
+*The order, and why it is this order.*
+
+**First the two decisions, because they reshape what follows.** Whether
+`queue-append` should derive clock events from `DOING` transitions
+(`55125136`, `WAITING` on the user) reverses a separation `4f6a6bb1`
+chose deliberately, and half the members below are written against the
+current split. How far the apply cycle can be automated (`361e2708`) is
+bounded by the interactive constraint the queue exists for, and it
+decides whether later ergonomics work is worth doing at all. Building
+before either is answered is building twice.
+
+**Then the record's active errors, worst first.** A turn that ends
+holding an open clock (`3485b0d0`) mis-attributes everything after it;
+`c` claiming its whole envelope (`aee8487e`) has recorded 3h11m over
+sixteen minutes; overlapping intervals on two headings (`2d100d0d`)
+cannot both be true and subtraction reaches only one. Then the pass's
+own failures to complete: a conjunctive mark guard that marks and then
+fails at apply (`653fea66`), gap spans that carry no events so half the
+buffer cannot be dismissed (`445fe577`), the "aged out" mislabel
+(`2c733857`), applied changes a `git checkout` can destroy (`79c224ab`),
+a stale clock history that hangs the first clock-in after a restart
+(`001fb310`), and the fatal signal at buffer quit (`489d6f61`). These
+come before anything cosmetic because every one of them writes something
+false, or loses something true, while the pass is otherwise working.
+
+**Then the evidence, because the judgement is the product.** An
+unassigned span's readout omitting what would identify its heading
+(`5a6d2c75`) and a no-evidence span printing nothing at all
+(`cf483f5d`) are the two halves of the same hole: the human is asked to
+decide and shown nothing to decide on. Annotating at review time
+(`8028e875`) and a key for flipping timestamps active (`01849bef`)
+follow, because both are currently hand edits to text the pass just
+wrote.
+
+**Then the keystrokes, which are only worth shaping once the content is
+right.** Marking for dismissal so one reason serves several
+(`ee3c22c9`), `d` landing on the replacement line (`e95cc5d1`),
+recentring after `m` (`396fd1c3`), and returning point and windows on
+exit (`6c64cc9c`).
+
+**Then measurement, which is the point of the whole feature and is
+meaningless before the above.** Whether a short zero-run span should
+default to claimed (`a865f83c`) is research that sets a default the rest
+inherit; the review-attention clock stopping at the first apply
+(`e3d1531d`) invalidates 101 recorded intervals, which is why rebuilding
+them (`b5448133`) is sequenced immediately after rather than before. The
+human half of the ratio already recorded and thrown away (`20cecd53`),
+the daily report of worked headings carrying no interval (`37147e9e`),
+the A/B across the phase-3 fixes (`445ec1f1`) and a clocktable that can
+show a parent's own time (`64d34a64`) are the reporting surface that
+makes any of it checkable.
+
+**Last, the consumer-facing toggle** (`2cd74268`): auto-applying state
+transitions in a task-only install is the only member that ships
+behaviour to someone else's repo, and it should not go out over
+machinery this slice has not finished correcting.
+
+*Ruled out.* Widening to `:CATEGORY: Queue` — spans and attribution live
+there too, and the union is the second goal entire rather than a slice.
+Folding any of this into `8a2eb687`, whose subject is silent wrongness
+in the tracker's own machinery, not the pass over it. And nominating a
+`NEXT` member: a parked slice with a nominated action invites exactly
+the drift the parking is for.
+:END:
 
 Thirty-four live headings carry `:CATEGORY: Apply` or `Clock`, and three
 of them belong to a slice; the rest have sat un-grouped since the pass
@@ -945,8 +1028,47 @@ The tool half of that catch was already filed:
 :MISS_RULE: text-scrape
 :END:
 
-Earned its own sibling on 2026-09-22, the day the rule was caught twice, per the catch-all's note that a rule appearing a second time stops being uncategorised. The rule is the org-dev skill's §0b: before answering a question, ask whether org's own semantics decide it — entry boundaries, membership, property inheritance, keyword sets — and if so ask Emacs, which is the parser that writes these files. A regex over org text is a second implementation of those semantics, and it disagrees silently, in the direction of looking right. Both PreToolUse guards this repo has are guards on *writes*; nothing guards a read, so this rule is still enforced by recitation alone — the condition that guard family exists to remove. One dated line per catch.
+Earned its own sibling on 2026-09-22, the day the rule was caught twice, per
+the catch-all's note that a rule appearing a second time stops being
+uncategorised. The two lines below moved here from
+[[id:59861867-e807-43a8-a0fa-5ca227167022][59861867]] and are unchanged but
+for the cross-reference in the second, which pointed at the first while both
+lived there.
 
+The rule is the org-dev skill's §0b: before answering a question, ask whether
+org's own semantics decide it — entry boundaries, membership, property
+inheritance, keyword sets, clock arithmetic — and if so ask Emacs, which is
+the parser that writes these files. A regex over org text is a second
+implementation of those semantics, and it disagrees *silently*, in the
+direction of looking right. §0b's second half was added 2026-08-28 for
+exactly this case: the original rule triggered on *building* a helper, and
+what kept happening was reading one to answer a question.
+
+Both =PreToolUse= guards this repo has (=emacsclient-guard=,
+=generated-guard=) guard *writes*. Nothing guards a read, so this rule is
+still enforced by recitation alone — which is the condition the guard family
+exists to remove, and the likely shape of this heading's close. One dated
+line per catch.
+
+- [2026-09-22 Tue] Caught by the user: "why are you grepping? =org_outline=
+  should tell you that, no?" Asked for 8a2eb687 grouped by =:CATEGORY:=, the
+  session scraped member ids with =awk= and queried Emacs through
+  =emacsclient=, and the output came back buried in text properties.
+  =org_outline= with the member ids as scope returns each one's
+  =:CATEGORY:=. That was the always-loaded "start with org_outline" rule,
+  recited and missed.
+- [2026-09-22 Tue] Caught by the user: "you reached for =awk= instead of
+  using the =emacs-tools=, didn't you!" Asked for open tasks not in any open
+  slice, the session scraped slice members out of =TODO.org= with =awk=
+  instead of calling =org_outline= with the three slice ids as scope, which
+  returns each slice's members as =->= references. Second catch of this rule
+  today — the entry above — which is what earned this heading. The scrape
+  then failed *silently*: the member file came out empty, and a 140-line
+  candidate list was printed whose "not in a slice" filter had done nothing,
+  with slice members sitting in it unremoved. So the second face of the catch
+  is the always-loaded rule that silence is not a passing check — an
+  intermediate with zero rows was used as a filter without ever being looked
+  at.
 * TODO Nothing runs the shell hook suites, so three sat red for a day and a merge without anyone seeing :code:
 :PROPERTIES:
 :ID:       94e6b615-3778-426b-b40a-306b517a837f
