@@ -104,9 +104,23 @@ one-way: hidden complexity discovered mid-task upgrades the path —
 stop, say so, and step up. Nothing downgrades mid-task.
 
 The path is recorded as the heading's tag, `:spike:`, `:bounded:` or
-`:arch:`, set at capture. A heading carries one; stepping up replaces it
-on the headline, and `bin/lint-org` errors on two. `:code:` is not a path
-tag and combines with any of them.
+`:arch:`. A heading carries one; stepping up replaces it on the headline,
+and `bin/lint-org` errors on two. `:code:` is not a path tag and combines
+with any of them.
+
+**Reading and setting the tag.** For a new heading, pass the tag in
+`org_capture`'s `tags`. For work already filed, read the heading first
+with `org_outline` (`scope` set to its id), whose line shows its tags:
+- A path tag already there is an earlier classification. Start from it
+  and say so aloud; it may move up, never down.
+- None there means the heading was never classified. Classify it now,
+  announce the path, and add the tag to its headline.
+No org tool sets tags on an existing heading (`org-entry-put` refuses
+`TAGS`), so adding or replacing one is a headline text edit, checked
+first for an unsaved buffer as the org skill requires
+(org skill, "Before editing: check for an unsaved buffer").
+Tag only the heading in hand: the tags record classifications actually
+made, so do not sweep the backlog.
 
 ## Anti-Pattern: "Too Simple To Need Approval"
 
