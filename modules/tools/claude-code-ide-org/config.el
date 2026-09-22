@@ -18207,8 +18207,11 @@ the project list."
                  "Search org-mode headings across "
                  "`claude-code-ide-org-query-files' (or org-agenda-files) using "
                  "org-ql's plain-string query syntax. Predicates: todo:KEYWORD "
-                 "(e.g. todo:WAITING), tags:TAG1,TAG2 (comma = OR), priority:A, "
-                 "heading:\"text\". Prefix any predicate with ! to negate it "
+                 "(e.g. todo:WAITING), bare todo: for every non-terminal "
+                 "keyword at once (do not enumerate them -- an enumeration "
+                 "drops the ones you forget), property:KEY=VALUE (e.g. "
+                 "property:KIND=slice), tags:TAG1,TAG2 (comma = OR), "
+                 "priority:A, heading:\"text\". Prefix any predicate with ! to negate it "
                  "(e.g. !todo:DONE). Separate predicates with spaces to combine "
                  "with AND, e.g. \"todo:NEXT tags:code\". Returns one line per "
                  "match: TODO state, heading, tags, :ID:, and file — or a "
@@ -18217,7 +18220,7 @@ the project list."
                  "changed this week.")
    :args '((:name "query"
             :type string
-            :description "org-ql plain-string query, e.g. \"todo:WAITING\", \"tags:research,code\", \"priority:A\", \"!todo:DONE\".")))
+            :description "org-ql plain-string query, e.g. \"todo:\" (everything non-terminal), \"todo:WAITING\", \"property:KIND=slice\", \"tags:research,code\", \"priority:A\", \"!todo:DONE\".")))
 
   (claude-code-ide-make-tool
    :function #'claude-code-ide-org-body

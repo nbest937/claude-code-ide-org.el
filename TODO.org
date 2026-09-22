@@ -2943,6 +2943,28 @@ corpus, so a wrong-language query costs real work downstream.
 - Blocking e28933e9 on this. The block rested on the dropped-predicate
   claim and was lifted when the claim fell.
 
+*The schema under-described the language, and the omission produced the
+same silent wrong answer this heading is about.* Two predicates org-ql
+accepts went unnamed in `org_query`'s own description: bare `todo:`,
+which matches every non-terminal keyword at once, and
+`property:KEY=VALUE`. Asked on 2026-09-22 for the live headings of a
+category, a session enumerated `todo:TODO,NEXT,DOING,REVIEW,WAITING`
+and got 8 where bare `todo:` returns 10 — the two `MAYBE`s were dropped
+in silence, which is this heading's failure mode reached by a different
+road: not a sexp read as text, but a *shorter* correct query the caller
+did not know existed, so the long enumeration looked like the answer.
+The same session had already guessed `kind:slice`, got "No matches",
+and only then found `property:KIND=slice`.
+
+Both are now in the tool's `:description` and in its `query` argument
+description, with the enumeration warned against explicitly (the user,
+2026-09-22). That is where the fact earns currency: the schema is read
+at the moment of the call, and a reference file is not. It does not
+close this heading — a wrong query still answers rather than
+refusing — but it removes the two cases that were reaching the wrong
+answer most often.
+
+
 
 * TODO The re-key bridge reads transcripts Claude Code prunes, so the alias decays silently :code:
 :PROPERTIES:
