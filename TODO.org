@@ -504,6 +504,12 @@ CLAUDE.md's own opening names this as the largest source of wrong claims. Caught
   own dated =- Decided= entry, and reported it as the user's incomplete reflow.
   Width checks now skip list items.
 
+- [2026-09-22 Tue] Self-caught: 4ae7a04b's progress note said "a fresh
+  session listed it with the narrowed description". It was the current
+  session's live skill list; no fresh session was run. Corrected within
+  the minute (ebecefb).
+
+
 
 ** TODO Miss: a heading closed with its unfinished part left in prose, or its group left un-nominated
 :PROPERTIES:
