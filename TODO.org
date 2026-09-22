@@ -8,6 +8,62 @@
 :CREATED:  [2026-09-22 Tue 11:03]
 :CATEGORY: Tools
 :END:
+:PLAN:
+Designed 2026-09-22 in session ba40781f through the brainstorming skill,
+which kept the path tag the heading already carried: bounded, with
+=org_set_property= as the pattern to copy. It was written into a Plan Mode
+file, and the user asked for it here.
+
+A new immediate tool, *=org_set_tags=*, taking =id=, =add= and =remove=,
+each a space- or comma-separated tag list with colons stripped. The elisp
+is =claude-code-ide-org-set-tags= in =config.el=, beside
+=claude-code-ide-org-set-property=, and follows that function's order of
+steps:
+
+1. Resolve the heading with =claude-code-ide-org--id-find=. Refuse while
+   =claude-code-ide-org--file-busy-p= holds, with the same unsaved-buffer
+   message =org_set_property= gives, and when both lists are empty.
+2. *Path-tag aware* (the user's choice, 2026-09-22): if =add= names a path
+   tag, any other path tag already on the heading is removed, so one call
+   does the replacement. If =add= names two path tags, refuse. A move down
+   (=arch= to =spike=) is not refused, since the one-way rule is the
+   skill's judgement, but the report names the tag it replaced so the move
+   is visible. The three names come from one =defconst=, which the lint's
+   one-path-tag rule switches to as well.
+3. Compute the result from =org-get-tags nil t=, local tags only: current,
+   minus =remove= and any displaced path tag, plus =add=, deduplicated, in
+   order with new tags appended. Write it with =org-set-tags= and save,
+   inside =claude-code-ide-org--at-id-writable=.
+4. Report =Tags on "<title>": :a:b: (was :a:c:)=, plus =(replaced path tag
+   X)= when that happened. When nothing changed, say so and save nothing.
+   Removing a tag the heading lacks is a note, not an error.
+
+Register it with =claude-code-ide-make-tool= beside =org_set_property='s
+registration, and add ="org_set_tags"= to
+=claude-code-ide-org--worked-tool-names=, since changing tags works the
+heading. Add a row to the Immediate table in =org-mcp-tools.md= and
+replace its sentence sending tag changes to text editing; replace the
+brainstorming skill's "Reading and setting the tag" text edit with one
+=org_set_tags add=<path>= call; re-run =bin/claude-org-setup=.
+
+Verification: ERT against scratch files like the =set-property= tests
+(add, remove, dedupe with no =:code:code:=, =bounded= to =arch= leaving one
+path tag and =:code:= untouched, refusal of two path tags in one =add=,
+refusal on a busy buffer, a no-op with no save, inherited tags not copied,
+an unknown id). Prove the replacement test discriminates by disabling the
+displacement and watching it fail. Live: reload the module, call the tool
+on a scratch heading, and check the headline, the lint and the tool list.
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-22 Tue 11:24]--[2026-09-22 Tue 11:25] =>  0:01
+- [2026-09-22 Tue 11:24]--[2026-09-22 Tue 11:25] assigned at review
+CLOCK: [2026-09-22 Tue 11:27]--[2026-09-22 Tue 11:29] =>  0:02
+- [2026-09-22 Tue 11:27]--[2026-09-22 Tue 11:29] assigned at review
+CLOCK: [2026-09-22 Tue 11:29]--[2026-09-22 Tue 11:30] =>  0:01
+- [2026-09-22 Tue 11:29]--[2026-09-22 Tue 11:30] assigned at review
+CLOCK: [2026-09-22 Tue 11:48]--[2026-09-22 Tue 11:49] =>  0:01
+- [2026-09-22 Tue 11:48]--[2026-09-22 Tue 11:49] rescue the session's design into :PLAN:
+:END:
 
 A heading's tags can be set only when it is created, through
 =org_capture='s =tags=. After that nothing in the tool surface changes
@@ -28,6 +84,7 @@ behind Emacs's back, which is the unsaved-buffer divergence 53b0047d and
   addressed by =:ID:=.
 - A tag edit by hand also risks the repeated-tag error the lint already
   catches, the case that produced =:code:code:=.
+
 
 * TODO A span whose only resume is a synthetic bracket edge reports "no transcript for session nil (aged out)"
 :PROPERTIES:
@@ -57,7 +114,6 @@ The review buffer's prompt line reads "no transcript for session nil
 which carries no session id. Nothing aged out; the line is wrong. Seen
 2026-09-22 on a 10:35–10:37 span from session 9e00a7a2. The span itself is
 correct.
-
 
 
 * DONE pre-commit lints templates/TODO.org as TODO.org, so staging the template breaks every link into the tracker
@@ -169,6 +225,36 @@ CLOCK: [2026-09-22 Tue 10:38]--[2026-09-22 Tue 10:41] =>  0:03
 - [2026-09-22 Tue 10:38]--[2026-09-22 Tue 10:41] suggested span, accepted at review
 CLOCK: [2026-09-22 Tue 10:46]--[2026-09-22 Tue 10:49] =>  0:03
 - <2026-09-22 Tue 10:46>--<2026-09-22 Tue 10:49> suggested span, accepted at review
+CLOCK: [2026-09-22 Tue 10:56]--[2026-09-22 Tue 10:57] =>  0:01
+- [2026-09-22 Tue 10:56]--[2026-09-22 Tue 10:57] read and set path tags on existing headings
+CLOCK: [2026-09-22 Tue 10:57]--[2026-09-22 Tue 10:58] =>  0:01
+- [2026-09-22 Tue 10:57]--[2026-09-22 Tue 10:58] compose the mislabel's plan and body
+CLOCK: [2026-09-22 Tue 11:01]--[2026-09-22 Tue 11:03] =>  0:02
+- [2026-09-22 Tue 11:01]--[2026-09-22 Tue 11:03] suggested span, accepted at review
+CLOCK: [2026-09-22 Tue 11:04]--[2026-09-22 Tue 11:05] =>  0:01
+- [2026-09-22 Tue 11:04]--[2026-09-22 Tue 11:05] suggested span, accepted at review
+CLOCK: [2026-09-22 Tue 11:06]--[2026-09-22 Tue 11:08] =>  0:02
+- [2026-09-22 Tue 11:06]--[2026-09-22 Tue 11:08] suggested span, accepted at review
+CLOCK: [2026-09-22 Tue 11:12]--[2026-09-22 Tue 11:13] =>  0:01
+- [2026-09-22 Tue 11:12]--[2026-09-22 Tue 11:13] suggested span, accepted at review
+CLOCK: [2026-09-22 Tue 11:13]--[2026-09-22 Tue 11:14] =>  0:01
+- [2026-09-22 Tue 11:13]--[2026-09-22 Tue 11:14] Process Flow digraph, the decision spine
+CLOCK: [2026-09-22 Tue 11:14]--[2026-09-22 Tue 11:15] =>  0:01
+- [2026-09-22 Tue 11:14]--[2026-09-22 Tue 11:15] suggested span, accepted at review
+CLOCK: [2026-09-22 Tue 11:19]--[2026-09-22 Tue 11:20] =>  0:01
+- [2026-09-22 Tue 11:19]--[2026-09-22 Tue 11:20] suggested span, accepted at review
+CLOCK: [2026-09-22 Tue 11:20]--[2026-09-22 Tue 11:21] =>  0:01
+- [2026-09-22 Tue 11:20]--[2026-09-22 Tue 11:21] shorten labels; render the adapted flow page
+CLOCK: [2026-09-22 Tue 11:21]--[2026-09-22 Tue 11:22] =>  0:01
+- [2026-09-22 Tue 11:21]--[2026-09-22 Tue 11:22] suggested span, accepted at review
+CLOCK: [2026-09-22 Tue 11:24]--[2026-09-22 Tue 11:25] =>  0:01
+- [2026-09-22 Tue 11:24]--[2026-09-22 Tue 11:25] suggested span, accepted at review
+CLOCK: [2026-09-22 Tue 11:25]--[2026-09-22 Tue 11:26] =>  0:01
+- [2026-09-22 Tue 11:25]--[2026-09-22 Tue 11:26] remove the upstream-flow page
+CLOCK: [2026-09-22 Tue 11:34]--[2026-09-22 Tue 11:35] =>  0:01
+- [2026-09-22 Tue 11:34]--[2026-09-22 Tue 11:35] suggested span, accepted at review
+CLOCK: [2026-09-22 Tue 11:48]--[2026-09-22 Tue 11:49] =>  0:01
+- [2026-09-22 Tue 11:48]--[2026-09-22 Tue 11:49] record a self-caught id-from-memory miss
 :END:
 :PLAN:
 *Why port rather than install.* The superpowers plugin is enabled as a whole: 15 skills and a SessionStart hook. Evaluated against superpowers v6.4.1 ([[orgit-rev:superpowers::5bf4e78][5bf4e78]]), six things conflict with this repo:
@@ -562,6 +648,11 @@ The transcript that started the drift slice: a session offered to file a defect 
 :END:
 
 UUIDs, SHAs, titles, keywords. Tool-backed where a tool resolves the id: on 2026-09-21 org_amend refused a full UUID padded out from a remembered prefix, which was the miss counter's first event. A recalled title or a wrong SHA has no backstop. One dated line per catch.
+
+- [2026-09-22 Tue] Self-caught: called =org_clock_in= with
+  =da6a2fba-1ab6-4e6=, a truncated full id typed from memory, not the
+  8-character prefix or a looked-up value. The tool refused it; the id was
+  then read from the file.
 
 
 ** TODO Miss: a commit that swept in a change its message does not describe
@@ -2068,7 +2159,7 @@ So cookie and =:KIND:= are a two-bit classifier and each carries a bit the other
 *Placement, decided 2026-09-17 so it is not re-decided:* the *definition* — a cookie is derived state, not part of a name — goes in =org-conventions.md= beside the passage introducing the cookie, together with the rewrite hazard, since both matter when an =.org= file is open and that file is path-scoped to =**/*.org=. The *instruction* — emit =:KIND:=, keep the cookie — goes in =org-footnote-citations.md=, which carries no path scope because ids are cited with no org file in play. State it once in each and cross-reference; two files each holding a full account is how =~/.claude/CLAUDE.md= and its promoted twin diverged within hours.
 
 
-* TODO org_divide writes the statistics cookie at the end of the headline, where a narrow window truncates it :code:
+* TODO org_divide writes the statistics cookie at the end of the headline, where a narrow window truncates it :code:bounded:
 :PROPERTIES:
 :ID:       492a1a30-ac92-4f18-bb82-f9cd615b397c
 :CREATED:  [2026-09-17 Thu 11:31]
@@ -2877,7 +2968,7 @@ not exist — and pointing them at each other would assert a cycle. Whichever
 lands first sets the shape; the second reads what the first wrote.
 
 
-* TODO org_amend replace=true destroys a slice's member checklist, which is the one thing a slice declares :code:
+* TODO org_amend replace=true destroys a slice's member checklist, which is the one thing a slice declares :code:arch:
 :PROPERTIES:
 :ID:       7ee3b71a-b85a-4610-a4ab-b9e06c8d79da
 :CREATED:  [2026-09-15 Tue 10:26]
@@ -6975,7 +7066,7 @@ cannot be interpreted.
 and only an instrument outside the clock system answers it.
 
 
-* TODO An Emacs outage strands every org write, because the tools are Emacs :code:
+* TODO An Emacs outage strands every org write, because the tools are Emacs :code:spike:
 :PROPERTIES:
 :ID:       3ad389be-2797-46c3-a51d-9f603053955a
 :CREATED:  [2026-08-31 Mon 13:50]
@@ -11303,6 +11394,7 @@ call it done.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-22 Tue 11:50]--[2026-09-22 Tue 11:53] =>  0:03
 CLOCK: [2026-09-22 Tue 10:49]--[2026-09-22 Tue 10:51] =>  0:02
 CLOCK: [2026-09-22 Tue 10:42]--[2026-09-22 Tue 10:46] =>  0:04
 CLOCK: [2026-09-22 Tue 09:54]--[2026-09-22 Tue 09:58] =>  0:04
@@ -12537,4 +12629,15 @@ CLOCK: [2026-09-21 Mon 18:50]--[2026-09-21 Mon 18:51] =>  0:01
 - [2026-09-21 Mon 18:50]--[2026-09-21 Mon 18:51] close f6d160c2 at the merge of PR 29
 CLOCK: [2026-09-21 Mon 18:52]--[2026-09-21 Mon 18:53] =>  0:01
 - [2026-09-21 Mon 18:52]--[2026-09-21 Mon 18:53] assigned at review
+:END:
+
+
+**** 2026-09-22 Tuesday
+:PROPERTIES:
+:ID:       ffa123b4-4b64-4ad6-8c76-88ee0a2be7ba
+:CREATED:  [2026-09-22 Tue 11:03]
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-22 Tue 11:03]--[2026-09-22 Tue 11:04] =>  0:01
+- [2026-09-22 Tue 11:03]--[2026-09-22 Tue 11:04] file the tag-editing tool gap into 8a2e
 :END:

@@ -893,6 +893,7 @@ CLOCK: [2026-09-22 Tue 09:06]--[2026-09-22 Tue 09:07] =>  0:01
 - [2026-09-22 Tue 09:48]--[2026-09-22 Tue 09:58] measure title-token overlap on the corpus
 CLOCK: [2026-09-22 Tue 10:45]--[2026-09-22 Tue 10:46] =>  0:01
 - [2026-09-22 Tue 10:45]--[2026-09-22 Tue 10:46] file the aged-out mislabel
+- [2026-09-22 Tue 10:50]--[2026-09-22 Tue 10:55] measure title-token overlap on the corpus
 :END:
 :DEBRIEF:
 Shipped in [[orgit-rev:claude-code-ide-org::4a9387b][4a9387b]]. *Measured before anything was chosen,* as the plan asked, leave-one-out over the 563 scorable titles in this tracker. Plain Jaccard was useless here — titles are whole claims, and the known duplicate pair scored 0.27. The score adopted is the idf-weighted share of the *new* title's tokens found in the candidate, at least two shared: asymmetric on purpose, because the question is "is this already said", not "are these alike". At 0.4, 43 headings (7.6%) would have been shown a candidate; at 0.5, 16, about eleven of them true relatives; the known pair scores 0.59 one way and 0.32 the other.
