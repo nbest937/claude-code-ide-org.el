@@ -153,8 +153,9 @@ owed.*
   and file the skill names; its test plants one violation per rule, 9/9,
   and =pre-commit-guards= runs it
   ([[orgit-rev:claude-code-ide-org::4d446d6][4d446d6]]).
-- The skill is discovered here through =.claude/skills/brainstorming=, and
-  a fresh session listed it with the narrowed description.
+- The skill is discovered here through =.claude/skills/brainstorming=: this
+  session's skill list picked it up live, with the narrowed description.
+  A fresh session has not been checked.
 
 *Owed before the pull request:* one real request through each path, spike,
 bounded and architectural, confirming that the heading is captured only
