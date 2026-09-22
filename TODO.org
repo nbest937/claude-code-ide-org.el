@@ -853,6 +853,15 @@ The catch-all, so that answering a catch is always an amend and never a decision
   =git diff --stat= showed 12 insertions where four paragraphs were
   expected; the bodies were re-added with =org_amend=.
 
+The tool half of that catch was already filed:
+  [[id:bbf9fb77-f081-48c5-bb01-1b4d4f201969][bbf9fb77]], where this is
+  the fifth recorded occurrence and the twentieth discarded body. The
+  caller half stays here — the rule missed is "read the tool's
+  =:args=", which is not the id-from-memory rule (=8f075f78= is scoped
+  to UUIDs, SHAs, titles and keywords), and this is its first catch, so
+  it has not yet earned a sibling.
+
+
 
 
 * TODO Nothing runs the shell hook suites, so three sat red for a day and a merge without anyone seeing :code:
@@ -11506,6 +11515,28 @@ different question.
 *A cost note for the report.* Across the three occurrences the count is now 5 + 11 + 2 = **eighteen discarded bodies in one tool**, every one recovered only because a transcript was still in reach. The recovery rate is 18/18 and it is entirely luck — none of it was recovered by a check, a lint, a test or the queue.
 
 *Fourth occurrence, 2026-09-19, and the worst-shaped one so far.* Eight =org_capture= calls in one session each passed a =body= argument; every heading landed as a title with an empty body, and the drop was noticed only because a slice heading was inspected by hand for a different reason, five hours after the first. The session was, at the time, filing headings from a drift analysis whose own case study is this defect. The bodies were restored through =org_amend=. Two things this occurrence adds: the correct argument name was never surfaced (the capture reply reports success and the location, nothing about what it discarded), and the =org_amend= calls that *did* land — into =:PLAN:= — masked the loss, because a heading with a full plan drawer looks composed at a glance.
+
+*Fifth occurrence, 2026-09-22 — two calls, and the first with a
+*different* invented name.* Two =org_capture= calls passed =text=,
+which the tool does not have; both replied ="Captured: … (ID: …)"= and
+both headings landed as a title and a =:PROPERTIES:= drawer
+(=3485b0d0=, =c4bb5db3=). Restored by =org_amend= from the same turn.
+Running total: 5 + 11 + 2 + 8 + 2 = **twenty discarded bodies in one
+tool**, all recovered from a transcript still in reach.
+
+*What it adds to the report.* Every prior occurrence invented =body=,
+which left one narrow remedy open — accept =body= as an alias for
+=note= and the recurrence stops. This one invented =text=, so the
+wrong name is not sticky: it is whichever plausible synonym the caller
+reaches for, and an alias list cannot enumerate them. That removes the
+last alternative to the =-32602= the HTTP path already has the
+machinery for.
+
+Detection was =git diff --stat= again — twelve insertions where four
+paragraphs belonged — which is now twice out of five that the same
+accident caught it, and still the only thing that ever has. The catch
+is recorded on =59861867=.
+
 
 
 ** CANCELLED Unknown MCP methods signal an undefined error symbol and answer nothing :code:
