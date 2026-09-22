@@ -1468,11 +1468,18 @@ pointer to the conventions and their section list, verified in a fresh
 tools-only session. The consumer check belongs to 2b8930da.
 
 
-* NEXT config.el is the last place time tracking and task tracking are still entangled, 30% of 18k lines :code:
+* NEXT [0/2] config.el is the last place time tracking and task tracking are still entangled, 30% of 18k lines :code:arch:
 :PROPERTIES:
 :ID:       a7f844ba-7b70-48c6-833c-cd7e4e38cf14
 :CREATED:  [2026-09-19 Sat 08:08]
 :CATEGORY: Dev
+:END:
+:LOGBOOK:
+- Tags ":code:arch:" from ":code:" [2026-09-22 Tue 16:42] \\
+  classified at its first brainstorm: it restructures how the module's
+  components fit together and changes load order in a module with a
+  recorded load-order trap, which is the architectural definition rather
+  than a bounded change to an existing flow
 :END:
 
 =8bbae3aa= separated time tracking from task tracking everywhere except the module. The hooks self-gate, the rules forked into =org-time-tracking.md=, the manifest declares the option, the prose demoted the goal — and =modules/tools/claude-code-ide-org/config.el= still holds both in one file of **17,954 lines**, every line of which a consumer loads whether or not the feature is on.
@@ -1491,7 +1498,21 @@ tools-only session. The consumer check belongs to 2b8930da.
 *Also to establish first, cheaply:* whether the module is loaded by Doom as one file or by path. It is symlinked into =~/.config/doom/modules/tools/= and enabled via =:tools claude-code-ide-org=, so splitting turns implicit single-file loading into explicit ordering — and the =org-clock-persist-load= trap (org-dev skill §2) is the standing evidence that load *order* in this module is not a free variable.
 
 *Not a member of any slice.* Its strongest motivation continues a closed one; it earns a slice of its own or joins whichever is nominated next.
+** NEXT Re-home config.el's misfiled symbols until nothing task-side reaches into the time sections :code:
+:PROPERTIES:
+:ID:       fb849c29-fddc-4c2d-8683-f465467b1305
+:CREATED:  [2026-09-22 Tue 16:41]
+:END:
 
+Measured 2026-09-22: task-side code makes 130 references to 47 symbols defined inside the eight time-named sections, so those sections are not a seam and cutting on them would move the wrong code. The references sort into three unlike groups — five generic helpers misfiled into "Stale interval recovery" (--tracked-files, --parse-org-timestamp, --report-scope, --today-p, --tracked-buffer-p) accounting for 61 of the 130; the review buffer's thirteen interactive commands, defined in "Span evidence" and bound from "Review buffer"; and core task entry points sitting in time-named sections, including claude-code-ide-org-review itself, defined inside "The human's review attention". This step moves each symbol to the section its name implies and adds a lint asserting the direction, inside the single file and changing no behaviour, so that the cut in the sibling step is mechanical. All the judgement and all the risk of the split live here.
+** TODO Cut the time machinery into +time.el behind a Doom module flag :code:
+:PROPERTIES:
+:ID:       055886c1-3dfd-4805-b05c-c66b2d631d18
+:CREATED:  [2026-09-22 Tue 16:41]
+:BLOCKER:  fb849c29-fddc-4c2d-8683-f465467b1305
+:END:
+
+Once the direction holds, the seven span and attention sections move to +time.el and config.el ends its own code with (if (modulep! +time) (load! "+time")) — Doom's native conditional-load convention, used by fifteen +flag.el files in this install, needing no env var, defcustom or marker file. The gated load goes immediately before the tool-registration block rather than at the end of the file, so the block stays the last top-level form and bin/lib/check-org-dev-skill.el's anchor keeps holding unchanged. "Clock report" stays in config.el: org_clock_report is a registered tool, the clock tools stay registered with time tracking off, and it wraps org-clock-report over CLOCK lines that exist regardless. Blocked by its sibling; mechanical once that lands.
 
 * TODO Promotion never removes, and --check never looks, so a dropped rule file would linger in every consumer :code:
 :PROPERTIES:
