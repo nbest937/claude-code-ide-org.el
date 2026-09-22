@@ -731,6 +731,20 @@ Hook-backed only for the no-clock case (clock-target-check, rule =clock-target=)
 
 The transcript that started the drift slice: a session offered to file a defect bbf9fb77 already held, and could recite the rule. Closes when org_capture runs the query itself (c8773ec2). One dated line per catch.
 
+- [2026-09-22 Tue] Caught by the user: "is there already a task for
+  that?" Having dropped two bodies to =org_capture text==, the session
+  wrote the defect up on the catch-all miss heading — "an unknown key is
+  dropped in silence" — and reported it as a finding, without searching
+  for the heading that holds it. =bbf9fb77= has held it since
+  2026-09-08, with four prior occurrences and eighteen lost bodies
+  measured, and =org_query= found it on the first try once the user
+  asked. The trigger the rule names is *filing*, and nothing was filed
+  here; what the session did was describe tracked work as untracked,
+  which reaches the same wrong place — a second record of a defect that
+  already has one, and an upstream report that would have gone out
+  missing its own strongest evidence.
+
+
 
 ** TODO Miss: an identifier written from memory instead of looked up
 :PROPERTIES:
