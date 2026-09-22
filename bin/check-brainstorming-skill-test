@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# Test harness for bin/check-brainstorming-skill (TODO.org :ID: 4ae7a04b).
+# The real skill, config.el and org references are copied into a scratch
+# tree; each case plants one violation and asserts that exactly that rule
+# fires, so no rule can pass by being unable to fail.
+set -uo pipefail
+unset CLAUDE_CODE_SESSION_ID
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+check="$repo_root/bin/check-brainstorming-skill"
+work="$(mktemp -d)"
+trap 'rm -rf "$work"' EXIT
+
+pass=0 fail=0
+expect() { # name want-exit want-grep
+  local out rc; out="$("$check" "$work/r" 2>&1)"; rc=$?
+  if [[ "$rc" == "$2" ]] && grep -q -- "$3" <<<"$out"; then printf '  ok    %s\n' "$1"; pass=$((pass + 1))
+  else printf '  FAIL  %s (exit %s, output: %s)\n' "$1" "$rc" "$out"; fail=$((fail + 1)); fi
+}
+fresh() {
+  rm -rf "$work/r"; mkdir -p "$work/r/modules/tools/claude-code-ide-org" "$work/r/skills/org/references"
+  cp -R "$repo_root/skills/brainstorming" "$work/r/skills/"
+  cp "$repo_root/modules/tools/claude-code-ide-org/config.el" "$work/r/modules/tools/claude-code-ide-org/"
+  cp "$repo_root/skills/org/SKILL.md" "$work/r/skills/org/"
+  cp "$repo_root/skills/org/references/org-conventions.md" "$work/r/skills/org/references/"
+}
+plant() { printf '\n%s\n' "$1" >> "$work/r/skills/brainstorming/SKILL.md"; }
+
+fresh; expect "the real skill passes" 0 "ok ("
+fresh; plant 'Call `org_teleport` next.'; expect "an unregistered tool is caught" 1 "names tool org_teleport"
+fresh; plant 'Pass `nosuch=1` to it.'; expect "an unknown key= argument is caught" 1 "passes nosuch="
+fresh; plant 'Give it an `initial_stat`.'; expect "a misspelled parameter is caught" 1 "names parameter initial_stat"
+fresh; plant 'See org skill, "No Such Section".'; expect "a missing org skill section is caught" 1 'section "No Such Section"'
+fresh; plant 'See org conventions ("Nor This One").'; expect "a missing conventions section is caught" 1 'section "Nor This One"'
+fresh; plant 'Use `missing-prompt.md`.'; expect "a missing sibling file is caught" 1 "names missing-prompt.md"
+fresh; plant 'Then invoke writing-plans.'; expect "dropped upstream machinery is caught" 1 "dropped upstream machinery: writing-plans"
+fresh; printf '\nCall `org_teleport` here.\n' >> "$work/r/skills/brainstorming/visual-companion.md"
+expect "upstream's unadapted companion is not checked" 0 "ok ("
+
+echo
+echo "check-brainstorming-skill-test: $pass passed, $fail failed"
+exit $((fail > 0))

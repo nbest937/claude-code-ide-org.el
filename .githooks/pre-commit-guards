@@ -101,4 +101,22 @@ if [ -x "$skill_check" ] && grep -q '^\.claude/skills/org-dev/' <<<"$staged"; th
   fi
 fi
 
+# 4. The brainstorming skill's claims (TODO.org :ID: 4ae7a04b): every tool,
+#    parameter, section and file it names exists. Plain text, so no Emacs
+#    is needed and it always blocks. It runs when the skill is staged, and
+#    also when config.el or the org references are, since those are what
+#    it names.
+bs_check="$repo_root/bin/check-brainstorming-skill"
+if [ -x "$bs_check" ] && [ -d "$repo_root/skills/brainstorming" ] \
+   && grep -qE '^(skills/brainstorming/|skills/org/|modules/tools/claude-code-ide-org/config\.el$)' <<<"$staged"; then
+  if ! out="$("$bs_check" "$repo_root" 2>&1)"; then
+    {
+      echo "pre-commit: the brainstorming skill names something that does not exist:"
+      printf '%s\n' "$out" | sed 's/^/  /'
+      echo "  Check: bin/check-brainstorming-skill"
+    } >&2
+    status=1
+  fi
+fi
+
 exit $status

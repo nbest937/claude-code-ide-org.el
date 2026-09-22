@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+# Check that everything the brainstorming skill names is real.
+#
+# TODO.org :ID: 4ae7a04b. The skill is a port of superpowers' brainstorming
+# (skills/brainstorming/.upstream), rewritten to route its output through
+# this plugin's tools and conventions. A skill that tells a session to call
+# a tool, pass a parameter or read a section that does not exist fails
+# silently: the session improvises. So every such claim is checked against
+# the thing it names -- bin/check-org-dev-skill is the model, but this
+# needs no running Emacs, since registrations and headings are text.
+#
+# Checked, across skills/brainstorming/*.md except visual-companion.md
+# (upstream's, unadapted, and naming none of these):
+#   1. every org_* tool is registered in config.el (`:name "org_x"');
+#   2. every `word=' argument, and every backticked snake_case word that is
+#      a parameter name, is a registered tool parameter (`(:name "word"');
+#   3. every section cited as  org skill, "Title"  or
+#      org conventions ("Title")  is a heading in that file;
+#   4. every sibling file the skill names exists;
+#   5. none of the upstream machinery it dropped is still named:
+#      docs/superpowers, writing-plans, elements-of-style, a spec file.
+#
+# Usage: bin/check-brainstorming-skill [ROOT]   exit 1 on any failure
+set -uo pipefail
+
+root="${1:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+skill_dir="$root/skills/brainstorming"
+config="$root/modules/tools/claude-code-ide-org/config.el"
+org_skill="$root/skills/org/SKILL.md"
+conventions="$root/skills/org/references/org-conventions.md"
+fail=0
+bad() { echo "check-brainstorming-skill: $*" >&2; fail=1; }
+
+shopt -s nullglob
+docs=()
+for f in "$skill_dir"/*.md; do
+  case "$(basename "$f")" in visual-companion.md|README.md) ;; *) docs+=("$f") ;; esac
+done
+[ "${#docs[@]}" -gt 0 ] || { bad "no skill documents under $skill_dir"; exit 1; }
+[ -r "$config" ] || { bad "cannot read $config"; exit 1; }
+
+tools="$(grep -oE ':name "org_[a-z_]+"' "$config" | sed -E 's/:name "(.*)"/\1/' | sort -u)"
+params="$(grep -oE '\(:name "[a-z_]+"' "$config" | sed -E 's/\(:name "(.*)"/\1/' | sort -u)"
+text="$(cat "${docs[@]}")"
+
+# 1. Tools.
+for t in $(grep -oE '\borg_[a-z_]+' <<<"$text" | sort -u); do
+  grep -qx "$t" <<<"$tools" || bad "names tool $t, which config.el does not register"
+done
+
+# 2. Parameters: `word=' forms, and backticked snake_case words.
+for p in $(grep -oE '`[a-z_]+=' <<<"$text" | tr -d '`=' | sort -u); do
+  grep -qx "$p" <<<"$params" || bad "passes $p=, which no org_* tool takes"
+done
+for p in $(grep -oE '`[a-z]+_[a-z_]+`' <<<"$text" | tr -d '`' | sort -u); do
+  grep -qx "$p" <<<"$tools" && continue
+  grep -qx "$p" <<<"$params" || bad "names parameter $p, which no org_* tool takes"
+done
+
+# 3. Cited sections.
+while IFS= read -r cite; do
+  [ -n "$cite" ] || continue
+  which="$(sed -E 's/^org (skill|conventions).*/\1/' <<<"$cite")"
+  title="$(sed -E 's/^[^"]*"([^"]+)".*/\1/' <<<"$cite")"
+  file="$org_skill"; [ "$which" = conventions ] && file="$conventions"
+  grep -qxF -- "$(printf '%s' "$title")" <(sed -nE 's/^#+ (.*)$/\1/p' "$file") \
+    || bad "cites the org $which section \"$title\", which is not a heading there"
+done < <(grep -oE 'org (skill|conventions)[ ,(]+"[^"]+"' <<<"$text" | sort -u)
+
+# 4. Sibling files it names.
+for f in $(grep -oE '`[a-z][a-z-]*\.md`' <<<"$text" | tr -d '`' | sort -u); do
+  [ -e "$skill_dir/$f" ] || bad "names $f, which is not in skills/brainstorming/"
+done
+
+# 5. Dropped upstream machinery.
+for gone in 'docs/superpowers' 'writing-plans' 'elements-of-style' 'spec file' 'design doc'; do
+  grep -qiF -- "$gone" <<<"$text" && bad "still names dropped upstream machinery: $gone"
+done
+
+[ "$fail" = 0 ] && echo "check-brainstorming-skill: ok (${#docs[@]} documents)"
+exit "$fail"
