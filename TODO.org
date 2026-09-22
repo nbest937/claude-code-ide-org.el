@@ -2,6 +2,61 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* DOING Brainstorming exists only inside the superpowers plugin, whose specs go to Markdown files and never reach the tracker :code:
+:PROPERTIES:
+:ID:       4ae7a04b-1557-44d6-91c3-384f1def5293
+:CREATED:  [2026-09-22 Tue 08:36]
+:CATEGORY: Skill
+:END:
+:PLAN:
+*Why port rather than install.* The superpowers plugin is enabled as a whole: 15 skills and a SessionStart hook. Evaluated against superpowers v6.4.1 ([[orgit-rev:superpowers::5bf4e78][5bf4e78]]), six things conflict with this repo:
+- brainstorming commits specs to =docs/superpowers/specs/=, and =writing-plans= commits plans to =docs/superpowers/plans/=. That contradicts the rule that a plan lives in its heading's =:PLAN:= drawer, and its "user preferences override" escape hatch depends on the model remembering prose;
+- the chain brainstorm → spec → plan → subagent execution captures no heading and queues no state before its first write, so =clock-target-check= fires;
+- =using-superpowers= is injected at SessionStart: about 500 words under =<EXTREMELY_IMPORTANT>= ("a 1% chance … you MUST invoke"), which also sends Plan Mode through brainstorming. =bin/word-budget= does not count hook-injected text, and the injection competes with the ceremony report;
+- =finishing-a-development-branch= offers a local =git merge=, which the hooks refuse;
+- =using-git-worktrees= and subagent-driven development work off =main=, where TODO.org bookkeeping lands on stale content;
+- upstream rewrites skills from release to release (the three-path router arrived in 6.3), so taking updates would silently change the conventions.
+
+*Keep, adapted.* From =skills/brainstorming/SKILL.md=:
+- write back the understood intent, separating what the user said from what is assumed;
+- classify the request as spike, bounded or architectural, and say so aloud before the first question; the path may move up mid-task but never down;
+- the HARD-GATE: a reply approves only the stage actually presented, and work resumes at the earliest incomplete stage;
+- the red-flags table;
+- one question at a time, multiple choice where possible;
+- 2–3 approaches, recommended one first, YAGNI;
+- the design presented in sections, each approved in turn;
+- the four-point self-review (placeholders, contradictions, scope, ambiguity), run on the drawer instead of a spec file.
+
+*Rewrite: where each path ends up.*
+- *Spike*: the result is a recommendation given in chat. Capture a heading only if the user wants it kept, and label anything built as throwaway.
+- *Bounded*: before the first write, capture a heading with =initial_state=. The design is approved in chat, then written into =:PLAN:= in a few sentences, since the drawer is the design record even when the design is short. The body is two to five sentences.
+- *Architectural*: capture the heading with =initial_state DOING= and write the approved design to =:PLAN:= with =org_amend drawer=PLAN=. The self-review runs there, and the user reviews the drawer as they would a spec. If the design breaks into parts, they become keyworded children captured under the heading, and the story emerges from that; it is never declared. A heading that has already been worked divides with =org_divide= instead. A slice is *not* a brainstorming output: slices are scheduling decisions, which pick and order tasks from the backlog, and keyworded children under a slice are refused anyway (the user, 2026-09-22).
+- The terminal state names this repo's next step, with no =writing-plans=: implementation behind the org skill's Plan Mode checkpoint, or =/next-session= when the work is sequenced across sessions.
+
+*Gates, reconciled.* Brainstorming's "design approval permits only writing the spec" matches the Plan Mode checkpoint's "writing the plan down is not gated". So an approved design goes into the drawer at once, and implementation plus the transition to =DOING= wait for a separate yes. The skill cites the checkpoint instead of restating it.
+
+*Drop.* =using-superpowers= and its hook, =writing-plans=, =executing-plans=, =subagent-driven-development=, =finishing-a-development-branch=, =using-git-worktrees=, and the upstream pointer to the =elements-of-style= skill. The =:PLAN:= drawer, slices, =/next-session= and the pull-request rule already do their work.
+
+*Shape.*
+- It lives at =skills/brainstorming/= as a shipped skill, with =.claude/skills/brainstorming= a symlink to it, as for =org=. It is not promoted into =.claude/rules/=, so it costs no always-loaded words beyond its description.
+- The description is narrower than upstream's "You MUST use this before any creative work", so bookkeeping, closes and maintenance commits do not trigger it.
+- It keeps the MIT copyright notice (Jesse Vincent, 2025) and records the upstream commit it was ported from, so a later re-sync is a deliberate diff and not an update.
+- Everything the skill names must be real. =bin/check-org-dev-skill= is the model for a check that the tools, parameters and sections it cites exist; extend that check, or add a sibling.
+
+*Verification.*
+- Automated: the claims check above.
+- Manual, stated as such: one real request taken through each path, confirming that the heading is captured before the first write, the design lands in =:PLAN:=, and nothing is written under =docs/=. Whether the skill triggers at the right moments cannot be tested deterministically, and is recorded as a judgement.
+
+*Open questions.*
+- Plan Mode is read-only, but capture is a write. Does brainstorming run inside Plan Mode, with capture and the drawer written after =ExitPlanMode=, or does it replace Plan Mode for design work?
+- Should the visual companion be kept? It adds a Node server, and nothing here is UI work yet.
+- Should the skill reach consumers as part of this plugin, or stay testbed-only like =org-dev= until it has been exercised here?
+
+Branch: =feature/brainstorming-skill=, merged by pull request.
+:END:
+
+superpowers' brainstorming skill is the best design-dialogue discipline available: intent written back for correction, the path (spike, bounded, architectural) announced aloud, one question at a time, and hard approval gates. Installing the plugin would bring its bookkeeping too: specs and plans committed as Markdown under docs/superpowers/, no heading captured before the first write, a local git merge, and a SessionStart injection that the word budget cannot see. Port the dialogue as a shipped skill of this plugin instead, and route its output through org_capture and the :PLAN: drawer.
+
 * DOING Starting a pull request's review should queue its slice to REVIEW, not wait for someone to remember
 :PROPERTIES:
 :ID:       a9d37aee-3cc0-4e5f-80ff-6659aba34db0
