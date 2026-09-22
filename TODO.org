@@ -8,6 +8,29 @@
 :CREATED:  [2026-09-22 Tue 10:45]
 :CATEGORY: Apply
 :END:
+:PLAN:
+=claude-code-ide-org--span-prompt-lines= finds the span's session from its
+events' =:session-id=. The synthetic =resume= and =pause= edges that
+b09aca60 adds (=--with-bracket-edges=, flagged =:synthetic t=) carry no
+session id by design. So when a span's only resume is synthetic, the
+session list is empty, =have-transcript= is nil, and the line reads "no
+transcript for session nil (aged out)".
+
+Fix it in that function. Skip synthetic events when collecting resumes
+and sessions. If no real resume remains, treat the span like one with no
+guideposts inside, which answers with the last prompt before the span,
+from the session that owns it. When even that session is unknown, say
+the stretch followed a mid-turn clock-out, not that a transcript aged
+out. Test: a span whose only resume is synthetic renders no "aged out"
+line, and a genuinely aged-out session still does.
+:END:
+
+The review buffer's prompt line reads "no transcript for session nil
+(aged out)" for a span whose only =resume= is a synthetic bracket edge,
+which carries no session id. Nothing aged out; the line is wrong. Seen
+2026-09-22 on a 10:35–10:37 span from session 9e00a7a2. The span itself is
+correct.
+
 
 
 * DONE pre-commit lints templates/TODO.org as TODO.org, so staging the template breaks every link into the tracker
