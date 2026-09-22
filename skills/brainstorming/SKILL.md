@@ -46,18 +46,27 @@ for a heading that already holds this work; `org_capture` also lists near
 matches when it files one. A design for work already filed belongs in
 that heading's `:PLAN:`, not in a new heading.
 
-## Plan Mode, and where writes happen
+## Where the dialogue runs, and where writes happen
 
-The dialogue is read-only, so run it inside Plan Mode (the user,
-2026-09-22). **`ExitPlanMode` is the design approval.** Only after it:
-capture the heading with `org_capture` (with an `initial_state`, a
-`category` when it is top-level, and the path's tag in `tags`: `spike`,
-`bounded` or `arch`), then write the approved design with
+**Not in Plan Mode** (the user, 2026-09-22). Plan Mode always writes the
+plan to a file under `~/.claude/plans`, which is the retired plan-file
+pattern, and its `ExitPlanMode` approval can only mean "start
+implementing" or "stay read-only": there is no "record this and stop". A
+session that tried it looped when asked to write the drawer. So hold the
+dialogue in the ordinary session, read-only by the HARD-GATE below, and
+do not call `EnterPlanMode` or `ExitPlanMode`.
+
+**The design approval is an explicit yes in chat** to recording the
+design you presented. Only after it: capture the heading with
+`org_capture` (with an `initial_state`, a `category` when it is
+top-level, and the path's tag in `tags`: `spike`, `bounded` or `arch`),
+or re-tag the existing heading; then write the approved design with
 `org_amend` `drawer=PLAN`, then a body of two to five sentences with
-`org_amend`. Writing the design down is not gated; implementation and the
-transition to `DOING` are, by a separate yes — org skill, "Plan Mode
-checkpoint". A spike whose probe must build something leaves Plan Mode
-for the probe, and labels what it builds as throwaway.
+`org_amend`. Recording the design is not gated beyond that yes;
+implementation and the transition to `DOING` wait for a second, separate
+yes — the rule of the org skill's "Plan Mode checkpoint", applied without
+Plan Mode. Ask for the two in separate messages, and never read one as
+the other.
 
 <HARD-GATE>
 Before taking any implementation action — writing product code,
@@ -66,9 +75,9 @@ complete the selected path's prerequisites:
 
 - Spike: the human partner approves the question and probe.
 - Bounded: the human partner approves the short in-chat design.
-- Architectural: the human partner approves the design (at
-  `ExitPlanMode`), then reviews the `:PLAN:` drawer it was written into,
-  then says yes to starting. Design approval only permits capturing the
+- Architectural: the human partner approves the design in chat, then
+  reviews the `:PLAN:` drawer it was written into, then says yes to
+  starting. Design approval only permits capturing the
   heading and writing the drawer.
 
 A reply approves the stage actually presented. Approval of an idea or
@@ -147,6 +156,7 @@ reviews before implementation.
 | "They approved the spike, so the follow-up change is approved too" | Each task gets its own classification and its own approval. |
 | "The design is approved, so I'll set it DOING and start" | Approval permits the heading and the drawer. `DOING` and implementation wait for a separate yes. |
 | "I'll write the design to a file and link it" | The design lives in the heading's `:PLAN:`; a plan-file link is a retired pattern. |
+| "This is design work, so I'll enter Plan Mode" | Plan Mode writes a plan file and its exit means "start implementing". Hold the dialogue in the session and ask for the yes in chat. |
 
 ## Checklist
 
@@ -173,7 +183,7 @@ Classify first, announce the path, then work through its items in order.
 3. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria
 4. **Propose 2-3 approaches** — with trade-offs and your recommendation
 5. **Present design** — in sections scaled to their complexity, get approval after each section
-6. **Approval at `ExitPlanMode`** — the design as a whole
+6. **Approve the design** — an explicit yes in chat to recording the design as a whole
 7. **Capture the heading** — `org_capture` with an `initial_state` of `TODO` and `tags` `arch`; `DOING` waits for the separate yes
 8. **Write the design into `:PLAN:`** — `org_amend` `drawer=PLAN`, then a two-to-five-sentence body
 9. **Plan self-review** — placeholders, contradictions, scope, ambiguity; fix inline (see below)
@@ -205,7 +215,7 @@ digraph brainstorming {
     "Too large for one heading?" [shape=diamond];
     "Decompose: children, or org_divide; take the first" [shape=box];
     "Present design sections" [shape=box];
-    "Approve at ExitPlanMode?" [shape=diamond];
+    "Approve the design?" [shape=diamond];
     "Drawer reviewed?" [shape=diamond];
 
     "Record it: tag, :PLAN:, body" [shape=box];
@@ -239,9 +249,9 @@ digraph brainstorming {
     "Too large for one heading?" -> "Decompose: children, or org_divide; take the first" [label="yes"];
     "Decompose: children, or org_divide; take the first" -> "Present design sections";
     "Too large for one heading?" -> "Present design sections" [label="no"];
-    "Present design sections" -> "Approve at ExitPlanMode?";
-    "Approve at ExitPlanMode?" -> "Present design sections" [label="no, revise"];
-    "Approve at ExitPlanMode?" -> "Record it: tag, :PLAN:, body" [label="yes"];
+    "Present design sections" -> "Approve the design?";
+    "Approve the design?" -> "Present design sections" [label="no, revise"];
+    "Approve the design?" -> "Record it: tag, :PLAN:, body" [label="yes"];
     "Record it: tag, :PLAN:, body" -> "Drawer reviewed?" [label="architectural"];
     "Drawer reviewed?" -> "Record it: tag, :PLAN:, body" [label="changes"];
     "Drawer reviewed?" -> "Separate yes to start?" [label="approved"];
@@ -333,7 +343,8 @@ implementation:
 Wait for the user's response. If they request changes, make them and
 re-run the self-review. Only proceed once the user approves.
 
-**Terminal state:** implementation behind the Plan Mode checkpoint — a
+**Terminal state:** implementation behind the second yes (the org skill's
+Plan Mode checkpoint rule, applied without Plan Mode) — a
 separate yes, then `org_set_todo` `DOING` and the work. If the work
 should be sequenced with others across sessions, that is a scheduling
 decision for the user, not a brainstorming output.
