@@ -234,6 +234,7 @@ Observed 2026-09-21 on 63713df3. The file said REVIEW; the session queued REVIEW
 :ID:       2b8930da-5223-4b75-b4f6-251a28552d1b
 :CREATED:  [2026-09-21 Mon 10:21]
 :CATEGORY: Dev
+:BLOCKER:  8a2eb687-28da-4d44-893b-db59298bdc5b 6521dd56-8772-416b-9435-6da78bb86b06 4ae7a04b-1557-44d6-91c3-384f1def5293
 :END:
 
 Every consumer-facing change on feature/rules-in-wrong-places was verified in
@@ -248,6 +249,11 @@ directory is offered to the consumer at all — the manifest names no agents key
 agentic-euchre is the available consumer; its skill link resolves to the
 worktree claude-code-ide-org-swc, to be moved forward when the slice merges. Do
 it then, before resuming work there.
+
+It gates earnest work in euchre, taking over from 6a207b00 (closed
+2026-09-22). It waits on 8a2eb687 and 6521dd56, moved from there, and on
+4ae7a04b, the brainstorming skill, at the user's direction.
+
 
 
 * TODO The duplicate query reads titles only, so a paraphrase gets past it — including the case that motivated it :code:observed:
@@ -2841,12 +2847,23 @@ whoever sends the text.
 :ID:       6a207b00-8fa1-441e-8ee5-354702bc979b
 :CREATED:  [2026-09-11 Fri 20:05]
 :CATEGORY: Dev
-:BLOCKER:  35582d95-003a-4735-9b19-36f7ad813f0d 8a2eb687-28da-4d44-893b-db59298bdc5b 749301a0-0bd0-4fbd-b3f7-79739226e15a 6521dd56-8772-416b-9435-6da78bb86b06 2b8930da-5223-4b75-b4f6-251a28552d1b
+:END:
+:DEBRIEF:
+This heading was a goal with a blocking set, not an implementation. Euchre
+adopted the plugin during 8bbae3aa and has run it since #28, with its
+skill linked to the claude-code-ide-org-swc worktree and time tracking
+off. Its work was then suspended until f6d160c2 landed, which it did as
+PR #29 on 2026-09-21. At the user's direction on 2026-09-22 the unfinished
+blockers moved to 2b8930da, the consumer verification, which gates earnest
+work in euchre: 8a2eb687 and 6521dd56 moved, and 4ae7a04b, the
+brainstorming skill, was added. The finished ones (35582d95, 749301a0)
+were dropped. This heading closes on the goal met.
 :END:
 :LOGBOOK:
 - State "WAITING"    from "TODO"       [2026-09-15 Tue 10:09] \\
   blocked on four slices: 35582d95, 8a2eb687, 749301a0, 6521dd56
 :END:
+:PLAN:
 
 Stated by the user 2026-09-11 and previously unrecorded anywhere: "a number of
 things unresolved here are preventing me from applying this plugin and its
@@ -2872,6 +2889,16 @@ enforces the wrong thing.
 *Adoption step added 2026-09-15 from =3f4fd744=:* any =:BLOCKER:= euchre wrote before the plugin's 5f7ecdb carries the =ids(...)= wrapper and enforces nothing under org-depend. One run of =M-x claude-code-ide-org-normalize-blocker-syntax= there (prefix argument to write) rewrites them; its =bin/lint-org= will name each one until then.
 
 *Correction, same day:* measured rather than assumed — euchre's TODO.org and DONE.org carry no =:BLOCKER:= property at all, and neither file is in the live Emacs's tracked set (=claude-code-ide-org--tracked-files= names none of them), so there is nothing for the normaliser to do there. The step above is dormant: any blocker euchre writes from now on comes out bare, since the plugin's own write sites do. If one ever needs it, =M-x claude-code-ide-org-normalize-blocker-syntax= runs over whatever files that Emacs tracks — bare =M-x= is a dry run, =C-u= writes.
+:END:
+
+The user's goal (2026-09-11): adopt the plugin in agentic-euchre, so the
+two projects stop being worked in parallel, recorded with its blocking
+set.
+
+*Resolved 2026-09-22:* euchre runs the plugin. What remains before euchre
+is worked in earnest is 2b8930da, which now holds the blockers this
+heading held.
+
 
 
 * TODO Unplanned work in flight belongs to no slice: planned is writable, incidental is closed-only :code:
