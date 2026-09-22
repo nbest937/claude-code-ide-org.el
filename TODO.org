@@ -2,6 +2,65 @@
 #+TAGS: analysis code comms research review spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* NEXT A story may carry NEXT: the prohibition generalises a retired trigger's guard into a rule about the keyword :code:bounded:
+:PROPERTIES:
+:ID:       878d2cf5-e08e-4bcb-8db1-a601b9b08f55
+:CREATED:  [2026-09-22 Tue 17:08]
+:CATEGORY: Skill
+:END:
+:PLAN:
+Designed 2026-09-22 in conversation, classified =bounded=: the flow is the
+rules file itself, and the change is a deletion, a word and a sentence.
+
+*The three scopes are orthogonal and the rules should say so* (the user,
+2026-09-22): "NEXT within a story indicates where to start when it is taken
+up, but it need not exist, so the only rule is that there can be at most one
+NEXT /inside/ the story. Same for NEXT within an epic — it doesn't care
+whether there are any NEXTs within its members. They have no bearing on one
+another." The section already half-encodes this, since a story's internal
+NEXT is exempt from the per-category budget precisely because the scopes are
+independent; the prohibition is the only rule in it that reaches across.
+
+*Edit the reference, never the promoted copy.*
+=skills/org/references/org-state-transitions.md= is the source;
+=.claude/rules/org-state-transitions.md= carries the generated header and a
+hook refuses an edit to it. Re-run =bin/claude-org-setup= afterwards. The
+prohibition appears in exactly those two files and nowhere else — checked,
+not assumed.
+
+*Three changes, in the "NEXT and nomination" section.* Strike "a story must
+never carry it — promoting one declares a project to be an action" together
+with its =42808717= citation, since that heading is about a *trigger* and
+the trigger is retired. Generalise the sentence that already handles the
+inverted configuration from slices to groupings: a grouping marked NEXT
+whose members are all TODO is nominated but not entered — the mark says
+which grouping to pick up, never which action to start inside it, and it
+does not substitute for a member's NEXT. Then state the independence
+outright, so the next reader does not re-derive it: at most one top-level
+NEXT per =:CATEGORY:=, at most one NEXT inside a grouping, and neither
+constrains the other.
+
+*The slice exception shrinks rather than disappearing.* With the
+prohibition gone a slice is no longer exceptional in *carrying* the keyword
+— only in what it means when it does, a portfolio-level nomination among
+several open slices. The paragraph keeps that and loses the framing that a
+story is forbidden what a slice is permitted.
+
+*Nothing else moves.* The per-category budget stands, the internal-NEXT
+exemption stands, and the retired auto-promotion trigger stays retired —
+this removes a rule it left behind, not the warning against rebuilding it.
+
+*Verification.* =bin/check-conventions= must pass, since it checks that
+cited =:ID:=s resolve and one citation is being removed; =bin/claude-org-setup
+--check= must report the promoted copy in sync after the re-run; and the
+diff should touch one section of one reference file plus its generated twin.
+There is nothing executable here, so the honest verification is a reading:
+confirm no other rule in the corpus depends on the struck sentence, which
+the two-file grep already establishes for its wording.
+:END:
+
+The state-transition rules say a story must never carry NEXT, citing 42808717 — but that heading is about an auto-promotion trigger that counted siblings and checked nothing else, and its objection was to the resulting configuration, a parent marked NEXT while its own child action is merely TODO. The trigger is retired and the same section says not to rebuild it, so the prohibition now guards a failure that cannot occur by mechanism, only by someone deciding it. It also contradicts the slice exception, since a slice is a grouping and may carry the keyword, and it is the only non-orthogonal rule in a section that otherwise keeps its scopes independent — a category's top-level budget, a grouping's internal nomination, and what a mark means. Caught 2026-09-22 when a session queued a demotion on a7f844ba on the strength of it and the user dismissed the transition, not being aware of any such injunction.
+
 * TODO org_amend accepts a headline-shaped line in drawer text, which tears the drawer open :code:observed:
 :PROPERTIES:
 :ID:       c0c5e015-c33e-4e1a-ad6e-907f9fa56c07
