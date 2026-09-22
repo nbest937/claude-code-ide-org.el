@@ -882,6 +882,10 @@ CLOCK: [2026-09-21 Mon 11:38]--[2026-09-21 Mon 11:40] =>  0:02
 - [2026-09-21 Mon 14:44]--[2026-09-21 Mon 14:44] measure title-token overlap on the corpus
 - [2026-09-21 Mon 15:26]--[2026-09-21 Mon 15:28] measure title-token overlap on the corpus
 - [2026-09-21 Mon 16:24]--[2026-09-21 Mon 16:34] measure title-token overlap on the corpus
+CLOCK: [2026-09-21 Mon 18:02]--[2026-09-21 Mon 18:03] =>  0:01
+- [2026-09-21 Mon 18:02]--[2026-09-21 Mon 18:03] measure title-token overlap on the corpus
+CLOCK: [2026-09-21 Mon 18:08]--[2026-09-21 Mon 18:09] =>  0:01
+- [2026-09-21 Mon 18:08]--[2026-09-21 Mon 18:09] measure title-token overlap on the corpus
 :END:
 :DEBRIEF:
 Shipped in [[orgit-rev:claude-code-ide-org::4a9387b][4a9387b]]. *Measured before anything was chosen,* as the plan asked, leave-one-out over the 563 scorable titles in this tracker. Plain Jaccard was useless here — titles are whole claims, and the known duplicate pair scored 0.27. The score adopted is the idf-weighted share of the *new* title's tokens found in the candidate, at least two shared: asymmetric on purpose, because the question is "is this already said", not "are these alike". At 0.4, 43 headings (7.6%) would have been shown a candidate; at 0.5, 16, about eleven of them true relatives; the known pair scores 0.59 one way and 0.32 the other.
@@ -26405,7 +26409,7 @@ misreport it. Available to the next ceremony.
 
 
 
-**** DONE [27/28] Harden the review pass: its cost, its correctness, and its record
+**** DONE [27/27] Harden the review pass: its cost, its correctness, and its record
 CLOSED: [2026-08-26 Wed 11:42]
 :PROPERTIES:
 :CATEGORY: Slices
@@ -26413,7 +26417,6 @@ CLOSED: [2026-08-26 Wed 11:42]
 :ID:       c44c2119-dbf8-4510-99e2-6aaa7f259d94
 :CREATED:  [2026-08-25 Tue 11:06]
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  b7b46a26-2fd6-4784-bed3-d0112a917c0a
 :ARCHIVE_TIME: 2026-08-31 Mon 11:17
 :ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
 :ARCHIVE_CATEGORY: Slices
@@ -26446,7 +26449,7 @@ and less likely to leave the record worse than it found it.
 - [X] [[id:8ca6541d-0fc7-45a2-a4d3-76e1608f658d][8ca6541d]] DONE Compose slices by reference: a checkbox list of id links, blocked on its members
 - [X] [[id:43201e64-3fe8-4fa6-81f5-d2ab5b65d191][43201e64]] DONE Every orgit link a body adds costs a permanent lint warning
 - [X] [[id:f4b07fc0-187a-4975-aa3b-b9bd4b1c0799][f4b07fc0]] DONE Backfill CLOSED: from the LOGBOOK where the evidence is already in the file
-- [ ] [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]] TODO Recover a close time from git for the headings with no in-file evidence
+- [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]] TODO Recover a close time from git for the headings with no in-file evidence
 - [X] [[id:31c6ac39-1a06-4b17-8d89-b91fd2628874][31c6ac39]] DONE A sub-minute run is observed work; round it up rather than drop it
 - [X] [[id:111ca40a-3fdb-4106-ad52-991e30737ece][111ca40a]] DONE The review buffer truncated lines the human had to read
 - [X] [[id:7fbab3b3-7843-4290-94a5-d421413f2be4][7fbab3b3]] DONE Clear the 36-heading archive backlog, sweeping bodies into :PLAN: unedited

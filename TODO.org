@@ -8,6 +8,10 @@
 :CREATED:  [2026-09-22 Tue 08:36]
 :CATEGORY: Skill
 :END:
+:LOGBOOK:
+CLOCK: [2026-09-22 Tue 08:36]--[2026-09-22 Tue 08:37] =>  0:01
+- [2026-09-22 Tue 08:36]--[2026-09-22 Tue 08:37] draft the brainstorming port's plan
+:END:
 :PLAN:
 *Why port rather than install.* The superpowers plugin is enabled as a whole: 15 skills and a SessionStart hook. Evaluated against superpowers v6.4.1 ([[orgit-rev:superpowers::5bf4e78][5bf4e78]]), six things conflict with this repo:
 - brainstorming commits specs to =docs/superpowers/specs/=, and =writing-plans= commits plans to =docs/superpowers/plans/=. That contradicts the rule that a plan lives in its heading's =:PLAN:= drawer, and its "user preferences override" escape hatch depends on the model remembering prose;
@@ -57,11 +61,21 @@ Branch: =feature/brainstorming-skill=, merged by pull request.
 
 superpowers' brainstorming skill is the best design-dialogue discipline available: intent written back for correction, the path (spike, bounded, architectural) announced aloud, one question at a time, and hard approval gates. Installing the plugin would bring its bookkeeping too: specs and plans committed as Markdown under docs/superpowers/, no heading captured before the first write, a local git merge, and a SessionStart injection that the word budget cannot see. Port the dialogue as a shipped skill of this plugin instead, and route its output through org_capture and the :PLAN: drawer.
 
-* DOING Starting a pull request's review should queue its slice to REVIEW, not wait for someone to remember
+
+* DONE Starting a pull request's review should queue its slice to REVIEW, not wait for someone to remember
+CLOSED: [2026-09-21 Mon 18:26]
 :PROPERTIES:
 :ID:       a9d37aee-3cc0-4e5f-80ff-6659aba34db0
 :CREATED:  [2026-09-21 Mon 18:20]
 :CATEGORY: Slices
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-21 Mon 18:18]--[2026-09-21 Mon 18:20] =>  0:02
+- [2026-09-21 Mon 18:18]--[2026-09-21 Mon 18:20] assigned at review
+CLOCK: [2026-09-21 Mon 18:24]--[2026-09-21 Mon 18:26] =>  0:02
+- [2026-09-21 Mon 18:24]--[2026-09-21 Mon 18:26] build the review-start hook
+- State "DONE"       from "DOING"      [2026-09-21 Mon 18:26] \\
+  built and verified
 :END:
 :DEBRIEF:
 It triggers on =UserPromptSubmit= for =/code-review= or =/ultrareview=,
@@ -468,14 +482,14 @@ Also noticed, not fixed: =claude-org-setup --check= reads the real
 Observed 2026-09-19: the first plan unlinked under the drawer convention was deleted from the archive directory, and =bin/sync-plans --check= immediately reported it "out of date" and wanted it back — because a body amendment on =ff1bec00= had named the file in =…= quotes as the first orphan. The matcher is a substring grep for the archive directory's name followed by a slug and the markdown extension, so a mention is a link. Rephrasing the sentence cleared it. Small in itself; it matters because the drawer convention will produce orphans on purpose, and prose that names them. Match the org =file:= link form, not the substring — and note that =bin/lint-org='s plan-link check has the same appetite: the first draft of this very body spelled the path pattern literally and lint reported a plan link to a missing file. Whether either is worth fixing before the whole mechanism retires is decided with =ff1bec00=.
 
 
-* DOING [17/18] A rule the agent can recite and still misses is a rule in the wrong place: count the misses, then move the rules out of recall :code:
+* DONE [18/18] A rule the agent can recite and still misses is a rule in the wrong place: count the misses, then move the rules out of recall :code:
+CLOSED: [2026-09-21 Mon 18:51]
 :PROPERTIES:
 :ID:       f6d160c2-c0ac-4c4b-a298-fe581ea3962a
 :CREATED:  [2026-09-19 Sat 13:50]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  436e0991-c8ac-40fb-860d-a6c4c381bee5
 :END:
 :DEBRIEF:
 Eight planned members, b09aca60 adopted, six review findings filed as
@@ -579,6 +593,18 @@ CLOCK: [2026-09-21 Mon 16:59]--[2026-09-21 Mon 17:00] =>  0:01
 - [2026-09-21 Mon 17:37]--[2026-09-21 Mon 17:38] assigned at review
 CLOCK: [2026-09-21 Mon 17:38]--[2026-09-21 Mon 17:58] =>  0:20
 - [2026-09-21 Mon 17:38]--[2026-09-21 Mon 17:58] file PR 29 review findings
+- State "REVIEW"     from "DOING"      [2026-09-21 Mon 18:13] \\
+  every member terminal; closes when PR 29 merges
+CLOCK: [2026-09-21 Mon 18:38]--[2026-09-21 Mon 18:39] =>  0:01
+- [2026-09-21 Mon 18:38]--[2026-09-21 Mon 18:39] assigned at review
+CLOCK: [2026-09-21 Mon 18:49]--[2026-09-21 Mon 18:50] =>  0:01
+- [2026-09-21 Mon 18:49]--[2026-09-21 Mon 18:50] assigned at review
+- State "DONE"       from "REVIEW"     [2026-09-21 Mon 18:51] \\
+  PR 29 merged
+CLOCK: [2026-09-22 Tue 08:32]--[2026-09-22 Tue 08:33] =>  0:01
+- [2026-09-22 Tue 08:32]--[2026-09-22 Tue 08:33] assigned at review
+CLOCK: [2026-09-22 Tue 08:35]--[2026-09-22 Tue 08:36] =>  0:01
+- [2026-09-22 Tue 08:35]--[2026-09-22 Tue 08:36] assigned at review
 :END:
 :PLAN:
 Composed 2026-09-19 at the user's direction from the convention-drift
@@ -627,7 +653,7 @@ member; both are evidence for the first one.
 Planned:
 
 - [X] [[id:63713df3-4ed9-42be-b971-8ac4485e76c2][63713df3]] DONE "Forgets frequently" has no number: the only recorded misses are once-per-session sentinels, so the rate cannot be seen or shown to fall
-- [-] [[id:436e0991-c8ac-40fb-860d-a6c4c381bee5][436e0991]] REVIEW Path-scoped rules load on a Read, which the org tools exist to replace, so the conventions load only on the discouraged path
+- [X] [[id:436e0991-c8ac-40fb-860d-a6c4c381bee5][436e0991]] DONE Path-scoped rules load on a Read, which the org tools exist to replace, so the conventions load only on the discouraged path
 - [X] [[id:1b69fe4e-3dab-4b11-b21b-96320bf9d4e0][1b69fe4e]] DONE org-time-tracking.md promotes with no path scope, so a consumer with the feature off loads 260 lines about it every session
 - [X] [[id:bf7e0b8e-f83a-4d4a-9950-3ab23a225156][bf7e0b8e]] DONE The always-loaded surface is 1,573 lines, and the split that shrank CLAUDE.md is what grew it
 - [X] [[id:3cd7b7d3-25eb-4f30-ae90-9174a6876674][3cd7b7d3]] DONE Audit the always-loaded rules for clauses a hook could enforce, since prose recall is what fails
@@ -644,9 +670,9 @@ Planned:
 Incidental:
 
 - [X] [[id:b09aca60-127b-47a4-9177-a86ac90d8fac][b09aca60]] DONE Work after a mid-turn clock_out belongs to no run, so it reaches review as nothing at all rather than UNASSIGNED
-- [X] [[id:165ce65a-f87e-431c-8ee4-f0fbfffe14da][165ce65a]] DONE A hook tells the session the queue was applied, ending the "queue applied" announcements
-- [[id:0175f154-c7a2-44a3-9cb9-747ca988edd2][0175f154]] CANCELLED org_capture leaves :CATEGORY: unset and nothing backstops it
 - [X] [[id:33c3eabc-00f2-4cf1-afb7-4071aa256d62][33c3eabc]] DONE footnote-check resolves every id and discards the answer, then asks for it
+- [[id:0175f154-c7a2-44a3-9cb9-747ca988edd2][0175f154]] CANCELLED org_capture leaves :CATEGORY: unset and nothing backstops it
+- [X] [[id:165ce65a-f87e-431c-8ee4-f0fbfffe14da][165ce65a]] DONE A hook tells the session the queue was applied, ending the "queue applied" announcements
 - [X] [[id:f9fdea91-c93a-4e96-8d49-133cb50d6dfb][f9fdea91]] DONE The shipped skill and org_log_background_plan still teach the retired plan-file link
 
 *Measured 2026-09-21, at the pull request.*
@@ -662,7 +688,8 @@ counted and the listed rules moved out of recall into hooks, guards and
 tools. Whether the miss rate falls is 158d7e80's reading on 2026-10-12.
 
 
-* REVIEW Path-scoped rules load on a Read, which the org tools exist to replace, so the conventions load only on the discouraged path :code:observed:
+* DONE Path-scoped rules load on a Read, which the org tools exist to replace, so the conventions load only on the discouraged path :code:observed:
+CLOSED: [2026-09-21 Mon 18:13]
 :PROPERTIES:
 :ID:       436e0991-c8ac-40fb-860d-a6c4c381bee5
 :CREATED:  [2026-09-19 Sat 09:08]
@@ -712,6 +739,8 @@ CLOCK: [2026-09-21 Mon 13:53]--[2026-09-21 Mon 13:55] =>  0:02
   fresh-session tools-only check passed; consumer via 2b8930da
 CLOCK: [2026-09-21 Mon 13:55]--[2026-09-21 Mon 13:56] =>  0:01
 - [2026-09-21 Mon 13:55]--[2026-09-21 Mon 13:56] verify and record 436e0991's fresh-session check
+- State "DONE"       from "REVIEW"     [2026-09-21 Mon 18:13] \\
+  verified; consumer check handed to 2b8930da
 :END:
 :PLAN:
 *What "open" means, from the Claude Code memory docs, fetched 2026-09-19:*
@@ -5578,10 +5607,6 @@ CLOCK: [2026-09-21 Mon 12:28]--[2026-09-21 Mon 12:29] =>  0:01
 - [2026-09-21 Mon 12:28]--[2026-09-21 Mon 12:29] assigned at review
 CLOCK: [2026-09-21 Mon 12:39]--[2026-09-21 Mon 12:40] =>  0:01
 - [2026-09-21 Mon 12:39]--[2026-09-21 Mon 12:40] assigned at review
-CLOCK: [2026-09-21 Mon 16:02]--[2026-09-21 Mon 16:04] =>  0:02
-- [2026-09-21 Mon 16:02]--[2026-09-21 Mon 16:04] assigned at review
-CLOCK: [2026-09-21 Mon 16:04]--[2026-09-21 Mon 16:05] =>  0:01
-- [2026-09-21 Mon 16:04]--[2026-09-21 Mon 16:05] move members' proposals into their drawers
 :END:
 
 *The theme, briefly, in place of a plan — the full prompt comes later.* The
@@ -11003,6 +11028,7 @@ call it done.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-22 Tue 08:50]--[2026-09-22 Tue 08:54] =>  0:04
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
@@ -12217,4 +12243,20 @@ CLOCK: [2026-09-21 Mon 16:35]--[2026-09-21 Mon 16:36] =>  0:01
 - [2026-09-21 Mon 16:35]--[2026-09-21 Mon 16:36] add 60d6ab6e to 8a2e
 CLOCK: [2026-09-21 Mon 16:51]--[2026-09-21 Mon 16:52] =>  0:01
 - [2026-09-21 Mon 16:51]--[2026-09-21 Mon 16:52] assigned at review
+CLOCK: [2026-09-21 Mon 18:13]--[2026-09-21 Mon 18:14] =>  0:01
+- [2026-09-21 Mon 18:13]--[2026-09-21 Mon 18:14] close 436e0991; f6d160c2 to REVIEW
+CLOCK: [2026-09-21 Mon 18:17]--[2026-09-21 Mon 18:18] =>  0:01
+- [2026-09-21 Mon 18:17]--[2026-09-21 Mon 18:18] assigned at review
+CLOCK: [2026-09-21 Mon 18:18]--[2026-09-21 Mon 18:19] =>  0:01
+- [2026-09-21 Mon 18:18]--[2026-09-21 Mon 18:19] codify: a slice enters REVIEW when its PR review starts
+CLOCK: [2026-09-21 Mon 18:26]--[2026-09-21 Mon 18:27] =>  0:01
+- [2026-09-21 Mon 18:26]--[2026-09-21 Mon 18:27] assigned at review
+CLOCK: [2026-09-21 Mon 18:36]--[2026-09-21 Mon 18:37] =>  0:01
+- [2026-09-21 Mon 18:36]--[2026-09-21 Mon 18:37] assigned at review
+CLOCK: [2026-09-21 Mon 18:37]--[2026-09-21 Mon 18:38] =>  0:01
+- [2026-09-21 Mon 18:37]--[2026-09-21 Mon 18:38] re-check 8a2e's plan against today's changes
+CLOCK: [2026-09-21 Mon 18:50]--[2026-09-21 Mon 18:51] =>  0:01
+- [2026-09-21 Mon 18:50]--[2026-09-21 Mon 18:51] close f6d160c2 at the merge of PR 29
+CLOCK: [2026-09-21 Mon 18:52]--[2026-09-21 Mon 18:53] =>  0:01
+- [2026-09-21 Mon 18:52]--[2026-09-21 Mon 18:53] assigned at review
 :END:
