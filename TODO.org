@@ -1,12 +1,18 @@
 #+TODO: TODO(t!) NEXT(n!) DOING(d!) REVIEW(r!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)
-#+TAGS: analysis code comms research review spike bounded arch
+#+TAGS: analysis code comms prose research review spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* NEXT A story may carry NEXT: the prohibition generalises a retired trigger's guard into a rule about the keyword :code:bounded:
+* NEXT A story may carry NEXT: the prohibition generalises a retired trigger's guard into a rule about the keyword :prose:bounded:
 :PROPERTIES:
 :ID:       878d2cf5-e08e-4bcb-8db1-a601b9b08f55
 :CREATED:  [2026-09-22 Tue 17:08]
 :CATEGORY: Skill
+:END:
+:LOGBOOK:
+- Tags ":prose:bounded:" from ":code:bounded:" [2026-09-22 Tue 17:11] \\
+  the deliverable is prose, not code (the user, 2026-09-22): this heading
+  edits a rules file and touches no elisp, and :code: was written at
+  capture out of habit
 :END:
 :PLAN:
 Designed 2026-09-22 in conversation, classified =bounded=: the flow is the
@@ -2886,6 +2892,38 @@ classified how, and whether a spike's code was ever kept. The user's first
 idea, folding "bounded" into =:code:=, was set aside because =:code:= sits
 on 529 headings and earns its place through its negation. The survey
 should take these as given, not re-derive them.
+
+*A fourth tag adopted ahead of this survey, and the first worked example*
+(the user, 2026-09-22): =:prose:=, for a heading whose deliverable is prose
+rather than code. Its first carrier is
+[[id:878d2cf5-e08e-4bcb-8db1-a601b9b08f55][878d2cf5]], which edits a rules
+file and touches no elisp; it was captured =:code:= out of habit and
+re-tagged, which is itself the evidence that =:code:= is applied by reflex.
+
+*This is the positive form of the negation judgement recorded above.*
+=:code:= earning its place through =!tags:code= only works if the
+complement is a real category rather than a residue; naming it makes the
+query direct instead of inverted, and makes the reflex visible at capture.
+
+*Census taken 2026-09-22 through =org-get-tags= over both files*, which
+should be the survey's starting point rather than re-measured: =code= 538,
+=research= 27, =observed= 8, =bounded= 4, =arch= 2, =spike= 2, =docs= 2,
+=comms= 1, =analysis= 1.
+
+*Two findings in that census bear directly on the survey's method.*
+=:docs:= already exists and both its uses are human-facing documents, a
+=DOOM.md= procedure and a =README=, matching the =Docs= category's "prose
+written for a human reader" — so =:prose:= is the general word and =:docs:=
+a narrower one, and whether the narrower survives is the survey's to
+decide, not something to settle by fiat now. And =analysis= is *declared in
+=#+TAGS:= and used once*: a coinage that never took, sitting in the
+vocabulary looking adopted. A tag used once is the failure mode this survey
+exists to find, so the count per tag belongs in its output beside the query
+each tag answers.
+
+=prose= is declared in TODO.org's =#+TAGS:= line. =observed= and =docs= are
+*not*, though both are in use — another thing for the survey to reconcile.
+
 
 
 ** NEXT Adopt an `observed` tag for a defect seen in use, as the severity signal the keyword set does not carry :code:
