@@ -2,11 +2,16 @@
 #+TAGS: analysis code comms research review spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* DOING pre-commit lints templates/TODO.org as TODO.org, so staging the template breaks every link into the tracker
+* DONE pre-commit lints templates/TODO.org as TODO.org, so staging the template breaks every link into the tracker
+CLOSED: [2026-09-22 Tue 10:38]
 :PROPERTIES:
 :ID:       b28467b5-f54f-4818-a6a0-ba8527c7e978
 :CREATED:  [2026-09-22 Tue 10:37]
 :CATEGORY: Dev
+:END:
+:LOGBOOK:
+- State "DONE"       from "DOING"      [2026-09-22 Tue 10:38] \\
+  filter anchored at the root
 :END:
 :DEBRIEF:
 It was latent from the hook's first version and surfaced when the
@@ -26,6 +31,7 @@ the real tracker and every DONE.org link into it read as dangling (221
 false errors).
 
 *Resolved 2026-09-22:* the filter is anchored at the repo root.
+
 
 * DONE The state rules say a heading is DOING while it is planned, but planning is TODO-phase and DOING begins with implementation :code:
 CLOSED: [2026-09-22 Tue 09:43]
@@ -60,7 +66,7 @@ org-state-transitions.md says a heading is DOING "while it is being planned and 
 *Resolved.* The state rules now put planning in TODO and the start of DOING at implementation, matching the Plan Mode checkpoint. The time-tracking rules say planning time clocks in on the TODO heading and changes no keyword.
 
 
-* TODO Brainstorming exists only inside the superpowers plugin, whose specs go to Markdown files and never reach the tracker :code:
+* DOING Brainstorming exists only inside the superpowers plugin, whose specs go to Markdown files and never reach the tracker :code:
 :PROPERTIES:
 :ID:       4ae7a04b-1557-44d6-91c3-384f1def5293
 :CREATED:  [2026-09-22 Tue 08:36]
@@ -81,6 +87,28 @@ CLOCK: [2026-09-22 Tue 09:42]--[2026-09-22 Tue 09:43] =>  0:01
 - [2026-09-22 Tue 09:42]--[2026-09-22 Tue 09:43] assigned at review
 CLOCK: [2026-09-22 Tue 09:47]--[2026-09-22 Tue 09:48] =>  0:01
 - [2026-09-22 Tue 09:47]--[2026-09-22 Tue 09:48] settle the port's open questions; the import note
+CLOCK: [2026-09-22 Tue 09:59]--[2026-09-22 Tue 10:05] =>  0:06
+- State "DOING"      from "TODO"       [2026-09-22 Tue 09:59] \\
+  porting the brainstorming skill now
+- [2026-09-22 Tue 09:59]--[2026-09-22 Tue 10:05] raw import, then the adaptation
+CLOCK: [2026-09-22 Tue 10:06]--[2026-09-22 Tue 10:07] =>  0:01
+- [2026-09-22 Tue 10:06]--[2026-09-22 Tue 10:07] record a self-caught claim
+CLOCK: [2026-09-22 Tue 10:10]--[2026-09-22 Tue 10:11] =>  0:01
+- [2026-09-22 Tue 10:10]--[2026-09-22 Tue 10:11] suggested span, accepted at review
+CLOCK: [2026-09-22 Tue 10:18]--[2026-09-22 Tue 10:19] =>  0:01
+- [2026-09-22 Tue 10:18]--[2026-09-22 Tue 10:19] suggested span, accepted at review
+CLOCK: [2026-09-22 Tue 10:24]--[2026-09-22 Tue 10:25] =>  0:01
+- [2026-09-22 Tue 10:24]--[2026-09-22 Tue 10:25] suggested span, accepted at review
+CLOCK: [2026-09-22 Tue 10:28]--[2026-09-22 Tue 10:29] =>  0:01
+- [2026-09-22 Tue 10:28]--[2026-09-22 Tue 10:29] suggested span, accepted at review
+CLOCK: [2026-09-22 Tue 10:32]--[2026-09-22 Tue 10:33] =>  0:01
+- [2026-09-22 Tue 10:32]--[2026-09-22 Tue 10:33] suggested span, accepted at review
+CLOCK: [2026-09-22 Tue 10:33]--[2026-09-22 Tue 10:35] =>  0:02
+- [2026-09-22 Tue 10:33]--[2026-09-22 Tue 10:35] path tags: spike, bounded, arch
+CLOCK: [2026-09-22 Tue 10:37]--[2026-09-22 Tue 10:38] =>  0:01
+- [2026-09-22 Tue 10:37]--[2026-09-22 Tue 10:38] file and fix the pre-commit basename collision
+CLOCK: [2026-09-22 Tue 10:38]--[2026-09-22 Tue 10:41] =>  0:03
+- [2026-09-22 Tue 10:38]--[2026-09-22 Tue 10:41] suggested span, accepted at review
 :END:
 :PLAN:
 *Why port rather than install.* The superpowers plugin is enabled as a whole: 15 skills and a SessionStart hook. Evaluated against superpowers v6.4.1 ([[orgit-rev:superpowers::5bf4e78][5bf4e78]]), six things conflict with this repo:
@@ -187,7 +215,6 @@ bounded and architectural, confirming that the heading is captured only
 after =ExitPlanMode=, that the design lands in =:PLAN:=, and that nothing
 is written under =docs/=. Whether the skill triggers at the right moments
 cannot be tested deterministically, and will be recorded as a judgement.
-
 
 
 * DONE Starting a pull request's review should queue its slice to REVIEW, not wait for someone to remember
@@ -533,7 +560,6 @@ CLAUDE.md's own opening names this as the largest source of wrong claims. Caught
   session listed it with the narrowed description". It was the current
   session's live skill list; no fresh session was run. Corrected within
   the minute (ebecefb).
-
 
 
 ** TODO Miss: a heading closed with its unfinished part left in prose, or its group left un-nominated
@@ -2111,7 +2137,6 @@ classified how, and whether a spike's code was ever kept. The user's first
 idea, folding "bounded" into =:code:=, was set aside because =:code:= sits
 on 529 headings and earns its place through its negation. The survey
 should take these as given, not re-derive them.
-
 
 
 ** NEXT Adopt an `observed` tag for a defect seen in use, as the severity signal the keyword set does not carry :code:
@@ -11215,6 +11240,7 @@ call it done.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-22 Tue 10:42]--[2026-09-22 Tue 10:46] =>  0:04
 CLOCK: [2026-09-22 Tue 09:54]--[2026-09-22 Tue 09:58] =>  0:04
 CLOCK: [2026-09-22 Tue 08:50]--[2026-09-22 Tue 08:54] =>  0:04
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
