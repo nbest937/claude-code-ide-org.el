@@ -1481,6 +1481,137 @@ tools-only session. The consumer check belongs to 2b8930da.
   recorded load-order trap, which is the architectural definition rather
   than a bounded change to an existing flow
 :END:
+:PLAN:
+Designed 2026-09-22 through the brainstorming skill, which classified the
+heading =arch= — its first classification.
+
+*The mechanism is Doom's own, and finding it reversed an earlier decision in
+this same dialogue.* The first decision taken was "separate files now,
+conditional load later" (the user, 2026-09-22), made while it appeared that
+Emacs could not know whether time tracking is on: =config.el= never reads
+=CLAUDE_PLUGIN_OPTION_TIME_TRACKING=, which reaches *hooks* as an
+environment variable, and the option would have needed new plumbing. That
+constraint is false at the Doom level. =modulep!= tests a module flag and
+=load!= loads a =+name.el= file conditionally — the pattern Doom's own
+=doom/compat= module uses for four of its files, and fifteen =+flag.el=
+files exist in this install. So the deferral is unnecessary and the design
+delivers the consumer benefit directly (the user, 2026-09-22, choosing the
+flag over autoloads and over both).
+
+*Measured 2026-09-22, against a file that has grown to 18,394 lines since
+the body above was written.* The 30% claim holds: eight time-shaped sections
+total 5,358 lines, 29%. Two of the body's other facts do not. The
+tool-registration assertion lives in =bin/lib/check-org-dev-skill.el=, not
+=bin/check-conventions= — a different checker, run by pre-commit only when
+the org-dev skill is staged. And the =;;; MCP tool registration= header is
+*orphaned*: eleven unrelated sections sit between it and the block it names.
+
+*Which retires the body's second motivation as stated.* "Splitting would
+materialise a decomposition already documented in comments — that is what
+makes this a move rather than a redesign" is not true of the file as it
+stands: task-side code makes **130 references to 47 symbols defined inside
+the time-named sections**, and time-side code makes 148 references to 78
+symbols outside them. The comments do not delimit what they name.
+
+*The invariant, in its positive form.*
+
+"Task never calls time" is the checkable half, and on its own it would
+strand the places where task-side code legitimately wants time behaviour.
+The rule's constructive form is that *=config.el= defines extension points
+and =+time.el= registers into them*. The daily ceremony is the model, since
+it already documents one hook and one payload with either half possibly
+absent: =config.el= runs a report-contribution hook and =+time.el= adds the
+stale-interval half, rather than =config.el= naming
+=--find-stale-open-intervals=. The lint then checks something literal — no
+symbol defined in =+time.el= appears in =config.el=.
+
+*Two children, because the two halves are unlike work.*
+
+*Kept as a parent with two children rather than one heading* (the user,
+2026-09-22): all the judgement and all the risk are in the re-homing, and
+the cut is mechanical once the direction holds. The parent is not divided
+with =org_divide=, because its subject — the entanglement itself — is the
+parent concept rather than either step.
+
+*=fb849c29=, re-home, no behaviour change.* The 130 references sort into
+three unlike groups. Five generic helpers misfiled into "Stale interval
+recovery" — =--tracked-files=, =--parse-org-timestamp=, =--report-scope=,
+=--today-p=, =--tracked-buffer-p= — account for 61 of the 130 and belong in
+the =Helper= section. Core task entry points sitting in time-named sections,
+=claude-code-ide-org-review= and =--review-items-from-queue= among them, go
+to the sections their names imply. The review buffer's thirteen interactive
+commands are the sibling section's problem. What remains in the seven span
+and attention sections is the real time half. The orphaned
+=;;; MCP tool registration= header goes in the same pass, since the plan
+depends on the comments becoming a trustworthy map. Proved by =bin/test=
+staying green and the direction lint going from 130 violations to zero.
+
+*=055886c1=, the cut.* The seven sections move to =+time.el=, and
+=config.el= ends its own code with =(if (modulep! +time) (load! "+time"))=.
+The gated load goes *immediately before the tool-registration block*, not
+at the end of the file: after every task definition, before the
+registrations, and leaving the registration block still the last top-level
+form — so =bin/lib/check-org-dev-skill.el='s anchor keeps holding with no
+documentation change. "Clock report" *stays* in =config.el=:
+=org_clock_report= is one of the eighteen registered tools, the clock tools
+stay registered with time tracking off, and it wraps =org-clock-report= over
+CLOCK lines that exist regardless of the feature. A consumer enables the
+half with =:tools (claude-code-ide-org +time)=.
+
+*The review buffer is shared, and stays.*
+
+It applies task events and span events in one place, so it remains in
+=config.el= whether or not time tracking exists. =config.el= defines the
+keymap with the task keys; =+time.el= adds its thirteen with =define-key= at
+load. The renderer gains a fallback branch: an item whose kind it does not
+recognise renders as unrecognised rather than erroring — which is also what
+a queue file written while the feature was on and read after it was turned
+off will produce.
+
+*The two switches.*
+
+Doom's =+time= flag and the plugin's =time_tracking= option are
+independent, and the dangerous disagreement is *option on, flag off*: hooks
+keep appending clock and span events, nothing loads to consume them, and the
+queue accumulates silently. The Doom-native place to catch that is
+=doctor.el=, which 64 modules in this install carry and this one does not.
+Adding one belongs to the cut. *Flagged at design time as the section least
+likely to survive review*, since it adds a file the module has never had.
+
+*Verification.*
+
+Re-home: =bin/test= green before and after, the direction lint at zero, and
+a symbol-level diff showing every move is a move — same definition text,
+different position. Cut: load with the flag off and assert every registered
+tool still resolves; with the flag on, assert the review buffer's time keys
+are bound and the ceremony's second half appears. Prove the lint
+discriminates by re-introducing one task-to-time reference and watching it
+fail.
+
+*Out of scope.*
+
+Autoload cookies and lazy loading inside either half — Doom's other
+mechanism, used by 64 modules here, and a separate question. The per-domain
+split into eight or ten files, which motivation 3 would favour and this
+design does not attempt: two files leave the largest at roughly 13,000
+lines. And whether the plugin option and the Doom flag should become one
+thing rather than two that agree.
+
+*Corrections from the plan self-review (2026-09-22).* Two numbers above
+need fixing, one of them wrong rather than merely loose.
+
+*=doctor.el= is carried by 82 modules in this install, not 64.* The 64 was
+the =autoload.el= count reused from a different measurement in the same
+session — the figure quoted under "Out of scope" for autoloads is the one
+that is correct, and the switches section borrowed it by mistake. The
+argument is unaffected and slightly stronger: =doctor.el= is the most
+widely adopted of the optional module files here.
+
+*And "the seven span and attention sections" is the eight measured ones
+minus "Clock report".* So =+time.el= receives roughly 5,268 lines rather
+than the 5,358 the measurement reports, since the 90 lines behind
+=org_clock_report= stay with the registered tool.
+:END:
 
 =8bbae3aa= separated time tracking from task tracking everywhere except the module. The hooks self-gate, the rules forked into =org-time-tracking.md=, the manifest declares the option, the prose demoted the goal — and =modules/tools/claude-code-ide-org/config.el= still holds both in one file of **17,954 lines**, every line of which a consumer loads whether or not the feature is on.
 
@@ -1498,6 +1629,20 @@ tools-only session. The consumer check belongs to 2b8930da.
 *Also to establish first, cheaply:* whether the module is loaded by Doom as one file or by path. It is symlinked into =~/.config/doom/modules/tools/= and enabled via =:tools claude-code-ide-org=, so splitting turns implicit single-file loading into explicit ordering — and the =org-clock-persist-load= trap (org-dev skill §2) is the standing evidence that load *order* in this module is not a free variable.
 
 *Not a member of any slice.* Its strongest motivation continues a closed one; it earns a slice of its own or joins whichever is nominated next.
+
+*Re-measured 2026-09-22, and the design is in =:PLAN:=.* The file is now
+18,394 lines and the eight time-shaped sections total 5,358 of them, so the
+30% claim above holds. Two other facts above do not: the tool-registration
+assertion lives in =bin/lib/check-org-dev-skill.el=, not
+=bin/check-conventions=, and the =;;; MCP tool registration= header is
+orphaned eleven sections away from the block it names. The second motivation
+as written — that splitting would materialise a decomposition the comments
+already document — is retired by measurement: task-side code makes 130
+references to 47 symbols defined inside the time-named sections, so the
+comments do not delimit what they name. The heading now has two children,
+the re-homing that carries all the judgement and the cut that is mechanical
+once it lands.
+
 ** NEXT Re-home config.el's misfiled symbols until nothing task-side reaches into the time sections :code:
 :PROPERTIES:
 :ID:       fb849c29-fddc-4c2d-8683-f465467b1305
