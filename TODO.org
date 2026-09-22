@@ -11,6 +11,7 @@
 
 Observed 2026-09-22 writing a :PLAN: drawer through org_amend drawer=PLAN: six section headers written as "** Title" at column zero were parsed as real headings, which terminated the drawer at the first one, manufactured six children under the heading, displaced the :LOGBOOK: below the orphaned :END:, and left the statistics cookie counting the wrong thing. Nothing refused it and the reply said "created :PLAN:". This is adjacent to 8a23d6ec but not covered by it: that rule and the escaping 3cd7b7d3 shipped both apply to a ^\*+ line inside a #+BEGIN_ block, where the damage is a fake heading; here there is no block, the text is drawer prose, and the damage is structural. bin/lint-org caught it only as six "heading has no :ID:" errors, which name the symptom rather than the cause. Proposed: extend the write-path escape to any ^\*+ line in drawer text, or refuse it there, since a drawer cannot contain a headline at all and escaping silently rewrites what the caller wrote.
 
+
 * TODO org_amend replace=true eats the blank lines before the next heading, so org stops seeing it :code:observed:
 :PROPERTIES:
 :ID:       5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997
@@ -19,6 +20,7 @@ Observed 2026-09-22 writing a :PLAN: drawer through org_amend drawer=PLAN: six s
 :END:
 
 claude-code-ide-org--replace-body deletes the body region and inserts (string-trim text), so replacing the last body before a heading takes the blank lines separating them with the trim and glues the heading onto the final line. Observed 2026-09-22 on 59861867: TODO.org:1008 became "written.** TODO Miss: ..." and org stopped parsing a heading there at all — org_outline reported the new id as resolving to no heading while org_amend, which locates by property, still wrote to it happily, and bin/lint-org reported 0 errors throughout. The damage is silent in both directions and the repair was a hand edit, which is itself against the rules. Proposed: --replace-body re-establishes the separation it found, or defers to claude-code-ide-org-heading-separator-lines; and bin/lint-org gains a check for a heading not at the start of its own line, which is the class org-lint calls "possibly misplaced heading" and only warns about.
+
 
 * TODO [0/27] The review pass asks for judgement it cannot support, and the clock beneath it is still wrong :code:
 :PROPERTIES:
@@ -183,6 +185,7 @@ building: whether to block the stop the way `clock-target-check` does, or
 append the `clock_out` at the guidepost's own timestamp, which would make
 the rule unbreakable and equally unlearnable.
 
+
 * MAYBE The brainstorming skill offers a visual companion nobody here has evaluated: it serves mock-ups from a local web server :code:spike:
 :PROPERTIES:
 :ID:       c4bb5db3-2717-4f95-8add-5cc487ea3a28
@@ -201,6 +204,7 @@ whether a design dialogue in this project ever wants a rendered mock-up
 is answerable only by a dialogue that wants one. Pick it up at that
 moment, as a spike whose output is an answer about keeping, scoping or
 cutting step 2 — not code.
+
 
 * TODO No org tool changes an existing heading's tags, so every tag change is a hand edit behind Emacs's back :code:bounded:
 :PROPERTIES:
@@ -466,6 +470,19 @@ CLOCK: [2026-09-22 Tue 11:34]--[2026-09-22 Tue 11:35] =>  0:01
 - [2026-09-22 Tue 11:34]--[2026-09-22 Tue 11:35] suggested span, accepted at review
 CLOCK: [2026-09-22 Tue 11:48]--[2026-09-22 Tue 11:49] =>  0:01
 - [2026-09-22 Tue 11:48]--[2026-09-22 Tue 11:49] record a self-caught id-from-memory miss
+CLOCK: [2026-09-22 Tue 11:54]--[2026-09-22 Tue 11:56] =>  0:02
+- [2026-09-22 Tue 11:54]--[2026-09-22 Tue 11:56] take the dialogue out of Plan Mode
+CLOCK: [2026-09-22 Tue 12:14]--[2026-09-22 Tue 12:15] =>  0:01
+- [2026-09-22 Tue 12:14]--[2026-09-22 Tue 12:15] suggested span, accepted at review
+CLOCK: [2026-09-22 Tue 12:17]--[2026-09-22 Tue 12:18] =>  0:01
+- [2026-09-22 Tue 12:17]--[2026-09-22 Tue 12:18] suggested span, accepted at review
+CLOCK: [2026-09-22 Tue 12:18]--[2026-09-22 Tue 12:19] =>  0:01
+- [2026-09-22 Tue 12:18]--[2026-09-22 Tue 12:19] step-up rules; tag-change LOGBOOK line
+CLOCK: [2026-09-22 Tue 12:22]--[2026-09-22 Tue 12:23] =>  0:01
+- [2026-09-22 Tue 12:22]--[2026-09-22 Tue 12:23] step-up rules; tag-change LOGBOOK line
+- [2026-09-22 Tue 12:23]--[2026-09-22 Tue 12:23] suggested span, accepted at review
+CLOCK: [2026-09-22 Tue 12:45]--[2026-09-22 Tue 12:46] =>  0:01
+- [2026-09-22 Tue 12:45]--[2026-09-22 Tue 12:46] suggested span, accepted at review
 :END:
 :PLAN:
 *Why port rather than install.* The superpowers plugin is enabled as a whole: 15 skills and a SessionStart hook. Evaluated against superpowers v6.4.1 ([[orgit-rev:superpowers::5bf4e78][5bf4e78]]), six things conflict with this repo:
@@ -612,7 +629,6 @@ and ended without closing, so its ownership never ended and every later
 guidepost still attributes there. That is a standing rule of the
 time-tracking reference, not of this skill, and the skill's checklist
 never mentions clocking out at all.
-
 
 
 * DONE Starting a pull request's review should queue its slice to REVIEW, not wait for someone to remember
@@ -905,7 +921,6 @@ The transcript that started the drift slice: a session offered to file a defect 
   missing its own strongest evidence.
 
 
-
 ** TODO Miss: an identifier written from memory instead of looked up
 :PROPERTIES:
 :ID:       8f075f78-686d-4a24-ae7f-74cbf20cb906
@@ -989,7 +1004,6 @@ CLAUDE.md's own opening names this as the largest source of wrong claims. Caught
   a title is the exact input the twin-checker agent exists to take off
   a session, and the cost here would have been discarding an upstream
   report holding five measured occurrences.
-
 
 
 ** TODO Miss: a heading closed with its unfinished part left in prose, or its group left un-nominated
@@ -1095,6 +1109,8 @@ line per catch.
   is the always-loaded rule that silence is not a passing check — an
   intermediate with zero rows was used as a filter without ever being looked
   at.
+
+
 * TODO Nothing runs the shell hook suites, so three sat red for a day and a merge without anyone seeing :code:
 :PROPERTIES:
 :ID:       94e6b615-3778-426b-b40a-306b517a837f
@@ -1484,6 +1500,17 @@ tools-only session. The consumer check belongs to 2b8930da.
 :CATEGORY: Dev
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-22 Tue 16:16]--[2026-09-22 Tue 16:18] =>  0:02
+- [2026-09-22 Tue 16:16]--[2026-09-22 Tue 16:18] brainstorm splitting config.el at the time seam
+CLOCK: [2026-09-22 Tue 16:25]--[2026-09-22 Tue 16:26] =>  0:01
+CLOCK: [2026-09-22 Tue 16:25]--[2026-09-22 Tue 16:26] =>  0:01
+- [2026-09-22 Tue 16:25]--[2026-09-22 Tue 16:26] brainstorm splitting config.el at the time seam
+CLOCK: [2026-09-22 Tue 16:32]--[2026-09-22 Tue 16:33] =>  0:01
+- [2026-09-22 Tue 16:32]--[2026-09-22 Tue 16:33] brainstorm splitting config.el at the time seam
+CLOCK: [2026-09-22 Tue 16:36]--[2026-09-22 Tue 16:37] =>  0:01
+- [2026-09-22 Tue 16:36]--[2026-09-22 Tue 16:37] brainstorm splitting config.el at the time seam
+CLOCK: [2026-09-22 Tue 16:39]--[2026-09-22 Tue 16:46] =>  0:07
+- [2026-09-22 Tue 16:39]--[2026-09-22 Tue 16:46] brainstorm splitting config.el at the time seam
 - Tags ":code:arch:" from ":code:" [2026-09-22 Tue 16:42] \\
   classified at its first brainstorm: it restructures how the module's
   components fit together and changes load order in a module with a
@@ -1652,6 +1679,7 @@ comments do not delimit what they name. The heading now has two children,
 the re-homing that carries all the judgement and the cut that is mechanical
 once it lands.
 
+
 ** NEXT Re-home config.el's misfiled symbols until nothing task-side reaches into the time sections :code:
 :PROPERTIES:
 :ID:       fb849c29-fddc-4c2d-8683-f465467b1305
@@ -1659,6 +1687,8 @@ once it lands.
 :END:
 
 Measured 2026-09-22: task-side code makes 130 references to 47 symbols defined inside the eight time-named sections, so those sections are not a seam and cutting on them would move the wrong code. The references sort into three unlike groups — five generic helpers misfiled into "Stale interval recovery" (--tracked-files, --parse-org-timestamp, --report-scope, --today-p, --tracked-buffer-p) accounting for 61 of the 130; the review buffer's thirteen interactive commands, defined in "Span evidence" and bound from "Review buffer"; and core task entry points sitting in time-named sections, including claude-code-ide-org-review itself, defined inside "The human's review attention". This step moves each symbol to the section its name implies and adds a lint asserting the direction, inside the single file and changing no behaviour, so that the cut in the sibling step is mechanical. All the judgement and all the risk of the split live here.
+
+
 ** TODO Cut the time machinery into +time.el behind a Doom module flag :code:
 :PROPERTIES:
 :ID:       055886c1-3dfd-4805-b05c-c66b2d631d18
@@ -1667,6 +1697,7 @@ Measured 2026-09-22: task-side code makes 130 references to 47 symbols defined i
 :END:
 
 Once the direction holds, the seven span and attention sections move to +time.el and config.el ends its own code with (if (modulep! +time) (load! "+time")) — Doom's native conditional-load convention, used by fifteen +flag.el files in this install, needing no env var, defcustom or marker file. The gated load goes immediately before the tool-registration block rather than at the end of the file, so the block stays the last top-level form and bin/lib/check-org-dev-skill.el's anchor keeps holding unchanged. "Clock report" stays in config.el: org_clock_report is a registered tool, the clock tools stay registered with time tracking off, and it wraps org-clock-report over CLOCK lines that exist regardless. Blocked by its sibling; mechanical once that lands.
+
 
 * TODO Promotion never removes, and --check never looks, so a dropped rule file would linger in every consumer :code:
 :PROPERTIES:
@@ -3348,7 +3379,6 @@ refusing — but it removes the two cases that were reaching the wrong
 answer most often.
 
 
-
 * TODO The re-key bridge reads transcripts Claude Code prunes, so the alias decays silently :code:
 :PROPERTIES:
 :ID:       4acd8ad0-4d26-420b-bf84-f66ae8a9dfc5
@@ -3503,6 +3533,36 @@ lands first sets the shape; the second reads what the first wrote.
 :ID:       7ee3b71a-b85a-4610-a4ab-b9e06c8d79da
 :CREATED:  [2026-09-15 Tue 10:26]
 :CATEGORY: Tools
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-22 Tue 12:49]--[2026-09-22 Tue 12:51] =>  0:02
+- [2026-09-22 Tue 12:49]--[2026-09-22 Tue 12:51] brainstorm slice member region ownership
+CLOCK: [2026-09-22 Tue 12:52]--[2026-09-22 Tue 12:53] =>  0:01
+- [2026-09-22 Tue 12:52]--[2026-09-22 Tue 12:53] brainstorm slice member region ownership
+CLOCK: [2026-09-22 Tue 12:54]--[2026-09-22 Tue 12:55] =>  0:01
+- [2026-09-22 Tue 12:54]--[2026-09-22 Tue 12:55] brainstorm slice member region ownership
+CLOCK: [2026-09-22 Tue 12:56]--[2026-09-22 Tue 12:57] =>  0:01
+- [2026-09-22 Tue 12:56]--[2026-09-22 Tue 12:57] brainstorm slice member region ownership
+CLOCK: [2026-09-22 Tue 12:59]--[2026-09-22 Tue 13:00] =>  0:01
+- [2026-09-22 Tue 12:59]--[2026-09-22 Tue 13:00] brainstorm slice member region ownership
+CLOCK: [2026-09-22 Tue 13:05]--[2026-09-22 Tue 13:08] =>  0:03
+- [2026-09-22 Tue 13:05]--[2026-09-22 Tue 13:08] brainstorm slice member region ownership
+CLOCK: [2026-09-22 Tue 13:12]--[2026-09-22 Tue 13:13] =>  0:01
+- [2026-09-22 Tue 13:12]--[2026-09-22 Tue 13:13] brainstorm slice member region ownership
+CLOCK: [2026-09-22 Tue 13:22]--[2026-09-22 Tue 13:23] =>  0:01
+- [2026-09-22 Tue 13:22]--[2026-09-22 Tue 13:23] brainstorm slice member region ownership
+CLOCK: [2026-09-22 Tue 13:25]--[2026-09-22 Tue 13:26] =>  0:01
+- [2026-09-22 Tue 13:25]--[2026-09-22 Tue 13:26] brainstorm slice member region ownership
+CLOCK: [2026-09-22 Tue 13:30]--[2026-09-22 Tue 13:36] =>  0:06
+- [2026-09-22 Tue 13:30]--[2026-09-22 Tue 13:36] brainstorm slice member region ownership
+CLOCK: [2026-09-22 Tue 15:55]--[2026-09-22 Tue 15:56] =>  0:01
+- [2026-09-22 Tue 15:55]--[2026-09-22 Tue 15:56] brainstorm slice member region ownership
+CLOCK: [2026-09-22 Tue 16:00]--[2026-09-22 Tue 16:01] =>  0:01
+- [2026-09-22 Tue 16:00]--[2026-09-22 Tue 16:01] brainstorm slice member region ownership
+CLOCK: [2026-09-22 Tue 16:05]--[2026-09-22 Tue 16:07] =>  0:02
+- [2026-09-22 Tue 16:05]--[2026-09-22 Tue 16:07] brainstorm slice member region ownership
+CLOCK: [2026-09-22 Tue 16:09]--[2026-09-22 Tue 16:15] =>  0:06
+- [2026-09-22 Tue 16:09]--[2026-09-22 Tue 16:15] brainstorm slice member region ownership
 :END:
 :PLAN:
 Designed 2026-09-22 through the brainstorming skill, on the =arch= path the
@@ -3717,7 +3777,6 @@ option the "Proposed:" sentence above offers: membership moves to a
 that destroys the checklist costs a refresh rather than the membership. That
 sentence is superseded and is left standing only as the record of what was
 believed at discovery.
-
 
 
 * TODO A bookkeeping burst reads as many headings worked at once, and inflates every window it lands in :code:
@@ -6141,6 +6200,10 @@ and rarity is what keeps a false success unnoticed.
 :CREATED:  [2026-09-02 Wed 12:09]
 :CATEGORY: Tools
 :END:
+:LOGBOOK:
+CLOCK: [2026-09-22 Tue 16:34]--[2026-09-22 Tue 16:36] =>  0:02
+- [2026-09-22 Tue 16:34]--[2026-09-22 Tue 16:36] re-measure the note argument against both paths
+:END:
 
 *Split out of [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]] on
 2026-09-02*, which found and fixed the hang but left this untouched. It was the
@@ -6193,7 +6256,6 @@ not declare, measured across five occurrences and twenty lost bodies;
 this one is our own function's declared-and-unused parameter. Same
 family, different owners, and cancelling either would throw away the
 half the other does not hold.
-
 
 
 * TODO claude-code-ide-org-review should return point and windows to where I entered from :code:
@@ -10091,7 +10153,6 @@ way back to it is `git log -S` on the id. The content survived intact
 is evidence rather than an incident.
 
 
-
 * TODO Read power assertions as a review-time attribution signal :code:research:
 :PROPERTIES:
 :CATEGORY: Queue
@@ -11933,6 +11994,10 @@ the symptom varies by site while the cause is the one missing
 :ID:       bbf9fb77-f081-48c5-bb01-1b4d4f201969
 :CREATED:  [2026-09-08 Tue 16:15]
 :END:
+:LOGBOOK:
+CLOCK: [2026-09-22 Tue 15:44]--[2026-09-22 Tue 15:45] =>  0:01
+- [2026-09-22 Tue 15:44]--[2026-09-22 Tue 15:45] record the fifth occurrence, with the invented name that varied
+:END:
 
 The upstream half of [[id:1cd2df62-35e9-47dc-bcce-dda7bae3c522][1cd2df62]],
 ready to write up as an issue. Both dispatch paths drop a key the
@@ -12004,7 +12069,6 @@ Detection was =git diff --stat= again — twelve insertions where four
 paragraphs belonged — which is now twice out of five that the same
 accident caught it, and still the only thing that ever has. The catch
 is recorded on =59861867=.
-
 
 
 ** CANCELLED Unknown MCP methods signal an undefined error symbol and answer nothing :code:
@@ -12147,6 +12211,7 @@ call it done.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-22 Tue 16:51]--[2026-09-22 Tue 16:55] =>  0:04
 CLOCK: [2026-09-22 Tue 16:49]--[2026-09-22 Tue 16:50] =>  0:01
 CLOCK: [2026-09-22 Tue 11:50]--[2026-09-22 Tue 11:53] =>  0:03
 CLOCK: [2026-09-22 Tue 10:49]--[2026-09-22 Tue 10:51] =>  0:02
@@ -13395,4 +13460,6 @@ CLOCK: [2026-09-21 Mon 18:52]--[2026-09-21 Mon 18:53] =>  0:01
 :LOGBOOK:
 CLOCK: [2026-09-22 Tue 11:03]--[2026-09-22 Tue 11:04] =>  0:01
 - [2026-09-22 Tue 11:03]--[2026-09-22 Tue 11:04] file the tag-editing tool gap into 8a2e
+CLOCK: [2026-09-22 Tue 16:07]--[2026-09-22 Tue 16:16] =>  0:09
+- [2026-09-22 Tue 16:07]--[2026-09-22 Tue 16:16] compose the review-pass and clock slice
 :END:
