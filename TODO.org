@@ -2866,37 +2866,30 @@ Cheap, and the corpus check is already done and recorded, so this needs no re-me
   report is what the spike decides, so :code: waits on it
 :END:
 :PLAN:
+*Question.* Which layer turns an error into a timeout, and is it the same layer for all three tools?
 
-Observed 2026-09-17. =org_divide= timed out twice through MCP with the identical arguments; calling =claude-code-ide-org-divide= directly through =emacsclient= completed. Both timeouts persisted **nothing** — the safe failure mode =72463b68= was closed on, no phantom success — but the message is only "The operation timed out", so the only correct response is to go and read the file, which is what was done both times before retrying.
+*Hypothesis.* Upstream's =claude-code-ide-mcp-http-server.el= has two defects, and either one leaves the client waiting:
+- =json-rpc-error= is signalled but never defined, so none of =--handle-post='s handlers catch it. A missing argument, an unknown tool and an unknown method all escape into the web server's process filter with no reply written. Argument validation runs before the tool function does, which would explain why nothing reached the file.
+- The errors it does catch are answered with =id= null, which a client cannot match to its request.
 
-*What was ruled out, so nobody re-measures it.* =org-id-update-id-locations= 0.0 s over five files. =--id-index= 0.0 s. =org-update-statistics-cookies= across the whole 13,000-line buffer 0.2 s. =--id-find= 0.0 s. The function's return value *is* propertized — it embeds =org-get-heading= through =format= — but prints to 284 characters against 103 clean, far too small to stall anything. No prompt anywhere in the call graph, which would have hung a non-interactive call exactly like this.
+*Probe.* POST three JSON-RPC requests to the live endpoint with =curl=: a =tools/call= of =org_body= with =id= omitted, a tool name that does not exist, and a valid =org_body= call as the control. For each, record whether a reply arrives and what =id= it carries. Use read-only tools only; a timing probe once mutated the live buffer (=bf00d36a=).
 
-*So the remaining suspects are all above our code*: Claude Code's MCP client and whatever timeout it enforces, the HTTP transport, and upstream's =claude-code-ide-mcp-server.el= / =claude-code-ide-make-tool=. Notably it is not the server generally — =org_capture=, =org_amend=, =org_slice_add_member=, =org_set_property= and =org_pending_updates= all answered normally in the same minutes.
-
-*Unmeasured and worth measuring first:* the duration of the successful direct call. It was made under a 150 s alarm and the timing was lost in the reply, so "slower than the MCP timeout" is assumed rather than known — it may have been fast, which would move the fault squarely upstream. Measure that before anything else.
-
-*Configuration note for whoever picks it up:* =.mcp.json= sets no timeout and the environment sets none, so the server runs on the client default. The =timeout: 10= values in =.claude/settings.json= are **hook** timeouts and unrelated. Claude Code exposes MCP timeouts through environment variables rather than =.mcp.json= keys; confirm the names and defaults against the docs rather than from memory. If the fault proves upstream it belongs with =9d6449c7=.
-
-*Measured 2026-09-17: **0.013 s**, and it settles the attribution.* =claude-code-ide-org-divide= run in a batch Emacs against full-size copies of TODO.org and DONE.org, with a freshly built id index, on the same heading that timed out twice through MCP. Thirteen milliseconds — a fraction of a percent of any plausible tool timeout.
-
-So the "slower than the MCP timeout" assumption recorded above is **false**, and with it the last suspect inside this repo. The operation is effectively instantaneous; whatever consumed the time lives in Claude Code's MCP client, the HTTP transport, or upstream's =claude-code-ide-mcp-server.el= / =claude-code-ide-make-tool=. This belongs with =9d6449c7=.
-
-*What a report needs next, which this repo cannot produce:* server-side instrumentation — when the request arrived, when the handler was entered, when the reply was written. Without it there is no way to tell a slow handler from a slow transport from a client giving up early, and all three are consistent with what was observed.
-
-*One free thing to do regardless:* the tool's return value is propertized, embedding =org-get-heading= through =format=. At 284 printed characters against 103 clean it cannot be the cause, but a handler that walks or serialises text properties is a plausible home for a cost that scales with something other than length, and =substring-no-properties= costs nothing.
-
-*Method note, recorded because the first attempt did damage.* This measurement was originally taken against the live Emacs buffer, and that same session ran =(org-update-statistics-cookies t)= there as a "timing probe" — a whole-buffer mutation under =inhibit-read-only= — which rewrote a quoted title in body prose from =[1/1]= to =[0/0]= and left the buffer dirty (=bf00d36a=). A timing probe must not mutate, and must not run against a live buffer when a scratch copy will do. The figure above was taken on copies, in batch, touching nothing.
+*Then.*
+- If confirmed, file both defects under =9d6449c7= with the =curl= reproduction. A workaround here (defining the error in this module) is a separate decision with its own classification, and it is where =:code:= would return.
+- The =org_divide= and =org_slice_add_member= arguments were never recorded, so look for them in the session transcripts before crediting those two to the same path. If they were well formed, the remaining suspect is what those two share and the other tools lack: the refresh they run after writing.
 :END:
 
-The same `org_divide` call timed out through MCP and completed through `emacsclient`, so the work is in the transport rather than the tool. MCP timeouts are client-side env vars (`MCP_TIMEOUT`, `MCP_TOOL_TIMEOUT`), not settings in `.mcp.json` — establish which limit fired and whether the wrapper we inherit from `claude-code-ide` imposes its own.
+Tool calls that fail on the MCP path come back to the model as "The operation timed out" with no error text, so the model retries a call that cannot succeed and cannot see why. Seen on =org_set_todo=, =org_divide= and =org_slice_add_member=; each time, the same call through =emacsclient= returned at once and the MCP attempt wrote nothing. The defect is the error that reads as a timeout, the same silent-failure class as =4f9e552a=.
 
-*Evidence 2026-09-17 that the premise may be wrong: at least some of these "timeouts" are not timeouts.* Two consecutive =org_set_todo= calls returned "The operation timed out" to the model and queued nothing. Emacs had in fact answered immediately, and the user relayed what it showed: =peculiar error: -32602, "Missing required argument: state"=. The call had passed =keyword=, not =state=.
+Established:
+- The =org_set_todo= case was a parameter error, =keyword= passed for =state=: Emacs showed =peculiar error: -32602, "Missing required argument: state"= while the model saw a timeout (the user relayed it, 2026-09-17).
+- =claude-code-ide-org-divide= takes 0.013 s on full-size copies of both files (batch, 2026-09-17).
+- =json-rpc-error= has no =error-conditions= in the running Emacs, so the =error= handlers upstream do not catch it (2026-09-22).
 
-So the server rejected the parameters, replied with a well-formed JSON-RPC error, and **the client surfaced that as a timeout**. The model retried verbatim, because a timeout is the one failure that invites a retry and a =-32602= is the one that never should — the second attempt could not have succeeded and the diagnosis was unreachable from this side.
-
-Two consequences for this heading. The =emacsclient=-succeeds-where-MCP-times-out observation is consistent with a parameter mismatch rather than a transport limit, since a hand-written =emacsclient= call passes the elisp arguments directly and never crosses the schema. And the thing worth fixing may not be a timeout value at all: **an error response that reads as a timeout is the defect**, and it is the same silent-failure class as =:ID:= 4f9e552a — a failure indistinguishable from a different, more forgiving one. Establish which layer swallows the error body before touching =MCP_TIMEOUT=.
-
-*Same class, second tool, 2026-09-19:* =org_slice_add_member= timed out through MCP twice in a row while =org_pending_updates= answered between the attempts, and the identical call through =emacsclient -e '(claude-code-ide-org-slice-add-member …)'= returned in well under a second, seven times running. Neither timed-out call reached the file. So the fault is not the function's cost and not Emacs being wedged; it is something on the MCP path that both =org_divide= and this tool cross and =org_amend= does not — the structural tools share a refresh that the prose tools skip, which is where to look first.
+Ruled out:
+- Slow code here: id indexing, id lookup and the cookie update are all at or under 0.2 s, and the propertized return value prints to 284 characters.
+- A wedged Emacs: other tools answered between the timed-out attempts.
+- A timeout setting: =.mcp.json= and the environment set none, and the =timeout: 10= values in =.claude/settings.json= are hook timeouts.
 
 
 * TODO [0/2] Make the corpus searchable by tag, by measurement where it can be and by decision where it cannot
