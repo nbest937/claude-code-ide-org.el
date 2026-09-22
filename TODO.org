@@ -1,5 +1,5 @@
 #+TODO: TODO(t!) NEXT(n!) DOING(d!) REVIEW(r!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)
-#+TAGS: analysis code comms prose research review spike bounded arch
+#+TAGS: analysis bug code comms prose research review spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
 * NEXT A story may carry NEXT: the prohibition generalises a retired trigger's guard into a rule about the keyword :prose:bounded:
@@ -2854,11 +2854,16 @@ Cheap, and the corpus check is already done and recorded, so this needs no re-me
 `org_divide` appends the statistics cookie after the title text, so a narrow agenda or list window truncates the headline and takes the cookie with it. The cookie belongs at the front, where `org_slice_add_member` already puts it. Seen on `ee3e0fa2`.
 
 
-* TODO org_divide times out through MCP while the same call succeeds through emacsclient, and nothing says why :code:
+* TODO org_divide times out through MCP while the same call succeeds through emacsclient, and nothing says why :bug:spike:
 :PROPERTIES:
 :ID:       51bcec2c-242d-4e06-9610-0b9aeac1f92c
 :CREATED:  [2026-09-17 Thu 11:31]
 :CATEGORY: Tools
+:END:
+:LOGBOOK:
+- Tags ":bug:spike:" from ":code:" [2026-09-22 Tue 17:34] \\
+  classified a spike; whether the fix is code here or an upstream
+  report is what the spike decides, so :code: waits on it
 :END:
 :PLAN:
 
