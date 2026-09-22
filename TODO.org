@@ -77,10 +77,42 @@ CLOCK: [2026-09-22 Tue 08:36]--[2026-09-22 Tue 08:37] =>  0:01
 - Automated: the claims check above.
 - Manual, stated as such: one real request taken through each path, confirming that the heading is captured before the first write, the design lands in =:PLAN:=, and nothing is written under =docs/=. Whether the skill triggers at the right moments cannot be tested deterministically, and is recorded as a judgement.
 
-*Open questions.*
-- Plan Mode is read-only, but capture is a write. Does brainstorming run inside Plan Mode, with capture and the drawer written after =ExitPlanMode=, or does it replace Plan Mode for design work?
-- Should the visual companion be kept? It adds a Node server, and nothing here is UI work yet.
-- Should the skill reach consumers as part of this plugin, or stay testbed-only like =org-dev= until it has been exercised here?
+*Bring the raw material in first, unchanged* (the user, 2026-09-22). The
+first commit on =feature/brainstorming-skill= copies all nine files of
+superpowers' =skills/brainstorming/= at tag =v6.4.1=
+([[orgit-rev:superpowers::5bf4e78][5bf4e78]]) into =skills/brainstorming/=
+byte for byte: =SKILL.md=, =spec-document-reviewer-prompt.md=,
+=visual-companion.md=, and =scripts/= (=frame-template.html=,
+=helper.js=, =server.cjs=, =start-server.sh=, =stop-server.sh=). Each
+file's =git hash-object= must equal its blob in the upstream tree at that
+tag, which proves the copy verbatim. The visual companion comes in with
+the rest; whether it stays is the user's call, reserved, and removing it
+later is then a visible diff.
+
+The same commit adds three files of this repo's own, and nothing else:
+- =.upstream=: the source in =key: value= lines, namely repository
+  (=obra/superpowers=), path, tag (=v6.4.1=), commit
+  (=5bf4e78011075bcfc0dc295f0724994cd123ee71=), license (=MIT=) and the
+  import date. The commit message carries the same as =Upstream-Repo:=,
+  =Upstream-Tag:= and =Upstream-Commit:= trailers.
+- =LICENSE=: upstream's MIT license, verbatim. The notice must travel with
+  a substantial portion, and this repo carries no license of its own.
+- =README.md=: a few lines saying the folder derives from superpowers'
+  brainstorming skill (obra/superpowers, v6.4.1, 5bf4e78), © 2025 Jesse
+  Vincent, MIT, see =LICENSE=; that the import commit is the pristine
+  copy; and that every later commit to the folder is an adaptation.
+
+No =.claude/skills/brainstorming= symlink until the adapted skill is ready:
+upstream's description ("You MUST use this before any creative work")
+would otherwise trigger in every session here.
+
+*Plan Mode and shipping* (the user, 2026-09-22). The dialogue runs inside
+Plan Mode, which suits its read-only phase: =ExitPlanMode= is the design
+approval, and only then are the heading captured and =:PLAN:= written. The
+org skill's Plan Mode checkpoint then applies unchanged, so implementation
+and =DOING= wait for a separate yes. The skill ships with the plugin,
+because 2b8930da, the euchre verification, waits on this heading; its
+manual verification runs here before the merge.
 
 Branch: =feature/brainstorming-skill=, merged by pull request.
 :END:
