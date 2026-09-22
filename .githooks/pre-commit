@@ -100,7 +100,11 @@ if [ -n "$conv" ] && [ -x "$repo_root/bin/check-conventions" ]; then
   fi
 fi
 
-staged="$(git diff --cached --name-only --diff-filter=ACMR | grep -E '(^|/)(TODO|DONE)\.org$')"
+# Root only: bin/lint-org governs this pair, and a file that merely shares
+# the basename (templates/TODO.org) would otherwise be copied over the
+# real one below, since the temp copies are keyed by basename (TODO.org
+# :ID: b28467b5).
+staged="$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^(TODO|DONE)\.org$')"
 [ -n "$staged" ] || exit 0
 
 tmp="$(mktemp -d)"

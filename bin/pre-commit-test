@@ -117,5 +117,18 @@ printf '%s* DONE Illustrative level-1 heading :code:\n:PROPERTIES:\n:ID:       9
 git -C "$work" add clock-template.org
 check "a non-task .org file is not gated" 0 "$(run_hook)"
 
+# 9. A file that merely shares the basename -- templates/TODO.org -- is
+#    not the tracker. The filter matched any .../TODO.org, and both were
+#    copied into the temp dir by basename, so a staged template replaced
+#    the real TODO.org and every DONE.org link into it read as dangling
+#    (221 errors, 2026-09-22; :ID: b28467b5).
+write_pair "$clean_task"
+printf '%s* DONE Closed :code:\n:PROPERTIES:\n:ID:       22222222-2222-2222-2222-222222222222\n:CREATED:  [2026-08-19 Wed 10:00]\n:CATEGORY: Dev\n:END:\nSee [[id:11111111-1111-1111-1111-111111111111][the task]].\n' \
+       "$header" > "$work/DONE.org"
+mkdir -p "$work/templates"
+printf '%s' "$header" > "$work/templates/TODO.org"
+git -C "$work" add TODO.org DONE.org templates/TODO.org
+check "a staged templates/TODO.org does not stand in for TODO.org" 0 "$(run_hook)"
+
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [[ $fail -eq 0 ]]
