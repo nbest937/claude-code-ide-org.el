@@ -138,6 +138,31 @@ Branch: =feature/brainstorming-skill=, merged by pull request.
 
 superpowers' brainstorming skill is the best design-dialogue discipline available: intent written back for correction, the path (spike, bounded, architectural) announced aloud, one question at a time, and hard approval gates. Installing the plugin would bring its bookkeeping too: specs and plans committed as Markdown under docs/superpowers/, no heading captured before the first write, a local git merge, and a SessionStart injection that the word budget cannot see. Port the dialogue as a shipped skill of this plugin instead, and route its output through org_capture and the :PLAN: drawer.
 
+*Built on =feature/brainstorming-skill= (2026-09-22), manual verification
+owed.*
+- The import is verbatim: all eight files and =LICENSE= equal their
+  upstream blobs at =v6.4.1=, with upstream's file modes, and =.upstream=
+  plus the commit's =Upstream-*= trailers name the source
+  ([[orgit-rev:claude-code-ide-org::ed9d86a][ed9d86a]]).
+- The adaptation follows the plan
+  ([[orgit-rev:claude-code-ide-org::522f6aa][522f6aa]]), with one
+  deviation: an architectural heading is captured =TODO=, not =DOING=,
+  because the settled Plan Mode decision puts =DOING= behind a separate
+  yes.
+- =bin/check-brainstorming-skill= verifies every tool, parameter, section
+  and file the skill names; its test plants one violation per rule, 9/9,
+  and =pre-commit-guards= runs it
+  ([[orgit-rev:claude-code-ide-org::4d446d6][4d446d6]]).
+- The skill is discovered here through =.claude/skills/brainstorming=, and
+  a fresh session listed it with the narrowed description.
+
+*Owed before the pull request:* one real request through each path, spike,
+bounded and architectural, confirming that the heading is captured only
+after =ExitPlanMode=, that the design lands in =:PLAN:=, and that nothing
+is written under =docs/=. Whether the skill triggers at the right moments
+cannot be tested deterministically, and will be recorded as a judgement.
+
+
 
 * DONE Starting a pull request's review should queue its slice to REVIEW, not wait for someone to remember
 CLOSED: [2026-09-21 Mon 18:26]
