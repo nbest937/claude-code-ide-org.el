@@ -8,6 +8,25 @@
 :CREATED:  [2026-09-22 Tue 10:37]
 :CATEGORY: Dev
 :END:
+:DEBRIEF:
+It was latent from the hook's first version and surfaced when the
+path-tag commit on feature/brainstorming-skill staged the template for
+the first time. Reproduced by copying the template over a temp
+=TODO.org=, which gave the same 221 errors. The filter is now
+=^(TODO|DONE)\.org$=, matching the hook's own comment that it governs the
+pair =bin/lint-org= governs. =bin/pre-commit-test= case 9 stages both
+files and a DONE.org link into =TODO.org=; it was red before the fix and
+the suite is 9/9 after. No other hook filter has the unanchored form
+([[orgit-rev:claude-code-ide-org::1d2c71d][1d2c71d]]).
+:END:
+
+The pre-commit org lint matched any staged =.../TODO.org=, and its temp
+copies are keyed by basename, so a staged =templates/TODO.org= replaced
+the real tracker and every DONE.org link into it read as dangling (221
+false errors).
+
+*Resolved 2026-09-22:* the filter is anchored at the repo root.
+
 * DONE The state rules say a heading is DOING while it is planned, but planning is TODO-phase and DOING begins with implementation :code:
 CLOSED: [2026-09-22 Tue 09:43]
 :PROPERTIES:
