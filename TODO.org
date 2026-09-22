@@ -333,6 +333,16 @@ because 2b8930da, the euchre verification, waits on this heading; its
 manual verification runs here before the merge.
 
 Branch: =feature/brainstorming-skill=, merged by pull request.
+
+*The dialogue runs outside Plan Mode* (the user, 2026-09-22, reversing the
+morning's decision above). The first fresh-session run (ba40781f, on
+da6a2fba) found that Plan Mode always writes its plan to
+=~/.claude/plans=, the retired pattern, and that =ExitPlanMode= can only
+mean "start implementing" or "stay read-only", so a request to record the
+design looped. The design approval is now an explicit yes in chat, the
+heading and =:PLAN:= are written after it, and implementation and =DOING=
+wait for a second, separate yes. The verification runs still owed use
+this flow.
 :END:
 
 superpowers' brainstorming skill is the best design-dialogue discipline available: intent written back for correction, the path (spike, bounded, architectural) announced aloud, one question at a time, and hard approval gates. Installing the plugin would bring its bookkeeping too: specs and plans committed as Markdown under docs/superpowers/, no heading captured before the first write, a local git merge, and a SessionStart injection that the word budget cannot see. Port the dialogue as a shipped skill of this plugin instead, and route its output through org_capture and the :PLAN: drawer.
