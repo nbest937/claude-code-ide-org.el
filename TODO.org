@@ -695,6 +695,44 @@ guidepost still attributes there. That is a standing rule of the
 time-tracking reference, not of this skill, and the skill's checklist
 never mentions clocking out at all.
 
+*Second verification run, `a7f844ba`, same session `92af51b9`, 21:16 to
+21:47 — the branches the first run could not reach.* The heading carried
+no path tag, so this run classified from scratch, and it did so before
+its first question and said why: "Path: **architectural** … The heading
+carries no path tag — `:code:` only — so this is its first
+classification … The tag goes on the headline at recording time, with
+its `:LOGBOOK:` line, not now." That deferral is the rule working: the
+tag was written only after the user's "record it", and the `- Tags`
+line landed in the convention's exact shape, `- Tags ":code:arch:" from
+":code:" [2026-09-22 Tue 16:42] \\` with the classification reasoning
+indented beneath. **And it clocked out** (21:46:55), which the first run
+did not — though this run predates the skill clause that now requires
+it, so the credit belongs to the session, not the fix.
+
+Four questions, one at a time, and the dialogue did real work rather
+than ratifying: it measured the heading's own body and retired one of
+its four stated motivations, finding 130 references from task code into
+symbols defined in time-named sections where the body claimed the
+comments already delimited a seam. The plan self-review then caught a
+number that was wrong rather than loose — 64 `doctor.el` modules
+reused from a different measurement, actually 82 — and appended the
+correction instead of rewriting the sentence. Capture came after
+approval, two children with a `:BLOCKER:` sequencing them, and no
+`org_divide`, for a reason the plan states.
+
+*What it cost, and what is still untested.* Writing the design surfaced
+a real defect: the drawer text contained `**`-prefixed section lines,
+which org read as headings and which tore the `:PLAN:` drawer open. The
+session repaired it by hand and filed `c0c5e015`, but a skill that
+writes long drawers will hit this again, and nothing in the skill warns
+against headline-shaped lines in drawer prose. Both verified runs are
+now *architectural*: the spike and bounded paths have still never been
+exercised under the current skill, the bounded one having failed inside
+Plan Mode before the rewrite. `a7f844ba` also carries a duplicated CLOCK
+interval for 16:25–16:26, which is `c3aa23fb`'s shape rather than this
+skill's.
+
+
 
 * DONE Starting a pull request's review should queue its slice to REVIEW, not wait for someone to remember
 CLOSED: [2026-09-21 Mon 18:26]
