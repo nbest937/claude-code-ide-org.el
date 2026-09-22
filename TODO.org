@@ -2,6 +2,15 @@
 #+TAGS: analysis code comms research review spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO org_amend accepts a headline-shaped line in drawer text, which tears the drawer open :code:observed:
+:PROPERTIES:
+:ID:       c0c5e015-c33e-4e1a-ad6e-907f9fa56c07
+:CREATED:  [2026-09-22 Tue 16:46]
+:CATEGORY: Tools
+:END:
+
+Observed 2026-09-22 writing a :PLAN: drawer through org_amend drawer=PLAN: six section headers written as "** Title" at column zero were parsed as real headings, which terminated the drawer at the first one, manufactured six children under the heading, displaced the :LOGBOOK: below the orphaned :END:, and left the statistics cookie counting the wrong thing. Nothing refused it and the reply said "created :PLAN:". This is adjacent to 8a23d6ec but not covered by it: that rule and the escaping 3cd7b7d3 shipped both apply to a ^\*+ line inside a #+BEGIN_ block, where the damage is a fake heading; here there is no block, the text is drawer prose, and the damage is structural. bin/lint-org caught it only as six "heading has no :ID:" errors, which name the symptom rather than the cause. Proposed: extend the write-path escape to any ^\*+ line in drawer text, or refuse it there, since a drawer cannot contain a headline at all and escaping silently rewrites what the caller wrote.
+
 * TODO org_amend replace=true eats the blank lines before the next heading, so org stops seeing it :code:observed:
 :PROPERTIES:
 :ID:       5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997
