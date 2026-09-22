@@ -13,6 +13,11 @@ Start by classifying how much process the request needs, then work
 through your path: understand the context, refine the idea, present a
 design, and get your human partner's approval.
 
+*Inspired by and derived from the brainstorming skill of obra/superpowers
+(v6.4.1; see `.upstream` and the folder's README), adapted to this
+plugin's tracker and the org skill's conventions. Where the two differ,
+this file governs.*
+
 ## Establish Shared Understanding
 
 The outcome of brainstorming is an understanding your human partner can
@@ -205,8 +210,8 @@ digraph brainstorming {
 
     "Record it: tag, :PLAN:, body" [shape=box];
     "Separate yes to start?" [shape=diamond];
-    "DOING, then implement" [shape=doublecircle];
-    "Design recorded, work not started" [shape=doublecircle];
+    "Implement" [shape=doublecircle];
+    "Recorded, not started" [shape=doublecircle];
 
     "Hidden complexity? step up" [shape=box];
 
@@ -243,8 +248,8 @@ digraph brainstorming {
     "Record it: tag, :PLAN:, body" -> "Separate yes to start?" [label="bounded"];
     "Record it: tag, :PLAN:, body" -> "Spike done" [label="spike"];
 
-    "Separate yes to start?" -> "DOING, then implement" [label="yes"];
-    "Separate yes to start?" -> "Design recorded, work not started" [label="not yet"];
+    "Separate yes to start?" -> "Implement" [label="yes"];
+    "Separate yes to start?" -> "Recorded, not started" [label="not yet"];
 
     "Investigate; report recommendation" -> "Hidden complexity? step up" [style=dotted];
     "Present short design in chat" -> "Hidden complexity? step up" [style=dotted];
