@@ -2854,7 +2854,7 @@ Cheap, and the corpus check is already done and recorded, so this needs no re-me
 `org_divide` appends the statistics cookie after the title text, so a narrow agenda or list window truncates the headline and takes the cookie with it. The cookie belongs at the front, where `org_slice_add_member` already puts it. Seen on `ee3e0fa2`.
 
 
-* TODO org_divide times out through MCP while the same call succeeds through emacsclient, and nothing says why :bug:spike:
+* TODO Tool errors on the MCP path reach the model as timeouts, with no error text :bug:spike:
 :PROPERTIES:
 :ID:       51bcec2c-242d-4e06-9610-0b9aeac1f92c
 :CREATED:  [2026-09-17 Thu 11:31]
