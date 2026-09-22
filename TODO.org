@@ -969,6 +969,19 @@ CLAUDE.md's own opening names this as the largest source of wrong claims. Caught
   session's live skill list; no fresh session was run. Corrected within
   the minute (ebecefb).
 
+- [2026-09-22 Tue] Self-caught, on being told to act on it: the session
+  reported `6495c8a0` as "the caller-side statement of the same defect"
+  as `bbf9fb77`, having read only its title in an `org_query` listing.
+  The user reasonably answered "so cancel bbf9fb77, I guess", and
+  reading the body before cancelling showed the two are unrelated in
+  the way that matters — one is upstream's dispatch dropping *unknown*
+  keys, the other our own function's *declared* parameter — and that
+  `6495c8a0`'s own claim had gone stale besides. A twin call made from
+  a title is the exact input the twin-checker agent exists to take off
+  a session, and the cost here would have been discarding an upstream
+  report holding five measured occurrences.
+
+
 
 ** TODO Miss: a heading closed with its unfinished part left in prose, or its group left un-nominated
 :PROPERTIES:
@@ -5977,6 +5990,35 @@ schema advertises a parameter that is silently discarded.
 Note the near neighbour that is now *not* a defect: =org_capture= also once
 dropped a *body*, and three headings arrived empty because of it. That is the
 same shape but a different argument, and it is not what this heading is about.
+
+*Re-measured 2026-09-22, and the claim above is stale on both halves.*
+The immediate path passes it:
+`claude-code-ide-org--capture-write` is called with
+`(claude-code-ide-org--escape-block-headlines note)` as its body
+argument (inside `claude-code-ide-org-capture`), so a capture that reaches Emacs writes the
+note as the heading's prose — which is also what the registered schema
+now says `note` is for. The deferred path carries it too, though not
+through this function: the `PostToolUse` hook builds the queue event
+from the tool input and emits `($payload.tool_input.note // null)`
+(`bin/hooks/queue-append`, in the event it emits), so a capture queued while the buffer is
+busy keeps its text for the review buffer to show.
+
+So neither of the two ways to close it is open any more — the
+parameter was neither dropped nor left advertised-and-discarded; it was
+implemented, at some point between 2026-09-02 and now, without this
+heading being told. What remains is a verification rather than a fix:
+one capture through each path, asserting the body on disk and the
+`note` field on the queue event. Until that runs this stays `TODO`,
+because "read the source and it looks right" is the class of evidence
+this repo does not accept.
+
+*It is not a twin of `bbf9fb77`, which is where this was headed.* That
+heading is upstream's two dispatch paths dropping keys the schema does
+not declare, measured across five occurrences and twenty lost bodies;
+this one is our own function's declared-and-unused parameter. Same
+family, different owners, and cancelling either would throw away the
+half the other does not hold.
+
 
 
 * TODO claude-code-ide-org-review should return point and windows to where I entered from :code:
