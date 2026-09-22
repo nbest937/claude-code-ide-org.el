@@ -68,6 +68,13 @@ yes — the rule of the org skill's "Plan Mode checkpoint", applied without
 Plan Mode. Ask for the two in separate messages, and never read one as
 the other.
 
+**No headline-shaped lines in the drawer text.** An architectural design
+wants sections, and a line beginning with `*` at column zero is a
+*heading* to org, not a bold label — it tears the drawer open where it
+appears, and the repair is by hand. Mark a section with bold prose on
+its own line instead. The first design written through this skill hit
+it and filed `c0c5e015`.
+
 **Close the clock when you hand the drawer back.** A brainstorm clocks
 in on its heading like any other work, but it ends *waiting* rather than
 finishing, which is where `org_clock_out` gets forgotten — the first
