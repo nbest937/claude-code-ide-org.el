@@ -175,6 +175,84 @@ Classify first, announce the path, then work through its items in order.
 10. **User reviews the drawer** — as they would a spec
 11. **Transition to implementation** — only after a yes; org skill, "Plan Mode checkpoint"
 
+## Process Flow
+
+The decision spine only. The linear steps (context, questions,
+approaches, and the write sequence of tag, `:PLAN:`, body and self-review)
+are in the checklist above.
+
+```dot
+digraph brainstorming {
+    "Already filed?" [shape=diamond];
+    "Path tag present?" [shape=diamond];
+    "Start from its path (up, never down)" [shape=box];
+    "Classify and announce: spike / bounded / architectural" [shape=diamond];
+
+    "Present question + probe" [shape=box];
+    "Nod on the probe?" [shape=diamond];
+    "Investigate; report recommendation" [shape=box];
+    "Keep the finding?" [shape=diamond];
+    "Spike done" [shape=doublecircle];
+
+    "Present short design in chat" [shape=box];
+    "Approve design?" [shape=diamond];
+
+    "Too large for one heading?" [shape=diamond];
+    "Decompose: children, or org_divide; take the first" [shape=box];
+    "Present design sections" [shape=box];
+    "Approve at ExitPlanMode?" [shape=diamond];
+    "Drawer reviewed?" [shape=diamond];
+
+    "Record it: tag, :PLAN:, body" [shape=box];
+    "Separate yes to start?" [shape=diamond];
+    "DOING, then implement" [shape=doublecircle];
+    "Design recorded, work not started" [shape=doublecircle];
+
+    "Hidden complexity? step up" [shape=box];
+
+    "Already filed?" -> "Path tag present?" [label="yes"];
+    "Already filed?" -> "Classify and announce: spike / bounded / architectural" [label="no"];
+    "Path tag present?" -> "Start from its path (up, never down)" [label="yes"];
+    "Path tag present?" -> "Classify and announce: spike / bounded / architectural" [label="no"];
+    "Start from its path (up, never down)" -> "Classify and announce: spike / bounded / architectural";
+
+    "Classify and announce: spike / bounded / architectural" -> "Present question + probe" [label="spike"];
+    "Classify and announce: spike / bounded / architectural" -> "Present short design in chat" [label="bounded"];
+    "Classify and announce: spike / bounded / architectural" -> "Too large for one heading?" [label="architectural"];
+
+    "Present question + probe" -> "Nod on the probe?";
+    "Nod on the probe?" -> "Present question + probe" [label="no, revise"];
+    "Nod on the probe?" -> "Investigate; report recommendation" [label="yes"];
+    "Investigate; report recommendation" -> "Keep the finding?";
+    "Keep the finding?" -> "Spike done" [label="no"];
+    "Keep the finding?" -> "Record it: tag, :PLAN:, body" [label="yes, tag spike"];
+
+    "Present short design in chat" -> "Approve design?";
+    "Approve design?" -> "Present short design in chat" [label="no, revise"];
+    "Approve design?" -> "Record it: tag, :PLAN:, body" [label="yes"];
+
+    "Too large for one heading?" -> "Decompose: children, or org_divide; take the first" [label="yes"];
+    "Decompose: children, or org_divide; take the first" -> "Present design sections";
+    "Too large for one heading?" -> "Present design sections" [label="no"];
+    "Present design sections" -> "Approve at ExitPlanMode?";
+    "Approve at ExitPlanMode?" -> "Present design sections" [label="no, revise"];
+    "Approve at ExitPlanMode?" -> "Record it: tag, :PLAN:, body" [label="yes"];
+    "Record it: tag, :PLAN:, body" -> "Drawer reviewed?" [label="architectural"];
+    "Drawer reviewed?" -> "Record it: tag, :PLAN:, body" [label="changes"];
+    "Drawer reviewed?" -> "Separate yes to start?" [label="approved"];
+    "Record it: tag, :PLAN:, body" -> "Separate yes to start?" [label="bounded"];
+    "Record it: tag, :PLAN:, body" -> "Spike done" [label="spike"];
+
+    "Separate yes to start?" -> "DOING, then implement" [label="yes"];
+    "Separate yes to start?" -> "Design recorded, work not started" [label="not yet"];
+
+    "Investigate; report recommendation" -> "Hidden complexity? step up" [style=dotted];
+    "Present short design in chat" -> "Hidden complexity? step up" [style=dotted];
+    "Present design sections" -> "Hidden complexity? step up" [style=dotted];
+    "Hidden complexity? step up" -> "Classify and announce: spike / bounded / architectural" [label="heavier path"];
+}
+```
+
 ## The Process
 
 The subsections below serve the bounded and architectural paths (a
