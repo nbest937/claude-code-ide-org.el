@@ -197,7 +197,7 @@ reviews before implementation.
 Classify first, announce the path, then work through its items in order.
 
 **Spike:**
-1. **Explore project context** — enough to frame the probe
+1. **Explore project context** — enough to frame the probe, and once a hypothesis forms, search the tracker for it: a spike's likely answer is often a finding already recorded, and a probe that re-measures it is wasted
 2. **Present question + probe plan** — 2-3 sentences
 3. **Get approval** — a nod is enough
 4. **Investigate** — as cheaply as correctness allows
