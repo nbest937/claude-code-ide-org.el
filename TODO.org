@@ -428,6 +428,14 @@ The catch-all, so that answering a catch is always an amend and never a decision
 
 - [2026-09-21 Mon] Self-caught from =org_pending_updates=: missed the rule "=org_clock_out= is the last call of the turn". The session clocked out after committing, then read six member bodies and answered, so 11:52–12:13 reached review UNASSIGNED. b09aca60's fix is what made the miss visible at all; before 2026-09-21 it would have reached review as nothing.
 - [2026-09-21 Mon] Caught by the user: "why the bare list item there? it looks like the beginning of a journal by date rather than a plan … I expect the plan to be bigger than the body." The session's own SOP said to append decisions to a member's =:PLAN:= "as =Decided <date> (<who>): …=", and it wrote them as dated list items in six drawers, turning the design doc into a journal. That contradicts the always-loaded rule that the drawer is the design doc and the body the journal. It was recited, and missed while the session wrote the rule that broke it. The SOP now folds decisions into the plan's prose.
+- [2026-09-22 Tue] Caught by the user: "why are you grepping? =org_outline=
+  should tell you that, no?" Asked for 8a2eb687 grouped by =:CATEGORY:=, the
+  session scraped member ids with =awk= and queried Emacs through
+  =emacsclient=, and the output came back buried in text properties.
+  =org_outline= with the member ids as scope returns each one's
+  =:CATEGORY:=. That was the always-loaded "start with org_outline" rule,
+  recited and missed.
+
 
 
 * TODO Nothing runs the shell hook suites, so three sat red for a day and a merge without anyone seeing :code:
