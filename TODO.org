@@ -8,6 +8,32 @@
 :CREATED:  [2026-09-22 Tue 17:08]
 :CATEGORY: Skill
 :END:
+:DEBRIEF:
+Three edits to one section of one reference, plus the regenerated copy:
+the prohibition and its `42808717` citation struck, the
+"does not substitute for a member's `NEXT`" bullet generalised from
+slice to grouping, and a new sentence naming the three scopes as
+independent. The slice paragraph kept what is genuinely its own — that
+marking one nominates a slice rather than an action — and lost the
+framing that a story is forbidden what a slice is permitted.
+
+*Verified as the plan asked.* `bin/check-conventions` passes, 32 checks
+with the removed citation no longer cited; `bin/claude-org-setup
+--check` reports all seven promoted files in sync after the re-run; the
+diff touches exactly the two files and the two-file grep for
+"must never carry it" now returns nothing. There is no executable
+surface here, so that reading plus the greps is the honest verification.
+
+*One thing the plan did not anticipate, and it nearly cost the change.*
+The first draft explained in the rules *why* the prohibition was being
+struck, and that pushed the always-loaded corpus to 10,084 words against
+a 10,000 budget, which `bin/check-conventions` refuses. The history
+belongs on this heading, not in a file every session loads; the rewrite
+states the rule and cites this `:ID:` for the reasoning, and the corpus
+came back to **9,973**. That leaves 27 words of headroom for the next
+rule anyone adds, which is the real state of that budget and worth
+knowing before the next prose change.
+:END:
 :LOGBOOK:
 - Tags ":prose:bounded:" from ":code:bounded:" [2026-09-22 Tue 17:11] \\
   the deliverable is prose, not code (the user, 2026-09-22): this heading
@@ -66,6 +92,13 @@ the two-file grep already establishes for its wording.
 :END:
 
 The state-transition rules say a story must never carry NEXT, citing 42808717 — but that heading is about an auto-promotion trigger that counted siblings and checked nothing else, and its objection was to the resulting configuration, a parent marked NEXT while its own child action is merely TODO. The trigger is retired and the same section says not to rebuild it, so the prohibition now guards a failure that cannot occur by mechanism, only by someone deciding it. It also contradicts the slice exception, since a slice is a grouping and may carry the keyword, and it is the only non-orthogonal rule in a section that otherwise keeps its scopes independent — a category's top-level budget, a grouping's internal nomination, and what a mark means. Caught 2026-09-22 when a session queued a demotion on a7f844ba on the strength of it and the user dismissed the transition, not being aware of any such injunction.
+
+*Resolved 2026-09-22.* The prohibition is struck from
+`skills/org/references/org-state-transitions.md` and its promoted copy,
+and the section now states the three scopes' independence outright, so
+`a7f844ba` carrying `NEXT` over a `NEXT` child is ordinary rather than a
+violation nobody meant to commit.
+
 
 * TODO org_amend accepts a headline-shaped line in drawer text, which tears the drawer open :code:observed:
 :PROPERTIES:
