@@ -2,6 +2,46 @@
 #+TAGS: analysis code comms research review spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO A turn can end holding an open clock and nothing says so: 9 of 39 session queues end on a clock_in :code:bounded:
+:PROPERTIES:
+:ID:       3485b0d0-3b47-4a28-ae6f-e2061fa8f226
+:CREATED:  [2026-09-22 Tue 15:29]
+:CATEGORY: Clock
+:END:
+
+`org_clock_out` is the last call of the turn, and nothing checks it:
+`bin/hooks/clock-target-check` enforces the *inverse* at `Stop` — write
+activity with no `clock_in` — so the backstop's shape already exists and
+is missing its other half. Measured 2026-09-22 across live and archived
+queues: of the 39 sessions that ever clocked in, **9 end on a `clock_in`**
+with nothing after it, most recently `92af51b9`, whose ownership of
+`7ee3b71a` therefore never ended and which left twelve suggested clock
+items behind one uncalled tool. The check is cheap and local — at `Stop`
+the session's own queue file is on disk and an unmatched trailing
+`clock_in` is a `tail`. What is not settled, and should be before
+building: whether to block the stop the way `clock-target-check` does, or
+append the `clock_out` at the guidepost's own timestamp, which would make
+the rule unbreakable and equally unlearnable.
+
+* MAYBE The brainstorming skill offers a visual companion nobody here has evaluated: it serves mock-ups from a local web server :code:spike:
+:PROPERTIES:
+:ID:       c4bb5db3-2717-4f95-8add-5cc487ea3a28
+:CREATED:  [2026-09-22 Tue 15:29]
+:CATEGORY: Skill
+:END:
+
+Step 2 of the skill's architectural checklist tells a session to offer
+the visual companion just-in-time; the companion is upstream's, imported
+untouched, and stands up a local web server for design mock-ups that
+nothing here has ever run. The first architectural run (`7ee3b71a`,
+2026-09-22) never offered it, and the user's judgement afterwards was
+that a mock-up server would not have helped much there — the artifact
+under design was org text, not a screen. Researching it now is ruled out:
+whether a design dialogue in this project ever wants a rendered mock-up
+is answerable only by a dialogue that wants one. Pick it up at that
+moment, as a spike whose output is an answer about keeping, scoping or
+cutting step 2 — not code.
+
 * TODO No org tool changes an existing heading's tags, so every tag change is a hand edit behind Emacs's back :code:bounded:
 :PROPERTIES:
 :ID:       da6a2fba-1ab6-4e6f-94f1-3a945d1fdd84
@@ -803,6 +843,16 @@ The catch-all, so that answering a catch is always an amend and never a decision
   =org_outline= with the member ids as scope returns each one's
   =:CATEGORY:=. That was the always-loaded "start with org_outline" rule,
   recited and missed.
+
+- [2026-09-22 Tue] Self-caught from =git diff=: two headings filed with
+  =org_capture text=...= and landed bodyless, because the parameter is
+  =note=. The argument was written from memory rather than read off the
+  tool's =:args=, the same shape as the =org_outline= catch above, and
+  nothing refused it — an unknown key is dropped in silence, so the
+  reply said "Captured" and the prose was gone. Caught only because
+  =git diff --stat= showed 12 insertions where four paragraphs were
+  expected; the bodies were re-added with =org_amend=.
+
 
 
 * TODO Nothing runs the shell hook suites, so three sat red for a day and a merge without anyone seeing :code:
