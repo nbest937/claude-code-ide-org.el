@@ -2,6 +2,50 @@
 #+TAGS: analysis code comms research review spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO [0/20] The review pass asks for judgement it cannot support, and the clock beneath it is still wrong :code:
+:PROPERTIES:
+:ID:       c7619140-f269-4329-bc05-a38ea151e202
+:CREATED:  [2026-09-22 Tue 16:07]
+:CATEGORY: Slices
+:KIND:     slice
+:COOKIE_DATA: checkbox recursive
+:BLOCKER:  55125136-5939-434e-9676-96ea66a75770 361e2708-8124-4bd1-9c44-f97ca97aca4a 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 aee8487e-0650-4396-bc5c-193ca3efcecb 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 653fea66-f9d5-4431-8ce3-5d355560b475 445fe577-01ce-4e68-ab5f-c349c40a4643 2c733857-a280-42cc-bd7c-e182a4fb6ea3 79c224ab-188a-4ed4-a606-c28ee2cfe72d 001fb310-69f7-4417-81be-a224a3bf83e0 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46 cf483f5d-2d25-4454-a580-db7935c8cb81 8028e875-3032-4ade-949e-414d9861b928 01849bef-fdc9-4c30-b467-00ca8606e8e0 ee3c22c9-f99c-4d41-9c3d-8f39af916fff e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 6c64cc9c-33a9-4a20-af19-c188a690c755 a865f83c-ea37-40c4-a104-7cc50d2c20dd
+:END:
+
+Thirty-four live headings carry `:CATEGORY: Apply` or `Clock`, and three
+of them belong to a slice; the rest have sat un-grouped since the pass
+was built. They are one subject — a human is asked, item by item, to
+confirm a span they are shown no evidence for, with keystrokes that
+claim more than they mean, over a clock that is still demonstrably
+wrong. This slice declares that work and its order. It is deliberately
+not `NEXT`: time tracking stopped being a co-equal goal on 2026-09-18
+(`:ID:` 8bbae3aa), and declaring the body of work is not a decision to
+start it.
+
+Planned:
+
+- [-] [[id:55125136-5939-434e-9676-96ea66a75770][55125136]] WAITING Decide whether queue-append should derive clock events from DOING transitions, reversing the separation 4f6a6bb1 chose
+- [ ] [[id:361e2708-8124-4bd1-9c44-f97ca97aca4a][361e2708]] TODO Decide how far the review-apply cycle can be automated, given the interactive constraint
+- [ ] [[id:3485b0d0-3b47-4a28-ae6f-e2061fa8f226][3485b0d0]] TODO A turn can end holding an open clock and nothing says so: 9 of 39 session queues end on a clock_in
+- [ ] [[id:aee8487e-0650-4396-bc5c-193ca3efcecb][aee8487e]] TODO `c` claims an envelope whatever runs it contains, so one keystroke can record 3h11m over 16 minutes
+- [ ] [[id:2d100d0d-2d04-43b9-af1e-f4d6b52bbada][2d100d0d]] TODO Intervals on two different headings can overlap, and subtraction reaches only one
+- [ ] [[id:653fea66-f9d5-4431-8ce3-5d355560b475][653fea66]] TODO The unassigned-mark guard is conjunctive, so a clock item with no id marks and then fails at apply
+- [-] [[id:445fe577-01ce-4e68-ab5f-c349c40a4643][445fe577]] DOING The complement's gap spans carry no events, so half the review buffer cannot be dismissed
+- [ ] [[id:2c733857-a280-42cc-bd7c-e182a4fb6ea3][2c733857]] TODO A span whose only resume is a synthetic bracket edge reports "no transcript for session nil (aged out)"
+- [ ] [[id:79c224ab-188a-4ed4-a606-c28ee2cfe72d][79c224ab]] TODO Applied review changes can be destroyed by a git checkout that looks like it reverts only Claude's edit
+- [ ] [[id:001fb310-69f7-4417-81be-a224a3bf83e0][001fb310]] TODO Stale entries in org-clock's persisted history hang the first clock-in after a restart
+- [-] [[id:489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938][489d6f61]] DOING Emacs died of a fatal signal at review-buffer quit, deadlocked in the mac port's shutdown
+- [ ] [[id:5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46][5a6d2c75]] TODO An unassigned span's readout omits the evidence that would make its heading obvious
+- [ ] [[id:cf483f5d-2d25-4454-a580-db7935c8cb81][cf483f5d]] TODO A span with no readable evidence prints nothing about itself, so absence is the only signal
+- [ ] [[id:8028e875-3032-4ade-949e-414d9861b928][8028e875]] TODO Type a span's annotation at review time, not by hand-editing it after
+- [ ] [[id:01849bef-fdc9-4c30-b467-00ca8606e8e0][01849bef]] TODO Flipping a span's timestamps to active is hand-editing; give the review buffer a key
+- [ ] [[id:ee3c22c9-f99c-4d41-9c3d-8f39af916fff][ee3c22c9]] TODO Make =d= mark for dismissal rather than dismiss, so a shared reason can be given once
+- [ ] [[id:e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b][e95cc5d1]] TODO =d= advances point in the review buffer, onto whatever moved up to replace the dismissed item
+- [ ] [[id:396fd1c3-70e0-4e1f-8839-670b5293a7d3][396fd1c3]] TODO Recenter after `m` advances, so the item under consideration is never at the bottom of the window
+- [ ] [[id:6c64cc9c-33a9-4a20-af19-c188a690c755][6c64cc9c]] TODO claude-code-ide-org-review should return point and windows to where I entered from
+- [ ] [[id:a865f83c-ea37-40c4-a104-7cc50d2c20dd][a865f83c]] TODO Should a short 0-run span default to claimed, and where does the bound fall?
+
+
 * TODO A turn can end holding an open clock and nothing says so: 9 of 39 session queues end on a clock_in :code:bounded:
 :PROPERTIES:
 :ID:       3485b0d0-3b47-4a28-ae6f-e2061fa8f226
@@ -874,6 +918,20 @@ The tool half of that catch was already filed:
   =:args=", which is not the id-from-memory rule (=8f075f78= is scoped
   to UUIDs, SHAs, titles and keywords), and this is its first catch, so
   it has not yet earned a sibling.
+
+- [2026-09-22 Tue] Caught by the user: "you reached for =awk= instead of
+  using the =emacs-tools=, didn't you!" Asked for open tasks not in any open
+  slice, the session scraped slice members out of =TODO.org= with =awk=
+  instead of calling =org_outline= with the three slice ids as scope, which
+  returns each slice's members as =->= references. Second catch of this rule
+  today — see the =8a2eb687= entry above — so by this heading's own note it
+  has earned its own sibling. The scrape then failed *silently*: the member
+  file came out empty, and a 140-line candidate list was printed whose
+  "not in a slice" filter had done nothing, with slice members sitting in it
+  unremoved. So the second face of the catch is the always-loaded rule that
+  silence is not a passing check — an intermediate with zero rows was used
+  as a filter without ever being looked at.
+
 
 
 
