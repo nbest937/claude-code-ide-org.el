@@ -383,6 +383,37 @@ after =ExitPlanMode=, that the design lands in =:PLAN:=, and that nothing
 is written under =docs/=. Whether the skill triggers at the right moments
 cannot be tested deterministically, and will be recorded as a judgement.
 
+*The architectural path is verified* against session `92af51b9`, which
+brainstormed `7ee3b71a` on 2026-09-22 and wrote its `:PLAN:` drawer. The
+skill's load-bearing changes all held: the dialogue ran in the ordinary
+session with no `EnterPlanMode`, no `ExitPlanMode` and no
+`~/.claude/plans` file; the path was classified and announced before the
+first question ("Path: **architectural** — the heading already carries
+`:arch:`, and the tag only moves up, so I'm starting there"), with
+"no Plan Mode" and "nothing is written until you say yes" said aloud; five
+clarifying questions went one at a time; the drawer was written only after
+the user's explicit "one heading. record the plan."; the two-call
+composition put the design in `:PLAN:` and a pointer in the body; the plan
+self-review found a real defect and the correction was appended rather
+than rewritten; and the turn ended holding the second checkpoint open —
+"Writing the drawer isn't approval to build it — that's a separate yes,
+and I haven't touched the keyword."
+
+Two things the run did not exercise and one it got wrong. The heading
+already carried `:arch:`, so neither the re-tagging step nor the `- Tags`
+`:LOGBOOK:` line was reached, and no heading was captured, so the
+`org_capture` `tags`/`initial_state` branch is still untested. The
+**visual companion was never offered**, and the moment it exists for came
+and went: the user rejected a sample rendering as unreadable ("it
+truncated the slice so I couldn't check your math"), which is precisely
+the just-in-time trigger the checklist names. The defect is an
+`org_clock_out` that never came — the session clocked in on `7ee3b71a`
+and ended without closing, so its ownership never ended and every later
+guidepost still attributes there. That is a standing rule of the
+time-tracking reference, not of this skill, and the skill's checklist
+never mentions clocking out at all.
+
+
 
 * DONE Starting a pull request's review should queue its slice to REVIEW, not wait for someone to remember
 CLOSED: [2026-09-21 Mon 18:26]
@@ -2995,6 +3026,141 @@ lands first sets the shape; the second reads what the first wrote.
 :CREATED:  [2026-09-15 Tue 10:26]
 :CATEGORY: Tools
 :END:
+:PLAN:
+Designed 2026-09-22 through the brainstorming skill, on the =arch= path the
+heading already carried.
+
+*The change is to what a lost checklist costs, not to how many writers know
+about it* (the user, 2026-09-22, choosing this over closing the two known
+holes). A slice declares one thing — the work it undertakes, in order — and
+declares it in body prose, where it is indistinguishable from prose and
+unbounded at its end. That declaration moves to a *=:MEMBERS:=* property and
+the body checklist becomes a rendering the refresh rebuilds. A writer that
+destroys the checklist then costs a refresh, not the membership, and the
+=[0/0]= failure the conventions call the worst direction becomes unreachable:
+emptiness is a property that is missing, not a list that is absent.
+
+*The property.* Full ids, space-separated, in render order, exactly as
+=:BLOCKER:= does and for the same parsing reason. Measured: 32 members on the
+largest live slice is about 1184 characters, against a 1011-character
+=:BLOCKER:= already in these files — the same order, not a new problem.
+=:DROPPED:= is unchanged.
+
+*The rendering*, rewritten wholesale from =:MEMBERS:= between the =Planned:=
+lead and the =Incidental:= lead or body end. A member whose parent is also
+named by the membership renders indented beneath a *parent row* the renderer
+inserts for provenance — a member is shown under its parent because that is
+where it came from, not because the slice undertook the parent (the user,
+2026-09-22). A parent row *never* carries a checkbox and is never counted;
+the leaves carry the boxes and the headline cookie counts exactly those.
+That is the only self-consistent form, since
+=--update-slice-cookie-at-point= counts checkbox-bearing lines, so a box on
+an uncounted row would put the rendering and the cookie in disagreement by
+construction. A slice undertaking a *whole* story names the story alone,
+lists no children, and the story is then a counted leaf like any other.
+Parent rows being derived, =bin/lint-org= flags a =:MEMBERS:= entry that is
+an ancestor of another entry as redundant, so there is one way to say each
+thing.
+
+*What the renderer may ask, and nothing more.* One new query: the parent of a
+member id. =--slice-referent-index= gains it — the scan already visits every
+headline, so it records level and the enclosing id as it goes; today it is a
+flat id-to-(KEYWORD . TITLE) hash that carries no parentage at all, which is
+why nothing can compute this now. The renderer does *not* ask whether a
+member is a story (=--container-heading-p= answers that and stays out of this
+path), does not compute whether the slice covers a story, and has nothing to
+do with whether closing the slice closes the story — that is slice-close
+semantics, living in the conventions and on the apply path in
+=--review-settle-slices=, and if it is wrong it is a different heading.
+
+*=:BLOCKER:= becomes a property-to-property derivation*: =:MEMBERS:= minus
+=:DROPPED:= minus referents whose keyword maps to no box, with no prose parse
+at all, where =--slice-blocker-ids= reads the body today. It stays
+materialised on disk because =org-depend-block-todo= reads the property and
+there is no hook where a function could answer instead. This also retires the
+grouping-label exclusion the blocker inherits from rendering: parent rows are
+not in =:MEMBERS:=, so they can neither reach the blocker by accident nor be
+excluded from it by one — which is what made the original catch luck, since
+the stale =:BLOCKER:= only disagreed because the prose it came from had been
+destroyed.
+
+*The writers.* =--replace-body= on a =:KIND: slice= splices the planned
+region out before replacing and re-inserts it after — local, needing no
+referent index. Every member scan gains a drawer boundary, so a =:PLAN:=
+drawer's id bullets can never be read as members again. =--generated-line-p=
+keeps protecting the lines from the fill sweep. None of these is load-bearing
+for the declaration any more; they keep the file tidy between refreshes.
+
+*Migration: all sixteen slices* (the user, 2026-09-22, choosing one shape
+everywhere over live-only). Write =:MEMBERS:= from each current checklist —
+4 in TODO.org, 12 in DONE.org — with parent rows excluded, being derived. The
+proof is byte-identity: the regenerated rendering must equal the current text
+for all sixteen. When it holds, =--slice-planned-member-ids='s
+start-at-the-top fallback is *deleted* rather than kept, which is what "all
+sixteen" buys.
+
+*The guard that stops being luck.* =bin/lint-org= gains a rule firing for
+every slice whether or not it has a =:BLOCKER:=: =:KIND: slice= implies
+=:MEMBERS:=; every id resolves; no entry is an ancestor of another; and the
+rendered checklist agrees with the property as a set and in order. That check
+would have caught both of this week's defects when they happened.
+
+*Verification.* ERT against scratch org files in the shape of the existing
+slice tests: property round-trip; a parent row derived and rendered boxless;
+a whole-story member rendered as a counted leaf; =replace=true= on a slice
+leaving the checklist intact; a scan refusing bullets inside a =:PLAN:=
+drawer; a lead-less closed slice after the fallback is gone. The migration
+runs against real copies of both files under the byte-identity check. Prove
+the =replace= test discriminates by copying the fix aside and restoring
+HEAD's =--replace-body=.
+
+*Ruled out.* A =:MEMBERS:= *drawer* placing the checklist above the body
+prose, where =--replace-body= structurally cannot reach it: unnecessary once
+the checklist is derived, and it folds away from a human reading the file.
+Prose delimiters plus one shared bounds predicate: cheapest and most visible,
+but ownership stays invisible to a writer that does not ask, which is the
+outcome rejected at the outset. Storing the indent depth in the property
+instead of deriving it: a hand-maintained structural fact beside a derived
+one is what the =:DROPPED:= history says goes stale and sticky. And a
+checkbox on a parent row when the slice closes that story, which was proposed
+and walked back the same day (the user, 2026-09-22) once the cookie
+arithmetic showed an uncounted box contradicting the count.
+
+*Kept as one heading* rather than divided (the user, 2026-09-22): a
+half-applied cutover leaves the property and the checklist disagreeing, so
+the property, the renderer, the blocker and the migration are reviewed and
+abandoned as a unit. The two cheap guards — the drawer-bounded scan and the
+=replace= splice — are separable and could have landed first; that option was
+considered and declined here.
+
+Open for the implementing session: whether the DONE.org migration is one
+commit or one per slice, and whether =org_slice_add_member='s =after= stays
+line-relative or becomes an index into =:MEMBERS:=.
+
+*Correction to "The rendering", from the plan self-review (2026-09-22).* The
+trigger stated above — a member whose parent is "also named by the
+membership" — is wrong twice over: parent rows are derived, so the parent is
+normally *not* in =:MEMBERS:=, and the test has to work when it is absent.
+The correct rule is that *a parent row is inserted when the member's parent
+heading carries a TODO keyword*. A keyword-less parent yields no row and the
+member renders flush left.
+
+Checked against all 32 members of the live slice rather than reasoned about:
+six are children of a =DOING= story and take a parent row, while three
+(=542924c1=, =72463b68=, =d2a0f54c=) are level-4 headings under the
+meta-work datetree's day node =2026-09-02 Wednesday= and render flush left
+today. "Any member that is a child" would give those three a day-node parent
+row and break the byte-identity proof; "two or more members share a parent"
+fails the same case, since all three share that node. The keyword test
+reproduces the current file exactly.
+
+This narrows the index change further: =--slice-referent-index= needs each
+heading's *parent id*, and the parent's keyword is already what it stores for
+every heading. It also qualifies the boundary stated above — the renderer
+still never asks whether a member is a story, but it does read one fact about
+a member's parent, and reading the parent's keyword is not the same as the
+descendant scan =--container-heading-p= performs.
+:END:
 
 Found 2026-09-15 composing 35582d95. replace=true rewrites the body's prose
 wholesale, and a slice's Planned: lead and member lines ARE body prose, so
@@ -3056,7 +3222,24 @@ broken".
 one:* do not call =org_amend= with =replace== on a slice. Compose the body
 first and add members after, or amend rather than replace.
 
-*The inverse, observed 2026-09-21: the member refresh destroyed a region it does not own.* 8a2eb687's new =:PLAN:= drawer listed its members as =- [[id:…][…]]= lines. The apply pass's slice refresh took all twenty for members, because =--slice-member-regexp= makes the checkbox optional and nothing excludes drawers. It rewrote each line to a member line, put a =Planned:= lead inside the drawer, and took the cookie from [3/23] to [3/43]. The plan prose survived only in git ([[orgit-rev:claude-code-ide-org::259e07b][259e07b]] records the damage, and the following commit restores it with plain ids). So ownership is invisible in both directions: other writers cannot see the member region, and the member scan cannot see where that region ends. Whatever marks the region fixes both, and the scan should at least skip drawers.
+*The inverse, observed 2026-09-21: the member refresh destroyed a region it does
+not own.* 8a2eb687's new =:PLAN:= drawer listed its members as =- [[id:…][…]]=
+lines. The apply pass's slice refresh took all twenty for members, because
+=--slice-member-regexp= makes the checkbox optional and nothing excludes
+drawers. It rewrote each line to a member line, put a =Planned:= lead inside the
+drawer, and took the cookie from [3/23] to [3/43]. The plan prose survived only
+in git ([[orgit-rev:claude-code-ide-org::259e07b][259e07b]] records the damage, and the following commit restores it with
+plain ids). So ownership is invisible in both directions: other writers cannot
+see the member region, and the member scan cannot see where that region ends.
+Whatever marks the region fixes both, and the scan should at least skip drawers.
+
+*The design is settled and lives in =:PLAN:= (2026-09-22).* It takes neither
+option the "Proposed:" sentence above offers: membership moves to a
+=:MEMBERS:= property and the body checklist becomes a rendering, so a writer
+that destroys the checklist costs a refresh rather than the membership. That
+sentence is superseded and is left standing only as the record of what was
+believed at discovery.
+
 
 
 * TODO A bookkeeping burst reads as many headings worked at once, and inflates every window it lands in :code:
