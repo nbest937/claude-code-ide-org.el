@@ -984,18 +984,11 @@ The catch-all, so that answering a catch is always an amend and never a decision
 
 - [2026-09-21 Mon] Self-caught from =org_pending_updates=: missed the rule "=org_clock_out= is the last call of the turn". The session clocked out after committing, then read six member bodies and answered, so 11:52–12:13 reached review UNASSIGNED. b09aca60's fix is what made the miss visible at all; before 2026-09-21 it would have reached review as nothing.
 - [2026-09-21 Mon] Caught by the user: "why the bare list item there? it looks like the beginning of a journal by date rather than a plan … I expect the plan to be bigger than the body." The session's own SOP said to append decisions to a member's =:PLAN:= "as =Decided <date> (<who>): …=", and it wrote them as dated list items in six drawers, turning the design doc into a journal. That contradicts the always-loaded rule that the drawer is the design doc and the body the journal. It was recited, and missed while the session wrote the rule that broke it. The SOP now folds decisions into the plan's prose.
-- [2026-09-22 Tue] Caught by the user: "why are you grepping? =org_outline=
-  should tell you that, no?" Asked for 8a2eb687 grouped by =:CATEGORY:=, the
-  session scraped member ids with =awk= and queried Emacs through
-  =emacsclient=, and the output came back buried in text properties.
-  =org_outline= with the member ids as scope returns each one's
-  =:CATEGORY:=. That was the always-loaded "start with org_outline" rule,
-  recited and missed.
-
 - [2026-09-22 Tue] Self-caught from =git diff=: two headings filed with
   =org_capture text=...= and landed bodyless, because the parameter is
   =note=. The argument was written from memory rather than read off the
-  tool's =:args=, the same shape as the =org_outline= catch above, and
+  tool's =:args=, the same shape as the =org_outline= catch that has since
+  moved to [[id:67861ff3-3a72-4c53-8fd8-1cae9a31bc77][67861ff3]], and
   nothing refused it — an unknown key is dropped in silence, so the
   reply said "Captured" and the prose was gone. Caught only because
   =git diff --stat= showed 12 insertions where four paragraphs were
@@ -1009,18 +1002,12 @@ The tool half of that catch was already filed:
   to UUIDs, SHAs, titles and keywords), and this is its first catch, so
   it has not yet earned a sibling.
 
-- [2026-09-22 Tue] Caught by the user: "you reached for =awk= instead of
-  using the =emacs-tools=, didn't you!" Asked for open tasks not in any open
-  slice, the session scraped slice members out of =TODO.org= with =awk=
-  instead of calling =org_outline= with the three slice ids as scope, which
-  returns each slice's members as =->= references. Second catch of this rule
-  today — see the =8a2eb687= entry above — so by this heading's own note it
-  has earned its own sibling. The scrape then failed *silently*: the member
-  file came out empty, and a 140-line candidate list was printed whose
-  "not in a slice" filter had done nothing, with slice members sitting in it
-  unremoved. So the second face of the catch is the always-loaded rule that
-  silence is not a passing check — an intermediate with zero rows was used
-  as a filter without ever being looked at.
+*Two lines left on 2026-09-22*, both catches of the org-dev skill's §0b
+rule, to [[id:67861ff3-3a72-4c53-8fd8-1cae9a31bc77][67861ff3]] — the first
+sibling this heading has thrown off, and the procedure above working as
+written.
+
+
 ** TODO Miss: an org question answered by scraping text instead of asking org
 :PROPERTIES:
 :ID:       67861ff3-3a72-4c53-8fd8-1cae9a31bc77
