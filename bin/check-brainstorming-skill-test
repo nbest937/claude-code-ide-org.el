@@ -32,6 +32,8 @@ fresh; plant 'Pass `nosuch=1` to it.'; expect "an unknown key= argument is caugh
 fresh; plant 'Give it an `initial_stat`.'; expect "a misspelled parameter is caught" 1 "names parameter initial_stat"
 fresh; plant 'See org skill, "No Such Section".'; expect "a missing org skill section is caught" 1 'section "No Such Section"'
 fresh; plant 'See org conventions ("Nor This One").'; expect "a missing conventions section is caught" 1 'section "Nor This One"'
+fresh; plant 'See org skill, "A Title That
+Wraps Across Lines".'; expect "a citation wrapped across lines is still checked" 1 'section "A Title That Wraps Across Lines"'
 fresh; plant 'Use `missing-prompt.md`.'; expect "a missing sibling file is caught" 1 "names missing-prompt.md"
 fresh; plant 'Then invoke writing-plans.'; expect "dropped upstream machinery is caught" 1 "dropped upstream machinery: writing-plans"
 fresh; printf '\nCall `org_teleport` here.\n' >> "$work/r/skills/brainstorming/visual-companion.md"
