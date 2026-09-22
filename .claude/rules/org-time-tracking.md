@@ -180,7 +180,8 @@ there is then nothing to close.
 edit, a capture, an amend, any immediate org tool — name the heading the
 work belongs to and call `org_clock_in` on it, or on "Review and
 planning" (that exact title) for cross-cutting meta-work. No heading yet
-means capture one first, with an `initial_state`. The trigger is the
+means capture one first, with an `initial_state`. Planning a `TODO`
+heading clocks in on it and changes no keyword. The trigger is the
 *first write, not the ask*: a session that opens as a question drifts
 into tracked work, and the drift is invisible from inside it (`:ID:`
 ccfd89ce). A purely read-only session owes nothing.

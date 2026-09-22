@@ -103,7 +103,7 @@ none exists. Where time tracking is on this also requires an
 `org_clock_in` naming it (`org-time-tracking.md`). A purely read-only
 session owes nothing.
 
-**Rule**: when asked to start work on a task tracked as a heading with an
+**Rule**: when asked to start implementing a task tracked as a heading with an
 `:ID:`, transition it to `DOING` via `org_set_todo` *before* beginning,
 unless it already is. This is a standing instruction rather than a hook
 because "this conversation is now doing that task" is a judgement about
@@ -115,8 +115,9 @@ on `org-blocker-hook`, `org-depend-block-todo` (refuses `DONE` while a
 `--trigger-auto-clock-in` where time tracking is on.
 
 `PLANNING` was retired 2026-08-28 (`:ID:` c954f650) and nothing replaced
-it, deliberately (`:ID:` 7771fc63): a heading is `DOING` while it is being
-planned and implemented, so Plan Mode needs no state change of its own.
+it, deliberately (`:ID:` 7771fc63). Composing and refining a plan is
+`TODO`-phase work; `DOING` begins with implementation, at the Plan Mode
+checkpoint (the user, 2026-09-22).
 
 ## `NEXT` and nomination
 

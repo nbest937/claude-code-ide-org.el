@@ -2,6 +2,15 @@
 #+TAGS: analysis code comms research review
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* DOING The state rules say a heading is DOING while it is planned, but planning is TODO-phase and DOING begins with implementation :code:
+:PROPERTIES:
+:ID:       c3a200cb-60ca-4615-819f-32b7d9d90eb5
+:CREATED:  [2026-09-22 Tue 09:42]
+:CATEGORY: Skill
+:END:
+
+org-state-transitions.md says a heading is DOING "while it is being planned and implemented", carried over from c954f650's debrief, which recorded observed practice rather than a decision. The Plan Mode checkpoint and the new-heading gate both treat the move to DOING as the point where implementation starts, and composing and refining a plan belongs to TODO (the user, 2026-09-22). This cost 4ae7a04b a DOING capture. Rewrite the sentence, scope the start-work rule to implementation, and say in the time-tracking rules where planning time is clocked.
+
 * DOING Brainstorming exists only inside the superpowers plugin, whose specs go to Markdown files and never reach the tracker :code:
 :PROPERTIES:
 :ID:       4ae7a04b-1557-44d6-91c3-384f1def5293
