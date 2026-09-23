@@ -8217,6 +8217,15 @@ same path afterwards.
 Open for the implementing session: which hook event sees an MCP timeout
 (=PostToolUse= with an error response, or a separate failure event). Measure it
 against a stopped Emacs before building.
+
+Answered 2026-09-23, superseding the paragraph above: the hook is
+=PostToolUseFailure=, matcher =mcp__emacs-tools__.*=. It fires for a
+transport failure only, so the hook needs no filtering: a refusal arrives as
+=PostToolUse= and never reaches it. Its payload carries =tool_name=, the full
+=tool_input= and =error=, which is everything the marker needs. It cannot
+cover an Emacs that was already down when the session started, because the
+tools never register and no tool hook fires. That case is =SessionStart='s
+(the server's absence is visible there), or it goes unrecorded.
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-31 Mon 13:52]
@@ -8245,6 +8254,23 @@ failure looks partial.
   46d225c7 as dead. A synthetic event carries no =tool_response= to
   recover =from= from, so the staleness check would go blind on exactly
   the events written when the system is least healthy.
+
+*Measured 2026-09-23* (Claude Code 2.1.280, headless sessions from a
+scratch directory logging raw hook payloads, =MCP_TOOL_TIMEOUT=10000=):
+- Emacs hung mid-session (a 40 s busy loop via =emacsclient=, so the port
+  accepts and never answers): =PostToolUseFailure=, =error= "MCP server
+  \"emacs-tools\" tool \"org_pending_updates\" timed out after 10s",
+  =duration_ms= 10011. No =PostToolUse=.
+- Connection refused mid-session (a byte-forwarding proxy killed between
+  calls): =PostToolUseFailure=, =error= "ECONNREFUSED: Unable to connect…",
+  =duration_ms= 4. No =PostToolUse=. This is the 2026-08-31 incident's shape.
+- Refused at session start (no listener): the server fails to connect, its
+  tools are never offered, and only =Stop= fires. The loss is visible only in
+  the model's prose.
+- Healthy server, bogus id: =PostToolUse=, with the refusal as
+  =tool_response= text beginning "Error:". Untested: an uncaught elisp signal,
+  which might come back as an MCP =isError= and so as a failure.
+
 
 
 * TODO An archive pass wrote one subtree twice, and the mechanism is still unknown :code:
