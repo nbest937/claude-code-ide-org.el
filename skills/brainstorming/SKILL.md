@@ -62,7 +62,11 @@ design you presented. Only after it: capture the heading with
 top-level, and the path's tag in `tags`: `spike`, `bounded` or `arch`),
 or re-tag the existing heading; then write the approved design with
 `org_amend` `drawer=PLAN`, then a body of two to five sentences with
-`org_amend`. Recording the design is not gated beyond that yes;
+`org_amend`. On an existing heading that means *condensing* the body to
+that size with `replace=true`, not appending a decision paragraph to
+what was there. `replace=true` refuses while the file has uncommitted
+changes, so commit first rather than editing around Emacs. Recording the
+design is not gated beyond that yes;
 implementation and the transition to `DOING` wait for a second, separate
 yes — the rule of the org skill's "Plan Mode checkpoint", applied without
 Plan Mode. Ask for the two in separate messages, and never read one as
