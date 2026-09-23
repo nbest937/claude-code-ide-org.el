@@ -8,8 +8,45 @@
 :CREATED:  [2026-09-23 Wed 10:41]
 :CATEGORY: Skill
 :END:
+:DEBRIEF:
+*What the review found, in aggregate.* Two real bugs, both in the one
+piece of new logic, guard 4: it checked the working tree rather than the
+index, which is the class PR #29's review had already fixed in guard 2,
+and a deletion never ran it. Everything else was drift between one text
+and another. The skill's gate contradicted its own checklist, the org
+skill contradicted the brainstorming skill, a code comment still stated
+a rule the same branch struck, and the checker's header had drifted from
+its code. Plus two coverage gaps in the checker (a citation form it
+could not see, a file reference that escaped it) and one design flaw,
+the self-review's append-after-write.
+
+*How it was verified.* Guard 4 gained four =git-guards-test= cases, and
+three of them fail against the old guard (36 of 36 after). The checker
+gained a possessive-citation case that fails against the old checker (11
+of 11). The companion-path fix was shown to bring the reference under
+the checker, by removing the guard file from a copy. The rest are prose
+or comments, checked by =check-brainstorming-skill=, =check-conventions=
+and =bin/test= (713 of 713).
+
+*What it cost that the review did not ask for.* Finding 9 needed a
+design decision. It was settled by brainstorming =dd4b9a9f=, which
+turned into the design for =org_edit= and the retirement of
+=org_amend=, recorded as four children there. The findings sat unfiled
+in conversation until the user asked where the story was; that miss is
+recorded on =59861867=.
+
+*Correction to "How it was verified":* "removing the guard file from a
+copy" should read "removing the companion guide, =visual-companion.md=,
+from a copy". Appended rather than edited in place, since no tool edits
+inside a drawer yet (=dd4b9a9f=).
+:END:
 
 `/code-review high --comment 30` posted ten findings on PR #30, the brainstorming skill's branch, on 2026-09-23. Three are in guard 4 of `pre-commit-guards`, which checks the working tree instead of what is staged, is skipped on deletions, and has no test. The rest are in the skill's prose and the claims checker. One child per remediation, and `4ae7a04b` closes only after this does. Each finding's PR comment gets a reply naming its fix.
+
+*Closed 2026-09-23.* All ten findings are fixed on the branch in eight
+commits, one per child, each shown to fail before its fix where a test
+could show it. Every PR comment has a reply naming its commit.
+
 ** TODO Guard 4 checks the working tree rather than the index, skips deletions, and has no test :code:
 :PROPERTIES:
 :ID:       b729e75b-e32e-43b7-9872-0f272a9dcdc5
