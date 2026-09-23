@@ -829,14 +829,57 @@ Row 5 of the enforcement audit's convert list (3cd7b7d3), set aside there as the
 *The user, 2026-09-21: leave it as it is* — state and clock stay separate calls — and fix b09aca60 first. Still parked; revisit only if, with clock-out timing made safe, the second call is still being missed often enough to show in the miss count.
 
 
-* TODO org_set_todo's no-change check reads the file and ignores the queue, so a state set and reverted between applies cannot be queued back :code:observed:
+* TODO org_set_todo's no-change check reads the file and ignores the queue, so a state set and reverted between applies cannot be queued back :code:bug:bounded:
 :PROPERTIES:
 :ID:       57f37f0e-4461-42f4-8b33-cde59318b93a
 :CREATED:  [2026-09-21 Mon 10:42]
 :CATEGORY: Tools
 :END:
+:PLAN:
+The no-change refusal in =claude-code-ide-org-set-todo= compares the requested state with the heading's *effective* state instead of the keyword on disk. Effective state is the keyword on disk, carried forward through the heading's pending =todo= events.
 
-Observed 2026-09-21 on 63713df3. The file said REVIEW; the session queued REVIEW -> DOING for a piece of rework, did it, and then called org_set_todo REVIEW — refused with "no change — already holds REVIEW, so nothing was queued", because the check compares the requested state with the keyword on disk and the queued DOING is not on disk yet. The queue is left holding only the outbound half, so the next apply lands DOING on a heading that is back in REVIEW, and the only remedy is for the human to dismiss that item by hand. The no-change refusal exists for a good reason (a queued no-op is noise), so the fix is for the check to read the heading's effective state — the file's keyword as modified by this heading's pending todo events, which org_pending_updates already computes — and then either queue the return transition or, better, cancel the pair.
+A return trip is queued, not cancelled (the user, 2026-09-23). =REVIEW -> DOING -> REVIEW= goes into the queue as two ordinary items. It is the true history, since =REVIEW -> DOING= is rework by the keyword semantics. Apply already replays each event and never collapses them (see =claude-code-ide-org--review-items-from-queue=). =--review-projected-staleness= accepts the return, because its =from= matches the pre-batch state. Cancelling the pair was declined for two reasons. It would need a new cancel event kind, or a writer that reads the queue, which breaks the blind =O_APPEND= property =6b1e73c4= kept. And it would erase a rework round trip that really happened.
+
+Effective state. A new helper, =claude-code-ide-org--effective-todo-state (id disk-state)=, reads =claude-code-ide-org--queue-events=: every session, unapplied events only. It keeps the =todo= events for =id=, orders them by =:ts=, and returns the last one's =:state=, or =disk-state= when there are none. It reads the queue and never writes it, like =--pending-capture= already does.
+
+The check.
+- Requested equals effective: refused as now. That also catches a duplicate =DOING= queued over a disk =REVIEW=. When effective differs from disk, the refusal names it starred: =no change -- "H" already holds DOING* (queued, not yet applied)=.
+- Otherwise: queued. When effective differs from disk, the reply adds =, after DOING* in the queue= after the closing parenthesis.
+
+=(was X)= is a contract, not prose, and is unchanged. =bin/hooks/queue-append= recovers =from= with a greedy =sed 's/.*(was \([^)]*\)).*/\1/p'=. So the reply carries exactly one =(was ...)=, holding the disk state and nothing else, and no nudge text may contain "(was". =from= keeps meaning "on disk at queue time", which the chain logic of =6b1e73c4= relies on. The starred effective state sits outside the parentheses, for the reader. The =*= notation replaced "(was X)" in footnotes; this reply is where it does not (the user, 2026-09-23).
+
+Out of scope: the pending-capture branch (=claude-code-ide-org--tolerating-pending-capture='s pending path). A heading that has not been written has no disk state to disagree with.
+
+Docstring: the no-change paragraph and the =from= paragraph each gain a line saying the refusal reads effective state while =from= still reads disk.
+
+Tests. Each is proved to discriminate by copying the fix aside, restoring HEAD's version and re-running.
+- =config-test.el=: disk =REVIEW= with =-> DOING= queued; asking for =REVIEW= queues, and the reply's clause still parses to =REVIEW=.
+- =config-test.el=: the same setup; asking for =DOING= is refused, and the reply shows =DOING*=.
+- =config-test.el=: the round trip =REVIEW -> DOING -> REVIEW= applies in one review pass, nothing flagged stale, and =:LOGBOOK:= gets both State lines.
+- =bin/queue-append-test=: a reply carrying the "after X* in the queue" suffix yields =from: REVIEW=.
+- The existing no-pending-event tests stand unchanged.
+
+Files: =modules/tools/claude-code-ide-org/config.el=, =config-test.el=, =bin/queue-append-test=.
+:END:
+:LOGBOOK:
+- Tags ":code:bug:bounded:" from ":code:bug:" [2026-09-23 Wed 09:29] \\
+  classified by brainstorming: one function's existing check changes
+:END:
+
+Observed 2026-09-21 on 63713df3. The file said REVIEW; the session queued REVIEW
+-> DOING for a piece of rework, did it, and then called org_set_todo REVIEW —
+refused with "no change — already holds REVIEW, so nothing was queued", because
+the check compares the requested state with the keyword on disk and the queued
+DOING is not on disk yet. The queue is left holding only the outbound half, so
+the next apply lands DOING on a heading that is back in REVIEW, and the only
+remedy is for the human to dismiss that item by hand. The no-change refusal
+exists for a good reason (a queued no-op is noise), so the fix is for the check
+to read the heading's effective state — the file's keyword as modified by this
+heading's pending todo events, which org_pending_updates already computes — and
+then either queue the return transition or, better, cancel the pair.
+
+Decided 2026-09-23: the return transition is queued rather than the pair cancelled. That keeps the rework round trip in the record, and it keeps the queue blind append-only. The refusal will test the effective state, with a queued state shown starred (=DOING*=). =(was X)= keeps carrying the disk state, since =queue-append= parses it into =from=. The design is in =:PLAN:=.
+
 
 
 * TODO Nothing in the drift slice was exercised in a consumer install: the new hooks, the conditional time-file promotion, the twin-checker agent :code:
