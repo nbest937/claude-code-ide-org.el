@@ -7218,10 +7218,13 @@ equivalent line by hand instead."
              ;; sibling group worth the name: its "siblings" are every
              ;; other task in the file, so demoting among them asserts
              ;; one next action for the whole corpus. TODO.org :ID:
-             ;; 62b65ad0 decided that `NEXT' belongs to a container's
-             ;; *members* -- the children of a story, the referents of a
-             ;; slice -- and never to a container itself, because that is
-             ;; what GTD means by the next action of a project.
+             ;; 62b65ad0 decided that `NEXT' is kept unique among a
+             ;; container's *members* -- the children of a story, the
+             ;; referents of a slice -- which is what GTD means by the
+             ;; next action of a project. Whether the container itself
+             ;; carries `NEXT' is a separate scope, and neither constrains
+             ;; the other (TODO.org :ID: 878d2cf5 struck the rule that it
+             ;; may not).
              ;; Having a parent IS the test: a keyworded heading with a
              ;; parent makes that parent a container by
              ;; `--container-heading-p''s own definition.
@@ -15275,7 +15278,20 @@ probably punctuation read as structure: %S" title))
                (let ((tags (org-get-tags nil t)))
                  (unless (= (length tags) (length (delete-dups (copy-sequence tags))))
                    (report 'error line "heading repeats a tag %S: %s"
-                           tags title)))
+                           tags title))
+                 ;; At most one brainstorming path tag (TODO.org :ID:
+                 ;; 4ae7a04b). A heading is on one path at a time, and
+                 ;; the path only ever moves up, which replaces the tag;
+                 ;; two at once is a replacement missed. Tags rather than
+                 ;; a one-valued property so they filter in the agenda,
+                 ;; which is why this check exists at all.
+                 (let ((paths (seq-filter
+                               (lambda (tag) (member tag '("spike" "bounded" "arch")))
+                               tags)))
+                   (when (cdr paths)
+                     (report 'error line
+                             "heading carries more than one brainstorming path tag %S: %s"
+                             paths title))))
                ;; A heading that has acquired TODO-carrying children is a
                ;; container, and a container states its progress in a
                ;; statistics cookie so the count is visible without
@@ -18194,8 +18210,11 @@ the project list."
                  "Search org-mode headings across "
                  "`claude-code-ide-org-query-files' (or org-agenda-files) using "
                  "org-ql's plain-string query syntax. Predicates: todo:KEYWORD "
-                 "(e.g. todo:WAITING), tags:TAG1,TAG2 (comma = OR), priority:A, "
-                 "heading:\"text\". Prefix any predicate with ! to negate it "
+                 "(e.g. todo:WAITING), bare todo: for every non-terminal "
+                 "keyword at once (do not enumerate them -- an enumeration "
+                 "drops the ones you forget), property:KEY=VALUE (e.g. "
+                 "property:KIND=slice), tags:TAG1,TAG2 (comma = OR), "
+                 "priority:A, heading:\"text\". Prefix any predicate with ! to negate it "
                  "(e.g. !todo:DONE). Separate predicates with spaces to combine "
                  "with AND, e.g. \"todo:NEXT tags:code\". Returns one line per "
                  "match: TODO state, heading, tags, :ID:, and file — or a "
@@ -18204,7 +18223,7 @@ the project list."
                  "changed this week.")
    :args '((:name "query"
             :type string
-            :description "org-ql plain-string query, e.g. \"todo:WAITING\", \"tags:research,code\", \"priority:A\", \"!todo:DONE\".")))
+            :description "org-ql plain-string query, e.g. \"todo:\" (everything non-terminal), \"todo:WAITING\", \"property:KIND=slice\", \"tags:research,code\", \"priority:A\", \"!todo:DONE\".")))
 
   (claude-code-ide-make-tool
    :function #'claude-code-ide-org-body

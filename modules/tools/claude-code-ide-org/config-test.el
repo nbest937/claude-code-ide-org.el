@@ -2579,6 +2579,22 @@ already carried, which org-lint does not look for."
                   (concat "* Category\n** TODO Task :code:research:\n" props))
                  'error "repeats a tag"))))
 
+(ert-deftest claude-code-ide-org-test-lint-allows-one-path-tag ()
+  "A heading is on one brainstorming path at a time (TODO.org :ID:
+4ae7a04b): `:spike:', `:bounded:' or `:arch:'. Upgrading replaces the
+tag, so two at once is a missed replacement. `:code:' is not a path tag
+and combines with any of them."
+  (let ((props (concat ":PROPERTIES:\n:ID:       11111111-1111-1111-1111-111111111111\n"
+                       ":CREATED:  [2026-09-22 Tue 10:00]\n:END:\n")))
+    (should (claude-code-ide-org-test--lint-matches
+             (claude-code-ide-org-test--lint
+              (concat "* Category\n** TODO Task :bounded:arch:\n" props))
+             'error "more than one brainstorming path tag"))
+    (should-not (claude-code-ide-org-test--lint-matches
+                 (claude-code-ide-org-test--lint
+                  (concat "* Category\n** TODO Task :code:arch:\n" props))
+                 'error "more than one brainstorming path tag"))))
+
 (ert-deftest claude-code-ide-org-test-lint-catches-dangling-plan-link ()
   "bin/sync-plans --check covers the archive side; nothing covered a
 heading linking a plan file that is not there."

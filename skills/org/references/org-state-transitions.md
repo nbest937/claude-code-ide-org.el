@@ -117,23 +117,26 @@ checkpoint (the user, 2026-09-22).
 ## `NEXT` and nomination
 
 **`NEXT` belongs to a container's *members*, and nothing sets it by
-itself** (`:ID:` 62b65ad0). It is meaningful *within* a story, and **a
-story must never carry it** — promoting one declares a project to be an
-action (`:ID:` 42808717).
+itself** (`:ID:` 62b65ad0). Inside a story it memoizes where to start
+when the story is taken up.
 
-**A slice is the exception** (`:ID:` abce1850). A story is *emergent*; its
-next action is one of its children. A slice is *declared and sequenced*,
-and several are open at once with nothing else saying which to pick up.
-So **a slice may carry `NEXT`, meaning "this is the slice to pick up
-next"** — a portfolio-level nomination, not an action:
+**The three scopes are independent** (`:ID:` 878d2cf5): at most one
+top-level `NEXT` per `:CATEGORY:`, at most one inside a grouping, and
+neither constrains the other. A story may carry it; the prohibition that
+stood here generalised a retired trigger's guard (`:ID:` 42808717) into a
+rule about the keyword.
+
+**A slice's `NEXT` still means something of its own** (`:ID:` abce1850):
+several are open at once with nothing else saying which to pick up, so
+marking one nominates a slice, never an action inside it:
 
 - **At most one top-level `NEXT` per `:CATEGORY:`, slices included**
   (`:ID:` 758a8b78). A story's *internal* `NEXT` is exempt — it memoizes
   where to start on entering the story — and a slice's *members* may show
   several, since they are references reflecting other groups'
   nominations.
-- **It does not substitute for a member's `NEXT`.** A slice marked `NEXT`
-  whose members are all `TODO` is still un-nominated.
+- **It does not substitute for a member's `NEXT`.** A *grouping* marked
+  `NEXT` whose members are all `TODO` is nominated but not entered.
 - **Nothing sets it automatically.** An auto-promotion trigger stood here
   and is gone: three of roughly eight top-level promotions ended up parked
   as `MAYBE`, and at top level its "sibling group" was a whole category.

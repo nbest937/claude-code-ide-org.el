@@ -77,7 +77,7 @@ matters enormously if anything drives it non-interactively.
 **Standard tags for this user's files:**
 
 ```org
-#+TAGS: code comms research review
+#+TAGS: code comms research review spike bounded arch
 ```
 
 | Tag          | Meaning                                   |
@@ -86,6 +86,16 @@ matters enormously if anything drives it non-interactively.
 | `:comms:`    | Communication, writing, outreach          |
 | `:research:` | Investigation, reading, learning          |
 | `:review:`   | Review, feedback, evaluation              |
+| `:spike:`    | Brainstorming path: a feasibility question, answered not kept |
+| `:bounded:`  | Brainstorming path: a scoped change to an existing flow |
+| `:arch:`     | Brainstorming path: a new subsystem or a changed interface |
+
+The three path tags record the brainstorming skill's classification and
+are set only by it, at capture or when it classifies a heading already
+filed: an untagged heading was not classified, which is not the same as
+bounded. A heading carries at most one, and
+moving up a path replaces it; `bin/lint-org` errors on two. `:code:` is
+not a path tag and combines with any of them.
 
 ### Archiving convention
 
@@ -93,7 +103,7 @@ matters enormously if anything drives it non-interactively.
 any file that tracks code work:
 
 ```org
-#+TAGS: code comms research review
+#+TAGS: code comms research review spike bounded arch
 #+ARCHIVE: DONE.org::
 ```
 
