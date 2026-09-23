@@ -8365,6 +8365,27 @@ and returned =additionalContext= carrying a canary.
   Simulating it means advising a live tool to prompt. Also not exercised:
   running =sample= from the hook.
 
+*The two cases left unexercised, measured the same day.* The
+prompt-blocked case was simulated by advising =claude-code-ide-org-pending-updates=
+with a self-expiring =y-or-n-p= (removed afterwards).
+- The first probe cannot see a prompt. Its first run read
+  =(:depth 0 :minibuf nil)=, indistinguishable from an idle Emacs, so a
+  hook trusting it would have blamed a bad argument. (The user answered
+  that prompt by hand partway through; why it read as idle is not
+  established.) A second run read =(:depth 1 :minibuf t)=.
+- The discriminator that holds is the stack. The probe runs nested inside
+  the blocked call, so =mapbacktrace= names the public tool function still
+  waiting: =:stack (claude-code-ide-org-pending-updates)= while blocked,
+  =nil= when idle. =(current-message)= is useless for this, since an idle
+  Emacs still showed the previous prompt's text.
+- A timed-out call keeps running. Once the prompt closed, the handler
+  finished and failed to reply ("error in process filter: … not running"),
+  so a write tool that times out still writes later. That confines
+  7fa68d5c's fallback to a refused connection.
+- =sample <pid> 1= from a hook needs no privileges: 1.6 s wall-clock and
+  about 300 KB per sample.
+
+
 
 
 
