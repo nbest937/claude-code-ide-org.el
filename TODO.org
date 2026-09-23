@@ -3025,8 +3025,13 @@ the old line construction. The skill example becomes
 leads. Then =bin/test= and =bin/lint-org= run green.
 :END:
 
-`org_divide` appends the statistics cookie after the title text, so a narrow agenda or list window truncates the headline and takes the cookie with it. The cookie belongs at the front, where `org_slice_add_member` already puts it. Seen on `ee3e0fa2`.
-
+`org_divide` appends the statistics cookie after the title text, so a
+narrow agenda or folded outline truncates it with the end of the headline.
+Seen on `ee3e0fa2`, the parent the divide of e28933e9 created. It is the
+only inserter left doing this: every other path places the cookie through
+`--ensure-statistics-cookie-at-point`, after the keyword. A test and the
+org skill's example both still teach the trailing form. The fix routes
+divide through the helper; the design is in `:PLAN:`.
 
 * TODO [0/2] Make the corpus searchable by tag, by measurement where it can be and by decision where it cannot
 :PROPERTIES:
