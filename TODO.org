@@ -15,57 +15,184 @@
 :ID:       b729e75b-e32e-43b7-9872-0f272a9dcdc5
 :CREATED:  [2026-09-23 Wed 10:41]
 :END:
+:DEBRIEF:
+Guard 4 in =.githooks/pre-commit-guards= now copies guard 2's pattern:
+=git ls-files= over the checker, both skills and =config.el=, piped
+through =git checkout-index= into a scratch tree, with the check run
+there. Its trigger reads =git diff --cached --name-only= unfiltered, so
+a deletion runs it, and a staged change to the checker itself now
+triggers it too. The guard still fails open when the staged tree has no
+checker.
+
+=bin/git-guards-test= gained four cases: a clean staged change passes;
+a staged break is refused although the working tree hides it; an
+unstaged break does not block a commit that stages only =config.el=;
+deleting a file the skill names is refused. Against HEAD's guard, the
+last three fail, so they discriminate. Suite: 36 of 36.
+:END:
 
 Findings 1, 2 and 8. `bin/check-brainstorming-skill` runs against the worktree, so a staged break passes when an unstaged edit hides it, and unrelated WIP blocks a clean commit; guard 2 was rewritten for exactly this after PR #29 (`006a50e4`). Its trigger reads the ACMR-filtered staged list, so a commit that only deletes a file the skill names never runs it. Fix with guard 2's pattern, checking out the staged files into a scratch tree, trigger on deletions too, and add a `bin/git-guards-test` case for each.
+
+*Fixed 2026-09-23.* Guard 4 now checks the staged files in a scratch
+tree and runs on every staged path, deletions included.
+
 ** TODO The HARD-GATE's Bounded line lacks the separate yes to start :prose:
 :PROPERTIES:
 :ID:       44aeedab-2543-4768-ab87-1378cf34eedf
 :CREATED:  [2026-09-23 Wed 10:41]
 :END:
+:DEBRIEF:
+One bullet in the HARD-GATE now reads: the human partner approves the
+short in-chat design, then says yes to starting, and design approval
+only permits tagging the heading and writing the drawer. That is the
+shape of the Architectural bullet. The bounded verification run
+(=57f37f0e=) had already behaved this way, asking "shall I start now?"
+after the design was approved. So the gate was out of step with what
+the skill elsewhere required and with what sessions actually did.
+Prose only; the claims check passes.
+:END:
 
 Finding 3. Everywhere else, the skill requires a second, separate yes before implementation on every path, and the Architectural bullet spells it out. The Bounded bullet asks only for design approval, so a session reading the gate literally implements on one yes.
+
+*Fixed 2026-09-23.* The gate's Bounded bullet now requires the separate
+yes to start, matching the Architectural bullet and the rest of the
+skill.
+
 ** TODO The org skill says path tags are set only at capture, which the brainstorming skill contradicts :prose:
 :PROPERTIES:
 :ID:       4adf3311-9221-4acc-bad0-c2c0edb136d5
 :CREATED:  [2026-09-23 Wed 10:41]
 :END:
+:DEBRIEF:
+One clause in =skills/org/SKILL.md='s tags section: path tags are set
+"at capture or when it classifies a heading already filed". This matches
+the brainstorming skill's "Reading and setting the tag" and the
+conventions' Tags section. It is the sentence I missed when re-tagging
+existing headings was added on 2026-09-22. The org skill is not promoted
+into the always-loaded rules, so the word budget is unaffected.
+:END:
 
 Finding 4. The org skill's tags table says the path tags are set "only by it, at capture". The brainstorming skill and the conventions both classify and re-tag existing headings. A session reading the org skill would refuse to classify a filed heading, or treat a step-up as a violation.
+
+*Fixed 2026-09-23.* The org skill now says path tags are set at capture
+or when a filed heading is classified.
+
 ** TODO check-brainstorming-skill never checks a possessive section citation :code:
 :PROPERTIES:
 :ID:       ddc4470f-a650-44f5-9dfe-7bf48a7f3bce
 :CREATED:  [2026-09-23 Wed 10:41]
 :END:
+:DEBRIEF:
+Rule 3's pattern in =bin/check-brainstorming-skill= gained an optional
+="'s"=, so a citation written in the possessive is checked like the comma
+and parenthesised forms. The skill's two possessive citations of "Plan
+Mode checkpoint" were already correct and now pass for real rather than
+unseen. The one citation written without quotes, in "Terminal state",
+now quotes the section. It could never have been checked, because
+nothing marks where an unquoted title ends. The new test case, planted
+in the possessive, fails against HEAD's checker and passes with the fix:
+11 of 11.
+:END:
 
 Finding 5. Rule 3 matches only the comma form (`org skill, "Title"`) and the parenthesised form, so a citation written `org skill's "Plan Mode checkpoint"` is never checked, and it dangles silently if that section is renamed. Extend the pattern to the possessive, with a test case that is red against the old checker.
+
+*Fixed 2026-09-23.* The checker now matches the possessive form, and
+the one unquoted citation is quoted so it can be checked.
+
 ** TODO The NEXT trigger's comment still says NEXT never goes to a container :prose:
 :PROPERTIES:
 :ID:       88a10c7f-b49a-4bab-97cd-534f3578fd76
 :CREATED:  [2026-09-23 Wed 10:41]
 :END:
+:DEBRIEF:
+The rationale in =claude-code-ide-org--trigger-demote-conflicting-next=
+had =62b65ad0= deciding that =NEXT= goes "never to a container itself".
+That was the prohibition =878d2cf5= struck, and the code never enforced
+it. It only keeps =NEXT= unique among a container's members, so the
+comment now says exactly that. It adds that the container's own =NEXT=
+is a separate scope, citing =878d2cf5=. The change is a comment only:
+=bin/test= passed 713 of 713 with the file loaded, and the running Emacs
+needs no reload.
+:END:
 
 Finding 6. `878d2cf5` struck the rule that a story may not carry NEXT. The rationale comment in `claude-code-ide-org--trigger-demote-conflicting-next` still states the old rule, so a maintainer who treats that comment as the design could reinstate it.
+
+*Fixed 2026-09-23.* The trigger's comment says what the code does, and
+that a container's own =NEXT= is a separate scope.
+
 ** TODO The skill names visual-companion.md by a repo path that does not resolve in a consumer :prose:
 :PROPERTIES:
 :ID:       338062b1-369f-4a90-b585-6862c804708c
 :CREATED:  [2026-09-23 Wed 10:42]
 :END:
+:DEBRIEF:
+The guide is now named =visual-companion.md=, "in this skill's own
+directory (the base directory given when the skill loads), not a path in
+the repository you are working in". Claude Code states that base
+directory when the skill loads, so the reference resolves in a consumer
+as well as here.
+
+A side benefit: the repo-relative path had escaped the checker's rule 4,
+which only matches a bare sibling name. With the guide removed from a
+scratch copy, the checker now refuses: "names visual-companion.md, which
+is not in skills/brainstorming/". The fix assumes the companion stays;
+if =c4bb5db3= drops it, this line goes with it.
+:END:
 
 Finding 7. `skills/brainstorming/visual-companion.md` exists only in this repo. In a consumer, the plugin lives elsewhere and the working directory is the consumer's, so the read fails and the session improvises. Name it relative to the skill directory, as the skill already does for `plan-reviewer-prompt.md`.
+
+*Fixed 2026-09-23.* The skill names =visual-companion.md= in its own
+base directory, and the checker now verifies the reference.
+
 ** TODO The skill's self-review fixes a written drawer by appending, which leaves both versions :prose:
 :PROPERTIES:
 :ID:       5030a18c-787e-4149-8e9b-c3e567c8acc5
 :CREATED:  [2026-09-23 Wed 10:42]
 :END:
+:DEBRIEF:
+Four places changed. In the architectural checklist, self-review is now
+step 8, on the draft, and writing the drawer is step 9. The Process
+Flow's note on the linear steps names the review of the draft before the
+write. The self-review section says why the order matters: a drawer only
+grows, because =org_amend= appends and no tool edits inside a drawer.
+And =plan-reviewer-prompt.md= is dispatched before the write and handed
+the draft, where it used to read the drawer with =org_body=.
+
+A correction that arrives after the write, from the user's review, is
+still appended, naming the passage it replaces, until =dd4b9a9f='s
+edit tool exists. The skill refers to that tool by its heading, not its
+name, since the checker refuses a tool name that isn't registered yet.
+First used on =dd4b9a9f='s own plan, where it caught two errors before
+the write.
+:END:
 
 Finding 9. The self-review runs after the drawer is written, and a drawer can only grow, so every fix leaves the wrong text and the corrected text side by side. Decided 2026-09-23: the self-review runs on the draft before the write, which caught two errors on its first use for `dd4b9a9f`. A correction that arrives after the write waits for `org_edit` (`dd4b9a9f`), and the skill says so.
+
+*Fixed 2026-09-23.* The self-review runs on the draft, before the
+write, and a correction after the write says which passage it replaces.
+
 ** TODO check-brainstorming-skill's header drifted from its code, and a skill sentence is garbled :code:
 :PROPERTIES:
 :ID:       bf36d299-0012-4dcb-adb4-523de2994794
 :CREATED:  [2026-09-23 Wed 10:42]
 :END:
+:DEBRIEF:
+The header of =bin/check-brainstorming-skill= now says three things it
+left out: =README.md= is excluded as well as =visual-companion.md=; rule
+3 takes the comma, possessive and parenthesised forms and joins wrapped
+lines first; and rule 5 also bans "design doc". The garbled sentence in
+the skill's tag-logging paragraph now reads "Until the tag tool that
+da6a2fba adds exists to write it, it goes in with the same headline
+edit". My first rewrite of it was still garbled and did not survive a
+reread. Comments and prose only, with the checker and its test at 11 of
+11 afterwards.
+:END:
 
 Finding 10. The header omits that `README.md` is excluded and that rule 5 also bans "design doc". Separately, SKILL.md reads "until the tag tool da6a2fba adds writes it".
+
+*Fixed 2026-09-23.* The header matches the code, and the sentence says
+what it meant.
+
 
 * TODO A refused Emacs write falls through to an edit behind Emacs's back, where it should back off, retry, then stop and ask :code:
 :PROPERTIES:
