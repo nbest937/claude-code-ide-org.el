@@ -1335,6 +1335,24 @@ Hook-backed (footnote-check, rule =footnote=), but the hook reads only a turn's 
   is =MAYBE=. Found two turns later when =org_outline= returned the
   keyword for another reason. The hook passed the block, as it must.
 
+- [2026-09-23 Wed] Self-caught: an end-matter block gave 3d576d29 the
+  title "org-todo from emacsclient hangs on the deferred *Org Note* for
+  every keyword with a logging cookie". That is a paraphrase of what the
+  state-transition rules cite it for, and it was recalled rather than looked
+  up. The heading is "Verify org's clock/logging APIs actually support
+  backdated timestamps for batch apply-time backfill". Found on the next
+  turn, when an =org_outline= made to cite it again returned the real title.
+
+- [2026-09-23 Wed] Self-caught: two end-matter blocks gave da6a2fba
+  the title "A tool to change an existing heading's tags, which the
+  brainstorming skill now needs routinely". That is the drift slice's
+  one-line gloss of the member, copied out of the slice's =:PLAN:=, not the
+  heading's title. The real title, "No org tool changes an existing
+  heading's tags, so every tag change is a hand edit behind Emacs's back",
+  came back from =org_clock_in='s reply. The hook passed both blocks.
+
+
+
 
 ** TODO Miss: tracked work done under no clock, the wrong clock, or a clock closed before the work ended
 :PROPERTIES:
@@ -1532,6 +1550,18 @@ written.
   rule turns any task described in conversation into a heading rather
   than conversation memory. Filed as =07d38454= with eight children once
   asked.
+
+- [2026-09-23 Wed] Caught by the user: "did you condense the body
+  accordingly?" Recording 57f37f0e's approved brainstorm design, the session
+  wrote the =:PLAN:= drawer. It then *appended* a decision paragraph to the
+  heading's existing eight-sentence body, whose closing proposal ("or,
+  better, cancel the pair") the drawer had just overruled. The rule missed is
+  that a body is a two-to-five-sentence record, not a log: a design recorded
+  on an already-filed heading replaces its body with =org_amend
+  replace=true=. The brainstorming skill's record step says only "a short
+  body", which assumes a fresh capture. Condensed in cc6125a once asked,
+  after a commit, since =replace= refuses a file with uncommitted changes.
+
 
 
 ** TODO Miss: an org question answered by scraping text instead of asking org
