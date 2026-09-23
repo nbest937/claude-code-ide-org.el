@@ -8345,6 +8345,27 @@ scratch directory logging raw hook payloads, =MCP_TOOL_TIMEOUT=10000=):
   =tool_response= text beginning "Error:". Untested: an uncaught elisp signal,
   which might come back as an MCP =isError= and so as a failure.
 
+*Measured 2026-09-23, second pass: what a =PostToolUseFailure= hook can
+learn and say.* Same harness. The hook ran
+=timeout 3 emacsclient -e '(list :depth (recursion-depth) :minibuf …)'=
+and returned =additionalContext= carrying a canary.
+- =additionalContext= reaches the model: the canary was quoted back
+  verbatim and is in the transcript.
+- The probe separates three states. A refused connection (probe socket
+  pointed at nothing, standing in for a wedged Emacs) answered "can't find
+  socket" in 0 s. A hung Emacs (40 s busy loop) timed out at 3 s. A
+  misnamed argument against a healthy Emacs answered
+  =(:depth 0 :minibuf nil)=.
+- A misnamed argument is not rejected by Claude Code. =org_body= called
+  with ={"heading": …}= reached the server and timed out after 10 s, and
+  the payload's =tool_input= carries the bad name, so the hook can see
+  exactly what was wrong.
+- Not exercised: Emacs blocked on a prompt inside a tool, which is
+  001fb310's shape and where =:depth= or =:minibuf= should read non-zero.
+  Simulating it means advising a live tool to prompt. Also not exercised:
+  running =sample= from the hook.
+
+
 
 
 * TODO An archive pass wrote one subtree twice, and the mechanism is still unknown :code:
