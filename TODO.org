@@ -7,6 +7,7 @@
 :ID:       ec1e6839-bc47-4d5b-9d1e-b35b4b4e4070
 :CREATED:  [2026-09-22 Tue 20:20]
 :CATEGORY: Dev
+:BLOCKER:  c35087d8-19fe-4179-a61c-cb615b2e7679
 :END:
 :PLAN:
 *A transient refusal prompts the human to save, and the agent waits on
@@ -32,6 +33,20 @@ so asking for one is useful. It clears none of the other three
 refusals: uncommitted changes under `replace=true`, a read-only buffer,
 and an edit no tool can make. For those the agent stops and asks at
 once, and the ask says which of the three it hit.
+
+*The mechanism is built under =dd4b9a9f=, and this heading is what is
+left* (the user, 2026-09-23). Its child =c35087d8= builds the prompt and
+the wait with =org_edit= as the first user: a header line on the buffer
+asking for the save, cleared by an after-save hook, and a wait script the
+agent runs in the background on the Fibonacci schedule. It also records
+why the waiting stays out of the tool: a tool that polled would freeze
+the single-threaded Emacs the human needs to save in. So this heading,
+blocked on =c35087d8=, covers the rest. First, extending the same prompt
+and wait to the other tools that refuse an unsaved buffer
+(=org_slice_add_member=, and =org_wrap_plan= once =60d6ab6e= makes it
+refuse instead of saving). Second, making the three permanent refusals
+stop and ask at once. Third, the =PreToolUse= guard that refuses a
+direct write to a tracked org file while Emacs is visiting it.
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-22 Tue 20:20]--[2026-09-22 Tue 20:20] =>  0:00
@@ -58,6 +73,7 @@ A tool call with a missing required argument or an unknown tool name gets no rep
 :ID:       c0c5e015-c33e-4e1a-ad6e-907f9fa56c07
 :CREATED:  [2026-09-22 Tue 16:46]
 :CATEGORY: Tools
+:BLOCKER:  b2d4012c-6c61-47df-8086-d1cd205c73fc
 :END:
 
 Observed 2026-09-22 writing a :PLAN: drawer through org_amend drawer=PLAN: six section headers written as "** Title" at column zero were parsed as real headings, which terminated the drawer at the first one, manufactured six children under the heading, displaced the :LOGBOOK: below the orphaned :END:, and left the statistics cookie counting the wrong thing. Nothing refused it and the reply said "created :PLAN:". This is adjacent to 8a23d6ec but not covered by it: that rule and the escaping 3cd7b7d3 shipped both apply to a ^\*+ line inside a #+BEGIN_ block, where the damage is a fake heading; here there is no block, the text is drawer prose, and the damage is structural. bin/lint-org caught it only as six "heading has no :ID:" errors, which name the symptom rather than the cause. Proposed: extend the write-path escape to any ^\*+ line in drawer text, or refuse it there, since a drawer cannot contain a headline at all and escaping silently rewrites what the caller wrote.
@@ -68,6 +84,7 @@ Observed 2026-09-22 writing a :PLAN: drawer through org_amend drawer=PLAN: six s
 :ID:       5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997
 :CREATED:  [2026-09-22 Tue 16:14]
 :CATEGORY: Tools
+:BLOCKER:  b2d4012c-6c61-47df-8086-d1cd205c73fc
 :END:
 
 claude-code-ide-org--replace-body deletes the body region and inserts (string-trim text), so replacing the last body before a heading takes the blank lines separating them with the trim and glues the heading onto the final line. Observed 2026-09-22 on 59861867: TODO.org:1008 became "written.** TODO Miss: ..." and org stopped parsing a heading there at all — org_outline reported the new id as resolving to no heading while org_amend, which locates by property, still wrote to it happily, and bin/lint-org reported 0 errors throughout. The damage is silent in both directions and the repair was a hand edit, which is itself against the rules. Proposed: --replace-body re-establishes the separation it found, or defers to claude-code-ide-org-heading-separator-lines; and bin/lint-org gains a check for a heading not at the start of its own line, which is the class org-lint calls "possibly misplaced heading" and only warns about.
@@ -3215,7 +3232,7 @@ answer most often.
 Split out of b57c7515 on 2026-09-15 rather than built there. That heading's fix reconciles a mid-work session re-key by grouping sessions whose transcripts share a first-entry =uuid= — measured exact over the corpus, 7 groups, 14 of 65 sessions. But the signal lives in =~/.claude/projects/*/*.jsonl=, which Claude Code prunes on its own schedule (=cleanupPeriodDays=), and the queue events carry no conversation key of their own. So the alias is exact for recent work and degrades to nothing for old work, with no symptom at the boundary — a re-key whose transcripts have aged out simply looks like two unrelated sessions again, which is the failure this whole line of work exists to remove. Proposed: have =queue-append= record a stable conversation key on the event itself (the transcript's first =uuid=, or the =transcript_path= the hook payload already carries), so the bridge stops depending on a file someone else garbage-collects. Note the constraint that shapes it: the hook family is plain POSIX shell precisely so a stopped Emacs costs nothing, so whatever is recorded must be one cheap read of the transcript's first line, not a parse.
 
 
-* TODO [/] No org tool edits a phrase in place: org_amend appends or replaces the whole body :code:arch:
+* TODO [0/4] No org tool edits a phrase in place: org_amend appends or replaces the whole body :code:arch:
 :PROPERTIES:
 :ID:       dd4b9a9f-ba8a-4f1f-a3da-38388e0cdb76
 :CREATED:  [2026-09-15 Tue 13:25]
@@ -3332,8 +3349,48 @@ literal replacement cannot lose what it was not pointed at. Keeping
   hooks depend on
 :END:
 
-Correcting one sentence in a body — 8a2eb687's "the previous slice", which had to become a named id — has no tool: org_amend appends, and replace=true rewrites the whole prose and so erases a slice's checklist (7ee3b71a). The fallback on 2026-09-15 was a hand-written emacsclient search-and-replace bounded to the entry, which met a read-only buffer and had to bind inhibit-read-only itself — exactly the signal the MCP-tools rules name as "the tool surface is missing something". Proposed: an org_edit (or an org_amend mode) that replaces one literal occurrence within a heading's own body, refusing when the text is absent or appears more than once, on the same write-through-or-queue gate as amend. Small, and the shape is org_wrap_plan's until= check.
+No org tool edits text in place: =org_amend= appends, or replaces a whole
+body, so a one-sentence correction in a body or in a written =:PLAN:=
+goes behind Emacs or not at all. On 2026-09-15 the fallback was a
+hand-written =emacsclient= search-and-replace that had to bind
+=inhibit-read-only= itself, and on 2026-09-22 three sessions edited
+=TODO.org= around Emacs for want of it. The design, in =:PLAN:=, is a new
+=org_edit= with the =Edit= tool's =old_string= and =new_string=, over a
+heading's body or its =:PLAN:= or =:DEBRIEF:=. It appends, edits one
+occurrence, or rewrites the region; it waits on the human's save rather
+than queueing; and it retires =org_amend= in the same move, carried by
+four children in order.
+** TODO org_edit: replace one occurrence in a heading's body or plan, append, or rewrite the region, behind guards :code:
+:PROPERTIES:
+:ID:       704d8558-657b-43e2-9440-1c054c923ed2
+:CREATED:  [2026-09-23 Wed 10:34]
+:END:
 
+The new tool, with =id=, =old_string=, =new_string= and an optional =drawer=, over the heading's body or its =:PLAN:= or =:DEBRIEF:=. An empty =old_string= appends, a unique one is replaced, and the region's full text rewrites it. It carries the guards in the parent's =:PLAN:=, and each refusal test is shown to fail with its guard removed. It ships beside =org_amend=, which the third sibling retires.
+** TODO org_edit refuses an unsaved buffer, asks for the save in a header line, and the agent waits on it :code:
+:PROPERTIES:
+:ID:       c35087d8-19fe-4179-a61c-cb615b2e7679
+:CREATED:  [2026-09-23 Wed 10:34]
+:BLOCKER:  704d8558-657b-43e2-9440-1c054c923ed2
+:END:
+
+On unsaved changes, =org_edit= refuses at once with a reply distinct from its permanent refusals, and sets a header line asking the human to save, cleared by an after-save hook. A wait script shipped with the plugin polls =buffer-modified-p= on the Fibonacci schedule and exits on the save or after twenty seconds. The agent runs it in the background and retries when it exits. The waiting stays out of the tool because a tool that polled would freeze the single-threaded Emacs the human needs to save in. This is =ec1e6839='s mechanism, built with =org_edit= as its first user.
+** TODO Retire org_amend in one move: hooks, prose, and the live headings renamed with org_edit :code:
+:PROPERTIES:
+:ID:       b2d4012c-6c61-47df-8086-d1cd205c73fc
+:CREATED:  [2026-09-23 Wed 10:34]
+:BLOCKER:  704d8558-657b-43e2-9440-1c054c923ed2 c35087d8-19fe-4179-a61c-cb615b2e7679
+:END:
+
+Remove =org_amend='s registration and entry point, keeping the internals =org_edit= reuses. =queue-append= loses its deferred-amend branch, and its miss attribution moves to =org_edit=, reading "Caught by the user" or "Self-caught" from the line. The two skills, the promoted rules, =CLAUDE.md=, =next-session.md= and =config.el='s reply strings all switch to =org_edit= inside the word budget. Live headings naming =org_amend= are renamed with =org_edit= itself; closed headings stay as history. The legacy amend reader stays, for events already queued.
+** TODO Delete the legacy amend reader once no amend event remains in any queue :code:
+:PROPERTIES:
+:ID:       381dfc89-932b-4448-a58d-7e3cad51db55
+:CREATED:  [2026-09-23 Wed 10:34]
+:BLOCKER:  b2d4012c-6c61-47df-8086-d1cd205c73fc
+:END:
+
+After =org_amend= retires, =--review-apply-amend= and the review buffer's amend items only apply events queued before the change, and no new ones can appear. Delete them once =org_pending_updates= shows no amend item across every session's queue. That condition is not a heading, so it lives here rather than in a =:BLOCKER:=.
 
 * TODO The :blocked: tag writer is org-depend, found after a7f4b40c cleared it by testing the wrong variable name :code:
 :PROPERTIES:
@@ -3634,6 +3691,17 @@ every heading. It also qualifies the boundary stated above — the renderer
 still never asks whether a member is a story, but it does read one fact about
 a member's parent, and reading the parent's keyword is not the same as the
 descendant scan =--container-heading-p= performs.
+
+*The titled defect retires with =org_amend=, and this plan does not*
+(2026-09-23). =dd4b9a9f='s =b2d4012c= removes =replace=true=, and its
+replacement, =org_edit=, refuses any edit that touches a slice's
+=Planned:= checklist or =Incidental:= section. So the writer named in
+this heading's title will be gone. The plan's argument never depended on
+that one writer, though. It moves membership into a property so that
+whatever writer destroys the checklist costs only a refresh, and hand
+edits and the refresh itself can still do that. It stands on its own.
+The title should be restated once =b2d4012c= lands, since by then it
+names a tool that no longer exists.
 :END:
 
 Found 2026-09-15 composing 35582d95. replace=true rewrites the body's prose
