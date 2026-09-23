@@ -65,7 +65,7 @@ while IFS= read -r cite; do
   file="$org_skill"; [ "$which" = conventions ] && file="$conventions"
   grep -qxF -- "$(printf '%s' "$title")" <(sed -nE 's/^#+ (.*)$/\1/p' "$file") \
     || bad "cites the org $which section \"$title\", which is not a heading there"
-done < <(tr '\n' ' ' <<<"$text" | tr -s ' ' | grep -oE 'org (skill|conventions)[ ,(]+"[^"]+"' | sort -u)
+done < <(tr '\n' ' ' <<<"$text" | tr -s ' ' | grep -oE "org (skill|conventions)('s)?[ ,(]+\"[^\"]+\"" | sort -u)
 
 # 4. Sibling files it names.
 for f in $(grep -oE '`[a-z][a-z-]*\.md`' <<<"$text" | tr -d '`' | sort -u); do

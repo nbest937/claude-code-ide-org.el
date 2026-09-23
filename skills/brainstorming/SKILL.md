@@ -381,8 +381,8 @@ implementation:
 Wait for the user's response. If they request changes, make them and
 re-run the self-review. Only proceed once the user approves.
 
-**Terminal state:** implementation behind the second yes (the org skill's
-Plan Mode checkpoint rule, applied without Plan Mode) — a
+**Terminal state:** implementation behind the second yes (the rule of the
+org skill's "Plan Mode checkpoint", applied without Plan Mode) — a
 separate yes, then `org_set_todo` `DOING` and the work. If the work
 should be sequenced with others across sessions, that is a scheduling
 decision for the user, not a brainstorming output.
