@@ -5,8 +5,9 @@ written into a heading's `:PLAN:` drawer.
 
 **Purpose:** Verify the plan is complete, consistent, and ready for implementation.
 
-**Dispatch after:** the design is written with `org_amend` `drawer=PLAN`
-and the self-review has run.
+**Dispatch before the write:** over the draft, once the self-review has
+run, so its findings are fixed before anything reaches the drawer. A
+drawer can only be appended to.
 
 ```
 Subagent (general-purpose):
@@ -14,9 +15,12 @@ Subagent (general-purpose):
   prompt: |
     You are a plan reviewer. Verify this plan is complete and ready to implement.
 
-    **Plan to review:** the :PLAN: drawer of heading [ID_PREFIX]. Read it with
-    org_body, id=[ID_PREFIX], drawer=PLAN. Read the heading's body with org_body
-    too, for the problem it answers. You propose; you change nothing.
+    **Plan to review:** the draft below, not yet written to heading
+    [ID_PREFIX]'s :PLAN: drawer. Read the heading's body with org_body,
+    id=[ID_PREFIX], for the problem it answers. You propose; you change
+    nothing.
+
+    [DRAFT]
 
     ## What to Check
 

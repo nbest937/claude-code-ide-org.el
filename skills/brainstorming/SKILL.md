@@ -224,15 +224,15 @@ Classify first, announce the path, then work through its items in order.
 5. **Present design** — in sections scaled to their complexity, get approval after each section
 6. **Approve the design** — an explicit yes in chat to recording the design as a whole
 7. **Capture the heading** — `org_capture` with an `initial_state` of `TODO` and `tags` `arch`; `DOING` waits for the separate yes
-8. **Write the design into `:PLAN:`** — `org_amend` `drawer=PLAN`, then a two-to-five-sentence body
-9. **Plan self-review** — placeholders, contradictions, scope, ambiguity; fix inline (see below)
+8. **Plan self-review, on the draft** — placeholders, contradictions, scope, ambiguity; fix the draft before anything is written (see below)
+9. **Write the design into `:PLAN:`** — `org_amend` `drawer=PLAN`, then a two-to-five-sentence body
 10. **User reviews the drawer** — as they would a spec
 11. **Transition to implementation** — only after a yes; org skill, "Plan Mode checkpoint"
 
 ## Process Flow
 
 The decision spine only. The linear steps (context, questions,
-approaches, and the write sequence of tag, `:PLAN:`, body and self-review)
+approaches, the self-review of the draft, and the write of tag, `:PLAN:` and body)
 are in the checklist above.
 
 ```dot
@@ -362,25 +362,32 @@ in the dialogue are written into the plan where they apply, with their
 provenance in a parenthetical, never as dated list entries. Nothing is
 written under `docs/`.
 
-**Plan self-review:** read the drawer back with `org_body` `drawer=PLAN`,
-with fresh eyes:
+**Plan self-review, before anything is written:** read the draft with
+fresh eyes. The drawer can only grow, since `org_amend` appends and no
+tool yet edits text inside a drawer, so a fix made after the write
+leaves the wrong text and the correction side by side. Review first,
+write once:
 
 1. **Placeholder scan:** Any "TBD", "TODO", incomplete sections, or vague requirements? Fix them.
 2. **Internal consistency:** Do any sections contradict each other? Does the architecture match the feature descriptions?
 3. **Scope check:** Is this focused enough for one heading, or does it need children?
 4. **Ambiguity check:** Could any requirement be interpreted two different ways? If so, pick one and make it explicit.
 
-Fix any issues inline, by appending the corrected text to the drawer. For
-an architectural design, a reviewer subagent can run the same checks from
-a narrow context; see `plan-reviewer-prompt.md`.
+Fix the draft, then write it. For an architectural design, a reviewer
+subagent can run the same checks over the draft from a narrow context;
+see `plan-reviewer-prompt.md`. A correction that arrives after the write,
+from the user's review of the drawer, can only be appended until the
+edit tool that dd4b9a9f designs exists. Say in it which passage it
+replaces.
 
 **User review gate:** ask the user to review the drawer before any
 implementation:
 
 > "The design is in the `:PLAN:` of <id prefix>. Please review it and let me know if you want changes before anything is built."
 
-Wait for the user's response. If they request changes, make them and
-re-run the self-review. Only proceed once the user approves.
+Wait for the user's response. If they request changes, review the
+correction the same way before appending it. Only proceed once the user
+approves.
 
 **Terminal state:** implementation behind the second yes (the rule of the
 org skill's "Plan Mode checkpoint", applied without Plan Mode) — a
