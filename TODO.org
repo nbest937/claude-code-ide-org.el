@@ -656,6 +656,66 @@ correct.
 :CATEGORY: Skill
 :BLOCKER:  07d38454-3835-4da9-98d9-28d8ebfec294
 :END:
+:DEBRIEF:
+*Shipped* in PR #30, merged 2026-09-23 as
+[[orgit-rev:claude-code-ide-org::10104e0][10104e0]]. superpowers'
+brainstorming skill was imported verbatim at v6.4.1
+([[orgit-rev:claude-code-ide-org::ed9d86a][ed9d86a]]), each file's
+blob matching upstream's, then adapted in separate commits. Three path
+tags, =:spike:=, =:bounded:= and =:arch:=, record the classification. The
+skill reads an existing tag, classifies an untagged heading, only ever
+steps up, and logs each change as a =- Tags= line in =:LOGBOOK:=.
+=bin/lint-org= errors on two path tags. =bin/check-brainstorming-skill=,
+run by guard 4 of =pre-commit-guards= against the staged files, checks
+that every tool, parameter, cited section and sibling file the skill
+names exists. A Process Flow digraph covers the decision spine.
+
+*What differed from the plan.* The plan ran the dialogue inside Plan
+Mode. The first run (=ba40781f=, on =da6a2fba=) looped, because Plan Mode
+always writes a plan file and its approval can only mean "implement", so
+the user reversed it the same day: the dialogue runs in the ordinary
+session, and approval is two separate yeses in chat. And an
+architectural heading is captured =TODO=, not =DOING=, since planning is
+TODO-phase work.
+
+*Verified by one run per path, each in its own session, each adding a
+clause to the skill.* The full records are in git at
+[[orgit-rev:claude-code-ide-org::6522c4b][6522c4b]],
+[[orgit-rev:claude-code-ide-org::1d31750][1d31750]],
+[[orgit-rev:claude-code-ide-org::3bf52c0][3bf52c0]] and
+[[orgit-rev:claude-code-ide-org::e31ce98][e31ce98]].
+- =7ee3b71a=, architectural from an existing tag: gates held and the
+  self-review caught a real defect. It never clocked out, so the skill
+  now closes the clock on handing back.
+- =a7f844ba=, architectural classified from scratch: the =- Tags= line
+  landed in the convention's shape and the design retired one of the
+  heading's own premises by measurement. A =**= line tore the drawer
+  (=c0c5e015=), so the skill now forbids headline-shaped lines.
+- =51bcec2c=, spike: the approval gate held. Its hypothesis was already
+  on =ce012ad4=, so the skill now searches the tracker once a hypothesis
+  forms; the probe, run later, confirmed it.
+- =57f37f0e=, bounded, in a fresh session: the cleanest run, committing
+  rather than editing around Emacs when =replace=true= refused. It
+  appended to a long body instead of condensing it, as =a7f844ba= had, so
+  the skill now condenses.
+Whether the skill triggers at the right moments cannot be tested
+deterministically. Across four requested runs it triggered each time and
+was not observed firing on bookkeeping.
+
+*The code review* (=/code-review high=, ten findings) was filed as
+=07d38454= and fixed before the merge. Two were real bugs, both in guard
+4, which checked the working tree and skipped deletions. The rest were
+drift between texts. One finding, the self-review appending after the
+write, was settled by running the self-review on the draft; corrections
+after the write wait on =dd4b9a9f='s edit tool.
+
+*Residue, all filed:* =c4bb5db3= decides whether the unrun visual
+companion stays, =dd4b9a9f= designs in-place editing and retires
+=org_amend=, =ec1e6839= holds the wait-on-save mechanism's
+generalisation, and =3485b0d0= backstops a clock left open at turn end.
+=2b8930da=, the consumer-install verification, loses this heading as a
+blocker.
+:END:
 :LOGBOOK:
 CLOCK: [2026-09-22 Tue 08:36]--[2026-09-22 Tue 08:37] =>  0:01
 - [2026-09-22 Tue 08:36]--[2026-09-22 Tue 08:37] draft the brainstorming port's plan
