@@ -2,6 +2,15 @@
 #+TAGS: analysis bug code comms prose research review spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Answer a bad tool call with its error rather than a hang, until upstream defines json-rpc-error :code:
+:PROPERTIES:
+:ID:       ecbbec2e-50d9-4581-9ded-15716f16c5f3
+:CREATED:  [2026-09-22 Tue 20:19]
+:CATEGORY: Tools
+:END:
+
+A tool call with a missing required argument or an unknown tool name gets no reply and reaches the model as "The operation timed out" (`ce012ad4`, confirmed 2026-09-22), and every such timeout in this project's transcripts was a misnamed argument that the error text would have corrected at once. The upstream fix may be slow to land, so this module could catch `json-rpc-error` itself: an advice around `claude-code-ide-mcp-http-server--handle-tools-call` or `--validate-args`, converting the signal into a tool result that carries the message. A bare `define-error` is *not* enough, since upstream's outer handler replies with `id` nil and the client cannot match that reply. Unclassified: the brainstorming skill decides spike or bounded when it is picked up.
+
 * NEXT A story may carry NEXT: the prohibition generalises a retired trigger's guard into a rule about the keyword :prose:bounded:
 :PROPERTIES:
 :ID:       878d2cf5-e08e-4bcb-8db1-a601b9b08f55
@@ -2892,6 +2901,49 @@ Cheap, and the corpus check is already done and recorded, so this needs no re-me
 :CREATED:  [2026-09-17 Thu 11:31]
 :CATEGORY: Tools
 :END:
+:DEBRIEF:
+*The probe*, four read-only POSTs to the live endpoint with
+`curl --max-time 8`:
+
+- `org_body` with its required `id` omitted: **no reply**, HTTP 000
+  at 8.0 s.
+- A tool name that does not exist: **no reply**, HTTP 000 at 8.0 s,
+  and `*Messages*` logged `error in process filter: peculiar error:
+  -32602, "Unknown tool: org_nosuch"`.
+- A valid `org_outline` call (the control): answered at once, `id` 103
+  echoed.
+- A malformed JSON body: answered in 1 ms with `id` null, as `-32603`.
+
+Emacs answered `emacsclient` throughout, which rules out a wedge.
+
+*The three original cases, traced in the transcripts.* The two timed-out
+`org_divide` calls passed `title`, and the tool requires `parent_title`.
+The two timed-out `org_slice_add_member` calls passed `slice` and
+`member`, and the tool requires `slice_id` and `member_id`. Together with
+`org_set_todo`'s `keyword` for `state`, that is five timeouts from one
+mechanism. That rules out the plan's fallback suspect, the refresh those
+two tools run after writing.
+
+*Hypothesis 2 is not a cause, but it constrains the fix.* The null `id`
+appears only where upstream catches an error. The one caught path
+exercised here, a malformed body, is the case where JSON-RPC 2.0 requires
+`id` null. But the same outer handler hard-codes `nil`, so upstream
+adding `define-error` alone would turn the hang into a reply the client
+cannot match to its request. That requirement is now written into
+`ce012ad4`, the upstream report.
+
+*What the spike added to what was already known.* Its first hypothesis
+had been on `ce012ad4` since 2026-09-02, with a `curl` reproduction of
+the `-32601` site. The session that framed this probe named `9d6449c7`
+as the place to file its result and never opened it, and its plan
+would have filed a duplicate. The spike's own contributions are three:
+confirmation at the two `-32602` sites, the argument-name trace, and the
+`id` constraint on the fix.
+
+*Residue:* a local workaround until upstream lands, filed as `ecbbec2e`.
+It is unclassified; the brainstorming skill decides spike or bounded
+when it is picked up.
+:END:
 :LOGBOOK:
 - Tags ":bug:spike:" from ":code:" [2026-09-22 Tue 17:34] \\
   classified a spike; whether the fix is code here or an upstream
@@ -2922,6 +2974,13 @@ Ruled out:
 - Slow code here: id indexing, id lookup and the cookie update are all at or under 0.2 s, and the propertized return value prints to 284 characters.
 - A wedged Emacs: other tools answered between the timed-out attempts.
 - A timeout setting: =.mcp.json= and the environment set none, and the =timeout: 10= values in =.claude/settings.json= are hook timeouts.
+
+*Answered 2026-09-22.* The layer is upstream's: `json-rpc-error` is never
+`define-error`'d, so a missing argument or an unknown tool gets no reply
+at all (`ce012ad4`, now confirmed live at both `-32602` sites). Every
+timeout seen here was a misnamed required argument, and the null-`id`
+hypothesis is not a cause.
+
 
 
 * TODO [0/2] Make the corpus searchable by tag, by measurement where it can be and by decision where it cannot
@@ -12185,6 +12244,35 @@ lands on the unhandled path; and the observed failure at this site
 was silence-plus-minibuffer-noise rather than a client timeout, so
 the symptom varies by site while the cause is the one missing
 =define-error=.
+
+*Confirmed at both =-32602= sites, 2026-09-22, by the =51bcec2c= spike.*
+Four read-only POSTs to the live endpoint with =curl --max-time 8=: a
+=tools/call= of =org_body= with its required =id= omitted, and a call to
+a tool that does not exist, *both got no reply at all* (HTTP 000 at
+8.0 s), and =*Messages*= shows =error in process filter: peculiar error:
+-32602, "Unknown tool: org_nosuch"=. A valid call answered at once with
+its =id= echoed, and Emacs answered =emacsclient= throughout. Every
+timed-out tool call in this project's transcripts traces here: the
+=org_set_todo= case passed =keyword= for =state=, both =org_divide=
+calls passed =title= for =parent_title=, and both
+=org_slice_add_member= calls passed =slice= and =member= for =slice_id=
+and =member_id=. A missing required argument is exactly the error that
+would have taught the caller the right name, and it is the one that
+hangs.
+
+*The fix needs one more thing than the paragraph above says.*
+=--handle-post='s catch-all =error= handler replies through
+=--send-json-error= with the =id= argument hard-coded to =nil=. So
+=define-error= alone turns a hang into an error reply the client cannot
+match to its request, and the caller most likely still waits out its
+timeout. The =json-rpc-error= handler has to reply with the request's
+own =id=, which means catching it where =id= is still bound, not in the
+outer handler. A malformed body is the one case where =id= null is
+right, since JSON-RPC 2.0 requires it when no =id= could be read, and
+the probe shows it answered promptly, though as =-32603= "Internal
+error" rather than =-32700= "Parse error". That code is worth one
+sentence in the report, not a heading of its own.
+
 
 
 ** TODO Unknown tool arguments are dropped silently by both dispatch paths :code:
