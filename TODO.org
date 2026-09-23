@@ -2,6 +2,17 @@
 #+TAGS: analysis bug code comms prose research review spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO A refused Emacs write falls through to an edit behind Emacs's back, where it should back off, retry, then stop and ask :code:
+:PROPERTIES:
+:ID:       ec1e6839-bc47-4d5b-9d1e-b35b4b4e4070
+:CREATED:  [2026-09-22 Tue 20:20]
+:CATEGORY: Dev
+:END:
+
+When an org tool refuses a write, sessions fall through to `Edit`, `sed -i` or `awk … && mv` on `TODO.org`, which writes behind the live buffer. The user wants them to stop and wait instead, perhaps with a Fibonacci back-off and retry (2026-09-22). Retrying only helps when the refusal is transient. The human's unsaved changes clear when they save, so back off on those (1, 1, 2, 3, 5, 8 s, capped), then ask. Three refusals never clear by waiting: `org_amend replace=true` on a file with uncommitted changes, a read-only buffer, and an edit no tool can make (`dd4b9a9f`, `24c7b537`, `da6a2fba`). For those the session should stop and ask at once, never fall through. The enforcement is a `PreToolUse` guard that refuses any direct write to the tracked org files while Emacs is visiting them. That is a sibling of `b69ecfe4`, and it avoids that heading's false-positive problem because it refuses the write itself without parsing the hunk.
+
+Established (2026-09-22): three sessions bypassed Emacs that day. One edited a line-number citation into place with `Edit` because the buffer was read-only. One rewrote a drawer and body with `awk` and `mv`, and the `#+TAGS` line with `sed -i`, because `replace=true` refused. One hand-edited a headline tag and repaired a torn drawer. Each checked `buffer-modified-p` first, so nothing was lost, and the risk is the one time the check is skipped. The concrete harm on record is `53b0047d`, a clock marker desynced by a direct write. `Edit` and `Write` are easy to guard. Writes through `Bash` are not, and deserve a measurement of how often they occur before any design. `b5f94b88` points the other way, letting a session interject without waiting, and the queue already covers capture and amend. So this covers only the writes the queue does not.
+
 * TODO Answer a bad tool call with its error rather than a hang, until upstream defines json-rpc-error :code:
 :PROPERTIES:
 :ID:       ecbbec2e-50d9-4581-9ded-15716f16c5f3
