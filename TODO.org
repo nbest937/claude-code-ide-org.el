@@ -713,6 +713,36 @@ hypothesis forms.
 *Still unexercised:* the spike's investigate and report steps, since
 the probe was never run, and the bounded path under the current skill.
 
+*Fourth run, the bounded path: `57f37f0e` in fresh session `3667ee61`,
+2026-09-23.* All three paths are now verified under the current skill.
+It classified before asking anything, and said why: "This is
+**bounded**: the flow being changed already exists in one function …
+The heading has no path tag yet, so it gets `:bounded:` once you
+approve." It put one real decision to the user, A or B with a
+recommendation, and a short design in chat. It wrote nothing until the
+user said "approved". It logged the tag with its `- Tags` line and
+reloaded the buffer after the text edit. It clocked each writing turn
+in and out. When the user said "plan approved", it asked "shall I start
+now?", proposed a branch off `main` for the code, and did not queue
+`DOING`.
+
+*Two things it did that the stop-and-wait heading asks for, unprompted.*
+When `org_amend replace=true` refused because of uncommitted changes, it
+committed first and then used the tool, rather than writing around
+Emacs. It noticed the user's refill was still unsaved in the buffer,
+left it alone, and said it would commit once the user saved. It also
+searched before filing, finding `b52df20b` for the refill instead of
+filing a twin.
+
+*One miss, caught by the user.* Its first body write appended a
+"Decided 2026-09-23" paragraph to a long body instead of condensing it,
+until the user asked "did you condense the body accordingly?" The
+`a7f844ba` run did the same, appending "Re-measured 2026-09-22" to a
+long body. Two runs make a pattern, so the skill now says that on an
+existing heading the body is condensed with `replace=true`, not
+appended to.
+
+
 
 * TODO One clock_in keeps pairing with later clock_outs, so a closed heading collects phantom spans at every review
 :PROPERTIES:
