@@ -170,9 +170,10 @@ line of its own that cannot be mistaken for a keyword transition:
 The two values are the whole tag sets, after and before; the note says
 what surfaced. Org logs no tag changes itself, and replacing a tag would
 otherwise erase the earlier classification. The line sorts into the
-drawer's timeline like a state line. It goes in with the same headline
-edit, under the same unsaved-buffer check, until the tag tool da6a2fba
-adds writes it. A heading's first tag, at capture, needs no line.
+drawer's timeline like a state line. Until the tag tool that da6a2fba
+adds exists to write it, it goes in with the same headline edit, under
+the same unsaved-buffer check. A heading's first tag, at capture, needs
+no line.
 
 ## Anti-Pattern: "Too Simple To Need Approval"
 

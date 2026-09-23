@@ -10,15 +10,18 @@
 # needs no running Emacs, since registrations and headings are text.
 #
 # Checked, across skills/brainstorming/*.md except visual-companion.md
-# (upstream's, unadapted, and naming none of these):
+# (upstream's, unadapted, and naming none of these) and README.md (about
+# the skill, for a human, and instructing no session):
 #   1. every org_* tool is registered in config.el (`:name "org_x"');
 #   2. every `word=' argument, and every backticked snake_case word that is
 #      a parameter name, is a registered tool parameter (`(:name "word"');
-#   3. every section cited as  org skill, "Title"  or
-#      org conventions ("Title")  is a heading in that file;
+#   3. every section cited as  org skill, "Title",  org skill's "Title"  or
+#      org conventions ("Title")  is a heading in that file, with the
+#      text joined first so a citation wrapped across lines is still seen;
 #   4. every sibling file the skill names exists;
 #   5. none of the upstream machinery it dropped is still named:
-#      docs/superpowers, writing-plans, elements-of-style, a spec file.
+#      docs/superpowers, writing-plans, elements-of-style, a spec file,
+#      a design doc.
 #
 # Usage: bin/check-brainstorming-skill [ROOT]   exit 1 on any failure
 set -uo pipefail
