@@ -374,6 +374,13 @@ When an org tool refuses a write, sessions fall through to `Edit`, `sed -i` or `
 
 Established (2026-09-22): three sessions bypassed Emacs that day. One edited a line-number citation into place with `Edit` because the buffer was read-only. One rewrote a drawer and body with `awk` and `mv`, and the `#+TAGS` line with `sed -i`, because `replace=true` refused. One hand-edited a headline tag and repaired a torn drawer. Each checked `buffer-modified-p` first, so nothing was lost, and the risk is the one time the check is skipped. The concrete harm on record is `53b0047d`, a clock marker desynced by a direct write. `Edit` and `Write` are easy to guard. Writes through `Bash` are not, and deserve a measurement of how often they occur before any design. `b5f94b88` points the other way, letting a session interject without waiting, and the queue already covers capture and amend. So this covers only the writes the queue does not.
 
+*3ad389be's failure hook covers the outage half* (2026-09-23). On a
+refused or timed-out call it tells the session not to hand-edit the tracked
+org files and to tell the user. Refusals from a healthy Emacs never reach
+=PostToolUseFailure=, so the =PreToolUse= guard proposed here is still
+needed for them.
+
+
 
 * TODO Answer a bad tool call with its error rather than a hang, until upstream defines json-rpc-error :code:
 :PROPERTIES:
@@ -383,6 +390,12 @@ Established (2026-09-22): three sessions bypassed Emacs that day. One edited a l
 :END:
 
 A tool call with a missing required argument or an unknown tool name gets no reply and reaches the model as "The operation timed out" (`ce012ad4`, confirmed 2026-09-22), and every such timeout in this project's transcripts was a misnamed argument that the error text would have corrected at once. The upstream fix may be slow to land, so this module could catch `json-rpc-error` itself: an advice around `claude-code-ide-mcp-http-server--handle-tools-call` or `--validate-args`, converting the signal into a tool result that carries the message. A bare `define-error` is *not* enough, since upstream's outer handler replies with `id` nil and the client cannot match that reply. Unclassified: the brainstorming skill decides spike or bounded when it is picked up.
+
+*A stopgap now ships with 3ad389be's failure hook* (the user, 2026-09-23).
+When a call times out and Emacs answers the hook's probe idle, the hook
+tells the session to check its argument names. It does not replace this
+fix, which turns the timeout into the real error.
+
 
 
 * TODO org_amend accepts a headline-shaped line in drawer text, which tears the drawer open :code:observed:
@@ -5091,6 +5104,15 @@ So the **GUI thread is waiting for ownership of a dispatch queue it never receiv
 *What this changes about the heading.* The title says "at review-buffer quit", which is now too narrow: three at quit and one at apply, with one stack common to both. The fault is in the mac port's frame-update path, not in what the review buffer was doing when it ran. The full sample is preserved outside the repo at =emacs-hang-489d6f61-4th.txt=.
 
 *A second deadlock, not at shutdown, 2026-09-21 ~08:40.* Right after an apply pass finished archiving, Emacs (pid 78949, up 2 days) stopped serving: =emacsclient= refused, MCP calls timed out, the process slept at 0% CPU with its port still listening. A =sample= showed the GUI main thread in =mac_gui_loop= → =__mac_update_frame_end_block_invoke= → =unset_global_focus_view_frame= → =dispatch_sync=, waiting on the lisp thread, which sat in =command_loop= — the same two-thread shape as the shutdown case, reached from a frame update. =SIGUSR2= did nothing and =SIGTERM= was ignored; =SIGKILL= and a relaunch restored service in about three seconds. No lock files existed, so nothing unsaved was lost. The sample itself was in a session scratchpad and is not kept.
+
+*The next evidence capture is whichever of two lands first* (2026-09-23).
+One is 3ad389be's failure hook: on a refused connection from a live Emacs
+process, the wedge signature, it takes a =sample= automatically, once per
+session, into =~/.claude/emacs-samples/=. The other is the stderr launch
+proposed above. This investigation cannot move until a wedge is caught in
+the act, and the hook removes the discipline of remembering to sample
+before the kill.
+
 
 
 * TODO Plans die at cleanupPeriodDays; decide plansDirectory or keep restoring :code:
@@ -10953,6 +10975,7 @@ a heading that gains a keyword later would make them diverge.
 :CATEGORY: Queue
 :ID:       7fa68d5c-b6c0-43df-85c6-764b1d56511f
 :CREATED:  [2026-08-11 Tue 07:31]
+:BLOCKER:  3ad389be-2797-46c3-a51d-9f603053955a
 :END:
 
 =org_capture= requires a live Emacs. When the server is unreachable the
@@ -11009,6 +11032,13 @@ nothing real. Revisit if the tool becomes the normal creation path.
 ([[id:d9132c57-9dcf-47e9-ba74-7f5a1ced3ae5][d9132c57]]) can ride this same event
 rather than needing a mechanism of its own — apply would write the creation
 entry exactly as it writes a state transition.
+
+*Builds on 3ad389be's =PostToolUseFailure= hook* (2026-09-23): the
+fallback becomes a branch of that hook, whose payload carries the whole
+=tool_input=. It fires on a refused connection only, because a timed-out
+call keeps running and a queued copy of a capture that later lands would
+create the heading twice.
+
 
 
 * TODO [3/5] Institute a catch-all heading for cross-cutting meta-work :code:
@@ -11796,6 +11826,13 @@ Relevant to [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]]: a
 hang in the clock path is the exact failure class that refactor exists
 to eliminate, and this one survives the cutover untouched, since the
 apply command clocks in through the same advised =org-clock-in=.
+
+*3ad389be's failure hook will make a recurrence recognisable* (2026-09-23).
+Its probe sees a tool call blocked on a prompt as a public org tool still on
+the Lisp stack, and tells the session to ask the user to answer it. That
+covers the "a blocked Emacs looks like a tool fault" half. Preventing the
+stale history, which is this heading's task, is unaffected.
+
 
 
 * MAYBE Give the review buffer a transient menu, once it has filters worth composing :code:
