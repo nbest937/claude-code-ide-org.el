@@ -1487,6 +1487,20 @@ CLAUDE.md's own opening names this as the largest source of wrong claims. Caught
   the drawer held findings wrapped whole, not a plan. The word then reached
   4ae7a04b's record of the run before it was corrected.
 
+- [2026-09-23 Wed] Caught by the user: "why do you say that it assumes
+  a new heading?" After recording a miss on 59861867, the session claimed two
+  things about the brainstorming skill without reading it. First, that its
+  record step "assumes a new heading". The paragraph it had followed names
+  "the existing heading" and asks for a two-to-five-sentence body. Second,
+  that the gap was "still unfixed" and wanted an edit. That edit was already
+  in [[orgit-rev:claude-code-ide-org::633d98c][633d98c]], from 09:37 the same
+  morning. The first claim reached the committed miss line in
+  [[orgit-rev:claude-code-ide-org::a9a0ff8][a9a0ff8]], and is corrected
+  there. The session had blamed the skill for its own misreading, which
+  makes a miss look like a defect in the tool and is the more damaging
+  direction for the record.
+
+
 
 ** TODO Miss: a heading closed with its unfinished part left in prose, or its group left un-nominated
 :PROPERTIES:
@@ -1558,9 +1572,13 @@ written.
   better, cancel the pair") the drawer had just overruled. The rule missed is
   that a body is a two-to-five-sentence record, not a log: a design recorded
   on an already-filed heading replaces its body with =org_amend
-  replace=true=. The brainstorming skill's record step says only "a short
-  body", which assumes a fresh capture. Condensed in cc6125a once asked,
-  after a commit, since =replace= refuses a file with uncommitted changes.
+  replace=true=. The skill already asked for that: its record paragraph
+  says "or re-tag the existing heading; then … a body of two to five
+  sentences", which the session read as "add a body" rather than "the body
+  is this size". The wording naming condense was added after the catch, in
+  [[orgit-rev:claude-code-ide-org::633d98c][633d98c]]. Condensed in
+  [[orgit-rev:claude-code-ide-org::cc6125a][cc6125a]] once asked, after a
+  commit, since =replace= refuses a file with uncommitted changes.
 
 
 
