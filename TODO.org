@@ -8271,7 +8271,7 @@ cannot be interpreted.
 and only an instrument outside the clock system answers it.
 
 
-* TODO An Emacs outage strands every org write, because the tools are Emacs :code:spike:
+* TODO An Emacs outage strands every org write, because the tools are Emacs :code:bounded:
 :PROPERTIES:
 :ID:       3ad389be-2797-46c3-a51d-9f603053955a
 :CREATED:  [2026-08-31 Mon 13:50]
@@ -8300,8 +8300,64 @@ transport failure only, so the hook needs no filtering: a refusal arrives as
 cover an Emacs that was already down when the session started, because the
 tools never register and no tool hook fires. That case is =SessionStart='s
 (the server's absence is visible there), or it goes unrecorded.
+
+*The build, approved 2026-09-23 (the user).* It extends the first paragraph
+above rather than contradicting it, and replaces its report location: the
+marker no longer depends on the stale-interval report. Bounded, since it is
+one hook in the existing family.
+
+*One hook, three steps in order, each surviving the failure of the next.*
+=bin/hooks/tool-failure=, plain shell, on =PostToolUseFailure= with matcher
+=mcp__emacs-tools__.*=, wired in =.claude/settings.json= and
+=hooks/hooks.json=. It is task tracking, so it is not gated on
+=time_tracking=, and it always exits 0.
+
+*First, the marker.* One JSON line in =<session_id>.tool-failures.jsonl=
+beside the queue file, never in the queue itself, so the review pass cannot
+take it for an event. It records =ts=, =tool_name=, =tool_input=, =error=,
+the probe state, and =may_land=: true when the call timed out, since a
+timed-out call runs on and can still write, false when refused.
+
+*Second, the probe.* =timeout 3 emacsclient -e= reads =recursion-depth=,
+the active minibuffer, and any public =claude-code-ide-org-= function on the
+Lisp stack (=mapbacktrace=). Any failure to probe reads as unknown. It costs
+up to 3 s, and only on the failure path.
+
+*Third, the guidance*, returned as =additionalContext=, one per state:
+- Refused: nothing was written; do not hand-edit the tracked org files;
+  tell the user. When an Emacs process is still alive (the wedge
+  signature), also take one =sample <pid> 1= into
+  =~/.claude/emacs-samples/=, at most once per session by sentinel, for
+  489d6f61.
+- Probe timed out (Emacs busy): the call may still land; do not retry a
+  write; tell the user.
+- Alive, org tool on the stack: Emacs is waiting on a prompt; ask the user
+  to answer it.
+- Alive and idle: check the argument names against the tool's schema.
+  This is ecbbec2e's stopgap until its own fix lands (the user, 2026-09-23,
+  chose to ship it here).
+- Unknown: say that the probe failed, and stop.
+
+*The report.* =SessionStart='s ceremony report lists unreported markers,
+saying for each whether the write may still have landed or did not, so
+nothing is redone blindly. Reporting renames the file, so a marker is
+reported once, and it waits for a session with Emacs back up.
+
+*Out of scope.* 7fa68d5c's capture fallback, which becomes a branch of this
+hook on a refused connection only, since a timed-out capture may still land.
+An Emacs already down at session start, where no tool is offered and no
+hook fires.
+
+*Testing.* =bin/tool-failure-test=, with a fake =emacsclient= and =sample=
+on =PATH=: one case per state; the marker's fields; the once-per-session
+sample sentinel; an unwritable queue directory, where the hook must still
+exit 0 and still return guidance. Shown to fail against a no-op hook. Then
+one live run per state, as in the probes above, and one =SessionStart=
+report.
 :END:
 :LOGBOOK:
+- Tags ":code:bounded:" from ":code:spike:" [2026-09-23 Wed 18:01] \\
+  stepped up: the spike is answered, and building the failure hook is its own work
 - State "TODO"       from              [2026-08-31 Mon 13:52]
 :END:
 
