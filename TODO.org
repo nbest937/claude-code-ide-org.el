@@ -8361,86 +8361,41 @@ report.
 - State "TODO"       from              [2026-08-31 Mon 13:52]
 :END:
 
-The queue's premise is that work can be recorded with no Emacs running.
-That holds for the hooks, which are plain shell, and fails for the org
-tools, which are served from inside Emacs: when Emacs is gone
-=org_set_todo=, =org_clock_out= and =org_amend= time out and record
-nothing. The guidepost hooks keep appending meanwhile, so a total
-failure looks partial.
+The queue's premise is that work can be recorded with no Emacs running. That
+holds for the hooks, which are plain shell, and fails for the org tools,
+which are served from inside Emacs: when Emacs is gone or wedged a call is
+refused or times out and records nothing, while the guidepost hooks keep
+appending, so a total failure looks partial. The fix is one
+=PostToolUseFailure= hook that records the failure, probes Emacs, and tells
+the session what to do. The design is in =:PLAN:=.
 
-*Established:*
-- On 2026-08-31 Emacs wedged for about twenty minutes. The mac port's
-  GUI thread took a SIGSEGV in =NSAutoFillHeuristicController=, and the
-  Lisp thread blocked waiting on it, so =emacsclient= got "connection
-  refused" from a live process. Two headings could not be closed. Their
-  debriefs survived only because a human was present to be told, and
-  were written to a scratchpad in the meantime.
-- It is distinct from 72463b68, where =org_capture= and
-  =org_set_property= hung over MCP while Emacs was healthy and other
-  tools answered.
+*Established* (measured 2026-09-23 on Claude Code 2.1.280, with throwaway
+headless sessions logging raw hook payloads):
+- =PostToolUseFailure= fires on a transport failure only, a mid-session
+  timeout or refused connection. A refusal from a healthy Emacs arrives as
+  =PostToolUse=. The payload carries =tool_name=, =tool_input= and =error=,
+  and its =additionalContext= reaches the model.
+- An Emacs already down at session start offers no tools, so no tool hook
+  fires.
+- Claude Code does not catch a misnamed argument: it reaches Emacs and
+  times out.
+- A three-second =emacsclient= probe separates refused, busy (the probe
+  times out), blocked on a prompt (a public org tool on the Lisp stack) and
+  idle. Depth, minibuffer and echo-area readings alone do not: one
+  prompt-blocked run read as idle.
+- A timed-out call keeps running and completes after the client gives up,
+  so a timed-out write may still land.
+- =sample <pid> 1= needs no privileges: 1.6 s, about 300 KB.
+- On 2026-08-31 Emacs wedged for about twenty minutes, answering
+  "connection refused" from a live process, and two headings could not be
+  closed. That is distinct from 72463b68, where tools hung while Emacs was
+  healthy.
 
-*Ruled out:*
-- Restoring =QUEUE_APPEND_ID/STATE/FROM=, removed hours earlier in
-  46d225c7 as dead. A synthetic event carries no =tool_response= to
-  recover =from= from, so the staleness check would go blind on exactly
-  the events written when the system is least healthy.
-
-*Measured 2026-09-23* (Claude Code 2.1.280, headless sessions from a
-scratch directory logging raw hook payloads, =MCP_TOOL_TIMEOUT=10000=):
-- Emacs hung mid-session (a 40 s busy loop via =emacsclient=, so the port
-  accepts and never answers): =PostToolUseFailure=, =error= "MCP server
-  \"emacs-tools\" tool \"org_pending_updates\" timed out after 10s",
-  =duration_ms= 10011. No =PostToolUse=.
-- Connection refused mid-session (a byte-forwarding proxy killed between
-  calls): =PostToolUseFailure=, =error= "ECONNREFUSED: Unable to connect…",
-  =duration_ms= 4. No =PostToolUse=. This is the 2026-08-31 incident's shape.
-- Refused at session start (no listener): the server fails to connect, its
-  tools are never offered, and only =Stop= fires. The loss is visible only in
-  the model's prose.
-- Healthy server, bogus id: =PostToolUse=, with the refusal as
-  =tool_response= text beginning "Error:". Untested: an uncaught elisp signal,
-  which might come back as an MCP =isError= and so as a failure.
-
-*Measured 2026-09-23, second pass: what a =PostToolUseFailure= hook can
-learn and say.* Same harness. The hook ran
-=timeout 3 emacsclient -e '(list :depth (recursion-depth) :minibuf …)'=
-and returned =additionalContext= carrying a canary.
-- =additionalContext= reaches the model: the canary was quoted back
-  verbatim and is in the transcript.
-- The probe separates three states. A refused connection (probe socket
-  pointed at nothing, standing in for a wedged Emacs) answered "can't find
-  socket" in 0 s. A hung Emacs (40 s busy loop) timed out at 3 s. A
-  misnamed argument against a healthy Emacs answered
-  =(:depth 0 :minibuf nil)=.
-- A misnamed argument is not rejected by Claude Code. =org_body= called
-  with ={"heading": …}= reached the server and timed out after 10 s, and
-  the payload's =tool_input= carries the bad name, so the hook can see
-  exactly what was wrong.
-- Not exercised: Emacs blocked on a prompt inside a tool, which is
-  001fb310's shape and where =:depth= or =:minibuf= should read non-zero.
-  Simulating it means advising a live tool to prompt. Also not exercised:
-  running =sample= from the hook.
-
-*The two cases left unexercised, measured the same day.* The
-prompt-blocked case was simulated by advising =claude-code-ide-org-pending-updates=
-with a self-expiring =y-or-n-p= (removed afterwards).
-- The first probe cannot see a prompt. Its first run read
-  =(:depth 0 :minibuf nil)=, indistinguishable from an idle Emacs, so a
-  hook trusting it would have blamed a bad argument. (The user answered
-  that prompt by hand partway through; why it read as idle is not
-  established.) A second run read =(:depth 1 :minibuf t)=.
-- The discriminator that holds is the stack. The probe runs nested inside
-  the blocked call, so =mapbacktrace= names the public tool function still
-  waiting: =:stack (claude-code-ide-org-pending-updates)= while blocked,
-  =nil= when idle. =(current-message)= is useless for this, since an idle
-  Emacs still showed the previous prompt's text.
-- A timed-out call keeps running. Once the prompt closed, the handler
-  finished and failed to reply ("error in process filter: … not running"),
-  so a write tool that times out still writes later. That confines
-  7fa68d5c's fallback to a refused connection.
-- =sample <pid> 1= from a hook needs no privileges: 1.6 s wall-clock and
-  about 300 KB per sample.
-
+*Ruled out:* a CLI writer for todo and clock events, and restoring
+=QUEUE_APPEND_ID/STATE/FROM=, which 46d225c7 removed as dead. A synthetic
+event carries no =tool_response= to recover =from= from, so the staleness
+check would go blind on exactly the events written when the system is
+least healthy.
 
 
 
