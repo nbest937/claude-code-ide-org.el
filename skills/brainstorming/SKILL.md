@@ -92,7 +92,9 @@ scaffolding, installing dependencies, or creating an external project —
 complete the selected path's prerequisites:
 
 - Spike: the human partner approves the question and probe.
-- Bounded: the human partner approves the short in-chat design.
+- Bounded: the human partner approves the short in-chat design, then
+  says yes to starting. Design approval only permits tagging the
+  heading and writing the drawer.
 - Architectural: the human partner approves the design in chat, then
   reviews the `:PLAN:` drawer it was written into, then says yes to
   starting. Design approval only permits capturing the
