@@ -8,10 +8,15 @@
 :CREATED:  [2026-09-22 Tue 20:20]
 :CATEGORY: Dev
 :END:
+:LOGBOOK:
+CLOCK: [2026-09-22 Tue 20:20]--[2026-09-22 Tue 20:20] =>  0:00
+- [2026-09-22 Tue 20:20]--[2026-09-22 Tue 20:20] assigned at review
+:END:
 
 When an org tool refuses a write, sessions fall through to `Edit`, `sed -i` or `awk … && mv` on `TODO.org`, which writes behind the live buffer. The user wants them to stop and wait instead, perhaps with a Fibonacci back-off and retry (2026-09-22). Retrying only helps when the refusal is transient. The human's unsaved changes clear when they save, so back off on those (1, 1, 2, 3, 5, 8 s, capped), then ask. Three refusals never clear by waiting: `org_amend replace=true` on a file with uncommitted changes, a read-only buffer, and an edit no tool can make (`dd4b9a9f`, `24c7b537`, `da6a2fba`). For those the session should stop and ask at once, never fall through. The enforcement is a `PreToolUse` guard that refuses any direct write to the tracked org files while Emacs is visiting them. That is a sibling of `b69ecfe4`, and it avoids that heading's false-positive problem because it refuses the write itself without parsing the hunk.
 
 Established (2026-09-22): three sessions bypassed Emacs that day. One edited a line-number citation into place with `Edit` because the buffer was read-only. One rewrote a drawer and body with `awk` and `mv`, and the `#+TAGS` line with `sed -i`, because `replace=true` refused. One hand-edited a headline tag and repaired a torn drawer. Each checked `buffer-modified-p` first, so nothing was lost, and the risk is the one time the check is skipped. The concrete harm on record is `53b0047d`, a clock marker desynced by a direct write. `Edit` and `Write` are easy to guard. Writes through `Bash` are not, and deserve a measurement of how often they occur before any design. `b5f94b88` points the other way, letting a session interject without waiting, and the queue already covers capture and amend. So this covers only the writes the queue does not.
+
 
 * TODO Answer a bad tool call with its error rather than a hang, until upstream defines json-rpc-error :code:
 :PROPERTIES:
@@ -21,103 +26,6 @@ Established (2026-09-22): three sessions bypassed Emacs that day. One edited a l
 :END:
 
 A tool call with a missing required argument or an unknown tool name gets no reply and reaches the model as "The operation timed out" (`ce012ad4`, confirmed 2026-09-22), and every such timeout in this project's transcripts was a misnamed argument that the error text would have corrected at once. The upstream fix may be slow to land, so this module could catch `json-rpc-error` itself: an advice around `claude-code-ide-mcp-http-server--handle-tools-call` or `--validate-args`, converting the signal into a tool result that carries the message. A bare `define-error` is *not* enough, since upstream's outer handler replies with `id` nil and the client cannot match that reply. Unclassified: the brainstorming skill decides spike or bounded when it is picked up.
-
-* NEXT A story may carry NEXT: the prohibition generalises a retired trigger's guard into a rule about the keyword :prose:bounded:
-:PROPERTIES:
-:ID:       878d2cf5-e08e-4bcb-8db1-a601b9b08f55
-:CREATED:  [2026-09-22 Tue 17:08]
-:CATEGORY: Skill
-:END:
-:DEBRIEF:
-Three edits to one section of one reference, plus the regenerated copy:
-the prohibition and its `42808717` citation struck, the
-"does not substitute for a member's `NEXT`" bullet generalised from
-slice to grouping, and a new sentence naming the three scopes as
-independent. The slice paragraph kept what is genuinely its own — that
-marking one nominates a slice rather than an action — and lost the
-framing that a story is forbidden what a slice is permitted.
-
-*Verified as the plan asked.* `bin/check-conventions` passes, 32 checks
-with the removed citation no longer cited; `bin/claude-org-setup
---check` reports all seven promoted files in sync after the re-run; the
-diff touches exactly the two files and the two-file grep for
-"must never carry it" now returns nothing. There is no executable
-surface here, so that reading plus the greps is the honest verification.
-
-*One thing the plan did not anticipate, and it nearly cost the change.*
-The first draft explained in the rules *why* the prohibition was being
-struck, and that pushed the always-loaded corpus to 10,084 words against
-a 10,000 budget, which `bin/check-conventions` refuses. The history
-belongs on this heading, not in a file every session loads; the rewrite
-states the rule and cites this `:ID:` for the reasoning, and the corpus
-came back to **9,973**. That leaves 27 words of headroom for the next
-rule anyone adds, which is the real state of that budget and worth
-knowing before the next prose change.
-:END:
-:LOGBOOK:
-- Tags ":prose:bounded:" from ":code:bounded:" [2026-09-22 Tue 17:11] \\
-  the deliverable is prose, not code (the user, 2026-09-22): this heading
-  edits a rules file and touches no elisp, and :code: was written at
-  capture out of habit
-:END:
-:PLAN:
-Designed 2026-09-22 in conversation, classified =bounded=: the flow is the
-rules file itself, and the change is a deletion, a word and a sentence.
-
-*The three scopes are orthogonal and the rules should say so* (the user,
-2026-09-22): "NEXT within a story indicates where to start when it is taken
-up, but it need not exist, so the only rule is that there can be at most one
-NEXT /inside/ the story. Same for NEXT within an epic — it doesn't care
-whether there are any NEXTs within its members. They have no bearing on one
-another." The section already half-encodes this, since a story's internal
-NEXT is exempt from the per-category budget precisely because the scopes are
-independent; the prohibition is the only rule in it that reaches across.
-
-*Edit the reference, never the promoted copy.*
-=skills/org/references/org-state-transitions.md= is the source;
-=.claude/rules/org-state-transitions.md= carries the generated header and a
-hook refuses an edit to it. Re-run =bin/claude-org-setup= afterwards. The
-prohibition appears in exactly those two files and nowhere else — checked,
-not assumed.
-
-*Three changes, in the "NEXT and nomination" section.* Strike "a story must
-never carry it — promoting one declares a project to be an action" together
-with its =42808717= citation, since that heading is about a *trigger* and
-the trigger is retired. Generalise the sentence that already handles the
-inverted configuration from slices to groupings: a grouping marked NEXT
-whose members are all TODO is nominated but not entered — the mark says
-which grouping to pick up, never which action to start inside it, and it
-does not substitute for a member's NEXT. Then state the independence
-outright, so the next reader does not re-derive it: at most one top-level
-NEXT per =:CATEGORY:=, at most one NEXT inside a grouping, and neither
-constrains the other.
-
-*The slice exception shrinks rather than disappearing.* With the
-prohibition gone a slice is no longer exceptional in *carrying* the keyword
-— only in what it means when it does, a portfolio-level nomination among
-several open slices. The paragraph keeps that and loses the framing that a
-story is forbidden what a slice is permitted.
-
-*Nothing else moves.* The per-category budget stands, the internal-NEXT
-exemption stands, and the retired auto-promotion trigger stays retired —
-this removes a rule it left behind, not the warning against rebuilding it.
-
-*Verification.* =bin/check-conventions= must pass, since it checks that
-cited =:ID:=s resolve and one citation is being removed; =bin/claude-org-setup
---check= must report the promoted copy in sync after the re-run; and the
-diff should touch one section of one reference file plus its generated twin.
-There is nothing executable here, so the honest verification is a reading:
-confirm no other rule in the corpus depends on the struck sentence, which
-the two-file grep already establishes for its wording.
-:END:
-
-The state-transition rules say a story must never carry NEXT, citing 42808717 — but that heading is about an auto-promotion trigger that counted siblings and checked nothing else, and its objection was to the resulting configuration, a parent marked NEXT while its own child action is merely TODO. The trigger is retired and the same section says not to rebuild it, so the prohibition now guards a failure that cannot occur by mechanism, only by someone deciding it. It also contradicts the slice exception, since a slice is a grouping and may carry the keyword, and it is the only non-orthogonal rule in a section that otherwise keeps its scopes independent — a category's top-level budget, a grouping's internal nomination, and what a mark means. Caught 2026-09-22 when a session queued a demotion on a7f844ba on the strength of it and the user dismissed the transition, not being aware of any such injunction.
-
-*Resolved 2026-09-22.* The prohibition is struck from
-`skills/org/references/org-state-transitions.md` and its promoted copy,
-and the section now states the three scopes' independence outright, so
-`a7f844ba` carrying `NEXT` over a `NEXT` child is ordinary rather than a
-violation nobody meant to commit.
 
 
 * TODO org_amend accepts a headline-shaped line in drawer text, which tears the drawer open :code:observed:
@@ -449,70 +357,6 @@ which carries no session id. Nothing aged out; the line is wrong. Seen
 correct.
 
 
-* DONE pre-commit lints templates/TODO.org as TODO.org, so staging the template breaks every link into the tracker
-CLOSED: [2026-09-22 Tue 10:38]
-:PROPERTIES:
-:ID:       b28467b5-f54f-4818-a6a0-ba8527c7e978
-:CREATED:  [2026-09-22 Tue 10:37]
-:CATEGORY: Dev
-:END:
-:LOGBOOK:
-- State "DONE"       from "DOING"      [2026-09-22 Tue 10:38] \\
-  filter anchored at the root
-:END:
-:DEBRIEF:
-It was latent from the hook's first version and surfaced when the
-path-tag commit on feature/brainstorming-skill staged the template for
-the first time. Reproduced by copying the template over a temp
-=TODO.org=, which gave the same 221 errors. The filter is now
-=^(TODO|DONE)\.org$=, matching the hook's own comment that it governs the
-pair =bin/lint-org= governs. =bin/pre-commit-test= case 9 stages both
-files and a DONE.org link into =TODO.org=; it was red before the fix and
-the suite is 9/9 after. No other hook filter has the unanchored form
-([[orgit-rev:claude-code-ide-org::1d2c71d][1d2c71d]]).
-:END:
-
-The pre-commit org lint matched any staged =.../TODO.org=, and its temp
-copies are keyed by basename, so a staged =templates/TODO.org= replaced
-the real tracker and every DONE.org link into it read as dangling (221
-false errors).
-
-*Resolved 2026-09-22:* the filter is anchored at the repo root.
-
-
-* DONE The state rules say a heading is DOING while it is planned, but planning is TODO-phase and DOING begins with implementation :code:
-CLOSED: [2026-09-22 Tue 09:43]
-:PROPERTIES:
-:ID:       c3a200cb-60ca-4615-819f-32b7d9d90eb5
-:CREATED:  [2026-09-22 Tue 09:42]
-:CATEGORY: Skill
-:END:
-:LOGBOOK:
-CLOCK: [2026-09-22 Tue 09:42]--[2026-09-22 Tue 09:43] =>  0:01
-- [2026-09-22 Tue 09:42]--[2026-09-22 Tue 09:43] correct planning-is-DOING in the state rules
-- State "DONE"       from "DOING"      [2026-09-22 Tue 09:43] \\
-  rules corrected, promoted, budgets met
-:END:
-:DEBRIEF:
-*What shipped* ([[orgit-rev:claude-code-ide-org::7b722f2][7b722f2]]), in the references, with the promoted copies regenerated by =bin/claude-org-setup=:
-- =org-state-transitions.md=: the =PLANNING= paragraph now reads "Composing and refining a plan is =TODO=-phase work; =DOING= begins with implementation, at the Plan Mode checkpoint", replacing "a heading is =DOING= while it is being planned and implemented"; the start-work rule now says "start implementing";
-- =org-time-tracking.md=: the first-write rule gains "Planning a =TODO= heading clocks in on it and changes no keyword".
-
-*Where the wrong sentence came from.* =c954f650='s debrief measured that planning mostly happened inside a task's own =DOING= clock, and the rule restated that observation as a definition. Nothing else in the rules or skills repeated it: a grep of =skills/=, =.claude/skills/org-dev= and CLAUDE.md found only that paragraph. The debrief itself is history and stays as written.
-
-*Verified.*
-- =bin/check-conventions= exits 0, including =bin/check-org-dev-skill=.
-- =bin/word-budget=: 9947 / 10000 self-hosting, 5047 / 5800 and 6715 / 7500 for consumers.
-- "Changes no keyword" was checked against source only: neither the module nor the Doom config sets =org-clock-in-switch-to-state=, and org's default is nil. A live read was refused by =emacsclient-guard=, which matches the variable's name.
-
-*Not filed.* No residue. =4ae7a04b=, the heading this cost a =DOING= capture, is already queued back to =TODO=, and its plan was corrected in [[orgit-rev:claude-code-ide-org::3270891][3270891]].
-:END:
-
-org-state-transitions.md says a heading is DOING "while it is being planned and implemented", carried over from c954f650's debrief, which recorded observed practice rather than a decision. The Plan Mode checkpoint and the new-heading gate both treat the move to DOING as the point where implementation starts, and composing and refining a plan belongs to TODO (the user, 2026-09-22). This cost 4ae7a04b a DOING capture. Rewrite the sentence, scope the start-work rule to implementation, and say in the time-tracking rules where planning time is clocked.
-
-*Resolved.* The state rules now put planning in TODO and the start of DOING at implementation, matching the Plan Mode checkpoint. The time-tracking rules say planning time clocks in on the TODO heading and changes no keyword.
-
-
 * DOING Brainstorming exists only inside the superpowers plugin, whose specs go to Markdown files and never reach the tracker :code:
 :PROPERTIES:
 :ID:       4ae7a04b-1557-44d6-91c3-384f1def5293
@@ -601,6 +445,34 @@ CLOCK: [2026-09-22 Tue 12:22]--[2026-09-22 Tue 12:23] =>  0:01
 - [2026-09-22 Tue 12:23]--[2026-09-22 Tue 12:23] suggested span, accepted at review
 CLOCK: [2026-09-22 Tue 12:45]--[2026-09-22 Tue 12:46] =>  0:01
 - [2026-09-22 Tue 12:45]--[2026-09-22 Tue 12:46] suggested span, accepted at review
+CLOCK: [2026-09-22 Tue 17:03]--[2026-09-22 Tue 17:04] =>  0:01
+- [2026-09-22 Tue 17:03]--[2026-09-22 Tue 17:04] suggested span, accepted at review
+CLOCK: [2026-09-22 Tue 17:07]--[2026-09-22 Tue 17:08] =>  0:01
+- [2026-09-22 Tue 17:07]--[2026-09-22 Tue 17:08] suggested span, accepted at review
+CLOCK: [2026-09-22 Tue 17:09]--[2026-09-22 Tue 17:10] =>  0:01
+- [2026-09-22 Tue 17:09]--[2026-09-22 Tue 17:10] suggested span, accepted at review
+CLOCK: [2026-09-22 Tue 17:11]--[2026-09-22 Tue 17:12] =>  0:01
+- [2026-09-22 Tue 17:11]--[2026-09-22 Tue 17:12] suggested span, accepted at review
+CLOCK: [2026-09-22 Tue 17:14]--[2026-09-22 Tue 17:15] =>  0:01
+- [2026-09-22 Tue 17:14]--[2026-09-22 Tue 17:15] judge the second architectural run
+CLOCK: [2026-09-22 Tue 17:17]--[2026-09-22 Tue 17:18] =>  0:01
+- [2026-09-22 Tue 17:17]--[2026-09-22 Tue 17:18] suggested span, accepted at review
+CLOCK: [2026-09-22 Tue 17:21]--[2026-09-22 Tue 17:23] =>  0:02
+- [2026-09-22 Tue 17:21]--[2026-09-22 Tue 17:23] suggested span, accepted at review
+CLOCK: [2026-09-22 Tue 17:26]--[2026-09-22 Tue 17:29] =>  0:03
+- [2026-09-22 Tue 17:26]--[2026-09-22 Tue 17:29] suggested span, accepted at review
+CLOCK: [2026-09-22 Tue 17:33]--[2026-09-22 Tue 17:34] =>  0:01
+- [2026-09-22 Tue 17:33]--[2026-09-22 Tue 17:34] suggested span, accepted at review
+- [2026-09-22 Tue 17:36]--[2026-09-22 Tue 17:36] suggested span, accepted at review
+- [2026-09-22 Tue 18:04]--[2026-09-22 Tue 18:05] suggested span, accepted at review
+CLOCK: [2026-09-22 Tue 18:06]--[2026-09-22 Tue 18:07] =>  0:01
+- [2026-09-22 Tue 18:06]--[2026-09-22 Tue 18:07] suggested span, accepted at review
+CLOCK: [2026-09-22 Tue 18:11]--[2026-09-22 Tue 18:13] =>  0:02
+- [2026-09-22 Tue 18:11]--[2026-09-22 Tue 18:13] suggested span, accepted at review
+CLOCK: [2026-09-22 Tue 18:13]--[2026-09-22 Tue 18:14] =>  0:01
+- [2026-09-22 Tue 18:13]--[2026-09-22 Tue 18:14] judge the first spike run
+- [2026-09-22 Tue 18:14]--[2026-09-22 Tue 18:14] suggested span, accepted at review
+- [2026-09-22 Tue 20:16]--[2026-09-22 Tue 20:17] suggested span, accepted at review
 :END:
 :PLAN:
 *Why port rather than install.* The superpowers plugin is enabled as a whole: 15 skills and a SessionStart hook. Evaluated against superpowers v6.4.1 ([[orgit-rev:superpowers::5bf4e78][5bf4e78]]), six things conflict with this repo:
@@ -815,50 +687,6 @@ hypothesis forms.
 
 *Still unexercised:* the spike's investigate and report steps, since
 the probe was never run, and the bounded path under the current skill.
-
-
-
-
-* DONE Starting a pull request's review should queue its slice to REVIEW, not wait for someone to remember
-CLOSED: [2026-09-21 Mon 18:26]
-:PROPERTIES:
-:ID:       a9d37aee-3cc0-4e5f-80ff-6659aba34db0
-:CREATED:  [2026-09-21 Mon 18:20]
-:CATEGORY: Slices
-:END:
-:LOGBOOK:
-CLOCK: [2026-09-21 Mon 18:18]--[2026-09-21 Mon 18:20] =>  0:02
-- [2026-09-21 Mon 18:18]--[2026-09-21 Mon 18:20] assigned at review
-CLOCK: [2026-09-21 Mon 18:24]--[2026-09-21 Mon 18:26] =>  0:02
-- [2026-09-21 Mon 18:24]--[2026-09-21 Mon 18:26] build the review-start hook
-- State "DONE"       from "DOING"      [2026-09-21 Mon 18:26] \\
-  built and verified
-:END:
-:DEBRIEF:
-It triggers on =UserPromptSubmit= for =/code-review= or =/ultrareview=,
-and on a Bash =PostToolUse= for =gh pr edit --add-reviewer= or a
-=requested_reviewers= call. The first trigger was measured before
-building: the forked skill still fires =UserPromptSubmit= with the command
-as the prompt, and a =resume= event was logged at the exact second.
-
-It writes an ordinary todo event through =queue-append= from a
-synthesized =org_set_todo= payload, so =from= is recovered as for any
-transition, the source reads =review-start=, and a human applies it. It
-acts only when exactly one slice is DOING, every unfinished member is
-REVIEW, and no session holds that slice queued to REVIEW unapplied and
-undismissed, judged through each session's watermark. That last
-condition was added at the user's question. Otherwise it says why it
-did not act. The real tracker and review reader were checked end to end.
-=bin/review-start-test= is 17/17. It is wired in both hook configs and
-documented in the session-tracking table and "Closing a slice".
-:END:
-
-A slice enters REVIEW when its pull request's review starts, but that was
-a sentence to recall, and f6d160c2 stayed DOING through its whole
-=/code-review=. Built as an incidental of that slice.
-
-*Resolved 2026-09-21:* =bin/hooks/review-start= queues the transition
-when a review starts.
 
 
 * TODO One clock_in keeps pairing with later clock_outs, so a closed heading collects phantom spans at every review
@@ -1349,336 +1177,6 @@ Also noticed, not fixed: =claude-org-setup --check= reads the real
 :END:
 
 Observed 2026-09-19: the first plan unlinked under the drawer convention was deleted from the archive directory, and =bin/sync-plans --check= immediately reported it "out of date" and wanted it back — because a body amendment on =ff1bec00= had named the file in =…= quotes as the first orphan. The matcher is a substring grep for the archive directory's name followed by a slug and the markdown extension, so a mention is a link. Rephrasing the sentence cleared it. Small in itself; it matters because the drawer convention will produce orphans on purpose, and prose that names them. Match the org =file:= link form, not the substring — and note that =bin/lint-org='s plan-link check has the same appetite: the first draft of this very body spelled the path pattern literally and lint reported a plan link to a missing file. Whether either is worth fixing before the whole mechanism retires is decided with =ff1bec00=.
-
-
-* DONE [18/18] A rule the agent can recite and still misses is a rule in the wrong place: count the misses, then move the rules out of recall :code:
-CLOSED: [2026-09-21 Mon 18:51]
-:PROPERTIES:
-:ID:       f6d160c2-c0ac-4c4b-a298-fe581ea3962a
-:CREATED:  [2026-09-19 Sat 13:50]
-:CATEGORY: Slices
-:KIND:     slice
-:COOKIE_DATA: checkbox recursive
-:END:
-:DEBRIEF:
-Eight planned members, b09aca60 adopted, six review findings filed as
-members and fixed, and one incidental (a9d37aee). Worked from 2026-09-19
-to 2026-09-21 and merged as PR #29.
-
-*What shipped:* misses counted by every blocking hook, every genuine
-=org_*= refusal and every git guard, read per day by =bin/miss-rate= and
-in the ceremony; the conventions pointer on the first org call; the time
-rules promoted only where tracking is on; the always-loaded surface cut
-from 13,802 words to under 10,000 and ratcheted by =bin/word-budget=; the
-duplicate query inside =org_capture=; the twin pass; the plan in the
-=:PLAN:= drawer with plan-file links retired; and a static
-=/next-session=.
-
-*Measured:* a baseline of 8 genuine misses in one session on the first
-counted day, once 24 leaked test-fixture misses had been found and
-removed. The fall, or not, is due 2026-10-12 on 158d7e80.
-
-*The review window:* =/code-review= found six defects, all real: a
-setup re-run deleting a consumer's time rules, deferred writes skipping
-escaping, archived misses leaving the count, a conflicted local merge
-slipping the refusal, a two-line note making a bogus rule, and the drift
-guard reading the working tree. Each was reproduced with a failing test
-and fixed on the branch. The slice should have entered REVIEW when that
-review started. That is now a rule, and a hook (a9d37aee).
-
-*Handed on:* the consumer install checks are 2b8930da's; whether sessions
-act on the conventions notice is counted on d606eaff; the NEXT slice is
-8a2eb687.
-:END:
-:LOGBOOK:
-CLOCK: [2026-09-19 Sat 08:29]--[2026-09-19 Sat 08:32] =>  0:03
-- [2026-09-19 Sat 08:29]--[2026-09-19 Sat 08:32] assigned at review
-CLOCK: [2026-09-19 Sat 08:49]--[2026-09-19 Sat 09:02] =>  0:13
-- [2026-09-19 Sat 08:49]--[2026-09-19 Sat 09:02] analyze convention-drift-analysis.md against the content tasks; amend and capture
-CLOCK: [2026-09-19 Sat 09:11]--[2026-09-19 Sat 09:25] =>  0:14
-- [2026-09-19 Sat 09:11]--[2026-09-19 Sat 09:25] analyze convention-drift-analysis.md against the content tasks; amend and capture
-CLOCK: [2026-09-19 Sat 09:25]--[2026-09-19 Sat 09:26] =>  0:01
-- [2026-09-19 Sat 09:25]--[2026-09-19 Sat 09:26] analyze convention-drift-analysis.md against the content tasks; amend and capture
-CLOCK: [2026-09-19 Sat 13:36]--[2026-09-19 Sat 13:37] =>  0:01
-- [2026-09-19 Sat 13:36]--[2026-09-19 Sat 13:37] analyze convention-drift-analysis.md against the content tasks; amend and capture
-CLOCK: [2026-09-19 Sat 13:37]--[2026-09-19 Sat 13:38] =>  0:01
-- [2026-09-19 Sat 13:37]--[2026-09-19 Sat 13:38] analyze convention-drift-analysis.md against the content tasks; amend and capture
-CLOCK: [2026-09-19 Sat 13:42]--[2026-09-19 Sat 13:44] =>  0:02
-- [2026-09-19 Sat 13:42]--[2026-09-19 Sat 13:44] analyze convention-drift-analysis.md against the content tasks; amend and capture
-CLOCK: [2026-09-19 Sat 13:44]--[2026-09-19 Sat 13:45] =>  0:01
-- [2026-09-19 Sat 13:44]--[2026-09-19 Sat 13:45] analyze convention-drift-analysis.md against the content tasks; amend and capture
-CLOCK: [2026-09-19 Sat 13:49]--[2026-09-19 Sat 13:54] =>  0:05
-- [2026-09-19 Sat 13:49]--[2026-09-19 Sat 13:54] analyze convention-drift-analysis.md against the content tasks; amend and capture
-CLOCK: [2026-09-19 Sat 13:54]--[2026-09-19 Sat 13:55] =>  0:01
-- [2026-09-19 Sat 13:54]--[2026-09-19 Sat 13:55] analyze convention-drift-analysis.md against the content tasks; amend and capture
-CLOCK: [2026-09-19 Sat 14:00]--[2026-09-19 Sat 14:02] =>  0:02
-- [2026-09-19 Sat 14:00]--[2026-09-19 Sat 14:02] analyze convention-drift-analysis.md against the content tasks; amend and capture
-CLOCK: [2026-09-19 Sat 14:02]--[2026-09-19 Sat 14:03] =>  0:01
-- [2026-09-19 Sat 14:02]--[2026-09-19 Sat 14:03] analyze convention-drift-analysis.md against the content tasks; amend and capture
-CLOCK: [2026-09-19 Sat 14:08]--[2026-09-19 Sat 14:09] =>  0:01
-- [2026-09-19 Sat 14:08]--[2026-09-19 Sat 14:09] analyze convention-drift-analysis.md against the content tasks; amend and capture
-CLOCK: [2026-09-19 Sat 14:09]--[2026-09-19 Sat 14:10] =>  0:01
-- [2026-09-19 Sat 14:09]--[2026-09-19 Sat 14:10] analyze convention-drift-analysis.md against the content tasks; amend and capture
-CLOCK: [2026-09-19 Sat 14:15]--[2026-09-19 Sat 14:16] =>  0:01
-- [2026-09-19 Sat 14:15]--[2026-09-19 Sat 14:16] analyze convention-drift-analysis.md against the content tasks; amend and capture
-CLOCK: [2026-09-19 Sat 14:16]--[2026-09-19 Sat 14:17] =>  0:01
-- [2026-09-19 Sat 14:16]--[2026-09-19 Sat 14:17] analyze convention-drift-analysis.md against the content tasks; amend and capture
-CLOCK: [2026-09-19 Sat 14:24]--[2026-09-19 Sat 14:25] =>  0:01
-- [2026-09-19 Sat 14:24]--[2026-09-19 Sat 14:25] analyze convention-drift-analysis.md against the content tasks; amend and capture
-CLOCK: [2026-09-19 Sat 14:30]--[2026-09-19 Sat 14:32] =>  0:02
-- [2026-09-19 Sat 14:30]--[2026-09-19 Sat 14:32] analyze convention-drift-analysis.md against the content tasks; amend and capture
-CLOCK: [2026-09-19 Sat 14:32]--[2026-09-19 Sat 14:33] =>  0:01
-- [2026-09-19 Sat 14:32]--[2026-09-19 Sat 14:33] analyze convention-drift-analysis.md against the content tasks; amend and capture
-CLOCK: [2026-09-19 Sat 14:37]--[2026-09-19 Sat 14:38] =>  0:01
-- [2026-09-19 Sat 14:37]--[2026-09-19 Sat 14:38] analyze convention-drift-analysis.md against the content tasks; amend and capture
-CLOCK: [2026-09-19 Sat 14:38]--[2026-09-19 Sat 14:39] =>  0:01
-- [2026-09-19 Sat 14:38]--[2026-09-19 Sat 14:39] analyze convention-drift-analysis.md against the content tasks; amend and capture
-CLOCK: [2026-09-19 Sat 14:49]--[2026-09-19 Sat 14:55] =>  0:06
-- [2026-09-19 Sat 14:49]--[2026-09-19 Sat 14:55] analyze convention-drift-analysis.md against the content tasks; amend and capture
-CLOCK: [2026-09-19 Sat 14:55]--[2026-09-19 Sat 14:56] =>  0:01
-- [2026-09-19 Sat 14:55]--[2026-09-19 Sat 14:56] analyze convention-drift-analysis.md against the content tasks; amend and capture
-CLOCK: [2026-09-19 Sat 15:46]--[2026-09-19 Sat 15:47] =>  0:01
-- [2026-09-19 Sat 15:46]--[2026-09-19 Sat 15:47] analyze convention-drift-analysis.md against the content tasks; amend and capture
-CLOCK: [2026-09-19 Sat 15:49]--[2026-09-19 Sat 15:50] =>  0:01
-- [2026-09-19 Sat 15:49]--[2026-09-19 Sat 15:50] analyze convention-drift-analysis.md against the content tasks; amend and capture
-CLOCK: [2026-09-19 Sat 16:03]--[2026-09-19 Sat 16:04] =>  0:01
-- [2026-09-19 Sat 16:03]--[2026-09-19 Sat 16:04] analyze convention-drift-analysis.md against the content tasks; amend and capture
-- State "DOING"      from "NEXT"       [2026-09-19 Sat 16:19] \\
-  slice work starts with member 63713df3
-CLOCK: [2026-09-21 Mon 07:58]--[2026-09-21 Mon 07:59] =>  0:01
-- [2026-09-21 Mon 07:58]--[2026-09-21 Mon 07:59] assigned at review
-CLOCK: [2026-09-21 Mon 08:04]--[2026-09-21 Mon 08:05] =>  0:01
-- [2026-09-21 Mon 08:04]--[2026-09-21 Mon 08:05] assigned at review
-CLOCK: [2026-09-21 Mon 08:13]--[2026-09-21 Mon 08:16] =>  0:03
-- [2026-09-21 Mon 08:13]--[2026-09-21 Mon 08:16] assigned at review
-CLOCK: [2026-09-21 Mon 08:20]--[2026-09-21 Mon 08:26] =>  0:06
-- [2026-09-21 Mon 08:20]--[2026-09-21 Mon 08:26] assigned at review
-CLOCK: [2026-09-21 Mon 13:43]--[2026-09-21 Mon 13:46] =>  0:03
-- [2026-09-21 Mon 13:43]--[2026-09-21 Mon 13:46] assigned at review
-CLOCK: [2026-09-21 Mon 16:52]--[2026-09-21 Mon 16:53] =>  0:01
-- [2026-09-21 Mon 16:52]--[2026-09-21 Mon 16:53] assigned at review
-CLOCK: [2026-09-21 Mon 16:59]--[2026-09-21 Mon 17:00] =>  0:01
-- [2026-09-21 Mon 16:59]--[2026-09-21 Mon 17:00] assigned at review
-- [2026-09-21 Mon 17:37]--[2026-09-21 Mon 17:38] assigned at review
-CLOCK: [2026-09-21 Mon 17:38]--[2026-09-21 Mon 17:58] =>  0:20
-- [2026-09-21 Mon 17:38]--[2026-09-21 Mon 17:58] file PR 29 review findings
-- State "REVIEW"     from "DOING"      [2026-09-21 Mon 18:13] \\
-  every member terminal; closes when PR 29 merges
-CLOCK: [2026-09-21 Mon 18:38]--[2026-09-21 Mon 18:39] =>  0:01
-- [2026-09-21 Mon 18:38]--[2026-09-21 Mon 18:39] assigned at review
-CLOCK: [2026-09-21 Mon 18:49]--[2026-09-21 Mon 18:50] =>  0:01
-- [2026-09-21 Mon 18:49]--[2026-09-21 Mon 18:50] assigned at review
-- State "DONE"       from "REVIEW"     [2026-09-21 Mon 18:51] \\
-  PR 29 merged
-CLOCK: [2026-09-22 Tue 08:32]--[2026-09-22 Tue 08:33] =>  0:01
-- [2026-09-22 Tue 08:32]--[2026-09-22 Tue 08:33] assigned at review
-CLOCK: [2026-09-22 Tue 08:35]--[2026-09-22 Tue 08:36] =>  0:01
-- [2026-09-22 Tue 08:35]--[2026-09-22 Tue 08:36] assigned at review
-:END:
-:PLAN:
-Composed 2026-09-19 at the user's direction from the convention-drift
-analysis (=convention-drift-analysis.md=, untracked at composition): seven
-headings sharing one deliverable, a miss rate that can be seen and shown
-to fall. The analysis's thrust is that the agent forgets rules it can
-recite; each member removes one reason, and the first member is the
-number the others are measured against.
-
-*Order, and why.* [[id:63713df3-4ed9-42be-b971-8ac4485e76c2][63713df3]]
-leads: a slice that cannot show its number moving has nothing to close
-on, and its instrumentation is cheap. Then the two load-path defects,
-[[id:436e0991-c8ac-40fb-860d-a6c4c381bee5][436e0991]] and
-[[id:1b69fe4e-3dab-4b11-b21b-96320bf9d4e0][1b69fe4e]], since a rule that
-does not load cannot be recalled and no compression helps it. Then the
-budget ([[id:bf7e0b8e-f83a-4d4a-9950-3ab23a225156][bf7e0b8e]]) and the
-enforcement audit ([[id:3cd7b7d3-25eb-4f30-ae90-9174a6876674][3cd7b7d3]])
-together, one sitting over the same files. Then the structural fix for
-the case study itself, [[id:c8773ec2-1b29-4128-80b3-5c21845f4ca3][c8773ec2]],
-which the audit will have confirmed as the shape to copy. Last the
-ratchet, [[id:f2030ce9-3759-407c-b459-fe4ba4de8854][f2030ce9]], blocked
-on the budget it asserts.
-
-*Candidates not adopted at composition*, each waiting on an amendment
-drafted the same day and not yet written:
-[[id:8a23d6ec-ca45-454d-b65f-e46ea9204816][8a23d6ec]] (comma-escaping,
-inverted to enforcement-first) and
-[[id:7eb7dd8d-2d9b-4a63-afbd-5878298e42a4][7eb7dd8d]] (the judgement half
-of the duplicate check). [[id:3cb3f955-f10a-47cd-84ab-e629d73ea59d][3cb3f955]]
-is the opposite case: under this slice's discipline it is retired, not
-adopted, because the uncommitted capture is the approval window.
-
-*The slice was composed through the defect it exists to reduce.* Every
-member's =org_capture= body was silently dropped and restored by hand
-hours later ([[id:bbf9fb77-f081-48c5-bb01-1b4d4f201969][bbf9fb77]],
-fourth occurrence), and =org_slice_add_member= timed out through MCP and
-succeeded through =emacsclient=
-([[id:51bcec2c-242d-4e06-9610-0b9aeac1f92c][51bcec2c]]). Neither is a
-member; both are evidence for the first one.
-
-*Correction, same day.* Two lines above are stale. "[[id:7eb7dd8d-2d9b-4a63-afbd-5878298e42a4][7eb7dd8d]] (the judgement half of the duplicate check)": that heading was narrowed and retitled the same afternoon to the *dependency* check — a request against open work in either direction — and the duplicate judgement now lives per-capture in the reader of [[id:c8773ec2-1b29-4128-80b3-5c21845f4ca3][c8773ec2]]'s result and corpus-wide in [[id:9fb8c1fb-1f86-4dc1-9203-6c7abfd27594][9fb8c1fb]], which joined as the seventh member. Its residue is a candidate third finding of that pass, not a member here. And "[[id:3cb3f955-f10a-47cd-84ab-e629d73ea59d][3cb3f955]] is retired": recommended, not done — its amendment records the reasoning and leaves the keyword to the user.
-
-*Settled the same evening.* The user kept the existing practice: sessions commit their own captures and bookkeeping without asking, so [[id:3cb3f955-f10a-47cd-84ab-e629d73ea59d][3cb3f955]] is neither retired nor adopted here — it narrows to writing down its safety predicate. "Under this slice's discipline it is retired" above is withdrawn; the slice's discipline is *capture without asking, commit without asking*, and the approval is after the fact.
-:END:
-
-Planned:
-
-- [X] [[id:63713df3-4ed9-42be-b971-8ac4485e76c2][63713df3]] DONE "Forgets frequently" has no number: the only recorded misses are once-per-session sentinels, so the rate cannot be seen or shown to fall
-- [X] [[id:436e0991-c8ac-40fb-860d-a6c4c381bee5][436e0991]] DONE Path-scoped rules load on a Read, which the org tools exist to replace, so the conventions load only on the discouraged path
-- [X] [[id:1b69fe4e-3dab-4b11-b21b-96320bf9d4e0][1b69fe4e]] DONE org-time-tracking.md promotes with no path scope, so a consumer with the feature off loads 260 lines about it every session
-- [X] [[id:bf7e0b8e-f83a-4d4a-9950-3ab23a225156][bf7e0b8e]] DONE The always-loaded surface is 1,573 lines, and the split that shrank CLAUDE.md is what grew it
-- [X] [[id:3cd7b7d3-25eb-4f30-ae90-9174a6876674][3cd7b7d3]] DONE Audit the always-loaded rules for clauses a hook could enforce, since prose recall is what fails
-- [X] [[id:c8773ec2-1b29-4128-80b3-5c21845f4ca3][c8773ec2]] DONE org_capture should run the duplicate query itself, so the check the rule asks for cannot be skipped
-- [X] [[id:9fb8c1fb-1f86-4dc1-9203-6c7abfd27594][9fb8c1fb]] DONE Twins are caught by review and nothing reviews for them: a checker subagent with a saturated context, run as a pass
-- [X] [[id:f2030ce9-3759-407c-b459-fe4ba4de8854][f2030ce9]] DONE Nothing bounds the always-loaded rule surface, so every new rule is free at the point of writing
-- [X] [[id:5fbc34cb-b5bd-4d9c-b8cb-29063f492b45][5fbc34cb]] DONE A plain claude-org-setup re-run deletes org-time-tracking.md where the plugin option has tracking on
-- [X] [[id:fd7d9715-860c-4082-853d-fa27b09045e3][fd7d9715]] DONE A queue file holding only miss and session lines is archived as drained, and its misses leave the count
-- [X] [[id:00aa6a85-fcd1-4343-82c4-5430c3483dbb][00aa6a85]] DONE A deferred amend or capture is applied without the block-headline escaping the direct write gets
-- [X] [[id:a72a0d63-ab44-45df-b832-c8fc38f2c43e][a72a0d63]] DONE A local merge on main that stops on conflicts is concluded with git commit, which pre-merge-commit never sees
-- [X] [[id:de2e377a-8c92-410b-9109-8aa7e244f3c9][de2e377a]] DONE The catch attribution reads every line of a note, so user: and self: on two lines make a bogus rule
-- [X] [[id:006a50e4-b236-44d4-8445-62d4c61a12c7][006a50e4]] DONE The rule-copy drift guard compares the working tree, not what is staged
-
-Incidental:
-
-- [X] [[id:b09aca60-127b-47a4-9177-a86ac90d8fac][b09aca60]] DONE Work after a mid-turn clock_out belongs to no run, so it reaches review as nothing at all rather than UNASSIGNED
-- [X] [[id:33c3eabc-00f2-4cf1-afb7-4071aa256d62][33c3eabc]] DONE footnote-check resolves every id and discards the answer, then asks for it
-- [[id:0175f154-c7a2-44a3-9cb9-747ca988edd2][0175f154]] CANCELLED org_capture leaves :CATEGORY: unset and nothing backstops it
-- [X] [[id:165ce65a-f87e-431c-8ee4-f0fbfffe14da][165ce65a]] DONE A hook tells the session the queue was applied, ending the "queue applied" announcements
-- [X] [[id:f9fdea91-c93a-4e96-8d49-133cb50d6dfb][f9fdea91]] DONE The shipped skill and org_log_background_plan still teach the retired plan-file link
-
-*Measured 2026-09-21, at the pull request.*
-
-- *The always-loaded surface:* 13,802 words at composition, 9,856 now against a self-hosting budget of 10,000. A consumer loads 5,028 of 5,800 with time tracking off and 6,672 of 7,500 with it on. =bin/word-budget= refuses any overrun from here.
-- *The miss rate is a baseline, not yet a fall.* Every day before 2026-09-21 reads zero across 49 sessions because nothing counted, so it is an absent instrument and not a zero. On the first counted day =bin/miss-rate= reported 29 misses in 1 of 2 sessions, and 25 of those were not the agent's. 24 were the hook suites' own deliberately provoked refusals, leaking into the calling session's queue through the inherited =CLAUDE_CODE_SESSION_ID=; that is fixed in [[orgit-rev:claude-code-ide-org::bc23c76][bc23c76]], and a full run now leaves the count unchanged. The 25th was a deliberate live check of =generated-guard=. That leaves 4 genuine misses: a fabricated =:ID:= that =org_amend= refused (counted under the pre-narrowing slug =refusal:org_amend=), one footnote block, and two =caught:unverified-claim=, one from the user and one self-caught.
-- *The number this slice exists for* is due 2026-10-12 on [[id:158d7e80-6d72-4518-a804-d8abf2e7e693][158d7e80]]: three weeks of counted sessions, read by rule, against this baseline of 4 genuine misses in one long session.
-- [2026-09-21 Mon] At the user's direction, the 24 leaked test-fixture misses were deleted from this session's queue file. These were the four =bin/git-guards-test= runs between 10:56 and 11:29, each line checked to be a =miss= before removal, with a backup kept in the session scratchpad. =bin/miss-rate= now reads 9 for the day. Eight are genuine (among them the footnote block on =ccfd89ce= and three later catches), and one is the deliberate 09:28 =generated-guard= check, which was kept. So the 2026-10-12 reading starts from a clean baseline of 8 genuine misses in one session.
-
-*Resolved 2026-09-21:* merged as PR #29
-([[orgit-rev:claude-code-ide-org::9476516][9476516]]). Misses are now
-counted and the listed rules moved out of recall into hooks, guards and
-tools. Whether the miss rate falls is 158d7e80's reading on 2026-10-12.
-
-
-* DONE Path-scoped rules load on a Read, which the org tools exist to replace, so the conventions load only on the discouraged path :code:observed:
-CLOSED: [2026-09-21 Mon 18:13]
-:PROPERTIES:
-:ID:       436e0991-c8ac-40fb-860d-a6c4c381bee5
-:CREATED:  [2026-09-19 Sat 09:08]
-:CATEGORY: Skill
-:END:
-:DEBRIEF:
-=bin/hooks/conventions-inject= rides an =org_.*= =PostToolUse= row and,
-once per context (session, or session plus =agent_id=), injects the
-conventions file's path and a section list generated from it. It is a
-pointer, not the text, because =additionalContext= is capped at 10,000
-characters and the file is about 58,000
-([[orgit-rev:claude-code-ide-org::65d01c8][65d01c8]]). It was verified
-twice. In the building session it prompted a read that caught four
-path-form =orgit-rev:= links the same hour. In a fresh session
-(a09fc75d, 2026-09-21) that Read no =.org= file, the notice arrived on the
-first org call and on no later one.
-
-*Handed on, not unfinished:*
-- Whether a plugin consumer receives the notice, including the fallback
-  to the shipped reference where nothing is promoted, is one of
-  2b8930da's checks, done after the merge.
-- Whether a session *acts* on the notice is the known weakness of
-  injected context. d606eaff counts it: three convention-unread catches
-  on 2026-09-21, all after the notice had arrived. 158d7e80's
-  2026-10-12 reading decides whether a stronger remedy is needed, the
-  candidate being targeted pointers in tool replies (3cd7b7d3's remedy
-  3).
-:END:
-:LOGBOOK:
-- State "NEXT"       from "TODO"       [2026-09-19 Sat 16:34] \\
-  nominated: next member of the drift slice
-CLOCK: [2026-09-19 Sat 16:35]--[2026-09-19 Sat 16:39] =>  0:04
-- State "DOING"      from "NEXT"       [2026-09-19 Sat 16:35] \\
-  starting the load-path remedy
-- [2026-09-19 Sat 16:35]--[2026-09-19 Sat 16:39] inject conventions on first org tool call
-CLOCK: [2026-09-21 Mon 13:47]--[2026-09-21 Mon 13:48] =>  0:01
-- [2026-09-21 Mon 13:47]--[2026-09-21 Mon 13:48] assigned at review
-CLOCK: [2026-09-21 Mon 13:48]--[2026-09-21 Mon 13:50] =>  0:02
-- [2026-09-21 Mon 13:48]--[2026-09-21 Mon 13:50] delete the 24 leaked test misses
-CLOCK: [2026-09-21 Mon 13:50]--[2026-09-21 Mon 13:52] =>  0:02
-- [2026-09-21 Mon 13:50]--[2026-09-21 Mon 13:52] assigned at review
-CLOCK: [2026-09-21 Mon 13:52]--[2026-09-21 Mon 13:53] =>  0:01
-- [2026-09-21 Mon 13:52]--[2026-09-21 Mon 13:53] record the fresh-session tools-only verification
-CLOCK: [2026-09-21 Mon 13:53]--[2026-09-21 Mon 13:55] =>  0:02
-- [2026-09-21 Mon 13:53]--[2026-09-21 Mon 13:55] assigned at review
-- State "REVIEW"     from "DOING"      [2026-09-21 Mon 13:55] \\
-  fresh-session tools-only check passed; consumer via 2b8930da
-CLOCK: [2026-09-21 Mon 13:55]--[2026-09-21 Mon 13:56] =>  0:01
-- [2026-09-21 Mon 13:55]--[2026-09-21 Mon 13:56] verify and record 436e0991's fresh-session check
-- State "DONE"       from "REVIEW"     [2026-09-21 Mon 18:13] \\
-  verified; consumer check handed to 2b8930da
-:END:
-:PLAN:
-*What "open" means, from the Claude Code memory docs, fetched 2026-09-19:*
-"Path-scoped rules trigger when Claude reads files matching the pattern, not
-on every tool use." The same page attributes the evaluation to the Read tool
-("one invalid pattern made the Read tool fail for every file the rule was
-evaluated against"), and after =/compact= such rules "reload as Claude reads
-files they apply to". So the trigger is Claude Code's own file tools on a
-matching path. Three things that look like opening and are not: an Emacs
-buffer holding the file; a Bash =sed=/=awk=/=grep= over it; and any =org_*=
-tool, which Claude Code sees as an MCP call carrying no path.
-
-*Which means the scope keys on the one thing the plugin tells sessions not to
-do.* The reading rules say "start with =org_outline=, not a file read"; the
-design note says text editing is for what does not need org's internals and
-the tools are for everything else. A session obeying both never Reads
-=TODO.org=, so =org-conventions.md= (1,082 lines) and
-=org-conventions-local.md= never enter its context. The rule surface is
-anti-correlated with correct tool use.
-
-*Observed, not inferred.* This session: five captures, five body amendments,
-one property set, all through the tools, plus a dozen Bash reads of
-=TODO.org= — and the conventions were never injected. That is
-[[id:b0d55552-6bbf-45b8-9897-f62e6bd779e3][b0d55552]]'s failure reproduced in
-the session that filed the finding, and it answers the "why" that heading
-left at "loads only when an =.org= file is open": the capturing sessions were
-not being careless, they were using =org_capture=.
-[[id:befaed0a-18ed-445e-b997-8b9c2965ad45][befaed0a]] verified lazy loading
-with a session that *Read* =TODO.org= — the discouraged path — so the
-verification passed for the case that does not occur.
-
-*Consequence for the budget question
-([[id:bf7e0b8e-f83a-4d4a-9950-3ab23a225156][bf7e0b8e]]).* The path-scoped
-bucket is not "words moved out of the budget"; it is words that mostly do
-not load. Whatever in those 1,195 lines must hold during tool-driven org work
-is currently held by CLAUDE.md pointers, by the org skill when it happens to
-trigger, or by luck.
-
-*Remedies, keyed on the right signal — undecided:*
-1. A =PostToolUse= matcher on the first =org_*= call of a session that injects
-   the conventions as =additionalContext=. The machinery exists
-   (=apply-detect= does exactly this shape), and the trigger is the act the
-   conventions govern. Cost: one large injection per session, only in
-   sessions that do org work.
-2. Fold the load-bearing parts into the org skill's =SKILL.md=, which loads
-   when the skill triggers. Cost: trigger-matching is fuzzy, which
-   [[id:c10bfb15-d0c7-47c0-b482-e944558711e9][c10bfb15]] already names as
-   the silent failure in another coat.
-3. Have the tools carry the rules: =org_capture='s refusal already lists the
-   categories in use, and that is the one convention no session has missed
-   since. Rules that ride on the tool result cannot fail to load.
-Option 3 is the same shape as the enforcement audit
-([[id:3cd7b7d3-25eb-4f30-ae90-9174a6876674][3cd7b7d3]]) and should be
-decided with it; 1 is the cheap interim.
-:END:
-
-"Open" means Claude Code's own Read tool touched a matching path — not an Emacs buffer, not a Bash read, not an org_* tool. A session that follows "start with org_outline, not a file read" therefore never loads org-conventions.md, and the better it behaves the less it sees. Observed live 2026-09-19: this session captured five headings and amended five bodies through the tools and never had the conventions in context.
-
-*Remedy 1 shipped 2026-09-19* in [[orgit-rev:claude-code-ide-org::65d01c8][65d01c8]]: =bin/hooks/conventions-inject= rides a new =org_.*= =PostToolUse= row and, once per context (session, or session plus =agent_id=), injects the conventions file's path and its section list, generated from the file each run. *A pointer, not the text, because the limit was measured:* =additionalContext= is capped at 10,000 characters (docs, fetched the same day) and the file is 57,939; this repo's notice is 1,468. So the plan's "which lines are load-bearing" went unanswered on purpose — any subset that fit would be a second copy.
-
-*Verified live, and it caught something within the hour.* The first org call after wiring carried the notice (hooks are re-read without a restart). Acting on it, the session read "Referring to a commit" and found it had written four =orgit-rev:= links in path form across two bodies that afternoon — the convention says repo name, never a path. Corrected. One instance, and the injected-context tier's weakness stands: it worked because the session chose to act on it.
-
-*Not done:* the honest re-run of [[id:befaed0a-18ed-445e-b997-8b9c2965ad45][befaed0a]]'s verification — a *fresh* session using only the tools — needs a session that is not this one. Remedy 3 (rules riding on tool replies) is [[id:3cd7b7d3-25eb-4f30-ae90-9174a6876674][3cd7b7d3]]'s. Whether a consumer install receives the notice is unverified; the fallback path is tested only against a fixture.
-
-*The fresh-session re-run, done 2026-09-21: it passed.* This was a new session that never Read an =.org= file. At launch its context held neither =org-conventions.md= nor =org-conventions-local.md=, which is the failure this heading describes, reproduced. Its first =org_*= call was =org_body=, a read-only tool rather than =org_pending_updates=, and it carried the notice: both files, their line counts and their section lists. The second call, =org_outline=, carried no notice, so the once-per-session guard holds. The check covers delivery only. Whether a session goes on to Read the section that governs the act is the injected-context tier's weakness and is unchanged. The one item still open is the consumer install.
-
-*Resolved 2026-09-21:* the first =org_*= call of a context now carries a
-pointer to the conventions and their section list, verified in a fresh
-tools-only session. The consumer check belongs to 2b8930da.
 
 
 * NEXT [0/2] config.el is the last place time tracking and task tracking are still entangled, 30% of 18k lines :code:arch:
@@ -2906,94 +2404,6 @@ Cheap, and the corpus check is already done and recorded, so this needs no re-me
 `org_divide` appends the statistics cookie after the title text, so a narrow agenda or list window truncates the headline and takes the cookie with it. The cookie belongs at the front, where `org_slice_add_member` already puts it. Seen on `ee3e0fa2`.
 
 
-* TODO Tool errors on the MCP path reach the model as timeouts, with no error text :bug:spike:
-:PROPERTIES:
-:ID:       51bcec2c-242d-4e06-9610-0b9aeac1f92c
-:CREATED:  [2026-09-17 Thu 11:31]
-:CATEGORY: Tools
-:END:
-:DEBRIEF:
-*The probe*, four read-only POSTs to the live endpoint with
-`curl --max-time 8`:
-
-- `org_body` with its required `id` omitted: **no reply**, HTTP 000
-  at 8.0 s.
-- A tool name that does not exist: **no reply**, HTTP 000 at 8.0 s,
-  and `*Messages*` logged `error in process filter: peculiar error:
-  -32602, "Unknown tool: org_nosuch"`.
-- A valid `org_outline` call (the control): answered at once, `id` 103
-  echoed.
-- A malformed JSON body: answered in 1 ms with `id` null, as `-32603`.
-
-Emacs answered `emacsclient` throughout, which rules out a wedge.
-
-*The three original cases, traced in the transcripts.* The two timed-out
-`org_divide` calls passed `title`, and the tool requires `parent_title`.
-The two timed-out `org_slice_add_member` calls passed `slice` and
-`member`, and the tool requires `slice_id` and `member_id`. Together with
-`org_set_todo`'s `keyword` for `state`, that is five timeouts from one
-mechanism. That rules out the plan's fallback suspect, the refresh those
-two tools run after writing.
-
-*Hypothesis 2 is not a cause, but it constrains the fix.* The null `id`
-appears only where upstream catches an error. The one caught path
-exercised here, a malformed body, is the case where JSON-RPC 2.0 requires
-`id` null. But the same outer handler hard-codes `nil`, so upstream
-adding `define-error` alone would turn the hang into a reply the client
-cannot match to its request. That requirement is now written into
-`ce012ad4`, the upstream report.
-
-*What the spike added to what was already known.* Its first hypothesis
-had been on `ce012ad4` since 2026-09-02, with a `curl` reproduction of
-the `-32601` site. The session that framed this probe named `9d6449c7`
-as the place to file its result and never opened it, and its plan
-would have filed a duplicate. The spike's own contributions are three:
-confirmation at the two `-32602` sites, the argument-name trace, and the
-`id` constraint on the fix.
-
-*Residue:* a local workaround until upstream lands, filed as `ecbbec2e`.
-It is unclassified; the brainstorming skill decides spike or bounded
-when it is picked up.
-:END:
-:LOGBOOK:
-- Tags ":bug:spike:" from ":code:" [2026-09-22 Tue 17:34] \\
-  classified a spike; whether the fix is code here or an upstream
-  report is what the spike decides, so :code: waits on it
-:END:
-:PLAN:
-*Question.* Which layer turns an error into a timeout, and is it the same layer for all three tools?
-
-*Hypothesis.* Upstream's =claude-code-ide-mcp-http-server.el= has two defects, and either one leaves the client waiting:
-- =json-rpc-error= is signalled but never defined, so none of =--handle-post='s handlers catch it. A missing argument, an unknown tool and an unknown method all escape into the web server's process filter with no reply written. Argument validation runs before the tool function does, which would explain why nothing reached the file.
-- The errors it does catch are answered with =id= null, which a client cannot match to its request.
-
-*Probe.* POST three JSON-RPC requests to the live endpoint with =curl=: a =tools/call= of =org_body= with =id= omitted, a tool name that does not exist, and a valid =org_body= call as the control. For each, record whether a reply arrives and what =id= it carries. Use read-only tools only; a timing probe once mutated the live buffer (=bf00d36a=).
-
-*Then.*
-- If confirmed, file both defects under =9d6449c7= with the =curl= reproduction. A workaround here (defining the error in this module) is a separate decision with its own classification, and it is where =:code:= would return.
-- The =org_divide= and =org_slice_add_member= arguments were never recorded, so look for them in the session transcripts before crediting those two to the same path. If they were well formed, the remaining suspect is what those two share and the other tools lack: the refresh they run after writing.
-:END:
-
-Tool calls that fail on the MCP path come back to the model as "The operation timed out" with no error text, so the model retries a call that cannot succeed and cannot see why. Seen on =org_set_todo=, =org_divide= and =org_slice_add_member=; each time, the same call through =emacsclient= returned at once and the MCP attempt wrote nothing. The defect is the error that reads as a timeout, the same silent-failure class as =4f9e552a=.
-
-Established:
-- The =org_set_todo= case was a parameter error, =keyword= passed for =state=: Emacs showed =peculiar error: -32602, "Missing required argument: state"= while the model saw a timeout (the user relayed it, 2026-09-17).
-- =claude-code-ide-org-divide= takes 0.013 s on full-size copies of both files (batch, 2026-09-17).
-- =json-rpc-error= has no =error-conditions= in the running Emacs, so the =error= handlers upstream do not catch it (2026-09-22).
-
-Ruled out:
-- Slow code here: id indexing, id lookup and the cookie update are all at or under 0.2 s, and the propertized return value prints to 284 characters.
-- A wedged Emacs: other tools answered between the timed-out attempts.
-- A timeout setting: =.mcp.json= and the environment set none, and the =timeout: 10= values in =.claude/settings.json= are hook timeouts.
-
-*Answered 2026-09-22.* The layer is upstream's: `json-rpc-error` is never
-`define-error`'d, so a missing argument or an unknown tool gets no reply
-at all (`ce012ad4`, now confirmed live at both `-32602` sites). Every
-timeout seen here was a misnamed required argument, and the null-`id`
-hypothesis is not a cause.
-
-
-
 * TODO [0/2] Make the corpus searchable by tag, by measurement where it can be and by decision where it cannot
 :PROPERTIES:
 :ID:       ee3e0fa2-d4a6-4575-a5fb-e4e25c49431a
@@ -3027,6 +2437,8 @@ CLOCK: [2026-09-17 Thu 11:26]--[2026-09-17 Thu 11:27] =>  0:01
 - [2026-09-17 Thu 11:26]--[2026-09-17 Thu 11:27]
 CLOCK: [2026-09-17 Thu 11:29]--[2026-09-17 Thu 11:30] =>  0:01
 - [2026-09-17 Thu 11:29]--[2026-09-17 Thu 11:30]
+CLOCK: [2026-09-22 Tue 17:10]--[2026-09-22 Tue 17:11] =>  0:01
+- [2026-09-22 Tue 17:10]--[2026-09-22 Tue 17:11] adopt a prose tag ahead of the survey
 :END:
 
 Captured 2026-09-09 at the user's ask, deliberately *not* started: the
@@ -3094,7 +2506,6 @@ each tag answers.
 
 =prose= is declared in TODO.org's =#+TAGS:= line. =observed= and =docs= are
 *not*, though both are in use — another thing for the survey to reconcile.
-
 
 
 ** NEXT Adopt an `observed` tag for a defect seen in use, as the severity signal the keyword set does not carry :code:
@@ -4167,75 +3578,6 @@ share of headings with a line over 300 characters rose from 20% to 46%
 between July and September. Fill paragraphs in the write path, and
 leave list items, tables and blocks untouched, so the property holds
 whoever sends the text.
-
-
-* DONE Adopt the plugin in agentic-euchre, so the two projects stop being worked in parallel :code:
-CLOSED: [2026-09-22 Tue 09:17]
-:PROPERTIES:
-:ID:       6a207b00-8fa1-441e-8ee5-354702bc979b
-:CREATED:  [2026-09-11 Fri 20:05]
-:CATEGORY: Dev
-:END:
-:DEBRIEF:
-This heading was a goal with a blocking set, not an implementation. Euchre
-adopted the plugin during 8bbae3aa and has run it since #28, with its
-skill linked to the claude-code-ide-org-swc worktree and time tracking
-off. Its work was then suspended until f6d160c2 landed, which it did as
-PR #29 on 2026-09-21. At the user's direction on 2026-09-22 the unfinished
-blockers moved to 2b8930da, the consumer verification, which gates earnest
-work in euchre: 8a2eb687 and 6521dd56 moved, and 4ae7a04b, the
-brainstorming skill, was added. The finished ones (35582d95, 749301a0)
-were dropped. This heading closes on the goal met.
-:END:
-:LOGBOOK:
-- State "WAITING"    from "TODO"       [2026-09-15 Tue 10:09] \\
-  blocked on four slices: 35582d95, 8a2eb687, 749301a0, 6521dd56
-CLOCK: [2026-09-22 Tue 09:10]--[2026-09-22 Tue 09:11] =>  0:01
-- [2026-09-22 Tue 09:10]--[2026-09-22 Tue 09:11] record the tool-bypass catch
-CLOCK: [2026-09-22 Tue 09:11]--[2026-09-22 Tue 09:12] =>  0:01
-- [2026-09-22 Tue 09:11]--[2026-09-22 Tue 09:12] assigned at review
-CLOCK: [2026-09-22 Tue 09:16]--[2026-09-22 Tue 09:17] =>  0:01
-- [2026-09-22 Tue 09:16]--[2026-09-22 Tue 09:17] assigned at review
-- State "DONE"       from "WAITING"    [2026-09-22 Tue 09:17] \\
-  goal met; blockers moved to 2b8930da
-CLOCK: [2026-09-22 Tue 09:17]--[2026-09-22 Tue 09:18] =>  0:01
-- [2026-09-22 Tue 09:17]--[2026-09-22 Tue 09:18] move 6a20's blockers to 2b89; close 6a20
-:END:
-:PLAN:
-
-Stated by the user 2026-09-11 and previously unrecorded anywhere: "a number of
-things unresolved here are preventing me from applying this plugin and its
-conventions to the euchre project rather than working the two of them in
-parallel." That makes euchre adoption a *goal with a blocking set*, not an
-eventual nice-to-have, and it reframes priority — every item in that set is
-holding a second project in a worse workflow every day it stays open, which is a
-cost nothing in the tracker currently expresses. Candidates, offered for the
-user to confirm or correct rather than assumed: =965f94eb= (every standalone
-client shares one project context, chosen by unstable ordering), =5e731a23= (a
-deferred targetless capture loses its project routing at apply), =c9940558=
-(guidepost aggregation ignores =cwd=, so two projects' turns cluster into one
-span), =3f4fd744= (=:BLOCKER:= would ship to euchre enforcing nothing),
-=b0d55552= (=org_capture= cannot set =:CATEGORY:=, so a fresh tracker's headings
-arrive uncategorised), =784d80c5= (=claude-org-setup --org= and the consuming
-repo's =.gitignore=) and =af2f345e= (the glue claims the whole wiring block).
-Note =fbaf8009= and =d718f6b6= are already closed and were both multi-project
-defects, so the set is smaller than it was. **The =:BLOCKER:= is deliberately
-unset until the user names the real list** — a blocker invented from a
-plausible-looking survey is exactly the kind that reads as enforcement and
-enforces the wrong thing.
-
-*Adoption step added 2026-09-15 from =3f4fd744=:* any =:BLOCKER:= euchre wrote before the plugin's 5f7ecdb carries the =ids(...)= wrapper and enforces nothing under org-depend. One run of =M-x claude-code-ide-org-normalize-blocker-syntax= there (prefix argument to write) rewrites them; its =bin/lint-org= will name each one until then.
-
-*Correction, same day:* measured rather than assumed — euchre's TODO.org and DONE.org carry no =:BLOCKER:= property at all, and neither file is in the live Emacs's tracked set (=claude-code-ide-org--tracked-files= names none of them), so there is nothing for the normaliser to do there. The step above is dormant: any blocker euchre writes from now on comes out bare, since the plugin's own write sites do. If one ever needs it, =M-x claude-code-ide-org-normalize-blocker-syntax= runs over whatever files that Emacs tracks — bare =M-x= is a dry run, =C-u= writes.
-:END:
-
-The user's goal (2026-09-11): adopt the plugin in agentic-euchre, so the
-two projects stop being worked in parallel, recorded with its blocking
-set.
-
-*Resolved 2026-09-22:* euchre runs the plugin. What remains before euchre
-is worked in earnest is 2b8930da, which now holds the blockers this
-heading held.
 
 
 * TODO Unplanned work in flight belongs to no slice: planned is writable, incidental is closed-only :code:
@@ -9141,12 +8483,12 @@ before the fix and still says.
 
 
 * TODO Archive closed tasks daily
-SCHEDULED: <2026-09-23 Wed 07:00 ++1d>
+SCHEDULED: <2026-09-24 Thu 07:00 ++1d>
 :PROPERTIES:
 :CATEGORY: Meta
 :ID:       cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8
 :CREATED:  [2026-08-21 Fri 15:35]
-:LAST_REPEAT: [2026-09-22 Tue 08:27]
+:LAST_REPEAT: [2026-09-23 Wed 08:42]
 :END:
 :LOGBOOK:
 CLOCK: [2026-08-24 Mon 10:25]--[2026-08-24 Mon 10:28] =>  0:03
@@ -12285,7 +11627,6 @@ error" rather than =-32700= "Parse error". That code is worth one
 sentence in the report, not a heading of its own.
 
 
-
 ** TODO Unknown tool arguments are dropped silently by both dispatch paths :code:
 :PROPERTIES:
 :ID:       bbf9fb77-f081-48c5-bb01-1b4d4f201969
@@ -12508,13 +11849,6 @@ call it done.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
-CLOCK: [2026-09-22 Tue 16:51]--[2026-09-22 Tue 16:55] =>  0:04
-CLOCK: [2026-09-22 Tue 16:49]--[2026-09-22 Tue 16:50] =>  0:01
-CLOCK: [2026-09-22 Tue 11:50]--[2026-09-22 Tue 11:53] =>  0:03
-CLOCK: [2026-09-22 Tue 10:49]--[2026-09-22 Tue 10:51] =>  0:02
-CLOCK: [2026-09-22 Tue 10:42]--[2026-09-22 Tue 10:46] =>  0:04
-CLOCK: [2026-09-22 Tue 09:54]--[2026-09-22 Tue 09:58] =>  0:04
-CLOCK: [2026-09-22 Tue 08:50]--[2026-09-22 Tue 08:54] =>  0:04
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
@@ -12664,7 +11998,15 @@ CLOCK: [2026-09-21 Mon 13:57]--[2026-09-21 Mon 14:04] =>  0:07
 CLOCK: [2026-09-21 Mon 15:22]--[2026-09-21 Mon 15:24] =>  0:02
 CLOCK: [2026-09-21 Mon 16:29]--[2026-09-21 Mon 16:32] =>  0:03
 CLOCK: [2026-09-21 Mon 18:02]--[2026-09-21 Mon 18:04] =>  0:02
+CLOCK: [2026-09-22 Tue 08:50]--[2026-09-22 Tue 08:54] =>  0:04
+CLOCK: [2026-09-22 Tue 09:54]--[2026-09-22 Tue 09:58] =>  0:04
+CLOCK: [2026-09-22 Tue 10:42]--[2026-09-22 Tue 10:46] =>  0:04
+CLOCK: [2026-09-22 Tue 10:49]--[2026-09-22 Tue 10:51] =>  0:02
+CLOCK: [2026-09-22 Tue 11:50]--[2026-09-22 Tue 11:53] =>  0:03
+CLOCK: [2026-09-22 Tue 16:49]--[2026-09-22 Tue 16:50] =>  0:01
 - <2026-09-22 Tue 16:49>--<2026-09-22 Tue 16:50> review pass (buffer buried)
+CLOCK: [2026-09-22 Tue 16:51]--[2026-09-22 Tue 16:55] =>  0:04
+CLOCK: [2026-09-23 Wed 08:40]--[2026-09-23 Wed 08:42] =>  0:02
 :END:
 
 We created this heading on 2026-08-26. We deleted that property from its
@@ -13759,4 +13101,7 @@ CLOCK: [2026-09-22 Tue 11:03]--[2026-09-22 Tue 11:04] =>  0:01
 - [2026-09-22 Tue 11:03]--[2026-09-22 Tue 11:04] file the tag-editing tool gap into 8a2e
 CLOCK: [2026-09-22 Tue 16:07]--[2026-09-22 Tue 16:16] =>  0:09
 - [2026-09-22 Tue 16:07]--[2026-09-22 Tue 16:16] compose the review-pass and clock slice
+CLOCK: [2026-09-22 Tue 20:20]--[2026-09-22 Tue 20:21] =>  0:01
+- [2026-09-22 Tue 20:20]--[2026-09-22 Tue 20:21] file the stop-and-wait heading
+- [2026-09-22 Tue 20:20]--[2026-09-22 Tue 20:21] assigned at review
 :END:
