@@ -2,6 +2,71 @@
 #+TAGS: analysis bug code comms prose research review spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO [/] Address the PR #30 review: ten findings, three of them in one new guard :code:
+:PROPERTIES:
+:ID:       07d38454-3835-4da9-98d9-28d8ebfec294
+:CREATED:  [2026-09-23 Wed 10:41]
+:CATEGORY: Skill
+:END:
+
+`/code-review high --comment 30` posted ten findings on PR #30, the brainstorming skill's branch, on 2026-09-23. Three are in guard 4 of `pre-commit-guards`, which checks the working tree instead of what is staged, is skipped on deletions, and has no test. The rest are in the skill's prose and the claims checker. One child per remediation, and `4ae7a04b` closes only after this does. Each finding's PR comment gets a reply naming its fix.
+** TODO Guard 4 checks the working tree rather than the index, skips deletions, and has no test :code:
+:PROPERTIES:
+:ID:       b729e75b-e32e-43b7-9872-0f272a9dcdc5
+:CREATED:  [2026-09-23 Wed 10:41]
+:END:
+
+Findings 1, 2 and 8. `bin/check-brainstorming-skill` runs against the worktree, so a staged break passes when an unstaged edit hides it, and unrelated WIP blocks a clean commit; guard 2 was rewritten for exactly this after PR #29 (`006a50e4`). Its trigger reads the ACMR-filtered staged list, so a commit that only deletes a file the skill names never runs it. Fix with guard 2's pattern, checking out the staged files into a scratch tree, trigger on deletions too, and add a `bin/git-guards-test` case for each.
+** TODO The HARD-GATE's Bounded line lacks the separate yes to start :prose:
+:PROPERTIES:
+:ID:       44aeedab-2543-4768-ab87-1378cf34eedf
+:CREATED:  [2026-09-23 Wed 10:41]
+:END:
+
+Finding 3. Everywhere else, the skill requires a second, separate yes before implementation on every path, and the Architectural bullet spells it out. The Bounded bullet asks only for design approval, so a session reading the gate literally implements on one yes.
+** TODO The org skill says path tags are set only at capture, which the brainstorming skill contradicts :prose:
+:PROPERTIES:
+:ID:       4adf3311-9221-4acc-bad0-c2c0edb136d5
+:CREATED:  [2026-09-23 Wed 10:41]
+:END:
+
+Finding 4. The org skill's tags table says the path tags are set "only by it, at capture". The brainstorming skill and the conventions both classify and re-tag existing headings. A session reading the org skill would refuse to classify a filed heading, or treat a step-up as a violation.
+** TODO check-brainstorming-skill never checks a possessive section citation :code:
+:PROPERTIES:
+:ID:       ddc4470f-a650-44f5-9dfe-7bf48a7f3bce
+:CREATED:  [2026-09-23 Wed 10:41]
+:END:
+
+Finding 5. Rule 3 matches only the comma form (`org skill, "Title"`) and the parenthesised form, so a citation written `org skill's "Plan Mode checkpoint"` is never checked, and it dangles silently if that section is renamed. Extend the pattern to the possessive, with a test case that is red against the old checker.
+** TODO The NEXT trigger's comment still says NEXT never goes to a container :prose:
+:PROPERTIES:
+:ID:       88a10c7f-b49a-4bab-97cd-534f3578fd76
+:CREATED:  [2026-09-23 Wed 10:41]
+:END:
+
+Finding 6. `878d2cf5` struck the rule that a story may not carry NEXT. The rationale comment in `claude-code-ide-org--trigger-demote-conflicting-next` still states the old rule, so a maintainer who treats that comment as the design could reinstate it.
+** TODO The skill names visual-companion.md by a repo path that does not resolve in a consumer :prose:
+:PROPERTIES:
+:ID:       338062b1-369f-4a90-b585-6862c804708c
+:CREATED:  [2026-09-23 Wed 10:42]
+:END:
+
+Finding 7. `skills/brainstorming/visual-companion.md` exists only in this repo. In a consumer, the plugin lives elsewhere and the working directory is the consumer's, so the read fails and the session improvises. Name it relative to the skill directory, as the skill already does for `plan-reviewer-prompt.md`.
+** TODO The skill's self-review fixes a written drawer by appending, which leaves both versions :prose:
+:PROPERTIES:
+:ID:       5030a18c-787e-4149-8e9b-c3e567c8acc5
+:CREATED:  [2026-09-23 Wed 10:42]
+:END:
+
+Finding 9. The self-review runs after the drawer is written, and a drawer can only grow, so every fix leaves the wrong text and the corrected text side by side. Decided 2026-09-23: the self-review runs on the draft before the write, which caught two errors on its first use for `dd4b9a9f`. A correction that arrives after the write waits for `org_edit` (`dd4b9a9f`), and the skill says so.
+** TODO check-brainstorming-skill's header drifted from its code, and a skill sentence is garbled :code:
+:PROPERTIES:
+:ID:       bf36d299-0012-4dcb-adb4-523de2994794
+:CREATED:  [2026-09-23 Wed 10:42]
+:END:
+
+Finding 10. The header omits that `README.md` is excluded and that rule 5 also bans "design doc". Separately, SKILL.md reads "until the tag tool da6a2fba adds writes it".
+
 * TODO A refused Emacs write falls through to an edit behind Emacs's back, where it should back off, retry, then stop and ask :code:
 :PROPERTIES:
 :ID:       ec1e6839-bc47-4d5b-9d1e-b35b4b4e4070
@@ -425,6 +490,7 @@ correct.
 :ID:       4ae7a04b-1557-44d6-91c3-384f1def5293
 :CREATED:  [2026-09-22 Tue 08:36]
 :CATEGORY: Skill
+:BLOCKER:  07d38454-3835-4da9-98d9-28d8ebfec294
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-22 Tue 08:36]--[2026-09-22 Tue 08:37] =>  0:01
@@ -1260,6 +1326,16 @@ The tool half of that catch was already filed:
 rule, to [[id:67861ff3-3a72-4c53-8fd8-1cae9a31bc77][67861ff3]] — the first
 sibling this heading has thrown off, and the procedure above working as
 written.
+
+- [2026-09-23 Wed] Caught by the user: "where is the review story?" The
+  PR #30 review posted ten findings, and the session tabulated them,
+  proposed the review story twice, and filed nothing while it waited for
+  a go-ahead on the *fixes*. Filing was never gated. The convention puts
+  a review's findings into one story on arrival, and the always-loaded
+  rule turns any task described in conversation into a heading rather
+  than conversation memory. Filed as =07d38454= with eight children once
+  asked.
+
 
 
 ** TODO Miss: an org question answered by scraping text instead of asking org
