@@ -3215,11 +3215,121 @@ answer most often.
 Split out of b57c7515 on 2026-09-15 rather than built there. That heading's fix reconciles a mid-work session re-key by grouping sessions whose transcripts share a first-entry =uuid= — measured exact over the corpus, 7 groups, 14 of 65 sessions. But the signal lives in =~/.claude/projects/*/*.jsonl=, which Claude Code prunes on its own schedule (=cleanupPeriodDays=), and the queue events carry no conversation key of their own. So the alias is exact for recent work and degrades to nothing for old work, with no symptom at the boundary — a re-key whose transcripts have aged out simply looks like two unrelated sessions again, which is the failure this whole line of work exists to remove. Proposed: have =queue-append= record a stable conversation key on the event itself (the transcript's first =uuid=, or the =transcript_path= the hook payload already carries), so the bridge stops depending on a file someone else garbage-collects. Note the constraint that shapes it: the hook family is plain POSIX shell precisely so a stopped Emacs costs nothing, so whatever is recorded must be one cheap read of the transcript's first line, not a parse.
 
 
-* TODO No org tool edits a phrase in place: org_amend appends or replaces the whole body :code:
+* TODO [/] No org tool edits a phrase in place: org_amend appends or replaces the whole body :code:arch:
 :PROPERTIES:
 :ID:       dd4b9a9f-ba8a-4f1f-a3da-38388e0cdb76
 :CREATED:  [2026-09-15 Tue 13:25]
 :CATEGORY: Tools
+:END:
+:PLAN:
+Designed 2026-09-23 through the brainstorming skill, classified =arch=:
+bounded at first, stepped up when retiring =org_amend= in the same move
+made it an interface every session and three hooks depend on.
+
+*A new tool, =org_edit=, replaces =org_amend= in one move* (the user,
+2026-09-23). Its arguments are the =Edit= tool's: =id=, =old_string=,
+=new_string=, and an optional =drawer=. The familiar names are the
+cheapest defence against invented arguments (=bbf9fb77=). There is no
+=note= (the user, 2026-09-23): once the queue path goes, its only reader
+would be the miss counter, which reads who caught a miss from the line
+itself instead.
+
+*The contract.* The region is the heading's own body, below its drawers
+and above its first child, or with =drawer= set to =PLAN= or =DEBRIEF=,
+the inside of that drawer. An empty =old_string= appends =new_string= at
+the end of the region, creating the drawer when absent, and a list item
+continues a list as it does today. A non-empty =old_string= must occur
+exactly once in the region and is replaced. If it is absent, the call is
+refused naming it; if it occurs more than once, it is refused with the
+count. A whole-region rewrite is the case where =old_string= is the
+region's full text. It takes no flag and needs no commit first, because
+the replaced text travels in the call and the reply echoes what changed.
+
+*The guards*, which refuse even when the text is found once. A match
+counts only inside the region, so one spanning into a drawer or a child
+is absent. Only =:PLAN:= and =:DEBRIEF:= are editable drawers. A finished
+heading's =:PLAN:= is read-only, being the record of what was intended;
+its body and =:DEBRIEF:= stay editable. An edit touching a slice's
+=Planned:= checklist or =Incidental:= section is refused, since the
+refresh owns those lines (=7ee3b71a=). A =new_string= line starting with
+an asterisk at column zero outside a block is refused rather than
+escaped, since it would become a heading (=c0c5e015=). Id links are
+resolved as =org_amend= resolves them: a prefix is expanded and an
+unresolvable id refused.
+
+*An unsaved buffer is refused, and the agent waits on the save* (the
+user, 2026-09-23). The waiting cannot happen inside the tool: Emacs is
+single-threaded and the call runs in it, so a tool that polled would
+freeze the editor the human needs in order to save, a deadlock. So
+=org_edit= refuses at once, with a reply distinct from its permanent
+refusals, and sets a header line on the buffer asking the human to save,
+cleared by an after-save hook. It stays visible until acted on and is
+never modal. The agent then runs a wait script shipped with the plugin,
+which polls =buffer-modified-p= on the Fibonacci schedule (1, 1, 2, 3, 5,
+8 s, twenty seconds in all) and exits on the save or at the cap. Run in
+the background, its exit wakes the agent to retry. Past the cap, the
+agent ends its turn saying what it is waiting for. It never falls through
+to =Edit=. This is =ec1e6839='s mechanism, built here with =org_edit= as
+its first user.
+
+*Retiring =org_amend=.* Its registration and entry point go; the
+internals =org_edit= reuses stay. =queue-append= loses its deferred-amend
+branch, and its miss attribution moves to =org_edit=, reading "Caught by
+the user" or "Self-caught" from the first line of =new_string= and
+falling back to "unmarked". =clock-target-check=, =settings.json= and
+=hooks.json= swap the name. =--review-apply-amend= and the review
+buffer's amend items stay as a legacy reader for amend events already
+queued. The prose moves too: both skills, the four promoted rules
+regenerated from their references, =CLAUDE.md=, =next-session.md=, and
+every reply string in =config.el= that tells a caller to use
+=org_amend=, all inside a word budget with 27 words of headroom. Live
+headings naming =org_amend= are renamed with =org_edit= itself, its first
+real use; closed headings and =plans/= stay as history. A session that
+started before the change and then calls =org_amend= hangs until
+=ce012ad4= or =ecbbec2e= lands. Such sessions are few and short-lived,
+so neither blocks this (the user, 2026-09-23).
+
+*Four children, in order.* First =org_edit= and its guards. Second the
+wait on save, blocked by the first. Third the retirement, blocked by
+both, since without the wait an append against unsaved changes would be
+refused with no prompt and sessions would fall back to =Edit=. Fourth the
+deletion of the legacy amend reader, blocked by the third, and due only
+once no amend event remains in any queue. =c0c5e015= and =5b46fbfd= are
+blocked by the third, their defects being =org_amend='s; =ec1e6839= is
+blocked by the second.
+
+*Verification.* ERT covers each behaviour above:
+
+- append to a body and to an absent drawer;
+- a single replacement, and the absent and ambiguous refusals;
+- a whole-region rewrite that keeps the separation before the next
+  heading (=5b46fbfd=);
+- a spanning match, and both org-managed drawers;
+- a finished =:PLAN:= against its =:DEBRIEF:=, and the slice checklist;
+- a headline-shaped line, and id resolution;
+- the temporary refusal, with its header line set and then cleared.
+
+Each refusal test is shown to fail against =org_edit= with that guard
+removed. Shell tests cover miss attribution, the absence of a deferred
+event, and the wait script against a fake =emacsclient= whose buffer
+saves and one whose never does. =check-brainstorming-skill= then refuses
+any =org_amend= left in that skill once the registration is gone.
+
+*Ruled out.* A forwarding stub for =org_amend= (the user, 2026-09-23): a
+fresh session is only offered registered tools, so only sessions older
+than the change could call it. Queueing a replacement while the buffer is
+unsaved: it would have to find its old text again at apply time, after
+the human may have edited that very sentence, and it would change the
+queue event, the apply pass and the review buffer. A =replace= flag that
+rewrites a drawer without the caller naming the text it replaces, where a
+literal replacement cannot lose what it was not pointed at. Keeping
+=note=.
+:END:
+:LOGBOOK:
+- Tags ":code:arch:" from ":code:" [2026-09-23 Wed 10:33] \\
+  classified at its first brainstorm, bounded then stepped up: retiring
+  org_amend in the same move changes a tool every session and three
+  hooks depend on
 :END:
 
 Correcting one sentence in a body — 8a2eb687's "the previous slice", which had to become a named id — has no tool: org_amend appends, and replace=true rewrites the whole prose and so erases a slice's checklist (7ee3b71a). The fallback on 2026-09-15 was a hand-written emacsclient search-and-replace bounded to the entry, which met a read-only buffer and had to bind inhibit-read-only itself — exactly the signal the MCP-tools rules name as "the tool surface is missing something". Proposed: an org_edit (or an org_amend mode) that replaces one literal occurrence within a heading's own body, refusing when the text is absent or appears more than once, on the same write-through-or-queue gate as amend. Small, and the shape is org_wrap_plan's until= check.
