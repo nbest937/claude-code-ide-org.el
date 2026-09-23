@@ -1446,6 +1446,14 @@ Hook-backed (footnote-check, rule =footnote=), but the hook reads only a turn's 
   heading's tags, so every tag change is a hand edit behind Emacs's back",
   came back from =org_clock_in='s reply. The hook passed both blocks.
 
+- [2026-09-23 Wed] Self-caught: end matter for 492a1a30's design gave
+  e28933e9 the title "Make the corpus searchable by tag, … by decision where
+  it cannot", recalled from the heading's plan text. That is the title of
+  its divided parent, ee3e0fa2, not e28933e9's. A lookup made to answer a
+  different question found it in the same turn, and a correcting block
+  followed.
+
+
 
 
 
@@ -1513,6 +1521,14 @@ UUIDs, SHAs, titles, keywords. Tool-backed where a tool resolves the id: on 2026
   footnote hook passed it, since it checks presence, not correctness.
   It happened in the response asking the user to close 2a6a1355, whose
   body names this exact mode as the one no hook can see.
+
+- [2026-09-23 Wed] Self-caught: starting 492a1a30's brainstorm, the
+  session passed =org_clock_in= a full UUID typed from memory
+  (=492a1a30-3b2c-…=). Only the eight-character prefix was right. The tool
+  refused it as resolving to no heading, and the real id was read from
+  =org_body= before retrying. Refusal was the only safeguard: a recalled id
+  that happened to resolve would have clocked the wrong heading.
+
 
 
 
@@ -1604,6 +1620,21 @@ CLAUDE.md's own opening names this as the largest source of wrong claims. Caught
   there. The session had blamed the skill for its own misreading, which
   makes a miss look like a defect in the tool and is the more damaging
   direction for the record.
+
+- [2026-09-23 Wed] Self-caught, when the user counted eight: the session
+  had reported "Of the 10 tagged headings, 3 have no =:PLAN:= drawer", then
+  listed two. The query had returned nine top-level path-tagged headings.
+  Both numbers were written from memory of the listing rather than counted
+  off it.
+
+- [2026-09-23 Wed] Self-caught, and the user asked why it was raised at
+  all: in 492a1a30's brainstorm the session called its plan (e28933e9) and
+  its body (ee3e0fa2) contradictory about where the defect was seen, and
+  promised to cite "the one that holds up". One lookup showed they are the
+  child and the parent of the same divide, so both were right. The claim
+  cost a turn and brought the recalled title recorded on e74ca757 with it.
+
+
 
 
 
