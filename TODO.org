@@ -6390,6 +6390,7 @@ body was the only honest route, exactly as that heading concluded.
 - State "NEXT"       from "TODO"       [2026-09-08 Tue 16:12] \\
   story nomination: it unblocks the remaining member
 :END:
+:PLAN:
 
 The analogue of =35d25265= one drawer over. After that pass extracted
 the plans, each finished heading's remaining body *is* its debrief —
@@ -6442,6 +6443,18 @@ not. =org_amend drawer=DEBRIEF= already writes the drawer in canonical position
 =:DEBRIEF:=, then body — so this pass creates no disorder for that one to clean
 up, and the two are independent in either order. The slice lists =d350ff5b=
 earlier, which is sequence rather than dependency; no =:BLOCKER:= is warranted.
+
+*=2a6a1355= is exempt from this pass, in all three stages* (the user,
+2026-09-23). Its body was kept long on purpose: 3,707 words in which one
+heading carried several causes that had never been separated, and that
+size is the evidence of the seams later divided under =de6de108=. It
+already has its authored resolution and its =:DEBRIEF:=, so relocation
+and resolution have nothing to do there, and condensing it would erase
+the diagnosis. Leave the body exactly as it stands.
+:END:
+
+About 88 finished headings still carry their debrief in the body. Each needs an authored resolution line before the debrief moves into =:DEBRIEF:=, in three passes: relocate wholesale, author in reviewed batches, condense last and separately. The plan, and the one heading exempt from it, are in =:PLAN:=.
+
 
 
 * TODO A boolean argument passed as false arrives as :false, which elisp reads as true :code:
