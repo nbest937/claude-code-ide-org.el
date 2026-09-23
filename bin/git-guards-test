@@ -166,6 +166,36 @@ check "with Emacs unreachable it warns and does not block" 0 "$(run_guards "$r" 
 printf '#!/bin/sh\nexit 0\n' > "$r/bin/check-org-dev-skill"
 check "a passing skill check allows it" 0 "$(run_guards "$r" true)"
 
+# --- pre-commit-guards: the brainstorming skill's claims -----------------
+# Checked against what is STAGED, and triggered by deletions too (PR #30
+# review, TODO.org :ID: b729e75b). The guard used to read the working tree,
+# so an unstaged edit could hide a staged break or block an unrelated
+# commit, and it read the ACMR-filtered list, so a deletion never ran it.
+r="$(new_repo bs)"
+mkdir -p "$r/bin" "$r/modules/tools/claude-code-ide-org" "$r/skills/org/references"
+cp "$repo_root/bin/check-brainstorming-skill" "$r/bin/"
+cp -R "$repo_root/skills/brainstorming" "$r/skills/"
+cp "$repo_root/modules/tools/claude-code-ide-org/config.el" "$r/modules/tools/claude-code-ide-org/"
+cp "$repo_root/skills/org/SKILL.md" "$r/skills/org/"
+cp "$repo_root/skills/org/references/org-conventions.md" "$r/skills/org/references/"
+commit "$r" "seed the skill"
+bs_skill="$r/skills/brainstorming/SKILL.md"
+printf '\nA harmless line.\n' >> "$bs_skill"; git -C "$r" add -A
+check "a staged skill naming only real things passes" 0 "$(run_guards "$r")"
+git -C "$r" reset -q --hard
+printf '\nCall `org_teleport` next.\n' >> "$bs_skill"; git -C "$r" add -A
+git -C "$r" show HEAD:skills/brainstorming/SKILL.md > "$bs_skill"
+check "a staged break is refused though the working tree hides it" 1 "$(run_guards "$r")"
+git -C "$r" reset -q --hard
+printf '\nCall `org_teleport` next.\n' >> "$bs_skill"
+printf ';; harmless\n' >> "$r/modules/tools/claude-code-ide-org/config.el"
+git -C "$r" add modules
+check "an unstaged break does not block a commit staging only config.el" 0 "$(run_guards "$r")"
+git -C "$r" reset -q --hard
+git -C "$r" rm -q skills/brainstorming/plan-reviewer-prompt.md
+check "deleting a file the skill names is refused" 1 "$(run_guards "$r")"
+git -C "$r" reset -q --hard
+
 # --- a refusal made inside a Claude session counts itself as a miss ------
 # TODO.org :ID: 3cd7b7d3. A Bash tool call exports CLAUDE_CODE_SESSION_ID,
 # the same id the hook payloads carry, so a git guard can write the line.

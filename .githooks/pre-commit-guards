@@ -103,20 +103,30 @@ fi
 
 # 4. The brainstorming skill's claims (TODO.org :ID: 4ae7a04b): every tool,
 #    parameter, section and file it names exists. Plain text, so no Emacs
-#    is needed and it always blocks. It runs when the skill is staged, and
-#    also when config.el or the org references are, since those are what
-#    it names.
-bs_check="$repo_root/bin/check-brainstorming-skill"
-if [ -x "$bs_check" ] && [ -d "$repo_root/skills/brainstorming" ] \
-   && grep -qE '^(skills/brainstorming/|skills/org/|modules/tools/claude-code-ide-org/config\.el$)' <<<"$staged"; then
-  if ! out="$("$bs_check" "$repo_root" 2>&1)"; then
+#    is needed and it always blocks. It runs when the skill, the checker,
+#    config.el or the org skill is staged, since those are what it names --
+#    deletions included, because a deleted file is exactly a name that no
+#    longer resolves, and $staged filters them out.
+#    Checked against the INDEX, as guard 2 is (PR #30 review, TODO.org :ID:
+#    b729e75b): the staged checker, skills and config.el are exported to a
+#    scratch tree and the check runs there, so an unstaged edit can neither
+#    hide a staged break nor block an unrelated commit.
+if grep -qE '^(skills/brainstorming/|skills/org/|modules/tools/claude-code-ide-org/config\.el$|bin/check-brainstorming-skill$)' \
+     <<<"$(git diff --cached --name-only 2>/dev/null)"; then
+  snap="$(mktemp -d)"
+  git ls-files -- bin/check-brainstorming-skill skills/brainstorming skills/org \
+                  modules/tools/claude-code-ide-org/config.el \
+    | git checkout-index --prefix="$snap/" --stdin 2>/dev/null
+  if [ -x "$snap/bin/check-brainstorming-skill" ] && [ -d "$snap/skills/brainstorming" ] \
+     && ! out="$("$snap/bin/check-brainstorming-skill" "$snap" 2>&1)"; then
     {
-      echo "pre-commit: the brainstorming skill names something that does not exist:"
-      printf '%s\n' "$out" | sed 's/^/  /'
+      echo "pre-commit: the staged brainstorming skill names something that does not exist:"
+      printf '%s\n' "$out" | sed "s|$snap/||g; s/^/  /"
       echo "  Check: bin/check-brainstorming-skill"
     } >&2
     status=1
   fi
+  rm -rf "$snap"
 fi
 
 exit $status
