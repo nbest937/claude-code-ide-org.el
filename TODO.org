@@ -1410,6 +1410,16 @@ UUIDs, SHAs, titles, keywords. Tool-backed where a tool resolves the id: on 2026
   8-character prefix or a looked-up value. The tool refused it; the id was
   then read from the file.
 
+- [2026-09-23 Wed] Self-caught before writing the fix: an end-matter
+  block gave 33c3eabc as "Emit id, keyword and exact title for each
+  unfootnoted citation, so a footnote cannot carry a paraphrased title",
+  reconstructed from what the heading did; its title is "footnote-check
+  resolves every id and discards the answer, then asks for it". The
+  footnote hook passed it, since it checks presence, not correctness.
+  It happened in the response asking the user to close 2a6a1355, whose
+  body names this exact mode as the one no hook can see.
+
+
 
 ** TODO Miss: a commit that swept in a change its message does not describe
 :PROPERTIES:
@@ -2237,6 +2247,28 @@ Divided out of =2a6a1355= 2026-09-17 at the user's direction, whose diagnosis wa
 :CREATED:  [2026-09-01 Tue 08:43]
 :CATEGORY: Skill
 :END:
+:DEBRIEF:
+Filed 2026-09-01 after three stop-hook refusals in one session. It grew
+to five modes and 3,707 words across ten visits, which the user read on
+2026-09-17 as a heading carrying several causes that had never been
+separated, and they reserved the verdict until the root causes were
+identified. On 2026-09-21 the user divided the causes into siblings under
+=de6de108=, so each closes on its own.
+
+What this heading itself shipped: marker numbering in =footnote-check=
+(2026-09-16), then the retirement of markers altogether once it was found
+no governing document ever required them. The measurement behind that:
+zero duplicate markers in 924 footnoted responses. Then the same-line
+discharge rule (2026-09-17), which lets an id paired with its exact title
+count as footnoted. The measurement afterwards showed the rule working
+and going unused, and that finding lives on =13aed7ca=.
+
+Closed as =DONE= by the user's verdict on 2026-09-23, with every mode
+placed. The body stays intact rather than condensed, as =de6de108=
+argued. The paraphrased-title mode recurred once more, in the response
+proposing this close, and was caught before this close was written
+(=8f075f78=).
+:END:
 :PLAN:
 Composed 2026-09-21, when the user divided the rest of this heading's causes into siblings under =de6de108=. Nothing is left to build here. It closes REVIEW → DONE with a resolution line that places each of its five recorded modes:
 
@@ -2636,6 +2668,16 @@ One thing the rule does not reach, and it is worth writing down rather than trea
 *That reframes the volume measured above.* 3,707 words, ten dated revision sections in 17 days, largest heading in TODO.org at 15x the median — that was read here as a writing-habit problem. The user's reading is that it is a *structural* signal: a body metastasises when one heading is carrying several causes that were never separated, and each visit appends to the pile instead of landing somewhere of its own. On that reading the size is a symptom to diagnose, not prose to condense — which is also why condensing it now would be the wrong move, since it would erase the evidence of the seams.
 
 *So the next session's first question is not "close it?" but "how many causes are in here?"* Candidate seams visible in the body, offered as a starting point and not as an answer: the marker faults (retired with markers, so possibly not a cause at all); enumeration; borrowed prose and quotation, which may be one cause — an id arriving by transcription; the paraphrased title, already made impossible by =33c3eabc=; and the volume/discipline question raised today, where the mechanism works and goes unused. Whether those are distinct causes or one cause seen five ways is exactly what has not been established.
+
+*Closed 2026-09-23, the user's verdict: every cause this heading collected
+now has a heading of its own.* The reused-marker faults were retired with
+the markers on 2026-09-16. Enumeration, including a mechanism that works
+and goes unused, is =13aed7ca=. Quotation and borrowed prose, an id
+arriving by transcription, are =490e6737=. The title paraphrased from a
+neighbour's body was made impossible by =33c3eabc=. The final-block blind
+spot is =c247d8f3=, and discussion by subject is =eadb3607=. The body is
+left as it stands: its size is the evidence of where the seams were.
+
 
 
 ** TODO An id that arrives by transcription was never chosen, so care cannot catch it :code:
