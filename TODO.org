@@ -11,6 +11,31 @@
 
 Claude Code 2.1.280 lists 33 hook events in its binary's event enum; this repo wires 7 (settings.json and hooks/hooks.json together), and PostToolUseFailure and SessionEnd were found only because a spike went looking (2026-09-23). Proposal: a SessionStart check compares the running version (the path in CLAUDE_CODE_EXECPATH, or claude --version) against a stamp; on a change it diffs the enum against a committed snapshot and reports added and removed events, asking whether to open a spike. The extraction reads a minified binary, so it must fail loudly: an unreadable list is reported as such, never as "no change". Unclassified: the brainstorming skill decides spike or bounded.
 
+*Candidates among the 26 unwired events* (2.1.280, 2026-09-23). All are
+judged from the name alone except the two already measured.
+- =PostToolUseFailure=: measured; now 3ad389be's failure hook.
+- =SessionEnd=: measured; now 3485b0d0's clock close.
+- =PreCompact= / =PostCompact=: =conventions-inject= fires once per
+  session, so after a compaction the pointer may be gone while its sentinel
+  holds.
+- =InstructionsLoaded=: could show whether the path-scoped rules actually
+  loaded, the blind spot 436e0991 works around.
+- =StopFailure=: if a turn ending in an API error fires no =Stop=, it
+  leaves no =pause= guidepost. Time tracking only.
+- =SubagentStart= / =SubagentStop=: subagent lanes in the queue. Time
+  tracking only.
+- =ConfigChange=: might see the =time_tracking= option flip, which
+  =claude-org-setup= cannot.
+- =Setup=: might run =claude-org-setup= at install.
+- =FileChanged=: might give =apply-detect= a direct signal in place of
+  comparing mtimes.
+Judged unrelated: =Notification=, =MessageDisplay=, =Elicitation=,
+=ElicitationResult=, =TaskCreated=, =TaskCompleted=, =TeammateIdle=,
+=PreModelSwitch=, =PostModelSwitch=, =PostToolBatch=,
+=UserPromptExpansion=, =CwdChanged=, =DirectoryAdded=, =WorktreeCreate=,
+=WorktreeRemove=.
+
+
 * DONE [8/8] Address the PR #30 review: ten findings, three of them in one new guard :code:
 CLOSED: [2026-09-23 Wed 11:18]
 :PROPERTIES:
