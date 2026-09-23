@@ -557,7 +557,7 @@ slice held was checked against =8a2eb687= only.
 
 
 
-* TODO A turn can end holding an open clock and nothing says so: 9 of 39 session queues end on a clock_in :code:bounded:
+* TODO A session that ends holding an open clock never closes it: 8 of 42 clocking sessions end on a clock_in :code:bounded:
 :PROPERTIES:
 :ID:       3485b0d0-3b47-4a28-ae6f-e2061fa8f226
 :CREATED:  [2026-09-22 Tue 15:29]
@@ -610,20 +610,14 @@ running it against a no-op hook. Then one live headless session that clocks
 in and is sent SIGTERM, to see the =clock_out= land.
 :END:
 
-`org_clock_out` is the last call of the turn, and nothing checks it:
-`bin/hooks/clock-target-check` enforces the *inverse* at `Stop` — write
-activity with no `clock_in` — so the backstop's shape already exists and
-is missing its other half. Measured 2026-09-22 across live and archived
-queues: of the 39 sessions that ever clocked in, **9 end on a `clock_in`**
-with nothing after it, most recently `92af51b9`, whose ownership of
-`7ee3b71a` therefore never ended and which left twelve suggested clock
-items behind one uncalled tool. The check is cheap and local — at `Stop`
-the session's own queue file is on disk and an unmatched trailing
-`clock_in` is a `tail`. What is not settled, and should be before
-building: whether to block the stop the way `clock-target-check` does, or
-append the `clock_out` at the guidepost's own timestamp, which would make
-the rule unbreakable and equally unlearnable.
-
+A session that ends holding an open clock never closes it: the review pass
+keeps an unmatched =clock_in= as the anchor for work still running, so the
+orphan never resolves. Measured 2026-09-23 over the live queues: 8 of 42
+clocking sessions end on a =clock_in=. The per-turn breach is wider (433 of
+1,843 turn ends after a first =clock_in= held a clock) but mostly harmless,
+so it stays a prose rule. =SessionEnd= fires on exit, SIGHUP and SIGTERM,
+even mid-tool, but not on SIGKILL. The fix closes the clock there; the
+design is in =:PLAN:=.
 
 * MAYBE The brainstorming skill offers a visual companion nobody here has evaluated: it serves mock-ups from a local web server :code:spike:
 :PROPERTIES:
