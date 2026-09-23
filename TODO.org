@@ -563,6 +563,52 @@ slice held was checked against =8a2eb687= only.
 :CREATED:  [2026-09-22 Tue 15:29]
 :CATEGORY: Clock
 :END:
+:PLAN:
+Close the clock a session leaves open when the session itself ends; leave
+the per-turn rule (=org_clock_out= as the turn's last call) as prose. Most
+turn ends that hold a clock are harmless: the next turn carries on the same
+heading. What is lost is the session that never returns, whose =clock_in=
+stays the lane's anchor for ever. (The user, 2026-09-23, chose this over
+enforcing the per-turn rule at =Stop= and over relaxing it.)
+
+*The hook.* =bin/hooks/session-end-clock-close=, on =SessionEnd=. When the
+session's queue file shows the main lane's (=agent_id= null) last clock
+event is a =clock_in=, it pipes its payload to =queue-append clock_out=;
+otherwise it does nothing. It reads the queue with the tolerant
+=jq -n -R … fromjson?= stream =clock-target-check= uses, so one malformed
+line cannot flip the answer. It self-gates on
+=CLAUDE_PLUGIN_OPTION_TIME_TRACKING= like the other time hooks, and always
+exits 0: nobody is left to answer a block. The event carries a null id,
+like every queued =clock_out=; pairing is per lane, so it needs none.
+
+*The timestamp is the session's end, not the last =pause=.* =queue-append=
+stamps now and takes no override, and a backdated event is the
+synthetic-evidence pattern 3ad389be declined. The record is written from
+the turn guideposts inside the pair, so an idle tail widens the item's span
+without claiming the idle as work. =source= reads =SessionEnd=, which marks
+the pair as closed by the hook at review. This is not the guess 7771fc63
+retired: the session has ended, which is evidence. A =/resume= reusing the
+id owes a fresh =clock_in= before its first write anyway.
+
+*Scope.* Main lane only: a subagent holding its own clock has no case to
+design for. Out: SIGKILL and crashes, which fire no =SessionEnd=, and the
+sessions already stranded, which are dismissed at review. A dead-session
+detector is justified only if orphans keep appearing after this ships.
+
+*Wiring and prose.* A =SessionEnd= row in =.claude/settings.json= (setting
+the time-tracking variable in the command string, as that file's time rows
+do) and in =hooks/hooks.json=; a row in the table in
+=skills/org/references/org-time-tracking.md=, the reference, not the
+generated rules copy.
+
+*Testing.* =bin/session-end-clock-close-test=, on the pattern of
+=bin/clock-target-check-test=, over fixture queues: open clock (appends one
+=clock_out=), already closed, never clocked, only a subagent lane open (all
+three append nothing), a malformed line beside an open clock (still
+appends), time tracking off (nothing). Prove the suite discriminates by
+running it against a no-op hook. Then one live headless session that clocks
+in and is sent SIGTERM, to see the =clock_out= land.
+:END:
 
 `org_clock_out` is the last call of the turn, and nothing checks it:
 `bin/hooks/clock-target-check` enforces the *inverse* at `Stop` — write
