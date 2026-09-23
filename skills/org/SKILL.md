@@ -91,8 +91,9 @@ matters enormously if anything drives it non-interactively.
 | `:arch:`     | Brainstorming path: a new subsystem or a changed interface |
 
 The three path tags record the brainstorming skill's classification and
-are set only by it, at capture: an untagged heading was not classified,
-which is not the same as bounded. A heading carries at most one, and
+are set only by it, at capture or when it classifies a heading already
+filed: an untagged heading was not classified, which is not the same as
+bounded. A heading carries at most one, and
 moving up a path replaces it; `bin/lint-org` errors on two. `:code:` is
 not a path tag and combines with any of them.
 
