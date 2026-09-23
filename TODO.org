@@ -336,6 +336,17 @@ already sorts such a line into the drawer's timeline and keeps its note
 attached (tested 2026-09-22). Until this tool exists, the brainstorming
 skill writes the line by hand with the headline edit; once it does, that
 paragraph of the skill becomes one call.
+
+A companion that logs tag changes made by hand in Emacs (the user, 2026-09-23). The tool logs its own changes, but a human's =C-c C-q= logs nothing. Org itself supplies every piece this needs. =org-set-tags= runs =org-after-tags-change-hook= when the tags really change. =org-add-log-setup= takes a purpose, and =org-store-log-note= looks up that purpose's template in =org-log-note-headings=. So adding =(tags . "Tags %-12s from %-12S %t")= to that alist and calling =(org-add-log-setup 'tags NEW OLD 'note)= writes =- Tags ":after:" from ":before:" [ts]=. org wraps =%s= and =%S= in double quotes, and =#+STARTUP: logdrawer= puts the line in =:LOGBOOK:=. With ='note=, org prompts for the indented reason; with ='time=, it writes the bare line.
+
+Three constraints:
+- The hook receives no arguments, and the old tags are local to =org-set-tags=. So the mechanism is =:around= advice on =org-set-tags=: read =(org-get-tags nil t)= first, call the original, and log when the result differs.
+- =org-add-log-setup= only queues the note, and =post-command-hook= writes it later, provided =this-command= still matches. That is reliable for an interactive command, but it is the deferred-note path that breaks non-interactively (the state-transition rules, citing 3d576d29). So =org_set_tags= writes its own line directly, and binds a suppression variable so the advice does not log the same change a second time. Apply's suppression of the auto-clock trigger is the pattern to copy.
+- It is scoped to the tracked org files. The advice does nothing in the user's other org files, for the same reason =#+STARTUP: logdrawer= was chosen over a global =setq=.
+
+Out of reach: a session editing headline text calls no org function, so neither path sees the change. That is why the tool is still needed, and why the skill's hand edit keeps its hand-written line until the tool ships.
+
+Verification: an ERT test calls =org-set-tags= under a simulated command loop (=this-command= bound, =post-command-hook= run) and asserts the line and its placement in =:LOGBOOK:=. A second asserts that =org_set_tags= writes exactly one line with the advice active. A third asserts that no line is written in an untracked file. The live check is a =C-c C-q= by hand on a scratch heading.
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-22 Tue 11:24]--[2026-09-22 Tue 11:25] =>  0:01
