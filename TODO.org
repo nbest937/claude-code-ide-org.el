@@ -836,37 +836,78 @@ Row 5 of the enforcement audit's convert list (3cd7b7d3), set aside there as the
 :CATEGORY: Tools
 :END:
 :PLAN:
-The no-change refusal in =claude-code-ide-org-set-todo= compares the requested state with the heading's *effective* state instead of the keyword on disk. Effective state is the keyword on disk, carried forward through the heading's pending =todo= events.
+The no-change refusal in =claude-code-ide-org-set-todo= compares the requested
+state with the heading's *effective* state instead of the keyword on disk.
+Effective state is the keyword on disk, carried forward through the heading's
+pending =todo= events.
 
-A return trip is queued, not cancelled (the user, 2026-09-23). =REVIEW -> DOING -> REVIEW= goes into the queue as two ordinary items. It is the true history, since =REVIEW -> DOING= is rework by the keyword semantics. Apply already replays each event and never collapses them (see =claude-code-ide-org--review-items-from-queue=). =--review-projected-staleness= accepts the return, because its =from= matches the pre-batch state. Cancelling the pair was declined for two reasons. It would need a new cancel event kind, or a writer that reads the queue, which breaks the blind =O_APPEND= property =6b1e73c4= kept. And it would erase a rework round trip that really happened.
+A return trip is queued, not cancelled (the user, 2026-09-23). =REVIEW -> DOING
+-> REVIEW= goes into the queue as two ordinary items. It is the true history,
+since =REVIEW -> DOING= is rework by the keyword semantics. Apply already
+replays each event and never collapses them (see
+=claude-code-ide-org--review-items-from-queue=). =--review-projected-staleness=
+accepts the return, because its =from= matches the pre-batch state. Cancelling
+the pair was declined for two reasons. It would need a new cancel event kind, or
+a writer that reads the queue, which breaks the blind =O_APPEND= property
+=6b1e73c4= kept. And it would erase a rework round trip that really happened.
 
-Effective state. A new helper, =claude-code-ide-org--effective-todo-state (id disk-state)=, reads =claude-code-ide-org--queue-events=: every session, unapplied events only. It keeps the =todo= events for =id=, orders them by =:ts=, and returns the last one's =:state=, or =disk-state= when there are none. It reads the queue and never writes it, like =--pending-capture= already does.
+Effective state. A new helper, =claude-code-ide-org--effective-todo-state (id
+disk-state)=, reads =claude-code-ide-org--queue-events=: every session,
+unapplied events only. It keeps the =todo= events for =id=, orders them by
+=:ts=, and returns the last one's =:state=, or =disk-state= when there are none.
+It reads the queue and never writes it, like =--pending-capture= already does.
 
 The check.
-- Requested equals effective: refused as now. That also catches a duplicate =DOING= queued over a disk =REVIEW=. When effective differs from disk, the refusal names it starred: =no change -- "H" already holds DOING* (queued, not yet applied)=.
-- Otherwise: queued. When effective differs from disk, the reply adds =, after DOING* in the queue= after the closing parenthesis.
+- Requested equals effective: refused as now. That also catches a duplicate
+  =DOING= queued over a disk =REVIEW=. When effective differs from disk, the
+  refusal names it starred: =no change -- "H" already holds DOING* (queued, not
+  yet applied)=.
+- Otherwise: queued. When effective differs from disk, the reply adds =, after
+  DOING* in the queue= after the closing parenthesis.
 
-=(was X)= is a contract, not prose, and is unchanged. =bin/hooks/queue-append= recovers =from= with a greedy =sed 's/.*(was \([^)]*\)).*/\1/p'=. So the reply carries exactly one =(was ...)=, holding the disk state and nothing else, and no nudge text may contain "(was". =from= keeps meaning "on disk at queue time", which the chain logic of =6b1e73c4= relies on. The starred effective state sits outside the parentheses, for the reader. The =*= notation replaced "(was X)" in footnotes; this reply is where it does not (the user, 2026-09-23).
+=(was X)= is a contract, not prose, and is unchanged. =bin/hooks/queue-append=
+recovers =from= with a greedy =sed 's/.*(was \([^)]*\)).*/\1/p'=. So the reply
+carries exactly one =(was ...)=, holding the disk state and nothing else, and no
+nudge text may contain "(was". =from= keeps meaning "on disk at queue time",
+which the chain logic of =6b1e73c4= relies on. The starred effective state sits
+outside the parentheses, for the reader. The =*= notation replaced "(was X)" in
+footnotes; this reply is where it does not (the user, 2026-09-23).
 
-Out of scope: the pending-capture branch (=claude-code-ide-org--tolerating-pending-capture='s pending path). A heading that has not been written has no disk state to disagree with.
+Out of scope: the pending-capture branch
+(=claude-code-ide-org--tolerating-pending-capture='s pending path). A heading
+that has not been written has no disk state to disagree with.
 
-Docstring: the no-change paragraph and the =from= paragraph each gain a line saying the refusal reads effective state while =from= still reads disk.
+Docstring: the no-change paragraph and the =from= paragraph each gain a line
+saying the refusal reads effective state while =from= still reads disk.
 
-Tests. Each is proved to discriminate by copying the fix aside, restoring HEAD's version and re-running.
-- =config-test.el=: disk =REVIEW= with =-> DOING= queued; asking for =REVIEW= queues, and the reply's clause still parses to =REVIEW=.
-- =config-test.el=: the same setup; asking for =DOING= is refused, and the reply shows =DOING*=.
-- =config-test.el=: the round trip =REVIEW -> DOING -> REVIEW= applies in one review pass, nothing flagged stale, and =:LOGBOOK:= gets both State lines.
-- =bin/queue-append-test=: a reply carrying the "after X* in the queue" suffix yields =from: REVIEW=.
+Tests. Each is proved to discriminate by copying the fix aside, restoring HEAD's
+version and re-running.
+- =config-test.el=: disk =REVIEW= with =-> DOING= queued; asking for =REVIEW=
+  queues, and the reply's clause still parses to =REVIEW=.
+- =config-test.el=: the same setup; asking for =DOING= is refused, and the reply
+  shows =DOING*=.
+- =config-test.el=: the round trip =REVIEW -> DOING -> REVIEW= applies in one
+  review pass, nothing flagged stale, and =:LOGBOOK:= gets both State lines.
+- =bin/queue-append-test=: a reply carrying the "after X* in the queue" suffix
+  yields =from: REVIEW=.
 - The existing no-pending-event tests stand unchanged.
 
-Files: =modules/tools/claude-code-ide-org/config.el=, =config-test.el=, =bin/queue-append-test=.
+Files: =modules/tools/claude-code-ide-org/config.el=, =config-test.el=,
+=bin/queue-append-test=.
 :END:
 :LOGBOOK:
 - Tags ":code:bug:bounded:" from ":code:bug:" [2026-09-23 Wed 09:29] \\
   classified by brainstorming: one function's existing check changes
 :END:
 
-=org_set_todo='s no-change refusal compares the requested state with the keyword on disk and ignores the queue. So after a queued =REVIEW -> DOING=, the return to =REVIEW= is refused, and the next apply lands =DOING= on a heading that is back in =REVIEW=. The reverse also slips through: a second =DOING= is queued as a duplicate. Observed 2026-09-21 on 63713df3. The fix tests the heading's effective state, meaning the disk keyword carried through its pending =todo= events, and queues the return trip rather than cancelling the pair. The design is in =:PLAN:=.
+=org_set_todo='s no-change refusal compares the requested state with the keyword
+on disk and ignores the queue. So after a queued =REVIEW -> DOING=, the return
+to =REVIEW= is refused, and the next apply lands =DOING= on a heading that is
+back in =REVIEW=. The reverse also slips through: a second =DOING= is queued as
+a duplicate. Observed 2026-09-21 on 63713df3. The fix tests the heading's
+effective state, meaning the disk keyword carried through its pending =todo=
+events, and queues the return trip rather than cancelling the pair. The design
+is in =:PLAN:=.
 
 
 * TODO Nothing in the drift slice was exercised in a consumer install: the new hooks, the conditional time-file promotion, the twin-checker agent :code:
