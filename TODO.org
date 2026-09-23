@@ -2994,6 +2994,35 @@ The convention is explicit that it goes **immediately after the TODO keyword**, 
 *This is the same defect, in a second inserter.* =--ensure-statistics-cookie-at-point= wrote a trailing cookie and was fixed when the corpus was measured 13:1 against it (=:ID:= 28415ca8's reasoning). =org_divide= was not, so the fix landed in one of the two places that insert a cookie. Worth checking at the same time whether any third path does.
 
 Cheap, and the corpus check is already done and recorded, so this needs no re-measurement — only the same placement =--ensure-statistics-cookie-at-point= now uses.
+
+*Design, approved 2026-09-23 (the user). It supersedes the paragraph
+above that ends "only the same placement … now uses", and settles its
+open question.*
+
+*No third code path exists.* Every other insertion (=org_set_property='s
+=KIND=slice= branch, the slice refresh) already goes through
+=--ensure-statistics-cookie-at-point=. =claude-code-ide-org-divide= is the
+only place that places a cookie by hand. It builds the parent line as
+state, title, then =" [/]"=. The corpus holds no trailing cookie today:
+the one on ee3e0fa2 was repaired by hand.
+
+*Two places teach the wrong form, and both change with the fix.* The test
+=claude-code-ide-org-test-divide-carries-everything-to-the-child= asserts
+=^\* TODO A story now \[0/1\]$=, pinning the defect. The org skill's cookie
+example (=skills/org/SKILL.md=, "Pack for the trip [2/5]") shows the
+trailing form, and a hand-written heading copies it.
+
+*The change.* =claude-code-ide-org-divide= inserts the parent line without
+a cookie, then calls =--ensure-statistics-cookie-at-point= on the new
+parent before =org-update-statistics-cookies=. One function then owns
+placement, and the rule has no second copy. The helper leaves a title that
+already carries a cookie alone, and works on a keyword-less parent.
+
+*Testing.* The divide test expects =^\* TODO \[0/1\] A story now$=. A
+second case covers a keyword-less parent. Both are shown to fail against
+the old line construction. The skill example becomes
+=*** TODO [2/5] Pack for the trip=, with one sentence on why the cookie
+leads. Then =bin/test= and =bin/lint-org= run green.
 :END:
 
 `org_divide` appends the statistics cookie after the title text, so a narrow agenda or list window truncates the headline and takes the cookie with it. The cookie belongs at the front, where `org_slice_add_member` already puts it. Seen on `ee3e0fa2`.
