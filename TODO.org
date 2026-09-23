@@ -47,6 +47,16 @@ and wait to the other tools that refuse an unsaved buffer
 refuse instead of saving). Second, making the three permanent refusals
 stop and ask at once. Third, the =PreToolUse= guard that refuses a
 direct write to a tracked org file while Emacs is visiting it.
+
+*=create-lockfiles= as the guard's signal* (moved from =b5f94b88= at its
+close, 2026-09-23). Emacs writes a lockfile beside a file exactly while
+its buffer holds unsaved changes, and Doom leaves the setting off. Turned
+on, it lets the =PreToolUse= guard tell whether the human has unsaved
+changes with a file test instead of an =emacsclient= call. The guard is a
+hook, and hooks here must survive an Emacs outage. Two things to measure
+before relying on it: that the lockfile really disappears on save and on
+revert, and that a stale one left by a crashed Emacs is recognisable,
+since it names a PID that no longer runs.
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-22 Tue 20:20]--[2026-09-22 Tue 20:20] =>  0:00
@@ -9820,6 +9830,32 @@ both times the code four lines away said otherwise. Filed separately.
 :ID:       b5f94b88-76e3-4a3c-ac73-729f34d33691
 :CREATED:  [2026-08-13 Thu 10:13]
 :END:
+:DEBRIEF:
+*What shipped, as recorded 2026-09-01 and unchanged since.* Step 3, for
+both capture and amend: each writes through when the file is free and
+queues when the human has unsaved changes, with =queue-append= gating on
+the two deferred reply constants. Step 2 was never needed, as this
+heading predicted.
+
+*Why it closes rather than continuing.* Its premise was that a session
+should never wait on the human. On 2026-09-23 the user decided the
+opposite for edits: a refused write prompts for a save and the agent
+waits (=ec1e6839=). =dd4b9a9f= then designed =org_edit= to replace
+=org_amend= without a queue path, and its child =b2d4012c= retires the
+amend half of this heading's step 3. Capture keeps deferring, and nothing
+here changes that.
+
+*No verdict on the reframe was ever recorded*, and this heading said
+none should be inferred. The user's 2026-09-23 decision is the first
+recorded one, and for amend it goes against interjecting.
+
+*Residue: step 1, =create-lockfiles=,* never set, and unspent since the
+2026-08-13 research. It has a new use now. Emacs writes the lockfile
+exactly while a buffer holds unsaved changes, so =ec1e6839='s write
+guard can see that state without calling Emacs, which is what a hook
+that must survive an Emacs outage needs. It is recorded in that
+heading's =:PLAN:=, not left here.
+:END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-13 Thu 10:14] \\
   drafted, awaiting the user's careful read
@@ -10005,6 +10041,12 @@ verdict ever being recorded — which is worth noticing rather than
 tidying away, since the paragraph above says explicitly that none should
 be inferred. What is left of the heading is step 1 and the standing
 invitation to challenge the reframe.
+
+*Closed 2026-09-23.* The capture half shipped and stands. The amend half
+is being retired: the user chose that an edit waits on the human's save
+rather than interjecting through the queue, which is =dd4b9a9f='s
+design. The one unspent step, =create-lockfiles=, moves to =ec1e6839=.
+
 
 
 * TODO Concurrent sessions share one git index, and explicit staging protects nothing :code:
