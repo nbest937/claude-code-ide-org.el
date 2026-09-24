@@ -4382,11 +4382,6 @@ CLOCK: [2026-09-21 Mon 15:28]--[2026-09-21 Mon 15:29] =>  0:01
 - [2026-09-21 Mon 15:28]--[2026-09-21 Mon 15:29] re-scope to the basename collision
 :END:
 :PLAN:
-The fix still needs choosing: a session id that stays unique when two repos
-share a basename, and that a consumer's generated =.mcp.json= can name
-statically. Measure first the basename plus a short hash of the absolute path.
-(Re-scoped to the collision by the user, 2026-09-21; the ordering half closed
-in =8bbae3aa=.)
 :END:
 
 The standalone wiring registers each tracked repo under its directory basename
