@@ -101,8 +101,9 @@ Split out of =2aeb65d6= on 2026-09-24 (the user). That heading's guard stops a w
 Files: =config.el= (the turn renderer) and =config-test.el=.
 :END:
 
-Filed 2026-09-24 from =13aed7ca='s brainstorm (the user chose it there). =claude-code-ide-org-render-session= renders a transcript's prose as written, so a tracked id in it is bare text, and the reader has to look it up. The renderer runs inside Emacs with =org-id= loaded, so it could rewrite each 8-hex token that resolves to a tracked heading as an =[[id:…]]= link carrying that heading's keyword and title as of the render. That is the reader-side route to citation: no tokens spent, nothing recalled, and nothing stale beyond the render's own age. With =eddee10f='s live follow, each appended turn is linked as it lands. Whether the terminal's end-matter rule can relax once renders carry links is this heading's later question, not a premise. Open for its brainstorm: link on every render, or leave the text alone and add overlays; and code fences, where an id is transcript rather than citation, as =footnote-check= already treats it.
+=claude-code-ide-org-render-session= renders a transcript's prose as written, so a tracked id in it is bare text and the reader has to look it up. Filed 2026-09-24 from =13aed7ca='s brainstorm, because the slice's plan claimed render-time links that no member designed. Designed the same day on the bounded path: each id becomes an org footnote whose definition carries the id link, keyword and exact title, with a live lookup anywhere in Emacs filed as a companion heading.
 
+*Established (2026-09-24):* the renderer runs inside Emacs with =org-id= loaded, so it can resolve an id when it renders a turn. Emacs overlays can be clickable, since =button.el= builds on them, but they leave nothing in the file. Your Doom setup already has embark, eldoc and link-hint, which is what makes the companion cheap.
 * TODO Prose names tracked work by its subject, and the reader has to ask what it meant :spike:
 :PROPERTIES:
 :ID:       ee90e212-2118-4409-b30e-bff96b9ed0ca
