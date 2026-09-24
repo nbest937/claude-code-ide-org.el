@@ -4897,6 +4897,19 @@ it.
 :CREATED:  [2026-09-11 Fri 15:45]
 :CATEGORY: Apply
 :END:
+:PLAN:
+*The design, approved 2026-09-24 (the user), brainstormed on the bounded path.* The fix is in the hook, not the writer (the user, 2026-09-24). A separate marker file touched only on apply was the alternative. It was declined because it would give =--queue-watermark-write='s one-writer, both-facts design a companion to keep in step.
+
+*The discriminator.* Each =applied= entry in =<session>.applied= maps an event to the time of the pass that applied it, for example ="2026-09-23T15:13:13-0500"=. A dismiss-only pass rewrites the file, which is why the mtime lies, but it leaves those values unchanged. =bin/hooks/apply-detect= keeps the mtime test as a cheap first filter. Then one =jq= call over just the watermarks that moved prints each file's newest =applied= value, and a watermark counts as applied only when that value *differs* from the one recorded for it. Inequality rather than order, so the local offsets (=-0500=, =-0600= across DST) never need parsing.
+
+*The stamp becomes a record.* =<session>.apply-seen= holds one line per watermark, its name and last-seen value, written by temp file and rename, and only after the hook's output succeeds, as the =touch= is today. The first prompt of a session, and a legacy empty stamp (all 44 on disk on 2026-09-24), record every watermark's current value silently: pre-session history is SessionStart's to report. A full scan of the 71 watermarks in one =jq= process takes well under a second, so that initial case is cheap too.
+
+*Edge cases.* A watermark missing from the record counts as applied, so a session's first apply is still reported. An empty =applied= set has the value =""=. A file =jq= cannot parse falls back to today's mtime judgement, so an unreadable file never silences a real apply. The message counts watermarks whose value changed.
+
+*Testing*, in =bin/apply-detect-test=: a dismiss-only rewrite reports nothing; an apply reports; a legacy empty stamp initialises silently; a new watermark reports; an unparseable file falls back to mtime; a record written before a DST change still matches. The suite ends with =94e6b615='s standard final line. Each test is shown to fail against HEAD's hook.
+
+Files: =bin/hooks/apply-detect=, =bin/apply-detect-test=, and the sentence in =skills/org/references/org-session-tracking.md= that says the hook "compares their mtimes", re-promoted with =bin/claude-org-setup=.
+:END:
 
 Found by PR22's review pass. =--queue-watermark-write= is the single writer for
 =<session>.applied= and is called from both =--queue-mark-applied= and the
