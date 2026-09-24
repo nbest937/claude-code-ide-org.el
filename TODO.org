@@ -1990,14 +1990,14 @@ CLOCK: [2026-09-23 Wed 20:26]--[2026-09-23 Wed 20:27] =>  0:01
 Committed 2026-09-21 by the user to close within =8a2eb687=, where it replaces its child =2a6a1355= as the member. It closes when all six children are terminal. =d88362e7= is already DONE. =2a6a1355= closes on its resolution. =c247d8f3= and =eadb3607= each close on one measurement, CANCELLED if nothing is found. =490e6737= and =13aed7ca= each close on one user decision recorded in its own drawer. Each child's plan is its own drawer; this one holds only the close condition.
 :END:
 
-Divided out of =2a6a1355= 2026-09-17 at the user's direction, whose diagnosis was that the body had become "out and out metastasism": one heading carrying several causes that were never separated, so each visit appended to the pile instead of landing somewhere of its own. Ten dated revision sections in seventeen days, 3,707 words, the largest heading in TODO.org at fifteen times the median and 4.7% of the file's prose. **The size was the symptom; the failure to separate causes was the disease.**
+Divided out of =2a6a1355= on 2026-09-17 at the user's direction. That body had become "out and out metastasism": one heading carrying several causes that were never separated, so each visit added to the pile instead of landing somewhere of its own. The size was the symptom; the failure to separate causes was the disease. *The division was right (the user's verdict, 2026-09-24).* The story closes when =c247d8f3='s fix and =13aed7ca='s rules text land.
 
-*What the division claims, and it is deliberately a weak claim.* Two causes are filed as members because the evidence separates them cleanly: an id that arrives by *transcription* was never chosen by the writer, and an id cited in *bulk* was chosen by the writer every time. The parent heading's own unifying sentence — "every failure is an id the writer did not choose to write" — covers the first and is **false of the second**, which is what makes them two rather than one. That contradiction is the whole warrant for dividing.
-
-*What it does not claim.* That two is the right number. Three of the five recorded modes were marker faults and are dead, retired with the markers themselves rather than fixed, so they are not causes and get no member. Whether quotation and borrowed prose are one cause or two is left open on the member that holds them. **The user is reserving judgment on the division itself until the next session**, so this structure is a proposal to be judged, not a settled taxonomy.
-
-*Why the child's body was left intact.* Condensing its retracted third would have been policy-conformant and was declined: the accreted sections are the evidence of where the seams are, and the next pass needs to count them. Erasing them to save lines would destroy the only record of how the causes got tangled.
-
+*Established:*
+- The division's premise held. Transcription (=490e6737=) and bulk citation (=13aed7ca=) are different causes: in one the writer never chose the id, in the other the writer chose every one. Each got a different resolution: "detected and retried" for the first, rules text and a lookup procedure for the second.
+- Both measured candidates were real. =c247d8f3= found 107 of 1,576 Stop segments hiding debt before a tool call. =eadb3607= found a *different* heading named by subject without its id, which the user judged to owe a citation, while pointing at the heading in hand does not.
+- Four of the six children settled within a day of the sweep starting, each on its own evidence, which was the division's aim.
+- =ee90e212=, the mechanism =eadb3607= handed off, stays outside the story: half of it is jargon coined on the spot, with no id to cite (the user agreed, 2026-09-24).
+- =2a6a1355='s body was deliberately left intact, because its accreted sections are the evidence of where the seams were.
 
 ** DONE Three new ways to owe a footnote and not see it: marker, list, quotation :code:
 CLOSED: [2026-09-23 Wed 15:25]
