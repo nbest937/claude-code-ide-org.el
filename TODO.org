@@ -9533,33 +9533,12 @@ CLOCK: [2026-08-19 Wed 19:18]--[2026-08-19 Wed 19:31] =>  0:13
 - [2026-08-19 Wed 19:18]--[2026-08-19 Wed 19:31] assigned at review
 :END:
 
-Observed 2026-08-19: an apply pass refused
-[[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]]'s =none -> TODO=
-because =--at-id= could not find the heading. The heading existed; the
-index did not know where.
+Observed 2026-08-19: an apply pass refused [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]]'s =none -> TODO= because =--at-id= could not find the heading. It had been captured into =~/org/notes.org= and moved into =TODO.org= by cutting and re-inserting its text, which never touches =org-id-locations=. Designed 2026-09-24 on the bounded path, after a reproduction: that failure no longer reproduces, but a stale buffer makes a lookup succeed at the *old* location, so the fix is a stale-buffer guard in =--id-find=, a pinning test, and an error that names the files it scanned.
 
-*Cause.* It was captured with no target, so
-[[id:97696fc2-f07b-4586-b280-de6a7d26fb87][97696fc2]] put it in
-=~/org/notes.org=, and it was then moved into =TODO.org= by cutting and
-re-inserting the subtree text. That never touches =org-id-locations=, so
-=org-id-find= kept resolving to a file the heading had left.
-
-*Wider than its cause.* Any hand move between files does this — a
-=git= operation, an =Edit= tool call, a refile done as text. Only
-=org-refile= maintains the index, and this project edits org text
-directly all the time.
-
-*Candidate fixes, none chosen.* Call =org-id-update-id-locations= after
-any tool that relocates a subtree; or have =--at-id= fall back to a scan
-of the tracked files when the index misses, which is self-healing and
-costs a scan only on the failing path. The second also covers moves made
-outside Emacs entirely, which the first cannot.
-
-*Left as a question:* whether the =Error:= that reaches the review
-buffer should distinguish "no such :ID: anywhere" from "not where the
-index says", since the two want different responses and currently read
-identically.
-
+*Established (2026-09-24):*
+- The installed org's =org-id-find= rescans when the indexed file no longer holds the id. The rescan covers agenda files and their archives, =org-id-extra-files=, files already in the index, and open org buffers.
+- The live index held five files. One was another session's scratch file (=tagtest.org=), registered because a test opened it in the live Emacs. A rescan re-adds any file that is indexed or open, so such a file leaves the index only once its buffer is killed *and* the file deleted, at the next rescan. Test in batch Emacs, or kill the buffer and delete the file before the session ends.
+- =agentic-euchre='s two tracked files were not in the index, so a first lookup of one of their ids pays a full rescan. Whether their headings carry ids at all was not checked.
 
 * TODO Applied review changes can be destroyed by a git checkout that looks like it reverts only Claude's edit :code:
 :PROPERTIES:
