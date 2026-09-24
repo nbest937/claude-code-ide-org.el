@@ -7072,6 +7072,19 @@ An =:ID:= is this system's primary key, and =--id-find= resolves a prefix by sca
 :CATEGORY: Dev
 :END:
 :PLAN:
+*The design, approved 2026-09-24 (the user), brainstormed on the bounded path.* Make a stale image loud, rather than the reload discipline stronger. It is primarily a development facility, for changing this project's own machinery; the live-upgrade case matters only once there are downstream users, and there are none today (the user, 2026-09-24). No feature flag is needed: the check speaks only when the image really is stale, which after an upgrade is exactly what a user would want to hear, and the commit gate runs only on commits that include a module file, which a consumer repo never makes.
+
+*A load stamp, not =fboundp= alone* (the user, 2026-09-24). =fboundp= answers only whether a name exists, so it catches a defun added and not loaded, or deleted and still bound, but not the commonest edit: a changed function body, whose old definition stays bound. The last form in =config.el= records, in the running image, an alist keyed by file: the file actually loaded, a SHA-256 of its contents, and the load time. It lives in memory because it describes the image, not the file: a stamp on disk would outlive a restart or a crash and vouch for a load that no longer exists. It goes last so that a =load-file= aborted halfway, the 2026-09-15 case in the standing rules, leaves the old stamp and shows as a mismatch. When =a7f844ba= splits off =+time.el=, that file stamps itself the same way.
+
+*Compare truenames, never raw paths.* The module loads through a symlink (=~/.config/doom/modules/tools/claude-code-ide-org/= points into this repo), so a raw comparison would report a false "stale" forever.
+
+*The check* is one elisp function, with its logic in elisp behind a thin POSIX =sh= stub, per the scripting conventions. For each module file it compares the stamp with the file on disk and reports one of four states: fresh; stale (edited since load, with the load time); shadowed (the loaded file is a =.elc=, the stale-=.elc= shape measured 2026-09-16); or unstamped (no complete load of this version). The =fboundp= test of every =(defun claude-code-ide-org…= (394 defuns, 0 unbound when healthy) runs alongside and names any function missing or left over.
+
+*Where it reports* (the user, 2026-09-21). A =SessionStart= line in the ceremony report whenever the state is not fresh; it asks for a reload and never reloads, since a live reload cannot cover every change (the org-dev skill, section 2), so an automatic =load-file= would sometimes give a confident wrong answer. And =bin/check-image=, a new stub called from pre-commit only when a module file is in the commit, which warns and never blocks, because editing, batch-testing and committing without a reload is a coherent sequence. An unreachable Emacs prints "image state unknown", never silence and never a pass.
+
+*Testing.* ERT: the stamp's contents; each of the four states; a missing function named; a symlinked copy reporting fresh, which is the truename case. A shell test for the stub, with a fake =emacsclient=: stale gives a warning and exit 0; unreachable gives "unknown" and exit 0; no module file in the commit runs no check. Each is shown to fail against HEAD's version. Then live: edit a docstring, confirm "stale", reload, confirm "fresh".
+
+Files: =config.el=, =bin/check-image= (new), =.githooks/pre-commit=, =config-test.el= and the stub's test. The org-dev skill's reload guidance gains one line pointing at the check, and it must pass =bin/check-org-dev-skill=.
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-16 Wed 11:52]--[2026-09-16 Wed 11:53] =>  0:01
