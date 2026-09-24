@@ -7072,23 +7072,6 @@ An =:ID:= is this system's primary key, and =--id-find= resolves a prefix by sca
 :CATEGORY: Dev
 :END:
 :PLAN:
-Make a stale image loud rather than the reload discipline stronger. Two shapes
-are measured: a stale =.elc= shadowing =config.el=, and an older load of the
-right file, which =symbol-file= cannot see. One check catches both: test every
-=(defun claude-code-ide-org...= in =config.el= with =fboundp= against the
-running image (394 defuns, 0 unbound when healthy). A deleted function shows up
-as the inverse, since =load-file= never unbinds.
-
-It reports in two places (the user, 2026-09-21): a =SessionStart= report line,
-and a non-blocking warning at the commit gate. It never blocks, because
-editing, batch-testing and committing without a reload is a coherent sequence.
-It states what it knows (N defuns unbound, or the file newer than the load) and
-asks, following the ceremony's ask-never-act contract, and says so when Emacs
-is unreachable rather than passing silently.
-
-Not proposed: reloading on edit. A live reload cannot cover every change (the
-org-dev skill, section 2), so an automatic =load-file= would sometimes give a
-confident wrong answer.
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-16 Wed 11:52]--[2026-09-16 Wed 11:53] =>  0:01
