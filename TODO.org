@@ -83,10 +83,9 @@ CLOCK: [2026-09-23 Wed 21:17]--[2026-09-23 Wed 21:19] =>  0:02
 - [2026-09-23 Wed 21:17]--[2026-09-23 Wed 21:19] assigned at review
 :END:
 
-=claude-org-setup --glue= renders =claude-code-ide-org-glue.el= into =$DOOMDIR= (=7c86ab4c=), and a =load!= line in the user's =config.el= loads it. It was generated because it once held a per-machine project list; since that list became derived it is fixed text, so the generated copy can only drift, and =--check= then reports drift until =--glue= is re-run. That drift is what made =claude-org-setup-test= depend on the real =~/.config/doom= (=94e6b615=). Designed 2026-09-24 on the architectural path: the glue's forms move into the module, switched on by a Doom module flag, =(claude-code-ide-org +wire)=, and no file is generated into the Doom directory at all.
+=claude-org-setup --glue= renders =claude-code-ide-org-glue.el= into =$DOOMDIR= (=7c86ab4c=), and a =load!= line in the user's =config.el= loads it. It was generated because it once held a per-machine project list; since that list became derived it is fixed text, so the generated copy can only drift, and =--check= then reports drift until =--glue= is re-run. That drift is what made =claude-org-setup-test= depend on the real =~/.config/doom= (=94e6b615=). Designed 2026-09-24 on the architectural path: the glue's forms move into the module and run whenever it is enabled, never in batch Emacs, with a =defcustom= to opt out. No file is generated into the Doom directory, and the user's config needs no line for it.
 
-*Established (2026-09-24):* =render_glue= writes fixed text. The installed glue on the user's machine dates from 2026-09-10. The user's =init.el= enables the module with no flags, and the module does not yet call =modulep!=.
-
+*Established (2026-09-24):* =render_glue= writes fixed text. The installed glue on the user's machine dates from 2026-09-10. Batch Emacs (=bin/test=, =bin/lint-org=) runs its own process and loads =config.el= directly, so once the wiring moves there, the =noninteractive= guard is what keeps a batch run from starting a second server.
 * TODO A rendered session goes stale as the session runs; follow a live transcript without losing the reader's place :code:
 :PROPERTIES:
 :ID:       eddee10f-b916-43ed-bd69-217adc068433
