@@ -1871,31 +1871,15 @@ before its PR.
 Files: =bin/test-all= and =bin/test-all-test= (new), =.githooks/pre-push=, about 18 =bin/*-test= files.
 :END:
 
-=bin/test= runs the ERT suite only. The shell =bin/*-test= suites run
-when someone remembers, and no git hook or runner calls them, so a suite
-can sit red through a merge with nobody seeing.
+=bin/test= runs only the ERT suite. Nothing runs the 21 shell =bin/*-test= suites, so one can stay red through a merge with nobody seeing. Designed 2026-09-23 on the bounded path: =bin/test-all= requires a standard final line from every suite, and pre-push runs it on any push that is not org-only.
 
 *Established:*
-- Three suites went red when PR #28 gated their scripts on
-  =CLAUDE_PLUGIN_OPTION_TIME_TRACKING= (=queue-append-test= 40 failures,
-  =block-hooks-test= 9, =clock-target-check-test= 6), and nobody saw them
-  until 2026-09-19. With =claude-org-setup-test='s 9, that was 64
-  failures across four suites. All were fixed that day
-  ([[orgit-rev:claude-code-ide-org::1b4b3be][1b4b3be]],
-  [[orgit-rev:claude-code-ide-org::f733179][f733179]],
-  [[orgit-rev:claude-code-ide-org::7f54503][7f54503]]), and one was a
-  real bug: setup's "no port found" branch was unreachable under =set -e=
-  and =pipefail=.
-- The earlier instance of the class is in DONE.org: =bin/pre-commit-test=
-  had three failures that predated the branch fixing them.
-- On 2026-09-21 the suites were also found writing their provoked
-  refusals into the calling session's queue, fixed in
-  [[orgit-rev:claude-code-ide-org::bc23c76][bc23c76]].
-- A full run of every suite takes 41s (24s shell, 17s ERT, 2026-09-21).
+- PR #28 turned three suites red: 40, 9 and 6 failures, 64 across four suites with setup's 9. Nobody saw them until 2026-09-19. All were fixed that day ([[orgit-rev:claude-code-ide-org::1b4b3be][1b4b3be]], [[orgit-rev:claude-code-ide-org::f733179][f733179]], [[orgit-rev:claude-code-ide-org::7f54503][7f54503]]), and one was a real bug. DONE.org records an earlier instance in =bin/pre-commit-test=.
+- The suites were found writing provoked refusals into the calling session's queue on 2026-09-21, fixed in [[orgit-rev:claude-code-ide-org::bc23c76][bc23c76]].
+- A full run took 41 s on 2026-09-21: 24 s shell, 17 s ERT.
+- Only three suites print a count line. Six end with =exit "$count"=, which wraps to 0 at 256 failures. =queue-append-test= reads the real =TODO.org= (2026-09-23).
 
-Also noticed, not fixed: =claude-org-setup --check= reads the real
-=~/.config/doom=, so its suite is not hermetic.
-
+Noticed, not in scope: =claude-org-setup --check= reads the real =~/.config/doom=, so that suite is not hermetic either.
 
 * TODO sync-plans reads any mention of a plan filename as a link, so prose naming an orphan re-links it :code:observed:
 :PROPERTIES:
