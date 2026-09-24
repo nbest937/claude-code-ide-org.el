@@ -5950,6 +5950,17 @@ and a report that must fire at session start cannot depend on that.
 :CREATED:  [2026-09-04 Fri 11:37]
 :CATEGORY: Apply
 :END:
+:PLAN:
+*The design, approved 2026-09-24 (the user), brainstormed on the bounded path.* The code is right and already tested (both branches of the =let*=, =config-test.el= around lines 5454 and 13704). Only the docstring is wrong.
+
+*What holds, read 2026-09-24.* =:active= is never inferred from the queue. Exactly two human acts in the review buffer set it: =c= (=claude-code-ide-org-review-claim-envelope=) always, because claiming a span is asserting that a human attended it; and =e= (=claude-code-ide-org-review-edit-interval=) only when the start is typed as =<…>=, so inactive stays the default.
+
+*The change.* Replace the "Always *inactive*" paragraph and the closing "no branch to make" with that: annotations are inactive by default, so a queue-derived span never reaches =org-agenda=, and =:active= is set only by a human asserting attention at review, never by anything the queue records. Keep the history of the retired =:agent= branch, reworded so it says the removal was of *inference* from queue fields while =:active= is an *assertion*. Name =01849bef= as the request for a key that sets it without hand-editing, as the =c= command's comment already does.
+
+*No new test.* Both branches are covered, and a docstring's accuracy has no mechanical check; that class is =9702f283='s, filed separately. Verification is reading the new docstring against the =let*= and its two setters. The headline gains =:code:= beside =bounded= when tags are applied (the user, 2026-09-23).
+
+Files: =config.el=, one docstring.
+:END:
 :LOGBOOK:
 - [2026-09-04 Fri 11:31]--[2026-09-04 Fri 11:35] assigned at review
 CLOCK: [2026-09-04 Fri 11:36]--[2026-09-04 Fri 11:37] =>  0:01
