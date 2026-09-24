@@ -2,6 +2,24 @@
 #+TAGS: analysis bug code comms prose research review spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO The review buffer's transcript context mixes sessions, mixes sort orders, and shows only one side of a span :code:
+:PROPERTIES:
+:ID:       49444167-7a29-491a-81b4-c5215fce9fc2
+:CREATED:  [2026-09-24 Thu 15:52]
+:CATEGORY: Apply
+:END:
+
+Reported by the user 2026-09-24: the review display should tell sessions apart, and "the current chronological display of transcript context is not as helpful as it could be because ascending and descending order are mixed and the span in question only has clues on one side."
+
+*What the code confirms (read 2026-09-24):*
+- A span's prompts are listed oldest first (=--transcript-prompts= sorts ascending), capped at =claude-code-ide-org-prompt-synopsis-max-lines=.
+- A span with no =resume= shows only "the last prompt before this span" (=--prompt-before=). Nothing ever shows what followed a span, and the next thing said in that session is often the clearest clue to what the span was.
+- A span's context lines do not name their session, so concurrent sessions read as one stream.
+
+*Not yet located:* where the descending order the user sees comes from, whether the buffer's item order, a grouping, or the prompt list. Reproduce it against a live review buffer before designing.
+
+The nearest heading is =5a6d2c75=, about *what* evidence a span shows, where this one is about how that evidence is ordered and attributed. =c7619140='s slice gathers review-pass judgement work, so it may belong there, which is the user's scheduling call.
+
 * TODO footnote-check verifies that an id appears in the end matter, never that the title beside it is right :code:
 :PROPERTIES:
 :ID:       4a583ff2-2f6c-435b-acc2-9c52ad05539f
