@@ -54,23 +54,6 @@ The better measure is the user's own follow-up prompts, since each is a cost tha
 :CATEGORY: Dev
 :END:
 :PLAN:
-*The design, approved 2026-09-24 (the user), brainstormed on the architectural path.* The glue moves into the module, and a Doom module flag switches it on, so nothing is generated into the user's Doom directory any more.
-
-*What the glue does today* (read 2026-09-24). =~/.config/doom/claude-code-ide-org-glue.el=, written by =--glue= and loaded by a stable =load!= line in the user's =config.el=, runs three forms once =claude-code-ide= loads: =(claude-code-ide-emacs-tools-setup)=, upstream's switch for its MCP tools server, which is off by default; =(setq claude-code-ide-org-standalone-projects 'derive)=, so the projects that get a session are derived from the tracked org files; and =(claude-code-ide-org-standalone-wire)=, which pins the port to the one =.mcp.json= names, starts the server, and registers a session per project. It was generated because it once held a per-machine project list. Since that list became derived it is fixed text, and a fixed text kept as a generated copy can only drift.
-
-*Options weighed* (the user, 2026-09-24). Shipping it as a file and linking it into =$DOOMDIR=, the title's proposal, was declined: a symlink from the user's Doom config into one checkout path is machine-specific, and awkward in a dotfiles repo. Keeping the generated copy and announcing its drift was declined: the drift stays. On by default, with enabling the module as the consent, was declined in favour of an explicit flag, the narrower position =1caed585= took for the module's hooks. Doom has no drop-in directory like fish's =conf.d=, so the module itself is the drop-in: its =config.el= runs whenever the module is enabled in =init.el='s =doom!= block.
-
-*The wiring moves into the module.* The three forms move, unchanged, into the module's =config.el=, inside =(with-eval-after-load 'claude-code-ide …)=, and run only when =(modulep! +wire)= holds, so the =init.el= line becomes =(claude-code-ide-org +wire)=. Outside Doom (plain Emacs, the headless sandbox), where there is no =modulep!=, a =defcustom=, =claude-code-ide-org-wire-on-load= (default nil), is the switch instead. The module never wires on its own initiative, so =1caed585='s consent rule holds: the flag is the one thing the user declares, and nothing is written into the user's files.
-
-*Setup changes.* =--doom= prints the module line with =+wire=. =--glue= and its drift check are removed. =--check= reports a leftover glue file or =load!= line as "obsolete: delete it", which is how the one-time migration gets noticed. Nothing reads the user's Doom directory for the glue any more, so =claude-org-setup-test='s real-=DOOMDIR= dependency disappears; =94e6b615='s hermeticity item for that suite shrinks accordingly, and whichever lands second adjusts.
-
-*Migration*, once per machine: change the =init.el= line to =(claude-code-ide-org +wire)=, delete the =load!= line, delete the glue file, then =doom sync= and restart. Wiring twice during migration is harmless, because =claude-code-ide-org-standalone-wire= is idempotent: a second call finds its own server on the pinned port. Until the migration, the old glue keeps working.
-
-*Docs.* =skills/org/references/org-emacs-setup.md= and =1caed585='s install contract become "one module flag, no generated files", re-promoted where promoted. The heading's title, which proposes a link into =$DOOMDIR=, is restated to match.
-
-*Testing.* ERT: the wiring runs under the flag (with =modulep!= stubbed), does not run without it, and runs through the =defcustom= outside Doom. Setup's suite: =--doom= prints the =+wire= line, and =--check= reports the obsolete glue file and =load!= line. Each is shown to fail against HEAD's version. Then live on the user's machine: the migration edits, a restart, and the org tools answering from a session outside Emacs.
-
-Files: =config.el=, =bin/claude-org-setup=, =bin/claude-org-setup-test=, =config-test.el=, =skills/org/references/org-emacs-setup.md=.
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-23 Wed 21:17]--[2026-09-23 Wed 21:19] =>  0:02
