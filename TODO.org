@@ -10,8 +10,7 @@
 :BLOCKER:  b52df20b-45c7-41aa-9d77-44ccf06c647f
 :END:
 
-=claude-code-ide-org-fill-prose= (=496b665e=) is only ever run by hand with =M-x=: no hook, script or ceremony step calls it, and it was never run over the whole corpus (the user, 2026-09-24). A rough raw-width count on 2026-09-24 found 314 prose lines over 80 characters in TODO.org and 534 in DONE.org, not counting list items, tables and headings. Run it once over both files after =b52df20b= lands, since that heading brings the sweep's filter and width into line with the write path: no list items, display width. Report the dry run's counts before saving. Whether the sweep should also run routinely, for instance as a ceremony step, is this heading's question to settle.
-
+=claude-code-ide-org-fill-prose= (=496b665e=) swept both trackers once, when it shipped on 2026-09-14: 941 paragraphs in TODO.org and 2,265 in DONE.org, with the content verified identical. Nothing has run it since, because no hook, script or ceremony step calls it, so every body written after that date arrived unfilled. A rough raw-width count on 2026-09-24 found 314 prose lines over 80 characters in TODO.org and 534 in DONE.org, not counting list items, tables and headings. Re-run it over both files once =b52df20b= lands, since that heading changes the sweep's filter and width to match the write path: no list items, display width. Report the dry run's counts before saving. Whether the sweep should also run routinely, for instance as a ceremony step, is this heading's question to settle; with =b52df20b= filling at write time, routine runs would only catch hand edits.
 * TODO A rendered session shows ids as bare text; link each to its heading, with the keyword and title as of the render :code:
 :PROPERTIES:
 :ID:       9bc8fc8c-b6cf-47e4-af63-3d0012c02003
@@ -1245,6 +1244,8 @@ CLAUDE.md's own opening names this as the largest source of wrong claims. Caught
 
 - [2026-09-23 Wed] Caught by the user: "I don't see why the session would have to be 'running inside Emacs'. This one is not." Asked for ways to show footnotes on demand, the session read =claude-code-ide-terminal-backend 'vterm= in the Doom config and concluded that this session ran in a vterm buffer. It then built its recommendation on that and never checked. That setting says where =claude-code-ide= launches sessions, not where this one runs.
 - [2026-09-24 Thu] Self-caught: designing =406d78da='s picker, the session stated twice that a rendered transcript lives "outside =~/.claude=" and so outlives its pruned source, and that premise went into the approved drawer. The default is =~/.claude/org-renders/=. The session never read the variable until the user asked whether renders are persisted.
+- [2026-09-24 Thu] Self-caught, prompted by the user's question: the session filed =76a6f052= saying the fill sweep "has never run over the whole corpus", reasoning only from its long-line count and the lack of any caller. =496b665e='s debrief, one =org_body= call away, records the sweep of both trackers on 2026-09-14. The title and body were corrected the same hour.
+
 
 
 ** TODO Miss: a heading closed with its unfinished part left in prose, or its group left un-nominated
