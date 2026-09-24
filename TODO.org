@@ -3121,6 +3121,28 @@ Shipped in the canonical reference and promoted; check-conventions 32 ok, footno
 :CREATED:  [2026-09-21 Mon 13:25]
 :END:
 :PLAN:
+*The design, approved 2026-09-24 (the user), on the bounded path it stepped up to from a spike.* Divided out of =2a6a1355= on 2026-09-21: the Stop hook sees only =last_assistant_message=, the turn's final text block, so an id cited in a text block before a tool call is never checked. The spike measured whether that happens before building anything (=7771fc63='s standing argument), and it does. The count is in the body.
+
+*Two sources, because the transcript lags.* The hook's header records that Claude Code writes the transcript asynchronously, so the *final* block may not be on disk when Stop fires. Blocks written before a tool call are safely flushed, because the tool call came after them. So:
+- The final block still comes from =last_assistant_message=, and end matter is read only from it, as today.
+- The earlier blocks come from =transcript_path=: every assistant text block since the segment's start, which is the last user prompt or the previous =end_turn= message. If the transcript already holds the final message, it is recognised by matching =last_assistant_message=, so it neither starts a new segment nor is counted twice.
+- Ids are collected from every block, with fences stripped block by block, and checked against the final block's end matter and same-line pairings under the rules the hook already applies.
+
+*Cost and robustness.* The transcript is read from its end, in a window that grows until it reaches the segment's start, never whole. Parsing is =jq=, and the hook stays plain shell, as the queue hooks must survive a stopped Emacs. With no =transcript_path=, or one that cannot be read, the hook behaves exactly as today. The loop guard, the demand sentinel and the three-block bound are unchanged. Transcript pruning (=4acd8ad0=) does not bite, because the current turn's transcript exists by construction.
+
+*Testing*, in =bin/footnote-check-test=, each against a fixture transcript:
+- an id in an earlier block, absent from the end matter, blocks;
+- the same id footnoted passes;
+- an id inside an earlier block's code fence is ignored;
+- blocks from before the previous =end_turn= are ignored;
+- a final message not yet in the transcript is still scanned from the payload;
+- no transcript gives today's behaviour.
+
+Each is shown to fail against HEAD's hook. Then the spike's probe is re-run against the new hook: the 107 caught segments should fall to the 3 known end-matter false positives.
+
+*Docs.* The "What enforces it" section of =skills/org/references/org-footnote-citations.md=, which says the hook "carries only the turn's final text block", is updated and re-promoted with =bin/claude-org-setup=.
+
+Files: =bin/hooks/footnote-check=, =bin/footnote-check-test=, and that reference.
 :END:
 
 =footnote-check= reads =last_assistant_message=, which is only the turn's final text block, so footnote debt in any earlier block passes unseen. Measure how often that happens. If it happens at all, scan every text block of the turn from the transcript.
