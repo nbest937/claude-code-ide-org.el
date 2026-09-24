@@ -8,6 +8,15 @@
 :CREATED:  [2026-09-23 Wed 18:05]
 :CATEGORY: Dev
 :END:
+:LOGBOOK:
+CLOCK: [2026-09-23 Wed 18:03]--[2026-09-23 Wed 18:05] =>  0:02
+- [2026-09-23 Wed 18:03]--[2026-09-23 Wed 18:05] assigned at review
+CLOCK: [2026-09-23 Wed 18:05]--[2026-09-23 Wed 18:06] =>  0:01
+- [2026-09-23 Wed 18:05]--[2026-09-23 Wed 18:06] survey hook events; file the version watch
+CLOCK: [2026-09-23 Wed 18:48]--[2026-09-23 Wed 18:49] =>  0:01
+- [2026-09-23 Wed 18:48]--[2026-09-23 Wed 18:48] assigned at review
+- [2026-09-23 Wed 18:48]--[2026-09-23 Wed 18:49] record candidate events in the body
+:END:
 
 Claude Code 2.1.280 lists 33 hook events in its binary's event enum; this repo wires 7 (settings.json and hooks/hooks.json together), and PostToolUseFailure and SessionEnd were found only because a spike went looking (2026-09-23). Proposal: a SessionStart check compares the running version (the path in CLAUDE_CODE_EXECPATH, or claude --version) against a stamp; on a change it diffs the enum against a committed snapshot and reports added and removed events, asking whether to open a spike. The extraction reads a minified binary, so it must fail loudly: an unreadable list is reported as such, never as "no change". Unclassified: the brainstorming skill decides spike or bounded.
 
@@ -49,8 +58,10 @@ CLOCK: [2026-09-23 Wed 10:40]--[2026-09-23 Wed 10:41] =>  0:01
 CLOCK: [2026-09-23 Wed 10:41]--[2026-09-23 Wed 10:42] =>  0:01
 - [2026-09-23 Wed 10:41]--[2026-09-23 Wed 10:42] file the review story's children
 - [2026-09-23 Wed 10:42]--[2026-09-23 Wed 10:43] assigned at review
+- [2026-09-23 Wed 11:08]--[2026-09-23 Wed 11:09] assigned at review
 - State "DONE"       from "TODO"       [2026-09-23 Wed 11:18] \\
   all ten findings fixed and replied to
+- [2026-09-23 Wed 11:51]--[2026-09-23 Wed 11:51] the trigger's comment states the struck rule
 :END:
 :DEBRIEF:
 *What the review found, in aggregate.* Two real bugs, both in the one
@@ -224,6 +235,8 @@ CLOSED: [2026-09-23 Wed 11:17]
   the last child
 - State "DONE"       from "NEXT"       [2026-09-23 Wed 11:17] \\
   comment matches the code and the rule
+CLOCK: [2026-09-23 Wed 15:14]--[2026-09-23 Wed 15:19] =>  0:05
+- [2026-09-23 Wed 15:14]--[2026-09-23 Wed 15:19] the trigger's comment states the struck rule
 :END:
 :DEBRIEF:
 The rationale in =claude-code-ide-org--trigger-demote-conflicting-next=
@@ -415,7 +428,6 @@ org files and to tell the user. Refusals from a healthy Emacs never reach
 needed for them.
 
 
-
 * TODO Answer a bad tool call with its error rather than a hang, until upstream defines json-rpc-error :code:
 :PROPERTIES:
 :ID:       ecbbec2e-50d9-4581-9ded-15716f16c5f3
@@ -429,7 +441,6 @@ A tool call with a missing required argument or an unknown tool name gets no rep
 When a call times out and Emacs answers the hook's probe idle, the hook
 tells the session to check its argument names. It does not replace this
 fix, which turns the timeout into the real error.
-
 
 
 * TODO org_amend accepts a headline-shaped line in drawer text, which tears the drawer open :code:observed:
@@ -454,14 +465,14 @@ Observed 2026-09-22 writing a :PLAN: drawer through org_amend drawer=PLAN: six s
 claude-code-ide-org--replace-body deletes the body region and inserts (string-trim text), so replacing the last body before a heading takes the blank lines separating them with the trim and glues the heading onto the final line. Observed 2026-09-22 on 59861867: TODO.org:1008 became "written.** TODO Miss: ..." and org stopped parsing a heading there at all — org_outline reported the new id as resolving to no heading while org_amend, which locates by property, still wrote to it happily, and bin/lint-org reported 0 errors throughout. The damage is silent in both directions and the repair was a hand edit, which is itself against the rules. Proposed: --replace-body re-establishes the separation it found, or defers to claude-code-ide-org-heading-separator-lines; and bin/lint-org gains a check for a heading not at the start of its own line, which is the class org-lint calls "possibly misplaced heading" and only warns about.
 
 
-* TODO [0/27] The review pass asks for judgement it cannot support, and the clock beneath it is still wrong :code:
+* TODO [0/26] The review pass asks for judgement it cannot support, and the clock beneath it is still wrong :code:
 :PROPERTIES:
 :ID:       c7619140-f269-4329-bc05-a38ea151e202
 :CREATED:  [2026-09-22 Tue 16:07]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  55125136-5939-434e-9676-96ea66a75770 361e2708-8124-4bd1-9c44-f97ca97aca4a 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 aee8487e-0650-4396-bc5c-193ca3efcecb 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 653fea66-f9d5-4431-8ce3-5d355560b475 445fe577-01ce-4e68-ab5f-c349c40a4643 2c733857-a280-42cc-bd7c-e182a4fb6ea3 79c224ab-188a-4ed4-a606-c28ee2cfe72d 001fb310-69f7-4417-81be-a224a3bf83e0 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46 cf483f5d-2d25-4454-a580-db7935c8cb81 8028e875-3032-4ade-949e-414d9861b928 01849bef-fdc9-4c30-b467-00ca8606e8e0 ee3c22c9-f99c-4d41-9c3d-8f39af916fff e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 6c64cc9c-33a9-4a20-af19-c188a690c755 a865f83c-ea37-40c4-a104-7cc50d2c20dd e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 20cecd53-2338-4237-ab06-f8129e10a2c8 37147e9e-468b-43ee-91f9-45d9647c6164 445ec1f1-095a-462b-abbd-7a3a00925ddb 64d34a64-d336-40a8-a8e8-da8133d0da06 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd
+:BLOCKER:  55125136-5939-434e-9676-96ea66a75770 361e2708-8124-4bd1-9c44-f97ca97aca4a 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 aee8487e-0650-4396-bc5c-193ca3efcecb 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 653fea66-f9d5-4431-8ce3-5d355560b475 445fe577-01ce-4e68-ab5f-c349c40a4643 2c733857-a280-42cc-bd7c-e182a4fb6ea3 79c224ab-188a-4ed4-a606-c28ee2cfe72d 001fb310-69f7-4417-81be-a224a3bf83e0 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46 cf483f5d-2d25-4454-a580-db7935c8cb81 8028e875-3032-4ade-949e-414d9861b928 ee3c22c9-f99c-4d41-9c3d-8f39af916fff e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 6c64cc9c-33a9-4a20-af19-c188a690c755 a865f83c-ea37-40c4-a104-7cc50d2c20dd e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 20cecd53-2338-4237-ab06-f8129e10a2c8 37147e9e-468b-43ee-91f9-45d9647c6164 445ec1f1-095a-462b-abbd-7a3a00925ddb 64d34a64-d336-40a8-a8e8-da8133d0da06 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd
 :DROPPED:  01849bef-fdc9-4c30-b467-00ca8606e8e0
 :END:
 :PLAN:
@@ -570,7 +581,7 @@ Planned:
 
 - [-] [[id:55125136-5939-434e-9676-96ea66a75770][55125136]] WAITING Decide whether queue-append should derive clock events from DOING transitions, reversing the separation 4f6a6bb1 chose
 - [ ] [[id:361e2708-8124-4bd1-9c44-f97ca97aca4a][361e2708]] TODO Decide how far the review-apply cycle can be automated, given the interactive constraint
-- [ ] [[id:3485b0d0-3b47-4a28-ae6f-e2061fa8f226][3485b0d0]] TODO A turn can end holding an open clock and nothing says so: 9 of 39 session queues end on a clock_in
+- [ ] [[id:3485b0d0-3b47-4a28-ae6f-e2061fa8f226][3485b0d0]] TODO A session that ends holding an open clock never closes it: 8 of 42 clocking sessions end on a clock_in
 - [ ] [[id:aee8487e-0650-4396-bc5c-193ca3efcecb][aee8487e]] TODO `c` claims an envelope whatever runs it contains, so one keystroke can record 3h11m over 16 minutes
 - [ ] [[id:2d100d0d-2d04-43b9-af1e-f4d6b52bbada][2d100d0d]] TODO Intervals on two different headings can overlap, and subtraction reaches only one
 - [ ] [[id:653fea66-f9d5-4431-8ce3-5d355560b475][653fea66]] TODO The unassigned-mark guard is conjunctive, so a clock item with no id marks and then fails at apply
@@ -582,7 +593,7 @@ Planned:
 - [ ] [[id:5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46][5a6d2c75]] TODO An unassigned span's readout omits the evidence that would make its heading obvious
 - [ ] [[id:cf483f5d-2d25-4454-a580-db7935c8cb81][cf483f5d]] TODO A span with no readable evidence prints nothing about itself, so absence is the only signal
 - [ ] [[id:8028e875-3032-4ade-949e-414d9861b928][8028e875]] TODO Type a span's annotation at review time, not by hand-editing it after
-- [ ] [[id:01849bef-fdc9-4c30-b467-00ca8606e8e0][01849bef]] TODO Flipping a span's timestamps to active is hand-editing; give the review buffer a key
+- [[id:01849bef-fdc9-4c30-b467-00ca8606e8e0][01849bef]] TODO Flipping a span's timestamps to active is hand-editing; give the review buffer a key
 - [ ] [[id:ee3c22c9-f99c-4d41-9c3d-8f39af916fff][ee3c22c9]] TODO Make =d= mark for dismissal rather than dismiss, so a shared reason can be given once
 - [ ] [[id:e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b][e95cc5d1]] TODO =d= advances point in the review buffer, onto whatever moved up to replace the dismissed item
 - [ ] [[id:396fd1c3-70e0-4e1f-8839-670b5293a7d3][396fd1c3]] TODO Recenter after `m` advances, so the item under consideration is never at the bottom of the window
@@ -603,12 +614,19 @@ claim in =:PLAN:= that membership was every Apply and Clock heading no
 slice held was checked against =8a2eb687= only.
 
 
-
 * TODO A session that ends holding an open clock never closes it: 8 of 42 clocking sessions end on a clock_in :code:bounded:
 :PROPERTIES:
 :ID:       3485b0d0-3b47-4a28-ae6f-e2061fa8f226
 :CREATED:  [2026-09-22 Tue 15:29]
 :CATEGORY: Clock
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-23 Wed 16:05]--[2026-09-23 Wed 16:06] =>  0:01
+- [2026-09-23 Wed 16:05]--[2026-09-23 Wed 16:06] brainstorm the open-clock-at-stop backstop
+CLOCK: [2026-09-23 Wed 16:09]--[2026-09-23 Wed 16:11] =>  0:02
+- [2026-09-23 Wed 16:09]--[2026-09-23 Wed 16:11] design option 2: close abandoned sessions' clocks
+CLOCK: [2026-09-23 Wed 17:06]--[2026-09-23 Wed 17:08] =>  0:02
+- [2026-09-23 Wed 17:06]--[2026-09-23 Wed 17:08] record the approved design in :PLAN:
 :END:
 :PLAN:
 Close the clock a session leaves open when the session itself ends; leave
@@ -665,6 +683,7 @@ clocking sessions end on a =clock_in=. The per-turn breach is wider (433 of
 so it stays a prose rule. =SessionEnd= fires on exit, SIGHUP and SIGTERM,
 even mid-tool, but not on SIGKILL. The fix closes the clock there; the
 design is in =:PLAN:=.
+
 
 * MAYBE The brainstorming skill offers a visual companion nobody here has evaluated: it serves mock-ups from a local web server :code:spike:
 :PROPERTIES:
@@ -1395,6 +1414,17 @@ CLOCK: [2026-09-21 Mon 10:29]--[2026-09-21 Mon 10:30] =>  0:01
 - [2026-09-21 Mon 10:29]--[2026-09-21 Mon 10:30] record a self-caught unverified claim
 CLOCK: [2026-09-21 Mon 10:33]--[2026-09-21 Mon 10:34] =>  0:01
 - [2026-09-21 Mon 10:33]--[2026-09-21 Mon 10:34] add the review deadline
+CLOCK: [2026-09-23 Wed 15:14]--[2026-09-23 Wed 15:15] =>  0:01
+- [2026-09-23 Wed 15:14]--[2026-09-23 Wed 15:14] assigned at review
+- [2026-09-23 Wed 15:14]--[2026-09-23 Wed 15:15] record three misses from the 57f37f0e brainstorm
+CLOCK: [2026-09-23 Wed 15:16]--[2026-09-23 Wed 15:17] =>  0:01
+- [2026-09-23 Wed 15:16]--[2026-09-23 Wed 15:17] assigned at review
+CLOCK: [2026-09-23 Wed 15:19]--[2026-09-23 Wed 15:20] =>  0:01
+- [2026-09-23 Wed 15:19]--[2026-09-23 Wed 15:20] assigned at review
+CLOCK: [2026-09-23 Wed 15:20]--[2026-09-23 Wed 15:21] =>  0:01
+- [2026-09-23 Wed 15:20]--[2026-09-23 Wed 15:21] correct a miss line, record the catch
+CLOCK: [2026-09-23 Wed 18:50]--[2026-09-23 Wed 18:51] =>  0:01
+- [2026-09-23 Wed 18:50]--[2026-09-23 Wed 18:51] record four self-caught misses
 :END:
 :PLAN:
 *What this is for, and why it is not a member of the drift slice (decided with the user 2026-09-21).* It is an instrument, not a deliverable: it is read to decide which rule to move out of recall next, and to tell whether a conversion worked. A slice closes on its pull request; this stays open while it is useful, so membership would hold the slice open for a reason unrelated to its code.
@@ -1452,9 +1482,6 @@ Hook-backed (footnote-check, rule =footnote=), but the hook reads only a turn's 
   its divided parent, ee3e0fa2, not e28933e9's. A lookup made to answer a
   different question found it in the same turn, and a correcting block
   followed.
-
-
-
 
 
 ** TODO Miss: tracked work done under no clock, the wrong clock, or a clock closed before the work ended
@@ -1528,8 +1555,6 @@ UUIDs, SHAs, titles, keywords. Tool-backed where a tool resolves the id: on 2026
   refused it as resolving to no heading, and the real id was read from
   =org_body= before retrying. Refusal was the only safeguard: a recalled id
   that happened to resolve would have clocked the wrong heading.
-
-
 
 
 ** TODO Miss: a commit that swept in a change its message does not describe
@@ -1635,9 +1660,6 @@ CLAUDE.md's own opening names this as the largest source of wrong claims. Caught
   cost a turn and brought the recalled title recorded on e74ca757 with it.
 
 
-
-
-
 ** TODO Miss: a heading closed with its unfinished part left in prose, or its group left un-nominated
 :PROPERTIES:
 :ID:       906477b8-1bdc-491e-a4ce-b9b77d56624d
@@ -1715,7 +1737,6 @@ written.
   [[orgit-rev:claude-code-ide-org::633d98c][633d98c]]. Condensed in
   [[orgit-rev:claude-code-ide-org::cc6125a][cc6125a]] once asked, after a
   commit, since =replace= refuses a file with uncommitted changes.
-
 
 
 ** TODO Miss: an org question answered by scraping text instead of asking org
@@ -2348,7 +2369,7 @@ Left =TODO= deliberately, not cancelled: the field's removal is still a proposal
 The analysis above stays useful either way, because it is the record of *why* the field misleads — which is the argument for deleting it, not merely for renaming it.
 
 
-* DOING [1/6] Separate the causes of unfootnoted ids, so each can be closed on its own
+* DOING [2/6] Separate the causes of unfootnoted ids, so each can be closed on its own
 :PROPERTIES:
 :ID:       de6de108-0095-40f4-8177-fdef0503c578
 :CREATED:  [2026-09-17 Thu 16:17]
@@ -2367,7 +2388,8 @@ Divided out of =2a6a1355= 2026-09-17 at the user's direction, whose diagnosis wa
 *Why the child's body was left intact.* Condensing its retracted third would have been policy-conformant and was declined: the accreted sections are the evidence of where the seams are, and the next pass needs to count them. Erasing them to save lines would destroy the only record of how the causes got tangled.
 
 
-** REVIEW Three new ways to owe a footnote and not see it: marker, list, quotation :code:
+** DONE Three new ways to owe a footnote and not see it: marker, list, quotation :code:
+CLOSED: [2026-09-23 Wed 15:25]
 :PROPERTIES:
 :ID:       2a6a1355-615f-4c2c-a8af-c9ae8dcda09b
 :CREATED:  [2026-09-01 Tue 08:43]
@@ -2448,6 +2470,12 @@ CLOCK: [2026-09-17 Thu 15:50]--[2026-09-17 Thu 15:51] =>  0:01
   every question the heading posed is answered; the remaining call is yours
 CLOCK: [2026-09-17 Thu 15:54]--[2026-09-17 Thu 15:55] =>  0:01
 - [2026-09-17 Thu 15:54]--[2026-09-17 Thu 15:55] assigned at review
+CLOCK: [2026-09-23 Wed 15:21]--[2026-09-23 Wed 15:23] =>  0:02
+- [2026-09-23 Wed 15:21]--[2026-09-23 Wed 15:23] the trigger's comment states the struck rule
+- State "DONE"       from "REVIEW"     [2026-09-23 Wed 15:25] \\
+  the user's verdict: every cause has its own heading
+CLOCK: [2026-09-23 Wed 15:25]--[2026-09-23 Wed 15:26] =>  0:01
+- [2026-09-23 Wed 15:25]--[2026-09-23 Wed 15:26] close: every cause now has its own heading
 :END:
 
 *Asked by the user 2026-09-01 after a third stop-hook refusal in one session:*
@@ -2805,7 +2833,6 @@ spot is =c247d8f3=, and discussion by subject is =eadb3607=. The body is
 left as it stands: its size is the evidence of where the seams were.
 
 
-
 ** TODO An id that arrives by transcription was never chosen, so care cannot catch it :code:
 :PROPERTIES:
 :ID:       490e6737-b977-47a7-abd7-b0dad1684093
@@ -3063,6 +3090,12 @@ So cookie and =:KIND:= are a two-bit classifier and each carries a bit the other
 :CREATED:  [2026-09-17 Thu 11:31]
 :CATEGORY: Tools
 :END:
+:LOGBOOK:
+CLOCK: [2026-09-23 Wed 17:09]--[2026-09-23 Wed 17:10] =>  0:01
+- [2026-09-23 Wed 17:09]--[2026-09-23 Wed 17:10] brainstorm org_divide's trailing cookie
+CLOCK: [2026-09-23 Wed 17:30]--[2026-09-23 Wed 17:31] =>  0:01
+- [2026-09-23 Wed 17:30]--[2026-09-23 Wed 17:31] record the approved cookie-placement design
+:END:
 :PLAN:
 
 Dividing =e28933e9= on 2026-09-17 produced a parent reading =* TODO Make the corpus searchable by tag, … by decision where it cannot [0/1]= — cookie at the end of the title.
@@ -3110,6 +3143,7 @@ only inserter left doing this: every other path places the cookie through
 `--ensure-statistics-cookie-at-point`, after the keyword. A test and the
 org skill's example both still teach the trailing form. The fix routes
 divide through the helper; the design is in `:PLAN:`.
+
 
 * TODO [0/2] Make the corpus searchable by tag, by measurement where it can be and by decision where it cannot
 :PROPERTIES:
@@ -5179,7 +5213,6 @@ the act, and the hook removes the discipline of remembering to sample
 before the kill.
 
 
-
 * TODO Plans die at cleanupPeriodDays; decide plansDirectory or keep restoring :code:
 :PROPERTIES:
 :ID:       ff1bec00-1b18-4aea-9968-09c99818565e
@@ -6558,6 +6591,12 @@ body was the only honest route, exactly as that heading concluded.
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-08 Tue 16:12] \\
   story nomination: it unblocks the remaining member
+CLOCK: [2026-09-23 Wed 15:26]--[2026-09-23 Wed 15:27] =>  0:01
+- [2026-09-23 Wed 15:26]--[2026-09-23 Wed 15:27] assigned at review
+CLOCK: [2026-09-23 Wed 15:31]--[2026-09-23 Wed 15:36] =>  0:05
+- [2026-09-23 Wed 15:31]--[2026-09-23 Wed 15:36] assigned at review
+CLOCK: [2026-09-23 Wed 15:36]--[2026-09-23 Wed 15:37] =>  0:01
+- [2026-09-23 Wed 15:36]--[2026-09-23 Wed 15:37] exempt 2a6a1355 from the pass
 :END:
 :PLAN:
 
@@ -6623,7 +6662,6 @@ the diagnosis. Leave the body exactly as it stands.
 :END:
 
 About 88 finished headings still carry their debrief in the body. Each needs an authored resolution line before the debrief moves into =:DEBRIEF:=, in three passes: relocate wholesale, author in reviewed batches, condense last and separately. The plan, and the one heading exempt from it, are in =:PLAN:=.
-
 
 
 * TODO A boolean argument passed as false arrives as :false, which elisp reads as true :code:
@@ -7186,13 +7224,13 @@ alternative — and unlike the current review pass, it is six questions a day
 rather than nineteen.
 
 
-* NEXT [4/30] Everything passed and the file was still wrong :code:
+* NEXT [5/30] Everything passed and the file was still wrong :code:
 :PROPERTIES:
 :ID:       8a2eb687-28da-4d44-893b-db59298bdc5b
 :CREATED:  [2026-09-01 Tue 09:11]
 :CATEGORY: Slices
 :KIND:     slice
-:BLOCKER:  39039bb6-c70a-4ba9-8b37-edd8dd6921f6 2a6a1355-615f-4c2c-a8af-c9ae8dcda09b 490e6737-b977-47a7-abd7-b0dad1684093 13aed7ca-1fad-4e89-bbca-9355f5c76265 c247d8f3-9f3f-464a-b3a0-543b1bb9de4f eadb3607-aa3d-41ee-b8cc-e293cc924f26 f12f9da4-2870-45b7-8c50-ea54415c7bc6 25e7b083-360b-4282-8fd0-bb768e2a0f13 3ad389be-2797-46c3-a51d-9f603053955a 7fa68d5c-b6c0-43df-85c6-764b1d56511f 381ea07d-633f-4640-abbb-89472a07acba 8ddd7fa8-e847-42e9-b82c-63bbe4c11b7b 53b0047d-c55c-486c-8eed-ba4994d97a1a 60d6ab6e-a898-4894-82be-9f6086daf62d 7ee3b71a-b85a-4610-a4ab-b9e06c8d79da b52df20b-45c7-41aa-9d77-44ccf06c647f 2aeb65d6-350e-4c75-811e-4a748044fe2c 60ed5b96-40e3-4676-a742-07a8ad6cc3b7 5e731a23-7708-4248-b055-9b4a531f147d 965f94eb-1558-4d00-9857-5727eb86fe6f 7b4f4f14-6c76-4822-84c1-67589bc74b82 37bca83a-e83b-4070-9058-6318a58a24db 492a1a30-ac92-4f18-bb82-f9cd615b397c da6a2fba-1ab6-4e6f-94f1-3a945d1fdd84 94e6b615-3778-426b-b40a-306b517a837f 57f37f0e-4461-42f4-8b33-cde59318b93a
+:BLOCKER:  39039bb6-c70a-4ba9-8b37-edd8dd6921f6 490e6737-b977-47a7-abd7-b0dad1684093 13aed7ca-1fad-4e89-bbca-9355f5c76265 c247d8f3-9f3f-464a-b3a0-543b1bb9de4f eadb3607-aa3d-41ee-b8cc-e293cc924f26 f12f9da4-2870-45b7-8c50-ea54415c7bc6 25e7b083-360b-4282-8fd0-bb768e2a0f13 3ad389be-2797-46c3-a51d-9f603053955a 7fa68d5c-b6c0-43df-85c6-764b1d56511f 381ea07d-633f-4640-abbb-89472a07acba 8ddd7fa8-e847-42e9-b82c-63bbe4c11b7b 53b0047d-c55c-486c-8eed-ba4994d97a1a 60d6ab6e-a898-4894-82be-9f6086daf62d 7ee3b71a-b85a-4610-a4ab-b9e06c8d79da b52df20b-45c7-41aa-9d77-44ccf06c647f 2aeb65d6-350e-4c75-811e-4a748044fe2c 60ed5b96-40e3-4676-a742-07a8ad6cc3b7 5e731a23-7708-4248-b055-9b4a531f147d 965f94eb-1558-4d00-9857-5727eb86fe6f 7b4f4f14-6c76-4822-84c1-67589bc74b82 37bca83a-e83b-4070-9058-6318a58a24db 492a1a30-ac92-4f18-bb82-f9cd615b397c da6a2fba-1ab6-4e6f-94f1-3a945d1fdd84 94e6b615-3778-426b-b40a-306b517a837f 57f37f0e-4461-42f4-8b33-cde59318b93a
 :COOKIE_DATA: checkbox recursive
 :DROPPED:  4acd8ad0-4d26-420b-bf84-f66ae8a9dfc5
 :END:
@@ -7264,6 +7302,14 @@ CLOCK: [2026-09-21 Mon 12:28]--[2026-09-21 Mon 12:29] =>  0:01
 - [2026-09-21 Mon 12:28]--[2026-09-21 Mon 12:29] assigned at review
 CLOCK: [2026-09-21 Mon 12:39]--[2026-09-21 Mon 12:40] =>  0:01
 - [2026-09-21 Mon 12:39]--[2026-09-21 Mon 12:40] assigned at review
+CLOCK: [2026-09-23 Wed 18:50]--[2026-09-23 Wed 18:51] =>  0:01
+- [2026-09-23 Wed 18:50]--[2026-09-23 Wed 18:51] assigned at review
+CLOCK: [2026-09-23 Wed 18:54]--[2026-09-23 Wed 18:55] =>  0:01
+- [2026-09-23 Wed 18:54]--[2026-09-23 Wed 18:55] assigned at review
+CLOCK: [2026-09-23 Wed 18:57]--[2026-09-23 Wed 18:59] =>  0:02
+- [2026-09-23 Wed 18:57]--[2026-09-23 Wed 18:59] assigned at review
+CLOCK: [2026-09-23 Wed 19:05]--[2026-09-23 Wed 19:06] =>  0:01
+- [2026-09-23 Wed 19:05]--[2026-09-23 Wed 19:06] assigned at review
 :END:
 
 *The theme, briefly, in place of a plan — the full prompt comes later.* The
@@ -7296,7 +7342,7 @@ Planned:
 
 - [ ] [[id:39039bb6-c70a-4ba9-8b37-edd8dd6921f6][39039bb6]] TODO bin/lint-org does not detect a duplicate :ID: across TODO.org and DONE.org
 - [[id:de6de108-0095-40f4-8177-fdef0503c578][de6de108]] DOING Separate the causes of unfootnoted ids, so each can be closed on its own
-  - [-] [[id:2a6a1355-615f-4c2c-a8af-c9ae8dcda09b][2a6a1355]] REVIEW Three new ways to owe a footnote and not see it: marker, list, quotation
+  - [X] [[id:2a6a1355-615f-4c2c-a8af-c9ae8dcda09b][2a6a1355]] DONE Three new ways to owe a footnote and not see it: marker, list, quotation
   - [ ] [[id:490e6737-b977-47a7-abd7-b0dad1684093][490e6737]] TODO An id that arrives by transcription was never chosen, so care cannot catch it
   - [ ] [[id:13aed7ca-1fad-4e89-bbca-9355f5c76265][13aed7ca]] NEXT Bulk citation owes more entries than inline pairing can absorb, so the remedy goes unused
   - [X] [[id:d88362e7-8554-4a78-b8c4-a64c442b4fcf][d88362e7]] DONE Mark a queued keyword in end matter with a trailing star, and give the star no note of its own
@@ -7307,7 +7353,7 @@ Planned:
 - [X] [[id:d2a0f54c-b59a-4855-ae3d-c93a6d3aa177][d2a0f54c]] DONE Generalize bin/check-org-dev-skill into bin/check-conventions, wired into pre-commit
 - [X] [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]] DONE MCP tools that write an org file time out; one reports success and persists nothing
 - [ ] [[id:25e7b083-360b-4282-8fd0-bb768e2a0f13][25e7b083]] TODO org_capture's target refuses an 8-character :ID: prefix that every other tool accepts
-- [ ] [[id:3ad389be-2797-46c3-a51d-9f603053955a][3ad389be]] TODO An Emacs outage strands every org write, because the tools are Emacs
+- [-] [[id:3ad389be-2797-46c3-a51d-9f603053955a][3ad389be]] DOING An Emacs outage strands every org write, because the tools are Emacs
 - [ ] [[id:7fa68d5c-b6c0-43df-85c6-764b1d56511f][7fa68d5c]] TODO Fall back to the queue when org_capture cannot reach Emacs
 - [ ] [[id:381ea07d-633f-4640-abbb-89472a07acba][381ea07d]] TODO An archive pass wrote one subtree twice, and the mechanism is still unknown
 - [ ] [[id:8ddd7fa8-e847-42e9-b82c-63bbe4c11b7b][8ddd7fa8]] TODO Moving a heading between files by hand leaves org-id pointing at the old one
@@ -8358,7 +8404,7 @@ cannot be interpreted.
 and only an instrument outside the clock system answers it.
 
 
-* TODO An Emacs outage strands every org write, because the tools are Emacs :code:bounded:
+* DOING An Emacs outage strands every org write, because the tools are Emacs :code:bounded:
 :PROPERTIES:
 :ID:       3ad389be-2797-46c3-a51d-9f603053955a
 :CREATED:  [2026-08-31 Mon 13:50]
@@ -8443,9 +8489,47 @@ one live run per state, as in the probes above, and one =SessionStart=
 report.
 :END:
 :LOGBOOK:
+- State "TODO"       from              [2026-08-31 Mon 13:52]
+CLOCK: [2026-09-23 Wed 15:55]--[2026-09-23 Wed 15:59] =>  0:04
+- State "DOING"      from "TODO"       [2026-09-23 Wed 15:55] \\
+  measure which hook sees an MCP failure
+- [2026-09-23 Wed 15:55]--[2026-09-23 Wed 15:59] measure which hook sees an MCP failure
+CLOCK: [2026-09-23 Wed 15:59]--[2026-09-23 Wed 16:00] =>  0:01
+- [2026-09-23 Wed 15:59]--[2026-09-23 Wed 16:00] suggested span, accepted at review
+CLOCK: [2026-09-23 Wed 16:03]--[2026-09-23 Wed 16:05] =>  0:02
+- [2026-09-23 Wed 16:03]--[2026-09-23 Wed 16:05] suggested span, accepted at review
+CLOCK: [2026-09-23 Wed 16:05]--[2026-09-23 Wed 16:07] =>  0:02
+- [2026-09-23 Wed 16:05]--[2026-09-23 Wed 16:07] suggested span, accepted at review
+- [2026-09-23 Wed 16:11]--[2026-09-23 Wed 16:11] suggested span, accepted at review
+- [2026-09-23 Wed 17:06]--[2026-09-23 Wed 17:06] suggested span, accepted at review
+- [2026-09-23 Wed 17:08]--[2026-09-23 Wed 17:09] suggested span, accepted at review
+CLOCK: [2026-09-23 Wed 17:09]--[2026-09-23 Wed 17:10] =>  0:01
+- [2026-09-23 Wed 17:09]--[2026-09-23 Wed 17:10] suggested span, accepted at review
+CLOCK: [2026-09-23 Wed 17:15]--[2026-09-23 Wed 17:16] =>  0:01
+- [2026-09-23 Wed 17:15]--[2026-09-23 Wed 17:16] suggested span, accepted at review
+CLOCK: [2026-09-23 Wed 17:21]--[2026-09-23 Wed 17:22] =>  0:01
+- [2026-09-23 Wed 17:21]--[2026-09-23 Wed 17:22] suggested span, accepted at review
+CLOCK: [2026-09-23 Wed 17:30]--[2026-09-23 Wed 17:31] =>  0:01
+- [2026-09-23 Wed 17:30]--[2026-09-23 Wed 17:31] suggested span, accepted at review
+CLOCK: [2026-09-23 Wed 17:41]--[2026-09-23 Wed 17:44] =>  0:03
+- [2026-09-23 Wed 17:41]--[2026-09-23 Wed 17:44] probe what a PostToolUseFailure hook can learn and say
+CLOCK: [2026-09-23 Wed 17:44]--[2026-09-23 Wed 17:45] =>  0:01
+- [2026-09-23 Wed 17:44]--[2026-09-23 Wed 17:45] suggested span, accepted at review
+CLOCK: [2026-09-23 Wed 17:46]--[2026-09-23 Wed 17:47] =>  0:01
+- [2026-09-23 Wed 17:46]--[2026-09-23 Wed 17:47] suggested span, accepted at review
+CLOCK: [2026-09-23 Wed 17:47]--[2026-09-23 Wed 17:49] =>  0:02
+- [2026-09-23 Wed 17:47]--[2026-09-23 Wed 17:49] probe the prompt-blocked case and sample from the hook
+CLOCK: [2026-09-23 Wed 17:49]--[2026-09-23 Wed 17:50] =>  0:01
+- [2026-09-23 Wed 17:49]--[2026-09-23 Wed 17:50] suggested span, accepted at review
+CLOCK: [2026-09-23 Wed 17:52]--[2026-09-23 Wed 17:53] =>  0:01
+- [2026-09-23 Wed 17:52]--[2026-09-23 Wed 17:53] suggested span, accepted at review
+CLOCK: [2026-09-23 Wed 17:56]--[2026-09-23 Wed 18:01] =>  0:05
+- [2026-09-23 Wed 17:56]--[2026-09-23 Wed 18:01] suggested span, accepted at review
+CLOCK: [2026-09-23 Wed 18:01]--[2026-09-23 Wed 18:03] =>  0:02
 - Tags ":code:bounded:" from ":code:spike:" [2026-09-23 Wed 18:01] \\
   stepped up: the spike is answered, and building the failure hook is its own work
-- State "TODO"       from              [2026-08-31 Mon 13:52]
+- [2026-09-23 Wed 18:01]--[2026-09-23 Wed 18:03] record the approved failure-hook design
+- [2026-09-23 Wed 18:05]--[2026-09-23 Wed 18:05] suggested span, accepted at review
 :END:
 
 The queue's premise is that work can be recorded with no Emacs running. That
@@ -8483,8 +8567,6 @@ headless sessions logging raw hook payloads):
 event carries no =tool_response= to recover =from= from, so the staleness
 check would go blind on exactly the events written when the system is
 least healthy.
-
-
 
 
 * TODO An archive pass wrote one subtree twice, and the mechanism is still unknown :code:
@@ -11105,7 +11187,6 @@ call keeps running and a queued copy of a capture that later lands would
 create the heading twice.
 
 
-
 * TODO [3/5] Institute a catch-all heading for cross-cutting meta-work :code:
 :PROPERTIES:
 :CATEGORY: Meta
@@ -11897,7 +11978,6 @@ Its probe sees a tool call blocked on a prompt as a public org tool still on
 the Lisp stack, and tells the session to ask the user to answer it. That
 covers the "a blocked Emacs looks like a tool fault" half. Preventing the
 stale history, which is this heading's task, is unaffected.
-
 
 
 * MAYBE Give the review buffer a transient menu, once it has filters worth composing :code:
@@ -12892,6 +12972,7 @@ call it done.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-23 Wed 19:07]--[2026-09-23 Wed 19:20] =>  0:13
 CLOCK: [2026-09-23 Wed 14:59]--[2026-09-23 Wed 15:13] =>  0:14
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
@@ -14169,4 +14250,24 @@ CLOCK: [2026-09-23 Wed 09:34]--[2026-09-23 Wed 09:36] =>  0:02
 - [2026-09-23 Wed 09:34]--[2026-09-23 Wed 09:36] assigned at review
 CLOCK: [2026-09-23 Wed 09:36]--[2026-09-23 Wed 09:37] =>  0:01
 - <2026-09-23 Wed 09:36>--<2026-09-23 Wed 09:37> assigned at review
+CLOCK: [2026-09-23 Wed 15:13]--[2026-09-23 Wed 15:14] =>  0:01
+- [2026-09-23 Wed 15:13]--[2026-09-23 Wed 15:14] the trigger's comment states the struck rule
+CLOCK: [2026-09-23 Wed 15:20]--[2026-09-23 Wed 15:21] =>  0:01
+- [2026-09-23 Wed 15:20]--[2026-09-23 Wed 15:21] assigned at review
+CLOCK: [2026-09-23 Wed 15:36]--[2026-09-23 Wed 15:38] =>  0:02
+- [2026-09-23 Wed 15:36]--[2026-09-23 Wed 15:38] assigned at review
+CLOCK: [2026-09-23 Wed 15:41]--[2026-09-23 Wed 15:44] =>  0:03
+- [2026-09-23 Wed 15:41]--[2026-09-23 Wed 15:44] assigned at review
+CLOCK: [2026-09-23 Wed 15:48]--[2026-09-23 Wed 15:49] =>  0:01
+- [2026-09-23 Wed 15:48]--[2026-09-23 Wed 15:49] assigned at review
+CLOCK: [2026-09-23 Wed 15:55]--[2026-09-23 Wed 15:56] =>  0:01
+- [2026-09-23 Wed 15:55]--[2026-09-23 Wed 15:56] assigned at review
+CLOCK: [2026-09-23 Wed 17:30]--[2026-09-23 Wed 17:32] =>  0:02
+- [2026-09-23 Wed 17:30]--[2026-09-23 Wed 17:32] assigned at review
+CLOCK: [2026-09-23 Wed 17:35]--[2026-09-23 Wed 17:36] =>  0:01
+- [2026-09-23 Wed 17:35]--[2026-09-23 Wed 17:36] assigned at review
+CLOCK: [2026-09-23 Wed 17:41]--[2026-09-23 Wed 17:42] =>  0:01
+- [2026-09-23 Wed 17:41]--[2026-09-23 Wed 17:42] assigned at review
+CLOCK: [2026-09-23 Wed 18:48]--[2026-09-23 Wed 18:50] =>  0:02
+- [2026-09-23 Wed 18:48]--[2026-09-23 Wed 18:50] assigned at review
 :END:
