@@ -5967,38 +5967,12 @@ CLOCK: [2026-09-04 Fri 11:36]--[2026-09-04 Fri 11:37] =>  0:01
 - [2026-09-04 Fri 11:36]--[2026-09-04 Fri 11:37] correct two amendments; the toggle already exists
 :END:
 
-=claude-code-ide-org--review-format-annotation='s docstring says **"Always
-/inactive/ timestamps, so nothing written from the queue reaches
-=org-agenda="**, and closes with "there is no case in which a queue-derived span
-is the user's own attention, and no branch to make". Its own =let*=, four lines
-below the docstring, is:
+=claude-code-ide-org--review-format-annotation='s docstring says annotations are "Always /inactive/", and that there is "no branch to make". Its own =let*=, four lines below, branches on =:active=. Designed 2026-09-24 on the bounded path: rewrite the docstring to say who sets =:active= and why that is an assertion, not an inference.
 
-: (fmt (if (plist-get item :active) "<%Y-%m-%d %a %H:%M>" "[%Y-%m-%d %a %H:%M]"))
-
-Both were true when written. The branch was removed for keying on =:agent= — a
-field that tested "is this a subagent" while claiming to test "is this a human"
-— and **re-added 2026-08-24** keyed on something else entirely: the bracket
-style a human types at =claude-code-ide-org-review-edit-interval='s prompt. The
-removal argument was about *inference*; the re-addition is *assertion*. The
-docstring never learned the difference.
-
-*Filed because of what it cost, not because it is untidy.* On 2026-09-04 this
-sentence misled a reading of that function **twice in one day, in opposite
-directions** — once into recording that active marking would "reverse a measured
-decision" (it would not; half of it is built), and once into telling the user
-the review buffer has no kind toggle (it has had one for eleven days). Both
-notes had to be corrected, on =96a51c2f= and =01849bef=. The code was four lines
-away both times.
-
-*This is CLAUDE.md's own thesis arriving inside the module rather than in
-prose:* "a stale claim here outranks the truth until someone deliberately
-checks", and the docstring is loaded into the reader's attention exactly the way
-CLAUDE.md is. The repair is small — the docstring should say what the =:active=
-flag means, who sets it, and that inference from queue fields is what was
-rejected — but the class is worth a moment's thought, since
-=bin/check-conventions= checks documents against the code and nothing checks a
-docstring against the function under it.
-
+*Established:*
+- Both were true when written. The =:agent= branch was removed for testing "is this a subagent" while claiming to test "is this a human", and the branch was re-added on 2026-08-24, keyed on the bracket style a human types. The docstring never learned the difference.
+- It cost two misreadings on 2026-09-04, in opposite directions. One recorded that active marking would "reverse a measured decision"; the other told the user the review buffer has no kind toggle. Both were corrected, on =96a51c2f= and =01849bef=.
+- The class question, that nothing checks a docstring against its function, is filed as =9702f283=.
 
 * TODO Nothing lays out future work on a timeline the agenda can show
 :PROPERTIES:
