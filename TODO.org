@@ -1063,6 +1063,8 @@ Hook-backed (footnote-check, rule =footnote=), but the hook reads only a turn's 
 
 - [2026-09-24 Thu] Self-caught: reporting =c247d8f3='s probe, the session wrote end matter for =0086614a= with a title it had not looked up, and the title was wrong ("Unplanned work in flight belongs to no slice…" for "A slice should list incidental work separately from its planned members"). The hook did not fire, because it checks that an id appears in the end matter, not that the title is right.
 - [2026-09-24 Thu] Self-caught, the second recalled title of the day: brainstorming =b52df20b=, the session wrote end matter for =496b665e= with an invented title ("A slice member line with a long title fills into continuation lines…") for "Long prose lines accumulate in the trackers, and M-q by hand is the only thing wrapping them". Same shape as the =0086614a= catch: an id cited from another heading's prose, its title supplied by recall.
+- [2026-09-24 Thu] Self-caught, the third recalled title of the day: in =b52df20b='s wrap-up, end matter gave =204d1b0a= an invented title ("org_capture drops its body argument entirely; the note is never written") for "org_capture accepts a note it silently discards, and five headings shipped bodiless". The pattern across all three: an id met in another heading's prose, cited in a response, and its title recalled instead of looked up in the same turn.
+
 
 
 
