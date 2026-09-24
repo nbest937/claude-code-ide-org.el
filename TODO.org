@@ -9505,6 +9505,25 @@ where the concept was parked, and there was nothing there./
 :ID:       8ddd7fa8-e847-42e9-b82c-63bbe4c11b7b
 :CREATED:  [2026-08-19 Wed 19:24]
 :END:
+:PLAN:
+*The design, approved 2026-09-24 (the user), brainstormed on the bounded path*, after a reproduction rather than on the body's first diagnosis.
+
+*The reproduction* (batch Emacs with its own =org-id-locations-file=, 2026-09-24). A heading with an id was indexed in one file, then moved by hand, on disk, into another:
+- destination tracked (an agenda file) and buffers re-read: =org-id-find= *finds it* in the new file, because org's own miss path rescans (=org-id-update-id-locations nil t=) when the indexed file no longer holds the id;
+- destination tracked but the old file's buffer *stale*, still holding the moved text: =org-id-find= *returns the old location*. It does not fail; it succeeds at the wrong place, and a tool acting there would edit a heading that no longer exists in the file, and saving would write it back;
+- destination not tracked: not found, correctly, since the rescan covers only agenda files and their archives, =org-id-extra-files=, files already in the index, and open org buffers.
+
+So the 2026-08-19 failure no longer reproduces, and the stale buffer is a new and worse hazard: the same family as =53b0047d=, direct writes to a live org buffer.
+
+*The fix.*
+- A pinning test of the hand move into a tracked file resolving, so a future org or module change that loses the rescan is caught (the standing rules' =2c77f2cc= precedent).
+- A stale-buffer guard in =claude-code-ide-org--id-find=, the one place every id lookup passes. Before trusting a visiting buffer, check it against its file (=verify-visited-file-modtime=). An unmodified stale buffer is reverted first, then the lookup runs. A buffer both stale *and* modified is refused, naming the file, as the busy-buffer refusals already do. That closes the hazard for every tool at once; auto-revert only narrows the window, and a modified buffer never auto-reverts.
+- An unresolvable id's error names the files that were scanned, so "not found" says where it looked. That answers the body's open question without splitting the message into "no such id" and "not where the index says".
+
+*Testing*, in =config-test.el=: the three cases above, each shown to fail against HEAD's version, each with its own =org-id-locations-file= so the real index is never touched.
+
+Files: =config.el= (=--id-find= and its error) and =config-test.el=.
+:END:
 :LOGBOOK:
 CLOCK: [2026-08-19 Wed 18:58]--[2026-08-19 Wed 19:03] =>  0:05
 - [2026-08-19 Wed 18:58]--[2026-08-19 Wed 19:03] assigned at review
