@@ -4362,17 +4362,9 @@ filing closed in 8bbae3aa ([[orgit-rev:claude-code-ide-org::d5c9398][d5c9398]]);
 Files: =config.el= (the resolver split, the item's =:cwd=, =--capture-target-spec=, the apply path and the row) and =config-test.el=.
 :END:
 
-Found by PR22's review pass. =--review-apply-capture= resolves a nil target
-through =--capture-target-file=, which consults the MCP session context — but
-upstream =let=-binds =--current-session-id= around the HTTP request only, so
-during =M-x claude-code-ide-org-review= it is nil and the heading falls back to
-the global capture file. So: capture with no target from project B while B's
-TODO.org has unsaved edits, the call defers and answers "top of TODO.org", a
-human applies, and the heading lands in project A's tracker. This is
-[[id:d718f6b6-5a33-4889-8b5a-8ea82553ccea][d718f6b6]] surviving on its queued
-half. The queue event already carries =cwd= (=bin/hooks/queue-append:229=) and
-nothing on the apply path reads it, which is the likely fix.
+A targetless capture that defers, because the human has unsaved edits in the tracker, loses its project routing when the queue is applied: the heading lands in the global capture file, which can be another project's tracker, and the review row shows that wrong destination as if it were right. Found by PR22's review; this is [[id:d718f6b6-5a33-4889-8b5a-8ea82553ccea][d718f6b6]] surviving on its queued half. Designed 2026-09-24 on the bounded path: carry the event's =:cwd= into the item, and resolve the destination from it, worktrees mapped to their main checkout, for both the row and the write.
 
+*Established (2026-09-24):* the session context the direct path routes by exists only during a tool call, and apply runs inside the review command, where there is none. The queue event records =cwd=, and nothing on the apply path read it.
 
 * TODO org_slice_add_member cannot prepend or reorder, so declared order is append-only :code:
 :PROPERTIES:
