@@ -1869,6 +1869,8 @@ before its PR.
 *Testing.* =bin/test-all-test=, with fake suites in a scratch =bin/=: pass; fail; exit 0 with no final line; =0 passed=; 256 failures; a suite reading the real =TODO.org=. =bin/pre-push-test= gains an org-only range, a mixed range, and a failing suite that blocks the push. Each fix is shown to fail against HEAD's version. Then one live =bin/test-all= on the real tree, reporting its totals and time.
 
 Files: =bin/test-all= and =bin/test-all-test= (new), =.githooks/pre-push=, about 18 =bin/*-test= files.
+
+*=claude-org-setup-test= is made hermetic too* (the user, 2026-09-23). Its =--check= cases leave =DOOMDIR= unset, so =--check= also judges the user's real =~/.config/doom=: the glue file's content, the =load!= stub in =config.el=, and the absence of the old 202 override. Any change to what =--glue= generates would then turn the suite red on the user's machine until =--glue= is re-run, and pre-push would block the very push carrying that change. On a machine with no Doom config those checks are skipped and the cases pass without testing anything. The fix is to point =DOOMDIR= at a scratch directory holding a freshly rendered glue and the stub, and to add one case for each of the three drift conditions. The static guard gains =~/.config/doom= and =$HOME/.config= alongside the org files.
 :END:
 
 =bin/test= runs only the ERT suite. Nothing runs the 21 shell =bin/*-test= suites, so one can stay red through a merge with nobody seeing. Designed 2026-09-23 on the bounded path: =bin/test-all= requires a standard final line from every suite, and pre-push runs it on any push that is not org-only.
