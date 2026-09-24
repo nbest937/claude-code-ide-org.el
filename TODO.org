@@ -4401,16 +4401,12 @@ CLOCK: [2026-09-21 Mon 15:28]--[2026-09-21 Mon 15:29] =>  0:01
 Files: =config.el= (the name and URL resolution in =claude-code-ide-org-standalone-wire= and its derivation of projects), =bin/claude-org-setup=, =bin/claude-org-setup-test=, =config-test.el=.
 :END:
 
-The standalone wiring registers each tracked repo under its directory basename
-as the MCP session id, and =claude-org-setup --org= writes that same basename
-into the repo's generated =.mcp.json=. Two tracked repos that share a basename
-therefore collide: the later registration overwrites the earlier, and both
-static configs name the one surviving id, with nothing to tell them apart.
-Nothing reports the collision.
+The wiring registers each tracked repo under its directory basename as the MCP session id, and =claude-org-setup --org= writes that same basename into the repo's =.mcp.json=. Two tracked repos sharing a basename therefore collide: the later registration overwrites the earlier, and nothing reports it. Designed 2026-09-24 on the architectural path: resolve each project's name the way Claude Code resolves its MCP config (a local-scope entry first, then =.mcp.json=), refuse loudly on any collision at every startup, and fix a second clone with one =claude mcp add --scope local= command that setup prints.
 
-Found by PR #22's review. The warp alias and ordering half of the original
-filing closed in 8bbae3aa ([[orgit-rev:claude-code-ide-org::d5c9398][d5c9398]]); this is what remains.
-
+*Established:*
+- Found by PR #22's review. The warp alias and ordering half of the original filing closed in 8bbae3aa ([[orgit-rev:claude-code-ide-org::d5c9398][d5c9398]]).
+- Checked against Claude Code's MCP docs on 2026-09-24: =${VAR}= expansion works in =url= but reads only the process environment; scopes take precedence local, then project, then user, with no merging; local entries are keyed by project path in =~/.claude.json=.
+- Checked against Warp's MCP docs the same day: no variable expansion is documented, and Warp now lists Claude Code's =~/.claude.json= and =.mcp.json= among the configs it can read, behind a toggle. That contradicts =CLAUDE.md='s "Warp reads MCP config only from …".
 
 * TODO A deferred targetless capture loses its project routing when the queue is applied :code:
 :PROPERTIES:
