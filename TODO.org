@@ -3725,6 +3725,9 @@ running at bury, but once the clock survives the apply that condition is met,
 so the 86 unannotated intervals stop accumulating as a side effect rather than
 needing their own change.
 
+*Correction, 2026-09-24.* The description above of the audit log as "append-only and permanent … not in git's way" overstates it. =b5448133= established that the log is gitignored, so it exists only in this working copy: a fresh clone or a deleted checkout loses it, and with it the source for rebuilding the 101 intervals. Found by the twin pass that judged these two headings to be deliberate siblings, not twins.
+
+
 
 * DOING The complement's gap spans carry no events, so half the review buffer cannot be dismissed :code:
 :PROPERTIES:
