@@ -34,6 +34,21 @@ Not established: whether Claude Code ever rewrites a transcript's earlier lines,
 :CREATED:  [2026-09-23 Wed 20:33]
 :CATEGORY: Dev
 :END:
+:PLAN:
+*The design, approved 2026-09-23 (the user), brainstormed on the bounded path.*
+
+*Candidates: every project, newest first, each line labelled* (the user, 2026-09-23). The list is every =~/.claude/projects/*/*.jsonl= by modified time, not just the current project's. Deriving the current project's slug is what =claude-code-ide-org--transcript-file='s docstring warns goes wrong in worktrees and subdirectories, and a session started in a worktree (=…--claude-worktrees-pr8-review=) or in another repo stays reachable this way. There were 96 transcripts across 5 project directories and 185 MB on 2026-09-23. The list also includes any render in =claude-code-ide-org-transcript-render-directory= whose transcript Claude Code has pruned: transcripts go at about 30 days (=cleanupPeriodDays=, unset here), and a render outlives its source.
+
+*Each line* shows the modified time, the project (the directory slug, shortened), the session's name and its 8-character id. The name is the *last* =custom-title= in the file, since =/rename= appends a new one each time (56 in one transcript, the first of them stale), else =ai-title=, else the first prompt's synopsis via =--prompt-synopsis=. A render whose transcript is gone is marked =(render only)= and opens as it is.
+
+*Cost.* Titles are read from a window at the end of each file, which grows when the window holds none, as =--transcript-first-stamp= already grows from the start. Whole files are never read.
+
+*Completion* keeps the list in this order (a completion table with =display-sort-function= set to =identity=) and matches on any part of the line: project, name or id. A typed full id or 8-character prefix is also accepted, resolved the way every other tool resolves ids. Only the interactive form changes: callers passing an id, including the review buffer's =T=, are unaffected.
+
+*Testing*, in =config-test.el= against a scratch =projects/= tree: newest-first order; the last =custom-title= winning over earlier ones and over =ai-title=; the prompt-synopsis fallback; a render-only entry; a prefix resolving; the title read staying within its window. Each is shown to fail against HEAD's version. Then one live run of the picker.
+
+Files: =config.el= (=claude-code-ide-org-render-session='s interactive form and a new candidates function) and =config-test.el=.
+:END:
 
 Found 2026-09-23, the first time the user tried =96ddf1ef='s result: =M-x claude-code-ide-org-render-session= prompts with a bare =read-string "Session id: "=, so the reader has to find a UUID somewhere first. Offer a =completing-read= over the current project's transcripts, newest first, each candidate showing its last-modified time and the session's name. Transcripts carry =customTitle= once =/rename= has run (this session's is =still-wrong=). The prompt should also accept a typed id or prefix.
 
