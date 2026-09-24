@@ -2514,6 +2514,19 @@ enough to split is a judgement for the pass that reviews this division.
 :CREATED:  [2026-09-17 Thu 16:18]
 :END:
 :PLAN:
+*The design, approved 2026-09-24 (the user), brainstormed on the bounded path.* The open question was whether a response that is structurally a list of headings should owe end matter at all. Three shapes were on the table (composed 2026-09-21): accept end matter as correct at many ids; change the writing guidance so a list pairs each id with its title inline; or stand the hook down on list-shaped responses. The user chose the first two, and filed the reader-side route as its own heading, =9bc8fc8c= (the user, 2026-09-24). Standing the hook down stays declined: it loses the guarantee for a list of bare ids, which is exactly the enumeration failure.
+
+*What the closing session added.* The burden is also an error rate. Long end matter is written by hand, and that is where entries go missing or wrong: in one session, one entry was dropped (=f12f9da4=) and one title was written without being looked up (=0086614a=, wrong). Accepting the burden does not accept those errors, so the change carries a procedure as well as a stance.
+
+*The change*, to =skills/org/references/org-footnote-citations.md=, re-promoted with =bin/claude-org-setup=:
+- *Shape 1, stated outright.* A response that deliberately cites many headings owes end matter for every one it does not pair inline, and that is the convention working, not failing. A hook block on a long list is the backstop doing its job, and there is no case for standing it down on lists.
+- *Shape 2, sharpened.* The reference already tells a status summary to "prefer the inline form". It now says that a list whose items are headings pairs each id with its exact title on the same line and needs no end matter, and that a list of *bare* ids is the named failure, the source of the long hand-written end matter this heading measured.
+- *The procedure.* End matter of more than a handful of entries is built from one multi-id =org_outline= call (=scope= listing the ids, =bodies=false=), never recalled. This is the "look each keyword and title up" rule made into a single step.
+- *Pointer.* The reader-side route is =9bc8fc8c='s: links rendered with the current keyword and title. The terminal rule does not relax until that heading decides it can.
+
+*Verification.* Prose guidance has no mechanical check, and this says so rather than skipping it silently. =bin/check-conventions= must stay green after re-promotion. The effect, if any, shows in the =footnote= miss rate, read at the slice's close against its prediction.
+
+Files: =skills/org/references/org-footnote-citations.md= and its promoted copy.
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-17 Thu 16:18] \\
@@ -6737,6 +6750,45 @@ rather than nineteen.
 :DROPPED:  4acd8ad0-4d26-420b-bf84-f66ae8a9dfc5
 :END:
 :PLAN:
+Sequenced 2026-09-21 at the user's direction, and cut to the order the same day under the member-plan SOP (org conventions, "A slice's plan, and its members'"). Design and decisions live in each member's own =:PLAN:=, so read the member's drawer at its step, and where a line here and a member's drawer disagree, the member wins. A member with no drawer gets one before its step is worked. Before any step was worked, every member was brainstormed in this order and its path recorded (the user, 2026-09-23 and 2026-09-24).
+
+*The slice's sentence decides the order: everything passed and the file was still wrong.* The gate comes first. Then the tools a session uses daily that answer wrongly while looking right, since each is small and each lies every day. Then the checks that do not catch, and the region nobody owns. Then the places where two copies of the truth diverge. The outage and the unknown come last, because both open with work that must precede a fix.
+
+*Prediction, so the 2026-10-12 number is not misread:* turning silent failures into loud refusals *raises* the counted miss rate. A rise in these rules during this slice is the slice working.
+
+1. /The gate./
+   - =94e6b615=: every other step is verified by it.
+2. /Tools that answer wrongly and look right./ Small, each with a test.
+   - =37bca83a=: already DOING.
+   - =5acca91b=: closes with =37bca83a='s description rewrite, since =blocked:= already works and was only untaught (adopted 2026-09-23).
+   - =406d78da=, then =eddee10f=, then =9bc8fc8c=: the rendered session is where footnotes can resolve without the writer's help. The picker comes first, because nothing helps a reader who cannot reach the render; then live follow; then the links themselves, each id rendered as a live link carrying its current keyword and title (adopted 2026-09-23 and 2026-09-24, making footnotes usable by any means available). =9bc8fc8c= was filed when =13aed7ca='s brainstorm found that this plan claimed the links while no member designed them.
+   - =25e7b083=: the silent sites first.
+   - =57f37f0e=
+   - =492a1a30=
+   - =da6a2fba=: a tool to change an existing heading's tags, which the brainstorming skill now needs routinely, and which applies the paths recorded in this sweep.
+   - =60ed5b96=
+   - =7b4f4f14=
+3. /Checks that do not catch, and a region nobody owns./
+   - =39039bb6=
+   - =de6de108=: committed to close in this slice. Its children ran in this order, because the answers inform the verdict on the division itself (the user, 2026-09-23): =c247d8f3= (a measurement, now a bounded fix), =eadb3607= (closed on its measurement 2026-09-24), =490e6737= (closed on the user's decision 2026-09-24, its remaining gap being =c247d8f3='s), =13aed7ca= (a decision, and the division's warrant), and then the user's verdict on =de6de108= itself.
+   - =7ee3b71a=: both directions are now observed.
+   - =b52df20b=: fill on write, paragraphs only; the member-line exclusion is the region =7ee3b71a= makes identifiable.
+4. /Two copies of the truth./
+   - =2aeb65d6= first, because it gates the user's concurrent sessions.
+   - =f12f9da4=
+   - =c562b69a=: the glue rendered into =$DOOMDIR= is a second copy of the repo's truth, and a test depended on it. It follows =f12f9da4=, the other place where Doom's live state lags the repo, and it opens with the user's decision on =1caed585='s install contract (adopted 2026-09-23, surfaced by =94e6b615=).
+   - =8ddd7fa8=
+   - =5e731a23=
+   - =965f94eb=
+   - =53b0047d=: a spike first, to confirm what still reproduces (the user, 2026-09-23); its clock half is time-tracking only.
+   - =60d6ab6e=: =org_wrap_plan= saves a buffer holding unsaved human edits, the same divergence seen from the tool side.
+5. /The outage and the unknown./
+   - =3ad389be=, then =7fa68d5c=, which builds on the path it chooses.
+   - =381ea07d=: a timeboxed reproduction.
+
+*Not sequenced:* =4acd8ad0=, dropped. Its =:DROPPED:= entry was a prefix the refresh ignored until it was rewritten as a full id on 2026-09-21. =2a6a1355= moved into =de6de108= and is DONE.
+
+*Where it stops.* The slice closes when its pull request merges. Measure members, elapsed days and review findings per member, and the miss rate for the rules it touches, read against the prediction.
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-16 Wed 06:45] \\
