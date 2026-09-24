@@ -4937,6 +4937,9 @@ after a Warp restart) alongside the port story. Unset-variable
 behaviour is safe: Claude warns and loads the unexpanded text, and the
 default form never hits that path.
 
+*Note from =965f94eb='s brainstorm, 2026-09-24.* Claude Code's MCP documentation, checked that day, says =${VAR}= expansion in =url= reads *only the process environment*, not the =env= block of any settings file. So a per-machine port through a variable needs the variable set in the shell that starts =claude=, via =direnv= or a wrapper. A local-scope entry does the same job more simply: =claude mcp add --scope local= in a project replaces the whole URL, port included, is stored in =~/.claude.json= keyed by that project's path, and changes nothing in the repo. =965f94eb= makes the wiring resolve each project's URL local entry first, so its port check will read that. This heading's case is the one it names, a second Emacs on another port, which the user expects in time as a development/daily split and not yet (2026-09-24). Re-plan this heading on the local-scope route before building the variable route.
+
+
 
 * TODO A recurring sweep offers new and amended tasks to the groupings they fit :code:
 :PROPERTIES:
