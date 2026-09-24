@@ -2,6 +2,20 @@
 #+TAGS: analysis bug code comms prose research review spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Hand-written end matter is recalled and always on screen; a footnote tool call would generate it and fold it away :code:
+:PROPERTIES:
+:ID:       30d05c93-f82b-40c0-9181-d018323af49f
+:CREATED:  [2026-09-24 Thu 16:11]
+:CATEGORY: Tools
+:BLOCKER:  c247d8f3-9f3f-464a-b3a0-543b1bb9de4f
+:END:
+
+Proposed 2026-09-24, from the user's question whether footnotes could be folded away and shown on demand. Two routes to that were ruled out first. A hook cannot write into a response, so a withheld closing fence could not be supplied later; and injecting control characters into the terminal would fight Claude Code's own redraw. The foldable element that does exist is a tool call: the terminal shows "Called emacs-tools" on one line and hides the result until expanded (ctrl+o).
+
+*Proposal.* A small =org_footnotes= tool takes the ids a response cites and returns the canonical end-matter lines, each keyword and exact title read from the tracker. The session calls it as the turn's last step, so the footnotes arrive collapsed and expandable, and their titles are generated, never recalled. That removes the class of error =e74ca757= recorded six times in one session, and makes =4a583ff2='s title check nearly moot. =footnote-check= would accept such a call in the turn as discharging the debt; it needs to see the turn's tool calls, which =c247d8f3='s fix already reads from the transcript, hence the blocker.
+
+*Open:* whether other surfaces, a phone following the session or the desktop app, show a collapsed tool result as usefully; and whether footnotes hidden by default serve a reader scrolling back later, or only the reader of the moment. Related: =13aed7ca= (the bulk burden) and =9bc8fc8c= (the reader-side route in renders).
+
 * TODO The review buffer's transcript context mixes sessions, mixes sort orders, and shows only one side of a span :code:
 :PROPERTIES:
 :ID:       49444167-7a29-491a-81b4-c5215fce9fc2
@@ -6740,13 +6754,13 @@ alternative — and unlike the current review pass, it is six questions a day
 rather than nineteen.
 
 
-* NEXT [6/35] Everything passed and the file was still wrong :code:
+* NEXT [6/37] Everything passed and the file was still wrong :code:
 :PROPERTIES:
 :ID:       8a2eb687-28da-4d44-893b-db59298bdc5b
 :CREATED:  [2026-09-01 Tue 09:11]
 :CATEGORY: Slices
 :KIND:     slice
-:BLOCKER:  39039bb6-c70a-4ba9-8b37-edd8dd6921f6 490e6737-b977-47a7-abd7-b0dad1684093 13aed7ca-1fad-4e89-bbca-9355f5c76265 c247d8f3-9f3f-464a-b3a0-543b1bb9de4f f12f9da4-2870-45b7-8c50-ea54415c7bc6 c562b69a-d6dd-40e5-8d2c-3ab383b66809 25e7b083-360b-4282-8fd0-bb768e2a0f13 3ad389be-2797-46c3-a51d-9f603053955a 7fa68d5c-b6c0-43df-85c6-764b1d56511f 381ea07d-633f-4640-abbb-89472a07acba 8ddd7fa8-e847-42e9-b82c-63bbe4c11b7b 53b0047d-c55c-486c-8eed-ba4994d97a1a 60d6ab6e-a898-4894-82be-9f6086daf62d 7ee3b71a-b85a-4610-a4ab-b9e06c8d79da b52df20b-45c7-41aa-9d77-44ccf06c647f 2aeb65d6-350e-4c75-811e-4a748044fe2c 60ed5b96-40e3-4676-a742-07a8ad6cc3b7 5e731a23-7708-4248-b055-9b4a531f147d 965f94eb-1558-4d00-9857-5727eb86fe6f 7b4f4f14-6c76-4822-84c1-67589bc74b82 37bca83a-e83b-4070-9058-6318a58a24db 5acca91b-b7bf-4046-9379-cd9a8f40f116 406d78da-c871-47f9-a880-5ddb52ae3fa3 eddee10f-b916-43ed-bd69-217adc068433 9bc8fc8c-b6cf-47e4-af63-3d0012c02003 492a1a30-ac92-4f18-bb82-f9cd615b397c da6a2fba-1ab6-4e6f-94f1-3a945d1fdd84 94e6b615-3778-426b-b40a-306b517a837f 57f37f0e-4461-42f4-8b33-cde59318b93a
+:BLOCKER:  39039bb6-c70a-4ba9-8b37-edd8dd6921f6 de6de108-0095-40f4-8177-fdef0503c578 30d05c93-f82b-40c0-9181-d018323af49f 490e6737-b977-47a7-abd7-b0dad1684093 13aed7ca-1fad-4e89-bbca-9355f5c76265 c247d8f3-9f3f-464a-b3a0-543b1bb9de4f f12f9da4-2870-45b7-8c50-ea54415c7bc6 c562b69a-d6dd-40e5-8d2c-3ab383b66809 25e7b083-360b-4282-8fd0-bb768e2a0f13 3ad389be-2797-46c3-a51d-9f603053955a 7fa68d5c-b6c0-43df-85c6-764b1d56511f 381ea07d-633f-4640-abbb-89472a07acba 8ddd7fa8-e847-42e9-b82c-63bbe4c11b7b 53b0047d-c55c-486c-8eed-ba4994d97a1a 60d6ab6e-a898-4894-82be-9f6086daf62d 7ee3b71a-b85a-4610-a4ab-b9e06c8d79da b52df20b-45c7-41aa-9d77-44ccf06c647f 2aeb65d6-350e-4c75-811e-4a748044fe2c 60ed5b96-40e3-4676-a742-07a8ad6cc3b7 5e731a23-7708-4248-b055-9b4a531f147d 965f94eb-1558-4d00-9857-5727eb86fe6f 7b4f4f14-6c76-4822-84c1-67589bc74b82 37bca83a-e83b-4070-9058-6318a58a24db 5acca91b-b7bf-4046-9379-cd9a8f40f116 406d78da-c871-47f9-a880-5ddb52ae3fa3 eddee10f-b916-43ed-bd69-217adc068433 9bc8fc8c-b6cf-47e4-af63-3d0012c02003 492a1a30-ac92-4f18-bb82-f9cd615b397c da6a2fba-1ab6-4e6f-94f1-3a945d1fdd84 94e6b615-3778-426b-b40a-306b517a837f 57f37f0e-4461-42f4-8b33-cde59318b93a
 :COOKIE_DATA: checkbox recursive
 :DROPPED:  4acd8ad0-4d26-420b-bf84-f66ae8a9dfc5
 :END:
@@ -6857,7 +6871,8 @@ the incidental list is generated.
 Planned:
 
 - [ ] [[id:39039bb6-c70a-4ba9-8b37-edd8dd6921f6][39039bb6]] TODO bin/lint-org does not detect a duplicate :ID: across TODO.org and DONE.org
-- [[id:de6de108-0095-40f4-8177-fdef0503c578][de6de108]] DOING Separate the causes of unfootnoted ids, so each can be closed on its own
+- [-] [[id:de6de108-0095-40f4-8177-fdef0503c578][de6de108]] DOING Separate the causes of unfootnoted ids, so each can be closed on its own
+- [ ] [[id:30d05c93-f82b-40c0-9181-d018323af49f][30d05c93]] TODO Hand-written end matter is recalled and always on screen; a footnote tool call would generate it and fold it away
   - [X] [[id:2a6a1355-615f-4c2c-a8af-c9ae8dcda09b][2a6a1355]] DONE Three new ways to owe a footnote and not see it: marker, list, quotation
   - [ ] [[id:490e6737-b977-47a7-abd7-b0dad1684093][490e6737]] TODO An id that arrives by transcription was never chosen, so care cannot catch it
   - [ ] [[id:13aed7ca-1fad-4e89-bbca-9355f5c76265][13aed7ca]] TODO Bulk citation owes more entries than inline pairing can absorb, so the remedy goes unused
@@ -6865,7 +6880,7 @@ Planned:
   - [ ] [[id:c247d8f3-9f3f-464a-b3a0-543b1bb9de4f][c247d8f3]] NEXT footnote-check reads only the turn's final text block, so an id cited before a tool call is never checked
   - [X] [[id:eadb3607-aa3d-41ee-b8cc-e293cc924f26][eadb3607]] DONE A heading discussed by subject and never by id owes a citation no token scan can see
 - [ ] [[id:f12f9da4-2870-45b7-8c50-ea54415c7bc6][f12f9da4]] TODO The running Emacs can be running a stale config.el and nothing says so
-- [ ] [[id:c562b69a-d6dd-40e5-8d2c-3ab383b66809][c562b69a]] TODO The Doom glue is still generated after its per-machine content went away; ship it as a file and link it into $DOOMDIR
+- [ ] [[id:c562b69a-d6dd-40e5-8d2c-3ab383b66809][c562b69a]] TODO The Doom glue is still generated after its per-machine content went away; move it into the module, on whenever the module is enabled
 - [X] [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]] DONE Verification traps: a check with no way to fail, and a fixture that never takes the real path
 - [X] [[id:d2a0f54c-b59a-4855-ae3d-c93a6d3aa177][d2a0f54c]] DONE Generalize bin/check-org-dev-skill into bin/check-conventions, wired into pre-commit
 - [X] [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]] DONE MCP tools that write an org file time out; one reports success and persists nothing
