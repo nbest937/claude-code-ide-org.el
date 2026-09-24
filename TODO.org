@@ -7630,6 +7630,19 @@ A/B would be measuring.
 :CREATED:  [2026-09-01 Tue 08:19]
 :CATEGORY: Dev
 :END:
+:PLAN:
+*The design, approved 2026-09-24 (the user), brainstormed on the bounded path.*
+
+*Why the lint misses it, read 2026-09-24.* =claude-code-ide-org--lint-heading-ids= walks every heading with =org-map-entries= and fills an id-to-keyword table with =puthash=. A second heading with the same id silently overwrites the first, so the scan that should report the duplicate swallows it. =--duplicate-ids-in-file= already exists as the archive's post-condition, but it is a text regexp over one file, and it fires after the write.
+
+*The rule.* The scan also records each id's locations (file and line), and the table it returns keeps the shape the =:BLOCKER:= check relies on. A new lint *error*, never a warning, since a duplicate is never a judgement call, fires for any id with two or more locations and names every one: "id X is defined at TODO.org:123 and DONE.org:456". Only heading properties count, because the scan goes through org rather than text, so an id in body prose, a link or =:ARCHIVE_OLPATH:= is never a definition. The reference files the lint loads so links out of the linted set resolve count as locations too, but a duplicate is reported only when at least one copy is in a linted file, so another project's tracker cannot produce errors here. The archive's own post-condition stays: it catches the corruption as it is written, and this rule stops it being committed.
+
+*The corpus is clean today.* A text count over TODO.org and DONE.org found 0 duplicated =:ID:= lines (2026-09-24), so the rule lands green.
+
+*Testing*, in =config-test.el=: two files sharing an id give one error naming both; the same id twice in one file; an id only in body prose gives nothing; a clean pair gives nothing. Then a mutation test on a scratch copy of the real =TODO.org= with one heading duplicated. It asserts that the copy really gained the duplicate, since a mutation test must assert its own mutation, and that the lint errors on it. Each test is shown to fail against HEAD's version.
+
+Files: =config.el= (the scan and a new lint finding) and =config-test.el=.
+:END:
 
 *Found 2026-09-01, by a corruption surviving every commit-time check.* A
 partially-applied archive left
