@@ -1810,6 +1810,8 @@ line per catch.
   at.
 
 - [2026-09-23 Wed] Self-caught: surveying slice 8a2eb687's members for =:PLAN:= drawers, the session counted drawer lines with an =awk= scan of =TODO.org= that finds heading boundaries by regex, when =org_body drawer=PLAN= answers the same question per heading.
+- [2026-09-23 Wed] Caught by the user: "I think you give up on =org-ql= too quickly. I saw you try one query and fall back to grep." Looking for the transcripts-to-org proposal, the session tried =heading:"transcript"= once and then grepped =TODO.org= and =DONE.org= three times. A bare-word query (=transcript readable=) is org-ql's full-text =rifle= predicate, and it finds =96ddf1ef= in DONE.org in one call. The session had treated the five predicates =org_query='s description names as the whole language.
+
 
 
 
