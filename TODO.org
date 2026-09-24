@@ -3965,47 +3965,6 @@ is rebuilt here, one line is removed from a rendered buffer.
 :CATEGORY: Tools
 :END:
 :PLAN:
-
-Reported by the user 2026-09-14: new headings arrive with single-line bodies and
-are being reflowed with =M-q= by hand. Measured rather than assumed — **nothing
-in =config.el= fills anything**: no =fill-region=, =fill-paragraph=, =auto-fill=
-or =fill-column= anywhere, so =org_capture='s note and =org_amend='s text are
-written exactly as sent. The wrapping in older bodies was therefore never a
-feature; it came from sessions happening to embed newlines in the text they
-sent, and it has decayed as that habit did. Across TODO.org by heading creation
-month, the median *longest* prose line runs 70 (July), 186 (August), 257
-(September), with the share of headings carrying a line over 300 characters
-going 20% → 34% → 46% — a steady drift, not a break, and understated at the
-recent end because the user has already reflowed the newest bodies. Note the
-tempting diagnosis is wrong: =204d1b0a= (2026-09-11) made =org_capture= stop
-discarding its note, which looks like the genesis and is not — =org_amend= wrote
-verbatim throughout and the trend predates it by two months. Proposed: fill in
-the *write* path, so the property holds regardless of who or what is sending the
-text — the project's own precedent is that a rule depending on being remembered
-is the wrong rule, and "the agent should wrap its prose" is exactly that.
-=org-fill-paragraph= already knows not to touch tables, blocks and links, so the
-mechanism is org's rather than ours; what needs deciding is the column and
-whether a body that arrives *already* wrapped is left alone.
-
-*What the fill must not touch, learned 2026-09-21.* A slice's member
-lines are list items whose titles run past any column, and filling them
-breaks the checklist: the refresh then finds continuation fragments it
-does not own. That is 496b665e's defect, and it recurred in 8a2eb687's
-list the same week. So the write-path fill covers paragraphs only.
-List items, tables, blocks, drawers' property lines and any =- [[id:=
-line are left exactly as sent. The regression test asserts both
-directions: a long paragraph arrives filled at =fill-column=, and a long
-member line arrives untouched.
-
-*Where it lands:* in =8a2eb687=, beside =7ee3b71a=, since both are about
-a writer meeting a region it does not own.
-
-*Both write paths, not one* (learned from 00aa6a85, 2026-09-21). The
-queue holds a tool's raw input, written by =queue-append= from the hook
-payload before any elisp runs, so a fill applied only where
-=org_amend= and =org_capture= write directly leaves every deferred write
-unfilled. Fill in =--review-apply-amend= and =--review-apply-capture= as
-well, as the block-headline escaping now does, and test both paths.
 :END:
 
 =org_capture= and =org_amend= write text exactly as sent, so paragraphs
