@@ -17,6 +17,56 @@
 :CREATED:  [2026-09-23 Wed 20:33]
 :CATEGORY: Dev
 :END:
+:PLAN:
+*The design, approved section by section 2026-09-24 (the user), brainstormed on the architectural path.*
+
+*Scope decisions* (the user, 2026-09-23 and 2026-09-24):
+- A render follows its transcript only while its buffer is open, not in the background for every live session.
+- It updates a whole turn at a time, not per paragraph or on a poll.
+- The render file is extended by appending, not re-rendered and reverted, and not written into the buffer directly. A full re-render would reset folds on every turn and costs more as the session grows. A buffer written directly would become a second source of truth beside the file.
+
+*Turn boundaries, measured 2026-09-23 on one transcript.* A finished turn ends at its =system= / =turn_duration= line (41 of them, one per completed turn, written after the Stop hooks settle). =stop_reason: end_turn= is not a boundary: it appeared 79 times, because a blocking Stop hook makes a turn continue and end again. A turn cut short by an interrupt may never get a =turn_duration=, so the next prompt closes it.
+
+**1. Opening, state and trigger**
+
+Opening a render interactively, or with =T= from the review buffer, always writes a full render, forced, and that render *stops at the last finished turn*. An unfinished turn is left out, because otherwise it would be rendered twice once it finishes. The render also yields the transcript byte offset just past that turn's boundary. That offset and the transcript's path are buffer-local, since following exists only while the buffer does. Reopening starts from a fresh full render.
+
+The trigger is =file-notify-add-watch= on the transcript, added when following starts and removed when it stops. A change event, debounced by half a second, reads the transcript from the saved offset. It acts only when the new bytes hold a =turn_duration= line, or a new prompt that closes an interrupted turn, and it ignores a partial last line until its newline arrives. If the file cannot be watched, the buffer polls every 5 seconds instead and says so once in the echo area.
+
+**2. The renderer**
+
+=claude-code-ide-org--render-transcript= splits into a header function (the title, =#+STARTUP=, and the re-key note of =b57c7515=) and a function that renders one turn. A full render is the header plus every finished turn; an append is only the new finished turns. So both paths share one turn renderer and cannot disagree about what a turn looks like.
+
+A new reader parses the transcript from a byte offset and returns the turns finished since then, plus the new offset.
+
+The re-key note stays at the top, written only by the full render. While following, re-keying is not detected: a re-keyed transcript simply stops growing, and the note appears when the render is next opened. That is simpler than moving the note to the end, and the cost is a render that goes quiet until reopened.
+
+There is one writer while a render is live. Calling =claude-code-ide-org-render-session= for such a session switches to its buffer and writes nothing, because a rewrite under =auto-revert-tail-mode= would confuse its idea of where the file ends.
+
+If the transcript shrinks below the saved offset, or its first line changes, the next update does a full render and reverts the buffer. The reader's place is lost in that rare case, and the echo area says why.
+
+**3. The buffer**
+
+A new minor mode, =claude-code-ide-org-render-live-mode=, with the lighter =Live=, owns the watch. It is the module's first minor mode, and it is deliberately not called =Follow=, which would read as Emacs's built-in =follow-mode=. It turns on when a render is opened interactively, and =M-x= toggles it, for instance to freeze a render while reading. When following stops on its own (the transcript is gone, the watch fails, or a rebuild happens), the mode turns itself off and the echo area says why, so the mode line is never wrong. Killing the buffer removes the watch.
+
+The render buffer uses =auto-revert-tail-mode= and is read-only: edits to a render are lost anyway, and tail mode will not append to a modified buffer. Tail mode inserts only at the end and leaves point alone. At the very end of the buffer, point is expected to follow new text, but that is to be confirmed in testing, not assumed.
+
+A buffer-local change hook folds any =:TOOLS:= drawer inside newly appended text. Drawers the reader opened further up stay open, because only the appended region is touched; a whole-buffer fold would close them.
+
+**4. Testing**
+
+ERT, against scratch transcripts in a temporary =projects/= tree:
+- The offset reader returns only finished turns: =turn_duration= finishes a turn, a new prompt finishes an interrupted one, and a trailing partial line is left alone.
+- The initial render stops at the last finished turn, and appending the rest later yields a file byte-identical to one full render of the finished transcript. This is the central property: append-only must never differ from a full render.
+- A shrunk transcript, or a changed first line, leads to a full render.
+- Calling =render-session= on a live session writes nothing.
+- An appended =:TOOLS:= drawer arrives folded, and a drawer opened earlier stays open.
+- The watch is added and removed with the mode, and the mode turns itself off when following stops.
+
+Each test is shown to fail against HEAD's version. Then a live check after a reload: open this session's render, leave point mid-buffer inside an opened drawer, finish a turn, and confirm the new turn appears with point and the drawer undisturbed, and that point at the end follows. Time one append against a full render of the same transcript to confirm the cost argument.
+
+Files: =config.el= (the renderer split, the offset reader, the minor mode, the command's interactive path) and =config-test.el=.
+:END:
 
 =claude-code-ide-org-render-session= regenerates only when it is called, so a render of a running session is stale from its next turn onward. The user asked whether follow mode could simply be always on (2026-09-23). The proposal is to watch the transcript, re-render when it changes, and revert the buffer. Three things need deciding. Point must survive, since not losing the reader's place is why =96ddf1ef= exists. The trigger could be every append, a debounce, or turn end. And a full re-render of a large transcript on every change may be too costly, which would call for incremental rendering.
 
