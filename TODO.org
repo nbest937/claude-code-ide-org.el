@@ -2,6 +2,24 @@
 #+TAGS: analysis bug code comms prose research review spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO A rendered session goes stale as the session runs; follow a live transcript without losing the reader's place :code:
+:PROPERTIES:
+:ID:       eddee10f-b916-43ed-bd69-217adc068433
+:CREATED:  [2026-09-23 Wed 20:33]
+:CATEGORY: Dev
+:END:
+
+=claude-code-ide-org-render-session= regenerates only when it is called, so a render of a running session is stale from its next turn onward. The user asked whether follow mode could simply be always on (2026-09-23). The proposal is to watch the transcript, re-render when it changes, and revert the buffer. Three things need deciding. Point must survive, since not losing the reader's place is why =96ddf1ef= exists. The trigger could be every append, a debounce, or turn end. And a full re-render of a large transcript on every change may be too costly, which would call for incremental rendering.
+
+* TODO render-session asks for a session id from thin air; offer the project's sessions, newest first :code:
+:PROPERTIES:
+:ID:       406d78da-c871-47f9-a880-5ddb52ae3fa3
+:CREATED:  [2026-09-23 Wed 20:33]
+:CATEGORY: Dev
+:END:
+
+Found 2026-09-23, the first time the user tried =96ddf1ef='s result: =M-x claude-code-ide-org-render-session= prompts with a bare =read-string "Session id: "=, so the reader has to find a UUID somewhere first. Offer a =completing-read= over the current project's transcripts, newest first, each candidate showing its last-modified time and the session's name. Transcripts carry =customTitle= once =/rename= has run (this session's is =still-wrong=). The prompt should also accept a typed id or prefix.
+
 * TODO Nothing checks a docstring against the function beneath it, so a stale one misleads a reader four lines from the truth :code:
 :PROPERTIES:
 :ID:       9702f283-625d-4124-aa6f-808c3c913c26
