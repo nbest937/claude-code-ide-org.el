@@ -48,6 +48,8 @@ Not established: whether Claude Code ever rewrites a transcript's earlier lines,
 *Testing*, in =config-test.el= against a scratch =projects/= tree: newest-first order; the last =custom-title= winning over earlier ones and over =ai-title=; the prompt-synopsis fallback; a render-only entry; a prefix resolving; the title read staying within its window. Each is shown to fail against HEAD's version. Then one live run of the picker.
 
 Files: =config.el= (=claude-code-ide-org-render-session='s interactive form and a new candidates function) and =config-test.el=.
+
+*Correction to "Candidates", 2026-09-24.* The render directory defaults to =~/.claude/org-renders/=, which is inside =~/.claude=, not outside it as the paragraph above assumes. Whether Claude Code's cleanup prunes a directory it did not create there has not been established; the oldest render was 13 days old on 2026-09-24, too young to tell. The render-only entries stay in the design, since they cost nothing if renders are never pruned. Settle this before building, by checking Claude Code's cleanup behaviour or by watching whether a render survives past 30 days. If renders are pruned, either move the default out of =~/.claude= or drop the render-only entries.
 :END:
 
 =M-x claude-code-ide-org-render-session= prompts with a bare =read-string "Session id: "=, so a reader needs a UUID before they can read anything. The user hit this on their first try of =96ddf1ef='s renderer (2026-09-23). Designed that day on the bounded path: a picker over every project's transcripts, newest first, each line labelled with its project and session name, plus renders whose transcript has been pruned.
@@ -1729,6 +1731,8 @@ CLAUDE.md's own opening names this as the largest source of wrong claims. Caught
   cost a turn and brought the recalled title recorded on e74ca757 with it.
 
 - [2026-09-23 Wed] Caught by the user: "I don't see why the session would have to be 'running inside Emacs'. This one is not." Asked for ways to show footnotes on demand, the session read =claude-code-ide-terminal-backend 'vterm= in the Doom config and concluded that this session ran in a vterm buffer. It then built its recommendation on that and never checked. That setting says where =claude-code-ide= launches sessions, not where this one runs.
+- [2026-09-24 Thu] Self-caught: designing =406d78da='s picker, the session stated twice that a rendered transcript lives "outside =~/.claude=" and so outlives its pruned source, and that premise went into the approved drawer. The default is =~/.claude/org-renders/=. The session never read the variable until the user asked whether renders are persisted.
+
 
 
 
