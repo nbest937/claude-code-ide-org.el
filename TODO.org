@@ -2,7 +2,7 @@
 #+TAGS: analysis bug code comms prose research review spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* TODO The fill sweep has never run over the whole corpus, so hundreds of long prose lines remain :code:
+* TODO Long prose lines have drifted back since the one fill sweep of 2026-09-14, because nothing runs it routinely :code:
 :PROPERTIES:
 :ID:       76a6f052-e360-4a12-8077-070da83a8e84
 :CREATED:  [2026-09-24 Thu 13:38]
