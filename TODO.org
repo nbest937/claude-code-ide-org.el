@@ -1604,6 +1604,8 @@ The conventions are path-scoped and tool-driven work never loads them (436e0991)
 
 - [2026-09-21 Mon] Caught by the user: "per our convention 8a2e should list all of the children of de6d indented below itself". The session added story de6de108 to slice 8a2eb687 as a single line and never read "When a member is a story, its relevant children get indented member lines beneath it" (conventions, Slices). It read the section only after the catch. The same turn had already read "Dropping a member" before acting, so the reading happened for the act it expected and not for the one it performed.
 - [2026-09-21 Mon] Caught by the user: "I see a number of task prose paragraphs that need to be wrapped." Recording 8a2eb687's decisions, the session created =:PLAN:= drawers with =org_amend= on nine pre-convention headings (94e6b615, f12f9da4, 3ad389be, 37bca83a, 965f94eb, 25e7b083, 490e6737, 13aed7ca, 2a6a1355). It left each body's plan prose unwrapped, without reading "Revising a pre-convention body". The existing drawer now makes =org_wrap_plan= refuse all nine. The session's own SOP had allowed it ("=org_wrap_plan= … or a short =org_amend=") and was corrected the same turn.
+- [2026-09-23 Wed] Self-caught: the session filed 9702f283 and queued a story =NEXT= without reading the org conventions, although the first =org_*= call of the session had injected a pointer to them.
+
 
 
 ** TODO Miss: a prediction or a claim about state reported as fact without checking the artifact
@@ -1674,6 +1676,9 @@ CLAUDE.md's own opening names this as the largest source of wrong claims. Caught
   promised to cite "the one that holds up". One lookup showed they are the
   child and the parent of the same divide, so both were right. The claim
   cost a turn and brought the recalled title recorded on e74ca757 with it.
+
+- [2026-09-23 Wed] Caught by the user: "I don't see why the session would have to be 'running inside Emacs'. This one is not." Asked for ways to show footnotes on demand, the session read =claude-code-ide-terminal-backend 'vterm= in the Doom config and concluded that this session ran in a vterm buffer. It then built its recommendation on that and never checked. That setting says where =claude-code-ide= launches sessions, not where this one runs.
+
 
 
 ** TODO Miss: a heading closed with its unfinished part left in prose, or its group left un-nominated
@@ -1803,6 +1808,9 @@ line per catch.
   is the always-loaded rule that silence is not a passing check — an
   intermediate with zero rows was used as a filter without ever being looked
   at.
+
+- [2026-09-23 Wed] Self-caught: surveying slice 8a2eb687's members for =:PLAN:= drawers, the session counted drawer lines with an =awk= scan of =TODO.org= that finds heading boundaries by regex, when =org_body drawer=PLAN= answers the same question per heading.
+
 
 
 * TODO Nothing runs the shell hook suites, so three sat red for a day and a merge without anyone seeing :code:
