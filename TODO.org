@@ -2440,6 +2440,15 @@ left as it stands: its size is the evidence of where the seams were.
 :ID:       490e6737-b977-47a7-abd7-b0dad1684093
 :CREATED:  [2026-09-17 Thu 16:18]
 :END:
+:DEBRIEF:
+*Step 1, one cause or two, answered from the record.* The plan's test was whether the miss record ever tells quoted cases apart from adapted ones. It cannot: the 21 recorded =footnote= misses carry only the missing ids (=detail=), never how an id arrived (read 2026-09-24). So, by the plan's own rule, quotation and borrowed prose are one cause.
+
+*Step 2, the decision* (the user, 2026-09-24): accept "detected and retried" as this cause's resolution, rather than a preventive mechanism. A preventive check was declined, because the plan's argument holds: care cannot catch an id that was never chosen, so the backstop is the mechanism. The premise that detection is complete was measured false by =c247d8f3=: 107 of 1,576 Stop segments hid their debt in a text block before a tool call. That gap is =c247d8f3='s fix, filed and in this slice, which is why this closed now rather than waiting on it.
+
+*Live evidence from the closing session.* Three transcribed ids were caught and cost one retry each: =72463b68= inside a quoted session title, =ecf66d45= inside a quoted user prompt, and =492a1a30= with =e28933e9= inside a quoted miss record. Each was in the final block, where the hook already looks.
+
+*Nothing left undone here.*
+:END:
 :PLAN:
 Composed 2026-09-21, when =de6de108= was committed to close within =8a2eb687=.
 
@@ -2485,6 +2494,9 @@ still merely *detected* by the id check.
 **Not established: that this is one cause rather than two.** Quotation is
 visible as quotation; borrowed prose is not. Whether that difference matters
 enough to split is a judgement for the pass that reviews this division.
+
+*Resolved 2026-09-24:* one cause, and "detected and retried" is its resolution (the user). The hook catches a transcribed id at the cost of one retry, and the one gap in that detection, text blocks before a tool call, is =c247d8f3='s fix.
+
 
 
 ** TODO Bulk citation owes more entries than inline pairing can absorb, so the remedy goes unused :code:
