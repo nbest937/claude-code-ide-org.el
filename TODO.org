@@ -3965,6 +3965,38 @@ is rebuilt here, one line is removed from a rendered buffer.
 :CATEGORY: Tools
 :END:
 :PLAN:
+*The design, approved section by section 2026-09-24 (the user), brainstormed on the architectural path.* Fill prose where it is written, so the property holds whoever sends the text. "The agent should wrap its prose" is a rule that depends on being remembered, which the project's precedent calls the wrong kind of rule. Hard wrapping serves both goals the user named: text read outside Emacs (=git diff=, GitHub, the terminal), and consistency with hand-filled bodies, so =M-q= never has anything to do. =visual-line-mode= is on in TODO.org, so Emacs already soft-wraps; that does not serve the first goal.
+
+*Two findings shaped it, both measured in batch against the installed org on 2026-09-24.*
+- A filled list item stays one item holding one paragraph, but it *reads* as an item with a body of its own, and for a slice member line the refresh then finds continuation fragments it does not own. So list items are never filled, and are never unwrapped without the user's consent (the user, 2026-09-24).
+- =org-fill-paragraph= measures display width *only when the text is fontified*. Unfontified, a link counts at its raw 53 characters and the fill breaks badly. Fontified, it counts as its description, as the user's =M-q= does. Display width wins where the two disagree (the user, 2026-09-24): what the tools write is what =M-q= would produce, at the cost of lines longer than 80 raw characters wherever links sit.
+
+**1. One core, two callers**
+
+A single predicate decides what is fillable: a =paragraph= element, not inside =:PROPERTIES:=, =:LOGBOOK:= or a property drawer, and *not inside a list item*. =item= and =plain-list= leave the fillable set, so slice member lines drop out through the general rule, with =--generated-line-p= kept as a second guard. Tables, blocks, fixed-width lines, headings and keywords stay excluded; =:PLAN:= and =:DEBRIEF:= prose is filled. A single width function decides what is too long: display width, measured after =font-lock-ensure= over the region, against the target buffer's =fill-column= (80 in TODO.org). The write path and the sweep both use both, so they cannot disagree about a line. List items already wrapped in the corpus are left alone; joining them back into one line would be a separate pass, and only on the user's request.
+
+**2. The write-time transform**
+
+=claude-code-ide-org--fill-prose-text= takes text and a column and returns text. In a temporary =org-mode= buffer it inserts the text, fontifies it, and refills each fillable paragraph that has a line longer than the column at display width. A paragraph whose lines already fit is returned exactly as sent, so deliberate short line breaks survive. It cannot lose content: it compares the non-whitespace text before and after, the sweep's own safety property, and on any difference returns the input unchanged. A fill fault therefore never blocks or damages a write; at worst the text arrives unfilled, as it does today.
+
+It runs at the four call sites that already apply =--escape-block-headlines=, after the escaping: =org_capture='s note and =org_amend='s text, each direct and deferred-at-apply (=--review-apply-capture=, =--review-apply-amend=). Both paths matter, because the queue holds a tool's raw input (=00aa6a85='s lesson), and with them every =drawer=PLAN=, =drawer=DEBRIEF= and =replace=true= write is covered. The column is read from the target buffer at the moment of writing, so a deferred write uses the value at apply time. =org_edit= (=704d8558=) must call the transform too; when that heading is brainstormed, its drawer should carry the requirement. The transform only formats what the tool is writing now, never text already in the file.
+
+**3. The sweep, brought into line**
+
+=claude-code-ide-org-fill-prose= (=496b665e=) stays the whole-file command for text written before this change or by hand. It adopts the predicate, so list items are no longer filled. Its docstring's paragraph about =plain-list=, the 27 skipped opening items, is rewritten to say items are now excluded as a class, keeping that history as the reason the class rule is the simpler one. It fontifies the buffer before scanning, so its "longer than =fill-column=" test sees what =M-q= sees, and a link-heavy line the write path filled no longer looks over-long to it. Its safeguards are unchanged: identical non-whitespace content or revert and refuse, refusal on an unsaved buffer, and a dry run as the interactive default. Re-running it over the corpus is =76a6f052='s job, not this heading's.
+
+**4. The writing rule, and testing**
+
+A rule in the org conventions reference, re-promoted: *a list item is one line; a thought that needs more goes in a paragraph after the list.* The reason goes with it: a long item, filled or soft-wrapped, reads as an item with a body, and member lines break under the refresh. The rule is for the writer, because the filler deliberately never touches items.
+
+Tests, in ERT:
+- the transform: a long paragraph comes back filled; a paragraph that fits comes back byte-identical; a long list item and a member line come back untouched; a linked paragraph fills to display width; tables, blocks and property lines are untouched; a forced content change returns the input unchanged;
+- the write paths: capture and amend, direct and deferred, land filled, including =drawer=PLAN= and =replace=true=;
+- the sweep: items are no longer filled; a line already filled to display width is left alone; the content check still refuses and reverts.
+
+Each is shown to fail against HEAD's version. Live check after a reload: amend a scratch heading with a long paragraph, a long item and a linked paragraph, check the file, then press =M-q= on each paragraph and confirm nothing moves, which tests the "matches =M-q=" claim directly. Then one dry run of the changed sweep over both trackers, with the counts reported for =76a6f052=.
+
+Files: =config.el= (the shared predicate and width, =--fill-prose-text=, the four call sites, the sweep), =config-test.el=, and the org conventions reference.
 :END:
 
 =org_capture= and =org_amend= write text exactly as sent, so paragraphs
