@@ -8356,6 +8356,18 @@ Check =org_refile='s =target_id= and =org_divide= in the same pass. Verify with
 a test per site and the four 2026-08-31 captures re-run with the prefix.
 =--with-known-ids= is the wrong fixture for anything walking
 =org-id-locations=: it leaves its ids unknown to org.
+
+*The design, approved 2026-09-24 (the user), brainstormed on the bounded path.* It keeps the paragraphs above and settles how the sweep proves it is complete.
+
+*All three known sites were confirmed still broken on 2026-09-24, by reading the code.* =--capture-target-spec= checks the prefix with =--id-find= but passes the *unexpanded* prefix into org-capture's =(id …)= spec, which then looks it up itself and fails. =claude-code-ide-org-refresh-slice= compares its id with =equal= against the heading's full =:ID:=. =--slice-dropped-ids= splits and downcases =:DROPPED:= but never expands it.
+
+*The fixes.* Capture passes the expanded id and names the full id in its reply. =claude-code-ide-org-refresh-slice= and =claude-code-ide-org-refresh-slice-blocker= resolve their id through =--id-find= before comparing. The refresh expands =:DROPPED:= prefixes when it reads them, and =org_set_property= expands and validates =:DROPPED:= values the way it does =:BLOCKER:=, refusing an id it cannot resolve. =org_refile='s =target_id= and =org_divide= are checked in the same pass, and any gap found there is fixed here.
+
+*Completeness comes from the tool registry, not from a search* (the user, 2026-09-24). The first sweep found fourteen sites by call shape and missed these three, so this one does not rely on a search. One ERT test captures every =org_*= registration in batch, by rebinding =claude-code-ide-make-tool=. For each argument named =id=, =target=, =target_id=, =slice_id=, =member_id=, =after=, =parent= or =scope=, it calls the tool's function with an 8-character prefix against a scratch file, and asserts the reply is neither an =Error:= nor a clean no-op. Other required arguments come from a per-tool table of sample values, and a tool with a required argument missing from that table fails the test, so a tool added later cannot go untested. The test runs with =CLAUDE_ORG_QUEUE_DIR= pointed at a temporary directory and no session id, so the queued tools write nothing real (the 2026-09-21 lesson, and =94e6b615='s runner rule). Ids come from =org-id-locations= built for the scratch file, not from =--with-known-ids=, which leaves its ids unknown to org.
+
+*Tests for the two non-tool sites:* the refresh command given a prefix; a prefix in =:DROPPED:= dropping its member; =org_set_property= expanding a =:DROPPED:= prefix and refusing an unresolvable one. Each test is shown to fail against HEAD's version; for the registry test, that means copying the capture fix aside. Then the four 2026-08-31 captures that failed are re-run with prefixes against a scratch target.
+
+Files: =config.el= (the three sites and the =:DROPPED:= validation) and =config-test.el=.
 :END:
 
 Some =id= and =target= arguments do not resolve through
