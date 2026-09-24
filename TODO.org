@@ -3121,13 +3121,6 @@ Shipped in the canonical reference and promoted; check-conventions 32 ok, footno
 :CREATED:  [2026-09-21 Mon 13:25]
 :END:
 :PLAN:
-Divided out of =2a6a1355= 2026-09-21, one of its candidate causes that had no heading. The Stop hook's =last_assistant_message= carries only the turn's final text block (=org-footnote-citations.md=, "What enforces it"), so an id cited in a text block before a tool call is never scanned. The citation rules call the hook "a backstop that can confirm a debt, never rule one out". This heading asks whether it can be made to rule one out.
-
-1. *Measure first.* Across this machine's transcripts, count turns where an earlier text block cites a tracked id that the turn's final end matter lacks. If the count is zero, this closes CANCELLED with the number, per =7771fc63='s standing argument.
-2. *If it occurs:* the Stop payload also carries =transcript_path=. Read the current turn's assistant text blocks from it with =jq= (plain shell; the hook family must survive a stopped Emacs), and scan all of them. The transcript for the turn in progress is present by construction, so pruning (=4acd8ad0=) does not bite here.
-3. Tests follow =bin/footnote-check-test='s pattern, with a fixture transcript carrying two text blocks.
-
-Decision: none. The measurement decides.
 :END:
 
 =footnote-check= reads =last_assistant_message=, which is only the turn's final text block, so footnote debt in any earlier block passes unseen. Measure how often that happens. If it happens at all, scan every text block of the turn from the transcript.
