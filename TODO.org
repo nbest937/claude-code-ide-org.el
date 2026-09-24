@@ -11,6 +11,14 @@
 
 =claude-code-ide-org-render-session= regenerates only when it is called, so a render of a running session is stale from its next turn onward. The user asked whether follow mode could simply be always on (2026-09-23). The proposal is to watch the transcript, re-render when it changes, and revert the buffer. Three things need deciding. Point must survive, since not losing the reader's place is why =96ddf1ef= exists. The trigger could be every append, a debounce, or turn end. And a full re-render of a large transcript on every change may be too costly, which would call for incremental rendering.
 
+*Established 2026-09-23, by reading =claude-code-ide-org--render-transcript=:* the render is nearly append-shaped. A header is written once, then turns in order, each finished before the next begins. So an append-only render would let the built-in =auto-revert-tail-mode= follow it without ever reverting the buffer, which leaves point and folds untouched and costs only the new bytes (the user's suggestion). Three things are not append-shaped yet:
+- The re-key note (=b57c7515=) is inserted above the first turn, and it becomes known only later.
+- Tool calls are held until the next paragraph and then written as one =:TOOLS:= drawer, so the render's tail lags by any calls not yet followed by prose.
+- The renderer parses the whole transcript each time. An incremental one needs saved state: a byte offset into the =.jsonl=, a partial last line held back, and whether it is mid-turn with tool calls pending.
+
+Not established: whether Claude Code ever rewrites a transcript's earlier lines, on a rewind for instance, which would call for a full rebuild. Also, tail mode inserts text unfolded, so an appended =:TOOLS:= drawer shows until something folds it.
+
+
 * TODO render-session asks for a session id from thin air; offer the project's sessions, newest first :code:
 :PROPERTIES:
 :ID:       406d78da-c871-47f9-a880-5ddb52ae3fa3
