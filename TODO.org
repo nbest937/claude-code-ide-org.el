@@ -412,14 +412,14 @@ Observed 2026-09-22 writing a :PLAN: drawer through org_amend drawer=PLAN: six s
 claude-code-ide-org--replace-body deletes the body region and inserts (string-trim text), so replacing the last body before a heading takes the blank lines separating them with the trim and glues the heading onto the final line. Observed 2026-09-22 on 59861867: TODO.org:1008 became "written.** TODO Miss: ..." and org stopped parsing a heading there at all — org_outline reported the new id as resolving to no heading while org_amend, which locates by property, still wrote to it happily, and bin/lint-org reported 0 errors throughout. The damage is silent in both directions and the repair was a hand edit, which is itself against the rules. Proposed: --replace-body re-establishes the separation it found, or defers to claude-code-ide-org-heading-separator-lines; and bin/lint-org gains a check for a heading not at the start of its own line, which is the class org-lint calls "possibly misplaced heading" and only warns about.
 
 
-* TODO [0/26] The review pass asks for judgement it cannot support, and the clock beneath it is still wrong :code:
+* TODO [0/27] The review pass asks for judgement it cannot support, and the clock beneath it is still wrong :code:
 :PROPERTIES:
 :ID:       c7619140-f269-4329-bc05-a38ea151e202
 :CREATED:  [2026-09-22 Tue 16:07]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  55125136-5939-434e-9676-96ea66a75770 361e2708-8124-4bd1-9c44-f97ca97aca4a 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 aee8487e-0650-4396-bc5c-193ca3efcecb 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 653fea66-f9d5-4431-8ce3-5d355560b475 445fe577-01ce-4e68-ab5f-c349c40a4643 2c733857-a280-42cc-bd7c-e182a4fb6ea3 79c224ab-188a-4ed4-a606-c28ee2cfe72d 001fb310-69f7-4417-81be-a224a3bf83e0 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46 cf483f5d-2d25-4454-a580-db7935c8cb81 8028e875-3032-4ade-949e-414d9861b928 ee3c22c9-f99c-4d41-9c3d-8f39af916fff e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 6c64cc9c-33a9-4a20-af19-c188a690c755 a865f83c-ea37-40c4-a104-7cc50d2c20dd e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 20cecd53-2338-4237-ab06-f8129e10a2c8 37147e9e-468b-43ee-91f9-45d9647c6164 445ec1f1-095a-462b-abbd-7a3a00925ddb 64d34a64-d336-40a8-a8e8-da8133d0da06 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd
+:BLOCKER:  55125136-5939-434e-9676-96ea66a75770 361e2708-8124-4bd1-9c44-f97ca97aca4a 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 aee8487e-0650-4396-bc5c-193ca3efcecb 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 653fea66-f9d5-4431-8ce3-5d355560b475 445fe577-01ce-4e68-ab5f-c349c40a4643 2c733857-a280-42cc-bd7c-e182a4fb6ea3 79c224ab-188a-4ed4-a606-c28ee2cfe72d 001fb310-69f7-4417-81be-a224a3bf83e0 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46 49444167-7a29-491a-81b4-c5215fce9fc2 cf483f5d-2d25-4454-a580-db7935c8cb81 8028e875-3032-4ade-949e-414d9861b928 ee3c22c9-f99c-4d41-9c3d-8f39af916fff e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 6c64cc9c-33a9-4a20-af19-c188a690c755 a865f83c-ea37-40c4-a104-7cc50d2c20dd e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 20cecd53-2338-4237-ab06-f8129e10a2c8 37147e9e-468b-43ee-91f9-45d9647c6164 445ec1f1-095a-462b-abbd-7a3a00925ddb 64d34a64-d336-40a8-a8e8-da8133d0da06 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd
 :DROPPED:  01849bef-fdc9-4c30-b467-00ca8606e8e0
 :END:
 :PLAN:
@@ -538,6 +538,7 @@ Planned:
 - [ ] [[id:001fb310-69f7-4417-81be-a224a3bf83e0][001fb310]] TODO Stale entries in org-clock's persisted history hang the first clock-in after a restart
 - [-] [[id:489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938][489d6f61]] DOING Emacs died of a fatal signal at review-buffer quit, deadlocked in the mac port's shutdown
 - [ ] [[id:5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46][5a6d2c75]] TODO An unassigned span's readout omits the evidence that would make its heading obvious
+- [ ] [[id:49444167-7a29-491a-81b4-c5215fce9fc2][49444167]] TODO The review buffer's transcript context mixes sessions, mixes sort orders, and shows only one side of a span
 - [ ] [[id:cf483f5d-2d25-4454-a580-db7935c8cb81][cf483f5d]] TODO A span with no readable evidence prints nothing about itself, so absence is the only signal
 - [ ] [[id:8028e875-3032-4ade-949e-414d9861b928][8028e875]] TODO Type a span's annotation at review time, not by hand-editing it after
 - [[id:01849bef-fdc9-4c30-b467-00ca8606e8e0][01849bef]] TODO Flipping a span's timestamps to active is hand-editing; give the review buffer a key
