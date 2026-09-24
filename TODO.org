@@ -2,6 +2,21 @@
 #+TAGS: analysis bug code comms prose research review spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Sessions share one working tree, so a pathspec commit of TODO.org carries edits another writer has not committed :code:
+:PROPERTIES:
+:ID:       27082893-102e-49d5-a35a-dea0bc3bbaaf
+:CREATED:  [2026-09-24 Thu 14:28]
+:CATEGORY: Dev
+:END:
+
+Split out of =2aeb65d6= on 2026-09-24 (the user). That heading's guard stops a whole-index commit from sweeping another session's *staged* work. It cannot stop this: =git commit -- TODO.org= takes the file's whole working-tree content, so another writer's uncommitted edits land in a commit whose message describes none of them. The writer can be a concurrent session, or the human's apply pass.
+
+*Observed:*
+- 2026-09-22: a session composed a 27-member slice (=c7619140=) in the working tree while a concurrent session committed =TODO.org= by explicit path. The slice landed inside commit =f7e4cd2=, whose message describes none of it, and was findable only with =git log -S= on its id. =2aeb65d6='s body has the detail.
+- 2026-09-23 to 2026-09-24: the user's apply passes landed in =TODO.org= mid-turn three times in one session. Each was caught only by running =git diff --stat= before committing, the manual rule =3cb3f955= still owes a written form.
+
+*What blocks a mechanism:* nothing records which writer changed which heading. The queue logs only *deferred* amends and captures; a direct write leaves no trace. So any guard needs an ownership record first, such as a per-session log of the headings a session wrote, and then a pre-commit check that the diff touches only those. Probably arch; not yet classified.
+
 * TODO Long prose lines have drifted back since the one fill sweep of 2026-09-14, because nothing runs it routinely :code:
 :PROPERTIES:
 :ID:       76a6f052-e360-4a12-8077-070da83a8e84
