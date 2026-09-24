@@ -84,6 +84,21 @@ Files: =config.el= (the renderer split, the offset reader, the minor mode, the c
 :CATEGORY: Dev
 :END:
 :PLAN:
+*The design, approved 2026-09-23 (the user), brainstormed on the bounded path.*
+
+*Candidates: every project, newest first, each line labelled* (the user, 2026-09-23). The list is every =~/.claude/projects/*/*.jsonl= by modified time, not just the current project's. Deriving the current project's slug is what =claude-code-ide-org--transcript-file='s docstring warns goes wrong in worktrees and subdirectories; this way a session started in a worktree (=…--claude-worktrees-pr8-review=) or in another repo stays reachable. There were 96 transcripts across 5 project directories and 185 MB on 2026-09-23. Transcripts are pruned at about 30 days (=cleanupPeriodDays=, unset here).
+
+*Renders whose transcript is gone.* The list also offers any render in =claude-code-ide-org-transcript-render-directory= whose transcript has been pruned, marked =(render only)= and opened as it is. That directory defaults to =~/.claude/org-renders/=, *inside* =~/.claude=, and whether Claude Code's cleanup prunes a directory it did not create has not been established; the oldest render was 13 days old on 2026-09-24. Settle this before building, by checking Claude Code's cleanup behaviour or by watching a render survive past 30 days. If renders are pruned, either move the default out of =~/.claude= or drop the render-only entries. They cost nothing if renders survive, so they stay in the design until then.
+
+*Each line* shows the modified time, the project (the directory slug, shortened), the session's name and its 8-character id. The name is the *last* =custom-title= in the file, since =/rename= appends a new one each time (56 in one transcript, the first of them stale), else =ai-title=, else the first prompt's synopsis via =--prompt-synopsis=.
+
+*Cost.* Titles are read from a window at the end of each file, which grows when the window holds none, as =--transcript-first-stamp= already grows from the start. Whole files are never read.
+
+*Completion* keeps the list in this order (a completion table with =display-sort-function= set to =identity=) and matches on any part of the line: project, name or id. A typed full id or 8-character prefix is also accepted, resolved the way every other tool resolves ids. Only the interactive form changes: callers passing an id, including the review buffer's =T=, are unaffected.
+
+*Testing*, in =config-test.el= against a scratch =projects/= tree: newest-first order; the last =custom-title= winning over earlier ones and over =ai-title=; the prompt-synopsis fallback; a render-only entry; a prefix resolving; the title read staying within its window. Each is shown to fail against HEAD's version. Then one live run of the picker.
+
+Files: =config.el= (=claude-code-ide-org-render-session='s interactive form and a new candidates function) and =config-test.el=.
 :END:
 
 =M-x claude-code-ide-org-render-session= prompts with a bare =read-string "Session id: "=, so a reader needs a UUID before they can read anything. The user hit this on their first try of =96ddf1ef='s renderer (2026-09-23). Designed that day on the bounded path: a picker over every project's transcripts, newest first, each line labelled with its project and session name, plus renders whose transcript has been pruned.
@@ -1914,6 +1929,22 @@ line per catch.
 :CATEGORY: Dev
 :END:
 :PLAN:
+*The design, approved 2026-09-23 (the user), brainstormed on the bounded path.* One runner, =bin/test-all=, runs every suite and demands positive evidence from each, and pre-push calls it. Pre-push rather than pre-commit (the user, 2026-09-21): a full run measured 41 s that day (24 s shell, 17 s ERT), which is tolerable per push and too heavy per commit, since most commits here are bookkeeping that touches only =TODO.org=. It is a separate script rather than a =--all= flag on =bin/test=, and =next-session.md= does not name it: pre-push already runs it on every push that matters, and a second copy there would drift.
+
+*The runner.* =bin/test-all= runs =bin/test= (ERT), then every =bin/*-test= found by glob, not from a list. The original failure was suites nobody remembered, and a list would reintroduce that for every new suite. The suites run one at a time. Each runs with =CLAUDE_CODE_SESSION_ID= unset and =CLAUDE_ORG_QUEUE_DIR= pointed at a temporary directory, on top of each suite's own isolation, so a suite's provoked refusals cannot reach the real queue (the 2026-09-21 incident). It prints one line per suite (name, counts, seconds) and a total, and a failing suite's full output.
+
+*Positive evidence, never silence* (the user, 2026-09-23, choosing it over trusting exit codes). Every shell suite ends with the line =<suite>: N passed, M failed= and exits =$((M > 0))=. A suite passes only with that line present, N > 0, M = 0 and exit 0; a missing line fails. For ERT the runner parses =Ran N tests, … 0 unexpected=. About 18 suites change to the standard line. That also removes a latent silent pass: six suites (=apply-detect=, =check-conventions=, =doc-sync-check=, =prepare-commit-msg=, =queue-append=, =sync-plans=) end with =exit "$count"=, which wraps to 0 at 256 failures.
+
+*Hermetic suites* (the user, 2026-09-23).
+- =queue-append-test= reads the real =TODO.org= to find the =:MISS_RULE: uncategorised= heading. It gets its own fixture heading instead.
+- =claude-org-setup-test='s =--check= cases leave =DOOMDIR= unset, so =--check= also judges the user's real =~/.config/doom=: the glue's content, the =load!= stub in =config.el=, and the absence of the old 202 override. Any change to what =--glue= generates would then turn the suite red on the user's machine until =--glue= is re-run, and pre-push would block the very push carrying the change. A machine with no Doom config skips those checks and passes without testing anything. So =DOOMDIR= points at a scratch directory holding a freshly rendered glue and the stub, and one case is added for each of the three drift conditions. (=c562b69a= would remove the glue's drift at its source.)
+- The runner fails statically on any suite that refers to =$repo_root/TODO.org=, =$repo_root/DONE.org=, =~/.config/doom= or =$HOME/.config=, so this cannot come back unnoticed.
+
+*Pre-push skips org-only pushes* (the user, 2026-09-23). If every path in the pushed range is =TODO.org=, =DONE.org= or under =plans/=, the hook prints that the suites were skipped, and why, and runs none. That is safe only because the suites are hermetic, which is why hermeticity is part of this heading. Any other push runs =bin/test-all= and is refused on failure. =--no-verify= remains the escape.
+
+*Testing.* =bin/test-all-test=, with fake suites in a scratch =bin/=: pass; fail; exit 0 with no final line; =0 passed=; 256 failures; a suite reading the real =TODO.org=. =bin/pre-push-test= gains an org-only range, a mixed range, and a failing suite that blocks the push. =claude-org-setup-test= gains the three drift cases. Each fix is shown to fail against HEAD's version. Then one live =bin/test-all= on the real tree, reporting its totals and time.
+
+Files: =bin/test-all= and =bin/test-all-test= (new), =.githooks/pre-push=, about 18 =bin/*-test= files including =queue-append-test= and =claude-org-setup-test=.
 :END:
 
 =bin/test= runs only the ERT suite. Nothing runs the 21 shell =bin/*-test= suites, so one can stay red through a merge with nobody seeing. Designed 2026-09-23 on the bounded path: =bin/test-all= requires a standard final line from every suite, and pre-push runs it on any push that is not org-only.
@@ -3845,6 +3876,28 @@ Asked by the user 2026-09-16, straight after =c= shipped: "will the 0-run/0-minu
 :CATEGORY: Tools
 :END:
 :PLAN:
+*The design, approved 2026-09-23 (the user), brainstormed on the bounded path.* =org_query= keeps one language, org-ql's plain strings (the user, 2026-09-21). What its parser does not recognise it now refuses, instead of silently turning it into full-text terms that come back as an honest-looking "No matches." No predicate is dropped and none ever was, so surfacing the misreading is the fix.
+
+*Three refusals, none counted as a miss* (the user, 2026-09-23). The refusal table's own rule, from =63713df3='s review, is that a query-language slip is not a miss, because the caller broke no rule it had been given, and the refusal already removes the harm. So nothing is added to =queue-append='s table. Each refusal is an =Error:= naming what was wrong and what to write instead.
+- A sexp: a query whose first non-blank character is =(=. The refusal offers the plain-string equivalent where one is obvious (=(tags "x")= becomes =tags:x=, =(property "K" "v")= becomes =property:K,v=), and otherwise names the mini-language. A sexp is never evaluated. =4ae3cdef= kept org-ql's sexp language unreachable because it amounts to arbitrary elisp on a localhost HTTP endpoint, and a validated sexp subset was considered and not filed (the user, 2026-09-23).
+- An unknown predicate: a bare =name:= or =!name:= token whose name is not in org-ql's own registry (=org-ql-predicates= and its aliases). The parser turns such a token into a full-text term, so =kind:slice= silently searched for the literal string (measured in batch 2026-09-23). The list is read at run time, never kept by hand, so an org-ql upgrade cannot make it stale. A quoted token such as ="kind:slice"= is still searched as literal text.
+- A bare =OR=, =AND= or =|=. The parser turns each into a full-text term, so =todo:NEXT OR tags:spike= narrows instead of widening (measured live 2026-09-23). The refusal explains that a comma gives OR within one predicate, and points at =match=.
+
+*A =match= argument* (the user, 2026-09-23): =all=, the default and today's AND, or =any=. It is passed as the combining operator to =org-ql--query-string-to-sexp=, which already takes one. It gives flat OR only; grouping stays unavailable.
+
+*Show the reading.* An empty result names the parsed query, for instance =No matches for (and (todo "next") (tags "CODE"))=, and says that =todo:=, =tags:= and =property:= match case exactly while =heading:= and bare words do not. So a misreading the refusals miss is still visible.
+
+*Description rewrite*, in the tool's =:description= and its =query= argument, where it is read at the moment of the call. It covers:
+- bare words as full-text search (=rifle=, over the entry and its outline path);
+- =regexp:= and =property:KEY,VALUE=, the documented form (=KEY=VALUE= parses to a keyword argument and works only by accident);
+- a trailing colon for zero-argument predicates (=blocked:=, =done:=), with the caution that =blocked= also counts unfinished children and unchecked checkboxes, not only =:BLOCKER:=. That closes =5acca91b=;
+- =parent:=, =children:=, =ancestors:= and =descendants:=, which take text rather than nested predicates, since =children:todo:NEXT= parses to =(children "todo:NEXT")=;
+- the boolean rules: space is AND, comma is OR within one predicate, =!= is NOT, and there is no cross-predicate OR except =match=any=;
+- which parts are case-sensitive, and that DONE.org is searched too.
+
+*Testing*, in =config-test.el=: one case per refusal; known predicates and aliases passing; a quoted literal passing; =match=any= returning the union; the reading shown on an empty result. Each is shown to fail against HEAD's version. Then a live reload, and the refused queries of 2026-09-22 and 2026-09-23 re-run through the tool.
+
+Files: =config.el= (=claude-code-ide-org-query=, its docstring, its registration and the section commentary) and =config-test.el=.
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-16 Wed 14:48]--[2026-09-16 Wed 14:50] =>  0:02
@@ -8259,6 +8312,19 @@ is the point — it cannot be backfilled.
 :CATEGORY: Tools
 :END:
 :PLAN:
+*The design, approved 2026-09-24 (the user), brainstormed on the bounded path.* Every function taking an =id= or =target= argument resolves it through =claude-code-ide-org--id-find=, and completeness is proved from the tool registry rather than by another search.
+
+*The known sites, all confirmed still broken on 2026-09-24 by reading the code.* The silent ones come first, because an argument compared as a string selects nothing and reports a clean no-op.
+- =org_capture='s target: =--capture-target-spec= checks the prefix with =--id-find=, then passes the *unexpanded* prefix into org-capture's =(id …)= spec, which looks it up itself and fails. The fix passes the expanded id and names the full id in the reply.
+- =claude-code-ide-org-refresh-slice='s own id, and =claude-code-ide-org-refresh-slice-blocker='s: compared with =equal= against the heading's full =:ID:=. Both resolve through =--id-find= before comparing.
+- =:DROPPED:=: =--slice-dropped-ids= splits and downcases the value but never expands it, so a prefix there drops nothing. The refresh expands prefixes when it reads them, and =org_set_property= expands and validates =:DROPPED:= values the way it does =:BLOCKER:=, refusing an id it cannot resolve.
+- =org_refile='s =target_id= and =org_divide= are checked in the same pass, and any gap found there is fixed here.
+
+*Completeness comes from the tool registry, not from a search* (the user, 2026-09-24). The first sweep found fourteen sites by call shape and missed these three, so this one does not rely on a search. One ERT test captures every =org_*= registration in batch, by rebinding =claude-code-ide-make-tool=. For each argument named =id=, =target=, =target_id=, =slice_id=, =member_id=, =after=, =parent= or =scope=, it calls the tool's function with an 8-character prefix against a scratch file, and asserts the reply is neither an =Error:= nor a clean no-op. Other required arguments come from a per-tool table of sample values, and a tool with a required argument missing from that table fails the test, so a tool added later cannot go untested. The test runs with =CLAUDE_ORG_QUEUE_DIR= pointed at a temporary directory and no session id, so the queued tools write nothing real (the 2026-09-21 lesson, and =94e6b615='s runner rule). Ids come from =org-id-locations= built for the scratch file. =--with-known-ids= is the wrong fixture for anything walking =org-id-locations=, because it leaves its ids unknown to org.
+
+*Tests for the two non-tool sites:* the refresh command given a prefix; a prefix in =:DROPPED:= dropping its member; =org_set_property= expanding a =:DROPPED:= prefix and refusing an unresolvable one. Write each failing test before assuming a site works, and show each fails against HEAD's version; for the registry test, that means copying the capture fix aside. Then the four 2026-08-31 captures that failed are re-run with prefixes against a scratch target.
+
+Files: =config.el= (the three sites and the =:DROPPED:= validation) and =config-test.el=.
 :END:
 
 Some =id= and =target= arguments do not resolve through =claude-code-ide-org--id-find=, so an 8-character prefix that every other tool accepts either errors or, worse, silently selects nothing. That pushes the caller back to typing a full UUID from memory, the failure prefix expansion exists to prevent. Designed 2026-09-24 on the bounded path: fix the three known sites, and prove completeness with a test driven by the tool registry rather than by another search.
