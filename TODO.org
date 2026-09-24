@@ -77,8 +77,9 @@ CLOCK: [2026-09-23 Wed 21:17]--[2026-09-23 Wed 21:19] =>  0:02
 - [2026-09-23 Wed 21:17]--[2026-09-23 Wed 21:19] assigned at review
 :END:
 
-=claude-org-setup --glue= renders =claude-code-ide-org-glue.el= into =$DOOMDIR= (=7c86ab4c=). It was generated because it first had to carry an explicit project list, which varies by machine. The list became derived at wire time the same day, and =render_glue= now writes fixed text, verified 2026-09-23. Still, a changed glue reaches a user only when they re-run =--glue=, and until then =--check= reports drift. That drift is what made =claude-org-setup-test= depend on the real =~/.config/doom= (=94e6b615=). The proposal is to ship the glue as a real file in the repo and have =--glue= link it into =$DOOMDIR=, which makes drift impossible. =--check= would then ask only whether the link resolves to this checkout. It changes =1caed585='s install contract ("generated, marker-headed, drift-checked files"), so it needs the user's decision. The Doom module is already loaded from the checkout, so tying Doom to the checkout's path adds no new dependency.
+=claude-org-setup --glue= renders =claude-code-ide-org-glue.el= into =$DOOMDIR= (=7c86ab4c=), and a =load!= line in the user's =config.el= loads it. It was generated because it once held a per-machine project list; since that list became derived it is fixed text, so the generated copy can only drift, and =--check= then reports drift until =--glue= is re-run. That drift is what made =claude-org-setup-test= depend on the real =~/.config/doom= (=94e6b615=). Designed 2026-09-24 on the architectural path: the glue's forms move into the module, switched on by a Doom module flag, =(claude-code-ide-org +wire)=, and no file is generated into the Doom directory at all.
 
+*Established (2026-09-24):* =render_glue= writes fixed text. The installed glue on the user's machine dates from 2026-09-10. The user's =init.el= enables the module with no flags, and the module does not yet call =modulep!=.
 
 * TODO A rendered session goes stale as the session runs; follow a live transcript without losing the reader's place :code:
 :PROPERTIES:
