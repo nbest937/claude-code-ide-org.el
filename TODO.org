@@ -4911,17 +4911,9 @@ it.
 Files: =bin/hooks/apply-detect=, =bin/apply-detect-test=, and the sentence in =skills/org/references/org-session-tracking.md= that says the hook "compares their mtimes", re-promoted with =bin/claude-org-setup=.
 :END:
 
-Found by PR22's review pass. =--queue-watermark-write= is the single writer for
-=<session>.applied= and is called from both =--queue-mark-applied= and the
-dismissal path, and it rewrites the file (atomic rename, new mtime) even when
-nothing new landed. So a pass where a human only dismisses stale events makes
-the next prompt carry "the review queue was applied since this session's last
-turn … keywords and clocks reflect the apply" when nothing on disk changed — the
-inverse of the freshness the hook exists to assert, and a claim a session will
-relay. Either the watermark must distinguish applied-something from pass-ran, or
-the hook must compare something other than its mtime. Introduced with
-[[id:165ce65a-f87e-431c-8ee4-f0fbfffe14da][165ce65a]].
+=bin/hooks/apply-detect= reports "the review queue was applied" whenever a watermark file's mtime moves. But =--queue-watermark-write= rewrites the file on every pass, including one that only dismissed events, so the hook tells a session the record on disk is fresh when nothing on disk changed. Designed 2026-09-24 on the bounded path: the hook compares each moved watermark's newest =applied= pass time with the value it last recorded, and reports only a change.
 
+*Established:* found by PR22's review, and introduced with [[id:165ce65a-f87e-431c-8ee4-f0fbfffe14da][165ce65a]]. Each =applied= entry carries the time of the pass that applied it, and a dismiss-only pass leaves those values unchanged (read 2026-09-24).
 
 * TODO Two tracked repos sharing a directory basename collide on one MCP session id :code:
 :PROPERTIES:
