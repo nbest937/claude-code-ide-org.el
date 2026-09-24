@@ -2750,6 +2750,15 @@ CLOCK: [2026-09-23 Wed 17:30]--[2026-09-23 Wed 17:31] =>  0:01
 - [2026-09-23 Wed 17:30]--[2026-09-23 Wed 17:31] record the approved cookie-placement design
 :END:
 :PLAN:
+*The design, approved 2026-09-23 (the user).* Dividing =e28933e9= on 2026-09-17 produced a parent reading =* TODO Make the corpus searchable by tag, … by decision where it cannot [0/1]=, with the cookie at the end of the title. The convention puts it *immediately after the TODO keyword*, and that is not cosmetic: "a trailing cookie is the part a narrow agenda window or a folded outline truncates away — which defeats the one thing the cookie is for, that progress is readable *without* unfolding". The user has already reported a slice as "missing its cookie" on exactly that basis, when it was present at the end of a line they could not see the end of.
+
+*The same defect, in a second inserter, and there is no third.* =--ensure-statistics-cookie-at-point= wrote a trailing cookie and was fixed once the corpus was measured 13:1 against it (=:ID:= 28415ca8's reasoning). =org_divide= was not. Every other insertion (=org_set_property='s =KIND=slice= branch, the slice refresh) already goes through =--ensure-statistics-cookie-at-point=, so =claude-code-ide-org-divide= is the only place that places a cookie by hand. It builds the parent line as state, title, then =" [/]"=. The corpus holds no trailing cookie today: the one on ee3e0fa2 was repaired by hand. So no re-measurement is needed.
+
+*Two places teach the wrong form, and both change with the fix.* The test =claude-code-ide-org-test-divide-carries-everything-to-the-child= asserts =^\* TODO A story now \[0/1\]$=, pinning the defect. The org skill's cookie example (=skills/org/SKILL.md=, "Pack for the trip [2/5]") shows the trailing form, and a hand-written heading copies it.
+
+*The change.* =claude-code-ide-org-divide= inserts the parent line without a cookie, then calls =--ensure-statistics-cookie-at-point= on the new parent before =org-update-statistics-cookies=. One function then owns placement, and the rule has no second copy. The helper leaves a title that already carries a cookie alone, and works on a keyword-less parent.
+
+*Testing.* The divide test expects =^\* TODO \[0/1\] A story now$=. A second case covers a keyword-less parent. Both are shown to fail against the old line construction. The skill example becomes =*** TODO [2/5] Pack for the trip=, with one sentence on why the cookie leads. Then =bin/test= and =bin/lint-org= run green.
 :END:
 
 `org_divide` appends the statistics cookie after the title text, so a
@@ -3763,6 +3772,35 @@ CLOCK: [2026-09-22 Tue 16:09]--[2026-09-22 Tue 16:15] =>  0:06
 - [2026-09-22 Tue 16:09]--[2026-09-22 Tue 16:15] brainstorm slice member region ownership
 :END:
 :PLAN:
+Designed 2026-09-22 through the brainstorming skill, on the =arch= path the heading already carried.
+
+*The change is to what a lost checklist costs, not to how many writers know about it* (the user, 2026-09-22, choosing this over closing the two known holes). A slice declares one thing, the work it undertakes in order, and it declares it in body prose, where it is indistinguishable from prose and unbounded at its end. That declaration moves to a *=:MEMBERS:=* property, and the body checklist becomes a rendering the refresh rebuilds. A writer that destroys the checklist then costs a refresh, not the membership, and the =[0/0]= failure the conventions call the worst direction becomes unreachable: emptiness is a property that is missing, not a list that is absent.
+
+*The titled writer is retiring, and the plan does not depend on it* (2026-09-23). =dd4b9a9f='s =b2d4012c= removes =replace=true=, and its replacement, =org_edit=, refuses any edit that touches a slice's =Planned:= checklist or =Incidental:= section. The argument never rested on that one writer: hand edits and the refresh itself can still destroy the checklist, and the property makes that cost only a refresh. Restate the title once =b2d4012c= lands, since by then it names a tool that no longer exists.
+
+*The property.* Full ids, space-separated, in render order, exactly as =:BLOCKER:= does and for the same parsing reason. Measured: 32 members on the largest live slice is about 1184 characters, against a 1011-character =:BLOCKER:= already in these files, so the same order and not a new problem. =:DROPPED:= is unchanged.
+
+*The rendering*, rewritten wholesale from =:MEMBERS:= between the =Planned:= lead and the =Incidental:= lead or body end. *A parent row is inserted when a member's parent heading carries a TODO keyword*, and the member renders indented beneath it for provenance: a member is shown under its parent because that is where it came from, not because the slice undertook the parent (the user, 2026-09-22). A keyword-less parent yields no row, and the member renders flush left. Parent rows are derived, so the parent is normally *not* in =:MEMBERS:=, and the rule must work when it is absent. Checked against all 32 members of the live slice rather than reasoned about: six are children of a =DOING= story and take a parent row, while three (=542924c1=, =72463b68=, =d2a0f54c=) are level-4 headings under the meta-work datetree's day node =2026-09-02 Wednesday= and render flush left today. "Any member that is a child" would give those three a day-node row and break the byte-identity proof below, and "two or more members share a parent" fails the same case, since all three share that node. The keyword test reproduces the current file exactly.
+
+A parent row *never* carries a checkbox and is never counted: the leaves carry the boxes, and the headline cookie counts exactly those. That is the only self-consistent form, since =--update-slice-cookie-at-point= counts checkbox-bearing lines, so a box on an uncounted row would put the rendering and the cookie in disagreement by construction. A slice undertaking a *whole* story names the story alone and lists no children, and the story is then a counted leaf like any other. Since parent rows are derived, =bin/lint-org= flags a =:MEMBERS:= entry that is an ancestor of another entry as redundant, so there is one way to say each thing.
+
+*What the renderer may ask, and nothing more.* One new fact per heading: its parent's id. =--slice-referent-index= records it as it scans, since the scan already visits every headline, and the parent's keyword is already what the index stores for every heading. Today the index is a flat id-to-(KEYWORD . TITLE) hash with no parentage, which is why nothing can compute this now. The renderer reads one fact about a member's parent, its keyword, and that is not the descendant scan =--container-heading-p= performs. It does *not* ask whether a member is a story, does not compute whether the slice covers a story, and has nothing to do with whether closing the slice closes the story. That is slice-close semantics, living in the conventions and on the apply path in =--review-settle-slices=; if it is wrong, it is a different heading.
+
+*=:BLOCKER:= becomes a property-to-property derivation*: =:MEMBERS:= minus =:DROPPED:= minus referents whose keyword maps to no box, with no prose parse at all, where =--slice-blocker-ids= reads the body today. It stays materialised on disk because =org-depend-block-todo= reads the property, and there is no hook where a function could answer instead. This also retires the grouping-label exclusion the blocker inherits from rendering. Parent rows are not in =:MEMBERS:=, so they can neither reach the blocker by accident nor be excluded from it by one. That is what made the original catch luck: the stale =:BLOCKER:= only disagreed because the prose it came from had been destroyed.
+
+*The writers.* =--replace-body= on a =:KIND: slice= splices the planned region out before replacing and re-inserts it after, which is local and needs no referent index. Every member scan gains a drawer boundary, so a =:PLAN:= drawer's id bullets can never be read as members again. =--generated-line-p= keeps protecting the lines from the fill sweep. None of these is load-bearing for the declaration any more; they keep the file tidy between refreshes.
+
+*Migration: all sixteen slices* (the user, 2026-09-22, choosing one shape everywhere over live-only). Write =:MEMBERS:= from each current checklist, 4 in TODO.org and 12 in DONE.org, with parent rows excluded because they are derived. The proof is byte-identity: the regenerated rendering must equal the current text for all sixteen. When it holds, =--slice-planned-member-ids='s start-at-the-top fallback is *deleted* rather than kept, which is what "all sixteen" buys.
+
+*The guard that stops being luck.* =bin/lint-org= gains a rule that fires for every slice, whether or not it has a =:BLOCKER:=: =:KIND: slice= implies =:MEMBERS:=; every id resolves; no entry is an ancestor of another; and the rendered checklist agrees with the property, as a set and in order. That check would have caught both of the defects of the week of 2026-09-22 when they happened.
+
+*Verification.* ERT against scratch org files in the shape of the existing slice tests: a property round-trip; a parent row derived and rendered boxless; a keyword-less parent yielding no row; a whole-story member rendered as a counted leaf; =replace=true= on a slice leaving the checklist intact; a scan refusing bullets inside a =:PLAN:= drawer; a lead-less closed slice after the fallback is gone. The migration runs against real copies of both files under the byte-identity check. Prove the =replace= test discriminates by copying the fix aside and restoring HEAD's =--replace-body=.
+
+*Ruled out.* A =:MEMBERS:= *drawer* placing the checklist above the body prose, where =--replace-body= structurally cannot reach it: unnecessary once the checklist is derived, and it folds away from a human reading the file. Prose delimiters plus one shared bounds predicate: cheapest and most visible, but ownership stays invisible to a writer that does not ask, which is the outcome rejected at the outset. Storing the indent depth in the property instead of deriving it: a hand-maintained structural fact beside a derived one is what the =:DROPPED:= history says goes stale and sticky. A checkbox on a parent row when the slice closes that story, proposed and walked back the same day (the user, 2026-09-22) once the cookie arithmetic showed an uncounted box contradicting the count. And a parent row for "any member that is a child", which the byte-identity check refutes, as above.
+
+*Kept as one heading* rather than divided (the user, 2026-09-22): a half-applied cutover leaves the property and the checklist disagreeing, so the property, the renderer, the blocker and the migration are reviewed and abandoned as a unit. The two cheap guards, the drawer-bounded scan and the =replace= splice, are separable and could have landed first; that option was considered and declined.
+
+*Open for the implementing session:* whether the DONE.org migration is one commit or one per slice, and whether =org_slice_add_member='s =after= stays line-relative or becomes an index into =:MEMBERS:=.
 :END:
 
 Found 2026-09-15 composing 35582d95. replace=true rewrites the body's prose
@@ -6698,6 +6736,45 @@ rather than nineteen.
 :DROPPED:  4acd8ad0-4d26-420b-bf84-f66ae8a9dfc5
 :END:
 :PLAN:
+Sequenced 2026-09-21 at the user's direction, and cut to the order the same day under the member-plan SOP (org conventions, "A slice's plan, and its members'"). Design and decisions live in each member's own =:PLAN:=, so read the member's drawer at its step, and where a line here and a member's drawer disagree, the member wins. A member with no drawer gets one before its step is worked. Before any step was worked, every member was brainstormed in this order and its path recorded (the user, 2026-09-23 and 2026-09-24).
+
+*The slice's sentence decides the order: everything passed and the file was still wrong.* The gate comes first. Then the tools a session uses daily that answer wrongly while looking right, since each is small and each lies every day. Then the checks that do not catch, and the region nobody owns. Then the places where two copies of the truth diverge. The outage and the unknown come last, because both open with work that must precede a fix.
+
+*Prediction, so the 2026-10-12 number is not misread:* turning silent failures into loud refusals *raises* the counted miss rate. A rise in these rules during this slice is the slice working.
+
+1. /The gate./
+   - =94e6b615=: every other step is verified by it.
+2. /Tools that answer wrongly and look right./ Small, each with a test.
+   - =37bca83a=: already DOING.
+   - =5acca91b=: closes with =37bca83a='s description rewrite, since =blocked:= already works and was only untaught (adopted 2026-09-23).
+   - =406d78da=, then =eddee10f=: the rendered session is where footnotes can resolve without the writer's help, as live =[[id:…]]= links carrying the current keyword and title. The picker comes first, because that only helps a reader who can reach the render (adopted 2026-09-23, making footnotes usable by any means available).
+   - =25e7b083=: the silent sites first.
+   - =57f37f0e=
+   - =492a1a30=
+   - =da6a2fba=: a tool to change an existing heading's tags, which the brainstorming skill now needs routinely, and which applies the paths recorded in this sweep.
+   - =60ed5b96=
+   - =7b4f4f14=
+3. /Checks that do not catch, and a region nobody owns./
+   - =39039bb6=
+   - =de6de108=: committed to close in this slice. Its children run in this order, because the answers inform the verdict on the division itself (the user, 2026-09-23): =c247d8f3= (a measurement, now a bounded fix), =eadb3607= (closed on its measurement 2026-09-24), =490e6737= (a decision, which depends on =c247d8f3=), =13aed7ca= (a decision, and the division's warrant), and then the user's verdict on =de6de108= itself.
+   - =7ee3b71a=: both directions are now observed.
+   - =b52df20b=: fill on write, paragraphs only; the member-line exclusion is the region =7ee3b71a= makes identifiable.
+4. /Two copies of the truth./
+   - =2aeb65d6= first, because it gates the user's concurrent sessions.
+   - =f12f9da4=
+   - =c562b69a=: the glue rendered into =$DOOMDIR= is a second copy of the repo's truth, and a test depended on it. It follows =f12f9da4=, the other place where Doom's live state lags the repo, and it opens with the user's decision on =1caed585='s install contract (adopted 2026-09-23, surfaced by =94e6b615=).
+   - =8ddd7fa8=
+   - =5e731a23=
+   - =965f94eb=
+   - =53b0047d=: a spike first, to confirm what still reproduces (the user, 2026-09-23); its clock half is time-tracking only.
+   - =60d6ab6e=: =org_wrap_plan= saves a buffer holding unsaved human edits, the same divergence seen from the tool side.
+5. /The outage and the unknown./
+   - =3ad389be=, then =7fa68d5c=, which builds on the path it chooses.
+   - =381ea07d=: a timeboxed reproduction.
+
+*Not sequenced:* =4acd8ad0=, dropped. Its =:DROPPED:= entry was a prefix the refresh ignored until it was rewritten as a full id on 2026-09-21. =2a6a1355= moved into =de6de108= and is DONE.
+
+*Where it stops.* The slice closes when its pull request merges. Measure members, elapsed days and review findings per member, and the miss rate for the rules it touches, read against the prediction.
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-16 Wed 06:45] \\
@@ -7811,6 +7888,28 @@ and only an instrument outside the clock system answers it.
 :CATEGORY: Queue
 :END:
 :PLAN:
+*The build, approved 2026-09-23 (the user), bounded, since it is one hook in the existing family.* When an =org_*= call fails because Emacs is unreachable, a plain-shell hook records what could not be recorded, since Emacs, being what failed, cannot. The next =SessionStart= reports it (the user, 2026-09-21). Declined: a CLI writer for todo and clock events, whose synthetic events would blind the staleness check exactly when the system is least healthy; and doing nothing, which leaves each failure silent.
+
+*The event, measured 2026-09-23 against a stopped Emacs.* The hook is =PostToolUseFailure=, matcher =mcp__emacs-tools__.*=. It fires for a transport failure only, so the hook needs no filtering: a refusal arrives as =PostToolUse= and never reaches it. Its payload carries =tool_name=, the full =tool_input= and =error=, which is everything the marker needs. It cannot cover an Emacs that was already down when the session started, because the tools never register and no tool hook fires; that case is =SessionStart='s, where the server's absence is visible, or it goes unrecorded.
+
+*One hook, three steps in order, each surviving the failure of the next.* =bin/hooks/tool-failure=, plain shell, on =PostToolUseFailure= with matcher =mcp__emacs-tools__.*=, wired in =.claude/settings.json= and =hooks/hooks.json=. It is task tracking, so it is not gated on =time_tracking=, and it always exits 0.
+
+*First, the marker.* One JSON line in =<session_id>.tool-failures.jsonl= beside the queue file, never in the queue itself, so the review pass cannot take it for an event. It records =ts=, =tool_name=, =tool_input=, =error=, the probe state, and =may_land=: true when the call timed out, since a timed-out call runs on and can still write, and false when refused.
+
+*Second, the probe.* =timeout 3 emacsclient -e= reads =recursion-depth=, the active minibuffer, and any public =claude-code-ide-org-= function on the Lisp stack (=mapbacktrace=). Any failure to probe reads as unknown. It costs up to 3 s, and only on the failure path.
+
+*Third, the guidance*, returned as =additionalContext=, one per state:
+- Refused: nothing was written; do not hand-edit the tracked org files; tell the user. When an Emacs process is still alive (the wedge signature), also take one =sample <pid> 1= into =~/.claude/emacs-samples/=, at most once per session by sentinel, for 489d6f61.
+- Probe timed out (Emacs busy): the call may still land; do not retry a write; tell the user.
+- Alive, with an org tool on the stack: Emacs is waiting on a prompt; ask the user to answer it.
+- Alive and idle: check the argument names against the tool's schema. This is ecbbec2e's stopgap until its own fix lands (the user, 2026-09-23, chose to ship it here).
+- Unknown: say that the probe failed, and stop.
+
+*The report.* =SessionStart='s ceremony report lists unreported markers, saying for each whether the write may still have landed or did not, so nothing is redone blindly. It does not depend on the stale-interval report, which is time-tracking only. Reporting renames the file, so a marker is reported once, and it waits for a session with Emacs back up.
+
+*Out of scope.* =7fa68d5c='s capture fallback, which builds on this path afterwards as a branch of this hook on a refused connection only, since a timed-out capture may still land. And an Emacs already down at session start, where no tool is offered and no hook fires.
+
+*Testing.* =bin/tool-failure-test=, with a fake =emacsclient= and =sample= on =PATH=: one case per state; the marker's fields; the once-per-session sample sentinel; an unwritable queue directory, where the hook must still exit 0 and still return guidance. It is shown to fail against a no-op hook. Then one live run per state, and one =SessionStart= report.
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-31 Mon 13:52]
