@@ -50,8 +50,9 @@ Not established: whether Claude Code ever rewrites a transcript's earlier lines,
 Files: =config.el= (=claude-code-ide-org-render-session='s interactive form and a new candidates function) and =config-test.el=.
 :END:
 
-Found 2026-09-23, the first time the user tried =96ddf1ef='s result: =M-x claude-code-ide-org-render-session= prompts with a bare =read-string "Session id: "=, so the reader has to find a UUID somewhere first. Offer a =completing-read= over the current project's transcripts, newest first, each candidate showing its last-modified time and the session's name. Transcripts carry =customTitle= once =/rename= has run (this session's is =still-wrong=). The prompt should also accept a typed id or prefix.
+=M-x claude-code-ide-org-render-session= prompts with a bare =read-string "Session id: "=, so a reader needs a UUID before they can read anything. The user hit this on their first try of =96ddf1ef='s renderer (2026-09-23). Designed that day on the bounded path: a picker over every project's transcripts, newest first, each line labelled with its project and session name, plus renders whose transcript has been pruned.
 
+*Established (2026-09-23):* =/rename= appends a =custom-title= line each time, so the last one is the current name. A session never renamed carries an =ai-title=. Transcripts are pruned at about 30 days, and the oldest on disk was 29 days old.
 * TODO Nothing checks a docstring against the function beneath it, so a stale one misleads a reader four lines from the truth :code:
 :PROPERTIES:
 :ID:       9702f283-625d-4124-aa6f-808c3c913c26
