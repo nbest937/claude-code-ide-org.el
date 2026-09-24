@@ -4344,6 +4344,23 @@ filing closed in 8bbae3aa ([[orgit-rev:claude-code-ide-org::d5c9398][d5c9398]]);
 :CREATED:  [2026-09-11 Fri 15:45]
 :CATEGORY: Tools
 :END:
+:PLAN:
+*The design, approved 2026-09-24 (the user), brainstormed on the bounded path.*
+
+*The cause, read 2026-09-24.* The direct path (=--session-project-capture-file=) routes a targetless capture to the tracked =TODO.org= under the calling session's project directory, which it takes from the MCP session context. That context exists only *during* a tool call. The deferred path (=--review-apply-capture=) runs later, inside the review command, where there is no session, so it falls back to the global capture file. The queue event records =:cwd=, but when the queue is read the capture *item* is built without it, so neither apply nor the review buffer has the directory.
+
+*One resolver, taking a directory.* =--session-project-capture-file= is split: a new =--project-capture-file (dir)= finds the tracked =TODO.org= whose true path lies under =dir=, and the direct path calls it with the session's project directory, as today. The capture item carries the event's =:cwd=, copied when the queue is read. =--capture-target-spec= takes an optional directory, used when there is no session. A =:target= id still wins, as today.
+
+*Rendering and apply share that one resolution* (the user, 2026-09-24). The review buffer draws a capture row by resolving its destination at render time, and today that shows the wrong tracker for a deferred capture from another project, reading as correct. With the item's =cwd= passed to the same call, the row shows the tracker the capture will actually land in, and apply writes exactly there. One call, so the two cannot disagree.
+
+*Worktrees.* A session started in a linked worktree has a =cwd= under =.claude/worktrees/…=, and no tracked file lives there, since =TODO.org= stays in the main checkout (=2e09adb7=). The resolver maps a worktree to its main checkout first, with the module's existing =--worktree-main-checkout=; otherwise every worktree session's deferred capture would misroute the same way.
+
+*Fallback, the same as the direct path's.* A =cwd= with no tracked =TODO.org= goes to the global capture file, as a direct capture from that session would. An old event without =:cwd= keeps today's behaviour.
+
+*Testing*, in =config-test.el=: a deferred targetless capture from project B lands in B's tracker while A is the default; its review row *renders* B's tracker as the destination; one from a worktree of B lands in B's; an event without =cwd= keeps today's behaviour; the direct path is unchanged. Each is shown to fail against HEAD's version.
+
+Files: =config.el= (the resolver split, the item's =:cwd=, =--capture-target-spec=, the apply path and the row) and =config-test.el=.
+:END:
 
 Found by PR22's review pass. =--review-apply-capture= resolves a nil target
 through =--capture-target-file=, which consults the MCP session context — but
