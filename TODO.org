@@ -7644,44 +7644,12 @@ A/B would be measuring.
 Files: =config.el= (the scan and a new lint finding) and =config-test.el=.
 :END:
 
-*Found 2026-09-01, by a corruption surviving every commit-time check.* A
-partially-applied archive left
-[[id:c31b6c76-8ad8-45d4-a87b-39e085e31368][c31b6c76]] as a heading in *both*
-TODO.org and DONE.org ([[id:13ea6770-88ba-484d-87bd-2d20c44dc610][13ea6770]]),
-and =bin/lint-org= reported *0 errors* throughout — across several runs and a
-=.githooks/pre-commit= gate.
+An =:ID:= is this system's primary key, and =--id-find= resolves a prefix by scanning for a *unique* match. So a heading duplicated across TODO.org and DONE.org makes resolution ambiguous, and any tool can silently act on the wrong copy. =bin/lint-org= does not detect one. Designed 2026-09-24 on the bounded path: a lint error naming every location of a duplicated heading =:ID:=.
 
-*Why this is a gap rather than an omission.* An =:ID:= is the primary key of
-this entire system: [[id:478d6ec9-1b99-4c6c-88e9-c793ad4b2f22][478d6ec9]] made
-prefixes resolvable precisely so ids could be referenced everywhere, and
-=--id-find= resolves a prefix by scanning for a *unique* match. A duplicate id
-therefore does not merely offend tidiness — it makes resolution *ambiguous*, and
-every tool that takes an id can silently act on the wrong copy. The prefix
-expander already has an =ambiguous= answer for the case where two ids share a
-prefix; it has nothing for two headings sharing an id outright.
-
-*It was caught, but by the wrong thing and too late.* The archive's own
-post-condition reported =Archived 20, but 1 id(s) now appear twice in DONE.org=.
-That guard fires *after* writing and does not roll back, so it documents a
-corruption rather than preventing one. A lint rule runs before every commit and
-would have refused it.
-
-*Cheap, and the scan already exists.* =claude-code-ide-org--lint-heading-ids=
-already walks every heading in every file collecting ids — the duplicate check
-is a =seq-group-by= over what it has in hand rather than new traversal.
-
-*Error rather than warning, on this project's own test:* the correct state is
-computable and a duplicate is never a judgement call. Worth reporting *both*
-locations, since "id X is duplicated" without saying where sends the reader
-grepping — the failure [[id:6cc71c36-0fa6-4773-9b35-c0582f4cee82][6cc71c36]] is
-about.
-
-*One question to settle while building it:* whether an =:ID:= appearing in an
-=:ARCHIVE_OLPATH:=-style property or in body prose should count. It should not —
-only heading =:ID:= properties are keys — but the scan must be written to
-distinguish them, and a naive =grep '^:ID:'= over file text would already be
-right for the wrong reason.
-
+*Established:*
+- Found 2026-09-01, when a partially applied archive left [[id:c31b6c76-8ad8-45d4-a87b-39e085e31368][c31b6c76]] in both files ([[id:13ea6770-88ba-484d-87bd-2d20c44dc610][13ea6770]]). The lint reported 0 errors across several runs and the pre-commit gate.
+- It was caught by the archive's post-condition (=Archived 20, but 1 id(s) now appear twice in DONE.org=), which fires after writing and does not roll back.
+- The lint's scan swallows the duplicate itself: it builds its table with =puthash=, so the second copy overwrites the first (read 2026-09-24).
 
 * TODO The running Emacs can be running a stale config.el and nothing says so :code:
 :PROPERTIES:
