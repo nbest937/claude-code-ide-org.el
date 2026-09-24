@@ -3999,13 +3999,12 @@ Each is shown to fail against HEAD's version. Live check after a reload: amend a
 Files: =config.el= (the shared predicate and width, =--fill-prose-text=, the four call sites, the sweep), =config-test.el=, and the org conventions reference.
 :END:
 
-=org_capture= and =org_amend= write text exactly as sent, so paragraphs
-arrive as one long line and the human reflows them with =M-q=; the
-share of headings with a line over 300 characters rose from 20% to 46%
-between July and September. Fill paragraphs in the write path, and
-leave list items, tables and blocks untouched, so the property holds
-whoever sends the text.
+=org_capture= and =org_amend= write text exactly as sent, so paragraphs arrive as one long line and the human reflows them with =M-q=. Designed 2026-09-24 on the architectural path: a pure transform fills paragraphs, never list items, at display width, in every write path, and the existing sweep adopts the same rules.
 
+*Established:*
+- Reported by the user 2026-09-14. The wrapping in older bodies was never a feature: it came from sessions happening to send newlines, and it decayed as that habit did. By heading creation month, the median longest prose line ran 70 (July), 186 (August) and 257 (September), and the share of headings with a line over 300 characters went 20%, 34%, 46%.
+- =204d1b0a= (2026-09-11), which made =org_capture= keep its note, is not the genesis: =org_amend= wrote verbatim throughout, and the trend predates it by two months.
+- Measured 2026-09-24 in batch against the installed org: a filled list item parses as one item but reads as an item with a body; and =org-fill-paragraph= measures a link at display width only when the text is fontified.
 
 * TODO Unplanned work in flight belongs to no slice: planned is writable, incidental is closed-only :code:
 :PROPERTIES:
