@@ -8,14 +8,43 @@
 :CREATED:  [2026-09-23 Wed 21:17]
 :CATEGORY: Dev
 :END:
+:LOGBOOK:
+CLOCK: [2026-09-23 Wed 21:17]--[2026-09-23 Wed 21:19] =>  0:02
+- [2026-09-23 Wed 21:17]--[2026-09-23 Wed 21:19] assigned at review
+:END:
 
 =claude-org-setup --glue= renders =claude-code-ide-org-glue.el= into =$DOOMDIR= (=7c86ab4c=). It was generated because it first had to carry an explicit project list, which varies by machine. The list became derived at wire time the same day, and =render_glue= now writes fixed text, verified 2026-09-23. Still, a changed glue reaches a user only when they re-run =--glue=, and until then =--check= reports drift. That drift is what made =claude-org-setup-test= depend on the real =~/.config/doom= (=94e6b615=). The proposal is to ship the glue as a real file in the repo and have =--glue= link it into =$DOOMDIR=, which makes drift impossible. =--check= would then ask only whether the link resolves to this checkout. It changes =1caed585='s install contract ("generated, marker-headed, drift-checked files"), so it needs the user's decision. The Doom module is already loaded from the checkout, so tying Doom to the checkout's path adds no new dependency.
+
 
 * TODO A rendered session goes stale as the session runs; follow a live transcript without losing the reader's place :code:
 :PROPERTIES:
 :ID:       eddee10f-b916-43ed-bd69-217adc068433
 :CREATED:  [2026-09-23 Wed 20:33]
 :CATEGORY: Dev
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-23 Wed 20:27]--[2026-09-23 Wed 20:28] =>  0:01
+- [2026-09-23 Wed 20:27]--[2026-09-23 Wed 20:28] assigned at review
+CLOCK: [2026-09-23 Wed 20:33]--[2026-09-23 Wed 20:34] =>  0:01
+- [2026-09-23 Wed 20:33]--[2026-09-23 Wed 20:34] assigned at review
+CLOCK: [2026-09-23 Wed 20:37]--[2026-09-23 Wed 20:38] =>  0:01
+- [2026-09-23 Wed 20:37]--[2026-09-23 Wed 20:38] assigned at review
+CLOCK: [2026-09-23 Wed 20:41]--[2026-09-23 Wed 20:42] =>  0:01
+- [2026-09-23 Wed 20:41]--[2026-09-23 Wed 20:42] assigned at review
+CLOCK: [2026-09-23 Wed 20:48]--[2026-09-23 Wed 20:49] =>  0:01
+- [2026-09-23 Wed 20:48]--[2026-09-23 Wed 20:49] assigned at review
+CLOCK: [2026-09-23 Wed 20:51]--[2026-09-23 Wed 20:52] =>  0:01
+- [2026-09-23 Wed 20:51]--[2026-09-23 Wed 20:52] assigned at review
+CLOCK: [2026-09-23 Wed 20:52]--[2026-09-23 Wed 20:53] =>  0:01
+- [2026-09-23 Wed 20:52]--[2026-09-23 Wed 20:53] record the append-only finding before its brainstorm
+CLOCK: [2026-09-23 Wed 21:57]--[2026-09-23 Wed 21:59] =>  0:02
+- [2026-09-23 Wed 21:57]--[2026-09-23 Wed 21:59] record the append-only finding before its brainstorm
+CLOCK: [2026-09-24 Thu 07:28]--[2026-09-24 Thu 07:29] =>  0:01
+- [2026-09-24 Thu 07:28]--[2026-09-24 Thu 07:29] record the append-only finding before its brainstorm
+CLOCK: [2026-09-24 Thu 07:31]--[2026-09-24 Thu 07:32] =>  0:01
+- [2026-09-24 Thu 07:31]--[2026-09-24 Thu 07:32] record the append-only finding before its brainstorm
+CLOCK: [2026-09-24 Thu 07:35]--[2026-09-24 Thu 07:39] =>  0:04
+- [2026-09-24 Thu 07:35]--[2026-09-24 Thu 07:39] continue the live-follow brainstorm
 :END:
 :PLAN:
 *The design, approved section by section 2026-09-24 (the user), brainstormed on the architectural path.*
@@ -77,11 +106,18 @@ Files: =config.el= (the renderer split, the offset reader, the minor mode, the c
 
 *Not established:* whether Claude Code ever rewrites a transcript's earlier lines. The plan's rebuild rule guards that assumption.
 
+
 * TODO render-session asks for a session id from thin air; offer the project's sessions, newest first :code:
 :PROPERTIES:
 :ID:       406d78da-c871-47f9-a880-5ddb52ae3fa3
 :CREATED:  [2026-09-23 Wed 20:33]
 :CATEGORY: Dev
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-23 Wed 21:49]--[2026-09-23 Wed 21:50] =>  0:01
+- [2026-09-23 Wed 21:49]--[2026-09-23 Wed 21:50] brainstorm the render-session picker
+CLOCK: [2026-09-23 Wed 21:54]--[2026-09-23 Wed 21:56] =>  0:02
+- [2026-09-23 Wed 21:54]--[2026-09-23 Wed 21:56] brainstorm the render-session picker
 :END:
 :PLAN:
 *The design, approved 2026-09-23 (the user), brainstormed on the bounded path.*
@@ -104,6 +140,8 @@ Files: =config.el= (=claude-code-ide-org-render-session='s interactive form and 
 =M-x claude-code-ide-org-render-session= prompts with a bare =read-string "Session id: "=, so a reader needs a UUID before they can read anything. The user hit this on their first try of =96ddf1ef='s renderer (2026-09-23). Designed that day on the bounded path: a picker over every project's transcripts, newest first, each line labelled with its project and session name, plus renders whose transcript has been pruned.
 
 *Established (2026-09-23):* =/rename= appends a =custom-title= line each time, so the last one is the current name. A session never renamed carries an =ai-title=. Transcripts are pruned at about 30 days, and the oldest on disk was 29 days old.
+
+
 * TODO Nothing checks a docstring against the function beneath it, so a stale one misleads a reader four lines from the truth :code:
 :PROPERTIES:
 :ID:       9702f283-625d-4124-aa6f-808c3c913c26
@@ -119,6 +157,7 @@ loaded into a reader's attention the way CLAUDE.md is, so a stale one
 outranks the code until someone checks. =60ed5b96='s docstring misled
 two readings in one day, in opposite directions. Whether any mechanical
 check can catch this, or only review can, is open.
+
 
 * TODO A Claude Code upgrade can add hook events and nothing notices: 26 of 33 go unwired, and PostToolUseFailure was found by accident :code:
 :PROPERTIES:
@@ -161,313 +200,6 @@ Judged unrelated: =Notification=, =MessageDisplay=, =Elicitation=,
 =PreModelSwitch=, =PostModelSwitch=, =PostToolBatch=,
 =UserPromptExpansion=, =CwdChanged=, =DirectoryAdded=, =WorktreeCreate=,
 =WorktreeRemove=.
-
-
-* DONE [8/8] Address the PR #30 review: ten findings, three of them in one new guard :code:
-CLOSED: [2026-09-23 Wed 11:18]
-:PROPERTIES:
-:ID:       07d38454-3835-4da9-98d9-28d8ebfec294
-:CREATED:  [2026-09-23 Wed 10:41]
-:CATEGORY: Skill
-:END:
-:LOGBOOK:
-CLOCK: [2026-09-23 Wed 10:40]--[2026-09-23 Wed 10:41] =>  0:01
-- [2026-09-23 Wed 10:40]--[2026-09-23 Wed 10:41] assigned at review
-CLOCK: [2026-09-23 Wed 10:41]--[2026-09-23 Wed 10:42] =>  0:01
-- [2026-09-23 Wed 10:41]--[2026-09-23 Wed 10:42] file the review story's children
-- [2026-09-23 Wed 10:42]--[2026-09-23 Wed 10:43] assigned at review
-- [2026-09-23 Wed 11:08]--[2026-09-23 Wed 11:09] assigned at review
-- State "DONE"       from "TODO"       [2026-09-23 Wed 11:18] \\
-  all ten findings fixed and replied to
-- [2026-09-23 Wed 11:51]--[2026-09-23 Wed 11:51] the trigger's comment states the struck rule
-:END:
-:DEBRIEF:
-*What the review found, in aggregate.* Two real bugs, both in the one
-piece of new logic, guard 4: it checked the working tree rather than the
-index, which is the class PR #29's review had already fixed in guard 2,
-and a deletion never ran it. Everything else was drift between one text
-and another. The skill's gate contradicted its own checklist, the org
-skill contradicted the brainstorming skill, a code comment still stated
-a rule the same branch struck, and the checker's header had drifted from
-its code. Plus two coverage gaps in the checker (a citation form it
-could not see, a file reference that escaped it) and one design flaw,
-the self-review's append-after-write.
-
-*How it was verified.* Guard 4 gained four =git-guards-test= cases, and
-three of them fail against the old guard (36 of 36 after). The checker
-gained a possessive-citation case that fails against the old checker (11
-of 11). The companion-path fix was shown to bring the reference under
-the checker, by removing the guard file from a copy. The rest are prose
-or comments, checked by =check-brainstorming-skill=, =check-conventions=
-and =bin/test= (713 of 713).
-
-*What it cost that the review did not ask for.* Finding 9 needed a
-design decision. It was settled by brainstorming =dd4b9a9f=, which
-turned into the design for =org_edit= and the retirement of
-=org_amend=, recorded as four children there. The findings sat unfiled
-in conversation until the user asked where the story was; that miss is
-recorded on =59861867=.
-
-*Correction to "How it was verified":* "removing the guard file from a
-copy" should read "removing the companion guide, =visual-companion.md=,
-from a copy". Appended rather than edited in place, since no tool edits
-inside a drawer yet (=dd4b9a9f=).
-:END:
-
-`/code-review high --comment 30` posted ten findings on PR #30, the brainstorming skill's branch, on 2026-09-23. Three are in guard 4 of `pre-commit-guards`, which checks the working tree instead of what is staged, is skipped on deletions, and has no test. The rest are in the skill's prose and the claims checker. One child per remediation, and `4ae7a04b` closes only after this does. Each finding's PR comment gets a reply naming its fix.
-
-*Closed 2026-09-23.* All ten findings are fixed on the branch in eight
-commits, one per child, each shown to fail before its fix where a test
-could show it. Every PR comment has a reply naming its commit.
-
-
-** DONE Guard 4 checks the working tree rather than the index, skips deletions, and has no test :code:
-CLOSED: [2026-09-23 Wed 11:12]
-:PROPERTIES:
-:ID:       b729e75b-e32e-43b7-9872-0f272a9dcdc5
-:CREATED:  [2026-09-23 Wed 10:41]
-:END:
-:LOGBOOK:
-- State "DOING"      from "TODO"       [2026-09-23 Wed 11:09] \\
-  starting the fix
-- State "DONE"       from "DOING"      [2026-09-23 Wed 11:12] \\
-  guard 4 checks the index and runs on deletions; tests discriminate
-:END:
-:DEBRIEF:
-Guard 4 in =.githooks/pre-commit-guards= now copies guard 2's pattern:
-=git ls-files= over the checker, both skills and =config.el=, piped
-through =git checkout-index= into a scratch tree, with the check run
-there. Its trigger reads =git diff --cached --name-only= unfiltered, so
-a deletion runs it, and a staged change to the checker itself now
-triggers it too. The guard still fails open when the staged tree has no
-checker.
-
-=bin/git-guards-test= gained four cases: a clean staged change passes;
-a staged break is refused although the working tree hides it; an
-unstaged break does not block a commit that stages only =config.el=;
-deleting a file the skill names is refused. Against HEAD's guard, the
-last three fail, so they discriminate. Suite: 36 of 36.
-:END:
-
-Findings 1, 2 and 8. `bin/check-brainstorming-skill` runs against the worktree, so a staged break passes when an unstaged edit hides it, and unrelated WIP blocks a clean commit; guard 2 was rewritten for exactly this after PR #29 (`006a50e4`). Its trigger reads the ACMR-filtered staged list, so a commit that only deletes a file the skill names never runs it. Fix with guard 2's pattern, checking out the staged files into a scratch tree, trigger on deletions too, and add a `bin/git-guards-test` case for each.
-
-*Fixed 2026-09-23.* Guard 4 now checks the staged files in a scratch
-tree and runs on every staged path, deletions included.
-
-
-** DONE The HARD-GATE's Bounded line lacks the separate yes to start :prose:
-CLOSED: [2026-09-23 Wed 11:15]
-:PROPERTIES:
-:ID:       44aeedab-2543-4768-ab87-1378cf34eedf
-:CREATED:  [2026-09-23 Wed 10:41]
-:END:
-:LOGBOOK:
-- State "NEXT"       from "TODO"       [2026-09-23 Wed 11:14] \\
-  the gate contradicts the rest of the skill
-- State "DONE"       from "NEXT"       [2026-09-23 Wed 11:15] \\
-  the gate asks for the second yes
-:END:
-:DEBRIEF:
-One bullet in the HARD-GATE now reads: the human partner approves the
-short in-chat design, then says yes to starting, and design approval
-only permits tagging the heading and writing the drawer. That is the
-shape of the Architectural bullet. The bounded verification run
-(=57f37f0e=) had already behaved this way, asking "shall I start now?"
-after the design was approved. So the gate was out of step with what
-the skill elsewhere required and with what sessions actually did.
-Prose only; the claims check passes.
-:END:
-
-Finding 3. Everywhere else, the skill requires a second, separate yes before implementation on every path, and the Architectural bullet spells it out. The Bounded bullet asks only for design approval, so a session reading the gate literally implements on one yes.
-
-*Fixed 2026-09-23.* The gate's Bounded bullet now requires the separate
-yes to start, matching the Architectural bullet and the rest of the
-skill.
-
-
-** DONE The org skill says path tags are set only at capture, which the brainstorming skill contradicts :prose:
-CLOSED: [2026-09-23 Wed 11:15]
-:PROPERTIES:
-:ID:       4adf3311-9221-4acc-bad0-c2c0edb136d5
-:CREATED:  [2026-09-23 Wed 10:41]
-:END:
-:LOGBOOK:
-- State "DONE"       from "NEXT"       [2026-09-23 Wed 11:15] \\
-  org skill matches the brainstorming skill
-- State "NEXT"       from "TODO"       [2026-09-23 Wed 11:15] \\
-  stale sentence in the org skill
-:END:
-:DEBRIEF:
-One clause in =skills/org/SKILL.md='s tags section: path tags are set
-"at capture or when it classifies a heading already filed". This matches
-the brainstorming skill's "Reading and setting the tag" and the
-conventions' Tags section. It is the sentence I missed when re-tagging
-existing headings was added on 2026-09-22. The org skill is not promoted
-into the always-loaded rules, so the word budget is unaffected.
-:END:
-
-Finding 4. The org skill's tags table says the path tags are set "only by it, at capture". The brainstorming skill and the conventions both classify and re-tag existing headings. A session reading the org skill would refuse to classify a filed heading, or treat a step-up as a violation.
-
-*Fixed 2026-09-23.* The org skill now says path tags are set at capture
-or when a filed heading is classified.
-
-
-** DONE check-brainstorming-skill never checks a possessive section citation :code:
-CLOSED: [2026-09-23 Wed 11:13]
-:PROPERTIES:
-:ID:       ddc4470f-a650-44f5-9dfe-7bf48a7f3bce
-:CREATED:  [2026-09-23 Wed 10:41]
-:END:
-:LOGBOOK:
-- State "NEXT"       from "TODO"       [2026-09-23 Wed 11:12] \\
-  the other child with code and a test
-- State "DONE"       from "NEXT"       [2026-09-23 Wed 11:13] \\
-  possessive citations checked; the unquoted one quoted
-:END:
-:DEBRIEF:
-Rule 3's pattern in =bin/check-brainstorming-skill= gained an optional
-="'s"=, so a citation written in the possessive is checked like the comma
-and parenthesised forms. The skill's two possessive citations of "Plan
-Mode checkpoint" were already correct and now pass for real rather than
-unseen. The one citation written without quotes, in "Terminal state",
-now quotes the section. It could never have been checked, because
-nothing marks where an unquoted title ends. The new test case, planted
-in the possessive, fails against HEAD's checker and passes with the fix:
-11 of 11.
-:END:
-
-Finding 5. Rule 3 matches only the comma form (`org skill, "Title"`) and the parenthesised form, so a citation written `org skill's "Plan Mode checkpoint"` is never checked, and it dangles silently if that section is renamed. Extend the pattern to the possessive, with a test case that is red against the old checker.
-
-*Fixed 2026-09-23.* The checker now matches the possessive form, and
-the one unquoted citation is quoted so it can be checked.
-
-
-** DONE The NEXT trigger's comment still says NEXT never goes to a container :prose:
-CLOSED: [2026-09-23 Wed 11:17]
-:PROPERTIES:
-:ID:       88a10c7f-b49a-4bab-97cd-534f3578fd76
-:CREATED:  [2026-09-23 Wed 10:41]
-:END:
-:LOGBOOK:
-- State "NEXT"       from "TODO"       [2026-09-23 Wed 11:16] \\
-  the last child
-- State "DONE"       from "NEXT"       [2026-09-23 Wed 11:17] \\
-  comment matches the code and the rule
-CLOCK: [2026-09-23 Wed 15:14]--[2026-09-23 Wed 15:19] =>  0:05
-- [2026-09-23 Wed 15:14]--[2026-09-23 Wed 15:19] the trigger's comment states the struck rule
-:END:
-:DEBRIEF:
-The rationale in =claude-code-ide-org--trigger-demote-conflicting-next=
-had =62b65ad0= deciding that =NEXT= goes "never to a container itself".
-That was the prohibition =878d2cf5= struck, and the code never enforced
-it. It only keeps =NEXT= unique among a container's members, so the
-comment now says exactly that. It adds that the container's own =NEXT=
-is a separate scope, citing =878d2cf5=. The change is a comment only:
-=bin/test= passed 713 of 713 with the file loaded, and the running Emacs
-needs no reload.
-:END:
-
-Finding 6. `878d2cf5` struck the rule that a story may not carry NEXT. The rationale comment in `claude-code-ide-org--trigger-demote-conflicting-next` still states the old rule, so a maintainer who treats that comment as the design could reinstate it.
-
-*Fixed 2026-09-23.* The trigger's comment says what the code does, and
-that a container's own =NEXT= is a separate scope.
-
-
-** DONE The skill names visual-companion.md by a repo path that does not resolve in a consumer :prose:
-CLOSED: [2026-09-23 Wed 11:16]
-:PROPERTIES:
-:ID:       338062b1-369f-4a90-b585-6862c804708c
-:CREATED:  [2026-09-23 Wed 10:42]
-:END:
-:LOGBOOK:
-- State "NEXT"       from "TODO"       [2026-09-23 Wed 11:15] \\
-  path breaks in a consumer
-- State "DONE"       from "NEXT"       [2026-09-23 Wed 11:16] \\
-  guide named relative to the skill; now checked
-:END:
-:DEBRIEF:
-The guide is now named =visual-companion.md=, "in this skill's own
-directory (the base directory given when the skill loads), not a path in
-the repository you are working in". Claude Code states that base
-directory when the skill loads, so the reference resolves in a consumer
-as well as here.
-
-A side benefit: the repo-relative path had escaped the checker's rule 4,
-which only matches a bare sibling name. With the guide removed from a
-scratch copy, the checker now refuses: "names visual-companion.md, which
-is not in skills/brainstorming/". The fix assumes the companion stays;
-if =c4bb5db3= drops it, this line goes with it.
-:END:
-
-Finding 7. `skills/brainstorming/visual-companion.md` exists only in this repo. In a consumer, the plugin lives elsewhere and the working directory is the consumer's, so the read fails and the session improvises. Name it relative to the skill directory, as the skill already does for `plan-reviewer-prompt.md`.
-
-*Fixed 2026-09-23.* The skill names =visual-companion.md= in its own
-base directory, and the checker now verifies the reference.
-
-
-** DONE The skill's self-review fixes a written drawer by appending, which leaves both versions :prose:
-CLOSED: [2026-09-23 Wed 11:14]
-:PROPERTIES:
-:ID:       5030a18c-787e-4149-8e9b-c3e567c8acc5
-:CREATED:  [2026-09-23 Wed 10:42]
-:END:
-:LOGBOOK:
-- State "DONE"       from "NEXT"       [2026-09-23 Wed 11:14] \\
-  self-review before the write
-- State "NEXT"       from "TODO"       [2026-09-23 Wed 11:14] \\
-  the one prose fix that changes the skill's process
-:END:
-:DEBRIEF:
-Four places changed. In the architectural checklist, self-review is now
-step 8, on the draft, and writing the drawer is step 9. The Process
-Flow's note on the linear steps names the review of the draft before the
-write. The self-review section says why the order matters: a drawer only
-grows, because =org_amend= appends and no tool edits inside a drawer.
-And =plan-reviewer-prompt.md= is dispatched before the write and handed
-the draft, where it used to read the drawer with =org_body=.
-
-A correction that arrives after the write, from the user's review, is
-still appended, naming the passage it replaces, until =dd4b9a9f='s
-edit tool exists. The skill refers to that tool by its heading, not its
-name, since the checker refuses a tool name that isn't registered yet.
-First used on =dd4b9a9f='s own plan, where it caught two errors before
-the write.
-:END:
-
-Finding 9. The self-review runs after the drawer is written, and a drawer can only grow, so every fix leaves the wrong text and the corrected text side by side. Decided 2026-09-23: the self-review runs on the draft before the write, which caught two errors on its first use for `dd4b9a9f`. A correction that arrives after the write waits for `org_edit` (`dd4b9a9f`), and the skill says so.
-
-*Fixed 2026-09-23.* The self-review runs on the draft, before the
-write, and a correction after the write says which passage it replaces.
-
-
-** DONE check-brainstorming-skill's header drifted from its code, and a skill sentence is garbled :code:
-CLOSED: [2026-09-23 Wed 11:14]
-:PROPERTIES:
-:ID:       bf36d299-0012-4dcb-adb4-523de2994794
-:CREATED:  [2026-09-23 Wed 10:42]
-:END:
-:LOGBOOK:
-- State "NEXT"       from "TODO"       [2026-09-23 Wed 11:13] \\
-  same file as the fix just made
-- State "DONE"       from "NEXT"       [2026-09-23 Wed 11:14] \\
-  header matches code; sentence fixed
-:END:
-:DEBRIEF:
-The header of =bin/check-brainstorming-skill= now says three things it
-left out: =README.md= is excluded as well as =visual-companion.md=; rule
-3 takes the comma, possessive and parenthesised forms and joins wrapped
-lines first; and rule 5 also bans "design doc". The garbled sentence in
-the skill's tag-logging paragraph now reads "Until the tag tool that
-da6a2fba adds exists to write it, it goes in with the same headline
-edit". My first rewrite of it was still garbled and did not survive a
-reread. Comments and prose only, with the checker and its test at 11 of
-11 afterwards.
-:END:
-
-Finding 10. The header omits that `README.md` is excluded and that rule 5 also bans "design doc". Separately, SKILL.md reads "until the tag tool da6a2fba adds writes it".
-
-*Fixed 2026-09-23.* The header matches the code, and the sentence says
-what it meant.
 
 
 * TODO A refused Emacs write falls through to an edit behind Emacs's back, where it should back off, retry, then stop and ask :code:
@@ -962,312 +694,6 @@ which carries no session id. Nothing aged out; the line is wrong. Seen
 correct.
 
 
-* DONE Brainstorming exists only inside the superpowers plugin, whose specs go to Markdown files and never reach the tracker :code:
-CLOSED: [2026-09-23 Wed 11:51]
-:PROPERTIES:
-:ID:       4ae7a04b-1557-44d6-91c3-384f1def5293
-:CREATED:  [2026-09-22 Tue 08:36]
-:CATEGORY: Skill
-:BLOCKER:  07d38454-3835-4da9-98d9-28d8ebfec294
-:END:
-:DEBRIEF:
-*Shipped* in PR #30, merged 2026-09-23 as
-[[orgit-rev:claude-code-ide-org::10104e0][10104e0]]. superpowers'
-brainstorming skill was imported verbatim at v6.4.1
-([[orgit-rev:claude-code-ide-org::ed9d86a][ed9d86a]]), each file's
-blob matching upstream's, then adapted in separate commits. Three path
-tags, =:spike:=, =:bounded:= and =:arch:=, record the classification. The
-skill reads an existing tag, classifies an untagged heading, only ever
-steps up, and logs each change as a =- Tags= line in =:LOGBOOK:=.
-=bin/lint-org= errors on two path tags. =bin/check-brainstorming-skill=,
-run by guard 4 of =pre-commit-guards= against the staged files, checks
-that every tool, parameter, cited section and sibling file the skill
-names exists. A Process Flow digraph covers the decision spine.
-
-*What differed from the plan.* The plan ran the dialogue inside Plan
-Mode. The first run (=ba40781f=, on =da6a2fba=) looped, because Plan Mode
-always writes a plan file and its approval can only mean "implement", so
-the user reversed it the same day: the dialogue runs in the ordinary
-session, and approval is two separate yeses in chat. And an
-architectural heading is captured =TODO=, not =DOING=, since planning is
-TODO-phase work.
-
-*Verified by one run per path, each in its own session, each adding a
-clause to the skill.* The full records are in git at
-[[orgit-rev:claude-code-ide-org::6522c4b][6522c4b]],
-[[orgit-rev:claude-code-ide-org::1d31750][1d31750]],
-[[orgit-rev:claude-code-ide-org::3bf52c0][3bf52c0]] and
-[[orgit-rev:claude-code-ide-org::e31ce98][e31ce98]].
-- =7ee3b71a=, architectural from an existing tag: gates held and the
-  self-review caught a real defect. It never clocked out, so the skill
-  now closes the clock on handing back.
-- =a7f844ba=, architectural classified from scratch: the =- Tags= line
-  landed in the convention's shape and the design retired one of the
-  heading's own premises by measurement. A =**= line tore the drawer
-  (=c0c5e015=), so the skill now forbids headline-shaped lines.
-- =51bcec2c=, spike: the approval gate held. Its hypothesis was already
-  on =ce012ad4=, so the skill now searches the tracker once a hypothesis
-  forms; the probe, run later, confirmed it.
-- =57f37f0e=, bounded, in a fresh session: the cleanest run, committing
-  rather than editing around Emacs when =replace=true= refused. It
-  appended to a long body instead of condensing it, as =a7f844ba= had, so
-  the skill now condenses.
-Whether the skill triggers at the right moments cannot be tested
-deterministically. Across four requested runs it triggered each time and
-was not observed firing on bookkeeping.
-
-*The code review* (=/code-review high=, ten findings) was filed as
-=07d38454= and fixed before the merge. Two were real bugs, both in guard
-4, which checked the working tree and skipped deletions. The rest were
-drift between texts. One finding, the self-review appending after the
-write, was settled by running the self-review on the draft; corrections
-after the write wait on =dd4b9a9f='s edit tool.
-
-*Residue, all filed:* =c4bb5db3= decides whether the unrun visual
-companion stays, =dd4b9a9f= designs in-place editing and retires
-=org_amend=, =ec1e6839= holds the wait-on-save mechanism's
-generalisation, and =3485b0d0= backstops a clock left open at turn end.
-=2b8930da=, the consumer-install verification, loses this heading as a
-blocker.
-:END:
-:LOGBOOK:
-CLOCK: [2026-09-22 Tue 08:36]--[2026-09-22 Tue 08:37] =>  0:01
-- [2026-09-22 Tue 08:36]--[2026-09-22 Tue 08:37] draft the brainstorming port's plan
-CLOCK: [2026-09-22 Tue 09:17]--[2026-09-22 Tue 09:18] =>  0:01
-- [2026-09-22 Tue 09:17]--[2026-09-22 Tue 09:18] assigned at review
-CLOCK: [2026-09-22 Tue 09:32]--[2026-09-22 Tue 09:33] =>  0:01
-- [2026-09-22 Tue 09:32]--[2026-09-22 Tue 09:33] assigned at review
-- State "TODO"       from "DOING"      [2026-09-22 Tue 09:36] \\
-  captured DOING in error: planning is TODO-phase
-CLOCK: [2026-09-22 Tue 09:36]--[2026-09-22 Tue 09:37] =>  0:01
-- [2026-09-22 Tue 09:36]--[2026-09-22 Tue 09:37] assigned at review
-CLOCK: [2026-09-22 Tue 09:42]--[2026-09-22 Tue 09:43] =>  0:01
-- [2026-09-22 Tue 09:42]--[2026-09-22 Tue 09:43] assigned at review
-CLOCK: [2026-09-22 Tue 09:47]--[2026-09-22 Tue 09:48] =>  0:01
-- [2026-09-22 Tue 09:47]--[2026-09-22 Tue 09:48] settle the port's open questions; the import note
-CLOCK: [2026-09-22 Tue 09:59]--[2026-09-22 Tue 10:05] =>  0:06
-- State "DOING"      from "TODO"       [2026-09-22 Tue 09:59] \\
-  porting the brainstorming skill now
-- [2026-09-22 Tue 09:59]--[2026-09-22 Tue 10:05] raw import, then the adaptation
-CLOCK: [2026-09-22 Tue 10:06]--[2026-09-22 Tue 10:07] =>  0:01
-- [2026-09-22 Tue 10:06]--[2026-09-22 Tue 10:07] record a self-caught claim
-CLOCK: [2026-09-22 Tue 10:10]--[2026-09-22 Tue 10:11] =>  0:01
-- [2026-09-22 Tue 10:10]--[2026-09-22 Tue 10:11] suggested span, accepted at review
-CLOCK: [2026-09-22 Tue 10:18]--[2026-09-22 Tue 10:19] =>  0:01
-- [2026-09-22 Tue 10:18]--[2026-09-22 Tue 10:19] suggested span, accepted at review
-CLOCK: [2026-09-22 Tue 10:24]--[2026-09-22 Tue 10:25] =>  0:01
-- [2026-09-22 Tue 10:24]--[2026-09-22 Tue 10:25] suggested span, accepted at review
-CLOCK: [2026-09-22 Tue 10:28]--[2026-09-22 Tue 10:29] =>  0:01
-- [2026-09-22 Tue 10:28]--[2026-09-22 Tue 10:29] suggested span, accepted at review
-CLOCK: [2026-09-22 Tue 10:32]--[2026-09-22 Tue 10:33] =>  0:01
-- [2026-09-22 Tue 10:32]--[2026-09-22 Tue 10:33] suggested span, accepted at review
-CLOCK: [2026-09-22 Tue 10:33]--[2026-09-22 Tue 10:35] =>  0:02
-- [2026-09-22 Tue 10:33]--[2026-09-22 Tue 10:35] path tags: spike, bounded, arch
-CLOCK: [2026-09-22 Tue 10:37]--[2026-09-22 Tue 10:38] =>  0:01
-- [2026-09-22 Tue 10:37]--[2026-09-22 Tue 10:38] file and fix the pre-commit basename collision
-CLOCK: [2026-09-22 Tue 10:38]--[2026-09-22 Tue 10:41] =>  0:03
-- [2026-09-22 Tue 10:38]--[2026-09-22 Tue 10:41] suggested span, accepted at review
-CLOCK: [2026-09-22 Tue 10:46]--[2026-09-22 Tue 10:49] =>  0:03
-- <2026-09-22 Tue 10:46>--<2026-09-22 Tue 10:49> suggested span, accepted at review
-CLOCK: [2026-09-22 Tue 10:56]--[2026-09-22 Tue 10:57] =>  0:01
-- [2026-09-22 Tue 10:56]--[2026-09-22 Tue 10:57] read and set path tags on existing headings
-CLOCK: [2026-09-22 Tue 10:57]--[2026-09-22 Tue 10:58] =>  0:01
-- [2026-09-22 Tue 10:57]--[2026-09-22 Tue 10:58] compose the mislabel's plan and body
-CLOCK: [2026-09-22 Tue 11:01]--[2026-09-22 Tue 11:03] =>  0:02
-- [2026-09-22 Tue 11:01]--[2026-09-22 Tue 11:03] suggested span, accepted at review
-CLOCK: [2026-09-22 Tue 11:04]--[2026-09-22 Tue 11:05] =>  0:01
-- [2026-09-22 Tue 11:04]--[2026-09-22 Tue 11:05] suggested span, accepted at review
-CLOCK: [2026-09-22 Tue 11:06]--[2026-09-22 Tue 11:08] =>  0:02
-- [2026-09-22 Tue 11:06]--[2026-09-22 Tue 11:08] suggested span, accepted at review
-CLOCK: [2026-09-22 Tue 11:12]--[2026-09-22 Tue 11:13] =>  0:01
-- [2026-09-22 Tue 11:12]--[2026-09-22 Tue 11:13] suggested span, accepted at review
-CLOCK: [2026-09-22 Tue 11:13]--[2026-09-22 Tue 11:14] =>  0:01
-- [2026-09-22 Tue 11:13]--[2026-09-22 Tue 11:14] Process Flow digraph, the decision spine
-CLOCK: [2026-09-22 Tue 11:14]--[2026-09-22 Tue 11:15] =>  0:01
-- [2026-09-22 Tue 11:14]--[2026-09-22 Tue 11:15] suggested span, accepted at review
-CLOCK: [2026-09-22 Tue 11:19]--[2026-09-22 Tue 11:20] =>  0:01
-- [2026-09-22 Tue 11:19]--[2026-09-22 Tue 11:20] suggested span, accepted at review
-CLOCK: [2026-09-22 Tue 11:20]--[2026-09-22 Tue 11:21] =>  0:01
-- [2026-09-22 Tue 11:20]--[2026-09-22 Tue 11:21] shorten labels; render the adapted flow page
-CLOCK: [2026-09-22 Tue 11:21]--[2026-09-22 Tue 11:22] =>  0:01
-- [2026-09-22 Tue 11:21]--[2026-09-22 Tue 11:22] suggested span, accepted at review
-CLOCK: [2026-09-22 Tue 11:24]--[2026-09-22 Tue 11:25] =>  0:01
-- [2026-09-22 Tue 11:24]--[2026-09-22 Tue 11:25] suggested span, accepted at review
-CLOCK: [2026-09-22 Tue 11:25]--[2026-09-22 Tue 11:26] =>  0:01
-- [2026-09-22 Tue 11:25]--[2026-09-22 Tue 11:26] remove the upstream-flow page
-CLOCK: [2026-09-22 Tue 11:34]--[2026-09-22 Tue 11:35] =>  0:01
-- [2026-09-22 Tue 11:34]--[2026-09-22 Tue 11:35] suggested span, accepted at review
-CLOCK: [2026-09-22 Tue 11:48]--[2026-09-22 Tue 11:49] =>  0:01
-- [2026-09-22 Tue 11:48]--[2026-09-22 Tue 11:49] record a self-caught id-from-memory miss
-CLOCK: [2026-09-22 Tue 11:54]--[2026-09-22 Tue 11:56] =>  0:02
-- [2026-09-22 Tue 11:54]--[2026-09-22 Tue 11:56] take the dialogue out of Plan Mode
-CLOCK: [2026-09-22 Tue 12:14]--[2026-09-22 Tue 12:15] =>  0:01
-- [2026-09-22 Tue 12:14]--[2026-09-22 Tue 12:15] suggested span, accepted at review
-CLOCK: [2026-09-22 Tue 12:17]--[2026-09-22 Tue 12:18] =>  0:01
-- [2026-09-22 Tue 12:17]--[2026-09-22 Tue 12:18] suggested span, accepted at review
-CLOCK: [2026-09-22 Tue 12:18]--[2026-09-22 Tue 12:19] =>  0:01
-- [2026-09-22 Tue 12:18]--[2026-09-22 Tue 12:19] step-up rules; tag-change LOGBOOK line
-CLOCK: [2026-09-22 Tue 12:22]--[2026-09-22 Tue 12:23] =>  0:01
-- [2026-09-22 Tue 12:22]--[2026-09-22 Tue 12:23] step-up rules; tag-change LOGBOOK line
-- [2026-09-22 Tue 12:23]--[2026-09-22 Tue 12:23] suggested span, accepted at review
-CLOCK: [2026-09-22 Tue 12:45]--[2026-09-22 Tue 12:46] =>  0:01
-- [2026-09-22 Tue 12:45]--[2026-09-22 Tue 12:46] suggested span, accepted at review
-CLOCK: [2026-09-22 Tue 17:03]--[2026-09-22 Tue 17:04] =>  0:01
-- [2026-09-22 Tue 17:03]--[2026-09-22 Tue 17:04] suggested span, accepted at review
-CLOCK: [2026-09-22 Tue 17:07]--[2026-09-22 Tue 17:08] =>  0:01
-- [2026-09-22 Tue 17:07]--[2026-09-22 Tue 17:08] suggested span, accepted at review
-CLOCK: [2026-09-22 Tue 17:09]--[2026-09-22 Tue 17:10] =>  0:01
-- [2026-09-22 Tue 17:09]--[2026-09-22 Tue 17:10] suggested span, accepted at review
-CLOCK: [2026-09-22 Tue 17:11]--[2026-09-22 Tue 17:12] =>  0:01
-- [2026-09-22 Tue 17:11]--[2026-09-22 Tue 17:12] suggested span, accepted at review
-CLOCK: [2026-09-22 Tue 17:14]--[2026-09-22 Tue 17:15] =>  0:01
-- [2026-09-22 Tue 17:14]--[2026-09-22 Tue 17:15] judge the second architectural run
-CLOCK: [2026-09-22 Tue 17:17]--[2026-09-22 Tue 17:18] =>  0:01
-- [2026-09-22 Tue 17:17]--[2026-09-22 Tue 17:18] suggested span, accepted at review
-CLOCK: [2026-09-22 Tue 17:21]--[2026-09-22 Tue 17:23] =>  0:02
-- [2026-09-22 Tue 17:21]--[2026-09-22 Tue 17:23] suggested span, accepted at review
-CLOCK: [2026-09-22 Tue 17:26]--[2026-09-22 Tue 17:29] =>  0:03
-- [2026-09-22 Tue 17:26]--[2026-09-22 Tue 17:29] suggested span, accepted at review
-CLOCK: [2026-09-22 Tue 17:33]--[2026-09-22 Tue 17:34] =>  0:01
-- [2026-09-22 Tue 17:33]--[2026-09-22 Tue 17:34] suggested span, accepted at review
-- [2026-09-22 Tue 17:36]--[2026-09-22 Tue 17:36] suggested span, accepted at review
-- [2026-09-22 Tue 18:04]--[2026-09-22 Tue 18:05] suggested span, accepted at review
-CLOCK: [2026-09-22 Tue 18:06]--[2026-09-22 Tue 18:07] =>  0:01
-- [2026-09-22 Tue 18:06]--[2026-09-22 Tue 18:07] suggested span, accepted at review
-CLOCK: [2026-09-22 Tue 18:11]--[2026-09-22 Tue 18:13] =>  0:02
-- [2026-09-22 Tue 18:11]--[2026-09-22 Tue 18:13] suggested span, accepted at review
-CLOCK: [2026-09-22 Tue 18:13]--[2026-09-22 Tue 18:14] =>  0:01
-- [2026-09-22 Tue 18:13]--[2026-09-22 Tue 18:14] judge the first spike run
-- [2026-09-22 Tue 18:14]--[2026-09-22 Tue 18:14] suggested span, accepted at review
-- [2026-09-22 Tue 20:16]--[2026-09-22 Tue 20:17] suggested span, accepted at review
-CLOCK: [2026-09-23 Wed 09:37]--[2026-09-23 Wed 09:38] =>  0:01
-- [2026-09-23 Wed 09:37]--[2026-09-23 Wed 09:38] judge the bounded run
-CLOCK: [2026-09-23 Wed 09:41]--[2026-09-23 Wed 09:42] =>  0:01
-- [2026-09-23 Wed 09:41]--[2026-09-23 Wed 09:42] assigned at review
-- State "REVIEW"     from "DOING"      [2026-09-23 Wed 09:42] \\
-  PR #30 open; all three paths verified
-CLOCK: [2026-09-23 Wed 09:42]--[2026-09-23 Wed 09:43] =>  0:01
-- [2026-09-23 Wed 09:42]--[2026-09-23 Wed 09:43] push the branch and open the PR
-CLOCK: [2026-09-23 Wed 09:43]--[2026-09-23 Wed 09:44] =>  0:01
-- [2026-09-23 Wed 09:43]--[2026-09-23 Wed 09:44] assigned at review
-CLOCK: [2026-09-23 Wed 09:45]--[2026-09-23 Wed 09:47] =>  0:02
-- [2026-09-23 Wed 09:45]--[2026-09-23 Wed 09:47] assigned at review
-CLOCK: [2026-09-23 Wed 09:55]--[2026-09-23 Wed 09:56] =>  0:01
-- [2026-09-23 Wed 09:55]--[2026-09-23 Wed 09:56] assigned at review
-CLOCK: [2026-09-23 Wed 09:58]--[2026-09-23 Wed 10:01] =>  0:03
-- [2026-09-23 Wed 09:58]--[2026-09-23 Wed 10:01] assigned at review
-CLOCK: [2026-09-23 Wed 10:05]--[2026-09-23 Wed 10:06] =>  0:01
-- [2026-09-23 Wed 10:05]--[2026-09-23 Wed 10:06] assigned at review
-CLOCK: [2026-09-23 Wed 11:07]--[2026-09-23 Wed 11:08] =>  0:01
-- [2026-09-23 Wed 11:07]--[2026-09-23 Wed 11:08] assigned at review
-CLOCK: [2026-09-23 Wed 11:09]--[2026-09-23 Wed 11:18] =>  0:09
-- [2026-09-23 Wed 11:09]--[2026-09-23 Wed 11:18] assigned at review
-CLOCK: [2026-09-23 Wed 11:18]--[2026-09-23 Wed 11:19] =>  0:01
-- [2026-09-23 Wed 11:18]--[2026-09-23 Wed 11:19] close the review story, hand the work back
-- [2026-09-23 Wed 11:19]--[2026-09-23 Wed 11:19] assigned at review
-CLOCK: [2026-09-23 Wed 11:49]--[2026-09-23 Wed 11:50] =>  0:01
-- [2026-09-23 Wed 11:49]--[2026-09-23 Wed 11:50] assigned at review
-CLOCK: [2026-09-23 Wed 11:50]--[2026-09-23 Wed 11:51] =>  0:01
-- [2026-09-23 Wed 11:50]--[2026-09-23 Wed 11:51] close after PR #30's merge
-- State "DONE"       from "REVIEW"     [2026-09-23 Wed 11:51] \\
-  merged in PR #30 (10104e0)
-:END:
-:PLAN:
-*Why port rather than install.* The superpowers plugin is enabled as a whole: 15 skills and a SessionStart hook. Evaluated against superpowers v6.4.1 ([[orgit-rev:superpowers::5bf4e78][5bf4e78]]), six things conflict with this repo:
-- brainstorming commits specs to =docs/superpowers/specs/=, and =writing-plans= commits plans to =docs/superpowers/plans/=. That contradicts the rule that a plan lives in its heading's =:PLAN:= drawer, and its "user preferences override" escape hatch depends on the model remembering prose;
-- the chain brainstorm → spec → plan → subagent execution captures no heading and queues no state before its first write, so =clock-target-check= fires;
-- =using-superpowers= is injected at SessionStart: about 500 words under =<EXTREMELY_IMPORTANT>= ("a 1% chance … you MUST invoke"), which also sends Plan Mode through brainstorming. =bin/word-budget= does not count hook-injected text, and the injection competes with the ceremony report;
-- =finishing-a-development-branch= offers a local =git merge=, which the hooks refuse;
-- =using-git-worktrees= and subagent-driven development work off =main=, where TODO.org bookkeeping lands on stale content;
-- upstream rewrites skills from release to release (the three-path router arrived in 6.3), so taking updates would silently change the conventions.
-
-*Keep, adapted.* From =skills/brainstorming/SKILL.md=:
-- write back the understood intent, separating what the user said from what is assumed;
-- classify the request as spike, bounded or architectural, and say so aloud before the first question; the path may move up mid-task but never down;
-- the HARD-GATE: a reply approves only the stage actually presented, and work resumes at the earliest incomplete stage;
-- the red-flags table;
-- one question at a time, multiple choice where possible;
-- 2–3 approaches, recommended one first, YAGNI;
-- the design presented in sections, each approved in turn;
-- the four-point self-review (placeholders, contradictions, scope, ambiguity), run on the drawer instead of a spec file.
-
-*Rewrite: where each path ends up.*
-- *Spike*: the result is a recommendation given in chat. Capture a heading only if the user wants it kept, and label anything built as throwaway.
-- *Bounded*: before the first write, capture a heading with =initial_state=. The design is approved in chat, then written into =:PLAN:= in a few sentences, since the drawer is the design record even when the design is short. The body is two to five sentences.
-- *Architectural*: capture the heading with =initial_state TODO=, since composing and refining a plan is TODO-phase work and =DOING= begins with implementation (the user, 2026-09-22), and write the approved design to =:PLAN:= with =org_amend drawer=PLAN=. The self-review runs there, and the user reviews the drawer as they would a spec. If the design breaks into parts, they become keyworded children captured under the heading, and the story emerges from that; it is never declared. A heading that has already been worked divides with =org_divide= instead. A slice is *not* a brainstorming output: slices are scheduling decisions, which pick and order tasks from the backlog, and keyworded children under a slice are refused anyway (the user, 2026-09-22).
-- The terminal state names this repo's next step, with no =writing-plans=: implementation behind the org skill's Plan Mode checkpoint, or =/next-session= when the work is sequenced across sessions.
-
-*Gates, reconciled.* Brainstorming's "design approval permits only writing the spec" matches the Plan Mode checkpoint's "writing the plan down is not gated". So an approved design goes into the drawer at once, and implementation plus the transition to =DOING= wait for a separate yes. The skill cites the checkpoint instead of restating it.
-
-*Drop.* =using-superpowers= and its hook, =writing-plans=, =executing-plans=, =subagent-driven-development=, =finishing-a-development-branch=, =using-git-worktrees=, and the upstream pointer to the =elements-of-style= skill. The =:PLAN:= drawer, slices, =/next-session= and the pull-request rule already do their work.
-
-*Shape.*
-- It lives at =skills/brainstorming/= as a shipped skill, with =.claude/skills/brainstorming= a symlink to it, as for =org=. It is not promoted into =.claude/rules/=, so it costs no always-loaded words beyond its description.
-- The description is narrower than upstream's "You MUST use this before any creative work", so bookkeeping, closes and maintenance commits do not trigger it.
-- It keeps the MIT copyright notice (Jesse Vincent, 2025) and records the upstream commit it was ported from, so a later re-sync is a deliberate diff and not an update.
-- Everything the skill names must be real. =bin/check-org-dev-skill= is the model for a check that the tools, parameters and sections it cites exist; extend that check, or add a sibling.
-
-*Verification.*
-- Automated: the claims check above.
-- Manual, stated as such: one real request taken through each path, confirming that the heading is captured before the first write, the design lands in =:PLAN:=, and nothing is written under =docs/=. Whether the skill triggers at the right moments cannot be tested deterministically, and is recorded as a judgement.
-
-*Bring the raw material in first, unchanged* (the user, 2026-09-22). The
-first commit on =feature/brainstorming-skill= copies all nine files of
-superpowers' =skills/brainstorming/= at tag =v6.4.1=
-([[orgit-rev:superpowers::5bf4e78][5bf4e78]]) into =skills/brainstorming/=
-byte for byte: =SKILL.md=, =spec-document-reviewer-prompt.md=,
-=visual-companion.md=, and =scripts/= (=frame-template.html=,
-=helper.js=, =server.cjs=, =start-server.sh=, =stop-server.sh=). Each
-file's =git hash-object= must equal its blob in the upstream tree at that
-tag, which proves the copy verbatim. The visual companion comes in with
-the rest; whether it stays is the user's call, reserved, and removing it
-later is then a visible diff.
-
-The same commit adds three files of this repo's own, and nothing else:
-- =.upstream=: the source in =key: value= lines, namely repository
-  (=obra/superpowers=), path, tag (=v6.4.1=), commit
-  (=5bf4e78011075bcfc0dc295f0724994cd123ee71=), license (=MIT=) and the
-  import date. The commit message carries the same as =Upstream-Repo:=,
-  =Upstream-Tag:= and =Upstream-Commit:= trailers.
-- =LICENSE=: upstream's MIT license, verbatim. The notice must travel with
-  a substantial portion, and this repo carries no license of its own.
-- =README.md=: a few lines saying the folder derives from superpowers'
-  brainstorming skill (obra/superpowers, v6.4.1, 5bf4e78), © 2025 Jesse
-  Vincent, MIT, see =LICENSE=; that the import commit is the pristine
-  copy; and that every later commit to the folder is an adaptation.
-
-No =.claude/skills/brainstorming= symlink until the adapted skill is ready:
-upstream's description ("You MUST use this before any creative work")
-would otherwise trigger in every session here.
-
-*Plan Mode and shipping* (the user, 2026-09-22). The dialogue runs inside
-Plan Mode, which suits its read-only phase: =ExitPlanMode= is the design
-approval, and only then are the heading captured and =:PLAN:= written. The
-org skill's Plan Mode checkpoint then applies unchanged, so implementation
-and =DOING= wait for a separate yes. The skill ships with the plugin,
-because 2b8930da, the euchre verification, waits on this heading; its
-manual verification runs here before the merge.
-
-Branch: =feature/brainstorming-skill=, merged by pull request.
-
-*The dialogue runs outside Plan Mode* (the user, 2026-09-22, reversing the
-morning's decision above). The first fresh-session run (ba40781f, on
-da6a2fba) found that Plan Mode always writes its plan to
-=~/.claude/plans=, the retired pattern, and that =ExitPlanMode= can only
-mean "start implementing" or "stay read-only", so a request to record the
-design looped. The design approval is now an explicit yes in chat, the
-heading and =:PLAN:= are written after it, and implementation and =DOING=
-wait for a second, separate yes. The verification runs still owed use
-this flow.
-:END:
-
-superpowers' brainstorming skill is the best design-dialogue discipline available: intent written back for correction, the path (spike, bounded, architectural) announced aloud, one question at a time, and hard approval gates. Installing the plugin would bring its bookkeeping too: specs and plans committed as Markdown under docs/superpowers/, no heading captured before the first write, a local git merge, and a SessionStart injection that the word budget cannot see. Port the dialogue as a shipped skill of this plugin instead, and route its output through org_capture and the :PLAN: drawer.
-
-*Shipped 2026-09-23 in PR #30.* The skill runs outside Plan Mode, records
-its path as a tag, lands every design in =:PLAN:=, and was verified once
-on each path, each run adding a clause.
-
-
 * TODO One clock_in keeps pairing with later clock_outs, so a closed heading collects phantom spans at every review
 :PROPERTIES:
 :ID:       c3aa23fb-c9dd-4eb6-83f7-ec8e8c803a11
@@ -1543,6 +969,10 @@ CLOCK: [2026-09-23 Wed 15:20]--[2026-09-23 Wed 15:21] =>  0:01
 - [2026-09-23 Wed 15:20]--[2026-09-23 Wed 15:21] correct a miss line, record the catch
 CLOCK: [2026-09-23 Wed 18:50]--[2026-09-23 Wed 18:51] =>  0:01
 - [2026-09-23 Wed 18:50]--[2026-09-23 Wed 18:51] record four self-caught misses
+CLOCK: [2026-09-23 Wed 20:05]--[2026-09-23 Wed 20:06] =>  0:01
+- [2026-09-23 Wed 20:05]--[2026-09-23 Wed 20:06] record a user-caught and two self-caught misses
+CLOCK: [2026-09-23 Wed 20:27]--[2026-09-23 Wed 20:28] =>  0:01
+- [2026-09-23 Wed 20:27]--[2026-09-23 Wed 20:28] record the user's org-ql catch
 :END:
 :PLAN:
 *What this is for, and why it is not a member of the drift slice (decided with the user 2026-09-21).* It is an instrument, not a deliverable: it is read to decide which rule to move out of recall next, and to tell whether a conversion worked. A slice closes on its pull request; this stays open while it is useful, so membership would hold the slice open for a reason unrelated to its code.
@@ -1602,7 +1032,6 @@ Hook-backed (footnote-check, rule =footnote=), but the hook reads only a turn's 
   followed.
 
 - [2026-09-24 Thu] Self-caught: reporting =c247d8f3='s probe, the session wrote end matter for =0086614a= with a title it had not looked up, and the title was wrong ("Unplanned work in flight belongs to no slice…" for "A slice should list incidental work separately from its planned members"). The hook did not fire, because it checks that an id appears in the end matter, not that the title is right.
-
 
 
 ** TODO Miss: tracked work done under no clock, the wrong clock, or a clock closed before the work ended
@@ -1712,7 +1141,6 @@ The conventions are path-scoped and tool-driven work never loads them (436e0991)
 - [2026-09-23 Wed] Self-caught: the session filed 9702f283 and queued a story =NEXT= without reading the org conventions, although the first =org_*= call of the session had injected a pointer to them.
 
 
-
 ** TODO Miss: a prediction or a claim about state reported as fact without checking the artifact
 :PROPERTIES:
 :ID:       cf617ecd-81d7-4ca1-b3bb-60a088ecabde
@@ -1784,8 +1212,6 @@ CLAUDE.md's own opening names this as the largest source of wrong claims. Caught
 
 - [2026-09-23 Wed] Caught by the user: "I don't see why the session would have to be 'running inside Emacs'. This one is not." Asked for ways to show footnotes on demand, the session read =claude-code-ide-terminal-backend 'vterm= in the Doom config and concluded that this session ran in a vterm buffer. It then built its recommendation on that and never checked. That setting says where =claude-code-ide= launches sessions, not where this one runs.
 - [2026-09-24 Thu] Self-caught: designing =406d78da='s picker, the session stated twice that a rendered transcript lives "outside =~/.claude=" and so outlives its pruned source, and that premise went into the approved drawer. The default is =~/.claude/org-renders/=. The session never read the variable until the user asked whether renders are persisted.
-
-
 
 
 ** TODO Miss: a heading closed with its unfinished part left in prose, or its group left un-nominated
@@ -1920,13 +1346,24 @@ line per catch.
 - [2026-09-23 Wed] Caught by the user: "I think you give up on =org-ql= too quickly. I saw you try one query and fall back to grep." Looking for the transcripts-to-org proposal, the session tried =heading:"transcript"= once and then grepped =TODO.org= and =DONE.org= three times. A bare-word query (=transcript readable=) is org-ql's full-text =rifle= predicate, and it finds =96ddf1ef= in DONE.org in one call. The session had treated the five predicates =org_query='s description names as the whole language.
 
 
-
-
 * TODO Nothing runs the shell hook suites, so three sat red for a day and a merge without anyone seeing :code:
 :PROPERTIES:
 :ID:       94e6b615-3778-426b-b40a-306b517a837f
 :CREATED:  [2026-09-19 Sat 16:34]
 :CATEGORY: Dev
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-23 Wed 20:52]--[2026-09-23 Wed 20:53] =>  0:01
+- [2026-09-23 Wed 20:52]--[2026-09-23 Wed 20:52] assigned at review
+- [2026-09-23 Wed 20:52]--[2026-09-23 Wed 20:53] brainstorm the all-suites runner
+CLOCK: [2026-09-23 Wed 20:55]--[2026-09-23 Wed 20:56] =>  0:01
+- [2026-09-23 Wed 20:55]--[2026-09-23 Wed 20:56] brainstorm the all-suites runner
+CLOCK: [2026-09-23 Wed 21:04]--[2026-09-23 Wed 21:07] =>  0:03
+- [2026-09-23 Wed 21:04]--[2026-09-23 Wed 21:07] brainstorm the all-suites runner
+CLOCK: [2026-09-23 Wed 21:07]--[2026-09-23 Wed 21:11] =>  0:04
+- [2026-09-23 Wed 21:07]--[2026-09-23 Wed 21:11] assigned at review
+CLOCK: [2026-09-23 Wed 21:16]--[2026-09-23 Wed 21:17] =>  0:01
+- [2026-09-23 Wed 21:16]--[2026-09-23 Wed 21:17] assigned at review
 :END:
 :PLAN:
 *The design, approved 2026-09-23 (the user), brainstormed on the bounded path.* One runner, =bin/test-all=, runs every suite and demands positive evidence from each, and pre-push calls it. Pre-push rather than pre-commit (the user, 2026-09-21): a full run measured 41 s that day (24 s shell, 17 s ERT), which is tolerable per push and too heavy per commit, since most commits here are bookkeeping that touches only =TODO.org=. It is a separate script rather than a =--all= flag on =bin/test=, and =next-session.md= does not name it: pre-push already runs it on every push that matters, and a second copy there would drift.
@@ -1956,6 +1393,7 @@ Files: =bin/test-all= and =bin/test-all-test= (new), =.githooks/pre-push=, about
 - Only three suites print a count line. Six end with =exit "$count"=, which wraps to 0 at 256 failures. =queue-append-test= reads the real =TODO.org= (2026-09-23).
 
 Noticed, not in scope: =claude-org-setup --check= reads the real =~/.config/doom=, so that suite is not hermetic either.
+
 
 * TODO sync-plans reads any mention of a plan filename as a link, so prose naming an orphan re-links it :code:observed:
 :PROPERTIES:
@@ -2501,6 +1939,32 @@ The analysis above stays useful either way, because it is the record of *why* th
 :CREATED:  [2026-09-17 Thu 16:17]
 :CATEGORY: Skill
 :END:
+:LOGBOOK:
+CLOCK: [2026-09-23 Wed 19:34]--[2026-09-23 Wed 19:35] =>  0:01
+- [2026-09-23 Wed 19:34]--[2026-09-23 Wed 19:35] assigned at review
+CLOCK: [2026-09-23 Wed 19:39]--[2026-09-23 Wed 19:40] =>  0:01
+- [2026-09-23 Wed 19:39]--[2026-09-23 Wed 19:40] assigned at review
+CLOCK: [2026-09-23 Wed 19:43]--[2026-09-23 Wed 19:45] =>  0:02
+- [2026-09-23 Wed 19:43]--[2026-09-23 Wed 19:45] assigned at review
+CLOCK: [2026-09-23 Wed 19:51]--[2026-09-23 Wed 19:52] =>  0:01
+- [2026-09-23 Wed 19:51]--[2026-09-23 Wed 19:52] assigned at review
+CLOCK: [2026-09-23 Wed 19:52]--[2026-09-23 Wed 19:53] =>  0:01
+- [2026-09-23 Wed 19:52]--[2026-09-23 Wed 19:53] record walkthrough decisions; file docstring-drift heading
+CLOCK: [2026-09-23 Wed 19:53]--[2026-09-23 Wed 19:54] =>  0:01
+- [2026-09-23 Wed 19:53]--[2026-09-23 Wed 19:54] assigned at review
+CLOCK: [2026-09-23 Wed 19:59]--[2026-09-23 Wed 20:00] =>  0:01
+- [2026-09-23 Wed 19:59]--[2026-09-23 Wed 20:00] assigned at review
+CLOCK: [2026-09-23 Wed 20:05]--[2026-09-23 Wed 20:06] =>  0:01
+- [2026-09-23 Wed 20:05]--[2026-09-23 Wed 20:06] assigned at review
+CLOCK: [2026-09-23 Wed 20:06]--[2026-09-23 Wed 20:07] =>  0:01
+- [2026-09-23 Wed 20:06]--[2026-09-23 Wed 20:07] assigned at review
+CLOCK: [2026-09-23 Wed 20:17]--[2026-09-23 Wed 20:18] =>  0:01
+- [2026-09-23 Wed 20:17]--[2026-09-23 Wed 20:18] assigned at review
+CLOCK: [2026-09-23 Wed 20:23]--[2026-09-23 Wed 20:24] =>  0:01
+- [2026-09-23 Wed 20:23]--[2026-09-23 Wed 20:24] assigned at review
+CLOCK: [2026-09-23 Wed 20:26]--[2026-09-23 Wed 20:27] =>  0:01
+- [2026-09-23 Wed 20:26]--[2026-09-23 Wed 20:27] assigned at review
+:END:
 :PLAN:
 Committed 2026-09-21 by the user to close within =8a2eb687=, where it replaces its child =2a6a1355= as the member. It closes when all six children are terminal. =d88362e7= is already DONE. =2a6a1355= closes on its resolution. =c247d8f3= and =eadb3607= each close on one measurement, CANCELLED if nothing is found. =490e6737= and =13aed7ca= each close on one user decision recorded in its own drawer. Each child's plan is its own drawer; this one holds only the close condition.
 :END:
@@ -3011,7 +2475,7 @@ visible as quotation; borrowed prose is not. Whether that difference matters
 enough to split is a judgement for the pass that reviews this division.
 
 
-** NEXT Bulk citation owes more entries than inline pairing can absorb, so the remedy goes unused :code:
+** TODO Bulk citation owes more entries than inline pairing can absorb, so the remedy goes unused :code:
 :PROPERTIES:
 :ID:       13aed7ca-1fad-4e89-bbca-9355f5c76265
 :CREATED:  [2026-09-17 Thu 16:18]
@@ -3041,6 +2505,8 @@ Decision (user): which shape. The session asks before its step.
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-17 Thu 16:18] \\
   the live measured cause; its open question is a concrete decision
+- State "TODO"       from "NEXT"       [2026-09-24 Thu 09:46] \\
+  Auto-demoted: superseded by sibling [[id:c247d8f3-9f3f-464a-b3a0-543b1bb9de4f][footnote-check reads only the turn's final text block, so an id cited before a tool call is never checked]] becoming NEXT.
 :END:
 
 Candidate cause 2, and the reason it is filed apart from transcription is that
@@ -3108,10 +2574,14 @@ Shipped in the canonical reference and promoted; check-conventions 32 ok, footno
 **Resolution:** a queued keyword is now written as the queued state with a trailing =*=, the star carries no note of its own, and the rule ships in the canonical reference and its promoted copy.
 
 
-** TODO footnote-check reads only the turn's final text block, so an id cited before a tool call is never checked
+** NEXT footnote-check reads only the turn's final text block, so an id cited before a tool call is never checked
 :PROPERTIES:
 :ID:       c247d8f3-9f3f-464a-b3a0-543b1bb9de4f
 :CREATED:  [2026-09-21 Mon 13:25]
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-09-23 Wed 19:51] \\
+  its measurement informs 490e6737 and the division's verdict
 :END:
 :PLAN:
 *The design, approved 2026-09-24 (the user), on the bounded path it stepped up to from a spike.* Divided out of =2a6a1355= on 2026-09-21: the Stop hook sees only =last_assistant_message=, the turn's final text block, so an id cited in a text block before a tool call is never checked. The spike measured whether that happens before building anything (=7771fc63='s standing argument), and it does. The count is in the body.
@@ -3147,6 +2617,10 @@ Files: =bin/hooks/footnote-check=, =bin/footnote-check-test=, and that reference
 :PROPERTIES:
 :ID:       eadb3607-aa3d-41ee-b8cc-e293cc924f26
 :CREATED:  [2026-09-21 Mon 13:25]
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-24 Thu 09:21]--[2026-09-24 Thu 09:22] =>  0:01
+- [2026-09-24 Thu 09:21]--[2026-09-24 Thu 09:22] brainstorm the aboutness sampling spike
 :END:
 :PLAN:
 Divided out of =2a6a1355= 2026-09-21. The hook asks whether every id present is footnoted. It cannot ask whether every heading *discussed* was cited, because a response can describe a heading at length by its subject and never write its id. That is a judgement about aboutness, which no regex makes.
@@ -3790,7 +3264,6 @@ needing their own change.
 *Correction, 2026-09-24.* The description above of the audit log as "append-only and permanent … not in git's way" overstates it. =b5448133= established that the log is gitignored, so it exists only in this working copy: a fresh clone or a deleted checkout loses it, and with it the source for rebuilding the 101 intervals. Found by the twin pass that judged these two headings to be deliberate siblings, not twins.
 
 
-
 * DOING The complement's gap spans carry no events, so half the review buffer cannot be dismissed :code:
 :PROPERTIES:
 :ID:       445fe577-01ce-4e68-ab5f-c349c40a4643
@@ -3906,6 +3379,22 @@ CLOCK: [2026-09-16 Wed 14:48]--[2026-09-16 Wed 14:50] =>  0:02
 - [2026-09-16 Wed 14:48]--[2026-09-16 Wed 14:50]
 CLOCK: [2026-09-16 Wed 14:50]--[2026-09-16 Wed 14:50] =>  0:00
 - [2026-09-16 Wed 14:50]--[2026-09-16 Wed 14:50] suggested span, accepted at review
+CLOCK: [2026-09-23 Wed 21:19]--[2026-09-23 Wed 21:20] =>  0:01
+- [2026-09-23 Wed 21:19]--[2026-09-23 Wed 21:20] assigned at review
+CLOCK: [2026-09-23 Wed 21:23]--[2026-09-23 Wed 21:25] =>  0:02
+- [2026-09-23 Wed 21:23]--[2026-09-23 Wed 21:25] brainstorm the sexp refusal and description
+CLOCK: [2026-09-23 Wed 21:27]--[2026-09-23 Wed 21:28] =>  0:01
+- [2026-09-23 Wed 21:27]--[2026-09-23 Wed 21:28] brainstorm the sexp refusal and description
+CLOCK: [2026-09-23 Wed 21:34]--[2026-09-23 Wed 21:35] =>  0:01
+- [2026-09-23 Wed 21:34]--[2026-09-23 Wed 21:35] brainstorm the sexp refusal and description
+CLOCK: [2026-09-23 Wed 21:36]--[2026-09-23 Wed 21:37] =>  0:01
+- [2026-09-23 Wed 21:36]--[2026-09-23 Wed 21:37] brainstorm the sexp refusal and description
+CLOCK: [2026-09-23 Wed 21:40]--[2026-09-23 Wed 21:41] =>  0:01
+- [2026-09-23 Wed 21:40]--[2026-09-23 Wed 21:41] brainstorm the sexp refusal and description
+CLOCK: [2026-09-23 Wed 21:45]--[2026-09-23 Wed 21:46] =>  0:01
+- [2026-09-23 Wed 21:45]--[2026-09-23 Wed 21:46] brainstorm the sexp refusal and description
+CLOCK: [2026-09-23 Wed 21:48]--[2026-09-23 Wed 21:49] =>  0:01
+- [2026-09-23 Wed 21:48]--[2026-09-23 Wed 21:49] brainstorm the sexp refusal and description
 :END:
 
 =org_query= takes org-ql's plain-string language, and whatever that parser does not recognise becomes a full-text term. That covers a sexp, an unknown predicate such as =kind:slice=, and a bare =OR=. Each then comes back "No matches." and looks exactly like an honest empty result. Designed 2026-09-23 on the bounded path: refuse all three, add =match=any= for OR across predicates, show the parsed reading on an empty result, and rewrite the description so it states the language as it really is.
@@ -3915,6 +3404,7 @@ CLOCK: [2026-09-16 Wed 14:50]--[2026-09-16 Wed 14:50] =>  0:00
 - A wrong-language empty result cost real work: it was read as "no slice carries =:KIND:=" and re-answered with a regex scan of heading boundaries.
 - The schema under-described the language. Bare =todo:= and =property:= were added to it on 2026-09-22 after a session enumerated keywords and silently dropped two =MAYBE= headings.
 - Measured 2026-09-23 against the installed org-ql: =todo:=, =tags:= and =property:= are case-sensitive, while =heading:= and bare words are not; =property:KEY,VALUE= is the documented form; there is no cross-predicate OR; and =parent:=/=children:= take text, not nested predicates.
+
 
 * TODO The re-key bridge reads transcripts Claude Code prunes, so the alias decays silently :code:
 :PROPERTIES:
@@ -4899,6 +4389,10 @@ it.
 :CREATED:  [2026-09-11 Fri 15:45]
 :CATEGORY: Apply
 :END:
+:LOGBOOK:
+CLOCK: [2026-09-24 Thu 07:50]--[2026-09-24 Thu 07:53] =>  0:03
+- [2026-09-24 Thu 07:50]--[2026-09-24 Thu 07:53] brainstorm apply-detect's dismissal false positive
+:END:
 :PLAN:
 *The design, approved 2026-09-24 (the user), brainstormed on the bounded path.* The fix is in the hook, not the writer (the user, 2026-09-24). A separate marker file touched only on apply was the alternative. It was declined because it would give =--queue-watermark-write='s one-writer, both-facts design a companion to keep in step.
 
@@ -4916,6 +4410,7 @@ Files: =bin/hooks/apply-detect=, =bin/apply-detect-test=, and the sentence in =s
 =bin/hooks/apply-detect= reports "the review queue was applied" whenever a watermark file's mtime moves. But =--queue-watermark-write= rewrites the file on every pass, including one that only dismissed events, so the hook tells a session the record on disk is fresh when nothing on disk changed. Designed 2026-09-24 on the bounded path: the hook compares each moved watermark's newest =applied= pass time with the value it last recorded, and reports only a change.
 
 *Established:* found by PR22's review, and introduced with [[id:165ce65a-f87e-431c-8ee4-f0fbfffe14da][165ce65a]]. Each =applied= entry carries the time of the pass that applied it, and a dismiss-only pass leaves those values unchanged (read 2026-09-24).
+
 
 * TODO Two tracked repos sharing a directory basename collide on one MCP session id :code:
 :PROPERTIES:
@@ -5972,6 +5467,8 @@ Files: =config.el=, one docstring.
 - [2026-09-04 Fri 11:31]--[2026-09-04 Fri 11:35] assigned at review
 CLOCK: [2026-09-04 Fri 11:36]--[2026-09-04 Fri 11:37] =>  0:01
 - [2026-09-04 Fri 11:36]--[2026-09-04 Fri 11:37] correct two amendments; the toggle already exists
+CLOCK: [2026-09-24 Thu 07:44]--[2026-09-24 Thu 07:47] =>  0:03
+- [2026-09-24 Thu 07:44]--[2026-09-24 Thu 07:47] brainstorm the stale docstring fix
 :END:
 
 =claude-code-ide-org--review-format-annotation='s docstring says annotations are "Always /inactive/", and that there is "no branch to make". Its own =let*=, four lines below, branches on =:active=. Designed 2026-09-24 on the bounded path: rewrite the docstring to say who sets =:active= and why that is an assertion, not an inference.
@@ -5980,6 +5477,7 @@ CLOCK: [2026-09-04 Fri 11:36]--[2026-09-04 Fri 11:37] =>  0:01
 - Both were true when written. The =:agent= branch was removed for testing "is this a subagent" while claiming to test "is this a human", and the branch was re-added on 2026-08-24, keyed on the bracket style a human types. The docstring never learned the difference.
 - It cost two misreadings on 2026-09-04, in opposite directions. One recorded that active marking would "reverse a measured decision"; the other told the user the review buffer has no kind toggle. Both were corrected, on =96a51c2f= and =01849bef=.
 - The class question, that nothing checks a docstring against its function, is filed as =9702f283=.
+
 
 * TODO Nothing lays out future work on a timeline the agenda can show
 :PROPERTIES:
@@ -7426,6 +6924,8 @@ CLOCK: [2026-09-23 Wed 18:57]--[2026-09-23 Wed 18:59] =>  0:02
 - [2026-09-23 Wed 18:57]--[2026-09-23 Wed 18:59] assigned at review
 CLOCK: [2026-09-23 Wed 19:05]--[2026-09-23 Wed 19:06] =>  0:01
 - [2026-09-23 Wed 19:05]--[2026-09-23 Wed 19:06] assigned at review
+CLOCK: [2026-09-23 Wed 19:33]--[2026-09-23 Wed 19:34] =>  0:01
+- [2026-09-23 Wed 19:33]--[2026-09-23 Wed 19:34] classify slice 8a2eb687's untagged members
 :END:
 
 *The theme, briefly, in place of a plan — the full prompt comes later.* The
@@ -7460,9 +6960,9 @@ Planned:
 - [[id:de6de108-0095-40f4-8177-fdef0503c578][de6de108]] DOING Separate the causes of unfootnoted ids, so each can be closed on its own
   - [X] [[id:2a6a1355-615f-4c2c-a8af-c9ae8dcda09b][2a6a1355]] DONE Three new ways to owe a footnote and not see it: marker, list, quotation
   - [ ] [[id:490e6737-b977-47a7-abd7-b0dad1684093][490e6737]] TODO An id that arrives by transcription was never chosen, so care cannot catch it
-  - [ ] [[id:13aed7ca-1fad-4e89-bbca-9355f5c76265][13aed7ca]] NEXT Bulk citation owes more entries than inline pairing can absorb, so the remedy goes unused
+  - [ ] [[id:13aed7ca-1fad-4e89-bbca-9355f5c76265][13aed7ca]] TODO Bulk citation owes more entries than inline pairing can absorb, so the remedy goes unused
   - [X] [[id:d88362e7-8554-4a78-b8c4-a64c442b4fcf][d88362e7]] DONE Mark a queued keyword in end matter with a trailing star, and give the star no note of its own
-  - [ ] [[id:c247d8f3-9f3f-464a-b3a0-543b1bb9de4f][c247d8f3]] TODO footnote-check reads only the turn's final text block, so an id cited before a tool call is never checked
+  - [ ] [[id:c247d8f3-9f3f-464a-b3a0-543b1bb9de4f][c247d8f3]] NEXT footnote-check reads only the turn's final text block, so an id cited before a tool call is never checked
   - [ ] [[id:eadb3607-aa3d-41ee-b8cc-e293cc924f26][eadb3607]] TODO A heading discussed by subject and never by id owes a citation no token scan can see
 - [ ] [[id:f12f9da4-2870-45b7-8c50-ea54415c7bc6][f12f9da4]] TODO The running Emacs can be running a stale config.el and nothing says so
 - [ ] [[id:c562b69a-d6dd-40e5-8d2c-3ab383b66809][c562b69a]] TODO The Doom glue is still generated after its per-machine content went away; ship it as a file and link it into $DOOMDIR
@@ -7632,6 +7132,12 @@ A/B would be measuring.
 :CREATED:  [2026-09-01 Tue 08:19]
 :CATEGORY: Dev
 :END:
+:LOGBOOK:
+CLOCK: [2026-09-24 Thu 07:53]--[2026-09-24 Thu 07:54] =>  0:01
+- [2026-09-24 Thu 07:53]--[2026-09-24 Thu 07:54] brainstorm the duplicate-id lint rule
+CLOCK: [2026-09-24 Thu 08:00]--[2026-09-24 Thu 08:01] =>  0:01
+- [2026-09-24 Thu 08:00]--[2026-09-24 Thu 08:01] brainstorm the duplicate-id lint rule
+:END:
 :PLAN:
 *The design, approved 2026-09-24 (the user), brainstormed on the bounded path.*
 
@@ -7652,6 +7158,7 @@ An =:ID:= is this system's primary key, and =--id-find= resolves a prefix by sca
 - Found 2026-09-01, when a partially applied archive left [[id:c31b6c76-8ad8-45d4-a87b-39e085e31368][c31b6c76]] in both files ([[id:13ea6770-88ba-484d-87bd-2d20c44dc610][13ea6770]]). The lint reported 0 errors across several runs and the pre-commit gate.
 - It was caught by the archive's post-condition (=Archived 20, but 1 id(s) now appear twice in DONE.org=), which fires after writing and does not roll back.
 - The lint's scan swallows the duplicate itself: it builds its table with =puthash=, so the second copy overwrites the first (read 2026-09-24).
+
 
 * TODO The running Emacs can be running a stale config.el and nothing says so :code:
 :PROPERTIES:
@@ -8311,6 +7818,10 @@ is the point — it cannot be backfilled.
 :CREATED:  [2026-08-31 Mon 15:45]
 :CATEGORY: Tools
 :END:
+:LOGBOOK:
+CLOCK: [2026-09-24 Thu 07:41]--[2026-09-24 Thu 07:44] =>  0:03
+- [2026-09-24 Thu 07:41]--[2026-09-24 Thu 07:44] brainstorm the id-prefix sweep
+:END:
 :PLAN:
 *The design, approved 2026-09-24 (the user), brainstormed on the bounded path.* Every function taking an =id= or =target= argument resolves it through =claude-code-ide-org--id-find=, and completeness is proved from the tool registry rather than by another search.
 
@@ -8336,6 +7847,7 @@ Some =id= and =target= arguments do not resolve through =claude-code-ide-org--id
 - =--id-find='s docstring records fourteen sites fixed the first time. These three surfaced by use, which suggests that sweep went by call shape.
 
 *Ruled out:* that fixing =--at-id= covered every tool taking an id. A commit claimed so, and =claude-code-ide-org-amend= did its own =org-id-find= first.
+
 
 * TODO A/B the clock record across the phase-3 fixes, since much of what is logged now is bogus :code:research:
 :PROPERTIES:
@@ -8610,6 +8122,16 @@ CLOCK: [2026-09-23 Wed 18:01]--[2026-09-23 Wed 18:03] =>  0:02
   stepped up: the spike is answered, and building the failure hook is its own work
 - [2026-09-23 Wed 18:01]--[2026-09-23 Wed 18:03] record the approved failure-hook design
 - [2026-09-23 Wed 18:05]--[2026-09-23 Wed 18:05] suggested span, accepted at review
+CLOCK: [2026-09-24 Thu 07:41]--[2026-09-24 Thu 07:42] =>  0:01
+- [2026-09-24 Thu 07:41]--[2026-09-24 Thu 07:42] suggested span, accepted at review
+CLOCK: [2026-09-24 Thu 07:44]--[2026-09-24 Thu 07:44] =>  0:00
+- [2026-09-24 Thu 07:44]--[2026-09-24 Thu 07:44] suggested span, accepted at review
+CLOCK: [2026-09-24 Thu 07:47]--[2026-09-24 Thu 07:49] =>  0:02
+- [2026-09-24 Thu 07:47]--[2026-09-24 Thu 07:49] suggested span, accepted at review
+CLOCK: [2026-09-24 Thu 09:12]--[2026-09-24 Thu 09:13] =>  0:01
+- [2026-09-24 Thu 09:12]--[2026-09-24 Thu 09:13] suggested span, accepted at review
+CLOCK: [2026-09-24 Thu 09:13]--[2026-09-24 Thu 09:14] =>  0:01
+- [2026-09-24 Thu 09:13]--[2026-09-24 Thu 09:14] suggested span, accepted at review
 :END:
 
 The queue's premise is that work can be recorded with no Emacs running. That
@@ -9633,12 +9155,12 @@ before the fix and still says.
 
 
 * TODO Archive closed tasks daily
-SCHEDULED: <2026-09-24 Thu 07:00 ++1d>
+SCHEDULED: <2026-09-25 Fri 07:00 ++1d>
 :PROPERTIES:
 :CATEGORY: Meta
 :ID:       cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8
 :CREATED:  [2026-08-21 Fri 15:35]
-:LAST_REPEAT: [2026-09-23 Wed 08:42]
+:LAST_REPEAT: [2026-09-24 Thu 09:47]
 :END:
 :LOGBOOK:
 CLOCK: [2026-08-24 Mon 10:25]--[2026-08-24 Mon 10:28] =>  0:03
@@ -10626,239 +10148,6 @@ the project decided against. Half of it is already built.
 *Recorded as a lesson rather than only a correction:* the stale sentence misled
 a reading of that function **twice in one day**, in opposite directions, and
 both times the code four lines away said otherwise. Filed separately.
-
-
-* DONE Let a session interject without waiting: advisory locks, or extend the queue to capture/amend :code:
-CLOSED: [2026-09-23 Wed 10:40]
-:PROPERTIES:
-:CATEGORY: Queue
-:ID:       b5f94b88-76e3-4a3c-ac73-729f34d33691
-:CREATED:  [2026-08-13 Thu 10:13]
-:END:
-:DEBRIEF:
-*What shipped, as recorded 2026-09-01 and unchanged since.* Step 3, for
-both capture and amend: each writes through when the file is free and
-queues when the human has unsaved changes, with =queue-append= gating on
-the two deferred reply constants. Step 2 was never needed, as this
-heading predicted.
-
-*Why it closes rather than continuing.* Its premise was that a session
-should never wait on the human. On 2026-09-23 the user decided the
-opposite for edits: a refused write prompts for a save and the agent
-waits (=ec1e6839=). =dd4b9a9f= then designed =org_edit= to replace
-=org_amend= without a queue path, and its child =b2d4012c= retires the
-amend half of this heading's step 3. Capture keeps deferring, and nothing
-here changes that.
-
-*No verdict on the reframe was ever recorded*, and this heading said
-none should be inferred. The user's 2026-09-23 decision is the first
-recorded one, and for amend it goes against interjecting.
-
-*Residue: step 1, =create-lockfiles=,* never set, and unspent since the
-2026-08-13 research. It has a new use now. Emacs writes the lockfile
-exactly while a buffer holds unsaved changes, so =ec1e6839='s write
-guard can see that state without calling Emacs, which is what a hook
-that must survive an Emacs outage needs. It is recorded in that
-heading's =:PLAN:=, not left here.
-:END:
-:LOGBOOK:
-- State "TODO"       from              [2026-08-13 Thu 10:14] \\
-  drafted, awaiting the user's careful read
-CLOCK: [2026-08-13 Thu 11:04]--[2026-08-13 Thu 11:08] =>  0:04
-- [2026-08-13 Thu 11:04]--[2026-08-13 Thu 11:08]
-CLOCK: [2026-08-13 Thu 11:15]--[2026-08-13 Thu 11:26] =>  0:11
-- State "PLANNING"   from "TODO"       [2026-08-13 Thu 11:15] \\
-  planning the capture/amend queue extension
-- [2026-08-13 Thu 11:15]--[2026-08-13 Thu 11:26] planning capture/amend queue extension
-- State "DOING"      from "PLANNING"   [2026-08-13 Thu 11:23]
-CLOCK: [2026-08-13 Thu 11:26]--[2026-08-13 Thu 11:30] =>  0:04
-- [2026-08-13 Thu 11:26]--[2026-08-13 Thu 11:30] planning capture/amend queue extension
-- [2026-08-13 Thu 12:18]--[2026-08-13 Thu 12:18] planning capture/amend queue extension
-- State "WAIT"       from "DOING"      [2026-08-13 Thu 12:19] \\
-  awaiting go-ahead to start implementing
-CLOCK: [2026-08-13 Thu 17:57]--[2026-08-13 Thu 18:09] =>  0:12
-- State "DOING"      from "WAIT"       [2026-08-13 Thu 17:57] \\
-  go-ahead given, implementing the plan
-- [2026-08-13 Thu 17:57]--[2026-08-13 Thu 18:09] implementing capture/amend queue extension
-- State "WAIT"       from "DOING"      [2026-08-13 Thu 18:09] \\
-  v1 built, awaiting your review
-- State "TODO"       from "WAIT"       [2026-08-14 Fri 11:56]
-CLOCK: [2026-09-23 Wed 10:35]--[2026-09-23 Wed 10:37] =>  0:02
-- [2026-09-23 Wed 10:35]--[2026-09-23 Wed 10:37] assigned at review
-CLOCK: [2026-09-23 Wed 10:39]--[2026-09-23 Wed 10:40] =>  0:01
-- [2026-09-23 Wed 10:39]--[2026-09-23 Wed 10:40] assigned at review
-- State "DONE"       from "TODO"       [2026-09-23 Wed 10:40] \\
-  capture half shipped; amend half retired by dd4b9a9f; lockfiles moved to ec1e6839
-CLOCK: [2026-09-23 Wed 10:40]--[2026-09-23 Wed 10:41] =>  0:01
-- [2026-09-23 Wed 10:40]--[2026-09-23 Wed 10:41] close: what shipped stands, the amend half retires
-:END:
-:PLAN:
-
-*The ask, in the user's words:* so many times they want to ask a question
-or make a proposal while something else is in flight, which often leads
-to something new to capture or amend. The literal proposal was a file or
-Emacs buffer lock/semaphore on =TODO.org= and friends, causing
-concurrent sessions to wait their turn while another holds it.
-
-*What actually collides.* The queue already removed most of the
-contention: =todo= and clock events are append-only, per-session,
-written blind with =O_APPEND=, so two sessions cannot corrupt each other
-there by construction. What remains is *direct writes to the file* —
-=org_capture=, =org_refile=, =org_archive=, =org_move_sibling= and
-=org_sort_children=, which all =save-buffer= immediately; the org
-skill's prose edits via Claude Code's =Edit= tool, which bypass Emacs
-entirely; the user's own hand-edits in the live buffer; and =.git/index=,
-a separate incident owned by
-[[id:2aeb65d6-350e-4c75-811e-4a748044fe2c][2aeb65d6]]. Not hypothetical:
-on 2026-08-13 two edits in one session hit "the file had been modified
-on disk since you last read it". The ad-hoc mitigation in use — checking
-=buffer-modified-p= first — is a hand-rolled version of what this
-heading proposes.
-
-*Why a blocking lock looks like the wrong primitive,* recorded as the
-argument against because "why not just take a lock" is the obvious
-question a future reader will ask.
-
-1. *Waiting reintroduces the failure this architecture exists to avoid.*
-   A session blocked on a lock burns wall-clock with no way to report
-   why, and waits forever if the holder crashed — the same shape as the
-   non-interactive =emacsclient= hang that pushed this project to
-   append-only.
-2. *The contention is asymmetric.* The human is the authoritative
-   writer; Claude sessions should yield to them and never the reverse. A
-   symmetric semaphore models the wrong relationship.
-3. *It cannot be enforced where it matters most.* The =Edit= tool
-   consults neither Emacs nor any lockfile, so any lock is advisory for
-   exactly the writer most likely to be mid-flight. A mechanism that
-   looks like mutual exclusion but is not is worse than an honest
-   advisory one.
-4. *Stale locks are stale clocks again* — an owner, a TTL and a recovery
-   path, rebuilt for a new resource.
-
-*The reframe this rests on, and the part most worth challenging.* The
-ask may not be mutual exclusion at all. Note where the user's own
-sentence ends: the interruption *leads to something new to capture or
-amend*. That is a missing queue, not a missing lock — state changes
-already work that way; capture and amend did not. If the reframe is
-wrong — if the real need is genuinely "stop the other writer" rather
-than "do not lose my thought" — then the recommendation below is wrong
-too, and a fail-fast lock alone is the answer.
-
-*Proposed, cheapest first.*
-
-1. *Turn on =create-lockfiles=.* Measured 2026-08-13: it is =nil=,
-   Doom's default, so Emacs's own mechanism is off entirely. One line.
-   It will not stop the =Edit= tool, but it makes Emacs-mediated
-   collisions visible rather than silent. Checked before proposing
-   anything bespoke, per
-   [[id:c084553c-0621-4a96-9fa1-f32850aeec6a][c084553c]].
-
-   *Why Doom disables it, checked 2026-08-13 at the user's request.*
-   =lisp/doom-emacs.el:462= sets it under a =Backup & autosave files=
-   heading, sharing one comment with =make-backup-files=: "Don't
-   generate backups or lockfiles. … This is better suited to version
-   control, and I don't want world-readable copies of potentially
-   sensitive material floating around our filesystem."
-
-   That rationale is about *backups* and does not describe a lock file.
-   Per the Emacs Lisp manual a lock file is a symlink named =.#FILE=
-   whose *target* is the string =user@host.pid:boot=; it holds no
-   contents of the edited file at all. So the "copies of sensitive
-   material" argument does not apply to the thing it justifies —
-   lockfiles were bundled in with backups under one heading and
-   inherited a comment written for backups. A residual privacy point
-   survives (the target leaks username, host and PID), but it is a much
-   smaller claim.
-
-   The real-world objection in the wider community is *tooling*, not
-   privacy: =.#FILE= is a dangling symlink and file watchers choke on it
-   (e.g. =ember-cli= issue #6527). Low risk here — nothing watches this
-   tree — but it is the reason to check before flipping it globally
-   rather than per-directory.
-
-   *And one point actively in favour, which is why this step is listed
-   at all:* on detecting a lock, Emacs calls =ask-user-about-lock=,
-   which offers grab / ignore / abort. It *asks*; it does not wait —
-   precisely the fail-fast shape argued for in step 2, already
-   implemented upstream.
-2. *A fail-fast advisory lock in the MCP write tools* — a refusal, not a
-   wait: "another session is writing TODO.org; queued instead." Fast
-   failure is debuggable and cannot deadlock.
-3. *Extend the queue to capture/amend proposals.* The interjection
-   becomes an event, nothing waits, and the existing human review pass
-   applies it — which also makes it reviewable rather than immediate,
-   the property already chosen deliberately for state changes.
-
-Steps 2 and 3 overlap: if 3 lands, 2 may be unnecessary, since there
-would be nothing left that needs to write immediately.
-
-:END:
-*Provenance and standing, which are not design.*
-
-*Promoted out of
-[[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] on 2026-08-13.* It
-arose from that epic's work but is not required for it to complete: the
-queue can be finished and correct without ever gaining capture/amend
-events. It also has its own plan file, its own scope decisions and its
-own deferred phases — *a child with a plan file of its own is usually an
-epic wearing a child's clothes.* Left as a level-2 task rather than
-declared an epic, since it has no children yet; it will become one
-naturally if capture and amend split.
-
-[[file:~/.claude/plans/capture-amend-queue.md][Plan]]
-
-*The plan lives in its own file rather than this conversation's
-=hazy-moseying-sky.md=:* that path is already the permanent link for
-[[id:6b1e73c4-25da-4f0e-8a51-9c0d3f7ab214][6b1e73c4]] and
-[[id:f290161c-f9e7-4bfb-9adf-4c5630d4c5ae][f290161c]], and Claude Code
-reuses one plan file per conversation, so planning here overwrote it.
-Restored from =plans/= and the new plan given its own name, so both
-older links still resolve to the plan they were written for.
-
-*Plan approved 2026-08-13, scoped by two decisions the user made during
-planning:* v1 covers *capture and amend* only — the structural writers
-stay immediate — and capture *writes through when the file is free*,
-queueing only when it is busy, so today's immediacy survives and only
-contended writes defer. That is the user's original lock idea made
-non-blocking, and it supersedes the "always queue" reading of step 3.
-
-*Read by the user 2026-08-13* — both the original draft and the
-=create-lockfiles= research. *No verdict was recorded, and none should
-be inferred.* They said only that they had reviewed it and that the
-heading could be amended accordingly; they did not approve the
-recommendation, reject it, or choose between the three steps. So the
-three load-bearing claims are still open to challenge: that a *blocking*
-lock is the wrong primitive, that the underlying need is a missing queue
-rather than a missing lock, and that the ordering is the right one.
-
-*What shipped, checked in the code 2026-09-01.*
-
-- *Step 3 is built, for both capture and amend.* =config.el= defines the
-  four reply constants =--reply-captured=, =--reply-queued-capture=,
-  =--reply-amended= and =--reply-queued-amend=, and =bin/hooks/queue-append=
-  gates on exactly two of them, appending only when the tool deferred.
-  That is the write-through-when-free design above, in force.
-- *Step 2 was therefore never needed,* as this heading predicted: with
-  capture and amend deferring, nothing is left that must write
-  immediately and also contends.
-- *Step 1 never shipped.* =create-lockfiles= is set nowhere in
-  =~/.config/doom/config.el=, so it is still Doom's =nil= — unchanged
-  since the 2026-08-13 measurement, and the research above is still
-  unspent. It is independent of the other two and remains the cheapest
-  thing here.
-- The =7771fc63= reference in the stale-lock argument said that heading
-  was "currently deciding whether to retire"; it decided, and is DONE.
-
-So the recommendation this heading drafted was carried out without a
-verdict ever being recorded — which is worth noticing rather than
-tidying away, since the paragraph above says explicitly that none should
-be inferred. What is left of the heading is step 1 and the standing
-invitation to challenge the reframe.
-
-*Closed 2026-09-23.* The capture half shipped and stands. The amend half
-is being retired: the user chose that an edit waits on the human's save
-rather than interjecting through the queue, which is =dd4b9a9f='s
-design. The one unspent step, =create-lockfiles=, moves to =ec1e6839=.
 
 
 * TODO Concurrent sessions share one git index, and explicit staging protects nothing :code:
@@ -13052,8 +12341,6 @@ call it done.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
-CLOCK: [2026-09-23 Wed 19:07]--[2026-09-23 Wed 19:20] =>  0:13
-CLOCK: [2026-09-23 Wed 14:59]--[2026-09-23 Wed 15:13] =>  0:14
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
@@ -13212,6 +12499,9 @@ CLOCK: [2026-09-22 Tue 16:49]--[2026-09-22 Tue 16:50] =>  0:01
 - <2026-09-22 Tue 16:49>--<2026-09-22 Tue 16:50> review pass (buffer buried)
 CLOCK: [2026-09-22 Tue 16:51]--[2026-09-22 Tue 16:55] =>  0:04
 CLOCK: [2026-09-23 Wed 08:40]--[2026-09-23 Wed 08:42] =>  0:02
+CLOCK: [2026-09-23 Wed 14:59]--[2026-09-23 Wed 15:13] =>  0:14
+CLOCK: [2026-09-23 Wed 19:07]--[2026-09-23 Wed 19:20] =>  0:13
+CLOCK: [2026-09-24 Thu 09:23]--[2026-09-24 Thu 09:46] =>  0:23
 :END:
 
 We created this heading on 2026-08-26. We deleted that property from its
@@ -14350,4 +13640,43 @@ CLOCK: [2026-09-23 Wed 17:41]--[2026-09-23 Wed 17:42] =>  0:01
 - [2026-09-23 Wed 17:41]--[2026-09-23 Wed 17:42] assigned at review
 CLOCK: [2026-09-23 Wed 18:48]--[2026-09-23 Wed 18:50] =>  0:02
 - [2026-09-23 Wed 18:48]--[2026-09-23 Wed 18:50] assigned at review
+CLOCK: [2026-09-23 Wed 19:21]--[2026-09-23 Wed 19:22] =>  0:01
+- [2026-09-23 Wed 19:21]--[2026-09-23 Wed 19:22] assigned at review
+CLOCK: [2026-09-23 Wed 19:29]--[2026-09-23 Wed 19:30] =>  0:01
+- [2026-09-23 Wed 19:29]--[2026-09-23 Wed 19:30] assigned at review
+CLOCK: [2026-09-23 Wed 19:32]--[2026-09-23 Wed 19:33] =>  0:01
+- [2026-09-23 Wed 19:32]--[2026-09-23 Wed 19:33] assigned at review
+CLOCK: [2026-09-23 Wed 20:33]--[2026-09-23 Wed 20:34] =>  0:01
+- [2026-09-23 Wed 20:33]--[2026-09-23 Wed 20:34] file render-session picker and live follow
+CLOCK: [2026-09-23 Wed 20:34]--[2026-09-23 Wed 20:35] =>  0:01
+- [2026-09-23 Wed 20:34]--[2026-09-23 Wed 20:35] assigned at review
+CLOCK: [2026-09-23 Wed 20:36]--[2026-09-23 Wed 20:37] =>  0:01
+- [2026-09-23 Wed 20:36]--[2026-09-23 Wed 20:37] assigned at review
+CLOCK: [2026-09-23 Wed 20:37]--[2026-09-23 Wed 20:38] =>  0:01
+- [2026-09-23 Wed 20:37]--[2026-09-23 Wed 20:38] adopt 406d78da and eddee10f into slice 8a2eb687
+CLOCK: [2026-09-23 Wed 21:17]--[2026-09-23 Wed 21:18] =>  0:01
+- [2026-09-23 Wed 21:17]--[2026-09-23 Wed 21:18] file the static-glue symlink question
+CLOCK: [2026-09-23 Wed 21:19]--[2026-09-23 Wed 21:20] =>  0:01
+- [2026-09-23 Wed 21:19]--[2026-09-23 Wed 21:20] adopt c562b69a into slice 8a2eb687
+:END:
+
+
+**** 2026-09-24 Thursday
+:PROPERTIES:
+:ID:       72aa877e-3dab-490b-903a-d20286f2ed88
+:CREATED:  [2026-09-24 Thu 08:00]
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-24 Thu 08:00]--[2026-09-24 Thu 08:01] =>  0:01
+- [2026-09-24 Thu 08:00]--[2026-09-24 Thu 08:01] brainstorm the final-block measurement spike
+CLOCK: [2026-09-24 Thu 08:07]--[2026-09-24 Thu 08:14] =>  0:07
+- [2026-09-24 Thu 08:07]--[2026-09-24 Thu 08:14] brainstorm the final-block measurement spike
+CLOCK: [2026-09-24 Thu 08:37]--[2026-09-24 Thu 08:38] =>  0:01
+- [2026-09-24 Thu 08:37]--[2026-09-24 Thu 08:38] brainstorm the final-block measurement spike
+CLOCK: [2026-09-24 Thu 08:57]--[2026-09-24 Thu 08:58] =>  0:01
+- [2026-09-24 Thu 08:57]--[2026-09-24 Thu 08:58] brainstorm the final-block measurement spike
+CLOCK: [2026-09-24 Thu 09:00]--[2026-09-24 Thu 09:01] =>  0:01
+- [2026-09-24 Thu 09:00]--[2026-09-24 Thu 09:01] brainstorm the final-block measurement spike
+CLOCK: [2026-09-24 Thu 09:12]--[2026-09-24 Thu 09:13] =>  0:01
+- [2026-09-24 Thu 09:12]--[2026-09-24 Thu 09:13] rewrite four layered PLAN drawers whole
 :END:
