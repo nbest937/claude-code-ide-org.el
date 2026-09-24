@@ -6872,13 +6872,13 @@ Planned:
 
 - [ ] [[id:39039bb6-c70a-4ba9-8b37-edd8dd6921f6][39039bb6]] TODO bin/lint-org does not detect a duplicate :ID: across TODO.org and DONE.org
 - [-] [[id:de6de108-0095-40f4-8177-fdef0503c578][de6de108]] DOING Separate the causes of unfootnoted ids, so each can be closed on its own
-- [ ] [[id:30d05c93-f82b-40c0-9181-d018323af49f][30d05c93]] TODO Hand-written end matter is recalled and always on screen; a footnote tool call would generate it and fold it away
   - [X] [[id:2a6a1355-615f-4c2c-a8af-c9ae8dcda09b][2a6a1355]] DONE Three new ways to owe a footnote and not see it: marker, list, quotation
   - [ ] [[id:490e6737-b977-47a7-abd7-b0dad1684093][490e6737]] TODO An id that arrives by transcription was never chosen, so care cannot catch it
   - [ ] [[id:13aed7ca-1fad-4e89-bbca-9355f5c76265][13aed7ca]] TODO Bulk citation owes more entries than inline pairing can absorb, so the remedy goes unused
   - [X] [[id:d88362e7-8554-4a78-b8c4-a64c442b4fcf][d88362e7]] DONE Mark a queued keyword in end matter with a trailing star, and give the star no note of its own
   - [ ] [[id:c247d8f3-9f3f-464a-b3a0-543b1bb9de4f][c247d8f3]] NEXT footnote-check reads only the turn's final text block, so an id cited before a tool call is never checked
   - [X] [[id:eadb3607-aa3d-41ee-b8cc-e293cc924f26][eadb3607]] DONE A heading discussed by subject and never by id owes a citation no token scan can see
+- [ ] [[id:30d05c93-f82b-40c0-9181-d018323af49f][30d05c93]] TODO Hand-written end matter is recalled and always on screen; a footnote tool call would generate it and fold it away
 - [ ] [[id:f12f9da4-2870-45b7-8c50-ea54415c7bc6][f12f9da4]] TODO The running Emacs can be running a stale config.el and nothing says so
 - [ ] [[id:c562b69a-d6dd-40e5-8d2c-3ab383b66809][c562b69a]] TODO The Doom glue is still generated after its per-machine content went away; move it into the module, on whenever the module is enabled
 - [X] [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]] DONE Verification traps: a check with no way to fail, and a fixture that never takes the real path
