@@ -8370,32 +8370,15 @@ a test per site and the four 2026-08-31 captures re-run with the prefix.
 Files: =config.el= (the three sites and the =:DROPPED:= validation) and =config-test.el=.
 :END:
 
-Some =id= and =target= arguments do not resolve through
-=claude-code-ide-org--id-find=, so an 8-character prefix that every
-other tool accepts either errors or, worse, silently selects nothing.
-Prefix expansion exists so that no caller ever types a full UUID, and a
-tool that demands one pushes the caller back to typing it from memory,
-the failure that produced nine fabricated ids across two sessions.
+Some =id= and =target= arguments do not resolve through =claude-code-ide-org--id-find=, so an 8-character prefix that every other tool accepts either errors or, worse, silently selects nothing. That pushes the caller back to typing a full UUID from memory, the failure prefix expansion exists to prevent. Designed 2026-09-24 on the bounded path: fix the three known sites, and prove completeness with a test driven by the tool registry rather than by another search.
 
 *Established:*
-- =org_capture='s target: four captures under =9e627dc0= failed with
-  =Cannot find target ID= and succeeded with the full UUID (2026-08-31).
-- =claude-code-ide-org-refresh-slice='s own =ID= compares with =equal=,
-  so a prefix matches nothing and the reply reads as a clean no-op:
-  =0 slices refreshed, 0 member lines rewritten= (2026-09-01).
-- =:DROPPED:= in the slice refresh: a prefix there is ignored. On
-  8a2eb687, =4acd8ad0= kept its checkbox and its =:BLOCKER:= place for
-  four days while a full id added the same day dropped correctly
-  (2026-09-21).
-- =--id-find='s docstring records fourteen such sites fixed the first
-  time. These three surfaced by use, not by search, which suggests that
-  sweep went by call shape rather than by argument.
+- =org_capture='s target: four captures under =9e627dc0= failed with =Cannot find target ID= and succeeded with the full UUID (2026-08-31). The cause is that the prefix is checked and then passed on unexpanded (read 2026-09-24).
+- =claude-code-ide-org-refresh-slice= compares its id with =equal=, so a prefix reads as a clean =0 slices refreshed= (2026-09-01).
+- A prefix in =:DROPPED:= is ignored: on 8a2eb687, =4acd8ad0= kept its checkbox for four days (2026-09-21).
+- =--id-find='s docstring records fourteen sites fixed the first time. These three surfaced by use, which suggests that sweep went by call shape.
 
-*Ruled out:*
-- That fixing =--at-id= covered every tool taking an id. A commit
-  claimed so, and =claude-code-ide-org-amend= did its own =org-id-find=
-  first.
-
+*Ruled out:* that fixing =--at-id= covered every tool taking an id. A commit claimed so, and =claude-code-ide-org-amend= did its own =org-id-find= first.
 
 * TODO A/B the clock record across the phase-3 fixes, since much of what is logged now is bogus :code:research:
 :PROPERTIES:
