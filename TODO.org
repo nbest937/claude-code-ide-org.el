@@ -2,6 +2,22 @@
 #+TAGS: analysis bug code comms prose research review spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Nothing checks a docstring against the function beneath it, so a stale one misleads a reader four lines from the truth :code:
+:PROPERTIES:
+:ID:       9702f283-625d-4124-aa6f-808c3c913c26
+:CREATED:  [2026-09-23 Wed 19:51]
+:CATEGORY: Dev
+:END:
+
+Split out of =60ed5b96= at the user's direction (2026-09-23).
+That heading fixes one docstring. This one is about the whole class:
+=bin/check-conventions= checks documents against the code, but nothing
+checks a docstring against the function it documents. A docstring is
+loaded into a reader's attention the way CLAUDE.md is, so a stale one
+outranks the code until someone checks. =60ed5b96='s docstring misled
+two readings in one day, in opposite directions. Whether any mechanical
+check can catch this, or only review can, is open.
+
 * TODO A Claude Code upgrade can add hook events and nothing notices: 26 of 33 go unwired, and PostToolUseFailure was found by accident :code:
 :PROPERTIES:
 :ID:       fd85928e-5630-4468-a7e5-e14ef688d0bc
