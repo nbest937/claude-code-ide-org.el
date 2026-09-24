@@ -7091,40 +7091,17 @@ CLOCK: [2026-09-16 Wed 11:52]--[2026-09-16 Wed 11:53] =>  0:01
 - [2026-09-16 Wed 11:52]--[2026-09-16 Wed 11:53] a second staleness shape and its detection
 :END:
 
-The running Emacs can serve code older than =config.el=, and nothing
-downstream notices: =load-file= returns =t=, batch tests load the file
-fresh, the commit gate passes, and the MCP tools answer with the old
-behaviour. A stale image is found only when a change happens to be
-visible, so its absence from reports is not evidence of absence.
+The running Emacs can serve code older than =config.el=, and nothing downstream notices: =load-file= returns =t=, batch tests load the file fresh, the commit gate passes, and the MCP tools answer with the old behaviour. Designed 2026-09-24 on the bounded path: a load stamp the last form of the file writes into the image, compared with the file on disk, reported at =SessionStart= and as a non-blocking warning at the commit gate.
 
 *Established:*
-- Two shapes occur. A stale =config.elc= shadowing a newer =config.el=,
-  seen after the =489d6f61= crash on 2026-09-16, when two days of symbols
-  were unbound. And an older load of the right file, seen the same day
-  when the review buffer's new =c= binding was undefined an hour after
-  it was committed.
-- The =.elc= case came from untracking without deleting
-  ([[orgit-rev:claude-code-ide-org::34ee154][34ee154]] untracked
-  =config.elc= and left it winning the load). It is now closed: =*.elc=
-  is ignored and no compiled file exists.
-- Emacs does announce the =.elc= case, once, at boot, in =*Messages*=
-  ("Source file … newer than byte-compiled file; using older file"). The
-  defect is where that message lands, not its absence.
-- Testing every =(defun claude-code-ide-org...= with =fboundp= catches
-  both shapes (394 defuns, 0 unbound when healthy); a deleted function
-  shows up as the inverse.
-- =config.el= churn is typical, 11 to 16 commits a day in late August,
-  so "recent sessions edited it less" does not explain why this had
-  gone unreported.
+- Two shapes occur. A stale =config.elc= shadowed a newer =config.el= after the =489d6f61= crash on 2026-09-16, leaving two days of symbols unbound. And an older load of the right file the same day, when the review buffer's new =c= binding was undefined an hour after it was committed.
+- The =.elc= case came from untracking without deleting ([[orgit-rev:claude-code-ide-org::34ee154][34ee154]]). It is now closed: =*.elc= is ignored and no compiled file exists.
+- =config.el= churn is typical, 11 to 16 commits a day in late August, so fewer edits do not explain why this went unreported.
 
 *Ruled out:*
-- The guidance failing. The org-dev skill already says to check the
-  reload after every =config.el= edit, and it was simply not invoked
-  across fifteen edits in one session. Adding it to the next-session
-  prompt would only have been a second copy.
-- =symbol-file= as the check: it tells which file was loaded, never
-  which version, so it passes the older-load shape.
-
+- The guidance failing. The org-dev skill already says to check the reload after every edit; it was simply not invoked across fifteen edits in one session.
+- =symbol-file= as the check: it tells which file was loaded, never which version.
+- =fboundp= alone: an edited function body stays bound, so it would pass (2026-09-24).
 
 * TODO [2/7] Sixty minutes holding 2 turns is not sixty holding 40
 :PROPERTIES:
