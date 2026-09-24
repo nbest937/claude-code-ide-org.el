@@ -85,6 +85,21 @@ Split out of =2aeb65d6= on 2026-09-24 (the user). That heading's guard stops a w
 :CREATED:  [2026-09-24 Thu 10:53]
 :CATEGORY: Dev
 :END:
+:PLAN:
+*The design, approved 2026-09-24 (the user), brainstormed on the bounded path.* The renderer writes each tracked id in a turn's prose as an org footnote, with the heading's id link, keyword and exact title in the definition.
+
+*Shape.* In the prose, an 8-hex token that resolves to a tracked heading becomes a footnote reference labelled with the id itself, =[fn:<id8>]=, so the text still reads by id, and =C-c C-c= jumps to the definition and back. Each turn ends with its footnote definitions, in the end matter's canonical order and form: the id as an =[[id:<uuid>][<id8>]]= link, then the keyword, then the exact title with any cookie. One lookup per id serves both the link and the text. Inside a code fence an id stays bare text, as =footnote-check= treats fenced ids as transcript rather than citation. A token that resolves to no tracked heading, such as a commit SHA, is left alone.
+
+*Why footnotes* (the user, 2026-09-24). They are visible without hovering or pointing, readable in any viewer, and a durable record of what each id meant when its turn was rendered. A live hover title was the session's first proposal, and the session later acknowledged it had argued for footnotes after the user voted for them. Overlays were also weighed, and they can be clickable (=button.el= builds on them), but they leave nothing in the file. The live half, meaning the keyword *now* and a jump from any id in any buffer, is filed as its own heading, a companion to this one rather than a replacement.
+
+*Staleness is small.* A definition records the keyword and title as of rendering. =eddee10f= makes opening a render always do a full render, so every definition is current each time a render is opened; only earlier turns can go stale, during one live-follow reading.
+
+*Lookup.* Resolve against the id index without triggering the module's rescan on a miss: a render holds many 8-hex tokens that are not ids, and a rescan per token would be ruinous. A miss simply leaves the token as text.
+
+*Testing*, in =config-test.el=: a turn citing two ids renders two references and two definitions in canonical order; an id inside a fence stays bare; a SHA-shaped token stays bare; an unresolvable id stays bare with no rescan triggered; with =eddee10f='s append path, an appended turn carries its own definitions. Each is shown to fail against HEAD's version.
+
+Files: =config.el= (the turn renderer) and =config-test.el=.
+:END:
 
 Filed 2026-09-24 from =13aed7ca='s brainstorm (the user chose it there). =claude-code-ide-org-render-session= renders a transcript's prose as written, so a tracked id in it is bare text, and the reader has to look it up. The renderer runs inside Emacs with =org-id= loaded, so it could rewrite each 8-hex token that resolves to a tracked heading as an =[[id:…]]= link carrying that heading's keyword and title as of the render. That is the reader-side route to citation: no tokens spent, nothing recalled, and nothing stale beyond the render's own age. With =eddee10f='s live follow, each appended turn is linked as it lands. Whether the terminal's end-matter rule can relax once renders carry links is this heading's later question, not a premise. Open for its brainstorm: link on every render, or leave the text alone and add overlays; and code fences, where an id is transcript rather than citation, as =footnote-check= already treats it.
 
