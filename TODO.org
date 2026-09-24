@@ -2535,27 +2535,12 @@ Files: =skills/org/references/org-footnote-citations.md= and its promoted copy.
   Auto-demoted: superseded by sibling [[id:c247d8f3-9f3f-464a-b3a0-543b1bb9de4f][footnote-check reads only the turn's final text block, so an id cited before a tool call is never checked]] becoming NEXT.
 :END:
 
-Candidate cause 2, and the reason it is filed apart from transcription is that
-here the writer **did** choose every id. A status summary or a portfolio list
-cites ten or fifteen headings deliberately; none of them arrives by copying. So
-the transcription account does not reach it, and the parent heading's unifying
-claim — that every failure is an id the writer did not choose to write — is
-false of this case.
+A status summary or portfolio list cites ten or fifteen headings deliberately, and the end matter it owes is the burden the inline-pairing remedy was meant to absorb. At that size, inline pairing puts every full title into the prose, which is the unscannable paragraph the convention exists to prevent, so the remedy goes unused exactly where the debt is largest. Designed 2026-09-24 on the bounded path: say outright that end matter is correct at many ids, name bare-id lists as the failure, and build long end matter from one lookup, never from recall.
 
-Measured 2026-09-17 across this session's 57 hook fires: mean ids demanded rose
-from 1.4 before 14:00Z to 4.3 after, peaking at 15, tracking the subject matter.
-The discharge rule shipped at 17:33Z and bought nothing — 4.3 after against 3.5
-before. The hook was exonerated by direct test: three bare ids demand all three
-and exit 2, an id paired with its exact title on one line exits 0.
-
-**The mechanism works and goes unused, which is the actual defect and is not a
-discipline problem.** At twelve or fifteen ids the inline form means twelve or
-fifteen full titles inside the prose — precisely the unscannable paragraph the
-convention exists to prevent. So the remedy is unusable exactly where the debt
-is largest, and the writer correctly declines it. The open question is whether a
-response that is *structurally a list of headings* should owe end matter at all,
-or whether the hook should stand down on that shape.
-
+*Established:*
+- Unlike transcription (=490e6737=), here the writer chose every id, so the parent's unifying claim, that every failure is an id nobody chose to write, is false of this case. That is why it was filed as a cause of its own.
+- Measured 2026-09-17 across 57 hook fires: ids demanded per fire rose from 1.4 to 4.3, peaking at 15 and tracking the subject matter. The discharge rule shipped at 17:33Z and bought nothing (4.3 after, 3.5 before). A direct test cleared the hook: three bare ids are all demanded, and an id paired with its exact title on one line passes.
+- Hand-written end matter is also error-prone: in one session of 2026-09-23 and 2026-09-24, one entry was dropped and one title was written without being looked up (=0086614a=, wrong).
 
 ** DONE Mark a queued keyword in end matter with a trailing star, and give the star no note of its own :code:
 CLOSED: [2026-09-17 Thu 16:50]
