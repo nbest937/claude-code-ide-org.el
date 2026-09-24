@@ -99,6 +99,9 @@ Filed 2026-09-24 when =eadb3607= closed on its measurement. A response can refer
 
 The better measure is the user's own follow-up prompts, since each is a cost that actually happened, not a debt a model estimated. For instance: "remind me what 'filing the double-incidental defect' … [refers to]", "what do you mean by 'drawer writing'?". A rough regex found 83 candidates among 1,634 prompts in this repo's transcripts, many of them ordinary questions. The first step is to classify those, after the fact and cheaply, into three kinds: a tracked heading named by subject, a coined term, or neither. Only then design anything live. The asks reach past headings to jargon coined in the moment, which may call for a wider rule than citation.
 
+*A coined-term instance, 2026-09-24.* Over several turns about showing ids on demand in Emacs, the session called its proposal "the id-at-point layer" without ever defining it, until the user asked: "did you say something about a 'layer'?" It meant eldoc, mouse marking and an embark target that together make any tracked id in a buffer resolvable. No project word existed for it, and a plain descriptive title would have served better. This is the coined-label half of this heading, where there was no id to cite at all.
+
+
 
 * TODO The Doom glue is still generated after its per-machine content went away; move it into the module, on whenever the module is enabled :code:
 :PROPERTIES:
