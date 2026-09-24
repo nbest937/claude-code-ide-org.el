@@ -10036,55 +10036,15 @@ Accepted limits: =--no-verify= bypasses it, which makes the mistake loud rather 
 *Testing*, the =bin/*-test= way: a scratch repo, each of the four forms, asserting exit status and message, with the suite ending in =94e6b615='s standard final line and isolated from the real queue and session id, since a refusal counts a miss. Each case is shown to fail against the hook without the guard.
 :END:
 
-Every session on a checkout shares one =.git/index=, so one session's
-pathspec-less =git commit= sweeps up whatever another session has
-staged, under a message describing unrelated work. Content survives;
-attribution does not. The user will not run a second concurrent session
-until a mechanism prevents it, so this gates concurrent work generally.
+Every session on a checkout shares one =.git/index=, so one session's pathspec-less =git commit= sweeps up whatever another has staged, under a message describing unrelated work. Content survives; attribution does not. The user will not run a second concurrent session until a mechanism prevents it, so this gates concurrent work generally. Confirmed 2026-09-24 on the bounded path: a pre-commit guard refuses whole-index commit forms while the index holds staged work. The working-tree half of the problem is =27082893=.
 
 *Established:*
-- It happened on 2026-08-12, in a deliberate resilience test: one
-  session's =git commit= swept the other's 69 staged =TODO.org= lines
-  into =a8dc693=; =36410e2= records that, since =a8dc693= was already
-  pushed.
-- The shared state is the index, not the files, so every file-level
-  convention misses it, and staging early makes it worse by loading
-  work into the index sooner.
-- Worktrees do not help: =TODO.org= must stay one canonical copy in the
-  main checkout (2e09adb7), so a worktree session still commits it
-  through the shared index.
-- =git commit -- <paths>= commits only those paths and leaves the rest
-  staged (scratch repo, 2026-08-12), but it protects only when the
-  *committing* session uses it, and it refuses an untracked file.
-- As of 2026-09-01 nothing enforced it: neither the pathspec
-  convention nor any =GIT_INDEX_FILE= check existed in the repo.
-- 3cb3f955 is the single-session sibling: one session sweeping its own
-  unrelated hunks within a file. Worth answering together.
+- 2026-08-12, in a deliberate resilience test: one session's =git commit= swept the other's 69 staged =TODO.org= lines into =a8dc693=, recorded by =36410e2=.
+- The shared state is the index, not the files, so file-level conventions miss it, and staging early makes it worse. Worktrees do not help: =TODO.org= must stay one canonical copy (=2e09adb7=).
+- =git commit -- <paths>= commits only those paths and leaves the rest staged, but it protects only when the *committing* session uses it.
+- 2026-09-22, the other direction: a slice composed in the working tree landed inside a concurrent session's explicit-path commit, =f7e4cd2=, whose message describes none of it. Explicit paths protected nothing there, which is =27082893='s case.
 
-*Ruled out:*
-- Tracking which session staged which path. The command form alone
-  tells the sweep apart from a pathspec commit, so no ownership state
-  is needed.
-
-*Observed 2026-09-22, and the sweep went the other way this time.* One
-session composed a 27-member slice (`c7619140`) across a capture, a
-property set, 27 `org_slice_add_member` calls and a `:PLAN:` amend,
-holding it in the working tree while it linted. A concurrent session
-committed `TODO.org` in that window and the whole slice landed inside
-commit `f7e4cd2`, "7ee3b71a: the brainstormed design, and a miss the
-user caught" — a message that describes none of it. The composing
-session found out by running `git diff --stat` and getting nothing
-back.
-
-Two things this adds. Committing *by explicit path* is what both
-sessions did, correctly, and it protected nothing: the path is the same
-path, and the index is shared. And the damage is not a lost change but
-an unfindable one — `git log --oneline -- TODO.org` shows four commits
-in six minutes, none of whose messages mentions a slice, so the only
-way back to it is `git log -S` on the id. The content survived intact
-(`[0/27]`, derived `:BLOCKER:`, order as composed), which is why this
-is evidence rather than an incident.
-
+*Ruled out:* tracking which session staged which path, since the command form alone tells the sweep apart from a pathspec commit.
 
 * TODO Read power assertions as a review-time attribution signal :code:research:
 :PROPERTIES:
