@@ -1855,6 +1855,20 @@ than trusting silence. Pre-push calls it, not pre-commit (the user,
 tolerable per push and too heavy per commit, since most commits here are
 bookkeeping that touches only =TODO.org=. Step 0 names it as what a branch runs
 before its PR.
+
+*The design, approved 2026-09-23 (the user), brainstormed on the bounded path.* It supersedes the paragraph above where they differ. The runner is =bin/test-all= rather than a =--all= flag on =bin/test=. The sentence "Step 0 names it as what a branch runs before its PR" is dropped, because pre-push runs it on every push that matters and a second copy in =next-session.md= would drift.
+
+*The runner.* =bin/test-all= runs =bin/test= (ERT), then every =bin/*-test= found by glob, not from a list: the original failure was suites nobody remembered, and a list would reintroduce that for every new suite. The suites run one at a time. Each runs with =CLAUDE_CODE_SESSION_ID= unset and =CLAUDE_ORG_QUEUE_DIR= pointed at a temporary directory, on top of each suite's own isolation, so a suite's provoked refusals cannot reach the real queue (the 2026-09-21 incident). It prints one line per suite (name, counts, seconds) and a total, and a failing suite's full output.
+
+*Positive evidence, never silence* (the user, 2026-09-23, choosing it over trusting exit codes). Every shell suite ends with the line =<suite>: N passed, M failed= and exits =$((M > 0))=. A suite passes only with that line present, N > 0, M = 0 and exit 0; a missing line fails. For ERT the runner parses =Ran N tests, … 0 unexpected=. About 18 suites change to the standard line. That also removes a latent silent pass: six suites (=apply-detect=, =check-conventions=, =doc-sync-check=, =prepare-commit-msg=, =queue-append=, =sync-plans=) end with =exit "$count"=, which wraps to 0 at 256 failures.
+
+*Hermetic suites* (the user, 2026-09-23). =queue-append-test= reads the real =TODO.org= to find the =:MISS_RULE: uncategorised= heading. It gets its own fixture heading instead. The runner also fails statically on any suite that refers to =$repo_root/TODO.org= or =$repo_root/DONE.org=, so this cannot come back unnoticed.
+
+*Pre-push skips org-only pushes* (the user, 2026-09-23). If every path in the pushed range is =TODO.org=, =DONE.org= or under =plans/=, the hook prints that the suites were skipped, and why, and runs none. That is safe only because the suites are hermetic, which is why hermeticity is part of this heading. Any other push runs =bin/test-all= and is refused on failure. =--no-verify= remains the escape.
+
+*Testing.* =bin/test-all-test=, with fake suites in a scratch =bin/=: pass; fail; exit 0 with no final line; =0 passed=; 256 failures; a suite reading the real =TODO.org=. =bin/pre-push-test= gains an org-only range, a mixed range, and a failing suite that blocks the push. Each fix is shown to fail against HEAD's version. Then one live =bin/test-all= on the real tree, reporting its totals and time.
+
+Files: =bin/test-all= and =bin/test-all-test= (new), =.githooks/pre-push=, about 18 =bin/*-test= files.
 :END:
 
 =bin/test= runs the ERT suite only. The shell =bin/*-test= suites run
