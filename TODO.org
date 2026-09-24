@@ -2629,6 +2629,19 @@ Files: =bin/hooks/footnote-check=, =bin/footnote-check-test=, and that reference
 :ID:       eadb3607-aa3d-41ee-b8cc-e293cc924f26
 :CREATED:  [2026-09-21 Mon 13:25]
 :END:
+:DEBRIEF:
+*The measurement, run as the plan's steps 1 and 2, on 2026-09-24.* The sample was the 100 most recent Stop segments of this repo's transcripts with at least 400 characters of prose, capped at 15 per session so no one conversation dominated. It spans 10 sessions. Each segment is the whole text the reader saw, earlier blocks included, using =c247d8f3='s segment extraction. Four read-only subagent judges took 25 segments each, with the structure-only outline, and flagged every heading a segment discussed without its id appearing anywhere in it. Totals: 79 flags in 50 segments, 29 of them marked confident. Most uncertain flags were work not yet filed when the text was written, where no id existed to owe, or loose associations such as a rule traced back to the heading that settled it.
+
+*The confident flags fell into two patterns, and the user adjudicated each.*
+- Pattern A, about 20 flags: the heading in hand, pointed at ("this heading", "the slice", "the review story", "the design"). *Does not owe a citation* (the user, 2026-09-24).
+- Pattern B, about 9 flags: a *different* heading named by subject. For example, "2030 is about the plugin's own version" was a wrong number standing in for =827e1c42=; "=json-rpc-error= is never defined as an error" is =ce012ad4='s defect. *Owes a citation* (the user, 2026-09-24).
+
+So the failure is real, and the plan's step 4 applies: this closes on the measurement, and the mechanism is filed as =ee90e212=.
+
+*What differed from the plan.* The user asked whether the judges looked at what the user had to ask for. They did not, since they saw assistant text only. A rough regex over the user's prompts found 83 candidate "what did that mean" questions among 1,634, and some are exactly pattern B. That is a truer measure, a cost that actually happened rather than an estimated debt, so it became =ee90e212='s first step. It also shows the asks reach past headings to coined jargon. The judges' lists are in the session's scratchpad (=probe/flags*.txt=) and were not kept.
+
+*Nothing left undone here.* The mechanism, and the measure of it, are =ee90e212='s.
+:END:
 :LOGBOOK:
 CLOCK: [2026-09-24 Thu 09:21]--[2026-09-24 Thu 09:22] =>  0:01
 - [2026-09-24 Thu 09:21]--[2026-09-24 Thu 09:22] brainstorm the aboutness sampling spike
@@ -2647,6 +2660,9 @@ Decision (user): the adjudication in step 2. Everything before it is the session
 :END:
 
 A response can discuss a heading by subject and never write its id. It then owes a citation that no token scan detects. Verbatim uncited discussion measured zero in 314 responses, and the paraphrased kind has never been measured. Settle it with one adjudicated sample, and build only if a case is confirmed.
+
+*Resolved 2026-09-24:* it happens. The sample found headings discussed by subject without their id, and the user judged that referring to a *different* heading by subject owes a citation, while pointing at the heading in hand does not. The mechanism is filed as =ee90e212=.
+
 
 
 * MAYBE Revisit building the footnote block with org-ql or the agenda, once Emacs stops wedging :research:
