@@ -1601,6 +1601,9 @@ Hook-backed (footnote-check, rule =footnote=), but the hook reads only a turn's 
   different question found it in the same turn, and a correcting block
   followed.
 
+- [2026-09-24 Thu] Self-caught: reporting =c247d8f3='s probe, the session wrote end matter for =0086614a= with a title it had not looked up, and the title was wrong ("Unplanned work in flight belongs to no slice…" for "A slice should list incidental work separately from its planned members"). The hook did not fire, because it checks that an id appears in the end matter, not that the title is right.
+
+
 
 ** TODO Miss: tracked work done under no clock, the wrong clock, or a clock closed before the work ended
 :PROPERTIES:
@@ -3128,6 +3131,9 @@ Decision: none. The measurement decides.
 :END:
 
 =footnote-check= reads =last_assistant_message=, which is only the turn's final text block, so footnote debt in any earlier block passes unseen. Measure how often that happens. If it happens at all, scan every text block of the turn from the transcript.
+
+*Measured 2026-09-24 (the spike): it happens, so this steps up to bounded.* Across this repo's 60 transcripts there are 1,576 Stop segments, each the stretch between two =end_turn= points, where the hook ran. The real =bin/hooks/footnote-check= was run twice on each, first on the final text block alone, which is what it saw, then on all the segment's text blocks joined. 107 segments (6.8%) passed the first run and would have blocked on the second, in 19 sessions, owing 213 end-matter entries across 133 distinct ids. Spot checks showed real citations in the progress narration written between tool calls, which is text the user reads. Caveats: 3 segments carried end matter in an earlier block, which joining demotes, so a few may be false positives; and ids were resolved against today's files. The probe ran with a temporary queue directory and fake session ids, so nothing reached the real record.
+
 
 
 ** TODO A heading discussed by subject and never by id owes a citation no token scan can see
