@@ -141,9 +141,10 @@ Five things you would not guess:
 - **`.warp/.mcp.json`** — see below; do not delete it.
 
 **`.warp/.mcp.json` is Warp's own project-scope MCP config — do not
-"clean it up."** Warp reads MCP config only from `~/.warp/.mcp.json` and
-the project's `.warp/.mcp.json` (verified against its docs 2026-09-10), so
-the file is required, not a duplicate. MCP standardises the `mcpServers`
+"clean it up."** Warp's native MCP config is `~/.warp/.mcp.json` and the
+project's `.warp/.mcp.json` (verified against its docs 2026-09-10); its
+docs now also list Claude Code's `.mcp.json` as readable behind a toggle
+(2026-09-24, untested here). MCP standardises the `mcpServers`
 schema, not a location, so two files is the correct minimum — and a
 symlink would forbid the one improvement the Claude side can take,
 `${VAR:-default}` expansion in `url`. Warp's project servers are
