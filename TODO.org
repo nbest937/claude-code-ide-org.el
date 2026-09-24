@@ -2,6 +2,15 @@
 #+TAGS: analysis bug code comms prose research review spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO org_slice_add_member's after= inserts between a story and its nested children, splitting the block :code:
+:PROPERTIES:
+:ID:       6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0
+:CREATED:  [2026-09-24 Thu 16:12]
+:CATEGORY: Slices
+:END:
+
+Observed 2026-09-24: =org_slice_add_member= with =after= set to =de6de108=, a story whose children are nested members of slice 8a2eb687, inserted the new top-level line directly after the story's own line. That put it between the story and its indented children, so the children read as nested under the new member. The tool reported success, and the checklist was fixed by hand in commit =d78f017=. =after= should mean after the member's whole block, its line and every nested line beneath it. The regression test adds after a member with nested children and asserts the block stays contiguous. Worth checking whether =7ee3b71a='s =:MEMBERS:= design, which renders the checklist from a property, removes this class outright: its open question is whether =after= becomes an index into =:MEMBERS:=.
+
 * TODO Hand-written end matter is recalled and always on screen; a footnote tool call would generate it and fold it away :code:
 :PROPERTIES:
 :ID:       30d05c93-f82b-40c0-9181-d018323af49f
