@@ -4382,6 +4382,23 @@ CLOCK: [2026-09-21 Mon 15:28]--[2026-09-21 Mon 15:29] =>  0:01
 - [2026-09-21 Mon 15:28]--[2026-09-21 Mon 15:29] re-scope to the basename collision
 :END:
 :PLAN:
+*The design, approved 2026-09-24 (the user), brainstormed on the architectural path.* Re-scoped to the collision by the user on 2026-09-21; the ordering half closed in =8bbae3aa=.
+
+*The case that matters* is a second clone of the same repo served by the same Emacs: both register the directory basename, the later one silently wins, and the other clone's sessions get the wrong project directory, so their targetless captures land in the wrong tracker. A second Emacs instance, the user's future development/daily split, is a different case: the servers differ, the *port* collides, and that is =f6f0d6ef='s territory.
+
+*The name comes from the project's own MCP config, resolved the way Claude Code resolves it.* Verified against Claude Code's MCP documentation on 2026-09-24: scopes take precedence local, then project, then user, and "the entire entry from the highest-precedence source is used (fields are not merged)"; local-scope entries live in =~/.claude.json= under =projects["<path>"]=, per directory. So the wiring resolves each tracked project's =emacs-tools= URL from the local entry for that project's path first, then the project's =.mcp.json=, and registers the session name that URL ends in. The same resolved URL is what its existing port check compares against.
+
+*The fix for a second clone is one command, run once in that clone*, for example =claude mcp add --scope local --transport http emacs-tools http://localhost:45571/mcp/<distinct-name>=. It overrides the committed =.mcp.json= wholesale and changes no file in the repo. Two alternatives were declined (the user, 2026-09-24). Editing the committed =.mcp.json= in the clone leaves a permanent uncommitted change that one careless commit pushes to =main=. A =${VAR:-default}= in the committed URL needs the variable in the shell environment, since the docs say settings files do not supply expansion variables, and it changes the file for everyone. Basename plus a path hash, the old plan's first idea, would make a committed =.mcp.json= specific to one checkout path.
+
+*Setup proposes, never writes the user's config.* =claude-org-setup= writes the basename as today, unless another tracked project already resolves to that name, in which case it prints the =claude mcp add --scope local= line with a proposed distinct name, and does not run it. =~/.claude.json= is Claude Code's file, and =1caed585='s contract keeps setup out of the user's configuration.
+
+*Collisions refuse loudly, at every startup.* The wiring collects each tracked project's resolved name; if two resolve to the same one it refuses, naming both paths and printing the fixing command, instead of registering the later one over the earlier. =claude-org-setup --check= reports the same. A clone that is moved or re-cloned loses its path-keyed local entry, falls back to the basename, collides, and is caught the same way, so misrouting can never be silent.
+
+*Out of scope.* Warp's agent-side MCP reading, which is a later experiment (the user, 2026-09-24): the user runs =claude= in Warp's terminal like any other shell, and it reads only Claude Code's configs. A second machine needs its clone's command run again, which fits, since which clones exist where is a per-machine fact.
+
+*Testing.* ERT with a scratch =~/.claude.json= and scratch projects: a local entry overrides the project's name; without one, =.mcp.json='s name is used; two projects resolving to one name make the wiring refuse and name both; a local entry naming a different port is checked against the pin. Setup's suite: a taken basename makes setup print the local-scope command, and =--check= reports a collision. Each is shown to fail against HEAD's version. Then live: a second clone in a scratch directory, the command, a re-wire, and a capture from each clone landing in its own tracker.
+
+Files: =config.el= (the name and URL resolution in =claude-code-ide-org-standalone-wire= and its derivation of projects), =bin/claude-org-setup=, =bin/claude-org-setup-test=, =config-test.el=.
 :END:
 
 The standalone wiring registers each tracked repo under its directory basename
