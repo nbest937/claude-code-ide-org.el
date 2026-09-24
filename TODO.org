@@ -3801,6 +3801,29 @@ dropped and none ever was, so surfacing the rejection is the whole fix.
 
 Add the fragment to =queue-append='s refusal table so the refusal counts as a
 miss, and extend the =--refusal-fragments= contract test.
+
+*The design, approved 2026-09-23 (the user), brainstormed on the bounded path.* It extends the paragraphs above and supersedes one sentence: the refusal is *not* added to =queue-append='s refusal table (the user, 2026-09-23). The table's own rule, from =63713df3='s review, is that a query-language slip is not a miss, because the caller broke no rule it had been given. The refusal already removes the harm, which was the silent wrong answer.
+
+*Three refusals, none counted as a miss.* Each is an =Error:= naming what was wrong and what to write instead.
+- A sexp: a query whose first non-blank character is =(=. The refusal offers the plain-string equivalent where one is obvious (=(tags "x")= becomes =tags:x=, =(property "K" "v")= becomes =property:K,v=). A sexp is never evaluated. =4ae3cdef= kept org-ql's sexp language unreachable because it amounts to arbitrary elisp on a localhost HTTP endpoint, and a validated sexp subset was considered and not filed (the user, 2026-09-23).
+- An unknown predicate: a bare =name:= or =!name:= token whose name is not in org-ql's own registry (=org-ql-predicates= and its aliases). The parser turns such a token into a full-text term, so =kind:slice= silently searched for the literal string (measured in batch 2026-09-23). The list is read at run time, never kept by hand, so an org-ql upgrade cannot make it stale. A quoted token such as ="kind:slice"= is still searched as literal text.
+- A bare =OR=, =AND= or =|=. The parser turns each into a full-text term, so =todo:NEXT OR tags:spike= narrows instead of widening (measured live 2026-09-23). The refusal explains that a comma gives OR within one predicate, and it points at =match=.
+
+*A =match= argument* (the user, 2026-09-23): =all=, the default and today's AND, or =any=. It is passed as the combining operator to =org-ql--query-string-to-sexp=, which already takes one. It gives flat OR only; grouping is still unavailable.
+
+*Show the reading.* An empty result names the parsed query, for instance =No matches for (and (todo "next") (tags "CODE"))=, and says that =todo:=, =tags:= and =property:= match case exactly while =heading:= and bare words do not. So any misreading these refusals miss is still visible.
+
+*Description rewrite*, in the tool's =:description= and its =query= argument, where it is read at the moment of the call. It covers:
+- bare words as full-text search (=rifle=, over the entry and its outline path);
+- =regexp:= and =property:KEY,VALUE=, the documented form (=KEY=VALUE= parses to a keyword argument and works only by accident);
+- a trailing colon for zero-argument predicates (=blocked:=, =done:=), with the caution that =blocked= also counts unfinished children and unchecked checkboxes, not only =:BLOCKER:=, which =5acca91b= asked for;
+- =parent:=, =children:=, =ancestors:= and =descendants:=, which take text rather than nested predicates, since =children:todo:NEXT= parses to =(children "todo:NEXT")=;
+- the boolean rules: space is AND, comma is OR within one predicate, =!= is NOT, and there is no cross-predicate OR except =match=any=;
+- which parts are case-sensitive, and that DONE.org is searched too.
+
+*Testing*, in =config-test.el=: one case per refusal; known predicates and aliases passing; a quoted literal passing; =match=any= returning the union; the reading shown on an empty result. Each is shown to fail against HEAD's version. Then a live reload, and the refused queries of 2026-09-22 and 2026-09-23 re-run through the tool.
+
+Files: =config.el= (=claude-code-ide-org-query=, its docstring, its registration and the section commentary) and =config-test.el=.
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-16 Wed 14:48]--[2026-09-16 Wed 14:50] =>  0:02
