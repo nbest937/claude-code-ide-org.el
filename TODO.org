@@ -10014,6 +10014,26 @@ both times the code four lines away said otherwise. Filed separately.
   Auto-demoted: superseded by sibling [[id:95087d8f-e16d-45d3-bdea-9b179dc672b4][Lint for headings that are valid org but structurally unintended]] becoming NEXT.
 :END:
 :PLAN:
+*The design, settled 2026-09-21 and confirmed on the bounded path 2026-09-24 (the user).* Refuse the index sweep at commit time, in =.githooks/pre-commit-guards=.
+
+*Scope: the index, not the working tree* (the user, 2026-09-24). The guard stops a whole-index commit from carrying another session's *staged* work. It cannot stop the 2026-09-22 incident recorded in the body, where an explicit-path commit (=git commit -- TODO.org=) took the file's whole working-tree content, including another writer's uncommitted edits. That case needs a record of which writer changed which heading, which does not exist, and it is filed as =27082893=.
+
+=GIT_INDEX_FILE= identifies the command form (measured 2026-08-12):
+
+| Command                 | =GIT_INDEX_FILE=             | Sweeps a staged file? |
+|-------------------------+------------------------------+-----------------------|
+| =git commit=            | =.git/index=                 | yes                   |
+| =git commit --amend=    | =.git/index=                 | yes                   |
+| =git commit -a=         | =.git/index.lock=            | yes                   |
+| =git commit -- <paths>= | =.git/next-index-<pid>.lock= | no                    |
+
+Refuse when the form is a whole-index one (basename =index= or =index.lock=) and the real index is non-empty, and only when =CLAUDE_CODE_SESSION_ID= is set. =git commit -- <paths>= always passes, =git commit -a= against an empty index passes, and a human at a plain terminal is never affected. The message names the staged paths and prints the pathspec form to use instead. The hook reads both views: =git diff --cached= for what the commit will contain, and the same with =GIT_INDEX_FILE= set to the real index for what that holds.
+
+=--amend= reports =.git/index= like the sweep, so it escapes with =ALLOW_SWEEP=1= (the user, 2026-09-21), shaped like =ALLOW_MERGED_BRANCH= and =ALLOW_LOCAL_MERGE=, and each use counts a =miss= through =count-miss=. There is no ownership tracking: the command form alone discriminates.
+
+Accepted limits: =--no-verify= bypasses it, which makes the mistake loud rather than impossible; the merge, rebase and cherry-pick paths are untested; and it is opt-in per clone through =core.hooksPath=.
+
+*Testing*, the =bin/*-test= way: a scratch repo, each of the four forms, asserting exit status and message, with the suite ending in =94e6b615='s standard final line and isolated from the real queue and session id, since a refusal counts a miss. Each case is shown to fail against the hook without the guard.
 :END:
 
 Every session on a checkout shares one =.git/index=, so one session's
