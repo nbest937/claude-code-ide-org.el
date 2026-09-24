@@ -2,6 +2,21 @@
 #+TAGS: analysis bug code comms prose research review spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Look up a tracked id wherever it appears in Emacs: its title at point, and a jump on click :code:
+:PROPERTIES:
+:ID:       0eaffc39-088f-48c3-a5b8-167336458114
+:CREATED:  [2026-09-24 Thu 16:54]
+:CATEGORY: Tools
+:END:
+
+Filed 2026-09-24 as the live companion to =9bc8fc8c='s footnotes in rendered sessions. An 8-hex id anywhere in an Emacs buffer, whether in =TODO.org='s own prose (=xxxxxxxx= style), a render or a commit message, is opaque until someone looks it up. Two small, already-available mechanisms fix that without changing any text (the user chose these two, 2026-09-24):
+- *eldoc*: with point on an id, after the idle delay, the echo area shows the id, its keyword *now*, and its exact title. It is keyboard-only, one function on =eldoc-documentation-functions= in org buffers, renders included.
+- *Mouse marking*: a font-lock rule gives each resolvable id a =help-echo= (a tooltip on hover in GUI Emacs, or the echo area when =tooltip-mode= is off), a highlight, and click-to-jump to the heading. It is the same lookup function, applied lazily at hover.
+
+*Constraint:* resolve against the id index only, and never trigger the module's rescan on a miss, which is right for a tool call and ruinous for something that runs as point moves. A token that is not a known id, such as a commit SHA, shows nothing.
+
+*Considered and left out* (the user, 2026-09-24): an embark target, and a Doom =:tools lookup= handler, which the user does not use since it is evil-oriented. Note for any later embark work: =embark-org='s built-in heading menu binds =RET= (its =embark-dwim= default), =t=, =I= and =O= to =org-todo=, =org-clock-in= and =org-clock-out=, which bypass the event queue on a tracked heading.
+
 * TODO org_slice_add_member's after= inserts between a story and its nested children, splitting the block :code:
 :PROPERTIES:
 :ID:       6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0
