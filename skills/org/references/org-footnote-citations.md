@@ -47,9 +47,11 @@ Trigger on any response containing such an identifier, not only ones
 about the tracker — identifiers get cited while reading source, writing
 tests and summarising commits too.
 
-**Look each keyword and title up rather than recalling them.** A
-remembered title is where paraphrase creeps back in, and a stale keyword
-is the same failure. `org_outline` returns both.
+**Look each keyword and title up rather than recalling them** — a
+remembered title is where paraphrase creeps back in. **End matter of more
+than a handful of entries comes from one `org_outline` call** with every
+id in `scope` and `bodies=false`: long hand-written end matter is where
+entries go missing or wrong (`:ID:` 13aed7ca).
 
 **Where a keyword change is queued and not yet applied, show the *queued*
 state and mark it with a trailing `*`** — `REVIEW*`, not `DOING` plus a
@@ -64,25 +66,20 @@ user, 2026-09-17): a parenthetical saying which entries are queued is a
 footnote to the footnote. Unstarred means "applied, on disk"; the on-disk
 value stays recoverable through `org_pending_updates`.
 
-**One entry per distinct identifier.** A re-mention later in the same
-response needs no second entry, and the passage itself never needs
-repeating — the reader makes the association from the id alone. But the
-rule is per *response*: the reader of the twentieth message does not have
-the fourth one on screen.
+**One entry per distinct identifier**, per *response*: a re-mention
+needs no second entry, but the reader of the twentieth message does not
+have the fourth one on screen.
 
 **An id paired with its exact title *on one line* needs no end-matter
-entry at all.** The convention's purpose is already met by such a line:
-the prose is readable and the reference is recoverable. This is what a
-status summary looks like — a list of headings, each with its id and
-title — and repeating all of them below is pure duplication. Prefer the
-inline form there, and keep the end matter for ids cited in running
-prose, where the title would make the sentence unreadable.
+entry.** So a list whose items are headings — a status summary — pairs
+each id with its title and owes nothing below; a list of *bare* ids is
+the named failure. The pairing must be on the **same line**: a reader
+scanning for the id must find the title beside it.
 
-The pairing must be on the **same line**. An id in one paragraph and its
-title in another is the ordinary case and still owes an entry, because a
-reader scanning for the id does not find the title beside it — which is
-the guarantee the rule exists to give. `bin/hooks/footnote-check`
-enforces exactly that distinction.
+**A response citing many headings in prose owes an entry for each, and
+that is the convention working** — a hook block on a long reply is the
+backstop doing its job. A rendered session footnotes its ids (`:ID:`
+9bc8fc8c), but the terminal rule does not relax for that.
 
 **The "exact, full" requirement is about the title only.** An
 8-character `:ID:` prefix is adequate on the identifier side, written the
