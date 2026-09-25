@@ -3694,6 +3694,13 @@ The new tool, with =id=, =old_string=, =new_string= and an optional =drawer=, ov
 
 On unsaved changes, =org_edit= refuses at once with a reply distinct from its permanent refusals, and sets a header line asking the human to save, cleared by an after-save hook. A wait script shipped with the plugin polls =buffer-modified-p= on the Fibonacci schedule and exits on the save or after twenty seconds. The agent runs it in the background and retries when it exits. The waiting stays out of the tool because a tool that polled would freeze the single-threaded Emacs the human needs to save in. This is =ec1e6839='s mechanism, built with =org_edit= as its first user.
 
+*Reuse 60d6ab6e's refusal helper* (2026-09-24):
+=claude-code-ide-org--busy-refusal= is the one place a structural writer
+refuses on unsaved edits, so =org_edit='s immediate refusal should call it
+and not grow a second check. 60d6ab6e is in slice 8a2eb687 and expected
+to land first. No =:BLOCKER:=, since each stands alone.
+
+
 
 ** TODO Retire org_amend in one move: hooks, prose, and the live headings renamed with org_edit :code:
 :PROPERTIES:
