@@ -7100,6 +7100,40 @@ Sequenced 2026-09-21 at the user's direction, and cut to the order the same day 
 *Not sequenced:* =4acd8ad0=, dropped. Its =:DROPPED:= entry was a prefix the refresh ignored until it was rewritten as a full id on 2026-09-21. =2a6a1355= moved into =de6de108= and is DONE.
 
 *Where it stops.* The slice closes when its pull request merges. Measure members, elapsed days and review findings per member, and the miss rate for the rules it touches, read against the prediction.
+
+*The unattended run* (the user, 2026-09-24, for the session opened by
+=/clear= then =/next-session= that night). The user is asleep; ask
+nothing, and act on this section where =next-session.md= would ask.
+
+- *Branch.* Continue on =feature/still-wrong=, already cut, pushed and
+  named for this slice. Step 0's items 5 to 7a (fast-forward and survey
+  the base, ask what lands first, cut and rename a branch) are already
+  done: do not cut a new branch, merge, rebase, push, or open a PR.
+- *Standing go-ahead to implement, and only these, in this plan's order:*
+  =94e6b615=, =37bca83a=, =5acca91b=, =60d6ab6e=, =25e7b083=, =b09d8090=,
+  =9bc8fc8c=, =57f37f0e=, =492a1a30=, =da6a2fba= (then apply the recorded
+  path tags), =60ed5b96=, =7b4f4f14=, =39039bb6=, =c247d8f3=, =13aed7ca=,
+  =7ee3b71a=, =b52df20b=, =2aeb65d6=, =f12f9da4=, =8ddd7fa8=, =5e731a23=,
+  =53b0047d=. Every other member waits for the user: =406d78da=,
+  =eddee10f=, =30d05c93=, =c562b69a=, =965f94eb=, =3ad389be=, =7fa68d5c=,
+  =381ea07d=, and closing =de6de108=.
+- *Per member:* read its drawer; queue =DOING= and clock in; build with
+  tests shown to fail first; run =bin/test= and the member's shell
+  suites; commit that member alone, by explicit path; queue =REVIEW=,
+  clock out. No other state changes.
+- *Never reload the live Emacs* (no =load-file=, no =doom/reload=, no
+  =emacsclient= eval of changed code). The MCP tools this run needs are
+  served by it. Verify in batch only. A member's live check, and any
+  test case that needs a member outside the list (=9bc8fc8c='s
+  append-path case needs =eddee10f=), goes on the morning checklist.
+- *Stop rules.* An undecided question in a drawer, a design that proves
+  wrong, or tests still red after two honest attempts: revert that
+  member's uncommitted work, queue it =WAITING= with a one-paragraph
+  body note saying why, and move to the next. If =emacs-tools= stops
+  answering, commit nothing further, and stop.
+- *Morning report.* The final message, plus one dated paragraph on this
+  slice's body: members landed with their commits, members parked and
+  why, the morning checklist of live checks, and the queue to apply.
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-16 Wed 06:45] \\
