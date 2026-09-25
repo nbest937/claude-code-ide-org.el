@@ -8,6 +8,34 @@
 :CREATED:  [2026-09-24 Thu 21:58]
 :CATEGORY: Dev
 :END:
+:PLAN:
+Bounded. Render the harness's summaries of narration where the reader
+saw them, tagged as summaries, through one reader of a turn that the
+footnote work shares.
+
+1. *=claude-code-ide-org--turn-reader-view=.* Given a transcript and
+   optionally a =tool_use_id= to stop at, return each turn's blocks in
+   order: =(text . S)=, =(narration . S)= for a non-empty =thinking=
+   entry, and =(tool . LABEL)=. Empty =thinking= entries (the model's
+   hidden reasoning) are dropped. =--transcript-turns= is rebuilt on it,
+   and c247d8f3 and 30d05c93 read turns through it (the user,
+   2026-09-24). =--transcript-worked-ids= is untouched, so time
+   attribution does not change.
+2. *The render.* =narration= is handled exactly like =text=: it closes
+   any pending =:TOOLS:= drawer and becomes a =**= sub-heading from its
+   synopsis, with a body when it does not fit one line. The sub-heading
+   carries the tag =:summary:= (the user, 2026-09-24), so a reader can
+   tell the harness's words from the model's and filter on them.
+3. *Order.* Lands before eddee10f, whose single turn renderer and
+   "append-only must equal a full render" property then include
+   narration, and before 9bc8fc8c, so ids in narration are linked too.
+4. *Tests (ERT).* A fixture turn with a narration entry between two tool
+   calls, an empty =thinking= entry and a =text= entry: the render
+   splits the drawer at the narration, tags it =:summary:=, and omits the
+   empty entry; =--turn-reader-view= stops at a given =tool_use_id=. Each
+   shown to fail without the new case. The fixture pins the undocumented
+   empty-versus-non-empty assumption.
+:END:
 
 Narration written between tool calls can reach the reader as a harness summary, which the transcript stores as a non-empty thinking entry with no text entry; the model's hidden reasoning is stored empty (measured 2026-09-24 under 30d05c93, and the user's terminal showed the summary verbatim). --transcript-turns drops every thinking entry, so a render runs tool calls together where the reader saw prose between them. Across eight sessions, 1,651 of 1,871 thinking entries were empty, and the other 220 were all at most 475 characters; in the two sessions checked, none shared a message with a text block. Fix: render a non-empty thinking block as a (narration . STRING) block, in order, marked as the harness's summary; keep dropping empty ones. Share that reader's-view reading with 30d05c93's footnote scanner. The ERT fixture pins the empty-versus-non-empty assumption, which is undocumented.
 * TODO org_outline shows what a heading is blocked by, never what it blocks :code:
