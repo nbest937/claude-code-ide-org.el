@@ -1153,6 +1153,10 @@ Hook-backed (footnote-check, rule =footnote=), but the hook reads only a turn's 
 - [2026-09-24 Thu] Self-caught, the third recalled title of the day: in =b52df20b='s wrap-up, end matter gave =204d1b0a= an invented title ("org_capture drops its body argument entirely; the note is never written") for "org_capture accepts a note it silently discards, and five headings shipped bodiless". The pattern across all three: an id met in another heading's prose, cited in a response, and its title recalled instead of looked up in the same turn.
 - [2026-09-24 Thu] Self-caught, the fourth and fifth recalled titles of the day, both in one end matter while brainstorming =8ddd7fa8=: =020d3688= given "org-id-locations goes stale after hand-inserted headings…" for "DONE.org is not a tracked file, so no id in it resolves", and =2c77f2cc= given "The review buffer shows spans whose left edge precedes the item's own start" for "One incidental lands in every open slice's window, and the cookies double-count it". Each id came from a code comment or a standing rule's prose, and each title was invented to fit the context it was cited in. The hook passed both, since it checks an id's presence, never its title; that check is filed as its own heading.
 - [2026-09-24 Thu] Self-caught, the sixth recalled title of the day: in the sweep's progress report, end matter gave =64d34a64= a paraphrase ("Clocktable rows for a parent show own plus subtree as one number") for "A clocktable never shows a parent's own time, only own-plus-subtree", an id met in a slice's plan prose. =4a583ff2='s title check would have caught it.
+- 2026-09-24: 878d2cf5 cited in end matter with an invented title
+  ("Nomination scopes are independent: …") instead of the looked-up one.
+  Self-caught on the next lookup.
+
 
 
 
