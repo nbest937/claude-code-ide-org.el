@@ -8917,7 +8917,7 @@ Reading the queue from a tool has precedent in
                    (equal (plist-get event :id) id)))
             (claude-code-ide-org--queue-events)))
 
-(defun claude-code-ide-org--effective-todo-state (id disk-state)
+(defun claude-code-ide-org--effective-todo-state (id disk-state &optional events)
   "The keyword ID will hold once its pending `todo' events apply.
 
 DISK-STATE carried forward through the heading's unapplied `todo'
@@ -8927,11 +8927,15 @@ state wins, and DISK-STATE stands when there are none.  What
 57f37f0e): against disk alone, a state set and reverted between
 applies could not be queued back, and a duplicate of a queued state
 slipped through.  Reads the queue and never writes it, like
-`claude-code-ide-org--pending-capture'."
+`claude-code-ide-org--pending-capture'.
+
+EVENTS, the queue already read, lets a caller asking about several ids
+read it once: the read costs about a second, and footnoting three ids
+paid it three times (TODO.org :ID: 30d05c93)."
   (let ((last (seq-find (lambda (e)
                           (and (equal (plist-get e :kind) "todo")
                                (equal (plist-get e :id) id)))
-                        (reverse (claude-code-ide-org--queue-events)))))
+                        (reverse (or events (claude-code-ide-org--queue-events))))))
     (if last (plist-get last :state) disk-state)))
 
 (defun claude-code-ide-org--pending-capture-keywords (id)
@@ -13636,13 +13640,16 @@ star, as the citation rules ask (TODO.org :ID: 30d05c93).  Returns
                  (append (mapcan #'claude-code-ide-org--footnote-prose-lines blocks)
                          (list (string-join ids8 " ")))))
          (resolved (and cands (claude-code-ide-org--footnote-resolve cands files)))
+         ;; Read once for every id: about a second each time (30d05c93).
+         (events (and resolved (> (hash-table-count resolved) 0)
+                      (ignore-errors (claude-code-ide-org--queue-events))))
          (covered nil) (lines nil))
     (dolist (id cands)
       (when-let* ((entry (gethash id resolved)))
         (let* ((disk (nth 0 entry))
                (full (nth 2 entry))
                (queued (and full (ignore-errors
-                                   (claude-code-ide-org--effective-todo-state full disk))))
+                                   (claude-code-ide-org--effective-todo-state full disk events))))
                (kw (if (and queued (not (equal queued disk))) (concat queued "*") disk)))
           (push id covered)
           (push (format "`%s`  %-9s %s" id kw (nth 1 entry)) lines))))

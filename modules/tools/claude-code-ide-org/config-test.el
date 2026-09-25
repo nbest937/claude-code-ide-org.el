@@ -19564,8 +19564,11 @@ characters duplicated from the first turn the old render lacked."
   "The end matter is sorted by id, drops fenced and non-id tokens, adds
 the ids the caller passes, and stars a keyword whose change is queued."
   (claude-code-ide-org-test--with-footnote-fixture nil
-    (cl-letf (((symbol-function 'claude-code-ide-org--effective-todo-state)
-               (lambda (full disk) (if (string-prefix-p "aaaa1111" full) "REVIEW" disk))))
+    ;; The queue is stubbed as well as the lookup: read for real it is the
+    ;; user's ~/.claude/org-updates, which no unit test should touch.
+    (cl-letf (((symbol-function 'claude-code-ide-org--queue-events) (lambda (&rest _) nil))
+              ((symbol-function 'claude-code-ide-org--effective-todo-state)
+               (lambda (full disk &rest _) (if (string-prefix-p "aaaa1111" full) "REVIEW" disk))))
       (let ((r (claude-code-ide-org--footnote-lines
                 (list "Narration citing bbbb2222 and deadbeef."
                       "```\n12345678 in a fence\n```")
@@ -19592,7 +19595,8 @@ own ids argument."
         (insert (json-encode `((session_id . "s") (transcript_path . ,transcript)
                                (tool_use_id . "toolu_9")
                                (tool_input . ((ids . "12345678")))))))
-      (claude-code-ide-org-write-footnote-lines payload out dir)
+      (cl-letf (((symbol-function 'claude-code-ide-org--queue-events) (lambda (&rest _) nil)))
+        (claude-code-ide-org-write-footnote-lines payload out dir))
       (should (equal (with-temp-buffer (insert-file-contents out) (buffer-string))
                      (concat "ids 12345678 bbbb2222\n"
                              "`12345678`  -         --leading-dash title\n"
