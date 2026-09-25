@@ -51,6 +51,29 @@ Proposed 2026-09-24, from the user's question whether footnotes could be folded 
 
 *The central open question: who extracts the ids* (the user asked, 2026-09-24). As first proposed, the tool takes the ids as arguments, so it fixes the titles while *which* ids to cite stays the writer's recall. That is the other half of the failure, which the hook catches only after the fact. The better shape is a tool called with no arguments as the turn's last step, which extracts the ids itself with the same scanner =footnote-check= uses: every 8-hex token in the turn's text that resolves to a tracked heading, code fences skipped. "Which ids are owed" and "is the debt paid" would then be decided by one piece of code. That needs the tool to find the turn's text. A tool call does not receive the response, but the text written earlier in the turn is in the session transcript, which is how =c247d8f3='s fix reads it. The MCP tool, though, knows its session by the project's basename, not by Claude's session id, so it cannot tell which transcript is this turn's. Candidates: the hooks pass the Claude session id through to the MCP session, or the tool takes the project's most recently written transcript, which is fragile with concurrent sessions. Settle this before designing anything else.
 
+*Measured 2026-09-24, a live probe in Claude Code 2.1.280* (two
+temporary =PreToolUse= hooks in =settings.local.json=, since removed):
+- Hook edits to settings are picked up mid-session, with no restart.
+- =updatedInput= from a =PreToolUse= hook reaches an MCP server: an
+  =org_outline= call with a nonexistent scope was rewritten and
+  returned the slice's outline.
+- At =PreToolUse= neither the preceding text block nor the call's own
+  =tool_use= is on disk; both land 0.8–1.5 s later, in 5 of 5 trials.
+- *The transcript does not reliably hold the text the session showed
+  the reader.* Of the probe turn's 7 text blocks, 3 never reached it,
+  not even after the turn ended; each survives only as a paraphrase
+  inside a =thinking= entry. The rule deciding which is not visible.
+
+So the route where a hook reads this turn's text from =transcript_path=
+is ruled out, however long it waits. Decided before the probe (the
+user): the scanner lives in elisp behind =sh= stubs, and in an outage
+=footnote-check= stands aside and no end matter is owed, since titles
+cannot be looked up and a recalled one is the error this heading
+removes. Still open: the tool takes the ids as arguments (fixes titles;
+which ids stays recall, with =footnote-check= backstopping the final
+block), or the session passes its own text (exact, doubles output).
+
+
 
 * TODO The review buffer's transcript context mixes sessions, mixes sort orders, and shows only one side of a span :code:
 :PROPERTIES:
@@ -2753,6 +2776,16 @@ Files: =bin/hooks/footnote-check=, =bin/footnote-check-test=, and that reference
 =footnote-check= reads =last_assistant_message=, only the turn's final text block, so footnote debt in any earlier block passes unseen. The 2026-09-24 spike measured that it happens, so this stepped up to bounded: the hook will also read the segment's earlier text blocks from =transcript_path=.
 
 *Established (2026-09-24):* of 1,576 Stop segments across this repo's 60 transcripts, 107 (6.8%), in 19 sessions, passed the hook on their final block and would have blocked on the whole segment, owing 213 entries across 133 ids. Spot checks found real citations in the narration written between tool calls. Method: the real hook run twice per segment, with a temporary queue and fake session ids. Caveats: 3 segments carried end matter in an earlier block, so a few are likely false positives, and ids were resolved against today's files.
+
+*The transcript drops text blocks* (measured 2026-09-24 under 30d05c93):
+3 of one turn's 7 text blocks never reached =transcript_path=, even after
+the turn ended; each survives only as a paraphrase inside a =thinking=
+entry. A fix that reads earlier text blocks from the transcript at =Stop=
+will miss some without saying so, and the measurement this heading
+proposes (counting ids cited before a tool call) undercounts for the same
+reason. Settle what the transcript can be trusted for before designing
+on it.
+
 
 
 ** DONE A heading discussed by subject and never by id owes a citation no token scan can see
