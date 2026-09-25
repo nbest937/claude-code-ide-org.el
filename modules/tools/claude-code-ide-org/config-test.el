@@ -18848,4 +18848,14 @@ declared beside its own ancestor, and a checklist that disagrees with
     (should-not (claude-code-ide-org-test--lint-matches clean 'error ":MEMBERS:\\|disagrees"))
     (should (claude-code-ide-org-test--lint-matches bad 'error ":MEMBERS: names unknown :ID: dddd0000"))
     (should (claude-code-ide-org-test--lint-matches bad 'error "names cccc0000 and its ancestor bbbb0000"))
-    (should (claude-code-ide-org-test--lint-matches bad 'error "checklist disagrees with :MEMBERS:"))))
+    (should (claude-code-ide-org-test--lint-matches bad 'error "checklist disagrees with :MEMBERS:"))
+    ;; A closed slice is a record: a story and its child both counted,
+    ;; the practice before 2026-09-25, is not an error there.
+    (let ((closed (claude-code-ide-org-test--lint
+                   (concat (replace-regexp-in-string "\\`\\* TODO \\[0/1\\]" "* DONE [1/2]" head)
+                           ":MEMBERS:  bbbb0000-0000-4000-8000-000000000002 cccc0000-0000-4000-8000-000000000003\n"
+                           (replace-regexp-in-string
+                            "- \\[ \\] \\[\\[id:bbbb[^\n]*\n"
+                            "- [ ] [[id:bbbb0000-0000-4000-8000-000000000002][bbbb0000]] TODO Story\n- [X] [[id:cccc0000-0000-4000-8000-000000000003][cccc0000]] TODO Kid\n"
+                            tail t t)))))
+      (should-not (claude-code-ide-org-test--lint-matches closed 'error "its ancestor")))))

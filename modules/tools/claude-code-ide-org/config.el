@@ -16647,7 +16647,15 @@ unfinished member (%s) -- a done, cancelled or deferred member must not block: %
                      (let ((unknown (seq-remove (lambda (i) (gethash i known-ids)) declared))
                            (listed (claude-code-ide-org--slice-checklist-ids))
                            (nested nil))
-                       (dolist (id declared)
+                       ;; Open slices only.  A closed slice's list is a
+                       ;; record, and four recorded a story and its own
+                       ;; child as separate counted members, the practice
+                       ;; when they closed; the ruling that a parent
+                       ;; carries no counted work dates from 2026-09-25
+                       ;; and does not reach back (:ID: 30a340fd).
+                       (dolist (id (unless (member (org-get-todo-state)
+                                                   claude-code-ide-org--outline-finished-keywords)
+                                     declared))
                          (let ((pos (org-find-entry-with-id id)))
                            (when pos
                              (save-excursion
