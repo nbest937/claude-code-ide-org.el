@@ -10398,6 +10398,50 @@ a heading that gains a keyword later would make them diverge.
 :CREATED:  [2026-08-11 Tue 07:31]
 :BLOCKER:  3ad389be-2797-46c3-a51d-9f603053955a
 :END:
+:PLAN:
+Bounded, capture only (the user, 2026-09-24). The queued-capture
+contract already exists for the unsaved-edits route: a =capture= event
+with a pre-minted =:ID:=, rendered in the review buffer and written by
+=--review-apply-capture=. An outage adds a second way into it. =org_amend=
+is out: =dd4b9a9f= retires it for =org_edit=, which waits and does not queue.
+
+*1. The hook branch.* In 3ad389be's =bin/hooks/tool-failure=, for
+=org_capture= on a refused connection only; a timed-out capture may
+still land.
+- A targetless call with no =category= is refused with the live tool's
+  message, and nothing is queued (the user chose this one early check).
+- Otherwise mint a lowercased UUID and run =queue-append capture= with
+  the payload, passing the id in an environment variable.
+- Return =additionalContext=: queued, not written, with the =:ID:=, which
+  =org_set_todo= and =org_clock_in= accept at once.
+- The failure marker records the id, so =SessionStart='s report says
+  "queued as capture <id>" rather than "lost".
+
+*2. =queue-append=.* When the id variable is set, skip the reply gate,
+use that id, and write =origin: "outage"=. Every capture event also
+carries =allow_duplicate=, on both routes. It stays the only writer of
+capture events, so 5e731a23's =cwd= routing reaches both.
+
+*3. Apply.* =--review-apply-capture= checks, in order, before writing:
+- the id already resolves: mark the event realised and write nothing
+  (idempotency);
+- the target resolves (as today);
+- a top-level capture has a =category=;
+- a keyworded capture under a slice: refuse;
+- an existing same-title heading, unless =allow_duplicate=: refuse;
+- a category the file has never used: warn only.
+A refusal leaves the item pending with its reason, as a failed target
+does now. The review buffer marks items with =origin: outage=.
+
+*4. Order.* After 3ad389be (the =:BLOCKER:=) and 5e731a23, both earlier
+in slice 8a2eb687's plan.
+
+*5. Tests.* =bin/tool-failure-test=: refused capture queues and returns
+the id; missing category refuses and queues nothing; a timeout does not
+queue. =queue-append= with and without the id variable. ERT for each
+apply check, idempotency included. Each shown to fail with its check
+removed.
+:END:
 
 =org_capture= requires a live Emacs. When the server is unreachable the
 call fails outright and the task exists only in the conversation, which
