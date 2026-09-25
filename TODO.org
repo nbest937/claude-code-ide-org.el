@@ -620,11 +620,34 @@ CLOCK: [2026-09-23 Wed 21:54]--[2026-09-23 Wed 21:56] =>  0:02
 *Testing*, in =config-test.el= against a scratch =projects/= tree: newest-first order; the last =custom-title= winning over earlier ones and over =ai-title=; the prompt-synopsis fallback; a render-only entry; a prefix resolving; the title read staying within its window. Each is shown to fail against HEAD's version. Then one live run of the picker.
 
 Files: =config.el= (=claude-code-ide-org-render-session='s interactive form and a new candidates function) and =config-test.el=.
+
+*Settled 2026-09-25, before building: renders are not pruned.* Claude Code's
+documentation (the =cleanupPeriodDays= entry in the settings reference, and the
+=.claude= directory page) lists the paths its cleanup deletes: transcripts,
+=file-history/=, =plans/=, =backups/= and others of its own. A third-party
+directory like =org-renders/= is not among them. The disk agrees: files Claude
+Code did not create survived the 2026-09-24 cleanup at 45 days, among them
+=next-session-prompt.md= and the queue directory's oldest file. So the
+render-only entries stay, and the default stays inside =~/.claude=. Not
+explained, and not needed here: a transcript from 2026-07-24 also survived, with
+=cleanupPeriodDays= unset. And no transcript in the corpus carries an
+=ai-title=, so the name falls back from the last =custom-title= straight to the
+first prompt's synopsis.
 :END:
 
 =M-x claude-code-ide-org-render-session= prompts with a bare =read-string "Session id: "=, so a reader needs a UUID before they can read anything. The user hit this on their first try of =96ddf1ef='s renderer (2026-09-23). Designed that day on the bounded path: a picker over every project's transcripts, newest first, each line labelled with its project and session name, plus renders whose transcript has been pruned.
 
 *Established (2026-09-23):* =/rename= appends a =custom-title= line each time, so the last one is the current name. A session never renamed carries an =ai-title=. Transcripts are pruned at about 30 days, and the oldest on disk was 29 days old.
+
+*Shipped 2026-09-25* in [[orgit-rev:claude-code-ide-org::7ca5c91][7ca5c91]], as the drawer designed it. The question the
+drawer left open was settled first: renders are not pruned. The picker offers
+every project's sessions, newest first. Each is named by its last =/rename=,
+else an ai-title, else its first prompt, read from windows at the file's ends,
+never the whole file. A typed prefix is accepted, and a render-only session
+opens as it is. Four tests fail against HEAD, and two mutations each fail their
+own. Live: 98 sessions listed in 0.89 s. The prompt itself is interactive and
+not yet exercised by the user.
+
 
 
 * TODO Nothing checks a docstring against the function beneath it, so a stale one misleads a reader four lines from the truth :code:
