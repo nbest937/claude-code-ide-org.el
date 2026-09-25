@@ -4673,6 +4673,19 @@ Files: =config.el= (the shared predicate and width, =--fill-prose-text=, the fou
 - =204d1b0a= (2026-09-11), which made =org_capture= keep its note, is not the genesis: =org_amend= wrote verbatim throughout, and the trend predates it by two months.
 - Measured 2026-09-24 in batch against the installed org: a filled list item parses as one item but reads as an item with a body; and =org-fill-paragraph= measures a link at display width only when the text is fontified.
 
+*Shipped 2026-09-25* in [[orgit-rev:claude-code-ide-org::10fbf68][10fbf68]]. The tools fill prose where they write it, at
+all four write sites, at the target buffer's column and at display width, and
+never fill a list item. The sweep uses the same predicate and width. A paragraph
+holding a glued heading is left alone, and the sweep reports it. Found in the
+work: the first width function counted folding as invisible, so every body in a
+file opened with =#+STARTUP: content= measured zero wide, and the dry run over
+both trackers found nothing to fill. It now reads only link markup. Verified:
+778 ERT cases, with each new guard failing against HEAD or a mutation. Live,
+after a reload, =M-q= moves nothing in the transform's paragraphs. A dry run
+over both trackers would fill 545 paragraphs in TODO.org and 510 in DONE.org,
+content identical, which is [[id:76a6f052-e360-4a12-8077-070da83a8e84][76a6f052]]'s job to run.
+
+
 
 * TODO Unplanned work in flight belongs to no slice: planned is writable, incidental is closed-only :code:
 :PROPERTIES:
