@@ -19387,3 +19387,131 @@ falls back to the first prompt, and the whole file is never read."
       (let ((c (car (claude-code-ide-org--session-candidates))))
         (should-not (string-match-p "far-away-title" (car c)))
         (should (string-match-p "the first prompt" (car c)))))))
+
+;;; A render that follows its transcript (TODO.org :ID: eddee10f)
+
+(defun claude-code-ide-org-test--turn-end (ts)
+  "The `turn_duration' line that finishes a turn."
+  `((type . "system") (subtype . "turn_duration") (timestamp . ,ts) (durationMs . 1000)))
+
+(defun claude-code-ide-org-test--tool-reply (ts text)
+  (claude-code-ide-org-test--assistant
+   ts '((type . "tool_use") (id . "t1") (name . "Bash") (input . ((description . "ran it"))))
+   `((type . "text") (text . ,text))))
+
+(defun claude-code-ide-org-test--append-lines (file lines)
+  (with-temp-buffer
+    (dolist (l lines) (insert (json-encode l) "\n"))
+    (write-region (point-min) (point-max) file t 'silent)))
+
+(ert-deftest claude-code-ide-org-test-finished-turns-from-an-offset ()
+  "Only finished turns come back: turn_duration finishes one, a new prompt
+finishes an interrupted one, and a partial last line is left alone."
+  (claude-code-ide-org-test--with-raw-transcript "s1"
+      (list (claude-code-ide-org-test--prompt-entry "2026-09-25T10:00:00.000Z" "first")
+            (claude-code-ide-org-test--tool-reply "2026-09-25T10:00:01.000Z" "one")
+            (claude-code-ide-org-test--turn-end "2026-09-25T10:00:02.000Z")
+            (claude-code-ide-org-test--prompt-entry "2026-09-25T10:01:00.000Z" "interrupted")
+            (claude-code-ide-org-test--prompt-entry "2026-09-25T10:02:00.000Z" "third, unfinished"))
+    (let* ((file (claude-code-ide-org--transcript-file "s1"))
+           (r (claude-code-ide-org--transcript-finished-turns file 0)))
+      (should (equal '("first" "interrupted") (mapcar (lambda (tn) (plist-get tn :prompt)) (car r))))
+      ;; Nothing more is finished from there, and a partial line is ignored.
+      (write-region "{\"type\":\"system\",\"subtype\":\"turn_dur" nil file t 'silent)
+      (let ((again (claude-code-ide-org--transcript-finished-turns file (cdr r))))
+        (should-not (car again))
+        (should (= (cdr r) (cdr again)))))))
+
+(ert-deftest claude-code-ide-org-test-live-render-appends-to-a-full-render ()
+  "The central property: a render opened mid-turn stops at the last
+finished turn, and appending the rest as it finishes yields a file
+byte-identical to one full render of the finished transcript.  Appended
+tool drawers arrive folded; a drawer opened earlier stays open."
+  (claude-code-ide-org-test--with-raw-transcript "s1"
+      (list (claude-code-ide-org-test--prompt-entry "2026-09-25T10:00:00.000Z" "first")
+            (claude-code-ide-org-test--tool-reply "2026-09-25T10:00:01.000Z" "one")
+            (claude-code-ide-org-test--turn-end "2026-09-25T10:00:02.000Z")
+            (claude-code-ide-org-test--prompt-entry "2026-09-25T10:01:00.000Z" "second"))
+    (let* ((transcript (claude-code-ide-org--transcript-file "s1"))
+           (buf (claude-code-ide-org--open-live-render "s1")))
+      (unwind-protect
+          (with-current-buffer buf
+            (should claude-code-ide-org-render-live-mode)
+            (should (or claude-code-ide-org--live-watch claude-code-ide-org--live-timer))
+            (should-not (string-match-p "second" (buffer-string)))
+            ;; The reader opens the first turn's entry -- `content' hides
+            ;; bodies -- and its drawer, and parks point there.
+            (goto-char (point-min))
+            (re-search-forward "^:TOOLS:$")
+            (org-fold-show-entry)
+            (org-fold-hide-drawer-toggle 'off)
+            (let ((here (point)))
+              (should-not (invisible-p (1+ here)))
+              (claude-code-ide-org-test--append-lines
+               transcript
+               (list (claude-code-ide-org-test--tool-reply "2026-09-25T10:01:01.000Z" "two")
+                     (claude-code-ide-org-test--turn-end "2026-09-25T10:01:02.000Z")))
+              (claude-code-ide-org--live-update buf)
+              (should (= here (point)))
+              (should-not (invisible-p (1+ here))))
+            (should (string-match-p "second" (buffer-string)))
+            (goto-char (point-max))
+            (re-search-backward "^:TOOLS:$")
+            (forward-line 1)
+            (should (invisible-p (point)))
+            (should (equal (claude-code-ide-org--render-transcript "s1")
+                           (with-temp-buffer (insert-file-contents (buffer-file-name buf))
+                                             (buffer-string)))))
+        (with-current-buffer buf (claude-code-ide-org-render-live-mode -1))
+        (kill-buffer buf)))))
+
+(ert-deftest claude-code-ide-org-test-live-render-is-the-one-writer ()
+  "Calling render-session for a session whose render is live writes
+nothing, and killing the buffer removes the watch."
+  (claude-code-ide-org-test--with-raw-transcript "s1"
+      (list (claude-code-ide-org-test--prompt-entry "2026-09-25T10:00:00.000Z" "first")
+            (claude-code-ide-org-test--tool-reply "2026-09-25T10:00:01.000Z" "one")
+            (claude-code-ide-org-test--turn-end "2026-09-25T10:00:02.000Z"))
+    (let* ((buf (claude-code-ide-org--open-live-render "s1"))
+           (render (buffer-file-name buf))
+           (before (with-temp-buffer (insert-file-contents render) (buffer-string))))
+      (claude-code-ide-org-test--append-lines
+       (claude-code-ide-org--transcript-file "s1")
+       (list (claude-code-ide-org-test--prompt-entry "2026-09-25T10:05:00.000Z" "later")))
+      (claude-code-ide-org-render-session "s1" t)
+      (should (equal before (with-temp-buffer (insert-file-contents render) (buffer-string))))
+      (let ((watch (buffer-local-value 'claude-code-ide-org--live-watch buf)))
+        (kill-buffer buf)
+        (when watch (should-not (file-notify-valid-p watch)))))))
+
+(ert-deftest claude-code-ide-org-test-live-render-rebuilds-a-replaced-transcript ()
+  "A transcript that shrank, or whose first line changed, is rendered in
+full again, and following stops, saying why; a vanished one stops it."
+  (claude-code-ide-org-test--with-raw-transcript "s1"
+      (list (claude-code-ide-org-test--prompt-entry "2026-09-25T10:00:00.000Z" "first")
+            (claude-code-ide-org-test--tool-reply "2026-09-25T10:00:01.000Z" "one")
+            (claude-code-ide-org-test--turn-end "2026-09-25T10:00:02.000Z"))
+    (let* ((transcript (claude-code-ide-org--transcript-file "s1"))
+           (buf (claude-code-ide-org--open-live-render "s1")))
+      (unwind-protect
+          (progn
+            (with-temp-file transcript
+              (insert (json-encode (claude-code-ide-org-test--prompt-entry
+                                    "2026-09-25T11:00:00.000Z" "a different session"))
+                      "\n"
+                      (json-encode (claude-code-ide-org-test--turn-end "2026-09-25T11:00:01.000Z"))
+                      "\n"))
+            (claude-code-ide-org--live-update buf)
+            (with-current-buffer buf
+              (should-not claude-code-ide-org-render-live-mode)
+              (should (string-match-p "a different session" (buffer-string))))
+            ;; Following again, then the transcript goes away.
+            (with-current-buffer buf
+              (setq claude-code-ide-org--live-offset 0
+                    claude-code-ide-org--live-first-line
+                    (claude-code-ide-org--transcript-first-line transcript))
+              (claude-code-ide-org-render-live-mode 1))
+            (delete-file transcript)
+            (claude-code-ide-org--live-update buf)
+            (with-current-buffer buf (should-not claude-code-ide-org-render-live-mode)))
+        (when (buffer-live-p buf) (kill-buffer buf))))))
