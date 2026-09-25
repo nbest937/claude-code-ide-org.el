@@ -723,6 +723,13 @@ Observed 2026-09-22 writing a :PLAN: drawer through org_amend drawer=PLAN: six s
 
 claude-code-ide-org--replace-body deletes the body region and inserts (string-trim text), so replacing the last body before a heading takes the blank lines separating them with the trim and glues the heading onto the final line. Observed 2026-09-22 on 59861867: TODO.org:1008 became "written.** TODO Miss: ..." and org stopped parsing a heading there at all — org_outline reported the new id as resolving to no heading while org_amend, which locates by property, still wrote to it happily, and bin/lint-org reported 0 errors throughout. The damage is silent in both directions and the repair was a hand edit, which is itself against the rules. Proposed: --replace-body re-establishes the separation it found, or defers to claude-code-ide-org-heading-separator-lines; and bin/lint-org gains a check for a heading not at the start of its own line, which is the class org-lint calls "possibly misplaced heading" and only warns about.
 
+*Two more instances, found 2026-09-25* by the footnote scanner of =c247d8f3=, which refuses an =:ID:= line whose heading does not own it. Both were top-level headings glued onto the last body line of the heading above, each by a replace whose text had no trailing newline, and the user repaired both by hand in Emacs (commit [[orgit-rev:claude-code-ide-org::d1ed5f0][d1ed5f0]]). The call behind each is in its transcript.
+- =b3177ed0=, by the replace on =b09d8090= in commit [[orgit-rev:claude-code-ide-org::6968ed9][6968ed9]] (2026-09-24).
+- =61f05e56=, by the replace on =a00ace04= in commit [[orgit-rev:claude-code-ide-org::6122052][6122052]] (2026-09-11). That one had been invisible for two weeks: the fill pass of =496b665e= (commit [[orgit-rev:claude-code-ide-org::5880bf8][5880bf8]], 2026-09-14) treated the glued heading as prose and wrapped it across three lines, which hides it even from a line-anchored search. So a fill makes this damage worse, and the fill-on-write of =b52df20b= will do the same unless it lands after this fix or refuses a paragraph holding =* KEYWORD=.
+
+Reproduced in batch the same day: replacing the body of a heading followed by a sibling, with text lacking a trailing newline, leaves the sibling off column 0.
+
+
 
 * TODO [0/27] The review pass asks for judgement it cannot support, and the clock beneath it is still wrong :code:
 :PROPERTIES:
@@ -1553,6 +1560,8 @@ The conventions are path-scoped and tool-driven work never loads them (436e0991)
 - [2026-09-21 Mon] Caught by the user: "per our convention 8a2e should list all of the children of de6d indented below itself". The session added story de6de108 to slice 8a2eb687 as a single line and never read "When a member is a story, its relevant children get indented member lines beneath it" (conventions, Slices). It read the section only after the catch. The same turn had already read "Dropping a member" before acting, so the reading happened for the act it expected and not for the one it performed.
 - [2026-09-21 Mon] Caught by the user: "I see a number of task prose paragraphs that need to be wrapped." Recording 8a2eb687's decisions, the session created =:PLAN:= drawers with =org_amend= on nine pre-convention headings (94e6b615, f12f9da4, 3ad389be, 37bca83a, 965f94eb, 25e7b083, 490e6737, 13aed7ca, 2a6a1355). It left each body's plan prose unwrapped, without reading "Revising a pre-convention body". The existing drawer now makes =org_wrap_plan= refuse all nine. The session's own SOP had allowed it ("=org_wrap_plan= … or a short =org_amend=") and was corrected the same turn.
 - [2026-09-23 Wed] Self-caught: the session filed 9702f283 and queued a story =NEXT= without reading the org conventions, although the first =org_*= call of the session had injected a pointer to them.
+- [2026-09-25 Fri] Self-caught: amending 5b46fbfd, the session cited four commits as bare verbatim SHAs, then read "Referring to a commit", which asks for =orgit-rev:= links. The conventions-inject pointer had named that section at the session's first org call. The fix could not go through =org_amend replace=true=, the very defect being recorded, so it was a surgical text edit with the buffer confirmed unmodified.
+
 
 
 ** TODO Miss: a prediction or a claim about state reported as fact without checking the artifact
@@ -1764,6 +1773,8 @@ line per catch.
 
 - [2026-09-23 Wed] Self-caught: surveying slice 8a2eb687's members for =:PLAN:= drawers, the session counted drawer lines with an =awk= scan of =TODO.org= that finds heading boundaries by regex, when =org_body drawer=PLAN= answers the same question per heading.
 - [2026-09-23 Wed] Caught by the user: "I think you give up on =org-ql= too quickly. I saw you try one query and fall back to grep." Looking for the transcripts-to-org proposal, the session tried =heading:"transcript"= once and then grepped =TODO.org= and =DONE.org= three times. A bare-word query (=transcript readable=) is org-ql's full-text =rifle= predicate, and it finds =96ddf1ef= in DONE.org in one call. The session had treated the five predicates =org_query='s description names as the whole language.
+- [2026-09-25 Fri] Caught by the user: "you grepped again. is that a miss?" Looking for headings glued onto a body line (5b46fbfd's defect) and for the heading enclosing a given line, the session grepped and awked =TODO.org= repeatedly, including after the repair, where =org_outline= scoped to the two ids confirmed it in one call. The whole-file scan for a heading org cannot see is the one partial excuse, and =org-lint='s "possibly misplaced heading" checker is org's own answer to that question: it was never tried.
+
 
 
 * REVIEW Nothing runs the shell hook suites, so three sat red for a day and a merge without anyone seeing :code:
