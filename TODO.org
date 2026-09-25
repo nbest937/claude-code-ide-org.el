@@ -100,38 +100,33 @@ reply citing two ids with a third in the narration, expanded with ctrl+o,
 and checked on the phone.
 :END:
 
-Proposed 2026-09-24, from the user's question whether footnotes could be folded away and shown on demand. Two routes to that were ruled out first. A hook cannot write into a response, so a withheld closing fence could not be supplied later; and injecting control characters into the terminal would fight Claude Code's own redraw. The foldable element that does exist is a tool call: the terminal shows "Called emacs-tools" on one line and hides the result until expanded (ctrl+o).
+Hand-written end matter is recalled, so titles and keywords drift, and it
+sits on screen after every reply. A tool call is the one foldable element
+in the terminal ("Called emacs-tools", expanded with ctrl+o), so a tool
+that generates the end matter both fixes the titles and folds them away.
+The user asked 2026-09-24 whether footnotes could be shown on demand.
 
-*Proposal.* A small =org_footnotes= tool takes the ids a response cites and returns the canonical end-matter lines, each keyword and exact title read from the tracker. The session calls it as the turn's last step, so the footnotes arrive collapsed and expandable, and their titles are generated, never recalled. That removes the class of error =e74ca757= recorded six times in one session, and makes =4a583ff2='s title check nearly moot. =footnote-check= would accept such a call in the turn as discharging the debt; it needs to see the turn's tool calls, which =c247d8f3='s fix already reads from the transcript, hence the blocker.
+Established (2026-09-24, a live probe in Claude Code 2.1.280):
+- =updatedInput= from a =PreToolUse= hook reaches an MCP server, and hook
+  edits to settings are picked up mid-session.
+- At =PreToolUse= the turn's narration and the call's own =tool_use= are
+  not yet on disk; both land 0.8–1.5 s later, narration first.
+- Narration before a tool call can reach the reader as a harness
+  summary, stored as a non-empty =thinking= entry with no =text=; the
+  user's terminal showed it verbatim. Final replies arrive as =text=.
 
-*Open:* whether other surfaces, a phone following the session or the desktop app, show a collapsed tool result as usefully; and whether footnotes hidden by default serve a reader scrolling back later, or only the reader of the moment. Related: =13aed7ca= (the bulk burden) and =9bc8fc8c= (the reader-side route in renders).
+Ruled out:
+- A hook writing into the response, or control characters in the
+  terminal.
+- The tool reading the MCP session's transcript by itself: the MCP
+  session is keyed by project basename, and Claude Code sends no session
+  id (no =.mcp.json= expansion carries it).
+- Calling the tool after the reply, which would put the reply before a
+  tool call and risk its being summarised.
+- A shell scanner shared by both hooks: in an outage the user wants no
+  footnotes owed, since titles cannot be looked up.
 
-*The central open question: who extracts the ids* (the user asked, 2026-09-24). As first proposed, the tool takes the ids as arguments, so it fixes the titles while *which* ids to cite stays the writer's recall. That is the other half of the failure, which the hook catches only after the fact. The better shape is a tool called with no arguments as the turn's last step, which extracts the ids itself with the same scanner =footnote-check= uses: every 8-hex token in the turn's text that resolves to a tracked heading, code fences skipped. "Which ids are owed" and "is the debt paid" would then be decided by one piece of code. That needs the tool to find the turn's text. A tool call does not receive the response, but the text written earlier in the turn is in the session transcript, which is how =c247d8f3='s fix reads it. The MCP tool, though, knows its session by the project's basename, not by Claude's session id, so it cannot tell which transcript is this turn's. Candidates: the hooks pass the Claude session id through to the MCP session, or the tool takes the project's most recently written transcript, which is fragile with concurrent sessions. Settle this before designing anything else.
-
-*Measured 2026-09-24, a live probe in Claude Code 2.1.280* (two
-temporary =PreToolUse= hooks in =settings.local.json=, since removed):
-- Hook edits to settings are picked up mid-session, with no restart.
-- =updatedInput= from a =PreToolUse= hook reaches an MCP server: an
-  =org_outline= call with a nonexistent scope was rewritten and
-  returned the slice's outline.
-- At =PreToolUse= neither the preceding narration nor the call's own
-  =tool_use= is on disk; both land 0.8–1.5 s later, narration first, in
-  5 of 5 trials. Waiting for the call's own =tool_use_id= is a sound
-  signal that the turn so far is written.
-- *Narration between tool calls may reach the reader as a harness
-  summary, not as written.* In 3 of the probe turn's 7 blocks the
-  transcript holds an empty =thinking= entry, then a non-empty one with
-  a reworded summary, and no =text= entry. The user's terminal showed
-  that summary verbatim (checked 2026-09-24), so the transcript is
-  faithful to the reader; only the model's own context holds the
-  original. Final replies arrive as =text=.
-
-So the transcript route stands, reading =text= and non-empty =thinking=
-entries as the reader's view, which is also what footnotes owe: an id
-the summary dropped was never shown. Decided before the probe (the
-user): the scanner lives in elisp behind =sh= stubs, and in an outage
-=footnote-check= stands aside and no end matter is owed.
-
+Open: how a folded tool result reads on the phone or the desktop app.
 
 
 
