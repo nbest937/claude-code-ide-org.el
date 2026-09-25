@@ -10443,67 +10443,32 @@ apply check, idempotency included. Each shown to fail with its check
 removed.
 :END:
 
-=org_capture= requires a live Emacs. When the server is unreachable the
-call fails outright and the task exists only in the conversation, which
-ends. Not hypothetical: on 2026-08-10 the Emacs server was down for the
-first ten minutes or so of a session (=emacsclient= reporting "can't
-find socket"), and any capture attempted then would simply have been
-lost.
+=org_capture= needs a live Emacs, so a task filed during an outage exists
+only in the conversation. On 2026-08-10 the server was down for the
+first ten minutes of a session and any capture would have been lost.
 
-This is the one creation path that cannot use the property the event
-queue exists for — durable, cheap, no Emacs required. Everything else a
-session records survives an Emacs outage; the act of writing down a new
-task does not.
+Established (2026-09-24):
+- The queued-capture contract the original body called unsettled
+  already exists for the unsaved-edits route: a pre-minted =:ID:=
+  returned to the session, a review-buffer item, and
+  =--review-apply-capture=, which resolves the target at apply time.
+- The "prior question" is out of date: =org_capture= now takes target,
+  tags, note, initial state and category, and is the normal creation
+  path.
+- Creation could still carry d9132c57's =:LOGBOOK:= entry on the same
+  event.
 
-*Proposal:* attempt the live capture; on failure, append a =capture=
-event to the queue, and let apply create the heading.
+Ruled out:
+- An =org_amend= fallback: dd4b9a9f retires it for =org_edit=, which
+  waits rather than queues.
+- Queueing on a timed-out call, which may still land and would duplicate
+  the heading.
+- A second writer of capture events in the hook, or a fake Emacs reply
+  piped into =queue-append=.
 
-*Three things this raises, none of them settled:*
-- *It is the queue's first outbox use.* Every existing kind is a
-  proposal about a heading that already exists; a =capture= event would
-  bring one into being. That is a genuinely different contract, and the
-  review buffer would need to render it as such.
-- *The :ID: must be minted by the session, not at apply time.* An ID
-  assigned on application is useless to the session that queued it — it
-  could not link to the heading, block on it, or clock against it, which
-  is exactly what =claude-code-ide-org-capture= returns its ID for
-  today. Minting without Emacs is fine (=org-id-new= is a UUID), but it
-  means an ID can be referenced before the heading it names exists.
-- *Reconciliation.* If the live capture succeeded and only its reply was
-  lost, applying the queued event would duplicate the heading. A
-  session-minted ID gives apply a cheap idempotency key: if that :ID:
-  already resolves, the event is already realised.
-
-*The larger caveat, which bears on this and on
-[[id:cdcc065c-628d-4350-b1ba-fcf686e9c4c1][cdcc065c]] both.* This tool creates a
-bare =* TODO <title>= at top level in a single target file. It cannot place a
-heading under a named parent, nor carry tags, a body, or any property beyond the
-=:ID:= it generates. Consequently almost every heading in this project is
-written by direct Elisp instead — four were created that way on 2026-08-10
-alone, none through the tool. So instrumenting or repairing =org_capture=
-improves a path that is rarely taken, and the prior question is whether the tool
-should become capable enough to be worth using. Decide that first; it may
-reorder or absorb both headings.
-
-*Considered and set aside:* queueing a =capture= event on *every*
-capture, as an audit record carrying =session_id=/=agent_id= — which is
-the only place session attribution exists, and would answer "which
-session created this heading?" structurally rather than from prose in
-the body. Rejected for now on the caveat above: it would record almost
-nothing real. Revisit if the tool becomes the normal creation path.
-
-
-*Also the timeline origin:* recording creation as a =:LOGBOOK:= entry
-([[id:d9132c57-9dcf-47e9-ba74-7f5a1ced3ae5][d9132c57]]) can ride this same event
-rather than needing a mechanism of its own — apply would write the creation
-entry exactly as it writes a state transition.
-
-*Builds on 3ad389be's =PostToolUseFailure= hook* (2026-09-23): the
-fallback becomes a branch of that hook, whose payload carries the whole
-=tool_input=. It fires on a refused connection only, because a timed-out
-call keeps running and a queued copy of a capture that later lands would
-create the heading twice.
-
+Still open, not this heading's: a =capture= event on *every* capture as
+an audit of which session created a heading, set aside when capture was
+rarely used (cdcc065c).
 
 * TODO [3/5] Institute a catch-all heading for cross-cutting meta-work :code:
 :PROPERTIES:
