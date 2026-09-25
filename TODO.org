@@ -8163,6 +8163,16 @@ Worth attempting first: re-run the sweep against a buffer put through the same
 sequence -- revert, consolidate, normalise, then archive -- to see whether the
 combination is what does it.
 
+*Deferred to the end of slice 8a2eb687's implementation* (the user,
+2026-09-24), probe and all. The probe as framed: check for a recurrence
+(duplicate ids in DONE.org, guard failures since 2026-08-31); rebuild
+both files from the commit before that archive; replay revert, clear
+read-only, consolidate, normalise, archive in batch Emacs with a temp
+org-id file, varying one step at a time; then once in the live Emacs on
+scratch copies. Load =config.el= from the incident's commit, not HEAD:
+60d6ab6e and 53b0047d change the archive and revert paths first.
+
+
 
 * TODO [0/2] Make an archived day hold that day's record :code:
 :PROPERTIES:
