@@ -14019,6 +14019,18 @@ Only the appended text: a drawer the reader opened further up stays open."
         (beginning-of-line)
         (ignore-errors (org-fold-hide-drawer-toggle t))))))
 
+(defun claude-code-ide-org--live-pin-tail ()
+  "Set `auto-revert-tail-pos' to the size of the file the buffer now shows.
+
+After the follower writes the whole render.  The position is set when a
+file is *visited* and survives a revert, and turning tail mode on keeps
+a prior one; so a buffer that visited an older, shorter render and was
+reverted to a new one kept the old size, and tail mode then re-inserted
+everything past it.  Found live on 2026-09-25: 82,000 characters of
+turns duplicated in this session's own render (TODO.org :ID: eddee10f)."
+  (setq-local auto-revert-tail-pos
+              (file-attribute-size (file-attributes (buffer-file-name)))))
+
 (defun claude-code-ide-org--live-stop-following (why)
   "Turn following off in the current buffer, saying WHY in the echo area."
   (claude-code-ide-org-render-live-mode -1)
@@ -14048,6 +14060,7 @@ point at the very end moves with them, anywhere else it stays."
           (let ((full (claude-code-ide-org--render-finished claude-code-ide-org--live-session file)))
             (with-temp-file render (insert (car full)))
             (let ((inhibit-read-only t)) (revert-buffer t t t))
+            (claude-code-ide-org--live-pin-tail)
             (claude-code-ide-org--live-stop-following
              "the transcript was replaced, so the render was rebuilt")))
          (t
@@ -14147,6 +14160,7 @@ and opened with following on."
               (with-current-buffer existing
                 (let ((inhibit-read-only t)) (revert-buffer t t t))))
             (if other-window (find-file-other-window out) (find-file out))
+            (claude-code-ide-org--live-pin-tail)
             (setq claude-code-ide-org--live-session session-id
                   claude-code-ide-org--live-transcript source
                   claude-code-ide-org--live-offset (cdr full)

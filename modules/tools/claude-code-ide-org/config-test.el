@@ -19515,3 +19515,40 @@ full again, and following stops, saying why; a vanished one stops it."
             (claude-code-ide-org--live-update buf)
             (with-current-buffer buf (should-not claude-code-ide-org-render-live-mode)))
         (when (buffer-live-p buf) (kill-buffer buf))))))
+
+(ert-deftest claude-code-ide-org-test-live-render-over-a-stale-buffer-duplicates-nothing ()
+  "A buffer already visiting an older, shorter render of the session --
+one opened earlier with T from the review buffer -- keeps the tail
+position it was visited at, and tail mode keeps a prior position; so
+reverting it to the new render and following from there re-inserted
+every turn past the old size.  Found live on 2026-09-25: 82,000
+characters duplicated from the first turn the old render lacked."
+  (claude-code-ide-org-test--with-raw-transcript "s1"
+      (list (claude-code-ide-org-test--prompt-entry "2026-09-25T10:00:00.000Z" "first")
+            (claude-code-ide-org-test--tool-reply "2026-09-25T10:00:01.000Z" "one")
+            (claude-code-ide-org-test--turn-end "2026-09-25T10:00:02.000Z"))
+    (let* ((transcript (claude-code-ide-org--transcript-file "s1"))
+           (old (find-file-noselect (claude-code-ide-org-render-session "s1"))))
+      ;; The session goes on; the old buffer sits on the shorter render.
+      (claude-code-ide-org-test--append-lines
+       transcript
+       (list (claude-code-ide-org-test--prompt-entry "2026-09-25T10:01:00.000Z" "second")
+             (claude-code-ide-org-test--tool-reply "2026-09-25T10:01:01.000Z" "two")
+             (claude-code-ide-org-test--turn-end "2026-09-25T10:01:02.000Z")
+             (claude-code-ide-org-test--prompt-entry "2026-09-25T10:02:00.000Z" "third")))
+      (let ((buf (claude-code-ide-org--open-live-render "s1")))
+        (unwind-protect
+            (progn
+              (should (eq old buf))
+              (claude-code-ide-org-test--append-lines
+               transcript
+               (list (claude-code-ide-org-test--tool-reply "2026-09-25T10:02:01.000Z" "three")
+                     (claude-code-ide-org-test--turn-end "2026-09-25T10:02:02.000Z")))
+              (claude-code-ide-org--live-update buf)
+              (with-current-buffer buf
+                (should (equal (buffer-substring-no-properties (point-min) (point-max))
+                               (with-temp-buffer (insert-file-contents (buffer-file-name buf))
+                                                 (buffer-string))))
+                (should (= 1 (how-many "^\\* [0-9:]+  second$" (point-min) (point-max))))))
+          (with-current-buffer buf (claude-code-ide-org-render-live-mode -1))
+          (kill-buffer buf))))))
