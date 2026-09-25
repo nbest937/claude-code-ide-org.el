@@ -2,6 +2,8 @@
 #+TAGS: analysis bug code comms prose research review spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+
+
 * REVIEW A rendered session drops the narration the reader saw, because the transcript stores it as thinking :code:
 :PROPERTIES:
 :ID:       b09d8090-e225-4659-b652-1a002e799379
@@ -62,7 +64,10 @@ entries were empty (the model's hidden reasoning) and the other 220
 were all at most 475 characters; in the two sessions checked none
 shared a message with a =text= block.
 
-Ruled out: italics as the marker, which break on any slash in the text.* TODO org_outline shows what a heading is blocked by, never what it blocks :code:
+Ruled out: italics as the marker, which break on any slash in the text.
+
+
+* TODO org_outline shows what a heading is blocked by, never what it blocks :code:
 :PROPERTIES:
 :ID:       b3177ed0-9747-4e31-ad65-bac25b9bdd1f
 :CREATED:  [2026-09-24 Thu 20:01]
@@ -4760,9 +4765,10 @@ Proposed: a rule comparing each member's checkbox against the referent's current
 keyword, per the conventions' derivation table. It must scope to *open* slices
 only — on a closed one a disagreement is the record correctly refusing to track
 later change (=30a340fd=), which is the opposite of a defect. Complements
-=a508c59e=, which is the repair half; this one is detection.* TODO org_query
-exposes four of org-ql's thirty-five predicates, so structured reads fall back
-to text scanning :code:
+=a508c59e=, which is the repair half; this one is detection.
+
+
+* TODO org_query exposes four of org-ql's thirty-five predicates, so structured reads fall back to text scanning :code:
 :PROPERTIES:
 :ID:       61f05e56-9d05-4f3e-9131-5eb899f95b8f
 :CREATED:  [2026-09-11 Fri 16:16]
