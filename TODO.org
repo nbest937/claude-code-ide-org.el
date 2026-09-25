@@ -312,6 +312,21 @@ Ruled out:
 
 Open: how a folded tool result reads on the phone or the desktop app.
 
+*Shipped 2026-09-25* in [[orgit-rev:claude-code-ide-org::660cb63][660cb63]] and [[orgit-rev:claude-code-ide-org::a8d095e][a8d095e]], as the drawer designed it.
+=org_footnotes= gets its lines from =bin/hooks/footnotes-inject=, which builds
+them in Emacs from the reply's narration and the call's ids, starred where a
+change is queued. =footnote-check= counts the covered ids. The citation rules
+now deliver end matter through the tool, with hand end matter as the fallback.
+*The first live call injected nothing*: the writer took 3.54 s against the
+hook's 3 s watchdog, because it read the queue once per id at 1.1 s a read. It
+now reads the queue once, and takes 1.26 s. *The live run then passed:* a call
+naming two ids returned three canonical lines, the third cited only in the
+narration, one of them starred. Open, for the user: how the folded result reads
+on the phone and in the desktop app. And a rule to settle: =org_clock_out= is
+also a turn's last call, so the two need an order, clock out first, then
+=org_footnotes=.
+
+
 
 * TODO The review buffer's transcript context mixes sessions, mixes sort orders, and shows only one side of a span :code:
 :PROPERTIES:
