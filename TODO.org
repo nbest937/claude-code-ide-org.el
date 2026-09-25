@@ -2,6 +2,15 @@
 #+TAGS: analysis bug code comms prose research review spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO org_outline shows what a heading is blocked by, never what it blocks :code:
+:PROPERTIES:
+:ID:       b3177ed0-9747-4e31-ad65-bac25b9bdd1f
+:CREATED:  [2026-09-24 Thu 20:01]
+:CATEGORY: Tools
+:END:
+
+Scoped to one heading, org_outline's front matter lists that heading's :BLOCKER: value with each id's keyword. It never lists the headings whose :BLOCKER: names this one, so "what does this block?" means grepping :BLOCKER: lines and walking each hit back to its :ID:. That was done by hand for dd4b9a9f on 2026-09-24, and org-ql's regexp: returned nothing for an alternation over five ids, while a single-id regexp:"BLOCKER:.*<id>" works. Proposal: a :BLOCKS: line in the scoped front matter, listing each heading that names this heading or any descendant in its :BLOCKER:, with its keyword, the way :BLOCKER: is shown today. A sibling of 5acca91b, which asks what is blocked at all.
+
 * TODO Look up a tracked id wherever it appears in Emacs: its title at point, and a jump on click :code:
 :PROPERTIES:
 :ID:       0eaffc39-088f-48c3-a5b8-167336458114
