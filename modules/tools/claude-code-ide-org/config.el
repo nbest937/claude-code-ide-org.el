@@ -12207,9 +12207,10 @@ remainder stated."
 ;; so `#+STARTUP: content' folds them away.  Three things are dropped
 ;; and each is a decision rather than an omission:
 ;;
-;;   - `thinking' blocks.  Measured on one session: 107 of them against
-;;     36 of prose, so including them triples the file without being
-;;     what anyone is paging for.
+;;   - EMPTY `thinking' blocks, the model's hidden reasoning.  A
+;;     non-empty one is the harness's summary of narration the reader
+;;     saw, and is rendered as a `:summary:' sub-heading where it
+;;     appeared (TODO.org :ID: b09d8090).
 ;;   - tool *results*, which is the trap this heading warned about --
 ;;     a `type: "user"' entry is usually a tool result rather than a
 ;;     human turn (218 of 231 in one session), and a renderer that
@@ -12292,70 +12293,95 @@ and carries nothing a reader is scanning for."
 
 (defun claude-code-ide-org--transcript-turns (session-id)
   "Return SESSION-ID's transcript as a list of turn plists.
+See `claude-code-ide-org--turn-reader-view', which this is a lookup in
+front of."
+  (when-let* ((file (claude-code-ide-org--transcript-file session-id)))
+    (claude-code-ide-org--turn-reader-view file)))
+
+(defun claude-code-ide-org--turn-reader-view (file &optional stop-at)
+  "Return transcript FILE as a list of turn plists, as the reader saw it.
 
 Each turn is (:time TIME :prompt TEXT :blocks LIST), opened by a human
 prompt and running until the next one.  BLOCKS is ordered, each element
-either (text . STRING) or (tool . LABEL), so the render can keep prose
-and tool calls in the order they happened.  Content before the
-first prompt is discarded: it is the harness's own preamble, and a turn
-is defined by the prompt that started it.
+\(text . STRING), (narration . STRING) or (tool . LABEL), so a reader
+keeps prose, narration and tool calls in the order they happened.
+Content before the first prompt is discarded: it is the harness's own
+preamble, and a turn is defined by the prompt that started it.
+
+*Narration* (TODO.org :ID: b09d8090) is a NON-empty `thinking' entry:
+the harness's summary of what the agent is doing, which the reader's
+terminal showed verbatim.  An EMPTY `thinking' entry is the model's
+hidden reasoning and is dropped -- 1,651 of 1,871 across eight sessions
+on 2026-09-24, the other 220 all short.  That split is undocumented, so
+a test fixture pins it.
+
+With STOP-AT, a `tool_use' id, reading ends just before that call: the
+view is what the reader had seen when the call was made, which is what
+a footnote check run from `PreToolUse' needs.  The one reader of a turn
+that the render and the footnote work share, so they cannot disagree
+about what a turn held.
 
 Turn boundaries come from the same shape test
 `claude-code-ide-org--transcript-prompts' uses -- user role, string
 content, not `isMeta', not a `<bash-' escape -- so the two agree by
 construction about what a prompt is."
-  (when-let* ((file (claude-code-ide-org--transcript-file session-id)))
-    (with-temp-buffer
-      (insert-file-contents file)
-      (goto-char (point-min))
-      (let (turns current)
-        (while (not (eobp))
-          (let ((line (buffer-substring-no-properties
-                       (line-beginning-position) (line-end-position))))
-            (when-let* (((string-search "\"type\":\"" line))
-                        (obj (ignore-errors
-                               (json-parse-string line :object-type 'alist
-                                                  :null-object nil
-                                                  :false-object nil)))
-                        (type (alist-get 'type obj)))
-              (cond
-               ;; A human prompt opens a turn.
-               ((and (equal type "user")
-                     (not (alist-get 'isMeta obj))
-                     (let ((c (alist-get 'content (alist-get 'message obj))))
-                       (and (stringp c) (not (string-prefix-p "<bash-" c)))))
-                (when current (push (claude-code-ide-org--close-transcript-turn current) turns))
-                (setq current
-                      (list :time (claude-code-ide-org--parse-iso8601
-                                   (alist-get 'timestamp obj))
-                            :prompt (alist-get 'content
-                                               (alist-get 'message obj))
-                            :blocks nil)))
-               ;; Assistant blocks accumulate into the open turn.
-               ((and (equal type "assistant") current)
-                (let ((content (alist-get 'content (alist-get 'message obj))))
-                  (when (vectorp content)
-                    (seq-doseq (block content)
+  (with-temp-buffer
+    (insert-file-contents file)
+    (goto-char (point-min))
+    (let (turns current stopped)
+      (while (and (not stopped) (not (eobp)))
+        (let ((line (buffer-substring-no-properties
+                     (line-beginning-position) (line-end-position))))
+          (when-let* (((string-search "\"type\":\"" line))
+                      (obj (ignore-errors
+                             (json-parse-string line :object-type 'alist
+                                                :null-object nil
+                                                :false-object nil)))
+                      (type (alist-get 'type obj)))
+            (cond
+             ;; A human prompt opens a turn.
+             ((and (equal type "user")
+                   (not (alist-get 'isMeta obj))
+                   (let ((c (alist-get 'content (alist-get 'message obj))))
+                     (and (stringp c) (not (string-prefix-p "<bash-" c)))))
+              (when current (push (claude-code-ide-org--close-transcript-turn current) turns))
+              (setq current
+                    (list :time (claude-code-ide-org--parse-iso8601
+                                 (alist-get 'timestamp obj))
+                          :prompt (alist-get 'content
+                                             (alist-get 'message obj))
+                          :blocks nil)))
+             ;; Assistant blocks accumulate into the open turn.
+             ((and (equal type "assistant") current)
+              (let ((content (alist-get 'content (alist-get 'message obj))))
+                (when (vectorp content)
+                  (seq-doseq (block content)
+                    (unless stopped
                       (pcase (alist-get 'type block)
-                        ("text"
-                         (let ((text (alist-get 'text block)))
+                        ((and (or "text" "thinking") kind)
+                         (let ((text (alist-get (intern kind) block)))
                            (when (and (stringp text)
                                       (not (string-empty-p (string-trim text))))
                              (plist-put current :blocks
-                                        (cons (cons 'text text)
+                                        (cons (cons (if (equal kind "text")
+                                                        'text 'narration)
+                                                    text)
                                               (plist-get current :blocks))))))
                         ("tool_use"
-                         (plist-put current :blocks
-                                    (cons (cons 'tool
-                                                (claude-code-ide-org--tool-label
-                                                 (alist-get 'name block)
-                                                 (alist-get 'input block)))
-                                          (plist-get current :blocks))))
-                        ;; `thinking' and everything else: dropped.
-                        (_ nil))))))))
-            (forward-line 1)))
-        (when current (push (claude-code-ide-org--close-transcript-turn current) turns))
-        (nreverse turns)))))
+                         (if (and stop-at (equal (alist-get 'id block) stop-at))
+                             (setq stopped t)
+                           (plist-put current :blocks
+                                      (cons (cons 'tool
+                                                  (claude-code-ide-org--tool-label
+                                                   (alist-get 'name block)
+                                                   (alist-get 'input block)))
+                                            (plist-get current :blocks)))))
+                        ;; Empty `thinking' (above) and everything else:
+                        ;; dropped.
+                        (_ nil)))))))))
+          (forward-line 1)))
+      (when current (push (claude-code-ide-org--close-transcript-turn current) turns))
+      (nreverse turns))))
 
 (defun claude-code-ide-org--close-transcript-turn (turn)
   "Return TURN with its accumulated :blocks put back in order.
@@ -12569,7 +12595,11 @@ partial read can never yield a partial stamp."
               (dolist (block (plist-get turn :blocks))
                 (pcase (car block)
                   ('tool (push (cdr block) pending))
-                  ('text
+                  ;; Narration is placed exactly like prose -- it is where
+                  ;; the reader saw it -- but tagged, so the harness's
+                  ;; words stay distinguishable from the model's and
+                  ;; filterable (TODO.org :ID: b09d8090).
+                  ((and (or 'text 'narration) kind)
                    (when pending
                      (claude-code-ide-org--insert-tools-drawer (nreverse pending))
                      (setq pending nil))
@@ -12582,7 +12612,8 @@ partial read can never yield a partial stamp."
                           (more (or (string-search "\n" text)
                                     (> (string-width text)
                                        claude-code-ide-org-prompt-synopsis-width))))
-                     (insert (format "\n** %s\n" synopsis))
+                     (insert (format "\n** %s%s\n" synopsis
+                                     (if (eq kind 'narration) "  :summary:" "")))
                      (when more
                        (insert "\n"
                                (claude-code-ide-org--org-escape-body text)

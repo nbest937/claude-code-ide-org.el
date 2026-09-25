@@ -10222,18 +10222,19 @@ must not come back as `(text text) (tool)'."
                      "Bash -- ran a thing")))))
 
 (ert-deftest claude-code-ide-org-test-transcript-turns-drop-thinking-and-results ()
-  "`thinking' blocks and tool results never reach a turn.
+  "EMPTY `thinking' blocks and tool results never reach a turn.
 
-Thinking was 107 blocks against 36 of prose on a real session, and a
-tool result wears the *user* role -- 218 of 231 in one session -- so a
-renderer that counts them as prompts reports twenty times too many
-turns.  Both in one fixture: dropping only one of them still passes the
-other's assertion."
+An empty `thinking' entry is the model's hidden reasoning -- 1,651 of
+1,871 across eight sessions -- and a tool result wears the *user* role,
+218 of 231 in one session, so a renderer that counts them as prompts
+reports twenty times too many turns.  Both in one fixture: dropping only
+one of them still passes the other's assertion.  A NON-empty `thinking'
+entry is narration the reader saw, and is kept (TODO.org :ID: b09d8090)."
   (claude-code-ide-org-test--with-raw-transcript "s1"
       (list (claude-code-ide-org-test--prompt-entry "2026-09-11T12:00:00.000Z" "go")
             (claude-code-ide-org-test--assistant
              "2026-09-11T12:00:01.000Z"
-             '((type . "thinking") (thinking . "pondering"))
+             '((type . "thinking") (thinking . ""))
              '((type . "text") (text . "answer")))
             ;; A tool result: user role, ARRAY content.
             `((type . "user") (timestamp . "2026-09-11T12:00:02.000Z")
@@ -10243,6 +10244,77 @@ other's assertion."
     (let ((turns (claude-code-ide-org--transcript-turns "s1")))
       (should (= 1 (length turns)))
       (should (equal (plist-get (car turns) :blocks) '((text . "answer")))))))
+
+;; TODO.org :ID: b09d8090.  Narration can reach the reader as a harness
+;; summary that the transcript stores as a NON-empty `thinking' entry;
+;; the model's hidden reasoning is stored as an EMPTY one.  That
+;; distinction is undocumented, so this fixture is what pins it.
+
+(defun claude-code-ide-org-test--narration-fixture ()
+  "One turn: a tool, narration, an empty thinking entry, a tool, prose."
+  (list (claude-code-ide-org-test--prompt-entry "2026-09-11T12:00:00.000Z" "go")
+        (claude-code-ide-org-test--assistant
+         "2026-09-11T12:00:01.000Z"
+         '((type . "tool_use") (id . "toolu_1") (name . "Bash")
+           (input . ((description . "first call")))))
+        (claude-code-ide-org-test--assistant
+         "2026-09-11T12:00:02.000Z"
+         '((type . "thinking") (thinking . "Checking the parser before editing.")))
+        (claude-code-ide-org-test--assistant
+         "2026-09-11T12:00:03.000Z"
+         '((type . "thinking") (thinking . "")))
+        (claude-code-ide-org-test--assistant
+         "2026-09-11T12:00:04.000Z"
+         '((type . "tool_use") (id . "toolu_2") (name . "Bash")
+           (input . ((description . "second call")))))
+        (claude-code-ide-org-test--assistant
+         "2026-09-11T12:00:05.000Z"
+         '((type . "text") (text . "Done.")))))
+
+(ert-deftest claude-code-ide-org-test-turn-reader-view-keeps-narration ()
+  (claude-code-ide-org-test--with-raw-transcript "s1"
+      (claude-code-ide-org-test--narration-fixture)
+    (let* ((file (claude-code-ide-org--transcript-file "s1"))
+           (turns (claude-code-ide-org--turn-reader-view file)))
+      (should (= 1 (length turns)))
+      (should (equal (plist-get (car turns) :blocks)
+                     '((tool . "Bash -- first call")
+                       (narration . "Checking the parser before editing.")
+                       (tool . "Bash -- second call")
+                       (text . "Done.")))))))
+
+(ert-deftest claude-code-ide-org-test-turn-reader-view-stops-at-a-tool-use ()
+  "Given a tool_use_id, the view ends before that call: what the reader
+had seen when the call was made."
+  (claude-code-ide-org-test--with-raw-transcript "s1"
+      (claude-code-ide-org-test--narration-fixture)
+    (let* ((file (claude-code-ide-org--transcript-file "s1"))
+           (turns (claude-code-ide-org--turn-reader-view file "toolu_2")))
+      (should (equal (plist-get (car (last turns)) :blocks)
+                     '((tool . "Bash -- first call")
+                       (narration . "Checking the parser before editing.")))))))
+
+(ert-deftest claude-code-ide-org-test-render-shows-narration-as-a-summary ()
+  "Narration splits the tool drawer where the reader saw it, as a
+sub-heading tagged :summary:, and the empty entry leaves no trace."
+  (claude-code-ide-org-test--with-raw-transcript "s1"
+      (claude-code-ide-org-test--narration-fixture)
+    (let ((out (claude-code-ide-org--render-transcript "s1")))
+      (should (string-match-p
+               "^\\*\\* Checking the parser before editing\\. +:summary:$" out))
+      ;; The first call's drawer closes before the summary, the second
+      ;; call's opens after it.
+      (should (< (string-search "first call" out)
+                 (string-search "Checking the parser" out)
+                 (string-search "second call" out)))
+      (should (= 2 (claude-code-ide-org-test--count-in-string ":TOOLS:" out))))))
+
+(defun claude-code-ide-org-test--count-in-string (needle haystack)
+  "Count NEEDLE's occurrences in HAYSTACK."
+  (let ((n 0) (start 0))
+    (while (setq start (string-search needle haystack start))
+      (setq n (1+ n) start (1+ start)))
+    n))
 
 (ert-deftest claude-code-ide-org-test-render-escapes-leading-stars ()
   "Prose beginning with `*' is escaped so it cannot become a heading.
