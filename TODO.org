@@ -591,6 +591,21 @@ Files: =config.el= (the renderer split, the offset reader, the minor mode, the c
 
 *Not established:* whether Claude Code ever rewrites a transcript's earlier lines. The plan's rebuild rule guards that assumption.
 
+*Shipped 2026-09-25* in [[orgit-rev:claude-code-ide-org::907279d][907279d]] and [[orgit-rev:claude-code-ide-org::0ca2768][0ca2768]], as the drawer designed it. The
+renderer is split into a header and a single-turn renderer, byte-identical on a
+real transcript. An offset reader returns the finished turns.
+=claude-code-ide-org-render-live-mode= appends whole turns to the file, which
+the read-only tail-mode buffer takes. Five ERT cases, all failing against HEAD,
+cover the central property: a render opened mid-turn, then appended to, is
+byte-identical to one full render. Found on the first live run: a buffer left
+from an earlier render kept its old tail position through the revert, and tail
+mode re-inserted every turn past it, 82,000 characters. Fixed by pinning the
+position on every whole-render write, with a regression test that fails without
+it. Measured: a full render of a 6 MB session costs 0.97 s, and an append reads
+only past its offset. *Still to confirm live:* after a turn finishes, point and
+an opened drawer stay put mid-buffer, and point at the end follows.
+
+
 
 * TODO render-session asks for a session id from thin air; offer the project's sessions, newest first :code:
 :PROPERTIES:
