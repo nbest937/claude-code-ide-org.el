@@ -868,12 +868,21 @@ refusal and an unchanged file on disk. Prove it discriminates by
 removing the call from one tool.
 :END:
 
-Observed 2026-09-21. The user reflowed 94e6b615's =:PLAN:= drawer and
-did not save. A session's =org_wrap_plan= on b52df20b saved the buffer,
-and the reflow landed in that session's commit ffc67a7 under a message
-about b52df20b. Nothing was lost, but only by luck. Refuse on unsaved
-edits, as the other structural writers do.
+Six structural writers save a buffer holding the human's unsaved edits,
+where =org_set_property= and =org_slice_add_member= refuse and
+=org_amend= and =org_capture= queue. The title names the one observed.
 
+Established:
+- Observed 2026-09-21: the user reflowed 94e6b615's =:PLAN:= and did not
+  save, and a session's =org_wrap_plan= on b52df20b saved it, so the
+  reflow landed in commit ffc67a7 under a message about b52df20b.
+  Nothing was lost.
+- The sweep (2026-09-24) found the same gap in =org_archive=,
+  =org_refile=, =org_divide=, =org_sort_children=, =org_move_sibling=
+  and =close-open-interval=.
+
+Ruled out: a check inside =--at-id-writable= alone. Four writers bypass
+it, and archive and refile write a second file it cannot see.
 
 * TODO The member-drawer backfill clause is scaffolding: once every open heading has its canonical shape, the lint should require it and the clause retire
 :PROPERTIES:
