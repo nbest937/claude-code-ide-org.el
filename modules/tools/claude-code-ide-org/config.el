@@ -12546,9 +12546,95 @@ partial read can never yield a partial stamp."
       (insert-file-contents file)
       (count-lines (point-min) (point-max)))))
 
+;; Ids in a render become org footnotes (TODO.org :ID: 9bc8fc8c): the
+;; reference keeps the id as the label, so the text still reads by id,
+;; and each turn ends with its definitions -- the id link, the keyword
+;; and the exact title *as of the render*, in the end matter's canonical
+;; order.  Footnotes rather than overlays because they are visible
+;; without pointing, readable in any viewer, and a record of what the
+;; id meant then.  The live half is a companion heading.
+
+(defun claude-code-ide-org--render-id-entry (id8 cache)
+  "Return (FULL KEYWORD TITLE) for the heading ID8 names, or nil.
+Resolved against org's id index and never by rescanning: a render holds
+many 8-hex tokens that are not ids, and `--id-find's rescan on a miss
+would read every tracked file once per token.  CACHE, a hash table,
+holds each answer for the whole render, misses included."
+  (let ((hit (gethash id8 cache 'unset)))
+    (if (not (eq hit 'unset))
+        hit
+      (puthash
+       id8
+       (let ((full (claude-code-ide-org--expand-id-prefix
+                    id8 (claude-code-ide-org--id-index))))
+         (when (stringp full)
+           (when-let* ((file (gethash full org-id-locations))
+                       (marker (ignore-errors
+                                 (org-id-find-id-in-file full file 'marker))))
+             (org-with-point-at marker
+                                (list full (or (org-get-todo-state) "")
+                                      (substring-no-properties (org-get-heading t t t t)))))))
+       cache))))
+
+(defun claude-code-ide-org--render-link-ids (text cache found)
+  "Return TEXT with each tracked 8-hex id replaced by `[fn:ID8]'.
+Ids inside a code fence stay bare -- there they are transcript, not
+citation, as `footnote-check' also reads them.  A token resolving to no
+heading, a commit SHA say, is left alone.  Each linked id is recorded in
+FOUND, a hash table, for the turn's definitions."
+  (let ((in-fence nil)
+        ;; Ids are lowercase; `string-match' otherwise folds case.
+        (case-fold-search nil))
+    (mapconcat
+     (lambda (line)
+       (if (string-match-p "\\`[ \t]*\\(```\\|~~~\\)" line)
+           (progn (setq in-fence (not in-fence)) line)
+         (if in-fence
+             line
+           ;; A manual scan, not `replace-regexp-in-string': the
+           ;; boundary is a character on each side, and a regexp that
+           ;; consumes it misses the second of two ids one space apart.
+           (let ((pos 0) (out nil)
+                 (edge (lambda (i) (or (< i 0) (>= i (length line))
+                                       (not (string-match-p
+                                             "[0-9a-fA-F-]"
+                                             (string (aref line i))))))))
+             (while (string-match "[0-9a-f]\\{8\\}" line pos)
+               (let* ((b (match-beginning 0)) (e (match-end 0))
+                      (id8 (match-string 0 line)))
+                 (push (substring line pos b) out)
+                 (if (and (funcall edge (1- b)) (funcall edge e)
+                          (claude-code-ide-org--render-id-entry id8 cache))
+                     (progn (puthash id8 t found)
+                            ;; At column 0 org reads `[fn:X] ...' as a
+                            ;; footnote DEFINITION, so a reference that
+                            ;; opens a line is indented one space.
+                            (push (format (if (= b 0) " [fn:%s]" "[fn:%s]") id8) out))
+                   (push id8 out))
+                 (setq pos e)))
+             (push (substring line pos) out)
+             (apply #'concat (nreverse out))))))
+     (split-string text "\n")
+     "\n")))
+
+(defun claude-code-ide-org--insert-footnote-definitions (found cache)
+  "Insert a definition for each id in FOUND, sorted by id.
+The end matter's canonical form: the id as a link, the keyword padded
+to a column, then the exact title with any cookie."
+  (let ((ids (sort (hash-table-keys found) #'string<)))
+    (when ids
+      (insert "\n")
+      (dolist (id8 ids)
+        (pcase-let ((`(,full ,keyword ,title)
+                     (claude-code-ide-org--render-id-entry id8 cache)))
+          (insert (format "[fn:%s] [[id:%s][%s]]  %-9s %s\n"
+                          id8 full id8 keyword title)))))))
+
 (defun claude-code-ide-org--render-transcript (session-id)
   "Return SESSION-ID's transcript rendered as an org document string."
   (let* ((turns (claude-code-ide-org--transcript-turns session-id))
+         ;; One id lookup per render, misses included (:ID: 9bc8fc8c).
+         (id-cache (make-hash-table :test 'equal))
          (sibling (claude-code-ide-org--transcript-longer-sibling session-id))
          (day (when-let* ((first (car turns)) (time (plist-get first :time)))
                 (format-time-string "%Y-%m-%d %a" time))))
@@ -12576,7 +12662,12 @@ partial read can never yield a partial stamp."
           (let* ((time (plist-get turn :time))
                  (prompt (or (plist-get turn :prompt) ""))
                  (headline (or (claude-code-ide-org--prompt-synopsis prompt)
-                               "(empty prompt)")))
+                               "(empty prompt)"))
+                 ;; The ids this turn cites, for its footnote
+                 ;; definitions (TODO.org :ID: 9bc8fc8c).
+                 (found (make-hash-table :test 'equal))
+                 (link (lambda (s)
+                         (claude-code-ide-org--render-link-ids s id-cache found))))
             (insert (format "* %s  %s\n" 
                             (if time (format-time-string "%H:%M" time) "--:--")
                             headline))
@@ -12585,7 +12676,8 @@ partial read can never yield a partial stamp."
             ;; end and the answer begins -- and the first draft ran the
             ;; two together with only a blank line between.
             (insert "\n#+begin_quote\n"
-                    (claude-code-ide-org--org-escape-body (string-trim prompt))
+                    (funcall link (claude-code-ide-org--org-escape-body
+                                   (string-trim prompt)))
                     "\n#+end_quote\n")
             ;; Each paragraph of prose becomes a level-2 heading, so a
             ;; long turn has navigation points instead of being one
@@ -12612,14 +12704,15 @@ partial read can never yield a partial stamp."
                           (more (or (string-search "\n" text)
                                     (> (string-width text)
                                        claude-code-ide-org-prompt-synopsis-width))))
-                     (insert (format "\n** %s%s\n" synopsis
+                     (insert (format "\n** %s%s\n" (funcall link synopsis)
                                      (if (eq kind 'narration) "  :summary:" "")))
                      (when more
                        (insert "\n"
-                               (claude-code-ide-org--org-escape-body text)
+                               (funcall link (claude-code-ide-org--org-escape-body text))
                                "\n"))))))
               (when pending
                 (claude-code-ide-org--insert-tools-drawer (nreverse pending))))
+            (claude-code-ide-org--insert-footnote-definitions found id-cache)
             (insert "\n"))))
       (buffer-string))))
 

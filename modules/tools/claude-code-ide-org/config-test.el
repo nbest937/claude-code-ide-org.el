@@ -10309,6 +10309,95 @@ sub-heading tagged :summary:, and the empty entry leaves no trace."
                  (string-search "second call" out)))
       (should (= 2 (claude-code-ide-org-test--count-in-string ":TOOLS:" out))))))
 
+;; TODO.org :ID: 9bc8fc8c.  A tracked id in a render becomes an org
+;; footnote whose definition carries the id link, keyword and exact
+;; title as of the render.
+
+(defmacro claude-code-ide-org-test--with-render-ids (&rest body)
+  "A raw transcript citing ids, beside an org file that defines two."
+  (declare (indent 0))
+  `(let* ((orgdir (file-name-as-directory (make-temp-file "cciorg-ids" t)))
+          (orgfile (expand-file-name "TODO.org" orgdir))
+          (org-id-locations-file (expand-file-name ".ids" orgdir))
+          (org-id-locations (make-hash-table :test 'equal))
+          (org-id-files nil))
+     (unwind-protect
+         (progn
+           (with-temp-file orgfile
+             (insert "#+TODO: TODO NEXT DOING | DONE\n\n"
+                     "* DOING [1/2] Second heading\n:PROPERTIES:\n"
+                     ":ID:       bbbb0002-0000-4000-8000-000000000002\n:END:\n"
+                     "* TODO First heading\n:PROPERTIES:\n"
+                     ":ID:       aaaa0001-0000-4000-8000-000000000001\n:END:\n"))
+           (org-id-update-id-locations (list orgfile))
+           ,@body)
+       (let ((b (get-file-buffer orgfile))) (when b (kill-buffer b)))
+       (delete-directory orgdir t))))
+
+(ert-deftest claude-code-ide-org-test-render-footnotes-cited-ids ()
+  (claude-code-ide-org-test--with-render-ids
+    (claude-code-ide-org-test--with-raw-transcript "s1"
+        (list (claude-code-ide-org-test--prompt-entry "2026-09-11T12:00:00.000Z" "go")
+              (claude-code-ide-org-test--assistant
+               "2026-09-11T12:00:01.000Z"
+               '((type . "text")
+                 (text . "Both bbbb0002 and `aaaa0001` moved.\nSee commit 1234abcd for it."))))
+      (let ((out (claude-code-ide-org--render-transcript "s1")))
+        (should (string-match-p "Both \\[fn:bbbb0002\\] and `\\[fn:aaaa0001\\]` moved" out))
+        ;; Definitions in canonical order: sorted by id, link, keyword, title.
+        (should (string-match-p
+                 (concat "^\\[fn:aaaa0001\\] \\[\\[id:aaaa0001-0000-4000-8000-000000000001\\]"
+                         "\\[aaaa0001\\]\\] +TODO +First heading$")
+                 out))
+        (should (string-match-p
+                 "^\\[fn:bbbb0002\\] .* +DOING +\\[1/2\\] Second heading$" out))
+        (should (< (string-search "[fn:aaaa0001] [[" out)
+                   (string-search "[fn:bbbb0002] [[" out)))
+        ;; A SHA-shaped token that resolves to nothing stays bare.
+        (should (string-match-p "commit 1234abcd for" out))))))
+
+(ert-deftest claude-code-ide-org-test-render-reference-never-starts-a-line ()
+  "A line opening with an id must not become `[fn:ID] ...' at column 0,
+which org reads as a footnote DEFINITION.  Found on the first real render."
+  (claude-code-ide-org-test--with-render-ids
+    (claude-code-ide-org-test--with-raw-transcript "s1"
+        (list (claude-code-ide-org-test--prompt-entry "2026-09-11T12:00:00.000Z" "go")
+              (claude-code-ide-org-test--assistant
+               "2026-09-11T12:00:01.000Z"
+               '((type . "text") (text . "Intro line.\naaaa0001 is next."))))
+      (let ((out (claude-code-ide-org--render-transcript "s1")))
+        (should (string-match-p "^ \\[fn:aaaa0001\\] is next\\.$" out))
+        (should-not (string-match-p "^\\[fn:aaaa0001\\] is next" out))))))
+
+(ert-deftest claude-code-ide-org-test-render-leaves-fenced-ids-bare ()
+  "Inside a code fence an id is transcript, not citation."
+  (claude-code-ide-org-test--with-render-ids
+    (claude-code-ide-org-test--with-raw-transcript "s1"
+        (list (claude-code-ide-org-test--prompt-entry "2026-09-11T12:00:00.000Z" "go")
+              (claude-code-ide-org-test--assistant
+               "2026-09-11T12:00:01.000Z"
+               '((type . "text") (text . "Output:\n```\naaaa0001 listed\n```\nend"))))
+      (let ((out (claude-code-ide-org--render-transcript "s1")))
+        (should (string-match-p "^aaaa0001 listed$" out))
+        (should-not (string-search "[fn:aaaa0001]" out))))))
+
+(ert-deftest claude-code-ide-org-test-render-id-lookup-never-rescans ()
+  "A render holds many 8-hex tokens that are not ids; a rescan per miss
+would be ruinous, so a miss leaves the token as text and scans nothing."
+  (claude-code-ide-org-test--with-render-ids
+    (claude-code-ide-org-test--with-raw-transcript "s1"
+        (list (claude-code-ide-org-test--prompt-entry "2026-09-11T12:00:00.000Z" "go")
+              (claude-code-ide-org-test--assistant
+               "2026-09-11T12:00:01.000Z"
+               '((type . "text") (text . "A stray deadbeef here."))))
+      (let* ((scans 0)
+             (out (cl-letf (((symbol-function 'org-id-update-id-locations)
+                             (lambda (&rest _) (setq scans (1+ scans)))))
+                    (claude-code-ide-org--render-transcript "s1"))))
+        (should (= 0 scans))
+        (should (string-match-p "A stray deadbeef here" out))
+        (should-not (string-search "[fn:" out))))))
+
 (defun claude-code-ide-org-test--count-in-string (needle haystack)
   "Count NEEDLE's occurrences in HAYSTACK."
   (let ((n 0) (start 0))
