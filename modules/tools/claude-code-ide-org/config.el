@@ -10129,30 +10129,35 @@ annotation describing it stay adjacent only because they share one.
 Omit both and the item's own `:start'/`:end' are used, which is what the
 review buffer wants: it is describing the span, not a line.
 
-Always *inactive* timestamps, so nothing written from the queue reaches
-`org-agenda'.
+*Inactive* timestamps by default, so a queue-derived span never reaches
+`org-agenda'.  The `let*' below branches on ITEM's `:active', and that
+flag is an ASSERTION a human makes in the review buffer, never an
+inference from anything the queue records (TODO.org :ID: 60ed5b96).
+Exactly two acts set it: `c' (`claude-code-ide-org-review-claim-envelope')
+always, because claiming a span is asserting that a human attended it;
+and `e' (`claude-code-ide-org-review-edit-interval') only when both
+endpoints are typed as `<...>', so inactive stays its default.  `c''s
+own comment names :ID: 01849bef, the standing request for a key that
+sets it without hand-editing.
 
-This used to branch on ITEM's `:agent', active for anything without one
-and inactive for a subagent's -- i.e. it tested \"is this a subagent\"
-while its own docstring claimed to test \"is this a human\".  Those come
-apart on the outer session, which carries no agent_id and was therefore
-rendered active: measured 2026-08-14, all 68 events of one session had
-`agent_id' nil, so every span it produced was published to the agenda as
-though the user had been at the keyboard for it.
-
-The correction is not a better test but the removal of one.  The queue
-records *agent* activity and nothing else -- hooks and MCP tools write
-it, and a human clocking in Emacs writes a bare CLOCK: line with no
-annotation at all (TODO.org :ID: 4f8500e6).  So there is no case in
-which a queue-derived span is the user's own attention, and no branch to
-make.
+What was removed here (2026-08-14) was an *inference*: a branch on
+ITEM's `:agent', active for anything without one, which tested \"is
+this a subagent\" while claiming to test \"is this a human\".  Those
+come apart on the outer session, which carries no agent_id: all 68
+events of one session had it nil, so every span was published to the
+agenda as though the user had been at the keyboard.  The queue records
+*agent* activity and nothing else -- hooks and MCP tools write it, and
+a human clocking in Emacs writes a bare CLOCK: line with no annotation
+at all (TODO.org :ID: 4f8500e6) -- so no queue field can say a span was
+the user's own attention.  Only the human can, which is what `:active'
+now means.
 
 Note this narrows what TODO.org :ID: c084553c established: an active
 timestamp inside :LOGBOOK: does reach the agenda, and that remains the
-mechanism -- but it is now reserved for intervals a human logs
-themselves.  The agenda answers \"where did *my* attention go\"; the
-queue answers \"what was the agent doing\", and conflating them makes
-the first unreadable.  See :ID: b8e6007a."
+mechanism -- but it is reserved for intervals a human asserts as their
+own.  The agenda answers \"where did *my* attention go\"; the queue
+answers \"what was the agent doing\", and conflating them makes the
+first unreadable.  See :ID: b8e6007a."
   (let* ((fmt (if (plist-get item :active)
                   "<%Y-%m-%d %a %H:%M>"
                 "[%Y-%m-%d %a %H:%M]"))
