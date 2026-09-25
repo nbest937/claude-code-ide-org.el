@@ -5993,9 +5993,9 @@ than by reading, which is what that test is for.
 (:ID: a43cfaa0): membership is then positionally explicit, and an
 id-link bullet in the prose *above* the lead is ordinary prose rather
 than a member with a deleted cookie -- the trap the conventions used
-to have to warn about.  Where no lead exists the scan starts at the
-body as before; closed slices predate the lead and are never
-refreshed, so that fallback is permanent, not transitional."
+to have to warn about.  Where no lead exists -- five closed slices
+predate it -- the answer is the slice's `:MEMBERS:' (TODO.org :ID:
+7ee3b71a)."
   (save-excursion
     (org-back-to-heading t)
     (let* ((body-end (save-excursion (outline-next-heading)
@@ -6017,10 +6017,19 @@ refreshed, so that fallback is permanent, not transitional."
                             end t)
                            (match-end 0))))
            ids)
-      (if planned (goto-char planned) (org-end-of-meta-data t))
-      (while (re-search-forward claude-code-ide-org--slice-member-regexp end t)
-        (push (downcase (match-string-no-properties 2)) ids))
-      (nreverse ids))))
+      ;; No lead: the declaration answers.  The start-at-the-top scan went
+      ;; once every slice carried :MEMBERS: (TODO.org :ID: 7ee3b71a),
+      ;; which is what migrating all of them, closed ones included,
+      ;; bought.
+      (if (not planned)
+          ;; A slice with neither -- which the lint rejects -- is read
+          ;; from its checklist below the drawers, never from the top.
+          (or (claude-code-ide-org--slice-declared-ids)
+              (claude-code-ide-org--slice-checklist-ids))
+        (goto-char planned)
+        (while (re-search-forward claude-code-ide-org--slice-member-regexp end t)
+          (push (downcase (match-string-no-properties 2)) ids))
+        (nreverse ids)))))
 
 (defun claude-code-ide-org--slice-blocker-ids (&optional index)
   "Return the ids the slice at point should block on.
@@ -6622,7 +6631,7 @@ still sees it."
                     (downcase (if (stringp full) full tok))))
                 (split-string raw "[ \t,]+" t))))))
 
-(defun claude-code-ide-org--slice-render-planned-lines (ids index parents dropped)
+(defun claude-code-ide-org--slice-render-planned-lines (ids index parents dropped &optional previous)
   "Render IDS as a slice's planned checklist.  Returns (LINES . UNRENDERED).
 
 INDEX is `claude-code-ide-org--slice-referent-index''s hash, PARENTS the
@@ -6638,10 +6647,12 @@ keyword-less parent yields no row, which is what keeps a member under
 the meta-work datetree flush left.
 
 A member missing from INDEX, or whose referent has no keyword on disk,
-still renders -- as a boxless line naming what is known -- and is
-returned in UNRENDERED.  Skipping it, as the line-rewriting refresh
-could afford to, would delete it here, since this rendering replaces the
-list wholesale."
+is returned in UNRENDERED and still renders: as its line in PREVIOUS, a
+hash of id to the line the checklist held, when there is one -- keeping
+the box and placeholder title a queued capture was added with, as the
+line-rewriting refresh did -- and otherwise as a boxless line naming
+what is known.  Skipping it would delete it, since this rendering
+replaces the list wholesale."
   (let (lines unrendered prev-parent)
     (dolist (id ids)
       (let* ((entry (gethash id index))
@@ -6659,11 +6670,13 @@ list wholesale."
         (let ((box (and kw (not (member id dropped))
                         (cdr (assoc kw claude-code-ide-org--slice-checkbox-by-keyword)))))
           (unless (and entry kw) (push id unrendered))
-          (push (concat indent "- " (if box (format "[%s] " box) "")
+          (push (if (and (not (and entry kw)) previous (gethash id previous))
+                    (concat indent (string-trim-left (gethash id previous)))
+                  (concat indent "- " (if box (format "[%s] " box) "")
                         (format "[[id:%s][%s]]" id (claude-code-ide-org--short-id id))
                         (cond ((and entry kw) (format " %s %s" kw (cdr entry)))
                               (entry (format " %s" (cdr entry)))
-                              (t " (unresolved referent)")))
+                              (t " (unresolved referent)"))))
                 lines))))
     (cons (nreverse lines) (nreverse unrendered))))
 
@@ -6718,11 +6731,18 @@ The list is replaced wholesale, and only the list: see
 `Incidental:' section, as `org_slice_add_member' starts a checklist."
   (let ((ids (claude-code-ide-org--slice-declared-ids)))
     (when ids
-      (pcase-let* ((`(,lines . ,unrendered)
+      (pcase-let* ((region (claude-code-ide-org--slice-planned-region))
+                   (previous (make-hash-table :test 'equal))
+                   (_ (when region
+                        (dolist (line (split-string (buffer-substring-no-properties
+                                                     (car region) (cdr region))
+                                                    "\n" t))
+                          (when (string-match "\\[\\[id:\\([^]]+\\)\\]" line)
+                            (puthash (downcase (match-string 1 line)) line previous)))))
+                   (`(,lines . ,unrendered)
                     (claude-code-ide-org--slice-render-planned-lines
-                     ids index parents (claude-code-ide-org--slice-dropped-ids)))
-                   (text (concat (string-join lines "\n") "\n"))
-                   (region (claude-code-ide-org--slice-planned-region)))
+                     ids index parents (claude-code-ide-org--slice-dropped-ids) previous))
+                   (text (concat (string-join lines "\n") "\n")))
         (save-excursion
           (cond
            (region
@@ -6918,102 +6938,6 @@ de6de108 losing its box on 8a2eb687, shows here as a difference."
                                  (if (and (= (length have) (length lines)) (null diff)) 'same 'differs)
                                  (list :have (length have) :want (length lines) :diff diff))
                            results))))))))))))
-
-(defun claude-code-ide-org--refresh-slice-members-at-point (index)
-  "Rewrite the slice-at-point's member lines from INDEX.  Returns a count.
-
-Each line is regenerated as `- [BOX] LINK KEYWORD TITLE': the checkbox
-from the referent's keyword, and the keyword and title copied fresh.  The
-link itself is left alone -- it is the one part that cannot go stale --
-and so is the ordering.
-
-The checkbox is *fully* derived: from the referent's keyword, minus the
-ids the slice's `:DROPPED:' property names, minus grouping-label lines
-(cookie-less with indented member lines beneath -- partial coverage of
-a story, :ID: 758a8b78).  Until 2026-09-08 the cookie's own absence was
-read as the drop declaration, which made a `MAYBE' member and a drop
-render identically *and* made the drop sticky -- a promoted member
-never regained its box (TODO.org :ID: 1b727475).
-
-A member whose id is not in INDEX, or whose referent carries no keyword,
-is skipped rather than guessed at.  Both are already errors in
-`bin/lint-org', and a regenerator that invented a state for them would
-paper over exactly what that error exists to surface.
-
-*Everything after the link is replaced*, so a member line carries no
-annotation of its own.  That is the convention rather than a limitation
-of this function: the line is a rendering, and anything hand-written on
-it would be destroyed at the next apply anyway."
-  (save-excursion
-    (org-back-to-heading t)
-    ;; A *marker*, not a position. Each rewrite changes the line's length,
-    ;; and a fixed integer end would drift: the first replacement here was
-    ;; longer than what it replaced, which pushed the second member line
-    ;; past the bound and left it silently unrefreshed.
-    (let ((end (copy-marker (save-excursion (outline-next-heading) (or (point) (point-max)))))
-          (dropped-ids (claude-code-ide-org--slice-dropped-ids))
-          (changed 0)
-          (skipped nil))
-      (while (re-search-forward
-              "^\\([ \t]*\\)- \\(\\[[ Xx-]\\] \\)?\\(\\[\\[id:\\([^]]+\\)\\]\\[[^]]*\\]\\]\\)\\(.*\\)$"
-              end t)
-        (let* ((indent (match-string-no-properties 1))
-               (had-cookie (match-string-no-properties 2))
-               (link (match-string-no-properties 3))
-               (id (downcase (match-string-no-properties 4)))
-               ;; The three reasons a line renders cookie-less, each
-               ;; declared somewhere the regeneration cannot destroy:
-               ;; the id is in :DROPPED: (the drop declaration); the
-               ;; referent's keyword maps to no box (MAYBE/CANCELLED,
-               ;; derived); or the line is a grouping label -- already
-               ;; cookie-less with an indented member line directly
-               ;; beneath, meaning the slice undertakes only part of a
-               ;; story (:ID: 758a8b78) -- which is structural and read
-               ;; from the lines themselves.
-               (grouping-label
-                (and (null had-cookie)
-                     ;; `save-match-data': the lookahead's `looking-at'
-                     ;; would otherwise clobber the outer search's match
-                     ;; data, which `replace-match' below still needs.
-                     (save-match-data
-                       (save-excursion
-                         (forward-line 1)
-                         (and (< (point) end)
-                              (looking-at
-                               "^\\([ \t]*\\)- \\(\\[[ Xx-]\\] \\)?\\[\\[id:")
-                              (> (length (match-string 1))
-                                 (length indent)))))))
-               (dropped (or (member id dropped-ids) grouping-label))
-               (entry (gethash id index))
-               (kw (car entry))
-               (title (cdr entry)))
-          ;; A member with no entry, or an entry carrying no keyword, is
-          ;; skipped -- and used to be skipped *silently*, leaving the
-          ;; placeholder text standing as though it were the referent's
-          ;; real title. That is the "a slice line disagrees with its
-          ;; referent" failure the conventions exist to prevent, arriving
-          ;; through a door they do not describe (TODO.org :ID: 798bb7a1).
-          ;;
-          ;; Counted rather than repaired: the honest rendering of a
-          ;; heading whose `todo' event is still queued is not something
-          ;; this function can invent, so it reports instead.
-          (unless (and entry kw)
-            (push id skipped))
-          (when (and entry kw)
-            (let* ((box (and (not dropped)
-                             (cdr (assoc kw claude-code-ide-org--slice-checkbox-by-keyword))))
-                   (new (concat indent "- " (if box (format "[%s] " box) "")
-                                link " " kw " " title))
-                   (old (match-string-no-properties 0)))
-              (unless (equal old new)
-                ;; LITERAL is t, so NEW goes in verbatim.  Passing it
-                ;; through `regexp-quote' as well would insert the
-                ;; backslashes into the file -- visible immediately on a
-                ;; title like "[0/3] Make the daily ceremony ...".
-                (replace-match new t t)
-                (setq changed (1+ changed)))))))
-      (set-marker end nil)
-      (cons changed (nreverse skipped)))))
 
 (defconst claude-code-ide-org--slice-planned-lead "Planned:"
   "The line introducing a slice's planned checklist.
@@ -7252,7 +7176,7 @@ a record that was never true at any moment (observed on
         ;; the apply-path binding was added for, one command later.
         (inhibit-read-only t)
         (slices 0) (lines 0) (blockers 0) (incidentals 0) (cookie-data 0)
-        (planned-leads 0) (unrendered nil))
+        (planned-leads 0) (members-healed 0) (unrendered nil) (undeclared nil))
     (setq index (claude-code-ide-org--slice-referent-index parents))
     (dolist (file (claude-code-ide-org--tracked-files))
       (when (file-exists-p file)
@@ -7293,14 +7217,29 @@ a record that was never true at any moment (observed on
                ;; TODO.org :ID: 7ee3b71a).
                (when (claude-code-ide-org--ensure-planned-lead-at-point)
                  (setq planned-leads (1+ planned-leads)))
+               ;; :MEMBERS: joins the same family: a slice carrying a
+               ;; checklist and no declaration -- declared by hand, or
+               ;; written before the cutover -- gets the property from
+               ;; its checklist, parent rows left out, and is reported.
+               ;; A slice with neither is left alone below.
+               (unless (org-entry-get nil "MEMBERS")
+                 (let ((ids (claude-code-ide-org--slice-checklist-ids)))
+                   (when ids
+                     (org-entry-put nil "MEMBERS" (string-join ids " "))
+                     (setq members-healed (1+ members-healed)))))
                ;; `:MEMBERS:' is the declaration when present and the
                ;; checklist a rendering of it (TODO.org :ID: 7ee3b71a);
                ;; a slice without it keeps its lines rewritten in place.
-               (let ((result (or (claude-code-ide-org--refresh-slice-planned-at-point
-                                  index parents)
-                                 (claude-code-ide-org--refresh-slice-members-at-point index))))
-                 (setq lines (+ lines (car result)))
-                 (setq unrendered (append unrendered (cdr result))))
+               ;; A slice still without it -- no checklist to heal from --
+               ;; is left untouched and reported: rendering an absent
+               ;; declaration would draw an empty list, the [0/0]
+               ;; failure this cutover exists to make unreachable.
+               (let ((result (claude-code-ide-org--refresh-slice-planned-at-point
+                              index parents)))
+                 (if (null result)
+                     (push (org-entry-get nil "ID") undeclared)
+                   (setq lines (+ lines (car result)))
+                   (setq unrendered (append unrendered (cdr result)))))
                ;; After the member lines and *before* the cookie, because
                ;; incidental lines carry checkboxes and the cookie counts
                ;; every checkbox in the entry. The denominator grows with
@@ -7360,6 +7299,12 @@ a record that was never true at any moment (observed on
      (when (> planned-leads 0)
        (format "; %d Planned: lead%s repaired"
                planned-leads (if (= planned-leads 1) "" "s")))
+     (when (> members-healed 0)
+       (format "; %d :MEMBERS: written from a checklist" members-healed))
+     (when undeclared
+       (format "; %d slice%s left untouched for having no :MEMBERS: (%s)"
+               (length undeclared) (if (= 1 (length undeclared)) "" "s")
+               (mapconcat #'claude-code-ide-org--id-prefix undeclared " ")))
      ;; Reported, not merely applied. An id dropped for belonging to
      ;; another slice is a *decision* about ownership, and a derived list
      ;; that quietly shrinks is as wrong as one that quietly grows --
@@ -7699,6 +7644,7 @@ is a record -- membership does not change after the fact"
                 "Error: a slice never lists itself as a member")
                ((member (downcase member-full)
                         (append (claude-code-ide-org--slice-declared-ids)
+                                (claude-code-ide-org--slice-checklist-ids)
                                 (claude-code-ide-org--slice-planned-member-ids)))
                 (format "Error: %s is already a planned member of \"%s\""
                         (claude-code-ide-org--id-prefix member-full)
@@ -16643,6 +16589,9 @@ unfinished member (%s) -- a done, cancelled or deferred member must not block: %
                ;; 2026-09-22's defects when they happened.
                (when (claude-code-ide-org--slice-p)
                  (let ((declared (claude-code-ide-org--slice-declared-ids)))
+                   (unless declared
+                     (report 'error line "slice has no :MEMBERS: -- the declaration a \
+checklist is rendered from; add members with org_slice_add_member: %s" title))
                    (when declared
                      (let ((unknown (seq-remove (lambda (i) (gethash i known-ids)) declared))
                            (listed (claude-code-ide-org--slice-checklist-ids))

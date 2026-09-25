@@ -16928,6 +16928,17 @@ keeps the first one that happened after the slice existed."
         (replace-match "CLOCK: [2026-08-21 Fri 09:00]--[2026-08-21 Fri 09:30]" t t)
         (should (member "incid-002" (incidentals)))))))
 
+(defun claude-code-ide-org-test--rerender-slice-at-point (index)
+  "Render the slice at point from :MEMBERS: the way the refresh does,
+migrating it first when the fixture predates the property: the lead is
+ensured and :MEMBERS: written from the checklist (TODO.org :ID: 7ee3b71a)."
+  (claude-code-ide-org--ensure-planned-lead-at-point)
+  (unless (org-entry-get nil "MEMBERS")
+    (org-entry-put nil "MEMBERS" (string-join (claude-code-ide-org--slice-checklist-ids) " ")))
+  (let ((parents (make-hash-table :test 'equal)))
+    (claude-code-ide-org--slice-referent-index parents)
+    (claude-code-ide-org--refresh-slice-planned-at-point index parents)))
+
 (ert-deftest claude-code-ide-org-test-refresh-honours-the-dropped-property ()
   "A drop is declared in :DROPPED:, and only there; the box is derived.
 
@@ -16949,7 +16960,7 @@ every refresh."
         (re-search-forward "^\\* TODO \\[1/1\\] A slice")
         (org-back-to-heading t)
         ;; Not declared dropped: the box comes back from the keyword.
-        (claude-code-ide-org--refresh-slice-members-at-point index)
+        (claude-code-ide-org-test--rerender-slice-at-point index)
         (goto-char (point-min))
         (should (re-search-forward "^- \\[X\\] \\[\\[id:member-01" nil t))
         ;; Declared dropped: cookie-less, and stays so.
@@ -16957,7 +16968,7 @@ every refresh."
         (re-search-forward "^\\* TODO \\[1/1\\] A slice")
         (org-back-to-heading t)
         (org-entry-put nil "DROPPED" "member-01")
-        (claude-code-ide-org--refresh-slice-members-at-point index)
+        (claude-code-ide-org-test--rerender-slice-at-point index)
         (goto-char (point-min))
         (should (re-search-forward "^- \\[\\[id:member-01" nil t))
         (goto-char (point-min))
@@ -16985,7 +16996,7 @@ ways."
         (goto-char (point-min))
         (re-search-forward "^\\* TODO \\[1/1\\] A slice")
         (org-back-to-heading t)
-        (claude-code-ide-org--refresh-slice-members-at-point index)
+        (claude-code-ide-org-test--rerender-slice-at-point index)
         ;; MAYBE: cookie-less, derived.
         (goto-char (point-min))
         (should (re-search-forward "^- \\[\\[id:wav-1" nil t)))
@@ -16998,41 +17009,9 @@ ways."
         (goto-char (point-min))
         (re-search-forward "^\\* TODO \\[1/1\\] A slice")
         (org-back-to-heading t)
-        (claude-code-ide-org--refresh-slice-members-at-point index))
+        (claude-code-ide-org-test--rerender-slice-at-point index))
       (goto-char (point-min))
       (should (re-search-forward "^- \\[ \\] \\[\\[id:wav-1" nil t)))))
-
-(ert-deftest claude-code-ide-org-test-grouping-label-line-stays-cookie-less ()
-  "A cookie-less parent with indented member lines is a label, not a drop.
-
-The fourth reading (:ID: 758a8b78): a slice undertaking part of a story
-writes the parent as a bare reference with member children indented
-beneath, and a checkbox there could never check while the story stays
-open.  Structural, so the rewriter reads it off the lines rather than
-off any declaration -- and must not repair it into a box."
-  (claude-code-ide-org-test--with-slice-window
-    (with-current-buffer (find-file-noselect file)
-      (goto-char (point-max))
-      (insert "* TODO A story parent\n"
-              ":PROPERTIES:\n:ID:       story-1\n:END:\n")
-      (goto-char (point-min))
-      (re-search-forward "^- \\[X\\] \\[\\[id:member-01[^\n]*\n")
-      (insert "- [[id:story-1][story-1]] TODO A story parent\n"
-              "  - [X] [[id:incid-001][incid-001]] DONE Incidental one\n")
-      (save-buffer)
-      (org-id-update-id-locations (list file))
-      (let ((index (claude-code-ide-org--slice-referent-index)))
-        (goto-char (point-min))
-        (re-search-forward "^\\* TODO \\[1/1\\] A slice")
-        (org-back-to-heading t)
-        (claude-code-ide-org--refresh-slice-members-at-point index))
-      (goto-char (point-min))
-      (should (re-search-forward "^- \\[\\[id:story-1" nil t))
-      (goto-char (point-min))
-      (should-not (re-search-forward "^- \\[[ Xx-]\\] \\[\\[id:story-1" nil t))
-      ;; The indented child beneath it keeps its own derived box.
-      (goto-char (point-min))
-      (should (re-search-forward "^  - \\[X\\] \\[\\[id:incid-001" nil t)))))
 
 (ert-deftest claude-code-ide-org-test-advance-repeater-leaves-no-deferred-note ()
   "Advancing the repeater must register nothing on `post-command-hook'.
@@ -18859,3 +18838,20 @@ declared beside its own ancestor, and a checklist that disagrees with
                             "- [ ] [[id:bbbb0000-0000-4000-8000-000000000002][bbbb0000]] TODO Story\n- [X] [[id:cccc0000-0000-4000-8000-000000000003][cccc0000]] TODO Kid\n"
                             tail t t)))))
       (should-not (claude-code-ide-org-test--lint-matches closed 'error "its ancestor")))))
+
+(ert-deftest claude-code-ide-org-test-refresh-heals-members-from-a-checklist ()
+  "A slice with a checklist and no :MEMBERS: -- declared by hand, or
+written before the cutover -- gets the property from its checklist at
+the next refresh, and the reply says so (TODO.org :ID: 7ee3b71a)."
+  (claude-code-ide-org-test--with-add-member-fixture
+    (let ((reply (claude-code-ide-org-refresh-slice "slice-g1")))
+      (should (string-match-p "1 :MEMBERS: written from a checklist" reply)))
+    (should (string-match-p ":MEMBERS:[ \t]+mem-1\n"
+                            (claude-code-ide-org-test--disk-contents capture-file)))))
+
+(ert-deftest claude-code-ide-org-test-lint-slice-without-members ()
+  "A slice with no :MEMBERS: is an error: the property is the declaration
+its checklist is rendered from."
+  (let ((findings (claude-code-ide-org-test--lint
+                   "* TODO [0/0] A slice\n:PROPERTIES:\n:ID:       aaaa0000-0000-4000-8000-000000000009\n:CATEGORY: Test\n:CREATED:  [2026-09-25 Fri 10:00]\n:KIND:     slice\n:COOKIE_DATA: checkbox recursive\n:END:\n\nA theme.\n")))
+    (should (claude-code-ide-org-test--lint-matches findings 'error "slice has no :MEMBERS:"))))
