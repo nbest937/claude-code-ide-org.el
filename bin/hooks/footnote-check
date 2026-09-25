@@ -79,7 +79,10 @@ printf '%s' "$input" >"$payload"
 # which would read the SERVER's environment (measured 2026-09-18, see
 # bin/hooks/session-start-recovery-check).
 elisp_string() { printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'; }
-form="(claude-code-ide-org-write-footnote-check \"$(elisp_string "$payload")\" \"$(elisp_string "$verdict")\" \"$(elisp_string "$repo")\")"
+# Ids an org_footnotes call already delivered this turn count as
+# discharged (TODO.org :ID: 30d05c93).
+covered="$queue_dir/$session_id.footnoted"
+form="(claude-code-ide-org-write-footnote-check \"$(elisp_string "$payload")\" \"$(elisp_string "$verdict")\" \"$(elisp_string "$repo")\" \"$(elisp_string "$covered")\")"
 
 # The watchdog's own streams go to /dev/null: a `sleep' left holding
 # this hook's stderr would keep the pipe open, and the harness waits on

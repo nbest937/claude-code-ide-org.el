@@ -15900,7 +15900,7 @@ test would iterate an empty list and pass while checking nothing."
 (defconst claude-code-ide-org-test--tool-classes
   '(("org_query" . read-only) ("org_body" . read-only)
     ("org_outline" . read-only) ("org_clock_report" . read-only)
-    ("org_pending_updates" . read-only)
+    ("org_pending_updates" . read-only) ("org_footnotes" . read-only)
     ("org_set_todo" . queued) ("org_clock_in" . queued)
     ("org_clock_out" . queued)
     ("org_capture" . conditional) ("org_amend" . conditional)
@@ -16046,6 +16046,7 @@ and writes nothing.  Before 60d6ab6e six of them saved over the edits."
     ("org_move_sibling" ("id" . A) ("direction" . "down"))
     ("org_clock_report" ("id" . A))
     ("org_query" ("query" . "todo:TODO"))
+    ("org_footnotes" ("ids" . A))
     ("org_clock_out")
     ("org_pending_updates"))
   "Per-tool sample calls: each maps argument names to a value, or to a
@@ -18602,9 +18603,13 @@ files only, and carries the keyword and the exact title with its cookie."
     (let ((r (claude-code-ide-org--footnote-resolve
               '("aaaa1111" "bbbb2222" "cccc3333" "dddd4444" "12345678" "deadbeef")
               files)))
-      (should (equal (gethash "aaaa1111" r) '("TODO" "First heading")))
-      (should (equal (gethash "bbbb2222" r) '("DONE" "[2/2] A slice with a cookie")))
-      (should (equal (gethash "12345678" r) '("-" "--leading-dash title")))
+      ;; The full id rides along, for starring a queued keyword (30d05c93).
+      (should (equal (gethash "aaaa1111" r)
+                     '("TODO" "First heading" "aaaa1111-0000-4000-8000-000000000001")))
+      (should (equal (gethash "bbbb2222" r)
+                     '("DONE" "[2/2] A slice with a cookie" "bbbb2222-0000-4000-8000-000000000002")))
+      (should (equal (gethash "12345678" r)
+                     '("-" "--leading-dash title" "12345678-0000-4000-8000-000000000004")))
       ;; Quoted in a body, defined nowhere.
       (should-not (gethash "cccc3333" r))
       ;; Defined, but in a file outside the project.
@@ -19552,3 +19557,57 @@ characters duplicated from the first turn the old render lacked."
                 (should (= 1 (how-many "^\\* [0-9:]+  second$" (point-min) (point-max))))))
           (with-current-buffer buf (claude-code-ide-org-render-live-mode -1))
           (kill-buffer buf))))))
+
+;;; org_footnotes (TODO.org :ID: 30d05c93)
+
+(ert-deftest claude-code-ide-org-test-footnote-lines-canonical ()
+  "The end matter is sorted by id, drops fenced and non-id tokens, adds
+the ids the caller passes, and stars a keyword whose change is queued."
+  (claude-code-ide-org-test--with-footnote-fixture nil
+    (cl-letf (((symbol-function 'claude-code-ide-org--effective-todo-state)
+               (lambda (full disk) (if (string-prefix-p "aaaa1111" full) "REVIEW" disk))))
+      (let ((r (claude-code-ide-org--footnote-lines
+                (list "Narration citing bbbb2222 and deadbeef."
+                      "```\n12345678 in a fence\n```")
+                (list "aaaa1111") files)))
+        (should (equal '("aaaa1111" "bbbb2222") (car r)))
+        (should (equal (cdr r)
+                       '("`aaaa1111`  REVIEW*   First heading"
+                         "`bbbb2222`  DONE      [2/2] A slice with a cookie")))))))
+
+(ert-deftest claude-code-ide-org-test-write-footnote-lines-reads-the-narration ()
+  "The hook's writer takes ids from the narration written before the call
+-- text and non-empty thinking, never an empty one -- plus the call's
+own ids argument."
+  (claude-code-ide-org-test--with-footnote-fixture
+      (list (claude-code-ide-org-test--prompt-entry "2026-09-25T10:00:00.000Z" "go")
+            (claude-code-ide-org-test--reply "m1" "tool_use"
+                                             '((type . "thinking") (thinking . "Looking at bbbb2222.")))
+            (claude-code-ide-org-test--reply "m1" "tool_use"
+                                             '((type . "thinking") (thinking . ""))))
+    (let* ((dir (file-name-directory todo))
+           (payload (expand-file-name "p.json" dir))
+           (out (expand-file-name "out" dir)))
+      (with-temp-file payload
+        (insert (json-encode `((session_id . "s") (transcript_path . ,transcript)
+                               (tool_use_id . "toolu_9")
+                               (tool_input . ((ids . "12345678")))))))
+      (claude-code-ide-org-write-footnote-lines payload out dir)
+      (should (equal (with-temp-buffer (insert-file-contents out) (buffer-string))
+                     (concat "ids 12345678 bbbb2222\n"
+                             "`12345678`  -         --leading-dash title\n"
+                             "`bbbb2222`  DONE      [2/2] A slice with a cookie\n"))))))
+
+(ert-deftest claude-code-ide-org-test-footnotes-tool-refuses-unwired ()
+  "Without the hook's lines the tool says it is not wired, never an empty
+success that would read as nothing owed."
+  (should (string-prefix-p "Error: footnotes-inject is not wired"
+                           (claude-code-ide-org-footnotes "aaaa1111" nil)))
+  (should (equal "`a`  TODO  x" (claude-code-ide-org-footnotes "a" "`a`  TODO  x"))))
+
+(ert-deftest claude-code-ide-org-test-footnote-owed-skips-covered-ids ()
+  "An id an org_footnotes call already delivered this turn is not owed."
+  (claude-code-ide-org-test--with-footnote-fixture nil
+    (should (equal '("aaaa1111")
+                   (mapcar #'car (claude-code-ide-org--footnote-owed
+                                  "See aaaa1111 and bbbb2222." transcript files '("bbbb2222")))))))

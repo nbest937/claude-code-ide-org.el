@@ -379,5 +379,14 @@ else
   printf 'FAIL - waited %ss for a hung Emacs\n' "$took"; fail=$((fail+1))
 fi
 
+# COVERED BY A TOOL CALL (TODO.org :ID: 30d05c93): an id org_footnotes
+# already delivered this turn is not owed again; an id it did not
+# deliver still is.
+mkdir -p "$tmp"; printf '%s\n' "$REAL" > "$tmp/cov1.footnoted"
+check "an id an org_footnotes call covered is not owed" allowed \
+  "$(run cov1 "See \`$REAL\` for the detail.")"
+check "an id it did not cover still blocks" blocked \
+  "$(run cov1 "See \`$REAL2\` for the detail.")"
+
 printf 'footnote-check-test: %d passed, %d failed\n' "$pass" "$fail"
 exit $((fail > 0))

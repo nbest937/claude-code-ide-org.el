@@ -13551,12 +13551,13 @@ visit and so no prompt that could hang an `emacsclient' call."
                                    id (or (org-entry-get nil "ID") "")))
                          (puthash id (list (or (org-get-todo-state) "-")
                                            (substring-no-properties
-                                            (org-get-heading t t t t)))
+                                            (org-get-heading t t t t))
+                                           (org-entry-get nil "ID"))
                                   found)
                          (setq done t))))))))))))
     found))
 
-(defun claude-code-ide-org--footnote-owed (message transcript files)
+(defun claude-code-ide-org--footnote-owed (message transcript files &optional covered)
   "Return the ids MESSAGE's segment cites and owes, as (ID KEYWORD TITLE).
 TRANSCRIPT is the session's transcript path, which supplies the blocks
 written before MESSAGE; FILES are the project's org files.  An id is
@@ -13576,6 +13577,9 @@ line pairing the two has already met the convention (TODO.org :ID:
       (when-let* ((entry (gethash id resolved)))
         (let ((title (nth 1 entry)))
           (unless (or (string-search id foot)
+                      ;; Already delivered by an `org_footnotes' call this
+                      ;; turn (TODO.org :ID: 30d05c93).
+                      (member id covered)
                       (seq-some (lambda (line)
                                   (and (string-search id line)
                                        (string-search title line)))
@@ -13583,7 +13587,7 @@ line pairing the two has already met the convention (TODO.org :ID:
             (push (cons id entry) owed)))))
     (nreverse owed)))
 
-(defun claude-code-ide-org-write-footnote-check (payload-file out-file project)
+(defun claude-code-ide-org-write-footnote-check (payload-file out-file project &optional covered-file)
   "Write the footnote check's verdict on the Stop payload in PAYLOAD-FILE.
 Called by `bin/hooks/footnote-check' through `emacsclient -e', which
 passes PROJECT, the project root, as an argument: `getenv' here would
@@ -13603,8 +13607,12 @@ which the stub treats as an outage, where no footnote is owed."
                      (seq-filter #'file-readable-p
                                  (list (expand-file-name "TODO.org" project)
                                        (expand-file-name "DONE.org" project)))))
+         (covered (and (stringp covered-file) (file-readable-p covered-file)
+                       (split-string (with-temp-buffer (insert-file-contents covered-file)
+                                                       (buffer-string))
+                                     "[ \t\n]+" t)))
          (owed (and (stringp message) (not (string-empty-p message)) files
-                    (claude-code-ide-org--footnote-owed message transcript files))))
+                    (claude-code-ide-org--footnote-owed message transcript files covered))))
     (with-temp-file out-file
       (if (null owed)
           (insert "ok\n")
@@ -13612,6 +13620,72 @@ which the stub treats as an outage, where no footnote is owed."
         (dolist (entry owed)
           (insert (format "`%s`  %-9s %s\n"
                           (nth 0 entry) (nth 1 entry) (nth 2 entry))))))))
+
+(defun claude-code-ide-org--footnote-lines (blocks ids files)
+  "Canonical end matter for the ids BLOCKS cite and the ids IDS name.
+
+BLOCKS are reader-visible text, fences stripped before scanning, and IDS
+a list of ids or 8-character prefixes the caller says its reply will
+cite.  Each resolves against FILES, the project's org files, and one
+that does not is left out.  Sorted by id; a keyword whose change is
+queued and not yet applied is shown as the queued one with a trailing
+star, as the citation rules ask (TODO.org :ID: 30d05c93).  Returns
+\(ID8S . LINES)."
+  (let* ((ids8 (mapcar (lambda (i) (downcase (substring i 0 (min 8 (length i))))) ids))
+         (cands (claude-code-ide-org--footnote-candidates
+                 (append (mapcan #'claude-code-ide-org--footnote-prose-lines blocks)
+                         (list (string-join ids8 " ")))))
+         (resolved (and cands (claude-code-ide-org--footnote-resolve cands files)))
+         (covered nil) (lines nil))
+    (dolist (id cands)
+      (when-let* ((entry (gethash id resolved)))
+        (let* ((disk (nth 0 entry))
+               (full (nth 2 entry))
+               (queued (and full (ignore-errors
+                                   (claude-code-ide-org--effective-todo-state full disk))))
+               (kw (if (and queued (not (equal queued disk))) (concat queued "*") disk)))
+          (push id covered)
+          (push (format "`%s`  %-9s %s" id kw (nth 1 entry)) lines))))
+    (cons (nreverse covered) (nreverse lines))))
+
+(defun claude-code-ide-org-write-footnote-lines (payload-file out-file project)
+  "Write the end matter for the `org_footnotes' call in PAYLOAD-FILE.
+
+Called by `bin/hooks/footnotes-inject' on PreToolUse.  The ids come from
+the reader-visible blocks written before this call in the current reply
+-- read from the transcript -- and from the call's own `ids' argument,
+the ids the reply will cite.  OUT-FILE gets `ids ID8...' on its first
+line, then one canonical line each; an empty file means the call never
+ran, and the hook then injects nothing (TODO.org :ID: 30d05c93)."
+  (let* ((payload (json-parse-string
+                   (with-temp-buffer (insert-file-contents payload-file) (buffer-string))
+                   :object-type 'alist :null-object nil :false-object nil))
+         (transcript (alist-get 'transcript_path payload))
+         (raw (alist-get 'ids (alist-get 'tool_input payload)))
+         (ids (and (stringp raw) (split-string raw "[ \t,]+" t)))
+         (files (and (stringp project) (not (string-empty-p project))
+                     (seq-filter #'file-readable-p
+                                 (list (expand-file-name "TODO.org" project)
+                                       (expand-file-name "DONE.org" project)))))
+         (result (claude-code-ide-org--footnote-lines
+                  (and transcript (claude-code-ide-org--footnote-segment transcript ""))
+                  ids files)))
+    (with-temp-file out-file
+      (insert "ids " (string-join (car result) " ") "\n")
+      (dolist (l (cdr result)) (insert l "\n")))))
+
+(defun claude-code-ide-org-footnotes (ids &optional lines)
+  "The `org_footnotes' tool: return LINES, the end matter a hook generated.
+
+IDS are what the reply will cite.  LINES are never supplied by the
+caller: `bin/hooks/footnotes-inject' rewrites the call on PreToolUse,
+putting them in with every keyword and title looked up (TODO.org :ID:
+30d05c93).  Without them the hook is not wired, and this says so rather
+than succeeding empty -- an empty success would read as nothing owed."
+  (ignore ids)
+  (if (and (stringp lines) (not (string-empty-p (string-trim lines))))
+      lines
+    "Error: footnotes-inject is not wired, so no end matter was generated. Write it by hand, after a `---` separator."))
 
 (defun claude-code-ide-org--render-header (session-id turns)
   "The head of SESSION-ID's render, given its TURNS: title, startup, the
@@ -20110,6 +20184,28 @@ the project list."
             :type string
             :optional t
             :description "Short reason, e.g. \"stepped up: the fix changes three writers\"; recorded beneath the :LOGBOOK: line.")))
+
+  (claude-code-ide-make-tool
+   :function #'claude-code-ide-org-footnotes
+   :name "org_footnotes"
+   :description (concat
+                 "Generate the end matter for a reply that cites tracked "
+                 ":IDs:, folded away in this tool call instead of written by "
+                 "hand. Call it as the LAST step before such a reply, with "
+                 "ids= the ids the reply will cite; ids cited in the turn's "
+                 "earlier narration are added automatically. Returns one "
+                 "canonical line per id -- backticked id, keyword (a trailing "
+                 "* when a change is queued), exact title -- generated, never "
+                 "recalled. The reply then carries no --- block. Leave lines= "
+                 "empty: a PreToolUse hook fills it. Without that hook it "
+                 "errors, and end matter is written by hand as before.")
+   :args '((:name "ids"
+            :type string
+            :description "The ids or 8-character prefixes the reply will cite, space-separated.")
+           (:name "lines"
+            :type string
+            :optional t
+            :description "Filled by the footnotes-inject hook. Leave empty.")))
 
   (claude-code-ide-make-tool
    :function #'claude-code-ide-org-slice-add-member

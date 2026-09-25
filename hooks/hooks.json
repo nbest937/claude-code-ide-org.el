@@ -210,6 +210,16 @@
             "timeout": 10
           }
         ]
+      },
+      {
+        "matcher": "mcp__emacs-tools__org_footnotes",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/bin/hooks/footnotes-inject",
+            "timeout": 10
+          }
+        ]
       }
     ]
   }

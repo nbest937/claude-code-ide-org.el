@@ -52,11 +52,12 @@ Trigger on any response containing such an identifier, not only ones
 about the tracker — identifiers get cited while reading source, writing
 tests and summarising commits too.
 
-**Look each keyword and title up rather than recalling them** — a
-remembered title is where paraphrase creeps back in. **End matter of more
-than a handful of entries comes from one `org_outline` call** with every
-id in `scope` and `bodies=false`: long hand-written end matter is where
-entries go missing or wrong (`:ID:` 13aed7ca).
+**Deliver end matter with `org_footnotes`** (`:ID:` 30d05c93): call it
+last before a reply citing a tracked id, with `ids` those the reply
+cites. It generates the lines, keywords looked up and a queued one
+starred, adds ids the narration cited, and folds them into the call; the
+reply carries no `---` block. Where it answers that it is not wired,
+write them by hand, looking each keyword and title up.
 
 **Where a keyword change is queued and not yet applied, show the *queued*
 state and mark it with a trailing `*`** — `REVIEW*`, not `DOING` plus a
@@ -110,9 +111,9 @@ against the project's `TODO.org` and `DONE.org`, and blocks when one is
 a real heading absent from the final block's end matter. It hands back
 the lines to append, in canonical form.
 
-**It emits the on-disk keyword and never a `*`, and that is correct** —
-starring a queued state is the writer's job. Do not "fix" the hook to
-read the queue; it tests whether each id *appears*, not its keyword.
+**Its lines carry the on-disk keyword, never a `*`** — it tests
+whether each id *appears*, not its keyword. Ids an `org_footnotes` call
+covered this turn count as present.
 
 **A segment is one reply** (`:ID:` c247d8f3): it starts at the prompt or
 where the previous reply ended — a blocked stop, a refusal. Narration
