@@ -150,7 +150,7 @@ cannot be resolved or FN signals an error."
   (require 'org-id)
   (let ((marker (claude-code-ide-org--id-find id 'marker)))
     (if (not marker)
-        (format "Error: no org heading found with :ID: \"%s\"" id)
+        (claude-code-ide-org--id-not-found id)
       (condition-case err
           (org-with-point-at marker
             (funcall fn))
@@ -2987,7 +2987,7 @@ tool here gives."
                               (claude-code-ide-org--enclosing-slice-title)))))
     (cond
      ((not marker)
-      (format "Error: no org heading found with :ID: \"%s\"" id))
+      (claude-code-ide-org--id-not-found id))
      ((not target-marker)
       (format "Error: no org heading found with target :ID: \"%s\"" target-id))
      ;; Source and target are both saved (TODO.org :ID: 60d6ab6e).
@@ -4149,7 +4149,7 @@ undone only through git. Commit the file first, then revise.")
               (format "Error: \"%s\" is a capture queued this session and not \
 yet applied, so it has no body to amend. Apply the queue, then amend."
                       (plist-get pending :title))
-            (format "Error: no org heading found with :ID: \"%s\"" id)))
+            (claude-code-ide-org--id-not-found id)))
       (let* ((file (buffer-file-name (marker-buffer marker)))
              (title (org-with-point-at marker
                       (org-no-properties (org-get-heading t t t t)))))
@@ -5174,7 +5174,7 @@ cannot repeat them."
         (marker (claude-code-ide-org--id-find id 'marker)))
     (cond
      ((not marker)
-      (format "Error: no org heading found with :ID: \"%s\"" id))
+      (claude-code-ide-org--id-not-found id))
      ((claude-code-ide-org--busy-refusal (buffer-file-name (marker-buffer marker))))
      (t
       (condition-case err
@@ -5292,7 +5292,7 @@ where writing into a busy buffer could lose the human's edits."
      ((member property claude-code-ide-org--property-tool-refused)
       (format "Error: %s is written at capture and is identity, not annotation; \
 this tool will not rewrite it" property))
-     ((not marker) (format "Error: no org heading found with :ID: \"%s\"" id))
+     ((not marker) (claude-code-ide-org--id-not-found id))
      ((claude-code-ide-org--busy-refusal (buffer-file-name (marker-buffer marker))))
      ;; Declaring a container a slice mints a hybrid -- see the lint
      ;; rule (TODO.org :ID: dca940c1). Refused here so the combination
@@ -5470,7 +5470,7 @@ human's unsaved edits, like every structural writer."
      ((and (null add) (null remove))
       "Error: nothing to add or remove -- pass add=, remove= or both")
      ((not marker)
-      (format "Error: no org heading found with :ID: \"%s\"" id))
+      (claude-code-ide-org--id-not-found id))
      ((claude-code-ide-org--busy-refusal (buffer-file-name (marker-buffer marker))))
      ((cdr paths-added)
       (format "Error: a heading is on one brainstorming path at a time, and add names %s"
@@ -18966,7 +18966,50 @@ case of a full uuid costs one `length\' call and no file scanning."
         ;; amount of scanning can resolve.
         (setq prefix-unresolved t))))
    (unless prefix-unresolved
+     (claude-code-ide-org--refresh-stale-id-buffers id)
      (org-id-find id markerp))))
+
+(defun claude-code-ide-org--refresh-stale-id-buffers (id)
+  "Bring every visited tracked or archive buffer back in step with its file.
+
+`org-id-find' reads a file through the buffer visiting it, so a buffer
+the file has moved on from answers with the *old* text.  Reproduced
+2026-09-24 (TODO.org :ID: 8ddd7fa8): a heading moved by hand into
+another file resolved to its old location, because the old file's
+buffer still held it -- not a failure but a success at the wrong place,
+and a tool acting there would edit a heading the file no longer has,
+and write it back on save.  So before any lookup, an unmodified stale
+buffer is reverted; auto-revert only narrows that window.
+
+A buffer both stale *and* modified cannot be reverted without losing the
+human's edits, so when it is the file ID is indexed in, the lookup is
+refused, naming it -- the unsaved-edits refusal of TODO.org :ID:
+60d6ab6e, plus why."
+  (let ((indexed (and (stringp id) (boundp 'org-id-locations)
+                      (hash-table-p org-id-locations)
+                      (gethash id org-id-locations))))
+    (dolist (file (claude-code-ide-org--id-scannable-files))
+      (let ((buffer (find-buffer-visiting file)))
+        (when (and buffer (not (verify-visited-file-modtime buffer)))
+          (if (not (buffer-modified-p buffer))
+              (with-current-buffer buffer
+                (let ((inhibit-read-only t))
+                  (revert-buffer t t t)))
+            (when (and indexed (file-equal-p file indexed))
+              (error "%s -- and the file changed on disk since it was \
+read, so the buffer cannot be trusted to locate :ID: %s"
+                     (string-remove-prefix
+                      "Error: " (claude-code-ide-org--busy-refusal file))
+                     id))))))))
+
+(defun claude-code-ide-org--id-not-found (id)
+  "The refusal for an ID that resolves to no heading, naming where it looked.
+\"Not found\" alone cannot say whether the id is wrong or the heading is
+somewhere the scan never reaches (TODO.org :ID: 8ddd7fa8)."
+  (format "Error: no org heading found with :ID: \"%s\" (scanned: %s)"
+          id
+          (mapconcat #'file-name-nondirectory
+                     (claude-code-ide-org--id-scannable-files) ", ")))
 
 (defun claude-code-ide-org--full-id (id)
   "The full :ID: that ID -- a full id or an 8-character prefix -- names,

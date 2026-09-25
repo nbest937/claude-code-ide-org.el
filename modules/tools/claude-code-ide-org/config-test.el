@@ -650,7 +650,8 @@ BOTH buffers, not just the one org-refile happens to leave point in."
 (ert-deftest claude-code-ide-org-test-refile-unresolvable-source-returns-error ()
   (claude-code-ide-org-test--with-heading
     (should (string-match-p
-             "\\`Error: no org heading found with :ID: \"bogus\"\\'"
+             ;; Names where it looked since TODO.org :ID: 8ddd7fa8.
+             "\\`Error: no org heading found with :ID: \"bogus\" (scanned: [^)]+)\\'"
              (claude-code-ide-org-refile "bogus" id)))))
 
 (ert-deftest claude-code-ide-org-test-refile-into-own-subtree-returns-error ()
@@ -19055,3 +19056,83 @@ a stamp taken through the link must read fresh against the real file."
     (let ((json (claude-code-ide-org--session-start-hook-json)))
       (should (string-match-p "out of step with the module" json))
       (should (string-match-p "systemMessage.*out of step with config.el" json)))))
+
+;;; A heading moved by hand between files (TODO.org :ID: 8ddd7fa8)
+
+(defvar claude-code-ide-org-test--edit-before-move nil
+  "When non-nil, a function the moved-heading fixture calls in `a''s
+buffer before the hand move -- a human edit made while the buffer was
+still in step, which is how a buffer ends up both modified and stale.")
+
+(defmacro claude-code-ide-org-test--with-moved-heading (&rest body)
+  "Two tracked files, `a' holding a heading `moved-1'; BODY runs after it
+is moved by hand, on disk, into `b', with `a''s buffer still visiting it.
+Own id index, so the real one is never touched."
+  (declare (indent 0))
+  `(let* ((dir (file-name-as-directory (make-temp-file "cciorg-moved" t)))
+          (a (expand-file-name "a.org" dir))
+          (b (expand-file-name "b.org" dir))
+          (org-id-locations-file (expand-file-name ".org-id-locations" dir))
+          (org-id-locations (make-hash-table :test 'equal))
+          (org-id-files nil)
+          (claude-code-ide-org-query-files (list a b))
+          ;; Agenda files too, as TODO.org is live: org's own miss path
+          ;; rescans agenda files, and that rescan is what is pinned.
+          (org-agenda-files (list a b))
+          (heading "* TODO A moved heading\n:PROPERTIES:\n:ID:       moved-1\n:END:\n"))
+     (unwind-protect
+         (progn
+           (with-temp-file a (insert "* TODO Staying\n\n" heading))
+           (with-temp-file b (insert "* TODO Already here\n"))
+           (find-file-noselect a)
+           (org-id-update-id-locations (list a b))
+           (when claude-code-ide-org-test--edit-before-move
+             (with-current-buffer (find-buffer-visiting a)
+               (funcall claude-code-ide-org-test--edit-before-move)))
+           ;; The hand move: both files rewritten on disk, behind Emacs.
+           (with-temp-file a (insert "* TODO Staying\n"))
+           (with-temp-file b (insert "* TODO Already here\n\n" heading))
+           (set-file-times a (time-add (current-time) 5))
+           ,@body)
+       (dolist (f (list a b))
+         (when-let* ((buf (find-buffer-visiting f)))
+           (with-current-buffer buf (set-buffer-modified-p nil))
+           (kill-buffer buf)))
+       (delete-directory dir t))))
+
+(ert-deftest claude-code-ide-org-test-id-find-follows-a-hand-move ()
+  "Pinned: a heading moved by hand into a tracked file resolves in its new
+file.  Org's own miss path rescans; this catches a change that loses it.
+The old file's stale buffer is the case that used to answer with the
+old location -- a success at the wrong place -- so the lookup reverts it
+first."
+  (claude-code-ide-org-test--with-moved-heading
+    (should (string-match-p "Staying\n\n\\* TODO A moved"
+                            (with-current-buffer (find-buffer-visiting a) (buffer-string))))
+    (let ((loc (claude-code-ide-org--id-find "moved-1")))
+      (should loc)
+      (should (file-equal-p b (car loc))))
+    (should-not (string-match-p "moved"
+                                (with-current-buffer (find-buffer-visiting a) (buffer-string))))))
+
+(ert-deftest claude-code-ide-org-test-id-find-refuses-a-stale-modified-buffer ()
+  "A buffer both stale and modified cannot be reverted without losing the
+human's edits, so a lookup of an id indexed in it is refused, naming the
+file."
+  (let ((claude-code-ide-org-test--edit-before-move
+         (lambda () (goto-char (point-max)) (insert "an unsaved edit\n"))))
+   (claude-code-ide-org-test--with-moved-heading
+    (let ((err (condition-case e (progn (claude-code-ide-org--id-find "moved-1") nil)
+                 (error (error-message-string e)))))
+      (should (stringp err))
+      (should (string-match-p "a\\.org has unsaved changes" err))
+      (should (string-match-p "changed on disk" err)))
+    ;; The human's edit survives the refusal.
+    (should (string-match-p "an unsaved edit"
+                            (with-current-buffer (find-buffer-visiting a) (buffer-string)))))))
+
+(ert-deftest claude-code-ide-org-test-id-not-found-names-where-it-looked ()
+  "\"Not found\" names the files the scan covered."
+  (claude-code-ide-org-test--with-moved-heading
+    (should (string-match-p "no org heading found with :ID: \"nowhere-1\" (scanned: a\\.org, b\\.org)"
+                            (claude-code-ide-org--id-not-found "nowhere-1")))))
