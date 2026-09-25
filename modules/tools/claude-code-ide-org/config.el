@@ -13708,6 +13708,133 @@ and noise the rest of the time."
     (dolist (tool tools) (insert "- " tool "\n"))
     (insert ":END:\n")))
 
+;;; Choosing a session to render (TODO.org :ID: 406d78da) ------------------
+
+(defconst claude-code-ide-org--session-title-window-cap (* 1024 1024)
+  "The most of a transcript's tail read looking for its title.
+The window starts at 64 KB and grows fourfold, as the first-stamp read
+grows from the head, but never past this: a long session never renamed
+falls back to its first prompt rather than having the whole file read.")
+
+(defun claude-code-ide-org--transcript-window-lines (file start end)
+  "FILE's complete lines between byte offsets START and END, parsed as JSON.
+The first line is dropped when START is mid-file, since it is truncated."
+  (ignore-errors
+    (with-temp-buffer
+      (insert-file-contents file nil start end)
+      (goto-char (point-min))
+      (when (> start 0) (forward-line 1))
+      (let (objs)
+        (while (not (eobp))
+          (let ((obj (ignore-errors
+                       (json-parse-string
+                        (buffer-substring-no-properties (point) (line-end-position))
+                        :object-type 'alist :null-object nil :false-object nil))))
+            (when obj (push obj objs)))
+          (forward-line 1))
+        (nreverse objs)))))
+
+(defun claude-code-ide-org--session-title (file)
+  "The name a reader knows session FILE by, or nil.
+The *last* `custom-title' in the file, since `/rename' appends a new one
+each time and the first may be long stale; else the last `ai-title'.
+Read from the file's tail, in a window that grows up to
+`claude-code-ide-org--session-title-window-cap'."
+  (let* ((size (or (file-attribute-size (file-attributes file)) 0))
+         (window 65536) title)
+    (while (and (not title) window)
+      (let* ((start (max 0 (- size window)))
+             (objs (reverse (claude-code-ide-org--transcript-window-lines file start size))))
+        (setq title
+              (or (seq-some (lambda (o) (and (equal (alist-get 'type o) "custom-title")
+                                             (alist-get 'customTitle o)))
+                            objs)
+                  (seq-some (lambda (o) (and (equal (alist-get 'type o) "ai-title")
+                                             (alist-get 'aiTitle o)))
+                            objs)))
+        (setq window (and (not title) (> start 0)
+                          (< window claude-code-ide-org--session-title-window-cap)
+                          (* window 4)))))
+    title))
+
+(defun claude-code-ide-org--session-first-prompt (file)
+  "The synopsis of session FILE's first prompt, or nil, read from its head."
+  (let* ((size (or (file-attribute-size (file-attributes file)) 0))
+         (window 65536) found)
+    (while (and (not found) window)
+      (let ((objs (claude-code-ide-org--transcript-window-lines file 0 (min size window))))
+        (setq found
+              (seq-some (lambda (o)
+                          (let ((c (alist-get 'content (alist-get 'message o))))
+                            (and (equal (alist-get 'type o) "user")
+                                 (not (alist-get 'isMeta o))
+                                 (stringp c) (not (string-prefix-p "<bash-" c))
+                                 (claude-code-ide-org--prompt-synopsis c))))
+                        objs))
+        (setq window (and (not found) (< window size)
+                          (< window claude-code-ide-org--session-title-window-cap)
+                          (* window 4)))))
+    found))
+
+(defun claude-code-ide-org--session-candidates ()
+  "Every session there is to render, newest first, as (DISPLAY . ID).
+
+Every project's transcripts rather than the current one's (the user,
+2026-09-23): deriving the current project's slug is what
+`claude-code-ide-org--transcript-file' warns goes wrong in worktrees and
+subdirectories, and a session from another repo stays reachable.  A
+render whose transcript has aged out is offered too, marked, and opens
+as it is -- renders live outside Claude Code's cleanup (settled
+2026-09-25).  Each line shows the modified time, the project, the name
+and the 8-character id, so completion matches on any of them."
+  (let* ((home-slug (replace-regexp-in-string
+                     "[/.]" "-" (directory-file-name (expand-file-name "~"))))
+         (transcripts
+          (sort (file-expand-wildcards
+                 (expand-file-name "projects/*/*.jsonl" (expand-file-name "~/.claude/")) t)
+                (lambda (a b)
+                  (time-less-p (file-attribute-modification-time (file-attributes b))
+                               (file-attribute-modification-time (file-attributes a))))))
+         (render-dir (file-name-as-directory claude-code-ide-org-transcript-render-directory))
+         (ids (mapcar #'file-name-base transcripts))
+         (line (lambda (time project name id)
+                 (format "%s  %-24s  %-44s  %s"
+                         (format-time-string "%m-%d %H:%M" time)
+                         (truncate-string-to-width project 24 nil nil "…")
+                         (truncate-string-to-width (or name "(no prompt)") 44 nil nil "…")
+                         (substring id 0 (min 8 (length id)))))))
+    (append
+     (mapcar (lambda (f)
+               (let ((slug (file-name-nondirectory (directory-file-name (file-name-directory f)))))
+                 (cons (funcall line
+                                (file-attribute-modification-time (file-attributes f))
+                                (string-remove-prefix "-" (string-remove-prefix home-slug slug))
+                                (or (claude-code-ide-org--session-title f)
+                                    (claude-code-ide-org--session-first-prompt f))
+                                (file-name-base f))
+                       (file-name-base f))))
+             transcripts)
+     (when (file-directory-p render-dir)
+       (delq nil
+             (mapcar (lambda (r)
+                       (let ((id (file-name-base r)))
+                         (unless (member id ids)
+                           (cons (funcall line (file-attribute-modification-time (file-attributes r))
+                                          "(render only)" nil id)
+                                 id))))
+                     (directory-files render-dir t "\\.org\\'")))))))
+
+(defun claude-code-ide-org--read-session ()
+  "Choose a session to render: from the list, or by a typed id or prefix."
+  (let* ((candidates (claude-code-ide-org--session-candidates))
+         (choice (completing-read "Session: "
+                                  (claude-code-ide-org--ordered-collection candidates))))
+    (or (cdr (assoc choice candidates))
+        (let ((typed (string-trim choice)))
+          (or (cdr (seq-find (lambda (c) (string-prefix-p (downcase typed) (cdr c)))
+                             candidates))
+              typed)))))
+
 (defun claude-code-ide-org-render-session (session-id &optional force)
   "Render SESSION-ID's transcript to org and return the file path.
 
@@ -13719,23 +13846,30 @@ an identical file is a cost paid for nothing.
 
 Signals when the transcript cannot be found, because a caller asking
 for a specific session wants to know it is not there rather than to be
-handed an empty document."
-  (interactive (list (read-string "Session id: ") current-prefix-arg))
-  (let ((source (claude-code-ide-org--transcript-file session-id)))
-    (unless source
+handed an empty document -- unless a render of it exists, which is then
+returned as it is: renders outlive the transcripts Claude Code prunes.
+
+Interactively, the session is chosen from every project's sessions,
+newest first, or typed as an id or 8-character prefix (TODO.org :ID:
+406d78da); a caller passing SESSION-ID is unaffected."
+  (interactive (list (claude-code-ide-org--read-session) current-prefix-arg))
+  (let* ((source (claude-code-ide-org--transcript-file session-id))
+         (dir (file-name-as-directory
+               claude-code-ide-org-transcript-render-directory))
+         (out (expand-file-name (concat session-id ".org") dir)))
+    (unless (or source (file-exists-p out))
       (error "No transcript for session %s (it may have aged out)" session-id))
-    (let* ((dir (file-name-as-directory
-                 claude-code-ide-org-transcript-render-directory))
-           (out (expand-file-name (concat session-id ".org") dir)))
-      (make-directory dir t)
-      (when (or force
-                (not (file-exists-p out))
-                (time-less-p (file-attribute-modification-time
-                              (file-attributes out))
-                             (file-attribute-modification-time
-                              (file-attributes source))))
-        (with-temp-file out
-          (insert (claude-code-ide-org--render-transcript session-id))))
+    (progn
+      (when source
+        (make-directory dir t)
+        (when (or force
+                  (not (file-exists-p out))
+                  (time-less-p (file-attribute-modification-time
+                                (file-attributes out))
+                               (file-attribute-modification-time
+                                (file-attributes source))))
+          (with-temp-file out
+            (insert (claude-code-ide-org--render-transcript session-id)))))
       (when (called-interactively-p 'any)
         (find-file out))
       out)))

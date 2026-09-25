@@ -19304,3 +19304,86 @@ left alone rather than guessed onto some other line."
       (should (stringp warned))
       (should (string-match-p "could not be found again" warned))
       (should-not (claude-code-ide-org-test--marker-on-open-clock-p)))))
+
+;;; Choosing a session to render (TODO.org :ID: 406d78da)
+
+(defmacro claude-code-ide-org-test--with-session-tree (&rest body)
+  "A scratch ~/.claude with two projects' transcripts and a render dir.
+Binds `home', `pdir' (project one) and `qdir' (project two), and `write',
+a function (DIR ID SECONDS-AGO LINES) writing a transcript."
+  (declare (indent 0))
+  `(let* ((home (file-name-as-directory (make-temp-file "cciorg-sessions" t)))
+          (pdir (expand-file-name ".claude/projects/-home-one/" home))
+          (qdir (expand-file-name ".claude/projects/-home-two/" home))
+          (process-environment (cons (concat "HOME=" (directory-file-name home))
+                                     process-environment))
+          (claude-code-ide-org-transcript-render-directory
+           (expand-file-name ".claude/org-renders/" home))
+          (write (lambda (dir id ago lines)
+                   (let ((f (expand-file-name (concat id ".jsonl") dir)))
+                     (with-temp-file f (dolist (l lines) (insert (json-encode l) "\n")))
+                     (set-file-times f (time-subtract (current-time) ago))
+                     f))))
+     (unwind-protect
+         (progn (make-directory pdir t) (make-directory qdir t) ,@body)
+       (delete-directory home t))))
+
+(defun claude-code-ide-org-test--prompt-line (text)
+  `((type . "user") (timestamp . "2026-09-25T10:00:00.000Z")
+    (message . ((role . "user") (content . ,text)))))
+
+(ert-deftest claude-code-ide-org-test-session-candidates-order-and-names ()
+  "Every project's sessions, newest first; the last custom-title names a
+session, over earlier ones and over an ai-title; with none, the first
+prompt's synopsis does."
+  (claude-code-ide-org-test--with-session-tree
+    (funcall write pdir "aaaaaaaa-1111" 300
+             (list (claude-code-ide-org-test--prompt-line "the oldest prompt")))
+    (funcall write qdir "bbbbbbbb-2222" 100
+             (list (claude-code-ide-org-test--prompt-line "unused")
+                   '((type . "custom-title") (customTitle . "stale-name"))
+                   '((type . "ai-title") (aiTitle . "an ai title"))
+                   '((type . "custom-title") (customTitle . "current-name"))))
+    (funcall write pdir "cccccccc-3333" 10
+             (list (claude-code-ide-org-test--prompt-line "hi")
+                   '((type . "ai-title") (aiTitle . "only an ai title"))))
+    (let ((c (claude-code-ide-org--session-candidates)))
+      (should (equal '("cccccccc-3333" "bbbbbbbb-2222" "aaaaaaaa-1111") (mapcar #'cdr c)))
+      (should (string-match-p "only an ai title" (car (nth 0 c))))
+      (should (string-match-p "current-name" (car (nth 1 c))))
+      (should-not (string-match-p "stale-name" (car (nth 1 c))))
+      (should (string-match-p "home-two" (car (nth 1 c))))
+      (should (string-match-p "the oldest prompt" (car (nth 2 c))))
+      (should (string-match-p "aaaaaaaa$" (car (nth 2 c)))))))
+
+(ert-deftest claude-code-ide-org-test-session-candidates-offer-render-only ()
+  "A render whose transcript has aged out is offered, marked, and opens."
+  (claude-code-ide-org-test--with-session-tree
+    (make-directory claude-code-ide-org-transcript-render-directory t)
+    (with-temp-file (expand-file-name "dddddddd-4444.org" claude-code-ide-org-transcript-render-directory)
+      (insert "#+TITLE: an old render\n"))
+    (let ((c (claude-code-ide-org--session-candidates)))
+      (should (string-match-p "(render only)" (car (rassoc "dddddddd-4444" c)))))
+    (should (string-suffix-p "dddddddd-4444.org"
+                             (claude-code-ide-org-render-session "dddddddd-4444")))))
+
+(ert-deftest claude-code-ide-org-test-read-session-accepts-a-prefix ()
+  "A typed 8-character prefix resolves to its session."
+  (claude-code-ide-org-test--with-session-tree
+    (funcall write pdir "eeeeeeee-5555-full" 10 (list (claude-code-ide-org-test--prompt-line "x")))
+    (cl-letf (((symbol-function 'completing-read) (lambda (&rest _) "eeeeeeee")))
+      (should (equal "eeeeeeee-5555-full" (claude-code-ide-org--read-session))))))
+
+(ert-deftest claude-code-ide-org-test-session-title-read-stays-in-its-window ()
+  "A title further from the end than the cap is not read for: the name
+falls back to the first prompt, and the whole file is never read."
+  (claude-code-ide-org-test--with-session-tree
+    (let ((claude-code-ide-org--session-title-window-cap 65536))
+      (funcall write pdir "ffffffff-6666" 10
+               (append (list (claude-code-ide-org-test--prompt-line "the first prompt")
+                             '((type . "custom-title") (customTitle . "far-away-title")))
+                       (make-list 3000 (claude-code-ide-org-test--prompt-line
+                                        (make-string 100 ?x)))))
+      (let ((c (car (claude-code-ide-org--session-candidates))))
+        (should-not (string-match-p "far-away-title" (car c)))
+        (should (string-match-p "the first prompt" (car c)))))))
