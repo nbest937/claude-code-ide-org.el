@@ -2597,7 +2597,10 @@ Emacs access by design -- writing the queue without a running Emacs is
 the premise the whole refactor rests on -- so the prior state has to
 travel back in the reply.  A heading with no keyword reports
 `(was none)' rather than an empty string, so the parse stays
-unambiguous.
+unambiguous.  The no-change refusal reads the heading's EFFECTIVE
+state -- disk carried through its pending `todo' events -- while
+`(was X)' still reads disk (TODO.org :ID: 57f37f0e); a queued state
+that differs from disk is named starred, outside the parentheses.
 
 What `from' *means* changed with this commit, and not merely in wording:
 it was \"the state held before this tool changed it\", and since nothing
@@ -2608,60 +2611,82 @@ on one heading carries the same `from'.  See TODO.org :ID:
 6b1e73c4-25da-4f0e-8a51-9c0d3f7ab214, which is that consequence, still
 unresolved."
   (claude-code-ide-org--tolerating-pending-capture id
-    ;; A capture that deferred has not written its heading yet, so this
-    ;; would otherwise return `Error: unknown id' -- and `queue-append'
-    ;; drops any event whose reply starts with `Error:', silently losing
-    ;; the state. Reported as queued instead, `was none' because a
-    ;; captured heading is keyword-less by design.
-    (lambda (title)
-      (let ((keywords (claude-code-ide-org--pending-capture-keywords id)))
-        (if (and keywords (not (member state keywords)))
-            (format "Error: %s is not a TODO keyword in this file (have: %s)"
-                    state (string-join keywords " "))
-          (format "Queued todo -> %s (was none): \"%s\"; pending review."
-                  state title))))
-    (lambda ()
-      (claude-code-ide-org--at-id
-       id
-       (lambda ()
-     ;; org-todo-keywords-1 is buffer-local and derived from the file's
-     ;; own `#+TODO:' line, so this validates against the keywords that
-     ;; file actually defines rather than against a list hard-coded here
-     ;; -- which would drift the first time a file declares a different
-     ;; sequence. Checked before anything is reported as queued: a
-     ;; misspelled keyword that reaches the queue is a refusal at apply
-     ;; time, in front of a human who has no way to tell whether the
-     ;; typo was theirs or the model's.
-     (cond
-      ((not (member state org-todo-keywords-1))
-       (format "Error: %s is not a TODO keyword in this file (have: %s)"
-               state (string-join org-todo-keywords-1 " ")))
-      ;; A transition to the state already held is a no-op: there is
-      ;; nothing for apply to do, and org's own logging has no state
-      ;; change to record. Left to queue, it is offered at review,
-      ;; marked, and only then fails -- hours after the context that
-      ;; would explain it (TODO.org :ID: cc0c17a7). Four occurrences in
-      ;; one day, every one from writing a keyword into a heading at
-      ;; creation and then setting the same state through this tool.
-      ;;
-      ;; Refused with an `Error:' prefix because that is the mechanism,
-      ;; not because it is a failure in the ordinary sense: the reply is
-      ;; the only channel this tool has, and `bin/hooks/queue-append'
-      ;; decides whether to write an event by testing that prefix. The
-      ;; wording therefore has to carry what the prefix does not -- that
-      ;; the requested state is the state on disk, which is success by
-      ;; any reading except the queue's.
-      ((equal state (org-get-todo-state))
-       (format "Error: no change -- \"%s\" already holds %s, so nothing was queued"
-               (org-get-heading t t t t) state))
-      (t
-       (concat
-        (format "Queued todo -> %s (was %s): \"%s\"; pending review."
-                state
-                (or (org-get-todo-state) "none")
-                (org-get-heading t t t t))
-        (or (claude-code-ide-org--unwrapped-plan-nudge state) "")
-        (or (claude-code-ide-org--unnominated-group-note state) "")))))))))
+                                                   ;; A capture that deferred has not written its heading yet, so this
+                                                   ;; would otherwise return `Error: unknown id' -- and `queue-append'
+                                                   ;; drops any event whose reply starts with `Error:', silently losing
+                                                   ;; the state. Reported as queued instead, `was none' because a
+                                                   ;; captured heading is keyword-less by design.
+                                                   (lambda (title)
+                                                     (let ((keywords (claude-code-ide-org--pending-capture-keywords id)))
+                                                       (if (and keywords (not (member state keywords)))
+                                                           (format "Error: %s is not a TODO keyword in this file (have: %s)"
+                                                                   state (string-join keywords " "))
+                                                         (format "Queued todo -> %s (was none): \"%s\"; pending review."
+                                                                 state title))))
+                                                   (lambda ()
+                                                     (claude-code-ide-org--at-id
+                                                      id
+                                                      (lambda ()
+                                                        ;; org-todo-keywords-1 is buffer-local and derived from the file's
+                                                        ;; own `#+TODO:' line, so this validates against the keywords that
+                                                        ;; file actually defines rather than against a list hard-coded here
+                                                        ;; -- which would drift the first time a file declares a different
+                                                        ;; sequence. Checked before anything is reported as queued: a
+                                                        ;; misspelled keyword that reaches the queue is a refusal at apply
+                                                        ;; time, in front of a human who has no way to tell whether the
+                                                        ;; typo was theirs or the model's.
+                                                        (cond
+                                                         ((not (member state org-todo-keywords-1))
+                                                          (format "Error: %s is not a TODO keyword in this file (have: %s)"
+                                                                  state (string-join org-todo-keywords-1 " ")))
+                                                         ;; A transition to the state already held is a no-op: there is
+                                                         ;; nothing for apply to do, and org's own logging has no state
+                                                         ;; change to record. Left to queue, it is offered at review,
+                                                         ;; marked, and only then fails -- hours after the context that
+                                                         ;; would explain it (TODO.org :ID: cc0c17a7). Four occurrences in
+                                                         ;; one day, every one from writing a keyword into a heading at
+                                                         ;; creation and then setting the same state through this tool.
+                                                         ;;
+                                                         ;; Refused with an `Error:' prefix because that is the mechanism,
+                                                         ;; not because it is a failure in the ordinary sense: the reply is
+                                                         ;; the only channel this tool has, and `bin/hooks/queue-append'
+                                                         ;; decides whether to write an event by testing that prefix. The
+                                                         ;; wording therefore has to carry what the prefix does not -- that
+                                                         ;; the requested state is the state already held, which is success
+                                                         ;; by any reading except the queue's.
+                                                         ;;
+                                                         ;; Against the EFFECTIVE state -- disk, carried through the
+                                                         ;; heading's pending `todo' events -- not disk alone (TODO.org
+                                                         ;; :ID: 57f37f0e).  Otherwise a queued REVIEW -> DOING refuses the
+                                                         ;; return to REVIEW and the next apply lands DOING on a heading
+                                                         ;; that is back in REVIEW; and a second DOING queues as a
+                                                         ;; duplicate.  The return trip is queued, never cancelled: it is
+                                                         ;; the true history, and apply replays each event as it is.
+                                                         ;;
+                                                         ;; `(was X)' keeps holding the DISK state: it is the contract
+                                                         ;; `bin/hooks/queue-append' recovers `from' from, and `from'
+                                                         ;; means "on disk at queue time" -- the chain logic of :ID:
+                                                         ;; 6b1e73c4 relies on that.  The starred effective state sits
+                                                         ;; outside the parentheses, for the reader, and no reply text
+                                                         ;; may contain a second "(was".
+                                                         ((let* ((disk (org-get-todo-state))
+                                                                 (effective (claude-code-ide-org--effective-todo-state
+                                                                             (org-entry-get nil "ID") disk))
+                                                                 (queued-ahead (not (equal effective disk))))
+                                                            (if (equal state effective)
+                                                                (format "Error: no change -- \"%s\" already holds %s%s, so nothing was queued"
+                                                                        (org-get-heading t t t t) state
+                                                                        (if queued-ahead "* (queued, not yet applied)" ""))
+                                                              (concat
+                                                               (format "Queued todo -> %s (was %s): \"%s\"; pending review%s."
+                                                                       state
+                                                                       (or disk "none")
+                                                                       (org-get-heading t t t t)
+                                                                       (if queued-ahead
+                                                                           (format ", after %s* in the queue" (or effective "none"))
+                                                                         ""))
+                                                               (or (claude-code-ide-org--unwrapped-plan-nudge state) "")
+                                                               (or (claude-code-ide-org--unnominated-group-note state) "")))))))))))
 
 (defun claude-code-ide-org--unnominated-group-note (state)
   "A reply line naming the group that closing the heading at point leaves
@@ -8196,6 +8221,23 @@ Reading the queue from a tool has precedent in
               (and (equal (plist-get event :kind) "capture")
                    (equal (plist-get event :id) id)))
             (claude-code-ide-org--queue-events)))
+
+(defun claude-code-ide-org--effective-todo-state (id disk-state)
+  "The keyword ID will hold once its pending `todo' events apply.
+
+DISK-STATE carried forward through the heading's unapplied `todo'
+events -- every session's, ordered by timestamp -- so the last one's
+state wins, and DISK-STATE stands when there are none.  What
+`org_set_todo's no-change check compares against (TODO.org :ID:
+57f37f0e): against disk alone, a state set and reverted between
+applies could not be queued back, and a duplicate of a queued state
+slipped through.  Reads the queue and never writes it, like
+`claude-code-ide-org--pending-capture'."
+  (let ((last (seq-find (lambda (e)
+                          (and (equal (plist-get e :kind) "todo")
+                               (equal (plist-get e :id) id)))
+                        (reverse (claude-code-ide-org--queue-events)))))
+    (if last (plist-get last :state) disk-state)))
 
 (defun claude-code-ide-org--pending-capture-keywords (id)
   "TODO keywords legal for ID's pending capture, or nil if undeterminable.

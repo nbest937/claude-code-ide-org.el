@@ -48,6 +48,11 @@ stray clock-status.json into the real module directory."
           (org-clock-persist nil)
           (org-clock-history nil)
           (claude-code-ide-org-clock-status-file (expand-file-name "clock-status.json" dir))
+          ;; `org_set_todo' reads the queue for the heading's effective
+          ;; state (TODO.org :ID: 57f37f0e), so without this every test
+          ;; calling it would read the real ~/.claude/org-updates.  A
+          ;; test that plants events nests `--with-queue', which rebinds.
+          (claude-code-ide-org-queue-directory (expand-file-name "queue/" dir))
           (claude-code-ide-org--audit-pending nil)
           (claude-code-ide-org--log-source nil)
           ;; The fixture files are TRACKED: the hook policies act only
@@ -241,6 +246,75 @@ reply without it would queue the no-op anyway."
     (should (string-prefix-p
              "Queued todo -> TODO (was none)"
              (claude-code-ide-org-set-todo id "TODO" "from keywordless")))))
+
+;; TODO.org :ID: 57f37f0e.  The no-change refusal compared the request
+;; with the keyword on DISK and ignored the queue, so a state set and
+;; reverted between applies could not be queued back, and a duplicate of
+;; a queued state slipped through.
+
+(defun claude-code-ide-org-test--todo-line (ts id state from)
+  "One queued `todo' event line carrying FROM, as the hook writes it."
+  (json-encode `((ts . ,ts) (kind . "todo") (id . ,id) (state . ,state)
+                 (from . ,from) (note . nil) (session_id . "sess-a")
+                 (agent_id . nil) (agent_type . nil) (source . "todo"))))
+
+(ert-deftest claude-code-ide-org-test-set-todo-queues-the-return-trip ()
+  "Disk TODO with `-> DOING' queued: asking for TODO is a real change and
+queues, the `(was TODO)' clause still parses to the DISK state, and the
+reply names the queued state starred outside the parentheses."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--with-queue
+      (claude-code-ide-org-test--queue-write
+       "sess-a" (claude-code-ide-org-test--todo-line
+                 "2026-09-21T10:00:00-0500" id "DOING" "TODO"))
+      (let ((reply (claude-code-ide-org-set-todo id "TODO" "back again")))
+        (should (string-prefix-p "Queued todo -> TODO (was TODO)" reply))
+        (should (string-match-p ", after DOING\\* in the queue" reply))
+        ;; The hook's recovery, and exactly one clause for it to find.
+        (should (string-match ".*(was \\([^)]*\\)).*" reply))
+        (should (equal "TODO" (match-string 1 reply)))
+        (should (= 1 (claude-code-ide-org-test--count-in-string "(was" reply)))))))
+
+(ert-deftest claude-code-ide-org-test-set-todo-refuses-a-queued-duplicate ()
+  "The same setup: asking for DOING again is refused, and the refusal
+shows the effective state starred, since it differs from disk."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--with-queue
+      (claude-code-ide-org-test--queue-write
+       "sess-a" (claude-code-ide-org-test--todo-line
+                 "2026-09-21T10:00:00-0500" id "DOING" "TODO"))
+      (let ((reply (claude-code-ide-org-set-todo id "DOING" "again")))
+        (should (string-prefix-p "Error: no change" reply))
+        (should (string-match-p "already holds DOING\\* (queued, not yet applied)" reply))
+        (should-not (string-search "(was" reply))))))
+
+(ert-deftest claude-code-ide-org-test-set-todo-round-trip-applies-in-one-pass ()
+  "NEXT -> DOING -> NEXT queued as two ordinary items: neither is stale
+against the batch, both apply, and :LOGBOOK: gets both State lines.
+Between two `!' keywords, since the fixture's bare TODO logs nothing."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--set-todo-for-real id "NEXT")
+    (claude-code-ide-org-test--with-queue
+      (claude-code-ide-org-test--queue-write
+       "sess-a" (claude-code-ide-org-test--todo-line
+                 "2026-09-21T10:00:00-0500" id "DOING" "NEXT"))
+      (should (string-prefix-p "Queued todo -> NEXT (was NEXT)"
+                               (claude-code-ide-org-set-todo id "NEXT" "rework done")))
+      ;; What the hook would have appended for that reply.
+      (claude-code-ide-org-test--queue-write
+       "sess-a" (claude-code-ide-org-test--todo-line
+                 "2026-09-21T10:05:00-0500" id "NEXT" "NEXT"))
+      (let ((items (claude-code-ide-org--review-items-from-queue)))
+        (should (equal '("DOING" "NEXT") (mapcar (lambda (i) (plist-get i :to)) items)))
+        (claude-code-ide-org--review-projected-staleness items)
+        (should-not (seq-some (lambda (i) (plist-get i :stale)) items))
+        (dolist (item items)
+          (should-not (claude-code-ide-org--review-apply-item item))))
+      (let ((logbook (claude-code-ide-org-test--logbook file)))
+        (should (string-match-p "- State \"DOING\" +from \"NEXT\"" logbook))
+        (should (string-match-p "- State \"NEXT\" +from \"DOING\"" logbook)))
+      (should (string-match-p "^\\* NEXT Test heading"
+                              (claude-code-ide-org-test--disk-contents file))))))
 
 (ert-deftest claude-code-ide-org-test-set-todo-rejects-an-undeclared-keyword ()
   "A keyword this file's own `#+TODO:' line does not declare is refused
