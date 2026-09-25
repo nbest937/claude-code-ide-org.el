@@ -1556,6 +1556,9 @@ Hook-backed (footnote-check, rule =footnote=), but the hook reads only a turn's 
   878d2cf5 correction ("… at point and under the mouse"); the hook
   flagged only the missing 8a2eb687, not the wrong title. Self-caught.
 
+- [2026-09-25 Fri] Self-caught: reporting b52df20b, end matter gave 76a6f052 the title "Fill both trackers once the sweep stops touching list items". Its real title is "Long prose lines have drifted back since the one fill sweep of 2026-09-14, because nothing runs it routinely". Minutes earlier the same session had typed that heading's full UUID from memory, and org_amend refused it. The recalled title was caught on the next lookup. The hook passed it, since it checks only that an id is present.
+
+
 
 ** TODO Miss: tracked work done under no clock, the wrong clock, or a clock closed before the work ended
 :PROPERTIES:
