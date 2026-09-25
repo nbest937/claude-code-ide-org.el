@@ -827,6 +827,9 @@ Reproduced in batch the same day: replacing the body of a heading followed by a 
 
 *org-lint's own checker is not the detector, measured 2026-09-25.* =bin/lint-org= already runs org-lint's "possibly misplaced heading line", as a warning, and it reports 498 lines across the two files, nearly all prose lines opening with =*bold*=. Nobody reads a warning with that count, which is why neither glued heading was seen. The rule this heading proposes has to be narrower: a =* KEYWORD= or =** KEYWORD= token after non-blank text on the same line.
 
+*Folded in by the user on 2026-09-25: triage org-lint per checker along with the new rule.* =bin/lint-org= runs all 61 of org-lint's checkers as warnings, and one of them, =misplaced-heading=, makes 499 of the 511 findings. The proposal takes org's own trust rating as the default: its 31 high-trust checkers become errors, its 30 low-trust ones stay warnings, and =misplaced-heading= goes off, replaced by this heading's narrow glued-heading rule. On today's corpus that leaves 10 org-lint warnings where there were 511: eight malformed timestamps such as =[2026-09-15 Tue 13:2x]= and two dead file links. It adds two errors, the two "misleading drawer entry :LOGBOOK:" findings, to fix before the rule lands. Warnings never reach a commit, since pre-commit shows only errors, so the gain is legibility for whoever runs the lint and one small gate. The measurement is in the 2026-09-25 lint of both files.
+
+
 
 
 * TODO [0/27] The review pass asks for judgement it cannot support, and the clock beneath it is still wrong :code:
