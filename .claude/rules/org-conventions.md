@@ -1049,6 +1049,26 @@ showing itself. DONE.org is written by archiving, which moves whole
 subtrees; TODO.org is where applies and `org_amend` land, and both append
 without the trailing lines.
 
+## Filling prose, and one-line list items
+
+**Prose is filled where it is written.** `org_capture` and `org_amend`
+fill each paragraph wider than the target buffer's `fill-column` as they
+write it, directly and at apply (`:ID:` b52df20b), measured at display
+width so the result is what `M-q` produces. A paragraph that already fits
+arrives exactly as sent. `M-x claude-code-ide-org-fill-prose` applies the
+same rules to text written before this or by hand.
+
+**A list item is one line; a thought that needs more goes in a paragraph
+after the list.** The filler never touches list items, deliberately: a
+wrapped item reads as an item with a body of its own, and a slice member
+line broken across lines is orphaned by the next refresh. Keeping items
+short is therefore the writer's job, not the tool's.
+
+**A paragraph holding a glued heading is never filled.** A heading stuck
+onto the end of a body line (`:ID:` 5b46fbfd) is not a heading to org, and
+filling its paragraph would wrap it away. The fill leaves it in place and
+the sweep reports its line, so it can be repaired first.
+
 ## Moving a heading
 
 **Moving a heading between files or levels is `org_refile` — never a

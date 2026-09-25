@@ -3657,7 +3657,10 @@ else."
          (t
           (claude-code-ide-org--capture-write
            title new-id created (plist-get resolved :spec) tags initial-state
-           (claude-code-ide-org--escape-block-headlines note) category)
+           (claude-code-ide-org--fill-prose-text
+            (claude-code-ide-org--escape-block-headlines note)
+            (claude-code-ide-org--fill-column-for-file file))
+           category)
           ;; Registered against the file the target actually resolved to,
           ;; which is not necessarily the capture file: an :ID: target can
           ;; live anywhere org-id knows about.
@@ -3965,7 +3968,12 @@ undone only through git. Commit the file first, then revise.")
   ;; correct prefix and a wrong tail, and a memory forbidding it
   ;; throughout.
   (let ((resolved (claude-code-ide-org-resolve-id-links
-                   (claude-code-ide-org--escape-block-headlines text))))
+                   ;; Filled to the target buffer's column (TODO.org :ID:
+                   ;; b52df20b), after escaping, as every write path does.
+                   (claude-code-ide-org--fill-prose-text
+                    (claude-code-ide-org--escape-block-headlines text)
+                    (claude-code-ide-org--fill-column-for-file
+                     (car (ignore-errors (claude-code-ide-org--id-find id))))))))
     (unless (car resolved) (setq id nil))
     (when (car resolved) (setq text (cdr resolved)))
     (if (null id) (cdr resolved)
@@ -10944,7 +10952,10 @@ deferred write must mean what the immediate one would have."
         (text ;; Escaped again here: the queue holds the tool's raw input, written by
         ;; the hook before any elisp ran (PR #29 review, TODO.org :ID:
         ;; 00aa6a85).  Idempotent, so text already escaped is unchanged.
-        (claude-code-ide-org--escape-block-headlines (plist-get item :text))))
+        ;; Filled at apply, in the target buffer, whose column is current.
+        (claude-code-ide-org--fill-prose-text
+         (claude-code-ide-org--escape-block-headlines (plist-get item :text))
+         fill-column)))
     (if drawer
         (claude-code-ide-org--amend-into-drawer drawer text)
       (claude-code-ide-org--end-of-body)
@@ -10980,7 +10991,9 @@ exists to prevent (TODO.org :ID: b5f94b88)."
          (plist-get item :tags)
          (plist-get item :to)
          ;; Escaped as the direct write escapes it; see the amend above.
-         (claude-code-ide-org--escape-block-headlines (plist-get item :note))
+         (claude-code-ide-org--fill-prose-text
+          (claude-code-ide-org--escape-block-headlines (plist-get item :note))
+          (claude-code-ide-org--fill-column-for-file file))
          (plist-get item :category))
         (org-id-add-location id (expand-file-name file))
         (with-current-buffer (find-file-noselect file) (save-buffer))
@@ -18430,6 +18443,145 @@ about explicitly, which is what this predicate is for."
     (beginning-of-line)
     (looking-at-p claude-code-ide-org--slice-member-regexp)))
 
+(defun claude-code-ide-org--glued-headline-p (text)
+  "Non-nil when TEXT holds a headline-shaped token after other text.
+
+A heading glued onto the end of a body line -- `...in the text.* TODO
+org_outline...' -- is not a heading to org, and a fill that treats its
+line as prose wraps the heading into the paragraph, where not even a
+line-anchored search finds it again.  The 2026-09-14 sweep did exactly
+that to TODO.org :ID: 61f05e56, and :ID: 5b46fbfd traces the gluing to
+`org_amend' replace=true.  The token sits *mid-line*, so a column-zero
+test misses it; this looks for a star run straight after non-blank text
+and followed by one of this project's TODO keywords.
+
+A star run straight after `=', `~' or a backslash is not counted: that
+is prose *quoting* a heading in verbatim, code or a regexp -- three of
+the four hits on TODO.org on 2026-09-25 -- and the cost is only that a
+real heading glued after closing verbatim goes unseen, which fails safe
+the other way.  A quotation of a glued heading in plain text still
+counts, since nothing tells it apart from one.
+
+One predicate, named so the later work reuses it rather than writing a
+second: `b52df20b''s fill guard, `5b46fbfd''s lint rule and
+`704d8558''s guard on what `org_edit' writes (the user, 2026-09-25)."
+  (and (stringp text)
+       (let ((case-fold-search nil))
+         (string-match-p
+          (concat "[^ \t\n=~\\\\*]\\*+ "
+                  (regexp-opt (mapcar #'car claude-code-ide-org--slice-checkbox-by-keyword)
+                              'words))
+          text))))
+
+(defun claude-code-ide-org--display-width (beg end)
+  "Width of the text between BEG and END as displayed, link markup skipped.
+A link counts as its description once fontified, which is what the
+user's \\[fill-paragraph] measures; the raw count would call a line
+holding one 53-character link over-long (TODO.org :ID: b52df20b).
+
+*The `invisible' TEXT property only, never the char property.*  Link
+fontification hides the brackets and target with a text property,
+`org-link'; folding hides a body with `org-fold-outline', which reaches
+`invisible-p' through the char property alone.  The first version asked
+`invisible-p' and measured every folded body -- every body, in a file
+opened with `#+STARTUP: content' -- as zero wide, so a dry run over both
+trackers found nothing to fill, while a temp-buffer test never folds and
+passed."
+  (let ((w 0) (pos beg))
+    (while (< pos end)
+      (let ((next (min end (next-single-property-change pos 'invisible nil end))))
+        (unless (get-text-property pos 'invisible)
+          (setq w (+ w (string-width (buffer-substring-no-properties pos next)))))
+        (setq pos next)))
+    w))
+
+(defun claude-code-ide-org--fillable-paragraph-p (element)
+  "Non-nil when ELEMENT is prose a fill may touch.
+The one predicate the write-time transform and the sweep share, so they
+cannot disagree about a line (TODO.org :ID: b52df20b).  A `paragraph'
+outside any list item -- a filled item reads as an item with a body,
+and a slice member line breaks under the refresh -- and outside
+`:PROPERTIES:' and `:LOGBOOK:', which are org's own records.  `:PLAN:'
+and `:DEBRIEF:' are prose.  A generated line stays excluded as a second
+guard, and so does a paragraph holding a glued heading."
+  (and (eq (org-element-type element) 'paragraph)
+       (not (org-element-lineage element '(item plain-list)))
+       (let ((drawer (org-element-lineage element '(drawer property-drawer))))
+         (not (or (eq (org-element-type drawer) 'property-drawer)
+                  (member (org-element-property :drawer-name drawer)
+                          '("LOGBOOK" "PROPERTIES")))))
+       (not (save-excursion
+              (goto-char (org-element-property :contents-begin element))
+              (claude-code-ide-org--generated-line-p)))))
+
+(defun claude-code-ide-org--paragraph-overlong-p (element column)
+  "Non-nil when a line of paragraph ELEMENT is wider than COLUMN on screen."
+  (save-excursion
+    (goto-char (org-element-property :contents-begin element))
+    (let ((end (org-element-property :contents-end element)) over)
+      (while (and (not over) (< (point) end))
+        (when (> (claude-code-ide-org--display-width
+                  (line-beginning-position) (line-end-position))
+                 column)
+          (setq over t))
+        (forward-line 1))
+      over)))
+
+(defun claude-code-ide-org--fill-prose-text (text &optional column)
+  "Return TEXT with its over-long prose paragraphs filled to COLUMN.
+
+The write-time half of TODO.org :ID: b52df20b: the tools fill what they
+write, so prose stops arriving as one long line for the human to
+reflow.  COLUMN defaults to `fill-column'; the callers pass the target
+buffer's.
+
+Only paragraphs `claude-code-ide-org--fillable-paragraph-p' accepts,
+and only those with a line wider than COLUMN *at display width*, after
+fontifying -- so the result is what \\[fill-paragraph] would produce, and
+a paragraph that already fits comes back exactly as sent, deliberate
+short breaks and all.  A paragraph holding a glued heading is never
+filled (`claude-code-ide-org--glued-headline-p').
+
+It cannot lose content: the non-whitespace text is compared before and
+after, and on any difference -- or any error -- TEXT is returned
+unchanged.  So a fill fault never blocks or damages a write; at worst
+the text arrives unfilled, as it did before this existed."
+  (if (or (not (stringp text)) (string-empty-p (string-trim text)))
+      text
+    (or (ignore-errors
+          (with-temp-buffer
+            (insert text)
+            (let ((org-mode-hook nil)) (delay-mode-hooks (org-mode)))
+            (setq fill-column (or column (default-value 'fill-column)))
+            (let ((before (claude-code-ide-org--nonspace-digest)))
+              (font-lock-ensure)
+              (let ((targets nil))
+                (org-element-map (org-element-parse-buffer) 'paragraph
+                  (lambda (el)
+                    (when (and (claude-code-ide-org--fillable-paragraph-p el)
+                               (not (claude-code-ide-org--glued-headline-p
+                                     (buffer-substring-no-properties
+                                      (org-element-property :contents-begin el)
+                                      (org-element-property :contents-end el))))
+                               (claude-code-ide-org--paragraph-overlong-p el fill-column))
+                      (push (org-element-property :contents-begin el) targets))))
+                ;; Last first, so a fill cannot move a paragraph not yet reached.
+                (dolist (pos targets)
+                  (goto-char pos)
+                  (org-fill-paragraph)))
+              (and (equal before (claude-code-ide-org--nonspace-digest))
+                   (buffer-substring-no-properties (point-min) (point-max))))))
+        text)))
+
+(defun claude-code-ide-org--fill-column-for-file (file)
+  "`fill-column' in the buffer visiting FILE, or its default.
+Read at the moment of writing, so a deferred write uses the value at
+apply time (TODO.org :ID: b52df20b)."
+  (let ((buffer (and file (find-buffer-visiting file))))
+    (if buffer
+        (buffer-local-value 'fill-column buffer)
+      (default-value 'fill-column))))
+
 (defun claude-code-ide-org-fill-prose (&optional file dry-run column)
   "Fill over-long prose in FILE to COLUMN, or report what it would fill.
 
@@ -18445,11 +18597,15 @@ COLUMN defaults to the buffer's own `fill-column', so the result is what
 that human's \\[fill-paragraph] would have produced rather than a second,
 competing width.
 
-*Only `paragraph', `item' and `plain-list' elements are touched.*  The
-third is not redundant: `org-element-at-point' reports `plain-list' at a
-list's *first* item and `item' only at subsequent ones, so omitting it
-skipped the opening item of every list -- 27 lines in TODO.org, the
-longest 588 characters, which is how the omission was found.  Tables,
+*Only paragraphs are touched, and never a list item* (TODO.org :ID:
+b52df20b).  Items used to be filled too, through `item' and `plain-list'
+-- the second because `org-element-at-point' reports `plain-list' at a
+list's first item, so omitting it had skipped 27 opening items.  That
+history is why excluding items *as a class* is the simpler rule: a
+filled item reads as an item with a body, and a slice member line
+breaks under the refresh.  Measured at display width after fontifying,
+as \[fill-paragraph] measures, and a paragraph holding a glued heading is
+reported rather than filled.  Tables,
 source and example blocks, fixed-width lines, headings and keywords are
 left
 exactly as they are because they are not prose, and `:PROPERTIES:' and
@@ -18490,25 +18646,31 @@ saving."
       (let* ((buffer-read-only nil)
              (fill-column (or column fill-column))
              (before (claude-code-ide-org--nonspace-digest))
-             (filled 0))
+             (filled 0)
+             (glued nil))
+        ;; The shared predicate and width of TODO.org :ID: b52df20b, so
+        ;; the sweep and the write path cannot disagree about a line:
+        ;; paragraphs only, never a list item, measured at display width
+        ;; after fontifying, and never one holding a glued heading --
+        ;; which is reported instead, since that is the damage this
+        ;; sweep once did to 61f05e56.
         (org-with-wide-buffer
-         (goto-char (point-min))
-         (while (not (eobp))
-           (when (> (- (line-end-position) (line-beginning-position))
-                    fill-column)
-             (let* ((element (org-element-at-point))
-                    (type (org-element-type element))
-                    (drawer (org-element-lineage
-                             element '(drawer property-drawer) t))
-                    (name (and drawer
-                               (org-element-property :drawer-name drawer))))
-               (when (and (memq type '(paragraph item plain-list))
-                          (not (eq (org-element-type drawer) 'property-drawer))
-                          (not (member name '("LOGBOOK" "PROPERTIES")))
-                          (not (claude-code-ide-org--generated-line-p)))
-                 (org-fill-paragraph)
-                 (setq filled (1+ filled)))))
-           (forward-line 1)))
+         (font-lock-ensure)
+         (let ((targets nil))
+           (org-element-map (org-element-parse-buffer) 'paragraph
+             (lambda (el)
+               (when (and (claude-code-ide-org--fillable-paragraph-p el)
+                          (claude-code-ide-org--paragraph-overlong-p el fill-column))
+                 (if (claude-code-ide-org--glued-headline-p
+                      (buffer-substring-no-properties
+                       (org-element-property :contents-begin el)
+                       (org-element-property :contents-end el)))
+                     (push (line-number-at-pos (org-element-property :contents-begin el)) glued)
+                   (push (org-element-property :contents-begin el) targets)))))
+           (dolist (pos targets)
+             (goto-char pos)
+             (org-fill-paragraph)
+             (setq filled (1+ filled)))))
         (let ((after (claude-code-ide-org--nonspace-digest)))
           (cond
            ((not (equal before after))
@@ -18516,12 +18678,22 @@ saving."
             (message "%s: REFUSED -- content changed, buffer reverted" file))
            (dry-run
             (revert-buffer t t t)
-            (message "%s: would fill %d paragraph(s) to column %d, content identical"
-                     file filled fill-column))
+            (message "%s: would fill %d paragraph(s) to column %d, content identical%s"
+                     file filled fill-column
+                     (claude-code-ide-org--fill-glued-note glued)))
            (t
             (save-buffer)
-            (message "%s: filled %d paragraph(s) to column %d, content identical"
-                     file filled fill-column)))))))))
+            (message "%s: filled %d paragraph(s) to column %d, content identical%s"
+                     file filled fill-column
+                     (claude-code-ide-org--fill-glued-note glued))))))))))
+
+(defun claude-code-ide-org--fill-glued-note (lines)
+  "A report clause naming the LINES whose paragraph held a glued heading."
+  (if (null lines) ""
+    (format "; %d paragraph%s left unfilled for holding a glued heading (line%s %s)"
+            (length lines) (if (= 1 (length lines)) "" "s")
+            (if (= 1 (length lines)) "" "s")
+            (mapconcat #'number-to-string (sort lines #'<) " "))))
 
 ;;; :ID: prefix expansion at the write boundary
 ;;

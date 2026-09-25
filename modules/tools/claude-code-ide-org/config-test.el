@@ -17892,20 +17892,21 @@ been wrapped at."
       (should (re-search-forward (regexp-quote note) nil t))
       (should (> (- (line-end-position) (line-beginning-position)) 40)))))
 
-(ert-deftest claude-code-ide-org-test-fill-prose-fills-a-list-first-item ()
-  "The opening item of a list is filled, not skipped.
-
-`org-element-at-point' reports `plain-list' at a list's first item and
-`item' only at later ones, so a predicate naming `item' alone silently
-left the first item of every list unwrapped -- 27 of them in TODO.org,
-the longest 588 characters.  The fixture has two items so the test
-distinguishes the two cases rather than passing on either."
+(ert-deftest claude-code-ide-org-test-fill-prose-never-fills-a-list-item ()
+  "No list item is filled, the first or any other (TODO.org :ID:
+b52df20b).  A filled item reads as an item with a body, so items left
+the fillable set as a class; before, the sweep filled them, and its
+docstring's 27 skipped opening items are the history that made the class
+rule the simpler one.  The paragraph beside them is filled, so the
+sparing is specific rather than a dead pass."
   (let* ((long (mapconcat #'identity (make-list 30 "gamma") " "))
          (file (claude-code-ide-org-test--fill-fixture
-                (format "* TODO A heading\n\n- %s\n- %s\n" long long))))
+                (format "* TODO A heading\n\n- %s\n- %s\n\n%s\n" long long long))))
     (claude-code-ide-org-fill-prose file nil 50)
     (claude-code-ide-org-test--with-filled file
-      (should-not (re-search-forward "^.\\{51,\\}$" nil t)))))
+      (should (= 2 (how-many (concat "^- " (regexp-quote long) "$") (point-min) (point-max))))
+      (should (re-search-forward "^gamma gamma" nil t))
+      (should (< (- (line-end-position) (line-beginning-position)) 51)))))
 
 (ert-deftest claude-code-ide-org-test-fill-prose-leaves-blocks-and-tables ()
   "Source blocks, example blocks and tables are not prose and are untouched."
@@ -18011,17 +18012,18 @@ filled\"."
   (let* ((tail (mapconcat #'identity (make-list 20 "word") " "))
          (member (format "- [X] [[id:aaaaaaaa-0000-0000-0000-000000000000][aaaaaaaa]] DONE %s" tail))
          (file (claude-code-ide-org-test--fill-fixture
-                (format "* TODO A slice\n\nPlanned:\n\n%s\n- plain item %s\n" member tail))))
+                (format "* TODO A slice\n\nPlanned:\n\n%s\n\nplain prose %s\n" member tail))))
     (claude-code-ide-org-fill-prose file nil 50)
     (claude-code-ide-org-test--with-filled file
       ;; The member line survives intact, on one line.
       (should (re-search-forward (regexp-quote member) nil t))
       (should (= (length member)
                  (- (line-end-position) (line-beginning-position))))
-      ;; ... while the ordinary item beside it did get wrapped, so the
-      ;; sparing is specific rather than a dead pass.
+      ;; ... while the prose paragraph beside it did get wrapped, so the
+      ;; sparing is specific rather than a dead pass.  (A plain item was
+      ;; the contrast until items stopped being filled, b52df20b.)
       (goto-char (point-min))
-      (should (re-search-forward "^- plain item" nil t))
+      (should (re-search-forward "^plain prose" nil t))
       (should (< (- (line-end-position) (line-beginning-position)) 51)))))
 
 
@@ -18855,3 +18857,122 @@ its checklist is rendered from."
   (let ((findings (claude-code-ide-org-test--lint
                    "* TODO [0/0] A slice\n:PROPERTIES:\n:ID:       aaaa0000-0000-4000-8000-000000000009\n:CATEGORY: Test\n:CREATED:  [2026-09-25 Fri 10:00]\n:KIND:     slice\n:COOKIE_DATA: checkbox recursive\n:END:\n\nA theme.\n")))
     (should (claude-code-ide-org-test--lint-matches findings 'error "slice has no :MEMBERS:"))))
+
+
+;;; Fill on write (TODO.org :ID: b52df20b)
+
+(defconst claude-code-ide-org-test--long-prose
+  (mapconcat #'identity (make-list 24 "delta") " ")
+  "A paragraph far wider than any fill column the tests use.")
+
+(ert-deftest claude-code-ide-org-test-fill-prose-text-fills-and-spares ()
+  "The transform fills an over-long paragraph and nothing else: a
+paragraph that fits comes back byte-identical, deliberate breaks
+included; a long list item, a slice member line, a table, a block and a
+property line come back untouched."
+  (let* ((long claude-code-ide-org-test--long-prose)
+         (fits "Short line.\nAnother short line.")
+         (item (concat "- " long))
+         (member (concat "- [ ] [[id:aaaaaaaa-0000-0000-0000-000000000000][aaaaaaaa]] TODO " long))
+         (table (concat "| " long " |"))
+         (block (concat "#+begin_example\n" long "\n#+end_example"))
+         (out (claude-code-ide-org--fill-prose-text
+               (mapconcat #'identity (list long fits item member table block) "\n\n") 40)))
+    ;; The paragraph, first in the text, is filled; the long line
+    ;; inside the example block further down is not.
+    (should (string-match-p "\\`\\(delta[ \n]\\)+delta\n\nShort line" out))
+    (should-not (string-match-p (concat "\\`" (regexp-quote long)) out))
+    (dolist (kept (list fits item member table long))
+      (unless (equal kept long)
+        (should (string-match-p (regexp-quote kept) out))))
+    ;; The block's copy of the long line survives inside the block.
+    (should (string-match-p (concat "#\\+begin_example\n" (regexp-quote long)) out))
+    (should (equal fits (claude-code-ide-org--fill-prose-text fits 40)))))
+
+(ert-deftest claude-code-ide-org-test-fill-prose-text-measures-a-link-by-its-description ()
+  "A link counts at its description, as the user's M-q counts it once
+fontified: a line whose raw text runs past the column but whose display
+fits is not filled."
+  (let ((text (concat "See [[id:aaaaaaaa-0000-0000-0000-000000000000][aaaaaaaa]] "
+                      "for the reason.")))
+    (should (> (length text) 40))
+    (should (equal text (claude-code-ide-org--fill-prose-text text 40)))))
+
+(ert-deftest claude-code-ide-org-test-fill-prose-text-spares-a-glued-heading ()
+  "A paragraph holding a heading glued onto its text is never filled, so
+the heading cannot be wrapped away into the prose (the damage done to
+61f05e56 on 2026-09-14)."
+  (let ((text (concat claude-code-ide-org-test--long-prose
+                      " the end.* TODO A glued heading :code:")))
+    (should (claude-code-ide-org--glued-headline-p text))
+    (should-not (claude-code-ide-org--glued-headline-p "* TODO A real heading"))
+    (should-not (claude-code-ide-org--glued-headline-p "an *emphasis* here"))
+    ;; Quoting a heading in verbatim, code or a regexp is not glue.
+    (should-not (claude-code-ide-org--glued-headline-p "a parent reading =* TODO A story="))
+    (should-not (claude-code-ide-org--glued-headline-p "asserts =^\\* TODO A story now="))
+    (should-not (claude-code-ide-org--glued-headline-p "becomes ~*** TODO [2/5] Pack~"))
+    (should (equal text (claude-code-ide-org--fill-prose-text text 40)))))
+
+(ert-deftest claude-code-ide-org-test-fill-prose-text-returns-input-on-a-content-change ()
+  "A fill that would change the non-whitespace content returns the input
+unchanged: a fault never damages a write."
+  (cl-letf (((symbol-function 'org-fill-paragraph)
+             (lambda (&rest _) (insert "INJECTED"))))
+    (should (equal claude-code-ide-org-test--long-prose
+                   (claude-code-ide-org--fill-prose-text
+                    claude-code-ide-org-test--long-prose 40)))))
+
+(ert-deftest claude-code-ide-org-test-write-paths-fill-prose ()
+  "Every write path lands prose filled: capture's note and amend's text,
+direct and deferred, into the body, a :PLAN: drawer and a replace."
+  (claude-code-ide-org-test--with-capture-file
+    (let ((long claude-code-ide-org-test--long-prose)
+          (over (lambda ()
+                  (with-temp-buffer
+                    (insert (claude-code-ide-org-test--disk-contents capture-file))
+                    (goto-char (point-min))
+                    (let (found)
+                      (while (and (not found) (not (eobp)))
+                        (when (and (> (- (line-end-position) (line-beginning-position)) 80)
+                                   (string-match-p "delta" (buffer-substring (line-beginning-position) (line-end-position))))
+                          (setq found t))
+                        (forward-line 1))
+                      found)))))
+      (should-not (string-prefix-p "Error"
+                                   (claude-code-ide-org-capture "Filled on capture" nil nil long "TODO" "Test")))
+      (should-not (funcall over))
+      (org-id-update-id-locations (list capture-file))
+      (let ((id (with-temp-buffer
+                  (insert-file-contents capture-file)
+                  (re-search-forward "^:ID: +\\(\\S-+\\)")
+                  (match-string 1))))
+        (should (string-prefix-p "Amended" (claude-code-ide-org-amend id long)))
+        (should (string-prefix-p "Amended" (claude-code-ide-org-amend id long nil nil "PLAN")))
+        (should-not (funcall over))
+        (claude-code-ide-org--at-id
+         id (lambda ()
+              (claude-code-ide-org--review-apply-amend (list :type 'amend :text long))
+              (save-buffer)))
+        (should-not (funcall over)))
+      (should-not (claude-code-ide-org--review-apply-capture
+                   (list :type 'capture :id "test-fill-deferred-1"
+                         :ts (date-to-time "2026-09-25T15:00:00-0500")
+                         :title "Deferred and filled" :target nil
+                         :to "TODO" :note long :category "Test")))
+      (should-not (funcall over)))))
+
+(ert-deftest claude-code-ide-org-test-fill-prose-sees-a-folded-body ()
+  "A file that opens folded -- `#+STARTUP: content', as both trackers do --
+still has its bodies filled.  The first width function skipped every
+invisible character, folding included, so a folded body measured zero
+wide and a dry run over both trackers found nothing to fill; a
+temp-buffer test never folds, so none of the others could see it."
+  (let* ((long claude-code-ide-org-test--long-prose)
+         (file (claude-code-ide-org-test--fill-fixture
+                (format "#+STARTUP: content\n\n* TODO A folded heading\n\n%s\n" long))))
+    (claude-code-ide-org-fill-prose file nil 50)
+    (claude-code-ide-org-test--with-filled file
+      (should-not (re-search-forward (concat "^" (regexp-quote long) "$") nil t))
+      (goto-char (point-min))
+      (should (re-search-forward "^delta delta" nil t))
+      (should (< (- (line-end-position) (line-beginning-position)) 51)))))
