@@ -2,7 +2,23 @@
 #+TAGS: analysis bug code comms prose research review spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Headings cited in bodies are id links, written as links by the tools, so backlinks are one org_query away :code:
+:PROPERTIES:
+:ID:       f7847adf-a408-4ad0-ae0c-8d3c19b79f2b
+:CREATED:  [2026-09-25 Fri 12:16]
+:CATEGORY: Tools
+:END:
 
+Bodies cite other headings in two forms, and often both in one heading: measured with =org-element= on 2026-09-25, TODO.org holds 619 verbatim =prefix= references to real ids and 403 =[[id:…]]= links (52 headings carry both), and DONE.org holds 981 and 1,546. Decided by the user the same day: links are the standard, and every verbatim reference in TODO.org is converted, including those pointing into DONE.org. Links survive archiving, because =org-id-locations= covers the archive (=org-id-search-archives=) and =org-id-find= rescans on a stale entry. What they buy is navigation, and a link graph org already answers: =org_query "link:target=<prefix>"= returns every heading linking to one, one call, as =blocked:= does for blockers. A verbatim reference is invisible to it. Proposed: =org_amend= and =org_capture= rewrite a verbatim 8-hex prefix that resolves to a heading into =[[id:<full>][<prefix>]]= as they write, so no writer ever types a full id; a lint catches hand edits; a one-off pass converts TODO.org; =61f05e56= teaches =link:target== in =org_query='s description. Whether =org_outline= should show backlinks beside =:BLOCKER:= is a design question for the brainstorm. Verbatim ids inside a code fence stay verbatim, since there they are transcript.
+
+* TODO org_capture runs in whatever buffer the user has selected, so an Org QL view turns a capture into a prompt nobody at the tool can answer :code:bug:
+:PROPERTIES:
+:ID:       fd29914e-0d18-4964-a104-37c136b311a6
+:CREATED:  [2026-09-25 Fri 12:16]
+:CATEGORY: Tools
+:END:
+
+Twice on 2026-09-25 an =org_capture= stopped at "Make link that searches: ", a prompt from org-ql's =org-ql-view--link-store=. Org's capture stores a link to the current buffer, and that function asks this question whenever the current buffer has =org-ql-view-query= set, which is true only in an Org QL view buffer (four were open, each with the variable buffer-local). With no human at the keyboard the call hangs until the MCP request times out; =C-g= aborts it, and the reply then fails on a dead websocket. Unverified, and the title may be wrong about it: whether the view has to be the *selected* buffer. At one failure the selected buffer was =*Messages*= a minute earlier and =*Ibuffer*= just after. Proposed: run the capture with a neutral current buffer, or bind =org-store-link-functions= to nil around it, since a tool capture has no use for an annotation link to wherever the user happens to be.
 
 * REVIEW A rendered session drops the narration the reader saw, because the transcript stores it as thinking :code:
 :PROPERTIES:
@@ -5612,14 +5628,14 @@ sequence.
 *One criterion added 2026-09-19, from the drift analysis via =f6d160c2=, and bounded.* A merge of story and slice would delete a vocabulary band from the always-loaded map — the epic/story/slice/twin paragraph in CLAUDE.md and its counterpart in the conventions — and concept count is itself a cost every session pays ([[id:bf7e0b8e-f83a-4d4a-9950-3ab23a225156][bf7e0b8e]]). That is a *tiebreaker*, not a thumb on the scale: the against-the-merge argument above is semantic (containment versus reference, tentative versus committed), and a worse model adopted to save a paragraph costs more in misfiled work than the paragraph. So: if the two scenarios come out realistic and distinct, keep both groupings and shorten the prose; if they collapse, count the deletion as a benefit, not as the reason.
 
 
-* TODO [0/10] Make the notes org-native: links, drawers, tags, one corpus pass :code:
+* TODO [0/11] Make the notes org-native: links, drawers, tags, one corpus pass :code:
 :PROPERTIES:
 :ID:       6521dd56-8772-416b-9435-6da78bb86b06
 :CREATED:  [2026-09-10 Thu 08:57]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  b7259ee4-9aa1-4b55-8cf2-fbbacdea5310 d350ff5b-3b1f-465e-800b-962264d2e841 63df67c7-de0d-43e7-9c6f-2b2979a40aba e128e4fa-b0d9-49f7-99eb-bae2d4b0676b fce6bd35-27ad-4724-8dbb-c9df4b68fb10 e28933e9-f352-4ef9-8d53-8cd9a4318768 41cf5830-fc2e-4dc6-b243-a0c2718a53a3 8a23d6ec-ca45-454d-b65f-e46ea9204816 01849bef-fdc9-4c30-b467-00ca8606e8e0 ecf66d45-18b3-477f-bca8-08bec90604e8
+:BLOCKER:  b7259ee4-9aa1-4b55-8cf2-fbbacdea5310 f7847adf-a408-4ad0-ae0c-8d3c19b79f2b d350ff5b-3b1f-465e-800b-962264d2e841 63df67c7-de0d-43e7-9c6f-2b2979a40aba e128e4fa-b0d9-49f7-99eb-bae2d4b0676b fce6bd35-27ad-4724-8dbb-c9df4b68fb10 e28933e9-f352-4ef9-8d53-8cd9a4318768 41cf5830-fc2e-4dc6-b243-a0c2718a53a3 8a23d6ec-ca45-454d-b65f-e46ea9204816 01849bef-fdc9-4c30-b467-00ca8606e8e0 ecf66d45-18b3-477f-bca8-08bec90604e8
 :END:
 :PLAN:
 Composed 2026-09-10 at the user's direction, absorbing the earlier
@@ -5672,6 +5688,7 @@ members.
 Planned:
 
 - [ ] [[id:b7259ee4-9aa1-4b55-8cf2-fbbacdea5310][b7259ee4]] TODO Commits cited in bodies and debriefs are orgit links, and nothing enforces it
+- [ ] [[id:f7847adf-a408-4ad0-ae0c-8d3c19b79f2b][f7847adf]] TODO Headings cited in bodies are id links, written as links by the tools, so backlinks are one org_query away
 - [ ] [[id:d350ff5b-3b1f-465e-800b-962264d2e841][d350ff5b]] TODO Canonical drawer order: PROPERTIES, LOGBOOK, PLAN, DEBRIEF, then body
 - [ ] [[id:63df67c7-de0d-43e7-9c6f-2b2979a40aba][63df67c7]] TODO Revisit the story definition: sanction clustering and speculative breakdown
 - [ ] [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]] NEXT Move the 88 pre-convention debriefs into :DEBRIEF:, authoring each resolution
