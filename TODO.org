@@ -831,6 +831,41 @@ pattern had repeated.
 :CATEGORY: Tools
 :END:
 :PLAN:
+Bounded. Every structural writer refuses on unsaved edits in any file
+it will write, through one helper, and a table-driven test forces each
+new tool to choose.
+
+*The sweep, 2026-09-24.*
+- Queue on unsaved edits: =org_capture=, =org_amend=.
+- Refuse: =org_set_property=, =org_slice_add_member=.
+- Save over them unchecked: =org_wrap_plan=, =org_archive=,
+  =org_refile=, =org_divide=, =org_sort_children=, =org_move_sibling=,
+  and =claude-code-ide-org-close-open-interval= (not an MCP tool).
+
+*Why not inside =--at-id-writable=.* =org_divide=, =org_refile=,
+=org_set_property= and =org_slice_add_member= do not route through it,
+and =org_archive= and =org_refile= also write a second file (the archive
+or refile target) that it cannot see.
+
+*Mechanism.*
+1. =claude-code-ide-org--busy-refusal= takes every file the caller will
+   write and returns the existing message ("<file> has unsaved changes
+   in Emacs; retry once it is saved") for the first busy one, else
+   =nil=. It wraps =--file-busy-p=, which stays advisory, as its
+   docstring says.
+2. Each writer listed above calls it before any mutation, passing the
+   destination file too where there is one. =org_set_property= and
+   =org_slice_add_member= switch to it, so the wording is one.
+3. Refuse, not queue: these are structural writes. =org_amend= and
+   =org_capture= keep queueing.
+
+*Test (ERT), which is the "one place".* A table classes every
+registered =org_*= tool as read-only, queued, conditional or
+structural; a registered tool missing from the table fails. For each
+structural tool: make the buffer dirty (and the destination buffer, in
+a second case for archive and refile), call the tool, and assert a
+refusal and an unchanged file on disk. Prove it discriminates by
+removing the call from one tool.
 :END:
 
 Observed 2026-09-21. The user reflowed 94e6b615's =:PLAN:= drawer and
