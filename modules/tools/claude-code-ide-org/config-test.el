@@ -19213,3 +19213,94 @@ today's behaviour: the global capture file."
     (cl-letf (((symbol-function 'claude-code-ide-mcp-server-get-session-context)
                (lambda () (list :project-dir b-root))))
       (should (file-equal-p b-todo (claude-code-ide-org--capture-target-file))))))
+
+;;; A running clock survives a revert (TODO.org :ID: 53b0047d)
+
+(defconst claude-code-ide-org-test--clocked-file
+  "#+TODO: TODO | DONE\n\n* TODO Other\nbody\n\n* TODO Clocked\n:PROPERTIES:\n:ID:       clk-1\n:END:\nafter\n\n* TODO Tail\n")
+
+(defmacro claude-code-ide-org-test--with-running-clock (&rest body)
+  "A tracked scratch file with a clock running on `clk-1'; BODY runs in
+its buffer.  Binds `file'.  The clock is cancelled afterwards whatever
+happened."
+  (declare (indent 0))
+  `(let* ((dir (file-name-as-directory (make-temp-file "cciorg-clock" t)))
+          (file (expand-file-name "TODO.org" dir))
+          (org-id-locations-file (expand-file-name ".org-id-locations" dir))
+          (org-id-locations (make-hash-table :test 'equal))
+          (org-id-files nil)
+          (claude-code-ide-org-query-files (list file))
+          (claude-code-ide-org--clocked-id nil)
+          ;; Isolated from audit records other tests leave queued, which
+          ;; name files in scratch directories already deleted.
+          (claude-code-ide-org--audit-pending nil)
+          (claude-code-ide-org-audit-log-file (expand-file-name "audit.jsonl" dir))
+          (org-clock-out-remove-zero-time-clocks nil))
+     (unwind-protect
+         (progn
+           (with-temp-file file (insert claude-code-ide-org-test--clocked-file))
+           (with-current-buffer (find-file-noselect file)
+             (goto-char (point-min))
+             (re-search-forward "^\\* TODO Clocked")
+             (org-clock-in)
+             (save-buffer)
+             ,@body))
+       (when (org-clocking-p) (org-clock-cancel))
+       (when-let* ((buf (find-buffer-visiting file)))
+         (with-current-buffer buf (set-buffer-modified-p nil))
+         (kill-buffer buf))
+       (delete-directory dir t))))
+
+(defun claude-code-ide-org-test--rewrite-and-revert (fn)
+  "Rewrite the visited file on disk through FN, a text-to-text function,
+behind Emacs, then revert its buffer."
+  (let* ((file (buffer-file-name))
+         (text (with-temp-buffer (insert-file-contents file) (buffer-string))))
+    (with-temp-file file (insert (funcall fn text)))
+    (set-file-times file (time-add (current-time) 5))
+    (revert-buffer t t t)))
+
+(defun claude-code-ide-org-test--marker-on-open-clock-p ()
+  (save-excursion
+    (goto-char org-clock-marker)
+    (beginning-of-line)
+    (looking-at-p "^[ \t]*CLOCK: \\[[^]]+\\][ \t]*$")))
+
+(ert-deftest claude-code-ide-org-test-clock-survives-a-revert ()
+  "Lines inserted above the heading, or between it and its CLOCK line,
+leave the marker where it belongs; changes both above and below move it,
+and the repair puts it back so `org-clock-out' closes the right line."
+  (claude-code-ide-org-test--with-running-clock
+    (should (equal "clk-1" claude-code-ide-org--clocked-id))
+    (claude-code-ide-org-test--rewrite-and-revert (lambda (s) (concat "#+TITLE: x\n" s)))
+    (should (claude-code-ide-org-test--marker-on-open-clock-p))
+    (claude-code-ide-org-test--rewrite-and-revert
+     (lambda (s) (replace-regexp-in-string ":END:\n:LOGBOOK:" ":END:\nan inserted line\n:LOGBOOK:" s t t)))
+    (should (claude-code-ide-org-test--marker-on-open-clock-p))
+    ;; Both above and below: the stretch holding the clock is replaced.
+    (claude-code-ide-org-test--rewrite-and-revert
+     (lambda (s) (concat "* TODO Brand new first\n\n"
+                         (replace-regexp-in-string "^body$" "changed body" s t t)
+                         "\n* TODO Brand new last\n")))
+    (should (claude-code-ide-org-test--marker-on-open-clock-p))
+    (should (string-match-p "Clocked" (org-with-point-at org-clock-hd-marker
+                                        (org-get-heading t t t t))))
+    (org-clock-out)
+    (save-buffer)
+    (should (string-match-p ":ID:       clk-1\n:END:\n\\(?:an inserted line\n\\)?:LOGBOOK:\nCLOCK: \\[[^]]+\\]--\\[[^]]+\\] =>"
+                            (claude-code-ide-org-test--disk-contents file)))))
+
+(ert-deftest claude-code-ide-org-test-clock-revert-without-its-heading-warns ()
+  "The clocked heading deleted on disk: a warning, and the markers are
+left alone rather than guessed onto some other line."
+  (claude-code-ide-org-test--with-running-clock
+    (let ((warned nil))
+      (cl-letf (((symbol-function 'display-warning)
+                 (lambda (_type msg &rest _) (setq warned msg))))
+        (claude-code-ide-org-test--rewrite-and-revert
+         (lambda (s) (concat "* TODO Brand new first\n\n"
+                             (replace-regexp-in-string
+                              "\\* TODO Clocked\n\\(?:.*\n\\)*?after\n" "" s t t)))))
+      (should (stringp warned))
+      (should (string-match-p "could not be found again" warned))
+      (should-not (claude-code-ide-org-test--marker-on-open-clock-p)))))

@@ -8181,6 +8181,90 @@ in `condition-case', same reasoning as the in-handler."
 (add-hook 'org-clock-in-hook #'claude-code-ide-org--clock-status-hook-in)
 (add-hook 'org-clock-out-hook #'claude-code-ide-org--clock-status-hook-out)
 
+;;; A running clock survives a revert (TODO.org :ID: 53b0047d) ---------------
+;;
+;; `revert-buffer' replaces a buffer from its file and keeps markers only in
+;; the stretch it did not have to replace.  Changes both above and below the
+;; open CLOCK line -- what `git checkout', `switch', `stash' or `rebase' do
+;; to a tracked file -- replace the stretch holding it, and
+;; `org-clock-marker' lands on some other line; `org-clock-out' then fails
+;; or closes the wrong line.  No guard can see those writes, so this is
+;; recovery: find the clock line again, by id and start time, or say so.
+;; Not gated on time tracking: a live org clock can exist either way.
+
+(defvar claude-code-ide-org--clocked-id nil
+  "The :ID: of the heading the running clock is on, or nil.
+Recorded at clock-in, so a revert that moves `org-clock-hd-marker' off
+the heading cannot also lose which heading it was.")
+
+(defun claude-code-ide-org--record-clocked-id ()
+  "`org-clock-in-hook' handler: remember the clocked heading's :ID:."
+  (setq claude-code-ide-org--clocked-id
+        (ignore-errors
+          (and (markerp org-clock-hd-marker) (marker-buffer org-clock-hd-marker)
+               (org-with-point-at org-clock-hd-marker (org-entry-get nil "ID"))))))
+
+(defun claude-code-ide-org--forget-clocked-id ()
+  "`org-clock-out-hook' and `org-clock-cancel-hook' handler."
+  (setq claude-code-ide-org--clocked-id nil))
+
+(defconst claude-code-ide-org--open-clock-line-re
+  "^[ \t]*CLOCK: \\(\\[[^]\n]+\\]\\)[ \t]*$"
+  "An open CLOCK line: a start timestamp and no end.  Group 1 is the stamp.")
+
+(defun claude-code-ide-org--repair-clock-after-revert ()
+  "`after-revert-hook' handler: put a running clock's markers back.
+
+Only in a tracked buffer holding the running clock.  When the marker's
+line is still an open CLOCK line, nothing is done.  Otherwise the
+recorded :ID: is resolved in this buffer and, under it, the open CLOCK
+line whose start equals `org-clock-start-time' to the minute; both
+markers move there.  When there is no recorded id, the id no longer
+resolves here, or no open line matches, the markers are left alone and a
+warning names the heading and the start time.  It never guesses a line."
+  (condition-case err
+      (when (and (org-clocking-p)
+                 (eq (marker-buffer org-clock-marker) (current-buffer))
+                 (claude-code-ide-org--tracked-buffer-p))
+        (unless (save-excursion
+                  (goto-char org-clock-marker)
+                  (beginning-of-line)
+                  (looking-at-p claude-code-ide-org--open-clock-line-re))
+          (let* ((start (format-time-string "%Y-%m-%d %a %H:%M" org-clock-start-time))
+                 (pos (and claude-code-ide-org--clocked-id
+                           (org-find-entry-with-id claude-code-ide-org--clocked-id)))
+                 (found
+                  (and pos
+                       (save-excursion
+                         (goto-char pos)
+                         (let ((end (save-excursion (outline-next-heading) (point)))
+                               hit)
+                           (while (and (not hit)
+                                       (re-search-forward claude-code-ide-org--open-clock-line-re end t))
+                             (when (equal (substring (match-string-no-properties 1) 1 -1) start)
+                               (setq hit (match-end 1))))
+                           hit)))))
+            (if found
+                (progn
+                  (move-marker org-clock-marker found)
+                  (move-marker org-clock-hd-marker
+                               (save-excursion (goto-char pos) (org-back-to-heading t) (point))))
+              (display-warning
+               'claude-code-ide-org
+               (format "The running clock (on \"%s\", started [%s]) lost its line when %s \
+was reverted, and it could not be found again; clock out by hand."
+                       (or org-clock-current-task "an unknown heading") start
+                       (buffer-name))
+               :warning)))))
+    (error (display-warning 'claude-code-ide-org
+                            (format "Clock marker repair failed: %s" (error-message-string err))
+                            :warning))))
+
+(add-hook 'org-clock-in-hook #'claude-code-ide-org--record-clocked-id)
+(add-hook 'org-clock-out-hook #'claude-code-ide-org--forget-clocked-id)
+(add-hook 'org-clock-cancel-hook #'claude-code-ide-org--forget-clocked-id)
+(add-hook 'after-revert-hook #'claude-code-ide-org--repair-clock-after-revert)
+
 ;; Emacs-restart case: org-clock-persist is 'history (not 'clock/t — see
 ;; the "Why no explicit clock-persistence-restore call" design note in
 ;; CLAUDE.md), so a restart never auto-resumes an in-memory clock, and
