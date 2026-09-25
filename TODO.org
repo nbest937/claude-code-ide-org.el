@@ -605,6 +605,13 @@ it. Measured: a full render of a 6 MB session costs 0.97 s, and an append reads
 only past its offset. *Still to confirm live:* after a turn finishes, point and
 an opened drawer stay put mid-buffer, and point at the end follows.
 
+*Live check, done 2026-09-25.* When the long turn finished, this session's
+render grew by 47,448 characters, and the buffer still equalled its file. Point
+stayed on the same line inside a drawer the check had opened mid-buffer, and the
+drawer stayed open. Not observed live: point following when it sits at the very
+end. The code moves it there, but no test or live run exercised it.
+
+
 
 
 * TODO render-session asks for a session id from thin air; offer the project's sessions, newest first :code:
