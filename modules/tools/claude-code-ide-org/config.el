@@ -2971,9 +2971,14 @@ different one is worse off than a caller that got an error."
       (list :spec (list 'file default) :file default
             :where (format "top of %s" (abbreviate-file-name default))))
      ((claude-code-ide-org--id-find target)
-      (list :spec (list 'id target)
-            :file (car (claude-code-ide-org--id-find target))
-            :where (format "under :ID: %s" target)))
+      ;; The EXPANDED id goes into the spec: org-capture's `(id ...)'
+      ;; target looks the id up itself, with no idea a prefix could be
+      ;; one, so passing TARGET through failed every prefix that the
+      ;; check above had just accepted (TODO.org :ID: 25e7b083).
+      (let ((full (claude-code-ide-org--full-id target)))
+        (list :spec (list 'id full)
+              :file (car (claude-code-ide-org--id-find full))
+              :where (format "under :ID: %s" full))))
      (t (error "target %S is not a known :ID:. Since 2026-08-27 a category \
 is a :CATEGORY: property rather than a heading, so there is nothing to file \
 *under* by name -- omit the target to prepend at the top of %s and pass \
@@ -5092,81 +5097,94 @@ declaring it :KIND: slice would make it both")
      (t
       (condition-case err
           (org-with-point-at marker
-            (if (not (equal property "BLOCKER"))
-                (if (and (equal property "KIND")
-                         (equal (downcase (string-trim (or value ""))) "slice"))
-                    ;; Declaring a slice is the one moment a heading
-                    ;; *becomes* one, so the declaration completes
-                    ;; itself: everything a slice must carry that a
-                    ;; mechanism can derive is written here rather than
-                    ;; left for the composer's hand (TODO.org :ID:
-                    ;; acf46449 -- measured, composing one declared cost
-                    ;; two property calls and a hand-typed cookie, all
-                    ;; three values refresh-slice already derives).
-                    (let (did)
-                      ;; Canonical lowercase: every slice predicate
-                      ;; tests (equal "slice" ...), so "Slice" would
-                      ;; declare something nothing recognises.
-                      (org-entry-put (point) "KIND" "slice")
-                      (unless (org-entry-get nil "COOKIE_DATA")
-                        ;; `checkbox' because members are list items;
-                        ;; `recursive' because a nested member's lines
-                        ;; are otherwise excluded (:ID: b6da3480).
-                        (org-entry-put (point) "COOKIE_DATA"
-                                       "checkbox recursive")
-                        (push ":COOKIE_DATA:" did))
-                      (when (claude-code-ide-org--ensure-statistics-cookie-at-point)
-                        (push "[/] cookie" did))
-                      ;; The blocker derives from the checklist, so a
-                      ;; declaration made before the body is written
-                      ;; leaves it to the first refresh rather than
-                      ;; deleting a hand-set value against no members.
-                      (when (and (claude-code-ide-org--slice-members)
-                                 (claude-code-ide-org--refresh-slice-blocker-at-point))
-                        (push ":BLOCKER:" did))
-                      (save-buffer)
-                      (format "Set KIND on \"%s\"%s"
-                              (org-get-heading t t t t)
-                              (if did
-                                  (format " (declared a slice; derived %s)"
-                                          (string-join (nreverse did) ", "))
-                                " (declared a slice; nothing to derive)")))
-                  (org-entry-put (point) property value)
-                  (save-buffer)
-                  (format "Set %s on \"%s\"" property
-                          (org-get-heading t t t t)))
-              (let ((parsed (claude-code-ide-org--blocker-ids-from value)))
-                (if (eq (car parsed) 'error)
-                    (format "Error: %s" (cdr parsed))
-                  (let* ((new (cdr parsed))
-                         (old (and append
-                                   (claude-code-ide-org--lint-blocker-ids
-                                    (or (org-entry-get nil "BLOCKER") ""))))
-                         (all (delete-dups (append old new)))
-                         (inert (seq-filter
-                                 (lambda (b)
-                                   (let ((m (claude-code-ide-org--id-find b 'marker)))
-                                     (and m (not (org-with-point-at m
-                                                   (org-get-todo-state))))))
-                                 all)))
-                    ;; Bare and space-separated: org-depend's whole
-                    ;; grammar is "each word is an id, exactly".  The
-                    ;; `ids(...)' wrapper this wrote until 2026-09-15
-                    ;; (TODO.org :ID: 3f4fd744) is org-edna's finder, and
-                    ;; org-depend split it into `ids(<uuid>' and
-                    ;; `<uuid>)' -- so a one-id blocker enforced nothing.
-                    (org-entry-put (point) "BLOCKER" (string-join all " "))
-                    (save-buffer)
-                    (concat
-                     (format "Set BLOCKER on \"%s\" to %d id%s"
-                             (org-get-heading t t t t) (length all)
-                             (if (= 1 (length all)) "" "s"))
-                     (when inert
-                       (format " -- WARNING: %s carr%s no TODO keyword, so \
+                             (if (not (equal property "BLOCKER"))
+                                 (if (equal property "DROPPED")
+                                     ;; Ids, like :BLOCKER:'s, so validated the same way:
+                                     ;; prefixes expanded, an unresolvable id refused
+                                     ;; rather than written where it silently drops
+                                     ;; nothing (TODO.org :ID: 25e7b083).
+                                     (let ((parsed (claude-code-ide-org--blocker-ids-from value)))
+                                       (if (eq (car parsed) 'error)
+                                           (format "Error: %s" (cdr parsed))
+                                         (org-entry-put (point) "DROPPED" (string-join (cdr parsed) " "))
+                                         (save-buffer)
+                                         (format "Set DROPPED on \"%s\" to %d id%s"
+                                                 (org-get-heading t t t t) (length (cdr parsed))
+                                                 (if (= 1 (length (cdr parsed))) "" "s"))))
+                                   (if (and (equal property "KIND")
+                                            (equal (downcase (string-trim (or value ""))) "slice"))
+                                       ;; Declaring a slice is the one moment a heading
+                                       ;; *becomes* one, so the declaration completes
+                                       ;; itself: everything a slice must carry that a
+                                       ;; mechanism can derive is written here rather than
+                                       ;; left for the composer's hand (TODO.org :ID:
+                                       ;; acf46449 -- measured, composing one declared cost
+                                       ;; two property calls and a hand-typed cookie, all
+                                       ;; three values refresh-slice already derives).
+                                       (let (did)
+                                         ;; Canonical lowercase: every slice predicate
+                                         ;; tests (equal "slice" ...), so "Slice" would
+                                         ;; declare something nothing recognises.
+                                         (org-entry-put (point) "KIND" "slice")
+                                         (unless (org-entry-get nil "COOKIE_DATA")
+                                           ;; `checkbox' because members are list items;
+                                           ;; `recursive' because a nested member's lines
+                                           ;; are otherwise excluded (:ID: b6da3480).
+                                           (org-entry-put (point) "COOKIE_DATA"
+                                                          "checkbox recursive")
+                                           (push ":COOKIE_DATA:" did))
+                                         (when (claude-code-ide-org--ensure-statistics-cookie-at-point)
+                                           (push "[/] cookie" did))
+                                         ;; The blocker derives from the checklist, so a
+                                         ;; declaration made before the body is written
+                                         ;; leaves it to the first refresh rather than
+                                         ;; deleting a hand-set value against no members.
+                                         (when (and (claude-code-ide-org--slice-members)
+                                                    (claude-code-ide-org--refresh-slice-blocker-at-point))
+                                           (push ":BLOCKER:" did))
+                                         (save-buffer)
+                                         (format "Set KIND on \"%s\"%s"
+                                                 (org-get-heading t t t t)
+                                                 (if did
+                                                     (format " (declared a slice; derived %s)"
+                                                             (string-join (nreverse did) ", "))
+                                                   " (declared a slice; nothing to derive)")))
+                                     (org-entry-put (point) property value)
+                                     (save-buffer)
+                                     (format "Set %s on \"%s\"" property
+                                             (org-get-heading t t t t))))
+                               (let ((parsed (claude-code-ide-org--blocker-ids-from value)))
+                                 (if (eq (car parsed) 'error)
+                                     (format "Error: %s" (cdr parsed))
+                                   (let* ((new (cdr parsed))
+                                          (old (and append
+                                                    (claude-code-ide-org--lint-blocker-ids
+                                                     (or (org-entry-get nil "BLOCKER") ""))))
+                                          (all (delete-dups (append old new)))
+                                          (inert (seq-filter
+                                                  (lambda (b)
+                                                    (let ((m (claude-code-ide-org--id-find b 'marker)))
+                                                      (and m (not (org-with-point-at m
+                                                                                     (org-get-todo-state))))))
+                                                  all)))
+                                     ;; Bare and space-separated: org-depend's whole
+                                     ;; grammar is "each word is an id, exactly".  The
+                                     ;; `ids(...)' wrapper this wrote until 2026-09-15
+                                     ;; (TODO.org :ID: 3f4fd744) is org-edna's finder, and
+                                     ;; org-depend split it into `ids(<uuid>' and
+                                     ;; `<uuid>)' -- so a one-id blocker enforced nothing.
+                                     (org-entry-put (point) "BLOCKER" (string-join all " "))
+                                     (save-buffer)
+                                     (concat
+                                      (format "Set BLOCKER on \"%s\" to %d id%s"
+                                              (org-get-heading t t t t) (length all)
+                                              (if (= 1 (length all)) "" "s"))
+                                      (when inert
+                                        (format " -- WARNING: %s carr%s no TODO keyword, so \
 org-depend will not block on %s until the queue is applied"
-                               (mapconcat #'claude-code-ide-org--id-prefix inert " ")
-                               (if (= 1 (length inert)) "ies" "y")
-                               (if (= 1 (length inert)) "it" "them")))))))))
+                                                (mapconcat #'claude-code-ide-org--id-prefix inert " ")
+                                                (if (= 1 (length inert)) "ies" "y")
+                                                (if (= 1 (length inert)) "it" "them")))))))))
         (error (format "Error: %s" (error-message-string err))))))))
 
 (defun claude-code-ide-org-sort-children (id sort-type)
@@ -6306,8 +6324,17 @@ sticky: a `MAYBE' member promoted to `TODO' never regained its box,
 because the refresh kept the absence it found.  A property survives a
 line being regenerated wholesale, which is what disqualified every
 marker that lived on the line itself."
-  (let ((raw (org-entry-get nil "DROPPED")))
-    (and raw (mapcar #'downcase (split-string raw "[ \t,]+" t)))))
+  ;; Prefixes are expanded as they are read: a prefix compared against
+  ;; full member ids dropped nothing, and on 8a2eb687 a dropped member
+  ;; kept its checkbox for four days (TODO.org :ID: 25e7b083).  A token
+  ;; that expands to nothing stays as written, so the lint still sees it.
+  (let ((raw (org-entry-get nil "DROPPED"))
+        (table (claude-code-ide-org--id-index)))
+    (and raw
+         (mapcar (lambda (tok)
+                   (let ((full (claude-code-ide-org--expand-id-prefix tok table)))
+                     (downcase (if (stringp full) full tok))))
+                 (split-string raw "[ \t,]+" t)))))
 
 (defun claude-code-ide-org--refresh-slice-members-at-point (index)
   "Rewrite the slice-at-point's member lines from INDEX.  Returns a count.
@@ -6622,6 +6649,11 @@ a record that was never true at any moment (observed on
   (require 'org-id)
   (let ((claude-code-ide-org--incidentals-claimed-elsewhere nil)
         (claude-code-ide-org--incidentals-owned-elsewhere nil)
+        ;; Expanded before comparing: a prefix compared with `equal'
+        ;; against the full :ID: read as a clean "0 slices refreshed"
+        ;; (TODO.org :ID: 25e7b083).  Unresolved, it stays as given, and
+        ;; still selects nothing.
+        (full-id (and id (or (claude-code-ide-org--full-id id) id)))
         (index (claude-code-ide-org--slice-referent-index))
         ;; Same reasoning as the apply path (TODO.org :ID: 97b030a4): the
         ;; user's `buffer-read-only' guards against their own stray
@@ -6661,7 +6693,7 @@ a record that was never true at any moment (observed on
                                     include-closed))
                         (or (null id)
                             (equal (downcase (or (org-entry-get nil "ID") ""))
-                                   (downcase id))))
+                                   (downcase full-id))))
                (setq slices (1+ slices))
                (let ((result (claude-code-ide-org--refresh-slice-members-at-point index)))
                  (setq lines (+ lines (car result)))
@@ -17688,6 +17720,14 @@ case of a full uuid costs one `length\' call and no file scanning."
         (setq prefix-unresolved t))))
    (unless prefix-unresolved
      (org-id-find id markerp))))
+
+(defun claude-code-ide-org--full-id (id)
+  "The full :ID: that ID -- a full id or an 8-character prefix -- names,
+or nil when it resolves to no heading.  For the places that must hand
+the id itself onward or compare it, where `--id-find's location is not
+enough (TODO.org :ID: 25e7b083)."
+  (let ((marker (claude-code-ide-org--id-find id 'marker)))
+    (and marker (org-with-point-at marker (org-entry-get nil "ID")))))
 
 (defun claude-code-ide-org--id-index ()
   "Org's own id-to-file index, loaded if it is not already.

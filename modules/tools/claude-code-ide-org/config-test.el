@@ -15555,6 +15555,186 @@ and writes nothing.  Before 60d6ab6e six of them saved over the edits."
                                "test-0001" "[2026-09-24 Thu 10:00]")))
       (should (equal before (claude-code-ide-org-test--disk-contents file))))))
 
+;;; Every id argument accepts a prefix, proved from the registry --------
+;;
+;; TODO.org :ID: 25e7b083.  The first sweep found fourteen sites by call
+;; shape and missed three, so completeness comes from the tool registry
+;; rather than another search: every registered org_* tool's id-shaped
+;; arguments are called with an 8-character prefix.
+
+(defconst claude-code-ide-org-test--prefix-ids
+  '((A . "aaaa0001-0000-4000-8000-000000000001")
+    (B . "bbbb0002-0000-4000-8000-000000000002")
+    (S . "cccc0003-0000-4000-8000-000000000003")
+    (M0 . "dddd0004-0000-4000-8000-000000000004")
+    (M1 . "eeee0005-0000-4000-8000-000000000005")
+    (P . "ffff0006-0000-4000-8000-000000000006")
+    (PC . "abcd0007-0000-4000-8000-000000000007"))
+  "The prefix fixture's headings, each id unique in its first 8 characters.")
+
+(defconst claude-code-ide-org-test--id-arg-names
+  '("id" "target" "target_id" "slice_id" "member_id" "after" "parent" "scope")
+  "Argument names that carry an :ID:, and so must accept a prefix.")
+
+(defconst claude-code-ide-org-test--prefix-samples
+  '(("org_wrap_plan" ("id" . A) ("until" . "Debrief"))
+    ("org_clock_in" ("id" . A) ("note" . "n"))
+    ("org_set_todo" ("id" . A) ("state" . "NEXT"))
+    ("org_archive" ("id" . A))
+    ("org_refile" ("id" . M1) ("target_id" . B))
+    ("org_set_property" ("id" . A) ("property" . "FOO") ("value" . "bar"))
+    ("org_slice_add_member" ("slice_id" . S) ("member_id" . M1) ("after" . M0))
+    ("org_slice_add_member" ("slice_id" . S) ("member_id" . PC) ("parent" . P))
+    ("org_divide" ("id" . A) ("parent_title" . "A parent"))
+    ("org_amend" ("id" . A) ("text" . "More prose."))
+    ("org_capture" ("title" . "A new heading") ("target" . A))
+    ("org_body" ("id" . A))
+    ("org_outline" ("scope" . A))
+    ("org_sort_children" ("id" . A) ("sort_type" . "alpha"))
+    ("org_move_sibling" ("id" . A) ("direction" . "down"))
+    ("org_clock_report" ("id" . A))
+    ("org_query" ("query" . "todo:TODO"))
+    ("org_clock_out")
+    ("org_pending_updates"))
+  "Per-tool sample calls: each maps argument names to a value, or to a
+key of `--prefix-ids' for a heading.  A tool may have several rows.  A
+registered tool with a required argument no row supplies fails the test,
+so a tool added later cannot go untested.")
+
+(defmacro claude-code-ide-org-test--with-prefix-fixture (&rest body)
+  "A scratch file holding the `--prefix-ids' headings, S declared a slice
+with M0 and P planned.  Binds `file'.  The queue directory is a temp dir."
+  (declare (indent 0))
+  `(let* ((dir (file-name-as-directory (make-temp-file "claude-code-ide-org-prefix" t)))
+          (file (expand-file-name "TODO.org" dir))
+          (org-id-locations-file (expand-file-name ".org-id-locations" dir))
+          (org-id-locations (make-hash-table :test 'equal))
+          (org-id-files nil)
+          (org-clock-persist nil)
+          (org-clock-history nil)
+          (claude-code-ide-org-clock-status-file (expand-file-name "clock-status.json" dir))
+          (claude-code-ide-org-queue-directory (expand-file-name "queue" dir))
+          (process-environment (append (list (concat "CLAUDE_ORG_QUEUE_DIR=" dir "queue"))
+                                       process-environment))
+          (claude-code-ide-org-query-files (list file))
+          (claude-code-ide-org-capture-file file)
+          (claude-code-ide-org--audit-pending nil)
+          (claude-code-ide-org--log-source nil))
+     (cl-flet ((id (k) (cdr (assq k claude-code-ide-org-test--prefix-ids))))
+       (unwind-protect
+           (progn
+             (with-temp-file file
+               (insert "#+TODO: TODO NEXT DOING REVIEW WAITING MAYBE | DONE CANCELLED\n"
+                       "#+ARCHIVE: DONE.org::\n\n")
+               (dolist (h `((1 "TODO Alpha" A "Plan prose.\nDebrief prose.\n")
+                            (2 "TODO Child two" nil "") (2 "TODO Child one" nil "")
+                            (1 "TODO Beta" B "") (1 "Slice" S "")
+                            (1 "TODO Member zero" M0 "") (1 "TODO Member one" M1 "")
+                            (1 "TODO Story" P "") (2 "TODO Story child" PC "")))
+                 (insert (make-string (nth 0 h) ?*) " " (nth 1 h) "\n"
+                         ":PROPERTIES:\n"
+                         (if (nth 2 h) (format ":ID:       %s\n" (id (nth 2 h))) "")
+                         (if (= 1 (nth 0 h)) ":CATEGORY: Test\n" "")
+                         ":END:\n" (nth 3 h))))
+             (find-file file)
+             (org-id-update-id-locations (list file))
+             (dolist (setup (list (claude-code-ide-org-set-property (id 'S) "KIND" "slice")
+                                  (claude-code-ide-org-slice-add-member (id 'S) (id 'M0))
+                                  (claude-code-ide-org-slice-add-member (id 'S) (id 'P))))
+               (should-not (string-prefix-p "Error" setup)))
+             ,@body)
+         (when (org-clocking-p) (org-clock-out))
+         (dolist (b (buffer-list))
+           (when (and (buffer-file-name b)
+                      (string-prefix-p dir (buffer-file-name b)))
+             (with-current-buffer b (set-buffer-modified-p nil))
+             (kill-buffer b)))
+         (delete-directory dir t)))))
+
+(ert-deftest claude-code-ide-org-test-every-id-argument-accepts-a-prefix ()
+  "Every registered org_* tool's id-shaped arguments resolve a prefix:
+the reply is neither an error nor a clean no-op."
+  (require 'claude-code-ide)
+  (let ((specs (seq-filter
+                (lambda (n) (string-prefix-p "org_" (plist-get n :name)))
+                (mapcar #'claude-code-ide--normalize-tool-spec
+                        claude-code-ide-mcp-server-tools)))
+        (failures nil) (checked 0))
+    (should (> (length specs) 10))
+    (dolist (spec specs)
+      (let* ((name (plist-get spec :name))
+             (args (plist-get spec :args))
+             (rows (mapcar #'cdr (seq-filter (lambda (r) (equal (car r) name))
+                                             claude-code-ide-org-test--prefix-samples))))
+        ;; Coverage first: every required argument has a sample.
+        (dolist (a args)
+          (unless (or (plist-get a :optional)
+                      (seq-some (lambda (row) (assoc (plist-get a :name) row)) rows))
+            (push (format "%s/%s has no sample" name (plist-get a :name)) failures)))
+        (unless rows (push (format "%s has no sample row" name) failures))
+        (dolist (row rows)
+          (dolist (under-test (seq-filter
+                               (lambda (a) (member (plist-get a :name)
+                                                   claude-code-ide-org-test--id-arg-names))
+                               args))
+            (when (assoc (plist-get under-test :name) row)
+              (setq checked (1+ checked))
+              (claude-code-ide-org-test--with-prefix-fixture
+                (let* ((values
+                        (mapcar
+                         (lambda (a)
+                           (let ((v (cdr (assoc (plist-get a :name) row))))
+                             (cond ((not (symbolp v)) v)
+                                   ((null v) nil)
+                                   ((eq a under-test) (substring (id v) 0 8))
+                                   (t (id v)))))
+                         args))
+                       (reply (condition-case err
+                                  (apply (plist-get spec :function) values)
+                                (error (format "Error: signalled %S" err)))))
+                  (when (or (not (stringp reply))
+                            (string-prefix-p "Error" reply)
+                            (string-match-p "\\`\\(No matches\\|Nothing\\|0 slices\\)" reply))
+                    (push (format "%s/%s: %s" name (plist-get under-test :name)
+                                  (if (stringp reply) (substring reply 0 (min 120 (length reply)))
+                                    reply))
+                          failures)))))))))
+    (should (> checked 15))
+    (should (equal nil (nreverse failures)))))
+
+(ert-deftest claude-code-ide-org-test-refresh-slice-accepts-a-prefix ()
+  "`claude-code-ide-org-refresh-slice' compared its id with `equal', so a
+prefix read as a clean `0 slices refreshed'."
+  (claude-code-ide-org-test--with-prefix-fixture
+    (let ((reply (claude-code-ide-org-refresh-slice (substring (id 'S) 0 8))))
+      (should-not (string-match-p "\\`0 slices" reply)))
+    (should-not (string-prefix-p "Error"
+                                 (claude-code-ide-org-refresh-slice-blocker
+                                  (substring (id 'S) 0 8))))))
+
+(ert-deftest claude-code-ide-org-test-a-dropped-prefix-drops-its-member ()
+  "A prefix in `:DROPPED:' was ignored: 4acd8ad0 kept its checkbox for
+four days on 8a2eb687.  Written here straight into the drawer, the way a
+hand edit or an older tool left it."
+  (claude-code-ide-org-test--with-prefix-fixture
+    (org-with-point-at (org-id-find (id 'S) 'marker)
+      (org-entry-put nil "DROPPED" (substring (id 'M0) 0 8))
+      (save-buffer))
+    (claude-code-ide-org-refresh-slice (id 'S))
+    (should-not (string-match-p
+                 (concat "\\[ \\] \\[\\[id:" (regexp-quote (id 'M0)))
+                 (claude-code-ide-org-test--disk-contents file)))))
+
+(ert-deftest claude-code-ide-org-test-set-property-expands-and-validates-dropped ()
+  (claude-code-ide-org-test--with-prefix-fixture
+    (should-not (string-prefix-p "Error"
+                                 (claude-code-ide-org-set-property
+                                  (id 'S) "DROPPED" (substring (id 'M0) 0 8))))
+    (should (string-match-p (concat ":DROPPED: +" (regexp-quote (id 'M0)))
+                            (claude-code-ide-org-test--disk-contents file)))
+    (should (string-prefix-p "Error"
+                             (claude-code-ide-org-set-property (id 'S) "DROPPED" "0badc0de")))))
+
 (ert-deftest claude-code-ide-org-test-lint-accepts-an-unanchored-archive-datetree ()
   "The datetree `org-archive-subtree' builds in DONE.org carries no
 :DATE_TREE: property and lints clean anyway (TODO.org :ID: 33864a0f).
