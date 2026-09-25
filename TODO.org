@@ -1345,7 +1345,7 @@ It gates earnest work in euchre, taking over from 6a207b00 (closed
 org_capture now searches TODO.org and DONE.org on every capture by idf-weighted title-token overlap (c8773ec2). Probed against the real corpus 2026-09-21, it found the mac-port deadlock heading, the unrun-suites heading and the twin-pass heading from reworded titles — and found nothing for "org_capture silently drops an argument it does not recognise", whose twin is bbf9fb77, "An MCP tool accepts arguments it does not have, and says nothing". That is the transcript the whole heading was filed from. The two share no pair of subject tokens: "argument" and "arguments" differ, and everything else is paraphrase. Candidate remedies, unmeasured: fold simple plurals; match the new title's identifier-shaped tokens (org_capture, a function name, a file name) against candidate *bodies*, which would have caught this one; or leave paraphrase to the twin pass (9fb8c1fb), which reads bodies with judgement. Measure each on the corpus before choosing — the first two cost noise.
 
 
-* DOING [0/12] The misses a human catches reach no record: one heading per kind of miss, amended at each catch, so the catch is counted :code:
+* DOING [0/13] The misses a human catches reach no record: one heading per kind of miss, amended at each catch, so the catch is counted :code:
 DEADLINE: <2026-10-12 Mon>
 :PROPERTIES:
 :ID:       158d7e80-6d72-4518-a804-d8abf2e7e693
@@ -1774,8 +1774,13 @@ line per catch.
 - [2026-09-23 Wed] Self-caught: surveying slice 8a2eb687's members for =:PLAN:= drawers, the session counted drawer lines with an =awk= scan of =TODO.org= that finds heading boundaries by regex, when =org_body drawer=PLAN= answers the same question per heading.
 - [2026-09-23 Wed] Caught by the user: "I think you give up on =org-ql= too quickly. I saw you try one query and fall back to grep." Looking for the transcripts-to-org proposal, the session tried =heading:"transcript"= once and then grepped =TODO.org= and =DONE.org= three times. A bare-word query (=transcript readable=) is org-ql's full-text =rifle= predicate, and it finds =96ddf1ef= in DONE.org in one call. The session had treated the five predicates =org_query='s description names as the whole language.
 - [2026-09-25 Fri] Caught by the user: "you grepped again. is that a miss?" Looking for headings glued onto a body line (5b46fbfd's defect) and for the heading enclosing a given line, the session grepped and awked =TODO.org= repeatedly, including after the repair, where =org_outline= scoped to the two ids confirmed it in one call. The whole-file scan for a heading org cannot see is the one partial excuse, and =org-lint='s "possibly misplaced heading" checker is org's own answer to that question: it was never tried.
+** TODO Before the miss review, count the misses nobody caught, from the transcripts, for every kind a transcript can show :code:research:
+:PROPERTIES:
+:ID:       ade01397-67a8-4c0b-bb55-cecfda3981c1
+:CREATED:  [2026-09-25 Fri 10:41]
+:END:
 
-
+Every count on the Miss children is a floor: it holds what a hook, the user or the session noticed, and the user noticed on 2026-09-25 that they must watch closely to catch these, so most go unseen. Self-catches on these headings are almost all recalled titles, found because a later lookup happened to contradict one. None was found by vigilance, so self-catching is not a sampler to trust. Proposed: before the review this story schedules (30 events or 2026-10-12), run a probe over the transcripts, the way =c247d8f3='s footnote probe ran, counting occurrences per kind against the recorded catches, so the review reads a catch *rate* rather than a raw count. Kinds a transcript shows mechanically: text-scrape (a Bash command running grep, awk or sed over a tracked =.org= file), a bare SHA in an =org_amend= body, a write before any =org_clock_in=, an end-matter title that differs from the heading's real title, a full UUID not found in the files. The judgement kinds (a claim reported as fact unchecked, a convention unread) stay floors, and the review should say so.
 
 * REVIEW Nothing runs the shell hook suites, so three sat red for a day and a merge without anyone seeing :code:
 :PROPERTIES:
