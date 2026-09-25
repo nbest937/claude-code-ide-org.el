@@ -829,6 +829,9 @@ Reproduced in batch the same day: replacing the body of a heading followed by a 
 
 *Folded in by the user on 2026-09-25: triage org-lint per checker along with the new rule.* =bin/lint-org= runs all 61 of org-lint's checkers as warnings, and one of them, =misplaced-heading=, makes 499 of the 511 findings. The proposal takes org's own trust rating as the default: its 31 high-trust checkers become errors, its 30 low-trust ones stay warnings, and =misplaced-heading= goes off, replaced by this heading's narrow glued-heading rule. On today's corpus that leaves 10 org-lint warnings where there were 511: eight malformed timestamps such as =[2026-09-15 Tue 13:2x]= and two dead file links. It adds two errors, the two "misleading drawer entry :LOGBOOK:" findings, to fix before the rule lands. Warnings never reach a commit, since pre-commit shows only errors, so the gain is legibility for whoever runs the lint and one small gate. The measurement is in the 2026-09-25 lint of both files.
 
+*The rule's test already exists by the time this is worked:* [[id:b52df20b-45c7-41aa-9d77-44ccf06c647f][b52df20b]] defines =claude-code-ide-org--glued-headline-p= for its fill guard (2026-09-25), so the lint rule calls it instead of writing a second one.
+
+
 
 
 
@@ -4204,6 +4207,9 @@ four children in order.
 
 The new tool, with =id=, =old_string=, =new_string= and an optional =drawer=, over the heading's body or its =:PLAN:= or =:DEBRIEF:=. An empty =old_string= appends, a unique one is replaced, and the region's full text rewrites it. It carries the guards in the parent's =:PLAN:=, and each refusal test is shown to fail with its guard removed. It ships beside =org_amend=, which the third sibling retires.
 
+*Two helpers to call, from [[id:b52df20b-45c7-41aa-9d77-44ccf06c647f][b52df20b]] (the user, 2026-09-25).* =org_edit= fills what it writes with =claude-code-ide-org--fill-prose-text=, as =org_amend= does, or new prose goes back to arriving as one long line. Its guard on a headline-shaped =new_string= uses =claude-code-ide-org--glued-headline-p=, which catches a =* KEYWORD= token mid-line, where a glued heading actually sits, and not only at column zero.
+
+
 
 ** TODO org_edit refuses an unsaved buffer, asks for the save in a header line, and the agent waits on it :code:
 :PROPERTIES:
@@ -4229,6 +4235,9 @@ to land first. No =:BLOCKER:=, since each stands alone.
 :END:
 
 Remove =org_amend='s registration and entry point, keeping the internals =org_edit= reuses. =queue-append= loses its deferred-amend branch, and its miss attribution moves to =org_edit=, reading "Caught by the user" or "Self-caught" from the line. The two skills, the promoted rules, =CLAUDE.md=, =next-session.md= and =config.el='s reply strings all switch to =org_edit= inside the word budget. Live headings naming =org_amend= are renamed with =org_edit= itself; closed headings stay as history. The legacy amend reader stays, for events already queued.
+
+*One more thing moves with the retirement* (2026-09-25): fill on write. [[id:b52df20b-45c7-41aa-9d77-44ccf06c647f][b52df20b]] fills =org_amend='s text directly and at apply, through =claude-code-ide-org--fill-prose-text=. Retiring =org_amend= must leave =org_edit= calling the same helper, and the legacy amend reader keeps its call for events already queued.
+
 
 
 ** TODO Delete the legacy amend reader once no amend event remains in any queue :code:
@@ -4653,6 +4662,8 @@ Tests, in ERT:
 Each is shown to fail against HEAD's version. Live check after a reload: amend a scratch heading with a long paragraph, a long item and a linked paragraph, check the file, then press =M-q= on each paragraph and confirm nothing moves, which tests the "matches =M-q=" claim directly. Then one dry run of the changed sweep over both trackers, with the counts reported for =76a6f052=.
 
 Files: =config.el= (the shared predicate and width, =--fill-prose-text=, the four call sites, the sweep), =config-test.el=, and the org conventions reference.
+
+*Decided by the user on 2026-09-25, before implementation: a glued-heading guard, and named helpers that the later work calls.* A fill must never wrap a glued heading into its paragraph, as the 09-14 sweep did to [[id:61f05e56-9d05-4f3e-9131-5eb899f95b8f][61f05e56]]. So a paragraph holding a =* KEYWORD=-shaped token *anywhere on a line*, not only at column zero, is never refilled, neither by the transform nor by the sweep, and the sweep reports it. The glue sits mid-line, so a column-zero test misses it. The test is one named predicate, =claude-code-ide-org--glued-headline-p=, which [[id:5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997][5b46fbfd]]'s lint rule and [[id:704d8558-657b-43e2-9440-1c054c923ed2][704d8558]]'s =new_string= guard reuse. The transform =claude-code-ide-org--fill-prose-text= is the second named helper. =org_edit= calls it when [[id:b2d4012c-6c61-47df-8086-d1cd205c73fc][b2d4012c]] retires =org_amend=, so that retirement is a call and not a rework. Waiting on 5b46fbfd instead was ruled out: it sits outside this slice, behind the whole [[id:dd4b9a9f-ba8a-4f1f-a3da-38388e0cdb76][dd4b9a9f]] story.
 :END:
 
 =org_capture= and =org_amend= write text exactly as sent, so paragraphs arrive as one long line and the human reflows them with =M-q=. Designed 2026-09-24 on the architectural path: a pure transform fills paragraphs, never list items, at display width, in every write path, and the existing sweep adopts the same rules.
