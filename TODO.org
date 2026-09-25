@@ -51,6 +51,31 @@ Proposed 2026-09-24, from the user's question whether footnotes could be folded 
 
 *The central open question: who extracts the ids* (the user asked, 2026-09-24). As first proposed, the tool takes the ids as arguments, so it fixes the titles while *which* ids to cite stays the writer's recall. That is the other half of the failure, which the hook catches only after the fact. The better shape is a tool called with no arguments as the turn's last step, which extracts the ids itself with the same scanner =footnote-check= uses: every 8-hex token in the turn's text that resolves to a tracked heading, code fences skipped. "Which ids are owed" and "is the debt paid" would then be decided by one piece of code. That needs the tool to find the turn's text. A tool call does not receive the response, but the text written earlier in the turn is in the session transcript, which is how =c247d8f3='s fix reads it. The MCP tool, though, knows its session by the project's basename, not by Claude's session id, so it cannot tell which transcript is this turn's. Candidates: the hooks pass the Claude session id through to the MCP session, or the tool takes the project's most recently written transcript, which is fragile with concurrent sessions. Settle this before designing anything else.
 
+*Measured 2026-09-24, a live probe in Claude Code 2.1.280* (two
+temporary =PreToolUse= hooks in =settings.local.json=, since removed):
+- Hook edits to settings are picked up mid-session, with no restart.
+- =updatedInput= from a =PreToolUse= hook reaches an MCP server: an
+  =org_outline= call with a nonexistent scope was rewritten and
+  returned the slice's outline.
+- At =PreToolUse= neither the preceding narration nor the call's own
+  =tool_use= is on disk; both land 0.8–1.5 s later, narration first, in
+  5 of 5 trials. Waiting for the call's own =tool_use_id= is a sound
+  signal that the turn so far is written.
+- *Narration between tool calls may reach the reader as a harness
+  summary, not as written.* In 3 of the probe turn's 7 blocks the
+  transcript holds an empty =thinking= entry, then a non-empty one with
+  a reworded summary, and no =text= entry. The user's terminal showed
+  that summary verbatim (checked 2026-09-24), so the transcript is
+  faithful to the reader; only the model's own context holds the
+  original. Final replies arrive as =text=.
+
+So the transcript route stands, reading =text= and non-empty =thinking=
+entries as the reader's view, which is also what footnotes owe: an id
+the summary dropped was never shown. Decided before the probe (the
+user): the scanner lives in elisp behind =sh= stubs, and in an outage
+=footnote-check= stands aside and no end matter is owed.
+
+
 
 
 * TODO The review buffer's transcript context mixes sessions, mixes sort orders, and shows only one side of a span :code:
@@ -2760,6 +2785,16 @@ Files: =bin/hooks/footnote-check=, =bin/footnote-check-test=, and that reference
 =footnote-check= reads =last_assistant_message=, only the turn's final text block, so footnote debt in any earlier block passes unseen. The 2026-09-24 spike measured that it happens, so this stepped up to bounded: the hook will also read the segment's earlier text blocks from =transcript_path=.
 
 *Established (2026-09-24):* of 1,576 Stop segments across this repo's 60 transcripts, 107 (6.8%), in 19 sessions, passed the hook on their final block and would have blocked on the whole segment, owing 213 entries across 133 ids. Spot checks found real citations in the narration written between tool calls. Method: the real hook run twice per segment, with a temporary queue and fake session ids. Caveats: 3 segments carried end matter in an earlier block, so a few are likely false positives, and ids were resolved against today's files.
+
+*Narration can be stored as =thinking=* (measured 2026-09-24 under
+30d05c93): text written between tool calls may reach the reader as a
+harness summary, recorded as a non-empty =thinking= entry with no =text=
+entry, while the model's hidden reasoning is stored empty. The user's
+terminal showed exactly that summary. A fix reading the turn from
+=transcript_path= should treat non-empty =thinking= entries as narration,
+or it misses what the reader saw. The measurement above read =text=
+blocks only.
+
 
 
 
