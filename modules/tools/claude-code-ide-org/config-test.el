@@ -15445,6 +15445,116 @@ test would iterate an empty list and pass while checking nothing."
           (setq index (1+ index)))))
     (should (equal nil (nreverse violations)))))
 
+;;; One table classing every registered tool (TODO.org :ID: 60d6ab6e) ----
+
+(defconst claude-code-ide-org-test--tool-classes
+  '(("org_query" . read-only) ("org_body" . read-only)
+    ("org_outline" . read-only) ("org_clock_report" . read-only)
+    ("org_pending_updates" . read-only)
+    ("org_set_todo" . queued) ("org_clock_in" . queued)
+    ("org_clock_out" . queued)
+    ("org_capture" . conditional) ("org_amend" . conditional)
+    ("org_wrap_plan" . structural) ("org_archive" . structural)
+    ("org_refile" . structural) ("org_set_property" . structural)
+    ("org_slice_add_member" . structural) ("org_divide" . structural)
+    ("org_sort_children" . structural) ("org_move_sibling" . structural))
+  "Every registered org_* tool, classed by what it does with a file.
+A new tool fails `...-every-registered-tool-is-classed' until it is
+added here, which is the point: a structural writer has to choose, at
+registration, to refuse on the human's unsaved edits.  Extended by the
+tool-registry tests rather than duplicated.")
+
+(ert-deftest claude-code-ide-org-test-every-registered-tool-is-classed ()
+  "A tool missing from the class table fails; so does a stale entry."
+  (require 'claude-code-ide)
+  (let ((names (seq-filter
+                (lambda (n) (string-prefix-p "org_" n))
+                (mapcar (lambda (spec)
+                          (plist-get (claude-code-ide--normalize-tool-spec spec) :name))
+                        claude-code-ide-mcp-server-tools))))
+    (should (> (length names) 10))
+    (should (equal nil (seq-remove (lambda (n) (assoc n claude-code-ide-org-test--tool-classes))
+                                   names)))
+    (should (equal nil (seq-remove (lambda (c) (member (car c) names))
+                                   claude-code-ide-org-test--tool-classes)))))
+
+(defmacro claude-code-ide-org-test--with-structural-fixture (&rest body)
+  "`--with-heading', plus a child to sort and move, a body to wrap, a
+refile target \"test-0002\" in a second file, and an existing DONE.org."
+  (declare (indent 0))
+  `(claude-code-ide-org-test--with-heading
+     (goto-char (point-max))
+     (insert "Some body prose.\n** TODO Child b\n** TODO Child a\n")
+     (save-buffer)
+     (let ((other (expand-file-name "other.org" dir)))
+       (with-temp-file other
+         (insert "#+TODO: TODO NEXT DOING WAITING MAYBE | DONE CANCELLED\n\n"
+                 "* Target\n:PROPERTIES:\n:ID:       test-0002\n:END:\n"))
+       (with-temp-file archive-file
+         (insert "#+TODO: TODO NEXT DOING WAITING MAYBE | DONE CANCELLED\n"))
+       (org-id-update-id-locations (list file other))
+       (unwind-protect (progn ,@body)
+         (let ((buf (get-file-buffer other)))
+           (when buf
+             (with-current-buffer buf (set-buffer-modified-p nil))
+             (kill-buffer buf)))))))
+
+(defconst claude-code-ide-org-test--structural-calls
+  '(("org_wrap_plan" . (lambda () (claude-code-ide-org-wrap-plan "test-0001")))
+    ("org_archive" . (lambda () (claude-code-ide-org-archive "test-0001")))
+    ("org_refile" . (lambda () (claude-code-ide-org-refile "test-0001" "test-0002")))
+    ("org_set_property" . (lambda () (claude-code-ide-org-set-property "test-0001" "FOO" "bar")))
+    ("org_slice_add_member" . (lambda () (claude-code-ide-org-slice-add-member "test-0001" "test-0002")))
+    ("org_divide" . (lambda () (claude-code-ide-org-divide "test-0001" "A parent")))
+    ("org_sort_children" . (lambda () (claude-code-ide-org-sort-children "test-0001" "alpha")))
+    ("org_move_sibling" . (lambda () (claude-code-ide-org-move-sibling "test-0001" "down"))))
+  "One call per structural tool, against the structural fixture.")
+
+(ert-deftest claude-code-ide-org-test-every-structural-writer-refuses-when-busy ()
+  "Every structural tool refuses on unsaved edits in the heading's file
+and writes nothing.  Before 60d6ab6e six of them saved over the edits."
+  (let ((structural (mapcar #'car (seq-filter (lambda (c) (eq (cdr c) 'structural))
+                                              claude-code-ide-org-test--tool-classes))))
+    (should (equal nil (seq-remove (lambda (n) (assoc n claude-code-ide-org-test--structural-calls))
+                                   structural)))
+    (dolist (name structural)
+      (claude-code-ide-org-test--with-structural-fixture
+        (let ((before (claude-code-ide-org-test--disk-contents file)))
+          (claude-code-ide-org-test--make-busy file)
+          (let ((reply (funcall (eval (cdr (assoc name claude-code-ide-org-test--structural-calls)) t))))
+            (should (equal (list name t)
+                           (list name (and (stringp reply)
+                                           (string-match-p "unsaved changes" reply)
+                                           t)))))
+          (should (equal (list name before)
+                         (list name (claude-code-ide-org-test--disk-contents file)))))))))
+
+(ert-deftest claude-code-ide-org-test-archive-and-refile-refuse-on-a-busy-destination ()
+  "The destination is written and saved too, so its edits count."
+  (claude-code-ide-org-test--with-structural-fixture
+    (let ((before (claude-code-ide-org-test--disk-contents file)))
+      (claude-code-ide-org-test--make-busy archive-file)
+      (should (string-match-p "DONE.org has unsaved changes"
+                              (claude-code-ide-org-archive "test-0001")))
+      (should (equal before (claude-code-ide-org-test--disk-contents file)))))
+  (claude-code-ide-org-test--with-structural-fixture
+    (let ((before (claude-code-ide-org-test--disk-contents file))
+          (other (expand-file-name "other.org" dir)))
+      (claude-code-ide-org-test--make-busy other)
+      (should (string-match-p "other.org has unsaved changes"
+                              (claude-code-ide-org-refile "test-0001" "test-0002")))
+      (should (equal before (claude-code-ide-org-test--disk-contents file))))))
+
+(ert-deftest claude-code-ide-org-test-close-open-interval-refuses-when-busy ()
+  "Not an MCP tool, but a structural writer all the same."
+  (claude-code-ide-org-test--with-structural-fixture
+    (let ((before (claude-code-ide-org-test--disk-contents file)))
+      (claude-code-ide-org-test--make-busy file)
+      (should (string-match-p "unsaved changes"
+                              (claude-code-ide-org-close-open-interval
+                               "test-0001" "[2026-09-24 Thu 10:00]")))
+      (should (equal before (claude-code-ide-org-test--disk-contents file))))))
+
 (ert-deftest claude-code-ide-org-test-lint-accepts-an-unanchored-archive-datetree ()
   "The datetree `org-archive-subtree' builds in DONE.org carries no
 :DATE_TREE: property and lints clean anyway (TODO.org :ID: 33864a0f).

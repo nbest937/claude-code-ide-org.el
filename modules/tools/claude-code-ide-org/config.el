@@ -1843,39 +1843,42 @@ nothing left to contribute here anyway."
      (let ((end (save-excursion (outline-next-heading) (point)))
            (stop-time (claude-code-ide-org--parse-org-timestamp timestamp-string))
            closed-logbook)
-       (save-excursion
-         (when (re-search-forward "^\\([ \t]*CLOCK: \\)\\(\\[[^]]+\\]\\)[ \t]*$" end t)
-           ;; Capture match boundaries and strings immediately, then use
-           ;; delete-region/insert rather than replace-match — computing
-           ;; start-time below calls org-time-string-to-time, which does
-           ;; its own regexp matching internally and would otherwise
-           ;; silently clobber the match data replace-match relies on.
-           (let* ((match-beg (match-beginning 0))
-                  (match-end (match-end 0))
-                  (prefix (match-string 1))
-                  (start-str (match-string 2))
-                  (start-time (claude-code-ide-org--parse-org-timestamp start-str))
-                  ;; Latent rather than live: both endpoints are parsed
-                  ;; from org timestamp strings and so already carry
-                  ;; minute precision, which makes raw subtraction exact
-                  ;; here today. Routed through the shared helper anyway,
-                  ;; so the invariant holds by construction if either
-                  ;; input ever gains seconds.
-                  (minutes (claude-code-ide-org--clock-minutes start-time stop-time)))
-             (goto-char match-beg)
-             (delete-region match-beg match-end)
-             (insert (format "%s%s--%s =>  %d:%02d"
-                              prefix start-str timestamp-string (/ minutes 60) (% minutes 60)))
-             (setq closed-logbook t))))
-       (save-buffer)
-       ;; No consolidate-history call: it has nothing left to do that is
-       ;; worth doing as a side effect of a repair, and running a
-       ;; whole-drawer rewrite after touching one line is the shape that
-       ;; caused :ID: ba8249c1 and :ID: b74e0f19.
-       (if closed-logbook
-           (format "Closed open CLOCK on \"%s\" at %s"
-                   (org-get-heading t t t t) timestamp-string)
-         "Nothing open to close.")))))
+       (or
+        (claude-code-ide-org--busy-refusal buffer-file-name) ; :ID: 60d6ab6e
+        (progn
+          (save-excursion
+            (when (re-search-forward "^\\([ \t]*CLOCK: \\)\\(\\[[^]]+\\]\\)[ \t]*$" end t)
+              ;; Capture match boundaries and strings immediately, then use
+              ;; delete-region/insert rather than replace-match — computing
+              ;; start-time below calls org-time-string-to-time, which does
+              ;; its own regexp matching internally and would otherwise
+              ;; silently clobber the match data replace-match relies on.
+              (let* ((match-beg (match-beginning 0))
+                     (match-end (match-end 0))
+                     (prefix (match-string 1))
+                     (start-str (match-string 2))
+                     (start-time (claude-code-ide-org--parse-org-timestamp start-str))
+                     ;; Latent rather than live: both endpoints are parsed
+                     ;; from org timestamp strings and so already carry
+                     ;; minute precision, which makes raw subtraction exact
+                     ;; here today. Routed through the shared helper anyway,
+                     ;; so the invariant holds by construction if either
+                     ;; input ever gains seconds.
+                     (minutes (claude-code-ide-org--clock-minutes start-time stop-time)))
+                (goto-char match-beg)
+                (delete-region match-beg match-end)
+                (insert (format "%s%s--%s =>  %d:%02d"
+                                prefix start-str timestamp-string (/ minutes 60) (% minutes 60)))
+                (setq closed-logbook t))))
+          (save-buffer)
+          ;; No consolidate-history call: it has nothing left to do that is
+          ;; worth doing as a side effect of a repair, and running a
+          ;; whole-drawer rewrite after touching one line is the shape that
+          ;; caused :ID: ba8249c1 and :ID: b74e0f19.
+          (if closed-logbook
+              (format "Closed open CLOCK on \"%s\" at %s"
+                      (org-get-heading t t t t) timestamp-string)
+            "Nothing open to close.")))))))
 
 ;;; Historical consolidation --------------------------------------------------
 ;;
@@ -2745,10 +2748,16 @@ honoured."
                             org-archive-location))
               (org-archive-reversed-order
                (and org-archive-reversed-order
-                    (not (claude-code-ide-org--archive-datetree-target-p location)))))
-         (org-archive-subtree)
-         (save-buffer)
-         (format "Archived: \"%s\"" heading))))))
+                    (not (claude-code-ide-org--archive-datetree-target-p location))))
+              (destination (ignore-errors
+                             (car (org-archive--compute-location location)))))
+         ;; Both files are saved, so edits in either are the human's
+         ;; (TODO.org :ID: 60d6ab6e).
+         (or (claude-code-ide-org--busy-refusal buffer-file-name destination)
+             (progn
+               (org-archive-subtree)
+               (save-buffer)
+               (format "Archived: \"%s\"" heading))))))))
 
 ;;; Refile ------------------------------------------------------------------
 ;;
@@ -2806,6 +2815,10 @@ tool here gives."
       (format "Error: no org heading found with :ID: \"%s\"" id))
      ((not target-marker)
       (format "Error: no org heading found with target :ID: \"%s\"" target-id))
+     ;; Source and target are both saved (TODO.org :ID: 60d6ab6e).
+     ((claude-code-ide-org--busy-refusal
+       (buffer-file-name (marker-buffer marker))
+       (buffer-file-name (marker-buffer target-marker))))
      ;; A keyworded arrival under a slice would mint a hybrid -- the
      ;; slice branch then hides the child from the nomination report and
      ;; the derived :BLOCKER: (TODO.org :ID: dca940c1).
@@ -3015,6 +3028,27 @@ against their own keystrokes, and clearing it is established practice
 here (TODO.org :ID: c8a97d9d)."
   (let ((buffer (and file (find-buffer-visiting file))))
     (and buffer (buffer-modified-p buffer))))
+
+(defun claude-code-ide-org--busy-refusal (&rest files)
+  "Return the refusal for the first of FILES with unsaved edits, else nil.
+
+The one check every STRUCTURAL writer makes before it mutates anything
+(TODO.org :ID: 60d6ab6e), passing every file it will write -- the
+archive or refile destination as well as the heading's own file, since
+`org-archive-subtree' and `org-refile' save both.  Before this, six
+writers saved over the human's unsaved edits: on 2026-09-21 an
+`org_wrap_plan' swept a reflow the user had not saved into a commit
+about another heading.  Structural writes refuse; `org_amend' and
+`org_capture' queue instead, because text can wait for review and a
+move cannot be replayed onto a buffer that changed under it.
+
+As advisory as `claude-code-ide-org--file-busy-p', which it wraps.
+Nil entries in FILES are skipped, so a caller may pass a destination
+that resolved to nothing."
+  (let ((busy (seq-find #'claude-code-ide-org--file-busy-p (delq nil files))))
+    (and busy
+         (format "Error: %s has unsaved changes in Emacs; retry once it is saved"
+                 (file-name-nondirectory busy)))))
 
 (defun claude-code-ide-org--format-tags (tags)
   "Render TAGS as an org tag suffix, or \"\" when there are none.
@@ -4928,37 +4962,40 @@ cannot repeat them."
   (require 'org-id)
   (let ((inhibit-read-only t)                     ; see --at-id-writable
         (marker (claude-code-ide-org--id-find id 'marker)))
-    (if (not marker)
-        (format "Error: no org heading found with :ID: \"%s\"" id)
+    (cond
+     ((not marker)
+      (format "Error: no org heading found with :ID: \"%s\"" id))
+     ((claude-code-ide-org--busy-refusal (buffer-file-name (marker-buffer marker))))
+     (t
       (condition-case err
           (org-with-point-at marker
-            (org-back-to-heading t)
-            (let* ((level (org-current-level))
-                   (state (or parent-state (org-get-todo-state)))
-                   (category (claude-code-ide-org--outline-category))
-                   (line (concat (make-string level ?*) " "
-                                 (if state (concat state " ") "")
-                                 parent-title " [/]\n")))
-              (beginning-of-line)
-              (insert line)
-              ;; Point is now on the child's heading; demote it under the
-              ;; parent just inserted.
-              (org-demote-subtree)
-              ;; Back up to the new parent and give it its identity.
-              (org-back-to-heading t)
-              (org-up-heading-safe)
-              (let ((parent-id (org-id-get-create)))
-                (org-entry-put (point) "CREATED"
-                               (format-time-string "[%Y-%m-%d %a %H:%M]"))
-                (when category (org-entry-put (point) "CATEGORY" category))
-                (org-update-statistics-cookies nil)
-                (save-buffer)
-                (format "Divided: new parent \"%s\" (:ID: %s) now holds \"%s\"; \
+                             (org-back-to-heading t)
+                             (let* ((level (org-current-level))
+                                    (state (or parent-state (org-get-todo-state)))
+                                    (category (claude-code-ide-org--outline-category))
+                                    (line (concat (make-string level ?*) " "
+                                                  (if state (concat state " ") "")
+                                                  parent-title " [/]\n")))
+                               (beginning-of-line)
+                               (insert line)
+                               ;; Point is now on the child's heading; demote it under the
+                               ;; parent just inserted.
+                               (org-demote-subtree)
+                               ;; Back up to the new parent and give it its identity.
+                               (org-back-to-heading t)
+                               (org-up-heading-safe)
+                               (let ((parent-id (org-id-get-create)))
+                                 (org-entry-put (point) "CREATED"
+                                                (format-time-string "[%Y-%m-%d %a %H:%M]"))
+                                 (when category (org-entry-put (point) "CATEGORY" category))
+                                 (org-update-statistics-cookies nil)
+                                 (save-buffer)
+                                 (format "Divided: new parent \"%s\" (:ID: %s) now holds \"%s\"; \
 its id, clock and history stayed with the child"
-                        parent-title parent-id
-                        (save-excursion (org-goto-first-child)
-                                        (org-get-heading t t t t))))))
-        (error (format "Error: %s" (error-message-string err)))))))
+                                         parent-title parent-id
+                                         (save-excursion (org-goto-first-child)
+                                                         (org-get-heading t t t t))))))
+        (error (format "Error: %s" (error-message-string err))))))))
 
 (defconst claude-code-ide-org--property-tool-refused '("ID" "CREATED")
   "Properties `org_set_property' will not write.
@@ -5041,9 +5078,7 @@ where writing into a busy buffer could lose the human's edits."
       (format "Error: %s is written at capture and is identity, not annotation; \
 this tool will not rewrite it" property))
      ((not marker) (format "Error: no org heading found with :ID: \"%s\"" id))
-     ((claude-code-ide-org--file-busy-p (buffer-file-name (marker-buffer marker)))
-      (format "Error: %s has unsaved changes in Emacs; retry once it is saved"
-              (file-name-nondirectory (buffer-file-name (marker-buffer marker)))))
+     ((claude-code-ide-org--busy-refusal (buffer-file-name (marker-buffer marker))))
      ;; Declaring a container a slice mints a hybrid -- see the lint
      ;; rule (TODO.org :ID: dca940c1). Refused here so the combination
      ;; cannot be created by this path, not merely caught at commit; a
@@ -5147,14 +5182,18 @@ Saves the buffer afterwards."
    id
    (lambda ()
      (let ((code (cdr (assoc sort-type claude-code-ide-org--sort-type-codes)))
-           (heading (org-get-heading t t t t)))
-       (if (not code)
-           (format "Error: unknown sort-type \"%s\"; expected one of %s"
-                   sort-type
-                   (mapconcat #'car claude-code-ide-org--sort-type-codes ", "))
+           (heading (org-get-heading t t t t))
+           (busy (claude-code-ide-org--busy-refusal buffer-file-name)))
+       (cond
+        (busy busy)
+        ((not code)
+         (format "Error: unknown sort-type \"%s\"; expected one of %s"
+                 sort-type
+                 (mapconcat #'car claude-code-ide-org--sort-type-codes ", ")))
+        (t
          (org-sort-entries nil code)
          (save-buffer)
-         (format "Sorted children of \"%s\" by %s" heading sort-type))))))
+         (format "Sorted children of \"%s\" by %s" heading sort-type)))))))
 
 (defun claude-code-ide-org-move-sibling (id direction)
   "Move the org heading whose :ID: property equals ID up or down
@@ -5171,12 +5210,15 @@ rather than adding separate boundary handling here."
    id
    (lambda ()
      (let ((heading (org-get-heading t t t t)))
-       (cond
-        ((equal direction "up") (org-move-subtree-up))
-        ((equal direction "down") (org-move-subtree-down))
-        (t (error "Unknown direction \"%s\"; expected \"up\" or \"down\"" direction)))
-       (save-buffer)
-       (format "Moved \"%s\" %s" heading direction)))))
+       (or
+        (claude-code-ide-org--busy-refusal buffer-file-name)
+        (progn
+          (cond
+           ((equal direction "up") (org-move-subtree-up))
+           ((equal direction "down") (org-move-subtree-down))
+           (t (error "Unknown direction \"%s\"; expected \"up\" or \"down\"" direction)))
+          (save-buffer)
+          (format "Moved \"%s\" %s" heading direction)))))))
 
 ;;; Clock report --------------------------------------------------------------
 ;;
@@ -6998,10 +7040,7 @@ yet applied, so it has no keyword on disk to derive a checkbox from. Apply \
 the queue, then add it."
                     (plist-get pending :title))
           (format "Error: no org heading found with :ID: \"%s\"" member-id))))
-     ((claude-code-ide-org--file-busy-p
-       (buffer-file-name (marker-buffer smarker)))
-      (format "Error: %s has unsaved changes in Emacs; retry once it is saved"
-              (file-name-nondirectory (buffer-file-name (marker-buffer smarker)))))
+     ((claude-code-ide-org--busy-refusal (buffer-file-name (marker-buffer smarker))))
      (t
       (condition-case err
           (let* ((member-full (org-with-point-at mmarker
@@ -16647,9 +16686,14 @@ two insertions, no deletion, no reflow.  Returns a summary string."
   (claude-code-ide-org--at-id-writable
    id
    (lambda ()
-     (if (claude-code-ide-org--find-drawer "PLAN")
-         (format "Error: \"%s\" already has a :PLAN: drawer; nothing done."
-                 (org-get-heading t t t t))
+     (cond
+      ;; The observed case (TODO.org :ID: 60d6ab6e): this tool saved a
+      ;; reflow the user had not, into a commit about another heading.
+      ((claude-code-ide-org--busy-refusal buffer-file-name))
+      ((claude-code-ide-org--find-drawer "PLAN")
+       (format "Error: \"%s\" already has a :PLAN: drawer; nothing done."
+               (org-get-heading t t t t)))
+      (t
        (let ((bounds (claude-code-ide-org--heading-body-bounds)))
          (if (null bounds)
              (format "Error: \"%s\" has no body to wrap."
@@ -16680,55 +16724,55 @@ two insertions, no deletion, no reflow.  Returns a summary string."
 would close the :PLAN: drawer early -- :END: is org's drawer terminator and \
 nothing escapes it. Not wrapped."
                        (org-get-heading t t t t))
-           (let* ((open (nth 0 bounds))
-                  (beg (nth 1 bounds))
-                  (end (nth 2 bounds))
-                  ;; EMPTY-OK: a seam on the first body line means "no
-                  ;; prospective half", and an empty drawer is how that
-                  ;; is recorded rather than an error the caller has no
-                  ;; way to satisfy (TODO.org :ID: f421c5c3).
-                  (stop (if until
-                            (claude-code-ide-org--plan-seam beg end until t)
-                          end))
-                  (before (buffer-substring-no-properties open end)))
-             ;; Close first, then open. Inserting at the later position
-             ;; before the earlier one keeps BEG valid; doing it the
-             ;; other way round would shift STOP by the length of the
-             ;; opening marker and close the drawer one line late.
-             (save-excursion
-               (goto-char stop)
-               (insert ":END:\n"))
-             (save-excursion
-               (goto-char open)
-               (insert ":PLAN:\n"))
-             (save-buffer)
-             ;; Prove the move was lossless right here, against the text
-             ;; read before the insertions, rather than trusting the
-             ;; arithmetic. `bin/lint-org' cannot make this check: the
-             ;; damage it would catch is structural and this one is
-             ;; prose-level under a well-formed heading.
-             (let* ((after (buffer-substring-no-properties
-                            open (+ end (length ":PLAN:\n:END:\n"))))
-                    (stripped (replace-regexp-in-string
-                               "^:\\(PLAN\\|END\\):\n" "" after)))
-               ;; `substring-no-properties', because `org-get-heading'
-               ;; returns the fontified heading and the MCP layer
-               ;; serializes its text properties as pages of
-               ;; `(face (org-headline-done ...))' around the answer.
-               ;; Same trap as `--outline-line' and the pending-updates
-               ;; report; observed here on the first real call.
-               (substring-no-properties
-                (if (= stop beg)
-                    (format "\"%s\" has no prospective half -- the seam is its \
+             (let* ((open (nth 0 bounds))
+                    (beg (nth 1 bounds))
+                    (end (nth 2 bounds))
+                    ;; EMPTY-OK: a seam on the first body line means "no
+                    ;; prospective half", and an empty drawer is how that
+                    ;; is recorded rather than an error the caller has no
+                    ;; way to satisfy (TODO.org :ID: f421c5c3).
+                    (stop (if until
+                              (claude-code-ide-org--plan-seam beg end until t)
+                            end))
+                    (before (buffer-substring-no-properties open end)))
+               ;; Close first, then open. Inserting at the later position
+               ;; before the earlier one keeps BEG valid; doing it the
+               ;; other way round would shift STOP by the length of the
+               ;; opening marker and close the drawer one line late.
+               (save-excursion
+                 (goto-char stop)
+                 (insert ":END:\n"))
+               (save-excursion
+                 (goto-char open)
+                 (insert ":PLAN:\n"))
+               (save-buffer)
+               ;; Prove the move was lossless right here, against the text
+               ;; read before the insertions, rather than trusting the
+               ;; arithmetic. `bin/lint-org' cannot make this check: the
+               ;; damage it would catch is structural and this one is
+               ;; prose-level under a well-formed heading.
+               (let* ((after (buffer-substring-no-properties
+                              open (+ end (length ":PLAN:\n:END:\n"))))
+                      (stripped (replace-regexp-in-string
+                                 "^:\\(PLAN\\|END\\):\n" "" after)))
+                 ;; `substring-no-properties', because `org-get-heading'
+                 ;; returns the fontified heading and the MCP layer
+                 ;; serializes its text properties as pages of
+                 ;; `(face (org-headline-done ...))' around the answer.
+                 ;; Same trap as `--outline-line' and the pending-updates
+                 ;; report; observed here on the first real call.
+                 (substring-no-properties
+                  (if (= stop beg)
+                      (format "\"%s\" has no prospective half -- the seam is its \
 first body line -- so an empty :PLAN: drawer records that, and the whole body \
 stays visible as the debrief. Text preserved: %s."
+                              (org-get-heading t t t t)
+                              (if (equal stripped before) "yes" "NO -- INSPECT"))
+                    (format "Wrapped %s of \"%s\" in :PLAN:%s. Text preserved: %s."
+                            (if until "the body above the seam" "the whole body")
                             (org-get-heading t t t t)
-                            (if (equal stripped before) "yes" "NO -- INSPECT"))
-                  (format "Wrapped %s of \"%s\" in :PLAN:%s. Text preserved: %s."
-                          (if until "the body above the seam" "the whole body")
-                          (org-get-heading t t t t)
-                          (if until (format " (seam: %s)" until) "")
-                          (if (equal stripped before) "yes" "NO -- INSPECT")))))))))))))
+                            (if until (format " (seam: %s)" until) "")
+                            (if (equal stripped before) "yes" "NO -- INSPECT"))))))))))))))
 
 ;;; CLOSED: backfill (TODO.org :ID: f4b07fc0)
 ;;
