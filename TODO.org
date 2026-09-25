@@ -1574,6 +1574,9 @@ Hook-backed only for the no-clock case (clock-target-check, rule =clock-target=)
   slice-plan decisions; re-queued on "Review and planning" at once.
   Self-caught; dismiss the slice's clock item at review.
 
+- [2026-09-25 Fri] Self-caught: 2aeb65d6's guard and tests were written under the "Review and planning" clock opened to record a miss, with no DOING queued and no clock-in on the heading. Found before the commit. The session had moved to the next member straight after that bookkeeping, on the user's standing go-ahead, and skipped the per-member step of queueing DOING and clocking in. The span from about 17:12 belongs to 2aeb65d6 at review.
+
+
 
 ** TODO Miss: a heading filed, or offered, without first searching for the one that already holds it
 :PROPERTIES:
@@ -10860,6 +10863,14 @@ Every session on a checkout shares one =.git/index=, so one session's pathspec-l
 - 2026-09-22, the other direction: a slice composed in the working tree landed inside a concurrent session's explicit-path commit, =f7e4cd2=, whose message describes none of it. Explicit paths protected nothing there, which is =27082893='s case.
 
 *Ruled out:* tracking which session staged which path, since the command form alone tells the sweep apart from a pathspec commit.
+
+*Shipped 2026-09-25* in [[orgit-rev:claude-code-ide-org::f112a18][f112a18]], as the drawer designed it. A session's plain
+=git commit=, =-a= or =--amend= is refused while the real index holds staged
+changes. =git commit -- <paths>= always passes, a human at a terminal is never
+affected, and =ALLOW_SWEEP=1= lets an amend through, counted. Verified by real
+commits in a scratch repo, which re-measure the =GIT_INDEX_FILE= table on every
+run. Five refusal assertions fail against the previous guards.
+
 
 
 * TODO Read power assertions as a review-time attribution signal :code:research:
