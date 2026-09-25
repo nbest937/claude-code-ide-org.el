@@ -22,11 +22,6 @@ export CLAUDE_PROJECT_DIR="$repo"
 # plays an unreachable server, =slow a hung evaluation.
 # `org-id-locations-file' is bound to a temp path: a batch run must never
 # write the file the real Emacs and `bin/test' read.
-build_root="$(find "$HOME/.config/emacs/.local/straight" -maxdepth 1 -name 'build-*' -type d 2>/dev/null | head -1 || true)"
-if [[ -z "$build_root" ]]; then
-  echo "ERROR: no straight build-* dir; cannot load the module (see bin/test)" >&2
-  exit 2
-fi
 mkdir -p "$tmp/fakebin"
 {
   printf '#!/usr/bin/env bash\n'
@@ -34,10 +29,7 @@ mkdir -p "$tmp/fakebin"
   printf '  down) echo "emacsclient: can'"'"'t find socket" >&2; exit 1 ;;\n'
   printf '  slow) sleep 10; exit 0 ;;\n'
   printf 'esac\n'
-  printf 'exec command emacs --batch -Q'
-  for d in "$build_root"/*/; do
-    printf " --eval %q" "(add-to-list 'load-path \"${d%/}\")"
-  done
+  printf 'exec %q' "$repo/bin/lib/batch-emacs"
   printf " --eval %q" "(setq org-id-locations-file \"$tmp/org-id-locations\")"
   printf " -l %q" "$repo/modules/tools/claude-code-ide-org/config.el"
   printf ' --eval "$2" >/dev/null 2>&1\n'
