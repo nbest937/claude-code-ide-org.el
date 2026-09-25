@@ -199,6 +199,31 @@ an accident waiting to be re-made.
 
 ## 1. Live reload procedure
 
+### When a reload is owed
+
+**When a commit that changes `config.el` lands, reload it live and check
+the last thing it defines** (§4), in the same turn and before any claim
+that the change works. A green `bin/test` is a batch Emacs loading the
+tree; the running Emacs is a different image, and it keeps the old code
+until someone reloads it. Say which one a claim is about.
+
+The one exception is a plan that forbids live reloads, as an unattended
+run's does, because the MCP tools the run needs are served by that Emacs.
+There the reload is the first item of the morning report, not a thing
+left for someone to notice.
+
+Why it is written here: on 2026-09-25 `c247d8f3` turned
+`bin/hooks/footnote-check` into a stub over a new elisp function. The
+stub exits 0 silently when Emacs lacks that function, which is the right
+behaviour in an outage and exactly the wrong one in a stale image. So
+every session's footnote check was off for an hour after the commit,
+and nothing announced it: the unattended run had forbidden reloads the
+night before, and no rule restored them in the morning. The user had
+assumed a reload happened by convention. It had not been written down
+anywhere.
+
+### How
+
 For a change confined to function bodies inside
 `modules/tools/claude-code-ide-org/config.el` (existing `defun`s, or the
 `claude-code-ide-make-tool` registrations inside the single

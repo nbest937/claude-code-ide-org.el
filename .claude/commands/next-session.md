@@ -139,6 +139,15 @@ work.
    `org_amend` — a heading with a plan drawer looks composed at a glance.
    Check the file after the first capture of a session, not the reply.
    Added 2026-09-19; carries forward with the rest of Step 0.
+11. **Load the `org-dev` skill before the first member** (the Skill tool,
+   `org-dev`). It is this repo's primer on developing the module: how to
+   reload what a member changed, *when* a reload is owed, and how to prove
+   it landed. It is triggered rather than always loaded, and a slice
+   session's opening is not shaped like its trigger. On 2026-09-25 a
+   member landed a new `footnote-check` stub over elisp that existed only
+   in the tree; the stub exits 0 silently when Emacs lacks the function,
+   so every session ran unchecked for an hour and nothing said so. Added
+   2026-09-25 at the user's direction.
 
 ---
 
