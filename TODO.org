@@ -831,21 +831,6 @@ pattern had repeated.
 :CATEGORY: Tools
 :END:
 :PLAN:
-=claude-code-ide-org-wrap-plan= runs through =--at-id-writable= and
-calls =save-buffer=, and it never asks whether the buffer holds unsaved
-human edits. The other writers do ask. =org_amend= defers to the queue
-behind the write-through gate (b5f94b88), and =org_slice_add_member= and
-=org_set_property= refuse and ask for a retry once saved. So a wrap
-invoked while the human is mid-edit saves their half-done text along
-with the wrap, and whatever commits next carries it under a message
-that does not describe it.
-
-Put =org_wrap_plan= behind the same refusal the other structural writers
-use. It is a structural write, not prose, so it should refuse rather
-than queue. Then sweep every caller of =--at-id-writable= for the same
-gap: the refusal belongs in one shared place, not per tool. The
-regression test modifies a buffer, calls the wrap, and asserts both a
-refusal and that the file on disk is unchanged.
 :END:
 
 Observed 2026-09-21. The user reflowed 94e6b615's =:PLAN:= drawer and
