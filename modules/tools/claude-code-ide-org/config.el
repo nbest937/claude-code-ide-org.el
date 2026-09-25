@@ -3975,12 +3975,118 @@ yet applied, so it has no body to amend. Apply the queue, then amend."
 ;; Elisp evaluated against the user's files) is never reachable from a
 ;; model-supplied string here.
 
-(defun claude-code-ide-org--parse-query-string (query)
+;;
+;; What that parser does not recognise it turns into a full-text term
+;; rather than an error, so a wrong-language query came back "No
+;; matches." looking exactly like an honest empty result (TODO.org :ID:
+;; 37bca83a).  Three such shapes are refused before parsing -- a sexp,
+;; an unknown `name:' predicate, a bare OR/AND/| -- and an empty result
+;; names the parsed reading, so a misreading none of them catches is
+;; still visible.  None is counted as a miss: a query-language slip
+;; breaks no rule the caller was given, and the refusal removes the harm.
+
+(defun claude-code-ide-org--parse-query-string (query &optional match)
   "Parse QUERY, in org-ql's plain-string mini-language, into an
-org-ql sexp query, or nil if QUERY fails to parse.  Never evaluates
-QUERY as Elisp — see the commentary above this section."
+org-ql sexp query, or nil if QUERY fails to parse.  MATCH is the
+operator joining its terms, `and' (the default) or `or'.  Never
+evaluates QUERY as Elisp — see the commentary above this section."
   (require 'org-ql)
-  (org-ql--query-string-to-sexp query 'and))
+  (org-ql--query-string-to-sexp query (or match 'and)))
+
+(defun claude-code-ide-org--query-predicate-names ()
+  "Every predicate name org-ql's parser recognises, aliases included,
+as strings.  Read from `org-ql-predicates' at run time, never kept by
+hand, so an org-ql upgrade cannot make the list stale."
+  (require 'org-ql)
+  (let (names)
+    (dolist (p org-ql-predicates)
+      (push (symbol-name (car p)) names)
+      (dolist (a (plist-get (cdr p) :aliases)) (push (symbol-name a) names)))
+    (delete-dups names)))
+
+(defun claude-code-ide-org--query-tokens (query)
+  "Split QUERY on whitespace outside double quotes.  Returns a list of
+\(TEXT . QUOTED-P), QUOTED-P true when the token opens with a quote."
+  (let ((i 0) (n (length query)) (in-quote nil) (start nil) tokens)
+    (while (< i n)
+      (let ((c (aref query i)))
+        (cond
+         ((and (not in-quote) (memq c '(?\s ?\t ?\n ?\r)))
+          (when start (push (substring query start i) tokens) (setq start nil)))
+         (t (unless start (setq start i))
+            (when (eq c ?\") (setq in-quote (not in-quote))))))
+      (setq i (1+ i)))
+    (when start (push (substring query start) tokens))
+    (mapcar (lambda (tok) (cons tok (string-prefix-p "\"" tok)))
+            (nreverse tokens))))
+
+(defun claude-code-ide-org--query-sexp-to-plain (form)
+  "Return the plain-string query equivalent to sexp FORM, or nil when
+there is no obvious one.  Handles a predicate over string arguments,
+its `not', and an `and' of those -- the shapes a caller reaching for
+the sexp language usually means.  FORM is data from `read'; nothing
+here evaluates it."
+  (let ((names (claude-code-ide-org--query-predicate-names)))
+    (cl-labels
+        ((arg (s) (if (string-match-p "[ \t,\"]" s) (format "%S" s) s))
+         (term (f)
+           (pcase f
+             (`(not ,x) (let ((s (term x))) (and s (not (string-prefix-p "!" s))
+                                                  (concat "!" s))))
+             (`(,(and p (pred symbolp)) . ,(and args (pred (seq-every-p #'stringp))))
+              (and (member (symbol-name p) names)
+                   (concat (symbol-name p) ":"
+                           (mapconcat #'arg args ","))))
+             (_ nil))))
+      (pcase form
+        (`(and . ,xs) (let ((ts (mapcar #'term xs)))
+                        (and xs (not (memq nil ts)) (string-join ts " "))))
+        (_ (term form))))))
+
+(defun claude-code-ide-org--query-refusal (query)
+  "Return an \"Error: ...\" string when QUERY is in a shape org-ql's
+plain-string parser would silently misread, else nil."
+  (let ((trimmed (string-trim-left query)))
+    (if (string-prefix-p "(" trimmed)
+        (let* ((form (condition-case nil (car (read-from-string trimmed))
+                       (error nil)))
+               (plain (and (consp form)
+                           (claude-code-ide-org--query-sexp-to-plain form))))
+          (concat "Error: org_query takes org-ql's plain-string language, "
+                  "not its sexp language, and a sexp is never evaluated. "
+                  (if plain
+                      (format "Write it as: %s" plain)
+                    (concat "Write predicates as name:ARG,ARG (e.g. todo:NEXT, "
+                            "tags:a,b, property:KEY,VALUE), prefix ! to negate, "
+                            "separate with spaces for AND."))))
+      (let ((names (claude-code-ide-org--query-predicate-names))
+            (tokens (claude-code-ide-org--query-tokens query)))
+        (or
+         (seq-some
+          (lambda (tok)
+            (and (not (cdr tok))
+                 (member (car tok) '("OR" "AND" "|"))
+                 (format (concat "Error: a bare %s is searched as the literal "
+                                 "word, so it narrows the query instead of "
+                                 "combining it. Space is AND; a comma gives OR "
+                                 "within one predicate (tags:a,b); for OR across "
+                                 "predicates pass match=any.")
+                         (car tok))))
+          tokens)
+         (seq-some
+          (lambda (tok)
+            (let ((text (car tok)))
+              (and (not (cdr tok))
+                   (string-match "\\`!?\\([A-Za-z][A-Za-z0-9*&-]*\\):" text)
+                   (let ((name (match-string 1 text)))
+                     (and (not (member name names))
+                          (format (concat "Error: %s: is not an org-ql predicate, "
+                                          "so %S would be searched as literal text. "
+                                          "For a property write property:%s,VALUE; "
+                                          "to search the text itself, quote it (\"%s\").")
+                                  name text (upcase name)
+                                  (string-remove-prefix "!" text)))))))
+          tokens))))))
 
 (defun claude-code-ide-org--format-query-match ()
   "Format the org-ql match at point as one line: TODO state,
@@ -3996,24 +4102,39 @@ called with point already at the heading."
             (if tags (concat "  :" (mapconcat #'identity tags ":") ":") "")
             id (file-name-nondirectory (or file "?")))))
 
-(defun claude-code-ide-org-query (query)
+(defun claude-code-ide-org-query (query &optional match)
   "Search `claude-code-ide-org--tracked-files' with QUERY, an org-ql
 plain-string query, e.g. \"todo:WAITING\", \"tags:research,code\"
 (comma = OR), \"priority:A\", \"heading:\\\"text\\\"\", or negated
-with `!' (e.g. \"!todo:DONE\").  Multiple space-separated terms are
-combined with AND.  Returns one line per match — TODO state,
-heading, tags, :ID:, file — or a message string when the query is
-empty, fails to parse, or matches nothing.  Never signals an error
-to the MCP layer."
+with `!' (e.g. \"!todo:DONE\").  Space-separated terms are combined
+with AND, or with OR when MATCH is \"any\" (\"all\", the default, is
+AND).  Returns one line per match — TODO state, heading, tags, :ID:,
+file — or a message string when the query is empty, is refused,
+fails to parse, or matches nothing; an empty result names the parsed
+reading.  A sexp, an unknown `name:' predicate and a bare OR/AND/|
+are refused rather than searched as text (TODO.org :ID: 37bca83a).
+Never signals an error to the MCP layer."
   (condition-case err
-      (if (string-match-p "\\`[ \t\n\r]*\\'" query)
-          "Error: empty query."
-        (let ((sexp (claude-code-ide-org--parse-query-string query)))
-          (if (null sexp)
-              (format "Error: could not parse query: %S" query)
-            (let ((matches (org-ql-select (claude-code-ide-org--tracked-files) sexp
-                             :action #'claude-code-ide-org--format-query-match)))
-              (if matches (mapconcat #'identity matches "\n") "No matches.")))))
+      (let ((op (pcase match
+                  ((or 'nil "" "all") 'and)
+                  ("any" 'or)
+                  (_ nil))))
+        (cond
+         ((string-match-p "\\`[ \t\n\r]*\\'" query) "Error: empty query.")
+         ((null op) (format "Error: match must be \"all\" or \"any\", not %S." match))
+         ((claude-code-ide-org--query-refusal query))
+         (t
+          (let ((sexp (claude-code-ide-org--parse-query-string query op)))
+            (if (null sexp)
+                (format "Error: could not parse query: %S" query)
+              (let ((matches (org-ql-select (claude-code-ide-org--tracked-files) sexp
+                               :action #'claude-code-ide-org--format-query-match)))
+                (if matches
+                    (mapconcat #'identity matches "\n")
+                  (format (concat "No matches for %S. todo:, tags: and property: "
+                                  "match case exactly; heading: and bare words "
+                                  "do not.")
+                          sexp))))))))
     (error (format "Error: %s" (error-message-string err)))))
 
 ;;; Outline index ------------------------------------------------------------
@@ -18208,22 +18329,39 @@ the project list."
    :name "org_query"
    :description (concat
                  "Search org-mode headings across "
-                 "`claude-code-ide-org-query-files' (or org-agenda-files) using "
-                 "org-ql's plain-string query syntax. Predicates: todo:KEYWORD "
-                 "(e.g. todo:WAITING), bare todo: for every non-terminal "
-                 "keyword at once (do not enumerate them -- an enumeration "
-                 "drops the ones you forget), property:KEY=VALUE (e.g. "
-                 "property:KIND=slice), tags:TAG1,TAG2 (comma = OR), "
-                 "priority:A, heading:\"text\". Prefix any predicate with ! to negate it "
-                 "(e.g. !todo:DONE). Separate predicates with spaces to combine "
-                 "with AND, e.g. \"todo:NEXT tags:code\". Returns one line per "
-                 "match: TODO state, heading, tags, :ID:, and file — or a "
-                 "message if nothing matches. Prefer this over reading whole "
-                 "files for cross-file questions like what's blocked or what "
-                 "changed this week.")
+                 "`claude-code-ide-org-query-files' (or org-agenda-files; "
+                 "DONE.org is searched too) using org-ql's PLAIN-STRING "
+                 "query language -- never its sexp language, which is "
+                 "refused. Predicates are name:ARG,ARG: todo:KEYWORD (e.g. "
+                 "todo:WAITING), bare todo: for every non-terminal keyword "
+                 "at once (do not enumerate them -- an enumeration drops "
+                 "the ones you forget), property:KEY,VALUE (the documented "
+                 "form, e.g. property:KIND,slice), tags:TAG1,TAG2, "
+                 "priority:A, heading:\"text\", regexp:PATTERN, level:N. "
+                 "A zero-argument predicate takes a trailing colon: "
+                 "blocked:, done:. Caution: blocked: is the union of "
+                 "unfinished children, unchecked checkboxes and :BLOCKER:, "
+                 "not :BLOCKER: alone. parent:, children:, ancestors: and "
+                 "descendants: take TEXT, not nested predicates -- "
+                 "children:todo:NEXT searches for the words \"todo:NEXT\". "
+                 "Bare words are full-text search (rifle: the entry and its "
+                 "outline path); quote a word containing a colon to search "
+                 "it literally. Boolean rules: space is AND, a comma is OR "
+                 "within one predicate, ! prefix is NOT, and there is no "
+                 "OR across predicates except match=any; a bare OR, AND or "
+                 "| is refused, as is an unknown name: predicate. todo:, "
+                 "tags: and property: match case exactly; heading: and "
+                 "bare words do not. Returns one line per match: TODO "
+                 "state, heading, tags, :ID:, and file -- or, when nothing "
+                 "matches, the parsed reading of the query. Prefer this "
+                 "over reading whole files for cross-file questions.")
    :args '((:name "query"
             :type string
-            :description "org-ql plain-string query, e.g. \"todo:\" (everything non-terminal), \"todo:WAITING\", \"property:KIND=slice\", \"tags:research,code\", \"priority:A\", \"!todo:DONE\".")))
+            :description "org-ql plain-string query, e.g. \"todo:\" (everything non-terminal), \"todo:WAITING\", \"property:KIND,slice\", \"tags:research,code\", \"blocked:\", \"!todo:DONE\". Space is AND; comma is OR inside one predicate; no sexps; quote a literal containing a colon.")
+           (:name "match"
+            :type string
+            :optional t
+            :description "\"all\" (the default: every space-separated term must hold) or \"any\" (at least one must: OR across predicates, flat, no grouping).")))
 
   (claude-code-ide-make-tool
    :function #'claude-code-ide-org-body

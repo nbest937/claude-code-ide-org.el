@@ -3611,7 +3611,81 @@ nothing."
   (claude-code-ide-org-test--with-heading
     (let* ((claude-code-ide-org-query-files (list file))
            (result (claude-code-ide-org-query "todo:CANCELLED")))
-      (should (equal "No matches." result)))))
+      (should (string-prefix-p "No matches" result)))))
+
+;; TODO.org :ID: 37bca83a.  What org-ql's plain-string parser does not
+;; recognise becomes a full-text term, so a wrong-language query came
+;; back "No matches." looking exactly like an honest empty result.
+
+(ert-deftest claude-code-ide-org-test-query-empty-result-shows-reading ()
+  "An empty result names the parsed query and the case rules, so a
+misreading the refusals miss is still visible."
+  (claude-code-ide-org-test--with-heading
+    (let* ((claude-code-ide-org-query-files (list file))
+           (result (claude-code-ide-org-query "todo:next tags:CODE")))
+      (should (string-match-p (regexp-quote "(todo \"next\")") result))
+      (should (string-match-p "case" result)))))
+
+(ert-deftest claude-code-ide-org-test-query-refuses-sexp ()
+  "A sexp is refused, never evaluated, and the plain form is offered."
+  (claude-code-ide-org-test--with-heading
+    (let ((claude-code-ide-org-query-files (list file)))
+      (let ((r (claude-code-ide-org-query "(tags \"code\")")))
+        (should (string-prefix-p "Error:" r))
+        (should (string-match-p "tags:code" r)))
+      (let ((r (claude-code-ide-org-query "  (property \"KIND\" \"slice\")")))
+        (should (string-prefix-p "Error:" r))
+        (should (string-match-p "property:KIND,slice" r)))
+      (let ((r (claude-code-ide-org-query "(and (todo \"NEXT\") (not (tags \"x\")))")))
+        (should (string-match-p (regexp-quote "todo:NEXT !tags:x") r)))
+      ;; Not convertible: still refused, naming the language instead.
+      (let ((r (claude-code-ide-org-query "(ts :from -7)")))
+        (should (string-prefix-p "Error:" r))
+        (should (string-match-p "plain-string" r))))))
+
+(ert-deftest claude-code-ide-org-test-query-refuses-unknown-predicate ()
+  "`kind:slice' parses to a full-text search for the literal string."
+  (claude-code-ide-org-test--with-heading
+    (let ((claude-code-ide-org-query-files (list file)))
+      (let ((r (claude-code-ide-org-query "kind:slice")))
+        (should (string-prefix-p "Error:" r))
+        (should (string-match-p "kind" r)))
+      (should (string-prefix-p "Error:" (claude-code-ide-org-query "todo:TODO !kind:x"))))))
+
+(ert-deftest claude-code-ide-org-test-query-known-predicates-and-aliases-pass ()
+  (claude-code-ide-org-test--with-heading
+    (let ((claude-code-ide-org-query-files (list file)))
+      (dolist (q '("todo:TODO" "tags:code" "h:Test" "blocked:" "!blocked:"
+                   "property:ID" "level:1" "heading:\"Test heading\""))
+        (should-not (string-prefix-p "Error:" (claude-code-ide-org-query q)))))))
+
+(ert-deftest claude-code-ide-org-test-query-quoted-literal-passes ()
+  "A quoted token is literal text, the escape hatch for a colon."
+  (claude-code-ide-org-test--with-heading
+    (let ((claude-code-ide-org-query-files (list file)))
+      (should-not (string-prefix-p "Error:" (claude-code-ide-org-query "\"kind:slice\""))))))
+
+(ert-deftest claude-code-ide-org-test-query-refuses-bare-boolean ()
+  "`todo:NEXT OR tags:x' narrows instead of widening."
+  (claude-code-ide-org-test--with-heading
+    (let ((claude-code-ide-org-query-files (list file)))
+      (dolist (q '("todo:TODO OR tags:x" "todo:TODO AND tags:code" "todo:TODO | tags:x"))
+        (let ((r (claude-code-ide-org-query q)))
+          (should (string-prefix-p "Error:" r))
+          (should (string-match-p "match" r)))))))
+
+(ert-deftest claude-code-ide-org-test-query-match-any-is-union ()
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert "* NEXT Research heading                                            :research:\n")
+    (save-buffer)
+    (let ((claude-code-ide-org-query-files (list file)))
+      (let ((all (claude-code-ide-org-query "todo:TODO tags:research")))
+        (should-not (string-match-p "Test heading" all)))
+      (let ((any (claude-code-ide-org-query "todo:TODO tags:research" "any")))
+        (should (string-match-p "Test heading" any))
+        (should (string-match-p "Research heading" any)))
+      (should (string-prefix-p "Error:" (claude-code-ide-org-query "todo:TODO" "some"))))))
 
 (ert-deftest claude-code-ide-org-test-query-blank-returns-error ()
   (claude-code-ide-org-test--with-heading
