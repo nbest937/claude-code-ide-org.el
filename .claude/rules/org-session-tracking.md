@@ -59,12 +59,11 @@ not the hook.
 
 **`apply-detect` is the one read-only row** (`:ID:` 165ce65a): the
 apply pass writes `.applied` watermark files, and this hook compares
-their mtimes against a per-session `.apply-seen` stamp — when any
-watermark moved, the next prompt carries `additionalContext` saying the
+each one's newest applied pass time against a per-session `.apply-seen`
+record — on a change the next prompt carries `additionalContext` saying the
 record is fresh and a tracker diff may await a bookkeeping commit, so
-the human never announces "queue applied". First prompt of a session
-initializes the stamp silently: pre-session history is SessionStart's
-report, not this hook's.
+the human never announces "queue applied". A session's first prompt
+records silently: pre-session history is SessionStart's.
 
 ### The daily ceremony prompt
 

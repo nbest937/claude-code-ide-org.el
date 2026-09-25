@@ -95,6 +95,67 @@ check "an unreported apply is announced on the next turn" "0" \
 
 rm -rf "$shimdir" "$qdir2"
 
+# 9. The discriminator (TODO.org :ID: 7b4f4f14). --queue-watermark-write
+#    rewrites the file on every pass, including one that only dismissed
+#    events, so the mtime lies; each `applied' entry's value is the time
+#    of the pass that applied it, and a dismiss-only pass leaves those
+#    unchanged. The hook reports only when a watermark's newest value
+#    differs from the one it last recorded.
+qdir3="$(mktemp -d)"
+run3() { printf '{"session_id":"%s"}' "$1" \
+           | env CLAUDE_ORG_QUEUE_DIR="$qdir3" bash "$hook"; }
+wm() { # wm <name> <dismissed-json> <event>=<pass> ...
+  local name="$1" dismissed="$2"; shift 2
+  local applied="{}"
+  for pair in "$@"; do
+    applied="$(jq -c --arg e "${pair%%=*}" --arg p "${pair#*=}" '. + {($e): $p}' <<<"$applied")"
+  done
+  jq -nc --argjson a "$applied" --argjson d "$dismissed" '{applied: $a, dismissed: $d}' \
+    > "$qdir3/$name.applied"
+}
+announced() { printf '%s' "$1" | jq -e '.hookSpecificOutput.additionalContext | test("applied since")' >/dev/null 2>&1 && echo yes || echo no; }
+
+wm s1 '{}' e1=2026-09-23T19:20:23-0500
+run3 sess-d >/dev/null                        # first prompt: record every value
+check "the record holds the watermark's newest value" "yes" \
+  "$(grep -q $'^s1.applied\t2026-09-23T19:20:23-0500$' "$qdir3/sess-d.apply-seen" && echo yes || echo no)"
+sleep 1
+wm s1 '{"x":"stale"}' e1=2026-09-23T19:20:23-0500   # dismiss-only: rewritten, values unchanged
+out="$(run3 sess-d)"
+check "a dismiss-only rewrite reports nothing" "" "$out"
+sleep 1
+wm s1 '{"x":"stale"}' e1=2026-09-23T19:20:23-0500 e2=2026-09-24T09:47:04-0500
+out="$(run3 sess-d)"
+check "an apply is reported" "yes" "$(announced "$out")"
+check "and counted" "0" "$(printf '%s' "$out" | jq -e '.hookSpecificOutput.additionalContext | test("1 watermark")' >/dev/null 2>&1; echo $?)"
+check "and not repeated" "" "$(run3 sess-d)"
+sleep 1
+wm s2 '{}' e1=2026-09-24T10:00:00-0500          # a watermark the record has never seen
+check "a new watermark is reported" "yes" "$(announced "$(run3 sess-d)")"
+sleep 1
+printf 'not json at all' > "$qdir3/s3.applied"
+check "an unparseable watermark falls back to its mtime and is reported" "yes" "$(announced "$(run3 sess-d)")"
+check "and once only" "" "$(run3 sess-d)"
+sleep 1
+wm s4 '{}' e1=2026-11-01T01:30:00-0600           # recorded with the winter offset
+run3 sess-d >/dev/null
+sleep 1
+touch "$qdir3/s4.applied"                        # moved, value unchanged
+check "a value recorded across a DST change still matches" "" "$(run3 sess-d)"
+
+# 10. A legacy empty stamp (every one on disk on 2026-09-24) records the
+#     current values silently, exactly like a first prompt.
+: > "$qdir3/sess-e.apply-seen"
+sleep 1
+touch "$qdir3/s1.applied"
+check "a legacy empty stamp initialises silently" "" "$(run3 sess-e)"
+check "and is now a record" "yes" "$([ -s "$qdir3/sess-e.apply-seen" ] && echo yes || echo no)"
+sleep 1
+wm s1 '{}' e1=2026-09-23T19:20:23-0500 e2=2026-09-24T09:47:04-0500 e3=2026-09-25T08:00:00-0500
+check "after which a real apply is reported" "yes" "$(announced "$(run3 sess-e)")"
+
+rm -rf "$qdir3"
+
 echo
 echo "apply-detect-test: $pass passed, $fail failed"
 exit $((fail > 0))
