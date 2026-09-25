@@ -2,6 +2,15 @@
 #+TAGS: analysis bug code comms prose research review spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO org_query blocked: errors on a read-only buffer, though a query changes nothing the user can see :code:bug:
+:PROPERTIES:
+:ID:       d842b9e7-fd75-45eb-80fd-597daa3e36b0
+:CREATED:  [2026-09-25 Fri 12:24]
+:CATEGORY: Tools
+:END:
+
+Observed 2026-09-25: with =TODO.org='s buffer read-only (=C-x C-q=, unmodified), =org_query "blocked:"= fails with "Buffer is read-only: #<buffer TODO.org>". Other predicates on the same buffer work (=category:=, =level:=, =regexp:=, =link:=), so something in evaluating =blocked:= writes to the buffer. Which call writes is not known yet; org's blocker hooks run through =org-entry-blocked-p=, and this repo adds =claude-code-ide-org--blocker-clock-running-p= to them. The file-touching tools bind =inhibit-read-only= (=c8a97d9d=) and =org_query= does not, since a query was not expected to write. Proposed: find the writer first. If it is org-ql caching or a hook's bookkeeping, bind =inhibit-read-only= in =org_query= as the other tools do; if it is a real edit, that is the defect. =5acca91b= (REVIEW) taught =blocked:= to the description and was tested on a writable buffer.
+
 * TODO Headings cited in bodies are id links, written as links by the tools, so backlinks are one org_query away :code:
 :PROPERTIES:
 :ID:       f7847adf-a408-4ad0-ae0c-8d3c19b79f2b
@@ -19,6 +28,9 @@ Bodies cite other headings in two forms, and often both in one heading: measured
 :END:
 
 Twice on 2026-09-25 an =org_capture= stopped at "Make link that searches: ", a prompt from org-ql's =org-ql-view--link-store=. Org's capture stores a link to the current buffer, and that function asks this question whenever the current buffer has =org-ql-view-query= set, which is true only in an Org QL view buffer (four were open, each with the variable buffer-local). With no human at the keyboard the call hangs until the MCP request times out; =C-g= aborts it, and the reply then fails on a dead websocket. Unverified, and the title may be wrong about it: whether the view has to be the *selected* buffer. At one failure the selected buffer was =*Messages*= a minute earlier and =*Ibuffer*= just after. Proposed: run the capture with a neutral current buffer, or bind =org-store-link-functions= to nil around it, since a tool capture has no use for an annotation link to wherever the user happens to be.
+
+Settled the same day: the selected window's buffer is what counts. With the Org QL view selected in the only frame, the check before the next capture showed it, and after the user buried it with =q= the capture ran clean. The earlier =*Messages*= and =*Ibuffer*= readings caught the user between buffers. In this Doom config the matching human keystroke is =C-c n l= (=org-store-link=); =C-c l= is Doom's localleader prefix.
+
 
 * REVIEW A rendered session drops the narration the reader saw, because the transcript stores it as thinking :code:
 :PROPERTIES:
