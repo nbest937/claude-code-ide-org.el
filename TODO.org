@@ -2,6 +2,15 @@
 #+TAGS: analysis bug code comms prose research review spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO A running slice receives meta-work time, reversing the rule that a slice is never clocked :prose:
+:PROPERTIES:
+:ID:       f3833fb7-8137-4406-824c-8d18e92afe34
+:CREATED:  [2026-09-25 Fri 16:17]
+:CATEGORY: Skill
+:END:
+
+Ruled by the user on 2026-09-25: groupings receive meta-work time (definition, refinement, verdicts) and never deliverable work. A story is a receiver between or during slices, and a running slice is one while it runs; "Review and planning" is the catch-all for meta-work too general to place or not recalled precisely enough. The story half was already law ([[id:3964c575-50bc-4cc9-abeb-bdd1c0162c2c][3964c575]], declined 08-26). The slice half reverses the conventions' "a slice may not be clocked, being a sequencing declaration rather than a place work happens" and the state-transition rules' "do not clock a grouping on purpose". It also re-reads a recorded miss on [[id:a4005ebc-8be7-4def-b551-2911020333a9][a4005ebc]]: on 2026-09-24 a clock-in on slice 8a2eb687 for slice-plan decisions was re-queued on Review and planning and logged as a miss, and under this ruling it was right. Proposed: rewrite those rule texts, including the time-tracking rules' grouping paragraph; annotate the 09-24 miss line rather than delete it; and check whether auto-clock-in's exemption for slices still wants to hold. It should, since an automatic clock is not a deliberate allocation. The slice-membership half, that a parent never carries a checkbox, lives in [[id:7ee3b71a-b85a-4610-a4ab-b9e06c8d79da][7ee3b71a]]'s drawer.
+
 * TODO A REVIEW member is ticked [X]: the cookie counts work finished on our side, and the blocker still waits for acceptance :code:
 :PROPERTIES:
 :ID:       cdff5c91-3dc1-476e-a8f2-5293570a19fc
@@ -4419,6 +4428,10 @@ A parent row *never* carries a checkbox and is never counted: the leaves carry t
 *Kept as one heading* rather than divided (the user, 2026-09-22): a half-applied cutover leaves the property and the checklist disagreeing, so the property, the renderer, the blocker and the migration are reviewed and abandoned as a unit. The two cheap guards, the drawer-bounded scan and the =replace= splice, are separable and could have landed first; that option was considered and declined.
 
 *Open for the implementing session:* whether the DONE.org migration is one commit or one per slice, and whether =org_slice_add_member='s =after= stays line-relative or becomes an index into =:MEMBERS:=.
+
+*The open questions, decided by the user on 2026-09-25, before implementation.* The migration is one commit covering both files, separate from the code commit: the byte-identity proof is all-or-nothing, so the check is the review. =org_slice_add_member='s =after= keeps its argument and its meaning to the caller, "after this member", but it indexes into =:MEMBERS:= and the refresh re-renders, since a line-relative position means nothing once the lines are derived. Its =parent= argument is *retired*, a question the drawer had not listed: nesting is derived from the member's parent heading now, so a call that passes =parent= is refused with a message saying so, never silently ignored (the =bbf9fb77= pattern).
+
+*A parent carries no work a slice counts, ruled by the user on 2026-09-25 after the record was checked against it.* The live slice had drifted from this drawer since 09-22: [[id:de6de108-0095-40f4-8177-fdef0503c578][de6de108]] was a counted member with a box, and its six children were counted beneath it. The ruling is that a grouping receives *meta-work* time (definition, refinement, verdicts), a story between or during slices and a slice while it runs, with "Review and planning" as the catch-all for what cannot be placed. It never receives deliverable work, and a slice's checkbox tracks deliverable work only. So the drawer stands as written: de6de108 renders as a derived, boxless row, leaves the cookie and the =:BLOCKER:=, and 8a2eb687 reads =/37=. That line is the migration's one deliberate deviation from byte-identity, and the proof names it. 3964c575's "a parent's own coordination time is real work" is about time, not slice membership, and does not conflict.
 :END:
 
 Found 2026-09-15 composing 35582d95. replace=true rewrites the body's prose
