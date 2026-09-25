@@ -1379,6 +1379,12 @@ CLAUDE.md's own opening names this as the largest source of wrong claims. Caught
 - [2026-09-23 Wed] Caught by the user: "I don't see why the session would have to be 'running inside Emacs'. This one is not." Asked for ways to show footnotes on demand, the session read =claude-code-ide-terminal-backend 'vterm= in the Doom config and concluded that this session ran in a vterm buffer. It then built its recommendation on that and never checked. That setting says where =claude-code-ide= launches sessions, not where this one runs.
 - [2026-09-24 Thu] Self-caught: designing =406d78da='s picker, the session stated twice that a rendered transcript lives "outside =~/.claude=" and so outlives its pruned source, and that premise went into the approved drawer. The default is =~/.claude/org-renders/=. The session never read the variable until the user asked whether renders are persisted.
 - [2026-09-24 Thu] Self-caught, prompted by the user's question: the session filed =76a6f052= saying the fill sweep "has never run over the whole corpus", reasoning only from its long-line count and the lack of any caller. =496b665e='s debrief, one =org_body= call away, records the sweep of both trackers on 2026-09-14. The title and body were corrected the same hour.
+- 2026-09-24: asserted, and recorded on 30d05c93 and c247d8f3, that the
+  transcript drops text blocks the reader saw. The user checked their
+  terminal: it showed the harness's summary, which is exactly what the
+  transcript stored. The model's own context was the odd one out.
+  Caught by the user.
+
 
 
 
