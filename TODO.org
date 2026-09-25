@@ -7139,6 +7139,12 @@ nothing, and act on this section where =next-session.md= would ask.
   run stalls until morning. Do not end it between members, to report
   progress, or to ask; the only end of turn is the morning report,
   after the last listed member or a stop rule.
+
+- *The queue is left unapplied tonight, on purpose* (the user,
+  2026-09-24). Skip Step 0.1 and do not ask for an apply. The slice may
+  still read =NEXT= and members their old keywords: that is staleness,
+  not a defect, so fix nothing by hand. Queue every transition as usual;
+  the user applies it all in the morning.
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-16 Wed 06:45] \\
