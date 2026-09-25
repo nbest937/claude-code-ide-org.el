@@ -50,6 +50,55 @@ Observed 2026-09-24: =org_slice_add_member= with =after= set to =de6de108=, a st
 :CATEGORY: Tools
 :BLOCKER:  c247d8f3-9f3f-464a-b3a0-543b1bb9de4f
 :END:
+:PLAN:
+Arch. An =org_footnotes= tool, called as the last step before a reply
+that cites a tracked id, returns the canonical end matter folded out of
+sight, with every keyword and title generated. Hand-written end matter
+becomes the fallback.
+
+*1. The pieces* (who builds the shared two is settled in the slice
+plan).
+1. =claude-code-ide-org--turn-reader-view= (elisp, shared with
+   b09d8090): given a transcript and a =tool_use_id=, this turn's
+   reader-visible blocks up to that call, meaning =text= plus non-empty
+   =thinking= (the harness's summary of narration). Fences and tool
+   results are dropped.
+2. =claude-code-ide-org--footnote-lines= (elisp): 8-hex tokens that
+   resolve to a tracked =:ID:=, formatted canonically and sorted by id,
+   with a queued keyword starred from the pending queue.
+3. =bin/hooks/footnotes-inject=, a =sh= stub on =PreToolUse=, matched on
+   =mcp__emacs-tools__org_footnotes=. It waits up to 2 s for the call's
+   own =tool_use= to land, calls (2) via =emacsclient= over the
+   narration plus the ids passed, returns =updatedInput: {lines, ids}=,
+   and writes the covered ids to =<session_id>.footnoted=. With Emacs
+   unreachable it returns nothing.
+4. =org_footnotes= returns =lines= verbatim. Without them it errors
+   "footnotes-inject is not wired", never an empty success.
+5. =footnote-check= becomes a =sh= stub over the same scanner, and exits
+   0 when Emacs is unreachable.
+
+*2. The turn and the rules.* The call comes only when the reply cites a
+tracked id, as the turn's last step before the reply, with =ids= set to
+what the reply will cite. It cannot come after: narration written
+before a tool call reaches the reader as a summary about a third of the
+time (29 of 85 and 179 of 538 in two sessions), and final replies never
+do (316 of 316). The reader sees one folded tool line, then the reply
+with no =---= block. The citation rules keep the canonical form and
+change its delivery; hand end matter is the fallback when the tool is
+unwired, and during an outage nothing is owed. =footnote-check= counts
+as covered the =.footnoted= ids plus any hand end matter, blocks only on
+a reply id in neither, and keeps its three-block bound.
+
+*3. Tests.* ERT for the scanner: fences dropped, a non-id hex token
+ignored, a queued keyword starred, sorted output, non-empty =thinking=
+read and empty ignored. A shell suite for =footnotes-inject= with a fake
+=emacsclient= and a fixture transcript: waits then rewrites, gives up at
+2 s, writes nothing on an outage, writes the sentinel. A shell suite for
+=footnote-check=: covered passes, uncovered blocks, an outage exits 0
+silently. Each shown to fail with its check removed. One live run: a
+reply citing two ids with a third in the narration, expanded with ctrl+o,
+and checked on the phone.
+:END:
 
 Proposed 2026-09-24, from the user's question whether footnotes could be folded away and shown on demand. Two routes to that were ruled out first. A hook cannot write into a response, so a withheld closing fence could not be supplied later; and injecting control characters into the terminal would fight Claude Code's own redraw. The foldable element that does exist is a tool call: the terminal shows "Called emacs-tools" on one line and hides the result until expanded (ctrl+o).
 
