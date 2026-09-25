@@ -2,6 +2,15 @@
 #+TAGS: analysis bug code comms prose research review spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO A REVIEW member is ticked [X]: the cookie counts work finished on our side, and the blocker still waits for acceptance :code:
+:PROPERTIES:
+:ID:       cdff5c91-3dc1-476e-a8f2-5293570a19fc
+:CREATED:  [2026-09-25 Fri 13:12]
+:CATEGORY: Slices
+:END:
+
+A slice's cookie counts only =DONE= members, so while work waits on the user's judgement the readout understates it badly. On 2026-09-25 [[id:8a2eb687-28da-4d44-893b-db59298bdc5b][8a2eb687]] read =[7/38]= with 14 members in =REVIEW=: finished on our side, owed nothing but acceptance. Moved by the user the same day: =REVIEW= derives =[X]=, not =[-]=, which would read =[21/38]=. The change is one row of the conventions' derivation table (=DOING REVIEW WAITING → [-]=), applied by =claude-code-ide-org-refresh-slice=, and rework (=REVIEW= → =DOING=) visibly unticks a member. Open, for the user: the conventions define the cookie's unfinished members and the =:BLOCKER:= as the same set by construction, so ticking =REVIEW= without separating them lets =org-depend= allow the slice's =DONE= while members still await acceptance. Recommended: keep =REVIEW= members in the blocker, so the checkbox answers "is our work done" and the blocker "has it been accepted". Also check that the slice's own =REVIEW= trigger (every member terminal or in =REVIEW=, when its PR review starts) still reads naturally when those members are ticked.
+
 * TODO org_query blocked: errors on a read-only buffer, though a query changes nothing the user can see :code:bug:
 :PROPERTIES:
 :ID:       d842b9e7-fd75-45eb-80fd-597daa3e36b0
