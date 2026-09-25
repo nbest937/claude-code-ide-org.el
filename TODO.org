@@ -12561,6 +12561,9 @@ the probe shows it answered promptly, though as =-32603= "Internal
 error" rather than =-32700= "Parse error". That code is worth one
 sentence in the report, not a heading of its own.
 
+*Seen again 2026-09-25, on a manual =/mcp= reconnect of =emacs-tools=.* =*Messages*= showed "error in process filter: claude-code-ide-mcp-http-server--dispatch: peculiar error: -32601, \"Method not found\"" twice, which is this defect's signature: the dispatcher meets a method it does not implement and signals the undefined error symbol, so Emacs prints "peculiar error" instead of a JSON-RPC error reply going out. Harmless that time, since the reconnect completed and the refreshed tool list arrived. Which method the client sent was not captured. A reconnect is a cheap way to reproduce this.
+
+
 
 ** TODO Unknown tool arguments are dropped silently by both dispatch paths :code:
 :PROPERTIES:
