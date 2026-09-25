@@ -2351,6 +2351,84 @@ Asserting both, because either alone would let the other rot."
              findings 'error "no word characters"))))
 
 
+;; TODO.org :ID: 39039bb6.  The id scan filled its table with `puthash',
+;; so a second heading carrying an :ID: overwrote the first and the scan
+;; that should report the duplicate swallowed it.
+
+(defun claude-code-ide-org-test--task (id title)
+  "A clean level-1 task carrying ID."
+  (format "* TODO %s\n:PROPERTIES:\n:ID:       %s\n:CREATED:  [2026-08-14 Fri 10:00]\n:CATEGORY: Tools\n:END:\n"
+          title id))
+
+(ert-deftest claude-code-ide-org-test-lint-catches-an-id-duplicated-across-files ()
+  (let* ((id "11111111-1111-1111-1111-111111111111")
+         (findings (claude-code-ide-org-test--lint
+                    (claude-code-ide-org-test--task id "Live copy")
+                    (claude-code-ide-org-test--task id "Archived copy")))
+         (hit (claude-code-ide-org-test--lint-matches
+               findings 'error (concat "id " id " is defined at "))))
+    (should hit)
+    (should (string-match-p "TODO\\.org:[0-9]+" (cdr hit)))
+    (should (string-match-p "notes\\.org:[0-9]+" (cdr hit)))))
+
+(ert-deftest claude-code-ide-org-test-lint-catches-an-id-duplicated-in-one-file ()
+  (let ((id "11111111-1111-1111-1111-111111111111"))
+    (should (claude-code-ide-org-test--lint-matches
+             (claude-code-ide-org-test--lint
+              (concat (claude-code-ide-org-test--task id "First")
+                      (claude-code-ide-org-test--task id "Second")))
+             'error "TODO\\.org:[0-9]+ and TODO\\.org:[0-9]+"))))
+
+(ert-deftest claude-code-ide-org-test-lint-an-id-in-prose-is-not-a-definition ()
+  "Only heading properties define an id: prose, a link and
+:ARCHIVE_OLPATH: never do."
+  (let ((id "11111111-1111-1111-1111-111111111111"))
+    (should-not (claude-code-ide-org-test--lint-matches
+                 (claude-code-ide-org-test--lint
+                  (concat (claude-code-ide-org-test--task id "Owner")
+                          "Quotes :ID:       " id " and [[id:" id "][it]].\n"
+                          (claude-code-ide-org-test--task
+                           "22222222-2222-2222-2222-222222222222" "Other")))
+                 'error "is defined at"))))
+
+(ert-deftest claude-code-ide-org-test-lint-a-duplicate-only-in-references-is-not-ours ()
+  "A duplicate wholly inside the reference files is another tracker's."
+  (should-not (claude-code-ide-org-test--lint-matches
+               (claude-code-ide-org-test--lint
+                (claude-code-ide-org-test--task "22222222-2222-2222-2222-222222222222" "Ours")
+                (concat (claude-code-ide-org-test--task
+                         "33333333-3333-3333-3333-333333333333" "Theirs")
+                        (claude-code-ide-org-test--task
+                         "33333333-3333-3333-3333-333333333333" "Theirs again")))
+               'error "is defined at")))
+
+(ert-deftest claude-code-ide-org-test-lint-catches-a-duplicate-in-the-real-tracker ()
+  "Mutation test on a scratch copy of the real TODO.org: one heading
+duplicated.  It asserts its own mutation first -- the copy must really
+hold the id twice -- or a green run proves nothing."
+  (let* ((real (expand-file-name "TODO.org" claude-code-ide-org-test--repo-root))
+         (dir (file-name-as-directory (make-temp-file "lint-dup" t)))
+         (copy (expand-file-name "TODO.org" dir)))
+    (unwind-protect
+        (progn
+          (should (file-exists-p real))
+          (with-temp-file copy
+            (insert-file-contents real)
+            (goto-char (point-min))
+            (re-search-forward "^:ID: +\\([0-9a-f-]\\{36\\}\\)$")
+            (let ((id (match-string 1)))
+              (goto-char (point-max))
+              (insert "\n" (claude-code-ide-org-test--task id "A duplicated copy"))))
+          (let* ((text (claude-code-ide-org-test--disk-contents copy))
+                 (id (and (string-match "^:ID: +\\([0-9a-f-]\\{36\\}\\)$" text)
+                          (match-string 1 text))))
+            (should (= 2 (claude-code-ide-org-test--count-in-string
+                          (concat ":ID:       " id "\n") text)))
+            (should (claude-code-ide-org-test--lint-matches
+                     (claude-code-ide-org-lint (list copy))
+                     'error (concat "id " id " is defined at")))))
+      (delete-directory dir t))))
+
 (ert-deftest claude-code-ide-org-test-lint-catches-dangling-id-link ()
   "A fabricated UUID reads as correct and fails only when followed —
 this check caught four of them in one session."

@@ -15524,6 +15524,60 @@ no-op."
              ;; got, and silently maps over nothing.
              nil nil)))))))
 
+(defun claude-code-ide-org--lint-id-locations (files)
+  "Return a hash of every :ID: defined across FILES, mapped to the list
+of places it is defined, each (FILE . LINE), in file order.
+
+Beside `claude-code-ide-org--lint-heading-ids' rather than inside it,
+whose `puthash' lets a second definition silently overwrite the first
+-- which is exactly how a duplicate went unreported (TODO.org :ID:
+39039bb6) -- and whose table shape the :BLOCKER: check relies on.
+Through org, not text, so only a heading's own property defines an id:
+one quoted in prose, a link or :ARCHIVE_OLPATH: never does."
+  (let ((table (make-hash-table :test 'equal)))
+    (dolist (file files)
+      (when (file-exists-p file)
+        (with-temp-buffer
+          (let ((org-inhibit-startup t))
+            (insert-file-contents file)
+            (org-mode)
+            (org-map-entries
+             (lambda ()
+               (let ((id (org-entry-get nil "ID")))
+                 (when id
+                   (puthash id (append (gethash id table)
+                                       (list (cons file (line-number-at-pos))))
+                            table))))
+             nil nil)))))
+    table))
+
+(defun claude-code-ide-org--lint-duplicate-ids (files reference-files)
+  "Findings for every :ID: defined more than once across FILES and
+REFERENCE-FILES, each naming every location.  An `error', never a
+warning: a duplicate is never a judgement call, and `--id-find'
+resolving a prefix needs a UNIQUE match, so any tool can act on the
+wrong copy.  Reported only when at least one copy is in FILES, so a
+reference tracker's own duplicates never produce errors here.  The
+archive's post-condition still catches the corruption as it is
+written; this stops it being committed."
+  (let ((linted (mapcar #'file-truename files))
+        findings)
+    (maphash
+     (lambda (id places)
+       (when (and (cdr places)
+                  (seq-some (lambda (p) (member (file-truename (car p)) linted))
+                            places))
+         (push (cons 'error
+                     (format "id %s is defined at %s" id
+                             (mapconcat (lambda (p)
+                                          (format "%s:%d"
+                                                  (file-name-nondirectory (car p))
+                                                  (cdr p)))
+                                        places " and ")))
+               findings)))
+     (claude-code-ide-org--lint-id-locations (append files reference-files)))
+    (nreverse findings)))
+
 (defun claude-code-ide-org--lint-routing-categories (files)
   "Return the level-1 headings across FILES that carry `:ARCHIVE:'.
 
@@ -16172,9 +16226,12 @@ evidence lines, arriving here by a different route."
                  (append files (seq-filter #'file-exists-p
                                            (or reference-files nil))))))
     (let ((categories (claude-code-ide-org--lint-routing-categories files)))
-      (apply #'append
-             (mapcar (lambda (f) (claude-code-ide-org--lint-file f known categories))
-                     files)))))
+      (append
+       (claude-code-ide-org--lint-duplicate-ids
+        files (seq-filter #'file-exists-p (or reference-files nil)))
+       (apply #'append
+              (mapcar (lambda (f) (claude-code-ide-org--lint-file f known categories))
+                      files))))))
 
 (defun claude-code-ide-org-lint-report (&optional files reference-files)
   "Print `claude-code-ide-org-lint' findings and exit non-zero if any.
