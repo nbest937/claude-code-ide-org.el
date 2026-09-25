@@ -8,10 +8,10 @@ tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 export CLAUDE_ORG_QUEUE_DIR="$tmp"
 
-failures=0
+pass=0 failures=0
 check() {
   local what="$1" want="$2" got="$3"
-  if [[ "$want" == "$got" ]]; then echo "ok   - $what"
+  if [[ "$want" == "$got" ]]; then echo "ok   - $what"; pass=$((pass + 1))
   else echo "FAIL - $what: wanted [$want], got [$got]"; failures=$((failures + 1)); fi
 }
 
@@ -55,6 +55,5 @@ check "an archived session's misses still count" "5" "$(awk '{print $4}' <<<"$ro
 check "and the session still counts in the denominator" "4" "$(awk '{print $2}' <<<"$row")"
 
 echo
-if [[ $failures -eq 0 ]]; then echo "miss-rate-test: all checks passed"
-else echo "miss-rate-test: $failures check(s) failed"; fi
+echo "miss-rate-test: $pass passed, $failures failed"
 exit $((failures > 0))

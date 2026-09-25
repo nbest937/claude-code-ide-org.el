@@ -11,12 +11,11 @@ set -uo pipefail
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 setup="$script_dir/claude-org-setup"
 
-checks=0
-fails=0
+pass=0 fails=0
 check() { # label verdict
-  checks=$((checks + 1))
   if [ "$2" = ok ]; then
     echo "ok   $1"
+    pass=$((pass + 1))
   else
     fails=$((fails + 1))
     echo "FAIL $1: $2"
@@ -25,6 +24,16 @@ check() { # label verdict
 
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
+
+# Every --check below also judges the Doom glue in $DOOMDIR, which
+# defaults to the user's real Doom config -- so a change to what
+# --glue renders would turn this suite red on the user's machine until
+# they re-ran it (TODO.org :ID: 94e6b615). A scratch DOOMDIR holding a
+# freshly rendered glue and the stub keeps the suite about the script.
+export DOOMDIR="$tmp/doom"
+mkdir -p "$DOOMDIR"
+"$setup" --glue >/dev/null 2>&1
+printf '(load! "claude-code-ide-org-glue" doom-user-dir t)\n' > "$DOOMDIR/config.el"
 
 # 1. Fresh promotion writes the six ungated files, each carrying the
 #    marker. The seventh, org-time-tracking.md, is case 1a's.
@@ -298,5 +307,6 @@ out="$(DOOMDIR="$gluedir/nope" "$setup" --glue 2>&1)"; rc=$?
 check "--glue refuses a missing DOOMDIR" "$([ $rc -eq 1 ] && printf '%s' "$out" | grep -q 'no Doom config dir' && echo ok || echo "rc=$rc")"
 rm -rf "$gluedir"
 
-echo "Ran $checks checks, $fails failure(s)"
-exit "$([ "$fails" -eq 0 ] && echo 0 || echo 1)"
+echo
+echo "claude-org-setup-test: $pass passed, $fails failed"
+exit $((fails > 0))

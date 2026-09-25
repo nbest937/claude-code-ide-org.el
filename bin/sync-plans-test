@@ -18,11 +18,11 @@ script="$repo_root/bin/sync-plans"
 
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
-fail=0
+pass=0 fail=0
 
 check() { # check NAME EXPECTED ACTUAL
-  if [[ "$2" == "$3" ]]; then echo "ok   - $1"
-  else echo "FAIL - $1"; echo "         expected: $2"; echo "         actual:   $3"; fail=1; fi
+  if [[ "$2" == "$3" ]]; then echo "ok   - $1"; pass=$((pass + 1))
+  else echo "FAIL - $1"; echo "         expected: $2"; echo "         actual:   $3"; fail=$((fail + 1)); fi
 }
 
 setup() {
@@ -114,5 +114,5 @@ out="$(PLANS_SRC_DIR="$work/nope" PLANS_DEST_DIR="$work/dest" \
 check "missing source dir exits 2" "2" "$rc"
 
 echo
-if [[ $fail -eq 0 ]]; then echo "All sync-plans tests passed."; else echo "Some sync-plans tests FAILED."; fi
-exit $fail
+echo "sync-plans-test: $pass passed, $fail failed"
+exit $((fail > 0))

@@ -40,12 +40,13 @@ export CLAUDE_PROJECT_DIR="$repo_root"
 # the foot unsets it again to test the refusal itself.
 export CLAUDE_PLUGIN_OPTION_TIME_TRACKING=true
 
-failures=0
+pass=0 failures=0
 
 check() {
   local what="$1" want="$2" got="$3"
   if [[ "$want" == "$got" ]]; then
     echo "ok   - $what"
+    pass=$((pass + 1))
   else
     echo "FAIL - $what: wanted [$want], got [$got]"
     failures=$((failures + 1))
@@ -155,9 +156,5 @@ check "and arms no sentinel" "no" \
   "$([[ -e "$tmp/queue/sess-x.clock-target-nagged" ]] && echo yes || echo no)"
 
 echo
-if [[ $failures -eq 0 ]]; then
-  echo "clock-target-check-test: all checks passed"
-else
-  echo "clock-target-check-test: $failures check(s) failed"
-fi
+echo "clock-target-check-test: $pass passed, $failures failed"
 exit $((failures > 0))

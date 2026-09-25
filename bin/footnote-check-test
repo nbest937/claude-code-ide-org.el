@@ -315,4 +315,4 @@ run m2 "Nothing tracked is cited here." >/dev/null
 eq "an allowed stop appends no miss" 0 "$(misses m2)"
 
 printf 'footnote-check-test: %d passed, %d failed\n' "$pass" "$fail"
-[[ $fail -eq 0 ]]
+exit $((fail > 0))

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Refuse to push while the archived plans under plans/ are out of date.
+# Refuse to push while the archived plans under plans/ are out of date,
+# or while any test suite is red (the suite gate, at the foot).
 #
 # Why pre-push and not pre-commit:
 #
@@ -37,9 +38,8 @@ sync="$repo_root/bin/sync-plans"
 
 # Not an error if the script is absent -- an older checkout, or a worktree
 # mid-rebase. A hook should never be the reason a push is impossible.
-[[ -x "$sync" ]] || exit 0
-
-if ! "$sync" --check >/dev/null 2>&1; then
+# Only this check stands aside then; the ones below still run.
+if [[ -x "$sync" ]] && ! "$sync" --check >/dev/null 2>&1; then
   echo "pre-push: archived plans under plans/ are out of date." >&2
   echo >&2
   "$sync" --check 2>&1 | sed 's/^/  /' >&2
@@ -59,7 +59,11 @@ fi
 #
 # Reads the ref lines git hands every pre-push hook on stdin:
 #   <local_ref> <local_sha> <remote_ref> <remote_sha>
+# Read once and kept: the suite gate below walks the same lines.
+refs="$(cat)"
+zero_sha='^0+$'
 while read -r _local_ref local_sha remote_ref remote_sha; do
+  [[ -n "$local_sha" ]] || continue
   [[ "$remote_ref" == "refs/heads/main" ]] || continue
   # A brand-new remote main has no baseline; nothing to compare.
   [[ "$remote_sha" =~ ^0+$ ]] && continue
@@ -79,6 +83,56 @@ while read -r _local_ref local_sha remote_ref remote_sha; do
     echo "  the practice is gh pr create, then merge via the PR (TODO.org :ID: c7bf2121)." >&2
     echo "  Pushing anyway; this is a reminder, not a gate." >&2
   fi
-done
+done <<<"$refs"
 
-exit 0
+# The suite gate (TODO.org :ID: 94e6b615). bin/test runs only ERT and
+# nothing ran the shell suites, so three sat red through a merge. Every
+# push runs bin/test-all and is refused on a failure -- except a push
+# that touches only the tracker (TODO.org, DONE.org, plans/), which is
+# most pushes here and cannot break a suite: that is true only because
+# bin/test-all refuses a suite reading the real tracker, so the two
+# halves stand or fall together. Pre-push rather than pre-commit: a run
+# takes ~45 s, tolerable per push and too heavy per bookkeeping commit.
+#
+# PRE_PUSH_TEST_ALL is a seam for bin/pre-push-test, which would
+# otherwise recurse into the runner that runs it.
+runner="${PRE_PUSH_TEST_ALL:-$repo_root/bin/test-all}"
+paths=""
+while read -r _local_ref local_sha _remote_ref remote_sha; do
+  [[ -n "$local_sha" ]] || continue
+  [[ "$local_sha" =~ $zero_sha ]] && continue            # a deletion pushes no content
+  if [[ "$remote_sha" =~ $zero_sha ]]; then
+    # A new remote branch: what no remote-tracking ref already has.
+    paths+="$(git log --format= --name-only "$local_sha" --not --remotes 2>/dev/null)"$'\n'
+  else
+    paths+="$(git diff --name-only "$remote_sha" "$local_sha" 2>/dev/null)"$'\n'
+  fi
+done <<<"$refs"
+paths="$(printf '%s' "$paths" | grep -v '^$' | sort -u)"
+
+if [[ -z "$paths" ]]; then
+  echo "pre-push: nothing changed in the pushed range; suites skipped." >&2
+  exit 0
+fi
+if ! grep -qvE '^(TODO\.org|DONE\.org|plans/.*)$' <<<"$paths"; then
+  echo "pre-push: org-only push (TODO.org, DONE.org, plans/); suites skipped -- they are hermetic and cannot be broken by the tracker." >&2
+  exit 0
+fi
+if [[ ! -x "$runner" ]]; then
+  echo "pre-push: no test runner at $runner; suites NOT run." >&2
+  exit 0
+fi
+
+log="$(mktemp)"
+if "$runner" >"$log" 2>&1; then
+  echo "pre-push: $(tail -1 "$log")" >&2
+  rm -f "$log"
+  exit 0
+fi
+echo "pre-push: the test suites failed; push refused." >&2
+echo >&2
+sed 's/^/  /' "$log" >&2
+rm -f "$log"
+echo >&2
+echo "  Fix the suites, or skip: git push --no-verify" >&2
+exit 1

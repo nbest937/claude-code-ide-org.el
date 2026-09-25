@@ -10,9 +10,9 @@ tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 export CLAUDE_ORG_QUEUE_DIR="$tmp/queue"
 
-failures=0
+pass=0 failures=0
 check() {
-  if [[ "$2" == "$3" ]]; then echo "ok   - $1"
+  if [[ "$2" == "$3" ]]; then echo "ok   - $1"; pass=$((pass + 1))
   else echo "FAIL - $1: wanted [$2], got [$3]"; failures=$((failures + 1)); fi
 }
 rule_of() { jq -r 'select(.kind=="miss") | .rule' "$tmp/queue/$1.jsonl" 2>/dev/null | tail -1; }
@@ -59,6 +59,5 @@ printf 'garbage' | "$g2" >/dev/null 2>&1
 check "garbage on stdin never blocks" 0 "$?"
 
 echo
-if [[ $failures -eq 0 ]]; then echo "tool-guards-test: all checks passed"
-else echo "tool-guards-test: $failures check(s) failed"; fi
+echo "tool-guards-test: $pass passed, $failures failed"
 exit $((failures > 0))

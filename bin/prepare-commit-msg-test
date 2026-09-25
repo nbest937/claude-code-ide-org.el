@@ -11,11 +11,11 @@ unset CLAUDE_CODE_SESSION_ID  # else a provoked refusal counts as a miss in the 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 hook="$repo_root/.githooks/prepare-commit-msg"
 work="$(mktemp -d)"; trap 'rm -rf "$work"' EXIT
-fail=0
+pass=0 fail=0
 check() {
   local label="$1" want="$2" got="$3"
-  if [[ "$want" == "$got" ]]; then echo "ok   - $label"
-  else echo "FAIL - $label"; echo "       want: $want"; echo "       got:  $got"; fail=1; fi
+  if [[ "$want" == "$got" ]]; then echo "ok   - $label"; pass=$((pass + 1))
+  else echo "FAIL - $label"; echo "       want: $want"; echo "       got:  $got"; fail=$((fail + 1)); fi
 }
 
 echo '{"model":"fable"}' > "$work/settings.json"
@@ -61,6 +61,6 @@ env CLAUDECODE=1 CLAUDE_SETTINGS_FILE="$work/nope.json" \
 check "missing settings leaves message alone" "$(cat "$work/m5.orig")" "$(cat "$work/m5")"
 check "missing settings still exits 0" "0" "$?"
 
-if [[ "$fail" == 0 ]]; then echo; echo "All prepare-commit-msg tests passed."
-else echo; echo "Some prepare-commit-msg tests FAILED."; fi
-exit "$fail"
+echo
+echo "prepare-commit-msg-test: $pass passed, $fail failed"
+exit $((fail > 0))

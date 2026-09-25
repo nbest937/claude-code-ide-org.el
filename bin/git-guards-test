@@ -236,4 +236,4 @@ printf 'hand edit\n' >> "$r/.claude/rules/org-event-queue.md"; git -C "$r" add -
 check "a refused out-of-step rule copy is counted, as the edit guard's kind" "generated-edit" "$(rule_of sess-g5)"
 
 printf '\ngit-guards-test: %d passed, %d failed\n' "$pass" "$fail"
-[[ $fail -eq 0 ]]
+exit $((fail > 0))

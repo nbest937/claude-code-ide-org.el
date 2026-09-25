@@ -6,12 +6,12 @@ set -uo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 hook="$repo_root/bin/hooks/doc-sync-check"
-fail=0
+pass=0 fail=0
 
 check() {
   local desc="$1" want="$2" got="$3"
-  if [ "$got" = "$want" ]; then echo "ok   - $desc"
-  else echo "FAIL - $desc"; echo "       want: $want"; echo "       got:  $got"; fail=1; fi
+  if [ "$got" = "$want" ]; then echo "ok   - $desc"; pass=$((pass + 1))
+  else echo "FAIL - $desc"; echo "       want: $want"; echo "       got:  $got"; fail=$((fail + 1)); fi
 }
 
 run() { # run <file_path payload value>
@@ -49,6 +49,6 @@ out="$(printf 'not json' | env CLAUDE_PROJECT_DIR=/proj bash "$hook")"; rc=$?
 check "garbage stdin is silent" "" "$out"
 check "garbage stdin exits 0" "0" "$rc"
 
-if [ "$fail" -eq 0 ]; then echo; echo "All doc-sync-check tests passed."
-else echo; echo "Some doc-sync-check tests FAILED."; fi
-exit "$fail"
+echo
+echo "doc-sync-check-test: $pass passed, $fail failed"
+exit $((fail > 0))

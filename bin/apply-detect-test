@@ -6,12 +6,12 @@ set -uo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 hook="$repo_root/bin/hooks/apply-detect"
-fail=0
+pass=0 fail=0
 
 check() {
   local desc="$1" want="$2" got="$3"
-  if [ "$got" = "$want" ]; then echo "ok   - $desc"
-  else echo "FAIL - $desc"; echo "       want: $want"; echo "       got:  $got"; fail=1; fi
+  if [ "$got" = "$want" ]; then echo "ok   - $desc"; pass=$((pass + 1))
+  else echo "FAIL - $desc"; echo "       want: $want"; echo "       got:  $got"; fail=$((fail + 1)); fi
 }
 
 qdir="$(mktemp -d)"
@@ -95,6 +95,6 @@ check "an unreported apply is announced on the next turn" "0" \
 
 rm -rf "$shimdir" "$qdir2"
 
-if [ "$fail" -eq 0 ]; then echo; echo "All apply-detect tests passed."
-else echo; echo "Some apply-detect tests FAILED."; fi
-exit "$fail"
+echo
+echo "apply-detect-test: $pass passed, $fail failed"
+exit $((fail > 0))

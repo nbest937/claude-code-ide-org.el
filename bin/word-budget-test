@@ -8,9 +8,9 @@ script="$repo_root/bin/word-budget"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
-failures=0
+pass=0 failures=0
 check() {
-  if [[ "$2" == "$3" ]]; then echo "ok   - $1"
+  if [[ "$2" == "$3" ]]; then echo "ok   - $1"; pass=$((pass + 1))
   else echo "FAIL - $1: wanted [$2], got [$3]"; failures=$((failures + 1)); fi
 }
 words() { local n="$1" i; for ((i = 0; i < n; i++)); do printf 'w '; done; printf '\n'; }
@@ -54,6 +54,5 @@ check "moving 40 words from CLAUDE.md into a rule file leaves the total" 246 "$(
 check "the real repo is inside its real budgets" 0 "$("$script" >/dev/null 2>&1; echo $?)"
 
 echo
-if [[ $failures -eq 0 ]]; then echo "word-budget-test: all checks passed"
-else echo "word-budget-test: $failures check(s) failed"; fi
+echo "word-budget-test: $pass passed, $failures failed"
 exit $((failures > 0))
