@@ -3706,12 +3706,34 @@ destroys a drawer; the region it can write to starts below all of them.
 That is what makes wholesale revision safe enough to offer at all.
 
 A heading with no body yet has no bounds, in which case there is nothing
-to replace and the caller should append instead."
-  (let ((bounds (claude-code-ide-org--heading-body-bounds)))
+to replace and the caller should append instead.
+
+*On a slice, the planned checklist is spliced around the rewrite*
+\(TODO.org :ID: 7ee3b71a): its `Planned:' lead and list are lifted out
+first and put back after TEXT, so revising a slice's prose cannot delete
+the one thing it declares.  Since `:MEMBERS:' landed a lost checklist
+would cost only a refresh, but this keeps the file whole between
+refreshes.  The incidental section is not carried: it is derived, and
+the next refresh regenerates it."
+  (let* ((bounds (claude-code-ide-org--heading-body-bounds))
+         (planned
+          (and bounds (claude-code-ide-org--slice-p)
+               (let ((region (claude-code-ide-org--slice-planned-region)))
+                 (and region
+                      (save-excursion
+                        (goto-char (car region))
+                        (re-search-backward
+                         (concat "^" (regexp-quote claude-code-ide-org--slice-planned-lead)
+                                 "[ \t]*$")
+                         (nth 1 bounds) t))
+                      (string-trim-right
+                       (buffer-substring-no-properties
+                        (match-beginning 0) (cdr region))))))))
     (when bounds
       (delete-region (nth 1 bounds) (nth 2 bounds))
       (goto-char (nth 1 bounds))
       (insert (string-trim (or text "")))
+      (when planned (insert "\n\n" planned))
       t)))
 
 (defconst claude-code-ide-org--plain-list-item-lead "[ \t]*\\(?:[-+]\\|[0-9]+[.)]\\) "
@@ -5939,6 +5961,9 @@ subheading."
     (org-back-to-heading t)
     (let ((end (save-excursion (outline-next-heading) (or (point) (point-max))))
           (members nil))
+      ;; Below the leading drawers: a `:PLAN:' drawer's id bullets are
+      ;; design prose, never members (TODO.org :ID: 7ee3b71a).
+      (org-end-of-meta-data t)
       (while (re-search-forward claude-code-ide-org--slice-member-regexp end t)
         ;; MARK is nil only when group 1 did not match at all -- an
         ;; *absent* cookie.  An empty `[ ]' is a cookie like any other and
@@ -5984,6 +6009,7 @@ refreshed, so that fallback is permanent, not transitional."
                         (match-beginning 0))))
            (end (or lead body-end))
            (planned (save-excursion
+                      (org-end-of-meta-data t)
                       (and (re-search-forward
                             (concat "^" (regexp-quote
                                          claude-code-ide-org--slice-planned-lead)
@@ -5991,12 +6017,12 @@ refreshed, so that fallback is permanent, not transitional."
                             end t)
                            (match-end 0))))
            ids)
-      (when planned (goto-char planned))
+      (if planned (goto-char planned) (org-end-of-meta-data t))
       (while (re-search-forward claude-code-ide-org--slice-member-regexp end t)
         (push (downcase (match-string-no-properties 2)) ids))
       (nreverse ids))))
 
-(defun claude-code-ide-org--slice-blocker-ids ()
+(defun claude-code-ide-org--slice-blocker-ids (&optional index)
   "Return the ids the slice at point should block on.
 
 The members that still carry a checkbox cookie *and are not yet done*,
@@ -6017,11 +6043,39 @@ only its planned members; once a slice also lists the incidental work
 that closed during its life, every one of those is done on arrival and
 would enter the blocker at birth.  No information is lost: membership is
 recorded by the checkbox list, and the blocker only ever answered \"what
-still has to finish\"."
-  (delete-dups
-   (mapcar #'car
-           (seq-filter (lambda (m) (and (cdr m) (not (equal (cdr m) "X"))))
-                       (claude-code-ide-org--slice-members)))))
+still has to finish\".
+
+*Where the slice declares `:MEMBERS:', the property is the source*
+\(TODO.org :ID: 7ee3b71a).  With INDEX, a referent index, the blocker is
+derived property to property: the declared ids, minus `:DROPPED:', minus
+referents whose keyword maps to no box or to `X'.  No prose is read, so
+a destroyed checklist cannot make the blocker stale.  Without INDEX --
+the lint, which reads temp copies the index would not scan -- the
+checklist's unfinished boxed lines are read, restricted to the declared
+ids; after a refresh the two agree by construction.  Either way a parent
+row is excluded, being boxless and undeclared, and so is an incidental."
+  (let ((declared (claude-code-ide-org--slice-declared-ids)))
+    (cond
+     ((and declared index)
+      (let ((dropped (claude-code-ide-org--slice-dropped-ids)))
+        (delete-dups
+         (seq-filter
+          (lambda (id)
+            (let* ((kw (car (gethash id index)))
+                   (box (and kw (cdr (assoc kw claude-code-ide-org--slice-checkbox-by-keyword)))))
+              (and (not (member id dropped)) box (not (equal box "X")))))
+          declared))))
+     (declared
+      (delete-dups
+       (seq-filter (lambda (id) (member id declared))
+                   (mapcar (lambda (m) (downcase (car m)))
+                           (seq-filter (lambda (m) (and (cdr m) (not (member (cdr m) '("X" "x")))))
+                                       (claude-code-ide-org--slice-members))))))
+     (t
+      (delete-dups
+       (mapcar #'car
+               (seq-filter (lambda (m) (and (cdr m) (not (equal (cdr m) "X"))))
+                           (claude-code-ide-org--slice-members))))))))
 
 (defconst claude-code-ide-org--slice-checkbox-by-keyword
   '(("DONE"      . "X")
@@ -6043,13 +6097,25 @@ and stops counting, in either direction.
 
 A nil cdr means the cookie is *deleted*, leaving a plain `- ' item.")
 
-(defun claude-code-ide-org--slice-referent-index ()
+(defun claude-code-ide-org--slice-referent-index (&optional parents)
   "Hash of full :ID: to (KEYWORD . TITLE) across the tracked files.
 
 One scan rather than an `org-id-find' per member: a slice of twenty
 members would otherwise open and search files twenty times to render one
-heading."
+heading.
+
+With PARENTS, a hash table, it is also filled with each heading's full
+:ID: mapped to its parent heading's, for the headings whose parent
+carries an :ID: (TODO.org :ID: 7ee3b71a).  The slice renderer needs that
+one fact to place a member under its story, and the scan already visits
+every headline, so it costs a level stack and nothing else.  The parent's
+:ID: line arrives after its own headline and before any child's, so by
+the time a child is seen the stack already holds its parent's id."
   (let ((table (make-hash-table :test 'equal))
+        ;; (LEVEL . ID) per open heading, innermost first.  ID is filled
+        ;; in when the heading's own :ID: line is read.
+        (stack nil)
+        (pending-parent nil)
         (kw-re (concat "\\`\\(" (mapconcat #'regexp-quote
                                            (mapcar #'car claude-code-ide-org--slice-checkbox-by-keyword)
                                            "\\|")
@@ -6064,10 +6130,16 @@ heading."
             (insert-file-contents file)
             (goto-char (point-min))
             (let (pending)
+              (setq stack nil pending-parent nil)
               (while (not (eobp))
                 (cond
-                 ((looking-at "^\\*+ +\\(.*\\)$")
-                  (let* ((raw (match-string-no-properties 1))
+                 ((looking-at "^\\(\\*+\\) +\\(.*\\)$")
+                  (let ((level (length (match-string 1))))
+                    (while (and stack (>= (caar stack) level))
+                      (pop stack))
+                    (setq pending-parent (cdar stack))
+                    (push (cons level nil) stack))
+                  (let* ((raw (match-string-no-properties 2))
                          (kw (and (string-match kw-re raw) (match-string 1 raw)))
                          (title (if kw (substring raw (match-end 1)) raw)))
                     (setq title (string-trim (replace-regexp-in-string
@@ -6086,7 +6158,11 @@ heading."
                                  "\\`\\[[0-9]*\\(?:%\\|/[0-9]*\\)\\][ \t]*" "" title))
                     (setq pending (cons kw title))))
                  ((and pending (looking-at "^[ \t]*:ID:[ \t]+\\(\\S-+\\)[ \t]*$"))
-                  (puthash (downcase (match-string-no-properties 1)) pending table)
+                  (let ((id (downcase (match-string-no-properties 1))))
+                    (puthash id pending table)
+                    (when stack (setcdr (car stack) id))
+                    (when (and parents pending-parent)
+                      (puthash id pending-parent parents)))
                   (setq pending nil)))
                 (forward-line 1)))))))))
 
@@ -6523,6 +6599,326 @@ marker that lived on the line itself."
                      (downcase (if (stringp full) full tok))))
                  (split-string raw "[ \t,]+" t)))))
 
+(defun claude-code-ide-org--slice-declared-ids ()
+  "Ids the slice-at-point's `:MEMBERS:' property names, downcased, or nil.
+
+The declaration (TODO.org :ID: 7ee3b71a).  A slice declares one thing,
+the work it undertakes in order, and it used to declare it in body
+prose, where any writer that replaced the body destroyed it and the
+`:BLOCKER:' derived from it went stale.  A property survives a body
+rewrite; the checklist is now a rendering of it.
+
+Nil means the property is absent, which callers must tell apart from a
+slice declaring no members: a slice not yet migrated keeps its
+line-scanned checklist.  Prefixes are expanded as they are read, exactly
+as `claude-code-ide-org--slice-dropped-ids' does (TODO.org :ID:
+25e7b083); a token that expands to nothing stays as written, so the lint
+still sees it."
+  (let ((raw (org-entry-get nil "MEMBERS")))
+    (when raw
+      (let ((table (claude-code-ide-org--id-index)))
+        (mapcar (lambda (tok)
+                  (let ((full (claude-code-ide-org--expand-id-prefix tok table)))
+                    (downcase (if (stringp full) full tok))))
+                (split-string raw "[ \t,]+" t))))))
+
+(defun claude-code-ide-org--slice-render-planned-lines (ids index parents dropped)
+  "Render IDS as a slice's planned checklist.  Returns (LINES . UNRENDERED).
+
+INDEX is `claude-code-ide-org--slice-referent-index''s hash, PARENTS the
+parent hash it fills, DROPPED the ids `:DROPPED:' names.
+
+A member whose parent heading carries a TODO keyword renders indented
+beneath a *parent row* for its parent: a boxless line that is derived,
+not declared, and never counted, since a parent carries no work a slice
+counts (the user, 2026-09-25, on 7ee3b71a).  Consecutive members sharing
+a parent share one row; a member of that parent further down gets a row
+of its own again, so order in `:MEMBERS:' is always the order shown.  A
+keyword-less parent yields no row, which is what keeps a member under
+the meta-work datetree flush left.
+
+A member missing from INDEX, or whose referent has no keyword on disk,
+still renders -- as a boxless line naming what is known -- and is
+returned in UNRENDERED.  Skipping it, as the line-rewriting refresh
+could afford to, would delete it here, since this rendering replaces the
+list wholesale."
+  (let (lines unrendered prev-parent)
+    (dolist (id ids)
+      (let* ((entry (gethash id index))
+             (kw (car entry))
+             (parent (gethash id parents))
+             (pentry (and parent (gethash parent index)))
+             (row-parent (and pentry (car pentry) parent))
+             (indent (if row-parent "  " "")))
+        (when (and row-parent (not (equal row-parent prev-parent)))
+          (push (format "- [[id:%s][%s]] %s %s" row-parent
+                        (claude-code-ide-org--short-id row-parent)
+                        (car pentry) (cdr pentry))
+                lines))
+        (setq prev-parent row-parent)
+        (let ((box (and kw (not (member id dropped))
+                        (cdr (assoc kw claude-code-ide-org--slice-checkbox-by-keyword)))))
+          (unless (and entry kw) (push id unrendered))
+          (push (concat indent "- " (if box (format "[%s] " box) "")
+                        (format "[[id:%s][%s]]" id (claude-code-ide-org--short-id id))
+                        (cond ((and entry kw) (format " %s %s" kw (cdr entry)))
+                              (entry (format " %s" (cdr entry)))
+                              (t " (unresolved referent)")))
+                lines))))
+    (cons (nreverse lines) (nreverse unrendered))))
+
+(defconst claude-code-ide-org--slice-list-line-re
+  "^[ \t]*- \\(?:\\[[ Xx-]\\] \\)?\\[\\[id:"
+  "A line of a slice's rendered checklist, member or parent row.")
+
+(defun claude-code-ide-org--slice-planned-region ()
+  "(START . END) of the slice-at-point's rendered planned checklist, or nil.
+
+From the first list line after the `Planned:' lead to the end of the
+contiguous run of list lines that follows.  *Contiguous, not lead to
+lead*: surveyed 2026-09-25, 8 of 17 slices carry prose or an `orgit-rev:'
+list after their checklist and before `Incidental:', and a region running
+to the next lead would delete it unattended at the next apply.  Nil when
+there is no lead; a lead with no list yet gives an empty region just
+after it."
+  (save-excursion
+    (org-back-to-heading t)
+    (let* ((body-end (save-excursion (outline-next-heading) (or (point) (point-max))))
+           (lead (progn
+                   (org-end-of-meta-data t)
+                   (and (re-search-forward
+                         (concat "^" (regexp-quote claude-code-ide-org--slice-planned-lead)
+                                 "[ \t]*$")
+                         body-end t)
+                        (match-end 0)))))
+      (when lead
+        (goto-char lead)
+        (forward-line 1)
+        (while (and (< (point) body-end) (looking-at-p "^[ \t]*$"))
+          (forward-line 1))
+        (if (not (looking-at-p claude-code-ide-org--slice-list-line-re))
+            ;; No list: the region is the blank run under the lead, so a
+            ;; rendering put there sits one blank line from each side.
+            (cons (save-excursion (goto-char lead) (forward-line 1) (point))
+                  (point))
+          (let ((start (point)))
+            (while (and (< (point) body-end)
+                        (looking-at-p claude-code-ide-org--slice-list-line-re))
+              (forward-line 1))
+            (cons start (point))))))))
+
+(defun claude-code-ide-org--refresh-slice-planned-at-point (index parents)
+  "Render the slice-at-point's checklist from `:MEMBERS:'.
+Returns (CHANGED . UNRENDERED), or nil when the slice has no `:MEMBERS:'
+yet, in which case the caller falls back to rewriting lines in place.
+
+The list is replaced wholesale, and only the list: see
+`claude-code-ide-org--slice-planned-region'.  A slice with members and no
+`Planned:' lead gets one at the end of its prose, above any
+`Incidental:' section, as `org_slice_add_member' starts a checklist."
+  (let ((ids (claude-code-ide-org--slice-declared-ids)))
+    (when ids
+      (pcase-let* ((`(,lines . ,unrendered)
+                    (claude-code-ide-org--slice-render-planned-lines
+                     ids index parents (claude-code-ide-org--slice-dropped-ids)))
+                   (text (concat (string-join lines "\n") "\n"))
+                   (region (claude-code-ide-org--slice-planned-region)))
+        (save-excursion
+          (cond
+           (region
+            (let ((old (buffer-substring-no-properties (car region) (cdr region))))
+              (if (equal old text)
+                  (cons 0 unrendered)
+                (goto-char (car region))
+                (delete-region (car region) (cdr region))
+                ;; An empty list's region is the blank run under a bare
+                ;; lead, which the rendering replaces between blanks.
+                (insert (if (string-match-p "\\`[ \t\n]*\\'" old)
+                            (concat "\n" text (if (< (cdr region) (save-excursion (outline-next-heading) (or (point) (point-max)))) "\n" ""))
+                          text))
+                (cons 1 unrendered))))
+           (t
+            (org-back-to-heading t)
+            (let* ((body-end (save-excursion (outline-next-heading)
+                                             (or (point) (point-max))))
+                   (inc (save-excursion
+                          (and (re-search-forward
+                                (concat "^" (regexp-quote
+                                             claude-code-ide-org--slice-incidental-lead)
+                                        "[ \t]*$")
+                                body-end t)
+                               (match-beginning 0)))))
+              (goto-char (or inc body-end))
+              (skip-chars-backward " \t\n")
+              (insert "\n\n" claude-code-ide-org--slice-planned-lead "\n\n" text
+                      (if inc "\n" ""))
+              (cons 1 unrendered)))))))))
+
+(defun claude-code-ide-org--slice-checklist-ids ()
+  "The ids a slice-at-point's planned checklist declares, parent rows excluded.
+
+The migration's reader, and the lint's: it recovers what `:MEMBERS:'
+should hold from a checklist written before the property existed.  A
+*parent row* is a list line with a deeper-indented list line directly
+beneath it -- cookie-less as a grouping label, or boxed, as de6de108
+was on 8a2eb687 when a story was counted beside its children.  Parent
+rows are derived, so neither kind is declared (the user, 2026-09-25).
+Scans from the `Planned:' lead when there is one, else from below the
+leading drawers, and stops at the `Incidental:' lead."
+  (save-excursion
+    (org-back-to-heading t)
+    (let* ((body-end (save-excursion (outline-next-heading) (or (point) (point-max))))
+           (inc (save-excursion
+                  (and (re-search-forward
+                        (concat "^" (regexp-quote claude-code-ide-org--slice-incidental-lead)
+                                "[ \t]*$")
+                        body-end t)
+                       (match-beginning 0))))
+           (end (or inc body-end))
+           (lead (save-excursion
+                   (org-end-of-meta-data t)
+                   (and (re-search-forward
+                         (concat "^" (regexp-quote claude-code-ide-org--slice-planned-lead)
+                                 "[ \t]*$")
+                         end t)
+                        (match-end 0))))
+           ids)
+      (if lead (goto-char lead) (org-end-of-meta-data t))
+      (while (re-search-forward
+              "^\\([ \t]*\\)- \\(?:\\[[ Xx-]\\] \\)?\\[\\[id:\\([^]]+\\)\\]" end t)
+        (let ((indent (length (match-string 1)))
+              (id (downcase (match-string-no-properties 2))))
+          (unless (save-excursion
+                    (forward-line 1)
+                    (and (< (point) end)
+                         (looking-at "^\\([ \t]*\\)- \\(?:\\[[ Xx-]\\] \\)?\\[\\[id:")
+                         (> (length (match-string 1)) indent)))
+            (push id ids))))
+      (nreverse ids))))
+
+(defun claude-code-ide-org--slice-checklist-structure ()
+  "The slice-at-point's checklist as ((DEPTH . ID) ...), parent rows included.
+DEPTH is the line's indent in columns.  The shape the migration proof
+compares for a closed slice, whose lines are a record of keywords at
+close and so cannot be compared as text."
+  (save-excursion
+    (org-back-to-heading t)
+    (let* ((body-end (save-excursion (outline-next-heading) (or (point) (point-max))))
+           (inc (save-excursion
+                  (and (re-search-forward
+                        (concat "^" (regexp-quote claude-code-ide-org--slice-incidental-lead)
+                                "[ \t]*$")
+                        body-end t)
+                       (match-beginning 0))))
+           (end (or inc body-end))
+           (lead (save-excursion
+                   (org-end-of-meta-data t)
+                   (and (re-search-forward
+                         (concat "^" (regexp-quote claude-code-ide-org--slice-planned-lead)
+                                 "[ \t]*$")
+                         end t)
+                        (match-end 0))))
+           acc)
+      (if lead (goto-char lead) (org-end-of-meta-data t))
+      (while (re-search-forward
+              "^\\([ \t]*\\)- \\(?:\\[[ Xx-]\\] \\)?\\[\\[id:\\([^]]+\\)\\]" end t)
+        (push (cons (length (match-string 1)) (downcase (match-string-no-properties 2)))
+              acc))
+      (nreverse acc))))
+
+(defun claude-code-ide-org-migrate-slice-members (&optional dry-run)
+  "Write `:MEMBERS:' on every slice lacking it, from its checklist.
+Returns a summary.  With DRY-RUN nothing is written.
+
+The one-time cutover of TODO.org :ID: 7ee3b71a, over every slice in the
+tracked files and their archives, closed ones included, since the
+property is the declaration wherever a slice exists.  Parent rows are
+left out, being derived (`claude-code-ide-org--slice-checklist-ids').
+Nothing but the property is written: no checklist is re-rendered here,
+and a closed slice is never refreshed afterwards either.  Verify with
+`claude-code-ide-org-slice-migration-proof' before and after."
+  (interactive "P")
+  (let ((inhibit-read-only t) (n 0) (written 0) (files nil))
+    (dolist (file (claude-code-ide-org--id-scannable-files))
+      (when (file-exists-p file)
+        (with-current-buffer (or (find-buffer-visiting file) (find-file-noselect file))
+          (org-with-wide-buffer
+           (goto-char (point-min))
+           (while (re-search-forward org-heading-regexp nil t)
+             (when (claude-code-ide-org--slice-p)
+               (setq n (1+ n))
+               (unless (org-entry-get nil "MEMBERS")
+                 (let ((ids (claude-code-ide-org--slice-checklist-ids)))
+                   (when ids
+                     (setq written (1+ written))
+                     (cl-pushnew (file-name-nondirectory file) files :test #'equal)
+                     (unless dry-run
+                       (org-entry-put nil "MEMBERS" (string-join ids " ")))))))))
+          (when (and (not dry-run) (buffer-modified-p)) (save-buffer)))))
+    (format "%d slice%s scanned, :MEMBERS: %s on %d%s%s"
+            n (if (= n 1) "" "s") (if dry-run "would be written" "written")
+            written
+            (if files (format " (%s)" (string-join (nreverse files) ", ")) "")
+            (if dry-run "  [dry run]" ""))))
+
+(defun claude-code-ide-org-slice-migration-proof ()
+  "Compare every `:MEMBERS:' slice's checklist against its rendering.
+Returns a list of (ID KIND STATUS DETAIL), one per slice, where KIND is
+`open' or `closed' and STATUS is `same' or `differs'.
+
+An open slice is compared as text, line for line, since its checklist is
+refreshed and must come out byte-identical.  A closed slice is never
+refreshed, so nothing its checklist shows can be lost; its proof is that
+`:MEMBERS:' equals the ids its checklist declares.  Its lines are keyword
+copies from the day it closed (TODO.org :ID: 30a340fd), and a referent
+may since have acquired a keyworded parent, so whether a rendering would
+change its structure is reported in DETAIL and not failed.  The one deviation the cutover makes on purpose,
+de6de108 losing its box on 8a2eb687, shows here as a difference."
+  (let* ((parents (make-hash-table :test 'equal))
+         (index (claude-code-ide-org--slice-referent-index parents))
+         results)
+    (dolist (file (claude-code-ide-org--id-scannable-files) (nreverse results))
+      (when (file-exists-p file)
+        (with-current-buffer (or (find-buffer-visiting file) (find-file-noselect file))
+          (org-with-wide-buffer
+           (goto-char (point-min))
+           (while (re-search-forward org-heading-regexp nil t)
+             (when (and (claude-code-ide-org--slice-p) (org-entry-get nil "MEMBERS"))
+               (let* ((id (claude-code-ide-org--id-prefix (org-entry-get nil "ID")))
+                      (closed (member (org-get-todo-state)
+                                      claude-code-ide-org--outline-finished-keywords))
+                      (lines (car (claude-code-ide-org--slice-render-planned-lines
+                                   (claude-code-ide-org--slice-declared-ids) index parents
+                                   (claude-code-ide-org--slice-dropped-ids)))))
+                 (if closed
+                     ;; Never rendered, so nothing it shows can be lost:
+                     ;; the proof is that the property says what the
+                     ;; checklist declares.  Structural drift -- a referent
+                     ;; that acquired a keyworded parent after the close --
+                     ;; is reported, not failed.
+                     (let* ((declared (claude-code-ide-org--slice-declared-ids))
+                            (listed (claude-code-ide-org--slice-checklist-ids))
+                            (want (mapcar (lambda (l)
+                                            (string-match "\\`\\([ \t]*\\)- \\(?:\\[.\\] \\)?\\[\\[id:\\([^]]+\\)\\]" l)
+                                            (cons (length (match-string 1 l)) (match-string 2 l)))
+                                          lines))
+                            (have (claude-code-ide-org--slice-checklist-structure)))
+                       (push (list id 'closed (if (equal declared listed) 'same 'differs)
+                                   (list :declared (length declared) :listed (length listed)
+                                         :structure (if (equal want have) 'unchanged 'would-change)))
+                             results))
+                   (let* ((region (claude-code-ide-org--slice-planned-region))
+                          (have (and region (split-string
+                                             (buffer-substring-no-properties (car region) (cdr region))
+                                             "\n" t)))
+                          (diff (seq-filter #'identity
+                                            (cl-mapcar (lambda (a b) (unless (equal a b) (list a b)))
+                                                       have lines))))
+                     (push (list id 'open
+                                 (if (and (= (length have) (length lines)) (null diff)) 'same 'differs)
+                                 (list :have (length have) :want (length lines) :diff diff))
+                           results))))))))))))
+
 (defun claude-code-ide-org--refresh-slice-members-at-point (index)
   "Rewrite the slice-at-point's member lines from INDEX.  Returns a count.
 
@@ -6673,6 +7069,10 @@ incidental list can never anchor the planned lead."
                         body-end t)
                        (match-beginning 0))))
            (bound (or inc body-end))
+           ;; Below the leading drawers, or a :PLAN: drawer's id bullet
+           ;; reads as the first member and the lead lands inside the
+           ;; drawer (TODO.org :ID: 7ee3b71a, caught by its test).
+           (_ (org-end-of-meta-data t))
            (first (save-excursion
                     (and (re-search-forward
                           claude-code-ide-org--slice-member-regexp bound t)
@@ -6841,7 +7241,8 @@ a record that was never true at any moment (observed on
         ;; (TODO.org :ID: 25e7b083).  Unresolved, it stays as given, and
         ;; still selects nothing.
         (full-id (and id (or (claude-code-ide-org--full-id id) id)))
-        (index (claude-code-ide-org--slice-referent-index))
+        (parents (make-hash-table :test 'equal))
+        (index nil)
         ;; Same reasoning as the apply path (TODO.org :ID: 97b030a4): the
         ;; user's `buffer-read-only' guards against their own stray
         ;; keystrokes, and `M-x claude-code-ide-org-refresh-slice' is not
@@ -6852,6 +7253,7 @@ a record that was never true at any moment (observed on
         (inhibit-read-only t)
         (slices 0) (lines 0) (blockers 0) (incidentals 0) (cookie-data 0)
         (planned-leads 0) (unrendered nil))
+    (setq index (claude-code-ide-org--slice-referent-index parents))
     (dolist (file (claude-code-ide-org--tracked-files))
       (when (file-exists-p file)
         (with-current-buffer (find-file-noselect file)
@@ -6882,7 +7284,21 @@ a record that was never true at any moment (observed on
                             (equal (downcase (or (org-entry-get nil "ID") ""))
                                    (downcase full-id))))
                (setq slices (1+ slices))
-               (let ((result (claude-code-ide-org--refresh-slice-members-at-point index)))
+               ;; The Planned: lead joins the self-heal family
+               ;; (:ID: a43cfaa0): inserted above an existing checklist
+               ;; when absent, and *before* the members are rendered --
+               ;; the renderer replaces the list under the lead, so with
+               ;; no lead in place it would start a second list beside
+               ;; the lead-less one (found by the add-member test,
+               ;; TODO.org :ID: 7ee3b71a).
+               (when (claude-code-ide-org--ensure-planned-lead-at-point)
+                 (setq planned-leads (1+ planned-leads)))
+               ;; `:MEMBERS:' is the declaration when present and the
+               ;; checklist a rendering of it (TODO.org :ID: 7ee3b71a);
+               ;; a slice without it keeps its lines rewritten in place.
+               (let ((result (or (claude-code-ide-org--refresh-slice-planned-at-point
+                                  index parents)
+                                 (claude-code-ide-org--refresh-slice-members-at-point index))))
                  (setq lines (+ lines (car result)))
                  (setq unrendered (append unrendered (cdr result))))
                ;; After the member lines and *before* the cookie, because
@@ -6921,19 +7337,13 @@ a record that was never true at any moment (observed on
                (unless (org-entry-get nil "COOKIE_DATA")
                  (org-entry-put nil "COOKIE_DATA" "checkbox recursive")
                  (setq cookie-data (1+ cookie-data)))
-               ;; The Planned: lead joins the self-heal family
-               ;; (:ID: a43cfaa0): inserted above an existing checklist
-               ;; when absent, before the member rewrite so the anchor
-               ;; is in place for every later read.
-               (when (claude-code-ide-org--ensure-planned-lead-at-point)
-                 (setq planned-leads (1+ planned-leads)))
                (claude-code-ide-org--ensure-statistics-cookie-at-point)
                ;; Headline-scoped, never org's entry-wide updater: that
                ;; one rewrites [n/m] in body PROSE too, and falsified a
                ;; recorded observation the first time a cookie
                ;; legitimately moved (TODO.org :ID: 0988541b).
                (claude-code-ide-org--update-slice-cookie-at-point)
-               (when (claude-code-ide-org--refresh-slice-blocker-at-point)
+               (when (claude-code-ide-org--refresh-slice-blocker-at-point index)
                  (setq blockers (1+ blockers))))))
           (when (buffer-modified-p) (save-buffer)))))
     (concat
@@ -7175,6 +7585,7 @@ Nothing below the headline can be touched, which is the entire point."
     (let ((end (save-excursion (outline-next-heading) (or (point) (point-max))))
           (n 0) (m 0))
       (save-excursion
+        (org-end-of-meta-data t)
         (while (re-search-forward claude-code-ide-org--slice-member-regexp end t)
           (let ((mark (match-string-no-properties 1)))
             (when mark
@@ -7192,9 +7603,11 @@ Nothing below the headline can be touched, which is the entire point."
             (unless (equal new title)
               (org-edit-headline new))))))))
 
-(defun claude-code-ide-org--refresh-slice-blocker-at-point ()
-  "Set or clear the slice-at-point's `:BLOCKER:'.  Non-nil if it changed."
-  (let* ((ids (claude-code-ide-org--slice-blocker-ids))
+(defun claude-code-ide-org--refresh-slice-blocker-at-point (&optional index)
+  "Set or clear the slice-at-point's `:BLOCKER:'.  Non-nil if it changed.
+INDEX, when given, lets a `:MEMBERS:' slice derive it from the property;
+see `claude-code-ide-org--slice-blocker-ids'."
+  (let* ((ids (claude-code-ide-org--slice-blocker-ids index))
          ;; Bare, space-separated: the only form org-depend parses.
          ;; See `claude-code-ide-org-normalize-blocker-syntax' for the
          ;; wrapper this wrote before 2026-09-15 and why it enforced
@@ -7210,19 +7623,20 @@ Nothing below the headline can be touched, which is the entire point."
       t)))
 
 (defun claude-code-ide-org-slice-add-member (slice-id member-id &optional after parent)
-  "Add MEMBER-ID to SLICE-ID's planned checklist, then refresh that slice.
+  "Add MEMBER-ID to SLICE-ID's `:MEMBERS:', then refresh that slice.
 
-With PARENT -- the id of a planned member whose org subtree contains
-MEMBER-ID -- the line lands *indented under PARENT's line* instead: the
-nested-member declaration (TODO.org :ID: 1206b5b0) that previously
-needed a hand edit.  The parent's own checkbox is stripped, because
-nesting declares partial coverage of a story and a cookie-less line
-with indented member lines beneath it is the grouping-label rendering
-(:ID: 758a8b78); a story undertaken whole needs no nested lines at
-all.  MEMBER-ID must be a real descendant of PARENT in the org tree --
-nested lines render a story's own children, nothing else.  A nested
-member appends after the parent's existing indented block; AFTER
-cannot be combined with PARENT.
+`:MEMBERS:' is the declaration and the checklist a rendering of it
+\(TODO.org :ID: 7ee3b71a), so this edits the property and lets the
+refresh draw the line.  AFTER, a member's id or prefix, places the new
+member after it *in the property*; without it the member goes last.  A
+slice not yet migrated has its `:MEMBERS:' written from its checklist
+first.
+
+PARENT is retired and refused by name (the user, 2026-09-25).  It used
+to declare a member nested under a story; nesting is derived now, since
+a member whose parent heading carries a TODO keyword renders beneath a
+boxless parent row by itself.  Refused rather than ignored, so a caller
+passing it learns that instead of losing it silently.
 
 The write path TODO.org :ID: 9ae0e452 was filed for: every membership
 edit used to be a hand `emacsclient' call or a direct file write, and
@@ -7232,11 +7646,6 @@ else.  This goes through Emacs, refuses when the human has unsaved
 changes in the buffer, and lets `claude-code-ide-org-refresh-slice'
 derive the rendering, cookie and `:BLOCKER:' so the line lands exactly
 as a refresh would leave it.
-
-The line is inserted after the last planned member line -- or after
-AFTER's line, since a slice declares membership *and order* -- always
-above the `Incidental:' lead.  A slice with no checklist yet gets one
-started at the end of its body.
 
 Refusals, each naming its rule: a target that is not a `:KIND: slice'
 heading; a *closed* slice (its list is a record, :ID: 30a340fd); a
@@ -7268,20 +7677,14 @@ the queue, then add it."
                               (org-get-todo-state)))
                  (member-title (org-with-point-at mmarker
                                  (org-no-properties
-                                  (org-get-heading t t t t))))
-                 (member-ancestors
-                  (org-with-point-at mmarker
-                    (save-excursion
-                      (let (acc)
-                        (while (org-up-heading-safe)
-                          (let ((aid (org-entry-get nil "ID")))
-                            (when aid (push (downcase aid) acc))))
-                        acc)))))
+                                  (org-get-heading t t t t)))))
             (org-with-point-at smarker
               (cond
-               ((and after parent)
-                "Error: pass either after= or parent=, not both -- a nested \
-member always appends last under its parent")
+               (parent
+                "Error: parent= is retired -- nesting is derived now: a member \
+whose parent heading carries a TODO keyword renders under it by itself \
+(TODO.org :ID: 7ee3b71a). Add the member with no parent=, using after= \
+to place it.")
                ((not (claude-code-ide-org--slice-p))
                 (format "Error: \"%s\" is not a :KIND: slice heading; a \
 member line belongs only on a slice's checklist"
@@ -7295,7 +7698,8 @@ is a record -- membership does not change after the fact"
                        (downcase (or (org-entry-get nil "ID") "")))
                 "Error: a slice never lists itself as a member")
                ((member (downcase member-full)
-                        (claude-code-ide-org--slice-planned-member-ids))
+                        (append (claude-code-ide-org--slice-declared-ids)
+                                (claude-code-ide-org--slice-planned-member-ids)))
                 (format "Error: %s is already a planned member of \"%s\""
                         (claude-code-ide-org--id-prefix member-full)
                         (org-get-heading t t t t)))
@@ -7309,130 +7713,41 @@ a keyword-less member. Give it a keyword (or apply its queued one) first."
                 (let* ((slice-full (org-entry-get nil "ID"))
                        (slice-title (org-no-properties
                                      (org-get-heading t t t t)))
-                       (box (cdr (assoc member-kw
-                                        claude-code-ide-org--slice-checkbox-by-keyword)))
-                       (line (format "- %s[[id:%s][%s]] %s %s"
-                                     (if box (format "[%s] " box) "")
-                                     member-full
-                                     (claude-code-ide-org--short-id member-full)
-                                     member-kw member-title))
+                       (member-id (downcase member-full))
+                       ;; A slice not yet migrated gets its :MEMBERS: from
+                       ;; its checklist first, so every add goes through
+                       ;; the property (TODO.org :ID: 7ee3b71a).
+                       (declared (or (claude-code-ide-org--slice-declared-ids)
+                                     (claude-code-ide-org--slice-checklist-ids)))
+                       (after-full
+                        (and after
+                             (seq-find (lambda (id) (string-prefix-p (downcase after) id))
+                                       declared)))
                        (inhibit-read-only t))
-                  (org-back-to-heading t)
-                  (let* ((body-end (save-excursion
-                                     (outline-next-heading)
-                                     (or (point) (point-max))))
-                         (lead (save-excursion
-                                 (and (re-search-forward
-                                       (concat "^" (regexp-quote
-                                                    claude-code-ide-org--slice-incidental-lead)
-                                               "[ \t]*$")
-                                       body-end t)
-                                      (match-beginning 0))))
-                         (bound (or lead body-end))
-                         (anchor nil))
-                    (if parent
-                        ;; PARENT names the planned line to nest under.
-                        ;; Find it, walk past its existing indented
-                        ;; block, strip its checkbox (a grouping label
-                        ;; is cookie-less by definition, and the refresh
-                        ;; reads that structurally), and land the child
-                        ;; two spaces deeper.
-                        (let (pfull pindent pend pbox-beg pbox-end)
-                          (save-excursion
-                            (catch 'found
-                              (while (re-search-forward
-                                      claude-code-ide-org--slice-member-regexp bound t)
-                                (when (string-prefix-p
-                                       (downcase parent)
-                                       (downcase (match-string-no-properties 2)))
-                                  (setq pfull (downcase (match-string-no-properties 2)))
-                                  (beginning-of-line)
-                                  (looking-at "^\\([ \t]*\\)- \\(\\[[ Xx-]\\] \\)?")
-                                  (setq pindent (match-string-no-properties 1))
-                                  (when (match-beginning 2)
-                                    (setq pbox-beg (copy-marker (match-beginning 2))
-                                          pbox-end (copy-marker (match-end 2))))
-                                  (end-of-line)
-                                  (setq pend (copy-marker (point)))
-                                  (while (save-excursion
-                                           (forward-line 1)
-                                           (and (< (point) bound)
-                                                (looking-at
-                                                 (concat "^" pindent
-                                                         "[ \t]+- \\(\\[[ Xx-]\\] \\)?\\[\\[id:"))))
-                                    (forward-line 1)
-                                    (end-of-line)
-                                    (set-marker pend (point)))
-                                  (throw 'found t)))))
-                          (unless pend
-                            (error "parent=%s names no planned member of this slice"
-                                   parent))
-                          (unless (member pfull member-ancestors)
-                            (error "%s is not inside %s's subtree -- a nested member line renders a story's own child, nothing else"
-                                   (claude-code-ide-org--id-prefix member-full)
-                                   (claude-code-ide-org--id-prefix pfull)))
-                          (when pbox-beg
-                            (delete-region pbox-beg pbox-end))
-                          (goto-char pend)
-                          (insert "\n" pindent "  " line))
-                      ;; AFTER names the line to insert below; otherwise
-                      ;; the last planned member line wins.  Only the
-                      ;; planned region is scanned, so an incidental can
-                      ;; never anchor a planned member.
-                      (save-excursion
-                        (while (re-search-forward
-                                claude-code-ide-org--slice-member-regexp bound t)
-                          (when (or (null after)
-                                    (string-prefix-p
-                                     (downcase after)
-                                     (downcase (match-string-no-properties 2))))
-                            (setq anchor (line-end-position)))))
-                      (when (and after (null anchor))
-                        (error "after=%s names no planned member of this slice"
-                               after))
-                      (if anchor
-                          (progn (goto-char anchor) (insert "\n" line))
-                      ;; No checklist yet: insert beneath an existing
-                      ;; Planned: lead, or start one -- lead included,
-                      ;; since the lead is load-bearing and this is the
-                      ;; moment a checklist is born (:ID: a43cfaa0).
-                      (let ((lead-end
-                             (save-excursion
-                               (org-back-to-heading t)
-                               (and (re-search-forward
-                                     (concat "^" (regexp-quote
-                                                  claude-code-ide-org--slice-planned-lead)
-                                             "[ \t]*$")
-                                     bound t)
-                                    (match-end 0)))))
-                        (if lead-end
-                            (progn (goto-char lead-end)
-                                   (insert "\n\n" line)
-                                   ;; Absorb a blank the lead already had
-                                   ;; below it, so the list sits one
-                                   ;; blank line under the lead.
-                                   (when (looking-at "\n[ \t]*\n")
-                                     (replace-match "\n" t t)))
-                          (goto-char bound)
-                          (skip-chars-backward " \t\n")
-                          (insert "\n\n"
-                                  claude-code-ide-org--slice-planned-lead
-                                  "\n\n" line "\n"))))))
-                  ;; The refresh re-derives the rendering, cookie and
-                  ;; :BLOCKER: from the list that now includes the new
-                  ;; line -- so what lands is exactly what a refresh
-                  ;; would leave, not this function's opinion of it.
+                  (when (and after (null after-full))
+                    (error "after=%s names no planned member of this slice" after))
+                  ;; AFTER is a position in :MEMBERS:, not a line: the lines
+                  ;; are a rendering, so a line-relative position would mean
+                  ;; nothing once the refresh re-renders them (the user,
+                  ;; 2026-09-25).  Without AFTER the member goes last.
+                  (let ((new (if after-full
+                                 (let (acc)
+                                   (dolist (id declared (nreverse acc))
+                                     (push id acc)
+                                     (when (equal id after-full) (push member-id acc))))
+                               (append declared (list member-id)))))
+                    (org-entry-put nil "MEMBERS" (string-join new " ")))
+                  ;; The refresh renders the checklist, cookie and :BLOCKER:
+                  ;; from the property -- so what lands is exactly what a
+                  ;; refresh would leave, not this function's opinion of it.
                   (save-buffer)
                   (claude-code-ide-org-refresh-slice slice-full)
-                  (format "Added %s to \"%s\"%s; cookie and :BLOCKER: refreshed"
+                  (format "Added %s to \"%s\"%s; checklist, cookie and :BLOCKER: refreshed"
                           (claude-code-ide-org--id-prefix member-full)
                           slice-title
-                          (cond
-                           (parent (format " nested under %s, whose line is now a grouping label"
-                                           (claude-code-ide-org--id-prefix parent)))
-                           (after (format " after %s"
-                                          (claude-code-ide-org--id-prefix after)))
-                           (t ""))))))))
+                          (if after (format " after %s"
+                                            (claude-code-ide-org--id-prefix after))
+                            "")))))))
         (error (format "Error: %s" (error-message-string err))))))))
 
 (defun claude-code-ide-org--trigger-auto-clock-in (change-plist)
@@ -16318,6 +16633,41 @@ unfinished member (%s) -- a done, cancelled or deferred member must not block: %
                              (length extra) (if (= 1 (length extra)) "" "s")
                              (mapconcat (lambda (i) (substring i 0 8)) extra " ")
                              title))))
+               ;; `:MEMBERS:' is the declaration and the checklist its
+               ;; rendering (TODO.org :ID: 7ee3b71a), so the guard that
+               ;; stopped being luck: every declared id resolves, none is
+               ;; an ancestor of another -- a parent row is derived, so
+               ;; declaring the parent too says one thing two ways -- and
+               ;; the checklist declares exactly the property's ids, in
+               ;; order.  The last would have caught both of the week of
+               ;; 2026-09-22's defects when they happened.
+               (when (claude-code-ide-org--slice-p)
+                 (let ((declared (claude-code-ide-org--slice-declared-ids)))
+                   (when declared
+                     (let ((unknown (seq-remove (lambda (i) (gethash i known-ids)) declared))
+                           (listed (claude-code-ide-org--slice-checklist-ids))
+                           (nested nil))
+                       (dolist (id declared)
+                         (let ((pos (org-find-entry-with-id id)))
+                           (when pos
+                             (save-excursion
+                               (goto-char pos)
+                               (while (org-up-heading-safe)
+                                 (let ((up (downcase (or (org-entry-get nil "ID") ""))))
+                                   (when (member up declared)
+                                     (push (cons id up) nested))))))))
+                       (when unknown
+                         (report 'error line ":MEMBERS: names unknown :ID: %s: %s"
+                                 (mapconcat (lambda (i) (substring i 0 (min 8 (length i)))) unknown " ")
+                                 title))
+                       (dolist (pair nested)
+                         (report 'error line ":MEMBERS: names %s and its ancestor %s -- a \
+parent row is derived, so declare the member alone: %s"
+                                 (substring (car pair) 0 8) (substring (cdr pair) 0 8) title))
+                       (unless (equal listed declared)
+                         (report 'error line "slice checklist disagrees with :MEMBERS: \
+\(%d listed, %d declared) -- run claude-code-ide-org-refresh-slice: %s"
+                                 (length listed) (length declared) title))))))
                (let ((blocker (org-entry-get nil "BLOCKER")))
                  (when blocker
                    ;; The wrapper is the one malformation the readers
@@ -18892,25 +19242,21 @@ the project list."
    :function #'claude-code-ide-org-slice-add-member
    :name "org_slice_add_member"
    :description (concat
-                 "Add a heading to a slice's planned checklist by :ID:, "
-                 "through Emacs -- the write path that closes the gap where "
-                 "membership edits meant hand emacsclient calls or direct "
-                 "file writes behind Emacs's back. Inserts the member line "
-                 "after the last planned member (or after the member named "
-                 "by after=, since a slice declares membership AND order), "
-                 "always above the Incidental: section, then refreshes the "
-                 "slice so the rendering, cookie and :BLOCKER: are derived "
-                 "rather than hand-written. Refuses: a non-slice target; a "
-                 "CLOSED slice (its list is a record); a duplicate member; "
-                 "a member with no TODO keyword on disk (apply a queued "
-                 "capture first -- org-depend blocks only on an unfinished "
-                 "keyword); and a file with unsaved human edits (retry once "
-                 "saved). With parent= the line lands INDENTED under that "
-                 "planned member instead -- the nested-member declaration for "
-                 "a story the slice covers only partially: the member must be "
-                 "inside the parent's org subtree, and the parent's line "
-                 "becomes a cookie-less grouping label. All ids accept an "
-                 "8-character prefix.")
+                 "Add a heading to a slice's :MEMBERS: by :ID:, through "
+                 "Emacs. :MEMBERS: is the slice's declaration -- the work it "
+                 "undertakes, in order -- and the checklist in its body is a "
+                 "rendering the refresh rebuilds from it, so this edits the "
+                 "property and then refreshes the checklist, cookie and "
+                 ":BLOCKER:. The new member goes last, or after the member "
+                 "named by after=. A member whose parent heading carries a "
+                 "TODO keyword renders indented under a boxless parent row "
+                 "by itself: nesting is derived, never declared. Refuses: a "
+                 "non-slice target; a CLOSED slice (its list is a record); a "
+                 "duplicate member; a member with no TODO keyword on disk "
+                 "(apply a queued capture first -- org-depend blocks only on "
+                 "an unfinished keyword); a file with unsaved human edits "
+                 "(retry once saved); and parent=, which is retired. All ids "
+                 "accept an 8-character prefix.")
    :args '((:name "slice_id"
             :type string
             :description "The :ID: of the slice heading (or an 8-character prefix). Must carry :KIND: slice and an unfinished keyword.")
@@ -18920,11 +19266,14 @@ the project list."
            (:name "after"
             :type string
             :optional t
-            :description "Optional. An existing planned member's :ID: or 8-character prefix; the new line is inserted directly after that member's line. Omit to append at the end of the planned checklist. Not combinable with parent.")
+            :description "Optional. An existing member's :ID: or 8-character prefix; the new member is placed after it in :MEMBERS:. Omit to add it last.")
+           ;; Declared though retired, so a caller passing it is refused by
+           ;; name: an undeclared key is dropped in silence (TODO.org :ID:
+           ;; bbf9fb77), which would lose the argument without a word.
            (:name "parent"
             :type string
             :optional t
-            :description "Optional. A planned member's :ID: or 8-character prefix whose org subtree contains member_id; the new line lands indented under it, last in its nested block, and the parent's line becomes a cookie-less grouping label (partial coverage of a story). Not combinable with after.")))
+            :description "RETIRED -- always refused. Nesting is derived: a member whose parent heading carries a TODO keyword renders under it by itself. Use after= to place a member.")))
 
   (claude-code-ide-make-tool
    :function #'claude-code-ide-org-divide

@@ -16036,7 +16036,6 @@ and writes nothing.  Before 60d6ab6e six of them saved over the edits."
     ("org_set_property" ("id" . A) ("property" . "FOO") ("value" . "bar"))
     ("org_set_tags" ("id" . A) ("add" . "x"))
     ("org_slice_add_member" ("slice_id" . S) ("member_id" . M1) ("after" . M0))
-    ("org_slice_add_member" ("slice_id" . S) ("member_id" . PC) ("parent" . P))
     ("org_divide" ("id" . A) ("parent_title" . "A parent"))
     ("org_amend" ("id" . A) ("text" . "More prose."))
     ("org_capture" ("title" . "A new heading") ("target" . A))
@@ -17156,7 +17155,8 @@ membership, is what stops an alias being reintroduced silently."
 ;;; Nested slice members (TODO.org :ID: 1206b5b0)
 
 (defmacro claude-code-ide-org-test--with-nesting-fixture (&rest body)
-  "A slice whose one planned member is a story with two children."
+  "A slice whose one planned member is an outsider, beside a story with
+two children and a keyword-less note with one."
   (declare (indent 0))
   `(claude-code-ide-org-test--with-capture-file
      (with-temp-file capture-file
@@ -17166,57 +17166,72 @@ membership, is what stops an alias being reintroduced silently."
                ":COOKIE_DATA: checkbox recursive\n"
                ":CREATED:  [2026-09-09 Wed 09:00]\n:END:\n\n"
                "The theme.\n\n"
-               "- [ ] [[id:story-1][story-1]] TODO A story member\n\n"
+               "- [ ] [[id:out-1][out-1]] TODO An outsider\n\n"
                "* TODO A story member\n:PROPERTIES:\n:ID:       story-1\n:END:\n"
                "** TODO Story child\n:PROPERTIES:\n:ID:       kid-1\n:END:\n"
                "** TODO Another child\n:PROPERTIES:\n:ID:       kid-2\n:END:\n"
-               "* TODO An outsider\n:PROPERTIES:\n:ID:       out-1\n:END:\n"))
+               "* TODO An outsider\n:PROPERTIES:\n:ID:       out-1\n:END:\n"
+               "* A keyword-less note\n:PROPERTIES:\n:ID:       note-2\n:END:\n"
+               "** TODO Under a note\n:PROPERTIES:\n:ID:       kid-3\n:END:\n"))
      (org-id-update-id-locations (list capture-file))
      (let ((claude-code-ide-org-query-files (list capture-file)))
        ,@body)))
 
-(ert-deftest claude-code-ide-org-test-slice-add-member-nests-under-a-parent ()
-  "parent= lands the line indented under the parent's line, strips the
-parent's checkbox (a grouping label is cookie-less by definition, and
-the refresh reads that structurally), and a second nested child appends
-last in the block.  Cookie and blocker count the children, never the
-label."
+(ert-deftest claude-code-ide-org-test-slice-member-renders-under-a-derived-parent-row ()
+  "A member whose parent heading carries a keyword renders indented under
+a boxless parent row nobody declared (TODO.org :ID: 7ee3b71a).  Siblings
+added one after another share the row; the row is never counted and
+never blocks, since a parent carries no work a slice counts (the user,
+2026-09-25).  A member under a keyword-less heading renders flush left."
   (claude-code-ide-org-test--with-nesting-fixture
-    (let ((reply (claude-code-ide-org-slice-add-member
-                  "slice-n1" "kid-1" nil "story-1")))
-      (should (string-match-p "nested under story-1" reply))
-      (should (string-match-p "grouping label" reply)))
-    (claude-code-ide-org-slice-add-member "slice-n1" "kid-2" nil "story-1")
+    (should (string-prefix-p "Added" (claude-code-ide-org-slice-add-member "slice-n1" "kid-1")))
+    (claude-code-ide-org-slice-add-member "slice-n1" "kid-2")
+    (claude-code-ide-org-slice-add-member "slice-n1" "kid-3")
     (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
-      ;; Parent line cookie-less, children indented beneath, in order.
       (should (string-match-p
-               "- \\[\\[id:story-1\\]\\[story-1\\]\\] TODO A story member\n  - \\[ \\] \\[\\[id:kid-1\\]\\[kid-1\\]\\] TODO Story child\n  - \\[ \\] \\[\\[id:kid-2\\]\\[kid-2\\]\\] TODO Another child\n"
+               (concat "- \\[ \\] \\[\\[id:out-1\\]\\[out-1\\]\\] TODO An outsider\n"
+                       "- \\[\\[id:story-1\\]\\[story-1\\]\\] TODO A story member\n"
+                       "  - \\[ \\] \\[\\[id:kid-1\\]\\[kid-1\\]\\] TODO Story child\n"
+                       "  - \\[ \\] \\[\\[id:kid-2\\]\\[kid-2\\]\\] TODO Another child\n"
+                       "- \\[ \\] \\[\\[id:kid-3\\]\\[kid-3\\]\\] TODO Under a note\n")
                disk))
-      ;; The label is uncounted; both children are.
-      (should (string-match-p "\\[0/2\\] A nesting slice" disk))
-      ;; The children enter the blocker on their own account; the
-      ;; cookie-less label does not.
-      (should (string-match-p "BLOCKER:[ \t]*kid-1 kid-2\n" disk)))))
+      (should (string-match-p ":MEMBERS:[ \t]+out-1 kid-1 kid-2 kid-3\n" disk))
+      (should (string-match-p "\\[0/4\\] A nesting slice" disk))
+      (should (string-match-p "BLOCKER:[ \t]*out-1 kid-1 kid-2 kid-3\n" disk)))))
 
-(ert-deftest claude-code-ide-org-test-slice-add-member-parent-refusals ()
-  "Each parent refusal names its rule and none of them writes: a parent
-that is not a planned member, a member outside the parent's subtree,
-and after= combined with parent=."
+(ert-deftest claude-code-ide-org-test-slice-parent-rows-repeat-when-not-consecutive ()
+  "Order in :MEMBERS: is the order shown, so two children of one story
+separated by another member each get the story's row."
   (claude-code-ide-org-test--with-nesting-fixture
-    (should (string-match-p "names no planned member"
+    (claude-code-ide-org-slice-add-member "slice-n1" "kid-1")
+    (claude-code-ide-org-slice-add-member "slice-n1" "kid-3")
+    (claude-code-ide-org-slice-add-member "slice-n1" "kid-2")
+    (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
+      (should (string-match-p ":MEMBERS:[ \t]+out-1 kid-1 kid-3 kid-2\n" disk))
+      (should (= 2 (with-temp-buffer
+                     (insert disk)
+                     (count-matches "^- \\[\\[id:story-1\\]" (point-min) (point-max))))))))
+
+(ert-deftest claude-code-ide-org-test-slice-whole-story-member-is-a-counted-leaf ()
+  "A slice undertaking a whole story names the story alone: it renders
+as an ordinary boxed, counted line with no children listed."
+  (claude-code-ide-org-test--with-nesting-fixture
+    (claude-code-ide-org-slice-add-member "slice-n1" "story-1")
+    (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
+      (should (string-match-p "^- \\[ \\] \\[\\[id:story-1\\]\\[story-1\\]\\] TODO A story member$" disk))
+      (should-not (string-match-p "^  - .*id:kid-" disk))
+      (should (string-match-p "\\[0/2\\] A nesting slice" disk)))))
+
+(ert-deftest claude-code-ide-org-test-slice-add-member-refuses-parent ()
+  "parent= is retired and refused by name, never silently ignored, and
+the refusal writes nothing (the user, 2026-09-25)."
+  (claude-code-ide-org-test--with-nesting-fixture
+    (should (string-match-p "parent= is retired"
                             (claude-code-ide-org-slice-add-member
-                             "slice-n1" "kid-1" nil "out-1")))
-    (should (string-match-p "not inside"
-                            (claude-code-ide-org-slice-add-member
-                             "slice-n1" "out-1" nil "story-1")))
-    (should (string-match-p "not both"
-                            (claude-code-ide-org-slice-add-member
-                             "slice-n1" "kid-1" "story-1" "story-1")))
+                             "slice-n1" "kid-1" nil "story-1")))
     (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
       (should-not (string-match-p "id:kid-1" disk))
-      (should-not (string-match-p "id:out-1" disk))
-      ;; The parent's checkbox survives every refusal.
-      (should (string-match-p "- \\[ \\] \\[\\[id:story-1\\]" disk)))))
+      (should-not (string-match-p ":MEMBERS:" disk)))))
 
 ;;; The read split (TODO.org :ID: 2a399034)
 
@@ -18701,3 +18716,136 @@ turn's prompt -- here a turn longer than the first window."
       (should (equal (plist-get turn :prompt) "new"))
       (should (= 401 (length (plist-get turn :blocks))))
       (should (equal (car (last (plist-get turn :blocks))) '(text . "last"))))))
+
+;;; :MEMBERS: is the declaration, the checklist its rendering (TODO.org :ID: 7ee3b71a)
+
+(defmacro claude-code-ide-org-test--with-members-fixture (&rest body)
+  "A migrated slice: :MEMBERS: names two members, one DONE and one TODO,
+and one more that is dropped.  Prose follows the checklist."
+  (declare (indent 0))
+  `(claude-code-ide-org-test--with-capture-file
+     (with-temp-file capture-file
+       (insert "#+TODO: TODO NEXT DOING REVIEW | DONE CANCELLED\n\n"
+               "* TODO [1/2] A declared slice\n:PROPERTIES:\n"
+               ":ID:       slice-m1\n:KIND:     slice\n"
+               ":COOKIE_DATA: checkbox recursive\n"
+               ":MEMBERS:  mem-a mem-b mem-c\n:DROPPED:  mem-c\n"
+               ":BLOCKER:  mem-b\n:END:\n"
+               ":PLAN:\n- [ ] [[id:mem-z][mem-z]] TODO a bullet in the design\n:END:\n\n"
+               "The theme.\n\n"
+               "Planned:\n\n"
+               "- [X] [[id:mem-a][mem-a]] DONE Alpha\n"
+               "- [ ] [[id:mem-b][mem-b]] TODO Beta\n"
+               "- [[id:mem-c][mem-c]] TODO Gamma\n\n"
+               "Prose after the list stays where it is.\n\n"
+               "* DONE Alpha\n:PROPERTIES:\n:ID:       mem-a\n:END:\n"
+               "* TODO Beta\n:PROPERTIES:\n:ID:       mem-b\n:END:\n"
+               "* TODO Gamma\n:PROPERTIES:\n:ID:       mem-c\n:END:\n"
+               "* TODO Zeta\n:PROPERTIES:\n:ID:       mem-z\n:END:\n"))
+     (org-id-update-id-locations (list capture-file))
+     (let ((claude-code-ide-org-query-files (list capture-file)))
+       ,@body)))
+
+(ert-deftest claude-code-ide-org-test-slice-refresh-from-members-is-idempotent ()
+  "A migrated slice already in its rendered form comes out byte-identical,
+prose after the list included -- the per-slice form of the migration's
+byte-identity proof."
+  (claude-code-ide-org-test--with-members-fixture
+    (let ((before (claude-code-ide-org-test--disk-contents capture-file)))
+      (claude-code-ide-org-refresh-slice "slice-m1")
+      (should (equal before (claude-code-ide-org-test--disk-contents capture-file))))))
+
+(ert-deftest claude-code-ide-org-test-slice-lost-checklist-costs-a-refresh ()
+  "The point of the property: a checklist deleted by any writer is
+rendered back, whole and in order, by the next refresh, and the prose
+around it is untouched."
+  (claude-code-ide-org-test--with-members-fixture
+    (org-with-point-at (org-id-find "slice-m1" 'marker)
+      (let ((region (claude-code-ide-org--slice-planned-region)))
+        (delete-region (car region) (cdr region)))
+      (save-buffer))
+    (should-not (string-match-p "id:mem-b" (claude-code-ide-org-test--disk-contents capture-file)))
+    (claude-code-ide-org-refresh-slice "slice-m1")
+    (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
+      (should (string-match-p
+               "Planned:\n\n- \\[X\\] \\[\\[id:mem-a\\]\\[mem-a\\]\\] DONE Alpha\n- \\[ \\] \\[\\[id:mem-b\\]\\[mem-b\\]\\] TODO Beta\n- \\[\\[id:mem-c\\]\\[mem-c\\]\\] TODO Gamma\n\nProse after the list"
+               disk))
+      (should (string-match-p "\\[1/2\\] A declared slice" disk)))))
+
+(ert-deftest claude-code-ide-org-test-amend-replace-keeps-a-slice-checklist ()
+  "`org_amend' replace=true on a slice rewrites its prose and splices
+the planned checklist back after it -- the writer this heading was
+filed about."
+  (claude-code-ide-org-test--with-members-fixture
+    (should (string-prefix-p "Revised"
+                             (claude-code-ide-org-amend "slice-m1" "A new theme." nil t)))
+    (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
+      (should (string-match-p "A new theme\\.\n\nPlanned:\n\n- \\[X\\] \\[\\[id:mem-a\\]" disk))
+      (should (string-match-p "id:mem-c\\]\\[mem-c\\]\\] TODO Gamma" disk))
+      (should-not (string-match-p "The theme\\." disk)))))
+
+(ert-deftest claude-code-ide-org-test-slice-members-ignore-a-plan-drawer ()
+  "An id bullet inside a :PLAN: drawer is design prose, not a member:
+every member scan starts below the leading drawers."
+  (claude-code-ide-org-test--with-members-fixture
+    (org-with-point-at (org-id-find "slice-m1" 'marker)
+      (should-not (assoc "mem-z" (claude-code-ide-org--slice-members)))
+      (should-not (member "mem-z" (claude-code-ide-org--slice-planned-member-ids)))
+      (should-not (member "mem-z" (claude-code-ide-org--slice-checklist-ids))))))
+
+(ert-deftest claude-code-ide-org-test-slice-blocker-derives-from-members ()
+  "With an index, the blocker is the declared ids minus :DROPPED: minus
+the finished -- read from the property, so no prose is consulted."
+  (claude-code-ide-org-test--with-members-fixture
+    (let ((index (claude-code-ide-org--slice-referent-index)))
+      (org-with-point-at (org-id-find "slice-m1" 'marker)
+        (let ((region (claude-code-ide-org--slice-planned-region)))
+          (delete-region (car region) (cdr region)))
+        (should (equal '("mem-b") (claude-code-ide-org--slice-blocker-ids index)))))))
+
+(ert-deftest claude-code-ide-org-test-slice-unresolved-member-renders-not-vanishes ()
+  "A declared id with no heading still renders, as a boxless placeholder,
+and is reported: the rendering replaces the list wholesale, so skipping
+it would delete it."
+  (claude-code-ide-org-test--with-members-fixture
+    (org-with-point-at (org-id-find "slice-m1" 'marker)
+      (org-entry-put nil "MEMBERS" "mem-a mem-b mem-c mem-gone")
+      (save-buffer))
+    (let ((reply (claude-code-ide-org-refresh-slice "slice-m1")))
+      (should (string-match-p "unrendered.*mem-gone" reply)))
+    (should (string-match-p "^- \\[\\[id:mem-gone\\]\\[mem-gone\\]\\] (unresolved referent)$"
+                            (claude-code-ide-org-test--disk-contents capture-file)))))
+
+(ert-deftest claude-code-ide-org-test-slice-checklist-ids-exclude-parent-rows ()
+  "The migration's reader leaves out every parent row -- a cookie-less
+grouping label and a boxed one alike, the latter being de6de108's shape
+on 8a2eb687 on 2026-09-25 -- since parent rows are derived."
+  (with-temp-buffer
+    (insert "* TODO A slice\n:PROPERTIES:\n:ID: s\n:KIND: slice\n:END:\n\nPlanned:\n\n"
+            "- [ ] [[id:one][one]] TODO One\n"
+            "- [-] [[id:story][story]] DOING A story\n"
+            "  - [X] [[id:kid][kid]] DONE A kid\n"
+            "- [[id:label][label]] TODO A label\n"
+            "  - [ ] [[id:kid2][kid2]] TODO Another kid\n"
+            "- [[id:drop][drop]] TODO Dropped\n\nIncidental:\n\n- [X] [[id:inc][inc]] DONE Inc\n")
+    (org-mode)
+    (goto-char (point-min))
+    (should (equal '("one" "kid" "kid2" "drop") (claude-code-ide-org--slice-checklist-ids)))))
+
+(ert-deftest claude-code-ide-org-test-lint-members-rules ()
+  "The lint guard that stops being luck: an unknown declared id, a member
+declared beside its own ancestor, and a checklist that disagrees with
+:MEMBERS: are each an error."
+  (let* ((head "* TODO [0/1] A slice\n:PROPERTIES:\n:ID:       aaaa0000-0000-4000-8000-000000000001\n:CATEGORY: Test\n:CREATED:  [2026-09-25 Fri 10:00]\n:KIND:     slice\n:COOKIE_DATA: checkbox recursive\n")
+         (tail (concat ":END:\n\nPlanned:\n\n"
+                       "- [ ] [[id:bbbb0000-0000-4000-8000-000000000002][bbbb0000]] TODO Story\n\n"
+                       "* TODO Story\n:PROPERTIES:\n:ID:       bbbb0000-0000-4000-8000-000000000002\n:CATEGORY: Test\n:CREATED:  [2026-09-25 Fri 10:00]\n:END:\n"
+                       "** TODO Kid\n:PROPERTIES:\n:ID:       cccc0000-0000-4000-8000-000000000003\n:CREATED:  [2026-09-25 Fri 10:00]\n:END:\n"))
+         (clean (claude-code-ide-org-test--lint
+                 (concat head ":MEMBERS:  bbbb0000-0000-4000-8000-000000000002\n:BLOCKER:  bbbb0000-0000-4000-8000-000000000002\n" tail)))
+         (bad (claude-code-ide-org-test--lint
+               (concat head ":MEMBERS:  bbbb0000-0000-4000-8000-000000000002 cccc0000-0000-4000-8000-000000000003 dddd0000-0000-4000-8000-000000000004\n:BLOCKER:  bbbb0000-0000-4000-8000-000000000002\n" tail))))
+    (should-not (claude-code-ide-org-test--lint-matches clean 'error ":MEMBERS:\\|disagrees"))
+    (should (claude-code-ide-org-test--lint-matches bad 'error ":MEMBERS: names unknown :ID: dddd0000"))
+    (should (claude-code-ide-org-test--lint-matches bad 'error "names cccc0000 and its ancestor bbbb0000"))
+    (should (claude-code-ide-org-test--lint-matches bad 'error "checklist disagrees with :MEMBERS:"))))
