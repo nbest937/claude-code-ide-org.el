@@ -1774,6 +1774,9 @@ line per catch.
 - [2026-09-23 Wed] Self-caught: surveying slice 8a2eb687's members for =:PLAN:= drawers, the session counted drawer lines with an =awk= scan of =TODO.org= that finds heading boundaries by regex, when =org_body drawer=PLAN= answers the same question per heading.
 - [2026-09-23 Wed] Caught by the user: "I think you give up on =org-ql= too quickly. I saw you try one query and fall back to grep." Looking for the transcripts-to-org proposal, the session tried =heading:"transcript"= once and then grepped =TODO.org= and =DONE.org= three times. A bare-word query (=transcript readable=) is org-ql's full-text =rifle= predicate, and it finds =96ddf1ef= in DONE.org in one call. The session had treated the five predicates =org_query='s description names as the whole language.
 - [2026-09-25 Fri] Caught by the user: "you grepped again. is that a miss?" Looking for headings glued onto a body line (5b46fbfd's defect) and for the heading enclosing a given line, the session grepped and awked =TODO.org= repeatedly, including after the repair, where =org_outline= scoped to the two ids confirmed it in one call. The whole-file scan for a heading org cannot see is the one partial excuse, and =org-lint='s "possibly misplaced heading" checker is org's own answer to that question: it was never tried.
+
+*The tool side of this kind is [[id:61f05e56-9d05-4f3e-9131-5eb899f95b8f][61f05e56]]* (added 2026-09-25 at the user's prompt). A read guard is one way to close this heading; the other is making the org route expressible and discoverable, so grep has no excuse. Re-measured the same day, =org_query= already accepts most of org-ql's language, and only its description is too narrow, which is exactly what the 2026-09-23 catch above found. A heading glued onto a body line is the one case no query can reach, since org cannot see it by construction; =org-lint= can, and [[id:5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997][5b46fbfd]] proposes the lint rule.
+
 ** TODO Before the miss review, count the misses nobody caught, from the transcripts, for every kind a transcript can show :code:research:
 :PROPERTIES:
 :ID:       ade01397-67a8-4c0b-bb55-cecfda3981c1
@@ -4804,6 +4807,9 @@ the script did not model that. The engine already supports what is missing; this
 is about the exposed surface. =property=, =closed= and =category= look
 highest-value here, =blocked= notable since this project has bespoke code for
 it.
+
+*Re-measured 2026-09-25: the surface is mostly there, and the description is what is missing.* org-ql still loads 35 predicates, and =org_query= passes the plain-string syntax through, so far more than the four works. Tried live, each shown to filter: =property:KIND=slice=, =regexp:=, =level:1=, =closed:on=DATE=, =category:=, =parent:= (a wrong parent id returns nothing), negation with =!=, and *bare words*, which org-ql reads as its full-text =rifle= search (=glued heading= found four headings). The tool's description still names only =todo:=, =property:=, =tags:=, =priority:= and =heading:=, and that list is what sessions treat as the whole language (the 2026-09-23 catch on =67861ff3=). Two forms need separate teaching, because they look alike and mean different things. An *empty predicate* such as =todo:= means any value, which for =todo:= is every non-terminal keyword and for =level:= is every heading. A *bare word* has no predicate at all and is a full-text search. One predicate failed: =blocked:= errors with "Buffer is read-only" when =TODO.org='s buffer is read-only, filed on its own. So the proposal narrows to teaching the language in the description, not widening the surface.
+
 
 
 * REVIEW apply-detect reports an apply when the review pass only dismissed events :code:
