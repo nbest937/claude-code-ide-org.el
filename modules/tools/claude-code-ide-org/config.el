@@ -3082,29 +3082,56 @@ under its *tracked* name (the `org-agenda-files' entry, typically the
 ~/org symlink), never re-derived from the repo path, so org-id and the
 agenda keep exactly one name per file.  nil when the session has no
 project-dir or the project has no tracked TODO.org — the caller falls
-back to the global default, unchanged."
+back to the global default, unchanged.
+
+The lookup itself is `claude-code-ide-org--project-capture-file', which
+the deferred path calls with the queued event's cwd, since there is no
+session at apply (TODO.org :ID: 5e731a23)."
   (when-let* ((ctx (and (fboundp 'claude-code-ide-mcp-server-get-session-context)
                         (claude-code-ide-mcp-server-get-session-context)))
-              (dir (plist-get ctx :project-dir))
-              (dir-true (file-truename (file-name-as-directory dir))))
-    (seq-find (lambda (f)
-                (and (equal (file-name-nondirectory f) "TODO.org")
-                     (string-prefix-p dir-true (file-truename f))))
-              (claude-code-ide-org--tracked-files))))
+              (dir (plist-get ctx :project-dir)))
+    (claude-code-ide-org--project-capture-file dir)))
 
-(defun claude-code-ide-org--capture-target-file ()
+(defun claude-code-ide-org--project-capture-file (dir)
+  "The tracked TODO.org belonging to the project at DIR, or nil.
+
+One resolver for both capture paths (TODO.org :ID: 5e731a23): the direct
+path passes the calling session's project directory, and the deferred
+path the cwd its queue event recorded, so a capture lands in the same
+tracker whichever way it is written.  A DIR inside a linked worktree is
+mapped to its main checkout first, since TODO.org stays there
+\(:ID: 2e09adb7) and a worktree holds no tracked file; otherwise every
+worktree session's deferred capture would misroute.
+
+A tracked file is the project's when its truename lives under the
+project's truename and it is named TODO.org, and it is returned under
+its *tracked* name, so org-id and the agenda keep one name per file."
+  (when (and (stringp dir) (file-directory-p dir))
+    (let* ((root (or (locate-dominating-file dir ".git") dir))
+           (main (or (claude-code-ide-org--worktree-main-checkout root) root))
+           (dir-true (file-truename (file-name-as-directory main))))
+      (seq-find (lambda (f)
+                  (and (equal (file-name-nondirectory f) "TODO.org")
+                       (string-prefix-p dir-true (file-truename f))))
+                (claude-code-ide-org--tracked-files)))))
+
+(defun claude-code-ide-org--capture-target-file (&optional dir)
   "File `org_capture' targets, in priority order: the calling session's
 own tracked TODO.org (`claude-code-ide-org--session-project-capture-file',
 so a second project's captures land in *its* tracker),
 `claude-code-ide-org-capture-file', else `org-default-notes-file'.
 Used as the (file ...) target spec's function in the dynamically-built
 capture template — resolved fresh on every capture, so a changed
-defcustom or a different calling session takes effect immediately."
+defcustom or a different calling session takes effect immediately.
+
+DIR, a queued event's cwd, stands in for the session when there is
+none, as at apply (TODO.org :ID: 5e731a23)."
   (or (claude-code-ide-org--session-project-capture-file)
+      (claude-code-ide-org--project-capture-file dir)
       claude-code-ide-org-capture-file
       org-default-notes-file))
 
-(defun claude-code-ide-org--capture-target-spec (target)
+(defun claude-code-ide-org--capture-target-spec (target &optional dir)
   "Resolve TARGET to a plist (:spec SPEC :file FILE :where DESC).
 
 TARGET is an :ID: to capture under that heading, the title of a
@@ -3121,8 +3148,11 @@ That is a different risk profile, not an exception grudgingly made.
 
 Signals when TARGET matches neither, rather than silently falling back
 to the end of the file.  A caller that named a destination and got a
-different one is worse off than a caller that got an error."
-  (let ((default (claude-code-ide-org--capture-target-file))
+different one is worse off than a caller that got an error.
+
+DIR is the queued event's cwd, which routes a deferred targetless
+capture to its own project's tracker (TODO.org :ID: 5e731a23)."
+  (let ((default (claude-code-ide-org--capture-target-file dir))
         (target (and (stringp target)
                      (not (string-empty-p (string-trim target)))
                      (string-trim target))))
@@ -8832,9 +8862,10 @@ check\" and must not be mistaken for \"nothing is legal\"."
          (file (and event
                     (or (ignore-errors
                           (plist-get (claude-code-ide-org--capture-target-spec
-                                      (plist-get event :target))
+                                      (plist-get event :target) (plist-get event :cwd))
                                      :file))
-                        (claude-code-ide-org--capture-target-file)))))
+                        (claude-code-ide-org--capture-target-file
+                         (plist-get event :cwd))))))
     (when (and file (file-readable-p file))
       (with-current-buffer (find-file-noselect file)
         org-todo-keywords-1))))
@@ -9982,6 +10013,10 @@ from a skipped one."
                            :to (plist-get event :state)
                            :note (plist-get event :note)
                            :category (plist-get event :category)
+                           ;; Where the capturing session was, for routing
+                           ;; a targetless capture at apply and in its row
+                           ;; (TODO.org :ID: 5e731a23).
+                           :cwd (plist-get event :cwd)
                            :events (list event))
                      items))
               ("amend"
@@ -11130,7 +11165,7 @@ nobody chose is precisely the confidently-wrong record this architecture
 exists to prevent (TODO.org :ID: b5f94b88)."
   (condition-case err
       (let* ((resolved (claude-code-ide-org--capture-target-spec
-                        (plist-get item :target)))
+                        (plist-get item :target) (plist-get item :cwd)))
              (file (plist-get resolved :file))
              (id (plist-get item :id)))
         (claude-code-ide-org--capture-write
@@ -12219,9 +12254,11 @@ vanishes silently is worse than one that explains itself
       ;; means finding it out one keystroke too late.  `!' is the column's
       ;; established "something is wrong" mark.
       ('capture
+       ;; The same call apply makes, cwd and all, so the row shows the
+       ;; tracker the capture will land in (TODO.org :ID: 5e731a23).
        (let ((where (ignore-errors
                       (plist-get (claude-code-ide-org--capture-target-spec
-                                  (plist-get item :target))
+                                  (plist-get item :target) (plist-get item :cwd))
                                  :where))))
          (format "%scapture %-30s -> %-22s %s   %s"
                  (if where "  " "! ")

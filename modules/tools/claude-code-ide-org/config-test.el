@@ -19136,3 +19136,80 @@ file."
   (claude-code-ide-org-test--with-moved-heading
     (should (string-match-p "no org heading found with :ID: \"nowhere-1\" (scanned: a\\.org, b\\.org)"
                             (claude-code-ide-org--id-not-found "nowhere-1")))))
+
+;;; A deferred capture keeps its project (TODO.org :ID: 5e731a23)
+
+(defmacro claude-code-ide-org-test--with-two-projects (&rest body)
+  "Projects A and B, each a git checkout with a tracked TODO.org, A's the
+global default; and a linked worktree of B.  Binds `a-todo', `b-todo',
+`b-root' and `b-wt'."
+  (declare (indent 0))
+  `(let* ((dir (file-name-as-directory (make-temp-file "cciorg-projects" t)))
+          (a-root (expand-file-name "a/" dir))
+          (b-root (expand-file-name "b/" dir))
+          (b-wt (expand-file-name "b/.claude/worktrees/wt/" dir))
+          (a-todo (expand-file-name "TODO.org" a-root))
+          (b-todo (expand-file-name "TODO.org" b-root))
+          (org-id-locations-file (expand-file-name ".org-id-locations" dir))
+          (org-id-locations (make-hash-table :test 'equal))
+          (org-id-files nil)
+          (claude-code-ide-org-query-files (list a-todo b-todo))
+          (claude-code-ide-org-capture-file a-todo))
+     (unwind-protect
+         (progn
+           (make-directory (expand-file-name ".git/worktrees/wt" b-root) t)
+           (make-directory (expand-file-name ".git" a-root) t)
+           (make-directory b-wt t)
+           (with-temp-file (expand-file-name ".git" b-wt)
+             (insert "gitdir: " (expand-file-name ".git/worktrees/wt" b-root) "\n"))
+           (dolist (f (list a-todo b-todo))
+             (with-temp-file f (insert "#+TODO: TODO | DONE\n\n* TODO Seed\n")))
+           ,@body)
+       (dolist (f (list a-todo b-todo))
+         (when-let* ((buf (find-buffer-visiting f)))
+           (with-current-buffer buf (set-buffer-modified-p nil))
+           (kill-buffer buf)))
+       (delete-directory dir t))))
+
+(defun claude-code-ide-org-test--deferred-capture (id cwd)
+  "A queued targetless capture item from a session in CWD."
+  (list :type 'capture :id id :ts (date-to-time "2026-09-25T15:00:00-0500")
+        :title (concat "Captured as " id) :target nil :to "TODO"
+        :category "Test" :cwd cwd))
+
+(ert-deftest claude-code-ide-org-test-deferred-capture-lands-in-its-project ()
+  "A deferred targetless capture from project B lands in B's tracker
+while A is the default, and its review row says B before apply does."
+  (claude-code-ide-org-test--with-two-projects
+    (let ((item (claude-code-ide-org-test--deferred-capture "cap-b" b-root)))
+      (should (string-match-p "b/TODO\\.org" (claude-code-ide-org--review-describe item)))
+      (should-not (claude-code-ide-org--review-apply-capture item))
+      (should (string-match-p "Captured as cap-b" (claude-code-ide-org-test--disk-contents b-todo)))
+      (should-not (string-match-p "Captured as cap-b" (claude-code-ide-org-test--disk-contents a-todo))))))
+
+(ert-deftest claude-code-ide-org-test-deferred-capture-from-a-worktree ()
+  "A session in a linked worktree of B routes to B's tracker, which lives
+in the main checkout."
+  (claude-code-ide-org-test--with-two-projects
+    (should-not (claude-code-ide-org--review-apply-capture
+                 (claude-code-ide-org-test--deferred-capture "cap-wt" b-wt)))
+    (should (string-match-p "Captured as cap-wt" (claude-code-ide-org-test--disk-contents b-todo)))))
+
+(ert-deftest claude-code-ide-org-test-deferred-capture-without-cwd-keeps-the-default ()
+  "An old event with no cwd, or one from a project with no tracker, keeps
+today's behaviour: the global capture file."
+  (claude-code-ide-org-test--with-two-projects
+    (should-not (claude-code-ide-org--review-apply-capture
+                 (claude-code-ide-org-test--deferred-capture "cap-none" nil)))
+    (should-not (claude-code-ide-org--review-apply-capture
+                 (claude-code-ide-org-test--deferred-capture "cap-away" temporary-file-directory)))
+    (let ((a (claude-code-ide-org-test--disk-contents a-todo)))
+      (should (string-match-p "Captured as cap-none" a))
+      (should (string-match-p "Captured as cap-away" a)))))
+
+(ert-deftest claude-code-ide-org-test-direct-capture-routing-is-unchanged ()
+  "The direct path still routes by the calling session's project."
+  (claude-code-ide-org-test--with-two-projects
+    (cl-letf (((symbol-function 'claude-code-ide-mcp-server-get-session-context)
+               (lambda () (list :project-dir b-root))))
+      (should (file-equal-p b-todo (claude-code-ide-org--capture-target-file))))))
