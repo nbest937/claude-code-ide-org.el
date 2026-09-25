@@ -2,6 +2,15 @@
 #+TAGS: analysis bug code comms prose research review spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO A rendered session drops the narration the reader saw, because the transcript stores it as thinking :code:
+:PROPERTIES:
+:ID:       b09d8090-e225-4659-b652-1a002e799379
+:CREATED:  [2026-09-24 Thu 21:58]
+:CATEGORY: Dev
+:END:
+
+Narration written between tool calls can reach the reader as a harness summary, which the transcript stores as a non-empty thinking entry with no text entry; the model's hidden reasoning is stored empty (measured 2026-09-24 under 30d05c93, and the user's terminal showed the summary verbatim). --transcript-turns drops every thinking entry, so a render runs tool calls together where the reader saw prose between them. Across eight sessions, 1,550 of 1,882 thinking entries were empty and the rest were all at most 475 characters and never shared a message with a text block. Fix: render a non-empty thinking block as a (narration . STRING) block, in order, marked as the harness's summary; keep dropping empty ones. Share that reader's-view reading with 30d05c93's footnote scanner. The ERT fixture pins the empty-versus-non-empty assumption, which is undocumented.
+
 * TODO org_outline shows what a heading is blocked by, never what it blocks :code:
 :PROPERTIES:
 :ID:       b3177ed0-9747-4e31-ad65-bac25b9bdd1f
