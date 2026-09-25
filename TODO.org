@@ -12346,6 +12346,15 @@ Ruled out:
 - The concurrent-writer corruption and the original =org_clock_out=
   failure, both retired at the 2026-08-11 cutover.
 
+*Shipped 2026-09-25* in [[orgit-rev:claude-code-ide-org::6026a9c][6026a9c]], as the drawer designed it. The clocked
+heading's id is recorded at clock-in. After a revert in a tracked buffer holding
+the clock, a marker off its open CLOCK line moves back to the open line under
+that id with the same start time. Otherwise the code warns and never guesses.
+Four ERT cases. The repair and warning cases fail with the hook removed, and
+after the repair =org-clock-out= closes the right line. Live: the hook is on the
+global list, and TODO.org's buffer-local list carries =t=, so it runs there.
+
+
 
 * TODO Org skill: commit a newly-captured TODO immediately, when safe :code:
 :PROPERTIES:
