@@ -11,20 +11,38 @@
 
 Observed 2026-09-25: with =TODO.org='s buffer read-only (=C-x C-q=, unmodified), =org_query "blocked:"= fails with "Buffer is read-only: #<buffer TODO.org>". Other predicates on the same buffer work (=category:=, =level:=, =regexp:=, =link:=), so something in evaluating =blocked:= writes to the buffer. Which call writes is not known yet; org's blocker hooks run through =org-entry-blocked-p=, and this repo adds =claude-code-ide-org--blocker-clock-running-p= to them. The file-touching tools bind =inhibit-read-only= (=c8a97d9d=) and =org_query= does not, since a query was not expected to write. Proposed: find the writer first. If it is org-ql caching or a hook's bookkeeping, bind =inhibit-read-only= in =org_query= as the other tools do; if it is a real edit, that is the defect. =5acca91b= (REVIEW) taught =blocked:= to the description and was tested on a writable buffer.
 
+
 * TODO Headings cited in bodies are id links, written as links by the tools, so backlinks are one org_query away :code:
 :PROPERTIES:
 :ID:       f7847adf-a408-4ad0-ae0c-8d3c19b79f2b
 :CREATED:  [2026-09-25 Fri 12:16]
 :CATEGORY: Tools
 :END:
+:LOGBOOK:
+CLOCK: [2026-09-25 Fri 12:08]--[2026-09-25 Fri 12:09] =>  0:01
+- [2026-09-25 Fri 12:08]--[2026-09-25 Fri 12:09] assigned at review
+CLOCK: [2026-09-25 Fri 12:14]--[2026-09-25 Fri 12:15] =>  0:01
+- [2026-09-25 Fri 12:14]--[2026-09-25 Fri 12:15] assigned at review
+CLOCK: [2026-09-25 Fri 12:15]--[2026-09-25 Fri 12:17] =>  0:02
+- [2026-09-25 Fri 12:15]--[2026-09-25 Fri 12:17] file blocked:, capture context, and id-link headings
+:END:
 
 Bodies cite other headings in two forms, and often both in one heading: measured with =org-element= on 2026-09-25, TODO.org holds 619 verbatim =prefix= references to real ids and 403 =[[id:…]]= links (52 headings carry both), and DONE.org holds 981 and 1,546. Decided by the user the same day: links are the standard, and every verbatim reference in TODO.org is converted, including those pointing into DONE.org. Links survive archiving, because =org-id-locations= covers the archive (=org-id-search-archives=) and =org-id-find= rescans on a stale entry. What they buy is navigation, and a link graph org already answers: =org_query "link:target=<prefix>"= returns every heading linking to one, one call, as =blocked:= does for blockers. A verbatim reference is invisible to it. Proposed: =org_amend= and =org_capture= rewrite a verbatim 8-hex prefix that resolves to a heading into =[[id:<full>][<prefix>]]= as they write, so no writer ever types a full id; a lint catches hand edits; a one-off pass converts TODO.org; =61f05e56= teaches =link:target== in =org_query='s description. Whether =org_outline= should show backlinks beside =:BLOCKER:= is a design question for the brainstorm. Verbatim ids inside a code fence stay verbatim, since there they are transcript.
+
 
 * TODO org_capture runs in whatever buffer the user has selected, so an Org QL view turns a capture into a prompt nobody at the tool can answer :code:bug:
 :PROPERTIES:
 :ID:       fd29914e-0d18-4964-a104-37c136b311a6
 :CREATED:  [2026-09-25 Fri 12:16]
 :CATEGORY: Tools
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-25 Fri 12:17]--[2026-09-25 Fri 12:18] =>  0:01
+- [2026-09-25 Fri 12:17]--[2026-09-25 Fri 12:18] assigned at review
+CLOCK: [2026-09-25 Fri 12:20]--[2026-09-25 Fri 12:21] =>  0:01
+- [2026-09-25 Fri 12:20]--[2026-09-25 Fri 12:21] assigned at review
+CLOCK: [2026-09-25 Fri 12:24]--[2026-09-25 Fri 12:25] =>  0:01
+- [2026-09-25 Fri 12:24]--[2026-09-25 Fri 12:25] assigned at review
 :END:
 
 Twice on 2026-09-25 an =org_capture= stopped at "Make link that searches: ", a prompt from org-ql's =org-ql-view--link-store=. Org's capture stores a link to the current buffer, and that function asks this question whenever the current buffer has =org-ql-view-query= set, which is true only in an Org QL view buffer (four were open, each with the variable buffer-local). With no human at the keyboard the call hangs until the MCP request times out; =C-g= aborts it, and the reply then fails on a dead websocket. Unverified, and the title may be wrong about it: whether the view has to be the *selected* buffer. At one failure the selected buffer was =*Messages*= a minute earlier and =*Ibuffer*= just after. Proposed: run the capture with a neutral current buffer, or bind =org-store-link-functions= to nil around it, since a tool capture has no use for an annotation link to wherever the user happens to be.
@@ -721,6 +739,16 @@ needed for them.
 :CREATED:  [2026-09-22 Tue 20:19]
 :CATEGORY: Tools
 :END:
+:LOGBOOK:
+CLOCK: [2026-09-25 Fri 12:36]--[2026-09-25 Fri 12:37] =>  0:01
+- [2026-09-25 Fri 12:36]--[2026-09-25 Fri 12:37] assigned at review
+CLOCK: [2026-09-25 Fri 12:42]--[2026-09-25 Fri 12:43] =>  0:01
+- [2026-09-25 Fri 12:42]--[2026-09-25 Fri 12:43] assigned at review
+CLOCK: [2026-09-25 Fri 12:48]--[2026-09-25 Fri 12:49] =>  0:01
+- [2026-09-25 Fri 12:48]--[2026-09-25 Fri 12:49] assigned at review
+CLOCK: [2026-09-25 Fri 12:49]--[2026-09-25 Fri 12:50] =>  0:01
+- [2026-09-25 Fri 12:49]--[2026-09-25 Fri 12:50] widen scope to the dispatch site, link from ce012ad4
+:END:
 
 A tool call with a missing required argument or an unknown tool name gets no reply and reaches the model as "The operation timed out" (`ce012ad4`, confirmed 2026-09-22), and every such timeout in this project's transcripts was a misnamed argument that the error text would have corrected at once. The upstream fix may be slow to land, so this module could catch `json-rpc-error` itself: an advice around `claude-code-ide-mcp-http-server--handle-tools-call` or `--validate-args`, converting the signal into a tool result that carries the message. A bare `define-error` is *not* enough, since upstream's outer handler replies with `id` nil and the client cannot match that reply. Unclassified: the brainstorming skill decides spike or bounded when it is picked up.
 
@@ -730,7 +758,6 @@ tells the session to check its argument names. It does not replace this
 fix, which turns the timeout into the real error.
 
 *Scope widened 2026-09-25 to the third signal site.* The advice above covers the two =tools/call= sites (=-32602=, unknown tool and missing argument). =--dispatch= signals the same undefined symbol for an unknown *method* (=-32601=), and that is the one seen in practice: a manual =/mcp= reconnect of =emacs-tools= that day printed "peculiar error: -32601, \"Method not found\"" twice (recorded on [[id:ce012ad4-87f7-435c-a2ee-25210c071865][ce012ad4]]). Its likely trigger, unverified, is the server's =initialize= reply advertising a =logging= capability it does not implement, which invites =logging/setLevel=; the =curl= probe on ce012ad4 tests that. So the trap should cover =--dispatch= too and answer =-32601= with the request's own =id=. Or, more simply, stop advertising =logging=, if that turns out to be the method.
-
 
 
 * TODO org_amend accepts a headline-shaped line in drawer text, which tears the drawer open :code:observed:
@@ -751,6 +778,14 @@ Observed 2026-09-22 writing a :PLAN: drawer through org_amend drawer=PLAN: six s
 :CATEGORY: Tools
 :BLOCKER:  b2d4012c-6c61-47df-8086-d1cd205c73fc
 :END:
+:LOGBOOK:
+CLOCK: [2026-09-25 Fri 10:32]--[2026-09-25 Fri 10:33] =>  0:01
+- [2026-09-25 Fri 10:32]--[2026-09-25 Fri 10:33] assigned at review
+CLOCK: [2026-09-25 Fri 10:36]--[2026-09-25 Fri 10:37] =>  0:01
+- [2026-09-25 Fri 10:36]--[2026-09-25 Fri 10:37] assigned at review
+CLOCK: [2026-09-25 Fri 10:37]--[2026-09-25 Fri 10:38] =>  0:01
+- [2026-09-25 Fri 10:37]--[2026-09-25 Fri 10:38] record two glued-heading instances and their repair
+:END:
 
 claude-code-ide-org--replace-body deletes the body region and inserts (string-trim text), so replacing the last body before a heading takes the blank lines separating them with the trim and glues the heading onto the final line. Observed 2026-09-22 on 59861867: TODO.org:1008 became "written.** TODO Miss: ..." and org stopped parsing a heading there at all — org_outline reported the new id as resolving to no heading while org_amend, which locates by property, still wrote to it happily, and bin/lint-org reported 0 errors throughout. The damage is silent in both directions and the repair was a hand edit, which is itself against the rules. Proposed: --replace-body re-establishes the separation it found, or defers to claude-code-ide-org-heading-separator-lines; and bin/lint-org gains a check for a heading not at the start of its own line, which is the class org-lint calls "possibly misplaced heading" and only warns about.
 
@@ -759,7 +794,6 @@ claude-code-ide-org--replace-body deletes the body region and inserts (string-tr
 - =61f05e56=, by the replace on =a00ace04= in commit [[orgit-rev:claude-code-ide-org::6122052][6122052]] (2026-09-11). That one had been invisible for two weeks: the fill pass of =496b665e= (commit [[orgit-rev:claude-code-ide-org::5880bf8][5880bf8]], 2026-09-14) treated the glued heading as prose and wrapped it across three lines, which hides it even from a line-anchored search. So a fill makes this damage worse, and the fill-on-write of =b52df20b= will do the same unless it lands after this fix or refuses a paragraph holding =* KEYWORD=.
 
 Reproduced in batch the same day: replacing the body of a heading followed by a sibling, with text lacking a trailing newline, leaves the sibling off column 0.
-
 
 
 * TODO [0/27] The review pass asks for judgement it cannot support, and the clock beneath it is still wrong :code:
@@ -1594,7 +1628,6 @@ The conventions are path-scoped and tool-driven work never loads them (436e0991)
 - [2026-09-25 Fri] Self-caught: amending 5b46fbfd, the session cited four commits as bare verbatim SHAs, then read "Referring to a commit", which asks for =orgit-rev:= links. The conventions-inject pointer had named that section at the session's first org call. The fix could not go through =org_amend replace=true=, the very defect being recorded, so it was a surgical text edit with the buffer confirmed unmodified.
 
 
-
 ** TODO Miss: a prediction or a claim about state reported as fact without checking the artifact
 :PROPERTIES:
 :ID:       cf617ecd-81d7-4ca1-b3bb-60a088ecabde
@@ -1808,6 +1841,7 @@ line per catch.
 
 *The tool side of this kind is [[id:61f05e56-9d05-4f3e-9131-5eb899f95b8f][61f05e56]]* (added 2026-09-25 at the user's prompt). A read guard is one way to close this heading; the other is making the org route expressible and discoverable, so grep has no excuse. Re-measured the same day, =org_query= already accepts most of org-ql's language, and only its description is too narrow, which is exactly what the 2026-09-23 catch above found. A heading glued onto a body line is the one case no query can reach, since org cannot see it by construction; =org-lint= can, and [[id:5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997][5b46fbfd]] proposes the lint rule.
 
+
 ** TODO Before the miss review, count the misses nobody caught, from the transcripts, for every kind a transcript can show :code:research:
 :PROPERTIES:
 :ID:       ade01397-67a8-4c0b-bb55-cecfda3981c1
@@ -1815,6 +1849,7 @@ line per catch.
 :END:
 
 Every count on the Miss children is a floor: it holds what a hook, the user or the session noticed, and the user noticed on 2026-09-25 that they must watch closely to catch these, so most go unseen. Self-catches on these headings are almost all recalled titles, found because a later lookup happened to contradict one. None was found by vigilance, so self-catching is not a sampler to trust. Proposed: before the review this story schedules (30 events or 2026-10-12), run a probe over the transcripts, the way =c247d8f3='s footnote probe ran, counting occurrences per kind against the recorded catches, so the review reads a catch *rate* rather than a raw count. Kinds a transcript shows mechanically: text-scrape (a Bash command running grep, awk or sed over a tracked =.org= file), a bare SHA in an =org_amend= body, a write before any =org_clock_in=, an end-matter title that differs from the heading's real title, a full UUID not found in the files. The judgement kinds (a claim reported as fact unchecked, a convention unread) stay floors, and the review should say so.
+
 
 * REVIEW Nothing runs the shell hook suites, so three sat red for a day and a merge without anyone seeing :code:
 :PROPERTIES:
@@ -3064,7 +3099,7 @@ Shipped in the canonical reference and promoted; check-conventions 32 ok, footno
 **Resolution:** a queued keyword is now written as the queued state with a trailing =*=, the star carries no note of its own, and the rule ships in the canonical reference and its promoted copy.
 
 
-** DOING footnote-check reads only the turn's final text block, so an id cited before a tool call is never checked
+** REVIEW footnote-check reads only the turn's final text block, so an id cited before a tool call is never checked
 :PROPERTIES:
 :ID:       c247d8f3-9f3f-464a-b3a0-543b1bb9de4f
 :CREATED:  [2026-09-21 Mon 13:25]
@@ -3075,6 +3110,22 @@ Shipped in the canonical reference and promoted; check-conventions 32 ok, footno
 - State "DOING"      from "NEXT"       [2026-09-25 Fri 08:58] \\
   unattended run: footnote scanner over the turn
 - [2026-09-25 Fri 09:24]--[2026-09-25 Fri 09:24] elisp footnote scanner and sh stub
+CLOCK: [2026-09-25 Fri 09:53]--[2026-09-25 Fri 10:16] =>  0:23
+- [2026-09-25 Fri 09:53]--[2026-09-25 Fri 10:16] resume slice at c247d8f3 footnote scanner
+CLOCK: [2026-09-25 Fri 10:24]--[2026-09-25 Fri 10:25] =>  0:01
+- [2026-09-25 Fri 10:24]--[2026-09-25 Fri 10:25] resume slice at c247d8f3 footnote scanner
+- State "REVIEW"     from "DOING"      [2026-09-25 Fri 10:25] \\
+  scanner and stub landed in a350767, tests red first
+CLOCK: [2026-09-25 Fri 12:24]--[2026-09-25 Fri 12:25] =>  0:01
+- [2026-09-25 Fri 12:24]--[2026-09-25 Fri 12:25] file the blocked: read-only defect
+CLOCK: [2026-09-25 Fri 12:25]--[2026-09-25 Fri 12:26] =>  0:01
+- [2026-09-25 Fri 12:25]--[2026-09-25 Fri 12:26] assigned at review
+CLOCK: [2026-09-25 Fri 12:29]--[2026-09-25 Fri 12:30] =>  0:01
+- [2026-09-25 Fri 12:29]--[2026-09-25 Fri 12:30] assigned at review
+CLOCK: [2026-09-25 Fri 12:33]--[2026-09-25 Fri 12:34] =>  0:01
+- [2026-09-25 Fri 12:33]--[2026-09-25 Fri 12:34] assigned at review
+CLOCK: [2026-09-25 Fri 12:34]--[2026-09-25 Fri 12:35] =>  0:01
+- [2026-09-25 Fri 12:34]--[2026-09-25 Fri 12:35] reload timing into org-dev; next-session loads it
 :END:
 :PLAN:
 *The design, approved 2026-09-24 (the user), on the bounded path it
@@ -3182,6 +3233,7 @@ CLOCK: [2026-09-24 Thu 10:27]--[2026-09-24 Thu 10:28] =>  0:01
 - [2026-09-24 Thu 10:27]--[2026-09-24 Thu 10:28] brainstorm the aboutness sampling spike
 CLOCK: [2026-09-24 Thu 10:31]--[2026-09-24 Thu 10:32] =>  0:01
 - [2026-09-24 Thu 10:31]--[2026-09-24 Thu 10:32] brainstorm the aboutness sampling spike
+- [2026-09-24 Thu 10:57]--[2026-09-24 Thu 10:57] brainstorm the aboutness sampling spike
 :END:
 :PLAN:
 Divided out of =2a6a1355= 2026-09-21. The hook asks whether every id present is footnoted. It cannot ask whether every heading *discussed* was cited, because a response can describe a heading at length by its subject and never write its id. That is a judgement about aboutness, which no regex makes.
@@ -4824,6 +4876,16 @@ later change (=30a340fd=), which is the opposite of a defect. Complements
 :CREATED:  [2026-09-11 Fri 16:16]
 :CATEGORY: Tools
 :END:
+:LOGBOOK:
+CLOCK: [2026-09-25 Fri 10:41]--[2026-09-25 Fri 10:42] =>  0:01
+- [2026-09-25 Fri 10:41]--[2026-09-25 Fri 10:42] assigned at review
+CLOCK: [2026-09-25 Fri 10:53]--[2026-09-25 Fri 10:54] =>  0:01
+- [2026-09-25 Fri 10:53]--[2026-09-25 Fri 10:54] assigned at review
+CLOCK: [2026-09-25 Fri 12:04]--[2026-09-25 Fri 12:05] =>  0:01
+- [2026-09-25 Fri 12:04]--[2026-09-25 Fri 12:05] measure what org_query accepts against its description
+CLOCK: [2026-09-25 Fri 12:07]--[2026-09-25 Fri 12:08] =>  0:01
+- [2026-09-25 Fri 12:07]--[2026-09-25 Fri 12:08] measure what org_query accepts against its description
+:END:
 
 The user asked on 2026-09-11 why a session reaches for =sed=/=awk= against
 TODO.org when =emacs-tools= exists; the answer is that the two questions at hand
@@ -4840,7 +4902,6 @@ highest-value here, =blocked= notable since this project has bespoke code for
 it.
 
 *Re-measured 2026-09-25: the surface is mostly there, and the description is what is missing.* org-ql still loads 35 predicates, and =org_query= passes the plain-string syntax through, so far more than the four works. Tried live, each shown to filter: =property:KIND=slice=, =regexp:=, =level:1=, =closed:on=DATE=, =category:=, =parent:= (a wrong parent id returns nothing), negation with =!=, and *bare words*, which org-ql reads as its full-text =rifle= search (=glued heading= found four headings). The tool's description still names only =todo:=, =property:=, =tags:=, =priority:= and =heading:=, and that list is what sessions treat as the whole language (the 2026-09-23 catch on =67861ff3=). Two forms need separate teaching, because they look alike and mean different things. An *empty predicate* such as =todo:= means any value, which for =todo:= is every non-terminal keyword and for =level:= is every heading. A *bare word* has no predicate at all and is a full-text search. One predicate failed: =blocked:= errors with "Buffer is read-only" when =TODO.org='s buffer is read-only, filed on its own. So the proposal narrows to teaching the language in the description, not widening the surface.
-
 
 
 * REVIEW apply-detect reports an apply when the review pass only dismissed events :code:
@@ -7519,7 +7580,7 @@ Planned:
   - [X] [[id:490e6737-b977-47a7-abd7-b0dad1684093][490e6737]] DONE An id that arrives by transcription was never chosen, so care cannot catch it
   - [ ] [[id:13aed7ca-1fad-4e89-bbca-9355f5c76265][13aed7ca]] TODO Bulk citation owes more entries than inline pairing can absorb, so the remedy goes unused
   - [X] [[id:d88362e7-8554-4a78-b8c4-a64c442b4fcf][d88362e7]] DONE Mark a queued keyword in end matter with a trailing star, and give the star no note of its own
-  - [-] [[id:c247d8f3-9f3f-464a-b3a0-543b1bb9de4f][c247d8f3]] DOING footnote-check reads only the turn's final text block, so an id cited before a tool call is never checked
+  - [-] [[id:c247d8f3-9f3f-464a-b3a0-543b1bb9de4f][c247d8f3]] REVIEW footnote-check reads only the turn's final text block, so an id cited before a tool call is never checked
   - [X] [[id:eadb3607-aa3d-41ee-b8cc-e293cc924f26][eadb3607]] DONE A heading discussed by subject and never by id owes a citation no token scan can see
 - [ ] [[id:30d05c93-f82b-40c0-9181-d018323af49f][30d05c93]] TODO Hand-written end matter is recalled and always on screen; a footnote tool call would generate it and fold it away
 - [ ] [[id:f12f9da4-2870-45b7-8c50-ea54415c7bc6][f12f9da4]] TODO The running Emacs can be running a stale config.el and nothing says so
@@ -12477,6 +12538,8 @@ CLOCK: [2026-09-09 Wed 16:45]--[2026-09-09 Wed 16:46] =>  0:01
 - [2026-09-09 Wed 16:45]--[2026-09-09 Wed 16:46] assigned at review
 CLOCK: [2026-09-09 Wed 17:38]--[2026-09-09 Wed 17:45] =>  0:07
 - [2026-09-09 Wed 17:38]--[2026-09-09 Wed 17:45] assigned at review
+CLOCK: [2026-09-25 Fri 12:36]--[2026-09-25 Fri 12:37] =>  0:01
+- [2026-09-25 Fri 12:36]--[2026-09-25 Fri 12:37] record the reconnect sighting
 :END:
 
 *Found 2026-09-02 while diagnosing
@@ -12567,8 +12630,6 @@ sentence in the report, not a heading of its own.
 *Seen again 2026-09-25, on a manual =/mcp= reconnect of =emacs-tools=.* =*Messages*= showed "error in process filter: claude-code-ide-mcp-http-server--dispatch: peculiar error: -32601, \"Method not found\"" twice, which is this defect's signature: the dispatcher meets a method it does not implement and signals the undefined error symbol, so Emacs prints "peculiar error" instead of a JSON-RPC error reply going out. Harmless that time, since the reconnect completed and the refreshed tool list arrived. Which method the client sent was not captured. A reconnect is a cheap way to reproduce this.
 
 *The local trap is [[id:ecbbec2e-50d9-4581-9ded-15716f16c5f3][ecbbec2e]]:* this module catching =json-rpc-error= itself until the upstream fix lands, so a bad request gets its error instead of a hang. Linked 2026-09-25, when a search from this heading could not find it.
-
-
 
 
 ** TODO Unknown tool arguments are dropped silently by both dispatch paths :code:
@@ -12793,6 +12854,7 @@ call it done.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-25 Fri 12:55]--[2026-09-25 Fri 13:10] =>  0:15
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
@@ -14140,4 +14202,21 @@ CLOCK: [2026-09-24 Thu 18:27]--[2026-09-24 Thu 18:28] =>  0:01
 - [2026-09-24 Thu 18:27]--[2026-09-24 Thu 18:28] assigned at review
 CLOCK: [2026-09-24 Thu 22:31]--[2026-09-24 Thu 22:34] =>  0:03
 - [2026-09-24 Thu 22:31]--[2026-09-24 Thu 22:34] set up the unattended overnight run
+:END:
+
+
+**** 2026-09-25 Friday
+:PROPERTIES:
+:ID:       995802fe-c487-45e5-adb0-813993ed89cc
+:CREATED:  [2026-09-25 Fri 10:38]
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-25 Fri 10:38]--[2026-09-25 Fri 10:41] =>  0:03
+- [2026-09-25 Fri 10:38]--[2026-09-25 Fri 10:41] assigned at review
+CLOCK: [2026-09-25 Fri 10:41]--[2026-09-25 Fri 10:42] =>  0:01
+- [2026-09-25 Fri 10:41]--[2026-09-25 Fri 10:42] file an audit of misses nobody caught
+CLOCK: [2026-09-25 Fri 12:33]--[2026-09-25 Fri 12:36] =>  0:03
+- [2026-09-25 Fri 12:33]--[2026-09-25 Fri 12:36] assigned at review
+CLOCK: [2026-09-25 Fri 12:48]--[2026-09-25 Fri 12:49] =>  0:01
+- [2026-09-25 Fri 12:48]--[2026-09-25 Fri 12:49] assigned at review
 :END:
