@@ -1157,6 +1157,11 @@ Hook-backed (footnote-check, rule =footnote=), but the hook reads only a turn's 
   ("Nomination scopes are independent: …") instead of the looked-up one.
   Self-caught on the next lookup.
 
+- 2026-09-24: 0eaffc39's title recalled in the same response as the
+  878d2cf5 correction ("… at point and under the mouse"); the hook
+  flagged only the missing 8a2eb687, not the wrong title. Self-caught.
+
+
 
 
 
