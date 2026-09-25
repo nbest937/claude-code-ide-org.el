@@ -4999,32 +4999,37 @@ cannot repeat them."
      (t
       (condition-case err
           (org-with-point-at marker
-                             (org-back-to-heading t)
-                             (let* ((level (org-current-level))
-                                    (state (or parent-state (org-get-todo-state)))
-                                    (category (claude-code-ide-org--outline-category))
-                                    (line (concat (make-string level ?*) " "
-                                                  (if state (concat state " ") "")
-                                                  parent-title " [/]\n")))
-                               (beginning-of-line)
-                               (insert line)
-                               ;; Point is now on the child's heading; demote it under the
-                               ;; parent just inserted.
-                               (org-demote-subtree)
-                               ;; Back up to the new parent and give it its identity.
-                               (org-back-to-heading t)
-                               (org-up-heading-safe)
-                               (let ((parent-id (org-id-get-create)))
-                                 (org-entry-put (point) "CREATED"
-                                                (format-time-string "[%Y-%m-%d %a %H:%M]"))
-                                 (when category (org-entry-put (point) "CATEGORY" category))
-                                 (org-update-statistics-cookies nil)
-                                 (save-buffer)
-                                 (format "Divided: new parent \"%s\" (:ID: %s) now holds \"%s\"; \
+            (org-back-to-heading t)
+            (let* ((level (org-current-level))
+                   (state (or parent-state (org-get-todo-state)))
+                   (category (claude-code-ide-org--outline-category))
+                   ;; No cookie here: `--ensure-statistics-cookie-at-point'
+                   ;; owns placement, after the keyword, and this was
+                   ;; the one inserter still writing a trailing one
+                   ;; (TODO.org :ID: 492a1a30).
+                   (line (concat (make-string level ?*) " "
+                                 (if state (concat state " ") "")
+                                 parent-title "\n")))
+              (beginning-of-line)
+              (insert line)
+              ;; Point is now on the child's heading; demote it under the
+              ;; parent just inserted.
+              (org-demote-subtree)
+              ;; Back up to the new parent and give it its identity.
+              (org-back-to-heading t)
+              (org-up-heading-safe)
+              (let ((parent-id (org-id-get-create)))
+                (org-entry-put (point) "CREATED"
+                               (format-time-string "[%Y-%m-%d %a %H:%M]"))
+                (when category (org-entry-put (point) "CATEGORY" category))
+                (claude-code-ide-org--ensure-statistics-cookie-at-point)
+                (org-update-statistics-cookies nil)
+                (save-buffer)
+                (format "Divided: new parent \"%s\" (:ID: %s) now holds \"%s\"; \
 its id, clock and history stayed with the child"
-                                         parent-title parent-id
-                                         (save-excursion (org-goto-first-child)
-                                                         (org-get-heading t t t t))))))
+                        parent-title parent-id
+                        (save-excursion (org-goto-first-child)
+                                        (org-get-heading t t t t))))))
         (error (format "Error: %s" (error-message-string err))))))))
 
 (defconst claude-code-ide-org--property-tool-refused '("ID" "CREATED")

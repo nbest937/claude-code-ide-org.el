@@ -14791,7 +14791,7 @@ silently disarm the user\'s guard -- which is the defect TODO.org
   (claude-code-ide-org-test--with-read-only-heading
     (should-not (string-match-p
                  "read-only" (claude-code-ide-org-divide id "Probe parent")))
-    (should (string-match-p "^\\* TODO Probe parent"
+    (should (string-match-p "^\\* TODO \\[0/1\\] Probe parent"
                             (claude-code-ide-org-test--disk-contents file)))))
 
 (ert-deftest claude-code-ide-org-test-move-sibling-survives-a-read-only-buffer ()
@@ -14896,8 +14896,10 @@ defect 3964c575 could not enforce its way out of."
     (with-current-buffer (find-file-noselect file)
       (revert-buffer t t)
       (goto-char (point-min))
-      ;; The parent sits where the child used to, at level 1.
-      (should (re-search-forward "^\\* TODO A story now \\[0/1\\]$" nil t))
+      ;; The parent sits where the child used to, at level 1, its cookie
+      ;; after the keyword where a narrow window still shows it
+      ;; (TODO.org :ID: 492a1a30) -- this line pinned the trailing form.
+      (should (re-search-forward "^\\* TODO \\[0/1\\] A story now$" nil t))
       (let ((parent-end (save-excursion (org-end-of-subtree t t))))
         (org-back-to-heading t)
         (should (org-entry-get nil "ID"))
@@ -14915,6 +14917,18 @@ defect 3964c575 could not enforce its way out of."
         (should (equal "TODO" (org-get-todo-state)))
         (let ((child (buffer-substring-no-properties (point) parent-end)))
           (should (string-match-p "CLOCK: \\[2026-08-01 Sat 09:00\\]" child)))))))
+
+(ert-deftest claude-code-ide-org-test-divide-places-the-cookie-on-a-keywordless-parent ()
+  "A keyword-less child divides into a keyword-less parent whose cookie
+leads the title, through the one helper that owns cookie placement
+(TODO.org :ID: 492a1a30)."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org--at-id
+     id (lambda () (let ((org-inhibit-logging t)) (org-todo 'none)) (save-buffer)))
+    (should (string-prefix-p "Divided:" (claude-code-ide-org-divide id "A note now")))
+    (let ((disk (claude-code-ide-org-test--disk-contents file)))
+      (should (string-match-p "^\\* \\[0/0\\] A note now$" disk))
+      (should-not (string-match-p "A note now \\[" disk)))))
 
 (ert-deftest claude-code-ide-org-test-set-property-writes-and-refuses ()
   "`org_set_property' fills the gap that made the discouraged form cheaper.
