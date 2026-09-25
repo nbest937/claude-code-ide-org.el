@@ -918,41 +918,6 @@ pattern had repeated.
 :CATEGORY: Tools
 :END:
 :PLAN:
-Bounded. Every structural writer refuses on unsaved edits in any file
-it will write, through one helper, and a table-driven test forces each
-new tool to choose.
-
-*The sweep, 2026-09-24.*
-- Queue on unsaved edits: =org_capture=, =org_amend=.
-- Refuse: =org_set_property=, =org_slice_add_member=.
-- Save over them unchecked: =org_wrap_plan=, =org_archive=,
-  =org_refile=, =org_divide=, =org_sort_children=, =org_move_sibling=,
-  and =claude-code-ide-org-close-open-interval= (not an MCP tool).
-
-*Why not inside =--at-id-writable=.* =org_divide=, =org_refile=,
-=org_set_property= and =org_slice_add_member= do not route through it,
-and =org_archive= and =org_refile= also write a second file (the archive
-or refile target) that it cannot see.
-
-*Mechanism.*
-1. =claude-code-ide-org--busy-refusal= takes every file the caller will
-   write and returns the existing message ("<file> has unsaved changes
-   in Emacs; retry once it is saved") for the first busy one, else
-   =nil=. It wraps =--file-busy-p=, which stays advisory, as its
-   docstring says.
-2. Each writer listed above calls it before any mutation, passing the
-   destination file too where there is one. =org_set_property= and
-   =org_slice_add_member= switch to it, so the wording is one.
-3. Refuse, not queue: these are structural writes. =org_amend= and
-   =org_capture= keep queueing.
-
-*Test (ERT), which is the "one place".* A table classes every
-registered =org_*= tool as read-only, queued, conditional or
-structural; a registered tool missing from the table fails. For each
-structural tool: make the buffer dirty (and the destination buffer, in
-a second case for archive and refile), call the tool, and assert a
-refusal and an unchanged file on disk. Prove it discriminates by
-removing the call from one tool.
 :END:
 
 Six structural writers save a buffer holding the human's unsaved edits,
@@ -1599,22 +1564,6 @@ CLOCK: [2026-09-23 Wed 21:16]--[2026-09-23 Wed 21:17] =>  0:01
 - [2026-09-23 Wed 21:16]--[2026-09-23 Wed 21:17] assigned at review
 :END:
 :PLAN:
-*The design, approved 2026-09-23 (the user), brainstormed on the bounded path.* One runner, =bin/test-all=, runs every suite and demands positive evidence from each, and pre-push calls it. Pre-push rather than pre-commit (the user, 2026-09-21): a full run measured 41 s that day (24 s shell, 17 s ERT), which is tolerable per push and too heavy per commit, since most commits here are bookkeeping that touches only =TODO.org=. It is a separate script rather than a =--all= flag on =bin/test=, and =next-session.md= does not name it: pre-push already runs it on every push that matters, and a second copy there would drift.
-
-*The runner.* =bin/test-all= runs =bin/test= (ERT), then every =bin/*-test= found by glob, not from a list. The original failure was suites nobody remembered, and a list would reintroduce that for every new suite. The suites run one at a time. Each runs with =CLAUDE_CODE_SESSION_ID= unset and =CLAUDE_ORG_QUEUE_DIR= pointed at a temporary directory, on top of each suite's own isolation, so a suite's provoked refusals cannot reach the real queue (the 2026-09-21 incident). It prints one line per suite (name, counts, seconds) and a total, and a failing suite's full output.
-
-*Positive evidence, never silence* (the user, 2026-09-23, choosing it over trusting exit codes). Every shell suite ends with the line =<suite>: N passed, M failed= and exits =$((M > 0))=. A suite passes only with that line present, N > 0, M = 0 and exit 0; a missing line fails. For ERT the runner parses =Ran N tests, … 0 unexpected=. About 18 suites change to the standard line. That also removes a latent silent pass: six suites (=apply-detect=, =check-conventions=, =doc-sync-check=, =prepare-commit-msg=, =queue-append=, =sync-plans=) end with =exit "$count"=, which wraps to 0 at 256 failures.
-
-*Hermetic suites* (the user, 2026-09-23).
-- =queue-append-test= reads the real =TODO.org= to find the =:MISS_RULE: uncategorised= heading. It gets its own fixture heading instead.
-- =claude-org-setup-test='s =--check= cases leave =DOOMDIR= unset, so =--check= also judges the user's real =~/.config/doom=: the glue's content, the =load!= stub in =config.el=, and the absence of the old 202 override. Any change to what =--glue= generates would then turn the suite red on the user's machine until =--glue= is re-run, and pre-push would block the very push carrying the change. A machine with no Doom config skips those checks and passes without testing anything. So =DOOMDIR= points at a scratch directory holding a freshly rendered glue and the stub, and one case is added for each of the three drift conditions. (=c562b69a= would remove the glue's drift at its source.)
-- The runner fails statically on any suite that refers to =$repo_root/TODO.org=, =$repo_root/DONE.org=, =~/.config/doom= or =$HOME/.config=, so this cannot come back unnoticed.
-
-*Pre-push skips org-only pushes* (the user, 2026-09-23). If every path in the pushed range is =TODO.org=, =DONE.org= or under =plans/=, the hook prints that the suites were skipped, and why, and runs none. That is safe only because the suites are hermetic, which is why hermeticity is part of this heading. Any other push runs =bin/test-all= and is refused on failure. =--no-verify= remains the escape.
-
-*Testing.* =bin/test-all-test=, with fake suites in a scratch =bin/=: pass; fail; exit 0 with no final line; =0 passed=; 256 failures; a suite reading the real =TODO.org=. =bin/pre-push-test= gains an org-only range, a mixed range, and a failing suite that blocks the push. =claude-org-setup-test= gains the three drift cases. Each fix is shown to fail against HEAD's version. Then one live =bin/test-all= on the real tree, reporting its totals and time.
-
-Files: =bin/test-all= and =bin/test-all-test= (new), =.githooks/pre-push=, about 18 =bin/*-test= files including =queue-append-test= and =claude-org-setup-test=.
 :END:
 
 =bin/test= runs only the ERT suite. Nothing runs the 21 shell =bin/*-test= suites, so one can stay red through a merge with nobody seeing. Designed 2026-09-23 on the bounded path: =bin/test-all= requires a standard final line from every suite, and pre-push runs it on any push that is not org-only.
@@ -2814,28 +2763,6 @@ Shipped in the canonical reference and promoted; check-conventions 32 ok, footno
   its measurement informs 490e6737 and the division's verdict
 :END:
 :PLAN:
-*The design, approved 2026-09-24 (the user), on the bounded path it stepped up to from a spike.* Divided out of =2a6a1355= on 2026-09-21: the Stop hook sees only =last_assistant_message=, the turn's final text block, so an id cited in a text block before a tool call is never checked. The spike measured whether that happens before building anything (=7771fc63='s standing argument), and it does. The count is in the body.
-
-*Two sources, because the transcript lags.* The hook's header records that Claude Code writes the transcript asynchronously, so the *final* block may not be on disk when Stop fires. Blocks written before a tool call are safely flushed, because the tool call came after them. So:
-- The final block still comes from =last_assistant_message=, and end matter is read only from it, as today.
-- The earlier blocks come from =transcript_path=: every assistant text block since the segment's start, which is the last user prompt or the previous =end_turn= message. If the transcript already holds the final message, it is recognised by matching =last_assistant_message=, so it neither starts a new segment nor is counted twice.
-- Ids are collected from every block, with fences stripped block by block, and checked against the final block's end matter and same-line pairings under the rules the hook already applies.
-
-*Cost and robustness.* The transcript is read from its end, in a window that grows until it reaches the segment's start, never whole. Parsing is =jq=, and the hook stays plain shell, as the queue hooks must survive a stopped Emacs. With no =transcript_path=, or one that cannot be read, the hook behaves exactly as today. The loop guard, the demand sentinel and the three-block bound are unchanged. Transcript pruning (=4acd8ad0=) does not bite, because the current turn's transcript exists by construction.
-
-*Testing*, in =bin/footnote-check-test=, each against a fixture transcript:
-- an id in an earlier block, absent from the end matter, blocks;
-- the same id footnoted passes;
-- an id inside an earlier block's code fence is ignored;
-- blocks from before the previous =end_turn= are ignored;
-- a final message not yet in the transcript is still scanned from the payload;
-- no transcript gives today's behaviour.
-
-Each is shown to fail against HEAD's hook. Then the spike's probe is re-run against the new hook: the 107 caught segments should fall to the 3 known end-matter false positives.
-
-*Docs.* The "What enforces it" section of =skills/org/references/org-footnote-citations.md=, which says the hook "carries only the turn's final text block", is updated and re-promoted with =bin/claude-org-setup=.
-
-Files: =bin/hooks/footnote-check=, =bin/footnote-check-test=, and that reference.
 :END:
 
 =footnote-check= reads =last_assistant_message=, only the turn's final text block, so footnote debt in any earlier block passes unseen. The 2026-09-24 spike measured that it happens, so this stepped up to bounded: the hook will also read the segment's earlier text blocks from =transcript_path=.
