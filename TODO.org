@@ -2,6 +2,15 @@
 #+TAGS: analysis bug code comms prose research review spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO A live reload that changes a tool's description registers it a second time beside the stale one :code:bug:
+:PROPERTIES:
+:ID:       94fe3c57-89f6-4d17-943e-0cb6145f3419
+:CREATED:  [2026-09-25 Fri 16:46]
+:CATEGORY: Tools
+:END:
+
+Measured 2026-09-25 after a live =load-file= of =config.el=: =claude-code-ide-mcp-server-tools= held 27 entries for 24 distinct names, with =org_query= three times and =org_slice_add_member= twice. Each duplicate followed a reload that changed that tool's description the same day (=37bca83a=, =5acca91b= and =7ee3b71a=), so =claude-code-ide-make-tool= evidently deduplicates by whole spec, not by name. Every entry names the same function symbol, so a call runs the new code. What goes stale is what the client is shown: two descriptions and two argument lists for one name, one of them outdated. Proposed: find where upstream's registration compares specs. If it is upstream, the fix is to replace by name there, or here to remove a name's entries before registering it. Either way, a test that reloads twice with a changed description and counts the entries.
+
 * TODO A running slice receives meta-work time, reversing the rule that a slice is never clocked :prose:
 :PROPERTIES:
 :ID:       f3833fb7-8137-4406-824c-8d18e92afe34
@@ -815,6 +824,9 @@ claude-code-ide-org--replace-body deletes the body region and inserts (string-tr
 - =61f05e56=, by the replace on =a00ace04= in commit [[orgit-rev:claude-code-ide-org::6122052][6122052]] (2026-09-11). That one had been invisible for two weeks: the fill pass of =496b665e= (commit [[orgit-rev:claude-code-ide-org::5880bf8][5880bf8]], 2026-09-14) treated the glued heading as prose and wrapped it across three lines, which hides it even from a line-anchored search. So a fill makes this damage worse, and the fill-on-write of =b52df20b= will do the same unless it lands after this fix or refuses a paragraph holding =* KEYWORD=.
 
 Reproduced in batch the same day: replacing the body of a heading followed by a sibling, with text lacking a trailing newline, leaves the sibling off column 0.
+
+*org-lint's own checker is not the detector, measured 2026-09-25.* =bin/lint-org= already runs org-lint's "possibly misplaced heading line", as a warning, and it reports 498 lines across the two files, nearly all prose lines opening with =*bold*=. Nobody reads a warning with that count, which is why neither glued heading was seen. The rule this heading proposes has to be narrower: a =* KEYWORD= or =** KEYWORD= token after non-blank text on the same line.
+
 
 
 * TODO [0/27] The review pass asks for judgement it cannot support, and the clock beneath it is still wrong :code:
@@ -4515,6 +4527,9 @@ option the "Proposed:" sentence above offers: membership moves to a
 that destroys the checklist costs a refresh rather than the membership. That
 sentence is superseded and is left standing only as the record of what was
 believed at discovery.
+
+*Shipped 2026-09-25*, in [[orgit-rev:claude-code-ide-org::3d09c23][3d09c23]], [[orgit-rev:claude-code-ide-org::5e6db65][5e6db65]], [[orgit-rev:claude-code-ide-org::313c1e8][313c1e8]] (the migration) and [[orgit-rev:claude-code-ide-org::c7c7904][c7c7904]]. A slice declares =:MEMBERS:=, and its checklist is rendered from it wholesale, only the contiguous list under the lead. The =:BLOCKER:= derives from the property. =org_slice_add_member= edits the property and refuses the retired =parent=. The lint errors on a slice without =:MEMBERS:=, on a declared id that does not resolve, on a member declared beside its ancestor (open slices only, since four closed ones record that as their practice), and on a checklist that disagrees with the property. Seventeen slices were migrated, not sixteen. Two open slices changed as the ruling says: [[id:de6de108-0095-40f4-8177-fdef0503c578][de6de108]] became a boxless row on 8a2eb687, which reads =[7/37]=, and two story children on 6521dd56 gained parent rows. Departures from the drawer, each for a reason found in the work: the refresh self-heals =:MEMBERS:= from a checklist; the planned-id reader keeps a drawer-bounded fallback for an undeclared slice; and an unresolvable member keeps its previous line. Verified by 772 ERT cases, three shown to fail against the code they guard, and a live refresh of the migrated corpus that changed nothing.
+
 
 
 * TODO A bookkeeping burst reads as many headings worked at once, and inflates every window it lands in :code:
