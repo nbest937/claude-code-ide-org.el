@@ -5099,6 +5099,14 @@ A targetless capture that defers, because the human has unsaved edits in the tra
 
 *Established (2026-09-24):* the session context the direct path routes by exists only during a tool call, and apply runs inside the review command, where there is none. The queue event records =cwd=, and nothing on the apply path read it.
 
+*Shipped 2026-09-25* in [[orgit-rev:claude-code-ide-org::c63dbce][c63dbce]], as the drawer designed it. One resolver takes a
+directory and maps a worktree to its main checkout. The capture item carries its
+event's cwd. Apply, the review row and the keyword lookup pass the cwd to the
+same target spec, so the row shows where apply will write. Four tests: the two
+routing cases fail against HEAD, the worktree case also fails with the mapping
+removed, and two pin unchanged behaviour. Reloaded live.
+
+
 
 * TODO org_slice_add_member cannot prepend or reorder, so declared order is append-only :code:
 :PROPERTIES:
