@@ -7058,48 +7058,6 @@ rather than nineteen.
 :DROPPED:  4acd8ad0-4d26-420b-bf84-f66ae8a9dfc5
 :END:
 :PLAN:
-Sequenced 2026-09-21 at the user's direction, and cut to the order the same day under the member-plan SOP (org conventions, "A slice's plan, and its members'"). Design and decisions live in each member's own =:PLAN:=, so read the member's drawer at its step, and where a line here and a member's drawer disagree, the member wins. Every live member was brainstormed before any step was worked, in this order, and now has a drawer (the user, 2026-09-23 and 2026-09-24). This plan was rewritten on 2026-09-24 after a read of every member's drawer against it.
-
-*The slice's sentence decides the order: everything passed and the file was still wrong.* The gate comes first. Then the tools a session uses daily that answer wrongly while looking right, since each is small and each lies every day. Then the checks that do not catch, and the region nobody owns. Then the places where two copies of the truth diverge. The outage and the unknown come last, because both open with work that must precede a fix.
-
-*Prediction, so the 2026-10-12 number is not misread:* turning silent failures into loud refusals *raises* the counted miss rate. A rise in these rules during this slice is the slice working.
-
-1. /The gate./
-   - =94e6b615=: every other step is verified by it. Its setup suite runs against a scratch =DOOMDIR= and adds no glue drift cases, since =c562b69a= removes the generated glue.
-2. /Tools that answer wrongly and look right./ Small, each with a test, except =eddee10f=, the one arch member here.
-   - =37bca83a=: already DOING.
-   - =5acca91b=: closes with =37bca83a='s description rewrite, since =blocked:= already works and was only untaught.
-   - =60d6ab6e=: one refusal helper for every structural writer on unsaved edits, seven today, and one table classing every tool, shared with =25e7b083='s registry test. It comes this early so that =da6a2fba='s =org_set_tags= and =8ddd7fa8='s guard call the helper from the start.
-   - =25e7b083=: the silent sites first; extends the shared tool table.
-   - =406d78da=, then =b09d8090=, then =eddee10f=, then =9bc8fc8c=: the rendered session. The picker first, since nothing helps a reader who cannot reach the render; =406d78da= opens with whether =~/.claude/org-renders/= is ever pruned, settled before building. Then the harness's summaries of narration, rendered as =:summary:= sub-headings through =--turn-reader-view=, which =c247d8f3= and =30d05c93= reuse. Then live follow, whose single turn renderer then includes narration. Then ids footnoted with their keyword and title as of the render. The live lookup is =0eaffc39=, outside this slice.
-   - =57f37f0e=
-   - =492a1a30=
-   - =da6a2fba=: a tool to change an existing heading's tags. Once it lands, apply the path tags this sweep recorded, read from the first line of each member's drawer, before the next step; =60ed5b96= waits on that.
-   - =60ed5b96=
-   - =7b4f4f14=
-3. /Checks that do not catch, and a region nobody owns./
-   - =39039bb6=
-   - =de6de108=: committed to close in this slice, and the user judged its division right (2026-09-24). Its children ran in this order, because the answers informed that verdict: =c247d8f3= (a measurement, now a bounded fix that builds the elisp footnote scanner on =--turn-reader-view= and turns =footnote-check= into a stub that stands aside in an outage), =eadb3607= (closed on its measurement), =490e6737= (closed on the user's decision), and =13aed7ca= (rules text and a lookup procedure).
-   - =30d05c93=: the =org_footnotes= tool and its =PreToolUse= hook on =c247d8f3='s scanner, called before the reply, so end matter arrives folded and generated. It revises =13aed7ca='s procedure text when it lands.
-   - =7ee3b71a=: both directions are now observed. It keeps =25e7b083='s prefix expansion when it moves the blocker's source to =:MEMBERS:=.
-   - =b52df20b=: fill on write, paragraphs only; the member-line exclusion is the region =7ee3b71a= makes identifiable.
-4. /Two copies of the truth./
-   - =2aeb65d6= first, because it gates the user's concurrent sessions. Its working-tree half is =27082893=, outside this slice.
-   - =f12f9da4=
-   - =c562b69a=: the glue moves into the module; it follows =f12f9da4=, whose stamp stays the last form in =config.el=.
-   - =8ddd7fa8=: its refusal of a buffer both stale and modified calls =60d6ab6e='s helper.
-   - =5e731a23=
-   - =965f94eb=
-   - =53b0047d=: bounded, measured 2026-09-24; repair a running clock's markers after a revert, not gated on time tracking.
-5. /The outage and the unknown./
-   - =3ad389be=, then =7fa68d5c=: the =tool-failure= hook, then the capture-only outage route into the existing capture contract, after =5e731a23='s routing.
-   - =381ea07d=: last of all, after every other member (the user, 2026-09-24): the replay pins =config.el= to the incident's commit. A mechanism it finds is filed, not fixed here.
-
-*Three members share =--review-apply-capture=:* =b52df20b=, =5e731a23= and =7fa68d5c=, in that order. *Four designs lean on the =dd4b9a9f= story* (=org_edit=, outside the slice and nominated): =7ee3b71a=, =7fa68d5c=, =b52df20b= and =60d6ab6e='s neighbour =c35087d8=. If it lands during the slice, re-read those drawers.
-
-*Not sequenced:* =4acd8ad0=, dropped. Its =:DROPPED:= entry was a prefix the refresh ignored until it was rewritten as a full id on 2026-09-21. =2a6a1355= moved into =de6de108= and is DONE.
-
-*Where it stops.* The slice closes when its pull request merges. Measure members, elapsed days and review findings per member, and the miss rate for the rules it touches, read against the prediction.
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-16 Wed 06:45] \\
