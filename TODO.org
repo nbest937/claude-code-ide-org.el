@@ -1689,6 +1689,13 @@ comments do not delimit what they name. The heading now has two children,
 the re-homing that carries all the judgement and the cut that is mechanical
 once it lands.
 
+*The auto clock-in ignores =time_tracking=* (2026-09-24, the 53b0047d
+spike). =--trigger-auto-clock-in= is gated only on
+=claude-code-ide-org-auto-clock-in-on-doing=, which defaults to =t=, so a
+hand transition to =DOING= opens a real org clock in an install where
+time tracking is off.
+
+
 
 ** NEXT Re-home config.el's misfiled symbols until nothing task-side reaches into the time sections :code:
 :PROPERTIES:
@@ -11476,133 +11483,32 @@ alone. Prove the repair case fails with the hook removed.
 :END:
 [[file:~/.claude/plans/clock-marker-desync-guard.md][Plan]]
 
-Captured 2026-08-04, hit live during this session's TODO.org commit-
-splitting work: writing TODO.org's content directly via =git
-hash-object=/=update-index= (bypassing Emacs) and relying on
-=global-auto-revert-mode= to pick up the change desynced Emacs's
-*in-memory* clock state from the file text. =org-clock-marker= kept
-pointing at its old raw character offset, which after the rewrite
-landed on an unrelated =:SESSIONS:= line instead of the =CLOCK:= line
-— =org_clock_out= then failed outright with "Clock start time is
-gone", and the statusline (which reads live =org-clocking-p=/
-=org-clock-marker= state, not the file text — see
-=claude-code-ide-org--statusline-task-string=) kept showing "clocked
-in" even after a text-level recovery via
-=claude-code-ide-org-close-open-interval= had already closed the
-=CLOCK:= line on disk.
+A running org clock keeps its place as a marker. When the file under a
+live buffer is rewritten on disk and auto-revert reloads it, a change
+spanning the marker moves it off its =CLOCK:= line, and =org-clock-out=
+then fails with "Clock start time is gone". The history of incidents
+from 2026-08-04 to 2026-09-08 is in git and the linked plan file.
 
-Worked around manually this time: reset
-=org-clock-marker=/=org-clock-hd-marker=/=org-clock-start-time=
-directly via =emacsclient=, then called
-=claude-code-ide-org--clock-status-hook-out= by hand since normal
-=org-clock-out= never got far enough to fire it. The existing "Stale
-interval recovery" design (CLAUDE.md) only repairs the *text* side of
-a stale interval (crash/shutdown case, where Emacs's own in-memory
-state is simply gone after a restart) — it has no equivalent for *this*
-case, where Emacs is still running but its live clock state has gone
-stale relative to a file it didn't itself edit. Whether the real fix
-is "never write live org files outside Emacs, full stop" (a
-process/discipline fix, not code) or something more automatic (e.g.
-detecting the marker/text mismatch and self-healing) is a question for
-planning.
+Established by a spike on 2026-09-24, in batch Emacs 29.4 with the live
+config's revert function (=revert-buffer-insert-file-contents--default-function=,
+=global-auto-revert-mode= on):
+- Lines inserted above the heading, or between the heading and its
+  =CLOCK:=, leave the marker correct.
+- Changes both above and below it move the marker to the start of the
+  changed region: on a different heading, with clock-out failing. That
+  is the shape of a branch switch, =checkout= or =stash=.
+- Only a running clock is exposed. What starts one now is the auto
+  clock-in on a hand transition to =DOING=, which is not gated on
+  =time_tracking= (noted on a7f844ba), and a deliberate =C-c C-x C-i=.
+  Apply suppresses the auto clock-in.
 
-*Second, distinct incident, 2026-08-05*: on
-[[id:4cda6bf7-441b-47b2-b3d5-b8c7e7a207a5][Show the TODO keyword, not just
-clocked in/out, in the statusline]], after a cross-session clock resume (see the
-=d150c02e= sibling below) followed by a proper =org_clock_out=, the =:LOGBOOK:=
-briefly contained a genuinely malformed line — bare =CLOCK:= with *no* timestamp
-at all — sitting between two valid entries, before
-=claude-code-ide-org-consolidate-history= rebuilt the drawer and it disappeared
-(the arithmetic of what remained checks out, so nothing was silently lost, but
-*why* a timestamp-less =CLOCK:= line got written in the first place is
-unconfirmed — a race between two near-simultaneous writers to the same drawer is
-the working hypothesis, not proven). A second, structurally different way the
-same "shared mutable file" pressure can corrupt =:LOGBOOK:=, worth folding into
-whatever planning addresses this cluster.
-
-Also worth noting for whoever plans =4cda6bf7='s own fix: swapping
-=status-label= for =org-get-todo-state= *at the clock marker* is
-still marker-dependent — it inherits this exact desync mode (a stale
-TODO keyword shown instead of a stale in/out label), it doesn't
-route around it.
-
-*Kept and narrowed 2026-08-13, by the user's decision.* Reviewed against
-its two partial owners rather than as keep-or-cancel, because that is
-what it actually is: a gap between them.
-
-*What is retired.* The original =org_clock_out= failure is unreachable —
-that function opens and closes nothing since
-[[id:feba67eb-35b3-48bd-a892-8ecd47ca52e0][feba67eb]]'s cutover. So is
-the concurrent-writer =CLOCK:= corruption:
-=claude-code-ide-org-consolidate-history= has no production caller left,
-only tests.
-
-*What survives, and is the whole of this heading now.* Two surfaces,
-each only partly owned elsewhere:
-1. =--trigger-auto-clock-in= still
-   opens a real clock on *any* transition to =DOING=/=PLANNING=,
-   including a human's own =C-c C-t=. Apply suppresses it via the
-   re-entrancy guard; a hand-edit does not.
-   [[id:ab75d6d2-0e59-405d-92c6-2c67488db133][ab75d6d2]] covers
-   *container* headings only, so leaf hand-edits remain.
-2. =--statusline-task-string= still reads
-   =org-clocking-p=/=org-clock-marker=/=org-clock-history= directly.
-   [[id:290b6fc5-3ebb-4827-9a97-5a3542e354b6][290b6fc5]] is scoped to
-   the statusline's *data source*, not to marker desync generally.
-
-Cancel this and the uncovered middle belongs to nobody. The deciding
-fact against cancelling is that the desync was observed *live on
-2026-08-12*, after the cutover, and recorded on =ab75d6d2= — not a
-theoretical residue.
-
-*Newly established 2026-08-13, and it raises this heading's stakes.* Reading
-=org-clock.el= for [[id:803314aa-eda9-4d48-9e43-b3eb4802a4e8][803314aa]] found
-that =org-clock-out= signals =(error "Clock start time is gone")= exactly when
-=org-clock-marker='s line is no longer a =CLOCK:= line — i.e. precisely this
-heading's desync. That is the same error incident 1 above recorded. So this
-desync is not merely a display problem: it is the reachable trigger for apply's
-fabricated-interval bug. The two headings are one causal chain, and this one is
-upstream.
-
-*Confirmed surviving, and promoted out of =MAYBE=, 2026-08-14 by
-[[id:e51d6ba1-cc1d-4745-8aa7-e4b1183a230b][e51d6ba1]]* — the heading
-whose job was to decide whether this one is superseded. It is not, and
-three separate things now depend on it, which is more than "someday"
-can carry:
-
-1. Observed *live on 2026-08-12*, after the cutover, so it is residue of
-   nothing.
-2. It is the upstream half of the causal chain to =803314aa=, per the
-   paragraph directly above.
-3. [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]]'s decision to
-   *keep* =claude-code-ide-org-close-open-interval= rests explicitly on
-   this heading — a shipped decision now cites it as a reason.
-
-*Bit again 2026-09-08, in the milder form this heading predicts, and
-the recovery is worth recording.* A session wrote a slice member line
-and cookie bump straight to =TODO.org= with a text edit — no MCP tool
-adds a member ([[id:635d5abb-207d-445d-b268-bc031bdd592a][635d5abb]]) —
-while a human review pass had just written a CLOCK line and its
-annotation into the live buffer, unsaved. Result: buffer and disk each
-held unique content, so =revert-buffer= would have destroyed the clock
-and =C-x C-s= the slice edit.
-
-*No clock-marker desync this time*, because the write touched a slice's
-checklist rather than a =:LOGBOOK:= — which is the narrower hazard this
-heading names. What the incident shows is the *general* form: any
-direct write to a file with a live modified buffer creates a divergence
-whose resolution is manual.
-
-*Recovery, for the next time:* dump the buffer
-(=write-region= to a scratch path), =diff= it against disk to see which
-side holds what, apply the disk-only edits *into* the buffer via
-=emacsclient=, verify the buffer is now a strict superset, and let the
-human save. Note the last step cannot be automated — =save-buffer= on a
-buffer whose file changed on disk prompts "Save anyway?", and a
-non-interactive =emacsclient -e= hangs on it, exactly as CLAUDE.md
-warns about =@=-cookie keywords. Measured: the call blocked until
-timeout while Emacs stayed healthy.
-
+Ruled out:
+- Prevention as this heading's fix: ec1e6839 owns the guard on direct
+  writes, and git replacing the file is outside any tool guard.
+  79c224ab owns git discarding working-tree changes.
+- The statusline surface: it reads the queue first since 290b6fc5.
+- The concurrent-writer corruption and the original =org_clock_out=
+  failure, both retired at the 2026-08-11 cutover.
 
 * TODO Org skill: commit a newly-captured TODO immediately, when safe :code:
 :PROPERTIES:
