@@ -11433,6 +11433,43 @@ but =claude -p= asynchronously.
 :ID:       53b0047d-c55c-486c-8eed-ba4994d97a1a
 :CREATED:  [2026-08-04 Tue 18:27]
 :END:
+:PLAN:
+Bounded. Repair a running clock's markers after a revert; do not try
+to prevent the write.
+
+*Why repair, not prevention.* Prevention of direct writes belongs to
+ec1e6839 (a =PreToolUse= guard on Edit/Write to tracked org files), and
+no such guard can see =git checkout=, =switch=, =stash= or =rebase=
+replacing the file. That is the one shape measured to desync the
+marker, so what is left for this heading is recovery.
+
+*Mechanism.*
+1. On =org-clock-in-hook=, record the clocked heading's =:ID:= in a
+   variable (=nil= when it has none), and clear it on
+   =org-clock-out-hook= and =org-clock-cancel-hook=.
+2. On =after-revert-hook= in a tracked buffer, when =org-clocking-p=
+   and =org-clock-marker= is in this buffer: if the marker's line is
+   still a =CLOCK:= line with no end timestamp, do nothing.
+3. Otherwise resolve the recorded =:ID:= in the buffer, find under it
+   the open =CLOCK:= line whose start equals =org-clock-start-time= to
+   the minute, and move =org-clock-marker= to it and
+   =org-clock-hd-marker= to the heading.
+4. If there is no recorded id, the id no longer resolves in this
+   buffer, or no open =CLOCK:= line matches, leave the markers alone
+   and =display-warning= naming the heading title and the start time.
+   Never guess a line.
+
+*Scope.* Tracked buffers only, the same consent test the auto clock-in
+uses. It is not gated on =time_tracking=: a live org clock can exist
+either way, which is the gap noted on a7f844ba.
+
+*Tests (ERT).* The probe's four cases, run against a scratch file:
+lines inserted above the heading; a line inserted between the heading
+and its =CLOCK:=; changes both above and below, which moves the marker
+and must now be repaired and let =org-clock-out= succeed; and the
+clocked heading deleted on disk, which must warn and leave the markers
+alone. Prove the repair case fails with the hook removed.
+:END:
 :LOGBOOK:
 - State "TODO"       from "MAYBE"      [2026-08-14 Fri 13:51] \\
   confirmed surviving; three dependents
