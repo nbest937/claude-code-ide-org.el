@@ -10360,6 +10360,16 @@ Observed 2026-08-19: an apply pass refused [[id:b07df584-3adc-433c-ab49-e104f88a
 - The live index held five files. One was another session's scratch file (=tagtest.org=), registered because a test opened it in the live Emacs. A rescan re-adds any file that is indexed or open, so such a file leaves the index only once its buffer is killed *and* the file deleted, at the next rescan. Test in batch Emacs, or kill the buffer and delete the file before the session ends.
 - =agentic-euchre='s two tracked files were not in the index, so a first lookup of one of their ids pays a full rescan. Whether their headings carry ids at all was not checked.
 
+*Shipped 2026-09-25* in [[orgit-rev:claude-code-ide-org::87878d2][87878d2]], as the drawer designed it. =--id-find= reverts
+an unmodified stale buffer before any lookup, and refuses one that is stale and
+modified when it holds the id, using [[id:60d6ab6e-a898-4894-82be-9f6086daf62d][60d6ab6e]]'s wording plus the reason. A
+not-found error names the files scanned. Three tests, each with its own id index
+and each failing against HEAD. The hand move is pinned, including the case HEAD
+got wrong: resolving to the old location through the stale buffer. The image
+check caught its own reload at commit: it warned the live image was stale and
+named the two new functions it lacked.
+
+
 
 * TODO Applied review changes can be destroyed by a git checkout that looks like it reverts only Claude's edit :code:
 :PROPERTIES:
