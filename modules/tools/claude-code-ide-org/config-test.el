@@ -18443,3 +18443,261 @@ opens this repo's TODO.org via `--review-attention-target'."
                 (kill-buffer)))))
       (delete-directory mine t)
       (delete-directory other t))))
+
+;;; Footnote check: the Stop hook's scanner (TODO.org :ID: c247d8f3) -----------
+
+(defconst claude-code-ide-org-test--footnote-org
+  "#+TODO: TODO NEXT DOING REVIEW WAITING | DONE CANCELLED
+
+* TODO First heading
+:PROPERTIES:
+:ID:       aaaa1111-0000-4000-8000-000000000001
+:END:
+A body quoting another id as if it were a property:
+:ID:       cccc3333-0000-4000-8000-000000000003
+
+* DONE [2/2] A slice with a cookie :code:
+:PROPERTIES:
+:ID:       bbbb2222-0000-4000-8000-000000000002
+:END:
+
+* --leading-dash title
+:PROPERTIES:
+:ID:       12345678-0000-4000-8000-000000000004
+:END:
+"
+  "Three headings: a TODO, a DONE with a cookie and a tag, and a
+keywordless one whose all-digit id and dash-leading title were each a
+past bug.  The first body quotes an `:ID:' line that defines nothing.")
+
+(defmacro claude-code-ide-org-test--with-footnote-fixture (entries &rest body)
+  "Run BODY with `files' the fixture's org files and `transcript' ENTRIES.
+A second org file defining dddd4444 is written beside them and bound as
+`other' but left out of `files', the way another project's file is."
+  (declare (indent 1))
+  `(let* ((dir (file-name-as-directory (make-temp-file "cciorg-fn" t)))
+          (todo (expand-file-name "TODO.org" dir))
+          (other (expand-file-name "OTHER.org" dir))
+          (transcript (expand-file-name "t.jsonl" dir))
+          (files (list todo)))
+     (unwind-protect
+         (progn
+           (with-temp-file todo (insert claude-code-ide-org-test--footnote-org))
+           (with-temp-file other
+             (insert "* TODO Elsewhere\n:PROPERTIES:\n"
+                     ":ID:       dddd4444-0000-4000-8000-000000000005\n:END:\n"))
+           (with-temp-file transcript
+             (dolist (entry ,entries) (insert (json-encode entry) "\n")))
+           ,@body)
+       (delete-directory dir t))))
+
+(defun claude-code-ide-org-test--reply (id reason &rest blocks)
+  "An assistant transcript line of message ID, stopped for REASON, with BLOCKS."
+  `((type . "assistant") (timestamp . "2026-09-25T10:00:01.000Z")
+    (message . ((role . "assistant") (id . ,id) (stop_reason . ,reason)
+                (content . ,(vconcat blocks))))))
+
+(defun claude-code-ide-org-test--hook-feedback ()
+  "The `isMeta' user line a blocking Stop hook's reason arrives as."
+  '((type . "user") (isMeta . t) (timestamp . "2026-09-25T10:00:02.000Z")
+    (message . ((role . "user") (content . "Stop hook feedback: ...")))))
+
+(defun claude-code-ide-org-test--say (text)
+  "A text content block."
+  `((type . "text") (text . ,text)))
+
+(defmacro claude-code-ide-org-test--footnote-owed-ids (message)
+  "The ids `--footnote-owed' reports for MESSAGE in the current fixture.
+A macro so it sees the fixture's lexical `transcript' and `files'."
+  `(mapcar #'car (claude-code-ide-org--footnote-owed ,message transcript files)))
+
+(ert-deftest claude-code-ide-org-test-turn-reader-view-marks-where-a-reply-ended ()
+  "A reply that ended -- here blocked by a Stop hook and answered again in
+the same turn -- is followed by (end); a pause for a tool is not, and the
+turn's close marks a reply that ended there."
+  (claude-code-ide-org-test--with-footnote-fixture
+      (list (claude-code-ide-org-test--prompt-entry "2026-09-25T10:00:00.000Z" "go")
+            (claude-code-ide-org-test--reply "m1" "tool_use" (claude-code-ide-org-test--say "a"))
+            (claude-code-ide-org-test--reply "m1" "tool_use"
+                                             '((type . "tool_use") (id . "t1") (name . "Bash")
+                                               (input . ((description . "x")))))
+            (claude-code-ide-org-test--reply "m2" "end_turn" (claude-code-ide-org-test--say "b"))
+            (claude-code-ide-org-test--hook-feedback)
+            (claude-code-ide-org-test--reply "m3" "end_turn" (claude-code-ide-org-test--say "c")))
+    (should (equal (plist-get (car (claude-code-ide-org--turn-reader-view transcript)) :blocks)
+                   '((text . "a") (tool . "Bash -- x") (text . "b") (end) (text . "c") (end))))))
+
+(ert-deftest claude-code-ide-org-test-footnote-earlier-block-is-owed ()
+  "An id cited in a block before a tool call, absent from the final
+block's end matter, is owed -- the whole point of reading the transcript."
+  (claude-code-ide-org-test--with-footnote-fixture
+      (list (claude-code-ide-org-test--prompt-entry "2026-09-25T10:00:00.000Z" "go")
+            (claude-code-ide-org-test--reply "m1" "tool_use"
+                                             (claude-code-ide-org-test--say "Starting on aaaa1111 now.")))
+    (should (equal (claude-code-ide-org-test--footnote-owed-ids "Done.")
+                   '("aaaa1111")))
+    (should (equal (claude-code-ide-org-test--footnote-owed-ids
+                    "Done.\n\n---\n\n`aaaa1111`  TODO      First heading")
+                   nil))))
+
+(ert-deftest claude-code-ide-org-test-footnote-earlier-fence-is-not-a-citation ()
+  (claude-code-ide-org-test--with-footnote-fixture
+      (list (claude-code-ide-org-test--prompt-entry "2026-09-25T10:00:00.000Z" "go")
+            (claude-code-ide-org-test--reply "m1" "tool_use"
+                                             (claude-code-ide-org-test--say "Output:\n```\naaaa1111\n```\n")))
+    (should-not (claude-code-ide-org-test--footnote-owed-ids "Done."))))
+
+(ert-deftest claude-code-ide-org-test-footnote-previous-reply-is-not-this-segment ()
+  "Blocks before the previous ended reply belong to the segment that
+reply closed, which its own Stop already checked."
+  (claude-code-ide-org-test--with-footnote-fixture
+      (list (claude-code-ide-org-test--prompt-entry "2026-09-25T10:00:00.000Z" "go")
+            (claude-code-ide-org-test--reply "m1" "end_turn"
+                                             (claude-code-ide-org-test--say "About aaaa1111."))
+            (claude-code-ide-org-test--hook-feedback)
+            (claude-code-ide-org-test--reply "m2" "tool_use"
+                                             (claude-code-ide-org-test--say "Now bbbb2222.")))
+    (should (equal (claude-code-ide-org-test--footnote-owed-ids "Done.")
+                   '("bbbb2222")))))
+
+(ert-deftest claude-code-ide-org-test-footnote-lagging-transcript ()
+  "The final message may not be on disk when Stop fires, and is scanned
+anyway; when it is on disk it is recognised and not taken for an earlier
+reply that ended -- which would empty the segment."
+  ;; Not yet written: only the message carries the id.
+  (claude-code-ide-org-test--with-footnote-fixture
+      (list (claude-code-ide-org-test--prompt-entry "2026-09-25T10:00:00.000Z" "go"))
+    (should (equal (claude-code-ide-org-test--footnote-owed-ids "See aaaa1111.")
+                   '("aaaa1111"))))
+  ;; Already written, and ended: the earlier block still counts.
+  (claude-code-ide-org-test--with-footnote-fixture
+      (list (claude-code-ide-org-test--prompt-entry "2026-09-25T10:00:00.000Z" "go")
+            (claude-code-ide-org-test--reply "m1" "tool_use"
+                                             (claude-code-ide-org-test--say "Starting on bbbb2222."))
+            (claude-code-ide-org-test--reply "m2" "end_turn"
+                                             (claude-code-ide-org-test--say "Done.")))
+    (should (equal (claude-code-ide-org-test--footnote-owed-ids "Done.")
+                   '("bbbb2222"))))
+  ;; A previous turn's last reply, when this turn's prompt is not on disk
+  ;; yet, is not this segment.
+  (claude-code-ide-org-test--with-footnote-fixture
+      (list (claude-code-ide-org-test--prompt-entry "2026-09-25T10:00:00.000Z" "go")
+            (claude-code-ide-org-test--reply "m1" "end_turn"
+                                             (claude-code-ide-org-test--say "Old news: bbbb2222.")))
+    (should-not (claude-code-ide-org-test--footnote-owed-ids "Fresh reply."))))
+
+(ert-deftest claude-code-ide-org-test-footnote-reads-narration ()
+  "A non-empty `thinking' entry is narration the reader saw and is
+scanned; an empty one is hidden reasoning and contributes nothing."
+  (claude-code-ide-org-test--with-footnote-fixture
+      (list (claude-code-ide-org-test--prompt-entry "2026-09-25T10:00:00.000Z" "go")
+            (claude-code-ide-org-test--reply "m1" "tool_use"
+                                             '((type . "thinking") (thinking . "Checking aaaa1111.")))
+            (claude-code-ide-org-test--reply "m1" "tool_use"
+                                             '((type . "thinking") (thinking . ""))))
+    (should (equal (claude-code-ide-org-test--footnote-owed-ids "Done.")
+                   '("aaaa1111")))))
+
+(ert-deftest claude-code-ide-org-test-footnote-resolution ()
+  "Resolution is by the heading's own property drawer, in the project's
+files only, and carries the keyword and the exact title with its cookie."
+  (claude-code-ide-org-test--with-footnote-fixture nil
+    (let ((r (claude-code-ide-org--footnote-resolve
+              '("aaaa1111" "bbbb2222" "cccc3333" "dddd4444" "12345678" "deadbeef")
+              files)))
+      (should (equal (gethash "aaaa1111" r) '("TODO" "First heading")))
+      (should (equal (gethash "bbbb2222" r) '("DONE" "[2/2] A slice with a cookie")))
+      (should (equal (gethash "12345678" r) '("-" "--leading-dash title")))
+      ;; Quoted in a body, defined nowhere.
+      (should-not (gethash "cccc3333" r))
+      ;; Defined, but in a file outside the project.
+      (should-not (gethash "dddd4444" r))
+      (should-not (gethash "deadbeef" r)))))
+
+(ert-deftest claude-code-ide-org-test-footnote-final-message-rules ()
+  "The rules the shell hook enforced on the final block, kept: fences,
+inline code, the separator, same-line discharge, and a whole-word scan."
+  (claude-code-ide-org-test--with-footnote-fixture nil
+    (should (equal (claude-code-ide-org-test--footnote-owed-ids "See aaaa1111 here.")
+                   '("aaaa1111")))
+    (should (equal (claude-code-ide-org-test--footnote-owed-ids "See `aaaa1111` here.")
+                   '("aaaa1111")))
+    (should-not (claude-code-ide-org-test--footnote-owed-ids "```org\n- aaaa1111\n```"))
+    (should-not (claude-code-ide-org-test--footnote-owed-ids "~~~\naaaa1111\n~~~"))
+    (should (equal (claude-code-ide-org-test--footnote-owed-ids
+                    "```\nx\n```\n\nSee aaaa1111.")
+                   '("aaaa1111")))
+    (should-not (claude-code-ide-org-test--footnote-owed-ids "Commit deadbeef and 20260824."))
+    ;; All digits is still an id.
+    (should (equal (claude-code-ide-org-test--footnote-owed-ids "The 12345678 call.")
+                   '("12345678")))
+    ;; One footnoted, one not: the demand is the full set missing.
+    (should (equal (claude-code-ide-org-test--footnote-owed-ids
+                    "Both 12345678 and aaaa1111.\n\n---\n\n`aaaa1111`  TODO  First heading")
+                   '("12345678")))
+    ;; End matter after a mere blank line does not exist.
+    (should (equal (claude-code-ide-org-test--footnote-owed-ids
+                    "See aaaa1111.\n\n`aaaa1111`  TODO  x")
+                   '("aaaa1111")))
+    ;; Same-line pairing discharges, including a dash-leading title...
+    (should-not (claude-code-ide-org-test--footnote-owed-ids
+                 "`12345678` --leading-dash title -- nothing further."))
+    (should-not (claude-code-ide-org-test--footnote-owed-ids
+                 "`bbbb2222` [2/2] A slice with a cookie"))
+    ;; ...but not across lines.
+    (should (equal (claude-code-ide-org-test--footnote-owed-ids
+                    "See `aaaa1111`.\nUnrelated: First heading")
+                   '("aaaa1111")))
+    ;; A full uuid's prefix is a word; a longer hex run is not.
+    (should (equal (claude-code-ide-org-test--footnote-owed-ids
+                    "aaaa1111-0000-4000-8000-000000000001")
+                   '("aaaa1111")))
+    (should-not (claude-code-ide-org-test--footnote-owed-ids "xaaaa1111 aaaa1111ff"))))
+
+(ert-deftest claude-code-ide-org-test-footnote-write-verdict ()
+  "The verdict file always has a first line, so an empty one can only
+mean the call never ran; an owed line is flush left in canonical form."
+  (claude-code-ide-org-test--with-footnote-fixture
+      (list (claude-code-ide-org-test--prompt-entry "2026-09-25T10:00:00.000Z" "go"))
+    (let* ((dir (file-name-directory todo))
+           (payload (expand-file-name "p.json" dir))
+           (out (expand-file-name "out" dir))
+           (verdict
+            (lambda (msg)
+              (with-temp-file payload
+                (insert (json-encode `((session_id . "s")
+                                       (transcript_path . ,transcript)
+                                       (last_assistant_message . ,msg)))))
+              (claude-code-ide-org-write-footnote-check payload out dir)
+              (with-temp-buffer (insert-file-contents out) (buffer-string)))))
+      (should (equal (funcall verdict "Nothing cited.") "ok\n"))
+      (should (equal (funcall verdict "See bbbb2222 and aaaa1111.")
+                     (concat "owed aaaa1111 bbbb2222\n"
+                             "`aaaa1111`  TODO      First heading\n"
+                             "`bbbb2222`  DONE      [2/2] A slice with a cookie\n")))
+      ;; No org files in the project: nothing is owed.
+      (let ((empty (make-temp-file "cciorg-empty" t)))
+        (unwind-protect
+            (progn
+              (claude-code-ide-org-write-footnote-check payload out empty)
+              (should (equal (with-temp-buffer (insert-file-contents out) (buffer-string))
+                             "ok\n")))
+          (delete-directory empty t))))))
+
+(ert-deftest claude-code-ide-org-test-transcript-last-turn-grows-its-window ()
+  "The last turn is found from a tail window, grown until it holds the
+turn's prompt -- here a turn longer than the first window."
+  (claude-code-ide-org-test--with-footnote-fixture
+      (append
+       (list (claude-code-ide-org-test--prompt-entry "2026-09-25T09:00:00.000Z" "old"))
+       (list (claude-code-ide-org-test--prompt-entry "2026-09-25T10:00:00.000Z" "new"))
+       (make-list 400 (claude-code-ide-org-test--reply
+                       "m1" "tool_use"
+                       (claude-code-ide-org-test--say (make-string 1000 ?x))))
+       (list (claude-code-ide-org-test--reply
+              "m1" "tool_use" (claude-code-ide-org-test--say "last"))))
+    (should (> (file-attribute-size (file-attributes transcript)) 262144))
+    (let ((turn (claude-code-ide-org--transcript-last-turn transcript)))
+      (should (equal (plist-get turn :prompt) "new"))
+      (should (= 401 (length (plist-get turn :blocks))))
+      (should (equal (car (last (plist-get turn :blocks))) '(text . "last"))))))

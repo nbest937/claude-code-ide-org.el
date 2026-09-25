@@ -104,23 +104,24 @@ conventions.
 
 ## What enforces it
 
-`bin/hooks/footnote-check`, wired as a `Stop` hook. It reads
-`last_assistant_message`, resolves every 8-hex candidate against the
-project's `TODO.org` and `DONE.org`, and blocks the stop when one
-resolves to a real heading and does not appear in the end matter. It
-hands back the exact lines to append, already in canonical form, so the
-convention is legible at the moment it fires.
+`bin/hooks/footnote-check`, a `Stop` hook stubbed over
+`claude-code-ide-org-write-footnote-check` in the running Emacs. It
+scans the *segment* the stop closes — the final block from
+`last_assistant_message`, plus every reader-visible block before it in
+the same reply, from `transcript_path` — resolves each 8-hex candidate
+against the project's `TODO.org` and `DONE.org`, and blocks when one is
+a real heading absent from the final block's end matter. It hands back
+the lines to append, in canonical form.
 
-**The hook emits the on-disk keyword and never a `*`, and that is
-correct** — it greps the org files and knows nothing of the queue.
-Starring a queued state is the writer's job. Do not "fix" the hook to
-read the queue; it tests whether each cited id *appears* in the end
-matter, not what keyword sits beside it.
+**It emits the on-disk keyword and never a `*`, and that is correct** —
+starring a queued state is the writer's job. Do not "fix" the hook to
+read the queue; it tests whether each id *appears*, not its keyword.
 
-**`last_assistant_message` carries only the turn's final text block**,
-not the whole turn — an id cited in an earlier block is invisible to the
-hook. That is why the rule above is the rule and this hook is a
-backstop: it can confirm a debt, never rule one out.
+**A segment is one reply** (`:ID:` c247d8f3): it starts at the prompt or
+where the previous reply ended — a blocked stop, a refusal. Narration
+summaries count; tool inputs do not. **An outage owes nothing**: with
+Emacs unreachable or slower than 3 s the stop goes through, which is why
+the rule is the rule and this hook only a backstop.
 
 Three things about its reading, each of which has been got wrong:
 
@@ -132,7 +133,7 @@ Three things about its reading, each of which has been got wrong:
   transcript — tool output, a file excerpt, a rendered checklist — not a
   citation, and is dropped before the scan.
 - **It reports a strict subset.** The hook names what it found missing
-  in that message; it is a backstop for the rule, not the rule itself.
+  in that segment; it is a backstop for the rule, not the rule itself.
 
 An id that resolves to no heading in the project's org files is not a
 citation and is ignored, so a repo with no tracked org files never sees

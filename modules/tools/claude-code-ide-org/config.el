@@ -12533,11 +12533,30 @@ about what a turn held.
 Turn boundaries come from the same shape test
 `claude-code-ide-org--transcript-prompts' uses -- user role, string
 content, not `isMeta', not a `<bash-' escape -- so the two agree by
-construction about what a prompt is."
+construction about what a prompt is.
+
+A turn is not one reply.  A Stop hook that blocks feeds its reason back
+as an `isMeta' user line, which opens no turn, and the model answers
+again inside the same one; a refusal ends a reply the same way.  So an
+\(end) block marks where a reply ended: after every message whose
+`stop_reason' is anything but `tool_use', once the next message or the
+turn's close shows it is over (TODO.org :ID: c247d8f3).  The render
+ignores it; the footnote check reads its segment from the last one."
   (with-temp-buffer
     (insert-file-contents file)
+    (claude-code-ide-org--turn-reader-view-buffer stop-at)))
+
+(defun claude-code-ide-org--turn-reader-view-buffer (&optional stop-at)
+  "Return the current buffer's transcript lines as turn plists.
+The parser behind `claude-code-ide-org--turn-reader-view', which see
+for the shape and STOP-AT.  A buffer rather than a file so a caller can
+parse a tail window of a transcript without reading the whole of it."
+  (save-excursion
     (goto-char (point-min))
-    (let (turns current stopped)
+    ;; MSG-ID is the assistant message the last line belonged to -- a
+    ;; message spans one JSONL line per content block -- and ENDED says
+    ;; its `stop_reason' ended a reply rather than paused for a tool.
+    (let (turns current stopped msg-id ended)
       (while (and (not stopped) (not (eobp)))
         (let ((line (buffer-substring-no-properties
                      (line-beginning-position) (line-end-position))))
@@ -12553,7 +12572,11 @@ construction about what a prompt is."
                    (not (alist-get 'isMeta obj))
                    (let ((c (alist-get 'content (alist-get 'message obj))))
                      (and (stringp c) (not (string-prefix-p "<bash-" c)))))
-              (when current (push (claude-code-ide-org--close-transcript-turn current) turns))
+              (when current
+                (when ended
+                  (plist-put current :blocks (cons '(end) (plist-get current :blocks))))
+                (push (claude-code-ide-org--close-transcript-turn current) turns))
+              (setq ended nil msg-id nil)
               (setq current
                     (list :time (claude-code-ide-org--parse-iso8601
                                  (alist-get 'timestamp obj))
@@ -12562,7 +12585,14 @@ construction about what a prompt is."
                           :blocks nil)))
              ;; Assistant blocks accumulate into the open turn.
              ((and (equal type "assistant") current)
-              (let ((content (alist-get 'content (alist-get 'message obj))))
+              (let* ((message (alist-get 'message obj))
+                     (content (alist-get 'content message))
+                     (id (alist-get 'id message))
+                     (reason (alist-get 'stop_reason message)))
+                (when (and ended (not (equal id msg-id)))
+                  (plist-put current :blocks (cons '(end) (plist-get current :blocks))))
+                (setq msg-id id
+                      ended (and (stringp reason) (not (equal reason "tool_use"))))
                 (when (vectorp content)
                   (seq-doseq (block content)
                     (unless stopped
@@ -12589,7 +12619,10 @@ construction about what a prompt is."
                         ;; dropped.
                         (_ nil)))))))))
           (forward-line 1)))
-      (when current (push (claude-code-ide-org--close-transcript-turn current) turns))
+      (when current
+        (when (and ended (not stopped))
+          (plist-put current :blocks (cons '(end) (plist-get current :blocks))))
+        (push (claude-code-ide-org--close-transcript-turn current) turns))
       (nreverse turns))))
 
 (defun claude-code-ide-org--close-transcript-turn (turn)
@@ -12838,6 +12871,201 @@ to a column, then the exact title with any cookie."
                      (claude-code-ide-org--render-id-entry id8 cache)))
           (insert (format "[fn:%s] [[id:%s][%s]]  %-9s %s\n"
                           id8 full id8 keyword title)))))))
+
+;;; Footnote check (the Stop hook's scanner) --------------------------------
+;;
+;; `bin/hooks/footnote-check' is a stub over this (TODO.org :ID:
+;; c247d8f3).  The hook used to read only `last_assistant_message', the
+;; turn's final text block, so an id cited in a block written before a
+;; tool call was never checked: 107 of 1,576 Stop segments measured on
+;; 2026-09-24.  Now the final block still comes from the payload -- the
+;; transcript may not hold it yet when Stop fires -- and the blocks before
+;; it come from the transcript, through the same reader the render uses.
+;; End matter is read from the final block only, as before.
+
+(defun claude-code-ide-org--transcript-last-turn (file)
+  "Return the last turn plist of transcript FILE, or nil.
+Reads a tail window, growing it fourfold until the window holds a
+prompt, since a transcript runs to megabytes and only its last turn is
+wanted.  The window's first line is dropped whenever the window starts
+mid-file: it is almost always truncated, and a truncated line that
+happened to parse would be a fragment rather than an entry."
+  (ignore-errors
+    (let* ((size (or (file-attribute-size (file-attributes file)) 0))
+           (window 262144)
+           turn)
+      (while window
+        (let ((start (max 0 (- size window))))
+          (with-temp-buffer
+            (insert-file-contents file nil start size)
+            (when (> start 0)
+              (goto-char (point-min))
+              (forward-line 1)
+              (delete-region (point-min) (point)))
+            (setq turn (car (last (claude-code-ide-org--turn-reader-view-buffer)))))
+          (setq window (and (not turn) (> start 0) (* window 4)))))
+      turn)))
+
+(defun claude-code-ide-org--footnote-segment (file message)
+  "Return the reader-visible blocks of the segment MESSAGE closes, as strings.
+FILE is the session transcript.  The segment is the last turn's blocks
+after its last (end) -- where the previous reply ended -- and before
+MESSAGE itself.  MESSAGE may already be on disk; it is recognised by its
+text and excluded, so it is neither counted twice nor mistaken for a
+finished earlier reply.  Tool calls are left out: a tool's input is
+transcription, not citation."
+  (let* ((blocks (and file (file-readable-p file)
+                      (plist-get (claude-code-ide-org--transcript-last-turn file)
+                                 :blocks)))
+         (want (string-trim message))
+         (cut (let ((i 0) pos)
+                (dolist (b blocks pos)
+                  (when (and (eq (car b) 'text)
+                             (equal (string-trim (cdr b)) want))
+                    (setq pos i))
+                  (setq i (1+ i)))))
+         (segment nil))
+    (dolist (b (if cut (seq-take blocks cut) blocks))
+      (pcase (car b)
+        ('end (setq segment nil))
+        ((or 'text 'narration) (push (cdr b) segment))))
+    (nreverse segment)))
+
+(defun claude-code-ide-org--footnote-prose-lines (text)
+  "Return TEXT's lines outside fenced code blocks.
+An id inside ``` or ~~~ is a transcript -- tool output, a rendered
+checklist -- not a citation.  An unclosed fence swallows the rest, which
+under-reports rather than demanding footnotes for what the reader is
+looking at anyway.  The reasons are recorded at length in
+`bin/hooks/footnote-check''s history (TODO.org :ID: 762b7836)."
+  (let (fence lines)
+    (dolist (line (split-string text "\n"))
+      (if (string-match-p "\\`[ \t]*\\(```\\|~~~\\)" line)
+          (setq fence (not fence))
+        (unless fence (push line lines))))
+    (nreverse lines)))
+
+(defun claude-code-ide-org--footnote-split (message)
+  "Split MESSAGE at its last line that is exactly `---'.
+Return (BODY . FOOT): BODY the lines before it, fences stripped, and
+FOOT the text after it.  A message with no such line has no end matter,
+and all of it is body."
+  (let* ((lines (split-string message "\n"))
+         (sep (seq-position (reverse lines) "---"))
+         (n (if sep (- (length lines) sep 1) (length lines))))
+    (cons (claude-code-ide-org--footnote-prose-lines
+           (string-join (seq-take lines n) "\n"))
+          (string-join (nthcdr (1+ n) lines) "\n"))))
+
+(defun claude-code-ide-org--footnote-candidates (lines)
+  "Return the distinct 8-hex word tokens in LINES, sorted.
+A whole word, in grep's sense: the hook this replaces used
+`\\b[0-9a-f]{8}\\b', which matches only a token of exactly eight word
+characters -- so the prefix of a full uuid counts, since `-' is not a
+word character.  Not filtered by shape: 5 tracked ids are all digits,
+and the lookup, not a shape test, is the discriminator."
+  (let ((case-fold-search nil) ids)
+    (dolist (line lines)
+      (dolist (tok (split-string line "[^0-9A-Za-z_]+" t))
+        (when (string-match-p "\\`[0-9a-f]\\{8\\}\\'" tok)
+          (push tok ids))))
+    (sort (delete-dups ids) #'string<)))
+
+(defun claude-code-ide-org--footnote-resolve (ids files)
+  "Return a hash table mapping each of IDS that FILES define to (KEYWORD TITLE).
+Scoped to FILES, the project's own org files, never org's id index: that
+index spans every tracked repo, and an id belonging to another project
+is not this project's citation.  An `:ID:' line is accepted only when
+the heading above it owns that id, so an id quoted in some other
+heading's body is never mistaken for a definition.  A visited buffer is
+read as it stands; any other file is parsed in a temp buffer, with no
+visit and so no prompt that could hang an `emacsclient' call."
+  (let ((found (make-hash-table :test 'equal))
+        (case-fold-search nil))
+    (dolist (file files)
+      (let ((pending (seq-remove (lambda (id) (gethash id found)) ids))
+            (visited (find-buffer-visiting file)))
+        (when pending
+          (with-temp-buffer
+            (unless visited
+              (insert-file-contents file)
+              (delay-mode-hooks (org-mode)))
+            (with-current-buffer (or visited (current-buffer))
+              (org-with-wide-buffer
+               (dolist (id pending)
+                 (goto-char (point-min))
+                 (let (done)
+                   (while (and (not done)
+                               (re-search-forward
+                                (concat "^[ \t]*:ID:[ \t]+" (regexp-quote id))
+                                nil t))
+                     (save-excursion
+                       (when (and (ignore-errors (org-back-to-heading t) t)
+                                  (string-prefix-p
+                                   id (or (org-entry-get nil "ID") "")))
+                         (puthash id (list (or (org-get-todo-state) "-")
+                                           (substring-no-properties
+                                            (org-get-heading t t t t)))
+                                  found)
+                         (setq done t))))))))))))
+    found))
+
+(defun claude-code-ide-org--footnote-owed (message transcript files)
+  "Return the ids MESSAGE's segment cites and owes, as (ID KEYWORD TITLE).
+TRANSCRIPT is the session's transcript path, which supplies the blocks
+written before MESSAGE; FILES are the project's org files.  An id is
+owed when it resolves to a heading in FILES, is absent from MESSAGE's
+end matter, and appears on no prose line beside its exact title -- a
+line pairing the two has already met the convention (TODO.org :ID:
+2a6a1355).  Sorted by id, the order the end matter takes."
+  (pcase-let* ((`(,body . ,foot) (claude-code-ide-org--footnote-split message))
+               (lines (append (mapcan #'claude-code-ide-org--footnote-prose-lines
+                                      (claude-code-ide-org--footnote-segment
+                                       transcript message))
+                              body))
+               (ids (claude-code-ide-org--footnote-candidates lines))
+               (resolved (and ids (claude-code-ide-org--footnote-resolve ids files)))
+               (owed nil))
+    (dolist (id ids)
+      (when-let* ((entry (gethash id resolved)))
+        (let ((title (nth 1 entry)))
+          (unless (or (string-search id foot)
+                      (seq-some (lambda (line)
+                                  (and (string-search id line)
+                                       (string-search title line)))
+                                lines))
+            (push (cons id entry) owed)))))
+    (nreverse owed)))
+
+(defun claude-code-ide-org-write-footnote-check (payload-file out-file project)
+  "Write the footnote check's verdict on the Stop payload in PAYLOAD-FILE.
+Called by `bin/hooks/footnote-check' through `emacsclient -e', which
+passes PROJECT, the project root, as an argument: `getenv' here would
+read the server's environment, not the hook's.  OUT-FILE gets `ok' on
+its first line when nothing is owed, or `owed ID...' followed by one
+end-matter line per id, flush left, in canonical form.  The first line
+is always written, so an empty OUT-FILE means the call never ran --
+which the stub treats as an outage, where no footnote is owed."
+  (let* ((payload (json-parse-string
+                   (with-temp-buffer
+                     (insert-file-contents payload-file)
+                     (buffer-string))
+                   :object-type 'alist :null-object nil :false-object nil))
+         (message (alist-get 'last_assistant_message payload))
+         (transcript (alist-get 'transcript_path payload))
+         (files (and (stringp project) (not (string-empty-p project))
+                     (seq-filter #'file-readable-p
+                                 (list (expand-file-name "TODO.org" project)
+                                       (expand-file-name "DONE.org" project)))))
+         (owed (and (stringp message) (not (string-empty-p message)) files
+                    (claude-code-ide-org--footnote-owed message transcript files))))
+    (with-temp-file out-file
+      (if (null owed)
+          (insert "ok\n")
+        (insert "owed " (mapconcat #'car owed " ") "\n")
+        (dolist (entry owed)
+          (insert (format "`%s`  %-9s %s\n"
+                          (nth 0 entry) (nth 1 entry) (nth 2 entry))))))))
 
 (defun claude-code-ide-org--render-transcript (session-id)
   "Return SESSION-ID's transcript rendered as an org document string."
