@@ -5127,95 +5127,252 @@ declaring it :KIND: slice would make it both")
      (t
       (condition-case err
           (org-with-point-at marker
-                             (if (not (equal property "BLOCKER"))
-                                 (if (equal property "DROPPED")
-                                     ;; Ids, like :BLOCKER:'s, so validated the same way:
-                                     ;; prefixes expanded, an unresolvable id refused
-                                     ;; rather than written where it silently drops
-                                     ;; nothing (TODO.org :ID: 25e7b083).
-                                     (let ((parsed (claude-code-ide-org--blocker-ids-from value)))
-                                       (if (eq (car parsed) 'error)
-                                           (format "Error: %s" (cdr parsed))
-                                         (org-entry-put (point) "DROPPED" (string-join (cdr parsed) " "))
-                                         (save-buffer)
-                                         (format "Set DROPPED on \"%s\" to %d id%s"
-                                                 (org-get-heading t t t t) (length (cdr parsed))
-                                                 (if (= 1 (length (cdr parsed))) "" "s"))))
-                                   (if (and (equal property "KIND")
-                                            (equal (downcase (string-trim (or value ""))) "slice"))
-                                       ;; Declaring a slice is the one moment a heading
-                                       ;; *becomes* one, so the declaration completes
-                                       ;; itself: everything a slice must carry that a
-                                       ;; mechanism can derive is written here rather than
-                                       ;; left for the composer's hand (TODO.org :ID:
-                                       ;; acf46449 -- measured, composing one declared cost
-                                       ;; two property calls and a hand-typed cookie, all
-                                       ;; three values refresh-slice already derives).
-                                       (let (did)
-                                         ;; Canonical lowercase: every slice predicate
-                                         ;; tests (equal "slice" ...), so "Slice" would
-                                         ;; declare something nothing recognises.
-                                         (org-entry-put (point) "KIND" "slice")
-                                         (unless (org-entry-get nil "COOKIE_DATA")
-                                           ;; `checkbox' because members are list items;
-                                           ;; `recursive' because a nested member's lines
-                                           ;; are otherwise excluded (:ID: b6da3480).
-                                           (org-entry-put (point) "COOKIE_DATA"
-                                                          "checkbox recursive")
-                                           (push ":COOKIE_DATA:" did))
-                                         (when (claude-code-ide-org--ensure-statistics-cookie-at-point)
-                                           (push "[/] cookie" did))
-                                         ;; The blocker derives from the checklist, so a
-                                         ;; declaration made before the body is written
-                                         ;; leaves it to the first refresh rather than
-                                         ;; deleting a hand-set value against no members.
-                                         (when (and (claude-code-ide-org--slice-members)
-                                                    (claude-code-ide-org--refresh-slice-blocker-at-point))
-                                           (push ":BLOCKER:" did))
-                                         (save-buffer)
-                                         (format "Set KIND on \"%s\"%s"
-                                                 (org-get-heading t t t t)
-                                                 (if did
-                                                     (format " (declared a slice; derived %s)"
-                                                             (string-join (nreverse did) ", "))
-                                                   " (declared a slice; nothing to derive)")))
-                                     (org-entry-put (point) property value)
-                                     (save-buffer)
-                                     (format "Set %s on \"%s\"" property
-                                             (org-get-heading t t t t))))
-                               (let ((parsed (claude-code-ide-org--blocker-ids-from value)))
-                                 (if (eq (car parsed) 'error)
-                                     (format "Error: %s" (cdr parsed))
-                                   (let* ((new (cdr parsed))
-                                          (old (and append
-                                                    (claude-code-ide-org--lint-blocker-ids
-                                                     (or (org-entry-get nil "BLOCKER") ""))))
-                                          (all (delete-dups (append old new)))
-                                          (inert (seq-filter
-                                                  (lambda (b)
-                                                    (let ((m (claude-code-ide-org--id-find b 'marker)))
-                                                      (and m (not (org-with-point-at m
-                                                                                     (org-get-todo-state))))))
-                                                  all)))
-                                     ;; Bare and space-separated: org-depend's whole
-                                     ;; grammar is "each word is an id, exactly".  The
-                                     ;; `ids(...)' wrapper this wrote until 2026-09-15
-                                     ;; (TODO.org :ID: 3f4fd744) is org-edna's finder, and
-                                     ;; org-depend split it into `ids(<uuid>' and
-                                     ;; `<uuid>)' -- so a one-id blocker enforced nothing.
-                                     (org-entry-put (point) "BLOCKER" (string-join all " "))
-                                     (save-buffer)
-                                     (concat
-                                      (format "Set BLOCKER on \"%s\" to %d id%s"
-                                              (org-get-heading t t t t) (length all)
-                                              (if (= 1 (length all)) "" "s"))
-                                      (when inert
-                                        (format " -- WARNING: %s carr%s no TODO keyword, so \
+            (if (not (equal property "BLOCKER"))
+                (if (equal property "DROPPED")
+                    ;; Ids, like :BLOCKER:'s, so validated the same way:
+                    ;; prefixes expanded, an unresolvable id refused
+                    ;; rather than written where it silently drops
+                    ;; nothing (TODO.org :ID: 25e7b083).
+                    (let ((parsed (claude-code-ide-org--blocker-ids-from value)))
+                      (if (eq (car parsed) 'error)
+                          (format "Error: %s" (cdr parsed))
+                        (org-entry-put (point) "DROPPED" (string-join (cdr parsed) " "))
+                        (save-buffer)
+                        (format "Set DROPPED on \"%s\" to %d id%s"
+                                (org-get-heading t t t t) (length (cdr parsed))
+                                (if (= 1 (length (cdr parsed))) "" "s"))))
+                  (if (and (equal property "KIND")
+                           (equal (downcase (string-trim (or value ""))) "slice"))
+                      ;; Declaring a slice is the one moment a heading
+                      ;; *becomes* one, so the declaration completes
+                      ;; itself: everything a slice must carry that a
+                      ;; mechanism can derive is written here rather than
+                      ;; left for the composer's hand (TODO.org :ID:
+                      ;; acf46449 -- measured, composing one declared cost
+                      ;; two property calls and a hand-typed cookie, all
+                      ;; three values refresh-slice already derives).
+                      (let (did)
+                        ;; Canonical lowercase: every slice predicate
+                        ;; tests (equal "slice" ...), so "Slice" would
+                        ;; declare something nothing recognises.
+                        (org-entry-put (point) "KIND" "slice")
+                        (unless (org-entry-get nil "COOKIE_DATA")
+                          ;; `checkbox' because members are list items;
+                          ;; `recursive' because a nested member's lines
+                          ;; are otherwise excluded (:ID: b6da3480).
+                          (org-entry-put (point) "COOKIE_DATA"
+                                         "checkbox recursive")
+                          (push ":COOKIE_DATA:" did))
+                        (when (claude-code-ide-org--ensure-statistics-cookie-at-point)
+                          (push "[/] cookie" did))
+                        ;; The blocker derives from the checklist, so a
+                        ;; declaration made before the body is written
+                        ;; leaves it to the first refresh rather than
+                        ;; deleting a hand-set value against no members.
+                        (when (and (claude-code-ide-org--slice-members)
+                                   (claude-code-ide-org--refresh-slice-blocker-at-point))
+                          (push ":BLOCKER:" did))
+                        (save-buffer)
+                        (format "Set KIND on \"%s\"%s"
+                                (org-get-heading t t t t)
+                                (if did
+                                    (format " (declared a slice; derived %s)"
+                                            (string-join (nreverse did) ", "))
+                                  " (declared a slice; nothing to derive)")))
+                    (org-entry-put (point) property value)
+                    (save-buffer)
+                    (format "Set %s on \"%s\"" property
+                            (org-get-heading t t t t))))
+              (let ((parsed (claude-code-ide-org--blocker-ids-from value)))
+                (if (eq (car parsed) 'error)
+                    (format "Error: %s" (cdr parsed))
+                  (let* ((new (cdr parsed))
+                         (old (and append
+                                   (claude-code-ide-org--lint-blocker-ids
+                                    (or (org-entry-get nil "BLOCKER") ""))))
+                         (all (delete-dups (append old new)))
+                         (inert (seq-filter
+                                 (lambda (b)
+                                   (let ((m (claude-code-ide-org--id-find b 'marker)))
+                                     (and m (not (org-with-point-at m
+                                                   (org-get-todo-state))))))
+                                 all)))
+                    ;; Bare and space-separated: org-depend's whole
+                    ;; grammar is "each word is an id, exactly".  The
+                    ;; `ids(...)' wrapper this wrote until 2026-09-15
+                    ;; (TODO.org :ID: 3f4fd744) is org-edna's finder, and
+                    ;; org-depend split it into `ids(<uuid>' and
+                    ;; `<uuid>)' -- so a one-id blocker enforced nothing.
+                    (org-entry-put (point) "BLOCKER" (string-join all " "))
+                    (save-buffer)
+                    (concat
+                     (format "Set BLOCKER on \"%s\" to %d id%s"
+                             (org-get-heading t t t t) (length all)
+                             (if (= 1 (length all)) "" "s"))
+                     (when inert
+                       (format " -- WARNING: %s carr%s no TODO keyword, so \
 org-depend will not block on %s until the queue is applied"
-                                                (mapconcat #'claude-code-ide-org--id-prefix inert " ")
-                                                (if (= 1 (length inert)) "ies" "y")
-                                                (if (= 1 (length inert)) "it" "them")))))))))
+                               (mapconcat #'claude-code-ide-org--id-prefix inert " ")
+                               (if (= 1 (length inert)) "ies" "y")
+                               (if (= 1 (length inert)) "it" "them")))))))))
         (error (format "Error: %s" (error-message-string err))))))))
+
+;;; Tags ---------------------------------------------------------------------
+;;
+;; TODO.org :ID: da6a2fba.  A heading's tags could be set only at capture:
+;; `org-entry-put' refuses TAGS, so every later change was a headline
+;; edit behind Emacs's back -- the divergence 53b0047d and 60d6ab6e
+;; describe -- and the brainstorming skill changes a path tag on every
+;; heading it classifies.  One tool, path-tag aware, that logs what it
+;; changed; and a companion that logs a hand `C-c C-q' the same way.
+
+(defconst claude-code-ide-org--path-tags '("spike" "bounded" "arch")
+  "The brainstorming path tags.  A heading carries at most one:
+`org_set_tags' displaces the others when it adds one, and
+`bin/lint-org''s one-path-tag rule reads this same list.")
+
+(defvar claude-code-ide-org--set-tags-logging nil
+  "Non-nil while `org_set_tags' writes, so the hand-edit logger stands
+aside: the tool writes its own line, carrying the caller's note, and
+the deferred note org would queue instead is the path that cannot
+complete non-interactively (the state-transition rules, :ID: 3d576d29).")
+
+(defun claude-code-ide-org--parse-tag-list (value)
+  "VALUE, a comma- or space-separated tag list with colons stripped."
+  (split-string (or value "") "[ \t,:]+" t))
+
+(defun claude-code-ide-org--format-tag-set (tags &optional for-reply)
+  "TAGS as org writes them, `:a:b:'.  An empty set is \"\" in a log
+line, matching org's own quoted-empty previous state, and \"none\" in
+a reply when FOR-REPLY."
+  (cond (tags (format ":%s:" (string-join tags ":")))
+        (for-reply "none")
+        (t "")))
+
+(defun claude-code-ide-org--format-log-tags-line (new old &optional note time)
+  "Format the :LOGBOOK: line for a tag change to NEW from OLD, both whole
+local tag sets: `- Tags \":a:b:\" from \":a:\" [ts]', the same shape
+org's `tags' template below writes for a hand edit, so the two paths
+are indistinguishable in the drawer.  NOTE, when given, is indented
+beneath after org's `\\\\' continuation.  TIME defaults to now."
+  (concat (format "- Tags %-12s from %-12s %s"
+                  (format "\"%s\"" (claude-code-ide-org--format-tag-set new))
+                  (format "\"%s\"" (claude-code-ide-org--format-tag-set old))
+                  (format-time-string "[%Y-%m-%d %a %H:%M]" time))
+          (if (and note (not (string-empty-p (string-trim note))))
+              (format " \\\\\n  %s" (string-trim note))
+            "")))
+
+(defun claude-code-ide-org-set-tags (id &optional add remove note)
+  "Add ADD to and remove REMOVE from the local tags of the heading whose
+:ID: is ID, each a comma- or space-separated list.  Writes immediately,
+through `org-set-tags', and logs the change to :LOGBOOK: with NOTE
+beneath it (TODO.org :ID: da6a2fba).
+
+Path-tag aware: adding one of `claude-code-ide-org--path-tags' displaces
+whichever other the heading carries, so one call moves a heading's
+brainstorming path, and the reply names what it replaced.  Two path
+tags in one ADD are refused; a move down is not, since the one-way rule
+is the skill's judgement, but it is visible in the reply.
+
+The result is the heading's own tags -- `org-get-tags' local only, so an
+inherited tag is never copied onto the line -- minus REMOVE and any
+displaced path tag, plus ADD, deduplicated, new tags appended.  When
+nothing changes it says so and writes nothing.  Removing a tag the
+heading lacks is a note in the reply, not an error.  Refuses on the
+human's unsaved edits, like every structural writer."
+  (let* ((add (claude-code-ide-org--parse-tag-list add))
+         (remove (claude-code-ide-org--parse-tag-list remove))
+         (paths-added (seq-filter (lambda (tag) (member tag claude-code-ide-org--path-tags))
+                                  add))
+         (marker (claude-code-ide-org--id-find id 'marker)))
+    (cond
+     ((and (null add) (null remove))
+      "Error: nothing to add or remove -- pass add=, remove= or both")
+     ((not marker)
+      (format "Error: no org heading found with :ID: \"%s\"" id))
+     ((claude-code-ide-org--busy-refusal (buffer-file-name (marker-buffer marker))))
+     ((cdr paths-added)
+      (format "Error: a heading is on one brainstorming path at a time, and add names %s"
+              (claude-code-ide-org--format-tag-set paths-added)))
+     (t
+      (claude-code-ide-org--at-id-writable
+       id
+       (lambda ()
+         (let* ((current (mapcar #'substring-no-properties (org-get-tags nil t)))
+                (displaced (and paths-added
+                                (seq-filter
+                                 (lambda (tag) (and (member tag claude-code-ide-org--path-tags)
+                                                    (not (member tag add))))
+                                 current)))
+                (missing (seq-remove (lambda (tag) (member tag current)) remove))
+                (result (delete-dups
+                         (append (seq-remove (lambda (tag) (or (member tag remove)
+                                                               (member tag displaced)))
+                                             current)
+                                 (copy-sequence add))))
+                (heading (org-get-heading t t t t))
+                (missing-note (if missing
+                                  (format "; %s was not there" (string-join missing ", "))
+                                "")))
+           (if (equal result current)
+               (format "No change: \"%s\" already carries %s; nothing written%s"
+                       heading (claude-code-ide-org--format-tag-set current t) missing-note)
+             ;; The advice logs a hand edit; this call logs its own.
+             (let ((claude-code-ide-org--set-tags-logging t))
+               (org-set-tags result))
+             (claude-code-ide-org--append-to-drawer
+              "LOGBOOK" (claude-code-ide-org--format-log-tags-line result current note))
+             (save-buffer)
+             (format "Tags on \"%s\": %s (was %s)%s%s"
+                     heading
+                     (claude-code-ide-org--format-tag-set result t)
+                     (claude-code-ide-org--format-tag-set current t)
+                     (if displaced
+                         (format " (replaced path tag %s)" (string-join displaced ", "))
+                       "")
+                     missing-note)))))))))
+
+(defun claude-code-ide-org--log-hand-tag-change (orig &rest args)
+  "For `org-set-tags', as :around advice: log a tag change made by hand
+in a tracked file, through org's own deferred note.
+
+The hook `org-set-tags' runs receives no arguments and the old tags are
+local to it, so advice reads them first, calls ORIG with ARGS, and when
+the result differs queues `(org-add-log-setup \\='tags NEW OLD \\='time)':
+org's `tags' template writes the same line `org_set_tags' writes.
+Deferred through `post-command-hook', which is reliable for an
+interactive command and is exactly why `org_set_tags' does not use it:
+it writes its own line and binds `claude-code-ide-org--set-tags-logging'
+so this stands aside.
+
+`\\='time', the bare line, not `\\='note': `org-add-log-note' builds its
+prompt from a fixed `cl-case' over org's own purposes and signals
+\"This should not happen\" on any other (org.el, 2026-09-25), so a
+custom purpose cannot prompt for a reason.  The reason for a hand
+change goes in by hand, or through the tool.
+
+Tracked files only (`claude-code-ide-org--tracked-buffer-p'), for the
+reason `#+STARTUP: logdrawer' was chosen over a global setting.  A
+session editing headline text calls no org function, so neither path
+sees that; the tool is why."
+  (if (or claude-code-ide-org--set-tags-logging
+          (not (claude-code-ide-org--tracked-buffer-p))
+          (not (ignore-errors (save-excursion (org-back-to-heading t) t))))
+      (apply orig args)
+    (let ((old (mapcar #'substring-no-properties (org-get-tags nil t))))
+      (prog1 (apply orig args)
+        (let ((new (mapcar #'substring-no-properties (org-get-tags nil t))))
+          (unless (equal new old)
+            (org-add-log-setup 'tags
+                               (claude-code-ide-org--format-tag-set new)
+                               (claude-code-ide-org--format-tag-set old)
+                               'time)))))))
+
+(with-eval-after-load 'org
+  ;; `org-store-log-note' wraps %s and %S in double quotes itself.
+  (add-to-list 'org-log-note-headings '(tags . "Tags %-12s from %-12S %t"))
+  (advice-add 'org-set-tags :around #'claude-code-ide-org--log-hand-tag-change))
 
 (defun claude-code-ide-org-sort-children (id sort-type)
   "Sort the children of the org heading whose :ID: property equals ID.
@@ -15649,7 +15806,7 @@ probably punctuation read as structure: %S" title))
                  ;; a one-valued property so they filter in the agenda,
                  ;; which is why this check exists at all.
                  (let ((paths (seq-filter
-                               (lambda (tag) (member tag '("spike" "bounded" "arch")))
+                               (lambda (tag) (member tag claude-code-ide-org--path-tags))
                                tags)))
                    (when (cdr paths)
                      (report 'error line
@@ -16465,8 +16622,8 @@ answer."
 
 (defconst claude-code-ide-org--worked-tool-names
   '("org_amend" "org_set_todo" "org_clock_in" "org_clock_out"
-    "org_set_property" "org_slice_add_member" "org_divide" "org_refile"
-    "org_archive" "org_wrap_plan"
+    "org_set_property" "org_set_tags" "org_slice_add_member" "org_divide"
+    "org_refile" "org_archive" "org_wrap_plan"
     ;; Retired 2026-09-21 with the plan-file link (:ID: f9fdea91); kept
     ;; so older records that name it still read as worked.
     "org_log_background_plan")
@@ -18404,6 +18561,42 @@ the project list."
             :type boolean
             :optional t
             :description "For :BLOCKER: only: union with the existing set instead of replacing it.")))
+
+  (claude-code-ide-make-tool
+   :function #'claude-code-ide-org-set-tags
+   :name "org_set_tags"
+   :description (concat
+                 "Add and remove tags on an EXISTING heading by its :ID:, "
+                 "the one way to change them: org-entry-put refuses TAGS, "
+                 "and a headline edit writes behind Emacs's back. Writes "
+                 "immediately through org-set-tags and logs the change to "
+                 ":LOGBOOK: as `- Tags \":after:\" from \":before:\"' with "
+                 "note beneath, distinct from a keyword transition. "
+                 "PATH-TAG AWARE: adding spike, bounded or arch displaces "
+                 "whichever of the other two the heading carries, so one "
+                 "call moves a heading's brainstorming path, and the reply "
+                 "names what it replaced; two in one add are refused. The "
+                 "result is the heading's own tags minus remove plus add, "
+                 "deduplicated (never :code:code:); an inherited tag is "
+                 "never copied down. A no-op says so and writes nothing; "
+                 "removing a tag the heading lacks is a note, not an "
+                 "error. Refuses while the file has unsaved changes in "
+                 "Emacs. Tags at creation still go through org_capture.")
+   :args '((:name "id"
+            :type string
+            :description "The :ID: of the heading, or an 8-character prefix.")
+           (:name "add"
+            :type string
+            :optional t
+            :description "Tags to add, comma- or space-separated, colons optional, e.g. \"bounded\" or \"code, research\".")
+           (:name "remove"
+            :type string
+            :optional t
+            :description "Tags to remove, same form. At least one of add and remove is required.")
+           (:name "note"
+            :type string
+            :optional t
+            :description "Short reason, e.g. \"stepped up: the fix changes three writers\"; recorded beneath the :LOGBOOK: line.")))
 
   (claude-code-ide-make-tool
    :function #'claude-code-ide-org-slice-add-member

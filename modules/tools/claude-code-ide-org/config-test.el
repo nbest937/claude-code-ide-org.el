@@ -14930,6 +14930,128 @@ leads the title, through the one helper that owns cookie placement
       (should (string-match-p "^\\* \\[0/0\\] A note now$" disk))
       (should-not (string-match-p "A note now \\[" disk)))))
 
+;;; org_set_tags (TODO.org :ID: da6a2fba) --------------------------------
+;;
+;; No tool changed an existing heading's tags: `org-entry-put' refuses
+;; TAGS, so every tag change was a headline edit behind Emacs's back.
+
+(defun claude-code-ide-org-test--headline (file)
+  "The first heading line of FILE on disk."
+  (let ((disk (claude-code-ide-org-test--disk-contents file)))
+    (and (string-match "^\\* .*$" disk) (match-string 0 disk))))
+
+(ert-deftest claude-code-ide-org-test-set-tags-adds-removes-and-dedupes ()
+  (claude-code-ide-org-test--with-heading
+    (let ((reply (claude-code-ide-org-set-tags id "research, code" nil "widen the scope")))
+      (should (string-match-p "Tags on \"Test heading\": :code:research: (was :code:)" reply)))
+    (should (string-match-p "^\\* TODO Test heading +:code:research:$"
+                            (claude-code-ide-org-test--headline file)))
+    ;; The change is logged, distinct from a keyword transition, with the
+    ;; caller's note beneath.
+    (should (string-match-p
+             "^- Tags \":code:research:\" +from \":code:\" +\\[20[0-9]+-[0-9]+-[0-9]+ [A-Za-z]+ [0-9:]+\\] \\\\\\\\\n  widen the scope$"
+             (claude-code-ide-org-test--logbook file)))
+    (should (string-match-p "(was :code:research:)"
+                            (claude-code-ide-org-set-tags id nil "code")))
+    (should (string-match-p "^\\* TODO Test heading +:research:$"
+                            (claude-code-ide-org-test--headline file)))
+    ;; Never :code:code:, the case the lint already catches by hand.
+    (should (string-match-p "(was :research:)" (claude-code-ide-org-set-tags id "code")))
+    (should (string-match-p "^\\* TODO Test heading +:research:code:$"
+                            (claude-code-ide-org-test--headline file)))
+    (should-not (string-search ":code:code:" (claude-code-ide-org-test--disk-contents file)))))
+
+(ert-deftest claude-code-ide-org-test-set-tags-replaces-the-path-tag ()
+  "One call moves a heading's brainstorming path: the other path tag is
+displaced, :code: is untouched, and the report names what it replaced.
+Two path tags in one add are refused."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-set-tags id "bounded")
+    (let ((reply (claude-code-ide-org-set-tags id "arch")))
+      (should (string-match-p ":code:arch: (was :code:bounded:)" reply))
+      (should (string-match-p "(replaced path tag bounded)" reply)))
+    (should (string-match-p "^\\* TODO Test heading +:code:arch:$"
+                            (claude-code-ide-org-test--headline file)))
+    (should (string-prefix-p "Error:" (claude-code-ide-org-set-tags id "spike bounded")))
+    (should (string-match-p "^\\* TODO Test heading +:code:arch:$"
+                            (claude-code-ide-org-test--headline file)))))
+
+(ert-deftest claude-code-ide-org-test-set-tags-refusals-and-no-op ()
+  (claude-code-ide-org-test--with-heading
+    (should (string-prefix-p "Error:" (claude-code-ide-org-set-tags "no-such-id" "x")))
+    (should (string-prefix-p "Error:" (claude-code-ide-org-set-tags id nil nil)))
+    (should (string-prefix-p "Error:" (claude-code-ide-org-set-tags id "" " , ")))
+    ;; A no-op says so, saves nothing and logs nothing.
+    (let ((before (claude-code-ide-org-test--disk-contents file))
+          (reply (claude-code-ide-org-set-tags id "code")))
+      (should (string-prefix-p "No change" reply))
+      (should (equal before (claude-code-ide-org-test--disk-contents file)))
+      (should-not (buffer-modified-p (get-file-buffer file))))
+    ;; Removing a tag the heading lacks is a note, not an error.
+    (let ((reply (claude-code-ide-org-set-tags id "x" "nothere")))
+      (should-not (string-prefix-p "Error:" reply))
+      (should (string-match-p "nothere was not there" reply)))
+    ;; Unsaved human edits refuse, as every structural writer does.
+    (claude-code-ide-org-test--make-busy file)
+    (should (string-match-p "unsaved changes" (claude-code-ide-org-set-tags id "y")))))
+
+(ert-deftest claude-code-ide-org-test-set-tags-writes-local-tags-only ()
+  "An inherited tag is not copied onto the child's own line."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert "** TODO Child\n:PROPERTIES:\n:ID:       test-child\n:END:\n")
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    (let ((reply (claude-code-ide-org-set-tags "test-child" "spike")))
+      (should (string-match-p "Tags on \"Child\": :spike: (was none)" reply)))
+    (should (string-match-p "^\\*\\* TODO Child +:spike:$"
+                            (claude-code-ide-org-test--disk-contents file)))))
+
+;; The companion: a tag change made by hand in Emacs (`C-c C-q') is
+;; logged the same way, through org's own deferred note -- the bare
+;; line, since `org-add-log-note' cannot prompt for a custom purpose.
+
+(defun claude-code-ide-org-test--hand-set-tags (file id tags)
+  "Set TAGS on ID in FILE as `C-c C-q' would, under a simulated command
+loop: `this-command' bound across the call and the `post-command-hook'
+run, which is what org's deferred note keys on.  Returns the file's
+:LOGBOOK:."
+  (with-current-buffer (find-file-noselect file)
+    (let ((this-command 'org-set-tags-command)
+          (org-log-into-drawer "LOGBOOK"))
+      (org-with-point-at (org-id-find id 'marker)
+        (org-set-tags tags))
+      (run-hooks 'post-command-hook))
+    (save-buffer))
+  (claude-code-ide-org-test--logbook file))
+
+(ert-deftest claude-code-ide-org-test-hand-tag-change-is-logged ()
+  (claude-code-ide-org-test--with-heading
+    (let ((logbook (claude-code-ide-org-test--hand-set-tags file id '("code" "spike"))))
+      (should (string-match-p
+               "^- Tags \":code:spike:\" +from \":code:\" +\\[20[0-9-]+ [A-Za-z]+ [0-9:]+\\]$"
+               logbook)))
+    ;; The same tags again change nothing and log nothing more.
+    (let ((logbook (claude-code-ide-org-test--hand-set-tags file id '("code" "spike"))))
+      (should (= 1 (claude-code-ide-org-test--count-in-string "- Tags" logbook))))))
+
+(ert-deftest claude-code-ide-org-test-set-tags-tool-logs-exactly-once ()
+  "The tool writes its own line and suppresses the advice, so a change
+made through it is logged once, not twice."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-set-tags id "spike" nil "through the tool")
+    (should (= 1 (claude-code-ide-org-test--count-in-string
+                  "- Tags" (claude-code-ide-org-test--logbook file))))
+    (should-not (get-buffer "*Org Note*"))))
+
+(ert-deftest claude-code-ide-org-test-hand-tag-change-in-an-untracked-file-logs-nothing ()
+  (claude-code-ide-org-test--with-heading
+    (let* ((claude-code-ide-org-query-files (list archive-file))
+           (logbook (claude-code-ide-org-test--hand-set-tags file id '("code" "spike"))))
+      (should-not (string-search "- Tags" logbook))
+      (should (string-match-p "^\\* TODO Test heading +:code:spike:$"
+                              (claude-code-ide-org-test--headline file))))))
+
 (ert-deftest claude-code-ide-org-test-set-property-writes-and-refuses ()
   "`org_set_property' fills the gap that made the discouraged form cheaper.
 
@@ -15705,6 +15827,7 @@ test would iterate an empty list and pass while checking nothing."
     ("org_capture" . conditional) ("org_amend" . conditional)
     ("org_wrap_plan" . structural) ("org_archive" . structural)
     ("org_refile" . structural) ("org_set_property" . structural)
+    ("org_set_tags" . structural)
     ("org_slice_add_member" . structural) ("org_divide" . structural)
     ("org_sort_children" . structural) ("org_move_sibling" . structural))
   "Every registered org_* tool, classed by what it does with a file.
@@ -15753,6 +15876,7 @@ refile target \"test-0002\" in a second file, and an existing DONE.org."
     ("org_archive" . (lambda () (claude-code-ide-org-archive "test-0001")))
     ("org_refile" . (lambda () (claude-code-ide-org-refile "test-0001" "test-0002")))
     ("org_set_property" . (lambda () (claude-code-ide-org-set-property "test-0001" "FOO" "bar")))
+    ("org_set_tags" . (lambda () (claude-code-ide-org-set-tags "test-0001" "x")))
     ("org_slice_add_member" . (lambda () (claude-code-ide-org-slice-add-member "test-0001" "test-0002")))
     ("org_divide" . (lambda () (claude-code-ide-org-divide "test-0001" "A parent")))
     ("org_sort_children" . (lambda () (claude-code-ide-org-sort-children "test-0001" "alpha")))
@@ -15832,6 +15956,7 @@ and writes nothing.  Before 60d6ab6e six of them saved over the edits."
     ("org_archive" ("id" . A))
     ("org_refile" ("id" . M1) ("target_id" . B))
     ("org_set_property" ("id" . A) ("property" . "FOO") ("value" . "bar"))
+    ("org_set_tags" ("id" . A) ("add" . "x"))
     ("org_slice_add_member" ("slice_id" . S) ("member_id" . M1) ("after" . M0))
     ("org_slice_add_member" ("slice_id" . S) ("member_id" . PC) ("parent" . P))
     ("org_divide" ("id" . A) ("parent_title" . "A parent"))

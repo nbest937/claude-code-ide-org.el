@@ -153,11 +153,11 @@ with `org_outline` (`scope` set to its id), whose line shows its tags:
 - A path tag already there is an earlier classification. Start from it
   and say so aloud; it may move up, never down.
 - None there means the heading was never classified. Classify it now,
-  announce the path, and add the tag to its headline.
-No org tool sets tags on an existing heading (`org-entry-put` refuses
-`TAGS`), so adding or replacing one is a headline text edit, checked
-first for an unsaved buffer as the org skill requires
-(org skill, "Before editing: check for an unsaved buffer").
+  announce the path, and add the tag.
+Add or replace the tag with one `org_set_tags` call, `add=<path>` with
+the reason in `note`: it displaces whichever other path tag the heading
+carries, names what it replaced, and refuses on an unsaved buffer. Never
+edit the headline for this.
 Tag only the heading in hand: the tags record classifications actually
 made, so do not sweep the backlog.
 
@@ -172,10 +172,10 @@ line of its own that cannot be mistaken for a keyword transition:
 The two values are the whole tag sets, after and before; the note says
 what surfaced. Org logs no tag changes itself, and replacing a tag would
 otherwise erase the earlier classification. The line sorts into the
-drawer's timeline like a state line. Until the tag tool that da6a2fba
-adds exists to write it, it goes in with the same headline edit, under
-the same unsaved-buffer check. A heading's first tag, at capture, needs
-no line.
+drawer's timeline like a state line. `org_set_tags` writes it from its
+`note`, so the call above is the whole act; a hand `C-c C-q` in a
+tracked file is logged by the module as the bare line, with no reason.
+A heading's first tag, at capture, needs no line.
 
 ## Anti-Pattern: "Too Simple To Need Approval"
 

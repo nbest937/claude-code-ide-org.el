@@ -33,8 +33,9 @@ org's state-change logging needs a genuinely interactive command.
 | `org_capture`       | `org-capture`            | Quick-add a new heading. **A targetless capture lands at level 1 and requires `category`** — the refusal lists the values the file already uses; under an `:ID:` target the child inherits. A value the file has never used is written with a warning (`:ID:` b0d55552) |
 | `org_refile`        | `org-refile`             | Move a subtree under a different parent |
 | `org_divide`        | custom (`org-demote-subtree`) | Task mitosis: insert a new parent above a heading and demote it under. The id, clock and history stay with the **child** |
-| `org_wrap_plan`     | custom (two insertions)  | Wrap the prospective part of a body in a `:PLAN:` drawer. No `until` wraps the whole body (the composition-time case); `until` marks where the debrief begins (the retroactive case). Lossless — nothing deleted or reflowed — and it refuses rather than guesses: an existing `:PLAN:` drawer, an empty body, or a missing/duplicated `until` are errors. Retroactive only since `org_amend` gained `drawer=` — composition never needs it; the two-call procedure is in the org-conventions rules ("The `:PLAN:` drawer") |
+| `org_wrap_plan`     | custom (two insertions)  | Wrap the prospective part of a body in a `:PLAN:` drawer. No `until` wraps the whole body (the composition-time case); `until` marks where the debrief begins (the retroactive case). Lossless — nothing deleted or reflowed — and it refuses rather than guesses: an existing `:PLAN:` drawer, an empty body, or a missing/duplicated `until` are errors. Retroactive only: composition writes the drawer with `org_amend` `drawer=` |
 | `org_set_property`  | `org-entry-put`          | Set a property by `:ID:`. `:BLOCKER:` is validated — ids resolved, prefixes expanded, unresolvable refused — and `append` unions rather than replaces. Refuses `:ID:`/`:CREATED:` |
+| `org_set_tags`      | `org-set-tags`           | `add`/`remove` tags on an existing heading; a path tag (`spike`, `bounded`, `arch`) displaces the other. Logs `- Tags ":after:" from ":before:"` to `:LOGBOOK:` with the `note`; a hand `C-c C-q` logs the bare line. Refuses on unsaved edits |
 | `org_move_sibling`  | `org-move-subtree-up/down` | Move a heading up/down among siblings |
 | `org_sort_children` | `org-sort-entries`       | Sort a heading's direct children       |
 | `org_slice_add_member` | custom (insert + refresh) | Add a heading to a slice's planned checklist, with `after` for ordering; the line, cookie and `:BLOCKER:` are derived by the refresh it runs. Refuses closed slices, duplicates and keyword-less members — never hand-edit a checklist while this exists |
@@ -58,8 +59,8 @@ claude-code-ide-org-review`, run by a human. If you find yourself looking
 for `org_review_apply`, it is a log-source label in `config.el`, not a
 tool.
 
-Text editing (via the org skill) is used for adding or changing tags,
-generating new headings, and time reporting. `org_query` now covers
+Text editing (via the org skill) is used for new headings and time
+reporting. `org_query` now covers
 structured cross-file reads (e.g. "what's blocked," "everything :research:
 and not DONE") that used to mean Claude reading whole files by hand.
 
