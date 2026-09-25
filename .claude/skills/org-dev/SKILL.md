@@ -222,14 +222,21 @@ night before, and no rule restored them in the morning. The user had
 assumed a reload happened by convention. It had not been written down
 anywhere.
 
+**The image says so itself** (`:ID:` f12f9da4). `config.el`'s last form
+stamps the load, and `bin/check-image` compares that stamp's hash with the
+file on disk: fresh, stale, shadowed by an `.elc`, or unstamped, plus any
+function missing or left over. Pre-commit runs it whenever a module file
+is committed, and the SessionStart report asks for a reload when the
+image is not fresh. It warns and never reloads.
+
 ### How
 
 For a change confined to function bodies inside
 `modules/tools/claude-code-ide-org/config.el` (existing `defun`s, or the
 `claude-code-ide-make-tool` registrations inside the single
 `with-eval-after-load 'claude-code-ide` block, which is the last
-top-level form in the file), a live reload is enough — no restart
-needed:
+top-level form before the load stamp, itself the file's very last form),
+a live reload is enough — no restart needed:
 
 ```
 emacsclient -e '(load-file "modules/tools/claude-code-ide-org/config.el")'

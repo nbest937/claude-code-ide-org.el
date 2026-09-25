@@ -44,6 +44,14 @@ repo_root="$(git rev-parse --show-toplevel)"
 guards="$repo_root/.githooks/pre-commit-guards"
 if [ -x "$guards" ]; then "$guards" || exit 1; fi
 
+# Whether the running Emacs has the module being committed (TODO.org :ID:
+# f12f9da4). Only when a module file is in the commit, so a consumer repo
+# never pays for it; a warning, never a refusal.
+if git diff --cached --name-only | grep -q '^modules/tools/claude-code-ide-org/.*\.el$' \
+   && [ -x "$repo_root/bin/check-image" ]; then
+  "$repo_root/bin/check-image"
+fi
+
 lint="$repo_root/bin/lint-org"
 
 # Never be the reason a commit is impossible: an older checkout, or a

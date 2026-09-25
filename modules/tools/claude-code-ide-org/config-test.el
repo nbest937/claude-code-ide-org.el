@@ -18976,3 +18976,82 @@ temp-buffer test never folds, so none of the others could see it."
       (goto-char (point-min))
       (should (re-search-forward "^delta delta" nil t))
       (should (< (- (line-end-position) (line-beginning-position)) 51)))))
+
+;;; Is the running image stale? (TODO.org :ID: f12f9da4)
+
+(defmacro claude-code-ide-org-test--with-image-file (&rest body)
+  "A temp module-shaped file bound to `file', with fresh stamps."
+  (declare (indent 0))
+  `(let* ((dir (file-name-as-directory (make-temp-file "cciorg-image" t)))
+          (file (file-truename (expand-file-name "config.el" dir)))
+          (claude-code-ide-org--load-stamps nil))
+     (unwind-protect
+         (progn
+           (with-temp-file file
+             (insert "(defun claude-code-ide-org-test-img-kept () 1)\n"))
+           ,@body)
+       (fmakunbound 'claude-code-ide-org-test-img-kept)
+       (fmakunbound 'claude-code-ide-org-test-img-dropped)
+       (delete-directory dir t))))
+
+(defun claude-code-ide-org-test--image-state-of (file)
+  (car (claude-code-ide-org--image-state (list file))))
+
+(ert-deftest claude-code-ide-org-test-image-stamp-and-four-states ()
+  "The stamp records the file loaded, its hash and the time, keyed by
+truename; and the state reads fresh, stale, shadowed or unstamped."
+  (claude-code-ide-org-test--with-image-file
+    (should (eq 'unstamped (plist-get (claude-code-ide-org-test--image-state-of file) :state)))
+    (load file nil t)
+    (claude-code-ide-org--record-load-stamp file)
+    (let ((stamp (alist-get file claude-code-ide-org--load-stamps nil nil #'equal)))
+      (should (equal file (plist-get stamp :loaded)))
+      (should (equal (claude-code-ide-org--file-sha file) (plist-get stamp :sha)))
+      (should (plist-get stamp :time)))
+    (should (eq 'fresh (plist-get (claude-code-ide-org-test--image-state-of file) :state)))
+    (should-not (claude-code-ide-org--image-report (list file)))
+    ;; A changed body is the edit fboundp cannot see.
+    (with-temp-file file (insert "(defun claude-code-ide-org-test-img-kept () 2)\n"))
+    (should (eq 'stale (plist-get (claude-code-ide-org-test--image-state-of file) :state)))
+    (should (string-match-p "has changed since it was loaded"
+                            (claude-code-ide-org--image-report (list file))))
+    (claude-code-ide-org--record-load-stamp (concat (file-name-sans-extension file) ".elc"))
+    (should (eq 'shadowed (plist-get (claude-code-ide-org-test--image-state-of file) :state)))))
+
+(ert-deftest claude-code-ide-org-test-image-names-missing-and-leftover-functions ()
+  "A function the file defines and the image lacks is named missing; one
+the image still has from this file that the file no longer defines is
+named leftover -- a deleted defun survives a reload."
+  (claude-code-ide-org-test--with-image-file
+    (with-temp-file file
+      (insert "(defun claude-code-ide-org-test-img-kept () 1)\n"
+              "(defun claude-code-ide-org-test-img-dropped () 1)\n"))
+    (load file nil t)
+    (claude-code-ide-org--record-load-stamp file)
+    (with-temp-file file
+      (insert "(defun claude-code-ide-org-test-img-kept () 1)\n"
+              "(defun claude-code-ide-org-test-img-never-loaded () 1)\n"))
+    (let ((s (claude-code-ide-org-test--image-state-of file)))
+      (should (equal '("claude-code-ide-org-test-img-never-loaded") (plist-get s :missing)))
+      (should (equal '("claude-code-ide-org-test-img-dropped") (plist-get s :leftover))))))
+
+(ert-deftest claude-code-ide-org-test-image-reads-a-symlinked-load-as-fresh ()
+  "The module loads through a symlink from the Doom modules directory, so
+a stamp taken through the link must read fresh against the real file."
+  (claude-code-ide-org-test--with-image-file
+    (let ((link (expand-file-name "linked-config.el" (make-temp-file "cciorg-link" t))))
+      (make-symbolic-link file link)
+      (load link nil t)
+      (claude-code-ide-org--record-load-stamp link)
+      (should (eq 'fresh (plist-get (claude-code-ide-org-test--image-state-of file) :state))))))
+
+(ert-deftest claude-code-ide-org-test-session-start-reports-a-stale-image ()
+  "A stale image is asked about at SessionStart, in both channels."
+  (cl-letf (((symbol-function 'claude-code-ide-org--image-report)
+             (lambda (&rest _) "The running Emacs may be out of step with the module: config.el has changed."))
+            ((symbol-function 'claude-code-ide-org-find-stale-open-intervals) (lambda (&rest _) nil))
+            ((symbol-function 'claude-code-ide-org--format-ceremony-report) (lambda (&rest _) nil))
+            ((symbol-function 'claude-code-ide-org--ceremony-status) (lambda (&rest _) nil)))
+    (let ((json (claude-code-ide-org--session-start-hook-json)))
+      (should (string-match-p "out of step with the module" json))
+      (should (string-match-p "systemMessage.*out of step with config.el" json)))))

@@ -1159,6 +1159,152 @@ Claude Code shows the user itself; the rest is the session's to relay."
                                    misses ", "))
               ""))))
 
+;;; Is the running image stale? (TODO.org :ID: f12f9da4) -------------------
+
+(defvar claude-code-ide-org--load-stamps nil
+  "Alist of module file truename to (:loaded PATH :sha HEX :time TIME).
+
+Recorded in the running image by the LAST form of each module file, so a
+`load-file' aborted halfway -- the 2026-09-15 case in the standing rules
+-- leaves the previous stamp and reads as stale.  In memory rather than
+on disk because it describes the image, not the file: a stamp on disk
+would outlive a restart or a crash and vouch for a load that no longer
+exists.")
+
+(defun claude-code-ide-org--file-sha (file)
+  "SHA-256 of FILE's contents, or nil when it cannot be read."
+  (ignore-errors
+    (with-temp-buffer
+      (set-buffer-multibyte nil)
+      (insert-file-contents-literally file)
+      (secure-hash 'sha256 (current-buffer)))))
+
+(defun claude-code-ide-org--record-load-stamp (loaded)
+  "Stamp the module file LOADED -- a `.el', or the `.elc' compiled from it.
+Keyed by the source's truename: the module loads through a symlink from
+the Doom modules directory, so a raw path would read stale forever."
+  (when (stringp loaded)
+    (let* ((source (if (string-suffix-p ".elc" loaded)
+                       (concat (file-name-sans-extension loaded) ".el")
+                     loaded))
+           (key (file-truename source)))
+      (setf (alist-get key claude-code-ide-org--load-stamps nil nil #'equal)
+            (list :loaded loaded :sha (claude-code-ide-org--file-sha key)
+                  :time (current-time)))
+      key)))
+
+(defun claude-code-ide-org--module-files ()
+  "Truenames of the module files that stamp themselves.
+Found from where this very function was loaded, so the answer follows
+the module wherever it is installed."
+  (let ((here (symbol-file 'claude-code-ide-org--module-files 'defun)))
+    (and here
+         (list (file-truename
+                (expand-file-name "config.el" (file-name-directory here)))))))
+
+(defun claude-code-ide-org--file-function-names (file)
+  "Names of the `claude-code-ide-org' functions FILE's text defines."
+  (with-temp-buffer
+    (insert-file-contents file)
+    (let (names)
+      (goto-char (point-min))
+      (while (re-search-forward
+              (concat "^(\\(?:\\(?:cl-\\)?def\\(?:un\\|macro\\|subst\\)"
+                      "\\|define-\\(?:derived\\|minor\\|globalized-minor\\)-mode\\)"
+                      "[ \t]+\\(claude-code-ide-org[^ \t\n()]*\\)")
+              nil t)
+        (push (match-string-no-properties 1) names))
+      (nreverse names))))
+
+(defun claude-code-ide-org--image-state (&optional files)
+  "Report, for each module file in FILES, how the running image relates to it.
+A list of plists (:file F :state STATE :time T :missing NAMES
+:leftover NAMES), STATE being one of:
+
+- `fresh'     -- the stamp's hash matches the file on disk;
+- `stale'     -- the file changed since it was loaded, at :time;
+- `shadowed'  -- a `.elc' was loaded, which the source cannot vouch for
+                 (the stale-.elc shape measured 2026-09-16);
+- `unstamped' -- no complete load of a version that stamps itself.
+
+The hash is what `fboundp' alone cannot give: a changed function body
+leaves the old definition bound, and that is the commonest edit.
+MISSING names a function the file defines that the image lacks;
+LEFTOVER one the image still has from this file that the file no longer
+defines -- a deleted defun survives a reload.  FILES defaults to
+`claude-code-ide-org--module-files'."
+  (mapcar
+   (lambda (file)
+     (let* ((file (file-truename file))
+            (stamp (alist-get file claude-code-ide-org--load-stamps nil nil #'equal))
+            (names (claude-code-ide-org--file-function-names file))
+            (missing (seq-remove (lambda (n) (fboundp (intern n))) names))
+            (leftover
+             (seq-filter
+              (lambda (sym)
+                (let ((from (symbol-file sym 'defun)))
+                  (and from
+                       (equal (file-truename
+                               (if (string-suffix-p ".elc" from)
+                                   (concat (file-name-sans-extension from) ".el")
+                                 from))
+                              file)
+                       (not (member (symbol-name sym) names)))))
+              (apropos-internal "\\`claude-code-ide-org-" #'fboundp))))
+       (list :file file
+             :state (cond ((null stamp) 'unstamped)
+                          ((string-suffix-p ".elc" (plist-get stamp :loaded)) 'shadowed)
+                          ((equal (plist-get stamp :sha)
+                                  (claude-code-ide-org--file-sha file))
+                           'fresh)
+                          (t 'stale))
+             :time (plist-get stamp :time)
+             :missing missing
+             :leftover (mapcar #'symbol-name leftover))))
+   (or files (claude-code-ide-org--module-files))))
+
+(defun claude-code-ide-org--image-report (&optional files)
+  "A sentence for each module file the running image is not fresh on, or nil.
+It *asks* for a reload and never performs one: a live reload cannot
+cover every change (the org-dev skill, section 2), so an automatic one
+would sometimes give a confident wrong answer."
+  (let ((lines
+         (delq nil
+               (mapcar
+                (lambda (s)
+                  (let ((name (file-name-nondirectory (plist-get s :file)))
+                        (extra (concat
+                                (when (plist-get s :missing)
+                                  (format "; not bound: %s"
+                                          (string-join (seq-take (plist-get s :missing) 5) " ")))
+                                (when (plist-get s :leftover)
+                                  (format "; bound but no longer defined: %s"
+                                          (string-join (seq-take (plist-get s :leftover) 5) " "))))))
+                    (pcase (plist-get s :state)
+                      ('fresh (unless (string-empty-p extra)
+                                (format "%s is loaded%s" name extra)))
+                      ('stale (format "%s has changed since it was loaded at %s%s"
+                                      name
+                                      (format-time-string "%Y-%m-%d %H:%M" (plist-get s :time))
+                                      extra))
+                      ('shadowed (format "%s was loaded from a compiled .elc, which may predate the source%s"
+                                         name extra))
+                      (_ (format "%s has no load stamp, so no complete load of this version is on record%s"
+                                 name extra)))))
+                (claude-code-ide-org--image-state files)))))
+    (when lines
+      (concat "The running Emacs may be out of step with the module: "
+              (string-join lines ". ")
+              ". Reload it (M-x load-file on config.el) before trusting a live check."))))
+
+(defun claude-code-ide-org-write-image-report (output-path)
+  "Write the image report to OUTPUT-PATH, for `bin/check-image'.
+The first line is `fresh' or `stale', so an empty file can only mean
+the call never ran -- which the stub reports as `image state unknown'."
+  (let ((report (claude-code-ide-org--image-report)))
+    (with-temp-file output-path
+      (insert (if report (concat "stale\n" report "\n") "fresh\n")))))
+
 (defun claude-code-ide-org--session-start-hook-json ()
   "Return the SessionStart hook JSON payload: an empty object if there is
 nothing to report, otherwise one whose additionalContext carries every
@@ -1178,7 +1324,10 @@ are."
                      (claude-code-ide-org--format-stale-interval-report findings)))
          (status (claude-code-ide-org--ceremony-status))
          (ceremony (claude-code-ide-org--format-ceremony-report status))
-         (parts (delq nil (list stale ceremony)))
+         ;; A stale image, asked about rather than reloaded (TODO.org :ID:
+         ;; f12f9da4).  Guarded: a fault here must not cost the other two.
+         (image (ignore-errors (claude-code-ide-org--image-report)))
+         (parts (delq nil (list stale ceremony image)))
          ;; The user's channel (TODO.org :ID: d585d33e).  Measured on
          ;; this project's transcripts (:ID: c5b02503), additionalContext
          ;; reached the user in 15 of 24 genuine session starts -- the
@@ -1195,7 +1344,8 @@ are."
                                    (length findings)
                                    (if (= 1 (length findings)) "" "s")))
                       (and ceremony
-                           (claude-code-ide-org--ceremony-summary status))))))
+                           (claude-code-ide-org--ceremony-summary status))
+                      (and image "the running Emacs is out of step with config.el")))))
     (if (null parts)
         "{}"
       (json-encode
@@ -19748,3 +19898,9 @@ the project list."
             :type string
             :optional t
             :description "Limit the report to one session's queue. Omit for every session."))))
+
+;; LAST, and it must stay last (TODO.org :ID: f12f9da4): the stamp says a
+;; load of this file *completed*, so a `load-file' that aborts partway
+;; leaves the previous stamp and the image reads as stale.  Anything
+;; appended to this file goes above this form.
+(claude-code-ide-org--record-load-stamp (or load-file-name buffer-file-name))

@@ -109,13 +109,24 @@
         (goto-char (point-min))
         (if (not (re-search-forward "with-eval-after-load 'claude-code-ide$" nil t))
             (ccio-dev-check-fail "config.el: with-eval-after-load 'claude-code-ide anchor not found")
+          ;; Since TODO.org :ID: f12f9da4 the load stamp is the very last
+          ;; form -- it must be, so an aborted load leaves the old stamp
+          ;; -- and the registration block is the one before it.
           (let ((anchor-line (line-number-at-pos))
-                last-line)
+                lines)
             (goto-char (point-min))
             (while (re-search-forward "^(" nil t)
-              (setq last-line (line-number-at-pos)))
-            (ccio-dev-check "config.el tool-registration block is the last top-level form"
-                            last-line anchor-line)))))
+              (push (cons (line-number-at-pos)
+                          (buffer-substring-no-properties
+                           (line-beginning-position) (line-end-position)))
+                    lines))
+            (ccio-dev-check "config.el's last top-level form is the load stamp"
+                            (and (string-prefix-p "(claude-code-ide-org--record-load-stamp"
+                                                  (cdr (car lines)))
+                                 t)
+                            t)
+            (ccio-dev-check "config.el tool-registration block is the last form before the stamp"
+                            (car (nth 1 lines)) anchor-line)))))
 
     ;; 5. Section 0b points at paths inside the straight org checkout.
     ;; Those paths ARE the section -- a reader who cannot find the source
