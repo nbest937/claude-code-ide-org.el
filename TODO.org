@@ -37,8 +37,18 @@ footnote work shares.
    empty-versus-non-empty assumption.
 :END:
 
-Narration written between tool calls can reach the reader as a harness summary, which the transcript stores as a non-empty thinking entry with no text entry; the model's hidden reasoning is stored empty (measured 2026-09-24 under 30d05c93, and the user's terminal showed the summary verbatim). --transcript-turns drops every thinking entry, so a render runs tool calls together where the reader saw prose between them. Across eight sessions, 1,651 of 1,871 thinking entries were empty, and the other 220 were all at most 475 characters; in the two sessions checked, none shared a message with a text block. Fix: render a non-empty thinking block as a (narration . STRING) block, in order, marked as the harness's summary; keep dropping empty ones. Share that reader's-view reading with 30d05c93's footnote scanner. The ERT fixture pins the empty-versus-non-empty assumption, which is undocumented.
-* TODO org_outline shows what a heading is blocked by, never what it blocks :code:
+A render runs tool calls together where the reader saw prose between
+them, because narration can reach the reader as a harness summary that
+the transcript stores as a non-empty =thinking= entry, and
+=--transcript-turns= drops every =thinking= entry.
+
+Established (2026-09-24, under 30d05c93): the user's terminal showed the
+summary verbatim. Across eight sessions 1,651 of 1,871 =thinking=
+entries were empty (the model's hidden reasoning) and the other 220
+were all at most 475 characters; in the two sessions checked none
+shared a message with a =text= block.
+
+Ruled out: italics as the marker, which break on any slash in the text.* TODO org_outline shows what a heading is blocked by, never what it blocks :code:
 :PROPERTIES:
 :ID:       b3177ed0-9747-4e31-ad65-bac25b9bdd1f
 :CREATED:  [2026-09-24 Thu 20:01]
