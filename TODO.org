@@ -7134,6 +7134,11 @@ nothing, and act on this section where =next-session.md= would ask.
 - *Morning report.* The final message, plus one dated paragraph on this
   slice's body: members landed with their commits, members parked and
   why, the morning checklist of live checks, and the queue to apply.
+
+- *One turn.* Ending the turn hands control to a sleeping user, and the
+  run stalls until morning. Do not end it between members, to report
+  progress, or to ask; the only end of turn is the morning report,
+  after the last listed member or a stop rule.
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-16 Wed 06:45] \\
