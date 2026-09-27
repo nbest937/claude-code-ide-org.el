@@ -20046,3 +20046,44 @@ heading whose state had been queued by prefix."
       (should (equal '("abcd1234-0000-4000-8000-000000000001")
                      (delete-dups
                       (mapcar #'car (seq-filter #'car (claude-code-ide-org--queue-events-by-id)))))))))
+
+;;; The stale-buffer check's cost (TODO.org :ID: 4d896425) -------------------
+
+(ert-deftest claude-code-ide-org-test-stale-check-ignores-a-deleted-file-buffer ()
+  "A buffer whose file was deleted never verifies; it must not force the
+file-list derivation on every lookup, as the old Doom glue's buffer did."
+  (let* ((dir (make-temp-file "cci-stale" t))
+         (f (expand-file-name "gone.org" dir))
+         (derived 0))
+    (unwind-protect
+        (progn
+          (write-region "* A\n" nil f nil 'silent)
+          (with-current-buffer (find-file-noselect f) (org-mode))
+          (delete-file f)
+          (cl-letf (((symbol-function 'claude-code-ide-org--id-scannable-files)
+                     (lambda () (setq derived (1+ derived)) nil)))
+            (claude-code-ide-org--refresh-stale-id-buffers "x"))
+          (should (= 0 derived)))
+      (let ((b (get-file-buffer f))) (when b (kill-buffer b)))
+      (delete-directory dir t))))
+
+(ert-deftest claude-code-ide-org-test-stale-check-runs-once-per-pass ()
+  "Inside a pass bound `pending', a stale org buffer is checked once."
+  (let* ((dir (make-temp-file "cci-stale" t))
+         (f (expand-file-name "moved.org" dir))
+         (derived 0))
+    (unwind-protect
+        (progn
+          (write-region "* A\n" nil f nil 'silent)
+          (with-current-buffer (find-file-noselect f) (org-mode))
+          (set-file-times f (time-add (current-time) 60))
+          (cl-letf (((symbol-function 'claude-code-ide-org--id-scannable-files)
+                     (lambda () (setq derived (1+ derived)) nil)))
+            (let ((claude-code-ide-org--stale-buffer-check 'pending))
+              (claude-code-ide-org--refresh-stale-id-buffers "x")
+              (claude-code-ide-org--refresh-stale-id-buffers "y"))
+            (should (= 1 derived))
+            (claude-code-ide-org--refresh-stale-id-buffers "z")
+            (should (= 2 derived))))
+      (let ((b (get-file-buffer f))) (when b (kill-buffer b)))
+      (delete-directory dir t))))

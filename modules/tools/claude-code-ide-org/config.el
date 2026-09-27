@@ -7424,6 +7424,19 @@ Returns the number of lines written."
       (set-marker body-end nil)
       (length lines))))
 
+(defvar claude-code-ide-org--stale-buffer-check nil
+  "Bound to `pending' around a pass that looks up many ids at once.
+`claude-code-ide-org--refresh-stale-id-buffers' then checks the buffers
+the first time and sets this to `done', and later lookups in the pass
+skip it (TODO.org :ID: 4d896425): a slice refresh made 886 lookups, each
+walking the buffer list.  Exact rather than a heuristic, because nothing
+outside Emacs runs mid-way through a synchronous pass, and the pass's own
+writes go through buffers, which never read as stale.
+
+Declared here, before the refresh binds it: under lexical binding a
+`let' of a variable not yet special is lexical, and the lookup would
+never see it -- which is how the first version of this changed nothing.")
+
 (defun claude-code-ide-org-refresh-slice (&optional id include-closed)
   "Regenerate every slice's checklist from its referents.
 
@@ -7455,7 +7468,8 @@ a record that was never true at any moment (observed on
 :ID: ec65b5d6, frozen at [0/4] with every member DONE)."
   (interactive)
   (require 'org-id)
-  (let ((claude-code-ide-org--incidentals-claimed-elsewhere nil)
+  (let ((claude-code-ide-org--stale-buffer-check 'pending) ; once per refresh (:ID: 4d896425)
+        (claude-code-ide-org--incidentals-claimed-elsewhere nil)
         (claude-code-ide-org--incidentals-owned-elsewhere nil)
         ;; Expanded before comparing: a prefix compared with `equal'
         ;; against the full :ID: read as a clean "0 slices refreshed"
@@ -19869,11 +19883,33 @@ buffer is reverted; auto-revert only narrows that window.
 A buffer both stale *and* modified cannot be reverted without losing the
 human's edits, so when it is the file ID is indexed in, the lookup is
 refused, naming it -- the unsaved-edits refusal of TODO.org :ID:
-60d6ab6e, plus why."
+60d6ab6e, plus why.
+
+*Stale buffers are looked for before the file list is derived*
+(TODO.org :ID: 4d896425).  This runs on every lookup, and deriving the
+scannable files -- `org-add-archive-files' over the tracked set -- cost
+most of a 10 s slice refresh, which looks up each member of each slice.
+A stale buffer is rare, so the common case is one pass over the buffer
+list comparing modtimes, and the derivation runs only when some visited
+file has moved on."
+  (unless (eq claude-code-ide-org--stale-buffer-check 'done)
+  (when (eq claude-code-ide-org--stale-buffer-check 'pending)
+    (setq claude-code-ide-org--stale-buffer-check 'done))
   (let ((indexed (and (stringp id) (boundp 'org-id-locations)
                       (hash-table-p org-id-locations)
                       (gethash id org-id-locations))))
-    (dolist (file (claude-code-ide-org--id-scannable-files))
+    ;; Org buffers only, and only files that still exist: a buffer
+    ;; whose file was deleted never verifies, and one did -- the old
+    ;; Doom glue, moved away by c562b69a's migration -- which kept the
+    ;; derivation running on every lookup.
+    (dolist (file (and (seq-some (lambda (b)
+                                   (let ((f (buffer-file-name b)))
+                                     (and f
+                                          (eq (buffer-local-value 'major-mode b) 'org-mode)
+                                          (file-exists-p f)
+                                          (not (verify-visited-file-modtime b)))))
+                                 (buffer-list))
+                       (claude-code-ide-org--id-scannable-files)))
       (let ((buffer (find-buffer-visiting file)))
         (when (and buffer (not (verify-visited-file-modtime buffer)))
           (if (not (buffer-modified-p buffer))
@@ -19885,7 +19921,7 @@ refused, naming it -- the unsaved-edits refusal of TODO.org :ID:
 read, so the buffer cannot be trusted to locate :ID: %s"
                      (string-remove-prefix
                       "Error: " (claude-code-ide-org--busy-refusal file))
-                     id))))))))
+                     id)))))))))
 
 (defun claude-code-ide-org--id-not-found (id)
   "The refusal for an ID that resolves to no heading, naming where it looked.
