@@ -11350,6 +11350,23 @@ Still open, not this heading's: a =capture= event on *every* capture as
 an audit of which session created a heading, set aside when capture was
 rarely used (cdcc065c).
 
+*Shipped* in [[orgit-rev:~/git/claude-code-ide-org::8c6b7d4][8c6b7d4]], as the drawer describes. The capture branch runs only when
+the call's own error says the connection was refused, and its outcome overrides
+the probe's guidance, because the decision rests on the error and not on the
+probe. When there is no category, the refusal lists the values that the
+project's =TODO.org= uses, read from the file since Emacs is down. On the apply
+side, the category and duplicate checks now bind busy-buffer captures too. Five
+older ERT fixtures had queued a targetless capture with no category, a shape the
+live tool refused before queueing, so each now carries a category.
+
+*Verified.* Each apply check fails its own test when removed (seven mutations).
+The shell suites go red against HEAD's scripts, and the timeout guard fails
+under its own mutation. test-all ran 26 suites, 1492 passed. Live: a refused
+capture queued in a scratch directory rendered in the running Emacs as an
+=outage capture= row, routed to this repo's =TODO.org=. Not applied: apply is
+the user's.
+
+
 
 * TODO [3/5] Institute a catch-all heading for cross-cutting meta-work :code:
 :PROPERTIES:
