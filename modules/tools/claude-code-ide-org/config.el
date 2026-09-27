@@ -18862,6 +18862,35 @@ resolves the symlink with `file-truename\'."
   (claude-code-ide-org--archive-target-file
    (claude-code-ide-org--capture-target-file)))
 
+(defun claude-code-ide-org--datetree-siblings-descending-p (by-closed)
+  "Non-nil when the heading at point and its later siblings are newest-first.
+BY-CLOSED compares CLOSED: timestamps, as a day node's tasks sort;
+otherwise the lowercased titles, as years, months and days sort.
+
+The check that lets `claude-code-ide-org-sort-datetree-descending' skip
+a node (TODO.org :ID: 16df4004): `org-sort-entries' rewrites every
+subtree it touches even when nothing moves, so sorting all of DONE.org
+on each ceremony cost 25-47 s and grew with every archive.  A tie counts
+as in order, because org's sort is stable and leaves ties where they
+stand: measured on DONE.org, 17 day nodes with same-minute CLOSED:
+stamps were re-sorted on every pass and the file never changed.  A
+missing CLOSED: still answers nil, so that node is sorted as before
+rather than skipped on a guess."
+  (save-excursion
+    (let ((key (lambda ()
+                 (if by-closed
+                     (let ((c (org-entry-get nil "CLOSED")))
+                       (and c (org-time-string-to-seconds c)))
+                   (downcase (org-get-heading t t t t)))))
+          (ok t) prev)
+      (setq prev (funcall key))
+      (unless prev (setq ok nil))
+      (while (and ok (org-get-next-sibling))
+        (let ((k (funcall key)))
+          (setq ok (and k (if by-closed (<= k prev) (not (string< prev k))))
+                prev k)))
+      ok)))
+
 (defun claude-code-ide-org-sort-datetree-descending (&optional file dry-run)
   "Sort FILE\'s top-level datetree newest-first at every level.
 
@@ -18904,28 +18933,50 @@ Idempotent.  Returns a summary string."
            ;; Years, from before the first heading -- org signals
            ;; "Nothing to sort" anywhere else.
            (goto-char (point-min))
-           (org-sort-entries nil ?A)
-           ;; Then each tier in turn. Re-scanned from point-min each
-           ;; time rather than held as markers: every sort moves the
-           ;; subtrees the next tier lives in.
-           (dolist (level '(1 2 3))
+           (unless (and (re-search-forward "^\\* " nil t)
+                        (progn (beginning-of-line)
+                               (claude-code-ide-org--datetree-siblings-descending-p nil)))
              (goto-char (point-min))
-             (org-map-entries
-              (lambda ()
-                (when (and (= (org-current-level) level)
-                           (claude-code-ide-org--datetree-node-role
-                            level (org-get-heading t t t t)))
-                  (pcase level
-                    (1 (setq years (1+ years)))
-                    (2 (setq months (1+ months)))
-                    (3 (setq days (1+ days))))
-                  ;; A node with no children is not an error; org
-                  ;; signals rather than returning, so ask first.
-                  (when (save-excursion (org-goto-first-child))
-                    (if (= level 3)
-                        (org-sort-entries nil ?R nil nil "CLOSED")
-                      (org-sort-entries nil ?A)))))
-              nil nil)))))
+             (org-sort-entries nil ?A))
+           ;; Then down the tiers, visiting date nodes only: a walk by
+           ;; first-child and next-sibling never enters a day's tasks,
+           ;; where three `org-map-entries' passes visited all 4,422
+           ;; headings of DONE.org each time (TODO.org :ID: 16df4004).
+           ;; A node is sorted before its children are walked, and the
+           ;; sort moves only that node's own subtrees, so the walk's
+           ;; position under it stays good.
+           (cl-labels
+               ((walk (level)
+                  (while
+                      (progn
+                        (when (and (= (org-current-level) level)
+                                   (claude-code-ide-org--datetree-node-role
+                                    level (org-get-heading t t t t)))
+                          (pcase level
+                            (1 (setq years (1+ years)))
+                            (2 (setq months (1+ months)))
+                            (3 (setq days (1+ days))))
+                          ;; A node already in order is left alone, and
+                          ;; one with no children is not an error; org
+                          ;; signals rather than returning, so ask first.
+                          (when (save-excursion
+                                  (and (org-goto-first-child)
+                                       (not (claude-code-ide-org--datetree-siblings-descending-p
+                                             (= level 3)))))
+                            ;; Point stays on this node: the sort
+                            ;; rewrites only text after its heading.
+                            (save-excursion
+                              (if (= level 3)
+                                  (org-sort-entries nil ?R nil nil "CLOSED")
+                                (org-sort-entries nil ?A))))
+                          (when (< level 3)
+                            (save-excursion
+                              (when (org-goto-first-child) (walk (1+ level))))))
+                        (org-get-next-sibling)))))
+             (goto-char (point-min))
+             (when (re-search-forward "^\\* " nil t)
+               (beginning-of-line)
+               (walk 1))))))
       (when (and (not dry-run) (buffer-modified-p)) (save-buffer)))
     (format "%s: %d year(s), %d month(s), %d day(s) sorted newest-first.%s"
             (file-name-nondirectory file) years months days

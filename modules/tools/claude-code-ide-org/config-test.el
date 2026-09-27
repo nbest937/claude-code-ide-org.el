@@ -16472,6 +16472,39 @@ unreadable."
         (claude-code-ide-org-sort-datetree-descending f)
         (should (equal once (claude-code-ide-org-test--disk-contents f)))))))
 
+(ert-deftest claude-code-ide-org-test-sort-datetree-skips-nodes-already-in-order ()
+  "Only an out-of-order node is sorted (TODO.org :ID: 16df4004).
+`org-sort-entries' rewrites each subtree it touches, so sorting every
+node of DONE.org on every ceremony cost 25-47 s.  An ordered tree calls
+it not at all; one day out of order calls it once, and fixes that day."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--datetree-fixture
+     archive-file
+     (concat "* 2026\n"
+             "** 2026-09 September\n"
+             "*** 2026-09-02 Wednesday\n"
+             "**** DONE Early :code:\nCLOSED: [2026-09-02 Wed 09:00]\n"
+             "**** DONE Late :code:\nCLOSED: [2026-09-02 Wed 17:00]\n"
+             "*** 2026-09-01 Tuesday\n"
+             ;; A same-minute tie is in order: org's sort is stable.
+             "**** DONE Tie one :code:\nCLOSED: [2026-09-01 Tue 10:00]\n"
+             "**** DONE Tie two :code:\nCLOSED: [2026-09-01 Tue 10:00]\n"
+             "** 2026-08 August\n"
+             "*** 2026-08-21 Friday\n"
+             "**** DONE Later :code:\nCLOSED: [2026-08-21 Fri 13:20]\n"
+             "**** DONE Earlier :code:\nCLOSED: [2026-08-21 Fri 09:00]\n"))
+    (let ((calls 0))
+      (cl-letf* ((real (symbol-function 'org-sort-entries))
+                 ((symbol-function 'org-sort-entries)
+                  (lambda (&rest a) (setq calls (1+ calls)) (apply real a))))
+        (claude-code-ide-org-sort-datetree-descending archive-file)
+        (should (= 1 calls))
+        (let ((disk (claude-code-ide-org-test--disk-contents archive-file)))
+          (should (< (string-match "Late" disk) (string-match "Early" disk))))
+        (setq calls 0)
+        (claude-code-ide-org-sort-datetree-descending archive-file)
+        (should (= 0 calls))))))
+
 (ert-deftest claude-code-ide-org-test-archiving-lands-in-the-existing-datetree ()
   "An archive pass files into the datetree and the ceremony re-sorts it
 newest-first (TODO.org :ID: 33864a0f).
