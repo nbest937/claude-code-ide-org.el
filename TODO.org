@@ -2,6 +2,32 @@
 #+TAGS: analysis bug code comms prose research review spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Queue events keyed by an 8-character prefix are invisible to exact-id readers :code:
+:PROPERTIES:
+:ID:       4c43145d-fac6-40b7-90ab-0af15d33afc7
+:CREATED:  [2026-09-27 Sun 14:32]
+:CATEGORY: Queue
+:END:
+
+=queue-append= records =tool_input.id= verbatim, and the queued tools accept an
+8-character prefix, so a =todo= or =clock_in= event carries whatever the caller
+typed. On 2026-09-27, 259 of the queue's 1,048 =todo= events carried a prefix.
+Every reader that matches events to a heading by exact id skips them. Found when
+=org_footnotes= showed [[id:381ea07d-633f-4640-abbb-89472a07acba][381ea07d]] as =TODO= while =DOING= and then =REVIEW= were
+queued. =--effective-todo-state= compares =:id= with =equal= against the full
+id, found no events, and the footnote carried the disk keyword with no star.
+
+The same comparison sits under =org_set_todo='s no-change check (57f37f0e), so a
+duplicate of a queued state slips through. =--queue-events-by-id= also groups a
+prefix and the full id apart, which feeds the review buffer and SessionStart's
+queue divergence. Apply is unaffected, because it resolves through =--id-find=.
+Not yet measured: how each of those surfaces misbehaves in practice.
+
+The fix belongs where the queue is read, not where it is written: =queue-append=
+runs with no Emacs by design, so it cannot expand a prefix. Expanding =:id= once
+in the event parser, through =--expand-id-prefix=, reaches every reader. This is
+the queue-side sibling of [[id:25e7b083-360b-4282-8fd0-bb768e2a0f13][25e7b083]], which fixed the tool arguments.
+
 * TODO An active region in TODO.org makes the archive sweep take live headings :code:
 :PROPERTIES:
 :ID:       4a4ebb21-9388-494f-a40a-641ff663b19e
