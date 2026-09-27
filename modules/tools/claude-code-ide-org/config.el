@@ -4006,7 +4006,13 @@ first and put back after TEXT, so revising a slice's prose cannot delete
 the one thing it declares.  Since `:MEMBERS:' landed a lost checklist
 would cost only a refresh, but this keeps the file whole between
 refreshes.  The incidental section is not carried: it is derived, and
-the next refresh regenerates it."
+the next refresh regenerates it.
+
+*Unless TEXT brings its own.*  Revising the prose and keeping the list
+is the natural call, and splicing the old list after it left two
+`Planned:' sections -- the cookie double-counted and the lint reported a
+disagreement (TODO.org :ID: ee6e6c63, PR #31 review).  TEXT's copy
+stands, and the refresh re-renders it from `:MEMBERS:'."
   (let* ((bounds (claude-code-ide-org--heading-body-bounds))
          (planned
           (and bounds (claude-code-ide-org--slice-p)
@@ -4025,7 +4031,12 @@ the next refresh regenerates it."
       (delete-region (nth 1 bounds) (nth 2 bounds))
       (goto-char (nth 1 bounds))
       (insert (string-trim (or text "")))
-      (when planned (insert "\n\n" planned))
+      (when (and planned
+                 (not (string-match-p
+                       (concat "^" (regexp-quote claude-code-ide-org--slice-planned-lead)
+                               "[ \t]*$")
+                       (or text ""))))
+        (insert "\n\n" planned))
       t)))
 
 (defconst claude-code-ide-org--plain-list-item-lead "[ \t]*\\(?:[-+]\\|[0-9]+[.)]\\) "

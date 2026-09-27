@@ -18865,6 +18865,21 @@ filed about."
       (should (string-match-p "id:mem-c\\]\\[mem-c\\]\\] TODO Gamma" disk))
       (should-not (string-match-p "The theme\\." disk)))))
 
+(ert-deftest claude-code-ide-org-test-amend-replace-keeps-one-slice-checklist ()
+  "A replace whose text already carries the checklist is not given a
+second copy (TODO.org :ID: ee6e6c63, PR #31 review): revising the prose
+and keeping the list is the natural call, and the splice doubled it."
+  (claude-code-ide-org-test--with-members-fixture
+    (let ((list (org-with-point-at (org-id-find "slice-m1" 'marker)
+                  (let ((r (claude-code-ide-org--slice-planned-region)))
+                    (buffer-substring-no-properties (car r) (cdr r))))))
+      (claude-code-ide-org-amend "slice-m1"
+                                 (concat "A new theme.\n\nPlanned:\n\n" list) nil t))
+    (let ((disk (claude-code-ide-org-test--disk-contents capture-file)) (n 0) (pos 0))
+      (while (string-match "^Planned:" disk pos) (setq n (1+ n) pos (match-end 0)))
+      (should (= 1 n))
+      (should (string-match-p "A new theme\\.\n\nPlanned:" disk)))))
+
 (ert-deftest claude-code-ide-org-test-slice-members-ignore-a-plan-drawer ()
   "An id bullet inside a :PLAN: drawer is design prose, not a member:
 every member scan starts below the leading drawers."
