@@ -2,6 +2,56 @@
 #+TAGS: analysis bug code comms prose research review spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Every queue read parses every line ever written, and date-to-time is 80% of it :code:
+:PROPERTIES:
+:ID:       fa617d99-e1f3-470f-b24c-a0c51b3aefb2
+:CREATED:  [2026-09-27 Sun 15:51]
+:CATEGORY: Queue
+:END:
+
+=--queue-events= reads every line of every live queue file and parses it before
+dropping the applied ones: 6,817 lines across 81 sessions on 2026-09-27, of
+which 163 were pending. One read took 1.18 s. The JSON decode was 0.20 s,
+=--parse-iso8601='s =date-to-time= was 0.80 s, and the applied/dismissed lookups
+about 0.03 s. It runs on every =org_set_todo=, =org_footnotes= and review
+render, and it grows with every event ever queued. Two independent fixes: check
+the raw =ts= string against the applied and dismissed sets before parsing the
+timestamp, since both sets are keyed by that string; and parse the fixed ISO
+shape directly instead of calling the lenient =date-to-time=. Archiving fully
+applied session files would bound it for good.
+
+* TODO Slice refresh takes 10 s on leaving the review buffer, with the referent index under 0.1 s :code:
+:PROPERTIES:
+:ID:       4d896425-586a-4a5e-8d13-0a737d15a954
+:CREATED:  [2026-09-27 Sun 15:51]
+:CATEGORY: Slices
+:END:
+
+=claude-code-ide-org-refresh-slice= took 10.1 s in the live Emacs on 2026-09-27,
+rerun right after the ceremony and with nothing to change. There are 17 slices,
+and =--slice-referent-index= builds in 0.07 s, so the time goes somewhere per
+slice or per member. Not yet profiled. The next step is to run =profiler-start=
+around one refresh and check whether each slice re-reads or re-renders what
+hasn't changed.
+
+* TODO The ceremony re-sorts DONE.org's whole datetree on every quit, and it grows with every archive :code:
+:PROPERTIES:
+:ID:       16df4004-9e9e-4c78-a2aa-14d57358e23c
+:CREATED:  [2026-09-27 Sun 15:51]
+:CATEGORY: Meta
+:END:
+
+=claude-code-ide-org-sort-datetree-descending= runs on every exit from the
+review buffer, and it runs =org-sort-entries= on every year, month and day node
+of =DONE.org=, all tiers, every time, even when they are already in order.
+Measured 2026-09-27 in the live Emacs, with =DONE.org= at 44,369 lines and 4,422
+headings: 47 s on the first run and 25 s on the second, with no change to the
+file. It is by far the largest of the six steps the ceremony runs on exit. The
+sort rewrites whole subtrees, so the cost grows with the archive; that fits the
+user's report of latency rising a little with each exit. Possible fixes: skip a
+node whose children are already in order, which is cheap to check, or sort only
+the day nodes this pass archived into.
+
 * REVIEW Queue events keyed by an 8-character prefix are invisible to exact-id readers :code:
 :PROPERTIES:
 :ID:       4c43145d-fac6-40b7-90ab-0af15d33afc7
