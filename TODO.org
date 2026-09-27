@@ -52,6 +52,16 @@ user's report of latency rising a little with each exit. Possible fixes: skip a
 node whose children are already in order, which is cheap to check, or sort only
 the day nodes this pass archived into.
 
+*Shipped* in [[orgit-rev:~/git/claude-code-ide-org::c514f1f][c514f1f]]. A node is now sorted only when its children aren't already
+newest-first. The tiers are walked by first child and next sibling instead of
+three full =org-map-entries= passes, so a day's tasks are read only for their
+=CLOSED:=. A same-minute tie counts as in order: org's sort is stable, and 17
+tie-bearing days had been re-sorted on every pass without changing the file.
+Live on the real =DONE.org=: 0.05 s and no sort calls, down from 25–47 s, with
+the file unchanged. The new test failed against HEAD, and the tie case failed
+under its own mutation.
+
+
 * REVIEW Queue events keyed by an 8-character prefix are invisible to exact-id readers :code:
 :PROPERTIES:
 :ID:       4c43145d-fac6-40b7-90ab-0af15d33afc7
