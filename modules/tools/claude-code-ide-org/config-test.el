@@ -3234,6 +3234,7 @@ drives the apply path directly rather than the tool."
                       :ts (date-to-time "2026-08-31T15:00:00-0500")
                       :title "Deferred with a state"
                       :target nil
+                      :category "Test"
                       :tags nil
                       :to "DOING")))
       (should-not (claude-code-ide-org--review-apply-capture item))
@@ -3252,7 +3253,7 @@ heading in the tracker (PR #29 review, TODO.org :ID: 00aa6a85)."
                    (list :type 'capture :id "test-deferred-esc-1"
                          :ts (date-to-time "2026-09-21T15:00:00-0500")
                          :title "Deferred with a block" :target nil
-                         :to "TODO" :note block)))
+                         :category "Test" :to "TODO" :note block)))
       (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
         (should (string-match-p "^,\\* Fake$" disk))
         (should-not (string-match-p "^\\* Fake$" disk)))
@@ -10923,7 +10924,7 @@ round to reviewing it."
                                   (claude-code-ide-org--parse-iso8601 ts))))
         (claude-code-ide-org-test--queue-write
          "sess-a" (claude-code-ide-org-test--capture-line
-                   ts "cap-id-1" "Queued heading" nil "code,research"))
+                   ts "cap-id-1" "Queued heading" nil "code,research" nil "Test"))
         (let ((items (claude-code-ide-org--review-items-from-queue)))
           (should (= 1 (length items)))
           (should (eq 'capture (plist-get (car items) :type)))
@@ -11036,7 +11037,7 @@ leave a heading that exists and holds the state."
       (claude-code-ide-org-test--queue-write
        "sess-a"
        (claude-code-ide-org-test--capture-line
-        "2026-01-15T09:14:00-0500" "cap-id-3" "Chained heading")
+        "2026-01-15T09:14:00-0500" "cap-id-3" "Chained heading" nil nil nil "Test")
        (json-encode '((ts . "2026-01-15T09:15:00-0500") (kind . "todo")
                       (id . "cap-id-3") (state . "DOING") (from . "none")
                       (note . "starting") (session_id . "sess-a")
@@ -17622,6 +17623,10 @@ so %-escapes in user prose land verbatim."
                       :ts (date-to-time "2026-09-11T12:00:00-0500")
                       :title "Deferred with prose"
                       :target nil
+                      ;; The live tool refuses a categoryless top-level
+                      ;; capture before queueing, and apply now checks it
+                      ;; again (TODO.org :ID: 7fa68d5c).
+                      :category "Test"
                       :tags nil
                       :to "TODO"
                       :note "Deferred reason, also with %i intact.")))
@@ -19798,3 +19803,116 @@ with a local entry on the second, both register under their own names."
       (let ((json (claude-code-ide-org--session-start-hook-json)))
         (should (string-match-p "failed because Emacs was unreachable" json))
         (should (string-match-p "failed while Emacs was unreachable" json))))))
+
+;;; Capture apply checks and the outage origin (TODO.org :ID: 7fa68d5c) ----
+
+(defun claude-code-ide-org-test--outage-capture (id title &rest props)
+  "A capture review item as the outage fallback queues it, PROPS overriding.
+PROPS come first because `plist-get' returns the first occurrence."
+  (append props
+          (list :type 'capture :id id
+                :ts (date-to-time "2026-09-27T12:00:00-0500")
+                :title title :target nil :tags nil :to "TODO"
+                :category "Test" :origin "outage")))
+
+(defun claude-code-ide-org-test--count-matches (regexp file)
+  "How many times REGEXP matches FILE's disk contents."
+  (let ((disk (claude-code-ide-org-test--disk-contents file)) (n 0) (pos 0))
+    (while (string-match regexp disk pos) (setq n (1+ n) pos (match-end 0)))
+    n))
+
+(ert-deftest claude-code-ide-org-test-apply-capture-is-idempotent ()
+  "An id that already resolves means the capture landed; apply writes nothing."
+  (claude-code-ide-org-test--with-capture-file
+    (let ((item (claude-code-ide-org-test--outage-capture
+                 "88888888-8888-4888-8888-888888888801" "Landed after all")))
+      (should-not (claude-code-ide-org--review-apply-capture item))
+      (should-not (claude-code-ide-org--review-apply-capture item))
+      (should (= 1 (claude-code-ide-org-test--count-matches
+                    "Landed after all" capture-file))))))
+
+(ert-deftest claude-code-ide-org-test-apply-capture-needs-a-top-level-category ()
+  "A targetless capture with no category is refused at apply, and nothing is written."
+  (claude-code-ide-org-test--with-capture-file
+    (let ((result (claude-code-ide-org--review-apply-capture
+                   (claude-code-ide-org-test--outage-capture
+                    "88888888-8888-4888-8888-888888888802" "No category"
+                    :category nil))))
+      (should (string-match-p "\\`Error: a top-level capture needs a category" result))
+      (should (= 0 (claude-code-ide-org-test--count-matches "No category" capture-file))))))
+
+(ert-deftest claude-code-ide-org-test-apply-capture-refuses-a-keyworded-child-of-a-slice ()
+  "A keyworded capture under a slice is refused at apply, as at the call."
+  (claude-code-ide-org-test--with-capture-file
+    (with-current-buffer (find-file-noselect capture-file)
+      (goto-char (point-max))
+      (insert "* DOING [0/0] A slice\n:PROPERTIES:\n"
+              ":ID:       77777777-7777-4777-8777-777777777777\n"
+              ":KIND:     slice\n:END:\n")
+      (save-buffer))
+    (org-id-update-id-locations (list capture-file))
+    (let ((result (claude-code-ide-org--review-apply-capture
+                   (claude-code-ide-org-test--outage-capture
+                    "88888888-8888-4888-8888-888888888803" "Under the slice"
+                    :target "77777777-7777-4777-8777-777777777777"))))
+      (should (string-match-p "\\`Error: a keyworded capture here would give slice" result))
+      (should (= 0 (claude-code-ide-org-test--count-matches "Under the slice" capture-file))))))
+
+(ert-deftest claude-code-ide-org-test-apply-capture-refuses-a-duplicate-title ()
+  "A same-title heading is refused at apply unless the call allowed it."
+  (claude-code-ide-org-test--with-capture-file
+    (should (string-match-p
+             "\\`Error: a heading already carries this title"
+             (claude-code-ide-org--review-apply-capture
+              (claude-code-ide-org-test--outage-capture
+               "88888888-8888-4888-8888-888888888804" "Scratch"))))
+    (should-not (claude-code-ide-org--review-apply-capture
+                 (claude-code-ide-org-test--outage-capture
+                  "88888888-8888-4888-8888-888888888805" "Scratch"
+                  :allow-duplicate "true")))
+    (should (= 2 (claude-code-ide-org-test--count-matches "^\\*+ .*Scratch$" capture-file)))))
+
+(ert-deftest claude-code-ide-org-test-apply-capture-warns-on-a-novel-category ()
+  "A category the file has never used is written, with a warning."
+  (claude-code-ide-org-test--with-capture-file
+    (let ((claude-code-ide-org--review-apply-warnings nil))
+      (with-current-buffer (find-file-noselect capture-file)
+        (goto-char (point-max))
+        (insert "* TODO Filed\n:PROPERTIES:\n:CATEGORY: Test\n:END:\n")
+        (save-buffer))
+      (should-not (claude-code-ide-org--review-apply-capture
+                   (claude-code-ide-org-test--outage-capture
+                    "88888888-8888-4888-8888-888888888806" "Novel one"
+                    :category "Tset")))
+      (should (string-match-p "category \"Tset\" is new"
+                              (car claude-code-ide-org--review-apply-warnings)))
+      (should (= 1 (claude-code-ide-org-test--count-matches "Novel one" capture-file))))))
+
+(ert-deftest claude-code-ide-org-test-outage-capture-is-marked-in-review ()
+  "An event queued by the outage fallback carries its origin to the row."
+  (claude-code-ide-org-test--with-capture-file
+    (claude-code-ide-org-test--with-queue
+      (claude-code-ide-org-test--queue-write
+       "sess-a"
+       (json-encode '((ts . "2026-09-27T12:00:00-0500") (kind . "capture")
+                      (id . "88888888-8888-4888-8888-888888888807")
+                      (title . "From the outage") (category . "Test")
+                      (allow_duplicate . "true") (origin . "outage")
+                      (session_id . "sess-a")
+                      (source . "mcp__emacs-tools__org_capture"))))
+      (let ((item (car (claude-code-ide-org--review-items-from-queue))))
+        (should (equal "outage" (plist-get item :origin)))
+        (should (equal "true" (plist-get item :allow-duplicate)))
+        (should (string-match-p "outage capture"
+                                (claude-code-ide-org--review-describe item)))))))
+
+(ert-deftest claude-code-ide-org-test-tool-failure-report-names-a-queued-capture ()
+  "A capture the outage fallback queued is reported as queued, not as lost."
+  (claude-code-ide-org-test--with-queue
+    (claude-code-ide-org-test--plant-failures
+     "s1"
+     "{\"kind\":\"failure\",\"ts\":\"2026-09-27T10:00:00Z\",\"cwd\":\"/p\",\"tool_use_id\":\"t1\",\"tool_name\":\"mcp__emacs-tools__org_capture\",\"tool_input\":{\"title\":\"T\"},\"may_land\":false}"
+     "{\"kind\":\"queued\",\"ts\":\"2026-09-27T10:00:00Z\",\"tool_use_id\":\"t1\",\"id\":\"88888888-8888-4888-8888-888888888808\"}")
+    (let ((report (claude-code-ide-org--tool-failure-report)))
+      (should (string-match-p "queued as capture 88888888-8888-4888-8888-888888888808" report))
+      (should-not (string-match-p "did not land" report)))))

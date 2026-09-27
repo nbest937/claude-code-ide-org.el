@@ -1315,15 +1315,17 @@ the call never ran -- which the stub reports as `image state unknown'."
 (defun claude-code-ide-org--tool-failure-markers (&optional dir)
   "Unreported tool-failure markers in DIR, as plists, oldest first.
 DIR defaults to `claude-code-ide-org-queue-directory'.  Each plist has
-:file, :ts, :cwd, :tool, :input, :may-land and :state -- the last from
-the `probe' line sharing the failure's tool_use_id, or nil when the
-probe never recorded one.  A line that does not parse is skipped: the
+:file, :ts, :cwd, :tool, :input, :may-land, :state -- from the `probe'
+line sharing the failure's tool_use_id, or nil when the probe never
+recorded one -- and :queued, the id a `queued' line gave a capture the
+outage fallback queued.  A line that does not parse is skipped: the
 file is plain shell's, written while the system was least healthy."
   (let ((dir (or dir claude-code-ide-org-queue-directory))
         markers)
     (dolist (file (and (file-directory-p dir)
                        (directory-files dir t "\\.tool-failures\\.jsonl\\'")))
-      (let (failures (probes (make-hash-table :test 'equal)))
+      (let (failures (probes (make-hash-table :test 'equal))
+                     (queued (make-hash-table :test 'equal)))
         (with-temp-buffer
           (insert-file-contents file)
           (dolist (line (split-string (buffer-string) "\n" t))
@@ -1334,7 +1336,10 @@ file is plain shell's, written while the system was least healthy."
               (pcase (plist-get obj :kind)
                 ("failure" (push obj failures))
                 ("probe" (puthash (plist-get obj :tool_use_id)
-                                  (plist-get obj :state) probes))))))
+                                  (plist-get obj :state) probes))
+                ;; The capture fallback queued it (TODO.org :ID: 7fa68d5c).
+                ("queued" (puthash (plist-get obj :tool_use_id)
+                                   (plist-get obj :id) queued))))))
         (dolist (f (nreverse failures))
           (push (list :file file
                       :ts (plist-get f :ts)
@@ -1342,7 +1347,8 @@ file is plain shell's, written while the system was least healthy."
                       :tool (plist-get f :tool_name)
                       :input (plist-get f :tool_input)
                       :may-land (plist-get f :may_land)
-                      :state (gethash (plist-get f :tool_use_id) probes))
+                      :state (gethash (plist-get f :tool_use_id) probes)
+                      :queued (gethash (plist-get f :tool_use_id) queued))
                 markers))))
     (sort (nreverse markers)
           (lambda (a b) (string< (or (plist-get a :ts) "")
@@ -1382,9 +1388,13 @@ session's markers share its cwd."
                                              (plist-get input :id))))
                               (format " on %s" id) "")
                           (or (plist-get m :state) "not probed")
-                          (if (plist-get m :may-land)
-                              "may still have landed -- check the file before redoing it"
-                            "did not land -- redo it if it is still wanted"))))
+                          (cond
+                           ((plist-get m :queued)
+                            (format "queued as capture %s -- it is in the review pass, so do not redo it"
+                                    (plist-get m :queued)))
+                           ((plist-get m :may-land)
+                            "may still have landed -- check the file before redoing it")
+                           (t "did not land -- redo it if it is still wanted")))))
               mine)))
         (dolist (file (delete-dups (mapcar (lambda (m) (plist-get m :file)) mine)))
           (unless (seq-find (lambda (m) (and (equal (plist-get m :file) file)
@@ -8714,6 +8724,12 @@ whole file. This is the single place that judgement is made."
                 :target (alist-get 'target obj)
                 :tags (alist-get 'tags obj)
                 :category (alist-get 'category obj)
+                ;; capture only (TODO.org :ID: 7fa68d5c): the tool's own
+                ;; allow_duplicate, so apply can make the check the call
+                ;; made; and "outage" when bin/hooks/tool-failure queued
+                ;; it because Emacs refused the connection.
+                :allow-duplicate (alist-get 'allow_duplicate obj)
+                :origin (alist-get 'origin obj)
                 :text (alist-get 'text obj)
                 ;; amend only: which drawer the text targets. Null for a
                 ;; body amend, and on events written before it existed.
@@ -10202,6 +10218,8 @@ from a skipped one."
                            ;; a targetless capture at apply and in its row
                            ;; (TODO.org :ID: 5e731a23).
                            :cwd (plist-get event :cwd)
+                           :allow-duplicate (plist-get event :allow-duplicate)
+                           :origin (plist-get event :origin)
                            :events (list event))
                      items))
               ("amend"
@@ -11347,27 +11365,71 @@ and applies nothing, leaving the item pending exactly as a stale state
 transition does -- the human then retargets or dismisses it.  It never
 falls back to the end of the capture file: a heading filed somewhere
 nobody chose is precisely the confidently-wrong record this architecture
-exists to prevent (TODO.org :ID: b5f94b88)."
+exists to prevent (TODO.org :ID: b5f94b88).
+
+*The call's own checks run again here* (TODO.org :ID: 7fa68d5c), because
+a capture queued by the outage fallback never reached Emacs, so none ran
+at the call -- and a busy-buffer capture's may have gone stale.  In
+order: an id that already resolves means the capture landed after all,
+and the item is realised with nothing written; then the target; a
+top-level capture needs a category; a keyworded capture under a slice is
+refused; a same-title heading is refused unless the call allowed it.  A
+category the file has never used only warns, as the tool does."
   (condition-case err
-      (let* ((resolved (claude-code-ide-org--capture-target-spec
-                        (plist-get item :target) (plist-get item :cwd)))
-             (file (plist-get resolved :file))
-             (id (plist-get item :id)))
-        (claude-code-ide-org--capture-write
-         (or (plist-get item :title) "(untitled)")
-         id
-         (format-time-string "[%Y-%m-%d %a %H:%M]" (plist-get item :ts))
-         (plist-get resolved :spec)
-         (plist-get item :tags)
-         (plist-get item :to)
-         ;; Escaped as the direct write escapes it; see the amend above.
-         (claude-code-ide-org--fill-prose-text
-          (claude-code-ide-org--escape-block-headlines (plist-get item :note))
-          (claude-code-ide-org--fill-column-for-file file))
-         (plist-get item :category))
-        (org-id-add-location id (expand-file-name file))
-        (with-current-buffer (find-file-noselect file) (save-buffer))
-        nil)
+      (let ((id (plist-get item :id)))
+        (if (and id (claude-code-ide-org--id-find id))
+            nil
+          (let* ((resolved (claude-code-ide-org--capture-target-spec
+                            (plist-get item :target) (plist-get item :cwd)))
+                 (file (plist-get resolved :file))
+                 (title (or (plist-get item :title) "(untitled)"))
+                 (category (plist-get item :category))
+                 (top-level (eq (car-safe (plist-get resolved :spec)) 'file))
+                 (in-use (and (or top-level category)
+                              (claude-code-ide-org--file-categories file)))
+                 (target-slice
+                  (and (plist-get item :to) (plist-get item :target)
+                       (let ((tm (claude-code-ide-org--id-find
+                                  (plist-get item :target) 'marker)))
+                         (and tm (org-with-point-at tm
+                                   (claude-code-ide-org--enclosing-slice-title))))))
+                 (exact (seq-find (lambda (c) (plist-get c :exact))
+                                  (claude-code-ide-org--duplicate-candidates title file))))
+            (cond
+             ((and top-level (not category))
+              (format "Error: a top-level capture needs a category; %s uses: %s"
+                      (file-name-nondirectory file)
+                      (if in-use (string-join in-use ", ") "(none yet)")))
+             (target-slice
+              (format "Error: a keyworded capture here would give slice \"%s\" keyworded children"
+                      target-slice))
+             ((and exact (not (member (plist-get item :allow-duplicate)
+                                      '(t "true" "t" "yes"))))
+              (format "Error: a heading already carries this title -- %s {%s} in %s"
+                      (or (plist-get exact :keyword) "(no keyword)")
+                      (if (plist-get exact :id) (substring (plist-get exact :id) 0 8) "no id")
+                      (plist-get exact :file)))
+             (t
+              (when (and category in-use (not (member category in-use)))
+                (push (format "capture %s: category \"%s\" is new to %s"
+                              (claude-code-ide-org--short-id id) category
+                              (file-name-nondirectory file))
+                      claude-code-ide-org--review-apply-warnings))
+              (claude-code-ide-org--capture-write
+               title
+               id
+               (format-time-string "[%Y-%m-%d %a %H:%M]" (plist-get item :ts))
+               (plist-get resolved :spec)
+               (plist-get item :tags)
+               (plist-get item :to)
+               ;; Escaped as the direct write escapes it; see the amend above.
+               (claude-code-ide-org--fill-prose-text
+                (claude-code-ide-org--escape-block-headlines (plist-get item :note))
+                (claude-code-ide-org--fill-column-for-file file))
+               category)
+              (org-id-add-location id (expand-file-name file))
+              (with-current-buffer (find-file-noselect file) (save-buffer))
+              nil)))))
     (error (format "Error: %s" (error-message-string err)))))
 
 (defun claude-code-ide-org--review-describe-failure (item error)
@@ -12446,8 +12508,11 @@ vanishes silently is worse than one that explains itself
                       (plist-get (claude-code-ide-org--capture-target-spec
                                   (plist-get item :target) (plist-get item :cwd))
                                  :where))))
-         (format "%scapture %-30s -> %-22s %s   %s"
+         (format "%s%scapture %-30s -> %-22s %s   %s"
                  (if where "  " "! ")
+                 ;; Queued by the outage fallback, never seen by Emacs,
+                 ;; so no check ran at the call (TODO.org :ID: 7fa68d5c).
+                 (if (equal (plist-get item :origin) "outage") "outage " "")
                  (format "%s\"%s\""
                          (if (plist-get item :to)
                              (concat (plist-get item :to) " ")

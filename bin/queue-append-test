@@ -296,6 +296,24 @@ run capture '{"session_id":"sess-a","tool_input":{"title":"H"},"tool_response":"
 check "capture without category records null" "null" \
   "$(jq -r '.category' <<<"$(queue_lines sess-a)")"
 
+# The outage fallback (TODO.org :ID: 7fa68d5c): a capture Emacs refused
+# has no reply, so the gate is skipped only when bin/hooks/tool-failure
+# passes the id it minted -- and without that id a replyless capture is
+# still dropped. Every capture carries allow_duplicate, on both routes.
+reset_queue
+printf '%s' '{"session_id":"sess-a","tool_name":"mcp__emacs-tools__org_capture","tool_input":{"title":"H","category":"Tools","allow_duplicate":"true"},"error":"connect ECONNREFUSED"}' \
+  | CLAUDE_ORG_CAPTURE_ID=out-age-id "$script" capture
+check "outage capture uses the minted id" "out-age-id" "$(jq -r '.id' <<<"$(queue_lines sess-a)")"
+check "outage capture is marked" "outage" "$(jq -r '.origin' <<<"$(queue_lines sess-a)")"
+check "outage capture keeps allow_duplicate" "true" "$(jq -r '.allow_duplicate' <<<"$(queue_lines sess-a)")"
+reset_queue
+run capture '{"session_id":"sess-a","tool_input":{"title":"H"},"error":"connect ECONNREFUSED"}'
+check "a replyless capture without the id is still dropped" "" "$(queue_lines sess-a)"
+reset_queue
+run capture '{"session_id":"sess-a","tool_input":{"title":"H","allow_duplicate":"true"},"tool_response":"Queued capture: \"H\" (ID: id-new) top of file; pending review."}'
+check "a busy-buffer capture carries allow_duplicate" "true" "$(jq -r '.allow_duplicate' <<<"$(queue_lines sess-a)")"
+check "a busy-buffer capture has no origin" "null" "$(jq -r '.origin' <<<"$(queue_lines sess-a)")"
+
 # A todo event must not start reading initial_state, and a capture must
 # not start reading state -- the keys are deliberately distinct.
 reset_queue

@@ -108,6 +108,33 @@ out="$(run idle '' 'Request timed out')"
 check "no session id: no nameless marker" no "$([ -e "$CLAUDE_ORG_QUEUE_DIR/.tool-failures.jsonl" ] && echo yes || echo no)"
 check "no session id: guidance still given" yes "$(ctx "$out" | grep -q 'argument names' && echo yes || echo no)"
 
+# The capture fallback (TODO.org :ID: 7fa68d5c).
+cap () { # session error input-json -> hook stdout, then rc=N
+  jq -nc --arg s "$1" --arg e "$2" --argjson i "$3" --arg cwd "$tmp/proj" \
+    '{session_id: $s, cwd: $cwd, hook_event_name: "PostToolUseFailure",
+      tool_use_id: "tuc", tool_name: "mcp__emacs-tools__org_capture",
+      tool_input: $i, error: $e}' \
+    | FAKE_EC=down FAKE_NO_EMACS=1 "$hook"; echo "rc=$?"
+}
+queue () { cat "$CLAUDE_ORG_QUEUE_DIR/$1.jsonl" 2>/dev/null; }
+mkdir -p "$tmp/proj"
+printf '* TODO A\n:PROPERTIES:\n:CATEGORY: Tools\n:END:\n* TODO B\n:PROPERTIES:\n:CATEGORY: Dev\n:END:\n' > "$tmp/proj/TODO.org"
+out="$(cap s-cap 'connect ECONNREFUSED' '{"title":"Filed in an outage","category":"Tools","initial_state":"TODO"}')"
+qid="$(queue s-cap | jq -r 'select(.kind=="capture") | .id')"
+check "capture refused: queued, with a minted id" yes "$([[ "$qid" =~ ^[0-9a-f-]{36}$ ]] && echo yes || echo "no: $qid")"
+check "capture refused: queued as outage" outage "$(queue s-cap | jq -r 'select(.kind=="capture") | .origin')"
+check "capture refused: the guidance gives the id" yes "$(ctx "$out" | grep -qF "QUEUED for the review pass as :ID: $qid" && echo yes || echo no)"
+check "capture refused: the marker records the id" "$qid" "$(markers s-cap | jq -r 'select(.kind=="queued") | .id')"
+out="$(cap s-nocat 'connect ECONNREFUSED' '{"title":"No category"}')"
+check "capture without category: nothing queued" "" "$(queue s-nocat)"
+check "capture without category: refused as the tool does" yes "$(ctx "$out" | grep -q 'NOT queued: a top-level capture needs a category' && echo yes || echo no)"
+check "capture without category: names the values in use" yes "$(ctx "$out" | grep -q 'TODO.org uses: Dev, Tools' && echo yes || echo no)"
+out="$(cap s-under 'connect ECONNREFUSED' '{"title":"Under a parent","target":"abcd1234"}')"
+check "capture under a target needs no category" capture "$(queue s-under | jq -r '.kind')"
+out="$(cap s-late 'MCP error -32001: Request timed out' '{"title":"Might land","category":"Tools"}')"
+check "capture timed out: nothing queued" "" "$(queue s-late)"
+check "capture timed out: no queued claim" no "$(ctx "$out" | grep -q QUEUED && echo yes || echo no)"
+
 check "the real queue is untouched by name" no "$(ls "$HOME/.claude/org-updates" 2>/dev/null | grep -qE '^s-(ref|busy|prompt|idle|unk|dead|nowrite)\.' && echo yes || echo no)"
 
 echo

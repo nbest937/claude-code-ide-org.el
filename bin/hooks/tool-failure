@@ -120,8 +120,40 @@ if [[ "$state" = refused ]]; then
   fi
 fi
 
-# 3. The guidance.
 tool="$(jq -r '.tool_name // "the org tool"' <<<"$input" 2>/dev/null)"
+
+# The capture fallback (TODO.org :ID: 7fa68d5c): a capture Emacs REFUSED
+# wrote nothing, so it is queued for the review pass under an id minted
+# here, through queue-append -- still the only writer of capture events.
+# Never on a timeout, which may still land and would then be doubled.
+# The one check made here is the category, as the tool makes it: a
+# targetless capture lands at level 1 and cannot inherit one. Everything
+# else the tool checks runs again at apply.
+capture_msg=""
+if [[ "$tool" = mcp__emacs-tools__org_capture ]] && [[ "$may_land" = false ]]; then
+  target="$(jq -r '.tool_input.target // "" | tostring' <<<"$input" 2>/dev/null)"
+  category="$(jq -r '.tool_input.category // "" | tostring' <<<"$input" 2>/dev/null)"
+  if [[ -z "${target// /}" ]] && [[ -z "${category// /}" ]]; then
+    cwd="$(jq -r '.cwd // ""' <<<"$input" 2>/dev/null)"
+    root="$(git -C "${cwd:-.}" rev-parse --show-toplevel 2>/dev/null || printf '%s' "$cwd")"
+    in_use="$(grep -hoE '^[[:space:]]*:CATEGORY:[[:space:]]+[^[:space:]]+' "$root/TODO.org" 2>/dev/null \
+              | awk '{print $2}' | sort -u | paste -sd ',' - | sed 's/,/, /g')"
+    capture_msg="Emacs refused the connection and the capture was NOT queued: a top-level capture needs a category -- it lands at level 1, where :CATEGORY: cannot be inherited. Pass category=; TODO.org uses: ${in_use:-(none yet)}. Capture it again with one."
+  elif [[ -n "$session_id" ]]; then
+    new_id="$(uuidgen 2>/dev/null | tr 'A-Z' 'a-z')"
+    if [[ -n "$new_id" ]]; then
+      CLAUDE_ORG_CAPTURE_ID="$new_id" "$(dirname "${BASH_SOURCE[0]}")/queue-append" capture <<<"$input"
+      if grep -qF "\"id\":\"$new_id\"" "$queue_dir/$session_id.jsonl" 2>/dev/null; then
+        jq -c --arg ts "$now" --arg id "$new_id" \
+           '{kind: "queued", ts: $ts, tool_use_id, id: $id}' <<<"$input" \
+           >> "$markers" 2>/dev/null
+        capture_msg="Emacs refused the connection, so org_capture wrote nothing -- but the capture is QUEUED for the review pass as :ID: $new_id, and nothing else is needed to keep it. Do not capture it again. Once Emacs is back, org_set_todo and org_clock_in accept that id before the capture is applied. Tell the user Emacs is unreachable."
+      fi
+    fi
+  fi
+fi
+
+# 3. The guidance.
 case "$state" in
   refused)
     msg="Emacs refused the connection, so $tool wrote nothing. Do not hand-edit the tracked org files to make up for it, and do not retry until the user says Emacs is back. Tell the user Emacs is unreachable.$sampled" ;;
@@ -134,6 +166,9 @@ case "$state" in
   *)
     msg="$tool failed and a probe of Emacs failed too, so its state is unknown. Say so to the user and stop; do not retry a write." ;;
 esac
+# The capture's own outcome wins whatever the probe found afterwards:
+# it was decided on the call's refused error, not on the probe.
+[[ -n "$capture_msg" ]] && msg="$capture_msg$sampled"
 msg="$msg The failure is recorded and the next session start reports it."
 
 jq -nc --arg m "$msg" \
