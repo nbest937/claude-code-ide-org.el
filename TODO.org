@@ -2,6 +2,23 @@
 #+TAGS: analysis bug code comms prose research review spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Slice refresh re-scans every heading for other slices' members once per slice :code:
+:PROPERTIES:
+:ID:       dc68d831-9e04-4f0a-8b8b-8087b39c6037
+:CREATED:  [2026-09-27 Sun 16:42]
+:CATEGORY: Slices
+:END:
+
+What remains of the slice refresh's 3.1 s after [[id:4d896425-586a-4a5e-8d13-0a737d15a954][4d896425]], profiled 2026-09-27.
+Most of it is =--slice-incidental-ids= calling =--other-slices-declared-ids=,
+which runs =org-map-entries= over every tracked heading once per slice (17 of
+them). The rest is the members' clock lookups through =--clock-starts-after=,
+one =org-id-find= per member. Computing the declared-id table once per pass
+would remove the per-slice scan. The open question is whether the pass can
+change =:MEMBERS:= partway through: the refresh self-heals =:MEMBERS:= from the
+checklist (7ee3b71a), so a table built at the start could go stale. Settle that
+before caching.
+
 * TODO Every queue read parses every line ever written, and date-to-time is 80% of it :code:
 :PROPERTIES:
 :ID:       fa617d99-e1f3-470f-b24c-a0c51b3aefb2
@@ -33,6 +50,18 @@ and =--slice-referent-index= builds in 0.07 s, so the time goes somewhere per
 slice or per member. Not yet profiled. The next step is to run =profiler-start=
 around one refresh and check whether each slice re-reads or re-renders what
 hasn't changed.
+
+*Shipped* in [[orgit-rev:~/git/claude-code-ide-org::73a8df0][73a8df0]]. The profile put about 75% of the refresh in
+=--refresh-stale-id-buffers= (8ddd7fa8), which re-derived the scannable files on
+each of 886 lookups. A buffer that could never verify made that happen every
+time: the old Doom glue's, whose file c562b69a's migration had moved away. The
+check now walks the buffer list first, counting only org buffers whose file
+still exists, and derives the file list only when one has fallen out of step
+with its file. A pass binds =--stale-buffer-check= so the walk runs once per
+refresh. Live: 10.4 s down to 3.1 s, with the file unchanged. Both new tests
+failed against HEAD. The remaining 3.1 s is the per-slice incidentals scan,
+filed as [[id:dc68d831-9e04-4f0a-8b8b-8087b39c6037][dc68d831]].
+
 
 * TODO The ceremony re-sorts DONE.org's whole datetree on every quit, and it grows with every archive :code:
 :PROPERTIES:
