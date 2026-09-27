@@ -20398,34 +20398,48 @@ the project list."
                               claude-code-ide-org-standalone-projects))))
       ;; Refuse a collision rather than let the later project win
       ;; silently, naming both and the one command that separates them
-      ;; (TODO.org :ID: 965f94eb).
-      (when-let* ((c (car (claude-code-ide-org--session-collisions projects))))
-        (user-error "claude-code-ide-org: %s and %s both resolve to MCP session \"%s\"; \
+      ;; (TODO.org :ID: 965f94eb) -- and refuse *only* the duplicate.
+      ;; Refusing before any registration left every project, the
+      ;; unrelated ones included, without a session on a running server
+      ;; (TODO.org :ID: 7def4fff, PR #31 review).  So the refusals are
+      ;; collected, the rest register, and then the refusal signals.
+      (let (refusals refused)
+        (dolist (c (claude-code-ide-org--session-collisions projects))
+          (push (nth 2 c) refused)
+          (push (format "%s and %s both resolve to MCP session \"%s\"; \
 in the second, run: claude mcp add --scope local --transport http emacs-tools \
 http://localhost:%d/mcp/%s-2"
-                    (nth 1 c) (nth 2 c) (nth 0 c) pin (nth 0 c)))
-      ;; A local entry may name another port; the pin is the contract.
-      (dolist (dir projects)
-        (let ((port (claude-code-ide-org--url-port
-                     (claude-code-ide-org--project-mcp-url dir))))
-          (when (and port (/= port pin))
-            (user-error "claude-code-ide-org: %s's emacs-tools URL names port %d, but the tools server is pinned to %d"
-                        dir port pin))))
-      ;; The IDE-companion (WebSocket server + lockfile) lives in
-      ;; claude-code-ide-mcp.el, which loading claude-code-ide does
-      ;; not pull in -- found when the headless Doom sandbox's glue
-      ;; boot threw void-function here (:ID: 7c86ab4c). Optional by
-      ;; construction: the MCP tools need only the HTTP server, so a
-      ;; missing companion degrades with a message, never an error.
-      (require 'claude-code-ide-mcp nil t)
-      (dolist (dir projects)
-        (claude-code-ide-mcp-server-register-session
-         (claude-code-ide-org--project-session-name dir) dir nil)
-        (if (fboundp 'claude-code-ide-mcp-start)
-            (claude-code-ide-mcp-start dir)
-          (message "claude-code-ide-org: IDE companion unavailable; tools server only")))
-      (message "claude-code-ide-org: standalone tools wired on port %d, %d project session(s)"
-               pin (length projects)))))
+                        (nth 1 c) (nth 2 c) (nth 0 c) pin (nth 0 c))
+                refusals))
+        ;; A local entry may name another port; the pin is the contract.
+        (dolist (dir projects)
+          (let ((port (claude-code-ide-org--url-port
+                       (claude-code-ide-org--project-mcp-url dir))))
+            (when (and port (/= port pin))
+              (push dir refused)
+              (push (format "%s's emacs-tools URL names port %d, but the tools server is pinned to %d"
+                            dir port pin)
+                    refusals))))
+        ;; The IDE-companion (WebSocket server + lockfile) lives in
+        ;; claude-code-ide-mcp.el, which loading claude-code-ide does
+        ;; not pull in -- found when the headless Doom sandbox's glue
+        ;; boot threw void-function here (:ID: 7c86ab4c). Optional by
+        ;; construction: the MCP tools need only the HTTP server, so a
+        ;; missing companion degrades with a message, never an error.
+        (require 'claude-code-ide-mcp nil t)
+        (let ((wired (seq-remove (lambda (d) (member d refused)) projects)))
+          (dolist (dir wired)
+            (claude-code-ide-mcp-server-register-session
+             (claude-code-ide-org--project-session-name dir) dir nil)
+            (if (fboundp 'claude-code-ide-mcp-start)
+                (claude-code-ide-mcp-start dir)
+              (message "claude-code-ide-org: IDE companion unavailable; tools server only")))
+          (if refusals
+              (user-error "claude-code-ide-org: %d project session(s) wired on port %d; refused: %s"
+                          (length wired) pin
+                          (string-join (nreverse refusals) "; "))
+            (message "claude-code-ide-org: standalone tools wired on port %d, %d project session(s)"
+                     pin (length wired))))))))
 
 (with-eval-after-load 'claude-code-ide
 

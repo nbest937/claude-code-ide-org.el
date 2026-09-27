@@ -19823,7 +19823,10 @@ with a local entry on the second, both register under their own names."
           (should (string-match-p (regexp-quote (directory-file-name (expand-file-name b)))
                                   (directory-file-name err)))
           (should (string-match-p "claude mcp add --scope local" err))
-          (should-not registered))
+          ;; The first clone still registers: only the duplicate is
+          ;; refused (TODO.org :ID: 7def4fff, PR #31 review).
+          (should (equal (list (cons "repo" a)) registered)))
+        (setq registered nil)
         (claude-code-ide-org-test--local-entry claude-json b "http://localhost:45571/mcp/repo-2")
         (claude-code-ide-org-standalone-wire)
         (should (equal '("repo" "repo-2") (sort (mapcar #'car registered) #'string<)))))))
@@ -19836,7 +19839,9 @@ with a local entry on the second, both register under their own names."
       (let ((claude-code-ide-org-standalone-projects (list a b)))
         (should (string-match-p "names port 45999"
                                 (condition-case e (progn (claude-code-ide-org-standalone-wire) "")
-                                  (user-error (error-message-string e)))))))))
+                                  (user-error (error-message-string e)))))
+        ;; The other project still registers (TODO.org :ID: 7def4fff).
+        (should (equal '("repo") (mapcar #'car registered)))))))
 
 ;;; Tool-failure markers (TODO.org :ID: 3ad389be) ---------------------------
 
