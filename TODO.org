@@ -20,11 +20,21 @@ checklist (7ee3b71a), so a table built at the start could go stale. Settle that
 before caching.
 
 
-* TODO Every queue read parses every line ever written, and date-to-time is 80% of it :code:
+* REVIEW Every queue read parses every line ever written, and date-to-time is 80% of it :code:
 :PROPERTIES:
 :ID:       fa617d99-e1f3-470f-b24c-a0c51b3aefb2
 :CREATED:  [2026-09-27 Sun 15:51]
 :CATEGORY: Queue
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-27 Sun 16:43]--[2026-09-27 Sun 16:47] =>  0:04
+- State "DOING"      from "TODO"       [2026-09-27 Sun 16:43] \\
+  skip applied lines before parsing
+CLOCK: [2026-09-27 Sun 16:43]--[2026-09-27 Sun 16:43] =>  0:00
+- [2026-09-27 Sun 16:43]--[2026-09-27 Sun 16:43] assigned at review
+- [2026-09-27 Sun 16:43]--[2026-09-27 Sun 16:47] queue read cost
+- State "REVIEW"     from "DOING"      [2026-09-27 Sun 16:46] \\
+  1.18 s to 0.066 s
 :END:
 
 =--queue-events= reads every line of every live queue file and parses it before
@@ -48,11 +58,21 @@ others. Archiving fully applied session files would bound the file sizes too;
 not done, and not worth filing at a 0.07 s read.
 
 
-* TODO Slice refresh takes 10 s on leaving the review buffer, with the referent index under 0.1 s :code:
+* REVIEW Slice refresh takes 10 s on leaving the review buffer, with the referent index under 0.1 s :code:
 :PROPERTIES:
 :ID:       4d896425-586a-4a5e-8d13-0a737d15a954
 :CREATED:  [2026-09-27 Sun 15:51]
 :CATEGORY: Slices
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-27 Sun 16:37]--[2026-09-27 Sun 16:43] =>  0:06
+- State "DOING"      from "TODO"       [2026-09-27 Sun 16:37] \\
+  profiling the refresh
+CLOCK: [2026-09-27 Sun 16:37]--[2026-09-27 Sun 16:37] =>  0:00
+- [2026-09-27 Sun 16:37]--[2026-09-27 Sun 16:37] assigned at review
+- [2026-09-27 Sun 16:37]--[2026-09-27 Sun 16:43] slice refresh latency
+- State "REVIEW"     from "DOING"      [2026-09-27 Sun 16:43] \\
+  10.4 s to 3.1 s; rest filed as dc68d831
 :END:
 
 =claude-code-ide-org-refresh-slice= took 10.1 s in the live Emacs on 2026-09-27,
@@ -74,11 +94,20 @@ failed against HEAD. The remaining 3.1 s is the per-slice incidentals scan,
 filed as [[id:dc68d831-9e04-4f0a-8b8b-8087b39c6037][dc68d831]].
 
 
-* TODO The ceremony re-sorts DONE.org's whole datetree on every quit, and it grows with every archive :code:
+* REVIEW The ceremony re-sorts DONE.org's whole datetree on every quit, and it grows with every archive :code:
 :PROPERTIES:
 :ID:       16df4004-9e9e-4c78-a2aa-14d57358e23c
 :CREATED:  [2026-09-27 Sun 15:51]
 :CATEGORY: Meta
+:END:
+:LOGBOOK:
+- [2026-09-27 Sun 16:28]--[2026-09-27 Sun 16:29] assigned at review
+CLOCK: [2026-09-27 Sun 16:29]--[2026-09-27 Sun 16:37] =>  0:08
+- State "DOING"      from "TODO"       [2026-09-27 Sun 16:29] \\
+  skip nodes already in order
+- [2026-09-27 Sun 16:29]--[2026-09-27 Sun 16:37] datetree sort only where out of order
+- State "REVIEW"     from "DOING"      [2026-09-27 Sun 16:36] \\
+  0.05 s, down from 25-47 s
 :END:
 
 =claude-code-ide-org-sort-datetree-descending= runs on every exit from the
@@ -8038,9 +8067,9 @@ Planned:
 - [-] [[id:381ea07d-633f-4640-abbb-89472a07acba][381ea07d]] REVIEW An archive pass wrote one subtree twice, and the mechanism is still unknown
 - [-] [[id:4a4ebb21-9388-494f-a40a-641ff663b19e][4a4ebb21]] REVIEW An active region in TODO.org makes the archive sweep take live headings
 - [-] [[id:4c43145d-fac6-40b7-90ab-0af15d33afc7][4c43145d]] REVIEW Queue events keyed by an 8-character prefix are invisible to exact-id readers
-- [ ] [[id:16df4004-9e9e-4c78-a2aa-14d57358e23c][16df4004]] TODO The ceremony re-sorts DONE.org's whole datetree on every quit, and it grows with every archive
-- [ ] [[id:4d896425-586a-4a5e-8d13-0a737d15a954][4d896425]] TODO Slice refresh takes 10 s on leaving the review buffer, with the referent index under 0.1 s
-- [ ] [[id:fa617d99-e1f3-470f-b24c-a0c51b3aefb2][fa617d99]] TODO Every queue read parses every line ever written, and date-to-time is 80% of it
+- [-] [[id:16df4004-9e9e-4c78-a2aa-14d57358e23c][16df4004]] REVIEW The ceremony re-sorts DONE.org's whole datetree on every quit, and it grows with every archive
+- [-] [[id:4d896425-586a-4a5e-8d13-0a737d15a954][4d896425]] REVIEW Slice refresh takes 10 s on leaving the review buffer, with the referent index under 0.1 s
+- [-] [[id:fa617d99-e1f3-470f-b24c-a0c51b3aefb2][fa617d99]] REVIEW Every queue read parses every line ever written, and date-to-time is 80% of it
 - [-] [[id:8ddd7fa8-e847-42e9-b82c-63bbe4c11b7b][8ddd7fa8]] REVIEW Moving a heading between files by hand leaves org-id pointing at the old one
 - [-] [[id:53b0047d-c55c-486c-8eed-ba4994d97a1a][53b0047d]] REVIEW Direct file writes to a live org buffer can desync org-clock-marker
 - [-] [[id:60d6ab6e-a898-4894-82be-9f6086daf62d][60d6ab6e]] REVIEW org_wrap_plan saves a buffer holding the human's unsaved edits, where org_amend would queue and org_slice_add_member refuses
@@ -13439,6 +13468,7 @@ call it done.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-27 Sun 17:11]--[2026-09-27 Sun 17:12] =>  0:01
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
@@ -14811,4 +14841,31 @@ CLOCK: [2026-09-25 Fri 13:01]--[2026-09-25 Fri 13:02] =>  0:01
 - [2026-09-25 Fri 13:01]--[2026-09-25 Fri 13:02] assigned at review
 CLOCK: [2026-09-25 Fri 13:11]--[2026-09-25 Fri 13:12] =>  0:01
 - [2026-09-25 Fri 13:11]--[2026-09-25 Fri 13:12] assigned at review
+- [2026-09-25 Fri 18:44]--[2026-09-25 Fri 18:44] root-cause unattributed spans, file discipline fix
+:END:
+
+
+**** 2026-09-27 Sunday
+:PROPERTIES:
+:ID:       1b4ea8be-7996-4bf5-a27e-22c471b7b388
+:CREATED:  [2026-09-27 Sun 13:26]
+:END:
+:LOGBOOK:
+- [2026-09-27 Sun 13:26]--[2026-09-27 Sun 13:26] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-27 Sun 13:33]--[2026-09-27 Sun 13:34] =>  0:01
+- [2026-09-27 Sun 13:33]--[2026-09-27 Sun 13:34] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-27 Sun 13:44]--[2026-09-27 Sun 13:44] =>  0:00
+- [2026-09-27 Sun 13:44]--[2026-09-27 Sun 13:44] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-27 Sun 13:54]--[2026-09-27 Sun 13:54] =>  0:00
+- [2026-09-27 Sun 13:54]--[2026-09-27 Sun 13:54] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-27 Sun 14:07]--[2026-09-27 Sun 14:08] =>  0:01
+- [2026-09-27 Sun 14:07]--[2026-09-27 Sun 14:08] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-27 Sun 14:20]--[2026-09-27 Sun 14:23] =>  0:03
+- [2026-09-27 Sun 14:20]--[2026-09-27 Sun 14:23] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-27 Sun 14:27]--[2026-09-27 Sun 15:20] =>  0:53
+- [2026-09-27 Sun 14:27]--[2026-09-27 Sun 15:20] root-cause unattributed spans, file discipline fix
+- [2026-09-27 Sun 15:24]--[2026-09-27 Sun 15:24] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-27 Sun 15:48]--[2026-09-27 Sun 15:51] =>  0:03
+- [2026-09-27 Sun 15:48]--[2026-09-27 Sun 15:48] root-cause unattributed spans, file discipline fix
+- [2026-09-27 Sun 15:48]--[2026-09-27 Sun 15:51] apply bookkeeping; latency growth after review quit
 :END:
