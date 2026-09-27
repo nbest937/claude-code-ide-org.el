@@ -2,6 +2,35 @@
 #+TAGS: analysis bug code comms prose research review spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO A guidepost span is labelled with the first pending clock_in note of its heading, from any session and any date :code:
+:PROPERTIES:
+:ID:       9b7301de-0903-4987-bb34-56f8f021fbd1
+:CREATED:  [2026-09-27 Sun 17:21]
+:CATEGORY: Apply
+:END:
+
+Noticed by the user on 2026-09-27: three of that day's "Review and planning"
+clock items were labelled "root-cause unattributed spans, file discipline fix".
+That is a note from session 81e67389's =clock_in= on 2026-09-03, not from any
+event that day. In =--review-items-from-queue=, the human-span path builds its
+=label= from the first =clock_in= note anywhere in the heading's pending group,
+and hands that one label to every span it builds. Meta-work always uses the id
+"Review and planning", so every session's meta-work shares one group, and the
+oldest pending note wins. On that date the group held 17 pending events going
+back to 2026-09-03.
+
+The reason a stale =clock_in= is still pending at all is [[id:58332dd1-fb49-4e98-a5e3-4b71ff62c995][58332dd1]]. A =clock_in=
+superseded by another =clock_in= is never consumed: on 2026-09-27, 27 such
+=clock_in=s were pending, the oldest from 2026-08-18, and 14 more were never
+closed at all. Fixing that heading would shrink the pool of stale notes, but not
+remove this defect: two =clock_in=s in one group still pass the first one's note
+to spans that belong to the second.
+
+The fix is to label each span with the note of the =clock_in= that governs it:
+the latest one in the same session at or before the span's start, and no label
+when there isn't one. It is time-tracking only, so it never arises with the
+feature off.
+
 * TODO Slice refresh re-scans every heading for other slices' members once per slice :code:
 :PROPERTIES:
 :ID:       dc68d831-9e04-4f0a-8b8b-8087b39c6037
