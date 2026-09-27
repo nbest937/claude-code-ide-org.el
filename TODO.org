@@ -8922,6 +8922,25 @@ event carries no =tool_response= to recover =from= from, so the staleness
 check would go blind on exactly the events written when the system is
 least healthy.
 
+*Shipped* in [[orgit-rev:~/git/claude-code-ide-org::d807abd][d807abd]], as the drawer describes. =bin/hooks/tool-failure= is wired
+to =PostToolUseFailure= in both =.claude/settings.json= and =hooks/hooks.json=.
+It writes a failure line first, then a probe line keyed by =tool_use_id=, so a
+probe that goes wrong can never cost the marker. The marker records =cwd=, which
+is how the SessionStart report scopes itself to the session's project.
+=claude-code-ide-org--tool-failure-report= renames a file only once every marker
+in it has been reported. The ERT suite now defaults the queue directory to a
+temp dir, because the report consumes what it reads.
+
+*Verified.* =bin/tool-failure-test= passes 24 checks, and 19 of them fail
+against a no-op hook. The 4 ERT tests fail against HEAD. Live: the idle state
+was probed against the running Emacs, and the report listed the marker once and
+then fell silent.
+
+*Not verified live:* the refused, busy and prompt states. Each needs Emacs
+stopped or blocked, which is the user's to do, so they were run only against the
+fakes.
+
+
 
 * TODO An archive pass wrote one subtree twice, and the mechanism is still unknown :code:
 :PROPERTIES:
