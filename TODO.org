@@ -2,6 +2,30 @@
 #+TAGS: analysis bug code comms prose research review spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO An active region in TODO.org makes the archive sweep take live headings :code:
+:PROPERTIES:
+:ID:       4a4ebb21-9388-494f-a40a-641ff663b19e
+:CREATED:  [2026-09-27 Sun 14:19]
+:CATEGORY: Meta
+:END:
+
+When the region is active in =TODO.org='s buffer as the archive step runs,
+=org-archive-subtree= takes its loop-over-region path
+(=org-loop-over-headlines-in-active-region=, default =t=). It then archives
+every heading in the region, live ones included, and errors with
+=end-of-buffer=. Found by the [[id:381ea07d-633f-4640-abbb-89472a07acba][381ea07d]] replay on 2026-09-27: with the mark at
+the top of the file, today's code moved 81 extra level-1 entries into =DONE.org=
+before signalling. Org's archive call saves =DONE.org=, so the moved work is on
+disk by the time the ceremony reports FAILED. The re-validation and the
+duplicate-id guard in =claude-code-ide-org-archive-finished= don't cover it,
+because the extra archiving happens inside a single call.
+
+A likely fix: bind =org-loop-over-headlines-in-active-region= to nil, or
+deactivate the mark, around each call in the sweep. The test should put an
+active region in the fixture buffer and assert that only finished top-level
+headings move. This path is not the 2026-08-31 mechanism: it errors every time,
+and that pass reported a clean 65.
+
 * TODO A live reload that changes a tool's description registers it a second time beside the stale one :code:bug:
 :PROPERTIES:
 :ID:       94fe3c57-89f6-4d17-943e-0cb6145f3419
@@ -8997,6 +9021,29 @@ scratch copies. Load =config.el= from the incident's commit, not HEAD:
 the mechanism, whether its fix is built inside slice 8a2eb687 or filed
 as a heading for later. The user will decide then, in the session that
 reaches this step.
+
+*Replayed 2026-09-27: not reproduced.* No recurrence either: =DONE.org= holds
+428 ids with no duplicates. The guard's signal isn't persisted, so the file is
+the evidence. Batch Emacs used the incident's inputs (=TODO.org= and =DONE.org=
+at [[orgit-rev:~/git/claude-code-ide-org::bbfc2f2][bbfc2f2]], the parent of the archive commit) and its code (=config.el= at
+[[orgit-rev:~/git/claude-code-ide-org::53c72e4][53c72e4]]), with a temp org-id file and the capture file pointed at the replay's
+=TODO.org=. Nine sequences ran: archive alone, full ceremony-finish, revert and
+read-only then ceremony-finish, consolidate/normalise/archive with revert and
+read-only, each of consolidate, normalise, revert and read-only alone before
+archive, and a second archive pass. Every one archived 65, added 65 level-1
+entries and left no duplicate id. The same sequence in the live Emacs on scratch
+copies, with today's code, gave the same result.
+
+*Ruled out:* the active-region path. With the mark active, =org-archive-subtree=
+loops over the region's headings, but it errors every time and the incident
+reported a clean 65. That path is a present-day defect of its own, filed as
+[[id:4a4ebb21-9388-494f-a40a-641ff663b19e][4a4ebb21]].
+
+*Still unknown*, and the post-condition guard remains what stands in for a fix.
+What's left untested is live state no replay has: auto-revert of =DONE.org=
+mid-pass, a stale =DONE.org= buffer, and the system clipboard on org's paste
+path.
+
 
 
 * TODO [0/2] Make an archived day hold that day's record :code:
