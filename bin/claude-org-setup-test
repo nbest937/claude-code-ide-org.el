@@ -297,6 +297,37 @@ check "--check reports the leftover load! line as obsolete" \
   "$(printf '%s' "$out" | grep -q '^obsolete: the load! line' && echo ok || echo "output: $out")"
 rm -rf "$gluedir"
 
+# 12. Two tracked projects on one MCP session name (TODO.org :ID:
+#     965f94eb): a second clone under the same basename makes --org
+#     print the local-scope `claude mcp add' line -- proposed, never run --
+#     and --check report the collision. A local-scope entry naming a
+#     distinct session, keyed by the clone's directory in ~/.claude.json,
+#     settles it. HOME and the list are the fixture's own throughout.
+cdir="$(mktemp -d)"
+mkdir -p "$cdir/a/proj" "$cdir/b/proj"
+sed "s|/mcp/[^\"]*|/mcp/proj|" "$script_dir/../.mcp.json" > "$cdir/a/proj/.mcp.json"
+: > "$cdir/a/proj/TODO.org"
+printf '%s\n' "$cdir/a/proj/TODO.org" > "$cdir/list"
+out="$(env HOME="$cdir" CLAUDE_ORG_AGENDA_LIST="$cdir/list" "$setup" --org "$cdir/b/proj" 2>&1)"
+check "--org (collision) names the project holding the name" \
+  "$(printf '%s' "$out" | grep -q "session name \"proj\" is taken by $cdir/a/proj" && echo ok || echo "output: $out")"
+check "--org (collision) proposes a distinct local-scope name" \
+  "$(printf '%s' "$out" | grep -q 'claude mcp add --scope local --transport http emacs-tools http://localhost:[0-9]*/mcp/proj-2' && echo ok || echo "output: $out")"
+check "--org (collision) never writes ~/.claude.json" "$([ ! -e "$cdir/.claude.json" ] && echo ok || echo written)"
+out="$(env HOME="$cdir" CLAUDE_ORG_AGENDA_LIST="$cdir/list" "$setup" --check "$cdir/b/proj" 2>&1)"; rc=$?
+check "--check reports the collision" \
+  "$(printf '%s' "$out" | grep -q "^collision: $cdir/b/proj and $cdir/a/proj both resolve to MCP session \"proj\"" && echo ok || echo "output: $out")"
+check "--check fails on a collision" "$([ $rc -ne 0 ] && echo ok || echo "rc=$rc")"
+printf '{"projects":{"%s":{"mcpServers":{"emacs-tools":{"type":"http","url":"http://localhost:1/mcp/proj-2"}}}}}\n' \
+  "$cdir/b/proj" > "$cdir/.claude.json"
+out="$(env HOME="$cdir" CLAUDE_ORG_AGENDA_LIST="$cdir/list" "$setup" --check "$cdir/b/proj" 2>&1)"
+check "--check: a local-scope name settles the collision" \
+  "$(printf '%s' "$out" | grep -q '^ok: *MCP session "proj-2" is this project'"'"'s alone' && echo ok || echo "output: $out")"
+out="$(env HOME="$cdir" CLAUDE_ORG_AGENDA_LIST="$cdir/list" "$setup" --org "$cdir/b/proj" 2>&1)"
+check "--org: a local-scope name proposes nothing" \
+  "$(printf '%s' "$out" | grep -q 'is taken by' && echo "output: $out" || echo ok)"
+rm -rf "$cdir"
+
 echo
 echo "claude-org-setup-test: $pass passed, $fails failed"
 exit $((fails > 0))

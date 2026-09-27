@@ -19960,10 +19960,79 @@ wiring lived in a file batch never loaded.  Idempotent, so a live
 reload, or the old glue still present during migration, wires nothing
 twice.  Returns non-nil when it wired."
   (when (and claude-code-ide-org-wire-on-load (not noninteractive))
-    (claude-code-ide-emacs-tools-setup)
-    (setq claude-code-ide-org-standalone-projects 'derive)
-    (claude-code-ide-org-standalone-wire)
-    t))
+    ;; A refusal -- two projects on one session name, a port that
+    ;; disagrees -- is a loud warning at startup, never an error: this
+    ;; runs inside the module's load, and an error would abort a reload
+    ;; halfway (TODO.org :ID: 965f94eb).
+    (condition-case err
+        (progn
+          (claude-code-ide-emacs-tools-setup)
+          (setq claude-code-ide-org-standalone-projects 'derive)
+          (claude-code-ide-org-standalone-wire)
+          t)
+      (error (display-warning 'claude-code-ide-org (error-message-string err) :error)
+             nil))))
+
+(defvar claude-code-ide-org--claude-json-file "~/.claude.json"
+  "Claude Code's user file, where local-scope MCP entries live per project.
+A variable so the tests can point it at a scratch copy.")
+
+(defun claude-code-ide-org--json-file (file)
+  "FILE parsed as JSON into alists, or nil when it is absent or unreadable."
+  (ignore-errors
+    (json-parse-string (with-temp-buffer (insert-file-contents file) (buffer-string))
+                       :object-type 'alist :null-object nil :false-object nil)))
+
+(defun claude-code-ide-org--project-mcp-url (dir)
+  "The `emacs-tools' URL Claude Code resolves for the project at DIR, or nil.
+
+Resolved as Claude Code resolves it (TODO.org :ID: 965f94eb, checked
+against its MCP documentation 2026-09-24): a *local*-scope entry for
+DIR in `~/.claude.json' wins over the project's `.mcp.json', and the
+whole entry is used, never merged.  A local entry is how a second clone
+of a repo gets a session name of its own without editing the committed
+file -- `claude mcp add --scope local --transport http emacs-tools URL',
+run once in that clone."
+  (let* ((dir (directory-file-name (expand-file-name dir)))
+         (projects (alist-get 'projects (claude-code-ide-org--json-file
+                                         (expand-file-name claude-code-ide-org--claude-json-file))))
+         (local (seq-some (lambda (key)
+                            (alist-get 'url (alist-get 'emacs-tools
+                                                       (alist-get 'mcpServers
+                                                                  (alist-get (intern key) projects)))))
+                          (delete-dups (list dir (directory-file-name (file-truename dir)))))))
+    (or local
+        (alist-get 'url (alist-get 'emacs-tools
+                                   (alist-get 'mcpServers
+                                              (claude-code-ide-org--json-file
+                                               (expand-file-name ".mcp.json" dir))))))))
+
+(defun claude-code-ide-org--project-session-name (dir)
+  "The MCP session name for the project at DIR: the last path segment of
+its resolved `emacs-tools' URL, or the directory's basename without one."
+  (let ((url (claude-code-ide-org--project-mcp-url dir)))
+    (or (and (stringp url)
+             (string-match "/mcp/\\([^/?#]+\\)/?\\'" url)
+             (match-string 1 url))
+        (file-name-nondirectory (directory-file-name dir)))))
+
+(defun claude-code-ide-org--url-port (url)
+  "The port URL names, or nil."
+  (and (stringp url) (string-match "://[^/:]+:\\([0-9]+\\)" url)
+       (string-to-number (match-string 1 url))))
+
+(defun claude-code-ide-org--session-collisions (projects)
+  "Pairs of PROJECTS resolving to one session name, as (NAME DIR-A DIR-B).
+Two clones of one repo register the same name, and the later one used
+to win silently, routing the other clone's sessions -- and its
+targetless captures -- to the wrong project (TODO.org :ID: 965f94eb)."
+  (let ((seen nil) (out nil))
+    (dolist (dir projects (nreverse out))
+      (let* ((name (claude-code-ide-org--project-session-name dir))
+             (prior (assoc name seen)))
+        (if prior
+            (push (list name (cdr prior) dir) out)
+          (push (cons name dir) seen))))))
 
 (defun claude-code-ide-org-standalone-wire ()
   "Wire the MCP tools server for standalone clients, loudly.
@@ -19973,7 +20042,8 @@ already alive on a different port, and refusing if the pin disagrees
 with what the repo's .mcp.json actually names, since that static file
 is the contract every client reads.  Then starts the server and
 registers a session per entry of
-`claude-code-ide-org-standalone-projects' (basename as session id).
+`claude-code-ide-org-standalone-projects', under the session name its
+resolved `emacs-tools' URL ends in, refusing when two resolve to one.
 Idempotent: call it from your
 config after claude-code-ide loads, or interactively after changing
 the project list."
@@ -20003,6 +20073,21 @@ the project list."
                                     'derive)
                                 (claude-code-ide-org--standalone-derive-projects)
                               claude-code-ide-org-standalone-projects))))
+      ;; Refuse a collision rather than let the later project win
+      ;; silently, naming both and the one command that separates them
+      ;; (TODO.org :ID: 965f94eb).
+      (when-let* ((c (car (claude-code-ide-org--session-collisions projects))))
+        (user-error "claude-code-ide-org: %s and %s both resolve to MCP session \"%s\"; \
+in the second, run: claude mcp add --scope local --transport http emacs-tools \
+http://localhost:%d/mcp/%s-2"
+                    (nth 1 c) (nth 2 c) (nth 0 c) pin (nth 0 c)))
+      ;; A local entry may name another port; the pin is the contract.
+      (dolist (dir projects)
+        (let ((port (claude-code-ide-org--url-port
+                     (claude-code-ide-org--project-mcp-url dir))))
+          (when (and port (/= port pin))
+            (user-error "claude-code-ide-org: %s's emacs-tools URL names port %d, but the tools server is pinned to %d"
+                        dir port pin))))
       ;; The IDE-companion (WebSocket server + lockfile) lives in
       ;; claude-code-ide-mcp.el, which loading claude-code-ide does
       ;; not pull in -- found when the headless Doom sandbox's glue
@@ -20012,7 +20097,7 @@ the project list."
       (require 'claude-code-ide-mcp nil t)
       (dolist (dir projects)
         (claude-code-ide-mcp-server-register-session
-         (file-name-nondirectory (directory-file-name dir)) dir nil)
+         (claude-code-ide-org--project-session-name dir) dir nil)
         (if (fboundp 'claude-code-ide-mcp-start)
             (claude-code-ide-mcp-start dir)
           (message "claude-code-ide-org: IDE companion unavailable; tools server only")))

@@ -19650,3 +19650,81 @@ live Emacs and break `bin/test' itself."
     (let ((noninteractive t) (claude-code-ide-org-wire-on-load t))
       (should-not (claude-code-ide-org--wire-on-load))
       (should-not calls))))
+
+;;; Two clones, one session name (TODO.org :ID: 965f94eb)
+
+(defmacro claude-code-ide-org-test--with-clones (&rest body)
+  "Two clones of one repo, `a' and `b', each with the same committed
+.mcp.json, and a scratch ~/.claude.json bound to `claude-json'."
+  (declare (indent 0))
+  `(let* ((root (file-name-as-directory (make-temp-file "cciorg-clones" t)))
+          (a (expand-file-name "one/repo/" root))
+          (b (expand-file-name "two/repo/" root))
+          (claude-json (expand-file-name ".claude.json" root))
+          (claude-code-ide-org--claude-json-file claude-json))
+     (unwind-protect
+         (progn
+           (dolist (d (list a b))
+             (make-directory d t)
+             (with-temp-file (expand-file-name ".mcp.json" d)
+               (insert "{\"mcpServers\":{\"emacs-tools\":{\"type\":\"http\",\"url\":\"http://localhost:45571/mcp/repo\"}}}\n")))
+           ,@body)
+       (delete-directory root t))))
+
+(defun claude-code-ide-org-test--local-entry (claude-json dir url)
+  "Write CLAUDE-JSON with a local-scope emacs-tools entry for DIR."
+  (with-temp-file claude-json
+    (insert (json-encode
+             `((projects . ((,(intern (directory-file-name dir))
+                             . ((mcpServers . ((emacs-tools . ((type . "http") (url . ,url))))))))))))))
+
+(ert-deftest claude-code-ide-org-test-session-name-resolution ()
+  "Without a local entry the committed .mcp.json names the session; a
+local-scope entry for the directory wins over it, whole."
+  (claude-code-ide-org-test--with-clones
+    (should (equal "repo" (claude-code-ide-org--project-session-name a)))
+    (claude-code-ide-org-test--local-entry claude-json b "http://localhost:45571/mcp/repo-2")
+    (should (equal "repo-2" (claude-code-ide-org--project-session-name b)))
+    (should (equal "repo" (claude-code-ide-org--project-session-name a)))))
+
+(defmacro claude-code-ide-org-test--with-stubbed-server (&rest body)
+  "BODY with the server calls stubbed; `registered' collects sessions."
+  (declare (indent 0))
+  `(let ((registered nil)
+         (claude-code-ide-org-standalone-port 45571))
+     (cl-letf (((symbol-function 'claude-code-ide-org--mcp-json-port) (lambda () 45571))
+               ((symbol-function 'claude-code-ide-mcp-server-get-port) (lambda () 45571))
+               ((symbol-function 'claude-code-ide-mcp-server-ensure-server) (lambda () 45571))
+               ((symbol-function 'claude-code-ide-mcp-server-register-session)
+                (lambda (name dir &rest _) (push (cons name dir) registered)))
+               ((symbol-function 'claude-code-ide-mcp-start) #'ignore))
+       ,@body)))
+
+(ert-deftest claude-code-ide-org-test-wire-refuses-a-session-collision ()
+  "Two projects resolving to one name are refused, naming both and the
+command that separates them, instead of the later winning silently;
+with a local entry on the second, both register under their own names."
+  (claude-code-ide-org-test--with-clones
+    (claude-code-ide-org-test--with-stubbed-server
+      (let ((claude-code-ide-org-standalone-projects (list a b)))
+        (let ((err (condition-case e (progn (claude-code-ide-org-standalone-wire) nil)
+                     (user-error (error-message-string e)))))
+          (should (stringp err))
+          (should (string-match-p "both resolve to MCP session \"repo\"" err))
+          (should (string-match-p (regexp-quote (directory-file-name (expand-file-name b)))
+                                  (directory-file-name err)))
+          (should (string-match-p "claude mcp add --scope local" err))
+          (should-not registered))
+        (claude-code-ide-org-test--local-entry claude-json b "http://localhost:45571/mcp/repo-2")
+        (claude-code-ide-org-standalone-wire)
+        (should (equal '("repo" "repo-2") (sort (mapcar #'car registered) #'string<)))))))
+
+(ert-deftest claude-code-ide-org-test-wire-checks-a-local-entry-port ()
+  "A local entry naming another port is refused against the pin."
+  (claude-code-ide-org-test--with-clones
+    (claude-code-ide-org-test--with-stubbed-server
+      (claude-code-ide-org-test--local-entry claude-json b "http://localhost:45999/mcp/repo-2")
+      (let ((claude-code-ide-org-standalone-projects (list a b)))
+        (should (string-match-p "names port 45999"
+                                (condition-case e (progn (claude-code-ide-org-standalone-wire) "")
+                                  (user-error (error-message-string e)))))))))
