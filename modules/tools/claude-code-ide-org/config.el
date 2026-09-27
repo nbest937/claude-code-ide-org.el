@@ -19932,6 +19932,39 @@ delete this defcustom, the advice and its test together."
 (with-eval-after-load 'claude-code-ide-mcp-http-server
   (claude-code-ide-org--apply-notification-status-advice))
 
+(defcustom claude-code-ide-org-wire-on-load t
+  "Non-nil: start the MCP tools server and register sessions when the module loads.
+
+Enabling the module is the consent (TODO.org :ID: c562b69a, the user,
+2026-09-24): nobody enables a module whose tools are an MCP server
+without wanting that server.  This used to be a generated file in the
+user's Doom directory, loaded by a line pasted into config.el; its
+per-machine content had long been derived, so a generated copy could
+only drift.  Set it nil to run the module without wiring -- a second
+Emacs on the same machine, say, which would otherwise contend for the
+pinned port.  Batch Emacs never wires, whatever this says."
+  :type 'boolean
+  :group 'claude-code-ide-org)
+
+(defun claude-code-ide-org--wire-on-load ()
+  "Enable upstream's tools server and wire this project's sessions, if wanted.
+
+The three forms the generated glue ran, unchanged: the server switch,
+projects derived from the tracked files, and the wiring itself.  Only
+when `claude-code-ide-org-wire-on-load' is set, and *never* under
+`noninteractive'.  That guard is required, not tidy: `bin/test' and
+`bin/lint-org' load this file in their own batch Emacs, which would
+otherwise start a second server on the pinned port, collide with the
+live one and break the suite.  They were safe before only because the
+wiring lived in a file batch never loaded.  Idempotent, so a live
+reload, or the old glue still present during migration, wires nothing
+twice.  Returns non-nil when it wired."
+  (when (and claude-code-ide-org-wire-on-load (not noninteractive))
+    (claude-code-ide-emacs-tools-setup)
+    (setq claude-code-ide-org-standalone-projects 'derive)
+    (claude-code-ide-org-standalone-wire)
+    t))
+
 (defun claude-code-ide-org-standalone-wire ()
   "Wire the MCP tools server for standalone clients, loudly.
 Pins upstream's `claude-code-ide-mcp-server-port' to
@@ -20594,7 +20627,12 @@ the project list."
    :args '((:name "session_id"
             :type string
             :optional t
-            :description "Limit the report to one session's queue. Omit for every session."))))
+            :description "Limit the report to one session's queue. Omit for every session.")))
+
+  ;; The wiring, last in the block so every tool above is registered
+  ;; first (TODO.org :ID: c562b69a).  It used to be a file generated into
+  ;; the user's Doom directory and loaded by a pasted line.
+  (claude-code-ide-org--wire-on-load))
 
 ;; LAST, and it must stay last (TODO.org :ID: f12f9da4): the stamp says a
 ;; load of this file *completed*, so a `load-file' that aborts partway

@@ -19615,3 +19615,38 @@ success that would read as nothing owed."
     (should (equal '("aaaa1111")
                    (mapcar #'car (claude-code-ide-org--footnote-owed
                                   "See aaaa1111 and bbbb2222." transcript files '("bbbb2222")))))))
+
+;;; The wiring lives in the module (TODO.org :ID: c562b69a)
+
+(defmacro claude-code-ide-org-test--with-wiring-spy (&rest body)
+  "Run BODY with the three wiring calls stubbed; `calls' collects them."
+  (declare (indent 0))
+  `(let ((calls nil)
+         (claude-code-ide-org-standalone-projects nil))
+     (cl-letf (((symbol-function 'claude-code-ide-emacs-tools-setup)
+                (lambda () (push 'tools-setup calls)))
+               ((symbol-function 'claude-code-ide-org-standalone-wire)
+                (lambda () (push 'wire calls))))
+       ,@body)))
+
+(ert-deftest claude-code-ide-org-test-wire-on-load ()
+  "Enabled, an interactive load runs the glue's three forms in order;
+disabled, it runs none."
+  (claude-code-ide-org-test--with-wiring-spy
+    (let ((noninteractive nil) (claude-code-ide-org-wire-on-load t))
+      (should (claude-code-ide-org--wire-on-load))
+      (should (equal '(tools-setup wire) (reverse calls)))
+      (should (eq 'derive claude-code-ide-org-standalone-projects))))
+  (claude-code-ide-org-test--with-wiring-spy
+    (let ((noninteractive nil) (claude-code-ide-org-wire-on-load nil))
+      (should-not (claude-code-ide-org--wire-on-load))
+      (should-not calls))))
+
+(ert-deftest claude-code-ide-org-test-batch-never-wires ()
+  "Under batch Emacs nothing is wired, whatever the defcustom says: a
+batch load starting a server on the pinned port would collide with the
+live Emacs and break `bin/test' itself."
+  (claude-code-ide-org-test--with-wiring-spy
+    (let ((noninteractive t) (claude-code-ide-org-wire-on-load t))
+      (should-not (claude-code-ide-org--wire-on-load))
+      (should-not calls))))
