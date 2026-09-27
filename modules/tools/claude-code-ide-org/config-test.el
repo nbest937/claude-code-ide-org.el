@@ -15761,6 +15761,54 @@ looks."
       (should (string-match-p "Unfinished child" src)))
     (should-not (file-exists-p archive-file))))
 
+(ert-deftest claude-code-ide-org-test-archive-finished-ignores-an-active-region ()
+  "An active region in the buffer must not widen what the sweep archives.
+
+With the region active, `org-archive-subtree' loops over every headline
+in it rather than archiving the one at point, so a mark left at the top
+of TODO.org took live headings with it and then signalled -- measured by
+the 381ea07d replay, 81 extra entries (TODO.org :ID: 4a4ebb21)."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--add-child
+     file (concat "* TODO Still live\n"
+                  ":PROPERTIES:\n:ID:       test-0003\n:END:\n"
+                  "* DONE Last finished\n"
+                  ":PROPERTIES:\n:ID:       test-0004\n:END:\n"))
+    (with-current-buffer (find-file-noselect file)
+      (transient-mark-mode 1)
+      (set-mark (point-min))
+      (goto-char (point-max))
+      (activate-mark)
+      (should (region-active-p)))
+    (should (= 1 (claude-code-ide-org-archive-finished file)))
+    (let ((src (claude-code-ide-org-test--disk-contents file))
+          (arch (claude-code-ide-org-test--disk-contents archive-file)))
+      (should (string-match-p "Test heading" src))
+      (should (string-match-p "Still live" src))
+      (should-not (string-match-p "Last finished" src))
+      (should (string-match-p "Last finished" arch))
+      (should-not (string-match-p "Still live" arch)))))
+
+(ert-deftest claude-code-ide-org-test-archive-tool-ignores-an-active-region ()
+  "org_archive archives the heading it names, whatever region is active.
+The tool's own call to `org-archive-subtree' had the sweep's exposure
+(TODO.org :ID: 4a4ebb21)."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--add-child
+     file (concat "* TODO Still live\n"
+                  ":PROPERTIES:\n:ID:       test-0003\n:END:\n"))
+    (with-current-buffer (find-file-noselect file)
+      (transient-mark-mode 1)
+      (set-mark (point-max))
+      (goto-char (point-min))
+      (activate-mark))
+    (should (string-match-p "\\`Archived: " (claude-code-ide-org-archive id)))
+    (let ((src (claude-code-ide-org-test--disk-contents file))
+          (arch (claude-code-ide-org-test--disk-contents archive-file)))
+      (should (string-match-p "Still live" src))
+      (should-not (string-match-p "Still live" arch))
+      (should (string-match-p "Test heading" arch)))))
+
 (ert-deftest claude-code-ide-org-test-archive-finished-sweeps-every-top-level-heading ()
   "Several finished top-level headings are all archived, and counted.
 

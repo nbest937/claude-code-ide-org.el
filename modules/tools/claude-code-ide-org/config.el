@@ -3037,7 +3037,9 @@ honoured."
          ;; (TODO.org :ID: 60d6ab6e).
          (or (claude-code-ide-org--busy-refusal buffer-file-name destination)
              (progn
-               (org-archive-subtree)
+               ;; The heading named, never the region's (:ID: 4a4ebb21).
+               (let ((org-loop-over-headlines-in-active-region nil))
+                 (org-archive-subtree))
                (save-buffer)
                (format "Archived: \"%s\"" heading))))))))
 
@@ -16589,7 +16591,12 @@ its end would bury a fresh entry under two hundred older ones."
                                     claude-code-ide-org--outline-finished-keywords)
                             (not (and id (gethash id seen))))
                    (when id (puthash id t seen))
-                   (org-archive-subtree)
+                   ;; An active region makes `org-archive-subtree' loop
+                   ;; over every headline in it instead of archiving the
+                   ;; one at point -- live work included, then
+                   ;; `end-of-buffer' (TODO.org :ID: 4a4ebb21).
+                   (let ((org-loop-over-headlines-in-active-region nil))
+                     (org-archive-subtree))
                    (setq n (1+ n))))))
            (set-marker m nil))))
       (when (buffer-modified-p) (save-buffer)))
