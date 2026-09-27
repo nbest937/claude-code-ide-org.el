@@ -26,6 +26,14 @@ active region in the fixture buffer and assert that only finished top-level
 headings move. This path is not the 2026-08-31 mechanism: it errors every time,
 and that pass reported a clean 65.
 
+*Shipped* in [[orgit-rev:~/git/claude-code-ide-org::b234ffe][b234ffe]]. Both calls to =org-archive-subtree= now bind
+=org-loop-over-headlines-in-active-region= to nil: the ceremony's sweep, and the
+=org_archive= tool, which had the same exposure. Both new tests failed against
+the unfixed code. Re-run against the fix, the replay's three region cases each
+archived exactly 65, with no error and no duplicate. The live image is reloaded
+and fresh.
+
+
 * TODO A live reload that changes a tool's description registers it a second time beside the stale one :code:bug:
 :PROPERTIES:
 :ID:       94fe3c57-89f6-4d17-943e-0cb6145f3419
