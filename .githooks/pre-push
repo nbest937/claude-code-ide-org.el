@@ -98,23 +98,36 @@ done <<<"$refs"
 # otherwise recurse into the runner that runs it.
 runner="${PRE_PUSH_TEST_ALL:-$repo_root/bin/test-all}"
 paths=""
+# A range git cannot compute is not an empty one (TODO.org :ID: 191ec45b,
+# PR #31 review): a force-push over a remote update this clone never
+# fetched names a remote sha absent from the object store, git diff
+# fails, and its empty output used to read as "nothing changed". So a
+# failure runs the suites rather than skipping them.
+unknown=0
 while read -r _local_ref local_sha _remote_ref remote_sha; do
   [[ -n "$local_sha" ]] || continue
   [[ "$local_sha" =~ $zero_sha ]] && continue            # a deletion pushes no content
   if [[ "$remote_sha" =~ $zero_sha ]]; then
     # A new remote branch: what no remote-tracking ref already has.
-    paths+="$(git log --format= --name-only "$local_sha" --not --remotes 2>/dev/null)"$'\n'
+    if ! out="$(git log --format= --name-only "$local_sha" --not --remotes 2>/dev/null)"; then
+      unknown=1
+    fi
   else
-    paths+="$(git diff --name-only "$remote_sha" "$local_sha" 2>/dev/null)"$'\n'
+    if ! out="$(git diff --name-only "$remote_sha" "$local_sha" 2>/dev/null)"; then
+      unknown=1
+    fi
   fi
+  paths+="$out"$'\n'
 done <<<"$refs"
 paths="$(printf '%s' "$paths" | grep -v '^$' | sort -u)"
 
-if [[ -z "$paths" ]]; then
+if [[ $unknown = 1 ]]; then
+  echo "pre-push: could not compute the pushed range (a remote sha this clone lacks?); running the suites." >&2
+elif [[ -z "$paths" ]]; then
   echo "pre-push: nothing changed in the pushed range; suites skipped." >&2
   exit 0
 fi
-if ! grep -qvE '^(TODO\.org|DONE\.org|plans/.*)$' <<<"$paths"; then
+if [[ $unknown = 0 ]] && ! grep -qvE '^(TODO\.org|DONE\.org|plans/.*)$' <<<"$paths"; then
   echo "pre-push: org-only push (TODO.org, DONE.org, plans/); suites skipped -- they are hermetic and cannot be broken by the tracker." >&2
   exit 0
 fi

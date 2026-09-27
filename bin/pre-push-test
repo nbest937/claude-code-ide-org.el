@@ -114,6 +114,13 @@ check "and shows the runner's output" "$(printf '%s' "$out" | grep -q 'fake: 1 F
 out="$(gate "$mixed" "0000000000000000000000000000000000000000")"; rc=$?
 check "a new remote branch with code runs the suites" "$([ -e "$work/ran" ] && echo ok || echo "not run: $out")"
 
+# A remote sha this clone has never fetched (TODO.org :ID: 191ec45b, PR
+# #31 review): git diff fails, and its empty output used to read as
+# "nothing changed", skipping the suites on a force-push over an update.
+out="$(gate "$mixed" "1234567890abcdef1234567890abcdef12345678")"; rc=$?
+check "an unknown remote sha runs the suites" "$([ -e "$work/ran" ] && echo ok || echo "not run: $out")"
+check "and says the range was unknown" "$(printf '%s' "$out" | grep -q 'could not compute' && echo ok || echo "output: $out")"
+
 echo
 echo "pre-push-test: $pass passed, $fails failed"
 exit $((fails > 0))
