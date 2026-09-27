@@ -74,6 +74,15 @@ check "gives up waiting at 2 s and reads what is there" yes \
   "$(jq -e '.hookSpecificOutput.updatedInput.lines' <<<"$out" >/dev/null 2>&1 && echo yes || echo no)"
 check "without hanging" yes "$( (( $(cat "$tmp/secs") >= 2 && $(cat "$tmp/secs") <= 8 )) && echo yes || echo no)"
 
+# The shape the scripting conventions ask of a script that needs the
+# running Emacs (TODO.org :ID: a749b95c, PR #31 review): a POSIX sh stub
+# that only moves bytes, the logic in elisp.
+check "the stub is POSIX sh" "#!/bin/sh" "$(head -n 1 "$hook")"
+check "and shapes no JSON itself" 0 "$(grep -c '\bjq\b' "$hook")"
+narrate; tool_use_line
+out="$(run '../escape')"
+check "a session id with a path in it is refused, in elisp" "" "$out"
+
 narrate; tool_use_line
 out="$(FAKE_EMACS=down run s4)"
 check "an outage injects nothing" "" "$out"

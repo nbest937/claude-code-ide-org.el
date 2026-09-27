@@ -13955,6 +13955,50 @@ ran, and the hook then injects nothing (TODO.org :ID: 30d05c93)."
       (insert "ids " (string-join (car result) " ") "\n")
       (dolist (l (cdr result)) (insert l "\n")))))
 
+(defun claude-code-ide-org-write-footnotes-hook-output (payload-file out-file project queue-dir)
+  "Write `bin/hooks/footnotes-inject's whole stdout to OUT-FILE.
+
+The PreToolUse payload is PAYLOAD-FILE; PROJECT is the directory whose
+TODO.org and DONE.org resolve ids; QUEUE-DIR is where the covered ids go,
+as <session_id>.footnoted, which footnote-check counts as discharged.
+OUT-FILE gets the hook's JSON -- the call's own input plus `lines' --
+or stays empty when there is nothing to inject, and the stub prints it
+verbatim.  The logic lives here and the stub only moves bytes, as the
+scripting conventions ask of a script that needs the running Emacs
+\(TODO.org :ID: a749b95c, PR #31 review; it began as bash shaping JSON
+with jq)."
+  (let* ((payload (json-parse-string
+                   (with-temp-buffer (insert-file-contents payload-file) (buffer-string))
+                   :object-type 'alist :null-object nil :false-object nil))
+         (sid (alist-get 'session_id payload))
+         (lines-file (make-temp-file "cci-footnote-lines")))
+    (unwind-protect
+        (when (and (stringp sid)
+                   (string-match-p "\\`[A-Za-z0-9._-]+\\'" sid)
+                   (not (member sid '("." ".."))))
+          (claude-code-ide-org-write-footnote-lines payload-file lines-file project)
+          (let* ((out (with-temp-buffer (insert-file-contents lines-file)
+                                        (split-string (buffer-string) "\n" t)))
+                 (covered (and (string-prefix-p "ids " (or (car out) ""))
+                               (split-string (substring (car out) 4) " " t)))
+                 (lines (string-join (cdr out) "\n")))
+            (unless (string-empty-p lines)
+              (make-directory queue-dir t)
+              (write-region (mapconcat (lambda (i) (concat i "\n")) covered "")
+                            nil (expand-file-name (concat sid ".footnoted") queue-dir)
+                            t 'silent)
+              (with-temp-file out-file
+                (insert
+                 (json-encode
+                  `((hookSpecificOutput
+                     . ((hookEventName . "PreToolUse")
+                        (permissionDecision . "allow")
+                        (updatedInput
+                         . ,(cons (cons 'lines lines)
+                                  (assq-delete-all
+                                   'lines (copy-alist (alist-get 'tool_input payload))))))))))))))
+      (delete-file lines-file))))
+
 (defun claude-code-ide-org-footnotes (ids &optional lines)
   "The `org_footnotes' tool: return LINES, the end matter a hook generated.
 

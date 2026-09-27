@@ -1,67 +1,51 @@
-#!/usr/bin/env bash
+#!/bin/sh
 # PreToolUse hook on mcp__emacs-tools__org_footnotes: generate the reply's
 # end matter and put it in the call, where the terminal folds it away
-# (TODO.org :ID: 30d05c93). A stub, like bin/hooks/footnote-check: the
-# scanning is `claude-code-ide-org-write-footnote-lines' in config.el.
+# (TODO.org :ID: 30d05c93). A thin stub over
+# `claude-code-ide-org-write-footnotes-hook-output', which does everything
+# else -- the ids, the lines, the covered-ids file, the JSON this prints
+# (TODO.org :ID: a749b95c: it began as bash that shaped the JSON itself).
 #
 # Why a hook and not the tool alone: the tool cannot find this session's
 # transcript -- the MCP session is keyed by project basename and Claude
 # Code sends it no session id -- and the ids the turn's narration cited
-# are in that transcript. The hook has the path, reads the narration
-# through the running Emacs, and returns `updatedInput' with the lines.
+# are in that transcript. The hook has the path.
 #
-# The narration and the call's own tool_use land in the transcript 0.8 to
+# The one thing kept here is a wait, because it must not block Emacs: the
+# narration and the call's own tool_use land in the transcript 0.8 to
 # 1.5 s after PreToolUse fires (measured 2026-09-24), so this waits up to
-# 2 s for the tool_use before reading, then reads whatever is there.
-#
-# The ids it covered go to <session_id>.footnoted, which footnote-check
-# counts as discharged and session-resume clears with the next prompt.
+# 2 s for the tool_use before asking, then asks whatever is there.
 #
 # AN OUTAGE OWES NOTHING: with Emacs unreachable, or slower than 3 s, it
 # prints nothing and exits 0, so the tool answers that it is not wired
-# and end matter is written by hand. bash 3.2 throughout.
-set -uo pipefail
+# and end matter is written by hand.
+payload="$(mktemp)"; out="$(mktemp)"
+trap 'rm -f "$payload" "$out"' EXIT
+cat > "$payload"
 
-input="$(cat)"
-command -v jq >/dev/null 2>&1 || exit 0
-session_id="$(jq -r '.session_id // empty' <<<"$input" 2>/dev/null)"
-case "$session_id" in ''|.|..|*[!A-Za-z0-9._-]*) exit 0 ;; esac
-transcript="$(jq -r '.transcript_path // empty' <<<"$input" 2>/dev/null)"
-tool_use_id="$(jq -r '.tool_use_id // empty' <<<"$input" 2>/dev/null)"
-
-if [[ -n "$transcript" && -n "$tool_use_id" ]]; then
-  for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+field() { sed -n "s/.*\"$1\" *: *\"\([^\"]*\)\".*/\1/p" "$payload" | head -n 1; }
+tool_use_id="$(field tool_use_id)"
+transcript="$(field transcript_path)"
+if [ -n "$tool_use_id" ] && [ -n "$transcript" ]; then
+  i=0
+  while [ $i -lt 20 ]; do
     grep -qF -- "$tool_use_id" "$transcript" 2>/dev/null && break
-    sleep 0.1
+    sleep 0.1; i=$((i + 1))
   done
 fi
 
-repo="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
-payload="$(mktemp)"; out="$(mktemp)"
-trap 'rm -f "$payload" "$out"' EXIT
-printf '%s' "$input" >"$payload"
-elisp_string() { printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'; }
-form="(claude-code-ide-org-write-footnote-lines \"$(elisp_string "$payload")\" \"$(elisp_string "$out")\" \"$(elisp_string "$repo")\")"
-emacsclient -e "$form" </dev/null >/dev/null 2>&1 &
+repo="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
+queue_dir="${CLAUDE_ORG_QUEUE_DIR:-$HOME/.claude/org-updates}"
+# Escaped for an elisp string literal, never read with `getenv', which
+# would read the SERVER's environment (measured 2026-09-18).
+esc() { printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'; }
+form="(claude-code-ide-org-write-footnotes-hook-output \"$(esc "$payload")\" \"$(esc "$out")\" \"$(esc "$repo")\" \"$(esc "$queue_dir")\")"
+"${EMACSCLIENT:-emacsclient}" -e "$form" </dev/null >/dev/null 2>&1 &
 client=$!
 ( sleep 3; kill "$client" ) </dev/null >/dev/null 2>&1 &
 dog=$!
 wait "$client" 2>/dev/null
-{ kill "$dog"; wait "$dog"; } 2>/dev/null
+kill "$dog" 2>/dev/null; wait "$dog" 2>/dev/null
 
-first="$(head -n 1 "$out" 2>/dev/null)"
-case "$first" in
-  "ids "*) covered="${first#ids }" ;;
-  *) exit 0 ;;   # no answer: inject nothing
-esac
-lines="$(tail -n +2 "$out")"
-[[ -n "$lines" ]] || exit 0
-
-queue_dir="${CLAUDE_ORG_QUEUE_DIR:-$HOME/.claude/org-updates}"
-mkdir -p "$queue_dir" 2>/dev/null
-printf '%s\n' $covered >> "$queue_dir/$session_id.footnoted" 2>/dev/null
-
-jq -n -c --arg lines "$lines" --argjson orig "$(jq -c '.tool_input // {}' <<<"$input")" \
-  '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "allow",
-                         updatedInput: ($orig + {lines: $lines})}}'
+cat "$out" 2>/dev/null
 exit 0
