@@ -37,6 +37,16 @@ timestamp, since both sets are keyed by that string; and parse the fixed ISO
 shape directly instead of calling the lenient =date-to-time=. Archiving fully
 applied session files would bound it for good.
 
+*Shipped* in [[orgit-rev:~/git/claude-code-ide-org::aaff06b][aaff06b]]: both fixes named above. A consumed line is dropped on its
+raw =ts= before any parse, and the writers' timestamp shape is parsed with
+=encode-time=, keeping =date-to-time= as the fallback for anything else. Live,
+one read went from 1.18 s to 0.066 s, and the fast path agreed with
+=date-to-time= on all 6,831 real queue timestamps. The skip test failed against
+HEAD. The parse test failed when the offset sign was flipped, along with 13
+others. Archiving fully applied session files would bound the file sizes too;
+not done, and not worth filing at a 0.07 s read.
+
+
 * TODO Slice refresh takes 10 s on leaving the review buffer, with the referent index under 0.1 s :code:
 :PROPERTIES:
 :ID:       4d896425-586a-4a5e-8d13-0a737d15a954
