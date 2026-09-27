@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+# Tests for bin/hooks/tool-failure (TODO.org :ID: 3ad389be), through a
+# fake emacsclient, pgrep and sample on PATH. One case per probe state,
+# the marker's fields, the once-per-session sample sentinel, and an
+# unwritable queue directory. The queue, sample directory and session id
+# are the fixture's own throughout. Always prints a result line.
+set -uo pipefail
+repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+hook="$repo/bin/hooks/tool-failure"
+tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
+unset CLAUDE_CODE_SESSION_ID
+pass=0 fail=0
+check () { # name expected actual
+  if [[ "$2" == "$3" ]]; then printf 'ok   - %s\n' "$1"; pass=$((pass+1))
+  else printf 'FAIL - %s: wanted [%s], got [%s]\n' "$1" "$2" "$3"; fail=$((fail+1)); fi
+}
+
+fakebin="$tmp/bin"; mkdir -p "$fakebin"
+# emacsclient plays $FAKE_EC: down, hang, prompt, idle or garbage.
+cat > "$fakebin/emacsclient" <<'FAKE'
+#!/usr/bin/env bash
+case "${FAKE_EC:-idle}" in
+  down) echo "emacsclient: can't find socket" >&2; exit 1 ;;
+  hang) sleep 10 ;;
+  prompt) echo '"prompt depth=1 minibuffer=t"' ;;
+  idle) echo '"idle depth=0 minibuffer=nil"' ;;
+  *) echo 'something else' ;;
+esac
+FAKE
+# A live Emacs process, pid 4242, unless FAKE_NO_EMACS is set.
+cat > "$fakebin/pgrep" <<'FAKE'
+#!/usr/bin/env bash
+[ -n "${FAKE_NO_EMACS:-}" ] && exit 1
+[ "$2" = Emacs ] && echo 4242
+FAKE
+# sample PID SECONDS -file PATH: writes the file, counts its calls.
+cat > "$fakebin/sample" <<'FAKE'
+#!/usr/bin/env bash
+echo "sample of $1" > "$4"; echo x >> "$FAKE_SAMPLE_LOG"
+FAKE
+chmod +x "$fakebin"/*
+
+export PATH="$fakebin:$PATH"
+export CLAUDE_ORG_QUEUE_DIR="$tmp/queue"
+export CLAUDE_ORG_SAMPLE_DIR="$tmp/samples"
+export CLAUDE_ORG_PROBE_SECONDS=1
+export FAKE_SAMPLE_LOG="$tmp/sample.log"
+: > "$FAKE_SAMPLE_LOG"
+
+payload () { # session error
+  jq -nc --arg s "$1" --arg e "$2" \
+    '{session_id: $s, cwd: "/proj", hook_event_name: "PostToolUseFailure",
+      tool_use_id: "tu1", tool_name: "mcp__emacs-tools__org_amend",
+      tool_input: {id: "abcd1234", text: "hello"}, error: $e}'
+}
+run () { # state session error -> hook stdout, then rc=N
+  FAKE_EC="$1" "$hook" <<<"$(payload "$2" "$3")"; echo "rc=$?"
+}
+ctx () { sed '$d' <<<"$1" | jq -r '.hookSpecificOutput.additionalContext' 2>/dev/null; }
+markers () { cat "$CLAUDE_ORG_QUEUE_DIR/$1.tool-failures.jsonl" 2>/dev/null; }
+
+# Refused, with a live Emacs: the wedge signature, sampled once.
+out="$(run down s-ref 'connect ECONNREFUSED 127.0.0.1:45571')"
+check "refused: exits 0" rc=0 "$(tail -1 <<<"$out")"
+check "refused: says nothing was written" yes "$(ctx "$out" | grep -q 'refused the connection.*wrote nothing' && echo yes || echo no)"
+check "refused: forbids hand edits" yes "$(ctx "$out" | grep -q 'Do not hand-edit' && echo yes || echo no)"
+check "refused: names the sample" yes "$(ctx "$out" | grep -q "saved to $CLAUDE_ORG_SAMPLE_DIR/.*-4242.txt" && echo yes || echo no)"
+check "refused: marker records the tool and input" "mcp__emacs-tools__org_amend abcd1234 /proj" \
+  "$(markers s-ref | jq -r 'select(.kind=="failure") | "\(.tool_name) \(.tool_input.id) \(.cwd)"')"
+check "refused: may_land is false" false "$(markers s-ref | jq -r 'select(.kind=="failure") | .may_land')"
+check "refused: the probe line says refused" "refused tu1" "$(markers s-ref | jq -r 'select(.kind=="probe") | "\(.state) \(.tool_use_id)"')"
+run down s-ref 'connect ECONNREFUSED' >/dev/null
+check "refused: sampled once per session" 1 "$(grep -c . "$FAKE_SAMPLE_LOG")"
+check "refused: both failures are marked" 2 "$(markers s-ref | jq -r 'select(.kind=="failure")' | jq -s length)"
+out="$(FAKE_NO_EMACS=1 run down s-dead 'connect ECONNREFUSED')"
+check "refused, no process: no sample" 1 "$(grep -c . "$FAKE_SAMPLE_LOG")"
+check "refused, no process: guidance still given" yes "$(ctx "$out" | grep -q 'refused the connection' && echo yes || echo no)"
+
+# Busy: the probe itself times out.
+start=$SECONDS
+out="$(run hang s-busy 'MCP error -32001: Request timed out')"
+check "busy: bounded by the watchdog" yes "$([ $((SECONDS - start)) -lt 5 ] && echo yes || echo no)"
+check "busy: may still land, do not retry" yes "$(ctx "$out" | grep -q 'may still land, so do not retry' && echo yes || echo no)"
+check "busy: may_land is true" true "$(markers s-busy | jq -r 'select(.kind=="failure") | .may_land')"
+check "busy: the probe line says busy" busy "$(markers s-busy | jq -r 'select(.kind=="probe") | .state')"
+
+# Prompt: an org tool on the stack.
+out="$(run prompt s-prompt 'Request timed out')"
+check "prompt: ask the user to answer it" yes "$(ctx "$out" | grep -q 'waiting on a prompt.*answer it' && echo yes || echo no)"
+check "prompt: the probe line keeps the reply" yes "$(markers s-prompt | jq -r 'select(.kind=="probe") | .reply' | grep -q 'depth=1' && echo yes || echo no)"
+
+# Idle: the argument names are the suspect.
+out="$(run idle s-idle 'Request timed out')"
+check "idle: check the argument names" yes "$(ctx "$out" | grep -q "argument names against the tool's schema" && echo yes || echo no)"
+
+# Unknown: a reply the probe cannot read.
+out="$(run garbage s-unk 'Request timed out')"
+check "unknown: say so and stop" yes "$(ctx "$out" | grep -q 'state is unknown' && echo yes || echo no)"
+
+# An unwritable queue directory: no marker, still exit 0, still guidance.
+: > "$tmp/not-a-dir"
+out="$(CLAUDE_ORG_QUEUE_DIR="$tmp/not-a-dir/queue" run down s-nowrite 'connect ECONNREFUSED')"
+check "unwritable queue: exits 0" rc=0 "$(tail -1 <<<"$out")"
+check "unwritable queue: guidance still given" yes "$(ctx "$out" | grep -q 'refused the connection' && echo yes || echo no)"
+
+# No session id: no marker file named ".tool-failures.jsonl", guidance given.
+out="$(run idle '' 'Request timed out')"
+check "no session id: no nameless marker" no "$([ -e "$CLAUDE_ORG_QUEUE_DIR/.tool-failures.jsonl" ] && echo yes || echo no)"
+check "no session id: guidance still given" yes "$(ctx "$out" | grep -q 'argument names' && echo yes || echo no)"
+
+check "the real queue is untouched by name" no "$(ls "$HOME/.claude/org-updates" 2>/dev/null | grep -qE '^s-(ref|busy|prompt|idle|unk|dead|nowrite)\.' && echo yes || echo no)"
+
+echo
+echo "tool-failure-test: $pass passed, $fail failed"
+exit $((fail > 0))

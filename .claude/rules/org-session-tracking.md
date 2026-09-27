@@ -29,6 +29,7 @@ line to the session's queue file and exits, or blocks, or injects context:
 | `UserPromptSubmit`  | `bin/hooks/apply-detect`      | nothing — *injects context* when the queue was applied since the session's last turn |
 | `UserPromptSubmit`, `PostToolUse` (Bash) | `bin/hooks/review-start` | `todo` → `REVIEW` for the one `DOING` slice when a PR review starts (`/code-review`, a reviewer requested) and its unfinished members are all `REVIEW` |
 | `SessionStart`      | `bin/hooks/session-start-recovery-check` | nothing — *injects* the daily ceremony prompt (and, where time tracking is wired, the stale-interval report) |
+| `PostToolUseFailure` (`org_*`) | `bin/hooks/tool-failure` | a marker beside the queue, reported once at `SessionStart`, and *injects* what to do (`:ID:` 3ad389be) |
 
 *The table omits the three `PostToolUse` `queue-append` matchers*, which
 wire `org_set_todo`, `org_capture` and `org_amend` to the queue. They are

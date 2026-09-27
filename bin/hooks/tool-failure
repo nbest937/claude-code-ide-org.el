@@ -1,0 +1,141 @@
+#!/usr/bin/env bash
+# PostToolUseFailure on mcp__emacs-tools__.*: an org tool call that
+# never reached a healthy Emacs (TODO.org :ID: 3ad389be).
+#
+# The queue's premise is that work is recorded with no Emacs running.
+# That holds for the hooks, which are plain shell, and fails for the org
+# tools, which are served from inside Emacs: when Emacs is gone or wedged
+# a call records nothing. So this hook, being plain shell, records what
+# could not be recorded, probes Emacs, and tells the session what to do.
+#
+# Measured 2026-09-23 on Claude Code 2.1.280: this event fires for a
+# TRANSPORT failure only -- a refusal from a healthy Emacs arrives as
+# PostToolUse -- so nothing here filters. An Emacs already down at session
+# start offers no tools, so no tool hook fires; that case is out of reach.
+#
+# Three steps in order, each surviving the failure of the next:
+#
+#   1. The marker. One `failure' line in <session_id>.tool-failures.jsonl
+#      beside the queue file, never in it, so the review pass cannot take
+#      it for an event. `may_land' is true unless the connection was
+#      refused: a timed-out call runs on inside Emacs and can still write.
+#   2. The probe. emacsclient under a 3 s watchdog; the state is appended
+#      as a second, `probe' line keyed by tool_use_id.
+#   3. The guidance, as additionalContext, one per state.
+#
+# SessionStart's ceremony report lists the markers and renames each file,
+# so a failure is reported once (claude-code-ide-org--tool-failure-report).
+#
+# Task tracking, not time tracking: ungated. Always exits 0.
+
+set -uo pipefail
+
+input="$(cat)"
+command -v jq >/dev/null 2>&1 || exit 0
+
+session_id="$(jq -r '.session_id // empty' <<<"$input" 2>/dev/null)"
+case "$session_id" in
+  *[!A-Za-z0-9._-]*|''|.|..) session_id="" ;;
+esac
+
+queue_dir="${CLAUDE_ORG_QUEUE_DIR:-$HOME/.claude/org-updates}"
+markers="$queue_dir/$session_id.tool-failures.jsonl"
+now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+error="$(jq -r '.error // "" | tostring' <<<"$input" 2>/dev/null)"
+
+# Refused means nothing was written; anything else may yet land.
+shopt -s nocasematch
+case "$error" in
+  *refused*|*ECONNREFUSED*|*"connect ECONN"*) may_land=false ;;
+  *) may_land=true ;;
+esac
+shopt -u nocasematch
+
+# 1. The marker.
+if [[ -n "$session_id" ]] && mkdir -p "$queue_dir" 2>/dev/null; then
+  jq -c --arg ts "$now" --argjson may "$may_land" \
+     '{kind: "failure", ts: $ts, cwd, tool_use_id, tool_name, tool_input,
+       error: (.error // null), may_land: $may}' <<<"$input" \
+     >> "$markers" 2>/dev/null
+fi
+
+# 2. The probe. A public org tool on the Lisp stack is a prompt waiting
+# on the human; depth and the minibuffer alone read one prompt-blocked
+# run as idle (measured 2026-09-23), so they are recorded, not decided on.
+form='(let ((on-stack nil))
+  (mapbacktrace
+   (lambda (_e fun _a _f)
+     (when (and (symbolp fun)
+                (string-match-p "\\`claude-code-ide-org-[^-]" (symbol-name fun)))
+       (setq on-stack t))))
+  (format "%s depth=%d minibuffer=%s"
+          (if on-stack "prompt" "idle") (recursion-depth)
+          (if (active-minibuffer-window) "t" "nil")))'
+out="$(mktemp)"
+trap 'rm -f "$out"' EXIT
+"${EMACSCLIENT:-emacsclient}" -e "$form" </dev/null >"$out" 2>&1 &
+client=$!
+( sleep "${CLAUDE_ORG_PROBE_SECONDS:-3}"; kill "$client" ) </dev/null >/dev/null 2>&1 &
+dog=$!
+wait "$client" 2>/dev/null; rc=$?
+{ kill "$dog"; wait "$dog"; } 2>/dev/null
+
+reply="$(cat "$out" 2>/dev/null)"
+if [[ $rc -ge 128 ]]; then
+  state=busy
+elif [[ $rc -ne 0 ]]; then
+  state=refused
+else
+  case "$reply" in
+    *'"prompt '*) state=prompt ;;
+    *'"idle '*) state=idle ;;
+    *) state=unknown ;;
+  esac
+fi
+
+if [[ -n "$session_id" ]] && [[ -d "$queue_dir" ]]; then
+  jq -c --arg ts "$now" --arg state "$state" --arg reply "$reply" \
+     '{kind: "probe", ts: $ts, tool_use_id, state: $state, reply: $reply}' \
+     <<<"$input" >> "$markers" 2>/dev/null
+fi
+
+# A refused connection from a live process is the wedge signature of
+# 2026-08-31: take one stack sample for 489d6f61, once per session.
+sampled=""
+if [[ "$state" = refused ]]; then
+  pid="$(pgrep -x Emacs 2>/dev/null | head -1)"
+  [[ -n "$pid" ]] || pid="$(pgrep -x emacs 2>/dev/null | head -1)"
+  sentinel="$queue_dir/$session_id.emacs-sampled"
+  # The queue directory must exist: without it the sentinel cannot be
+  # kept, and "once per session" would become "every failure".
+  if [[ -n "$pid" ]] && [[ -n "$session_id" ]] && [[ -d "$queue_dir" ]] \
+     && [[ ! -e "$sentinel" ]] \
+     && command -v "${SAMPLE:-sample}" >/dev/null 2>&1; then
+    sdir="${CLAUDE_ORG_SAMPLE_DIR:-$HOME/.claude/emacs-samples}"
+    mkdir -p "$sdir" 2>/dev/null
+    file="$sdir/$(date +%Y%m%dT%H%M%S)-$pid.txt"
+    : > "$sentinel" 2>/dev/null
+    "${SAMPLE:-sample}" "$pid" 1 -file "$file" </dev/null >/dev/null 2>&1 \
+      && sampled=" A stack sample of Emacs (pid $pid) was saved to $file."
+  fi
+fi
+
+# 3. The guidance.
+tool="$(jq -r '.tool_name // "the org tool"' <<<"$input" 2>/dev/null)"
+case "$state" in
+  refused)
+    msg="Emacs refused the connection, so $tool wrote nothing. Do not hand-edit the tracked org files to make up for it, and do not retry until the user says Emacs is back. Tell the user Emacs is unreachable.$sampled" ;;
+  busy)
+    msg="Emacs did not answer a 3-second probe after $tool failed: it is busy. The call may still land, so do not retry a write. Tell the user Emacs is busy and wait for them." ;;
+  prompt)
+    msg="Emacs is waiting on a prompt raised by an org tool, which is why $tool failed. Ask the user to answer it in Emacs. The call may still land, so do not retry a write until they have." ;;
+  idle)
+    msg="Emacs is up and idle, yet $tool failed. Check the call's argument names against the tool's schema: a misnamed argument reaches Emacs and times out rather than being refused." ;;
+  *)
+    msg="$tool failed and a probe of Emacs failed too, so its state is unknown. Say so to the user and stop; do not retry a write." ;;
+esac
+msg="$msg The failure is recorded and the next session start reports it."
+
+jq -nc --arg m "$msg" \
+   '{hookSpecificOutput: {hookEventName: "PostToolUseFailure", additionalContext: $m}}'
+exit 0

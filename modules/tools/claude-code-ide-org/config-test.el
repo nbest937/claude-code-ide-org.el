@@ -25,6 +25,14 @@ Lets a test read a checked-in fixture such as `clock-template.org';
 tests that use it skip themselves when it is nil, so loading this file
 some other way degrades to a skipped test rather than an error.")
 
+;; No test reaches the real queue by default (TODO.org :ID: 3ad389be).
+;; The SessionStart report now RENAMES tool-failure markers it reports,
+;; so a test that builds the payload without binding the directory would
+;; consume the user's real ones.  Tests that plant events still bind their
+;; own; this is the floor under the ones that forget.
+(setq claude-code-ide-org-queue-directory
+      (make-temp-file "claude-code-ide-org-test-queue" t))
+
 ;;; Fixture -----------------------------------------------------------------
 
 (defmacro claude-code-ide-org-test--with-heading (&rest body)
@@ -19728,3 +19736,65 @@ with a local entry on the second, both register under their own names."
         (should (string-match-p "names port 45999"
                                 (condition-case e (progn (claude-code-ide-org-standalone-wire) "")
                                   (user-error (error-message-string e)))))))))
+
+;;; Tool-failure markers (TODO.org :ID: 3ad389be) ---------------------------
+
+(defun claude-code-ide-org-test--plant-failures (session-id &rest lines)
+  "Write LINES, JSON strings, as SESSION-ID's tool-failure marker file."
+  (let ((file (expand-file-name (concat session-id ".tool-failures.jsonl")
+                                claude-code-ide-org-queue-directory)))
+    (make-directory claude-code-ide-org-queue-directory t)
+    (write-region (concat (string-join lines "\n") "\n") nil file nil 'silent)
+    file))
+
+(ert-deftest claude-code-ide-org-test-tool-failure-report-lists-each-marker ()
+  "Each failure is reported with its probe state and whether it may have landed."
+  (claude-code-ide-org-test--with-queue
+    (claude-code-ide-org-test--plant-failures
+     "s1"
+     "{\"kind\":\"failure\",\"ts\":\"2026-09-27T10:00:00Z\",\"cwd\":\"/p\",\"tool_use_id\":\"t1\",\"tool_name\":\"mcp__emacs-tools__org_amend\",\"tool_input\":{\"id\":\"abcd1234\",\"text\":\"x\"},\"error\":\"timed out\",\"may_land\":true}"
+     "{\"kind\":\"probe\",\"ts\":\"2026-09-27T10:00:00Z\",\"tool_use_id\":\"t1\",\"state\":\"busy\",\"reply\":\"\"}"
+     "not json at all"
+     "{\"kind\":\"failure\",\"ts\":\"2026-09-27T09:00:00Z\",\"cwd\":\"/p\",\"tool_use_id\":\"t2\",\"tool_name\":\"mcp__emacs-tools__org_set_todo\",\"tool_input\":{\"id\":\"ffff0000\",\"state\":\"DONE\"},\"error\":\"connect ECONNREFUSED\",\"may_land\":false}")
+    (let ((report (claude-code-ide-org--tool-failure-report)))
+      (should (string-match-p "^2 org tool calls failed" report))
+      (should (string-match-p "org_amend on abcd1234 (Emacs busy): may still have landed" report))
+      (should (string-match-p "org_set_todo on ffff0000 (Emacs not probed): did not land" report))
+      ;; Oldest first.
+      (should (< (string-match "org_set_todo" report) (string-match "org_amend" report))))))
+
+(ert-deftest claude-code-ide-org-test-tool-failure-report-is-once ()
+  "Reporting renames the marker file, so the next report is silent."
+  (claude-code-ide-org-test--with-queue
+    (let ((file (claude-code-ide-org-test--plant-failures
+                 "s1" "{\"kind\":\"failure\",\"ts\":\"2026-09-27T10:00:00Z\",\"cwd\":\"/p\",\"tool_use_id\":\"t1\",\"tool_name\":\"mcp__emacs-tools__org_amend\",\"tool_input\":{},\"may_land\":true}")))
+      (should (claude-code-ide-org--tool-failure-report))
+      (should-not (file-exists-p file))
+      (should (directory-files claude-code-ide-org-queue-directory nil "\\.reported-.*\\.jsonl\\'"))
+      (should-not (claude-code-ide-org--tool-failure-report)))))
+
+(ert-deftest claude-code-ide-org-test-tool-failure-report-is-project-scoped ()
+  "A marker from another project is neither reported nor consumed."
+  (claude-code-ide-org-test--with-queue
+    (let* ((mine (make-temp-file "cci-mine" t))
+           (theirs (make-temp-file "cci-theirs" t))
+           (line (lambda (cwd) (format "{\"kind\":\"failure\",\"ts\":\"2026-09-27T10:00:00Z\",\"cwd\":%S,\"tool_use_id\":\"t\",\"tool_name\":\"mcp__emacs-tools__org_amend\",\"tool_input\":{},\"may_land\":true}" cwd)))
+           (theirs-file (claude-code-ide-org-test--plant-failures "s2" (funcall line theirs))))
+      (claude-code-ide-org-test--plant-failures "s1" (funcall line mine))
+      (let ((claude-code-ide-org--report-scope mine))
+        (should (string-match-p "^1 org tool call failed" (claude-code-ide-org--tool-failure-report))))
+      (should (file-exists-p theirs-file))
+      (delete-directory mine t) (delete-directory theirs t))))
+
+(ert-deftest claude-code-ide-org-test-session-start-carries-tool-failures ()
+  "The SessionStart payload carries the report in both channels."
+  (claude-code-ide-org-test--with-queue
+    (claude-code-ide-org-test--plant-failures
+     "s1" "{\"kind\":\"failure\",\"ts\":\"2026-09-27T10:00:00Z\",\"cwd\":\"/p\",\"tool_use_id\":\"t1\",\"tool_name\":\"mcp__emacs-tools__org_amend\",\"tool_input\":{},\"may_land\":true}")
+    (cl-letf (((symbol-function 'claude-code-ide-org--image-report) (lambda (&rest _) nil))
+              ((symbol-function 'claude-code-ide-org-find-stale-open-intervals) (lambda (&rest _) nil))
+              ((symbol-function 'claude-code-ide-org--format-ceremony-report) (lambda (&rest _) nil))
+              ((symbol-function 'claude-code-ide-org--ceremony-status) (lambda (&rest _) nil)))
+      (let ((json (claude-code-ide-org--session-start-hook-json)))
+        (should (string-match-p "failed because Emacs was unreachable" json))
+        (should (string-match-p "failed while Emacs was unreachable" json))))))

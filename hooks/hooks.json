@@ -221,6 +221,18 @@
           }
         ]
       }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "mcp__emacs-tools__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/bin/hooks/tool-failure",
+            "timeout": 15
+          }
+        ]
+      }
     ]
   }
 }

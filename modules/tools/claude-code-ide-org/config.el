@@ -1305,6 +1305,100 @@ the call never ran -- which the stub reports as `image state unknown'."
     (with-temp-file output-path
       (insert (if report (concat "stale\n" report "\n") "fresh\n")))))
 
+;;; Tool-failure markers (TODO.org :ID: 3ad389be) -------------------------
+;;
+;; `bin/hooks/tool-failure' records an org tool call that never reached a
+;; healthy Emacs.  Plain shell writes the marker because Emacs, being what
+;; failed, cannot; Emacs reads it back here, at the next session start
+;; that finds it up.
+
+(defun claude-code-ide-org--tool-failure-markers (&optional dir)
+  "Unreported tool-failure markers in DIR, as plists, oldest first.
+DIR defaults to `claude-code-ide-org-queue-directory'.  Each plist has
+:file, :ts, :cwd, :tool, :input, :may-land and :state -- the last from
+the `probe' line sharing the failure's tool_use_id, or nil when the
+probe never recorded one.  A line that does not parse is skipped: the
+file is plain shell's, written while the system was least healthy."
+  (let ((dir (or dir claude-code-ide-org-queue-directory))
+        markers)
+    (dolist (file (and (file-directory-p dir)
+                       (directory-files dir t "\\.tool-failures\\.jsonl\\'")))
+      (let (failures (probes (make-hash-table :test 'equal)))
+        (with-temp-buffer
+          (insert-file-contents file)
+          (dolist (line (split-string (buffer-string) "\n" t))
+            (when-let* ((obj (ignore-errors
+                               (json-parse-string line :object-type 'plist
+                                                  :null-object nil
+                                                  :false-object nil))))
+              (pcase (plist-get obj :kind)
+                ("failure" (push obj failures))
+                ("probe" (puthash (plist-get obj :tool_use_id)
+                                  (plist-get obj :state) probes))))))
+        (dolist (f (nreverse failures))
+          (push (list :file file
+                      :ts (plist-get f :ts)
+                      :cwd (plist-get f :cwd)
+                      :tool (plist-get f :tool_name)
+                      :input (plist-get f :tool_input)
+                      :may-land (plist-get f :may_land)
+                      :state (gethash (plist-get f :tool_use_id) probes))
+                markers))))
+    (sort (nreverse markers)
+          (lambda (a b) (string< (or (plist-get a :ts) "")
+                                 (or (plist-get b :ts) ""))))))
+
+(defun claude-code-ide-org--tool-failure-report (&optional dir)
+  "A report of unreported tool-failure markers, or nil when there are none.
+Says for each whether the write may still have landed, so nothing is
+redone blindly.  Confined to `claude-code-ide-org--report-scope' by the
+marker's cwd when that is bound, like the rest of the report; a marker
+from another project waits for that project's session.
+
+Reporting RENAMES each file whose markers all fall in scope, so a
+failure is reported once.  A file with markers out of scope is left for
+its own project's session and reported again here -- rare, since a
+session's markers share its cwd."
+  (let* ((root (and claude-code-ide-org--report-scope
+                    (file-name-as-directory
+                     (file-truename claude-code-ide-org--report-scope))))
+         (in-scope (lambda (m)
+                     (or (null root)
+                         (and (plist-get m :cwd)
+                              (string-prefix-p
+                               root (file-name-as-directory
+                                     (file-truename (plist-get m :cwd))))))))
+         (all (claude-code-ide-org--tool-failure-markers dir))
+         (mine (seq-filter in-scope all)))
+    (when mine
+      (let ((lines
+             (mapcar
+              (lambda (m)
+                (let ((input (plist-get m :input)))
+                  (format "- %s %s%s (Emacs %s): %s"
+                          (or (plist-get m :ts) "?")
+                          (or (plist-get m :tool) "?")
+                          (if-let* ((id (and (listp input)
+                                             (plist-get input :id))))
+                              (format " on %s" id) "")
+                          (or (plist-get m :state) "not probed")
+                          (if (plist-get m :may-land)
+                              "may still have landed -- check the file before redoing it"
+                            "did not land -- redo it if it is still wanted"))))
+              mine)))
+        (dolist (file (delete-dups (mapcar (lambda (m) (plist-get m :file)) mine)))
+          (unless (seq-find (lambda (m) (and (equal (plist-get m :file) file)
+                                             (not (funcall in-scope m))))
+                            all)
+            (ignore-errors
+              (rename-file file (concat (string-remove-suffix ".jsonl" file)
+                                        (format-time-string ".reported-%Y%m%dT%H%M%S.jsonl"))
+                           t))))
+        (concat (format "%d org tool call%s failed because Emacs was unreachable; nothing recorded them at the time:\n"
+                        (length mine) (if (= 1 (length mine)) "" "s"))
+                (string-join lines "\n")
+                "\nTell the user, and check each before redoing it.")))))
+
 (defun claude-code-ide-org--session-start-hook-json ()
   "Return the SessionStart hook JSON payload: an empty object if there is
 nothing to report, otherwise one whose additionalContext carries every
@@ -1327,7 +1421,9 @@ are."
          ;; A stale image, asked about rather than reloaded (TODO.org :ID:
          ;; f12f9da4).  Guarded: a fault here must not cost the other two.
          (image (ignore-errors (claude-code-ide-org--image-report)))
-         (parts (delq nil (list stale ceremony image)))
+         ;; Guarded the same way (TODO.org :ID: 3ad389be).
+         (failures (ignore-errors (claude-code-ide-org--tool-failure-report)))
+         (parts (delq nil (list stale ceremony image failures)))
          ;; The user's channel (TODO.org :ID: d585d33e).  Measured on
          ;; this project's transcripts (:ID: c5b02503), additionalContext
          ;; reached the user in 15 of 24 genuine session starts -- the
@@ -1345,7 +1441,8 @@ are."
                                    (if (= 1 (length findings)) "" "s")))
                       (and ceremony
                            (claude-code-ide-org--ceremony-summary status))
-                      (and image "the running Emacs is out of step with config.el")))))
+                      (and image "the running Emacs is out of step with config.el")
+                      (and failures "org tool calls failed while Emacs was unreachable")))))
     (if (null parts)
         "{}"
       (json-encode
