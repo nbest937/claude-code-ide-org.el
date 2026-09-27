@@ -31,51 +31,143 @@ unit. The source members, in the review's order:
 :ID:       ee6e6c63-c1db-414f-89ac-2f2866f4102d
 :CREATED:  [2026-09-27 Sun 18:33]
 :END:
+
+From PR #31's review (=claude-code-ide-org--replace-body=). =--replace-body= always spliced the
+lifted =Planned:= checklist back after the new text, so a replace that kept the
+list left two copies. The cookie double-counted them and the lint reported a
+disagreement. *Fixed*: when the new text carries its own =Planned:= lead, that
+copy stands and the old one isn't spliced back. The test failed first.
+
 ** TODO A session-name collision leaves every tracked project unregistered, not only the two that collide
 :PROPERTIES:
 :ID:       7def4fff-06c4-4f2a-9fb7-f186a565029c
 :CREATED:  [2026-09-27 Sun 18:33]
 :END:
+
+From PR #31's review (=claude-code-ide-org-standalone-wire=). Any session-name collision, or a local
+entry naming another port, made =standalone-wire= signal before it had
+registered anything. Every project was then left without a session on a running
+server, the unrelated ones included. *Fixed*: the refusals are collected first,
+the other projects register, and then one error names every refusal. The two
+wiring tests now assert that the project which doesn't collide still registers.
+Both failed first.
+
 ** TODO bin/check-image has no watchdog, so a busy Emacs hangs git commit
 :PROPERTIES:
 :ID:       14e9fd83-cdb8-4414-9abe-5d77e24a0d8c
 :CREATED:  [2026-09-27 Sun 18:33]
 :END:
+
+From PR #31's review (bin/check-image:14). Pre-commit runs =bin/check-image=
+whenever a module =.el= file is staged. Its =emacsclient= call had no bound,
+because =--timeout= bounds only the connection, so a busy Emacs hung =git
+commit=. *Fixed*: the same 3 s background-client watchdog the hooks use. A
+killed client reads as "image state unknown". The test uses a hanging fake
+client and failed first.
+
 ** TODO pre-push reads a failed git diff as nothing changed, and skips the suites
 :PROPERTIES:
 :ID:       191ec45b-9f91-4105-b51a-ced16022b2d6
 :CREATED:  [2026-09-27 Sun 18:33]
 :END:
+
+From PR #31's review (.githooks/pre-push:108). A remote sha that this clone
+never fetched made the suite gate's =git diff= fail. Its empty output read as
+"nothing changed; suites skipped", even on a push carrying code. *Fixed*: a
+failed =git diff= or =git log= marks the range unknown, the hook says so, and
+the suites run. The org-only shortcut applies only to a range that was actually
+computed. The test pushes over an unknown remote sha and failed first.
+
 ** TODO The index-sweep guard refuses the commit that concludes a merge, and its suggested fix is refused by git
 :PROPERTIES:
 :ID:       00a66d88-03c9-46ec-9883-49b1f4f209b0
 :CREATED:  [2026-09-27 Sun 18:33]
 :END:
+
+From PR #31's review (.githooks/pre-commit-guards:151). A session concluding a
+merge has to commit the whole index, since git refuses =git commit -- <paths>=
+while a merge is in progress. The guard refused that commit too, so its own
+suggested fix led nowhere. *Fixed*: an in-progress merge, cherry-pick or revert
+(=MERGE_HEAD=, =CHERRY_PICK_HEAD= or =REVERT_HEAD= in the git dir) exempts the
+commit. The test resolves a conflicted merge on a branch other than main and
+failed first.
+
 ** TODO apply-detect reports a first dismiss-only pass as an apply
 :PROPERTIES:
 :ID:       7e4e70af-bd15-4ecf-85a5-4e0bcf66afe9
 :CREATED:  [2026-09-27 Sun 18:33]
 :END:
+
+From PR #31's review (bin/hooks/apply-detect:88). A watermark missing from the
+record counted as an apply, whatever it held. So a session's first pass that
+only dismissed events was reported as an apply. *Fixed*: a watermark that is
+absent from the record and holds no applied value is not a change. Two further
+problems turned up along the way. The "absent" sentinel =\x01absent= was read by
+awk as the hex escape =\x01ab=; the result still never equalled a real value,
+but nothing could match against it, so it is now =<absent>=. And jq read an
+empty watermark file as "applied nothing" rather than as unreadable, so an empty
+file now takes the unparseable path. The test failed first.
+
 ** TODO The member migration and the slice refresh save any modified buffer, the human's unsaved edits included
 :PROPERTIES:
 :ID:       b5d97b90-6dbe-46a3-8cef-02a2a89ea9c6
 :CREATED:  [2026-09-27 Sun 18:33]
 :END:
+
+From PR #31's review (=claude-code-ide-org-migrate-slice-members=, =claude-code-ide-org-refresh-slice=). Three passes each wrote into
+whatever buffer visited a tracked file, then saved it if modified: the slice
+refresh (run by =org_slice_add_member= and the ceremony), the blocker refresh,
+and the member migration. So a human's unsaved edits in another file were saved
+along with the pass's own changes. *Fixed*: a file whose buffer holds unsaved
+edits is skipped and named in the reply, the refusal 60d6ab6e made for every
+structural writer. One test covers all three passes and failed first.
+
 ** TODO An empty queue reads as not supplied, so org_footnotes re-reads the queue once per id
 :PROPERTIES:
 :ID:       15205b37-80bc-4eb9-af2e-e1ae18c579db
 :CREATED:  [2026-09-27 Sun 18:33]
 :END:
+
+From PR #31's review (=claude-code-ide-org--footnote-lines=). =--footnote-lines= reads the queue once
+and passes the events down. But an empty queue is nil, which
+=--effective-todo-state= read as "not supplied", so it read the queue again for
+every id. *Fixed*: the caller passes the symbol =none= to mean "read, and
+empty". A test with a counting queue stub failed first. The cost was small,
+since a queue read is 0.07 s after fa617d99, but the "read once" promise now
+holds.
+
 ** TODO org_set_todo's argument list was re-indented, burying a one-branch change in a 75-line diff
 :PROPERTIES:
 :ID:       a21c0f99-d85a-41ef-bb7f-b9a6be18ae0b
 :CREATED:  [2026-09-27 Sun 18:33]
 :END:
+
+From PR #31's review (=claude-code-ide-org-set-todo=). The effective-state clause from 57f37f0e
+arrived with the function's whole argument list re-indented, which buried a
+one-clause change in a 75-line whitespace diff. *Fixed*: rebuilt from main's
+text, replacing only the docstring lines and the no-change clause. The diff
+against main dropped from 135 changed lines to 53, all of them real. All 832 ERT
+tests still pass. There's no new test, because this is layout only. Not
+confirmed: the finding's claim that =indent-region= would move the layout back.
+Batch =indent-region= left the deep layout exactly as it was.
+
 ** TODO footnotes-inject is bash with logic of its own, where a script needing Emacs is a thin sh stub over elisp
 :PROPERTIES:
 :ID:       a749b95c-86a0-4714-bdb1-ddb84bc71143
 :CREATED:  [2026-09-27 Sun 18:33]
 :END:
+
+From PR #31's review (bin/hooks/footnotes-inject:1). CLAUDE.md asks that a
+script which needs the running Emacs keep its logic in elisp, behind a POSIX
+=sh= stub that only moves bytes. =footnotes-inject= was bash that validated the
+session id, wrote the covered-ids file and shaped the =updatedInput= JSON with
+jq. *Fixed*: all of that now lives in
+=claude-code-ide-org-write-footnotes-hook-output=, which writes the hook's whole
+stdout. The stub keeps only the wait for the call's =tool_use= to land in the
+transcript, which mustn't block Emacs, and the 3 s watchdog. The existing nine
+checks still pass, so behaviour is unchanged; three new shape checks failed
+first. test-all ran 26 suites, 1515 passed.
+
 * TODO A guidepost span is labelled with the first pending clock_in note of its heading, from any session and any date :code:
 :PROPERTIES:
 :ID:       9b7301de-0903-4987-bb34-56f8f021fbd1
