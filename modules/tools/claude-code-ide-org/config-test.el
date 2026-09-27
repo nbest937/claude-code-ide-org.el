@@ -19687,6 +19687,16 @@ the ids the caller passes, and stars a keyword whose change is queued."
                        '("`aaaa1111`  REVIEW*   First heading"
                          "`bbbb2222`  DONE      [2/2] A slice with a cookie")))))))
 
+(ert-deftest claude-code-ide-org-test-footnote-lines-read-an-empty-queue-once ()
+  "An empty queue is read once, not once per id (TODO.org :ID: 15205b37,
+PR #31 review): nil passed down read as \"not supplied\"."
+  (claude-code-ide-org-test--with-footnote-fixture nil
+    (let ((reads 0))
+      (cl-letf (((symbol-function 'claude-code-ide-org--queue-events)
+                 (lambda (&rest _) (setq reads (1+ reads)) nil)))
+        (claude-code-ide-org--footnote-lines nil (list "aaaa1111" "bbbb2222") files)
+        (should (= 1 reads))))))
+
 (ert-deftest claude-code-ide-org-test-write-footnote-lines-reads-the-narration ()
   "The hook's writer takes ids from the narration written before the call
 -- text and non-empty thinking, never an empty one -- plus the call's

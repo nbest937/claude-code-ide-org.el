@@ -9151,11 +9151,15 @@ slipped through.  Reads the queue and never writes it, like
 
 EVENTS, the queue already read, lets a caller asking about several ids
 read it once: the read costs about a second, and footnoting three ids
-paid it three times (TODO.org :ID: 30d05c93)."
+paid it three times (TODO.org :ID: 30d05c93).  The symbol `none' means
+the queue was read and is empty: nil would read as \"not supplied\" and
+re-read it once per id (TODO.org :ID: 15205b37, PR #31 review)."
   (let ((last (seq-find (lambda (e)
                           (and (equal (plist-get e :kind) "todo")
                                (equal (plist-get e :id) id)))
-                        (reverse (or events (claude-code-ide-org--queue-events))))))
+                        (reverse (cond ((eq events 'none) nil)
+                                       (events)
+                                       (t (claude-code-ide-org--queue-events)))))))
     (if last (plist-get last :state) disk-state)))
 
 (defun claude-code-ide-org--pending-capture-keywords (id)
@@ -13911,7 +13915,8 @@ star, as the citation rules ask (TODO.org :ID: 30d05c93).  Returns
          (resolved (and cands (claude-code-ide-org--footnote-resolve cands files)))
          ;; Read once for every id: about a second each time (30d05c93).
          (events (and resolved (> (hash-table-count resolved) 0)
-                      (ignore-errors (claude-code-ide-org--queue-events))))
+                      (or (ignore-errors (claude-code-ide-org--queue-events))
+                          'none)))
          (covered nil) (lines nil))
     (dolist (id cands)
       (when-let* ((entry (gethash id resolved)))
