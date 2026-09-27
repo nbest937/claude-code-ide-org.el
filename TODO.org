@@ -515,6 +515,19 @@ CLOCK: [2026-09-24 Thu 15:24]--[2026-09-24 Thu 15:25] =>  0:01
 
 *Established (2026-09-24):* =render_glue= writes fixed text. The installed glue on the user's machine dates from 2026-09-10. Batch Emacs (=bin/test=, =bin/lint-org=) runs its own process and loads =config.el= directly, so once the wiring moves there, the =noninteractive= guard is what keeps a batch run from starting a second server.
 
+*Shipped 2026-09-27* in [[orgit-rev:claude-code-ide-org::575be08][575be08]], as the drawer designed it. The three forms run
+from the end of the module's registration block when
+=claude-code-ide-org-wire-on-load= is set, and never under =noninteractive=.
+With that guard removed, =bin/test= aborted at load with "Address already in
+use", which is the proof the guard is load-bearing. =--glue= is gone, and
+=--check= reports a leftover glue file or =load!= line as obsolete. That report
+refused this commit until this machine was migrated. The glue file and its
+=load!= line were removed here, with both kept in the session's scratchpad. The
+live reload ran the wiring idempotently, and the server stayed on 45571. *Still
+to confirm, by the user:* a restart. The first boot should wire with no glue
+present, and the tools should answer from a session outside Emacs.
+
+
 
 * TODO A rendered session goes stale as the session runs; follow a live transcript without losing the reader's place :code:
 :PROPERTIES:
