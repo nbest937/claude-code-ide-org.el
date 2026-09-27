@@ -274,5 +274,21 @@ check "a human at a terminal is never affected" 0 \
 printf 'w\n' >> "$r/mine"                                 # modified, nothing staged
 check "git commit -a with an empty index passes" 0 "$(sweep sess-s6 -a -m all)"
 
+# Concluding a merge (TODO.org :ID: 00a66d88, PR #31 review): git
+# refuses `git commit -- <paths>' mid-merge, so the only way to finish
+# one is a whole-index commit, and the guard must not dead-end it. On a
+# non-main branch, so the local-merge guard (0) is not what answers.
+git -C "$r" commit -q -m "settle" -- mine theirs >/dev/null 2>&1 || true
+git -C "$r" checkout -q -b feat
+git -C "$r" checkout -q -b side
+printf 'side\n' > "$r/mine"; git -C "$r" commit -q -am side
+git -C "$r" checkout -q feat
+printf 'feat\n' > "$r/mine"; git -C "$r" commit -q -am feat
+git -C "$r" merge -q side >/dev/null 2>&1 || true
+check "the fixture stopped mid-merge" yes "$([ -e "$r/.git/MERGE_HEAD" ] && echo yes || echo no)"
+printf 'both\n' > "$r/mine"; git -C "$r" add mine
+check "a session's plain commit concluding a merge passes" 0 "$(sweep sess-s7 --no-edit)"
+check "and the merge is concluded" no "$([ -e "$r/.git/MERGE_HEAD" ] && echo yes || echo no)"
+
 printf '\ngit-guards-test: %d passed, %d failed\n' "$pass" "$fail"
 exit $((fail > 0))

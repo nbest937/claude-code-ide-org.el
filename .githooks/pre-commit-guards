@@ -147,10 +147,18 @@ fi
 #    explicit-path commit still takes the file's whole working-tree
 #    content, which is 27082893's. ALLOW_SWEEP=1 lets an --amend through,
 #    and each use is counted.
+#    Concluding a merge, cherry-pick or revert is exempt (TODO.org :ID:
+#    00a66d88, PR #31 review): git refuses `git commit -- <paths>' while
+#    one is in progress, so a whole-index commit is the only way to
+#    finish it, and refusing it was a dead end.
 if [ -n "${CLAUDE_CODE_SESSION_ID:-}" ] && [ -n "${GIT_INDEX_FILE:-}" ]; then
   form="${GIT_INDEX_FILE##*/}"
-  if [ "$form" = index ] || [ "$form" = index.lock ]; then
-    git_dir="$(git rev-parse --absolute-git-dir 2>/dev/null)"
+  git_dir="$(git rev-parse --absolute-git-dir 2>/dev/null)"
+  concluding=""
+  for h in MERGE_HEAD CHERRY_PICK_HEAD REVERT_HEAD; do
+    [ -n "$git_dir" ] && [ -e "$git_dir/$h" ] && concluding="$h"
+  done
+  if [ -z "$concluding" ] && { [ "$form" = index ] || [ "$form" = index.lock ]; }; then
     held=""
     [ -n "$git_dir" ] && held="$(GIT_INDEX_FILE="$git_dir/index" \
                                  git diff --cached --name-only 2>/dev/null)"
