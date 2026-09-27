@@ -28,6 +28,16 @@ runs with no Emacs by design, so it cannot expand a prefix. Expanding =:id= once
 in the event parser, through =--expand-id-prefix=, reaches every reader. This is
 the queue-side sibling of [[id:25e7b083-360b-4282-8fd0-bb768e2a0f13][25e7b083]], which fixed the tool arguments.
 
+*Shipped* in [[orgit-rev:~/git/claude-code-ide-org::5716cd4][5716cd4]], as proposed above. =--queue-parse-line= expands a unique
+prefix through org's id index, memoised per prefix. Anything else comes back as
+written: a full id, a non-hex value, or a prefix that names nothing or more than
+one heading. Every consumer marks applied and dismissed events by timestamp, not
+by id, so merging a heading's prefix and full-id groups cannot re-apply or lose
+an event. Both new tests failed against HEAD. test-all ran 26 suites, 1496
+passed. Live, the full queue read went from 1.08 s to 1.16–1.24 s, with 166
+prefixes memoised.
+
+
 * TODO An active region in TODO.org makes the archive sweep take live headings :code:
 :PROPERTIES:
 :ID:       4a4ebb21-9388-494f-a40a-641ff663b19e
