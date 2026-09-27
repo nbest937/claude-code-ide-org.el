@@ -48,7 +48,9 @@ newest_value() { # newest_value <watermark> -- its latest applied pass, or a
                  # file does not parse, so an unreadable file falls back to
                  # today's mtime judgement rather than silencing an apply.
   local v
-  if v="$(jq -r '.applied | if type == "object" then ([.[] | strings] | max // "") else "" end' "$1" 2>/dev/null)"; then
+  # An empty file is unreadable, not a pass that applied nothing: jq reads
+  # zero bytes as success with no output, which would pass for one.
+  if [ -s "$1" ] && v="$(jq -r '.applied | if type == "object" then ([.[] | strings] | max // "") else "" end' "$1" 2>/dev/null)"; then
     printf '%s' "$v"
   else
     printf 'unparseable@%s' "$(stat -f %m "$1" 2>/dev/null || stat -c %Y "$1" 2>/dev/null || date +%s)"
@@ -84,8 +86,14 @@ for f in "$queue_dir"/*.applied; do
   name="$(basename "$f")"
   now="$(newest_value "$f")"
   # A watermark missing from the record counts as applied, so a session's
-  # first apply is still reported.
-  was="$(awk -F '\t' -v n="$name" '$1 == n { print substr($0, length(n) + 2); found = 1 } END { if (!found) print "\x01absent" }' "$stamp")"
+  # first apply is still reported -- unless it holds no applied value: a
+  # first pass that only dismissed is not an apply (TODO.org :ID:
+  # 7e4e70af, PR #31 review).
+  was="$(awk -F '\t' -v n="$name" '$1 == n { print substr($0, length(n) + 2); found = 1 } END { if (!found) print "<absent>" }' "$stamp")"
+  # A plain sentinel: awk read the old "\x01absent" as one hex escape,
+  # \x01ab, leaving a byte and "sent" -- unequal to any value, so it
+  # worked, but it could not be matched.
+  [ "$was" = "<absent>" ] && [ -z "$now" ] && continue
   [ "$now" = "$was" ] || changed=$((changed + 1))
 done
 

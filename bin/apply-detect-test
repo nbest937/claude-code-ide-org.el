@@ -133,6 +133,12 @@ sleep 1
 wm s2 '{}' e1=2026-09-24T10:00:00-0500          # a watermark the record has never seen
 check "a new watermark is reported" "yes" "$(announced "$(run3 sess-d)")"
 sleep 1
+# A first pass that only dismissed (TODO.org :ID: 7e4e70af, PR #31
+# review): a watermark the record has never seen, with no applied value,
+# is not an apply.
+wm s5 '{"x":"stale"}'
+check "a new dismiss-only watermark reports nothing" "" "$(run3 sess-d)"
+sleep 1
 printf 'not json at all' > "$qdir3/s3.applied"
 check "an unparseable watermark falls back to its mtime and is reported" "yes" "$(announced "$(run3 sess-d)")"
 check "and once only" "" "$(run3 sess-d)"
