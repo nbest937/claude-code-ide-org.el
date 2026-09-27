@@ -766,6 +766,14 @@ live reload ran the wiring idempotently, and the server stayed on 45571. *Still
 to confirm, by the user:* a restart. The first boot should wire with no glue
 present, and the tools should answer from a session outside Emacs.
 
+*First boot confirmed* 2026-09-27, after the user restarted Emacs and
+reconnected with =/mcp=. The tools server came up on its pinned port 45571 with
+the module's current =config.el= loaded, and =bin/check-image= reported the
+image fresh. There were no =*Warnings*=, and nothing from the retired glue was
+loaded or visited. An =org_pending_updates= round trip over =emacs-tools=
+answered.
+
+
 
 * REVIEW A rendered session goes stale as the session runs; follow a live transcript without losing the reader's place :code:
 :PROPERTIES:
