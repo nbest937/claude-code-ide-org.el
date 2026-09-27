@@ -20087,3 +20087,35 @@ file-list derivation on every lookup, as the old Doom glue's buffer did."
             (should (= 2 derived))))
       (let ((b (get-file-buffer f))) (when b (kill-buffer b)))
       (delete-directory dir t))))
+
+;;; Queue read cost (TODO.org :ID: fa617d99) --------------------------------
+
+(ert-deftest claude-code-ide-org-test-parse-iso8601-fast-path-matches-date-to-time ()
+  "The direct parse of the writers' shape agrees with `date-to-time'."
+  (dolist (ts '("2026-09-27T12:00:00-0500" "2026-01-15T09:14:00+0000"
+                "2026-09-27T18:53:38Z" "2026-03-08T01:59:59+05:30"
+                "2026-09-27 12:00:00"))
+    (should (equal (date-to-time ts) (claude-code-ide-org--parse-iso8601 ts))))
+  (should-not (claude-code-ide-org--parse-iso8601 "not a date")))
+
+(ert-deftest claude-code-ide-org-test-queue-events-skips-consumed-lines-unparsed ()
+  "An applied or dismissed line is dropped on its raw ts, never parsed."
+  (claude-code-ide-org-test--with-queue
+    (claude-code-ide-org-test--queue-write
+     "sess-a"
+     "{\"ts\":\"2026-09-27T10:00:00-0500\",\"kind\":\"todo\",\"id\":\"a\",\"state\":\"DONE\",\"session_id\":\"sess-a\"}"
+     "{\"ts\":\"2026-09-27T11:00:00-0500\",\"kind\":\"todo\",\"id\":\"b\",\"state\":\"DONE\",\"session_id\":\"sess-a\"}"
+     "{\"ts\":\"2026-09-27T12:00:00-0500\",\"kind\":\"todo\",\"id\":\"c\",\"state\":\"DONE\",\"session_id\":\"sess-a\"}")
+    (let ((parsed 0)
+          (real (symbol-function 'claude-code-ide-org--queue-parse-line))
+          (consumed (lambda (ts) (let ((h (make-hash-table :test 'equal)))
+                                   (puthash ts t h) h))))
+      (cl-letf (((symbol-function 'claude-code-ide-org--queue-parse-line)
+                 (lambda (l) (setq parsed (1+ parsed)) (funcall real l)))
+                ((symbol-function 'claude-code-ide-org--queue-applied)
+                 (lambda (_) (funcall consumed "2026-09-27T10:00:00-0500")))
+                ((symbol-function 'claude-code-ide-org--queue-dismissed)
+                 (lambda (_) (funcall consumed "2026-09-27T11:00:00-0500"))))
+        (let ((events (claude-code-ide-org--queue-events "sess-a")))
+          (should (equal '("c") (mapcar (lambda (e) (plist-get e :id)) events)))
+          (should (= 1 parsed)))))))

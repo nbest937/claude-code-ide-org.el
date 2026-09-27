@@ -8706,7 +8706,24 @@ far worse than the malformed line it came from."
   (when (and (stringp string)
              (string-match-p "\\`[0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}[T ]"
                              string))
-    (ignore-errors (date-to-time string))))
+    ;; The shape every queue writer uses, parsed directly: `date-to-time'
+    ;; was 80% of a full queue read (TODO.org :ID: fa617d99).  Anything
+    ;; else still takes the lenient path.
+    (if (string-match (concat "\\`\\([0-9]\\{4\\}\\)-\\([0-9]\\{2\\}\\)-\\([0-9]\\{2\\}\\)"
+                              "T\\([0-9]\\{2\\}\\):\\([0-9]\\{2\\}\\):\\([0-9]\\{2\\}\\)"
+                              "\\(Z\\|\\([-+]\\)\\([0-9]\\{2\\}\\):?\\([0-9]\\{2\\}\\)\\)\\'")
+                      string)
+        (let ((n (lambda (i) (string-to-number (match-string i string)))))
+          (ignore-errors
+            (encode-time
+             (list (funcall n 6) (funcall n 5) (funcall n 4)
+                   (funcall n 3) (funcall n 2) (funcall n 1)
+                   nil -1
+                   (if (match-beginning 8)
+                       (* (if (equal (match-string 8 string) "-") -1 1)
+                          (+ (* 3600 (funcall n 9)) (* 60 (funcall n 10))))
+                     0)))))
+      (ignore-errors (date-to-time string)))))
 
 (defvar claude-code-ide-org--queue-id-memo (make-hash-table :test 'equal)
   "Prefix -> full :ID: for queue events, filled by `--queue-full-id'.
@@ -9014,7 +9031,13 @@ it would re-propose work already applied."
                            (insert-file-contents file)
                            (buffer-string))
                          "\n" t))
-            (let ((event (claude-code-ide-org--queue-parse-line line)))
+            ;; A consumed line is dropped on its raw `ts' before any
+            ;; parse: the two sets are keyed by that exact string, and
+            ;; 97% of lines were consumed ones (TODO.org :ID: fa617d99).
+            (let ((event (unless (and (string-match "\"ts\":\"\\([^\"]+\\)\"" line)
+                                      (let ((ts (match-string 1 line)))
+                                        (or (gethash ts applied) (gethash ts dismissed))))
+                           (claude-code-ide-org--queue-parse-line line))))
               (when (and event
                          (not (gethash (plist-get event :ts-string) applied))
                          (not (gethash (plist-get event :ts-string) dismissed)))
