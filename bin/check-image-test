@@ -33,6 +33,15 @@ out="$(run "$(fake down)")"
 check "an unreachable Emacs is 'unknown', not silence" yes "$(grep -q 'image state unknown' <<<"$out" && echo yes || echo no)"
 check "and exits 0" yes "$(grep -q '^rc=0$' <<<"$out" && echo yes || echo no)"
 
+# A busy Emacs must not hang the commit (TODO.org :ID: 14e9fd83, PR #31
+# review): the client is bounded by a watchdog and falls through to
+# "unknown". `--timeout' bounds only the connection, not the eval.
+hang="$tmp/ec-hang"; printf '#!/usr/bin/env bash\nsleep 20\n' > "$hang"; chmod +x "$hang"
+start=$SECONDS
+out="$(CHECK_IMAGE_SECONDS=1 run "$hang")"
+check "a busy Emacs is bounded by the watchdog" yes "$([ $((SECONDS - start)) -lt 5 ] && echo yes || echo no)"
+check "and reads as 'unknown'" yes "$(grep -q 'image state unknown' <<<"$out" && echo yes || echo no)"
+
 # pre-commit runs it only when a module file is in the commit.
 r="$tmp/repo"; git init -q -b main "$r"
 git -C "$r" config user.email t@example.com; git -C "$r" config user.name T
