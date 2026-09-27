@@ -1202,16 +1202,16 @@ Reproduced in batch the same day: replacing the body of a heading followed by a 
 *The rule's test already exists by the time this is worked:* [[id:b52df20b-45c7-41aa-9d77-44ccf06c647f][b52df20b]] defines =claude-code-ide-org--glued-headline-p= for its fill guard (2026-09-25), so the lint rule calls it instead of writing a second one.
 
 
-* TODO [0/27] The review pass asks for judgement it cannot support, and the clock beneath it is still wrong :code:
+* TODO [0/28] The review pass asks for judgement it cannot support, and the clock beneath it is still wrong :code:
 :PROPERTIES:
 :ID:       c7619140-f269-4329-bc05-a38ea151e202
 :CREATED:  [2026-09-22 Tue 16:07]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  55125136-5939-434e-9676-96ea66a75770 361e2708-8124-4bd1-9c44-f97ca97aca4a 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 aee8487e-0650-4396-bc5c-193ca3efcecb 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 653fea66-f9d5-4431-8ce3-5d355560b475 445fe577-01ce-4e68-ab5f-c349c40a4643 2c733857-a280-42cc-bd7c-e182a4fb6ea3 79c224ab-188a-4ed4-a606-c28ee2cfe72d 001fb310-69f7-4417-81be-a224a3bf83e0 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46 49444167-7a29-491a-81b4-c5215fce9fc2 cf483f5d-2d25-4454-a580-db7935c8cb81 8028e875-3032-4ade-949e-414d9861b928 ee3c22c9-f99c-4d41-9c3d-8f39af916fff e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 6c64cc9c-33a9-4a20-af19-c188a690c755 a865f83c-ea37-40c4-a104-7cc50d2c20dd e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 20cecd53-2338-4237-ab06-f8129e10a2c8 37147e9e-468b-43ee-91f9-45d9647c6164 445ec1f1-095a-462b-abbd-7a3a00925ddb 64d34a64-d336-40a8-a8e8-da8133d0da06 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd
+:BLOCKER:  55125136-5939-434e-9676-96ea66a75770 361e2708-8124-4bd1-9c44-f97ca97aca4a 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 aee8487e-0650-4396-bc5c-193ca3efcecb 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 653fea66-f9d5-4431-8ce3-5d355560b475 445fe577-01ce-4e68-ab5f-c349c40a4643 2c733857-a280-42cc-bd7c-e182a4fb6ea3 79c224ab-188a-4ed4-a606-c28ee2cfe72d 001fb310-69f7-4417-81be-a224a3bf83e0 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46 49444167-7a29-491a-81b4-c5215fce9fc2 9b7301de-0903-4987-bb34-56f8f021fbd1 cf483f5d-2d25-4454-a580-db7935c8cb81 8028e875-3032-4ade-949e-414d9861b928 ee3c22c9-f99c-4d41-9c3d-8f39af916fff e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 6c64cc9c-33a9-4a20-af19-c188a690c755 a865f83c-ea37-40c4-a104-7cc50d2c20dd e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 20cecd53-2338-4237-ab06-f8129e10a2c8 37147e9e-468b-43ee-91f9-45d9647c6164 445ec1f1-095a-462b-abbd-7a3a00925ddb 64d34a64-d336-40a8-a8e8-da8133d0da06 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd
 :DROPPED:  01849bef-fdc9-4c30-b467-00ca8606e8e0
-:MEMBERS:  55125136-5939-434e-9676-96ea66a75770 361e2708-8124-4bd1-9c44-f97ca97aca4a 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 aee8487e-0650-4396-bc5c-193ca3efcecb 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 653fea66-f9d5-4431-8ce3-5d355560b475 445fe577-01ce-4e68-ab5f-c349c40a4643 2c733857-a280-42cc-bd7c-e182a4fb6ea3 79c224ab-188a-4ed4-a606-c28ee2cfe72d 001fb310-69f7-4417-81be-a224a3bf83e0 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46 49444167-7a29-491a-81b4-c5215fce9fc2 cf483f5d-2d25-4454-a580-db7935c8cb81 8028e875-3032-4ade-949e-414d9861b928 01849bef-fdc9-4c30-b467-00ca8606e8e0 ee3c22c9-f99c-4d41-9c3d-8f39af916fff e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 6c64cc9c-33a9-4a20-af19-c188a690c755 a865f83c-ea37-40c4-a104-7cc50d2c20dd e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 20cecd53-2338-4237-ab06-f8129e10a2c8 37147e9e-468b-43ee-91f9-45d9647c6164 445ec1f1-095a-462b-abbd-7a3a00925ddb 64d34a64-d336-40a8-a8e8-da8133d0da06 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd
+:MEMBERS:  55125136-5939-434e-9676-96ea66a75770 361e2708-8124-4bd1-9c44-f97ca97aca4a 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 aee8487e-0650-4396-bc5c-193ca3efcecb 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 653fea66-f9d5-4431-8ce3-5d355560b475 445fe577-01ce-4e68-ab5f-c349c40a4643 2c733857-a280-42cc-bd7c-e182a4fb6ea3 79c224ab-188a-4ed4-a606-c28ee2cfe72d 001fb310-69f7-4417-81be-a224a3bf83e0 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46 49444167-7a29-491a-81b4-c5215fce9fc2 9b7301de-0903-4987-bb34-56f8f021fbd1 cf483f5d-2d25-4454-a580-db7935c8cb81 8028e875-3032-4ade-949e-414d9861b928 01849bef-fdc9-4c30-b467-00ca8606e8e0 ee3c22c9-f99c-4d41-9c3d-8f39af916fff e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 6c64cc9c-33a9-4a20-af19-c188a690c755 a865f83c-ea37-40c4-a104-7cc50d2c20dd e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 20cecd53-2338-4237-ab06-f8129e10a2c8 37147e9e-468b-43ee-91f9-45d9647c6164 445ec1f1-095a-462b-abbd-7a3a00925ddb 64d34a64-d336-40a8-a8e8-da8133d0da06 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd
 :END:
 :PLAN:
 *What this slice is, and what it is not.* Two closed slices already worked this subject and neither is being reopened. `749301a0` made a span's owner, edges and payload well defined; `c44c2119` hardened the pass's own mechanics — its cost, its error reporting, its undo. What neither touched is the *judgement* the pass asks for: a human is shown a span, told nothing about why it exists, and asked to accept it, with keystrokes that claim more than they mean, over clock machinery that is still demonstrably wrong. That is the whole of this slice. Membership is every live `:CATEGORY: Apply` and `Clock` heading that no slice already holds, less the four `MAYBE`s, which stay in the backlog because a slice member with no cookie reads as one this slice considered and dropped.
@@ -1233,6 +1233,15 @@ Reproduced in batch the same day: replacing the body of a heading followed by a 
 **Last, the consumer-facing toggle** (`2cd74268`): auto-applying state transitions in a task-only install is the only member that ships behaviour to someone else's repo, and it should not go out over machinery this slice has not finished correcting.
 
 *Ruled out.* Widening to `:CATEGORY: Queue` — spans and attribution live there too, and the union is the second goal entire rather than a slice. Folding any of this into `8a2eb687`, whose subject is silent wrongness in the tracker's own machinery, not the pass over it. And nominating a `NEXT` member: a parked slice with a nominated action invites exactly the drift the parking is for. This slice nominates nothing of its own, and the slice heading itself is `TODO`, not `NEXT`. `64d34a64` does carry `NEXT`, but that is the `Clock` category's nomination, made before this slice existed, and a member line copies its referent's keyword by construction.
+
+*Revised 2026-09-27: [[id:9b7301de-0903-4987-bb34-56f8f021fbd1][9b7301de]] added to the evidence phase, after =49444167=.* A
+guidepost span borrows the first pending =clock_in= note of its heading, from
+any session and any date. So the review line shows false evidence at the moment
+of judgement: the same hole as =5a6d2c75= and =cf483f5d=, but in the
+wrong-rather-than-absent direction. It is =Apply= and no slice held it, so it
+meets the membership rule. Its stale notes survive partly because of =58332dd1=
+(=Queue=, outside this slice), which is cross-linked with this slice's
+=3485b0d0=.
 :END:
 
 Thirty-four live headings carry `:CATEGORY: Apply` or `Clock`, and three
@@ -1260,6 +1269,7 @@ Planned:
 - [-] [[id:489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938][489d6f61]] DOING Emacs died of a fatal signal at review-buffer quit, deadlocked in the mac port's shutdown
 - [ ] [[id:5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46][5a6d2c75]] TODO An unassigned span's readout omits the evidence that would make its heading obvious
 - [ ] [[id:49444167-7a29-491a-81b4-c5215fce9fc2][49444167]] TODO The review buffer's transcript context mixes sessions, mixes sort orders, and shows only one side of a span
+- [ ] [[id:9b7301de-0903-4987-bb34-56f8f021fbd1][9b7301de]] TODO A guidepost span is labelled with the first pending clock_in note of its heading, from any session and any date
 - [ ] [[id:cf483f5d-2d25-4454-a580-db7935c8cb81][cf483f5d]] TODO A span with no readable evidence prints nothing about itself, so absence is the only signal
 - [ ] [[id:8028e875-3032-4ade-949e-414d9861b928][8028e875]] TODO Type a span's annotation at review time, not by hand-editing it after
 - [[id:01849bef-fdc9-4c30-b467-00ca8606e8e0][01849bef]] TODO Flipping a span's timestamps to active is hand-editing; give the review buffer a key
@@ -1352,6 +1362,14 @@ clocking sessions end on a =clock_in=. The per-turn breach is wider (433 of
 so it stays a prose rule. =SessionEnd= fires on exit, SIGHUP and SIGTERM,
 even mid-tool, but not on SIGKILL. The fix closes the clock there; the
 design is in =:PLAN:=.
+
+*Sibling:* [[id:58332dd1-fb49-4e98-a5e3-4b71ff62c995][58332dd1]] is the same unmatched =clock_in=, superseded mid-session by
+a =clock_in= on another heading rather than left open at the session's end. Both
+persist because the review pass keeps any unmatched =clock_in= as the anchor for
+work still running. A =SessionEnd= close does not reach that case, and a
+same-lane close does not reach this one. On 2026-09-27 the live queue held 14
+trailing =clock_in=s (this case) and 27 superseded ones (that one).
+
 
 
 * MAYBE The brainstorming skill offers a visual companion nobody here has evaluated: it serves mock-ups from a local web server :code:spike:
@@ -6430,6 +6448,17 @@ claims are falsified for this path; the day-node record was hand
 -corrected by the user afterwards. Fix priority rises accordingly:
 the same-lane-close pairing fix in this =:PLAN:= would have made the
 item a normal bracket and prevented the whole class.
+
+*Sibling:* [[id:3485b0d0-3b47-4a28-ae6f-e2061fa8f226][3485b0d0]] is the same unmatched =clock_in= at the other end of a
+session: one left open when the session ends, where this one is superseded
+mid-session. Both persist for one reason, that the review pass keeps any
+unmatched =clock_in= as the anchor for work still running, and neither heading
+cited the other until 2026-09-27. The fixes differ: this heading's same-lane
+close is applied at review, and that one's is a close at =SessionEnd=. Neither
+closes the other's case. As of 2026-09-27 the live queue held 27 superseded
+=clock_in=s (this case) and 14 trailing ones (that one). This heading is also
+why a stale note is still pending to be borrowed by [[id:9b7301de-0903-4987-bb34-56f8f021fbd1][9b7301de]].
+
 
 
 * TODO session-context.sh reports which groupings lack a NEXT, never which headings hold one
