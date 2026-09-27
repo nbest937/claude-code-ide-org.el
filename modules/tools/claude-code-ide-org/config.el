@@ -8694,6 +8694,38 @@ far worse than the malformed line it came from."
                              string))
     (ignore-errors (date-to-time string))))
 
+(defvar claude-code-ide-org--queue-id-memo (make-hash-table :test 'equal)
+  "Prefix -> full :ID: for queue events, filled by `--queue-full-id'.
+Only unique expansions are kept, and an id's prefix never stops naming
+it, so an entry cannot go wrong: at worst a later heading makes the
+prefix ambiguous, and the event still means the heading it was queued
+against.")
+
+(defun claude-code-ide-org--queue-full-id (id)
+  "ID as written in a queue event, expanded when it is a unique prefix.
+
+The queued tools accept an 8-character prefix and `bin/hooks/queue-append'
+records `tool_input.id' verbatim -- it runs with no Emacs, so it cannot
+expand one -- which left 259 of 1,048 `todo' events keyed by a prefix
+on 2026-09-27, invisible to every reader matching by full id: the queued
+keyword in footnotes, `org_set_todo's no-change check, and the review
+grouping (TODO.org :ID: 4c43145d).  So the queue is normalised where it
+is read.  A full id, a non-hex value, and a prefix naming nothing or
+more than one heading come back unchanged: the event still reaches
+review, where apply resolves it through `--id-find' as before."
+  (if (not (and (stringp id)
+                (<= claude-code-ide-org--id-prefix-minimum (length id)
+                    claude-code-ide-org--id-prefix-length)
+                (string-match-p "\\`[0-9a-fA-F]+\\'" id)))
+      id
+    (let ((key (downcase id)))
+      (or (gethash key claude-code-ide-org--queue-id-memo)
+          (let ((full (claude-code-ide-org--expand-id-prefix
+                       key (claude-code-ide-org--id-index))))
+            (if (stringp full)
+                (puthash key full claude-code-ide-org--queue-id-memo)
+              id))))))
+
 (defun claude-code-ide-org--queue-parse-line (line)
   "Parse one JSONL queue LINE into a plist, or nil if unusable.
 Nil covers a torn final line from a hard crash, a line from a writer
@@ -8710,7 +8742,8 @@ whole file. This is the single place that judgement is made."
           (list :ts ts
                 :ts-string (alist-get 'ts obj)
                 :kind kind
-                :id (alist-get 'id obj)
+                ;; Expanded when a prefix (TODO.org :ID: 4c43145d).
+                :id (claude-code-ide-org--queue-full-id (alist-get 'id obj))
                 :state (alist-get 'state obj)
                 ;; The state the heading held when the event was queued,
                 ;; or nil on events written before the field existed.

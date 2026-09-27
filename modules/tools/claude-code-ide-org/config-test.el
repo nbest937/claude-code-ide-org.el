@@ -19964,3 +19964,52 @@ PROPS come first because `plist-get' returns the first occurrence."
     (let ((report (claude-code-ide-org--tool-failure-report)))
       (should (string-match-p "queued as capture 88888888-8888-4888-8888-888888888808" report))
       (should-not (string-match-p "did not land" report)))))
+
+;;; Prefix-keyed queue events (TODO.org :ID: 4c43145d) -----------------------
+
+(defmacro claude-code-ide-org-test--with-id-table (ids &rest body)
+  "Run BODY with org's id index holding exactly IDS and a fresh prefix memo."
+  (declare (indent 1))
+  `(let ((org-id-locations (make-hash-table :test 'equal))
+         (claude-code-ide-org--queue-id-memo (make-hash-table :test 'equal)))
+     (dolist (i ,ids) (puthash i "/tmp/x.org" org-id-locations))
+     ,@body))
+
+(ert-deftest claude-code-ide-org-test-queue-parse-expands-a-unique-prefix ()
+  "A unique prefix becomes the full id; anything else is left as written."
+  (claude-code-ide-org-test--with-id-table
+      '("abcd1234-0000-4000-8000-000000000001"
+        "ffff0000-0000-4000-8000-000000000001"
+        "ffff0000-0000-4000-8000-000000000002")
+    (let ((id-of (lambda (id)
+                   (plist-get (claude-code-ide-org--queue-parse-line
+                               (json-encode `((ts . "2026-09-27T12:00:00-0500")
+                                              (kind . "todo") (id . ,id) (state . "DONE"))))
+                              :id))))
+      (should (equal "abcd1234-0000-4000-8000-000000000001" (funcall id-of "abcd1234")))
+      (should (equal "abcd1234-0000-4000-8000-000000000001" (funcall id-of "ABCD1234")))
+      (should (equal "ffff0000" (funcall id-of "ffff0000")))          ; ambiguous
+      (should (equal "12345678" (funcall id-of "12345678")))          ; names nothing
+      (should (equal "test-0001" (funcall id-of "test-0001")))        ; not hex
+      (should (equal "abcd1234-0000-4000-8000-000000000001"
+                     (funcall id-of "abcd1234-0000-4000-8000-000000000001"))))))
+
+(ert-deftest claude-code-ide-org-test-effective-state-sees-a-prefixed-event ()
+  "A state queued under a prefix is the heading's effective state.
+The defect: footnotes showed the disk keyword, unstarred, for every
+heading whose state had been queued by prefix."
+  (claude-code-ide-org-test--with-id-table
+      '("abcd1234-0000-4000-8000-000000000001")
+    (claude-code-ide-org-test--with-queue
+      (claude-code-ide-org-test--queue-write
+       "sess-a"
+       (json-encode '((ts . "2026-09-27T12:00:00-0500") (kind . "todo")
+                      (id . "abcd1234") (state . "DOING") (session_id . "sess-a")))
+       (json-encode '((ts . "2026-09-27T12:05:00-0500") (kind . "todo")
+                      (id . "abcd1234") (state . "REVIEW") (session_id . "sess-a"))))
+      (should (equal "REVIEW"
+                     (claude-code-ide-org--effective-todo-state
+                      "abcd1234-0000-4000-8000-000000000001" "TODO")))
+      (should (equal '("abcd1234-0000-4000-8000-000000000001")
+                     (delete-dups
+                      (mapcar #'car (seq-filter #'car (claude-code-ide-org--queue-events-by-id)))))))))
