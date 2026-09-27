@@ -5135,6 +5135,28 @@ The wiring registers each tracked repo under its directory basename as the MCP s
 - Checked against Claude Code's MCP docs on 2026-09-24: =${VAR}= expansion works in =url= but reads only the process environment; scopes take precedence local, then project, then user, with no merging; local entries are keyed by project path in =~/.claude.json=.
 - Checked against Warp's MCP docs the same day: no variable expansion is documented, and Warp now lists Claude Code's =~/.claude.json= and =.mcp.json= among the configs it can read, behind a toggle. That contradicts =CLAUDE.md='s "Warp reads MCP config only from …".
 
+Shipped in [[orgit-rev:~/git/claude-code-ide-org::ce77888][ce77888]]. The wiring resolves each tracked project's session name the
+way Claude Code does: first a local-scope =emacs-tools= entry in
+=~/.claude.json= for that directory (keyed by its given or its physical path),
+otherwise its =.mcp.json=. It registers the resolved name and checks each
+project's port. When two projects collide it refuses, and the refusal gives the
+=claude mcp add --scope local= line that separates them. =claude-org-setup
+--org= proposes that same line whenever another tracked project already holds
+the name, whatever state the target's =.mcp.json= is in. That matters because
+the usual case is a second clone of a repo that commits one. Setup never writes
+=~/.claude.json=. =--check= reports the collision and fails on it.
+
+Verified red first against HEAD: 3 ERT tests and 4 setup checks failed there.
+The fourth ERT test is a no-collision control. =test-all= ran 25 suites with
+1441 passed. After a live reload the image is fresh, and this machine's two
+projects resolve to distinct names.
+
+The same pass removed two dead temp entries (a =consumer= fixture from
+2026-09-19) from =~/org/agenda-files=. The writer wasn't traced: every revision
+of the setup suite pinned the list, so an ad hoc run is the likely source. Not
+filed, since the suite can't produce it.
+
+
 
 * TODO A deferred targetless capture loses its project routing when the queue is applied :code:
 :PROPERTIES:
