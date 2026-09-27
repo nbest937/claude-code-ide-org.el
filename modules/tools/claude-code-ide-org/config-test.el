@@ -20139,3 +20139,21 @@ file-list derivation on every lookup, as the old Doom glue's buffer did."
         (let ((events (claude-code-ide-org--queue-events "sess-a")))
           (should (equal '("c") (mapcar (lambda (e) (plist-get e :id)) events)))
           (should (= 1 parsed)))))))
+
+;;; Passes over every tracked file leave unsaved edits alone (TODO.org :ID: b5d97b90)
+
+(ert-deftest claude-code-ide-org-test-slice-passes-skip-a-busy-file ()
+  "The refresh, the blocker refresh and the member migration each skip a
+file whose buffer holds the human's unsaved edits, and say so -- never
+writing into it and saving the edits along with their own."
+  (dolist (pass (list (lambda () (claude-code-ide-org-refresh-slice))
+                      (lambda () (claude-code-ide-org-refresh-slice-blocker))
+                      (lambda () (claude-code-ide-org-migrate-slice-members))))
+    (claude-code-ide-org-test--with-members-fixture
+      (let ((claude-code-ide-org-query-files (list capture-file))
+            (before (claude-code-ide-org-test--disk-contents capture-file)))
+        (claude-code-ide-org-test--make-busy capture-file)
+        (let ((reply (funcall pass)))
+          (should (string-match-p "skipped for unsaved edits: capture\\.org" reply)))
+        (should (equal before (claude-code-ide-org-test--disk-contents capture-file)))
+        (should (buffer-modified-p (get-file-buffer capture-file)))))))

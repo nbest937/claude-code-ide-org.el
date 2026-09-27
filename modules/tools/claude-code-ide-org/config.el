@@ -7166,9 +7166,14 @@ Nothing but the property is written: no checklist is re-rendered here,
 and a closed slice is never refreshed afterwards either.  Verify with
 `claude-code-ide-org-slice-migration-proof' before and after."
   (interactive "P")
-  (let ((inhibit-read-only t) (n 0) (written 0) (files nil))
+  (let ((inhibit-read-only t) (n 0) (written 0) (files nil) (busy nil))
     (dolist (file (claude-code-ide-org--id-scannable-files))
-      (when (file-exists-p file)
+      (when (and (file-exists-p file)
+               ;; A buffer holding the human's unsaved edits is skipped,
+               ;; never written into and saved with them (TODO.org :ID:
+               ;; b5d97b90, PR #31 review; the refusal of 60d6ab6e).
+               (not (and (claude-code-ide-org--file-busy-p file)
+                         (push (file-name-nondirectory file) busy))))
         (with-current-buffer (or (find-buffer-visiting file) (find-file-noselect file))
           (org-with-wide-buffer
            (goto-char (point-min))
@@ -7183,10 +7188,13 @@ and a closed slice is never refreshed afterwards either.  Verify with
                      (unless dry-run
                        (org-entry-put nil "MEMBERS" (string-join ids " ")))))))))
           (when (and (not dry-run) (buffer-modified-p)) (save-buffer)))))
-    (format "%d slice%s scanned, :MEMBERS: %s on %d%s%s"
+    (format "%d slice%s scanned, :MEMBERS: %s on %d%s%s%s"
             n (if (= n 1) "" "s") (if dry-run "would be written" "written")
             written
             (if files (format " (%s)" (string-join (nreverse files) ", ")) "")
+            (if busy (format "; skipped for unsaved edits: %s"
+                             (string-join (nreverse busy) ", "))
+              "")
             (if dry-run "  [dry run]" ""))))
 
 (defun claude-code-ide-org-slice-migration-proof ()
@@ -7498,10 +7506,16 @@ a record that was never true at any moment (observed on
         ;; the apply-path binding was added for, one command later.
         (inhibit-read-only t)
         (slices 0) (lines 0) (blockers 0) (incidentals 0) (cookie-data 0)
-        (planned-leads 0) (members-healed 0) (unrendered nil) (undeclared nil))
+        (planned-leads 0) (members-healed 0) (unrendered nil) (undeclared nil)
+        (busy nil))
     (setq index (claude-code-ide-org--slice-referent-index parents))
     (dolist (file (claude-code-ide-org--tracked-files))
-      (when (file-exists-p file)
+      (when (and (file-exists-p file)
+               ;; A buffer holding the human's unsaved edits is skipped,
+               ;; never written into and saved with them (TODO.org :ID:
+               ;; b5d97b90, PR #31 review; the refusal of 60d6ab6e).
+               (not (and (claude-code-ide-org--file-busy-p file)
+                         (push (file-name-nondirectory file) busy))))
         (with-current-buffer (find-file-noselect file)
           (org-with-wide-buffer
            (goto-char (point-min))
@@ -7623,6 +7637,8 @@ a record that was never true at any moment (observed on
                planned-leads (if (= planned-leads 1) "" "s")))
      (when (> members-healed 0)
        (format "; %d :MEMBERS: written from a checklist" members-healed))
+     (when busy
+       (format "; skipped for unsaved edits: %s" (string-join (nreverse busy) ", ")))
      (when undeclared
        (format "; %d slice%s left untouched for having no :MEMBERS: (%s)"
                (length undeclared) (if (= 1 (length undeclared)) "" "s")
@@ -7742,9 +7758,14 @@ Returns a human-readable summary."
   (if id
       (claude-code-ide-org--at-id
        id (lambda () (claude-code-ide-org--refresh-slice-blocker-at-point)))
-    (let ((n 0) (changed 0))
+    (let ((n 0) (changed 0) (busy nil))
       (dolist (file (claude-code-ide-org--tracked-files))
-        (when (file-exists-p file)
+        (when (and (file-exists-p file)
+               ;; A buffer holding the human's unsaved edits is skipped,
+               ;; never written into and saved with them (TODO.org :ID:
+               ;; b5d97b90, PR #31 review; the refusal of 60d6ab6e).
+               (not (and (claude-code-ide-org--file-busy-p file)
+                         (push (file-name-nondirectory file) busy))))
           (with-current-buffer (find-file-noselect file)
             (org-with-wide-buffer
              (goto-char (point-min))
@@ -7754,7 +7775,10 @@ Returns a human-readable summary."
                  (when (claude-code-ide-org--refresh-slice-blocker-at-point)
                    (setq changed (1+ changed))))))
             (when (buffer-modified-p) (save-buffer)))))
-      (format "%d slice%s scanned, %d updated" n (if (= n 1) "" "s") changed))))
+      (format "%d slice%s scanned, %d updated%s" n (if (= n 1) "" "s") changed
+              (if busy (format "; skipped for unsaved edits: %s"
+                               (string-join (nreverse busy) ", "))
+                "")))))
 
 (defun claude-code-ide-org--blocker-wrapped-p (value)
   "Non-nil when VALUE, a `:BLOCKER:' property, carries the `ids(...)' wrapper."
