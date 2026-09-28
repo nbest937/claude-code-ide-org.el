@@ -10475,75 +10475,14 @@ CLOCK: [2026-09-27 Sun 14:18]--[2026-09-27 Sun 14:20] =>  0:02
   replayed, not reproduced; residue d56e379d
 :END:
 
-On 2026-08-31 a live archive pass reported 65 and wrote 66. One story and its
-six children landed twice in DONE.org, ids and all. It is guarded but not
-understood.
+On 2026-08-31 a live archive pass reported 65 and wrote 66: one story and its
+six children landed twice in =DONE.org=, ids and all. The count puts the second
+copy inside a single =org-archive-subtree= call, on org's own paste path.
 
-*The arithmetic says where it is not.* =n= increments once per
-=org-archive-subtree= call and the pass reported 65, so exactly 65 calls ran and
-one pasted its subtree twice -- inside the call, on org's own paste path.
-Double-consumption of a marker would have reported 66. The heading it duplicated
-was also the last in the file and therefore the *first* consumed under
-reverse-order iteration, so no earlier deletion existed to disturb its marker.
-The marker-collapse explanation is excluded.
-
-*It did not reproduce.* Same file, same code, fresh buffer: 65 archived, no
-duplicates. So it is a property of the live buffer's state rather than of the
-data. That buffer had been reverted, had its read-only flag cleared, and had
-just been rewritten by drawer consolidation and separation normalisation in the
-same ceremony.
-
-*What stands in for a fix.* =claude-code-ide-org-archive-finished= now checks
-the result rather than the method: after a sweep, no =:ID:= may appear twice in
-the archive target, or it signals -- which the ceremony turns into a held
-repeater and a reported failure. Every other signal looked right at the time,
-the count and the levels included; only counting ids found it.
-
-Worth attempting first: re-run the sweep against a buffer put through the same
-sequence -- revert, consolidate, normalise, then archive -- to see whether the
-combination is what does it.
-
-*Deferred to the end of slice 8a2eb687's implementation* (the user,
-2026-09-24), probe and all. The probe as framed: check for a recurrence
-(duplicate ids in DONE.org, guard failures since 2026-08-31); rebuild
-both files from the commit before that archive; replay revert, clear
-read-only, consolidate, normalise, archive in batch Emacs with a temp
-org-id file, varying one step at a time; then once in the live Emacs on
-scratch copies. Load =config.el= from the incident's commit, not HEAD:
-60d6ab6e and 53b0047d change the archive and revert paths first.
-
-*Open for the user, after the replay* (2026-09-24): if the replay finds
-the mechanism, whether its fix is built inside slice 8a2eb687 or filed
-as a heading for later. The user will decide then, in the session that
-reaches this step.
-
-*Replayed 2026-09-27: not reproduced.* No recurrence either: =DONE.org= holds
-428 ids with no duplicates. The guard's signal isn't persisted, so the file is
-the evidence. Batch Emacs used the incident's inputs (=TODO.org= and =DONE.org=
-at [[orgit-rev:claude-code-ide-org::bbfc2f2][bbfc2f2]], the parent of the archive commit) and its code (=config.el= at
-[[orgit-rev:claude-code-ide-org::53c72e4][53c72e4]]), with a temp org-id file and the capture file pointed at the replay's
-=TODO.org=. Nine sequences ran: archive alone, full ceremony-finish, revert and
-read-only then ceremony-finish, consolidate/normalise/archive with revert and
-read-only, each of consolidate, normalise, revert and read-only alone before
-archive, and a second archive pass. Every one archived 65, added 65 level-1
-entries and left no duplicate id. The same sequence in the live Emacs on scratch
-copies, with today's code, gave the same result.
-
-*Ruled out:* the active-region path. With the mark active, =org-archive-subtree=
-loops over the region's headings, but it errors every time and the incident
-reported a clean 65. That path is a present-day defect of its own, filed as
-[[id:4a4ebb21-9388-494f-a40a-641ff663b19e][4a4ebb21]].
-
-*Still unknown*, and the post-condition guard remains what stands in for a fix.
-What's left untested is live state no replay has: auto-revert of =DONE.org=
-mid-pass, a stale =DONE.org= buffer, and the system clipboard on org's paste
-path.
-
-*Resolved without a mechanism:* the 2026-08-31 double write did not recur and
-did not reproduce in any replayed sequence, batch or live. The post-condition
-guard in =claude-code-ide-org-archive-finished= stays the safeguard, and the
-replay's one finding became 4a4ebb21.
-
+It never recurred, and no replayed sequence reproduced it, batch or live. The
+post-condition guard in =claude-code-ide-org-archive-finished= stays the
+safeguard. The replay's one finding became [[id:4a4ebb21-9388-494f-a40a-641ff663b19e][4a4ebb21]], and the live conditions it
+didn't test are [[id:d56e379d-fec4-4bee-be4a-a1bee6b48d13][d56e379d]].
 
 * TODO [0/2] Make an archived day hold that day's record :code:
 :PROPERTIES:
