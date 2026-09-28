@@ -2,6 +2,28 @@
 #+TAGS: analysis bug code comms prose research review spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO pre-commit lints a temp copy with no plans/ beside it, so every archived plan that ages out blocks every commit :code:observed:
+:PROPERTIES:
+:ID:       634eb138-28bc-4d43-aed3-f242c877904d
+:CREATED:  [2026-09-28 Mon 08:31]
+:CATEGORY: Dev
+:END:
+
+Observed 2026-09-28 when a bookkeeping commit was refused: "plan link points at
+a missing file: ~/.claude/plans/goofy-baking-wall.md". The link sits in a
+=DONE.org= heading. The plan had aged out of =~/.claude/plans=, and
+=plans/goofy-baking-wall.md= holds the archived copy. The lint rule in
+=claude-code-ide-org= accepts a missing plan when =plans/= beside the linted
+file holds it, and =bin/lint-org= run in place passed. But
+=.githooks/pre-commit= copies =TODO.org= and =DONE.org= into a =mktemp -d=
+directory and lints them there, with no =plans/= beside them, so inside the hook
+the archive fallback can never succeed. Every plan still linked from a heading
+will block every commit on the day it ages out, and 31 are archived. Unblocked
+for now by restoring the file byte-for-byte from =plans/=, the standing
+workaround. Proposed fix: link the repo's =plans/= into the temp directory
+before linting, with a =bin/pre-commit= test case that lints a heading whose
+plan exists only in the archive.
+
 * TODO [0/6] A slice's checklist can disagree with its members, and nothing can say so or fix it :code:
 :PROPERTIES:
 :ID:       7dcec489-f5dd-4f7f-b819-a25405436b9b
@@ -310,6 +332,16 @@ buffer. Org's own agenda binds =org-depend-tag-blocked= to nil around its
 same variable around its =org-ql-select=, which fixes both the edit and the
 read-only error.
 
+*Absorbed [[id:b0c843e3-4252-4e2b-a9e2-2cf91714a1ae][b0c843e3]], 2026-09-28*, which found =org-depend= to be the =:blocked:=
+tag's writer after a7f4b40c cleared it by testing a misspelt variable. Its open
+decision carries over and is the user's: declare =blocked= in =#+TAGS:= and let
+=org-depend= maintain it, or set =org-depend-tag-blocked= nil globally. The
+binding proposed above fixes only =org_query=. Setting it nil globally would fix
+this and every other caller of =org-entry-blocked-p=, but it drops a tag org
+maintains in both directions. b0c843e3 had deferred the choice until 3f4fd744
+made every blocker id parse.
+
+
 
 * TODO Headings cited in bodies are id links, written as links by the tools, so backlinks are one org_query away :code:
 :PROPERTIES:
@@ -357,6 +389,15 @@ Settled the same day: the selected window's buffer is what counts. With the Org 
 :END:
 
 Scoped to one heading, org_outline's front matter lists that heading's :BLOCKER: value with each id's keyword. It never lists the headings whose :BLOCKER: names this one, so "what does this block?" means grepping :BLOCKER: lines and walking each hit back to its :ID:. That was done by hand for dd4b9a9f on 2026-09-24, and org-ql's regexp: returned nothing for an alternation over five ids, while a single-id regexp:"BLOCKER:.*<id>" works. Proposal: a :BLOCKS: line in the scoped front matter, listing each heading that names this heading or any descendant in its :BLOCKER:, with its keyword, the way :BLOCKER: is shown today. A sibling of 5acca91b, which asks what is blocked at all.
+
+*Absorbed [[id:0eecf8e7-a8d5-4da7-9d6d-f397542b2139][0eecf8e7]], 2026-09-28*: the same inverse-blocker ask, filed twice. Its
+one argument this heading lacked carries over. A pair of =:blocker:= and
+=:blocked:= tags was proposed for the inverse, and it is the wrong shape for the
+reason a7f4b40c gave: blocked-ness is derivable while a tag is stored, so it
+goes stale the moment the last blocker finishes, and two tags plus the property
+make three copies of one fact. So =:BLOCKS:= is derived at each read, never
+tagged.
+
 
 
 * TODO Look up a tracked id wherever it appears in Emacs: its title at point, and a jump on click :code:
@@ -867,6 +908,14 @@ persist because the review pass keeps any unmatched =clock_in= as the anchor for
 work still running. A =SessionEnd= close does not reach that case, and a
 same-lane close does not reach this one. On 2026-09-27 the live queue held 14
 trailing =clock_in=s (this case) and 27 superseded ones (that one).
+
+*Absorbed [[id:d1cf852a-696a-4195-a4a7-039439c1f4b7][d1cf852a]], 2026-09-28.* Its span bracketing was twice overtaken by the
+code, and one residue survived, which is this heading's case seen from the
+heading guess. A session that ends leaving a heading =DOING= emits nothing, so
+=--review-suggest-heading= keeps suggesting that heading for later spans,
+because no =todo= event brackets it. The =SessionEnd= close this heading plans
+would supply the missing event and end the latch too.
+
 
 
 * MAYBE The brainstorming skill offers a visual companion nobody here has evaluated: it serves mock-ups from a local web server :code:spike:
@@ -1495,6 +1544,14 @@ Every count on the Miss children is a floor: it holds what a hook, the user or t
 :END:
 
 Observed 2026-09-19: the first plan unlinked under the drawer convention was deleted from the archive directory, and =bin/sync-plans --check= immediately reported it "out of date" and wanted it back — because a body amendment on =ff1bec00= had named the file in =…= quotes as the first orphan. The matcher is a substring grep for the archive directory's name followed by a slug and the markdown extension, so a mention is a link. Rephrasing the sentence cleared it. Small in itself; it matters because the drawer convention will produce orphans on purpose, and prose that names them. Match the org =file:= link form, not the substring — and note that =bin/lint-org='s plan-link check has the same appetite: the first draft of this very body spelled the path pattern literally and lint reported a plan link to a missing file. Whether either is worth fixing before the whole mechanism retires is decided with =ff1bec00=.
+
+*Judged on its own, 2026-09-28*, because ff1bec00, which this body deferred to,
+was cancelled: the drawer convention dissolved its question. The trap here is
+still live. =bin/sync-plans --check= and =bin/lint-org= still read plan links
+for the headings that keep one, and =plans/= is a frozen archive. So prose
+naming an orphaned plan file can still re-link it. It's rare now that new work
+writes no plan links, and low priority.
+
 
 
 * NEXT [0/2] config.el is the last place time tracking and task tracking are still entangled, 30% of 18k lines :code:arch:
@@ -2419,6 +2476,15 @@ Both gaps surfaced within a minute of each other while correcting =37bca83a=. Re
 
 Nothing in the tool surface retitles a heading, and =org_set_property= sets an empty value rather than removing the property — so both operations fall back to a hand =emacsclient= call, which binds nothing and dies on a read-only buffer. Proposal: an =org_set_heading= that changes the title alone, and a delete mode on =org_set_property=, since an empty property says nothing worth storing.
 
+*Absorbed [[id:24c7b537-7fd1-4327-86af-3807ddf36ebe][24c7b537]], 2026-09-28*: the retitle half of this heading, filed
+separately. Two points carry over. The shape is a small tool taking an =:ID:=
+and a new title, wrapping =org-edit-headline=, which keeps the keyword,
+priority, cookie and tags. And the knock-on: a slice's member lines copy their
+referents' titles, so a rename leaves stale copies until
+=claude-code-ide-org-refresh-slice= runs. The tool should say when the renamed
+heading appears in a slice, or run the refresh itself.
+
+
 
 * TODO org_outline's max_depth filters out the scoped heading itself, and the front matter reads as a result :code:
 :PROPERTIES:
@@ -2922,6 +2988,10 @@ ids(...) wrapper means only middle blocker ids parse. Decide after 3f4fd744
 lands: declare it in #+TAGS: and let org-depend maintain it, or set
 org-depend-tag-blocked nil.
 
+Cancelled 2026-09-28 and absorbed into [[id:d842b9e7-fd75-45eb-80fd-597daa3e36b0][d842b9e7]], which carries its open
+decision: declare =blocked= in =#+TAGS:=, or set =org-depend-tag-blocked= nil.
+
+
 
 * TODO Nothing answers who blocks whom; :BLOCKER: is a forward index with no inverse :code:
 :PROPERTIES:
@@ -2940,6 +3010,10 @@ derivable and a tag is stored, so it goes stale the moment the last blocker
 finishes -- and a pair of tags must be maintained in step with each other AND
 with the property, which is three copies of one fact. Derive it per read
 instead.
+
+Cancelled 2026-09-28 as a twin of [[id:b3177ed0-9747-4e31-ad65-bac25b9bdd1f][b3177ed0]], which carries its derive-don't-tag
+argument.
+
 
 
 * TODO The attention report renders to a buffer and persists nothing, so every reading is thrown away :code:
@@ -3277,6 +3351,13 @@ derivable from the *current* file and would have become guesswork the moment the
 next slice rewrote it. The link is now on the slice. **The convention that
 matters here is therefore not a new property but the existing one: link the plan
 revision when the slice is picked up**, and this is its first recorded failure.
+
+Cancelled 2026-09-28: settled elsewhere. The user's ruling, that discovered work
+is adopted as a member, is codified in the conventions' "Adopting a discovery".
+The =:ADOPTED:= property was declined on 2026-09-14. The proposed REVIEW gate on
+adoption was superseded by the review-story rule, under which review findings
+join the slice during REVIEW.
+
 
 
 * TODO Nothing can correct a closed slice's record, even when the correction is close-time truth :code:
@@ -3810,6 +3891,13 @@ actually wants live again.
 *A third answer, stated by the user 2026-09-19 while unlinking a plan from =7eb7dd8d=:* "the convention now is to keep the plan in the =:PLAN:= drawer and use that to write its part of the slice plan in the next revision of =next-session.md=." Neither =plansDirectory= nor restoring — the plan file stops being the record, and a heading's drawer is. That dissolves this heading's question rather than deciding it: a plan that lives in the tracker cannot die at =cleanupPeriodDays=. What it leaves behind is machinery built on the link: the CLAUDE.md rule that writes one at =ExitPlanMode=, =bin/sync-plans= and its =plans/= archive, the =.githooks/pre-push= refusal, and the org skill's plan-link prose — all of which now describe a convention that has been superseded for new work, while 31 archived plans still hold the design of finished headings. First orphan under the new rule: the archive copy of the plan just unlinked, reported by =--check= and left in place. Whether this heading retitles to the retirement, or that is filed separately, is the user's call; nothing here is done.
 
 *The memory directory is one more surface built on plan links, found 2026-09-19 in an audit the user asked for.* Claude Code's per-project memory (outside the repo, unversioned) held three claims that depend on this heading's question. One was simply wrong and is corrected: a memory described the original Warp proxy plan as "kept for the record" in the plans directory, when DONE.org records it as deleted on the user's call — so not every vanished plan is a =cleanupPeriodDays= casualty, and a session reading that memory would have gone looking for a file that was removed on purpose. One is new and records the drawer convention stated above, with the caveat that CLAUDE.md's =ExitPlanMode= link rule still says the opposite. And one was deliberately *left alone*: the new-task-heading approval gate lists "any Plan-file link" among what a fresh heading carries; the gate itself stands (the user kept it), and only that phrase is superseded — it should be corrected when this heading settles, not before, so the memory does not get ahead of the rule. Add the memory directory to the list of things the retirement touches; the audit's full account is on [[id:bf7e0b8e-f83a-4d4a-9950-3ab23a225156][bf7e0b8e]].
+
+Cancelled 2026-09-28: the question dissolved. Since 2026-09-21 a plan lives in
+its heading's =:PLAN:= drawer, so no new plan file can die at
+=cleanupPeriodDays=, and =plans/= is a frozen archive for the headings that
+still link one. The link-rewriter decided here was never needed. [[id:ecb1dde8-fd3b-4e26-9bdf-a69db30d5e2c][ecb1dde8]] now
+stands on its own.
+
 
 
 * TODO Archived :ARCHIVE_FILE: paths are machine-absolute; audit their portability :code:
@@ -4494,6 +4582,10 @@ knock-on: slice member lines copy referent titles, so a rename leaves stale
 copies until refresh-slice runs; the tool's reply should say when the renamed
 heading appears in slice member lines, or the tool should nudge the refresh
 itself.
+
+Cancelled 2026-09-28 as a twin of [[id:9714f875-4a12-44e4-8f30-dfbd1b6e555e][9714f875]], which carries its tool shape and its
+slice-title knock-on.
+
 
 
 * TODO org_query answers from a restricted or short file set without saying so :code:
@@ -7589,6 +7681,12 @@ observe the days-old rule before building machinery for it.
 
 *Second input, 2026-09-19: the trigger.* The home decided above — a user-scoped skill — is on-demand, the right side of the always-loaded budget ([[id:bf7e0b8e-f83a-4d4a-9950-3ab23a225156][bf7e0b8e]]); but a skill loads only when its description matches the prompt, and end-of-session prompts are various. A skill that never loads is [[id:befaed0a-18ed-445e-b997-8b9c2965ad45][befaed0a]]'s silent failure in another coat, the same shape [[id:436e0991-c8ac-40fb-860d-a6c4c381bee5][436e0991]] found for path-scoped rules. Two consequences. The description is written for the trigger and tested against real end-of-session prompts rather than assumed — CLAUDE.md's engineering rule already exempts trigger-matching from deterministic testing, so a documented manual pass. And the decision marker is a literal token a script can assert on the composed prompt, because that assertion is the one part of the format that cannot fail to load.
 
+Cancelled 2026-09-28: overtaken. =next-session.md= has been static since
+2026-09-21, naming no slice and pointing at the slice's =:PLAN:=, and each
+member's decisions live in its own =:PLAN:=. An undecided one goes to the user
+before its step, so the per-item decision marker has nothing left to mark.
+
+
 
 * TODO Open today's node
 SCHEDULED: <2026-08-24 Mon 07:00 ++1d>
@@ -8165,6 +8263,11 @@ transition, or a bracket inferred at review time is undecided.
 The =WAIT= framing in the title is vestigial — the keyword was never the
 load-bearing part — and the title should be rewritten if this is picked
 up.
+
+Cancelled 2026-09-28. Both of its mechanisms shipped under other headings, and
+its one residue, a session ending on =DOING= that latches the heading guess, is
+carried by [[id:3485b0d0-3b47-4a28-ae6f-e2061fa8f226][3485b0d0]].
+
 
 
 * TODO Re-measure the guidepost gap threshold against a month of queue data :code:research:
@@ -9817,6 +9920,10 @@ lookup already do. Whether to also honor the inverse =:TRIGGER:=
 property (documented in the org skill alongside =:BLOCKER:=) is an
 open question for planning — =org-depend= itself implements both, but
 this project may only need one direction enforced.
+
+Cancelled 2026-09-28 as obsolete: =org-depend-block-todo= already sits on
+=org-blocker-hook= and refuses =DONE= while =:BLOCKER:= names unfinished work.
+
 
 
 * TODO Nothing checks a request against open work in either direction, so a dependency is found only when it bites :code:
