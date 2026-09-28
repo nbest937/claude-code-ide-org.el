@@ -2226,6 +2226,16 @@ Proposal: refuse when the span has runs, or require a confirmation naming both n
 :CREATED:  [2026-09-17 Thu 08:40]
 :CATEGORY: Dev
 :END:
+:DEBRIEF:
+The fix is the one the body named: =(add-to-list
+'doom-file-lines-threshold-alist '("\\.org\\'" . nil))= in
+=~/.config/doom/config.el=, confirmed present on 2026-09-28. It lives in the
+user's Doom config, outside this repo, so there's no commit to cite. The
+long-line test stays in force. Verified in practice: =DONE.org= has grown to
+49,074 lines, well past the 15,000-line cutoff, and this session's archive
+passes and =org_body= reads against it ran as Org operations. Found stale by the
+2026-09-28 backlog survey and closed then.
+:END:
 :LOGBOOK:
 CLOCK: [2026-09-17 Thu 08:40]--[2026-09-17 Thu 08:41] =>  0:01
 - State "DOING"      from "TODO"       [2026-09-17 Thu 08:40] \\
@@ -2255,6 +2265,10 @@ The recurring warning =Warning (org-element): 'org-element-at-point' cannot be u
 :END:
 
 Doom's =doom-so-long-p= drops any file past 15,000 lines out of its major mode, so DONE.org at 37,036 lines is not an Org buffer and every org operation against it is degraded rather than merely noisy. The trigger is line count, not line length — the longest line is 1,422 against a 5,000 threshold. Fix: one =doom-file-lines-threshold-alist= entry exempting =.org= from the count test while leaving the long-line test in force.
+
+Fixed in the Doom config: =.org= files are exempt from Doom's line-count test,
+so =DONE.org=, now 49,074 lines, stays an Org buffer.
+
 
 
 * TODO The unassigned-mark guard is conjunctive, so a clock item with no id marks and then fails at apply :code:
@@ -3906,15 +3920,15 @@ sequence.
 *One criterion added 2026-09-19, from the drift analysis via =f6d160c2=, and bounded.* A merge of story and slice would delete a vocabulary band from the always-loaded map — the epic/story/slice/twin paragraph in CLAUDE.md and its counterpart in the conventions — and concept count is itself a cost every session pays ([[id:bf7e0b8e-f83a-4d4a-9950-3ab23a225156][bf7e0b8e]]). That is a *tiebreaker*, not a thumb on the scale: the against-the-merge argument above is semantic (containment versus reference, tentative versus committed), and a worse model adopted to save a paragraph costs more in misfiled work than the paragraph. So: if the two scenarios come out realistic and distinct, keep both groupings and shorten the prose; if they collapse, count the deletion as a benefit, not as the reason.
 
 
-* NEXT [0/11] Make the notes org-native: links, drawers, tags, one corpus pass :code:
+* NEXT [0/15] Make the notes org-native: links, drawers, tags, one corpus pass :code:
 :PROPERTIES:
 :ID:       6521dd56-8772-416b-9435-6da78bb86b06
 :CREATED:  [2026-09-10 Thu 08:57]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  b7259ee4-9aa1-4b55-8cf2-fbbacdea5310 f7847adf-a408-4ad0-ae0c-8d3c19b79f2b d350ff5b-3b1f-465e-800b-962264d2e841 63df67c7-de0d-43e7-9c6f-2b2979a40aba e128e4fa-b0d9-49f7-99eb-bae2d4b0676b fce6bd35-27ad-4724-8dbb-c9df4b68fb10 e28933e9-f352-4ef9-8d53-8cd9a4318768 41cf5830-fc2e-4dc6-b243-a0c2718a53a3 8a23d6ec-ca45-454d-b65f-e46ea9204816 01849bef-fdc9-4c30-b467-00ca8606e8e0 ecf66d45-18b3-477f-bca8-08bec90604e8
-:MEMBERS:  b7259ee4-9aa1-4b55-8cf2-fbbacdea5310 f7847adf-a408-4ad0-ae0c-8d3c19b79f2b d350ff5b-3b1f-465e-800b-962264d2e841 63df67c7-de0d-43e7-9c6f-2b2979a40aba e128e4fa-b0d9-49f7-99eb-bae2d4b0676b fce6bd35-27ad-4724-8dbb-c9df4b68fb10 e28933e9-f352-4ef9-8d53-8cd9a4318768 41cf5830-fc2e-4dc6-b243-a0c2718a53a3 8a23d6ec-ca45-454d-b65f-e46ea9204816 01849bef-fdc9-4c30-b467-00ca8606e8e0 ecf66d45-18b3-477f-bca8-08bec90604e8
+:BLOCKER:  b7259ee4-9aa1-4b55-8cf2-fbbacdea5310 f7847adf-a408-4ad0-ae0c-8d3c19b79f2b 0eaffc39-088f-48c3-a5b8-167336458114 d350ff5b-3b1f-465e-800b-962264d2e841 63df67c7-de0d-43e7-9c6f-2b2979a40aba e128e4fa-b0d9-49f7-99eb-bae2d4b0676b 76a6f052-e360-4a12-8077-070da83a8e84 fce6bd35-27ad-4724-8dbb-c9df4b68fb10 e28933e9-f352-4ef9-8d53-8cd9a4318768 8b945c02-7ebe-40a2-b4cc-e35811afe57f 41cf5830-fc2e-4dc6-b243-a0c2718a53a3 8a23d6ec-ca45-454d-b65f-e46ea9204816 01849bef-fdc9-4c30-b467-00ca8606e8e0 ecf66d45-18b3-477f-bca8-08bec90604e8 ea1df60b-1e28-448e-bb62-a6fc2b6b62f8
+:MEMBERS:  b7259ee4-9aa1-4b55-8cf2-fbbacdea5310 f7847adf-a408-4ad0-ae0c-8d3c19b79f2b 0eaffc39-088f-48c3-a5b8-167336458114 d350ff5b-3b1f-465e-800b-962264d2e841 63df67c7-de0d-43e7-9c6f-2b2979a40aba e128e4fa-b0d9-49f7-99eb-bae2d4b0676b 76a6f052-e360-4a12-8077-070da83a8e84 fce6bd35-27ad-4724-8dbb-c9df4b68fb10 e28933e9-f352-4ef9-8d53-8cd9a4318768 8b945c02-7ebe-40a2-b4cc-e35811afe57f 41cf5830-fc2e-4dc6-b243-a0c2718a53a3 8a23d6ec-ca45-454d-b65f-e46ea9204816 01849bef-fdc9-4c30-b467-00ca8606e8e0 ecf66d45-18b3-477f-bca8-08bec90604e8 ea1df60b-1e28-448e-bb62-a6fc2b6b62f8
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-27 Sun 18:12] \\
@@ -3959,6 +3973,15 @@ superseded for =ecf66d45= — the user moved it here (drop declared at
 the origin, cookie only on this side). It lands at the tail beside
 =01849bef=: the design conversation about forecast-vs-record
 timestamps next to the mechanism that flips them.
+
+*Revised 2026-09-28: four members added from the backlog survey* (the user,
+2026-09-28), each meeting the rule that a member adopts an org feature or crawls
+the corpus to apply one. 8b945c02 (an =observed= tag) follows e28933e9, because
+it is the first vocabulary decision the tag survey feeds. 0eaffc39 (id lookup at
+point) follows f7847adf, because it makes the links that heading writes live in
+Emacs. 76a6f052 (the fill sweep that drifted) follows e128e4fa, a second pass
+over the corpus read already paid for. ea1df60b (portable =:ARCHIVE_FILE:=
+paths) goes at the tail: it is a corpus audit, but the weakest fit.
 :END:
 
 The notes cite commits, PRs and dates as inert text, narrate history
@@ -3972,17 +3995,21 @@ Planned:
 
 - [ ] [[id:b7259ee4-9aa1-4b55-8cf2-fbbacdea5310][b7259ee4]] TODO Commits cited in bodies and debriefs are orgit links, and nothing enforces it
 - [ ] [[id:f7847adf-a408-4ad0-ae0c-8d3c19b79f2b][f7847adf]] TODO Headings cited in bodies are id links, written as links by the tools, so backlinks are one org_query away
+- [ ] [[id:0eaffc39-088f-48c3-a5b8-167336458114][0eaffc39]] TODO Look up a tracked id wherever it appears in Emacs: its title at point, and a jump on click
 - [ ] [[id:d350ff5b-3b1f-465e-800b-962264d2e841][d350ff5b]] TODO Canonical drawer order: PROPERTIES, LOGBOOK, PLAN, DEBRIEF, then body
 - [ ] [[id:63df67c7-de0d-43e7-9c6f-2b2979a40aba][63df67c7]] TODO Revisit the story definition: sanction clustering and speculative breakdown
 - [[id:4c834fdb-5314-4168-ab1d-09fe89ded517][4c834fdb]] DOING Make the heading body a scannable summary, with plan and debrief in drawers
   - [ ] [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]] NEXT Move the 88 pre-convention debriefs into :DEBRIEF:, authoring each resolution
+- [ ] [[id:76a6f052-e360-4a12-8077-070da83a8e84][76a6f052]] TODO Long prose lines have drifted back since the one fill sweep of 2026-09-14, because nothing runs it routinely
 - [ ] [[id:fce6bd35-27ad-4724-8dbb-c9df4b68fb10][fce6bd35]] TODO The member-drawer backfill clause is scaffolding: once every open heading has its canonical shape, the lint should require it and the clause retire
 - [[id:ee3e0fa2-d4a6-4575-a5fb-e4e25c49431a][ee3e0fa2]] TODO Make the corpus searchable by tag, by measurement where it can be and by decision where it cannot
   - [ ] [[id:e28933e9-f352-4ef9-8d53-8cd9a4318768][e28933e9]] TODO Survey all task history for a tag vocabulary worth searching on
+  - [ ] [[id:8b945c02-7ebe-40a2-b4cc-e35811afe57f][8b945c02]] NEXT Adopt an `observed` tag for a defect seen in use, as the severity signal the keyword set does not carry
 - [ ] [[id:41cf5830-fc2e-4dc6-b243-a0c2718a53a3][41cf5830]] TODO Index a heading's git history from a drawer, so the body never has to narrate it
 - [ ] [[id:8a23d6ec-ca45-454d-b65f-e46ea9204816][8a23d6ec]] TODO Comma-escape headline lines when documenting org structure inside a body
 - [ ] [[id:01849bef-fdc9-4c30-b467-00ca8606e8e0][01849bef]] TODO Flipping a span's timestamps to active is hand-editing; give the review buffer a key
 - [ ] [[id:ecf66d45-18b3-477f-bca8-08bec90604e8][ecf66d45]] TODO Nothing lays out future work on a timeline the agenda can show
+- [ ] [[id:ea1df60b-1e28-448e-bb62-a6fc2b6b62f8][ea1df60b]] TODO Archived :ARCHIVE_FILE: paths are machine-absolute; audit their portability
 
 
 * TODO The :PLAN: wrap nag fires only on queued DONE, so REVIEW exits skip it :code:
@@ -5120,6 +5147,18 @@ and rarity is what keeps a false success unnoticed.
 :CREATED:  [2026-09-02 Wed 12:09]
 :CATEGORY: Tools
 :END:
+:DEBRIEF:
+Nothing was built under this heading. The parameter was implemented elsewhere
+between 2026-09-02 and 2026-09-22, as the body's re-measure found, and what
+remained was the verification it asked for. That was run on 2026-09-28 against
+the test suites. The ERT test
+=claude-code-ide-org-test-capture-note-becomes-the-initial-body= asserts the
+note as body on disk, for a direct capture and for a capture applied from the
+queue. =bin/queue-append-test='s "capture records note" asserts the =note= field
+on a queued capture event, carried there since [[orgit-rev:claude-code-ide-org::8b4f795][8b4f795]]. Both passed: 832 ERT
+tests and 174 queue-append checks. Not twinned with bbf9fb77, which stays open
+for upstream's dispatch paths.
+:END:
 :LOGBOOK:
 CLOCK: [2026-09-22 Tue 16:34]--[2026-09-22 Tue 16:36] =>  0:02
 - [2026-09-22 Tue 16:34]--[2026-09-22 Tue 16:36] re-measure the note argument against both paths
@@ -5176,6 +5215,11 @@ not declare, measured across five occurrences and twenty lost bodies;
 this one is our own function's declared-and-unused parameter. Same
 family, different owners, and cancelling either would throw away the
 half the other does not hold.
+
+=org_capture='s =note= is recorded on both paths, verified 2026-09-28: a direct
+capture writes it as the heading's body, and a deferred one carries it on the
+queued event and writes it at apply.
+
 
 
 * TODO claude-code-ide-org-review should return point and windows to where I entered from :code:
