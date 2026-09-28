@@ -122,9 +122,11 @@ trap 'rm -rf "$tmp"' EXIT
 # has aged out of ~/.claude/plans is recorded by its copy in plans/, and
 # the lint accepts it by looking beside the file it lints -- which here is
 # this temp dir. Without the link, every archived plan still linked from a
-# heading blocked every commit on the day it aged out. The worktree's
-# archive, not the staged one: plans/ is append-only and never edited.
-[ -d "$repo_root/plans" ] && ln -s "$repo_root/plans" "$tmp/plans"
+# heading blocked every commit on the day it aged out. The STAGED archive,
+# exported from the index as guard 2 exports its scratch tree: a plan in
+# the working copy but never staged is not in the commit, and a fresh
+# clone would fail on it once the source ages out (PR #32 review).
+git ls-files -- plans | git checkout-index --prefix="$tmp/" --stdin 2>/dev/null
 
 # Lint the staged content of everything staged, plus the *worktree* copy
 # of the rest of the tracked set as context. Both halves matter: without

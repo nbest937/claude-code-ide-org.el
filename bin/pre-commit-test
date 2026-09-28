@@ -145,6 +145,13 @@ check "a plan archived in plans/ passes, aged out of the source" 0 "$(run_hook)"
 plan_task "$slug-nowhere" > "$work/DONE.org"
 git -C "$work" add DONE.org
 check "a plan in neither place still fails" 1 "$(run_hook)"
+# 11. The archive consulted is the STAGED one (PR #32 review): a plan in
+#     the working copy's plans/ but never staged is not in the commit, so a
+#     fresh clone would fail the same check once the source ages out.
+plan_task "$slug-unstaged" > "$work/DONE.org"
+printf '# not staged\n' > "$work/plans/$slug-unstaged.md"
+git -C "$work" add DONE.org
+check "a plan only in the unstaged working copy fails" 1 "$(run_hook)"
 
 printf '\npre-commit-test: %d passed, %d failed\n' "$pass" "$fail"
 exit $((fail > 0))
