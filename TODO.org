@@ -2947,6 +2947,9 @@ written.
   [[orgit-rev:claude-code-ide-org::cc6125a][cc6125a]] once asked, after a
   commit, since =replace= refuses a file with uncommitted changes.
 
+- 2026-09-28 (user): asked about 2a6a1355's verbose body, the session measured it with a raw =emacsclient= eval (line count, word count, drawer order) when =org_body= returns the heading whole, drawers and all. The user asked why, and whether =emacs-tools= could not do it. It could. The eval came from habit, reaching for numbers in one call, and nothing required it.
+
+
 
 ** TODO Miss: an org question answered by scraping text instead of asking org
 :PROPERTIES:
