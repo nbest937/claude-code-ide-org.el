@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+# Tests for bin/hooks/footnotes-inject (TODO.org :ID: 30d05c93), through a
+# fake emacsclient that loads this tree's module in batch -- never the
+# user's running Emacs. Always prints a result line.
+set -uo pipefail
+repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+hook="$repo/bin/hooks/footnotes-inject"
+tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
+export CLAUDE_ORG_QUEUE_DIR="$tmp/queue" CLAUDE_PROJECT_DIR="$repo"
+unset CLAUDE_CODE_SESSION_ID
+pass=0 fail=0
+check () { # name expected actual
+  if [[ "$2" == "$3" ]]; then printf 'ok   - %s\n' "$1"; pass=$((pass+1))
+  else printf 'FAIL - %s: wanted [%s], got [%s]\n' "$1" "$2" "$3"; fail=$((fail+1)); fi
+}
+mkdir -p "$tmp/fakebin"
+{
+  printf '#!/usr/bin/env bash\n'
+  printf '[ "${FAKE_EMACS:-batch}" = down ] && { echo "emacsclient: no socket" >&2; exit 1; }\n'
+  printf 'exec %q' "$repo/bin/lib/batch-emacs"
+  printf " --eval %q" "(setq org-id-locations-file \"$tmp/org-id-locations\")"
+  printf " -l %q" "$repo/modules/tools/claude-code-ide-org/config.el"
+  printf ' --eval "$2" >/dev/null 2>&1\n'
+} > "$tmp/fakebin/emacsclient"
+chmod +x "$tmp/fakebin/emacsclient"
+export PATH="$tmp/fakebin:$PATH"
+
+REAL="$(awk '/^:ID: +[0-9a-f]{8}/ {print substr($2,1,8); exit}' "$repo/TODO.org")"
+tx="$tmp/t.jsonl"
+narrate () { # a transcript: a prompt, then narration citing REAL
+  jq -nc '{type:"user", timestamp:"2026-09-25T10:00:00.000Z", message:{role:"user", content:"go"}}' > "$tx"
+  jq -nc --arg r "$REAL" '{type:"assistant", timestamp:"2026-09-25T10:00:01.000Z",
+          message:{role:"assistant", id:"m1", stop_reason:"tool_use",
+                   content:[{type:"text", text:("Looking at " + $r + ".")}]}}' >> "$tx"
+}
+tool_use_line () {
+  jq -nc '{type:"assistant", timestamp:"2026-09-25T10:00:02.000Z",
+          message:{role:"assistant", id:"m1", stop_reason:"tool_use",
+                   content:[{type:"tool_use", id:"toolu_fn1", name:"mcp__emacs-tools__org_footnotes",
+                             input:{ids:""}}]}}' >> "$tx"
+}
+run () { # run SESSION -> stdout; exit code in $tmp/rc; seconds in $tmp/secs
+  local t0=$SECONDS
+  jq -nc --arg s "$1" --arg t "$tx" \
+    '{session_id:$s, transcript_path:$t, tool_use_id:"toolu_fn1",
+      tool_name:"mcp__emacs-tools__org_footnotes", tool_input:{ids:""}}' \
+    | "$hook" 2>/dev/null
+  echo $? > "$tmp/rc"; echo $((SECONDS - t0)) > "$tmp/secs"
+}
+
+narrate; tool_use_line
+out="$(run s1)"
+check "rewrites the call with the narration's end matter" yes \
+  "$(jq -r '.hookSpecificOutput.updatedInput.lines' <<<"$out" 2>/dev/null | grep -q "^\`$REAL\`" && echo yes || echo no)"
+check "and records the ids it covered" "$REAL" "$(cat "$tmp/queue/s1.footnoted" 2>/dev/null)"
+
+# As measured: at PreToolUse neither the narration nor the tool_use is on
+# disk yet; both land about a second later, narration first. Without the
+# wait the hook would read a transcript holding only the prompt.
+jq -nc '{type:"user", timestamp:"2026-09-25T10:00:00.000Z", message:{role:"user", content:"go"}}' > "$tx"
+( sleep 1
+  jq -nc --arg r "$REAL" '{type:"assistant", timestamp:"2026-09-25T10:00:01.000Z",
+          message:{role:"assistant", id:"m1", stop_reason:"tool_use",
+                   content:[{type:"text", text:("Looking at " + $r + ".")}]}}' >> "$tx"
+  tool_use_line ) &
+out="$(run s2)"; wait
+check "waits for its own tool_use to land, then rewrites" yes \
+  "$(jq -e '.hookSpecificOutput.updatedInput.lines' <<<"$out" >/dev/null 2>&1 && echo yes || echo no)"
+check "having waited about a second" yes "$( (( $(cat "$tmp/secs") >= 1 )) && echo yes || echo no)"
+
+narrate
+out="$(run s3)"
+check "gives up waiting at 2 s and reads what is there" yes \
+  "$(jq -e '.hookSpecificOutput.updatedInput.lines' <<<"$out" >/dev/null 2>&1 && echo yes || echo no)"
+check "without hanging" yes "$( (( $(cat "$tmp/secs") >= 2 && $(cat "$tmp/secs") <= 8 )) && echo yes || echo no)"
+
+# The shape the scripting conventions ask of a script that needs the
+# running Emacs (TODO.org :ID: a749b95c, PR #31 review): a POSIX sh stub
+# that only moves bytes, the logic in elisp.
+check "the stub is POSIX sh" "#!/bin/sh" "$(head -n 1 "$hook")"
+check "and shapes no JSON itself" 0 "$(grep -c '\bjq\b' "$hook")"
+narrate; tool_use_line
+out="$(run '../escape')"
+check "a session id with a path in it is refused, in elisp" "" "$out"
+
+narrate; tool_use_line
+out="$(FAKE_EMACS=down run s4)"
+check "an outage injects nothing" "" "$out"
+check "and exits 0" 0 "$(cat "$tmp/rc")"
+check "and records nothing" no "$( [[ -e "$tmp/queue/s4.footnoted" ]] && echo yes || echo no)"
+
+printf 'footnotes-inject-test: %d passed, %d failed\n' "$pass" "$fail"
+exit $((fail > 0))

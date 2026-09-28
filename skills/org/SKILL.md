@@ -244,10 +244,12 @@ DEADLINE:  <2025-03-20 Thu>
 
 A statistics cookie — `[/]` (fraction) or `[%]` (percentage) — placed on a
 heading line or a plain-list item tracks how many of its checkboxes are
-checked:
+checked. On a heading it goes immediately after the keyword, not at the
+end of the title: a trailing cookie is the part a narrow agenda window or
+a folded outline truncates away, which defeats the one thing it is for.
 
 ```org
-*** Pack for the trip [2/5]
+*** TODO [2/5] Pack for the trip
 - [X] Step one
 - [X] Step two
 - [ ] Step three

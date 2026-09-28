@@ -14,6 +14,29 @@ trap 'rm -rf "$tmp"' EXIT
 export CLAUDE_ORG_QUEUE_DIR="$tmp"
 export CLAUDE_PROJECT_DIR="$repo"
 
+# THE HOOK IS A STUB OVER ELISP since TODO.org :ID: c247d8f3, so these
+# cases need an Emacs -- and never the user's running one, whose loaded
+# config.el may be older than this tree's. A fake `emacsclient' first on
+# PATH evaluates the hook's form in a batch Emacs loading THIS tree's
+# module, with the straight packages `bin/test' uses. FAKE_EMACS=down
+# plays an unreachable server, =slow a hung evaluation.
+# `org-id-locations-file' is bound to a temp path: a batch run must never
+# write the file the real Emacs and `bin/test' read.
+mkdir -p "$tmp/fakebin"
+{
+  printf '#!/usr/bin/env bash\n'
+  printf 'case "${FAKE_EMACS:-batch}" in\n'
+  printf '  down) echo "emacsclient: can'"'"'t find socket" >&2; exit 1 ;;\n'
+  printf '  slow) sleep 10; exit 0 ;;\n'
+  printf 'esac\n'
+  printf 'exec %q' "$repo/bin/lib/batch-emacs"
+  printf " --eval %q" "(setq org-id-locations-file \"$tmp/org-id-locations\")"
+  printf " -l %q" "$repo/modules/tools/claude-code-ide-org/config.el"
+  printf ' --eval "$2" >/dev/null 2>&1\n'
+} >"$tmp/fakebin/emacsclient"
+chmod +x "$tmp/fakebin/emacsclient"
+export PATH="$tmp/fakebin:$PATH"
+
 pass=0; fail=0
 # A real tracked id, and a real one used as the "already footnoted" case.
 REAL="$(grep -ohE '^:ID: +[0-9a-f]{8}' "$repo/TODO.org" | head -1 | awk '{print $2}')"
@@ -34,10 +57,11 @@ REALNUM="$(grep -ohE '^:ID: +[0-9]{8}' "$repo/TODO.org" "$repo/DONE.org" | head 
 # travels as the first line of its own output. Losing that costs four
 # silent "allowed" results on tests that should block, which is exactly
 # what happened on the first attempt.
-run () { # run <session> <message> -> "<rc>\n<stderr>"
+run () { # run <session> <message> [transcript] -> "<rc>\n<stderr>"
   local out rc
-  out="$(jq -n --arg s "$1" --arg m "$2" \
-    '{session_id:$s, last_assistant_message:$m}' | "$hook" 2>&1 >/dev/null)"
+  out="$(jq -n --arg s "$1" --arg m "$2" --arg t "${3:-}" \
+    '{session_id:$s, last_assistant_message:$m}
+     + (if $t == "" then {} else {transcript_path:$t} end)' | "$hook" 2>&1 >/dev/null)"
   rc=$?
   printf '%d\n%s' "$rc" "$out"
 }
@@ -314,5 +338,55 @@ eq "an identical demand, not repeated, is not counted twice" 1 "$(misses m1)"
 run m2 "Nothing tracked is cited here." >/dev/null
 eq "an allowed stop appends no miss" 0 "$(misses m2)"
 
+# EARLIER BLOCKS (TODO.org :ID: c247d8f3). An id cited in a block
+# written before a tool call is in the transcript, not in
+# `last_assistant_message', and is owed all the same.
+tx="$tmp/t.jsonl"
+jq -nc '{type:"user", timestamp:"2026-09-25T10:00:00.000Z",
+         message:{role:"user", content:"go"}}' >"$tx"
+jq -nc --arg r "$REAL" '{type:"assistant", timestamp:"2026-09-25T10:00:01.000Z",
+         message:{role:"assistant", id:"m1", stop_reason:"tool_use",
+                  content:[{type:"text", text:("Starting on " + $r + ".")}]}}' >>"$tx"
+out_tx="$(run tx1 "Done." "$tx")"
+check "an id cited only in an earlier block blocks" blocked "$out_tx"
+if grep -qF -e "\`$REAL\`" <<<"$(msg_of "$out_tx")"; then
+  printf 'ok   - and names it\n'; pass=$((pass+1))
+else
+  printf 'FAIL - the earlier-block block omits %s\n' "$REAL"; fail=$((fail+1))
+fi
+
+# AN OUTAGE OWES NOTHING: no title can be looked up, so nothing may be
+# demanded, and nothing may be said -- exit 0, empty stderr.
+out_down="$(FAKE_EMACS=down run down1 "See ${REAL} for the detail.")"
+check "an unreachable Emacs lets the stop through" allowed "$out_down"
+eq_empty () { # eq_empty <name> <text>
+  if [[ -z "$2" ]]; then printf 'ok   - %s\n' "$1"; pass=$((pass+1))
+  else printf 'FAIL - %s: got [%s]\n' "$1" "$2"; fail=$((fail+1)); fi
+}
+# `run` prints "<rc>\n<stderr>", and $(...) strips the trailing newline
+# when stderr is empty -- so silence is exactly the bare status line.
+eq_empty "and says nothing" "$( [[ "$out_down" == *$'\n'* ]] && msg_of "$out_down")"
+
+# A HUNG EVALUATION is abandoned by the watchdog, not waited out:
+# `emacsclient --timeout' does not bound the eval.
+t0=$SECONDS
+out_slow="$(FAKE_EMACS=slow run slow1 "See ${REAL} for the detail.")"
+took=$((SECONDS - t0))
+check "a hung Emacs lets the stop through" allowed "$out_slow"
+if [[ "$took" -le 6 ]]; then
+  printf 'ok   - within the watchdog (%ss)\n' "$took"; pass=$((pass+1))
+else
+  printf 'FAIL - waited %ss for a hung Emacs\n' "$took"; fail=$((fail+1))
+fi
+
+# COVERED BY A TOOL CALL (TODO.org :ID: 30d05c93): an id org_footnotes
+# already delivered this turn is not owed again; an id it did not
+# deliver still is.
+mkdir -p "$tmp"; printf '%s\n' "$REAL" > "$tmp/cov1.footnoted"
+check "an id an org_footnotes call covered is not owed" allowed \
+  "$(run cov1 "See \`$REAL\` for the detail.")"
+check "an id it did not cover still blocks" blocked \
+  "$(run cov1 "See \`$REAL2\` for the detail.")"
+
 printf 'footnote-check-test: %d passed, %d failed\n' "$pass" "$fail"
-[[ $fail -eq 0 ]]
+exit $((fail > 0))

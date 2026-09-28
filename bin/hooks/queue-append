@@ -300,7 +300,15 @@ fi
 # An unrecognised reply drops the event. That is the safe direction: a
 # drop loses one proposal the human can restate, while a wrong append
 # writes a heading twice and neither copy announces itself.
-if [[ "$kind" == capture || "$kind" == amend ]]; then
+#
+# One exception: bin/hooks/tool-failure queues a capture Emacs REFUSED,
+# which has no reply at all, and passes the id it minted in
+# CLAUDE_ORG_CAPTURE_ID (TODO.org :ID: 7fa68d5c). A refusal wrote
+# nothing, so appending cannot double a write -- and a timed-out call,
+# which might still land, never gets here.
+outage_id=""
+[[ "$kind" == capture ]] && outage_id="${CLAUDE_ORG_CAPTURE_ID:-}"
+if [[ -z "$outage_id" ]] && [[ "$kind" == capture || "$kind" == amend ]]; then
   case "$response" in
     "Queued capture: "*|"Queued amend: "*) ;;
     *) exit 0 ;;
@@ -314,6 +322,7 @@ fi
 # caller act on the heading before it exists.
 if [[ "$kind" == capture ]]; then
   recovered_id="$(sed -n 's/.*(ID: \([^)]*\)).*/\1/p' <<<"$response")"
+  [[ -n "$outage_id" ]] && recovered_id="$outage_id"
 fi
 
 # org_set_todo reports the state the heading held *before* the change, as
@@ -363,6 +372,7 @@ line="$(jq -n -c \
   --arg recovered_from "$recovered_from" \
   --arg rule "$rule" \
   --arg detail "$detail" \
+  --arg outage "$outage_id" \
   --argjson payload "$(jq -c '.' <<<"$input" 2>/dev/null || echo '{}')" \
   '{
      ts: $ts,
@@ -385,6 +395,8 @@ line="$(jq -n -c \
      target: (if $kind == "capture" then ($payload.tool_input.target // null) else null end),
      tags:   (if $kind == "capture" then ($payload.tool_input.tags // null) else null end),
      category: (if $kind == "capture" then ($payload.tool_input.category // null) else null end),
+     allow_duplicate: (if $kind == "capture" then ($payload.tool_input.allow_duplicate // null) else null end),
+     origin: (if $kind == "capture" and $outage != "" then "outage" else null end),
      text:   (if $kind == "amend" then ($payload.tool_input.text // null) else null end),
      drawer: (if $kind == "amend" then ($payload.tool_input.drawer // null) else null end),
      rule:   (if $kind == "miss" then $rule else null end),

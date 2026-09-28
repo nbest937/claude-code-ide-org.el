@@ -1,0 +1,120 @@
+#!/usr/bin/env bash
+# Run every test suite in the repo and demand positive evidence from each
+# (TODO.org :ID: 94e6b615).
+#
+# bin/test runs only the ERT suite, and nothing ran the shell suites, so
+# three sat red for a day and through a merge with nobody seeing. This
+# runs bin/test and then every bin/*-test found BY GLOB -- never from a
+# list, since the original failure was suites nobody remembered.
+#
+# Silence is never a pass. A shell suite passes only when its last line
+# is exactly `<suite>: N passed, M failed' with N > 0 and M = 0, AND it
+# exits 0. For ERT the `Ran N tests, ... 0 unexpected' line stands in.
+# A missing line fails the suite, whatever its exit code said.
+#
+# Each suite runs with CLAUDE_CODE_SESSION_ID unset and
+# CLAUDE_ORG_QUEUE_DIR in a throwaway directory, on top of its own
+# isolation: a Bash tool call exports the session id, and on 2026-09-21
+# four runs of one suite wrote 24 provoked refusals into the real queue.
+#
+# And a suite that reads this repo's real tracker or the user's real Doom
+# config fails statically, before it runs: such a suite turns red when
+# the user's data changes, which is what pre-push skipping org-only
+# pushes relies on never happening.
+#
+# Usage: bin/test-all          exit 0 iff every suite passed.
+
+set -uo pipefail
+
+bin_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+work="$(mktemp -d)"
+trap 'rm -rf "$work"' EXIT
+
+total_pass=0 total_fail=0 suites=0 failed_suites=()
+start_all=$SECONDS
+
+report() { # name passed failed seconds verdict
+  printf '  %-4s %-34s %5s passed %4s failed %4ss\n' "$5" "$1" "$2" "$3" "$4"
+}
+
+show_output() { sed 's/^/      | /' "$1"; }
+
+# The patterns that make a suite non-hermetic. Written so this file does
+# not match itself: it is not a suite, and the glob never reaches it.
+real_paths='\$repo_root/(TODO|DONE)\.org|~/\.config/doom|\$HOME/\.config'
+
+run_suite() { # name command...
+  local name="$1"; shift
+  local out="$work/$name.out" qdir="$work/queue-$name" t0=$SECONDS rc
+  mkdir -p "$qdir"
+  env -u CLAUDE_CODE_SESSION_ID CLAUDE_ORG_QUEUE_DIR="$qdir" "$@" >"$out" 2>&1 </dev/null
+  rc=$?
+  printf '%s\n' "$rc" > "$out.rc"
+  printf '%s\n' "$((SECONDS - t0))" > "$out.secs"
+}
+
+judge() { # name passed failed rc secs out reason
+  local name="$1" p="$2" f="$3" rc="$4" secs="$5" out="$6" reason="$7"
+  suites=$((suites + 1))
+  total_pass=$((total_pass + ${p:-0})); total_fail=$((total_fail + ${f:-0}))
+  if [[ -z "$reason" ]]; then
+    report "$name" "$p" "$f" "$secs" ok
+  else
+    report "$name" "${p:--}" "${f:--}" "$secs" FAIL
+    echo "      $reason"
+    [[ -s "$out" ]] && show_output "$out"
+    failed_suites+=("$name")
+  fi
+}
+
+# --- ERT --------------------------------------------------------------
+if [[ -x "$bin_dir/test" ]]; then
+  run_suite test "$bin_dir/test"
+  out="$work/test.out"; rc="$(cat "$out.rc")"; secs="$(cat "$out.secs")"
+  line="$(grep -E '^Ran [0-9]+ tests?, [0-9]+ results? as expected, [0-9]+ unexpected' "$out" | tail -1)"
+  n="" u="" reason=""
+  if [[ "$line" =~ ^Ran\ ([0-9]+)\ tests?,\ [0-9]+\ results?\ as\ expected,\ ([0-9]+)\ unexpected ]]; then
+    n="${BASH_REMATCH[1]}"; u="${BASH_REMATCH[2]}"
+  fi
+  if [[ -z "$n" ]]; then reason="no \`Ran N tests' line (exit $rc)"
+  elif (( n == 0 )); then reason="ran zero tests"
+  elif (( u > 0 )); then reason="$u unexpected result(s)"
+  elif (( rc != 0 )); then reason="exit $rc despite a clean count"
+  fi
+  judge test "$n" "$u" "$rc" "$secs" "$out" "$reason"
+else
+  judge test "" "" "" 0 /dev/null "bin/test is missing or not executable"
+fi
+
+# --- every shell suite, by glob -----------------------------------------
+for suite in "$bin_dir"/*-test; do
+  [[ -f "$suite" ]] || continue
+  name="$(basename "$suite")"
+  if grep -qE "$real_paths" "$suite"; then
+    grep -nE "$real_paths" "$suite" > "$work/$name.static"
+    judge "$name" "" "" "" 0 "$work/$name.static" \
+      "reads real user data (this repo's TODO.org/DONE.org or a real Doom config); not run"
+    continue
+  fi
+  run_suite "$name" bash "$suite"
+  out="$work/$name.out"; rc="$(cat "$out.rc")"; secs="$(cat "$out.secs")"
+  last="$(grep -v '^[[:space:]]*$' "$out" | tail -1)"
+  p="" f="" reason=""
+  if [[ "$last" =~ ^${name}:\ ([0-9]+)\ passed,\ ([0-9]+)\ failed$ ]]; then
+    p="${BASH_REMATCH[1]}"; f="${BASH_REMATCH[2]}"
+  fi
+  if [[ -z "$p" ]]; then reason="no final \`$name: N passed, M failed' line (exit $rc)"
+  elif (( p == 0 )); then reason="passed nothing"
+  elif (( f > 0 )); then reason="$f check(s) failed"
+  elif (( rc != 0 )); then reason="exit $rc despite a clean count"
+  fi
+  judge "$name" "$p" "$f" "$rc" "$secs" "$out" "$reason"
+done
+
+echo
+if (( ${#failed_suites[@]} == 0 )); then
+  echo "test-all: $suites suites, $total_pass passed, $total_fail failed, $((SECONDS - start_all))s"
+  exit 0
+fi
+echo "test-all: $suites suites, ${#failed_suites[@]} FAILED (${failed_suites[*]}), $total_pass passed, $total_fail failed, $((SECONDS - start_all))s"
+exit 1

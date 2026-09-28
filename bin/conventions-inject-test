@@ -9,10 +9,10 @@ tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 export CLAUDE_ORG_QUEUE_DIR="$tmp/queue"
 
-failures=0
+pass=0 failures=0
 check() {
   local what="$1" want="$2" got="$3"
-  if [[ "$want" == "$got" ]]; then echo "ok   - $what"
+  if [[ "$want" == "$got" ]]; then echo "ok   - $what"; pass=$((pass + 1))
   else echo "FAIL - $what: wanted [$want], got [$got]"; failures=$((failures + 1)); fi
 }
 
@@ -65,6 +65,5 @@ printf 'garbage' | "$hook" >/dev/null 2>&1
 check "always exits 0" "0" "$?"
 
 echo
-if [[ $failures -eq 0 ]]; then echo "conventions-inject-test: all checks passed"
-else echo "conventions-inject-test: $failures check(s) failed"; fi
+echo "conventions-inject-test: $pass passed, $failures failed"
 exit $((failures > 0))

@@ -52,7 +52,6 @@ force=0
 check=0
 doom=0
 org=0
-glue=0
 time_flag=0
 time_off=0
 time_kept=0
@@ -63,12 +62,11 @@ for a in "$@"; do
     --check) check=1 ;;
     --doom) doom=1 ;;
     --org) org=1 ;;
-    --glue) glue=1 ;;
     --time-tracking) time_flag=1 ;;
     --no-time-tracking) time_off=1 ;;
     --*)
       echo "claude-org-setup: unknown option: $a" >&2
-      echo "usage: claude-org-setup [--force|--check|--doom|--org|--glue|--time-tracking|--no-time-tracking] [TARGET_DIR]" >&2
+      echo "usage: claude-org-setup [--force|--check|--doom|--org|--time-tracking|--no-time-tracking] [TARGET_DIR]" >&2
       exit 2
       ;;
     *)
@@ -102,72 +100,58 @@ if [ "$time_on" = 0 ] && [ "$time_off" = 0 ] \
 fi
 [ "$time_on" = 1 ] && promote+=("$time_file")
 
-# --glue: write the generated elisp glue into the user's Doom config
-# tree (TODO.org :ID: 7c86ab4c), resolved the way doom.el resolves it
-# ($DOOMDIR, else ~/.config/doom). The glue self-defers via
-# with-eval-after-load and derives its project list at wire time, so
-# the one printed load! stub is order-independent and never needs a
-# second edit. Same clobber contract as the rules promotion: files
-# this script wrote (marker) are refreshed; anything else refuses
-# without --force.
-# Render the generated Doom glue to $1. Factored out so `--check' can
-# compare a consumer's copy against it without running `--glue''s side
-# effects -- writing into $DOOMDIR and printing follow-up instructions
-# (TODO.org :ID: 827bb778).
-render_glue() { # dest
-  cat > "$1" <<EOF
-;;; claude-code-ide-org-glue.el -*- lexical-binding: t; -*-
-;; $marker from the claude-code-ide-org plugin.
-;; Do not edit: re-run claude-org-setup --glue to refresh.
-;; Loaded by one stable stub in config.el; defers itself until
-;; claude-code-ide loads, so the stub's position never matters.
-(with-eval-after-load 'claude-code-ide
-  ;; Upstream's server enable defaults to nil and its tool
-  ;; registration lives behind this call -- the machinery's own
-  ;; enablement, so the glue owns it.
-  (claude-code-ide-emacs-tools-setup)
-  ;; Projects derive from the tracked files at every wire call:
-  ;; onboarding a repo is making its org files discoverable, nothing
-  ;; more (TODO.org :ID: 7c86ab4c).
-  (setq claude-code-ide-org-standalone-projects 'derive)
-  (claude-code-ide-org-standalone-wire))
-EOF
+# Session names (TODO.org :ID: 965f94eb). The wiring registers each
+# tracked project under the session name its emacs-tools URL ends in,
+# resolved as Claude Code resolves it: a local-scope entry in
+# ~/.claude.json for that directory first, else its .mcp.json. Two clones
+# of one repo resolve to the same name and the wiring refuses; the fix is
+# one local-scope `claude mcp add' in the second clone, which setup
+# PROPOSES and never runs -- ~/.claude.json is Claude Code's file.
+resolve_session_name() { # dir -> name
+  local dir="${1%/}" url="" phys
+  # Keyed by the directory as Claude Code saw it, which may be the
+  # physical path (/private/var for /var on macOS), so both are asked.
+  phys="$(cd "$dir" 2>/dev/null && pwd -P || printf '%s' "$dir")"
+  if command -v jq >/dev/null 2>&1; then
+    url="$(jq -r --arg d "$dir" --arg p "$phys" \
+             '(.projects[$d] // .projects[$p]).mcpServers["emacs-tools"].url // empty' \
+             "$HOME/.claude.json" 2>/dev/null || true)"
+    [ -n "$url" ] || url="$(jq -r '.mcpServers["emacs-tools"].url // empty' \
+                               "$dir/.mcp.json" 2>/dev/null || true)"
+  fi
+  if [ -n "$url" ]; then
+    printf '%s\n' "$url" | sed -E 's|/*$||; s|.*/mcp/||'
+  else
+    basename "$dir"
+  fi
+}
+# The tracked projects, from the agenda list file setup already appends
+# to: each listed file's git root, once each, existing ones only.
+tracked_projects() {
+  local listfile="${CLAUDE_ORG_AGENDA_LIST:-$HOME/org/agenda-files}" f d
+  [ -r "$listfile" ] || return 0
+  while IFS= read -r f; do
+    f="${f/#\~/$HOME}"
+    [ -e "$f" ] || continue
+    d="$(git -C "$(dirname "$f")" rev-parse --show-toplevel 2>/dev/null || dirname "$f")"
+    printf '%s\n' "$d"
+  done < "$listfile" | sort -u
+}
+# Another tracked project that already resolves to NAME, other than DIR.
+session_taken_by() { # name dir -> the other project's dir, or nothing
+  local name="$1" me other
+  me="$(cd "$2" 2>/dev/null && pwd -P)"
+  tracked_projects | while IFS= read -r other; do
+    [ "$(cd "$other" 2>/dev/null && pwd -P)" = "$me" ] && continue
+    if [ "$(resolve_session_name "$other")" = "$name" ]; then printf '%s\n' "$other"; break; fi
+  done
 }
 
-if [ "$glue" = 1 ]; then
-  doomdir="${DOOMDIR:-$HOME/.config/doom}"
-  if [ ! -d "$doomdir" ]; then
-    echo "claude-org-setup: no Doom config dir at $doomdir (set DOOMDIR?)" >&2
-    exit 1
-  fi
-  dest="$doomdir/claude-code-ide-org-glue.el"
-  if [ -f "$dest" ] && ! grep -q "$marker" "$dest" && [ "$force" = 0 ]; then
-    echo "claude-org-setup: refusing to overwrite hand-maintained file: $dest" >&2
-    echo "re-run with --force to replace it" >&2
-    exit 1
-  fi
-  render_glue "$dest"
-  echo "wrote $dest"
-  cat <<EOF
-
-One stable line for your config.el (anywhere; it never changes again):
-
-  (load! "claude-code-ide-org-glue" doom-user-dir t)
-
-Then delete the hand-rolled wiring block's port setq, register-session
-and mcp-start -- the glue owns those, and re-running --glue refreshes
-this file without touching yours.
-
-Delete a hand-kept 202-Accepted override of
-claude-code-ide-mcp-http-server--send-empty-response as well: since
-2026-09-15 the MODULE ships it, as advice gated by
-claude-code-ide-org-accept-notifications-with-202 (default t), so a
-copy in your config is redundant (TODO.org :ID: af2f345e). Upstream
-still answers 200 where the MCP spec requires 202 and strict clients
-reject that; the module's advice is what keeps them working now.
-EOF
-  exit 0
-fi
+# There is no --glue any more (TODO.org :ID: c562b69a). The generated
+# Doom glue held three fixed forms once its per-machine project list
+# became derived, and a fixed text kept as a generated copy can only
+# drift, so the forms moved into the module, run whenever it is enabled.
+# --check reports a leftover glue file or its load! line as obsolete.
 
 # --org: scaffold the consuming project's org files from the shipped
 # templates (TODO.org :ID: 9b171907), collision-checked -- an existing
@@ -227,6 +211,22 @@ if [ "$org" = 1 ]; then
   mcp_src="$plugin_root/.mcp.json"
   mcp_dest="$target/.mcp.json"
   mcp_port="$(sed -n 's|.*http://localhost:\([0-9][0-9]*\)/mcp/.*|\1|p' "$mcp_src" 2>/dev/null | head -1 || true)"
+  # A name another tracked project already resolves to (TODO.org :ID:
+  # 965f94eb). Asked whatever .mcp.json's state, because the usual case
+  # is a second clone of a repo that commits one: the file is shared by
+  # every clone and stays as it is; this clone gets its own name locally.
+  if [ -n "$mcp_port" ]; then
+    own="$(resolve_session_name "$target")"
+    taken="$(session_taken_by "$own" "$target")"
+    if [ -n "$taken" ]; then
+      echo "ACTION:  the MCP session name \"$own\" is taken by $taken."
+      echo "         In this clone, run once (setup does not):"
+      echo ""
+      echo "           claude mcp add --scope local --transport http emacs-tools http://localhost:$mcp_port/mcp/$own-2"
+      echo ""
+      mcp_action=1
+    fi
+  fi
   if [ -z "$mcp_port" ]; then
     echo "claude-org-setup: no port found in $mcp_src; skipping .mcp.json" >&2
   elif [ -e "$mcp_dest" ]; then
@@ -399,7 +399,7 @@ org-emacs-setup reference.)
 
      M-x claude-code-ide-org-standalone-wire
 
-   (with the glue's 'derive setting it picks up every tracked
+   (with the module's 'derive setting it picks up every tracked
    project; a hand-kept claude-code-ide-org-standalone-projects list
    needs this project added first.)
 
@@ -515,48 +515,29 @@ if [ "$check" = 1 ]; then
     rm -f "$tmp"
   done
 
-  # The Doom glue, in the USER's $DOOMDIR rather than the consumer's
-  # repo (TODO.org :ID: 827bb778). Read-only, and a missing Doom config
-  # degrades to a skip: a consumer may reasonably not have one yet.
-  #
-  # Two checks, because content alone is the weaker signal and we know
-  # exactly how it fails. On 2026-09-15 the glue's generated file was
-  # BYTE-IDENTICAL across a change while the instructions it prints
-  # changed -- "delete your hand-kept 202 override, the module ships it
-  # now". A content diff reports ok: on that, which is how a repo can be
-  # told it is current while carrying a redundant override. So the
-  # INSTRUCTIONS are checked by their consequences, which are the part
-  # that actually has to happen.
+  # The user's Doom config, read-only (TODO.org :ID: c562b69a). The
+  # wiring lives in the module now, so the generated glue file and the
+  # load! line that loaded it are obsolete, and a leftover of either is
+  # reported for deletion -- which is how the one-time migration gets
+  # noticed. Both are harmless meanwhile: the wiring is idempotent.
   doomdir="${DOOMDIR:-$HOME/.config/doom}"
-  glue_dest="$doomdir/claude-code-ide-org-glue.el"
   if [ ! -d "$doomdir" ]; then
     echo "skipped: no Doom config at $doomdir (nothing to check)"
   else
-    if [ ! -f "$glue_dest" ]; then
-      echo "missing: $glue_dest (run claude-org-setup --glue)"
+    if [ -f "$doomdir/claude-code-ide-org-glue.el" ]; then
+      echo "obsolete: $doomdir/claude-code-ide-org-glue.el -- the module wires itself now; delete it"
       drifted=1
     else
-      tmp="$(mktemp)"
-      render_glue "$tmp"
-      if cmp -s "$tmp" "$glue_dest"; then
-        echo "ok:      $glue_dest"
-      else
-        echo "drifted: $glue_dest (re-run claude-org-setup --glue)"
-        drifted=1
-      fi
-      rm -f "$tmp"
+      echo "ok:      no generated glue in $doomdir"
     fi
-    # Consequence 1: the one stable stub --glue asks for. Without it the
-    # generated file is never loaded and everything above is inert --
-    # which no content comparison would ever notice.
     if grep -q 'claude-code-ide-org-glue' "$doomdir/config.el" 2>/dev/null; then
-      echo "ok:      load! stub present in $doomdir/config.el"
-    else
-      echo "missing: load! stub in $doomdir/config.el -- run claude-org-setup --glue and paste the printed line"
+      echo "obsolete: the load! line for claude-code-ide-org-glue in $doomdir/config.el -- delete it"
       drifted=1
+    else
+      echo "ok:      no glue load! line in $doomdir/config.el"
     fi
-    # Consequence 2: the override --glue asks you to delete. The module
-    # has shipped it as gated advice since 2026-09-15 (:ID: af2f345e),
+    # A hand-kept 202 override is redundant too: the module has shipped
+    # it as gated advice since 2026-09-15 (:ID: af2f345e),
     # so a live copy in the user's config is redundant and shadows it.
     if grep -qE '^[[:space:]]*\(defun claude-code-ide-mcp-http-server--send-empty-response' \
          "$doomdir/config.el" 2>/dev/null; then
@@ -590,11 +571,25 @@ if [ "$check" = 1 ]; then
     drifted=1
   fi
 
+  # Two tracked projects on one session name: the wiring refuses them,
+  # so the check names it too (TODO.org :ID: 965f94eb).
+  if [ -d "$target" ]; then
+    own="$(resolve_session_name "$target")"
+    taken="$(session_taken_by "$own" "$target")"
+    if [ -n "$taken" ]; then
+      echo "collision: $target and $taken both resolve to MCP session \"$own\""
+      echo "         in one of them: claude mcp add --scope local --transport http emacs-tools http://localhost:$mcp_port/mcp/$own-2"
+      drifted=1
+    else
+      echo "ok:      MCP session \"$own\" is this project's alone"
+    fi
+  fi
+
   # Say what was NOT checked. The heading this closes exists because a
   # clean run read as "up to date" and meant "the rules match"; naming
   # the gaps is half the fix and the cheaper half.
   echo
-  echo "Checked: promoted rules, Doom glue, this project's .mcp.json."
+  echo "Checked: promoted rules, obsolete Doom glue, this project's .mcp.json."
   echo "NOT checked: whether the running Emacs has loaded the current"
   echo "  module (needs a digest; TODO.org :ID: 2cd74268), or the"
   echo "  time_tracking option -- that is per-user and lives in"

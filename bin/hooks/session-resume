@@ -29,7 +29,8 @@ if command -v jq >/dev/null 2>&1; then
   session_id="$(jq -r '.session_id // empty' <<<"$input" 2>/dev/null)"
   case "$session_id" in
     ''|.|..|*[!A-Za-z0-9._-]*) ;;
-    *) rm -f "${CLAUDE_ORG_QUEUE_DIR:-$HOME/.claude/org-updates}/$session_id.footnote-blocked" 2>/dev/null ;;
+    *) rm -f "${CLAUDE_ORG_QUEUE_DIR:-$HOME/.claude/org-updates}/$session_id.footnote-blocked" \
+             "${CLAUDE_ORG_QUEUE_DIR:-$HOME/.claude/org-updates}/$session_id.footnoted" 2>/dev/null ;;
   esac
 fi
 

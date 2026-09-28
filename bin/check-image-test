@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+# Tests for bin/check-image (TODO.org :ID: f12f9da4), through a fake
+# emacsclient that plays each answer the real one can give. Always prints
+# a result line -- silence is not a passing check.
+set -uo pipefail
+repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+stub="$repo/bin/check-image"
+tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
+pass=0 fail=0
+check () { # name expected actual
+  if [[ "$2" == "$3" ]]; then printf 'ok   - %s\n' "$1"; pass=$((pass+1))
+  else printf 'FAIL - %s: wanted [%s], got [%s]\n' "$1" "$2" "$3"; fail=$((fail+1)); fi
+}
+# A fake client writing ANSWER to the file named in the form, or failing.
+fake () { # fake ANSWER -> path of a fake emacsclient
+  local f="$tmp/ec-$RANDOM"
+  cat > "$f" <<FAKE
+#!/usr/bin/env bash
+[ "$1" = down ] && exit 1
+out="\$(sed -E 's/.*report "([^"]+)".*/\\1/' <<<"\$2")"
+printf '%b' '$1' > "\$out"
+FAKE
+  chmod +x "$f"; printf '%s' "$f"
+}
+run () { EMACSCLIENT="$1" "$stub" 2>&1; echo "rc=$?"; }
+
+out="$(run "$(fake 'stale\nconfig.el has changed since it was loaded')")"
+check "a stale image warns" yes "$(grep -q 'check-image: config.el has changed' <<<"$out" && echo yes || echo no)"
+check "and exits 0" yes "$(grep -q '^rc=0$' <<<"$out" && echo yes || echo no)"
+out="$(run "$(fake 'fresh\n')")"
+check "a fresh image says so" yes "$(grep -q 'image fresh' <<<"$out" && echo yes || echo no)"
+out="$(run "$(fake down)")"
+check "an unreachable Emacs is 'unknown', not silence" yes "$(grep -q 'image state unknown' <<<"$out" && echo yes || echo no)"
+check "and exits 0" yes "$(grep -q '^rc=0$' <<<"$out" && echo yes || echo no)"
+
+# A busy Emacs must not hang the commit (TODO.org :ID: 14e9fd83, PR #31
+# review): the client is bounded by a watchdog and falls through to
+# "unknown". `--timeout' bounds only the connection, not the eval.
+hang="$tmp/ec-hang"; printf '#!/usr/bin/env bash\nsleep 20\n' > "$hang"; chmod +x "$hang"
+start=$SECONDS
+out="$(CHECK_IMAGE_SECONDS=1 run "$hang")"
+check "a busy Emacs is bounded by the watchdog" yes "$([ $((SECONDS - start)) -lt 5 ] && echo yes || echo no)"
+check "and reads as 'unknown'" yes "$(grep -q 'image state unknown' <<<"$out" && echo yes || echo no)"
+
+# pre-commit runs it only when a module file is in the commit.
+r="$tmp/repo"; git init -q -b main "$r"
+git -C "$r" config user.email t@example.com; git -C "$r" config user.name T
+mkdir -p "$r/bin" "$r/.githooks" "$r/modules/tools/claude-code-ide-org"
+printf '#!/bin/sh\necho CHECK-IMAGE-RAN >&2\n' > "$r/bin/check-image"; chmod +x "$r/bin/check-image"
+cp "$repo/.githooks/pre-commit" "$r/.githooks/pre-commit"
+printf 'x\n' > "$r/README"; git -C "$r" add README
+out="$(cd "$r" && .githooks/pre-commit 2>&1)"
+check "no module file staged: no image check" no "$(grep -q CHECK-IMAGE-RAN <<<"$out" && echo yes || echo no)"
+printf '(message "hi")\n' > "$r/modules/tools/claude-code-ide-org/config.el"
+git -C "$r" add modules/tools/claude-code-ide-org/config.el
+out="$(cd "$r" && .githooks/pre-commit 2>&1)"
+check "a module file staged: the image is checked" yes "$(grep -q CHECK-IMAGE-RAN <<<"$out" && echo yes || echo no)"
+
+printf 'check-image-test: %d passed, %d failed\n' "$pass" "$fail"
+exit $((fail > 0))

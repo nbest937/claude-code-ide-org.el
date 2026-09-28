@@ -67,16 +67,15 @@ skill with its references, and the setup command).
 
 ```sh
 bin/claude-org-setup --doom    # prints the two init.el lines (writes nothing)
-bin/claude-org-setup --glue    # writes $DOOMDIR glue; prints one config.el stub
 ```
 
 Paste the printed lines — a `doom-module-load-path` entry plus the
-`:tools claude-code-ide-org` flag for `init.el`, and one stable
-`load!` stub for `config.el` — then `doom sync`. Your `packages.el`
+`:tools claude-code-ide-org` flag for `init.el` — then `doom sync`.
+Nothing goes in `config.el`. Your `packages.el`
 needs nothing: the module declares its own dependencies
 (`claude-code-ide` and org, both pinned; `org-ql`), and Doom merges
 duplicate declarations key-by-key with yours winning, so an existing
-root declaration is harmless. The generated glue owns the wiring: it enables the
+root declaration is harmless. Enabling the module is the wiring: it enables the
 tools server, pins the port (`45571`, checked loudly against
 `.mcp.json`), and registers a session per tracked project, re-derived
 on every wire call. The 202-Accepted answer to notifications that

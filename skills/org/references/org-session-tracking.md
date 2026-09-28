@@ -24,6 +24,7 @@ line to the session's queue file and exits, or blocks, or injects context:
 | `UserPromptSubmit`  | `bin/hooks/apply-detect`      | nothing — *injects context* when the queue was applied since the session's last turn |
 | `UserPromptSubmit`, `PostToolUse` (Bash) | `bin/hooks/review-start` | `todo` → `REVIEW` for the one `DOING` slice when a PR review starts (`/code-review`, a reviewer requested) and its unfinished members are all `REVIEW` |
 | `SessionStart`      | `bin/hooks/session-start-recovery-check` | nothing — *injects* the daily ceremony prompt (and, where time tracking is wired, the stale-interval report) |
+| `PostToolUseFailure` (`org_*`) | `bin/hooks/tool-failure` | a marker beside the queue, reported once at `SessionStart`, and *injects* what to do (`:ID:` 3ad389be) |
 
 *The table omits the three `PostToolUse` `queue-append` matchers*, which
 wire `org_set_todo`, `org_capture` and `org_amend` to the queue. They are
@@ -54,12 +55,11 @@ not the hook.
 
 **`apply-detect` is the one read-only row** (`:ID:` 165ce65a): the
 apply pass writes `.applied` watermark files, and this hook compares
-their mtimes against a per-session `.apply-seen` stamp — when any
-watermark moved, the next prompt carries `additionalContext` saying the
+each one's newest applied pass time against a per-session `.apply-seen`
+record — on a change the next prompt carries `additionalContext` saying the
 record is fresh and a tracker diff may await a bookkeeping commit, so
-the human never announces "queue applied". First prompt of a session
-initializes the stamp silently: pre-session history is SessionStart's
-report, not this hook's.
+the human never announces "queue applied". A session's first prompt
+records silently: pre-session history is SessionStart's.
 
 ### The daily ceremony prompt
 

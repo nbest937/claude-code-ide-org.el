@@ -129,4 +129,56 @@ if grep -qE '^(skills/brainstorming/|skills/org/|modules/tools/claude-code-ide-o
   rm -rf "$snap"
 fi
 
+# 5. A whole-index commit from a session, while the index holds staged
+#    work (TODO.org :ID: 2aeb65d6). Concurrent sessions share one index,
+#    so a plain `git commit' carries whatever another session staged, and
+#    explicit staging protects nothing. The command form is readable from
+#    GIT_INDEX_FILE, measured 2026-08-12 and re-measured by
+#    bin/git-guards-test on every run:
+#
+#      git commit / --amend     .git/index             sweeps the index
+#      git commit -a            .git/index.lock        sweeps the index
+#      git commit -- <paths>    .git/next-index-*.lock takes the paths alone
+#
+#    So a whole-index form (basename `index' or `index.lock') is refused
+#    when the REAL index holds staged changes, and only inside a session:
+#    a human at a terminal is never affected, and `git commit -- <paths>'
+#    always passes. Scope is the index, not the working tree -- an
+#    explicit-path commit still takes the file's whole working-tree
+#    content, which is 27082893's. ALLOW_SWEEP=1 lets an --amend through,
+#    and each use is counted.
+#    Concluding a merge, cherry-pick or revert is exempt (TODO.org :ID:
+#    00a66d88, PR #31 review): git refuses `git commit -- <paths>' while
+#    one is in progress, so a whole-index commit is the only way to
+#    finish it, and refusing it was a dead end.
+if [ -n "${CLAUDE_CODE_SESSION_ID:-}" ] && [ -n "${GIT_INDEX_FILE:-}" ]; then
+  form="${GIT_INDEX_FILE##*/}"
+  git_dir="$(git rev-parse --absolute-git-dir 2>/dev/null)"
+  concluding=""
+  for h in MERGE_HEAD CHERRY_PICK_HEAD REVERT_HEAD; do
+    [ -n "$git_dir" ] && [ -e "$git_dir/$h" ] && concluding="$h"
+  done
+  if [ -z "$concluding" ] && { [ "$form" = index ] || [ "$form" = index.lock ]; }; then
+    held=""
+    [ -n "$git_dir" ] && held="$(GIT_INDEX_FILE="$git_dir/index" \
+                                 git diff --cached --name-only 2>/dev/null)"
+    if [ -n "$held" ]; then
+      if [ "${ALLOW_SWEEP:-0}" = 1 ]; then
+        "$(dirname "${BASH_SOURCE[0]}")/count-miss" index-sweep "ALLOW_SWEEP $(printf '%s' "$held" | head -1)"
+      else
+        "$(dirname "${BASH_SOURCE[0]}")/count-miss" index-sweep "$(printf '%s' "$held" | head -1)"
+        {
+          echo "pre-commit: this commit takes the whole index, and the index holds staged"
+          echo "work -- which may be another session's. Staged:"
+          printf '%s\n' "$held" | sed 's/^/  /'
+          echo
+          echo "  Commit by path:  git commit -- <paths>"
+          echo "  An --amend:      ALLOW_SWEEP=1 git commit --amend ...  (counted)"
+        } >&2
+        status=1
+      fi
+    fi
+  fi
+fi
+
 exit $status

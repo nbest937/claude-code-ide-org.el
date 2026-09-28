@@ -199,12 +199,44 @@ an accident waiting to be re-made.
 
 ## 1. Live reload procedure
 
+### When a reload is owed
+
+**When a commit that changes `config.el` lands, reload it live and check
+the last thing it defines** (§4), in the same turn and before any claim
+that the change works. A green `bin/test` is a batch Emacs loading the
+tree; the running Emacs is a different image, and it keeps the old code
+until someone reloads it. Say which one a claim is about.
+
+The one exception is a plan that forbids live reloads, as an unattended
+run's does, because the MCP tools the run needs are served by that Emacs.
+There the reload is the first item of the morning report, not a thing
+left for someone to notice.
+
+Why it is written here: on 2026-09-25 `c247d8f3` turned
+`bin/hooks/footnote-check` into a stub over a new elisp function. The
+stub exits 0 silently when Emacs lacks that function, which is the right
+behaviour in an outage and exactly the wrong one in a stale image. So
+every session's footnote check was off for an hour after the commit,
+and nothing announced it: the unattended run had forbidden reloads the
+night before, and no rule restored them in the morning. The user had
+assumed a reload happened by convention. It had not been written down
+anywhere.
+
+**The image says so itself** (`:ID:` f12f9da4). `config.el`'s last form
+stamps the load, and `bin/check-image` compares that stamp's hash with the
+file on disk: fresh, stale, shadowed by an `.elc`, or unstamped, plus any
+function missing or left over. Pre-commit runs it whenever a module file
+is committed, and the SessionStart report asks for a reload when the
+image is not fresh. It warns and never reloads.
+
+### How
+
 For a change confined to function bodies inside
 `modules/tools/claude-code-ide-org/config.el` (existing `defun`s, or the
 `claude-code-ide-make-tool` registrations inside the single
 `with-eval-after-load 'claude-code-ide` block, which is the last
-top-level form in the file), a live reload is enough — no restart
-needed:
+top-level form before the load stamp, itself the file's very last form),
+a live reload is enough — no restart needed:
 
 ```
 emacsclient -e '(load-file "modules/tools/claude-code-ide-org/config.el")'

@@ -16,28 +16,41 @@ unset CLAUDE_CODE_SESSION_ID  # else a provoked refusal counts as a miss in the 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 hook="$script_dir/../.githooks/pre-push"
 
-checks=0
-fails=0
+pass=0 fails=0
 check() { # label verdict
-  checks=$((checks + 1))
   if [ "$2" = ok ]; then
     echo "ok   $1"
+    pass=$((pass + 1))
   else
     fails=$((fails + 1))
     echo "FAIL $1: $2"
   fi
 }
 
+work="$(mktemp -d)"
+trap 'rm -rf "$work"' EXIT
+
+# The suite gate would run bin/test-all -- which runs this file. A fake
+# runner stands in: it records that it ran and passes or fails on demand.
+fake="$work/fake-test-all"
+printf '#!/usr/bin/env bash\ntouch "%s/ran"\necho "fake suite output"\n[ -z "${FAKE_FAIL:-}" ] || { echo "fake: 1 FAILED"; exit 1; }\necho "test-all: fake, all passed"\n' "$work" > "$fake"
+chmod +x "$fake"
+export PRE_PUSH_TEST_ALL="$fake"
+
 run_hook() { # stdin-line...
   printf '%s\n' "$@" | "$hook" origin https://example.invalid/repo.git 2>&1
 }
+# The merge advisory's cases below assert on the advisory, not on silence:
+# a code range now also runs (the fake) suites, which say so.
+no_advisory() { printf '%s' "$1" | grep -q 'advisory' && echo "advisory: $1" || echo ok; }
 
 pr_merge="101287f"     # Merge pull request #21
 local_merge="fee51fd"  # Merge feature/doc-sync-hook — the streak-breaker
 
 # 0. A PR-merge-only range over main is silent and exits 0.
 out="$(run_hook "refs/heads/main $pr_merge refs/heads/main $pr_merge~1")"; rc=$?
-check "PR merge range passes silently" "$([ $rc -eq 0 ] && [ -z "$out" ] && echo ok || echo "rc=$rc out: $out")"
+check "PR merge range exits 0" "$([ $rc -eq 0 ] && echo ok || echo "rc=$rc out: $out")"
+check "PR merge range draws no advisory" "$(no_advisory "$out")"
 
 # 1. A local merge in the pushed range draws the advisory, by name,
 #    and still exits 0 — advisory, never a gate.
@@ -48,12 +61,12 @@ check "advisory says it is not a gate" "$(printf '%s' "$out" | grep -q 'not a ga
 
 # 2. The same range pushed to a non-main ref is silent.
 out="$(run_hook "refs/heads/feature/x $local_merge refs/heads/feature/x $local_merge~1")"; rc=$?
-check "non-main ref is silent" "$([ $rc -eq 0 ] && [ -z "$out" ] && echo ok || echo "rc=$rc out: $out")"
+check "non-main ref draws no advisory" "$([ $rc -eq 0 ] && [ "$(no_advisory "$out")" = ok ] && echo ok || echo "rc=$rc out: $out")"
 
 # 3. A brand-new remote main (zero sha) is silent — no baseline.
 zeros="0000000000000000000000000000000000000000"
 out="$(run_hook "refs/heads/main $local_merge refs/heads/main $zeros")"; rc=$?
-check "zero remote sha is silent" "$([ $rc -eq 0 ] && [ -z "$out" ] && echo ok || echo "rc=$rc out: $out")"
+check "zero remote sha draws no advisory" "$([ $rc -eq 0 ] && [ "$(no_advisory "$out")" = ok ] && echo ok || echo "rc=$rc out: $out")"
 
 # 4. A PR merge whose branch contains its own merges is still silent
 #    (TODO.org :ID: e0094245). PR #2's range carries two in-branch
@@ -63,8 +76,51 @@ check "zero remote sha is silent" "$([ $rc -eq 0 ] && [ -z "$out" ] && echo ok |
 #    both, having arrived through a pull request.
 pr_with_inner_merges="01da949"  # Merge pull request #2
 out="$(run_hook "refs/heads/main $pr_with_inner_merges refs/heads/main $pr_with_inner_merges~1")"; rc=$?
-check "a PR branch's own merges draw no advisory" "$([ $rc -eq 0 ] && [ -z "$out" ] && echo ok || echo "rc=$rc out: $out")"
+check "a PR branch's own merges draw no advisory" "$([ $rc -eq 0 ] && [ "$(no_advisory "$out")" = ok ] && echo ok || echo "rc=$rc out: $out")"
 check "the catch-up merge is not named" "$(printf '%s' "$out" | grep -q '32f5c2a' && echo "named it: $out" || echo ok)"
 
-echo "Ran $checks checks, $fails failure(s)"
-exit "$([ "$fails" -eq 0 ] && echo 0 || echo 1)"
+# 5. The suite gate (TODO.org :ID: 94e6b615), in a scratch repo so the
+#    ranges are exactly what each case says. No bin/sync-plans there, so
+#    the plans check stands aside and only the gate is under test.
+r="$work/repo"; mkdir -p "$r"; git -C "$r" init -q
+git -C "$r" config user.email t@example.invalid; git -C "$r" config user.name t
+commit() { # file...
+  local f; for f in "$@"; do mkdir -p "$r/$(dirname "$f")"; echo "$RANDOM" >> "$r/$f"; done
+  git -C "$r" add -- "$@"; git -C "$r" commit -qm "touch $*"; git -C "$r" rev-parse HEAD
+}
+base="$(commit README)"
+org="$(commit TODO.org DONE.org plans/p.md)"
+mixed="$(commit TODO.org bin/thing)"
+gate() { # local remote
+  rm -f "$work/ran"
+  (cd "$r" && printf 'refs/heads/x %s refs/heads/x %s\n' "$1" "$2" \
+     | "$hook" origin https://example.invalid/repo.git 2>&1)
+}
+
+out="$(gate "$org" "$base")"; rc=$?
+check "an org-only range runs no suites" "$([ ! -e "$work/ran" ] && echo ok || echo ran)"
+check "and exits 0" "$([ $rc -eq 0 ] && echo ok || echo "rc=$rc")"
+check "and says it skipped them, and why" "$(printf '%s' "$out" | grep -q 'org-only push.*skipped' && echo ok || echo "output: $out")"
+
+out="$(gate "$mixed" "$org")"; rc=$?
+check "a range touching code runs the suites" "$([ -e "$work/ran" ] && echo ok || echo "not run: $out")"
+check "a passing run lets the push through" "$([ $rc -eq 0 ] && echo ok || echo "rc=$rc: $out")"
+check "and reports the runner's total" "$(printf '%s' "$out" | grep -q 'test-all: fake, all passed' && echo ok || echo "output: $out")"
+
+out="$(FAKE_FAIL=1 gate "$mixed" "$org")"; rc=$?
+check "a failing suite refuses the push" "$([ $rc -eq 1 ] && echo ok || echo "rc=$rc")"
+check "and shows the runner's output" "$(printf '%s' "$out" | grep -q 'fake: 1 FAILED' && echo ok || echo "output: $out")"
+
+out="$(gate "$mixed" "0000000000000000000000000000000000000000")"; rc=$?
+check "a new remote branch with code runs the suites" "$([ -e "$work/ran" ] && echo ok || echo "not run: $out")"
+
+# A remote sha this clone has never fetched (TODO.org :ID: 191ec45b, PR
+# #31 review): git diff fails, and its empty output used to read as
+# "nothing changed", skipping the suites on a force-push over an update.
+out="$(gate "$mixed" "1234567890abcdef1234567890abcdef12345678")"; rc=$?
+check "an unknown remote sha runs the suites" "$([ -e "$work/ran" ] && echo ok || echo "not run: $out")"
+check "and says the range was unknown" "$(printf '%s' "$out" | grep -q 'could not compute' && echo ok || echo "output: $out")"
+
+echo
+echo "pre-push-test: $pass passed, $fails failed"
+exit $((fails > 0))

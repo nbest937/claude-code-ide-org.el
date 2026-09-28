@@ -38,24 +38,21 @@ upgrade. The old equivalent — symlinking
 - The module needs **org 9.7+** and says so loudly at load — the org
   bundled with Emacs 29 (9.6.x) is not enough; Doom's straight-managed
   org is.
-- **The module owns the standalone wiring** (since 2026-09-09,
-  `:ID:` e396f94a), and since 2026-09-10 the config lives in a
-  *generated* file (`:ID:` 7c86ab4c):
+- **Enabling the module is the wiring** (`:ID:` c562b69a, since
+  2026-09-27): no generated files, no pasted line. The module's own
+  `config.el` enables upstream's tools server and wires this machine's
+  sessions whenever it loads. `claude-code-ide-org-wire-on-load`
+  (default `t`) is the opt-out, for a second Emacs that should not
+  contend for the port; batch Emacs never wires, so `bin/test` is safe.
 
-  ```sh
-  claude-org-setup --glue
-  ```
+  *Migrating from the generated glue*, once per machine: delete
+  `$DOOMDIR/claude-code-ide-org-glue.el` and the
+  `(load! "claude-code-ide-org-glue" doom-user-dir t)` line from your
+  `config.el`, then restart. `claude-org-setup --check` reports either
+  leftover as obsolete. Both are harmless meanwhile, since the wiring is
+  idempotent.
 
-  writes `$DOOMDIR/claude-code-ide-org-glue.el` (marker-headed,
-  refreshed by re-run, never yours to edit) and prints the one stable
-  stub for your `config.el`:
-
-  ```elisp
-  (load! "claude-code-ide-org-glue" doom-user-dir t)
-  ```
-
-  **The 202 answer to notifications is the module's, not the glue's
-  and not yours** (`:ID:` af2f345e, decided 2026-09-15). Upstream
+  **The 202 answer to notifications is the module's, not yours** (`:ID:` af2f345e, decided 2026-09-15). Upstream
   still answers `200` to a notification where the MCP spec requires
   `202`, and strict clients — Warp's own, the Python SDK's — reject
   the mismatch. The module advises
@@ -66,7 +63,7 @@ upgrade. The old equivalent — symlinking
   block. The gate is retired by hand when upstream fixes the status;
   its docstring says how to tell.
 
-  The glue defers itself until `claude-code-ide` loads and derives the
+  The wiring waits for `claude-code-ide` to load and derives the
   project list from the tracked files at every wire call — onboarding
   a repo is making its org files discoverable plus
   `M-x claude-code-ide-org-standalone-wire`, no elisp edit anywhere.

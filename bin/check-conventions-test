@@ -19,17 +19,22 @@ set -uo pipefail
 unset CLAUDE_CODE_SESSION_ID  # else a provoked refusal counts as a miss in the calling session
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-failures=0
+pass=0 failures=0
 
 expect_exit() {
   local got=$? desc="$1" want="$2"
   if [ "$got" = "$want" ]; then
     echo "ok   - $desc"
+    pass=$((pass + 1))
   else
     echo "FAIL - $desc: expected exit $want, got $got"
-    failures=1
+    failures=$((failures + 1))
   fi
 }
+
+# For the cases that match on output rather than an exit code.
+ok()   { echo "ok   - $1"; pass=$((pass + 1)); }
+fail() { echo "FAIL - $1"; failures=$((failures + 1)); }
 
 # A fixture holding just the files the assertions read.
 make_fixture() {
@@ -140,10 +145,9 @@ d="$(make_fixture)"
 out="$(env CHECK_CONVENTIONS_EMACS=definitely-not-emacs "$repo_root/bin/check-conventions" "$d" 2>&1)"
 case "$out" in
   *"no \`definitely-not-emacs' on PATH"*)
-    echo "ok   - the failure names the binary, not the documents" ;;
+    ok "the failure names the binary, not the documents" ;;
   *)
-    echo "FAIL - the failure names the binary, not the documents"
-    failures=1 ;;
+    fail "the failure names the binary, not the documents" ;;
 esac
 
 # 10. Under --docs-only it is skipped rather than fatal, and says so.
@@ -159,10 +163,9 @@ d="$(make_fixture)"
 out="$(env CHECK_CONVENTIONS_EMACS=definitely-not-emacs "$repo_root/bin/check-conventions" --docs-only "$d" 2>&1)"
 case "$out" in
   *"skip - elisp reads as forms"*)
-    echo "ok   - the skip is announced, not silent" ;;
+    ok "the skip is announced, not silent" ;;
   *)
-    echo "FAIL - the skip is announced, not silent"
-    failures=1 ;;
+    fail "the skip is announced, not silent" ;;
 esac
 
 # 11. --docs-only does not gate the check when emacs IS present, or the
@@ -186,10 +189,9 @@ expect_exit "a mistyped flag is a usage error, not a silent no-op" 2
 out="$("$repo_root/bin/check-conventions" --dcs-only 2>&1)"
 case "$out" in
   *"unknown option: --dcs-only"*)
-    echo "ok   - the usage error names the flag it did not recognise" ;;
+    ok "the usage error names the flag it did not recognise" ;;
   *)
-    echo "FAIL - the usage error names the flag it did not recognise"
-    failures=1 ;;
+    fail "the usage error names the flag it did not recognise" ;;
 esac
 
 # 13. And a ROOT that is not a directory, which is the same hole reached
@@ -204,9 +206,6 @@ d="$(make_fixture)"
 "$repo_root/bin/check-conventions" --docs-only "$d" >/dev/null 2>&1
 expect_exit "a valid flag and ROOT still run" 0
 
-if [ "$failures" -eq 0 ]; then
-  echo "Ran 19 checks, all as expected"
-else
-  echo "check-conventions-test: FAILURES"
-fi
-exit "$failures"
+echo
+echo "check-conventions-test: $pass passed, $failures failed"
+exit $((failures > 0))

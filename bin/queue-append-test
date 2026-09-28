@@ -31,7 +31,7 @@ script="$repo_root/bin/hooks/queue-append"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 
-fail=0
+pass=0 fail=0
 
 # Every invocation writes into a throwaway queue dir, never ~/.claude.
 export CLAUDE_ORG_QUEUE_DIR="$work/queue"
@@ -59,11 +59,12 @@ check() {
   local label="$1" expected="$2" actual="$3"
   if [[ "$expected" == "$actual" ]]; then
     echo "ok   - $label"
+    pass=$((pass + 1))
   else
     echo "FAIL - $label"
     echo "         expected: $expected"
     echo "         actual:   $actual"
-    fail=1
+    fail=$((fail + 1))
   fi
 }
 
@@ -256,6 +257,15 @@ line="$(queue_lines sess-a)"
 check "no override leaves id from payload" "id-a" "$(jq -r '.id' <<<"$line")"
 check "no override recovers from from reply" "NEXT" "$(jq -r '.from' <<<"$line")"
 
+# A return trip queued over a pending state (TODO.org :ID: 57f37f0e):
+# the reply names the queued state starred OUTSIDE the parentheses, and
+# `from' still reads the disk state from the one (was ...) clause.
+reset_queue
+run todo '{"session_id":"sess-a","tool_input":{"id":"id-a","state":"REVIEW"},"tool_response":"Queued todo -> REVIEW (was REVIEW): \"H\"; pending review, after DOING* in the queue."}'
+line="$(queue_lines sess-a)"
+check "a return-trip reply still yields the disk state as from" "REVIEW" "$(jq -r '.from' <<<"$line")"
+check "and the queued state is the event's state" "REVIEW" "$(jq -r '.state' <<<"$line")"
+
 # --- a capture carries its initial_state -------------------------------
 # The state field is shared with `todo', but read from a different key:
 # a todo event names it `state', a capture names it `initial_state'. Both
@@ -285,6 +295,24 @@ reset_queue
 run capture '{"session_id":"sess-a","tool_input":{"title":"H"},"tool_response":"Queued capture: \"H\" (ID: id-new) top of file; pending review."}'
 check "capture without category records null" "null" \
   "$(jq -r '.category' <<<"$(queue_lines sess-a)")"
+
+# The outage fallback (TODO.org :ID: 7fa68d5c): a capture Emacs refused
+# has no reply, so the gate is skipped only when bin/hooks/tool-failure
+# passes the id it minted -- and without that id a replyless capture is
+# still dropped. Every capture carries allow_duplicate, on both routes.
+reset_queue
+printf '%s' '{"session_id":"sess-a","tool_name":"mcp__emacs-tools__org_capture","tool_input":{"title":"H","category":"Tools","allow_duplicate":"true"},"error":"connect ECONNREFUSED"}' \
+  | CLAUDE_ORG_CAPTURE_ID=out-age-id "$script" capture
+check "outage capture uses the minted id" "out-age-id" "$(jq -r '.id' <<<"$(queue_lines sess-a)")"
+check "outage capture is marked" "outage" "$(jq -r '.origin' <<<"$(queue_lines sess-a)")"
+check "outage capture keeps allow_duplicate" "true" "$(jq -r '.allow_duplicate' <<<"$(queue_lines sess-a)")"
+reset_queue
+run capture '{"session_id":"sess-a","tool_input":{"title":"H"},"error":"connect ECONNREFUSED"}'
+check "a replyless capture without the id is still dropped" "" "$(queue_lines sess-a)"
+reset_queue
+run capture '{"session_id":"sess-a","tool_input":{"title":"H","allow_duplicate":"true"},"tool_response":"Queued capture: \"H\" (ID: id-new) top of file; pending review."}'
+check "a busy-buffer capture carries allow_duplicate" "true" "$(jq -r '.allow_duplicate' <<<"$(queue_lines sess-a)")"
+check "a busy-buffer capture has no origin" "null" "$(jq -r '.origin' <<<"$(queue_lines sess-a)")"
 
 # A todo event must not start reading initial_state, and a capture must
 # not start reading state -- the keys are deliberately distinct.
@@ -609,16 +637,22 @@ check "a failed amend onto a miss heading is a refusal, not a catch" "refusal:id
 # plugin's own TODO.org, since the rules missed are the plugin's. The
 # lookup falls back to the plugin checkout this script runs from, and the
 # miss line's cwd still says where the catch happened.
+#
+# A fixture plugin checkout, never this repo's own TODO.org (TODO.org
+# :ID: 94e6b615): the suite must not turn red because the real tracker
+# changed. The script is copied so its ../../TODO.org is the fixture's.
 consumer="$work/consumer"; mkdir -p "$consumer"; : > "$consumer/TODO.org"
-real_id="$(awk '/^:ID:/{id=$2} /^:MISS_RULE:[ \t]+uncategorised/{print id; exit}' "$repo_root/TODO.org")"
+plugin="$work/plugin"; mkdir -p "$plugin/bin/hooks"
+cp "$script" "$plugin/bin/hooks/queue-append"
+miss_id="cccccccc-0000-0000-0000-000000000003"
+printf '* Miss: uncategorised\n:PROPERTIES:\n:ID:       %s\n:MISS_RULE: uncategorised\n:END:\n' "$miss_id" > "$plugin/TODO.org"
 reset_queue
-jq -n -c --arg id "$real_id" --arg cwd "$consumer" \
+jq -n -c --arg id "$miss_id" --arg cwd "$consumer" \
   '{session_id:"sess-c", cwd:$cwd, tool_name:"mcp__emacs-tools__org_amend",
     tool_input:{id:$id, text:"x", note:"from a consumer"},
     tool_response:[{type:"text",text:"Amended: \"x\""}]}' \
-  | CLAUDE_PROJECT_DIR="$consumer" "$script" refusal
+  | CLAUDE_PROJECT_DIR="$consumer" "$plugin/bin/hooks/queue-append" refusal
 line="$(queue_lines sess-c)"
-check "the plugin tracker has the catch-all miss heading" "yes" "$([[ -n "$real_id" ]] && echo yes || echo no)"
 check "a catch in a consumer project resolves against the plugin's tracker" "caught:uncategorised/unmarked" "$(jq -r '.rule' <<<"$line")"
 check "and records the consumer as where it happened" "$consumer" "$(jq -r '.cwd' <<<"$line")"
 
@@ -666,9 +700,5 @@ printf '%s' 'garbage' | "$script" pause >/dev/null 2>&1
 check "always exits 0" "0" "$?"
 
 echo
-if [[ $fail -eq 0 ]]; then
-  echo "All queue-append tests passed."
-else
-  echo "Some queue-append tests FAILED."
-fi
-exit $fail
+echo "queue-append-test: $pass passed, $fail failed"
+exit $((fail > 0))

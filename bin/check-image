@@ -1,0 +1,29 @@
+#!/bin/sh
+# Say whether the running Emacs is out of step with this module's
+# config.el (TODO.org :ID: f12f9da4). A thin stub over
+# `claude-code-ide-org-write-image-report', per the scripting conventions:
+# write a report to a temp file, cat it back.
+#
+# Warns and never blocks: editing, batch-testing and committing without a
+# reload is a coherent sequence. Always prints a line -- "image fresh",
+# the report, or "image state unknown" when Emacs cannot answer -- so
+# silence is never read as a pass. Exit status is always 0.
+# EMACSCLIENT overrides the client, for bin/check-image-test.
+out="$(mktemp)"
+trap 'rm -f "$out"' EXIT
+# Bounded by a watchdog, like the hooks' calls (TODO.org :ID: 14e9fd83,
+# PR #31 review): `--timeout' bounds only the connection, and pre-commit
+# runs this, so a busy Emacs would otherwise hang `git commit'. A killed
+# client leaves the report empty, which reads as "unknown" below.
+"${EMACSCLIENT:-emacsclient}" -e "(claude-code-ide-org-write-image-report \"$out\")" </dev/null >/dev/null 2>&1 &
+client=$!
+( sleep "${CHECK_IMAGE_SECONDS:-3}"; kill "$client" ) </dev/null >/dev/null 2>&1 &
+dog=$!
+wait "$client" 2>/dev/null
+kill "$dog" 2>/dev/null; wait "$dog" 2>/dev/null
+case "$(head -n 1 "$out" 2>/dev/null)" in
+  fresh) echo "check-image: the running Emacs has this config.el loaded (image fresh)" >&2 ;;
+  stale) awk 'NR > 1 { print "check-image: " $0 }' "$out" >&2 ;;
+  *)     echo "check-image: image state unknown -- Emacs did not answer, or has no stamping config.el loaded" >&2 ;;
+esac
+exit 0

@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# A batch Emacs with the straight-managed packages Doom uses on its
+# load-path, then whatever arguments follow. The same load-path bin/test
+# builds, factored out for suites that drive the module through a fake
+# `emacsclient' (bin/footnote-check-test, TODO.org :ID: c247d8f3).
+#
+# Why a separate script: bin/test-all skips any suite whose text names a
+# real user path, `$HOME/.config' among them, because that is how a suite
+# reads a real Doom config. The straight build directory lives under that
+# prefix but holds packages, not configuration -- bin/test reads it too --
+# so the lookup lives here, and a suite naming this script is not mistaken
+# for one reading user data. Written after the footnote suite was skipped
+# by the gate for a day for exactly that reason.
+#
+# Refuses rather than falling back to Emacs's bundled org, as bin/test
+# does (TODO.org :ID: 1ed7b2b4). `command emacs': the user's shell
+# function would open the GUI and return 0 (TODO.org :ID: 4f9e552a).
+set -uo pipefail
+build_root="$(find "$HOME/.config/emacs/.local/straight" -maxdepth 1 -name 'build-*' -type d 2>/dev/null | head -1 || true)"
+if [[ -z "$build_root" ]]; then
+  echo "batch-emacs: no straight build-* dir; refusing to run against the bundled org" >&2
+  exit 2
+fi
+args=(--batch -Q)
+for d in "$build_root"/*/; do
+  args+=(--eval "(add-to-list 'load-path \"${d%/}\")")
+done
+exec command emacs "${args[@]}" "$@"

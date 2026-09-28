@@ -235,5 +235,60 @@ printf 'hand edit\n' >> "$r/.claude/rules/org-event-queue.md"; git -C "$r" add -
 (cd "$r" && CLAUDE_CODE_SESSION_ID=sess-g5 EMACSCLIENT=false "$hooks/pre-commit-guards" >/dev/null 2>&1)
 check "a refused out-of-step rule copy is counted, as the edit guard's kind" "generated-edit" "$(rule_of sess-g5)"
 
+# --- pre-commit-guards: a whole-index commit from a session --------------
+# TODO.org :ID: 2aeb65d6. Driven through real `git commit', not the hook
+# alone, because the guard reads GIT_INDEX_FILE, which only git sets -- so
+# every run also re-measures the 2026-08-12 table against this git. The
+# scratch repo's only pre-commit hook is the guards script.
+r="$(new_repo sweep)"
+mkdir -p "$work/sweep-hooks"
+printf '#!/usr/bin/env bash\nEMACSCLIENT=false exec %q\n' "$hooks/pre-commit-guards" > "$work/sweep-hooks/pre-commit"
+chmod +x "$work/sweep-hooks/pre-commit"
+git -C "$r" config core.hooksPath "$work/sweep-hooks"
+printf 'a\n' > "$r/mine"; printf 'b\n' > "$r/theirs"
+git -C "$r" add mine theirs && git -C "$r" commit -q -m "two files"
+sweep () { # sweep SESSION ARGS... -> exit code of git commit in $r
+  (cd "$r" && CLAUDE_CODE_SESSION_ID="$1" git commit -q "${@:2}" >/dev/null 2>&1); echo $?
+}
+head_files () { git -C "$r" show --name-only --format= HEAD | sort | tr '\n' ' '; }
+
+printf 'x\n' >> "$r/theirs"; git -C "$r" add theirs      # another session stages
+printf 'y\n' >> "$r/mine"
+check "a plain git commit from a session is refused while the index holds staged work" \
+  1 "$(sweep sess-s1 -m sweep)"
+check "and is counted as index-sweep" index-sweep "$(rule_of sess-s1)"
+check "git commit -- <path> passes, with another path staged" 0 "$(sweep sess-s2 -m mine -- mine)"
+check "and takes that path alone" "mine " "$(head_files)"
+# Its own state, so an exit 1 can only be the guard: another session's
+# staged change, and a modification of ours, so -a has something to take
+# even where an earlier case already swept the index.
+printf 'v\n' >> "$r/theirs"; git -C "$r" add theirs; printf 'u\n' >> "$r/mine"
+check "git commit -a is refused while the index holds staged work" 1 "$(sweep sess-s3 -a -m all)"
+check "git commit --amend is refused with staged work" 1 "$(sweep sess-s4 --amend --no-edit)"
+check "ALLOW_SWEEP=1 lets the --amend through" 0 \
+  "$(cd "$r" && ALLOW_SWEEP=1 CLAUDE_CODE_SESSION_ID=sess-s5 git commit -q --amend --no-edit >/dev/null 2>&1; echo $?)"
+check "and the override is counted" index-sweep "$(rule_of sess-s5)"
+printf 'z\n' >> "$r/theirs"; git -C "$r" add theirs
+check "a human at a terminal is never affected" 0 \
+  "$(cd "$r" && env -u CLAUDE_CODE_SESSION_ID git commit -q -m human >/dev/null 2>&1; echo $?)"
+printf 'w\n' >> "$r/mine"                                 # modified, nothing staged
+check "git commit -a with an empty index passes" 0 "$(sweep sess-s6 -a -m all)"
+
+# Concluding a merge (TODO.org :ID: 00a66d88, PR #31 review): git
+# refuses `git commit -- <paths>' mid-merge, so the only way to finish
+# one is a whole-index commit, and the guard must not dead-end it. On a
+# non-main branch, so the local-merge guard (0) is not what answers.
+git -C "$r" commit -q -m "settle" -- mine theirs >/dev/null 2>&1 || true
+git -C "$r" checkout -q -b feat
+git -C "$r" checkout -q -b side
+printf 'side\n' > "$r/mine"; git -C "$r" commit -q -am side
+git -C "$r" checkout -q feat
+printf 'feat\n' > "$r/mine"; git -C "$r" commit -q -am feat
+git -C "$r" merge -q side >/dev/null 2>&1 || true
+check "the fixture stopped mid-merge" yes "$([ -e "$r/.git/MERGE_HEAD" ] && echo yes || echo no)"
+printf 'both\n' > "$r/mine"; git -C "$r" add mine
+check "a session's plain commit concluding a merge passes" 0 "$(sweep sess-s7 --no-edit)"
+check "and the merge is concluded" no "$([ -e "$r/.git/MERGE_HEAD" ] && echo yes || echo no)"
+
 printf '\ngit-guards-test: %d passed, %d failed\n' "$pass" "$fail"
-[[ $fail -eq 0 ]]
+exit $((fail > 0))

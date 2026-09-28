@@ -150,7 +150,7 @@ cannot be resolved or FN signals an error."
   (require 'org-id)
   (let ((marker (claude-code-ide-org--id-find id 'marker)))
     (if (not marker)
-        (format "Error: no org heading found with :ID: \"%s\"" id)
+        (claude-code-ide-org--id-not-found id)
       (condition-case err
           (org-with-point-at marker
             (funcall fn))
@@ -1159,6 +1159,256 @@ Claude Code shows the user itself; the rest is the session's to relay."
                                    misses ", "))
               ""))))
 
+;;; Is the running image stale? (TODO.org :ID: f12f9da4) -------------------
+
+(defvar claude-code-ide-org--load-stamps nil
+  "Alist of module file truename to (:loaded PATH :sha HEX :time TIME).
+
+Recorded in the running image by the LAST form of each module file, so a
+`load-file' aborted halfway -- the 2026-09-15 case in the standing rules
+-- leaves the previous stamp and reads as stale.  In memory rather than
+on disk because it describes the image, not the file: a stamp on disk
+would outlive a restart or a crash and vouch for a load that no longer
+exists.")
+
+(defun claude-code-ide-org--file-sha (file)
+  "SHA-256 of FILE's contents, or nil when it cannot be read."
+  (ignore-errors
+    (with-temp-buffer
+      (set-buffer-multibyte nil)
+      (insert-file-contents-literally file)
+      (secure-hash 'sha256 (current-buffer)))))
+
+(defun claude-code-ide-org--record-load-stamp (loaded)
+  "Stamp the module file LOADED -- a `.el', or the `.elc' compiled from it.
+Keyed by the source's truename: the module loads through a symlink from
+the Doom modules directory, so a raw path would read stale forever."
+  (when (stringp loaded)
+    (let* ((source (if (string-suffix-p ".elc" loaded)
+                       (concat (file-name-sans-extension loaded) ".el")
+                     loaded))
+           (key (file-truename source)))
+      (setf (alist-get key claude-code-ide-org--load-stamps nil nil #'equal)
+            (list :loaded loaded :sha (claude-code-ide-org--file-sha key)
+                  :time (current-time)))
+      key)))
+
+(defun claude-code-ide-org--module-files ()
+  "Truenames of the module files that stamp themselves.
+Found from where this very function was loaded, so the answer follows
+the module wherever it is installed."
+  (let ((here (symbol-file 'claude-code-ide-org--module-files 'defun)))
+    (and here
+         (list (file-truename
+                (expand-file-name "config.el" (file-name-directory here)))))))
+
+(defun claude-code-ide-org--file-function-names (file)
+  "Names of the `claude-code-ide-org' functions FILE's text defines."
+  (with-temp-buffer
+    (insert-file-contents file)
+    (let (names)
+      (goto-char (point-min))
+      (while (re-search-forward
+              (concat "^(\\(?:\\(?:cl-\\)?def\\(?:un\\|macro\\|subst\\)"
+                      "\\|define-\\(?:derived\\|minor\\|globalized-minor\\)-mode\\)"
+                      "[ \t]+\\(claude-code-ide-org[^ \t\n()]*\\)")
+              nil t)
+        (push (match-string-no-properties 1) names))
+      (nreverse names))))
+
+(defun claude-code-ide-org--image-state (&optional files)
+  "Report, for each module file in FILES, how the running image relates to it.
+A list of plists (:file F :state STATE :time T :missing NAMES
+:leftover NAMES), STATE being one of:
+
+- `fresh'     -- the stamp's hash matches the file on disk;
+- `stale'     -- the file changed since it was loaded, at :time;
+- `shadowed'  -- a `.elc' was loaded, which the source cannot vouch for
+                 (the stale-.elc shape measured 2026-09-16);
+- `unstamped' -- no complete load of a version that stamps itself.
+
+The hash is what `fboundp' alone cannot give: a changed function body
+leaves the old definition bound, and that is the commonest edit.
+MISSING names a function the file defines that the image lacks;
+LEFTOVER one the image still has from this file that the file no longer
+defines -- a deleted defun survives a reload.  FILES defaults to
+`claude-code-ide-org--module-files'."
+  (mapcar
+   (lambda (file)
+     (let* ((file (file-truename file))
+            (stamp (alist-get file claude-code-ide-org--load-stamps nil nil #'equal))
+            (names (claude-code-ide-org--file-function-names file))
+            (missing (seq-remove (lambda (n) (fboundp (intern n))) names))
+            (leftover
+             (seq-filter
+              (lambda (sym)
+                (let ((from (symbol-file sym 'defun)))
+                  (and from
+                       (equal (file-truename
+                               (if (string-suffix-p ".elc" from)
+                                   (concat (file-name-sans-extension from) ".el")
+                                 from))
+                              file)
+                       (not (member (symbol-name sym) names)))))
+              (apropos-internal "\\`claude-code-ide-org-" #'fboundp))))
+       (list :file file
+             :state (cond ((null stamp) 'unstamped)
+                          ((string-suffix-p ".elc" (plist-get stamp :loaded)) 'shadowed)
+                          ((equal (plist-get stamp :sha)
+                                  (claude-code-ide-org--file-sha file))
+                           'fresh)
+                          (t 'stale))
+             :time (plist-get stamp :time)
+             :missing missing
+             :leftover (mapcar #'symbol-name leftover))))
+   (or files (claude-code-ide-org--module-files))))
+
+(defun claude-code-ide-org--image-report (&optional files)
+  "A sentence for each module file the running image is not fresh on, or nil.
+It *asks* for a reload and never performs one: a live reload cannot
+cover every change (the org-dev skill, section 2), so an automatic one
+would sometimes give a confident wrong answer."
+  (let ((lines
+         (delq nil
+               (mapcar
+                (lambda (s)
+                  (let ((name (file-name-nondirectory (plist-get s :file)))
+                        (extra (concat
+                                (when (plist-get s :missing)
+                                  (format "; not bound: %s"
+                                          (string-join (seq-take (plist-get s :missing) 5) " ")))
+                                (when (plist-get s :leftover)
+                                  (format "; bound but no longer defined: %s"
+                                          (string-join (seq-take (plist-get s :leftover) 5) " "))))))
+                    (pcase (plist-get s :state)
+                      ('fresh (unless (string-empty-p extra)
+                                (format "%s is loaded%s" name extra)))
+                      ('stale (format "%s has changed since it was loaded at %s%s"
+                                      name
+                                      (format-time-string "%Y-%m-%d %H:%M" (plist-get s :time))
+                                      extra))
+                      ('shadowed (format "%s was loaded from a compiled .elc, which may predate the source%s"
+                                         name extra))
+                      (_ (format "%s has no load stamp, so no complete load of this version is on record%s"
+                                 name extra)))))
+                (claude-code-ide-org--image-state files)))))
+    (when lines
+      (concat "The running Emacs may be out of step with the module: "
+              (string-join lines ". ")
+              ". Reload it (M-x load-file on config.el) before trusting a live check."))))
+
+(defun claude-code-ide-org-write-image-report (output-path)
+  "Write the image report to OUTPUT-PATH, for `bin/check-image'.
+The first line is `fresh' or `stale', so an empty file can only mean
+the call never ran -- which the stub reports as `image state unknown'."
+  (let ((report (claude-code-ide-org--image-report)))
+    (with-temp-file output-path
+      (insert (if report (concat "stale\n" report "\n") "fresh\n")))))
+
+;;; Tool-failure markers (TODO.org :ID: 3ad389be) -------------------------
+;;
+;; `bin/hooks/tool-failure' records an org tool call that never reached a
+;; healthy Emacs.  Plain shell writes the marker because Emacs, being what
+;; failed, cannot; Emacs reads it back here, at the next session start
+;; that finds it up.
+
+(defun claude-code-ide-org--tool-failure-markers (&optional dir)
+  "Unreported tool-failure markers in DIR, as plists, oldest first.
+DIR defaults to `claude-code-ide-org-queue-directory'.  Each plist has
+:file, :ts, :cwd, :tool, :input, :may-land, :state -- from the `probe'
+line sharing the failure's tool_use_id, or nil when the probe never
+recorded one -- and :queued, the id a `queued' line gave a capture the
+outage fallback queued.  A line that does not parse is skipped: the
+file is plain shell's, written while the system was least healthy."
+  (let ((dir (or dir claude-code-ide-org-queue-directory))
+        markers)
+    (dolist (file (and (file-directory-p dir)
+                       (directory-files dir t "\\.tool-failures\\.jsonl\\'")))
+      (let (failures (probes (make-hash-table :test 'equal))
+                     (queued (make-hash-table :test 'equal)))
+        (with-temp-buffer
+          (insert-file-contents file)
+          (dolist (line (split-string (buffer-string) "\n" t))
+            (when-let* ((obj (ignore-errors
+                               (json-parse-string line :object-type 'plist
+                                                  :null-object nil
+                                                  :false-object nil))))
+              (pcase (plist-get obj :kind)
+                ("failure" (push obj failures))
+                ("probe" (puthash (plist-get obj :tool_use_id)
+                                  (plist-get obj :state) probes))
+                ;; The capture fallback queued it (TODO.org :ID: 7fa68d5c).
+                ("queued" (puthash (plist-get obj :tool_use_id)
+                                   (plist-get obj :id) queued))))))
+        (dolist (f (nreverse failures))
+          (push (list :file file
+                      :ts (plist-get f :ts)
+                      :cwd (plist-get f :cwd)
+                      :tool (plist-get f :tool_name)
+                      :input (plist-get f :tool_input)
+                      :may-land (plist-get f :may_land)
+                      :state (gethash (plist-get f :tool_use_id) probes)
+                      :queued (gethash (plist-get f :tool_use_id) queued))
+                markers))))
+    (sort (nreverse markers)
+          (lambda (a b) (string< (or (plist-get a :ts) "")
+                                 (or (plist-get b :ts) ""))))))
+
+(defun claude-code-ide-org--tool-failure-report (&optional dir)
+  "A report of unreported tool-failure markers, or nil when there are none.
+Says for each whether the write may still have landed, so nothing is
+redone blindly.  Confined to `claude-code-ide-org--report-scope' by the
+marker's cwd when that is bound, like the rest of the report; a marker
+from another project waits for that project's session.
+
+Reporting RENAMES each file whose markers all fall in scope, so a
+failure is reported once.  A file with markers out of scope is left for
+its own project's session and reported again here -- rare, since a
+session's markers share its cwd."
+  (let* ((root (and claude-code-ide-org--report-scope
+                    (file-name-as-directory
+                     (file-truename claude-code-ide-org--report-scope))))
+         (in-scope (lambda (m)
+                     (or (null root)
+                         (and (plist-get m :cwd)
+                              (string-prefix-p
+                               root (file-name-as-directory
+                                     (file-truename (plist-get m :cwd))))))))
+         (all (claude-code-ide-org--tool-failure-markers dir))
+         (mine (seq-filter in-scope all)))
+    (when mine
+      (let ((lines
+             (mapcar
+              (lambda (m)
+                (let ((input (plist-get m :input)))
+                  (format "- %s %s%s (Emacs %s): %s"
+                          (or (plist-get m :ts) "?")
+                          (or (plist-get m :tool) "?")
+                          (if-let* ((id (and (listp input)
+                                             (plist-get input :id))))
+                              (format " on %s" id) "")
+                          (or (plist-get m :state) "not probed")
+                          (cond
+                           ((plist-get m :queued)
+                            (format "queued as capture %s -- it is in the review pass, so do not redo it"
+                                    (plist-get m :queued)))
+                           ((plist-get m :may-land)
+                            "may still have landed -- check the file before redoing it")
+                           (t "did not land -- redo it if it is still wanted")))))
+              mine)))
+        (dolist (file (delete-dups (mapcar (lambda (m) (plist-get m :file)) mine)))
+          (unless (seq-find (lambda (m) (and (equal (plist-get m :file) file)
+                                             (not (funcall in-scope m))))
+                            all)
+            (ignore-errors
+              (rename-file file (concat (string-remove-suffix ".jsonl" file)
+                                        (format-time-string ".reported-%Y%m%dT%H%M%S.jsonl"))
+                           t))))
+        (concat (format "%d org tool call%s failed because Emacs was unreachable; nothing recorded them at the time:\n"
+                        (length mine) (if (= 1 (length mine)) "" "s"))
+                (string-join lines "\n")
+                "\nTell the user, and check each before redoing it.")))))
+
 (defun claude-code-ide-org--session-start-hook-json ()
   "Return the SessionStart hook JSON payload: an empty object if there is
 nothing to report, otherwise one whose additionalContext carries every
@@ -1178,7 +1428,12 @@ are."
                      (claude-code-ide-org--format-stale-interval-report findings)))
          (status (claude-code-ide-org--ceremony-status))
          (ceremony (claude-code-ide-org--format-ceremony-report status))
-         (parts (delq nil (list stale ceremony)))
+         ;; A stale image, asked about rather than reloaded (TODO.org :ID:
+         ;; f12f9da4).  Guarded: a fault here must not cost the other two.
+         (image (ignore-errors (claude-code-ide-org--image-report)))
+         ;; Guarded the same way (TODO.org :ID: 3ad389be).
+         (failures (ignore-errors (claude-code-ide-org--tool-failure-report)))
+         (parts (delq nil (list stale ceremony image failures)))
          ;; The user's channel (TODO.org :ID: d585d33e).  Measured on
          ;; this project's transcripts (:ID: c5b02503), additionalContext
          ;; reached the user in 15 of 24 genuine session starts -- the
@@ -1195,7 +1450,9 @@ are."
                                    (length findings)
                                    (if (= 1 (length findings)) "" "s")))
                       (and ceremony
-                           (claude-code-ide-org--ceremony-summary status))))))
+                           (claude-code-ide-org--ceremony-summary status))
+                      (and image "the running Emacs is out of step with config.el")
+                      (and failures "org tool calls failed while Emacs was unreachable")))))
     (if (null parts)
         "{}"
       (json-encode
@@ -1843,39 +2100,42 @@ nothing left to contribute here anyway."
      (let ((end (save-excursion (outline-next-heading) (point)))
            (stop-time (claude-code-ide-org--parse-org-timestamp timestamp-string))
            closed-logbook)
-       (save-excursion
-         (when (re-search-forward "^\\([ \t]*CLOCK: \\)\\(\\[[^]]+\\]\\)[ \t]*$" end t)
-           ;; Capture match boundaries and strings immediately, then use
-           ;; delete-region/insert rather than replace-match — computing
-           ;; start-time below calls org-time-string-to-time, which does
-           ;; its own regexp matching internally and would otherwise
-           ;; silently clobber the match data replace-match relies on.
-           (let* ((match-beg (match-beginning 0))
-                  (match-end (match-end 0))
-                  (prefix (match-string 1))
-                  (start-str (match-string 2))
-                  (start-time (claude-code-ide-org--parse-org-timestamp start-str))
-                  ;; Latent rather than live: both endpoints are parsed
-                  ;; from org timestamp strings and so already carry
-                  ;; minute precision, which makes raw subtraction exact
-                  ;; here today. Routed through the shared helper anyway,
-                  ;; so the invariant holds by construction if either
-                  ;; input ever gains seconds.
-                  (minutes (claude-code-ide-org--clock-minutes start-time stop-time)))
-             (goto-char match-beg)
-             (delete-region match-beg match-end)
-             (insert (format "%s%s--%s =>  %d:%02d"
-                              prefix start-str timestamp-string (/ minutes 60) (% minutes 60)))
-             (setq closed-logbook t))))
-       (save-buffer)
-       ;; No consolidate-history call: it has nothing left to do that is
-       ;; worth doing as a side effect of a repair, and running a
-       ;; whole-drawer rewrite after touching one line is the shape that
-       ;; caused :ID: ba8249c1 and :ID: b74e0f19.
-       (if closed-logbook
-           (format "Closed open CLOCK on \"%s\" at %s"
-                   (org-get-heading t t t t) timestamp-string)
-         "Nothing open to close.")))))
+       (or
+        (claude-code-ide-org--busy-refusal buffer-file-name) ; :ID: 60d6ab6e
+        (progn
+          (save-excursion
+            (when (re-search-forward "^\\([ \t]*CLOCK: \\)\\(\\[[^]]+\\]\\)[ \t]*$" end t)
+              ;; Capture match boundaries and strings immediately, then use
+              ;; delete-region/insert rather than replace-match — computing
+              ;; start-time below calls org-time-string-to-time, which does
+              ;; its own regexp matching internally and would otherwise
+              ;; silently clobber the match data replace-match relies on.
+              (let* ((match-beg (match-beginning 0))
+                     (match-end (match-end 0))
+                     (prefix (match-string 1))
+                     (start-str (match-string 2))
+                     (start-time (claude-code-ide-org--parse-org-timestamp start-str))
+                     ;; Latent rather than live: both endpoints are parsed
+                     ;; from org timestamp strings and so already carry
+                     ;; minute precision, which makes raw subtraction exact
+                     ;; here today. Routed through the shared helper anyway,
+                     ;; so the invariant holds by construction if either
+                     ;; input ever gains seconds.
+                     (minutes (claude-code-ide-org--clock-minutes start-time stop-time)))
+                (goto-char match-beg)
+                (delete-region match-beg match-end)
+                (insert (format "%s%s--%s =>  %d:%02d"
+                                prefix start-str timestamp-string (/ minutes 60) (% minutes 60)))
+                (setq closed-logbook t))))
+          (save-buffer)
+          ;; No consolidate-history call: it has nothing left to do that is
+          ;; worth doing as a side effect of a repair, and running a
+          ;; whole-drawer rewrite after touching one line is the shape that
+          ;; caused :ID: ba8249c1 and :ID: b74e0f19.
+          (if closed-logbook
+              (format "Closed open CLOCK on \"%s\" at %s"
+                      (org-get-heading t t t t) timestamp-string)
+            "Nothing open to close.")))))))
 
 ;;; Historical consolidation --------------------------------------------------
 ;;
@@ -2594,7 +2854,10 @@ Emacs access by design -- writing the queue without a running Emacs is
 the premise the whole refactor rests on -- so the prior state has to
 travel back in the reply.  A heading with no keyword reports
 `(was none)' rather than an empty string, so the parse stays
-unambiguous.
+unambiguous.  The no-change refusal reads the heading's EFFECTIVE
+state -- disk carried through its pending `todo' events -- while
+`(was X)' still reads disk (TODO.org :ID: 57f37f0e); a queued state
+that differs from disk is named starred, outside the parentheses.
 
 What `from' *means* changed with this commit, and not merely in wording:
 it was \"the state held before this tool changed it\", and since nothing
@@ -2646,19 +2909,41 @@ unresolved."
       ;; the only channel this tool has, and `bin/hooks/queue-append'
       ;; decides whether to write an event by testing that prefix. The
       ;; wording therefore has to carry what the prefix does not -- that
-      ;; the requested state is the state on disk, which is success by
-      ;; any reading except the queue's.
-      ((equal state (org-get-todo-state))
-       (format "Error: no change -- \"%s\" already holds %s, so nothing was queued"
-               (org-get-heading t t t t) state))
-      (t
-       (concat
-        (format "Queued todo -> %s (was %s): \"%s\"; pending review."
-                state
-                (or (org-get-todo-state) "none")
-                (org-get-heading t t t t))
-        (or (claude-code-ide-org--unwrapped-plan-nudge state) "")
-        (or (claude-code-ide-org--unnominated-group-note state) "")))))))))
+      ;; the requested state is the state already held, which is success
+      ;; by any reading except the queue's.
+      ;;
+      ;; Against the EFFECTIVE state -- disk, carried through the
+      ;; heading's pending `todo' events -- not disk alone (TODO.org
+      ;; :ID: 57f37f0e).  Otherwise a queued REVIEW -> DOING refuses the
+      ;; return to REVIEW and the next apply lands DOING on a heading
+      ;; that is back in REVIEW; and a second DOING queues as a
+      ;; duplicate.  The return trip is queued, never cancelled: it is
+      ;; the true history, and apply replays each event as it is.
+      ;;
+      ;; `(was X)' keeps holding the DISK state: it is the contract
+      ;; `bin/hooks/queue-append' recovers `from' from, and `from'
+      ;; means "on disk at queue time" -- the chain logic of :ID:
+      ;; 6b1e73c4 relies on that.  The starred effective state sits
+      ;; outside the parentheses, for the reader, and no reply text
+      ;; may contain a second "(was".
+      ((let* ((disk (org-get-todo-state))
+              (effective (claude-code-ide-org--effective-todo-state
+                          (org-entry-get nil "ID") disk))
+              (queued-ahead (not (equal effective disk))))
+         (if (equal state effective)
+             (format "Error: no change -- \"%s\" already holds %s%s, so nothing was queued"
+                     (org-get-heading t t t t) state
+                     (if queued-ahead "* (queued, not yet applied)" ""))
+           (concat
+            (format "Queued todo -> %s (was %s): \"%s\"; pending review%s."
+                    state
+                    (or disk "none")
+                    (org-get-heading t t t t)
+                    (if queued-ahead
+                        (format ", after %s* in the queue" (or effective "none"))
+                      ""))
+            (or (claude-code-ide-org--unwrapped-plan-nudge state) "")
+            (or (claude-code-ide-org--unnominated-group-note state) "")))))))))))
 
 (defun claude-code-ide-org--unnominated-group-note (state)
   "A reply line naming the group that closing the heading at point leaves
@@ -2745,10 +3030,18 @@ honoured."
                             org-archive-location))
               (org-archive-reversed-order
                (and org-archive-reversed-order
-                    (not (claude-code-ide-org--archive-datetree-target-p location)))))
-         (org-archive-subtree)
-         (save-buffer)
-         (format "Archived: \"%s\"" heading))))))
+                    (not (claude-code-ide-org--archive-datetree-target-p location))))
+              (destination (ignore-errors
+                             (car (org-archive--compute-location location)))))
+         ;; Both files are saved, so edits in either are the human's
+         ;; (TODO.org :ID: 60d6ab6e).
+         (or (claude-code-ide-org--busy-refusal buffer-file-name destination)
+             (progn
+               ;; The heading named, never the region's (:ID: 4a4ebb21).
+               (let ((org-loop-over-headlines-in-active-region nil))
+                 (org-archive-subtree))
+               (save-buffer)
+               (format "Archived: \"%s\"" heading))))))))
 
 ;;; Refile ------------------------------------------------------------------
 ;;
@@ -2803,9 +3096,13 @@ tool here gives."
                               (claude-code-ide-org--enclosing-slice-title)))))
     (cond
      ((not marker)
-      (format "Error: no org heading found with :ID: \"%s\"" id))
+      (claude-code-ide-org--id-not-found id))
      ((not target-marker)
       (format "Error: no org heading found with target :ID: \"%s\"" target-id))
+     ;; Source and target are both saved (TODO.org :ID: 60d6ab6e).
+     ((claude-code-ide-org--busy-refusal
+       (buffer-file-name (marker-buffer marker))
+       (buffer-file-name (marker-buffer target-marker))))
      ;; A keyworded arrival under a slice would mint a hybrid -- the
      ;; slice branch then hides the child from the nomination report and
      ;; the derived :BLOCKER: (TODO.org :ID: dca940c1).
@@ -2894,29 +3191,56 @@ under its *tracked* name (the `org-agenda-files' entry, typically the
 ~/org symlink), never re-derived from the repo path, so org-id and the
 agenda keep exactly one name per file.  nil when the session has no
 project-dir or the project has no tracked TODO.org — the caller falls
-back to the global default, unchanged."
+back to the global default, unchanged.
+
+The lookup itself is `claude-code-ide-org--project-capture-file', which
+the deferred path calls with the queued event's cwd, since there is no
+session at apply (TODO.org :ID: 5e731a23)."
   (when-let* ((ctx (and (fboundp 'claude-code-ide-mcp-server-get-session-context)
                         (claude-code-ide-mcp-server-get-session-context)))
-              (dir (plist-get ctx :project-dir))
-              (dir-true (file-truename (file-name-as-directory dir))))
-    (seq-find (lambda (f)
-                (and (equal (file-name-nondirectory f) "TODO.org")
-                     (string-prefix-p dir-true (file-truename f))))
-              (claude-code-ide-org--tracked-files))))
+              (dir (plist-get ctx :project-dir)))
+    (claude-code-ide-org--project-capture-file dir)))
 
-(defun claude-code-ide-org--capture-target-file ()
+(defun claude-code-ide-org--project-capture-file (dir)
+  "The tracked TODO.org belonging to the project at DIR, or nil.
+
+One resolver for both capture paths (TODO.org :ID: 5e731a23): the direct
+path passes the calling session's project directory, and the deferred
+path the cwd its queue event recorded, so a capture lands in the same
+tracker whichever way it is written.  A DIR inside a linked worktree is
+mapped to its main checkout first, since TODO.org stays there
+\(:ID: 2e09adb7) and a worktree holds no tracked file; otherwise every
+worktree session's deferred capture would misroute.
+
+A tracked file is the project's when its truename lives under the
+project's truename and it is named TODO.org, and it is returned under
+its *tracked* name, so org-id and the agenda keep one name per file."
+  (when (and (stringp dir) (file-directory-p dir))
+    (let* ((root (or (locate-dominating-file dir ".git") dir))
+           (main (or (claude-code-ide-org--worktree-main-checkout root) root))
+           (dir-true (file-truename (file-name-as-directory main))))
+      (seq-find (lambda (f)
+                  (and (equal (file-name-nondirectory f) "TODO.org")
+                       (string-prefix-p dir-true (file-truename f))))
+                (claude-code-ide-org--tracked-files)))))
+
+(defun claude-code-ide-org--capture-target-file (&optional dir)
   "File `org_capture' targets, in priority order: the calling session's
 own tracked TODO.org (`claude-code-ide-org--session-project-capture-file',
 so a second project's captures land in *its* tracker),
 `claude-code-ide-org-capture-file', else `org-default-notes-file'.
 Used as the (file ...) target spec's function in the dynamically-built
 capture template — resolved fresh on every capture, so a changed
-defcustom or a different calling session takes effect immediately."
+defcustom or a different calling session takes effect immediately.
+
+DIR, a queued event's cwd, stands in for the session when there is
+none, as at apply (TODO.org :ID: 5e731a23)."
   (or (claude-code-ide-org--session-project-capture-file)
+      (claude-code-ide-org--project-capture-file dir)
       claude-code-ide-org-capture-file
       org-default-notes-file))
 
-(defun claude-code-ide-org--capture-target-spec (target)
+(defun claude-code-ide-org--capture-target-spec (target &optional dir)
   "Resolve TARGET to a plist (:spec SPEC :file FILE :where DESC).
 
 TARGET is an :ID: to capture under that heading, the title of a
@@ -2933,8 +3257,11 @@ That is a different risk profile, not an exception grudgingly made.
 
 Signals when TARGET matches neither, rather than silently falling back
 to the end of the file.  A caller that named a destination and got a
-different one is worse off than a caller that got an error."
-  (let ((default (claude-code-ide-org--capture-target-file))
+different one is worse off than a caller that got an error.
+
+DIR is the queued event's cwd, which routes a deferred targetless
+capture to its own project's tracker (TODO.org :ID: 5e731a23)."
+  (let ((default (claude-code-ide-org--capture-target-file dir))
         (target (and (stringp target)
                      (not (string-empty-p (string-trim target)))
                      (string-trim target))))
@@ -2958,9 +3285,14 @@ different one is worse off than a caller that got an error."
       (list :spec (list 'file default) :file default
             :where (format "top of %s" (abbreviate-file-name default))))
      ((claude-code-ide-org--id-find target)
-      (list :spec (list 'id target)
-            :file (car (claude-code-ide-org--id-find target))
-            :where (format "under :ID: %s" target)))
+      ;; The EXPANDED id goes into the spec: org-capture's `(id ...)'
+      ;; target looks the id up itself, with no idea a prefix could be
+      ;; one, so passing TARGET through failed every prefix that the
+      ;; check above had just accepted (TODO.org :ID: 25e7b083).
+      (let ((full (claude-code-ide-org--full-id target)))
+        (list :spec (list 'id full)
+              :file (car (claude-code-ide-org--id-find full))
+              :where (format "under :ID: %s" full))))
      (t (error "target %S is not a known :ID:. Since 2026-08-27 a category \
 is a :CATEGORY: property rather than a heading, so there is nothing to file \
 *under* by name -- omit the target to prepend at the top of %s and pass \
@@ -3015,6 +3347,27 @@ against their own keystrokes, and clearing it is established practice
 here (TODO.org :ID: c8a97d9d)."
   (let ((buffer (and file (find-buffer-visiting file))))
     (and buffer (buffer-modified-p buffer))))
+
+(defun claude-code-ide-org--busy-refusal (&rest files)
+  "Return the refusal for the first of FILES with unsaved edits, else nil.
+
+The one check every STRUCTURAL writer makes before it mutates anything
+(TODO.org :ID: 60d6ab6e), passing every file it will write -- the
+archive or refile destination as well as the heading's own file, since
+`org-archive-subtree' and `org-refile' save both.  Before this, six
+writers saved over the human's unsaved edits: on 2026-09-21 an
+`org_wrap_plan' swept a reflow the user had not saved into a commit
+about another heading.  Structural writes refuse; `org_amend' and
+`org_capture' queue instead, because text can wait for review and a
+move cannot be replayed onto a buffer that changed under it.
+
+As advisory as `claude-code-ide-org--file-busy-p', which it wraps.
+Nil entries in FILES are skipped, so a caller may pass a destination
+that resolved to nothing."
+  (let ((busy (seq-find #'claude-code-ide-org--file-busy-p (delq nil files))))
+    (and busy
+         (format "Error: %s has unsaved changes in Emacs; retry once it is saved"
+                 (file-name-nondirectory busy)))))
 
 (defun claude-code-ide-org--format-tags (tags)
   "Render TAGS as an org tag suffix, or \"\" when there are none.
@@ -3593,7 +3946,10 @@ else."
          (t
           (claude-code-ide-org--capture-write
            title new-id created (plist-get resolved :spec) tags initial-state
-           (claude-code-ide-org--escape-block-headlines note) category)
+           (claude-code-ide-org--fill-prose-text
+            (claude-code-ide-org--escape-block-headlines note)
+            (claude-code-ide-org--fill-column-for-file file))
+           category)
           ;; Registered against the file the target actually resolved to,
           ;; which is not necessarily the capture file: an :ID: target can
           ;; live anywhere org-id knows about.
@@ -3642,12 +3998,45 @@ destroys a drawer; the region it can write to starts below all of them.
 That is what makes wholesale revision safe enough to offer at all.
 
 A heading with no body yet has no bounds, in which case there is nothing
-to replace and the caller should append instead."
-  (let ((bounds (claude-code-ide-org--heading-body-bounds)))
+to replace and the caller should append instead.
+
+*On a slice, the planned checklist is spliced around the rewrite*
+\(TODO.org :ID: 7ee3b71a): its `Planned:' lead and list are lifted out
+first and put back after TEXT, so revising a slice's prose cannot delete
+the one thing it declares.  Since `:MEMBERS:' landed a lost checklist
+would cost only a refresh, but this keeps the file whole between
+refreshes.  The incidental section is not carried: it is derived, and
+the next refresh regenerates it.
+
+*Unless TEXT brings its own.*  Revising the prose and keeping the list
+is the natural call, and splicing the old list after it left two
+`Planned:' sections -- the cookie double-counted and the lint reported a
+disagreement (TODO.org :ID: ee6e6c63, PR #31 review).  TEXT's copy
+stands, and the refresh re-renders it from `:MEMBERS:'."
+  (let* ((bounds (claude-code-ide-org--heading-body-bounds))
+         (planned
+          (and bounds (claude-code-ide-org--slice-p)
+               (let ((region (claude-code-ide-org--slice-planned-region)))
+                 (and region
+                      (save-excursion
+                        (goto-char (car region))
+                        (re-search-backward
+                         (concat "^" (regexp-quote claude-code-ide-org--slice-planned-lead)
+                                 "[ \t]*$")
+                         (nth 1 bounds) t))
+                      (string-trim-right
+                       (buffer-substring-no-properties
+                        (match-beginning 0) (cdr region))))))))
     (when bounds
       (delete-region (nth 1 bounds) (nth 2 bounds))
       (goto-char (nth 1 bounds))
       (insert (string-trim (or text "")))
+      (when (and planned
+                 (not (string-match-p
+                       (concat "^" (regexp-quote claude-code-ide-org--slice-planned-lead)
+                               "[ \t]*$")
+                       (or text ""))))
+        (insert "\n\n" planned))
       t)))
 
 (defconst claude-code-ide-org--plain-list-item-lead "[ \t]*\\(?:[-+]\\|[0-9]+[.)]\\) "
@@ -3879,7 +4268,12 @@ undone only through git. Commit the file first, then revise.")
   ;; correct prefix and a wrong tail, and a memory forbidding it
   ;; throughout.
   (let ((resolved (claude-code-ide-org-resolve-id-links
-                   (claude-code-ide-org--escape-block-headlines text))))
+                   ;; Filled to the target buffer's column (TODO.org :ID:
+                   ;; b52df20b), after escaping, as every write path does.
+                   (claude-code-ide-org--fill-prose-text
+                    (claude-code-ide-org--escape-block-headlines text)
+                    (claude-code-ide-org--fill-column-for-file
+                     (car (ignore-errors (claude-code-ide-org--id-find id))))))))
     (unless (car resolved) (setq id nil))
     (when (car resolved) (setq text (cdr resolved)))
     (if (null id) (cdr resolved)
@@ -3905,7 +4299,7 @@ undone only through git. Commit the file first, then revise.")
               (format "Error: \"%s\" is a capture queued this session and not \
 yet applied, so it has no body to amend. Apply the queue, then amend."
                       (plist-get pending :title))
-            (format "Error: no org heading found with :ID: \"%s\"" id)))
+            (claude-code-ide-org--id-not-found id)))
       (let* ((file (buffer-file-name (marker-buffer marker)))
              (title (org-with-point-at marker
                       (org-no-properties (org-get-heading t t t t)))))
@@ -3975,12 +4369,118 @@ yet applied, so it has no body to amend. Apply the queue, then amend."
 ;; Elisp evaluated against the user's files) is never reachable from a
 ;; model-supplied string here.
 
-(defun claude-code-ide-org--parse-query-string (query)
+;;
+;; What that parser does not recognise it turns into a full-text term
+;; rather than an error, so a wrong-language query came back "No
+;; matches." looking exactly like an honest empty result (TODO.org :ID:
+;; 37bca83a).  Three such shapes are refused before parsing -- a sexp,
+;; an unknown `name:' predicate, a bare OR/AND/| -- and an empty result
+;; names the parsed reading, so a misreading none of them catches is
+;; still visible.  None is counted as a miss: a query-language slip
+;; breaks no rule the caller was given, and the refusal removes the harm.
+
+(defun claude-code-ide-org--parse-query-string (query &optional match)
   "Parse QUERY, in org-ql's plain-string mini-language, into an
-org-ql sexp query, or nil if QUERY fails to parse.  Never evaluates
-QUERY as Elisp — see the commentary above this section."
+org-ql sexp query, or nil if QUERY fails to parse.  MATCH is the
+operator joining its terms, `and' (the default) or `or'.  Never
+evaluates QUERY as Elisp — see the commentary above this section."
   (require 'org-ql)
-  (org-ql--query-string-to-sexp query 'and))
+  (org-ql--query-string-to-sexp query (or match 'and)))
+
+(defun claude-code-ide-org--query-predicate-names ()
+  "Every predicate name org-ql's parser recognises, aliases included,
+as strings.  Read from `org-ql-predicates' at run time, never kept by
+hand, so an org-ql upgrade cannot make the list stale."
+  (require 'org-ql)
+  (let (names)
+    (dolist (p org-ql-predicates)
+      (push (symbol-name (car p)) names)
+      (dolist (a (plist-get (cdr p) :aliases)) (push (symbol-name a) names)))
+    (delete-dups names)))
+
+(defun claude-code-ide-org--query-tokens (query)
+  "Split QUERY on whitespace outside double quotes.  Returns a list of
+\(TEXT . QUOTED-P), QUOTED-P true when the token opens with a quote."
+  (let ((i 0) (n (length query)) (in-quote nil) (start nil) tokens)
+    (while (< i n)
+      (let ((c (aref query i)))
+        (cond
+         ((and (not in-quote) (memq c '(?\s ?\t ?\n ?\r)))
+          (when start (push (substring query start i) tokens) (setq start nil)))
+         (t (unless start (setq start i))
+            (when (eq c ?\") (setq in-quote (not in-quote))))))
+      (setq i (1+ i)))
+    (when start (push (substring query start) tokens))
+    (mapcar (lambda (tok) (cons tok (string-prefix-p "\"" tok)))
+            (nreverse tokens))))
+
+(defun claude-code-ide-org--query-sexp-to-plain (form)
+  "Return the plain-string query equivalent to sexp FORM, or nil when
+there is no obvious one.  Handles a predicate over string arguments,
+its `not', and an `and' of those -- the shapes a caller reaching for
+the sexp language usually means.  FORM is data from `read'; nothing
+here evaluates it."
+  (let ((names (claude-code-ide-org--query-predicate-names)))
+    (cl-labels
+        ((arg (s) (if (string-match-p "[ \t,\"]" s) (format "%S" s) s))
+         (term (f)
+           (pcase f
+             (`(not ,x) (let ((s (term x))) (and s (not (string-prefix-p "!" s))
+                                                  (concat "!" s))))
+             (`(,(and p (pred symbolp)) . ,(and args (pred (seq-every-p #'stringp))))
+              (and (member (symbol-name p) names)
+                   (concat (symbol-name p) ":"
+                           (mapconcat #'arg args ","))))
+             (_ nil))))
+      (pcase form
+        (`(and . ,xs) (let ((ts (mapcar #'term xs)))
+                        (and xs (not (memq nil ts)) (string-join ts " "))))
+        (_ (term form))))))
+
+(defun claude-code-ide-org--query-refusal (query)
+  "Return an \"Error: ...\" string when QUERY is in a shape org-ql's
+plain-string parser would silently misread, else nil."
+  (let ((trimmed (string-trim-left query)))
+    (if (string-prefix-p "(" trimmed)
+        (let* ((form (condition-case nil (car (read-from-string trimmed))
+                       (error nil)))
+               (plain (and (consp form)
+                           (claude-code-ide-org--query-sexp-to-plain form))))
+          (concat "Error: org_query takes org-ql's plain-string language, "
+                  "not its sexp language, and a sexp is never evaluated. "
+                  (if plain
+                      (format "Write it as: %s" plain)
+                    (concat "Write predicates as name:ARG,ARG (e.g. todo:NEXT, "
+                            "tags:a,b, property:KEY,VALUE), prefix ! to negate, "
+                            "separate with spaces for AND."))))
+      (let ((names (claude-code-ide-org--query-predicate-names))
+            (tokens (claude-code-ide-org--query-tokens query)))
+        (or
+         (seq-some
+          (lambda (tok)
+            (and (not (cdr tok))
+                 (member (car tok) '("OR" "AND" "|"))
+                 (format (concat "Error: a bare %s is searched as the literal "
+                                 "word, so it narrows the query instead of "
+                                 "combining it. Space is AND; a comma gives OR "
+                                 "within one predicate (tags:a,b); for OR across "
+                                 "predicates pass match=any.")
+                         (car tok))))
+          tokens)
+         (seq-some
+          (lambda (tok)
+            (let ((text (car tok)))
+              (and (not (cdr tok))
+                   (string-match "\\`!?\\([A-Za-z][A-Za-z0-9*&-]*\\):" text)
+                   (let ((name (match-string 1 text)))
+                     (and (not (member name names))
+                          (format (concat "Error: %s: is not an org-ql predicate, "
+                                          "so %S would be searched as literal text. "
+                                          "For a property write property:%s,VALUE; "
+                                          "to search the text itself, quote it (\"%s\").")
+                                  name text (upcase name)
+                                  (string-remove-prefix "!" text)))))))
+          tokens))))))
 
 (defun claude-code-ide-org--format-query-match ()
   "Format the org-ql match at point as one line: TODO state,
@@ -3996,24 +4496,39 @@ called with point already at the heading."
             (if tags (concat "  :" (mapconcat #'identity tags ":") ":") "")
             id (file-name-nondirectory (or file "?")))))
 
-(defun claude-code-ide-org-query (query)
+(defun claude-code-ide-org-query (query &optional match)
   "Search `claude-code-ide-org--tracked-files' with QUERY, an org-ql
 plain-string query, e.g. \"todo:WAITING\", \"tags:research,code\"
 (comma = OR), \"priority:A\", \"heading:\\\"text\\\"\", or negated
-with `!' (e.g. \"!todo:DONE\").  Multiple space-separated terms are
-combined with AND.  Returns one line per match — TODO state,
-heading, tags, :ID:, file — or a message string when the query is
-empty, fails to parse, or matches nothing.  Never signals an error
-to the MCP layer."
+with `!' (e.g. \"!todo:DONE\").  Space-separated terms are combined
+with AND, or with OR when MATCH is \"any\" (\"all\", the default, is
+AND).  Returns one line per match — TODO state, heading, tags, :ID:,
+file — or a message string when the query is empty, is refused,
+fails to parse, or matches nothing; an empty result names the parsed
+reading.  A sexp, an unknown `name:' predicate and a bare OR/AND/|
+are refused rather than searched as text (TODO.org :ID: 37bca83a).
+Never signals an error to the MCP layer."
   (condition-case err
-      (if (string-match-p "\\`[ \t\n\r]*\\'" query)
-          "Error: empty query."
-        (let ((sexp (claude-code-ide-org--parse-query-string query)))
-          (if (null sexp)
-              (format "Error: could not parse query: %S" query)
-            (let ((matches (org-ql-select (claude-code-ide-org--tracked-files) sexp
-                             :action #'claude-code-ide-org--format-query-match)))
-              (if matches (mapconcat #'identity matches "\n") "No matches.")))))
+      (let ((op (pcase match
+                  ((or 'nil "" "all") 'and)
+                  ("any" 'or)
+                  (_ nil))))
+        (cond
+         ((string-match-p "\\`[ \t\n\r]*\\'" query) "Error: empty query.")
+         ((null op) (format "Error: match must be \"all\" or \"any\", not %S." match))
+         ((claude-code-ide-org--query-refusal query))
+         (t
+          (let ((sexp (claude-code-ide-org--parse-query-string query op)))
+            (if (null sexp)
+                (format "Error: could not parse query: %S" query)
+              (let ((matches (org-ql-select (claude-code-ide-org--tracked-files) sexp
+                               :action #'claude-code-ide-org--format-query-match)))
+                (if matches
+                    (mapconcat #'identity matches "\n")
+                  (format (concat "No matches for %S. todo:, tags: and property: "
+                                  "match case exactly; heading: and bare words "
+                                  "do not.")
+                          sexp))))))))
     (error (format "Error: %s" (error-message-string err)))))
 
 ;;; Outline index ------------------------------------------------------------
@@ -4807,17 +5322,24 @@ cannot repeat them."
   (require 'org-id)
   (let ((inhibit-read-only t)                     ; see --at-id-writable
         (marker (claude-code-ide-org--id-find id 'marker)))
-    (if (not marker)
-        (format "Error: no org heading found with :ID: \"%s\"" id)
+    (cond
+     ((not marker)
+      (claude-code-ide-org--id-not-found id))
+     ((claude-code-ide-org--busy-refusal (buffer-file-name (marker-buffer marker))))
+     (t
       (condition-case err
           (org-with-point-at marker
             (org-back-to-heading t)
             (let* ((level (org-current-level))
                    (state (or parent-state (org-get-todo-state)))
                    (category (claude-code-ide-org--outline-category))
+                   ;; No cookie here: `--ensure-statistics-cookie-at-point'
+                   ;; owns placement, after the keyword, and this was
+                   ;; the one inserter still writing a trailing one
+                   ;; (TODO.org :ID: 492a1a30).
                    (line (concat (make-string level ?*) " "
                                  (if state (concat state " ") "")
-                                 parent-title " [/]\n")))
+                                 parent-title "\n")))
               (beginning-of-line)
               (insert line)
               ;; Point is now on the child's heading; demote it under the
@@ -4830,6 +5352,7 @@ cannot repeat them."
                 (org-entry-put (point) "CREATED"
                                (format-time-string "[%Y-%m-%d %a %H:%M]"))
                 (when category (org-entry-put (point) "CATEGORY" category))
+                (claude-code-ide-org--ensure-statistics-cookie-at-point)
                 (org-update-statistics-cookies nil)
                 (save-buffer)
                 (format "Divided: new parent \"%s\" (:ID: %s) now holds \"%s\"; \
@@ -4837,7 +5360,7 @@ its id, clock and history stayed with the child"
                         parent-title parent-id
                         (save-excursion (org-goto-first-child)
                                         (org-get-heading t t t t))))))
-        (error (format "Error: %s" (error-message-string err)))))))
+        (error (format "Error: %s" (error-message-string err))))))))
 
 (defconst claude-code-ide-org--property-tool-refused '("ID" "CREATED")
   "Properties `org_set_property' will not write.
@@ -4919,10 +5442,8 @@ where writing into a busy buffer could lose the human's edits."
      ((member property claude-code-ide-org--property-tool-refused)
       (format "Error: %s is written at capture and is identity, not annotation; \
 this tool will not rewrite it" property))
-     ((not marker) (format "Error: no org heading found with :ID: \"%s\"" id))
-     ((claude-code-ide-org--file-busy-p (buffer-file-name (marker-buffer marker)))
-      (format "Error: %s has unsaved changes in Emacs; retry once it is saved"
-              (file-name-nondirectory (buffer-file-name (marker-buffer marker)))))
+     ((not marker) (claude-code-ide-org--id-not-found id))
+     ((claude-code-ide-org--busy-refusal (buffer-file-name (marker-buffer marker))))
      ;; Declaring a container a slice mints a hybrid -- see the lint
      ;; rule (TODO.org :ID: dca940c1). Refused here so the combination
      ;; cannot be created by this path, not merely caught at commit; a
@@ -4937,48 +5458,61 @@ declaring it :KIND: slice would make it both")
       (condition-case err
           (org-with-point-at marker
             (if (not (equal property "BLOCKER"))
-                (if (and (equal property "KIND")
-                         (equal (downcase (string-trim (or value ""))) "slice"))
-                    ;; Declaring a slice is the one moment a heading
-                    ;; *becomes* one, so the declaration completes
-                    ;; itself: everything a slice must carry that a
-                    ;; mechanism can derive is written here rather than
-                    ;; left for the composer's hand (TODO.org :ID:
-                    ;; acf46449 -- measured, composing one declared cost
-                    ;; two property calls and a hand-typed cookie, all
-                    ;; three values refresh-slice already derives).
-                    (let (did)
-                      ;; Canonical lowercase: every slice predicate
-                      ;; tests (equal "slice" ...), so "Slice" would
-                      ;; declare something nothing recognises.
-                      (org-entry-put (point) "KIND" "slice")
-                      (unless (org-entry-get nil "COOKIE_DATA")
-                        ;; `checkbox' because members are list items;
-                        ;; `recursive' because a nested member's lines
-                        ;; are otherwise excluded (:ID: b6da3480).
-                        (org-entry-put (point) "COOKIE_DATA"
-                                       "checkbox recursive")
-                        (push ":COOKIE_DATA:" did))
-                      (when (claude-code-ide-org--ensure-statistics-cookie-at-point)
-                        (push "[/] cookie" did))
-                      ;; The blocker derives from the checklist, so a
-                      ;; declaration made before the body is written
-                      ;; leaves it to the first refresh rather than
-                      ;; deleting a hand-set value against no members.
-                      (when (and (claude-code-ide-org--slice-members)
-                                 (claude-code-ide-org--refresh-slice-blocker-at-point))
-                        (push ":BLOCKER:" did))
-                      (save-buffer)
-                      (format "Set KIND on \"%s\"%s"
-                              (org-get-heading t t t t)
-                              (if did
-                                  (format " (declared a slice; derived %s)"
-                                          (string-join (nreverse did) ", "))
-                                " (declared a slice; nothing to derive)")))
-                  (org-entry-put (point) property value)
-                  (save-buffer)
-                  (format "Set %s on \"%s\"" property
-                          (org-get-heading t t t t)))
+                (if (equal property "DROPPED")
+                    ;; Ids, like :BLOCKER:'s, so validated the same way:
+                    ;; prefixes expanded, an unresolvable id refused
+                    ;; rather than written where it silently drops
+                    ;; nothing (TODO.org :ID: 25e7b083).
+                    (let ((parsed (claude-code-ide-org--blocker-ids-from value)))
+                      (if (eq (car parsed) 'error)
+                          (format "Error: %s" (cdr parsed))
+                        (org-entry-put (point) "DROPPED" (string-join (cdr parsed) " "))
+                        (save-buffer)
+                        (format "Set DROPPED on \"%s\" to %d id%s"
+                                (org-get-heading t t t t) (length (cdr parsed))
+                                (if (= 1 (length (cdr parsed))) "" "s"))))
+                  (if (and (equal property "KIND")
+                           (equal (downcase (string-trim (or value ""))) "slice"))
+                      ;; Declaring a slice is the one moment a heading
+                      ;; *becomes* one, so the declaration completes
+                      ;; itself: everything a slice must carry that a
+                      ;; mechanism can derive is written here rather than
+                      ;; left for the composer's hand (TODO.org :ID:
+                      ;; acf46449 -- measured, composing one declared cost
+                      ;; two property calls and a hand-typed cookie, all
+                      ;; three values refresh-slice already derives).
+                      (let (did)
+                        ;; Canonical lowercase: every slice predicate
+                        ;; tests (equal "slice" ...), so "Slice" would
+                        ;; declare something nothing recognises.
+                        (org-entry-put (point) "KIND" "slice")
+                        (unless (org-entry-get nil "COOKIE_DATA")
+                          ;; `checkbox' because members are list items;
+                          ;; `recursive' because a nested member's lines
+                          ;; are otherwise excluded (:ID: b6da3480).
+                          (org-entry-put (point) "COOKIE_DATA"
+                                         "checkbox recursive")
+                          (push ":COOKIE_DATA:" did))
+                        (when (claude-code-ide-org--ensure-statistics-cookie-at-point)
+                          (push "[/] cookie" did))
+                        ;; The blocker derives from the checklist, so a
+                        ;; declaration made before the body is written
+                        ;; leaves it to the first refresh rather than
+                        ;; deleting a hand-set value against no members.
+                        (when (and (claude-code-ide-org--slice-members)
+                                   (claude-code-ide-org--refresh-slice-blocker-at-point))
+                          (push ":BLOCKER:" did))
+                        (save-buffer)
+                        (format "Set KIND on \"%s\"%s"
+                                (org-get-heading t t t t)
+                                (if did
+                                    (format " (declared a slice; derived %s)"
+                                            (string-join (nreverse did) ", "))
+                                  " (declared a slice; nothing to derive)")))
+                    (org-entry-put (point) property value)
+                    (save-buffer)
+                    (format "Set %s on \"%s\"" property
+                            (org-get-heading t t t t))))
               (let ((parsed (claude-code-ide-org--blocker-ids-from value)))
                 (if (eq (car parsed) 'error)
                     (format "Error: %s" (cdr parsed))
@@ -5013,6 +5547,163 @@ org-depend will not block on %s until the queue is applied"
                                (if (= 1 (length inert)) "it" "them")))))))))
         (error (format "Error: %s" (error-message-string err))))))))
 
+;;; Tags ---------------------------------------------------------------------
+;;
+;; TODO.org :ID: da6a2fba.  A heading's tags could be set only at capture:
+;; `org-entry-put' refuses TAGS, so every later change was a headline
+;; edit behind Emacs's back -- the divergence 53b0047d and 60d6ab6e
+;; describe -- and the brainstorming skill changes a path tag on every
+;; heading it classifies.  One tool, path-tag aware, that logs what it
+;; changed; and a companion that logs a hand `C-c C-q' the same way.
+
+(defconst claude-code-ide-org--path-tags '("spike" "bounded" "arch")
+  "The brainstorming path tags.  A heading carries at most one:
+`org_set_tags' displaces the others when it adds one, and
+`bin/lint-org''s one-path-tag rule reads this same list.")
+
+(defvar claude-code-ide-org--set-tags-logging nil
+  "Non-nil while `org_set_tags' writes, so the hand-edit logger stands
+aside: the tool writes its own line, carrying the caller's note, and
+the deferred note org would queue instead is the path that cannot
+complete non-interactively (the state-transition rules, :ID: 3d576d29).")
+
+(defun claude-code-ide-org--parse-tag-list (value)
+  "VALUE, a comma- or space-separated tag list with colons stripped."
+  (split-string (or value "") "[ \t,:]+" t))
+
+(defun claude-code-ide-org--format-tag-set (tags &optional for-reply)
+  "TAGS as org writes them, `:a:b:'.  An empty set is \"\" in a log
+line, matching org's own quoted-empty previous state, and \"none\" in
+a reply when FOR-REPLY."
+  (cond (tags (format ":%s:" (string-join tags ":")))
+        (for-reply "none")
+        (t "")))
+
+(defun claude-code-ide-org--format-log-tags-line (new old &optional note time)
+  "Format the :LOGBOOK: line for a tag change to NEW from OLD, both whole
+local tag sets: `- Tags \":a:b:\" from \":a:\" [ts]', the same shape
+org's `tags' template below writes for a hand edit, so the two paths
+are indistinguishable in the drawer.  NOTE, when given, is indented
+beneath after org's `\\\\' continuation.  TIME defaults to now."
+  (concat (format "- Tags %-12s from %-12s %s"
+                  (format "\"%s\"" (claude-code-ide-org--format-tag-set new))
+                  (format "\"%s\"" (claude-code-ide-org--format-tag-set old))
+                  (format-time-string "[%Y-%m-%d %a %H:%M]" time))
+          (if (and note (not (string-empty-p (string-trim note))))
+              (format " \\\\\n  %s" (string-trim note))
+            "")))
+
+(defun claude-code-ide-org-set-tags (id &optional add remove note)
+  "Add ADD to and remove REMOVE from the local tags of the heading whose
+:ID: is ID, each a comma- or space-separated list.  Writes immediately,
+through `org-set-tags', and logs the change to :LOGBOOK: with NOTE
+beneath it (TODO.org :ID: da6a2fba).
+
+Path-tag aware: adding one of `claude-code-ide-org--path-tags' displaces
+whichever other the heading carries, so one call moves a heading's
+brainstorming path, and the reply names what it replaced.  Two path
+tags in one ADD are refused; a move down is not, since the one-way rule
+is the skill's judgement, but it is visible in the reply.
+
+The result is the heading's own tags -- `org-get-tags' local only, so an
+inherited tag is never copied onto the line -- minus REMOVE and any
+displaced path tag, plus ADD, deduplicated, new tags appended.  When
+nothing changes it says so and writes nothing.  Removing a tag the
+heading lacks is a note in the reply, not an error.  Refuses on the
+human's unsaved edits, like every structural writer."
+  (let* ((add (claude-code-ide-org--parse-tag-list add))
+         (remove (claude-code-ide-org--parse-tag-list remove))
+         (paths-added (seq-filter (lambda (tag) (member tag claude-code-ide-org--path-tags))
+                                  add))
+         (marker (claude-code-ide-org--id-find id 'marker)))
+    (cond
+     ((and (null add) (null remove))
+      "Error: nothing to add or remove -- pass add=, remove= or both")
+     ((not marker)
+      (claude-code-ide-org--id-not-found id))
+     ((claude-code-ide-org--busy-refusal (buffer-file-name (marker-buffer marker))))
+     ((cdr paths-added)
+      (format "Error: a heading is on one brainstorming path at a time, and add names %s"
+              (claude-code-ide-org--format-tag-set paths-added)))
+     (t
+      (claude-code-ide-org--at-id-writable
+       id
+       (lambda ()
+         (let* ((current (mapcar #'substring-no-properties (org-get-tags nil t)))
+                (displaced (and paths-added
+                                (seq-filter
+                                 (lambda (tag) (and (member tag claude-code-ide-org--path-tags)
+                                                    (not (member tag add))))
+                                 current)))
+                (missing (seq-remove (lambda (tag) (member tag current)) remove))
+                (result (delete-dups
+                         (append (seq-remove (lambda (tag) (or (member tag remove)
+                                                               (member tag displaced)))
+                                             current)
+                                 (copy-sequence add))))
+                (heading (org-get-heading t t t t))
+                (missing-note (if missing
+                                  (format "; %s was not there" (string-join missing ", "))
+                                "")))
+           (if (equal result current)
+               (format "No change: \"%s\" already carries %s; nothing written%s"
+                       heading (claude-code-ide-org--format-tag-set current t) missing-note)
+             ;; The advice logs a hand edit; this call logs its own.
+             (let ((claude-code-ide-org--set-tags-logging t))
+               (org-set-tags result))
+             (claude-code-ide-org--append-to-drawer
+              "LOGBOOK" (claude-code-ide-org--format-log-tags-line result current note))
+             (save-buffer)
+             (format "Tags on \"%s\": %s (was %s)%s%s"
+                     heading
+                     (claude-code-ide-org--format-tag-set result t)
+                     (claude-code-ide-org--format-tag-set current t)
+                     (if displaced
+                         (format " (replaced path tag %s)" (string-join displaced ", "))
+                       "")
+                     missing-note)))))))))
+
+(defun claude-code-ide-org--log-hand-tag-change (orig &rest args)
+  "For `org-set-tags', as :around advice: log a tag change made by hand
+in a tracked file, through org's own deferred note.
+
+The hook `org-set-tags' runs receives no arguments and the old tags are
+local to it, so advice reads them first, calls ORIG with ARGS, and when
+the result differs queues `(org-add-log-setup \\='tags NEW OLD \\='time)':
+org's `tags' template writes the same line `org_set_tags' writes.
+Deferred through `post-command-hook', which is reliable for an
+interactive command and is exactly why `org_set_tags' does not use it:
+it writes its own line and binds `claude-code-ide-org--set-tags-logging'
+so this stands aside.
+
+`\\='time', the bare line, not `\\='note': `org-add-log-note' builds its
+prompt from a fixed `cl-case' over org's own purposes and signals
+\"This should not happen\" on any other (org.el, 2026-09-25), so a
+custom purpose cannot prompt for a reason.  The reason for a hand
+change goes in by hand, or through the tool.
+
+Tracked files only (`claude-code-ide-org--tracked-buffer-p'), for the
+reason `#+STARTUP: logdrawer' was chosen over a global setting.  A
+session editing headline text calls no org function, so neither path
+sees that; the tool is why."
+  (if (or claude-code-ide-org--set-tags-logging
+          (not (claude-code-ide-org--tracked-buffer-p))
+          (not (ignore-errors (save-excursion (org-back-to-heading t) t))))
+      (apply orig args)
+    (let ((old (mapcar #'substring-no-properties (org-get-tags nil t))))
+      (prog1 (apply orig args)
+        (let ((new (mapcar #'substring-no-properties (org-get-tags nil t))))
+          (unless (equal new old)
+            (org-add-log-setup 'tags
+                               (claude-code-ide-org--format-tag-set new)
+                               (claude-code-ide-org--format-tag-set old)
+                               'time)))))))
+
+(with-eval-after-load 'org
+  ;; `org-store-log-note' wraps %s and %S in double quotes itself.
+  (add-to-list 'org-log-note-headings '(tags . "Tags %-12s from %-12S %t"))
+  (advice-add 'org-set-tags :around #'claude-code-ide-org--log-hand-tag-change))
+
 (defun claude-code-ide-org-sort-children (id sort-type)
   "Sort the children of the org heading whose :ID: property equals ID.
 SORT-TYPE is a friendly string, one of: alpha, todo-order, priority,
@@ -5026,14 +5717,18 @@ Saves the buffer afterwards."
    id
    (lambda ()
      (let ((code (cdr (assoc sort-type claude-code-ide-org--sort-type-codes)))
-           (heading (org-get-heading t t t t)))
-       (if (not code)
-           (format "Error: unknown sort-type \"%s\"; expected one of %s"
-                   sort-type
-                   (mapconcat #'car claude-code-ide-org--sort-type-codes ", "))
+           (heading (org-get-heading t t t t))
+           (busy (claude-code-ide-org--busy-refusal buffer-file-name)))
+       (cond
+        (busy busy)
+        ((not code)
+         (format "Error: unknown sort-type \"%s\"; expected one of %s"
+                 sort-type
+                 (mapconcat #'car claude-code-ide-org--sort-type-codes ", ")))
+        (t
          (org-sort-entries nil code)
          (save-buffer)
-         (format "Sorted children of \"%s\" by %s" heading sort-type))))))
+         (format "Sorted children of \"%s\" by %s" heading sort-type)))))))
 
 (defun claude-code-ide-org-move-sibling (id direction)
   "Move the org heading whose :ID: property equals ID up or down
@@ -5050,12 +5745,15 @@ rather than adding separate boundary handling here."
    id
    (lambda ()
      (let ((heading (org-get-heading t t t t)))
-       (cond
-        ((equal direction "up") (org-move-subtree-up))
-        ((equal direction "down") (org-move-subtree-down))
-        (t (error "Unknown direction \"%s\"; expected \"up\" or \"down\"" direction)))
-       (save-buffer)
-       (format "Moved \"%s\" %s" heading direction)))))
+       (or
+        (claude-code-ide-org--busy-refusal buffer-file-name)
+        (progn
+          (cond
+           ((equal direction "up") (org-move-subtree-up))
+           ((equal direction "down") (org-move-subtree-down))
+           (t (error "Unknown direction \"%s\"; expected \"up\" or \"down\"" direction)))
+          (save-buffer)
+          (format "Moved \"%s\" %s" heading direction)))))))
 
 ;;; Clock report --------------------------------------------------------------
 ;;
@@ -5571,6 +6269,9 @@ subheading."
     (org-back-to-heading t)
     (let ((end (save-excursion (outline-next-heading) (or (point) (point-max))))
           (members nil))
+      ;; Below the leading drawers: a `:PLAN:' drawer's id bullets are
+      ;; design prose, never members (TODO.org :ID: 7ee3b71a).
+      (org-end-of-meta-data t)
       (while (re-search-forward claude-code-ide-org--slice-member-regexp end t)
         ;; MARK is nil only when group 1 did not match at all -- an
         ;; *absent* cookie.  An empty `[ ]' is a cookie like any other and
@@ -5600,9 +6301,9 @@ than by reading, which is what that test is for.
 (:ID: a43cfaa0): membership is then positionally explicit, and an
 id-link bullet in the prose *above* the lead is ordinary prose rather
 than a member with a deleted cookie -- the trap the conventions used
-to have to warn about.  Where no lead exists the scan starts at the
-body as before; closed slices predate the lead and are never
-refreshed, so that fallback is permanent, not transitional."
+to have to warn about.  Where no lead exists -- five closed slices
+predate it -- the answer is the slice's `:MEMBERS:' (TODO.org :ID:
+7ee3b71a)."
   (save-excursion
     (org-back-to-heading t)
     (let* ((body-end (save-excursion (outline-next-heading)
@@ -5616,6 +6317,7 @@ refreshed, so that fallback is permanent, not transitional."
                         (match-beginning 0))))
            (end (or lead body-end))
            (planned (save-excursion
+                      (org-end-of-meta-data t)
                       (and (re-search-forward
                             (concat "^" (regexp-quote
                                          claude-code-ide-org--slice-planned-lead)
@@ -5623,12 +6325,21 @@ refreshed, so that fallback is permanent, not transitional."
                             end t)
                            (match-end 0))))
            ids)
-      (when planned (goto-char planned))
-      (while (re-search-forward claude-code-ide-org--slice-member-regexp end t)
-        (push (downcase (match-string-no-properties 2)) ids))
-      (nreverse ids))))
+      ;; No lead: the declaration answers.  The start-at-the-top scan went
+      ;; once every slice carried :MEMBERS: (TODO.org :ID: 7ee3b71a),
+      ;; which is what migrating all of them, closed ones included,
+      ;; bought.
+      (if (not planned)
+          ;; A slice with neither -- which the lint rejects -- is read
+          ;; from its checklist below the drawers, never from the top.
+          (or (claude-code-ide-org--slice-declared-ids)
+              (claude-code-ide-org--slice-checklist-ids))
+        (goto-char planned)
+        (while (re-search-forward claude-code-ide-org--slice-member-regexp end t)
+          (push (downcase (match-string-no-properties 2)) ids))
+        (nreverse ids)))))
 
-(defun claude-code-ide-org--slice-blocker-ids ()
+(defun claude-code-ide-org--slice-blocker-ids (&optional index)
   "Return the ids the slice at point should block on.
 
 The members that still carry a checkbox cookie *and are not yet done*,
@@ -5649,11 +6360,39 @@ only its planned members; once a slice also lists the incidental work
 that closed during its life, every one of those is done on arrival and
 would enter the blocker at birth.  No information is lost: membership is
 recorded by the checkbox list, and the blocker only ever answered \"what
-still has to finish\"."
-  (delete-dups
-   (mapcar #'car
-           (seq-filter (lambda (m) (and (cdr m) (not (equal (cdr m) "X"))))
-                       (claude-code-ide-org--slice-members)))))
+still has to finish\".
+
+*Where the slice declares `:MEMBERS:', the property is the source*
+\(TODO.org :ID: 7ee3b71a).  With INDEX, a referent index, the blocker is
+derived property to property: the declared ids, minus `:DROPPED:', minus
+referents whose keyword maps to no box or to `X'.  No prose is read, so
+a destroyed checklist cannot make the blocker stale.  Without INDEX --
+the lint, which reads temp copies the index would not scan -- the
+checklist's unfinished boxed lines are read, restricted to the declared
+ids; after a refresh the two agree by construction.  Either way a parent
+row is excluded, being boxless and undeclared, and so is an incidental."
+  (let ((declared (claude-code-ide-org--slice-declared-ids)))
+    (cond
+     ((and declared index)
+      (let ((dropped (claude-code-ide-org--slice-dropped-ids)))
+        (delete-dups
+         (seq-filter
+          (lambda (id)
+            (let* ((kw (car (gethash id index)))
+                   (box (and kw (cdr (assoc kw claude-code-ide-org--slice-checkbox-by-keyword)))))
+              (and (not (member id dropped)) box (not (equal box "X")))))
+          declared))))
+     (declared
+      (delete-dups
+       (seq-filter (lambda (id) (member id declared))
+                   (mapcar (lambda (m) (downcase (car m)))
+                           (seq-filter (lambda (m) (and (cdr m) (not (member (cdr m) '("X" "x")))))
+                                       (claude-code-ide-org--slice-members))))))
+     (t
+      (delete-dups
+       (mapcar #'car
+               (seq-filter (lambda (m) (and (cdr m) (not (equal (cdr m) "X"))))
+                           (claude-code-ide-org--slice-members))))))))
 
 (defconst claude-code-ide-org--slice-checkbox-by-keyword
   '(("DONE"      . "X")
@@ -5675,13 +6414,25 @@ and stops counting, in either direction.
 
 A nil cdr means the cookie is *deleted*, leaving a plain `- ' item.")
 
-(defun claude-code-ide-org--slice-referent-index ()
+(defun claude-code-ide-org--slice-referent-index (&optional parents)
   "Hash of full :ID: to (KEYWORD . TITLE) across the tracked files.
 
 One scan rather than an `org-id-find' per member: a slice of twenty
 members would otherwise open and search files twenty times to render one
-heading."
+heading.
+
+With PARENTS, a hash table, it is also filled with each heading's full
+:ID: mapped to its parent heading's, for the headings whose parent
+carries an :ID: (TODO.org :ID: 7ee3b71a).  The slice renderer needs that
+one fact to place a member under its story, and the scan already visits
+every headline, so it costs a level stack and nothing else.  The parent's
+:ID: line arrives after its own headline and before any child's, so by
+the time a child is seen the stack already holds its parent's id."
   (let ((table (make-hash-table :test 'equal))
+        ;; (LEVEL . ID) per open heading, innermost first.  ID is filled
+        ;; in when the heading's own :ID: line is read.
+        (stack nil)
+        (pending-parent nil)
         (kw-re (concat "\\`\\(" (mapconcat #'regexp-quote
                                            (mapcar #'car claude-code-ide-org--slice-checkbox-by-keyword)
                                            "\\|")
@@ -5696,10 +6447,16 @@ heading."
             (insert-file-contents file)
             (goto-char (point-min))
             (let (pending)
+              (setq stack nil pending-parent nil)
               (while (not (eobp))
                 (cond
-                 ((looking-at "^\\*+ +\\(.*\\)$")
-                  (let* ((raw (match-string-no-properties 1))
+                 ((looking-at "^\\(\\*+\\) +\\(.*\\)$")
+                  (let ((level (length (match-string 1))))
+                    (while (and stack (>= (caar stack) level))
+                      (pop stack))
+                    (setq pending-parent (cdar stack))
+                    (push (cons level nil) stack))
+                  (let* ((raw (match-string-no-properties 2))
                          (kw (and (string-match kw-re raw) (match-string 1 raw)))
                          (title (if kw (substring raw (match-end 1)) raw)))
                     (setq title (string-trim (replace-regexp-in-string
@@ -5718,7 +6475,11 @@ heading."
                                  "\\`\\[[0-9]*\\(?:%\\|/[0-9]*\\)\\][ \t]*" "" title))
                     (setq pending (cons kw title))))
                  ((and pending (looking-at "^[ \t]*:ID:[ \t]+\\(\\S-+\\)[ \t]*$"))
-                  (puthash (downcase (match-string-no-properties 1)) pending table)
+                  (let ((id (downcase (match-string-no-properties 1))))
+                    (puthash id pending table)
+                    (when stack (setcdr (car stack) id))
+                    (when (and parents pending-parent)
+                      (puthash id pending-parent parents)))
                   (setq pending nil)))
                 (forward-line 1)))))))))
 
@@ -6143,104 +6904,356 @@ sticky: a `MAYBE' member promoted to `TODO' never regained its box,
 because the refresh kept the absence it found.  A property survives a
 line being regenerated wholesale, which is what disqualified every
 marker that lived on the line itself."
-  (let ((raw (org-entry-get nil "DROPPED")))
-    (and raw (mapcar #'downcase (split-string raw "[ \t,]+" t)))))
+  ;; Prefixes are expanded as they are read: a prefix compared against
+  ;; full member ids dropped nothing, and on 8a2eb687 a dropped member
+  ;; kept its checkbox for four days (TODO.org :ID: 25e7b083).  A token
+  ;; that expands to nothing stays as written, so the lint still sees it.
+  (let ((raw (org-entry-get nil "DROPPED"))
+        (table (claude-code-ide-org--id-index)))
+    (and raw
+         (mapcar (lambda (tok)
+                   (let ((full (claude-code-ide-org--expand-id-prefix tok table)))
+                     (downcase (if (stringp full) full tok))))
+                 (split-string raw "[ \t,]+" t)))))
 
-(defun claude-code-ide-org--refresh-slice-members-at-point (index)
-  "Rewrite the slice-at-point's member lines from INDEX.  Returns a count.
+(defun claude-code-ide-org--slice-declared-ids ()
+  "Ids the slice-at-point's `:MEMBERS:' property names, downcased, or nil.
 
-Each line is regenerated as `- [BOX] LINK KEYWORD TITLE': the checkbox
-from the referent's keyword, and the keyword and title copied fresh.  The
-link itself is left alone -- it is the one part that cannot go stale --
-and so is the ordering.
+The declaration (TODO.org :ID: 7ee3b71a).  A slice declares one thing,
+the work it undertakes in order, and it used to declare it in body
+prose, where any writer that replaced the body destroyed it and the
+`:BLOCKER:' derived from it went stale.  A property survives a body
+rewrite; the checklist is now a rendering of it.
 
-The checkbox is *fully* derived: from the referent's keyword, minus the
-ids the slice's `:DROPPED:' property names, minus grouping-label lines
-(cookie-less with indented member lines beneath -- partial coverage of
-a story, :ID: 758a8b78).  Until 2026-09-08 the cookie's own absence was
-read as the drop declaration, which made a `MAYBE' member and a drop
-render identically *and* made the drop sticky -- a promoted member
-never regained its box (TODO.org :ID: 1b727475).
+Nil means the property is absent, which callers must tell apart from a
+slice declaring no members: a slice not yet migrated keeps its
+line-scanned checklist.  Prefixes are expanded as they are read, exactly
+as `claude-code-ide-org--slice-dropped-ids' does (TODO.org :ID:
+25e7b083); a token that expands to nothing stays as written, so the lint
+still sees it."
+  (let ((raw (org-entry-get nil "MEMBERS")))
+    (when raw
+      (let ((table (claude-code-ide-org--id-index)))
+        (mapcar (lambda (tok)
+                  (let ((full (claude-code-ide-org--expand-id-prefix tok table)))
+                    (downcase (if (stringp full) full tok))))
+                (split-string raw "[ \t,]+" t))))))
 
-A member whose id is not in INDEX, or whose referent carries no keyword,
-is skipped rather than guessed at.  Both are already errors in
-`bin/lint-org', and a regenerator that invented a state for them would
-paper over exactly what that error exists to surface.
+(defun claude-code-ide-org--slice-render-planned-lines (ids index parents dropped &optional previous)
+  "Render IDS as a slice's planned checklist.  Returns (LINES . UNRENDERED).
 
-*Everything after the link is replaced*, so a member line carries no
-annotation of its own.  That is the convention rather than a limitation
-of this function: the line is a rendering, and anything hand-written on
-it would be destroyed at the next apply anyway."
+INDEX is `claude-code-ide-org--slice-referent-index''s hash, PARENTS the
+parent hash it fills, DROPPED the ids `:DROPPED:' names.
+
+A member whose parent heading carries a TODO keyword renders indented
+beneath a *parent row* for its parent: a boxless line that is derived,
+not declared, and never counted, since a parent carries no work a slice
+counts (the user, 2026-09-25, on 7ee3b71a).  Consecutive members sharing
+a parent share one row; a member of that parent further down gets a row
+of its own again, so order in `:MEMBERS:' is always the order shown.  A
+keyword-less parent yields no row, which is what keeps a member under
+the meta-work datetree flush left.
+
+A member missing from INDEX, or whose referent has no keyword on disk,
+is returned in UNRENDERED and still renders: as its line in PREVIOUS, a
+hash of id to the line the checklist held, when there is one -- keeping
+the box and placeholder title a queued capture was added with, as the
+line-rewriting refresh did -- and otherwise as a boxless line naming
+what is known.  Skipping it would delete it, since this rendering
+replaces the list wholesale."
+  (let (lines unrendered prev-parent)
+    (dolist (id ids)
+      (let* ((entry (gethash id index))
+             (kw (car entry))
+             (parent (gethash id parents))
+             (pentry (and parent (gethash parent index)))
+             (row-parent (and pentry (car pentry) parent))
+             (indent (if row-parent "  " "")))
+        (when (and row-parent (not (equal row-parent prev-parent)))
+          (push (format "- [[id:%s][%s]] %s %s" row-parent
+                        (claude-code-ide-org--short-id row-parent)
+                        (car pentry) (cdr pentry))
+                lines))
+        (setq prev-parent row-parent)
+        (let ((box (and kw (not (member id dropped))
+                        (cdr (assoc kw claude-code-ide-org--slice-checkbox-by-keyword)))))
+          (unless (and entry kw) (push id unrendered))
+          (push (if (and (not (and entry kw)) previous (gethash id previous))
+                    (concat indent (string-trim-left (gethash id previous)))
+                  (concat indent "- " (if box (format "[%s] " box) "")
+                        (format "[[id:%s][%s]]" id (claude-code-ide-org--short-id id))
+                        (cond ((and entry kw) (format " %s %s" kw (cdr entry)))
+                              (entry (format " %s" (cdr entry)))
+                              (t " (unresolved referent)"))))
+                lines))))
+    (cons (nreverse lines) (nreverse unrendered))))
+
+(defconst claude-code-ide-org--slice-list-line-re
+  "^[ \t]*- \\(?:\\[[ Xx-]\\] \\)?\\[\\[id:"
+  "A line of a slice's rendered checklist, member or parent row.")
+
+(defun claude-code-ide-org--slice-planned-region ()
+  "(START . END) of the slice-at-point's rendered planned checklist, or nil.
+
+From the first list line after the `Planned:' lead to the end of the
+contiguous run of list lines that follows.  *Contiguous, not lead to
+lead*: surveyed 2026-09-25, 8 of 17 slices carry prose or an `orgit-rev:'
+list after their checklist and before `Incidental:', and a region running
+to the next lead would delete it unattended at the next apply.  Nil when
+there is no lead; a lead with no list yet gives an empty region just
+after it."
   (save-excursion
     (org-back-to-heading t)
-    ;; A *marker*, not a position. Each rewrite changes the line's length,
-    ;; and a fixed integer end would drift: the first replacement here was
-    ;; longer than what it replaced, which pushed the second member line
-    ;; past the bound and left it silently unrefreshed.
-    (let ((end (copy-marker (save-excursion (outline-next-heading) (or (point) (point-max)))))
-          (dropped-ids (claude-code-ide-org--slice-dropped-ids))
-          (changed 0)
-          (skipped nil))
+    (let* ((body-end (save-excursion (outline-next-heading) (or (point) (point-max))))
+           (lead (progn
+                   (org-end-of-meta-data t)
+                   (and (re-search-forward
+                         (concat "^" (regexp-quote claude-code-ide-org--slice-planned-lead)
+                                 "[ \t]*$")
+                         body-end t)
+                        (match-end 0)))))
+      (when lead
+        (goto-char lead)
+        (forward-line 1)
+        (while (and (< (point) body-end) (looking-at-p "^[ \t]*$"))
+          (forward-line 1))
+        (if (not (looking-at-p claude-code-ide-org--slice-list-line-re))
+            ;; No list: the region is the blank run under the lead, so a
+            ;; rendering put there sits one blank line from each side.
+            (cons (save-excursion (goto-char lead) (forward-line 1) (point))
+                  (point))
+          (let ((start (point)))
+            (while (and (< (point) body-end)
+                        (looking-at-p claude-code-ide-org--slice-list-line-re))
+              (forward-line 1))
+            (cons start (point))))))))
+
+(defun claude-code-ide-org--refresh-slice-planned-at-point (index parents)
+  "Render the slice-at-point's checklist from `:MEMBERS:'.
+Returns (CHANGED . UNRENDERED), or nil when the slice has no `:MEMBERS:'
+yet, in which case the caller falls back to rewriting lines in place.
+
+The list is replaced wholesale, and only the list: see
+`claude-code-ide-org--slice-planned-region'.  A slice with members and no
+`Planned:' lead gets one at the end of its prose, above any
+`Incidental:' section, as `org_slice_add_member' starts a checklist."
+  (let ((ids (claude-code-ide-org--slice-declared-ids)))
+    (when ids
+      (pcase-let* ((region (claude-code-ide-org--slice-planned-region))
+                   (previous (make-hash-table :test 'equal))
+                   (_ (when region
+                        (dolist (line (split-string (buffer-substring-no-properties
+                                                     (car region) (cdr region))
+                                                    "\n" t))
+                          (when (string-match "\\[\\[id:\\([^]]+\\)\\]" line)
+                            (puthash (downcase (match-string 1 line)) line previous)))))
+                   (`(,lines . ,unrendered)
+                    (claude-code-ide-org--slice-render-planned-lines
+                     ids index parents (claude-code-ide-org--slice-dropped-ids) previous))
+                   (text (concat (string-join lines "\n") "\n")))
+        (save-excursion
+          (cond
+           (region
+            (let ((old (buffer-substring-no-properties (car region) (cdr region))))
+              (if (equal old text)
+                  (cons 0 unrendered)
+                (goto-char (car region))
+                (delete-region (car region) (cdr region))
+                ;; An empty list's region is the blank run under a bare
+                ;; lead, which the rendering replaces between blanks.
+                (insert (if (string-match-p "\\`[ \t\n]*\\'" old)
+                            (concat "\n" text (if (< (cdr region) (save-excursion (outline-next-heading) (or (point) (point-max)))) "\n" ""))
+                          text))
+                (cons 1 unrendered))))
+           (t
+            (org-back-to-heading t)
+            (let* ((body-end (save-excursion (outline-next-heading)
+                                             (or (point) (point-max))))
+                   (inc (save-excursion
+                          (and (re-search-forward
+                                (concat "^" (regexp-quote
+                                             claude-code-ide-org--slice-incidental-lead)
+                                        "[ \t]*$")
+                                body-end t)
+                               (match-beginning 0)))))
+              (goto-char (or inc body-end))
+              (skip-chars-backward " \t\n")
+              (insert "\n\n" claude-code-ide-org--slice-planned-lead "\n\n" text
+                      (if inc "\n" ""))
+              (cons 1 unrendered)))))))))
+
+(defun claude-code-ide-org--slice-checklist-ids ()
+  "The ids a slice-at-point's planned checklist declares, parent rows excluded.
+
+The migration's reader, and the lint's: it recovers what `:MEMBERS:'
+should hold from a checklist written before the property existed.  A
+*parent row* is a list line with a deeper-indented list line directly
+beneath it -- cookie-less as a grouping label, or boxed, as de6de108
+was on 8a2eb687 when a story was counted beside its children.  Parent
+rows are derived, so neither kind is declared (the user, 2026-09-25).
+Scans from the `Planned:' lead when there is one, else from below the
+leading drawers, and stops at the `Incidental:' lead."
+  (save-excursion
+    (org-back-to-heading t)
+    (let* ((body-end (save-excursion (outline-next-heading) (or (point) (point-max))))
+           (inc (save-excursion
+                  (and (re-search-forward
+                        (concat "^" (regexp-quote claude-code-ide-org--slice-incidental-lead)
+                                "[ \t]*$")
+                        body-end t)
+                       (match-beginning 0))))
+           (end (or inc body-end))
+           (lead (save-excursion
+                   (org-end-of-meta-data t)
+                   (and (re-search-forward
+                         (concat "^" (regexp-quote claude-code-ide-org--slice-planned-lead)
+                                 "[ \t]*$")
+                         end t)
+                        (match-end 0))))
+           ids)
+      (if lead (goto-char lead) (org-end-of-meta-data t))
       (while (re-search-forward
-              "^\\([ \t]*\\)- \\(\\[[ Xx-]\\] \\)?\\(\\[\\[id:\\([^]]+\\)\\]\\[[^]]*\\]\\]\\)\\(.*\\)$"
-              end t)
-        (let* ((indent (match-string-no-properties 1))
-               (had-cookie (match-string-no-properties 2))
-               (link (match-string-no-properties 3))
-               (id (downcase (match-string-no-properties 4)))
-               ;; The three reasons a line renders cookie-less, each
-               ;; declared somewhere the regeneration cannot destroy:
-               ;; the id is in :DROPPED: (the drop declaration); the
-               ;; referent's keyword maps to no box (MAYBE/CANCELLED,
-               ;; derived); or the line is a grouping label -- already
-               ;; cookie-less with an indented member line directly
-               ;; beneath, meaning the slice undertakes only part of a
-               ;; story (:ID: 758a8b78) -- which is structural and read
-               ;; from the lines themselves.
-               (grouping-label
-                (and (null had-cookie)
-                     ;; `save-match-data': the lookahead's `looking-at'
-                     ;; would otherwise clobber the outer search's match
-                     ;; data, which `replace-match' below still needs.
-                     (save-match-data
-                       (save-excursion
-                         (forward-line 1)
-                         (and (< (point) end)
-                              (looking-at
-                               "^\\([ \t]*\\)- \\(\\[[ Xx-]\\] \\)?\\[\\[id:")
-                              (> (length (match-string 1))
-                                 (length indent)))))))
-               (dropped (or (member id dropped-ids) grouping-label))
-               (entry (gethash id index))
-               (kw (car entry))
-               (title (cdr entry)))
-          ;; A member with no entry, or an entry carrying no keyword, is
-          ;; skipped -- and used to be skipped *silently*, leaving the
-          ;; placeholder text standing as though it were the referent's
-          ;; real title. That is the "a slice line disagrees with its
-          ;; referent" failure the conventions exist to prevent, arriving
-          ;; through a door they do not describe (TODO.org :ID: 798bb7a1).
-          ;;
-          ;; Counted rather than repaired: the honest rendering of a
-          ;; heading whose `todo' event is still queued is not something
-          ;; this function can invent, so it reports instead.
-          (unless (and entry kw)
-            (push id skipped))
-          (when (and entry kw)
-            (let* ((box (and (not dropped)
-                             (cdr (assoc kw claude-code-ide-org--slice-checkbox-by-keyword))))
-                   (new (concat indent "- " (if box (format "[%s] " box) "")
-                                link " " kw " " title))
-                   (old (match-string-no-properties 0)))
-              (unless (equal old new)
-                ;; LITERAL is t, so NEW goes in verbatim.  Passing it
-                ;; through `regexp-quote' as well would insert the
-                ;; backslashes into the file -- visible immediately on a
-                ;; title like "[0/3] Make the daily ceremony ...".
-                (replace-match new t t)
-                (setq changed (1+ changed)))))))
-      (set-marker end nil)
-      (cons changed (nreverse skipped)))))
+              "^\\([ \t]*\\)- \\(?:\\[[ Xx-]\\] \\)?\\[\\[id:\\([^]]+\\)\\]" end t)
+        (let ((indent (length (match-string 1)))
+              (id (downcase (match-string-no-properties 2))))
+          (unless (save-excursion
+                    (forward-line 1)
+                    (and (< (point) end)
+                         (looking-at "^\\([ \t]*\\)- \\(?:\\[[ Xx-]\\] \\)?\\[\\[id:")
+                         (> (length (match-string 1)) indent)))
+            (push id ids))))
+      (nreverse ids))))
+
+(defun claude-code-ide-org--slice-checklist-structure ()
+  "The slice-at-point's checklist as ((DEPTH . ID) ...), parent rows included.
+DEPTH is the line's indent in columns.  The shape the migration proof
+compares for a closed slice, whose lines are a record of keywords at
+close and so cannot be compared as text."
+  (save-excursion
+    (org-back-to-heading t)
+    (let* ((body-end (save-excursion (outline-next-heading) (or (point) (point-max))))
+           (inc (save-excursion
+                  (and (re-search-forward
+                        (concat "^" (regexp-quote claude-code-ide-org--slice-incidental-lead)
+                                "[ \t]*$")
+                        body-end t)
+                       (match-beginning 0))))
+           (end (or inc body-end))
+           (lead (save-excursion
+                   (org-end-of-meta-data t)
+                   (and (re-search-forward
+                         (concat "^" (regexp-quote claude-code-ide-org--slice-planned-lead)
+                                 "[ \t]*$")
+                         end t)
+                        (match-end 0))))
+           acc)
+      (if lead (goto-char lead) (org-end-of-meta-data t))
+      (while (re-search-forward
+              "^\\([ \t]*\\)- \\(?:\\[[ Xx-]\\] \\)?\\[\\[id:\\([^]]+\\)\\]" end t)
+        (push (cons (length (match-string 1)) (downcase (match-string-no-properties 2)))
+              acc))
+      (nreverse acc))))
+
+(defun claude-code-ide-org-migrate-slice-members (&optional dry-run)
+  "Write `:MEMBERS:' on every slice lacking it, from its checklist.
+Returns a summary.  With DRY-RUN nothing is written.
+
+The one-time cutover of TODO.org :ID: 7ee3b71a, over every slice in the
+tracked files and their archives, closed ones included, since the
+property is the declaration wherever a slice exists.  Parent rows are
+left out, being derived (`claude-code-ide-org--slice-checklist-ids').
+Nothing but the property is written: no checklist is re-rendered here,
+and a closed slice is never refreshed afterwards either.  Verify with
+`claude-code-ide-org-slice-migration-proof' before and after."
+  (interactive "P")
+  (let ((inhibit-read-only t) (n 0) (written 0) (files nil) (busy nil))
+    (dolist (file (claude-code-ide-org--id-scannable-files))
+      (when (and (file-exists-p file)
+               ;; A buffer holding the human's unsaved edits is skipped,
+               ;; never written into and saved with them (TODO.org :ID:
+               ;; b5d97b90, PR #31 review; the refusal of 60d6ab6e).
+               (not (and (claude-code-ide-org--file-busy-p file)
+                         (push (file-name-nondirectory file) busy))))
+        (with-current-buffer (or (find-buffer-visiting file) (find-file-noselect file))
+          (org-with-wide-buffer
+           (goto-char (point-min))
+           (while (re-search-forward org-heading-regexp nil t)
+             (when (claude-code-ide-org--slice-p)
+               (setq n (1+ n))
+               (unless (org-entry-get nil "MEMBERS")
+                 (let ((ids (claude-code-ide-org--slice-checklist-ids)))
+                   (when ids
+                     (setq written (1+ written))
+                     (cl-pushnew (file-name-nondirectory file) files :test #'equal)
+                     (unless dry-run
+                       (org-entry-put nil "MEMBERS" (string-join ids " ")))))))))
+          (when (and (not dry-run) (buffer-modified-p)) (save-buffer)))))
+    (format "%d slice%s scanned, :MEMBERS: %s on %d%s%s%s"
+            n (if (= n 1) "" "s") (if dry-run "would be written" "written")
+            written
+            (if files (format " (%s)" (string-join (nreverse files) ", ")) "")
+            (if busy (format "; skipped for unsaved edits: %s"
+                             (string-join (nreverse busy) ", "))
+              "")
+            (if dry-run "  [dry run]" ""))))
+
+(defun claude-code-ide-org-slice-migration-proof ()
+  "Compare every `:MEMBERS:' slice's checklist against its rendering.
+Returns a list of (ID KIND STATUS DETAIL), one per slice, where KIND is
+`open' or `closed' and STATUS is `same' or `differs'.
+
+An open slice is compared as text, line for line, since its checklist is
+refreshed and must come out byte-identical.  A closed slice is never
+refreshed, so nothing its checklist shows can be lost; its proof is that
+`:MEMBERS:' equals the ids its checklist declares.  Its lines are keyword
+copies from the day it closed (TODO.org :ID: 30a340fd), and a referent
+may since have acquired a keyworded parent, so whether a rendering would
+change its structure is reported in DETAIL and not failed.  The one deviation the cutover makes on purpose,
+de6de108 losing its box on 8a2eb687, shows here as a difference."
+  (let* ((parents (make-hash-table :test 'equal))
+         (index (claude-code-ide-org--slice-referent-index parents))
+         results)
+    (dolist (file (claude-code-ide-org--id-scannable-files) (nreverse results))
+      (when (file-exists-p file)
+        (with-current-buffer (or (find-buffer-visiting file) (find-file-noselect file))
+          (org-with-wide-buffer
+           (goto-char (point-min))
+           (while (re-search-forward org-heading-regexp nil t)
+             (when (and (claude-code-ide-org--slice-p) (org-entry-get nil "MEMBERS"))
+               (let* ((id (claude-code-ide-org--id-prefix (org-entry-get nil "ID")))
+                      (closed (member (org-get-todo-state)
+                                      claude-code-ide-org--outline-finished-keywords))
+                      (lines (car (claude-code-ide-org--slice-render-planned-lines
+                                   (claude-code-ide-org--slice-declared-ids) index parents
+                                   (claude-code-ide-org--slice-dropped-ids)))))
+                 (if closed
+                     ;; Never rendered, so nothing it shows can be lost:
+                     ;; the proof is that the property says what the
+                     ;; checklist declares.  Structural drift -- a referent
+                     ;; that acquired a keyworded parent after the close --
+                     ;; is reported, not failed.
+                     (let* ((declared (claude-code-ide-org--slice-declared-ids))
+                            (listed (claude-code-ide-org--slice-checklist-ids))
+                            (want (mapcar (lambda (l)
+                                            (string-match "\\`\\([ \t]*\\)- \\(?:\\[.\\] \\)?\\[\\[id:\\([^]]+\\)\\]" l)
+                                            (cons (length (match-string 1 l)) (match-string 2 l)))
+                                          lines))
+                            (have (claude-code-ide-org--slice-checklist-structure)))
+                       (push (list id 'closed (if (equal declared listed) 'same 'differs)
+                                   (list :declared (length declared) :listed (length listed)
+                                         :structure (if (equal want have) 'unchanged 'would-change)))
+                             results))
+                   (let* ((region (claude-code-ide-org--slice-planned-region))
+                          (have (and region (split-string
+                                             (buffer-substring-no-properties (car region) (cdr region))
+                                             "\n" t)))
+                          (diff (seq-filter #'identity
+                                            (cl-mapcar (lambda (a b) (unless (equal a b) (list a b)))
+                                                       have lines))))
+                     (push (list id 'open
+                                 (if (and (= (length have) (length lines)) (null diff)) 'same 'differs)
+                                 (list :have (length have) :want (length lines) :diff diff))
+                           results))))))))))))
 
 (defconst claude-code-ide-org--slice-planned-lead "Planned:"
   "The line introducing a slice's planned checklist.
@@ -6296,6 +7309,10 @@ incidental list can never anchor the planned lead."
                         body-end t)
                        (match-beginning 0))))
            (bound (or inc body-end))
+           ;; Below the leading drawers, or a :PLAN: drawer's id bullet
+           ;; reads as the first member and the lead lands inside the
+           ;; drawer (TODO.org :ID: 7ee3b71a, caught by its test).
+           (_ (org-end-of-meta-data t))
            (first (save-excursion
                     (and (re-search-forward
                           claude-code-ide-org--slice-member-regexp bound t)
@@ -6426,6 +7443,19 @@ Returns the number of lines written."
       (set-marker body-end nil)
       (length lines))))
 
+(defvar claude-code-ide-org--stale-buffer-check nil
+  "Bound to `pending' around a pass that looks up many ids at once.
+`claude-code-ide-org--refresh-stale-id-buffers' then checks the buffers
+the first time and sets this to `done', and later lookups in the pass
+skip it (TODO.org :ID: 4d896425): a slice refresh made 886 lookups, each
+walking the buffer list.  Exact rather than a heuristic, because nothing
+outside Emacs runs mid-way through a synchronous pass, and the pass's own
+writes go through buffers, which never read as stale.
+
+Declared here, before the refresh binds it: under lexical binding a
+`let' of a variable not yet special is lexical, and the lookup would
+never see it -- which is how the first version of this changed nothing.")
+
 (defun claude-code-ide-org-refresh-slice (&optional id include-closed)
   "Regenerate every slice's checklist from its referents.
 
@@ -6457,9 +7487,16 @@ a record that was never true at any moment (observed on
 :ID: ec65b5d6, frozen at [0/4] with every member DONE)."
   (interactive)
   (require 'org-id)
-  (let ((claude-code-ide-org--incidentals-claimed-elsewhere nil)
+  (let ((claude-code-ide-org--stale-buffer-check 'pending) ; once per refresh (:ID: 4d896425)
+        (claude-code-ide-org--incidentals-claimed-elsewhere nil)
         (claude-code-ide-org--incidentals-owned-elsewhere nil)
-        (index (claude-code-ide-org--slice-referent-index))
+        ;; Expanded before comparing: a prefix compared with `equal'
+        ;; against the full :ID: read as a clean "0 slices refreshed"
+        ;; (TODO.org :ID: 25e7b083).  Unresolved, it stays as given, and
+        ;; still selects nothing.
+        (full-id (and id (or (claude-code-ide-org--full-id id) id)))
+        (parents (make-hash-table :test 'equal))
+        (index nil)
         ;; Same reasoning as the apply path (TODO.org :ID: 97b030a4): the
         ;; user's `buffer-read-only' guards against their own stray
         ;; keystrokes, and `M-x claude-code-ide-org-refresh-slice' is not
@@ -6469,9 +7506,16 @@ a record that was never true at any moment (observed on
         ;; the apply-path binding was added for, one command later.
         (inhibit-read-only t)
         (slices 0) (lines 0) (blockers 0) (incidentals 0) (cookie-data 0)
-        (planned-leads 0) (unrendered nil))
+        (planned-leads 0) (members-healed 0) (unrendered nil) (undeclared nil)
+        (busy nil))
+    (setq index (claude-code-ide-org--slice-referent-index parents))
     (dolist (file (claude-code-ide-org--tracked-files))
-      (when (file-exists-p file)
+      (when (and (file-exists-p file)
+               ;; A buffer holding the human's unsaved edits is skipped,
+               ;; never written into and saved with them (TODO.org :ID:
+               ;; b5d97b90, PR #31 review; the refusal of 60d6ab6e).
+               (not (and (claude-code-ide-org--file-busy-p file)
+                         (push (file-name-nondirectory file) busy))))
         (with-current-buffer (find-file-noselect file)
           (org-with-wide-buffer
            (goto-char (point-min))
@@ -6498,11 +7542,40 @@ a record that was never true at any moment (observed on
                                     include-closed))
                         (or (null id)
                             (equal (downcase (or (org-entry-get nil "ID") ""))
-                                   (downcase id))))
+                                   (downcase full-id))))
                (setq slices (1+ slices))
-               (let ((result (claude-code-ide-org--refresh-slice-members-at-point index)))
-                 (setq lines (+ lines (car result)))
-                 (setq unrendered (append unrendered (cdr result))))
+               ;; The Planned: lead joins the self-heal family
+               ;; (:ID: a43cfaa0): inserted above an existing checklist
+               ;; when absent, and *before* the members are rendered --
+               ;; the renderer replaces the list under the lead, so with
+               ;; no lead in place it would start a second list beside
+               ;; the lead-less one (found by the add-member test,
+               ;; TODO.org :ID: 7ee3b71a).
+               (when (claude-code-ide-org--ensure-planned-lead-at-point)
+                 (setq planned-leads (1+ planned-leads)))
+               ;; :MEMBERS: joins the same family: a slice carrying a
+               ;; checklist and no declaration -- declared by hand, or
+               ;; written before the cutover -- gets the property from
+               ;; its checklist, parent rows left out, and is reported.
+               ;; A slice with neither is left alone below.
+               (unless (org-entry-get nil "MEMBERS")
+                 (let ((ids (claude-code-ide-org--slice-checklist-ids)))
+                   (when ids
+                     (org-entry-put nil "MEMBERS" (string-join ids " "))
+                     (setq members-healed (1+ members-healed)))))
+               ;; `:MEMBERS:' is the declaration when present and the
+               ;; checklist a rendering of it (TODO.org :ID: 7ee3b71a);
+               ;; a slice without it keeps its lines rewritten in place.
+               ;; A slice still without it -- no checklist to heal from --
+               ;; is left untouched and reported: rendering an absent
+               ;; declaration would draw an empty list, the [0/0]
+               ;; failure this cutover exists to make unreachable.
+               (let ((result (claude-code-ide-org--refresh-slice-planned-at-point
+                              index parents)))
+                 (if (null result)
+                     (push (org-entry-get nil "ID") undeclared)
+                   (setq lines (+ lines (car result)))
+                   (setq unrendered (append unrendered (cdr result)))))
                ;; After the member lines and *before* the cookie, because
                ;; incidental lines carry checkboxes and the cookie counts
                ;; every checkbox in the entry. The denominator grows with
@@ -6539,19 +7612,13 @@ a record that was never true at any moment (observed on
                (unless (org-entry-get nil "COOKIE_DATA")
                  (org-entry-put nil "COOKIE_DATA" "checkbox recursive")
                  (setq cookie-data (1+ cookie-data)))
-               ;; The Planned: lead joins the self-heal family
-               ;; (:ID: a43cfaa0): inserted above an existing checklist
-               ;; when absent, before the member rewrite so the anchor
-               ;; is in place for every later read.
-               (when (claude-code-ide-org--ensure-planned-lead-at-point)
-                 (setq planned-leads (1+ planned-leads)))
                (claude-code-ide-org--ensure-statistics-cookie-at-point)
                ;; Headline-scoped, never org's entry-wide updater: that
                ;; one rewrites [n/m] in body PROSE too, and falsified a
                ;; recorded observation the first time a cookie
                ;; legitimately moved (TODO.org :ID: 0988541b).
                (claude-code-ide-org--update-slice-cookie-at-point)
-               (when (claude-code-ide-org--refresh-slice-blocker-at-point)
+               (when (claude-code-ide-org--refresh-slice-blocker-at-point index)
                  (setq blockers (1+ blockers))))))
           (when (buffer-modified-p) (save-buffer)))))
     (concat
@@ -6568,6 +7635,14 @@ a record that was never true at any moment (observed on
      (when (> planned-leads 0)
        (format "; %d Planned: lead%s repaired"
                planned-leads (if (= planned-leads 1) "" "s")))
+     (when (> members-healed 0)
+       (format "; %d :MEMBERS: written from a checklist" members-healed))
+     (when busy
+       (format "; skipped for unsaved edits: %s" (string-join (nreverse busy) ", ")))
+     (when undeclared
+       (format "; %d slice%s left untouched for having no :MEMBERS: (%s)"
+               (length undeclared) (if (= 1 (length undeclared)) "" "s")
+               (mapconcat #'claude-code-ide-org--id-prefix undeclared " ")))
      ;; Reported, not merely applied. An id dropped for belonging to
      ;; another slice is a *decision* about ownership, and a derived list
      ;; that quietly shrinks is as wrong as one that quietly grows --
@@ -6683,9 +7758,14 @@ Returns a human-readable summary."
   (if id
       (claude-code-ide-org--at-id
        id (lambda () (claude-code-ide-org--refresh-slice-blocker-at-point)))
-    (let ((n 0) (changed 0))
+    (let ((n 0) (changed 0) (busy nil))
       (dolist (file (claude-code-ide-org--tracked-files))
-        (when (file-exists-p file)
+        (when (and (file-exists-p file)
+               ;; A buffer holding the human's unsaved edits is skipped,
+               ;; never written into and saved with them (TODO.org :ID:
+               ;; b5d97b90, PR #31 review; the refusal of 60d6ab6e).
+               (not (and (claude-code-ide-org--file-busy-p file)
+                         (push (file-name-nondirectory file) busy))))
           (with-current-buffer (find-file-noselect file)
             (org-with-wide-buffer
              (goto-char (point-min))
@@ -6695,7 +7775,10 @@ Returns a human-readable summary."
                  (when (claude-code-ide-org--refresh-slice-blocker-at-point)
                    (setq changed (1+ changed))))))
             (when (buffer-modified-p) (save-buffer)))))
-      (format "%d slice%s scanned, %d updated" n (if (= n 1) "" "s") changed))))
+      (format "%d slice%s scanned, %d updated%s" n (if (= n 1) "" "s") changed
+              (if busy (format "; skipped for unsaved edits: %s"
+                               (string-join (nreverse busy) ", "))
+                "")))))
 
 (defun claude-code-ide-org--blocker-wrapped-p (value)
   "Non-nil when VALUE, a `:BLOCKER:' property, carries the `ids(...)' wrapper."
@@ -6793,6 +7876,7 @@ Nothing below the headline can be touched, which is the entire point."
     (let ((end (save-excursion (outline-next-heading) (or (point) (point-max))))
           (n 0) (m 0))
       (save-excursion
+        (org-end-of-meta-data t)
         (while (re-search-forward claude-code-ide-org--slice-member-regexp end t)
           (let ((mark (match-string-no-properties 1)))
             (when mark
@@ -6810,9 +7894,11 @@ Nothing below the headline can be touched, which is the entire point."
             (unless (equal new title)
               (org-edit-headline new))))))))
 
-(defun claude-code-ide-org--refresh-slice-blocker-at-point ()
-  "Set or clear the slice-at-point's `:BLOCKER:'.  Non-nil if it changed."
-  (let* ((ids (claude-code-ide-org--slice-blocker-ids))
+(defun claude-code-ide-org--refresh-slice-blocker-at-point (&optional index)
+  "Set or clear the slice-at-point's `:BLOCKER:'.  Non-nil if it changed.
+INDEX, when given, lets a `:MEMBERS:' slice derive it from the property;
+see `claude-code-ide-org--slice-blocker-ids'."
+  (let* ((ids (claude-code-ide-org--slice-blocker-ids index))
          ;; Bare, space-separated: the only form org-depend parses.
          ;; See `claude-code-ide-org-normalize-blocker-syntax' for the
          ;; wrapper this wrote before 2026-09-15 and why it enforced
@@ -6828,19 +7914,20 @@ Nothing below the headline can be touched, which is the entire point."
       t)))
 
 (defun claude-code-ide-org-slice-add-member (slice-id member-id &optional after parent)
-  "Add MEMBER-ID to SLICE-ID's planned checklist, then refresh that slice.
+  "Add MEMBER-ID to SLICE-ID's `:MEMBERS:', then refresh that slice.
 
-With PARENT -- the id of a planned member whose org subtree contains
-MEMBER-ID -- the line lands *indented under PARENT's line* instead: the
-nested-member declaration (TODO.org :ID: 1206b5b0) that previously
-needed a hand edit.  The parent's own checkbox is stripped, because
-nesting declares partial coverage of a story and a cookie-less line
-with indented member lines beneath it is the grouping-label rendering
-(:ID: 758a8b78); a story undertaken whole needs no nested lines at
-all.  MEMBER-ID must be a real descendant of PARENT in the org tree --
-nested lines render a story's own children, nothing else.  A nested
-member appends after the parent's existing indented block; AFTER
-cannot be combined with PARENT.
+`:MEMBERS:' is the declaration and the checklist a rendering of it
+\(TODO.org :ID: 7ee3b71a), so this edits the property and lets the
+refresh draw the line.  AFTER, a member's id or prefix, places the new
+member after it *in the property*; without it the member goes last.  A
+slice not yet migrated has its `:MEMBERS:' written from its checklist
+first.
+
+PARENT is retired and refused by name (the user, 2026-09-25).  It used
+to declare a member nested under a story; nesting is derived now, since
+a member whose parent heading carries a TODO keyword renders beneath a
+boxless parent row by itself.  Refused rather than ignored, so a caller
+passing it learns that instead of losing it silently.
 
 The write path TODO.org :ID: 9ae0e452 was filed for: every membership
 edit used to be a hand `emacsclient' call or a direct file write, and
@@ -6850,11 +7937,6 @@ else.  This goes through Emacs, refuses when the human has unsaved
 changes in the buffer, and lets `claude-code-ide-org-refresh-slice'
 derive the rendering, cookie and `:BLOCKER:' so the line lands exactly
 as a refresh would leave it.
-
-The line is inserted after the last planned member line -- or after
-AFTER's line, since a slice declares membership *and order* -- always
-above the `Incidental:' lead.  A slice with no checklist yet gets one
-started at the end of its body.
 
 Refusals, each naming its rule: a target that is not a `:KIND: slice'
 heading; a *closed* slice (its list is a record, :ID: 30a340fd); a
@@ -6877,10 +7959,7 @@ yet applied, so it has no keyword on disk to derive a checkbox from. Apply \
 the queue, then add it."
                     (plist-get pending :title))
           (format "Error: no org heading found with :ID: \"%s\"" member-id))))
-     ((claude-code-ide-org--file-busy-p
-       (buffer-file-name (marker-buffer smarker)))
-      (format "Error: %s has unsaved changes in Emacs; retry once it is saved"
-              (file-name-nondirectory (buffer-file-name (marker-buffer smarker)))))
+     ((claude-code-ide-org--busy-refusal (buffer-file-name (marker-buffer smarker))))
      (t
       (condition-case err
           (let* ((member-full (org-with-point-at mmarker
@@ -6889,20 +7968,14 @@ the queue, then add it."
                               (org-get-todo-state)))
                  (member-title (org-with-point-at mmarker
                                  (org-no-properties
-                                  (org-get-heading t t t t))))
-                 (member-ancestors
-                  (org-with-point-at mmarker
-                    (save-excursion
-                      (let (acc)
-                        (while (org-up-heading-safe)
-                          (let ((aid (org-entry-get nil "ID")))
-                            (when aid (push (downcase aid) acc))))
-                        acc)))))
+                                  (org-get-heading t t t t)))))
             (org-with-point-at smarker
               (cond
-               ((and after parent)
-                "Error: pass either after= or parent=, not both -- a nested \
-member always appends last under its parent")
+               (parent
+                "Error: parent= is retired -- nesting is derived now: a member \
+whose parent heading carries a TODO keyword renders under it by itself \
+(TODO.org :ID: 7ee3b71a). Add the member with no parent=, using after= \
+to place it.")
                ((not (claude-code-ide-org--slice-p))
                 (format "Error: \"%s\" is not a :KIND: slice heading; a \
 member line belongs only on a slice's checklist"
@@ -6916,7 +7989,9 @@ is a record -- membership does not change after the fact"
                        (downcase (or (org-entry-get nil "ID") "")))
                 "Error: a slice never lists itself as a member")
                ((member (downcase member-full)
-                        (claude-code-ide-org--slice-planned-member-ids))
+                        (append (claude-code-ide-org--slice-declared-ids)
+                                (claude-code-ide-org--slice-checklist-ids)
+                                (claude-code-ide-org--slice-planned-member-ids)))
                 (format "Error: %s is already a planned member of \"%s\""
                         (claude-code-ide-org--id-prefix member-full)
                         (org-get-heading t t t t)))
@@ -6930,130 +8005,41 @@ a keyword-less member. Give it a keyword (or apply its queued one) first."
                 (let* ((slice-full (org-entry-get nil "ID"))
                        (slice-title (org-no-properties
                                      (org-get-heading t t t t)))
-                       (box (cdr (assoc member-kw
-                                        claude-code-ide-org--slice-checkbox-by-keyword)))
-                       (line (format "- %s[[id:%s][%s]] %s %s"
-                                     (if box (format "[%s] " box) "")
-                                     member-full
-                                     (claude-code-ide-org--short-id member-full)
-                                     member-kw member-title))
+                       (member-id (downcase member-full))
+                       ;; A slice not yet migrated gets its :MEMBERS: from
+                       ;; its checklist first, so every add goes through
+                       ;; the property (TODO.org :ID: 7ee3b71a).
+                       (declared (or (claude-code-ide-org--slice-declared-ids)
+                                     (claude-code-ide-org--slice-checklist-ids)))
+                       (after-full
+                        (and after
+                             (seq-find (lambda (id) (string-prefix-p (downcase after) id))
+                                       declared)))
                        (inhibit-read-only t))
-                  (org-back-to-heading t)
-                  (let* ((body-end (save-excursion
-                                     (outline-next-heading)
-                                     (or (point) (point-max))))
-                         (lead (save-excursion
-                                 (and (re-search-forward
-                                       (concat "^" (regexp-quote
-                                                    claude-code-ide-org--slice-incidental-lead)
-                                               "[ \t]*$")
-                                       body-end t)
-                                      (match-beginning 0))))
-                         (bound (or lead body-end))
-                         (anchor nil))
-                    (if parent
-                        ;; PARENT names the planned line to nest under.
-                        ;; Find it, walk past its existing indented
-                        ;; block, strip its checkbox (a grouping label
-                        ;; is cookie-less by definition, and the refresh
-                        ;; reads that structurally), and land the child
-                        ;; two spaces deeper.
-                        (let (pfull pindent pend pbox-beg pbox-end)
-                          (save-excursion
-                            (catch 'found
-                              (while (re-search-forward
-                                      claude-code-ide-org--slice-member-regexp bound t)
-                                (when (string-prefix-p
-                                       (downcase parent)
-                                       (downcase (match-string-no-properties 2)))
-                                  (setq pfull (downcase (match-string-no-properties 2)))
-                                  (beginning-of-line)
-                                  (looking-at "^\\([ \t]*\\)- \\(\\[[ Xx-]\\] \\)?")
-                                  (setq pindent (match-string-no-properties 1))
-                                  (when (match-beginning 2)
-                                    (setq pbox-beg (copy-marker (match-beginning 2))
-                                          pbox-end (copy-marker (match-end 2))))
-                                  (end-of-line)
-                                  (setq pend (copy-marker (point)))
-                                  (while (save-excursion
-                                           (forward-line 1)
-                                           (and (< (point) bound)
-                                                (looking-at
-                                                 (concat "^" pindent
-                                                         "[ \t]+- \\(\\[[ Xx-]\\] \\)?\\[\\[id:"))))
-                                    (forward-line 1)
-                                    (end-of-line)
-                                    (set-marker pend (point)))
-                                  (throw 'found t)))))
-                          (unless pend
-                            (error "parent=%s names no planned member of this slice"
-                                   parent))
-                          (unless (member pfull member-ancestors)
-                            (error "%s is not inside %s's subtree -- a nested member line renders a story's own child, nothing else"
-                                   (claude-code-ide-org--id-prefix member-full)
-                                   (claude-code-ide-org--id-prefix pfull)))
-                          (when pbox-beg
-                            (delete-region pbox-beg pbox-end))
-                          (goto-char pend)
-                          (insert "\n" pindent "  " line))
-                      ;; AFTER names the line to insert below; otherwise
-                      ;; the last planned member line wins.  Only the
-                      ;; planned region is scanned, so an incidental can
-                      ;; never anchor a planned member.
-                      (save-excursion
-                        (while (re-search-forward
-                                claude-code-ide-org--slice-member-regexp bound t)
-                          (when (or (null after)
-                                    (string-prefix-p
-                                     (downcase after)
-                                     (downcase (match-string-no-properties 2))))
-                            (setq anchor (line-end-position)))))
-                      (when (and after (null anchor))
-                        (error "after=%s names no planned member of this slice"
-                               after))
-                      (if anchor
-                          (progn (goto-char anchor) (insert "\n" line))
-                      ;; No checklist yet: insert beneath an existing
-                      ;; Planned: lead, or start one -- lead included,
-                      ;; since the lead is load-bearing and this is the
-                      ;; moment a checklist is born (:ID: a43cfaa0).
-                      (let ((lead-end
-                             (save-excursion
-                               (org-back-to-heading t)
-                               (and (re-search-forward
-                                     (concat "^" (regexp-quote
-                                                  claude-code-ide-org--slice-planned-lead)
-                                             "[ \t]*$")
-                                     bound t)
-                                    (match-end 0)))))
-                        (if lead-end
-                            (progn (goto-char lead-end)
-                                   (insert "\n\n" line)
-                                   ;; Absorb a blank the lead already had
-                                   ;; below it, so the list sits one
-                                   ;; blank line under the lead.
-                                   (when (looking-at "\n[ \t]*\n")
-                                     (replace-match "\n" t t)))
-                          (goto-char bound)
-                          (skip-chars-backward " \t\n")
-                          (insert "\n\n"
-                                  claude-code-ide-org--slice-planned-lead
-                                  "\n\n" line "\n"))))))
-                  ;; The refresh re-derives the rendering, cookie and
-                  ;; :BLOCKER: from the list that now includes the new
-                  ;; line -- so what lands is exactly what a refresh
-                  ;; would leave, not this function's opinion of it.
+                  (when (and after (null after-full))
+                    (error "after=%s names no planned member of this slice" after))
+                  ;; AFTER is a position in :MEMBERS:, not a line: the lines
+                  ;; are a rendering, so a line-relative position would mean
+                  ;; nothing once the refresh re-renders them (the user,
+                  ;; 2026-09-25).  Without AFTER the member goes last.
+                  (let ((new (if after-full
+                                 (let (acc)
+                                   (dolist (id declared (nreverse acc))
+                                     (push id acc)
+                                     (when (equal id after-full) (push member-id acc))))
+                               (append declared (list member-id)))))
+                    (org-entry-put nil "MEMBERS" (string-join new " ")))
+                  ;; The refresh renders the checklist, cookie and :BLOCKER:
+                  ;; from the property -- so what lands is exactly what a
+                  ;; refresh would leave, not this function's opinion of it.
                   (save-buffer)
                   (claude-code-ide-org-refresh-slice slice-full)
-                  (format "Added %s to \"%s\"%s; cookie and :BLOCKER: refreshed"
+                  (format "Added %s to \"%s\"%s; checklist, cookie and :BLOCKER: refreshed"
                           (claude-code-ide-org--id-prefix member-full)
                           slice-title
-                          (cond
-                           (parent (format " nested under %s, whose line is now a grouping label"
-                                           (claude-code-ide-org--id-prefix parent)))
-                           (after (format " after %s"
-                                          (claude-code-ide-org--id-prefix after)))
-                           (t ""))))))))
+                          (if after (format " after %s"
+                                            (claude-code-ide-org--id-prefix after))
+                            "")))))))
         (error (format "Error: %s" (error-message-string err))))))))
 
 (defun claude-code-ide-org--trigger-auto-clock-in (change-plist)
@@ -7352,6 +8338,90 @@ in `condition-case', same reasoning as the in-handler."
 
 (add-hook 'org-clock-in-hook #'claude-code-ide-org--clock-status-hook-in)
 (add-hook 'org-clock-out-hook #'claude-code-ide-org--clock-status-hook-out)
+
+;;; A running clock survives a revert (TODO.org :ID: 53b0047d) ---------------
+;;
+;; `revert-buffer' replaces a buffer from its file and keeps markers only in
+;; the stretch it did not have to replace.  Changes both above and below the
+;; open CLOCK line -- what `git checkout', `switch', `stash' or `rebase' do
+;; to a tracked file -- replace the stretch holding it, and
+;; `org-clock-marker' lands on some other line; `org-clock-out' then fails
+;; or closes the wrong line.  No guard can see those writes, so this is
+;; recovery: find the clock line again, by id and start time, or say so.
+;; Not gated on time tracking: a live org clock can exist either way.
+
+(defvar claude-code-ide-org--clocked-id nil
+  "The :ID: of the heading the running clock is on, or nil.
+Recorded at clock-in, so a revert that moves `org-clock-hd-marker' off
+the heading cannot also lose which heading it was.")
+
+(defun claude-code-ide-org--record-clocked-id ()
+  "`org-clock-in-hook' handler: remember the clocked heading's :ID:."
+  (setq claude-code-ide-org--clocked-id
+        (ignore-errors
+          (and (markerp org-clock-hd-marker) (marker-buffer org-clock-hd-marker)
+               (org-with-point-at org-clock-hd-marker (org-entry-get nil "ID"))))))
+
+(defun claude-code-ide-org--forget-clocked-id ()
+  "`org-clock-out-hook' and `org-clock-cancel-hook' handler."
+  (setq claude-code-ide-org--clocked-id nil))
+
+(defconst claude-code-ide-org--open-clock-line-re
+  "^[ \t]*CLOCK: \\(\\[[^]\n]+\\]\\)[ \t]*$"
+  "An open CLOCK line: a start timestamp and no end.  Group 1 is the stamp.")
+
+(defun claude-code-ide-org--repair-clock-after-revert ()
+  "`after-revert-hook' handler: put a running clock's markers back.
+
+Only in a tracked buffer holding the running clock.  When the marker's
+line is still an open CLOCK line, nothing is done.  Otherwise the
+recorded :ID: is resolved in this buffer and, under it, the open CLOCK
+line whose start equals `org-clock-start-time' to the minute; both
+markers move there.  When there is no recorded id, the id no longer
+resolves here, or no open line matches, the markers are left alone and a
+warning names the heading and the start time.  It never guesses a line."
+  (condition-case err
+      (when (and (org-clocking-p)
+                 (eq (marker-buffer org-clock-marker) (current-buffer))
+                 (claude-code-ide-org--tracked-buffer-p))
+        (unless (save-excursion
+                  (goto-char org-clock-marker)
+                  (beginning-of-line)
+                  (looking-at-p claude-code-ide-org--open-clock-line-re))
+          (let* ((start (format-time-string "%Y-%m-%d %a %H:%M" org-clock-start-time))
+                 (pos (and claude-code-ide-org--clocked-id
+                           (org-find-entry-with-id claude-code-ide-org--clocked-id)))
+                 (found
+                  (and pos
+                       (save-excursion
+                         (goto-char pos)
+                         (let ((end (save-excursion (outline-next-heading) (point)))
+                               hit)
+                           (while (and (not hit)
+                                       (re-search-forward claude-code-ide-org--open-clock-line-re end t))
+                             (when (equal (substring (match-string-no-properties 1) 1 -1) start)
+                               (setq hit (match-end 1))))
+                           hit)))))
+            (if found
+                (progn
+                  (move-marker org-clock-marker found)
+                  (move-marker org-clock-hd-marker
+                               (save-excursion (goto-char pos) (org-back-to-heading t) (point))))
+              (display-warning
+               'claude-code-ide-org
+               (format "The running clock (on \"%s\", started [%s]) lost its line when %s \
+was reverted, and it could not be found again; clock out by hand."
+                       (or org-clock-current-task "an unknown heading") start
+                       (buffer-name))
+               :warning)))))
+    (error (display-warning 'claude-code-ide-org
+                            (format "Clock marker repair failed: %s" (error-message-string err))
+                            :warning))))
+
+(add-hook 'org-clock-in-hook #'claude-code-ide-org--record-clocked-id)
+(add-hook 'org-clock-out-hook #'claude-code-ide-org--forget-clocked-id)
+(add-hook 'org-clock-cancel-hook #'claude-code-ide-org--forget-clocked-id)
+(add-hook 'after-revert-hook #'claude-code-ide-org--repair-clock-after-revert)
 
 ;; Emacs-restart case: org-clock-persist is 'history (not 'clock/t — see
 ;; the "Why no explicit clock-persistence-restore call" design note in
@@ -7671,7 +8741,56 @@ far worse than the malformed line it came from."
   (when (and (stringp string)
              (string-match-p "\\`[0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}[T ]"
                              string))
-    (ignore-errors (date-to-time string))))
+    ;; The shape every queue writer uses, parsed directly: `date-to-time'
+    ;; was 80% of a full queue read (TODO.org :ID: fa617d99).  Anything
+    ;; else still takes the lenient path.
+    (if (string-match (concat "\\`\\([0-9]\\{4\\}\\)-\\([0-9]\\{2\\}\\)-\\([0-9]\\{2\\}\\)"
+                              "T\\([0-9]\\{2\\}\\):\\([0-9]\\{2\\}\\):\\([0-9]\\{2\\}\\)"
+                              "\\(Z\\|\\([-+]\\)\\([0-9]\\{2\\}\\):?\\([0-9]\\{2\\}\\)\\)\\'")
+                      string)
+        (let ((n (lambda (i) (string-to-number (match-string i string)))))
+          (ignore-errors
+            (encode-time
+             (list (funcall n 6) (funcall n 5) (funcall n 4)
+                   (funcall n 3) (funcall n 2) (funcall n 1)
+                   nil -1
+                   (if (match-beginning 8)
+                       (* (if (equal (match-string 8 string) "-") -1 1)
+                          (+ (* 3600 (funcall n 9)) (* 60 (funcall n 10))))
+                     0)))))
+      (ignore-errors (date-to-time string)))))
+
+(defvar claude-code-ide-org--queue-id-memo (make-hash-table :test 'equal)
+  "Prefix -> full :ID: for queue events, filled by `--queue-full-id'.
+Only unique expansions are kept, and an id's prefix never stops naming
+it, so an entry cannot go wrong: at worst a later heading makes the
+prefix ambiguous, and the event still means the heading it was queued
+against.")
+
+(defun claude-code-ide-org--queue-full-id (id)
+  "ID as written in a queue event, expanded when it is a unique prefix.
+
+The queued tools accept an 8-character prefix and `bin/hooks/queue-append'
+records `tool_input.id' verbatim -- it runs with no Emacs, so it cannot
+expand one -- which left 259 of 1,048 `todo' events keyed by a prefix
+on 2026-09-27, invisible to every reader matching by full id: the queued
+keyword in footnotes, `org_set_todo's no-change check, and the review
+grouping (TODO.org :ID: 4c43145d).  So the queue is normalised where it
+is read.  A full id, a non-hex value, and a prefix naming nothing or
+more than one heading come back unchanged: the event still reaches
+review, where apply resolves it through `--id-find' as before."
+  (if (not (and (stringp id)
+                (<= claude-code-ide-org--id-prefix-minimum (length id)
+                    claude-code-ide-org--id-prefix-length)
+                (string-match-p "\\`[0-9a-fA-F]+\\'" id)))
+      id
+    (let ((key (downcase id)))
+      (or (gethash key claude-code-ide-org--queue-id-memo)
+          (let ((full (claude-code-ide-org--expand-id-prefix
+                       key (claude-code-ide-org--id-index))))
+            (if (stringp full)
+                (puthash key full claude-code-ide-org--queue-id-memo)
+              id))))))
 
 (defun claude-code-ide-org--queue-parse-line (line)
   "Parse one JSONL queue LINE into a plist, or nil if unusable.
@@ -7689,7 +8808,8 @@ whole file. This is the single place that judgement is made."
           (list :ts ts
                 :ts-string (alist-get 'ts obj)
                 :kind kind
-                :id (alist-get 'id obj)
+                ;; Expanded when a prefix (TODO.org :ID: 4c43145d).
+                :id (claude-code-ide-org--queue-full-id (alist-get 'id obj))
                 :state (alist-get 'state obj)
                 ;; The state the heading held when the event was queued,
                 ;; or nil on events written before the field existed.
@@ -7705,6 +8825,12 @@ whole file. This is the single place that judgement is made."
                 :target (alist-get 'target obj)
                 :tags (alist-get 'tags obj)
                 :category (alist-get 'category obj)
+                ;; capture only (TODO.org :ID: 7fa68d5c): the tool's own
+                ;; allow_duplicate, so apply can make the check the call
+                ;; made; and "outage" when bin/hooks/tool-failure queued
+                ;; it because Emacs refused the connection.
+                :allow-duplicate (alist-get 'allow_duplicate obj)
+                :origin (alist-get 'origin obj)
                 :text (alist-get 'text obj)
                 ;; amend only: which drawer the text targets. Null for a
                 ;; body amend, and on events written before it existed.
@@ -7940,7 +9066,13 @@ it would re-propose work already applied."
                            (insert-file-contents file)
                            (buffer-string))
                          "\n" t))
-            (let ((event (claude-code-ide-org--queue-parse-line line)))
+            ;; A consumed line is dropped on its raw `ts' before any
+            ;; parse: the two sets are keyed by that exact string, and
+            ;; 97% of lines were consumed ones (TODO.org :ID: fa617d99).
+            (let ((event (unless (and (string-match "\"ts\":\"\\([^\"]+\\)\"" line)
+                                      (let ((ts (match-string 1 line)))
+                                        (or (gethash ts applied) (gethash ts dismissed))))
+                           (claude-code-ide-org--queue-parse-line line))))
               (when (and event
                          (not (gethash (plist-get event :ts-string) applied))
                          (not (gethash (plist-get event :ts-string) dismissed)))
@@ -8005,6 +9137,31 @@ Reading the queue from a tool has precedent in
                    (equal (plist-get event :id) id)))
             (claude-code-ide-org--queue-events)))
 
+(defun claude-code-ide-org--effective-todo-state (id disk-state &optional events)
+  "The keyword ID will hold once its pending `todo' events apply.
+
+DISK-STATE carried forward through the heading's unapplied `todo'
+events -- every session's, ordered by timestamp -- so the last one's
+state wins, and DISK-STATE stands when there are none.  What
+`org_set_todo's no-change check compares against (TODO.org :ID:
+57f37f0e): against disk alone, a state set and reverted between
+applies could not be queued back, and a duplicate of a queued state
+slipped through.  Reads the queue and never writes it, like
+`claude-code-ide-org--pending-capture'.
+
+EVENTS, the queue already read, lets a caller asking about several ids
+read it once: the read costs about a second, and footnoting three ids
+paid it three times (TODO.org :ID: 30d05c93).  The symbol `none' means
+the queue was read and is empty: nil would read as \"not supplied\" and
+re-read it once per id (TODO.org :ID: 15205b37, PR #31 review)."
+  (let ((last (seq-find (lambda (e)
+                          (and (equal (plist-get e :kind) "todo")
+                               (equal (plist-get e :id) id)))
+                        (reverse (cond ((eq events 'none) nil)
+                                       (events)
+                                       (t (claude-code-ide-org--queue-events)))))))
+    (if last (plist-get last :state) disk-state)))
+
 (defun claude-code-ide-org--pending-capture-keywords (id)
   "TODO keywords legal for ID's pending capture, or nil if undeterminable.
 
@@ -8017,9 +9174,10 @@ check\" and must not be mistaken for \"nothing is legal\"."
          (file (and event
                     (or (ignore-errors
                           (plist-get (claude-code-ide-org--capture-target-spec
-                                      (plist-get event :target))
+                                      (plist-get event :target) (plist-get event :cwd))
                                      :file))
-                        (claude-code-ide-org--capture-target-file)))))
+                        (claude-code-ide-org--capture-target-file
+                         (plist-get event :cwd))))))
     (when (and file (file-readable-p file))
       (with-current-buffer (find-file-noselect file)
         org-todo-keywords-1))))
@@ -9167,6 +10325,12 @@ from a skipped one."
                            :to (plist-get event :state)
                            :note (plist-get event :note)
                            :category (plist-get event :category)
+                           ;; Where the capturing session was, for routing
+                           ;; a targetless capture at apply and in its row
+                           ;; (TODO.org :ID: 5e731a23).
+                           :cwd (plist-get event :cwd)
+                           :allow-duplicate (plist-get event :allow-duplicate)
+                           :origin (plist-get event :origin)
                            :events (list event))
                      items))
               ("amend"
@@ -9733,30 +10897,35 @@ annotation describing it stay adjacent only because they share one.
 Omit both and the item's own `:start'/`:end' are used, which is what the
 review buffer wants: it is describing the span, not a line.
 
-Always *inactive* timestamps, so nothing written from the queue reaches
-`org-agenda'.
+*Inactive* timestamps by default, so a queue-derived span never reaches
+`org-agenda'.  The `let*' below branches on ITEM's `:active', and that
+flag is an ASSERTION a human makes in the review buffer, never an
+inference from anything the queue records (TODO.org :ID: 60ed5b96).
+Exactly two acts set it: `c' (`claude-code-ide-org-review-claim-envelope')
+always, because claiming a span is asserting that a human attended it;
+and `e' (`claude-code-ide-org-review-edit-interval') only when both
+endpoints are typed as `<...>', so inactive stays its default.  `c''s
+own comment names :ID: 01849bef, the standing request for a key that
+sets it without hand-editing.
 
-This used to branch on ITEM's `:agent', active for anything without one
-and inactive for a subagent's -- i.e. it tested \"is this a subagent\"
-while its own docstring claimed to test \"is this a human\".  Those come
-apart on the outer session, which carries no agent_id and was therefore
-rendered active: measured 2026-08-14, all 68 events of one session had
-`agent_id' nil, so every span it produced was published to the agenda as
-though the user had been at the keyboard for it.
-
-The correction is not a better test but the removal of one.  The queue
-records *agent* activity and nothing else -- hooks and MCP tools write
-it, and a human clocking in Emacs writes a bare CLOCK: line with no
-annotation at all (TODO.org :ID: 4f8500e6).  So there is no case in
-which a queue-derived span is the user's own attention, and no branch to
-make.
+What was removed here (2026-08-14) was an *inference*: a branch on
+ITEM's `:agent', active for anything without one, which tested \"is
+this a subagent\" while claiming to test \"is this a human\".  Those
+come apart on the outer session, which carries no agent_id: all 68
+events of one session had it nil, so every span was published to the
+agenda as though the user had been at the keyboard.  The queue records
+*agent* activity and nothing else -- hooks and MCP tools write it, and
+a human clocking in Emacs writes a bare CLOCK: line with no annotation
+at all (TODO.org :ID: 4f8500e6) -- so no queue field can say a span was
+the user's own attention.  Only the human can, which is what `:active'
+now means.
 
 Note this narrows what TODO.org :ID: c084553c established: an active
 timestamp inside :LOGBOOK: does reach the agenda, and that remains the
-mechanism -- but it is now reserved for intervals a human logs
-themselves.  The agenda answers \"where did *my* attention go\"; the
-queue answers \"what was the agent doing\", and conflating them makes
-the first unreadable.  See :ID: b8e6007a."
+mechanism -- but it is reserved for intervals a human asserts as their
+own.  The agenda answers \"where did *my* attention go\"; the queue
+answers \"what was the agent doing\", and conflating them makes the
+first unreadable.  See :ID: b8e6007a."
   (let* ((fmt (if (plist-get item :active)
                   "<%Y-%m-%d %a %H:%M>"
                 "[%Y-%m-%d %a %H:%M]"))
@@ -10282,7 +11451,10 @@ deferred write must mean what the immediate one would have."
         (text ;; Escaped again here: the queue holds the tool's raw input, written by
         ;; the hook before any elisp ran (PR #29 review, TODO.org :ID:
         ;; 00aa6a85).  Idempotent, so text already escaped is unchanged.
-        (claude-code-ide-org--escape-block-headlines (plist-get item :text))))
+        ;; Filled at apply, in the target buffer, whose column is current.
+        (claude-code-ide-org--fill-prose-text
+         (claude-code-ide-org--escape-block-headlines (plist-get item :text))
+         fill-column)))
     (if drawer
         (claude-code-ide-org--amend-into-drawer drawer text)
       (claude-code-ide-org--end-of-body)
@@ -10304,25 +11476,71 @@ and applies nothing, leaving the item pending exactly as a stale state
 transition does -- the human then retargets or dismisses it.  It never
 falls back to the end of the capture file: a heading filed somewhere
 nobody chose is precisely the confidently-wrong record this architecture
-exists to prevent (TODO.org :ID: b5f94b88)."
+exists to prevent (TODO.org :ID: b5f94b88).
+
+*The call's own checks run again here* (TODO.org :ID: 7fa68d5c), because
+a capture queued by the outage fallback never reached Emacs, so none ran
+at the call -- and a busy-buffer capture's may have gone stale.  In
+order: an id that already resolves means the capture landed after all,
+and the item is realised with nothing written; then the target; a
+top-level capture needs a category; a keyworded capture under a slice is
+refused; a same-title heading is refused unless the call allowed it.  A
+category the file has never used only warns, as the tool does."
   (condition-case err
-      (let* ((resolved (claude-code-ide-org--capture-target-spec
-                        (plist-get item :target)))
-             (file (plist-get resolved :file))
-             (id (plist-get item :id)))
-        (claude-code-ide-org--capture-write
-         (or (plist-get item :title) "(untitled)")
-         id
-         (format-time-string "[%Y-%m-%d %a %H:%M]" (plist-get item :ts))
-         (plist-get resolved :spec)
-         (plist-get item :tags)
-         (plist-get item :to)
-         ;; Escaped as the direct write escapes it; see the amend above.
-         (claude-code-ide-org--escape-block-headlines (plist-get item :note))
-         (plist-get item :category))
-        (org-id-add-location id (expand-file-name file))
-        (with-current-buffer (find-file-noselect file) (save-buffer))
-        nil)
+      (let ((id (plist-get item :id)))
+        (if (and id (claude-code-ide-org--id-find id))
+            nil
+          (let* ((resolved (claude-code-ide-org--capture-target-spec
+                            (plist-get item :target) (plist-get item :cwd)))
+                 (file (plist-get resolved :file))
+                 (title (or (plist-get item :title) "(untitled)"))
+                 (category (plist-get item :category))
+                 (top-level (eq (car-safe (plist-get resolved :spec)) 'file))
+                 (in-use (and (or top-level category)
+                              (claude-code-ide-org--file-categories file)))
+                 (target-slice
+                  (and (plist-get item :to) (plist-get item :target)
+                       (let ((tm (claude-code-ide-org--id-find
+                                  (plist-get item :target) 'marker)))
+                         (and tm (org-with-point-at tm
+                                   (claude-code-ide-org--enclosing-slice-title))))))
+                 (exact (seq-find (lambda (c) (plist-get c :exact))
+                                  (claude-code-ide-org--duplicate-candidates title file))))
+            (cond
+             ((and top-level (not category))
+              (format "Error: a top-level capture needs a category; %s uses: %s"
+                      (file-name-nondirectory file)
+                      (if in-use (string-join in-use ", ") "(none yet)")))
+             (target-slice
+              (format "Error: a keyworded capture here would give slice \"%s\" keyworded children"
+                      target-slice))
+             ((and exact (not (member (plist-get item :allow-duplicate)
+                                      '(t "true" "t" "yes"))))
+              (format "Error: a heading already carries this title -- %s {%s} in %s"
+                      (or (plist-get exact :keyword) "(no keyword)")
+                      (if (plist-get exact :id) (substring (plist-get exact :id) 0 8) "no id")
+                      (plist-get exact :file)))
+             (t
+              (when (and category in-use (not (member category in-use)))
+                (push (format "capture %s: category \"%s\" is new to %s"
+                              (claude-code-ide-org--short-id id) category
+                              (file-name-nondirectory file))
+                      claude-code-ide-org--review-apply-warnings))
+              (claude-code-ide-org--capture-write
+               title
+               id
+               (format-time-string "[%Y-%m-%d %a %H:%M]" (plist-get item :ts))
+               (plist-get resolved :spec)
+               (plist-get item :tags)
+               (plist-get item :to)
+               ;; Escaped as the direct write escapes it; see the amend above.
+               (claude-code-ide-org--fill-prose-text
+                (claude-code-ide-org--escape-block-headlines (plist-get item :note))
+                (claude-code-ide-org--fill-column-for-file file))
+               category)
+              (org-id-add-location id (expand-file-name file))
+              (with-current-buffer (find-file-noselect file) (save-buffer))
+              nil)))))
     (error (format "Error: %s" (error-message-string err)))))
 
 (defun claude-code-ide-org--review-describe-failure (item error)
@@ -10942,9 +12160,10 @@ common answer."
      ((null session)
       (user-error "No transcript on disk for this item's session (aged out?)"))
      (t
-      (let ((file (claude-code-ide-org-render-session session))
-            (start (plist-get item :start)))
-        (find-file-other-window file)
+      (let ((start (plist-get item :start)))
+        ;; Opened following its transcript, in the other window (TODO.org
+        ;; :ID: eddee10f).
+        (claude-code-ide-org--open-live-render session 'other-window)
         (goto-char (point-min))
         ;; Nearest turn at or before the span's start. Scanning the
         ;; rendered headings rather than recomputing from the transcript
@@ -11394,12 +12613,17 @@ vanishes silently is worse than one that explains itself
       ;; means finding it out one keystroke too late.  `!' is the column's
       ;; established "something is wrong" mark.
       ('capture
+       ;; The same call apply makes, cwd and all, so the row shows the
+       ;; tracker the capture will land in (TODO.org :ID: 5e731a23).
        (let ((where (ignore-errors
                       (plist-get (claude-code-ide-org--capture-target-spec
-                                  (plist-get item :target))
+                                  (plist-get item :target) (plist-get item :cwd))
                                  :where))))
-         (format "%scapture %-30s -> %-22s %s   %s"
+         (format "%s%scapture %-30s -> %-22s %s   %s"
                  (if where "  " "! ")
+                 ;; Queued by the outage fallback, never seen by Emacs,
+                 ;; so no check ran at the call (TODO.org :ID: 7fa68d5c).
+                 (if (equal (plist-get item :origin) "outage") "outage " "")
                  (format "%s\"%s\""
                          (if (plist-get item :to)
                              (concat (plist-get item :to) " ")
@@ -12015,9 +13239,10 @@ remainder stated."
 ;; so `#+STARTUP: content' folds them away.  Three things are dropped
 ;; and each is a decision rather than an omission:
 ;;
-;;   - `thinking' blocks.  Measured on one session: 107 of them against
-;;     36 of prose, so including them triples the file without being
-;;     what anyone is paging for.
+;;   - EMPTY `thinking' blocks, the model's hidden reasoning.  A
+;;     non-empty one is the harness's summary of narration the reader
+;;     saw, and is rendered as a `:summary:' sub-heading where it
+;;     appeared (TODO.org :ID: b09d8090).
 ;;   - tool *results*, which is the trap this heading warned about --
 ;;     a `type: "user"' entry is usually a tool result rather than a
 ;;     human turn (218 of 231 in one session), and a renderer that
@@ -12100,70 +13325,128 @@ and carries nothing a reader is scanning for."
 
 (defun claude-code-ide-org--transcript-turns (session-id)
   "Return SESSION-ID's transcript as a list of turn plists.
+See `claude-code-ide-org--turn-reader-view', which this is a lookup in
+front of."
+  (when-let* ((file (claude-code-ide-org--transcript-file session-id)))
+    (claude-code-ide-org--turn-reader-view file)))
+
+(defun claude-code-ide-org--turn-reader-view (file &optional stop-at)
+  "Return transcript FILE as a list of turn plists, as the reader saw it.
 
 Each turn is (:time TIME :prompt TEXT :blocks LIST), opened by a human
 prompt and running until the next one.  BLOCKS is ordered, each element
-either (text . STRING) or (tool . LABEL), so the render can keep prose
-and tool calls in the order they happened.  Content before the
-first prompt is discarded: it is the harness's own preamble, and a turn
-is defined by the prompt that started it.
+\(text . STRING), (narration . STRING) or (tool . LABEL), so a reader
+keeps prose, narration and tool calls in the order they happened.
+Content before the first prompt is discarded: it is the harness's own
+preamble, and a turn is defined by the prompt that started it.
+
+*Narration* (TODO.org :ID: b09d8090) is a NON-empty `thinking' entry:
+the harness's summary of what the agent is doing, which the reader's
+terminal showed verbatim.  An EMPTY `thinking' entry is the model's
+hidden reasoning and is dropped -- 1,651 of 1,871 across eight sessions
+on 2026-09-24, the other 220 all short.  That split is undocumented, so
+a test fixture pins it.
+
+With STOP-AT, a `tool_use' id, reading ends just before that call: the
+view is what the reader had seen when the call was made, which is what
+a footnote check run from `PreToolUse' needs.  The one reader of a turn
+that the render and the footnote work share, so they cannot disagree
+about what a turn held.
 
 Turn boundaries come from the same shape test
 `claude-code-ide-org--transcript-prompts' uses -- user role, string
 content, not `isMeta', not a `<bash-' escape -- so the two agree by
-construction about what a prompt is."
-  (when-let* ((file (claude-code-ide-org--transcript-file session-id)))
-    (with-temp-buffer
-      (insert-file-contents file)
-      (goto-char (point-min))
-      (let (turns current)
-        (while (not (eobp))
-          (let ((line (buffer-substring-no-properties
-                       (line-beginning-position) (line-end-position))))
-            (when-let* (((string-search "\"type\":\"" line))
-                        (obj (ignore-errors
-                               (json-parse-string line :object-type 'alist
-                                                  :null-object nil
-                                                  :false-object nil)))
-                        (type (alist-get 'type obj)))
-              (cond
-               ;; A human prompt opens a turn.
-               ((and (equal type "user")
-                     (not (alist-get 'isMeta obj))
-                     (let ((c (alist-get 'content (alist-get 'message obj))))
-                       (and (stringp c) (not (string-prefix-p "<bash-" c)))))
-                (when current (push (claude-code-ide-org--close-transcript-turn current) turns))
-                (setq current
-                      (list :time (claude-code-ide-org--parse-iso8601
-                                   (alist-get 'timestamp obj))
-                            :prompt (alist-get 'content
-                                               (alist-get 'message obj))
-                            :blocks nil)))
-               ;; Assistant blocks accumulate into the open turn.
-               ((and (equal type "assistant") current)
-                (let ((content (alist-get 'content (alist-get 'message obj))))
-                  (when (vectorp content)
-                    (seq-doseq (block content)
+construction about what a prompt is.
+
+A turn is not one reply.  A Stop hook that blocks feeds its reason back
+as an `isMeta' user line, which opens no turn, and the model answers
+again inside the same one; a refusal ends a reply the same way.  So an
+\(end) block marks where a reply ended: after every message whose
+`stop_reason' is anything but `tool_use', once the next message or the
+turn's close shows it is over (TODO.org :ID: c247d8f3).  The render
+ignores it; the footnote check reads its segment from the last one."
+  (with-temp-buffer
+    (insert-file-contents file)
+    (claude-code-ide-org--turn-reader-view-buffer stop-at)))
+
+(defun claude-code-ide-org--turn-reader-view-buffer (&optional stop-at)
+  "Return the current buffer's transcript lines as turn plists.
+The parser behind `claude-code-ide-org--turn-reader-view', which see
+for the shape and STOP-AT.  A buffer rather than a file so a caller can
+parse a tail window of a transcript without reading the whole of it."
+  (save-excursion
+    (goto-char (point-min))
+    ;; MSG-ID is the assistant message the last line belonged to -- a
+    ;; message spans one JSONL line per content block -- and ENDED says
+    ;; its `stop_reason' ended a reply rather than paused for a tool.
+    (let (turns current stopped msg-id ended)
+      (while (and (not stopped) (not (eobp)))
+        (let ((line (buffer-substring-no-properties
+                     (line-beginning-position) (line-end-position))))
+          (when-let* (((string-search "\"type\":\"" line))
+                      (obj (ignore-errors
+                             (json-parse-string line :object-type 'alist
+                                                :null-object nil
+                                                :false-object nil)))
+                      (type (alist-get 'type obj)))
+            (cond
+             ;; A human prompt opens a turn.
+             ((and (equal type "user")
+                   (not (alist-get 'isMeta obj))
+                   (let ((c (alist-get 'content (alist-get 'message obj))))
+                     (and (stringp c) (not (string-prefix-p "<bash-" c)))))
+              (when current
+                (when ended
+                  (plist-put current :blocks (cons '(end) (plist-get current :blocks))))
+                (push (claude-code-ide-org--close-transcript-turn current) turns))
+              (setq ended nil msg-id nil)
+              (setq current
+                    (list :time (claude-code-ide-org--parse-iso8601
+                                 (alist-get 'timestamp obj))
+                          :prompt (alist-get 'content
+                                             (alist-get 'message obj))
+                          :blocks nil)))
+             ;; Assistant blocks accumulate into the open turn.
+             ((and (equal type "assistant") current)
+              (let* ((message (alist-get 'message obj))
+                     (content (alist-get 'content message))
+                     (id (alist-get 'id message))
+                     (reason (alist-get 'stop_reason message)))
+                (when (and ended (not (equal id msg-id)))
+                  (plist-put current :blocks (cons '(end) (plist-get current :blocks))))
+                (setq msg-id id
+                      ended (and (stringp reason) (not (equal reason "tool_use"))))
+                (when (vectorp content)
+                  (seq-doseq (block content)
+                    (unless stopped
                       (pcase (alist-get 'type block)
-                        ("text"
-                         (let ((text (alist-get 'text block)))
+                        ((and (or "text" "thinking") kind)
+                         (let ((text (alist-get (intern kind) block)))
                            (when (and (stringp text)
                                       (not (string-empty-p (string-trim text))))
                              (plist-put current :blocks
-                                        (cons (cons 'text text)
+                                        (cons (cons (if (equal kind "text")
+                                                        'text 'narration)
+                                                    text)
                                               (plist-get current :blocks))))))
                         ("tool_use"
-                         (plist-put current :blocks
-                                    (cons (cons 'tool
-                                                (claude-code-ide-org--tool-label
-                                                 (alist-get 'name block)
-                                                 (alist-get 'input block)))
-                                          (plist-get current :blocks))))
-                        ;; `thinking' and everything else: dropped.
-                        (_ nil))))))))
-            (forward-line 1)))
-        (when current (push (claude-code-ide-org--close-transcript-turn current) turns))
-        (nreverse turns)))))
+                         (if (and stop-at (equal (alist-get 'id block) stop-at))
+                             (setq stopped t)
+                           (plist-put current :blocks
+                                      (cons (cons 'tool
+                                                  (claude-code-ide-org--tool-label
+                                                   (alist-get 'name block)
+                                                   (alist-get 'input block)))
+                                            (plist-get current :blocks)))))
+                        ;; Empty `thinking' (above) and everything else:
+                        ;; dropped.
+                        (_ nil)))))))))
+          (forward-line 1)))
+      (when current
+        (when (and ended (not stopped))
+          (plist-put current :blocks (cons '(end) (plist-get current :blocks))))
+        (push (claude-code-ide-org--close-transcript-turn current) turns))
+      (nreverse turns))))
 
 (defun claude-code-ide-org--close-transcript-turn (turn)
   "Return TURN with its accumulated :blocks put back in order.
@@ -12328,77 +13611,508 @@ partial read can never yield a partial stamp."
       (insert-file-contents file)
       (count-lines (point-min) (point-max)))))
 
-(defun claude-code-ide-org--render-transcript (session-id)
-  "Return SESSION-ID's transcript rendered as an org document string."
-  (let* ((turns (claude-code-ide-org--transcript-turns session-id))
-         (sibling (claude-code-ide-org--transcript-longer-sibling session-id))
-         (day (when-let* ((first (car turns)) (time (plist-get first :time)))
-                (format-time-string "%Y-%m-%d %a" time))))
-    (with-temp-buffer
-      (insert "#+TITLE: Session " (claude-code-ide-org--short-id session-id)
-              (if day (concat " -- " day) "") "\n"
-              ;; `content' so every turn's body is visible and the tool
-              ;; drawer is not: the drawer is the part nobody is paging
-              ;; for, and folding it is the whole reason it is a drawer.
-              "#+STARTUP: content\n"
-              "#+COMMENT: Generated by claude-code-ide-org-render-session. "
-              "Derived from the session transcript; edits here are lost on "
-              "the next render.\n\n")
-      (when sibling
-        (insert "* NOTE: this conversation continues in another transcript\n\n"
-                "  This session was re-keyed mid-work, so its transcript stops "
-                "at the switch\n  while "
-                (claude-code-ide-org--short-id sibling)
-                " carries the same conversation from the same start and\n"
-                "  continues past it.  Render that one for the whole thing.\n\n"))
-      (if (null turns)
-          (insert "* No turns found\n\n  The transcript has no human prompt in "
-                  "it, or has aged out.\n")
-        (dolist (turn turns)
-          (let* ((time (plist-get turn :time))
-                 (prompt (or (plist-get turn :prompt) ""))
-                 (headline (or (claude-code-ide-org--prompt-synopsis prompt)
-                               "(empty prompt)")))
-            (insert (format "* %s  %s\n" 
-                            (if time (format-time-string "%H:%M" time) "--:--")
-                            headline))
-            ;; The prompt in a quote block, because the one thing a
-            ;; reader must never have to guess is where their own words
-            ;; end and the answer begins -- and the first draft ran the
-            ;; two together with only a blank line between.
-            (insert "\n#+begin_quote\n"
-                    (claude-code-ide-org--org-escape-body (string-trim prompt))
-                    "\n#+end_quote\n")
-            ;; Each paragraph of prose becomes a level-2 heading, so a
-            ;; long turn has navigation points instead of being one
-            ;; unfoldable wall. Tool calls land under the paragraph they
-            ;; followed; calls made before any prose stay at turn level.
-            (let ((pending nil))
-              (dolist (block (plist-get turn :blocks))
-                (pcase (car block)
-                  ('tool (push (cdr block) pending))
-                  ('text
-                   (when pending
-                     (claude-code-ide-org--insert-tools-drawer (nreverse pending))
-                     (setq pending nil))
-                   (let* ((text (string-trim (cdr block)))
-                          (synopsis (or (claude-code-ide-org--prompt-synopsis text)
-                                        "(continued)"))
-                          ;; A one-line paragraph short enough to fit the
-                          ;; headline IS the headline; repeating it as a
-                          ;; body prints everything short twice.
-                          (more (or (string-search "\n" text)
-                                    (> (string-width text)
-                                       claude-code-ide-org-prompt-synopsis-width))))
-                     (insert (format "\n** %s\n" synopsis))
-                     (when more
-                       (insert "\n"
-                               (claude-code-ide-org--org-escape-body text)
-                               "\n"))))))
-              (when pending
-                (claude-code-ide-org--insert-tools-drawer (nreverse pending))))
-            (insert "\n"))))
-      (buffer-string))))
+;; Ids in a render become org footnotes (TODO.org :ID: 9bc8fc8c): the
+;; reference keeps the id as the label, so the text still reads by id,
+;; and each turn ends with its definitions -- the id link, the keyword
+;; and the exact title *as of the render*, in the end matter's canonical
+;; order.  Footnotes rather than overlays because they are visible
+;; without pointing, readable in any viewer, and a record of what the
+;; id meant then.  The live half is a companion heading.
+
+(defun claude-code-ide-org--render-id-entry (id8 cache)
+  "Return (FULL KEYWORD TITLE) for the heading ID8 names, or nil.
+Resolved against org's id index and never by rescanning: a render holds
+many 8-hex tokens that are not ids, and `--id-find's rescan on a miss
+would read every tracked file once per token.  CACHE, a hash table,
+holds each answer for the whole render, misses included."
+  (let ((hit (gethash id8 cache 'unset)))
+    (if (not (eq hit 'unset))
+        hit
+      (puthash
+       id8
+       (let ((full (claude-code-ide-org--expand-id-prefix
+                    id8 (claude-code-ide-org--id-index))))
+         (when (stringp full)
+           (when-let* ((file (gethash full org-id-locations))
+                       (marker (ignore-errors
+                                 (org-id-find-id-in-file full file 'marker))))
+             (org-with-point-at marker
+                                (list full (or (org-get-todo-state) "")
+                                      (substring-no-properties (org-get-heading t t t t)))))))
+       cache))))
+
+(defun claude-code-ide-org--render-link-ids (text cache found)
+  "Return TEXT with each tracked 8-hex id replaced by `[fn:ID8]'.
+Ids inside a code fence stay bare -- there they are transcript, not
+citation, as `footnote-check' also reads them.  A token resolving to no
+heading, a commit SHA say, is left alone.  Each linked id is recorded in
+FOUND, a hash table, for the turn's definitions."
+  (let ((in-fence nil)
+        ;; Ids are lowercase; `string-match' otherwise folds case.
+        (case-fold-search nil))
+    (mapconcat
+     (lambda (line)
+       (if (string-match-p "\\`[ \t]*\\(```\\|~~~\\)" line)
+           (progn (setq in-fence (not in-fence)) line)
+         (if in-fence
+             line
+           ;; A manual scan, not `replace-regexp-in-string': the
+           ;; boundary is a character on each side, and a regexp that
+           ;; consumes it misses the second of two ids one space apart.
+           (let ((pos 0) (out nil)
+                 (edge (lambda (i) (or (< i 0) (>= i (length line))
+                                       (not (string-match-p
+                                             "[0-9a-fA-F-]"
+                                             (string (aref line i))))))))
+             (while (string-match "[0-9a-f]\\{8\\}" line pos)
+               (let* ((b (match-beginning 0)) (e (match-end 0))
+                      (id8 (match-string 0 line)))
+                 (push (substring line pos b) out)
+                 (if (and (funcall edge (1- b)) (funcall edge e)
+                          (claude-code-ide-org--render-id-entry id8 cache))
+                     (progn (puthash id8 t found)
+                            ;; At column 0 org reads `[fn:X] ...' as a
+                            ;; footnote DEFINITION, so a reference that
+                            ;; opens a line is indented one space.
+                            (push (format (if (= b 0) " [fn:%s]" "[fn:%s]") id8) out))
+                   (push id8 out))
+                 (setq pos e)))
+             (push (substring line pos) out)
+             (apply #'concat (nreverse out))))))
+     (split-string text "\n")
+     "\n")))
+
+(defun claude-code-ide-org--insert-footnote-definitions (found cache)
+  "Insert a definition for each id in FOUND, sorted by id.
+The end matter's canonical form: the id as a link, the keyword padded
+to a column, then the exact title with any cookie."
+  (let ((ids (sort (hash-table-keys found) #'string<)))
+    (when ids
+      (insert "\n")
+      (dolist (id8 ids)
+        (pcase-let ((`(,full ,keyword ,title)
+                     (claude-code-ide-org--render-id-entry id8 cache)))
+          (insert (format "[fn:%s] [[id:%s][%s]]  %-9s %s\n"
+                          id8 full id8 keyword title)))))))
+
+;;; Footnote check (the Stop hook's scanner) --------------------------------
+;;
+;; `bin/hooks/footnote-check' is a stub over this (TODO.org :ID:
+;; c247d8f3).  The hook used to read only `last_assistant_message', the
+;; turn's final text block, so an id cited in a block written before a
+;; tool call was never checked: 107 of 1,576 Stop segments measured on
+;; 2026-09-24.  Now the final block still comes from the payload -- the
+;; transcript may not hold it yet when Stop fires -- and the blocks before
+;; it come from the transcript, through the same reader the render uses.
+;; End matter is read from the final block only, as before.
+
+(defun claude-code-ide-org--transcript-last-turn (file)
+  "Return the last turn plist of transcript FILE, or nil.
+Reads a tail window, growing it fourfold until the window holds a
+prompt, since a transcript runs to megabytes and only its last turn is
+wanted.  The window's first line is dropped whenever the window starts
+mid-file: it is almost always truncated, and a truncated line that
+happened to parse would be a fragment rather than an entry."
+  (ignore-errors
+    (let* ((size (or (file-attribute-size (file-attributes file)) 0))
+           (window 262144)
+           turn)
+      (while window
+        (let ((start (max 0 (- size window))))
+          (with-temp-buffer
+            (insert-file-contents file nil start size)
+            (when (> start 0)
+              (goto-char (point-min))
+              (forward-line 1)
+              (delete-region (point-min) (point)))
+            (setq turn (car (last (claude-code-ide-org--turn-reader-view-buffer)))))
+          (setq window (and (not turn) (> start 0) (* window 4)))))
+      turn)))
+
+(defun claude-code-ide-org--footnote-segment (file message)
+  "Return the reader-visible blocks of the segment MESSAGE closes, as strings.
+FILE is the session transcript.  The segment is the last turn's blocks
+after its last (end) -- where the previous reply ended -- and before
+MESSAGE itself.  MESSAGE may already be on disk; it is recognised by its
+text and excluded, so it is neither counted twice nor mistaken for a
+finished earlier reply.  Tool calls are left out: a tool's input is
+transcription, not citation."
+  (let* ((blocks (and file (file-readable-p file)
+                      (plist-get (claude-code-ide-org--transcript-last-turn file)
+                                 :blocks)))
+         (want (string-trim message))
+         (cut (let ((i 0) pos)
+                (dolist (b blocks pos)
+                  (when (and (eq (car b) 'text)
+                             (equal (string-trim (cdr b)) want))
+                    (setq pos i))
+                  (setq i (1+ i)))))
+         (segment nil))
+    (dolist (b (if cut (seq-take blocks cut) blocks))
+      (pcase (car b)
+        ('end (setq segment nil))
+        ((or 'text 'narration) (push (cdr b) segment))))
+    (nreverse segment)))
+
+(defun claude-code-ide-org--footnote-prose-lines (text)
+  "Return TEXT's lines outside fenced code blocks.
+An id inside ``` or ~~~ is a transcript -- tool output, a rendered
+checklist -- not a citation.  An unclosed fence swallows the rest, which
+under-reports rather than demanding footnotes for what the reader is
+looking at anyway.  The reasons are recorded at length in
+`bin/hooks/footnote-check''s history (TODO.org :ID: 762b7836)."
+  (let (fence lines)
+    (dolist (line (split-string text "\n"))
+      (if (string-match-p "\\`[ \t]*\\(```\\|~~~\\)" line)
+          (setq fence (not fence))
+        (unless fence (push line lines))))
+    (nreverse lines)))
+
+(defun claude-code-ide-org--footnote-split (message)
+  "Split MESSAGE at its last line that is exactly `---'.
+Return (BODY . FOOT): BODY the lines before it, fences stripped, and
+FOOT the text after it.  A message with no such line has no end matter,
+and all of it is body."
+  (let* ((lines (split-string message "\n"))
+         (sep (seq-position (reverse lines) "---"))
+         (n (if sep (- (length lines) sep 1) (length lines))))
+    (cons (claude-code-ide-org--footnote-prose-lines
+           (string-join (seq-take lines n) "\n"))
+          (string-join (nthcdr (1+ n) lines) "\n"))))
+
+(defun claude-code-ide-org--footnote-candidates (lines)
+  "Return the distinct 8-hex word tokens in LINES, sorted.
+A whole word, in grep's sense: the hook this replaces used
+`\\b[0-9a-f]{8}\\b', which matches only a token of exactly eight word
+characters -- so the prefix of a full uuid counts, since `-' is not a
+word character.  Not filtered by shape: 5 tracked ids are all digits,
+and the lookup, not a shape test, is the discriminator."
+  (let ((case-fold-search nil) ids)
+    (dolist (line lines)
+      (dolist (tok (split-string line "[^0-9A-Za-z_]+" t))
+        (when (string-match-p "\\`[0-9a-f]\\{8\\}\\'" tok)
+          (push tok ids))))
+    (sort (delete-dups ids) #'string<)))
+
+(defun claude-code-ide-org--footnote-resolve (ids files)
+  "Return a hash table mapping each of IDS that FILES define to (KEYWORD TITLE).
+Scoped to FILES, the project's own org files, never org's id index: that
+index spans every tracked repo, and an id belonging to another project
+is not this project's citation.  An `:ID:' line is accepted only when
+the heading above it owns that id, so an id quoted in some other
+heading's body is never mistaken for a definition.  A visited buffer is
+read as it stands; any other file is parsed in a temp buffer, with no
+visit and so no prompt that could hang an `emacsclient' call."
+  (let ((found (make-hash-table :test 'equal))
+        (case-fold-search nil))
+    (dolist (file files)
+      (let ((pending (seq-remove (lambda (id) (gethash id found)) ids))
+            (visited (find-buffer-visiting file)))
+        (when pending
+          (with-temp-buffer
+            (unless visited
+              (insert-file-contents file)
+              (delay-mode-hooks (org-mode)))
+            (with-current-buffer (or visited (current-buffer))
+              (org-with-wide-buffer
+               (dolist (id pending)
+                 (goto-char (point-min))
+                 (let (done)
+                   (while (and (not done)
+                               (re-search-forward
+                                (concat "^[ \t]*:ID:[ \t]+" (regexp-quote id))
+                                nil t))
+                     (save-excursion
+                       (when (and (ignore-errors (org-back-to-heading t) t)
+                                  (string-prefix-p
+                                   id (or (org-entry-get nil "ID") "")))
+                         (puthash id (list (or (org-get-todo-state) "-")
+                                           (substring-no-properties
+                                            (org-get-heading t t t t))
+                                           (org-entry-get nil "ID"))
+                                  found)
+                         (setq done t))))))))))))
+    found))
+
+(defun claude-code-ide-org--footnote-owed (message transcript files &optional covered)
+  "Return the ids MESSAGE's segment cites and owes, as (ID KEYWORD TITLE).
+TRANSCRIPT is the session's transcript path, which supplies the blocks
+written before MESSAGE; FILES are the project's org files.  An id is
+owed when it resolves to a heading in FILES, is absent from MESSAGE's
+end matter, and appears on no prose line beside its exact title -- a
+line pairing the two has already met the convention (TODO.org :ID:
+2a6a1355).  Sorted by id, the order the end matter takes."
+  (pcase-let* ((`(,body . ,foot) (claude-code-ide-org--footnote-split message))
+               (lines (append (mapcan #'claude-code-ide-org--footnote-prose-lines
+                                      (claude-code-ide-org--footnote-segment
+                                       transcript message))
+                              body))
+               (ids (claude-code-ide-org--footnote-candidates lines))
+               (resolved (and ids (claude-code-ide-org--footnote-resolve ids files)))
+               (owed nil))
+    (dolist (id ids)
+      (when-let* ((entry (gethash id resolved)))
+        (let ((title (nth 1 entry)))
+          (unless (or (string-search id foot)
+                      ;; Already delivered by an `org_footnotes' call this
+                      ;; turn (TODO.org :ID: 30d05c93).
+                      (member id covered)
+                      (seq-some (lambda (line)
+                                  (and (string-search id line)
+                                       (string-search title line)))
+                                lines))
+            (push (cons id entry) owed)))))
+    (nreverse owed)))
+
+(defun claude-code-ide-org-write-footnote-check (payload-file out-file project &optional covered-file)
+  "Write the footnote check's verdict on the Stop payload in PAYLOAD-FILE.
+Called by `bin/hooks/footnote-check' through `emacsclient -e', which
+passes PROJECT, the project root, as an argument: `getenv' here would
+read the server's environment, not the hook's.  OUT-FILE gets `ok' on
+its first line when nothing is owed, or `owed ID...' followed by one
+end-matter line per id, flush left, in canonical form.  The first line
+is always written, so an empty OUT-FILE means the call never ran --
+which the stub treats as an outage, where no footnote is owed."
+  (let* ((payload (json-parse-string
+                   (with-temp-buffer
+                     (insert-file-contents payload-file)
+                     (buffer-string))
+                   :object-type 'alist :null-object nil :false-object nil))
+         (message (alist-get 'last_assistant_message payload))
+         (transcript (alist-get 'transcript_path payload))
+         (files (and (stringp project) (not (string-empty-p project))
+                     (seq-filter #'file-readable-p
+                                 (list (expand-file-name "TODO.org" project)
+                                       (expand-file-name "DONE.org" project)))))
+         (covered (and (stringp covered-file) (file-readable-p covered-file)
+                       (split-string (with-temp-buffer (insert-file-contents covered-file)
+                                                       (buffer-string))
+                                     "[ \t\n]+" t)))
+         (owed (and (stringp message) (not (string-empty-p message)) files
+                    (claude-code-ide-org--footnote-owed message transcript files covered))))
+    (with-temp-file out-file
+      (if (null owed)
+          (insert "ok\n")
+        (insert "owed " (mapconcat #'car owed " ") "\n")
+        (dolist (entry owed)
+          (insert (format "`%s`  %-9s %s\n"
+                          (nth 0 entry) (nth 1 entry) (nth 2 entry))))))))
+
+(defun claude-code-ide-org--footnote-lines (blocks ids files)
+  "Canonical end matter for the ids BLOCKS cite and the ids IDS name.
+
+BLOCKS are reader-visible text, fences stripped before scanning, and IDS
+a list of ids or 8-character prefixes the caller says its reply will
+cite.  Each resolves against FILES, the project's org files, and one
+that does not is left out.  Sorted by id; a keyword whose change is
+queued and not yet applied is shown as the queued one with a trailing
+star, as the citation rules ask (TODO.org :ID: 30d05c93).  Returns
+\(ID8S . LINES)."
+  (let* ((ids8 (mapcar (lambda (i) (downcase (substring i 0 (min 8 (length i))))) ids))
+         (cands (claude-code-ide-org--footnote-candidates
+                 (append (mapcan #'claude-code-ide-org--footnote-prose-lines blocks)
+                         (list (string-join ids8 " ")))))
+         (resolved (and cands (claude-code-ide-org--footnote-resolve cands files)))
+         ;; Read once for every id: about a second each time (30d05c93).
+         (events (and resolved (> (hash-table-count resolved) 0)
+                      (or (ignore-errors (claude-code-ide-org--queue-events))
+                          'none)))
+         (covered nil) (lines nil))
+    (dolist (id cands)
+      (when-let* ((entry (gethash id resolved)))
+        (let* ((disk (nth 0 entry))
+               (full (nth 2 entry))
+               (queued (and full (ignore-errors
+                                   (claude-code-ide-org--effective-todo-state full disk events))))
+               (kw (if (and queued (not (equal queued disk))) (concat queued "*") disk)))
+          (push id covered)
+          (push (format "`%s`  %-9s %s" id kw (nth 1 entry)) lines))))
+    (cons (nreverse covered) (nreverse lines))))
+
+(defun claude-code-ide-org-write-footnote-lines (payload-file out-file project)
+  "Write the end matter for the `org_footnotes' call in PAYLOAD-FILE.
+
+Called by `bin/hooks/footnotes-inject' on PreToolUse.  The ids come from
+the reader-visible blocks written before this call in the current reply
+-- read from the transcript -- and from the call's own `ids' argument,
+the ids the reply will cite.  OUT-FILE gets `ids ID8...' on its first
+line, then one canonical line each; an empty file means the call never
+ran, and the hook then injects nothing (TODO.org :ID: 30d05c93)."
+  (let* ((payload (json-parse-string
+                   (with-temp-buffer (insert-file-contents payload-file) (buffer-string))
+                   :object-type 'alist :null-object nil :false-object nil))
+         (transcript (alist-get 'transcript_path payload))
+         (raw (alist-get 'ids (alist-get 'tool_input payload)))
+         (ids (and (stringp raw) (split-string raw "[ \t,]+" t)))
+         (files (and (stringp project) (not (string-empty-p project))
+                     (seq-filter #'file-readable-p
+                                 (list (expand-file-name "TODO.org" project)
+                                       (expand-file-name "DONE.org" project)))))
+         (result (claude-code-ide-org--footnote-lines
+                  (and transcript (claude-code-ide-org--footnote-segment transcript ""))
+                  ids files)))
+    (with-temp-file out-file
+      (insert "ids " (string-join (car result) " ") "\n")
+      (dolist (l (cdr result)) (insert l "\n")))))
+
+(defun claude-code-ide-org-write-footnotes-hook-output (payload-file out-file project queue-dir)
+  "Write `bin/hooks/footnotes-inject's whole stdout to OUT-FILE.
+
+The PreToolUse payload is PAYLOAD-FILE; PROJECT is the directory whose
+TODO.org and DONE.org resolve ids; QUEUE-DIR is where the covered ids go,
+as <session_id>.footnoted, which footnote-check counts as discharged.
+OUT-FILE gets the hook's JSON -- the call's own input plus `lines' --
+or stays empty when there is nothing to inject, and the stub prints it
+verbatim.  The logic lives here and the stub only moves bytes, as the
+scripting conventions ask of a script that needs the running Emacs
+\(TODO.org :ID: a749b95c, PR #31 review; it began as bash shaping JSON
+with jq)."
+  (let* ((payload (json-parse-string
+                   (with-temp-buffer (insert-file-contents payload-file) (buffer-string))
+                   :object-type 'alist :null-object nil :false-object nil))
+         (sid (alist-get 'session_id payload))
+         (lines-file (make-temp-file "cci-footnote-lines")))
+    (unwind-protect
+        (when (and (stringp sid)
+                   (string-match-p "\\`[A-Za-z0-9._-]+\\'" sid)
+                   (not (member sid '("." ".."))))
+          (claude-code-ide-org-write-footnote-lines payload-file lines-file project)
+          (let* ((out (with-temp-buffer (insert-file-contents lines-file)
+                                        (split-string (buffer-string) "\n" t)))
+                 (covered (and (string-prefix-p "ids " (or (car out) ""))
+                               (split-string (substring (car out) 4) " " t)))
+                 (lines (string-join (cdr out) "\n")))
+            (unless (string-empty-p lines)
+              (make-directory queue-dir t)
+              (write-region (mapconcat (lambda (i) (concat i "\n")) covered "")
+                            nil (expand-file-name (concat sid ".footnoted") queue-dir)
+                            t 'silent)
+              (with-temp-file out-file
+                (insert
+                 (json-encode
+                  `((hookSpecificOutput
+                     . ((hookEventName . "PreToolUse")
+                        (permissionDecision . "allow")
+                        (updatedInput
+                         . ,(cons (cons 'lines lines)
+                                  (assq-delete-all
+                                   'lines (copy-alist (alist-get 'tool_input payload))))))))))))))
+      (delete-file lines-file))))
+
+(defun claude-code-ide-org-footnotes (ids &optional lines)
+  "The `org_footnotes' tool: return LINES, the end matter a hook generated.
+
+IDS are what the reply will cite.  LINES are never supplied by the
+caller: `bin/hooks/footnotes-inject' rewrites the call on PreToolUse,
+putting them in with every keyword and title looked up (TODO.org :ID:
+30d05c93).  Without them the hook is not wired, and this says so rather
+than succeeding empty -- an empty success would read as nothing owed."
+  (ignore ids)
+  (if (and (stringp lines) (not (string-empty-p (string-trim lines))))
+      lines
+    "Error: footnotes-inject is not wired, so no end matter was generated. Write it by hand, after a `---` separator."))
+
+(defun claude-code-ide-org--render-header (session-id turns)
+  "The head of SESSION-ID's render, given its TURNS: title, startup, the
+generated-file comment and any re-key note.  Written only by a full
+render (TODO.org :ID: eddee10f): an appended turn never repeats it."
+  (let ((sibling (claude-code-ide-org--transcript-longer-sibling session-id))
+        (day (when-let* ((first (car turns)) (time (plist-get first :time)))
+               (format-time-string "%Y-%m-%d %a" time))))
+    (concat "#+TITLE: Session " (claude-code-ide-org--short-id session-id)
+            (if day (concat " -- " day) "") "\n"
+            ;; `content' so every turn's body is visible and the tool
+            ;; drawer is not: the drawer is the part nobody is paging
+            ;; for, and folding it is the whole reason it is a drawer.
+            "#+STARTUP: content\n"
+            "#+COMMENT: Generated by claude-code-ide-org-render-session. "
+            "Derived from the session transcript; edits here are lost on "
+            "the next render.\n\n"
+            (if sibling
+                (concat "* NOTE: this conversation continues in another transcript\n\n"
+                        "  This session was re-keyed mid-work, so its transcript stops "
+                        "at the switch\n  while "
+                        (claude-code-ide-org--short-id sibling)
+                        " carries the same conversation from the same start and\n"
+                        "  continues past it.  Render that one for the whole thing.\n\n")
+              ""))))
+
+(defun claude-code-ide-org--render-turn (turn id-cache)
+  "TURN rendered as org, ending with its footnote definitions.
+The one turn renderer the full render and a live append share, so the
+two cannot disagree about what a turn looks like (TODO.org :ID:
+eddee10f).  ID-CACHE is a hash table held for the whole render."
+  (with-temp-buffer
+    (let* ((time (plist-get turn :time))
+           (prompt (or (plist-get turn :prompt) ""))
+           (headline (or (claude-code-ide-org--prompt-synopsis prompt)
+                         "(empty prompt)"))
+           ;; The ids this turn cites, for its footnote
+           ;; definitions (TODO.org :ID: 9bc8fc8c).
+           (found (make-hash-table :test 'equal))
+           (link (lambda (s)
+                   (claude-code-ide-org--render-link-ids s id-cache found))))
+      (insert (format "* %s  %s\n"
+                      (if time (format-time-string "%H:%M" time) "--:--")
+                      headline))
+      ;; The prompt in a quote block, because the one thing a
+      ;; reader must never have to guess is where their own words
+      ;; end and the answer begins -- and the first draft ran the
+      ;; two together with only a blank line between.
+      (insert "\n#+begin_quote\n"
+              (funcall link (claude-code-ide-org--org-escape-body
+                             (string-trim prompt)))
+              "\n#+end_quote\n")
+      ;; Each paragraph of prose becomes a level-2 heading, so a
+      ;; long turn has navigation points instead of being one
+      ;; unfoldable wall. Tool calls land under the paragraph they
+      ;; followed; calls made before any prose stay at turn level.
+      (let ((pending nil))
+        (dolist (block (plist-get turn :blocks))
+          (pcase (car block)
+            ('tool (push (cdr block) pending))
+            ;; Narration is placed exactly like prose -- it is where
+            ;; the reader saw it -- but tagged, so the harness's
+            ;; words stay distinguishable from the model's and
+            ;; filterable (TODO.org :ID: b09d8090).
+            ((and (or 'text 'narration) kind)
+             (when pending
+               (claude-code-ide-org--insert-tools-drawer (nreverse pending))
+               (setq pending nil))
+             (let* ((text (string-trim (cdr block)))
+                    (synopsis (or (claude-code-ide-org--prompt-synopsis text)
+                                  "(continued)"))
+                    ;; A one-line paragraph short enough to fit the
+                    ;; headline IS the headline; repeating it as a
+                    ;; body prints everything short twice.
+                    (more (or (string-search "\n" text)
+                              (> (string-width text)
+                                 claude-code-ide-org-prompt-synopsis-width))))
+               (insert (format "\n** %s%s\n" (funcall link synopsis)
+                               (if (eq kind 'narration) "  :summary:" "")))
+               (when more
+                 (insert "\n"
+                         (funcall link (claude-code-ide-org--org-escape-body text))
+                         "\n"))))))
+        (when pending
+          (claude-code-ide-org--insert-tools-drawer (nreverse pending))))
+      (claude-code-ide-org--insert-footnote-definitions found id-cache)
+      (insert "\n"))
+    (buffer-string)))
+
+(defun claude-code-ide-org--render-transcript (session-id &optional turns)
+  "Return SESSION-ID's transcript rendered as an org document string.
+The header, then every turn.  TURNS, when given, replaces the
+transcript's own -- the live render passes its finished turns only."
+  (let ((turns (or turns (claude-code-ide-org--transcript-turns session-id)))
+        ;; One id lookup per render, misses included (:ID: 9bc8fc8c).
+        (id-cache (make-hash-table :test 'equal)))
+    (concat (claude-code-ide-org--render-header session-id turns)
+            (if (null turns)
+                (concat "* No turns found\n\n  The transcript has no human prompt in "
+                        "it, or has aged out.\n")
+              (mapconcat (lambda (turn) (claude-code-ide-org--render-turn turn id-cache))
+                         turns "")))))
 
 (defun claude-code-ide-org--insert-tools-drawer (tools)
   "Insert a :TOOLS: drawer listing TOOLS at point.
@@ -12409,6 +14123,133 @@ and noise the rest of the time."
     (insert "\n:TOOLS:\n")
     (dolist (tool tools) (insert "- " tool "\n"))
     (insert ":END:\n")))
+
+;;; Choosing a session to render (TODO.org :ID: 406d78da) ------------------
+
+(defconst claude-code-ide-org--session-title-window-cap (* 1024 1024)
+  "The most of a transcript's tail read looking for its title.
+The window starts at 64 KB and grows fourfold, as the first-stamp read
+grows from the head, but never past this: a long session never renamed
+falls back to its first prompt rather than having the whole file read.")
+
+(defun claude-code-ide-org--transcript-window-lines (file start end)
+  "FILE's complete lines between byte offsets START and END, parsed as JSON.
+The first line is dropped when START is mid-file, since it is truncated."
+  (ignore-errors
+    (with-temp-buffer
+      (insert-file-contents file nil start end)
+      (goto-char (point-min))
+      (when (> start 0) (forward-line 1))
+      (let (objs)
+        (while (not (eobp))
+          (let ((obj (ignore-errors
+                       (json-parse-string
+                        (buffer-substring-no-properties (point) (line-end-position))
+                        :object-type 'alist :null-object nil :false-object nil))))
+            (when obj (push obj objs)))
+          (forward-line 1))
+        (nreverse objs)))))
+
+(defun claude-code-ide-org--session-title (file)
+  "The name a reader knows session FILE by, or nil.
+The *last* `custom-title' in the file, since `/rename' appends a new one
+each time and the first may be long stale; else the last `ai-title'.
+Read from the file's tail, in a window that grows up to
+`claude-code-ide-org--session-title-window-cap'."
+  (let* ((size (or (file-attribute-size (file-attributes file)) 0))
+         (window 65536) title)
+    (while (and (not title) window)
+      (let* ((start (max 0 (- size window)))
+             (objs (reverse (claude-code-ide-org--transcript-window-lines file start size))))
+        (setq title
+              (or (seq-some (lambda (o) (and (equal (alist-get 'type o) "custom-title")
+                                             (alist-get 'customTitle o)))
+                            objs)
+                  (seq-some (lambda (o) (and (equal (alist-get 'type o) "ai-title")
+                                             (alist-get 'aiTitle o)))
+                            objs)))
+        (setq window (and (not title) (> start 0)
+                          (< window claude-code-ide-org--session-title-window-cap)
+                          (* window 4)))))
+    title))
+
+(defun claude-code-ide-org--session-first-prompt (file)
+  "The synopsis of session FILE's first prompt, or nil, read from its head."
+  (let* ((size (or (file-attribute-size (file-attributes file)) 0))
+         (window 65536) found)
+    (while (and (not found) window)
+      (let ((objs (claude-code-ide-org--transcript-window-lines file 0 (min size window))))
+        (setq found
+              (seq-some (lambda (o)
+                          (let ((c (alist-get 'content (alist-get 'message o))))
+                            (and (equal (alist-get 'type o) "user")
+                                 (not (alist-get 'isMeta o))
+                                 (stringp c) (not (string-prefix-p "<bash-" c))
+                                 (claude-code-ide-org--prompt-synopsis c))))
+                        objs))
+        (setq window (and (not found) (< window size)
+                          (< window claude-code-ide-org--session-title-window-cap)
+                          (* window 4)))))
+    found))
+
+(defun claude-code-ide-org--session-candidates ()
+  "Every session there is to render, newest first, as (DISPLAY . ID).
+
+Every project's transcripts rather than the current one's (the user,
+2026-09-23): deriving the current project's slug is what
+`claude-code-ide-org--transcript-file' warns goes wrong in worktrees and
+subdirectories, and a session from another repo stays reachable.  A
+render whose transcript has aged out is offered too, marked, and opens
+as it is -- renders live outside Claude Code's cleanup (settled
+2026-09-25).  Each line shows the modified time, the project, the name
+and the 8-character id, so completion matches on any of them."
+  (let* ((home-slug (replace-regexp-in-string
+                     "[/.]" "-" (directory-file-name (expand-file-name "~"))))
+         (transcripts
+          (sort (file-expand-wildcards
+                 (expand-file-name "projects/*/*.jsonl" (expand-file-name "~/.claude/")) t)
+                (lambda (a b)
+                  (time-less-p (file-attribute-modification-time (file-attributes b))
+                               (file-attribute-modification-time (file-attributes a))))))
+         (render-dir (file-name-as-directory claude-code-ide-org-transcript-render-directory))
+         (ids (mapcar #'file-name-base transcripts))
+         (line (lambda (time project name id)
+                 (format "%s  %-24s  %-44s  %s"
+                         (format-time-string "%m-%d %H:%M" time)
+                         (truncate-string-to-width project 24 nil nil "…")
+                         (truncate-string-to-width (or name "(no prompt)") 44 nil nil "…")
+                         (substring id 0 (min 8 (length id)))))))
+    (append
+     (mapcar (lambda (f)
+               (let ((slug (file-name-nondirectory (directory-file-name (file-name-directory f)))))
+                 (cons (funcall line
+                                (file-attribute-modification-time (file-attributes f))
+                                (string-remove-prefix "-" (string-remove-prefix home-slug slug))
+                                (or (claude-code-ide-org--session-title f)
+                                    (claude-code-ide-org--session-first-prompt f))
+                                (file-name-base f))
+                       (file-name-base f))))
+             transcripts)
+     (when (file-directory-p render-dir)
+       (delq nil
+             (mapcar (lambda (r)
+                       (let ((id (file-name-base r)))
+                         (unless (member id ids)
+                           (cons (funcall line (file-attribute-modification-time (file-attributes r))
+                                          "(render only)" nil id)
+                                 id))))
+                     (directory-files render-dir t "\\.org\\'")))))))
+
+(defun claude-code-ide-org--read-session ()
+  "Choose a session to render: from the list, or by a typed id or prefix."
+  (let* ((candidates (claude-code-ide-org--session-candidates))
+         (choice (completing-read "Session: "
+                                  (claude-code-ide-org--ordered-collection candidates))))
+    (or (cdr (assoc choice candidates))
+        (let ((typed (string-trim choice)))
+          (or (cdr (seq-find (lambda (c) (string-prefix-p (downcase typed) (cdr c)))
+                             candidates))
+              typed)))))
 
 (defun claude-code-ide-org-render-session (session-id &optional force)
   "Render SESSION-ID's transcript to org and return the file path.
@@ -12421,26 +14262,312 @@ an identical file is a cost paid for nothing.
 
 Signals when the transcript cannot be found, because a caller asking
 for a specific session wants to know it is not there rather than to be
-handed an empty document."
-  (interactive (list (read-string "Session id: ") current-prefix-arg))
-  (let ((source (claude-code-ide-org--transcript-file session-id)))
-    (unless source
+handed an empty document -- unless a render of it exists, which is then
+returned as it is: renders outlive the transcripts Claude Code prunes.
+
+Interactively, the session is chosen from every project's sessions,
+newest first, or typed as an id or 8-character prefix (TODO.org :ID:
+406d78da); a caller passing SESSION-ID is unaffected."
+  (interactive (list (claude-code-ide-org--read-session) current-prefix-arg))
+  (if (called-interactively-p 'any)
+      ;; Interactively the render follows its transcript (TODO.org :ID:
+      ;; eddee10f).
+      (buffer-file-name (claude-code-ide-org--open-live-render session-id))
+  (let* ((source (claude-code-ide-org--transcript-file session-id))
+         (dir (file-name-as-directory
+               claude-code-ide-org-transcript-render-directory))
+         (out (expand-file-name (concat session-id ".org") dir)))
+    (unless (or source (file-exists-p out))
       (error "No transcript for session %s (it may have aged out)" session-id))
-    (let* ((dir (file-name-as-directory
-                 claude-code-ide-org-transcript-render-directory))
-           (out (expand-file-name (concat session-id ".org") dir)))
-      (make-directory dir t)
-      (when (or force
-                (not (file-exists-p out))
-                (time-less-p (file-attribute-modification-time
-                              (file-attributes out))
-                             (file-attribute-modification-time
-                              (file-attributes source))))
-        (with-temp-file out
-          (insert (claude-code-ide-org--render-transcript session-id))))
-      (when (called-interactively-p 'any)
-        (find-file out))
-      out)))
+    (progn
+      ;; A render that is following has one writer, the follower: writing
+      ;; here would confuse `auto-revert-tail-mode' about where the file
+      ;; ends (TODO.org :ID: eddee10f).
+      (when (and source (not (claude-code-ide-org--live-render-buffer session-id)))
+        (make-directory dir t)
+        (when (or force
+                  (not (file-exists-p out))
+                  (time-less-p (file-attribute-modification-time
+                                (file-attributes out))
+                               (file-attribute-modification-time
+                                (file-attributes source))))
+          (with-temp-file out
+            (insert (claude-code-ide-org--render-transcript session-id)))))
+      out))))
+
+;;; A render that follows its transcript (TODO.org :ID: eddee10f) ------------
+;;
+;; While its buffer is open, a render is extended a whole turn at a time as
+;; the session runs: the render FILE is appended to, and the buffer, in
+;; `auto-revert-tail-mode', takes the new text at its end without moving
+;; the reader.  A full re-render would reset folds every turn and cost more
+;; as the session grew; writing the buffer directly would make it a second
+;; source of truth beside the file.  One turn renderer serves both paths,
+;; and appending the rest of a transcript must come out byte-identical to
+;; one full render of it.
+
+(defvar-local claude-code-ide-org--live-session nil "The session a live render follows.")
+(defvar-local claude-code-ide-org--live-transcript nil "The transcript a live render follows.")
+(defvar-local claude-code-ide-org--live-offset 0
+  "Byte offset in the transcript just past the last finished turn rendered.")
+(defvar-local claude-code-ide-org--live-first-line nil
+  "The transcript's first line when following began; a change means it was replaced.")
+(defvar-local claude-code-ide-org--live-watch nil "The file-notify descriptor, or nil.")
+(defvar-local claude-code-ide-org--live-timer nil "The poll timer when the file cannot be watched.")
+(defvar-local claude-code-ide-org--live-debounce nil "The pending debounced update, or nil.")
+(defvar-local claude-code-ide-org--live-cache nil "The id lookup cache for appended turns.")
+
+;; Permanent: a revert re-runs `org-mode', which kills buffer-local
+;; variables, and a following buffer whose state vanished would leak its
+;; file watch.
+(dolist (sym '(claude-code-ide-org--live-session claude-code-ide-org--live-transcript
+               claude-code-ide-org--live-offset claude-code-ide-org--live-first-line
+               claude-code-ide-org--live-watch claude-code-ide-org--live-timer
+               claude-code-ide-org--live-debounce claude-code-ide-org--live-cache
+               claude-code-ide-org-render-live-mode))
+  (put sym 'permanent-local t))
+
+(defun claude-code-ide-org--transcript-prompt-obj-p (obj)
+  "Non-nil when transcript entry OBJ is a human prompt, which opens a turn.
+The shape test `claude-code-ide-org--turn-reader-view-buffer' uses."
+  (and (equal (alist-get 'type obj) "user")
+       (not (alist-get 'isMeta obj))
+       (let ((c (alist-get 'content (alist-get 'message obj))))
+         (and (stringp c) (not (string-prefix-p "<bash-" c))))))
+
+(defun claude-code-ide-org--transcript-first-line (file)
+  "FILE's first line, or nil."
+  (ignore-errors
+    (with-temp-buffer
+      (insert-file-contents file nil 0 4096)
+      (buffer-substring-no-properties (point-min) (line-end-position)))))
+
+(defun claude-code-ide-org--transcript-finished-turns (file &optional offset)
+  "The turns of transcript FILE finished since byte OFFSET, as (TURNS . NEW).
+
+A turn is finished at its `system' / `turn_duration' line, written once
+the Stop hooks settle -- measured 2026-09-23: one per completed turn,
+where `stop_reason: end_turn' appeared twice as often, since a blocking
+Stop hook makes a turn continue and end again.  A turn cut short by an
+interrupt may never get one, so the next prompt closes it.  NEW is the
+byte offset just past the last boundary, so an unfinished turn is read
+again next time and rendered once.  A trailing line with no newline yet
+is ignored until the rest of it arrives."
+  (let* ((offset (or offset 0))
+         (size (or (file-attribute-size (file-attributes file)) 0)))
+    (if (>= offset size)
+        (cons nil offset)
+      (with-temp-buffer
+        (insert-file-contents file nil offset size)
+        ;; A partial last line waits for its newline.
+        (goto-char (point-max))
+        (unless (bolp) (delete-region (line-beginning-position) (point-max)))
+        (goto-char (point-min))
+        (let (open boundary)
+          (while (not (eobp))
+            (let* ((beg (point))
+                   (obj (ignore-errors
+                          (json-parse-string
+                           (buffer-substring-no-properties beg (line-end-position))
+                           :object-type 'alist :null-object nil :false-object nil))))
+              (forward-line 1)
+              (cond
+               ((and obj (claude-code-ide-org--transcript-prompt-obj-p obj))
+                ;; A prompt closes an interrupted turn at its own start.
+                (when open (setq boundary beg))
+                (setq open t))
+               ((and obj open (equal (alist-get 'type obj) "system")
+                     (equal (alist-get 'subtype obj) "turn_duration"))
+                (setq boundary (point) open nil)))))
+          (if (null boundary)
+              (cons nil offset)
+            (save-restriction
+              (narrow-to-region (point-min) boundary)
+              (cons (claude-code-ide-org--turn-reader-view-buffer)
+                    (+ offset (1- (position-bytes boundary)))))))))))
+
+(defun claude-code-ide-org--render-finished (session-id file)
+  "SESSION-ID's render up to its last finished turn, as (TEXT . OFFSET).
+The live render's opening: an unfinished turn is left out, since it
+would otherwise be rendered twice once it finished.  The header is
+computed from every turn begun, so the title's date matches the full
+render's even when no turn has finished yet."
+  (pcase-let ((`(,turns . ,offset) (claude-code-ide-org--transcript-finished-turns file 0))
+              (cache (make-hash-table :test 'equal)))
+    (cons (concat (claude-code-ide-org--render-header
+                   session-id (or turns (claude-code-ide-org--turn-reader-view file)))
+                  (mapconcat (lambda (turn) (claude-code-ide-org--render-turn turn cache))
+                             turns ""))
+          offset)))
+
+(defun claude-code-ide-org--live-render-buffer (session-id)
+  "The buffer following SESSION-ID's render, or nil."
+  (seq-find (lambda (b)
+              (with-current-buffer b
+                (and (bound-and-true-p claude-code-ide-org-render-live-mode)
+                     (equal claude-code-ide-org--live-session session-id))))
+            (buffer-list)))
+
+(defun claude-code-ide-org--fold-tools-drawers (beg end)
+  "Fold every :TOOLS: drawer that starts between BEG and END.
+Only the appended text: a drawer the reader opened further up stays open."
+  (save-excursion
+    (goto-char beg)
+    (while (re-search-forward "^:TOOLS:$" end t)
+      (save-excursion
+        (beginning-of-line)
+        (ignore-errors (org-fold-hide-drawer-toggle t))))))
+
+(defun claude-code-ide-org--live-pin-tail ()
+  "Set `auto-revert-tail-pos' to the size of the file the buffer now shows.
+
+After the follower writes the whole render.  The position is set when a
+file is *visited* and survives a revert, and turning tail mode on keeps
+a prior one; so a buffer that visited an older, shorter render and was
+reverted to a new one kept the old size, and tail mode then re-inserted
+everything past it.  Found live on 2026-09-25: 82,000 characters of
+turns duplicated in this session's own render (TODO.org :ID: eddee10f)."
+  (setq-local auto-revert-tail-pos
+              (file-attribute-size (file-attributes (buffer-file-name)))))
+
+(defun claude-code-ide-org--live-stop-following (why)
+  "Turn following off in the current buffer, saying WHY in the echo area."
+  (claude-code-ide-org-render-live-mode -1)
+  (message "Live render stopped: %s" why))
+
+(defun claude-code-ide-org--live-update (buffer)
+  "Append BUFFER's newly finished turns to its render, or rebuild it.
+
+A transcript that shrank below the saved offset, or whose first line
+changed, was replaced, so the render is rebuilt in full and the buffer
+reverted -- the reader's place is lost in that rare case, and following
+stops, saying why.  Otherwise the finished turns are rendered and
+appended to the file, and the tail handler takes them into the buffer;
+point at the very end moves with them, anywhere else it stays."
+  (when (buffer-live-p buffer)
+    (with-current-buffer buffer
+      (setq claude-code-ide-org--live-debounce nil)
+      (let* ((file claude-code-ide-org--live-transcript)
+             (render (buffer-file-name))
+             (size (and file (file-attribute-size (file-attributes file)))))
+        (cond
+         ((or (null file) (null size) (null render))
+          (claude-code-ide-org--live-stop-following "the transcript is gone"))
+         ((or (< size claude-code-ide-org--live-offset)
+              (not (equal (claude-code-ide-org--transcript-first-line file)
+                          claude-code-ide-org--live-first-line)))
+          (let ((full (claude-code-ide-org--render-finished claude-code-ide-org--live-session file)))
+            (with-temp-file render (insert (car full)))
+            (let ((inhibit-read-only t)) (revert-buffer t t t))
+            (claude-code-ide-org--live-pin-tail)
+            (claude-code-ide-org--live-stop-following
+             "the transcript was replaced, so the render was rebuilt")))
+         (t
+          (pcase-let ((`(,turns . ,offset)
+                       (claude-code-ide-org--transcript-finished-turns
+                        file claude-code-ide-org--live-offset)))
+            (when turns
+              (let ((text (mapconcat (lambda (turn)
+                                       (claude-code-ide-org--render-turn
+                                        turn claude-code-ide-org--live-cache))
+                                     turns ""))
+                    (at-end (= (point) (point-max)))
+                    (old-end (point-max)))
+                (write-region text nil render t 'silent)
+                (setq claude-code-ide-org--live-offset offset)
+                (let ((inhibit-read-only t))
+                  ;; Takes the file's new size: it inserts what lies
+                  ;; between the size it last saw and that.
+                  (auto-revert-tail-handler
+                   (file-attribute-size (file-attributes render))))
+                (claude-code-ide-org--fold-tools-drawers old-end (point-max))
+                (when at-end (goto-char (point-max))))))))))))
+
+(defun claude-code-ide-org--live-schedule (buffer)
+  "Debounce an update of BUFFER by half a second."
+  (when (buffer-live-p buffer)
+    (with-current-buffer buffer
+      (when claude-code-ide-org--live-debounce
+        (cancel-timer claude-code-ide-org--live-debounce))
+      (setq claude-code-ide-org--live-debounce
+            (run-with-timer 0.5 nil #'claude-code-ide-org--live-update buffer)))))
+
+(defun claude-code-ide-org--live-start ()
+  "Begin following: watch the transcript, or poll it every 5 seconds."
+  (let ((buffer (current-buffer)))
+    (setq buffer-read-only t)
+    (auto-revert-tail-mode 1)
+    (setq claude-code-ide-org--live-watch
+          (ignore-errors
+            (file-notify-add-watch claude-code-ide-org--live-transcript '(change)
+                                   (lambda (_event) (claude-code-ide-org--live-schedule buffer)))))
+    (unless claude-code-ide-org--live-watch
+      (setq claude-code-ide-org--live-timer
+            (run-with-timer 5 5 #'claude-code-ide-org--live-update buffer))
+      (message "Live render: the transcript cannot be watched, so it is polled every 5 seconds"))
+    (add-hook 'kill-buffer-hook #'claude-code-ide-org--live-stop nil t)))
+
+(defun claude-code-ide-org--live-stop ()
+  "Stop following: remove the watch and any timers."
+  (when claude-code-ide-org--live-watch
+    (ignore-errors (file-notify-rm-watch claude-code-ide-org--live-watch))
+    (setq claude-code-ide-org--live-watch nil))
+  (dolist (sym '(claude-code-ide-org--live-timer claude-code-ide-org--live-debounce))
+    (when (symbol-value sym) (cancel-timer (symbol-value sym)) (set sym nil))))
+
+(define-minor-mode claude-code-ide-org-render-live-mode
+  "Follow a rendered session's transcript, a whole turn at a time.
+Turned on when a render is opened interactively; toggle it to freeze a
+render while reading.  It turns itself off, saying why, when the
+transcript goes away or is replaced, so the mode line is never wrong.
+Deliberately not called Follow, which would read as `follow-mode'
+\(TODO.org :ID: eddee10f)."
+  :lighter " Live"
+  (if claude-code-ide-org-render-live-mode
+      (if (and claude-code-ide-org--live-transcript
+               (file-exists-p claude-code-ide-org--live-transcript))
+          (claude-code-ide-org--live-start)
+        (setq claude-code-ide-org-render-live-mode nil)
+        (message "Live render: no transcript to follow"))
+    (claude-code-ide-org--live-stop)))
+
+(defun claude-code-ide-org--open-live-render (session-id &optional other-window)
+  "Open SESSION-ID's render following its transcript, and return the buffer.
+A buffer already following it is shown and nothing is written: while a
+render is live it has one writer, and a rewrite under
+`auto-revert-tail-mode' would confuse its idea of where the file ends.
+Otherwise a full render up to the last finished turn is written, forced,
+and opened with following on."
+  (let ((live (claude-code-ide-org--live-render-buffer session-id)))
+    (if live
+        (progn (if other-window (switch-to-buffer-other-window live) (pop-to-buffer-same-window live))
+               live)
+      (let* ((source (claude-code-ide-org--transcript-file session-id))
+             (dir (file-name-as-directory claude-code-ide-org-transcript-render-directory))
+             (out (expand-file-name (concat session-id ".org") dir)))
+        (if (null source)
+            (progn (claude-code-ide-org-render-session session-id)
+                   (if other-window (find-file-other-window out) (find-file out))
+                   (current-buffer))
+          (make-directory dir t)
+          (let ((full (claude-code-ide-org--render-finished session-id source))
+                (existing (find-buffer-visiting out)))
+            (with-temp-file out (insert (car full)))
+            ;; Reverted before visiting, so `find-file' never stops to ask
+            ;; whether to re-read a file it already has a stale copy of.
+            (when existing
+              (with-current-buffer existing
+                (let ((inhibit-read-only t)) (revert-buffer t t t))))
+            (if other-window (find-file-other-window out) (find-file out))
+            (claude-code-ide-org--live-pin-tail)
+            (setq claude-code-ide-org--live-session session-id
+                  claude-code-ide-org--live-transcript source
+                  claude-code-ide-org--live-offset (cdr full)
+                  claude-code-ide-org--live-first-line
+                  (claude-code-ide-org--transcript-first-line source)
+                  claude-code-ide-org--live-cache (make-hash-table :test 'equal))
+            (claude-code-ide-org-render-live-mode 1)
+            (current-buffer)))))))
 
 ;;; Span evidence ------------------------------------------------------------
 ;;
@@ -14618,7 +16745,12 @@ its end would bury a fresh entry under two hundred older ones."
                                     claude-code-ide-org--outline-finished-keywords)
                             (not (and id (gethash id seen))))
                    (when id (puthash id t seen))
-                   (org-archive-subtree)
+                   ;; An active region makes `org-archive-subtree' loop
+                   ;; over every headline in it instead of archiving the
+                   ;; one at point -- live work included, then
+                   ;; `end-of-buffer' (TODO.org :ID: 4a4ebb21).
+                   (let ((org-loop-over-headlines-in-active-region nil))
+                     (org-archive-subtree))
                    (setq n (1+ n))))))
            (set-marker m nil))))
       (when (buffer-modified-p) (save-buffer)))
@@ -14999,6 +17131,60 @@ no-op."
              ;; got, and silently maps over nothing.
              nil nil)))))))
 
+(defun claude-code-ide-org--lint-id-locations (files)
+  "Return a hash of every :ID: defined across FILES, mapped to the list
+of places it is defined, each (FILE . LINE), in file order.
+
+Beside `claude-code-ide-org--lint-heading-ids' rather than inside it,
+whose `puthash' lets a second definition silently overwrite the first
+-- which is exactly how a duplicate went unreported (TODO.org :ID:
+39039bb6) -- and whose table shape the :BLOCKER: check relies on.
+Through org, not text, so only a heading's own property defines an id:
+one quoted in prose, a link or :ARCHIVE_OLPATH: never does."
+  (let ((table (make-hash-table :test 'equal)))
+    (dolist (file files)
+      (when (file-exists-p file)
+        (with-temp-buffer
+          (let ((org-inhibit-startup t))
+            (insert-file-contents file)
+            (org-mode)
+            (org-map-entries
+             (lambda ()
+               (let ((id (org-entry-get nil "ID")))
+                 (when id
+                   (puthash id (append (gethash id table)
+                                       (list (cons file (line-number-at-pos))))
+                            table))))
+             nil nil)))))
+    table))
+
+(defun claude-code-ide-org--lint-duplicate-ids (files reference-files)
+  "Findings for every :ID: defined more than once across FILES and
+REFERENCE-FILES, each naming every location.  An `error', never a
+warning: a duplicate is never a judgement call, and `--id-find'
+resolving a prefix needs a UNIQUE match, so any tool can act on the
+wrong copy.  Reported only when at least one copy is in FILES, so a
+reference tracker's own duplicates never produce errors here.  The
+archive's post-condition still catches the corruption as it is
+written; this stops it being committed."
+  (let ((linted (mapcar #'file-truename files))
+        findings)
+    (maphash
+     (lambda (id places)
+       (when (and (cdr places)
+                  (seq-some (lambda (p) (member (file-truename (car p)) linted))
+                            places))
+         (push (cons 'error
+                     (format "id %s is defined at %s" id
+                             (mapconcat (lambda (p)
+                                          (format "%s:%d"
+                                                  (file-name-nondirectory (car p))
+                                                  (cdr p)))
+                                        places " and ")))
+               findings)))
+     (claude-code-ide-org--lint-id-locations (append files reference-files)))
+    (nreverse findings)))
+
 (defun claude-code-ide-org--lint-routing-categories (files)
   "Return the level-1 headings across FILES that carry `:ARCHIVE:'.
 
@@ -15286,7 +17472,7 @@ probably punctuation read as structure: %S" title))
                  ;; a one-valued property so they filter in the agenda,
                  ;; which is why this check exists at all.
                  (let ((paths (seq-filter
-                               (lambda (tag) (member tag '("spike" "bounded" "arch")))
+                               (lambda (tag) (member tag claude-code-ide-org--path-tags))
                                tags)))
                    (when (cdr paths)
                      (report 'error line
@@ -15511,6 +17697,52 @@ unfinished member (%s) -- a done, cancelled or deferred member must not block: %
                              (length extra) (if (= 1 (length extra)) "" "s")
                              (mapconcat (lambda (i) (substring i 0 8)) extra " ")
                              title))))
+               ;; `:MEMBERS:' is the declaration and the checklist its
+               ;; rendering (TODO.org :ID: 7ee3b71a), so the guard that
+               ;; stopped being luck: every declared id resolves, none is
+               ;; an ancestor of another -- a parent row is derived, so
+               ;; declaring the parent too says one thing two ways -- and
+               ;; the checklist declares exactly the property's ids, in
+               ;; order.  The last would have caught both of the week of
+               ;; 2026-09-22's defects when they happened.
+               (when (claude-code-ide-org--slice-p)
+                 (let ((declared (claude-code-ide-org--slice-declared-ids)))
+                   (unless declared
+                     (report 'error line "slice has no :MEMBERS: -- the declaration a \
+checklist is rendered from; add members with org_slice_add_member: %s" title))
+                   (when declared
+                     (let ((unknown (seq-remove (lambda (i) (gethash i known-ids)) declared))
+                           (listed (claude-code-ide-org--slice-checklist-ids))
+                           (nested nil))
+                       ;; Open slices only.  A closed slice's list is a
+                       ;; record, and four recorded a story and its own
+                       ;; child as separate counted members, the practice
+                       ;; when they closed; the ruling that a parent
+                       ;; carries no counted work dates from 2026-09-25
+                       ;; and does not reach back (:ID: 30a340fd).
+                       (dolist (id (unless (member (org-get-todo-state)
+                                                   claude-code-ide-org--outline-finished-keywords)
+                                     declared))
+                         (let ((pos (org-find-entry-with-id id)))
+                           (when pos
+                             (save-excursion
+                               (goto-char pos)
+                               (while (org-up-heading-safe)
+                                 (let ((up (downcase (or (org-entry-get nil "ID") ""))))
+                                   (when (member up declared)
+                                     (push (cons id up) nested))))))))
+                       (when unknown
+                         (report 'error line ":MEMBERS: names unknown :ID: %s: %s"
+                                 (mapconcat (lambda (i) (substring i 0 (min 8 (length i)))) unknown " ")
+                                 title))
+                       (dolist (pair nested)
+                         (report 'error line ":MEMBERS: names %s and its ancestor %s -- a \
+parent row is derived, so declare the member alone: %s"
+                                 (substring (car pair) 0 8) (substring (cdr pair) 0 8) title))
+                       (unless (equal listed declared)
+                         (report 'error line "slice checklist disagrees with :MEMBERS: \
+\(%d listed, %d declared) -- run claude-code-ide-org-refresh-slice: %s"
+                                 (length listed) (length declared) title))))))
                (let ((blocker (org-entry-get nil "BLOCKER")))
                  (when blocker
                    ;; The wrapper is the one malformation the readers
@@ -15647,9 +17879,12 @@ evidence lines, arriving here by a different route."
                  (append files (seq-filter #'file-exists-p
                                            (or reference-files nil))))))
     (let ((categories (claude-code-ide-org--lint-routing-categories files)))
-      (apply #'append
-             (mapcar (lambda (f) (claude-code-ide-org--lint-file f known categories))
-                     files)))))
+      (append
+       (claude-code-ide-org--lint-duplicate-ids
+        files (seq-filter #'file-exists-p (or reference-files nil)))
+       (apply #'append
+              (mapcar (lambda (f) (claude-code-ide-org--lint-file f known categories))
+                      files))))))
 
 (defun claude-code-ide-org-lint-report (&optional files reference-files)
   "Print `claude-code-ide-org-lint' findings and exit non-zero if any.
@@ -16102,8 +18337,8 @@ answer."
 
 (defconst claude-code-ide-org--worked-tool-names
   '("org_amend" "org_set_todo" "org_clock_in" "org_clock_out"
-    "org_set_property" "org_slice_add_member" "org_divide" "org_refile"
-    "org_archive" "org_wrap_plan"
+    "org_set_property" "org_set_tags" "org_slice_add_member" "org_divide"
+    "org_refile" "org_archive" "org_wrap_plan"
     ;; Retired 2026-09-21 with the plan-file link (:ID: f9fdea91); kept
     ;; so older records that name it still read as worked.
     "org_log_background_plan")
@@ -16526,9 +18761,14 @@ two insertions, no deletion, no reflow.  Returns a summary string."
   (claude-code-ide-org--at-id-writable
    id
    (lambda ()
-     (if (claude-code-ide-org--find-drawer "PLAN")
-         (format "Error: \"%s\" already has a :PLAN: drawer; nothing done."
-                 (org-get-heading t t t t))
+     (cond
+      ;; The observed case (TODO.org :ID: 60d6ab6e): this tool saved a
+      ;; reflow the user had not, into a commit about another heading.
+      ((claude-code-ide-org--busy-refusal buffer-file-name))
+      ((claude-code-ide-org--find-drawer "PLAN")
+       (format "Error: \"%s\" already has a :PLAN: drawer; nothing done."
+               (org-get-heading t t t t)))
+      (t
        (let ((bounds (claude-code-ide-org--heading-body-bounds)))
          (if (null bounds)
              (format "Error: \"%s\" has no body to wrap."
@@ -16559,55 +18799,55 @@ two insertions, no deletion, no reflow.  Returns a summary string."
 would close the :PLAN: drawer early -- :END: is org's drawer terminator and \
 nothing escapes it. Not wrapped."
                        (org-get-heading t t t t))
-           (let* ((open (nth 0 bounds))
-                  (beg (nth 1 bounds))
-                  (end (nth 2 bounds))
-                  ;; EMPTY-OK: a seam on the first body line means "no
-                  ;; prospective half", and an empty drawer is how that
-                  ;; is recorded rather than an error the caller has no
-                  ;; way to satisfy (TODO.org :ID: f421c5c3).
-                  (stop (if until
-                            (claude-code-ide-org--plan-seam beg end until t)
-                          end))
-                  (before (buffer-substring-no-properties open end)))
-             ;; Close first, then open. Inserting at the later position
-             ;; before the earlier one keeps BEG valid; doing it the
-             ;; other way round would shift STOP by the length of the
-             ;; opening marker and close the drawer one line late.
-             (save-excursion
-               (goto-char stop)
-               (insert ":END:\n"))
-             (save-excursion
-               (goto-char open)
-               (insert ":PLAN:\n"))
-             (save-buffer)
-             ;; Prove the move was lossless right here, against the text
-             ;; read before the insertions, rather than trusting the
-             ;; arithmetic. `bin/lint-org' cannot make this check: the
-             ;; damage it would catch is structural and this one is
-             ;; prose-level under a well-formed heading.
-             (let* ((after (buffer-substring-no-properties
-                            open (+ end (length ":PLAN:\n:END:\n"))))
-                    (stripped (replace-regexp-in-string
-                               "^:\\(PLAN\\|END\\):\n" "" after)))
-               ;; `substring-no-properties', because `org-get-heading'
-               ;; returns the fontified heading and the MCP layer
-               ;; serializes its text properties as pages of
-               ;; `(face (org-headline-done ...))' around the answer.
-               ;; Same trap as `--outline-line' and the pending-updates
-               ;; report; observed here on the first real call.
-               (substring-no-properties
-                (if (= stop beg)
-                    (format "\"%s\" has no prospective half -- the seam is its \
+             (let* ((open (nth 0 bounds))
+                    (beg (nth 1 bounds))
+                    (end (nth 2 bounds))
+                    ;; EMPTY-OK: a seam on the first body line means "no
+                    ;; prospective half", and an empty drawer is how that
+                    ;; is recorded rather than an error the caller has no
+                    ;; way to satisfy (TODO.org :ID: f421c5c3).
+                    (stop (if until
+                              (claude-code-ide-org--plan-seam beg end until t)
+                            end))
+                    (before (buffer-substring-no-properties open end)))
+               ;; Close first, then open. Inserting at the later position
+               ;; before the earlier one keeps BEG valid; doing it the
+               ;; other way round would shift STOP by the length of the
+               ;; opening marker and close the drawer one line late.
+               (save-excursion
+                 (goto-char stop)
+                 (insert ":END:\n"))
+               (save-excursion
+                 (goto-char open)
+                 (insert ":PLAN:\n"))
+               (save-buffer)
+               ;; Prove the move was lossless right here, against the text
+               ;; read before the insertions, rather than trusting the
+               ;; arithmetic. `bin/lint-org' cannot make this check: the
+               ;; damage it would catch is structural and this one is
+               ;; prose-level under a well-formed heading.
+               (let* ((after (buffer-substring-no-properties
+                              open (+ end (length ":PLAN:\n:END:\n"))))
+                      (stripped (replace-regexp-in-string
+                                 "^:\\(PLAN\\|END\\):\n" "" after)))
+                 ;; `substring-no-properties', because `org-get-heading'
+                 ;; returns the fontified heading and the MCP layer
+                 ;; serializes its text properties as pages of
+                 ;; `(face (org-headline-done ...))' around the answer.
+                 ;; Same trap as `--outline-line' and the pending-updates
+                 ;; report; observed here on the first real call.
+                 (substring-no-properties
+                  (if (= stop beg)
+                      (format "\"%s\" has no prospective half -- the seam is its \
 first body line -- so an empty :PLAN: drawer records that, and the whole body \
 stays visible as the debrief. Text preserved: %s."
+                              (org-get-heading t t t t)
+                              (if (equal stripped before) "yes" "NO -- INSPECT"))
+                    (format "Wrapped %s of \"%s\" in :PLAN:%s. Text preserved: %s."
+                            (if until "the body above the seam" "the whole body")
                             (org-get-heading t t t t)
-                            (if (equal stripped before) "yes" "NO -- INSPECT"))
-                  (format "Wrapped %s of \"%s\" in :PLAN:%s. Text preserved: %s."
-                          (if until "the body above the seam" "the whole body")
-                          (org-get-heading t t t t)
-                          (if until (format " (seam: %s)" until) "")
-                          (if (equal stripped before) "yes" "NO -- INSPECT")))))))))))))
+                            (if until (format " (seam: %s)" until) "")
+                            (if (equal stripped before) "yes" "NO -- INSPECT"))))))))))))))
 
 ;;; CLOSED: backfill (TODO.org :ID: f4b07fc0)
 ;;
@@ -16743,6 +18983,35 @@ resolves the symlink with `file-truename\'."
   (claude-code-ide-org--archive-target-file
    (claude-code-ide-org--capture-target-file)))
 
+(defun claude-code-ide-org--datetree-siblings-descending-p (by-closed)
+  "Non-nil when the heading at point and its later siblings are newest-first.
+BY-CLOSED compares CLOSED: timestamps, as a day node's tasks sort;
+otherwise the lowercased titles, as years, months and days sort.
+
+The check that lets `claude-code-ide-org-sort-datetree-descending' skip
+a node (TODO.org :ID: 16df4004): `org-sort-entries' rewrites every
+subtree it touches even when nothing moves, so sorting all of DONE.org
+on each ceremony cost 25-47 s and grew with every archive.  A tie counts
+as in order, because org's sort is stable and leaves ties where they
+stand: measured on DONE.org, 17 day nodes with same-minute CLOSED:
+stamps were re-sorted on every pass and the file never changed.  A
+missing CLOSED: still answers nil, so that node is sorted as before
+rather than skipped on a guess."
+  (save-excursion
+    (let ((key (lambda ()
+                 (if by-closed
+                     (let ((c (org-entry-get nil "CLOSED")))
+                       (and c (org-time-string-to-seconds c)))
+                   (downcase (org-get-heading t t t t)))))
+          (ok t) prev)
+      (setq prev (funcall key))
+      (unless prev (setq ok nil))
+      (while (and ok (org-get-next-sibling))
+        (let ((k (funcall key)))
+          (setq ok (and k (if by-closed (<= k prev) (not (string< prev k))))
+                prev k)))
+      ok)))
+
 (defun claude-code-ide-org-sort-datetree-descending (&optional file dry-run)
   "Sort FILE\'s top-level datetree newest-first at every level.
 
@@ -16785,28 +19054,50 @@ Idempotent.  Returns a summary string."
            ;; Years, from before the first heading -- org signals
            ;; "Nothing to sort" anywhere else.
            (goto-char (point-min))
-           (org-sort-entries nil ?A)
-           ;; Then each tier in turn. Re-scanned from point-min each
-           ;; time rather than held as markers: every sort moves the
-           ;; subtrees the next tier lives in.
-           (dolist (level '(1 2 3))
+           (unless (and (re-search-forward "^\\* " nil t)
+                        (progn (beginning-of-line)
+                               (claude-code-ide-org--datetree-siblings-descending-p nil)))
              (goto-char (point-min))
-             (org-map-entries
-              (lambda ()
-                (when (and (= (org-current-level) level)
-                           (claude-code-ide-org--datetree-node-role
-                            level (org-get-heading t t t t)))
-                  (pcase level
-                    (1 (setq years (1+ years)))
-                    (2 (setq months (1+ months)))
-                    (3 (setq days (1+ days))))
-                  ;; A node with no children is not an error; org
-                  ;; signals rather than returning, so ask first.
-                  (when (save-excursion (org-goto-first-child))
-                    (if (= level 3)
-                        (org-sort-entries nil ?R nil nil "CLOSED")
-                      (org-sort-entries nil ?A)))))
-              nil nil)))))
+             (org-sort-entries nil ?A))
+           ;; Then down the tiers, visiting date nodes only: a walk by
+           ;; first-child and next-sibling never enters a day's tasks,
+           ;; where three `org-map-entries' passes visited all 4,422
+           ;; headings of DONE.org each time (TODO.org :ID: 16df4004).
+           ;; A node is sorted before its children are walked, and the
+           ;; sort moves only that node's own subtrees, so the walk's
+           ;; position under it stays good.
+           (cl-labels
+               ((walk (level)
+                  (while
+                      (progn
+                        (when (and (= (org-current-level) level)
+                                   (claude-code-ide-org--datetree-node-role
+                                    level (org-get-heading t t t t)))
+                          (pcase level
+                            (1 (setq years (1+ years)))
+                            (2 (setq months (1+ months)))
+                            (3 (setq days (1+ days))))
+                          ;; A node already in order is left alone, and
+                          ;; one with no children is not an error; org
+                          ;; signals rather than returning, so ask first.
+                          (when (save-excursion
+                                  (and (org-goto-first-child)
+                                       (not (claude-code-ide-org--datetree-siblings-descending-p
+                                             (= level 3)))))
+                            ;; Point stays on this node: the sort
+                            ;; rewrites only text after its heading.
+                            (save-excursion
+                              (if (= level 3)
+                                  (org-sort-entries nil ?R nil nil "CLOSED")
+                                (org-sort-entries nil ?A))))
+                          (when (< level 3)
+                            (save-excursion
+                              (when (org-goto-first-child) (walk (1+ level))))))
+                        (org-get-next-sibling)))))
+             (goto-char (point-min))
+             (when (re-search-forward "^\\* " nil t)
+               (beginning-of-line)
+               (walk 1))))))
       (when (and (not dry-run) (buffer-modified-p)) (save-buffer)))
     (format "%s: %d year(s), %d month(s), %d day(s) sorted newest-first.%s"
             (file-name-nondirectory file) years months days
@@ -17308,6 +19599,145 @@ about explicitly, which is what this predicate is for."
     (beginning-of-line)
     (looking-at-p claude-code-ide-org--slice-member-regexp)))
 
+(defun claude-code-ide-org--glued-headline-p (text)
+  "Non-nil when TEXT holds a headline-shaped token after other text.
+
+A heading glued onto the end of a body line -- `...in the text.* TODO
+org_outline...' -- is not a heading to org, and a fill that treats its
+line as prose wraps the heading into the paragraph, where not even a
+line-anchored search finds it again.  The 2026-09-14 sweep did exactly
+that to TODO.org :ID: 61f05e56, and :ID: 5b46fbfd traces the gluing to
+`org_amend' replace=true.  The token sits *mid-line*, so a column-zero
+test misses it; this looks for a star run straight after non-blank text
+and followed by one of this project's TODO keywords.
+
+A star run straight after `=', `~' or a backslash is not counted: that
+is prose *quoting* a heading in verbatim, code or a regexp -- three of
+the four hits on TODO.org on 2026-09-25 -- and the cost is only that a
+real heading glued after closing verbatim goes unseen, which fails safe
+the other way.  A quotation of a glued heading in plain text still
+counts, since nothing tells it apart from one.
+
+One predicate, named so the later work reuses it rather than writing a
+second: `b52df20b''s fill guard, `5b46fbfd''s lint rule and
+`704d8558''s guard on what `org_edit' writes (the user, 2026-09-25)."
+  (and (stringp text)
+       (let ((case-fold-search nil))
+         (string-match-p
+          (concat "[^ \t\n=~\\\\*]\\*+ "
+                  (regexp-opt (mapcar #'car claude-code-ide-org--slice-checkbox-by-keyword)
+                              'words))
+          text))))
+
+(defun claude-code-ide-org--display-width (beg end)
+  "Width of the text between BEG and END as displayed, link markup skipped.
+A link counts as its description once fontified, which is what the
+user's \\[fill-paragraph] measures; the raw count would call a line
+holding one 53-character link over-long (TODO.org :ID: b52df20b).
+
+*The `invisible' TEXT property only, never the char property.*  Link
+fontification hides the brackets and target with a text property,
+`org-link'; folding hides a body with `org-fold-outline', which reaches
+`invisible-p' through the char property alone.  The first version asked
+`invisible-p' and measured every folded body -- every body, in a file
+opened with `#+STARTUP: content' -- as zero wide, so a dry run over both
+trackers found nothing to fill, while a temp-buffer test never folds and
+passed."
+  (let ((w 0) (pos beg))
+    (while (< pos end)
+      (let ((next (min end (next-single-property-change pos 'invisible nil end))))
+        (unless (get-text-property pos 'invisible)
+          (setq w (+ w (string-width (buffer-substring-no-properties pos next)))))
+        (setq pos next)))
+    w))
+
+(defun claude-code-ide-org--fillable-paragraph-p (element)
+  "Non-nil when ELEMENT is prose a fill may touch.
+The one predicate the write-time transform and the sweep share, so they
+cannot disagree about a line (TODO.org :ID: b52df20b).  A `paragraph'
+outside any list item -- a filled item reads as an item with a body,
+and a slice member line breaks under the refresh -- and outside
+`:PROPERTIES:' and `:LOGBOOK:', which are org's own records.  `:PLAN:'
+and `:DEBRIEF:' are prose.  A generated line stays excluded as a second
+guard, and so does a paragraph holding a glued heading."
+  (and (eq (org-element-type element) 'paragraph)
+       (not (org-element-lineage element '(item plain-list)))
+       (let ((drawer (org-element-lineage element '(drawer property-drawer))))
+         (not (or (eq (org-element-type drawer) 'property-drawer)
+                  (member (org-element-property :drawer-name drawer)
+                          '("LOGBOOK" "PROPERTIES")))))
+       (not (save-excursion
+              (goto-char (org-element-property :contents-begin element))
+              (claude-code-ide-org--generated-line-p)))))
+
+(defun claude-code-ide-org--paragraph-overlong-p (element column)
+  "Non-nil when a line of paragraph ELEMENT is wider than COLUMN on screen."
+  (save-excursion
+    (goto-char (org-element-property :contents-begin element))
+    (let ((end (org-element-property :contents-end element)) over)
+      (while (and (not over) (< (point) end))
+        (when (> (claude-code-ide-org--display-width
+                  (line-beginning-position) (line-end-position))
+                 column)
+          (setq over t))
+        (forward-line 1))
+      over)))
+
+(defun claude-code-ide-org--fill-prose-text (text &optional column)
+  "Return TEXT with its over-long prose paragraphs filled to COLUMN.
+
+The write-time half of TODO.org :ID: b52df20b: the tools fill what they
+write, so prose stops arriving as one long line for the human to
+reflow.  COLUMN defaults to `fill-column'; the callers pass the target
+buffer's.
+
+Only paragraphs `claude-code-ide-org--fillable-paragraph-p' accepts,
+and only those with a line wider than COLUMN *at display width*, after
+fontifying -- so the result is what \\[fill-paragraph] would produce, and
+a paragraph that already fits comes back exactly as sent, deliberate
+short breaks and all.  A paragraph holding a glued heading is never
+filled (`claude-code-ide-org--glued-headline-p').
+
+It cannot lose content: the non-whitespace text is compared before and
+after, and on any difference -- or any error -- TEXT is returned
+unchanged.  So a fill fault never blocks or damages a write; at worst
+the text arrives unfilled, as it did before this existed."
+  (if (or (not (stringp text)) (string-empty-p (string-trim text)))
+      text
+    (or (ignore-errors
+          (with-temp-buffer
+            (insert text)
+            (let ((org-mode-hook nil)) (delay-mode-hooks (org-mode)))
+            (setq fill-column (or column (default-value 'fill-column)))
+            (let ((before (claude-code-ide-org--nonspace-digest)))
+              (font-lock-ensure)
+              (let ((targets nil))
+                (org-element-map (org-element-parse-buffer) 'paragraph
+                  (lambda (el)
+                    (when (and (claude-code-ide-org--fillable-paragraph-p el)
+                               (not (claude-code-ide-org--glued-headline-p
+                                     (buffer-substring-no-properties
+                                      (org-element-property :contents-begin el)
+                                      (org-element-property :contents-end el))))
+                               (claude-code-ide-org--paragraph-overlong-p el fill-column))
+                      (push (org-element-property :contents-begin el) targets))))
+                ;; Last first, so a fill cannot move a paragraph not yet reached.
+                (dolist (pos targets)
+                  (goto-char pos)
+                  (org-fill-paragraph)))
+              (and (equal before (claude-code-ide-org--nonspace-digest))
+                   (buffer-substring-no-properties (point-min) (point-max))))))
+        text)))
+
+(defun claude-code-ide-org--fill-column-for-file (file)
+  "`fill-column' in the buffer visiting FILE, or its default.
+Read at the moment of writing, so a deferred write uses the value at
+apply time (TODO.org :ID: b52df20b)."
+  (let ((buffer (and file (find-buffer-visiting file))))
+    (if buffer
+        (buffer-local-value 'fill-column buffer)
+      (default-value 'fill-column))))
+
 (defun claude-code-ide-org-fill-prose (&optional file dry-run column)
   "Fill over-long prose in FILE to COLUMN, or report what it would fill.
 
@@ -17323,11 +19753,15 @@ COLUMN defaults to the buffer's own `fill-column', so the result is what
 that human's \\[fill-paragraph] would have produced rather than a second,
 competing width.
 
-*Only `paragraph', `item' and `plain-list' elements are touched.*  The
-third is not redundant: `org-element-at-point' reports `plain-list' at a
-list's *first* item and `item' only at subsequent ones, so omitting it
-skipped the opening item of every list -- 27 lines in TODO.org, the
-longest 588 characters, which is how the omission was found.  Tables,
+*Only paragraphs are touched, and never a list item* (TODO.org :ID:
+b52df20b).  Items used to be filled too, through `item' and `plain-list'
+-- the second because `org-element-at-point' reports `plain-list' at a
+list's first item, so omitting it had skipped 27 opening items.  That
+history is why excluding items *as a class* is the simpler rule: a
+filled item reads as an item with a body, and a slice member line
+breaks under the refresh.  Measured at display width after fontifying,
+as \[fill-paragraph] measures, and a paragraph holding a glued heading is
+reported rather than filled.  Tables,
 source and example blocks, fixed-width lines, headings and keywords are
 left
 exactly as they are because they are not prose, and `:PROPERTIES:' and
@@ -17368,25 +19802,31 @@ saving."
       (let* ((buffer-read-only nil)
              (fill-column (or column fill-column))
              (before (claude-code-ide-org--nonspace-digest))
-             (filled 0))
+             (filled 0)
+             (glued nil))
+        ;; The shared predicate and width of TODO.org :ID: b52df20b, so
+        ;; the sweep and the write path cannot disagree about a line:
+        ;; paragraphs only, never a list item, measured at display width
+        ;; after fontifying, and never one holding a glued heading --
+        ;; which is reported instead, since that is the damage this
+        ;; sweep once did to 61f05e56.
         (org-with-wide-buffer
-         (goto-char (point-min))
-         (while (not (eobp))
-           (when (> (- (line-end-position) (line-beginning-position))
-                    fill-column)
-             (let* ((element (org-element-at-point))
-                    (type (org-element-type element))
-                    (drawer (org-element-lineage
-                             element '(drawer property-drawer) t))
-                    (name (and drawer
-                               (org-element-property :drawer-name drawer))))
-               (when (and (memq type '(paragraph item plain-list))
-                          (not (eq (org-element-type drawer) 'property-drawer))
-                          (not (member name '("LOGBOOK" "PROPERTIES")))
-                          (not (claude-code-ide-org--generated-line-p)))
-                 (org-fill-paragraph)
-                 (setq filled (1+ filled)))))
-           (forward-line 1)))
+         (font-lock-ensure)
+         (let ((targets nil))
+           (org-element-map (org-element-parse-buffer) 'paragraph
+             (lambda (el)
+               (when (and (claude-code-ide-org--fillable-paragraph-p el)
+                          (claude-code-ide-org--paragraph-overlong-p el fill-column))
+                 (if (claude-code-ide-org--glued-headline-p
+                      (buffer-substring-no-properties
+                       (org-element-property :contents-begin el)
+                       (org-element-property :contents-end el)))
+                     (push (line-number-at-pos (org-element-property :contents-begin el)) glued)
+                   (push (org-element-property :contents-begin el) targets)))))
+           (dolist (pos targets)
+             (goto-char pos)
+             (org-fill-paragraph)
+             (setq filled (1+ filled)))))
         (let ((after (claude-code-ide-org--nonspace-digest)))
           (cond
            ((not (equal before after))
@@ -17394,12 +19834,22 @@ saving."
             (message "%s: REFUSED -- content changed, buffer reverted" file))
            (dry-run
             (revert-buffer t t t)
-            (message "%s: would fill %d paragraph(s) to column %d, content identical"
-                     file filled fill-column))
+            (message "%s: would fill %d paragraph(s) to column %d, content identical%s"
+                     file filled fill-column
+                     (claude-code-ide-org--fill-glued-note glued)))
            (t
             (save-buffer)
-            (message "%s: filled %d paragraph(s) to column %d, content identical"
-                     file filled fill-column)))))))))
+            (message "%s: filled %d paragraph(s) to column %d, content identical%s"
+                     file filled fill-column
+                     (claude-code-ide-org--fill-glued-note glued))))))))))
+
+(defun claude-code-ide-org--fill-glued-note (lines)
+  "A report clause naming the LINES whose paragraph held a glued heading."
+  (if (null lines) ""
+    (format "; %d paragraph%s left unfilled for holding a glued heading (line%s %s)"
+            (length lines) (if (= 1 (length lines)) "" "s")
+            (if (= 1 (length lines)) "" "s")
+            (mapconcat #'number-to-string (sort lines #'<) " "))))
 
 ;;; :ID: prefix expansion at the write boundary
 ;;
@@ -17522,7 +19972,80 @@ case of a full uuid costs one `length\' call and no file scanning."
         ;; amount of scanning can resolve.
         (setq prefix-unresolved t))))
    (unless prefix-unresolved
+     (claude-code-ide-org--refresh-stale-id-buffers id)
      (org-id-find id markerp))))
+
+(defun claude-code-ide-org--refresh-stale-id-buffers (id)
+  "Bring every visited tracked or archive buffer back in step with its file.
+
+`org-id-find' reads a file through the buffer visiting it, so a buffer
+the file has moved on from answers with the *old* text.  Reproduced
+2026-09-24 (TODO.org :ID: 8ddd7fa8): a heading moved by hand into
+another file resolved to its old location, because the old file's
+buffer still held it -- not a failure but a success at the wrong place,
+and a tool acting there would edit a heading the file no longer has,
+and write it back on save.  So before any lookup, an unmodified stale
+buffer is reverted; auto-revert only narrows that window.
+
+A buffer both stale *and* modified cannot be reverted without losing the
+human's edits, so when it is the file ID is indexed in, the lookup is
+refused, naming it -- the unsaved-edits refusal of TODO.org :ID:
+60d6ab6e, plus why.
+
+*Stale buffers are looked for before the file list is derived*
+(TODO.org :ID: 4d896425).  This runs on every lookup, and deriving the
+scannable files -- `org-add-archive-files' over the tracked set -- cost
+most of a 10 s slice refresh, which looks up each member of each slice.
+A stale buffer is rare, so the common case is one pass over the buffer
+list comparing modtimes, and the derivation runs only when some visited
+file has moved on."
+  (unless (eq claude-code-ide-org--stale-buffer-check 'done)
+  (when (eq claude-code-ide-org--stale-buffer-check 'pending)
+    (setq claude-code-ide-org--stale-buffer-check 'done))
+  (let ((indexed (and (stringp id) (boundp 'org-id-locations)
+                      (hash-table-p org-id-locations)
+                      (gethash id org-id-locations))))
+    ;; Org buffers only, and only files that still exist: a buffer
+    ;; whose file was deleted never verifies, and one did -- the old
+    ;; Doom glue, moved away by c562b69a's migration -- which kept the
+    ;; derivation running on every lookup.
+    (dolist (file (and (seq-some (lambda (b)
+                                   (let ((f (buffer-file-name b)))
+                                     (and f
+                                          (eq (buffer-local-value 'major-mode b) 'org-mode)
+                                          (file-exists-p f)
+                                          (not (verify-visited-file-modtime b)))))
+                                 (buffer-list))
+                       (claude-code-ide-org--id-scannable-files)))
+      (let ((buffer (find-buffer-visiting file)))
+        (when (and buffer (not (verify-visited-file-modtime buffer)))
+          (if (not (buffer-modified-p buffer))
+              (with-current-buffer buffer
+                (let ((inhibit-read-only t))
+                  (revert-buffer t t t)))
+            (when (and indexed (file-equal-p file indexed))
+              (error "%s -- and the file changed on disk since it was \
+read, so the buffer cannot be trusted to locate :ID: %s"
+                     (string-remove-prefix
+                      "Error: " (claude-code-ide-org--busy-refusal file))
+                     id)))))))))
+
+(defun claude-code-ide-org--id-not-found (id)
+  "The refusal for an ID that resolves to no heading, naming where it looked.
+\"Not found\" alone cannot say whether the id is wrong or the heading is
+somewhere the scan never reaches (TODO.org :ID: 8ddd7fa8)."
+  (format "Error: no org heading found with :ID: \"%s\" (scanned: %s)"
+          id
+          (mapconcat #'file-name-nondirectory
+                     (claude-code-ide-org--id-scannable-files) ", ")))
+
+(defun claude-code-ide-org--full-id (id)
+  "The full :ID: that ID -- a full id or an 8-character prefix -- names,
+or nil when it resolves to no heading.  For the places that must hand
+the id itself onward or compare it, where `--id-find's location is not
+enough (TODO.org :ID: 25e7b083)."
+  (let ((marker (claude-code-ide-org--id-find id 'marker)))
+    (and marker (org-with-point-at marker (org-entry-get nil "ID")))))
 
 (defun claude-code-ide-org--id-index ()
   "Org's own id-to-file index, loaded if it is not already.
@@ -17805,6 +20328,108 @@ delete this defcustom, the advice and its test together."
 (with-eval-after-load 'claude-code-ide-mcp-http-server
   (claude-code-ide-org--apply-notification-status-advice))
 
+(defcustom claude-code-ide-org-wire-on-load t
+  "Non-nil: start the MCP tools server and register sessions when the module loads.
+
+Enabling the module is the consent (TODO.org :ID: c562b69a, the user,
+2026-09-24): nobody enables a module whose tools are an MCP server
+without wanting that server.  This used to be a generated file in the
+user's Doom directory, loaded by a line pasted into config.el; its
+per-machine content had long been derived, so a generated copy could
+only drift.  Set it nil to run the module without wiring -- a second
+Emacs on the same machine, say, which would otherwise contend for the
+pinned port.  Batch Emacs never wires, whatever this says."
+  :type 'boolean
+  :group 'claude-code-ide-org)
+
+(defun claude-code-ide-org--wire-on-load ()
+  "Enable upstream's tools server and wire this project's sessions, if wanted.
+
+The three forms the generated glue ran, unchanged: the server switch,
+projects derived from the tracked files, and the wiring itself.  Only
+when `claude-code-ide-org-wire-on-load' is set, and *never* under
+`noninteractive'.  That guard is required, not tidy: `bin/test' and
+`bin/lint-org' load this file in their own batch Emacs, which would
+otherwise start a second server on the pinned port, collide with the
+live one and break the suite.  They were safe before only because the
+wiring lived in a file batch never loaded.  Idempotent, so a live
+reload, or the old glue still present during migration, wires nothing
+twice.  Returns non-nil when it wired."
+  (when (and claude-code-ide-org-wire-on-load (not noninteractive))
+    ;; A refusal -- two projects on one session name, a port that
+    ;; disagrees -- is a loud warning at startup, never an error: this
+    ;; runs inside the module's load, and an error would abort a reload
+    ;; halfway (TODO.org :ID: 965f94eb).
+    (condition-case err
+        (progn
+          (claude-code-ide-emacs-tools-setup)
+          (setq claude-code-ide-org-standalone-projects 'derive)
+          (claude-code-ide-org-standalone-wire)
+          t)
+      (error (display-warning 'claude-code-ide-org (error-message-string err) :error)
+             nil))))
+
+(defvar claude-code-ide-org--claude-json-file "~/.claude.json"
+  "Claude Code's user file, where local-scope MCP entries live per project.
+A variable so the tests can point it at a scratch copy.")
+
+(defun claude-code-ide-org--json-file (file)
+  "FILE parsed as JSON into alists, or nil when it is absent or unreadable."
+  (ignore-errors
+    (json-parse-string (with-temp-buffer (insert-file-contents file) (buffer-string))
+                       :object-type 'alist :null-object nil :false-object nil)))
+
+(defun claude-code-ide-org--project-mcp-url (dir)
+  "The `emacs-tools' URL Claude Code resolves for the project at DIR, or nil.
+
+Resolved as Claude Code resolves it (TODO.org :ID: 965f94eb, checked
+against its MCP documentation 2026-09-24): a *local*-scope entry for
+DIR in `~/.claude.json' wins over the project's `.mcp.json', and the
+whole entry is used, never merged.  A local entry is how a second clone
+of a repo gets a session name of its own without editing the committed
+file -- `claude mcp add --scope local --transport http emacs-tools URL',
+run once in that clone."
+  (let* ((dir (directory-file-name (expand-file-name dir)))
+         (projects (alist-get 'projects (claude-code-ide-org--json-file
+                                         (expand-file-name claude-code-ide-org--claude-json-file))))
+         (local (seq-some (lambda (key)
+                            (alist-get 'url (alist-get 'emacs-tools
+                                                       (alist-get 'mcpServers
+                                                                  (alist-get (intern key) projects)))))
+                          (delete-dups (list dir (directory-file-name (file-truename dir)))))))
+    (or local
+        (alist-get 'url (alist-get 'emacs-tools
+                                   (alist-get 'mcpServers
+                                              (claude-code-ide-org--json-file
+                                               (expand-file-name ".mcp.json" dir))))))))
+
+(defun claude-code-ide-org--project-session-name (dir)
+  "The MCP session name for the project at DIR: the last path segment of
+its resolved `emacs-tools' URL, or the directory's basename without one."
+  (let ((url (claude-code-ide-org--project-mcp-url dir)))
+    (or (and (stringp url)
+             (string-match "/mcp/\\([^/?#]+\\)/?\\'" url)
+             (match-string 1 url))
+        (file-name-nondirectory (directory-file-name dir)))))
+
+(defun claude-code-ide-org--url-port (url)
+  "The port URL names, or nil."
+  (and (stringp url) (string-match "://[^/:]+:\\([0-9]+\\)" url)
+       (string-to-number (match-string 1 url))))
+
+(defun claude-code-ide-org--session-collisions (projects)
+  "Pairs of PROJECTS resolving to one session name, as (NAME DIR-A DIR-B).
+Two clones of one repo register the same name, and the later one used
+to win silently, routing the other clone's sessions -- and its
+targetless captures -- to the wrong project (TODO.org :ID: 965f94eb)."
+  (let ((seen nil) (out nil))
+    (dolist (dir projects (nreverse out))
+      (let* ((name (claude-code-ide-org--project-session-name dir))
+             (prior (assoc name seen)))
+        (if prior
+            (push (list name (cdr prior) dir) out)
+          (push (cons name dir) seen))))))
+
 (defun claude-code-ide-org-standalone-wire ()
   "Wire the MCP tools server for standalone clients, loudly.
 Pins upstream's `claude-code-ide-mcp-server-port' to
@@ -17813,7 +20438,8 @@ already alive on a different port, and refusing if the pin disagrees
 with what the repo's .mcp.json actually names, since that static file
 is the contract every client reads.  Then starts the server and
 registers a session per entry of
-`claude-code-ide-org-standalone-projects' (basename as session id).
+`claude-code-ide-org-standalone-projects', under the session name its
+resolved `emacs-tools' URL ends in, refusing when two resolve to one.
 Idempotent: call it from your
 config after claude-code-ide loads, or interactively after changing
 the project list."
@@ -17843,21 +20469,50 @@ the project list."
                                     'derive)
                                 (claude-code-ide-org--standalone-derive-projects)
                               claude-code-ide-org-standalone-projects))))
-      ;; The IDE-companion (WebSocket server + lockfile) lives in
-      ;; claude-code-ide-mcp.el, which loading claude-code-ide does
-      ;; not pull in -- found when the headless Doom sandbox's glue
-      ;; boot threw void-function here (:ID: 7c86ab4c). Optional by
-      ;; construction: the MCP tools need only the HTTP server, so a
-      ;; missing companion degrades with a message, never an error.
-      (require 'claude-code-ide-mcp nil t)
-      (dolist (dir projects)
-        (claude-code-ide-mcp-server-register-session
-         (file-name-nondirectory (directory-file-name dir)) dir nil)
-        (if (fboundp 'claude-code-ide-mcp-start)
-            (claude-code-ide-mcp-start dir)
-          (message "claude-code-ide-org: IDE companion unavailable; tools server only")))
-      (message "claude-code-ide-org: standalone tools wired on port %d, %d project session(s)"
-               pin (length projects)))))
+      ;; Refuse a collision rather than let the later project win
+      ;; silently, naming both and the one command that separates them
+      ;; (TODO.org :ID: 965f94eb) -- and refuse *only* the duplicate.
+      ;; Refusing before any registration left every project, the
+      ;; unrelated ones included, without a session on a running server
+      ;; (TODO.org :ID: 7def4fff, PR #31 review).  So the refusals are
+      ;; collected, the rest register, and then the refusal signals.
+      (let (refusals refused)
+        (dolist (c (claude-code-ide-org--session-collisions projects))
+          (push (nth 2 c) refused)
+          (push (format "%s and %s both resolve to MCP session \"%s\"; \
+in the second, run: claude mcp add --scope local --transport http emacs-tools \
+http://localhost:%d/mcp/%s-2"
+                        (nth 1 c) (nth 2 c) (nth 0 c) pin (nth 0 c))
+                refusals))
+        ;; A local entry may name another port; the pin is the contract.
+        (dolist (dir projects)
+          (let ((port (claude-code-ide-org--url-port
+                       (claude-code-ide-org--project-mcp-url dir))))
+            (when (and port (/= port pin))
+              (push dir refused)
+              (push (format "%s's emacs-tools URL names port %d, but the tools server is pinned to %d"
+                            dir port pin)
+                    refusals))))
+        ;; The IDE-companion (WebSocket server + lockfile) lives in
+        ;; claude-code-ide-mcp.el, which loading claude-code-ide does
+        ;; not pull in -- found when the headless Doom sandbox's glue
+        ;; boot threw void-function here (:ID: 7c86ab4c). Optional by
+        ;; construction: the MCP tools need only the HTTP server, so a
+        ;; missing companion degrades with a message, never an error.
+        (require 'claude-code-ide-mcp nil t)
+        (let ((wired (seq-remove (lambda (d) (member d refused)) projects)))
+          (dolist (dir wired)
+            (claude-code-ide-mcp-server-register-session
+             (claude-code-ide-org--project-session-name dir) dir nil)
+            (if (fboundp 'claude-code-ide-mcp-start)
+                (claude-code-ide-mcp-start dir)
+              (message "claude-code-ide-org: IDE companion unavailable; tools server only")))
+          (if refusals
+              (user-error "claude-code-ide-org: %d project session(s) wired on port %d; refused: %s"
+                          (length wired) pin
+                          (string-join (nreverse refusals) "; "))
+            (message "claude-code-ide-org: standalone tools wired on port %d, %d project session(s)"
+                     pin (length wired))))))))
 
 (with-eval-after-load 'claude-code-ide
 
@@ -18030,28 +20685,82 @@ the project list."
             :description "For :BLOCKER: only: union with the existing set instead of replacing it.")))
 
   (claude-code-ide-make-tool
+   :function #'claude-code-ide-org-set-tags
+   :name "org_set_tags"
+   :description (concat
+                 "Add and remove tags on an EXISTING heading by its :ID:, "
+                 "the one way to change them: org-entry-put refuses TAGS, "
+                 "and a headline edit writes behind Emacs's back. Writes "
+                 "immediately through org-set-tags and logs the change to "
+                 ":LOGBOOK: as `- Tags \":after:\" from \":before:\"' with "
+                 "note beneath, distinct from a keyword transition. "
+                 "PATH-TAG AWARE: adding spike, bounded or arch displaces "
+                 "whichever of the other two the heading carries, so one "
+                 "call moves a heading's brainstorming path, and the reply "
+                 "names what it replaced; two in one add are refused. The "
+                 "result is the heading's own tags minus remove plus add, "
+                 "deduplicated (never :code:code:); an inherited tag is "
+                 "never copied down. A no-op says so and writes nothing; "
+                 "removing a tag the heading lacks is a note, not an "
+                 "error. Refuses while the file has unsaved changes in "
+                 "Emacs. Tags at creation still go through org_capture.")
+   :args '((:name "id"
+            :type string
+            :description "The :ID: of the heading, or an 8-character prefix.")
+           (:name "add"
+            :type string
+            :optional t
+            :description "Tags to add, comma- or space-separated, colons optional, e.g. \"bounded\" or \"code, research\".")
+           (:name "remove"
+            :type string
+            :optional t
+            :description "Tags to remove, same form. At least one of add and remove is required.")
+           (:name "note"
+            :type string
+            :optional t
+            :description "Short reason, e.g. \"stepped up: the fix changes three writers\"; recorded beneath the :LOGBOOK: line.")))
+
+  (claude-code-ide-make-tool
+   :function #'claude-code-ide-org-footnotes
+   :name "org_footnotes"
+   :description (concat
+                 "Generate the end matter for a reply that cites tracked "
+                 ":IDs:, folded away in this tool call instead of written by "
+                 "hand. Call it as the LAST step before such a reply, with "
+                 "ids= the ids the reply will cite; ids cited in the turn's "
+                 "earlier narration are added automatically. Returns one "
+                 "canonical line per id -- backticked id, keyword (a trailing "
+                 "* when a change is queued), exact title -- generated, never "
+                 "recalled. The reply then carries no --- block. Leave lines= "
+                 "empty: a PreToolUse hook fills it. Without that hook it "
+                 "errors, and end matter is written by hand as before.")
+   :args '((:name "ids"
+            :type string
+            :description "The ids or 8-character prefixes the reply will cite, space-separated.")
+           (:name "lines"
+            :type string
+            :optional t
+            :description "Filled by the footnotes-inject hook. Leave empty.")))
+
+  (claude-code-ide-make-tool
    :function #'claude-code-ide-org-slice-add-member
    :name "org_slice_add_member"
    :description (concat
-                 "Add a heading to a slice's planned checklist by :ID:, "
-                 "through Emacs -- the write path that closes the gap where "
-                 "membership edits meant hand emacsclient calls or direct "
-                 "file writes behind Emacs's back. Inserts the member line "
-                 "after the last planned member (or after the member named "
-                 "by after=, since a slice declares membership AND order), "
-                 "always above the Incidental: section, then refreshes the "
-                 "slice so the rendering, cookie and :BLOCKER: are derived "
-                 "rather than hand-written. Refuses: a non-slice target; a "
-                 "CLOSED slice (its list is a record); a duplicate member; "
-                 "a member with no TODO keyword on disk (apply a queued "
-                 "capture first -- org-depend blocks only on an unfinished "
-                 "keyword); and a file with unsaved human edits (retry once "
-                 "saved). With parent= the line lands INDENTED under that "
-                 "planned member instead -- the nested-member declaration for "
-                 "a story the slice covers only partially: the member must be "
-                 "inside the parent's org subtree, and the parent's line "
-                 "becomes a cookie-less grouping label. All ids accept an "
-                 "8-character prefix.")
+                 "Add a heading to a slice's :MEMBERS: by :ID:, through "
+                 "Emacs. :MEMBERS: is the slice's declaration -- the work it "
+                 "undertakes, in order -- and the checklist in its body is a "
+                 "rendering the refresh rebuilds from it, so this edits the "
+                 "property and then refreshes the checklist, cookie and "
+                 ":BLOCKER:. The new member goes last, or after the member "
+                 "named by after=. A member whose parent heading carries a "
+                 "TODO keyword renders indented under a boxless parent row "
+                 "by itself: nesting is derived, never declared. Refuses: a "
+                 "non-slice target; a CLOSED slice (its list is a record); a "
+                 "duplicate member; a member with no TODO keyword on disk "
+                 "(apply a queued capture first -- org-depend blocks only on "
+                 "an unfinished keyword); a file with unsaved human edits "
+                 "(retry once saved); and parent=, which is retired. All ids "
+                 "accept an 8-character prefix.")
    :args '((:name "slice_id"
             :type string
             :description "The :ID: of the slice heading (or an 8-character prefix). Must carry :KIND: slice and an unfinished keyword.")
@@ -18061,11 +20770,14 @@ the project list."
            (:name "after"
             :type string
             :optional t
-            :description "Optional. An existing planned member's :ID: or 8-character prefix; the new line is inserted directly after that member's line. Omit to append at the end of the planned checklist. Not combinable with parent.")
+            :description "Optional. An existing member's :ID: or 8-character prefix; the new member is placed after it in :MEMBERS:. Omit to add it last.")
+           ;; Declared though retired, so a caller passing it is refused by
+           ;; name: an undeclared key is dropped in silence (TODO.org :ID:
+           ;; bbf9fb77), which would lose the argument without a word.
            (:name "parent"
             :type string
             :optional t
-            :description "Optional. A planned member's :ID: or 8-character prefix whose org subtree contains member_id; the new line lands indented under it, last in its nested block, and the parent's line becomes a cookie-less grouping label (partial coverage of a story). Not combinable with after.")))
+            :description "RETIRED -- always refused. Nesting is derived: a member whose parent heading carries a TODO keyword renders under it by itself. Use after= to place a member.")))
 
   (claude-code-ide-make-tool
    :function #'claude-code-ide-org-divide
@@ -18208,22 +20920,39 @@ the project list."
    :name "org_query"
    :description (concat
                  "Search org-mode headings across "
-                 "`claude-code-ide-org-query-files' (or org-agenda-files) using "
-                 "org-ql's plain-string query syntax. Predicates: todo:KEYWORD "
-                 "(e.g. todo:WAITING), bare todo: for every non-terminal "
-                 "keyword at once (do not enumerate them -- an enumeration "
-                 "drops the ones you forget), property:KEY=VALUE (e.g. "
-                 "property:KIND=slice), tags:TAG1,TAG2 (comma = OR), "
-                 "priority:A, heading:\"text\". Prefix any predicate with ! to negate it "
-                 "(e.g. !todo:DONE). Separate predicates with spaces to combine "
-                 "with AND, e.g. \"todo:NEXT tags:code\". Returns one line per "
-                 "match: TODO state, heading, tags, :ID:, and file — or a "
-                 "message if nothing matches. Prefer this over reading whole "
-                 "files for cross-file questions like what's blocked or what "
-                 "changed this week.")
+                 "`claude-code-ide-org-query-files' (or org-agenda-files; "
+                 "DONE.org is searched too) using org-ql's PLAIN-STRING "
+                 "query language -- never its sexp language, which is "
+                 "refused. Predicates are name:ARG,ARG: todo:KEYWORD (e.g. "
+                 "todo:WAITING), bare todo: for every non-terminal keyword "
+                 "at once (do not enumerate them -- an enumeration drops "
+                 "the ones you forget), property:KEY,VALUE (the documented "
+                 "form, e.g. property:KIND,slice), tags:TAG1,TAG2, "
+                 "priority:A, heading:\"text\", regexp:PATTERN, level:N. "
+                 "A zero-argument predicate takes a trailing colon: "
+                 "blocked:, done:. Caution: blocked: is the union of "
+                 "unfinished children, unchecked checkboxes and :BLOCKER:, "
+                 "not :BLOCKER: alone. parent:, children:, ancestors: and "
+                 "descendants: take TEXT, not nested predicates -- "
+                 "children:todo:NEXT searches for the words \"todo:NEXT\". "
+                 "Bare words are full-text search (rifle: the entry and its "
+                 "outline path); quote a word containing a colon to search "
+                 "it literally. Boolean rules: space is AND, a comma is OR "
+                 "within one predicate, ! prefix is NOT, and there is no "
+                 "OR across predicates except match=any; a bare OR, AND or "
+                 "| is refused, as is an unknown name: predicate. todo:, "
+                 "tags: and property: match case exactly; heading: and "
+                 "bare words do not. Returns one line per match: TODO "
+                 "state, heading, tags, :ID:, and file -- or, when nothing "
+                 "matches, the parsed reading of the query. Prefer this "
+                 "over reading whole files for cross-file questions.")
    :args '((:name "query"
             :type string
-            :description "org-ql plain-string query, e.g. \"todo:\" (everything non-terminal), \"todo:WAITING\", \"property:KIND=slice\", \"tags:research,code\", \"priority:A\", \"!todo:DONE\".")))
+            :description "org-ql plain-string query, e.g. \"todo:\" (everything non-terminal), \"todo:WAITING\", \"property:KIND,slice\", \"tags:research,code\", \"blocked:\", \"!todo:DONE\". Space is AND; comma is OR inside one predicate; no sexps; quote a literal containing a colon.")
+           (:name "match"
+            :type string
+            :optional t
+            :description "\"all\" (the default: every space-separated term must hold) or \"any\" (at least one must: OR across predicates, flat, no grouping).")))
 
   (claude-code-ide-make-tool
    :function #'claude-code-ide-org-body
@@ -18393,4 +21122,15 @@ the project list."
    :args '((:name "session_id"
             :type string
             :optional t
-            :description "Limit the report to one session's queue. Omit for every session."))))
+            :description "Limit the report to one session's queue. Omit for every session.")))
+
+  ;; The wiring, last in the block so every tool above is registered
+  ;; first (TODO.org :ID: c562b69a).  It used to be a file generated into
+  ;; the user's Doom directory and loaded by a pasted line.
+  (claude-code-ide-org--wire-on-load))
+
+;; LAST, and it must stay last (TODO.org :ID: f12f9da4): the stamp says a
+;; load of this file *completed*, so a `load-file' that aborts partway
+;; leaves the previous stamp and the image reads as stale.  Anything
+;; appended to this file goes above this form.
+(claude-code-ide-org--record-load-stamp (or load-file-name buffer-file-name))

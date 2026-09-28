@@ -130,5 +130,5 @@ printf '%s' "$header" > "$work/templates/TODO.org"
 git -C "$work" add TODO.org DONE.org templates/TODO.org
 check "a staged templates/TODO.org does not stand in for TODO.org" 0 "$(run_hook)"
 
-printf '\n%d passed, %d failed\n' "$pass" "$fail"
-[[ $fail -eq 0 ]]
+printf '\npre-commit-test: %d passed, %d failed\n' "$pass" "$fail"
+exit $((fail > 0))
