@@ -3834,53 +3834,6 @@ sequence.
   nominated: blocks 2b8930da, which gates euchre
 :END:
 :PLAN:
-Composed 2026-09-10 at the user's direction, absorbing the earlier
-=e128e4fa=-plus-tag-survey pairing idea into the wider theme it
-belongs to: the notes should *use org* — live links instead of inert
-citations, drawers instead of narration, tags worth querying — and
-every member either adopts an org feature or crawls the corpus to
-apply one. The reason they slice together is economic as much as
-thematic: =e128e4fa= reads every pre-convention heading to author
-resolutions, =e28933e9= reads every heading for tag vocabulary, and
-=b7259ee4='s retrofit walks the same drawers — one full-corpus read
-amortized across three members that would each pay it alone.
-
-*The order is conventions-first, so the mass pass follows them:*
-=b7259ee4= (the link practice, retrofit and lint) lands before
-=e128e4fa= (the 88-heading resolution pass) so every resolution
-authored writes live links from the start; =e28933e9= rides adjacent
-to the same read; =41cf5830= (the git-history index) builds on the
-link vocabulary; =8a23d6ec= and =01849bef= are small independents at
-the tail.
-
-*Deliberate exclusions.* =ecf66d45= belongs to the theme but is
-already sequenced in =c19fbbf5=, and a cookie in two slices
-double-counts (the rule the dropping section carries). Two candidate
-members exist only as proposals, unfiled pending the user's filter:
-inactive timestamps on measured claims ("measured [2026-08-26 Wed]"
-as parseable dates), and search-anchored =file:= links for symbol
-citations. File them and they join.
-
-*Twin review, per composition convention:* =41cf5830= vs =b7259ee4=
-was checked deliberately — index-of-own-history vs citation practice,
-complementary rather than twins, cross-linked on both headings.
-Closing =4c834fdb= is a side effect worth naming: =e128e4fa= is its
-last live child once =2a399034= lands.
-
-*Revision 2026-09-10, same day:* the exclusion paragraph above is
-superseded for =ecf66d45= — the user moved it here (drop declared at
-the origin, cookie only on this side). It lands at the tail beside
-=01849bef=: the design conversation about forecast-vs-record
-timestamps next to the mechanism that flips them.
-
-*Revised 2026-09-28: four members added from the backlog survey* (the user,
-2026-09-28), each meeting the rule that a member adopts an org feature or crawls
-the corpus to apply one. 8b945c02 (an =observed= tag) follows e28933e9, because
-it is the first vocabulary decision the tag survey feeds. 0eaffc39 (id lookup at
-point) follows f7847adf, because it makes the links that heading writes live in
-Emacs. 76a6f052 (the fill sweep that drifted) follows e128e4fa, a second pass
-over the corpus read already paid for. ea1df60b (portable =:ARCHIVE_FILE:=
-paths) goes at the tail: it is a corpus audit, but the weakest fit.
 :END:
 
 The notes cite commits, PRs and dates as inert text, narrate history
