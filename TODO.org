@@ -52,6 +52,15 @@ its negative (a plan in neither place) still fails. Verified live with
 tracker linted with 1 error without the link, and with 0 errors with it. The
 file stays aged out, as the policy intends.
 
+*Reworked after PR #32's review.* The first fix symlinked the working copy's
+=plans/=. That let a plan in the working copy but never staged satisfy the
+check, though the commit carries no copy of it. =plans/= is now exported from
+the index with =checkout-index=, the same way guard 2 exports its scratch tree.
+A new test case, a plan only in the unstaged working copy, passed against the
+symlink and fails now. Live: 31 archived plans were exported, and the real
+tracker linted with 0 errors with =goofy-baking-wall.md= aged out.
+
+
 
 * TODO [0/6] A slice's checklist can disagree with its members, and nothing can say so or fix it :code:
 :PROPERTIES:
