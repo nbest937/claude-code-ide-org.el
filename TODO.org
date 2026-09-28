@@ -2,6 +2,22 @@
 #+TAGS: analysis bug code comms prose research review spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO The ERT suite depends on the machine's timezone: 47 tests fail off Central time :code:
+:PROPERTIES:
+:ID:       10424e58-ed39-4600-8eec-46abaef500ee
+:CREATED:  [2026-09-28 Mon 17:33]
+:CATEGORY: Dev
+:END:
+
+On 2026-09-28 the machine moved to EDT and 47 review, clock and span tests
+failed by exactly an hour: fixtures write times as -0500 and assert on the
+rendered local hour. Under TZ=America/Chicago the same trees pass, main 832 of
+832 and the org_edit branch 846 of 846, so the code is fine and the suite is
+not. The pre-push suite gate inherits this, and refused a correct push until it
+was run under TZ=America/Chicago. Proposed: bin/test pins TZ itself, or the
+fixtures stop depending on the local zone; pinning is one line, and the other is
+the honest fix.
+
 * TODO Retire org_wrap_plan once no mixed body can arrive, or first generalise it to move a debrief :code:
 :PROPERTIES:
 :ID:       80aeb955-cf44-4990-8c7f-be7759fb05ec
@@ -2995,6 +3011,15 @@ four children in order.
 The new tool, with =id=, =old_string=, =new_string= and an optional =drawer=, over the heading's body or its =:PLAN:= or =:DEBRIEF:=. An empty =old_string= appends, a unique one is replaced, and the region's full text rewrites it. It carries the guards in the parent's =:PLAN:=, and each refusal test is shown to fail with its guard removed. It ships beside =org_amend=, which the third sibling retires.
 
 *Two helpers to call, from [[id:b52df20b-45c7-41aa-9d77-44ccf06c647f][b52df20b]] (the user, 2026-09-25).* =org_edit= fills what it writes with =claude-code-ide-org--fill-prose-text=, as =org_amend= does, or new prose goes back to arriving as one long line. Its guard on a headline-shaped =new_string= uses =claude-code-ide-org--glued-headline-p=, which catches a =* KEYWORD= token mid-line, where a glued heading actually sits, and not only at column zero.
+
+Built on =feature/org-edit=, PR #33 (2026-09-28). Two departures from dd4b9a9f's
+plan, to be written into that drawer with =org_edit= itself: the fill covers the
+paragraphs a replacement touches rather than =new_string= alone, and the reply
+names the kind of change instead of echoing text. *A known limit:* a bare star
+line (=***= alone) inside a block is refused rather than escaped, because
+=--escape-block-headlines= only escapes a star run followed by a space while the
+refusal also catches the bare form. Rare, and it fails safe.
+
 
 
 ** TODO org_edit refuses an unsaved buffer, asks for the save in a header line, and the agent waits on it :code:
