@@ -2,11 +2,17 @@
 #+TAGS: analysis bug code comms prose research review spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* DOING [0/10] PR #31's review found ten defects the slice shipped, fixed on the branch before merge :code:
+* REVIEW [0/10] PR #31's review found ten defects the slice shipped, fixed on the branch before merge :code:
 :PROPERTIES:
 :ID:       c77e4d5a-3cb1-41e5-b8b7-bc724e8d7090
 :CREATED:  [2026-09-27 Sun 18:33]
 :CATEGORY: Dev
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-27 Sun 18:50]--[2026-09-27 Sun 18:52] =>  0:02
+- State "REVIEW"     from "DOING"      [2026-09-27 Sun 18:50] \\
+  all ten findings fixed on the branch
+- [2026-09-27 Sun 18:50]--[2026-09-27 Sun 18:52] assigned at review
 :END:
 
 The =/code-review high= run on PR #31 (2026-09-27) posted ten inline findings
@@ -26,10 +32,19 @@ unit. The source members, in the review's order:
 - a21c0f99: [[id:57f37f0e-4461-42f4-8b33-cde59318b93a][57f37f0e]], =org_set_todo='s indentation
 - a749b95c: [[id:30d05c93-f82b-40c0-9181-d018323af49f][30d05c93]], =footnotes-inject='s shape
 
-** TODO org_amend replace=true on a slice re-inserts the Planned: checklist after text that already carries one
+
+** REVIEW org_amend replace=true on a slice re-inserts the Planned: checklist after text that already carries one
 :PROPERTIES:
 :ID:       ee6e6c63-c1db-414f-89ac-2f2866f4102d
 :CREATED:  [2026-09-27 Sun 18:33]
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-27 Sun 18:34]--[2026-09-27 Sun 18:35] =>  0:01
+- State "DOING"      from "TODO"       [2026-09-27 Sun 18:34]
+CLOCK: [2026-09-27 Sun 18:34]--[2026-09-27 Sun 18:34] =>  0:00
+- [2026-09-27 Sun 18:34]--[2026-09-27 Sun 18:34] assigned at review
+- [2026-09-27 Sun 18:34]--[2026-09-27 Sun 18:35] replace-body keeps one checklist
+- State "REVIEW"     from "DOING"      [2026-09-27 Sun 18:35]
 :END:
 
 From PR #31's review (=claude-code-ide-org--replace-body=). =--replace-body= always spliced the
@@ -38,10 +53,19 @@ list left two copies. The cookie double-counted them and the lint reported a
 disagreement. *Fixed*: when the new text carries its own =Planned:= lead, that
 copy stands and the old one isn't spliced back. The test failed first.
 
-** TODO A session-name collision leaves every tracked project unregistered, not only the two that collide
+
+** REVIEW A session-name collision leaves every tracked project unregistered, not only the two that collide
 :PROPERTIES:
 :ID:       7def4fff-06c4-4f2a-9fb7-f186a565029c
 :CREATED:  [2026-09-27 Sun 18:33]
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-27 Sun 18:35]--[2026-09-27 Sun 18:37] =>  0:02
+- State "DOING"      from "TODO"       [2026-09-27 Sun 18:35]
+CLOCK: [2026-09-27 Sun 18:35]--[2026-09-27 Sun 18:35] =>  0:00
+- [2026-09-27 Sun 18:35]--[2026-09-27 Sun 18:35] assigned at review
+- [2026-09-27 Sun 18:35]--[2026-09-27 Sun 18:37] register the rest, refuse only the duplicate
+- State "REVIEW"     from "DOING"      [2026-09-27 Sun 18:37]
 :END:
 
 From PR #31's review (=claude-code-ide-org-standalone-wire=). Any session-name collision, or a local
@@ -52,10 +76,19 @@ the other projects register, and then one error names every refusal. The two
 wiring tests now assert that the project which doesn't collide still registers.
 Both failed first.
 
-** TODO bin/check-image has no watchdog, so a busy Emacs hangs git commit
+
+** REVIEW bin/check-image has no watchdog, so a busy Emacs hangs git commit
 :PROPERTIES:
 :ID:       14e9fd83-cdb8-4414-9abe-5d77e24a0d8c
 :CREATED:  [2026-09-27 Sun 18:33]
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-27 Sun 18:37]--[2026-09-27 Sun 18:38] =>  0:01
+- State "DOING"      from "TODO"       [2026-09-27 Sun 18:37]
+CLOCK: [2026-09-27 Sun 18:37]--[2026-09-27 Sun 18:37] =>  0:00
+- [2026-09-27 Sun 18:37]--[2026-09-27 Sun 18:37] assigned at review
+- [2026-09-27 Sun 18:37]--[2026-09-27 Sun 18:38] watchdog for check-image
+- State "REVIEW"     from "DOING"      [2026-09-27 Sun 18:38]
 :END:
 
 From PR #31's review (bin/check-image:14). Pre-commit runs =bin/check-image=
@@ -65,10 +98,19 @@ commit=. *Fixed*: the same 3 s background-client watchdog the hooks use. A
 killed client reads as "image state unknown". The test uses a hanging fake
 client and failed first.
 
-** TODO pre-push reads a failed git diff as nothing changed, and skips the suites
+
+** REVIEW pre-push reads a failed git diff as nothing changed, and skips the suites
 :PROPERTIES:
 :ID:       191ec45b-9f91-4105-b51a-ced16022b2d6
 :CREATED:  [2026-09-27 Sun 18:33]
+:END:
+:LOGBOOK:
+- State "REVIEW"     from "DOING"      [2026-09-27 Sun 18:38]
+CLOCK: [2026-09-27 Sun 18:38]--[2026-09-27 Sun 18:39] =>  0:01
+- State "DOING"      from "TODO"       [2026-09-27 Sun 18:38]
+CLOCK: [2026-09-27 Sun 18:38]--[2026-09-27 Sun 18:38] =>  0:00
+- [2026-09-27 Sun 18:38]--[2026-09-27 Sun 18:38] assigned at review
+- [2026-09-27 Sun 18:38]--[2026-09-27 Sun 18:39] pre-push runs suites when the diff fails
 :END:
 
 From PR #31's review (.githooks/pre-push:108). A remote sha that this clone
@@ -78,10 +120,19 @@ failed =git diff= or =git log= marks the range unknown, the hook says so, and
 the suites run. The org-only shortcut applies only to a range that was actually
 computed. The test pushes over an unknown remote sha and failed first.
 
-** TODO The index-sweep guard refuses the commit that concludes a merge, and its suggested fix is refused by git
+
+** REVIEW The index-sweep guard refuses the commit that concludes a merge, and its suggested fix is refused by git
 :PROPERTIES:
 :ID:       00a66d88-03c9-46ec-9883-49b1f4f209b0
 :CREATED:  [2026-09-27 Sun 18:33]
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-27 Sun 18:38]--[2026-09-27 Sun 18:39] =>  0:01
+- [2026-09-27 Sun 18:38]--[2026-09-27 Sun 18:39] assigned at review
+- State "REVIEW"     from "DOING"      [2026-09-27 Sun 18:39]
+CLOCK: [2026-09-27 Sun 18:39]--[2026-09-27 Sun 18:40] =>  0:01
+- State "DOING"      from "TODO"       [2026-09-27 Sun 18:39]
+- [2026-09-27 Sun 18:39]--[2026-09-27 Sun 18:40] sweep guard lets a merge conclude
 :END:
 
 From PR #31's review (.githooks/pre-commit-guards:151). A session concluding a
@@ -92,10 +143,19 @@ suggested fix led nowhere. *Fixed*: an in-progress merge, cherry-pick or revert
 commit. The test resolves a conflicted merge on a branch other than main and
 failed first.
 
-** TODO apply-detect reports a first dismiss-only pass as an apply
+
+** REVIEW apply-detect reports a first dismiss-only pass as an apply
 :PROPERTIES:
 :ID:       7e4e70af-bd15-4ecf-85a5-4e0bcf66afe9
 :CREATED:  [2026-09-27 Sun 18:33]
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-27 Sun 18:39]--[2026-09-27 Sun 18:42] =>  0:03
+- State "DOING"      from "TODO"       [2026-09-27 Sun 18:39]
+CLOCK: [2026-09-27 Sun 18:39]--[2026-09-27 Sun 18:39] =>  0:00
+- [2026-09-27 Sun 18:39]--[2026-09-27 Sun 18:39] assigned at review
+- [2026-09-27 Sun 18:39]--[2026-09-27 Sun 18:42] absent plus empty is no change
+- State "REVIEW"     from "DOING"      [2026-09-27 Sun 18:42]
 :END:
 
 From PR #31's review (bin/hooks/apply-detect:88). A watermark missing from the
@@ -108,10 +168,17 @@ but nothing could match against it, so it is now =<absent>=. And jq read an
 empty watermark file as "applied nothing" rather than as unreadable, so an empty
 file now takes the unparseable path. The test failed first.
 
-** TODO The member migration and the slice refresh save any modified buffer, the human's unsaved edits included
+
+** REVIEW The member migration and the slice refresh save any modified buffer, the human's unsaved edits included
 :PROPERTIES:
 :ID:       b5d97b90-6dbe-46a3-8cef-02a2a89ea9c6
 :CREATED:  [2026-09-27 Sun 18:33]
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-27 Sun 18:42]--[2026-09-27 Sun 18:44] =>  0:02
+- State "DOING"      from "TODO"       [2026-09-27 Sun 18:42]
+- [2026-09-27 Sun 18:42]--[2026-09-27 Sun 18:44] save only what the pass modified
+- State "REVIEW"     from "DOING"      [2026-09-27 Sun 18:44]
 :END:
 
 From PR #31's review (=claude-code-ide-org-migrate-slice-members=, =claude-code-ide-org-refresh-slice=). Three passes each wrote into
@@ -122,10 +189,19 @@ along with the pass's own changes. *Fixed*: a file whose buffer holds unsaved
 edits is skipped and named in the reply, the refusal 60d6ab6e made for every
 structural writer. One test covers all three passes and failed first.
 
-** TODO An empty queue reads as not supplied, so org_footnotes re-reads the queue once per id
+
+** REVIEW An empty queue reads as not supplied, so org_footnotes re-reads the queue once per id
 :PROPERTIES:
 :ID:       15205b37-80bc-4eb9-af2e-e1ae18c579db
 :CREATED:  [2026-09-27 Sun 18:33]
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-27 Sun 18:44]--[2026-09-27 Sun 18:45] =>  0:01
+- State "DOING"      from "TODO"       [2026-09-27 Sun 18:44]
+CLOCK: [2026-09-27 Sun 18:44]--[2026-09-27 Sun 18:44] =>  0:00
+- [2026-09-27 Sun 18:44]--[2026-09-27 Sun 18:44] assigned at review
+- [2026-09-27 Sun 18:44]--[2026-09-27 Sun 18:45] an empty queue is supplied, not absent
+- State "REVIEW"     from "DOING"      [2026-09-27 Sun 18:45]
 :END:
 
 From PR #31's review (=claude-code-ide-org--footnote-lines=). =--footnote-lines= reads the queue once
@@ -136,10 +212,19 @@ empty". A test with a counting queue stub failed first. The cost was small,
 since a queue read is 0.07 s after fa617d99, but the "read once" promise now
 holds.
 
-** TODO org_set_todo's argument list was re-indented, burying a one-branch change in a 75-line diff
+
+** REVIEW org_set_todo's argument list was re-indented, burying a one-branch change in a 75-line diff
 :PROPERTIES:
 :ID:       a21c0f99-d85a-41ef-bb7f-b9a6be18ae0b
 :CREATED:  [2026-09-27 Sun 18:33]
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-27 Sun 18:45]--[2026-09-27 Sun 18:46] =>  0:01
+- State "DOING"      from "TODO"       [2026-09-27 Sun 18:45]
+CLOCK: [2026-09-27 Sun 18:45]--[2026-09-27 Sun 18:45] =>  0:00
+- [2026-09-27 Sun 18:45]--[2026-09-27 Sun 18:45] assigned at review
+- [2026-09-27 Sun 18:45]--[2026-09-27 Sun 18:46] restore set-todo's indentation
+- State "REVIEW"     from "DOING"      [2026-09-27 Sun 18:46]
 :END:
 
 From PR #31's review (=claude-code-ide-org-set-todo=). The effective-state clause from 57f37f0e
@@ -151,10 +236,17 @@ tests still pass. There's no new test, because this is layout only. Not
 confirmed: the finding's claim that =indent-region= would move the layout back.
 Batch =indent-region= left the deep layout exactly as it was.
 
-** TODO footnotes-inject is bash with logic of its own, where a script needing Emacs is a thin sh stub over elisp
+
+** REVIEW footnotes-inject is bash with logic of its own, where a script needing Emacs is a thin sh stub over elisp
 :PROPERTIES:
 :ID:       a749b95c-86a0-4714-bdb1-ddb84bc71143
 :CREATED:  [2026-09-27 Sun 18:33]
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-27 Sun 18:46]--[2026-09-27 Sun 18:50] =>  0:04
+- State "DOING"      from "TODO"       [2026-09-27 Sun 18:46]
+- [2026-09-27 Sun 18:46]--[2026-09-27 Sun 18:50] footnotes-inject as a thin sh stub
+- State "REVIEW"     from "DOING"      [2026-09-27 Sun 18:50]
 :END:
 
 From PR #31's review (bin/hooks/footnotes-inject:1). CLAUDE.md asks that a
@@ -168,11 +260,16 @@ transcript, which mustn't block Emacs, and the 3 s watchdog. The existing nine
 checks still pass, so behaviour is unchanged; three new shape checks failed
 first. test-all ran 26 suites, 1515 passed.
 
+
 * TODO A guidepost span is labelled with the first pending clock_in note of its heading, from any session and any date :code:
 :PROPERTIES:
 :ID:       9b7301de-0903-4987-bb34-56f8f021fbd1
 :CREATED:  [2026-09-27 Sun 17:21]
 :CATEGORY: Apply
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-27 Sun 17:18]--[2026-09-27 Sun 17:21] =>  0:03
+- [2026-09-27 Sun 17:18]--[2026-09-27 Sun 17:21] assigned at review
 :END:
 
 Noticed by the user on 2026-09-27: three of that day's "Review and planning"
@@ -196,6 +293,7 @@ The fix is to label each span with the note of the =clock_in= that governs it:
 the latest one in the same session at or before the span's start, and no label
 when there isn't one. It is time-tracking only, so it never arises with the
 feature off.
+
 
 * TODO Slice refresh re-scans every heading for other slices' members once per slice :code:
 :PROPERTIES:
@@ -943,6 +1041,8 @@ CLOCK: [2026-09-27 Sun 13:26]--[2026-09-27 Sun 13:33] =>  0:07
 - [2026-09-27 Sun 13:26]--[2026-09-27 Sun 13:33] glue into the module, setup and docs
 - State "REVIEW"     from "DOING"      [2026-09-27 Sun 13:33] \\
   wiring in the module; restart confirms first boot
+CLOCK: [2026-09-27 Sun 17:17]--[2026-09-27 Sun 17:18] =>  0:01
+- [2026-09-27 Sun 17:17]--[2026-09-27 Sun 17:18] assigned at review
 :END:
 
 =claude-org-setup --glue= renders =claude-code-ide-org-glue.el= into =$DOOMDIR= (=7c86ab4c=), and a =load!= line in the user's =config.el= loads it. It was generated because it once held a per-machine project list; since that list became derived it is fixed text, so the generated copy can only drift, and =--check= then reports drift until =--glue= is re-run. That drift is what made =claude-org-setup-test= depend on the real =~/.config/doom= (=94e6b615=). Designed 2026-09-24 on the architectural path: the glue's forms move into the module and run whenever it is enabled, never in batch Emacs, with a =defcustom= to opt out. No file is generated into the Doom directory, and the user's config needs no line for it.
@@ -967,7 +1067,6 @@ the module's current =config.el= loaded, and =bin/check-image= reported the
 image fresh. There were no =*Warnings*=, and nothing from the retired glue was
 loaded or visited. An =org_pending_updates= round trip over =emacs-tools=
 answered.
-
 
 
 * REVIEW A rendered session goes stale as the session runs; follow a live transcript without losing the reader's place :code:
@@ -1379,6 +1478,10 @@ Reproduced in batch the same day: replacing the body of a heading followed by a 
 :DROPPED:  01849bef-fdc9-4c30-b467-00ca8606e8e0
 :MEMBERS:  55125136-5939-434e-9676-96ea66a75770 361e2708-8124-4bd1-9c44-f97ca97aca4a 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 aee8487e-0650-4396-bc5c-193ca3efcecb 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 653fea66-f9d5-4431-8ce3-5d355560b475 445fe577-01ce-4e68-ab5f-c349c40a4643 2c733857-a280-42cc-bd7c-e182a4fb6ea3 79c224ab-188a-4ed4-a606-c28ee2cfe72d 001fb310-69f7-4417-81be-a224a3bf83e0 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46 49444167-7a29-491a-81b4-c5215fce9fc2 9b7301de-0903-4987-bb34-56f8f021fbd1 cf483f5d-2d25-4454-a580-db7935c8cb81 8028e875-3032-4ade-949e-414d9861b928 01849bef-fdc9-4c30-b467-00ca8606e8e0 ee3c22c9-f99c-4d41-9c3d-8f39af916fff e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 6c64cc9c-33a9-4a20-af19-c188a690c755 a865f83c-ea37-40c4-a104-7cc50d2c20dd e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 20cecd53-2338-4237-ab06-f8129e10a2c8 37147e9e-468b-43ee-91f9-45d9647c6164 445ec1f1-095a-462b-abbd-7a3a00925ddb 64d34a64-d336-40a8-a8e8-da8133d0da06 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd
 :END:
+:LOGBOOK:
+CLOCK: [2026-09-27 Sun 18:12]--[2026-09-27 Sun 18:13] =>  0:01
+- [2026-09-27 Sun 18:12]--[2026-09-27 Sun 18:13] assigned at review
+:END:
 :PLAN:
 *What this slice is, and what it is not.* Two closed slices already worked this subject and neither is being reopened. `749301a0` made a span's owner, edges and payload well defined; `c44c2119` hardened the pass's own mechanics — its cost, its error reporting, its undo. What neither touched is the *judgement* the pass asks for: a human is shown a span, told nothing about why it exists, and asked to accept it, with keystrokes that claim more than they mean, over clock machinery that is still demonstrably wrong. That is the whole of this slice. Membership is every live `:CATEGORY: Apply` and `Clock` heading that no slice already holds, less the four `MAYBE`s, which stay in the backlog because a slice member with no cookie reads as one this slice considered and dropped.
 
@@ -1535,7 +1638,6 @@ persist because the review pass keeps any unmatched =clock_in= as the anchor for
 work still running. A =SessionEnd= close does not reach that case, and a
 same-lane close does not reach this one. On 2026-09-27 the live queue held 14
 trailing =clock_in=s (this case) and 27 superseded ones (that one).
-
 
 
 * MAYBE The brainstorming skill offers a visual companion nobody here has evaluated: it serves mock-ups from a local web server :code:spike:
@@ -6394,7 +6496,7 @@ sequence.
 *One criterion added 2026-09-19, from the drift analysis via =f6d160c2=, and bounded.* A merge of story and slice would delete a vocabulary band from the always-loaded map — the epic/story/slice/twin paragraph in CLAUDE.md and its counterpart in the conventions — and concept count is itself a cost every session pays ([[id:bf7e0b8e-f83a-4d4a-9950-3ab23a225156][bf7e0b8e]]). That is a *tiebreaker*, not a thumb on the scale: the against-the-merge argument above is semantic (containment versus reference, tentative versus committed), and a worse model adopted to save a paragraph costs more in misfiled work than the paragraph. So: if the two scenarios come out realistic and distinct, keep both groupings and shorten the prose; if they collapse, count the deletion as a benefit, not as the reason.
 
 
-* TODO [0/11] Make the notes org-native: links, drawers, tags, one corpus pass :code:
+* NEXT [0/11] Make the notes org-native: links, drawers, tags, one corpus pass :code:
 :PROPERTIES:
 :ID:       6521dd56-8772-416b-9435-6da78bb86b06
 :CREATED:  [2026-09-10 Thu 08:57]
@@ -6403,6 +6505,10 @@ sequence.
 :COOKIE_DATA: checkbox recursive
 :BLOCKER:  b7259ee4-9aa1-4b55-8cf2-fbbacdea5310 f7847adf-a408-4ad0-ae0c-8d3c19b79f2b d350ff5b-3b1f-465e-800b-962264d2e841 63df67c7-de0d-43e7-9c6f-2b2979a40aba e128e4fa-b0d9-49f7-99eb-bae2d4b0676b fce6bd35-27ad-4724-8dbb-c9df4b68fb10 e28933e9-f352-4ef9-8d53-8cd9a4318768 41cf5830-fc2e-4dc6-b243-a0c2718a53a3 8a23d6ec-ca45-454d-b65f-e46ea9204816 01849bef-fdc9-4c30-b467-00ca8606e8e0 ecf66d45-18b3-477f-bca8-08bec90604e8
 :MEMBERS:  b7259ee4-9aa1-4b55-8cf2-fbbacdea5310 f7847adf-a408-4ad0-ae0c-8d3c19b79f2b d350ff5b-3b1f-465e-800b-962264d2e841 63df67c7-de0d-43e7-9c6f-2b2979a40aba e128e4fa-b0d9-49f7-99eb-bae2d4b0676b fce6bd35-27ad-4724-8dbb-c9df4b68fb10 e28933e9-f352-4ef9-8d53-8cd9a4318768 41cf5830-fc2e-4dc6-b243-a0c2718a53a3 8a23d6ec-ca45-454d-b65f-e46ea9204816 01849bef-fdc9-4c30-b467-00ca8606e8e0 ecf66d45-18b3-477f-bca8-08bec90604e8
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-09-27 Sun 18:12] \\
+  nominated: blocks 2b8930da, which gates euchre
 :END:
 :PLAN:
 Composed 2026-09-10 at the user's direction, absorbing the earlier
@@ -6624,7 +6730,6 @@ close is applied at review, and that one's is a close at =SessionEnd=. Neither
 closes the other's case. As of 2026-09-27 the live queue held 27 superseded
 =clock_in=s (this case) and 14 trailing ones (that one). This heading is also
 why a stale note is still pending to be borrowed by [[id:9b7301de-0903-4987-bb34-56f8f021fbd1][9b7301de]].
-
 
 
 * TODO session-context.sh reports which groupings lack a NEXT, never which headings hold one
@@ -8111,7 +8216,7 @@ alternative — and unlike the current review pass, it is six questions a day
 rather than nineteen.
 
 
-* DOING [7/52] Everything passed and the file was still wrong :code:
+* REVIEW [7/52] Everything passed and the file was still wrong :code:
 :PROPERTIES:
 :ID:       8a2eb687-28da-4d44-893b-db59298bdc5b
 :CREATED:  [2026-09-01 Tue 09:11]
@@ -8249,6 +8354,12 @@ CLOCK: [2026-09-23 Wed 19:33]--[2026-09-23 Wed 19:34] =>  0:01
 - State "DOING"      from "NEXT"       [2026-09-24 Thu 22:31] \\
   brainstorm sweep done; implementation starts overnight
 - [2026-09-24 Thu 22:34]--[2026-09-24 Thu 22:35] assigned at review
+- State "REVIEW"     from "DOING"      [2026-09-27 Sun 18:15] \\
+  its pull request review started: /code-review
+CLOCK: [2026-09-27 Sun 18:46]--[2026-09-27 Sun 18:46] =>  0:00
+- [2026-09-27 Sun 18:46]--[2026-09-27 Sun 18:46] assigned at review
+CLOCK: [2026-09-27 Sun 19:57]--[2026-09-27 Sun 19:58] =>  0:01
+- [2026-09-27 Sun 19:57]--[2026-09-27 Sun 19:58] assigned at review
 :END:
 
 *The theme, briefly, in place of a plan — the full prompt comes later.* The
@@ -8323,17 +8434,17 @@ Planned:
 - [-] [[id:da6a2fba-1ab6-4e6f-94f1-3a945d1fdd84][da6a2fba]] REVIEW No org tool changes an existing heading's tags, so every tag change is a hand edit behind Emacs's back
 - [-] [[id:94e6b615-3778-426b-b40a-306b517a837f][94e6b615]] REVIEW Nothing runs the shell hook suites, so three sat red for a day and a merge without anyone seeing
 - [-] [[id:57f37f0e-4461-42f4-8b33-cde59318b93a][57f37f0e]] REVIEW org_set_todo's no-change check reads the file and ignores the queue, so a state set and reverted between applies cannot be queued back
-- [[id:c77e4d5a-3cb1-41e5-b8b7-bc724e8d7090][c77e4d5a]] DOING PR #31's review found ten defects the slice shipped, fixed on the branch before merge
-  - [ ] [[id:ee6e6c63-c1db-414f-89ac-2f2866f4102d][ee6e6c63]] TODO org_amend replace=true on a slice re-inserts the Planned: checklist after text that already carries one
-  - [ ] [[id:7def4fff-06c4-4f2a-9fb7-f186a565029c][7def4fff]] TODO A session-name collision leaves every tracked project unregistered, not only the two that collide
-  - [ ] [[id:14e9fd83-cdb8-4414-9abe-5d77e24a0d8c][14e9fd83]] TODO bin/check-image has no watchdog, so a busy Emacs hangs git commit
-  - [ ] [[id:191ec45b-9f91-4105-b51a-ced16022b2d6][191ec45b]] TODO pre-push reads a failed git diff as nothing changed, and skips the suites
-  - [ ] [[id:00a66d88-03c9-46ec-9883-49b1f4f209b0][00a66d88]] TODO The index-sweep guard refuses the commit that concludes a merge, and its suggested fix is refused by git
-  - [ ] [[id:7e4e70af-bd15-4ecf-85a5-4e0bcf66afe9][7e4e70af]] TODO apply-detect reports a first dismiss-only pass as an apply
-  - [ ] [[id:b5d97b90-6dbe-46a3-8cef-02a2a89ea9c6][b5d97b90]] TODO The member migration and the slice refresh save any modified buffer, the human's unsaved edits included
-  - [ ] [[id:15205b37-80bc-4eb9-af2e-e1ae18c579db][15205b37]] TODO An empty queue reads as not supplied, so org_footnotes re-reads the queue once per id
-  - [ ] [[id:a21c0f99-d85a-41ef-bb7f-b9a6be18ae0b][a21c0f99]] TODO org_set_todo's argument list was re-indented, burying a one-branch change in a 75-line diff
-  - [ ] [[id:a749b95c-86a0-4714-bdb1-ddb84bc71143][a749b95c]] TODO footnotes-inject is bash with logic of its own, where a script needing Emacs is a thin sh stub over elisp
+- [[id:c77e4d5a-3cb1-41e5-b8b7-bc724e8d7090][c77e4d5a]] REVIEW PR #31's review found ten defects the slice shipped, fixed on the branch before merge
+  - [-] [[id:ee6e6c63-c1db-414f-89ac-2f2866f4102d][ee6e6c63]] REVIEW org_amend replace=true on a slice re-inserts the Planned: checklist after text that already carries one
+  - [-] [[id:7def4fff-06c4-4f2a-9fb7-f186a565029c][7def4fff]] REVIEW A session-name collision leaves every tracked project unregistered, not only the two that collide
+  - [-] [[id:14e9fd83-cdb8-4414-9abe-5d77e24a0d8c][14e9fd83]] REVIEW bin/check-image has no watchdog, so a busy Emacs hangs git commit
+  - [-] [[id:191ec45b-9f91-4105-b51a-ced16022b2d6][191ec45b]] REVIEW pre-push reads a failed git diff as nothing changed, and skips the suites
+  - [-] [[id:00a66d88-03c9-46ec-9883-49b1f4f209b0][00a66d88]] REVIEW The index-sweep guard refuses the commit that concludes a merge, and its suggested fix is refused by git
+  - [-] [[id:7e4e70af-bd15-4ecf-85a5-4e0bcf66afe9][7e4e70af]] REVIEW apply-detect reports a first dismiss-only pass as an apply
+  - [-] [[id:b5d97b90-6dbe-46a3-8cef-02a2a89ea9c6][b5d97b90]] REVIEW The member migration and the slice refresh save any modified buffer, the human's unsaved edits included
+  - [-] [[id:15205b37-80bc-4eb9-af2e-e1ae18c579db][15205b37]] REVIEW An empty queue reads as not supplied, so org_footnotes re-reads the queue once per id
+  - [-] [[id:a21c0f99-d85a-41ef-bb7f-b9a6be18ae0b][a21c0f99]] REVIEW org_set_todo's argument list was re-indented, burying a one-branch change in a 75-line diff
+  - [-] [[id:a749b95c-86a0-4714-bdb1-ddb84bc71143][a749b95c]] REVIEW footnotes-inject is bash with logic of its own, where a script needing Emacs is a thin sh stub over elisp
 
 *=60ed5b96= added 2026-09-04, after composition.* It is the theme stated with
 the nouns changed: =--review-format-annotation='s docstring says "Always
@@ -13711,6 +13822,7 @@ call it done.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-28 Mon 07:23]--[2026-09-28 Mon 07:28] =>  0:05
 CLOCK: [2026-09-27 Sun 17:11]--[2026-09-27 Sun 17:12] =>  0:01
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
@@ -15111,4 +15223,34 @@ CLOCK: [2026-09-27 Sun 14:27]--[2026-09-27 Sun 15:20] =>  0:53
 CLOCK: [2026-09-27 Sun 15:48]--[2026-09-27 Sun 15:51] =>  0:03
 - [2026-09-27 Sun 15:48]--[2026-09-27 Sun 15:48] root-cause unattributed spans, file discipline fix
 - [2026-09-27 Sun 15:48]--[2026-09-27 Sun 15:51] apply bookkeeping; latency growth after review quit
+- [2026-09-27 Sun 15:51]--[2026-09-27 Sun 15:51] root-cause unattributed spans, file discipline fix
+- [2026-09-27 Sun 16:47]--[2026-09-27 Sun 16:47] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-27 Sun 17:11]--[2026-09-27 Sun 17:12] =>  0:01
+- [2026-09-27 Sun 17:11]--[2026-09-27 Sun 17:12] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-27 Sun 17:13]--[2026-09-27 Sun 17:16] =>  0:03
+- [2026-09-27 Sun 17:13]--[2026-09-27 Sun 17:16] apply bookkeeping; open the slice PR
+CLOCK: [2026-09-27 Sun 17:18]--[2026-09-27 Sun 17:19] =>  0:01
+- [2026-09-27 Sun 17:18]--[2026-09-27 Sun 17:19] record c562b69a's first-boot check
+CLOCK: [2026-09-27 Sun 17:21]--[2026-09-27 Sun 17:22] =>  0:01
+- [2026-09-27 Sun 17:21]--[2026-09-27 Sun 17:22] diagnose the borrowed span label
+CLOCK: [2026-09-27 Sun 17:22]--[2026-09-27 Sun 17:23] =>  0:01
+- [2026-09-27 Sun 17:22]--[2026-09-27 Sun 17:23] assigned at review
+CLOCK: [2026-09-27 Sun 17:27]--[2026-09-27 Sun 17:28] =>  0:01
+- [2026-09-27 Sun 17:27]--[2026-09-27 Sun 17:28] assigned at review
+CLOCK: [2026-09-27 Sun 17:31]--[2026-09-27 Sun 17:32] =>  0:01
+- [2026-09-27 Sun 17:31]--[2026-09-27 Sun 17:32] assigned at review
+CLOCK: [2026-09-27 Sun 17:35]--[2026-09-27 Sun 17:36] =>  0:01
+- [2026-09-27 Sun 17:35]--[2026-09-27 Sun 17:36] assigned at review
+CLOCK: [2026-09-27 Sun 18:13]--[2026-09-27 Sun 18:14] =>  0:01
+- [2026-09-27 Sun 18:13]--[2026-09-27 Sun 18:14] 9b7301de into c7619140; cross-link 58332dd1 and 3485b0d0
+CLOCK: [2026-09-27 Sun 18:14]--[2026-09-27 Sun 18:15] =>  0:01
+- [2026-09-27 Sun 18:14]--[2026-09-27 Sun 18:15] assigned at review
+CLOCK: [2026-09-27 Sun 18:28]--[2026-09-27 Sun 18:29] =>  0:01
+- [2026-09-27 Sun 18:28]--[2026-09-27 Sun 18:29] assigned at review
+CLOCK: [2026-09-27 Sun 18:32]--[2026-09-27 Sun 18:33] =>  0:01
+- [2026-09-27 Sun 18:32]--[2026-09-27 Sun 18:33] assigned at review
+CLOCK: [2026-09-27 Sun 18:33]--[2026-09-27 Sun 18:34] =>  0:01
+- [2026-09-27 Sun 18:33]--[2026-09-27 Sun 18:34] file the PR #31 review story and its ten findings
+CLOCK: [2026-09-27 Sun 18:42]--[2026-09-27 Sun 18:42] =>  0:00
+- [2026-09-27 Sun 18:42]--[2026-09-27 Sun 18:42] assigned at review
 :END:
