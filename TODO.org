@@ -381,7 +381,6 @@ the user before this step starts: whether that blocker separation is wanted.
 Org's hard-coded =[X]= count rules out the alternative of counting =[-]=.
 
 
-
 * TODO org_query blocked: errors on a read-only buffer, though a query changes nothing the user can see :code:bug:
 :PROPERTIES:
 :ID:       d842b9e7-fd75-45eb-80fd-597daa3e36b0
@@ -10531,6 +10530,7 @@ call it done.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-28 Mon 11:34]--[2026-09-28 Mon 11:36] =>  0:02
 CLOCK: [2026-09-28 Mon 09:48]--[2026-09-28 Mon 09:49] =>  0:01
 CLOCK: [2026-09-28 Mon 08:48]--[2026-09-28 Mon 08:50] =>  0:02
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
@@ -12014,4 +12014,14 @@ CLOCK: [2026-09-28 Mon 08:32]--[2026-09-28 Mon 08:43] =>  0:11
 CLOCK: [2026-09-28 Mon 08:49]--[2026-09-28 Mon 08:50] =>  0:01
 - [2026-09-28 Mon 08:49]--[2026-09-28 Mon 08:50] root-cause unattributed spans, file discipline fix
 - [2026-09-28 Mon 08:51]--[2026-09-28 Mon 08:51] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-28 Mon 09:50]--[2026-09-28 Mon 09:53] =>  0:03
+- [2026-09-28 Mon 09:50]--[2026-09-28 Mon 09:53] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-28 Mon 09:54]--[2026-09-28 Mon 09:55] =>  0:01
+- [2026-09-28 Mon 09:54]--[2026-09-28 Mon 09:55] record org's hard-coded [X] count on cdff5c91
+CLOCK: [2026-09-28 Mon 09:57]--[2026-09-28 Mon 10:00] =>  0:03
+- [2026-09-28 Mon 09:57]--[2026-09-28 Mon 10:00] assigned at review
+CLOCK: [2026-09-28 Mon 11:28]--[2026-09-28 Mon 11:30] =>  0:02
+- [2026-09-28 Mon 11:28]--[2026-09-28 Mon 11:30] assigned at review
+CLOCK: [2026-09-28 Mon 11:30]--[2026-09-28 Mon 11:33] =>  0:03
+- [2026-09-28 Mon 11:30]--[2026-09-28 Mon 11:33] ship three session rulings into the plugin conventions
 :END:
