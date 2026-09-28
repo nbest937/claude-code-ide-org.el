@@ -367,18 +367,12 @@ CLOCK: [2026-09-27 Sun 18:42]--[2026-09-27 Sun 18:44] =>  0:02
   merged with PR #31
 :END:
 
-From PR #31's review (=claude-code-ide-org-migrate-slice-members=, =claude-code-ide-org-refresh-slice=). Three passes each wrote into
-whatever buffer visited a tracked file, then saved it if modified: the slice
-refresh (run by =org_slice_add_member= and the ceremony), the blocker refresh,
-and the member migration. So a human's unsaved edits in another file were saved
-along with the pass's own changes. *Fixed*: a file whose buffer holds unsaved
-edits is skipped and named in the reply, the refusal 60d6ab6e made for every
-structural writer. One test covers all three passes and failed first.
+From PR #31's review: three passes each wrote into whatever buffer visited a
+tracked file and saved it if modified. They were the slice refresh, the blocker
+refresh and the member migration, and each saved a human's unsaved edits along
+with its own changes.
 
-the slice refresh, the blocker refresh and the member migration now
-skip, and name, any tracked file whose buffer holds unsaved edits rather than
-saving the human's edits along with their own.
-
+Each now skips, and names, any file whose buffer holds unsaved edits.
 
 ** DONE An empty queue reads as not supplied, so org_footnotes re-reads the queue once per id
 CLOSED: [2026-09-28 Mon 07:45]
