@@ -2,11 +2,79 @@
 #+TAGS: analysis bug code comms prose research review spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Nothing says which call ends a turn: org_clock_out, then org_footnotes, then the reply
+:PROPERTIES:
+:ID:       5ed2cfaa-8c0c-4aaa-bdfa-7762039817cc
+:CREATED:  [2026-09-28 Mon 07:43]
+:CATEGORY: Skill
+:END:
+
+Proposed on 2026-09-27 and never decided or written into a reference. The order
+is: =org_clock_out=, then =org_footnotes=, then the reply. =org_clock_out= has
+to come after the last write (the time-tracking rule). =org_footnotes= has to
+come last before the reply, so that its keywords show every state the turn
+queued, starred. Nothing currently says which of the two goes last. Decide it,
+then write one line into the footnote-citations reference, within the word
+budget. Found at [[id:30d05c93-f82b-40c0-9181-d018323af49f][30d05c93]]'s close.
+
+* TODO The archive double write has three live conditions no replay tested: auto-revert of DONE.org mid-pass, a stale DONE.org buffer, the system clipboard :code:
+:PROPERTIES:
+:ID:       d56e379d-fec4-4bee-be4a-a1bee6b48d13
+:CREATED:  [2026-09-28 Mon 07:43]
+:CATEGORY: Meta
+:END:
+
+[[id:381ea07d-633f-4640-abbb-89472a07acba][381ea07d]] closed on 2026-09-28 with the mechanism of the 2026-08-31 double write
+still unknown. Its replay covered nine batch sequences and one live run on
+scratch copies, and none of them reproduced the double write. Three kinds of
+live state were never part of that replay: =auto-revert= reverting =DONE.org=
+partway through a pass, a =DONE.org= buffer already stale when the pass began,
+and the system clipboard on org's paste path, which a GUI Emacs consults through
+=interprogram-paste-function=. The post-condition guard in
+=claude-code-ide-org-archive-finished= stays the only protection. This heading
+tests those three, one at a time, against scratch copies in the live Emacs.
+
+* TODO Live checks the 8a2eb687 slice's members left owed after the merge
+:PROPERTIES:
+:ID:       89cae4d5-a811-4897-8c45-e2e1decddec4
+:CREATED:  [2026-09-28 Mon 07:43]
+:CATEGORY: Dev
+:END:
+
+Slice [[id:8a2eb687-28da-4d44-893b-db59298bdc5b][8a2eb687]] closed on 2026-09-28 with these checks still unrun. Each was
+verified in tests or against fakes, and each needs a live run or a human's eye.
+They were collected at the close from the members' debriefs so that none stays
+in a closed record.
+- [ ] 3ad389be: the tool-failure hook's refused and busy states. Emacs has to be stopped or busy while a session calls an =org_*= tool. The prompt state did happen live, on 2026-09-27.
+- [ ] 30d05c93: how the folded =org_footnotes= result reads on the phone and in the desktop app. That's the user's check.
+- [ ] 5acca91b: settle what =blocked:= should return. On 2026-09-28, =blocked: todo:= gave 27 headings against a recorded expectation of "10, not 26", and it tags the buffer as it runs, which is [[id:d842b9e7-fd75-45eb-80fd-597daa3e36b0][d842b9e7]].
+- [ ] da6a2fba: =org_set_tags= live, and a hand =C-c C-q= after a reload.
+- [ ] 965f94eb: a scratch second clone of a tracked repo, confirming that a capture from each clone lands in its own tracker.
+- [ ] 406d78da: the interactive session picker. That's the user's check.
+- [ ] eddee10f: whether point follows the live render when it sits at the very end of the buffer.
+- [ ] 13aed7ca: its footnote miss-rate check, which falls due when the slice closes.
+37bca83a's check was run on 2026-09-28 and passed: a sexp query is refused with
+the plain-string form.
+
 * REVIEW [0/10] PR #31's review found ten defects the slice shipped, fixed on the branch before merge :code:
 :PROPERTIES:
 :ID:       c77e4d5a-3cb1-41e5-b8b7-bc724e8d7090
 :CREATED:  [2026-09-27 Sun 18:33]
 :CATEGORY: Dev
+:END:
+:DEBRIEF:
+The =/code-review high= run on 2026-09-27 found seven real defects and three
+cleanups. The defects, in order: two ways a pass wrote something wrong (a
+duplicated slice checklist, and unsaved human edits saved as a side effect); two
+ways a refusal cost more than it should (a collision leaving every project
+unregistered, and the sweep guard stopping a merge from concluding); two gates
+that could hang or pass silently (=check-image= without a watchdog, and pre-push
+reading a failed diff as empty); and a false apply report. The cleanups were a
+per-id queue re-read, a re-indented function, and a hook written in the wrong
+shape. All ten merged with [[orgit-rev:claude-code-ide-org::754841b][754841b]]. The review was wrong on one point: its claim
+that =indent-region= would move =org_set_todo='s layout back did not hold.
+Fixing =apply-detect= also turned up an awk hex-escape sentinel that only worked
+by accident.
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-27 Sun 18:50]--[2026-09-27 Sun 18:52] =>  0:02
@@ -32,11 +100,22 @@ unit. The source members, in the review's order:
 - a21c0f99: [[id:57f37f0e-4461-42f4-8b33-cde59318b93a][57f37f0e]], =org_set_todo='s indentation
 - a749b95c: [[id:30d05c93-f82b-40c0-9181-d018323af49f][30d05c93]], =footnotes-inject='s shape
 
+All ten findings from PR #31's review were fixed on the branch, each with a test
+that failed first, and merged with the PR.
+
+
 
 ** REVIEW org_amend replace=true on a slice re-inserts the Planned: checklist after text that already carries one
 :PROPERTIES:
 :ID:       ee6e6c63-c1db-414f-89ac-2f2866f4102d
 :CREATED:  [2026-09-27 Sun 18:33]
+:END:
+:DEBRIEF:
+Fixed in [[orgit-rev:claude-code-ide-org::5458e5d][5458e5d]], a PR #31 review finding: =claude-code-ide-org--replace-body=
+no longer splices the lifted =Planned:= checklist back when the new text carries
+its own =Planned:= lead, and the slice refresh re-renders the copy that stands.
+A new ERT test in =config-test.el= failed first. Nothing is named as differing
+from the review's claim or left undone.
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-27 Sun 18:34]--[2026-09-27 Sun 18:35] =>  0:01
@@ -53,11 +132,23 @@ list left two copies. The cookie double-counted them and the lint reported a
 disagreement. *Fixed*: when the new text carries its own =Planned:= lead, that
 copy stands and the old one isn't spliced back. The test failed first.
 
+a =replace=true= amend on a slice now leaves exactly one =Planned:=
+checklist, whether or not the new text brings its own.
+
+
 
 ** REVIEW A session-name collision leaves every tracked project unregistered, not only the two that collide
 :PROPERTIES:
 :ID:       7def4fff-06c4-4f2a-9fb7-f186a565029c
 :CREATED:  [2026-09-27 Sun 18:33]
+:END:
+:DEBRIEF:
+Fixed in [[orgit-rev:claude-code-ide-org::afc1bba][afc1bba]], a PR #31 review finding: refusals (a session-name collision,
+or a local entry naming another port) are collected first, the other projects
+register, and one =user-error= then names every refusal. The two existing wiring
+tests were extended to assert that the non-colliding project still registers,
+and both failed first. Nothing is named as differing from the review's claim or
+left undone.
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-27 Sun 18:35]--[2026-09-27 Sun 18:37] =>  0:02
@@ -76,11 +167,22 @@ the other projects register, and then one error names every refusal. The two
 wiring tests now assert that the project which doesn't collide still registers.
 Both failed first.
 
+=claude-code-ide-org-standalone-wire= now registers every project
+that does not collide and reports all refusals together in one error afterwards.
+
+
 
 ** REVIEW bin/check-image has no watchdog, so a busy Emacs hangs git commit
 :PROPERTIES:
 :ID:       14e9fd83-cdb8-4414-9abe-5d77e24a0d8c
 :CREATED:  [2026-09-27 Sun 18:33]
+:END:
+:DEBRIEF:
+Fixed in [[orgit-rev:claude-code-ide-org::ed8b6e9][ed8b6e9]], a PR #31 review finding: the =emacsclient= call now runs under
+the same background-client-and-sleep watchdog the hooks use, since =--timeout=
+bounds only the connection. A new check in =bin/check-image-test= using a
+hanging fake client failed first. Nothing is named as differing from the
+review's claim or left undone.
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-27 Sun 18:37]--[2026-09-27 Sun 18:38] =>  0:01
@@ -98,11 +200,22 @@ commit=. *Fixed*: the same 3 s background-client watchdog the hooks use. A
 killed client reads as "image state unknown". The test uses a hanging fake
 client and failed first.
 
+=bin/check-image= gives up after 3 s and reports image state
+unknown, so a busy Emacs no longer hangs =git commit=.
+
+
 
 ** REVIEW pre-push reads a failed git diff as nothing changed, and skips the suites
 :PROPERTIES:
 :ID:       191ec45b-9f91-4105-b51a-ced16022b2d6
 :CREATED:  [2026-09-27 Sun 18:33]
+:END:
+:DEBRIEF:
+Fixed in [[orgit-rev:claude-code-ide-org::334bd34][334bd34]], a PR #31 review finding: a failed =git diff= or =git log= in
+=.githooks/pre-push= marks the range unknown, and the org-only shortcut is taken
+only on a range that was actually computed. A new case in =bin/pre-push-test=
+pushing over a remote sha the clone never fetched failed first. Nothing is named
+as differing from the review's claim or left undone.
 :END:
 :LOGBOOK:
 - State "REVIEW"     from "DOING"      [2026-09-27 Sun 18:38]
@@ -120,11 +233,23 @@ failed =git diff= or =git log= marks the range unknown, the hook says so, and
 the suites run. The org-only shortcut applies only to a range that was actually
 computed. The test pushes over an unknown remote sha and failed first.
 
+when pre-push cannot compute the pushed range it says so and runs
+the suites, instead of reading the failure as nothing changed.
+
+
 
 ** REVIEW The index-sweep guard refuses the commit that concludes a merge, and its suggested fix is refused by git
 :PROPERTIES:
 :ID:       00a66d88-03c9-46ec-9883-49b1f4f209b0
 :CREATED:  [2026-09-27 Sun 18:33]
+:END:
+:DEBRIEF:
+Fixed in [[orgit-rev:claude-code-ide-org::051200f][051200f]], a PR #31 review finding: =.githooks/pre-commit-guards= now
+treats =MERGE_HEAD=, =CHERRY_PICK_HEAD= or =REVERT_HEAD= in the git dir as an
+exemption; before it, =ALLOW_SWEEP= (documented for =--amend=) was the only way
+out. A new case in =bin/git-guards-test= resolving a conflicted merge on a
+non-main branch failed first. Nothing is named as differing from the review's
+claim or left undone.
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-27 Sun 18:38]--[2026-09-27 Sun 18:39] =>  0:01
@@ -143,11 +268,23 @@ suggested fix led nowhere. *Fixed*: an in-progress merge, cherry-pick or revert
 commit. The test resolves a conflicted merge on a branch other than main and
 failed first.
 
+the index-sweep guard exempts a commit that concludes an in-progress
+merge, cherry-pick or revert, so such a commit can go through.
+
+
 
 ** REVIEW apply-detect reports a first dismiss-only pass as an apply
 :PROPERTIES:
 :ID:       7e4e70af-bd15-4ecf-85a5-4e0bcf66afe9
 :CREATED:  [2026-09-27 Sun 18:33]
+:END:
+:DEBRIEF:
+Fixed in [[orgit-rev:claude-code-ide-org::0203cc3][0203cc3]], a PR #31 review finding: a watermark absent from the record
+and holding no applied value is no longer a change. Two further defects found on
+the way were fixed in the same commit: the absent sentinel =\x01absent= was read
+by awk as the hex escape =\x01ab= (harmless but unmatchable) and is now
+=<absent>=, and an empty watermark file, which jq read as "applied nothing", now
+takes the unparseable path. A new case in =bin/apply-detect-test= failed first.
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-27 Sun 18:39]--[2026-09-27 Sun 18:42] =>  0:03
@@ -168,11 +305,24 @@ but nothing could match against it, so it is now =<absent>=. And jq read an
 empty watermark file as "applied nothing" rather than as unreadable, so an empty
 file now takes the unparseable path. The test failed first.
 
+=apply-detect= announces an apply only when a watermark actually
+records one, so a session's first dismiss-only pass stays silent.
+
+
 
 ** REVIEW The member migration and the slice refresh save any modified buffer, the human's unsaved edits included
 :PROPERTIES:
 :ID:       b5d97b90-6dbe-46a3-8cef-02a2a89ea9c6
 :CREATED:  [2026-09-27 Sun 18:33]
+:END:
+:DEBRIEF:
+Fixed in [[orgit-rev:claude-code-ide-org::bfcc7a4][bfcc7a4]], a PR #31 review finding covering
+=claude-code-ide-org-refresh-slice=, the blocker refresh and
+=claude-code-ide-org-migrate-slice-members=, extending to them the busy-buffer
+refusal 60d6ab6e made for every structural writer. One new ERT test runs all
+three passes against a single busy fixture and failed first. The review named
+the migration and the slice refresh; the blocker refresh was found to share the
+defect and was fixed alongside.
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-27 Sun 18:42]--[2026-09-27 Sun 18:44] =>  0:02
@@ -189,11 +339,24 @@ along with the pass's own changes. *Fixed*: a file whose buffer holds unsaved
 edits is skipped and named in the reply, the refusal 60d6ab6e made for every
 structural writer. One test covers all three passes and failed first.
 
+the slice refresh, the blocker refresh and the member migration now
+skip, and name, any tracked file whose buffer holds unsaved edits rather than
+saving the human's edits along with their own.
+
+
 
 ** REVIEW An empty queue reads as not supplied, so org_footnotes re-reads the queue once per id
 :PROPERTIES:
 :ID:       15205b37-80bc-4eb9-af2e-e1ae18c579db
 :CREATED:  [2026-09-27 Sun 18:33]
+:END:
+:DEBRIEF:
+Fixed in [[orgit-rev:claude-code-ide-org::024734b][024734b]], a PR #31 review finding: =claude-code-ide-org--footnote-lines=
+passes the symbol =none= for a queue that was read and found empty, which
+=--effective-todo-state= no longer mistakes for "not supplied". A new ERT test
+with a counting queue stub failed first. The body notes the cost had been small,
+a queue read being 0.07 s after fa617d99, so this restores the promise rather
+than a measurable speed.
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-27 Sun 18:44]--[2026-09-27 Sun 18:45] =>  0:01
@@ -212,11 +375,23 @@ empty". A test with a counting queue stub failed first. The cost was small,
 since a queue read is 0.07 s after fa617d99, but the "read once" promise now
 holds.
 
+=org_footnotes= reads the queue once per call even when it is empty,
+as =--footnote-lines= promised.
+
+
 
 ** REVIEW org_set_todo's argument list was re-indented, burying a one-branch change in a 75-line diff
 :PROPERTIES:
 :ID:       a21c0f99-d85a-41ef-bb7f-b9a6be18ae0b
 :CREATED:  [2026-09-27 Sun 18:33]
+:END:
+:DEBRIEF:
+Fixed in [[orgit-rev:claude-code-ide-org::2088cea][2088cea]], a PR #31 review finding: the function was rebuilt from main's
+text, replacing only the docstring lines and the no-change clause from 57f37f0e,
+which took the diff against main from 135 changed lines to 53. No test failed
+first, because the change is layout only; all 832 ERT tests still pass. The
+finding's claim that =indent-region= would move the layout back was not
+confirmed: batch =indent-region= left the deep layout as it was.
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-27 Sun 18:45]--[2026-09-27 Sun 18:46] =>  0:01
@@ -236,11 +411,24 @@ tests still pass. There's no new test, because this is layout only. Not
 confirmed: the finding's claim that =indent-region= would move the layout back.
 Batch =indent-region= left the deep layout exactly as it was.
 
+=claude-code-ide-org-set-todo= keeps main's layout, so its diff
+against main shows only the docstring and the no-change clause.
+
+
 
 ** REVIEW footnotes-inject is bash with logic of its own, where a script needing Emacs is a thin sh stub over elisp
 :PROPERTIES:
 :ID:       a749b95c-86a0-4714-bdb1-ddb84bc71143
 :CREATED:  [2026-09-27 Sun 18:33]
+:END:
+:DEBRIEF:
+Fixed in [[orgit-rev:claude-code-ide-org::5384520][5384520]], a PR #31 review finding: session-id validation, the
+covered-ids file and the =updatedInput= JSON moved from bash and jq into
+=claude-code-ide-org-write-footnotes-hook-output=, which writes the hook's whole
+stdout. Three new shape checks in =bin/footnotes-inject-test= failed first; the
+existing nine still pass, so behaviour is unchanged, and test-all ran 26 suites
+with 1515 passing. The wait for the call's =tool_use= to land stays in the stub
+on purpose, because it must not block Emacs.
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-27 Sun 18:46]--[2026-09-27 Sun 18:50] =>  0:04
@@ -259,6 +447,11 @@ stdout. The stub keeps only the wait for the call's =tool_use= to land in the
 transcript, which mustn't block Emacs, and the 3 s watchdog. The existing nine
 checks still pass, so behaviour is unchanged; three new shape checks failed
 first. test-all ran 26 suites, 1515 passed.
+
+=footnotes-inject= is a POSIX =sh= stub that only waits for the
+transcript and runs the watchdog, with its logic in
+=claude-code-ide-org-write-footnotes-hook-output=.
+
 
 
 * TODO A guidepost span is labelled with the first pending clock_in note of its heading, from any session and any date :code:
@@ -319,6 +512,16 @@ before caching.
 :CREATED:  [2026-09-27 Sun 15:51]
 :CATEGORY: Queue
 :END:
+:DEBRIEF:
+Shipped in [[orgit-rev:claude-code-ide-org::aaff06b][aaff06b]]: both fixes the body named. A consumed line is dropped on its
+raw =ts= before any parse, and the writers' timestamp shape is parsed with
+=encode-time=, keeping =date-to-time= as the fallback for anything else.
+Verified live: one read went from 1.18 s to 0.066 s, and the fast path agreed
+with =date-to-time= on all 6,831 real queue timestamps. The skip test failed
+against HEAD, and the parse test failed, along with 13 others, when the offset
+sign was flipped. Not done: archiving fully applied session files, judged not
+worth filing at a 0.07 s read.
+:END:
 :LOGBOOK:
 CLOCK: [2026-09-27 Sun 16:43]--[2026-09-27 Sun 16:47] =>  0:04
 - State "DOING"      from "TODO"       [2026-09-27 Sun 16:43] \\
@@ -341,7 +544,7 @@ timestamp, since both sets are keyed by that string; and parse the fixed ISO
 shape directly instead of calling the lenient =date-to-time=. Archiving fully
 applied session files would bound it for good.
 
-*Shipped* in [[orgit-rev:~/git/claude-code-ide-org::aaff06b][aaff06b]]: both fixes named above. A consumed line is dropped on its
+*Shipped* in [[orgit-rev:claude-code-ide-org::aaff06b][aaff06b]]: both fixes named above. A consumed line is dropped on its
 raw =ts= before any parse, and the writers' timestamp shape is parsed with
 =encode-time=, keeping =date-to-time= as the fallback for anything else. Live,
 one read went from 1.18 s to 0.066 s, and the fast path agreed with
@@ -350,12 +553,30 @@ HEAD. The parse test failed when the offset sign was flipped, along with 13
 others. Archiving fully applied session files would bound the file sizes too;
 not done, and not worth filing at a 0.07 s read.
 
+*Resolution:* every queue read parsed every line ever written, with
+=date-to-time= taking most of 1.18 s. Consumed lines are now dropped on their
+raw timestamp before parsing, and the writers' timestamp shape is parsed
+directly, so a read takes 0.066 s.
+
+
 
 * REVIEW Slice refresh takes 10 s on leaving the review buffer, with the referent index under 0.1 s :code:
 :PROPERTIES:
 :ID:       4d896425-586a-4a5e-8d13-0a737d15a954
 :CREATED:  [2026-09-27 Sun 15:51]
 :CATEGORY: Slices
+:END:
+:DEBRIEF:
+Shipped in [[orgit-rev:claude-code-ide-org::73a8df0][73a8df0]]. A profile put about 75% of the refresh in
+=--refresh-stale-id-buffers= (from 8ddd7fa8), made worse by one buffer that
+could never verify: the old Doom glue's, whose file had been moved away. The
+check now counts only org buffers whose file still exists, and derives the file
+list only when one has fallen out of step; a pass binds =--stale-buffer-check=
+so the walk runs once per refresh. Verified: both new tests failed against HEAD,
+and live the refresh went from 10.4 s to 3.1 s with the file unchanged. The
+body's suspicion that each slice re-reads or re-renders was not where the time
+went. Not done here: the remaining 3.1 s, the per-slice incidentals scan, filed
+as [[id:dc68d831-9e04-4f0a-8b8b-8087b39c6037][dc68d831]].
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-27 Sun 16:37]--[2026-09-27 Sun 16:43] =>  0:06
@@ -375,7 +596,7 @@ slice or per member. Not yet profiled. The next step is to run =profiler-start=
 around one refresh and check whether each slice re-reads or re-renders what
 hasn't changed.
 
-*Shipped* in [[orgit-rev:~/git/claude-code-ide-org::73a8df0][73a8df0]]. The profile put about 75% of the refresh in
+*Shipped* in [[orgit-rev:claude-code-ide-org::73a8df0][73a8df0]]. The profile put about 75% of the refresh in
 =--refresh-stale-id-buffers= (8ddd7fa8), which re-derived the scannable files on
 each of 886 lookups. A buffer that could never verify made that happen every
 time: the old Doom glue's, whose file c562b69a's migration had moved away. The
@@ -386,12 +607,30 @@ refresh. Live: 10.4 s down to 3.1 s, with the file unchanged. Both new tests
 failed against HEAD. The remaining 3.1 s is the per-slice incidentals scan,
 filed as [[id:dc68d831-9e04-4f0a-8b8b-8087b39c6037][dc68d831]].
 
+*Resolution:* the 10 s slice refresh was mostly the stale-buffer check
+re-deriving the scannable file list on each of 886 id lookups. The check now
+walks the buffer list once per refresh, and the refresh takes 3.1 s; the
+remainder is filed as dc68d831.
+
+
 
 * REVIEW The ceremony re-sorts DONE.org's whole datetree on every quit, and it grows with every archive :code:
 :PROPERTIES:
 :ID:       16df4004-9e9e-4c78-a2aa-14d57358e23c
 :CREATED:  [2026-09-27 Sun 15:51]
 :CATEGORY: Meta
+:END:
+:DEBRIEF:
+Shipped in [[orgit-rev:claude-code-ide-org::c514f1f][c514f1f]], taking the first of the two fixes the body named:
+=claude-code-ide-org-sort-datetree-descending= sorts a node only when its
+children are not already newest-first. The tiers are walked by first child and
+next sibling instead of three =org-map-entries= passes, so a day's tasks are
+read only for their =CLOSED:=. A same-minute tie counts as in order, since org's
+sort is stable; 17 tie-bearing days had been re-sorted on every pass without
+changing the file. Verified live on the real DONE.org: 0.05 s and no sort calls,
+down from 25-47 s, file unchanged. The new test failed against HEAD, and the tie
+case failed under its own mutation. Sorting only the day nodes a pass archived
+into was not needed.
 :END:
 :LOGBOOK:
 - [2026-09-27 Sun 16:28]--[2026-09-27 Sun 16:29] assigned at review
@@ -414,7 +653,7 @@ user's report of latency rising a little with each exit. Possible fixes: skip a
 node whose children are already in order, which is cheap to check, or sort only
 the day nodes this pass archived into.
 
-*Shipped* in [[orgit-rev:~/git/claude-code-ide-org::c514f1f][c514f1f]]. A node is now sorted only when its children aren't already
+*Shipped* in [[orgit-rev:claude-code-ide-org::c514f1f][c514f1f]]. A node is now sorted only when its children aren't already
 newest-first. The tiers are walked by first child and next sibling instead of
 three full =org-map-entries= passes, so a day's tasks are read only for their
 =CLOSED:=. A same-minute tie counts as in order: org's sort is stable, and 17
@@ -423,12 +662,28 @@ Live on the real =DONE.org=: 0.05 s and no sort calls, down from 25–47 s, with
 the file unchanged. The new test failed against HEAD, and the tie case failed
 under its own mutation.
 
+*Resolution:* leaving the review buffer re-sorted every node of DONE.org's
+datetree, 25-47 s and growing with the archive. The sort now touches only a node
+whose children are out of order, so an ordered file costs 0.05 s.
+
+
 
 * REVIEW Queue events keyed by an 8-character prefix are invisible to exact-id readers :code:
 :PROPERTIES:
 :ID:       4c43145d-fac6-40b7-90ab-0af15d33afc7
 :CREATED:  [2026-09-27 Sun 14:32]
 :CATEGORY: Queue
+:END:
+:DEBRIEF:
+Shipped in [[orgit-rev:claude-code-ide-org::5716cd4][5716cd4]], as proposed: =--queue-parse-line= expands a unique prefix
+through org's id index, memoised per prefix, and returns a full id, a non-hex
+value, or an unresolvable or ambiguous prefix as written. Merging a heading's
+prefix and full-id groups is safe because every consumer marks applied and
+dismissed events by timestamp, not id. Verified: both new tests failed against
+HEAD, and test-all ran 26 suites with 1496 passing. Live, a full queue read went
+from 1.08 s to 1.16-1.24 s with 166 prefixes memoised. The fix sits on the read
+side because =queue-append= runs with no Emacs. Not done: how each affected
+surface misbehaved in practice was never measured, which the fix makes moot.
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-27 Sun 14:27]--[2026-09-27 Sun 14:33] =>  0:06
@@ -461,7 +716,7 @@ runs with no Emacs by design, so it cannot expand a prefix. Expanding =:id= once
 in the event parser, through =--expand-id-prefix=, reaches every reader. This is
 the queue-side sibling of [[id:25e7b083-360b-4282-8fd0-bb768e2a0f13][25e7b083]], which fixed the tool arguments.
 
-*Shipped* in [[orgit-rev:~/git/claude-code-ide-org::5716cd4][5716cd4]], as proposed above. =--queue-parse-line= expands a unique
+*Shipped* in [[orgit-rev:claude-code-ide-org::5716cd4][5716cd4]], as proposed above. =--queue-parse-line= expands a unique
 prefix through org's id index, memoised per prefix. Anything else comes back as
 written: a full id, a non-hex value, or a prefix that names nothing or more than
 one heading. Every consumer marks applied and dismissed events by timestamp, not
@@ -470,12 +725,27 @@ an event. Both new tests failed against HEAD. test-all ran 26 suites, 1496
 passed. Live, the full queue read went from 1.08 s to 1.16–1.24 s, with 166
 prefixes memoised.
 
+*Resolution:* queue events written under an 8-character prefix were skipped by
+every reader matching on the full id, so a queued state went unseen by footnotes
+and the no-change check. The event parser now expands a unique prefix once, so
+every reader sees those events under the full id.
+
+
 
 * REVIEW An active region in TODO.org makes the archive sweep take live headings :code:
 :PROPERTIES:
 :ID:       4a4ebb21-9388-494f-a40a-641ff663b19e
 :CREATED:  [2026-09-27 Sun 14:19]
 :CATEGORY: Meta
+:END:
+:DEBRIEF:
+Shipped in [[orgit-rev:claude-code-ide-org::b234ffe][b234ffe]], the likely fix the body named. Both calls to
+=org-archive-subtree= bind =org-loop-over-headlines-in-active-region= to nil:
+the ceremony's sweep, and the =org_archive= tool, which had the same exposure
+and was not in the original finding. Verified: both new tests failed against the
+unfixed code, the 381ea07d replay's three region cases each archived exactly 65
+with no error and no duplicate, and =test-all= passed 26 suites, 1494 tests. The
+live image was reloaded and read fresh.
 :END:
 :LOGBOOK:
 - State "DOING"      from "TODO"       [2026-09-27 Sun 14:23] \\
@@ -505,12 +775,18 @@ active region in the fixture buffer and assert that only finished top-level
 headings move. This path is not the 2026-08-31 mechanism: it errors every time,
 and that pass reported a clean 65.
 
-*Shipped* in [[orgit-rev:~/git/claude-code-ide-org::b234ffe][b234ffe]]. Both calls to =org-archive-subtree= now bind
+*Shipped* in [[orgit-rev:claude-code-ide-org::b234ffe][b234ffe]]. Both calls to =org-archive-subtree= now bind
 =org-loop-over-headlines-in-active-region= to nil: the ceremony's sweep, and the
 =org_archive= tool, which had the same exposure. Both new tests failed against
 the unfixed code. Re-run against the fix, the replay's three region cases each
 archived exactly 65, with no error and no duplicate. The live image is reloaded
 and fresh.
+
+*Resolved:* an active region made =org-archive-subtree= archive every heading in
+it, live ones included. The ceremony's sweep and =org_archive= now bind
+=org-loop-over-headlines-in-active-region= to nil, so each call archives only
+the heading at point.
+
 
 
 * TODO A live reload that changes a tool's description registers it a second time beside the stale one :code:bug:
@@ -558,6 +834,19 @@ A slice's cookie counts only =DONE= members, so while work waits on the user's j
 
 Observed 2026-09-25: with =TODO.org='s buffer read-only (=C-x C-q=, unmodified), =org_query "blocked:"= fails with "Buffer is read-only: #<buffer TODO.org>". Other predicates on the same buffer work (=category:=, =level:=, =regexp:=, =link:=), so something in evaluating =blocked:= writes to the buffer. Which call writes is not known yet; org's blocker hooks run through =org-entry-blocked-p=, and this repo adds =claude-code-ide-org--blocker-clock-running-p= to them. The file-touching tools bind =inhibit-read-only= (=c8a97d9d=) and =org_query= does not, since a query was not expected to write. Proposed: find the writer first. If it is org-ql caching or a hook's bookkeeping, bind =inhibit-read-only= in =org_query= as the other tools do; if it is a real edit, that is the defect. =5acca91b= (REVIEW) taught =blocked:= to the description and was tested on a writable buffer.
 
+*Diagnosed 2026-09-28.* The query doesn't just error on a read-only buffer: on a
+writable one it modifies the buffer. A =blocked: todo:= query left 17 headlines
+in =TODO.org='s buffer carrying a new =:blocked:= tag, unsaved. It was found
+because a later tool refused the buffer as busy, and the buffer was reverted to
+disk. The cause: =org-entry-blocked-p= runs =org-depend='s blocker, and
+=org-depend-tag-blocked=, which defaults to =t=, tags a blocked heading in the
+buffer. Org's own agenda binds =org-depend-tag-blocked= to nil around its
+=org-entry-blocked-p= call, with the comment "Necessary so that
+`org-entry-blocked-p' does not change the buffer". =org_query= should bind the
+same variable around its =org-ql-select=, which fixes both the edit and the
+read-only error.
+
+
 
 * TODO Headings cited in bodies are id links, written as links by the tools, so backlinks are one org_query away :code:
 :PROPERTIES:
@@ -602,6 +891,17 @@ Settled the same day: the selected window's buffer is what counts. With the Org 
 :ID:       b09d8090-e225-4659-b652-1a002e799379
 :CREATED:  [2026-09-24 Thu 21:58]
 :CATEGORY: Dev
+:END:
+:DEBRIEF:
+Shipped in [[orgit-rev:claude-code-ide-org::7cc7029][7cc7029]] as the plan designed it:
+=claude-code-ide-org--turn-reader-view= reads a transcript into turns of text,
+narration and tool blocks, optionally stopping before a given =tool_use= id,
+with =--transcript-turns= a lookup in front of it and =--transcript-worked-ids=
+untouched, so time attribution does not move. Narration is placed exactly like
+prose, closing any pending =:TOOLS:= drawer, as a sub-heading tagged
+=:summary:=. Verified by tests red first, and a batch render of the session's
+own transcript showed two summaries. Nothing in the plan was falsified, and
+nothing is recorded as left undone.
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-24 Thu 22:15]--[2026-09-24 Thu 22:16] =>  0:01
@@ -659,6 +959,12 @@ shared a message with a =text= block.
 
 Ruled out: italics as the marker, which break on any slash in the text.
 
+*Resolution:* a render used to drop the harness's narration summaries, because
+the transcript stores them as non-empty =thinking= entries. They are now
+rendered where the reader saw them, as =:summary:= sub-headings between tool
+calls, through one shared turn reader.
+
+
 
 * TODO org_outline shows what a heading is blocked by, never what it blocks :code:
 :PROPERTIES:
@@ -702,6 +1008,20 @@ Observed 2026-09-24: =org_slice_add_member= with =after= set to =de6de108=, a st
 :CREATED:  [2026-09-24 Thu 16:11]
 :CATEGORY: Tools
 :BLOCKER:  c247d8f3-9f3f-464a-b3a0-543b1bb9de4f
+:END:
+:DEBRIEF:
+Shipped in [[orgit-rev:claude-code-ide-org::660cb63][660cb63]] and [[orgit-rev:claude-code-ide-org::a8d095e][a8d095e]], as the drawer designed it:
+=bin/hooks/footnotes-inject= waits for the call's =tool_use= to land, builds the
+lines in Emacs and returns them as =updatedInput=, and =footnote-check= counts
+the covered ids as present. Verified by ERT and the inject suite, each failing
+against HEAD, with the wait case failing when the wait is removed. Falsified in
+the first live call, which injected nothing: the writer read the queue once per
+id and took 3.54 s against the 3 s watchdog; after =a8d095e= it reads once and
+takes 1.26 s, and the live run then returned three canonical lines, one starred
+and one cited only in narration. Not done: how the folded result reads on the
+phone and in the desktop app, left for the user. Also not done: the order of
+=org_clock_out= and =org_footnotes=, both a turn's last call, was named as a
+rule to settle (clock out first) and is not written into any reference.
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-24 Thu 15:57]--[2026-09-24 Thu 15:58] =>  0:01
@@ -853,6 +1173,12 @@ on the phone and in the desktop app. And a rule to settle: =org_clock_out= is
 also a turn's last call, so the two need an order, clock out first, then
 =org_footnotes=.
 
+*Resolved:* end matter was written from memory and stayed on screen. An
+=org_footnotes= call now generates it in Emacs from the reply's narration and
+the ids given, with keywords looked up, and the terminal folds it away inside
+the tool call.
+
+
 
 * TODO The review buffer's transcript context mixes sessions, mixes sort orders, and shows only one side of a span :code:
 :PROPERTIES:
@@ -919,6 +1245,18 @@ Split out of =2aeb65d6= on 2026-09-24 (the user). That heading's guard stops a w
 :CREATED:  [2026-09-24 Thu 10:53]
 :CATEGORY: Dev
 :END:
+:DEBRIEF:
+Shipped in [[orgit-rev:claude-code-ide-org::768454e][768454e]] as the plan designed it: references labelled with the id,
+each turn ending with its definitions in the end matter's canonical order,
+lookup through org's id index only (never =--id-find='s rescan on a miss), and
+ids inside a code fence left bare. Not foreseen by the plan, found on the first
+real render: org reads =[fn:X] ...= at column 0 as a definition, so a reference
+that would open a line is indented one space. Verified by tests red first, with
+the fence and no-rescan guards each proved by a mutation; a batch render of the
+session's own transcript against the real tracker produced ten definitions. The
+live half, a lookup of an id anywhere in Emacs, was filed as its companion
+=0eaffc39=.
+:END:
 :LOGBOOK:
 CLOCK: [2026-09-24 Thu 16:23]--[2026-09-24 Thu 16:24] =>  0:01
 - [2026-09-24 Thu 16:23]--[2026-09-24 Thu 16:24] assigned at review
@@ -964,6 +1302,12 @@ Files: =config.el= (the turn renderer) and =config-test.el=.
 
 *Established (2026-09-24):* the renderer runs inside Emacs with =org-id= loaded, so it can resolve an id when it renders a turn. Emacs overlays can be clickable, since =button.el= builds on them, but they leave nothing in the file. Your Doom setup already has embark, eldoc and link-hint, which is what makes the companion cheap.
 
+*Resolution:* a tracked id in a rendered session used to be bare text the reader
+had to look up. Each one that resolves now becomes an org footnote labelled with
+the id, whose definition gives the id link, keyword and exact title as of the
+render.
+
+
 
 * TODO Prose names tracked work by its subject, and the reader has to ask what it meant :spike:
 :PROPERTIES:
@@ -990,6 +1334,19 @@ The better measure is the user's own follow-up prompts, since each is a cost tha
 :ID:       c562b69a-d6dd-40e5-8d2c-3ab383b66809
 :CREATED:  [2026-09-23 Wed 21:17]
 :CATEGORY: Dev
+:END:
+:DEBRIEF:
+Shipped in [[orgit-rev:claude-code-ide-org::575be08][575be08]], as the drawer designed it: the three forms run from the end
+of the registration block through =claude-code-ide-org--wire-on-load=,
+=claude-code-ide-org-wire-on-load= defaults to t as the opt-out, =--glue= is
+gone and =--check= reports a leftover glue file or =load!= line. The
+=noninteractive= guard is shown load-bearing: removed, =bin/test= aborted at
+load with "Address already in use". The setup cases fail against HEAD's script.
+=--check= refused the commit itself until this machine's glue file and =load!=
+line were removed. Live: a reload wired idempotently with the server still on
+45571, and after the user's restart the first boot wired with no glue,
+=bin/check-image= read fresh and =org_pending_updates= answered over
+=emacs-tools= ([[orgit-rev:claude-code-ide-org::b3d58d6][b3d58d6]]).
 :END:
 :PLAN:
 *The design, approved 2026-09-24 (the user), brainstormed on the architectural path.* The glue's forms move into the module and run whenever the module is enabled, so nothing is generated into the user's Doom directory, and the user's config needs no line for it.
@@ -1068,12 +1425,33 @@ image fresh. There were no =*Warnings*=, and nothing from the retired glue was
 loaded or visited. An =org_pending_updates= round trip over =emacs-tools=
 answered.
 
+*Resolved:* the Doom glue was generated into =$DOOMDIR= although its text had
+become fixed, so it could only drift. The module now wires itself whenever it is
+enabled, behind =claude-code-ide-org-wire-on-load= and never in batch, and
+=--check= reports any leftover glue as obsolete.
+
+
 
 * REVIEW A rendered session goes stale as the session runs; follow a live transcript without losing the reader's place :code:
 :PROPERTIES:
 :ID:       eddee10f-b916-43ed-bd69-217adc068433
 :CREATED:  [2026-09-23 Wed 20:33]
 :CATEGORY: Dev
+:END:
+:DEBRIEF:
+Shipped in [[orgit-rev:claude-code-ide-org::907279d][907279d]] and [[orgit-rev:claude-code-ide-org::0ca2768][0ca2768]] as the drawer designed it: the renderer split
+into a header and a single-turn renderer (byte-identical on a real transcript),
+an offset reader returning finished turns, and the =Live= minor mode appending
+whole turns. Five ERT cases, all failing against HEAD, pin the central property
+that a render opened mid-turn and then appended to is byte-identical to one full
+render. Not foreseen by the plan: the first live run found a buffer left from an
+earlier render keeping its old tail position through the revert, so tail mode
+re-inserted every later turn (82,000 characters); the second commit pins the
+position on every whole-render write, with a regression test that fails without
+it. Measured: a full render of a 6 MB session costs 0.97 s, and an append reads
+only past its offset. The 2026-09-25 live check confirmed point and an opened
+drawer stay put mid-buffer while a turn lands. Not done: point following at the
+very end of the buffer was never observed, by test or live run.
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-23 Wed 20:27]--[2026-09-23 Wed 20:28] =>  0:01
@@ -1193,12 +1571,30 @@ stayed on the same line inside a drawer the check had opened mid-buffer, and the
 drawer stayed open. Not observed live: point following when it sits at the very
 end. The code moves it there, but no test or live run exercised it.
 
+*Resolution:* a render of a running session used to go stale from its next turn.
+While its buffer is open, =claude-code-ide-org-render-live-mode= now appends
+each finished turn to the render file, and a read-only tail-mode buffer takes it
+without moving the reader's place or folds.
+
+
 
 * REVIEW render-session asks for a session id from thin air; offer the project's sessions, newest first :code:
 :PROPERTIES:
 :ID:       406d78da-c871-47f9-a880-5ddb52ae3fa3
 :CREATED:  [2026-09-23 Wed 20:33]
 :CATEGORY: Dev
+:END:
+:DEBRIEF:
+Shipped in [[orgit-rev:claude-code-ide-org::7ca5c91][7ca5c91]] as the drawer designed it, after settling its open question
+first: renders are not pruned (Claude Code's cleanup lists only its own paths,
+and third-party files survived the 2026-09-24 cleanup at 45 days), so the
+render-only entries and the default directory stayed. Names come from windows at
+each file's ends, never the whole file, and a typed prefix is accepted. Verified
+by four tests failing against HEAD and two mutations each failing its own; live,
+98 sessions listed in 0.89 s. The plan's middle naming tier is dead in practice:
+no transcript in the corpus carries an =ai-title=, so the name falls from the
+last =custom-title= straight to the first prompt's synopsis. Not done: the
+interactive prompt itself has not been exercised by the user.
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-23 Wed 21:49]--[2026-09-23 Wed 21:50] =>  0:01
@@ -1256,6 +1652,12 @@ never the whole file. A typed prefix is accepted, and a render-only session
 opens as it is. Four tests fail against HEAD, and two mutations each fail their
 own. Live: 98 sessions listed in 0.89 s. The prompt itself is interactive and
 not yet exercised by the user.
+
+*Resolution:* =render-session= used to prompt for a bare session id. It now
+offers a picker over every project's sessions, newest first, each named by its
+last =/rename= or its first prompt, plus renders whose transcript has been
+pruned.
+
 
 
 * TODO Nothing checks a docstring against the function beneath it, so a stale one misleads a reader four lines from the truth :code:
@@ -1666,6 +2068,23 @@ cutting step 2 — not code.
 :CREATED:  [2026-09-22 Tue 11:03]
 :CATEGORY: Tools
 :END:
+:DEBRIEF:
+Shipped in [[orgit-rev:claude-code-ide-org::a7f00b8][a7f00b8]]: =claude-code-ide-org-set-tags= taking =id=, =add=, =remove=
+and =note=, computing local tags only, path-tag aware through a =defconst= the
+lint's one-path-tag rule now shares, refusing on unsaved edits, writing nothing
+on a no-op, registered beside =org_set_property= and counted as worked. The
+companion is =:around= advice on =org-set-tags= with a =tags= template in
+=org-log-note-headings=, suppressed while the tool writes and scoped to tracked
+files. One deviation from the plan: a hand change logs the bare line (='time=),
+not a prompted note (='note=), because =org-add-log-note= builds its prompt from
+a fixed =cl-case= over org's own purposes and signals on any other, so the
+reason for a hand change goes in by hand or through the tool. Verified by eight
+tests red first, with the displacement and the tracked-file scope each proved by
+a mutation; the reference row fit the always-loaded budget (9999/10000) only
+after the =org_wrap_plan= row lost a restating clause. The live check of the
+tool and of =C-c C-q= was left waiting for a reload, and the record does not
+show it ran.
+:END:
 :PLAN:
 Designed 2026-09-22 in session ba40781f through the brainstorming skill,
 which kept the path tag the heading already carried: bounded, with
@@ -1774,6 +2193,12 @@ behind Emacs's back, which is the unsaved-buffer divergence 53b0047d and
 - A tag edit by hand also risks the repeated-tag error the lint already
   catches, the case that produced =:code:code:=.
 
+*Resolution:* no tool could change an existing heading's tags, so every change
+was a headline edit behind Emacs's back. =org_set_tags= now adds and removes
+tags by =:ID:=, displaces a path tag when another is added, and logs the change
+to =:LOGBOOK:=, and a companion logs a hand =C-c C-q= in the tracked files.
+
+
 
 * TODO A span whose only resume is a synthetic bracket edge reports "no transcript for session nil (aged out)"
 :PROPERTIES:
@@ -1853,6 +2278,20 @@ pattern had repeated.
 :CREATED:  [2026-09-21 Mon 15:59]
 :CATEGORY: Tools
 :END:
+:DEBRIEF:
+Shipped in [[orgit-rev:claude-code-ide-org::9d740f6][9d740f6]], as the plan designed it. =claude-code-ide-org--busy-refusal=
+takes every file a writer will save and returns the existing "has unsaved
+changes in Emacs" refusal for the first busy one. =org_wrap_plan=,
+=org_archive=, =org_refile=, =org_divide=, =org_sort_children=,
+=org_move_sibling= and =claude-code-ide-org-close-open-interval= call it before
+any mutation, archive and refile passing their destination too, and
+=org_set_property= and =org_slice_add_member= switched to it, so the wording is
+one. =org_amend= and =org_capture= keep queueing. Verified by one table classing
+every registered =org_*= tool, which fails on an unclassed one, with each
+structural tool called against a dirty buffer and required to refuse with the
+file unchanged; removing the call from =org_move_sibling= turns it red.
+8ddd7fa8's stale-and-modified refusal reuses the wording.
+:END:
 :LOGBOOK:
 CLOCK: [2026-09-24 Thu 19:43]--[2026-09-24 Thu 19:44] =>  0:01
 - [2026-09-24 Thu 19:43]--[2026-09-24 Thu 19:44] brainstorm the unsaved-buffer refusal sweep
@@ -1925,6 +2364,12 @@ Established:
 Ruled out: a check inside =--at-id-writable= alone. Four writers bypass
 it, and archive and refile write a second file it cannot see.
 
+*Resolution:* seven writers, =org_wrap_plan= among them, saved a buffer holding
+the human's unsaved edits instead of refusing or queueing. Every structural
+writer now refuses through one helper, checking the destination file too, and a
+test forces each new tool to be classed.
+
+
 
 * TODO The member-drawer backfill clause is scaffolding: once every open heading has its canonical shape, the lint should require it and the clause retire
 :PROPERTIES:
@@ -1973,6 +2418,18 @@ Row 5 of the enforcement audit's convert list (3cd7b7d3), set aside there as the
 :ID:       57f37f0e-4461-42f4-8b33-cde59318b93a
 :CREATED:  [2026-09-21 Mon 10:42]
 :CATEGORY: Tools
+:END:
+:DEBRIEF:
+Shipped in [[orgit-rev:claude-code-ide-org::45a25f1][45a25f1]] as the plan designed it: =--effective-todo-state= reads every
+session's pending =todo= events ordered by timestamp, the refusal compares
+against it, =(was X)= still holds the disk state that =queue-append= recovers
+=from= from, and the queued state appears starred outside the parentheses.
+Beyond the plan, the =--with-heading= fixture now binds the queue directory to
+scratch, so no test calling =org_set_todo= reads the real queue. Verified by
+three ERT cases red against HEAD's =config.el=, plus a hook case pinning that
+the =sed= still recovers =from= beside the new suffix. PR #31's review found the
+change had re-indented the whole argument list, and [[orgit-rev:claude-code-ide-org::2088cea][2088cea]] rebuilt the function
+from main's text with only the real changes. Nothing is recorded as left undone.
 :END:
 :PLAN:
 The no-change refusal in =claude-code-ide-org-set-todo= compares the requested
@@ -2065,6 +2522,12 @@ a duplicate. Observed 2026-09-21 on 63713df3. The fix tests the heading's
 effective state, meaning the disk keyword carried through its pending =todo=
 events, and queues the return trip rather than cancelling the pair. The design
 is in =:PLAN:=.
+
+*Resolution:* =org_set_todo='s no-change check used to compare against the
+keyword on disk, so a queued state could not be queued back. It now compares
+against the effective state, the disk keyword carried through the heading's
+pending =todo= events, and queues a return trip as two ordinary items.
+
 
 
 * TODO Nothing in the drift slice was exercised in a consumer install: the new hooks, the conditional time-file promotion, the twin-checker agent :code:
@@ -2323,6 +2786,8 @@ The conventions are path-scoped and tool-driven work never loads them (436e0991)
 - [2026-09-21 Mon] Caught by the user: "I see a number of task prose paragraphs that need to be wrapped." Recording 8a2eb687's decisions, the session created =:PLAN:= drawers with =org_amend= on nine pre-convention headings (94e6b615, f12f9da4, 3ad389be, 37bca83a, 965f94eb, 25e7b083, 490e6737, 13aed7ca, 2a6a1355). It left each body's plan prose unwrapped, without reading "Revising a pre-convention body". The existing drawer now makes =org_wrap_plan= refuse all nine. The session's own SOP had allowed it ("=org_wrap_plan= … or a short =org_amend=") and was corrected the same turn.
 - [2026-09-23 Wed] Self-caught: the session filed 9702f283 and queued a story =NEXT= without reading the org conventions, although the first =org_*= call of the session had injected a pointer to them.
 - [2026-09-25 Fri] Self-caught: amending 5b46fbfd, the session cited four commits as bare verbatim SHAs, then read "Referring to a commit", which asks for =orgit-rev:= links. The conventions-inject pointer had named that section at the session's first org call. The fix could not go through =org_amend replace=true=, the very defect being recorded, so it was a surgical text edit with the buffer confirmed unmodified.
+- 2026-09-28 (self): 22 commit links written into bodies on 2026-09-27 used the path form =orgit-rev:~/git/claude-code-ide-org::SHA=. The org conventions, "Referring to a commit", say "Use the repo /name/, never a path." That section was never read before the links were written, and the close prompts given to four subagents repeated the path form. Two of the subagents caught it by reading the convention. All 24 links were normalised the same day.
+
 
 
 ** TODO Miss: a prediction or a claim about state reported as fact without checking the artifact
@@ -2554,6 +3019,21 @@ Every count on the Miss children is a floor: it holds what a hook, the user or t
 :CREATED:  [2026-09-19 Sat 16:34]
 :CATEGORY: Dev
 :END:
+:DEBRIEF:
+Shipped in [[orgit-rev:claude-code-ide-org::159ef47][159ef47]] as the plan designed it: =bin/test-all= runs =bin/test= and
+every =bin/*-test= by glob, each with the session id unset and the queue in a
+throwaway directory, and fails statically on a suite that reads this repo's
+tracker or a real Doom config. Every shell suite now ends with the standard line
+and exits =$((M > 0))=, removing the six =exit "$count"= wraps at 256.
+=queue-append-test= resolves its miss heading from a fixture plugin checkout,
+and =.githooks/pre-push= skips only pushes touching nothing beyond =TODO.org=,
+=DONE.org= and =plans/=; a missing =bin/sync-plans= now skips only the plans
+check. The body's "noticed, not in scope" note on =claude-org-setup --check=
+reading the real =~/.config/doom= is out of date: it was folded into the plan
+and shipped here, with =--check= run against a scratch =DOOMDIR=. Verified live:
+23 suites, 1297 passed, 0 failed, in 56 s against the plan's 41 s estimate.
+Nothing is recorded as left undone.
+:END:
 :LOGBOOK:
 CLOCK: [2026-09-23 Wed 20:52]--[2026-09-23 Wed 20:53] =>  0:01
 - [2026-09-23 Wed 20:52]--[2026-09-23 Wed 20:52] assigned at review
@@ -2601,6 +3081,12 @@ Files: =bin/test-all= and =bin/test-all-test= (new), =.githooks/pre-push=, about
 - Only three suites print a count line. Six end with =exit "$count"=, which wraps to 0 at 256 failures. =queue-append-test= reads the real =TODO.org= (2026-09-23).
 
 Noticed, not in scope: =claude-org-setup --check= reads the real =~/.config/doom=, so that suite is not hermetic either.
+
+*Resolution:* only the ERT suite ever ran, so a shell suite could stay red
+through a merge unseen. =bin/test-all= now runs every suite hermetically and
+passes one only on a positive final count line, and pre-push gates any push that
+is not org-only on it.
+
 
 
 * TODO sync-plans reads any mention of a plan filename as a link, so prose naming an orphan re-links it :code:observed:
@@ -3153,6 +3639,17 @@ The analysis above stays useful either way, because it is the record of *why* th
 :CREATED:  [2026-09-17 Thu 16:17]
 :CATEGORY: Skill
 :END:
+:DEBRIEF:
+Divided from 2a6a1355 on 2026-09-17, because one heading had collected several
+causes that were never separated. Its six children each closed separately:
+2a6a1355 (the original, kept as evidence), 490e6737 (ids that arrive by
+transcription), d88362e7 (the queued-state star), eadb3607 (a heading discussed
+by subject, never by id), 13aed7ca (bulk citation) and c247d8f3 (a hook that saw
+only the final block). The last two shipped in slice 8a2eb687 and merged with PR
+#31 ([[orgit-rev:claude-code-ide-org::754841b][754841b]]). The misses stayed measurable throughout: every footnote-check
+block is counted as a =miss=, and the 13aed7ca miss-rate check falls due now,
+listed on 89cae4d5.
+:END:
 :LOGBOOK:
 CLOCK: [2026-09-23 Wed 19:34]--[2026-09-23 Wed 19:35] =>  0:01
 - [2026-09-23 Wed 19:34]--[2026-09-23 Wed 19:35] assigned at review
@@ -3193,6 +3690,11 @@ Divided out of =2a6a1355= on 2026-09-17 at the user's direction. That body had b
 - Four of the six children settled within a day of the sweep starting, each on its own evidence, which was the division's aim.
 - =ee90e212=, the mechanism =eadb3607= handed off, stays outside the story: half of it is jargon coined on the spot, with no id to cite (the user agreed, 2026-09-24).
 - =2a6a1355='s body was deliberately left intact, because its accreted sections are the evidence of where the seams were.
+
+Each cause of an unfootnoted id now has a closed heading of its own, and the
+footnote machinery that came out of them is in place: a hook that scans the
+whole reply segment, and end matter generated by =org_footnotes=.
+
 
 
 ** DONE Three new ways to owe a footnote and not see it: marker, list, quotation :code:
@@ -3717,6 +4219,18 @@ enough to split is a judgement for the pass that reviews this division.
 :ID:       13aed7ca-1fad-4e89-bbca-9355f5c76265
 :CREATED:  [2026-09-17 Thu 16:18]
 :END:
+:DEBRIEF:
+Shipped in [[orgit-rev:claude-code-ide-org::e5fc859][e5fc859]], a change to =org-footnote-citations.md= and its promoted
+copy, as the drawer designed it: many ids owing many entries is stated as the
+convention working, bare-id lists are named as the failure, and long end matter
+is built from one =org_outline= call over every id. A rendered session
+footnoting its ids (9bc8fc8c) does not relax the terminal rule. Different from
+the plan: the file is always loaded and stood at 9,999 of its 10,000-word
+budget, so neighbouring paragraphs were compressed to make room. Prose guidance
+has no mechanical check, so none was run; its effect is to be read in the
+=footnote= miss rate at the slice's close. The one-call lookup procedure was
+always meant to be replaced by 30d05c93's =org_footnotes=.
+:END:
 :PLAN:
 *The design, approved 2026-09-24 (the user), brainstormed on the bounded path.* The open question was whether a response that is structurally a list of headings should owe end matter at all. Three shapes were on the table (composed 2026-09-21): accept end matter as correct at many ids; change the writing guidance so a list pairs each id with its title inline; or stand the hook down on list-shaped responses. The user chose the first two, and filed the reader-side route as its own heading, =9bc8fc8c= (the user, 2026-09-24). Standing the hook down stays declined: it loses the guarantee for a list of bare ids, which is exactly the enumeration failure.
 
@@ -3762,6 +4276,13 @@ A status summary or portfolio list cites ten or fifteen headings deliberately, a
 - Unlike transcription (=490e6737=), here the writer chose every id, so the parent's unifying claim, that every failure is an id nobody chose to write, is false of this case. That is why it was filed as a cause of its own.
 - Measured 2026-09-17 across 57 hook fires: ids demanded per fire rose from 1.4 to 4.3, peaking at 15 and tracking the subject matter. The discharge rule shipped at 17:33Z and bought nothing (4.3 after, 3.5 before). A direct test cleared the hook: three bare ids are all demanded, and an id paired with its exact title on one line passes.
 - Hand-written end matter is also error-prone: in one session of 2026-09-23 and 2026-09-24, one entry was dropped and one title was written without being looked up (=0086614a=, wrong).
+
+*Resolved:* the citation rules left a long citation list with no workable
+remedy. They now say that many cited ids owing many entries is the convention
+working, that a list of headings pairs each id with its title on the line while
+a list of bare ids is the failure, and that long end matter is looked up in one
+call, never recalled.
+
 
 
 ** DONE Mark a queued keyword in end matter with a trailing star, and give the star no note of its own :code:
@@ -3811,6 +4332,22 @@ Shipped in the canonical reference and promoted; check-conventions 32 ok, footno
 :PROPERTIES:
 :ID:       c247d8f3-9f3f-464a-b3a0-543b1bb9de4f
 :CREATED:  [2026-09-21 Mon 13:25]
+:END:
+:DEBRIEF:
+Shipped in [[orgit-rev:claude-code-ide-org::a350767][a350767]], with a fix in [[orgit-rev:claude-code-ide-org::a3ca581][a3ca581]]. The scan moved into
+=claude-code-ide-org-write-footnote-check=: the final block still comes from the
+payload, the earlier blocks from =--turn-reader-view=, and the stub keeps the
+loop guard, sentinel, bound and miss count, exiting 0 when Emacs is unreachable
+or slower than 3 s. Not in the plan: the reader now marks where a reply ended,
+so a blocked and rewritten reply is its own segment, and ids resolve only under
+a heading whose own property drawer carries them. Verified by 10 ERT cases red
+against HEAD, three mutations each turning its own test red, and a shell suite
+whose new cases fail five assertions against HEAD. =a3ca581= was needed because
+the suite named a real user path, so =bin/test-all= had skipped it. The probe
+re-run found 133 of 1,786 replies owing entries only on the whole segment, 8 of
+them only through narration. One old shell case failed on data, two headings
+glued onto a body line (5b46fbfd's defect), left for the user to repair in
+Emacs.
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-23 Wed 19:51] \\
@@ -3904,6 +4441,12 @@ terminal showed exactly that summary. A fix reading the turn from
 =transcript_path= should treat non-empty =thinking= entries as narration,
 or it misses what the reader saw. The measurement above read =text=
 blocks only.
+
+*Resolved:* =footnote-check= saw only the reply's last text block, so ids cited
+before a tool call escaped it. It now scans the whole reply, reading the earlier
+blocks (narration stored as =thinking= included) from =transcript_path= in
+Emacs, and owes nothing when Emacs is unreachable.
+
 
 
 ** DONE A heading discussed by subject and never by id owes a citation no token scan can see
@@ -4030,6 +4573,16 @@ So cookie and =:KIND:= are a two-bit classifier and each carries a bit the other
 :CREATED:  [2026-09-17 Thu 11:31]
 :CATEGORY: Tools
 :END:
+:DEBRIEF:
+Shipped in [[orgit-rev:claude-code-ide-org::decd234][decd234]] as the plan designed it: =claude-code-ide-org-divide= inserts
+the parent without a cookie and calls the helper on it, and the org skill's
+example becomes =*** TODO [2/5] Pack for the trip= with one sentence on why the
+cookie leads. The plan counted two places teaching the trailing form; there were
+three, since two divide tests pinned it, and both now assert the fix. A new case
+covers a keyword-less parent. Verified: both divide cases red against the old
+line construction, then =bin/lint-org= and every suite green. Nothing is
+recorded as left undone.
+:END:
 :LOGBOOK:
 CLOCK: [2026-09-23 Wed 17:09]--[2026-09-23 Wed 17:10] =>  0:01
 - [2026-09-23 Wed 17:09]--[2026-09-23 Wed 17:10] brainstorm org_divide's trailing cookie
@@ -4061,6 +4614,12 @@ only inserter left doing this: every other path places the cookie through
 `--ensure-statistics-cookie-at-point`, after the keyword. A test and the
 org skill's example both still teach the trailing form. The fix routes
 divide through the helper; the design is in `:PLAN:`.
+
+*Resolution:* =org_divide= used to append the parent's statistics cookie after
+the title, where a narrow window truncates it. It now inserts the parent line
+bare and places the cookie after the keyword through
+=--ensure-statistics-cookie-at-point=, so one function owns placement.
+
 
 
 * TODO [0/2] Make the corpus searchable by tag, by measurement where it can be and by decision where it cannot
@@ -4649,6 +5208,18 @@ Asked by the user 2026-09-16, straight after =c= shipped: "will the 0-run/0-minu
 :CREATED:  [2026-09-16 Wed 06:41]
 :CATEGORY: Tools
 :END:
+:DEBRIEF:
+Shipped in [[orgit-rev:claude-code-ide-org::459a6f8][459a6f8]] as the plan designed it: three refusals, none counted as a
+miss (a sexp is never evaluated; unknown predicates are checked against
+=org-ql-predicates= and its aliases at run time, a quoted token still literal; a
+bare =OR=, =AND= or =|= points at the comma and =match=any=), the new =match=
+argument, the parsed reading and case rules on an empty result, and the
+rewritten tool description. The description's =blocked:= trailing colon and
+union caution closed =5acca91b= in the same commit. Verified by tests written
+first, five red against HEAD and green after. The live check was left waiting
+for a reload, and the record does not show the plan's re-run of the refused
+2026-09-22 and 2026-09-23 queries through the reloaded tool.
+:END:
 :PLAN:
 *The design, approved 2026-09-23 (the user), brainstormed on the bounded path.* =org_query= keeps one language, org-ql's plain strings (the user, 2026-09-21). What its parser does not recognise it now refuses, instead of silently turning it into full-text terms that come back as an honest-looking "No matches." No predicate is dropped and none ever was, so surfacing the misreading is the fix.
 
@@ -4709,6 +5280,13 @@ CLOCK: [2026-09-24 Thu 22:46]--[2026-09-24 Thu 22:51] =>  0:05
 - A wrong-language empty result cost real work: it was read as "no slice carries =:KIND:=" and re-answered with a regex scan of heading boundaries.
 - The schema under-described the language. Bare =todo:= and =property:= were added to it on 2026-09-22 after a session enumerated keywords and silently dropped two =MAYBE= headings.
 - Measured 2026-09-23 against the installed org-ql: =todo:=, =tags:= and =property:= are case-sensitive, while =heading:= and bare words are not; =property:KEY,VALUE= is the documented form; there is no cross-predicate OR; and =parent:=/=children:= take text, not nested predicates.
+
+*Resolution:* a query in the wrong language (a sexp, an unknown predicate, a
+bare =OR=) used to become full-text terms and come back as an honest-looking "No
+matches." =org_query= now refuses all three with what to write instead, offers
+=match=any= for OR across predicates, names the parsed reading on an empty
+result, and describes the language as it really is.
+
 
 
 * TODO The re-key bridge reads transcripts Claude Code prunes, so the alias decays silently :code:
@@ -4965,6 +5543,16 @@ instead.
 :CREATED:  [2026-09-15 Tue 11:10]
 :CATEGORY: Tools
 :END:
+:DEBRIEF:
+Nothing was built of its own: closed with =37bca83a='s work in [[orgit-rev:claude-code-ide-org::459a6f8][459a6f8]], whose
+=org_query= description names =blocked:='s trailing colon and its union caution.
+The body's proposal to pass the predicate through was falsified: a batch
+measurement on 2026-09-23 showed =blocked:= already parses to =(blocked)= and
+=!blocked:= to its negation, so the 2026-09-15 gap of 10 versus 26 was the bare
+word against the sexp. The plan's verification, running =blocked:= live after
+the reload and checking it returns the sexp's 10 headings, is not recorded as
+having run.
+:END:
 :LOGBOOK:
 - State "REVIEW"     from "DOING"      [2026-09-24 Thu 22:51] \\
   taught by 459a6f8; live count check pending
@@ -4986,6 +5574,13 @@ negation) through, which is the whole change. Worth pairing with a caution in
 the tool description, because the derived answer is a union of three mechanisms
 -- unfinished children, unchecked checkboxes, and :BLOCKER: via org-depend --
 and a reader asking "what is blocked" usually means only the third.
+
+*Resolution:* the predicate was always reachable as =blocked:= with a trailing
+colon; only a bare =blocked= fell through to full-text search. =37bca83a='s
+description rewrite now teaches the colon form and carries the caution that
+=blocked= is a union of unfinished children, unchecked checkboxes and
+=:BLOCKER:=.
+
 
 
 * TODO The attention report renders to a buffer and persists nothing, so every reading is thrown away :code:
@@ -5061,6 +5656,22 @@ lands first sets the shape; the second reads what the first wrote.
 :ID:       7ee3b71a-b85a-4610-a4ab-b9e06c8d79da
 :CREATED:  [2026-09-15 Tue 10:26]
 :CATEGORY: Tools
+:END:
+:DEBRIEF:
+Shipped in [[orgit-rev:claude-code-ide-org::3d09c23][3d09c23]] (the property and rendering), [[orgit-rev:claude-code-ide-org::5e6db65][5e6db65]] (the ancestor rule
+limited to open slices, since four closed ones record that practice), [[orgit-rev:claude-code-ide-org::313c1e8][313c1e8]]
+(the migration, one commit across both files as decided) and [[orgit-rev:claude-code-ide-org::c7c7904][c7c7904]] (the
+line-rewriting refresh retired). =org_slice_add_member= edits the property, its
+=after= indexing into =:MEMBERS:=, and refuses the retired =parent=. Seventeen
+slices were migrated, not the sixteen planned; de6de108 became a boxless derived
+row on 8a2eb687, which reads =[7/37]=, the migration's one named deviation from
+byte-identity. Departures from the plan: the refresh self-heals =:MEMBERS:= from
+a checklist, the planned-id reader keeps a drawer-bounded fallback for an
+undeclared slice rather than deleting it, and an unresolvable member keeps its
+previous line. Verified by 772 ERT cases, three shown to fail against the code
+they guard, and a live refresh of the migrated corpus that changed nothing. Not
+done: the plan asks for the title to be restated once b2d4012c retires
+=replace=true=.
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-22 Tue 12:49]--[2026-09-22 Tue 12:51] =>  0:02
@@ -5220,6 +5831,13 @@ believed at discovery.
 
 *Shipped 2026-09-25*, in [[orgit-rev:claude-code-ide-org::3d09c23][3d09c23]], [[orgit-rev:claude-code-ide-org::5e6db65][5e6db65]], [[orgit-rev:claude-code-ide-org::313c1e8][313c1e8]] (the migration) and [[orgit-rev:claude-code-ide-org::c7c7904][c7c7904]]. A slice declares =:MEMBERS:=, and its checklist is rendered from it wholesale, only the contiguous list under the lead. The =:BLOCKER:= derives from the property. =org_slice_add_member= edits the property and refuses the retired =parent=. The lint errors on a slice without =:MEMBERS:=, on a declared id that does not resolve, on a member declared beside its ancestor (open slices only, since four closed ones record that as their practice), and on a checklist that disagrees with the property. Seventeen slices were migrated, not sixteen. Two open slices changed as the ruling says: [[id:de6de108-0095-40f4-8177-fdef0503c578][de6de108]] became a boxless row on 8a2eb687, which reads =[7/37]=, and two story children on 6521dd56 gained parent rows. Departures from the drawer, each for a reason found in the work: the refresh self-heals =:MEMBERS:= from a checklist; the planned-id reader keeps a drawer-bounded fallback for an undeclared slice; and an unresolvable member keeps its previous line. Verified by 772 ERT cases, three shown to fail against the code they guard, and a live refresh of the migrated corpus that changed nothing.
 
+*Resolution:* a slice's membership lived only as body prose, so any writer that
+rewrote the body, or a member scan that misread a drawer, could destroy or
+corrupt it. Membership now lives in a =:MEMBERS:= property from which the
+checklist and =:BLOCKER:= are derived, so a lost checklist costs a refresh, and
+the lint checks every slice against it.
+
+
 
 * TODO A bookkeeping burst reads as many headings worked at once, and inflates every window it lands in :code:
 :PROPERTIES:
@@ -5290,6 +5908,20 @@ is rebuilt here, one line is removed from a rendered buffer.
 :ID:       b52df20b-45c7-41aa-9d77-44ccf06c647f
 :CREATED:  [2026-09-14 Mon 10:30]
 :CATEGORY: Tools
+:END:
+:DEBRIEF:
+Shipped in [[orgit-rev:claude-code-ide-org::10fbf68][10fbf68]]: =claude-code-ide-org--fill-prose-text= at all four write
+sites, direct and deferred, with the sweep using the same predicate and width,
+and =claude-code-ide-org--glued-headline-p= leaving a paragraph with a glued
+heading unfilled and reported. Found in the work: the first width function
+counted folding as invisible, so every body in a file opened with =#+STARTUP:
+content= measured zero wide and a dry run found nothing to fill; it now reads
+only link markup. Verified by 778 ERT cases, each new guard failing against HEAD
+or a mutation, and live after a reload =M-q= moves nothing in the transform's
+paragraphs. A dry run over both trackers would fill 545 paragraphs in TODO.org
+and 510 in DONE.org with content identical. Not done here: running that sweep
+over the corpus, which is [[id:76a6f052-e360-4a12-8077-070da83a8e84][76a6f052]]'s job, and =org_edit= calling the transform,
+which belongs to 704d8558 and b2d4012c.
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-24 Thu 12:35]--[2026-09-24 Thu 12:37] =>  0:02
@@ -5369,6 +6001,12 @@ both trackers found nothing to fill. It now reads only link markup. Verified:
 after a reload, =M-q= moves nothing in the transform's paragraphs. A dry run
 over both trackers would fill 545 paragraphs in TODO.org and 510 in DONE.org,
 content identical, which is [[id:76a6f052-e360-4a12-8077-070da83a8e84][76a6f052]]'s job to run.
+
+*Resolution:* the tools wrote body text exactly as sent, so paragraphs arrived
+as single long lines for the human to reflow. =org_capture= and =org_amend= now
+fill prose at every write site, at the buffer's column and display width, never
+filling a list item, and the whole-file sweep shares the same rules.
+
 
 
 * TODO Unplanned work in flight belongs to no slice: planned is writable, incidental is closed-only :code:
@@ -5662,6 +6300,19 @@ it.
 :CREATED:  [2026-09-11 Fri 15:45]
 :CATEGORY: Apply
 :END:
+:DEBRIEF:
+Shipped in [[orgit-rev:claude-code-ide-org::368d858][368d858]] as the plan designed it: the mtime test stays as a first
+filter, and =.apply-seen= becomes a record of one line per watermark with its
+newest =applied= value, written by temp file and rename only after the report
+reaches stdout. Edge cases as planned: a missing watermark counts as applied, an
+unparseable file falls back to mtime, and a first prompt or legacy empty stamp
+records silently. One addition beyond the plan: the record carries a header
+line, so an empty queue directory never leaves a zero-byte stamp that would
+re-initialise instead of reporting. Verified by five new cases red against
+HEAD's hook, 28/28 after (the plan listed six cases). The session-tracking
+reference sentence was re-promoted, trimmed to fit the always-loaded budget
+(9995/10000). Nothing is recorded as left undone.
+:END:
 :LOGBOOK:
 CLOCK: [2026-09-24 Thu 07:50]--[2026-09-24 Thu 07:53] =>  0:03
 - [2026-09-24 Thu 07:50]--[2026-09-24 Thu 07:53] brainstorm apply-detect's dismissal false positive
@@ -5690,12 +6341,31 @@ Files: =bin/hooks/apply-detect=, =bin/apply-detect-test=, and the sentence in =s
 
 *Established:* found by PR22's review, and introduced with [[id:165ce65a-f87e-431c-8ee4-f0fbfffe14da][165ce65a]]. Each =applied= entry carries the time of the pass that applied it, and a dismiss-only pass leaves those values unchanged (read 2026-09-24).
 
+*Resolution:* =apply-detect= used to report an apply whenever a watermark's
+mtime moved, including after a dismiss-only pass. It now reports only when a
+moved watermark's newest =applied= value differs from the one it last recorded.
+
+
 
 * REVIEW Two tracked repos sharing a directory basename collide on one MCP session id :code:
 :PROPERTIES:
 :ID:       965f94eb-1558-4d00-9857-5727eb86fe6f
 :CREATED:  [2026-09-11 Fri 15:45]
 :CATEGORY: Tools
+:END:
+:DEBRIEF:
+Shipped in [[orgit-rev:claude-code-ide-org::ce77888][ce77888]]: name resolution from a local-scope =emacs-tools= entry in
+=~/.claude.json= (by given or physical path) then =.mcp.json=, a per-project
+port check, a refusal on collision that prints the fixing command, a setup
+proposal whenever another tracked project holds the name, and =--check= failing
+on a collision; setup never writes =~/.claude.json=. Verified red first against
+HEAD (3 ERT tests and 4 setup checks, plus a no-collision control), then
+=test-all= at 25 suites and 1441 passed, and after a live reload this machine's
+two projects resolve to distinct names. The plan's live step of a scratch second
+clone with a capture from each landing in its own tracker is not recorded as
+having run. Beside it, the pass removed two dead =consumer= fixture entries from
+=~/org/agenda-files=; their writer was not traced, and the body records the
+choice not to file it.
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-21 Mon 15:28]--[2026-09-21 Mon 15:29] =>  0:01
@@ -5746,7 +6416,7 @@ The wiring registers each tracked repo under its directory basename as the MCP s
 - Checked against Claude Code's MCP docs on 2026-09-24: =${VAR}= expansion works in =url= but reads only the process environment; scopes take precedence local, then project, then user, with no merging; local entries are keyed by project path in =~/.claude.json=.
 - Checked against Warp's MCP docs the same day: no variable expansion is documented, and Warp now lists Claude Code's =~/.claude.json= and =.mcp.json= among the configs it can read, behind a toggle. That contradicts =CLAUDE.md='s "Warp reads MCP config only from …".
 
-Shipped in [[orgit-rev:~/git/claude-code-ide-org::ce77888][ce77888]]. The wiring resolves each tracked project's session name the
+Shipped in [[orgit-rev:claude-code-ide-org::ce77888][ce77888]]. The wiring resolves each tracked project's session name the
 way Claude Code does: first a local-scope =emacs-tools= entry in
 =~/.claude.json= for that directory (keyed by its given or its physical path),
 otherwise its =.mcp.json=. It registers the resolved name and checks each
@@ -5767,12 +6437,28 @@ The same pass removed two dead temp entries (a =consumer= fixture from
 of the setup suite pinned the list, so an ad hoc run is the likely source. Not
 filed, since the suite can't produce it.
 
+*Resolution:* two tracked repos sharing a basename used to register one MCP
+session name, the later silently overwriting the earlier. The wiring now
+resolves each project's name as Claude Code does (local-scope entry, then
+=.mcp.json=) and refuses a collision loudly, and =claude-org-setup --org=
+proposes the =claude mcp add --scope local= line that separates them.
+
+
 
 * REVIEW A deferred targetless capture loses its project routing when the queue is applied :code:
 :PROPERTIES:
 :ID:       5e731a23-7708-4248-b055-9b4a531f147d
 :CREATED:  [2026-09-11 Fri 15:45]
 :CATEGORY: Tools
+:END:
+:DEBRIEF:
+Shipped in [[orgit-rev:claude-code-ide-org::c63dbce][c63dbce]] as the plan designed it: one resolver taking a directory and
+mapping a worktree to its main checkout, the capture item carrying its event's
+=cwd=, and apply, the review row and the keyword lookup passing that =cwd= to
+the same target spec. Verified by four tests: the two routing cases fail against
+HEAD, the worktree case also fails with the mapping removed, and two pin
+unchanged behaviour. Reloaded live. Nothing in the plan was falsified, and
+nothing is recorded as left undone.
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-24 Thu 15:46]--[2026-09-24 Thu 15:47] =>  0:01
@@ -5816,6 +6502,13 @@ event's cwd. Apply, the review row and the keyword lookup pass the cwd to the
 same target spec, so the row shows where apply will write. Four tests: the two
 routing cases fail against HEAD, the worktree case also fails with the mapping
 removed, and two pin unchanged behaviour. Reloaded live.
+
+*Resolution:* a deferred targetless capture used to fall back to the global
+capture file at apply, because the session context it routed by was gone. The
+queued item now carries its event's =cwd=, and apply and the review row resolve
+the destination from it through one resolver, so both name the project's own
+tracker.
+
 
 
 * TODO org_slice_add_member cannot prepend or reorder, so declared order is append-only :code:
@@ -6830,6 +7523,18 @@ and a report that must fire at session start cannot depend on that.
 :CREATED:  [2026-09-04 Fri 11:37]
 :CATEGORY: Apply
 :END:
+:DEBRIEF:
+Shipped in [[orgit-rev:claude-code-ide-org::a69d1cd][a69d1cd]], one docstring. It names the two setters, =c=
+(=claude-code-ide-org-review-claim-envelope=) always and =e=
+(=claude-code-ide-org-review-edit-interval=) only for typed =<…>= endpoints,
+keeps the retired =:agent= branch as history reworded as the removal of an
+inference, and names 01849bef as the request for a key that sets =:active=.
+Falsified in the plan while reading: =e= requires both endpoints active, not the
+start alone. No new test, as planned, since both branches of the =let*= were
+already covered; verification was reading the docstring against the code.
+Whether anything checks a docstring against its function is the separate
+9702f283.
+:END:
 :PLAN:
 *The design, approved 2026-09-24 (the user), brainstormed on the bounded path.* The code is right and already tested (both branches of the =let*=, =config-test.el= around lines 5454 and 13704). Only the docstring is wrong.
 
@@ -6861,6 +7566,12 @@ CLOCK: [2026-09-25 Fri 08:43]--[2026-09-25 Fri 08:45] =>  0:02
 - Both were true when written. The =:agent= branch was removed for testing "is this a subagent" while claiming to test "is this a human", and the branch was re-added on 2026-08-24, keyed on the bracket style a human types. The docstring never learned the difference.
 - It cost two misreadings on 2026-09-04, in opposite directions. One recorded that active marking would "reverse a measured decision"; the other told the user the review buffer has no kind toggle. Both were corrected, on =96a51c2f= and =01849bef=.
 - The class question, that nothing checks a docstring against its function, is filed as =9702f283=.
+
+*Resolution:* the docstring of =claude-code-ide-org--review-format-annotation=
+claimed annotations are always inactive, above code that branches on =:active=.
+It now says annotations are inactive by default and that =:active= is an
+assertion a human makes in the review buffer, never an inference from the queue.
+
 
 
 * TODO Nothing lays out future work on a timeline the agenda can show
@@ -8227,6 +8938,26 @@ rather than nineteen.
 :DROPPED:  4acd8ad0-4d26-420b-bf84-f66ae8a9dfc5
 :MEMBERS:  39039bb6-c70a-4ba9-8b37-edd8dd6921f6 2a6a1355-615f-4c2c-a8af-c9ae8dcda09b 490e6737-b977-47a7-abd7-b0dad1684093 13aed7ca-1fad-4e89-bbca-9355f5c76265 d88362e7-8554-4a78-b8c4-a64c442b4fcf c247d8f3-9f3f-464a-b3a0-543b1bb9de4f eadb3607-aa3d-41ee-b8cc-e293cc924f26 30d05c93-f82b-40c0-9181-d018323af49f f12f9da4-2870-45b7-8c50-ea54415c7bc6 c562b69a-d6dd-40e5-8d2c-3ab383b66809 542924c1-9152-4414-8da8-d530d3423611 d2a0f54c-b59a-4855-ae3d-c93a6d3aa177 72463b68-9f08-44b2-8213-87f71298138d 25e7b083-360b-4282-8fd0-bb768e2a0f13 3ad389be-2797-46c3-a51d-9f603053955a 7fa68d5c-b6c0-43df-85c6-764b1d56511f 381ea07d-633f-4640-abbb-89472a07acba 4a4ebb21-9388-494f-a40a-641ff663b19e 4c43145d-fac6-40b7-90ab-0af15d33afc7 16df4004-9e9e-4c78-a2aa-14d57358e23c 4d896425-586a-4a5e-8d13-0a737d15a954 fa617d99-e1f3-470f-b24c-a0c51b3aefb2 8ddd7fa8-e847-42e9-b82c-63bbe4c11b7b 53b0047d-c55c-486c-8eed-ba4994d97a1a 60d6ab6e-a898-4894-82be-9f6086daf62d 7ee3b71a-b85a-4610-a4ab-b9e06c8d79da b52df20b-45c7-41aa-9d77-44ccf06c647f 2aeb65d6-350e-4c75-811e-4a748044fe2c 60ed5b96-40e3-4676-a742-07a8ad6cc3b7 5e731a23-7708-4248-b055-9b4a531f147d 965f94eb-1558-4d00-9857-5727eb86fe6f 7b4f4f14-6c76-4822-84c1-67589bc74b82 4acd8ad0-4d26-420b-bf84-f66ae8a9dfc5 37bca83a-e83b-4070-9058-6318a58a24db 5acca91b-b7bf-4046-9379-cd9a8f40f116 406d78da-c871-47f9-a880-5ddb52ae3fa3 eddee10f-b916-43ed-bd69-217adc068433 9bc8fc8c-b6cf-47e4-af63-3d0012c02003 b09d8090-e225-4659-b652-1a002e799379 492a1a30-ac92-4f18-bb82-f9cd615b397c da6a2fba-1ab6-4e6f-94f1-3a945d1fdd84 94e6b615-3778-426b-b40a-306b517a837f 57f37f0e-4461-42f4-8b33-cde59318b93a ee6e6c63-c1db-414f-89ac-2f2866f4102d 7def4fff-06c4-4f2a-9fb7-f186a565029c 14e9fd83-cdb8-4414-9abe-5d77e24a0d8c 191ec45b-9f91-4105-b51a-ced16022b2d6 00a66d88-03c9-46ec-9883-49b1f4f209b0 7e4e70af-bd15-4ecf-85a5-4e0bcf66afe9 b5d97b90-6dbe-46a3-8cef-02a2a89ea9c6 15205b37-80bc-4eb9-af2e-e1ae18c579db a21c0f99-d85a-41ef-bb7f-b9a6be18ae0b a749b95c-86a0-4714-bdb1-ddb84bc71143
 :END:
+:DEBRIEF:
+Composed 2026-09-01, it grew from its first members to 52 lines. Most of the
+growth was defects found while working the slice, filed under its subject:
+incidentals, the 2026-09-27 latency work (16df4004, 4d896425, fa617d99) and the
+review story c77e4d5a. The slice's own record was where most of its defects were
+found. Several were caught only by a lint refusing a commit, or by a user
+watching the buffer. That was the slice's premise at work. 4acd8ad0 was dropped
+rather than done. Verification was per member, each with a test that failed
+first. test-all stood at 26 suites and 1,515 checks at the merge.
+
+What it leaves:
+- 89cae4d5: the live checks its members owe.
+- d56e379d: the untested conditions behind 381ea07d.
+- 5ed2cfaa: the undecided end-of-turn order.
+- dc68d831: the remaining slice-refresh cost.
+Not filed, deliberately: 7ee3b71a's plan to reword its title once =org_amend
+replace= retires. A finished heading's title records what was true when it was
+filed. Review and merge ran through PR #31, per the close condition, as the
+conventions ask of a slice carrying code.
+:END:
 :PLAN:
 Sequenced 2026-09-21 at the user's direction, and cut to the order the same day under the member-plan SOP (org conventions, "A slice's plan, and its members'"). Design and decisions live in each member's own =:PLAN:=, so read the member's drawer at its step, and where a line here and a member's drawer disagree, the member wins. Every live member was brainstormed before any step was worked, in this order, and now has a drawer (the user, 2026-09-23 and 2026-09-24). This plan was rewritten on 2026-09-24 after a read of every member's drawer against it.
 
@@ -8531,6 +9262,11 @@ identifiable to any writer rather than adding a guard per writer.
 
 *Also found:* =:DROPPED:= has held =4acd8ad0= since 2026-09-17, but as an 8-character prefix, and the refresh ignores it. The member kept its checkbox and its place in the =:BLOCKER:=. The full id added the same day dropped correctly. This is 25e7b083's silent shape in a fourth place. The value is left as found.
 
+Merged with PR #31 on 2026-09-28 ([[orgit-rev:claude-code-ide-org::754841b][754841b]]). Forty-two members closed defects
+where every check passed while the file, or the running Emacs, ended up wrong,
+and the ten review findings were fixed before the merge.
+
+
 
 * TODO Report worked headings that carry no clock interval that day :code:
 :PROPERTIES:
@@ -8585,6 +9321,17 @@ A/B would be measuring.
 :CREATED:  [2026-09-01 Tue 08:19]
 :CATEGORY: Dev
 :END:
+:DEBRIEF:
+Shipped in [[orgit-rev:claude-code-ide-org::0361fa2][0361fa2]], as the drawer designed it. A separate location scan records
+each definition's file and line, so the =:BLOCKER:= table keeps its shape, and
+an id defined twice or more is a lint error naming every location. Only heading
+properties count, and a duplicate that exists only in reference files is not
+reported. Verified red first: the cross-file case, the same-file case, and a
+mutation on a scratch copy of the real =TODO.org= that asserts its own mutation.
+Two guards, prose or a link not being a definition and a references-only
+duplicate not being ours, pass both ways by design. The real corpus lints with 0
+errors. The archive's own post-condition stays as it was.
+:END:
 :LOGBOOK:
 CLOCK: [2026-09-24 Thu 07:53]--[2026-09-24 Thu 07:54] =>  0:01
 - [2026-09-24 Thu 07:53]--[2026-09-24 Thu 07:54] brainstorm the duplicate-id lint rule
@@ -8618,12 +9365,31 @@ An =:ID:= is this system's primary key, and =--id-find= resolves a prefix by sca
 - It was caught by the archive's post-condition (=Archived 20, but 1 id(s) now appear twice in DONE.org=), which fires after writing and does not roll back.
 - The lint's scan swallows the duplicate itself: it builds its table with =puthash=, so the second copy overwrites the first (read 2026-09-24).
 
+*Resolved:* the lint's id scan let a second copy of an =:ID:= overwrite the
+first, so a duplicate passed silently. =bin/lint-org= now records every
+definition's location and errors on any heading =:ID:= defined more than once,
+naming each place.
+
+
 
 * REVIEW The running Emacs can be running a stale config.el and nothing says so :code:
 :PROPERTIES:
 :ID:       f12f9da4-2870-45b7-8c50-ea54415c7bc6
 :CREATED:  [2026-08-31 Mon 17:47]
 :CATEGORY: Dev
+:END:
+:DEBRIEF:
+Shipped in [[orgit-rev:claude-code-ide-org::36687ec][36687ec]], as the drawer designed it. The stamp is kept in the image
+and records the truename, the path loaded, a SHA-256 and the time.
+=claude-code-ide-org--image-state= reads fresh, stale, shadowed or unstamped,
+and names functions missing or left over. A SessionStart line and
+=bin/check-image=, run from pre-commit when a module file is committed, ask for
+a reload and never do one. Not foreseen: the org-dev skill claimed the
+registration block was =config.el='s last form, and its check refused the first
+commit, so both now say "last before the stamp" and both halves are checked.
+Verified by 4 ERT cases failing against HEAD, a truename mutation, stub and
+pre-commit cases, and live: fresh after a reload, stale after a docstring edit,
+fresh once restored.
 :END:
 :PLAN:
 *The design, approved 2026-09-24 (the user), brainstormed on the bounded path.* Make a stale image loud, rather than the reload discipline stronger. It is primarily a development facility, for changing this project's own machinery; the live-upgrade case matters only once there are downstream users, and there are none today (the user, 2026-09-24). No feature flag is needed: the check speaks only when the image really is stale, which after an upgrade is exactly what a user would want to hear, and the commit gate runs only on commits that include a module file, which a consumer repo never makes.
@@ -8679,6 +9445,12 @@ refused the first commit. Both now say "last before the stamp", and both halves
 are checked. Verified by ERT and shell cases, each failing against HEAD or a
 mutation. Live: fresh after a reload, stale after a docstring edit, fresh once
 restored. The new check reported fresh on its own commit.
+
+*Resolved:* nothing noticed when the running Emacs served older code than
+=config.el=. The file's last form now stamps each load, and
+=claude-code-ide-org--image-state= compares it with the file, so SessionStart
+and the commit gate both say when a reload is owed.
+
 
 
 * TODO [2/7] Sixty minutes holding 2 turns is not sixty holding 40
@@ -9274,6 +10046,18 @@ is the point — it cannot be backfilled.
 :CREATED:  [2026-08-31 Mon 15:45]
 :CATEGORY: Tools
 :END:
+:DEBRIEF:
+Shipped in [[orgit-rev:claude-code-ide-org::ee4c5ef][ee4c5ef]]. =org_capture='s target spec now carries the full id and the
+reply names it; =claude-code-ide-org-refresh-slice= expands its id before
+comparing; =:DROPPED:= prefixes expand as the refresh reads them, and
+=org_set_property= validates =:DROPPED:= as it does =:BLOCKER:=. A new
+=--full-id= helper serves places that hand an id onward or compare it.
+Completeness is proved from the registry: one test calls every registered
+=org_*= tool's id-shaped arguments with a prefix, failing on an =Error:= or a
+clean no-op, with a sample table a new tool must join. Against HEAD it named
+exactly =org_capture='s target, which falsified the plan's suspicion of the
+others: refile, divide and the blocker refresh already resolved.
+:END:
 :LOGBOOK:
 CLOCK: [2026-09-24 Thu 07:41]--[2026-09-24 Thu 07:44] =>  0:03
 - [2026-09-24 Thu 07:41]--[2026-09-24 Thu 07:44] brainstorm the id-prefix sweep
@@ -9309,6 +10093,12 @@ Some =id= and =target= arguments do not resolve through =claude-code-ide-org--id
 - =--id-find='s docstring records fourteen sites fixed the first time. These three surfaced by use, which suggests that sweep went by call shape.
 
 *Ruled out:* that fixing =--at-id= covered every tool taking an id. A commit claimed so, and =claude-code-ide-org-amend= did its own =org-id-find= first.
+
+*Resolved:* three sites passed on or compared an id without expanding it, so an
+8-character prefix failed or selected nothing. =org_capture='s target, the slice
+refresh and =:DROPPED:= now resolve a prefix, and a test over the tool registry
+proves every id-shaped argument accepts one.
+
 
 
 * TODO A/B the clock record across the phase-3 fixes, since much of what is logged now is bogus :code:research:
@@ -9464,6 +10254,22 @@ and only an instrument outside the clock system answers it.
 :CREATED:  [2026-08-31 Mon 13:50]
 :CATEGORY: Queue
 :END:
+:DEBRIEF:
+Shipped in [[orgit-rev:claude-code-ide-org::d807abd][d807abd]], as the drawer designed it: plain shell on
+=PostToolUseFailure=, ungated, wired in both =.claude/settings.json= and
+=hooks/hooks.json=. It writes a marker beside the queue (never in it), then a
+probe line under a 3 s watchdog keyed by =tool_use_id=, then guidance per state:
+refused, busy, waiting on a prompt, idle or unknown.
+=claude-code-ide-org--tool-failure-report= lists markers at SessionStart scoped
+by =cwd= and renames a file only once all its markers are reported, so the ERT
+suite now defaults its queue directory to a temp dir. Verified:
+=bin/tool-failure-test= fails 19 of 24 checks against a no-op hook, and the 4
+ERT tests fail against HEAD; live, the idle state was probed and the report
+listed the marker once. =test-all= went green only after the reference was
+trimmed back inside the word budget. Not done: the refused, busy and prompt
+states were never verified live, only against fakes, since each needs Emacs
+stopped or blocked by the user.
+:END:
 :PLAN:
 *The build, approved 2026-09-23 (the user), bounded, since it is one hook in the existing family.* When an =org_*= call fails because Emacs is unreachable, a plain-shell hook records what could not be recorded, since Emacs, being what failed, cannot. The next =SessionStart= reports it (the user, 2026-09-21). Declined: a CLI writer for todo and clock events, whose synthetic events would blind the staleness check exactly when the system is least healthy; and doing nothing, which leaves each failure silent.
 
@@ -9582,7 +10388,7 @@ event carries no =tool_response= to recover =from= from, so the staleness
 check would go blind on exactly the events written when the system is
 least healthy.
 
-*Shipped* in [[orgit-rev:~/git/claude-code-ide-org::d807abd][d807abd]], as the drawer describes. =bin/hooks/tool-failure= is wired
+*Shipped* in [[orgit-rev:claude-code-ide-org::d807abd][d807abd]], as the drawer describes. =bin/hooks/tool-failure= is wired
 to =PostToolUseFailure= in both =.claude/settings.json= and =hooks/hooks.json=.
 It writes a failure line first, then a probe line keyed by =tool_use_id=, so a
 probe that goes wrong can never cost the marker. The marker records =cwd=, which
@@ -9600,12 +10406,32 @@ then fell silent.
 stopped or blocked, which is the user's to do, so they were run only against the
 fakes.
 
+*Resolved:* an org tool call that never reached Emacs recorded nothing, so an
+outage passed unseen. =bin/hooks/tool-failure= now records each such failure,
+probes Emacs and tells the session what to do, and the SessionStart report lists
+the failures once.
+
+
 
 * REVIEW An archive pass wrote one subtree twice, and the mechanism is still unknown :code:
 :PROPERTIES:
 :ID:       381ea07d-633f-4640-abbb-89472a07acba
 :CREATED:  [2026-08-31 Mon 12:14]
 :CATEGORY: Tools
+:END:
+:DEBRIEF:
+No fix shipped; the replay is recorded in [[orgit-rev:claude-code-ide-org::7d808d3][7d808d3]]. Batch Emacs ran nine
+sequences on the incident's inputs (=TODO.org= and =DONE.org= at =bbfc2f2=) and
+code (=config.el= at =53c72e4=), with a temp org-id file, and each archived 65
+with no duplicate; the same in the live Emacs on scratch copies with today's
+code. =DONE.org= holds 428 ids with no duplicate, so there was no recurrence
+either, though the guard's signal is not persisted and the file is the only
+evidence. Ruled out: the active-region path, which errors every time where the
+incident reported a clean 65; it is a present-day defect filed and fixed as
+4a4ebb21. Not done: the mechanism is still unknown, and three live-state
+conditions no replay reached remain untested: auto-revert of =DONE.org=
+mid-pass, a stale =DONE.org= buffer, and the system clipboard on org's paste
+path.
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-31 Mon 12:14]
@@ -9668,8 +10494,8 @@ reaches this step.
 *Replayed 2026-09-27: not reproduced.* No recurrence either: =DONE.org= holds
 428 ids with no duplicates. The guard's signal isn't persisted, so the file is
 the evidence. Batch Emacs used the incident's inputs (=TODO.org= and =DONE.org=
-at [[orgit-rev:~/git/claude-code-ide-org::bbfc2f2][bbfc2f2]], the parent of the archive commit) and its code (=config.el= at
-[[orgit-rev:~/git/claude-code-ide-org::53c72e4][53c72e4]]), with a temp org-id file and the capture file pointed at the replay's
+at [[orgit-rev:claude-code-ide-org::bbfc2f2][bbfc2f2]], the parent of the archive commit) and its code (=config.el= at
+[[orgit-rev:claude-code-ide-org::53c72e4][53c72e4]]), with a temp org-id file and the capture file pointed at the replay's
 =TODO.org=. Nine sequences ran: archive alone, full ceremony-finish, revert and
 read-only then ceremony-finish, consolidate/normalise/archive with revert and
 read-only, each of consolidate, normalise, revert and read-only alone before
@@ -9686,6 +10512,12 @@ reported a clean 65. That path is a present-day defect of its own, filed as
 What's left untested is live state no replay has: auto-revert of =DONE.org=
 mid-pass, a stale =DONE.org= buffer, and the system clipboard on org's paste
 path.
+
+*Resolved without a mechanism:* the 2026-08-31 double write did not recur and
+did not reproduce in any replayed sequence, batch or live. The post-condition
+guard in =claude-code-ide-org-archive-finished= stays the safeguard, and the
+replay's one finding became 4a4ebb21.
+
 
 
 * TODO [0/2] Make an archived day hold that day's record :code:
@@ -11124,6 +11956,19 @@ where the concept was parked, and there was nothing there./
 :ID:       8ddd7fa8-e847-42e9-b82c-63bbe4c11b7b
 :CREATED:  [2026-08-19 Wed 19:24]
 :END:
+:DEBRIEF:
+Shipped in [[orgit-rev:claude-code-ide-org::87878d2][87878d2]], as the plan designed it: the stale-buffer guard in
+=claude-code-ide-org--id-find=, a refusal using 60d6ab6e's wording plus the
+reason, and a not-found error naming the files scanned. Verified by three ERT
+cases, each with its own id index and each failing against HEAD; the hand move
+is pinned, including the case HEAD got wrong, resolving to the old location
+through a stale buffer. The image check caught its own reload at commit, warning
+that the live image lacked the two new functions. Differed from the body's first
+diagnosis: the reproduction showed org's own rescan already finds a moved
+heading, so the hazard fixed was the stale buffer, not a missing index entry.
+The guard's per-lookup cost later made slice refresh slow, fixed under 4d896425
+in [[orgit-rev:claude-code-ide-org::73a8df0][73a8df0]].
+:END:
 :PLAN:
 *The design, approved 2026-09-24 (the user), brainstormed on the bounded path*, after a reproduction rather than on the body's first diagnosis.
 
@@ -11185,6 +12030,12 @@ and each failing against HEAD. The hand move is pinned, including the case HEAD
 got wrong: resolving to the old location through the stale buffer. The image
 check caught its own reload at commit: it warned the live image was stale and
 named the two new functions it lacked.
+
+*Resolution:* the original hand-move failure no longer reproduced, but a stale
+buffer could answer an id lookup with the heading's old location. =--id-find=
+now reverts an unmodified stale buffer before looking up, refuses one that is
+also modified, and names the files it scanned when an id is not found.
+
 
 
 * TODO Applied review changes can be destroyed by a git checkout that looks like it reverts only Claude's edit :code:
@@ -11661,6 +12512,19 @@ both times the code four lines away said otherwise. Filed separately.
 :ID:       2aeb65d6-350e-4c75-811e-4a748044fe2c
 :CREATED:  [2026-08-12 Wed 16:20]
 :END:
+:DEBRIEF:
+Shipped in [[orgit-rev:claude-code-ide-org::f112a18][f112a18]], as the plan designed it: =.githooks/pre-commit-guards= tells
+the command form apart by =GIT_INDEX_FILE= and refuses a plain =git commit=,
+=-a= or =--amend= from a session while the real index holds staged changes. A
+human at a terminal is never affected, and =ALLOW_SWEEP=1= lets an amend
+through, counted as a miss. Verified by real commits in a scratch repo, which
+re-measure the =GIT_INDEX_FILE= table on every run; five refusal assertions fail
+against the previous guards. Accepted limits, per the plan: =--no-verify=
+bypasses it, the merge, rebase and cherry-pick paths are untested, and it is
+opt-in per clone through =core.hooksPath=. Not done here: the working-tree half,
+an explicit-path commit carrying another writer's uncommitted edits, filed as
+[[id:27082893-102e-49d5-a35a-dea0bc3bbaaf][27082893]].
+:END:
 :LOGBOOK:
 - State "NEXT"       from              [2026-08-12 Wed 16:22] \\
   user is blocked on this: no second session until a mechanism exists
@@ -11716,6 +12580,12 @@ changes. =git commit -- <paths>= always passes, a human at a terminal is never
 affected, and =ALLOW_SWEEP=1= lets an amend through, counted. Verified by real
 commits in a scratch repo, which re-measure the =GIT_INDEX_FILE= table on every
 run. Five refusal assertions fail against the previous guards.
+
+*Resolution:* concurrent sessions share one git index, so one session's plain
+commit could sweep another's staged work under its own message. A session's
+whole-index commit is now refused by the pre-commit guard while the index holds
+staged changes, and =git commit -- <paths>= always passes.
+
 
 
 * TODO Read power assertions as a review-time attribution signal :code:research:
@@ -11969,6 +12839,21 @@ a heading that gains a keyword later would make them diverge.
 :CREATED:  [2026-08-11 Tue 07:31]
 :BLOCKER:  3ad389be-2797-46c3-a51d-9f603053955a
 :END:
+:DEBRIEF:
+Shipped in [[orgit-rev:claude-code-ide-org::8c6b7d4][8c6b7d4]], as the drawer designed it. The failure hook's capture branch
+runs only on a refused connection, since a timed-out capture may still land and
+would be doubled; it mints an id and calls =queue-append capture=, which stays
+the only writer of capture events, and a targetless capture without a category
+is refused naming the values =TODO.org= uses. Apply now re-runs the call's
+checks (id already present, target, category, keyworded capture under a slice,
+same-title duplicate), which also binds busy-buffer captures. Five older ERT
+fixtures had queued a targetless capture with no category, a shape the live tool
+refuses, and now carry one. Verified by seven mutations each failing its own
+test, shell suites red against HEAD's scripts, and =test-all= at 26 suites, 1492
+passed. Live, a refused capture queued in a scratch directory showed in the
+review buffer as an =outage capture= row; applying it was left to the user. The
+audit-capture idea from cdcc065c stays open and is not this heading's.
+:END:
 :LOGBOOK:
 CLOCK: [2026-09-24 Thu 19:53]--[2026-09-24 Thu 19:54] =>  0:01
 - [2026-09-24 Thu 19:53]--[2026-09-24 Thu 19:54] brainstorm the capture queue fallback
@@ -12057,7 +12942,7 @@ Still open, not this heading's: a =capture= event on *every* capture as
 an audit of which session created a heading, set aside when capture was
 rarely used (cdcc065c).
 
-*Shipped* in [[orgit-rev:~/git/claude-code-ide-org::8c6b7d4][8c6b7d4]], as the drawer describes. The capture branch runs only when
+*Shipped* in [[orgit-rev:claude-code-ide-org::8c6b7d4][8c6b7d4]], as the drawer describes. The capture branch runs only when
 the call's own error says the connection was refused, and its outcome overrides
 the probe's guidance, because the decision rests on the error and not on the
 probe. When there is no category, the refusal lists the values that the
@@ -12072,6 +12957,12 @@ under its own mutation. test-all ran 26 suites, 1492 passed. Live: a refused
 capture queued in a scratch directory rendered in the running Emacs as an
 =outage capture= row, routed to this repo's =TODO.org=. Not applied: apply is
 the user's.
+
+*Resolved:* a capture made while Emacs was down existed only in the
+conversation. When the connection is refused, the failure hook now queues it as
+a capture event with a minted =:ID:=, and apply re-runs the tool's checks before
+writing it.
+
 
 
 * TODO [3/5] Institute a catch-all heading for cross-cutting meta-work :code:
@@ -13107,6 +13998,18 @@ but =claude -p= asynchronously.
 :ID:       53b0047d-c55c-486c-8eed-ba4994d97a1a
 :CREATED:  [2026-08-04 Tue 18:27]
 :END:
+:DEBRIEF:
+Shipped in [[orgit-rev:claude-code-ide-org::6026a9c][6026a9c]], as the plan designed it: repair, not prevention. The clocked
+heading's id is recorded at clock-in, and an =after-revert-hook= in a tracked
+buffer holding the clock moves a marker that is off its open =CLOCK:= line back
+to the matching open line under that id, or warns naming the heading and start
+time. Verified by four ERT cases from the spike's shapes; the repair and warning
+cases fail with the hook removed, and after a repair =org-clock-out= closes the
+right line. Live, the hook is on the global list and TODO.org's buffer-local
+list carries =t=, so it runs there. Prevention of direct writes stays with
+ec1e6839, and git discarding working-tree changes with 79c224ab. Not gated on
+=time_tracking=, since a live clock can exist either way.
+:END:
 :PLAN:
 Bounded. Repair a running clock's markers after a revert; do not try
 to prevent the write.
@@ -13196,6 +14099,13 @@ that id with the same start time. Otherwise the code warns and never guesses.
 Four ERT cases. The repair and warning cases fail with the hook removed, and
 after the repair =org-clock-out= closes the right line. Live: the hook is on the
 global list, and TODO.org's buffer-local list carries =t=, so it runs there.
+
+*Resolution:* a revert that changed text both above and below a running clock's
+=CLOCK:= line moved =org-clock-marker= onto another heading, and clock-out then
+failed. After a revert, a displaced marker is now moved back to the open line
+under the recorded clocked id with the same start time, or a warning is raised;
+it never guesses.
+
 
 
 * TODO Org skill: commit a newly-captured TODO immediately, when safe :code:
