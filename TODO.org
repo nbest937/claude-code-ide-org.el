@@ -756,38 +756,15 @@ CLOCK: [2026-09-27 Sun 15:20]--[2026-09-27 Sun 15:24] =>  0:04
 :END:
 
 =queue-append= records =tool_input.id= verbatim, and the queued tools accept an
-8-character prefix, so a =todo= or =clock_in= event carries whatever the caller
-typed. On 2026-09-27, 259 of the queue's 1,048 =todo= events carried a prefix.
-Every reader that matches events to a heading by exact id skips them. Found when
-=org_footnotes= showed [[id:381ea07d-633f-4640-abbb-89472a07acba][381ea07d]] as =TODO= while =DOING= and then =REVIEW= were
-queued. =--effective-todo-state= compares =:id= with =equal= against the full
-id, found no events, and the footnote carried the disk keyword with no star.
+8-character prefix. On 2026-09-27, 259 of the queue's 1,048 =todo= events
+carried a prefix, and every reader matching on the full id skipped them:
+- footnotes showed the disk keyword, unstarred;
+- =org_set_todo='s no-change check missed queued states;
+- the review grouped one heading's events apart.
+It is the queue-side sibling of [[id:25e7b083-360b-4282-8fd0-bb768e2a0f13][25e7b083]].
 
-The same comparison sits under =org_set_todo='s no-change check (57f37f0e), so a
-duplicate of a queued state slips through. =--queue-events-by-id= also groups a
-prefix and the full id apart, which feeds the review buffer and SessionStart's
-queue divergence. Apply is unaffected, because it resolves through =--id-find=.
-Not yet measured: how each of those surfaces misbehaves in practice.
-
-The fix belongs where the queue is read, not where it is written: =queue-append=
-runs with no Emacs by design, so it cannot expand a prefix. Expanding =:id= once
-in the event parser, through =--expand-id-prefix=, reaches every reader. This is
-the queue-side sibling of [[id:25e7b083-360b-4282-8fd0-bb768e2a0f13][25e7b083]], which fixed the tool arguments.
-
-*Shipped* in [[orgit-rev:claude-code-ide-org::5716cd4][5716cd4]], as proposed above. =--queue-parse-line= expands a unique
-prefix through org's id index, memoised per prefix. Anything else comes back as
-written: a full id, a non-hex value, or a prefix that names nothing or more than
-one heading. Every consumer marks applied and dismissed events by timestamp, not
-by id, so merging a heading's prefix and full-id groups cannot re-apply or lose
-an event. Both new tests failed against HEAD. test-all ran 26 suites, 1496
-passed. Live, the full queue read went from 1.08 s to 1.16–1.24 s, with 166
-prefixes memoised.
-
-*Resolution:* queue events written under an 8-character prefix were skipped by
-every reader matching on the full id, so a queued state went unseen by footnotes
-and the no-change check. The event parser now expands a unique prefix once, so
-every reader sees those events under the full id.
-
+The event parser now expands a unique prefix once, so every reader sees those
+events under the full id.
 
 * DONE An active region in TODO.org makes the archive sweep take live headings :code:
 CLOSED: [2026-09-28 Mon 07:44]
