@@ -10634,12 +10634,12 @@ before the fix and still says.
 
 
 * TODO Archive closed tasks daily
-SCHEDULED: <2026-09-28 Mon 07:00 ++1d>
+SCHEDULED: <2026-09-29 Tue 07:00 ++1d>
 :PROPERTIES:
 :CATEGORY: Meta
 :ID:       cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8
 :CREATED:  [2026-08-21 Fri 15:35]
-:LAST_REPEAT: [2026-09-27 Sun 15:46]
+:LAST_REPEAT: [2026-09-28 Mon 07:34]
 :END:
 :LOGBOOK:
 CLOCK: [2026-08-24 Mon 10:25]--[2026-08-24 Mon 10:28] =>  0:03
@@ -13822,8 +13822,6 @@ call it done.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
-CLOCK: [2026-09-28 Mon 07:23]--[2026-09-28 Mon 07:28] =>  0:05
-CLOCK: [2026-09-27 Sun 17:11]--[2026-09-27 Sun 17:12] =>  0:01
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
@@ -13989,6 +13987,8 @@ CLOCK: [2026-09-24 Thu 10:25]--[2026-09-24 Thu 10:26] =>  0:01
 CLOCK: [2026-09-25 Fri 09:29]--[2026-09-25 Fri 09:47] =>  0:18
 CLOCK: [2026-09-25 Fri 12:55]--[2026-09-25 Fri 13:10] =>  0:15
 CLOCK: [2026-09-27 Sun 15:34]--[2026-09-27 Sun 15:45] =>  0:11
+CLOCK: [2026-09-27 Sun 17:11]--[2026-09-27 Sun 17:12] =>  0:01
+CLOCK: [2026-09-28 Mon 07:23]--[2026-09-28 Mon 07:28] =>  0:05
 :END:
 
 We created this heading on 2026-08-26. We deleted that property from its
@@ -15253,4 +15253,15 @@ CLOCK: [2026-09-27 Sun 18:33]--[2026-09-27 Sun 18:34] =>  0:01
 - [2026-09-27 Sun 18:33]--[2026-09-27 Sun 18:34] file the PR #31 review story and its ten findings
 CLOCK: [2026-09-27 Sun 18:42]--[2026-09-27 Sun 18:42] =>  0:00
 - [2026-09-27 Sun 18:42]--[2026-09-27 Sun 18:42] assigned at review
+:END:
+
+
+**** 2026-09-28 Monday
+:PROPERTIES:
+:ID:       22abc051-3a36-4e84-81d1-0bdfd43a8493
+:CREATED:  [2026-09-28 Mon 07:29]
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-28 Mon 07:32]--[2026-09-28 Mon 07:33] =>  0:01
+- [2026-09-28 Mon 07:32]--[2026-09-28 Mon 07:33] root-cause unattributed spans, file discipline fix
 :END:
