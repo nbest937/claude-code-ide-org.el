@@ -412,7 +412,7 @@ maintains in both directions. b0c843e3 had deferred the choice until 3f4fd744
 made every blocker id parse.
 
 
-* TODO Headings cited in bodies are id links, written as links by the tools, so backlinks are one org_query away :code:
+* TODO Headings cited in bodies are id links, written as links by the tools, so backlinks are one org_query away :code:arch:
 :PROPERTIES:
 :ID:       f7847adf-a408-4ad0-ae0c-8d3c19b79f2b
 :CREATED:  [2026-09-25 Fri 12:16]
@@ -425,6 +425,8 @@ CLOCK: [2026-09-25 Fri 12:14]--[2026-09-25 Fri 12:15] =>  0:01
 - [2026-09-25 Fri 12:14]--[2026-09-25 Fri 12:15] assigned at review
 CLOCK: [2026-09-25 Fri 12:15]--[2026-09-25 Fri 12:17] =>  0:02
 - [2026-09-25 Fri 12:15]--[2026-09-25 Fri 12:17] file blocked:, capture context, and id-link headings
+- Tags ":code:arch:" from ":code:"     [2026-09-28 Mon 13:01] \\
+  classified: changes how two writers treat text, plus a corpus conversion and an open backlink design
 :END:
 
 Bodies cite other headings in two forms, and often both in one heading: measured with =org-element= on 2026-09-25, TODO.org holds 619 verbatim =prefix= references to real ids and 403 =[[id:…]]= links (52 headings carry both), and DONE.org holds 981 and 1,546. Decided by the user the same day: links are the standard, and every verbatim reference in TODO.org is converted, including those pointing into DONE.org. Links survive archiving, because =org-id-locations= covers the archive (=org-id-search-archives=) and =org-id-find= rescans on a stale entry. What they buy is navigation, and a link graph org already answers: =org_query "link:target=<prefix>"= returns every heading linking to one, one call, as =blocked:= does for blockers. A verbatim reference is invisible to it. Proposed: =org_amend= and =org_capture= rewrite a verbatim 8-hex prefix that resolves to a heading into =[[id:<full>][<prefix>]]= as they write, so no writer ever types a full id; a lint catches hand edits; a one-off pass converts TODO.org; =61f05e56= teaches =link:target== in =org_query='s description. Whether =org_outline= should show backlinks beside =:BLOCKER:= is a design question for the brainstorm. Verbatim ids inside a code fence stay verbatim, since there they are transcript.
@@ -468,11 +470,15 @@ make three copies of one fact. So =:BLOCKS:= is derived at each read, never
 tagged.
 
 
-* TODO Look up a tracked id wherever it appears in Emacs: its title at point, and a jump on click :code:
+* TODO Look up a tracked id wherever it appears in Emacs: its title at point, and a jump on click :code:arch:
 :PROPERTIES:
 :ID:       0eaffc39-088f-48c3-a5b8-167336458114
 :CREATED:  [2026-09-24 Thu 16:54]
 :CATEGORY: Tools
+:END:
+:LOGBOOK:
+- Tags ":code:arch:" from ":code:"     [2026-09-28 Mon 13:01] \\
+  classified: no existing display flow in Emacs; closest call, heavier path taken
 :END:
 
 Filed 2026-09-24 as the live companion to =9bc8fc8c='s footnotes in rendered sessions. An 8-hex id anywhere in an Emacs buffer, whether in =TODO.org='s own prose (=xxxxxxxx= style), a render or a commit message, is opaque until someone looks it up. Two small, already-available mechanisms fix that without changing any text (the user chose these two, 2026-09-24):
@@ -542,12 +548,16 @@ Split out of =2aeb65d6= on 2026-09-24 (the user). That heading's guard stops a w
 *What blocks a mechanism:* nothing records which writer changed which heading. The queue logs only *deferred* amends and captures; a direct write leaves no trace. So any guard needs an ownership record first, such as a per-session log of the headings a session wrote, and then a pre-commit check that the diff touches only those. Probably arch; not yet classified.
 
 
-* TODO Long prose lines have drifted back since the one fill sweep of 2026-09-14, because nothing runs it routinely :code:
+* TODO Long prose lines have drifted back since the one fill sweep of 2026-09-14, because nothing runs it routinely :code:bounded:
 :PROPERTIES:
 :ID:       76a6f052-e360-4a12-8077-070da83a8e84
 :CREATED:  [2026-09-24 Thu 13:38]
 :CATEGORY: Dev
 :BLOCKER:  b52df20b-45c7-41aa-9d77-44ccf06c647f
+:END:
+:LOGBOOK:
+- Tags ":code:bounded:" from ":code:"     [2026-09-28 Mon 13:01] \\
+  classified: re-run an existing function, one decision about routine runs
 :END:
 
 =claude-code-ide-org-fill-prose= (=496b665e=) swept both trackers once, when it shipped on 2026-09-14: 941 paragraphs in TODO.org and 2,265 in DONE.org, with the content verified identical. Nothing has run it since, because no hook, script or ceremony step calls it, so every body written after that date arrived unfilled. A rough raw-width count on 2026-09-24 found 314 prose lines over 80 characters in TODO.org and 534 in DONE.org, not counting list items, tables and headings. Re-run it over both files once =b52df20b= lands, since that heading changes the sweep's filter and width to match the write path: no list items, display width. Report the dry run's counts before saving. Whether the sweep should also run routinely, for instance as a ceremony step, is this heading's question to settle; with =b52df20b= filling at write time, routine runs would only catch hand edits.
@@ -1077,11 +1087,15 @@ eight phantom annotations with that note (10:52, 11:38, 12:34, 13:26,
 pattern had repeated.
 
 
-* TODO The member-drawer backfill clause is scaffolding: once every open heading has its canonical shape, the lint should require it and the clause retire
+* TODO The member-drawer backfill clause is scaffolding: once every open heading has its canonical shape, the lint should require it and the clause retire :bounded:
 :PROPERTIES:
 :ID:       fce6bd35-27ad-4724-8dbb-c9df4b68fb10
 :CREATED:  [2026-09-21 Mon 12:50]
 :CATEGORY: Skill
+:END:
+:LOGBOOK:
+- Tags ":bounded:"  from ""           [2026-09-28 Mon 13:01] \\
+  classified: one lint rule and a clause retired
 :END:
 :PLAN:
 The SOP adopted 2026-09-21 (org conventions, "A slice's plan, and its members'") says a member with no =:PLAN:= drawer gets one before its step is worked. That clause exists only because most open headings predate the convention. Once =6521dd56='s corpus pass has given every open heading its canonical shape, the clause describes a state that cannot occur. Prose describing an impossible state is exactly what =bf7e0b8e='s deletion pass removed.
@@ -2235,7 +2249,7 @@ What they share, and why one parent: both answer "which tags make this corpus wo
 The corpus answers "what did we decide" badly: a decision lives in one body and nothing indexes it. Two children carry the halves — tagging what can be measured, and tagging what can only be decided. Whether `org-agenda` or `org-ql` can build the view natively is an open question deferred until Emacs stops wedging.
 
 
-** TODO Survey all task history for a tag vocabulary worth searching on :research:
+** TODO Survey all task history for a tag vocabulary worth searching on :research:spike:
 :PROPERTIES:
 :ID:       e28933e9-f352-4ef9-8d53-8cd9a4318768
 :CREATED:  [2026-09-09 Wed 08:07]
@@ -2252,6 +2266,8 @@ CLOCK: [2026-09-17 Thu 11:29]--[2026-09-17 Thu 11:30] =>  0:01
 - [2026-09-17 Thu 11:29]--[2026-09-17 Thu 11:30]
 CLOCK: [2026-09-22 Tue 17:10]--[2026-09-22 Tue 17:11] =>  0:01
 - [2026-09-22 Tue 17:10]--[2026-09-22 Tue 17:11] adopt a prose tag ahead of the survey
+- Tags ":research:spike:" from ":research:" [2026-09-28 Mon 13:01] \\
+  classified: a survey whose output is a recommended vocabulary, not code
 :END:
 
 Captured 2026-09-09 at the user's ask, deliberately *not* started: the
@@ -2321,7 +2337,7 @@ each tag answers.
 *not*, though both are in use — another thing for the survey to reconcile.
 
 
-** NEXT Adopt an `observed` tag for a defect seen in use, as the severity signal the keyword set does not carry :code:
+** NEXT Adopt an `observed` tag for a defect seen in use, as the severity signal the keyword set does not carry :code:bounded:
 :PROPERTIES:
 :ID:       8b945c02-7ebe-40a2-b4cc-e35811afe57f
 :CREATED:  [2026-09-17 Thu 11:30]
@@ -2329,6 +2345,8 @@ each tag answers.
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-17 Thu 11:30] \\
   the cheap half; the survey stays parked
+- Tags ":code:bounded:" from ":code:"     [2026-09-28 Mon 13:01] \\
+  classified: declare a tag already in use; conventions and #+TAGS: exist
 :END:
 :PLAN:
 
@@ -3564,11 +3582,15 @@ the act, and the hook removes the discipline of remembering to sample
 before the kill.
 
 
-* TODO Archived :ARCHIVE_FILE: paths are machine-absolute; audit their portability :code:
+* TODO Archived :ARCHIVE_FILE: paths are machine-absolute; audit their portability :code:spike:
 :PROPERTIES:
 :ID:       ea1df60b-1e28-448e-bb62-a6fc2b6b62f8
 :CREATED:  [2026-09-10 Thu 10:36]
 :CATEGORY: Meta
+:END:
+:LOGBOOK:
+- Tags ":code:spike:" from ":code:"     [2026-09-28 Mon 13:01] \\
+  classified: an audit question whose output is an answer
 :END:
 
 The user, unable to grok =9ae4b17e= during a decision, noticed its
@@ -3662,11 +3684,15 @@ detection mechanised, judgement kept human, per every surviving
 report's contract. Shapes and constraints in =:PLAN:=.
 
 
-* TODO Canonical drawer order: PROPERTIES, LOGBOOK, PLAN, DEBRIEF, then body :code:
+* TODO Canonical drawer order: PROPERTIES, LOGBOOK, PLAN, DEBRIEF, then body :code:arch:
 :PROPERTIES:
 :ID:       d350ff5b-3b1f-465e-800b-962264d2e841
 :CREATED:  [2026-09-10 Thu 09:10]
 :CATEGORY: Skill
+:END:
+:LOGBOOK:
+- Tags ":code:arch:" from ":code:"     [2026-09-28 Mon 13:01] \\
+  classified: changes where several writers insert drawers, plus consolidator and ceremony report
 :END:
 :PLAN:
 Proposed by the user 2026-09-10, pushback invited and none owed — the
@@ -3714,11 +3740,15 @@ place, the consolidator repairs the corpus, the conventions and the
 ceremony's order report say the same thing. Analysis in =:PLAN:=.
 
 
-* TODO Revisit the story definition: sanction clustering and speculative breakdown :code:
+* TODO Revisit the story definition: sanction clustering and speculative breakdown :code:bounded:
 :PROPERTIES:
 :ID:       63df67c7-de0d-43e7-9c6f-2b2979a40aba
 :CREATED:  [2026-09-10 Thu 09:06]
 :CATEGORY: Skill
+:END:
+:LOGBOOK:
+- Tags ":code:bounded:" from ":code:"     [2026-09-28 Mon 13:01] \\
+  classified: documentation rewrite the accepted :PLAN: specifies
 :END:
 :PLAN:
 Raised by the user 2026-09-10, after composing the org-native-notes
@@ -3898,7 +3928,7 @@ last tool call the session makes), and/or a =bin/lint-org= warning so
 the gap is caught at commit time regardless of exit path.
 
 
-* TODO Commits cited in bodies and debriefs are orgit links, and nothing enforces it :code:
+* TODO Commits cited in bodies and debriefs are orgit links, and nothing enforces it :code:bounded:
 :PROPERTIES:
 :ID:       b7259ee4-9aa1-4b55-8cf2-fbbacdea5310
 :CREATED:  [2026-09-10 Thu 08:52]
@@ -3909,6 +3939,8 @@ CLOCK: [2026-09-10 Thu 08:39]--[2026-09-10 Thu 08:41] =>  0:02
 - [2026-09-10 Thu 08:39]--[2026-09-10 Thu 08:41] assigned at review
 CLOCK: [2026-09-10 Thu 08:45]--[2026-09-10 Thu 08:46] =>  0:01
 - [2026-09-10 Thu 08:45]--[2026-09-10 Thu 08:46] assigned at review
+- Tags ":code:bounded:" from ":code:"     [2026-09-28 Mon 13:00] \\
+  classified: extends an existing convention and lint; flow exists
 :END:
 :PLAN:
 
@@ -4130,7 +4162,7 @@ question. **Not the org skill**: a skill loads on trigger match, possibly never,
 and a report that must fire at session start cannot depend on that.
 
 
-* TODO Nothing lays out future work on a timeline the agenda can show
+* TODO Nothing lays out future work on a timeline the agenda can show :arch:
 :PROPERTIES:
 :ID:       ecf66d45-18b3-477f-bca8-08bec90604e8
 :CREATED:  [2026-09-04 Fri 08:52]
@@ -4144,6 +4176,8 @@ CLOCK: [2026-09-04 Fri 08:22]--[2026-09-04 Fri 08:51] =>  0:29
   nominated on closing 84b7d8b3; Skill's slot is free
 - State "TODO"       from "NEXT"       [2026-09-08 Tue 09:44] \\
   demote the misapplied nomination; deferred to packaging
+- Tags ":arch:"     from ""           [2026-09-28 Mon 13:01] \\
+  classified: new subsystem, forecast-vs-record boundary and dates on work
 :END:
 
 *Wanted by the user 2026-09-04, stated as a requirement for future projects
@@ -4821,7 +4855,7 @@ per-heading reading. Across the whole corpus it held for 4 of 73. Reading each
 body was the only honest route, exactly as that heading concluded.
 
 
-** NEXT Move the 88 pre-convention debriefs into :DEBRIEF:, authoring each resolution :code:
+** NEXT Move the 88 pre-convention debriefs into :DEBRIEF:, authoring each resolution :code:bounded:
 :PROPERTIES:
 :ID:       e128e4fa-b0d9-49f7-99eb-bae2d4b0676b
 :CREATED:  [2026-09-08 Tue 16:12]
@@ -4835,6 +4869,8 @@ CLOCK: [2026-09-23 Wed 15:31]--[2026-09-23 Wed 15:36] =>  0:05
 - [2026-09-23 Wed 15:31]--[2026-09-23 Wed 15:36] assigned at review
 CLOCK: [2026-09-23 Wed 15:36]--[2026-09-23 Wed 15:37] =>  0:01
 - [2026-09-23 Wed 15:36]--[2026-09-23 Wed 15:37] exempt 2a6a1355 from the pass
+- Tags ":code:bounded:" from ":code:"     [2026-09-28 Mon 13:01] \\
+  classified: corpus migration with existing tools, passes set in :PLAN:
 :END:
 :PLAN:
 
@@ -6764,7 +6800,7 @@ arguing about. Filed separately rather than decided here, since where that bound
 falls is a reporting decision.
 
 
-* TODO Flipping a span's timestamps to active is hand-editing; give the review buffer a key :code:
+* TODO Flipping a span's timestamps to active is hand-editing; give the review buffer a key :code:bounded:
 :PROPERTIES:
 :CATEGORY: Apply
 :ID:       01849bef-fdc9-4c30-b467-00ca8606e8e0
@@ -6778,6 +6814,8 @@ CLOCK: [2026-09-16 Wed 12:11]--[2026-09-16 Wed 12:12] =>  0:01
 - [2026-09-16 Wed 12:11]--[2026-09-16 Wed 12:12] record the e prediction and the 08-26 comparison
 CLOCK: [2026-09-16 Wed 12:12]--[2026-09-16 Wed 12:13] =>  0:01
 - <2026-09-16 Wed 12:12>--<2026-09-16 Wed 12:13> assigned at review
+- Tags ":code:bounded:" from ":code:"     [2026-09-28 Mon 13:01] \\
+  classified: one key in the existing review buffer; body argues for declining
 :END:
 
 *Requested by the user 2026-08-26:* "consider adding a keystroke to org-review
@@ -7195,7 +7233,7 @@ reaches DONE, so it can never sit under a completable ancestor, and a category
 carries no keyword and completes nothing.
 
 
-* TODO Comma-escape headline lines when documenting org structure inside a body :code:
+* TODO Comma-escape headline lines when documenting org structure inside a body :code:bounded:
 :PROPERTIES:
 :CATEGORY: Skill
 :ID:       8a23d6ec-ca45-454d-b65f-e46ea9204816
@@ -7206,6 +7244,8 @@ carries no keyword and completes nothing.
   document the escape, decide on enforcement
 CLOCK: [2026-08-21 Fri 10:35]--[2026-08-21 Fri 10:37] =>  0:02
 - [2026-08-21 Fri 10:35]--[2026-08-21 Fri 10:37] evaluate inline src_org for snippets
+- Tags ":code:bounded:" from ":code:"     [2026-09-28 Mon 13:01] \\
+  classified: write-path half shipped; a lint error and one sentence remain
 :END:
 
 Proposed by the user 2026-08-21, while asking for a materialized example of a
@@ -7479,7 +7519,7 @@ and the transcripts, which are append-only, and not the working tree, which is
 not.
 
 
-* TODO Index a heading's git history from a drawer, so the body never has to narrate it :code:research:
+* TODO Index a heading's git history from a drawer, so the body never has to narrate it :code:research:arch:
 :PROPERTIES:
 :CATEGORY: Skill
 :ID:       41cf5830-fc2e-4dc6-b243-a0c2718a53a3
@@ -7488,6 +7528,8 @@ not.
 :LOGBOOK:
 - State "TODO"       from              [2026-08-20 Thu 16:44] \\
   captured keywordless; state never set
+- Tags ":code:research:arch:" from ":code:research:" [2026-09-28 Mon 13:01] \\
+  classified: new capability, likely a new derived-on-demand tool
 :END:
 
 Raised by the user 2026-08-20 alongside the retention policy at
