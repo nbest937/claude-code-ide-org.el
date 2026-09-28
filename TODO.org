@@ -2,6 +2,123 @@
 #+TAGS: analysis bug code comms prose research review spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO [0/6] A slice's checklist can disagree with its members, and nothing can say so or fix it :code:
+:PROPERTIES:
+:ID:       7dcec489-f5dd-4f7f-b819-a25405436b9b
+:CREATED:  [2026-09-28 Mon 08:26]
+:CATEGORY: Slices
+:KIND:     slice
+:COOKIE_DATA: checkbox recursive
+:MEMBERS:  cdff5c91-3dc1-476e-a8f2-5293570a19fc a00ace04-99bd-414a-8dc7-df8305126589 a508c59e-475e-4d27-84c9-6c3ded98e15c 6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0 b112878e-6313-4bc6-bc3f-0533d5f1ad1b dc68d831-9e04-4f0a-8b8b-8087b39c6037
+:BLOCKER:  cdff5c91-3dc1-476e-a8f2-5293570a19fc a00ace04-99bd-414a-8dc7-df8305126589 a508c59e-475e-4d27-84c9-6c3ded98e15c 6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0 b112878e-6313-4bc6-bc3f-0533d5f1ad1b dc68d831-9e04-4f0a-8b8b-8087b39c6037
+:END:
+:PLAN:
+Composed 2026-09-28 from the backlog survey, at the user's direction. The theme:
+a slice's checklist is a derived rendering, and when it drifts from what its
+members actually are, nothing notices it and nothing can repair it. 7ee3b71a
+made =:MEMBERS:= the declaration and the checklist its rendering. This slice
+finishes the job: the rendering has to be right, has to be checkable, has to be
+correctable after close, and has to be cheap enough to run on every exit.
+
+*The order.* cdff5c91 comes first because it changes the derivation table every
+later member checks against: a =REVIEW= member ticks =[X]=. It carries a
+decision for the user, settled before that step starts: whether a ticked
+=REVIEW= member stays in the =:BLOCKER:=. Its body recommends that it does, so
+the checkbox answers "is our work done" and the blocker answers "has it been
+accepted". a00ace04 is next, the detection: a lint rule comparing each open
+slice's checkbox with its referent's keyword, against the new table. a508c59e is
+the repair: correcting a closed slice's record against its referents as of its
+=CLOSED= stamp, never as of today. 6af8fb3e is a verification before any build,
+because since 7ee3b71a =after== indexes =:MEMBERS:= and a story's nested rows
+are derived, which may already have removed the block-splitting it describes.
+b112878e follows: =before== or a reorder on =org_slice_add_member=, the same
+tool, after 6af8fb3e settles what =after== now means. dc68d831 is last: caching
+the per-slice scan waits until the rendering this slice changes is settled, and
+until it is known whether a refresh can rewrite =:MEMBERS:= partway through a
+pass.
+
+*Twin review.* 6af8fb3e and b112878e are both =org_slice_add_member= ordering,
+but different gaps (placement relative to nested rows, and prepend or reorder),
+so they stay separate headings sequenced together. 4d896425, closed with
+8a2eb687, is dc68d831's origin, not its twin.
+
+*Category mix:* =Slices= (cdff5c91, a508c59e, 6af8fb3e, b112878e, dc68d831) and
+=Dev= (a00ace04).
+:END:
+
+Planned:
+
+- [ ] [[id:cdff5c91-3dc1-476e-a8f2-5293570a19fc][cdff5c91]] TODO A REVIEW member is ticked [X]: the cookie counts work finished on our side, and the blocker still waits for acceptance
+- [ ] [[id:a00ace04-99bd-414a-8dc7-df8305126589][a00ace04]] TODO lint-org cannot see a slice checkbox that disagrees with its referent
+- [ ] [[id:a508c59e-475e-4d27-84c9-6c3ded98e15c][a508c59e]] TODO Nothing can correct a closed slice's record, even when the correction is close-time truth
+- [ ] [[id:6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0][6af8fb3e]] TODO org_slice_add_member's after= inserts between a story and its nested children, splitting the block
+- [ ] [[id:b112878e-6313-4bc6-bc3f-0533d5f1ad1b][b112878e]] TODO org_slice_add_member cannot prepend or reorder, so declared order is append-only
+- [ ] [[id:dc68d831-9e04-4f0a-8b8b-8087b39c6037][dc68d831]] TODO Slice refresh re-scans every heading for other slices' members once per slice
+
+A slice's checklist is rendered from =:MEMBERS:=, and nothing checks that the
+rendering matches its members, repairs a closed slice's record, or lets a member
+be placed first or moved. This slice fixes what a =REVIEW= member shows, adds
+the lint and the repair, finishes the ordering tool, and makes the refresh cheap
+enough to run on every exit.
+
+
+* TODO [0/5] A tool call can be told the opposite of what happened: a negated boolean, a phantom capture, a hang :code:
+:PROPERTIES:
+:ID:       f436a3b8-58ba-45a7-9f84-b8dee0934ca7
+:CREATED:  [2026-09-28 Mon 08:25]
+:CATEGORY: Slices
+:KIND:     slice
+:COOKIE_DATA: checkbox recursive
+:MEMBERS:  a8ccd6ac-3452-4926-b176-ff5951dcd5b2 8326a46f-e3f9-4ecc-8bc2-05d54907987b fd29914e-0d18-4964-a104-37c136b311a6 ecbbec2e-50d9-4581-9ded-15716f16c5f3 94fe3c57-89f6-4d17-943e-0cb6145f3419
+:BLOCKER:  a8ccd6ac-3452-4926-b176-ff5951dcd5b2 8326a46f-e3f9-4ecc-8bc2-05d54907987b fd29914e-0d18-4964-a104-37c136b311a6 ecbbec2e-50d9-4581-9ded-15716f16c5f3 94fe3c57-89f6-4d17-943e-0cb6145f3419
+:END:
+:PLAN:
+Composed 2026-09-28 from the backlog survey, at the user's direction. The theme:
+a tool call whose caller is told something other than what happened. The call is
+negated, reported as done when nothing persisted, or left to hang when an answer
+existed. Each member is a place where the tool surface misleads the one reader
+that cannot look behind it. That is why they slice together rather than waiting
+for an audit.
+
+*The order is by harm.* a8ccd6ac comes first: a JSON =false= arrives as
+=:false=, which elisp reads as true, so =org_amend replace=false= replaces a
+whole body. It is the one member that destroys work while the caller asks for
+the safe behaviour. 8326a46f is next: a capture called outside the MCP wrapper
+reports "Queued" and persists nothing, a false success. fd29914e follows: a
+capture run while an Org QL view is selected stops at a prompt nobody at the
+tool can answer. It bit this project twice on 2026-09-25 and again on
+2026-09-27. ecbbec2e: a bad call hangs until the timeout instead of returning
+its error. 3ad389be's hook already tells a session to check its argument names,
+which lowers its urgency. 94fe3c57 comes last: after a live reload the client
+can be shown a stale duplicate schema, although the call runs the new code.
+
+*Twin review.* 6495c8a0 (a note argument never recorded) was in the survey's
+proposal, and was verified fixed and closed the same day, so it is not a member.
+Two upstream headings share the family and stay out: bbf9fb77 (unknown arguments
+dropped by upstream's dispatch) and ce012ad4 (upstream's undefined
+=json-rpc-error=). Both belong to the upstream report under 9d6449c7, and
+ecbbec2e is the local workaround for the second. a8ccd6ac's parse also belongs
+upstream, so building it may end as a report filed there plus a local shadow,
+which that member's own plan has to decide.
+
+*Category mix:* all five are =Tools=.
+:END:
+
+Planned:
+
+- [ ] [[id:a8ccd6ac-3452-4926-b176-ff5951dcd5b2][a8ccd6ac]] TODO A boolean argument passed as false arrives as :false, which elisp reads as true
+- [ ] [[id:8326a46f-e3f9-4ecc-8bc2-05d54907987b][8326a46f]] TODO claude-code-ide-org-capture reports a queued capture it never persists
+- [ ] [[id:fd29914e-0d18-4964-a104-37c136b311a6][fd29914e]] TODO org_capture runs in whatever buffer the user has selected, so an Org QL view turns a capture into a prompt nobody at the tool can answer
+- [ ] [[id:ecbbec2e-50d9-4581-9ded-15716f16c5f3][ecbbec2e]] TODO Answer a bad tool call with its error rather than a hang, until upstream defines json-rpc-error
+- [ ] [[id:94fe3c57-89f6-4d17-943e-0cb6145f3419][94fe3c57]] TODO A live reload that changes a tool's description registers it a second time beside the stale one
+
+Five ways an =org_*= call tells its caller something other than what happened: a
+=false= that acts as true, a capture that reports success and persists nothing,
+a capture that hangs on a prompt, a bad call that times out instead of erroring,
+and a stale schema shown after a reload. Fixed worst first, because each
+misleads the one reader that cannot check behind the tool.
+
+
 * TODO The review-attention clock is a real org clock, so the buffer stays busy for the whole review and apply's first clock-in closes it :code:
 :PROPERTIES:
 :ID:       595df230-e31d-42ad-9ea7-128e545b9aa0
