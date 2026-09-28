@@ -644,12 +644,24 @@ predictable output of a phase the checklist never enumerates.
 **Everything a code review uncovers goes into one story** (the user,
 2026-09-21): a heading titled for the review — "Address the PR #28
 review: fifteen findings, …" (`0784a826`) — with one child per finding,
-or per remediation where one fix answers several. The story joins the
-slice as a single member, undertaken whole, its children indented
-beneath it. The review then reads as one unit in the checklist, and its
-debrief can say what the review found in aggregate, which six scattered
-members cannot. `f6d160c2` filed its six findings as separate members,
-and that is the shape this replaces.
+or per remediation where one fix answers several. **The story's
+children are the slice's members, and the story itself is not
+declared**: since `:MEMBERS:` became the declaration (`7ee3b71a`), a
+member whose parent carries a keyword renders beneath a derived parent
+row, and the lint refuses `:MEMBERS:` naming both a parent and its
+child. The story carries its own `[/]` cookie. The review then reads as
+one unit in the checklist, and its debrief can say what the review found
+in aggregate, which six scattered members cannot. `f6d160c2` filed its
+six findings as separate members, and that is the shape this replaces;
+`c77e4d5a` (PR #31's ten findings) is the shape as it now stands.
+
+**A pull request for a single heading needs no story** (the user,
+2026-09-28): a finding is rework on that heading — `REVIEW` → `DOING`,
+fixed, back to `REVIEW`.
+
+**Answer every review thread** (the user, 2026-09-28). Once a finding
+is fixed, reply on its thread naming the fixing commit, then resolve the
+thread, so the pull request's own record closes along with the tracker's.
 
 No retrofit. `c19fbbf5` keeps its 2026-09-10 close and records its three
 post-close closures as debrief prose which, with the pull request they
@@ -743,6 +755,24 @@ the second escape in prose that had just named the first), caught both
 times by a reader and never by the composer. So it is a review question,
 asked of the finished list: *does anything in this list have a twin that
 is not in it?*
+
+**Closing a twin: the survivor absorbs it** (the user, 2026-09-28).
+Amend the survivor with whatever the twin held that it lacked — an open
+decision included, carried over *open*, never settled in passing — then
+close the twin `CANCELLED` with a one-line resolution naming the
+survivor, so its body stays as history. **First confirm they are twins:
+would one fix close both?** If not, they are related, not twins —
+cross-link them and keep both. The 2026-09-28 backlog survey paired
+`c3aa23fb` with `58332dd1` on a shared symptom; they are different
+mechanisms, and both stayed open.
+
+**A heading overtaken by later work closes by what happened to the
+need.** `CANCELLED` when the need went away (`ff1bec00`, dissolved by
+the `:PLAN:` drawer); `DONE`, with a debrief pointing at where the work
+landed, when it was done elsewhere (`6495c8a0`); left open and narrowed
+when only part was overtaken. Before cancelling, confirm any ruling the
+heading carried is recorded somewhere live, and name where in the
+resolution (`9bab114d`).
 
 ## The `:PLAN:` drawer
 

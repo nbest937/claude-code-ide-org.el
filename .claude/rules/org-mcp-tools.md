@@ -76,3 +76,12 @@ non-local exit (`:ID:` c8a97d9d). Do not clear `buffer-read-only` by hand.
 Interactive commands still ask, because a human is present to decide;
 and a hand-written `emacsclient` call binds nothing — reaching for one
 against a read-only buffer means the tool surface is missing something.
+
+**Reads go through the tools too.** For an org question — a heading's
+body, its drawers, its place in the tree, a predicate across files —
+reach for `org_body`, `org_outline` or `org_query` before a raw
+`emacsclient -e` eval. The tools stay inside the module's guarded
+surface; an eval runs arbitrary code in the user's editor, and the one
+time the user caught it (2026-09-28) it came from habit, not need. An
+eval is for what no tool answers — arithmetic across properties, say —
+and says in one line why no tool fits.
