@@ -3834,6 +3834,47 @@ sequence.
   nominated: blocks 2b8930da, which gates euchre
 :END:
 :PLAN:
+The notes should use org: live links instead of inert citations, drawers instead
+of narration, tags worth querying. Every member either adopts an org feature or
+crawls the corpus to apply one. The order below serves brainstorming and
+execution alike, and it is conventions first. Every decision that constrains the
+corpus passes is settled before them, so the mass pass writes to settled
+conventions once instead of being redone after them. (Rewritten whole, the user,
+2026-09-28. It replaces a drawer composed 2026-09-10 and revised three times,
+and the order was re-derived from the members' own keywords, blockers and
+cross-references rather than carried over.)
+
+The order, one line each:
+
+- =d350ff5b= first: it fixes where a =:DEBRIEF:= sits, and =e128e4fa= is about to create 88 of them. Settled afterwards, the consolidator would move all 88 again.
+- =b7259ee4=: the commit-link convention, so the resolutions =e128e4fa= authors cite commits as orgit links from the start. Its retrofit covers only the 2026-09-09 debriefs, so it does not share the corpus read.
+- =f7847adf=: the id-link convention and the writers that apply it. Landing before =e128e4fa= means every authored resolution gets id links through the tools, with no care owed by the author.
+- =0eaffc39=: follows =f7847adf=, whose outcome decides what is left for it. A linked id already jumps on click, so the lookup mainly serves bare ids in rendered sessions and commit messages.
+- =8a23d6ec=: a lint rule, taken beside =b7259ee4='s lint warning, since both extend =bin/lint-org=.
+- =63df67c7=: prose only and independent, its analysis accepted 2026-09-10. It sits here because it is quick and nothing waits on it.
+- =8b945c02=: before the survey, because the survey takes tags already adopted as given, as it did =spike=, =bounded=, =arch= and =prose=. =observed= is already on 8 headings.
+- =e28933e9=: immediately before =e128e4fa=, so the survey and the resolution pass share one reading of the corpus. That shared read, between these two, is the economic half of the slice.
+- =e128e4fa=: the mass pass, now writing to a settled drawer order and settled link conventions. Its completion also closes =4c834fdb=, whose last live child it is.
+- =76a6f052=: a second pass over the corpus just read. =b52df20b= already changed the sweep's filter and width.
+- =fce6bd35=: can land only once =e128e4fa= leaves every open heading in canonical shape. The lint it adds is what retires the conventions' backfill clause.
+- =41cf5830=: builds on =b7259ee4='s commit-link vocabulary.
+- =01849bef=: late on purpose. Its own body proposes declining it after a month of use of the review buffer's =c= key, which falls due around 2026-10-16.
+- =ecf66d45=: the largest member and the least coupled. Its forecast-versus-record question sits beside =01849bef='s question about active timestamps.
+- =ea1df60b=: the weakest fit, a corpus audit at the tail.
+
+The checklist's order is the order of adoption, not this one, and it is left as
+it is: no tool reorders a slice's members, and a hand edit is refused by
+convention.
+
+Twins, checked on the rewrite: none. =b7259ee4= and =41cf5830= are complementary
+(citation practice versus an index of a heading's own history). =b7259ee4= and
+=f7847adf= cite different targets, commits and headings. =f7847adf= and
+=0eaffc39= are sequenced, not duplicated. No single fix would close any pair.
+
+Two candidate members exist only as proposals, still unfiled and pending the
+user's filter: inactive timestamps on measured claims ("measured
+[2026-08-26 Wed]" as a parseable date), and search-anchored =file:= links for
+symbol citations. Filed, they join.
 :END:
 
 The notes cite commits, PRs and dates as inert text, narrate history
