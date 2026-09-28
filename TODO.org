@@ -36,6 +36,15 @@ corpus pass reads each pre-convention heading (e128e4fa), it could move a linked
 plan into that heading's =:PLAN:= drawer and drop the link, after which the
 fallback, the archive and this fix can retire together.
 
+*Shipped* in [[orgit-rev:claude-code-ide-org::bd375a8][bd375a8]] on =feature/precommit-plans-archive=:
+=.githooks/pre-commit= links the repo's =plans/= into its temp directory before
+linting. The new case in =bin/pre-commit-test= failed against the old hook, and
+its negative (a plan in neither place) still fails. Verified live with
+=goofy-baking-wall.md= moved back out of =~/.claude/plans=: a copy of the real
+tracker linted with 1 error without the link, and with 0 errors with it. The
+file stays aged out, as the policy intends.
+
+
 
 * TODO [0/6] A slice's checklist can disagree with its members, and nothing can say so or fix it :code:
 :PROPERTIES:
