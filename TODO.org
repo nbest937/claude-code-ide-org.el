@@ -436,18 +436,12 @@ CLOCK: [2026-09-27 Sun 18:45]--[2026-09-27 Sun 18:45] =>  0:00
   merged with PR #31
 :END:
 
-From PR #31's review (=claude-code-ide-org-set-todo=). The effective-state clause from 57f37f0e
-arrived with the function's whole argument list re-indented, which buried a
-one-clause change in a 75-line whitespace diff. *Fixed*: rebuilt from main's
-text, replacing only the docstring lines and the no-change clause. The diff
-against main dropped from 135 changed lines to 53, all of them real. All 832 ERT
-tests still pass. There's no new test, because this is layout only. Not
-confirmed: the finding's claim that =indent-region= would move the layout back.
-Batch =indent-region= left the deep layout exactly as it was.
+From PR #31's review: 57f37f0e's one-clause change to
+=claude-code-ide-org-set-todo= arrived with the function's whole argument list
+re-indented, a 75-line whitespace diff.
 
-=claude-code-ide-org-set-todo= keeps main's layout, so its diff
-against main shows only the docstring and the no-change clause.
-
+The function keeps main's layout, so its diff against main shows only the
+docstring and the no-change clause.
 
 ** DONE footnotes-inject is bash with logic of its own, where a script needing Emacs is a thin sh stub over elisp
 CLOSED: [2026-09-28 Mon 07:45]
