@@ -2,6 +2,44 @@
 #+TAGS: analysis bug code comms prose research review spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Retire org_wrap_plan once no mixed body can arrive, or first generalise it to move a debrief :code:
+:PROPERTIES:
+:ID:       80aeb955-cf44-4990-8c7f-be7759fb05ec
+:CREATED:  [2026-09-28 Mon 13:22]
+:CATEGORY: Tools
+:BLOCKER:  fce6bd35-27ad-4724-8dbb-c9df4b68fb10
+:END:
+:PLAN:
+Filed from d350ff5b's brainstorm (the user, 2026-09-28: "seems likely" that
+org_wrap_plan retires). No brainstorm has been held on it, so no path tag yet.
+
+Two conditions must both hold before retirement. First, no new mixed body can
+arrive: that is fce6bd35's lint requiring the canonical shape, hence the
+=:BLOCKER:=. Second, the existing ones are gone: 53 finished headings warned on
+2026-09-28, which a pass must clear with this tool while it still exists.
+Retirement then means removing the registration, the lint message and the DONE
+nudge that name it, and the conventions' backfill clause, which fce6bd35 already
+retires.
+
+Left open, and decided when e128e4fa is brainstormed: whether to generalise the
+tool first. It is the only operation in the surface that moves text into a
+drawer without re-sending it, two insertions and nothing rewritten, and
+e128e4fa's 88 debrief relocations would otherwise re-send every debrief through
+org_amend or org_edit. If it is generalised to take a drawer argument, this
+heading retires the general form once e128e4fa is done as well.
+
+Drawer order is not this tool's concern: d350ff5b's single normaliser runs after
+any write that creates a drawer, so the tool stays as it is until it goes.
+:END:
+
+org_wrap_plan exists for bodies that mix plan and debrief, which the plan-first
+convention stops creating, so its job should end. It cannot end yet:
+bin/lint-org still warns on 53 finished headings with a mixed body and names
+this tool as the fix, and the backfill clause sends live pre-convention headings
+through it. Proposed: retire it once fce6bd35's lint stops mixed bodies arriving
+and those 53 are cleared, unless e128e4fa first wants its lossless two-insertion
+move generalised to :DEBRIEF:. Details in :PLAN:.
+
 * REVIEW pre-commit lints a temp copy with no plans/ beside it, so every archived plan that ages out blocks every commit :code:observed:
 :PROPERTIES:
 :ID:       634eb138-28bc-4d43-aed3-f242c877904d
