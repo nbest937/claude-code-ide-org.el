@@ -698,30 +698,13 @@ CLOCK: [2026-09-27 Sun 16:29]--[2026-09-27 Sun 16:37] =>  0:08
   merged with PR #31
 :END:
 
-=claude-code-ide-org-sort-datetree-descending= runs on every exit from the
-review buffer, and it runs =org-sort-entries= on every year, month and day node
-of =DONE.org=, all tiers, every time, even when they are already in order.
-Measured 2026-09-27 in the live Emacs, with =DONE.org= at 44,369 lines and 4,422
-headings: 47 s on the first run and 25 s on the second, with no change to the
-file. It is by far the largest of the six steps the ceremony runs on exit. The
-sort rewrites whole subtrees, so the cost grows with the archive; that fits the
-user's report of latency rising a little with each exit. Possible fixes: skip a
-node whose children are already in order, which is cheap to check, or sort only
-the day nodes this pass archived into.
+Leaving the review buffer ran =claude-code-ide-org-sort-datetree-descending=
+over every year, month and day node of =DONE.org=, rewriting subtrees already in
+order. Measured on 2026-09-27, with =DONE.org= at 44,369 lines, that took 25–47
+s on every exit, and the cost grows with every archive.
 
-*Shipped* in [[orgit-rev:claude-code-ide-org::c514f1f][c514f1f]]. A node is now sorted only when its children aren't already
-newest-first. The tiers are walked by first child and next sibling instead of
-three full =org-map-entries= passes, so a day's tasks are read only for their
-=CLOSED:=. A same-minute tie counts as in order: org's sort is stable, and 17
-tie-bearing days had been re-sorted on every pass without changing the file.
-Live on the real =DONE.org=: 0.05 s and no sort calls, down from 25–47 s, with
-the file unchanged. The new test failed against HEAD, and the tie case failed
-under its own mutation.
-
-*Resolution:* leaving the review buffer re-sorted every node of DONE.org's
-datetree, 25-47 s and growing with the archive. The sort now touches only a node
-whose children are out of order, so an ordered file costs 0.05 s.
-
+The sort now touches only a node whose children are out of order, so an ordered
+file costs 0.05 s.
 
 * DONE Queue events keyed by an 8-character prefix are invisible to exact-id readers :code:
 CLOSED: [2026-09-28 Mon 07:44]
