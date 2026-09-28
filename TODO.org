@@ -352,8 +352,34 @@ Ruled by the user on 2026-09-25: groupings receive meta-work time (definition, r
 CLOCK: [2026-09-25 Fri 13:12]--[2026-09-25 Fri 13:13] =>  0:01
 - [2026-09-25 Fri 13:12]--[2026-09-25 Fri 13:13] file REVIEW-as-ticked checkbox derivation
 :END:
+:PLAN:
 
 A slice's cookie counts only =DONE= members, so while work waits on the user's judgement the readout understates it badly. On 2026-09-25 [[id:8a2eb687-28da-4d44-893b-db59298bdc5b][8a2eb687]] read =[7/38]= with 14 members in =REVIEW=: finished on our side, owed nothing but acceptance. Moved by the user the same day: =REVIEW= derives =[X]=, not =[-]=, which would read =[21/38]=. The change is one row of the conventions' derivation table (=DOING REVIEW WAITING → [-]=), applied by =claude-code-ide-org-refresh-slice=, and rework (=REVIEW= → =DOING=) visibly unticks a member. Open, for the user: the conventions define the cookie's unfinished members and the =:BLOCKER:= as the same set by construction, so ticking =REVIEW= without separating them lets =org-depend= allow the slice's =DONE= while members still await acceptance. Recommended: keep =REVIEW= members in the blocker, so the checkbox answers "is our work done" and the blocker "has it been accepted". Also check that the slice's own =REVIEW= trigger (every member terminal or in =REVIEW=, when its PR review starts) still reads naturally when those members are ticked.
+
+*Considered and rejected, 2026-09-28: counting =[-]= toward the cookie instead
+of rendering =REVIEW= as =[X]=.* The user asked whether org can count =[-]= as
+done, ideally per heading, so that it becomes part of every new slice's setup.
+It cannot. =org-update-checkbox-count= in =org-list.el= counts a box as done
+only when it is literally =[X]=, with =(cl-count "[X]" cookies :test #'equal)=,
+and =:COOKIE_DATA:= takes only =todo= or =checkbox=, optionally with
+=recursive=. A custom word in =:COOKIE_DATA:= is possible, because this project
+writes the slice cookie with its own
+=claude-code-ide-org--update-slice-cookie-at-point=, and =org_set_property
+KIND=slice= would add the word to every new slice. It was rejected anyway. Org
+recounts the cookie its own way, =[X]= only, whenever a human toggles a box in
+Emacs, so the two counts would take turns being right. Rendering =REVIEW= as
+=[X]= keeps org's count and ours in agreement whatever touches the cookie, so
+this heading's design stands, with the =:BLOCKER:= kept separate as recommended
+above.
+:END:
+
+A slice's cookie counts only =DONE= members, so members finished on our side and
+waiting in =REVIEW= read as undone: 8a2eb687 showed =[7/38]= with 14 in
+=REVIEW=. The design is in =:PLAN:=. =REVIEW= renders =[X]=, and a =REVIEW=
+member stays in the =:BLOCKER:= until it is accepted. One decision is open for
+the user before this step starts: whether that blocker separation is wanted.
+Org's hard-coded =[X]= count rules out the alternative of counting =[-]=.
+
 
 
 * TODO org_query blocked: errors on a read-only buffer, though a query changes nothing the user can see :code:bug:
