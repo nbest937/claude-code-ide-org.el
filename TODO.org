@@ -337,19 +337,11 @@ CLOCK: [2026-09-27 Sun 18:39]--[2026-09-27 Sun 18:39] =>  0:00
   merged with PR #31
 :END:
 
-From PR #31's review (bin/hooks/apply-detect:88). A watermark missing from the
-record counted as an apply, whatever it held. So a session's first pass that
-only dismissed events was reported as an apply. *Fixed*: a watermark that is
-absent from the record and holds no applied value is not a change. Two further
-problems turned up along the way. The "absent" sentinel =\x01absent= was read by
-awk as the hex escape =\x01ab=; the result still never equalled a real value,
-but nothing could match against it, so it is now =<absent>=. And jq read an
-empty watermark file as "applied nothing" rather than as unreadable, so an empty
-file now takes the unparseable path. The test failed first.
+From PR #31's review: =apply-detect= counted a watermark missing from its record
+as an apply, whatever the watermark held. So a session's first pass that only
+dismissed events was announced as an apply.
 
-=apply-detect= announces an apply only when a watermark actually
-records one, so a session's first dismiss-only pass stays silent.
-
+It now announces an apply only when a watermark actually records one.
 
 ** DONE The member migration and the slice refresh save any modified buffer, the human's unsaved edits included
 CLOSED: [2026-09-28 Mon 07:45]
