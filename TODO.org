@@ -467,21 +467,12 @@ CLOCK: [2026-09-27 Sun 18:46]--[2026-09-27 Sun 18:50] =>  0:04
   merged with PR #31
 :END:
 
-From PR #31's review (bin/hooks/footnotes-inject:1). CLAUDE.md asks that a
-script which needs the running Emacs keep its logic in elisp, behind a POSIX
-=sh= stub that only moves bytes. =footnotes-inject= was bash that validated the
-session id, wrote the covered-ids file and shaped the =updatedInput= JSON with
-jq. *Fixed*: all of that now lives in
-=claude-code-ide-org-write-footnotes-hook-output=, which writes the hook's whole
-stdout. The stub keeps only the wait for the call's =tool_use= to land in the
-transcript, which mustn't block Emacs, and the 3 s watchdog. The existing nine
-checks still pass, so behaviour is unchanged; three new shape checks failed
-first. test-all ran 26 suites, 1515 passed.
+From PR #31's review: =footnotes-inject= was bash that validated the session id,
+wrote the covered-ids file and shaped JSON with jq. CLAUDE.md asks that a script
+needing the running Emacs be a thin =sh= stub over elisp.
 
-=footnotes-inject= is a POSIX =sh= stub that only waits for the
-transcript and runs the watchdog, with its logic in
-=claude-code-ide-org-write-footnotes-hook-output=.
-
+It is now that stub. It only waits for the transcript and runs the watchdog; its
+logic lives in =claude-code-ide-org-write-footnotes-hook-output=.
 
 * TODO A guidepost span is labelled with the first pending clock_in note of its heading, from any session and any date :code:
 :PROPERTIES:
