@@ -15,6 +15,14 @@ CLOCK: [2026-09-28 Mon 08:43]--[2026-09-28 Mon 08:46] =>  0:03
 - [2026-09-28 Mon 08:43]--[2026-09-28 Mon 08:46] pre-commit lints with plans/ beside the copy
 - State "REVIEW"     from "DOING"      [2026-09-28 Mon 08:45] \\
   fixed on its branch; PR opened
+CLOCK: [2026-09-28 Mon 08:51]--[2026-09-28 Mon 08:54] =>  0:03
+- State "DOING"      from "REVIEW"     [2026-09-28 Mon 08:51] \\
+  rework: the review found the working copy's plans/ linked, not the staged
+- [2026-09-28 Mon 08:51]--[2026-09-28 Mon 08:54] export the staged plans/ instead of linking
+- State "REVIEW"     from "DOING"      [2026-09-28 Mon 08:52] \\
+  rework done: the staged archive is exported
+CLOCK: [2026-09-28 Mon 08:56]--[2026-09-28 Mon 08:58] =>  0:02
+- [2026-09-28 Mon 08:56]--[2026-09-28 Mon 08:58] assigned at review
 :END:
 
 Observed 2026-09-28 when a bookkeeping commit was refused: "plan link points at
@@ -59,7 +67,6 @@ the index with =checkout-index=, the same way guard 2 exports its scratch tree.
 A new test case, a plan only in the unstaged working copy, passed against the
 symlink and fails now. Live: 31 archived plans were exported, and the real
 tracker linted with 0 errors with =goofy-baking-wall.md= aged out.
-
 
 
 * TODO [0/6] A slice's checklist can disagree with its members, and nothing can say so or fix it :code:
@@ -10498,6 +10505,7 @@ call it done.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-28 Mon 09:48]--[2026-09-28 Mon 09:49] =>  0:01
 CLOCK: [2026-09-28 Mon 08:48]--[2026-09-28 Mon 08:50] =>  0:02
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
@@ -10666,6 +10674,7 @@ CLOCK: [2026-09-25 Fri 12:55]--[2026-09-25 Fri 13:10] =>  0:15
 CLOCK: [2026-09-27 Sun 15:34]--[2026-09-27 Sun 15:45] =>  0:11
 CLOCK: [2026-09-27 Sun 17:11]--[2026-09-27 Sun 17:12] =>  0:01
 CLOCK: [2026-09-28 Mon 07:23]--[2026-09-28 Mon 07:28] =>  0:05
+- <2026-09-28 Mon 09:48>--<2026-09-28 Mon 09:49> review pass (buffer buried)
 :END:
 
 We created this heading on 2026-08-26. We deleted that property from its
@@ -11978,4 +11987,5 @@ CLOCK: [2026-09-28 Mon 08:32]--[2026-09-28 Mon 08:43] =>  0:11
 - [2026-09-28 Mon 08:32]--[2026-09-28 Mon 08:43] assigned at review
 CLOCK: [2026-09-28 Mon 08:49]--[2026-09-28 Mon 08:50] =>  0:01
 - [2026-09-28 Mon 08:49]--[2026-09-28 Mon 08:50] root-cause unattributed spans, file discipline fix
+- [2026-09-28 Mon 08:51]--[2026-09-28 Mon 08:51] root-cause unattributed spans, file discipline fix
 :END:
