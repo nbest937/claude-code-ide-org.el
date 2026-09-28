@@ -819,34 +819,15 @@ CLOCK: [2026-09-27 Sun 14:24]--[2026-09-27 Sun 14:27] =>  0:03
 :END:
 
 When the region is active in =TODO.org='s buffer as the archive step runs,
-=org-archive-subtree= takes its loop-over-region path
-(=org-loop-over-headlines-in-active-region=, default =t=). It then archives
-every heading in the region, live ones included, and errors with
-=end-of-buffer=. Found by the [[id:381ea07d-633f-4640-abbb-89472a07acba][381ea07d]] replay on 2026-09-27: with the mark at
-the top of the file, today's code moved 81 extra level-1 entries into =DONE.org=
-before signalling. Org's archive call saves =DONE.org=, so the moved work is on
-disk by the time the ceremony reports FAILED. The re-validation and the
-duplicate-id guard in =claude-code-ide-org-archive-finished= don't cover it,
-because the extra archiving happens inside a single call.
+=org-archive-subtree= loops over every heading in the region instead of
+archiving the one at point. It takes live headings too, then errors with
+=end-of-buffer=. Found by the [[id:381ea07d-633f-4640-abbb-89472a07acba][381ea07d]] replay on 2026-09-27: a mark at the top
+of the file moved 81 extra level-1 entries into =DONE.org=, which were already
+saved by the time the ceremony reported FAILED.
 
-A likely fix: bind =org-loop-over-headlines-in-active-region= to nil, or
-deactivate the mark, around each call in the sweep. The test should put an
-active region in the fixture buffer and assert that only finished top-level
-headings move. This path is not the 2026-08-31 mechanism: it errors every time,
-and that pass reported a clean 65.
-
-*Shipped* in [[orgit-rev:claude-code-ide-org::b234ffe][b234ffe]]. Both calls to =org-archive-subtree= now bind
-=org-loop-over-headlines-in-active-region= to nil: the ceremony's sweep, and the
-=org_archive= tool, which had the same exposure. Both new tests failed against
-the unfixed code. Re-run against the fix, the replay's three region cases each
-archived exactly 65, with no error and no duplicate. The live image is reloaded
-and fresh.
-
-*Resolved:* an active region made =org-archive-subtree= archive every heading in
-it, live ones included. The ceremony's sweep and =org_archive= now bind
+The ceremony's sweep and =org_archive= now bind
 =org-loop-over-headlines-in-active-region= to nil, so each call archives only
 the heading at point.
-
 
 * TODO A live reload that changes a tool's description registers it a second time beside the stale one :code:bug:
 :PROPERTIES:
