@@ -643,29 +643,12 @@ CLOCK: [2026-09-27 Sun 16:37]--[2026-09-27 Sun 16:37] =>  0:00
   merged with PR #31
 :END:
 
-=claude-code-ide-org-refresh-slice= took 10.1 s in the live Emacs on 2026-09-27,
-rerun right after the ceremony and with nothing to change. There are 17 slices,
-and =--slice-referent-index= builds in 0.07 s, so the time goes somewhere per
-slice or per member. Not yet profiled. The next step is to run =profiler-start=
-around one refresh and check whether each slice re-reads or re-renders what
-hasn't changed.
+=claude-code-ide-org-refresh-slice= took 10.1 s on leaving the review buffer,
+with nothing to change, although its referent index built in 0.07 s.
 
-*Shipped* in [[orgit-rev:claude-code-ide-org::73a8df0][73a8df0]]. The profile put about 75% of the refresh in
-=--refresh-stale-id-buffers= (8ddd7fa8), which re-derived the scannable files on
-each of 886 lookups. A buffer that could never verify made that happen every
-time: the old Doom glue's, whose file c562b69a's migration had moved away. The
-check now walks the buffer list first, counting only org buffers whose file
-still exists, and derives the file list only when one has fallen out of step
-with its file. A pass binds =--stale-buffer-check= so the walk runs once per
-refresh. Live: 10.4 s down to 3.1 s, with the file unchanged. Both new tests
-failed against HEAD. The remaining 3.1 s is the per-slice incidentals scan,
-filed as [[id:dc68d831-9e04-4f0a-8b8b-8087b39c6037][dc68d831]].
-
-*Resolution:* the 10 s slice refresh was mostly the stale-buffer check
-re-deriving the scannable file list on each of 886 id lookups. The check now
-walks the buffer list once per refresh, and the refresh takes 3.1 s; the
-remainder is filed as dc68d831.
-
+Most of that time was the stale-buffer check re-deriving the scannable file list
+on each of 886 id lookups. It now walks the buffer list once per refresh, and
+the refresh takes 3.1 s; the rest is filed as [[id:dc68d831-9e04-4f0a-8b8b-8087b39c6037][dc68d831]].
 
 * DONE The ceremony re-sorts DONE.org's whole datetree on every quit, and it grows with every archive :code:
 CLOSED: [2026-09-28 Mon 07:44]
