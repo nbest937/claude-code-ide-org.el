@@ -2,11 +2,19 @@
 #+TAGS: analysis bug code comms prose research review spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* TODO pre-commit lints a temp copy with no plans/ beside it, so every archived plan that ages out blocks every commit :code:observed:
+* REVIEW pre-commit lints a temp copy with no plans/ beside it, so every archived plan that ages out blocks every commit :code:observed:
 :PROPERTIES:
 :ID:       634eb138-28bc-4d43-aed3-f242c877904d
 :CREATED:  [2026-09-28 Mon 08:31]
 :CATEGORY: Dev
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-28 Mon 08:43]--[2026-09-28 Mon 08:46] =>  0:03
+- State "DOING"      from "TODO"       [2026-09-28 Mon 08:43] \\
+  fixing on feature/precommit-plans-archive
+- [2026-09-28 Mon 08:43]--[2026-09-28 Mon 08:46] pre-commit lints with plans/ beside the copy
+- State "REVIEW"     from "DOING"      [2026-09-28 Mon 08:45] \\
+  fixed on its branch; PR opened
 :END:
 
 Observed 2026-09-28 when a bookkeeping commit was refused: "plan link points at
@@ -35,6 +43,23 @@ the policy. The mechanism's end state is not decided here: when 6521dd56's
 corpus pass reads each pre-convention heading (e128e4fa), it could move a linked
 plan into that heading's =:PLAN:= drawer and drop the link, after which the
 fallback, the archive and this fix can retire together.
+
+*Shipped* in [[orgit-rev:claude-code-ide-org::bd375a8][bd375a8]] on =feature/precommit-plans-archive=:
+=.githooks/pre-commit= links the repo's =plans/= into its temp directory before
+linting. The new case in =bin/pre-commit-test= failed against the old hook, and
+its negative (a plan in neither place) still fails. Verified live with
+=goofy-baking-wall.md= moved back out of =~/.claude/plans=: a copy of the real
+tracker linted with 1 error without the link, and with 0 errors with it. The
+file stays aged out, as the policy intends.
+
+*Reworked after PR #32's review.* The first fix symlinked the working copy's
+=plans/=. That let a plan in the working copy but never staged satisfy the
+check, though the commit carries no copy of it. =plans/= is now exported from
+the index with =checkout-index=, the same way guard 2 exports its scratch tree.
+A new test case, a plan only in the unstaged working copy, passed against the
+symlink and fails now. Live: 31 archived plans were exported, and the real
+tracker linted with 0 errors with =goofy-baking-wall.md= aged out.
+
 
 
 * TODO [0/6] A slice's checklist can disagree with its members, and nothing can say so or fix it :code:
@@ -355,7 +380,6 @@ maintains in both directions. b0c843e3 had deferred the choice until 3f4fd744
 made every blocker id parse.
 
 
-
 * TODO Headings cited in bodies are id links, written as links by the tools, so backlinks are one org_query away :code:
 :PROPERTIES:
 :ID:       f7847adf-a408-4ad0-ae0c-8d3c19b79f2b
@@ -410,7 +434,6 @@ reason a7f4b40c gave: blocked-ness is derivable while a tag is stored, so it
 goes stale the moment the last blocker finishes, and two tags plus the property
 make three copies of one fact. So =:BLOCKS:= is derived at each read, never
 tagged.
-
 
 
 * TODO Look up a tracked id wherever it appears in Emacs: its title at point, and a jump on click :code:
@@ -928,7 +951,6 @@ heading guess. A session that ends leaving a heading =DOING= emits nothing, so
 =--review-suggest-heading= keeps suggesting that heading for later spans,
 because no =todo= event brackets it. The =SessionEnd= close this heading plans
 would supply the missing event and end the latch too.
-
 
 
 * MAYBE The brainstorming skill offers a visual companion nobody here has evaluated: it serves mock-ups from a local web server :code:spike:
@@ -1564,7 +1586,6 @@ still live. =bin/sync-plans --check= and =bin/lint-org= still read plan links
 for the headings that keep one, and =plans/= is a frozen archive. So prose
 naming an orphaned plan file can still re-link it. It's rare now that new work
 writes no plan links, and low priority.
-
 
 
 * NEXT [0/2] config.el is the last place time tracking and task tracking are still entangled, 30% of 18k lines :code:arch:
@@ -2407,7 +2428,8 @@ Proposal: refuse when the span has runs, or require a confirmation naming both n
 =bin/lint-org= warns on a finished heading with a substantial body and no =:PLAN:= drawer, but measures "substantial" in physical lines while =org_amend= writes each paragraph unwrapped — so a 1,084-character body counts as two lines against a threshold of ten and the rule cannot fire. Five headings closed in one session met every other condition and none was reported. Proposal: measure characters, or filled lines, rather than newlines.
 
 
-* DOING Doom drops org files out of org-mode at 15,000 lines, and TODO.org is 1,600 away :code:
+* DONE Doom drops org files out of org-mode at 15,000 lines, and TODO.org is 1,600 away :code:
+CLOSED: [2026-09-28 Mon 08:24]
 :PROPERTIES:
 :ID:       d90a02f2-6fa5-4a62-869a-7484fb9b2dc2
 :CREATED:  [2026-09-17 Thu 08:40]
@@ -2431,6 +2453,8 @@ CLOCK: [2026-09-17 Thu 08:40]--[2026-09-17 Thu 08:41] =>  0:01
 - [2026-09-17 Thu 08:40]--[2026-09-17 Thu 08:42] suggested span, accepted at review
 CLOCK: [2026-09-17 Thu 08:48]--[2026-09-17 Thu 08:49] =>  0:01
 - [2026-09-17 Thu 08:48]--[2026-09-17 Thu 08:49] suggested span, accepted at review
+- State "DONE"       from "DOING"      [2026-09-28 Mon 08:24] \\
+  fixed in the Doom config; DONE.org stays in org-mode
 :END:
 :PLAN:
 
@@ -2455,7 +2479,6 @@ Doom's =doom-so-long-p= drops any file past 15,000 lines out of its major mode, 
 
 Fixed in the Doom config: =.org= files are exempt from Doom's line-count test,
 so =DONE.org=, now 49,074 lines, stays an Org buffer.
-
 
 
 * TODO The unassigned-mark guard is conjunctive, so a clock item with no id marks and then fails at apply :code:
@@ -2496,7 +2519,6 @@ priority, cookie and tags. And the knock-on: a slice's member lines copy their
 referents' titles, so a rename leaves stale copies until
 =claude-code-ide-org-refresh-slice= runs. The tool should say when the renamed
 heading appears in a slice, or run the refresh itself.
-
 
 
 * TODO org_outline's max_depth filters out the scoped heading itself, and the front matter reads as a result :code:
@@ -2978,11 +3000,16 @@ Remove =org_amend='s registration and entry point, keeping the internals =org_ed
 After =org_amend= retires, =--review-apply-amend= and the review buffer's amend items only apply events queued before the change, and no new ones can appear. Delete them once =org_pending_updates= shows no amend item across every session's queue. That condition is not a heading, so it lives here rather than in a =:BLOCKER:=.
 
 
-* TODO The :blocked: tag writer is org-depend, found after a7f4b40c cleared it by testing the wrong variable name :code:
+* CANCELLED The :blocked: tag writer is org-depend, found after a7f4b40c cleared it by testing the wrong variable name :code:
+CLOSED: [2026-09-28 Mon 08:30]
 :PROPERTIES:
 :ID:       b0c843e3-4252-4e2b-a9e2-2cf91714a1ae
 :CREATED:  [2026-09-15 Tue 11:17]
 :CATEGORY: Skill
+:END:
+:LOGBOOK:
+- State "CANCELLED"  from "TODO"       [2026-09-28 Mon 08:30] \\
+  absorbed into d842b9e7, its decision carried there
 :END:
 
 a7f4b40c investigated a stray :blocked: tag on c44c2119 in August, tested two
@@ -3005,12 +3032,16 @@ Cancelled 2026-09-28 and absorbed into [[id:d842b9e7-fd75-45eb-80fd-597daa3e36b0
 decision: declare =blocked= in =#+TAGS:=, or set =org-depend-tag-blocked= nil.
 
 
-
-* TODO Nothing answers who blocks whom; :BLOCKER: is a forward index with no inverse :code:
+* CANCELLED Nothing answers who blocks whom; :BLOCKER: is a forward index with no inverse :code:
+CLOSED: [2026-09-28 Mon 08:30]
 :PROPERTIES:
 :ID:       0eecf8e7-a8d5-4da7-9d6d-f397542b2139
 :CREATED:  [2026-09-15 Tue 11:10]
 :CATEGORY: Tools
+:END:
+:LOGBOOK:
+- State "CANCELLED"  from "TODO"       [2026-09-28 Mon 08:30] \\
+  twin of b3177ed0, absorbed there
 :END:
 
 A :BLOCKER: on X names Y, so "what is X waiting for" is one property read, while
@@ -3026,7 +3057,6 @@ instead.
 
 Cancelled 2026-09-28 as a twin of [[id:b3177ed0-9747-4e31-ad65-bac25b9bdd1f][b3177ed0]], which carries its derive-don't-tag
 argument.
-
 
 
 * TODO The attention report renders to a buffer and persists nothing, so every reading is thrown away :code:
@@ -3161,7 +3191,8 @@ question from where point lands when the *list* is rebuilt (=9e80a32d=): nothing
 is rebuilt here, one line is removed from a rendered buffer.
 
 
-* TODO Unplanned work in flight belongs to no slice: planned is writable, incidental is closed-only :code:
+* CANCELLED Unplanned work in flight belongs to no slice: planned is writable, incidental is closed-only :code:
+CLOSED: [2026-09-28 Mon 08:30]
 :PROPERTIES:
 :ID:       9bab114d-44fa-488e-92bd-ff7c3fd8065d
 :CREATED:  [2026-09-11 Fri 19:27]
@@ -3170,6 +3201,8 @@ is rebuilt here, one line is removed from a rendered buffer.
 :LOGBOOK:
 CLOCK: [2026-09-14 Mon 12:44]--[2026-09-14 Mon 12:46] =>  0:02
 - [2026-09-14 Mon 12:44]--[2026-09-14 Mon 12:46] assigned at review
+- State "CANCELLED"  from "TODO"       [2026-09-28 Mon 08:30] \\
+  ruling codified as "Adopting a discovery"; :ADOPTED: declined; REVIEW gate superseded by the review story
 :END:
 
 Work has three states relative to an open slice and only two can be represented.
@@ -3370,7 +3403,6 @@ is adopted as a member, is codified in the conventions' "Adopting a discovery".
 The =:ADOPTED:= property was declined on 2026-09-14. The proposed REVIEW gate on
 adoption was superseded by the review-story rule, under which review findings
 join the slice during REVIEW.
-
 
 
 * TODO Nothing can correct a closed slice's record, even when the correction is close-time truth :code:
@@ -3826,7 +3858,8 @@ the act, and the hook removes the discipline of remembering to sample
 before the kill.
 
 
-* TODO Plans die at cleanupPeriodDays; decide plansDirectory or keep restoring :code:
+* CANCELLED Plans die at cleanupPeriodDays; decide plansDirectory or keep restoring :code:
+CLOSED: [2026-09-28 Mon 08:30]
 :PROPERTIES:
 :ID:       ff1bec00-1b18-4aea-9968-09c99818565e
 :CREATED:  [2026-09-10 Thu 12:03]
@@ -3837,6 +3870,8 @@ CLOCK: [2026-09-10 Thu 12:01]--[2026-09-10 Thu 12:04] =>  0:03
 - [2026-09-10 Thu 12:01]--[2026-09-10 Thu 12:04] assigned at review
 CLOCK: [2026-09-17 Thu 08:42]--[2026-09-17 Thu 08:43] =>  0:01
 - [2026-09-17 Thu 08:42]--[2026-09-17 Thu 08:43]
+- State "CANCELLED"  from "TODO"       [2026-09-28 Mon 08:30] \\
+  dissolved: plans live in :PLAN: drawers since 2026-09-21; plans/ is a frozen archive
 :END:
 :PLAN:
 The user asked why plans keep disappearing from =~/.claude/plans=
@@ -3918,8 +3953,6 @@ policy of letting plans age out, with =plans/= as the fallback record
 gap: the pre-commit hook lints a temporary copy with no =plans/= beside it. That
 gap is [[id:634eb138-28bc-4d43-aed3-f242c877904d][634eb138]], and it is being fixed as the transition mechanism's upkeep. The
 cancellation stands.
-
-
 
 
 * TODO Archived :ARCHIVE_FILE: paths are machine-absolute; audit their portability :code:
@@ -4585,11 +4618,16 @@ org-edna behaviour above comes from reading its source, not from running it. It
 is not installed here.
 
 
-* TODO No tool edits a heading's title, so a rename goes behind Emacs or not at all :code:
+* CANCELLED No tool edits a heading's title, so a rename goes behind Emacs or not at all :code:
+CLOSED: [2026-09-28 Mon 08:30]
 :PROPERTIES:
 :ID:       24c7b537-7fd1-4327-86af-3807ddf36ebe
 :CREATED:  [2026-09-03 Thu 12:24]
 :CATEGORY: Tools
+:END:
+:LOGBOOK:
+- State "CANCELLED"  from "TODO"       [2026-09-28 Mon 08:30] \\
+  twin of 9714f875, absorbed there
 :END:
 
 Found 2026-09-03 when a design revision left :ID: 758a8b78's title stating the
@@ -4607,7 +4645,6 @@ itself.
 
 Cancelled 2026-09-28 as a twin of [[id:9714f875-4a12-44e4-8f30-dfbd1b6e555e][9714f875]], which carries its tool shape and its
 slice-title knock-on.
-
 
 
 * TODO org_query answers from a restricted or short file set without saying so :code:
@@ -5372,7 +5409,8 @@ must not be quietly dropped with it: the trap is now rarer and no less silent,
 and rarity is what keeps a false success unnoticed.
 
 
-* TODO org_capture accepts a note argument it never records :code:
+* DONE org_capture accepts a note argument it never records :code:
+CLOSED: [2026-09-28 Mon 08:24]
 :PROPERTIES:
 :ID:       6495c8a0-d971-4c77-8b30-9fde1bbf5f26
 :CREATED:  [2026-09-02 Wed 12:09]
@@ -5393,6 +5431,8 @@ for upstream's dispatch paths.
 :LOGBOOK:
 CLOCK: [2026-09-22 Tue 16:34]--[2026-09-22 Tue 16:36] =>  0:02
 - [2026-09-22 Tue 16:34]--[2026-09-22 Tue 16:36] re-measure the note argument against both paths
+- State "DONE"       from "TODO"       [2026-09-28 Mon 08:24] \\
+  verified on both paths
 :END:
 
 *Split out of [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]] on
@@ -5450,7 +5490,6 @@ half the other does not hold.
 =org_capture='s =note= is recorded on both paths, verified 2026-09-28: a direct
 capture writes it as the heading's body, and a deferred one carries it on the
 queued event and writes it at apply.
-
 
 
 * TODO claude-code-ide-org-review should return point and windows to where I entered from :code:
@@ -7637,7 +7676,8 @@ ever have collected it. See/
 [[id:ff92700e-1713-4862-a3fe-8fd972ad96fa][ff92700e]]./
 
 
-* TODO Codify the next-session prompt format, starting with a per-item decision marker :code:
+* CANCELLED Codify the next-session prompt format, starting with a per-item decision marker :code:
+CLOSED: [2026-09-28 Mon 08:30]
 :PROPERTIES:
 :CATEGORY: Skill
 :ID:       c10bfb15-d0c7-47c0-b482-e944558711e9
@@ -7650,6 +7690,8 @@ CLOCK: [2026-08-21 Fri 14:02]--[2026-08-21 Fri 14:06] =>  0:04
 - [2026-08-21 Fri 14:02]--[2026-08-21 Fri 14:06] assigned at review
 CLOCK: [2026-08-21 Fri 14:13]--[2026-08-21 Fri 14:24] =>  0:11
 - [2026-08-21 Fri 14:13]--[2026-08-21 Fri 14:24] assigned at review
+- State "CANCELLED"  from "TODO"       [2026-09-28 Mon 08:30] \\
+  overtaken: next-session.md is static and decisions live in member :PLAN: drawers
 :END:
 
 The =/next-session= idiom is used but not codified. One line outside the file
@@ -7707,7 +7749,6 @@ Cancelled 2026-09-28: overtaken. =next-session.md= has been static since
 2026-09-21, naming no slice and pointing at the slice's =:PLAN:=, and each
 member's decisions live in its own =:PLAN:=. An undecided one goes to the user
 before its step, so the per-item decision marker has nothing left to mark.
-
 
 
 * TODO Open today's node
@@ -8200,7 +8241,8 @@ heading put the evidence on screen, and this one would capture the
 conclusion the human draws from it — but neither requires the other.
 
 
-* TODO Bracket queued spans with WAIT transitions, so the heading guess stops latching :code:
+* CANCELLED Bracket queued spans with WAIT transitions, so the heading guess stops latching :code:
+CLOSED: [2026-09-28 Mon 08:30]
 :PROPERTIES:
 :CATEGORY: Queue
 :ID:       d1cf852a-696a-4195-a4a7-039439c1f4b7
@@ -8221,6 +8263,8 @@ CLOCK: [2026-08-14 Fri 08:49]--[2026-08-14 Fri 08:59] =>  0:10
 - [2026-08-14 Fri 08:49]--[2026-08-14 Fri 08:59] suggested span, accepted at review
 CLOCK: [2026-08-14 Fri 09:02]--[2026-08-14 Fri 09:04] =>  0:02
 - [2026-08-14 Fri 09:02]--[2026-08-14 Fri 09:04] suggested span, accepted at review
+- State "CANCELLED"  from "TODO"       [2026-09-28 Mon 08:30] \\
+  twice overtaken; its residue absorbed into 3485b0d0
 :END:
 :PLAN:
 
@@ -8289,7 +8333,6 @@ up.
 Cancelled 2026-09-28. Both of its mechanisms shipped under other headings, and
 its one residue, a session ending on =DOING= that latches the heading guess, is
 carried by [[id:3485b0d0-3b47-4a28-ae6f-e2061fa8f226][3485b0d0]].
-
 
 
 * TODO Re-measure the guidepost gap threshold against a month of queue data :code:research:
@@ -9881,11 +9924,16 @@ or just cross-referenced as they are now.
 *Decided by the user, 2026-09-19: keep the practice.* Sessions commit their own captures and bookkeeping, unasked, as they have been. The retirement recommended two paragraphs up is withdrawn, and with it the claim that an uncommitted capture is an approval window — approval is after the fact, on a small commit named for the heading. What this heading still owes is therefore narrow: the safety predicate written down where a session will meet it (only the touched =.org= files staged, never mid-rebase or mid-merge, =git diff --stat= first so a human's apply pass is not swept in), since today it lives only in habit and in =next-session.md='s standing rules.
 
 
-* MAYBE Make org-blocker-hook actually consult :BLOCKER: :code:
+* CANCELLED Make org-blocker-hook actually consult :BLOCKER: :code:
+CLOSED: [2026-09-28 Mon 08:24]
 :PROPERTIES:
 :CATEGORY: Tools
 :ID:       087e73e9-bb24-43b6-a972-b7f103d04017
 :CREATED:  [2026-08-04 Tue 17:46]
+:END:
+:LOGBOOK:
+- State "CANCELLED"  from "MAYBE"      [2026-09-28 Mon 08:24] \\
+  obsolete: org-depend-block-todo already consults :BLOCKER: on org-blocker-hook
 :END:
 [[file:~/.claude/plans/blocker-hook-enforcement.md][Plan]]
 
@@ -9945,7 +9993,6 @@ this project may only need one direction enforced.
 
 Cancelled 2026-09-28 as obsolete: =org-depend-block-todo= already sits on
 =org-blocker-hook= and refuses =DONE= while =:BLOCKER:= names unfinished work.
-
 
 
 * TODO Nothing checks a request against open work in either direction, so a dependency is found only when it bites :code:
@@ -10451,6 +10498,7 @@ call it done.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-09-28 Mon 08:48]--[2026-09-28 Mon 08:50] =>  0:02
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
@@ -11901,4 +11949,33 @@ CLOCK: [2026-09-28 Mon 07:47]--[2026-09-28 Mon 07:51] =>  0:04
 - [2026-09-28 Mon 07:47]--[2026-09-28 Mon 07:51] trim ten closed bodies to statement and resolution
 CLOCK: [2026-09-28 Mon 07:55]--[2026-09-28 Mon 07:56] =>  0:01
 - [2026-09-28 Mon 07:55]--[2026-09-28 Mon 07:56] trim ten closed bodies to statement and resolution
+- [2026-09-28 Mon 07:56]--[2026-09-28 Mon 08:01] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-28 Mon 08:01]--[2026-09-28 Mon 08:02] =>  0:01
+- [2026-09-28 Mon 08:01]--[2026-09-28 Mon 08:02] trim 381ea07d
+CLOCK: [2026-09-28 Mon 08:03]--[2026-09-28 Mon 08:04] =>  0:01
+- [2026-09-28 Mon 08:03]--[2026-09-28 Mon 08:04] assigned at review
+CLOCK: [2026-09-28 Mon 08:06]--[2026-09-28 Mon 08:11] =>  0:05
+- [2026-09-28 Mon 08:06]--[2026-09-28 Mon 08:11] assigned at review
+CLOCK: [2026-09-28 Mon 08:11]--[2026-09-28 Mon 08:12] =>  0:01
+- [2026-09-28 Mon 08:11]--[2026-09-28 Mon 08:12] widen c7619140 with the evidence inputs
+CLOCK: [2026-09-28 Mon 08:12]--[2026-09-28 Mon 08:13] =>  0:01
+- [2026-09-28 Mon 08:12]--[2026-09-28 Mon 08:13] assigned at review
+CLOCK: [2026-09-28 Mon 08:15]--[2026-09-28 Mon 08:16] =>  0:01
+- [2026-09-28 Mon 08:15]--[2026-09-28 Mon 08:16] assigned at review
+CLOCK: [2026-09-28 Mon 08:22]--[2026-09-28 Mon 08:23] =>  0:01
+- [2026-09-28 Mon 08:22]--[2026-09-28 Mon 08:23] assigned at review
+CLOCK: [2026-09-28 Mon 08:23]--[2026-09-28 Mon 08:27] =>  0:04
+- [2026-09-28 Mon 08:23]--[2026-09-28 Mon 08:27] act on the backlog survey: fits, closes, slices A and D
+CLOCK: [2026-09-28 Mon 08:27]--[2026-09-28 Mon 08:28] =>  0:01
+- [2026-09-28 Mon 08:27]--[2026-09-28 Mon 08:28] assigned at review
+CLOCK: [2026-09-28 Mon 08:28]--[2026-09-28 Mon 08:30] =>  0:02
+- [2026-09-28 Mon 08:28]--[2026-09-28 Mon 08:30] absorbs and cancellations from the backlog survey
+CLOCK: [2026-09-28 Mon 08:30]--[2026-09-28 Mon 08:31] =>  0:01
+- [2026-09-28 Mon 08:30]--[2026-09-28 Mon 08:31] assigned at review
+CLOCK: [2026-09-28 Mon 08:31]--[2026-09-28 Mon 08:32] =>  0:01
+- [2026-09-28 Mon 08:31]--[2026-09-28 Mon 08:32] file the pre-commit plans/ snapshot defect
+CLOCK: [2026-09-28 Mon 08:32]--[2026-09-28 Mon 08:43] =>  0:11
+- [2026-09-28 Mon 08:32]--[2026-09-28 Mon 08:43] assigned at review
+CLOCK: [2026-09-28 Mon 08:49]--[2026-09-28 Mon 08:50] =>  0:01
+- [2026-09-28 Mon 08:49]--[2026-09-28 Mon 08:50] root-cause unattributed spans, file discipline fix
 :END:

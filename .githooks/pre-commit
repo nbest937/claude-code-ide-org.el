@@ -118,6 +118,16 @@ staged="$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^(TODO|DON
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
+# The plan archive beside the copies (TODO.org :ID: 634eb138). A plan that
+# has aged out of ~/.claude/plans is recorded by its copy in plans/, and
+# the lint accepts it by looking beside the file it lints -- which here is
+# this temp dir. Without the link, every archived plan still linked from a
+# heading blocked every commit on the day it aged out. The STAGED archive,
+# exported from the index as guard 2 exports its scratch tree: a plan in
+# the working copy but never staged is not in the commit, and a fresh
+# clone would fail on it once the source ages out (PR #32 review).
+git ls-files -- plans | git checkout-index --prefix="$tmp/" --stdin 2>/dev/null
+
 # Lint the staged content of everything staged, plus the *worktree* copy
 # of the rest of the tracked set as context. Both halves matter: without
 # the staged versions the check describes the wrong tree, and without the
