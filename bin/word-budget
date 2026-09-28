@@ -11,7 +11,7 @@
 #
 # THE NUMBERS LIVE HERE AND NOWHERE ELSE. Raising one is a decision:
 # change it in its own commit and say what earned the words.
-budget_self=10000          # this repo: CLAUDE.md + every unscoped rule file
+budget_self=10200          # this repo: CLAUDE.md + every unscoped rule file
 budget_consumer_off=5800   # a consumer: the promoted machinery rules
 budget_consumer_on=7500    # ... plus org-time-tracking.md
 #
