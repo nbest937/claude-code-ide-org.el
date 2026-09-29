@@ -18,6 +18,7 @@ was run under TZ=America/Chicago. Proposed: bin/test pins TZ itself, or the
 fixtures stop depending on the local zone; pinning is one line, and the other is
 the honest fix.
 
+
 * TODO Retire org_wrap_plan once no mixed body can arrive, or first generalise it to move a debrief :code:
 :PROPERTIES:
 :ID:       80aeb955-cf44-4990-8c7f-be7759fb05ec
@@ -55,6 +56,7 @@ this tool as the fix, and the backfill clause sends live pre-convention headings
 through it. Proposed: retire it once fce6bd35's lint stops mixed bodies arriving
 and those 53 are cleared, unless e128e4fa first wants its lossless two-insertion
 move generalised to :DEBRIEF:. Details in :PLAN:.
+
 
 * REVIEW pre-commit lints a temp copy with no plans/ beside it, so every archived plan that ages out blocks every commit :code:observed:
 :PROPERTIES:
@@ -2998,7 +3000,7 @@ than queueing; and it retires =org_amend= in the same move, carried by
 four children in order.
 
 
-** NEXT org_edit: replace one occurrence in a heading's body or plan, append, or rewrite the region, behind guards :code:
+** REVIEW org_edit: replace one occurrence in a heading's body or plan, append, or rewrite the region, behind guards :code:
 :PROPERTIES:
 :ID:       704d8558-657b-43e2-9440-1c054c923ed2
 :CREATED:  [2026-09-23 Wed 10:34]
@@ -3006,6 +3008,18 @@ four children in order.
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-24 Thu 19:58] \\
   where the org_edit story starts
+CLOCK: [2026-09-28 Mon 14:10]--[2026-09-28 Mon 14:11] =>  0:01
+- [2026-09-28 Mon 14:10]--[2026-09-28 Mon 14:11] assigned at review
+CLOCK: [2026-09-28 Mon 14:12]--[2026-09-28 Mon 14:13] =>  0:01
+- [2026-09-28 Mon 14:12]--[2026-09-28 Mon 14:13] assigned at review
+CLOCK: [2026-09-28 Mon 14:16]--[2026-09-28 Mon 14:20] =>  0:04
+- [2026-09-28 Mon 14:16]--[2026-09-28 Mon 14:20] assigned at review
+- State "DOING"      from "NEXT"       [2026-09-28 Mon 17:15] \\
+  user: build org_edit before the 6521dd56 writer members
+CLOCK: [2026-09-28 Mon 17:30]--[2026-09-28 Mon 17:33] =>  0:03
+- [2026-09-28 Mon 17:30]--[2026-09-28 Mon 17:33] implement org_edit and its guards
+- State "REVIEW"     from "DOING"      [2026-09-28 Mon 17:33] \\
+  PR 33 open; MCP path untested until reconnect
 :END:
 
 The new tool, with =id=, =old_string=, =new_string= and an optional =drawer=, over the heading's body or its =:PLAN:= or =:DEBRIEF:=. An empty =old_string= appends, a unique one is replaced, and the region's full text rewrites it. It carries the guards in the parent's =:PLAN:=, and each refusal test is shown to fail with its guard removed. It ships beside =org_amend=, which the third sibling retires.
@@ -3019,7 +3033,6 @@ names the kind of change instead of echoing text. *A known limit:* a bare star
 line (=***= alone) inside a block is refused rather than escaped, because
 =--escape-block-headlines= only escapes a star run followed by a space while the
 refusal also catches the bare form. Rare, and it fails safe.
-
 
 
 ** TODO org_edit refuses an unsaved buffer, asks for the save in a header line, and the agent waits on it :code:
@@ -3756,6 +3769,12 @@ report's contract. Shapes and constraints in =:PLAN:=.
 :LOGBOOK:
 - Tags ":code:arch:" from ":code:"     [2026-09-28 Mon 13:01] \\
   classified: changes where several writers insert drawers, plus consolidator and ceremony report
+CLOCK: [2026-09-28 Mon 14:08]--[2026-09-28 Mon 14:10] =>  0:02
+- [2026-09-28 Mon 14:08]--[2026-09-28 Mon 14:10] brainstorm: critical read of the drawer-order plan
+CLOCK: [2026-09-28 Mon 14:21]--[2026-09-28 Mon 14:23] =>  0:02
+- [2026-09-28 Mon 14:21]--[2026-09-28 Mon 14:23] brainstorm continues; file the wrap_plan retirement heading
+CLOCK: [2026-09-28 Mon 17:14]--[2026-09-28 Mon 17:15] =>  0:01
+- [2026-09-28 Mon 17:14]--[2026-09-28 Mon 17:15] brainstorm continues; file the wrap_plan retirement heading
 :END:
 :PLAN:
 Proposed by the user 2026-09-10, pushback invited and none owed — the
@@ -3895,6 +3914,15 @@ sequence.
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-27 Sun 18:12] \\
   nominated: blocks 2b8930da, which gates euchre
+CLOCK: [2026-09-28 Mon 12:43]--[2026-09-28 Mon 12:44] =>  0:01
+- [2026-09-28 Mon 12:43]--[2026-09-28 Mon 12:44] assigned at review
+CLOCK: [2026-09-28 Mon 12:48]--[2026-09-28 Mon 12:49] =>  0:01
+- [2026-09-28 Mon 12:48]--[2026-09-28 Mon 12:49] assigned at review
+- [2026-09-28 Mon 14:00]--[2026-09-28 Mon 14:00] assigned at review
+CLOCK: [2026-09-28 Mon 14:02]--[2026-09-28 Mon 14:03] =>  0:01
+- [2026-09-28 Mon 14:02]--[2026-09-28 Mon 14:03] assigned at review
+CLOCK: [2026-09-28 Mon 14:06]--[2026-09-28 Mon 14:07] =>  0:01
+- [2026-09-28 Mon 14:06]--[2026-09-28 Mon 14:07] assigned at review
 :END:
 :PLAN:
 The notes should use org: live links instead of inert citations, drawers instead
@@ -7220,12 +7248,12 @@ before the fix and still says.
 
 
 * TODO Archive closed tasks daily
-SCHEDULED: <2026-09-29 Tue 07:00 ++1d>
+SCHEDULED: <2026-09-30 Wed 07:00 ++1d>
 :PROPERTIES:
 :CATEGORY: Meta
 :ID:       cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8
 :CREATED:  [2026-08-21 Fri 15:35]
-:LAST_REPEAT: [2026-09-28 Mon 07:34]
+:LAST_REPEAT: [2026-09-29 Tue 16:44]
 :END:
 :LOGBOOK:
 CLOCK: [2026-08-24 Mon 10:25]--[2026-08-24 Mon 10:28] =>  0:03
@@ -10025,6 +10053,7 @@ CLOCK: [2026-09-28 Mon 08:48]--[2026-09-28 Mon 08:50] =>  0:02
 CLOCK: [2026-09-28 Mon 09:48]--[2026-09-28 Mon 09:49] =>  0:01
 - <2026-09-28 Mon 09:48>--<2026-09-28 Mon 09:49> review pass (buffer buried)
 CLOCK: [2026-09-28 Mon 11:34]--[2026-09-28 Mon 11:36] =>  0:02
+CLOCK: [2026-09-29 Tue 16:41]--[2026-09-29 Tue 16:44] =>  0:03
 :END:
 
 We created this heading on 2026-08-26. We deleted that property from its
@@ -11348,4 +11377,10 @@ CLOCK: [2026-09-28 Mon 11:28]--[2026-09-28 Mon 11:30] =>  0:02
 - [2026-09-28 Mon 11:28]--[2026-09-28 Mon 11:30] assigned at review
 CLOCK: [2026-09-28 Mon 11:30]--[2026-09-28 Mon 11:33] =>  0:03
 - [2026-09-28 Mon 11:30]--[2026-09-28 Mon 11:33] ship three session rulings into the plugin conventions
+CLOCK: [2026-09-28 Mon 12:36]--[2026-09-28 Mon 12:37] =>  0:01
+- [2026-09-28 Mon 12:36]--[2026-09-28 Mon 12:37] root-cause unattributed spans, file discipline fix
+CLOCK: [2026-09-28 Mon 14:01]--[2026-09-28 Mon 14:02] =>  0:01
+- [2026-09-28 Mon 14:01]--[2026-09-28 Mon 14:02] classify and sequence 6521dd56 members for brainstorming
+CLOCK: [2026-09-28 Mon 14:08]--[2026-09-28 Mon 14:09] =>  0:01
+- [2026-09-28 Mon 14:08]--[2026-09-28 Mon 14:09] rewrite 6521dd56 slice plan
 :END:
