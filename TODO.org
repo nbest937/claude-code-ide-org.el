@@ -2877,16 +2877,18 @@ cheapest defence against invented arguments (=bbf9fb77=). There is no
 would be the miss counter, which reads who caught a miss from the line
 itself instead.
 
-*The contract.* The region is the heading's own body, below its drawers
-and above its first child, or with =drawer= set to =PLAN= or =DEBRIEF=,
-the inside of that drawer. An empty =old_string= appends =new_string= at
-the end of the region, creating the drawer when absent, and a list item
-continues a list as it does today. A non-empty =old_string= must occur
-exactly once in the region and is replaced. If it is absent, the call is
-refused naming it; if it occurs more than once, it is refused with the
-count. A whole-region rewrite is the case where =old_string= is the
-region's full text. It takes no flag and needs no commit first, because
-the replaced text travels in the call and the reply echoes what changed.
+*The contract.* The region is the heading's own body, below its drawers and
+above its first child, or with =drawer= set to =PLAN= or =DEBRIEF=, the inside
+of that drawer. An empty =old_string= appends =new_string= at the end of the
+region, creating the drawer when absent, and a list item continues a list as it
+does today. A non-empty =old_string= must occur exactly once in the region and
+is replaced. If it is absent, the call is refused naming it; if it occurs more
+than once, it is refused with the count. A whole-region rewrite is the case
+where =old_string= is the region's full text. It takes no flag and needs no
+commit first, because the replaced text travels in the call. The reply names the
+kind of change and does not echo the text, which the caller already holds;
+echoing it would spend the tokens the tool exists to save (as built, 704d8558,
+2026-09-28).
 
 *The guards*, which refuse even when the text is found once. A match
 counts only inside the region, so one spanning into a drawer or a child
@@ -3024,15 +3026,22 @@ CLOCK: [2026-09-28 Mon 17:30]--[2026-09-28 Mon 17:33] =>  0:03
 
 The new tool, with =id=, =old_string=, =new_string= and an optional =drawer=, over the heading's body or its =:PLAN:= or =:DEBRIEF:=. An empty =old_string= appends, a unique one is replaced, and the region's full text rewrites it. It carries the guards in the parent's =:PLAN:=, and each refusal test is shown to fail with its guard removed. It ships beside =org_amend=, which the third sibling retires.
 
-*Two helpers to call, from [[id:b52df20b-45c7-41aa-9d77-44ccf06c647f][b52df20b]] (the user, 2026-09-25).* =org_edit= fills what it writes with =claude-code-ide-org--fill-prose-text=, as =org_amend= does, or new prose goes back to arriving as one long line. Its guard on a headline-shaped =new_string= uses =claude-code-ide-org--glued-headline-p=, which catches a =* KEYWORD= token mid-line, where a glued heading actually sits, and not only at column zero.
+*Two helpers to call, from [[id:b52df20b-45c7-41aa-9d77-44ccf06c647f][b52df20b]] (the user, 2026-09-25).* =org_edit= fills
+what it writes with =claude-code-ide-org--fill-prose-text=, as =org_amend= does,
+or new prose goes back to arriving as one long line. It is applied to the
+paragraphs a replacement touches, not to =new_string= alone, so a mid-paragraph
+edit is not left ragged (as built, 2026-09-28). Its guard on a headline-shaped
+=new_string= uses =claude-code-ide-org--glued-headline-p=, which catches a =*
+KEYWORD= token mid-line, where a glued heading actually sits, and not only at
+column zero.
 
-Built on =feature/org-edit=, PR #33 (2026-09-28). Two departures from dd4b9a9f's
-plan, to be written into that drawer with =org_edit= itself: the fill covers the
-paragraphs a replacement touches rather than =new_string= alone, and the reply
-names the kind of change instead of echoing text. *A known limit:* a bare star
-line (=***= alone) inside a block is refused rather than escaped, because
-=--escape-block-headlines= only escapes a star run followed by a space while the
-refusal also catches the bare form. Rare, and it fails safe.
+Built on =feature/org-edit=, PR #33 (2026-09-28). Its one departure from
+dd4b9a9f's plan, a reply that names the kind of change instead of echoing text,
+is written into that drawer by the first call =org_edit= made through MCP
+(2026-09-29). *A known limit:* a bare star line (=***= alone) inside a block is
+refused rather than escaped, because =--escape-block-headlines= only escapes a
+star run followed by a space while the refusal also catches the bare form. Rare,
+and it fails safe.
 
 
 ** TODO org_edit refuses an unsaved buffer, asks for the save in a header line, and the agent waits on it :code:
