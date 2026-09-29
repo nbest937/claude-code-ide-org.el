@@ -3786,49 +3786,89 @@ CLOCK: [2026-09-28 Mon 17:14]--[2026-09-28 Mon 17:15] =>  0:01
 - [2026-09-28 Mon 17:14]--[2026-09-28 Mon 17:15] brainstorm continues; file the wrap_plan retirement heading
 :END:
 :PLAN:
-Proposed by the user 2026-09-10, pushback invited and none owed — the
-order is the org-stable one. =:PROPERTIES:= first is org's own hard
-requirement, and =:LOGBOOK:= second matches where org's native
-logging *creates* the drawer when absent (right after the property
-drawer — verify against the live =org-log-beginning= before building,
-rather than trusting this sentence); any order putting =:PLAN:= ahead
-of =:LOGBOOK:= would have the normalizer fighting org's writer
+Proposed by the user 2026-09-10, pushback invited and none owed — the order is
+the org-stable one. =:PROPERTIES:= first is org's own hard requirement, and
+=:LOGBOOK:= second matches where org's native logging *creates* the drawer when
+absent (right after the property drawer, even above a =:PLAN:= already there:
+observed 2026-09-28 on this heading, whose =:LOGBOOK:= was created by
+=org_set_tags= after its =:PLAN:= and landed above it); any order putting
+=:PLAN:= ahead of =:LOGBOOK:= would have the normalizer fighting org's writer
 forever. =:PLAN:= then =:DEBRIEF:= reads as lifecycle order, and
-drawers-then-body makes the body one contiguous region at the entry's
-tail, which simplifies every positional tool at once: =org_amend='s
-body append, =org_wrap_plan='s seam arithmetic, and
-=--outline-body-at-point= (whose =org-end-of-meta-data FULL= skip is
-only correct when the drawers are contiguous at the top — a
-below-body drawer would leak into the outline's body carriage).
+drawers-then-body makes the body one contiguous region at the entry's tail,
+which simplifies every positional tool at once: =org_amend='s body append,
+=org_wrap_plan='s seam arithmetic, and =--outline-body-at-point= (whose
+=org-end-of-meta-data FULL= skip is only correct when the drawers are contiguous
+at the top — a below-body drawer would leak into the outline's body carriage).
 
-*The corpus is already self-inconsistent, measured 2026-09-10:*
-=c7bf2121= renders PROPERTIES, DEBRIEF, LOGBOOK, body while
-=85d24dba= renders PROPERTIES, LOGBOOK, DEBRIEF, body — same
-convention, same day, two orders — likely because =org_amend= creates
-a missing drawer right after the property drawer regardless of an
-existing =:LOGBOOK:=, and consolidate-on-apply then reorders only
-what it knows. And the =:DEBRIEF:= convention *documents* "created
-when absent, below the body", which neither heading exhibits and this
-canon reverses — that sentence dies in the same change.
+*The corpus is already self-inconsistent, measured 2026-09-10:* =c7bf2121=
+renders PROPERTIES, DEBRIEF, LOGBOOK, body while =85d24dba= renders PROPERTIES,
+LOGBOOK, DEBRIEF, body — same convention, same day, two orders — because
+=org_amend= creates a missing drawer directly after the property drawer, above
+any =:LOGBOOK:= or =:PLAN:= already there (tested 2026-09-28 in a scratch
+buffer, org 9.8.7), so a heading's drawers stand in reverse order of creation.
+Nothing reorders drawers against one another: the consolidator sorts only the
+entries inside =:LOGBOOK:=. Tallied over both files 2026-09-28: one heading in
+DONE.org has the canonical order, 108 put =:DEBRIEF:= before =:PLAN:=, and 17
+across the two files put =:PLAN:= above =:LOGBOOK:=. And the =:DEBRIEF:=
+convention *documents* "created when absent, below the body", which neither
+heading exhibits and this canon reverses — that sentence dies in the same
+change.
 
-*The work, four parts:* (1) =org_amend='s drawer creation inserts at
-the canonical position (PLAN after LOGBOOK when present, DEBRIEF
-after PLAN/LOGBOOK); (2)
-=claude-code-ide-org-consolidate-all-drawers= learns the full
-four-drawer order, which gives corpus normalization for free at the
-ceremony; (3) the shipped conventions state the canon and drop the
-below-body sentence; (4) the ceremony's drawers-out-of-order report
-checks against the same canon, so drift is named where it is already
-looked for. Check what the consolidator currently enforces before
-extending it.
+*The design*, approved in chat by the user 2026-09-28, replacing a four-part
+list that had each writer learn an insertion point and the consolidator learn
+the order.
+
+*One normaliser, the only code that knows the order.* A per-heading function
+reads the heading's own drawers with =org-element=, so a drawer-shaped line
+inside an example block is left alone. It lifts all four and reinserts them,
+=:PROPERTIES:= first, directly after the headline and planning line, leaving
+the body's text in its own order below them; that also repairs the one heading
+whose =:LOGBOOK:= sits below its body. It is lossless by check: the heading's
+lines, sorted, must be equal before and after, and on any difference it signals
+and writes nothing. It is idempotent. A heading with two drawers of one name is
+reported and skipped: DONE.org has two with a doubled =:LOGBOOK:=, which
+predate this and are not its to merge.
+
+*Called on creation, by every writer that creates a drawer* (the user,
+2026-09-28), instead of teaching each writer an insertion point:
+=--amend-into-drawer= when it returns =created=, which =org_edit= shares, and
+=org_wrap_plan= after it wraps. Not on every append, so an append writes
+nothing it did not ask for. =org_wrap_plan= therefore stays two lossless
+insertions until 80aeb955 retires it.
+
+*The corpus pass and the lint, in one change* (the user chose this over a
+ceremony step, 2026-09-28). A command maps the normaliser over the tracked
+files, dry-running by default interactively as its siblings do and reporting
+counts; it runs once, beside a =bin/lint-org= error naming the order it found.
+Once the writers are right only a hand edit can disorder a heading, and a lint
+names it at the commit that made it, where a daily repair would hide it.
+Without the one-off pass the lint would block every commit over DONE.org's
+disordered headings, the trap 634eb138 describes.
+
+*Prose.* The shipped conventions state the canon, drop the "created when
+absent, below the body" sentence, and name the normaliser and the lint in one
+sentence. The ceremony gains no step, and its existing count keeps its
+meaning: it counts entry order inside =:LOGBOOK:=, which is a different thing.
+
+*Sequencing.* e128e4fa's relocation pass would create 88 more headings with
+=:DEBRIEF:= first if it ran before this lands, so it takes =:BLOCKER:=
+d350ff5b, and its plan's claim that =org_amend= already writes canonically is
+corrected.
+
+*Tests (ERT).* Every order the tally found normalises to canon, and a second
+run changes nothing. The losslessness refusal fires. A duplicate drawer is
+skipped. The example-block decoy is untouched. =org_amend= creating a
+=:DEBRIEF:= on a heading with PROPERTIES, LOGBOOK and PLAN comes out canonical,
+and so does =org_wrap_plan= on a heading that already has a =:DEBRIEF:=. Each
+test fails with the normaliser call removed.
 :END:
 
-Headings render their drawers in whatever order their writers
-happened to produce — two same-day closes already disagree — and the
-documented =:DEBRIEF:= position contradicts both. Adopt PROPERTIES,
-LOGBOOK, PLAN, DEBRIEF, body as canon: writers insert at the right
-place, the consolidator repairs the corpus, the conventions and the
-ceremony's order report say the same thing. Analysis in =:PLAN:=.
+A heading's drawers stand in reverse order of creation, because =org_amend=
+creates each directly after =:PROPERTIES:=: 108 finished headings put
+=:DEBRIEF:= before =:PLAN:=, and the conventions document a position nothing
+uses. Adopt PROPERTIES, LOGBOOK, PLAN, DEBRIEF, then body, kept by one
+per-heading normaliser that every drawer-creating writer calls, a one-off
+corpus pass, and a lint error. Design in =:PLAN:=.
 
 
 * TODO Revisit the story definition: sanction clustering and speculative breakdown :code:bounded:
@@ -4953,6 +4993,7 @@ body was the only honest route, exactly as that heading concluded.
 :PROPERTIES:
 :ID:       e128e4fa-b0d9-49f7-99eb-bae2d4b0676b
 :CREATED:  [2026-09-08 Tue 16:12]
+:BLOCKER:  d350ff5b-3b1f-465e-800b-962264d2e841
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-08 Tue 16:12] \\
@@ -5012,13 +5053,14 @@ body, so a wrong one displaces the record rather than sitting beside it.
 Condensation is the pare no later reader catches. So: relocate first and
 wholesale, author in reviewable batches, condense last and separately.
 
-*Checked at the same time and needing nothing:* whether
-[[id:d350ff5b-3b1f-465e-800b-962264d2e841][d350ff5b]] must precede this. It need
-not. =org_amend drawer=DEBRIEF= already writes the drawer in canonical position
-— verified on =496b665e=, whose order is =:PROPERTIES:=, =:LOGBOOK:=, =:PLAN:=,
-=:DEBRIEF:=, then body — so this pass creates no disorder for that one to clean
-up, and the two are independent in either order. The slice lists =d350ff5b=
-earlier, which is sequence rather than dependency; no =:BLOCKER:= is warranted.
+*[[id:d350ff5b-3b1f-465e-800b-962264d2e841][d350ff5b]] must land first, and blocks this.* =org_amend
+drawer=DEBRIEF= creates the drawer directly after =:PROPERTIES:=, above any
+=:LOGBOOK:= and =:PLAN:=, so run now this pass would write 88 headings with
+=:DEBRIEF:= first (tested 2026-09-28 in a scratch buffer; 108 finished headings
+already have that shape). An earlier check here concluded the two were
+independent from one specimen, =496b665e=, which is the single canonical
+heading in DONE.org rather than the rule. With d350ff5b's normaliser called on
+drawer creation, every drawer this pass creates lands in canonical order.
 
 *=2a6a1355= is exempt from this pass, in all three stages* (the user,
 2026-09-23). Its body was kept long on purpose: 3,707 words in which one
