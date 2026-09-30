@@ -34109,7 +34109,7 @@ CLOCK: [2026-08-26 Wed 15:46]--[2026-08-26 Wed 15:50] =>  0:04
 - State "DONE"       from "DOING"      [2026-08-26 Wed 15:50] \\
   refresher inserts, lint asserts, 979e02b6 healed
 :END:
-
+:DEBRIEF:
 *Found by the user 2026-08-26*, noticing that
 [[id:979e02b6-2a4c-4328-8b08-ffaec03bd02e][979e02b6]] carried no statistics
 cookie, and asking that this become part of slice creation and validation
@@ -34155,6 +34155,11 @@ was previously an inline literal in one place.
 tags, since org requires tags to end the headline. =org-edit-headline= handles
 that; writing it at the end of the raw line would have produced =... :code:
 [/]=, which org does not read as a cookie.
+:END:
+
+The slice refresh now inserts a [/] cookie when a slice has none before updating
+it, with a second bin/lint-org clause as backstop and the cookie regexp shared
+as a defconst.
 
 
 
