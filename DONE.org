@@ -31700,7 +31700,7 @@ CLOSED: [2026-08-27 Thu 07:32]
 - State "DONE"       from              [2026-08-27 Thu 07:32] \\
   retcon: shipped 94b3985 2026-08-27 07:32
 :END:
-
+:DEBRIEF:
 *Retconned [2026-08-27 Thu]; shipped [2026-08-27 Thu 07:32] as
 [[orgit-rev:claude-code-ide-org::94b3985][94b3985]].*
 
@@ -31730,6 +31730,11 @@ unresolvable link was accepted silently. And the second rescan was initially
 unproven, no fixture reaching it; rather than delete it, a fixture with the
 honest shape was added -- a file org never visited, an index that has never seen
 it.
+:END:
+
+Shipped in commit =94b3985=: prefix expansion reads org's in-memory
+org-id-locations instead of re-reading every tracked file, about 23,000x faster
+and a strict superset, rescanning once on a miss.
 
 
 ***** DONE Convert plain-text id workarounds left by the unresolvable-prefix era :code:
