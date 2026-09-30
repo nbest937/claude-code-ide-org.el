@@ -17849,6 +17849,7 @@ Done-when is sharper than what was checked, and it is this heading's
 call to make. Left open.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-09-02.* The open-a-clock rule now carries a second
 exception beside the retroactive one, and it states both halves in the
 same place, which is what the Done-when asked and what neither location
@@ -17882,6 +17883,12 @@ would have looked like scope creep to anyone matching the old text.
 called this item *closed* on the strength of the grouping paragraph
 alone, without running the =Verify= line or reading the scope
 correction. It was open, and this heading owned the judgement.
+:END:
+
+Shipped 2026-09-02: the open-a-clock rule now states the grouping exception
+beside the retroactive one, with its hand-edit-only scope, joining two
+paragraphs that were already true. The apply-path guard ordering was verified in
+the code.
 
 
 ***** DONE The NEXT-nomination rule was taken on as scope and never written :code:
