@@ -32228,6 +32228,7 @@ conditional clock rules there are its consequence.
 -----
 
 :END:
+:DEBRIEF:
 *Debrief.* =PLANNING= was retired 2026-08-28 on measurement, and the rest of the
 progression was left standing.
 
@@ -32279,6 +32280,12 @@ consumer. Left with a note rather than removed in the same commit, because that
 script is on the path of every hook and an unrelated edit to the queue writer is
 a worse risk than a dead branch. Proposals 2 and 3 above, and the "review"
 collision, are unadopted and filed separately.
+:END:
+
+The PLANNING keyword was retired on measurement, having appeared in 7 of 432
+state changes, and removed from both #+TODO: lines, the hooks, triggers and
+docs. Nothing replaced it, deliberately; the rest of the keyword progression was
+left standing.
 
 
 
