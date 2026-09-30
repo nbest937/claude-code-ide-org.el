@@ -50883,9 +50883,12 @@ CLOSED: [2026-07-29 Wed 05:57]
 :END:
 :LOGBOOK:
 :END:
+:PLAN:
 Structural manipulation, lower priority than org_query — nice to
 have, nothing currently needs it.
 
+:END:
+:DEBRIEF:
 No major open question — the most mechanical item here, and it was
 implemented exactly as planned. 6 ERT tests added (alpha/todo-order
 sort, unknown-sort-type error, move up/down round-trip, boundary
@@ -50894,6 +50897,11 @@ merge: the first draft's sort-children-todo-order test happened to
 have alpha order and todo-keyword order agree, which would have let a
 mis-wired sort-type mapping pass silently — fixed by choosing names/
 keywords that disagree. =bin/test= 39/39 at merge.
+:END:
+
+Implemented exactly as planned with six tests; a sort test whose alphabetical
+and keyword orders coincided was fixed before merge so it could catch a
+mis-wired sort type.
 
 
 
