@@ -20800,6 +20800,7 @@ argument — a member-add path through Emacs would have collided
 harmlessly and queued instead.
 
 :END:
+:DEBRIEF:
 *Debrief, 2026-09-08.* Shipped on =feature/org-amend-targets=
 (=b1c5541=), with =501a8422= in the same commit — one edit to one
 function, as the slice sequenced it. The fix is **detection**, the
@@ -20819,6 +20820,11 @@ list keeps its blank line) fails against an always-continue mutation.
 *The member-add half is split out, not fixed*: an append reaches the
 end of a body, and the checklist sits mid-body. Filed as =9ae0e452=,
 carrying the buffer/disk-divergence cost this body recorded.
+:END:
+
+Shipped with =501a8422=: org_amend now detects a plain-list continuation and
+joins it with a single newline, and the member-add half was split out as
+=9ae0e452= rather than fixed.
 
 
 **** DONE One incidental lands in every open slice's window, and the cookies double-count it :code:
