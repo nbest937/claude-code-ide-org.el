@@ -12653,7 +12653,13 @@ CLOSED: [2026-09-16 Wed 18:34]
 PR #25 review, LOW, and broader than the finding. The legend named m/u, M/U, t, a, e, N, d, RET, T, s, x, g and q; the keymap also binds =c= (claim the envelope, added by =2deb090f=) and =?= (=claude-code-ide-org-review-help=). So the one key that would list the others was itself unlisted. The =c= omission defeats exactly the case =2deb090f= was built for — a human reading the legend keeps reaching for =e=, which is the hand-editing the new key exists to replace, and the user predicted they would "rarely if ever reach for =e=" the same day.
 
 :END:
+:DEBRIEF:
 *Resolved:* both keys added, and the legend's comment now records that it is a hand-maintained third copy of the binding table that nothing checks. Growing it to three lines broke a test that found "a blank line" by counting two lines from =point-min= — true only under a two-line legend — so that test was re-anchored on a search and now fails for its own reasons or not at all.
+:END:
+
+Both missing keys were added to the legend, with a comment noting it is an
+unchecked third copy of the binding table; a test that counted lines from
+=point-min= was re-anchored on a search.
 
 
 **** DONE footnote-check indents the lines it tells you to append, and the canonical form is flush-left :code:
