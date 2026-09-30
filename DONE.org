@@ -43432,6 +43432,7 @@ CLOCK: [2026-08-10 Mon 12:36]--[2026-08-10 Mon 12:45] =>  0:09
 - State "DONE"       from "DONE"       [2026-08-11 Tue 12:06] \\
   guard verified live, both branches
 :END:
+:PLAN:
 
 [[file:~/.claude/plans/temporal-wondering-sparrow.md][Plan]]
 
@@ -43479,6 +43480,8 @@ surfacing a mismatch in the review buffer — cheap, no new failure mode,
 and it makes the human's decision an informed one rather than a
 guess. Not started.
 
+:END:
+:DEBRIEF:
 *First-pass queue debt cleared 2026-08-10.* Before this heading's guard
 could be built or tested, the pending queue had to reflect only genuinely
 unapplied work. It did not: 62 events were pending and *none* were marked
@@ -43612,6 +43615,11 @@ buffer is full of items that are stale purely because the tool already
 applied them live, and confirming a stale item writes plausible history
 that is wrong. Both disappear at the cutover; until then, refusing is
 almost always the right answer.
+:END:
+
+Implemented: =org_set_todo= reports the prior state so the queue records =from=,
+and the review buffer flags a mismatch, requires confirmation and refuses
+unconfirmed stale items at apply; verified live with a hand-written queue file.
 
 
 ***** DONE Sort :LOGBOOK: chronologically, keeping notes with their continuations :code:
