@@ -26896,6 +26896,7 @@ marker is wanted, given that nothing mechanical needs it. Everything else about
 this heading is now measured.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-09-01 as option B. Every finished heading in both files now
 carries a =CLOSED:=; the derived ones say so.*
 
@@ -26946,6 +26947,11 @@ file as busy. The test now asserts =buffer-modified-p= is nil.
 which was blocked on this alone. Without it =org-archive-subtree= would have
 dated all 41 from =time= — today — and piled them into a single wrong day node,
 silently.
+:END:
+
+Shipped as option B: all 41 finished headings lacking CLOSED: got one derived
+from git history and marked :CLOSED_SOURCE: git. The derived time proved an
+upper bound in 60 of 60 checked cases, and the pass is idempotent.
 
 
 
