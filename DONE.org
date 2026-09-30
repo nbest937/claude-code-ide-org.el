@@ -39561,7 +39561,7 @@ CLOCK: [2026-08-21 Fri 12:22]--[2026-08-21 Fri 12:23] =>  0:01
 - State "DONE"       from              [2026-08-21 Fri 12:23] \\
   both halves written and in place
 :END:
-
+:DEBRIEF:
 *Shipped 2026-08-21.* Prompted by the user asking "what is =3255589=? I don't
 see it in TODO.org" — it was a commit, cited in the same form as the org =:ID:=
 prefixes beside it.
@@ -39584,6 +39584,11 @@ links carry this machine's path. Setting it is a one-line Doom change and is the
 upgrade path for [[id:9ae4b17e-278c-482f-9114-df28b2254806][9ae4b17e]].
 
 *Prospective only:* the 25 existing =(=535c98c=)= references stay.
+:END:
+
+The convention shipped: in prose a commit is spelled with the word commit, and
+in an org body it is an orgit-rev: link, recorded in org-conventions.md.
+Existing references were left as they were.
 
 
 
