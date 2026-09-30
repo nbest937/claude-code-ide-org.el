@@ -28827,6 +28827,7 @@ scoped to TODO.org, and a cross-file reference has to be written as plain text
 -- which is why one citation here is not a link.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-08-31, presentationally, exactly as this body specified — the
 extraction is untouched.* The span line now names its envelope instead of
 leaving it as an unlabelled headline: =0:11 span, 0:01 in 1 run, 6 turns=. The
@@ -28864,6 +28865,11 @@ is bogus — from a line reading =writes 0:01 in 1= across eleven minutes of
 continuous, independently reconstructible work. That is this heading's thesis
 reached from the data rather than from the code, and it is filed as
 [[id:445ec1f1-095a-462b-abbd-7a3a00925ddb][445ec1f1]].
+:END:
+
+Shipped presentationally: the span line labels its envelope beside the runs and
+turns, so the window and what gets written are two named quantities. Recording
+the envelope's remaining minutes was left to =996fd2bd=.
 
 
 
