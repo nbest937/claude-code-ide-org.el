@@ -30842,6 +30842,7 @@ CLOSED: [2026-08-25 Tue 09:52]
 :PLAN:
 
 :END:
+:DEBRIEF:
 *Shipped 2026-08-25*, commit =3a569ac=, 382 tests green.
 
 *The rule was correct and did not work.* Nine uuids were fabricated
@@ -30885,6 +30886,11 @@ sanctioned by CLAUDE.md and bypasses it entirely. Either =org_capture= gains the
 same expansion, or the lint stays the real backstop and the expansion is a
 convenience on one path -- worth deciding rather than assuming the first fix
 closed it.
+:END:
+
+Shipped in commit =3a569ac=: prefixes are expanded in org_amend links and
+accepted in any tool's id argument, both refusing unknown or ambiguous ones.
+Headings created by text editing still bypassed the expansion.
 
 
 ***** DONE Read a heading's front matter, and take a partial :ID:, without a whole-body read :code:
