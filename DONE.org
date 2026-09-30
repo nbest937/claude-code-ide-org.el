@@ -48654,6 +48654,7 @@ CLOSED: [2026-08-12 Wed 17:37]
 - State "CANCELLED"  from "MAYBE"      [2026-08-12 Wed 17:37] \\
   folded into the review UI; see e51d6ba1
 :END:
+:PLAN:
 [[file:~/.claude/plans/bookkeeping-noise-audit.md][Plan]]
 
 Captured 2026-08-05, raised in conversation: when a session has been
@@ -48741,6 +48742,8 @@ Note the incident is also mild evidence *for* this heading's premise:
 the audit caught it, and it would otherwise have been committed
 unnoticed inside a 268-line documentation diff.
 
+:END:
+:DEBRIEF:
 *Cancelled 2026-08-12 by
 [[id:e51d6ba1-cc1d-4745-8aa7-e4b1183a230b][e51d6ba1]], along the line
 [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] predicted:* its
@@ -48765,6 +48768,11 @@ single-session half and
 [[id:2aeb65d6-350e-4c75-811e-4a748044fe2c][2aeb65d6]] the cross-session
 one, which found the real hazard to be the shared =.git/index=, not
 drawer deltas: a different mechanism from the one hypothesised here.
+:END:
+
+Cancelled via =e51d6ba1=: after the cutover no session clocks and :SESSIONS: is
+gone, and the genuine-versus-noise judgment moved into the review buffer; the
+surviving commit-hygiene question lives in =3cb3f955= and =2aeb65d6=.
 
 
 
