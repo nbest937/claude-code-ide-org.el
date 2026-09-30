@@ -21783,6 +21783,7 @@ messages is a history rewrite the user has not asked for — offered,
 not taken, pending their return.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-09-04, verified live rather than only in the suite.*
 Step one's answer: *no model env var exists* — the probe found
 =CLAUDECODE=1=, =CLAUDE_CODE_BRIDGE_SESSION_ID= (exactly the id the
@@ -21807,6 +21808,11 @@ separately rewritten Opus→Fable via =filter-branch= with the three
 debrief SHA citations reconciled by subject match. Sessions may keep
 typing the prompt-template trailer; the hook rewrites it either way,
 which is what makes this a mechanism rather than vigilance.
+:END:
+
+Shipped a prepare-commit-msg hook, gated to Claude Code, that rewrites or adds
+the co-author trailer from the model persisted in settings.json; verified by
+tests and live, and ten misattributed commits were rewritten.
 
 
 **** DONE Evaluate choice of shell and standardize all project scripts :code:
