@@ -632,14 +632,85 @@ tagged.
 - Tags ":code:arch:" from ":code:"     [2026-09-28 Mon 13:01] \\
   classified: no existing display flow in Emacs; closest call, heavier path taken
 :END:
+:PLAN:
 
-Filed 2026-09-24 as the live companion to =9bc8fc8c='s footnotes in rendered sessions. An 8-hex id anywhere in an Emacs buffer, whether in =TODO.org='s own prose (=xxxxxxxx= style), a render or a commit message, is opaque until someone looks it up. Two small, already-available mechanisms fix that without changing any text (the user chose these two, 2026-09-24):
-- *eldoc*: with point on an id, after the idle delay, the echo area shows the id, its keyword *now*, and its exact title. It is keyboard-only, one function on =eldoc-documentation-functions= in org buffers, renders included.
+Filed 2026-09-24 as the live companion to =9bc8fc8c='s footnotes in rendered
+sessions. An 8-hex id anywhere in an Emacs buffer, whether in =TODO.org='s own
+prose (=xxxxxxxx= style), a render or a commit message, is opaque until someone
+looks it up. Two small, already-available mechanisms fix that without changing
+any text (the user chose these two, 2026-09-24):
+- *eldoc*: with point on an id, after the idle delay, the echo area shows the id, its keyword *now*, and its exact title. It is keyboard-only, one function on =eldoc-documentation-functions=, in tracked org buffers and magit's commit buffers. (Renders dropped from scope 2026-09-29: 9bc8fc8c already links every id in a render.)
 - *Mouse marking*: a font-lock rule gives each resolvable id a =help-echo= (a tooltip on hover in GUI Emacs, or the echo area when =tooltip-mode= is off), a highlight, and click-to-jump to the heading. It is the same lookup function, applied lazily at hover.
 
 *Constraint:* resolve against the id index only, and never trigger the module's rescan on a miss, which is right for a tool call and ruinous for something that runs as point moves. A token that is not a known id, such as a commit SHA, shows nothing.
 
 *Considered and left out* (the user, 2026-09-24): an embark target, and a Doom =:tools lookup= handler, which the user does not use since it is evil-oriented. Note for any later embark work: =embark-org='s built-in heading menu binds =RET= (its =embark-dwim= default), =t=, =I= and =O= to =org-todo=, =org-clock-in= and =org-clock-out=, which bypass the event queue on a tracked heading.
+
+*The design*, approved in chat by the user 2026-09-29, after f7847adf's changed
+the terrain. Once its pass runs, most ids in TODO.org are links, which org
+already follows on click but whose hover says only =LINK: id:…= and whose eldoc
+says nothing; so on a link the missing half is the title, not the jump. Bare ids
+stay where they matter: DONE.org keeps 1,360 verbatim ids for good, and commit
+messages are bare. So one cached lookup serves three surfaces.
+
+*The lookup.* One cache of two tables: =--slice-referent-index=, full id to
+keyword and title across both files, archives included, which the slice renderer
+already trusts and which builds from disk in 53 ms (measured live 2026-09-29);
+and a prefix table beside it, from each id's 8-character prefix to the full id,
+an ambiguous prefix mapping to nothing. It is built lazily on first use and
+dropped when a tracked org file saves, so "keyword now" means as of the last
+save, which is what is true on disk; a keyword change still in the queue is not
+on disk either. A miss shows nothing and never rescans:
+=org-id-update-id-locations= is unreachable from here. A hit yields one line,
+=abcd1234 DOING Exact title=, the footnote line's shape. A jump goes through
+=org-id-goto= with the full id, known to resolve, so its own rescan cannot fire.
+
+*The surfaces.* First, eldoc: one function on =eldoc-documentation-functions=
+returns the line for a bare 8-hex id or an id link at point. Second, the hover
+on an id link, through org's own hook: =org-link-set-parameters= for the =id=
+type gets a =:help-echo= function that returns the line, falling back to org's
+default text on a miss; clicking stays org's. Third, bare ids, through one
+font-lock rule: a word of exactly 8 hex that is in the prefix table gets the
+face =claude-code-ide-org-id-reference= (an underline by default), =mouse-face=
+highlight, a =help-echo= function computed only at hover, and a keymap where
+=mouse-1= and =RET= jump. It skips text inside a link, inside =~code~= (the
+opt-out, since this repo writes code as verbatim) and inside a =#+begin_= block,
+and it does not skip =verbatim=, which is how DONE.org cites ids, so its
+properties are added over the verbatim face. A 7-hex SHA never matches. Its cost
+is one hash lookup per candidate word, run by jit-lock over visible text only.
+
+*Where it is on.* A buffer-local minor mode,
+=claude-code-ide-org-id-lookup-mode=, carries the eldoc function and the
+font-lock rule. It is switched on in org buffers visiting a tracked file, and in
+magit's revision, log and commit-message buffers, wired with
+=with-eval-after-load 'magit= so a consumer without magit pays nothing. Not in
+every org buffer: an 8-hex word in unrelated notes should not be looked up
+against this project's ids. The link hover is global by nature, but changes the
+text only for an id that resolves. One defcustom,
+=claude-code-ide-org-id-lookup=, on by default since everything here is
+read-only, turns the whole feature off, the link hover included.
+
+*Tests (ERT).* The lookup: a prefix resolves to its line; a miss and an
+ambiguous prefix return nil; with =org-id-update-id-locations= made to signal,
+no lookup reaches it; saving a tracked file drops the cache and the next lookup
+sees the new title. eldoc returns the line on a bare id and on an id link, and
+nil on a SHA or an unknown hex word. The link hover returns the line for a known
+id and org's default for an unknown one. Font-lock marks a resolvable bare id,
+one inside verbatim included, and leaves an id inside a link, inside =~code~= or
+inside a block, an unknown 8-hex word and a 7-hex SHA alone; =RET= on a mark
+jumps. The mode is on for a tracked file and off for an untracked one. Each skip
+and the never-rescan test are shown to fail with their guard removed.
+
+*Verified by hand, and said so:* the GUI tooltip, and how the face looks in the
+user's theme, which no test can honestly assert.
+:END:
+
+An 8-hex id in an Emacs buffer is opaque until looked up, and an id link's hover
+names only its target. One cached lookup, id to keyword and title as of the last
+save, feeds eldoc at point, org's hover on id links, and a font-lock mark with
+click-to-jump on bare ids, in tracked org buffers and magit's commit buffers.
+Design in =:PLAN:=.
+
 
 
 * TODO org_slice_add_member's after= inserts between a story and its nested children, splitting the block :code:
@@ -10231,6 +10302,7 @@ CLOCK: [2026-09-28 Mon 09:48]--[2026-09-28 Mon 09:49] =>  0:01
 - <2026-09-28 Mon 09:48>--<2026-09-28 Mon 09:49> review pass (buffer buried)
 CLOCK: [2026-09-28 Mon 11:34]--[2026-09-28 Mon 11:36] =>  0:02
 CLOCK: [2026-09-29 Tue 16:41]--[2026-09-29 Tue 16:44] =>  0:03
+- <2026-09-29 Tue 20:40>--<2026-09-29 Tue 20:40> review pass (buffer buried)
 :END:
 
 We created this heading on 2026-08-26. We deleted that property from its
