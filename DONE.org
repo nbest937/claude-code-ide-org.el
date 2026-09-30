@@ -12728,7 +12728,14 @@ CLOCK: [2026-09-16 Wed 18:29]--[2026-09-16 Wed 18:29] =>  0:00
 Since =c9940558= the aggregator keys its points on =(TS KIND PROJECT)= and a project boundary splits a span, while =--aggregate-guideposts='s own docstring documented only =THRESHOLD= and =EXCLUSIONS=, and the shipped =org-session-tracking.md= "three numbers" section still presented the gap threshold as what decides grouping. Nothing there was *false*; the omission is what mattered, and it matters to the consumer rather than to us: the queue is one global directory under =~/.claude/org-updates=, so before this branch two repos' turns in the same window clustered into a single span, and running the queue in more than one repo is the plugin's whole premise.
 
 :END:
+:DEBRIEF:
 *Resolved:* a paragraph in the shipped reference and a clause in the docstring, both naming the project dimension and keeping the part that matters — both sides must be known and differ, so a nil =cwd= is unknown rather than elsewhere. The PR #25 review then caught a second fault in the same prose: it called the project split "the way a permission block does", which has been false since =c54c4215= made blocks a subtraction rather than a split. Corrected in all three copies, with the stale comment that misled me rewritten to record that it outlived the change.
+:END:
+
+The shipped reference and the docstring now name the project boundary as
+splitting a span, a nil =cwd= counting as unknown. The PR #25 review's second
+catch, a false comparison to permission blocks, was corrected in all three
+copies.
 
 
 **** DONE The footnote convention ships as an enforcing hook and as no rule anyone can read :code:
