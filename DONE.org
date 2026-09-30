@@ -18107,7 +18107,7 @@ CLOSED: [2026-08-21 Fri 12:45]
 - State "DONE"       from "DOING"      [2026-08-21 Fri 12:45] \\
   shipped as 0ca1363, journaled on the heading
 :END:
-
+:DEBRIEF:
 *Shipped 2026-08-21* (commit =0ca1363=). Four claims reconciled at source, each
 verified before writing: the hook safety net is live (five guards read out of
 =config.el:2792-2795=, gate default =t= at =config.el:2454=), not "not built
@@ -18119,6 +18119,11 @@ dangling pointer to a since-deleted "Enforce the transition rules" heading went
 with the rewrite. The falsified concurrent-session sentence in the
 =feedback_concurrent_editing= memory was corrected in the same pass (memory dir,
 outside this repo).
+:END:
+
+Four CLAUDE.md claims that contradicted the skills, rules and memories were
+reconciled at source and verified, a dangling pointer was removed, and a
+falsified memory sentence was corrected in the same pass.
 
 
 ***** DONE CLAUDE.md carries dated history that costs every session's context :code:
