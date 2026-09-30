@@ -77,15 +77,14 @@ matters enormously if anything drives it non-interactively.
 **Standard tags for this user's files:**
 
 ```org
-#+TAGS: code comms research review spike bounded arch
+#+TAGS: code prose research spike bounded arch
 ```
 
 | Tag          | Meaning                                   |
 |--------------|-------------------------------------------|
 | `:code:`     | Software / technical work                 |
-| `:comms:`    | Communication, writing, outreach          |
+| `:prose:`    | The deliverable is prose, not code        |
 | `:research:` | Investigation, reading, learning          |
-| `:review:`   | Review, feedback, evaluation              |
 | `:spike:`    | Brainstorming path: a feasibility question, answered not kept |
 | `:bounded:`  | Brainstorming path: a scoped change to an existing flow |
 | `:arch:`     | Brainstorming path: a new subsystem or a changed interface |
@@ -103,7 +102,7 @@ not a path tag and combines with any of them.
 any file that tracks code work:
 
 ```org
-#+TAGS: code comms research review spike bounded arch
+#+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::
 ```
 
@@ -159,7 +158,7 @@ overridden per-heading. If the user wants non-code DONE items to go somewhere el
 they can set a per-heading override:
 
 ```org
-* DONE Write project proposal                                   :comms:
+* DONE Write project proposal                                   :prose:
   :PROPERTIES:
   :ARCHIVE: archive.org::
   :END:

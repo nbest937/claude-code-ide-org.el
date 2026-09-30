@@ -1,5 +1,5 @@
 #+TODO: TODO(t!) NEXT(n!) DOING(d!) REVIEW(r!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)
-#+TAGS: analysis code comms prose research review spike bounded arch
+#+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
 * TODO The ERT suite depends on the machine's timezone: 47 tests fail off Central time :code:
@@ -2501,6 +2501,11 @@ What they share, and why one parent: both answer "which tags make this corpus wo
 
 The corpus answers "what did we decide" badly: a decision lives in one body and nothing indexes it. Two children carry the halves — tagging what can be measured, and tagging what can only be decided. Whether `org-agenda` or `org-ql` can build the view natively is an open question deferred until Emacs stops wedging.
 
+Cancelled 2026-09-29 (the user), with both members: this corpus is searched by
+text, keyword and property, not by tag, and f7847adf's backlinks answer "what
+cites this". The ruling is in the shipped org conventions' Tags section.
+
+
 
 ** TODO Survey all task history for a tag vocabulary worth searching on :research:spike:
 :PROPERTIES:
@@ -2522,6 +2527,7 @@ CLOCK: [2026-09-22 Tue 17:10]--[2026-09-22 Tue 17:11] =>  0:01
 - Tags ":research:spike:" from ":research:" [2026-09-28 Mon 13:01] \\
   classified: a survey whose output is a recommended vocabulary, not code
 :END:
+:PLAN:
 
 Captured 2026-09-09 at the user's ask, deliberately *not* started: the
 survey is expected to be expensive in time and tokens, so this heading
@@ -2589,6 +2595,7 @@ each tag answers.
 =prose= is declared in TODO.org's =#+TAGS:= line. =observed= and =docs= are
 *not*, though both are in use — another thing for the survey to reconcile.
 
+:END:
 *=:observed:= and =:bug:= were dropped* (the user, 2026-09-29, on 8b945c02).
 Every =:observed:= heading was filed after the tag was coined on 2026-09-17, and
 it was on 8 of the 180 headings filed since: a sample of which sessions
@@ -2599,6 +2606,13 @@ from TODO.org's =#+TAGS:=; DONE.org keeps them as history. The general lesson
 this survey should carry: a tag that only recall applies is applied
 sporadically, so propose one only with the query it answers *and* a mechanism
 that asks for it at filing.
+
+Cancelled 2026-09-29 (the user), not run: of 197 =org_query= calls in 61
+sessions, 13 filtered on a tag and one used a subject tag to find work, so the
+vocabulary it would derive has no searcher. =:review:=, =:comms:=, =:analysis:=
+and =:docs:= were dropped with it; the ruling is in the shipped org conventions'
+Tags section.
+
 
 
 
@@ -4231,7 +4245,7 @@ The order, one line each:
 - =8a23d6ec=: a lint rule, taken beside =b7259ee4='s lint warning, since both extend =bin/lint-org=.
 - =63df67c7=: prose only and independent, its analysis accepted 2026-09-10. It sits here because it is quick and nothing waits on it.
 - =8b945c02=: cancelled 2026-09-29 (the user); =:observed:= and =:bug:= were both dropped, and the ruling is recorded on =e28933e9=.
-- =e28933e9=: immediately before =e128e4fa=, so the survey and the resolution pass share one reading of the corpus. That shared read, between these two, is the economic half of the slice.
+- =e28933e9=: cancelled 2026-09-29 (the user) with its story =ee3e0fa2=; tags are not how this corpus is searched, and the ruling is in the shipped conventions' Tags section. So no read is shared with =e128e4fa= any more.
 - =e128e4fa=: the mass pass, now writing to a settled drawer order and settled link conventions. Its completion also closes =4c834fdb=, whose last live child it is.
 - =76a6f052=: a second pass over the corpus just read. =b52df20b= already changed the sweep's filter and width.
 - =fce6bd35=: can land only once =e128e4fa= leaves every open heading in canonical shape. The lint it adds is what retires the conventions' backfill clause.

@@ -19,7 +19,7 @@ Every `.org` file in this project should start with:
 
 ```org
 #+TODO: TODO(t!) NEXT(n!) DOING(d!) REVIEW(r!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)
-#+TAGS: code comms research review spike bounded arch
+#+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::
 #+STARTUP: logdrawer logdone content
 ```
@@ -69,10 +69,19 @@ Per-keyword meanings are in the **org skill**. Project policy on top of it:
 
 ## Tags
 
-The four standard tags (`:code:` `:comms:` `:research:` `:review:`), their
-meanings, and the archiving convention are in the **org skill** — including
-the per-heading `:ARCHIVE:` override. Tags are free-form beyond those four;
+The standard tags (`:code:` `:prose:` `:research:`), their meanings, and
+the archiving convention are in the **org skill** — including the
+per-heading `:ARCHIVE:` override. Tags are free-form beyond those;
 declare additional ones in `#+TAGS:`.
+
+**A subject tag earns its place only with something that applies it**
+(the user, 2026-09-29). Measured over 197 `org_query` calls in 61
+sessions, 13 filtered on a tag and one used a subject tag to find work:
+this corpus is searched by text, keyword and property. Six tags applied
+by recall or not at all were dropped — `:observed:`, `:bug:`,
+`:review:`, `:comms:`, `:analysis:` and `:docs:` — with finished
+headings keeping them as history. Propose a new one only with the query
+it answers and a mechanism that asks for it at filing.
 
 **`:spike:`, `:bounded:` and `:arch:` are the brainstorming paths** (the
 user, 2026-09-22; `:ID:` 4ae7a04b), set only by that skill, at capture or
