@@ -34414,6 +34414,7 @@ thing until now. A slice is the first case where they part, so either
 stop sharing one predicate.
 
 :END:
+:DEBRIEF:
 *Shipped [2026-08-26 Wed] as
 [[orgit-rev:claude-code-ide-org::2c4796e][2c4796e]].*
 =claude-code-ide-org--grouping-heading-p= is the new predicate; both triggers
@@ -34475,6 +34476,11 @@ word means one level up.
 well as by case*, and [[id:8ca6541d-0fc7-45a2-a4d3-76e1608f658d][8ca6541d]]'s
 abstract prediction -- made before any slice existed -- is confirmed and
 discharged.
+:END:
+
+A new union predicate, --grouping-heading-p, replaced the container test at the
+two triggers and two other call sites, so a slice is no longer auto-clocked or
+auto-promoted while plain leaves behave as before.
 
 
 
