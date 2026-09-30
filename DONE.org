@@ -9872,7 +9872,7 @@ CLOCK: [2026-08-18 Tue 11:27]--[2026-08-18 Tue 11:44] =>  0:17
 - State "DONE"       from "REVIEW"     [2026-08-19 Wed 17:48] \\
   both review decisions made, mechanisms compose
 :END:
-
+:DEBRIEF:
 *Where this ended up.* Two mechanisms were writing clock time by
 different rules, and the intended one counted your idle time between
 turns as work. Three changes fixed it: *2(a)* made clustering
@@ -10153,6 +10153,12 @@ why it is not a regression 2(c) introduced.
 That is a better ending than the one 2(c) left. Silencing the trigger
 removed the conflict by removing a mechanism; subtracting removes the
 conflict and keeps both.
+:END:
+
+Fixed in three steps: kind-aware clustering, one CLOCK line per run of work
+(removing a ~45% overcount), and silencing the auto-clock-in trigger. On
+2026-08-19 the user kept the 120s idle floor and re-enabled =C-c C-t= clocking
+once =dadc08cf= made apply subtract trigger-recorded time.
 
 
 ***** DONE The review buffer proposes spans that can only be dismissed :code:
