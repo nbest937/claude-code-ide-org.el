@@ -46324,6 +46324,7 @@ CLOSED: [2026-08-12 Wed 16:13]
 - State "DOING"      from "TODO"       [2026-08-12 Wed 16:13] \\
   batched with the interaction fixes
 :END:
+:PLAN:
 
 Both seen 2026-08-11, on the one =dead-beef= item that will ever exist
 once [[id:5e2a1c04-7b3f-4d21-9c88-2f6e0a91b7d3][5e2a1c04]]'s fix ships.
@@ -46352,6 +46353,8 @@ together with whatever touches the renderer next, since a title slot
 that can hold an arbitrary error string is a general case, not one tied
 to this event: any =--at-id= failure at render time takes the same path.
 
+:END:
+:DEBRIEF:
 *Outcome, 2026-08-12, batched with
 [[id:d409390b-6624-4820-82bb-730d763962fd][d409390b]]. One of the two was
 real; the other never happened.*
@@ -46379,6 +46382,11 @@ and also why it was never checked before being written down. Both
 behaviors are now pinned by tests, including one asserting the rendered
 title contains no backslash, so a future =%S= cannot introduce the
 defect this heading believed it had found.
+:END:
+
+The double-rendered note was real and fixed; the escaping leak was not
+reproducible and came from how the report was transcribed. Both behaviours are
+now pinned by tests.
 
 
 ***** DONE Queue attribution is session-scoped, so concurrent subagents lose intervals :code:
