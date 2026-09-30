@@ -19078,6 +19078,7 @@ CLOCK: [2026-09-03 Thu 13:06]--[2026-09-03 Thu 13:07] =>  0:01
 - [2026-09-03 Thu 13:06]--[2026-09-03 Thu 13:07] rewrite the two stale plan-link rules
 - State "DONE"       from "DOING"      [2026-09-03 Thu 13:07]
 :END:
+:PLAN:
 
 CLAUDE.md still puts the Plan link "in its heading body" (the rule near
 line 408) and still says it is "relocated into the :PLAN: drawer" at DONE "when
@@ -19090,6 +19091,8 @@ org_amend appends below it — and that half is :ID: 501a8422's open question
 (does drawer=PLAN create the drawer when absent?), so word it against whatever
 that builds rather than inventing a path here.
 
+:END:
+:DEBRIEF:
 Debrief 2026-09-03: both rules rewritten (commit 39aca76). The link rule now
 writes the Plan link into :PLAN: at planning-finish — riding the normal
 three-call composition when planning comes first — and states the
@@ -19098,6 +19101,11 @@ interim location, rather than inventing a path. The DONE paragraph now says
 nothing moves, keeps both earlier forms as dated history, and preserves the
 retroactive-wrap path for pre-convention headings. Verified:
 bin/check-conventions exit 0 (both cited ids resolve).
+:END:
+
+Both CLAUDE.md rules were rewritten: the Plan link is written into :PLAN: at
+planning-finish, the compose-then-plan case is left to =501a8422=, and the DONE
+paragraph now says nothing moves.
 
 
 ***** DONE Three nomination paragraphs say container where the code means grouping :code:
