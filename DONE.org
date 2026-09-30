@@ -44612,6 +44612,7 @@ CLOCK: [2026-08-11 Tue 11:33]--[2026-08-11 Tue 11:38] =>  0:05
 - State "DONE"       from "DOING"      [2026-08-11 Tue 11:48] \\
   drawer and machinery fully retired
 :END:
+:PLAN:
 
 Captured 2026-08-07 from conversation, prompted by asking a narrow
 question — is =claude-code-ide-org-clock-out= still useful once this is
@@ -44689,6 +44690,8 @@ of implementation, which argues for it — but the plan claims explicit
 user confirmation, which is stronger evidence than recency. Resolve it
 before either is acted on.
 
+:END:
+:DEBRIEF:
 *Reframed 2026-08-11, and then answered.* The arguments recorded above —
 =org_log_background_plan='s lone remaining write, and CLAUDE.md's
 presentation of the two drawers as co-equal — are the weak ones. The
@@ -44824,6 +44827,11 @@ after deleting all 49 drawers I clocked out, and a drawer came back — on
 because =config.el= had been changed on disk but never reloaded. Caught
 by the post-deletion count, not by foresight; the reload precondition
 should have been stated before the check rather than after it.
+:END:
+
+Decided to retire the :SESSIONS: drawer, since archived queue files would keep
+the history; at the user's call all 49 existing drawers were deleted, and the
+writers and parsing machinery were removed.
 
 
 ***** DONE Reconcile or retire the now-likely-superseded clock/session-ownership plans and infrastructure :code:
