@@ -41398,6 +41398,7 @@ CLOSED: [2026-08-17 Mon 14:12]
 - State "CANCELLED"  from "DOING"      [2026-08-17 Mon 14:12] \\
   not a defect; org-paste-tracker handles it
 :END:
+:PLAN:
 
 =claude-code-ide-org-archive= calls =org-archive-subtree= and saves,
 never re-pointing the moved heading's ID. The location map still names
@@ -41422,6 +41423,8 @@ TODO.org, which is far too heavy to fire automatically on any hot path.
 That measurement is the reason this is a targeted re-point rather than an
 automatic =org-id-update-id-locations= call somewhere.
 
+:END:
+:DEBRIEF:
 *CANCELLED 2026-08-17 — the premise is false. Org already does this.*
 
 =org-archive-subtree= inserts the moved subtree with =org-paste-subtree=
@@ -41457,6 +41460,11 @@ rewrote TODO.org — rather than IDs pointing at the wrong file. Those two
 look identical through =org-id-find= and are not the same defect.
 [[id:8e969114-0982-4c39-9258-3b25a5425e09][8e969114]] would tell them
 apart, which is an argument for it.
+:END:
+
+Cancelled because the premise was false: =org-archive-subtree= already re-points
+every moved =:ID:= to the destination file via =org-id-paste-tracker=, which a
+stash test exposed when the new test passed without the fix.
 
 
 ***** DONE =org-with-point-at= on a nil marker runs its body in the wrong buffer :code:
