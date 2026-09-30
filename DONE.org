@@ -12465,14 +12465,22 @@ CLOCK: [2026-09-17 Thu 12:27]--[2026-09-17 Thu 12:28] =>  0:01
 CLOCK: [2026-09-17 Thu 12:31]--[2026-09-17 Thu 12:32] =>  0:01
 - [2026-09-17 Thu 12:31]--[2026-09-17 Thu 12:32] assigned at review
 :END:
+:PLAN:
 
 The user reported the hook's output as "way too much" for the second time, 2026-09-17. The immediate cause is misses — the hook only speaks when a footnote was owed and not paid, and it spoke about twenty-five times that day, each time printing the full suggested block which the reply then printed again.
 
 But part of it was structural and fixable. A **status summary** pairs every id with its exact title inline, in prose; the end matter then repeats all of them verbatim. The convention's purpose — prose readable, every reference recoverable — is already met by such a line, so the second copy is pure duplication. One unwind cited twelve ids that way and was asked for all twelve again.
 
+:END:
+:DEBRIEF:
 *Implemented the same day.* =bin/hooks/footnote-check= already resolves each id's exact title in order to print the suggestion, so the test costs one comparison against a string it has in hand: if a line of the body contains both the id and that title, the debt is discharged.
 
 *Same line, deliberately.* An id in one paragraph and its title in another is the ordinary unfootnoted case — a reader scanning for the id does not find the title beside it, which is the guarantee the rule exists to give. Both directions are asserted: paired on one line passes, split across lines still blocks.
+:END:
+
+Implemented the same day: =footnote-check= treats an id and its exact title on
+the same line as discharging the end-matter debt, while an id and title split
+across lines still blocks. No reason for the cancellation is recorded.
 
 
 **** DONE The resume-pause exemption reads adjacency in a filtered stream as continuity, so clusters span days :code:
