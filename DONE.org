@@ -11411,6 +11411,7 @@ lines visibly of their era never had to be made. Worth recording as the reason,
 rather than leaving the impression it was decided.
 
 :END:
+:DEBRIEF:
 *Verified three ways rather than one.* The script that found the 56, re-run: 0
 remaining. The diff: exactly 112 lines, 56 pairs, *no pair differing anywhere
 before* =>= -- so no endpoint moved and no interval changed, only the derived
@@ -11426,6 +11427,11 @@ files carry a =>= H:MM= string but only 353 are CLOCK entries; the other twelve
 are prose discussing clock lines, including this heading's own body. A
 whole-line anchored pattern excluded them. A looser grep would have rewritten
 documentation.
+:END:
+
+Repaired the 56 CLOCK lines whose totals disagreed with their timestamps: only
+the derived totals changed, no endpoint moved, a re-run found none remaining,
+and the net effect was +14 minutes across 65.65 h.
 
 
 ***** DONE A split span drops the unowned gaps between the clock pairs that split it :code:
