@@ -17506,6 +17506,7 @@ plan document, which carries this child's design as its second half rather
 than a file of its own.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-08-14*, planned in Plan Mode and carried out the same evening --
 =PLANNING= at 20:43, =DOING= at 21:22, =DONE= at 21:26. Debrief written
 2026-08-24, backfilled during
@@ -17529,6 +17530,12 @@ conventions left for =.claude/rules/org-conventions.md=.
 
 *Written from evidence:* the commits, the three state-change notes, and the
 body's own scope. Nothing is reconstructed.
+:END:
+
+CLAUDE.md content the org and org-dev skills already owned was removed, and both
+skills were corrected in the same pass. Rules that must hold with no =.org= file
+open stayed in CLAUDE.md; the file-header template and tag conventions moved to
+the path-scoped rules.
 
 
 ***** DONE Decide whether CLAUDE.md needs a path-scoped =.claude/rules/= split :code:
