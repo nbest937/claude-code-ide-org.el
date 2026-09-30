@@ -34970,6 +34970,7 @@ CLOCK: [2026-08-25 Tue 17:59]--[2026-08-25 Tue 18:02] =>  0:03
 :PLAN:
 
 :END:
+:DEBRIEF:
 *Shipped 2026-08-24* (=b6619e5=). Every heading's content now ends with exactly
 two blank lines before the next heading.
 
@@ -35059,6 +35060,11 @@ only the first is addressed. What the second would now cost is no longer a
 guess: 18 sites, all in one file, against a checker that already walks every
 heading. That is a small enough blast radius to decide cheaply, which was the
 point of measuring it before proposing a rule.
+:END:
+
+Shipped a normaliser giving every heading two preceding blank lines, and wrote
+the convention into the org skill, correcting its contradicting rule, and
+org-conventions.md. The lint assertion was not built here.
 
 
 ***** DONE Prompt the daily ceremony automatically, within what a scheduler can reach :code:
