@@ -44340,6 +44340,7 @@ CLOCK: [2026-08-14 Fri 14:06]--[2026-08-14 Fri 14:09] =>  0:03
 - State "DONE"       from "DOING"      [2026-08-14 Fri 14:09] \\
   shared helper shipped, mutations checked
 :END:
+:PLAN:
 
 *Found 2026-08-14 by [[id:c084553c-0621-4a96-9fa1-f32850aeec6a][c084553c]]'s
 API probe, as a side effect rather than as its object.* The two halves
@@ -44385,6 +44386,8 @@ share one find-the-drawer helper rather than each carrying its own
 search. Worth a test built from the probe's own decoy fixture, which is
 already written.
 
+:END:
+:DEBRIEF:
 *Outcome, 2026-08-14. There were three copies of the search, not two.*
 =claude-code-ide-org--drawer-contains-line-p= carried a third, and it
 looped correctly — so the split was two right to one wrong, which is
@@ -44415,6 +44418,11 @@ character region.
 real drawer — but the cost of the fix was one helper and the removal of
 two duplicated searches, so the argument for waiting for a live incident
 was weak.
+:END:
+
+Fixed by routing all three drawer searches, one more than expected, through a
+shared =claude-code-ide-org--find-drawer= helper, with tests pinning both the
+decoy case and the empty-drawer region.
 
 
 ***** DONE Decide the fate of the stale-interval recovery feature, whose premise this refactor removes :code:
