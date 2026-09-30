@@ -38144,7 +38144,7 @@ CLOSED: [2026-08-24 Mon 19:07]
 - State "DONE"       from              [2026-08-24 Mon 19:07] \\
   guard shipped, cascade cannot recur
 :END:
-
+:DEBRIEF:
 *Shipped 2026-08-24* (=7c7d992=), filed after the fact because the incident is
 worth keeping even though the fix took twenty minutes.
 
@@ -38201,6 +38201,12 @@ Rebuilding items from the queue restores the *events* and discards the judgement
 applied to them. The user lost a hand-made assignment and an edited interval,
 and was told the rollback would "cost the review pass again" -- which sounded
 like keystrokes and meant decisions.
+:END:
+
+A new --auto-promote-active guard around the promotion trigger's own org-todo
+call stopped it re-entering itself; the damaged file was restored from HEAD and
+the events made pending again, at the cost of the review judgements made on
+them.
 
 
 **** DONE A repeater never reaches DONE, so its body is never pruned :code:
