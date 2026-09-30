@@ -41812,6 +41812,7 @@ CLOCK: [2026-08-17 Mon 09:09]--[2026-08-17 Mon 09:11] =>  0:02
 - State "DONE"       from "DOING"      [2026-08-17 Mon 09:11] \\
   assignments survive a dismissal
 :END:
+:PLAN:
 
 Reported by the user 2026-08-17: dismissing an item destroys every
 assignment made in the buffer during that review session, before
@@ -41860,6 +41861,8 @@ deliberately, so discarding there is arguably correct -- but it should
 say *assignments*, not "marks", because the current wording undersells
 what it throws away.
 
+:END:
+:DEBRIEF:
 *Fixed 2026-08-17.* =d= no longer calls =review-refresh=. It drops the
 item from =claude-code-ide-org--review-items= in place and re-renders
 through the shared path
@@ -41888,6 +41891,11 @@ queue's premise is that raw events are cheap and re-derivable while human
 judgement is not. Every command that rebuilds from the queue is trading
 the expensive thing for the cheap one, and only =g= should be allowed to
 make that trade.
+:END:
+
+Fixed: dismissing with =d= now drops the item in place and re-renders instead of
+rebuilding from the queue, so other unapplied decisions survive; apply's same
+shape was deliberately left for a separate question.
 
 
 
