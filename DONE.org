@@ -12569,7 +12569,7 @@ PR #25 review, MEDIUM, against code =b57c7515= introduced. The cache is keyed on
 
 *Filed rather than fixed, because the obvious repair is wrong.* Not caching a nil result would defeat the cache in precisely its common case — the docstring says nil "is the common case", and the map globs every transcript directory while =--span-events= runs once per candidate bracket in a subdivision. So the key has to become something that changes when a transcript could have grown, which is a design question rather than an edit. Including a ranges digest is necessary and not sufficient.
 :END:
-
+:DEBRIEF:
 =--session-alias-cache= is keyed on the sorted session-id set alone and never invalidated, so a nil alias map cached before a re-keyed transcript flushed its first entry persists for the life of the Emacs process and defeats the live re-read the stamp cache exists to provide. The key also omits the ranges that decide the canonical member. Filed rather than fixed: not caching nil would defeat the cache in its common case, so the key needs to reflect transcript growth — a design question, not an edit.
 
 *Fixed 2026-09-17, commit =9116821=, and what settled the design was reading the layer below.* =--transcript-stamp-cache= is keyed on =(file . mtime)=, so it *already* self-invalidates when a transcript grows — the alias cache was not racing it, it was short-circuiting before any stamp was read. That makes the cut a semantic one rather than a timing one: "no re-key detected **yet**" and "no re-key **exists**" are different answers, and only the second is cacheable.
@@ -12579,6 +12579,12 @@ Two changes. The key now carries each session's range alongside its id, since th
 *Both costs are written into the code rather than left to be rediscovered.* An event set naming a transcript that has aged out (=4acd8ad0=) now recomputes on every call; that is bounded, because the stamp layer memoises the miss too, under a =(file . nil)= key. And a **non-nil** result is still cached when some session was unresolved, so a late-flushing member cannot join a group that already formed — a window strictly narrower than the one closed, and deliberately left.
 
 *Both tests were proved red first and are behavioural rather than structural.* One differs between its two calls only in what is on disk between them — the second transcript lands between the first call and the second — which is the defect stated as an observation rather than as an assertion about a cache. The other hands the same two session ids opposite queue order and expects the canonical member to follow. 685 tests, was 683; =bin/lint-org= 0 errors; =bin/check-conventions= 32 ok once a working Emacs was available to answer the twenty checks that ask it.
+:END:
+
+Fixed in commit 9116821: the alias cache key now carries each session's range,
+and a nil result is not cached while any session lacks a first stamp. A non-nil
+result reached with an unresolved session is still cached, a narrower window
+deliberately left.
 
 
 **** DONE The reload rule lost its always-loaded home, so two repo cross-references now point at a file that does not load :code:
