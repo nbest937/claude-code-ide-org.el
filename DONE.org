@@ -35814,6 +35814,7 @@ awaiting exactly this evidence: it fires, it is accurate, and it cannot yet tell
 anyone what it found.
 
 :END:
+:DEBRIEF:
 *Cause found 2026-08-26, in the hook documentation as this heading advised, and
 it is not a delivery failure.* =stopReason= is an *enum*: the reference gives it
 as accepting =user_request=, =max_turns=, =model_stop_token= or =completion=,
@@ -35904,6 +35905,11 @@ guess, per [[id:4f6a6bb1-7773-4657-949e-1fe1ba9484be][4f6a6bb1]].
 been in =REVIEW= waiting on exactly this. It fires, it is accurate at 41 of 45
 measured over a real transcript, and it can now tell the model what it found.
 There is nothing left for it to wait for.
+:END:
+
+The block was opaque because the hook exited 0, which sends stderr only to the
+debug log; it now exits 2 with the text on stderr, verified end to end by a
+deliberate trip. A sentinel-write bug in the loop guard was fixed too.
 
 
 
