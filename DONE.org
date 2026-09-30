@@ -29870,6 +29870,7 @@ CLOCK: [2026-08-31 Mon 13:11]--[2026-08-31 Mon 13:11] =>  0:00
 - State "DONE"       from "DOING"      [2026-08-31 Mon 13:11]
 - [2026-08-31 Mon 13:11]--[2026-08-31 Mon 13:11] suggested span, accepted at review
 :END:
+:PLAN:
 
 =QUEUE_APPEND_ID=, =QUEUE_APPEND_STATE= and =QUEUE_APPEND_FROM= in
 =bin/hooks/queue-append= let a caller supply a heading and states for a
@@ -29897,6 +29898,8 @@ one about closing a heading: *a sentence pointing at another heading is not a
 filing action*. Writing that sentence into source, where it reads as a promise
 to the next person, is the same error one layer worse.
 
+:END:
+:DEBRIEF:
 *Removed 2026-08-31.* Gone from =bin/hooks/queue-append=: the three =override_*=
 assignments, the =NOTE:= block above them, their three =--arg= bindings, and the
 leading =if $override_* != ""= branch in each of the =id=, =state= and =from=
@@ -29918,6 +29921,11 @@ exit 0 — 81 minus exactly the 5 removed checks. The "unset overrides must not
 disturb the ordinary path" block is kept as the plain
 payload-reads-its-own-fields test, its comment rewritten to record where the
 overrides went rather than to describe a mechanism that is no longer there.
+:END:
+
+The three dead override variables and their branches were removed from
+bin/hooks/queue-append, with the five checks exercising them. The feature had
+been covered, though one of those checks asserted nothing about it.
 
 
 
