@@ -27520,6 +27520,7 @@ for the strict window: it is *derived* from closing timestamps and so cannot go
 stale.
 
 :END:
+:DEBRIEF:
 *Half built 2026-08-31, and deliberately left at the seam. Detection is shipped;
 rendering is not.*
 
@@ -27624,6 +27625,12 @@ own =ID= argument compares with =equal= against the full =:ID:=, so an
 8-character prefix silently refreshes *nothing* — it reported "0 slices
 refreshed" and looked like a working no-op. Same shape as
 [[id:25e7b083-360b-4282-8fd0-bb768e2a0f13][25e7b083]], at another call site.
+:END:
+
+Built in two halves: detection of work closed within a slice's window, then an
+Incidental: section regenerated on every refresh, verified live on =b36e6369=. A
+reopened-incidental edge case was recorded but not built, and a prefix defect in
+refresh-slice was filed.
 
 
 
