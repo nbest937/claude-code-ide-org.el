@@ -50043,6 +50043,7 @@ CLOSED: [2026-08-04 Tue 14:49]
 :LOGBOOK:
 CLOCK: [2026-08-04 Tue 13:10]--[2026-08-04 Tue 13:20] =>  0:10
 :END:
+:PLAN:
 Follow-up to the sibling heading above: add =!=/=@= markers to the
 =#+TODO:= line (=WAIT(w@/!)=, =CANCELLED(c@)=, =!= elsewhere) so org's
 own native state-change logging captures transition history for free.
@@ -50061,6 +50062,8 @@ to match org's own native =state= log-line template
 (=State %-12s from %-12s %t=) instead of a separate generic "Note
 taken on" line with a redundant second timestamp.
 
+:END:
+:DEBRIEF:
 *Verified, not just implemented — and the plan changed twice under
 live testing:*
 1. First surprise: confirmed live that even a plain =!= marker (not
@@ -50098,6 +50101,11 @@ now reports success correctly for both calls, with the combined
 =State ... \\ Auto-demoted: ...= note format present; =WAIT= then
 =CANCELLED= on the same heading both succeed with no =*Org Note*=
 buffer ever created.
+:END:
+
+Shipped with two changes from the plan: org_set_todo suppressed native logging
+for every state, since even ! markers hung non-interactively, and it re-resolved
+the heading by :ID: after org-todo to avoid a false error.
 
 
 
