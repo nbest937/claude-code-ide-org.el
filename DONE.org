@@ -32406,6 +32406,7 @@ group. Deciding which sense the label carries is a prerequisite for the
 flattening, not a detail of it.
 
 :END:
+:DEBRIEF:
 *Re-read 2026-08-28 against what shipped since, and half of it is done.* Of the
 four-class table above:
 
@@ -32506,6 +32507,12 @@ never was.
 *Nothing was built for this heading, and that is the outcome rather than a
 shortfall.* The one change it still proposed was measured to be less reliable
 than what it would have replaced.
+:END:
+
+All four heading classes were settled and nothing was built: category was
+resolved by =29439196=, epic stays emergent, slice was already declared, and the
+datetree node deliberately keeps title-shape detection because org creates those
+nodes and nothing here can declare them.
 
 
 
