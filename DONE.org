@@ -20079,6 +20079,7 @@ including its before-07:00 edge (the first future occurrence can be
 *today*), which is a fourth wall-clock dependency wearing a fix.
 
 :END:
+:DEBRIEF:
 *Debrief, 2026-09-08.* Shipped in PR #17 (=4de80ca=), the fix shape
 this body proposed: both tests now assert the =SCHEDULED= moved off
 the fixture's 2026-09-03 and parses to a time in the future — what
@@ -20088,6 +20089,11 @@ zero expected failures for the first time.** Both tests proven still
 discriminating: a no-op mutation of =--ceremony-advance-repeater=
 (returns t, advances nothing) fails them both. The third generation of
 the wall-clock fixture class closes the same day it was filed.
+:END:
+
+Shipped in PR #17: both repeater tests now assert the SCHEDULED moved off the
+fixture date into the future instead of hardcoding tomorrow, and the suite
+passed 574/574 with no expected failures for the first time.
 
 
 **** DONE [9/9] Only membership and order are declared, and everything else still needs a hand
