@@ -50537,6 +50537,7 @@ CLOSED: [2026-07-29 Wed 18:54]
 CLOCK: [2026-07-29 Wed 18:40]--[2026-07-29 Wed 18:55] =>  0:15
 CLOCK: [2026-07-30 Thu 07:10]--[2026-07-30 Thu 07:20] =>  0:10
 :END:
+:PLAN:
 Plan:
 [[file:~/.claude/plans/let-s-rip-it-out-floofy-blossom.md][let-s-rip-it-out-floofy-blossom]]
 
@@ -50551,6 +50552,8 @@ Claude Code's actual native format (.claude/skills/<name>/SKILL.md, plain
 text) since both files are being edited anyway. See the linked plan for
 full scope.
 
+:END:
+:DEBRIEF:
 *Shipped as planned, two commits:* (1) org.skill/org-dev.skill migrated
 verbatim to =.claude/skills/org/SKILL.md=/=.claude/skills/org-dev/SKILL.md=
 — confirmed via Claude Code's own docs that zip archives were never a
@@ -50572,6 +50575,11 @@ promoted from a one-off sequencing note into a standing CLAUDE.md rule
 Verified: =bin/check-org-dev-skill= passes; =grep -n "Plan \["
 TODO.org DONE.org= returns zero matches; =org_query "todo:DOING"= shows
 only this heading while it was active.
+:END:
+
+Shipped in two commits: the skills moved to plain-text SKILL.md files, and the
+checklist reconciliation rule and all 15 plan checklists gave way to plan links
+plus concise outcome summaries; the approval gate became a standing rule.
 
 
 
