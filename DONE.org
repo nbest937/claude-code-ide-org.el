@@ -8705,7 +8705,7 @@ CLOSED: [2026-09-19 Sat 05:52]
 :ID:       fc9de33b-e461-454f-a474-d1e4ec4d58ab
 :CREATED:  [2026-09-19 Sat 05:52]
 :END:
-
+:DEBRIEF:
 Findings 3, 7, 9, 11, 12 and 15, shipped in [[orgit-rev:claude-code-ide-org::bb455c4][bb455c4]].
 
 *The one that could still leave a consumer with no tools* was =--org='s silent =exists:= line. Any pre-existing =.mcp.json= — one unrelated MCP server is enough — reproduced =805bf287= in full while printing one unremarkable line among a dozen. It now distinguishes, and prints the exact JSON block to merge. =--check= gained the matching assertion rather than only a footer disclaimer, since the session name is baked in at =--org= time and a clone under another name, a rename or a port change all break it silently.
@@ -8715,6 +8715,12 @@ Findings 3, 7, 9, 11, 12 and 15, shipped in [[orgit-rev:claude-code-ide-org::bb4
 *The OFF line had no limiter* while every sibling report does. Now once a day via a dated stamp, for the reason =2758f3a0= measured: an instruction stopped being followed 41 times in 45, every miss on a re-mention. Fails **open**, because saying it twice is noise and never saying it is a consumer who never learns the feature exists. The ON line stays unlimited and a test asserts the asymmetry — it is a fact, not an instruction.
 
 *Two findings were partly wrong, and the corrections are the record.* =--config <key=value>= **is** a real flag of =claude plugin install=, verified against its =--help=; the *route* was wrong, since this plugin installs from a clone and not a marketplace. And the =\\'= escapes were **30 added, 0 removed** — no existing line churned, so the claimed diff noise over unchanged text did not exist. 27 replaced, only on lines this branch added, leaving 230 pre-existing ones — some genuine regexp anchors — untouched.
+:END:
+
+Shipped six review findings: =--org= now flags a pre-existing =.mcp.json= and
+prints the block to merge, with a matching =--check= assertion; three documents
+stopped calling promotion conditional; and the time-tracking OFF line is limited
+to once a day. Two findings were partly wrong.
 
 
 ***** DONE Split the time-tracking derivations out of the always-loaded rules :code:
