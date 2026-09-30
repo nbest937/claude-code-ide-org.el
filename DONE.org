@@ -37447,6 +37447,7 @@ So the full rule set, settled and ready to be written down:
 4. A container is WAITING when every non-terminal child is WAITING.
 
 :END:
+:DEBRIEF:
 *Codified 2026-08-25, and this heading was not consulted while it happened* --
 which is the part worth recording.
 
@@ -37479,6 +37480,11 @@ collide with the transition table's per-heading framing. It did not: the table
 now carries a note that it describes a heading acting for itself, and the
 container sense sits beside it as a separate paragraph rather than as another
 row.
+:END:
+
+Codified in CLAUDE.md, by a route that never consulted this heading: DOING on a
+container means at least one member is in the mail, takes no clock and is
+plural.
 
 
 
