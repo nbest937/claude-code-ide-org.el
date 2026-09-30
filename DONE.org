@@ -41224,6 +41224,7 @@ whether the keyword earns its keep.
 archived keeps only its state-change line.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-08-17* (=7be24df=), and confirmed live the same day when the first
 real =CLOSED:= line was written by an apply pass (=f7428de=). Debrief written
 2026-08-24 during [[id:7fbab3b3-7843-4290-94a5-d421413f2be4][7fbab3b3]]'s sweep.
@@ -41255,6 +41256,12 @@ which is what let f4b07fc0's backfill scope
 closed after the convention landed -- 0 warnings instead of 124. A rule filed as
 "adds no data, adds an accessor" turned out to be the thing that made a later
 rule usable at all.
+:END:
+
+Shipped in =7be24df=: =#+STARTUP: logdrawer logdone= on TODO.org makes a done
+keyword write a =CLOSED:= planning line alongside the state line, confirmed
+buffer-local; it did not backfill, though later work reconstructed markers from
+the state lines.
 
 
 
