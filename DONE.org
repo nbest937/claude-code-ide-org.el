@@ -33493,7 +33493,7 @@ CLOSED: [2026-08-27 Thu 07:38]
 - State "DONE"       from              [2026-08-27 Thu 07:38] \\
   retcon: shipped in 06e7cff 2026-08-27 07:38
 :END:
-
+:DEBRIEF:
 *Retconned [2026-08-27 Thu]; shipped [2026-08-27 Thu 07:38] inside
 [[orgit-rev:claude-code-ide-org::06e7cff][06e7cff]].*
 
@@ -33513,6 +33513,11 @@ hand-written blocks did not.
 *Found by breaking a claim and checking the exit code rather than the output* --
 the same instinct this skill's own section 0 exists to enforce, applied to the
 skill's own checker. Now: clean exits 0, a broken claim exits 1.
+:END:
+
+Checks 3 and 4 of bin/check-org-dev-skill set a block-local fail flag in fish,
+so the script printed FAIL but exited 0; they were fixed, and a broken claim now
+exits 1.
 
 
 *** 2026-08-26 Wednesday
