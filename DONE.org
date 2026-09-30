@@ -20006,6 +20006,7 @@ it must pass through Emacs so the write-through/queue gate applies —
 that gate existing and being bypassed is the whole cost.
 
 :END:
+:DEBRIEF:
 *Debrief, 2026-09-08.* Shipped in PR #17 (=82f93f8=) as
 =org_slice_add_member=, the dedicated tool this body sketched — the
 generalised positional =org_amend= was declined as a larger surface
@@ -20021,6 +20022,11 @@ every write in front of Emacs; a queue kind remains unbuilt
 deliberately. Four tests, all failing against =main= where the
 function does not exist. Registered as an MCP tool; sessions started
 after the merge see the schema.
+:END:
+
+Shipped in PR #17 as the dedicated =org_slice_add_member= tool, which inserts a
+derived member line in order, runs the slice refresh, and refuses with named
+rules; a generalised positional org_amend was declined.
 
 
 **** DONE The repeater tests hardcode tomorrow's date, and tomorrow moved :code:
