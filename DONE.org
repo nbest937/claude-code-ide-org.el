@@ -37153,6 +37153,7 @@ and answer a subtly different question.
 grounds that it was carrying a decision and no longer is.
 
 :END:
+:DEBRIEF:
 *Built 2026-08-25* ([[orgit-rev:claude-code-ide-org::4c18cc2][4c18cc2]]).
 =applied= is now a JSON object of =ts -> apply-time=, mirroring =dismissed=
 exactly, so both fields on this file share one serialization idiom rather than
@@ -37199,6 +37200,11 @@ user's *live* Emacs still holds the old definitions; the next real review pass
 writes the old bare-array shape until =config.el= is reloaded there. Nothing
 breaks either way -- the new reader accepts both -- but the field will be
 missing from that pass.
+:END:
+
+The .applied ledger now maps each consumed event to the time of the pass that
+applied it, one stamp per pass, keeping a re-marked event's original stamp and
+reading legacy bare arrays as empty.
 
 
 
