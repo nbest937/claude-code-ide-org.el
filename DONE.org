@@ -25731,6 +25731,7 @@ child heading "bin/lint-org will drown in datetree scaffolding it can never
 satisfy", which measured it hours after the rule landed.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-09-02* across four commits: =e4c60ce= (lint), =d0adb2f= (the
 functions and their tests), =ea762f3= (the file mutation), =b378b1f= (the
 ongoing half).
@@ -25834,6 +25835,12 @@ with new evidence, not this one reopening.
 this heading in its =:BLOCKER:= and wants the meta-work tree's past day nodes
 distributed into the archive tree this built. No nomination is owed beyond that:
 this heading is top-level and belongs to no container.
+:END:
+
+DONE.org was converted to a datetree descending by CLOSED:, verified against
+invariants recorded beforehand, and archiving into it was fixed after
+org-archive-reversed-order was found to malform the tree. The ongoing archive
+path had only run against fixtures at close.
 
 
 **** DONE A slice claims another slice's declared members as its own incidental work :code:
