@@ -29985,6 +29985,7 @@ least honest about what it is doing.
 the implementation is an hour and the surface decision outlives it.
 
 :END:
+:DEBRIEF:
 *Decided 2026-08-31: two tools, not three, and not a mode.* Add a body read that
 returns the heading with its drawers; add no front-matter tool; add no mode
 argument.
@@ -30040,6 +30041,11 @@ flattening working as designed ("the rendered shape stays identical, only the
 source changes"), but it means the outline's value is now index, grouping and
 relationships rather than depth — which is the same conclusion the two-tool
 split reaches from the other side.
+:END:
+
+Decided: two tools, no mode argument and no front-matter tool. A separate body
+read returns the heading with its drawers, and whether org_outline's front
+matter shrinks was sequenced until after that read is built.
 
 
 
