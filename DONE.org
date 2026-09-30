@@ -22643,6 +22643,7 @@ machinery travel is a separate move: hooks into
 both of which can be user-scoped.
 
 :END:
+:DEBRIEF:
 *Merged in from =ae2d9b4a= 2026-08-15, which was the same task written first.*
 
 That heading lived in =~/org/notes.org= — a tracked file, but not one
@@ -22831,6 +22832,12 @@ The three decisions (the user, 2026-09-04):
 This is the input [[id:d5345abb-b451-4468-8f27-4bb2da983215][d5345abb]]
 needs: the audit relocates the SKILL and RULE rows; PLUGIN rows are
 tagged in place and move with the plugin.
+:END:
+
+The material was classified into four buckets (skill, rule, plugin, stays), and
+the user decided hybrid distribution via skill references plus a setup command
+promoting rules per repo, full-strength rules consented by install, and plugin
+prose moving at packaging time.
 
 
 **** DONE Nothing watches a REVIEW heading, and it is the state most easily forgotten :code:
