@@ -45795,6 +45795,7 @@ CLOCK: [2026-08-12 Wed 16:09]--[2026-08-12 Wed 16:13] =>  0:04
 - State "DONE"       from "DOING"      [2026-08-12 Wed 16:13] \\
   mark advance, note editing, bulk marks shipped
 :END:
+:PLAN:
 
 Requested by the user 2026-08-11, after applying a real batch by hand —
 so these come from use, not from imagining use. Deliberately sequenced
@@ -45826,6 +45827,8 @@ proposes a transient menu once there are filters worth composing. These
 three are the keystroke-level fixes underneath that, and are worth
 having whether or not a menu ever appears.
 
+:END:
+:DEBRIEF:
 *Outcome, 2026-08-12.* All three shipped, with
 [[id:e3f70e61-6616-4c57-81e8-e350ffd5824c][e3f70e61]] in the same batch
 since both touch the renderer.
@@ -45857,6 +45860,10 @@ Live-reloaded and the real queue rendered: two-line header, new bindings
 resolving. Note =claude-code-ide-org-review-toggle= remains =fboundp= in
 the running image — =load-file= does not unbind a deleted function — but
 it is gone from source and nothing binds it.
+:END:
+
+All three shipped: =m= and =u= advance, =N= edits the note, and =t=/=M=/=U=
+invert, mark and unmark all, with bulk marking skipping stale unconfirmed items.
 
 
 ***** DONE A read-only target buffer costs the human their whole review pass :code:
