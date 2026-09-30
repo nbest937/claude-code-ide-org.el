@@ -21643,6 +21643,7 @@ something real, where detect-and-skip would go blind exactly where PR
 review now happens.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-09-04* (commit =5f894a8=). The assertion now derives its
 expected root from =git rev-parse --path-format=absolute
 --git-common-dir= (parent thereof), falling back to =$repo_root= if git
@@ -21654,6 +21655,11 @@ from the same worktree was green, and the main-checkout run stayed
 green. =bin/check-conventions= inherits the fix through its delegation.
 The check's label now says "via the common git dir" so a future reader
 of a failure knows what was compared.
+:END:
+
+Shipped: the check now derives its expected root from the common git dir, proved
+with a real worktree to fix the misreport while staying green from the main
+checkout.
 
 
 **** DONE Adopt systemMessage on the recovery-and-ceremony hook payload :code:
