@@ -51380,6 +51380,7 @@ CLOCK: [2026-07-28 Tue 16:16]--[2026-07-28 Tue 16:17] =>  0:01
 CLOCK: [2026-07-28 Tue 16:24]--[2026-07-28 Tue 16:25] =>  0:01
 CLOCK: [2026-07-28 Tue 16:29]--[2026-07-28 Tue 16:32] =>  0:03
 :END:
+:DEBRIEF:
 One-time retrospective cleanup of the per-turn SESSIONS/LOGBOOK churn
 accumulated so far: collapse each heading's :SESSIONS: entries to one
 min-to-max span per calendar day; round each :LOGBOOK: CLOCK interval
@@ -51389,6 +51390,11 @@ min-to-max span. Implemented as a reusable elisp function rather than a
 throwaway script, so the same logic can back the on-the-fly version
 scoped separately — see "Auto-consolidate SESSIONS/LOGBOOK on the fly"
 under Clock lifecycle & visibility.
+:END:
+
+Implemented as a reusable elisp function that collapses :SESSIONS: to one span
+per day and rounds and merges :LOGBOOK: intervals, so the on-the-fly version
+could reuse it.
 
 
 
