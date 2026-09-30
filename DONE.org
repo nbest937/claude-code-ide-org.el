@@ -41494,6 +41494,7 @@ CLOCK: [2026-08-17 Mon 14:13]--[2026-08-17 Mon 14:15] =>  0:02
 - State "NEXT"       from "TODO"       [2026-08-17 Mon 14:52] \\
   Auto-promoted: sole remaining TODO in its sibling group.
 :END:
+:PLAN:
 
 =claude-code-ide-org--assign-candidates= resolves each candidate with
 =(org-with-point-at (org-id-find id 'marker) ...)=. When =org-id-find=
@@ -41524,6 +41525,12 @@ marker first, enter =org-with-point-at= only when it is non-nil.
 operations, hand edits, and other sessions applying their queues, none of
 which this module can hook. Freshness is not achievable here, so
 tolerating nil is required regardless of what else is done.
+:END:
+
+A guard on the nil marker in =--assign-candidates= shipped 2026-08-17, so an
+unresolvable id no longer runs =org-get-heading= and =org-entry-get= in
+=*org-review*=, as recorded on =23a75720=.
+
 
 
 ***** DONE Surface the count of unresolvable =:ID:=s when the review buffer opens :code:
