@@ -35428,6 +35428,7 @@ strictly worse as a record and strictly better as a nag guard, and it needs no
 new trigger at all.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-08-26* ([[orgit-rev:claude-code-ide-org::d56e1ac][d56e1ac]]), and
 the answer is neither of the two options recorded above -- because
 [[id:961f15b6-d782-40b8-8ceb-ba086d188a3b][961f15b6]] landed in between and
@@ -35475,6 +35476,11 @@ not about the nagging, and a record of a human judgement arguably *should* need
 a human act. The honest residue is that the record will be sparse until someone
 habitually marks it, and the report makes that visible by printing the date
 every time it asks.
+:END:
+
+The ceremony prompt now goes quiet when the review command's own clock shows a
+pass ran today, or when the stamp is set, and the report names the last
+completion date. Nothing calls mark-ceremony-done automatically.
 
 
 ***** DONE Nothing refreshes a slice after apply, so its lines are stale by default :code:
