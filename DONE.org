@@ -20421,6 +20421,7 @@ it cannot yet block on, and have the lint say so as a warning rather than an
 error -- which is more work and weakens a rule that is otherwise exactly right.
 
 :END:
+:DEBRIEF:
 *Debrief, 2026-09-08.* Shipped in PR #15 (=12d936f=), taking the
 cheapest candidate exactly as this body argued: a convention rule in
 =.claude/rules/org-conventions.md= — a heading joins a checklist only
@@ -20432,6 +20433,11 @@ through immediately when the file is free: the reply's prefix says
 which case applies, "Captured:" meaning add-at-once is safe and
 "Queued capture:" meaning apply first. =798bb7a1='s open question is
 thereby answered where a reader will meet it, instead of in DONE.org.
+:END:
+
+Shipped in PR #15 as a convention rule: a heading joins a slice checklist only
+once it exists on disk with its keyword, leaving both lint rules unchanged;
+org_capture's reply prefix says which case applies.
 
 
 **** DONE A MAYBE member and a dropped member render identically, and the drop is now sticky :code:
