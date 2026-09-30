@@ -33282,6 +33282,12 @@ own split between the tool surface and tool *policy*; there is no seam visible
 at this size, so it is not being guessed at.
 :END:
 
+Decided 2026-08-26 to flatten the level-1 tier and label headings with
+=:CATEGORY:= rather than =:EPIC:=. The taxonomy step was applied 2026-08-28
+(commit =8209925=): 188 values rewritten into ten, the datetree anchor stamped
+=Meta=, no non-=:CATEGORY:= line changed, =bin/lint-org= at 0 errors and
+=bin/test= passing 434/434.
+
 See the =:PLAN:= drawer for details. Its 70 paragraphs interleave planning and
 execution across several phases — decide, plan, survey, classify, revise the
 taxonomy, apply — so no single line is the seam. Wrapped whole under
