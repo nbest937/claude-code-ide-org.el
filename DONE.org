@@ -49483,6 +49483,7 @@ CLOCK: [2026-08-11 Tue 17:34]--[2026-08-11 Tue 17:36] =>  0:02
 CLOCK: [2026-08-11 Tue 18:16]--[2026-08-11 Tue 18:28] =>  0:12
 - [2026-08-11 Tue 18:16]--[2026-08-11 Tue 18:28]
 :END:
+:PLAN:
 
 Heading creation, tagging and prose edits are text operations by design
 — Claude writes the =.org= file on disk directly, and only clock/state
@@ -49531,6 +49532,8 @@ behaviour that produces a silent failure mode — a file the user believes
 is auto-reverting quietly stops the moment a stray keystroke marks the
 buffer modified.
 
+:END:
+:DEBRIEF:
 *Done 2026-08-11.* Added "Before editing: check for an unsaved buffer" to
 the org skill, placed ahead of "Editing & transforming" because it is a
 precondition to all editing rather than a technique. It gives the
@@ -49556,6 +49559,11 @@ causes this section to be consulted at the right moment. That is
 trigger-matching, which this project's engineering practices explicitly
 exempt from deterministic testing. What is verified is that the content
 is correct when read.
+:END:
+
+Done: the org skill gained a section requiring a check for an unsaved Emacs
+buffer before editing, stopping to tell the user if modified; running the
+snippet exposed and fixed a misleading no-buffer reading.
 
 
 
