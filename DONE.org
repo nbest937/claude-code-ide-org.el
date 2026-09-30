@@ -38586,7 +38586,7 @@ CLOCK: [2026-08-24 Mon 12:10]--[2026-08-24 Mon 12:16] =>  0:06
 - State "DONE"       from "DOING"      [2026-08-24 Mon 12:16] \\
   floor shipped and pinned by tests
 :END:
-
+:DEBRIEF:
 *Shipped 2026-08-24* (=413e737=), at the user's request after they edited a
 number of 0-minute spans up to 1 minute by hand during a review pass. Instituted
 in =--apply-idle-floor= rather than at review, so every path that writes a CLOCK
@@ -38636,6 +38636,10 @@ time -- for an answer that does not vary by group. Introduced by
 [[id:eaeeb4ee-ceee-4094-8598-bbcdc8214b66][eaeeb4ee]] this morning. It is *not*
 the cause of the Emacs hang that followed the apply: that process sat at 0.0%
 CPU, which rules out anything computing.
+:END:
+
+--apply-idle-floor now rounds a positive sub-minute run up to one minute and
+  still drops a zero-width one, with a single predicate deciding both.
 
 
 
