@@ -51410,6 +51410,7 @@ CLOSED: [2026-07-28 Tue 12:17]
 :ARCHIVE_TODO: DONE
 :CLOSED_SOURCE: git
 :END:
+:DEBRIEF:
 Structured search over headings. Biggest ROI item here: most of
 what's actually slow today is Claude reading whole files to answer
 things a real query would answer in one call — "what's blocked",
@@ -51449,6 +51450,11 @@ tool never exposes that path.
   =feature/org_query=; this TODO.org bookkeeping was applied directly
   to =main= instead, per CLAUDE.md's feature-branch rule explicitly
   exempting "small doc/TODO edits."
+:END:
+
+Implemented org_query against org-ql on a feature branch with six new tests,
+accepting reliance on a private org-ql parser function and never exposing
+org-ql's sexp predicate language.
 
 
 **** DONE org-dev skill :code:
