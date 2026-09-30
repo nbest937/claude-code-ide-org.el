@@ -25098,6 +25098,7 @@ filed because =d2a0f54c='s measurement surfaced it and a finding that
 survives only in a commit message is one nobody acts on.
 
 :END:
+:DEBRIEF:
 *Deprecated outright 2026-09-02, on the user's decision — the third candidate,
 which this body had already argued was the only one whose check cannot itself go
 stale.*
@@ -25150,6 +25151,12 @@ writing *about* it reproduces it, which is a stronger argument for a mechanical
 check than anything in the plan above. It also means the gate is load-bearing
 rather than decorative — it fired on its first real commit, against the person
 who wrote it.
+:END:
+
+Line-number anchors were deprecated: bin/lint-org now errors on them in live
+bodies, the convention was written down, and the eight live anchors were
+converted by deleting redundant parentheticals. Anchors in closed headings were
+left untouched.
 
 
 **** DONE Settle what a slice proposal is, and write the procedure down :code:
