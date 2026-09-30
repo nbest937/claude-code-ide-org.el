@@ -49583,6 +49583,7 @@ CLOSED: [2026-08-11 Tue 16:18]
 - State "DONE"       from "TODO"       [2026-08-11 Tue 16:18] \\
   TODO(t!) marker added to line 1
 :END:
+:PLAN:
 
 TODO.org line 1 carried logging markers on every keyword *except* the
 first:
@@ -49600,9 +49601,15 @@ would silently not be written. Confirmed by direct test against the real
 header: bare → =NEXT= and bare → =DOING= log; bare → =TODO= did not, and
 no error was raised.
 
+:END:
+:DEBRIEF:
 *Done 2026-08-11:* =TODO= → =TODO(t!)= on line 1. One character. The
 blast radius is every future =TODO= transition gaining a =:LOGBOOK:=
 line, which is the point.
+:END:
+
+Done: TODO became TODO(t!) on the #+TODO: line, so entering TODO, the creation
+event under bare-heading capture, is now logged.
 
 
 *** 2026-08-06 Thursday
