@@ -36630,6 +36630,7 @@ memory stops being a precondition for the judgement. That is the founding goal
 applied to org's own feature set rather than to task edits.
 
 :END:
+:DEBRIEF:
 *Run 2026-08-25.* Every lens was pointed at the real corpus in batch Emacs (org
 9.8.7, loaded from Doom's straight build so this is the same org the live
 session uses, not the bundled one). Reads are read-only; the two experiments
@@ -36797,6 +36798,12 @@ built.
 were left in the session scratch directory deliberately: they are throwaway
 instrumentation, and the numbers they produced are here. Anything worth
 re-running belongs in =bin/= as a real check, which is a separate decision.
+:END:
+
+Run against the real corpus: the agenda, sparse trees and clocktable work
+unmodified, column view cannot see a slice, and :EPIC: versus :CATEGORY: was
+narrowed but not settled, with flattening found to cost the grouped clock
+report.
 
 
 
