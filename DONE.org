@@ -23716,6 +23716,7 @@ REVIEW rather than DONE because hook config loads at session start: the first
 session started after the commit is the live verification.
 
 :END:
+:DEBRIEF:
 *The live verification this was held open for has happened, 2026-09-03/04.* The
 stated exit was "the first session started after the commit"; the session that
 closed it ran across two days and 22 =clock_in= events, with the hook wired at
@@ -23744,6 +23745,11 @@ on is not the version that was put into =REVIEW=.
 *Left standing deliberately:* the hook reports and cannot name the heading —
 that judgement is the CLAUDE.md rule's alone, as the original body says. Nothing
 here changes that.
+:END:
+
+Live verification passed: across two days and 22 clock_in events the
+clock-target-check hook never blocked wrongly, its blocking half was covered by
+a new test suite, and two hook defects found in review were fixed first.
 
 
 **** DONE Nothing asserts a slice carries :COOKIE_DATA:, and its absence only shows once members nest
