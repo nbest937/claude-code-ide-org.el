@@ -50966,6 +50966,7 @@ CLOSED: [2026-07-29 Wed 05:57]
 :LOGBOOK:
 CLOCK: [2026-07-29 Wed 02:08]--[2026-07-29 Wed 02:09] =>  0:01
 :END:
+:PLAN:
 PostToolUse on org_clock_in/org_clock_out → a native notification.
 Small, but directly closes the trust gap this whole session kept
 running into: two of the four tools silently "succeeded" while
@@ -50973,6 +50974,8 @@ failing to persist to disk. A confirmation outside the model's own
 self-report is a cheap extra check, specifically at the moment
 clock state changes.
 
+:END:
+:DEBRIEF:
 *Risk, materialized in a different form than expected:* the tool-name
 matcher itself was fine, but the =tool_response= field's real shape
 for an MCP tool call turned out to be a bare JSON array of
@@ -50995,6 +50998,11 @@ agree, and this hook reports no mismatch even though the file on disk
 is stale. (See the "Tool-call audit log" entry below, and CLAUDE.md's
 stale-interval-recovery section, for why disk-level checks
 deliberately scan file *text* instead.)
+:END:
+
+Shipped clock-change notifications; the MCP tool_response shape matched none of
+the guessed forms and was fixed after a live round-trip with a regression test.
+It cannot detect a skipped save, since it reads in-memory state.
 
 
 
