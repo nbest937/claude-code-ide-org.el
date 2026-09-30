@@ -18855,6 +18855,7 @@ the reload trap, and the claim about unbound symbols is demonstrated
 rather than asserted.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-09-02* as a subsection of the org-dev skill's §1, "Live
 reload procedure" — inside the section describing the reload it
 undermines, rather than filed near it.
@@ -18889,6 +18890,11 @@ reload that succeeds is not evidence the new value is live.*
 returned 1 this morning and that hit was about =:CATEGORY:='s character
 limit. =bin/check-org-dev-skill= still passes, so the new section did
 not break any claim the skill already made about itself.
+:END:
+
+Shipped as a subsection of the org-dev skill's live reload procedure, with a
+batch transcript demonstrating that load-file keeps a bound defcustom's old
+default and that a setq is also needed.
 
 
 ***** DONE Say in CLAUDE.md that it is a starting point and the artifact is the authority :code:
