@@ -45975,6 +45975,7 @@ CLOCK: [2026-08-12 Wed 09:58]--[2026-08-12 Wed 10:02] =>  0:04
 - State "DONE"       from "DOING"      [2026-08-12 Wed 10:02] \\
   projected-state stale check shipped and verified
 :END:
+:PLAN:
 [[file:~/.claude/plans/hazy-moseying-sky.md][Plan]]
 
 Raised by the user 2026-08-11, from the right observation: *every* state
@@ -46065,6 +46066,8 @@ Decide it during
 path is already open, rather than discovering it in the first
 post-cutover review pass.
 
+:END:
+:DEBRIEF:
 *Outcome (2026-08-12, commit =2ce42fc=).* Took the first candidate — the
 projected-state check — and rejected the writer-records-previous-=to=
 alternative for the reason recorded above, plus one this heading had not
@@ -46123,6 +46126,11 @@ to WAIT left the subject the sole TODO of its sibling group, so
 =claude-code-ide-org--trigger-auto-promote-sole-todo= correctly promoted
 it to NEXT behind the test's back. The test now carries a third sibling
 and says why.
+:END:
+
+Took the projected-state option in =2ce42fc=: an item is stale only if its
+=from= matches neither the pre-batch state nor what earlier marked items leave
+behind, so chains apply in one pass.
 
 
 ***** DONE The review buffer has no way to dismiss an item you will never apply :code:
