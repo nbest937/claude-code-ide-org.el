@@ -4038,7 +4038,7 @@ per-heading normaliser that every drawer-creating writer calls, a one-off
 corpus pass, and a lint error. Design in =:PLAN:=.
 
 
-* TODO Revisit the story definition: sanction clustering and speculative breakdown :code:bounded:
+* TODO Revisit the story definition: sanction clustering and speculative breakdown :bounded:prose:
 :PROPERTIES:
 :ID:       63df67c7-de0d-43e7-9c6f-2b2979a40aba
 :CREATED:  [2026-09-10 Thu 09:06]
@@ -4047,6 +4047,8 @@ corpus pass, and a lint error. Design in =:PLAN:=.
 :LOGBOOK:
 - Tags ":code:bounded:" from ":code:"     [2026-09-28 Mon 13:01] \\
   classified: documentation rewrite the accepted :PLAN: specifies
+- Tags ":bounded:prose:" from ":code:bounded:" [2026-09-29 Tue 21:14] \\
+  its deliverable is a conventions paragraph, no code
 :END:
 :PLAN:
 Raised by the user 2026-09-10, after composing the org-native-notes
@@ -4096,25 +4098,47 @@ positively (unworked parents may be born broken-down; refile-clusters
 are sanctioned when completion-shaped), add the will-it-close test,
 name the collector exception, and keep emergent detection, the divide
 rule, and no-declaration exactly as they are.
+
+*Re-read 2026-09-29: most of the rewrite above landed elsewhere.* The phrase it
+targets, "a story is precipitated, never authored", is gone; the conventions now
+say a story is emergent and not to classify a heading as one when writing it,
+which is the narrow reading argued above. Scenario B is stated positively twice:
+the org skill's "only a heading with nothing of its own to strand may grow
+children in place", and the brainstorming skill's "decompose it: the parts
+become keyworded children captured under the heading". Scenario A is still
+unwritten, while the user's ruling of 2026-09-28 that everything a code review
+uncovers goes into one story is already a deliberately assembled cluster in the
+conventions, without the rule that explains it.
+
+*The remaining change, approved in chat by the user 2026-09-29.* One paragraph
+in the shipped conventions, directly after "A story is not declared, it is
+emergent". Clustering open tasks under a parent is sanctioned when the cluster
+will close, its children finishing finishing it, with the code-review story as
+the example. A cluster of thematic affinity with no end state is a filing
+drawer, and belongs to =:CATEGORY:=, a tag or a slice. The honest exception is a
+running collector that never closes, parked =MAYBE= as 9d6449c7 is. And one
+clause for B: an unworked heading may be broken down in place, a worked one
+divides, pointing to the org skill's section rather than restating it. The
+conventions are path-scoped, so no word budget applies. The heading's =:code:=
+tag became =:prose:=, since it writes no code.
+
+*Moved here from the body 2026-09-29, and now moot since no merge was chosen:
+one criterion added 2026-09-19, from the drift analysis via =f6d160c2=.* A merge
+of story and slice would delete a vocabulary band from the always-loaded map —
+the epic/story/slice/twin paragraph in CLAUDE.md and its counterpart in the
+conventions — and concept count is itself a cost every session pays ([[id:bf7e0b8e-f83a-4d4a-9950-3ab23a225156][bf7e0b8e]]).
+That is a *tiebreaker*, not a thumb on the scale: the against-the-merge argument
+above is semantic (containment versus reference, tentative versus committed),
+and a worse model adopted to save a paragraph costs more in misfiled work than
+the paragraph.
 :END:
 
-The story conventions read as prohibitions while the user's two
-scenarios — clustering open tasks under a parent, and speculatively
-breaking a weighty task into subtasks — are realistic and already
-mostly legal. Proposed: restate the permissions positively, add the
-will-it-close discriminator for clustering, keep the record-stranding
-and no-declaration rules, and do not merge stories with slices.
-Analysis in =:PLAN:=; the decision is the user's.
-
-The user accepted the analysis 2026-09-10, same day: both scenarios
-sanctioned, the will-it-close discriminator adopted, no merge. What
-remains is the documentation rewrite the =:PLAN:= specifies —
-positive permissions in the shipped conventions' story paragraphs,
-the test, the collector exception — executed when this member comes
-up in [[id:6521dd56-8772-416b-9435-6da78bb86b06][6521dd56]]'s
-sequence.
-
-*One criterion added 2026-09-19, from the drift analysis via =f6d160c2=, and bounded.* A merge of story and slice would delete a vocabulary band from the always-loaded map — the epic/story/slice/twin paragraph in CLAUDE.md and its counterpart in the conventions — and concept count is itself a cost every session pays ([[id:bf7e0b8e-f83a-4d4a-9950-3ab23a225156][bf7e0b8e]]). That is a *tiebreaker*, not a thumb on the scale: the against-the-merge argument above is semantic (containment versus reference, tentative versus committed), and a worse model adopted to save a paragraph costs more in misfiled work than the paragraph. So: if the two scenarios come out realistic and distinct, keep both groupings and shorten the prose; if they collapse, count the deletion as a benefit, not as the reason.
+Two scenarios, clustering open tasks under a parent and breaking a weighty task
+down speculatively, are realistic and do not justify merging stories with slices
+(the user, 2026-09-10). Breaking down is already stated positively in the org
+and brainstorming skills; clustering still lacks its rule. One paragraph in the
+shipped conventions sanctions a cluster that will close, names the collector
+exception, and points to the divide rule. Design in =:PLAN:=.
 
 
 * NEXT [0/15] Make the notes org-native: links, drawers, tags, one corpus pass :code:
