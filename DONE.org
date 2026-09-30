@@ -38925,6 +38925,7 @@ answer rather than the same one -- it is an archive, read rarely and in full --
 so this is a decision about two files, not a copy-paste.
 
 :END:
+:DEBRIEF:
 *Resolved 2026-08-24, and the disagreement turned out to matter.* The two lines
 were:
 
@@ -38977,6 +38978,11 @@ read a time from, and *38 carry no in-file evidence at all*. For those,
 =CLOSED:= would be the class of guess
 [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]] retired. Git history is
 the one honest source left for them.
+:END:
+
+logdone was added to DONE.org so both #+STARTUP lines are identical, and
+apply-before-archive ordering was recorded; backfilling CLOSED: on the archived
+headings was left open.
 
 
 
