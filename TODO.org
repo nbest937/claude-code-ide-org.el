@@ -2,6 +2,23 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO An unscoped org_outline carries every finished heading's body, though a finished heading is history read on demand :code:
+:PROPERTIES:
+:ID:       b1ac24d1-61f6-40af-bb0d-a8b5f866837e
+:CREATED:  [2026-09-30 Wed 19:39]
+:CATEGORY: Tools
+:END:
+
+Measured 2026-09-30 after e128e4fa's pass: an unscoped org_outline is about
+1.07M characters with bodies, and DONE.org contributes about 580k of it, while
+the conventions already say a finished heading is read on demand. Proposed: give
+the existing bodies argument a third value instead of adding a parameter.
+Omitted would carry bodies for unfinished headings only, "all" would keep
+today's behaviour, and "false" would stay as it is; unlike active_only, finished
+headings keep their lines. Expected effect about 1.07M to 0.55M characters,
+which does not by itself retire CLAUDE.md's bodies=false advice, since live
+bodies in TODO.org are about 472k.
+
 * TODO The ERT suite depends on the machine's timezone: 47 tests fail off Central time :code:
 :PROPERTIES:
 :ID:       10424e58-ed39-4600-8eec-46abaef500ee
@@ -5093,6 +5110,12 @@ pre-convention bodies are short, and whichever session notices should
 tell the user it is time to re-measure the unscoped =org_outline= —
 and retire the interim =bodies=false= advice in CLAUDE.md's "Reading
 the tracker" if the numbers support it.*
+
+*The reminder above fired and was answered 2026-09-30, when e128e4fa's pass
+ran.* The unscoped outline measured about 1.07M characters with bodies against
+97k without, so the bodies=false advice stays. Live pre-convention bodies in
+TODO.org (about 472k) dominate it, which finished bodies being short cannot fix;
+b1ac24d1 files dropping finished bodies from the outline, a partial remedy.
 :END:
 :PLAN:
 
