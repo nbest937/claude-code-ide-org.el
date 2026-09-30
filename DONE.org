@@ -34237,6 +34237,7 @@ drawn alongside this one and does not follow; see the note on
 substantial body.
 
 :END:
+:DEBRIEF:
 *Decided [2026-08-26 Wed]: declined, and the corpus is not in debt.* The user's
 approved shape was A + B − C + D — record the convention, fix the report, do not
 migrate, keep mitosis.
@@ -34300,6 +34301,12 @@ CLAUDE.md's mitosis bullet is re-pointed off the retired claim; and
 =.claude/rules/org-conventions.md= now distinguishes a *story* (may be clocked
 deliberately) from a *slice* (may not, being a sequencing declaration rather
 than a place work happens).
+:END:
+
+Declined: a grouping's existing CLOCK lines are history, not debt, and a parent
+may still be clocked deliberately. The records were not migrated, the report fix
+was filed as =64d34a64=, mitosis was kept, and the convention was written into
+CLAUDE.md and org-conventions.md.
 
 
 
