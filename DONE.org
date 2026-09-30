@@ -23903,6 +23903,7 @@ failure mode =542924c1= collects. Worth fixing in the same pass; both are the
 gate lying about itself.
 
 :END:
+:DEBRIEF:
 *The =fish= hypothesis above is falsified.* The prospective half names it as the
 likely cause and flags it unverified; reproducing it first is what saved the
 fix. The actual cause is that =bin/pre-commit-test='s fixtures still build the
@@ -23944,6 +23945,11 @@ errors.
 *Still true and still not this heading's work:* =.githooks/pre-commit= does
 depend on =fish= through =bin/check-conventions=. That is real, it is a
 portability question rather than a defect, and =84b7d8b3= is where it belongs.
+:END:
+
+The fish hypothesis was falsified: the fixtures still built the retired level-1
+category tier. They were updated and the suite passed 8/8, and check-conventions
+now exits 2 on unknown flags or unreadable roots instead of passing silently.
 
 **** DONE check-conventions reports documentation drift when the emacs binary is what is missing :code:
 CLOSED: [2026-09-03 Thu 13:41]
