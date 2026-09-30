@@ -50599,6 +50599,7 @@ CLOSED: [2026-07-29 Wed 18:53]
 :LOGBOOK:
 CLOCK: [2026-07-29 Wed 11:45]--[2026-07-29 Wed 12:05] =>  0:20
 :END:
+:PLAN:
 Tonight's parallel-subagent batch (10 MCP tools) left every archived
 heading's Plan checkboxes at all-[ ], despite full implementation —
 org.skill's existing "check off as you go" discipline was never
@@ -50634,6 +50635,8 @@ directly in its own worktree; rely on the already-enabled
 global-auto-revert-mode to sync the live buffer after a merge before
 archiving that heading.
 
+:END:
+:DEBRIEF:
 *Resolved:* the fresh session concluded the whole reconciliation
 mechanism was the wrong fix — not "who reconciles it, coordinator or
 subagent" but "why maintain a second copy of the plan in org at all."
@@ -50651,6 +50654,11 @@ org, there's nothing left to keep in sync between git and the live
 buffer, so no revert-timing race this rule needs to guard against. See
 TODO.org's "Discard the Plan-checklist convention" heading and its
 linked plan for the full resolution.
+:END:
+
+Resolved that the reconciliation mechanism was the wrong fix: org now links the
+Plan Mode file and carries a prose outcome summary instead of a transcribed
+checklist, making the question moot for org.skill generally.
 
 
 
