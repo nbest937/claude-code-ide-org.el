@@ -23811,6 +23811,7 @@ written). The same argument applies here, and a lint error plus a hand fix is
 the weaker half of it.
 
 :END:
+:DEBRIEF:
 *Verified, not just implemented:* shipped in
 [[orgit-rev:claude-code-ide-org::5547efe][5547efe]]. Five assertions, run red
 first — no property at all, the correct value, =:COOKIE_DATA: todo=,
@@ -23847,6 +23848,11 @@ argues that =refresh-slice= should insert it the way =28415ca8= taught it to
 insert a missing =[/]=, and this commit does not do that — a lint error plus a
 hand fix is the weaker half. Filed as the open question it was, not closed by
 implication.
+:END:
+
+Shipped a lint rule asserting a slice carries the correct :COOKIE_DATA: value,
+not mere presence, verified against the real file and landed at zero violations;
+making refresh-slice create the property was left undone.
 
 *** 2026-09-03 Thursday
 **** DONE bin/pre-commit-test has three failures that predate the branch fixing them
