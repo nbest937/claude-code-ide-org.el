@@ -44440,6 +44440,7 @@ CLOCK: [2026-08-14 Fri 13:40]--[2026-08-14 Fri 13:45] =>  0:05
 - State "DONE"       from "DOING"      [2026-08-14 Fri 13:45] \\
   decided and executed: guess retired
 :END:
+:PLAN:
 
 Captured 2026-08-06 from conversation. The whole stale-interval
 recovery subsystem — =SessionStart= hook →
@@ -44508,6 +44509,8 @@ case rests on
 [[id:53b0047d-c55c-486c-8eed-ba4994d97a1a][53b0047d]] and a human's own
 =C-c C-x C-i= remaining reachable.
 
+:END:
+:DEBRIEF:
 *Decided and executed 2026-08-14. Split verdict: keep the detector and
 the repair, retire the guess.*
 
@@ -44587,6 +44590,12 @@ removing the retired one. Separately, CLAUDE.md still shows
 actually installs =claude-code-ide-org--clock-out-if-clocking=. That one
 is left for the rewrite, since it is not this heading's to fix, but it is
 load-bearing for the argument above about clean exits.
+:END:
+
+Split verdict, executed: the stale-interval detector and repair were kept,
+because hand-set DOING can still strand a live clock, while the working-hours
+stop-time guess was deleted; the report now asks when work stopped instead of
+guessing.
 
 
 ***** DONE Decide whether the :SESSIONS: drawer and its machinery survive the refactor :code:
