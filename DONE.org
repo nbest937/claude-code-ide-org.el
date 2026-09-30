@@ -36205,6 +36205,7 @@ puts the human's own time in the agenda. The datetree question does not need
 answering to proceed, which was the only thing gating the build.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-08-26* ([[orgit-rev:claude-code-ide-org::82416ad][82416ad]]).
 =claude-code-ide-org-review= now opens a native clock on a dedicated heading,
 and three layers close it.
@@ -36253,6 +36254,11 @@ technique and not as anything anyone runs. Whether that belongs in the ceremony
 alongside the other steps is
 [[id:edd47f32-e6c9-4ab3-8e8a-46a37ea29605][edd47f32]]'s question, and it is the
 fourth thing there that nobody invokes.
+:END:
+
+The review command now opens a native clock on a dedicated Review attention
+heading, closed when the buffer is buried, killed or Emacs exits. No datetree
+was added, and nothing yet reports on the clock.
 
 
 
