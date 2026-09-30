@@ -25582,6 +25582,7 @@ moment it applies* — the lint does fire, but only after archiving has already
 happened, by which time the drawer's absence is history rather than a prompt.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-09-02, commit =c2ac288=. The user chose the third option — a check
 firing on a heading queued =DONE= rather than one already closed — with the
 rationale that the lint's job is to tell the agent "don't forget to wrap the
@@ -25630,6 +25631,12 @@ is not available without someone deciding where the seam is.
 [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]]'s backlog, and CLAUDE.md's
 rule for them is *wrap unedited*, a mechanical pass rather than 93 judgements.
 This heading only stops the number growing.
+:END:
+
+Shipped in commit =c2ac288=: org_set_todo now reminds the caller, when DONE is
+queued, to wrap the prospective body with org_wrap_plan and its until argument.
+It reminds rather than enforces; the existing 93 unwrapped headings were left to
+=cbe282ec=.
 
 
 **** DONE Reorder DONE.org as a datetree descending by CLOSED:, and fix archiving into one :code:
