@@ -11290,6 +11290,7 @@ failing on the current =0:02=.
 discarded it -- see/ [[id:1cd2df62-35e9-47dc-bcce-dda7bae3c522][1cd2df62]].
 
 :END:
+:DEBRIEF:
 *Fixed 2026-08-21, and the reported symptom was the smaller half.* Chasing the
 root cause found that *56 of the 353 CLOCK lines standing in TODO.org and
 DONE.org disagree with their own printed timestamps* -- 35 printing a minute
@@ -11335,6 +11336,12 @@ the 25.5% class; that residual is inherent to previewing before assignment.
 Mutation-tested three ways -- reverting to raw rounding, truncating only one
 endpoint, and removing the window extension each fail a distinct test. 329
 tests.
+:END:
+
+Fixed: a new =--clock-minutes= helper truncates both endpoints before
+subtracting, so previews and written lines agree with their own stamps. The
+investigation found 56 existing CLOCK lines disagreeing with their timestamps,
+left for a separate repair.
 
 
 ***** DONE Fifty-six CLOCK lines disagree with their own timestamps :code:
