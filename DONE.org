@@ -37912,6 +37912,7 @@ CLOSED: [2026-08-25 Tue 11:46]
 - State "CANCELLED"  from "TODO"       [2026-08-25 Tue 11:46] \\
   superseded by orgit revision links
 :END:
+:PLAN:
 
 *=.claude/commands/next-session.md= is reused in place*, rewritten once per
 slice, so the text that drove slice N is overwritten when slice N+1 is planned.
@@ -37945,6 +37946,8 @@ for plans. The plan case is stricter because the source can vanish with a home
 directory; here the source is committed, so a missing snapshot loses ordering
 and attribution, not content.
 
+:END:
+:DEBRIEF:
 *Cancelled 2026-08-25, hours after being filed*, superseded by a better answer
 to the same problem: a slice links =orgit-rev:= commits instead of a copied
 file, and links *several* of them -- one per revision of the prompt.
@@ -37971,6 +37974,10 @@ four =orgit-rev:= links now on
 [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]]. Nothing is lost: the file
 is recoverable from any commit, which was always true and is the reason the copy
 was redundant.
+:END:
+
+Cancelled as superseded: a slice now links orgit-rev: commits, one per revision
+of its prompt, instead of archiving a copied snapshot, and slices/ was removed.
 
 
 
