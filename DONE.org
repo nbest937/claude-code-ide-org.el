@@ -38337,7 +38337,7 @@ CLOCK: [2026-08-24 Mon 14:51]--[2026-08-24 Mon 14:53] =>  0:02
 - State "DONE"       from "DOING"      [2026-08-24 Mon 14:53] \\
   cond reshaped, all four kinds tested
 :END:
-
+:DEBRIEF:
 *Filed and fixed 2026-08-24* (=f7acc03=), from the user asking whether there was
 any task to log a render fix against. There was not -- but there was a
 *precedent*, and finding it turned a one-line fix into a pattern worth naming.
@@ -38376,6 +38376,11 @@ for the render asking what an id *is* rather than enumerating what it has seen.
 *Tested across all four kinds together*, because the failure each time was a
 case falling into a branch that describes something else, and only comparing
 them shows that.
+:END:
+
+The review buffer's group-heading render now branches on what kind of id it has,
+including a pending capture, rather than on whether org-id resolves it, and is
+tested across the kinds together.
 
 
 
