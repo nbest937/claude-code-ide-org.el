@@ -36954,6 +36954,7 @@ quiet cannot be seen to improve. Worth doing before the next long-bodied heading
 closes.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-08-25* ([[orgit-rev:claude-code-ide-org::5e6ab98][5e6ab98]]). A
 debrief-only heading can now answer the lint's question, by declaring that it
 has no prospective half: pass the debrief's first line as the seam and
@@ -37023,6 +37024,11 @@ warning are still warning. Wrapping them is the archive/ceremony backlog
 ([[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]],
 [[id:7fbab3b3-7843-4290-94a5-d421413f2be4][7fbab3b3]]); what this heading owed
 was a way for the debrief-only ones to be satisfiable at all.
+:END:
+
+org_wrap_plan gained an empty-ok path that writes an empty :PLAN: drawer for a
+debrief-only heading, so such a heading can satisfy the lint; the lint itself
+needed no change.
 
 
 
