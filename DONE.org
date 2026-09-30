@@ -38076,7 +38076,7 @@ CLOCK: [2026-08-24 Mon 19:50]--[2026-08-24 Mon 19:53] =>  0:03
 - State "DONE"       from              [2026-08-24 Mon 19:51] \\
   instrumentation shipped and tested
 :END:
-
+:DEBRIEF:
 *Shipped 2026-08-24* (=f1dcec9=), and filed after the fact -- the user asked for
 a heading and got one only for its sibling proposal, which is its own small
 instance of the same defect.
@@ -38121,6 +38121,11 @@ was live, the five items had been dismissed as stale -- the partial applies had
 moved their headings to the states the events described. So the message that
 motivated this has never been seen through it, and the underlying cause of
 "Before first headline at position 1" remains unknown.
+:END:
+
+Apply failures now name the item: --at-id records the error's backtrace, and
+each failure is annotated with its type, short id and timestamp. The original
+failure's cause remains unknown.
 
 
 
