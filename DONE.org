@@ -35696,6 +35696,7 @@ checking over *files* at pre-commit. This one checks *response prose* at turn
 end. Same instinct, no shared code.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-08-24* (=9fcc08b=): =bin/hooks/footnote-check=, wired to =Stop=,
 with =bin/footnote-check-test= covering it. 8 of 8 pass.
 
@@ -35753,6 +35754,11 @@ policing it:* [[id:478d6ec9-1b99-4c6c-88e9-c793ad4b2f22][478d6ec9]] and
 [[id:2d9eeebd-4375-4790-8485-92b244236a21][2d9eeebd]] make a prefix→title lookup
 cheap. A rule that is free to obey does not need enforcing, and the enforcement
 exists because looking up five exact titles mid-response is not free today.
+:END:
+
+Shipped bin/hooks/footnote-check, a Stop hook that blocks a response citing
+tracked :ID:s without footnotes, validating candidates against the org files,
+with a once-per-turn loop guard and tests.
 
 
 ***** DONE The footnote hook's stopReason never reaches the model; the block is opaque :code:
