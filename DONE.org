@@ -22931,6 +22931,7 @@ three at once, aged two days, in a corpus that held zero live =REVIEW= headings
 before 2026-08-31.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-09-04 as [[orgit-rev:claude-code-ide-org::33feda6][33feda6]] — a
 fourth clause in =--attention-headings-context=, not a fourth report.* That
 function already answers "what should a starting session be told about", and a
@@ -22988,6 +22989,11 @@ It was my own filter: the returned strings carry org text properties, so
 discarded it. Silence again standing in for a result, third time in this session
 and the one time it would have produced a false negative about a feature that
 works.
+:END:
+
+Shipped as a fourth clause in the attention-headings context, reporting every
+REVIEW heading with its calendar-day age; a day-counting bug was fixed, and live
+verification after reload showed it naming only itself.
 
 
 **** DONE [5/5] Close the four defects the PR #9 review found, and the gap they shared
