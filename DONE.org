@@ -29807,6 +29807,7 @@ the dependence on when the suite runs instead of narrowing the window in which
 it breaks.
 
 :END:
+:DEBRIEF:
 *Fixed 2026-08-31 by the recorded approach — a fixed date — which needed one
 thing established first.* =:block "today"= reaches the clock as =(decode-time
 nil)= inside =org-clock-special-range=, so pinning =current-time= alone does not
@@ -29839,6 +29840,11 @@ requires.
 closing this heading out, and the suggested spans that resulted cover crash
 diagnosis and an AFK stretch rather than work on the fixture. The last moment
 work here demonstrably happened is *13:28:56*, the final green =bin/test=.
+:END:
+
+Fixed with fixed-date fixtures and a macro pinning the clock at the minute the
+defect was measured; restoring the old fixture fails the test. Committed with
+=5a5e87c9= in commit =811d180=.
 
 
 
