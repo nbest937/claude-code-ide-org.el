@@ -22058,13 +22058,17 @@ worktrees — this repo already uses git worktrees for parallel work
 (DONE.org's worktree entries), so two paths can mean one project. A slug
 would need a normalisation rule, which is a decision rather than a field.
 :END:
-
+:DEBRIEF:
 Cancelled 2026-09-04 as a twin of
 [[id:5461c349-fd22-4b75-a508-50efbe4b87f8][5461c349]] — the same change
 written sixteen days earlier under a different key ("project" for
 "cwd"), found when both sat as adjacent slice members. Its distinct
 content (the allocation motivation, the raw-vs-slug question) is merged
 there; nothing here is unaddressed.
+:END:
+
+Cancelled as a twin of =5461c349=, the same change filed earlier under a
+different key; its distinct content was merged there.
 
 
 **** DONE Heading bodies grow into narratives no human will read; decide what to stop capturing :code:
