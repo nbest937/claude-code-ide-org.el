@@ -47009,6 +47009,7 @@ CLOCK: [2026-08-13 Thu 16:54]--[2026-08-13 Thu 16:59] =>  0:05
 CLOCK: [2026-08-13 Thu 17:01]--[2026-08-13 Thu 17:08] =>  0:07
 CLOCK: [2026-08-13 Thu 17:10]--[2026-08-13 Thu 17:16] =>  0:06
 :END:
+:PLAN:
 
 *Found 2026-08-13 by losing 32 minutes of record to it*, acting on
 Claude's own advice. Recorded with that provenance because the advice
@@ -47059,6 +47060,8 @@ explicitly out of scope — splitting one span across two headings —
 since truncate-assign-repeat becomes a working split once the remainder
 survives.
 
+:END:
+:DEBRIEF:
 *Shipped 2026-08-13* (commit =be5834d=), taking option 1 and adding the
 user's refinement: the remainder appears *on the spot*, in the same
 buffer, rather than at the next refresh.
@@ -47093,6 +47096,11 @@ remainder.
 truncate, assign, repeat — which
 [[id:3d0487f4-b8f8-451c-88bf-ab537663cbd0][3d0487f4]] had listed as
 explicitly out of scope for v1.
+:END:
+
+Shipped in =be5834d=: editing a span's interval now re-scopes its events and
+inserts the remainder as new items in the same buffer, making =e= a working span
+splitter; the lost 32 minutes were recovered.
 
 
 
