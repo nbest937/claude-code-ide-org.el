@@ -24962,6 +24962,7 @@ output. Two of the three were surfaced by the user, not by the session that
 wrote them.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-09-02: the elisp form-reading check, as assertion 0 of
 =bin/check-conventions=* — an assertion rather than a script, which is what
 [[id:d2a0f54c-b59a-4855-ae3d-c93a6d3aa177][d2a0f54c]]'s harness made possible.
@@ -25001,6 +25002,12 @@ a mutation run require the =Ran N tests= line *and* N equal to the baseline, and
 that each ceremony step's no-argument call resolve to the file the step beside
 it writes to. Both remain good ideas; neither is done, and saying so is cheaper
 than letting a reader infer from the heading's closure that all three shipped.
+:END:
+
+Shipped an elisp form-reading check as assertion 0 of bin/check-conventions, run
+by pre-commit, after finding nothing checked elisp at commit time; the
+check-parens premise could not be reproduced. The two other proposed assertions
+were not built.
 
 
 **** DONE Line-number anchors in org bodies rot, and nothing checks them :code:
