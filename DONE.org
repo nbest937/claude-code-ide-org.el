@@ -33590,6 +33590,7 @@ that state and clock are decided separately; the trigger reintroduces the
 coupling at apply time, on the one path that is not going through those calls.
 
 :END:
+:DEBRIEF:
 *The cascade above does not happen, measured [2026-08-26 Wed] against the real
 apply path* ([[orgit-rev:claude-code-ide-org::19a3873][19a3873]]). Three probes,
 batch, scratch org files:
@@ -33675,6 +33676,11 @@ on.
 *Recorded here rather than left implicit*, because a =REVIEW= that closes
 silently loses the fact that a judgement was made at all -- which is the same
 failure the nomination rule guards against one level up.
+:END:
+
+The predicted cascade was falsified by measurement: apply suppresses the
+auto-clock-in trigger for every item, so no code was owed. CLAUDE.md and the org
+skill were corrected, and the review closed it DONE with nothing missing.
 
 
 
