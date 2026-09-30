@@ -33915,6 +33915,7 @@ bespoke repairs, and it is the user's phrasing rather than a generalisation
 invented after the fact.
 
 :END:
+:DEBRIEF:
 *Shipped [2026-08-26 Wed]*, both halves, because the body's own analysis showed
 they are complementary rather than alternatives -- and it was right: the general
 change fixes the whole-file reading and does nothing for the scoped one, which
@@ -33973,6 +33974,11 @@ way only re-proved the scoped tests.
 the three blind lenses want one general mechanism rather than three bespoke
 fixes. That question stands and belongs to
 [[id:2e660571-26df-41e4-bb64-b9d74a3d7efe][2e660571]].
+:END:
+
+Both halves shipped: [blocked] now names the offending ids, and org_outline
+scoped to a slice lists every member as a reference, dropped ones included.
+Whether the blind lenses want one general mechanism was left to =2e660571=.
 
 
 **** DONE Reserve NEXT for use within a container; nominate rather than promote :code:
