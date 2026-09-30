@@ -10377,6 +10377,7 @@ it. The scope of this correction should follow that answer.
 document, which carries this child's design rather than a file of its own.
 
 :END:
+:DEBRIEF:
 *Applied 2026-08-18* (=6df5043=, =47cabb8=, =79f23b5=), option A: correct
 what was recorded, rather than reconcile the record against everything
 the queue knows. The second would have needed a human to re-attribute
@@ -10462,6 +10463,12 @@ So **68% of the spans the old aggregator produced are gone or altered**, and the
 *So the two measurements disagree violently and both are right.* 68% of spans moved their **boundaries**; the runs inside them did not move. Apply writes runs, so the accumulated record never depended on the boundaries that changed. Stating it that way is the useful form: a span is a *proposal*, and changing what is proposed does not change what was recorded once the proposals were accepted.
 
 *This heading's own condition is therefore satisfied* — "once the aggregator is fixed" holds again, now with evidence rather than by assumption, which is what its reopening this morning was for.
+:END:
+
+Applied option A in August, recomputing the post-cutover record from 41.32 h to
+19.95 h across 44 headings. Reopened 2026-09-17 after aggregator changes; span
+boundaries had moved but the recorded runs had not, so the record was found
+sound.
 
 
 ***** DONE Decouple live "what is Claude attending to" visibility from the authoritative org clock :code:
