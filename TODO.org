@@ -7580,6 +7580,7 @@ CLOCK: [2026-08-21 Fri 10:35]--[2026-08-21 Fri 10:37] =>  0:02
 - Tags ":code:bounded:" from ":code:"     [2026-09-28 Mon 13:01] \\
   classified: write-path half shipped; a lint error and one sentence remain
 :END:
+:PLAN:
 
 Proposed by the user 2026-08-21, while asking for a materialized example of a
 proposed subtree: if showing org structure inside a heading body works, make it
@@ -7677,7 +7678,45 @@ on it.
 
 *Inverted 2026-09-19 against the drift analysis (§4.1) and the slice =f6d160c2=.* This heading's own measurement made the case: unescaped example headings corrupt =org_outline=, =--container-heading-p=, the cookies and =lint-org=, each *silently* — so the writer who needed the rule never learns they broke it, and a rule whose violation is invisible to its violator is the one prose cannot carry. The deliverable is therefore the enforcement, and the prose is the residue. Two mechanisms, strongest first: =org_amend= and =org_capture= escape a =^\*+ = line inside a =#+BEGIN_= block on write, which makes the omission impossible on the tool path; and =bin/lint-org= errors on an unescaped one, which catches the hand-edit path at commit. The conventions then need one sentence naming the mechanism, in =org-conventions.md= beside the existing passage on documenting org structure — and given [[id:436e0991-c8ac-40fb-860d-a6c4c381bee5][436e0991]] that sentence is documentation, not the safeguard. Candidate for the slice's enforcement audit, [[id:3cd7b7d3-25eb-4f30-ae90-9174a6876674][3cd7b7d3]], as the first clause it would convert.
 
-*The enforcement half is done, 2026-09-21* (under 3cd7b7d3): =org_amend= and =org_capture='s note comma-escape raw =^\*+ = lines inside any =#+begin_=…=#+end_= block on the way in, idempotently, so the convention no longer has to be recalled on the tool path. Still true and still prose: a hand edit, and text that defers to the queue, are not covered.
+*The enforcement half is done, 2026-09-21* (under 3cd7b7d3): =org_amend= and
+=org_capture='s note comma-escape raw =^\*+ = lines inside any
+=#+begin_=…=#+end_= block on the way in, idempotently, so the convention no
+longer has to be recalled on the tool path. Only a hand edit is uncovered: text
+that defers to the queue is escaped at apply too, since 00aa6a85 (checked
+2026-09-29).
+
+*The remainder, approved in chat by the user 2026-09-29.* The corpus holds no
+headline-shaped line inside a block in either file (checked 2026-09-29), so a
+lint error lands without a one-off pass. The worry above about a diff or shell
+transcript legitimately holding a star line is answered by this heading's own
+measurement: org reads such a line as a heading whatever the block means, so
+escaping it is right every time.
+
+*Lint.* =bin/lint-org= errors on a line matching =^\*+( |$)= between a
+=#+begin_= line and its =#+end_=, naming the line and saying to comma-escape it.
+The check is textual on purpose: org's parser cannot see the line as inside the
+block, since to org the heading has already broken it.
+
+*The bare star line.* =--escape-block-headlines= widens from a star run followed
+by a space to =^\*+( |$)=, because a line of stars alone is also a heading to
+org (=org-heading-regexp=). Every writer and the apply path then escape it, and
+=org_edit='s headline refusal only ever fires outside a block, which removes the
+limit 704d8558 recorded.
+
+*Prose.* One sentence in the shipped conventions, beside the text on documenting
+org structure: headline lines inside a block are comma-escaped, the tools do it
+on write and at apply, and the lint catches a hand edit.
+
+*Tests.* The lint flags both forms inside a block, and is silent outside one and
+on an escaped line. The escape covers the bare form and stays idempotent. Each
+is shown to fail with its change removed.
+:END:
+
+A headline-shaped line inside a block is a real heading to org and silently
+corrupts the outline, the cookies and the lint. The tools already comma-escape
+it on write and at apply; what remains is a lint error for hand edits, escaping
+a bare star line too, and one sentence in the conventions. Design in =:PLAN:=.
+
 
 
 * TODO Decide how far the review-apply cycle can be automated, given the interactive constraint :code:
