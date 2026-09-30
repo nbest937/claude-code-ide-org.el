@@ -34884,6 +34884,7 @@ last moment a heading is ever touched; that makes it a natural companion to
 ritual.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-08-25* ([[orgit-rev:claude-code-ide-org::8cd7c57][8cd7c57]]) as
 =claude-code-ide-org-consolidate-all-drawers=, built to the shape this heading
 specified: walk the tracked files, reuse =--consolidate-logbook-text= unchanged,
@@ -34943,6 +34944,11 @@ stays that way permanently -- which is how DONE.org reached 43 of 60. Wiring it
 into the ceremony alongside the heading-separation normaliser is
 [[id:edd47f32-e6c9-4ab3-8e8a-46a37ea29605][edd47f32]]'s remaining work, not this
 heading's.
+:END:
+
+Shipped claude-code-ide-org-consolidate-all-drawers, which consolidates every
+:LOGBOOK: in the tracked files losslessly and converges in one pass on the real
+corpus. Wiring it into the ceremony was left to =edd47f32=.
 
 
 ***** DONE End every heading with two blank lines, so folded trees are separated :code:
