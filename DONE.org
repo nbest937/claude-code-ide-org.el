@@ -18007,6 +18007,7 @@ Blocked in practice on 1 only in the sense that 2 needs its name first;
 1 and 3 can be written today.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-09-02, all three items, as a new "The three numbers that
 shape a recorded interval" subsection under "Session tracking".*
 
@@ -18042,6 +18043,11 @@ thirty seconds may appear nowhere at all.
 
 *Verified:* =grep= for the three variable names in CLAUDE.md returns 3,
 where it returned 0 on 2026-08-19 and still returned 0 this morning.
+:END:
+
+All three items shipped as a new CLAUDE.md subsection on the gap threshold, idle
+floor and minimum interval, after item 2 proved no longer blocked; it adds that
+these numbers must not be inferred from a drawer.
 
 
 ***** DONE CLAUDE.md says nothing about how to read the tracker at session start :code:
