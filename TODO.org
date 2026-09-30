@@ -5996,6 +5996,7 @@ heavier than a word they can recognise, and lightness wins.
 ---
 
 :END:
+:DEBRIEF:
 *Shipped 2026-08-31.* The span line reads =0:11 span, 0:01 in 1 run, 6 turns=.
 Turn count is the third of three observed quantities, built in one pass with
 [[id:98c302e0-ab1b-40bf-92d0-d2f2e16ac05d][98c302e0]] and
@@ -6043,6 +6044,12 @@ must never be read as productivity, which under autonomy it inverts. That is
 rather than a deferral — the argument that juxtaposition carries the meaning
 covers a reader building an impression, not one importing a reading from
 elsewhere.
+:END:
+
+Shipped: the span line shows the turn count beside span and run time, from data
+already computed, and no dense/sparse classifier was built. Follow-ups were
+filed as sibling headings; nothing on the line yet warns against reading it as
+productivity (=c4bc5c70=).
 
 
 ** TODO Carry the turn count into the :LOGBOOK: annotation, so it survives queue archiving :code:
