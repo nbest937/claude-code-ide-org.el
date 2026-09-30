@@ -292,7 +292,7 @@ quo* — restore-on-demand at the gate, friction forever but zero
 migration. Recommendation: (1), sequenced with the corpus pass so
 the link rewrite rides a read that is happening anyway.
 :END:
-
+:DEBRIEF:
 Plan files vanish because =~/.claude/plans= is on Claude Code's
 documented auto-cleanup list: swept with transcripts past
 =cleanupPeriodDays= (default 30). The archive-and-restore machinery
@@ -338,6 +338,12 @@ policy of letting plans age out, with =plans/= as the fallback record
 gap: the pre-commit hook lints a temporary copy with no =plans/= beside it. That
 gap is [[id:634eb138-28bc-4d43-aed3-f242c877904d][634eb138]], and it is being fixed as the transition mechanism's upkeep. The
 cancellation stands.
+:END:
+
+Cancelled 2026-09-28 because the question dissolved: plans now live in =:PLAN:=
+drawers, so no new plan file can die at =cleanupPeriodDays=. The link rewriter
+decided on 2026-09-10 was superseded by letting plans age out, with =plans/= as
+the fallback record.
 
 
 **** CANCELLED Unplanned work in flight belongs to no slice: planned is writable, incidental is closed-only :code:
