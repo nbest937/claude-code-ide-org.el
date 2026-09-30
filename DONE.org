@@ -43326,6 +43326,7 @@ CLOSED: [2026-08-07 Fri 21:06]
 :BLOCKER:  720b2dcf-6af1-45f3-96a7-aa841e5651e1
 :CLOSED_SOURCE: git
 :END:
+:PLAN:
 *The most serious thing the 2026-08-07 interactive apply did, and the
 mechanism is NOT yet understood.* Recorded with that uncertainty intact
 rather than a plausible story, because a wrong explanation here is worse
@@ -43367,6 +43368,8 @@ errored. That is precisely the "confidently wrong record"
 [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] exists to
 eliminate — produced by the machinery built to eliminate it.
 
+:END:
+:DEBRIEF:
 Repaired by hand: =feba67eb= restored to =TODO= (its state at commit
 =c81cba6=, before the apply) and both spurious state lines removed.
 
@@ -43407,6 +43410,11 @@ files. This was one bug of five found by a single interactive pass, and
 [[id:f9f61c04-150b-4ee7-96c9-582cf2bda95a][f9f61c04]] — replaying state
 events reality has moved past — is still open and still writes
 plausible-looking wrong history.
+:END:
+
+Root-caused to stale global note state: a no-op =org-todo= set up no note, so
+apply wrote the leftover note at another heading's marker. Fixed by clearing
+=org-log-note-marker= before =org-todo=, with two regression tests.
 
 
 ***** DONE Apply must not replay a state event that reality has moved past :code:
