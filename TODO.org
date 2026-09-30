@@ -4062,7 +4062,7 @@ last tool call the session makes), and/or a =bin/lint-org= warning so
 the gap is caught at commit time regardless of exit path.
 
 
-* TODO Commits cited in bodies and debriefs are orgit links, and nothing enforces it :code:bounded:
+* TODO Commits cited in bodies and debriefs are orgit links, and nothing enforces it :code:arch:
 :PROPERTIES:
 :ID:       b7259ee4-9aa1-4b55-8cf2-fbbacdea5310
 :CREATED:  [2026-09-10 Thu 08:52]
@@ -4075,6 +4075,8 @@ CLOCK: [2026-09-10 Thu 08:45]--[2026-09-10 Thu 08:46] =>  0:01
 - [2026-09-10 Thu 08:45]--[2026-09-10 Thu 08:46] assigned at review
 - Tags ":code:bounded:" from ":code:"     [2026-09-28 Mon 13:00] \\
   classified: extends an existing convention and lint; flow exists
+- Tags ":code:arch:" from ":code:bounded:" [2026-09-29 Tue 19:48] \\
+  stepped up: enforcement moves to the write path of three writers, shared with f7847adf as one citation linker
 :END:
 :PLAN:
 
