@@ -24242,6 +24242,7 @@ CLOCK: [2026-09-03 Thu 13:25]--[2026-09-03 Thu 13:27] =>  0:02
   note-edited flag shipped and mutation-tested
 - [2026-09-03 Thu 13:27]--[2026-09-03 Thu 13:27] root-cause unattributed spans, file discipline fix
 :END:
+:PLAN:
 
 ~claude-code-ide-org--review-judgement-summary~ counts any item carrying ~:note~
 as unapplied human judgement, but ~:note~ is also filled straight from the
@@ -24254,6 +24255,8 @@ one ~:auto-marked~ already prevents for marks.
 Fix: give the ~N~ command its own ~:note-edited~ flag, exactly as ~e~ has
 ~:edited~, and count that instead of ~:note~.
 
+:END:
+:DEBRIEF:
 *Verified, not just implemented:* fixed as proposed, in commit ~cc8c7a9~ on
 ~feature/code-knows-more-than-it-says~ — the PR 8 branch, *not* the branch the
 live Emacs serves, so the review buffer keeps the old behaviour here until this
@@ -24274,6 +24277,11 @@ arrived pre-filled.
 Mutation-tested rather than merely run: with the counting line reverted to
 ~:note~ and the flag-setting left in place, both fail — 525 of 527. 527/527 with
 the fix.
+:END:
+
+Fixed as proposed: the N command sets a new :note-edited flag and the judgement
+summary counts that instead of :note, so a note arriving from the queue no
+longer prompts on g; a test asserting the bug was corrected.
 
 
 **** DONE One top-level NEXT per category, and nested slice listings :code:
