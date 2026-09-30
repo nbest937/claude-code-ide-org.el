@@ -585,6 +585,7 @@ CLOSED: [2026-09-28 Mon 08:30]
 - State "CANCELLED"  from "TODO"       [2026-09-28 Mon 08:30] \\
   twin of b3177ed0, absorbed there
 :END:
+:PLAN:
 
 A :BLOCKER: on X names Y, so "what is X waiting for" is one property read, while
 "what is waiting on Y" requires scanning every :BLOCKER: value in both files and
@@ -597,8 +598,14 @@ finishes -- and a pair of tags must be maintained in step with each other AND
 with the property, which is three copies of one fact. Derive it per read
 instead.
 
+:END:
+:DEBRIEF:
 Cancelled 2026-09-28 as a twin of [[id:b3177ed0-9747-4e31-ad65-bac25b9bdd1f][b3177ed0]], which carries its derive-don't-tag
 argument.
+:END:
+
+Cancelled as a twin of =b3177ed0=, which carries the argument for deriving the
+blocks relation per read rather than storing a tag.
 
 
 **** CANCELLED The :blocked: tag writer is org-depend, found after a7f4b40c cleared it by testing the wrong variable name :code:
