@@ -18450,6 +18450,7 @@ reasoning and the revert precondition.
 non-zero, and the template block matches =head -4= of both org files.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-09-02.* =#+STARTUP: logdrawer logdone content= is now the
 fourth line of the documented template in
 =.claude/rules/org-conventions.md=, and the template matches =head -4= of
@@ -18481,6 +18482,11 @@ surviving quarter of the parent's "four concrete drifts" from
 2026-08-11; the other three, including the =#+TODO:= line matching
 neither file, had all been fixed without the list being updated. The
 documented template and the real files now agree in full.
+:END:
+
+The documented file-header template gained =#+STARTUP: logdrawer logdone
+content= and now matches both files' headers byte for byte; an expired objection
+in the source reasoning was dropped rather than repeated.
 
 
 ***** DONE A :BLOCKER: on a MAYBE heading is dormant, and no convention says so :code:
