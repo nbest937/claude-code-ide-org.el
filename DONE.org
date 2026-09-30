@@ -39115,6 +39115,7 @@ endpoints as =resume=/=pause= respectively recovers both, and is a
 discriminating test.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-08-22* on =feature/authoritative-clock-pairs=.
 
 A main-lane bracket now emits its own review item, =:origin 'bracketed=,
@@ -39180,6 +39181,11 @@ buffer, not something apply should be taught to do.
 [[id:2d100d0d-2d04-43b9-af1e-f4d6b52bbada][2d100d0d]]'s cross-item overlap check
 remains a separate heading and is now much cheaper: a span partitioned by the
 brackets it contains cannot overlap them.
+:END:
+
+A main-lane clock bracket now emits its own review item with its own note, and
+three further defects in the permission-block and span path were fixed along the
+way.
 
 *** 2026-08-21 Friday
 
