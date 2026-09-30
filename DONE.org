@@ -40140,7 +40140,7 @@ Or apply could treat a no-op as satisfied rather than failed, since the file
 already holds the requested state. Doing both is defensible: refuse early, be
 tolerant late for events queued before the refusal existed.
 :END:
-
+:DEBRIEF:
 *Problem.* =org_set_todo= queued transitions whose requested state was already
 the state on disk. Each no-op cost a queue event, a review-buffer line and a
 dismissal. Four occurrences in one day, all the same pattern: writing a keyword
@@ -40181,6 +40181,12 @@ again, the error text is the evidence this heading never had.
 (2026-08-21), which is why its shape differs from its siblings. The planning
 content sits in a drawer beside/ =:PROPERTIES:= /and/ =:LOGBOOK:= /rather than
 below the prose, so a folded heading shows the debrief and nothing else./
+:END:
+
+=org_set_todo= now refuses a transition to the state already on disk, so the
+hook drops the no-op before it reaches the queue; apply's existing tolerance was
+pinned by a test, and the premise that such transitions fail at apply was
+falsified.
 
 
 
