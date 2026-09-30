@@ -47476,6 +47476,7 @@ CLOCK: [2026-08-14 Fri 15:31]--[2026-08-14 Fri 15:32] =>  0:01
 CLOCK: [2026-08-14 Fri 15:40]--[2026-08-14 Fri 15:42] =>  0:02
 - [2026-08-14 Fri 15:40]--[2026-08-14 Fri 15:42] suggested span, accepted at review
 :END:
+:PLAN:
 [[file:~/.claude/plans/nifty-beaming-lynx.md][Plan]]
 
 Captured 2026-08-05 from conversation, surfaced while reviewing the
@@ -47504,6 +47505,8 @@ desync mode (would show a stale TODO keyword instead of a stale in/out label,
 rather than routing around the underlying fragility). Doesn't block this task;
 just don't be surprised if the new failure mode looks similar to the old one.
 
+:END:
+:DEBRIEF:
 *Cancelled 2026-08-14, folded into
 [[id:290b6fc5-3ebb-4827-9a97-5a3542e354b6][290b6fc5]].* Not declined on
 merit — the complaint is real and still stands, and it now lives there
@@ -47544,6 +47547,11 @@ declined every time it came up.
 all four into clocked in/out — is now the third bullet of =290b6fc5='s
 instruction list. The five =--statusline-task-string= regression tests
 this would have rewritten get rewritten once, there, instead of twice.
+:END:
+
+Cancelled and folded into =290b6fc5=: the complaint stood, but reading the
+keyword at the clock marker was superseded by the queue cutover and would only
+have shown a stale keyword instead of a stale label.
 
 
 
