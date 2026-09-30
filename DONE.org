@@ -31478,6 +31478,7 @@ fixing in the same pass, since both are the same class of bug: the
 format asserting less structure than the reader needs.
 
 :END:
+:DEBRIEF:
 *Fixed 2026-08-28 by the first of the three options above — emit the elided
 ancestors — and two things had changed since the analysis was written.*
 
@@ -31526,6 +31527,11 @@ its fixture with =with-temp-file= onto the path the enclosing macro already had
 a buffer visiting, so =org-map-entries= mapped over stale text and reported the
 parent absent. A fresh path fixes it. That is the same buffer-versus-disk hazard
 the tools guard against in production and the tests do not.
+:END:
+
+Fixed by emitting the elided ancestors: org_outline's active_only now keeps a
+finished parent when a live descendant survives, instead of printing the child
+misparented.
 
 
 ***** DONE DONE.org is not a tracked file, so no id in it resolves :code:
