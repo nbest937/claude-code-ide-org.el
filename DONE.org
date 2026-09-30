@@ -32534,6 +32534,7 @@ CLOSED: [2026-08-28 Fri 12:49]
 :PLAN:
 
 :END:
+:DEBRIEF:
 *Context: §7 of the org-dev skill stopped quoting =~/.config/doom/config.el= on
 2026-08-28.* It had reproduced the config verbatim, and the copy drifted twice —
 first in CLAUDE.md (which is why §7 was moved into the skill on 2026-08-14),
@@ -32575,6 +32576,12 @@ why", which stopped being true the moment it stopped containing it. Now "What
 the Doom config does for this project, and why".
 
 =bin/check-org-dev-skill= is 20 checks, exit 0.
+:END:
+
+bin/check-org-dev-skill gained two behavioural checks against the running Emacs,
+that find-file-visit-truename is t and that the capture file resolves into this
+repo, both proved to discriminate. A check on org-todo-keywords was deliberately
+not built.
 
 
 
