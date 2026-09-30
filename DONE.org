@@ -27291,6 +27291,7 @@ three *unasked* — that is a policy question about the user's attention rather
 than a defect, and it should be decided rather than assumed.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-08-31.* Both halves the title names are addressed, and the heading
 is in =REVIEW= rather than =DONE= for one reason given at the end.
 
@@ -27357,6 +27358,12 @@ is what surfaced it; the four applies that produced 106 unarchived headings on
 *So the mechanism is confirmed working under exactly the conditions it was built
 for* — an unattended run, a genuine failure, an honest report, and a stamp
 correctly withheld. Closing.
+:END:
+
+Shipped ceremony-finish, which runs and reports the three post-apply steps and
+stamps completion only on success; the prompt now goes quiet only on that stamp.
+Confirmed on 2026-09-01 when it fired unattended and honestly reported a failed
+archive step.
 
 
 
