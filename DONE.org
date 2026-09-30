@@ -23315,6 +23315,7 @@ scan in the same script already uses =fromjson?= precisely so malformed lines
 are skipped. The fix is the same tolerance, which costs nothing here.
 
 :END:
+:DEBRIEF:
 *Verified, not just implemented:* measured on three fixtures before the edit and
 again after — a queue holding a real =clock_in= plus one truncated line exits
 **5** under =jq -e -s= and **0** under the replacement, while a queue with no
@@ -23340,6 +23341,11 @@ one. Two assertions were written knowing they would fail — the second belongs 
 now pins the reason the scan is =jq= and not =grep= — an amend body quoting the
 literal ="kind":"clock_in"= must not count as a clock. That was a header
 sentence with nothing enforcing it.
+:END:
+
+Shipped: the clock-evidence scan now tolerates malformed queue lines, restoring
+the intended answer, and the hook gained its first test suite,
+bin/clock-target-check-test.
 
 
 ***** DONE The once-per-session guard fires anyway when it cannot arm itself
