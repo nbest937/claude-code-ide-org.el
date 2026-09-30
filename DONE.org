@@ -20925,6 +20925,7 @@ derivation outright**, alongside the ownership rule above — two
 predicates, not one.
 
 :END:
+:DEBRIEF:
 *Debrief, 2026-09-08.* Shipped on =feature/incidental-ownership=
 (=0da950d=), PR to follow. Two predicates, as filed:
 =claude-code-ide-org--incidental-owner= assigns a close to the slice
@@ -20959,6 +20960,12 @@ naming both ownership drops.
 *Residue filed*: =0988541b= — the refresh's cookie update rewrote
 "[4/15]" inside =8a2eb687='s body prose to "[1/12]", falsifying the
 recorded observation; repaired bracket-free the same day.
+:END:
+
+Shipped two predicates: each incidental close is owned by the slice most
+recently worked at that moment, with ties owned by none, and slice referents are
+excluded; one claimed failure did not reproduce, and =0988541b= was filed as
+residue.
 
 
 **** DONE The proposal convention's last argument is falsified; an open slice is its own proposal :code:
