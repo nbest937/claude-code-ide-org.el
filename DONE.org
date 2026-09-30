@@ -34530,6 +34530,7 @@ drifted, the reversal that produced it may have left others. Check what else
 references =226ed53b='s step 2(c).
 
 :END:
+:DEBRIEF:
 *Shipped [2026-08-26 Wed] as
 [[orgit-rev:claude-code-ide-org::24df841][24df841]].* Three docstrings
 re-described, two test comments corrected, one regression test added.
@@ -34595,6 +34596,11 @@ subject.
 =:PLAN:= drawer. Its DONE is queued, not applied, so the heading still reads
 NEXT on disk, and a finished-heading treatment ahead of the keyword would
 misreport it. Available to the next ceremony.
+:END:
+
+Three docstrings that called the auto-clock-in trigger off were corrected, two
+test comments fixed, and a regression test added that scans source text for the
+drifted phrasings.
 
 
 
