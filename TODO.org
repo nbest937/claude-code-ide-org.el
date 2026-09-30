@@ -5373,6 +5373,14 @@ the diagnosis. Leave the body exactly as it stands.
 
 About 88 finished headings still carry their debrief in the body. Each needs an authored resolution line before the debrief moves into =:DEBRIEF:=, in three passes: relocate wholesale, author in reviewed batches, condense last and separately. The plan, and the one heading exempt from it, are in =:PLAN:=.
 
+Run 2026-09-29/30, at the user's direction, over 332 finished headings rather
+than the 88 measured on 2026-09-02: 318 now carry a :DEBRIEF: drawer and an
+authored resolution, one commit each. Drafted and double-checked by subagents in
+place of the user's review; moved by a checked mover that compared each section
+exactly. Eight closed slices and six headings with no recorded outcome were left
+alone, and the condensing pass has not run.
+
+
 
 * TODO A boolean argument passed as false arrives as :false, which elisp reads as true :code:
 :PROPERTIES:
