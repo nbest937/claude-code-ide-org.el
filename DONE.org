@@ -47124,6 +47124,7 @@ CLOSED: [2026-08-15 Sat 18:59]
 - State "DONE"       from "DOING"      [2026-08-15 Sat 18:59] \\
   fixed, tested, verified live
 :END:
+:PLAN:
 
 Found 2026-08-15 when =org_outline= with =scope= =0c8644ff= printed
 =[blocked]= for a heading whose only =:BLOCKER:= names
@@ -47180,6 +47181,8 @@ Distinct from
 [[id:98908aff-63cc-4b71-b90b-817da361a23b][98908aff]], the other open
 =org_outline= defect, which is about =active_only= orphaning children.
 
+:END:
+:DEBRIEF:
 *Fixed 2026-08-15.* One form:
 =claude-code-ide-org--outline-id-finished-p= now wraps its buffer access
 in =org-with-wide-buffer= instead of =save-excursion=, so a blocker is
@@ -47214,6 +47217,11 @@ tools inherit the same narrowing through
 =claude-code-ide-org--at-id=, which is the shared entry point and is used
 well beyond =org_outline=. Nothing observed, nothing checked — the
 sweep belongs in its own pass rather than smuggled into a one-form fix.
+:END:
+
+Fixed by resolving blockers inside =org-with-wide-buffer=, so a scoped outline
+no longer reports satisfied blockers as blocked; verified in both directions in
+the live tool, with other scoped tools left unchecked.
 
 
 
