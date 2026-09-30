@@ -1521,6 +1521,8 @@ Hook-backed (footnote-check, rule =footnote=), but the hook reads only a turn's 
   flagged only the missing 8a2eb687, not the wrong title. Self-caught.
 
 - [2026-09-25 Fri] Self-caught: reporting b52df20b, end matter gave 76a6f052 the title "Fill both trackers once the sweep stops touching list items". Its real title is "Long prose lines have drifted back since the one fill sweep of 2026-09-14, because nothing runs it routinely". Minutes earlier the same session had typed that heading's full UUID from memory, and org_amend refused it. The recalled title was caught on the next lookup. The hook passed it, since it checks only that an id is present.
+- 2026-09-30: a reply on e128e4fa's verifier findings carried 21 end-matter lines written by hand instead of through org_footnotes, most of their titles invented from the ids' subject matter (for example "Close the ten unarchived finished headings" for 8c662dfb, "Sweep the ten longest live bodies into :PLAN: drawers"). The Stop hook passed it, since it checks that an id appears, not that its title is true. Self-caught on the next turn and reissued from org_footnotes.
+
 
 
 ** TODO Miss: tracked work done under no clock, the wrong clock, or a clock closed before the work ended
