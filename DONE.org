@@ -50363,6 +50363,7 @@ CLOSED: [2026-08-04 Tue 11:10]
 :LOGBOOK:
 CLOCK: [2026-07-31 Fri 17:25]--[2026-07-31 Fri 17:30] =>  0:05
 :END:
+:PLAN:
 Was living entirely outside the repo (=~/.claude/statusline-command.fish=
 + a =statusLine= entry in the user's personal =~/.claude/settings.json=),
 so nothing about it was version-controlled or shared with anyone who
@@ -50371,6 +50372,8 @@ clones this project. Confirmed project-scoped =statusLine= is supported
 =.claude/settings.json= already proves works at project scope), so
 there's no reason it has to stay a personal, undiscoverable setup step.
 
+:END:
+:DEBRIEF:
 *Verified, not just implemented:*
 1. Relocated the script into the repo as =bin/statusline.fish= (renamed
    from extension-less =bin/statusline= after noticing it's the only
@@ -50401,6 +50404,11 @@ there's no reason it has to stay a personal, undiscoverable setup step.
    (validated the edited file with =jq -e .= afterward) — exactly one
    copy in play now, and it ships with the repo for anyone who clones
    it, no personal setup step required.
+:END:
+
+The statusline script moved into the repo as bin/statusline.fish with its elisp
+extracted into tested functions, wired through the repo's .claude/settings.json,
+and the personal copy was removed.
 
 
 
