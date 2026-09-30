@@ -45098,6 +45098,7 @@ CLOCK: [2026-08-11 Tue 12:51]--[2026-08-11 Tue 12:53] =>  0:02
 CLOCK: [2026-08-11 Tue 13:03]--[2026-08-11 Tue 13:09] =>  0:06
 CLOCK: [2026-08-11 Tue 13:11]--[2026-08-11 Tue 13:16] =>  0:05
 :END:
+:PLAN:
 
 Found 2026-08-10, in the first successful interactive apply -- and it
 undercuts that pass's headline result.
@@ -45155,6 +45156,8 @@ an apply whose output survives only until something else touches the
 drawer cannot be called correct.
 
 
+:END:
+:DEBRIEF:
 *Fixed 2026-08-10.* Scope chosen by the user: retire rounding outright
 rather than make it non-destructive, on the reasoning that it is worth
 seeing how much of a problem runs of short intervals really are in
@@ -45207,6 +45210,11 @@ newest-first position, so the annotation and the arithmetic agree again.
 returns to =:LOGBOOK:= until
 [[id:feba67eb-35b3-48bd-a892-8ecd47ca52e0][feba67eb]] stops per-turn
 clocking altogether. That is the thing to watch.
+:END:
+
+Fixed by retiring rounding: consolidation no longer alters intervals,
+=org_clock_out= no longer consolidates, and a one-minute floor applies to new
+intervals; the destroyed interval was restored.
 
 
 ***** DONE Let the review buffer assign unattributed guideposts to a heading :code:
