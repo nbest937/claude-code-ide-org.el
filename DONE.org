@@ -51212,6 +51212,7 @@ CLOSED: [2026-07-29 Wed 05:57]
 :END:
 :LOGBOOK:
 :END:
+:PLAN:
 Surface "what was I last doing." On any Claude Code session start
 in a project with org files, query the currently-clocked heading
 (if any) and any :WAIT: items and drop them into context
@@ -51220,6 +51221,8 @@ something Claude already knows walking in — effectively a standing,
 automatic instance of whatever org_query above ends up answering on
 demand.
 
+:END:
+:DEBRIEF:
 Buffers opened via =find-file-noselect= during the query are killed again
 if they weren't already open, so the user's window config isn't
 disturbed. *Real bug caught in review before merge:* a bare
@@ -51233,6 +51236,11 @@ both/non-WAIT-ignored/buffer-kill-hygiene cases); the shell script's
 =emacsclient --eval= round trip against a live buffer-list is the one
 piece that could only be exercised by the coordinator post-merge, not
 from the isolated worktree. =bin/test= 68/68 at merge.
+:END:
+
+Shipped the SessionStart context hook reporting the clocked heading and WAIT
+items, with eight tests; review caught a kill-buffer prompt that would hang
+under emacsclient, fixed before merge.
 
 
 
