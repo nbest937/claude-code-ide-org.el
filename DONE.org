@@ -27958,6 +27958,7 @@ its record, and closes.
    deciding, and it said what I wanted to hear.
 
 :END:
+:DEBRIEF:
 *What was added, 2026-08-31:*
 
 - A *test* rather than a taxonomy: a heading that already owns work — a clock, a
@@ -27985,6 +27986,11 @@ never closes.
 flag "container with a clock and a body acquiring its first child", but that is
 exactly the shape the amnesty says to leave alone in the nine existing cases, so
 the check would need history it does not have. Left as prose deliberately.
+:END:
+
+The conventions gained a test for when a heading may grow children in place
+rather than divide, the direction and ordering of a division, and a boundary on
+the amnesty. The wording was deliberately left as prose rather than a lint.
 
 
 
