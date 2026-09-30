@@ -18533,6 +18533,7 @@ heading has to make rather than assume.
 with what =bin/lint-org= actually warns.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-09-02,* into the "Dependencies between tasks" section of
 =.claude/rules/org-conventions.md=, directly after the paragraph that
 says =:BLOCKER:= *is* enforced — which is where the qualification has to
@@ -18558,6 +18559,11 @@ that it is machine-checkable — so one that reads as enforcement and
 enforces nothing is *less* honest than the sentence it replaced. Three
 instances stand in TODO.org today, and =bin/lint-org= has been warning
 on all three with no written rule behind the warning.
+:END:
+
+Shipped into the org conventions: a :BLOCKER: on a MAYBE heading is kept as a
+filed dependency that wakes when the heading leaves MAYBE, and the lint warning
+reads as filed, not enforced.
 
 
 ***** DONE Timestamps must come from a :LOGBOOK: drawer, never a bare pattern match :code:
