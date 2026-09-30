@@ -19945,6 +19945,7 @@ slice body prose and =bin/lint-org= enforces it. Verbatim markup
 through it.
 
 :END:
+:DEBRIEF:
 *Debrief, 2026-09-08.* Shipped in PR #17 (=aadc74f=), taking the first
 candidate this body named: the refresh narrows the update to the
 headline. =--update-slice-cookie-at-point= counts the checkbox-bearing
@@ -19959,6 +19960,11 @@ corrupt. The lint-ban alternative was not needed. One test proven both
 ways: green with the scoped updater, red with org's entry-wide one
 swapped back; the existing self-heals test pins the count through the
 new path.
+:END:
+
+Shipped in PR #17: the slice refresh now updates only the headline cookie,
+counting the lines it wrote itself, so bracketed n/m in body prose is safe from
+the automated path; the lint-ban alternative was not needed.
 
 
 **** DONE No tool adds a member line to a slice's checklist :code:
