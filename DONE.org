@@ -24051,6 +24051,7 @@ CLOCK: [2026-09-03 Thu 13:33]--[2026-09-03 Thu 13:37] =>  0:04
 - State "DONE"       from "DOING"      [2026-09-03 Thu 13:37] \\
   guard shared, both sites, mutation-tested
 :END:
+:PLAN:
 
 The guard that forces ~org-archive-reversed-order~ off for a ~::datetree/~
 target was added to ~claude-code-ide-org-archive-finished~ only.
@@ -24065,6 +24066,8 @@ sites, consulting the inherited ~:ARCHIVE:~ property at the per-heading one so a
 heading-level override is honoured. ~(require 'org-archive)~ must precede the
 ~let~, for the already-documented lexical-binding reason.
 
+:END:
+:DEBRIEF:
 *Verified, not just implemented:* fixed as proposed, in commit ~de4de06~ on the
 PR 8 branch. The rule now lives in
 ~claude-code-ide-org--archive-datetree-target-p~ and both call sites read it.
@@ -24088,6 +24091,11 @@ wrong version: a flat archive reads newest-first *because* of that setting, so a
 guard that over-reaches trades a malformed datetree for a buried entry.
 
 All three mutation-tested. 534/534.
+:END:
+
+Fixed as proposed: a shared datetree-target predicate now guards reversed order
+at both archive call sites, the tool honouring a heading-level :ARCHIVE:
+override, with three mutation-tested tests.
 
 
 **** DONE A slice's incidental refresh deletes any list a human writes beneath it :code:
