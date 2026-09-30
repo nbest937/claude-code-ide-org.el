@@ -50307,6 +50307,7 @@ CLOSED: [2026-08-04 Tue 11:10]
 :ARCHIVE_TODO: DONE
 :CLOSED_SOURCE: git
 :END:
+:PLAN:
 Caught live in this session: =org-clock-in-last= (called by
 =session-resume= on =UserPromptSubmit=) resumes onto
 =org-clock-history='s most recent entry with no check that it's still
@@ -50318,6 +50319,8 @@ just stripping the stray entry again; see the commit that fixed
 org-agenda-files for context on what was being worked on when this was
 first found.
 
+:END:
+:DEBRIEF:
 *Verified, not just implemented:* added
 =claude-code-ide-org--clock-history-head-done-p=, which checks whether
 =(car org-clock-history)= now points to a DONE-type heading, and a
@@ -50336,6 +50339,11 @@ interrupted this session. While starting this task, surfaced a
 separate, previously-untracked gap — two concurrent Claude Code
 sessions share one global org-clock with no session identity — spun
 off as its own heading below rather than folded into this fix.
+:END:
+
+Fixed: session-resume refused to reopen a clock when the head of
+org-clock-history was a DONE heading, covered by a new regression test and a
+live check; the concurrent-session gap found meanwhile was spun off separately.
 
 
 
