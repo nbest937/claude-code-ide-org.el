@@ -50917,12 +50917,15 @@ CLOSED: [2026-07-29 Wed 05:57]
 :ARCHIVE_TODO: DONE
 :CLOSED_SOURCE: git
 :END:
+:PLAN:
 A hook on org_set_todo that inspects the requested state against
 current clock state and rejects the call outright — e.g. DOING→DONE
 with no open clock — before it ever reaches Emacs. Belt-and-suspenders
 alongside the org-hook enforcement above; catches it one layer
 earlier, specifically on the MCP path.
 
+:END:
+:DEBRIEF:
 *Risk, resolved as planned:* fail-closed behavior when =emacsclient=
 can't reach a live Emacs was implemented exactly as intended, decided
 up front rather than discovered as a gap later.
@@ -50940,6 +50943,11 @@ hook config is only read at session start; that claim needs revisiting
 (=SessionStart= hooks themselves are the one category that genuinely
 can't be re-triggered mid-session, since starting a session is the
 event).
+:END:
+
+Shipped a fail-closed PreToolUse guard on org_set_todo, live-verified to deny
+WAIT on a clocked heading; it also showed that PreToolUse and PostToolUse hook
+changes take effect mid-session.
 
 
 
