@@ -50204,6 +50204,7 @@ CLOSED: [2026-08-04 Tue 11:10]
 :LOGBOOK:
 CLOCK: [2026-07-30 Thu 17:25]--[2026-07-30 Thu 17:30] =>  0:05
 :END:
+:PLAN:
 [[file:~/.claude/plans/zero-time-clock-erasure.md][Plan]]
 
 Found live: the sibling heading above (=session-resume= reopening a
@@ -50217,6 +50218,8 @@ project configured); org-native =org-clock-out= deletes a just-closed
 rounding+merge+drop logic, which already replicates the same intent
 correctly) ever gets a chance to run.
 
+:END:
+:DEBRIEF:
 *Verified, not just implemented:* fixed precisely at the conflict
 point, not globally — =claude-code-ide-org-clock-out= now let-binds
 =org-clock-out-remove-zero-time-clocks= to nil around its own
@@ -50237,6 +50240,11 @@ against a scratch heading): a same-minute clock-in/out under
 =org-clock-out-remove-zero-time-clocks= t completes cleanly with the
 interval correctly dropped by this project's own logic, no crash, no
 premature deletion.
+:END:
+
+Fixed: claude-code-ide-org-clock-out bound org-clock-out-remove-zero-time-clocks
+to nil around org-clock-out, so the project's own consolidation decided what to
+drop while manual clock-outs kept org's behaviour; verified by a test and live.
 
 
 
