@@ -20693,6 +20693,7 @@ be derived from it, so a declaration-time hook either runs after the
 body is written or leaves the blocker to the first refresh.
 
 :END:
+:DEBRIEF:
 *Debrief, 2026-09-08.* Both seams shipped on
 =feature/cookie-data-at-declaration= (=4eadf17=, PR #13, stacked on
 step 1's branch since it edits the refresh loop beside those changes).
@@ -20719,6 +20720,11 @@ keywords are never touched, so frozen history stays frozen.
 
 *Verified*: three ERT tests, all proven failing against the branch
 base; suite green but for the two pre-existing repeater date flakes.
+:END:
+
+Both seams shipped in PR #13: setting =:KIND: slice= now completes the
+declaration, writing =:COOKIE_DATA:=, the cookie and the derived blocker, and
+the slice refresh repairs a missing =:COOKIE_DATA:=.
 
 
 **** DONE org_amend cannot continue a list, and the slice revision links are always one
