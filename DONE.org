@@ -33432,7 +33432,7 @@ CLOCK: [2026-08-27 Thu 08:10]--[2026-08-27 Thu 08:14] =>  0:04
 - State "DONE"       from              [2026-08-27 Thu 08:14] \\
   retcon: 06e7cff and e1c086c
 :END:
-
+:DEBRIEF:
 *Retconned [2026-08-27 Thu]; shipped as
 [[orgit-rev:claude-code-ide-org::06e7cff][06e7cff]] and
 [[orgit-rev:claude-code-ide-org::e1c086c][e1c086c]].*
@@ -33469,6 +33469,12 @@ matches a future session's intent is the inherently fuzzy case CLAUDE.md
 exempts. What is checkable is checked: =bin/check-org-dev-skill= asserts 0b's
 cited paths exist and its named facilities are still bound, 18 checks, both
 halves proved to discriminate.
+:END:
+
+The org-dev skill gained section 0b, a search order of tracker, running Emacs,
+straight checkout, and the test "does org track this already?", with its trigger
+moved to fire before an edit; bin/check-org-dev-skill checks its cited paths and
+facilities.
 
 
 
