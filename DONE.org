@@ -21027,6 +21027,7 @@ is needed — an unstarted slice has no clocked members and no =DOING=,
 which is the derivable form of the same fact.
 
 :END:
+:DEBRIEF:
 *Debrief, 2026-09-08.* Retired on =main= directly (=79ee00a=) — a
 one-file prose edit executing a decision the user made, which is the
 maintenance case rather than a review unit. §"Proposing a slice" is
@@ -21047,6 +21048,11 @@ link — and the new section says so with attribution.
 *Verified*: =bin/check-conventions= exits 0 against the edited file,
 and the only remaining references to the old convention are historical
 prose in heading bodies and the consumed plan file, left deliberately.
+:END:
+
+The proposal convention was retired on main, replaced by a "Composing a slice"
+section in which a slice is composed declared; the user closed the open
+question: nothing replaces the MAYBE signal.
 
 
 **** CANCELLED Accepting a slice proposal leaves its body still calling itself a proposal
