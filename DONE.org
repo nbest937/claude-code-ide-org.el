@@ -42848,6 +42848,7 @@ CLOCK: [2026-08-11 Tue 16:13]--[2026-08-11 Tue 16:59] =>  0:46
 - State "DONE"       from "DOING"      [2026-08-11 Tue 16:41] \\
   cutover verified by the first post-cutover session
 :END:
+:PLAN:
 
 [[file:~/.claude/plans/review-and-cutover.md][Plan]]
 
@@ -42986,6 +42987,8 @@ Still one commit, per the plan — the order above is how the edits are
 made and the suite is run, not a sequence of commits. =git revert= as
 rollback only works if the cutover is atomic.
 
+:END:
+:DEBRIEF:
 *Executed 2026-08-11, in the recorded order, one working tree.*
 
 1. *Wrappers + guards.* =org_clock_in= validates the =:ID:= and returns
@@ -43116,6 +43119,11 @@ un-appliable queue item. Recorded rather than worked around, since
 "what closing a heading means when the clock is a queued concept" is a
 real gap in the transition rules that
 [[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]] should settle.
+:END:
+
+Executed the cutover: the three state and clock tools became queue-appends, the
+live-state guards and ownership variables were deleted, and pause/resume became
+bare appends; the first post-cutover session verified all three gate clauses.
 
 
 ***** DONE Build the interactive review-and-apply Emacs command :code:
