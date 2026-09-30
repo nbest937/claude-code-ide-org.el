@@ -41987,7 +41987,7 @@ CLOCK: [2026-08-17 Mon 09:15]--[2026-08-17 Mon 09:16] =>  0:01
 CLOCK: [2026-08-17 Mon 09:22]--[2026-08-17 Mon 09:23] =>  0:01
 CLOCK: [2026-08-17 Mon 09:27]--[2026-08-17 Mon 09:33] =>  0:06
 :END:
-
+:DEBRIEF:
 *Verified, not just implemented* (written 2026-08-17, before archiving —
 this heading reached =DONE= with an empty body).
 
@@ -42017,6 +42017,11 @@ entries, 7 unassignable, list returns exactly 140 — 13 had been missing.
 *The pattern worth carrying forward:* both halves were assertions the
 code made about itself in prose — "kept, absence of evidence rules
 nothing out" — that the code did not honour. Neither was found by review.
+:END:
+
+Shipped in =0042615=: assign now advances and interval-edit stays, with point
+restored by item identity; a second defect, headings without =:CREATED:=
+silently dropped from candidates, was found by the new test and fixed.
 
 
 
