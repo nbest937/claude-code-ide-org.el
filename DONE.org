@@ -214,6 +214,7 @@ CLOSED: [2026-09-28 Mon 08:30]
 - State "CANCELLED"  from "TODO"       [2026-09-28 Mon 08:30] \\
   twin of 9714f875, absorbed there
 :END:
+:PLAN:
 
 Found 2026-09-03 when a design revision left :ID: 758a8b78's title stating the
 withdrawn half of its own proposal. org_amend is body-only, the Edit tool writes
@@ -228,7 +229,13 @@ copies until refresh-slice runs; the tool's reply should say when the renamed
 heading appears in slice member lines, or the tool should nudge the refresh
 itself.
 
+:END:
+:DEBRIEF:
 Cancelled 2026-09-28 as a twin of [[id:9714f875-4a12-44e4-8f30-dfbd1b6e555e][9714f875]], which carries its tool shape and its
+slice-title knock-on.
+:END:
+
+Cancelled as a twin of =9714f875=, which carries the rename tool's shape and its
 slice-title knock-on.
 
 
