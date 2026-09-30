@@ -48551,6 +48551,7 @@ CLOSED: [2026-08-12 Wed 17:37]
 - State "CANCELLED"  from "MAYBE"      [2026-08-12 Wed 17:37] \\
   ownership variables deleted at cutover; see e51d6ba1
 :END:
+:PLAN:
 [[file:~/.claude/plans/clock-in-ownership-recording.md][Plan]]
 
 Captured 2026-08-05, hit live, then re-confirmed and sharpened
@@ -48610,6 +48611,8 @@ session's last-clocked heading]] and
 buffer can desync org-clock-marker]] — three distinct root causes in the same
 subsystem, worth planning together, not assumed to be one fix.
 
+:END:
+:DEBRIEF:
 *Cancelled 2026-08-12 by
 [[id:e51d6ba1-cc1d-4745-8aa7-e4b1183a230b][e51d6ba1]].* Both halves are
 structurally gone rather than fixed. =--clock-owner-session-id= and
@@ -48627,6 +48630,11 @@ filename — so attribution is recorded per event and survives an Emacs
 restart, which no global variable did. Caveat worth carrying forward:
 as of 2026-08-12 the =agent_id=/=agent_type= fields have never been
 populated in 347 events, so that half is designed but unexercised.
+:END:
+
+Cancelled via =e51d6ba1=: the ownership variables and the hook it proposed
+reusing were deleted at the cutover, and queue-append's per-event session_id
+stamping served the want better than the proposed fix.
 
 
 
