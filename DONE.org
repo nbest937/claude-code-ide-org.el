@@ -50482,6 +50482,7 @@ CLOSED: [2026-08-04 Tue 11:09]
 CLOCK: [2026-07-30 Thu 12:05]--[2026-07-30 Thu 12:15] =>  0:10
 CLOCK: [2026-07-30 Thu 12:20]--[2026-07-30 Thu 12:25] =>  0:05
 :END:
+:DEBRIEF:
 [[file:~/.claude/plans/use-pipx-instead-use-starry-metcalfe.md][Plan]]
 
 Warp's own agent (already used on this repo — see commits
@@ -50507,6 +50508,11 @@ and has been uninstalled; nothing repo-tracked depends on it. Both
 =.mcp.json= and =.warp/.mcp.json= are kept regardless, even though
 currently identical, as a deliberate seam for the two clients to
 diverge later.
+:END:
+
+No proxy was needed: the real bug was the Emacs server answering 200 instead of
+202 to a notification, fixed by a Doom config override, after which a
+direct-HTTP .warp/.mcp.json sufficed.
 
 
 
