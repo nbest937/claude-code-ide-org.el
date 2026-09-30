@@ -29632,7 +29632,7 @@ CLOSED: [2026-08-25 Tue 16:09]
 - State "DONE"       from              [2026-08-25 Tue 16:09] \\
   narrow fix; the general tool case stays open on the parent
 :END:
-
+:DEBRIEF:
 *Shipped 2026-08-25, the same afternoon it bit.*
 =claude-code-ide-org--review-apply-item= binds =inhibit-read-only= alongside the
 re-entrancy guard it already binds, which covers both the capture path and the
@@ -29653,6 +29653,11 @@ heading is named for, reintroduced by its own fix.
 
 *Verified discriminating*: removing the one binding fails this test and nothing
 else.
+:END:
+
+Shipped: the review apply path binds inhibit-read-only, so applying writes a
+read-only buffer and leaves it read-only afterwards. The general case stayed
+open on the parent.
 
 
 
