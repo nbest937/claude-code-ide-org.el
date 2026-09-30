@@ -27147,7 +27147,7 @@ CLOCK: [2026-09-01 Tue 08:12]--[2026-09-01 Tue 08:20] =>  0:08
 - [2026-09-01 Tue 08:12]--[2026-09-01 Tue 08:20] assigned at review
 - State "DONE"       from "TODO"       [2026-09-01 Tue 08:19]
 :END:
-
+:DEBRIEF:
 *Two distinct failures, one ceremony, and the second only appeared once the
 first was fixed. Both shipped 2026-09-01.*
 
@@ -27199,6 +27199,12 @@ The ceremony then reported =drawers: ok; spacing: ok; archived: 19; repeater:
 advanced=. TODO.org went 97 to 78 top-level with *zero* finished headings
 remaining, and =:ID:= totals were conserved at *328* across both files — 20 ids
 moved as 19 subtrees, one carrying a child. 491 tests, lint 0 errors.
+:END:
+
+Both failures were fixed: the archive step now binds inhibit-read-only, and
+requires org-archive before binding its variable, which had failed only in a
+fresh session. The duplicate heading left by the partial archive was repaired
+and the ceremony then ran clean.
 
 
 
