@@ -33699,7 +33699,7 @@ CLOSED: [2026-08-26 Wed 20:11]
 - State "DONE"       from              [2026-08-26 Wed 20:11] \\
   fence exemption shipped; narrowness pinned both ways
 :END:
-
+:DEBRIEF:
 *Found and fixed [2026-08-26 Wed]*, in the response that provoked it. Asked to
 show a slice's checklist as it would read after an apply pass, the reply
 displayed eleven member lines in a code block -- and the hook demanded a
@@ -33781,6 +33781,12 @@ This exemption is what stops the hook demanding footnotes for its own examples.
 That is benign on the reasoning above — the emitted line carries its own keyword
 and title, so it is self-describing by construction — but the coupling is now
 load-bearing and was not before.
+:END:
+
+footnote-check now drops lines inside fenced code blocks before scanning, while
+inline code is still scanned, with tests for both directions. A later
+qualification kept the exemption on provenance and self-description rather than
+on how fences render.
 
 
 
