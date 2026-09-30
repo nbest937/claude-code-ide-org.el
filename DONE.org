@@ -39738,7 +39738,7 @@ CLOCK: [2026-08-20 Thu 16:16]--[2026-08-20 Thu 16:20] =>  0:04
 CLOCK: [2026-08-20 Thu 16:42]--[2026-08-20 Thu 16:46] =>  0:04
 - [2026-08-20 Thu 16:42]--[2026-08-20 Thu 16:46] assigned at review
 :END:
-
+:DEBRIEF:
 *Done 2026-08-20, same day it was filed.* Both preconditions re-verified
 immediately before the edit rather than trusted from the survey: zero =WAIT=
 headings across TODO.org, DONE.org and notes.org, and no unapplied =WAIT= event
@@ -39781,6 +39781,12 @@ staged =.org=. Fixed by scoping the hook to the linter's own set rather than
 passing =--no-verify=, in its own commit ahead of this one, with a test that
 fails when the scoping is reverted. A gate wider than its linter blocks correct
 work and teaches the bypass habit the hook exists to make unnecessary.
+:END:
+
+Renamed the WAIT keyword to WAITING in both =#+TODO:= lines and 73 occurrences
+across nine files, leaving :LOGBOOK: history and other body prose untouched; the
+rename was verified live, and the pre-commit hook was rescoped to the linter's
+own files after refusing the commit with false errors.
 
 
 
