@@ -7612,7 +7612,13 @@ the ten values are this repo's local taxonomy and a fresh consuming
 repo has none yet.
 
 :END:
+:DEBRIEF:
 *Cancelled 2026-09-21 at the user's direction: b0d55552 did both halves.* =org_capture= now requires =category= for a top-level capture and names the values in use when it refuses. =bin/lint-org= errors, stronger than the warning proposed here, on a level-1 heading with no drawer-local =:CATEGORY:=. Found by the twin pass on 2026-09-21.
+:END:
+
+Cancelled at the user's direction because =b0d55552= did both halves:
+=org_capture= requires a category for a top-level capture, and =bin/lint-org=
+errors on a level-1 heading with no drawer-local =:CATEGORY:=.
 
 
 **** DONE A hook tells the session the queue was applied, ending the "queue applied" announcements :code:
