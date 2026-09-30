@@ -8658,7 +8658,7 @@ CLOSED: [2026-09-19 Sat 05:52]
 :ID:       30408acf-30be-4684-a59a-d47057f0c9ee
 :CREATED:  [2026-09-19 Sat 05:52]
 :END:
-
+:DEBRIEF:
 Findings 4 and 5, shipped in [[orgit-rev:claude-code-ide-org::36c9986][36c9986]]. **Both are defects in =43d479c8=, which I closed claiming the scoping was done.**
 
 *The leak was the sharpest finding of the fifteen.* =--report-scope= is a dynamic binding and the reports call =find-file-noselect= inside it, so =find-file-hook= → =--revert-so-long-takeover= → =--tracked-buffer-p= saw the narrowed list and answered nil for a genuinely tracked file — leaving it in =so-long-mode= for the session, which is =045459f6= reintroduced, and *that* heading's point was that the tools go on to **write** these buffers. My docstring asserted the binding never reaches the tools; dynamic binding does not honour assertions.
@@ -8668,6 +8668,12 @@ Fixed at the gate, not the call site, and the reason generalises: all four hook 
 *The ceremony reached one of four inputs.* =:drifted= and =:archivable= scoped because they walk =--tracked-files=; =:pending= read the global queue and =:reviewed-today= resolved through =--capture-target-file='s fallback to *this repo's* capture file. Now =--items-in-report-scope= matches on each item's events' =cwd= (7 unscoped → 6 here → **0** for the consumer), and the attention target refuses a file outside the scope.
 
 *One judgement worth flagging:* a queue event with no =cwd= is **excluded** when scoped, inverting the span rule's "unknown, never elsewhere". The errors are not symmetric — omitting understates a count, claiming restates the defect being fixed.
+:END:
+
+Shipped fixes for two defects in =43d479c8='s scoping: the report-scope binding
+no longer leaks into the tracked-buffer consent gate, and the ceremony's pending
+and reviewed-today inputs are scoped by each event's =cwd=, with the attention
+target refusing out-of-scope files.
 
 
 ***** DONE Gate block-end, pin both clauses of drained-ness, and stop interpolating paths into elisp :code:
