@@ -48384,6 +48384,7 @@ CLOSED: [2026-08-12 Wed 17:37]
 - State "CANCELLED"  from "MAYBE"      [2026-08-12 Wed 17:37] \\
   :SESSIONS: deleted; ordering settled by af7d3687
 :END:
+:PLAN:
 [[file:~/.claude/plans/sessions-logbook-ordering.md][Plan]]
 
 Captured 2026-08-04 from conversation. Org's own =:LOGBOOK:= (both
@@ -48416,6 +48417,8 @@ doesn't record clock ownership, unlike session-resume]] — both would touch
 internals. Not a blocking order, just worth checking the other's status before
 starting either.
 
+:END:
+:DEBRIEF:
 *Cancelled 2026-08-12 by
 [[id:e51d6ba1-cc1d-4745-8aa7-e4b1183a230b][e51d6ba1]] — and this
 reverses that heading's own stated prior.* Both =e51d6ba1= ("=2b0988ed=
@@ -48432,6 +48435,11 @@ the *surviving* drawer should use, was answered separately and shipped
 by [[id:af7d3687-6d1e-4480-a9e2-df772785713f][af7d3687]] (commit
 =4d2dcab=): one *ascending* timeline across every entry style — the
 opposite of the newest-first convention this heading proposed matching.
+:END:
+
+Cancelled via =e51d6ba1=: the :SESSIONS: drawers were deleted outright, leaving
+nothing to reorder, and the surviving drawer's ordering was settled separately
+by =af7d3687= as one ascending timeline.
 
 
 
