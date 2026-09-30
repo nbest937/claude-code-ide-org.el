@@ -24539,6 +24539,7 @@ without reintroducing the confusion
 [[id:42808717-2736-4bf4-872e-887f990203ca][42808717]] named one tier down.
 
 :END:
+:DEBRIEF:
 *Split and written in 2026-09-02, on the user's decision.* CLAUDE.md's =NEXT=
 paragraph now says a **story** must never carry it — the case
 [[id:42808717-2736-4bf4-872e-887f990203ca][42808717]] actually argued — and that
@@ -24563,6 +24564,12 @@ paragraph read "…when that judgement is mechanised. A
 =bin/check-conventions= passed over it — neither reads prose for sense — which
 is [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]]'s class arriving in a
 document rather than in code.
+:END:
+
+CLAUDE.md's NEXT paragraph was rewritten so a story never carries NEXT while a
+slice may, as a portfolio-level nomination, under three constraints: at most one
+slice, no substitute for a member's NEXT, nothing sets it automatically.
+=ff7ccb2d= was marked NEXT.
 
 **** DONE [48/48] The code knows more than it says, and asks more than it should :code:
 CLOSED: [2026-09-02 Wed 18:21]
