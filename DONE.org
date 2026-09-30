@@ -42047,6 +42047,7 @@ CLOCK: [2026-08-15 Sat 17:13]--[2026-08-15 Sat 17:19] =>  0:06
 - State "DONE"       from "DOING"      [2026-08-17 Mon 08:41] \\
   exclusion removed, ranking subsumes it
 :END:
+:PLAN:
 
 Reported by the user 2026-08-15 after applying some events: unassigned
 spans cannot be assigned because not every heading is offered by the
@@ -42103,6 +42104,8 @@ Orderless copes, but a plain =basic= completion style would not, and the
 decoration would be better as an =:affixation-function= so it is
 displayed without being matched against.
 
+:END:
+:DEBRIEF:
 *Correction 2026-08-17 to the diagnosis above.* That entry recorded, as
 an aside, that "13 more resolve to no title at all -- stale =org-id=
 entries pointing at headings that no longer exist. That second number is
@@ -42165,6 +42168,12 @@ All five new tests were confirmed failing first (=282 tests, 5
 unexpected= before; =282, 0 unexpected= after), and the fix was reloaded
 into the live Emacs and checked against real data rather than only in
 batch.
+:END:
+
+Fixed by deleting the created-after-span exclusion, letting proximity ranking
+order such headings instead; a silent drop of headings lacking =:CREATED:= was
+also found and fixed, and the candidate logic was extracted so it could be
+tested.
 
 
 
