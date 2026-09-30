@@ -20336,6 +20336,7 @@ where it cannot supply the value, since only the composer knows which
 revision applies.
 
 :END:
+:DEBRIEF:
 *Debrief, 2026-09-08.* Shipped in PR #16 (=05f7dff=). Slice refresh is
 now =claude-code-ide-org-ceremony-finish='s *first* step, beside the
 drawer and spacing passes and idempotent like both — so it runs on
@@ -20365,6 +20366,11 @@ already apply.
 =config.el=. Note CLAUDE.md's "the two commands the ceremony runs
 after apply" sentence undercounts the finish pass's steps (now six);
 that file's accuracy is =9d009401='s subject, not re-fixed here.
+:END:
+
+Shipped in PR #16: slice refresh became the ceremony finish pass's first step,
+and the SessionStart report now names worked open slices lacking an orgit-rev
+prompt link; a stale-slice count was declined.
 
 
 **** DONE Adding a just-captured heading to a slice cannot be made lint-clean :code:
