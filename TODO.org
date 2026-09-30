@@ -10176,6 +10176,7 @@ CLOSED: [2026-09-09 Wed 17:44]
 - State "CANCELLED"  from "TODO"       [2026-09-09 Wed 17:44] \\
   twin of ce012ad4; observations folded there
 :END:
+:PLAN:
 
 The user saw =error in process filter: peculiar error: -32601, "Method
 not found"= in the minibuffer, 2026-09-09. Diagnosed in upstream
@@ -10205,6 +10206,8 @@ and either implement or stop advertising =logging=. Until then the
 error is noisy but harmless: the probing client treats the silence as
 an unsupported feature and the tools themselves are unaffected.
 
+:END:
+:DEBRIEF:
 Cancelled as a twin of
 [[id:ce012ad4-87f7-435c-a2ee-25210c071865][ce012ad4]], which had the
 full diagnosis and fix sketch since 2026-09-02: same undefined
@@ -10214,6 +10217,11 @@ invitation, the curl reproduction) are folded there. Composed without
 seeing the sibling; caught by the body-carrying outline the read
 split shipped today — the composer-cannot-see-the-twin rule holding
 exactly, and the new tooling doing the reader's catch.
+:END:
+
+Cancelled as a twin of =ce012ad4=, which already held the diagnosis and fix
+sketch for the undefined =json-rpc-error= symbol; this heading's new
+observations were folded there.
 
 
 * MAYBE Consider archives in org_clock_report's scope (agenda-with-archives) :code:
