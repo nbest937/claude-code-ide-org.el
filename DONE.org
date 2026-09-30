@@ -10667,6 +10667,7 @@ Pending events only -- an applied event is one the file already matches, so
 counting it would report a divergence at the instant it was resolved.
 
 :END:
+:DEBRIEF:
 *Verified live against the real files and the real queue, after =load-file=* --
 the running Emacs held the old definition and would otherwise have answered for
 it. Two lines, both true and neither constant: 420816ec as =queued DOING, not
@@ -10698,6 +10699,12 @@ correctly.
 =claude-code-ide-org-test--with-queue=. Without that wrapper it read the user's
 real =~/.claude/org-updates=, which the report's new input made load-bearing --
 a suite that consults live user state can flake on it.
+:END:
+
+Shipped: the report now distinguishes a queued DOING the file has not caught up
+with, a file DOING with a queued DONE, and a DOING leaf with nothing ever
+queued, verified live and by mutation. A keywordless heading with a pending DONE
+is deliberately left unreported.
 
 
 ***** DONE An unassigned span's group heading renders an error string where a title belongs :code:
