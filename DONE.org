@@ -26062,6 +26062,7 @@ dropped, because a heading that quietly loses a third of its scope reads
 afterwards as though it was always smaller.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-09-02 as =5d42fc5=. The harness is the deliverable; two of
 the three assertion families landed with it, and the third became a
 separate heading.*
@@ -26123,6 +26124,11 @@ citation refuses the commit and leaves HEAD unmoved. =bin/test= 503/503,
 now — these files are hand-edited and rarely partially staged — and
 recorded in the script's own header. =pre-commit= passes =--docs-only=,
 so a machine with no Emacs running can still commit.
+:END:
+
+Shipped in commit =5d42fc5=: a shared check harness, and bin/check-conventions
+asserting that cited ids resolve and that the keyword set agrees everywhere,
+wired into pre-commit. The anchor assertion was split out as =5fc7b934=.
 
 
 
