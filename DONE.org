@@ -39259,6 +39259,7 @@ inside DONE.org; and whether anything should enumerate inbound =[[id:]]=
 references before a prune, since nothing does today.
 
 :END:
+:DEBRIEF:
 *Cancelled 2026-08-21, and the re-measure this heading asked for is the reason.*
 Its own instruction was "restore the archiving cadence first and re-measure --
 tier 3 may not be needed for a long time." Re-measured: DONE.org has gone 955 ->
@@ -39291,6 +39292,11 @@ the archive once and closed on 2026-08-17 -- the same date as the newest
 =:ARCHIVE_TIME:=. Nothing owns the recurring pass, and 30 finished headings
 sitting in the live file is a direct contribution to
 [[id:b07df584-3adc-433c-ab49-e104f88aecf7][b07df584]]'s context-cost complaint.
+:END:
+
+Cancelled as superseded: the re-measure showed the pressure was archiving
+stalling, not DONE.org overflowing, and the jobs a third tier was for now had
+owners, the body-level retention policy and =41cf5830=.
 
 
 **** DONE Auto-promote fires on apply order, so NEXT records which capture landed first :code:
