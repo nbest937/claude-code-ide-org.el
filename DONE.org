@@ -38522,7 +38522,7 @@ CLOSED: [2026-08-24 Mon 13:08]
 - State "DONE"       from              [2026-08-24 Mon 13:08] \\
   wrap default shipped and verified live
 :END:
-
+:DEBRIEF:
 *Shipped 2026-08-24* (=5de3948=), from the user asking whether the review
 command could open its buffer wrapped "as I have it now".
 
@@ -38560,6 +38560,10 @@ is not loaded. A unit test may not assert the environment it happens to run in.
 definition but does *not* change an already-open review buffer, whose locals
 were set when its mode ran. Only a newly created review buffer picks it up --
 which is why the live check was done in a fresh buffer.
+:END:
+
+The review buffer now sets truncate-lines off and word-wrap on buffer-locally,
+so its lines wrap instead of truncating.
 
 
 
