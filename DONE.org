@@ -48459,6 +48459,7 @@ CLOSED: [2026-08-12 Wed 17:37]
 - State "CANCELLED"  from "MAYBE"      [2026-08-12 Wed 17:37] \\
   superseded by feba67eb's cutover; see e51d6ba1
 :END:
+:PLAN:
 [[file:~/.claude/plans/session-resume-continuity-guard.md][Plan]]
 
 Captured 2026-08-04, observed live and confirmed with real evidence,
@@ -48512,6 +48513,8 @@ doesn't record clock ownership, unlike session-resume]] (most clock-start paths
 never record an owner in the first place, so this bug's own "idle clock"
 precondition is the common case, not the exception).
 
+:END:
+:DEBRIEF:
 *Cancelled 2026-08-12 by
 [[id:e51d6ba1-cc1d-4745-8aa7-e4b1183a230b][e51d6ba1]].* Superseded by
 shipped work, not deferred. =bin/hooks/session-resume= no longer calls
@@ -48524,6 +48527,11 @@ comes from the surrounding =clock_in=/=clock_out= events at review time.
 commit =220ba78=); the hook script's own header names this heading as
 the bug it removed. The failure mode documented here remains the
 clearest statement of why that cutover was worth doing.
+:END:
+
+Cancelled via =e51d6ba1= as superseded by shipped work: session-resume now
+appends a bare resume guidepost naming no heading, so there was no clock history
+left to inherit wrongly.
 
 
 
