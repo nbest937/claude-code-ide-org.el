@@ -51109,12 +51109,15 @@ CLOSED: [2026-07-29 Wed 05:57]
 :ARCHIVE_TODO: DONE
 :CLOSED_SOURCE: git
 :END:
+:PLAN:
 Once the two enforcement layers above exist, they need the same
 regression-test treatment the four wrappers already get — this
 exact class of bug (silent success, wrong on-disk state) is what
 bit us twice already, and enforcement code with no test is exactly
 where it'd bite a third time.
 
+:END:
+:DEBRIEF:
 Implemented together with the hooks themselves (same branch, same
 commit) rather than as a separate follow-up pass, since the two were
 always going to land atomically. All three items done exactly as
@@ -51124,6 +51127,11 @@ pass count.
 *Note:* config-test.el is Emacs-only (ERT via =emacs --batch=) and
 structurally cannot test the PreToolUse guard script — that needs
 its own separate test vehicle, scoped as a sibling deliverable.
+:END:
+
+Implemented in the same commit as the enforcement hooks, all three items as
+planned; the PreToolUse guard script needed a separate test vehicle, since
+config-test.el cannot test it.
 
 
 
