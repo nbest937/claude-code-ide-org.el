@@ -49835,6 +49835,7 @@ CLOCK: [2026-08-05 Wed 10:35]--[2026-08-05 Wed 10:40] =>  0:05
 CLOCK: [2026-08-05 Wed 11:40]--[2026-08-05 Wed 13:15] =>  1:35
 CLOCK: [2026-08-05 Wed 13:25]--[2026-08-05 Wed 13:30] =>  0:05
 :END:
+:PLAN:
 [[file:~/.claude/plans/quirky-petting-lobster.md][Plan]]
 
 Raised in conversation 2026-08-04, following the finding that Claude
@@ -49880,6 +49881,8 @@ the next time the heading's real state is set explicitly. See the
 plan link for the full design and file-by-file implementation
 breakdown.
 
+:END:
+:DEBRIEF:
 *Verified, not just implemented:* the implementing session (2026-08-04)
 covered =bin/test= regression coverage and manual reload/scratch-file
 checks of the mechanics, but explicitly could not exercise the real
@@ -49908,6 +49911,11 @@ in CLAUDE.md's "State transition rules" section (the "Cross-session
 guard" paragraph, CLAUDE.md:193-196) rather than in this heading's own
 body. Both would require a second concurrent session or a plan
 rejection to trigger, neither of which this pass attempted.
+:END:
+
+Shipped the PLANNING state with automatic promotion to DOING on ExitPlanMode,
+verified live end to end in a follow-up session; the rejected-plan promotion gap
+and the cross-session guard were not exercised.
 
 
 *** 2026-08-04 Tuesday
