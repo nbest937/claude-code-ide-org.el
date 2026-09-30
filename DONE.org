@@ -46579,6 +46579,7 @@ CLOCK: [2026-08-13 Thu 09:59]--[2026-08-13 Thu 10:02] =>  0:03
 CLOCK: [2026-08-13 Thu 10:07]--[2026-08-13 Thu 10:08] =>  0:01
 CLOCK: [2026-08-13 Thu 10:12]--[2026-08-13 Thu 10:15] =>  0:03
 :END:
+:PLAN:
 
 Found 2026-08-12 while checking whether
 [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]]'s "apply writes
@@ -46635,6 +46636,8 @@ back *from disk* rather than from the buffer — reading the buffer would
 not have shown what was committed. Cheap to rebuild; a proper
 regression test belongs in =config-test.el= as part of the fix.
 
+:END:
+:DEBRIEF:
 *Fixed 2026-08-12.* An =unwind-protect= around the clock pair
 (config.el:2741-2751); on a non-local exit it calls =org-clock-cancel=
 rather than retrying the close. Cancelling is the honest cleanup: the
@@ -46704,6 +46707,11 @@ One further path worth noting, not fixed here:
 written (org-clock.el:~1898). A signal from it would leave a correct
 interval plus a failed item — a different and milder shape than the one
 fixed, but it would still mark the item failed while its write stood.
+:END:
+
+Fixed: an =unwind-protect= around apply's clock pair cancels the clock on a
+non-local exit, so a failed =org-clock-out= no longer fabricates an interval;
+the failure was later confirmed reachable through a desynced clock marker.
 
 
 ***** CANCELLED Apply writes headless state notes -- RETRACTED, a grep artifact :code:
