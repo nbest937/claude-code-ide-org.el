@@ -21701,6 +21701,7 @@ it. [[id:d7849119-8224-4993-a8ab-83e1434df53c][d7849119]] part 2, if
 built, specifies both channels.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-09-04* (commit =3b08feb=). The change landed in the elisp
 (=--session-start-hook-json=) rather than the hook script — the logic
 was already inboard, per the Emacs-boundary decision. The payload now
@@ -21725,6 +21726,11 @@ module is reloaded — the exact gap
 next session start shows nothing new until a reload or Doom restart.
 [[id:d7849119-8224-4993-a8ab-83e1434df53c][d7849119]] part 2's spec
 should now say both channels, as decided.
+:END:
+
+Shipped in the elisp: the SessionStart payload now carries a compact top-level
+systemMessage beside the full additionalContext; whether Claude Code displays it
+at SessionStart remained to be observed.
 
 
 **** DONE Commit co-author trailer is frozen at session start, misattributes after /model :code:
