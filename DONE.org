@@ -37335,7 +37335,7 @@ and let =C-c C-c= recompute the cookie.
 The staleness is not gradual; it is created in one step, by one command, at a
 known moment.
 :END:
-
+:DEBRIEF:
 *This heading closed without a debrief*, noted 2026-09-02 during
 [[id:35d25265-df52-45c0-8226-dfa24c3ed5bb][35d25265]]'s pass rather than
 inferred: all 27 body lines are prospective, ending on \"Manual repair until
@@ -37343,6 +37343,10 @@ this is built\". So the whole body wrapped — the ordinary completion transitio
 for a purely prospective body, not the retroactive exception. What it proposed
 did ship, under [[id:a0abf97d-0f98-42df-9749-e1647b723596][a0abf97d]]; the
 account of it lives there.
+:END:
+
+Closed without a debrief of its own; its body was entirely prospective and was
+wrapped whole, and what it proposed did ship.
 
 
 
