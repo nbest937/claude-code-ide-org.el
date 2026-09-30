@@ -27653,7 +27653,7 @@ CLOSED: [2026-08-31 Mon 18:10]
 :LOGBOOK:
 - State "DONE"       from "TODO"       [2026-08-31 Mon 18:10]
 :END:
-
+:DEBRIEF:
 *Found and fixed 2026-08-31, four hours after
 [[id:c74f8663-b14e-4ab9-ad65-d99cb655b3fa][c74f8663]] shipped, and found by
 building something that depended on the invariant rather than by review.*
@@ -27698,6 +27698,11 @@ for any keyword.
 =org-add-planning-info=. That is not a guess and so not
 [[id:b7b46a26-2fd6-4784-bed3-d0112a917c0a][b7b46a26]]'s business: the close time
 was known exactly, being the moment this session captured it.
+:END:
+
+Fixed: org_capture with a done initial_state now writes a CLOSED: line stamped
+with the creation time, for done keywords only. The one affected heading,
+=6e43120d=, was repaired.
 
 
 
