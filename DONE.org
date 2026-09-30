@@ -17430,6 +17430,7 @@ nowhere. Record =REVIEW= as experimental
 settled.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-08-14* (=871f415=), and the debrief is written 2026-08-24,
 backfilled during [[id:7fbab3b3-7843-4290-94a5-d421413f2be4][7fbab3b3]]'s sweep
 -- this heading closed before the convention requiring one existed.
@@ -17450,6 +17451,12 @@ outright and tells the reader that a stale read is *expected, not a failure*.
 backfilled debrief: the commit, the two state-change notes and the body's own
 enumeration are the sources. Nothing here reconstructs what the pass "must have"
 done.
+:END:
+
+Shipped 2026-08-14: all ten enumerated defects in CLAUDE.md's account of the
+queue architecture were corrected and verified against the live files; the
+corrected text says the queued tools change nothing and a stale read is
+expected.
 
 
 ***** DONE Remove CLAUDE.md content the org and org-dev skills already own :code:
