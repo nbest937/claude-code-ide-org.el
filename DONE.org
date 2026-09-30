@@ -49224,6 +49224,7 @@ CLOCK: [2026-08-11 Tue 21:10]--[2026-08-11 Tue 21:16] =>  0:06
 CLOCK: [2026-08-11 Tue 21:18]--[2026-08-11 Tue 21:21] =>  0:03
 CLOCK: [2026-08-11 Tue 21:24]--[2026-08-11 Tue 21:30] =>  0:06
 :END:
+:PLAN:
 
 A read-only MCP tool returning one line per heading — level, TODO
 keyword, title, =:ID:=, tags, and whether a =:BLOCKER:= is set — as an
@@ -49299,6 +49300,8 @@ this file's full depth. That is an existing placement vocabulary, used by
 =org_refile= today, and it is what =47c027d2='s target parameter should
 accept rather than inventing a category concept.
 
+:END:
+:DEBRIEF:
 *Implemented 2026-08-11.* =claude-code-ide-org-outline=, registered as
 =org_outline=, with =scope= (an =:ID:= for one subtree, a file name for
 one file, or omitted for every tracked file), =max_depth=, and
@@ -49380,6 +49383,11 @@ fail against the presence-only marker; the other two pass either way,
 because the old code marked *everything* blocked and so matched the
 positive cases by accident — kept as pins, not counted as evidence.
 Live, the real TODO.org went from 10 =[blocked]= markers to 0.
+:END:
+
+Shipped org_outline with scope, max_depth and active_only, about a 30x reduction
+on TODO.org; live use exposed propertized output, fixed by stripping at
+assembly, and false [blocked] markers, fixed by resolving blocker ids.
 
 
 
