@@ -23042,6 +23042,7 @@ Each child names its comment permalink. The threads stay open until the fixes
 land.
 
 :END:
+:DEBRIEF:
 *Verified, not just implemented:* all four fixed and committed on
 =feature/fix-claude-md-and-slice-conventions=, PR #9's own branch — the same
 integration point, so no new branch. Four commits:
@@ -23134,6 +23135,11 @@ verified against the real corpus rather than a fixture alone.
 
 *Residue, all filed and none left in prose:* =0fa403f4= (closed the same day)
 and =dc753eb2= (taken in as the fifth member). Nothing outstanding at close.
+:END:
+
+All five members landed, each fix run red first: two slice guards now ask the
+descendant question, a third path is guarded on org-blocker-hook, and two
+Stop-hook defects were fixed with a new test suite; PR #9 merged.
 
 
 ***** DONE A refile guard that asks about the moved heading cannot see the subtree it moves
