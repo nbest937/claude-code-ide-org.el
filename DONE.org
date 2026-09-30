@@ -31193,6 +31193,7 @@ the 8-character prefix the unit of reference in prose, commits and
 conversation, while every actual lookup still demands all 36.
 
 :END:
+:DEBRIEF:
 *Built 2026-08-29 as =claude-code-ide-org-goto=, an interactive command with no
 MCP registration* — this one is for the human at Emacs, so it costs nothing on
 the tool surface.
@@ -31241,6 +31242,11 @@ form-reading syntax check written into the previous session prompt — =(while t
 it spins until killed. Corrected there to a bounded =(while (not (eobp)) ...)=.
 A verification recipe that hangs on success is the same family as the ones
 [[id:542924c1-9152-4414-8da8-d530d3423611][542924c1]] collects.
+:END:
+
+Built claude-code-ide-org-goto, an unbound interactive command whose completion
+candidates lead with the 8-character prefix so abbreviations are typeable.
+Semantic matching was kept out.
 
 
 ***** DONE Add a tool to set heading properties, starting with :BLOCKER: :code:
