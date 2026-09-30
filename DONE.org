@@ -34325,7 +34325,7 @@ CLOSED: [2026-08-26 Wed 13:36]
 - State "DONE"       from              [2026-08-26 Wed 13:36] \\
   retcon: shipped 60f311b 2026-08-26 13:36
 :END:
-
+:DEBRIEF:
 *Retconned [2026-08-27 Thu]; shipped [2026-08-26 Wed 13:36] as
 [[orgit-rev:claude-code-ide-org::60f311b][60f311b]].*
 
@@ -34348,6 +34348,10 @@ impossible", then ran a heuristic in front of it.
 Four tests. Note the mixed-citation case blocks *even when broken*, because the
 hex half trips it -- so the assertion that the message names **both** ids is the
 one doing the work.
+:END:
+
+footnote-check no longer drops all-digit 8-character tokens before the :ID:
+lookup, so all-digit ids are enforced like any other; four tests cover it.
 
 
 
