@@ -41917,7 +41917,7 @@ CLOSED: [2026-08-17 Mon 09:11]
 - State "DONE"       from "DOING"      [2026-08-17 Mon 09:11] \\
   one redraw path, advance rule recorded
 :END:
-
+:DEBRIEF:
 *Done 2026-08-17.* =claude-code-ide-org--review-redraw= is the single
 path: re-render, put point back on the item by identity, and advance when
 asked. Every command that mutates an item now goes through it -- =m=/=u=
@@ -41955,6 +41955,11 @@ in place would risk a view that disagrees with the file. Dismiss had no
 such excuse: it had already written its dismissal to the queue. Recorded
 on [[id:73cd5a1b-9b4f-409d-9aab-ffc6ea736ae5][73cd5a1b]] rather than
 fixed blind.
+:END:
+
+Every item-mutating review-buffer command now goes through one redraw path that
+restores point by item identity and advances only when the command answers the
+line; apply was deliberately left unchanged.
 
 
 
