@@ -21425,6 +21425,7 @@ lighter mechanism works.
 Writing =README.md= itself is untouched by any of that.
 
 :END:
+:DEBRIEF:
 *Part 1 shipped 2026-09-04* (commit =56f14e9=, on
 =feature/org-discipline-travel=). README.md follows the decision above:
 human-facing intro/quickstart, no =@README.md= import, deliberate small
@@ -21464,6 +21465,11 @@ PostToolUse *displays* =systemMessage= is the same pending observation
 =d585d33e= carries for SessionStart — the JSON follows the documented
 contract either way. With part 1's README and this, the heading's whole
 scope is delivered.
+:END:
+
+Both parts shipped: README.md as a human-facing intro with a current
+known-limitations section, and a doc-sync hook that, on an edit to either file,
+tells the model and the human to check its sibling.
 
 
 **** DONE The org 9.7+ dependency is real, undeclared, and unenforced :code:
