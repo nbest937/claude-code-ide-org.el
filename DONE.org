@@ -28075,6 +28075,7 @@ moment of an old review is not recoverable after the fact. The claim is about
 outcomes, not about how often the guard fired.)*
 
 :END:
+:DEBRIEF:
 *Shipped 2026-08-31, exactly the three rules this body specified:* non-stale
 =state= items arrive marked; stale ones do not, as =M= already refused them;
 nothing is auto-applied. The last is load-bearing rather than cautious — org's
@@ -28114,6 +28115,11 @@ the human an independent expectation to compare against, so "Applied 0 item(s);
 each a full 480-test run: removing auto-marking fails the three new tests;
 ignoring staleness fails the auto-mark test *and* the pre-existing bulk-mark
 test; counting auto-marks as judgement fails the =g= tests.
+:END:
+
+Shipped: non-stale state items arrive pre-marked in the review buffer, stale
+ones do not, and nothing is auto-applied. An auto-mark is decided once per item
+and does not count as judgement for g's discard prompt.
 
 
 
