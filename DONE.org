@@ -8732,7 +8732,7 @@ CLOSED: [2026-09-19 Sat 05:53]
 :LOGBOOK:
 - [2026-09-19 Sat 05:35]--[2026-09-19 Sat 05:37] root-cause unattributed spans, file discipline fix
 :END:
-
+:DEBRIEF:
 Finding 10, shipped in [[orgit-rev:claude-code-ide-org::b055a10][b055a10]] — the only one of the fifteen that was a *decision* rather than a defect, and the only one settled with the user rather than alone.
 
 =org-time-tracking.md= had reached 335 lines, **29% of the always-loaded rules**, in a default install whose own first line says nothing in it applies.
@@ -8744,6 +8744,12 @@ Finding 10, shipped in [[orgit-rev:claude-code-ide-org::b055a10][b055a10]] — t
 *It honours the recorded decision rather than overturning it*, which is why the disposition took two exchanges to settle. =1b36c5bd= established that the gate is the **feature**, in one place, never the prose; nothing here is newly switchable, so a consumer who turns time tracking on still receives every rule — which the review's own alternative, leaving the file unpromoted entirely, would have cost them. Its other alternative, a =--time-tracking= promotion flag, **was** at odds with that decision and with =01f7a19c='s rejection of a second switch, and was declined.
 
 *What the finding actually corrected was the cost estimate, not the logic.* "Costs a consumer one unread reference" is fair for a short file and wrong by an order of magnitude for a 335-line one — and wrong in the direction that made the decision look free.
+:END:
+
+Settled with the user: =org-time-tracking.md= was split by actionable versus
+derivation, the promoted file keeping 261 lines and an unpromoted internals file
+taking 123, byte-losslessly, cutting time tracking's share of always-loaded
+rules from 29% to 24%.
 
 
 *** 2026-09-18 Friday
