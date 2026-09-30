@@ -30064,6 +30064,7 @@ CLOSED: [2026-08-31 Mon 08:56]
 - State "DONE"       from              [2026-08-31 Mon 08:56] \\
   lesson named in CLAUDE.md
 :END:
+:PLAN:
 
 *Observed four times in one session, twice on the same pair, for the same
 reason.* Responses cited =c31b6c76=/=5a5e87c9= as shorthand for *the twin
@@ -30104,6 +30105,8 @@ shape [[id:46d225c7-7541-4867-af72-929a572df2a5][46d225c7]] was filed for — a
 source comment reading "Removal is filed" when nothing was — and it belongs here
 because both happened while writing *about* the discipline they broke.
 
+:END:
+:DEBRIEF:
 *Resolved 2026-08-31 by naming the lesson*, which was the first of the two
 directions and the one the evidence favours: the second makes the citation
 cheaper, the first makes it unnecessary, and a named pattern can be taught where
@@ -30121,6 +30124,11 @@ session had drifted from it.
 =.claude/rules/org-conventions.md=. The asymmetry bites while *composing* a
 slice or a session prompt, which is not always with an =.org= file open, and a
 path-scoped rule that does not load is a rule that does not apply.
+:END:
+
+Resolved by naming the lesson rather than cheapening the citation: the project's
+existing word, twin, was adopted for the pattern and recorded in CLAUDE.md
+beside the epic, story and slice vocabulary.
 
 
 
