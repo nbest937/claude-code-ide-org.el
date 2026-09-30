@@ -30661,6 +30661,7 @@ whether a plan is a maintained document or a dated snapshot execution
 supersedes. Neither is touched by the above.
 
 :END:
+:DEBRIEF:
 *Cancelled 2026-08-29 as superseded by
 [[id:0086614a-c95c-4618-bba0-c821589dd7f2][0086614a]].* The user's reading,
 checked and confirmed: the "unstated task lifecycle" this heading gated itself
@@ -30704,6 +30705,11 @@ original-versus-accrued with nowhere to live at all.
 children and had ten two days later, its plan file still opening "Covers all
 five children" — a fact recorded once in a document nobody revises. That is the
 shape 0086614a has to beat, and it inherits it.
+:END:
+
+Cancelled as superseded by =0086614a=: the task lifecycle it waited on had since
+been stated, both questions it deferred were answered in CLAUDE.md, and the
+planned-versus-accrued distinction now belongs to slices.
 
 
 
