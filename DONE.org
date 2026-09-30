@@ -18060,7 +18060,7 @@ CLOSED: [2026-08-21 Fri 11:54]
 - State "DONE"       from              [2026-08-21 Fri 11:54] \\
   Reading the tracker section shipped
 :END:
-
+:DEBRIEF:
 *Shipped 2026-08-21* as CLAUDE.md's "Reading the tracker", between the queue
 architecture and the repository layout.
 
@@ -18088,6 +18088,11 @@ design.
 state, not for *why* a decision went a given way, which exists only in a body.
 That is why the load-bearing ones are quoted in CLAUDE.md directly rather than
 left to a lookup.
+:END:
+
+Shipped as CLAUDE.md's "Reading the tracker" section: org_outline first, DONE
+ignored by reflex and DONE.org as reference rather than orientation, with two
+evidenced refinements and one exception for decision rationale.
 
 
 ***** DONE CLAUDE.md contradicts the skills, rules, and memories in four places :code:
