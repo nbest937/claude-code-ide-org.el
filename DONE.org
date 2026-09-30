@@ -38279,6 +38279,7 @@ usual answer to a convention that would otherwise recur and it needs no new
 concept -- just a length threshold on headings carrying a repeater.
 
 :END:
+:DEBRIEF:
 *Decided and shipped 2026-08-24* (=6e0aef9=): the lint cap, direction 1 of the
 three recorded above. =bin/lint-org= warns when a heading carrying a repeater
 exceeds =claude-code-ide-org-repeater-body-max= body lines, default 25.
@@ -38309,6 +38310,11 @@ counter is now shared with =--lint-substantial-body-p=, and the fixture asserts
 the drawer case directly. And the recommendation that reached the user was wrong
 in its evidence while right in its conclusion, which is the more uncomfortable
 half: it would have been accepted either way.
+:END:
+
+Took the lint cap: bin/lint-org warns when a repeater's body exceeds
+claude-code-ide-org-repeater-body-max lines, default 25. It fires on nothing
+today.
 
 
 
