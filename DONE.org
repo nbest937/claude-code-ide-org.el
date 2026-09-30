@@ -12622,8 +12622,14 @@ The consequence to state rather than paper over: the reload-precondition rule no
 
 =bin/hooks/doc-sync-check='s comment also names the file, and is deliberately left alone: it uses it as an illustration of why the hook matches full paths rather than basenames, and that argument does not depend on the file existing.
 :END:
-
+:DEBRIEF:
 Retiring =~/.claude/CLAUDE.md= left two live repo references naming it as a load-bearing home for the reload-precondition rule: the org-dev skill's §0 and =next-session.md='s Step 1. Both corrected, with §0 now owning the rule outright. The accepted consequence, stated rather than papered over: a skill is triggered rather than always loaded, so a verification that is neither Emacs- nor Doom-shaped no longer meets the rule anywhere.
+:END:
+
+Both references, the org-dev skill's section 0 and =next-session.md='s Step 1,
+were corrected, with section 0 now owning the reload-precondition rule. Accepted
+consequence: a verification neither Emacs- nor Doom-shaped no longer meets the
+rule anywhere.
 
 
 *** 2026-09-16 Wednesday
