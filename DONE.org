@@ -46257,6 +46257,7 @@ CLOCK: [2026-08-12 Wed 11:45]--[2026-08-12 Wed 11:48] =>  0:03
 CLOCK: [2026-08-12 Wed 11:51]--[2026-08-12 Wed 11:57] =>  0:06
 CLOCK: [2026-08-12 Wed 12:14]--[2026-08-12 Wed 12:39] =>  0:25
 :END:
+:PLAN:
 
 Raised by the user 2026-08-12, right after the first real dismissal
 round. =claude-code-ide-org--review-ensure-writable= offers to clear
@@ -46281,6 +46282,8 @@ reversal.
 Restores only what this command actually cleared, so a buffer the user
 had already made writable is left alone.
 
+:END:
+:DEBRIEF:
 *Outcome (2026-08-12, commit =de1e7e6=).*
 =--review-ensure-writable= now *returns* the buffers it cleared, and
 =claude-code-ide-org-review-apply= restores them in an
@@ -46303,6 +46306,10 @@ queued =DONE= transitions into =TODO.org= at 10:02 with the fix loaded.
 That apply had to make the buffer writable to land, and =TODO.org= was
 read-only again afterwards — with the user confirming they did not
 re-set it by hand. That is the whole loop: borrowed, written, returned.
+:END:
+
+Shipped in =de1e7e6=: apply now restores the read-only flag on exactly the
+buffers it cleared, inside an =unwind-protect=, confirmed live on =TODO.org=.
 
 
 ***** DONE Two display defects in the review buffer's rendering of a failed item :code:
