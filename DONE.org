@@ -48874,6 +48874,7 @@ CLOCK: [2026-08-12 Wed 17:22]--[2026-08-12 Wed 17:25] =>  0:03
 CLOCK: [2026-08-12 Wed 17:34]--[2026-08-12 Wed 17:40] =>  0:06
 CLOCK: [2026-08-12 Wed 17:43]--[2026-08-12 Wed 17:47] =>  0:04
 :END:
+:PLAN:
 
 Surfaced 2026-08-11 by =bin/sync-plans=, which archives a plan only when
 some heading in TODO.org or DONE.org links it — so org membership is the
@@ -48903,6 +48904,8 @@ covers what is linked: an unlinked plan is the one case where a revision
 still overwrites history with no way back — the exact gap the archive
 was built to close.
 
+:END:
+:DEBRIEF:
 *Outcome, 2026-08-12.* =bin/sync-plans= now reports *0 unlinked at
 source*, 26 in sync. Two linked, two retired:
 
@@ -48971,6 +48974,12 @@ property two lines above — the script tested list membership of a whole
 line where it needed a substring. Same shape as the drawer-scoped grep
 failures already recorded above: a wrong answer that looks like a
 finding.
+:END:
+
+bin/sync-plans reported no unlinked plans: two were linked, one from the new
+retrospective heading =3d862c6c=, and two deleted; the heading proved wrong
+about two of the four, and an umbrella-heading convention was left for
+=02aaae22=.
 
 
 *** 2026-08-11 Tuesday
