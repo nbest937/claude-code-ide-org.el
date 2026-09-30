@@ -50835,11 +50835,14 @@ CLOSED: [2026-07-29 Wed 05:57]
 :END:
 :LOGBOOK:
 :END:
+:PLAN:
 Move a heading to a new parent/file. Already flagged as deferred in
 the design notes. Needs a target-resolution story (:ID: of new
 parent? file + heading path?) worked out before implementation, not
 just a thin wrap of the interactive prompt.
 
+:END:
+:DEBRIEF:
 *Open question, resolved:* out of scope for v1, per the plan's own
 recommended default. Every other tool in this module resolves its
 target purely by :ID:, so a file-path+append second codepath would be
@@ -50858,6 +50861,11 @@ can't turn this into an interactive prompt. 5 ERT tests added
 (same-file, cross-file with disk assertions on *both* files,
 unresolvable target, unresolvable source, refile-into-own-subtree
 error). =bin/test= 44/44 at merge.
+:END:
+
+Shipped org_refile resolving targets by :ID: only, leaving file-path targets out
+of scope for v1, using a live marker for the target and suppressing refile
+logging; five tests added.
 
 
 
