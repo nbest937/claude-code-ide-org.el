@@ -44849,6 +44849,7 @@ CLOCK: [2026-08-14 Fri 13:49]--[2026-08-14 Fri 13:51] =>  0:02
 - State "DONE"       from "DOING"      [2026-08-14 Fri 13:51] \\
   all six reconciled; plans audit clean
 :END:
+:PLAN:
 
 Once this design is either committed to or rejected, revisit
 [[id:53b0047d-c55c-486c-8eed-ba4994d97a1a][53b0047d]],
@@ -44862,6 +44863,8 @@ survive either way). Also decide
 [[id:c954f650-b92f-4920-9967-ab6c44577b30][c954f650]]'s own fate at the same
 time, rather than leaving it to drift.
 
+:END:
+:DEBRIEF:
 *Reconciled 2026-08-14. All six are settled; four had already settled
 themselves, and the audit's job was to confirm that rather than to
 decide it.*
@@ -44917,6 +44920,11 @@ headings each keep their plan link — =session-resume-continuity-guard=,
 =bookkeeping-noise-audit= — which is correct under this project's own
 rule that a plan link is permanent and is not removed when a heading
 closes. Nothing to do.
+:END:
+
+All six headings were settled: four already cancelled with notes, =53b0047d=
+promoted to TODO and =c954f650= alive on its own; a stale CLAUDE.md reference to
+a deleted variable was corrected and the plans audit found nothing to do.
 
 
 ***** DONE Failed tool calls still enter the queue when the error is content-wrapped :code:
