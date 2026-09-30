@@ -26659,6 +26659,7 @@ reordering — 63% of adjacent pairs are already descending, longest run 17 of 1
 =org_capture= prepends.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-09-01 as approach A, in two commits as this body's own sequencing
 note required.*
 
@@ -26705,6 +26706,12 @@ belongs beside the work, and nothing here makes it harder.
 missing =CLOSED:=. It is the larger of the two — restructuring DONE.org into a
 datetree rather than sorting a flat list — so it did not fit "the same pass" as
 literally as this body expected.
+:END:
+
+Shipped as approach A: TODO.org's level-1 headings are sorted by :CREATED:
+descending in the ceremony after archiving, with a bin/lint-org error asserting
+the :DATE_TREE: anchor stays last. The first sort moved all 81 headings; a
+second moved none.
 
 
 
