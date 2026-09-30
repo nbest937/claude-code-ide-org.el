@@ -42343,7 +42343,7 @@ CLOCK: [2026-08-15 Sat 18:52]--[2026-08-15 Sat 19:03] =>  0:11
 - State "DONE"       from "DOING"      [2026-08-15 Sat 19:02] \\
   queue and review-apply shipped
 :END:
-
+:DEBRIEF:
 [[file:~/.claude/plans/plan-this-task-clever-cupcake.md][Plan]]
 
 Captured 2026-08-06 from conversation, after a frank assessment of
@@ -42596,6 +42596,12 @@ that keeps every downstream capability can never close. Both remain
 =MAYBE= with their triggers written down.
 
 Unblocks [[id:38b92521-bba4-4bb5-9cd9-465862471a72][38b92521]].
+:END:
+
+Closed with 29 children DONE and 2 CANCELLED: sessions now queue state and clock
+events and a human-run review command applies them through native org functions,
+restoring native state logging; the user's own attention intervals and several
+found defects were left open.
 
 
 ***** DONE Design the append-only event-queue format and per-session file lifecycle :code:
