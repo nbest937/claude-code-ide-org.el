@@ -37505,6 +37505,7 @@ CLOSED: [2026-08-25 Tue 14:12]
 - State "CANCELLED"  from "TODO"       [2026-08-25 Tue 14:12] \\
   tag was a manual edit, not a writer
 :END:
+:PLAN:
 
 *Observed 2026-08-25.* [[id:c44c2119-dbf8-4510-99e2-6aaa7f259d94][c44c2119]]'s
 tag line became =:code:slice:blocked:=. The =slice= tag was written
@@ -37537,6 +37538,8 @@ maintaining it *correctly* -- adding and removing in step -- it is a useful
 visible marker and should be declared in =#+TAGS:= and left alone. If it is
 write-only, it is a bug and should be turned off rather than linted around.
 
+:END:
+:DEBRIEF:
 *Cancelled 2026-08-25, hours after being filed.* The user identified the tag as
 inadvertent -- a side effect of hand-drafting the slice heading in Emacs -- and
 deleted it along with the others. There is no writer to find, so the heading's
@@ -37564,6 +37567,10 @@ errors because nothing was a slice, which is indistinguishable from nothing
 being wrong. The detector is now a =:KIND: slice= property, and the episode is
 recorded on [[id:8ca6541d-0fc7-45a2-a4d3-76e1608f658d][8ca6541d]], whose tag
 proposal it falsifies.
+:END:
+
+Cancelled because the user identified the :blocked: tag as an inadvertent side
+effect of hand-drafting the slice heading, so there was no writer to find.
 
 
 
