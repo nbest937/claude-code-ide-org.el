@@ -35552,6 +35552,7 @@ distinction does not yet matter, which argues for the simple version until it
 does.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-08-26* ([[orgit-rev:claude-code-ide-org::9761cdf][9761cdf]]).
 =--review-settle-slices= runs from the same seam as
 =--review-settle-auto-promote=, immediately after apply's loop and before the
@@ -35596,6 +35597,11 @@ worth checking before it is believed.
 was the third and last of them to be wired. The remaining one,
 [[id:601c885c-7d8c-46d4-af14-0d8d3ea69ba8][601c885c]], is not a missing trigger
 but an open decision about whether a lint rule is wanted at all.
+:END:
+
+Apply now refreshes every slice once after its loop, before the watermark is
+written, swallowing errors so a regeneration failure cannot fail a pass that
+landed.
 **** DONE [1/1] Footnote discipline decays on re-mention; enforce it at Stop :code:
 CLOSED: [2026-08-26 Wed 10:45]
 :PROPERTIES:
