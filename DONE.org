@@ -37799,6 +37799,7 @@ question by construction, since membership is written rather than inferred from
 what accumulated.
 
 :END:
+:DEBRIEF:
 *Built 2026-08-25.* The two halves this heading still owed after the prototype
 -- a slice that refuses DONE until its members finish, and an assertion that its
 two member lists agree -- both shipped. 389 tests, 0 lint errors.
@@ -37885,6 +37886,12 @@ hazard already recorded here for tags, and =:KIND:= avoids it by being read with
 
 *Reversible if the user prefers otherwise*: the detector is one =equal= in
 =claude-code-ide-org--slice-p=, plus fixtures in four tests.
+:END:
+
+Built: a slice now blocks DONE on its unfinished members through a derived
+:BLOCKER:, and a lint error asserts that list agrees with the checkbox members.
+The slice detector ended up as a :KIND: slice property rather than the proposed
+tag.
 
 
 
