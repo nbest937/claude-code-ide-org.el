@@ -12802,7 +12802,12 @@ CLOCK: [2026-09-16 Wed 14:52]--[2026-09-16 Wed 14:52] =>  0:00
 =bin/check-conventions= asserts the TODO keyword set agrees across four places against this repo's own =#+TODO:= header, and its own comment records that the set has drifted before. Three further copies are outside it: the awk alternation =bin/hooks/footnote-check= gained on this branch, and the =#+TODO:= lines in =templates/TODO.org= and =templates/DONE.org=. Two of those three are *shipped* — the hook and the templates are what a consuming project actually runs and scaffolds from — so drift there is a consumer-visible failure nobody here would see. It fails silently and wrongly rather than emptily: the hook's awk defaults =kw= to =-= and leaves an unrecognised keyword in =line=, so the emitted entry shows a dash in the keyword column *and* leaks the keyword into the position the convention reserves for the exact title.
 
 :END:
+:DEBRIEF:
 *Resolved:* three assertions added to the existing keyword-set section, same =keyword_set= helper and truth source; each proved red first by copying the file aside and removing =REVIEW= from it, and each failed naming its own source. 32 ok, was 29.
+:END:
+
+Three assertions were added to the existing keyword-set section, each proved red
+by removing REVIEW from a copied file; 32 checks pass, up from 29.
 
 
 **** CANCELLED A marker and its footnote need not correspond, and nothing checks that they do :code:
