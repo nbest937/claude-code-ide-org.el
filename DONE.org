@@ -28555,6 +28555,7 @@ is chosen has to leave that row readable rather than showing a truncated title
 where a prefix belongs.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-08-31.* =--assign-candidates= renders =8ca6541d 09:00-09:12
 Heading title= — prefix, then range, then state marker, then title. The id no
 longer trails in braces.
@@ -28590,6 +28591,10 @@ first draft used =--with-known-ids=, which returns *zero* candidates: that
 fixture deliberately leaves its ids unknown to org until something scans, and
 =--assign-candidates= walks =org-id-locations=. The failure looked like a
 formatting mismatch and was an empty list.
+:END:
+
+Shipped: assign candidates lead with the 8-character id prefix, matching the
+group headings, with a same-width placeholder for the id-less meta-work row.
 
 
 
