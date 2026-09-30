@@ -51257,6 +51257,7 @@ CLOSED: [2026-07-29 Wed 05:57]
 :ARCHIVE_TODO: DONE
 :CLOSED_SOURCE: git
 :END:
+:PLAN:
 =bin/check-org-dev-skill='s tool-registration-block-start and
 last-line checks hardcode absolute =config.el= line numbers (410/457,
 then 462/528, now 688/754 after the =consolidate_sessions_logbook=
@@ -51267,6 +51268,8 @@ nearby stable string/regex, or compute an expected relationship rather
 than a magic number) instead of just re-editing the constants each
 time drift is noticed.
 
+:END:
+:DEBRIEF:
 *Done, on =feature/robust-check-org-dev-skill-lines=:* the two checks
 now extract the expected =NNN-MMM= range straight out of the
 =org-dev/SKILL.md= citation text (via =unzip -p= + a regex) instead of
@@ -51287,6 +51290,11 @@ exact line numbers from the doc entirely (e.g. citing the
 pressure altogether, but that's a doc-content trade-off — it makes the
 doc's own reference to readers less precise — left for a separate
 decision rather than made unilaterally here.
+:END:
+
+Done: the two checks read the expected line range from org-dev/SKILL.md's
+citation instead of hardcoding it, consolidating rather than removing the drift;
+dropping line numbers from the doc was left for a separate decision.
 
 *** 2026-07-28 Tuesday
 
