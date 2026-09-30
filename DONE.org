@@ -10752,6 +10752,7 @@ It was found while verifying
 of the guidepost pipeline; refile freely.
 
 :END:
+:DEBRIEF:
 *Fixed 2026-08-18* (=4ff1b53=). The grouping code now uses
 =claude-code-ide-org--review-heading-title=, which returns *nil* when an
 id does not resolve — which is what lets a =cond= tell three cases
@@ -10772,6 +10773,12 @@ mutating the branch away, not by reading the test.
 That is the second fake assertion this practice caught today — the other
 was in [[id:507754ba-ae82-4f04-b209-8d8c58ac268e][507754ba]], where a
 window-extension test asserted only that a line looked plausible.
+:END:
+
+Fixed in commit 4ff1b53: =org_pending_updates= groups with
+=--review-heading-title=, which returns nil for an unresolvable id, so
+unassigned, resolvable and unresolvable groups render distinctly. The first test
+did not discriminate, because of =case-fold-search=, and was corrected.
 
 
 ***** DONE Concurrent sessions' turns must union, not sum, wherever time is totalled :code:
