@@ -17932,6 +17932,7 @@ which is exactly the placement question
 returns the rule.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-08-21 into CLAUDE.md*, both halves, as two adjacent =**Rule**:=
 entries in the state-transition section. Placement was settled by
 [[id:befaed0a-18ed-445e-b997-8b9c2965ad45][befaed0a]] closing the same day --
@@ -17965,6 +17966,11 @@ left in the body for a reader to rediscover.
 earlier:* CLAUDE.md described =--trigger-auto-promote-sole-todo='s two defects
 as open and queued. Both shipped that morning, so the paragraph now describes
 the guards instead.
+:END:
+
+The NEXT-nomination rule shipped into CLAUDE.md as two adjacent Rule entries in
+the state-transition section; a swapped trigger name was corrected while writing
+it, and the rule was applied at once by nominating =9575e65b=.
 
 
 ***** DONE CLAUDE.md documents neither span floor, and mis-describes the gap threshold :code:
