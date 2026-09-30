@@ -623,6 +623,7 @@ CLOSED: [2026-09-28 Mon 08:30]
 - State "CANCELLED"  from "TODO"       [2026-09-28 Mon 08:30] \\
   absorbed into d842b9e7, its decision carried there
 :END:
+:PLAN:
 
 a7f4b40c investigated a stray :blocked: tag on c44c2119 in August, tested two
 candidates in batch, found both clear, and was CANCELLED on the user's report
@@ -640,8 +641,14 @@ ids(...) wrapper means only middle blocker ids parse. Decide after 3f4fd744
 lands: declare it in #+TAGS: and let org-depend maintain it, or set
 org-depend-tag-blocked nil.
 
+:END:
+:DEBRIEF:
 Cancelled 2026-09-28 and absorbed into [[id:d842b9e7-fd75-45eb-80fd-597daa3e36b0][d842b9e7]], which carries its open
 decision: declare =blocked= in =#+TAGS:=, or set =org-depend-tag-blocked= nil.
+:END:
+
+Cancelled and absorbed into =d842b9e7=, which carries the open decision: declare
+=blocked= in =#+TAGS:=, or set =org-depend-tag-blocked= to nil.
 
 
 **** CANCELLED Make org-blocker-hook actually consult :BLOCKER: :code:
