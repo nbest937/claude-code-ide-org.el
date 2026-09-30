@@ -27783,6 +27783,7 @@ heading is the next question — that an item which explains itself is still an
 item, and one that can never change still asks for a decision every pass.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-08-31 on the user's decision — "drop the stranded ones silently,
 if that's your recommendation" — and it was, for four reasons rather than one.*
 
@@ -27824,6 +27825,12 @@ dropping the trailing one too fails only the trailing test.
 item on screen, which does not fix the chore. Auto-dismissing writes to the
 queue unasked, and the drop achieves the same visible result without that — the
 events stay unconsumed, which is the more conservative record.
+:END:
+
+Shipped on the user's decision: stranded single-point spans are no longer
+offered for review, while their guideposts stay in the queue, and only the
+trailing span still is. This also lets a queue holding only stranded points
+drain and archive.
 
 
 
