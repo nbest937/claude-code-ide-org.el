@@ -30499,6 +30499,7 @@ unfinished, which is also not true. A third option — the honest one — is tha
 exactly as a deferred member does, because the slice is done with it either way.
 
 :END:
+:DEBRIEF:
 *Decided and shipped 2026-08-31.* The user's ruling: *an un-cancelled task in a
 closed slice should not have its cookie restored — the task's own state
 transition history is there to answer any questions that arise.*
@@ -30536,6 +30537,11 @@ nothing.
 without it the next apply's settle phase would have regenerated both the cookie
 and the blocker and undone the repair silently. Fixing the record before fixing
 the mechanism would have looked like it worked.
+:END:
+
+Shipped on the user's ruling: refresh-slice skips a slice whose own keyword is
+terminal. =c44c2119='s wrongly restored cookie and :BLOCKER: were repaired after
+the guard shipped.
 
 
 
