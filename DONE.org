@@ -50125,6 +50125,7 @@ CLOSED: [2026-08-04 Tue 11:10]
 :LOGBOOK:
 CLOCK: [2026-07-30 Thu 17:30]--[2026-07-30 Thu 17:40] =>  0:10
 :END:
+:PLAN:
 [[file:~/.claude/plans/concurrent-session-clock-identity.md][Plan]]
 
 Surfaced 2026-07-30 while starting work on the sibling entry above
@@ -50137,6 +50138,8 @@ Emacs clock and =org-clock-history= with no notion of which session
 they belong to — any concurrent session's turn boundary could pause,
 resume, or steal another session's running clock.
 
+:END:
+:DEBRIEF:
 *Verified, not just implemented:* threaded Claude Code's own
 =session_id= (already present on every Stop/UserPromptSubmit hook
 payload, previously discarded via =cat >/dev/null=) through
@@ -50176,6 +50179,12 @@ resume attempts on session A's running clock both correctly no-op'd
 with the clock left untouched and still owned by A; session A then
 paused its own clock normally, with the owner correctly clearing
 afterward.
+:END:
+
+Implemented: the hook session_id was threaded into session-pause and
+session-resume, which were made to no-op on a clock owned by another session;
+verified by tests and simulated concurrent payloads, with clock-status.json's
+gap left out of scope.
 
 
 
