@@ -22412,6 +22412,7 @@ and this audit decides its fate: either the rule moves to the skill with that
 path, or it is reworded in place to name its actual remaining scope.
 
 :END:
+:DEBRIEF:
 *Audited 2026-09-04, against the four-bucket classification recorded on
 [[id:9ae4b17e-278c-482f-9114-df28b2254806][9ae4b17e]] the same day.*
 Coverage was checked by grep before writing, so only real gaps were
@@ -22452,6 +22453,11 @@ stay-test (rules that must hold when no =.org= file is open), and the
 PLUGIN-bucket prose, which moves at packaging time with
 [[id:b0e478f7-e894-4ac7-b0b6-b3c890b5b32a][b0e478f7]].
 =bin/check-conventions= exit 0 after the edits.
+:END:
+
+The audit found four portable directives living only in CLAUDE.md (mitosis,
+:CREATED: stamping, nomination on close, the twin review question) and filled
+each in the skill or rules file the same day.
 
 
 **** DONE Make the org skill and its discipline portable to other repos :code:
