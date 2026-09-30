@@ -51021,17 +51021,25 @@ CLOSED: [2026-07-29 Wed 05:57]
 :LOGBOOK:
 CLOCK: [2026-07-29 Wed 01:57]--[2026-07-29 Wed 01:59] =>  0:02
 :END:
+:PLAN:
 org-clock-in-hook / org-clock-out-hook writing the current task to
 a small status file. Could feed a Warp status line, a menu bar
 widget, or just answer "what's Claude doing right now" at a glance
 without opening Emacs.
 
+:END:
+:DEBRIEF:
 3 ERT tests added, plus the shared test fixture was extended to
 redirect =claude-code-ide-org-clock-status-file= into each test's own
 temp dir, since the many pre-existing clock-in/out tests were
 otherwise incidentally writing a stray =clock-status.json= into the
 real module directory on every =bin/test= run. =bin/test= 71/71 at
 merge, no deviations from the plan.
+:END:
+
+Implemented with no deviations from the plan and three tests; the test fixture
+was also redirected so tests stopped writing a stray clock-status.json into the
+module directory.
 
 
 
