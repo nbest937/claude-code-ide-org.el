@@ -25417,6 +25417,7 @@ precisely because it was the one tool whose registration was known to postdate a
 client's fetch, and that confound is now closed rather than assumed away.
 
 :END:
+:DEBRIEF:
 *Diagnosed and fixed 2026-09-02, commit =f73cf4b=. The cause was in our own tool
 declarations; the reason it presented as a hang is upstream.*
 
@@ -25497,6 +25498,12 @@ called the dangerous one. The upstream defect is
 the =emacsclient= fallback, not the trap waiting there.
 [[id:8326a46f-e3f9-4ecc-8bc2-05d54907987b][8326a46f]] is now rarer and exactly
 as silent, and rarity is what keeps a false success unnoticed.
+:END:
+
+Fixed in commit =f73cf4b=: three tools declared optional arguments as required,
+and the upstream validation error escaped every handler, leaving the connection
+hanging. An arity test was added; the silent-success capture path and the
+discarded note argument were filed as =8326a46f= and =6495c8a0=.
 
 
 **** DONE The :PLAN: wrap never happens at close, so 93 finished headings carry an unwrapped body :code:
