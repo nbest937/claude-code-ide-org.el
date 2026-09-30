@@ -10546,6 +10546,7 @@ closes, and the epic closes whether or not this is done.
 document, which carries this child's design rather than a file of its own.
 
 :END:
+:DEBRIEF:
 *Verified, not just implemented* — shipped 2026-08-18 as step 1 of
 [[id:406e9200-c3e7-49ac-a8d0-d6ff8e061ce4][406e9200]].
 
@@ -10581,6 +10582,12 @@ is labelled as one.
 *Not done here, and deliberately:* the second half of this heading's
 original brief — surfacing pending-review state glanceably in the
 statusline — is untouched. This landed only what step 2 requires.
+:END:
+
+Shipped: the statusline reads the queue first and falls back to the clock when
+the queue's heading does not resolve, verified live with no clock running.
+Surfacing pending-review state in the statusline, the other half of the original
+brief, was not done.
 
 
 ***** DONE The session-start report's "DOING, not clocked" line has stopped discriminating :code:
