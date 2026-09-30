@@ -9067,6 +9067,7 @@ two warnings, then hit three errors at
 half-written.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-08-21, before the tree exists.* All three errors are gone and none
 of them was silenced. =claude-code-ide-org--lint-file= now tracks the innermost
 enclosing =:DATE_TREE:= heading's level while it maps entries --
@@ -9127,6 +9128,12 @@ datetree" and "recognise our =:DATE_TREE:= anchor" are not the same predicate.
 Whoever takes up [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] or the
 archive-cadence question should read this rule before choosing an archive
 location, not after.
+:END:
+
+Shipped 2026-08-21: =bin/lint-org= exempts org's literal year/month datetree
+scaffolding under a =:DATE_TREE:= heading while still linting the day node,
+verified by mutation. A datetree built by an archive location carries no
+=:DATE_TREE:= and is not covered.
 
 
 ** DONE Resolve today's node on demand, never storing or scheduling its ID :code:
