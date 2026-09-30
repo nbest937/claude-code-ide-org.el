@@ -51151,6 +51151,7 @@ CLOSED: [2026-07-29 Wed 05:57]
 CLOCK: [2026-07-28 Tue 21:31]--[2026-07-29 Wed 01:56] =>  4:25
 CLOCK: [2026-07-29 Wed 05:53]--[2026-07-29 Wed 05:55] =>  0:02
 :END:
+:PLAN:
 Every org_* call so far has been trust-the-return-string. This
 session alone found two tools (org_archive, org_clock_out) that
 reported success while quietly failing to save to disk — caught
@@ -51159,6 +51160,8 @@ only by manual, ad-hoc disk inspection, more than once. A log
 caught both immediately and gives a real trail for anything an
 agent mutates unattended.
 
+:END:
+:DEBRIEF:
 *Recommendation, followed:* implemented at the elisp level as
 planned, not a Claude Code PostToolUse hook.
 
@@ -51187,6 +51190,11 @@ after-hash =run-at-time= timer fires on its own, not just via the
 directly-callable =claude-code-ide-org--audit-flush= every other test
 uses. =bin/test= 76/76 at merge (77/77 after the =org_clock_in= fix's
 own additional test).
+:END:
+
+Shipped an elisp-level audit log with five tests; right after merge it caught a
+real unsaved-mutation bug in org_clock_in, which was fixed separately with its
+own regression test.
 
 
 
