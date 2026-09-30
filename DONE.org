@@ -46738,7 +46738,7 @@ CLOCK: [2026-08-12 Wed 19:56]--[2026-08-12 Wed 19:58] =>  0:02
 CLOCK: [2026-08-12 Wed 22:36]--[2026-08-12 Wed 22:41] =>  0:05
 - [2026-08-12 Wed 22:36]--[2026-08-12 Wed 22:41]
 :END:
-
+:DEBRIEF:
 *Retracted 2026-08-12 the same day it was filed. There was no defect.*
 Every transition the apply pass wrote carries org's full native header,
 correctly formed:
@@ -46781,6 +46781,11 @@ boundaries, a scratch file built from documentation instead of the real
 header — over the artifact itself. The file said the opposite each
 time, and reading it directly took one command. Prefer the primary
 artifact; treat any filter as a hypothesis about what it hides.
+:END:
+
+Retracted the same day: there was no defect. The headless notes were an artifact
+of a =grep -v= filter that dropped added lines beginning with a dash; tests and
+probes from the investigation were kept.
 
 
 ***** DONE An assigned span writes a label-less annotation line :code:
