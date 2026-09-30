@@ -9284,6 +9284,7 @@ sits below the superseded paragraph rather than replacing it, so a reader meets
 the stale version first./
 
 :END:
+:DEBRIEF:
 *Shipped 2026-08-24* (=2b9be1c=), built to the decision recorded above: option
 (c), apply time, dated from the event.
 
@@ -9330,6 +9331,12 @@ which is the graceful degradation the decision anticipated.
 *Now unblocked:* the meta-work spans sitting unassigned in the queue from 08-17,
 08-22 and today can be assigned to the category and will file themselves under
 the right day. That was the practical reason this went first.
+:END:
+
+Shipped: the Review and planning category resolves to a day node at apply time,
+dated from the event, and =org_clock_in= accepts the category as a target
+without creating anything. The SessionStart default-task refresh was left to
+=6ae83993=.
 
 
 ** DONE Institute the Review and planning category, with its DATE_TREE and ritual repeater :code:
