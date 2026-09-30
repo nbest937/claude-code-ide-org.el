@@ -50679,6 +50679,7 @@ CLOCK: [2026-07-29 Wed 12:25]--[2026-07-29 Wed 12:30] =>  0:05
 CLOCK: [2026-07-29 Wed 17:00]--[2026-07-29 Wed 17:05] =>  0:05
 CLOCK: [2026-07-29 Wed 18:20]--[2026-07-29 Wed 18:30] =>  0:10
 :END:
+:PLAN:
 [[file:~/.claude/plans/cheerful-whistling-sketch.md][Plan]]
 
 Doom's =org-agenda-files= is =("~/org")= — a bare directory string —
@@ -50697,6 +50698,8 @@ the stale-interval recovery scan, =org_query=, and unscoped
 =org_clock_report=. No existing test exercises the directory-fallback
 path — every test binds =claude-code-ide-org-query-files= directly.
 
+:END:
+:DEBRIEF:
 *Verified, not just implemented:* =bin/test= (78/78 including the new
 regression test), plus live checks against the running Emacs after
 reloading both the Doom config setq (=emacsclient -e '(setq
@@ -50708,6 +50711,11 @@ now resolves to TODO.org's real path; =org_query "todo:DOING"= finds
 both DOING headings instead of "No matches."; the interactive
 =org-todo-list= renders every heading in this file; =org_clock_report=
 returns real clocked time instead of an empty table.
+:END:
+
+Fixed so org-agenda-files resolved to TODO.org's real path; a new regression
+test and live checks confirmed org_query, the agenda and org_clock_report saw
+the tracked headings.
 
 
 
