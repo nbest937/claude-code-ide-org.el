@@ -36548,6 +36548,11 @@ prospective half wrapped rather than deleted -- are now enforceable rather than
 aspirational.
 :END:
 
+Shipped in two halves: =org_wrap_plan= (commit =8170ddd=, 2026-08-24), for
+wrapping a body's prospective part in a =:PLAN:= drawer, and =org_amend= gained
+=replace=true= (commit =28d68db=, 2026-08-26), rewriting a body's prose
+wholesale while leaving every leading drawer intact.
+
 See the =:PLAN:= drawer for details. Its body interleaves planning and execution
 across two ship events — the wrapping half 2026-08-24, then re-scoping, then the
 revision half 2026-08-26 — so no single line is the seam. Wrapped whole under
