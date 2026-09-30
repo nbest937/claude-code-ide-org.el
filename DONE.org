@@ -28346,6 +28346,7 @@ So cc0c17a7 owns "do not queue an event that is already a no-op" and this owns
 the second needs the projection =--review-projected-staleness= already computes.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-08-31, as a separate test rather than a change to the staleness
 guard — which this body was emphatic about and which the mutation testing
 confirms was the right call.*
@@ -28383,6 +28384,11 @@ detecting it but not skipping fails only the apply test — which is the pair th
 shows the annotation and the action are independently covered. The end state is
 asserted directly: the heading holds =DOING= with *exactly one* =State= line,
 not two.
+:END:
+
+Shipped: a state item whose target already matches the projection is flagged
+redundant, skipped at apply as a success, and shown as a no-op line rather than
+dropped.
 
 
 
