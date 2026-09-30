@@ -39668,6 +39668,7 @@ exclusion would have turned a confident wrong answer into an honest nil; it
 would not have produced the right one.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-08-21.* =claude-code-ide-org--review-suggest-heading= resolves its
 answer once at the end and returns nil when that id is a container, via a new
 =claude-code-ide-org--container-id-p=. Resolved at the end rather than inside
@@ -39705,6 +39706,11 @@ all three DOING headings in TODO.org were containers, so the function could not
 have returned a right answer for any span at all. It had presumably been wrong
 for as long as containers have been entering DOING, and every wrong answer was
 one keystroke from correction at review, which is exactly why nobody caught it.
+:END:
+
+The review pass's heading suggester now returns nil rather than a container. The
+discipline half, clocking in on the heading actually worked, is not fixed by
+code.
 
 
 
