@@ -8636,7 +8636,7 @@ CLOSED: [2026-09-19 Sat 05:52]
 :ID:       71affb60-ca4b-44b0-b472-df9132c78ee4
 :CREATED:  [2026-09-19 Sat 05:52]
 :END:
-
+:DEBRIEF:
 Findings 1 and 2, shipped in [[orgit-rev:claude-code-ide-org::d5c9398][d5c9398]].
 
 The review found =.warp/.mcp.json= still naming =/mcp/warp= after =.mcp.json= was fixed, and assumed Warp needed the alias. The maintainer's answer dissolved it: the alias "was always accidental and meaningless. I just never noticed and it never mattered until today." So rather than preserve it, everything went — the registration, its message, three docstrings, the section comment, and the test that *pinned* it, which now pins its **absence** by asserting the exact registration list rather than membership. Proved discriminating: re-adding the registration fails it.
@@ -8644,6 +8644,12 @@ The review found =.warp/.mcp.json= still naming =/mcp/warp= after =.mcp.json= wa
 *One phantom surfaced on the way.* =org-dev/SKILL.md= told readers =claude-code-ide-org--wire-warp-tools= re-runs at startup. =git log -S= finds that string in exactly two commits — the one that introduced it *as prose*, migrating the skill out of a zip archive, and the one that removed it. **It never existed as code, anywhere.** Filed as =9ad0e497=: the skill check asserts eight of org's own facilities by name and none of the module's.
 
 Finding 2 rode along because it is the same class — =README= and =org-emacs-setup.md= both claimed enabling the plugin "registers the =emacs-tools= MCP server", which the manifest change made false. I had written that this claim "is false" in =805bf287='s own body and then left it standing, which is the failure worth remembering.
+:END:
+
+Shipped in commit d5c9398: the accidental =/mcp/warp= session alias was removed
+entirely, with its test now pinning the alias's absence, and README and
+=org-emacs-setup.md= stopped claiming the plugin registers the =emacs-tools= MCP
+server.
 
 
 ***** DONE Finish the report scoping: the consent gate and the ceremony's two global sources :code:
