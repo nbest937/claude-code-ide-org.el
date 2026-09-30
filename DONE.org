@@ -39525,7 +39525,7 @@ CLOSED: [2026-08-21 Fri 12:56]
 - State "DONE"       from "DOING"      [2026-08-21 Fri 12:56] \\
   shipped as 75bb17a
 :END:
-
+:DEBRIEF:
 *Shipped 2026-08-21* (commit =75bb17a=). Three fixes to
 =.claude/commands/next-session.md=: the at-most-one-NEXT invariant re-attributed
 to =--trigger-demote-conflicting-next= (verified against =config.el:2721='s
@@ -39537,6 +39537,10 @@ success = hits in CLAUDE.md, none in the skill). Item 5's
 queue-time-vs-apply-time creation ambiguity recorded on
 [[id:9575e65b-b589-465a-830c-286541780f96][9575e65b]] as a user decision, with a
 do-not-pick-silently caveat in the prompt.
+:END:
+
+Three fixes to .claude/commands/next-session.md shipped, and an ambiguity it
+raised was recorded on =9575e65b= as a user decision.
 
 
 
