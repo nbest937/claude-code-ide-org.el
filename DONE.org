@@ -45878,6 +45878,7 @@ CLOCK: [2026-08-11 Tue 13:14]--[2026-08-11 Tue 13:29] =>  0:15
 - State "DONE"       from "DOING"      [2026-08-12 Wed 16:09] \\
   shipped; by-hand pass closed its last gap
 :END:
+:PLAN:
 
 Reported by the user 2026-08-11. Pressing =x= while =TODO.org= is
 read-only did not fail in the cheap way: none of the =org-clock-in= /
@@ -45894,6 +45895,8 @@ The user toggles read-only (=C-x C-q=) to guard =TODO.org= against
 their own stray keystrokes while reading it, not to block this command
 — so being *asked* is the whole fix.
 
+:END:
+:DEBRIEF:
 *Fixed 2026-08-11, in two parts.*
 
 1. *Pre-flight, not per-item failure.*
@@ -45946,6 +45949,11 @@ live prompt — happened for real on 2026-08-12, during
 and the apply that followed it. The pre-flight named =TODO.org=, cleared
 it on a yes, and the apply landed. Everything this heading built is now
 exercised by a person, not a stub.
+:END:
+
+Fixed: apply now pre-flights read-only target buffers and asks before clearing
+them, and no longer refreshes away marks when nothing applied; a by-hand pass
+later confirmed it, and partial failures still losing marks was left open.
 
 
 ***** DONE Decide how the stale check reads a chain of transitions in one batch :code:
