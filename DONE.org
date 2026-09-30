@@ -30202,6 +30202,7 @@ class.
 than settling it.
 
 :END:
+:DEBRIEF:
 *Decided and shipped 2026-08-31.* The user's ruling: drop the =:PLAN:= wrap from
 the slice-closing steps.
 
@@ -30225,6 +30226,11 @@ one.
 lifecycle protects a reader from a closed *task's* design claims, and a slice
 makes none — so wrapping one would file true, retrospective prose into a drawer
 readers are told to skip, which is the inverse of what the lifecycle is for.
+:END:
+
+Shipped on the user's ruling: bin/lint-org no longer asks a :KIND: slice heading
+for a :PLAN: drawer, clearing =c44c2119= and letting =979e02b6= close without
+one.
 
 
 
