@@ -46409,6 +46409,7 @@ CLOCK: [2026-08-13 Thu 09:44]--[2026-08-13 Thu 09:46] =>  0:02
 - State "DONE"       from "DOING"      [2026-08-13 Thu 09:46] \\
   per-lane attribution; both agents pair correctly
 :END:
+:PLAN:
 
 Found 2026-08-12 by deliberately running two subagents concurrently to
 exercise =agent_id=, which until that moment had never been populated
@@ -46478,6 +46479,8 @@ events predating this experiment, and =b74e0f19= and =9d2fcdad= each
 show a =clock_out= with no =clock_in=. Whether those share this root
 cause or a different one is unexamined.
 
+:END:
+:DEBRIEF:
 *Fixed 2026-08-13.* =--queue-events-by-id= now tracks the current
 heading per *lane* rather than per session: =agent_id= when the event
 came from a subagent, the main session otherwise. A =clock_out= with no
@@ -46545,6 +46548,12 @@ two was a *subagent's* label on a *subagent's* heading.
 agenda. Nothing detects this class of thing: a fix that stops new bad
 data does not clean up old, and no test asserts over the contents of
 :LOGBOOK: drawers in the real file — only over fixtures.
+:END:
+
+Fixed: attribution now tracks the current heading per lane (subagent or main
+session), so concurrent subagents no longer clobber each other and guideposts
+stay in the main lane; two stray annotations from the bug were later cleaned by
+hand.
 
 
 ***** DONE Apply's clock pair has no unwind-protect: a failed clock_out fabricates a huge interval :code:
