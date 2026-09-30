@@ -24301,6 +24301,7 @@ CLOCK: [2026-09-03 Thu 13:15]--[2026-09-03 Thu 13:16] =>  0:01
 - [2026-09-03 Thu 13:15]--[2026-09-03 Thu 13:16] codify budget and nested listing conventions
 - State "DONE"       from "DOING"      [2026-09-03 Thu 13:16]
 :END:
+:PLAN:
 
 Revised by the user 2026-09-03, superseding the same-day first draft (git holds
 it; the heading title still reflects the draft and wants renaming). Four parts.
@@ -24346,6 +24347,8 @@ deferred, moved) — and :ID: 1b727475 already tracks that ambiguity, so the
 codification must say explicitly: a cookie-less parent with nested member lines
 beneath it reads as a grouping label, never as a drop.
 
+:END:
+:DEBRIEF:
 Debrief 2026-09-03: codified same day (commit 5485dcd). org-conventions.md
 gained the budget subsection — one top-level NEXT per category, the two
 exemptions (a story's internal NEXT as memoization; a slice's members showing
@@ -24358,6 +24361,12 @@ to the category budget, and the nominate rule's tail now defines a workstream as
 a category. Slice ec65b5d6's member list had already exercised the parent-label
 form, so the convention landed with a live example. Verified:
 bin/check-conventions exit 0.
+:END:
+
+Codified the same day in org-conventions.md: at most one top-level NEXT per
+category with two exemptions and enforcement deferred, plus a checkbox-less
+parent line in nested slice listings read as a grouping label, never a drop;
+CLAUDE.md's constraint was generalised to match.
 
 
 **** DONE [4/4] Fix CLAUDE.md and the slice conventions ahead of portability :code:
