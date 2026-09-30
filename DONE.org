@@ -43147,6 +43147,7 @@ CLOCK: [2026-08-10 Mon 12:55]--[2026-08-10 Mon 13:00] =>  0:05
 - State "DONE"       from "DONE"       [2026-08-11 Tue 12:14] \\
   interactive gate met across three passes
 :END:
+:PLAN:
 
 [[file:~/.claude/plans/review-and-cutover.md][Plan]]
 
@@ -43203,6 +43204,8 @@ code needed for that part — see
 [[id:c084553c-0621-4a96-9fa1-f32850aeec6a][c084553c]] for the
 verification step this leans on before being trusted.
 
+:END:
+:DEBRIEF:
 *Implementation notes (2026-08-07):* =claude-code-ide-org-review= opens
 a =*org-review*= buffer in a =special-mode=-derived major mode, grouped
 by heading, with =m=/=u=/=t= marking, =e= to edit an interval, =RET= to
@@ -43308,6 +43311,11 @@ their own headings rather than holding this one open:
 Neither blocks [[id:feba67eb-35b3-48bd-a892-8ecd47ca52e0][feba67eb]]:
 the cutover needs a command that applies queued events correctly, which
 this is, not a comfortable one.
+:END:
+
+Built =claude-code-ide-org-review=, a review buffer that applies queued items
+through native org functions; three interactive passes met its gate, with
+unattributed guideposts and interaction fixes left to their own headings.
 
 
 ***** DONE Root-cause how apply wrote a DONE nobody queued, onto the wrong heading :code:
