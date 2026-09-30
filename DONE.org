@@ -22157,6 +22157,7 @@ budget and, unlike a budget, does not punish the measurements, which are
 the part most often reused.
 
 :END:
+:DEBRIEF:
 *Largely answered 2026-08-20.*
 
 The user supplied the retention policy this heading was waiting on,
@@ -22214,6 +22215,11 @@ policy recorded at
 [[id:3063c3e5-0dd0-4354-8985-271b0313c5d1][3063c3e5]] stands unchanged,
 now measured rather than merely agreed. Closing; the lifecycle remainder
 stays with [[id:241a4c54-ed59-4780-b602-2a86efee978a][241a4c54]].
+:END:
+
+The user's retention policy, recorded at =3063c3e5=, was measured: citation rate
+rises monotonically with body length, so the policy stands unchanged; the
+lifecycle remainder stays with =241a4c54=.
 
 
 **** DONE Hook-injected context is only as reliable as the model choosing to relay it :code:
