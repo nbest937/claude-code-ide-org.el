@@ -32600,7 +32600,7 @@ CLOSED: [2026-08-28 Fri 12:33]
 - State "DONE"       from              [2026-08-28 Fri 12:33] \\
   inserter, test, convention and heading fixed
 :END:
-
+:DEBRIEF:
 *Reported by the user 2026-08-28 as "the current slice is missing its statistics
 cookie at TODO.org:148".* It was not missing. It was at the *end* of the line,
 where they could not see it — they expected it immediately after the keyword,
@@ -32651,6 +32651,12 @@ headline was normalised through =org-edit-headline=. =bin/test= 434/434,
 =Buffer is read-only=, because =org_capture= does not bind =inhibit-read-only= —
 [[id:c8a97d9d-8b13-4b6a-a8b9-1a3f24b5e00b][c8a97d9d]], still open. Cleared and
 restored around the write.
+:END:
+
+The statistics-cookie inserter now prefixes the cookie instead of appending it,
+matching the corpus's hand-written convention; its test now asserts position,
+org-conventions.md records the corrected convention, and =979e02b6='s headline
+was normalised.
 
 
 
