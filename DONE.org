@@ -47377,7 +47377,7 @@ CLOSED: [2026-08-14 Fri 16:48]
 :ARCHIVE_TODO: DONE
 :CLOSED_SOURCE: git
 :END:
-
+:DEBRIEF:
 *Decided 2026-08-14, from the user's correction, and it is a design
 change rather than a bug fix.* Inactive, non-=CLOCK:= timestamps are for
 *any* non-human agent — including the outer REPL, not only subagents.
@@ -47440,6 +47440,12 @@ before it, this looked like it wanted a new event kind.
 threshold cannot reach — a turn stalled on a permission prompt emits no
 =pause=, so the *agent* layer claims activity that did not happen. That
 is a defect in the precise layer and this decision does not touch it.
+:END:
+
+Decided that inactive, non-CLOCK timestamps are for any non-human agent,
+including the outer session; the branch on :agent was removed, so all
+review-applied annotations are inactive and the agenda is reserved for intervals
+a human logs.
 
 
 
