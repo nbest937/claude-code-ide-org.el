@@ -25918,6 +25918,7 @@ than silent, since a slice's incidental list going quiet is the same
 class of failure as it going noisy.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-09-02 as =b6bcdc9=.*
 =claude-code-ide-org--other-slices-declared-ids= collects every slice's
 planned members across the tracked files, and
@@ -25966,6 +25967,11 @@ function that returned nil.
 *Closes the twin.* [[id:42ba0a80-61c5-49bd-b6a2-9da76a53ff64][42ba0a80]] bounded
 the window; this bounds the exclusion set. Neither alone made =f9fe9fac= right,
 which is why both were filed rather than one.
+:END:
+
+Shipped in commit =b6bcdc9=: a slice's incidental list now excludes members that
+other slices declare as planned, skipping cancelled slices and reporting the
+exclusions by id. The live slice's incidentals fell from 13 to 11.
 
 **** DONE Generalize bin/check-org-dev-skill into bin/check-conventions, wired into pre-commit :code:
 CLOSED: [2026-09-02 Wed 09:30]
