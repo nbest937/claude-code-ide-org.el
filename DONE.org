@@ -31345,6 +31345,7 @@ same lesson as the fabricated ID above and the same remedy: mechanical
 checks catch what looks correct.
 
 :END:
+:DEBRIEF:
 *Built 2026-08-28 as =org_set_property=.* The four design questions this heading
 left open are answered, three of them the way it leaned and one against.
 
@@ -31394,6 +31395,11 @@ callable from the next session, not this one.
 =org_capture= accepting an initial state so a capture and its keyword do not
 arrive a review pass apart — the smaller companion question this heading raised
 at the end.
+:END:
+
+Built org_set_property: one general tool that validates and expands :BLOCKER:
+ids, unions on append, refuses while the file is busy, and refuses :ID: and
+:CREATED:. A queue path and a capture initial state were not built.
 
 
 ***** DONE org_outline's active_only orphans children of finished headings :code:
