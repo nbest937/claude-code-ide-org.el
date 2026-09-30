@@ -29363,6 +29363,7 @@ Note =bin/lint-org= cannot catch it either -- the result is a well-formed
 heading.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-08-31. Refuses, as this body proposed, rather than escaping or
 silently renaming.* =org_capture= now returns =Error: title begins with the TODO
 keyword "NEXT", which org would read as the heading's state -- the title would
@@ -29403,6 +29404,11 @@ nothing to file *under* by name". The comment was describing a requirement the
 code had already dropped, and it cost this session a red test run before the
 reply was read. Corrected in place rather than filed — it is a comment in the
 file already being edited, not work.
+:END:
+
+Shipped: org_capture refuses a title whose first word is one of the target
+file's TODO keywords, matched case-sensitively on the whole word, rather than
+escaping or renaming it.
 
 
 
