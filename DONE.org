@@ -42616,6 +42616,7 @@ CLOCK: [2026-08-06 Thu 22:55]--[2026-08-07 Fri 08:20] =>  9:25
 - State "DOING"      from "PLANNING"   [2026-08-07 Fri 07:59] \\
   Auto-promoted: ExitPlanMode fired on the owning session.
 :END:
+:PLAN:
 
 [[file:~/.claude/plans/event-queue-format.md][Plan]]
 
@@ -42676,6 +42677,8 @@ write the queue file directly, bypassing the tools server so they work
 with Emacs down, is unrecorded elsewhere and belongs to this sub-task's
 file-lifecycle design.
 
+:END:
+:DEBRIEF:
 *Both resolved during planning, 2026-08-07.* =clock_in=/=clock_out=
 events are kept, on the basis the user set out: they exist to inform the
 human's composition of =CLOCK:= entries at review time, contributing
@@ -42808,6 +42811,12 @@ from what shipped in four places:
   [[id:b74e0f19-5a26-4c83-9d70-8e1c5a2f6b04][b74e0f19]]; the conclusion
   still holds but the reason cited for it, and the =config.el:900/991=
   line references, do not.
+:END:
+
+Decided to keep =clock_in=/=clock_out= for heading attribution with the hook as
+writer, then shipped the JSONL schema, the shared =queue-append= writer and the
+Emacs reader with an applied-set sidecar; a =note= field was added after
+checking against =clock-template.org=.
 
 
 ***** DONE Rework the MCP tool / hook write paths to append-only :code:
