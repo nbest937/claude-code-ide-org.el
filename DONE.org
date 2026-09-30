@@ -21107,6 +21107,7 @@ whether one slice can be fixed, it is that acceptance leaves every slice needing
 it.
 
 :END:
+:DEBRIEF:
 *Cancelled 2026-09-08: [[id:7f0c9baa-67ed-4008-8cbc-28f0ea898dd4][7f0c9baa]]
 nullifies its premise* (the user). This heading exists because
 accepting a proposal leaves the body's "a proposal, not a slice"
@@ -21123,6 +21124,11 @@ cancelled with the rest*: the third acceptance step, linking the
 =ff7ccb2d= went without one until a human noticed an hour later, and
 that gap recurs for any slice a prompt picks up, declared from birth or
 not.
+:END:
+
+Cancelled because =7f0c9baa= retired the withheld-declaration convention,
+leaving no acceptance moment to fix; the prompt-revision linking fragment was
+carried to =d749ebd5=.
 
 
 **** DONE [11/11] Make the org discipline travel: ship the machinery, relocate the rules :code:
