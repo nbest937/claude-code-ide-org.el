@@ -70,6 +70,7 @@ design — two instances, one person, one afternoon. An observed habit
 worth testing, not a measured regularity.
 
 :END:
+:DEBRIEF:
 *Twice overtaken by the code, and only one thing is left.*
 
 *First, 2026-08-14.* The claim above that "nothing ever unsets it" was
@@ -104,6 +105,11 @@ up.
 Cancelled 2026-09-28. Both of its mechanisms shipped under other headings, and
 its one residue, a session ending on =DOING= that latches the heading guess, is
 carried by [[id:3485b0d0-3b47-4a28-ae6f-e2061fa8f226][3485b0d0]].
+:END:
+
+Cancelled 2026-09-28: both of its mechanisms shipped under other headings, and
+its one residue, a session ending on DOING that latches the heading guess, is
+carried by =3485b0d0=.
 
 
 **** CANCELLED Codify the next-session prompt format, starting with a per-item decision marker :code:
