@@ -13051,8 +13051,14 @@ CLOSED: [2026-09-16 Wed 07:48]
 :ARCHIVE_CATEGORY: Dev
 :ARCHIVE_TODO: DONE
 :END:
-
+:DEBRIEF:
 Found and fixed 2026-09-16 while recovering from the =489d6f61= crash. =~/.config/doom/config.el= line 158 opens =(use-package! claude-code-ide=, and the form's closing paren lived on the last line of the local 202-Accepted HTTP override — =;;     (throw 'close-connection nil))))=. When that override was commented out (it was superseded; the real bug was the server answering 200 where the MCP spec requires 202), the =))))= went with it, and the final =)= was =use-package!='s. The form then swallowed the rest of the file and =load= signalled =(end-of-file ".../config.el")=, aborting Doom's boot at form 13 of 16. Everything after it silently never ran: =global-auto-revert-mode= (inside the form), =(load! "claude-code-ide-org-glue")= at 178, and =magit-repository-directories= at 187. No glue meant no =claude-code-ide-org-standalone-wire=, so **the MCP server never started and every =org_*= tool was dead** — =claude-code-ide-mcp-server-get-port= returned nil and =bin/check-conventions= failed with "expected '45571', got 'nil'". Fixed by inserting one =)= after line 176; the file then reads 16 forms instead of 13, the glue runs, and the port is 45571. Original kept at =~/.config/doom/config.el.broken-2026-09-16=. Three things worth keeping. **The failure was invisible for a day**: the config was edited 2026-09-15 13:02 while an Emacs from 2026-09-14 10:17 kept running the old, working image, so the breakage only appeared at the next restart — the §2 "needs a real restart" class exactly. **=check-parens= passed on the broken file**, so the obvious check does not catch this; what caught it was counting top-level forms read (13) against forms present (16). **And my own first test reported the bug as success**: a batch read-loop that catches =end-of-file= as its loop terminator printed "13 top-level forms, clean EOF" — the very condition under investigation, rendered as a pass. A read-loop must compare the form count against something independent, or assert it consumed to =point-max=.
+:END:
+
+Commenting out the 202 override had removed =use-package!='s closing paren, so
+the form swallowed the rest of Doom's config, the glue never loaded and the MCP
+server never started. Inserting one paren fixed it, and the server came back on
+its port.
 
 
 **** DONE --transcript-longer-sibling picks the wrong sibling when the two copies are nearly the same size :code:
