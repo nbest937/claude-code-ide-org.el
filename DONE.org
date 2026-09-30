@@ -47763,6 +47763,7 @@ CLOSED: [2026-08-14 Fri 13:31]
 - State "DONE"       from "DOING"      [2026-08-14 Fri 13:31] \\
   shipped, mutation-tested, verified live
 :END:
+:PLAN:
 
 *Split out of [[id:ab75d6d2-0e59-405d-92c6-2c67488db133][ab75d6d2]] on
 2026-08-14,* where it had been recorded as prose rather than as a task
@@ -47801,6 +47802,8 @@ overnight and neither was ever mentioned at session start.
 report is only as reliable as the model choosing to relay it. This makes
 the report *say* the right thing; it cannot make a session pass it on.
 
+:END:
+:DEBRIEF:
 *Outcome, 2026-08-14.* Shipped as described. =WAIT= and =DOING= are now
 two branches of a =cond= rather than one literal =equal=, with the
 =DOING= branch guarded twice: containers are skipped via
@@ -47839,6 +47842,11 @@ value shows up only the next time a leaf is abandoned overnight, and
 =c5b02503='s ceiling still applies — a session has to relay it. The
 honest check is to look at the first session-start report that carries a
 =DOING, not clocked= line and ask whether it changed anything.
+:END:
+
+Shipped: the session-start report also flagged DOING leaves with no clock,
+skipping containers and the clocked heading, and the function was renamed to
+--attention-headings-context; whether it actually helps was left unproven.
 
 
 
