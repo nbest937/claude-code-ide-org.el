@@ -44059,6 +44059,7 @@ CLOSED: [2026-08-06 Thu 22:48]
 :LOGBOOK:
 CLOCK: [2026-08-06 Thu 22:35]--[2026-08-06 Thu 22:40] =>  0:05
 :END:
+:PLAN:
 
 The explicitly-flagged load-bearing assumption from the parent
 heading, worth its own sub-task precisely so it isn't skipped or
@@ -44066,6 +44067,8 @@ assumed true by default. Evaluate early, before the rest of the
 design is trusted — this could reshape or invalidate parts of the
 review-and-apply command's design above.
 
+:END:
+:DEBRIEF:
 *Clock half: confirmed 2026-08-06*, read directly out of the live
 straight build (=~/.config/emacs/.local/straight/build-29.4/org/
 org-clock.el=), not from memory or docs:
@@ -44147,6 +44150,12 @@ trigger during apply, is now a design requirement, not a nicety.
 enforcement is "not built yet." It is — four functions are live on
 =org-trigger-hook=. Fold that correction into
 [[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]].)
+:END:
+
+Both halves passed: =org-clock-in=/=org-clock-out= accept explicit start and end
+times, and state-change logging can be backdated by shadowing
+=org-current-effective-time=; a live run showed the auto-clock-in trigger
+stopping the pending note from landing, not fully root-caused.
 
 
 ***** DONE Survey org's own API for built-in mechanisms we may have overlooked or dismissed too quickly :code:
