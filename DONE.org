@@ -43659,6 +43659,7 @@ already fixed one silent deletion of non-CLOCK drawer lines, so the risk
 was demonstrated rather than hypothetical.
 
 :END:
+:DEBRIEF:
 *Outcome, 2026-08-12.* Done as specified, ascending, one timeline across
 every entry style.
 
@@ -43708,6 +43709,11 @@ new CLOCK lines newest-first, so a live drawer drifts back out of order
 between consolidations. Nothing runs consolidation automatically now
 that it is off the clock-out path, so in practice a drawer is sorted
 when someone asks.
+:END:
+
+Consolidation now sorts every :LOGBOOK: entry ascending in one stable timeline,
+carrying note continuations with their entry and keeping undated lines at the
+end; =clock-template.org='s drawer is a byte-identical fixed point.
 
 
 ***** DONE Add a read-only MCP tool to inspect and summarize the pending queue :code:
