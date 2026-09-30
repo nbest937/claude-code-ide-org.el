@@ -9404,6 +9404,7 @@ temptation is to silence the check rather than exempt the class. The datetree
 tooling can land in either order; the linter cannot.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-08-21*, as one edit across both files: the category with its
 =:DATE_TREE:= and =:ARCHIVE:=, the ritual repeater, today's day node, and the
 matching bare =* Review and planning= at the end of DONE.org. Placed last among
@@ -9437,6 +9438,12 @@ bare, so any node org creates that the resolver has not stamped will fail the
 lint with =heading has no :ID:=. That is the intended guard, not a gap: a day
 node without an =:ID:= exists and is unreachable, and the lint now says so
 loudly instead of the node being silently unusable.
+:END:
+
+Shipped 2026-08-21: the Review and planning category with its =:DATE_TREE:=,
+=:ARCHIVE:=, ritual repeater and a hand-made day node in TODO.org, plus a bare
+mirror in DONE.org. Lint showed no new errors and datetree placement was
+verified against the real file.
 
 
 * TODO Stale entries in org-clock's persisted history hang the first clock-in after a restart :code:
