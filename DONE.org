@@ -44172,7 +44172,7 @@ CLOCK: [2026-08-14 Fri 13:32]--[2026-08-14 Fri 13:36] =>  0:04
 - State "DONE"       from "DOING"      [2026-08-14 Fri 13:36] \\
   all four checklist items discharged
 :END:
-
+:DEBRIEF:
 [[file:~/.claude/plans/temporal-wondering-sparrow.md][Plan]]
 
 Explicit instruction for whoever evaluates this: do this *before*
@@ -44318,6 +44318,12 @@ because this project has repeatedly built bespoke machinery without
 doing so — held up: it did not overturn the architecture, but it did
 find one real defect and it did stop a migration that would have
 introduced =nil= bounds into working code.
+:END:
+
+Every checklist item was discharged: timestamps and log-note driving via
+=3d576d29=, agenda bulk commands in the plan, and the org-element question
+answered as migrate nothing; the survey also found the drawer-reader decoy
+defect filed as =f42641ab=.
 
 
 ***** DONE The drawer reader gives up on a decoy where the writer loops past it :code:
