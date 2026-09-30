@@ -39369,6 +39369,7 @@ decline to promote when the group contains keywordless siblings, since that is
 precisely the signature of a half-applied batch.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-08-21* with [[id:42808717-2736-4bf4-872e-887f990203ca][42808717]].
 None of the three shapes recorded above was taken as written.
 
@@ -39402,6 +39403,11 @@ test; dropping the settle pass fails only the sole-survivor test, whose whole
 job is to catch a suppress-only fix. Confirmed live in the running Emacs after
 =load-file=: three children applied as one batch all end TODO with zero
 =Auto-promoted= lines.
+:END:
+
+Shipped suppress-then-settle: apply suppresses the auto-promote trigger during
+its loop, then runs it once per touched heading against the batch's finished
+state.
 
 
 
