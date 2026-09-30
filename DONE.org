@@ -41537,6 +41537,7 @@ CLOCK: [2026-08-17 Mon 14:53]--[2026-08-17 Mon 14:56] =>  0:03
 CLOCK: [2026-08-17 Mon 14:59]--[2026-08-17 Mon 15:02] =>  0:03
 - [2026-08-17 Mon 14:59]--[2026-08-17 Mon 15:02] assigned at review
 :END:
+:PLAN:
 
 Stale IDs are invisible today: they emit org-element warnings into
 =*Warnings*=, silently shrink the assignment candidate list, and nothing
@@ -41554,6 +41555,8 @@ MAYBE rather than TODO because the cost is unmeasured: it means one
 =org-id-find= per registered ID at open time, 151 of them on 2026-08-17.
 Worth measuring before committing to it.
 
+:END:
+:DEBRIEF:
 *Measured 2026-08-17, and the MAYBE is resolved: keep it.* The cost
 objection was real but attached to the wrong algorithm.
 
@@ -41592,6 +41595,11 @@ indistinguishable through =org-id-find= and are different defects. The
 file-scan can separate them for free — it already knows which ids each
 file actually contains — which is an argument for this approach beyond
 its speed.
+:END:
+
+Measured and resolved to keep it: a per-file =:ID:= scan proved about 12x faster
+than per-id =org-id-find= and visits no buffers, and the report was designed to
+appear only when the count is non-zero.
 
 
 
