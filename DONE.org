@@ -27058,6 +27058,7 @@ slice during which the pairs stopped being produced at all. It closed the
 consumption half; the discipline half regressed behind it.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-09-01. Detects; adds nothing*, as this body required — the job was
 to make forgetting *loud*, not to make remembering unnecessary.
 
@@ -27120,6 +27121,12 @@ carry no clock interval that day. It shares the scan and this body rates it the
 more valuable of the two. It is a different report with a different audience and
 it should not be smuggled in beside this one; filed separately rather than left
 in prose.
+:END:
+
+Shipped a detector that, at the end of a review pass and only while a slice is
+open, reports headings named in commit subjects that the slice does not account
+for; it fixes nothing, and the live result was zero. The second proposed report
+was filed separately.
 
 
 
