@@ -42201,6 +42201,7 @@ CLOCK: [2026-08-17 Mon 08:36]--[2026-08-17 Mon 08:42] =>  0:06
 - State "DONE"       from "TODO"       [2026-08-17 Mon 08:41] \\
   bracket, gap ranking, time resolution
 :END:
+:PLAN:
 
 Proposed by the user 2026-08-15, while hitting
 [[id:0d055205-a670-45c6-b4af-980961603a7c][0d055205]]: the headings whose
@@ -42254,6 +42255,8 @@ right mechanism precisely because it never removes a candidate; the bug
 there is that a filter did. A heading created after the span should sort
 low, not vanish.
 
+:END:
+:DEBRIEF:
 *Implemented 2026-08-17, in one pass with
 [[id:0d055205-a670-45c6-b4af-980961603a7c][0d055205]] since both are the
 same function.*
@@ -42295,6 +42298,12 @@ of 0d055205 and it would have been easy to repeat here.
 Overlap collapses to zero either way, so a heading clocked for one minute
 inside the span ties with one clocked throughout it. No evidence yet that
 this matters; recorded rather than guessed at.
+:END:
+
+Implemented: candidates now rank by interval proximity between the span and a
+bracket merging =:CREATED:= with clock activity, with same-day times shown
+instead of dates; whether overlap duration should outrank proximity was left
+open.
 
 
 *** 2026-08-15 Saturday
