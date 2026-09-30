@@ -31660,7 +31660,7 @@ CLOCK: [2026-08-27 Thu 06:58]--[2026-08-27 Thu 07:05] =>  0:07
 CLOCK: [2026-08-27 Thu 07:07]--[2026-08-27 Thu 07:09] =>  0:02
 - [2026-08-27 Thu 07:07]--[2026-08-27 Thu 07:09] suggested span, accepted at review
 :END:
-
+:DEBRIEF:
 *Retconned [2026-08-27 Thu]; shipped [2026-08-27 Thu 07:05] as
 [[orgit-rev:claude-code-ide-org::45292b8][45292b8]].*
 
@@ -31683,6 +31683,11 @@ the tool.
 
 Net -22 lines, and the symlink test still discriminates: org resolves the
 archive against the link target the same way the hand-rolled version did.
+:END:
+
+Shipped in commit =45292b8=: the hand-rolled archive-file derivation was
+replaced by org-add-archive-files, wrapped only to kill the buffers it opens,
+for a net 22 fewer lines.
 
 
 ***** DONE Expand prefixes against org-id-locations rather than a table of our own :code:
