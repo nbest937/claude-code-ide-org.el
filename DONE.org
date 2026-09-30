@@ -43730,6 +43730,7 @@ CLOCK: [2026-08-12 Wed 16:52]--[2026-08-12 Wed 16:55] =>  0:03
 - State "DONE"       from "DOING"      [2026-08-12 Wed 16:55] \\
   org_pending_updates shipped, 186/186
 :END:
+:PLAN:
 
 Captured 2026-08-06 from conversation: nothing in the current tool
 suite lets Claude (or the user, via conversation) ask "what's queued
@@ -43746,6 +43747,8 @@ overlay sub-task below; worth designing the parsing/grouping code
 once and reusing it in all three rather than three separate
 implementations.
 
+:END:
+:DEBRIEF:
 *Outcome, 2026-08-12.* Shipped as =org_pending_updates=, read-only.
 Takes an optional =session_id= to scope to one queue; returns items
 grouped by heading, each rendered by the *same* =--review-describe= the
@@ -43781,6 +43784,11 @@ other tool here holds. Live-reloaded and run against the real queue.
 CLAUDE.md's MCP tool table gained a row — a factual addition, not part
 of [[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]]'s rewrite,
 which still owns the prose around it.
+:END:
+
+Shipped =org_pending_updates=, a read-only tool reusing the review buffer's own
+item builder and renderer, which counts proposals rather than queue lines and
+can be scoped by =session_id=.
 
 
 ***** CANCELLED Design a read-time overlay for org_query/org_clock_report against the pending queue :code:
