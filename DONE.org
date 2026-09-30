@@ -31567,6 +31567,7 @@ undeclared file and an unreadable one look identical from there -- there is no
 error to notice.
 
 :END:
+:DEBRIEF:
 *Fixed by derivation rather than configuration.* =--id-scannable-files= is the
 tracked files plus the archives they *declare*: =--archive-files-of= reads
 =#+ARCHIVE:= and every =:ARCHIVE:= property and resolves the path against the
@@ -31637,6 +31638,12 @@ SKILL.md gains section 0b, "check whether org already has it", with the eight
 instances from these two days and the places to look
 ([[orgit-rev:claude-code-ide-org::06e7cff][06e7cff]],
 [[orgit-rev:claude-code-ide-org::e1c086c][e1c086c]]).
+:END:
+
+Diagnosed why DONE.org ids never resolved: resolution scanned only tracked
+files, and the archive must be found via the file's true directory. The
+hand-rolled fix was superseded the same day by org's archive derivation, then by
+org-id-locations; the diagnosis and the scannable-files function survive.
 
 
 ***** DONE Hand-rolled the archive derivation org already had :code:
