@@ -49937,6 +49937,7 @@ CLOSED: [2026-08-04 Tue 14:49]
 CLOCK: [2026-08-04 Tue 12:15]--[2026-08-04 Tue 12:20] =>  0:05
 CLOCK: [2026-08-11 Tue 12:33]--[2026-08-11 Tue 12:35] =>  0:02
 :END:
+:PLAN:
 [[file:~/.claude/plans/twinkling-meandering-graham.md][Plan]]
 
 At any given level of the task tree — top-level headings, and
@@ -49952,6 +49953,8 @@ during planning: a lone heading with no siblings is never
 auto-promoted, and automatic transitions log identically to a manual
 one plus an explanatory note.
 
+:END:
+:DEBRIEF:
 *Verified, not just implemented:* =claude-code-ide-org--map-siblings=
 (new shared helper) walks a heading's same-level siblings via org's own
 =org-get-next-sibling=/=org-get-previous-sibling=, which stop at the
@@ -50015,6 +50018,12 @@ for evidence of this change.
 =NEXT= promotion in these files so far has happened with no sibling
 holding =NEXT=. The two "Auto-demoted" strings in TODO.org are prose in
 outcome notes, not logged transitions.
+:END:
+
+Shipped two org-trigger-hook functions that demote a superseded NEXT sibling and
+auto-promote a sole surviving TODO, verified by tests and live; a later
+refinement named the superseding sibling by id link, though no real demotion had
+yet occurred.
 
 
 
