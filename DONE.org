@@ -24117,6 +24117,7 @@ CLOCK: [2026-09-03 Thu 13:30]--[2026-09-03 Thu 13:32] =>  0:02
 - State "DONE"       from "DOING"      [2026-09-03 Thu 13:33] \\
   region bounded by generated shape, both branches
 :END:
+:PLAN:
 
 ~claude-code-ide-org--refresh-slice-incidentals-at-point~ bounds the region it
 deletes by matching a bare list bullet, so it consumes *any* list beneath the
@@ -24133,6 +24134,8 @@ Fix: match only the shape this function writes — a column-zero bullet, an
 optional checkbox, then an ~id:~ link — and leave trailing blank lines outside
 the deleted region so the separation before whatever follows survives.
 
+:END:
+:DEBRIEF:
 *Verified, not just implemented:* fixed as proposed, in commit ~546bdf5~ on the
 PR 8 branch. The bound is now ~claude-code-ide-org--slice-incidental-item-re~, a
 named constant matching the shape the generator emits — column-zero bullet,
@@ -24154,6 +24157,11 @@ the stronger claim it does not make. The docstring now names the constant
 instead of describing the shape in prose.
 
 Two tests added, one per branch; the old bound fails both. 531/531 with the fix.
+:END:
+
+Fixed as proposed: the incidental rewrite now bounds its deletion by a constant
+matching only the generated line shape, in both the rewrite and delete-only
+branches, so hand-written lists below survive; two tests were added.
 
 
 **** DONE M and U leave :auto-marked standing, so a mark made by hand reads as automatic :code:
