@@ -133,6 +133,7 @@ CLOCK: [2026-08-21 Fri 14:13]--[2026-08-21 Fri 14:24] =>  0:11
 - State "CANCELLED"  from "TODO"       [2026-09-28 Mon 08:30] \\
   overtaken: next-session.md is static and decisions live in member :PLAN: drawers
 :END:
+:PLAN:
 
 The =/next-session= idiom is used but not codified. One line outside the file
 mentions it -- =CLAUDE.md:126= -- and it documents the *artifact* while
@@ -185,10 +186,17 @@ observe the days-old rule before building machinery for it.
 
 *Second input, 2026-09-19: the trigger.* The home decided above — a user-scoped skill — is on-demand, the right side of the always-loaded budget ([[id:bf7e0b8e-f83a-4d4a-9950-3ab23a225156][bf7e0b8e]]); but a skill loads only when its description matches the prompt, and end-of-session prompts are various. A skill that never loads is [[id:befaed0a-18ed-445e-b997-8b9c2965ad45][befaed0a]]'s silent failure in another coat, the same shape [[id:436e0991-c8ac-40fb-860d-a6c4c381bee5][436e0991]] found for path-scoped rules. Two consequences. The description is written for the trigger and tested against real end-of-session prompts rather than assumed — CLAUDE.md's engineering rule already exempts trigger-matching from deterministic testing, so a documented manual pass. And the decision marker is a literal token a script can assert on the composed prompt, because that assertion is the one part of the format that cannot fail to load.
 
+:END:
+:DEBRIEF:
 Cancelled 2026-09-28: overtaken. =next-session.md= has been static since
 2026-09-21, naming no slice and pointing at the slice's =:PLAN:=, and each
 member's decisions live in its own =:PLAN:=. An undecided one goes to the user
 before its step, so the per-item decision marker has nothing left to mark.
+:END:
+
+Cancelled as overtaken: =next-session.md= has been static since 2026-09-21 and
+each member's decisions live in its own =:PLAN:=, so the per-item decision
+marker had nothing left to mark.
 
 
 **** CANCELLED No tool edits a heading's title, so a rename goes behind Emacs or not at all :code:
