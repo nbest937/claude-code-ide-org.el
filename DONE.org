@@ -31025,6 +31025,7 @@ mode argument may serve both: front matter only, body only, whole
 subtree, or structure — the last being =org_outline= as it stands.
 
 :END:
+:DEBRIEF:
 *Built 2026-08-28, and half of what this heading asked for had already shipped
 without it noticing.*
 
@@ -31087,6 +31088,12 @@ reading was that the blocker rendering was broken.
 is now shared, so it is plumbing — but whether it is a mode on this tool or a
 separate one is a design question, and this heading's own argument for a small
 surface cuts both ways.
+:END:
+
+Built: org_outline scoped to a heading now leads with its front matter,
+including blocker ids with their keywords, and an unresolvable id-shaped scope
+says so rather than reporting a missing file. Prefix scoping had already
+shipped; a whole-body read was left for its own decision.
 
 
 ***** DONE Jump to a heading by title, not by pasting a UUID :code:
