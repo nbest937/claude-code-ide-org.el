@@ -47581,6 +47581,7 @@ CLOCK: [2026-08-14 Fri 14:28]--[2026-08-14 Fri 14:41] =>  0:13
 - State "DONE"       from "DOING"      [2026-08-14 Fri 14:41] \\
   lint shipped; org-lint folded in
 :END:
+:PLAN:
 
 Proposed 2026-08-13 after a day of running the checks by hand. The
 =id:=-link resolver below was run manually before nearly every commit
@@ -47670,6 +47671,8 @@ kind, which is where today's genuinely dangerous staleness lived. Both
 kinds read as settled fact; only one is a string. Worth stating so the
 harness is not mistaken for coverage it does not have.
 
+:END:
+:DEBRIEF:
 *Outcome, 2026-08-14, and it opens with a correction that matters more
 than the script does.* Asked whether org's built-in =org-lint= had been
 considered: it had not. That is precisely the failure
@@ -47733,6 +47736,12 @@ silently could not fire.
 *Left open:* the 11 misplaced-heading reports are surfaced, not
 diagnosed — filed as
 [[id:8d682a5b-1b03-4744-995c-a871a8b40ddc][8d682a5b]].
+:END:
+
+Shipped bin/lint-org, which folds in org's built-in org-lint alongside the
+project-specific convention checks, with error and warning severities; its first
+run found real defects, and the 11 misplaced-heading reports were filed as
+=8d682a5b= rather than diagnosed.
 
 
 
