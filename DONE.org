@@ -45243,6 +45243,7 @@ CLOCK: [2026-08-13 Thu 14:09]--[2026-08-13 Thu 14:10] =>  0:01
 - State "DONE"       from "DOING"      [2026-08-13 Thu 14:10] \\
   spans reviewable; 14.6h recovered, 203 green
 :END:
+:PLAN:
 
 Guideposts carry no heading of their own; they inherit whichever one the
 surrounding =clock_in=/=clock_out= bracket last named. Work done while no
@@ -45327,6 +45328,8 @@ between plan and implementation without a note. Read this heading as a
 what a fresh proposal would carry — the design question was already
 settled once.
 
+:END:
+:DEBRIEF:
 *Measured 2026-08-13, and it makes this the highest-value item left
 under the epic rather than a nicety.* Classified every queue event
 against the real reader — =--queue-events-by-id= and
@@ -45498,6 +45501,11 @@ forbidding consolidation at apply is stale).
 reviewable against 3.6 hours then recorded. 23 spans, not 316
 guideposts — the workload objection that nearly sank this heading
 dissolved once measured.
+:END:
+
+Shipped: unattributed guideposts now cluster into unassigned spans with a
+suggested heading, assignable with =a=, and five defects were fixed along the
+way; this made 14.6 hours of previously unreachable time reviewable.
 
 
 ***** DONE Make ingestion idempotent and archive drained queue files rather than deleting them :code:
