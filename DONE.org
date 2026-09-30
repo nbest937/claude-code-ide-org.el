@@ -28953,6 +28953,7 @@ same family -- both are about a readout that could not distinguish two things a
 human needed told apart.
 
 :END:
+:DEBRIEF:
 *Audit performed 2026-08-31, and the wording fixed in the same pass* —
 deliberately not as two commits, because a one-word repair beside an unchanged
 line three rows down reads worse than uniform terseness.
@@ -29005,6 +29006,11 @@ is honestly rendered and still misleads. The user's own reading on 2026-08-31,
 after applying a pass, was that much of the logged activity is bogus; that is
 filed as [[id:445ec1f1-095a-462b-abbd-7a3a00925ddb][445ec1f1]] and is about the
 data rather than the wording.
+:END:
+
+Audited the review buffer's refusal and failure messages and widened the seven
+live sites that dropped a distinction the code already knew; two were
+deliberately left. The span readout was left to =44cef181= and =98c302e0=.
 
 
 
