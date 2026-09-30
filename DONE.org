@@ -49407,7 +49407,7 @@ CLOSED: [2026-08-11 Tue 18:19]
 - State "CANCELLED"  from "TODO"       [2026-08-11 Tue 18:19] \\
   folded into 47c027d2 as one template edit
 :END:
-
+:DEBRIEF:
 CLAUDE.md is unambiguous: "any newly created org heading gets a
 =:CREATED:= property in its property drawer, stamped with an inactive
 timestamp at creation time, alongside its =:ID:=. Applies to every
@@ -49453,6 +49453,11 @@ separately meant editing that string three times. This heading stays in
 place rather than being deleted because five other headings link to it;
 the analysis above is still the reference for *why* =:CREATED:= is owed
 and how to verify it, and =47c027d2= carries the work.
+:END:
+
+Cancelled as a separate task, not abandoned: the missing :CREATED: was one of
+three defects in the same template string, so it was folded into =47c027d2=,
+which carried the work.
 
 
 
