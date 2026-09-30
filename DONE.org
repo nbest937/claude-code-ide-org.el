@@ -39937,6 +39937,7 @@ all. Only *:ID:* targets were unaffected — which is why the captures of
 2026-08-15 all worked, and why the claim looked true.
 
 :END:
+:DEBRIEF:
 *Verified by using it, not by reading it:*
 [[id:3063c3e5-0dd0-4354-8985-271b0313c5d1][3063c3e5]] was filed with
 =target: "Skill logic"= and landed as a level-2 heading under that
@@ -39971,6 +39972,11 @@ is load-bearing.
 symlink path returns nil while a buffer for that file is plainly open, because
 it matches on =buffer-file-name= rather than the truename. Any future code that
 asks \"is this file already open?\" by that route will be wrong here.
+:END:
+
+The Doom config now sets =claude-code-ide-org-capture-file=, verified by
+unsetting the variable, reloading config.el and reading it back; the
+symlink-versus-truename argument for the chosen path turned out not to matter.
 
 **** DONE org_capture's no-target fallback writes a level-1 heading, violating the category convention
 CLOSED: [2026-08-20 Thu 08:42]
