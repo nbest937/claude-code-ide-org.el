@@ -24438,6 +24438,7 @@ CLOCK: [2026-09-03 Thu 13:07]--[2026-09-03 Thu 13:15] =>  0:08
 - [2026-09-03 Thu 13:07]--[2026-09-03 Thu 13:15] convention sentence and hybrid lint rule
 - State "DONE"       from "DOING"      [2026-09-03 Thu 13:15]
 :END:
+:PLAN:
 
 Latent, zero instances (all eleven slices checked 2026-09-03). A :KIND: slice
 heading with keyworded tree-children satisfies --container-heading-p and
@@ -24456,6 +24457,8 @@ a slice target; org_set_property refuses KIND=slice on a container. Distinct
 from the membership rules in :ID: 758a8b78 — this is about tree children; that
 is about [[id:]] references and the NEXT budget.
 
+:END:
+:DEBRIEF:
 Debrief 2026-09-03: all three parts shipped same day (commits d2bef8d, 982d65d).
 A: the prohibition paragraph in .claude/rules/org-conventions.md, stated in both
 directions. B: the lint error — the conjunction of the two predicates — with a
@@ -24464,6 +24467,11 @@ three creation-path guards, each with the keyword-less case deliberately legal;
 removing the guards fails exactly the three new tests, 529/529 with them in.
 Landed latent: zero hybrids in the corpus throughout. bin/lint-org on the real
 corpus: 0 errors before and after.
+:END:
+
+All three parts shipped the same day: the convention forbidding keyworded
+tree-children on a slice, a bin/lint-org error for the hybrid, and three
+creation-path tool guards, landing with zero hybrids in the corpus.
 
 
 *** 2026-09-02 Wednesday
