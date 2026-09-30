@@ -50734,10 +50734,13 @@ CLOSED: [2026-07-29 Wed 05:57]
 :END:
 :LOGBOOK:
 :END:
+:PLAN:
 Summarize time in a date range. Wrap =org-clock-report=/column view
 so "what did I work on this week" is one tool call instead of
 Claude eyeballing LOGBOOK entries across files by hand.
 
+:END:
+:DEBRIEF:
 *Risk, spot-checked deliberately — and the spot-check found a real
 bug*: =org-dblock-write:clocktable= inserts its output at *point*
 rather than replacing a region. For the =id=-scoped path (a copy of
@@ -50762,6 +50765,11 @@ heading's own time, whole-files scope, explicit tstart/tend both
 in- and out-of-range, =:block "today"= — the test that caught the
 leak bug above — unknown =block= error, unknown =:id= error, no-args
 unrestricted case). =bin/test= 40/40 at merge.
+:END:
+
+Shipped org_clock_report over the clocktable, defaulting to unrestricted time; a
+test caught source text leaking into id-scoped reports, fixed by returning only
+the inserted report.
 
 
 
