@@ -48086,6 +48086,7 @@ CLOCK: [2026-08-14 Fri 09:37]--[2026-08-14 Fri 09:42] =>  0:05
 - State "DONE"       from "TODO"       [2026-08-14 Fri 12:17] \\
   retcon: shipped 08-14, outcome note added
 :END:
+:PLAN:
 
 The user's shell profile defines:
 
@@ -48107,6 +48108,8 @@ Fix is a convention, not code: use =command emacs= or the absolute path
 for any batch invocation. Worth a line in the org-dev skill, which
 exists for exactly this class of "did the change take effect" check.
 
+:END:
+:DEBRIEF:
 *Narrowed 2026-08-14: the environment half of this is not this project's
 to own, and now lives in
 [[id:52ede10e-5e6f-4392-b31d-b9ce9b450c3c][52ede10e]] in
@@ -48180,6 +48183,11 @@ definition* at review, and the commit record agrees: =d34c809= landed at
 08:58, twelve minutes after the =DOING= transition and *before* that span
 opened. The implementation was the twelve minutes; the span that looks
 like it was the narrowing.
+:END:
+
+Resolved as a convention: the org-dev skill gained a warning to use command
+emacs for batch checks and bin/test was changed to exec command emacs, while the
+shell-configuration half moved to =52ede10e= in notes.org.
 
 **** DONE Show commits and heading creations inside an unassigned span's window :code:
 CLOSED: [2026-08-14 Fri 11:56]
