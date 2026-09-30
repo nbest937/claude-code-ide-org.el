@@ -20524,6 +20524,7 @@ distinct marker on the dropped line, derived from nothing and set by the drop
 itself, is the shape that fits.
 
 :END:
+:DEBRIEF:
 *Debrief, 2026-09-08.* Shipped in PR #15 (=cefd6ff=), taking the
 candidate this body's own analysis narrowed to: a =:DROPPED:= property
 on the slice, the only marker that survives a line being regenerated
@@ -20549,6 +20550,11 @@ are rewritten as resolved.
 write the way =:BLOCKER:='s are, and no lint checks they resolve — a
 typo fails open as a member regaining its box, which is at least
 visible. Worth folding into =org_set_property= if it ever bites.
+:END:
+
+Shipped in PR #15: a =:DROPPED:= property on the slice now marks dropped
+members, the checkbox is fully derived so a promoted MAYBE member regains its
+box, and an existing slice's dropped members were migrated.
 
 
 **** DONE A slice closed by the same apply pass freezes with stale member lines :code:
