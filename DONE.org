@@ -11197,6 +11197,7 @@ which is [[id:b74e0f19-5a26-4c83-9d70-8e1c5a2f6b04][b74e0f19]]'s rounding
 incident pointed the other way.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-08-20 as =claude-code-ide-org-span-minimum-interval=, defaulting
 to 0.* Zero is the point: it reproduces today's behaviour exactly, so naming the
 floor moved nothing. What had been holding the line was two rendering conditions
@@ -11222,6 +11223,12 @@ recorded 6.5% of recorded time for the same 120s value on 2026-08-18; the same
 measurement on 2026-08-20 gives 3.03%. No code changed — the corpus grew and the
 mix shifted. That heading's instruction to re-derive rather than confirm now has
 a two-day counterexample behind it, and its body was corrected to say so.
+:END:
+
+Shipped =claude-code-ide-org-span-minimum-interval=, defaulting to 0 so
+behaviour is unchanged, verified by mutation. A measured sweep went into the
+docstring and the value was left to =96a51c2f=; the 120s figure failed to
+replicate between two days' measurements.
 
 
 ***** DONE The review buffer predicts a duration org does not write :code:
