@@ -4911,7 +4911,7 @@ by exactly the argument CLAUDE.md already makes about condensing.
 retroactive tool for [[id:35d25265-df52-45c0-8226-dfa24c3ed5bb][35d25265]]'s
 pass; nothing here helps with a body that already holds both halves.
 :END:
-
+:DEBRIEF:
 Nothing writes into a =:PLAN:= drawer — =org_amend= appends below it — so
 revising a plan needs a hand =emacsclient= edit, which the conventions treat as
 a sign the tool surface is short. Proposed: =org_amend= takes a =drawer=
@@ -4946,6 +4946,12 @@ revisited without breaking the other.
 discriminating against HEAD. Note for callers: a session connected
 before this landed has the old tool schema and cannot pass =drawer=
 until it reconnects; the apply path honours it immediately.
+:END:
+
+Shipped: =org_amend= takes a =drawer= argument, PLAN or DEBRIEF by allowlist,
+creating the drawer when absent and refusing =replace= against one, with the
+queued path carrying the target end to end. Verified by five ERT tests and two
+hook assertions.
 
 
 ** DONE Put the debrief in a :DEBRIEF: drawer, leaving a scannable TL;DR in the body :code:
