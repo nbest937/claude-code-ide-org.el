@@ -40057,6 +40057,7 @@ refused that call outright and cost nothing, since the caller did have a
 category in mind and only omitted it out of habit.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-08-20* (=535c98c=), taking the first of the three options
 above: refuse rather than guess. =target= is required in both layers
 that matter — the schema drops =:optional= and says why, and the
@@ -40086,6 +40087,11 @@ not be unique on level 1. Those headings are level 2 now and the
 assertions moved with them. The test that asserted the old fallback
 asserts the refusal instead, across nil, empty and whitespace; removing
 the guard fails it and nothing else.
+:END:
+
+Shipped in =535c98c=: =org_capture= now refuses a capture with no target instead
+of falling back to a level-1 heading, and the hook drops such a deferred capture
+rather than queuing it; affected tests now name a target.
 
 
 
