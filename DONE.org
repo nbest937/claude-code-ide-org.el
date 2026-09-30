@@ -8682,7 +8682,7 @@ CLOSED: [2026-09-19 Sat 05:52]
 :ID:       4cea9cec-c2f0-4723-a3d0-571a19c8d4ce
 :CREATED:  [2026-09-19 Sat 05:52]
 :END:
-
+:DEBRIEF:
 Findings 6, 8, 13 and 14, shipped in [[orgit-rev:claude-code-ide-org::cc3b57e][cc3b57e]].
 
 *=block-end= was the one time script with no gate*, while =hooks.json='s own description claimed every permission-block row self-gates. Wired at =PostToolUse '*'=, so a consumer with the feature off paid =bash= + =cat= + =jq= on every tool call to reach a sentinel test that could never succeed. Gated **before** =cat=, which is what its header always promised.
@@ -8692,6 +8692,11 @@ Findings 6, 8, 13 and 14, shipped in [[orgit-rev:claude-code-ide-org::cc3b57e][c
 *And the escaping fix was wrong first, in the instructive way.* =CLAUDE_PROJECT_DIR= interpolated raw into an elisp string literal breaks on a quote, invisibly, because output is discarded and the =[[ -s ]]= guard treats empty as "Emacs unreachable". I replaced it with =(getenv "CLAUDE_PROJECT_DIR")= — which **silently unscoped every report**, because =emacsclient -e= evaluates in the *server's* process and read Emacs's own environment. Caught only by re-running the scoping comparison: all three cases returned an identical 2321 bytes where the consumer should have returned 2. A =sed=-based escaper replaced it; a path containing a quote now yields an empty payload rather than a broken form.
 
 The leaked temp directory (finding 14) rode along: bound in the =let*= so the existing =unwind-protect= cleans it.
+:END:
+
+Shipped: =block-end= now gates on the time-tracking option before reading input,
+the drained predicate's test pins both clauses, and the project path is escaped
+with sed, after a =getenv= attempt silently unscoped every report.
 
 
 ***** DONE Tell a consumer when its MCP config is wrong, and stop four documents disagreeing :code:
