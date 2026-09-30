@@ -28200,6 +28200,7 @@ the slip cost a keystroke rather than a decision. That is strictly better than
 asking, and the two are not exclusive.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-08-31, taking both options this body offered rather than choosing
 between them — it said so itself: "strictly better than asking, and the two are
 not exclusive."*
@@ -28244,6 +28245,11 @@ restoring the same list twice.
 [[id:7148cddc-aca3-416e-8bcb-f164d4d2bba0][7148cddc]]'s 2026-08-24 loss is the
 same shape and was paid for once already. Nothing here retroactively recovers
 that; this stops the next one.
+:END:
+
+Shipped both options: g now asks before discarding marks, assignments, notes or
+edited intervals, naming the counts, and review-undo-refresh restores the
+discarded list. The undo command was left unbound.
 
 
 
