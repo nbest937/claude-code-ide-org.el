@@ -29245,6 +29245,7 @@ is the current behaviour and some callers want it — a heading captured as a no
 rather than a task.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-08-31 as option 1, the decision recorded above.* =org_capture=
 takes an optional =initial_state= and writes the keyword with the heading.
 Omitting it still produces a keywordless heading, which the body asked for
@@ -29304,6 +29305,11 @@ conditional: true when the capture was keywordless, avoidable by passing
 minutes before this shipped, and is keywordless on disk with its =TODO= sitting
 in the queue — the last heading here that will need a round-trip through a human
 to acquire a keyword.
+:END:
+
+Shipped as option 1: org_capture takes an optional initial_state, validated
+against the target file's #+TODO: line and carried through the deferred queue
+path to apply.
 
 
 
