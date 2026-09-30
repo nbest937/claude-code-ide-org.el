@@ -43798,6 +43798,7 @@ CLOSED: [2026-08-06 Thu 22:48]
 :CREATED:  [2026-08-06 Thu 11:59]
 :CLOSED_SOURCE: git
 :END:
+:PLAN:
 
 Captured 2026-08-06 from conversation. Motivating problem: once
 =org_set_todo= only queues a transition, a heading Claude just "set
@@ -43841,6 +43842,8 @@ merge them":
   to test it against, rather than finalizing the mechanics on
   hypothetical data now.
 
+:END:
+:DEBRIEF:
 *Cancelled 2026-08-06*, same day it was captured, on review of the
 sub-task set as a whole. It works against the premise of the refactor
 that contains it: the whole point is that nothing presents unconfirmed
@@ -43863,6 +43866,11 @@ decision (bullet 4) belongs to
 [[id:720b2dcf-6af1-45f3-96a7-aa841e5651e1][720b2dcf]]'s apply-time
 reconciliation, which is where overlapping intervals actually have to
 be resolved — it survives this cancellation, it just doesn't live here.
+:END:
+
+Cancelled the same day because a read-time overlay would present unconfirmed
+state as authoritative, against the refactor's premise; its surviving pieces
+were assigned to =63a642c7= and =720b2dcf=.
 
 
 ***** DONE Support per-subagent activity intervals via a compound (session_id, agent_id) key :code:
