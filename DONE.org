@@ -17620,6 +17620,7 @@ and the queue architecture all stayed in CLAUDE.md regardless of how much room
 moving them would have bought.
 
 :END:
+:DEBRIEF:
 *Verified 2026-08-21 by the standard this heading set for itself* -- "adopting
 it needs a fresh session to verify, not an assertion that it works." A session
 with no prior knowledge of the file read =TODO.org= and the rule was injected
@@ -17631,6 +17632,10 @@ waiting on exactly this confirmation: its body records that the path-scoped rule
 "turns out to be the *portability* mechanism, not merely a context-saving one",
 since a user-level =~/.claude/rules/org-conventions.md= costs nothing in repos
 with no org files.
+:END:
+
+The path-scoped rule the decision rested on was verified in a fresh session: it
+was injected when TODO.org was read, not at launch. This unblocked =9ae4b17e=.
 
 
 ***** DONE CLAUDE.md's "Session tracking" still describes the pre-cutover clock :code:
