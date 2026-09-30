@@ -23640,6 +23640,7 @@ which is the same finding as above, arriving from the other direction.
 will never be reported, so any route only has to answer for 64.
 
 :END:
+:DEBRIEF:
 *Closed 2026-09-04. Its finding was adopted and its successor finished; nothing
 is owed.*
 
@@ -23668,6 +23669,11 @@ the thing you asked for", which is a judgement to hand back rather than an
 outcome to announce. That is exactly what =REVIEW= is for, and it worked — at
 the cost of sitting unwatched for two days, which is =43aa25b2='s subject and
 now one of its instances.
+:END:
+
+Its finding was adopted: CLAUDE.md retired the wrap-unedited backlog rule, since
+88 of 93 bodies would have buried a debrief, and the per-heading successor
+=35d25265= finished 73 of 73; the open question was left standing.
 
 
 **** DONE Nothing prompts a session to name its clock target, so spans land unassigned :code:
