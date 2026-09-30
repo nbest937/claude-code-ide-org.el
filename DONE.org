@@ -26482,6 +26482,7 @@ other's declared checklist. Fixing either alone leaves f9fe9fac wrong, which is
 why both are filed rather than one.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-09-01, same day, as =d577751=. Candidate 1 was taken:* the
 window opens at the later of =:CREATED:= and first work, where first
 work is =claude-code-ide-org--first-work-time= — the earliest CLOCK
@@ -26521,6 +26522,11 @@ it cannot pass by the fixture simply having become inert.
 rather than the window: two slices worked concurrently, or one worked during
 another's long tail, would still absorb each other's declared members. f9fe9fac
 only stopped being wrong because it had done no work at all.
+:END:
+
+Shipped in commit =d577751=: a slice's incidental window now opens at the later
+of :CREATED: and first work, so a slice nobody worked gets no incidentals. The
+twin problem of the exclusion set was left to =5bfc1d38=.
 
 
 
