@@ -40471,6 +40471,7 @@ diagnosing org-lint's *existing* misplaced-heading reports; this is about
 adding checks org-lint has no opinion on.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-08-19* (=cc25adc=). Both checks live in
 =claude-code-ide-org--lint-file=; =bin/lint-org= needed no change, as
 predicted. Replayed against the incident by injecting =* *= into a copy
@@ -40513,6 +40514,11 @@ so neither check false-positives on the real corpus.
 *Not split.* Both landed as one change, as this heading allowed for —
 check 2's design decision resolved itself once the =:ARCHIVE:= property
 turned out to be the discriminator.
+:END:
+
+Shipped both structural lint checks in =cc25adc=; the category check needed
+neither proposed design, since level-1 categories identify themselves by
+carrying =:ARCHIVE:=, and neither check false-positives on the real corpus.
 
 
 ***** DONE Run bin/lint-org in a pre-commit hook, scoped to staged org files :code:
