@@ -28686,6 +28686,7 @@ built together rather than reworded twice.
 alone, for the same reason as before.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-08-31, as the 2026-08-28 decision specified: the readout states
 the evidence and predicts nothing.* =--review-written-summary= now renders =0:11
 span, 0:01 in 1 run, 6 turns= — envelope, runs, turns, all observed at render
@@ -28740,6 +28741,10 @@ over eleven minutes of continuous work. The same item now reads =0:11 span, 0:01
 in 1 run, N turns=, where the discrepancy is on the face of the line instead of
 requiring the reader to know that the headline is not the record. Whatever the
 A/B measures, this is what makes the B side legible.
+:END:
+
+Shipped: the span readout states the evidence, as envelope, runs and turns each
+carrying its noun, and no longer predicts what apply will write.
 
 
 
