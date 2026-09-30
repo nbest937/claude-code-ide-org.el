@@ -19120,6 +19120,7 @@ CLOCK: [2026-09-03 Thu 13:03]--[2026-09-03 Thu 13:06] =>  0:03
 - [2026-09-03 Thu 13:03]--[2026-09-03 Thu 13:06] substitute grouping at the three sites
 - State "DONE"       from "DOING"      [2026-09-03 Thu 13:06]
 :END:
+:PLAN:
 
 The nomination-report paragraphs and the nomination Rule ("every transition to
 DONE inside a container", CLAUDE.md near lines 795–803) say "container" where
@@ -19130,6 +19131,8 @@ where" paragraph is what makes the loose word bite — a reader applying the
 vocabulary concludes slices go unreported. Substitute "grouping" at the three
 sites; a three-word fix, no growth.
 
+:END:
+:DEBRIEF:
 Debrief 2026-09-03: substituted at the three sites — the report description, its
 shipped-day measurement, and the DONE-nomination rule — in CLAUDE.md (commit
 791386a, branch feature/fix-claude-md-and-slice-conventions), plus one adjacent
@@ -19137,6 +19140,11 @@ fix: the report docstring's own first line in config.el said "container" while
 its body said "story or a slice". The demote-trigger paragraphs keep "container"
 deliberately, since having a parent is that trigger's actual test. Verified:
 bin/check-conventions exit 0, and no test or script asserts the old phrase.
+:END:
+
+"Grouping" replaced "container" at the three CLAUDE.md sites and in the report
+docstring's first line; the demote-trigger paragraphs deliberately keep
+"container".
 
 
 **** DONE README documents plugin installation :docs:
