@@ -43884,7 +43884,7 @@ CLOSED: [2026-08-13 Thu 11:15]
 - State "DONE"       from "MAYBE"      [2026-08-13 Thu 11:15] \\
   all three parts shipped; demonstrated end to end
 :END:
-
+:DEBRIEF:
 Re-scoped =TODO= → =MAYBE= 2026-08-06, same day it was captured. Not a
 retreat from the observation — the =agentId=-vs-hand-invented-=-bgN=
 fidelity point below is correct and worth keeping on the record. It is
@@ -44042,6 +44042,11 @@ on what a subagent may call, and the old blanket prohibition survives
 only as prose in this heading. That belongs to
 [[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]]'s rewrite —
 recorded here so it is not lost when this heading is archived.
+:END:
+
+Resolved as already done: hooks carry =agent_id= and =agent_type= directly,
+per-lane attribution came via =0d789b68=, and concurrent subagents clocking in
+were shown not to contend; the relaxed subagent rule was left undocumented.
 
 
 ***** DONE Verify org's clock/logging APIs actually support backdated timestamps for batch apply-time backfill :code:
