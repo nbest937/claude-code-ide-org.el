@@ -6491,6 +6491,7 @@ list= or the common git dir, the same resolution
 convention checks).
 
 :END:
+:DEBRIEF:
 *Shipped 2026-09-04* (commit =2d67b7e=, on
 =feature/org-discipline-travel=). One field — =cwd: ($payload.cwd //
 null)= — added to =queue-append='s jq object, between =session_id= and
@@ -6509,6 +6510,11 @@ one tracker, so the consumer normalises via the common git dir, matching
 whether =claude-code-ide-org--log-event='s audit log should carry the
 same field for symmetry. Neither blocks recording the datum now, which
 is the point — it cannot be backfilled.
+:END:
+
+Shipped in commit 2d67b7e: =queue-append= records the payload's =cwd= on every
+event, null when absent, written test-first. Worktree-path normalisation and
+audit-log symmetry were left to the consumer.
 
 
 * TODO A/B the clock record across the phase-3 fixes, since much of what is logged now is bogus :code:research:
