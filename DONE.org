@@ -49630,6 +49630,7 @@ CLOSED: [2026-08-06 Thu 21:56]
 :LOGBOOK:
 CLOCK: [2026-08-06 Thu 21:50]--[2026-08-06 Thu 21:55] =>  0:05
 :END:
+:PLAN:
 
 Discovered 2026-08-06 while committing the
 [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] Plan link
@@ -49659,6 +49660,8 @@ next consolidation eats them. Also fresh, concrete evidence for
 noise audit before committing): the noise this time contained silent
 data *loss*, not just clutter.
 
+:END:
+:DEBRIEF:
 *Verified, not just implemented:* both consolidators now carry
 every unrecognized line through verbatim —
 =--parse-clock-lines=/=--parse-session-lines= gained an =:other=
@@ -49672,6 +49675,11 @@ a real in-situ =consolidate-history= pass. Scope grew one sibling
 during the fix: =:SESSIONS:= consolidation had the same bug class
 and was silently eating =Background-planned= write-backs; fixed
 and regression-tested in the same pass.
+:END:
+
+Fixed: both consolidators carried unrecognised lines through verbatim, the
+destroyed State "NEXT" note was restored on =b5f7c5c7= and survived a live pass,
+and the same bug in :SESSIONS: consolidation was fixed too.
 
 **** DONE Org skill: parallelize background planning across the NEXT/TODO backlog, without touching the shared clock :code:
 CLOSED: [2026-08-06 Thu 13:33]
