@@ -23970,6 +23970,7 @@ CLOCK: [2026-09-03 Thu 13:37]--[2026-09-03 Thu 13:40] =>  0:03
 - State "DONE"       from "DOING"      [2026-09-03 Thu 13:41] \\
   real cause reported, residue filed
 :END:
+:PLAN:
 
 Check 0 in ~bin/check-conventions~ shells to ~command emacs --batch~ and is not
 gated on ~$docs_only~, while that flag's own comment claims everything under it
@@ -23987,6 +23988,8 @@ stderr into an empty verdict, and correct the flag's comment — a batch
 invocation needs the binary but no *running* Emacs, a distinction the comment
 elides.
 
+:END:
+:DEBRIEF:
 *Verified, not just implemented:* fixed in commit ~590e41c~ on the PR 8 branch.
 Shell scripts are read fresh from disk on every run, so no reload precondition
 applies to any of the verification below.
@@ -24021,6 +24024,12 @@ case that does not admit it is worse than none. ~bin/test~ 534/534,
 [[id:f8c86914-0759-4e05-9292-6f7fa5593701][the convention checks compare the
 live Emacs against whichever checkout invoked them]] — the one assertion still
 failing here, and the same class of wrong-cause reporting one assertion over.
+:END:
+
+Fixed without gating check 0: check-conventions now probes for the emacs binary
+and names its absence, quotes stderr when the verdict is empty, and adds a
+distinct skip result; the flag's comment was corrected and =f8c86914= filed as
+residue.
 
 
 **** DONE org_archive can still archive into a datetree with reversed order left on :code:
