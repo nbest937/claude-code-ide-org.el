@@ -18757,6 +18757,7 @@ limitation, and both caveats.
 survey, not only the refile-level sentence at line 140.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-09-02* as its own "Surveying a heading's siblings"
 subsection under "Working with .org Files", beside the timestamp rule —
 both are about *reading* org, and a reader who needs one usually needs
@@ -18793,6 +18794,11 @@ open.
 
 *Verified:* =grep -ci sibling= on the skill returns 5, where the single
 prior hit was about refile levels and had nothing to do with this.
+:END:
+
+Shipped as a "Surveying a heading's siblings" subsection of the org skill,
+documenting the org_outline scope idiom, its downward-only limit, and the
+org-map-entries form that resolves it.
 
 
 ***** DONE load-file does not pick up a changed defcustom default :code:
