@@ -47878,6 +47878,7 @@ CLOCK: [2026-08-14 Fri 13:40]--[2026-08-14 Fri 13:46] =>  0:06
 CLOCK: [2026-08-14 Fri 13:49]--[2026-08-14 Fri 13:52] =>  0:03
 - [2026-08-14 Fri 13:49]--[2026-08-14 Fri 13:52] suggested span, accepted at review
 :END:
+:PLAN:
 
 Raised by the user 2026-08-12, on moving
 [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] to =DOING= because
@@ -48009,6 +48010,8 @@ in =DOING= in the file is not a latch target.
 The "ten children" in the clocktable measurement above was that day's
 count; ten is now the number that are unfinished.
 
+:END:
+:DEBRIEF:
 *Outcome, 2026-08-14.* Shipped as proposed, with no design changes.
 =claude-code-ide-org--container-heading-p= implements norang's lazy
 definition directly — scan the subtree, non-nil on the first descendant
@@ -48048,6 +48051,11 @@ is the precondition the "report change is downstream" section above set.
 Adding =DOING= to =--wait-headings-context='s keyword set and filtering
 containers through this predicate would now do the right thing, with one
 definition of "container" rather than two.
+:END:
+
+Shipped: a container-heading predicate using norang's lazy definition exempted
+containers from the auto-clock-in trigger, leaving manual clock-in on a parent
+available; the CLAUDE.md edit was routed to =02aaae22=.
 
 
 
