@@ -35188,6 +35188,7 @@ lied. It now also says to *expect silence*, with the audit's reason -- so the
 next reader does not go looking for a bug in a feature that is working.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-08-25* ([[orgit-rev:claude-code-ide-org::3c2a72e][3c2a72e]], with
 CLAUDE.md corrected in [[orgit-rev:claude-code-ide-org::ae98b0e][ae98b0e]]). The
 prompt rides in the existing =SessionStart= payload, exactly where this
@@ -35251,6 +35252,11 @@ claimed as coverage.
 asks the session to, which is a instruction to a model rather than a mechanism.
 Wiring it into the review command's exit is the honest completion, and belongs
 to [[id:edd47f32-e6c9-4ab3-8e8a-46a37ea29605][edd47f32]].
+:END:
+
+The daily ceremony prompt now rides in the SessionStart payload, silenced by a
+ceremony-last-run stamp written by mark-ceremony-done, and it asks rather than
+proposes. Stamping automatically at the end of a pass was left to =edd47f32=.
 
 
 ***** DONE bin/lint-org does not assert the two-blank-line separation it now documents :code:
