@@ -48237,6 +48237,7 @@ CLOCK: [2026-08-14 Fri 10:48]--[2026-08-14 Fri 10:49] =>  0:01
 - [2026-08-14 Fri 10:48]--[2026-08-14 Fri 10:49] suggested span, accepted at review
 - State "DONE"       from "DOING"      [2026-08-14 Fri 11:56]
 :END:
+:PLAN:
 
 *Promoted out of [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]]
 on 2026-08-13.* A capability that epic *enables* rather than one it
@@ -48298,6 +48299,8 @@ with a property match does it. And the window should probably extend a
 few minutes past the span's end to catch the commit that concluded it,
 which is the asymmetry noted above.
 
+:END:
+:DEBRIEF:
 *Outcome, 2026-08-13/14.* Shipped: an unassigned span in the review
 buffer renders the git commits and =:CREATED:= stamps falling inside its
 own window, interleaved chronologically. The window extends past the
@@ -48353,6 +48356,12 @@ exactly this shape — that a particular presentation would keep review
 critical — was falsified on first contact. Whether gap lines actually
 induce evaluation is unknown until the next batch is reviewed, and the
 honest test is to ask again afterwards rather than to assume.
+:END:
+
+Shipped: unassigned spans in the review buffer showed commits and :CREATED:
+stamps in their window, later also evidence gaps; first use showed the evidence
+was accepted without critical evaluation, and whether gap lines fix that was
+left unproven.
 
 
 
