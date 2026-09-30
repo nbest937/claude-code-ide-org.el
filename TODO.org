@@ -1,5 +1,5 @@
 #+TODO: TODO(t!) NEXT(n!) DOING(d!) REVIEW(r!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)
-#+TAGS: analysis bug code comms prose research review spike bounded arch
+#+TAGS: analysis code comms prose research review spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
 * TODO The ERT suite depends on the machine's timezone: 47 tests fail off Central time :code:
@@ -58,7 +58,7 @@ and those 53 are cleared, unless e128e4fa first wants its lossless two-insertion
 move generalised to :DEBRIEF:. Details in :PLAN:.
 
 
-* REVIEW pre-commit lints a temp copy with no plans/ beside it, so every archived plan that ages out blocks every commit :code:observed:
+* REVIEW pre-commit lints a temp copy with no plans/ beside it, so every archived plan that ages out blocks every commit :code:
 :PROPERTIES:
 :ID:       634eb138-28bc-4d43-aed3-f242c877904d
 :CREATED:  [2026-09-28 Mon 08:31]
@@ -79,6 +79,8 @@ CLOCK: [2026-09-28 Mon 08:51]--[2026-09-28 Mon 08:54] =>  0:03
   rework done: the staged archive is exported
 CLOCK: [2026-09-28 Mon 08:56]--[2026-09-28 Mon 08:58] =>  0:02
 - [2026-09-28 Mon 08:56]--[2026-09-28 Mon 08:58] assigned at review
+- Tags ":code:"     from ":code:observed:" [2026-09-29 Tue 21:46] \\
+  tag dropped (the user, 2026-09-29): applied by recall, so its absence meant nothing
 :END:
 
 Observed 2026-09-28 when a bookkeeping commit was refused: "plan link points at
@@ -376,11 +378,15 @@ checklist (7ee3b71a), so a table built at the start could go stale. Settle that
 before caching.
 
 
-* TODO A live reload that changes a tool's description registers it a second time beside the stale one :code:bug:
+* TODO A live reload that changes a tool's description registers it a second time beside the stale one :code:
 :PROPERTIES:
 :ID:       94fe3c57-89f6-4d17-943e-0cb6145f3419
 :CREATED:  [2026-09-25 Fri 16:46]
 :CATEGORY: Tools
+:END:
+:LOGBOOK:
+- Tags ":code:"     from ":code:bug:" [2026-09-29 Tue 21:46] \\
+  tag dropped (the user, 2026-09-29): applied by recall, so its absence meant nothing
 :END:
 
 Measured 2026-09-25 after a live =load-file= of =config.el=: =claude-code-ide-mcp-server-tools= held 27 entries for 24 distinct names, with =org_query= three times and =org_slice_add_member= twice. Each duplicate followed a reload that changed that tool's description the same day (=37bca83a=, =5acca91b= and =7ee3b71a=), so =claude-code-ide-make-tool= evidently deduplicates by whole spec, not by name. Every entry names the same function symbol, so a call runs the new code. What goes stale is what the client is shown: two descriptions and two argument lists for one name, one of them outdated. Proposed: find where upstream's registration compares specs. If it is upstream, the fix is to replace by name there, or here to remove a name's entries before registering it. Either way, a test that reloads twice with a changed description and counts the entries.
@@ -437,11 +443,15 @@ the user before this step starts: whether that blocker separation is wanted.
 Org's hard-coded =[X]= count rules out the alternative of counting =[-]=.
 
 
-* TODO org_query blocked: errors on a read-only buffer, though a query changes nothing the user can see :code:bug:
+* TODO org_query blocked: errors on a read-only buffer, though a query changes nothing the user can see :code:
 :PROPERTIES:
 :ID:       d842b9e7-fd75-45eb-80fd-597daa3e36b0
 :CREATED:  [2026-09-25 Fri 12:24]
 :CATEGORY: Tools
+:END:
+:LOGBOOK:
+- Tags ":code:"     from ":code:bug:" [2026-09-29 Tue 21:46] \\
+  tag dropped (the user, 2026-09-29): applied by recall, so its absence meant nothing
 :END:
 
 Observed 2026-09-25: with =TODO.org='s buffer read-only (=C-x C-q=, unmodified), =org_query "blocked:"= fails with "Buffer is read-only: #<buffer TODO.org>". Other predicates on the same buffer work (=category:=, =level:=, =regexp:=, =link:=), so something in evaluating =blocked:= writes to the buffer. Which call writes is not known yet; org's blocker hooks run through =org-entry-blocked-p=, and this repo adds =claude-code-ide-org--blocker-clock-running-p= to them. The file-touching tools bind =inhibit-read-only= (=c8a97d9d=) and =org_query= does not, since a query was not expected to write. Proposed: find the writer first. If it is org-ql caching or a hook's bookkeeping, bind =inhibit-read-only= in =org_query= as the other tools do; if it is a real edit, that is the defect. =5acca91b= (REVIEW) taught =blocked:= to the description and was tested on a writable buffer.
@@ -584,7 +594,7 @@ TODO.org. Design in =:PLAN:=.
 
 
 
-* TODO org_capture runs in whatever buffer the user has selected, so an Org QL view turns a capture into a prompt nobody at the tool can answer :code:bug:
+* TODO org_capture runs in whatever buffer the user has selected, so an Org QL view turns a capture into a prompt nobody at the tool can answer :code:
 :PROPERTIES:
 :ID:       fd29914e-0d18-4964-a104-37c136b311a6
 :CREATED:  [2026-09-25 Fri 12:16]
@@ -597,6 +607,8 @@ CLOCK: [2026-09-25 Fri 12:20]--[2026-09-25 Fri 12:21] =>  0:01
 - [2026-09-25 Fri 12:20]--[2026-09-25 Fri 12:21] assigned at review
 CLOCK: [2026-09-25 Fri 12:24]--[2026-09-25 Fri 12:25] =>  0:01
 - [2026-09-25 Fri 12:24]--[2026-09-25 Fri 12:25] assigned at review
+- Tags ":code:"     from ":code:bug:" [2026-09-29 Tue 21:46] \\
+  tag dropped (the user, 2026-09-29): applied by recall, so its absence meant nothing
 :END:
 
 Twice on 2026-09-25 an =org_capture= stopped at "Make link that searches: ", a prompt from org-ql's =org-ql-view--link-store=. Org's capture stores a link to the current buffer, and that function asks this question whenever the current buffer has =org-ql-view-query= set, which is true only in an Org QL view buffer (four were open, each with the variable buffer-local). With no human at the keyboard the call hangs until the MCP request times out; =C-g= aborts it, and the reply then fails on a dead websocket. Unverified, and the title may be wrong about it: whether the view has to be the *selected* buffer. At one failure the selected buffer was =*Messages*= a minute earlier and =*Ibuffer*= just after. Proposed: run the capture with a neutral current buffer, or bind =org-store-link-functions= to nil around it, since a tool capture has no use for an annotation link to wherever the user happens to be.
@@ -969,18 +981,22 @@ fix, which turns the timeout into the real error.
 *Scope widened 2026-09-25 to the third signal site.* The advice above covers the two =tools/call= sites (=-32602=, unknown tool and missing argument). =--dispatch= signals the same undefined symbol for an unknown *method* (=-32601=), and that is the one seen in practice: a manual =/mcp= reconnect of =emacs-tools= that day printed "peculiar error: -32601, \"Method not found\"" twice (recorded on [[id:ce012ad4-87f7-435c-a2ee-25210c071865][ce012ad4]]). Its likely trigger, unverified, is the server's =initialize= reply advertising a =logging= capability it does not implement, which invites =logging/setLevel=; the =curl= probe on ce012ad4 tests that. So the trap should cover =--dispatch= too and answer =-32601= with the request's own =id=. Or, more simply, stop advertising =logging=, if that turns out to be the method.
 
 
-* TODO org_amend accepts a headline-shaped line in drawer text, which tears the drawer open :code:observed:
+* TODO org_amend accepts a headline-shaped line in drawer text, which tears the drawer open :code:
 :PROPERTIES:
 :ID:       c0c5e015-c33e-4e1a-ad6e-907f9fa56c07
 :CREATED:  [2026-09-22 Tue 16:46]
 :CATEGORY: Tools
 :BLOCKER:  b2d4012c-6c61-47df-8086-d1cd205c73fc
 :END:
+:LOGBOOK:
+- Tags ":code:"     from ":code:observed:" [2026-09-29 Tue 21:46] \\
+  tag dropped (the user, 2026-09-29): applied by recall, so its absence meant nothing
+:END:
 
 Observed 2026-09-22 writing a :PLAN: drawer through org_amend drawer=PLAN: six section headers written as "** Title" at column zero were parsed as real headings, which terminated the drawer at the first one, manufactured six children under the heading, displaced the :LOGBOOK: below the orphaned :END:, and left the statistics cookie counting the wrong thing. Nothing refused it and the reply said "created :PLAN:". This is adjacent to 8a23d6ec but not covered by it: that rule and the escaping 3cd7b7d3 shipped both apply to a ^\*+ line inside a #+BEGIN_ block, where the damage is a fake heading; here there is no block, the text is drawer prose, and the damage is structural. bin/lint-org caught it only as six "heading has no :ID:" errors, which name the symptom rather than the cause. Proposed: extend the write-path escape to any ^\*+ line in drawer text, or refuse it there, since a drawer cannot contain a headline at all and escaping silently rewrites what the caller wrote.
 
 
-* TODO org_amend replace=true eats the blank lines before the next heading, so org stops seeing it :code:observed:
+* TODO org_amend replace=true eats the blank lines before the next heading, so org stops seeing it :code:
 :PROPERTIES:
 :ID:       5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997
 :CREATED:  [2026-09-22 Tue 16:14]
@@ -998,6 +1014,8 @@ CLOCK: [2026-09-25 Fri 16:48]--[2026-09-25 Fri 16:51] =>  0:03
 - [2026-09-25 Fri 16:48]--[2026-09-25 Fri 16:51] assigned at review
 CLOCK: [2026-09-25 Fri 16:51]--[2026-09-25 Fri 16:52] =>  0:01
 - [2026-09-25 Fri 16:51]--[2026-09-25 Fri 16:52] fold org-lint triage into the lint-rule work
+- Tags ":code:"     from ":code:observed:" [2026-09-29 Tue 21:46] \\
+  tag dropped (the user, 2026-09-29): applied by recall, so its absence meant nothing
 :END:
 
 claude-code-ide-org--replace-body deletes the body region and inserts (string-trim text), so replacing the last body before a heading takes the blank lines separating them with the trim and glues the heading onto the final line. Observed 2026-09-22 on 59861867: TODO.org:1008 became "written.** TODO Miss: ..." and org stopped parsing a heading there at all — org_outline reported the new id as resolving to no heading while org_amend, which locates by property, still wrote to it happily, and bin/lint-org reported 0 errors throughout. The damage is silent in both directions and the repair was a hand edit, which is itself against the rules. Proposed: --replace-body re-establishes the separation it found, or defers to claude-code-ide-org-heading-separator-lines; and bin/lint-org gains a check for a heading not at the start of its own line, which is the class org-lint calls "possibly misplaced heading" and only warns about.
@@ -1382,11 +1400,15 @@ It gates earnest work in euchre, taking over from 6a207b00 (closed
 4ae7a04b, the brainstorming skill, at the user's direction.
 
 
-* TODO The duplicate query reads titles only, so a paraphrase gets past it — including the case that motivated it :code:observed:
+* TODO The duplicate query reads titles only, so a paraphrase gets past it — including the case that motivated it :code:
 :PROPERTIES:
 :ID:       12033cc8-3b15-44b1-a80c-068f63f21025
 :CREATED:  [2026-09-21 Mon 10:12]
 :CATEGORY: Tools
+:END:
+:LOGBOOK:
+- Tags ":code:"     from ":code:observed:" [2026-09-29 Tue 21:46] \\
+  tag dropped (the user, 2026-09-29): applied by recall, so its absence meant nothing
 :END:
 
 org_capture now searches TODO.org and DONE.org on every capture by idf-weighted title-token overlap (c8773ec2). Probed against the real corpus 2026-09-21, it found the mac-port deadlock heading, the unrun-suites heading and the twin-pass heading from reworded titles — and found nothing for "org_capture silently drops an argument it does not recognise", whose twin is bbf9fb77, "An MCP tool accepts arguments it does not have, and says nothing". That is the transcript the whole heading was filed from. The two share no pair of subject tokens: "argument" and "arguments" differ, and everything else is paraphrase. Candidate remedies, unmeasured: fold simple plurals; match the new title's identifier-shaped tokens (org_capture, a function name, a file name) against candidate *bodies*, which would have caught this one; or leave paraphrase to the twin pass (9fb8c1fb), which reads bodies with judgement. Measure each on the corpus before choosing — the first two cost noise.
@@ -1840,11 +1862,15 @@ line per catch.
 Every count on the Miss children is a floor: it holds what a hook, the user or the session noticed, and the user noticed on 2026-09-25 that they must watch closely to catch these, so most go unseen. Self-catches on these headings are almost all recalled titles, found because a later lookup happened to contradict one. None was found by vigilance, so self-catching is not a sampler to trust. Proposed: before the review this story schedules (30 events or 2026-10-12), run a probe over the transcripts, the way =c247d8f3='s footnote probe ran, counting occurrences per kind against the recorded catches, so the review reads a catch *rate* rather than a raw count. Kinds a transcript shows mechanically: text-scrape (a Bash command running grep, awk or sed over a tracked =.org= file), a bare SHA in an =org_amend= body, a write before any =org_clock_in=, an end-matter title that differs from the heading's real title, a full UUID not found in the files. The judgement kinds (a claim reported as fact unchecked, a convention unread) stay floors, and the review should say so.
 
 
-* TODO sync-plans reads any mention of a plan filename as a link, so prose naming an orphan re-links it :code:observed:
+* TODO sync-plans reads any mention of a plan filename as a link, so prose naming an orphan re-links it :code:
 :PROPERTIES:
 :ID:       ecb1dde8-fd3b-4e26-9bdf-a69db30d5e2c
 :CREATED:  [2026-09-19 Sat 14:38]
 :CATEGORY: Dev
+:END:
+:LOGBOOK:
+- Tags ":code:"     from ":code:observed:" [2026-09-29 Tue 21:46] \\
+  tag dropped (the user, 2026-09-29): applied by recall, so its absence meant nothing
 :END:
 
 Observed 2026-09-19: the first plan unlinked under the drawer convention was deleted from the archive directory, and =bin/sync-plans --check= immediately reported it "out of date" and wanted it back — because a body amendment on =ff1bec00= had named the file in =…= quotes as the first orphan. The matcher is a substring grep for the archive directory's name followed by a slug and the markdown extension, so a mention is a link. Rephrasing the sentence cleared it. Small in itself; it matters because the drawer convention will produce orphans on purpose, and prose that names them. Match the org =file:= link form, not the substring — and note that =bin/lint-org='s plan-link check has the same appetite: the first draft of this very body spelled the path pattern literally and lint reported a plan link to a missing file. Whether either is worth fixing before the whole mechanism retires is decided with =ff1bec00=.
@@ -2369,11 +2395,15 @@ That is consistent with how the hook is run — Claude Code spawns it and captur
 *One design consequence, and it bends a convention slightly.* =COLUMNS= belongs to the *shell*; the Emacs process behind =emacsclient= does not have it. So =bin/statusline.sh= — whose stated job is to shuttle bytes and hold no logic — has to pass the width into the elisp call. That is passing an *environment fact* rather than adding logic, which is defensible under "maximum Emacs, minimal shell", but it should be a deliberate note in the script rather than an unremarked argument.
 
 
-* TODO The statusline says "clocked in" when it means "agent mid-turn", and the heading is merely the last one named :code:observed:
+* TODO The statusline says "clocked in" when it means "agent mid-turn", and the heading is merely the last one named :code:
 :PROPERTIES:
 :ID:       1c7051da-c020-41e1-b843-8cfc68f53e38
 :CREATED:  [2026-09-17 Thu 16:21]
 :CATEGORY: Dev
+:END:
+:LOGBOOK:
+- Tags ":code:"     from ":code:observed:" [2026-09-29 Tue 21:46] \\
+  tag dropped (the user, 2026-09-29): applied by recall, so its absence meant nothing
 :END:
 
 Observed 2026-09-17: the user read =| Bulk citation owes more entri… [13aed7ca] (clocked in, 0:00 total)= as meaning that heading was clocked, and asked whether work was being booked against it. Nothing was. The queue's last clock event was =clock_out 2a6a1355=; =13aed7ca='s only event was a queued =todo NEXT=.
@@ -2559,6 +2589,18 @@ each tag answers.
 =prose= is declared in TODO.org's =#+TAGS:= line. =observed= and =docs= are
 *not*, though both are in use — another thing for the survey to reconcile.
 
+*=:observed:= and =:bug:= were dropped* (the user, 2026-09-29, on 8b945c02).
+Every =:observed:= heading was filed after the tag was coined on 2026-09-17, and
+it was on 8 of the 180 headings filed since: a sample of which sessions
+remembered it, not of which defects were seen in use, so its absence meant
+nothing and a filter on it returned an arbitrary subset. =:bug:= overlapped it
+with no stated relation. Both were removed from every live heading, and =bug=
+from TODO.org's =#+TAGS:=; DONE.org keeps them as history. The general lesson
+this survey should carry: a tag that only recall applies is applied
+sporadically, so propose one only with the query it answers *and* a mechanism
+that asks for it at filing.
+
+
 
 ** NEXT Adopt an `observed` tag for a defect seen in use, as the severity signal the keyword set does not carry :code:bounded:
 :PROPERTIES:
@@ -2585,6 +2627,11 @@ each tag answers.
 :END:
 
 The keyword set carries no severity, so a defect someone actually hit reads the same as one reasoned about. An `:observed:` tag is the cheapest signal that distinguishes them, and it is a fact rather than a judgement — either it was seen in use or it was not.
+
+Cancelled 2026-09-29 (the user): both =:observed:= and =:bug:= were dropped as
+useless, since a tag applied only by recall was on 8 of 180 headings filed since
+it was coined. The ruling and its lesson are recorded on e28933e9.
+
 
 
 * TODO Clock brackets of seconds around work of an hour, so nearly all real time lands in unowned gaps :code:
@@ -4183,7 +4230,7 @@ The order, one line each:
 - =0eaffc39=: follows =f7847adf=, whose outcome decides what is left for it. A linked id already jumps on click, so the lookup mainly serves bare ids in rendered sessions and commit messages.
 - =8a23d6ec=: a lint rule, taken beside =b7259ee4='s lint warning, since both extend =bin/lint-org=.
 - =63df67c7=: prose only and independent, its analysis accepted 2026-09-10. It sits here because it is quick and nothing waits on it.
-- =8b945c02=: before the survey, because the survey takes tags already adopted as given, as it did =spike=, =bounded=, =arch= and =prose=. =observed= is already on 8 headings.
+- =8b945c02=: cancelled 2026-09-29 (the user); =:observed:= and =:bug:= were both dropped, and the ruling is recorded on =e28933e9=.
 - =e28933e9=: immediately before =e128e4fa=, so the survey and the resolution pass share one reading of the corpus. That shared read, between these two, is the economic half of the slice.
 - =e128e4fa=: the mass pass, now writing to a settled drawer order and settled link conventions. Its completion also closes =4c834fdb=, whose last live child it is.
 - =76a6f052=: a second pass over the corpus just read. =b52df20b= already changed the sweep's filter and width.
