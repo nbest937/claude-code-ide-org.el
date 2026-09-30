@@ -20594,6 +20594,7 @@ refresher exempts slices closed by the pass just applied. This instance was
 hand-derived through Emacs the same day — [4/4], DONE copies, blocker removed.
 
 :END:
+:DEBRIEF:
 *Debrief, 2026-09-08.* Shipped in PR #15 (=5b015e9=). Of the two fix
 options this body named, the second: the refresher exempts slices
 closed by the pass just applied. =claude-code-ide-org-refresh-slice=
@@ -20606,6 +20607,11 @@ is untouched for every later pass. Reordering apply (the first option)
 was declined as more intrusive for the same result. Two tests, both
 proven failing against the pre-change code; two existing stubs of
 =refresh-slice= widened to the new arity.
+:END:
+
+Shipped in PR #15: the refresher now exempts slices closed by the pass just
+applied, so a just-closed slice freezes showing the state it closed under;
+reordering apply was declined as more intrusive.
 
 
 **** DONE Every slice needs :COOKIE_DATA: and no slice creates it; the lint only reports
