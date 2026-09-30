@@ -26276,6 +26276,7 @@ answer: a shorter window and a truncated body both hide shrinks. A measurement
 whose errors all point the same way is worth re-running before it is quoted.
 
 :END:
+:DEBRIEF:
 *Seven of the ten swept 2026-09-01. The population was never ten by the time it
 ran.*
 
@@ -26399,6 +26400,12 @@ code had already falsified. Across =02aaae22='s seventeen scope items,
 twelve were already done. Nothing announced either. A long body is not
 mainly a readability problem — it is a *staleness* problem, and length
 is only the symptom that makes it survive unread.
+:END:
+
+All ten were accounted for: seven bodies condensed and wrapped into :PLAN:, one
+divided, one archived before the pass reached it, and =02aaae22= redistributed
+into children. The chief finding was staleness: six of the seven wrapped bodies
+carried claims the code had already falsified.
 
 
 
