@@ -51477,6 +51477,7 @@ CLOCK: [2026-07-28 Tue 11:25]--[2026-07-28 Tue 11:30] =>  0:05
 CLOCK: [2026-07-28 Tue 11:35]--[2026-07-28 Tue 12:05] =>  0:30
 CLOCK: [2026-07-28 Tue 12:35]--[2026-07-28 Tue 13:00] =>  0:25
 :END:
+:PLAN:
 A development-tooling skill packaging the reload-and-verify
 procedure this session had to rediscover by hand, more than once:
 the =after!=/hook-ordering bug that only surfaced after a real
@@ -51495,6 +51496,8 @@ session can force that same session to restart. The honest shape is
 =.claude/settings.json= changed," not a single button that does
 everything.
 
+:END:
+:DEBRIEF:
 *Follow-up:* [2/2] — per the new "test new features" rule in CLAUDE.md
 - [X] Content-accuracy check: =bin/check-org-dev-skill= (fish), a
   doctest for the skill in the same spirit as =bin/test= catching
@@ -51514,6 +51517,11 @@ everything.
   prompts instead, don't force it into a hard test. (Decision stands
   as-is — no code follow-up needed, recorded here per CLAUDE.md's rule
   to say so explicitly rather than skip silently.)
+:END:
+
+A content-accuracy check for the skill, bin/check-org-dev-skill, was added and
+all its checks passed; whether the skill triggers on its phrases was left to
+spot-checks rather than automation.
 
 **** DONE Set git identity :code:
 CLOSED: [2026-07-28 Tue 08:02]
