@@ -5214,7 +5214,7 @@ and that is the cheap order rather than an arbitrary one. Once the plan is
 extracted the remaining body *is* the debrief, so a later =:DEBRIEF:= wrap needs
 no second seam judgement.
 :END:
-
+:DEBRIEF:
 64 finished headings carry a mixed body that =bin/lint-org= reports and no
 mechanism can split automatically, since the seam is a fact about when a
 sentence was written. Proposed: read each one and cut it by tense, voice and
@@ -5281,6 +5281,12 @@ so.* [[id:f099379b-7f78-4c19-85be-abeea0bf3e71][f099379b]] proposed that a
 debrief marker on line 1 meant a debrief-only body, offering an escape from
 per-heading reading. Across the whole corpus it held for 4 of 73. Reading each
 body was the only honest route, exactly as that heading concluded.
+:END:
+
+Completed 2026-09-02: all 73 mixed bodies were cut, leaving zero =:PLAN:= lint
+warnings. Four body shapes emerged, only two interleaved headings needed the
+wrap-whole exception, and the line-1 debrief-marker hypothesis held for just 4
+of 73.
 
 
 ** NEXT Move the 88 pre-convention debriefs into :DEBRIEF:, authoring each resolution :code:bounded:
