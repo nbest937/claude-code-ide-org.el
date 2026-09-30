@@ -46147,6 +46147,7 @@ CLOSED: [2026-08-12 Wed 10:02]
 - State "DONE"       from "DOING"      [2026-08-12 Wed 10:02] \\
   dismissal shipped, three residents retired
 :END:
+:PLAN:
 [[file:~/.claude/plans/hazy-moseying-sky.md][Plan]]
 
 The watermark advances only for *applied* items — deliberately, and
@@ -46181,6 +46182,8 @@ different treatment at any later audit. The pre-cutover stales are also
 self-limiting — they stop being generated at the cutover — which argues
 against over-engineering for them specifically.
 
+:END:
+:DEBRIEF:
 *Outcome (2026-08-12, commits =2ce42fc= and =0942282=).* Chose the
 reason-carrying dismissal, stored as a =dismissed= map (timestamp ->
 reason) *inside* the existing =.applied= file. Rejected a separate
@@ -46227,6 +46230,11 @@ across the rewrite.
 file and so created an empty =386e84cc-….applied= that had not existed.
 It reads ={"applied":[],"dismissed":{}}=, which the reader treats
 exactly as a missing file. Not cleaned up — the delete was declined.
+:END:
+
+Added reason-carrying dismissal on =d=, stored as a =dismissed= map inside the
+existing =.applied= file behind a shared writer so apply cannot clobber it; the
+three permanent residents were retired by hand.
 
 
 ***** DONE Restore the read-only flag after review-apply clears it :code:
