@@ -28459,6 +28459,7 @@ written to the session scratchpad in the meantime rather than promised, and
 landed unchanged once the pass ran.
 
 :END:
+:DEBRIEF:
 *Already shipped when this was reviewed 2026-08-31 — the work landed 2026-08-28
 and the heading was simply never closed.* Confirmed in the code and in the suite
 rather than assumed: =claude-code-ide-org-review-assign= ends with the comment
@@ -28485,6 +28486,11 @@ by the previous slice's endgame while listed in this one. Neither is a
 bookkeeping error so much as evidence that a slice composed over several days
 will contain members that other work finishes on its way past. Worth a glance at
 the rest of the list before assuming anything in it is outstanding.
+:END:
+
+Found already shipped when reviewed: since 2026-08-28, assigning no longer
+advances point while m still does, resolving the disagreement between the code
+and its docstring.
 
 
 
