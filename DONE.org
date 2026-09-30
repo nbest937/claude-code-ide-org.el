@@ -29685,6 +29685,7 @@ CLOCK: [2026-08-31 Mon 13:13]--[2026-08-31 Mon 13:13] =>  0:00
 - [2026-08-31 Mon 13:13]--[2026-08-31 Mon 13:13] suggested span, accepted at review
 - State "DONE"       from "DOING"      [2026-08-31 Mon 13:48]
 :END:
+:PLAN:
 
 =claude-code-ide-org-clock-report= prefixes its table with =#+CAPTION: Clock
 summary at [2026-08-20 Thu 11:00], ...=. Two tests assert on durations with
@@ -29708,6 +29709,8 @@ what the assertion means.
 /Body restored 2026-08-20 by =org_amend=; the original capture silently
 discarded it -- see/ [[id:1cd2df62-35e9-47dc-bcce-dda7bae3c522][1cd2df62]].
 
+:END:
+:DEBRIEF:
 *Fixed 2026-08-31, as the whole class rather than the two named tests.* Every
 duration assertion in the =clock-report= section matched a substring against the
 entire report; all five tests are now routed through two new helpers in
@@ -29739,6 +29742,11 @@ else. Run count checked before failure count.
 *Done in one pass with its twin*
 [[id:c31b6c76-8ad8-45d4-a87b-39e085e31368][c31b6c76]], committed together in
 =811d180=.
+:END:
+
+Fixed as a class: every clock-report duration assertion now compares the Total
+time cell or runs against the report with its caption stripped, pinned by a
+crafted-caption test. Committed with =c31b6c76= in commit =811d180=.
 
 
 
