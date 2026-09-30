@@ -10231,6 +10231,7 @@ silent when it has nothing to report.
 document, which carries this child's design rather than a file of its own.
 
 :END:
+:DEBRIEF:
 *Verified 2026-08-18, and the plan's expectation for this heading was
 wrong.* The epic plan said cause 2 "dissolves as a consequence of (a) --
 verify rather than implement". It does not dissolve. 2(a) made clustering
@@ -10296,6 +10297,12 @@ it was that repeated no-op items train the eye to skim; an item that
 states its own reason is not skimmed the same way. If that judgement
 turns out wrong in use, the measurement above is the baseline to compare
 against.
+:END:
+
+Decided to explain rather than suppress: every no-op span item now states why it
+writes nothing. Measurement confined the zero-width case to a session's trailing
+in-flight cluster; the buffer still proposes items answerable only by dismissal,
+4 in 57.
 
 
 ***** DONE Correct the accumulated record once the aggregator is fixed :code:
