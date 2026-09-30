@@ -50427,6 +50427,7 @@ CLOSED: [2026-08-04 Tue 11:10]
 :END:
 :LOGBOOK:
 :END:
+:PLAN:
 [[file:~/.claude/plans/sharded-tickling-snowflake.md][Plan]]
 
 Sibling entry below ("Evaluate choice of shell...") lists five options
@@ -50438,6 +50439,8 @@ in =bin/statusline.fish= moves into Elisp, paired with a POSIX =sh=
 wrapper — as a real case study the rest of that decision can be judged
 against instead of staying hypothetical.
 
+:END:
+:DEBRIEF:
 *Verified, not just implemented:* new
 =claude-code-ide-org--statusline-model-name= reads and parses the
 statusLine hook JSON payload directly (=json-read-file=, no =jq=);
@@ -50455,6 +50458,11 @@ passes 95/95. =.claude/settings.json='s =statusLine.command= updated to
 Live: reloaded =config.el=, ran the exact configured command end-to-end
 against real clock state — correct output, model name and task info
 both present, no fish, no =jq= anywhere in the pipeline.
+:END:
+
+The statusline's model-name parsing moved into elisp and bin/statusline.fish was
+replaced by a six-line POSIX sh stub with no jq, verified by new tests and a
+live end-to-end run.
 
 
 
