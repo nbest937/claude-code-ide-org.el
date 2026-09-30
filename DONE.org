@@ -37998,6 +37998,7 @@ CLOCK: [2026-08-21 Fri 17:11]--[2026-08-21 Fri 17:17] =>  0:06
 - State "DONE"       from "TODO"       [2026-08-25 Tue 11:46] \\
   stub link types registered in the lint
 :END:
+:PLAN:
 
 The commit-reference convention shipped 2026-08-21
 ([[id:7b54c439-ab2c-4398-b332-2b2cc0d98ac9][7b54c439]]) says to link commits in
@@ -38022,6 +38023,8 @@ in the lint's =emacs_args=, register the link type with a stub
 =org-link-set-parameters=, or filter this org-lint check. The first is honest
 but adds a package dependency to a batch script that deliberately has none.
 
+:END:
+:DEBRIEF:
 *Fixed 2026-08-25* by the second of the three candidates recorded above --
 registering the link types with a stub =org-link-set-parameters= in
 =bin/lint-org=, rather than loading orgit or filtering the check. 29 warnings to
@@ -38045,6 +38048,11 @@ unworked for four days. The slice's revision-link design adds four orgit links
 at once and one per slice thereafter, so the monotonic growth this heading
 warned about arrived as a concrete number the same afternoon the design was
 proposed.
+:END:
+
+bin/lint-org now registers the orgit link types with a guarded stub
+org-link-set-parameters, so orgit-rev: links no longer raise lint warnings,
+without loading orgit.
 
 
 
