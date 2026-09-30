@@ -18633,6 +18633,7 @@ rule, and it names =org_body=/=org_clock_report= as the sanctioned
 readers.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-09-02* into the org skill's "Reading & parsing" section, where a
 reader arrives before they have extracted anything.
 
@@ -18659,6 +18660,11 @@ hex digits. Recorded rather than silently fixed because it is a small
 instance of this project's own theme: the write succeeded, reported
 success, and produced something wrong that only reading the result
 caught.
+:END:
+
+Shipped into the org skill's "Reading & parsing" section: timestamps come from
+named sanctioned readers, never a bare pattern match, with the three-attempt
+cost as evidence; a mangled verify command in the debrief was corrected.
 
 
 ***** DONE The sibling-survey idiom is undocumented, and org_outline cannot navigate up :code:
