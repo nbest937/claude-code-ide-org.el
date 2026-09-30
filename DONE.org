@@ -363,7 +363,7 @@ CLOCK: [2026-09-14 Mon 12:44]--[2026-09-14 Mon 12:46] =>  0:02
 - State "CANCELLED"  from "TODO"       [2026-09-28 Mon 08:30] \\
   ruling codified as "Adopting a discovery"; :ADOPTED: declined; REVIEW gate superseded by the review story
 :END:
-
+:DEBRIEF:
 Work has three states relative to an open slice and only two can be represented.
 Planned-and-open is a member line; unplanned-and-*closed* is picked up
 automatically, since =--slice-incidental-ids= defines an incidental as "a
@@ -562,6 +562,12 @@ is adopted as a member, is codified in the conventions' "Adopting a discovery".
 The =:ADOPTED:= property was declined on 2026-09-14. The proposed REVIEW gate on
 adoption was superseded by the review-story rule, under which review findings
 join the slice during REVIEW.
+:END:
+
+Cancelled as settled elsewhere: the user's ruling that discovered work is
+adopted as a slice member is codified in the conventions, the =:ADOPTED:=
+property was declined, and the proposed REVIEW gate on adoption was superseded
+by the review-story rule.
 
 
 **** CANCELLED Nothing answers who blocks whom; :BLOCKER: is a forward index with no inverse :code:
