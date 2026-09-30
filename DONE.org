@@ -17679,6 +17679,7 @@ emission stays per-turn, the record stops being per-turn.
 that any hook pauses or resumes a clock.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-09-02.* The bullet now says CLOCK entries hold *confirmed
 intervals* — work time a human accepted at a review pass — and states
 plainly that **no hook writes one**. The =Stop= and =UserPromptSubmit=
@@ -17714,6 +17715,12 @@ file loaded into every session by default. Splitting it out of the
 parent body is what made it fixable — a paragraph 400 lines into a
 container is invisible to =org_outline=, the agenda and every
 nomination.
+:END:
+
+Shipped 2026-09-02: CLAUDE.md's Session tracking bullet now says CLOCK entries
+hold confirmed intervals no hook writes, that hooks append turn-boundary
+guideposts, and that clockless DOING headings and bursty CLOCK lines are
+expected. Verified by the heading's own grep.
 
 
 ***** DONE The org skill's state-transition table still describes live clock driving :code:
