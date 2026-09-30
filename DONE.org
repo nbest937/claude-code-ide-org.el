@@ -21557,6 +21557,7 @@ falling back to the bundled org, and the minimum stated in
 work.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-09-04* (commit =f187c3e=), all three layers as decided.
 
 - *Load-time guard* in config.el, right after the requires. The
@@ -21580,6 +21581,11 @@ work.
 owed: =org-assert-version= was considered and =version<= chosen —
 the former pins against org's *compiled* version machinery and is
 aimed at mixed-compilation breakage, not a runtime floor.
+:END:
+
+All three layers shipped: a load-time guard in config.el that dies naming the
+running org version, bin/test refusing when the straight org build is missing,
+and the 9.7 floor stated in packages.el and README.
 
 
 **** DONE The convention checks compare the live Emacs against whichever checkout invoked them :code:
