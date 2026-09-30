@@ -50261,6 +50261,7 @@ CLOSED: [2026-08-04 Tue 11:10]
 :ARCHIVE_TODO: DONE
 :CLOSED_SOURCE: git
 :END:
+:DEBRIEF:
 CLAUDE.md's transition table (TODO→DOING opens a clock, etc.) was pure
 prose at one point, with nothing stopping a hand-edit in Emacs, or a
 future tool call, from violating it. Recreated 2026-07-30 as a =NEXT=
@@ -50285,6 +50286,11 @@ exists to add. =config-test.el= has four dedicated regression tests,
 including one that bypasses the wrapper entirely (a bare =org-todo=
 call) to prove the enforcement lives in org itself. =bin/test= passes
 79/79.
+:END:
+
+Found already implemented: org-blocker-hook denied DONE while the heading's
+clock ran and org-trigger-hook auto-clocked on DOING, catching every path
+including hand-edits, with four regression tests.
 
 
 
