@@ -35312,6 +35312,7 @@ which before building.
 hard-coding 2, or it will disagree with the normaliser the moment either moves.
 
 :END:
+:DEBRIEF:
 *Answered 2026-08-26 by rejecting the question*
 ([[orgit-rev:claude-code-ide-org::395d233][395d233]]). No lint assertion was
 added. Apply now repairs the drift it causes, in its settle phase, beside the
@@ -35355,6 +35356,11 @@ separation convention, and now should not. There is no drift for it to find that
 apply has not already repaired, and a rule reporting a self-healing condition is
 a rule that will only ever fire on the window between a stray edit and the next
 pass.
+:END:
+
+No lint assertion was added: apply's settle phase now runs the
+heading-separation normaliser for real, after the slice refresh, so the drift a
+lint would report is repaired where it arises.
 
 
 ***** DONE Nothing stamps the ceremony done, so the prompt relies on a model remembering :code:
