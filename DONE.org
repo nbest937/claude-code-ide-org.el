@@ -29079,6 +29079,7 @@ first — at that point the front matter's remaining unique content is about one
 line, and the question answers itself.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-08-31 as =org_body=.* Both open questions decided the way this
 body leaned.
 
@@ -29142,6 +29143,11 @@ sequences after this.
 *CLAUDE.md's read-only tools table gained an =org_body= row in the same commit*
 — the table is read as the whole read surface, so omitting it would have made
 the document wrong.
+:END:
+
+Shipped as org_body: a read-only, prefix-aware read returning a heading's own
+text with its drawers, :PLAN: included, and include_children for the subtree.
+Whether it answers over MCP could not be checked in that session.
 
 
 
