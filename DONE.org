@@ -14988,6 +14988,7 @@ function is part of that PR's diff
 ([[id:2a399034-5267-47ed-a129-20e371a77146][2a399034]] shipped it).
 
 :END:
+:DEBRIEF:
 Resolved 2026-09-11 in two passes, and the second is the one that mattered. The
 first (=0f5f362=) fixed the contradictory error message this heading's title
 names. A =med= review pass then found the scanner *underneath* it wrong in a
@@ -15013,6 +15014,12 @@ the new decoy test caught *my own* predicate calling a =:LOGBOOK:=
 inside =#+begin_example= malformed — nothing in an example block needs
 closing — which is why that predicate now tests the element type and its
 start position rather than the absence of an =:END:= alone. 601/601.
+:END:
+
+Fixed in two passes: the contradictory error message first, then the drawer
+scanner was rewritten onto =org-element= so a decoy drawer line quoted in prose
+no longer resolves, with =--unterminated-drawer-p= reporting an unterminated
+drawer as malformed.
 
 
 **** DONE The capture reply names a basename, so it cannot say which tracker received the heading :code:
