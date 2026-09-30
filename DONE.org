@@ -46886,6 +46886,7 @@ CLOCK: [2026-08-13 Thu 16:38]--[2026-08-13 Thu 16:41] =>  0:03
 - State "DONE"       from "DOING"      [2026-08-13 Thu 16:41] \\
   apply consolidates its own heading's drawer
 :END:
+:PLAN:
 
 *A documented rationale has outlived its cause.* Apply deliberately does
 not consolidate the drawer it writes into, and
@@ -46939,6 +46940,8 @@ Whatever is decided, the stale comment on =--aggregate-guideposts= must
 be corrected either way — it currently misinforms anyone reasoning about
 this.
 
+:END:
+:DEBRIEF:
 *Decided and shipped 2026-08-13: yes, but scoped to the heading apply is
 already writing.* Apply now normalises that heading's drawer between the
 write and the =save-buffer=, so one apply remains one write.
@@ -46976,6 +46979,11 @@ inverted. The fixtures had it backwards and asserted a property that was
 already true. Caught by stashing =config.el= and re-running — the check
 that had been written into a memory minutes earlier, and which found its
 first defect immediately.
+:END:
+
+Decided and shipped: apply now consolidates only the heading drawer it is
+already writing, behind =claude-code-ide-org-consolidate-on-apply=, and two
+stale docstrings claiming consolidation rounds were corrected.
 
 
 ***** DONE Editing a span's interval does not re-scope its events, so truncating loses the remainder :code:
