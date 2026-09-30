@@ -24183,6 +24183,7 @@ CLOCK: [2026-09-03 Thu 13:27]--[2026-09-03 Thu 13:30] =>  0:03
 - State "DONE"       from "DOING"      [2026-09-03 Thu 13:30] \\
   bulk mark clears the flag, mutation-tested
 :END:
+:PLAN:
 
 ~claude-code-ide-org--review-set-mark~ clears ~:auto-marked~ on any hand
 gesture, so the mark stops reading as automatic and starts counting as judgement
@@ -24197,6 +24198,8 @@ reads.
 Fix: clear ~:auto-marked~ wherever ~--review-set-all~ sets ~:marked~, and only
 there, so an item it declines to touch keeps its state.
 
+:END:
+:DEBRIEF:
 *Verified, not just implemented:* fixed as proposed, in commit ~55ac27a~ on the
 PR 8 branch. ~--review-set-all~ now clears ~:auto-marked~ on the branch that
 sets ~:marked~, and only there.
@@ -24212,6 +24215,11 @@ Worth noting alongside :ID: 442267b9, closed minutes earlier: these are the same
 defect twice, one field apart. Both are "a field that arrives populated is read
 as evidence a human acted", and the project already had the answer written down
 for marks. Neither was found by the code that introduced them.
+:END:
+
+Fixed as proposed: the bulk mark command now clears :auto-marked only where it
+sets :marked, so bulk hand marks count as judgement while refused items keep
+their state; both mutations were tested.
 
 
 **** DONE A note that arrived from the queue counts as human judgement, so `g` prompts on a fresh buffer :code:
