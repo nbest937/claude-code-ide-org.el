@@ -31787,7 +31787,7 @@ CLOSED: [2026-08-27 Thu 16:29]
 - State "DONE"       from              [2026-08-27 Thu 16:29] \\
   shipped 2e9dbf4; body owed once the capture lands
 :END:
-
+:DEBRIEF:
 *Shipped [2026-08-27 Thu 16:20] as
 [[orgit-rev:claude-code-ide-org::2e9dbf4][2e9dbf4]], and filed afterwards rather
 than before* -- the same omission this session had already diagnosed and
@@ -31835,6 +31835,12 @@ so the example was wrong twice: no such id, and no ambiguity to illustrate.
 
 *A truthful illustration needs three characters*, where this corpus does
 collide: =b5f=, =c8a= and =2b0= each match two headings.
+:END:
+
+Shipped in commit =2e9dbf4=: id prefixes of four to eight characters now
+resolve, rescanning only when nothing matches and listing ambiguous candidates,
+which ended the double corpus rescans that pinned Emacs. The heading was filed
+after shipping.
 
 
 *** 2026-08-28 Friday
