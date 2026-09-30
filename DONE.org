@@ -30782,6 +30782,7 @@ most frequently *felt* friction of the three: every =org_amend= and
 its own decision about grouping rather than being absorbed here.
 
 :END:
+:DEBRIEF:
 *Closed 2026-08-29 at 10 of 10.* The title's promise — "for the model and the
 human alike" — is met on both sides, and the two halves turned out to need
 different things.
@@ -30825,6 +30826,11 @@ unfiled. The one adjacent question raised during the work — whether a
 body-returning read is a mode on =org_outline= or its own tool — is filed as
 [[id:ff1352b3-2732-4422-9f0d-4b3cb6fd8ff3][ff1352b3]] rather than left in this
 body.
+:END:
+
+Closed at ten of ten: 8-character prefixes resolve for the model at every
+surface that could invent a tail, including DONE.org, and for the human through
+goto, org_set_property and a richer org_outline. No residue was left.
 
 
 ***** DONE Expand an 8-character prefix at both surfaces where a tail gets invented :code:
