@@ -22310,6 +22310,7 @@ human-triggered — a mechanism whose correctness rests on the model doing
 something it was merely asked to do.
 
 :END:
+:DEBRIEF:
 *Measured 2026-09-04, and the assumption fails about one time in
 three.* Method: every =SessionStart= =hook_success= attachment with
 non-empty =additionalContext= across all 49 transcripts in this
@@ -22351,6 +22352,11 @@ question). Inject-and-hope stops being the house pattern;
 [[id:d7849119-8224-4993-a8ab-83e1434df53c][d7849119]] part 2 should
 specify both channels if built. The statusline option stays open for
 *standing* state; =systemMessage= fits one-shot reports better.
+:END:
+
+Measured: about one in three genuine startup injections went unrelayed.
+Recommended adopting systemMessage alongside additionalContext for the recovery
+and ceremony hooks, so their reports reach the human without relying on relay.
 
 
 **** DONE Audit CLAUDE.md for directives that belong in the org skill instead :code:
