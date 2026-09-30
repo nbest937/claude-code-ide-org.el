@@ -41008,6 +41008,7 @@ carries an =:ARCHIVE_OLPATH:= naming its source category.
 -----
 
 :END:
+:DEBRIEF:
 *Sweep executed 2026-08-17.* TODO.org 12,927 -> 4,645 lines; DONE.org 865
 -> 9,423. All 41 completed level-2 subtrees moved into mirrored categories,
 newest-completion-first. The *judge the structure question* half of this
@@ -41140,6 +41141,12 @@ Left DONE: the archiving this heading actually did is done, and the structure
 question it deferred now lives at
 [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]], promoted to TODO the same
 day on separate evidence.
+:END:
+
+Archived all 41 completed level-2 subtrees into mirrored DONE.org categories,
+then judged the structure question: keep the hierarchy and categories and
+rebalance nothing. The flattening question was later reopened and now lives at
+=29439196=.
 
 
 
