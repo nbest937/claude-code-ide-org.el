@@ -40238,6 +40238,7 @@ Every member already carries its own detail; this heading deliberately
 holds only what the set shares.
 
 :END:
+:DEBRIEF:
 *All three children done, 2026-08-19.* The arc held: the diagnosis
 decided what rules were worth writing, and the rules were validated
 before being enforced.
@@ -40263,6 +40264,12 @@ composition — see
 is written nowhere and why writing it down is not trivial. No clock: a
 container's own CLOCK line lands inside the total org already rolls up
 from its children.
+:END:
+
+All three children were done: the misplaced-heading reports were diagnosed as
+markdown bold and fixed, two structural lint checks shipped, and a pre-commit
+gate now lints staged org files, landing in that order so rules were validated
+before being enforced.
 
 
 ***** DONE Diagnose the 11 misplaced-heading reports org-lint found :code:
