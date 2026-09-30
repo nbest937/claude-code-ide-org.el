@@ -9767,6 +9767,7 @@ proximity rather than membership: the queue is complete without it.
 document, which carries this child's design rather than a file of its own.
 
 :END:
+:DEBRIEF:
 *Ran the free check 2026-08-18, and it says do not instrument.* The plan
 asked for this before writing any code: 891 post-cutover guideposts
 across 16 sessions, classified from data already on disk.
@@ -9825,6 +9826,12 @@ left there rather than duplicated here.
 =transcript_path= plus an offset in =bin/hooks/queue-append= — is not
 warranted: it would answer a question whose answer no longer changes any
 number.
+:END:
+
+Nothing was built: the check over 891 guideposts found no phantom resumes, only
+interrupts and queued follow-ups, and the harm has no mechanism left because
+nothing claims human-present time any more. With only two subagent runs, the
+check alone is weak evidence.
 
 
 ***** DONE Two clock mechanisms disagree, and one of them predates the cutover :code:
