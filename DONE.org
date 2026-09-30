@@ -51055,12 +51055,15 @@ CLOSED: [2026-07-29 Wed 05:57]
 :ARCHIVE_TODO: DONE
 :CLOSED_SOURCE: git
 :END:
+:PLAN:
 Structural enforcement inside org itself. Block DONE while a clock
 is still running on that heading, or auto-open a clock the moment
 DOING is set through *any* path, not just our org_set_todo wrapper —
 this is the layer that also catches hand-edits made directly in
 Emacs.
 
+:END:
+:DEBRIEF:
 *Confirmed not a repeat of the org-clock-load trap:*
 =org-blocker-hook=/=org-trigger-hook= are plain defvars in org.el
 itself, present the instant =(provide 'org)= fires, and =add-hook=
@@ -51085,6 +51088,11 @@ left out:*
 trigger fires on bare =org-todo= bypassing the wrapper, trigger skips
 a redundant clock-in, trigger doesn't fire for non-DOING states).
 =bin/test= 39/39 at merge.
+:END:
+
+Shipped the blocker and trigger hooks with six tests, accepting two limits: the
+blocker covers DONE but not CANCELLED, and a direct DOING to DONE on a clocked
+heading now blocks rather than auto-closing.
 
 
 
