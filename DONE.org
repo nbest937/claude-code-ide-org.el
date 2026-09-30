@@ -41287,6 +41287,7 @@ CLOCK: [2026-08-17 Mon 14:07]--[2026-08-17 Mon 14:22] =>  0:15
 - State "DONE"       from "TODO"       [2026-08-17 Mon 15:01] \\
   two children shipped, one cancelled as false
 :END:
+:PLAN:
 
 Every =:ID:=-keyed path in this module assumes =org-id-find= returns a
 marker. Measured 2026-08-17: 22 of 151 registered IDs did not resolve,
@@ -41323,6 +41324,8 @@ carries the measurement and the targeted alternative.
 
 -----
 
+:END:
+:DEBRIEF:
 *Outcome, 2026-08-17.*
 
 *What shipped.* Two of the three children.
@@ -41375,6 +41378,12 @@ by hand that morning and cleared them before anything could inspect
 them. =--id-health= separates "heading gone" from "in another file",
 which =org-id-find= cannot, so the question is answerable the next time
 it happens. It was not answered this time.
+:END:
+
+Two of the three children shipped: a guard against nil markers and an
+unresolvable-id health report in the review buffer. The third, a supposed
+archive-side cause, proved false and was cancelled, so tolerating unresolvable
+ids became mandatory.
 
 
 ***** CANCELLED org_archive leaves org-id-locations pointing at the old file :code:
