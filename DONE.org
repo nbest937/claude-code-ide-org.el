@@ -23452,6 +23452,7 @@ Note =org_divide= is *not* a fourth path: dividing a note under a slice
 introduces no keyword, so it cannot mint the hybrid on its own.
 
 :END:
+:DEBRIEF:
 *Falsified, and by the docstring of the very function this was about.* The
 prospective half above reasons that the fix shape is open, listing "refusing at
 apply time means blocking a human mid-pass" as a *cost*. That has the valence
@@ -23487,6 +23488,12 @@ transitions would prevent no minting while wedging the repair, since it could
 then never be closed or cancelled on its way out. Clearing a keyword is
 permitted for the same reason — that *is* one of the two repairs, the other
 being a refile out of the slice.
+:END:
+
+The premise that the fix was open design was falsified. Shipped an
+org-blocker-hook guard denying a keyword grant inside a slice, covering apply
+and hand transitions, while leaving later transitions and keyword clearing
+permitted.
 
 
 **** DONE "Backlog = wrap unedited" would bury a debrief in 88 of 93 headings :code:
