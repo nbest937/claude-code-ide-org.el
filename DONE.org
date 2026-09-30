@@ -39478,6 +39478,7 @@ container's own sole remaining child — the second is more useful and
 more surprising, and no evidence has been gathered either way.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-08-21*, in one pass with
 [[id:c8a6c5d2-8777-44d2-9900-e56eb03aa2d9][c8a6c5d2]] -- two guards on one
 function sharing one test scaffold. =--trigger-auto-promote-sole-todo= now
@@ -39502,6 +39503,10 @@ that test's discriminating partner -- the pre-existing sole-remaining-TODO
 promotion test -- which is the same over-application signal 62c6b1be relied on.
 In the running Emacs after =load-file=: a container sole survivor stays TODO
 with zero =Auto-promoted= lines, a leaf sole survivor comes out NEXT with one.
+:END:
+
+The auto-promote trigger now promotes nothing when the sole surviving TODO is a
+container.
 
 **** DONE Correct the next-session prompt: swapped trigger, stale rebuttal, ambiguous verify :code:
 CLOSED: [2026-08-21 Fri 12:56]
