@@ -17760,6 +17760,7 @@ pointer to CLAUDE.md's.
 returns nothing.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-08-21* (commit =7da5a89=). The rules now name the queue rather
 than live driving, per this heading's own "done when": queue-repo reading first
 (side effect = the =org_clock_in=/=org_clock_out= call, file untouched until a
@@ -17768,6 +17769,11 @@ still travels. Added the =PLANNING= and =REVIEW= rows the table lacked, matching
 CLAUDE.md's table, which the skill now names as authoritative here. Verified by
 this heading's own check -- =grep 'always opens a new CLOCK'= over the skill
 returns nothing.
+:END:
+
+Shipped in commit 7da5a89: the org skill's transition rules now describe the
+queue, with the literal-edit reading scoped to plain org setups, and the table
+gained PLANNING and REVIEW rows. The heading's own grep check returns nothing.
 
 
 ***** DONE CLAUDE.md's open-a-clock rule is missing the container exception :code:
