@@ -666,6 +666,7 @@ CLOSED: [2026-09-28 Mon 08:24]
 - State "CANCELLED"  from "MAYBE"      [2026-09-28 Mon 08:24] \\
   obsolete: org-depend-block-todo already consults :BLOCKER: on org-blocker-hook
 :END:
+:DEBRIEF:
 [[file:~/.claude/plans/blocker-hook-enforcement.md][Plan]]
 
 Captured 2026-08-04, surfaced while adding a =:BLOCKER:= property to
@@ -724,6 +725,10 @@ this project may only need one direction enforced.
 
 Cancelled 2026-09-28 as obsolete: =org-depend-block-todo= already sits on
 =org-blocker-hook= and refuses =DONE= while =:BLOCKER:= names unfinished work.
+:END:
+
+Cancelled as obsolete: =org-depend-block-todo= already sits on
+=org-blocker-hook= and refuses DONE while =:BLOCKER:= names unfinished work.
 
 
 **** DONE org_capture accepts a note argument it never records :code:
