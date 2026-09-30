@@ -51315,6 +51315,7 @@ CLOSED: [2026-07-28 Tue 17:37]
 :LOGBOOK:
 CLOCK: [2026-07-28 Tue 16:50]--[2026-07-28 Tue 17:00] =>  0:10
 :END:
+:DEBRIEF:
 Companion to the retrospective one-time cleanup ("Consolidate
 historical SESSIONS/LOGBOOK entries", done this session): wire the
 same rounding/merging logic into =org_clock_out= itself, so the
@@ -51351,6 +51352,11 @@ never corrupt a running clock — the retrospective run and its tests
 already exercise that exact boundary. The main remaining risk is
 purely mechanical: forgetting to scope the on-the-fly call to *only*
 the heading that was just clocked out of.
+:END:
+
+org_clock_out consolidated the drawer on every clock-out, idempotently, by a
+full rescan rather than the incremental scheme proposed, since the drawers are
+small.
 
 
 
