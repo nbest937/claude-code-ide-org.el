@@ -25219,6 +25219,7 @@ ever nominating one as a next action. And what becomes of a rejected proposal --
 =CANCELLED= keeps the argument, which is usually the part worth keeping.
 
 :END:
+:DEBRIEF:
 *Settled and written down 2026-09-02*, in =.claude/rules/org-conventions.md=
 beside the slice convention — which is where this heading's own Done-when put
 the bar, rather than agreement here.
@@ -25258,6 +25259,12 @@ the mechanism that justified it.
 
 *Not built:* the single command for accepting a proposal. Three calls is cheap
 and proposals are not yet routine — the body's own condition for building it.
+:END:
+
+The slice-proposal procedure was written into the org conventions: a proposal
+lives where a slice lives, marked by an absent :KIND:, keyworded MAYBE, and
+CANCELLED when rejected. A single command for accepting a proposal was not
+built.
 
 
 **** DONE MCP tools that write an org file time out; one reports success and persists nothing :code:
