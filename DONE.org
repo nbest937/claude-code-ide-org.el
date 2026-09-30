@@ -47019,6 +47019,7 @@ CLOCK: [2026-08-14 Fri 19:30]--[2026-08-14 Fri 19:31] =>  0:01
 - [2026-08-14 Fri 19:30]--[2026-08-14 Fri 19:31] assigned at review
 - [2026-08-14 Fri 19:32]--[2026-08-14 Fri 19:33] assigned at review
 :END:
+:DEBRIEF:
 [[file:~/.claude/plans/cheerful-riding-robin.md][Plan]]
 
 The =Stop= hook fires when a turn ends. A turn that stalls mid-flight —
@@ -47354,6 +47355,12 @@ be fixed for the queue and its review loop to be complete and correct.
 An epic that absorbs every defect found in the code it produced can
 never close, and [[id:38b92521-bba4-4bb5-9cd9-465862471a72][38b92521]]
 is waiting on this one closing.
+:END:
+
+Fixed and verified live in commit c8c33a1: PermissionRequest turned out to carry
+no tool_use_id and a probe showed prompts serialised, so the block sentinel
+became one unkeyed slot per session; a live 334-second wait then split the span
+where the gap threshold alone would not have.
 
 
 
