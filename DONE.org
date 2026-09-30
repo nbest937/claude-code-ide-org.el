@@ -12764,9 +12764,16 @@ CLOCK: [2026-09-16 Wed 14:55]--[2026-09-16 Wed 15:16] =>  0:21
 =hooks/hooks.json= wires =bin/hooks/footnote-check= as a =Stop= hook, so it blocks turns in every consuming project — and the string "footnote" appeared on the whole plugin surface exactly once, in that wiring line. The hooks table listed six rows and not this one; no reference stated the convention, which lived only in the author's private =~/.claude/CLAUDE.md= and travelled with nobody. The user confirmed 2026-09-16 that it *should* ship: tasks in any other project are expected to be cited by =:ID:= prefix exactly as here. So the gap was the rule, not the hook.
 
 :END:
+:DEBRIEF:
 *Resolved:* =skills/org/references/org-footnote-citations.md=, promoted always-loaded — an id gets cited in a response about source, tests or commits with no =.org= file in play, so a path scope would make it a rule that does not load. It carries the canonical form, why the superscript markers were retired, and the three things about the hook's reading that have each been got wrong: the =---= separator, fenced blocks, and that it reports a strict subset. The hooks table gained its two missing =Stop= rows in the same pass. One correction after writing: the hook reads =last_assistant_message=, which carries only the turn's *final text block*, and the looser wording would have walked a consumer into the wall that killed this repo's orphan check.
 
 *Postscript, 2026-09-17:* the user retired =~/.claude/CLAUDE.md= once this shipped, on the ground that its footnote half was now duplicated and neither of its rules was wanted in projects without this machinery. The duplication this heading created was therefore resolved by deletion rather than by reconciliation — see =27bb4b08= for what that cost in cross-references.
+:END:
+
+Shipped =org-footnote-citations.md= as an always-loaded promoted reference
+carrying the canonical form and the hook's three reading pitfalls, and the hooks
+table gained its two missing Stop rows. The user then retired
+=~/.claude/CLAUDE.md=, resolving the duplication by deletion.
 
 
 **** DONE Three copies of the keyword set sit outside check-conventions, and two of them ship :code:
