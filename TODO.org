@@ -484,8 +484,104 @@ CLOCK: [2026-09-25 Fri 12:15]--[2026-09-25 Fri 12:17] =>  0:02
 - Tags ":code:arch:" from ":code:"     [2026-09-28 Mon 13:01] \\
   classified: changes how two writers treat text, plus a corpus conversion and an open backlink design
 :END:
+:PLAN:
 
-Bodies cite other headings in two forms, and often both in one heading: measured with =org-element= on 2026-09-25, TODO.org holds 619 verbatim =prefix= references to real ids and 403 =[[id:…]]= links (52 headings carry both), and DONE.org holds 981 and 1,546. Decided by the user the same day: links are the standard, and every verbatim reference in TODO.org is converted, including those pointing into DONE.org. Links survive archiving, because =org-id-locations= covers the archive (=org-id-search-archives=) and =org-id-find= rescans on a stale entry. What they buy is navigation, and a link graph org already answers: =org_query "link:target=<prefix>"= returns every heading linking to one, one call, as =blocked:= does for blockers. A verbatim reference is invisible to it. Proposed: =org_amend= and =org_capture= rewrite a verbatim 8-hex prefix that resolves to a heading into =[[id:<full>][<prefix>]]= as they write, so no writer ever types a full id; a lint catches hand edits; a one-off pass converts TODO.org; =61f05e56= teaches =link:target== in =org_query='s description. Whether =org_outline= should show backlinks beside =:BLOCKER:= is a design question for the brainstorm. Verbatim ids inside a code fence stay verbatim, since there they are transcript.
+Bodies cite other headings in two forms, and often both in one heading: measured
+with =org-element= on 2026-09-25, TODO.org holds 619 verbatim =prefix=
+references to real ids and 403 =[[id:…]]= links (52 headings carry both), and
+DONE.org holds 981 and 1,546. Decided by the user the same day: links are the
+standard, and every verbatim reference in TODO.org is converted, including those
+pointing into DONE.org. Links survive archiving, because =org-id-locations=
+covers the archive (=org-id-search-archives=) and =org-id-find= rescans on a
+stale entry. What they buy is navigation, and a link graph org already answers:
+=org_query "link:target=<prefix>"= returns every heading linking to one, one
+call, as =blocked:= does for blockers. A verbatim reference is invisible to it.
+The proposal that closed this paragraph when it was the body is superseded by
+the design below, approved in chat by the user 2026-09-28 together with
+b7259ee4's.
+
+*The design: one citation linker, shared with [[id:b7259ee4-9aa1-4b55-8cf2-fbbacdea5310][b7259ee4]].* Heading ids, commits
+and PRs are one problem: a citation written verbatim that should open the thing
+it names, and conventions stated in prose have not made writers link it (16 bare
+commit SHAs on TODO headings, measured 2026-09-28). So one function links all
+three as the tools write, one lint catches hand edits, and one pass converts
+TODO.org. This drawer holds the shared design and the id rows; b7259ee4's holds
+the commit and PR rows.
+
+*The linker.* Given text and the file it is bound for, it returns the text with
+its citations linked. An 8-hex prefix, in verbatim or as a bare word, becomes an
+id link whose description is the prefix, when it resolves through the id index
+to exactly one heading. Lengths never overlap: 8 hex is only ever an id, and 7
+hex never is. Never touched: text already inside a link, inside a =#+begin_=
+block, or in =~code~=. Idempotent. A verbatim candidate that does not resolve
+stays verbatim, since it may not be a citation at all, while an explicit id link
+that does not resolve is still refused, as today. The linker itself never
+refuses a write.
+
+*Where it runs.* Every write path becomes: escape headline lines inside blocks,
+link citations, resolve explicit id links, fill. The fill moves from before the
+resolve to last, because linking changes line lengths and the fill measures
+display width with link markup skipped. It runs on =org_edit='s =new_string=, on
+=org_amend='s text (a queued amend is linked at apply, as b52df20b decided for
+the fill), and on =org_capture='s =note=, never on a title, which end matter and
+replies quote verbatim. Structural tools that write no prose are untouched. The
+reply counts what it linked ("linked 2 citations"), because the next =org_edit=
+must copy its =old_string= from disk, not from what was sent.
+
+*The lint.* A =bin/lint-org= warning on a verbatim citation the linker would
+convert, in the body, =:PLAN:= or =:DEBRIEF:= of an unfinished heading in
+TODO.org. It calls the linker's own detection, with the lint's table of known
+ids as the resolver, so there is one definition of a citation. A warning, not an
+error: after the pass only a human's hand edit can leave one, and the style of a
+citation does not justify blocking that commit.
+
+*The pass.* One command maps the linker over every heading in TODO.org, body,
+=:PLAN:= and =:DEBRIEF:=, skipping slice checklists and incidentals. DONE.org is
+never touched (the user, 2026-09-25, and the conventions' prospective-only rule
+for commits). It dry-runs by default interactively and reports counts per kind
+and per heading. It is lossless by check: with each link reduced to its
+description and each converted token to its bare text, the result must equal the
+original, or that heading is left alone. About 355 ids, 19 commits and 12 PRs
+when counted on 2026-09-28. It is committed on its own, and before e128e4fa
+runs.
+
+*Backlinks.* =org_query "link:target=<prefix>"= finds links in bodies and in
+drawers, verified 2026-09-29, and misses a link placed directly after an
+emphasis marker, one that opens a bold span. =org_query='s description teaches
+the predicate and that limit. Backlinks beside =:BLOCKER:= in =org_outline= are
+left out: one query answers them, and every scoped outline would pay for them.
+
+*The cost, stated.* Each id link carries about 45 characters of markup, so
+converting TODO.org's verbatim ids adds about 16k characters: some 4k tokens on
+a whole-file read, and less on the outline, which carries bodies only. Accepted
+with the decision above.
+
+*Prose.* The shipped conventions drop their warning against opening a slice
+drawer's list item with an id link: 7ee3b71a made every member scan start below
+the drawers, and a test pins it. The descriptions of =org_edit=, =org_amend= and
+=org_capture= say citations are linked as written. The commit prose is
+b7259ee4's. All of it inside the word budget.
+
+*Tests (ERT).* The linker: the id kind converts; each skip holds (a link, a
+block, =~code~=, a capture title); the length rule; an unresolved candidate is
+left alone; idempotence. The pipeline: each writer links and counts, a queued
+amend links at apply, and with the fill last a line of links is not wrapped as
+if long. The lint warns on a live heading and not on a finished one, nor
+anywhere in DONE.org. The pass: a dry run writes nothing, an injected mismatch
+is refused, a slice checklist is skipped. Each skip and condition test is shown
+to fail with its guard removed. Live: =link:target= finds a converted reference.
+The commit and PR tests are b7259ee4's.
+
+*Built together with b7259ee4*, on one branch and in one pull request, since the
+pipeline, the lint and the pass are shared.
+:END:
+
+Bodies cite other headings by verbatim 8-hex prefix about as often as by link,
+and a verbatim reference is invisible to navigation and to =link:target=
+backlinks. One citation linker, shared with b7259ee4, links ids, commits and PRs
+as the tools write; a lint warns on hand edits, and a one-off pass converts
+TODO.org. Design in =:PLAN:=.
+
 
 
 * TODO org_capture runs in whatever buffer the user has selected, so an Org QL view turns a capture into a prompt nobody at the tool can answer :code:bug:
@@ -4090,15 +4186,44 @@ family*: "PR #22" in a body should be a live link to the PR's URL
 (=gh pr view N --json url= is the lookup), for the same reason the
 commit gets one — the reference should open the thing it names.
 
-Scope, three parts. *Practice*: new bodies and debriefs write
-=orgit-rev:= links for commits and URL links for PRs — a rules-file
-sentence extending the existing convention to name debriefs and PRs
-explicitly. *Retrofit*: the 2026-09-09 debriefs (the author and the
-requester agree, so the "prospective only" grandfather clause does not
-protect them) get their citations converted. *Enforcement candidate*:
-=bin/lint-org= warning on a bare 7-hex sha or bare "PR #N" in a live
-heading's body or =:DEBRIEF:= — mechanical to detect, and the closed
--heading exemption mirrors the existing symbol-citation rule.
+*The scope that stood here is superseded* by the design approved in chat by the
+user 2026-09-28. It was a rules sentence, a retrofit of the 2026-09-09 debriefs
+and a lint warning, and prose had already failed: the convention has asked for
+links since 2026-08-21, yet on 2026-09-28 16 bare SHAs sat on TODO headings, and
+TODO.org held 12 bare "PR #N" against 2 PR links. So enforcement moves to the
+write path. The linker, the pipeline, the lint and the one-off pass over
+TODO.org are shared with [[id:f7847adf-a408-4ad0-ae0c-8d3c19b79f2b][f7847adf]] and designed in its =:PLAN:=; this drawer
+holds the rows that are this heading's.
+
+*Commits.* A 7-to-12-hex SHA, in verbatim or after the word "commit", becomes
+=orgit-rev:./::<sha>= with the SHA as description, when =git cat-file -e
+<sha>^{commit}=, run from the target file's directory, confirms it and the
+=orgit-rev= link type is registered. Otherwise it stays as written: a consumer
+without =orgit= keeps verbatim text, and a missing or failing =git= costs
+nothing.
+
+*The =./= form, not the repo's name* (the user, 2026-09-29).
+=orgit--repository-directory= falls back to =expand-file-name=, so =./= resolves
+against the buffer's =default-directory=. That is the repo, because
+=find-file-visit-truename= makes TODO.org visit its true path even when opened
+through =~/org/=, and =org-agenda-open-link= follows a link inside the source
+buffer; verified live 2026-09-29. It is more portable than the named form, which
+needs =magit-repository-directories= to know the repo. A link copied into
+another repo's file would resolve there instead, but a citation stays in the
+file that makes it. The 255 named links already written stay, since they work.
+
+*PRs.* "PR #33" becomes a link to =https://github.com/<owner>/<repo>/pull/33=
+with "PR #33" as description, when the file's repo has a GitHub =origin=; read
+from the remote, with no network.
+
+*Prose.* The conventions' "Referring to a commit" says the tools link commits,
+in the =./= form, where =orgit= is installed, and loses its "use the repo name"
+and "no implicit repo" paragraphs, which the =./= finding retires. The footnote
+rule's in-body commit form becomes =./=.
+
+*Tests.* Commits and PRs convert; a 7-hex that is not a commit, a missing
+=orgit-rev= link type and a non-GitHub =origin= each leave the text alone; each
+shown to fail with its guard removed.
 
 Distinct from [[id:41cf5830-fc2e-4dc6-b243-a0c2718a53a3][41cf5830]],
 which indexes a heading's *own* git history one hop away; this is
@@ -4117,12 +4242,11 @@ Point the retrofit and the lint at that heading to see what passing
 looks like.
 :END:
 
-Prose in bodies and debriefs cites commits as bare =sha= text and PRs
-as bare "PR #N", though the convention already mandates =orgit-rev:=
-links for commits. Proposed: extend the convention to debriefs and PR
-URLs explicitly, retrofit the 2026-09-09 debriefs, and add a lint
-warning for bare citations on live headings. Scope and reasoning in
-=:PLAN:=.
+Commits and PRs are cited as bare text, though the convention has asked for
+=orgit-rev:= links since 2026-08-21 and prose has not changed the practice. The
+tools link them as they write, through the citation linker shared with f7847adf,
+in the portable =orgit-rev:./::<sha>= form; a lint warns on hand edits, and the
+one-off pass converts TODO.org. Design in =:PLAN:=.
 
 
 * TODO An unmatched clock_in grows an ever-wider span across review passes :code:
