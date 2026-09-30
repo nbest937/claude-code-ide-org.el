@@ -4806,7 +4806,7 @@ guessed at.
 seams being created and does nothing for existing ones, which remain
 [[id:f099379b-7f78-4c19-85be-abeea0bf3e71][f099379b]]'s three routes.
 :END:
-
+:DEBRIEF:
 Prospective and retrospective prose accumulate in one body and have to be told
 apart later, which [[id:f099379b-7f78-4c19-85be-abeea0bf3e71][f099379b]]
 measured as not mechanically recoverable — the seam is a fact about when a
@@ -4844,6 +4844,12 @@ reason.
 nothing can revise a drawer once written. Both are
 [[id:501a8422-9e93-4d2d-98bb-db0ab2c16e37][501a8422]], which would collapse this
 to one call.
+:END:
+
+Adopted plan-first on 2026-09-02: a plan is written into =:PLAN:= at
+composition, and the reading rule became skip the drawer on a finished heading,
+read it on a live one, documented in four places. The clumsy three-call workflow
+was filed as =501a8422=.
 
 
 ** DONE Give org_amend a drawer argument, so a plan can be revised and written in one call :code:
