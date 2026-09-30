@@ -23379,6 +23379,7 @@ The fix keeps the file's existing fail-open posture: a check that cannot arm its
 own guard should not fire.
 
 :END:
+:DEBRIEF:
 *Verified, not just implemented:* the regression test was written alongside
 =b02191d6='s suite and deliberately **held back rather than committed red** — it
 fails against the unfixed hook *and* against the fix-1-only hook, and passes
@@ -23402,6 +23403,11 @@ enforced and points at the write.
 reports 5 passed, 3 failed, and the same three fail identically in a detached
 worktree at =8c52cd6=, so =origin/main= is shipping a red suite. Out of this
 story's scope; not left in prose.
+:END:
+
+Shipped: the hook now exits 0 when it cannot write its sentinel, failing open,
+and its header's once-per-session claims were corrected; the pre-existing red
+suite was filed as =0fa403f4=.
 
 
 ***** DONE org_set_todo mints the slice hybrid the other two guards now refuse
