@@ -12682,7 +12682,13 @@ CLOSED: [2026-09-16 Wed 18:34]
 PR #25 review, LOW. The hook built each suggested line as =$resolved  \=id\=  ...=, with a two-space prefix, while =org-footnote-citations.md= — shipped in the same PR — gives the canonical form flush-left. The message says "Append these lines", so the indent was what a reader copied, and the rule and its enforcement disagreed about the one thing the rule is precise about. =bin/footnote-check-test= was blind to it: its pairing assertion matches a substring and is indifferent to the prefix.
 
 :END:
+:DEBRIEF:
 *Resolved:* two spaces dropped, plus a separate anchored assertion. Worth recording how that assertion was got wrong first: written with an embedded newline in the pattern, it PASSED against the indenting hook, because =grep= reads a newline as a pattern separator and the empty alternative matches every line. Anchored with =^= it failed as intended, then passed on the fix. 24 passed, was 23.
+:END:
+
+The two indenting spaces were dropped and an anchored assertion added; its first
+version passed wrongly because grep read an embedded newline as a pattern
+separator.
 
 **** DONE A project boundary splits a span, and the shipped reference still presents the threshold as the whole rule :code:
 CLOSED: [2026-09-16 Wed 18:29]
