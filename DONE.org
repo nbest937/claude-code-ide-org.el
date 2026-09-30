@@ -21957,6 +21957,7 @@ thing with less indirection. The convention gets written down as part
 of implementation, so it is not re-litigated per script.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-09-04 in three commits* (=8dc1628=, =26d14d5=, plus the
 convention/plan commit following), and *fish is now absent from the
 repo*.
@@ -21990,6 +21991,11 @@ described deleted hooks) and the archive is synced.
 with =jq= — that is the surviving tier working as designed, not
 residue. =bin/test= keeps its =BASH_SOURCE=/array bash; it is dev
 tooling.
+:END:
+
+Fish was removed from the repo: check-conventions went to bash and
+check-org-dev-skill to an elisp core behind a POSIX sh stub, and the
+Emacs-boundary scripting convention was written into CLAUDE.md.
 
 
 *** 2026-09-04 Friday
