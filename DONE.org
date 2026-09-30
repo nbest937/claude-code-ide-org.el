@@ -12267,6 +12267,7 @@ Found reviewing =406e9200= for its close, 2026-09-17. =507754ba= closed 2026-08-
 This is deliberately **not** claiming the record is wrong. It is claiming nobody has looked since, which is the same gap =e3d1531d= turned out to be hiding — 95 of 101 intervals, found only because someone finally asked the audit log. Blocked on =507754ba='s measurement; if that comes back clean, close this as CANCELLED with the number recorded, which is a result worth keeping either way.
 
 :END:
+:DEBRIEF:
 *Measured 2026-09-17, and the premise does not survive it.* Where =507754ba= compared the **spans offered**, this compared the **runs recorded** — one CLOCK line each, which is what actually reaches the record. Both versions run over identical input, =--span-work-runs= having the same signature in each so only the aggregator upstream differs.
 
 : OLD   703 runs   40.57 h
@@ -12288,6 +12289,12 @@ The 82-second idle gap between them is no longer absorbed. Total recorded time f
 *And it vindicates the split.* Had =507754ba= not been separated from the re-derivation this morning, the 68% figure alone would have justified a corpus rewrite of the whole CLOCK record — for one interval and eighty-two seconds. Measuring before correcting is what the =e3d1531d= / =b5448133= precedent exists for, and this is the second time in two days it has paid.
 
 *One defect in the probe, recorded because it nearly misreported the result.* The first run printed =n=1= for both versions: =nreverse= was called on the accumulator before its length was read, leaving the variable pointing at the last cons. The totals and the set comparison were computed independently and were unaffected, and the true counts came from the dumps — but a less redundant probe would have reported "one run" with a straight face.
+:END:
+
+Cancelled on measurement: comparing recorded runs rather than spans, 702 of the
+old aggregator's 703 runs were identical under the new one and total recorded
+time fell by about seventy seconds across a month, so no re-derivation was
+wanted.
 
 
 **** DONE [14/14] A span is only as true as its owner, its edges and its payload :code:
