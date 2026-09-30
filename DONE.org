@@ -23181,6 +23181,7 @@ its negative case, which is why the suite is green; that gap is part of this
 heading.
 
 :END:
+:DEBRIEF:
 *Verified, not just implemented:* three new ERT tests, each **run red first**
 against the unfixed guards before the fix existed — the failing assertion
 printed =Refiled: "Test heading" under "a note under the slice"=, which is the
@@ -23216,6 +23217,11 @@ were updated to the new wording rather than relaxed.
 *childless* keyword-less note, which is why the suite stayed green over both
 holes. That case is kept — it is still legal — now sitting beside a note that is
 keyword-less and *not* childless.
+:END:
+
+Shipped as two predicates, a subtree check on the moved heading and an
+enclosing-slice walk on the target, so the refile guard sees the whole subtree
+and its refusal names the slice; three tests were run red first.
 
 
 ***** DONE A capture guard that asks whether the target is a slice misses everything inside one
