@@ -31747,7 +31747,7 @@ CLOSED: [2026-08-27 Thu 07:06]
 - State "DONE"       from              [2026-08-27 Thu 07:06] \\
   retcon: shipped 2e24407 2026-08-27 07:06
 :END:
-
+:DEBRIEF:
 *Retconned [2026-08-27 Thu]; shipped [2026-08-27 Thu 07:06] as
 [[orgit-rev:claude-code-ide-org::2e24407][2e24407]].*
 
@@ -31770,6 +31770,11 @@ Converted through Emacs rather than by editing the file behind it.
 so a bad expansion fails rather than sitting in the file looking plausible.
 Prose about the =:ID:= *property* was untouched, since the pattern required a
 following 8-hex prefix.
+:END:
+
+Shipped in commit =2e24407=: six plain-text id references, left from when
+DONE.org prefixes could not resolve, were converted back to id links through
+Emacs.
 
 
 ***** DONE Short :ID: prefixes fell past the eight-character gate and rescanned the corpus :code:
