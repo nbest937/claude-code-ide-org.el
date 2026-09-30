@@ -33360,6 +33360,7 @@ minutes later, which is the expected behaviour and worth stating so nobody
 "fixes" it by deleting the blocker entry.
 
 :END:
+:DEBRIEF:
 *Shipped [2026-08-27 Thu], taking the third candidate above -- "have it refuse
 loudly rather than skip silently ... probably the floor regardless of what else
 is done."* Both other candidates are left open on purpose: ordering the workflow
@@ -33405,6 +33406,12 @@ removed. The narrowness is asserted too -- a genuinely unknown id still reports
 plainly, with no mention of a pending capture, because =bin/hooks/queue-append=
 drops any reply beginning =Error:= and that drop is what stands between a typo
 and an unexplainable queue entry.
+:END:
+
+Took the refuse-loudly option: org_amend and the slice refresh now name a
+capture queued this session and not yet applied, with the remedy, instead of a
+generic unknown-id error or a silent skip. The other two candidates were left
+open.
 
 
 
