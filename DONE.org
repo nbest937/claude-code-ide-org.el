@@ -50787,12 +50787,15 @@ CLOSED: [2026-07-29 Wed 05:57]
 :END:
 :LOGBOOK:
 :END:
+:PLAN:
 Quick-add a task from a natural-language ask. Wrap =org-capture=
 with a fixed template so a new TODO can be created in one call
 instead of hand-writing a heading via the text skill and then
 calling =org-id-get-create=. Return the new :ID: so the caller can
 immediately clock in / set state on it.
 
+:END:
+:DEBRIEF:
 *Confirmed, not a risk:* =org-capture-string= +
 =:immediate-finish t= works correctly headless — tested a full
 capture round trip under =emacs --batch -Q= and the file, heading,
@@ -50810,6 +50813,11 @@ agenda-files rescan, which isn't guaranteed. Added the call plus a
 regression test that isolates it (=org-agenda-files= bound to nil) to
 prove the explicit registration, not a rescan, is what makes the ID
 resolve. 4 ERT tests added in total; =bin/test= 37/37 at merge.
+:END:
+
+Shipped org_capture, confirmed to work headless, with an added
+org-id-add-location call so the returned :ID: resolved immediately; four tests
+added.
 
 
 
