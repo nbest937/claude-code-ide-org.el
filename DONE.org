@@ -38738,6 +38738,7 @@ transcripts where new ones are pared plans; the ignore-the-drawer rule makes
 that invisible in normal reading.
 
 :END:
+:DEBRIEF:
 *Adopted 2026-08-24* (=44b7020=, =fe376db=). All five deferred edits landed,
 once [[id:3063c3e5-0dd0-4354-8985-271b0313c5d1][3063c3e5]]'s wrapping half made
 them describable without describing something no session could perform.
@@ -38803,6 +38804,11 @@ Left in place it would have blocked this heading's own =DONE= at apply:
 =org-depend-block-todo= refuses a =DONE= whose =:BLOCKER:= names a heading still
 carrying a keyword, and 3063c3e5 is =NEXT=. So the property had gone from a true
 statement to a false one that would fire as a real refusal.
+:END:
+
+Adopted: all five deferred edits landed, four in CLAUDE.md, org-conventions.md
+and the org skill, the fifth a bin/lint-org rule scoped by CLOSED: date so it
+fires only on headings finished after the convention landed.
 
 **** DONE Backfill CLOSED: from the LOGBOOK where the evidence is already in the file :code:
 CLOSED: [2026-08-24 Mon 10:20]
