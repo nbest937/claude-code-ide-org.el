@@ -40603,6 +40603,7 @@ so a clean lint at commit time says nothing about what is still only in
 the buffer.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-08-19* (=4b22f72=), as =.githooks/pre-commit= with
 =bin/pre-commit-test= beside it. =core.hooksPath= was already set, so it
 took effect with no setup step.
@@ -40628,6 +40629,11 @@ in the hook's own header.
 [[id:84b7d8b3-5161-4146-9167-0e7e2100e365][84b7d8b3]] is the standing
 shell question; this is it arriving in practice, and it is evidence that
 project scripts are not currently written against a stated baseline.
+:END:
+
+Shipped in =4b22f72= as =.githooks/pre-commit=, linting only staged org content,
+with seven tests; verified live by a refused commit, and rewritten for macOS's
+bash 3.2 after the first draft failed.
 
 **** DONE A hand-set TODO transition records the change but never the time :code:
 CLOSED: [2026-08-19 Wed 17:47]
