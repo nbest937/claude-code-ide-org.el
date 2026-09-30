@@ -12863,6 +12863,7 @@ CLOCK: [2026-09-16 Wed 11:41]--[2026-09-16 Wed 11:47] =>  0:06
 Found 2026-09-16 while measuring whether [[id:2a6a1355-615f-4c2c-a8af-c9ae8dcda09b][2a6a1355]]'s marker-collision detection was worth building. It is not — 0 duplicate markers across 924 footnoted responses — but the same scan of **6749 assistant responses** surfaced a fault an order of magnitude more common and never filed: **97 responses, roughly 10% of all footnoted ones, carry a marker and a footnote that do not correspond.** 77 have a footnote line whose marker appears nowhere in the prose; 20 have a prose marker with no footnote line. Spread across a month — 18 on 2026-08-27, 14 on 08-25, 5 on 09-15 — so it is a standing pattern rather than one session's habit. =bin/hooks/footnote-check= cannot see it: its test is whether each cited *id* appears somewhere in the footnote block, which a response satisfies while pointing the reader at the wrong line or at no line at all. That is the same shape as the paraphrased-title mode [[id:33c3eabc-00f2-4cf1-afb7-4071aa256d62][33c3eabc]] closed — a footnote that exists and misleads is worse than one that is missing, because nothing refuses it and the reader has no reason to doubt it. Proposed: for each footnote line, take the leading marker as a **byte string** and =grep -qF= it against the prose; report any that never appear, and any prose marker with no line. **The multibyte objection that killed collision detection does not apply**: correspondence needs fixed-string matching, never character arithmetic, so it is locale-independent and cheap in the byte-oriented shell a =Stop= hook must stay in. Two things to settle before building. Whether a *dangling prose marker* is even a fault — a footnote that arrives in a later correction turn legitimately has its marker placed first. And whether the 77 include a systematic false positive from the block-splitting rule, which takes everything after the last line that is exactly =---=; a response with a later horizontal rule would misplace the boundary. The scan was not validated against hand-checked examples, so treat 97 as an upper bound until it is.
 
 :END:
+:DEBRIEF:
 *Validated first, then shipped, 2026-09-16 — and validation changed the
 number, which is the reason this body insisted on it.*
 
@@ -13031,6 +13032,12 @@ the same silent-failure shape this session kept meeting — in =org_query='s emp
 result, in the audit that scanned no files, in the batch run that lost every
 three-byte character — and the tell each time was a check reporting success
 while looking at nothing.
+:END:
+
+Cancelled after both marker-correspondence checks shipped and were retired the
+same day: the dangling check read quoted markers as used, and the orphan check
+could not see the whole response. Id-keyed end matter (=2a6a1355=) made
+correspondence moot; the loop guard was reworked to record its demand.
 
 
 **** DONE Commenting out the 202 override took use-package!'s closing paren, silently disabling the MCP server :code:
