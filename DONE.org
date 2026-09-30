@@ -38471,6 +38471,7 @@ nobody looked" defect 5ff5a4b8 fixed, and would do so silently for short spans
 only.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-08-24* (=078bf65=), as the body proposed and for the reason it
 gave: when the gap's interval equals the span's, the timestamps are dropped and
 the line says only =(no evidence found in this window)=.
@@ -38499,6 +38500,10 @@ against the "real but cosmetic" label it was filed under and carried on the
 next-session prompt's off-the-critical-path list: a cosmetic defect that gets
 re-reported is costing attention every pass, which is the cost the label was
 implying it did not have.
+:END:
+
+A gap covering the whole span now drops its timestamps and says only that no
+evidence was found in the window, while interior gaps keep theirs.
 
 
 
