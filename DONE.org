@@ -48789,7 +48789,7 @@ CLOSED: [2026-08-12 Wed 12:38]
 :ARCHIVE_TODO: DONE
 :CLOSED_SOURCE: git
 :END:
-
+:DEBRIEF:
 [[file:~/.claude/plans/send-each-mcp-feature-zesty-bunny.md][Plan]]
 
 *This heading is retrospective, and deliberately not backdated.* The
@@ -48832,6 +48832,11 @@ subagents in isolated worktrees cannot safely touch — is exactly the
 problem [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]]'s event
 queue replaced. The worktree orchestration still stands; the clocking
 discipline around it does not.
+:END:
+
+A retrospective heading written to own the plan: all ten MCP-tool tasks were
+built in parallel worktrees and archived, though the plan's coordinator-only
+clocking discipline was later superseded by the event queue.
 
 
 **** DONE Link or retire the four plans no heading references :code:
