@@ -38829,7 +38829,7 @@ CLOCK: [2026-08-24 Mon 10:14]--[2026-08-24 Mon 10:20] =>  0:06
 - State "DONE"       from "DOING"      [2026-08-24 Mon 10:20] \\
   58 filled from evidence, 39 left alone
 :END:
-
+:DEBRIEF:
 *Shipped and run 2026-08-24* (=8927796=, =adb5044=).
 =claude-code-ide-org-backfill-closed= reconstructs a =CLOSED:= marker from the
 =- State "DONE"=/="CANCELLED"= line already in a heading's =:LOGBOOK:=, for
@@ -38860,6 +38860,10 @@ bounds its search to the drawer, so it does not -- and the discrepancy between
 the two counts is the only reason the difference was noticed at all. Worth
 reading twice, because the prose that fooled the estimate is *correctly quoted
 org*, not malformed text, and nothing structural would ever flag it.
+:END:
+
+Shipped and ran claude-code-ide-org-backfill-closed, which filled 58 CLOSED:
+markers from :LOGBOOK: State lines and skipped 39, inventing nothing for those.
 
 
 
