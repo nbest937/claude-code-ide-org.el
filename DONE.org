@@ -23251,6 +23251,7 @@ creates a leaf, so there is no arriving subtree to scan. Depends on the
 predicate that heading extracts.
 
 :END:
+:DEBRIEF:
 *Verified, not just implemented:*
 =claude-code-ide-org-test-capture-refuses-a-keyworded-capture-inside-a-slice=,
 run red first — the unfixed guard returned =Captured:= for a =TODO= capture
@@ -23272,6 +23273,11 @@ is that the guard's own comment had to be corrected rather than extended — it
 claimed "the refusal lands before the heading exists", which was true only for a
 direct child, and a comment that overstates a guard is how the next reader stops
 checking.
+:END:
+
+Shipped with its sibling: the capture guard now uses the enclosing-slice walk,
+refusing a keyworded capture anywhere inside a slice and naming it, while
+keyword-less captures stay legal; the guard's overstated comment was corrected.
 
 
 ***** DONE One malformed queue line makes clock-target-check nag a session that did clock in
