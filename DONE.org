@@ -29545,6 +29545,7 @@ real argument against it, since a tool call is not a human keystroke. The apply
 path has no such ambiguity.
 
 :END:
+:DEBRIEF:
 *Shipped 2026-08-31 — the general case this heading was filed for, four months
 after its narrow child.* The write tools now bind =inhibit-read-only=
 themselves, so the flag is never touched and the clear/restore convention is
@@ -29613,6 +29614,12 @@ deliberate, not residue: each reaches its buffer by one of the two paths already
 proven here, and the =--at-id-writable= asymmetry test pins the dispatcher
 itself. Not worth a heading. If a sixth path ever appears, that is what would
 need one.
+:END:
+
+Shipped: the write tools bind inhibit-read-only themselves, through a new
+writable dispatcher or their own let, so a read-only buffer is written and stays
+read-only; the read path does not bind. The apply path still prompts,
+deliberately.
 
 
 ***** DONE Bind inhibit-read-only in the apply path, where the human asked for the write
