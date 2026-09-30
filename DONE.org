@@ -49005,6 +49005,7 @@ CLOSED: [2026-08-11 Tue 21:03]
 - State "DONE"       from "DOING"      [2026-08-11 Tue 21:03] \\
   template and target shipped; defcustom left to the user
 :END:
+:PLAN:
 
 *Consolidated 2026-08-11, and the heading retitled to match.* This was
 "capture bare headings; apply the keyword at ingestion." Two other
@@ -49133,6 +49134,8 @@ specifically. Omitting the target keeps today's append-at-top-level
 behaviour, which is the honest fallback for "placement unknown" and
 removes any need for an inbox heading.
 
+:END:
+:DEBRIEF:
 *Implemented 2026-08-11.* The template now writes =* %i= with =:ID:= and
 =:CREATED:= and no keyword, and =org_capture= takes an optional
 =target=. =:CREATED:= is formatted in elisp rather than via the
@@ -49184,6 +49187,12 @@ fallback, for a passing mention in a session about something else, and
 for immediate =:ID:= registration. Build the smallest thing that makes
 it correct, not a parameter surface sized as though it were the primary
 way headings get made.
+:END:
+
+Implemented: org_capture wrote a bare heading with :ID: and :CREATED: and took
+an optional target, an :ID: or an exact top-level category title, erroring on
+unknown ones; pointing the capture-file defcustom at this project was left to
+the user.
 
 
 
