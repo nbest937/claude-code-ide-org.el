@@ -7052,35 +7052,26 @@ the same code.
   direct continuation of what 3964c575 decided
 :END:
 
-*The reporting half of [[id:3964c575-50bc-4cc9-abeb-bdd1c0162c2c][3964c575]],
-split out when that heading was decided 2026-08-26.* That one asked whether a
-grouping may carry its own clock; the answer is yes, a parent's own coordination
-time is real work. This is what makes that answer *legible*.
+A clocktable never prints a parent's own time. It is recoverable only as
+=parent_row - sum(child_rows)=, arithmetic the reader performs silently and
+which =:maxlevel= truncation breaks without warning. This is the reporting half
+of [[id:3964c575-50bc-4cc9-abeb-bdd1c0162c2c][3964c575]], split out when that heading was decided 2026-08-26: a grouping may
+carry its own clock, because a parent's own coordination time is real work, and
+this is what makes that answer *legible*.
 
-*Measured, not inferred.* A parent carrying 1:00 of its own, with children of
-2:00 and 0:30:
+*What is established.*
+- Measured: a parent carrying 1:00 of its own, with children of 2:00 and 0:30, renders as below -- the parent's own 1:00 appears nowhere.
 
 : | A story        | 3:30 |      |
 : | \_  Child one  |      | 2:00 |
 : | \_  Child two  |      | 0:30 |
 
-*The parent's own 1:00 appears nowhere.* This is worse than the usual framing,
-which is that own time is "mixed in and cannot be told apart" -- it is not
-printed at all. It is recoverable only as =parent_row - sum(child_rows)=, which
-is arithmetic the reader performs silently and which =:maxlevel= truncation
-breaks without warning: cap the depth and the subtraction quietly returns the
-wrong number, with nothing on the page indicating that it did.
-
-*So the 1:08 on [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] was never
-a rounding artefact.* 3964c575's body recorded "parent row 14:52, ten children
-summing 13:44, the 1:08 difference indistinguishable from a rounding artefact".
-It was the parent's own two CLOCK lines, and it was indistinguishable only
-because the table declines to name it.
-
-*No native parameter does this.* Checked in org 9.8.7: the clocktable has no
-own-time or non-recursive option, and =:properties= only adds property columns,
-not a derived quantity. =org-clock-sum= is recursive by definition and writes
-one =CLOCKSUM= per heading.
+- The 1:08 on [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] -- parent row 14:52, ten children summing 13:44 -- was never a rounding artefact; it was the parent's own two CLOCK lines.
+- No native parameter does this (org 9.8.7, re-confirmed 2026-09-15): the clocktable has no own-time or non-recursive option, =:properties= only adds property columns, and =org-clock-sum= is recursive by definition.
+- The population grows as leaves clocked honestly acquire children: nine groupings and 46 own CLOCK lines (2026-08-26), **ten** and **54** (re-measured 2026-09-15 at the user's question).
+- The live exposure is two (2026-09-15): eight of the ten are =DONE= and archived; only [[id:406e9200-c3e7-49ac-a8d0-d6ff8e061ce4][406e9200]] (=DOING=, 4 own lines) and [[id:a1d63f52-4c07-4b9e-8f31-6d2b90c4e7a5][a1d63f52]] (=TODO=, 9) are live.
+- =406e9200= is the story [[id:749301a0-0bd0-4fbd-b3f7-79739226e15a][749301a0]] sequences, and that slice was second of the four on =next-session.md= (2026-09-15).
+- Since =afea7e4f=, =claude-code-ide-org-attention-report= and =claude-code-ide-org-allocation-report= report without a clocktable and do not inherit this defect, which weakens the case for a =:formatter= without closing the gap; nothing shipped in =afea7e4f= goes near =org-clock-sum=.
 
 *Scope: presentation only, and deliberately so.* Nothing about what is
 extracted, stored or applied changes. Candidate shapes, none chosen -- a
@@ -7089,62 +7080,20 @@ surfacing it only where it matters rather than in every table. Whether every
 parent row wants a second number, or only the nine that currently carry own
 lines, is the first thing to settle.
 
-*Nine headings currently make this visible*, measured 2026-08-26: 46 own CLOCK
-lines across four active and five finished groupings.
+*Blocked on [[id:406e9200-c3e7-49ac-a8d0-d6ff8e061ce4][406e9200]], set 2026-09-15.* The open question above -- "whether every
+parent row wants a second number, or only the [ten] that currently carry own
+lines" -- has no evidence behind it yet, and working =406e9200='s remaining
+children means reading exactly the ambiguous number: either that work needs the
+own-time figure, which justifies the =:formatter=, or it works around it, which
+shows the gap is tolerable. The blocker names the story rather than the slice
+=749301a0=, because a slice can be re-composed, dropped or split, where the
+story's completion is the evidence. The blocker is inert until [[id:3f4fd744-4ba7-4be8-9fe4-54e46119515a][3f4fd744]] lands:
+=org_set_property= writes the =ids(...)= wrapper, which =org-depend-block-todo=
+cannot parse.
 
-*Re-measured 2026-09-15 at the user's question — still true, and the
-population is not frozen.* **Ten** groupings now carry their own CLOCK
-lines, **54** of them, against the nine and 46 recorded above. The growth
-is the mechanism working as the state-transitions rules describe rather
-than new clocking of groupings: a leaf clocked honestly acquires children
-and becomes a parent.
-
-*But the live exposure is two, not ten.* Eight of the ten are =DONE= and
-archived, where a clocktable is rarely run; only
-[[id:406e9200-c3e7-49ac-a8d0-d6ff8e061ce4][406e9200]] (=DOING=, 4 own lines) and
-[[id:a1d63f52-4c07-4b9e-8f31-6d2b90c4e7a5][a1d63f52]] (=TODO=, 9) are live. So
-the defect is real and its blast radius is small — which is the honest reading,
-and narrower than "ten groupings" sounds.
-
-*One of those two makes this timely.* =406e9200= is the story
-[[id:749301a0-0bd0-4fbd-b3f7-79739226e15a][749301a0]] sequences, and that slice
-is second of the four on =next-session.md=. Whoever works it will be reading
-clock data for precisely one of the ambiguous parents.
-
-*What changed against this heading, and it lowers priority without
-touching correctness.* When this was written the clocktable was the
-project's reporting surface. Since =afea7e4f= there are two others —
-=claude-code-ide-org-attention-report= and
-=claude-code-ide-org-allocation-report= — and **neither uses a clocktable
-or inherits this defect**. The questions a clocktable was being asked are
-partly answered elsewhere now, so the case for a =:formatter= is weaker
-than it was even though the gap it would close is unchanged.
-
-*Unchanged and re-confirmed:* org 9.8.7 still offers no own-time or
-non-recursive clocktable option, and nothing shipped in =afea7e4f= goes
-near =org-clock-sum=.
-
-*Blocked on [[id:406e9200-c3e7-49ac-a8d0-d6ff8e061ce4][406e9200]], set
-2026-09-15.* The open question above — "whether every parent row wants a second
-number, or only the [ten] that currently carry own lines" — is a design decision
-with no evidence behind it yet, and the evidence is about to be generated:
-=406e9200= is one of the two live groupings with own time, and working its
-remaining children means reading exactly the ambiguous number. Either that work
-needs the own-time figure, which justifies the =:formatter=, or it works around
-it, which shows the gap is tolerable. Both are better inputs than deciding now.
-
-*The blocker names the story rather than the slice that sequences it.*
-[[id:749301a0-0bd0-4fbd-b3f7-79739226e15a][749301a0]] is what will drive the
-work, but a slice is a *declared* grouping that can be re-composed, dropped or
-split, where the story is the heading whose completion actually constitutes the
-evidence. Blocking on the more stable of the two is the point of preferring a
-property over a prose sentence.
-
-*Note the blocker is inert until
-[[id:3f4fd744-4ba7-4be8-9fe4-54e46119515a][3f4fd744]] lands.* =org_set_property=
-writes the =ids(...)= wrapper, which =org-depend-block-todo= cannot parse, so
-this refuses nothing today — which is the defect that heading exists to fix,
-demonstrating itself on the very next property written after it was measured.
+*What is ruled out.*
+- That own time is merely "mixed in and cannot be told apart": it is not printed at all.
+- That the 1:08 on =b5f7c5c7= was rounding: it was own time.
 
 
 * TODO A guidepost gap containing an apply timestamp is provably the human's attention :code:
