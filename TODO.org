@@ -8804,6 +8804,11 @@ They coincide throughout this project because every task heading is born
 with a keyword, but the equivalence is a local accident, not a rule, and
 a heading that gains a keyword later would make them diverge.
 
+*Its body holds the beginnings of a plan* (noted 2026-10-01, e128e4fa's condense
+pass): when this heading is brainstormed, move the prospective prose into
+=:PLAN:= and revise the body to a short statement.
+
+
 
 * TODO [3/5] Institute a catch-all heading for cross-cutting meta-work :code:
 :PROPERTIES:
