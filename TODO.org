@@ -828,6 +828,15 @@ Split out of =2aeb65d6= on 2026-09-24 (the user). That heading's guard stops a w
 
 =claude-code-ide-org-fill-prose= (=496b665e=) swept both trackers once, when it shipped on 2026-09-14: 941 paragraphs in TODO.org and 2,265 in DONE.org, with the content verified identical. Nothing has run it since, because no hook, script or ceremony step calls it, so every body written after that date arrived unfilled. A rough raw-width count on 2026-09-24 found 314 prose lines over 80 characters in TODO.org and 534 in DONE.org, not counting list items, tables and headings. Re-run it over both files once =b52df20b= lands, since that heading changes the sweep's filter and width to match the write path: no list items, display width. Report the dry run's counts before saving. Whether the sweep should also run routinely, for instance as a ceremony step, is this heading's question to settle; with =b52df20b= filling at write time, routine runs would only catch hand edits.
 
+*Parked 2026-10-01 (the user).* Every MCP write path fills its prose (capture
+and amend, directly and at apply, and org_edit), and the user fills hand edits
+themselves, so routine sweeps would catch nothing new. The drift that remains
+came from a bulk pass that bypassed the writer, e128e4fa's mover, which copied
+debriefs verbatim. Reopen if bulk writing outside the tools becomes a recurring
+pattern. A dry run that day would have filled 225 paragraphs in TODO.org and 776
+in DONE.org, content identical.
+
+
 
 * TODO Prose names tracked work by its subject, and the reader has to ask what it meant :spike:
 :PROPERTIES:
