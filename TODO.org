@@ -2219,39 +2219,66 @@ Asked for 2026-09-18: create a version tag, and find a way to keep the tag and t
 :CATEGORY: Skill
 :END:
 
-Raised by the user 2026-09-18, after an exposition on slices and stories that they suspected ran afoul of the governing documents. Checked: two parts were already documented, one sentence genuinely misleads, and three ideas are absent entirely.
+Raised by the user 2026-09-18. =org-conventions.md= says a story "is not
+declared, it is emergent... **Don't classify a heading as one when writing
+it**", and =CLAUDE.md= compresses that to "detected and never declared".
+Strictly this is about *labelling* -- there is no =:KIND: story=, and a story is
+detected from its keyworded children by =--container-heading-p= -- but naturally
+read it forbids *composing* a task together with its subtasks, which is ordinary
+and fine. It misled a session on 2026-09-18 into arguing that a deliberate
+parent-with-subtasks shape was disallowed and that a slice was therefore the
+only option. The fix is to separate *detection* from *composition* in the
+wording, not to change the practice, and to add three ideas the governing
+documents omit.
 
-*The misleading sentence.* =org-conventions.md= says a story "is not declared, it is emergent... **Don't classify a heading as one when writing it**", and =CLAUDE.md= compresses that to "detected and never declared". Strictly this is about *labelling* — there is no =:KIND: story=, and a story is detected from its keyworded children by =--container-heading-p=. Naturally read, it forbids *composing* a task together with its subtasks, which is ordinary and fine. It misled a session on 2026-09-18 into arguing that a deliberate parent-with-subtasks shape was disallowed and that a slice was therefore the only option. The fix is to separate *detection* from *composition* in the wording, not to change the practice.
+*Three ideas absent from every governing document*, each stated by the user and
+none written down:
+- *A well-composed story brings all of its subtasks into a slice*, and a slice that closes several whole stories is the highest expression of the two concepts working together; the conventions never say how the two groupings compose.
+- *Partial stories inside slices are historical*, not a pattern to copy: the story work predates the slice mechanism.
+- *The lifecycle, the load-bearing omission:* a task first exists **outside** a slice, and a slice **promotes** it from the backlog when completing it has been prioritized, so slice membership *means* "this is prioritized for near-term completion". Grepped 2026-09-18: nothing in =org-conventions.md=, =CLAUDE.md= or the org skill describes promotion; the only documented way in is adoption-on-discovery, the mid-flight exception.
 
-*Three ideas absent from every governing document*, each stated by the user and none written down:
+*What is established.*
+- Deliberate composition is the norm (measured 2026-09-18): of the six live groupings in =TODO.org= -- level-1 headings with keyworded children -- **five carry no CLOCK line of their own**, so they were *composed*; only one (=a1d63f52=, 9 own CLOCK lines) is the accidental shape the conventions describe.
+- =CLAUDE.md='s account -- "each was clocked honestly while it was still a leaf, and became a grouping later by acquiring children or by a refile" -- is true of the historical corpus it was written against, and is now the minority case.
+- Caveat on that count: level-1 headings in =TODO.org= only, by a crude scan; =DONE.org= was not included, and the nine-groupings figure in =CLAUDE.md= presumably spans both.
+- Already correct, recorded so it is not re-opened: deferral by deleting a member's checkbox cookie while keeping its reference line is documented (the dropping section, and "A cancelled or deferred member has its checkbox cookie deleted"), and so is the dual-membership guard ("Check no other slice already counts it... a discovery already claimed elsewhere is not adopted, it is cross-referenced"). The user's deferral exception is *consistent* with that guard: dropping the checkbox is exactly what stops two cookies counting the same work.
+- No rule requires a story's members to share a =:CATEGORY:= (checked 2026-09-18): no convention text, =bin/lint-org='s only category rule is "level-1 task has no =:CATEGORY:=" (=config.el= 14654), =org_capture= makes =category= "optional under an =:ID:= target", and one override exists (a =Tools= child under a =Meta= parent). Worth *stating* only because the absence of a rule reads as a prohibition.
 
-- *A well-composed story brings all of its subtasks into a slice*, and a slice that closes several whole stories is the highest expression of the two concepts working together. The conventions define both groupings on an emergent-vs-declared axis and never say how they compose.
-- *Partial stories inside slices are historical*, not a pattern to copy: the story work predates the slice mechanism. Without this a reader infers that partial adoption is the intended shape.
-- *The lifecycle, which is the load-bearing omission.* A task — story or not — first exists **outside** a slice, and a slice **promotes** it from the backlog when completing it has been prioritized. So slice membership *means* "this is prioritized for near-term completion". Grepped 2026-09-18: nothing in =org-conventions.md=, =CLAUDE.md= or the org skill describes promotion from a backlog. The only documented way into a slice is adoption-on-discovery, which is the mid-flight exception rather than the ordinary path — so the conventions currently describe the exception and omit the rule.
+*=:KIND: story=, offered by the user, is conditional on a consumer.* The project
+has retired declared state that nothing read -- =PLANNING= went for exactly
+that, 7 uses in 432 transitions. A **slice** must be declared because its
+members are *links*, so there is nothing to detect; a **story's** children are
+structurally present and already detected by =--container-heading-p=, so a label
+is a *second* source of truth that can disagree with the tree -- marked with no
+children, or children with no mark. **=:KIND: story= earns its place if and only
+if the "well-composed" lint is wanted** -- *does this story have all of its
+subtasks in one slice?* -- a question that can only be asked of a heading
+someone asserted was a story. Without that check it is a label with no reader.
 
-*Two things checked and found already correct*, recorded so they are not re-opened: deferral by deleting a member's checkbox cookie while keeping its reference line is documented (the dropping section, and "A cancelled or deferred member has its checkbox cookie deleted"), and the dual-membership guard is documented ("Check no other slice already counts it... a discovery already claimed elsewhere is not adopted, it is cross-referenced"). The user's deferral exception is *consistent* with that guard rather than in tension with it: dropping the checkbox is exactly what stops two cookies counting the same work.
+*Proposed, as amended 2026-09-19 against the drift analysis and the slice
+=f6d160c2=.* Revise the story section of =org-conventions.md= to split detection
+from composition, add the story/slice composition rule and the backlog-promotion
+lifecycle, and note the historical reason partial stories exist. That file is
+path-scoped and, per [[id:436e0991-c8ac-40fb-860d-a6c4c381bee5][436e0991]], loads only on a Read of an =.org= file, so the
+practice must also survive its not being loaded (the tools' own refusals are the
+only rules no session has missed). The =CLAUDE.md= half is a *net deletion*: the
+one-screen map should point at the conventions rather than paraphrase them, so
+the fix removes "detected and never declared" instead of expanding it. Re-run
+=bin/claude-org-setup= and =bin/check-conventions=, since the promoted copies
+are generated. Acceptance: the always-loaded line count ([[id:bf7e0b8e-f83a-4d4a-9950-3ab23a225156][bf7e0b8e]], 1,573 on
+2026-09-19) does not rise from this change, and =check-conventions= passes after
+re-promotion.
 
-*Why this is ordinary rather than a defect in the framework, in the user's own framing:* "this framework is a means, not an end in and of itself. As such it has also served as a means of improving itself." The vocabulary was arrived at by working the system, and it sharpens by being wrestled with — this heading is an instance of that, not an exception to it.
+Not a member of =8bbae3aa=: that slice's proximate goal is making the plugin
+usable in another project, and this is convention refinement that can wait for a
+slice of its own.
 
-Proposed: revise the story section of =org-conventions.md= to split detection from composition, add the story/slice composition rule and the backlog-promotion lifecycle, and note the historical reason partial stories exist. =CLAUDE.md='s one-screen map repeats "detected and never declared" and needs the same correction. Re-run =bin/claude-org-setup= and =bin/check-conventions=, since the promoted copies are generated.
+*Why this is ordinary, in the user's own framing:* "this framework is a means,
+not an end in and of itself. As such it has also served as a means of improving
+itself."
 
-Not a member of =8bbae3aa=: that slice's proximate goal is making the plugin usable in another project, and this is convention refinement that can wait for a slice of its own.
-
-*Measured 2026-09-18, and it inverts the premise the conventions rest on.* Of the six live groupings in =TODO.org= — level-1 headings with keyworded children — **five carry no CLOCK line of their own**, meaning they never worked as leaves and so never accidentally acquired children. They were *composed*. Only one (=a1d63f52=, 9 own CLOCK lines) is the accidental shape the conventions describe.
-
-=CLAUDE.md='s account — "each was clocked honestly while it was still a leaf, and became a grouping later by acquiring children or by a refile" — is true of the *historical* corpus it was written against, and is now the minority case. The prose describes a world the practice has left. (Caveat: this counted level-1 headings in =TODO.org= only, by a crude scan; =DONE.org= was not included, and the nine-groupings figure in =CLAUDE.md= presumably spans both.)
-
-*So deliberate composition is the norm, which is the evidence behind every gap above* — the conventions read as though a story happens to you.
-
-*And it raises a property the user offered: =:KIND: story=.* Better founded than it first looks, but conditional, and the condition is a consumer rather than a preference. The project has retired declared state that nothing read — =PLANNING= went for exactly that, 7 uses in 432 transitions.
-
-The asymmetry to preserve: a **slice** must be declared because its members are *links*, so there is nothing to detect and declaration is the only option. A **story's** children are structurally present and already detected by =--container-heading-p=, so a label is a *second* source of truth that can disagree with the tree — marked with no children, or children with no mark. That asymmetry is why the two differ today and it is a real reason, not an oversight.
-
-Which makes the decision clean: **=:KIND: story= earns its place if and only if the "well-composed" lint is wanted** — *does this story have all of its subtasks in one slice?* That question cannot be asked of a heading that merely happens to have children; it can only be asked of one someone asserted was a story. With that check the property is load-bearing. Without it, it is a label with no reader, which is the thing this project deletes.
-
-*Separately, and not a gap:* there is **no rule requiring a story's members to share a =:CATEGORY:=**. Checked 2026-09-18 — no convention text, and =bin/lint-org='s only category rule is "level-1 task has no =:CATEGORY:=" (=config.el= 14654), which never looks at children. =org_capture= makes =category= "optional under an =:ID:= target", i.e. explicitly permitted on a child, and one override already exists in the corpus (a =Tools= child under a =Meta= parent). Inheritance is already a default rather than a constraint. Worth *stating* in the revision only because the absence of a rule reads as a prohibition — which is how this came up.
-
-*Amended 2026-09-19 against the drift analysis and the slice =f6d160c2=.* The proposal above adds three ideas to the conventions and corrects one sentence in CLAUDE.md; where each lands is now a constraint rather than a choice. The three additions go in =org-conventions.md=, which is path-scoped — and, per [[id:436e0991-c8ac-40fb-860d-a6c4c381bee5][436e0991]], loads only on a Read of an =.org= file, so the practice they describe must also survive their not being loaded (the tools' own refusals are the only rules no session has missed). The CLAUDE.md half is a *net deletion*: a one-screen compression that misled a session is evidence the map should point at the conventions rather than paraphrase them, so the fix removes "detected and never declared" instead of expanding it. Acceptance: the always-loaded line count ([[id:bf7e0b8e-f83a-4d4a-9950-3ab23a225156][bf7e0b8e]], 1,573 today) does not rise from this change, and =check-conventions= passes after re-promotion.
+*What is ruled out.*
+- Reading "detected and never declared" as a ban on composing a story: it misled a session on 2026-09-18, and the 2026-09-18 count shows composition is the norm.
 
 
 * TODO Let a task-only install auto-apply state transitions, behind a toggle :code:
