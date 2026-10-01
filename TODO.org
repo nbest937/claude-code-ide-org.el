@@ -4606,6 +4606,11 @@ place =43aa25b2= landed, for the same reason — that function already answers
 question. **Not the org skill**: a skill loads on trigger match, possibly never,
 and a report that must fire at session start cannot depend on that.
 
+*Its body holds the beginnings of a plan* (noted 2026-10-01, e128e4fa's condense
+pass): when this heading is brainstormed, move the prospective prose into
+=:PLAN:= and revise the body to a short statement.
+
+
 
 * TODO Nothing lays out future work on a timeline the agenda can show :arch:
 :PROPERTIES:
