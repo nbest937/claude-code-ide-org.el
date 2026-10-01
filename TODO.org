@@ -5863,6 +5863,11 @@ than hidden* — roughly half of long gaps carry no marker today, and the honest
 report says which are labelled and which are inferred rather than presenting one
 number for both.
 
+*Its body holds the beginnings of a plan* (noted 2026-10-01, e128e4fa's condense
+pass): when this heading is brainstormed, move the prospective prose into
+=:PLAN:= and revise the body to a short statement.
+
+
 
 * TODO The human half of the ratio is already recorded, and thrown away :code:research:
 :PROPERTIES:
