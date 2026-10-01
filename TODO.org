@@ -6325,6 +6325,11 @@ accordingly. Meanwhile the =cwd= field accumulates (recording since
 2026-09-04); the judgement design happens when there is real
 multi-project data to judge against, not before.
 
+*Its body holds the beginnings of a plan* (noted 2026-10-01, e128e4fa's condense
+pass): when this heading is brainstormed, move the prospective prose into
+=:PLAN:= and revise the body to a short statement.
+
+
 
 ** TODO Decide where the caveat lives that turn count is not productivity :code:
 :PROPERTIES:
