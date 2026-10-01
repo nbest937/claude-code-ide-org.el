@@ -970,8 +970,9 @@ and amend, directly and at apply, and org_edit), and the user fills hand edits
 themselves, so routine sweeps would catch nothing new. The drift that remains
 came from a bulk pass that bypassed the writer, e128e4fa's mover, which copied
 debriefs verbatim. Reopen if bulk writing outside the tools becomes a recurring
-pattern. A dry run that day would have filled 225 paragraphs in TODO.org and 776
-in DONE.org, content identical.
+pattern. The one-off sweep ran the same day at the user's request: 225
+paragraphs in TODO.org and 776 in DONE.org, each file's whitespace-stripped
+content verified byte-identical to its previous commit.
 
 
 
