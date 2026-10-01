@@ -8535,6 +8535,11 @@ the project decided against. Half of it is already built.
 a reading of that function **twice in one day**, in opposite directions, and
 both times the code four lines away said otherwise. Filed separately.
 
+*Its body holds the beginnings of a plan* (noted 2026-10-01, e128e4fa's condense
+pass): when this heading is brainstormed, move the prospective prose into
+=:PLAN:= and revise the body to a short statement.
+
+
 
 * TODO Read power assertions as a review-time attribution signal :code:research:
 :PROPERTIES:
