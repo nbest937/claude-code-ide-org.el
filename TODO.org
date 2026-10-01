@@ -5511,7 +5511,11 @@ than the 88 measured on 2026-09-02: 318 now carry a :DEBRIEF: drawer and an
 authored resolution, one commit each. Drafted and double-checked by subagents in
 place of the user's review; moved by a checked mover that compared each section
 exactly. Eight closed slices and six headings with no recorded outcome were left
-alone, and the condensing pass has not run.
+alone, and the condensing pass was redirected (the user, 2026-10-01): declined
+for finished plans, which readers skip; run on 14 live bodies that had grown
+into journals, with 22 plan-heavy live bodies noted for revision at
+brainstorming time and 0c8644ff left, its body depending on its plan. The active
+outline fell only from 487k to 475k characters.
 
 
 
