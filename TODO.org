@@ -3094,6 +3094,11 @@ Seven days holding seven guideposts. No gap threshold of 1200 s can produce that
 
 *Probe limitation, stated because it bounds the claim:* only three brackets survive in the live queue, the rest consumed by applies, so step 2 of the probe could not reproduce the current item list and is inconclusive. Step 1 needs no brackets and is what the finding rests on. A synthetic fixture is what the fix's test should use.
 
+*Its body holds the beginnings of a plan* (noted 2026-10-01, e128e4fa's condense
+pass): when this heading is brainstormed, move the prospective prose into
+=:PLAN:= and revise the body to a short statement.
+
+
 
 * TODO Should a short 0-run span default to claimed, and where does the bound fall? :research:
 :PROPERTIES:
