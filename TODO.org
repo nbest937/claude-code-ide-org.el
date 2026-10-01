@@ -6416,6 +6416,11 @@ grounds that the only reader is the person who set the convention. The last is a
 real option — this project has one user — and should be rejected on evidence
 rather than reflex.
 
+*Its body holds the beginnings of a plan* (noted 2026-10-01, e128e4fa's condense
+pass): when this heading is brainstormed, move the prospective prose into
+=:PLAN:= and revise the body to a short statement.
+
+
 
 ** TODO Turn count reads 0 for a background or subagent session, which is not no attention :code:
 :PROPERTIES:
