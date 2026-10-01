@@ -10002,6 +10002,11 @@ Known-limitations or CLAUDE.md — now that the pattern is sanctioned in
 code by the worktree-aware convention checks. No partitioning
 machinery; the design questions all have their own headings.
 
+*Its body holds the beginnings of a plan* (noted 2026-10-01, e128e4fa's condense
+pass): when this heading is brainstormed, move the prospective prose into
+=:PLAN:= and revise the body to a short statement.
+
+
 
 * MAYBE [1/4] Accumulate issues to report upstream to claude-code-ide.el :code:
 :PROPERTIES:
