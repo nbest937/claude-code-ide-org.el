@@ -2348,6 +2348,11 @@ Candidates to consider, none argued for yet: whether a grouping should render di
 
 *What the payload does **not** carry is the finding that actually blocks =63b84fe2=:* no terminal width, under any key.
 
+*Its body holds the beginnings of a plan* (noted 2026-10-01, e128e4fa's condense
+pass): when this heading is brainstormed, move the prospective prose into
+=:PLAN:= and revise the body to a short statement.
+
+
 
 * TODO Render the statusline like end matter: id first, then keyword, then title :code:
 :PROPERTIES:
