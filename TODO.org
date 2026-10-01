@@ -9571,69 +9571,25 @@ accept losing clock history across restarts.
 :BLOCKER:  720b2dcf-6af1-45f3-96a7-aa841e5651e1
 :END:
 
-Captured 2026-08-07 from conversation, after pressing =h= in a live
-=*org-review*= buffer and finding the help thin. Two cheap fixes landed
-immediately — the mode docstring was rewritten as user-facing help
-rather than maintainer notes, and =?= now calls
-=which-key-show-major-mode= (with a =describe-mode= fallback, since
-which-key is absent under =emacs --batch -Q=). This heading is the
-*deferred* remainder.
+The =*org-review*= buffer's help was found thin on 2026-08-07; this heading is
+the *deferred* remainder, a transient menu. Transient earns its machinery when
+there are *options and switches to compose* -- that is what makes magit's popups
+worth it. The review buffer has seven flat commands and no state to toggle, so a
+transient menu today would be a prettier =which-key= at roughly ten times the
+cost. It stays =MAYBE= until its own trigger fires: filters worth composing.
 
-*Availability, checked rather than assumed:* =transient= is loaded, and
-=claude-code-ide= itself ships =claude-code-ide-transient.el= with 16
-transient prefixes — so it is already the idiom in this exact
-ecosystem, not a new dependency. =which-key= is loaded too. =hydra= and
-=casual= are not installed.
+*What is established.*
+- Two cheap fixes landed 2026-08-07: the mode docstring was rewritten as user-facing help, and =?= calls =which-key-show-major-mode= (with a =describe-mode= fallback, since which-key is absent under =emacs --batch -Q=).
+- Availability, checked rather than assumed: =transient= is loaded, and =claude-code-ide= ships =claude-code-ide-transient.el= with 16 transient prefixes, so it is already this ecosystem's idiom; =which-key= is loaded; =hydra= and =casual= are not installed.
+- The trigger to revisit: the filters the buffer plausibly wants at real volume -- filter by session, filter to only =(suggested)= items, mark-all-within-a-heading, apply-with-confirmation. Those are switches, which transient handles far better than a flat keymap.
+- The [[id:720b2dcf-6af1-45f3-96a7-aa841e5651e1][720b2dcf]] plan named magit-status's staging area as the model, so this is a genuine direction that should follow the filters rather than lead them.
+- =720b2dcf= is =DONE=, so the =:BLOCKER:= is satisfied (2026-08-15); nothing in real use has demanded a filter.
+- The friction actually met on 2026-08-15 was the assignment prompt ([[id:0d055205-a670-45c6-b4af-980961603a7c][0d055205]]) and candidate ranking ([[id:49cbe319-f7db-413a-ade8-c4850c1fab8c][49cbe319]]), neither of which a transient menu would have helped -- suggesting the buffer's next improvements are correctness, not composition.
+- Promoted out of [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] on 2026-08-15, as was [[id:0c8644ff-f7b1-4789-ac1e-babf2e9fbc8e][0c8644ff]]: a capability that epic *enables* rather than *requires*, and an epic which keeps every downstream capability can never close.
 
-*Why deferred rather than done:* transient earns its machinery when
-there are *options and switches to compose* — that is what makes
-magit's popups worth it. The review buffer currently has seven flat
-commands and no state to toggle, so a transient menu today would be a
-prettier =which-key= at roughly ten times the cost. =which-key= gets
-most of the benefit for one line.
-
-*What would change that*, and the real trigger to revisit: the filters
-the buffer plausibly wants once it meets real volume — filter by
-session, filter to only =(suggested)= items, mark-all-within-a-heading,
-apply-with-confirmation. Those are switches, and transient handles
-switches far better than a flat keymap does. The
-[[id:720b2dcf-6af1-45f3-96a7-aa841e5651e1][720b2dcf]] plan already
-named magit-status's staging area as the model, so this is a genuine
-direction — it should just follow the filters rather than lead them.
-Blocked on =720b2dcf= being used enough to know which filters are
-actually wanted; guessing at them now is how the machinery gets built
-for a UI nobody needs.
-
-*Promoted to =**= 2026-08-15, evaluated for cancellation, immediate
-implementation, or promotion — and promotion is the honest answer.*
-
-=720b2dcf= is =DONE=, so the =:BLOCKER:= is satisfied and this is no
-longer *structurally* blocked. It stays =MAYBE= because its own trigger
-has not fired: the condition written here is "filters worth composing",
-and the review buffer still has flat commands with no state to toggle.
-Nothing in real use has demanded a filter. The friction actually
-encountered on 2026-08-15 was the assignment prompt
-([[id:0d055205-a670-45c6-b4af-980961603a7c][0d055205]]) and candidate
-ranking ([[id:49cbe319-f7db-413a-ade8-c4850c1fab8c][49cbe319]]) — neither
-of which a transient menu would have helped with.
-
-*Not cancelled,* because the direction is sound and cheap to revisit:
-=transient= is already this ecosystem's idiom, =claude-code-ide= ships 16
-prefixes of its own, and the trigger condition is written down precisely
-enough that a future session can check it rather than re-derive it.
-
-*Not built,* because this heading's own argument forbids it — "guessing
-at them now is how the machinery gets built for a UI nobody needs." That
-reasoning has not weakened; if anything the two defects found on 08-15
-suggest the buffer's next improvements are correctness, not composition.
-
-*Promoted rather than left in place* on the reasoning
-[[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]] has now applied
-five times: this is a capability that epic *enables* rather than one it
-*requires*, and an epic which keeps every downstream capability can never
-close. With this and
-[[id:0c8644ff-f7b1-4789-ac1e-babf2e9fbc8e][0c8644ff]] out, that epic's
-children are 29 =DONE= and 2 =CANCELLED=, and it can close.
+*What is ruled out.*
+- Building it now: "guessing at them now is how the machinery gets built for a UI nobody needs."
+- Cancelling it: the direction is sound and cheap to revisit, and the trigger is written down precisely enough to check rather than re-derive.
 
 
 * MAYBE Let the review command ask Claude to explain the ambiguous gaps between guideposts :code:
