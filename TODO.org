@@ -7063,106 +7063,29 @@ CLOCK: [2026-08-26 Wed 15:43]--[2026-08-26 Wed 15:44] =>  0:01
 - [2026-08-26 Wed 15:43]--[2026-08-26 Wed 15:44] assigned at review
 :END:
 
-*Requested by the user 2026-08-26*, while noticing that the
-[[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] flattening analysis "both
-forgot about datetrees". The ask was for a custom sort function giving the
-datetree a newest-at-top orientation, to match the same recency ordering
-proposed for TODO.org and DONE.org.
+*Requested by the user 2026-08-26*, while noticing that the [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] flattening
+analysis "both forgot about datetrees": a newest-at-top datetree, to match the
+recency ordering proposed for TODO.org and DONE.org. The change is a call-site
+swap in =claude-code-ide-org--ensure-day-node=, which currently calls the legacy
+=org-datetree-find-date-create= that hardcodes ascending: passing three
+descending comparators to =org-datetree-find-create-hierarchy= with
+='subtree-at-point= replaces it. Independent of [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]], and touches none of
+the same code.
 
-*No custom sort function is needed, measured.* =(org-sort-entries nil ?A)= on
-the month node produces =("2026-08-21" "2026-08-17" "2026-08-14")= in one call.
-Org's day nodes are ISO-prefixed, so lexical order *is* date order and
-reverse-alphanumeric *is* newest-first. Same for month nodes within a year and
-year nodes within the anchor. The comparator this needs already ships.
+*What is established.*
+- =org-datetree-find-create-hierarchy= takes a comparison function per level, and =org-datetree-comparefun-from-regex= is public specifically to build them; =--find-create-subheading= walks siblings for the first one where the result is =>= 0=, inserts before it, and detects an existing entry by the same function returning =0= or =t=, so inverting the comparator inverts insertion *and* lookup together.
+- Measured on org 9.8.7, comparator simply negated: 08-25 (newest) not found, created, order 25, 21, 17, 14 -- top.
+- Measured on org 9.8.7: 08-16 (interior) not found, created, order 21, 17, 16, 14 -- slot.
+- Measured on org 9.8.7: 08-17 (present) found as *t*, order unchanged, no duplicate.
+- The =--find-day-node= title pre-check can stay -- it is order-independent and cheap -- but stops being load-bearing.
+- The hazard the legacy finder carries: raw =org-datetree-find-date-create= does a *sorted scan with early exit*, so against a descending tree it creates a **duplicate day node** (measured: filing an already-present 2026-08-17 produced =("08-17" "08-21" "08-17" "08-14")=). Two nodes for one day, each with its own =:ID:=, would split that day's meta-work clock silently.
+- Anything that bypasses =--ensure-day-node= stays exposed -- an =org-capture= template targeting =file+olp+datetree=, or a hand =C-c C-j=; neither is configured here today. If the tree is reoriented, that becomes a standing constraint worth writing down: *the day node is created through =--ensure-day-node= or not at all.*
+- History: Evan asked for this on emacs-orgmode in April 2010; Carsten Dominik declined it as deliberate ("I have a hard time why, if you are creating a new node every day, you'd like the subnodes first on top."); =org-reverse-datetree= (akirak, still on MELPA) filled the gap out-of-tree.
+- What landed in 9.8 generalises =:tree-type= to arbitrary subsets of =(year quarter month week day)= plus arbitrary functions, motivated by lunar, academic and retail 4-4-5 calendars; reverse ordering is incidental to that comparator seam, so there is no first-class =org-datetree-reversed= option to wait for.
 
-*The work is placement, not comparison.* =org-datetree-find-date-create= assumes
-ascending and inserts accordingly, so a newly created node lands in the wrong
-place in a descending tree -- measured: filing 2026-08-25 into a descending
-month appended it at the *bottom*. One =org-sort-entries= call afterwards
-corrects it, verified end to end:
-
-: before create : ("08-21" "08-17" "08-14")
-: after create  : ("08-21" "08-17" "08-14" "08-25")
-: after resort  : ("08-25" "08-21" "08-17" "08-14")
-
-*So the change is a re-sort at one call site*,
-=claude-code-ide-org--ensure-day-node=, which already creates the node, stamps
-=:CREATED:=, takes an =:ID:= and saves. Sorting the three scaffolding levels
-before that save is contained and idempotent.
-
-*The hazard, which is real but not on this project's path.* Raw
-=org-datetree-find-date-create= does a *sorted scan with early exit*, so against
-a descending tree it passes the target, concludes the date is absent, and
-creates a **duplicate day node**. Measured: filing an already-present 2026-08-17
-produced =("08-17" "08-21" "08-17" "08-14")=. Two nodes for one day, each taking
-its own =:ID:=, would split that day's meta-work clock silently -- the worst
-available failure for this subsystem.
-
-*It does not reach us because =--ensure-day-node= never calls org's finder
-blind.* It looks the node up first via =claude-code-ide-org--find-day-node=,
-which scans *every* heading in the subtree matching on exact rendered title,
-with no early exit and no order assumption. Verified against a descending tree:
-all three present days found, a nonexistent one correctly nil. Org's finder is
-reached only when the day genuinely does not exist, which is the one case where
-insertion order cannot duplicate anything.
-
-*What remains exposed is anything that bypasses that wrapper* -- an
-=org-capture= template targeting =file+olp+datetree=, or a hand =C-c C-j=.
-Neither is configured here today. If the tree is reoriented, that becomes a
-standing constraint worth writing down rather than a latent bug: *the day node
-is created through =--ensure-day-node= or not at all.*
-
-*Independent of the flattening decision.* This is wanted whether or not
-[[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] goes ahead, and touches
-none of the same code.
-
-*Superseded [2026-08-26 Wed], before anything was built.* The
-re-sort-after-creation plan above is a workaround for a limitation org removed
-in 9.8. Use the supported extension point instead.
-
-*=org-datetree-find-create-hierarchy= takes a comparison function per level*,
-and =org-datetree-comparefun-from-regex= is public specifically to build them.
-The find-or-create scan is driven *entirely* by that comparator --
-=--find-create-subheading= walks siblings for the first one where the result is
-=>= 0=, inserts before it, and detects an existing entry by the same function
-returning =0= or =t=. So inverting the comparator inverts insertion *and* lookup
-together, which is why the duplicate hazard disappears rather than being worked
-around.
-
-*Measured on org 9.8.7, comparator simply negated:*
-
-| filed date       | found existing | resulting order         |
-|------------------+----------------+-------------------------|
-| 08-25 (newest)   | nil, created   | 25, 21, 17, 14 -- top   |
-| 08-16 (interior) | nil, created   | 21, 17, 16, 14 -- slot  |
-| 08-17 (present)  | *t*            | unchanged, no duplicate |
-
-*So the change is a call-site swap, not a sort pass.* =--ensure-day-node=
-currently calls the legacy =org-datetree-find-date-create=, which hardcodes
-ascending. Passing three descending comparators to
-=org-datetree-find-create-hierarchy= with ='subtree-at-point= replaces it. The
-=--find-day-node= title pre-check can stay -- it is order-independent and cheap
--- but it stops being load-bearing, since org's own finder now handles the
-existing-date case correctly.
-
-*The community history, since it explains why this took sixteen years.* Evan
-asked for exactly this on emacs-orgmode in April 2010 -- "a date tree with the
-recent dates on the top in contrast to the normal date tree". Carsten Dominik
-declined it as deliberate rather than missing: "I have a hard time why, if you
-are creating a new node every day, you'd like the subnodes first on top." The
-gap was filled out-of-tree by =org-reverse-datetree= (akirak), still on MELPA.
-
-*And it was never granted on its own merits.* What landed in 9.8 is a
-generalisation of =:tree-type= to arbitrary subsets of =(year quarter month week
-day)= plus arbitrary functions, motivated by lunar, academic and retail 4-4-5
-calendars. Reverse ordering is an *incidental* capability of the comparator seam
-that generalisation required. Worth knowing, because it means there is no
-first-class =org-datetree-reversed= option to wait for and probably never will
-be -- the seam is the answer org intends.
-
-*Consequence for the flattening question*
-([[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]]): none. This is
-orthogonal and was already noted there as independent.
+*What is ruled out.*
+- A custom sort function: =(org-sort-entries nil ?A)= on the month node already gives newest-first, since ISO-prefixed day nodes make lexical order date order (measured).
+- Re-sorting after day-node creation (superseded 2026-08-26, before anything was built): a workaround for a limitation org removed in 9.8; it was needed because =org-datetree-find-date-create= appends a new node at the *bottom* of a descending month (measured).
 
 
 * NEXT A clocktable never shows a parent's own time, only own-plus-subtree :code:
