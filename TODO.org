@@ -2083,41 +2083,35 @@ than the 5,358 the measurement reports, since the 90 lines behind
 =org_clock_report= stay with the registered tool.
 :END:
 
-=8bbae3aa= separated time tracking from task tracking everywhere except the module. The hooks self-gate, the rules forked into =org-time-tracking.md=, the manifest declares the option, the prose demoted the goal — and =modules/tools/claude-code-ide-org/config.el= still holds both in one file of **17,954 lines**, every line of which a consumer loads whether or not the feature is on.
+=8bbae3aa= separated time tracking from task tracking everywhere except the
+module: the hooks self-gate, the rules forked into =org-time-tracking.md=, the
+manifest declares the option, the prose demoted the goal -- and
+=modules/tools/claude-code-ide-org/config.el= still holds both in one file,
+every line of which a consumer loads whether or not the feature is on.
+Re-measured 2026-09-22: 18,394 lines, of which the eight time-shaped sections
+total 5,358, so the 30% claim holds. The design is in =:PLAN:=; the heading has
+two children, the re-homing that carries all the judgement and the cut that is
+mechanical once it lands.
 
-*Measured 2026-09-19.* The file declares **45 =;;;= sections**, and eight of them are time-shaped — =Span evidence= (1859), =One stretch of work, one lane= (1767), and the clock, guidepost, stale-interval and attention machinery — totalling **5405 lines, 30% of the file**. The remaining 37 sections are 12,504 lines. No section dominates: the largest is 1991 lines and a dozen sit between 400 and 2000, so the decomposition is broad rather than lopsided.
+*What is established.*
+- Measured 2026-09-19: the file declares **45 =;;;= sections**; the eight time-shaped ones are =Span evidence= (1859), =One stretch of work, one lane= (1767), and the clock, guidepost, stale-interval and attention machinery. No section dominates: the largest was 1991 lines and a dozen sat between 400 and 2000.
+- Motivations, ranked: (1) the time/task seam -- the strongest, the only one that benefits a **consumer**, and a direct continuation of =8bbae3aa=; (3) size alone -- real, and the weakest; (4) a digest boundary -- =2cd74268= wants a checksum over the apply path, and a file boundary includes new functions automatically where a digest over eleven *named* functions is fragile to additions.
+- Filed as a sibling of =2cd74268= rather than a child precisely because motivation 1 outlives the ratchet being cancelled.
+- Cost: =claude-code-ide-org--append-to-drawer= has four call sites across four sections, only two on the apply path, so shared helpers need a home -- and drawer writing is where **both** of this project's data-loss incidents lived (=ba8249c1=, =b74e0f19=, per =c084553c='s survey).
+- Cost: the assertion that the tool-registration block is the last top-level form lives in =bin/lib/check-org-dev-skill.el=, exists for a reason, and needs rethinking rather than deleting; the =;;; MCP tool registration= header is orphaned eleven sections away from the block it names (2026-09-22).
+- The auto clock-in ignores =time_tracking= (2026-09-24, the 53b0047d spike): =--trigger-auto-clock-in= is gated only on =claude-code-ide-org-auto-clock-in-on-doing=, which defaults to =t=, so a hand transition to =DOING= opens a real org clock in an install where time tracking is off.
+- Not a member of any slice: its strongest motivation continues a closed one; it earns a slice of its own or joins whichever is nominated next.
 
-*Four motivations, ranked, because only some are independent:*
+*Also to establish first, cheaply:* whether the module is loaded by Doom as one
+file or by path. It is symlinked into =~/.config/doom/modules/tools/= and
+enabled via =:tools claude-code-ide-org=, so splitting turns implicit
+single-file loading into explicit ordering — and the =org-clock-persist-load=
+trap (org-dev skill §2) is the standing evidence that load *order* in this
+module is not a free variable.
 
-1. *The time/task seam.* The strongest, the only one that benefits a **consumer**, and a direct continuation of =8bbae3aa= rather than a new idea. A default install loads 5405 lines that can never run for it.
-2. *The structure already exists.* Splitting would **materialise** a decomposition already documented in comments — =Capture=, =Refile=, =Write-through gate=, =Native transition enforcement= — not invent one. That is what makes this a move rather than a redesign.
-3. *Size alone.* Real, and the weakest: a large file is not wrong.
-4. *A digest boundary.* What prompted the idea, and now the least of it. =2cd74268= wants a checksum over the apply path; a digest over eleven *named* functions is fragile to additions, where a file boundary includes new ones automatically. Filed as a sibling of that heading rather than a child precisely because motivation 1 outlives the ratchet being cancelled.
-
-*Two costs to name before committing.* =claude-code-ide-org--append-to-drawer= has four call sites across four sections, only two of them on the apply path, so shared helpers need a home and the split is not mechanical — and drawer writing is where **both** of this project's data-loss incidents lived (=ba8249c1=, =b74e0f19=, per =c084553c='s survey). And =bin/check-conventions= asserts "config.el tool-registration block is the last top-level form", which exists for a reason and needs rethinking rather than deleting.
-
-*Also to establish first, cheaply:* whether the module is loaded by Doom as one file or by path. It is symlinked into =~/.config/doom/modules/tools/= and enabled via =:tools claude-code-ide-org=, so splitting turns implicit single-file loading into explicit ordering — and the =org-clock-persist-load= trap (org-dev skill §2) is the standing evidence that load *order* in this module is not a free variable.
-
-*Not a member of any slice.* Its strongest motivation continues a closed one; it earns a slice of its own or joins whichever is nominated next.
-
-*Re-measured 2026-09-22, and the design is in =:PLAN:=.* The file is now
-18,394 lines and the eight time-shaped sections total 5,358 of them, so the
-30% claim above holds. Two other facts above do not: the tool-registration
-assertion lives in =bin/lib/check-org-dev-skill.el=, not
-=bin/check-conventions=, and the =;;; MCP tool registration= header is
-orphaned eleven sections away from the block it names. The second motivation
-as written — that splitting would materialise a decomposition the comments
-already document — is retired by measurement: task-side code makes 130
-references to 47 symbols defined inside the time-named sections, so the
-comments do not delimit what they name. The heading now has two children,
-the re-homing that carries all the judgement and the cut that is mechanical
-once it lands.
-
-*The auto clock-in ignores =time_tracking=* (2026-09-24, the 53b0047d
-spike). =--trigger-auto-clock-in= is gated only on
-=claude-code-ide-org-auto-clock-in-on-doing=, which defaults to =t=, so a
-hand transition to =DOING= opens a real org clock in an install where
-time tracking is off.
+*What is ruled out.*
+- Motivation 2, that splitting would materialise a decomposition the comments already document (=Capture=, =Refile=, =Write-through gate=, =Native transition enforcement=): retired by measurement 2026-09-22 -- task-side code makes 130 references to 47 symbols defined inside the time-named sections, so the comments do not delimit what they name.
+- That the tool-registration assertion lives in =bin/check-conventions=: it is in =bin/lib/check-org-dev-skill.el= (2026-09-22).
 
 
 ** NEXT Re-home config.el's misfiled symbols until nothing task-side reaches into the time sections :code:
