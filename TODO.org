@@ -9912,94 +9912,43 @@ CLOCK: [2026-09-25 Fri 12:36]--[2026-09-25 Fri 12:37] =>  0:01
 - [2026-09-25 Fri 12:36]--[2026-09-25 Fri 12:37] record the reconnect sighting
 :END:
 
-*Found 2026-09-02 while diagnosing
-[[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]].* This is the upstream
-half: our three tool declarations were the trigger, but the reason a bad request
-*hangs* instead of erroring is in =claude-code-ide= itself, and it will bite any
-tool anyone registers.
+=claude-code-ide-mcp-http-server.el= signals =json-rpc-error= in three places
+and *never passes the symbol to =define-error=*, so the signal escapes the whole
+request handler and a bad request is neither answered nor closed. Found
+2026-09-02 while diagnosing
+[[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]]; this is the upstream half
+-- our tool declarations were the trigger, but the reason a bad request *hangs*
+instead of erroring is in =claude-code-ide= itself, and it will bite any tool
+anyone registers. The three conditions are ordinary client mistakes -- unknown
+method, unknown tool, missing argument -- that a caller could correct instantly
+if told, and all present as a hang or silence with no diagnostic. The local trap
+is [[id:ecbbec2e-50d9-4581-9ded-15716f16c5f3][ecbbec2e]]: this module catching =json-rpc-error= itself until the upstream fix
+lands (linked 2026-09-25).
 
-=claude-code-ide-mcp-http-server.el= signals =json-rpc-error= in three places —
-=--dispatch= for an unknown method (=-32601=), =--handle-tools-call= for an
-unknown tool (=-32602=), and =--validate-args= for a missing required argument
-(=-32602=) — and *never passes the symbol to =define-error=*.
+*The fix upstream.* =(define-error 'json-rpc-error "JSON-RPC error")=, plus a
+handler that renders it through =--send-json-error= with its own code and
+message *and the request's own =id=*, which means catching it where =id= is
+still bound rather than in the outer handler. Every signal site already carries
+the right JSON-RPC code.
 
-An error symbol with no =error-conditions= property matches no handler. Measured
-directly:
+*What is established.*
+- The three sites: =--dispatch= for an unknown method (=-32601=), =--handle-tools-call= for an unknown tool (=-32602=), and =--validate-args= for a missing required argument (=-32602=).
+- An error symbol with no =error-conditions= property matches no handler, measured directly:
 
 : (condition-case e (signal 'json-rpc-error (list -32602 "x")) (error "caught"))
 : => *ERROR*: peculiar error: -32602, "x"
 
-So the =(error …)= handler in =--handle-post= does not catch it, and neither
-does the inner =condition-case= in =--handle-tools-call= — which the
-=--validate-args= call sits outside of anyway, being evaluated in the enclosing
-=let*=. The signal escapes the whole request handler, =--send-json-response= is
-never reached, its =(throw 'close-connection nil)= never runs, and the HTTP
-connection is neither answered nor closed. The client waits until it times out.
-Emacs stays fully responsive throughout, which is what makes the symptom so hard
-to place.
+- So neither the =(error …)= handler in =--handle-post= nor the inner =condition-case= in =--handle-tools-call= catches it (=--validate-args= sits outside the latter, in the enclosing =let*=); =--send-json-response= is never reached and its =(throw 'close-connection nil)= never runs. Emacs stays fully responsive throughout.
+- The =-32601= site fired in production, 2026-09-09 (folded in from the cancelled twin =3f31b788=): the minibuffer showed =error in process filter: peculiar error: -32601, "Method not found"=, and a =curl= probe with =logging/setLevel= reproduced it with an empty response body and no JSON-RPC error object.
+- The server's own =initialize= reply *advertises a =logging= capability it does not implement*, inviting the =logging/setLevel= request that lands on the unhandled path; the symptom varies by site -- silence plus minibuffer noise there, a client timeout elsewhere -- while the cause is the one missing =define-error=.
+- Confirmed at both =-32602= sites, 2026-09-22, by the =51bcec2c= spike: a =tools/call= of =org_body= with =id= omitted and a call to a nonexistent tool *both got no reply at all* (HTTP 000 at 8.0 s with =curl --max-time 8=), =*Messages*= showed =error in process filter: peculiar error: -32602, "Unknown tool: org_nosuch"=, a valid call answered at once, and Emacs answered =emacsclient= throughout.
+- Every timed-out tool call in this project's transcripts traces here: =org_set_todo= passed =keyword= for =state=, both =org_divide= calls passed =title= for =parent_title=, and both =org_slice_add_member= calls passed =slice= and =member= for =slice_id= and =member_id=.
+- Seen again 2026-09-25 on a manual =/mcp= reconnect of =emacs-tools=: =*Messages*= showed the =-32601= "peculiar error" from =claude-code-ide-mcp-http-server--dispatch= twice; harmless, since the reconnect completed. Which method the client sent was not captured. A reconnect is a cheap way to reproduce this.
+- A malformed body is the one case where =id= null is right; the probe shows it answered promptly, though as =-32603= "Internal error" rather than =-32700= "Parse error" -- worth one sentence in the report, not a heading of its own.
+- Sibling of [[id:8f986c6f-7cab-42c5-9a21-01275f271c80][8f986c6f]]: both are the HTTP server answering wrongly rather than the tools misbehaving.
 
-*The fix upstream is one form:* =(define-error 'json-rpc-error "JSON-RPC
-error")=, plus a handler in =--handle-post= that renders it through
-=--send-json-error= with its own code and message. Every one of the three signal
-sites already carries the right JSON-RPC code, so they need no change — today
-those codes are simply never delivered to anyone.
-
-*Worth reporting because the failure is maximally unhelpful.* The three
-conditions it covers are ordinary client mistakes — unknown method, unknown
-tool, missing argument — and each is the kind of thing a caller could correct
-instantly if told. Instead all three present identically as a hang with no
-diagnostic anywhere.
-
-Sibling of [[id:8f986c6f-7cab-42c5-9a21-01275f271c80][8f986c6f]] under this
-heading: both are the HTTP server answering wrongly rather than the tools
-misbehaving.
-
-*Second symptom observed live, 2026-09-09* (folded in from the
-cancelled twin =3f31b788=, captured before this heading was seen —
-the body-carrying =org_outline= surfaced the sibling minutes later):
-the *unknown-method* signal site (=-32601=) fired in production — the
-user saw =error in process filter: peculiar error: -32601, "Method
-not found"= in the minibuffer — and a controlled =curl= probe with
-=logging/setLevel= reproduced it: empty response body, no JSON-RPC
-error object. Two additions for the upstream report: the server's own
-=initialize= reply *advertises a =logging= capability it does not
-implement*, actively inviting the =logging/setLevel= request that
-lands on the unhandled path; and the observed failure at this site
-was silence-plus-minibuffer-noise rather than a client timeout, so
-the symptom varies by site while the cause is the one missing
-=define-error=.
-
-*Confirmed at both =-32602= sites, 2026-09-22, by the =51bcec2c= spike.*
-Four read-only POSTs to the live endpoint with =curl --max-time 8=: a
-=tools/call= of =org_body= with its required =id= omitted, and a call to
-a tool that does not exist, *both got no reply at all* (HTTP 000 at
-8.0 s), and =*Messages*= shows =error in process filter: peculiar error:
--32602, "Unknown tool: org_nosuch"=. A valid call answered at once with
-its =id= echoed, and Emacs answered =emacsclient= throughout. Every
-timed-out tool call in this project's transcripts traces here: the
-=org_set_todo= case passed =keyword= for =state=, both =org_divide=
-calls passed =title= for =parent_title=, and both
-=org_slice_add_member= calls passed =slice= and =member= for =slice_id=
-and =member_id=. A missing required argument is exactly the error that
-would have taught the caller the right name, and it is the one that
-hangs.
-
-*The fix needs one more thing than the paragraph above says.*
-=--handle-post='s catch-all =error= handler replies through
-=--send-json-error= with the =id= argument hard-coded to =nil=. So
-=define-error= alone turns a hang into an error reply the client cannot
-match to its request, and the caller most likely still waits out its
-timeout. The =json-rpc-error= handler has to reply with the request's
-own =id=, which means catching it where =id= is still bound, not in the
-outer handler. A malformed body is the one case where =id= null is
-right, since JSON-RPC 2.0 requires it when no =id= could be read, and
-the probe shows it answered promptly, though as =-32603= "Internal
-error" rather than =-32700= "Parse error". That code is worth one
-sentence in the report, not a heading of its own.
-
-*Seen again 2026-09-25, on a manual =/mcp= reconnect of =emacs-tools=.* =*Messages*= showed "error in process filter: claude-code-ide-mcp-http-server--dispatch: peculiar error: -32601, \"Method not found\"" twice, which is this defect's signature: the dispatcher meets a method it does not implement and signals the undefined error symbol, so Emacs prints "peculiar error" instead of a JSON-RPC error reply going out. Harmless that time, since the reconnect completed and the refreshed tool list arrived. Which method the client sent was not captured. A reconnect is a cheap way to reproduce this.
-
-*The local trap is [[id:ecbbec2e-50d9-4581-9ded-15716f16c5f3][ecbbec2e]]:* this module catching =json-rpc-error= itself until the upstream fix lands, so a bad request gets its error instead of a hang. Linked 2026-09-25, when a search from this heading could not find it.
+*What is ruled out.*
+- =define-error= alone as the fix: =--handle-post='s catch-all =error= handler replies with =id= hard-coded to =nil=, so the client could not match the reply to its request and would most likely still wait out its timeout.
 
 
 ** TODO Unknown tool arguments are dropped silently by both dispatch paths :code:
