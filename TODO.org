@@ -2423,6 +2423,11 @@ That is consistent with how the hook is run — Claude Code spawns it and captur
 
 *One design consequence, and it bends a convention slightly.* =COLUMNS= belongs to the *shell*; the Emacs process behind =emacsclient= does not have it. So =bin/statusline.sh= — whose stated job is to shuttle bytes and hold no logic — has to pass the width into the elisp call. That is passing an *environment fact* rather than adding logic, which is defensible under "maximum Emacs, minimal shell", but it should be a deliberate note in the script rather than an unremarked argument.
 
+*Its body holds the beginnings of a plan* (noted 2026-10-01, e128e4fa's condense
+pass): when this heading is brainstormed, move the prospective prose into
+=:PLAN:= and revise the body to a short statement.
+
+
 
 * TODO The statusline says "clocked in" when it means "agent mid-turn", and the heading is merely the last one named :code:
 :PROPERTIES:
