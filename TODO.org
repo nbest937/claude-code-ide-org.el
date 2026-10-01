@@ -7321,6 +7321,11 @@ in a way it is not at 54 minutes, so a width-bounded default is the shape worth
 arguing about. Filed separately rather than decided here, since where that bound
 falls is a reporting decision.
 
+*Its body holds the beginnings of a plan* (noted 2026-10-01, e128e4fa's condense
+pass): when this heading is brainstormed, move the prospective prose into
+=:PLAN:= and revise the body to a short statement.
+
+
 
 * TODO Flipping a span's timestamps to active is hand-editing; give the review buffer a key :code:bounded:
 :PROPERTIES:
