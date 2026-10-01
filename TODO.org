@@ -6711,6 +6711,11 @@ cannot be interpreted.
 *Same conclusion by a second route:* the question is "were these minutes real",
 and only an instrument outside the clock system answers it.
 
+*Its body holds the beginnings of a plan* (noted 2026-10-01, e128e4fa's condense
+pass): when this heading is brainstormed, move the prospective prose into
+=:PLAN:= and revise the body to a short statement.
+
+
 
 * TODO [0/2] Make an archived day hold that day's record :code:
 :PROPERTIES:
