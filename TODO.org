@@ -2309,6 +2309,11 @@ Task events map **1:1 to review items** — the builder pushes one proposal per 
 
 *What remains here is two things*: the toggle itself, and what "observed enough" counts. Not divided, deliberately — at two subtasks the parent would be a container holding almost nothing, and the reset it depends on lives elsewhere.
 
+*Its body holds the beginnings of a plan* (noted 2026-10-01, e128e4fa's condense
+pass): when this heading is brainstormed, move the prospective prose into
+=:PLAN:= and revise the body to a short statement.
+
+
 
 * TODO Survey what has landed since August that the statusline should be using and is not :code:research:
 :PROPERTIES:
