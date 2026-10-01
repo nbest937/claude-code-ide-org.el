@@ -8079,6 +8079,11 @@ it. Filesystem mtimes are not a corpus. Whatever this builds must read the queue
 and the transcripts, which are append-only, and not the working tree, which is
 not.
 
+*Its body holds the beginnings of a plan* (noted 2026-10-01, e128e4fa's condense
+pass): when this heading is brainstormed, move the prospective prose into
+=:PLAN:= and revise the body to a short statement.
+
+
 
 * TODO Index a heading's git history from a drawer, so the body never has to narrate it :code:research:arch:
 :PROPERTIES:
