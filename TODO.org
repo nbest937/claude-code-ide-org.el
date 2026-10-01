@@ -9586,62 +9586,31 @@ verified against the real file.
 :CREATED:  [2026-08-10 Mon 11:51]
 :END:
 
-Hit live 2026-08-10 while setting =f9f61c04= to =DOING=. The
-=org_set_todo= MCP call timed out, while Emacs itself stayed responsive
-to =emacsclient -e= -- a recursive edit still runs a command loop, so
-the server keeps answering. That combination makes a blocked Emacs look
-like a tool fault.
+Nothing prevents stale entries in org-clock's persisted history from hanging the
+first clock-in after a restart. Any verification pass that clocks into a scratch
+org file under /tmp writes that path into the persisted history, and the first
+clock-in after the next restart hangs once /tmp is reaped. =bin/test= runs
+=emacs --batch -Q= and cannot pollute the real history, but hand verification in
+a live Emacs does exactly this -- and [[id:3d576d29-747f-40b9-a5b3-ecc76679daad][3d576d29]] established that live
+verification is *necessary* here, because batch behaves differently. Relevant to
+[[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]]: a hang in the clock path is the exact failure class that refactor
+exists to eliminate, and this one survives the cutover untouched, since the
+apply command clocks in through the same advised =org-clock-in=.
 
-*Mechanism, fully root-caused:* Doom advises =org-clock-in= with
-=+org--clock-load-a=, a =:before= advice that lazily calls
-=org-clock-load= on the *first* clock-in of an Emacs session.
-=org-clock-load= visits every file named in the persisted history
-(=org-clock-persist-file=, here
-=~/.config/emacs/.local/etc/org-clock-save.el=). That history still
-named =/private/tmp/planning-verify/scratch.org=, a scratch file from an
-earlier verification session whose directory /tmp reaping had since
-removed. Visiting it produced a buffer whose save asked
-=Directory .../planning-verify/ does not exist! Create it? (y or n)= --
-and a =y-or-n-p= is *not* an error, so no =condition-case= in this
-module could have caught it. It simply waited.
+*What is established.*
+- Mechanism (root-caused, hit live 2026-08-10 while setting =f9f61c04= to =DOING=): Doom advises =org-clock-in= with =+org--clock-load-a=, a =:before= advice that lazily calls =org-clock-load= on the *first* clock-in of an Emacs session, and =org-clock-load= visits every file named in the persisted history (=org-clock-persist-file=, here =~/.config/emacs/.local/etc/org-clock-save.el=).
+- That history named =/private/tmp/planning-verify/scratch.org=, a scratch file from an earlier verification session, whose directory /tmp reaping had removed; visiting it produced a buffer whose save asked =Directory .../planning-verify/ does not exist! Create it? (y or n)=, and a =y-or-n-p= is *not* an error, so no =condition-case= in this module could have caught it.
+- The symptom: the =org_set_todo= MCP call timed out while Emacs stayed responsive to =emacsclient -e= -- a recursive edit still runs a command loop, so the server keeps answering, and a blocked Emacs looks like a tool fault.
+- Cleared 2026-08-10: =abort-recursive-edit=, killed the stale buffer, filtered =org-clock-history= of markers into nonexistent files, and called =org-clock-save= to rewrite the persist file; verified, the file no longer mentions the path and the next =org_clock_in= returned immediately.
+- 3ad389be's failure hook makes a recurrence recognisable (2026-09-23): its probe sees a tool call blocked on a prompt as a public org tool still on the Lisp stack, and tells the session to ask the user to answer it. That covers the "a blocked Emacs looks like a tool fault" half; preventing the stale history, which is this heading's task, is unaffected.
 
-*Why it first looked like leaked state:* a separate =emacsclient= query
-reported =claude-code-ide-org--auto-clock-in-active= as =t=, which reads
-exactly like a re-entrancy guard that failed to unwind. It was not --
-the =let=-binding was still live on the blocked call's stack. Reading it
-that way is what located the hang inside =--trigger-auto-clock-in=, and
-it generalizes: a dynamic binding observed as set from outside means the
-frame that bound it has not returned.
+*What is ruled out.*
+- Leaked re-entrancy state: =claude-code-ide-org--auto-clock-in-active= read =t= from a separate =emacsclient= query, but the =let=-binding was still live on the blocked call's stack; reading it that way is what located the hang inside =--trigger-auto-clock-in=. A dynamic binding observed as set from outside means the frame that bound it has not returned.
 
-*Cleared 2026-08-10*: =abort-recursive-edit=, killed the stale buffer,
-filtered =org-clock-history= of markers into nonexistent files, and
-called =org-clock-save= to rewrite the persist file from the cleaned
-live history. Verified -- the file no longer mentions the path, and the
-next =org_clock_in= returned immediately.
-
-*What is NOT fixed, and is the actual task here:* nothing prevents a
-recurrence. Any verification pass that clocks into a scratch org file
-under /tmp writes that path into the persisted history, and the first
-clock-in after the next restart hangs once /tmp is reaped. =bin/test=
-runs =emacs --batch -Q= and cannot pollute the real history, but hand
-verification in a live Emacs does exactly this -- and
-[[id:3d576d29-747f-40b9-a5b3-ecc76679daad][3d576d29]] established that
-live verification is *necessary* here, because batch behaves
-differently. Options, unevaluated: prune nonexistent files via an
+*Open.* Options, unevaluated: prune nonexistent files via an
 =org-clock-load= advice; keep live-verification scratch files somewhere
 /tmp reaping does not reach; or set =org-clock-persist= to nil and
 accept losing clock history across restarts.
-
-Relevant to [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]]: a
-hang in the clock path is the exact failure class that refactor exists
-to eliminate, and this one survives the cutover untouched, since the
-apply command clocks in through the same advised =org-clock-in=.
-
-*3ad389be's failure hook will make a recurrence recognisable* (2026-09-23).
-Its probe sees a tool call blocked on a prompt as a public org tool still on
-the Lisp stack, and tells the session to ask the user to answer it. That
-covers the "a blocked Emacs looks like a tool fault" half. Preventing the
-stale history, which is this heading's task, is unaffected.
 
 
 * MAYBE Give the review buffer a transient menu, once it has filters worth composing :code:
