@@ -1700,11 +1700,64 @@ So, after the corpus pass lands:
 
 Order within the slice: after =e128e4fa=, since that pass is what produces the
 shape.
+
+*The premise failed, measured 2026-10-01.* This heading waited for 6521dd56's
+corpus pass to make every open heading canonical, but that pass (e128e4fa) only
+ever touched finished headings. Of 149 live tasks in TODO.org (slices and Miss:
+headings excluded), 116 had no =:PLAN:= and 103 of those had a substantial body
+by the lint's ten-prose-line threshold; 64 of the 103 were filed after
+2026-09-02, under the plan-first convention, and grew past the threshold through
+amends. So the shape is broken by ongoing writes, not only by the old backlog.
+
+*The design, approved in chat by the user 2026-10-01, who chose to backfill now
+and lint everything over a lint with a creation-date cutoff that would let the
+backlog drain lazily.*
+
+*1. The backfill: split, never condense.* For each live heading with a
+substantial body and no =:PLAN:=, a drafter subagent picks the seam and an
+independent verifier checks it; =org_wrap_plan= applies it losslessly, one
+commit per heading. A mixed body puts its prospective prose (proposal, options,
+design) into =:PLAN:= above the seam and keeps the record (what is wrong, what
+is established, what is ruled out) in the body. A body that is pure record gets
+an empty =:PLAN:=, which the conventions call a real answer. A body that is pure
+plan is wrapped whole and the drafter writes a one-to-two-sentence statement as
+the new body, the only authored text in the pass. The 22 headings noted
+2026-10-01 as holding the beginnings of a plan are in the set; the split does
+what the note asked, so the note is removed in the same commit (the user's
+earlier choice to revise them at brainstorming time is superseded by this one).
+Condensing the record is not part of it: the lint asks for the split, not for
+brevity.
+
+*2. The lint, everywhere.* =bin/lint-org= errors on an open heading whose body
+is substantial and which has no =:PLAN:=, with the threshold the
+finished-heading warning already uses. It lands at zero, the backfill having run
+first.
+
+*3. A nudge at write time.* When an =org_amend= or =org_edit= write leaves a
+drawerless live body substantial, the reply carries one line saying to split the
+plan into =:PLAN:=, since that is how 64 of the 103 arose and the lint alone
+would catch it only at commit.
+
+*4. The clause retires.* The conventions' paragraph that gives a drawerless
+member a =:PLAN:= before its step is worked, marked as scaffolding, is replaced
+by one sentence naming the lint. That meets the first of 80aeb955's two
+conditions for retiring =org_wrap_plan=.
+
+*Tests.* The lint fires on a drawerless live body over the threshold and not on
+an empty =:PLAN:=, a short body or a finished heading; the nudge appears exactly
+when a write crosses the threshold; each is shown to fail with its check
+removed.
+
+*Order.* The backfill first, on =main=, one commit per heading, as tracker
+maintenance; then the lint, the nudge and the convention change on a branch,
+merged through a pull request.
 :END:
 
-The SOP's instruction to give a drawerless member a =:PLAN:= is scaffolding for
-a pre-convention corpus. When =6521dd56='s pass makes the shape universal, the
-lint should enforce it and the clause should be deleted.
+The conventions' clause giving a drawerless member a =:PLAN:= is scaffolding,
+but no pass ever made live headings canonical: 103 live bodies are substantial
+with no =:PLAN:=, 64 of them filed under the convention. Backfill the split for
+all of them now, then let =bin/lint-org= require the shape everywhere, nudge at
+write time, and retire the clause. Design in =:PLAN:=.
 
 
 * TODO A PreToolUse guard for hand edits to keywords, CLOCK lines and slice checklists in the org files :code:
