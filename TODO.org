@@ -3031,6 +3031,11 @@ replaces it with a start time held outside org and one closed =CLOCK:= line
 written at quit, which would remove this defect's cause rather than reopen the
 clock afterwards.
 
+*Its body holds the beginnings of a plan* (noted 2026-10-01, e128e4fa's condense
+pass): when this heading is brainstormed, move the prospective prose into
+=:PLAN:= and revise the body to a short statement.
+
+
 
 * DOING The complement's gap spans carry no events, so half the review buffer cannot be dismissed :code:
 :PROPERTIES:
