@@ -7593,6 +7593,11 @@ and an observation from use pointing the same way: decline it.**
 before acting on it, and =e= remains the escape hatch for bounds that are
 actually wrong, which is a different act from asserting attention.
 
+*Its body holds the beginnings of a plan* (noted 2026-10-01, e128e4fa's condense
+pass): when this heading is brainstormed, move the prospective prose into
+=:PLAN:= and revise the body to a short statement.
+
+
 
 * TODO Intervals on two different headings can overlap, and subtraction reaches only one :code:
 :PROPERTIES:
