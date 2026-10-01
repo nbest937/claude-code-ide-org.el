@@ -2555,25 +2555,35 @@ CLOCK: [2026-09-17 Thu 11:36]--[2026-09-17 Thu 11:37] =>  0:01
 *The fix has three parts.* The convention drops the cookie from quoted titles, in =~/.claude/CLAUDE.md='s successor and in the shipped =org-footnote-citations.md=. =bin/hooks/footnote-check= strips it when emitting, since it currently hands back the title as read from the file. And the existing footnote lines in bodies are left alone — they are historical statements, already stale, and rewriting them is churn of the kind =5fc7b934= declined for line-number citations.
 :END:
 
-A statistics cookie is derived state recomputed from children, not part of a heading's name — =749301a0= wore five different ones in a single day — so quoting it in a footnote makes the citation stale on arrival and identifies nothing. It also puts cookie-shaped text into prose: 115 such tokens exist across the two files, only 31 of them on headlines, and a buffer-wide =org-update-statistics-cookies= silently zeroes the rest. Retracts the 2026-09-16 convention that the quoted title include the cookie; the hook must strip it too.
+Add =:KIND:= to the footnote end matter and keep the cookie. The user reads the
+cookie as a type sigil -- it is what lets them tell a **task** from a
+**grouping** at a glance -- and named the residual confusion themselves: story
+versus slice, which the cookie alone cannot separate (the user, 2026-09-17). So
+the change is additive: =bin/hooks/footnote-check= emits =:KIND:= alongside the
+keyword. Separately, roughly **84** cookie-shaped tokens sit in body prose,
+where a buffer-wide =org-update-statistics-cookies= silently rewrites them.
 
-*Corrected by the user 2026-09-17, within the hour, and the =:PLAN:= above is left standing with its wrong conclusion because the turn is the useful part.* The proposal there was to drop the cookie from quoted titles. The user does not want that: the cookie is what lets them tell a **task** from a **grouping** at a glance in the end matter, and they named the residual confusion themselves — story versus slice, which the cookie alone cannot separate.
+*What is established.*
+- Read as a sigil, only presence carries meaning, which dissolves most of the staleness objection: a =[8/9]= that should read =[13/14]= still says "grouping" correctly. (A cookie is derived state recomputed from children -- =749301a0= wore five different ones in a single day.)
+- Measured on the open corpus, 170 headings, no exceptions: slice -- cookie + =:KIND: slice= -- 5.
+- Same measurement: story -- cookie, no =:KIND:= -- 6; task -- no cookie -- 159.
+- So cookie and =:KIND:= are a two-bit classifier, each carrying a bit the other does not; =:KIND:= cannot do it alone because a story is emergent and never declared (=2e660571= measured its way out of declaring what the structure already states).
+- =footnote-check= already greps the property drawer for =:ID:=, so reading one more property on the same pass costs nothing and needs no Emacs.
+- 115 cookie-shaped tokens exist across the two files, 31 on headlines, so roughly 84 sit in body prose, and =org-update-statistics-cookies= with a non-nil ALL recomputes every one to =[0/0]=. The hazard follows from quoting titles at all, which the footnote convention requires. The exposure is a human pressing =C-u C-c #=, or an agent running it without thinking, which is how the instance at TODO.org:4271 happened.
 
-*So the cookie is being read as a type sigil, not as a count, and that dissolves most of the staleness objection.* If only presence carries meaning, a =[8/9]= that should now read =[13/14]= still says "grouping" correctly. Being wrong about the number costs nothing when the number is not what is being consulted.
+*Placement, decided 2026-09-17 so it is not re-decided:* the *definition* -- a
+cookie is derived state, not part of a name -- goes in =org-conventions.md=
+beside the passage introducing the cookie, together with the rewrite hazard,
+since both matter when an =.org= file is open and that file is path-scoped to
+=**/*.org=. The *instruction* -- emit =:KIND:=, keep the cookie -- goes in
+=org-footnote-citations.md=, which carries no path scope because ids are cited
+with no org file in play. State it once in each and cross-reference; two files
+each holding a full account is how =~/.claude/CLAUDE.md= and its promoted twin
+diverged within hours.
 
-*Measured on the open corpus, 170 headings, no exceptions:*
-
-: slice   cookie + :KIND: slice     5
-: story   cookie, no :KIND:         6
-: task    no cookie               159
-
-So cookie and =:KIND:= are a two-bit classifier and each carries a bit the other does not. =:KIND:= cannot do it alone, because a **story is emergent and never declared** — it is detected by having keyworded children (=2e660571= measured its way out of declaring what the structure already states), so there is no property to read.
-
-*The change, then, is additive:* =bin/hooks/footnote-check= emits =:KIND:= alongside the keyword. It already greps the property drawer for =:ID:=, so reading one more property on the same pass costs nothing and needs no Emacs. What it must **not** attempt is deriving "story" — that needs org's entry boundaries, and reconstructing those in awk is precisely the failure the org-dev skill §0b exists to prevent. The cookie supplies that bit instead.
-
-*What survives from the original filing, unchanged:* 115 cookie-shaped tokens across the two files, 31 on headlines, so roughly **84 sit in body prose**, and =org-update-statistics-cookies= with a non-nil ALL silently recomputes every one of them to =[0/0]=. That hazard is independent of whether a citation should carry a cookie — it follows from quoting titles at all, which the footnote convention requires. The exposure is a human pressing =C-u C-c #=, or an agent running it without thinking, which is how the instance at TODO.org:4271 happened.
-
-*Placement, decided 2026-09-17 so it is not re-decided:* the *definition* — a cookie is derived state, not part of a name — goes in =org-conventions.md= beside the passage introducing the cookie, together with the rewrite hazard, since both matter when an =.org= file is open and that file is path-scoped to =**/*.org=. The *instruction* — emit =:KIND:=, keep the cookie — goes in =org-footnote-citations.md=, which carries no path scope because ids are cited with no org file in play. State it once in each and cross-reference; two files each holding a full account is how =~/.claude/CLAUDE.md= and its promoted twin diverged within hours.
+*What is ruled out.*
+- Dropping the cookie from quoted titles, retracting the 2026-09-16 convention and having the hook strip it: the original filing's proposal, corrected by the user 2026-09-17 within the hour. The =:PLAN:= drawer is left standing with that wrong conclusion because the turn is the useful part.
+- Having the hook derive "story": that needs org's entry boundaries, and reconstructing those in awk is precisely the failure the org-dev skill §0b exists to prevent; the cookie supplies that bit instead.
 
 
 * TODO [0/2] Make the corpus searchable by tag, by measurement where it can be and by decision where it cannot
