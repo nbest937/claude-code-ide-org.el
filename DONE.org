@@ -7,6 +7,195 @@ Archived entries from file /Users/neil.best/git/claude-code-ide-org/TODO.org
 * 2026
 
 ** 2026-09 September
+*** 2026-09-29 Tuesday
+**** CANCELLED [2/2] Make the corpus searchable by tag, by measurement where it can be and by decision where it cannot
+CLOSED: [2026-09-29 Tue 20:52]
+:PROPERTIES:
+:ID:       ee3e0fa2-d4a6-4575-a5fb-e4e25c49431a
+:CREATED:  [2026-09-17 Thu 11:26]
+:CATEGORY: Skill
+:ARCHIVE_TIME: 2026-10-01 Thu 11:33
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Skill
+:ARCHIVE_TODO: CANCELLED
+:END:
+:LOGBOOK:
+- State "CANCELLED"  from "TODO"       [2026-09-29 Tue 20:52] \\
+  user: both members cancelled; ruling in conventions Tags
+CLOCK: [2026-09-29 Tue 20:53]--[2026-09-29 Tue 20:54] =>  0:01
+- [2026-09-29 Tue 20:53]--[2026-09-29 Tue 20:54] assigned at review
+:END:
+:PLAN:
+
+Divided out of =e28933e9= on 2026-09-17, which becomes the child and keeps its id, clock and history. The two halves want different schedules and that is the whole reason for the split: the **survey** is deliberately parked as expensive in time and tokens, while a tag adopted **by decision** is a same-day act. Holding the ready half hostage to the parked one is what =8bbae3aa= exists to stop one tier up, and the same argument divides this heading.
+
+The division also names a real seam rather than a convenience. =e28933e9= derives a vocabulary *from* the corpus — "a measurement first and a taxonomy second", in its own words. Its sibling declares one *for* a purpose, with no measurement available to it: whether a defect was observed in use is a fact about how it was found, not a pattern latent in the text. A survey cannot recover it and should not try.
+
+What they share, and why one parent: both answer "which tags make this corpus worth searching", and both land in the same two places — the =#+TAGS:= line and the org conventions' §Tags section. An adopted tag from either half constrains the other, so they should not drift apart in separate parts of the file.
+:END:
+
+The corpus answers "what did we decide" badly: a decision lives in one body and nothing indexes it. Two children carry the halves — tagging what can be measured, and tagging what can only be decided. Whether `org-agenda` or `org-ql` can build the view natively is an open question deferred until Emacs stops wedging.
+
+Cancelled 2026-09-29 (the user), with both members: this corpus is searched by
+text, keyword and property, not by tag, and f7847adf's backlinks answer "what
+cites this". The ruling is in the shipped org conventions' Tags section.
+
+
+***** CANCELLED Survey all task history for a tag vocabulary worth searching on :research:spike:
+CLOSED: [2026-09-29 Tue 20:52]
+:PROPERTIES:
+:ID:       e28933e9-f352-4ef9-8d53-8cd9a4318768
+:CREATED:  [2026-09-09 Wed 08:07]
+:CATEGORY: Skill
+:END:
+:LOGBOOK:
+- [2026-09-09 Wed 08:03]--[2026-09-09 Wed 08:07] assigned at review
+CLOCK: [2026-09-09 Wed 08:07]--[2026-09-09 Wed 08:08] =>  0:01
+- [2026-09-09 Wed 08:07]--[2026-09-09 Wed 08:08] file the tag-survey task
+- [2026-09-17 Thu 11:17]--[2026-09-17 Thu 11:22] assigned at review
+CLOCK: [2026-09-17 Thu 11:26]--[2026-09-17 Thu 11:27] =>  0:01
+- [2026-09-17 Thu 11:26]--[2026-09-17 Thu 11:27]
+CLOCK: [2026-09-17 Thu 11:29]--[2026-09-17 Thu 11:30] =>  0:01
+- [2026-09-17 Thu 11:29]--[2026-09-17 Thu 11:30]
+CLOCK: [2026-09-22 Tue 17:10]--[2026-09-22 Tue 17:11] =>  0:01
+- [2026-09-22 Tue 17:10]--[2026-09-22 Tue 17:11] adopt a prose tag ahead of the survey
+- Tags ":research:spike:" from ":research:" [2026-09-28 Mon 13:01] \\
+  classified: a survey whose output is a recommended vocabulary, not code
+- State "NEXT"       from "TODO"       [2026-09-29 Tue 20:47] \\
+  only live member of ee3e0fa2; next in 6521dd56's brainstorm order
+CLOCK: [2026-09-29 Tue 20:49]--[2026-09-29 Tue 20:50] =>  0:01
+- [2026-09-29 Tue 20:49]--[2026-09-29 Tue 20:50] assigned at review
+CLOCK: [2026-09-29 Tue 20:50]--[2026-09-29 Tue 20:53] =>  0:03
+- [2026-09-29 Tue 20:50]--[2026-09-29 Tue 20:53] brainstorm: is the tag survey worth running
+- State "CANCELLED"  from "NEXT"       [2026-09-29 Tue 20:52] \\
+  user: tags are not how the corpus is searched; ruling in conventions Tags
+:END:
+:PLAN:
+
+Captured 2026-09-09 at the user's ask, deliberately *not* started: the
+survey is expected to be expensive in time and tokens, so this heading
+parks it until it is worth spending.
+
+*The ask:* survey the whole task history — TODO.org and DONE.org, some
+four hundred headings — for the keyword clusters actually present, and
+derive from them a tag vocabulary on which tasks can usefully be
+searched and filtered. The current declared set (=code comms research
+review=) predates almost all of the corpus.
+
+*Two seed judgements from the user, to test against the data rather
+than assume:* =:org:= for Org syntax/structure/mark-up work, which
+recurs constantly and has no tag today; and the observation that
+=:code:= is close to universal — not useful as a positive filter — but
+may earn its place through its *negation*, "not code" being the rarer
+and more interesting query.
+
+*Shape notes for whoever picks it up:* the survey is a measurement
+first (title and body keyword clusters, existing tag usage counts,
+what queries were actually run via =org_query='s history if any
+survives) and a taxonomy second — the =:CATEGORY:= exercise
+(=29439196=) is the precedent, including its finding that compound
+labels hide behind single words. Any proposed set should state, per
+tag, the query it exists to answer, and the =#+TAGS:= line and
+=org-conventions.md= §Tags are where an adopted set lands.
+
+*Three tags adopted ahead of this survey* (the user, 2026-09-22):
+=:spike:=, =:bounded:= and =:arch:=, the brainstorming skill's paths
+(4ae7a04b). They are set only by that skill at capture, at most one per
+heading (=bin/lint-org= checks it). Each answers one query: which work was
+classified how, and whether a spike's code was ever kept. The user's first
+idea, folding "bounded" into =:code:=, was set aside because =:code:= sits
+on 529 headings and earns its place through its negation. The survey
+should take these as given, not re-derive them.
+
+*A fourth tag adopted ahead of this survey, and the first worked example*
+(the user, 2026-09-22): =:prose:=, for a heading whose deliverable is prose
+rather than code. Its first carrier is
+[[id:878d2cf5-e08e-4bcb-8db1-a601b9b08f55][878d2cf5]], which edits a rules
+file and touches no elisp; it was captured =:code:= out of habit and
+re-tagged, which is itself the evidence that =:code:= is applied by reflex.
+
+*This is the positive form of the negation judgement recorded above.*
+=:code:= earning its place through =!tags:code= only works if the
+complement is a real category rather than a residue; naming it makes the
+query direct instead of inverted, and makes the reflex visible at capture.
+
+*Census taken 2026-09-22 through =org-get-tags= over both files*, which
+should be the survey's starting point rather than re-measured: =code= 538,
+=research= 27, =observed= 8, =bounded= 4, =arch= 2, =spike= 2, =docs= 2,
+=comms= 1, =analysis= 1.
+
+*Two findings in that census bear directly on the survey's method.*
+=:docs:= already exists and both its uses are human-facing documents, a
+=DOOM.md= procedure and a =README=, matching the =Docs= category's "prose
+written for a human reader" — so =:prose:= is the general word and =:docs:=
+a narrower one, and whether the narrower survives is the survey's to
+decide, not something to settle by fiat now. And =analysis= is *declared in
+=#+TAGS:= and used once*: a coinage that never took, sitting in the
+vocabulary looking adopted. A tag used once is the failure mode this survey
+exists to find, so the count per tag belongs in its output beside the query
+each tag answers.
+
+=prose= is declared in TODO.org's =#+TAGS:= line. =observed= and =docs= are
+*not*, though both are in use — another thing for the survey to reconcile.
+
+:END:
+*=:observed:= and =:bug:= were dropped* (the user, 2026-09-29, on 8b945c02).
+Every =:observed:= heading was filed after the tag was coined on 2026-09-17, and
+it was on 8 of the 180 headings filed since: a sample of which sessions
+remembered it, not of which defects were seen in use, so its absence meant
+nothing and a filter on it returned an arbitrary subset. =:bug:= overlapped it
+with no stated relation. Both were removed from every live heading, and =bug=
+from TODO.org's =#+TAGS:=; DONE.org keeps them as history. The general lesson
+this survey should carry: a tag that only recall applies is applied
+sporadically, so propose one only with the query it answers *and* a mechanism
+that asks for it at filing.
+
+Cancelled 2026-09-29 (the user), not run: of 197 =org_query= calls in 61
+sessions, 13 filtered on a tag and one used a subject tag to find work, so the
+vocabulary it would derive has no searcher. =:review:=, =:comms:=, =:analysis:=
+and =:docs:= were dropped with it; the ruling is in the shipped org conventions'
+Tags section.
+
+
+***** CANCELLED Adopt an `observed` tag for a defect seen in use, as the severity signal the keyword set does not carry :code:bounded:
+CLOSED: [2026-09-29 Tue 20:47]
+:PROPERTIES:
+:ID:       8b945c02-7ebe-40a2-b4cc-e35811afe57f
+:CREATED:  [2026-09-17 Thu 11:30]
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-09-17 Thu 11:30] \\
+  the cheap half; the survey stays parked
+- Tags ":code:bounded:" from ":code:"     [2026-09-28 Mon 13:01] \\
+  classified: declare a tag already in use; conventions and #+TAGS: exist
+CLOCK: [2026-09-29 Tue 20:24]--[2026-09-29 Tue 20:25] =>  0:01
+- [2026-09-29 Tue 20:24]--[2026-09-29 Tue 20:25] brainstorm: the observed tag
+CLOCK: [2026-09-29 Tue 20:41]--[2026-09-29 Tue 20:42] =>  0:01
+- [2026-09-29 Tue 20:41]--[2026-09-29 Tue 20:42] brainstorm: the observed tag
+CLOCK: [2026-09-29 Tue 20:45]--[2026-09-29 Tue 20:47] =>  0:02
+- [2026-09-29 Tue 20:45]--[2026-09-29 Tue 20:47] brainstorm: the observed tag
+- State "CANCELLED"  from "NEXT"       [2026-09-29 Tue 20:47] \\
+  user: drop both observed and bug; ruling on e28933e9
+:END:
+:PLAN:
+
+*The observation, 2026-09-17.* The user noted an implicit severity range among open TODOs, by impact on usability and correctness. Measured against the corpus's own declared priority mechanism — "priority is expressed through keyword choice" — there is none: time-tracking work sits at =MAYBE= 9.1% against 8.2% for everything else, and both are 80% plain =TODO=. The keyword is not ranking anything, because four headings in five hold the same one.
+
+*The recommendation: one tag, adopted by decision rather than derived by survey.* =:observed:= marks a defect **seen in use** rather than filed speculatively. The query it exists to answer — which this parent's sibling requires of any proposed tag — is *what is likely to break a consumer*, which is the question every slice composition has had to answer by re-reading the backlog.
+
+*Why a tag and not a =:SEVERITY:= property.* This project's evidence is that a declared field nobody derives goes stale invisibly: the slice checkbox is derived from the referent's keyword for exactly this reason, =:DROPPED:= replaced bare cookie-deletion because absence was ambiguous, and a =:BLOCKER:= on a =MAYBE= reads as enforcement while enforcing nothing. A severity field over 128 open headings needs triage now and re-triage forever. =:observed:= needs neither: it is applied at filing when the knowledge is freshest, and "was seen in use" never changes.
+
+*And why it does not wait on the survey.* The survey is deliberately parked as expensive; this is a same-day decision. Holding the cheap ready half hostage to the expensive unfinished one is what =8bbae3aa= exists to stop one tier up, and the same reasoning divides this heading from its sibling.
+
+*Scope, if adopted:* add to =#+TAGS:= in both files and the templates, a line in the org conventions' §Tags saying what it means and when to apply it, and a backfill decision — probably **no** blanket backfill, since "observed" is a claim about how a defect was found and cannot be reconstructed for old headings without re-reading them, which is the survey's job anyway.
+:END:
+
+The keyword set carries no severity, so a defect someone actually hit reads the same as one reasoned about. An `:observed:` tag is the cheapest signal that distinguishes them, and it is a fact rather than a judgement — either it was seen in use or it was not.
+
+Cancelled 2026-09-29 (the user): both =:observed:= and =:bug:= were dropped as
+useless, since a tag applied only by recall was on 8 of 180 headings filed since
+it was coined. The ruling and its lesson are recorded on e28933e9.
+
 *** 2026-09-28 Monday
 **** CANCELLED Bracket queued spans with WAIT transitions, so the heading guess stops latching :code:
 CLOSED: [2026-09-28 Mon 08:30]

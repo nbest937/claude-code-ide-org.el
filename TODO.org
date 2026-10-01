@@ -8,6 +8,9 @@
 :CREATED:  [2026-09-30 Wed 19:39]
 :CATEGORY: Tools
 :END:
+:LOGBOOK:
+- [2026-09-30 Wed 18:40]--[2026-09-30 Wed 18:40] assigned at review
+:END:
 
 Measured 2026-09-30 after e128e4fa's pass: an unscoped org_outline is about
 1.07M characters with bodies, and DONE.org contributes about 580k of it, while
@@ -18,6 +21,7 @@ today's behaviour, and "false" would stay as it is; unlike active_only, finished
 headings keep their lines. Expected effect about 1.07M to 0.55M characters,
 which does not by itself retire CLAUDE.md's bodies=false advice, since live
 bodies in TODO.org are about 472k.
+
 
 * TODO The ERT suite depends on the machine's timezone: 47 tests fail off Central time :code:
 :PROPERTIES:
@@ -510,6 +514,10 @@ CLOCK: [2026-09-25 Fri 12:15]--[2026-09-25 Fri 12:17] =>  0:02
 - [2026-09-25 Fri 12:15]--[2026-09-25 Fri 12:17] file blocked:, capture context, and id-link headings
 - Tags ":code:arch:" from ":code:"     [2026-09-28 Mon 13:01] \\
   classified: changes how two writers treat text, plus a corpus conversion and an open backlink design
+CLOCK: [2026-09-29 Tue 19:21]--[2026-09-29 Tue 19:22] =>  0:01
+- [2026-09-29 Tue 19:21]--[2026-09-29 Tue 19:22] record the citation linker design in :PLAN:
+CLOCK: [2026-09-29 Tue 19:39]--[2026-09-29 Tue 19:41] =>  0:02
+- [2026-09-29 Tue 19:39]--[2026-09-29 Tue 19:41] assigned at review
 :END:
 :PLAN:
 
@@ -610,7 +618,6 @@ as the tools write; a lint warns on hand edits, and a one-off pass converts
 TODO.org. Design in =:PLAN:=.
 
 
-
 * TODO org_capture runs in whatever buffer the user has selected, so an Org QL view turns a capture into a prompt nobody at the tool can answer :code:
 :PROPERTIES:
 :ID:       fd29914e-0d18-4964-a104-37c136b311a6
@@ -660,6 +667,14 @@ tagged.
 :LOGBOOK:
 - Tags ":code:arch:" from ":code:"     [2026-09-28 Mon 13:01] \\
   classified: no existing display flow in Emacs; closest call, heavier path taken
+CLOCK: [2026-09-29 Tue 19:41]--[2026-09-29 Tue 19:42] =>  0:01
+- [2026-09-29 Tue 19:41]--[2026-09-29 Tue 19:42] brainstorm: critical read of the id lookup plan
+CLOCK: [2026-09-29 Tue 19:53]--[2026-09-29 Tue 19:55] =>  0:02
+- [2026-09-29 Tue 19:53]--[2026-09-29 Tue 19:55] brainstorm: critical read of the id lookup plan
+CLOCK: [2026-09-29 Tue 19:58]--[2026-09-29 Tue 19:59] =>  0:01
+- [2026-09-29 Tue 19:58]--[2026-09-29 Tue 19:59] brainstorm: critical read of the id lookup plan
+CLOCK: [2026-09-29 Tue 19:59]--[2026-09-29 Tue 20:02] =>  0:03
+- [2026-09-29 Tue 19:59]--[2026-09-29 Tue 20:02] assigned at review
 :END:
 :PLAN:
 
@@ -739,7 +754,6 @@ names only its target. One cached lookup, id to keyword and title as of the last
 save, feeds eldoc at point, org's hover on id links, and a font-lock mark with
 click-to-jump on bare ids, in tracked org buffers and magit's commit buffers.
 Design in =:PLAN:=.
-
 
 
 * TODO org_slice_add_member's after= inserts between a story and its nested children, splitting the block :code:
@@ -1566,7 +1580,6 @@ Hook-backed (footnote-check, rule =footnote=), but the hook reads only a turn's 
 - 2026-09-30: a reply on e128e4fa's verifier findings carried 21 end-matter lines written by hand instead of through org_footnotes, most of their titles invented from the ids' subject matter (for example "Close the ten unarchived finished headings" for 8c662dfb, "Sweep the ten longest live bodies into :PLAN: drawers"). The Stop hook passed it, since it checks that an id appears, not that its title is true. Self-caught on the next turn and reissued from org_footnotes.
 
 
-
 ** TODO Miss: tracked work done under no clock, the wrong clock, or a clock closed before the work ended
 :PROPERTIES:
 :ID:       a4005ebc-8be7-4def-b551-2911020333a9
@@ -2372,7 +2385,6 @@ pass): when this heading is brainstormed, move the prospective prose into
 =:PLAN:= and revise the body to a short statement.
 
 
-
 * TODO Survey what has landed since August that the statusline should be using and is not :code:research:
 :PROPERTIES:
 :ID:       08d76f6a-9f4d-4a41-a2c6-05e96115237d
@@ -2414,7 +2426,6 @@ Candidates to consider, none argued for yet: whether a grouping should render di
 *Its body holds the beginnings of a plan* (noted 2026-10-01, e128e4fa's condense
 pass): when this heading is brainstormed, move the prospective prose into
 =:PLAN:= and revise the body to a short statement.
-
 
 
 * TODO Render the statusline like end matter: id first, then keyword, then title :code:
@@ -2484,7 +2495,6 @@ That is consistent with how the hook is run — Claude Code spawns it and captur
 *Its body holds the beginnings of a plan* (noted 2026-10-01, e128e4fa's condense
 pass): when this heading is brainstormed, move the prospective prose into
 =:PLAN:= and revise the body to a short statement.
-
 
 
 * TODO The statusline says "clocked in" when it means "agent mid-turn", and the heading is merely the last one named :code:
@@ -2584,170 +2594,6 @@ diverged within hours.
 *What is ruled out.*
 - Dropping the cookie from quoted titles, retracting the 2026-09-16 convention and having the hook strip it: the original filing's proposal, corrected by the user 2026-09-17 within the hour. The =:PLAN:= drawer is left standing with that wrong conclusion because the turn is the useful part.
 - Having the hook derive "story": that needs org's entry boundaries, and reconstructing those in awk is precisely the failure the org-dev skill §0b exists to prevent; the cookie supplies that bit instead.
-
-
-* TODO [0/2] Make the corpus searchable by tag, by measurement where it can be and by decision where it cannot
-:PROPERTIES:
-:ID:       ee3e0fa2-d4a6-4575-a5fb-e4e25c49431a
-:CREATED:  [2026-09-17 Thu 11:26]
-:CATEGORY: Skill
-:END:
-:PLAN:
-
-Divided out of =e28933e9= on 2026-09-17, which becomes the child and keeps its id, clock and history. The two halves want different schedules and that is the whole reason for the split: the **survey** is deliberately parked as expensive in time and tokens, while a tag adopted **by decision** is a same-day act. Holding the ready half hostage to the parked one is what =8bbae3aa= exists to stop one tier up, and the same argument divides this heading.
-
-The division also names a real seam rather than a convenience. =e28933e9= derives a vocabulary *from* the corpus — "a measurement first and a taxonomy second", in its own words. Its sibling declares one *for* a purpose, with no measurement available to it: whether a defect was observed in use is a fact about how it was found, not a pattern latent in the text. A survey cannot recover it and should not try.
-
-What they share, and why one parent: both answer "which tags make this corpus worth searching", and both land in the same two places — the =#+TAGS:= line and the org conventions' §Tags section. An adopted tag from either half constrains the other, so they should not drift apart in separate parts of the file.
-:END:
-
-The corpus answers "what did we decide" badly: a decision lives in one body and nothing indexes it. Two children carry the halves — tagging what can be measured, and tagging what can only be decided. Whether `org-agenda` or `org-ql` can build the view natively is an open question deferred until Emacs stops wedging.
-
-Cancelled 2026-09-29 (the user), with both members: this corpus is searched by
-text, keyword and property, not by tag, and f7847adf's backlinks answer "what
-cites this". The ruling is in the shipped org conventions' Tags section.
-
-
-
-** TODO Survey all task history for a tag vocabulary worth searching on :research:spike:
-:PROPERTIES:
-:ID:       e28933e9-f352-4ef9-8d53-8cd9a4318768
-:CREATED:  [2026-09-09 Wed 08:07]
-:CATEGORY: Skill
-:END:
-:LOGBOOK:
-- [2026-09-09 Wed 08:03]--[2026-09-09 Wed 08:07] assigned at review
-CLOCK: [2026-09-09 Wed 08:07]--[2026-09-09 Wed 08:08] =>  0:01
-- [2026-09-09 Wed 08:07]--[2026-09-09 Wed 08:08] file the tag-survey task
-- [2026-09-17 Thu 11:17]--[2026-09-17 Thu 11:22] assigned at review
-CLOCK: [2026-09-17 Thu 11:26]--[2026-09-17 Thu 11:27] =>  0:01
-- [2026-09-17 Thu 11:26]--[2026-09-17 Thu 11:27]
-CLOCK: [2026-09-17 Thu 11:29]--[2026-09-17 Thu 11:30] =>  0:01
-- [2026-09-17 Thu 11:29]--[2026-09-17 Thu 11:30]
-CLOCK: [2026-09-22 Tue 17:10]--[2026-09-22 Tue 17:11] =>  0:01
-- [2026-09-22 Tue 17:10]--[2026-09-22 Tue 17:11] adopt a prose tag ahead of the survey
-- Tags ":research:spike:" from ":research:" [2026-09-28 Mon 13:01] \\
-  classified: a survey whose output is a recommended vocabulary, not code
-:END:
-:PLAN:
-
-Captured 2026-09-09 at the user's ask, deliberately *not* started: the
-survey is expected to be expensive in time and tokens, so this heading
-parks it until it is worth spending.
-
-*The ask:* survey the whole task history — TODO.org and DONE.org, some
-four hundred headings — for the keyword clusters actually present, and
-derive from them a tag vocabulary on which tasks can usefully be
-searched and filtered. The current declared set (=code comms research
-review=) predates almost all of the corpus.
-
-*Two seed judgements from the user, to test against the data rather
-than assume:* =:org:= for Org syntax/structure/mark-up work, which
-recurs constantly and has no tag today; and the observation that
-=:code:= is close to universal — not useful as a positive filter — but
-may earn its place through its *negation*, "not code" being the rarer
-and more interesting query.
-
-*Shape notes for whoever picks it up:* the survey is a measurement
-first (title and body keyword clusters, existing tag usage counts,
-what queries were actually run via =org_query='s history if any
-survives) and a taxonomy second — the =:CATEGORY:= exercise
-(=29439196=) is the precedent, including its finding that compound
-labels hide behind single words. Any proposed set should state, per
-tag, the query it exists to answer, and the =#+TAGS:= line and
-=org-conventions.md= §Tags are where an adopted set lands.
-
-*Three tags adopted ahead of this survey* (the user, 2026-09-22):
-=:spike:=, =:bounded:= and =:arch:=, the brainstorming skill's paths
-(4ae7a04b). They are set only by that skill at capture, at most one per
-heading (=bin/lint-org= checks it). Each answers one query: which work was
-classified how, and whether a spike's code was ever kept. The user's first
-idea, folding "bounded" into =:code:=, was set aside because =:code:= sits
-on 529 headings and earns its place through its negation. The survey
-should take these as given, not re-derive them.
-
-*A fourth tag adopted ahead of this survey, and the first worked example*
-(the user, 2026-09-22): =:prose:=, for a heading whose deliverable is prose
-rather than code. Its first carrier is
-[[id:878d2cf5-e08e-4bcb-8db1-a601b9b08f55][878d2cf5]], which edits a rules
-file and touches no elisp; it was captured =:code:= out of habit and
-re-tagged, which is itself the evidence that =:code:= is applied by reflex.
-
-*This is the positive form of the negation judgement recorded above.*
-=:code:= earning its place through =!tags:code= only works if the
-complement is a real category rather than a residue; naming it makes the
-query direct instead of inverted, and makes the reflex visible at capture.
-
-*Census taken 2026-09-22 through =org-get-tags= over both files*, which
-should be the survey's starting point rather than re-measured: =code= 538,
-=research= 27, =observed= 8, =bounded= 4, =arch= 2, =spike= 2, =docs= 2,
-=comms= 1, =analysis= 1.
-
-*Two findings in that census bear directly on the survey's method.*
-=:docs:= already exists and both its uses are human-facing documents, a
-=DOOM.md= procedure and a =README=, matching the =Docs= category's "prose
-written for a human reader" — so =:prose:= is the general word and =:docs:=
-a narrower one, and whether the narrower survives is the survey's to
-decide, not something to settle by fiat now. And =analysis= is *declared in
-=#+TAGS:= and used once*: a coinage that never took, sitting in the
-vocabulary looking adopted. A tag used once is the failure mode this survey
-exists to find, so the count per tag belongs in its output beside the query
-each tag answers.
-
-=prose= is declared in TODO.org's =#+TAGS:= line. =observed= and =docs= are
-*not*, though both are in use — another thing for the survey to reconcile.
-
-:END:
-*=:observed:= and =:bug:= were dropped* (the user, 2026-09-29, on 8b945c02).
-Every =:observed:= heading was filed after the tag was coined on 2026-09-17, and
-it was on 8 of the 180 headings filed since: a sample of which sessions
-remembered it, not of which defects were seen in use, so its absence meant
-nothing and a filter on it returned an arbitrary subset. =:bug:= overlapped it
-with no stated relation. Both were removed from every live heading, and =bug=
-from TODO.org's =#+TAGS:=; DONE.org keeps them as history. The general lesson
-this survey should carry: a tag that only recall applies is applied
-sporadically, so propose one only with the query it answers *and* a mechanism
-that asks for it at filing.
-
-Cancelled 2026-09-29 (the user), not run: of 197 =org_query= calls in 61
-sessions, 13 filtered on a tag and one used a subject tag to find work, so the
-vocabulary it would derive has no searcher. =:review:=, =:comms:=, =:analysis:=
-and =:docs:= were dropped with it; the ruling is in the shipped org conventions'
-Tags section.
-
-
-
-
-** NEXT Adopt an `observed` tag for a defect seen in use, as the severity signal the keyword set does not carry :code:bounded:
-:PROPERTIES:
-:ID:       8b945c02-7ebe-40a2-b4cc-e35811afe57f
-:CREATED:  [2026-09-17 Thu 11:30]
-:END:
-:LOGBOOK:
-- State "NEXT"       from "TODO"       [2026-09-17 Thu 11:30] \\
-  the cheap half; the survey stays parked
-- Tags ":code:bounded:" from ":code:"     [2026-09-28 Mon 13:01] \\
-  classified: declare a tag already in use; conventions and #+TAGS: exist
-:END:
-:PLAN:
-
-*The observation, 2026-09-17.* The user noted an implicit severity range among open TODOs, by impact on usability and correctness. Measured against the corpus's own declared priority mechanism — "priority is expressed through keyword choice" — there is none: time-tracking work sits at =MAYBE= 9.1% against 8.2% for everything else, and both are 80% plain =TODO=. The keyword is not ranking anything, because four headings in five hold the same one.
-
-*The recommendation: one tag, adopted by decision rather than derived by survey.* =:observed:= marks a defect **seen in use** rather than filed speculatively. The query it exists to answer — which this parent's sibling requires of any proposed tag — is *what is likely to break a consumer*, which is the question every slice composition has had to answer by re-reading the backlog.
-
-*Why a tag and not a =:SEVERITY:= property.* This project's evidence is that a declared field nobody derives goes stale invisibly: the slice checkbox is derived from the referent's keyword for exactly this reason, =:DROPPED:= replaced bare cookie-deletion because absence was ambiguous, and a =:BLOCKER:= on a =MAYBE= reads as enforcement while enforcing nothing. A severity field over 128 open headings needs triage now and re-triage forever. =:observed:= needs neither: it is applied at filing when the knowledge is freshest, and "was seen in use" never changes.
-
-*And why it does not wait on the survey.* The survey is deliberately parked as expensive; this is a same-day decision. Holding the cheap ready half hostage to the expensive unfinished one is what =8bbae3aa= exists to stop one tier up, and the same reasoning divides this heading from its sibling.
-
-*Scope, if adopted:* add to =#+TAGS:= in both files and the templates, a line in the org conventions' §Tags saying what it means and when to apply it, and a backfill decision — probably **no** blanket backfill, since "observed" is a claim about how a defect was found and cannot be reconstructed for old headings without re-reading them, which is the survey's job anyway.
-:END:
-
-The keyword set carries no severity, so a defect someone actually hit reads the same as one reasoned about. An `:observed:` tag is the cheapest signal that distinguishes them, and it is a fact rather than a judgement — either it was seen in use or it was not.
-
-Cancelled 2026-09-29 (the user): both =:observed:= and =:bug:= were dropped as
-useless, since a tag applied only by recall was on 8 of 180 headings filed since
-it was coined. The ruling and its lesson are recorded on e28933e9.
-
 
 
 * TODO Clock brackets of seconds around work of an hour, so nearly all real time lands in unowned gaps :code:
@@ -3104,7 +2950,6 @@ pass): when this heading is brainstormed, move the prospective prose into
 =:PLAN:= and revise the body to a short statement.
 
 
-
 * DOING The complement's gap spans carry no events, so half the review buffer cannot be dismissed :code:
 :PROPERTIES:
 :ID:       445fe577-01ce-4e68-ab5f-c349c40a4643
@@ -3175,7 +3020,6 @@ Seven days holding seven guideposts. No gap threshold of 1200 s can produce that
 *Its body holds the beginnings of a plan* (noted 2026-10-01, e128e4fa's condense
 pass): when this heading is brainstormed, move the prospective prose into
 =:PLAN:= and revise the body to a short statement.
-
 
 
 * TODO Should a short 0-run span default to claimed, and where does the bound fall? :research:
@@ -3362,6 +3206,14 @@ CLOCK: [2026-09-28 Mon 17:30]--[2026-09-28 Mon 17:33] =>  0:03
 - [2026-09-28 Mon 17:30]--[2026-09-28 Mon 17:33] implement org_edit and its guards
 - State "REVIEW"     from "DOING"      [2026-09-28 Mon 17:33] \\
   PR 33 open; MCP path untested until reconnect
+CLOCK: [2026-09-29 Tue 15:41]--[2026-09-29 Tue 15:42] =>  0:01
+- [2026-09-29 Tue 15:41]--[2026-09-29 Tue 15:42] record org_edit's departures with org_edit itself
+CLOCK: [2026-09-29 Tue 15:42]--[2026-09-29 Tue 15:43] =>  0:01
+- [2026-09-29 Tue 15:42]--[2026-09-29 Tue 15:43] assigned at review
+CLOCK: [2026-09-29 Tue 15:44]--[2026-09-29 Tue 15:45] =>  0:01
+- [2026-09-29 Tue 15:44]--[2026-09-29 Tue 15:45] assigned at review
+CLOCK: [2026-09-29 Tue 15:45]--[2026-09-29 Tue 15:46] =>  0:01
+- [2026-09-29 Tue 15:45]--[2026-09-29 Tue 15:46] record org_edit's departures with org_edit itself
 :END:
 
 The new tool, with =id=, =old_string=, =new_string= and an optional =drawer=, over the heading's body or its =:PLAN:= or =:DEBRIEF:=. An empty =old_string= appends, a unique one is replaced, and the region's full text rewrites it. It carries the guards in the parent's =:PLAN:=, and each refusal test is shown to fail with its guard removed. It ships beside =org_amend=, which the third sibling retires.
@@ -4011,7 +3863,6 @@ pass): when this heading is brainstormed, move the prospective prose into
 =:PLAN:= and revise the body to a short statement.
 
 
-
 * TODO Archived :ARCHIVE_FILE: paths are machine-absolute; audit their portability :code:spike:
 :PROPERTIES:
 :ID:       ea1df60b-1e28-448e-bb62-a6fc2b6b62f8
@@ -4129,6 +3980,12 @@ CLOCK: [2026-09-28 Mon 14:21]--[2026-09-28 Mon 14:23] =>  0:02
 - [2026-09-28 Mon 14:21]--[2026-09-28 Mon 14:23] brainstorm continues; file the wrap_plan retirement heading
 CLOCK: [2026-09-28 Mon 17:14]--[2026-09-28 Mon 17:15] =>  0:01
 - [2026-09-28 Mon 17:14]--[2026-09-28 Mon 17:15] brainstorm continues; file the wrap_plan retirement heading
+CLOCK: [2026-09-29 Tue 15:45]--[2026-09-29 Tue 15:47] =>  0:02
+- [2026-09-29 Tue 15:45]--[2026-09-29 Tue 15:47] write the approved design into :PLAN:
+CLOCK: [2026-09-29 Tue 15:47]--[2026-09-29 Tue 15:48] =>  0:01
+- [2026-09-29 Tue 15:47]--[2026-09-29 Tue 15:48] assigned at review
+CLOCK: [2026-09-29 Tue 15:56]--[2026-09-29 Tue 15:57] =>  0:01
+- [2026-09-29 Tue 15:56]--[2026-09-29 Tue 15:57] assigned at review
 :END:
 :PLAN:
 Proposed by the user 2026-09-10, pushback invited and none owed — the order is
@@ -4225,6 +4082,12 @@ corpus pass, and a lint error. Design in =:PLAN:=.
 :LOGBOOK:
 - Tags ":code:bounded:" from ":code:"     [2026-09-28 Mon 13:01] \\
   classified: documentation rewrite the accepted :PLAN: specifies
+CLOCK: [2026-09-29 Tue 20:06]--[2026-09-29 Tue 20:07] =>  0:01
+- [2026-09-29 Tue 20:06]--[2026-09-29 Tue 20:07] brainstorm: critical read of the story-definition plan
+CLOCK: [2026-09-29 Tue 20:14]--[2026-09-29 Tue 20:15] =>  0:01
+- [2026-09-29 Tue 20:14]--[2026-09-29 Tue 20:15] brainstorm: critical read of the story-definition plan
+CLOCK: [2026-09-29 Tue 20:15]--[2026-09-29 Tue 20:16] =>  0:01
+- [2026-09-29 Tue 20:15]--[2026-09-29 Tue 20:16] assigned at review
 - Tags ":bounded:prose:" from ":code:bounded:" [2026-09-29 Tue 21:14] \\
   its deliverable is a conventions paragraph, no code
 :END:
@@ -4319,14 +4182,14 @@ shipped conventions sanctions a cluster that will close, names the collector
 exception, and points to the divide rule. Design in =:PLAN:=.
 
 
-* NEXT [0/15] Make the notes org-native: links, drawers, tags, one corpus pass :code:
+* NEXT [0/13] Make the notes org-native: links, drawers, tags, one corpus pass :code:
 :PROPERTIES:
 :ID:       6521dd56-8772-416b-9435-6da78bb86b06
 :CREATED:  [2026-09-10 Thu 08:57]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  b7259ee4-9aa1-4b55-8cf2-fbbacdea5310 f7847adf-a408-4ad0-ae0c-8d3c19b79f2b 0eaffc39-088f-48c3-a5b8-167336458114 d350ff5b-3b1f-465e-800b-962264d2e841 63df67c7-de0d-43e7-9c6f-2b2979a40aba e128e4fa-b0d9-49f7-99eb-bae2d4b0676b 76a6f052-e360-4a12-8077-070da83a8e84 fce6bd35-27ad-4724-8dbb-c9df4b68fb10 e28933e9-f352-4ef9-8d53-8cd9a4318768 8b945c02-7ebe-40a2-b4cc-e35811afe57f 41cf5830-fc2e-4dc6-b243-a0c2718a53a3 8a23d6ec-ca45-454d-b65f-e46ea9204816 01849bef-fdc9-4c30-b467-00ca8606e8e0 ecf66d45-18b3-477f-bca8-08bec90604e8 ea1df60b-1e28-448e-bb62-a6fc2b6b62f8
+:BLOCKER:  b7259ee4-9aa1-4b55-8cf2-fbbacdea5310 f7847adf-a408-4ad0-ae0c-8d3c19b79f2b 0eaffc39-088f-48c3-a5b8-167336458114 d350ff5b-3b1f-465e-800b-962264d2e841 63df67c7-de0d-43e7-9c6f-2b2979a40aba e128e4fa-b0d9-49f7-99eb-bae2d4b0676b 76a6f052-e360-4a12-8077-070da83a8e84 fce6bd35-27ad-4724-8dbb-c9df4b68fb10 41cf5830-fc2e-4dc6-b243-a0c2718a53a3 8a23d6ec-ca45-454d-b65f-e46ea9204816 01849bef-fdc9-4c30-b467-00ca8606e8e0 ecf66d45-18b3-477f-bca8-08bec90604e8 ea1df60b-1e28-448e-bb62-a6fc2b6b62f8
 :MEMBERS:  b7259ee4-9aa1-4b55-8cf2-fbbacdea5310 f7847adf-a408-4ad0-ae0c-8d3c19b79f2b 0eaffc39-088f-48c3-a5b8-167336458114 d350ff5b-3b1f-465e-800b-962264d2e841 63df67c7-de0d-43e7-9c6f-2b2979a40aba e128e4fa-b0d9-49f7-99eb-bae2d4b0676b 76a6f052-e360-4a12-8077-070da83a8e84 fce6bd35-27ad-4724-8dbb-c9df4b68fb10 e28933e9-f352-4ef9-8d53-8cd9a4318768 8b945c02-7ebe-40a2-b4cc-e35811afe57f 41cf5830-fc2e-4dc6-b243-a0c2718a53a3 8a23d6ec-ca45-454d-b65f-e46ea9204816 01849bef-fdc9-4c30-b467-00ca8606e8e0 ecf66d45-18b3-477f-bca8-08bec90604e8 ea1df60b-1e28-448e-bb62-a6fc2b6b62f8
 :END:
 :LOGBOOK:
@@ -4401,12 +4264,12 @@ Planned:
 - [ ] [[id:d350ff5b-3b1f-465e-800b-962264d2e841][d350ff5b]] TODO Canonical drawer order: PROPERTIES, LOGBOOK, PLAN, DEBRIEF, then body
 - [ ] [[id:63df67c7-de0d-43e7-9c6f-2b2979a40aba][63df67c7]] TODO Revisit the story definition: sanction clustering and speculative breakdown
 - [[id:4c834fdb-5314-4168-ab1d-09fe89ded517][4c834fdb]] DOING Make the heading body a scannable summary, with plan and debrief in drawers
-  - [ ] [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]] NEXT Move the 88 pre-convention debriefs into :DEBRIEF:, authoring each resolution
+  - [-] [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]] REVIEW Move the 88 pre-convention debriefs into :DEBRIEF:, authoring each resolution
 - [ ] [[id:76a6f052-e360-4a12-8077-070da83a8e84][76a6f052]] TODO Long prose lines have drifted back since the one fill sweep of 2026-09-14, because nothing runs it routinely
 - [ ] [[id:fce6bd35-27ad-4724-8dbb-c9df4b68fb10][fce6bd35]] TODO The member-drawer backfill clause is scaffolding: once every open heading has its canonical shape, the lint should require it and the clause retire
-- [[id:ee3e0fa2-d4a6-4575-a5fb-e4e25c49431a][ee3e0fa2]] TODO Make the corpus searchable by tag, by measurement where it can be and by decision where it cannot
-  - [ ] [[id:e28933e9-f352-4ef9-8d53-8cd9a4318768][e28933e9]] TODO Survey all task history for a tag vocabulary worth searching on
-  - [ ] [[id:8b945c02-7ebe-40a2-b4cc-e35811afe57f][8b945c02]] NEXT Adopt an `observed` tag for a defect seen in use, as the severity signal the keyword set does not carry
+- [[id:ee3e0fa2-d4a6-4575-a5fb-e4e25c49431a][ee3e0fa2]] CANCELLED Make the corpus searchable by tag, by measurement where it can be and by decision where it cannot
+  - [[id:e28933e9-f352-4ef9-8d53-8cd9a4318768][e28933e9]] CANCELLED Survey all task history for a tag vocabulary worth searching on
+  - [[id:8b945c02-7ebe-40a2-b4cc-e35811afe57f][8b945c02]] CANCELLED Adopt an `observed` tag for a defect seen in use, as the severity signal the keyword set does not carry
 - [ ] [[id:41cf5830-fc2e-4dc6-b243-a0c2718a53a3][41cf5830]] TODO Index a heading's git history from a drawer, so the body never has to narrate it
 - [ ] [[id:8a23d6ec-ca45-454d-b65f-e46ea9204816][8a23d6ec]] TODO Comma-escape headline lines when documenting org structure inside a body
 - [ ] [[id:01849bef-fdc9-4c30-b467-00ca8606e8e0][01849bef]] TODO Flipping a span's timestamps to active is hand-editing; give the review buffer a key
@@ -4444,6 +4307,14 @@ CLOCK: [2026-09-10 Thu 08:45]--[2026-09-10 Thu 08:46] =>  0:01
 - [2026-09-10 Thu 08:45]--[2026-09-10 Thu 08:46] assigned at review
 - Tags ":code:bounded:" from ":code:"     [2026-09-28 Mon 13:00] \\
   classified: extends an existing convention and lint; flow exists
+CLOCK: [2026-09-29 Tue 16:00]--[2026-09-29 Tue 16:01] =>  0:01
+- [2026-09-29 Tue 16:00]--[2026-09-29 Tue 16:01] brainstorm: critical read of the orgit-link plan
+CLOCK: [2026-09-29 Tue 18:48]--[2026-09-29 Tue 18:52] =>  0:04
+- [2026-09-29 Tue 18:48]--[2026-09-29 Tue 18:52] brainstorm: critical read of the orgit-link plan
+CLOCK: [2026-09-29 Tue 19:03]--[2026-09-29 Tue 19:04] =>  0:01
+- [2026-09-29 Tue 19:03]--[2026-09-29 Tue 19:04] brainstorm: critical read of the orgit-link plan
+CLOCK: [2026-09-29 Tue 19:16]--[2026-09-29 Tue 19:21] =>  0:05
+- [2026-09-29 Tue 19:16]--[2026-09-29 Tue 19:21] brainstorm: critical read of the orgit-link plan
 - Tags ":code:arch:" from ":code:bounded:" [2026-09-29 Tue 19:48] \\
   stepped up: enforcement moves to the write path of three writers, shared with f7847adf as one citation linker
 :END:
@@ -4699,7 +4570,6 @@ pass): when this heading is brainstormed, move the prospective prose into
 =:PLAN:= and revise the body to a short statement.
 
 
-
 * TODO Nothing lays out future work on a timeline the agenda can show :arch:
 :PROPERTIES:
 :ID:       ecf66d45-18b3-477f-bca8-08bec90604e8
@@ -4801,7 +4671,6 @@ is not installed here.
 *Its body holds the beginnings of a plan* (noted 2026-10-01, e128e4fa's condense
 pass): when this heading is brainstormed, move the prospective prose into
 =:PLAN:= and revise the body to a short statement.
-
 
 
 * TODO org_query answers from a restricted or short file set without saying so :code:
@@ -5422,7 +5291,7 @@ wrap-whole exception, and the line-1 debrief-marker hypothesis held for just 4
 of 73.
 
 
-** NEXT Move the 88 pre-convention debriefs into :DEBRIEF:, authoring each resolution :code:bounded:
+** REVIEW Move the 88 pre-convention debriefs into :DEBRIEF:, authoring each resolution :code:bounded:
 :PROPERTIES:
 :ID:       e128e4fa-b0d9-49f7-99eb-bae2d4b0676b
 :CREATED:  [2026-09-08 Tue 16:12]
@@ -5439,6 +5308,39 @@ CLOCK: [2026-09-23 Wed 15:36]--[2026-09-23 Wed 15:37] =>  0:01
 - [2026-09-23 Wed 15:36]--[2026-09-23 Wed 15:37] exempt 2a6a1355 from the pass
 - Tags ":code:bounded:" from ":code:"     [2026-09-28 Mon 13:01] \\
   classified: corpus migration with existing tools, passes set in :PLAN:
+CLOCK: [2026-09-29 Tue 20:55]--[2026-09-29 Tue 20:56] =>  0:01
+- [2026-09-29 Tue 20:55]--[2026-09-29 Tue 20:56] brainstorm: critical read of the debrief relocation plan
+CLOCK: [2026-09-29 Tue 21:03]--[2026-09-29 Tue 21:04] =>  0:01
+- [2026-09-29 Tue 21:03]--[2026-09-29 Tue 21:04] brainstorm: critical read of the debrief relocation plan
+CLOCK: [2026-09-29 Tue 21:07]--[2026-09-29 Tue 21:08] =>  0:01
+- [2026-09-29 Tue 21:07]--[2026-09-29 Tue 21:08] brainstorm: critical read of the debrief relocation plan
+CLOCK: [2026-09-29 Tue 21:13]--[2026-09-29 Tue 21:23] =>  0:10
+- [2026-09-29 Tue 21:13]--[2026-09-29 Tue 21:23] brainstorm: critical read of the debrief relocation plan
+- State "DOING"      from "NEXT"       [2026-09-29 Tue 21:14] \\
+  user: run the pass as planned, now, subagent-verified
+CLOCK: [2026-09-29 Tue 21:25]--[2026-09-29 Tue 21:28] =>  0:03
+- [2026-09-29 Tue 21:25]--[2026-09-29 Tue 21:28] brainstorm: critical read of the debrief relocation plan
+CLOCK: [2026-09-30 Wed 06:44]--[2026-09-30 Wed 06:46] =>  0:02
+- [2026-09-30 Wed 06:44]--[2026-09-30 Wed 06:46] brainstorm: critical read of the debrief relocation plan
+CLOCK: [2026-09-30 Wed 06:49]--[2026-09-30 Wed 06:53] =>  0:04
+- [2026-09-30 Wed 06:49]--[2026-09-30 Wed 06:53] brainstorm: critical read of the debrief relocation plan
+CLOCK: [2026-09-30 Wed 07:00]--[2026-09-30 Wed 07:02] =>  0:02
+- [2026-09-30 Wed 07:00]--[2026-09-30 Wed 07:02] brainstorm: critical read of the debrief relocation plan
+- State "REVIEW"     from "DOING"      [2026-09-30 Wed 07:02] \\
+  pass run; condense pass not run; DONE waits on d350ff5b
+CLOCK: [2026-09-30 Wed 13:55]--[2026-09-30 Wed 13:59] =>  0:04
+- [2026-09-30 Wed 13:55]--[2026-09-30 Wed 13:59] assigned at review
+CLOCK: [2026-10-01 Thu 05:29]--[2026-10-01 Thu 05:32] =>  0:03
+- State "DOING"      from "REVIEW"     [2026-10-01 Thu 05:29] \\
+  user: third pass, aimed at live bodies
+- [2026-10-01 Thu 05:29]--[2026-10-01 Thu 05:32] condense pass: notes on 22, condense 15
+CLOCK: [2026-10-01 Thu 05:41]--[2026-10-01 Thu 05:42] =>  0:01
+- [2026-10-01 Thu 05:41]--[2026-10-01 Thu 05:42] condense pass: notes on 22, condense 15
+CLOCK: [2026-10-01 Thu 05:46]--[2026-10-01 Thu 05:48] =>  0:02
+- [2026-10-01 Thu 05:46]--[2026-10-01 Thu 05:48] condense pass: notes on 22, condense 15
+- State "REVIEW"     from "DOING"      [2026-10-01 Thu 05:48] \\
+  all three passes done; DONE waits on d350ff5b
+- [2026-10-01 Thu 05:48]--[2026-10-01 Thu 05:48] suggested span, accepted at review
 :END:
 :PLAN:
 
@@ -5516,7 +5418,6 @@ for finished plans, which readers skip; run on 14 live bodies that had grown
 into journals, with 22 plan-heavy live bodies noted for revision at
 brainstorming time and 0c8644ff left, its body depending on its plan. The active
 outline fell only from 487k to 475k characters.
-
 
 
 * TODO A boolean argument passed as false arrives as :false, which elisp reads as true :code:
@@ -5888,7 +5789,6 @@ number for both.
 *Its body holds the beginnings of a plan* (noted 2026-10-01, e128e4fa's condense
 pass): when this heading is brainstormed, move the prospective prose into
 =:PLAN:= and revise the body to a short statement.
-
 
 
 * TODO The human half of the ratio is already recorded, and thrown away :code:research:
@@ -6342,7 +6242,6 @@ pass): when this heading is brainstormed, move the prospective prose into
 =:PLAN:= and revise the body to a short statement.
 
 
-
 ** TODO Decide where the caveat lives that turn count is not productivity :code:
 :PROPERTIES:
 :ID:       c4bc5c70-861a-4ce0-80da-c79b6b1600f3
@@ -6431,7 +6330,6 @@ rather than reflex.
 *Its body holds the beginnings of a plan* (noted 2026-10-01, e128e4fa's condense
 pass): when this heading is brainstormed, move the prospective prose into
 =:PLAN:= and revise the body to a short statement.
-
 
 
 ** TODO Turn count reads 0 for a background or subagent session, which is not no attention :code:
@@ -6738,7 +6636,6 @@ pass): when this heading is brainstormed, move the prospective prose into
 =:PLAN:= and revise the body to a short statement.
 
 
-
 * TODO [0/2] Make an archived day hold that day's record :code:
 :PROPERTIES:
 :ID:       f9fe9fac-a423-4ede-bc42-1d201c2c3d82
@@ -6951,7 +6848,6 @@ ad-hoc analysis outgrows what the tools and =org-map-entries= cover.
 *Its body holds the beginnings of a plan* (noted 2026-10-01, e128e4fa's condense
 pass): when this heading is brainstormed, move the prospective prose into
 =:PLAN:= and revise the body to a short statement.
-
 
 
 * TODO Two keyword-set proposals and the review collision are still unadopted :code:
@@ -7203,7 +7099,6 @@ falls is a reporting decision.
 *Its body holds the beginnings of a plan* (noted 2026-10-01, e128e4fa's condense
 pass): when this heading is brainstormed, move the prospective prose into
 =:PLAN:= and revise the body to a short statement.
-
 
 
 * TODO Flipping a span's timestamps to active is hand-editing; give the review buffer a key :code:bounded:
@@ -7522,7 +7417,6 @@ pass): when this heading is brainstormed, move the prospective prose into
 =:PLAN:= and revise the body to a short statement.
 
 
-
 * TODO Intervals on two different headings can overlap, and subtraction reaches only one :code:
 :PROPERTIES:
 :CATEGORY: Apply
@@ -7574,12 +7468,12 @@ before the fix and still says.
 
 
 * TODO Archive closed tasks daily
-SCHEDULED: <2026-09-30 Wed 07:00 ++1d>
+SCHEDULED: <2026-10-02 Fri 07:00 ++1d>
 :PROPERTIES:
 :CATEGORY: Meta
 :ID:       cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8
 :CREATED:  [2026-08-21 Fri 15:35]
-:LAST_REPEAT: [2026-09-29 Tue 16:44]
+:LAST_REPEAT: [2026-10-01 Thu 11:33]
 :END:
 :LOGBOOK:
 CLOCK: [2026-08-24 Mon 10:25]--[2026-08-24 Mon 10:28] =>  0:03
@@ -7657,6 +7551,11 @@ CLOCK: [2026-08-21 Fri 10:35]--[2026-08-21 Fri 10:37] =>  0:02
 - [2026-08-21 Fri 10:35]--[2026-08-21 Fri 10:37] evaluate inline src_org for snippets
 - Tags ":code:bounded:" from ":code:"     [2026-09-28 Mon 13:01] \\
   classified: write-path half shipped; a lint error and one sentence remain
+CLOCK: [2026-09-29 Tue 20:02]--[2026-09-29 Tue 20:03] =>  0:01
+- [2026-09-29 Tue 20:02]--[2026-09-29 Tue 20:03] brainstorm: critical read of the comma-escape remainder
+CLOCK: [2026-09-29 Tue 20:04]--[2026-09-29 Tue 20:05] =>  0:01
+- [2026-09-29 Tue 20:04]--[2026-09-29 Tue 20:05] brainstorm: critical read of the comma-escape remainder
+- [2026-09-29 Tue 20:05]--[2026-09-29 Tue 20:06] assigned at review
 :END:
 :PLAN:
 
@@ -7794,7 +7693,6 @@ A headline-shaped line inside a block is a real heading to org and silently
 corrupts the outline, the cookies and the lint. The tools already comma-escape
 it on write and at apply; what remains is a lint error for hand edits, escaping
 a bare star line too, and one sentence in the conventions. Design in =:PLAN:=.
-
 
 
 * TODO Decide how far the review-apply cycle can be automated, given the interactive constraint :code:
@@ -7971,7 +7869,6 @@ not.
 *Its body holds the beginnings of a plan* (noted 2026-10-01, e128e4fa's condense
 pass): when this heading is brainstormed, move the prospective prose into
 =:PLAN:= and revise the body to a short statement.
-
 
 
 * TODO Index a heading's git history from a drawer, so the body never has to narrate it :code:research:arch:
@@ -8424,7 +8321,6 @@ pass): when this heading is brainstormed, move the prospective prose into
 =:PLAN:= and revise the body to a short statement.
 
 
-
 * TODO Read power assertions as a review-time attribution signal :code:research:
 :PROPERTIES:
 :CATEGORY: Queue
@@ -8563,7 +8459,6 @@ pass): when this heading is brainstormed, move the prospective prose into
 =:PLAN:= and revise the body to a short statement.
 
 
-
 * TODO Make task lifecycle answerable from one timeline, starting at creation :code:
 :PROPERTIES:
 :CATEGORY: Queue
@@ -8676,7 +8571,6 @@ a heading that gains a keyword later would make them diverge.
 *Its body holds the beginnings of a plan* (noted 2026-10-01, e128e4fa's condense
 pass): when this heading is brainstormed, move the prospective prose into
 =:PLAN:= and revise the body to a short statement.
-
 
 
 * TODO [3/5] Institute a catch-all heading for cross-cutting meta-work :code:
@@ -8853,7 +8747,6 @@ recalling.*
 *Its body holds the beginnings of a plan* (noted 2026-10-01, e128e4fa's condense
 pass): when this heading is brainstormed, move the prospective prose into
 =:PLAN:= and revise the body to a short statement.
-
 
 
 ** TODO Teach org_capture to target a datetree, with an addressable day node :code:
@@ -9719,7 +9612,6 @@ pass): when this heading is brainstormed, move the prospective prose into
 =:PLAN:= and revise the body to a short statement.
 
 
-
 * TODO Nothing checks a request against open work in either direction, so a dependency is found only when it bites :code:
 :PROPERTIES:
 :CATEGORY: Tools
@@ -9864,7 +9756,6 @@ machinery; the design questions all have their own headings.
 *Its body holds the beginnings of a plan* (noted 2026-10-01, e128e4fa's condense
 pass): when this heading is brainstormed, move the prospective prose into
 =:PLAN:= and revise the body to a short statement.
-
 
 
 * MAYBE [1/4] Accumulate issues to report upstream to claude-code-ide.el :code:
@@ -10314,6 +10205,7 @@ CLOCK: [2026-09-28 Mon 09:48]--[2026-09-28 Mon 09:49] =>  0:01
 CLOCK: [2026-09-28 Mon 11:34]--[2026-09-28 Mon 11:36] =>  0:02
 CLOCK: [2026-09-29 Tue 16:41]--[2026-09-29 Tue 16:44] =>  0:03
 - <2026-09-29 Tue 20:40>--<2026-09-29 Tue 20:40> review pass (buffer buried)
+CLOCK: [2026-10-01 Thu 11:27]--[2026-10-01 Thu 11:32] =>  0:05
 :END:
 
 We created this heading on 2026-08-26. We deleted that property from its
@@ -11643,4 +11535,15 @@ CLOCK: [2026-09-28 Mon 14:01]--[2026-09-28 Mon 14:02] =>  0:01
 - [2026-09-28 Mon 14:01]--[2026-09-28 Mon 14:02] classify and sequence 6521dd56 members for brainstorming
 CLOCK: [2026-09-28 Mon 14:08]--[2026-09-28 Mon 14:09] =>  0:01
 - [2026-09-28 Mon 14:08]--[2026-09-28 Mon 14:09] rewrite 6521dd56 slice plan
+:END:
+
+
+**** 2026-09-30 Wednesday
+:PROPERTIES:
+:ID:       e1caa3f7-9c2e-4c03-a31c-9d044d54198d
+:CREATED:  [2026-09-30 Wed 18:39]
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-30 Wed 18:39]--[2026-09-30 Wed 18:40] =>  0:01
+- [2026-09-30 Wed 18:39]--[2026-09-30 Wed 18:40] file the org_outline finished-bodies change
 :END:
