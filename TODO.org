@@ -1035,19 +1035,44 @@ CLOCK: [2026-09-25 Fri 16:51]--[2026-09-25 Fri 16:52] =>  0:01
   tag dropped (the user, 2026-09-29): applied by recall, so its absence meant nothing
 :END:
 
-claude-code-ide-org--replace-body deletes the body region and inserts (string-trim text), so replacing the last body before a heading takes the blank lines separating them with the trim and glues the heading onto the final line. Observed 2026-09-22 on 59861867: TODO.org:1008 became "written.** TODO Miss: ..." and org stopped parsing a heading there at all — org_outline reported the new id as resolving to no heading while org_amend, which locates by property, still wrote to it happily, and bin/lint-org reported 0 errors throughout. The damage is silent in both directions and the repair was a hand edit, which is itself against the rules. Proposed: --replace-body re-establishes the separation it found, or defers to claude-code-ide-org-heading-separator-lines; and bin/lint-org gains a check for a heading not at the start of its own line, which is the class org-lint calls "possibly misplaced heading" and only warns about.
+=claude-code-ide-org--replace-body= deletes the body region and inserts
+=(string-trim text)=, so replacing the last body before a heading takes the
+separating blank lines with the trim and glues the heading onto the final line
+-- and org stops parsing a heading there at all. The damage is silent in both
+directions: =org_outline= reports the id as resolving to no heading while
+=org_amend=, which locates by property, still writes to it, and =bin/lint-org=
+reports 0 errors. The repair is a hand edit, which is itself against the rules.
 
-*Two more instances, found 2026-09-25* by the footnote scanner of =c247d8f3=, which refuses an =:ID:= line whose heading does not own it. Both were top-level headings glued onto the last body line of the heading above, each by a replace whose text had no trailing newline, and the user repaired both by hand in Emacs (commit [[orgit-rev:claude-code-ide-org::d1ed5f0][d1ed5f0]]). The call behind each is in its transcript.
-- =b3177ed0=, by the replace on =b09d8090= in commit [[orgit-rev:claude-code-ide-org::6968ed9][6968ed9]] (2026-09-24).
-- =61f05e56=, by the replace on =a00ace04= in commit [[orgit-rev:claude-code-ide-org::6122052][6122052]] (2026-09-11). That one had been invisible for two weeks: the fill pass of =496b665e= (commit [[orgit-rev:claude-code-ide-org::5880bf8][5880bf8]], 2026-09-14) treated the glued heading as prose and wrapped it across three lines, which hides it even from a line-anchored search. So a fill makes this damage worse, and the fill-on-write of =b52df20b= will do the same unless it lands after this fix or refuses a paragraph holding =* KEYWORD=.
+*Proposed.* =--replace-body= re-establishes the separation it found, or defers
+to =claude-code-ide-org-heading-separator-lines=; and =bin/lint-org= gains a
+narrow rule: a =* KEYWORD= or =** KEYWORD= token after non-blank text on the
+same line. The rule's test already exists: [[id:b52df20b-45c7-41aa-9d77-44ccf06c647f][b52df20b]] defines
+=claude-code-ide-org--glued-headline-p= for its fill guard (2026-09-25), so the
+lint rule calls it instead of writing a second one.
 
-Reproduced in batch the same day: replacing the body of a heading followed by a sibling, with text lacking a trailing newline, leaves the sibling off column 0.
+*Folded in by the user on 2026-09-25: triage org-lint per checker along with the
+new rule.* =bin/lint-org= runs all 61 of org-lint's checkers as warnings, and
+=misplaced-heading= makes 499 of the 511 findings. The proposal takes org's own
+trust rating as the default: its 31 high-trust checkers become errors, its 30
+low-trust ones stay warnings, and =misplaced-heading= goes off, replaced by the
+narrow glued-heading rule. On the 2026-09-25 corpus that leaves 10 org-lint
+warnings where there were 511 -- eight malformed timestamps such as
+=[2026-09-15 Tue 13:2x]= and two dead file links -- and adds two errors, the two
+"misleading drawer entry :LOGBOOK:" findings, to fix before the rule lands.
+Warnings never reach a commit, since pre-commit shows only errors, so the gain
+is legibility for whoever runs the lint and one small gate.
 
-*org-lint's own checker is not the detector, measured 2026-09-25.* =bin/lint-org= already runs org-lint's "possibly misplaced heading line", as a warning, and it reports 498 lines across the two files, nearly all prose lines opening with =*bold*=. Nobody reads a warning with that count, which is why neither glued heading was seen. The rule this heading proposes has to be narrower: a =* KEYWORD= or =** KEYWORD= token after non-blank text on the same line.
+*What is established.*
+- First instance, observed 2026-09-22 on =59861867=: TODO.org:1008 became the line =written.= with =** TODO Miss: ...= glued onto its end.
+- Both later instances were top-level headings glued onto the last body line of the heading above, each by a replace whose text had no trailing newline.
+- =b3177ed0= was glued by the replace on =b09d8090= in commit [[orgit-rev:claude-code-ide-org::6968ed9][6968ed9]] (2026-09-24).
+- =61f05e56= was glued by the replace on =a00ace04= in commit [[orgit-rev:claude-code-ide-org::6122052][6122052]] (2026-09-11), invisible for two weeks.
+- Those two were found 2026-09-25 by the footnote scanner of =c247d8f3=, which refuses an =:ID:= line whose heading does not own it; the user repaired both by hand in Emacs (commit [[orgit-rev:claude-code-ide-org::d1ed5f0][d1ed5f0]]); the call behind each is in its transcript.
+- A fill makes this damage worse: the fill pass of =496b665e= (commit [[orgit-rev:claude-code-ide-org::5880bf8][5880bf8]], 2026-09-14) wrapped the glued =61f05e56= across three lines, hiding it even from a line-anchored search; the fill-on-write of =b52df20b= will do the same unless it lands after this fix or refuses a paragraph holding =* KEYWORD=.
+- Reproduced in batch 2026-09-25: replacing the body of a heading followed by a sibling, with text lacking a trailing newline, leaves the sibling off column 0.
 
-*Folded in by the user on 2026-09-25: triage org-lint per checker along with the new rule.* =bin/lint-org= runs all 61 of org-lint's checkers as warnings, and one of them, =misplaced-heading=, makes 499 of the 511 findings. The proposal takes org's own trust rating as the default: its 31 high-trust checkers become errors, its 30 low-trust ones stay warnings, and =misplaced-heading= goes off, replaced by this heading's narrow glued-heading rule. On today's corpus that leaves 10 org-lint warnings where there were 511: eight malformed timestamps such as =[2026-09-15 Tue 13:2x]= and two dead file links. It adds two errors, the two "misleading drawer entry :LOGBOOK:" findings, to fix before the rule lands. Warnings never reach a commit, since pre-commit shows only errors, so the gain is legibility for whoever runs the lint and one small gate. The measurement is in the 2026-09-25 lint of both files.
-
-*The rule's test already exists by the time this is worked:* [[id:b52df20b-45c7-41aa-9d77-44ccf06c647f][b52df20b]] defines =claude-code-ide-org--glued-headline-p= for its fill guard (2026-09-25), so the lint rule calls it instead of writing a second one.
+*What is ruled out.*
+- org-lint's own "possibly misplaced heading line" checker as the detector (measured 2026-09-25): =bin/lint-org= already runs it as a warning, and it reports 498 lines across the two files, nearly all prose lines opening with =*bold*= -- nobody reads a warning with that count, which is why neither glued heading was seen.
 
 
 * TODO [0/32] The review pass asks for judgement it cannot support, and the clock beneath it is still wrong :code:
