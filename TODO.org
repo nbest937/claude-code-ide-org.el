@@ -9860,6 +9860,11 @@ or just cross-referenced as they are now.
 
 *Decided by the user, 2026-09-19: keep the practice.* Sessions commit their own captures and bookkeeping, unasked, as they have been. The retirement recommended two paragraphs up is withdrawn, and with it the claim that an uncommitted capture is an approval window — approval is after the fact, on a small commit named for the heading. What this heading still owes is therefore narrow: the safety predicate written down where a session will meet it (only the touched =.org= files staged, never mid-rebase or mid-merge, =git diff --stat= first so a human's apply pass is not swept in), since today it lives only in habit and in =next-session.md='s standing rules.
 
+*Its body holds the beginnings of a plan* (noted 2026-10-01, e128e4fa's condense
+pass): when this heading is brainstormed, move the prospective prose into
+=:PLAN:= and revise the body to a short statement.
+
+
 
 * TODO Nothing checks a request against open work in either direction, so a dependency is found only when it bites :code:
 :PROPERTIES:
