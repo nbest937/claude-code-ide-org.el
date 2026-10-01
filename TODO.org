@@ -8629,6 +8629,11 @@ turned out to be a different line in a log that had already been dismissed
 wholesale. Worth re-reading a rejected source for the *specific* record wanted,
 rather than re-litigating the rejection.
 
+*Its body holds the beginnings of a plan* (noted 2026-10-01, e128e4fa's condense
+pass): when this heading is brainstormed, move the prospective prose into
+=:PLAN:= and revise the body to a short statement.
+
+
 
 * TODO Make task lifecycle answerable from one timeline, starting at creation :code:
 :PROPERTIES:
