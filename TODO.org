@@ -8966,6 +8966,11 @@ recalling.*
   convention is in force and undocumented, which is the condition this heading
   was raised to end.
 
+*Its body holds the beginnings of a plan* (noted 2026-10-01, e128e4fa's condense
+pass): when this heading is brainstormed, move the prospective prose into
+=:PLAN:= and revise the body to a short statement.
+
+
 
 ** TODO Teach org_capture to target a datetree, with an addressable day node :code:
 :PROPERTIES:
