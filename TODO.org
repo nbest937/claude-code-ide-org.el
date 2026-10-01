@@ -10002,76 +10002,32 @@ CLOCK: [2026-09-22 Tue 15:44]--[2026-09-22 Tue 15:45] =>  0:01
 - [2026-09-22 Tue 15:44]--[2026-09-22 Tue 15:45] record the fifth occurrence, with the invented name that varied
 :END:
 
-The upstream half of [[id:1cd2df62-35e9-47dc-bcce-dda7bae3c522][1cd2df62]],
-ready to write up as an issue. Both dispatch paths drop a key the
-schema does not declare, silently, and the measured local cost was
-four heading bodies lost to invented =todo_state=/=body= arguments
-that every call accepted and discarded.
+The upstream half of [[id:1cd2df62-35e9-47dc-bcce-dda7bae3c522][1cd2df62]], ready to write up as an issue. Both of
+=claude-code-ide='s dispatch paths drop a key the schema does not declare,
+silently. The measured local cost is **twenty discarded bodies in one tool**,
+=org_capture=, across five occurrences, every one recovered only because a
+transcript was still in reach and none by a check, a lint, a test or the queue.
+The tool's reply reports success and the location and nothing about what it
+discarded, so the failure is invisible at the moment of the mistake; a =-32602=
+at the first call is the only mechanism that would have caught it.
 
-*Path 1 — HTTP* (=claude-code-ide-mcp-http-server--validate-args=):
-iterates =arg-specs= and pulls each *declared* name out of =args=; it
-never iterates =args=, so an unknown key is never examined. The
-asymmetry is the report's hook: a *missing required* argument already
-signals =-32602=, so the refusal machinery exists — only the
-unknown-key direction is unguarded, and the fix is one pass over
-=args= for keys absent from =arg-specs=.
+*For the report.*
+- *Path 1 -- HTTP* (=claude-code-ide-mcp-http-server--validate-args=): iterates =arg-specs= and pulls each *declared* name out of =args=, never iterating =args=, so an unknown key is never examined; a *missing required* argument already signals =-32602=, so the fix is one pass over =args= for keys absent from =arg-specs=.
+- *Path 2 -- WebSocket* (=claude-code-ide-mcp--handle-tools-call=, examined 2026-09-08): hands the whole =arguments= alist to the handler with **no validation at all** -- no unknown-key check *and* no missing-required check. Whatever fix upstream takes should cover both, copying the HTTP path's =-32602= pattern.
+- A dropped argument does not merely fail to apply: an =org_outline= call passing invented =file= and =max_level= returned the unrestricted default while appearing scoped.
 
-*Path 2 — WebSocket* (=claude-code-ide-mcp--handle-tools-call=,
-examined 2026-09-08, answering the gating question 1cd2df62 left):
-hands the whole =arguments= alist to the handler with **no validation
-at all** — no unknown-key check *and* no missing-required check, so it
-is strictly less guarded than the HTTP path. Whatever fix upstream
-takes should cover both, and the HTTP path's =-32602= pattern is the
-shape to copy.
+*What is established -- the occurrences.*
+- 2026-08-20: the five failures that produced =1cd2df62= -- recorded at the top of this heading as four heading bodies lost to invented =todo_state=/=body= arguments -- found by accident, five hours late.
+- 2026-09-16/17: =org_capture= called **eleven** times with =body=; found by the user reading the file; five of those headings were then closed with a =CLOSED:= stamp, a clock and no prose.
+- 2026-09-18: two calls with =body= (=2cd74268=, =0b5cacf5=), in this repository with this heading on disk; found minutes later by a =git diff --stat= reading =6 insertions= where about thirty were expected.
+- 2026-09-19: eight calls with =body= in one session, noticed five hours after the first when a slice heading was inspected by hand; the =org_amend= calls into =:PLAN:= that did land masked the loss.
+- 2026-09-22: two calls with =text= (=3485b0d0=, =c4bb5db3=), the first *different* invented name; found by =git diff --stat= again; the catch is recorded on =59861867=.
+- The failure is self-concealing: =2cd74268= was reported as carrying a substantial body and discussed for roughly two hours while empty, and surfaced only when a *second* capture's diff looked short.
+- The correct parameter, =note=, was documented in the same =:args= list the 2026-09-18 session read -- forty minutes *after* the failure, while investigating it.
 
-*One measured consequence worth quoting in the issue:* a dropped
-argument does not merely fail to apply — an =org_outline= call passing
-invented =file= and =max_level= returned the unrestricted default
-while appearing scoped, silently substituting a different answer to a
-different question.
-
-*Second occurrence, 2026-09-16/17, and it is the strongest argument this report has.* =org_capture= was called **eleven** times with =body=, an argument it does not have — the same tool and the same invented name as the five failures of 2026-08-20 that produced =1cd2df62=. Every call returned ="Captured: … (ID: …)"=, every body was discarded, and the loss was invisible from the tool's reply, =bin/lint-org=, =bin/check-conventions=, the test suite and the review queue alike. It was found by the *user reading the file* and noticing that recently filed tasks had no prose — the same way the first occurrence was found, by accident, five hours late.
-
-*What the recurrence adds, beyond doubling the count.* =1cd2df62= closed on the finding that "the tool was not at fault… the documentation was correct, prominent, and unread", and audited the whole fourteen-tool surface clean. That diagnosis still holds — and is exactly why documentation cannot be the fix. Four weeks later, with the correct parameter (=note=) documented in the schema the caller could have read, the identical wrong name was used eleven times running. A silent no-op teaches nothing at the moment of the mistake; a =-32602= would have failed the first call and cost one correction instead of eleven bodies.
-
-*Damage and repair.* Eleven headings landed with a title, a =:PROPERTIES:= drawer and nothing else; five of them were subsequently closed, so they became finished headings carrying a =CLOSED:= stamp, a clock and no prose at all — which is precisely what the two-call close convention exists to prevent. All eleven bodies were restored by =org_amend= from the session transcript, which is luck rather than a safety net: the same loss in a session that ended, or whose context had rolled over, would have been unrecoverable.
-
-*For the report itself:* the asymmetry already noted — missing-required signals =-32602= while unknown-key is unguarded — now has a measured cost on both sides of a four-week gap, in the same tool, from the same failure mode, with the documentation correct throughout.
-
-*Third occurrence, 2026-09-18 — same tool, same invented name, two calls.* =org_capture= called twice with =body=; both returned ="Captured: … (ID: …)"= and both headings landed as a title and a =:PROPERTIES:= drawer with no prose (=2cd74268=, =0b5cacf5=). The session was working *in this repository*, with this heading and its two prior occurrences already on disk. Restored by =org_amend= from the transcript, as before.
-
-*What this occurrence adds, beyond a third tally mark.*
-
-**The failure is self-concealing, and it took a second instance to expose the first.** =2cd74268= was captured, reported to the user as carrying a substantial body, and discussed at length over roughly two hours — its contents argued about, its open questions enumerated — while the heading was in fact empty. Nothing in that stretch touched the file in a way that would reveal it. It surfaced only when a *second* capture's =git diff --stat= read =6 insertions= where about thirty were expected. One silent loss hid indefinitely; two were needed before either was visible.
-
-**Detection was earlier than the previous two occurrences and still accidental.** 2026-08-20 was found five hours late by chance; 2026-09-16/17 by the user reading the file. This one was found by a line count in a routine pre-commit =--stat=, minutes rather than hours later — but only because the capture happened to be followed by a diff check. A session that captures and moves on has no signal at all, and the tool's reply is actively reassuring in every case.
-
-**Documentation was not merely available but *adjacent*.** The parameter is documented as =note= in the same =:args= list the session read — forty minutes *after* the failure, while investigating it. The earlier diagnosis that "the documentation was correct, prominent, and unread" is confirmed a third time, four weeks on, and the conclusion drawn from it holds harder: the schema being right is not a mechanism. Only a =-32602= at the first call is.
-
-*A cost note for the report.* Across the three occurrences the count is now 5 + 11 + 2 = **eighteen discarded bodies in one tool**, every one recovered only because a transcript was still in reach. The recovery rate is 18/18 and it is entirely luck — none of it was recovered by a check, a lint, a test or the queue.
-
-*Fourth occurrence, 2026-09-19, and the worst-shaped one so far.* Eight =org_capture= calls in one session each passed a =body= argument; every heading landed as a title with an empty body, and the drop was noticed only because a slice heading was inspected by hand for a different reason, five hours after the first. The session was, at the time, filing headings from a drift analysis whose own case study is this defect. The bodies were restored through =org_amend=. Two things this occurrence adds: the correct argument name was never surfaced (the capture reply reports success and the location, nothing about what it discarded), and the =org_amend= calls that *did* land — into =:PLAN:= — masked the loss, because a heading with a full plan drawer looks composed at a glance.
-
-*Fifth occurrence, 2026-09-22 — two calls, and the first with a
-*different* invented name.* Two =org_capture= calls passed =text=,
-which the tool does not have; both replied ="Captured: … (ID: …)"= and
-both headings landed as a title and a =:PROPERTIES:= drawer
-(=3485b0d0=, =c4bb5db3=). Restored by =org_amend= from the same turn.
-Running total: 5 + 11 + 2 + 8 + 2 = **twenty discarded bodies in one
-tool**, all recovered from a transcript still in reach.
-
-*What it adds to the report.* Every prior occurrence invented =body=,
-which left one narrow remedy open — accept =body= as an alias for
-=note= and the recurrence stops. This one invented =text=, so the
-wrong name is not sticky: it is whichever plausible synonym the caller
-reaches for, and an alias list cannot enumerate them. That removes the
-last alternative to the =-32602= the HTTP path already has the
-machinery for.
-
-Detection was =git diff --stat= again — twelve insertions where four
-paragraphs belonged — which is now twice out of five that the same
-accident caught it, and still the only thing that ever has. The catch
-is recorded on =59861867=.
+*What is ruled out.*
+- Documentation as the fix: =1cd2df62= closed on "the tool was not at fault… the documentation was correct, prominent, and unread", and that diagnosis has held through every recurrence -- the schema being right is not a mechanism.
+- Accepting =body= as an alias for =note=: the 2026-09-22 occurrence invented =text=, so the wrong name is whichever plausible synonym the caller reaches for, and an alias list cannot enumerate them.
 
 
 ** CANCELLED Unknown MCP methods signal an undefined error symbol and answer nothing :code:
