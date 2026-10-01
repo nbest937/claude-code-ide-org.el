@@ -3928,6 +3928,11 @@ proposed above. This investigation cannot move until a wedge is caught in
 the act, and the hook removes the discipline of remembering to sample
 before the kill.
 
+*Its body holds the beginnings of a plan* (noted 2026-10-01, e128e4fa's condense
+pass): when this heading is brainstormed, move the prospective prose into
+=:PLAN:= and revise the body to a short statement.
+
+
 
 * TODO Archived :ARCHIVE_FILE: paths are machine-absolute; audit their portability :code:spike:
 :PROPERTIES:
