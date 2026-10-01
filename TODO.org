@@ -6432,45 +6432,32 @@ pass): when this heading is brainstormed, move the prospective prose into
 :CREATED:  [2026-08-31 Mon 16:39]
 :END:
 
-Split out of [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]] 2026-08-31,
-where it was the third of three recorded cons and the only one never answered.
+Turn count is derived from =resume= events, one per =UserPromptSubmit=, so a
+background session or a subagent, with no human submitting prompts, counts
+*zero* -- as does any span whose window holds no completed turn. Zero already
+means something else on this readout -- a span in which the human was present
+but said nothing -- so a bare =0 turns= cannot distinguish "not applicable" from
+"no attention", and the two want opposite conclusions when a human is allocating
+their day. Since 2026-08-31 the count is on every suggested span line (=0:11
+span, 0:01 in 1 run, 6 turns=), so the ambiguity is in front of a reader at the
+moment of judgement. Split out of [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]] 2026-08-31, where it was the third of
+three recorded cons and the only one never answered.
 
-*The defect.* Turn count is derived from =resume= events, one per
-=UserPromptSubmit=. A background session or a subagent has no human submitting
-prompts, so it counts *zero* — and zero already means something else on this
-readout: a span in which the human was present but said nothing. A bare =0
-turns= cannot distinguish "not applicable" from "no attention", and the two want
-opposite conclusions when a human is allocating their day.
+*What is established.*
+- The data to tell the cases apart is already recorded: =bin/hooks/queue-append= writes =agent_id= and =agent_type= on every event, so a span backed by subagent events is identifiable without new instrumentation.
+- A live instance the day this was filed, which widens the heading past subagents:
 
-*Why it matters more since 2026-08-31.* The count is now on every suggested span
-line (=0:11 span, 0:01 in 1 run, 6 turns=), so the ambiguity is in front of a
-reader at the moment of judgement rather than latent in a field nobody looks at.
+: 0:05 span, 0:05 in 1 run, 0 turns
 
-*The data to tell them apart is already recorded.* =bin/hooks/queue-append=
-writes =agent_id= and =agent_type= on every event, so a span backed by subagent
-events is identifiable without new instrumentation — the same "a view of what
-already exists" argument that made the turn count itself cheap.
+- That line is literally correct: the run comes from an explicit =clock_in=/=clock_out= pair, while turns count completed =resume= -> =pause= adjacencies, and the stretch was a single long agent turn with no completed turn inside the window.
+- It gives exactly the wrong impression: "set running and left" when the truth was continuous agent work on one instruction -- the metric's advertised inversion under autonomy showing up as an apparent inconsistency on the line.
+- [[id:c4bc5c70-861a-4ce0-80da-c79b6b1600f3][c4bc5c70]] owns the productivity caveat; this is where it becomes concrete -- the line offers the wrong reading rather than the reader importing one.
 
 *Open, and the smaller half of the question:* what to render. Candidates, none
 chosen — omit the clause entirely for a session that cannot have turns; print
 =n/a= rather than =0=; or name the agent type, which says why. The parent's
 standing requirement applies: prefer the lighter presentation, and never present
 a figure that invites a reading it cannot support.
-
-*A live instance the same day this was filed, and it widens the heading past
-subagents.* With the new readout loaded, a real pending item rendered:
-
-: 0:05 span, 0:05 in 1 run, 0 turns
-
-*One run of five minutes, zero turns* — which reads as contradictory and is not.
-The run comes from an explicit =clock_in=/=clock_out= pair, while turns count
-completed =resume= -> =pause= adjacencies; that stretch was a single long agent
-turn with no completed turn inside the window, so zero is literally correct.
-
-*But it is exactly the wrong impression.* Zero turns beside five clocked minutes
-reads as "set running and left" when the truth was continuous agent work on one
-instruction — which is the metric's advertised inversion under autonomy showing
-up as an apparent inconsistency on the line rather than as a caveat somewhere.
 
 *So this heading is not only about background and subagent sessions.* Any span
 whose window holds no completed turn reads =0 turns=, and the three causes — no
@@ -6480,10 +6467,8 @@ question is therefore broader than "omit the clause for a session that cannot
 have turns": it has to separate *cannot have turns* from *had none complete in
 this window*.
 
-*Related:* [[id:c4bc5c70-861a-4ce0-80da-c79b6b1600f3][c4bc5c70]] owns the
-productivity caveat, and this is where the caveat becomes concrete rather than
-abstract — the reader does not need to import a wrong reading, the line offers
-one.
+*What is ruled out.*
+- That this is only about background and subagent sessions: one long turn still in flight produces the same =0 turns=.
 
 
 ** DONE Record cwd on queue events, so a span can be attributed to a project :code:
