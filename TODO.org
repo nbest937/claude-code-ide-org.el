@@ -4730,6 +4730,11 @@ the queue outright — the queue has no event type for a proposed date change.
 org-edna behaviour above comes from reading its source, not from running it. It
 is not installed here.
 
+*Its body holds the beginnings of a plan* (noted 2026-10-01, e128e4fa's condense
+pass): when this heading is brainstormed, move the prospective prose into
+=:PLAN:= and revise the body to a short statement.
+
+
 
 * TODO org_query answers from a restricted or short file set without saying so :code:
 :PROPERTIES:
