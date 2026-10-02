@@ -20396,19 +20396,46 @@ queues, and waiting on the save is c35087d8's."
                               (claude-code-ide-org-edit "edit-1" "First paragraph" "x")))
       (should (equal before (claude-code-ide-org-test--disk-contents capture-file))))))
 
+(ert-deftest claude-code-ide-org-test-edit-never-fills-a-block-or-an-item ()
+  "An edit inside a block below a blank line, or inside a list item, is
+not filled: the paragraph is org's, read in place, so a span cannot run
+from mid-block through `#+end_example' (PR #33's review, finding 1)."
+  (claude-code-ide-org-test--with-capture-file
+    (let ((long (mapconcat #'identity (make-list 30 "word") " ")))
+      (with-temp-file capture-file
+        (insert "#+TODO: TODO | DONE\n\n* TODO Block\n:PROPERTIES:\n:ID:       blk-1\n:END:\n\n"
+                "#+begin_example\nshort\n\nBLOCK " long "\n#+end_example\n\n"
+                "- ITEM " long "\n"))
+      (org-id-update-id-locations (list capture-file))
+      (let ((claude-code-ide-org-query-files (list capture-file))
+            (fill-column 40))
+        (should (string-prefix-p claude-code-ide-org--reply-edited
+                                 (claude-code-ide-org-edit "blk-1" "BLOCK" "BLOCKED")))
+        (should (string-prefix-p claude-code-ide-org--reply-edited
+                                 (claude-code-ide-org-edit "blk-1" "ITEM" "ITEMS"))))
+      (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
+        (should (string-match-p (concat "^BLOCKED " (regexp-quote long) "\n#\\+end_example$")
+                                disk))
+        (should (string-match-p (concat "^- ITEMS " (regexp-quote long) "$") disk))))))
+
 (ert-deftest claude-code-ide-org-test-edit-fills-only-the-touched-paragraph ()
   "A replacement that makes its line overlong is filled with its
 paragraph; an overlong paragraph elsewhere is not reflowed by the edit."
   (claude-code-ide-org-test--with-capture-file
     (let ((long (mapconcat #'identity (make-list 30 "word") " ")))
       (with-temp-file capture-file
-        (insert "#+TODO: TODO | DONE\n\n* TODO Fill\n:PROPERTIES:\n:ID:       fill-1\n:END:\n\n"
+        (insert "#+TODO: TODO | DONE\n\n* TODO Fill\n:PROPERTIES:\n:ID:       fill-1\n:END:\n"
+                ":PLAN:\nShort plan.\n:END:\n\n"
                 "Short line here.\n\n" long "\n"))
       (org-id-update-id-locations (list capture-file))
       (let ((fill-column 40))
         (claude-code-ide-org-edit "fill-1" "Short line here."
-                                  (concat "Short line here, " long ".")))
+                                  (concat "Short line here, " long "."))
+        (claude-code-ide-org-edit "fill-1" "Short plan." (concat "Short plan, " long ".") "PLAN"))
       (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
+        ;; :PLAN: is prose, and an edit there is filled in place too.
+        (should (string-match-p ":PLAN:\nShort plan, word" disk))
+        (should-not (string-match-p (concat "^Short plan, " (regexp-quote long)) disk))
         ;; The untouched overlong paragraph is still one line.
         (should (string-match-p (concat "^" (regexp-quote long) "$") disk))
         ;; The edited one was broken into lines.

@@ -4472,19 +4472,33 @@ one."
 A replacement lands inside a paragraph, so filling NEW-STRING on its
 own would leave the paragraph ragged; the unit a fill works on is the
 paragraph.  `claude-code-ide-org--fill-prose-text' leaves one that
-already fits exactly as it was, so a short edit changes no other line."
-  (let* ((pbeg (save-excursion
-                 (goto-char beg)
-                 (if (re-search-backward "\n[ \t]*\n" rbeg t) (match-end 0) rbeg)))
-         (pend (save-excursion
-                 (goto-char end)
-                 (if (re-search-forward "\n[ \t]*\n" rend t) (match-beginning 0) rend)))
-         (old (buffer-substring-no-properties pbeg pend))
-         (new (claude-code-ide-org--fill-prose-text old column)))
-    (unless (equal old new)
-      (goto-char pbeg)
-      (delete-region pbeg pend)
-      (insert new))))
+already fits exactly as it was, so a short edit changes no other line.
+
+The paragraphs are org's, read in place with `org-element-at-point' and
+kept only where `claude-code-ide-org--fillable-paragraph-p' agrees.  A
+span cut at blank lines and parsed alone was not: inside a block with a
+blank line it ran from mid-block through `#+end_example', which read
+alone is prose (PR #33's review, finding 1)."
+  (let (spans)
+    (save-excursion
+      (goto-char beg)
+      (while (< (point) end)
+        (let ((el (org-element-at-point)))
+          (when (and (claude-code-ide-org--fillable-paragraph-p el)
+                     (<= rbeg (org-element-property :contents-begin el) rend))
+            (push (cons (org-element-property :contents-begin el)
+                        (org-element-property :contents-end el))
+                  spans))
+          (goto-char (max (1+ (point)) (org-element-property :end el))))))
+    ;; Pushed in buffer order, so filled last first: a fill cannot move
+    ;; a span not yet reached.
+    (dolist (span spans)
+      (let* ((old (buffer-substring-no-properties (car span) (cdr span)))
+             (new (claude-code-ide-org--fill-prose-text old column)))
+        (unless (equal old new)
+          (goto-char (car span))
+          (delete-region (car span) (cdr span))
+          (insert new))))))
 
 (defun claude-code-ide-org--edit-touched-lines (ms me new)
   "The whole lines MS..ME will form once NEW replaces that text.
