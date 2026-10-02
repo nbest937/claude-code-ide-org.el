@@ -14,11 +14,14 @@ heads each turn with a time of day only, so a session that runs over several
 days reads as one. The render of session 3effb289 (2026-09-28 to 2026-10-02)
 titles itself "2026-09-28 Mon" and shows "* 11:22 what does glued heading mean?"
 at line 3778 for a turn from 2026-10-01, and its turn times run backwards four
-times: three midnight crossings, and one 16:14 to 14:09 on 2026-09-28 that is
-likely the machine's timezone change that day (10424e58). Proposed: group turns
-under a datetree, a day heading per calendar date, or give each turn heading a
-full timestamp, and render times in one stated zone; found by the user,
-2026-10-02.
+times, each a day change (09-28 to 09-29, 09-29 to 09-30, 09-30 to 10-01, 10-01
+to 10-02, checked against the transcript's UTC timestamps). Every time is also
+rendered in the zone Emacs is in at render time, so the user's timezone changes
+on 2026-09-29 and 2026-10-01 are invisible and a turn's time can differ from the
+wall clock it was taken under; 10424e58 is the same dependence in the test
+suite. Proposed: group turns under a day heading per calendar date (a datetree),
+and either render in a stated zone or show each turn's offset. Found by the
+user, 2026-10-02.
 
 
 * MAYBE [0/2] A claimed span records agent time and human attention as one, and the reviewer has no picture of the span to judge from
