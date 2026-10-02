@@ -2,6 +2,12 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO A git worktree of this repo cannot commit: the setup check reads its directory name as an MCP-session collision :code:
+:PROPERTIES:
+:ID:       6abc58c0-5561-43c4-8629-475c3130d236
+:CREATED:  [2026-10-02 Fri 12:52]
+:CATEGORY: Dev
+:END:
 * TODO A rendered session spanning several days dates only its title, so its turn times read as one day and run backwards :code:
 :PROPERTIES:
 :ID:       6b5e7327-516b-4374-9346-5538808d327d
