@@ -5636,7 +5636,7 @@ The order, one line each:
 - =76a6f052=: a second pass over the corpus just read. =b52df20b= already changed the sweep's filter and width.
 - =fce6bd35=: can land only once =e128e4fa= leaves every open heading in canonical shape. The lint it adds is what retires the conventions' backfill clause.
 - =41cf5830=: builds on =b7259ee4='s commit-link vocabulary.
-- =01849bef=: late on purpose. Its own body proposes declining it after a month of use of the review buffer's =c= key, which falls due around 2026-10-16.
+- =01849bef=: superseded and parked =MAYBE= 2026-10-02 (the user); divided under the story =6ea84943=, whose model is a claim that keeps agent runs and the user's attention apart, with a strip chart to judge it from. Parked with time tracking's priority.
 - =ecf66d45=: the largest member and the least coupled. Its forecast-versus-record question sits beside =01849bef='s question about active timestamps.
 - =ea1df60b=: the weakest fit, a corpus audit at the tail.
 
@@ -8510,7 +8510,21 @@ pass): when this heading is brainstormed, move the prospective prose into
 =:PLAN:= and revise the body to a short statement.
 
 
-* TODO Flipping a span's timestamps to active is hand-editing; give the review buffer a key :code:bounded:
+* MAYBE [0/2] A claimed span records agent time and human attention as one, and the reviewer has no picture of the span to judge from
+:PROPERTIES:
+:ID:       6ea84943-9eef-4940-b850-e8cf79310d2a
+:CREATED:  [2026-10-02 Fri 09:29]
+:CATEGORY: Apply
+:END:
+
+Divided from 01849bef on 2026-10-02 (the user). A claimed span loses the split
+between agent time and human attention, and the review buffer gives the reviewer
+numbers but no picture of the span, so claims are rare and, when made, coarse.
+Together the two members would make every claim a labelled sample for the
+active-versus-inactive heuristic the time-tracking work aims at. Parked with
+time tracking's priority.
+
+** TODO Flipping a span's timestamps to active is hand-editing; give the review buffer a key :code:bounded:
 :PROPERTIES:
 :CATEGORY: Apply
 :ID:       01849bef-fdc9-4c30-b467-00ca8606e8e0
@@ -8527,6 +8541,7 @@ CLOCK: [2026-09-16 Wed 12:12]--[2026-09-16 Wed 12:13] =>  0:01
 - Tags ":code:bounded:" from ":code:"     [2026-09-28 Mon 13:01] \\
   classified: one key in the existing review buffer; body argues for declining
 :END:
+:PLAN:
 
 *Requested by the user 2026-08-26:* "consider adding a keystroke to org-review
 that flips an inactive interval to active. that edit is tedious for me."
@@ -8821,10 +8836,47 @@ and an observation from use pointing the same way: decline it.**
 before acting on it, and =e= remains the escape hatch for bounds that are
 actually wrong, which is a different act from asserting attention.
 
-*Its body holds the beginnings of a plan* (noted 2026-10-01, e128e4fa's condense
-pass): when this heading is brainstormed, move the prospective prose into
-=:PLAN:= and revise the body to a short statement.
+*Superseded 2026-10-02 (the user), and parked with time tracking's priority.*
+The question this heading carried, a key to flip a span's brackets to active,
+rests on an either/or capture that is itself the flaw. Today =c= claims a span's
+whole envelope as one interval with an active annotation, so a span that was a
+minute of agent work and three of the user reading is recorded as four minutes
+of human attention: the total is right and the split, who was doing what, is
+lost. The right choice is between "agent only", the runs written inactive, which
+is what applying a suggested span already does, and "agent plus user", the runs
+written inactive and the gaps around them written active. Then every claim is a
+labelled sample, which is what a heuristic for classifying active from inactive
+time needs as ground truth, and what the AFK markers (409a69ff, e75d660f) were
+meant to supply the negative side of.
 
+*Measured 2026-10-02, since =c= shipped on 2026-09-16:* 20 whole-envelope
+claims, and at most one active marking over a span with runs; five more active
+annotations are the review pass clocking itself. The user's reading of the low
+count: uncertainty in interpreting the review buffer, not lack of need. Its
+sibling 330710fb files the picture that would remove that uncertainty.
+:END:
+
+Claiming a span with =c= records its whole envelope as human attention, folding
+the agent's runs into it, so the split between agent time and the user's
+attention is lost. The claim should offer "agent only" or "agent plus user":
+runs inactive, and the gaps around them active. Parked with time tracking;
+design in =:PLAN:=.
+
+** MAYBE Show a span as a strip chart, its runs, gaps, waits and AFK markers on one line, so a claim is judged from the screen :code:
+:PROPERTIES:
+:ID:       330710fb-ea34-466b-96a0-7be947f37a1e
+:CREATED:  [2026-10-02 Fri 09:29]
+:END:
+
+The review buffer gives a span's envelope and run totals as numbers but no
+picture of how the interaction went inside it, so deciding whether the gaps were
+the user's attention means reconstructing it from memory, and the user rarely
+claims for that reason (the user, 2026-10-02). Proposed: for the span at point,
+a one-line timeline showing agent runs as solid blocks, gaps as spaces,
+permission waits and AFK markers in place, so the rhythm and intensity of the
+exchange can be read off the screen. It serves claiming and also the
+classification work that 409a69ff and e75d660f aim at, and it is where
+5a6d2c75's missing evidence would surface. Parked with time tracking's priority.
 
 * TODO Intervals on two different headings can overlap, and subtraction reaches only one :code:
 :PROPERTIES:
