@@ -6079,7 +6079,7 @@ The order, one line each:
 - =fce6bd35=: can land only once =e128e4fa= leaves every open heading in canonical shape. The lint it adds is what retires the conventions' backfill clause.
 - =41cf5830=: builds on =b7259ee4='s commit-link vocabulary.
 - =01849bef=: moved to the review-pass slice =c7619140= on 2026-10-02 (the user) and declared in =:DROPPED:= here. It was divided under the story =6ea84943=, whose subject is what a claim records, not timestamp notation, which is that slice's theme.
-- =ecf66d45=: the largest member and the least coupled. Its forecast-versus-record question sits beside =01849bef='s question about active timestamps.
+- =ecf66d45=: divided 2026-10-02 (the user) under the story =14c02a28=, and now the pacing child only, owed three decisions before design; its sibling =a29464da=, dates through the tools and milestones on slices and stories, is ready to design and not yet a member here.
 - =ea1df60b=: the weakest fit, a corpus audit at the tail.
 
 The checklist's order is the order of adoption, not this one, and it is left as
@@ -6419,7 +6419,20 @@ pass): when this heading is brainstormed, move the prospective prose into
 =:PLAN:= and revise the body to a short statement.
 
 
-* TODO Nothing lays out future work on a timeline the agenda can show :arch:
+* TODO [0/2] Lay future work out on the agenda: commitments, milestones on slices and stories, and pacing that follows a slip
+:PROPERTIES:
+:ID:       14c02a28-5e1f-401b-9c22-dd18c2c10847
+:CREATED:  [2026-10-02 Fri 10:10]
+:CATEGORY: Skill
+:END:
+
+Divided from ecf66d45 on 2026-10-02 (the user), who wants the agenda to show
+future work three ways: commitments, milestones on slices and on stories, and
+pacing that follows a slip. The first two are ready to design as one member,
+a29464da; pacing stays with ecf66d45, which carries the 2026-09-11 survey and
+three decisions owed before design.
+
+** TODO Nothing lays out future work on a timeline the agenda can show :arch:
 :PROPERTIES:
 :ID:       ecf66d45-18b3-477f-bca8-08bec90604e8
 :CREATED:  [2026-09-04 Fri 08:52]
@@ -6441,6 +6454,7 @@ CLOCK: [2026-10-02 Fri 09:52]--[2026-10-02 Fri 09:53] =>  0:01
 CLOCK: [2026-10-02 Fri 09:55]--[2026-10-02 Fri 09:56] =>  0:01
 - [2026-10-02 Fri 09:55]--[2026-10-02 Fri 09:56] brainstorm: future work on an agenda timeline
 :END:
+:PLAN:
 
 *Wanted by the user 2026-09-04, stated as a requirement for future projects
 rather than a gap in this one:* "In future projects I will want to be able to
@@ -6522,10 +6536,58 @@ the queue outright — the queue has no event type for a proposed date change.
 org-edna behaviour above comes from reading its source, not from running it. It
 is not installed here.
 
-*Its body holds the beginnings of a plan* (noted 2026-10-01, e128e4fa's condense
-pass): when this heading is brainstormed, move the prospective prose into
-=:PLAN:= and revise the body to a short statement.
+*Divided 2026-10-02 (the user); this heading is now the pacing child only.* The
+user wants all three uses: commitments, milestones on slices and on stories, and
+pacing that follows a slip. The first two need no more research and went to the
+sibling a29464da under the story 14c02a28; this one keeps the cascade and the
+survey above, which is all about it.
 
+*Three decisions the cascade needs before design, not research.* What a slip is:
+a date passing with the heading unfinished, which the agenda already shows as
+overdue, or an explicit move of a date, which is what the cascade would follow.
+The order to cascade along: =:BLOCKER:= edges, which are dependencies and sit on
+59 headings in TODO.org, or a slice's =:MEMBERS:= order, which is a sequence and
+not necessarily a dependency; they give different answers. How far a slip moves
+its successors: with no =:Effort:= anywhere in the corpus, shifting every
+successor by the slip and keeping the gaps is the only rule that needs no new
+data.
+
+*Two findings of 2026-10-02.* =org-schedule= and =org-deadline= take the date as
+an argument and write without prompting while =org-log-reschedule= and
+=org-log-redeadline= are nil, tested in a scratch buffer, so a date tool cannot
+hang the way 3d576d29's state notes did. And a relative date such as =+3d= is
+counted from today, not from the date already there, so a cascade must compute
+each new date itself rather than hand org a delta.
+
+*The org-native estimate is the =Effort= property* (=org-effort-property=, set
+with =org-set-effort=, durations such as =1:30=, =2h= or =3d=, a coarse scale
+through =Effort_ALL=). Column view sets it against =CLOCKSUM=, the agenda
+filters on it, and ox-taskjuggler schedules from it. Adopting it, coarse and
+optional, is what would let a cascade schedule forward from durations instead of
+only shifting dates; its effort-versus-actual half depends on clocking, the
+optional half of this project.
+:END:
+
+The pacing half of laying future work out on the agenda: when a dated heading
+slips, move the dates that follow it. Org has no such cascade, so it is a custom
+command, invoked and never triggered; before it is designed, three decisions are
+owed: what counts as a slip, which order it follows, and how far successors
+move. Research and decisions in =:PLAN:=.
+
+** TODO Set dates through the tools, and let slices and stories carry milestones their members are checked against :code:
+:PROPERTIES:
+:ID:       a29464da-e045-4276-881e-cab41ad0b8ad
+:CREATED:  [2026-10-02 Fri 10:10]
+:END:
+
+No tool sets a planning line, so a session cannot put a heading on the agenda
+except by hand-editing it, though org-schedule and org-deadline take the date as
+an argument and, with reschedule logging off, write without prompting (tested
+2026-10-02). Proposed: a structural tool for SCHEDULED and DEADLINE on any
+heading, commitments included (the user's first real DEADLINE is on 158d7e80);
+dates on slices and stories read as milestones; and a lint that reports a member
+dated after its group's milestone. Ready to design: the 2026-09-11 survey
+answered its research.
 
 * TODO org_query answers from a restricted or short file set without saying so :code:
 :PROPERTIES:
