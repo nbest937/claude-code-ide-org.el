@@ -4967,6 +4967,21 @@ four children in order.
 :ID:       704d8558-657b-43e2-9440-1c054c923ed2
 :CREATED:  [2026-09-23 Wed 10:34]
 :END:
+:DEBRIEF:
+Built 2026-09-28 on =feature/org-edit=, and used for this repo's tracker edits
+from then on, while it was still unmerged. PR #33's review on 2026-10-02 found
+four defects that the plain prose it had edited never exposed:
+- the refill cut a paragraph at blank lines and parsed it alone, so inside a block that holds a blank line it filled through =#+end_example=;
+- the headline guard checked =new_string= only, so a deletion could leave =* = at column zero;
+- the region skipped the first line's indent, so the text =org_body= shows could not rewrite an indented region whole;
+- an append with both strings empty wrote blank lines and reported success.
+
+The first three were fixed on the branch in [[orgit-rev:claude-code-ide-org::ce6b6a1][ce6b6a1]], [[orgit-rev:claude-code-ide-org::ce0f9e7][ce0f9e7]] and [[orgit-rev:claude-code-ide-org::6e66b0a][6e66b0a]], each
+with a test shown to fail on the old code first. The fourth was filed as
+[[id:adc71d3b-3744-4854-85f7-a28a21162bb5][adc71d3b]]. The fixes were committed from a git worktree at first, which the
+pre-commit setup check refuses; that is filed as [[id:6abc58c0-5561-43c4-8629-475c3130d236][6abc58c0]] (=MAYBE=), and they
+were committed from the main checkout instead. Merged 2026-10-02, [[orgit-rev:claude-code-ide-org::3e11fe9][3e11fe9]].
+:END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-24 Thu 19:58] \\
   where the org_edit story starts
@@ -5008,13 +5023,13 @@ edit is not left ragged (as built, 2026-09-28). Its guard on a headline-shaped
 KEYWORD= token mid-line, where a glued heading actually sits, and not only at
 column zero.
 
-Built on =feature/org-edit=, PR #33 (2026-09-28). Its one departure from
-dd4b9a9f's plan, a reply that names the kind of change instead of echoing text,
-is written into that drawer by the first call =org_edit= made through MCP
-(2026-09-29). *A known limit:* a bare star line (=***= alone) inside a block is
-refused rather than escaped, because =--escape-block-headlines= only escapes a
-star run followed by a space while the refusal also catches the bare form. Rare,
-and it fails safe.
+Built on =feature/org-edit= and merged with PR #33 on 2026-10-02, after the
+review fixes the =:DEBRIEF:= names. Its one departure from dd4b9a9f's plan, a
+reply that names the kind of change instead of echoing text, is written into
+that drawer by the first call =org_edit= made through MCP (2026-09-29). *A known
+limit:* a bare star line (=***= alone) inside a block is refused rather than
+escaped, because =--escape-block-headlines= only escapes a star run followed by
+a space while the refusal also catches the bare form. Rare, and it fails safe.
 
 
 ** TODO org_edit refuses an unsaved buffer, asks for the save in a header line, and the agent waits on it :code:
