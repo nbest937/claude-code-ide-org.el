@@ -2,6 +2,12 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO org_edit accepts an empty append: no old_string and no new_string still writes blank lines, or an empty drawer, and reports success :code:bounded:
+:PROPERTIES:
+:ID:       adc71d3b-3744-4854-85f7-a28a21162bb5
+:CREATED:  [2026-10-02 Fri 13:06]
+:CATEGORY: Tools
+:END:
 * TODO A git worktree of this repo cannot commit: the setup check reads its directory name as an MCP-session collision :code:
 :PROPERTIES:
 :ID:       6abc58c0-5561-43c4-8629-475c3130d236
