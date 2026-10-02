@@ -6432,7 +6432,7 @@ pacing that follows a slip. The first two are ready to design as one member,
 a29464da; pacing stays with ecf66d45, which carries the 2026-09-11 survey and
 three decisions owed before design.
 
-** TODO Nothing lays out future work on a timeline the agenda can show :arch:
+** TODO When a dated heading slips, move the dates that follow it along a chosen order :arch:
 :PROPERTIES:
 :ID:       ecf66d45-18b3-477f-bca8-08bec90604e8
 :CREATED:  [2026-09-04 Fri 08:52]
