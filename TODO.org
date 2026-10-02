@@ -1318,16 +1318,16 @@ is legibility for whoever runs the lint and one small gate.
 - org-lint's own "possibly misplaced heading line" checker as the detector (measured 2026-09-25): =bin/lint-org= already runs it as a warning, and it reports 498 lines across the two files, nearly all prose lines opening with =*bold*= -- nobody reads a warning with that count, which is why neither glued heading was seen.
 
 
-* TODO [0/32] The review pass asks for judgement it cannot support, and the clock beneath it is still wrong :code:
+* TODO [0/33] The review pass asks for judgement it cannot support, and the clock beneath it is still wrong :code:
 :PROPERTIES:
 :ID:       c7619140-f269-4329-bc05-a38ea151e202
 :CREATED:  [2026-09-22 Tue 16:07]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  55125136-5939-434e-9676-96ea66a75770 361e2708-8124-4bd1-9c44-f97ca97aca4a 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 aee8487e-0650-4396-bc5c-193ca3efcecb 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 653fea66-f9d5-4431-8ce3-5d355560b475 445fe577-01ce-4e68-ab5f-c349c40a4643 2c733857-a280-42cc-bd7c-e182a4fb6ea3 79c224ab-188a-4ed4-a606-c28ee2cfe72d 001fb310-69f7-4417-81be-a224a3bf83e0 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46 e75d660f-5c0d-4707-a645-b5dea7d7ebc0 409a69ff-d57e-4c1c-ab6c-28f7e85fa391 49444167-7a29-491a-81b4-c5215fce9fc2 9b7301de-0903-4987-bb34-56f8f021fbd1 cf483f5d-2d25-4454-a580-db7935c8cb81 8028e875-3032-4ade-949e-414d9861b928 ee3c22c9-f99c-4d41-9c3d-8f39af916fff e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 6c64cc9c-33a9-4a20-af19-c188a690c755 a865f83c-ea37-40c4-a104-7cc50d2c20dd 996fd2bd-be90-44b3-b2c5-9018255940b3 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 595df230-e31d-42ad-9ea7-128e545b9aa0 20cecd53-2338-4237-ab06-f8129e10a2c8 37147e9e-468b-43ee-91f9-45d9647c6164 445ec1f1-095a-462b-abbd-7a3a00925ddb 64d34a64-d336-40a8-a8e8-da8133d0da06 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd
-:DROPPED:  01849bef-fdc9-4c30-b467-00ca8606e8e0
-:MEMBERS:  55125136-5939-434e-9676-96ea66a75770 361e2708-8124-4bd1-9c44-f97ca97aca4a 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 aee8487e-0650-4396-bc5c-193ca3efcecb 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 653fea66-f9d5-4431-8ce3-5d355560b475 445fe577-01ce-4e68-ab5f-c349c40a4643 2c733857-a280-42cc-bd7c-e182a4fb6ea3 79c224ab-188a-4ed4-a606-c28ee2cfe72d 001fb310-69f7-4417-81be-a224a3bf83e0 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46 e75d660f-5c0d-4707-a645-b5dea7d7ebc0 409a69ff-d57e-4c1c-ab6c-28f7e85fa391 49444167-7a29-491a-81b4-c5215fce9fc2 9b7301de-0903-4987-bb34-56f8f021fbd1 cf483f5d-2d25-4454-a580-db7935c8cb81 8028e875-3032-4ade-949e-414d9861b928 01849bef-fdc9-4c30-b467-00ca8606e8e0 ee3c22c9-f99c-4d41-9c3d-8f39af916fff e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 6c64cc9c-33a9-4a20-af19-c188a690c755 a865f83c-ea37-40c4-a104-7cc50d2c20dd 996fd2bd-be90-44b3-b2c5-9018255940b3 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 595df230-e31d-42ad-9ea7-128e545b9aa0 20cecd53-2338-4237-ab06-f8129e10a2c8 37147e9e-468b-43ee-91f9-45d9647c6164 445ec1f1-095a-462b-abbd-7a3a00925ddb 64d34a64-d336-40a8-a8e8-da8133d0da06 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd
+:BLOCKER:  55125136-5939-434e-9676-96ea66a75770 361e2708-8124-4bd1-9c44-f97ca97aca4a 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 aee8487e-0650-4396-bc5c-193ca3efcecb 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 653fea66-f9d5-4431-8ce3-5d355560b475 445fe577-01ce-4e68-ab5f-c349c40a4643 2c733857-a280-42cc-bd7c-e182a4fb6ea3 79c224ab-188a-4ed4-a606-c28ee2cfe72d 001fb310-69f7-4417-81be-a224a3bf83e0 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46 e75d660f-5c0d-4707-a645-b5dea7d7ebc0 409a69ff-d57e-4c1c-ab6c-28f7e85fa391 49444167-7a29-491a-81b4-c5215fce9fc2 9b7301de-0903-4987-bb34-56f8f021fbd1 cf483f5d-2d25-4454-a580-db7935c8cb81 8028e875-3032-4ade-949e-414d9861b928 01849bef-fdc9-4c30-b467-00ca8606e8e0 ee3c22c9-f99c-4d41-9c3d-8f39af916fff e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 6c64cc9c-33a9-4a20-af19-c188a690c755 a865f83c-ea37-40c4-a104-7cc50d2c20dd 996fd2bd-be90-44b3-b2c5-9018255940b3 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 595df230-e31d-42ad-9ea7-128e545b9aa0 20cecd53-2338-4237-ab06-f8129e10a2c8 37147e9e-468b-43ee-91f9-45d9647c6164 445ec1f1-095a-462b-abbd-7a3a00925ddb 64d34a64-d336-40a8-a8e8-da8133d0da06 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd
+:DROPPED:
+:MEMBERS:  55125136-5939-434e-9676-96ea66a75770 361e2708-8124-4bd1-9c44-f97ca97aca4a 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 aee8487e-0650-4396-bc5c-193ca3efcecb 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 653fea66-f9d5-4431-8ce3-5d355560b475 445fe577-01ce-4e68-ab5f-c349c40a4643 2c733857-a280-42cc-bd7c-e182a4fb6ea3 79c224ab-188a-4ed4-a606-c28ee2cfe72d 001fb310-69f7-4417-81be-a224a3bf83e0 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46 e75d660f-5c0d-4707-a645-b5dea7d7ebc0 409a69ff-d57e-4c1c-ab6c-28f7e85fa391 49444167-7a29-491a-81b4-c5215fce9fc2 9b7301de-0903-4987-bb34-56f8f021fbd1 cf483f5d-2d25-4454-a580-db7935c8cb81 8028e875-3032-4ade-949e-414d9861b928 01849bef-fdc9-4c30-b467-00ca8606e8e0 330710fb-ea34-466b-96a0-7be947f37a1e ee3c22c9-f99c-4d41-9c3d-8f39af916fff e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 6c64cc9c-33a9-4a20-af19-c188a690c755 a865f83c-ea37-40c4-a104-7cc50d2c20dd 996fd2bd-be90-44b3-b2c5-9018255940b3 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 595df230-e31d-42ad-9ea7-128e545b9aa0 20cecd53-2338-4237-ab06-f8129e10a2c8 37147e9e-468b-43ee-91f9-45d9647c6164 445ec1f1-095a-462b-abbd-7a3a00925ddb 64d34a64-d336-40a8-a8e8-da8133d0da06 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-27 Sun 18:12]--[2026-09-27 Sun 18:13] =>  0:01
@@ -1443,6 +1443,14 @@ a865f83c. Not admitted: 96a51c2f, the gap-threshold re-measure. It carries a
 =+1m= repeater and never reaches =DONE=, so as a member it would hold this slice
 open forever. It stays parentless and is cited here only as the monthly
 measurement these members draw on.
+
+*Added 2026-10-02 (the user):* the story =6ea84943=, with =01849bef= taken back
+out of =:DROPPED:= and the strip chart =330710fb= beside it. Both are parked
+=MAYBE= with time tracking's priority, so they are visible here and uncounted.
+They sit after =8028e875= because they belong with the other claim and evidence
+headings; =aee8487e= is their closest neighbour, related rather than a twin,
+since splitting runs from gaps would still let one keystroke claim a three-hour
+gap.
 :END:
 
 Thirty-four live headings carry `:CATEGORY: Apply` or `Clock`, and three
@@ -1475,7 +1483,9 @@ Planned:
 - [ ] [[id:9b7301de-0903-4987-bb34-56f8f021fbd1][9b7301de]] TODO A guidepost span is labelled with the first pending clock_in note of its heading, from any session and any date
 - [ ] [[id:cf483f5d-2d25-4454-a580-db7935c8cb81][cf483f5d]] TODO A span with no readable evidence prints nothing about itself, so absence is the only signal
 - [ ] [[id:8028e875-3032-4ade-949e-414d9861b928][8028e875]] TODO Type a span's annotation at review time, not by hand-editing it after
-- [[id:01849bef-fdc9-4c30-b467-00ca8606e8e0][01849bef]] TODO Flipping a span's timestamps to active is hand-editing; give the review buffer a key
+- [[id:6ea84943-9eef-4940-b850-e8cf79310d2a][6ea84943]] MAYBE A claimed span records agent time and human attention as one, and the reviewer has no picture of the span to judge from
+  - [ ] [[id:01849bef-fdc9-4c30-b467-00ca8606e8e0][01849bef]] TODO A claim should keep the agent's runs and the user's attention apart, not record the whole span as attention
+  - [[id:330710fb-ea34-466b-96a0-7be947f37a1e][330710fb]] MAYBE Show a span as a strip chart, its runs, gaps, waits and AFK markers on one line, so a claim is judged from the screen
 - [ ] [[id:ee3c22c9-f99c-4d41-9c3d-8f39af916fff][ee3c22c9]] TODO Make =d= mark for dismissal rather than dismiss, so a shared reason can be given once
 - [ ] [[id:e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b][e95cc5d1]] TODO =d= advances point in the review buffer, onto whatever moved up to replace the dismissed item
 - [ ] [[id:396fd1c3-70e0-4e1f-8839-670b5293a7d3][396fd1c3]] TODO Recenter after `m` advances, so the item under consideration is never at the bottom of the window
@@ -3706,6 +3716,11 @@ numbers rather than a refusal, since claiming an envelope over sparse evidence
 is sometimes the right assertion — what is wrong is making it without being
 shown the cost.
 
+Related, not a twin: [[id:01849bef-fdc9-4c30-b467-00ca8606e8e0][01849bef]] (2026-10-02) files what a claim records, the
+agent's runs kept inactive and only the gaps claimed as attention. Neither fix
+closes the other.
+
+
 
 * TODO The PLAN nag counts lines while the tools write paragraphs, so it cannot fire on their output :code:
 :PROPERTIES:
@@ -5599,6 +5614,7 @@ exception, and points to the divide rule. Design in =:PLAN:=.
 :COOKIE_DATA: checkbox recursive
 :BLOCKER:  b7259ee4-9aa1-4b55-8cf2-fbbacdea5310 f7847adf-a408-4ad0-ae0c-8d3c19b79f2b 0eaffc39-088f-48c3-a5b8-167336458114 d350ff5b-3b1f-465e-800b-962264d2e841 63df67c7-de0d-43e7-9c6f-2b2979a40aba e128e4fa-b0d9-49f7-99eb-bae2d4b0676b 76a6f052-e360-4a12-8077-070da83a8e84 fce6bd35-27ad-4724-8dbb-c9df4b68fb10 41cf5830-fc2e-4dc6-b243-a0c2718a53a3 8a23d6ec-ca45-454d-b65f-e46ea9204816 01849bef-fdc9-4c30-b467-00ca8606e8e0 ecf66d45-18b3-477f-bca8-08bec90604e8 ea1df60b-1e28-448e-bb62-a6fc2b6b62f8
 :MEMBERS:  b7259ee4-9aa1-4b55-8cf2-fbbacdea5310 f7847adf-a408-4ad0-ae0c-8d3c19b79f2b 0eaffc39-088f-48c3-a5b8-167336458114 d350ff5b-3b1f-465e-800b-962264d2e841 63df67c7-de0d-43e7-9c6f-2b2979a40aba e128e4fa-b0d9-49f7-99eb-bae2d4b0676b 76a6f052-e360-4a12-8077-070da83a8e84 fce6bd35-27ad-4724-8dbb-c9df4b68fb10 e28933e9-f352-4ef9-8d53-8cd9a4318768 8b945c02-7ebe-40a2-b4cc-e35811afe57f 41cf5830-fc2e-4dc6-b243-a0c2718a53a3 8a23d6ec-ca45-454d-b65f-e46ea9204816 01849bef-fdc9-4c30-b467-00ca8606e8e0 ecf66d45-18b3-477f-bca8-08bec90604e8 ea1df60b-1e28-448e-bb62-a6fc2b6b62f8
+:DROPPED:  01849bef-fdc9-4c30-b467-00ca8606e8e0
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-27 Sun 18:12] \\
@@ -5638,7 +5654,7 @@ The order, one line each:
 - =76a6f052=: a second pass over the corpus just read. =b52df20b= already changed the sweep's filter and width.
 - =fce6bd35=: can land only once =e128e4fa= leaves every open heading in canonical shape. The lint it adds is what retires the conventions' backfill clause.
 - =41cf5830=: builds on =b7259ee4='s commit-link vocabulary.
-- =01849bef=: superseded and parked =MAYBE= 2026-10-02 (the user); divided under the story =6ea84943=, whose model is a claim that keeps agent runs and the user's attention apart, with a strip chart to judge it from. Parked with time tracking's priority.
+- =01849bef=: moved to the review-pass slice =c7619140= on 2026-10-02 (the user) and declared in =:DROPPED:= here. It was divided under the story =6ea84943=, whose subject is what a claim records, not timestamp notation, which is that slice's theme.
 - =ecf66d45=: the largest member and the least coupled. Its forecast-versus-record question sits beside =01849bef='s question about active timestamps.
 - =ea1df60b=: the weakest fit, a corpus audit at the tail.
 
@@ -8526,7 +8542,7 @@ Together the two members would make every claim a labelled sample for the
 active-versus-inactive heuristic the time-tracking work aims at. Parked with
 time tracking's priority.
 
-** TODO A claim should keep the agent's runs and the user's attention apart, not record the whole span as attention :code:bounded:
+** TODO A claim should keep the agent's runs and the user's attention apart, not record the whole span as attention :code:arch:
 :PROPERTIES:
 :CATEGORY: Apply
 :ID:       01849bef-fdc9-4c30-b467-00ca8606e8e0
@@ -8542,6 +8558,8 @@ CLOCK: [2026-09-16 Wed 12:12]--[2026-09-16 Wed 12:13] =>  0:01
 - <2026-09-16 Wed 12:12>--<2026-09-16 Wed 12:13> assigned at review
 - Tags ":code:bounded:" from ":code:"     [2026-09-28 Mon 13:01] \\
   classified: one key in the existing review buffer; body argues for declining
+- Tags ":code:arch:" from ":code:bounded:" [2026-10-02 Fri 09:38] \\
+  stepped up: the claim now changes what apply writes, runs inactive and gaps active, and what a claim means as data for the classifier
 :END:
 :PLAN:
 
@@ -8856,6 +8874,12 @@ claims, and at most one active marking over a span with runs; five more active
 annotations are the review pass clocking itself. The user's reading of the low
 count: uncertainty in interpreting the review buffer, not lack of need. Its
 sibling 330710fb files the picture that would remove that uncertainty.
+
+*Related, not a twin:* [[id:aee8487e-0650-4396-bc5c-193ca3efcecb][aee8487e]] files the overcount of the same key, one
+keystroke claiming a three-hour envelope over sixteen minutes of runs. Splitting
+runs from gaps would not fix that, since the gaps could still be claimed whole,
+and fixing the bound would not keep runs and attention apart; each needs its own
+fix.
 :END:
 
 Claiming a span with =c= records its whole envelope as human attention, folding
