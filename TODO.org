@@ -5704,6 +5704,29 @@ pass): when this heading is brainstormed, move the prospective prose into
 :CREATED:  [2026-09-10 Thu 10:36]
 :CATEGORY: Meta
 :END:
+:DEBRIEF:
+Spike, run 2026-10-02 against DONE.org and org 9.8.7's source, read-only.
+
+*Census.* 363 archived headings carry =:ARCHIVE_FILE:=, and all 363 hold the
+same value, =~/git/claude-code-ide-org/TODO.org=. =org-archive-subtree= writes
+it through =abbreviate-file-name=, so it is relative to the home directory:
+right on any machine that keeps the repository at =~/git/claude-code-ide-org=,
+merely inaccurate anywhere else. None point outside this repository.
+
+*Nothing reads it.* Org writes =ARCHIVE_TIME=, =_FILE=, =_OLPATH=, =_CATEGORY=
+and =_TODO= from =org-archive-save-context-info=, and the only code in the
+straight checkout that reads them back is org's own =test-org-archive.el=. Core
+org has no command to unarchive a heading from an archive file; the one
+"unarchived" in =org-archive.el= is the toggle of the =:ARCHIVE:= tag, an
+unrelated feature. This module reads none of them. The heading's premise, that
+org uses the property for unarchiving so a wrong path breaks the round trip, was
+false: it is provenance only.
+
+*Shaping it is possible and not worth it.* Dropping =file= from
+=org-archive-save-context-info= would stop it being written; here every value is
+identical, so that would remove 363 lines of no information, but a consumer
+archiving from several files would want it kept. Nothing filed.
+:END:
 :LOGBOOK:
 - Tags ":code:spike:" from ":code:"     [2026-09-28 Mon 13:01] \\
   classified: an audit question whose output is an answer
@@ -5722,6 +5745,10 @@ means =org-archive-location= or a post-archive normalizer, not a hand
 edit). Related: =9ae4b17e='s own body is also on =e128e4fa='s
 pre-convention sweep list, which is the cleanup the user reached for
 first.
+
+Answered 2026-10-02: the paths are home-relative, not machine-absolute, and
+nothing reads them back, so nothing breaks and nothing needs changing.
+
 
 
 * TODO Per-machine port via ${VAR:-45571} in .mcp.json, with the wire check env-aware :code:
