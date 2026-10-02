@@ -8526,7 +8526,7 @@ Together the two members would make every claim a labelled sample for the
 active-versus-inactive heuristic the time-tracking work aims at. Parked with
 time tracking's priority.
 
-** TODO Flipping a span's timestamps to active is hand-editing; give the review buffer a key :code:bounded:
+** TODO A claim should keep the agent's runs and the user's attention apart, not record the whole span as attention :code:bounded:
 :PROPERTIES:
 :CATEGORY: Apply
 :ID:       01849bef-fdc9-4c30-b467-00ca8606e8e0
