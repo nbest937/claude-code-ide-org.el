@@ -4486,6 +4486,18 @@ already fits exactly as it was, so a short edit changes no other line."
       (delete-region pbeg pend)
       (insert new))))
 
+(defun claude-code-ide-org--edit-touched-lines (ms me new)
+  "The whole lines MS..ME will form once NEW replaces that text.
+What `--edit-headline-refusal' sees is NEW alone, and a deletion that
+strips the words before a `* ' makes a heading from text it never saw
+(PR #33's review, finding 2)."
+  (save-excursion
+    (concat (buffer-substring-no-properties
+             (progn (goto-char ms) (line-beginning-position)) ms)
+            new
+            (buffer-substring-no-properties
+             me (progn (goto-char me) (line-end-position))))))
+
 (defun claude-code-ide-org--edit-close-gap (pos rbeg rend)
   "Tidy the whitespace a deletion at POS left, within RBEG..REND.
 At either end of the region the run is dropped, since the region's own
@@ -4551,6 +4563,14 @@ include more of the surrounding text until it is unique."
               (format "Error: that text is in the Planned: checklist or the \
 Incidental: section of slice \"%s\", which the refresh owns. Use \
 org_slice_add_member for membership, and edit only the slice's prose." title))
+             ((let ((case-fold-search nil))
+                (string-match-p "^\\*+\\(?:[ \t]\\|$\\)"
+                                (claude-code-ide-org--edit-touched-lines
+                                 (car hits) (+ (car hits) (length old)) new)))
+              "Error: after this edit a line would begin with `*' at column \
+zero, which org reads as a heading -- new_string was checked, but the text \
+left either side of the match makes one. Keep text before the star, or \
+quote it in =verbatim=.")
              (t
               (let* ((ms (car hits))
                      (whole (and (= ms (car region))

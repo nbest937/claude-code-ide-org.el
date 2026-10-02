@@ -20347,6 +20347,25 @@ is refused; inside a block it is comma-escaped instead (c0c5e015)."
              (claude-code-ide-org-edit "edit-1" "" "#+begin_example\n* Fake\n#+end_example" "PLAN")))
     (should (string-match-p "^,\\* Fake$" (claude-code-ide-org-test--disk-contents capture-file)))))
 
+(ert-deftest claude-code-ide-org-test-edit-refuses-a-headline-left-behind ()
+  "The lines an edit touches are checked as they will read, not just
+new_string: a deletion, or a replacement ending in a line break, that
+leaves `* ' at column zero is refused (PR #33's review, finding 2)."
+  (claude-code-ide-org-test--with-capture-file
+    (with-temp-file capture-file
+      (insert "#+TODO: TODO | DONE\n\n* TODO Star\n:PROPERTIES:\n:ID:       star-1\n:END:\n\n"
+              "Footnote * marks the caveat.\n"))
+    (org-id-update-id-locations (list capture-file))
+    (let ((claude-code-ide-org-query-files (list capture-file))
+          (before (claude-code-ide-org-test--disk-contents capture-file)))
+      (should (string-match-p "reads as a heading"
+                              (claude-code-ide-org-edit "star-1" "Footnote " "")))
+      (should (string-match-p "reads as a heading"
+                              (claude-code-ide-org-edit "star-1" "Footnote " "A note:\n")))
+      (should (equal before (claude-code-ide-org-test--disk-contents capture-file)))
+      (should (string-prefix-p claude-code-ide-org--reply-edited
+                               (claude-code-ide-org-edit "star-1" "Footnote " "A footnote "))))))
+
 (ert-deftest claude-code-ide-org-test-edit-resolves-id-links ()
   "An id link's prefix is expanded, and an unresolvable one refused."
   (claude-code-ide-org-test--with-edit-fixture
