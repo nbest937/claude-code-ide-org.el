@@ -5698,7 +5698,8 @@ pass): when this heading is brainstormed, move the prospective prose into
 =:PLAN:= and revise the body to a short statement.
 
 
-* TODO Archived :ARCHIVE_FILE: paths are machine-absolute; audit their portability :code:spike:
+* DONE Archived :ARCHIVE_FILE: paths are machine-absolute; audit their portability :code:spike:
+CLOSED: [2026-10-02 Fri 10:40]
 :PROPERTIES:
 :ID:       ea1df60b-1e28-448e-bb62-a6fc2b6b62f8
 :CREATED:  [2026-09-10 Thu 10:36]
@@ -5730,7 +5731,16 @@ archiving from several files would want it kept. Nothing filed.
 :LOGBOOK:
 - Tags ":code:spike:" from ":code:"     [2026-09-28 Mon 13:01] \\
   classified: an audit question whose output is an answer
+CLOCK: [2026-10-02 Fri 10:18]--[2026-10-02 Fri 10:19] =>  0:01
+- [2026-10-02 Fri 10:18]--[2026-10-02 Fri 10:19] assigned at review
+CLOCK: [2026-10-02 Fri 10:22]--[2026-10-02 Fri 10:23] =>  0:01
+- [2026-10-02 Fri 10:22]--[2026-10-02 Fri 10:23] spike: archive path portability
+- State "DONE"       from "TODO"       [2026-10-02 Fri 10:40] \\
+  spike answered: home-relative, never read, nothing to change
+CLOCK: [2026-10-02 Fri 10:40]--[2026-10-02 Fri 10:41] =>  0:01
+- [2026-10-02 Fri 10:40]--[2026-10-02 Fri 10:41] spike: archive path portability
 :END:
+:PLAN:
 
 The user, unable to grok =9ae4b17e= during a decision, noticed its
 =:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org= — org-archive's
@@ -5746,9 +5756,9 @@ edit). Related: =9ae4b17e='s own body is also on =e128e4fa='s
 pre-convention sweep list, which is the cleanup the user reached for
 first.
 
+:END:
 Answered 2026-10-02: the paths are home-relative, not machine-absolute, and
 nothing reads them back, so nothing breaks and nothing needs changing.
-
 
 
 * TODO Per-machine port via ${VAR:-45571} in .mcp.json, with the wire check env-aware :code:
@@ -5839,7 +5849,7 @@ detection mechanised, judgement kept human, per every surviving
 report's contract. Shapes and constraints in =:PLAN:=.
 
 
-* TODO Canonical drawer order: PROPERTIES, LOGBOOK, PLAN, DEBRIEF, then body :code:arch:
+* NEXT Canonical drawer order: PROPERTIES, LOGBOOK, PLAN, DEBRIEF, then body :code:arch:
 :PROPERTIES:
 :ID:       d350ff5b-3b1f-465e-800b-962264d2e841
 :CREATED:  [2026-09-10 Thu 09:10]
@@ -5860,6 +5870,8 @@ CLOCK: [2026-09-29 Tue 15:47]--[2026-09-29 Tue 15:48] =>  0:01
 - [2026-09-29 Tue 15:47]--[2026-09-29 Tue 15:48] assigned at review
 CLOCK: [2026-09-29 Tue 15:56]--[2026-09-29 Tue 15:57] =>  0:01
 - [2026-09-29 Tue 15:56]--[2026-09-29 Tue 15:57] assigned at review
+- State "NEXT"       from "TODO"       [2026-10-02 Fri 10:40] \\
+  slice brainstorming done; first build in 6521dd56's order
 :END:
 :PLAN:
 Proposed by the user 2026-09-10, pushback invited and none owed — the order is
@@ -6056,14 +6068,14 @@ shipped conventions sanctions a cluster that will close, names the collector
 exception, and points to the divide rule. Design in =:PLAN:=.
 
 
-* NEXT [0/11] Make the notes org-native: links, drawers, tags, one corpus pass :code:
+* NEXT [1/10] Make the notes org-native: links, drawers, tags, one corpus pass :code:
 :PROPERTIES:
 :ID:       6521dd56-8772-416b-9435-6da78bb86b06
 :CREATED:  [2026-09-10 Thu 08:57]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  b7259ee4-9aa1-4b55-8cf2-fbbacdea5310 f7847adf-a408-4ad0-ae0c-8d3c19b79f2b 0eaffc39-088f-48c3-a5b8-167336458114 d350ff5b-3b1f-465e-800b-962264d2e841 63df67c7-de0d-43e7-9c6f-2b2979a40aba e128e4fa-b0d9-49f7-99eb-bae2d4b0676b fce6bd35-27ad-4724-8dbb-c9df4b68fb10 41cf5830-fc2e-4dc6-b243-a0c2718a53a3 8a23d6ec-ca45-454d-b65f-e46ea9204816 ecf66d45-18b3-477f-bca8-08bec90604e8 ea1df60b-1e28-448e-bb62-a6fc2b6b62f8
+:BLOCKER:  b7259ee4-9aa1-4b55-8cf2-fbbacdea5310 f7847adf-a408-4ad0-ae0c-8d3c19b79f2b 0eaffc39-088f-48c3-a5b8-167336458114 d350ff5b-3b1f-465e-800b-962264d2e841 63df67c7-de0d-43e7-9c6f-2b2979a40aba e128e4fa-b0d9-49f7-99eb-bae2d4b0676b fce6bd35-27ad-4724-8dbb-c9df4b68fb10 41cf5830-fc2e-4dc6-b243-a0c2718a53a3 8a23d6ec-ca45-454d-b65f-e46ea9204816
 :MEMBERS:  b7259ee4-9aa1-4b55-8cf2-fbbacdea5310 f7847adf-a408-4ad0-ae0c-8d3c19b79f2b 0eaffc39-088f-48c3-a5b8-167336458114 d350ff5b-3b1f-465e-800b-962264d2e841 63df67c7-de0d-43e7-9c6f-2b2979a40aba e128e4fa-b0d9-49f7-99eb-bae2d4b0676b 76a6f052-e360-4a12-8077-070da83a8e84 fce6bd35-27ad-4724-8dbb-c9df4b68fb10 e28933e9-f352-4ef9-8d53-8cd9a4318768 8b945c02-7ebe-40a2-b4cc-e35811afe57f 41cf5830-fc2e-4dc6-b243-a0c2718a53a3 8a23d6ec-ca45-454d-b65f-e46ea9204816 01849bef-fdc9-4c30-b467-00ca8606e8e0 ecf66d45-18b3-477f-bca8-08bec90604e8 ea1df60b-1e28-448e-bb62-a6fc2b6b62f8
 :DROPPED:  01849bef-fdc9-4c30-b467-00ca8606e8e0 ecf66d45-18b3-477f-bca8-08bec90604e8
 :END:
@@ -6136,7 +6148,7 @@ Planned:
 - [ ] [[id:b7259ee4-9aa1-4b55-8cf2-fbbacdea5310][b7259ee4]] TODO Commits cited in bodies and debriefs are orgit links, and nothing enforces it
 - [ ] [[id:f7847adf-a408-4ad0-ae0c-8d3c19b79f2b][f7847adf]] TODO Headings cited in bodies are id links, written as links by the tools, so backlinks are one org_query away
 - [ ] [[id:0eaffc39-088f-48c3-a5b8-167336458114][0eaffc39]] TODO Look up a tracked id wherever it appears in Emacs: its title at point, and a jump on click
-- [ ] [[id:d350ff5b-3b1f-465e-800b-962264d2e841][d350ff5b]] TODO Canonical drawer order: PROPERTIES, LOGBOOK, PLAN, DEBRIEF, then body
+- [ ] [[id:d350ff5b-3b1f-465e-800b-962264d2e841][d350ff5b]] NEXT Canonical drawer order: PROPERTIES, LOGBOOK, PLAN, DEBRIEF, then body
 - [ ] [[id:63df67c7-de0d-43e7-9c6f-2b2979a40aba][63df67c7]] TODO Revisit the story definition: sanction clustering and speculative breakdown
 - [[id:4c834fdb-5314-4168-ab1d-09fe89ded517][4c834fdb]] DOING Make the heading body a scannable summary, with plan and debrief in drawers
   - [-] [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]] REVIEW Move the 88 pre-convention debriefs into :DEBRIEF:, authoring each resolution
@@ -6149,8 +6161,9 @@ Planned:
 - [ ] [[id:8a23d6ec-ca45-454d-b65f-e46ea9204816][8a23d6ec]] TODO Comma-escape headline lines when documenting org structure inside a body
 - [[id:6ea84943-9eef-4940-b850-e8cf79310d2a][6ea84943]] MAYBE A claimed span records agent time and human attention as one, and the reviewer has no picture of the span to judge from
   - [[id:01849bef-fdc9-4c30-b467-00ca8606e8e0][01849bef]] MAYBE A claim should keep the agent's runs and the user's attention apart, not record the whole span as attention
-- [ ] [[id:ecf66d45-18b3-477f-bca8-08bec90604e8][ecf66d45]] TODO Nothing lays out future work on a timeline the agenda can show
-- [ ] [[id:ea1df60b-1e28-448e-bb62-a6fc2b6b62f8][ea1df60b]] TODO Archived :ARCHIVE_FILE: paths are machine-absolute; audit their portability
+- [[id:14c02a28-5e1f-401b-9c22-dd18c2c10847][14c02a28]] TODO Lay future work out on the agenda: commitments, milestones on slices and stories, and pacing that follows a slip
+  - [[id:ecf66d45-18b3-477f-bca8-08bec90604e8][ecf66d45]] TODO When a dated heading slips, move the dates that follow it along a chosen order
+- [X] [[id:ea1df60b-1e28-448e-bb62-a6fc2b6b62f8][ea1df60b]] DONE Archived :ARCHIVE_FILE: paths are machine-absolute; audit their portability
 
 
 * TODO The :PLAN: wrap nag fires only on queued DONE, so REVIEW exits skip it :code:
@@ -6459,6 +6472,7 @@ pacing that follows a slip. The first two are ready to design as one member,
 a29464da; pacing stays with ecf66d45, which carries the 2026-09-11 survey and
 three decisions owed before design.
 
+
 ** TODO When a dated heading slips, move the dates that follow it along a chosen order :arch:
 :PROPERTIES:
 :ID:       ecf66d45-18b3-477f-bca8-08bec90604e8
@@ -6475,11 +6489,25 @@ CLOCK: [2026-09-04 Fri 08:22]--[2026-09-04 Fri 08:51] =>  0:29
   demote the misapplied nomination; deferred to packaging
 - Tags ":arch:"     from ""           [2026-09-28 Mon 13:01] \\
   classified: new subsystem, forecast-vs-record boundary and dates on work
+CLOCK: [2026-10-02 Fri 09:42]--[2026-10-02 Fri 09:43] =>  0:01
+- [2026-10-02 Fri 09:42]--[2026-10-02 Fri 09:43] brainstorm: future work on an agenda timeline
 - [2026-10-02 Fri 09:43]--[2026-10-02 Fri 09:43] brainstorm: future work on an agenda timeline
 CLOCK: [2026-10-02 Fri 09:52]--[2026-10-02 Fri 09:53] =>  0:01
 - [2026-10-02 Fri 09:52]--[2026-10-02 Fri 09:53] brainstorm: future work on an agenda timeline
+CLOCK: [2026-10-02 Fri 09:53]--[2026-10-02 Fri 09:54] =>  0:01
+- [2026-10-02 Fri 09:53]--[2026-10-02 Fri 09:54] brainstorm: future work on an agenda timeline
 CLOCK: [2026-10-02 Fri 09:55]--[2026-10-02 Fri 09:56] =>  0:01
 - [2026-10-02 Fri 09:55]--[2026-10-02 Fri 09:56] brainstorm: future work on an agenda timeline
+CLOCK: [2026-10-02 Fri 09:56]--[2026-10-02 Fri 09:57] =>  0:01
+- [2026-10-02 Fri 09:56]--[2026-10-02 Fri 09:57] brainstorm: future work on an agenda timeline
+CLOCK: [2026-10-02 Fri 10:06]--[2026-10-02 Fri 10:07] =>  0:01
+- [2026-10-02 Fri 10:06]--[2026-10-02 Fri 10:07] brainstorm: future work on an agenda timeline
+CLOCK: [2026-10-02 Fri 10:10]--[2026-10-02 Fri 10:11] =>  0:01
+- [2026-10-02 Fri 10:10]--[2026-10-02 Fri 10:11] brainstorm: future work on an agenda timeline
+CLOCK: [2026-10-02 Fri 10:17]--[2026-10-02 Fri 10:18] =>  0:01
+- [2026-10-02 Fri 10:17]--[2026-10-02 Fri 10:18] assigned at review
+CLOCK: [2026-10-02 Fri 10:18]--[2026-10-02 Fri 10:19] =>  0:01
+- [2026-10-02 Fri 10:18]--[2026-10-02 Fri 10:19] defer ecf66d45 from slice 6521dd56
 :END:
 :PLAN:
 
@@ -6601,6 +6629,7 @@ command, invoked and never triggered; before it is designed, three decisions are
 owed: what counts as a slip, which order it follows, and how far successors
 move. Research and decisions in =:PLAN:=.
 
+
 ** TODO Set dates through the tools, and let slices and stories carry milestones their members are checked against :code:
 :PROPERTIES:
 :ID:       a29464da-e045-4276-881e-cab41ad0b8ad
@@ -6615,6 +6644,7 @@ heading, commitments included (the user's first real DEADLINE is on 158d7e80);
 dates on slices and stories read as milestones; and a lint that reports a member
 dated after its group's milestone. Ready to design: the 2026-09-11 survey
 answered its research.
+
 
 * TODO org_query answers from a restricted or short file set without saying so :code:
 :PROPERTIES:
@@ -11820,6 +11850,7 @@ call it done.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-10-02 Fri 10:40]--[2026-10-02 Fri 10:41] =>  0:01
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
