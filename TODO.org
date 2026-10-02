@@ -9291,7 +9291,7 @@ pass): when this heading is brainstormed, move the prospective prose into
 =:PLAN:= and revise the body to a short statement.
 
 
-* TODO Answer how a heading got here from the commits that cite it, one call away :code:research:arch:
+* TODO Answer how a heading got here from the commits that cite it, one call away :code:arch:
 :PROPERTIES:
 :CATEGORY: Skill
 :ID:       41cf5830-fc2e-4dc6-b243-a0c2718a53a3
@@ -9302,7 +9302,10 @@ pass): when this heading is brainstormed, move the prospective prose into
   captured keywordless; state never set
 - Tags ":code:research:arch:" from ":code:research:" [2026-09-28 Mon 13:01] \\
   classified: new capability, likely a new derived-on-demand tool
+- Tags ":code:arch:" from ":code:research:arch:" [2026-10-02 Fri 09:09] \\
+  research done: the query was measured and chosen 2026-10-01
 :END:
+:PLAN:
 
 Raised by the user 2026-08-20 alongside the retention policy at
 [[id:3063c3e5-0dd0-4354-8985-271b0313c5d1][3063c3e5]], and separable from it:
@@ -9354,6 +9357,83 @@ the only thing that runs then -- at the cost of making a lint hook a writer.
 discarded it -- see/ [[id:1cd2df62-35e9-47dc-bcce-dda7bae3c522][1cd2df62]].
 /This heading being empty is how the loss was noticed at all: the user asked
 where the concept was parked, and there was nothing there./
+
+*The design, approved in chat by the user 2026-10-02, replacing everything
+above.* The problem stands as filed (the user, 2026-08-20): once a body may be
+revised, how the heading got here lives only in git, and nothing points a reader
+there; "how did we get here?" is rare, so its answer belongs one hop away. It is
+sharper now, after e128e4fa moved 318 debriefs, condensed 14 journal-shaped
+bodies and fce6bd35 plans to split 103 more: each removed narrative a reader
+could once scroll back through.
+
+*Why not the line-range query above, measured 2026-10-01 on five headings.* =git
+log -L= follows lines within one file, and TODO.org is constantly reshaped. It
+loses history at archiving (=02aaae22=, now in DONE.org, shows 3 commits where
+it had 27); it invents history from before a heading existed, pairing a new
+heading's lines with whatever occupied them (=704d8558=, created 2026-09-23,
+reached back to 2026-09-15; =e128e4fa=, created 2026-09-08, to 2026-09-02); and
+it misses work done elsewhere (=e128e4fa='s 315-commit pass never touched its
+own lines). Inserting at the top is harmless; sorting, division, refiling and
+archiving are not. Storing any history in a drawer stays ruled out on volume, as
+argued above.
+
+*What counts: the commit messages.* The source is =git log --fixed-strings
+--grep=<id8>= in the heading's file's own repository; the prefix also matches a
+message citing the full id, and a message does not move when the heading does.
+About 830 of 2,246 commits lead their subject with an id (counted 2026-10-01).
+Nothing is classified by reading prose.
+
+*What it returns, in three parts.* First, commits whose subject leads with the
+id, alone or in a joint list (=b7259ee4, f7847adf: …=): the work on the heading
+itself, one line each with date, short SHA and subject, newest first, at most
+30, then "and N older, back to <date>". Second, every other commit citing it,
+grouped by subject after stripping the subject's leading ids, so a bulk pass
+collapses to one line ("315 × debrief into :DEBRIEF:, resolution authored", with
+its date span and first and last SHA) and a passing mention stays a group of
+one; ordered by most recent, at most 15 groups, then "and N more groups (M
+commits)". Third, where to look next: the SHAs for =git show=, the full query
+for anything past the caps, and one line saying what it cannot see, commits that
+name no heading, such as apply passes and unattributed sweeps, so an empty
+result reads as "no commit cites it" and never as "nothing happened". The output
+is exact for what it lists and partial by construction, and says so. The two
+caps are =defcustom=s with those defaults.
+
+*Where it is served.* A new read-only tool, =org_history=, taking an id or
+8-character prefix. Not a virtual =drawer=HISTORY= on =org_body=, whose contract
+is that a missing drawer errors naming the drawers present, and not folded into
+every outline. But a scoped =org_outline= gains one front-matter line, "history:
+3 commits on it, 369 citing it (org_history)", a single count, so the hop is
+visible without anyone remembering the tool; an unscoped outline never runs git.
+The logic is elisp in the module, calling git through =process-file= from the
+repository =vc-git-root= finds for the heading's file, which serves a consumer's
+repository too; outside one it answers "not in a git repository". It never reads
+the org file's text, so it is served while the buffer has unsaved changes. One
+row in the tool reference's read-only table, about 40 words, inside the word
+budget.
+
+*Tests (ERT), against a scratch git repository in a temp directory.* Subject-led
+and joint subjects count as work on the heading, a body-only citation does not;
+twenty commits whose subjects differ only in their leading id group into one
+with the right span, distinct subjects stay apart; 31 subject-led commits give
+30 lines and "and 1 older", 16 groups give 15 and "and 1 more group"; a prefix
+matches a message citing the full id; a file outside a repository answers
+without erroring; an uncited heading answers with the limit line; it is served
+while the buffer is busy; a scoped outline carries the history line and an
+unscoped one runs no git. Each cap and the grouping are shown to fail with their
+logic removed. Live, =e128e4fa= should show its 3 subject-led commits and its
+pass as one group of 315.
+
+The title was changed by the user, 2026-10-02, from "Index a heading's git
+history from a drawer, so the body never has to narrate it".
+:END:
+
+Once a body may be revised, how a heading got here lives only in git, and
+nothing points a reader there. A new read-only tool, =org_history=, answers it
+from the commits whose messages cite the id: the work on the heading itself, the
+rest grouped by subject so a bulk pass is one line, and where to look next; a
+scoped outline gains a one-line signpost. Line-range history was measured and
+ruled out. Design in =:PLAN:=.
+
 
 
 * TODO Applied review changes can be destroyed by a git checkout that looks like it reverts only Claude's edit :code:
