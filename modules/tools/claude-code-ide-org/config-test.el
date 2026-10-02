@@ -15961,6 +15961,7 @@ test would iterate an empty list and pass while checking nothing."
     ("org_set_todo" . queued) ("org_clock_in" . queued)
     ("org_clock_out" . queued)
     ("org_capture" . conditional) ("org_amend" . conditional)
+    ("org_edit" . structural)
     ("org_wrap_plan" . structural) ("org_archive" . structural)
     ("org_refile" . structural) ("org_set_property" . structural)
     ("org_set_tags" . structural)
@@ -16016,7 +16017,8 @@ refile target \"test-0002\" in a second file, and an existing DONE.org."
     ("org_slice_add_member" . (lambda () (claude-code-ide-org-slice-add-member "test-0001" "test-0002")))
     ("org_divide" . (lambda () (claude-code-ide-org-divide "test-0001" "A parent")))
     ("org_sort_children" . (lambda () (claude-code-ide-org-sort-children "test-0001" "alpha")))
-    ("org_move_sibling" . (lambda () (claude-code-ide-org-move-sibling "test-0001" "down"))))
+    ("org_move_sibling" . (lambda () (claude-code-ide-org-move-sibling "test-0001" "down")))
+    ("org_edit" . (lambda () (claude-code-ide-org-edit "test-0001" "" "More prose."))))
   "One call per structural tool, against the structural fixture.")
 
 (ert-deftest claude-code-ide-org-test-every-structural-writer-refuses-when-busy ()
@@ -16096,6 +16098,7 @@ and writes nothing.  Before 60d6ab6e six of them saved over the edits."
     ("org_slice_add_member" ("slice_id" . S) ("member_id" . M1) ("after" . M0))
     ("org_divide" ("id" . A) ("parent_title" . "A parent"))
     ("org_amend" ("id" . A) ("text" . "More prose."))
+    ("org_edit" ("id" . A) ("old_string" . "") ("new_string" . "More prose."))
     ("org_capture" ("title" . "A new heading") ("target" . A))
     ("org_body" ("id" . A))
     ("org_outline" ("scope" . A))
@@ -20167,3 +20170,274 @@ writing into it and saving the edits along with their own."
           (should (string-match-p "skipped for unsaved edits: capture\\.org" reply)))
         (should (equal before (claude-code-ide-org-test--disk-contents capture-file)))
         (should (buffer-modified-p (get-file-buffer capture-file)))))))
+
+;;; org_edit (TODO.org :ID: 704d8558) -----------------------------------------
+
+(defmacro claude-code-ide-org-test--with-edit-fixture (&rest body)
+  "A heading with a :PLAN:, a two-paragraph body and a child, a finished
+heading with both drawers, and a heading after them -- the shapes
+`org_edit''s region and guards are defined against."
+  (declare (indent 0))
+  `(claude-code-ide-org-test--with-capture-file
+     (with-temp-file capture-file
+       (insert "#+TODO: TODO NEXT DOING | DONE CANCELLED\n\n"
+               "* TODO Live\n:PROPERTIES:\n:ID:       edit-1\n:END:\n"
+               ":PLAN:\nThe plan says alpha.\n\nThe plan says beta.\n:END:\n\n"
+               "First paragraph of the body.\n\n"
+               "Second paragraph, repeated word.\nrepeated word again.\n\n"
+               "** TODO Child\n:PROPERTIES:\n:ID:       edit-c\n:END:\n\n"
+               "Child body.\n\n"
+               "* DONE Finished\n:PROPERTIES:\n:ID:       edit-2\n:END:\n"
+               ":PLAN:\nWhat was intended.\n:END:\n"
+               ":DEBRIEF:\nWhat happened.\n:END:\n\nResolved.\n\n"
+               "* TODO Next\n:PROPERTIES:\n:ID:       edit-3\n:END:\n"))
+     (org-id-update-id-locations (list capture-file))
+     (let ((claude-code-ide-org-query-files (list capture-file)))
+       ,@body)))
+
+(ert-deftest claude-code-ide-org-test-edit-replaces-one-occurrence ()
+  "A unique old_string is replaced literally, and nothing else moves."
+  (claude-code-ide-org-test--with-edit-fixture
+    (let ((before (claude-code-ide-org-test--disk-contents capture-file)))
+      (should (string-prefix-p
+               claude-code-ide-org--reply-edited
+               (claude-code-ide-org-edit "edit-1" "First paragraph" "Opening paragraph")))
+      (should (equal (replace-regexp-in-string "First paragraph" "Opening paragraph" before)
+                     (claude-code-ide-org-test--disk-contents capture-file))))))
+
+(ert-deftest claude-code-ide-org-test-edit-replaces-inside-a-drawer ()
+  "drawer=PLAN confines the match to the drawer; the body is not searched."
+  (claude-code-ide-org-test--with-edit-fixture
+    (should (string-match-p "in :PLAN:"
+                            (claude-code-ide-org-edit "edit-1" "says beta" "says gamma" "plan")))
+    (should (string-match-p ":PLAN:\nThe plan says alpha\\.\n\nThe plan says gamma\\.\n:END:"
+                            (claude-code-ide-org-test--disk-contents capture-file)))
+    ;; Body text is outside the drawer's region.
+    (should (string-prefix-p "Error: old_string is not in :PLAN:"
+                             (claude-code-ide-org-edit "edit-1" "First paragraph" "x" "PLAN")))))
+
+(ert-deftest claude-code-ide-org-test-edit-refuses-absent-and-ambiguous ()
+  "Absent and ambiguous are both refused, the second with its count, and
+neither writes."
+  (claude-code-ide-org-test--with-edit-fixture
+    (let ((before (claude-code-ide-org-test--disk-contents capture-file)))
+      (should (string-prefix-p "Error: old_string is not in the body"
+                               (claude-code-ide-org-edit "edit-1" "no such text" "x")))
+      (should (string-match-p "occurs 2 times"
+                              (claude-code-ide-org-edit "edit-1" "repeated word" "x")))
+      (should (equal before (claude-code-ide-org-test--disk-contents capture-file))))))
+
+(ert-deftest claude-code-ide-org-test-edit-match-cannot-span-the-region ()
+  "A match running into a drawer or into the child is outside the region,
+so it is absent -- the body cannot be used to reach either."
+  (claude-code-ide-org-test--with-edit-fixture
+    (let ((before (claude-code-ide-org-test--disk-contents capture-file)))
+      (should (string-prefix-p
+               "Error: old_string is not in"
+               (claude-code-ide-org-edit "edit-1" "beta.\n:END:\n\nFirst" "x")))
+      (should (string-prefix-p
+               "Error: old_string is not in"
+               (claude-code-ide-org-edit "edit-1" "again.\n\n** TODO Child" "x")))
+      (should (equal before (claude-code-ide-org-test--disk-contents capture-file))))))
+
+(ert-deftest claude-code-ide-org-test-edit-rewrites-the-whole-region ()
+  "The region's full text as old_string rewrites it, and the blank line
+before the child survives (TODO.org :ID: 5b46fbfd)."
+  (claude-code-ide-org-test--with-edit-fixture
+    (should (string-match-p
+             "rewrote the body"
+             (claude-code-ide-org-edit
+              "edit-1"
+              "First paragraph of the body.\n\nSecond paragraph, repeated word.\nrepeated word again."
+              "A new body.")))
+    (should (string-match-p ":END:\n\nA new body\\.\n\n\\*\\* TODO Child"
+                            (claude-code-ide-org-test--disk-contents capture-file)))))
+
+(ert-deftest claude-code-ide-org-test-edit-region-keeps-the-first-indent ()
+  "A region opening on an indented line starts at that line, not after
+its indent, so the text `org_body' shows rewrites it whole (PR #33's
+review, finding 3)."
+  (claude-code-ide-org-test--with-capture-file
+    (with-temp-file capture-file
+      (insert "#+TODO: TODO | DONE\n\n* TODO Indented\n:PROPERTIES:\n:ID:       ind-1\n:END:\n"
+              ":PLAN:\n\n  - keep the queue\n  - drop the clock\n:END:\n"))
+    (org-id-update-id-locations (list capture-file))
+    (let ((claude-code-ide-org-query-files (list capture-file)))
+      (should (string-match-p
+               "rewrote :PLAN:"
+               (claude-code-ide-org-edit "ind-1" "  - keep the queue\n  - drop the clock"
+                                         "  - keep the queue" "PLAN")))
+      (should (string-match-p ":PLAN:\n\n  - keep the queue\n:END:"
+                              (claude-code-ide-org-test--disk-contents capture-file))))))
+
+(ert-deftest claude-code-ide-org-test-edit-appends-and-creates ()
+  "An empty old_string appends to the body, or creates an absent drawer."
+  (claude-code-ide-org-test--with-edit-fixture
+    (should (string-match-p "appended to the body"
+                            (claude-code-ide-org-edit "edit-3" "" "Fresh body.")))
+    (should (string-match-p "created :PLAN:"
+                            (claude-code-ide-org-edit "edit-3" "" "Fresh plan." "PLAN")))
+    (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
+      (should (string-match-p ":ID:       edit-3\n:END:\n:PLAN:\nFresh plan\\.\n:END:" disk))
+      ;; `org_amend''s own trailing blank line at end of file, reused.
+      (should (string-match-p "Fresh body\\.\n+\\'" disk)))))
+
+(ert-deftest claude-code-ide-org-test-edit-deletion-closes-the-gap ()
+  "An empty new_string deletes, leaving one blank line between the
+paragraphs either side rather than three."
+  (claude-code-ide-org-test--with-edit-fixture
+    (should (string-match-p "deleted one passage from :PLAN:"
+                            (claude-code-ide-org-edit "edit-1" "The plan says alpha." "" "PLAN")))
+    (should (string-match-p ":PLAN:\nThe plan says beta\\.\n:END:"
+                            (claude-code-ide-org-test--disk-contents capture-file)))
+    (claude-code-ide-org-edit "edit-1" "First paragraph of the body." "")
+    (should (string-match-p ":END:\n\nSecond paragraph"
+                            (claude-code-ide-org-test--disk-contents capture-file)))))
+
+(ert-deftest claude-code-ide-org-test-edit-refuses-org-managed-drawers ()
+  "The drawer allowlist is org_amend's: :PROPERTIES: and :LOGBOOK: are
+org's own records."
+  (claude-code-ide-org-test--with-edit-fixture
+    (dolist (bad '("LOGBOOK" "PROPERTIES" ":logbook:" "RESULTS"))
+      (should (string-prefix-p "Error: drawer must be one of"
+                               (claude-code-ide-org-edit "edit-1" "" "poison" bad))))
+    (should-not (string-match-p "poison" (claude-code-ide-org-test--disk-contents capture-file)))))
+
+(ert-deftest claude-code-ide-org-test-edit-finished-plan-is-read-only ()
+  "A finished heading's :PLAN: is the record of intent and refuses both
+append and replace; its :DEBRIEF: and body stay editable."
+  (claude-code-ide-org-test--with-edit-fixture
+    (should (string-match-p "is finished"
+                            (claude-code-ide-org-edit "edit-2" "What was intended." "Rewritten." "PLAN")))
+    (should (string-match-p "is finished"
+                            (claude-code-ide-org-edit "edit-2" "" "More intent." "PLAN")))
+    (should (string-prefix-p claude-code-ide-org--reply-edited
+                             (claude-code-ide-org-edit "edit-2" "What happened." "What really happened." "DEBRIEF")))
+    (should (string-prefix-p claude-code-ide-org--reply-edited
+                             (claude-code-ide-org-edit "edit-2" "Resolved." "Resolved, twice over.")))
+    (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
+      (should (string-match-p ":PLAN:\nWhat was intended\\.\n:END:" disk))
+      (should (string-match-p "What really happened\\." disk)))))
+
+(ert-deftest claude-code-ide-org-test-edit-refuses-a-slice-checklist ()
+  "The Planned: checklist belongs to the refresh; the prose around it
+does not."
+  (claude-code-ide-org-test--with-members-fixture
+    (let ((before (claude-code-ide-org-test--disk-contents capture-file)))
+      (should (string-match-p "which the refresh owns"
+                              (claude-code-ide-org-edit "slice-m1" "TODO Beta" "TODO Bravo")))
+      (should (equal before (claude-code-ide-org-test--disk-contents capture-file))))
+    (should (string-prefix-p claude-code-ide-org--reply-edited
+                             (claude-code-ide-org-edit "slice-m1" "The theme." "A sharper theme.")))
+    (should (string-match-p "id:mem-b\\]\\[mem-b\\]\\] TODO Beta"
+                            (claude-code-ide-org-test--disk-contents capture-file)))))
+
+(ert-deftest claude-code-ide-org-test-edit-refuses-a-headline-outside-a-block ()
+  "A column-zero star line outside a block would become a heading, so it
+is refused; inside a block it is comma-escaped instead (c0c5e015)."
+  (claude-code-ide-org-test--with-edit-fixture
+    (let ((before (claude-code-ide-org-test--disk-contents capture-file)))
+      (should (string-match-p "reads as a heading"
+                              (claude-code-ide-org-edit "edit-1" "" "* Label\nprose" "PLAN")))
+      (should (string-match-p "glued onto the end of a line"
+                              (claude-code-ide-org-edit "edit-1" "" "Some text.* TODO Oops")))
+      (should (equal before (claude-code-ide-org-test--disk-contents capture-file))))
+    (should (string-prefix-p
+             claude-code-ide-org--reply-edited
+             (claude-code-ide-org-edit "edit-1" "" "#+begin_example\n* Fake\n#+end_example" "PLAN")))
+    (should (string-match-p "^,\\* Fake$" (claude-code-ide-org-test--disk-contents capture-file)))))
+
+(ert-deftest claude-code-ide-org-test-edit-refuses-a-headline-left-behind ()
+  "The lines an edit touches are checked as they will read, not just
+new_string: a deletion, or a replacement ending in a line break, that
+leaves `* ' at column zero is refused (PR #33's review, finding 2)."
+  (claude-code-ide-org-test--with-capture-file
+    (with-temp-file capture-file
+      (insert "#+TODO: TODO | DONE\n\n* TODO Star\n:PROPERTIES:\n:ID:       star-1\n:END:\n\n"
+              "Footnote * marks the caveat.\n"))
+    (org-id-update-id-locations (list capture-file))
+    (let ((claude-code-ide-org-query-files (list capture-file))
+          (before (claude-code-ide-org-test--disk-contents capture-file)))
+      (should (string-match-p "reads as a heading"
+                              (claude-code-ide-org-edit "star-1" "Footnote " "")))
+      (should (string-match-p "reads as a heading"
+                              (claude-code-ide-org-edit "star-1" "Footnote " "A note:\n")))
+      (should (equal before (claude-code-ide-org-test--disk-contents capture-file)))
+      (should (string-prefix-p claude-code-ide-org--reply-edited
+                               (claude-code-ide-org-edit "star-1" "Footnote " "A footnote "))))))
+
+(ert-deftest claude-code-ide-org-test-edit-resolves-id-links ()
+  "An id link's prefix is expanded, and an unresolvable one refused."
+  (claude-code-ide-org-test--with-edit-fixture
+    (let ((full "3ad9c47e-51b2-4f0c-8e63-7d2a90b615cc"))
+      (with-current-buffer (find-file-noselect capture-file)
+        (goto-char (point-max))
+        (insert "* TODO Target\n:PROPERTIES:\n:ID:       " full "\n:END:\n")
+        (save-buffer))
+      (org-id-add-location full capture-file)
+      (should (string-prefix-p
+               claude-code-ide-org--reply-edited
+               (claude-code-ide-org-edit "edit-1" "First paragraph"
+                                         "See [[id:3ad9c47e][3ad9c47e]], first")))
+      (should (string-match-p (regexp-quote (concat "[[id:" full "][3ad9c47e]]"))
+                              (claude-code-ide-org-test--disk-contents capture-file)))
+      (should (string-prefix-p
+               "Error"
+               (claude-code-ide-org-edit "edit-1" "Second paragraph"
+                                         "See [[id:deadbeef][deadbeef]]"))))))
+
+(ert-deftest claude-code-ide-org-test-edit-refuses-an-unsaved-buffer ()
+  "With unsaved edits it refuses at once and writes nothing -- it never
+queues, and waiting on the save is c35087d8's."
+  (claude-code-ide-org-test--with-edit-fixture
+    (let ((before (claude-code-ide-org-test--disk-contents capture-file)))
+      (claude-code-ide-org-test--make-busy capture-file)
+      (should (string-match-p "unsaved changes"
+                              (claude-code-ide-org-edit "edit-1" "First paragraph" "x")))
+      (should (equal before (claude-code-ide-org-test--disk-contents capture-file))))))
+
+(ert-deftest claude-code-ide-org-test-edit-never-fills-a-block-or-an-item ()
+  "An edit inside a block below a blank line, or inside a list item, is
+not filled: the paragraph is org's, read in place, so a span cannot run
+from mid-block through `#+end_example' (PR #33's review, finding 1)."
+  (claude-code-ide-org-test--with-capture-file
+    (let ((long (mapconcat #'identity (make-list 30 "word") " ")))
+      (with-temp-file capture-file
+        (insert "#+TODO: TODO | DONE\n\n* TODO Block\n:PROPERTIES:\n:ID:       blk-1\n:END:\n\n"
+                "#+begin_example\nshort\n\nBLOCK " long "\n#+end_example\n\n"
+                "- ITEM " long "\n"))
+      (org-id-update-id-locations (list capture-file))
+      (let ((claude-code-ide-org-query-files (list capture-file))
+            (fill-column 40))
+        (should (string-prefix-p claude-code-ide-org--reply-edited
+                                 (claude-code-ide-org-edit "blk-1" "BLOCK" "BLOCKED")))
+        (should (string-prefix-p claude-code-ide-org--reply-edited
+                                 (claude-code-ide-org-edit "blk-1" "ITEM" "ITEMS"))))
+      (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
+        (should (string-match-p (concat "^BLOCKED " (regexp-quote long) "\n#\\+end_example$")
+                                disk))
+        (should (string-match-p (concat "^- ITEMS " (regexp-quote long) "$") disk))))))
+
+(ert-deftest claude-code-ide-org-test-edit-fills-only-the-touched-paragraph ()
+  "A replacement that makes its line overlong is filled with its
+paragraph; an overlong paragraph elsewhere is not reflowed by the edit."
+  (claude-code-ide-org-test--with-capture-file
+    (let ((long (mapconcat #'identity (make-list 30 "word") " ")))
+      (with-temp-file capture-file
+        (insert "#+TODO: TODO | DONE\n\n* TODO Fill\n:PROPERTIES:\n:ID:       fill-1\n:END:\n"
+                ":PLAN:\nShort plan.\n:END:\n\n"
+                "Short line here.\n\n" long "\n"))
+      (org-id-update-id-locations (list capture-file))
+      (let ((fill-column 40))
+        (claude-code-ide-org-edit "fill-1" "Short line here."
+                                  (concat "Short line here, " long "."))
+        (claude-code-ide-org-edit "fill-1" "Short plan." (concat "Short plan, " long ".") "PLAN"))
+      (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
+        ;; :PLAN: is prose, and an edit there is filled in place too.
+        (should (string-match-p ":PLAN:\nShort plan, word" disk))
+        (should-not (string-match-p (concat "^Short plan, " (regexp-quote long)) disk))
+        ;; The untouched overlong paragraph is still one line.
+        (should (string-match-p (concat "^" (regexp-quote long) "$") disk))
+        ;; The edited one was broken into lines.
+        (should (string-match-p "^Short line here, word" disk))
+        (should-not (string-match-p (concat "^Short line here, " (regexp-quote long)) disk))))))

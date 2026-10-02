@@ -4358,6 +4358,312 @@ yet applied, so it has no body to amend. Apply the queue, then amend."
                          (drawer (format " (into :%s:)" drawer))
                          (t ""))))))))))))))
 
+;;; org_edit (TODO.org :ID: 704d8558) ----------------------------------------
+;;
+;; A literal replacement inside one region of one heading, so a correction
+;; costs the phrase and its replacement rather than the whole drawer, and
+;; revising a plan no longer needs a hand `emacsclient' pass to clear it.
+;; The design and its guards are dd4b9a9f's `:PLAN:'.  It ships beside
+;; `org_amend', which b2d4012c retires; until then a miss *catch* still goes
+;; through `org_amend', since that is the tool queue-append counts.
+
+(defconst claude-code-ide-org--reply-edited "Edited: "
+  "Reply prefix meaning `org_edit' wrote.  It never queues.")
+
+(defun claude-code-ide-org--edit-headline-refusal (text)
+  "A refusal when TEXT would put a heading into a body, else nil.
+
+TEXT has already been through `claude-code-ide-org--escape-block-headlines',
+so a headline-shaped line left at column zero is *outside* any block:
+org would read it as a heading and tear the region open where it lands
+\(TODO.org :ID: c0c5e015).  Refused rather than escaped, because outside
+a block an escape comma is itself visible text.  A heading glued onto
+the end of a line is refused too (`claude-code-ide-org--glued-headline-p')."
+  (let ((case-fold-search nil))
+    (cond
+     ((string-match-p "^\\*+\\(?:[ \t]\\|$\\)" text)
+      "Error: new_string has a line beginning with `*' at column zero \
+outside a block, which org reads as a heading. Mark a label with bold \
+prose that does not start the line, or quote org structure inside a \
+#+begin_example block, where it is escaped for you.")
+     ((claude-code-ide-org--glued-headline-p text)
+      "Error: new_string holds a heading glued onto the end of a line \
+(`... text.* TODO ...'), which a later fill or read would lose. Remove \
+it, or quote it in =verbatim=."))))
+
+(defun claude-code-ide-org--edit-region (drawer)
+  "(BEG . END) of the text `org_edit' may match, at the heading at point.
+
+The heading's own body -- below every leading drawer, above its first
+child -- or with DRAWER the inside of that drawer.  Trimmed of the
+blank lines before it and the whitespace after, so a caller passing the
+region's full text as `org_body' shows it matches it once, first-line
+indent included, and the blank lines separating the body from the next
+heading are never inside a match (TODO.org :ID: 5b46fbfd).  Nil when
+there is no such region."
+  (let ((bounds (if drawer
+                    (claude-code-ide-org--drawer-content-bounds drawer)
+                  (let ((b (claude-code-ide-org--heading-body-bounds)))
+                    (and b (list (nth 1 b) (nth 2 b)))))))
+    (when bounds
+      (save-excursion
+        ;; Back to the line start: skipping the indent too made
+        ;; `org_body''s own rendering unmatchable (PR #33, finding 3).
+        (let*((beg (progn (goto-char (nth 0 bounds))
+                           (skip-chars-forward " \t\n" (nth 1 bounds))
+                           (max (nth 0 bounds) (line-beginning-position))))
+               (end (progn (goto-char (nth 1 bounds))
+                           (skip-chars-backward " \t\n" beg)
+                           (point))))
+          (cons beg end))))))
+
+(defun claude-code-ide-org--edit-occurrences (needle beg end)
+  "Start positions of NEEDLE between BEG and END, overlapping ones included.
+Case-sensitive: a replacement is literal.  Overlaps count because a
+needle matching twice at shifted offsets is ambiguous whichever the
+caller meant."
+  (let ((case-fold-search nil) hits)
+    (save-excursion
+      (goto-char beg)
+      (while (search-forward needle end t)
+        (push (match-beginning 0) hits)
+        (goto-char (1+ (match-beginning 0)))))
+    (nreverse hits)))
+
+(defun claude-code-ide-org--edit-slice-spans ()
+  "The slice-at-point's generated spans, as a list of (BEG . END).
+
+The `Planned:' lead through its checklist, and the `Incidental:' lead
+through its last generated line.  The refresh owns both (TODO.org :ID:
+7ee3b71a), so an edit there would be undone or doubled at the next
+one."
+  (save-excursion
+    (org-back-to-heading t)
+    (let ((limit (save-excursion (outline-next-heading) (point)))
+          spans)
+      (let ((planned (claude-code-ide-org--slice-planned-region)))
+        (when planned
+          (goto-char (car planned))
+          (when (re-search-backward
+                 (concat "^" (regexp-quote claude-code-ide-org--slice-planned-lead)
+                         "[ \t]*$")
+                 nil t)
+            (push (cons (match-beginning 0) (cdr planned)) spans))))
+      (org-back-to-heading t)
+      (org-end-of-meta-data t)
+      (when (re-search-forward
+             (concat "^" (regexp-quote claude-code-ide-org--slice-incidental-lead)
+                     "[ \t]*$")
+             limit t)
+        (let ((start (match-beginning 0)) (last (match-end 0)))
+          (forward-line 1)
+          (while (and (< (point) limit)
+                      (or (looking-at claude-code-ide-org--slice-incidental-item-re)
+                          (looking-at "[ \t]*$")))
+            (when (looking-at claude-code-ide-org--slice-incidental-item-re)
+              (setq last (line-end-position)))
+            (forward-line 1))
+          (push (cons start last) spans)))
+      spans)))
+
+(defun claude-code-ide-org--edit-refill (beg end rbeg rend column)
+  "Refill the paragraphs BEG..END touches, within RBEG..REND, to COLUMN.
+
+A replacement lands inside a paragraph, so filling NEW-STRING on its
+own would leave the paragraph ragged; the unit a fill works on is the
+paragraph.  `claude-code-ide-org--fill-prose-text' leaves one that
+already fits exactly as it was, so a short edit changes no other line.
+
+The paragraphs are org's, read in place with `org-element-at-point' and
+kept only where `claude-code-ide-org--fillable-paragraph-p' agrees.  A
+span cut at blank lines and parsed alone was not: inside a block with a
+blank line it ran from mid-block through `#+end_example', which read
+alone is prose (PR #33's review, finding 1)."
+  (let (spans)
+    (save-excursion
+      (goto-char beg)
+      (while (< (point) end)
+        (let ((el (org-element-at-point)))
+          (when (and (claude-code-ide-org--fillable-paragraph-p el)
+                     (<= rbeg (org-element-property :contents-begin el) rend))
+            (push (cons (org-element-property :contents-begin el)
+                        (org-element-property :contents-end el))
+                  spans))
+          (goto-char (max (1+ (point)) (org-element-property :end el))))))
+    ;; Pushed in buffer order, so filled last first: a fill cannot move
+    ;; a span not yet reached.
+    (dolist (span spans)
+      (let* ((old (buffer-substring-no-properties (car span) (cdr span)))
+             (new (claude-code-ide-org--fill-prose-text old column)))
+        (unless (equal old new)
+          (goto-char (car span))
+          (delete-region (car span) (cdr span))
+          (insert new))))))
+
+(defun claude-code-ide-org--edit-touched-lines (ms me new)
+  "The whole lines MS..ME will form once NEW replaces that text.
+What `--edit-headline-refusal' sees is NEW alone, and a deletion that
+strips the words before a `* ' makes a heading from text it never saw
+(PR #33's review, finding 2)."
+  (save-excursion
+    (concat (buffer-substring-no-properties
+             (progn (goto-char ms) (line-beginning-position)) ms)
+            new
+            (buffer-substring-no-properties
+             me (progn (goto-char me) (line-end-position))))))
+
+(defun claude-code-ide-org--edit-close-gap (pos rbeg rend)
+  "Tidy the whitespace a deletion at POS left, within RBEG..REND.
+At either end of the region the run is dropped, since the region's own
+edges already carry the separation; between paragraphs it becomes one
+blank line.  A run holding no line break is left alone."
+  (save-excursion
+    (goto-char pos)
+    (let ((a (progn (skip-chars-backward " \t\n" rbeg) (point)))
+          (b (progn (goto-char pos) (skip-chars-forward " \t\n" rend) (point))))
+      (cond
+       ((or (= a rbeg) (= b rend)) (delete-region a b))
+       ((string-match-p "\n[ \t]*\n" (buffer-substring-no-properties a b))
+        (delete-region a b)
+        (goto-char a)
+        (insert "\n\n"))))))
+
+(defun claude-code-ide-org--edit-at-point (old new drawer column)
+  "Do `org_edit''s work at the heading at point; return the reply."
+  (let ((title (org-no-properties (org-get-heading t t t t)))
+        (where (if drawer (format ":%s:" drawer) "the body")))
+    (cond
+     ((and (equal drawer "PLAN") (org-entry-is-done-p))
+      (format "Error: \"%s\" is finished, and a finished heading's :PLAN: is \
+the record of what was intended, so it is read-only. Edit its body or its \
+:DEBRIEF: instead." title))
+     ((string-empty-p old)
+      (let ((text (claude-code-ide-org--fill-prose-text new column))
+            created)
+        (if drawer
+            (setq created (eq 'created (claude-code-ide-org--amend-into-drawer
+                                        drawer text)))
+          (claude-code-ide-org--end-of-body)
+          (insert (claude-code-ide-org--amend-separator text)
+                  (string-trim text) "\n"))
+        (save-buffer)
+        (format "%s\"%s\" (%s %s)" claude-code-ide-org--reply-edited title
+                (if created "created" "appended to") where)))
+     (t
+      (let ((region (claude-code-ide-org--edit-region drawer)))
+        (if (not region)
+            (format "Error: \"%s\" has no %s to edit.%s" title where
+                    (if drawer " An empty old_string creates it." ""))
+          (let ((hits (claude-code-ide-org--edit-occurrences
+                       old (car region) (cdr region))))
+            (cond
+             ((null hits)
+              (format "Error: old_string is not in %s of \"%s\". It must match \
+exactly, line breaks included, and lie wholly inside that region; read it \
+with org_body%s. Not found: %s"
+                      where title
+                      (if drawer (format " drawer=%s" drawer) "")
+                      (truncate-string-to-width
+                       (replace-regexp-in-string "\n" "\\\\n" old) 80 nil nil "...")))
+             ((cdr hits)
+              (format "Error: old_string occurs %d times in %s of \"%s\"; \
+include more of the surrounding text until it is unique."
+                      (length hits) where title))
+             ((and (not drawer)
+                   (claude-code-ide-org--slice-p)
+                   (let ((ms (car hits)) (me (+ (car hits) (length old))))
+                     (seq-some (lambda (span) (and (< ms (cdr span)) (> me (car span))))
+                               (claude-code-ide-org--edit-slice-spans))))
+              (format "Error: that text is in the Planned: checklist or the \
+Incidental: section of slice \"%s\", which the refresh owns. Use \
+org_slice_add_member for membership, and edit only the slice's prose." title))
+             ((let ((case-fold-search nil))
+                (string-match-p "^\\*+\\(?:[ \t]\\|$\\)"
+                                (claude-code-ide-org--edit-touched-lines
+                                 (car hits) (+ (car hits) (length old)) new)))
+              "Error: after this edit a line would begin with `*' at column \
+zero, which org reads as a heading -- new_string was checked, but the text \
+left either side of the match makes one. Keep text before the star, or \
+quote it in =verbatim=.")
+             (t
+              (let* ((ms (car hits))
+                     (whole (and (= ms (car region))
+                                 (= (+ ms (length old)) (cdr region))))
+                     (rbeg (car region))
+                     (rend (+ (cdr region) (- (length new) (length old)))))
+                (goto-char ms)
+                (delete-region ms (+ ms (length old)))
+                (insert new)
+                (if (string-empty-p new)
+                    (claude-code-ide-org--edit-close-gap ms rbeg rend)
+                  (claude-code-ide-org--edit-refill
+                   ms (+ ms (length new)) rbeg rend column))
+                (save-buffer)
+                (format "%s\"%s\" (%s %s)" claude-code-ide-org--reply-edited title
+                        (cond (whole "rewrote")
+                              ((string-empty-p new) "deleted one passage from")
+                              (t "replaced one passage in"))
+                        where)))))))))))
+
+(defun claude-code-ide-org-edit (id old-string new-string &optional drawer)
+  "Edit the heading with :ID: ID: replace OLD-STRING with NEW-STRING.
+
+The region is the heading's own body, below its drawers and above its
+first child, or with DRAWER (`PLAN' or `DEBRIEF') the inside of that
+drawer.  An empty OLD-STRING appends NEW-STRING to the region, creating
+the drawer when absent.  Otherwise OLD-STRING must occur exactly once in
+the region and is replaced; the region's whole text rewrites it.  The
+design and every guard are TODO.org :ID: dd4b9a9f's `:PLAN:'.
+
+The replacement is literal and the reply says what kind of change was
+made; it does not echo the text, which the caller already holds.  What
+lands is escaped, id-resolved and filled exactly as `org_amend''s text
+is, the fill applied to the paragraphs the change touches.
+
+Never queues.  With unsaved changes in the file it refuses at once;
+waiting for the save is TODO.org :ID: c35087d8.
+
+Returns \"Edited: ...\" or \"Error: ...\"."
+  (require 'org-id)
+  (setq old-string (or old-string "")
+        new-string (or new-string ""))
+  (when drawer
+    (setq drawer (upcase (string-trim (string-trim drawer) ":" ":")))
+    (when (string-empty-p drawer) (setq drawer nil)))
+  (let* ((escaped (claude-code-ide-org--escape-block-headlines new-string))
+         (headline (claude-code-ide-org--edit-headline-refusal escaped)))
+    (cond
+     ((and drawer
+           (not (member drawer claude-code-ide-org--amend-drawer-allowlist)))
+      (format "Error: drawer must be one of %s. :PROPERTIES: and :LOGBOOK: \
+are org-managed -- identity, clock lines and state history -- and prose \
+written there would corrupt the record silently."
+              (mapconcat #'identity
+                         claude-code-ide-org--amend-drawer-allowlist ", ")))
+     (headline headline)
+     (t
+      (let ((resolved (claude-code-ide-org-resolve-id-links escaped))
+            (marker (ignore-errors (claude-code-ide-org--id-find id 'marker))))
+        (cond
+         ((not (car resolved)) (cdr resolved))
+         ((not marker)
+          (let ((pending (claude-code-ide-org--pending-capture id)))
+            (if pending
+                (format "Error: \"%s\" is a capture queued this session and \
+not yet applied, so it has nothing to edit. Apply the queue, then edit."
+                        (plist-get pending :title))
+              (claude-code-ide-org--id-not-found id))))
+         (t
+          (let ((file (buffer-file-name (marker-buffer marker))))
+            (set-marker marker nil)
+            (or (claude-code-ide-org--busy-refusal file)
+                (claude-code-ide-org--at-id-writable
+                 id
+                 (lambda ()
+                   (claude-code-ide-org--edit-at-point
+                    old-string (cdr resolved) drawer
+                    (claude-code-ide-org--fill-column-for-file file)))))))))))))
+
 ;;; Query -------------------------------------------------------------------
 ;;
 ;; Structured search over `claude-code-ide-org--tracked-files' (the same
@@ -20914,6 +21220,49 @@ http://localhost:%d/mcp/%s-2"
             :type string
             :optional t
             :description "Append inside this drawer instead of the body. PLAN or DEBRIEF only; the drawer is created after the property drawer when the heading has none. Omit for the body, as before.")))
+
+  (claude-code-ide-make-tool
+   :function #'claude-code-ide-org-edit
+   :name "org_edit"
+   :description (concat
+                 "Edit a tracked heading's prose in place, by its :ID:, with the "
+                 "Edit tool's arguments. The region is the heading's own body "
+                 "(below its drawers, above its first child) or, with "
+                 "drawer=PLAN or DEBRIEF, the inside of that drawer. An EMPTY "
+                 "old_string appends new_string to the region, creating the "
+                 "drawer when absent. Otherwise old_string must occur exactly "
+                 "once in the region and is replaced literally; passing the "
+                 "region's whole text rewrites it, and an empty new_string "
+                 "deletes. Copy old_string from org_body, line breaks included. "
+                 "Prefer this to org_amend for any revision: a correction costs "
+                 "the phrase and its replacement, not the whole drawer, and "
+                 "nothing needs clearing first. Refused, writing nothing: text "
+                 "absent from the region or found more than once (the count is "
+                 "given); :PROPERTIES:/:LOGBOOK:; a FINISHED heading's :PLAN:, "
+                 "which is the record of intent (its body and :DEBRIEF: stay "
+                 "editable); a slice's Planned: checklist or Incidental: "
+                 "section, which the refresh owns; a new_string line starting "
+                 "with `*' at column zero outside a block (inside a "
+                 "#+begin_ block it is comma-escaped for you); an [[id:]] link "
+                 "that resolves to nothing (an 8-character prefix is expanded). "
+                 "Writes immediately and never queues: with unsaved changes in "
+                 "the file it refuses, so retry once the human has saved. The "
+                 "paragraphs it touches are filled to the file's fill-column. "
+                 "A miss CATCH still goes through org_amend, which is what the "
+                 "miss counter reads until org_amend is retired.")
+   :args '((:name "id"
+            :type string
+            :description "The :ID: of the heading, or an 8-character prefix.")
+           (:name "old_string"
+            :type string
+            :description "The exact text to replace, unique within the region. Empty to append.")
+           (:name "new_string"
+            :type string
+            :description "The replacement, or the text to append. Empty with a non-empty old_string deletes it.")
+           (:name "drawer"
+            :type string
+            :optional t
+            :description "PLAN or DEBRIEF to edit inside that drawer. Omit for the body.")))
 
   (claude-code-ide-make-tool
    :function #'claude-code-ide-org-query

@@ -109,6 +109,14 @@ printf '%s\n' '{"type":"assistant","message":{"content":[{"type":"text","text":"
   > "$tmp/transcript.jsonl"
 check "a read-only turn owes nothing" 0 "$(run_hook)"
 
+# org_edit writes immediately, like org_capture and org_amend (TODO.org
+# :ID: 704d8558), so a session editing only through it still owes a clock.
+reset
+printf '%s\n' \
+  '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"mcp__emacs-tools__org_edit","input":{"id":"abc","old_string":"a","new_string":"b"}}]}}' \
+  > "$tmp/transcript.jsonl"
+check "an org_edit call is write evidence" 2 "$(run_hook)"
+
 # --- the once-per-session sentinel ------------------------------------
 
 reset; write_transcript
