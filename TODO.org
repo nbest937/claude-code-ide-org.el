@@ -9291,7 +9291,7 @@ pass): when this heading is brainstormed, move the prospective prose into
 =:PLAN:= and revise the body to a short statement.
 
 
-* TODO Index a heading's git history from a drawer, so the body never has to narrate it :code:research:arch:
+* TODO Answer how a heading got here from the commits that cite it, one call away :code:research:arch:
 :PROPERTIES:
 :CATEGORY: Skill
 :ID:       41cf5830-fc2e-4dc6-b243-a0c2718a53a3
