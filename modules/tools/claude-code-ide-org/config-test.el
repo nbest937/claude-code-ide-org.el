@@ -20253,6 +20253,23 @@ before the child survives (TODO.org :ID: 5b46fbfd)."
     (should (string-match-p ":END:\n\nA new body\\.\n\n\\*\\* TODO Child"
                             (claude-code-ide-org-test--disk-contents capture-file)))))
 
+(ert-deftest claude-code-ide-org-test-edit-region-keeps-the-first-indent ()
+  "A region opening on an indented line starts at that line, not after
+its indent, so the text `org_body' shows rewrites it whole (PR #33's
+review, finding 3)."
+  (claude-code-ide-org-test--with-capture-file
+    (with-temp-file capture-file
+      (insert "#+TODO: TODO | DONE\n\n* TODO Indented\n:PROPERTIES:\n:ID:       ind-1\n:END:\n"
+              ":PLAN:\n\n  - keep the queue\n  - drop the clock\n:END:\n"))
+    (org-id-update-id-locations (list capture-file))
+    (let ((claude-code-ide-org-query-files (list capture-file)))
+      (should (string-match-p
+               "rewrote :PLAN:"
+               (claude-code-ide-org-edit "ind-1" "  - keep the queue\n  - drop the clock"
+                                         "  - keep the queue" "PLAN")))
+      (should (string-match-p ":PLAN:\n\n  - keep the queue\n:END:"
+                              (claude-code-ide-org-test--disk-contents capture-file))))))
+
 (ert-deftest claude-code-ide-org-test-edit-appends-and-creates ()
   "An empty old_string appends to the body, or creates an absent drawer."
   (claude-code-ide-org-test--with-edit-fixture

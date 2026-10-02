@@ -4396,19 +4396,22 @@ it, or quote it in =verbatim=."))))
 
 The heading's own body -- below every leading drawer, above its first
 child -- or with DRAWER the inside of that drawer.  Trimmed of the
-whitespace at either end, so a caller passing the region's full text as
-`org_body' shows it matches it once, and the blank lines separating the
-body from the next heading are never inside a match (TODO.org :ID:
-5b46fbfd).  Nil when there is no such region."
+blank lines before it and the whitespace after, so a caller passing the
+region's full text as `org_body' shows it matches it once, first-line
+indent included, and the blank lines separating the body from the next
+heading are never inside a match (TODO.org :ID: 5b46fbfd).  Nil when
+there is no such region."
   (let ((bounds (if drawer
                     (claude-code-ide-org--drawer-content-bounds drawer)
                   (let ((b (claude-code-ide-org--heading-body-bounds)))
                     (and b (list (nth 1 b) (nth 2 b)))))))
     (when bounds
       (save-excursion
-        (let* ((beg (progn (goto-char (nth 0 bounds))
+        ;; Back to the line start: skipping the indent too made
+        ;; `org_body''s own rendering unmatchable (PR #33, finding 3).
+        (let*((beg (progn (goto-char (nth 0 bounds))
                            (skip-chars-forward " \t\n" (nth 1 bounds))
-                           (point)))
+                           (max (nth 0 bounds) (line-beginning-position))))
                (end (progn (goto-char (nth 1 bounds))
                            (skip-chars-backward " \t\n" beg)
                            (point))))
