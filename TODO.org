@@ -6405,6 +6405,21 @@ above is semantic (containment versus reference, tentative versus committed),
 and a worse model adopted to save a paragraph costs more in misfiled work than
 the paragraph.
 :END:
+:DEBRIEF:
+*Shipped 2026-10-05* on =feature/org-native-notes= in [[orgit-rev:./::d675407][d675407]], as the drawer
+said: one paragraph directly after "A story is not declared, it is emergent",
+which split the story-and-epic paragraph so the epic sentence starts its own.
+The paragraph cites the code-review story further down the same file as the
+example, [[id:9d6449c7-529f-49a0-b28f-015cce869715][9d6449c7]] (checked: =MAYBE=, a collector) as the exception, and the org
+skill's "Dividing a heading that outgrew itself" (checked present) for a worked
+heading.
+
+*Verification is reading, said so:* prose has no mechanical surface beyond
+=bin/check-conventions=, which passes, and the regenerated promoted copy. A
+first draft called breakdown "the same test from the other side", which it is
+not -- breakdown turns on worked versus unworked, not on closing -- and was
+corrected before the commit.
+:END:
 
 Two scenarios, clustering open tasks under a parent and breaking a weighty task
 down speculatively, are realistic and do not justify merging stories with slices
@@ -6412,6 +6427,11 @@ down speculatively, are realistic and do not justify merging stories with slices
 and brainstorming skills; clustering still lacks its rule. One paragraph in the
 shipped conventions sanctions a cluster that will close, names the collector
 exception, and points to the divide rule. Design in =:PLAN:=.
+
+*Resolution:* no merge; one paragraph in the shipped conventions sanctions a
+cluster that will close, names a filing drawer and the collector exception, and
+sanctions breaking down an unworked heading.
+
 
 
 * DOING [4/10] Make the notes org-native: links, drawers, tags, one corpus pass :code:
