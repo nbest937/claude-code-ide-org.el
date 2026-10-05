@@ -3561,7 +3561,9 @@ to read first.
 :CREATED:  [2026-09-18 Fri 18:33]
 :CATEGORY: Dev
 :END:
+:PLAN:
 
+:END:
 Found 2026-09-18 while excising the =warp= alias.
 =.claude/skills/org-dev/SKILL.md= told readers that
 =claude-code-ide-org--wire-warp-tools= "re-runs automatically at startup — don't
