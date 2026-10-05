@@ -1078,7 +1078,9 @@ changed description and counts the entries.
 :CREATED:  [2026-09-25 Fri 16:17]
 :CATEGORY: Skill
 :END:
+:PLAN:
 
+:END:
 Ruled by the user on 2026-09-25: groupings receive meta-work time (definition,
 refinement, verdicts) and never deliverable work. A story is a receiver between
 or during slices, and a running slice is one while it runs; "Review and
