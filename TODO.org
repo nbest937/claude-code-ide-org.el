@@ -1055,7 +1055,9 @@ before caching.
 - Tags ":code:"     from ":code:bug:" [2026-09-29 Tue 21:46] \\
   tag dropped (the user, 2026-09-29): applied by recall, so its absence meant nothing
 :END:
+:PLAN:
 
+:END:
 Measured 2026-09-25 after a live =load-file= of =config.el=:
 =claude-code-ide-mcp-server-tools= held 27 entries for 24 distinct names, with
 =org_query= three times and =org_slice_add_member= twice. Each duplicate
