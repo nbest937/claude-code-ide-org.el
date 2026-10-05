@@ -972,7 +972,9 @@ tests those three, one at a time, against scratch copies in the live Emacs.
 :CREATED:  [2026-09-28 Mon 07:43]
 :CATEGORY: Dev
 :END:
+:PLAN:
 
+:END:
 Slice [[id:8a2eb687-28da-4d44-893b-db59298bdc5b][8a2eb687]] closed on 2026-09-28 with these checks still unrun. Each was
 verified in tests or against fakes, and each needs a live run or a human's eye.
 They were collected at the close from the members' debriefs so that none stays
