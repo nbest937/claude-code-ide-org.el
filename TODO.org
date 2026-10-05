@@ -11063,7 +11063,9 @@ against the older one.
 - State "MAYBE"      from "TODO"       [2026-08-28 Fri 07:55] \\
   buys only human convenience now
 :END:
+:PLAN:
 
+:END:
 =org-clock-default-task= is org's own answer to "somewhere to clock
 cross-cutting time", which is why
 [[id:a1d63f52-4c07-4b9e-8f31-6d2b90c4e7a5][a1d63f52]] pointed at it under
