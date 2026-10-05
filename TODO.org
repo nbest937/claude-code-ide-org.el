@@ -2381,7 +2381,9 @@ would supply the missing event and end the latch too.
 :CREATED:  [2026-09-22 Tue 15:29]
 :CATEGORY: Skill
 :END:
+:PLAN:
 
+:END:
 Step 2 of the skill's architectural checklist tells a session to offer
 the visual companion just-in-time; the companion is upstream's, imported
 untouched, and stands up a local web server for design mock-ups that
