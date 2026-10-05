@@ -1395,7 +1395,9 @@ CLOCK: [2026-09-25 Fri 12:24]--[2026-09-25 Fri 12:25] =>  0:01
 - Tags ":code:"     from ":code:bug:" [2026-09-29 Tue 21:46] \\
   tag dropped (the user, 2026-09-29): applied by recall, so its absence meant nothing
 :END:
+:PLAN:
 
+:END:
 Twice on 2026-09-25 an =org_capture= stopped at "Make link that searches: ", a
 prompt from org-ql's =org-ql-view--link-store=. Org's capture stores a link to
 the current buffer, and that function asks this question whenever the current
