@@ -9606,6 +9606,7 @@ SCHEDULED: <2026-08-24 Mon 07:00 ++1d>
 :ID:       2aff1e6d-71cf-4b3f-8a3f-b3fc63d07c99
 :CREATED:  [2026-08-21 Fri 13:20]
 :END:
+:PLAN:
 
 The ritual: a standing daily prompt to actually do review and planning.
 
@@ -9619,6 +9620,12 @@ schedule -- both of the things the on-demand resolver exists to avoid.
 ([[id:96a51c2f-ce11-4b40-bdff-11223d3d4eb7][96a51c2f]]): a repeater never
 reaches DONE, so it can never sit under a completable ancestor, and a category
 carries no keyword and completes nothing.
+:END:
+
+A standing daily prompt to do review and planning. It reminds and does not
+create: today's node is created on demand when work happens, and the repeater
+sits on the category, the one place in this repo a repeater is safe.
+
 
 
 * REVIEW Comma-escape headline lines when documenting org structure inside a body :code:bounded:
