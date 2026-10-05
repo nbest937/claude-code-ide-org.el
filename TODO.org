@@ -9576,11 +9576,34 @@ on write and at apply, and the lint catches a hand edit.
 on an escaped line. The escape covers the bare form and stays idempotent. Each
 is shown to fail with its change removed.
 :END:
+:DEBRIEF:
+*Shipped 2026-10-05* on =feature/org-native-notes= in [[orgit-rev:./::843eedf][843eedf]], as the drawer
+said: =--escape-block-headlines= matches =^\*+( |$)=, the lint scans each file's
+text for an unescaped headline line between =#+begin_= and =#+end_=, and the
+conventions' "Citing code from a body" gains the sentence. No passage on
+documenting org structure existed to sit beside, so it went there.
+
+*Verified.* Two ERT tests, suite 877/877: the bare form is escaped and a second
+pass changes nothing; the lint flags both forms inside a block and is silent on
+escaped lines and on a real heading after a block closes. Four mutations -- the
+escape's bare form, the lint check, its bare form, and its block-end reset --
+each turned a test red. =bin/lint-org= on the corpus: 0 errors, confirming the
+drawer's 2026-09-29 count of none, so no pass was owed. Live after a reload, the
+escape writes =,***= inside a block.
+
+With the bare form escaped on every write, =org_edit='s headline refusal now
+fires only outside a block, which retires the limit [[id:704d8558-657b-43e2-9440-1c054c923ed2][704d8558]] recorded.
+:END:
 
 A headline-shaped line inside a block is a real heading to org and silently
 corrupts the outline, the cookies and the lint. The tools already comma-escape
 it on write and at apply; what remains is a lint error for hand edits, escaping
 a bare star line too, and one sentence in the conventions. Design in =:PLAN:=.
+
+*Resolution:* the tools escape a bare star line inside a block as well as a
+headline, =bin/lint-org= errors on either form a hand edit leaves, and one
+sentence in the conventions names the mechanism.
+
 
 
 * TODO Decide how far the review-apply cycle can be automated, given the interactive constraint :code:
