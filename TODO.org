@@ -2018,7 +2018,9 @@ the method.
 - Tags ":code:"     from ":code:observed:" [2026-09-29 Tue 21:46] \\
   tag dropped (the user, 2026-09-29): applied by recall, so its absence meant nothing
 :END:
+:PLAN:
 
+:END:
 Observed 2026-09-22 writing a :PLAN: drawer through org_amend drawer=PLAN: six
 section headers written as "** Title" at column zero were parsed as real
 headings, which terminated the drawer at the first one, manufactured six
