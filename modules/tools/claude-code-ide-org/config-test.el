@@ -21057,3 +21057,28 @@ and a star line outside any block are not."
                           ":PROPERTIES:\n:ID:       bbbbbbbb-aaaa-aaaa-aaaa-aaaaaaaaaaaa\n"
                           ":CREATED:  [2026-09-02 Wed 09:00]\n:END:\n"))
                  'error "headline line inside a block"))))
+
+(ert-deftest claude-code-ide-org-test-wrap-plan-allows-an-end-line-below-the-seam ()
+  "A bare :END: below the seam stays in the body and closes nothing, so
+the wrap goes ahead; one above it, inside the part wrapped, is refused
+(TODO.org :ID: fce6bd35)."
+  (claude-code-ide-org-test--with-capture-file
+    (with-temp-file capture-file
+      (insert "#+TODO: TODO | DONE\n\n"
+              "* TODO Specimen\n:PROPERTIES:\n:ID: wrap-end\n:END:\n\n"
+              "The proposal.\n\nMeasured: the record.\n\n"
+              "#+begin_example\n:PROPERTIES:\n:X: y\n:END:\n#+end_example\n"))
+    (org-id-update-id-locations (list capture-file))
+    (should (string-match-p "Text preserved: yes"
+                            (claude-code-ide-org-wrap-plan "wrap-end" "Measured:")))
+    (should (string-match-p ":PLAN:\n\nThe proposal\\.\n\n:END:\nMeasured: the record\\."
+                            (claude-code-ide-org-test--disk-contents capture-file))))
+  (claude-code-ide-org-test--with-capture-file
+    (with-temp-file capture-file
+      (insert "#+TODO: TODO | DONE\n\n"
+              "* TODO Specimen\n:PROPERTIES:\n:ID: wrap-end2\n:END:\n\n"
+              "The proposal.\n\n#+begin_example\n:PROPERTIES:\n:X: y\n:END:\n#+end_example\n\n"
+              "Measured: the record.\n"))
+    (org-id-update-id-locations (list capture-file))
+    (should (string-match-p "bare :END: line"
+                            (claude-code-ide-org-wrap-plan "wrap-end2" "Measured:")))))

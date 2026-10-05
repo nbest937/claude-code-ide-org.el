@@ -19407,9 +19407,22 @@ two insertions, no deletion, no reflow.  Returns a summary string."
            ;; bin/lint-org reported a repeater under a completable
            ;; ancestor. One error and five spurious warnings out of two
            ;; inserted lines, and the heading still looked fine.
+           ;;
+           ;; Only the part being wrapped is checked (TODO.org :ID:
+           ;; fce6bd35): an :END: below the seam stays in the body, outside
+           ;; the drawer, and closes nothing. 25ec37b0 quotes a property
+           ;; drawer in an example block under a body that is all record.
            (if (save-excursion
                  (goto-char (nth 1 bounds))
-                 (re-search-forward "^[ \t]*:END:[ \t]*$" (nth 2 bounds) t))
+                 (re-search-forward
+                  "^[ \t]*:END:[ \t]*$"
+                  (if until
+                      (or (ignore-errors
+                            (claude-code-ide-org--plan-seam
+                             (nth 1 bounds) (nth 2 bounds) until t))
+                          (nth 2 bounds))
+                    (nth 2 bounds))
+                  t))
                (format "Error: \"%s\" has a bare :END: line in its body, which \
 would close the :PLAN: drawer early -- :END: is org's drawer terminator and \
 nothing escapes it. Not wrapped."
@@ -19442,8 +19455,11 @@ nothing escapes it. Not wrapped."
                ;; prose-level under a well-formed heading.
                (let* ((after (buffer-substring-no-properties
                               open (+ end (length ":PLAN:\n:END:\n"))))
-                      (stripped (replace-regexp-in-string
-                                 "^:\\(PLAN\\|END\\):\n" "" after)))
+                      ;; Exactly the two markers inserted, by position: a
+                      ;; body may quote an :END: of its own below the seam.
+                      (close (+ (- stop open) (length ":PLAN:\n")))
+                      (stripped (concat (substring after (length ":PLAN:\n") close)
+                                        (substring after (+ close (length ":END:\n"))))))
                  ;; After the check, which reads fixed positions: a
                  ;; :DEBRIEF: above the body leaves the new :PLAN: below
                  ;; it, and the normaliser moves it (TODO.org :ID: d350ff5b).
