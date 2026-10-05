@@ -8,12 +8,209 @@
 :CREATED:  [2026-10-02 Fri 13:06]
 :CATEGORY: Tools
 :END:
-* TODO A git worktree of this repo cannot commit: the setup check reads its directory name as an MCP-session collision :code:
+
+
+* MAYBE A git worktree of this repo cannot commit: the setup check reads its directory name as an MCP-session collision :code:
 :PROPERTIES:
 :ID:       6abc58c0-5561-43c4-8629-475c3130d236
 :CREATED:  [2026-10-02 Fri 12:52]
 :CATEGORY: Dev
 :END:
+:LOGBOOK:
+- State "MAYBE"      from "TODO"       [2026-10-02 Fri 13:21] \\
+  real only if worktrees become a practice; branch switching in the main checkout is the practice
+CLOCK: [2026-10-02 Fri 13:21]--[2026-10-02 Fri 13:25] =>  0:04
+- [2026-10-02 Fri 13:21]--[2026-10-02 Fri 13:25] assigned at review
+:END:
+
+
+* TODO [0/2] Lay future work out on the agenda: commitments, milestones on slices and stories, and pacing that follows a slip
+:PROPERTIES:
+:ID:       14c02a28-5e1f-401b-9c22-dd18c2c10847
+:CREATED:  [2026-10-02 Fri 10:10]
+:CATEGORY: Skill
+:END:
+
+Divided from ecf66d45 on 2026-10-02 (the user), who wants the agenda to show
+future work three ways: commitments, milestones on slices and on stories, and
+pacing that follows a slip. The first two are ready to design as one member,
+a29464da; pacing stays with ecf66d45, which carries the 2026-09-11 survey and
+three decisions owed before design.
+
+
+** TODO When a dated heading slips, move the dates that follow it along a chosen order :arch:
+:PROPERTIES:
+:ID:       ecf66d45-18b3-477f-bca8-08bec90604e8
+:CREATED:  [2026-09-04 Fri 08:52]
+:CATEGORY: Skill
+:BLOCKER:  b0e478f7-e894-4ac7-b0b6-b3c890b5b32a
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-04 Fri 08:22]--[2026-09-04 Fri 08:51] =>  0:29
+- [2026-09-04 Fri 08:22]--[2026-09-04 Fri 08:51] assigned at review
+- State "NEXT"       from "TODO"       [2026-09-08 Tue 08:39] \\
+  nominated on closing 84b7d8b3; Skill's slot is free
+- State "TODO"       from "NEXT"       [2026-09-08 Tue 09:44] \\
+  demote the misapplied nomination; deferred to packaging
+- Tags ":arch:"     from ""           [2026-09-28 Mon 13:01] \\
+  classified: new subsystem, forecast-vs-record boundary and dates on work
+CLOCK: [2026-10-02 Fri 09:42]--[2026-10-02 Fri 09:43] =>  0:01
+- [2026-10-02 Fri 09:42]--[2026-10-02 Fri 09:43] brainstorm: future work on an agenda timeline
+- [2026-10-02 Fri 09:43]--[2026-10-02 Fri 09:43] brainstorm: future work on an agenda timeline
+CLOCK: [2026-10-02 Fri 09:52]--[2026-10-02 Fri 09:53] =>  0:01
+- [2026-10-02 Fri 09:52]--[2026-10-02 Fri 09:53] brainstorm: future work on an agenda timeline
+CLOCK: [2026-10-02 Fri 09:53]--[2026-10-02 Fri 09:54] =>  0:01
+- [2026-10-02 Fri 09:53]--[2026-10-02 Fri 09:54] brainstorm: future work on an agenda timeline
+CLOCK: [2026-10-02 Fri 09:55]--[2026-10-02 Fri 09:56] =>  0:01
+- [2026-10-02 Fri 09:55]--[2026-10-02 Fri 09:56] brainstorm: future work on an agenda timeline
+CLOCK: [2026-10-02 Fri 09:56]--[2026-10-02 Fri 09:57] =>  0:01
+- [2026-10-02 Fri 09:56]--[2026-10-02 Fri 09:57] brainstorm: future work on an agenda timeline
+CLOCK: [2026-10-02 Fri 10:06]--[2026-10-02 Fri 10:07] =>  0:01
+- [2026-10-02 Fri 10:06]--[2026-10-02 Fri 10:07] brainstorm: future work on an agenda timeline
+CLOCK: [2026-10-02 Fri 10:10]--[2026-10-02 Fri 10:11] =>  0:01
+- [2026-10-02 Fri 10:10]--[2026-10-02 Fri 10:11] brainstorm: future work on an agenda timeline
+CLOCK: [2026-10-02 Fri 10:17]--[2026-10-02 Fri 10:18] =>  0:01
+- [2026-10-02 Fri 10:17]--[2026-10-02 Fri 10:18] assigned at review
+CLOCK: [2026-10-02 Fri 10:18]--[2026-10-02 Fri 10:19] =>  0:01
+- [2026-10-02 Fri 10:18]--[2026-10-02 Fri 10:19] defer ecf66d45 from slice 6521dd56
+:END:
+:PLAN:
+
+*Wanted by the user 2026-09-04, stated as a requirement for future projects
+rather than a gap in this one:* "In future projects I will want to be able to
+lay out a timeline into the future visible in the agenda."
+
+*Measured on arrival, because the answer is starker than expected.* Across
+=TODO.org= and =DONE.org=: **3 =SCHEDULED:= lines and 0 =DEADLINE:= lines.** All
+three schedule *recurrences*, not work — the daily archive and day-node ceremony
+tasks (=++1d=) and =96a51c2f='s monthly re-measure (=+1m=). **Not one heading in
+this project has ever been scheduled to say when it will be done.** Sequencing
+is carried entirely by slices, which order work but say nothing about *when*,
+and by =:BLOCKER:=, which says what must precede what but not on which day.
+
+So the agenda shows this project's recurrences and nothing else. A forward view
+— what lands this week, what slips — has no input.
+
+*What makes this more than "start using =SCHEDULED:=".* The active/inactive
+timestamp distinction is already load-bearing here and points the other way:
+=b8e6007a= settled that the queue records agent activity and the agenda must not
+absorb it, which is why span timestamps are inactive. An agenda that starts
+carrying *forecasts* has to keep them apart from the *record* — a scheduled date
+is a claim about the future and a CLOCK line is a measurement of the past, and
+the agenda renders both. Deciding that boundary before populating it is the
+work, not typing dates.
+
+*Two open questions, neither settled here.* Whether a slice gains dates at all,
+or only its members — a slice sequences without committing to a calendar, and
+dating one may be the wrong shape. And whether this is a convention for *this*
+repo or belongs in the portable half, since the ask was framed as "future
+projects": that is =9ae4b17e='s classification question arriving from a new
+direction, and it is why this carries =:CATEGORY: Skill= rather than =Meta=.
+
+*Deferred to packaging, 2026-09-08 (the user), and the nomination
+withdrawn* — a =NEXT= queued minutes earlier on closing =84b7d8b3= is
+to be declined at review. The heading's own last question ("this
+repo's convention or the portable half's?") is answered by the
+deferral: it is decided *with* the portable half, so
+[[id:b0e478f7-e894-4ac7-b0b6-b3c890b5b32a][b0e478f7]] is now its
+=:BLOCKER:=. The forecast-vs-record boundary design happens there.
+
+*Answered 2026-09-11 by a delegated survey, for the question this heading must
+settle before it dates anything: does org cascade a slipped schedule down a
+dependency chain — task 1 overruns, and 2, 3, 4 bump forward in turn?* **No,
+nowhere.** Not org core, org-contrib, GNU/NonGNU ELPA or MELPA; a sweep of all
+6,304 MELPA packages for =gantt|critical.?path|pert|cpm|precedence= returned
+zero. Org has no "a date changed" hook at all, so any cascade must be *invoked*
+— a bulk agenda command or an explicit tool — never fired.
+
+*Four things get mistaken for it.* =ORDERED=, org-depend and org-edna =BLOCKER=
+all gate **state**, never dates. org-depend's single date action,
+=chain-siblings-scheduled=, *copies* the predecessor's scheduled time to its
+next sibling instead of shifting it — the opposite of what an overrun needs —
+and walks siblings only, never =:BLOCKER:=. =ox-taskjuggler= genuinely solves
+the cascade, but as a one-directional export with no importer, and it needs
+=Effort=, of which this corpus has **zero**; it has also left org core (9.5) and
+then org-contrib, and now lives in a third-party repo. org-gantt and elgantt
+compute dates internally and discard them.
+
+*The only real primitive anywhere is org-edna's* =scheduled!("+Nd")=, which
+shifts a target's own date relative to itself. Two limits keep it a primitive
+rather than the feature: it fires **only** on a transition to DONE, and it
+advances exactly **one hop** — =todo!= re-enters =org-trigger-hook= and so
+chains, while the date actions call =org--deadline-or-schedule= directly and
+fire nothing. No finder walks a dependency graph either; the shortest credible
+build is a custom finder returning the transitive =:BLOCKER:= closure, with the
+shipped =scheduled!= doing the arithmetic.
+
+*Three hazards for this heading's own forecast-vs-record boundary,* which is why
+this belongs here rather than on a tooling heading. =SCHEDULED=/=DEADLINE= are
+active timestamps by construction — correct for a forecast, but it means the
+line to defend is that nothing *derived from clock measurement* ever becomes
+one. =org-log-reschedule= and =org-log-redeadline= are both nil today and should
+stay nil: either would write revision lines into =:LOGBOOK:=, the same drawer
+the CLOCK record lives in. And any cascade hung on =org-trigger-hook= would fire
+**during the human apply pass**, writing forecast dates in bursts and bypassing
+the queue outright — the queue has no event type for a proposed date change.
+
+*Provenance, stated because it bounds how far this should be trusted:* the
+org-edna behaviour above comes from reading its source, not from running it. It
+is not installed here.
+
+*Divided 2026-10-02 (the user); this heading is now the pacing child only.* The
+user wants all three uses: commitments, milestones on slices and on stories, and
+pacing that follows a slip. The first two need no more research and went to the
+sibling a29464da under the story 14c02a28; this one keeps the cascade and the
+survey above, which is all about it.
+
+*Three decisions the cascade needs before design, not research.* What a slip is:
+a date passing with the heading unfinished, which the agenda already shows as
+overdue, or an explicit move of a date, which is what the cascade would follow.
+The order to cascade along: =:BLOCKER:= edges, which are dependencies and sit on
+59 headings in TODO.org, or a slice's =:MEMBERS:= order, which is a sequence and
+not necessarily a dependency; they give different answers. How far a slip moves
+its successors: with no =:Effort:= anywhere in the corpus, shifting every
+successor by the slip and keeping the gaps is the only rule that needs no new
+data.
+
+*Two findings of 2026-10-02.* =org-schedule= and =org-deadline= take the date as
+an argument and write without prompting while =org-log-reschedule= and
+=org-log-redeadline= are nil, tested in a scratch buffer, so a date tool cannot
+hang the way 3d576d29's state notes did. And a relative date such as =+3d= is
+counted from today, not from the date already there, so a cascade must compute
+each new date itself rather than hand org a delta.
+
+*The org-native estimate is the =Effort= property* (=org-effort-property=, set
+with =org-set-effort=, durations such as =1:30=, =2h= or =3d=, a coarse scale
+through =Effort_ALL=). Column view sets it against =CLOCKSUM=, the agenda
+filters on it, and ox-taskjuggler schedules from it. Adopting it, coarse and
+optional, is what would let a cascade schedule forward from durations instead of
+only shifting dates; its effort-versus-actual half depends on clocking, the
+optional half of this project.
+:END:
+
+The pacing half of laying future work out on the agenda: when a dated heading
+slips, move the dates that follow it. Org has no such cascade, so it is a custom
+command, invoked and never triggered; before it is designed, three decisions are
+owed: what counts as a slip, which order it follows, and how far successors
+move. Research and decisions in =:PLAN:=.
+
+
+** TODO Set dates through the tools, and let slices and stories carry milestones their members are checked against :code:
+:PROPERTIES:
+:ID:       a29464da-e045-4276-881e-cab41ad0b8ad
+:CREATED:  [2026-10-02 Fri 10:10]
+:END:
+
+No tool sets a planning line, so a session cannot put a heading on the agenda
+except by hand-editing it, though org-schedule and org-deadline take the date as
+an argument and, with reschedule logging off, write without prompting (tested
+2026-10-02). Proposed: a structural tool for SCHEDULED and DEADLINE on any
+heading, commitments included (the user's first real DEADLINE is on 158d7e80);
+dates on slices and stories read as milestones; and a lint that reports a member
+dated after its group's milestone. Ready to design: the 2026-09-11 survey
+answered its research.
+
+
 * TODO A rendered session spanning several days dates only its title, so its turn times read as one day and run backwards :code:
 :PROPERTIES:
 :ID:       6b5e7327-516b-4374-9346-5538808d327d
@@ -4820,7 +5017,7 @@ precisely so a stopped Emacs costs nothing, so whatever is recorded must be one
 cheap read of the transcript's first line, not a parse.
 
 
-* NEXT [0/4] No org tool edits a phrase in place: org_amend appends or replaces the whole body :code:arch:
+* NEXT [1/4] No org tool edits a phrase in place: org_amend appends or replaces the whole body :code:arch:
 :PROPERTIES:
 :ID:       dd4b9a9f-ba8a-4f1f-a3da-38388e0cdb76
 :CREATED:  [2026-09-15 Tue 13:25]
@@ -4964,7 +5161,8 @@ than queueing; and it retires =org_amend= in the same move, carried by
 four children in order.
 
 
-** REVIEW org_edit: replace one occurrence in a heading's body or plan, append, or rewrite the region, behind guards :code:
+** DONE org_edit: replace one occurrence in a heading's body or plan, append, or rewrite the region, behind guards :code:
+CLOSED: [2026-10-02 Fri 13:25]
 :PROPERTIES:
 :ID:       704d8558-657b-43e2-9440-1c054c923ed2
 :CREATED:  [2026-09-23 Wed 10:34]
@@ -5007,6 +5205,22 @@ CLOCK: [2026-09-29 Tue 15:44]--[2026-09-29 Tue 15:45] =>  0:01
 - [2026-09-29 Tue 15:44]--[2026-09-29 Tue 15:45] assigned at review
 CLOCK: [2026-09-29 Tue 15:45]--[2026-09-29 Tue 15:46] =>  0:01
 - [2026-09-29 Tue 15:45]--[2026-09-29 Tue 15:46] record org_edit's departures with org_edit itself
+CLOCK: [2026-10-02 Fri 12:05]--[2026-10-02 Fri 12:07] =>  0:02
+- State "DOING"      from "REVIEW"     [2026-10-02 Fri 12:05] \\
+  rework: PR #33 review findings 1-3 (refill breaks blocks, deletion leaves a headline, region trims the first indent)
+- [2026-10-02 Fri 12:05]--[2026-10-02 Fri 12:07] PR #33 review rework
+CLOCK: [2026-10-02 Fri 12:07]--[2026-10-02 Fri 12:53] =>  0:46
+- [2026-10-02 Fri 12:07]--[2026-10-02 Fri 12:53] PR #33 review rework
+CLOCK: [2026-10-02 Fri 12:56]--[2026-10-02 Fri 12:58] =>  0:02
+- [2026-10-02 Fri 12:56]--[2026-10-02 Fri 12:58] PR #33 review rework
+CLOCK: [2026-10-02 Fri 13:01]--[2026-10-02 Fri 13:02] =>  0:01
+- [2026-10-02 Fri 13:01]--[2026-10-02 Fri 13:02] PR #33 review rework
+CLOCK: [2026-10-02 Fri 13:03]--[2026-10-02 Fri 13:07] =>  0:04
+- [2026-10-02 Fri 13:03]--[2026-10-02 Fri 13:07] PR #33 review rework
+- State "REVIEW"     from "DOING"      [2026-10-02 Fri 13:07] \\
+  PR #33 findings 1-3 fixed (ce6b6a1, ce0f9e7, 6e66b0a), threads answered and resolved; finding 4 filed
+- State "DONE"       from "REVIEW"     [2026-10-02 Fri 13:25] \\
+  PR #33 merged (3e11fe9)
 :END:
 
 The new tool, with =id=, =old_string=, =new_string= and an optional =drawer=,
@@ -5034,11 +5248,15 @@ escaped, because =--escape-block-headlines= only escapes a star run followed by
 a space while the refusal also catches the bare form. Rare, and it fails safe.
 
 
-** TODO org_edit refuses an unsaved buffer, asks for the save in a header line, and the agent waits on it :code:
+** NEXT org_edit refuses an unsaved buffer, asks for the save in a header line, and the agent waits on it :code:
 :PROPERTIES:
 :ID:       c35087d8-19fe-4179-a61c-cb615b2e7679
 :CREATED:  [2026-09-23 Wed 10:34]
 :BLOCKER:  704d8558-657b-43e2-9440-1c054c923ed2
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-10-02 Fri 13:25] \\
+  704d8558 merged; the wait-on-save is the story's next child in order
 :END:
 
 On unsaved changes, =org_edit= refuses at once with a reply distinct from its
@@ -5727,69 +5945,6 @@ pass): when this heading is brainstormed, move the prospective prose into
 =:PLAN:= and revise the body to a short statement.
 
 
-* DONE Archived :ARCHIVE_FILE: paths are machine-absolute; audit their portability :code:spike:
-CLOSED: [2026-10-02 Fri 10:40]
-:PROPERTIES:
-:ID:       ea1df60b-1e28-448e-bb62-a6fc2b6b62f8
-:CREATED:  [2026-09-10 Thu 10:36]
-:CATEGORY: Meta
-:END:
-:DEBRIEF:
-Spike, run 2026-10-02 against DONE.org and org 9.8.7's source, read-only.
-
-*Census.* 363 archived headings carry =:ARCHIVE_FILE:=, and all 363 hold the
-same value, =~/git/claude-code-ide-org/TODO.org=. =org-archive-subtree= writes
-it through =abbreviate-file-name=, so it is relative to the home directory:
-right on any machine that keeps the repository at =~/git/claude-code-ide-org=,
-merely inaccurate anywhere else. None point outside this repository.
-
-*Nothing reads it.* Org writes =ARCHIVE_TIME=, =_FILE=, =_OLPATH=, =_CATEGORY=
-and =_TODO= from =org-archive-save-context-info=, and the only code in the
-straight checkout that reads them back is org's own =test-org-archive.el=. Core
-org has no command to unarchive a heading from an archive file; the one
-"unarchived" in =org-archive.el= is the toggle of the =:ARCHIVE:= tag, an
-unrelated feature. This module reads none of them. The heading's premise, that
-org uses the property for unarchiving so a wrong path breaks the round trip, was
-false: it is provenance only.
-
-*Shaping it is possible and not worth it.* Dropping =file= from
-=org-archive-save-context-info= would stop it being written; here every value is
-identical, so that would remove 363 lines of no information, but a consumer
-archiving from several files would want it kept. Nothing filed.
-:END:
-:LOGBOOK:
-- Tags ":code:spike:" from ":code:"     [2026-09-28 Mon 13:01] \\
-  classified: an audit question whose output is an answer
-CLOCK: [2026-10-02 Fri 10:18]--[2026-10-02 Fri 10:19] =>  0:01
-- [2026-10-02 Fri 10:18]--[2026-10-02 Fri 10:19] assigned at review
-CLOCK: [2026-10-02 Fri 10:22]--[2026-10-02 Fri 10:23] =>  0:01
-- [2026-10-02 Fri 10:22]--[2026-10-02 Fri 10:23] spike: archive path portability
-- State "DONE"       from "TODO"       [2026-10-02 Fri 10:40] \\
-  spike answered: home-relative, never read, nothing to change
-CLOCK: [2026-10-02 Fri 10:40]--[2026-10-02 Fri 10:41] =>  0:01
-- [2026-10-02 Fri 10:40]--[2026-10-02 Fri 10:41] spike: archive path portability
-:END:
-:PLAN:
-
-The user, unable to grok =9ae4b17e= during a decision, noticed its
-=:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org= — org-archive's
-own provenance stamp, written as a machine-absolute path. Inert for
-reading, but =org-archive= uses it for *unarchiving*, so on another
-machine (or after a repo move) the round-trip breaks silently. Audit
-question for a housekeeping sweep: how many archived entries carry
-machine-absolute =ARCHIVE_*= paths, whether unarchive is a workflow
-this project actually uses, and whether a relative or symlink-stable
-form is achievable (org writes the stamp itself — shaping it likely
-means =org-archive-location= or a post-archive normalizer, not a hand
-edit). Related: =9ae4b17e='s own body is also on =e128e4fa='s
-pre-convention sweep list, which is the cleanup the user reached for
-first.
-
-:END:
-Answered 2026-10-02: the paths are home-relative, not machine-absolute, and
-nothing reads them back, so nothing breaks and nothing needs changing.
-
-
 * TODO Per-machine port via ${VAR:-45571} in .mcp.json, with the wire check env-aware :code:
 :PROPERTIES:
 :ID:       f6f0d6ef-7c5e-400a-bdf7-3b4a12042122
@@ -5901,6 +6056,12 @@ CLOCK: [2026-09-29 Tue 15:56]--[2026-09-29 Tue 15:57] =>  0:01
 - [2026-09-29 Tue 15:56]--[2026-09-29 Tue 15:57] assigned at review
 - State "NEXT"       from "TODO"       [2026-10-02 Fri 10:40] \\
   slice brainstorming done; first build in 6521dd56's order
+CLOCK: [2026-10-02 Fri 15:50]--[2026-10-02 Fri 15:51] =>  0:01
+- [2026-10-02 Fri 15:50]--[2026-10-02 Fri 15:51] assigned at review
+CLOCK: [2026-10-02 Fri 15:52]--[2026-10-02 Fri 15:54] =>  0:02
+- [2026-10-02 Fri 15:52]--[2026-10-02 Fri 15:54] assigned at review
+CLOCK: [2026-10-02 Fri 15:57]--[2026-10-02 Fri 15:58] =>  0:01
+- [2026-10-02 Fri 15:57]--[2026-10-02 Fri 15:58] assigned at review
 :END:
 :PLAN:
 Proposed by the user 2026-09-10, pushback invited and none owed — the order is
@@ -6250,6 +6411,8 @@ CLOCK: [2026-09-29 Tue 19:16]--[2026-09-29 Tue 19:21] =>  0:05
 - [2026-09-29 Tue 19:16]--[2026-09-29 Tue 19:21] brainstorm: critical read of the orgit-link plan
 - Tags ":code:arch:" from ":code:bounded:" [2026-09-29 Tue 19:48] \\
   stepped up: enforcement moves to the write path of three writers, shared with f7847adf as one citation linker
+CLOCK: [2026-10-05 Mon 11:08]--[2026-10-05 Mon 11:09] =>  0:01
+- [2026-10-05 Mon 11:08]--[2026-10-05 Mon 11:09] notes: e128e4fa's resolutions in the link retrofits; stale sequencing on d350ff5b and 6521dd56
 :END:
 :PLAN:
 
@@ -6504,193 +6667,6 @@ and a report that must fire at session start cannot depend on that.
 *Its body holds the beginnings of a plan* (noted 2026-10-01, e128e4fa's condense
 pass): when this heading is brainstormed, move the prospective prose into
 =:PLAN:= and revise the body to a short statement.
-
-
-* TODO [0/2] Lay future work out on the agenda: commitments, milestones on slices and stories, and pacing that follows a slip
-:PROPERTIES:
-:ID:       14c02a28-5e1f-401b-9c22-dd18c2c10847
-:CREATED:  [2026-10-02 Fri 10:10]
-:CATEGORY: Skill
-:END:
-
-Divided from ecf66d45 on 2026-10-02 (the user), who wants the agenda to show
-future work three ways: commitments, milestones on slices and on stories, and
-pacing that follows a slip. The first two are ready to design as one member,
-a29464da; pacing stays with ecf66d45, which carries the 2026-09-11 survey and
-three decisions owed before design.
-
-
-** TODO When a dated heading slips, move the dates that follow it along a chosen order :arch:
-:PROPERTIES:
-:ID:       ecf66d45-18b3-477f-bca8-08bec90604e8
-:CREATED:  [2026-09-04 Fri 08:52]
-:CATEGORY: Skill
-:BLOCKER:  b0e478f7-e894-4ac7-b0b6-b3c890b5b32a
-:END:
-:LOGBOOK:
-CLOCK: [2026-09-04 Fri 08:22]--[2026-09-04 Fri 08:51] =>  0:29
-- [2026-09-04 Fri 08:22]--[2026-09-04 Fri 08:51] assigned at review
-- State "NEXT"       from "TODO"       [2026-09-08 Tue 08:39] \\
-  nominated on closing 84b7d8b3; Skill's slot is free
-- State "TODO"       from "NEXT"       [2026-09-08 Tue 09:44] \\
-  demote the misapplied nomination; deferred to packaging
-- Tags ":arch:"     from ""           [2026-09-28 Mon 13:01] \\
-  classified: new subsystem, forecast-vs-record boundary and dates on work
-CLOCK: [2026-10-02 Fri 09:42]--[2026-10-02 Fri 09:43] =>  0:01
-- [2026-10-02 Fri 09:42]--[2026-10-02 Fri 09:43] brainstorm: future work on an agenda timeline
-- [2026-10-02 Fri 09:43]--[2026-10-02 Fri 09:43] brainstorm: future work on an agenda timeline
-CLOCK: [2026-10-02 Fri 09:52]--[2026-10-02 Fri 09:53] =>  0:01
-- [2026-10-02 Fri 09:52]--[2026-10-02 Fri 09:53] brainstorm: future work on an agenda timeline
-CLOCK: [2026-10-02 Fri 09:53]--[2026-10-02 Fri 09:54] =>  0:01
-- [2026-10-02 Fri 09:53]--[2026-10-02 Fri 09:54] brainstorm: future work on an agenda timeline
-CLOCK: [2026-10-02 Fri 09:55]--[2026-10-02 Fri 09:56] =>  0:01
-- [2026-10-02 Fri 09:55]--[2026-10-02 Fri 09:56] brainstorm: future work on an agenda timeline
-CLOCK: [2026-10-02 Fri 09:56]--[2026-10-02 Fri 09:57] =>  0:01
-- [2026-10-02 Fri 09:56]--[2026-10-02 Fri 09:57] brainstorm: future work on an agenda timeline
-CLOCK: [2026-10-02 Fri 10:06]--[2026-10-02 Fri 10:07] =>  0:01
-- [2026-10-02 Fri 10:06]--[2026-10-02 Fri 10:07] brainstorm: future work on an agenda timeline
-CLOCK: [2026-10-02 Fri 10:10]--[2026-10-02 Fri 10:11] =>  0:01
-- [2026-10-02 Fri 10:10]--[2026-10-02 Fri 10:11] brainstorm: future work on an agenda timeline
-CLOCK: [2026-10-02 Fri 10:17]--[2026-10-02 Fri 10:18] =>  0:01
-- [2026-10-02 Fri 10:17]--[2026-10-02 Fri 10:18] assigned at review
-CLOCK: [2026-10-02 Fri 10:18]--[2026-10-02 Fri 10:19] =>  0:01
-- [2026-10-02 Fri 10:18]--[2026-10-02 Fri 10:19] defer ecf66d45 from slice 6521dd56
-:END:
-:PLAN:
-
-*Wanted by the user 2026-09-04, stated as a requirement for future projects
-rather than a gap in this one:* "In future projects I will want to be able to
-lay out a timeline into the future visible in the agenda."
-
-*Measured on arrival, because the answer is starker than expected.* Across
-=TODO.org= and =DONE.org=: **3 =SCHEDULED:= lines and 0 =DEADLINE:= lines.** All
-three schedule *recurrences*, not work — the daily archive and day-node ceremony
-tasks (=++1d=) and =96a51c2f='s monthly re-measure (=+1m=). **Not one heading in
-this project has ever been scheduled to say when it will be done.** Sequencing
-is carried entirely by slices, which order work but say nothing about *when*,
-and by =:BLOCKER:=, which says what must precede what but not on which day.
-
-So the agenda shows this project's recurrences and nothing else. A forward view
-— what lands this week, what slips — has no input.
-
-*What makes this more than "start using =SCHEDULED:=".* The active/inactive
-timestamp distinction is already load-bearing here and points the other way:
-=b8e6007a= settled that the queue records agent activity and the agenda must not
-absorb it, which is why span timestamps are inactive. An agenda that starts
-carrying *forecasts* has to keep them apart from the *record* — a scheduled date
-is a claim about the future and a CLOCK line is a measurement of the past, and
-the agenda renders both. Deciding that boundary before populating it is the
-work, not typing dates.
-
-*Two open questions, neither settled here.* Whether a slice gains dates at all,
-or only its members — a slice sequences without committing to a calendar, and
-dating one may be the wrong shape. And whether this is a convention for *this*
-repo or belongs in the portable half, since the ask was framed as "future
-projects": that is =9ae4b17e='s classification question arriving from a new
-direction, and it is why this carries =:CATEGORY: Skill= rather than =Meta=.
-
-*Deferred to packaging, 2026-09-08 (the user), and the nomination
-withdrawn* — a =NEXT= queued minutes earlier on closing =84b7d8b3= is
-to be declined at review. The heading's own last question ("this
-repo's convention or the portable half's?") is answered by the
-deferral: it is decided *with* the portable half, so
-[[id:b0e478f7-e894-4ac7-b0b6-b3c890b5b32a][b0e478f7]] is now its
-=:BLOCKER:=. The forecast-vs-record boundary design happens there.
-
-*Answered 2026-09-11 by a delegated survey, for the question this heading must
-settle before it dates anything: does org cascade a slipped schedule down a
-dependency chain — task 1 overruns, and 2, 3, 4 bump forward in turn?* **No,
-nowhere.** Not org core, org-contrib, GNU/NonGNU ELPA or MELPA; a sweep of all
-6,304 MELPA packages for =gantt|critical.?path|pert|cpm|precedence= returned
-zero. Org has no "a date changed" hook at all, so any cascade must be *invoked*
-— a bulk agenda command or an explicit tool — never fired.
-
-*Four things get mistaken for it.* =ORDERED=, org-depend and org-edna =BLOCKER=
-all gate **state**, never dates. org-depend's single date action,
-=chain-siblings-scheduled=, *copies* the predecessor's scheduled time to its
-next sibling instead of shifting it — the opposite of what an overrun needs —
-and walks siblings only, never =:BLOCKER:=. =ox-taskjuggler= genuinely solves
-the cascade, but as a one-directional export with no importer, and it needs
-=Effort=, of which this corpus has **zero**; it has also left org core (9.5) and
-then org-contrib, and now lives in a third-party repo. org-gantt and elgantt
-compute dates internally and discard them.
-
-*The only real primitive anywhere is org-edna's* =scheduled!("+Nd")=, which
-shifts a target's own date relative to itself. Two limits keep it a primitive
-rather than the feature: it fires **only** on a transition to DONE, and it
-advances exactly **one hop** — =todo!= re-enters =org-trigger-hook= and so
-chains, while the date actions call =org--deadline-or-schedule= directly and
-fire nothing. No finder walks a dependency graph either; the shortest credible
-build is a custom finder returning the transitive =:BLOCKER:= closure, with the
-shipped =scheduled!= doing the arithmetic.
-
-*Three hazards for this heading's own forecast-vs-record boundary,* which is why
-this belongs here rather than on a tooling heading. =SCHEDULED=/=DEADLINE= are
-active timestamps by construction — correct for a forecast, but it means the
-line to defend is that nothing *derived from clock measurement* ever becomes
-one. =org-log-reschedule= and =org-log-redeadline= are both nil today and should
-stay nil: either would write revision lines into =:LOGBOOK:=, the same drawer
-the CLOCK record lives in. And any cascade hung on =org-trigger-hook= would fire
-**during the human apply pass**, writing forecast dates in bursts and bypassing
-the queue outright — the queue has no event type for a proposed date change.
-
-*Provenance, stated because it bounds how far this should be trusted:* the
-org-edna behaviour above comes from reading its source, not from running it. It
-is not installed here.
-
-*Divided 2026-10-02 (the user); this heading is now the pacing child only.* The
-user wants all three uses: commitments, milestones on slices and on stories, and
-pacing that follows a slip. The first two need no more research and went to the
-sibling a29464da under the story 14c02a28; this one keeps the cascade and the
-survey above, which is all about it.
-
-*Three decisions the cascade needs before design, not research.* What a slip is:
-a date passing with the heading unfinished, which the agenda already shows as
-overdue, or an explicit move of a date, which is what the cascade would follow.
-The order to cascade along: =:BLOCKER:= edges, which are dependencies and sit on
-59 headings in TODO.org, or a slice's =:MEMBERS:= order, which is a sequence and
-not necessarily a dependency; they give different answers. How far a slip moves
-its successors: with no =:Effort:= anywhere in the corpus, shifting every
-successor by the slip and keeping the gaps is the only rule that needs no new
-data.
-
-*Two findings of 2026-10-02.* =org-schedule= and =org-deadline= take the date as
-an argument and write without prompting while =org-log-reschedule= and
-=org-log-redeadline= are nil, tested in a scratch buffer, so a date tool cannot
-hang the way 3d576d29's state notes did. And a relative date such as =+3d= is
-counted from today, not from the date already there, so a cascade must compute
-each new date itself rather than hand org a delta.
-
-*The org-native estimate is the =Effort= property* (=org-effort-property=, set
-with =org-set-effort=, durations such as =1:30=, =2h= or =3d=, a coarse scale
-through =Effort_ALL=). Column view sets it against =CLOCKSUM=, the agenda
-filters on it, and ox-taskjuggler schedules from it. Adopting it, coarse and
-optional, is what would let a cascade schedule forward from durations instead of
-only shifting dates; its effort-versus-actual half depends on clocking, the
-optional half of this project.
-:END:
-
-The pacing half of laying future work out on the agenda: when a dated heading
-slips, move the dates that follow it. Org has no such cascade, so it is a custom
-command, invoked and never triggered; before it is designed, three decisions are
-owed: what counts as a slip, which order it follows, and how far successors
-move. Research and decisions in =:PLAN:=.
-
-
-** TODO Set dates through the tools, and let slices and stories carry milestones their members are checked against :code:
-:PROPERTIES:
-:ID:       a29464da-e045-4276-881e-cab41ad0b8ad
-:CREATED:  [2026-10-02 Fri 10:10]
-:END:
-
-No tool sets a planning line, so a session cannot put a heading on the agenda
-except by hand-editing it, though org-schedule and org-deadline take the date as
-an argument and, with reschedule logging off, write without prompting (tested
-2026-10-02). Proposed: a structural tool for SCHEDULED and DEADLINE on any
-heading, commitments included (the user's first real DEADLINE is on 158d7e80);
-dates on slices and stories read as milestones; and a lint that reports a member
-dated after its group's milestone. Ready to design: the 2026-09-11 survey
-answered its research.
 
 
 * TODO org_query answers from a restricted or short file set without saying so :code:
@@ -9181,12 +9157,12 @@ before the fix and still says.
 
 
 * TODO Archive closed tasks daily
-SCHEDULED: <2026-10-03 Sat 07:00 ++1d>
+SCHEDULED: <2026-10-06 Tue 07:00 ++1d>
 :PROPERTIES:
 :CATEGORY: Meta
 :ID:       cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8
 :CREATED:  [2026-08-21 Fri 15:35]
-:LAST_REPEAT: [2026-10-02 Fri 09:59]
+:LAST_REPEAT: [2026-10-05 Mon 11:22]
 :END:
 :LOGBOOK:
 CLOCK: [2026-08-24 Mon 10:25]--[2026-08-24 Mon 10:28] =>  0:03
@@ -11897,7 +11873,6 @@ call it done.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
-CLOCK: [2026-10-02 Fri 10:40]--[2026-10-02 Fri 10:41] =>  0:01
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
@@ -12073,6 +12048,8 @@ CLOCK: [2026-09-29 Tue 16:41]--[2026-09-29 Tue 16:44] =>  0:03
 - <2026-09-29 Tue 20:40>--<2026-09-29 Tue 20:40> review pass (buffer buried)
 CLOCK: [2026-10-01 Thu 11:27]--[2026-10-01 Thu 11:32] =>  0:05
 CLOCK: [2026-10-02 Fri 09:44]--[2026-10-02 Fri 09:58] =>  0:14
+CLOCK: [2026-10-02 Fri 10:40]--[2026-10-02 Fri 10:41] =>  0:01
+CLOCK: [2026-10-05 Mon 11:20]--[2026-10-05 Mon 11:21] =>  0:01
 :END:
 
 We created this heading on 2026-08-26. We deleted that property from its

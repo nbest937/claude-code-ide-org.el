@@ -6,6 +6,81 @@ Archived entries from file /Users/neil.best/git/claude-code-ide-org/TODO.org
 
 * 2026
 
+** 2026-10 October
+*** 2026-10-02 Friday
+**** DONE Archived :ARCHIVE_FILE: paths are machine-absolute; audit their portability :code:spike:
+CLOSED: [2026-10-02 Fri 10:40]
+:PROPERTIES:
+:ID:       ea1df60b-1e28-448e-bb62-a6fc2b6b62f8
+:CREATED:  [2026-09-10 Thu 10:36]
+:CATEGORY: Meta
+:ARCHIVE_TIME: 2026-10-05 Mon 11:22
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Meta
+:ARCHIVE_TODO: DONE
+:END:
+:DEBRIEF:
+Spike, run 2026-10-02 against DONE.org and org 9.8.7's source, read-only.
+
+*Census.* 363 archived headings carry =:ARCHIVE_FILE:=, and all 363 hold the
+same value, =~/git/claude-code-ide-org/TODO.org=. =org-archive-subtree= writes
+it through =abbreviate-file-name=, so it is relative to the home directory:
+right on any machine that keeps the repository at =~/git/claude-code-ide-org=,
+merely inaccurate anywhere else. None point outside this repository.
+
+*Nothing reads it.* Org writes =ARCHIVE_TIME=, =_FILE=, =_OLPATH=, =_CATEGORY=
+and =_TODO= from =org-archive-save-context-info=, and the only code in the
+straight checkout that reads them back is org's own =test-org-archive.el=. Core
+org has no command to unarchive a heading from an archive file; the one
+"unarchived" in =org-archive.el= is the toggle of the =:ARCHIVE:= tag, an
+unrelated feature. This module reads none of them. The heading's premise, that
+org uses the property for unarchiving so a wrong path breaks the round trip, was
+false: it is provenance only.
+
+*Shaping it is possible and not worth it.* Dropping =file= from
+=org-archive-save-context-info= would stop it being written; here every value is
+identical, so that would remove 363 lines of no information, but a consumer
+archiving from several files would want it kept. Nothing filed.
+:END:
+:LOGBOOK:
+- Tags ":code:spike:" from ":code:"     [2026-09-28 Mon 13:01] \\
+  classified: an audit question whose output is an answer
+CLOCK: [2026-10-02 Fri 10:18]--[2026-10-02 Fri 10:19] =>  0:01
+- [2026-10-02 Fri 10:18]--[2026-10-02 Fri 10:19] assigned at review
+CLOCK: [2026-10-02 Fri 10:22]--[2026-10-02 Fri 10:23] =>  0:01
+- [2026-10-02 Fri 10:22]--[2026-10-02 Fri 10:23] spike: archive path portability
+- State "DONE"       from "TODO"       [2026-10-02 Fri 10:40] \\
+  spike answered: home-relative, never read, nothing to change
+CLOCK: [2026-10-02 Fri 10:40]--[2026-10-02 Fri 10:41] =>  0:01
+- [2026-10-02 Fri 10:40]--[2026-10-02 Fri 10:41] spike: archive path portability
+CLOCK: [2026-10-02 Fri 11:06]--[2026-10-02 Fri 11:08] =>  0:02
+- [2026-10-02 Fri 11:06]--[2026-10-02 Fri 11:08] assigned at review
+CLOCK: [2026-10-02 Fri 11:12]--[2026-10-02 Fri 11:13] =>  0:01
+- [2026-10-02 Fri 11:12]--[2026-10-02 Fri 11:13] assigned at review
+CLOCK: [2026-10-02 Fri 11:48]--[2026-10-02 Fri 11:49] =>  0:01
+- [2026-10-02 Fri 11:48]--[2026-10-02 Fri 11:49] assigned at review
+CLOCK: [2026-10-02 Fri 12:01]--[2026-10-02 Fri 12:02] =>  0:01
+- [2026-10-02 Fri 12:01]--[2026-10-02 Fri 12:02] assigned at review
+:END:
+:PLAN:
+
+The user, unable to grok =9ae4b17e= during a decision, noticed its
+=:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org= — org-archive's
+own provenance stamp, written as a machine-absolute path. Inert for
+reading, but =org-archive= uses it for *unarchiving*, so on another
+machine (or after a repo move) the round-trip breaks silently. Audit
+question for a housekeeping sweep: how many archived entries carry
+machine-absolute =ARCHIVE_*= paths, whether unarchive is a workflow
+this project actually uses, and whether a relative or symlink-stable
+form is achievable (org writes the stamp itself — shaping it likely
+means =org-archive-location= or a post-archive normalizer, not a hand
+edit). Related: =9ae4b17e='s own body is also on =e128e4fa='s
+pre-convention sweep list, which is the cleanup the user reached for
+first.
+
+:END:
+Answered 2026-10-02: the paths are home-relative, not machine-absolute, and
+nothing reads them back, so nothing breaks and nothing needs changing.
 ** 2026-09 September
 *** 2026-09-29 Tuesday
 **** CANCELLED [2/2] Make the corpus searchable by tag, by measurement where it can be and by decision where it cannot
