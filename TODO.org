@@ -7023,7 +7023,9 @@ and a report that must fire at session start cannot depend on that.
 :CREATED:  [2026-09-03 Thu 09:24]
 :CATEGORY: Tools
 :END:
+:PLAN:
 
+:END:
 Found 2026-09-03 while re-checking whether org_query reaches DONE.org. The tool
 honors its documented scope — claude-code-ide-org-query-files, falling back to
 the org-agenda-files function — but that function's answer is shaped by live
