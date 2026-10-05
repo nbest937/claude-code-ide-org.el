@@ -6927,7 +6927,9 @@ why a stale note is still pending to be borrowed by [[id:9b7301de-0903-4987-bb34
 :CREATED:  [2026-09-04 Fri 13:09]
 :CATEGORY: Meta
 :END:
+:PLAN:
 
+:END:
 =claude-code-ide-org-session-context= assembles three things: the clocked
 heading, =--attention-headings-context=, and =--nomination-candidates-context=.
 The last reports **absences** — groupings whose live members include no =NEXT=.
