@@ -10562,6 +10562,7 @@ both times the code four lines away said otherwise. Filed separately.
 :ID:       1a5a5254-f62d-46e7-9a6c-3d84f2f52873
 :CREATED:  [2026-08-11 Tue 15:52]
 :END:
+:PLAN:
 
 CLAUDE.md records =pmset -g log= as "not yet attempted" and frames the
 per-app power assertions as noise obscuring clean sleep/wake
@@ -10569,6 +10570,7 @@ transitions. For *this* question the framing is backwards: a laptop that
 never sleeps emits zero transitions and a rich assertion record, and the
 assertion holder is the answer.
 
+:END:
 Tried 2026-08-11 against a known-answer window. The log named the
 competing activity exactly:
 
@@ -10688,10 +10690,6 @@ way in any record.
 turned out to be a different line in a log that had already been dismissed
 wholesale. Worth re-reading a rejected source for the *specific* record wanted,
 rather than re-litigating the rejection.
-
-*Its body holds the beginnings of a plan* (noted 2026-10-01, [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]]'s condense
-pass): when this heading is brainstormed, move the prospective prose into
-=:PLAN:= and revise the body to a short statement.
 
 
 * TODO Make task lifecycle answerable from one timeline, starting at creation :code:
