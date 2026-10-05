@@ -741,7 +741,9 @@ CLOCK: [2026-09-28 Mon 08:56]--[2026-09-28 Mon 08:58] =>  0:02
 - Tags ":code:"     from ":code:observed:" [2026-09-29 Tue 21:46] \\
   tag dropped (the user, 2026-09-29): applied by recall, so its absence meant nothing
 :END:
+:PLAN:
 
+:END:
 Observed 2026-09-28 when a bookkeeping commit was refused: "plan link points at
 a missing file: ~/.claude/plans/goofy-baking-wall.md". The link sits in a
 =DONE.org= heading. The plan had aged out of =~/.claude/plans=, and
