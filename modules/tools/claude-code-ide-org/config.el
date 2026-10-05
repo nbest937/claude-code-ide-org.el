@@ -4488,7 +4488,12 @@ undone only through git. Commit the file first, then revise.")
   ;; lengths, and the fill (:ID: b52df20b) measures what is displayed.
   (let* ((target (car (ignore-errors (claude-code-ide-org--id-find id))))
          (linked (claude-code-ide-org--link-citations
-                  (claude-code-ide-org--escape-block-headlines text) target))
+                  (claude-code-ide-org--escape-block-headlines text) target nil
+                  ;; A slice's body is where its member scan reads.
+                  (and (not drawer)
+                       (ignore-errors
+                         (org-with-point-at (claude-code-ide-org--id-find id 'marker)
+                           (claude-code-ide-org--slice-p))))))
          (linked-count (cdr linked))
          (resolved (claude-code-ide-org-resolve-id-links (car linked))))
     (unless (car resolved) (setq id nil))
@@ -4867,7 +4872,9 @@ written there would corrupt the record silently."
              ;; Linked before the resolve and the fill, as every write path
              ;; is (TODO.org :ID: f7847adf).
              (linked (claude-code-ide-org--link-citations
-                      escaped (and marker (buffer-file-name (marker-buffer marker)))))
+                      escaped (and marker (buffer-file-name (marker-buffer marker))) nil
+                      (and (not drawer) marker
+                           (org-with-point-at marker (claude-code-ide-org--slice-p)))))
              (resolved (claude-code-ide-org-resolve-id-links (car linked))))
         (cond
          ((not (car resolved)) (cdr resolved))
@@ -11991,7 +11998,8 @@ deferred write must mean what the immediate one would have."
         (claude-code-ide-org--fill-prose-text
          (car (claude-code-ide-org--link-citations
                (claude-code-ide-org--escape-block-headlines (plist-get item :text))
-               buffer-file-name))
+               buffer-file-name nil
+               (and (not (plist-get item :drawer)) (claude-code-ide-org--slice-p))))
          fill-column)))
     (if drawer
         (claude-code-ide-org--amend-into-drawer drawer text)
@@ -18198,12 +18206,12 @@ silently -- cite the symbol instead: %s" title))
                ;; headings only -- a finished one is history.
                (when (and cite-ctx todo
                           (not (member todo claude-code-ide-org--outline-finished-keywords)))
-                 (let ((n 0))
+                 (let ((n 0) (slice (claude-code-ide-org--slice-p)))
                    (dolist (r (claude-code-ide-org--citation-regions))
                      (setq n (+ n (length (claude-code-ide-org--citation-candidates
-                                           (buffer-substring-no-properties (car r) (cdr r))
+                                           (buffer-substring-no-properties (nth 0 r) (nth 1 r))
                                            (nth 0 cite-ctx) (nth 1 cite-ctx)
-                                           (nth 2 cite-ctx))))))
+                                           (nth 2 cite-ctx) (and slice (not (nth 2 r))))))))
                    (when (> n 0)
                      (report 'warn line "%d verbatim citation%s the tools would \
 link -- write it as a link, or run claude-code-ide-org-link-citations-in-file: %s"
@@ -20827,7 +20835,8 @@ link `bin/lint-org' refuses as unresolvable."
 or in org's own records.  `verbatim' is here for bare candidates; a
 verbatim token that is itself the citation is matched separately.")
 
-(defun claude-code-ide-org--citation-candidates (text resolver commit-dir pr-repo)
+(defun claude-code-ide-org--citation-candidates (text resolver commit-dir pr-repo
+                                                    &optional members)
   "The citations in TEXT the linker would convert.
 
 A list of (KIND BEG END REPLACEMENT), ascending, with BEG and END as
@@ -20840,7 +20849,12 @@ a SHA is checked against; nil links no commits.  PR-REPO is
 The forms: an 8-hex id prefix, bare or in =verbatim=; a 7- or 9-12-hex
 SHA in =verbatim= or after the word \"commit\"; \"PR #N\".  Nothing inside
 a link, code, a block or a drawer org owns, so a second run finds
-nothing -- a link's description is inside the link."
+nothing -- a link's description is inside the link.
+
+MEMBERS non-nil means TEXT lands where a slice's member scan reads --
+a slice's body -- and there an id never opens a list item: `- [[id:'
+is the shape of a member line, so linking `- =c74f8663= ...' would
+manufacture a member out of prose."
   (let ((orgit (and commit-dir (assoc "orgit-rev" org-link-parameters)))
         (seen (make-hash-table :test 'equal))
         out)
@@ -20857,7 +20871,13 @@ nothing -- a link's description is inside the link."
                                (known known)))))
             (excluded-p (lambda (ctx)
                           (org-element-lineage
-                           ctx claude-code-ide-org--citation-excluded-types t))))
+                           ctx claude-code-ide-org--citation-excluded-types t)))
+            (item-start-p (lambda (pos)
+                            (and members
+                                 (save-excursion
+                                   (goto-char pos)
+                                   (looking-back "^[ \t]*- \\(?:\\[.\\] \\)?"
+                                                 (line-beginning-position)))))))
         (cl-flet ((add (kind beg end replacement)
                     (push (list kind (1- beg) (1- end) replacement) out)))
           ;; =token=: an id prefix or a SHA, the whole verbatim object.
@@ -20875,7 +20895,8 @@ nothing -- a link's description is inside the link."
                                ctx claude-code-ide-org--citation-excluded-types)))
                 (let ((full (and (= 8 (length token)) (funcall resolver token))))
                   (cond
-                   (full (add 'id beg end (format "[[id:%s][%s]]" full token)))
+                   ((and full (not (funcall item-start-p beg)))
+                    (add 'id beg end (format "[[id:%s][%s]]" full token)))
                    ((and (/= 8 (length token)) (funcall commit-p token))
                     (add 'commit beg end
                          (format "[[orgit-rev:./::%s][%s]]" token token))))))
@@ -20891,7 +20912,7 @@ nothing -- a link's description is inside the link."
               (unless (funcall excluded-p (save-excursion (goto-char beg)
                                                           (org-element-context)))
                 (let ((full (funcall resolver token)))
-                  (when full
+                  (when (and full (not (funcall item-start-p beg)))
                     (add 'id beg end (format "[[id:%s][%s]]" full token)))))))
           ;; "commit SHA".
           (goto-char (point-min))
@@ -20934,8 +20955,9 @@ Nil when FILE is nil, and then nothing is linked."
     (setq text (concat (substring text 0 (nth 1 c)) (nth 3 c)
                        (substring text (nth 2 c))))))
 
-(defun claude-code-ide-org--link-citations (text file &optional context)
+(defun claude-code-ide-org--link-citations (text file &optional context members)
   "Link the citations in TEXT, bound for FILE.  Returns (NEW . COUNT).
+MEMBERS is `--citation-candidates's: TEXT lands in a slice's body.
 
 CONTEXT is a `--citation-context' to reuse across calls; computed from
 FILE when nil.  Never refuses and never signals: on any failure TEXT
@@ -20945,7 +20967,7 @@ comes back unchanged with a count of 0, so linking cannot block a write."
              (let ((ctx (or context (claude-code-ide-org--citation-context file))))
                (when ctx
                  (let ((cands (claude-code-ide-org--citation-candidates
-                               text (nth 0 ctx) (nth 1 ctx) (nth 2 ctx))))
+                               text (nth 0 ctx) (nth 1 ctx) (nth 2 ctx) members)))
                    (cons (claude-code-ide-org--apply-citations text cands)
                          (length cands)))))))
       (cons text 0)))
@@ -20966,7 +20988,7 @@ description and every `=' dropped: what a linking pass must preserve."
     "\\1" text t)))
 
 (defun claude-code-ide-org--citation-regions ()
-  "The heading at point's prose, as (BEG . END) runs of whole lines.
+  "The heading at point's prose, as (BEG END DRAWERP) runs of whole lines.
 Body, :PLAN: and :DEBRIEF: -- never the headline, planning line,
 :PROPERTIES: or :LOGBOOK:, nor a generated line (a slice's planned and
 incidental members, which the refresh rewrites wholesale)."
@@ -20988,21 +21010,21 @@ incidental members, which the refresh rewrites wholesale)."
               (unless (equal (upcase (org-element-property :drawer-name child))
                              "LOGBOOK")
                 (when (org-element-contents-begin child)
-                  (push (cons (org-element-contents-begin child)
-                              (org-element-contents-end child))
+                  (push (list (org-element-contents-begin child)
+                              (org-element-contents-end child) t)
                         spans))))
-             (_ (push (cons (org-element-begin child) (org-element-end child))
+             (_ (push (list (org-element-begin child) (org-element-end child) nil)
                       spans))))))
      ;; Each span split around generated lines, which are whole lines.
      (dolist (span (nreverse spans))
-       (goto-char (car span))
+       (goto-char (nth 0 span))
        (let ((run nil))
-         (while (< (point) (cdr span))
+         (while (< (point) (nth 1 span))
            (if (claude-code-ide-org--generated-line-p)
-               (when run (push (cons run (point)) regions) (setq run nil))
+               (when run (push (list run (point) (nth 2 span)) regions) (setq run nil))
              (unless run (setq run (point))))
            (forward-line 1))
-         (when run (push (cons run (min (point) (cdr span))) regions))))
+         (when run (push (list run (min (point) (nth 1 span)) (nth 2 span)) regions))))
      (nreverse regions))))
 
 (defun claude-code-ide-org-link-citations-in-file (&optional file dry-run)
@@ -21035,11 +21057,13 @@ from Lisp no argument writes.  Returns the report."
              (goto-char (point-max))
              (while (re-search-backward org-heading-regexp nil t)
                (let ((title (org-get-heading t t t t))
+                     (slice (claude-code-ide-org--slice-p))
                      (changes nil) (n 0))
                  (dolist (r (claude-code-ide-org--citation-regions))
-                   (let* ((old (buffer-substring-no-properties (car r) (cdr r)))
+                   (let* ((old (buffer-substring-no-properties (nth 0 r) (nth 1 r)))
                           (cands (claude-code-ide-org--citation-candidates
-                                  old (nth 0 ctx) (nth 1 ctx) (nth 2 ctx))))
+                                  old (nth 0 ctx) (nth 1 ctx) (nth 2 ctx)
+                                  (and slice (not (nth 2 r))))))
                      (when cands
                        (dolist (c cands) (cl-incf (alist-get (car c) counts)))
                        (setq n (+ n (length cands)))
@@ -21056,8 +21080,8 @@ from Lisp no argument writes.  Returns the report."
                        ;; `changes' was pushed in buffer order, so it is
                        ;; already last region first.
                        (dolist (ch changes)
-                         (goto-char (car (nth 0 ch)))
-                         (delete-region (car (nth 0 ch)) (cdr (nth 0 ch)))
+                         (goto-char (nth 0 (nth 0 ch)))
+                         (delete-region (nth 0 (nth 0 ch)) (nth 1 (nth 0 ch)))
                          (insert (nth 2 ch))))))
                  (org-back-to-heading t))))
             (when (and (not dry-run) (> headings 0)) (save-buffer))))

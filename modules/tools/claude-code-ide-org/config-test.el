@@ -20871,3 +20871,28 @@ touches DONE.org."
                               (claude-code-ide-org-link-citations-in-file
                                (expand-file-name "DONE.org" (file-name-directory capture-file))
                                t))))))
+
+(ert-deftest claude-code-ide-org-test-cite-never-opens-a-list-item-in-a-slice-body ()
+  "In a slice's body an id never opens a list item, since `- [[id:' is
+a member line; mid-line, and anywhere outside a slice body, it links."
+  (let ((cands (lambda (text members)
+                 (claude-code-ide-org--apply-citations
+                  text (claude-code-ide-org--citation-candidates
+                        text #'claude-code-ide-org-test--cite-resolver nil nil members)))))
+    (dolist (text '("- =abcd1234= prose.\n" "- [ ] abcd1234 prose.\n"))
+      (should (equal text (funcall cands text t)))
+      (should-not (equal text (funcall cands text nil))))
+    (should (string-match-p "^- see \\[\\[id:" (funcall cands "- see abcd1234.\n" t))))
+  (claude-code-ide-org-test--with-capture-file
+    (with-temp-file capture-file
+      (insert "#+TODO: TODO | DONE\n\n"
+              "* TODO [0/0] A slice\n:PROPERTIES:\n:ID: abcd1234-0000-4000-8000-000000000001\n"
+              ":KIND: slice\n:END:\n\nTheme.\n"))
+    (org-id-update-id-locations (list capture-file))
+    (claude-code-ide-org-amend "abcd1234-0000-4000-8000-000000000001"
+                               "- =abcd1234= is a prose bullet.")
+    (claude-code-ide-org-amend "abcd1234-0000-4000-8000-000000000001"
+                               "- =abcd1234= first." nil nil "PLAN")
+    (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
+      (should (string-match-p "^- =abcd1234= is a prose bullet\\.$" disk))
+      (should (string-match-p "^- \\[\\[id:abcd1234-[^]]+\\]\\[abcd1234\\]\\] first\\.$" disk)))))
