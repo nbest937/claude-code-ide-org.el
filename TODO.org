@@ -3980,6 +3980,7 @@ the line is about the work.
 :CATEGORY: Dev
 :BLOCKER:  08d76f6a-9f4d-4a41-a2c6-05e96115237d
 :END:
+:PLAN:
 
 Requested by the user 2026-09-17: move the =:ID:= prefix to the front "to
 replicate the footnote presentation". The format string has not changed since
@@ -4009,6 +4010,7 @@ than a move. Interacts with [[id:1c7051da-c020-41e1-b843-8cfc68f53e38][1c7051da]
 should say once "clocked in" stops claiming a clock; do them together or
 sequence them deliberately, since both rewrite the same format string.
 
+:END:
 *Blocked on [[id:08d76f6a-9f4d-4a41-a2c6-05e96115237d][08d76f6a]] deliberately, and the blocker is a sequencing judgement
 rather than a dependency — say so if you would rather have the id move now and
 take the rework.* Three pending changes rewrite the same =format= call: this
@@ -4149,10 +4151,6 @@ has to pass the width into the elisp call. That is passing an *environment fact*
 rather than adding logic, which is defensible under "maximum Emacs, minimal
 shell", but it should be a deliberate note in the script rather than an
 unremarked argument.
-
-*Its body holds the beginnings of a plan* (noted 2026-10-01, [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]]'s condense
-pass): when this heading is brainstormed, move the prospective prose into
-=:PLAN:= and revise the body to a short statement.
 
 
 * TODO The statusline says "clocked in" when it means "agent mid-turn", and the heading is merely the last one named :code:
