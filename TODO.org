@@ -6969,7 +6969,9 @@ is the failure this whole sweep exists to catch.
 CLOCK: [2026-09-04 Fri 12:51]--[2026-09-04 Fri 12:52] =>  0:01
 - [2026-09-04 Fri 12:51]--[2026-09-04 Fri 12:52] file the DOING-story gap; narrow 2c3aadbe
 :END:
+:PLAN:
 
+:END:
 [[id:43aa25b2-1e21-4117-bf15-b92f3081b60d][43aa25b2]] one state over. =--attention-headings-context= reports a =DOING=
 *leaf* the file and the queue disagree about, and its clause opens =(and (equal
 state "DOING") (not (claude-code-ide-org--grouping-heading-p)))= — so a =DOING=
@@ -7013,10 +7015,6 @@ place [[id:43aa25b2-1e21-4117-bf15-b92f3081b60d][43aa25b2]] landed, for the same
 "what should a starting session be told about", and a forgotten story is that
 question. **Not the org skill**: a skill loads on trigger match, possibly never,
 and a report that must fire at session start cannot depend on that.
-
-*Its body holds the beginnings of a plan* (noted 2026-10-01, [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]]'s condense
-pass): when this heading is brainstormed, move the prospective prose into
-=:PLAN:= and revise the body to a short statement.
 
 
 * TODO org_query answers from a restricted or short file set without saying so :code:
