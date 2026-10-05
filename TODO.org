@@ -5833,7 +5833,9 @@ CLOCK: [2026-09-17 Thu 08:18]--[2026-09-17 Thu 08:19] =>  0:01
 CLOCK: [2026-09-17 Thu 08:36]--[2026-09-17 Thu 08:37] =>  0:01
 - [2026-09-17 Thu 08:36]--[2026-09-17 Thu 08:37] suggested span, accepted at review
 :END:
+:PLAN:
 
+:END:
 (Filing prose restored 2026-09-11 — the original capture note was discarded by
 =org_capture='s immediate path, by documented design.) 2026-09-11, one
 occurrence: the beachball after the ceremony's final =q= was a corpse — =sample=
@@ -6177,10 +6179,6 @@ session, into =~/.claude/emacs-samples/=. The other is the stderr launch
 proposed above. This investigation cannot move until a wedge is caught in
 the act, and the hook removes the discipline of remembering to sample
 before the kill.
-
-*Its body holds the beginnings of a plan* (noted 2026-10-01, [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]]'s condense
-pass): when this heading is brainstormed, move the prospective prose into
-=:PLAN:= and revise the body to a short statement.
 
 
 * TODO Per-machine port via ${VAR:-45571} in .mcp.json, with the wire check env-aware :code:
