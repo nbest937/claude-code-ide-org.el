@@ -1724,6 +1724,14 @@ Judged unrelated: =Notification=, =MessageDisplay=, =Elicitation=,
 :CATEGORY: Dev
 :BLOCKER:  c35087d8-19fe-4179-a61c-cb615b2e7679
 :END:
+:LOGBOOK:
+CLOCK: [2026-09-22 Tue 20:20]--[2026-09-22 Tue 20:20] =>  0:00
+- [2026-09-22 Tue 20:20]--[2026-09-22 Tue 20:20] assigned at review
+CLOCK: [2026-09-23 Wed 08:42]--[2026-09-23 Wed 08:44] =>  0:02
+- [2026-09-23 Wed 08:42]--[2026-09-23 Wed 08:44] assigned at review
+CLOCK: [2026-09-23 Wed 08:44]--[2026-09-23 Wed 08:45] =>  0:01
+- [2026-09-23 Wed 08:44]--[2026-09-23 Wed 08:45] record the save-prompt decision
+:END:
 :PLAN:
 *A transient refusal prompts the human to save, and the agent waits on
 the save* (the user, 2026-09-23). The prompt turns the back-off from a
@@ -1772,14 +1780,6 @@ hook, and hooks here must survive an Emacs outage. Two things to measure
 before relying on it: that the lockfile really disappears on save and on
 revert, and that a stale one left by a crashed Emacs is recognisable,
 since it names a PID that no longer runs.
-:END:
-:LOGBOOK:
-CLOCK: [2026-09-22 Tue 20:20]--[2026-09-22 Tue 20:20] =>  0:00
-- [2026-09-22 Tue 20:20]--[2026-09-22 Tue 20:20] assigned at review
-CLOCK: [2026-09-23 Wed 08:42]--[2026-09-23 Wed 08:44] =>  0:02
-- [2026-09-23 Wed 08:42]--[2026-09-23 Wed 08:44] assigned at review
-CLOCK: [2026-09-23 Wed 08:44]--[2026-09-23 Wed 08:45] =>  0:01
-- [2026-09-23 Wed 08:44]--[2026-09-23 Wed 08:45] record the save-prompt decision
 :END:
 
 When an org tool refuses a write, sessions fall through to `Edit`, `sed -i` or
@@ -5023,6 +5023,24 @@ cheap read of the transcript's first line, not a parse.
 :CREATED:  [2026-09-15 Tue 13:25]
 :CATEGORY: Tools
 :END:
+:LOGBOOK:
+CLOCK: [2026-09-23 Wed 10:12]--[2026-09-23 Wed 10:13] =>  0:01
+- [2026-09-23 Wed 10:12]--[2026-09-23 Wed 10:13] assigned at review
+CLOCK: [2026-09-23 Wed 10:15]--[2026-09-23 Wed 10:16] =>  0:01
+- [2026-09-23 Wed 10:15]--[2026-09-23 Wed 10:16] assigned at review
+CLOCK: [2026-09-23 Wed 10:19]--[2026-09-23 Wed 10:22] =>  0:03
+- [2026-09-23 Wed 10:19]--[2026-09-23 Wed 10:22] assigned at review
+CLOCK: [2026-09-23 Wed 10:26]--[2026-09-23 Wed 10:33] =>  0:07
+- [2026-09-23 Wed 10:26]--[2026-09-23 Wed 10:33] assigned at review
+CLOCK: [2026-09-23 Wed 10:33]--[2026-09-23 Wed 10:35] =>  0:02
+- Tags ":code:arch:" from ":code:" [2026-09-23 Wed 10:33] \\
+  classified at its first brainstorm, bounded then stepped up: retiring
+  org_amend in the same move changes a tool every session and three
+  hooks depend on
+- [2026-09-23 Wed 10:33]--[2026-09-23 Wed 10:35] record the org_edit design, its children and blockers
+- State "NEXT"       from "TODO"       [2026-09-24 Thu 19:58] \\
+  nominate the org_edit story for Tools
+:END:
 :PLAN:
 Designed 2026-09-23 through the brainstorming skill, classified =arch=:
 bounded at first, stepped up when retiring =org_amend= in the same move
@@ -5129,24 +5147,6 @@ rewrites a drawer without the caller naming the text it replaces, where a
 literal replacement cannot lose what it was not pointed at. Keeping
 =note=.
 :END:
-:LOGBOOK:
-CLOCK: [2026-09-23 Wed 10:12]--[2026-09-23 Wed 10:13] =>  0:01
-- [2026-09-23 Wed 10:12]--[2026-09-23 Wed 10:13] assigned at review
-CLOCK: [2026-09-23 Wed 10:15]--[2026-09-23 Wed 10:16] =>  0:01
-- [2026-09-23 Wed 10:15]--[2026-09-23 Wed 10:16] assigned at review
-CLOCK: [2026-09-23 Wed 10:19]--[2026-09-23 Wed 10:22] =>  0:03
-- [2026-09-23 Wed 10:19]--[2026-09-23 Wed 10:22] assigned at review
-CLOCK: [2026-09-23 Wed 10:26]--[2026-09-23 Wed 10:33] =>  0:07
-- [2026-09-23 Wed 10:26]--[2026-09-23 Wed 10:33] assigned at review
-CLOCK: [2026-09-23 Wed 10:33]--[2026-09-23 Wed 10:35] =>  0:02
-- Tags ":code:arch:" from ":code:" [2026-09-23 Wed 10:33] \\
-  classified at its first brainstorm, bounded then stepped up: retiring
-  org_amend in the same move changes a tool every session and three
-  hooks depend on
-- [2026-09-23 Wed 10:33]--[2026-09-23 Wed 10:35] record the org_edit design, its children and blockers
-- State "NEXT"       from "TODO"       [2026-09-24 Thu 19:58] \\
-  nominate the org_edit story for Tools
-:END:
 
 No org tool edits text in place: =org_amend= appends, or replaces a whole
 body, so a one-sentence correction in a body or in a written =:PLAN:=
@@ -5166,21 +5166,6 @@ CLOSED: [2026-10-02 Fri 13:25]
 :PROPERTIES:
 :ID:       704d8558-657b-43e2-9440-1c054c923ed2
 :CREATED:  [2026-09-23 Wed 10:34]
-:END:
-:DEBRIEF:
-Built 2026-09-28 on =feature/org-edit=, and used for this repo's tracker edits
-from then on, while it was still unmerged. PR #33's review on 2026-10-02 found
-four defects that the plain prose it had edited never exposed:
-- the refill cut a paragraph at blank lines and parsed it alone, so inside a block that holds a blank line it filled through =#+end_example=;
-- the headline guard checked =new_string= only, so a deletion could leave =* = at column zero;
-- the region skipped the first line's indent, so the text =org_body= shows could not rewrite an indented region whole;
-- an append with both strings empty wrote blank lines and reported success.
-
-The first three were fixed on the branch in [[orgit-rev:claude-code-ide-org::ce6b6a1][ce6b6a1]], [[orgit-rev:claude-code-ide-org::ce0f9e7][ce0f9e7]] and [[orgit-rev:claude-code-ide-org::6e66b0a][6e66b0a]], each
-with a test shown to fail on the old code first. The fourth was filed as
-[[id:adc71d3b-3744-4854-85f7-a28a21162bb5][adc71d3b]]. The fixes were committed from a git worktree at first, which the
-pre-commit setup check refuses; that is filed as [[id:6abc58c0-5561-43c4-8629-475c3130d236][6abc58c0]] (=MAYBE=), and they
-were committed from the main checkout instead. Merged 2026-10-02, [[orgit-rev:claude-code-ide-org::3e11fe9][3e11fe9]].
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-09-24 Thu 19:58] \\
@@ -5221,6 +5206,21 @@ CLOCK: [2026-10-02 Fri 13:03]--[2026-10-02 Fri 13:07] =>  0:04
   PR #33 findings 1-3 fixed (ce6b6a1, ce0f9e7, 6e66b0a), threads answered and resolved; finding 4 filed
 - State "DONE"       from "REVIEW"     [2026-10-02 Fri 13:25] \\
   PR #33 merged (3e11fe9)
+:END:
+:DEBRIEF:
+Built 2026-09-28 on =feature/org-edit=, and used for this repo's tracker edits
+from then on, while it was still unmerged. PR #33's review on 2026-10-02 found
+four defects that the plain prose it had edited never exposed:
+- the refill cut a paragraph at blank lines and parsed it alone, so inside a block that holds a blank line it filled through =#+end_example=;
+- the headline guard checked =new_string= only, so a deletion could leave =* = at column zero;
+- the region skipped the first line's indent, so the text =org_body= shows could not rewrite an indented region whole;
+- an append with both strings empty wrote blank lines and reported success.
+
+The first three were fixed on the branch in [[orgit-rev:claude-code-ide-org::ce6b6a1][ce6b6a1]], [[orgit-rev:claude-code-ide-org::ce0f9e7][ce0f9e7]] and [[orgit-rev:claude-code-ide-org::6e66b0a][6e66b0a]], each
+with a test shown to fail on the old code first. The fourth was filed as
+[[id:adc71d3b-3744-4854-85f7-a28a21162bb5][adc71d3b]]. The fixes were committed from a git worktree at first, which the
+pre-commit setup check refuses; that is filed as [[id:6abc58c0-5561-43c4-8629-475c3130d236][6abc58c0]] (=MAYBE=), and they
+were committed from the main checkout instead. Merged 2026-10-02, [[orgit-rev:claude-code-ide-org::3e11fe9][3e11fe9]].
 :END:
 
 The new tool, with =id=, =old_string=, =new_string= and an optional =drawer=,
@@ -6953,29 +6953,6 @@ CLOSED: [2026-09-08 Tue 16:12]
 :CREATED:  [2026-09-02 Wed 15:42]
 :CATEGORY: Meta
 :END:
-:DEBRIEF:
-*Debrief, 2026-09-08.* Shipped in PR #18 (=5171903=). The convention
-landed in =org-conventions.md= as its own section: at close, two
-=org_amend= calls — the authored resolution onto the body, the full
-debrief via =drawer=DEBRIEF= (the argument =501a8422= shipped, which
-answered this heading's first open question: no =org_wrap_debrief=
-sibling was needed for prospective use). The second open question was
-declined for now — no lint requires the resolution line, observation
-before machinery — and the third answered *yes*: =:DEBRIEF:= is exempt
-from the skip advice, since on a finished heading it is the thing most
-worth reading. =org_set_todo='s close note gained the second branch,
-firing for a plan-first heading without a =:DEBRIEF:= and silenced by
-one, with the queue-append =(was ...)= contract asserted on the new
-reply. CLAUDE.md's pre-archive outcome-summary rule is absorbed, as
-this body's in-scope note asked. The 88-heading retroactive corpus is
-filed as its own member of the story rather than swept — each needs an
-authored resolution, which is the cost this plan named. One regression
-test, proven failing against pre-change code. This very close is the
-convention's first use — if this text is inside =:DEBRIEF:=, the
-stale-schema client could pass =drawer= after all; if it sits in the
-body, the caveat about reconnecting held and the next session should
-relocate it.
-:END:
 :LOGBOOK:
 CLOCK: [2026-09-08 Tue 15:56]--[2026-09-08 Tue 15:59] =>  0:03
 - [2026-09-08 Tue 15:56]--[2026-09-08 Tue 15:59] assigned at review
@@ -7021,6 +6998,29 @@ once a =:DEBRIEF:= exists; and whether =:DEBRIEF:= should be exempt from the
 folding advice that tells readers to skip =:PLAN:=, since a debrief on a
 finished heading is the thing most worth reading.
 :END:
+:DEBRIEF:
+*Debrief, 2026-09-08.* Shipped in PR #18 (=5171903=). The convention
+landed in =org-conventions.md= as its own section: at close, two
+=org_amend= calls — the authored resolution onto the body, the full
+debrief via =drawer=DEBRIEF= (the argument =501a8422= shipped, which
+answered this heading's first open question: no =org_wrap_debrief=
+sibling was needed for prospective use). The second open question was
+declined for now — no lint requires the resolution line, observation
+before machinery — and the third answered *yes*: =:DEBRIEF:= is exempt
+from the skip advice, since on a finished heading it is the thing most
+worth reading. =org_set_todo='s close note gained the second branch,
+firing for a plan-first heading without a =:DEBRIEF:= and silenced by
+one, with the queue-append =(was ...)= contract asserted on the new
+reply. CLAUDE.md's pre-archive outcome-summary rule is absorbed, as
+this body's in-scope note asked. The 88-heading retroactive corpus is
+filed as its own member of the story rather than swept — each needs an
+authored resolution, which is the cost this plan named. One regression
+test, proven failing against pre-change code. This very close is the
+convention's first use — if this text is inside =:DEBRIEF:=, the
+stale-schema client could pass =drawer= after all; if it sits in the
+body, the caveat about reconnecting held and the next session should
+relocate it.
+:END:
 
 A heading's body still grows without bound once the debrief lands in it, so
 orientation stays expensive even after
@@ -7061,35 +7061,6 @@ CLOCK: [2026-09-09 Wed 14:03]--[2026-09-09 Wed 14:11] =>  0:08
 - State "DONE"       from "REVIEW"     [2026-09-10 Thu 12:38] \\
   read split proven in daily use and the euchre session
 :END:
-:DEBRIEF:
-Shipped as =9075f8e=. The three open design questions closed as: bodies
-*always*, with =bodies=false= as the opt-out (the user: "build it all
-now"); the drawer read is a =drawer== parameter on =org_body=, any
-drawer name, missing drawers erroring with the drawers actually
-present; no rename (=1cd2df62='s churn caution — every doc naming
-=org_body= stays true). Body extraction rides
-=org-end-of-meta-data FULL=, so :PLAN:, :DEBRIEF:, :LOGBOOK: and
-:PROPERTIES: are all excluded from the index — verified by a fixture
-whose drawer content must never appear in the outline. One defect
-caught mid-build by the suite: an unescaped quote in a docstring
-truncated it and left a bare =false= symbol in code position, failing
-every outline test with =(void-variable false)= — the kind of break
-=check-conventions='s reads-as-forms assertion also guards. Suite
-588/588.
-
-*STANDING REMINDER, at the user's request ("tell me when to compact
-the context after the corpus pass"): when =e128e4fa= closes, the
-pre-convention bodies are short, and whichever session notices should
-tell the user it is time to re-measure the unscoped =org_outline= —
-and retire the interim =bodies=false= advice in CLAUDE.md's "Reading
-the tracker" if the numbers support it.*
-
-*The reminder above fired and was answered 2026-09-30, when e128e4fa's pass
-ran.* The unscoped outline measured about 1.07M characters with bodies against
-97k without, so the bodies=false advice stays. Live pre-convention bodies in
-TODO.org (about 472k) dominate it, which finished bodies being short cannot fix;
-b1ac24d1 files dropping finished bodies from the outline, a partial remedy.
-:END:
 :PLAN:
 
 *The user's proposal, 2026-09-02.* Once the plan and (per
@@ -7126,6 +7097,35 @@ standing heading about tool surfaces that lie about what they accept.
 [[id:d5eb32a3-fcee-4a25-b39a-fcde597f6cee][d5eb32a3]]: until bodies are actually
 short, carrying them in the outline makes it *more* expensive, not less.
 Sequencing this first would measure the wrong thing.
+:END:
+:DEBRIEF:
+Shipped as =9075f8e=. The three open design questions closed as: bodies
+*always*, with =bodies=false= as the opt-out (the user: "build it all
+now"); the drawer read is a =drawer== parameter on =org_body=, any
+drawer name, missing drawers erroring with the drawers actually
+present; no rename (=1cd2df62='s churn caution — every doc naming
+=org_body= stays true). Body extraction rides
+=org-end-of-meta-data FULL=, so :PLAN:, :DEBRIEF:, :LOGBOOK: and
+:PROPERTIES: are all excluded from the index — verified by a fixture
+whose drawer content must never appear in the outline. One defect
+caught mid-build by the suite: an unescaped quote in a docstring
+truncated it and left a bare =false= symbol in code position, failing
+every outline test with =(void-variable false)= — the kind of break
+=check-conventions='s reads-as-forms assertion also guards. Suite
+588/588.
+
+*STANDING REMINDER, at the user's request ("tell me when to compact
+the context after the corpus pass"): when =e128e4fa= closes, the
+pre-convention bodies are short, and whichever session notices should
+tell the user it is time to re-measure the unscoped =org_outline= —
+and retire the interim =bodies=false= advice in CLAUDE.md's "Reading
+the tracker" if the numbers support it.*
+
+*The reminder above fired and was answered 2026-09-30, when e128e4fa's pass
+ran.* The unscoped outline measured about 1.07M characters with bodies against
+97k without, so the bodies=false advice stays. Live pre-convention bodies in
+TODO.org (about 472k) dominate it, which finished bodies being short cannot fix;
+b1ac24d1 files dropping finished bodies from the outline, a partial remedy.
 :END:
 
 Once plan and debrief move into drawers, =org_outline='s bodiless index
@@ -9859,6 +9859,12 @@ SCHEDULED: <2026-09-13 Sun +1m>
 :ID:       96a51c2f-ce11-4b40-bdff-11223d3d4eb7
 :CREATED:  [2026-08-13 Thu 12:20]
 :END:
+:LOGBOOK:
+- State "TODO"       from              [2026-08-13 Thu 12:21] \\
+  scheduled re-measure, one month out
+CLOCK: [2026-09-04 Fri 09:59]--[2026-09-04 Fri 10:00] =>  0:01
+- [2026-09-04 Fri 09:59]--[2026-09-04 Fri 10:00] record what active marking would reverse
+:END:
 
 *Promoted out of [[id:b5f7c5c7-7ad6-4c68-9cce-3479db1f1644][b5f7c5c7]]
 on 2026-08-13.* It was filed there because the threshold it re-measures
@@ -9867,12 +9873,6 @@ never reaches =DONE=, which meant the epic could not either, and
 [[id:38b92521-bba4-4bb5-9cd9-465862471a72][38b92521]] is blocked on that
 epic. A recurring measurement has no terminal state and therefore no
 completable parent.
-:LOGBOOK:
-- State "TODO"       from              [2026-08-13 Thu 12:21] \\
-  scheduled re-measure, one month out
-CLOCK: [2026-09-04 Fri 09:59]--[2026-09-04 Fri 10:00] =>  0:01
-- [2026-09-04 Fri 09:59]--[2026-09-04 Fri 10:00] record what active marking would reverse
-:END:
 
 Scheduled rather than left to memory: the finding below is real but
 thin, and the failure mode is adopting a four-day number as permanent
@@ -11452,6 +11452,11 @@ pass): when this heading is brainstormed, move the prospective prose into
 :CREATED:  [2026-08-04 Tue 17:30]
 :BLOCKER:  b95b9fba-f78e-48fe-8546-988709cce309
 :END:
+:LOGBOOK:
+CLOCK: [2026-08-06 Thu 09:35]--[2026-08-06 Thu 09:40] =>  0:05
+CLOCK: [2026-08-06 Thu 10:00]--[2026-08-06 Thu 10:05] =>  0:05
+- State "TODO"       from "MAYBE"      [2026-09-19 Sat 14:20]
+:END:
 :PLAN:
 *The residue, and its two halves.* A request to change something may
 depend on unfinished work, or unfinished work may depend on the thing
@@ -11483,11 +11488,6 @@ both trackers for a =:BLOCKER:= naming the target's id — which is the
 inverse index [[id:0eecf8e7-a8d5-4da7-9d6d-f397542b2139][0eecf8e7]] wants
 as a tool, done by grep. =org_query= has no property-value predicate,
 which is still the reason it is a text search.
-:END:
-:LOGBOOK:
-CLOCK: [2026-08-06 Thu 09:35]--[2026-08-06 Thu 09:40] =>  0:05
-CLOCK: [2026-08-06 Thu 10:00]--[2026-08-06 Thu 10:05] =>  0:05
-- State "TODO"       from "MAYBE"      [2026-09-19 Sat 14:20]
 :END:
 Narrowed 2026-09-19 to one of the three behaviours it was captured with, at the
 user's direction, against the drift slice =f6d160c2=. The match check is now
