@@ -8402,6 +8402,7 @@ productivity ([[id:c4bc5c70-861a-4ce0-80da-c79b6b1600f3][c4bc5c70]]).
 :CREATED:  [2026-08-31 Mon 15:44]
 :CATEGORY: Queue
 :END:
+:PLAN:
 
 Split out of [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]] 2026-08-31,
 which shipped the review-buffer surface and named this as still open.
@@ -8421,6 +8422,7 @@ turns together. An annotation recording only the runs loses the same distinction
 [[id:44cef181-8dac-4735-8860-f123e132fdbc][44cef181]] was filed about, one layer
 down and where nobody is watching.
 
+:END:
 *Analysis inherited from [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]]
 on 2026-08-31, boiled down from where it sat among three competing surfaces.*
 
