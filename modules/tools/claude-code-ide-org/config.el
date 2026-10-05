@@ -4349,8 +4349,11 @@ type, so it corrupts the outline, container detection, statistics
 cookies and the lint -- silently.  \"Comma-escape headline lines\" was a
 convention to recall; the write path does it instead.
 
-Only `^\\*+ ' lines, which are the dangerous ones, and only inside a
-block.  Already-escaped lines are left alone, so this is idempotent --
+Only headline lines, which are the dangerous ones -- a star run followed
+by a space, or a line of stars alone, which `org-heading-regexp' also
+takes for a heading -- and only inside a block.  `bin/lint-org' errors
+on one a hand edit leaves.  Already-escaped lines are left alone, so
+this is idempotent --
 unlike `org-escape-code-in-string', which would add a second comma and
 is meant for text org will unescape once."
   (when text
@@ -4360,7 +4363,7 @@ is meant for text org will unescape once."
           (cond
            ((string-match-p "\\`[ \t]*#\\+end_" line) (setq in-block nil))
            ((string-match-p "\\`[ \t]*#\\+begin_" line) (setq in-block t))
-           ((and in-block (string-match-p "\\`\\*+ " line))
+           ((and in-block (string-match-p "\\`\\*+\\(?: \\|\\'\\)" line))
             (setq line (concat "," line)))))
         (push line out))
       (mapconcat #'identity (nreverse out) "\n"))))
@@ -18393,7 +18396,25 @@ which org-depend cannot parse -- run claude-code-ide-org-normalize-blocker-synta
                             (file-name-directory (expand-file-name file)))))
                 (report 'error (line-number-at-pos)
                         "plan link points at a missing file: %s"
-                        (match-string 1))))))
+                        (match-string 1)))))
+          ;; A headline line inside a block (TODO.org :ID: 8a23d6ec) is a
+          ;; real heading to org whatever the block means, and it breaks
+          ;; the outline, cookies and container detection silently. The
+          ;; writers escape it; this catches a hand edit. Textual on
+          ;; purpose: to org the heading has already broken the block, so
+          ;; its parser cannot see the line as inside one.
+          (goto-char (point-min))
+          (let ((case-fold-search t) (in-block nil))
+            (while (not (eobp))
+              (cond
+               ((looking-at-p "[ \t]*#\\+end_") (setq in-block nil))
+               ((looking-at-p "[ \t]*#\\+begin_") (setq in-block t))
+               ((and in-block (let ((case-fold-search nil))
+                                (looking-at-p "\\*+\\(?: \\|$\\)")))
+                (report 'error (line-number-at-pos)
+                        "headline line inside a block is a real heading to org \
+-- comma-escape it (,*)")))
+              (forward-line 1))))
           ;; The anchor must be the file's final level-1 heading.
           ;; `error' rather than `warn': the correct state is computable
           ;; and `claude-code-ide-org-sort-by-created' restores it without

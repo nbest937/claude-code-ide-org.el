@@ -21025,3 +21025,35 @@ SHA alone; RET on a mark jumps.  The mode is on in a tracked file."
       (with-current-buffer (find-file-noselect other)
         (unwind-protect (should-not claude-code-ide-org-id-lookup-mode)
           (kill-buffer))))))
+
+;;; Headline lines inside a block: the bare form and the lint (TODO.org :ID: 8a23d6ec)
+
+(ert-deftest claude-code-ide-org-test-escape-block-headlines-bare-stars ()
+  "A line of stars alone inside a block is a heading to org too, so it is
+escaped; outside a block it is left, and a second pass changes nothing."
+  (let* ((text "**\n#+begin_example\n***\n* x\n,**\n#+end_example\n")
+         (once (claude-code-ide-org--escape-block-headlines text)))
+    (should (equal "**\n#+begin_example\n,***\n,* x\n,**\n#+end_example\n" once))
+    (should (equal once (claude-code-ide-org--escape-block-headlines once)))))
+
+(ert-deftest claude-code-ide-org-test-lint-refuses-a-headline-inside-a-block ()
+  "Both headline forms inside a block are a lint error; an escaped line
+and a star line outside any block are not."
+  (let ((head (concat "* TODO A task\n:PROPERTIES:\n"
+                      ":ID:       aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa\n"
+                      ":CREATED:  [2026-09-02 Wed 09:00]\n:CATEGORY: Dev\n:END:\n")))
+    (dolist (line '("** Fake" "***"))
+      (should (claude-code-ide-org-test--lint-matches
+               (claude-code-ide-org-test--lint
+                (concat head "#+begin_example\n" line "\n#+end_example\n"))
+               'error "headline line inside a block")))
+    (should-not (claude-code-ide-org-test--lint-matches
+                 (claude-code-ide-org-test--lint
+                  (concat head "#+begin_example\n,** Fake\n,***\n#+end_example\n"))
+                 'error "headline line inside a block"))
+    (should-not (claude-code-ide-org-test--lint-matches
+                 (claude-code-ide-org-test--lint
+                  (concat head "#+begin_example\nprose\n#+end_example\n** TODO Real child\n"
+                          ":PROPERTIES:\n:ID:       bbbbbbbb-aaaa-aaaa-aaaa-aaaaaaaaaaaa\n"
+                          ":CREATED:  [2026-09-02 Wed 09:00]\n:END:\n"))
+                 'error "headline line inside a block"))))

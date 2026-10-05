@@ -1007,6 +1007,11 @@ heading that closes carries its anchor into `:PLAN:` with the rest of the
 prospective half, which is how the citation stops being a live pointer
 without anyone editing prose.
 
+**Org structure quoted in a block is comma-escaped** (`,* Heading`, and
+`,***` for a bare star line), because org reads a headline line as a
+heading whatever block holds it (`:ID:` 8a23d6ec). The tools escape it on
+write and at apply, and `bin/lint-org` errors on one a hand edit leaves.
+
 ## The meta-work datetree
 
 `* Review and planning` carries `:DATE_TREE: t`, which is what makes org nest
