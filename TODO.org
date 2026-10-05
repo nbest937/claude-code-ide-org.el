@@ -5616,6 +5616,7 @@ a minute each across the headings it filed.
 :CREATED:  [2026-09-14 Mon 12:15]
 :CATEGORY: Apply
 :END:
+:PLAN:
 
 Asked by the user 2026-09-14, immediately after dismissing seven items that
 shared one reason: =d= should leave a mark the way =m= does — a *different*
@@ -5635,6 +5636,13 @@ cursor question in [[id:e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b][e95cc5d1]] if it
 ships — a mark does not remove its line, so the advance becomes correct by
 construction — but that heading stands on its own until then, since it is a live
 defect and this is a design.
+:END:
+
+Proposes that =d= in the review buffer marks an item for dismissal, dired-style,
+instead of dismissing it at once, so a set sharing one reason can be dismissed
+together. Open: which key executes the marks, whether one typed reason covers
+the set, and how it interacts with auto-marking.
+
 
 
 * TODO =d= advances point in the review buffer, onto whatever moved up to replace the dismissed item :code:
