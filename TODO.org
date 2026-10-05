@@ -7047,6 +7047,7 @@ inspectable one.
 :CREATED:  [2026-09-02 Wed 16:00]
 :CATEGORY: Meta
 :END:
+:PLAN:
 
 A heading's body grows without bound, so orientation costs more the longer a
 task runs — the median live body is 50 lines against a file of ~118,000 tokens.
@@ -7056,6 +7057,7 @@ in =:PLAN:= and the outcome in =:DEBRIEF:=. Members cover the two conventions,
 the two tool changes they need, and the retroactive repair of the corpus written
 before them.
 
+:END:
 Precipitated by division 2026-09-02, out of
 [[id:b75d553a-3c77-4b98-9f58-022bfa295816][b75d553a]], once the fourth member
 was filed. Its origin findings stay outside the group:
