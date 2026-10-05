@@ -4544,7 +4544,7 @@ yet applied, so it has no body to amend. Apply the queue, then amend."
                     (cond (replace ", replacing the body")
                           (drawer (format ", into :%s:" drawer))
                           (t "")))
-          (let* ((replaced nil) (created nil)
+          (let* ((replaced nil) (created nil) (nudged nil)
                  (result
                   (claude-code-ide-org--at-id-writable
                    id
@@ -4572,10 +4572,13 @@ yet applied, so it has no body to amend. Apply the queue, then amend."
                      (when (and replace (not replaced))
                        (claude-code-ide-org--end-of-body)
                        (insert "\n\n" (string-trim (or text "")) "\n"))
+                     ;; Owed a :PLAN: now (TODO.org :ID: fce6bd35)?
+                     (setq nudged (save-excursion (org-back-to-heading t)
+                                                   (claude-code-ide-org--plan-owed-p)))
                      (save-buffer)
                      nil))))
             (or (and (stringp result) result)
-                (format "%s\"%s\"%s%s"
+                (format "%s\"%s\"%s%s%s"
                         (if replace "Revised: " claude-code-ide-org--reply-amended)
                         title
                         (cond
@@ -4585,7 +4588,8 @@ yet applied, so it has no body to amend. Apply the queue, then amend."
                           (format " (created :%s:)" drawer))
                          (drawer (format " (into :%s:)" drawer))
                          (t ""))
-                        (claude-code-ide-org--linked-note linked-count)))))))))))))
+                        (claude-code-ide-org--linked-note linked-count)
+                        (if nudged claude-code-ide-org--plan-owed-nudge "")))))))))))))
 
 ;;; org_edit (TODO.org :ID: 704d8558) ----------------------------------------
 ;;
@@ -4895,9 +4899,15 @@ not yet applied, so it has nothing to edit. Apply the queue, then edit."
                 (let ((reply (claude-code-ide-org--at-id-writable
                               id
                               (lambda ()
-                                (claude-code-ide-org--edit-at-point
-                                 old-string (cdr resolved) drawer
-                                 (claude-code-ide-org--fill-column-for-file file))))))
+                                (let ((r (claude-code-ide-org--edit-at-point
+                                          old-string (cdr resolved) drawer
+                                          (claude-code-ide-org--fill-column-for-file file))))
+                                  (if (and (stringp r)
+                                           (string-prefix-p claude-code-ide-org--reply-edited r)
+                                           (save-excursion (org-back-to-heading t)
+                                                           (claude-code-ide-org--plan-owed-p)))
+                                      (concat r claude-code-ide-org--plan-owed-nudge)
+                                    r))))))
                   (if (and (stringp reply)
                            (string-prefix-p claude-code-ide-org--reply-edited reply))
                       (concat reply (claude-code-ide-org--linked-note (cdr linked)))
@@ -17655,6 +17665,34 @@ Counts from the end of the metadata to the next heading of any level --
 on `claude-code-ide-org--heading-body-bounds\'."
   (>= (claude-code-ide-org--lint-body-prose-lines) 10))
 
+(defun claude-code-ide-org--plan-owed-p ()
+  "Non-nil when the heading at point owes a :PLAN: drawer and has none.
+
+A live task -- a keyword, not finished -- whose body is substantial
+\(`claude-code-ide-org--lint-substantial-body-p').  A slice is exempt, as
+it is from the finished-heading warning, since it designs nothing; so is
+a `Miss:' heading, a log of catches with nothing prospective in it.
+
+The one definition the lint, the write-time nudge and the backfill of
+TODO.org :ID: fce6bd35 share, so the three cannot disagree about which
+headings owe one."
+  (let ((kw (org-get-todo-state)))
+    (and kw
+         (not (member kw claude-code-ide-org--outline-finished-keywords))
+         (not (claude-code-ide-org--slice-p))
+         (not (string-prefix-p "Miss:" (org-get-heading t t t t)))
+         (claude-code-ide-org--lint-substantial-body-p)
+         (not (claude-code-ide-org--find-drawer "PLAN")))))
+
+(defconst claude-code-ide-org--plan-owed-nudge
+  " -- the body is now substantial with no :PLAN:; split its prospective \
+half into one (org_wrap_plan, or org_amend drawer=PLAN), or bin/lint-org \
+refuses it at commit"
+  "Appended to an `org_amend' or `org_edit' reply when the write leaves
+its heading owing a :PLAN: drawer (TODO.org :ID: fce6bd35).  64 of the
+103 headings the backfill found had grown past the threshold through
+amends, which the lint alone catches only at commit.")
+
 (defun claude-code-ide-org--lint-heading-ids (files)
   "Return a hash of every :ID: defined across FILES, mapped to its
 heading's TODO keyword (or nil when it carries none).  The keyword is
@@ -18187,6 +18225,14 @@ recursive, so its cookie counts the wrong things (have: %s): %s"
                                     (claude-code-ide-org--parse-org-timestamp closed)
                                     claude-code-ide-org-plan-drawer-since)))
                      (report 'warn line "finished heading with a substantial body and no :PLAN: drawer -- wrap the prospective half with org_wrap_plan: %s" title))))
+               ;; The live counterpart, and an error (TODO.org :ID:
+               ;; fce6bd35): after the backfill every live heading has the
+               ;; shape, so a miss is new and the split is owed now. An
+               ;; empty :PLAN: is a real answer -- no prospective half.
+               (when (claude-code-ide-org--plan-owed-p)
+                 (report 'error line "live heading with a substantial body and \
+no :PLAN: drawer -- split its prospective half with org_wrap_plan (a seam on \
+the first body line records that it has none): %s" title))
                ;; A `file.el:NNN' citation in a LIVE body is a pointer
                ;; someone is expected to follow, and it rots upward: the
                ;; file grows, the line still exists, and it now holds

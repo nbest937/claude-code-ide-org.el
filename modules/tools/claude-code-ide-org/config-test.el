@@ -21082,3 +21082,49 @@ the wrap goes ahead; one above it, inside the part wrapped, is refused
     (org-id-update-id-locations (list capture-file))
     (should (string-match-p "bare :END: line"
                             (claude-code-ide-org-wrap-plan "wrap-end2" "Measured:")))))
+
+;;; A live heading owes a :PLAN: (TODO.org :ID: fce6bd35)
+
+(defun claude-code-ide-org-test--prose (n)
+  "N one-line prose paragraphs."
+  (mapconcat (lambda (i) (format "Prose line %d.\n" i)) (number-sequence 1 n) "\n"))
+
+(ert-deftest claude-code-ide-org-test-lint-refuses-a-live-body-owing-a-plan ()
+  "A live heading with a substantial body and no :PLAN: is an error; an
+empty :PLAN:, a short body, a finished heading, a slice and a Miss:
+heading are not."
+  (let ((props (lambda (n) (format ":PROPERTIES:\n:ID:       %s-aaaa-aaaa-aaaa-aaaaaaaaaaaa\n:CREATED:  [2026-09-02 Wed 09:00]\n:CATEGORY: Dev\n:END:\n" n)))
+        (long (claude-code-ide-org-test--prose 12)))
+    (should (claude-code-ide-org-test--lint-matches
+             (claude-code-ide-org-test--lint
+              (concat "* TODO Owes one\n" (funcall props "aaaaaaaa") long))
+             'error "live heading with a substantial body and no :PLAN:"))
+    (dolist (text (list (concat "* TODO Has one\n" (funcall props "aaaaaaaa") ":PLAN:\n:END:\n" long)
+                        (concat "* TODO Short\n" (funcall props "aaaaaaaa")
+                                (claude-code-ide-org-test--prose 3))
+                        (concat "* DONE Finished\nCLOSED: [2026-09-02 Wed 10:00]\n"
+                                (funcall props "aaaaaaaa") long)
+                        (concat "* TODO Miss: a kind of miss\n" (funcall props "aaaaaaaa") long)))
+      (should-not (claude-code-ide-org-test--lint-matches
+                   (claude-code-ide-org-test--lint text)
+                   'error "no :PLAN: drawer")))))
+
+(ert-deftest claude-code-ide-org-test-write-nudges-when-a-plan-becomes-owed ()
+  "org_amend and org_edit say so exactly when the write leaves a live
+heading owing a :PLAN:."
+  (claude-code-ide-org-test--with-capture-file
+    (with-temp-file capture-file
+      (insert "#+TODO: TODO | DONE\n\n"
+              "* TODO Growing\n:PROPERTIES:\n:ID: nudge-1\n:END:\n\n"
+              (claude-code-ide-org-test--prose 8)))
+    (org-id-update-id-locations (list capture-file))
+    (should-not (string-match-p "no :PLAN:"
+                                (claude-code-ide-org-amend "nudge-1" "Ninth line.")))
+    (should (string-match-p "no :PLAN:"
+                            (claude-code-ide-org-amend "nudge-1" "Tenth line.")))
+    (should (string-match-p "\\`Edited: .*no :PLAN:"
+                            (claude-code-ide-org-edit "nudge-1" "Tenth line." "The tenth line.")))
+    ;; Once it has a :PLAN:, nothing is owed.
+    (claude-code-ide-org-amend "nudge-1" "The plan." nil nil "PLAN")
+    (should-not (string-match-p "no :PLAN:"
+                                (claude-code-ide-org-amend "nudge-1" "Eleventh line.")))))

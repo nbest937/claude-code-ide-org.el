@@ -871,16 +871,10 @@ Where the two disagree, the member wins. A member's plan is normally
 longer than its body, since the body is two to five sentences plus what
 happened.
 
-**A member with no drawer gets one before its step is worked**, so that a
-decision always has somewhere to land. **On a pre-convention body, wrap
-first, with `org_wrap_plan`**, whole when the seam is uncertain, then
-append the decision with `org_amend drawer=PLAN`. Creating the drawer by
-amend first leaves the old plan in the body, and `org_wrap_plan` then
-refuses the heading for good (nine headings, 2026-09-21). A plain
-`org_amend drawer=PLAN` is only for a body with no prospective prose. *This clause
-is scaffolding.* It lapses once `6521dd56`'s corpus pass leaves every open
-heading in canonical shape and the lint requires that shape, and that
-slice carries the member that retires it.
+**Every live heading with a substantial body has a `:PLAN:` drawer**,
+empty when it has no prospective half, so a decision always has somewhere
+to land: `bin/lint-org` errors on one without, and `org_amend` and
+`org_edit` say so the moment a write makes one owed (`:ID:` fce6bd35).
 
 ### Revising a pre-convention body
 
