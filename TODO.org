@@ -5454,6 +5454,7 @@ a space while the refusal also catches the bare form. Rare, and it fails safe.
 - State "NEXT"       from "TODO"       [2026-10-02 Fri 13:25] \\
   704d8558 merged; the wait-on-save is the story's next child in order
 :END:
+:PLAN:
 
 On unsaved changes, =org_edit= refuses at once with a reply distinct from its
 permanent refusals, and sets a header line asking the human to save, cleared by
@@ -5469,6 +5470,13 @@ mechanism, built with =org_edit= as its first user.
 refuses on unsaved edits, so =org_edit='s immediate refusal should call it
 and not grow a second check. [[id:60d6ab6e-a898-4894-82be-9f6086daf62d][60d6ab6e]] is in slice [[id:8a2eb687-28da-4d44-893b-db59298bdc5b][8a2eb687]] and expected
 to land first. No =:BLOCKER:=, since each stands alone.
+:END:
+
+On unsaved changes =org_edit= should refuse at once through the shared
+busy-refusal helper and ask for a save in a header line, while the agent waits
+on a shipped poll script in the background and retries. The waiting stays
+outside the tool so Emacs is never frozen while the human saves.
+
 
 
 ** TODO Retire org_amend in one move: hooks, prose, and the live headings renamed with org_edit :code:
