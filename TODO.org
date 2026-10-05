@@ -8216,6 +8216,7 @@ rather than nineteen.
 :CREATED:  [2026-09-01 Tue 08:38]
 :CATEGORY: Clock
 :END:
+:PLAN:
 
 Split out of [[id:c60a1c53-ba7f-40a2-979a-6ce0a16ce3c8][c60a1c53]] 2026-09-01,
 which shipped the slice-omission half and left this one in prose. That body
@@ -8233,6 +8234,7 @@ invisible*: it lands on the meta-work day node as an unassigned span,
 indistinguishable at review from planning, and the human attributing it has no
 way to tell that three of those hours were implementation on a specific heading.
 
+:END:
 *Measured when it was found, 2026-08-25:* 52 state changes queued that day and
 *zero* clock events, the last having been 2026-08-24 16:42. Every heading went
 =TODO= -> =DONE= in one step — not a listed transition, so no rule ever fired to
