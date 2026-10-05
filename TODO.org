@@ -235,7 +235,9 @@ answered its research.
 :CREATED:  [2026-10-02 Fri 09:53]
 :CATEGORY: Dev
 :END:
+:PLAN:
 
+:END:
 claude-code-ide-org-render-session dates the session once, in #+TITLE:, and
 heads each turn with a time of day only, so a session that runs over several
 days reads as one. The render of session 3effb289 (2026-09-28 to 2026-10-02)
