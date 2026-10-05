@@ -9565,6 +9565,7 @@ CLOCK: [2026-08-24 Mon 10:52]--[2026-08-24 Mon 10:55] =>  0:03
 - [2026-08-24 Mon 10:52]--[2026-08-24 Mon 10:55] suggested span, accepted at review
 - State "DONE"       from "TODO"       [2026-09-02 Wed 08:56]
 :END:
+:PLAN:
 The recurring pass: archive what is closed, so the live file stops carrying it.
 
 *What to do,* in order -- the reasons are in =.claude/rules/org-conventions.md=
@@ -9590,6 +9591,7 @@ prepare and remind, not perform.
 not this heading.* Clearing 36 accumulated headings is a one-time migration with
 a decision attached; this is the steady state after it.
 
+:END:
 /Body pared 2026-08-24, from 47 lines. It had grown to hold three different
 things -- this ritual, that backlog, and a set of standing conventions -- and a
 repeater never reaches/ =DONE=/, so nothing in the/ =:PLAN:= /lifecycle would
