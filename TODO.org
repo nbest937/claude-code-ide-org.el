@@ -9347,6 +9347,7 @@ the same code.
 - State "NEXT"       from "TODO"       [2026-08-26 Wed 14:47] \\
   direct continuation of what 3964c575 decided
 :END:
+:PLAN:
 
 A clocktable never prints a parent's own time. It is recoverable only as
 =parent_row - sum(child_rows)=, arithmetic the reader performs silently and
@@ -9355,6 +9356,7 @@ of [[id:3964c575-50bc-4cc9-abeb-bdd1c0162c2c][3964c575]], split out when that he
 carry its own clock, because a parent's own coordination time is real work, and
 this is what makes that answer *legible*.
 
+:END:
 *What is established.*
 - Measured: a parent carrying 1:00 of its own, with children of 2:00 and 0:30, renders as below -- the parent's own 1:00 appears nowhere.
 
