@@ -4786,7 +4786,9 @@ CLOCK: [2026-09-16 Wed 13:48]--[2026-09-16 Wed 13:57] =>  0:09
 CLOCK: [2026-09-16 Wed 13:57]--[2026-09-16 Wed 13:57] =>  0:00
 - <2026-09-16 Wed 13:57>--<2026-09-16 Wed 13:57> split the retcon out; record the fix shape
 :END:
+:PLAN:
 
+:END:
 Found 2026-09-16 when the user asked why only some =Review attention= LOGBOOK
 entries carry annotations. The annotations were the symptom; the clock is the
 defect. **=--attention-start= runs once, when the review buffer is created, and
@@ -4963,10 +4965,6 @@ runs only one, so apply's first =org-clock-in= on an item closes it. [[id:595df2
 replaces it with a start time held outside org and one closed =CLOCK:= line
 written at quit, which would remove this defect's cause rather than reopen the
 clock afterwards.
-
-*Its body holds the beginnings of a plan* (noted 2026-10-01, [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]]'s condense
-pass): when this heading is brainstormed, move the prospective prose into
-=:PLAN:= and revise the body to a short statement.
 
 
 * DOING The complement's gap spans carry no events, so half the review buffer cannot be dismissed :code:
