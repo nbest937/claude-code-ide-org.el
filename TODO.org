@@ -12058,6 +12058,8 @@ losing track of what's been found.
 :ID:       8f986c6f-7cab-42c5-9a21-01275f271c80
 :CREATED:  [2026-07-30 Thu 12:21]
 :END:
+:PLAN:
+:END:
 =claude-code-ide-mcp-http-server--send-empty-response= (the
 id-less/notification response path, e.g. for
 =notifications/initialized=) replies with HTTP =200= +
