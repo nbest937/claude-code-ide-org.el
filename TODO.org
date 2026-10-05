@@ -1001,7 +1001,9 @@ the plain-string form.
 CLOCK: [2026-09-27 Sun 17:18]--[2026-09-27 Sun 17:21] =>  0:03
 - [2026-09-27 Sun 17:18]--[2026-09-27 Sun 17:21] assigned at review
 :END:
+:PLAN:
 
+:END:
 Noticed by the user on 2026-09-27: three of that day's "Review and planning"
 clock items were labelled "root-cause unattributed spans, file discipline fix".
 That is a note from session 81e67389's =clock_in= on 2026-09-03, not from any
