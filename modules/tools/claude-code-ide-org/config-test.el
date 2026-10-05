@@ -20660,3 +20660,214 @@ second run finds nothing."
         (when buffer (with-current-buffer buffer (set-buffer-modified-p nil))
               (kill-buffer buffer)))
       (delete-directory dir t))))
+
+;;; Citation linking (TODO.org :ID: f7847adf, :ID: b7259ee4)
+
+(defconst claude-code-ide-org-test--cite-id "abcd1234-0000-4000-8000-000000000001"
+  "The one heading the linker tests' resolver knows.")
+
+(defun claude-code-ide-org-test--cite-resolver (prefix)
+  "Resolve PREFIX against `claude-code-ide-org-test--cite-id' alone."
+  (and (string-prefix-p prefix claude-code-ide-org-test--cite-id)
+       claude-code-ide-org-test--cite-id))
+
+(defun claude-code-ide-org-test--cite (text &optional commits repo no-orgit)
+  "Link TEXT with the test resolver.  COMMITS are the SHAs that exist;
+REPO is the GitHub \"owner/repo\"; NO-ORGIT unregisters `orgit-rev'."
+  (let ((org-link-parameters
+         (if no-orgit
+             (assoc-delete-all "orgit-rev" (copy-sequence org-link-parameters))
+           (cons '("orgit-rev") org-link-parameters))))
+    (cl-letf (((symbol-function 'claude-code-ide-org--commit-exists-p)
+               (lambda (sha _dir) (member sha commits))))
+      (claude-code-ide-org--apply-citations
+       text (claude-code-ide-org--citation-candidates
+             text #'claude-code-ide-org-test--cite-resolver "/tmp/" repo)))))
+
+(ert-deftest claude-code-ide-org-test-cite-links-an-id-prefix ()
+  "An 8-hex prefix that resolves becomes an id link, bare or verbatim,
+with the prefix as its description; a second run changes nothing."
+  (let ((once (claude-code-ide-org-test--cite "See abcd1234, and =abcd1234= too.\n")))
+    (should (equal (format "See [[id:%s][abcd1234]], and [[id:%s][abcd1234]] too.\n"
+                           claude-code-ide-org-test--cite-id
+                           claude-code-ide-org-test--cite-id)
+                   once))
+    (should (equal once (claude-code-ide-org-test--cite once)))))
+
+(ert-deftest claude-code-ide-org-test-cite-leaves-what-is-not-a-citation ()
+  "Each skip holds: an unresolved prefix, a UUID, a link, a block, ~code~,
+and the length rule -- 7 hex is never an id, 8 hex never a commit."
+  (dolist (text '("An unknown deadbeef stays.\n"
+                  "A UUID abcd1234-0000-4000-8000-000000000001 stays.\n"
+                  "A path a/abcd1234/b stays.\n"
+                  "A path ends a/abcd1234."
+                  "[[https://x.test/abcd1234][abcd1234]] stays.\n"
+                  "#+begin_example\nabcd1234\n#+end_example\n"
+                  "#+begin_quote\nabcd1234\n#+end_quote\n"
+                  "Code ~abcd1234~ stays.\n"
+                  "Seven =abcd123= is no id.\n"))
+    (should (equal text (claude-code-ide-org-test--cite text))))
+  ;; An 8-hex SHA that exists is still not linked as a commit.
+  (should (equal "commit 1234abcd here.\n"
+                 (claude-code-ide-org-test--cite "commit 1234abcd here.\n"
+                                                 '("1234abcd")))))
+
+(ert-deftest claude-code-ide-org-test-cite-links-a-commit ()
+  "A SHA that is a commit becomes an orgit-rev ./ link, in verbatim or
+after the word commit; one that is not, or with no orgit, stays."
+  (should (equal "[[orgit-rev:./::f87274b][f87274b]] and commit [[orgit-rev:./::a42d44e05][a42d44e05]].\n"
+                 (claude-code-ide-org-test--cite
+                  "=f87274b= and commit a42d44e05.\n" '("f87274b" "a42d44e05"))))
+  (should (equal "=f87274b= stays.\n"
+                 (claude-code-ide-org-test--cite "=f87274b= stays.\n" nil)))
+  (should (equal "=f87274b= stays.\n"
+                 (claude-code-ide-org-test--cite "=f87274b= stays.\n" '("f87274b")
+                                                 nil t))))
+
+(ert-deftest claude-code-ide-org-test-cite-links-a-pr ()
+  "\"PR #33\" links to the GitHub pull request; with no GitHub origin it
+stays as written."
+  (should (equal "Merged in [[https://github.com/o/r/pull/33][PR #33]].\n"
+                 (claude-code-ide-org-test--cite "Merged in PR #33.\n" nil "o/r")))
+  (should (equal "Merged in PR #33.\n"
+                 (claude-code-ide-org-test--cite "Merged in PR #33.\n" nil nil))))
+
+(ert-deftest claude-code-ide-org-test-cite-git-seams-against-a-real-repo ()
+  "The live path: `--commit-exists-p' and `--github-origin' against a
+real repository, so the stubs above stand for something true."
+  (let* ((dir (file-name-as-directory (make-temp-file "cite-git" t)))
+         (default-directory dir))
+    (unwind-protect
+        (progn
+          (should (eq 0 (call-process "git" nil nil nil "init" "-q")))
+          (call-process "git" nil nil nil "-c" "user.name=t" "-c" "user.email=t@t"
+                        "commit" "-q" "--allow-empty" "-m" "x")
+          (let ((sha (string-trim (shell-command-to-string "git rev-parse --short=7 HEAD"))))
+            (should (claude-code-ide-org--commit-exists-p sha dir))
+            (should-not (claude-code-ide-org--commit-exists-p "0000000" dir)))
+          (should-not (claude-code-ide-org--github-origin dir))
+          (call-process "git" nil nil nil "remote" "add" "origin" "git@gitlab.com:o/r.git")
+          (should-not (claude-code-ide-org--github-origin dir))
+          (call-process "git" nil nil nil "remote" "set-url" "origin" "git@github.com:o/r.git")
+          (should (equal "o/r" (claude-code-ide-org--github-origin dir))))
+      (delete-directory dir t))))
+
+(ert-deftest claude-code-ide-org-test-cite-writers-link-and-count ()
+  "org_amend, org_edit and org_capture's note link as they write and say
+how many; a capture's title is never linked."
+  (claude-code-ide-org-test--with-capture-file
+    (with-temp-file capture-file
+      (insert "#+TODO: TODO | DONE\n\n"
+              "* TODO Cited\n:PROPERTIES:\n:ID: abcd1234-0000-4000-8000-000000000001\n:END:\n\n"
+              "Body.\n"))
+    (org-id-update-id-locations (list capture-file))
+    (let ((reply (claude-code-ide-org-amend
+                  "abcd1234-0000-4000-8000-000000000001" "Amended, see abcd1234.")))
+      (should (string-match-p "linked 1 citation" reply)))
+    (let ((reply (claude-code-ide-org-edit
+                  "abcd1234-0000-4000-8000-000000000001" "Body." "Body, =abcd1234=.")))
+      (should (string-match-p "\\`Edited: .*linked 1 citation" reply)))
+    (let ((reply (claude-code-ide-org-capture
+                  "Title abcd1234 stays" "abcd1234-0000-4000-8000-000000000001"
+                  nil "Note cites abcd1234." "TODO")))
+      (should (string-match-p "linked 1 citation" reply)))
+    (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
+      (should (string-match-p "Amended, see \\[\\[id:abcd1234-[^]]+\\]\\[abcd1234\\]\\]\\." disk))
+      (should (string-match-p "Body, \\[\\[id:abcd1234-[^]]+\\]\\[abcd1234\\]\\]\\." disk))
+      (should (string-match-p "Note cites \\[\\[id:abcd1234-[^]]+\\]\\[abcd1234\\]\\]\\." disk))
+      (should (string-match-p "^\\*\\* TODO Title abcd1234 stays$" disk)))))
+
+(ert-deftest claude-code-ide-org-test-cite-queued-amend-links-at-apply ()
+  "A queued amend is linked when it is applied, in the target buffer."
+  (claude-code-ide-org-test--with-capture-file
+    (with-temp-file capture-file
+      (insert "#+TODO: TODO | DONE\n\n"
+              "* TODO Cited\n:PROPERTIES:\n:ID: abcd1234-0000-4000-8000-000000000001\n:END:\n\n"
+              "Body.\n"))
+    (org-id-update-id-locations (list capture-file))
+    (with-current-buffer (find-file-noselect capture-file)
+      (goto-char (point-min))
+      (re-search-forward "^\\* TODO Cited")
+      (claude-code-ide-org--review-apply-amend (list :text "Queued, see abcd1234."))
+      (save-buffer))
+    (should (string-match-p "Queued, see \\[\\[id:abcd1234-[^]]+\\]\\[abcd1234\\]\\]\\."
+                            (claude-code-ide-org-test--disk-contents capture-file)))))
+
+(ert-deftest claude-code-ide-org-test-cite-fill-runs-after-linking ()
+  "With the fill last, a line that is long only in link markup is not
+wrapped: the fill measures what is displayed."
+  (claude-code-ide-org-test--with-capture-file
+    (with-temp-file capture-file
+      (insert "#+TODO: TODO | DONE\n\n"
+              "* TODO Cited\n:PROPERTIES:\n:ID: abcd1234-0000-4000-8000-000000000001\n:END:\n\n"
+              "Body.\n"))
+    (org-id-update-id-locations (list capture-file))
+    (let ((line "Three: abcd1234, abcd1234 and abcd1234, a short line."))
+      (claude-code-ide-org-amend "abcd1234-0000-4000-8000-000000000001" line)
+      (should (string-match-p
+               "^Three: \\[\\[id:[^]]+\\]\\[abcd1234\\]\\], \\[\\[id:[^]]+\\]\\[abcd1234\\]\\] and \\[\\[id:[^]]+\\]\\[abcd1234\\]\\], a short line\\.$"
+               (claude-code-ide-org-test--disk-contents capture-file))))))
+
+(ert-deftest claude-code-ide-org-test-lint-warns-on-a-verbatim-citation ()
+  "A live heading citing a known id verbatim is warned; a finished one is
+not, and nothing in DONE.org is."
+  (let ((target (concat "* TODO Target\n:PROPERTIES:\n"
+                        ":ID:       abcd1234-0000-4000-8000-000000000001\n"
+                        ":CREATED:  [2026-09-02 Wed 09:00]\n:CATEGORY: Dev\n:END:\n"))
+        (citer (lambda (kw)
+                 (concat "* " kw " Citer\n:PROPERTIES:\n"
+                         ":ID:       bbbbbbbb-0000-4000-8000-000000000002\n"
+                         ":CREATED:  [2026-09-02 Wed 09:00]\n:CATEGORY: Dev\n:END:\n"
+                         "Depends on =abcd1234=.\n"))))
+    (should (claude-code-ide-org-test--lint-matches
+             (claude-code-ide-org-test--lint (concat target (funcall citer "TODO")))
+             'warn "1 verbatim citation the tools would link"))
+    (should-not (claude-code-ide-org-test--lint-matches
+                 (claude-code-ide-org-test--lint (concat target (funcall citer "DONE")))
+                 'warn "verbatim citation"))
+    (let* ((dir (file-name-as-directory (make-temp-file "lint-done" t)))
+           (file (expand-file-name "DONE.org" dir)))
+      (unwind-protect
+          (progn
+            (with-temp-file file
+              (insert "#+TODO: TODO NEXT DOING WAITING MAYBE | DONE CANCELLED\n"
+                      target (funcall citer "TODO")))
+            (should-not (claude-code-ide-org-test--lint-matches
+                         (claude-code-ide-org-lint (list file))
+                         'warn "verbatim citation")))
+        (delete-directory dir t)))))
+
+(ert-deftest claude-code-ide-org-test-link-citations-in-file-pass ()
+  "The pass dry-runs without writing, writes when asked, skips a slice
+member line, refuses a heading whose result is not lossless, and never
+touches DONE.org."
+  (claude-code-ide-org-test--with-capture-file
+    (let ((text (concat "#+TODO: TODO | DONE\n\n"
+                        "* TODO Target\n:PROPERTIES:\n:ID: abcd1234-0000-4000-8000-000000000001\n:END:\n\n"
+                        "Cites abcd1234.\n"
+                        "- [ ] [[id:abcd1234-0000-4000-8000-000000000001][Target]] abcd1234\n"
+                        ":PLAN:\nPlan cites =abcd1234=.\n:END:\n")))
+      (with-temp-file capture-file (insert text))
+      (org-id-update-id-locations (list capture-file))
+      (should (string-match-p "would link 2 id"
+                              (claude-code-ide-org-link-citations-in-file capture-file t)))
+      (should (equal text (claude-code-ide-org-test--disk-contents capture-file)))
+      ;; An injected mismatch is refused and nothing is written.
+      (cl-letf (((symbol-function 'claude-code-ide-org--apply-citations)
+                 (lambda (text _c) (concat text "x"))))
+        (should (string-match-p "REFUSED as not lossless, left alone: Target"
+                                (claude-code-ide-org-link-citations-in-file capture-file nil))))
+      (should (equal text (claude-code-ide-org-test--disk-contents capture-file)))
+      (should (string-match-p "linked 2 id"
+                              (claude-code-ide-org-link-citations-in-file capture-file nil)))
+      (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
+        (should (string-match-p "^Cites \\[\\[id:" disk))
+        (should (string-match-p "^Plan cites \\[\\[id:" disk))
+        ;; The member line is the refresh's, and keeps its bare prefix.
+        (should (string-match-p "\\[Target\\]\\] abcd1234$" disk)))
+      (should (string-match-p "would link 0 id"
+                              (claude-code-ide-org-link-citations-in-file capture-file t)))
+      (should (string-match-p "REFUSED -- DONE.org"
+                              (claude-code-ide-org-link-citations-in-file
+                               (expand-file-name "DONE.org" (file-name-directory capture-file))
+                               t))))))

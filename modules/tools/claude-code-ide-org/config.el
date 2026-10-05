@@ -3944,22 +3944,27 @@ else."
                    novel category file in-use)
                   near))
          (t
-          (claude-code-ide-org--capture-write
-           title new-id created (plist-get resolved :spec) tags initial-state
-           (claude-code-ide-org--fill-prose-text
-            (claude-code-ide-org--escape-block-headlines note)
-            (claude-code-ide-org--fill-column-for-file file))
-           category)
-          ;; Registered against the file the target actually resolved to,
-          ;; which is not necessarily the capture file: an :ID: target can
-          ;; live anywhere org-id knows about.
-          (org-id-add-location new-id (expand-file-name file))
-          (format "%s\"%s\" (ID: %s) %s%s%s"
-                  claude-code-ide-org--reply-captured
-                  title new-id (plist-get resolved :where)
-                  (claude-code-ide-org--capture-novel-category-warning
-                   novel category file in-use)
-                  near))))
+          ;; The note is linked (TODO.org :ID: f7847adf); the title never
+          ;; is, since end matter and replies quote it verbatim.
+          (let ((linked (claude-code-ide-org--link-citations
+                         (claude-code-ide-org--escape-block-headlines note) file)))
+            (claude-code-ide-org--capture-write
+             title new-id created (plist-get resolved :spec) tags initial-state
+             (claude-code-ide-org--fill-prose-text
+              (car linked)
+              (claude-code-ide-org--fill-column-for-file file))
+             category)
+            ;; Registered against the file the target actually resolved to,
+            ;; which is not necessarily the capture file: an :ID: target can
+            ;; live anywhere org-id knows about.
+            (org-id-add-location new-id (expand-file-name file))
+            (format "%s\"%s\" (ID: %s) %s%s%s%s"
+                    claude-code-ide-org--reply-captured
+                    title new-id (plist-get resolved :where)
+                    (claude-code-ide-org--capture-novel-category-warning
+                     novel category file in-use)
+                    near
+                    (claude-code-ide-org--linked-note (cdr linked)))))))
     (error (format "Error: %s" (error-message-string err)))))
 
 (defun claude-code-ide-org--end-of-body ()
@@ -4478,15 +4483,19 @@ undone only through git. Commit the file first, then revise.")
   ;; Nine fabrications across two sessions preceded this, every one with a
   ;; correct prefix and a wrong tail, and a memory forbidding it
   ;; throughout.
-  (let ((resolved (claude-code-ide-org-resolve-id-links
-                   ;; Filled to the target buffer's column (TODO.org :ID:
-                   ;; b52df20b), after escaping, as every write path does.
-                   (claude-code-ide-org--fill-prose-text
-                    (claude-code-ide-org--escape-block-headlines text)
-                    (claude-code-ide-org--fill-column-for-file
-                     (car (ignore-errors (claude-code-ide-org--id-find id))))))))
+  ;; Every write path's order: escape, link citations (TODO.org :ID:
+  ;; f7847adf), resolve explicit links, fill last -- linking changes line
+  ;; lengths, and the fill (:ID: b52df20b) measures what is displayed.
+  (let* ((target (car (ignore-errors (claude-code-ide-org--id-find id))))
+         (linked (claude-code-ide-org--link-citations
+                  (claude-code-ide-org--escape-block-headlines text) target))
+         (linked-count (cdr linked))
+         (resolved (claude-code-ide-org-resolve-id-links (car linked))))
     (unless (car resolved) (setq id nil))
-    (when (car resolved) (setq text (cdr resolved)))
+    (when (car resolved)
+      (setq text (claude-code-ide-org--fill-prose-text
+                  (cdr resolved)
+                  (claude-code-ide-org--fill-column-for-file target))))
     (if (null id) (cdr resolved)
   (let ((marker (ignore-errors (claude-code-ide-org--id-find id 'marker))))
     (if (not marker)
@@ -4558,7 +4567,7 @@ yet applied, so it has no body to amend. Apply the queue, then amend."
                      (save-buffer)
                      nil))))
             (or (and (stringp result) result)
-                (format "%s\"%s\"%s"
+                (format "%s\"%s\"%s%s"
                         (if replace "Revised: " claude-code-ide-org--reply-amended)
                         title
                         (cond
@@ -4567,7 +4576,8 @@ yet applied, so it has no body to amend. Apply the queue, then amend."
                          ((and drawer created)
                           (format " (created :%s:)" drawer))
                          (drawer (format " (into :%s:)" drawer))
-                         (t ""))))))))))))))
+                         (t ""))
+                        (claude-code-ide-org--linked-note linked-count)))))))))))))
 
 ;;; org_edit (TODO.org :ID: 704d8558) ----------------------------------------
 ;;
@@ -4853,8 +4863,12 @@ written there would corrupt the record silently."
                          claude-code-ide-org--amend-drawer-allowlist ", ")))
      (headline headline)
      (t
-      (let ((resolved (claude-code-ide-org-resolve-id-links escaped))
-            (marker (ignore-errors (claude-code-ide-org--id-find id 'marker))))
+      (let* ((marker (ignore-errors (claude-code-ide-org--id-find id 'marker)))
+             ;; Linked before the resolve and the fill, as every write path
+             ;; is (TODO.org :ID: f7847adf).
+             (linked (claude-code-ide-org--link-citations
+                      escaped (and marker (buffer-file-name (marker-buffer marker)))))
+             (resolved (claude-code-ide-org-resolve-id-links (car linked))))
         (cond
          ((not (car resolved)) (cdr resolved))
          ((not marker)
@@ -4868,12 +4882,16 @@ not yet applied, so it has nothing to edit. Apply the queue, then edit."
           (let ((file (buffer-file-name (marker-buffer marker))))
             (set-marker marker nil)
             (or (claude-code-ide-org--busy-refusal file)
-                (claude-code-ide-org--at-id-writable
-                 id
-                 (lambda ()
-                   (claude-code-ide-org--edit-at-point
-                    old-string (cdr resolved) drawer
-                    (claude-code-ide-org--fill-column-for-file file)))))))))))))
+                (let ((reply (claude-code-ide-org--at-id-writable
+                              id
+                              (lambda ()
+                                (claude-code-ide-org--edit-at-point
+                                 old-string (cdr resolved) drawer
+                                 (claude-code-ide-org--fill-column-for-file file))))))
+                  (if (and (stringp reply)
+                           (string-prefix-p claude-code-ide-org--reply-edited reply))
+                      (concat reply (claude-code-ide-org--linked-note (cdr linked)))
+                    reply)))))))))))
 
 ;;; Query -------------------------------------------------------------------
 ;;
@@ -11968,9 +11986,12 @@ deferred write must mean what the immediate one would have."
         (text ;; Escaped again here: the queue holds the tool's raw input, written by
         ;; the hook before any elisp ran (PR #29 review, TODO.org :ID:
         ;; 00aa6a85).  Idempotent, so text already escaped is unchanged.
-        ;; Filled at apply, in the target buffer, whose column is current.
+        ;; Linked and filled at apply, in the target buffer, whose column
+        ;; is current (TODO.org :ID: f7847adf, :ID: b52df20b).
         (claude-code-ide-org--fill-prose-text
-         (claude-code-ide-org--escape-block-headlines (plist-get item :text))
+         (car (claude-code-ide-org--link-citations
+               (claude-code-ide-org--escape-block-headlines (plist-get item :text))
+               buffer-file-name))
          fill-column)))
     (if drawer
         (claude-code-ide-org--amend-into-drawer drawer text)
@@ -12050,9 +12071,11 @@ category the file has never used only warns, as the tool does."
                (plist-get resolved :spec)
                (plist-get item :tags)
                (plist-get item :to)
-               ;; Escaped as the direct write escapes it; see the amend above.
+               ;; Escaped and linked as the direct write does; see the amend above.
                (claude-code-ide-org--fill-prose-text
-                (claude-code-ide-org--escape-block-headlines (plist-get item :note))
+                (car (claude-code-ide-org--link-citations
+                      (claude-code-ide-org--escape-block-headlines (plist-get item :note))
+                      file))
                 (claude-code-ide-org--fill-column-for-file file))
                category)
               (org-id-add-location id (expand-file-name file))
@@ -17790,6 +17813,22 @@ from `claude-code-ide-org--lint-routing-categories'."
         ;; "nothing is filed under a day node" true of the meta-work tree
         ;; while archived tasks are legitimately filed under one here.
         (archive-day-level nil)
+        ;; The citation linker's context, resolving ids through this
+        ;; lint's own table (TODO.org :ID: f7847adf). Nil for DONE.org,
+        ;; which is never linked. Git is asked from the file's repository,
+        ;; or from the working directory when the file is a temp copy --
+        ;; pre-commit lints copies outside any repository.
+        (cite-ctx
+         (unless (equal (file-name-nondirectory file) "DONE.org")
+           (let ((dir (if (locate-dominating-file file ".git")
+                          (file-name-directory (expand-file-name file))
+                        default-directory)))
+             (list (lambda (prefix)
+                     (let ((full (claude-code-ide-org--expand-id-prefix
+                                  prefix known-ids)))
+                       (and (stringp full) full)))
+                   dir
+                   (claude-code-ide-org--github-origin dir)))))
         findings)
     (cl-flet ((report (severity line fmt &rest args)
                 ;; Severity is what makes this usable as a gate. An
@@ -18152,6 +18191,23 @@ recursive, so its cookie counts the wrong things (have: %s): %s"
                           (> (claude-code-ide-org--lint-body-line-anchors) 0))
                  (report 'error line "live body cites a line number, which rots \
 silently -- cite the symbol instead: %s" title))
+               ;; Verbatim citations (TODO.org :ID: f7847adf, :ID:
+               ;; b7259ee4). The writers link as they write, so only a
+               ;; hand edit leaves one, and the style of a citation does
+               ;; not justify blocking that commit: a warning. Live
+               ;; headings only -- a finished one is history.
+               (when (and cite-ctx todo
+                          (not (member todo claude-code-ide-org--outline-finished-keywords)))
+                 (let ((n 0))
+                   (dolist (r (claude-code-ide-org--citation-regions))
+                     (setq n (+ n (length (claude-code-ide-org--citation-candidates
+                                           (buffer-substring-no-properties (car r) (cdr r))
+                                           (nth 0 cite-ctx) (nth 1 cite-ctx)
+                                           (nth 2 cite-ctx))))))
+                   (when (> n 0)
+                     (report 'warn line "%d verbatim citation%s the tools would \
+link -- write it as a link, or run claude-code-ide-org-link-citations-in-file: %s"
+                             n (if (= n 1) "" "s") title))))
                ;; Drawer order (TODO.org :ID: d350ff5b). Every writer that
                ;; creates a drawer normalises, so only a hand edit can
                ;; disorder one, and this names it at the commit that made
@@ -20703,6 +20759,321 @@ Returns a cons (t . EXPANDED) on success, or (nil . MESSAGE)."
 Write the 8-character prefix -- [[id:eaeeb4ee][eaeeb4ee]] -- and it is expanded here."
                           (string-join (nreverse bad) "; ")))
       (cons t out))))
+
+;;; Citation linking (TODO.org :ID: f7847adf, :ID: b7259ee4)
+;;
+;; Heading ids, commits and PRs are one problem: a citation written as
+;; text that should open the thing it names.  Conventions in prose did
+;; not make writers link them, so the write path does.  One detector,
+;; `--citation-candidates', serves the writers, the corpus pass and the
+;; lint, so the three cannot disagree about what a citation is.
+;;
+;; The kinds never overlap by length: 8 hex is only ever an id prefix,
+;; and a commit is 7 or 9-12 hex.  An 8-hex SHA therefore stays as
+;; written -- the cost of keeping the rule that makes the kinds disjoint.
+
+(defun claude-code-ide-org--commit-exists-p (sha dir)
+  "Non-nil when SHA names a commit in the git repository at DIR.
+Any failure -- no git, no repository, no such object -- is nil, so a
+missing tool costs a link and never a write."
+  (and dir (file-directory-p dir)
+       (let ((default-directory (file-name-as-directory dir)))
+         (eq 0 (ignore-errors
+                 (process-file "git" nil nil nil "cat-file" "-e"
+                               (concat sha "^{commit}")))))))
+
+(defun claude-code-ide-org--github-origin (dir)
+  "\"OWNER/REPO\" when DIR's repository has a GitHub `origin', else nil.
+Read from the configured remote, with no network."
+  (and dir (file-directory-p dir)
+       (let ((default-directory (file-name-as-directory dir)))
+         (with-temp-buffer
+           (when (eq 0 (ignore-errors
+                         (process-file "git" nil t nil "remote" "get-url" "origin")))
+             (let ((url (string-trim (buffer-string))))
+               (when (string-match
+                      "github\\.com[:/]\\([^/]+\\)/\\([^/]+?\\)\\(?:\\.git\\)?/?\\'" url)
+                 (concat (match-string 1 url) "/" (match-string 2 url)))))))))
+
+(defun claude-code-ide-org--citation-id-resolver (file)
+  "A function from an 8-hex prefix to the one full :ID: it names, or nil.
+
+Only ids located in FILE's own directory count -- the project's TODO.org
+and DONE.org -- although org's index spans every tracked repository: a
+prefix that happened to match another project's heading would become a
+link `bin/lint-org' refuses as unresolvable."
+  (let* ((dir (file-name-directory (file-truename file)))
+         (index (claude-code-ide-org--id-index))
+         (table (make-hash-table :test 'equal))
+         (home (make-hash-table :test 'equal)))
+    (when index
+      (maphash (lambda (id loc)
+                 (when (equal dir (or (gethash loc home)
+                                      (puthash loc (file-name-directory
+                                                    (file-truename loc))
+                                               home)))
+                   (puthash id t table)))
+               index))
+    (lambda (prefix)
+      (let ((full (claude-code-ide-org--expand-id-prefix prefix table)))
+        (and (stringp full) full)))))
+
+(defconst claude-code-ide-org--citation-excluded-types
+  '(link code verbatim inline-src-block inline-babel-call
+    src-block example-block export-block comment-block quote-block
+    special-block center-block verse-block fixed-width comment keyword
+    property-drawer node-property)
+  "Where a candidate is never a citation: inside a link, code or a block,
+or in org's own records.  `verbatim' is here for bare candidates; a
+verbatim token that is itself the citation is matched separately.")
+
+(defun claude-code-ide-org--citation-candidates (text resolver commit-dir pr-repo)
+  "The citations in TEXT the linker would convert.
+
+A list of (KIND BEG END REPLACEMENT), ascending, with BEG and END as
+0-based offsets into TEXT and KIND one of `id', `commit', `pr'.
+RESOLVER maps an 8-hex prefix to a full :ID: or nil.  COMMIT-DIR, when
+non-nil and the `orgit-rev' link type is registered, is the repository
+a SHA is checked against; nil links no commits.  PR-REPO is
+\"OWNER/REPO\" or nil, and nil links no PRs.
+
+The forms: an 8-hex id prefix, bare or in =verbatim=; a 7- or 9-12-hex
+SHA in =verbatim= or after the word \"commit\"; \"PR #N\".  Nothing inside
+a link, code, a block or a drawer org owns, so a second run finds
+nothing -- a link's description is inside the link."
+  (let ((orgit (and commit-dir (assoc "orgit-rev" org-link-parameters)))
+        (seen (make-hash-table :test 'equal))
+        out)
+    (with-temp-buffer
+      (insert text)
+      (let ((org-mode-hook nil)) (delay-mode-hooks (org-mode)))
+      (let ((case-fold-search nil)
+            (commit-p (lambda (sha)
+                        (and orgit
+                             (pcase (gethash sha seen 'unknown)
+                               ('unknown (puthash sha (claude-code-ide-org--commit-exists-p
+                                                       sha commit-dir)
+                                                  seen))
+                               (known known)))))
+            (excluded-p (lambda (ctx)
+                          (org-element-lineage
+                           ctx claude-code-ide-org--citation-excluded-types t))))
+        (cl-flet ((add (kind beg end replacement)
+                    (push (list kind (1- beg) (1- end) replacement) out)))
+          ;; =token=: an id prefix or a SHA, the whole verbatim object.
+          (goto-char (point-min))
+          (while (re-search-forward "=\\([0-9a-f]\\{7,12\\}\\)=" nil t)
+            ;; Positions first: `org-element-context' clobbers match data.
+            (let* ((token (match-string 1))
+                   (beg (match-beginning 0))
+                   (end (match-end 0))
+                   (ctx (save-excursion (goto-char beg) (org-element-context))))
+              (when (and (org-element-type-p ctx 'verbatim)
+                         (= (org-element-begin ctx) beg)
+                         (equal (org-element-property :value ctx) token)
+                         (not (org-element-lineage
+                               ctx claude-code-ide-org--citation-excluded-types)))
+                (let ((full (and (= 8 (length token)) (funcall resolver token))))
+                  (cond
+                   (full (add 'id beg end (format "[[id:%s][%s]]" full token)))
+                   ((and (/= 8 (length token)) (funcall commit-p token))
+                    (add 'commit beg end
+                         (format "[[orgit-rev:./::%s][%s]]" token token))))))
+              (goto-char end)))
+          ;; A bare 8-hex word, not part of a UUID, path or URL.
+          (goto-char (point-min))
+          (while (re-search-forward
+                  "\\(?:^\\|[^[:alnum:]_/.:#=~-]\\)\\([0-9a-f]\\{8\\}\\)\\(?:$\\|[^[:alnum:]_/=~-]\\)"
+                  nil t)
+            (let ((beg (match-beginning 1)) (end (match-end 1))
+                  (token (match-string 1)))
+              (goto-char end)
+              (unless (funcall excluded-p (save-excursion (goto-char beg)
+                                                          (org-element-context)))
+                (let ((full (funcall resolver token)))
+                  (when full
+                    (add 'id beg end (format "[[id:%s][%s]]" full token)))))))
+          ;; "commit SHA".
+          (goto-char (point-min))
+          (while (re-search-forward
+                  "\\_<[Cc]ommit[ \t\n]+\\([0-9a-f]\\{7\\}\\|[0-9a-f]\\{9,12\\}\\)\\(?:$\\|[^[:alnum:]_/=~-]\\)"
+                  nil t)
+            (let ((beg (match-beginning 1)) (end (match-end 1))
+                  (token (match-string 1)))
+              (goto-char end)
+              (unless (funcall excluded-p (save-excursion (goto-char beg)
+                                                          (org-element-context)))
+                (when (funcall commit-p token)
+                  (add 'commit beg end
+                       (format "[[orgit-rev:./::%s][%s]]" token token))))))
+          ;; "PR #N".
+          (when pr-repo
+            (goto-char (point-min))
+            (while (re-search-forward "\\_<PR #\\([0-9]+\\)\\_>" nil t)
+              (let ((beg (match-beginning 0)) (end (match-end 0))
+                    (n (match-string 1)))
+                (unless (funcall excluded-p (save-excursion (goto-char beg)
+                                                            (org-element-context)))
+                  (add 'pr beg end
+                       (format "[[https://github.com/%s/pull/%s][PR #%s]]"
+                               pr-repo n n)))))))))
+    (sort out (lambda (a b) (< (nth 1 a) (nth 1 b))))))
+
+(defun claude-code-ide-org--citation-context (file)
+  "The linker's context for text bound for FILE: (RESOLVER DIR REPO).
+Nil when FILE is nil, and then nothing is linked."
+  (when file
+    (let ((dir (file-name-directory (file-truename file))))
+      (list (claude-code-ide-org--citation-id-resolver file)
+            dir
+            (claude-code-ide-org--github-origin dir)))))
+
+(defun claude-code-ide-org--apply-citations (text candidates)
+  "TEXT with each of CANDIDATES replaced, last first."
+  (dolist (c (reverse candidates) text)
+    (setq text (concat (substring text 0 (nth 1 c)) (nth 3 c)
+                       (substring text (nth 2 c))))))
+
+(defun claude-code-ide-org--link-citations (text file &optional context)
+  "Link the citations in TEXT, bound for FILE.  Returns (NEW . COUNT).
+
+CONTEXT is a `--citation-context' to reuse across calls; computed from
+FILE when nil.  Never refuses and never signals: on any failure TEXT
+comes back unchanged with a count of 0, so linking cannot block a write."
+  (or (and (stringp text) (not (string-empty-p (string-trim text)))
+           (ignore-errors
+             (let ((ctx (or context (claude-code-ide-org--citation-context file))))
+               (when ctx
+                 (let ((cands (claude-code-ide-org--citation-candidates
+                               text (nth 0 ctx) (nth 1 ctx) (nth 2 ctx))))
+                   (cons (claude-code-ide-org--apply-citations text cands)
+                         (length cands)))))))
+      (cons text 0)))
+
+(defun claude-code-ide-org--linked-note (count)
+  "A reply clause for COUNT linked citations, or \"\"."
+  (if (zerop count) ""
+    (format " (linked %d citation%s; copy old_string from disk)"
+            count (if (= 1 count) "" "s"))))
+
+(defun claude-code-ide-org--citation-reduce (text)
+  "TEXT with every id, orgit-rev and GitHub link reduced to its
+description and every `=' dropped: what a linking pass must preserve."
+  (replace-regexp-in-string
+   "=" ""
+   (replace-regexp-in-string
+    "\\[\\[\\(?:id:\\|orgit-rev:\\|https://github\\.com/\\)[^]]*\\]\\[\\([^]]*\\)\\]\\]"
+    "\\1" text t)))
+
+(defun claude-code-ide-org--citation-regions ()
+  "The heading at point's prose, as (BEG . END) runs of whole lines.
+Body, :PLAN: and :DEBRIEF: -- never the headline, planning line,
+:PROPERTIES: or :LOGBOOK:, nor a generated line (a slice's planned and
+incidental members, which the refresh rewrites wholesale)."
+  (org-with-wide-buffer
+   (org-back-to-heading t)
+   (let ((beg (point))
+         (end (save-excursion (outline-next-heading) (point)))
+         spans regions)
+     ;; Org decides what is a drawer, not a line regexp: a :PROPERTIES:
+     ;; quoted inside an example block is body text (:ID: f42641ab).
+     (save-restriction
+       (narrow-to-region beg end)
+       (let* ((tree (org-element-parse-buffer 'element))
+              (section (org-element-map tree 'section #'identity nil t)))
+         (dolist (child (and section (org-element-contents section)))
+           (pcase (org-element-type child)
+             ((or 'planning 'property-drawer) nil)
+             ('drawer
+              (unless (equal (upcase (org-element-property :drawer-name child))
+                             "LOGBOOK")
+                (when (org-element-contents-begin child)
+                  (push (cons (org-element-contents-begin child)
+                              (org-element-contents-end child))
+                        spans))))
+             (_ (push (cons (org-element-begin child) (org-element-end child))
+                      spans))))))
+     ;; Each span split around generated lines, which are whole lines.
+     (dolist (span (nreverse spans))
+       (goto-char (car span))
+       (let ((run nil))
+         (while (< (point) (cdr span))
+           (if (claude-code-ide-org--generated-line-p)
+               (when run (push (cons run (point)) regions) (setq run nil))
+             (unless run (setq run (point))))
+           (forward-line 1))
+         (when run (push (cons run (min (point) (cdr span))) regions))))
+     (nreverse regions))))
+
+(defun claude-code-ide-org-link-citations-in-file (&optional file dry-run)
+  "Link the verbatim citations in FILE's prose, or report what would change.
+
+The one-off pass of TODO.org :ID: f7847adf and :ID: b7259ee4: every
+heading's body, :PLAN: and :DEBRIEF:, by the writers' own linker.  FILE
+defaults to the capture target.  DONE.org is never linked: it is
+history, and the conventions leave it as written.
+
+Lossless by check: with links reduced to their descriptions, each
+heading must read as it did, or it is left alone and named.  A file
+with unsaved changes is refused, as `claude-code-ide-org-fill-prose'
+refuses one.  Interactively it dry-runs unless given a prefix argument;
+from Lisp no argument writes.  Returns the report."
+  (interactive (list nil (not current-prefix-arg)))
+  (let ((file (or file (claude-code-ide-org--capture-target-file))))
+    (cond
+     ((equal (file-name-nondirectory file) "DONE.org")
+      (format "%s: REFUSED -- DONE.org is history and is never linked" file))
+     ((claude-code-ide-org--file-busy-p file)
+      (format "%s: REFUSED -- unsaved changes in that buffer; save first" file))
+     (t
+      (let ((ctx (claude-code-ide-org--citation-context file))
+            (counts (list (cons 'id 0) (cons 'commit 0) (cons 'pr 0)))
+            (headings 0) refused)
+        (with-current-buffer (find-file-noselect file)
+          (let ((buffer-read-only nil))
+            (org-with-wide-buffer
+             (goto-char (point-max))
+             (while (re-search-backward org-heading-regexp nil t)
+               (let ((title (org-get-heading t t t t))
+                     (changes nil) (n 0))
+                 (dolist (r (claude-code-ide-org--citation-regions))
+                   (let* ((old (buffer-substring-no-properties (car r) (cdr r)))
+                          (cands (claude-code-ide-org--citation-candidates
+                                  old (nth 0 ctx) (nth 1 ctx) (nth 2 ctx))))
+                     (when cands
+                       (dolist (c cands) (cl-incf (alist-get (car c) counts)))
+                       (setq n (+ n (length cands)))
+                       (push (list r old (claude-code-ide-org--apply-citations old cands))
+                             changes))))
+                 (when changes
+                   (if (cl-some (lambda (ch)
+                                  (not (equal (claude-code-ide-org--citation-reduce (nth 1 ch))
+                                              (claude-code-ide-org--citation-reduce (nth 2 ch)))))
+                                changes)
+                       (push (org-no-properties title) refused)
+                     (setq headings (1+ headings))
+                     (unless dry-run
+                       ;; `changes' was pushed in buffer order, so it is
+                       ;; already last region first.
+                       (dolist (ch changes)
+                         (goto-char (car (nth 0 ch)))
+                         (delete-region (car (nth 0 ch)) (cdr (nth 0 ch)))
+                         (insert (nth 2 ch))))))
+                 (org-back-to-heading t))))
+            (when (and (not dry-run) (> headings 0)) (save-buffer))))
+        (let ((report
+               (format "%s: %s %d id, %d commit and %d PR citation(s) in %d heading(s)%s%s"
+                       (file-name-nondirectory file)
+                       (if dry-run "would link" "linked")
+                       (alist-get 'id counts) (alist-get 'commit counts)
+                       (alist-get 'pr counts) headings
+                       (if refused
+                           (format "; REFUSED as not lossless, left alone: %s"
+                                   (string-join refused "; "))
+                         "")
+                       (if dry-run "  [dry run -- nothing written]" ""))))
+          (when (called-interactively-p 'any) (message "%s" report))
+          report))))))
 
 ;;; Standalone wiring -- the MCP tools server for clients outside the
 ;;; vterm launcher (Warp, or a `claude' CLI started in any terminal).
