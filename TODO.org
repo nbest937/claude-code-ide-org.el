@@ -1619,7 +1619,9 @@ index into =:MEMBERS:=.
 :LOGBOOK:
 - [2026-09-24 Thu 15:55]--[2026-09-24 Thu 15:55] root-cause unattributed spans, file discipline fix
 :END:
+:PLAN:
 
+:END:
 Reported by the user 2026-09-24: the review display should tell sessions apart,
 and "the current chronological display of transcript context is not as helpful
 as it could be because ascending and descending order are mixed and the span in
