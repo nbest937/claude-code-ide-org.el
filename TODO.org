@@ -8166,6 +8166,7 @@ CLOCK: [2026-09-01 Tue 12:15]--[2026-09-01 Tue 12:18] =>  0:03
 CLOCK: [2026-09-01 Tue 12:26]--[2026-09-01 Tue 12:27] =>  0:01
 - [2026-09-01 Tue 12:26]--[2026-09-01 Tue 12:27] assigned at review
 :END:
+:PLAN:
 
 *Raised by the user 2026-09-01, considering turning clocking off altogether:*
 the metric they actually want is *the ratio of their own time -- thinking,
@@ -8187,6 +8188,7 @@ intervals, and with them any answer to "how long did this task take". [[id:4f850
 says constructing attention intervals is manual by nature; this does not change
 that, it only observes that the *ratio* does not require it.
 
+:END:
 *What is established.*
 - [[id:44cef181-8dac-4735-8860-f123e132fdbc][44cef181]] already says so: "the human reading a session report -- real attention, discarded by the extraction rather than recorded as anything."
 - Measured on one session's queue, 2026-09-01: 44 guideposts, 19 agent runs and 19 human gaps.
