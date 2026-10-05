@@ -10187,7 +10187,9 @@ CLOCK: [2026-08-19 Wed 08:28]--[2026-08-19 Wed 08:29] =>  0:01
 CLOCK: [2026-08-19 Wed 08:42]--[2026-08-19 Wed 08:46] =>  0:04
 - [2026-08-19 Wed 08:42]--[2026-08-19 Wed 08:46] assigned at review
 :END:
+:PLAN:
 
+:END:
 *Incident, 2026-08-19.* Five queued transitions were applied by the
 human, marked consumed in the watermark, and then destroyed —
 [[id:09c134c4-31eb-4f6c-aa10-f836d1d28f16][09c134c4]] -> DONE, [[id:507754ba-ae82-4f04-b209-8d8c58ac268e][507754ba]] -> DONE, [[id:7d739afd-f879-445c-b0b6-65e295585a94][7d739afd]] -> TODO,
