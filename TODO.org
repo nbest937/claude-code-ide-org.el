@@ -8625,6 +8625,7 @@ multi-project data to judge against, not before.
 :CREATED:  [2026-08-31 Mon 15:44]
 :CATEGORY: Queue
 :END:
+:PLAN:
 
 Split out of [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]] 2026-08-31,
 where it is a demand the parent makes and nothing yet satisfies.
@@ -8660,6 +8661,7 @@ precedent that a plausible-but-wrong number is worse than no number, which is
 the same worry one step earlier: here the number is right and the *reading* is
 what goes wrong.
 
+:END:
 *Analysis inherited from [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]]
 on 2026-08-31, where it was recorded as a con, then reframed as the signal,
 leaving exactly this residue.*
@@ -8703,10 +8705,6 @@ descriptions; a line in CLAUDE.md's session-tracking section; or nowhere, on the
 grounds that the only reader is the person who set the convention. The last is a
 real option — this project has one user — and should be rejected on evidence
 rather than reflex.
-
-*Its body holds the beginnings of a plan* (noted 2026-10-01, [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]]'s condense
-pass): when this heading is brainstormed, move the prospective prose into
-=:PLAN:= and revise the body to a short statement.
 
 
 ** TODO Turn count reads 0 for a background or subagent session, which is not no attention :code:
