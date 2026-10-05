@@ -2,6 +2,23 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO The body-prose counter reads :END: as a drawer opening, so a drawer inside a body hides everything after it :code:
+:PROPERTIES:
+:ID:       fd0f5787-d519-4acb-8e47-508235781c44
+:CREATED:  [2026-10-05 Mon 11:40]
+:CATEGORY: Dev
+:END:
+
+=claude-code-ide-org--lint-body-prose-lines= tests its drawer-opening regexp,
+=\`:[A-Za-z_]+:\'=, before its =:END:= clause, and =:END:= matches the opening
+regexp. So the first drawer the walk meets inside a body sets =in-drawer= and
+nothing resets it: every later line counts as drawer content. Found by
+d350ff5b's corpus pass, 2026-10-05: =96a51c2f='s =:LOGBOOK:= sat below its body,
+the counter reported 7 lines, and once the drawer moved above the body it
+reported 208, raising the repeater-size warning that had always been owed.
+Both rules that ask about body size share the counter. Proposed fix: test
+=:END:= first, with a test of a body holding a drawer-shaped block.
+
 * TODO org_edit accepts an empty append: no old_string and no new_string still writes blank lines, or an empty drawer, and reports success :code:bounded:
 :PROPERTIES:
 :ID:       adc71d3b-3744-4854-85f7-a28a21162bb5
@@ -6145,6 +6162,39 @@ skipped. The example-block decoy is untouched. =org_amend= creating a
 and so does =org_wrap_plan= on a heading that already has a =:DEBRIEF:=. Each
 test fails with the normaliser call removed.
 :END:
+:DEBRIEF:
+*Shipped 2026-10-05* on =feature/org-native-notes=, as the drawer designed it:
+[[orgit-rev:claude-code-ide-org::a42d44e][a42d44e]] (normaliser, writers, corpus
+command, lint, tests), [[orgit-rev:claude-code-ide-org::30a4673][30a4673]] (the
+corpus pass) and [[orgit-rev:claude-code-ide-org::d5433ff][d5433ff]] (the
+conventions sentence). =--entry-drawer-layout= is the predicate the lint and the
+command share; =--normalize-drawer-order-at-point= rewrites only a =disordered=
+heading, so a canonical one is never touched and a rerun is a no-op.
+
+*Verified.* Ten new ERT tests, suite 859/859. With the three normaliser calls
+deleted, the =org_amend=, =org_wrap_plan= and corpus-command tests each fail,
+and the file was restored from a copy. Live reload, =bin/check-image= fresh. Dry
+run 141 against the drawer's 140: the extra is =ea1df60b=, archived since the
+count, found disordered. After the write, a second dry run reported 0, each
+file's sorted lines equal =HEAD='s, and =bin/lint-org= went from 141 errors on
+=HEAD='s files to 0. This drawer is itself the first one created through the new
+path.
+
+*Differed from the plan.* The "two headings with a doubled :LOGBOOK:" are not
+two drawers: each opens =:LOGBOOK:= twice and closes it once, which org parses
+as one drawer holding a stray marker line. So nothing reports =duplicate= on the
+real corpus, and those drawers moved whole, with nothing merged. The duplicate
+path is still tested, and the lint stays silent on it.
+
+*Falsified, and filed.* The reorder exposed a counter bug: =96a51c2f='s body
+read as 7 lines while its =:LOGBOOK:= sat below it, and 208 once that drawer
+moved, which raised a genuine repeater-size warning. The cause is filed as
+=fd0f5787=.
+
+*Scope note.* The corpus command runs over =--tracked-files=, which here also
+lists =~/org/notes.org= and agentic-euchre's two files. None had a disordered
+heading, so only this repo's files were written.
+:END:
 
 A heading's drawers stand in reverse order of creation, because =org_amend=
 creates each directly after =:PROPERTIES:=: 108 finished headings put
@@ -6152,6 +6202,11 @@ creates each directly after =:PROPERTIES:=: 108 finished headings put
 uses. Adopt PROPERTIES, LOGBOOK, PLAN, DEBRIEF, then body, kept by one
 per-heading normaliser that every drawer-creating writer calls, a one-off
 corpus pass, and a lint error. Design in =:PLAN:=.
+
+*Resolution:* one normaliser owns the order, every writer that creates a drawer
+calls it, a one-off corpus pass reordered 141 headings, and =bin/lint-org= now
+errors on a disordered one.
+
 
 
 * TODO Revisit the story definition: sanction clustering and speculative breakdown :bounded:prose:
