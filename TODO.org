@@ -7874,7 +7874,9 @@ and rarity is what keeps a false success unnoticed.
 :CREATED:  [2026-09-02 Wed 09:09]
 :CATEGORY: Apply
 :END:
+:PLAN:
 
+:END:
 *Asked by the user 2026-09-02:* =M-x claude-code-ide-org-review= should
 return them to the point they were at when they entered it.
 
