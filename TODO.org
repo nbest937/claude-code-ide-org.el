@@ -3507,7 +3507,9 @@ mechanical once that lands.
 :CREATED:  [2026-09-19 Sat 05:44]
 :CATEGORY: Dev
 :END:
+:PLAN:
 
+:END:
 Asked by the user 2026-09-19 while the promoted set was being changed: does the
 setup check look for files previously deployed that have since disappeared from
 the source? **It does not.**
