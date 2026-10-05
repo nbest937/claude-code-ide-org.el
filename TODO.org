@@ -1425,6 +1425,7 @@ l= is Doom's localleader prefix.
 :CREATED:  [2026-09-24 Thu 20:01]
 :CATEGORY: Tools
 :END:
+:PLAN:
 
 Scoped to one heading, org_outline's front matter lists that heading's :BLOCKER:
 value with each id's keyword. It never lists the headings whose :BLOCKER: names
@@ -1436,6 +1437,7 @@ front matter, listing each heading that names this heading or any descendant in
 its :BLOCKER:, with its keyword, the way :BLOCKER: is shown today. A sibling of
 [[id:5acca91b-b7bf-4046-9379-cd9a8f40f116][5acca91b]], which asks what is blocked at all.
 
+:END:
 *Absorbed [[id:0eecf8e7-a8d5-4da7-9d6d-f397542b2139][0eecf8e7]], 2026-09-28*: the same inverse-blocker ask, filed twice. Its
 one argument this heading lacked carries over. A pair of =:blocker:= and
 =:blocked:= tags was proposed for the inverse, and it is the wrong shape for the
