@@ -3663,7 +3663,9 @@ Warp to exist.
 :CREATED:  [2026-09-18 Fri 17:18]
 :CATEGORY: Dev
 :END:
+:PLAN:
 
+:END:
 Asked for 2026-09-18: create a version tag, and find a way to keep the tag and
 the manifest version in step automatically. =.claude-plugin/plugin.json= says
 =0.1.0= and has since it was written; there is no release history at all. The
