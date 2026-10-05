@@ -8521,6 +8521,7 @@ outcome if none ever does.
 :CATEGORY: Queue
 :BLOCKER:  b0e478f7-e894-4ac7-b0b6-b3c890b5b32a
 :END:
+:PLAN:
 
 Split out of [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]] 2026-08-31.
 *The substantial half, and the one that actually answers the question the parent
@@ -8561,6 +8562,7 @@ allocation is one of the few things that could make a span's attribution
 *verifiable* rather than merely plausible, so this heading may be more
 load-bearing for that A/B than it looked when the parent filed it.
 
+:END:
 *Analysis inherited from [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]]
 on 2026-08-31, and narrowed: the =cwd= field this heading named as a
 precondition is now [[id:5461c349-fd22-4b75-a508-50efbe4b87f8][5461c349]] on its
@@ -8615,10 +8617,6 @@ and there is nothing to allocate *between*. =:BLOCKER:= re-pointed
 accordingly. Meanwhile the =cwd= field accumulates (recording since
 2026-09-04); the judgement design happens when there is real
 multi-project data to judge against, not before.
-
-*Its body holds the beginnings of a plan* (noted 2026-10-01, [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]]'s condense
-pass): when this heading is brainstormed, move the prospective prose into
-=:PLAN:= and revise the body to a short statement.
 
 
 ** TODO Decide where the caveat lives that turn count is not productivity :code:
