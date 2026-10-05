@@ -1594,7 +1594,9 @@ buffers and magit's commit buffers; nothing rescans.
 :CREATED:  [2026-09-24 Thu 16:12]
 :CATEGORY: Slices
 :END:
+:PLAN:
 
+:END:
 Observed 2026-09-24: =org_slice_add_member= with =after= set to [[id:de6de108-0095-40f4-8177-fdef0503c578][de6de108]], a
 story whose children are nested members of slice [[id:8a2eb687-28da-4d44-893b-db59298bdc5b][8a2eb687]], inserted the new
 top-level line directly after the story's own line. That put it between the
