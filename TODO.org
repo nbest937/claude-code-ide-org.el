@@ -3780,6 +3780,7 @@ itself."
 :CREATED:  [2026-09-18 Fri 09:03]
 :CATEGORY: Apply
 :END:
+:PLAN:
 
 Raised by the user 2026-09-18, while [[id:8bbae3aa-55db-441c-8c33-405570ad879a][8bbae3aa]] was taking time tracking out of
 what ships: "if state transitions are the only thing that comes through when
@@ -3850,6 +3851,7 @@ into a future slice when completing it matters. The subtasks named above — the
 digest reset, the graduation threshold, the =config.el= split — belong under
 this heading rather than beside it.
 
+:END:
 *The gating question is answered, 2026-09-19, and the answer is the opposite of
 what this body predicted.* "Whether this is wanted at all" deferred to
 [[id:d3149a81-91d2-4722-b6d8-68d4cee6fa4f][d3149a81]], which closed having measured **correctness** — that a guidepost-free
@@ -3893,10 +3895,6 @@ heading being cancelled.
 *What remains here is two things*: the toggle itself, and what "observed enough"
 counts. Not divided, deliberately — at two subtasks the parent would be a
 container holding almost nothing, and the reset it depends on lives elsewhere.
-
-*Its body holds the beginnings of a plan* (noted 2026-10-01, [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]]'s condense
-pass): when this heading is brainstormed, move the prospective prose into
-=:PLAN:= and revise the body to a short statement.
 
 
 * TODO Survey what has landed since August that the statusline should be using and is not :code:research:
