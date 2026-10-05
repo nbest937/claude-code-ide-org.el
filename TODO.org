@@ -6170,7 +6170,7 @@ user's filter: inactive timestamps on measured claims ("measured
 symbol citations. Filed, they join.
 
 *Overtaken 2026-10-01: e128e4fa ran ahead of d350ff5b, b7259ee4 and f7847adf*
-(the user, 2026-09-30). The order's premise, that the mass pass would write to
+(the user's call). The order's premise, that the mass pass would write to
 settled conventions, no longer holds, and the order stays as the build order.
 The drawer order cost nothing: its mover put every =:DEBRIEF:= after the other
 drawers (measured 2026-10-02 on d350ff5b). Of its 315 authored resolutions, 86
