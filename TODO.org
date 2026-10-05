@@ -3903,6 +3903,7 @@ container holding almost nothing, and the reset it depends on lives elsewhere.
 :CREATED:  [2026-09-17 Thu 16:24]
 :CATEGORY: Dev
 :END:
+:PLAN:
 
 The user's broader point 2026-09-17: the statusline "may deserve revisiting — we
 have not touched it in quite some time, and work in the interim may present
@@ -3933,6 +3934,7 @@ dimension matters on a line that is per-session but reads as per-project.
 from [[id:2a6a1355-615f-4c2c-a8af-c9ae8dcda09b][2a6a1355]] is that one heading carrying several causes closes none of them.
 Each candidate the survey endorses gets its own heading.
 
+:END:
 *The survey gained its first hard data 2026-09-17, and it is larger than
 expected: the statusLine payload is rich and this repo reads exactly one field
 of it.* =--statusline-model-name= takes =model.display_name= and nothing else.
@@ -3969,10 +3971,6 @@ the line is about the work.
 
 *What the payload does **not** carry is the finding that actually blocks
 [[id:63b84fe2-0066-4375-a588-60197956bd44][63b84fe2]]:* no terminal width, under any key.
-
-*Its body holds the beginnings of a plan* (noted 2026-10-01, [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]]'s condense
-pass): when this heading is brainstormed, move the prospective prose into
-=:PLAN:= and revise the body to a short statement.
 
 
 * TODO Render the statusline like end matter: id first, then keyword, then title :code:
