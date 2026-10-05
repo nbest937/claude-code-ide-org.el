@@ -1055,8 +1055,10 @@ for commits). It dry-runs by default interactively and reports counts per kind
 and per heading. It is lossless by check: with each link reduced to its
 description and each converted token to its bare text, the result must equal the
 original, or that heading is left alone. About 355 ids, 19 commits and 12 PRs
-when counted on 2026-09-28. It is committed on its own, and before e128e4fa
-runs.
+when counted on 2026-09-28. It is committed on its own. The "before e128e4fa
+runs" that stood here was overtaken: e128e4fa ran on 2026-10-01, and of its 315
+resolutions, 86 cite verbatim. 82 of those are in DONE.org, outside this pass by
+the decision above, and 5 are in TODO.org, inside it (measured 2026-10-02).
 
 *Backlinks.* =org_query "link:target=<prefix>"= finds links in bodies and in
 drawers, verified 2026-09-29, and misses a link placed directly after an
@@ -5965,10 +5967,15 @@ absent, below the body" sentence, and name the normaliser and the lint in one
 sentence. The ceremony gains no step, and its existing count keeps its
 meaning: it counts entry order inside =:LOGBOOK:=, which is a different thing.
 
-*Sequencing.* e128e4fa's relocation pass would create 88 more headings with
-=:DEBRIEF:= first if it ran before this lands, so it takes =:BLOCKER:=
-d350ff5b, and its plan's claim that =org_amend= already writes canonically is
-corrected.
+*Sequencing, overtaken 2026-10-01.* e128e4fa's relocation pass was to wait for
+this, since it would otherwise create 88 more headings with =:DEBRIEF:= first.
+It ran first instead, and its mover put each =:DEBRIEF:= after the other
+drawers, so it added none out of order. It keeps =:BLOCKER:= d350ff5b, for its
+own close. Re-measured 2026-10-02 over every heading with two or more drawers:
+484 in canonical order (359 in DONE.org, 125 in TODO.org), and 140 out of order
+(133 and 7). Of those 140, 101 have =:DEBRIEF:= above =:LOGBOOK:=, 36 have it
+above =:PLAN:= only, and 3 have =:PLAN:= above =:LOGBOOK:=. The 2026-09-28
+counts above are history, and the corpus pass repairs the 140.
 
 *Tests (ERT).* Every order the tally found normalises to canon, and a second
 run changes nothing. The losslessness refusal fires. A duplicate drawer is
@@ -6161,6 +6168,16 @@ Two candidate members exist only as proposals, still unfiled and pending the
 user's filter: inactive timestamps on measured claims ("measured
 [2026-08-26 Wed]" as a parseable date), and search-anchored =file:= links for
 symbol citations. Filed, they join.
+
+*Overtaken 2026-10-01: e128e4fa ran ahead of d350ff5b, b7259ee4 and f7847adf*
+(the user, 2026-09-30). The order's premise, that the mass pass would write to
+settled conventions, no longer holds, and the order stays as the build order.
+The drawer order cost nothing: its mover put every =:DEBRIEF:= after the other
+drawers (measured 2026-10-02 on d350ff5b). Of its 315 authored resolutions, 86
+cite a heading or a commit verbatim, with no link: 76 ids and 29 SHAs. 82 of
+those headings are in DONE.org, which the linking pass leaves alone by the
+user's 2026-09-25 decision on f7847adf; the 5 in TODO.org are within it. So
+nothing is owed to them.
 :END:
 
 The notes cite commits, PRs and dates as inert text, narrate history
@@ -6271,6 +6288,9 @@ buffer; verified live 2026-09-29. It is more portable than the named form, which
 needs =magit-repository-directories= to know the repo. A link copied into
 another repo's file would resolve there instead, but a citation stays in the
 file that makes it. The 255 named links already written stay, since they work.
+e128e4fa's resolutions, authored 2026-10-01 before this landed, cite 29 commits
+as bare SHAs, and 28 of those are in DONE.org, which the prospective-only rule
+leaves as written (measured 2026-10-02).
 
 *PRs.* "PR #33" becomes a link to =https://github.com/<owner>/<repo>/pull/33=
 with "PR #33" as description, when the file's repo has a GitHub =origin=; read
