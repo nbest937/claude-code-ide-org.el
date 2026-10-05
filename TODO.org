@@ -1754,7 +1754,9 @@ CLOCK: [2026-09-24 Thu 16:52]--[2026-09-24 Thu 16:53] =>  0:01
 CLOCK: [2026-09-24 Thu 16:53]--[2026-09-24 Thu 16:54] =>  0:01
 - [2026-09-24 Thu 16:53]--[2026-09-24 Thu 16:54] assigned at review
 :END:
+:PLAN:
 
+:END:
 Filed 2026-09-24 when [[id:eadb3607-aa3d-41ee-b8cc-e293cc924f26][eadb3607]] closed on its measurement. A response can refer
 to a *different* tracked heading by its subject, never writing its id, and the
 reader cannot recover which one is meant. The user judged that case to owe a
