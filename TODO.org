@@ -1975,6 +1975,7 @@ CLOCK: [2026-09-25 Fri 12:48]--[2026-09-25 Fri 12:49] =>  0:01
 CLOCK: [2026-09-25 Fri 12:49]--[2026-09-25 Fri 12:50] =>  0:01
 - [2026-09-25 Fri 12:49]--[2026-09-25 Fri 12:50] widen scope to the dispatch site, link from ce012ad4
 :END:
+:PLAN:
 
 A tool call with a missing required argument or an unknown tool name gets no
 reply and reaches the model as "The operation timed out" (`[[id:ce012ad4-87f7-435c-a2ee-25210c071865][ce012ad4]]`, confirmed
@@ -1987,6 +1988,7 @@ message. A bare `define-error` is *not* enough, since upstream's outer handler
 replies with `id` nil and the client cannot match that reply. Unclassified: the
 brainstorming skill decides spike or bounded when it is picked up.
 
+:END:
 *A stopgap now ships with [[id:3ad389be-2797-46c3-a51d-9f603053955a][3ad389be]]'s failure hook* (the user, 2026-09-23).
 When a call times out and Emacs answers the hook's probe idle, the hook
 tells the session to check its argument names. It does not replace this
