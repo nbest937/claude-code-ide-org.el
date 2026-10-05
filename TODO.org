@@ -12312,6 +12312,7 @@ simulate in ERT's scratch-buffer fixtures.
 :ID:       5adeb6c2-afc0-4472-9529-fff48f8ba825
 :CREATED:  [2026-07-28 Tue 08:02]
 :END:
+:PLAN:
 Off-machine access to the tools server and IDE-companion. This
 session already got a =claude= CLI running directly in a Warp pane
 on the same machine to reach Emacs (HTTP tools server +
@@ -12327,6 +12328,13 @@ scoped per tool.
 your live Emacs — a bearer token alone adds no TLS, per-tool
 scoping, or rate limiting. Don't just flip the host to 0.0.0.0 and
 call it done.
+:END:
+
+Off-machine access to the tools server and IDE companion, from a phone, another
+computer or a CI job. Every tool call is unsandboxed elisp in the live Emacs, so
+this proposes designing auth first -- a bearer token at minimum, ideally scoped
+per tool -- rather than opening the servers beyond localhost.
+
 
 
 * Review attention
