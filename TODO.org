@@ -9065,6 +9065,7 @@ Planned:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-31 Mon 11:22]
 :END:
+:PLAN:
 
 Keep =* Review attention=
 ([[id:335dfa97-c1b0-4e98-804f-81495eb63f20][335dfa97]]) exactly as it is, and
@@ -9097,6 +9098,13 @@ function rather than a step inside a sweep.
 
 Idempotence is the same requirement as the sibling heading: a re-run must merge
 into the day's existing clone, never append a second.
+:END:
+
+Stop the =:LOGBOOK:= of =* Review attention= growing without bound, without
+touching the live heading: each past day's CLOCK lines move into an ID-less
+clone of it under that day's node in DONE.org's datetree, merging into an
+existing clone on re-run.
+
 
 
 * TODO Distribute Review and planning's past day nodes into DONE.org's datetree :code:
