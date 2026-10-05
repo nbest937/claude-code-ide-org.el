@@ -1528,12 +1528,41 @@ and the never-rescan test are shown to fail with their guard removed.
 *Verified by hand, and said so:* the GUI tooltip, and how the face looks in the
 user's theme, which no test can honestly assert.
 :END:
+:DEBRIEF:
+*Shipped 2026-10-05* on =feature/org-native-notes= in [[orgit-rev:./::086e2b1][086e2b1]], as the drawer
+designed it: the cache (=--slice-referent-index= plus a prefix table, dropped on
+a tracked file's save), eldoc, the =id= link's =:help-echo=, the bare-id
+font-lock rule with its keymap, =claude-code-ide-org-id-lookup-mode= and the
+=claude-code-ide-org-id-lookup= defcustom.
+
+*Verified.* Five ERT tests, suite 875/875, covering every row of the drawer's
+test list. Each guard was mutated out and turned a test red: never-rescan, the
+ambiguous prefix, the skip zones, verbatim left marked, the matcher's resolve
+check (which needed an unknown-word assertion added before it did), the
+tracked-only switch, and the cache drop's gate and hook. Live after a reload:
+eldoc and the link hover on [[id:e3d1531d-7562-4bad-bef2-fc819630c5f7][e3d1531d]] in TODO.org both return its line, all
+400 resolvable verbatim ids sampled in DONE.org are marked, the magit hooks are
+wired, and the cache builds in 76 ms.
+
+*A reload owes one more step, on first install only.* =org-mode-hook= fires
+only for buffers opened afterwards, so an org buffer already open needs
+=M-x claude-code-ide-org-id-lookup-mode= or a revert; the live checks above did
+that for TODO.org and DONE.org.
+
+*Left to the user, as the drawer said:* the GUI tooltip, and how the underline
+looks in the user's theme.
+:END:
 
 An 8-hex id in an Emacs buffer is opaque until looked up, and an id link's hover
 names only its target. One cached lookup, id to keyword and title as of the last
 save, feeds eldoc at point, org's hover on id links, and a font-lock mark with
 click-to-jump on bare ids, in tracked org buffers and magit's commit buffers.
 Design in =:PLAN:=.
+
+*Resolution:* one cached lookup shows an id's keyword and title in eldoc and on
+hover, marks bare ids that resolve and jumps on click or RET, in tracked org
+buffers and magit's commit buffers; nothing rescans.
+
 
 
 * TODO org_slice_add_member's after= inserts between a story and its nested children, splitting the block :code:
