@@ -9838,6 +9838,7 @@ sentence in the conventions names the mechanism.
 - State "TODO"       from              [2026-08-21 Fri 08:09] \\
   decide the automation boundary
 :END:
+:PLAN:
 
 Raised by the user 2026-08-21: the review-apply cycle "seems pretty
 straightforward lately", so how much of it still needs a human at all?
@@ -9882,6 +9883,14 @@ knowledge -- and that a fluent proposal is harder to reject than a transparently
 mechanical one. That holds against any automation whose only input is the queue.
 It does not settle the case for an automation that reads the session
 transcripts, which carry what the queue does not.
+:END:
+
+Decide how much of the review-apply cycle can be automated. Deciding what a span
+means is automatable in principle and writing through native org commands is
+walled by the interactive constraint, so the target is one confirmation per
+unambiguous pass rather than one per item, still inside the interactive review
+command.
+
 
 
 * TODO An unassigned span's readout omits the evidence that would make its heading obvious :code:
