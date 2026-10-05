@@ -2623,6 +2623,7 @@ miss count.
 :CATEGORY: Dev
 :BLOCKER:  8a2eb687-28da-4d44-893b-db59298bdc5b 6521dd56-8772-416b-9435-6da78bb86b06 4ae7a04b-1557-44d6-91c3-384f1def5293
 :END:
+:PLAN:
 
 Every consumer-facing change on feature/rules-in-wrong-places was verified in
 this repo only, which wires its hooks through .claude/settings.json and links
@@ -2637,6 +2638,7 @@ agentic-euchre is the available consumer; its skill link resolves to the
 worktree claude-code-ide-org-swc, to be moved forward when the slice merges. Do
 it then, before resuming work there.
 
+:END:
 It gates earnest work in euchre, taking over from [[id:6a207b00-8fa1-441e-8ee5-354702bc979b][6a207b00]] (closed
 2026-09-22). It waits on [[id:8a2eb687-28da-4d44-893b-db59298bdc5b][8a2eb687]] and [[id:6521dd56-8772-416b-9435-6da78bb86b06][6521dd56]], moved from there, and on
 [[id:4ae7a04b-1557-44d6-91c3-384f1def5293][4ae7a04b]], the brainstorming skill, at the user's direction.
