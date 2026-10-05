@@ -3240,7 +3240,9 @@ convention unread) stay floors, and the review should say so.
 - Tags ":code:"     from ":code:observed:" [2026-09-29 Tue 21:46] \\
   tag dropped (the user, 2026-09-29): applied by recall, so its absence meant nothing
 :END:
+:PLAN:
 
+:END:
 Observed 2026-09-19: the first plan unlinked under the drawer convention was
 deleted from the archive directory, and =bin/sync-plans --check= immediately
 reported it "out of date" and wanted it back — because a body amendment on
