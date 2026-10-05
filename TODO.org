@@ -12140,6 +12140,7 @@ the right JSON-RPC code.
 CLOCK: [2026-09-22 Tue 15:44]--[2026-09-22 Tue 15:45] =>  0:01
 - [2026-09-22 Tue 15:44]--[2026-09-22 Tue 15:45] record the fifth occurrence, with the invented name that varied
 :END:
+:PLAN:
 
 The upstream half of [[id:1cd2df62-35e9-47dc-bcce-dda7bae3c522][1cd2df62]], ready to write up as an issue. Both of
 =claude-code-ide='s dispatch paths drop a key the schema does not declare,
@@ -12155,6 +12156,7 @@ at the first call is the only mechanism that would have caught it.
 - *Path 2 -- WebSocket* (=claude-code-ide-mcp--handle-tools-call=, examined 2026-09-08): hands the whole =arguments= alist to the handler with **no validation at all** -- no unknown-key check *and* no missing-required check. Whatever fix upstream takes should cover both, copying the HTTP path's =-32602= pattern.
 - A dropped argument does not merely fail to apply: an =org_outline= call passing invented =file= and =max_level= returned the unrestricted default while appearing scoped.
 
+:END:
 *What is established -- the occurrences.*
 - 2026-08-20: the five failures that produced [[id:1cd2df62-35e9-47dc-bcce-dda7bae3c522][1cd2df62]] -- recorded at the top of this heading as four heading bodies lost to invented =todo_state=/=body= arguments -- found by accident, five hours late.
 - 2026-09-16/17: =org_capture= called **eleven** times with =body=; found by the user reading the file; five of those headings were then closed with a =CLOSED:= stamp, a clock and no prose.
