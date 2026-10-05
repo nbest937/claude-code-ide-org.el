@@ -10239,7 +10239,9 @@ without showing the diff first.
 :ID:       8028e875-3032-4ade-949e-414d9861b928
 :CREATED:  [2026-08-14 Fri 12:27]
 :END:
+:PLAN:
 
+:END:
 *Observed 2026-08-14, in the file rather than in the abstract.* The user
 hand-edited an applied annotation on
 [[id:4f9e552a-e1a9-48dd-8801-3f23a31b9e32][4f9e552a]] after the fact,
