@@ -934,8 +934,13 @@ happened accumulates.
 one-to-two-sentence resolution** (`:ID:` d5eb32a3, 2026-09-08). Two calls:
 `org_amend` the resolution onto the body, then `org_amend` with
 `drawer=DEBRIEF` for the full debrief — what shipped, how it was verified,
-what was falsified, what differed from the plan. The drawer is created when
-absent, below the body.
+what was falsified, what differed from the plan.
+
+**Drawer order is canonical: `:PROPERTIES:`, `:LOGBOOK:`, `:PLAN:`,
+`:DEBRIEF:`, then the body** (`:ID:` d350ff5b). Every tool that creates a
+drawer runs one normaliser, which also backs
+`claude-code-ide-org-normalize-drawer-order` for repairs, and `bin/lint-org`
+errors on a heading out of order, so only a hand edit can disorder one.
 
 This completes what `b75d553a` started: the plan out at composition, the
 debrief out at close, so the body is a *fixed-size* artifact however much
