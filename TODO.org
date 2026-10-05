@@ -1170,7 +1170,9 @@ Org's hard-coded =[X]= count rules out the alternative of counting =[-]=.
 - Tags ":code:"     from ":code:bug:" [2026-09-29 Tue 21:46] \\
   tag dropped (the user, 2026-09-29): applied by recall, so its absence meant nothing
 :END:
+:PLAN:
 
+:END:
 Observed 2026-09-25: with =TODO.org='s buffer read-only (=C-x C-q=, unmodified),
 =org_query "blocked:"= fails with "Buffer is read-only: #<buffer TODO.org>".
 Other predicates on the same buffer work (=category:=, =level:=, =regexp:=,
