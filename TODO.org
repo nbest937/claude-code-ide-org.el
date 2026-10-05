@@ -5676,6 +5676,7 @@ point then skips it. Proposes that =d= leave point where it is.
 :CREATED:  [2026-09-11 Fri 17:17]
 :CATEGORY: Slices
 :END:
+:PLAN:
 
 Second time the closed-slice guard has blocked a legitimate act.
 =org_slice_add_member= refuses a closed slice and =refresh-slice= skips one,
@@ -5691,6 +5692,13 @@ through Emacs. The distinction to preserve is the one the guard exists for:
 re-deriving a closed slice against referents' keywords *today* is the
 falsification [[id:30a340fd-c216-4231-a8d9-fff83c54b9f8][30a340fd]] refused; deriving against their state at close is not.
 Complements [[id:a00ace04-99bd-414a-8dc7-df8305126589][a00ace04]], which is the detection half.
+:END:
+
+The closed-slice guard leaves no sanctioned way to correct a closed slice's
+record when the correction was already true at close, which on 2026-09-11 forced
+an Edit behind Emacs's back. Proposes a repair path that recomputes a closed
+slice against its members' keywords as of its CLOSED stamp.
+
 
 
 * TODO lint-org cannot see a slice checkbox that disagrees with its referent :code:
