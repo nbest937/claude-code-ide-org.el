@@ -7819,6 +7819,27 @@ already has its authored resolution and its =:DEBRIEF:=, so relocation
 and resolution have nothing to do there, and condensing it would erase
 the diagnosis. Leave the body exactly as it stands.
 :END:
+:DEBRIEF:
+*Closed 2026-10-05* on the user's acceptance after review. The pass itself is
+recorded in the body; what has happened since:
+
+- *Most of the 22 plan-heavy live bodies it noted are handled.* Of its notes, 20
+  were still on disk on 2026-10-05; [[id:fce6bd35-27ad-4724-8dbb-c9df4b68fb10][fce6bd35]]'s backfill split the 19 on headings
+  owing a =:PLAN:= drawer and removed each note in the same commit, and made the
+  shape a lint error. The 20th, on [[id:a1d63f52-4c07-4b9e-8f31-6d2b90c4e7a5][a1d63f52]], stays: that heading already had a
+  =:PLAN:= drawer, so it was outside the set, and its note still stands for its
+  brainstorm.
+- *Its blocker is met:* [[id:d350ff5b-3b1f-465e-800b-962264d2e841][d350ff5b]] put every drawer in canonical order; this
+  pass's mover had already placed each =:DEBRIEF:= last, so it added none out of
+  order.
+- *Its verbatim citations in TODO.org are links:* [[id:f7847adf-a408-4ad0-ae0c-8d3c19b79f2b][f7847adf]]'s pass linked them;
+  the 82 in DONE.org stay as written, by the prospective-only rule.
+- =org_history= shows its 3 commits of work and the pass as one group of 315.
+
+Nothing is left to file: the condensing it declined for finished plans was a
+decision, not residue, and [[id:a1d63f52-4c07-4b9e-8f31-6d2b90c4e7a5][a1d63f52]]'s note is already on the heading it
+concerns. It is the last live child of [[id:4c834fdb-5314-4168-ab1d-09fe89ded517][4c834fdb]], which can now close.
+:END:
 
 About 88 finished headings still carry their debrief in the body. Each needs an
 authored resolution line before the debrief moves into =:DEBRIEF:=, in three
@@ -7835,6 +7856,10 @@ for finished plans, which readers skip; run on 14 live bodies that had grown
 into journals, with 22 plan-heavy live bodies noted for revision at
 brainstorming time and [[id:0c8644ff-f7b1-4789-ac1e-babf2e9fbc8e][0c8644ff]] left, its body depending on its plan. The active
 outline fell only from 487k to 475k characters.
+
+*Resolution:* 318 finished headings carry an authored resolution and a
+=:DEBRIEF:= drawer; accepted by the user 2026-10-05.
+
 
 
 * TODO A boolean argument passed as false arrives as :false, which elisp reads as true :code:
