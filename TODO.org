@@ -1648,7 +1648,9 @@ user's scheduling call.
 :CREATED:  [2026-09-24 Thu 15:26]
 :CATEGORY: Skill
 :END:
+:PLAN:
 
+:END:
 The citation rules require each end-matter line to carry the heading's *exact,
 full* title, looked up rather than recalled. =bin/hooks/footnote-check= enforces
 only half of that: it blocks when a cited id is *absent* from the end matter,
