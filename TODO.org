@@ -19,6 +19,7 @@ reported 208, raising the repeater-size warning that had always been owed.
 Both rules that ask about body size share the counter. Proposed fix: test
 =:END:= first, with a test of a body holding a drawer-shaped block.
 
+
 * TODO org_edit accepts an empty append: no old_string and no new_string still writes blank lines, or an empty drawer, and reports success :code:bounded:
 :PROPERTIES:
 :ID:       adc71d3b-3744-4854-85f7-a28a21162bb5
@@ -1191,7 +1192,7 @@ maintains in both directions. [[id:b0c843e3-4252-4e2b-a9e2-2cf91714a1ae][b0c843e
 made every blocker id parse.
 
 
-* TODO Headings cited in bodies are id links, written as links by the tools, so backlinks are one org_query away :code:arch:
+* REVIEW Headings cited in bodies are id links, written as links by the tools, so backlinks are one org_query away :code:arch:
 :PROPERTIES:
 :ID:       f7847adf-a408-4ad0-ae0c-8d3c19b79f2b
 :CREATED:  [2026-09-25 Fri 12:16]
@@ -1210,6 +1211,10 @@ CLOCK: [2026-09-29 Tue 19:21]--[2026-09-29 Tue 19:22] =>  0:01
 - [2026-09-29 Tue 19:21]--[2026-09-29 Tue 19:22] record the citation linker design in :PLAN:
 CLOCK: [2026-09-29 Tue 19:39]--[2026-09-29 Tue 19:41] =>  0:02
 - [2026-09-29 Tue 19:39]--[2026-09-29 Tue 19:41] assigned at review
+- State "DOING"      from "TODO"       [2026-10-05 Mon 11:54] \\
+  built together with b7259ee4, one linker
+- State "REVIEW"     from "DOING"      [2026-10-05 Mon 12:16] \\
+  shipped on branch, awaiting PR review
 :END:
 :PLAN:
 
@@ -1355,7 +1360,6 @@ PRs on every write path; =bin/lint-org= warns on a live heading's verbatim
 citation, and one pass linked TODO.org's 709 id citations.
 
 
-
 * TODO org_capture runs in whatever buffer the user has selected, so an Org QL view turns a capture into a prompt nobody at the tool can answer :code:
 :PROPERTIES:
 :ID:       fd29914e-0d18-4964-a104-37c136b311a6
@@ -1420,7 +1424,7 @@ make three copies of one fact. So =:BLOCKS:= is derived at each read, never
 tagged.
 
 
-* TODO Look up a tracked id wherever it appears in Emacs: its title at point, and a jump on click :code:arch:
+* NEXT Look up a tracked id wherever it appears in Emacs: its title at point, and a jump on click :code:arch:
 :PROPERTIES:
 :ID:       0eaffc39-088f-48c3-a5b8-167336458114
 :CREATED:  [2026-09-24 Thu 16:54]
@@ -1437,6 +1441,8 @@ CLOCK: [2026-09-29 Tue 19:58]--[2026-09-29 Tue 19:59] =>  0:01
 - [2026-09-29 Tue 19:58]--[2026-09-29 Tue 19:59] brainstorm: critical read of the id lookup plan
 CLOCK: [2026-09-29 Tue 19:59]--[2026-09-29 Tue 20:02] =>  0:03
 - [2026-09-29 Tue 19:59]--[2026-09-29 Tue 20:02] assigned at review
+- State "NEXT"       from "TODO"       [2026-10-05 Mon 12:16] \\
+  next in the slice's build order
 :END:
 :PLAN:
 
@@ -6094,7 +6100,7 @@ detection mechanised, judgement kept human, per every surviving
 report's contract. Shapes and constraints in =:PLAN:=.
 
 
-* NEXT Canonical drawer order: PROPERTIES, LOGBOOK, PLAN, DEBRIEF, then body :code:arch:
+* REVIEW Canonical drawer order: PROPERTIES, LOGBOOK, PLAN, DEBRIEF, then body :code:arch:
 :PROPERTIES:
 :ID:       d350ff5b-3b1f-465e-800b-962264d2e841
 :CREATED:  [2026-09-10 Thu 09:10]
@@ -6123,6 +6129,12 @@ CLOCK: [2026-10-02 Fri 15:52]--[2026-10-02 Fri 15:54] =>  0:02
 - [2026-10-02 Fri 15:52]--[2026-10-02 Fri 15:54] assigned at review
 CLOCK: [2026-10-02 Fri 15:57]--[2026-10-02 Fri 15:58] =>  0:01
 - [2026-10-02 Fri 15:57]--[2026-10-02 Fri 15:58] assigned at review
+- State "DOING"      from "NEXT"       [2026-10-05 Mon 11:27] \\
+  implementing the drawer-order normaliser
+CLOCK: [2026-10-05 Mon 11:27]--[2026-10-05 Mon 11:41] =>  0:14
+- [2026-10-05 Mon 11:27]--[2026-10-05 Mon 11:41] drawer-order normaliser, writers, corpus pass, lint
+- State "REVIEW"     from "DOING"      [2026-10-05 Mon 11:41] \\
+  shipped on branch, awaiting PR review
 :END:
 :PLAN:
 Proposed by the user 2026-09-10, pushback invited and none owed — the order is
@@ -6208,12 +6220,11 @@ test fails with the normaliser call removed.
 :END:
 :DEBRIEF:
 *Shipped 2026-10-05* on =feature/org-native-notes=, as the drawer designed it:
-[[orgit-rev:claude-code-ide-org::a42d44e][a42d44e]] (normaliser, writers, corpus
-command, lint, tests), [[orgit-rev:claude-code-ide-org::30a4673][30a4673]] (the
-corpus pass) and [[orgit-rev:claude-code-ide-org::d5433ff][d5433ff]] (the
-conventions sentence). =--entry-drawer-layout= is the predicate the lint and the
-command share; =--normalize-drawer-order-at-point= rewrites only a =disordered=
-heading, so a canonical one is never touched and a rerun is a no-op.
+[[orgit-rev:claude-code-ide-org::a42d44e][a42d44e]] (normaliser, writers, corpus command, lint, tests), [[orgit-rev:claude-code-ide-org::30a4673][30a4673]] (the corpus
+pass) and [[orgit-rev:claude-code-ide-org::d5433ff][d5433ff]] (the conventions sentence). =--entry-drawer-layout= is the
+predicate the lint and the command share; =--normalize-drawer-order-at-point=
+rewrites only a =disordered= heading, so a canonical one is never touched and a
+rerun is a no-op.
 
 *Verified.* Ten new ERT tests, suite 859/859. With the three normaliser calls
 deleted, the =org_amend=, =org_wrap_plan= and corpus-command tests each fail,
@@ -6250,7 +6261,6 @@ corpus pass, and a lint error. Design in =:PLAN:=.
 *Resolution:* one normaliser owns the order, every writer that creates a drawer
 calls it, a one-off corpus pass reordered 141 headings, and =bin/lint-org= now
 errors on a disordered one.
-
 
 
 * TODO Revisit the story definition: sanction clustering and speculative breakdown :bounded:prose:
@@ -6362,7 +6372,7 @@ shipped conventions sanctions a cluster that will close, names the collector
 exception, and points to the divide rule. Design in =:PLAN:=.
 
 
-* NEXT [1/10] Make the notes org-native: links, drawers, tags, one corpus pass :code:
+* DOING [1/10] Make the notes org-native: links, drawers, tags, one corpus pass :code:
 :PROPERTIES:
 :ID:       6521dd56-8772-416b-9435-6da78bb86b06
 :CREATED:  [2026-09-10 Thu 08:57]
@@ -6385,6 +6395,8 @@ CLOCK: [2026-09-28 Mon 14:02]--[2026-09-28 Mon 14:03] =>  0:01
 - [2026-09-28 Mon 14:02]--[2026-09-28 Mon 14:03] assigned at review
 CLOCK: [2026-09-28 Mon 14:06]--[2026-09-28 Mon 14:07] =>  0:01
 - [2026-09-28 Mon 14:06]--[2026-09-28 Mon 14:07] assigned at review
+- State "DOING"      from "NEXT"       [2026-10-05 Mon 11:27] \\
+  slice taken up, first member started
 :END:
 :PLAN:
 The notes should use org: live links instead of inert citations, drawers instead
@@ -6449,10 +6461,10 @@ members.
 
 Planned:
 
-- [ ] [[id:b7259ee4-9aa1-4b55-8cf2-fbbacdea5310][b7259ee4]] TODO Commits cited in bodies and debriefs are orgit links, and nothing enforces it
-- [ ] [[id:f7847adf-a408-4ad0-ae0c-8d3c19b79f2b][f7847adf]] TODO Headings cited in bodies are id links, written as links by the tools, so backlinks are one org_query away
-- [ ] [[id:0eaffc39-088f-48c3-a5b8-167336458114][0eaffc39]] TODO Look up a tracked id wherever it appears in Emacs: its title at point, and a jump on click
-- [ ] [[id:d350ff5b-3b1f-465e-800b-962264d2e841][d350ff5b]] NEXT Canonical drawer order: PROPERTIES, LOGBOOK, PLAN, DEBRIEF, then body
+- [-] [[id:b7259ee4-9aa1-4b55-8cf2-fbbacdea5310][b7259ee4]] REVIEW Commits cited in bodies and debriefs are orgit links, and nothing enforces it
+- [-] [[id:f7847adf-a408-4ad0-ae0c-8d3c19b79f2b][f7847adf]] REVIEW Headings cited in bodies are id links, written as links by the tools, so backlinks are one org_query away
+- [ ] [[id:0eaffc39-088f-48c3-a5b8-167336458114][0eaffc39]] NEXT Look up a tracked id wherever it appears in Emacs: its title at point, and a jump on click
+- [-] [[id:d350ff5b-3b1f-465e-800b-962264d2e841][d350ff5b]] REVIEW Canonical drawer order: PROPERTIES, LOGBOOK, PLAN, DEBRIEF, then body
 - [ ] [[id:63df67c7-de0d-43e7-9c6f-2b2979a40aba][63df67c7]] TODO Revisit the story definition: sanction clustering and speculative breakdown
 - [[id:4c834fdb-5314-4168-ab1d-09fe89ded517][4c834fdb]] DOING Make the heading body a scannable summary, with plan and debrief in drawers
   - [-] [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]] REVIEW Move the 88 pre-convention debriefs into :DEBRIEF:, authoring each resolution
@@ -6487,7 +6499,7 @@ last tool call the session makes), and/or a =bin/lint-org= warning so
 the gap is caught at commit time regardless of exit path.
 
 
-* TODO Commits cited in bodies and debriefs are orgit links, and nothing enforces it :code:arch:
+* REVIEW Commits cited in bodies and debriefs are orgit links, and nothing enforces it :code:arch:
 :PROPERTIES:
 :ID:       b7259ee4-9aa1-4b55-8cf2-fbbacdea5310
 :CREATED:  [2026-09-10 Thu 08:52]
@@ -6512,6 +6524,19 @@ CLOCK: [2026-09-29 Tue 19:16]--[2026-09-29 Tue 19:21] =>  0:05
   stepped up: enforcement moves to the write path of three writers, shared with f7847adf as one citation linker
 CLOCK: [2026-10-05 Mon 11:08]--[2026-10-05 Mon 11:09] =>  0:01
 - [2026-10-05 Mon 11:08]--[2026-10-05 Mon 11:09] notes: e128e4fa's resolutions in the link retrofits; stale sequencing on d350ff5b and 6521dd56
+CLOCK: [2026-10-05 Mon 11:41]--[2026-10-05 Mon 11:42] =>  0:01
+- State "NEXT"       from "TODO"       [2026-10-05 Mon 11:41] \\
+  next in the slice's build order
+- [2026-10-05 Mon 11:41]--[2026-10-05 Mon 11:42] assigned at review
+CLOCK: [2026-10-05 Mon 11:53]--[2026-10-05 Mon 11:54] =>  0:01
+- [2026-10-05 Mon 11:53]--[2026-10-05 Mon 11:54] assigned at review
+CLOCK: [2026-10-05 Mon 11:54]--[2026-10-05 Mon 12:16] =>  0:22
+- State "DOING"      from "NEXT"       [2026-10-05 Mon 11:54] \\
+  implementing the shared citation linker
+- [2026-10-05 Mon 11:54]--[2026-10-05 Mon 12:16] citation linker for commits, PRs and ids
+- State "REVIEW"     from "DOING"      [2026-10-05 Mon 12:16] \\
+  shipped on branch, awaiting PR review
+- [2026-10-05 Mon 12:16]--[2026-10-05 Mon 12:16] assigned at review
 :END:
 :PLAN:
 
@@ -6614,7 +6639,6 @@ one-off pass converts TODO.org. Design in =:PLAN:=.
 "PR #N" as the pull request's URL as they write; the one pass linked TODO.org's
 23 commits and 11 PRs, and the conventions now describe that rather than ask
 for it.
-
 
 
 * TODO An unmatched clock_in grows an ever-wider span across review passes :code:
@@ -11998,6 +12022,7 @@ call it done.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-10-05 Mon 12:26]--[2026-10-05 Mon 12:27] =>  0:01
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
@@ -13547,4 +13572,17 @@ CLOCK: [2026-10-02 Fri 09:39]--[2026-10-02 Fri 09:40] =>  0:01
 - [2026-10-02 Fri 09:39]--[2026-10-02 Fri 09:40] move story 6ea84943 into slice c7619140
 CLOCK: [2026-10-02 Fri 09:40]--[2026-10-02 Fri 09:41] =>  0:01
 - [2026-10-02 Fri 09:40]--[2026-10-02 Fri 09:41] assigned at review
+:END:
+
+
+**** 2026-10-05 Monday
+:PROPERTIES:
+:ID:       ba2f89bd-7281-423b-ad59-39eefa1edf63
+:CREATED:  [2026-10-05 Mon 11:10]
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-05 Mon 11:22]--[2026-10-05 Mon 11:25] =>  0:03
+- [2026-10-05 Mon 11:22]--[2026-10-05 Mon 11:25] assigned at review
+CLOCK: [2026-10-05 Mon 11:27]--[2026-10-05 Mon 11:28] =>  0:01
+- [2026-10-05 Mon 11:27]--[2026-10-05 Mon 11:28] assigned at review
 :END:
