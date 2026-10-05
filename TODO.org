@@ -5485,6 +5485,7 @@ outside the tool so Emacs is never frozen while the human saves.
 :CREATED:  [2026-09-23 Wed 10:34]
 :BLOCKER:  704d8558-657b-43e2-9440-1c054c923ed2 c35087d8-19fe-4179-a61c-cb615b2e7679
 :END:
+:PLAN:
 
 Remove =org_amend='s registration and entry point, keeping the internals
 =org_edit= reuses. =queue-append= loses its deferred-amend branch, and its miss
@@ -5500,6 +5501,13 @@ fills =org_amend='s text directly and at apply, through
 =claude-code-ide-org--fill-prose-text=. Retiring =org_amend= must leave
 =org_edit= calling the same helper, and the legacy amend reader keeps its call
 for events already queued.
+:END:
+
+Retires =org_amend= in one move: its registration, hook branch and prose
+references switch to =org_edit=, and live headings naming it are renamed with
+=org_edit= itself. The internals =org_edit= reuses, the fill helper and the
+legacy amend reader for already-queued events stay.
+
 
 
 ** TODO Delete the legacy amend reader once no amend event remains in any queue :code:
