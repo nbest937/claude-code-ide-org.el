@@ -5651,6 +5651,7 @@ the set, and how it interacts with auto-marking.
 :CREATED:  [2026-09-14 Mon 12:15]
 :CATEGORY: Apply
 :END:
+:PLAN:
 
 Reported by the user 2026-09-14 after dismissing seven stale state items in one
 pass. =claude-code-ide-org-review-dismiss= advances point the way =m= does, but
@@ -5662,6 +5663,11 @@ remove, inverted. Proposed: =d= leaves point where it is, since the line now
 holds the item that would otherwise have been skipped. Note this is a different
 question from where point lands when the *list* is rebuilt ([[id:9e80a32d-43e1-4647-a42c-cba10f6e79cc][9e80a32d]]): nothing
 is rebuilt here, one line is removed from a rendered buffer.
+:END:
+
+After =d= dismisses an item the next one moves up into its line, and advancing
+point then skips it. Proposes that =d= leave point where it is.
+
 
 
 * TODO Nothing can correct a closed slice's record, even when the correction is close-time truth :code:
