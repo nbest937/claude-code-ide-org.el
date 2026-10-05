@@ -11954,6 +11954,7 @@ heading's id.
 - State "TODO"       from "MAYBE"      [2026-09-08 Tue 09:01] \\
   promoted as the doc task; design questions settled elsewhere
 :END:
+:PLAN:
 [[file:~/.claude/plans/worktree-session-partitioning.md][Plan]]
 
 Raised in conversation 2026-08-04: can separate Claude Code sessions
@@ -11989,6 +11990,7 @@ integration section) alongside that existing single-canonical-file constraint �
 not yet decided as worth building anything for; may just be a documentation note
 rather than code.
 
+:END:
 *Update 2026-08-05:* the core premise here — "the single clock is the mechanism
 that enforces one attention at a time, not a limitation to route around" — is
 exactly what's being stress-tested by real concurrent-session activity found
@@ -12035,10 +12037,6 @@ and the one-canonical-tracker constraint down for a reader — README's
 Known-limitations or CLAUDE.md — now that the pattern is sanctioned in
 code by the worktree-aware convention checks. No partitioning
 machinery; the design questions all have their own headings.
-
-*Its body holds the beginnings of a plan* (noted 2026-10-01, [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]]'s condense
-pass): when this heading is brainstormed, move the prospective prose into
-=:PLAN:= and revise the body to a short statement.
 
 
 * MAYBE [1/4] Accumulate issues to report upstream to claude-code-ide.el :code:
