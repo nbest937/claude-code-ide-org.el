@@ -911,7 +911,9 @@ misleads the one reader that cannot check behind the tool.
 :CREATED:  [2026-09-28 Mon 07:52]
 :CATEGORY: Apply
 :END:
+:PLAN:
 
+:END:
 =claude-code-ide-org-review-attention-start= calls a real =org-clock-in= on the
 "Review attention" heading. That leaves an open =CLOCK:= line in =TODO.org='s
 buffer, unsaved, for the whole review pass. Two costs follow. Every agent write
