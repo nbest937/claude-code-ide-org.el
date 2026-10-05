@@ -3211,7 +3211,9 @@ the lint rule.
 :ID:       ade01397-67a8-4c0b-bb55-cecfda3981c1
 :CREATED:  [2026-09-25 Fri 10:41]
 :END:
+:PLAN:
 
+:END:
 Every count on the Miss children is a floor: it holds what a hook, the user or
 the session noticed, and the user noticed on 2026-09-25 that they must watch
 closely to catch these, so most go unseen. Self-catches on these headings are
