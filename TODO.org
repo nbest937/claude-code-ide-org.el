@@ -1672,7 +1672,9 @@ from the file, and the hook deliberately knows nothing of the queue.
 :CREATED:  [2026-09-24 Thu 14:28]
 :CATEGORY: Dev
 :END:
+:PLAN:
 
+:END:
 Split out of [[id:2aeb65d6-350e-4c75-811e-4a748044fe2c][2aeb65d6]] on 2026-09-24 (the user). That heading's guard stops a
 whole-index commit from sweeping another session's *staged* work. It cannot stop
 this: =git commit -- TODO.org= takes the file's whole working-tree content, so
