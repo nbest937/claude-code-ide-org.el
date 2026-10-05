@@ -1817,6 +1817,7 @@ CLOCK: [2026-09-23 Wed 18:48]--[2026-09-23 Wed 18:49] =>  0:01
 - [2026-09-23 Wed 18:48]--[2026-09-23 Wed 18:48] assigned at review
 - [2026-09-23 Wed 18:48]--[2026-09-23 Wed 18:49] record candidate events in the body
 :END:
+:PLAN:
 
 Claude Code 2.1.280 lists 33 hook events in its binary's event enum; this repo
 wires 7 (settings.json and hooks/hooks.json together), and PostToolUseFailure
@@ -1851,6 +1852,13 @@ Judged unrelated: =Notification=, =MessageDisplay=, =Elicitation=,
 =PreModelSwitch=, =PostModelSwitch=, =PostToolBatch=,
 =UserPromptExpansion=, =CwdChanged=, =DirectoryAdded=, =WorktreeCreate=,
 =WorktreeRemove=.
+:END:
+
+A Claude Code upgrade can add hook events without anything here noticing; 26 of
+the 33 events are unwired. The proposal is a SessionStart check that, on a
+version change, diffs the binary's event list against a committed snapshot and
+reports added and removed events, failing loudly when the list cannot be read.
+
 
 
 * TODO A refused Emacs write falls through to an edit behind Emacs's back, where it should back off, retry, then stop and ask :code:
