@@ -12235,6 +12235,7 @@ observations were folded there.
 :ID:       0465c1d5-a064-4c8f-8082-9b853377ddf6
 :CREATED:  [2026-07-29 Wed 12:25]
 :END:
+:PLAN:
 Deferred out of the tracked-files fix above: once =DONE.org= (or any
 archive file) is ever reachable from
 =claude-code-ide-org--tracked-files=, retrospective =org_clock_report=
@@ -12251,6 +12252,13 @@ symlinking =DONE.org= alongside =TODO.org= in =~/org= if/when this
 becomes worth building — it keeps the interactive prospective agenda
 and the retrospective clock-report scope independently correct
 instead of coupled to the same file list.
+:END:
+
+Retrospective =org_clock_report= calls without an =:ID:= would undercount once
+archive files are in scope, because archiving moves a task's =:LOGBOOK:= history
+into =DONE.org=. Proposes the clocktable's =agenda-with-archives= scope rather
+than symlinking =DONE.org= into =~/org=.
+
 
 
 * MAYBE Coarsen :SESSIONS: to session-level, not turn-level :code:
