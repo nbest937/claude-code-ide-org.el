@@ -1192,7 +1192,8 @@ maintains in both directions. [[id:b0c843e3-4252-4e2b-a9e2-2cf91714a1ae][b0c843e
 made every blocker id parse.
 
 
-* REVIEW Headings cited in bodies are id links, written as links by the tools, so backlinks are one org_query away :code:arch:
+* DONE Headings cited in bodies are id links, written as links by the tools, so backlinks are one org_query away :code:arch:
+CLOSED: [2026-10-05 Mon 12:32]
 :PROPERTIES:
 :ID:       f7847adf-a408-4ad0-ae0c-8d3c19b79f2b
 :CREATED:  [2026-09-25 Fri 12:16]
@@ -1215,6 +1216,8 @@ CLOCK: [2026-09-29 Tue 19:39]--[2026-09-29 Tue 19:41] =>  0:02
   built together with b7259ee4, one linker
 - State "REVIEW"     from "DOING"      [2026-10-05 Mon 12:16] \\
   shipped on branch, awaiting PR review
+- State "DONE"       from "REVIEW"     [2026-10-05 Mon 12:32] \\
+  reviewed and accepted by the user
 :END:
 :PLAN:
 
@@ -1424,7 +1427,7 @@ make three copies of one fact. So =:BLOCKS:= is derived at each read, never
 tagged.
 
 
-* NEXT Look up a tracked id wherever it appears in Emacs: its title at point, and a jump on click :code:arch:
+* DOING Look up a tracked id wherever it appears in Emacs: its title at point, and a jump on click :code:arch:
 :PROPERTIES:
 :ID:       0eaffc39-088f-48c3-a5b8-167336458114
 :CREATED:  [2026-09-24 Thu 16:54]
@@ -1443,6 +1446,8 @@ CLOCK: [2026-09-29 Tue 19:59]--[2026-09-29 Tue 20:02] =>  0:03
 - [2026-09-29 Tue 19:59]--[2026-09-29 Tue 20:02] assigned at review
 - State "NEXT"       from "TODO"       [2026-10-05 Mon 12:16] \\
   next in the slice's build order
+- State "DOING"      from "NEXT"       [2026-10-05 Mon 12:32] \\
+  implementing the id lookup surfaces
 :END:
 :PLAN:
 
@@ -6372,14 +6377,14 @@ shipped conventions sanctions a cluster that will close, names the collector
 exception, and points to the divide rule. Design in =:PLAN:=.
 
 
-* DOING [1/10] Make the notes org-native: links, drawers, tags, one corpus pass :code:
+* DOING [3/10] Make the notes org-native: links, drawers, tags, one corpus pass :code:
 :PROPERTIES:
 :ID:       6521dd56-8772-416b-9435-6da78bb86b06
 :CREATED:  [2026-09-10 Thu 08:57]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  b7259ee4-9aa1-4b55-8cf2-fbbacdea5310 f7847adf-a408-4ad0-ae0c-8d3c19b79f2b 0eaffc39-088f-48c3-a5b8-167336458114 d350ff5b-3b1f-465e-800b-962264d2e841 63df67c7-de0d-43e7-9c6f-2b2979a40aba e128e4fa-b0d9-49f7-99eb-bae2d4b0676b fce6bd35-27ad-4724-8dbb-c9df4b68fb10 41cf5830-fc2e-4dc6-b243-a0c2718a53a3 8a23d6ec-ca45-454d-b65f-e46ea9204816
+:BLOCKER:  0eaffc39-088f-48c3-a5b8-167336458114 d350ff5b-3b1f-465e-800b-962264d2e841 63df67c7-de0d-43e7-9c6f-2b2979a40aba e128e4fa-b0d9-49f7-99eb-bae2d4b0676b fce6bd35-27ad-4724-8dbb-c9df4b68fb10 41cf5830-fc2e-4dc6-b243-a0c2718a53a3 8a23d6ec-ca45-454d-b65f-e46ea9204816
 :MEMBERS:  b7259ee4-9aa1-4b55-8cf2-fbbacdea5310 f7847adf-a408-4ad0-ae0c-8d3c19b79f2b 0eaffc39-088f-48c3-a5b8-167336458114 d350ff5b-3b1f-465e-800b-962264d2e841 63df67c7-de0d-43e7-9c6f-2b2979a40aba e128e4fa-b0d9-49f7-99eb-bae2d4b0676b 76a6f052-e360-4a12-8077-070da83a8e84 fce6bd35-27ad-4724-8dbb-c9df4b68fb10 e28933e9-f352-4ef9-8d53-8cd9a4318768 8b945c02-7ebe-40a2-b4cc-e35811afe57f 41cf5830-fc2e-4dc6-b243-a0c2718a53a3 8a23d6ec-ca45-454d-b65f-e46ea9204816 01849bef-fdc9-4c30-b467-00ca8606e8e0 ecf66d45-18b3-477f-bca8-08bec90604e8 ea1df60b-1e28-448e-bb62-a6fc2b6b62f8
 :DROPPED:  01849bef-fdc9-4c30-b467-00ca8606e8e0 ecf66d45-18b3-477f-bca8-08bec90604e8
 :END:
@@ -6461,9 +6466,9 @@ members.
 
 Planned:
 
-- [-] [[id:b7259ee4-9aa1-4b55-8cf2-fbbacdea5310][b7259ee4]] REVIEW Commits cited in bodies and debriefs are orgit links, and nothing enforces it
-- [-] [[id:f7847adf-a408-4ad0-ae0c-8d3c19b79f2b][f7847adf]] REVIEW Headings cited in bodies are id links, written as links by the tools, so backlinks are one org_query away
-- [ ] [[id:0eaffc39-088f-48c3-a5b8-167336458114][0eaffc39]] NEXT Look up a tracked id wherever it appears in Emacs: its title at point, and a jump on click
+- [X] [[id:b7259ee4-9aa1-4b55-8cf2-fbbacdea5310][b7259ee4]] DONE Commits cited in bodies and debriefs are orgit links, and nothing enforces it
+- [X] [[id:f7847adf-a408-4ad0-ae0c-8d3c19b79f2b][f7847adf]] DONE Headings cited in bodies are id links, written as links by the tools, so backlinks are one org_query away
+- [-] [[id:0eaffc39-088f-48c3-a5b8-167336458114][0eaffc39]] DOING Look up a tracked id wherever it appears in Emacs: its title at point, and a jump on click
 - [-] [[id:d350ff5b-3b1f-465e-800b-962264d2e841][d350ff5b]] REVIEW Canonical drawer order: PROPERTIES, LOGBOOK, PLAN, DEBRIEF, then body
 - [ ] [[id:63df67c7-de0d-43e7-9c6f-2b2979a40aba][63df67c7]] TODO Revisit the story definition: sanction clustering and speculative breakdown
 - [[id:4c834fdb-5314-4168-ab1d-09fe89ded517][4c834fdb]] DOING Make the heading body a scannable summary, with plan and debrief in drawers
@@ -6499,7 +6504,8 @@ last tool call the session makes), and/or a =bin/lint-org= warning so
 the gap is caught at commit time regardless of exit path.
 
 
-* REVIEW Commits cited in bodies and debriefs are orgit links, and nothing enforces it :code:arch:
+* DONE Commits cited in bodies and debriefs are orgit links, and nothing enforces it :code:arch:
+CLOSED: [2026-10-05 Mon 12:32]
 :PROPERTIES:
 :ID:       b7259ee4-9aa1-4b55-8cf2-fbbacdea5310
 :CREATED:  [2026-09-10 Thu 08:52]
@@ -6537,6 +6543,8 @@ CLOCK: [2026-10-05 Mon 11:54]--[2026-10-05 Mon 12:16] =>  0:22
 - State "REVIEW"     from "DOING"      [2026-10-05 Mon 12:16] \\
   shipped on branch, awaiting PR review
 - [2026-10-05 Mon 12:16]--[2026-10-05 Mon 12:16] assigned at review
+- State "DONE"       from "REVIEW"     [2026-10-05 Mon 12:32] \\
+  reviewed and accepted by the user
 :END:
 :PLAN:
 
@@ -12200,6 +12208,7 @@ CLOCK: [2026-10-01 Thu 11:27]--[2026-10-01 Thu 11:32] =>  0:05
 CLOCK: [2026-10-02 Fri 09:44]--[2026-10-02 Fri 09:58] =>  0:14
 CLOCK: [2026-10-02 Fri 10:40]--[2026-10-02 Fri 10:41] =>  0:01
 CLOCK: [2026-10-05 Mon 11:20]--[2026-10-05 Mon 11:21] =>  0:01
+- <2026-10-05 Mon 12:33>--<2026-10-05 Mon 12:33> review pass (buffer buried)
 :END:
 
 We created this heading on 2026-08-26. We deleted that property from its
