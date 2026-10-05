@@ -8459,6 +8459,7 @@ drawer?
 :CREATED:  [2026-08-31 Mon 15:44]
 :CATEGORY: Queue
 :END:
+:PLAN:
 
 Split out of [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]] 2026-08-31.
 
@@ -8504,6 +8505,13 @@ in the story.*
 - *Never present a total that looks complete.* The tool sees Claude sessions and
   nothing else, and an aggregate table is the most convincing possible way to
   imply a full accounting of a day. The gaps are precisely where meatspace went.
+:END:
+
+Split out of [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]] 2026-08-31: whether =org_clock_report= gains a
+turns-per-hour column, the one surface where a summable scalar beats a gap list.
+Deferred until a real report asks for it; closing it =CANCELLED= is a good
+outcome if none ever does.
+
 
 
 ** TODO Allocate attention across concurrent sessions, which is zero-sum :code:
