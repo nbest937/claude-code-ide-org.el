@@ -5150,7 +5150,9 @@ test should use.
 :CREATED:  [2026-09-16 Wed 08:44]
 :CATEGORY: Apply
 :END:
+:PLAN:
 
+:END:
 Asked by the user 2026-09-16, straight after =c= shipped: "will the
 0-run/0-minute spans offered always be mine to claim? if so, why not offer them
 as such?" The first half is answered and the answer is **no** — [[id:996fd2bd-be90-44b3-b2c5-9018255940b3][996fd2bd]]'s known
