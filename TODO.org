@@ -3480,6 +3480,7 @@ and all the risk of the split live here.
 :CREATED:  [2026-09-22 Tue 16:41]
 :BLOCKER:  fb849c29-fddc-4c2d-8683-f465467b1305
 :END:
+:PLAN:
 
 Once the direction holds, the seven span and attention sections move to +time.el
 and config.el ends its own code with (if (modulep! +time) (load! "+time")) —
@@ -3491,6 +3492,13 @@ bin/lib/check-org-dev-skill.el's anchor keeps holding unchanged. "Clock report"
 stays in config.el: org_clock_report is a registered tool, the clock tools stay
 registered with time tracking off, and it wraps org-clock-report over CLOCK
 lines that exist regardless. Blocked by its sibling; mechanical once that lands.
+:END:
+
+Move the seven span and attention sections out of config.el into +time.el,
+loaded behind Doom's +time module flag just before the tool-registration block,
+with Clock report staying in config.el. Blocked by its sibling step and
+mechanical once that lands.
+
 
 
 * TODO Promotion never removes, and --check never looks, so a dropped rule file would linger in every consumer :code:
