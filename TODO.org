@@ -7966,7 +7966,9 @@ than an automatic classifier.
 :CREATED:  [2026-09-01 Tue 13:11]
 :CATEGORY: Queue
 :END:
+:PLAN:
 
+:END:
 *Asked by the user 2026-09-01: "how are we currently using my AFK/BAK markers?"
 Nowhere mechanically. They exist only in the conversation.*
 
@@ -8150,10 +8152,6 @@ line of work exists to avoid.
 than hidden* — roughly half of long gaps carry no marker today, and the honest
 report says which are labelled and which are inferred rather than presenting one
 number for both.
-
-*Its body holds the beginnings of a plan* (noted 2026-10-01, [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]]'s condense
-pass): when this heading is brainstormed, move the prospective prose into
-=:PLAN:= and revise the body to a short statement.
 
 
 * TODO The human half of the ratio is already recorded, and thrown away :code:research:
