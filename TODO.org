@@ -9306,6 +9306,7 @@ CLOCK: [2026-08-26 Wed 15:33]--[2026-08-26 Wed 15:36] =>  0:03
 CLOCK: [2026-08-26 Wed 15:43]--[2026-08-26 Wed 15:44] =>  0:01
 - [2026-08-26 Wed 15:43]--[2026-08-26 Wed 15:44] assigned at review
 :END:
+:PLAN:
 
 *Requested by the user 2026-08-26*, while noticing that the [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]] flattening
 analysis "both forgot about datetrees": a newest-at-top datetree, to match the
@@ -9316,6 +9317,7 @@ descending comparators to =org-datetree-find-create-hierarchy= with
 ='subtree-at-point= replaces it. Independent of [[id:29439196-bbb8-4b64-b8d5-3bf9d457bf6c][29439196]], and touches none of
 the same code.
 
+:END:
 *What is established.*
 - =org-datetree-find-create-hierarchy= takes a comparison function per level, and =org-datetree-comparefun-from-regex= is public specifically to build them; =--find-create-subheading= walks siblings for the first one where the result is =>= 0=, inserts before it, and detects an existing entry by the same function returning =0= or =t=, so inverting the comparator inverts insertion *and* lookup together.
 - Measured on org 9.8.7, comparator simply negated: 08-25 (newest) not found, created, order 25, 21, 17, 14 -- top.
