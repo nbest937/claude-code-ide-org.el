@@ -1860,7 +1860,6 @@ version change, diffs the binary's event list against a committed snapshot and
 reports added and removed events, failing loudly when the list cannot be read.
 
 
-
 * TODO A refused Emacs write falls through to an edit behind Emacs's back, where it should back off, retry, then stop and ask :code:
 :PROPERTIES:
 :ID:       ec1e6839-bc47-4d5b-9d1e-b35b4b4e4070
@@ -2469,7 +2468,7 @@ eight phantom annotations with that note (10:52, 11:38, 12:34, 13:26,
 pattern had repeated.
 
 
-* TODO The member-drawer backfill clause is scaffolding: once every open heading has its canonical shape, the lint should require it and the clause retire :bounded:
+* REVIEW The member-drawer backfill clause is scaffolding: once every open heading has its canonical shape, the lint should require it and the clause retire :bounded:
 :PROPERTIES:
 :ID:       fce6bd35-27ad-4724-8dbb-c9df4b68fb10
 :CREATED:  [2026-09-21 Mon 12:50]
@@ -2484,6 +2483,16 @@ CLOCK: [2026-10-01 Thu 14:25]--[2026-10-01 Thu 14:26] =>  0:01
 - [2026-10-01 Thu 14:25]--[2026-10-01 Thu 14:26] brainstorm: the canonical-shape lint and the backfill clause
 CLOCK: [2026-10-01 Thu 14:28]--[2026-10-01 Thu 14:30] =>  0:02
 - [2026-10-01 Thu 14:28]--[2026-10-01 Thu 14:30] brainstorm: the canonical-shape lint and the backfill clause
+- State "NEXT"       from "TODO"       [2026-10-05 Mon 13:01] \\
+  next in the slice's build order; 76a6f052 is MAYBE
+- State "DOING"      from "NEXT"       [2026-10-05 Mon 13:08] \\
+  backfilling plan drawers, then the lint
+CLOCK: [2026-10-05 Mon 13:20]--[2026-10-05 Mon 13:22] =>  0:02
+- [2026-10-05 Mon 13:20]--[2026-10-05 Mon 13:22] plan-drawer backfill, lint, nudge, clause retire
+CLOCK: [2026-10-05 Mon 13:36]--[2026-10-05 Mon 13:38] =>  0:02
+- [2026-10-05 Mon 13:36]--[2026-10-05 Mon 13:38] plan-drawer backfill, lint, nudge, clause retire
+- State "REVIEW"     from "DOING"      [2026-10-05 Mon 13:38] \\
+  backfill, lint and nudge shipped on branch
 :END:
 :PLAN:
 The SOP adopted 2026-09-21 (org conventions, "A slice's plan, and its members'")
@@ -2614,7 +2623,6 @@ one commit each; =bin/lint-org= requires it from zero, =org_amend= and
 retired.
 
 
-
 * TODO A PreToolUse guard for hand edits to keywords, CLOCK lines and slice checklists in the org files :code:
 :PROPERTIES:
 :ID:       b69ecfe4-abcd-41a9-b8f3-ad10b4d1d5df
@@ -2641,7 +2649,6 @@ Row 9 of the enforcement audit's convert list: a PreToolUse guard on Edit and
 Write to TODO.org and DONE.org that would block hand edits to keywords, CLOCK
 and state lines and slice member checklists. Held back on false positives until
 the past Edits in the transcripts are measured.
-
 
 
 * WAITING Decide whether queue-append should derive clock events from DOING transitions, reversing the separation 4f6a6bb1 chose :code:
@@ -3553,7 +3560,6 @@ Move the seven span and attention sections out of config.el into +time.el,
 loaded behind Doom's +time module flag just before the tool-registration block,
 with Clock report staying in config.el. Blocked by its sibling step and
 mechanical once that lands.
-
 
 
 * TODO Promotion never removes, and --check never looks, so a dropped rule file would linger in every consumer :code:
@@ -5267,7 +5273,6 @@ Proposes having =queue-append= record a stable conversation key on each event,
 read cheaply from the transcript's first line.
 
 
-
 * NEXT [1/4] No org tool edits a phrase in place: org_amend appends or replaces the whole body :code:arch:
 :PROPERTIES:
 :ID:       dd4b9a9f-ba8a-4f1f-a3da-38388e0cdb76
@@ -5533,7 +5538,6 @@ on a shipped poll script in the background and retries. The waiting stays
 outside the tool so Emacs is never frozen while the human saves.
 
 
-
 ** TODO Retire org_amend in one move: hooks, prose, and the live headings renamed with org_edit :code:
 :PROPERTIES:
 :ID:       b2d4012c-6c61-47df-8086-d1cd205c73fc
@@ -5562,7 +5566,6 @@ Retires =org_amend= in one move: its registration, hook branch and prose
 references switch to =org_edit=, and live headings naming it are renamed with
 =org_edit= itself. The internals =org_edit= reuses, the fill helper and the
 legacy amend reader for already-queued events stay.
-
 
 
 ** TODO Delete the legacy amend reader once no amend event remains in any queue :code:
@@ -5699,7 +5702,6 @@ together. Open: which key executes the marks, whether one typed reason covers
 the set, and how it interacts with auto-marking.
 
 
-
 * TODO =d= advances point in the review buffer, onto whatever moved up to replace the dismissed item :code:
 :PROPERTIES:
 :ID:       e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b
@@ -5722,7 +5724,6 @@ is rebuilt here, one line is removed from a rendered buffer.
 
 After =d= dismisses an item the next one moves up into its line, and advancing
 point then skips it. Proposes that =d= leave point where it is.
-
 
 
 * TODO Nothing can correct a closed slice's record, even when the correction is close-time truth :code:
@@ -5753,7 +5754,6 @@ The closed-slice guard leaves no sanctioned way to correct a closed slice's
 record when the correction was already true at close, which on 2026-09-11 forced
 an Edit behind Emacs's back. Proposes a repair path that recomputes a closed
 slice against its members' keywords as of its CLOSED stamp.
-
 
 
 * TODO lint-org cannot see a slice checkbox that disagrees with its referent :code:
@@ -6492,7 +6492,7 @@ calls it, a one-off corpus pass reordered 141 headings, and =bin/lint-org= now
 errors on a disordered one.
 
 
-* NEXT Revisit the story definition: sanction clustering and speculative breakdown :bounded:prose:
+* REVIEW Revisit the story definition: sanction clustering and speculative breakdown :bounded:prose:
 :PROPERTIES:
 :ID:       63df67c7-de0d-43e7-9c6f-2b2979a40aba
 :CREATED:  [2026-09-10 Thu 09:06]
@@ -6511,6 +6511,12 @@ CLOCK: [2026-09-29 Tue 20:15]--[2026-09-29 Tue 20:16] =>  0:01
   its deliverable is a conventions paragraph, no code
 - State "NEXT"       from "TODO"       [2026-10-05 Mon 12:57] \\
   next in the slice's build order
+CLOCK: [2026-10-05 Mon 13:00]--[2026-10-05 Mon 13:01] =>  0:01
+- State "DOING"      from "NEXT"       [2026-10-05 Mon 13:00] \\
+  writing the clustering paragraph
+- [2026-10-05 Mon 13:00]--[2026-10-05 Mon 13:01] conventions paragraph on clustering and breakdown
+- State "REVIEW"     from "DOING"      [2026-10-05 Mon 13:01] \\
+  paragraph shipped on branch, awaiting review
 :END:
 :PLAN:
 Raised by the user 2026-09-10, after composing the org-native-notes
@@ -6622,7 +6628,6 @@ cluster that will close, names a filing drawer and the collector exception, and
 sanctions breaking down an unworked heading.
 
 
-
 * DOING [4/10] Make the notes org-native: links, drawers, tags, one corpus pass :code:
 :PROPERTIES:
 :ID:       6521dd56-8772-416b-9435-6da78bb86b06
@@ -6716,15 +6721,15 @@ Planned:
 - [X] [[id:f7847adf-a408-4ad0-ae0c-8d3c19b79f2b][f7847adf]] DONE Headings cited in bodies are id links, written as links by the tools, so backlinks are one org_query away
 - [-] [[id:0eaffc39-088f-48c3-a5b8-167336458114][0eaffc39]] REVIEW Look up a tracked id wherever it appears in Emacs: its title at point, and a jump on click
 - [X] [[id:d350ff5b-3b1f-465e-800b-962264d2e841][d350ff5b]] DONE Canonical drawer order: PROPERTIES, LOGBOOK, PLAN, DEBRIEF, then body
-- [ ] [[id:63df67c7-de0d-43e7-9c6f-2b2979a40aba][63df67c7]] NEXT Revisit the story definition: sanction clustering and speculative breakdown
+- [-] [[id:63df67c7-de0d-43e7-9c6f-2b2979a40aba][63df67c7]] REVIEW Revisit the story definition: sanction clustering and speculative breakdown
 - [[id:4c834fdb-5314-4168-ab1d-09fe89ded517][4c834fdb]] DOING Make the heading body a scannable summary, with plan and debrief in drawers
   - [-] [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]] REVIEW Move the 88 pre-convention debriefs into :DEBRIEF:, authoring each resolution
 - [[id:76a6f052-e360-4a12-8077-070da83a8e84][76a6f052]] MAYBE Long prose lines have drifted back since the one fill sweep of 2026-09-14, because nothing runs it routinely
-- [ ] [[id:fce6bd35-27ad-4724-8dbb-c9df4b68fb10][fce6bd35]] TODO The member-drawer backfill clause is scaffolding: once every open heading has its canonical shape, the lint should require it and the clause retire
+- [-] [[id:fce6bd35-27ad-4724-8dbb-c9df4b68fb10][fce6bd35]] REVIEW The member-drawer backfill clause is scaffolding: once every open heading has its canonical shape, the lint should require it and the clause retire
 - [[id:ee3e0fa2-d4a6-4575-a5fb-e4e25c49431a][ee3e0fa2]] CANCELLED Make the corpus searchable by tag, by measurement where it can be and by decision where it cannot
   - [[id:e28933e9-f352-4ef9-8d53-8cd9a4318768][e28933e9]] CANCELLED Survey all task history for a tag vocabulary worth searching on
   - [[id:8b945c02-7ebe-40a2-b4cc-e35811afe57f][8b945c02]] CANCELLED Adopt an `observed` tag for a defect seen in use, as the severity signal the keyword set does not carry
-- [ ] [[id:41cf5830-fc2e-4dc6-b243-a0c2718a53a3][41cf5830]] TODO Answer how a heading got here from the commits that cite it, one call away
+- [-] [[id:41cf5830-fc2e-4dc6-b243-a0c2718a53a3][41cf5830]] REVIEW Answer how a heading got here from the commits that cite it, one call away
 - [-] [[id:8a23d6ec-ca45-454d-b65f-e46ea9204816][8a23d6ec]] REVIEW Comma-escape headline lines when documenting org structure inside a body
 - [[id:6ea84943-9eef-4940-b850-e8cf79310d2a][6ea84943]] MAYBE A claimed span records agent time and human attention as one, and the reviewer has no picture of the span to judge from
   - [[id:01849bef-fdc9-4c30-b467-00ca8606e8e0][01849bef]] MAYBE A claim should keep the agent's runs and the user's attention apart, not record the whole span as attention
@@ -8568,7 +8573,6 @@ Deferred until a real report asks for it; closing it =CANCELLED= is a good
 outcome if none ever does.
 
 
-
 ** TODO Allocate attention across concurrent sessions, which is zero-sum :code:
 :PROPERTIES:
 :ID:       b862fbf4-53b8-48b5-b773-1c7c0332dfb4
@@ -9161,7 +9165,6 @@ clone of it under that day's node in DONE.org's datetree, merging into an
 existing clone on re-run.
 
 
-
 * TODO Distribute Review and planning's past day nodes into DONE.org's datetree :code:
 :PROPERTIES:
 :ID:       d6fc47a5-b84d-4287-b973-aa5b37410270
@@ -9214,7 +9217,6 @@ into an existing day rather than appending, and remove the broken =:ARCHIVE:=
 property this route replaces. Measured 2026-08-31: negated comparators passed to
 =org-datetree-find-create-hierarchy= build a strictly descending tree, and the
 =:ARCHIVE:= target heading does not exist in DONE.org.
-
 
 
 * MAYBE Install orgparse for ad-hoc analysis, and stop reaching for regex over org text :code:
@@ -9682,7 +9684,6 @@ create: today's node is created on demand when work happens, and the repeater
 sits on the category, the one place in this repo a repeater is safe.
 
 
-
 * REVIEW Comma-escape headline lines when documenting org structure inside a body :code:bounded:
 :PROPERTIES:
 :CATEGORY: Skill
@@ -9947,7 +9948,6 @@ unambiguous pass rather than one per item, still inside the interactive review
 command.
 
 
-
 * TODO An unassigned span's readout omits the evidence that would make its heading obvious :code:
 :PROPERTIES:
 :CATEGORY: Apply
@@ -10066,7 +10066,7 @@ and the transcripts, which are append-only, and not the working tree, which is
 not.
 
 
-* TODO Answer how a heading got here from the commits that cite it, one call away :code:arch:
+* REVIEW Answer how a heading got here from the commits that cite it, one call away :code:arch:
 :PROPERTIES:
 :CATEGORY: Skill
 :ID:       41cf5830-fc2e-4dc6-b243-a0c2718a53a3
@@ -10093,6 +10093,12 @@ CLOCK: [2026-10-02 Fri 09:09]--[2026-10-02 Fri 09:10] =>  0:01
 - [2026-10-02 Fri 09:09]--[2026-10-02 Fri 09:10] brainstorm: git history index for a heading
 CLOCK: [2026-10-02 Fri 09:12]--[2026-10-02 Fri 09:13] =>  0:01
 - [2026-10-02 Fri 09:12]--[2026-10-02 Fri 09:13] assigned at review
+CLOCK: [2026-10-05 Mon 13:38]--[2026-10-05 Mon 13:42] =>  0:04
+- State "DOING"      from "TODO"       [2026-10-05 Mon 13:38] \\
+  building org_history
+- [2026-10-05 Mon 13:38]--[2026-10-05 Mon 13:42] org_history tool and outline signpost
+- State "REVIEW"     from "DOING"      [2026-10-05 Mon 13:42] \\
+  org_history shipped on branch
 :END:
 :PLAN:
 
@@ -10248,7 +10254,6 @@ ruled out. Design in =:PLAN:=.
 commits whose messages cite its id -- the work on it, the rest grouped by
 subject, and where to look next -- and a scoped outline carries a one-line
 count.
-
 
 
 * TODO Applied review changes can be destroyed by a git checkout that looks like it reverts only Claude's edit :code:
@@ -12342,7 +12347,6 @@ into =DONE.org=. Proposes the clocktable's =agenda-with-archives= scope rather
 than symlinking =DONE.org= into =~/org=.
 
 
-
 * MAYBE Coarsen :SESSIONS: to session-level, not turn-level :code:
 :PROPERTIES:
 :CATEGORY: Queue
@@ -12371,7 +12375,6 @@ rules say only the model/user should make, not a hook.
 Paused/Resumed pair per prompt instead of the session-level arc it was meant to
 show. Proposes closing it only at DOING → DONE, at the end of a working day, or
 on an explicit signal such as a =/dfd <task>= command.
-
 
 
 * MAYBE Idle-based auto clock-out :code:
@@ -12418,13 +12421,13 @@ this proposes designing auth first -- a bearer token at minimum, ideally scoped
 per tool -- rather than opening the servers beyond localhost.
 
 
-
 * Review attention
 :PROPERTIES:
 :CATEGORY: Meta
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-10-05 Mon 14:45]--[2026-10-05 Mon 14:46] =>  0:01
 CLOCK: [2026-10-05 Mon 12:58]--[2026-10-05 Mon 12:59] =>  0:01
 CLOCK: [2026-10-05 Mon 12:26]--[2026-10-05 Mon 12:27] =>  0:01
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
