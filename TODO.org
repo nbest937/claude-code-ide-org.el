@@ -2552,12 +2552,67 @@ removed.
 maintenance; then the lint, the nudge and the convention change on a branch,
 merged through a pull request.
 :END:
+:DEBRIEF:
+*Shipped 2026-10-05* on =feature/org-native-notes=: the backfill as 100 commits
+([[orgit-rev:./::8ec27af][8ec27af]] through [[orgit-rev:./::b8cfd34][b8cfd34]]), =org_wrap_plan='s fix in [[orgit-rev:./::54f6fee][54f6fee]], and the lint,
+nudge and clause in [[orgit-rev:./::359aada][359aada]].
+
+*The set*, measured with the predicate the lint now uses
+(=--plan-owed-p=): 100 live headings -- 79 =TODO=, 9 =MAYBE=, 3 =NEXT=, 2
+=DOING=, 2 stories, 3 repeaters, 1 =WAITING=, 1 =REVIEW= -- with slices and
+=Miss:= headings exempt, as the 2026-10-01 measurement had them. It counts with
+=--lint-body-prose-lines=, counter bug included ([[id:fd0f5787-d519-4acb-8e47-508235781c44][fd0f5787]]), so fixing that may
+surface more headings later.
+
+*How the seams were chosen.* Ten drafter subagents took ten headings each from
+dumped bodies, read-only, under one rule written down before they started: the
+seam is the first line from which the rest is predominantly record, and the
+opening above it, problem statement included, goes to =:PLAN:=; a body that
+opens with record keeps an empty =:PLAN:=; a wholly prospective body is wrapped
+whole under a one-to-two-sentence statement. Ten independent verifiers saw only
+bodies and proposals: 93 agreed, 7 disagreed, and all 7 were taken -- six
+reclassified as record because =plan= would have buried dated observations in
+the drawer ([[id:595df230-e31d-42ad-9ea7-128e545b9aa0][595df230]], [[id:ade01397-67a8-4c0b-bb55-cecfda3981c1][ade01397]], [[id:6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0][6af8fb3e]], [[id:4a583ff2-2f6c-435b-acc2-9c52ad05539f][4a583ff2]], [[id:ee90e212-2118-4409-b30e-bff96b9ed0ca][ee90e212]],
+[[id:c0c5e015-c33e-4e1a-ad6e-907f9fa56c07][c0c5e015]]), and [[id:d6fc47a5-b84d-4287-b973-aa5b37410270][d6fc47a5]]'s statement rewritten to carry its two measurements.
+Final: 47 record, 36 mixed, 17 plan. Every seam was checked mechanically to
+occur exactly once before any write.
+
+*Applied* by a driver calling the tools' own functions over =emacsclient= --
+=org_edit= to delete the 19 "holds the beginnings of a plan" notes,
+=org_wrap_plan=, =org_amend= for a statement -- one commit each, aborting unless
+the reply said "Text preserved: yes" and the diff touched only TODO.org with no
+heading, state or clock line. It stopped once, falsely: a title containing
+"errors" matched the check, which was then narrowed to =Error:=.
+
+*Differed from the plan.*
+- *On the branch, not =main=:* the branch's corpus passes had rewritten the same
+  bodies, so a backfill on =main= would have conflicted with all of them at merge.
+- *=org_wrap_plan= fixed first:* [[id:25ec37b0-460f-404d-be83-8a4b4d355cdc][25ec37b0]] quotes a property drawer in an
+  example block below its seam, and the refusal checked the whole body; it now
+  checks only the part wrapped, and its lossless check strips only the two
+  markers it inserts.
+- *One seam has a known limit:* about 20 record bodies end in proposals that
+  stay visible, since a single seam can only move an opening into =:PLAN:=. The
+  lint asks for the split, not for perfect separation, and that prose waits for
+  each heading's own brainstorm.
+
+*Verified.* Seven mutations of the predicate, lint and nudge each turned a test
+red, suite 880/880, =bin/lint-org= 0 errors on the corpus with the rule live,
+and a drawer-order dry run reports 0. This meets the first of [[id:80aeb955-cf44-4990-8c7f-be7759fb05ec][80aeb955]]'s two
+conditions for retiring =org_wrap_plan=.
+:END:
 
 The conventions' clause giving a drawerless member a =:PLAN:= is scaffolding,
 but no pass ever made live headings canonical: 103 live bodies are substantial
 with no =:PLAN:=, 64 of them filed under the convention. Backfill the split for
 all of them now, then let =bin/lint-org= require the shape everywhere, nudge at
 write time, and retire the clause. Design in =:PLAN:=.
+
+*Resolution:* all 100 live headings owing a split now have a =:PLAN:= drawer,
+one commit each; =bin/lint-org= requires it from zero, =org_amend= and
+=org_edit= nudge when a write makes one owed, and the scaffolding clause is
+retired.
+
 
 
 * TODO A PreToolUse guard for hand edits to keywords, CLOCK lines and slice checklists in the org files :code:
