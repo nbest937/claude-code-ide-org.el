@@ -7929,6 +7929,7 @@ explicit message saying why it could not be.
 :CREATED:  [2026-09-01 Tue 14:33]
 :CATEGORY: Queue
 :END:
+:PLAN:
 
 Split out of [[id:e75d660f-5c0d-4707-a645-b5dea7d7ebc0][e75d660f]] 2026-09-01 at the user's request, because it is a
 mechanism rather than the question of whether markers are worth capturing at
@@ -7940,6 +7941,7 @@ survives is weaker and still worth having: markers *raise or lower confidence*
 on a span a human is going to judge anyway, which is [[id:5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46][5a6d2c75]]'s frame rather
 than an automatic classifier.
 
+:END:
 *What is established.*
 - The gap rule: a gap is an absence when its opening prompt carries a departure marker *or* its closing prompt carries a return marker, so an ambiguous opener becomes harmless rather than blocking -- a *77-minute* gap after "afk since 13:30" is labelled by its *closer*, an explicit "BAK".
 - A prompt is defined by the queue, not the transcript: the queue's =resume= events fire only on =UserPromptSubmit=, and the transcript supplies the text at those timestamps.
