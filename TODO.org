@@ -12089,6 +12089,7 @@ CLOCK: [2026-09-09 Wed 17:38]--[2026-09-09 Wed 17:45] =>  0:07
 CLOCK: [2026-09-25 Fri 12:36]--[2026-09-25 Fri 12:37] =>  0:01
 - [2026-09-25 Fri 12:36]--[2026-09-25 Fri 12:37] record the reconnect sighting
 :END:
+:PLAN:
 
 =claude-code-ide-mcp-http-server.el= signals =json-rpc-error= in three places
 and *never passes the symbol to =define-error=*, so the signal escapes the whole
@@ -12109,6 +12110,7 @@ message *and the request's own =id=*, which means catching it where =id= is
 still bound rather than in the outer handler. Every signal site already carries
 the right JSON-RPC code.
 
+:END:
 *What is established.*
 - The three sites: =--dispatch= for an unknown method (=-32601=), =--handle-tools-call= for an unknown tool (=-32602=), and =--validate-args= for a missing required argument (=-32602=).
 - An error symbol with no =error-conditions= property matches no handler, measured directly:
