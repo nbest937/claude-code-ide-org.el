@@ -2057,6 +2057,7 @@ CLOCK: [2026-09-25 Fri 16:51]--[2026-09-25 Fri 16:52] =>  0:01
 - Tags ":code:"     from ":code:observed:" [2026-09-29 Tue 21:46] \\
   tag dropped (the user, 2026-09-29): applied by recall, so its absence meant nothing
 :END:
+:PLAN:
 
 =claude-code-ide-org--replace-body= deletes the body region and inserts
 =(string-trim text)=, so replacing the last body before a heading takes the
@@ -2085,6 +2086,7 @@ warnings where there were 511 -- eight malformed timestamps such as
 Warnings never reach a commit, since pre-commit shows only errors, so the gain
 is legibility for whoever runs the lint and one small gate.
 
+:END:
 *What is established.*
 - First instance, observed 2026-09-22 on [[id:59861867-e807-43a8-a0fa-5ca227167022][59861867]]: TODO.org:1008 became the line =written.= with =** TODO Miss: ...= glued onto its end.
 - Both later instances were top-level headings glued onto the last body line of the heading above, each by a replace whose text had no trailing newline.
