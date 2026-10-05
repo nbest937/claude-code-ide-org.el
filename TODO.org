@@ -2654,7 +2654,9 @@ It gates earnest work in euchre, taking over from [[id:6a207b00-8fa1-441e-8ee5-3
 - Tags ":code:"     from ":code:observed:" [2026-09-29 Tue 21:46] \\
   tag dropped (the user, 2026-09-29): applied by recall, so its absence meant nothing
 :END:
+:PLAN:
 
+:END:
 org_capture now searches TODO.org and DONE.org on every capture by idf-weighted
 title-token overlap ([[id:c8773ec2-1b29-4128-80b3-5c21845f4ca3][c8773ec2]]). Probed against the real corpus 2026-09-21, it
 found the mac-port deadlock heading, the unrun-suites heading and the twin-pass
