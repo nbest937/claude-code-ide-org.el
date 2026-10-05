@@ -3709,6 +3709,7 @@ settles it in one command.
 :CREATED:  [2026-09-18 Fri 11:39]
 :CATEGORY: Skill
 :END:
+:PLAN:
 
 Raised by the user 2026-09-18. =org-conventions.md= says a story "is not
 declared, it is emergent... **Don't classify a heading as one when writing
@@ -3728,6 +3729,7 @@ none written down:
 - *Partial stories inside slices are historical*, not a pattern to copy: the story work predates the slice mechanism.
 - *The lifecycle, the load-bearing omission:* a task first exists **outside** a slice, and a slice **promotes** it from the backlog when completing it has been prioritized, so slice membership *means* "this is prioritized for near-term completion". Grepped 2026-09-18: nothing in =org-conventions.md=, =CLAUDE.md= or the org skill describes promotion; the only documented way in is adoption-on-discovery, the mid-flight exception.
 
+:END:
 *What is established.*
 - Deliberate composition is the norm (measured 2026-09-18): of the six live groupings in =TODO.org= -- level-1 headings with keyworded children -- **five carry no CLOCK line of their own**, so they were *composed*; only one ([[id:a1d63f52-4c07-4b9e-8f31-6d2b90c4e7a5][a1d63f52]], 9 own CLOCK lines) is the accidental shape the conventions describe.
 - =CLAUDE.md='s account -- "each was clocked honestly while it was still a leaf, and became a grouping later by acquiring children or by a refile" -- is true of the historical corpus it was written against, and is now the minority case.
