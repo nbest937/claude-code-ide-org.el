@@ -8712,7 +8712,9 @@ rather than reflex.
 :ID:       9b5eb830-8825-4d6c-b701-c167c2d71fdf
 :CREATED:  [2026-08-31 Mon 16:39]
 :END:
+:PLAN:
 
+:END:
 Turn count is derived from =resume= events, one per =UserPromptSubmit=, so a
 background session or a subagent, with no human submitting prompts, counts
 *zero* -- as does any span whose window holds no completed turn. Zero already
