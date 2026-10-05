@@ -4992,7 +4992,9 @@ CLOCK: [2026-09-17 Thu 10:33]--[2026-09-17 Thu 10:34] =>  0:01
 CLOCK: [2026-09-17 Thu 10:34]--[2026-09-17 Thu 10:34] =>  0:00
 - [2026-09-17 Thu 10:34]--[2026-09-17 Thu 10:34] suggested span, accepted at review
 :END:
+:PLAN:
 
+:END:
 Regression introduced by [[id:c54c4215-90e3-4e0c-9de1-990c0406a2b2][c54c4215]]'s complement, found 2026-09-16 when the user
 asked what the undismissable items were. **7 of 14 currently offered items carry
 no =:events=**, and =claude-code-ide-org-review-dismiss= refuses them: "Nothing
@@ -5140,10 +5142,6 @@ survive in the live queue, the rest consumed by applies, so step 2 of the probe
 could not reproduce the current item list and is inconclusive. Step 1 needs no
 brackets and is what the finding rests on. A synthetic fixture is what the fix's
 test should use.
-
-*Its body holds the beginnings of a plan* (noted 2026-10-01, [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]]'s condense
-pass): when this heading is brainstormed, move the prospective prose into
-=:PLAN:= and revise the body to a short statement.
 
 
 * TODO Should a short 0-run span default to claimed, and where does the bound fall? :research:
