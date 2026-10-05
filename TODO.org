@@ -4733,7 +4733,9 @@ dismissed.
 :CREATED:  [2026-09-16 Wed 13:47]
 :CATEGORY: Dev
 :END:
+:PLAN:
 
+:END:
 Found 2026-09-16. =.claude-code-ide-org-audit.jsonl= holds **5053 records, 1.7
 MB**, accumulated since August in the repo root (gitignored, =.gitignore:4=),
 and 2026-09-16 was the **first time anything ever read it**. It was built for
