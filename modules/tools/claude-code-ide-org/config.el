@@ -21099,6 +21099,213 @@ from Lisp no argument writes.  Returns the report."
           (when (called-interactively-p 'any) (message "%s" report))
           report))))))
 
+;;; Id lookup in Emacs (TODO.org :ID: 0eaffc39)
+;;
+;; An 8-hex id anywhere in a tracked buffer or a commit message is opaque
+;; until someone looks it up.  One cached lookup serves three surfaces:
+;; eldoc at point, the hover on an id link, and a font-lock mark on a bare
+;; id that resolves.  All three are read-only, and none may rescan: org's
+;; rescan is right for a tool call and ruinous for something that runs as
+;; point moves, so the lookup reads only its own cache.
+
+(defcustom claude-code-ide-org-id-lookup t
+  "Non-nil to show what a tracked id names, at point and on hover.
+Off turns off every surface: eldoc, the bare-id mark and the id-link
+hover.  Read-only throughout, hence on by default (TODO.org :ID: 0eaffc39)."
+  :type 'boolean
+  :group 'claude-code-ide-org)
+
+(defface claude-code-ide-org-id-reference '((t :underline t))
+  "Face for a bare 8-hex id that resolves to a tracked heading."
+  :group 'claude-code-ide-org)
+
+(defvar claude-code-ide-org--id-lookup-cache nil
+  "(REFERENTS . PREFIXES), or nil until first use.
+REFERENTS is `claude-code-ide-org--slice-referent-index'; PREFIXES maps
+each id's 8-character prefix to its full id, an ambiguous prefix to
+`ambiguous'.  Dropped when a tracked file saves, so \"keyword now\" means
+as of the last save -- what is true on disk.")
+
+(defun claude-code-ide-org--id-lookup-tables ()
+  "The lookup cache, built from disk on first use."
+  (or claude-code-ide-org--id-lookup-cache
+      (setq claude-code-ide-org--id-lookup-cache
+            (let ((referents (claude-code-ide-org--slice-referent-index))
+                  (prefixes (make-hash-table :test 'equal)))
+              (maphash (lambda (id _)
+                         (let ((p (downcase (substring id 0 (min 8 (length id))))))
+                           (puthash p (if (gethash p prefixes) 'ambiguous id)
+                                    prefixes)))
+                       referents)
+              (cons referents prefixes)))))
+
+(defun claude-code-ide-org--id-lookup-drop-cache ()
+  "Drop the lookup cache when a tracked file saves."
+  (when (claude-code-ide-org--tracked-buffer-p)
+    (setq claude-code-ide-org--id-lookup-cache nil)))
+
+(add-hook 'after-save-hook #'claude-code-ide-org--id-lookup-drop-cache)
+
+(defun claude-code-ide-org--id-lookup-full (token)
+  "The full id TOKEN names -- an 8-hex prefix or a full id -- or nil.
+Never rescans: a miss is nil."
+  (when (and claude-code-ide-org-id-lookup (stringp token))
+    (let* ((tables (claude-code-ide-org--id-lookup-tables))
+           (token (downcase token)))
+      (cond
+       ((gethash token (car tables)) token)
+       ((= 8 (length token))
+        (let ((full (gethash token (cdr tables))))
+          (and (stringp full) full)))))))
+
+(defun claude-code-ide-org--id-lookup (token)
+  "\"abcd1234 KEYWORD Title\" for the heading TOKEN names, or nil."
+  (let ((full (claude-code-ide-org--id-lookup-full token)))
+    (when full
+      (let ((entry (gethash full (car (claude-code-ide-org--id-lookup-tables)))))
+        (string-join (delq nil (list (substring full 0 8) (car entry) (cdr entry)))
+                     " ")))))
+
+(defun claude-code-ide-org--id-lookup-bare-at (pos)
+  "The bare 8-hex word around POS, as (BEG . END), or nil.
+Exactly 8 hex: a 7-hex SHA or a longer token never matches."
+  (save-excursion
+    (goto-char pos)
+    (skip-chars-backward "0-9a-f")
+    (let ((case-fold-search nil))
+      (when (and (looking-at "[0-9a-f]\\{8\\}\\(?:$\\|[^[:alnum:]_-]\\)")
+                 (or (bobp) (not (string-match-p "[[:alnum:]_-]"
+                                                 (string (char-before))))))
+        (cons (point) (+ (point) 8))))))
+
+(defun claude-code-ide-org--id-lookup-link-at (pos)
+  "The id link around POS, as its org element, or nil.  Org buffers only."
+  (when (derived-mode-p 'org-mode)
+    (save-excursion
+      (goto-char pos)
+      (let ((ctx (org-element-lineage (org-element-context) '(link) t)))
+        (and ctx (equal (org-element-property :type ctx) "id") ctx)))))
+
+(defun claude-code-ide-org--id-lookup-eldoc (&rest _)
+  "Eldoc: the line for the id link or bare id at point, or nil."
+  (when claude-code-ide-org-id-lookup
+    (let ((link (claude-code-ide-org--id-lookup-link-at (point))))
+      (if link
+          (claude-code-ide-org--id-lookup (org-element-property :path link))
+        (let ((bare (claude-code-ide-org--id-lookup-bare-at (point))))
+          (and bare (claude-code-ide-org--id-lookup
+                     (buffer-substring-no-properties (car bare) (cdr bare)))))))))
+
+(defun claude-code-ide-org--id-link-help-echo (window object pos)
+  "Hover text for an id link: its lookup line, or org's own on a miss."
+  (with-current-buffer (if (bufferp object) object (window-buffer window))
+    (let ((link (save-excursion (goto-char pos)
+                                (org-element-lineage (org-element-context) '(link) t))))
+      (or (and link (claude-code-ide-org--id-lookup (org-element-property :path link)))
+          (concat "LINK: " (if link (org-element-property :raw-link link) "id"))))))
+
+(with-eval-after-load 'ol
+  (org-link-set-parameters "id" :help-echo #'claude-code-ide-org--id-link-help-echo))
+
+(defun claude-code-ide-org--id-reference-help-echo (window object pos)
+  "Hover text for a marked bare id, computed only at hover."
+  (with-current-buffer (if (bufferp object) object (window-buffer window))
+    (let ((bare (claude-code-ide-org--id-lookup-bare-at pos)))
+      (and bare (claude-code-ide-org--id-lookup
+                 (buffer-substring-no-properties (car bare) (cdr bare)))))))
+
+(defun claude-code-ide-org-id-lookup-jump (&optional event)
+  "Jump to the heading the marked id at point, or at EVENT, names."
+  (interactive (list last-nonmenu-event))
+  (let* ((pos (if (mouse-event-p event) (posn-point (event-start event)) (point)))
+         (buffer (if (mouse-event-p event)
+                     (window-buffer (posn-window (event-start event)))
+                   (current-buffer)))
+         (full (with-current-buffer buffer
+                 (let ((bare (claude-code-ide-org--id-lookup-bare-at pos)))
+                   (and bare (claude-code-ide-org--id-lookup-full
+                              (buffer-substring-no-properties (car bare) (cdr bare))))))))
+    (if full
+        ;; Known to resolve, so `org-id-goto''s own rescan cannot fire.
+        (org-id-goto full)
+      (user-error "No tracked heading here"))))
+
+(defvar claude-code-ide-org-id-reference-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map [mouse-1] #'claude-code-ide-org-id-lookup-jump)
+    (define-key map (kbd "RET") #'claude-code-ide-org-id-lookup-jump)
+    map)
+  "Keymap on a marked bare id: a click or RET jumps to its heading.")
+
+(defun claude-code-ide-org--id-reference-skip-p (pos)
+  "Non-nil when the bare id at POS is inside a link, ~code~ or a block.
+Verbatim is not skipped: DONE.org cites ids that way."
+  (and (derived-mode-p 'org-mode)
+       (save-excursion
+         (goto-char pos)
+         (org-element-lineage
+          (org-element-context)
+          '(link code inline-src-block src-block example-block export-block
+            comment-block quote-block special-block center-block verse-block)
+          t))))
+
+(defun claude-code-ide-org--id-reference-matcher (limit)
+  "Font-lock matcher: the next bare id before LIMIT that resolves."
+  (let ((case-fold-search nil) found)
+    (while (and (not found)
+                (re-search-forward
+                 "\\(?:^\\|[^[:alnum:]_/.:#~-]\\)\\([0-9a-f]\\{8\\}\\)\\(?:$\\|[^[:alnum:]_/~-]\\)"
+                 limit t))
+      (let ((beg (match-beginning 1)) (end (match-end 1)))
+        (goto-char end)
+        (when (and (claude-code-ide-org--id-lookup-full
+                    (buffer-substring-no-properties beg end))
+                   (not (claude-code-ide-org--id-reference-skip-p beg)))
+          (set-match-data (list beg end))
+          (setq found t))))
+    found))
+
+(defconst claude-code-ide-org--id-reference-keywords
+  `((claude-code-ide-org--id-reference-matcher
+     (0 '(face claude-code-ide-org-id-reference
+          mouse-face highlight
+          help-echo claude-code-ide-org--id-reference-help-echo
+          keymap ,claude-code-ide-org-id-reference-map)
+        prepend)))
+  "The bare-id font-lock rule.  `prepend', so the mark lands over the
+verbatim face DONE.org cites ids in.")
+
+(define-minor-mode claude-code-ide-org-id-lookup-mode
+  "Show what a tracked id names: eldoc at point, a mark and hover on a
+bare id that resolves, and a jump on click or RET (TODO.org :ID: 0eaffc39)."
+  :lighter nil
+  (if claude-code-ide-org-id-lookup-mode
+      (progn
+        (add-hook 'eldoc-documentation-functions
+                  #'claude-code-ide-org--id-lookup-eldoc nil t)
+        (font-lock-add-keywords nil claude-code-ide-org--id-reference-keywords 'append)
+        (setq-local font-lock-extra-managed-props
+                    (seq-union font-lock-extra-managed-props
+                               '(mouse-face help-echo keymap))))
+    (remove-hook 'eldoc-documentation-functions
+                 #'claude-code-ide-org--id-lookup-eldoc t)
+    (font-lock-remove-keywords nil claude-code-ide-org--id-reference-keywords))
+  (when font-lock-mode (font-lock-flush)))
+
+(defun claude-code-ide-org--id-lookup-maybe-enable ()
+  "Turn the lookup on in a tracked org buffer, or a magit buffer."
+  (when (and claude-code-ide-org-id-lookup
+             (or (not (derived-mode-p 'org-mode))
+                 (claude-code-ide-org--tracked-buffer-p)))
+    (claude-code-ide-org-id-lookup-mode 1)))
+
+(add-hook 'org-mode-hook #'claude-code-ide-org--id-lookup-maybe-enable)
+(with-eval-after-load 'magit
+  (add-hook 'magit-revision-mode-hook #'claude-code-ide-org--id-lookup-maybe-enable)
+  (add-hook 'magit-log-mode-hook #'claude-code-ide-org--id-lookup-maybe-enable))
+(with-eval-after-load 'git-commit
+  (add-hook 'git-commit-setup-hook #'claude-code-ide-org--id-lookup-maybe-enable))
+
 ;;; Standalone wiring -- the MCP tools server for clients outside the
 ;;; vterm launcher (Warp, or a `claude' CLI started in any terminal).
 ;;

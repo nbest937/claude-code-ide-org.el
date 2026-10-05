@@ -20896,3 +20896,132 @@ a member line; mid-line, and anywhere outside a slice body, it links."
     (let ((disk (claude-code-ide-org-test--disk-contents capture-file)))
       (should (string-match-p "^- =abcd1234= is a prose bullet\\.$" disk))
       (should (string-match-p "^- \\[\\[id:abcd1234-[^]]+\\]\\[abcd1234\\]\\] first\\.$" disk)))))
+
+;;; Id lookup in Emacs (TODO.org :ID: 0eaffc39)
+
+(defmacro claude-code-ide-org-test--with-lookup-file (&rest body)
+  "A tracked TODO.org holding a target heading and two that share a
+prefix; BODY runs with `file' bound and the lookup cache fresh."
+  (declare (indent 0))
+  `(let* ((dir (file-name-as-directory (make-temp-file "id-lookup" t)))
+          (file (expand-file-name "TODO.org" dir))
+          (claude-code-ide-org-query-files (list file))
+          (claude-code-ide-org-id-lookup t)
+          (claude-code-ide-org--id-lookup-cache nil)
+          (org-id-locations-file (expand-file-name ".org-id-locations" dir))
+          (org-id-locations (make-hash-table :test 'equal))
+          (org-id-files nil))
+     (unwind-protect
+         (progn
+           (with-temp-file file
+             (insert "#+TODO: TODO NEXT DOING | DONE\n\n"
+                     "* DOING The target\n:PROPERTIES:\n"
+                     ":ID:       abcd1234-0000-4000-8000-000000000001\n:END:\n\n"
+                     "* TODO Twin one\n:PROPERTIES:\n"
+                     ":ID:       5555aaaa-0000-4000-8000-000000000001\n:END:\n\n"
+                     "* TODO Twin two\n:PROPERTIES:\n"
+                     ":ID:       5555aaaa-0000-4000-8000-000000000002\n:END:\n"))
+           ,@body)
+       (let ((buffer (find-buffer-visiting file)))
+         (when buffer
+           (with-current-buffer buffer (set-buffer-modified-p nil))
+           (kill-buffer buffer)))
+       (delete-directory dir t))))
+
+(ert-deftest claude-code-ide-org-test-id-lookup-resolves-and-never-rescans ()
+  "A prefix or full id gives the footnote-shaped line; a miss and an
+ambiguous prefix give nil, and no lookup reaches org's rescan."
+  (claude-code-ide-org-test--with-lookup-file
+    (cl-letf (((symbol-function 'org-id-update-id-locations)
+               (lambda (&rest _) (error "Rescanned"))))
+      (should (equal "abcd1234 DOING The target"
+                     (claude-code-ide-org--id-lookup "abcd1234")))
+      (should (equal "abcd1234 DOING The target"
+                     (claude-code-ide-org--id-lookup
+                      "abcd1234-0000-4000-8000-000000000001")))
+      (should-not (claude-code-ide-org--id-lookup "deadbeef"))
+      (should-not (claude-code-ide-org--id-lookup "5555aaaa")))))
+
+(ert-deftest claude-code-ide-org-test-id-lookup-cache-drops-on-save ()
+  "Saving a tracked file drops the cache, so the next lookup sees the new
+title; saving an untracked one does not."
+  (claude-code-ide-org-test--with-lookup-file
+    (should (equal "abcd1234 DOING The target"
+                   (claude-code-ide-org--id-lookup "abcd1234")))
+    (let ((other (expand-file-name "other.org" (file-name-directory file))))
+      (with-current-buffer (find-file-noselect other)
+        (insert "x\n") (save-buffer) (kill-buffer)))
+    (should claude-code-ide-org--id-lookup-cache)
+    (with-current-buffer (find-file-noselect file)
+      (goto-char (point-min))
+      (re-search-forward "The target")
+      (replace-match "The renamed target")
+      (save-buffer))
+    (should (equal "abcd1234 DOING The renamed target"
+                   (claude-code-ide-org--id-lookup "abcd1234")))))
+
+(ert-deftest claude-code-ide-org-test-id-lookup-eldoc-and-link-hover ()
+  "Eldoc answers on a bare id and on an id link, and nothing on a SHA or
+an unknown hex word; the link hover gives the line, or org's text on a
+miss."
+  (claude-code-ide-org-test--with-lookup-file
+    (with-temp-buffer
+      (insert "Bare abcd1234 here, [[id:abcd1234-0000-4000-8000-000000000001][link]], "
+              "a SHA f87274b, an unknown deadbeef, [[id:feedface][gone]].\n")
+      (let ((org-mode-hook nil)) (org-mode))
+      (cl-flet ((at (s) (goto-char (point-min)) (search-forward s) (backward-char 1)
+                  (claude-code-ide-org--id-lookup-eldoc)))
+        (should (equal "abcd1234 DOING The target" (at "abcd1234")))
+        (should (equal "abcd1234 DOING The target" (at "[link")))
+        (should-not (at "f87274b"))
+        (should-not (at "deadbeef")))
+      (goto-char (point-min))
+      (search-forward "[link")
+      (should (equal "abcd1234 DOING The target"
+                     (claude-code-ide-org--id-link-help-echo nil (current-buffer) (point))))
+      (search-forward "[gone")
+      (should (equal "LINK: id:feedface"
+                     (claude-code-ide-org--id-link-help-echo nil (current-buffer) (point)))))))
+
+(ert-deftest claude-code-ide-org-test-id-lookup-marks-bare-ids ()
+  "Font-lock marks a resolvable bare id, in verbatim too, and leaves an
+id in a link, in ~code~ or in a block, an unknown 8-hex word and a 7-hex
+SHA alone; RET on a mark jumps.  The mode is on in a tracked file."
+  (claude-code-ide-org-test--with-lookup-file
+    (with-current-buffer (find-file-noselect file)
+      (should claude-code-ide-org-id-lookup-mode)
+      (goto-char (point-max))
+      (insert "\nMarks abcd1234 and =abcd1234=; not [[https://x.test][abcd1234]], "
+              "~abcd1234~, deadbeef or abcd123.\n#+begin_example\nabcd1234\n#+end_example\n")
+      (font-lock-ensure)
+      (let (marked)
+        (goto-char (point-min))
+        (search-forward "Marks ")
+        (while (search-forward-regexp "abcd123" nil t)
+          (push (and (memq 'claude-code-ide-org-id-reference
+                           (ensure-list (get-text-property (match-beginning 0) 'face)))
+                     t)
+                marked))
+        (should (equal '(t t nil nil nil nil) (nreverse marked))))
+      (goto-char (point-min))
+      (search-forward "deadbeef")
+      (should-not (memq 'claude-code-ide-org-id-reference
+                        (ensure-list (get-text-property (match-beginning 0) 'face))))
+      (goto-char (point-min))
+      (search-forward "Marks abcd")
+      (should (eq (lookup-key (get-text-property (point) 'keymap) (kbd "RET"))
+                  #'claude-code-ide-org-id-lookup-jump))
+      (cl-letf (((symbol-function 'org-id-goto)
+                 (lambda (id) (should (equal id "abcd1234-0000-4000-8000-000000000001"))
+                   'jumped)))
+        (should (eq 'jumped (claude-code-ide-org-id-lookup-jump)))))))
+
+(ert-deftest claude-code-ide-org-test-id-lookup-mode-only-in-tracked-files ()
+  "On for a tracked org file, off for an untracked one."
+  (claude-code-ide-org-test--with-lookup-file
+    (let ((other (expand-file-name "notes.org" (file-name-directory file))))
+      (with-current-buffer (find-file-noselect file)
+        (should claude-code-ide-org-id-lookup-mode))
+      (with-current-buffer (find-file-noselect other)
+        (unwind-protect (should-not claude-code-ide-org-id-lookup-mode)
+          (kill-buffer))))))
