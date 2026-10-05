@@ -1304,12 +1304,56 @@ The commit and PR tests are [[id:b7259ee4-9aa1-4b55-8cf2-fbbacdea5310][b7259ee4]
 *Built together with [[id:b7259ee4-9aa1-4b55-8cf2-fbbacdea5310][b7259ee4]]*, on one branch and in one pull request, since the
 pipeline, the lint and the pass are shared.
 :END:
+:DEBRIEF:
+*Shipped 2026-10-05* on =feature/org-native-notes=, built with [[id:b7259ee4-9aa1-4b55-8cf2-fbbacdea5310][b7259ee4]] as the
+drawer said: [[orgit-rev:./::8100822][8100822]] (the linker, the pipeline, the lint, the pass), [[orgit-rev:./::565bbbe][565bbbe]]
+(the slice-body guard below), [[orgit-rev:./::bd6dd04][bd6dd04]] (the pass over TODO.org) and [[orgit-rev:./::779d388][779d388]]
+(prose and tool descriptions). =--citation-candidates= is the one definition the
+writers, the pass and the lint share.
+
+*Verified.* Twelve new ERT tests, suite 870/870. Every skip and condition was
+mutated out in turn and each turned at least one test red: the skip zones, the
+UUID/path boundary (it needed a fixture of its own, "a/abcd1234."), the commit
+length rule, the orgit, PR and DONE.org guards, the finished-heading skip, the
+generated-line skip, the losslessness check, and the linker as a whole. Live:
+=org_query "link:target=e3d1531d"= returns the four headings citing it. The
+pass's second dry run finds 0, the file with links reduced to descriptions
+equals the original, and =bin/lint-org= reports 0 errors and no citation
+warnings.
+
+*Differed from the plan.*
+- *A guard the drawer did not name.* Linking =- =c74f8663= ...= in a slice's
+  body would make =- [[id:= -- a member line, out of prose the conventions told
+  writers to write exactly that way. In a slice's body the linker never links an
+  id that opens a list item; drawers stay linkable, since the member scan starts
+  below them. The pass had created no such line in a slice body.
+- *Ids resolve within the project's own files only*, not across org's whole
+  index: here that index also spans agentic-euchre, and a prefix matching one of
+  its headings would become a link the lint refuses.
+- *The count:* 709 ids, 23 commits and 11 PRs in 144 headings, against "about
+  355 ids, 19 commits and 12 PRs" on 2026-09-28. 686 of the ids are on live
+  headings and 25 sampled contexts were all genuine citations. The earlier
+  method is not recorded, so the gap is not explained.
+
+*Not discriminated, and not worth a contrived test:* the fill-last test pins
+that the fill measures display width after linking, but swapping the order
+would not turn it red.
+
+*Residue, judged not worth filing:* an id quoted in backticks is linked with the
+backticks kept around it -- lossless and cosmetic. What is left for [[id:0eaffc39-088f-48c3-a5b8-167336458114][0eaffc39]] is
+bare ids where no writer runs: rendered sessions and commit messages.
+:END:
 
 Bodies cite other headings by verbatim 8-hex prefix about as often as by link,
 and a verbatim reference is invisible to navigation and to =link:target=
 backlinks. One citation linker, shared with [[id:b7259ee4-9aa1-4b55-8cf2-fbbacdea5310][b7259ee4]], links ids, commits and PRs
 as the tools write; a lint warns on hand edits, and a one-off pass converts
 TODO.org. Design in =:PLAN:=.
+
+*Resolution:* one citation linker, shared with [[id:b7259ee4-9aa1-4b55-8cf2-fbbacdea5310][b7259ee4]], links ids, commits and
+PRs on every write path; =bin/lint-org= warns on a live heading's verbatim
+citation, and one pass linked TODO.org's 709 id citations.
+
 
 
 * TODO org_capture runs in whatever buffer the user has selected, so an Org QL view turns a capture into a prompt nobody at the tool can answer :code:
@@ -6539,12 +6583,38 @@ streak-breaker it discriminates against, and a URL link for [[https://github.com
 Point the retrofit and the lint at that heading to see what passing
 looks like.
 :END:
+:DEBRIEF:
+*Shipped 2026-10-05* with [[id:f7847adf-a408-4ad0-ae0c-8d3c19b79f2b][f7847adf]], whose debrief carries the shared design,
+verification and deviations. This heading's rows: commits in [[orgit-rev:./::8100822][8100822]], prose
+in [[orgit-rev:./::779d388][779d388]].
+
+*Commits.* A SHA in verbatim or after "commit" links when =git cat-file -e
+<sha>^{commit}=, run from the file's repository, confirms it and =orgit-rev= is
+registered. Commits are 7 or 9-12 hex, not this drawer's 7-12: [[id:f7847adf-a408-4ad0-ae0c-8d3c19b79f2b][f7847adf]]'s rule
+that 8 hex is only ever an id keeps the kinds disjoint, so an 8-hex SHA stays as
+written. =bin/lint-org= asks git from its working directory when the file is a
+temp copy outside any repository, which is how pre-commit lints.
+
+*PRs.* "[[https://github.com/nbest937/claude-code-ide-org.el/pull/33][PR #33]]" links to =https://github.com/<owner>/<repo>/pull/33=, with the
+repository read from =origin= and no network. Here that is
+=nbest937/claude-code-ide-org.el=, which =gh repo view= confirms.
+
+*Verified* by stubbed tests for each guard and one test against a real =git
+init= repository, for both seams. This drawer's own commit citations, written
+as bare verbatim SHAs, are the live check.
+:END:
 
 Commits and PRs are cited as bare text, though the convention has asked for
 =orgit-rev:= links since 2026-08-21 and prose has not changed the practice. The
 tools link them as they write, through the citation linker shared with [[id:f7847adf-a408-4ad0-ae0c-8d3c19b79f2b][f7847adf]],
 in the portable =orgit-rev:./::<sha>= form; a lint warns on hand edits, and the
 one-off pass converts TODO.org. Design in =:PLAN:=.
+
+*Resolution:* the tools link a confirmed commit SHA as =orgit-rev:./::= and
+"PR #N" as the pull request's URL as they write; the one pass linked TODO.org's
+23 commits and 11 PRs, and the conventions now describe that rather than ask
+for it.
+
 
 
 * TODO An unmatched clock_in grows an ever-wider span across review passes :code:
