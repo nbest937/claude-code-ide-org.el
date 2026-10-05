@@ -4163,7 +4163,9 @@ unremarked argument.
 - Tags ":code:"     from ":code:observed:" [2026-09-29 Tue 21:46] \\
   tag dropped (the user, 2026-09-29): applied by recall, so its absence meant nothing
 :END:
+:PLAN:
 
+:END:
 Observed 2026-09-17: the user read =| Bulk citation owes more entri… [13aed7ca]
 (clocked in, 0:00 total)= as meaning that heading was clocked, and asked whether
 work was being booked against it. Nothing was. The queue's last clock event was
