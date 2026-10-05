@@ -5707,7 +5707,9 @@ slice against its members' keywords as of its CLOSED stamp.
 :CREATED:  [2026-09-11 Fri 17:17]
 :CATEGORY: Dev
 :END:
+:PLAN:
 
+:END:
 Found 2026-09-11 when the user spotted [[id:c19fbbf5-be1b-4c18-a38e-9b46d064abb8][c19fbbf5]] sitting at =[17/19]=
 with two members that had been =DONE= since before it closed. Nothing
 mechanical could have caught it: the existing rule compares the slice's
