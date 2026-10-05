@@ -9404,6 +9404,7 @@ cannot parse.
 - State "TODO"       from              [2026-08-26 Wed 10:10] \\
   captured keywordless, setting initial state
 :END:
+:PLAN:
 
 *Found 2026-08-26* while the user asked whether a span they had flipped to
 active notation "fits the data", and whether such spans should always be offered
@@ -9457,6 +9458,7 @@ attention as it happens.
 *Worth applying to the backlog once*, since the ledger reaches back to
 2026-08-18 and the gaps are all still there to be scored.
 
+:END:
 *First measurement, 2026-09-16, prompted by the user asking whether 0-run spans
 are "always mine to claim" and, if so, why they are not offered that way.*
 
@@ -9492,10 +9494,6 @@ wrong CLOCK line looks exactly like a right one.
 in a way it is not at 54 minutes, so a width-bounded default is the shape worth
 arguing about. Filed separately rather than decided here, since where that bound
 falls is a reporting decision.
-
-*Its body holds the beginnings of a plan* (noted 2026-10-01, [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]]'s condense
-pass): when this heading is brainstormed, move the prospective prose into
-=:PLAN:= and revise the body to a short statement.
 
 
 * TODO Intervals on two different headings can overlap, and subtraction reaches only one :code:
