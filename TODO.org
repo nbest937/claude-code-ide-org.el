@@ -7836,7 +7836,9 @@ performs the operation the caller declined.
 :CREATED:  [2026-09-02 Wed 12:09]
 :CATEGORY: Tools
 :END:
+:PLAN:
 
+:END:
 *Split out of [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]] on
 2026-09-02*, which called this "the dangerous one" and "the last matters most".
 Its body holds the original observation; only the residue is restated here.
