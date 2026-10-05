@@ -8265,6 +8265,7 @@ A/B would be measuring.
 :CREATED:  [2026-08-31 Mon 16:39]
 :CATEGORY: Queue
 :END:
+:PLAN:
 
 Clock duration cannot tell attention apart from absence. Sixty minutes holding 2
 turns and sixty holding 40 are identical in a =:LOGBOOK:= and completely
@@ -8281,6 +8282,7 @@ lighter presentation every time**, because the point is to keep a human's
 judgement calls quick, and a readout that is more accurate but heavier to read
 is a worse readout.
 
+:END:
 *Born 2026-08-31 by dividing
 [[id:9e627dc0-d31b-42cc-857a-b1e5a77f44a5][9e627dc0]]*, which had grown a
 shipped half and four open ones inside a single body.
