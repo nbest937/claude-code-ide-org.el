@@ -10993,10 +10993,12 @@ pass): when this heading is brainstormed, move the prospective prose into
 - State "TODO"       from "NEXT"       [2026-08-21 Fri 10:47] \\
   Auto-demoted: superseded by sibling [[id:e30d52d7-960b-44f3-ab92-93846c81a1bd][bin/lint-org will drown in datetree scaffolding it can never satisfy]] becoming NEXT.
 :END:
+:PLAN:
 
 =claude-code-ide-org--capture-target-spec= resolves exactly three shapes: =(file
 F)=, =(id ID)= and =(file+olp F CATEGORY)=. A datetree needs a fourth.
 
+:END:
 *The olp in =file+olp+datetree= does not nest the tree, which is the opposite of
 what the template's own name suggests.* Read from org-capture.el rather than
 assumed: the branch resolves the outline path to a marker, goes to it -- and
