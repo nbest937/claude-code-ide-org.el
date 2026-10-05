@@ -1716,6 +1716,7 @@ CLOCK: [2026-10-01 Thu 14:19]--[2026-10-01 Thu 14:21] =>  0:02
 CLOCK: [2026-10-01 Thu 14:21]--[2026-10-01 Thu 14:23] =>  0:02
 - [2026-10-01 Thu 14:21]--[2026-10-01 Thu 14:23] one-off fill sweep over both trackers
 :END:
+:PLAN:
 
 =claude-code-ide-org-fill-prose= ([[id:496b665e-3370-4a66-814a-3c5bd2d3dddc][496b665e]]) swept both trackers once, when it
 shipped on 2026-09-14: 941 paragraphs in TODO.org and 2,265 in DONE.org, with
@@ -1730,6 +1731,7 @@ should also run routinely, for instance as a ceremony step, is this heading's
 question to settle; with [[id:b52df20b-45c7-41aa-9d77-44ccf06c647f][b52df20b]] filling at write time, routine runs would
 only catch hand edits.
 
+:END:
 *Parked 2026-10-01 (the user).* Every MCP write path fills its prose (capture
 and amend, directly and at apply, and org_edit), and the user fills hand edits
 themselves, so routine sweeps would catch nothing new. The drift that remains
