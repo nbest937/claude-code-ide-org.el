@@ -9251,6 +9251,7 @@ ad-hoc analysis outgrows what the tools and =org-map-entries= cover.
 - State "TODO"       from              [2026-08-28 Fri 13:40] \\
   residue carried out of c954f650
 :END:
+:PLAN:
 
 *Filed 2026-08-28 as [[id:c954f650-b92f-4920-9967-ab6c44577b30][c954f650]]
 closed.* That heading asked whether the whole keyword progression earns its
@@ -9281,6 +9282,7 @@ sentence someone will have to write. Either pick a different word for one of
 them or adopt the collision deliberately and say so in CLAUDE.md — the one thing
 not to do is leave it unremarked, which is where it stands.
 
+:END:
 *Note what is no longer open, so this is not re-litigated.* Whether =DOING=
 should exist at all was *settled* in [[id:c954f650-b92f-4920-9967-ab6c44577b30][c954f650]] and the reasoning is in its
 =:PLAN:= drawer: the org+GTD tradition argues against an in-progress keyword
