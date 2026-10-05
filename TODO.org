@@ -5187,6 +5187,7 @@ against, and the reason this is filed as a question rather than a plan.
 :CREATED:  [2026-09-15 Tue 18:38]
 :CATEGORY: Queue
 :END:
+:PLAN:
 
 Split out of [[id:b57c7515-c511-4198-b311-26cefc52a60d][b57c7515]] on 2026-09-15 rather than built there. That heading's fix
 reconciles a mid-work session re-key by grouping sessions whose transcripts
@@ -5203,6 +5204,13 @@ carries), so the bridge stops depending on a file someone else garbage-collects.
 Note the constraint that shapes it: the hook family is plain POSIX shell
 precisely so a stopped Emacs costs nothing, so whatever is recorded must be one
 cheap read of the transcript's first line, not a parse.
+:END:
+
+The re-key bridge groups sessions by their transcripts' first =uuid=, but Claude
+Code prunes those transcripts, so the alias silently disappears for old work.
+Proposes having =queue-append= record a stable conversation key on each event,
+read cheaply from the transcript's first line.
+
 
 
 * NEXT [1/4] No org tool edits a phrase in place: org_amend appends or replaces the whole body :code:arch:
