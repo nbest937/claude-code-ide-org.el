@@ -3612,7 +3612,9 @@ retired. Deciding that marker is the only design question here.
 :CREATED:  [2026-09-18 Fri 18:02]
 :CATEGORY: Dev
 :END:
+:PLAN:
 
+:END:
 Deferred 2026-09-18 by the maintainer: =.warp/.mcp.json= "currently has no
 consumers; it is a vestige of an early experiment", and there is no adequate
 Warp setup to take it further at this time. Filed =MAYBE= rather than dropped
