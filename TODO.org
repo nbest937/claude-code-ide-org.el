@@ -10698,7 +10698,9 @@ rather than re-litigating the rejection.
 :ID:       d9132c57-9dcf-47e9-ba74-7f5a1ced3ae5
 :CREATED:  [2026-08-11 Tue 10:32]
 :END:
+:PLAN:
 
+:END:
 Prompted 2026-08-11 by a concrete reporting question — "how long did it
 take from capture time to the PLANNING phase, for each of these tasks?"
 — which is the first properly articulated demand on this project's
@@ -10800,10 +10802,6 @@ capture durability there, timeline origin here.
 They coincide throughout this project because every task heading is born
 with a keyword, but the equivalence is a local accident, not a rule, and
 a heading that gains a keyword later would make them diverge.
-
-*Its body holds the beginnings of a plan* (noted 2026-10-01, [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]]'s condense
-pass): when this heading is brainstormed, move the prospective prose into
-=:PLAN:= and revise the body to a short statement.
 
 
 * TODO [3/5] Institute a catch-all heading for cross-cutting meta-work :code:
