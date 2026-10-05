@@ -2566,6 +2566,7 @@ write time, and retire the clause. Design in =:PLAN:=.
 :CREATED:  [2026-09-21 Mon 11:05]
 :CATEGORY: Dev
 :END:
+:PLAN:
 
 Row 9 of the enforcement audit's convert list ([[id:3cd7b7d3-25eb-4f30-ae90-9174a6876674][3cd7b7d3]]), not built. Three rules
 still rest on recall: prefer org_amend over Edit for body text on a tracked
@@ -2579,6 +2580,13 @@ quoting one, and this tracker's bodies quote such lines constantly. Measure on
 the transcripts first: how many past Edits to the org files would it have
 blocked, and how many of those were wrong to make. commit-msg already catches
 the worst case after the fact.
+:END:
+
+Row 9 of the enforcement audit's convert list: a PreToolUse guard on Edit and
+Write to TODO.org and DONE.org that would block hand edits to keywords, CLOCK
+and state lines and slice member checklists. Held back on false positives until
+the past Edits in the transcripts are measured.
+
 
 
 * WAITING Decide whether queue-append should derive clock events from DOING transitions, reversing the separation 4f6a6bb1 chose :code:
