@@ -11801,6 +11801,7 @@ but =claude -p= asynchronously.
 - State "TODO"       from "MAYBE"      [2026-09-08 Tue 08:55] \\
   promoted at Step 6 reconsideration, the user, 2026-09-08
 :END:
+:PLAN:
 [[file:~/.claude/plans/capture-commit-safety.md][Plan]]
 
 Captured 2026-08-04 from conversation: right now, capturing a new org
@@ -11832,6 +11833,7 @@ judgment call looks inherently contextual rather than a fixed
 checklist — same reasoning CLAUDE.md already uses elsewhere for calls
 that "only the model can make."
 
+:END:
 *Update 2026-08-05:* substantial overlap with
 [[id:782cda6c-111c-454e-93eb-b2b27012078b][Audit for clock/session bookkeeping
 noise before committing during a clocking-suppressed session]] — that heading is
@@ -11883,10 +11885,6 @@ safety predicate written down where a session will meet it (only the touched
 =.org= files staged, never mid-rebase or mid-merge, =git diff --stat= first so a
 human's apply pass is not swept in), since today it lives only in habit and in
 =next-session.md='s standing rules.
-
-*Its body holds the beginnings of a plan* (noted 2026-10-01, [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]]'s condense
-pass): when this heading is brainstormed, move the prospective prose into
-=:PLAN:= and revise the body to a short statement.
 
 
 * TODO Nothing checks a request against open work in either direction, so a dependency is found only when it bites :code:
