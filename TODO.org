@@ -9172,6 +9172,7 @@ property this route replaces. Measured 2026-08-31: negated comparators passed to
 - State "MAYBE"      from              [2026-08-28 Fri 15:58] \\
   offered; not yet installed or decided
 :END:
+:PLAN:
 
 *Offered by the user 2026-08-28:*
 [[https://github.com/karlicoss/orgparse][orgparse]] is available and could be
@@ -9220,6 +9221,7 @@ orgparse exists, and that Emacs remains the answer wherever org's own semantics
 decide the result. Recording only the first half would turn a tool that fixes a
 bug class into a tool that introduces a worse one.
 
+:END:
 *A third instance of the bug class, 2026-09-03, and it argues for the practice
 rather than the library — so this stays =MAYBE=.* Looking up eight headings'
 exact titles for a footnote list, a Python regex keyed on =:ID:= attributed
@@ -9237,10 +9239,6 @@ argues against.
 Reconsidered at [[id:ff7ccb2d-2b13-421e-86e3-6b5e187850bf][ff7ccb2d]]'s Step 6 (2026-09-08): the user chose to
 keep it =MAYBE= over the recommended cancel — parked, not dead, in case
 ad-hoc analysis outgrows what the tools and =org-map-entries= cover.
-
-*Its body holds the beginnings of a plan* (noted 2026-10-01, [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]]'s condense
-pass): when this heading is brainstormed, move the prospective prose into
-=:PLAN:= and revise the body to a short statement.
 
 
 * TODO Two keyword-set proposals and the review collision are still unadopted :code:
