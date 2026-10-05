@@ -12267,6 +12267,7 @@ than symlinking =DONE.org= into =~/org=.
 :ID:       c6b598ed-9e92-4a3a-99fb-9c5194d290e4
 :CREATED:  [2026-07-28 Tue 11:06]
 :END:
+:PLAN:
 :SESSIONS: currently inherits the same Stop/UserPromptSubmit hooks as
 :LOGBOOK:, so every turn boundary writes a Paused/Resumed pair — fine
 for CLOCK, whose "many short intervals instead of one long one"
@@ -12282,6 +12283,13 @@ working day, or on an explicit signal — sketched as a command like
 always a manual call — auto-detecting day boundaries crosses into
 guessing user intent, exactly the kind of call CLAUDE.md's existing
 rules say only the model/user should make, not a hook.
+:END:
+
+:SESSIONS: shares the turn-boundary hooks with :LOGBOOK:, so it records a
+Paused/Resumed pair per prompt instead of the session-level arc it was meant to
+show. Proposes closing it only at DOING → DONE, at the end of a working day, or
+on an explicit signal such as a =/dfd <task>= command.
+
 
 
 * MAYBE Idle-based auto clock-out :code:
