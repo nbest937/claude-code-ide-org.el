@@ -4694,7 +4694,9 @@ named, whatever the depth limit says.
 :CREATED:  [2026-09-16 Wed 13:57]
 :CATEGORY: Apply
 :END:
+:PLAN:
 
+:END:
 Split out of [[id:e3d1531d-7562-4bad-bef2-fc819630c5f7][e3d1531d]] 2026-09-16 so it does not end up as residue inside a
 closed heading. That heading is the *code* fix — stop the clock being truncated;
 this is the *data* repair of the 101 intervals already written, and the two are
