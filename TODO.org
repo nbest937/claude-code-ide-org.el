@@ -2595,6 +2595,7 @@ the past Edits in the transcripts are measured.
 :CREATED:  [2026-09-21 Mon 11:05]
 :CATEGORY: Clock
 :END:
+:PLAN:
 
 Row 5 of the enforcement audit's convert list ([[id:3cd7b7d3-25eb-4f30-ae90-9174a6876674][3cd7b7d3]]), set aside there as the
 user's decision. "Call org_clock_in when entering DOING and org_clock_out when
@@ -2608,6 +2609,7 @@ work after a mid-turn clock_out reaches review as nothing ([[id:b09aca60-127b-47
 derived events would make more common, not less, since every transition out of
 DOING would close the run. Decide after [[id:b09aca60-127b-47a4-9177-a86ac90d8fac][b09aca60]] is fixed. WAITING on the user.
 
+:END:
 *The user, 2026-09-21: leave it as it is* — state and clock stay separate calls
 — and fix [[id:b09aca60-127b-47a4-9177-a86ac90d8fac][b09aca60]] first. Still parked; revisit only if, with clock-out timing
 made safe, the second call is still being missed often enough to show in the
