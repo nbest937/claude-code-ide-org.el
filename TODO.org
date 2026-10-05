@@ -1427,7 +1427,7 @@ make three copies of one fact. So =:BLOCKS:= is derived at each read, never
 tagged.
 
 
-* DOING Look up a tracked id wherever it appears in Emacs: its title at point, and a jump on click :code:arch:
+* REVIEW Look up a tracked id wherever it appears in Emacs: its title at point, and a jump on click :code:arch:
 :PROPERTIES:
 :ID:       0eaffc39-088f-48c3-a5b8-167336458114
 :CREATED:  [2026-09-24 Thu 16:54]
@@ -1448,6 +1448,10 @@ CLOCK: [2026-09-29 Tue 19:59]--[2026-09-29 Tue 20:02] =>  0:03
   next in the slice's build order
 - State "DOING"      from "NEXT"       [2026-10-05 Mon 12:32] \\
   implementing the id lookup surfaces
+CLOCK: [2026-10-05 Mon 12:34]--[2026-10-05 Mon 12:40] =>  0:06
+- [2026-10-05 Mon 12:34]--[2026-10-05 Mon 12:40] id lookup: eldoc, link hover, bare-id marking
+- State "REVIEW"     from "DOING"      [2026-10-05 Mon 12:40] \\
+  shipped on branch, awaiting review
 :END:
 :PLAN:
 
@@ -1562,7 +1566,6 @@ Design in =:PLAN:=.
 *Resolution:* one cached lookup shows an id's keyword and title in eldoc and on
 hover, marks bare ids that resolve and jumps on click or RET, in tracked org
 buffers and magit's commit buffers; nothing rescans.
-
 
 
 * TODO org_slice_add_member's after= inserts between a story and its nested children, splitting the block :code:
@@ -6134,7 +6137,8 @@ detection mechanised, judgement kept human, per every surviving
 report's contract. Shapes and constraints in =:PLAN:=.
 
 
-* REVIEW Canonical drawer order: PROPERTIES, LOGBOOK, PLAN, DEBRIEF, then body :code:arch:
+* DONE Canonical drawer order: PROPERTIES, LOGBOOK, PLAN, DEBRIEF, then body :code:arch:
+CLOSED: [2026-10-05 Mon 12:35]
 :PROPERTIES:
 :ID:       d350ff5b-3b1f-465e-800b-962264d2e841
 :CREATED:  [2026-09-10 Thu 09:10]
@@ -6169,6 +6173,8 @@ CLOCK: [2026-10-05 Mon 11:27]--[2026-10-05 Mon 11:41] =>  0:14
 - [2026-10-05 Mon 11:27]--[2026-10-05 Mon 11:41] drawer-order normaliser, writers, corpus pass, lint
 - State "REVIEW"     from "DOING"      [2026-10-05 Mon 11:41] \\
   shipped on branch, awaiting PR review
+- State "DONE"       from "REVIEW"     [2026-10-05 Mon 12:35] \\
+  reviewed and accepted by the user
 :END:
 :PLAN:
 Proposed by the user 2026-09-10, pushback invited and none owed — the order is
@@ -6297,7 +6303,7 @@ calls it, a one-off corpus pass reordered 141 headings, and =bin/lint-org= now
 errors on a disordered one.
 
 
-* TODO Revisit the story definition: sanction clustering and speculative breakdown :bounded:prose:
+* NEXT Revisit the story definition: sanction clustering and speculative breakdown :bounded:prose:
 :PROPERTIES:
 :ID:       63df67c7-de0d-43e7-9c6f-2b2979a40aba
 :CREATED:  [2026-09-10 Thu 09:06]
@@ -6314,6 +6320,8 @@ CLOCK: [2026-09-29 Tue 20:15]--[2026-09-29 Tue 20:16] =>  0:01
 - [2026-09-29 Tue 20:15]--[2026-09-29 Tue 20:16] assigned at review
 - Tags ":bounded:prose:" from ":code:bounded:" [2026-09-29 Tue 21:14] \\
   its deliverable is a conventions paragraph, no code
+- State "NEXT"       from "TODO"       [2026-10-05 Mon 12:57] \\
+  next in the slice's build order
 :END:
 :PLAN:
 Raised by the user 2026-09-10, after composing the org-native-notes
@@ -6406,14 +6414,14 @@ shipped conventions sanctions a cluster that will close, names the collector
 exception, and points to the divide rule. Design in =:PLAN:=.
 
 
-* DOING [3/10] Make the notes org-native: links, drawers, tags, one corpus pass :code:
+* DOING [4/10] Make the notes org-native: links, drawers, tags, one corpus pass :code:
 :PROPERTIES:
 :ID:       6521dd56-8772-416b-9435-6da78bb86b06
 :CREATED:  [2026-09-10 Thu 08:57]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  0eaffc39-088f-48c3-a5b8-167336458114 d350ff5b-3b1f-465e-800b-962264d2e841 63df67c7-de0d-43e7-9c6f-2b2979a40aba e128e4fa-b0d9-49f7-99eb-bae2d4b0676b fce6bd35-27ad-4724-8dbb-c9df4b68fb10 41cf5830-fc2e-4dc6-b243-a0c2718a53a3 8a23d6ec-ca45-454d-b65f-e46ea9204816
+:BLOCKER:  0eaffc39-088f-48c3-a5b8-167336458114 63df67c7-de0d-43e7-9c6f-2b2979a40aba e128e4fa-b0d9-49f7-99eb-bae2d4b0676b fce6bd35-27ad-4724-8dbb-c9df4b68fb10 41cf5830-fc2e-4dc6-b243-a0c2718a53a3 8a23d6ec-ca45-454d-b65f-e46ea9204816
 :MEMBERS:  b7259ee4-9aa1-4b55-8cf2-fbbacdea5310 f7847adf-a408-4ad0-ae0c-8d3c19b79f2b 0eaffc39-088f-48c3-a5b8-167336458114 d350ff5b-3b1f-465e-800b-962264d2e841 63df67c7-de0d-43e7-9c6f-2b2979a40aba e128e4fa-b0d9-49f7-99eb-bae2d4b0676b 76a6f052-e360-4a12-8077-070da83a8e84 fce6bd35-27ad-4724-8dbb-c9df4b68fb10 e28933e9-f352-4ef9-8d53-8cd9a4318768 8b945c02-7ebe-40a2-b4cc-e35811afe57f 41cf5830-fc2e-4dc6-b243-a0c2718a53a3 8a23d6ec-ca45-454d-b65f-e46ea9204816 01849bef-fdc9-4c30-b467-00ca8606e8e0 ecf66d45-18b3-477f-bca8-08bec90604e8 ea1df60b-1e28-448e-bb62-a6fc2b6b62f8
 :DROPPED:  01849bef-fdc9-4c30-b467-00ca8606e8e0 ecf66d45-18b3-477f-bca8-08bec90604e8
 :END:
@@ -6497,9 +6505,9 @@ Planned:
 
 - [X] [[id:b7259ee4-9aa1-4b55-8cf2-fbbacdea5310][b7259ee4]] DONE Commits cited in bodies and debriefs are orgit links, and nothing enforces it
 - [X] [[id:f7847adf-a408-4ad0-ae0c-8d3c19b79f2b][f7847adf]] DONE Headings cited in bodies are id links, written as links by the tools, so backlinks are one org_query away
-- [-] [[id:0eaffc39-088f-48c3-a5b8-167336458114][0eaffc39]] DOING Look up a tracked id wherever it appears in Emacs: its title at point, and a jump on click
-- [-] [[id:d350ff5b-3b1f-465e-800b-962264d2e841][d350ff5b]] REVIEW Canonical drawer order: PROPERTIES, LOGBOOK, PLAN, DEBRIEF, then body
-- [ ] [[id:63df67c7-de0d-43e7-9c6f-2b2979a40aba][63df67c7]] TODO Revisit the story definition: sanction clustering and speculative breakdown
+- [-] [[id:0eaffc39-088f-48c3-a5b8-167336458114][0eaffc39]] REVIEW Look up a tracked id wherever it appears in Emacs: its title at point, and a jump on click
+- [X] [[id:d350ff5b-3b1f-465e-800b-962264d2e841][d350ff5b]] DONE Canonical drawer order: PROPERTIES, LOGBOOK, PLAN, DEBRIEF, then body
+- [ ] [[id:63df67c7-de0d-43e7-9c6f-2b2979a40aba][63df67c7]] NEXT Revisit the story definition: sanction clustering and speculative breakdown
 - [[id:4c834fdb-5314-4168-ab1d-09fe89ded517][4c834fdb]] DOING Make the heading body a scannable summary, with plan and debrief in drawers
   - [-] [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]] REVIEW Move the 88 pre-convention debriefs into :DEBRIEF:, authoring each resolution
 - [[id:76a6f052-e360-4a12-8077-070da83a8e84][76a6f052]] MAYBE Long prose lines have drifted back since the one fill sweep of 2026-09-14, because nothing runs it routinely
@@ -6508,7 +6516,7 @@ Planned:
   - [[id:e28933e9-f352-4ef9-8d53-8cd9a4318768][e28933e9]] CANCELLED Survey all task history for a tag vocabulary worth searching on
   - [[id:8b945c02-7ebe-40a2-b4cc-e35811afe57f][8b945c02]] CANCELLED Adopt an `observed` tag for a defect seen in use, as the severity signal the keyword set does not carry
 - [ ] [[id:41cf5830-fc2e-4dc6-b243-a0c2718a53a3][41cf5830]] TODO Answer how a heading got here from the commits that cite it, one call away
-- [ ] [[id:8a23d6ec-ca45-454d-b65f-e46ea9204816][8a23d6ec]] TODO Comma-escape headline lines when documenting org structure inside a body
+- [-] [[id:8a23d6ec-ca45-454d-b65f-e46ea9204816][8a23d6ec]] REVIEW Comma-escape headline lines when documenting org structure inside a body
 - [[id:6ea84943-9eef-4940-b850-e8cf79310d2a][6ea84943]] MAYBE A claimed span records agent time and human attention as one, and the reviewer has no picture of the span to judge from
   - [[id:01849bef-fdc9-4c30-b467-00ca8606e8e0][01849bef]] MAYBE A claim should keep the agent's runs and the user's attention apart, not record the whole span as attention
 - [[id:14c02a28-5e1f-401b-9c22-dd18c2c10847][14c02a28]] TODO Lay future work out on the agenda: commitments, milestones on slices and stories, and pacing that follows a slip
@@ -9413,7 +9421,7 @@ reaches DONE, so it can never sit under a completable ancestor, and a category
 carries no keyword and completes nothing.
 
 
-* TODO Comma-escape headline lines when documenting org structure inside a body :code:bounded:
+* REVIEW Comma-escape headline lines when documenting org structure inside a body :code:bounded:
 :PROPERTIES:
 :CATEGORY: Skill
 :ID:       8a23d6ec-ca45-454d-b65f-e46ea9204816
@@ -9431,6 +9439,14 @@ CLOCK: [2026-09-29 Tue 20:02]--[2026-09-29 Tue 20:03] =>  0:01
 CLOCK: [2026-09-29 Tue 20:04]--[2026-09-29 Tue 20:05] =>  0:01
 - [2026-09-29 Tue 20:04]--[2026-09-29 Tue 20:05] brainstorm: critical read of the comma-escape remainder
 - [2026-09-29 Tue 20:05]--[2026-09-29 Tue 20:06] assigned at review
+- State "NEXT"       from "TODO"       [2026-10-05 Mon 12:40] \\
+  next in the slice's build order
+CLOCK: [2026-10-05 Mon 12:54]--[2026-10-05 Mon 12:57] =>  0:03
+- State "DOING"      from "NEXT"       [2026-10-05 Mon 12:54] \\
+  implementing the lint and bare-star escape
+- [2026-10-05 Mon 12:54]--[2026-10-05 Mon 12:57] lint and bare-star escape for block headlines
+- State "REVIEW"     from "DOING"      [2026-10-05 Mon 12:57] \\
+  shipped on branch, awaiting review
 :END:
 :PLAN:
 
@@ -9603,7 +9619,6 @@ a bare star line too, and one sentence in the conventions. Design in =:PLAN:=.
 *Resolution:* the tools escape a bare star line inside a block as well as a
 headline, =bin/lint-org= errors on either form a hand edit leaves, and one
 sentence in the conventions names the mechanism.
-
 
 
 * TODO Decide how far the review-apply cycle can be automated, given the interactive constraint :code:
@@ -12082,6 +12097,7 @@ call it done.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-10-05 Mon 12:58]--[2026-10-05 Mon 12:59] =>  0:01
 CLOCK: [2026-10-05 Mon 12:26]--[2026-10-05 Mon 12:27] =>  0:01
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
