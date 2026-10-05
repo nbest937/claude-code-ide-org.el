@@ -7783,7 +7783,9 @@ outline fell only from 487k to 475k characters.
 :CREATED:  [2026-09-02 Wed 12:50]
 :CATEGORY: Tools
 :END:
+:PLAN:
 
+:END:
 *Found 2026-09-02 while fixing
 [[id:72463b68-9f08-44b2-8213-87f71298138d][72463b68]], noticed in passing and
 measured rather than left as a suspicion.*
