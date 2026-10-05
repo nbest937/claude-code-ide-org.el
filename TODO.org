@@ -9117,6 +9117,7 @@ existing clone on re-run.
 :LOGBOOK:
 - State "TODO"       from              [2026-08-31 Mon 11:22]
 :END:
+:PLAN:
 
 Move every =Review and planning= datetree node dated the previous day or older
 into the matching datetree leaf in DONE.org, as part of the archiving procedure.
@@ -9150,6 +9151,15 @@ remove the property rather than leave a live trap behind.
 
 Once the sibling heading refiles =* Review attention='s old LOGBOOK entries into
 dated clones, those clones are placed by this same pass.
+:END:
+
+Move every =Review and planning= day node dated yesterday or older into the
+matching day of DONE.org's descending datetree as part of archiving, merging
+into an existing day rather than appending, and remove the broken =:ARCHIVE:=
+property this route replaces. Measured 2026-08-31: negated comparators passed to
+=org-datetree-find-create-hierarchy= build a strictly descending tree, and the
+=:ARCHIVE:= target heading does not exist in DONE.org.
+
 
 
 * MAYBE Install orgparse for ad-hoc analysis, and stop reaching for regex over org text :code:
