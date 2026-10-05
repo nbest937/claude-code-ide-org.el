@@ -11567,6 +11567,7 @@ verified against the real file.
 :ID:       001fb310-69f7-4417-81be-a224a3bf83e0
 :CREATED:  [2026-08-10 Mon 11:51]
 :END:
+:PLAN:
 
 Nothing prevents stale entries in org-clock's persisted history from hanging the
 first clock-in after a restart. Any verification pass that clocks into a scratch
@@ -11579,6 +11580,7 @@ verification is *necessary* here, because batch behaves differently. Relevant to
 exists to eliminate, and this one survives the cutover untouched, since the
 apply command clocks in through the same advised =org-clock-in=.
 
+:END:
 *What is established.*
 - Mechanism (root-caused, hit live 2026-08-10 while setting [[id:f9f61c04-150b-4ee7-96c9-582cf2bda95a][f9f61c04]] to =DOING=): Doom advises =org-clock-in= with =+org--clock-load-a=, a =:before= advice that lazily calls =org-clock-load= on the *first* clock-in of an Emacs session, and =org-clock-load= visits every file named in the persisted history (=org-clock-persist-file=, here =~/.config/emacs/.local/etc/org-clock-save.el=).
 - That history named =/private/tmp/planning-verify/scratch.org=, a scratch file from an earlier verification session, whose directory /tmp reaping had removed; visiting it produced a buffer whose save asked =Directory .../planning-verify/ does not exist! Create it? (y or n)=, and a =y-or-n-p= is *not* an error, so no =condition-case= in this module could have caught it.
