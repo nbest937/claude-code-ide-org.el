@@ -97,7 +97,7 @@ needs the full value, looked up rather than recalled.
 SHA and an 8-hex prefix are visually identical. Spell the word: *commit
 `b146008`*, never a bare `b146008`. A SHA opens no end-matter debt — it
 is not tracked work and has no title to look up. Inside an `.org` body
-the form is `[[orgit-rev:<repo>::<sha>][<sha>]]`; see the org
+the form is `[[orgit-rev:./::<sha>][<sha>]]`; see the org
 conventions.
 
 ## What enforces it
