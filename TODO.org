@@ -11604,6 +11604,7 @@ accept losing clock history across restarts.
 :CREATED:  [2026-08-07 Fri 15:54]
 :BLOCKER:  720b2dcf-6af1-45f3-96a7-aa841e5651e1
 :END:
+:PLAN:
 
 The =*org-review*= buffer's help was found thin on 2026-08-07; this heading is
 the *deferred* remainder, a transient menu. Transient earns its machinery when
@@ -11612,6 +11613,7 @@ worth it. The review buffer has seven flat commands and no state to toggle, so a
 transient menu today would be a prettier =which-key= at roughly ten times the
 cost. It stays =MAYBE= until its own trigger fires: filters worth composing.
 
+:END:
 *What is established.*
 - Two cheap fixes landed 2026-08-07: the mode docstring was rewritten as user-facing help, and =?= calls =which-key-show-major-mode= (with a =describe-mode= fallback, since which-key is absent under =emacs --batch -Q=).
 - Availability, checked rather than assumed: =transient= is loaded, and =claude-code-ide= ships =claude-code-ide-transient.el= with 16 transient prefixes, so it is already this ecosystem's idiom; =which-key= is loaded; =hydra= and =casual= are not installed.
