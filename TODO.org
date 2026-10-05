@@ -6187,6 +6187,7 @@ before the kill.
 :CREATED:  [2026-09-10 Thu 09:35]
 :CATEGORY: Dev
 :END:
+:PLAN:
 
 Claude Code's =.mcp.json= documents =${VAR:-default}= expansion in the
 =url= field, so the root file could carry
@@ -6203,6 +6204,7 @@ after a Warp restart) alongside the port story. Unset-variable
 behaviour is safe: Claude warns and loads the unexpanded text, and the
 default form never hits that path.
 
+:END:
 *Note from [[id:965f94eb-1558-4d00-9857-5727eb86fe6f][965f94eb]]'s brainstorm, 2026-09-24.* Claude Code's MCP
 documentation, checked that day, says =${VAR}= expansion in =url= reads *only
 the process environment*, not the =env= block of any settings file. So a
