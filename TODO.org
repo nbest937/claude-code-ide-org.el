@@ -10215,6 +10215,27 @@ pass as one group of 315.
 The title was changed by the user, 2026-10-02, from "Index a heading's git
 history from a drawer, so the body never has to narrate it".
 :END:
+:DEBRIEF:
+*Shipped 2026-10-05* on =feature/org-native-notes= in [[orgit-rev:./::25ed4e0][25ed4e0]], as the drawer
+designed it: =git log --fixed-strings --grep=<id8>= from the repository holding
+the heading's file, split into subject-led work (capped 30) and citations
+grouped by subject with leading ids stripped (capped 15 groups), each cap a
+=defcustom=; the next-step and cannot-see lines; one front-matter line on a
+scoped outline. The repository is found with =locate-dominating-file=, not
+=vc-git-root=, which answers the same question without loading vc.
+
+*Verified.* Five ERT tests against scratch git repositories, covering every row
+of the drawer's list, suite 885/885; the two existing invariants -- every tool
+classed, every id argument taking a prefix -- caught the new tool until it was
+registered in both. Mutations of the work cap, the group cap (which needed an
+assertion that the oldest group is left out before it was caught), the
+grouping and the work/citation split, and the front-matter line each turned a
+test red. Live, as the drawer predicted: [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]] shows its 3 subject-led
+commits and its debrief pass as one group of 315, among 370 citing commits in
+21 groups; its scoped outline reads "history: 3 commits on it, 370 citing it".
+The reference row is about 40 words; the always-loaded budget now stands at
+10185 of 10200.
+:END:
 
 Once a body may be revised, how a heading got here lives only in git, and
 nothing points a reader there. A new read-only tool, =org_history=, answers it
@@ -10222,6 +10243,12 @@ from the commits whose messages cite the id: the work on the heading itself, the
 rest grouped by subject so a bulk pass is one line, and where to look next; a
 scoped outline gains a one-line signpost. Line-range history was measured and
 ruled out. Design in =:PLAN:=.
+
+*Resolution:* =org_history= answers "how did this heading get here" from the
+commits whose messages cite its id -- the work on it, the rest grouped by
+subject, and where to look next -- and a scoped outline carries a one-line
+count.
+
 
 
 * TODO Applied review changes can be destroyed by a git checkout that looks like it reverts only Claude's edit :code:
