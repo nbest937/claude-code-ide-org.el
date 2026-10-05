@@ -5742,6 +5742,7 @@ CLOCK: [2026-09-25 Fri 12:04]--[2026-09-25 Fri 12:05] =>  0:01
 CLOCK: [2026-09-25 Fri 12:07]--[2026-09-25 Fri 12:08] =>  0:01
 - [2026-09-25 Fri 12:07]--[2026-09-25 Fri 12:08] measure what org_query accepts against its description
 :END:
+:PLAN:
 
 The user asked on 2026-09-11 why a session reaches for =sed=/=awk= against
 TODO.org when =emacs-tools= exists; the answer is that the two questions at hand
@@ -5757,6 +5758,7 @@ is about the exposed surface. =property=, =closed= and =category= look
 highest-value here, =blocked= notable since this project has bespoke code for
 it.
 
+:END:
 *Re-measured 2026-09-25: the surface is mostly there, and the description is
 what is missing.* org-ql still loads 35 predicates, and =org_query= passes the
 plain-string syntax through, so far more than the four works. Tried live, each
