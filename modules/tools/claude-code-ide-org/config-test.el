@@ -15955,7 +15955,7 @@ test would iterate an empty list and pass while checking nothing."
 ;;; One table classing every registered tool (TODO.org :ID: 60d6ab6e) ----
 
 (defconst claude-code-ide-org-test--tool-classes
-  '(("org_query" . read-only) ("org_body" . read-only)
+  '(("org_query" . read-only) ("org_body" . read-only) ("org_history" . read-only)
     ("org_outline" . read-only) ("org_clock_report" . read-only)
     ("org_pending_updates" . read-only) ("org_footnotes" . read-only)
     ("org_set_todo" . queued) ("org_clock_in" . queued)
@@ -16101,6 +16101,7 @@ and writes nothing.  Before 60d6ab6e six of them saved over the edits."
     ("org_edit" ("id" . A) ("old_string" . "") ("new_string" . "More prose."))
     ("org_capture" ("title" . "A new heading") ("target" . A))
     ("org_body" ("id" . A))
+    ("org_history" ("id" . A))
     ("org_outline" ("scope" . A))
     ("org_sort_children" ("id" . A) ("sort_type" . "alpha"))
     ("org_move_sibling" ("id" . A) ("direction" . "down"))
@@ -21128,3 +21129,97 @@ heading owing a :PLAN:."
     (claude-code-ide-org-amend "nudge-1" "The plan." nil nil "PLAN")
     (should-not (string-match-p "no :PLAN:"
                                 (claude-code-ide-org-amend "nudge-1" "Eleventh line.")))))
+
+;;; org_history (TODO.org :ID: 41cf5830)
+
+(defmacro claude-code-ide-org-test--with-history-repo (subjects &rest body)
+  "A git repository holding TODO.org with heading `abcd1234-...', and one
+empty commit per string in SUBJECTS, oldest first.  BODY runs with `dir'
+and `file' bound and the heading's id indexed."
+  (declare (indent 1))
+  `(let* ((dir (file-name-as-directory (make-temp-file "history" t)))
+          (file (expand-file-name "TODO.org" dir))
+          (default-directory dir)
+          (org-id-locations-file (expand-file-name ".org-id-locations" dir))
+          (org-id-locations (make-hash-table :test 'equal))
+          (org-id-files nil))
+     (unwind-protect
+         (progn
+           (with-temp-file file
+             (insert "#+TODO: TODO | DONE\n\n* TODO The heading\n:PROPERTIES:\n"
+                     ":ID:       abcd1234-0000-4000-8000-000000000001\n:END:\n"))
+           (org-id-update-id-locations (list file))
+           (call-process "git" nil nil nil "init" "-q")
+           (dolist (s ,subjects)
+             (call-process "git" nil nil nil "-c" "user.name=t" "-c" "user.email=t@t"
+                           "commit" "-q" "--allow-empty" "-m" s))
+           ,@body)
+       (let ((b (find-buffer-visiting file)))
+         (when b (with-current-buffer b (set-buffer-modified-p nil)) (kill-buffer b)))
+       (delete-directory dir t))))
+
+(ert-deftest claude-code-ide-org-test-history-splits-work-from-citations ()
+  "A subject leading with the id, alone or in a joint list, is work on the
+heading; a body-only or mid-subject citation is not; a prefix matches a
+message citing the full id; a bulk pass is one group."
+  (claude-code-ide-org-test--with-history-repo
+      (append (list "abcd1234: first work"
+                    "eeeeeeee, abcd1234: joint work"
+                    "Apply pass: abcd1234 DONE"
+                    "Unrelated\n\nBody cites abcd1234-0000-4000-8000-000000000001.")
+              (mapcar (lambda (i) (format "%08x: debrief into :DEBRIEF:, cites abcd1234" i))
+                      (number-sequence 1 20))
+              (list "Nothing about it"))
+    (let ((out (claude-code-ide-org-history "abcd1234")))
+      (should (string-match-p "Work on it -- 2 commits" out))
+      (should (string-match-p "joint work" out))
+      (should (string-match-p "Citing it -- 22 commits in 3 groups" out))
+      (should (string-match-p "20 x debrief into :DEBRIEF:, cites abcd1234" out))
+      (should (string-match-p "1 x Unrelated" out))
+      (should-not (string-match-p "Nothing about it" out))
+      (should (string-match-p "Cannot see: commits that name no heading" out)))))
+
+(ert-deftest claude-code-ide-org-test-history-caps ()
+  "31 subject-led commits list 30 and \"and 1 older\"; 16 groups list 15
+and \"and 1 more group\"."
+  (claude-code-ide-org-test--with-history-repo
+      (append (mapcar (lambda (i) (format "abcd1234: work %d" i)) (number-sequence 1 31))
+              (mapcar (lambda (i) (format "Topic %d cites abcd1234" i)) (number-sequence 1 16)))
+    (let ((out (claude-code-ide-org-history "abcd1234")))
+      (should (string-match-p "and 1 older, back to" out))
+      (should (string-match-p "work 31" out))
+      (should-not (string-match-p "work 1$" out))
+      (should (string-match-p "and 1 more group (1 commit)" out))
+      (should (string-match-p "Topic 16 cites" out))
+      (should-not (string-match-p "Topic 1 cites" out)))))
+
+(ert-deftest claude-code-ide-org-test-history-without-repo-or-citations ()
+  "Outside a repository it says so without erroring; an uncited heading
+answers with the limit line."
+  (claude-code-ide-org-test--with-history-repo '()
+    (call-process "git" nil nil nil "-c" "user.name=t" "-c" "user.email=t@t"
+                  "commit" "-q" "--allow-empty" "-m" "init")
+    (let ((out (claude-code-ide-org-history "abcd1234")))
+      (should (string-match-p "Work on it -- 0 commits" out))
+      (should (string-match-p "Cannot see" out)))
+    (delete-directory (expand-file-name ".git" dir) t)
+    (should (string-match-p "not in a git repository"
+                            (claude-code-ide-org-history "abcd1234")))))
+
+(ert-deftest claude-code-ide-org-test-history-served-while-busy ()
+  "It reads git, not the file, so unsaved edits do not stop it."
+  (claude-code-ide-org-test--with-history-repo '("abcd1234: work")
+    (with-current-buffer (find-file-noselect file)
+      (goto-char (point-max)) (insert "unsaved\n"))
+    (should (string-match-p "Work on it -- 1 commit" (claude-code-ide-org-history "abcd1234")))))
+
+(ert-deftest claude-code-ide-org-test-history-line-in-scoped-outline-only ()
+  "A scoped outline carries the one-line count; an unscoped one runs no git."
+  (claude-code-ide-org-test--with-history-repo '("abcd1234: work" "Cites abcd1234")
+    (let ((claude-code-ide-org-query-files (list file)))
+      (should (string-match-p "history: 1 commit on it, 1 citing it (org_history)"
+                              (claude-code-ide-org-outline "abcd1234")))
+      (cl-letf (((symbol-function 'claude-code-ide-org--history-commits)
+                 (lambda (&rest _) (error "Ran git"))))
+        (should-not (string-match-p "Ran git\\|history:"
+                                    (claude-code-ide-org-outline)))))))

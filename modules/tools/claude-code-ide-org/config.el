@@ -5428,6 +5428,10 @@ keyword so a satisfied blocker is visible as such without a second call."
                          ids " ")))
               lines)))
     (when plan (push (format "  :PLAN-FILE: %s" plan) lines))
+    ;; One hop to how it got here (TODO.org :ID: 41cf5830); root only, so
+    ;; an unscoped outline never runs git.
+    (let ((history (ignore-errors (claude-code-ide-org--history-front-matter-line))))
+      (when history (push history lines)))
     (nreverse lines)))
 
 (defun claude-code-ide-org--outline-map (active-only max-depth scope &optional grouped bodies)
@@ -21389,6 +21393,153 @@ bare id that resolves, and a jump on click or RET (TODO.org :ID: 0eaffc39)."
 (with-eval-after-load 'git-commit
   (add-hook 'git-commit-setup-hook #'claude-code-ide-org--id-lookup-maybe-enable))
 
+;;; How a heading got here, from the commits that cite it (TODO.org :ID: 41cf5830)
+;;
+;; Once a body may be revised, its history lives only in git, and "how
+;; did we get here?" is rare enough that the answer belongs one hop away.
+;; The source is commit messages, never line ranges: `git log -L' loses
+;; history at archiving and invents it from before a heading existed,
+;; while a message citing an id does not move when the heading does.
+
+(defcustom claude-code-ide-org-history-max-commits 30
+  "Most commits `org_history' lists as work on a heading itself.
+The rest are counted, with the date the oldest goes back to."
+  :type 'integer
+  :group 'claude-code-ide-org)
+
+(defcustom claude-code-ide-org-history-max-groups 15
+  "Most groups of citing commits `org_history' lists.
+The rest are counted as groups and commits."
+  :type 'integer
+  :group 'claude-code-ide-org)
+
+(defconst claude-code-ide-org--history-lead-regexp
+  "\\`\\(\\(?:[0-9a-f]\\{8\\}[-0-9a-f]*\\(?:, *\\| and \\)?\\)+\\): *"
+  "A subject's leading ids -- `d350ff5b: ...', `b7259ee4, f7847adf: ...'.")
+
+(defun claude-code-ide-org--history-lead (subject)
+  "SUBJECT's leading ids as 8-character prefixes, and the rest: (IDS . REST)."
+  (if (string-match claude-code-ide-org--history-lead-regexp subject)
+      (cons (mapcar (lambda (s) (substring s 0 8))
+                    (split-string (match-string 1 subject) "\\(?:, *\\| and \\)" t "[ ,]+"))
+            (substring subject (match-end 0)))
+    (cons nil subject)))
+
+(defun claude-code-ide-org--history-root (file)
+  "The git repository holding FILE, or nil."
+  (and file
+       (let ((dir (locate-dominating-file (file-truename file) ".git")))
+         (and dir (expand-file-name dir)))))
+
+(defun claude-code-ide-org--history-commits (id8 root)
+  "Commits in ROOT whose message contains ID8, newest first: (SHA DATE SUBJECT)."
+  (let ((default-directory (file-name-as-directory root)))
+    (with-temp-buffer
+      (when (eq 0 (process-file "git" nil t nil "log" "--fixed-strings"
+                                (concat "--grep=" id8)
+                                "--date=short" "--format=%h%x09%ad%x09%s"))
+        (mapcar (lambda (line) (split-string line "\t"))
+                (split-string (buffer-string) "\n" t))))))
+
+(defun claude-code-ide-org--history-split (id8 commits)
+  "COMMITS split into (WORK . GROUPS) for ID8.
+WORK is the commits whose subject leads with ID8.  GROUPS is the rest by
+subject with its leading ids stripped, most recent first: each
+\(REST COUNT NEWEST-DATE OLDEST-DATE NEWEST-SHA OLDEST-SHA)."
+  (let (work (groups nil) (order nil))
+    (dolist (c commits)
+      (let ((lead (claude-code-ide-org--history-lead (nth 2 c))))
+        (if (member id8 (car lead))
+            (push c work)
+          (let ((g (assoc (cdr lead) groups)))
+            (if g
+                ;; Newest first, so a later commit is older.
+                (setf (nth 1 g) (1+ (nth 1 g))
+                      (nth 3 g) (nth 1 c)
+                      (nth 5 g) (nth 0 c))
+              (push (list (cdr lead) 1 (nth 1 c) (nth 1 c) (nth 0 c) (nth 0 c)) groups)
+              (push (cdr lead) order))))))
+    (cons (nreverse work)
+          (mapcar (lambda (k) (assoc k groups)) (nreverse order)))))
+
+(defun claude-code-ide-org-history (id)
+  "How heading ID got here, from the commits whose messages cite it.
+
+Three parts: the commits whose subject leads with the id -- the work on
+the heading itself -- newest first, capped at
+`claude-code-ide-org-history-max-commits'; every other commit citing it,
+grouped by subject with leading ids stripped so a bulk pass is one line,
+capped at `claude-code-ide-org-history-max-groups'; and where to look
+next, including what it cannot see.  Read-only, and it reads git, not
+the org file's text, so it answers while the buffer has unsaved edits."
+  (condition-case err
+      (let* ((marker (claude-code-ide-org--id-find id 'marker))
+             (file (buffer-file-name (marker-buffer marker)))
+             (full (org-with-point-at marker (org-entry-get nil "ID")))
+             (title (org-with-point-at marker
+                      (org-no-properties (org-get-heading t t t t))))
+             (id8 (substring full 0 8))
+             (root (claude-code-ide-org--history-root file)))
+        (set-marker marker nil)
+        (if (not root)
+            (format "\"%s\" (%s) is not in a git repository, so it has no history to read." title id8)
+          (let* ((split (claude-code-ide-org--history-split
+                         id8 (claude-code-ide-org--history-commits id8 root)))
+                 (work (car split)) (groups (cdr split))
+                 (wmax claude-code-ide-org-history-max-commits)
+                 (gmax claude-code-ide-org-history-max-groups)
+                 (lines (list (format "History of \"%s\" (%s), from commit messages citing it:"
+                                      title id8))))
+            (push (format "Work on it -- %d commit%s whose subject leads with it, newest first:"
+                          (length work) (if (= 1 (length work)) "" "s"))
+                  lines)
+            (dolist (c (seq-take work wmax))
+              (push (format "  %s %s %s" (nth 1 c) (nth 0 c) (nth 2 c)) lines))
+            (when (> (length work) wmax)
+              (push (format "  ... and %d older, back to %s"
+                            (- (length work) wmax) (nth 1 (car (last work))))
+                    lines))
+            (let ((cited (apply #'+ (mapcar #'cadr groups))))
+              (push (format "Citing it -- %d commit%s in %d group%s, most recent first:"
+                            cited (if (= 1 cited) "" "s")
+                            (length groups) (if (= 1 (length groups)) "" "s"))
+                    lines)
+              (dolist (g (seq-take groups gmax))
+                (push (if (= 1 (nth 1 g))
+                          (format "  1 x %s (%s, %s)" (nth 0 g) (nth 2 g) (nth 4 g))
+                        (format "  %d x %s (%s..%s, %s..%s)" (nth 1 g) (nth 0 g)
+                                (nth 3 g) (nth 2 g) (nth 5 g) (nth 4 g)))
+                      lines))
+              (when (> (length groups) gmax)
+                (let ((rest (nthcdr gmax groups)))
+                  (push (format "  ... and %d more group%s (%d commit%s)"
+                                (length rest) (if (= 1 (length rest)) "" "s")
+                                (apply #'+ (mapcar #'cadr rest))
+                                (if (= 1 (apply #'+ (mapcar #'cadr rest))) "" "s"))
+                        lines))))
+            (push (format "Next: `git show <sha>' for any line; everything: \
+`git -C %s log --fixed-strings --grep=%s'." (abbreviate-file-name root) id8)
+                  lines)
+            (push "Cannot see: commits that name no heading, such as apply passes and \
+unattributed sweeps -- so an empty list means no commit cites it, not that \
+nothing happened. Exact for what it lists, partial by construction."
+                  lines)
+            (string-join (nreverse lines) "\n"))))
+    (error (format "Error: %s" (error-message-string err)))))
+
+(defun claude-code-ide-org--history-front-matter-line ()
+  "\"history: N commits on it, M citing it (org_history)\" for the heading
+at point, or nil outside a git repository.  A scoped outline's one hop."
+  (let* ((full (org-entry-get nil "ID"))
+         (root (and full (claude-code-ide-org--history-root buffer-file-name))))
+    (when root
+      (let* ((id8 (substring full 0 8))
+             (split (claude-code-ide-org--history-split
+                     id8 (claude-code-ide-org--history-commits id8 root))))
+        (format "  history: %d commit%s on it, %d citing it (org_history)"
+                (length (car split)) (if (= 1 (length (car split))) "" "s")
+                (apply #'+ (mapcar #'cadr (cdr split))))))))
+
 ;;; Standalone wiring -- the MCP tools server for clients outside the
 ;;; vterm launcher (Warp, or a `claude' CLI started in any terminal).
 ;;
@@ -22263,6 +22414,26 @@ http://localhost:%d/mcp/%s-2"
             :type string
             :optional t
             :description "Optional. A drawer name -- PLAN, DEBRIEF, LOGBOOK -- to return just that drawer's content from this heading. Errors name the drawers actually present when the one asked for is missing. Not combinable with include_children.")))
+
+  (claude-code-ide-make-tool
+   :function #'claude-code-ide-org-history
+   :name "org_history"
+   :description (concat
+                 "How a heading got here, from the commits whose messages cite "
+                 "its :ID: -- the answer one hop away now that bodies are "
+                 "revised rather than narrated. Read-only; reads git, not the "
+                 "org file, so it answers while the buffer has unsaved edits. "
+                 "Three parts: commits whose subject LEADS with the id (alone "
+                 "or in a joint list), the work on the heading itself, newest "
+                 "first, capped; every other citing commit grouped by subject "
+                 "with leading ids stripped, so a bulk pass is one line, "
+                 "capped; and where to look next. It cannot see commits that "
+                 "name no heading (apply passes, unattributed sweeps), so an "
+                 "empty answer means no commit cites it, not that nothing "
+                 "happened. A scoped org_outline shows the two counts.")
+   :args '((:name "id"
+            :type string
+            :description "The heading's :ID:, or an 8-character :ID: prefix.")))
 
   (claude-code-ide-make-tool
    :function #'claude-code-ide-org-outline
