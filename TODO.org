@@ -3456,7 +3456,9 @@ module is not a free variable.
 :ID:       fb849c29-fddc-4c2d-8683-f465467b1305
 :CREATED:  [2026-09-22 Tue 16:41]
 :END:
+:PLAN:
 
+:END:
 Measured 2026-09-22: task-side code makes 130 references to 47 symbols defined
 inside the eight time-named sections, so those sections are not a seam and
 cutting on them would move the wrong code. The references sort into three unlike
