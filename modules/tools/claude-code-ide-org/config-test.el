@@ -20441,3 +20441,222 @@ paragraph; an overlong paragraph elsewhere is not reflowed by the edit."
         ;; The edited one was broken into lines.
         (should (string-match-p "^Short line here, word" disk))
         (should-not (string-match-p (concat "^Short line here, " (regexp-quote long)) disk))))))
+
+;;; Canonical drawer order (TODO.org :ID: d350ff5b)
+
+(defconst claude-code-ide-org-test--drawers
+  '(("PROPERTIES" . ":PROPERTIES:\n:ID:       d0-1\n:END:\n")
+    ("LOGBOOK" . ":LOGBOOK:\n- State \"DOING\" from \"TODO\" [2026-09-28 Mon 10:00]\n:END:\n")
+    ("PLAN" . ":PLAN:\nThe plan.\n:END:\n")
+    ("DEBRIEF" . ":DEBRIEF:\nThe debrief.\n:END:\n"))
+  "One of each managed drawer, keyed by name.")
+
+(defun claude-code-ide-org-test--drawer-entry (names &optional body)
+  "A heading whose drawers are NAMES in that order, then BODY."
+  (concat "* DONE A heading\nCLOSED: [2026-09-28 Mon 11:00]\n"
+          (mapconcat (lambda (n) (cdr (assoc n claude-code-ide-org-test--drawers)))
+                     names "")
+          (or body "\nThe resolution.\n")))
+
+(defun claude-code-ide-org-test--normalize-text (text)
+  "Normalise the drawers of TEXT's first heading; return (STATUS . TEXT)."
+  (with-temp-buffer
+    (insert "#+TODO: TODO DOING | DONE\n" text)
+    (let ((org-mode-hook nil)) (org-mode))
+    (goto-char (point-min))
+    (re-search-forward org-heading-regexp)
+    (let ((status (claude-code-ide-org--normalize-drawer-order-at-point)))
+      (cons status
+            (buffer-substring-no-properties
+             (save-excursion (goto-char (point-min)) (forward-line 1) (point))
+             (point-max))))))
+
+(ert-deftest claude-code-ide-org-test-drawer-order-normalises-every-tallied-order ()
+  "Every disorder the 2026-10-02 tally found comes out canonical, with
+the planning line kept on top and the body below, and a second run is a
+no-op.  The orders: :DEBRIEF: above :LOGBOOK:, :DEBRIEF: above :PLAN:
+only, :PLAN: above :LOGBOOK:, and the one heading whose :LOGBOOK: sat
+below its body."
+  (let ((canon (claude-code-ide-org-test--drawer-entry
+                '("PROPERTIES" "LOGBOOK" "PLAN" "DEBRIEF"))))
+    (dolist (case (list (claude-code-ide-org-test--drawer-entry
+                         '("PROPERTIES" "DEBRIEF" "LOGBOOK" "PLAN"))
+                        (claude-code-ide-org-test--drawer-entry
+                         '("PROPERTIES" "LOGBOOK" "DEBRIEF" "PLAN"))
+                        (claude-code-ide-org-test--drawer-entry
+                         '("PROPERTIES" "PLAN" "LOGBOOK" "DEBRIEF"))
+                        (claude-code-ide-org-test--drawer-entry
+                         '("PROPERTIES" "DEBRIEF" "PLAN" "LOGBOOK"))))
+      (let ((once (claude-code-ide-org-test--normalize-text case)))
+        (should (eq 'reordered (car once)))
+        (should (equal canon (cdr once)))
+        (let ((twice (claude-code-ide-org-test--normalize-text (cdr once))))
+          (should (eq 'canonical (car twice)))
+          (should (equal canon (cdr twice))))))
+    ;; :LOGBOOK: below the body: the body keeps its blank line and its
+    ;; place, now under every drawer.
+    (let ((once (claude-code-ide-org-test--normalize-text
+                 (concat "* DONE A heading\n"
+                         (cdr (assoc "PROPERTIES" claude-code-ide-org-test--drawers))
+                         "\nThe resolution.\n"
+                         (cdr (assoc "LOGBOOK" claude-code-ide-org-test--drawers))))))
+      (should (eq 'reordered (car once)))
+      (should (equal (concat "* DONE A heading\n"
+                             (cdr (assoc "PROPERTIES" claude-code-ide-org-test--drawers))
+                             (cdr (assoc "LOGBOOK" claude-code-ide-org-test--drawers))
+                             "\nThe resolution.\n")
+                     (cdr once))))))
+
+(ert-deftest claude-code-ide-org-test-drawer-order-leaves-canonical-alone ()
+  "A heading already in order is never rewritten, blank lines between its
+drawers included, so the corpus pass and the lint agree on what moved."
+  (let* ((text (concat "* DONE A heading\n"
+                       (cdr (assoc "PROPERTIES" claude-code-ide-org-test--drawers))
+                       "\n"
+                       (cdr (assoc "PLAN" claude-code-ide-org-test--drawers))
+                       "Body.\n"))
+         (result (claude-code-ide-org-test--normalize-text text)))
+    (should (eq 'canonical (car result)))
+    (should (equal text (cdr result)))))
+
+(ert-deftest claude-code-ide-org-test-drawer-order-refuses-a-lossy-reorder ()
+  "The losslessness check fires and nothing is written.  Forced by
+handing the rewrite a layout that names one drawer's text twice, which
+is the shape any range bug in the layout would take."
+  (with-temp-buffer
+    (let ((text (claude-code-ide-org-test--drawer-entry
+                 '("PROPERTIES" "DEBRIEF" "LOGBOOK"))))
+      (insert text)
+      (let ((org-mode-hook nil)) (org-mode))
+      (goto-char (point-min))
+      (let* ((real (claude-code-ide-org--entry-drawer-layout))
+             (debrief (assoc "DEBRIEF" (plist-get real :drawers)))
+             (fake (plist-put (copy-sequence real) :drawers
+                              (append (plist-get real :drawers)
+                                      (list (cons "PLAN" (cdr debrief)))))))
+        (cl-letf (((symbol-function 'claude-code-ide-org--entry-drawer-layout)
+                   (lambda () fake)))
+          (should-error (claude-code-ide-org--normalize-drawer-order-at-point)))
+        (should (equal text (buffer-substring-no-properties (point-min) (point-max))))))))
+
+(ert-deftest claude-code-ide-org-test-drawer-order-skips-a-repeated-drawer ()
+  "Two :LOGBOOK:s on one heading are reported and left alone: DONE.org
+holds two such headings, and merging them is not a reorder."
+  (let* ((text (claude-code-ide-org-test--drawer-entry
+                '("PROPERTIES" "DEBRIEF" "LOGBOOK" "LOGBOOK")))
+         (result (claude-code-ide-org-test--normalize-text text)))
+    (should (eq 'duplicate (car result)))
+    (should (equal text (cdr result)))))
+
+(ert-deftest claude-code-ide-org-test-drawer-order-ignores-an-example-block-decoy ()
+  "A drawer-shaped run inside an example block is body text: it neither
+counts as a drawer nor moves."
+  (let* ((body (concat "\nThe resolution.\n\n#+begin_example\n"
+                       ":LOGBOOK:\nnot a drawer\n:END:\n#+end_example\n"))
+         (result (claude-code-ide-org-test--normalize-text
+                  (claude-code-ide-org-test--drawer-entry
+                   '("PROPERTIES" "DEBRIEF" "LOGBOOK") body))))
+    (should (eq 'reordered (car result)))
+    (should (equal (claude-code-ide-org-test--drawer-entry
+                    '("PROPERTIES" "LOGBOOK" "DEBRIEF") body)
+                   (cdr result)))))
+
+(ert-deftest claude-code-ide-org-test-drawer-order-leaves-a-child-alone ()
+  "Normalising a heading reads its own entry only: a disordered child is
+the child's to fix, not swept up with its parent."
+  (let* ((child (concat "** TODO A child\n"
+                        ":PROPERTIES:\n:ID:       d0-2\n:END:\n"
+                        ":PLAN:\nChild plan.\n:END:\n"
+                        ":LOGBOOK:\n- Note taken on [2026-09-28 Mon 10:00]\n:END:\n"))
+         (text (concat (claude-code-ide-org-test--drawer-entry
+                        '("PROPERTIES" "DEBRIEF" "LOGBOOK"))
+                       child))
+         (result (claude-code-ide-org-test--normalize-text text)))
+    (should (eq 'reordered (car result)))
+    (should (string-suffix-p child (cdr result)))))
+
+(ert-deftest claude-code-ide-org-test-amend-creates-debrief-in-canonical-order ()
+  "drawer=DEBRIEF on a heading with :PROPERTIES:, :LOGBOOK: and :PLAN:
+lands last among them.  Before the normaliser it went straight after the
+property drawer, so a heading's drawers stood in reverse order of
+creation."
+  (claude-code-ide-org-test--with-capture-file
+    (with-temp-file capture-file
+      (insert "#+TODO: TODO | DONE\n\n"
+              "* DONE Closed\n:PROPERTIES:\n:ID: deb-1\n:END:\n"
+              ":LOGBOOK:\n- State \"DONE\" from \"TODO\" [2026-09-28 Mon 10:00]\n:END:\n"
+              ":PLAN:\nThe plan.\n:END:\n\nThe resolution.\n"))
+    (org-id-update-id-locations (list capture-file))
+    (should (string-match-p "created :DEBRIEF:"
+                            (claude-code-ide-org-amend
+                             "deb-1" "What shipped." nil nil "DEBRIEF")))
+    (should (string-match-p
+             (concat ":ID: deb-1\n:END:\n:LOGBOOK:\n.*\n:END:\n"
+                     ":PLAN:\nThe plan\\.\n:END:\n"
+                     ":DEBRIEF:\nWhat shipped\\.\n:END:\n\nThe resolution\\.\n\\'")
+             (claude-code-ide-org-test--disk-contents capture-file)))))
+
+(ert-deftest claude-code-ide-org-test-wrap-plan-lands-above-an-existing-debrief ()
+  "org_wrap_plan on a heading that already has a :DEBRIEF: puts :PLAN:
+above it.  Its two insertions wrap the body, which sits below the
+debrief, so without the normaliser the plan lands last."
+  (claude-code-ide-org-test--with-capture-file
+    (with-temp-file capture-file
+      (insert "#+TODO: TODO | DONE\n\n"
+              "* DONE Closed\n:PROPERTIES:\n:ID: wrap-d\n:END:\n"
+              ":DEBRIEF:\nWhat shipped.\n:END:\n\nThe prospective body.\n"))
+    (org-id-update-id-locations (list capture-file))
+    (should (string-match-p "Text preserved: yes"
+                            (claude-code-ide-org-wrap-plan "wrap-d")))
+    (should (string-match-p
+             (concat ":ID: wrap-d\n:END:\n:PLAN:\n\nThe prospective body\\.\n:END:\n"
+                     ":DEBRIEF:\nWhat shipped\\.\n:END:\n")
+             (claude-code-ide-org-test--disk-contents capture-file)))))
+
+(ert-deftest claude-code-ide-org-test-lint-refuses-disordered-drawers ()
+  "Out-of-order drawers are a lint error naming the order found; a
+canonical heading and a repeated drawer are not reported."
+  (let ((props (concat ":PROPERTIES:\n"
+                       ":ID:       aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa\n"
+                       ":CREATED:  [2026-09-02 Wed 09:00]\n:CATEGORY: Dev\n:END:\n"))
+        (logbook ":LOGBOOK:\n- Note taken on [2026-09-02 Wed 09:00]\n:END:\n")
+        (debrief ":DEBRIEF:\nShipped.\n:END:\n"))
+    (should (claude-code-ide-org-test--lint-matches
+             (claude-code-ide-org-test--lint
+              (concat "* TODO A task\n" props debrief logbook "Body.\n"))
+             'error "drawers out of order (PROPERTIES, DEBRIEF, LOGBOOK)"))
+    (should-not (claude-code-ide-org-test--lint-matches
+                 (claude-code-ide-org-test--lint
+                  (concat "* TODO A task\n" props logbook debrief "Body.\n"))
+                 'error "drawers out of order"))
+    (should-not (claude-code-ide-org-test--lint-matches
+                 (claude-code-ide-org-test--lint
+                  (concat "* TODO A task\n" props debrief logbook logbook "Body.\n"))
+                 'error "drawers out of order"))))
+
+(ert-deftest claude-code-ide-org-test-normalize-drawer-order-corpus-pass ()
+  "The corpus command dry-runs without writing, writes when asked, and a
+second run finds nothing."
+  (let* ((dir (file-name-as-directory (make-temp-file "drawer-order" t)))
+         (file (expand-file-name "TODO.org" dir))
+         (claude-code-ide-org-query-files (list file))
+         (text (concat "#+TODO: TODO | DONE\n"
+                       (claude-code-ide-org-test--drawer-entry
+                        '("PROPERTIES" "DEBRIEF" "LOGBOOK"))
+                       (claude-code-ide-org-test--drawer-entry
+                        '("PROPERTIES" "LOGBOOK" "DEBRIEF")))))
+    (unwind-protect
+        (progn
+          (with-temp-file file (insert text))
+          (should (string-match-p "2 heading(s) scanned, 1 would be reordered"
+                                  (claude-code-ide-org-normalize-drawer-order t)))
+          (should (equal text (with-temp-buffer (insert-file-contents file)
+                                                (buffer-string))))
+          (should (string-match-p "1 reordered, 1 file(s) saved"
+                                  (claude-code-ide-org-normalize-drawer-order nil)))
+          (should (string-match-p "0 would be reordered"
+                                  (claude-code-ide-org-normalize-drawer-order t))))
+      (let ((buffer (find-buffer-visiting file)))
+        (when buffer (with-current-buffer buffer (set-buffer-modified-p nil))
+              (kill-buffer buffer)))
+      (delete-directory dir t))))

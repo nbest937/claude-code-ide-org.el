@@ -4077,9 +4077,9 @@ because it would have fixed all three instances with no caller change."
 
 (defun claude-code-ide-org--amend-into-drawer (drawer text)
   "Append TEXT inside the :DRAWER: drawer of the heading at point.
-Creates the drawer -- after the planning line and property drawer,
-where `claude-code-ide-org--append-to-drawer-1' puts one -- when the
-heading has none.  Returns the symbol `created' then, nil otherwise.
+Creates the drawer when the heading has none, then puts the heading's
+drawers in canonical order (`claude-code-ide-org-drawer-order').
+Returns the symbol `created' then, nil otherwise.
 
 Existing content is separated from TEXT by a blank line, unless TEXT
 continues a list the drawer already ends with -- the same
@@ -4103,6 +4103,11 @@ the item rather than a write."
           (org-end-of-meta-data)
           (unless (bolp) (insert "\n"))
           (insert ":" drawer ":\n" (string-trim (or text "")) "\n:END:\n")
+          ;; Inserted after the property drawer, so above any :LOGBOOK:
+          ;; or :PLAN: already there; the normaliser puts it in its place
+          ;; (TODO.org :ID: d350ff5b).  Creation only: an append writes
+          ;; nothing it did not ask for.
+          (claude-code-ide-org--normalize-drawer-order-at-point)
           'created)
       (let ((contents-end (org-element-contents-end element)))
         (goto-char (or contents-end
@@ -4120,6 +4125,212 @@ the item rather than a write."
                                      (line-beginning-position)))
             (insert sep (string-trim (or text "")) "\n")))
         nil))))
+
+;;; Canonical drawer order (TODO.org :ID: d350ff5b)
+;;
+;; PROPERTIES, LOGBOOK, PLAN, DEBRIEF, then the body.  :PROPERTIES: first
+;; is org's own requirement, and :LOGBOOK: second is where org's native
+;; logging creates one -- any order putting :PLAN: above it would have
+;; this fighting org's writer forever.  Drawers-then-body makes the body
+;; one contiguous region at the entry's tail, which every positional
+;; tool here assumes.
+;;
+;; The writers used to disagree: `--amend-into-drawer' creates a drawer
+;; straight after the property drawer, so a heading's drawers stood in
+;; reverse order of creation.  Rather than teach each writer an insertion
+;; point, the order lives in one function and every writer that creates
+;; a drawer calls it.
+
+(defconst claude-code-ide-org-drawer-order '("PROPERTIES" "LOGBOOK" "PLAN" "DEBRIEF")
+  "The drawers whose order `claude-code-ide-org--normalize-drawer-order-at-point'
+decides, in canonical order.  Any other drawer is body text to it and
+keeps its place.")
+
+(defun claude-code-ide-org--line-after (element)
+  "Position of the line after ELEMENT's last non-blank line.
+Not `org-element-end', which runs on over the element's trailing blank
+lines: lifting a drawer that far would carry body spacing with it."
+  (save-excursion
+    (goto-char (org-element-end element))
+    (skip-chars-backward " \t\n")
+    (forward-line 1)
+    (point)))
+
+(defun claude-code-ide-org--entry-drawer-layout ()
+  "Where the heading at point keeps its drawers, judged against canon.
+
+Parses the heading's *own* entry -- headline to next heading, never a
+child's -- with `org-element', so a drawer-shaped line inside an example
+block is text, not a drawer.  Returns a plist:
+
+  :status   `canonical', `disordered' or `duplicate'
+  :names    the managed drawers' names, in the order found
+  :drawers  (NAME BEG END) for each, END the line after its :END:
+  :head-end where drawers belong: after the headline and planning line
+  :beg :end the entry's bounds
+
+Canonical means the managed drawers -- `claude-code-ide-org-drawer-order'
+-- come before anything else in the entry and in that order; blank lines
+between them do not count against it, so a heading already in order is
+never rewritten.  A `:PROPERTIES:' drawer org failed to recognise as one,
+because something stands above it, is the same drawer to this.  Two
+drawers of one name are `duplicate': merging them is not this
+function's to decide."
+  (org-with-wide-buffer
+   (org-back-to-heading t)
+   (let ((beg (point))
+         (end (save-excursion (outline-next-heading) (point))))
+     (save-restriction
+       (narrow-to-region beg end)
+       (let* ((tree (org-element-parse-buffer 'element))
+              (section (org-element-map tree 'section #'identity nil t))
+              (children (and section (org-element-contents section)))
+              (head-end (save-excursion (goto-char beg) (forward-line 1) (point)))
+              (rank -1) (prefix t) (status 'canonical)
+              drawers)
+         (when (org-element-type-p (car children) 'planning)
+           (setq head-end (claude-code-ide-org--line-after (pop children))))
+         (dolist (child children)
+           (let* ((name (pcase (org-element-type child)
+                          ('property-drawer "PROPERTIES")
+                          ('drawer (upcase (org-element-property :drawer-name child)))))
+                  (index (and name (seq-position claude-code-ide-org-drawer-order name))))
+             (if (not index)
+                 (setq prefix nil)
+               (cond ((assoc name drawers) (setq status 'duplicate))
+                     ((and (eq status 'canonical)
+                           (or (not prefix) (<= index rank)))
+                      (setq status 'disordered)))
+               (setq rank (max rank index))
+               (push (list name (org-element-begin child)
+                           (claude-code-ide-org--line-after child))
+                     drawers))))
+         (setq drawers (nreverse drawers))
+         (list :status status :names (mapcar #'car drawers) :drawers drawers
+               :head-end head-end :beg beg :end end))))))
+
+(defun claude-code-ide-org--normalize-drawer-order-at-point ()
+  "Put the heading at point's drawers in canonical order.
+
+Lifts each drawer `claude-code-ide-org-drawer-order' names and reinserts
+them in that order directly after the headline and planning line; the
+rest of the entry keeps its own order below them, blank lines included.
+Returns `canonical' when there was nothing to do, `duplicate' when a
+drawer name repeats (left alone), and `reordered' otherwise.
+
+*Lossless by check, not by argument*: the entry's lines, sorted, must be
+equal before and after, and on any difference this signals and writes
+nothing.  A reorder only moves lines, so anything else is a bug here."
+  (let* ((layout (claude-code-ide-org--entry-drawer-layout))
+         (status (plist-get layout :status)))
+    (if (not (eq status 'disordered))
+        status
+      (org-with-wide-buffer
+       (let* ((beg (plist-get layout :beg))
+              (end (plist-get layout :end))
+              (head-end (plist-get layout :head-end))
+              (drawers (plist-get layout :drawers))
+              (old (buffer-substring-no-properties beg end))
+              (text (lambda (d)
+                      (let ((s (buffer-substring-no-properties (nth 1 d) (nth 2 d))))
+                        (if (string-suffix-p "\n" s) s (concat s "\n")))))
+              (lifted (mapconcat text
+                                 (sort (copy-sequence drawers)
+                                       (lambda (a b)
+                                         (< (seq-position claude-code-ide-org-drawer-order (car a))
+                                            (seq-position claude-code-ide-org-drawer-order (car b)))))
+                                 ""))
+              (rest (let ((pos head-end) (parts nil))
+                      (dolist (d drawers)
+                        (push (buffer-substring-no-properties pos (nth 1 d)) parts)
+                        (setq pos (nth 2 d)))
+                      (push (buffer-substring-no-properties pos end) parts)
+                      (apply #'concat (nreverse parts))))
+              (new (concat (buffer-substring-no-properties beg head-end) lifted rest)))
+         ;; A drawer ending the buffer without a newline gained one when
+         ;; lifted; the entry as a whole keeps the ending it had.
+         (when (and (not (string-suffix-p "\n" old)) (string-suffix-p "\n" new))
+           (setq new (substring new 0 -1)))
+         (unless (equal (sort (split-string old "\n") #'string<)
+                        (sort (split-string new "\n") #'string<))
+           (error "Drawer reorder of \"%s\" would not be lossless; nothing written"
+                  (save-excursion (goto-char beg) (org-get-heading t t t t))))
+         (save-excursion
+           (goto-char beg)
+           (delete-region beg end)
+           (insert new))
+         'reordered)))))
+
+(defun claude-code-ide-org-normalize-drawer-order (&optional dry-run)
+  "Put every heading's drawers in canonical order across the tracked files.
+
+The order is `claude-code-ide-org-drawer-order', then the body.  With
+DRY-RUN non-nil nothing is written and the report says what would move.
+A bare `M-x' passes t, so writing has to be asked for with a prefix
+argument; *from Lisp no argument writes*, the shape of
+`claude-code-ide-org-consolidate-all-drawers'.  Pass it explicitly.
+
+A one-off repair of the corpus beside `bin/lint-org''s order rule, not a
+ceremony step (TODO.org :ID: d350ff5b): once the writers call the
+normaliser, only a hand edit can disorder a heading, and the lint names
+that at the commit that made it, where a daily repair would hide it.
+It is idempotent, so a rerun is harmless.
+
+A file with unsaved changes is skipped and named, as
+`claude-code-ide-org-fill-prose' refuses one: TODO.org is edited live.
+A heading with two drawers of one name is reported and left alone."
+  (interactive (list (not current-prefix-arg)))
+  (let ((headings 0) (moved 0) (files 0) skipped duplicates)
+    (dolist (file (claude-code-ide-org--tracked-files))
+      (cond
+       ((not (file-readable-p file)))
+       ((claude-code-ide-org--file-busy-p file) (push file skipped))
+       (t
+        (let* ((already-open (find-buffer-visiting file))
+               (buffer (or already-open (find-file-noselect file)))
+               (touched nil))
+          (with-current-buffer buffer
+            (let ((buffer-read-only nil))
+              (org-with-wide-buffer
+               ;; Backwards, so a rewrite never moves a heading not yet
+               ;; visited.
+               (goto-char (point-max))
+               (while (re-search-backward org-heading-regexp nil t)
+                 (setq headings (1+ headings))
+                 (let ((layout (claude-code-ide-org--entry-drawer-layout)))
+                   (pcase (plist-get layout :status)
+                     ('duplicate
+                      (push (format "%s:%d" (file-name-nondirectory file)
+                                    (line-number-at-pos))
+                            duplicates))
+                     ('disordered
+                      (setq moved (1+ moved))
+                      (unless dry-run
+                        (claude-code-ide-org--normalize-drawer-order-at-point)
+                        (setq touched t)))))))
+              (when touched
+                (setq files (1+ files))
+                (save-buffer))))
+          (unless already-open
+            (with-current-buffer buffer (set-buffer-modified-p nil))
+            (kill-buffer buffer))))))
+    (let ((report
+           (format "%s %d heading(s) scanned, %d %s%s%s%s"
+                   (if dry-run "Dry run:" "Normalised:")
+                   headings moved
+                   (if dry-run "would be reordered" "reordered")
+                   (if dry-run "" (format ", %d file(s) saved" files))
+                   (if duplicates
+                       (format "; %d with a repeated drawer left alone (%s)"
+                               (length duplicates)
+                               (string-join duplicates " "))
+                     "")
+                   (if skipped
+                       (format "; SKIPPED for unsaved changes: %s"
+                               (string-join skipped " "))
+                     ""))))
+      (when (called-interactively-p 'any) (message "%s" report))
+      report)))
 
 ;;; Headline lines inside a block (TODO.org :ID: 8a23d6ec)
 
@@ -17941,6 +18152,19 @@ recursive, so its cookie counts the wrong things (have: %s): %s"
                           (> (claude-code-ide-org--lint-body-line-anchors) 0))
                  (report 'error line "live body cites a line number, which rots \
 silently -- cite the symbol instead: %s" title))
+               ;; Drawer order (TODO.org :ID: d350ff5b). Every writer that
+               ;; creates a drawer normalises, so only a hand edit can
+               ;; disorder one, and this names it at the commit that made
+               ;; it. A repeated drawer is not reported: DONE.org holds two
+               ;; doubled :LOGBOOK:s that predate this, and an error there
+               ;; would block every commit for something nothing merges.
+               (let ((layout (claude-code-ide-org--entry-drawer-layout)))
+                 (when (eq (plist-get layout :status) 'disordered)
+                   (report 'error line "drawers out of order (%s); canon is %s, \
+then the body -- claude-code-ide-org-normalize-drawer-order repairs it: %s"
+                           (string-join (plist-get layout :names) ", ")
+                           (string-join claude-code-ide-org-drawer-order ", ")
+                           title)))
                ;; A repeater's body is never pruned, because every
                ;; pruning event in the :PLAN: lifecycle is tied to
                ;; reaching DONE and a repeater never does (TODO.org
@@ -19126,7 +19350,6 @@ nothing escapes it. Not wrapped."
                (save-excursion
                  (goto-char open)
                  (insert ":PLAN:\n"))
-               (save-buffer)
                ;; Prove the move was lossless right here, against the text
                ;; read before the insertions, rather than trusting the
                ;; arithmetic. `bin/lint-org' cannot make this check: the
@@ -19136,6 +19359,11 @@ nothing escapes it. Not wrapped."
                               open (+ end (length ":PLAN:\n:END:\n"))))
                       (stripped (replace-regexp-in-string
                                  "^:\\(PLAN\\|END\\):\n" "" after)))
+                 ;; After the check, which reads fixed positions: a
+                 ;; :DEBRIEF: above the body leaves the new :PLAN: below
+                 ;; it, and the normaliser moves it (TODO.org :ID: d350ff5b).
+                 (claude-code-ide-org--normalize-drawer-order-at-point)
+                 (save-buffer)
                  ;; `substring-no-properties', because `org-get-heading'
                  ;; returns the fontified heading and the MCP layer
                  ;; serializes its text properties as pages of
