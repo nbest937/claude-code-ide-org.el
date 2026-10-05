@@ -189,6 +189,17 @@ A **story** is not declared, it is emergent: a task that has acquired
 children carrying TODO keywords. Detectable via
 `claude-code-ide-org--container-heading-p` — "container" is the code's
 older word for a story. Don't classify a heading as one when writing it.
+
+**Clustering open tasks under a parent is sanctioned when the cluster
+will close** — when its children finishing finishes it (`:ID:` 63df67c7).
+The code-review story below is one, assembled on purpose. A cluster of
+thematic affinity with no end state is a filing drawer: it belongs to
+`:CATEGORY:`, a tag or a slice, never a parent. The honest exception is a
+running collector that never closes, parked `MAYBE` as `9d6449c7` is.
+Breaking a heading down, even speculatively, is sanctioned too: an
+unworked heading may grow its children in place, and a worked one
+divides (the org skill, "Dividing a heading that outgrew itself").
+
 An **epic** is the separate thing: the grouping a task belongs to,
 carried on the task as a `:CATEGORY:` value since 2026-08-28 (`:ID:`
 29439196). It is declared, where a story is emergent — which is why one
