@@ -4104,26 +4104,30 @@ the item rather than a write."
   (org-back-to-heading t)
   (let ((element (claude-code-ide-org--find-drawer drawer)))
     (if (not element)
-        (let ((layout (claude-code-ide-org--entry-drawer-layout)))
-          ;; Written where it belongs when the heading is already in
-          ;; order: after the last managed drawer that ranks above it.
-          ;; Written high and reordered, it moved the :LOGBOOK: below it,
-          ;; and a running clock's marker with it (PR #34's review).
-          (if (eq (plist-get layout :status) 'canonical)
-              (let ((rank (seq-position claude-code-ide-org-drawer-order drawer))
-                    (pos (plist-get layout :head-end)))
-                (dolist (d (plist-get layout :drawers))
-                  (when (< (seq-position claude-code-ide-org-drawer-order (car d)) rank)
-                    (setq pos (nth 2 d))))
-                (goto-char pos))
-            (org-end-of-meta-data))
-          (unless (bolp) (insert "\n"))
-          (insert ":" drawer ":\n" (string-trim (or text "")) "\n:END:\n")
-          ;; A heading already out of order gets the normaliser
-          ;; (TODO.org :ID: d350ff5b).  Creation only: an append writes
-          ;; nothing it did not ask for.
-          (claude-code-ide-org--normalize-drawer-order-at-point)
-          'created)
+        ;; Atomic: the normaliser checks after the insertion, and a
+        ;; failure must not leave the drawer in an unsaved buffer that
+        ;; every later tool then refuses as busy (PR #34's review).
+        (atomic-change-group
+          (let ((layout (claude-code-ide-org--entry-drawer-layout)))
+            ;; Written where it belongs when the heading is already in
+            ;; order: after the last managed drawer that ranks above it.
+            ;; Written high and reordered, it moved the :LOGBOOK: below it,
+            ;; and a running clock's marker with it (PR #34's review).
+            (if (eq (plist-get layout :status) 'canonical)
+                (let ((rank (seq-position claude-code-ide-org-drawer-order drawer))
+                      (pos (plist-get layout :head-end)))
+                  (dolist (d (plist-get layout :drawers))
+                    (when (< (seq-position claude-code-ide-org-drawer-order (car d)) rank)
+                      (setq pos (nth 2 d))))
+                  (goto-char pos))
+              (org-end-of-meta-data))
+            (unless (bolp) (insert "\n"))
+            (insert ":" drawer ":\n" (string-trim (or text "")) "\n:END:\n")
+            ;; A heading already out of order gets the normaliser
+            ;; (TODO.org :ID: d350ff5b).  Creation only: an append writes
+            ;; nothing it did not ask for.
+            (claude-code-ide-org--normalize-drawer-order-at-point)
+            'created))
       (let ((contents-end (org-element-contents-end element)))
         (goto-char (or contents-end
                        (claude-code-ide-org--drawer-body-start element)))
@@ -4320,7 +4324,7 @@ A file with unsaved changes is skipped and named, as
 `claude-code-ide-org-fill-prose' refuses one: TODO.org is edited live.
 A heading with two drawers of one name is reported and left alone."
   (interactive (list (not current-prefix-arg)))
-  (let ((headings 0) (moved 0) (files 0) skipped duplicates)
+  (let ((headings 0) (moved 0) (files 0) skipped duplicates failed)
     (dolist (file (claude-code-ide-org--tracked-files))
       (cond
        ((not (file-readable-p file)))
@@ -4329,33 +4333,47 @@ A heading with two drawers of one name is reported and left alone."
         (let* ((already-open (find-buffer-visiting file))
                (buffer (or already-open (find-file-noselect file)))
                (touched nil))
-          (with-current-buffer buffer
-            (let ((buffer-read-only nil))
-              (org-with-wide-buffer
-               ;; Backwards, so a rewrite never moves a heading not yet
-               ;; visited.
-               (goto-char (point-max))
-               (while (re-search-backward org-heading-regexp nil t)
-                 (setq headings (1+ headings))
-                 (let ((layout (claude-code-ide-org--entry-drawer-layout)))
-                   (pcase (plist-get layout :status)
-                     ('duplicate
-                      (push (format "%s:%d" (file-name-nondirectory file)
-                                    (line-number-at-pos))
-                            duplicates))
-                     ('disordered
-                      (setq moved (1+ moved))
-                      (unless dry-run
-                        (claude-code-ide-org--normalize-drawer-order-at-point)
-                        (setq touched t)))))))
-              (when touched
-                (setq files (1+ files))
-                (save-buffer))))
-          (unless already-open
-            (with-current-buffer buffer (set-buffer-modified-p nil))
-            (kill-buffer buffer))))))
+          ;; A buffer this pass opened is killed however it exits.
+          (unwind-protect
+              (with-current-buffer buffer
+                (let ((buffer-read-only nil))
+                  (org-with-wide-buffer
+                   ;; Backwards, so a rewrite never moves a heading not yet
+                   ;; visited.
+                   (goto-char (point-max))
+                   (while (re-search-backward org-heading-regexp nil t)
+                     (setq headings (1+ headings))
+                     (let ((layout (claude-code-ide-org--entry-drawer-layout)))
+                       (pcase (plist-get layout :status)
+                         ('duplicate
+                          (push (format "%s:%d" (file-name-nondirectory file)
+                                        (line-number-at-pos))
+                                duplicates))
+                         ('disordered
+                          (setq moved (1+ moved))
+                          (unless dry-run
+                            ;; One heading's failed check writes nothing for
+                            ;; it and is reported; the rest still go ahead,
+                            ;; rather than leaving those already rewritten
+                            ;; unsaved (PR #34's review).
+                            (condition-case err
+                                (progn
+                                  (claude-code-ide-org--normalize-drawer-order-at-point)
+                                  (setq touched t))
+                              (error
+                               (setq moved (1- moved))
+                               (push (format "%s:%d (%s)" (file-name-nondirectory file)
+                                             (line-number-at-pos)
+                                             (error-message-string err))
+                                     failed)))))))))
+                  (when touched
+                    (setq files (1+ files))
+                    (save-buffer))))
+            (unless already-open
+              (with-current-buffer buffer (set-buffer-modified-p nil))
+              (kill-buffer buffer)))))))
     (let ((report
-           (format "%s %d heading(s) scanned, %d %s%s%s%s"
+           (format "%s %d heading(s) scanned, %d %s%s%s%s%s"
                    (if dry-run "Dry run:" "Normalised:")
                    headings moved
                    (if dry-run "would be reordered" "reordered")
@@ -4368,6 +4386,10 @@ A heading with two drawers of one name is reported and left alone."
                    (if skipped
                        (format "; SKIPPED for unsaved changes: %s"
                                (string-join skipped " "))
+                     "")
+                   (if failed
+                       (format "; FAILED, left as they were: %s"
+                               (string-join (nreverse failed) "; "))
                      ""))))
       (when (called-interactively-p 'any) (message "%s" report))
       report)))
@@ -19512,62 +19534,66 @@ two insertions, no deletion, no reflow.  Returns a summary string."
 would close the :PLAN: drawer early -- :END: is org's drawer terminator and \
 nothing escapes it. Not wrapped."
                        (org-get-heading t t t t))
-             (let* ((open (nth 0 bounds))
-                    (beg (nth 1 bounds))
-                    (end (nth 2 bounds))
-                    ;; EMPTY-OK: a seam on the first body line means "no
-                    ;; prospective half", and an empty drawer is how that
-                    ;; is recorded rather than an error the caller has no
-                    ;; way to satisfy (TODO.org :ID: f421c5c3).
-                    (stop (if until
-                              (claude-code-ide-org--plan-seam beg end until t)
-                            end))
-                    (before (buffer-substring-no-properties open end)))
-               ;; Close first, then open. Inserting at the later position
-               ;; before the earlier one keeps BEG valid; doing it the
-               ;; other way round would shift STOP by the length of the
-               ;; opening marker and close the drawer one line late.
-               (save-excursion
-                 (goto-char stop)
-                 (insert ":END:\n"))
-               (save-excursion
-                 (goto-char open)
-                 (insert ":PLAN:\n"))
-               ;; Prove the move was lossless right here, against the text
-               ;; read before the insertions, rather than trusting the
-               ;; arithmetic. `bin/lint-org' cannot make this check: the
-               ;; damage it would catch is structural and this one is
-               ;; prose-level under a well-formed heading.
-               (let* ((after (buffer-substring-no-properties
-                              open (+ end (length ":PLAN:\n:END:\n"))))
-                      ;; Exactly the two markers inserted, by position: a
-                      ;; body may quote an :END: of its own below the seam.
-                      (close (+ (- stop open) (length ":PLAN:\n")))
-                      (stripped (concat (substring after (length ":PLAN:\n") close)
-                                        (substring after (+ close (length ":END:\n"))))))
-                 ;; After the check, which reads fixed positions: a
-                 ;; :DEBRIEF: above the body leaves the new :PLAN: below
-                 ;; it, and the normaliser moves it (TODO.org :ID: d350ff5b).
-                 (claude-code-ide-org--normalize-drawer-order-at-point)
-                 (save-buffer)
-                 ;; `substring-no-properties', because `org-get-heading'
-                 ;; returns the fontified heading and the MCP layer
-                 ;; serializes its text properties as pages of
-                 ;; `(face (org-headline-done ...))' around the answer.
-                 ;; Same trap as `--outline-line' and the pending-updates
-                 ;; report; observed here on the first real call.
-                 (substring-no-properties
-                  (if (= stop beg)
-                      (format "\"%s\" has no prospective half -- the seam is its \
+             ;; Atomic: the normaliser below checks after both insertions,
+             ;; and a failure must not leave them in the buffer (PR #34's
+             ;; review).
+             (atomic-change-group
+               (let* ((open (nth 0 bounds))
+                      (beg (nth 1 bounds))
+                      (end (nth 2 bounds))
+                      ;; EMPTY-OK: a seam on the first body line means "no
+                      ;; prospective half", and an empty drawer is how that
+                      ;; is recorded rather than an error the caller has no
+                      ;; way to satisfy (TODO.org :ID: f421c5c3).
+                      (stop (if until
+                                (claude-code-ide-org--plan-seam beg end until t)
+                              end))
+                      (before (buffer-substring-no-properties open end)))
+                 ;; Close first, then open. Inserting at the later position
+                 ;; before the earlier one keeps BEG valid; doing it the
+                 ;; other way round would shift STOP by the length of the
+                 ;; opening marker and close the drawer one line late.
+                 (save-excursion
+                   (goto-char stop)
+                   (insert ":END:\n"))
+                 (save-excursion
+                   (goto-char open)
+                   (insert ":PLAN:\n"))
+                 ;; Prove the move was lossless right here, against the text
+                 ;; read before the insertions, rather than trusting the
+                 ;; arithmetic. `bin/lint-org' cannot make this check: the
+                 ;; damage it would catch is structural and this one is
+                 ;; prose-level under a well-formed heading.
+                 (let* ((after (buffer-substring-no-properties
+                                open (+ end (length ":PLAN:\n:END:\n"))))
+                        ;; Exactly the two markers inserted, by position: a
+                        ;; body may quote an :END: of its own below the seam.
+                        (close (+ (- stop open) (length ":PLAN:\n")))
+                        (stripped (concat (substring after (length ":PLAN:\n") close)
+                                          (substring after (+ close (length ":END:\n"))))))
+                   ;; After the check, which reads fixed positions: a
+                   ;; :DEBRIEF: above the body leaves the new :PLAN: below
+                   ;; it, and the normaliser moves it (TODO.org :ID: d350ff5b).
+                   (claude-code-ide-org--normalize-drawer-order-at-point)
+                   (save-buffer)
+                   ;; `substring-no-properties', because `org-get-heading'
+                   ;; returns the fontified heading and the MCP layer
+                   ;; serializes its text properties as pages of
+                   ;; `(face (org-headline-done ...))' around the answer.
+                   ;; Same trap as `--outline-line' and the pending-updates
+                   ;; report; observed here on the first real call.
+                   (substring-no-properties
+                    (if (= stop beg)
+                        (format "\"%s\" has no prospective half -- the seam is its \
 first body line -- so an empty :PLAN: drawer records that, and the whole body \
 stays visible as the debrief. Text preserved: %s."
+                                (org-get-heading t t t t)
+                                (if (equal stripped before) "yes" "NO -- INSPECT"))
+                      (format "Wrapped %s of \"%s\" in :PLAN:%s. Text preserved: %s."
+                              (if until "the body above the seam" "the whole body")
                               (org-get-heading t t t t)
-                              (if (equal stripped before) "yes" "NO -- INSPECT"))
-                    (format "Wrapped %s of \"%s\" in :PLAN:%s. Text preserved: %s."
-                            (if until "the body above the seam" "the whole body")
-                            (org-get-heading t t t t)
-                            (if until (format " (seam: %s)" until) "")
-                            (if (equal stripped before) "yes" "NO -- INSPECT"))))))))))))))
+                              (if until (format " (seam: %s)" until) "")
+                              (if (equal stripped before) "yes" "NO -- INSPECT")))))))))))))))
 
 ;;; CLOSED: backfill (TODO.org :ID: f4b07fc0)
 ;;

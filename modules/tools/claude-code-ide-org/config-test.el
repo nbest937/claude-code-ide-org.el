@@ -20623,6 +20623,57 @@ written high and reordered."
                   (lambda ()
                     (claude-code-ide-org--amend-into-drawer "PLAN" "The plan."))))))
 
+(ert-deftest claude-code-ide-org-test-amend-drawer-rolls-back-a-failed-reorder ()
+"A drawer write whose reorder check fails leaves the buffer exactly as
+it was.  The check runs after the insertion, so without a rollback the
+new drawer stayed in the buffer, unsaved, and every later tool refused
+the file as busy (PR #34's review)."
+  (with-temp-buffer
+    (let ((text (claude-code-ide-org-test--drawer-entry
+                 '("PROPERTIES" "DEBRIEF" "LOGBOOK"))))
+      (insert text)
+      (let ((org-mode-hook nil)) (org-mode))
+      (goto-char (point-min))
+      (cl-letf (((symbol-function 'claude-code-ide-org--normalize-drawer-order-at-point)
+                 (lambda () (error "would not be lossless"))))
+        (should-error (claude-code-ide-org--amend-into-drawer "PLAN" "The plan.")))
+      (should (equal text (buffer-substring-no-properties (point-min) (point-max)))))))
+
+(ert-deftest claude-code-ide-org-test-normalize-drawer-order-survives-a-failed-heading ()
+  "One heading whose reorder fails is reported and left as it was; the
+others are still written and saved, and a buffer the pass opened is
+killed.  Before, the first failure aborted the run with earlier headings
+rewritten but unsaved, and the opened buffer stayed behind."
+  (let* ((dir (file-name-as-directory (make-temp-file "drawer-order" t)))
+         (file (expand-file-name "TODO.org" dir))
+         (claude-code-ide-org-query-files (list file))
+         (real (symbol-function 'claude-code-ide-org--normalize-drawer-order-at-point))
+         (calls 0)
+         (text (concat "#+TODO: TODO | DONE\n"
+                       (claude-code-ide-org-test--drawer-entry
+                        '("PROPERTIES" "DEBRIEF" "LOGBOOK"))
+                       (claude-code-ide-org-test--drawer-entry
+                        '("PROPERTIES" "PLAN" "LOGBOOK")))))
+    (unwind-protect
+        (progn
+          (with-temp-file file (insert text))
+          ;; The pass walks backwards: the first call is the second heading.
+          (cl-letf (((symbol-function 'claude-code-ide-org--normalize-drawer-order-at-point)
+                     (lambda ()
+                       (if (= 1 (cl-incf calls)) (error "would not be lossless")
+                         (funcall real)))))
+            (let ((report (claude-code-ide-org-normalize-drawer-order nil)))
+              (should (string-match-p "1 reordered, 1 file(s) saved" report))
+              (should (string-match-p "FAILED, left as they were: TODO\\.org:" report))))
+          (should-not (find-buffer-visiting file))
+          (let ((disk (with-temp-buffer (insert-file-contents file) (buffer-string))))
+            (should (string-match-p ":LOGBOOK:\n.*\n:END:\n:DEBRIEF:" disk))
+            (should (string-match-p ":PLAN:\nThe plan\\.\n:END:\n:LOGBOOK:" disk))))
+      (let ((buffer (find-buffer-visiting file)))
+        (when buffer (with-current-buffer buffer (set-buffer-modified-p nil))
+              (kill-buffer buffer)))
+      (delete-directory dir t))))
+
 (ert-deftest claude-code-ide-org-test-amend-creates-debrief-in-canonical-order ()
   "drawer=DEBRIEF on a heading with :PROPERTIES:, :LOGBOOK: and :PLAN:
 lands last among them.  Before the normaliser it went straight after the
@@ -20660,6 +20711,22 @@ debrief, so without the normaliser the plan lands last."
              (concat ":ID: wrap-d\n:END:\n:PLAN:\n\nThe prospective body\\.\n:END:\n"
                      ":DEBRIEF:\nWhat shipped\\.\n:END:\n")
              (claude-code-ide-org-test--disk-contents capture-file)))))
+
+(ert-deftest claude-code-ide-org-test-wrap-plan-rolls-back-a-failed-reorder ()
+  "org_wrap_plan whose reorder check fails leaves neither marker in the
+buffer, which stays unmodified, so the next tool does not find it busy."
+  (claude-code-ide-org-test--with-capture-file
+    (with-temp-file capture-file
+      (insert "#+TODO: TODO | DONE\n\n"
+              "* DONE Closed\n:PROPERTIES:\n:ID: wrap-f\n:END:\n"
+              ":DEBRIEF:\nWhat shipped.\n:END:\n\nThe prospective body.\n"))
+    (org-id-update-id-locations (list capture-file))
+    (cl-letf (((symbol-function 'claude-code-ide-org--normalize-drawer-order-at-point)
+               (lambda () (error "would not be lossless"))))
+      (ignore-errors (claude-code-ide-org-wrap-plan "wrap-f")))
+    (with-current-buffer (find-buffer-visiting capture-file)
+      (should-not (buffer-modified-p))
+      (should-not (string-match-p ":PLAN:" (buffer-string))))))
 
 (ert-deftest claude-code-ide-org-test-lint-refuses-disordered-drawers ()
   "Out-of-order drawers are a lint error naming the order found; a
