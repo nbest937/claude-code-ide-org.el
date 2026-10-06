@@ -2766,6 +2766,14 @@ root, which is the README's project-scope install route, so the move is live at
 the next session start there. Its promoted rules date from the old version and
 include =org-time-tracking.md=, the stale copy check 2 expects setup to remove.
 
+*Check 2 verified 2026-10-06 in agentic-euchre.* A plain re-run reported the
+time file "kept (already promoted)", and =--no-time-tracking= removed it. The
+six promoted rules are byte-identical to the plugin's own generated copies, and
+=claude-org-setup --check= reports all ok: the rules, no stale Doom glue, and
+=.mcp.json= naming the =agentic-euchre= session as that project's alone. Checks
+1 and 3 to 5 need a Claude Code session started in agentic-euchre.
+
+
 
 
 * TODO The duplicate query reads titles only, so a paraphrase gets past it — including the case that motivated it :code:
