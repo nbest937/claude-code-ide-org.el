@@ -2757,6 +2757,15 @@ It gates earnest work in euchre, taking over from [[id:6a207b00-8fa1-441e-8ee5-3
 2026-09-22). It waits on [[id:8a2eb687-28da-4d44-893b-db59298bdc5b][8a2eb687]] and [[id:6521dd56-8772-416b-9435-6da78bb86b06][6521dd56]], moved from there, and on
 [[id:4ae7a04b-1557-44d6-91c3-384f1def5293][4ae7a04b]], the brainstorming skill, at the user's direction.
 
+*Worktree moved forward 2026-10-06:* =claude-code-ide-org-swc= is detached at
+=main= (commit [[orgit-rev:./::1fe022e][1fe022e]]), up from the [[https://github.com/nbest937/claude-code-ide-org.el/pull/28][PR #28]] apply pass. Found at the move:
+agentic-euchre has no =.claude/settings.json= and no plugin enabled in the user
+settings, and its =.claude/skills/claude-code-ide-org= links to the worktree
+root rather than to a skill. So how euchre loads the plugin is the first thing
+to establish. Its promoted rules date from the old version and include
+=org-time-tracking.md=, the stale copy check 2 expects setup to remove.
+
+
 
 * TODO The duplicate query reads titles only, so a paraphrase gets past it — including the case that motivated it :code:
 :PROPERTIES:
