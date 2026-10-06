@@ -15,6 +15,7 @@ name ([[id:5fc7b934-28ec-4eeb-9f90-f1becec353f0][5fc7b934]] deprecated line numb
 the form =[[file:config.el::(defun name]]= would open at the definition while
 still naming the symbol rather than a line.
 
+
 * MAYBE Date measured claims with an inactive timestamp, so "measured [2026-08-26 Wed]" is a parseable date
 :PROPERTIES:
 :ID:       d0253bc8-8b3d-49c0-b7bc-a36d24ffe0a6
@@ -27,6 +28,7 @@ parked here at its close, pending the user's filter. Bodies date their
 measurements in prose ("measured 2026-08-26"), which org cannot sort, filter or
 show on the agenda. Writing the date as an inactive timestamp would make every
 measured claim queryable by date.
+
 
 * TODO An accepted span with no heading reaches apply and fails as 'no org heading found with :ID: "nil"' :code:
 :PROPERTIES:
@@ -6383,7 +6385,8 @@ detection mechanised, judgement kept human, per every surviving
 report's contract. Shapes and constraints in =:PLAN:=.
 
 
-* REVIEW [20/20] Make the notes org-native: links, drawers, tags, one corpus pass :code:
+* DONE [20/20] Make the notes org-native: links, drawers, tags, one corpus pass :code:
+CLOSED: [2026-10-06 Tue 12:41]
 :PROPERTIES:
 :ID:       6521dd56-8772-416b-9435-6da78bb86b06
 :CREATED:  [2026-09-10 Thu 08:57]
@@ -6417,6 +6420,17 @@ CLOCK: [2026-10-06 Tue 09:46]--[2026-10-06 Tue 09:47] =>  0:01
 - [2026-10-06 Tue 09:46]--[2026-10-06 Tue 09:47] assigned at review
 CLOCK: [2026-10-06 Tue 09:51]--[2026-10-06 Tue 09:52] =>  0:01
 - [2026-10-06 Tue 09:51]--[2026-10-06 Tue 09:52] assigned at review
+- [2026-10-06 Tue 12:35]--[2026-10-06 Tue 12:36] assigned at review
+CLOCK: [2026-10-06 Tue 12:36]--[2026-10-06 Tue 12:37] =>  0:01
+- [2026-10-06 Tue 12:36]--[2026-10-06 Tue 12:37] settle 49137118 and close the review story
+CLOCK: [2026-10-06 Tue 12:37]--[2026-10-06 Tue 12:38] =>  0:01
+- [2026-10-06 Tue 12:37]--[2026-10-06 Tue 12:38] assigned at review
+- State "DONE"       from "REVIEW"     [2026-10-06 Tue 12:41] \\
+  merged with PR #34; review findings fixed before merge
+CLOCK: [2026-10-06 Tue 12:41]--[2026-10-06 Tue 12:42] =>  0:01
+- [2026-10-06 Tue 12:41]--[2026-10-06 Tue 12:42] assigned at review
+CLOCK: [2026-10-06 Tue 12:42]--[2026-10-06 Tue 12:43] =>  0:01
+- [2026-10-06 Tue 12:42]--[2026-10-06 Tue 12:43] close slice 6521dd56
 :END:
 :PLAN:
 The notes should use org: live links instead of inert citations, drawers instead
@@ -6544,7 +6558,6 @@ Planned:
 drawers stand in canonical order, an id can be looked up anywhere in Emacs, and
 a heading's history is one call away. The ten defects the review found were
 fixed on the branch before merge.
-
 
 
 * TODO The :PLAN: wrap nag fires only on queued DONE, so REVIEW exits skip it :code:
@@ -11728,6 +11741,7 @@ per tool -- rather than opening the servers beyond localhost.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-10-06 Tue 12:42]--[2026-10-06 Tue 12:43] =>  0:01
 CLOCK: [2026-10-06 Tue 12:36]--[2026-10-06 Tue 12:39] =>  0:03
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
