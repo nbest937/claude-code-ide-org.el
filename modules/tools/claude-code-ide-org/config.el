@@ -21380,10 +21380,15 @@ Exactly 8 hex: a 7-hex SHA or a longer token never matches."
 
 (defvar claude-code-ide-org-id-reference-map
   (let ((map (make-sparse-keymap)))
-    (define-key map [mouse-1] #'claude-code-ide-org-id-lookup-jump)
-    (define-key map (kbd "RET") #'claude-code-ide-org-id-lookup-jump)
+    ;; Never RET, nor a bare mouse-1: a text-property keymap outranks
+    ;; every mode map, so RET here took Enter over in commit messages
+    ;; and magit-log (PR #34's review).  mouse-2 with `follow-link' is
+    ;; the button convention, a short mouse-1 included.
+    (define-key map [mouse-2] #'claude-code-ide-org-id-lookup-jump)
+    (define-key map [follow-link] 'mouse-face)
+    (define-key map (kbd "C-c C-o") #'claude-code-ide-org-id-lookup-jump)
     map)
-  "Keymap on a marked bare id: a click or RET jumps to its heading.")
+  "Keymap on a marked bare id: a click or C-c C-o jumps to its heading.")
 
 (defun claude-code-ide-org--id-reference-skip-p (pos)
   "Non-nil when the bare id at POS is inside a link, ~code~ or a block.
@@ -21425,16 +21430,21 @@ verbatim face DONE.org cites ids in.")
 
 (define-minor-mode claude-code-ide-org-id-lookup-mode
   "Show what a tracked id names: eldoc at point, a mark and hover on a
-bare id that resolves, and a jump on click or RET (TODO.org :ID: 0eaffc39)."
+bare id that resolves, and a jump on click or C-c C-o (TODO.org :ID: 0eaffc39)."
   :lighter nil
   (if claude-code-ide-org-id-lookup-mode
       (progn
         (add-hook 'eldoc-documentation-functions
                   #'claude-code-ide-org--id-lookup-eldoc nil t)
         (font-lock-add-keywords nil claude-code-ide-org--id-reference-keywords 'append)
+        ;; Not `keymap' in a magit buffer: managing it lets a refontify
+        ;; strip magit's own section keymaps, and magit re-renders its
+        ;; buffers wholesale, so a stale mark never outlives a refresh.
         (setq-local font-lock-extra-managed-props
                     (seq-union font-lock-extra-managed-props
-                               '(mouse-face help-echo keymap))))
+                               (if (derived-mode-p 'magit-section-mode)
+                                   '(mouse-face help-echo)
+                                 '(mouse-face help-echo keymap)))))
     (remove-hook 'eldoc-documentation-functions
                  #'claude-code-ide-org--id-lookup-eldoc t)
     (font-lock-remove-keywords nil claude-code-ide-org--id-reference-keywords))

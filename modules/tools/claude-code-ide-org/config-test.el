@@ -21101,7 +21101,8 @@ miss."
 (ert-deftest claude-code-ide-org-test-id-lookup-marks-bare-ids ()
   "Font-lock marks a resolvable bare id, in verbatim too, and leaves an
 id in a link, in ~code~ or in a block, an unknown 8-hex word and a 7-hex
-SHA alone; RET on a mark jumps.  The mode is on in a tracked file."
+SHA alone; a click or C-c C-o on a mark jumps, and RET is left to the
+buffer's own map (PR #34's review).  The mode is on in a tracked file."
   (claude-code-ide-org-test--with-lookup-file
     (with-current-buffer (find-file-noselect file)
       (should claude-code-ide-org-id-lookup-mode)
@@ -21124,8 +21125,12 @@ SHA alone; RET on a mark jumps.  The mode is on in a tracked file."
                         (ensure-list (get-text-property (match-beginning 0) 'face))))
       (goto-char (point-min))
       (search-forward "Marks abcd")
-      (should (eq (lookup-key (get-text-property (point) 'keymap) (kbd "RET"))
-                  #'claude-code-ide-org-id-lookup-jump))
+      (let ((map (get-text-property (point) 'keymap)))
+        (should-not (lookup-key map (kbd "RET")))
+        (should-not (lookup-key map [mouse-1]))
+        (should (eq (lookup-key map [mouse-2]) #'claude-code-ide-org-id-lookup-jump))
+        (should (eq (lookup-key map (kbd "C-c C-o")) #'claude-code-ide-org-id-lookup-jump))
+        (should (lookup-key map [follow-link])))
       (cl-letf (((symbol-function 'org-id-goto)
                  (lambda (id) (should (equal id "abcd1234-0000-4000-8000-000000000001"))
                    'jumped)))
@@ -21140,6 +21145,24 @@ SHA alone; RET on a mark jumps.  The mode is on in a tracked file."
       (with-current-buffer (find-file-noselect other)
         (unwind-protect (should-not claude-code-ide-org-id-lookup-mode)
           (kill-buffer))))))
+
+;; Stands in for a magit buffer: suite runs carry no magit.
+(define-derived-mode claude-code-ide-org-test--magit-like-mode special-mode "Magit-like")
+(put 'claude-code-ide-org-test--magit-like-mode 'derived-mode-parent 'magit-section-mode)
+
+(ert-deftest claude-code-ide-org-test-id-lookup-mode-leaves-magit-keymaps-managed-by-magit ()
+  "In a magit buffer font-lock is not told to manage `keymap', which
+would let a refontify strip magit's own section keymaps; elsewhere it
+is, so a mark's keymap goes with the mark."
+  (with-temp-buffer
+    (claude-code-ide-org-test--magit-like-mode)
+    (claude-code-ide-org-id-lookup-mode 1)
+    (should (memq 'help-echo font-lock-extra-managed-props))
+    (should-not (memq 'keymap font-lock-extra-managed-props)))
+  (with-temp-buffer
+    (text-mode)
+    (claude-code-ide-org-id-lookup-mode 1)
+    (should (memq 'keymap font-lock-extra-managed-props))))
 
 ;;; Headline lines inside a block: the bare form and the lint (TODO.org :ID: 8a23d6ec)
 
