@@ -184,6 +184,17 @@ A **story** is not declared, it is emergent: a task that has acquired
 children carrying TODO keywords. Detectable via
 `claude-code-ide-org--container-heading-p` — "container" is the code's
 older word for a story. Don't classify a heading as one when writing it.
+
+**Clustering open tasks under a parent is sanctioned when the cluster
+will close** — when its children finishing finishes it (`:ID:` 63df67c7).
+The code-review story below is one, assembled on purpose. A cluster of
+thematic affinity with no end state is a filing drawer: it belongs to
+`:CATEGORY:`, a tag or a slice, never a parent. The honest exception is a
+running collector that never closes, parked `MAYBE` as `9d6449c7` is.
+Breaking a heading down, even speculatively, is sanctioned too: an
+unworked heading may grow its children in place, and a worked one
+divides (the org skill, "Dividing a heading that outgrew itself").
+
 An **epic** is the separate thing: the grouping a task belongs to,
 carried on the task as a `:CATEGORY:` value since 2026-08-28 (`:ID:`
 29439196). It is declared, where a story is emergent — which is why one
@@ -391,7 +402,8 @@ and the slice reports `[0/0]` as though it were empty rather than broken.
 cookie-less list item carrying an id link is exactly the shape reserved
 for a cancelled or deferred member, so prose bullets naming ids are read
 as members with their cookies deleted. Name ids as `=c74f8663=` in prose
-instead. `orgit-rev:` links are safe, which is why the plan-revision
+instead; the tools never link an id that opens a list item in a slice's
+body. A drawer is outside the member scan (`7ee3b71a`). `orgit-rev:` links are safe, which is why the plan-revision
 list at the end of a slice body works.
 
 **A slice declares itself with a `:KIND: slice` property**, not by where
@@ -854,21 +866,10 @@ Where the two disagree, the member wins. A member's plan is normally
 longer than its body, since the body is two to five sentences plus what
 happened.
 
-**A member with no drawer gets one before its step is worked**, so that a
-decision always has somewhere to land. **On a pre-convention body, wrap
-first, with `org_wrap_plan`**, whole when the seam is uncertain, then
-append the decision with `org_amend drawer=PLAN`. Creating the drawer by
-amend first leaves the old plan in the body, and `org_wrap_plan` then
-refuses the heading for good (nine headings, 2026-09-21). A plain
-`org_amend drawer=PLAN` is only for a body with no prospective prose. *This clause
-is scaffolding.* It lapses once `6521dd56`'s corpus pass leaves every open
-heading in canonical shape and the lint requires that shape, and that
-slice carries the member that retires it.
-
-**Never open a list item in a slice's drawer with an `id:` link.** The
-member scan reads any `- [[id:…]]` line in a slice heading as a member,
-drawers included, and rewrites it (`7ee3b71a`). Lead with the id as plain
-text instead.
+**Every live heading with a substantial body has a `:PLAN:` drawer**,
+empty when it has no prospective half, so a decision always has somewhere
+to land: `bin/lint-org` errors on one without, and `org_amend` and
+`org_edit` say so the moment a write makes one owed (`:ID:` fce6bd35).
 
 ### Revising a pre-convention body
 
@@ -929,8 +930,13 @@ happened accumulates.
 one-to-two-sentence resolution** (`:ID:` d5eb32a3, 2026-09-08). Two calls:
 `org_amend` the resolution onto the body, then `org_amend` with
 `drawer=DEBRIEF` for the full debrief — what shipped, how it was verified,
-what was falsified, what differed from the plan. The drawer is created when
-absent, below the body.
+what was falsified, what differed from the plan.
+
+**Drawer order is canonical: `:PROPERTIES:`, `:LOGBOOK:`, `:PLAN:`,
+`:DEBRIEF:`, then the body** (`:ID:` d350ff5b). Every tool that creates a
+drawer runs one normaliser, which also backs
+`claude-code-ide-org-normalize-drawer-order` for repairs, and `bin/lint-org`
+errors on a heading out of order, so only a hand edit can disorder one.
 
 This completes what `b75d553a` started: the plan out at composition, the
 debrief out at close, so the body is a *fixed-size* artifact however much
@@ -1000,6 +1006,11 @@ repair it. 38 stand in the corpus and are not to be touched. A live
 heading that closes carries its anchor into `:PLAN:` with the rest of the
 prospective half, which is how the citation stops being a live pointer
 without anyone editing prose.
+
+**Org structure quoted in a block is comma-escaped** (`,* Heading`, and
+`,***` for a bare star line), because org reads a headline line as a
+heading whatever block holds it (`:ID:` 8a23d6ec). The tools escape it on
+write and at apply, and `bin/lint-org` errors on one a hand edit leaves.
 
 ## The meta-work datetree
 
@@ -1149,31 +1160,32 @@ settled.
 A 7-hex SHA and an 8-hex `:ID:` prefix look identical in running text, and
 this project cites both constantly. Distinguish them.
 
-**In an org body, link it.** `orgit` is installed and its link types are
-registered:
+**The tools link citations as they write** (`:ID:` b7259ee4, `:ID:`
+f7847adf). `org_amend`, `org_edit` and `org_capture`'s note turn a SHA in
+`=verbatim=` or after the word "commit" into an `orgit-rev:` link, an
+8-hex id prefix into an id link, and "PR #N" into a link to the pull
+request, and the reply says how many. Write the citation plainly and let
+them; the form they produce is
 
 ```org
-[[orgit-rev:claude-code-ide-org::b146008][b146008]]
+[[orgit-rev:./::b146008][b146008]]
 ```
 
-**Use the repo *name*, never a path.** `orgit--repository-directory` resolves
-a name from `magit-repos-alist` before falling back to `expand-file-name`, so
-the named form is machine-independent while a path form hard-codes one
-machine. The Doom config sets `magit-repository-directories` to `("~/git/" . 1)`,
-which names every repo there by its basename — verified 2026-08-21 to resolve
-`claude-code-ide-org` to the right directory.
+**`./`, not the repo's name.** `orgit--repository-directory` falls back to
+`expand-file-name`, so `./` resolves against the buffer's
+`default-directory`, which is the repo because `find-file-visit-truename`
+makes TODO.org visit its true path. Named links written before this
+stay, since they work.
 
-The link renders in org's link face — a stronger cue than verbatim — and
-opens the commit in Magit. Use `orgit-log:` for a range.
+What is linked and what is left: a SHA only when `git cat-file` confirms
+it and `orgit` is installed, a PR only when `origin` is on GitHub, an id
+only when it resolves to one heading in the project's own files, and
+nothing inside a link, code or a block. 8 hex is only ever an id, so an
+8-hex SHA stays as written. A hand edit that leaves one is a
+`bin/lint-org` warning on a live heading.
 
-**There is no implicit "the repo this file is in".** Nothing resolves that;
-relative forms (`./…`) work but resolve against `default-directory`, and here
-that is unreliable — `~/org/claude-code-ide-org/TODO.org` is a *symlink* to
-the copy in the repo, so which directory a buffer reports depends on which
-path opened it, and via the agenda path it is not a git repo at all.
-
-**Prospective only.** The 25 existing `(=535c98c=)` references stay; there is
-nothing wrong with them and rewriting them is churn.
+**Prospective only.** DONE.org stays as written; TODO.org was converted
+once, by `claude-code-ide-org-link-citations-in-file`.
 
 ## Dependencies between tasks
 
