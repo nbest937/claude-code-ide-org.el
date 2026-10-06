@@ -21023,6 +21023,7 @@ prefix; BODY runs with `file' bound and the lookup cache fresh."
           (claude-code-ide-org-query-files (list file))
           (claude-code-ide-org-id-lookup t)
           (claude-code-ide-org--id-lookup-cache nil)
+          (claude-code-ide-org--id-lookup-timer nil)
           (org-id-locations-file (expand-file-name ".org-id-locations" dir))
           (org-id-locations (make-hash-table :test 'equal))
           (org-id-files nil))
@@ -21058,22 +21059,48 @@ ambiguous prefix give nil, and no lookup reaches org's rescan."
       (should-not (claude-code-ide-org--id-lookup "5555aaaa")))))
 
 (ert-deftest claude-code-ide-org-test-id-lookup-cache-drops-on-save ()
-  "Saving a tracked file drops the cache, so the next lookup sees the new
-title; saving an untracked one does not."
+  "Saving a tracked file schedules one idle rebuild, after which a lookup
+sees the new title; until then lookups read the cache and never the
+files, however many saves arrive.  Saving an untracked file schedules
+nothing, and a buffer not in org-mode never reaches the tracked-file
+test (PR #34's review)."
   (claude-code-ide-org-test--with-lookup-file
     (should (equal "abcd1234 DOING The target"
                    (claude-code-ide-org--id-lookup "abcd1234")))
-    (let ((other (expand-file-name "other.org" (file-name-directory file))))
+    (let ((other (expand-file-name "other.org" (file-name-directory file)))
+          (text (expand-file-name "other.txt" (file-name-directory file))))
       (with-current-buffer (find-file-noselect other)
-        (insert "x\n") (save-buffer) (kill-buffer)))
-    (should claude-code-ide-org--id-lookup-cache)
-    (with-current-buffer (find-file-noselect file)
-      (goto-char (point-min))
-      (re-search-forward "The target")
-      (replace-match "The renamed target")
-      (save-buffer))
-    (should (equal "abcd1234 DOING The renamed target"
-                   (claude-code-ide-org--id-lookup "abcd1234")))))
+        (insert "x\n") (save-buffer) (kill-buffer))
+      (should-not claude-code-ide-org--id-lookup-timer)
+      (cl-letf (((symbol-function 'claude-code-ide-org--tracked-buffer-p)
+                 (lambda (&rest _) (error "Tracked test on a non-org save"))))
+        (with-current-buffer (find-file-noselect text)
+          (fundamental-mode) (insert "x\n") (save-buffer) (kill-buffer))))
+    (let ((scans 0)
+          (real (symbol-function 'claude-code-ide-org--slice-referent-index)))
+      (cl-letf (((symbol-function 'claude-code-ide-org--slice-referent-index)
+                 (lambda (&rest args) (cl-incf scans) (apply real args))))
+        (unwind-protect
+            (progn
+              (with-current-buffer (find-file-noselect file)
+                (goto-char (point-min))
+                (re-search-forward "The target")
+                (replace-match "The renamed target")
+                (save-buffer)
+                (insert " ")
+                (save-buffer))
+              (should claude-code-ide-org--id-lookup-timer)
+              (should (equal "abcd1234 DOING The target"
+                             (claude-code-ide-org--id-lookup "abcd1234")))
+              (should (= 0 scans))
+              (claude-code-ide-org--id-lookup-rebuild)
+              (should (= 1 scans))
+              (should-not claude-code-ide-org--id-lookup-timer)
+              (should (equal "abcd1234 DOING The renamed target"
+                             (claude-code-ide-org--id-lookup "abcd1234"))))
+          (when (timerp claude-code-ide-org--id-lookup-timer)
+            (cancel-timer claude-code-ide-org--id-lookup-timer))
+          (setq claude-code-ide-org--id-lookup-timer nil))))))
 
 (ert-deftest claude-code-ide-org-test-id-lookup-eldoc-and-link-hover ()
   "Eldoc answers on a bare id and on an id link, and nothing on a SHA or

@@ -21271,26 +21271,62 @@ hover.  Read-only throughout, hence on by default (TODO.org :ID: 0eaffc39)."
   "(REFERENTS . PREFIXES), or nil until first use.
 REFERENTS is `claude-code-ide-org--slice-referent-index'; PREFIXES maps
 each id's 8-character prefix to its full id, an ambiguous prefix to
-`ambiguous'.  Dropped when a tracked file saves, so \"keyword now\" means
-as of the last save -- what is true on disk.")
+`ambiguous'.  Rebuilt when Emacs next idles after a tracked file saves,
+so \"keyword now\" means as of the last save -- what is true on disk.")
+
+(defvar claude-code-ide-org--id-lookup-timer nil
+  "The pending idle rebuild of the lookup cache, or nil.")
+
+(defcustom claude-code-ide-org-id-lookup-rebuild-delay 1
+  "Idle seconds after a tracked save before the id lookup cache rebuilds."
+  :type 'number
+  :group 'claude-code-ide-org)
+
+(defun claude-code-ide-org--id-lookup-build ()
+  "A fresh (REFERENTS . PREFIXES), read from disk."
+  (let ((referents (claude-code-ide-org--slice-referent-index))
+        (prefixes (make-hash-table :test 'equal)))
+    (maphash (lambda (id _)
+               (let ((p (downcase (substring id 0 (min 8 (length id))))))
+                 (puthash p (if (gethash p prefixes) 'ambiguous id)
+                          prefixes)))
+             referents)
+    (cons referents prefixes)))
 
 (defun claude-code-ide-org--id-lookup-tables ()
-  "The lookup cache, built from disk on first use."
+  "The lookup cache, built from disk on first use only.
+A save never empties it: the rebuild runs on idle, so the lookups
+font-lock makes during redisplay read the cache and never the files."
   (or claude-code-ide-org--id-lookup-cache
       (setq claude-code-ide-org--id-lookup-cache
-            (let ((referents (claude-code-ide-org--slice-referent-index))
-                  (prefixes (make-hash-table :test 'equal)))
-              (maphash (lambda (id _)
-                         (let ((p (downcase (substring id 0 (min 8 (length id))))))
-                           (puthash p (if (gethash p prefixes) 'ambiguous id)
-                                    prefixes)))
-                       referents)
-              (cons referents prefixes)))))
+            (claude-code-ide-org--id-lookup-build))))
+
+(defun claude-code-ide-org--id-lookup-rebuild ()
+  "Rebuild the lookup cache from disk and refresh the marks."
+  (setq claude-code-ide-org--id-lookup-timer nil)
+  (when claude-code-ide-org--id-lookup-cache
+    (setq claude-code-ide-org--id-lookup-cache
+          (claude-code-ide-org--id-lookup-build))
+    (dolist (buffer (buffer-list))
+      (with-current-buffer buffer
+        (when (and claude-code-ide-org-id-lookup-mode font-lock-mode)
+          (font-lock-flush))))))
 
 (defun claude-code-ide-org--id-lookup-drop-cache ()
-  "Drop the lookup cache when a tracked file saves."
-  (when (claude-code-ide-org--tracked-buffer-p)
-    (setq claude-code-ide-org--id-lookup-cache nil)))
+  "Schedule one idle rebuild of the lookup cache when a tracked file saves.
+
+Dropping it outright made the next redisplay re-read every tracked file
+inside jit-lock, once per save, so a turn of N writes paid N full scans
+(PR #34's review).  Saves in a burst share one rebuild, and a buffer not
+in org-mode is turned away before the tracked-file test, which expands
+the agenda files."
+  (when (and claude-code-ide-org--id-lookup-cache
+             (not claude-code-ide-org--id-lookup-timer)
+             (derived-mode-p 'org-mode)
+             (claude-code-ide-org--tracked-buffer-p))
+    (setq claude-code-ide-org--id-lookup-timer
+          (run-with-idle-timer claude-code-ide-org-id-lookup-rebuild-delay nil
+                               #'claude-code-ide-org--id-lookup-rebuild))))
 
 (add-hook 'after-save-hook #'claude-code-ide-org--id-lookup-drop-cache)
 
