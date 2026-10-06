@@ -287,6 +287,42 @@ if [ -f "$header_file" ]; then
       check "keyword set: templates/$tmpl.org header" "$got" "$truth"
     fi
   done
+
+  # The rest of the header (TODO.org :ID: 189645c6). `#+TAGS:' and
+  # `#+ARCHIVE:' are copied into the template a consumer is scaffolded
+  # from and into the examples the shipped prose shows, and nothing
+  # compared them: the template kept two tags dropped on 2026-09-29, and
+  # the conventions showed `DONE.org::' a month after archiving moved to
+  # a datetree. Tags compare as a set, as keywords do; the archive
+  # location is a string, since a different one is a different place.
+  # Every such line in a file is checked, and a file that should show
+  # one and shows none fails: an example deleted is not an example
+  # agreeing.
+  tag_set() { sed 's/^#+TAGS://' | tr -s ' \t' '\n' | grep -v '^$' | sort -u | paste -sd' ' -; }
+  archive_of() { sed 's/^#+ARCHIVE:[[:space:]]*//; s/[[:space:]]*$//'; }
+  truth_tags="$(grep -m1 '^#+TAGS:' "$header_file" | tag_set)"
+  truth_archive="$(grep -m1 '^#+ARCHIVE:' "$header_file" | archive_of)"
+  check "header: TODO.org declares #+TAGS:" "$([ -n "$truth_tags" ] && echo yes || echo no)" "yes"
+  check "header: TODO.org declares #+ARCHIVE:" "$([ -n "$truth_archive" ] && echo yes || echo no)" "yes"
+  for rel in templates/TODO.org skills/org/references/org-conventions.md skills/org/SKILL.md; do
+    hf="$root/$rel"
+    [ -f "$hf" ] || continue
+    for kind in TAGS ARCHIVE; do
+      lines="$(grep -n "^#+$kind:" "$hf")"
+      if [ -z "$lines" ]; then
+        check "header: $rel shows #+$kind:" "no" "yes"
+        continue
+      fi
+      while IFS= read -r l; do
+        n="${l%%:*}" text="${l#*:}"
+        if [ "$kind" = TAGS ]; then
+          check "header: $rel:$n #+TAGS:" "$(printf '%s\n' "$text" | tag_set)" "$truth_tags"
+        else
+          check "header: $rel:$n #+ARCHIVE:" "$(printf '%s\n' "$text" | archive_of)" "$truth_archive"
+        fi
+      done <<< "$lines"
+    done
+  done
 fi
 
 # 2b. The promoted rules copies match the plugin references

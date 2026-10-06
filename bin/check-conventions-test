@@ -42,7 +42,10 @@ make_fixture() {
   dir="$(mktemp -d)"
   mkdir -p "$dir/.claude/rules" "$dir/.claude/skills/org" "$dir/modules/tools/claude-code-ide-org"
   echo '#+TODO: TODO(t!) NEXT(n!) DOING(d!) REVIEW(r!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)' > "$dir/TODO.org"
+  printf '#+TAGS: code prose arch\n#+ARCHIVE: DONE.org::datetree/\n' >> "$dir/TODO.org"
   echo ':ID:       aaaaaaaa-1111-2222-3333-444444444444' >> "$dir/TODO.org"
+  mkdir -p "$dir/templates"
+  printf '#+TODO: TODO(t!) NEXT(n!) DOING(d!) REVIEW(r!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)\n#+TAGS: code prose arch\n#+ARCHIVE: DONE.org::datetree/\n' > "$dir/templates/TODO.org"
   touch "$dir/DONE.org"
   echo '#+TODO: TODO(t!) NEXT(n!) DOING(d!) REVIEW(r!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)' > "$dir/.claude/rules/org-conventions.md"
   printf '| `TODO` | x |\n| `NEXT` | x |\n| `DOING` | x |\n| `REVIEW` | x |\n| `WAITING` | x |\n| `MAYBE` | x |\n| `DONE` | x |\n| `CANCELLED` | x |\n' > "$dir/.claude/skills/org/SKILL.md"
@@ -205,6 +208,37 @@ expect_exit "an unreadable ROOT is refused rather than silently empty" 2
 d="$(make_fixture)"
 "$repo_root/bin/check-conventions" --docs-only "$d" >/dev/null 2>&1
 expect_exit "a valid flag and ROOT still run" 0
+
+# 15. The header lines beyond the keyword set (TODO.org :ID: 189645c6).
+#     A template that kept a dropped tag fails -- the drift that shipped
+#     to agentic-euchre.
+d="$(make_fixture)"
+sed -i.bak 's/^#+TAGS: .*/#+TAGS: code prose arch comms/' "$d/templates/TODO.org"
+"$repo_root/bin/check-conventions" "$d" >/dev/null 2>&1
+expect_exit "a template declaring a dropped tag fails" 1
+
+# 16. An example showing a superseded archive location fails -- the
+#     conventions' DONE.org:: a month after the datetree move.
+d="$(make_fixture)"
+mkdir -p "$d/skills/org/references"
+printf '#+TAGS: code prose arch\n#+ARCHIVE: DONE.org::\n' > "$d/skills/org/references/org-conventions.md"
+"$repo_root/bin/check-conventions" "$d" >/dev/null 2>&1
+expect_exit "an example with a superseded #+ARCHIVE: fails" 1
+
+# 17. A file expected to show the header and showing none fails: an
+#     example deleted is not an example agreeing.
+d="$(make_fixture)"
+sed -i.bak '/^#+TAGS:/d' "$d/templates/TODO.org"
+"$repo_root/bin/check-conventions" "$d" >/dev/null 2>&1
+expect_exit "a template with no #+TAGS: line fails" 1
+
+# 18. The converse: the same tags in another order pass, since tags
+#     compare as a set, so 15 is not passing by refusing every line.
+d="$(make_fixture)"
+mkdir -p "$d/skills/org"
+printf '#+TAGS: arch code prose\n#+ARCHIVE: DONE.org::datetree/\n' > "$d/skills/org/SKILL.md"
+"$repo_root/bin/check-conventions" "$d" >/dev/null 2>&1
+expect_exit "the same tags in another order pass" 0
 
 echo
 echo "check-conventions-test: $pass passed, $failures failed"
