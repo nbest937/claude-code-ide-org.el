@@ -237,7 +237,10 @@ fi
 # tool description is a sentence -- and a string comparison would fail
 # on a difference nobody needs to fix, which is the kind of check people
 # learn to ignore.
-keyword_set() { grep -oE '[A-Z]{4,}' | sort -u | paste -sd' ' -; }
+# One line of whitespace-separated words as a sorted, deduplicated set.
+# Shared by every set comparison here, so they cannot drift apart.
+as_set() { tr -s ' \t' '\n' | grep -v '^$' | sort -u | paste -sd' ' -; }
+keyword_set() { grep -oE '[A-Z]{4,}' | as_set; }
 
 header_file="$root/TODO.org"
 if [ -f "$header_file" ]; then
@@ -295,22 +298,40 @@ if [ -f "$header_file" ]; then
   # the conventions showed `DONE.org::' a month after archiving moved to
   # a datetree. Tags compare as a set, as keywords do; the archive
   # location is a string, since a different one is a different place.
-  # Every such line in a file is checked, and a file that should show
-  # one and shows none fails: an example deleted is not an example
-  # agreeing.
-  tag_set() { sed 's/^#+TAGS://' | tr -s ' \t' '\n' | grep -v '^$' | sort -u | paste -sd' ' -; }
-  archive_of() { sed 's/^#+ARCHIVE:[[:space:]]*//; s/[[:space:]]*$//'; }
-  truth_tags="$(grep -m1 '^#+TAGS:' "$header_file" | tag_set)"
-  truth_archive="$(grep -m1 '^#+ARCHIVE:' "$header_file" | archive_of)"
+  #
+  # Read as org reads them (PR #35's review): the keyword in any case,
+  # and a tag spec parsed down to its names -- a fast-selection key
+  # `code(c)', group markers `{ }' `[ ]' and the `:' inside a group tag,
+  # and `:startgroup:'-style tokens are syntax, not tags. An org file's
+  # `#+TAGS:' lines combine, so the truth and the template are each one
+  # union; a Markdown file's lines are separate examples, each checked.
+  # A file expected to show the header and showing none fails: an
+  # example deleted is not an example agreeing.
+  #
+  # Not clock-template.org: a worked example the pre-commit hook already
+  # treats as historical, and an ERT fixture, whose header is its own.
+  tag_set() {
+    sed 's/^#+[Tt][Aa][Gg][Ss]://' | tr -s ' \t' '\n' \
+      | sed -E 's/\([^)]*\)$//' \
+      | grep -vE '^([{}]|\[|\]|:|:[a-z]+:)$' | as_set
+  }
+  archive_of() { sed -E 's/^#\+[Aa][Rr][Cc][Hh][Ii][Vv][Ee]:[[:space:]]*//; s/[[:space:]]*$//'; }
+  truth_tags="$(grep -i '^#+tags:' "$header_file" | tag_set)"
+  truth_archive="$(grep -i -m1 '^#+archive:' "$header_file" | archive_of)"
   check "header: TODO.org declares #+TAGS:" "$([ -n "$truth_tags" ] && echo yes || echo no)" "yes"
   check "header: TODO.org declares #+ARCHIVE:" "$([ -n "$truth_archive" ] && echo yes || echo no)" "yes"
   for rel in templates/TODO.org skills/org/references/org-conventions.md skills/org/SKILL.md; do
     hf="$root/$rel"
     [ -f "$hf" ] || continue
     for kind in TAGS ARCHIVE; do
-      lines="$(grep -n "^#+$kind:" "$hf")"
+      lines="$(grep -i -n "^#+$kind:" "$hf")"
       if [ -z "$lines" ]; then
         check "header: $rel shows #+$kind:" "no" "yes"
+        continue
+      fi
+      if [ "$kind" = TAGS ] && [ "${rel%.org}" != "$rel" ]; then
+        check "header: $rel #+TAGS: (all lines)" \
+          "$(printf '%s\n' "$lines" | sed 's/^[0-9]*://' | tag_set)" "$truth_tags"
         continue
       fi
       while IFS= read -r l; do

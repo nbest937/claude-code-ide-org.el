@@ -240,6 +240,34 @@ printf '#+TAGS: arch code prose\n#+ARCHIVE: DONE.org::datetree/\n' > "$d/skills/
 "$repo_root/bin/check-conventions" "$d" >/dev/null 2>&1
 expect_exit "the same tags in another order pass" 0
 
+# 19. Org combines every #+TAGS: line in a file, so a template that
+#     splits the tags over two lines agrees (PR #35's review).
+d="$(make_fixture)"
+sed -i.bak 's/^#+TAGS: .*/#+TAGS: code prose\
+#+TAGS: arch/' "$d/templates/TODO.org"
+"$repo_root/bin/check-conventions" "$d" >/dev/null 2>&1
+expect_exit "a template splitting its tags over two lines passes" 0
+
+# 20. Tag syntax is not tag names: fast-selection keys and group
+#     markers are stripped before comparing (PR #35's review).
+d="$(make_fixture)"
+sed -i.bak 's/^#+TAGS: .*/#+TAGS: code(c) prose { arch }/' "$d/templates/TODO.org"
+"$repo_root/bin/check-conventions" "$d" >/dev/null 2>&1
+expect_exit "fast-selection keys and group markers compare as their tags" 0
+
+# 21. The converse of 20: stripping must not hide a real drift.
+d="$(make_fixture)"
+sed -i.bak 's/^#+TAGS: .*/#+TAGS: code(c) prose { arch comms }/' "$d/templates/TODO.org"
+"$repo_root/bin/check-conventions" "$d" >/dev/null 2>&1
+expect_exit "a dropped tag inside a group still fails" 1
+
+# 22. Org reads in-buffer keywords case-insensitively, so a stale
+#     lowercase line is a line like any other (PR #35's review).
+d="$(make_fixture)"
+echo '#+archive: DONE.org::' >> "$d/templates/TODO.org"
+"$repo_root/bin/check-conventions" "$d" >/dev/null 2>&1
+expect_exit "a stale lowercase #+archive: line fails" 1
+
 echo
 echo "check-conventions-test: $pass passed, $failures failed"
 exit $((failures > 0))

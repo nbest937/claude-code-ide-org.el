@@ -2,7 +2,21 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Declare the brainstorming path tags as an exclusive group in #+TAGS:, so org's tag menu enforces one :code:
+:PROPERTIES:
+:ID:       c9c75fda-c818-4e7b-9b97-c3a68e980eab
+:CREATED:  [2026-10-06 Tue 15:17]
+:CATEGORY: Skill
+:END:
 
+=:spike:=, =:bounded:= and =:arch:= are mutually exclusive by convention: at
+most one per heading, which =bin/lint-org= checks and =org_set_tags= enforces by
+displacement. Org can declare the same thing in the header, as =#+TAGS: code
+prose research { spike bounded arch }=, after which picking one in the =C-c C-q=
+menu clears the others. That would cover hand edits too, which today only the
+lint catches at commit. Adopt it in TODO.org, the template and the conventions'
+header example together; the header-line check in =bin/check-conventions=
+([[id:189645c6-d76f-4761-96f0-f3734fe1df26][189645c6]]) already strips group markers when it compares tag sets.
 
 * TODO The docs still archive to =DONE.org::= after the =datetree= move :prose:bounded:code:
 :PROPERTIES:
