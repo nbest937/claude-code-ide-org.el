@@ -21251,6 +21251,24 @@ and a star line outside any block are not."
                           ":CREATED:  [2026-09-02 Wed 09:00]\n:END:\n"))
                  'error "headline line inside a block"))))
 
+(ert-deftest claude-code-ide-org-test-nested-block-keeps-the-outer-one-open ()
+  "A block quoted inside another closes only on its own type's end: the
+quoted #+end_src does not end the example, so a headline after it is
+escaped on write and refused by the lint.  Both toggled one flag on any
+begin or end line, and a quoted block ended the outer one early (PR
+#34's review)."
+  (let ((text "#+begin_example\n#+begin_src elisp\n(x)\n#+end_src\n* Heading\n#+end_example\n* Outside\n"))
+    (should (equal "#+begin_example\n#+begin_src elisp\n(x)\n#+end_src\n,* Heading\n#+end_example\n* Outside\n"
+                   (claude-code-ide-org--escape-block-headlines text))))
+  (let ((head (concat "* TODO A task\n:PROPERTIES:\n"
+                      ":ID:       aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa\n"
+                      ":CREATED:  [2026-09-02 Wed 09:00]\n:CATEGORY: Dev\n:END:\n")))
+    (should (claude-code-ide-org-test--lint-matches
+             (claude-code-ide-org-test--lint
+              (concat head "#+begin_example\n#+begin_src elisp\n#+end_src\n"
+                      "** Fake\n#+end_example\n"))
+             'error "headline line inside a block"))))
+
 (ert-deftest claude-code-ide-org-test-wrap-plan-allows-an-end-line-below-the-seam ()
   "A bare :END: below the seam stays in the body and closes nothing, so
 the wrap goes ahead; one above it, inside the part wrapped, is refused

@@ -4396,6 +4396,21 @@ A heading with two drawers of one name is reported and left alone."
 
 ;;; Headline lines inside a block (TODO.org :ID: 8a23d6ec)
 
+(defun claude-code-ide-org--block-after (open line)
+  "The block open after LINE, given OPEN, the type open before it, or nil.
+A block closes only on its own type's end line, as org reads it: inside
+an example, a quoted `#+end_src' is text.  Toggling on any begin or end
+ended the outer block early, so a headline after a quoted block went
+unescaped and unlinted (PR #34's review)."
+  (let ((case-fold-search t))
+    (cond
+     (open (if (and (string-match "\\`[ \t]*#\\+end_\\(\\S-+\\)" line)
+                    (string-equal-ignore-case (match-string 1 line) open))
+               nil
+             open))
+     ((string-match "\\`[ \t]*#\\+begin_\\(\\S-+\\)" line)
+      (match-string 1 line)))))
+
 (defun claude-code-ide-org--escape-block-headlines (text)
   "TEXT with every raw headline line inside a `#+begin_'...`#+end_' block
 comma-escaped.
@@ -4414,14 +4429,13 @@ this is idempotent --
 unlike `org-escape-code-in-string', which would add a second comma and
 is meant for text org will unescape once."
   (when text
-    (let ((in-block nil) out)
+    (let ((open nil) out)
       (dolist (line (split-string text "\n"))
-        (let ((case-fold-search t))
-          (cond
-           ((string-match-p "\\`[ \t]*#\\+end_" line) (setq in-block nil))
-           ((string-match-p "\\`[ \t]*#\\+begin_" line) (setq in-block t))
-           ((and in-block (string-match-p "\\`\\*+\\(?: \\|\\'\\)" line))
-            (setq line (concat "," line)))))
+        (let ((after (claude-code-ide-org--block-after open line)))
+          ;; Inside both before and after: neither delimiter line.
+          (when (and open after (string-match-p "\\`\\*+\\(?: \\|\\'\\)" line))
+            (setq line (concat "," line)))
+          (setq open after))
         (push line out))
       (mapconcat #'identity (nreverse out) "\n"))))
 
@@ -18511,16 +18525,17 @@ which org-depend cannot parse -- run claude-code-ide-org-normalize-blocker-synta
           ;; purpose: to org the heading has already broken the block, so
           ;; its parser cannot see the line as inside one.
           (goto-char (point-min))
-          (let ((case-fold-search t) (in-block nil))
+          (let ((open nil))
             (while (not (eobp))
-              (cond
-               ((looking-at-p "[ \t]*#\\+end_") (setq in-block nil))
-               ((looking-at-p "[ \t]*#\\+begin_") (setq in-block t))
-               ((and in-block (let ((case-fold-search nil))
-                                (looking-at-p "\\*+\\(?: \\|$\\)")))
-                (report 'error (line-number-at-pos)
-                        "headline line inside a block is a real heading to org \
--- comma-escape it (,*)")))
+              (let ((after (claude-code-ide-org--block-after
+                            open (buffer-substring-no-properties
+                                  (point) (line-end-position)))))
+                (when (and open after (let ((case-fold-search nil))
+                                        (looking-at-p "\\*+\\(?: \\|$\\)")))
+                  (report 'error (line-number-at-pos)
+                          "headline line inside a block is a real heading to org \
+-- comma-escape it (,*)"))
+                (setq open after))
               (forward-line 1))))
           ;; The anchor must be the file's final level-1 heading.
           ;; `error' rather than `warn': the correct state is computable
