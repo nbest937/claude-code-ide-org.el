@@ -4,11 +4,51 @@
 #+STARTUP: logdrawer logdone content
 
 
-* TODO The docs still archive to =DONE.org::= after the =datetree= move :prose:
+* TODO The docs still archive to =DONE.org::= after the =datetree= move :prose:bounded:code:
 :PROPERTIES:
 :ID:       189645c6-d76f-4761-96f0-f3734fe1df26
 :CREATED:  [2026-10-06 Tue 14:08]
 :CATEGORY: Skill
+:END:
+:LOGBOOK:
+- Tags ":prose:bounded:code:" from ":prose:"    [2026-10-06 Tue 14:17] \\
+  classified: prose correction plus one check in an existing script
+:END:
+:PLAN:
+The archive location is settled, not open: [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]] converted DONE.org to a
+datetree keyed by =CLOSED:= on 2026-09-02, pointed =#+ARCHIVE:= at
+=DONE.org::datetree/=, and fixed archiving into the tree.
+=org-archive-reversed-order= is now off for a datetree target, and
+=claude-code-ide-org-sort-datetree-descending= orders every tier. [[id:e30d52d7-960b-44f3-ab92-93846c81a1bd][e30d52d7]]'s
+lint already accepts the anchorless tree. Two pieces of prose never caught up,
+and nothing compares the header lines across their copies, which is also how the
+template's tags drifted ([[id:b2e4173c-26c5-4ff8-b055-350883fe4c06][b2e4173c]]). (Design approved in chat by the user,
+2026-10-06.)
+
+=skills/org/references/org-conventions.md=: the File header example becomes
+=#+ARCHIVE: DONE.org::datetree/=. The Archiving section's "Where archived work
+lands is unsettled" paragraph is replaced by the settled rule, citing [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]]:
+archived work lands in a datetree by =CLOSED:=, which the ceremony's sort step
+orders newest first, so DONE.org reads by when work finished. The promoted
+=.claude/rules/org-conventions.md= is regenerated with =claude-org-setup=.
+
+=skills/org/SKILL.md=, "Archiving convention": the generic advice on the empty
+olpath and on per-category =:ARCHIVE:= routing stays, since both remain good org
+practice. The project example and the sentence saying routing "collapsed to a
+single file-level =#+ARCHIVE: DONE.org::=" are corrected to say this project
+then moved to =datetree/= on 2026-09-02.
+
+=bin/check-conventions=: extend the keyword-set check to the =#+TAGS:= and
+=#+ARCHIVE:= lines, taking this repo's TODO.org as the truth. It compares
+=templates/TODO.org=, the conventions reference's header example and the org
+skill's example. Tags are compared as a set, as the keyword check is; the
+archive location is compared as a string. =clock-template.org= stays out, a
+worked example the pre-commit hook already exempts.
+
+Testing: the new check is proven to fail first, by reintroducing each drift on a
+copy (never a stash) before the prose is fixed. It then passes after the fix,
+alongside =bin/test= and =bin/lint-org=. This lands on a feature branch, since
+it carries a script change.
 :END:
 
 The "File header" section of =skills/org/references/org-conventions.md= shows
