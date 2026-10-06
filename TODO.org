@@ -2,6 +2,145 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO [0/11] PR #34's review found ten defects the slice shipped, fixed on the branch before merge :code:
+:PROPERTIES:
+:ID:       92804b53-5998-4622-932f-831a8e25fa8d
+:CREATED:  [2026-10-06 Tue 10:41]
+:CATEGORY: Dev
+:END:
+
+The =/code-review high= run on 2026-10-06 posted ten inline findings on [[https://github.com/nbest937/claude-code-ide-org.el/pull/34][PR #34]],
+the branch of slice [[id:6521dd56-8772-416b-9435-6da78bb86b06][6521dd56]], all in =config.el=. They arrived inside the
+slice's REVIEW window and are fixed on the branch before it merges, one child
+per finding, each child naming the member that shipped the defect. The two the
+reviewer would block the merge on are the drawer normaliser losing the clock
+marker ([[id:d350ff5b-3b1f-465e-800b-962264d2e841][d350ff5b]]) and the id mark taking over RET ([[id:0eaffc39-088f-48c3-a5b8-167336458114][0eaffc39]]).
+** TODO The drawer normaliser deletes and reinserts the entry, so a running clock's marker lands on the headline
+:PROPERTIES:
+:ID:       40b692e8-64f9-4c0f-a22b-4d859e5f25f3
+:CREATED:  [2026-10-06 Tue 10:41]
+:END:
+
+From PR #34's review (=claude-code-ide-org--normalize-drawers=), against
+[[id:d350ff5b-3b1f-465e-800b-962264d2e841][d350ff5b]]. A disordered entry is rewritten with =delete-region= then =insert=,
+which moves every marker inside it to the headline: =org-clock-marker= on a
+running CLOCK line, window point, fold state. An =org_amend drawer=PLAN= on a
+clocked heading with a =:LOGBOOK:= then leaves the next clock-out failing with
+"Clock start time is gone". Fix so markers survive; the test asserts
+=org-clock-marker= still sits on the CLOCK line.
+** TODO The bare-id mark's keymap binds RET, so Enter jumps to a heading in commit, magit and org buffers
+:PROPERTIES:
+:ID:       f5e5ccf4-710f-4eef-8790-7bfb20b5e5b5
+:CREATED:  [2026-10-06 Tue 10:41]
+:END:
+
+From PR #34's review (the id-lookup font-lock mark), against [[id:0eaffc39-088f-48c3-a5b8-167336458114][0eaffc39]]. A
+text-property =keymap= outranks major and minor mode maps, so RET on a marked id
+jumps instead of opening a line in a commit buffer or showing the commit in
+magit-log. Adding =keymap= to =font-lock-extra-managed-props= can also strip
+magit's own section keymaps. Bind only the mouse and =C-c C-o=, and leave RET
+alone.
+** TODO A failed drawer-order check leaves the half-done write in the buffer, unsaved, and every tool then refuses the file
+:PROPERTIES:
+:ID:       de5f4f98-8a95-492f-bf62-9489e670fb27
+:CREATED:  [2026-10-06 Tue 10:41]
+:END:
+
+From PR #34's review (=--amend-into-drawer=, =org_wrap_plan=,
+=claude-code-ide-org-normalize-drawer-order=), against [[id:d350ff5b-3b1f-465e-800b-962264d2e841][d350ff5b]]. The
+normaliser's lossless check runs after the drawer is inserted, so a failure
+unwinds past =save-buffer= with the insertion in place; the corpus pass has no
+=unwind-protect=, so one bad heading leaves earlier ones rewritten and unsaved
+and skips killing the buffers it opened. Roll the write back on failure.
+** TODO The id-lookup cache is dropped on every tracked save and rebuilt inside font-lock by reading every tracked file
+:PROPERTIES:
+:ID:       635018c2-4273-41b9-a39f-ee2c13764656
+:CREATED:  [2026-10-06 Tue 10:41]
+:END:
+
+From PR #34's review (the id-lookup cache and its =after-save-hook=), against
+[[id:0eaffc39-088f-48c3-a5b8-167336458114][0eaffc39]]. Every MCP write ends in a save, so a turn of N writes re-reads
+TODO.org, DONE.org and the other agenda files synchronously inside jit-lock N
+times; the global hook also expands =org-agenda-files= on every save in any
+buffer. Invalidate cheaply and rebuild lazily, and test for =org-mode= before
+the tracked-buffer check.
+** TODO org_history on an id that resolves to nothing throws a type error instead of refusing
+:PROPERTIES:
+:ID:       d6e435f1-df78-4970-8ede-dfae677d144b
+:CREATED:  [2026-10-06 Tue 10:42]
+:END:
+
+From PR #34's review (=org_history=), against [[id:41cf5830-fc2e-4dc6-b243-a0c2718a53a3][41cf5830]]. =--id-find= returns nil
+for a typo'd or unknown prefix and =(marker-buffer nil)= signals =Wrong type
+argument: markerp, nil=. Refuse with =--id-not-found= the way =org_amend= does;
+the tests only ever pass a resolving id.
+** TODO org_history reports a failed git log as zero commits, the same answer as none citing the heading
+:PROPERTIES:
+:ID:       20b7bb32-8c0f-4186-8200-3e8e3ffa5bc8
+:CREATED:  [2026-10-06 Tue 10:42]
+:END:
+
+From PR #34's review (=--history-commits=), against [[id:41cf5830-fc2e-4dc6-b243-a0c2718a53a3][41cf5830]]. A non-zero =git
+log= exit returns nil, so a corrupt repo, a =safe.directory= refusal or a broken
+worktree reads as "0 commits" followed by the assertion that no commit cites it.
+Signal or report the failure instead.
+** TODO A block nested inside another ends the in-block state early, so a headline after it is neither escaped nor linted
+:PROPERTIES:
+:ID:       4fc8375f-d339-4f73-95da-53a718c3771b
+:CREATED:  [2026-10-06 Tue 10:42]
+:END:
+
+From PR #34's review (=--escape-block-headlines= and the lint's
+headline-in-block check), against [[id:8a23d6ec-ca45-454d-b65f-e46ea9204816][8a23d6ec]]. Both toggle one flag on any
+=#+begin_= or =#+end_=, so the =#+end_src= of a src block quoted inside
+=#+begin_example= closes the example early and a later =* Heading= splits the
+entry undetected. Track the opening block's type and close only on the matching
+end.
+** TODO bin/lint-org went from 4.7 s to 8.1 s, parsing each live heading twice more and building a temp buffer per region
+:PROPERTIES:
+:ID:       9297f974-c682-4e32-a91a-d8ca7d18a8b2
+:CREATED:  [2026-10-06 Tue 10:42]
+:END:
+
+From PR #34's review (=--entry-drawer-layout=, =--citation-regions=), against
+[[id:f7847adf-a408-4ad0-ae0c-8d3c19b79f2b][f7847adf]], [[id:b7259ee4-9aa1-4b55-8cf2-fbbacdea5310][b7259ee4]] and [[id:d350ff5b-3b1f-465e-800b-962264d2e841][d350ff5b]]. Each live heading gets two more
+=org-element-parse-buffer= passes plus a fresh =org-mode= temp buffer, and
+possibly git processes, per citation region; pre-commit pays it on every commit.
+Parse each entry once and share it, and reuse one temp buffer and one
+commit-exists cache per file.
+** TODO org_amend resolves its id three times and leaks a marker on every call
+:PROPERTIES:
+:ID:       40e5d878-4ca0-45f7-8ffc-70c9b341c275
+:CREATED:  [2026-10-06 Tue 10:42]
+:END:
+
+From PR #34's review (=org_amend='s slice check), against [[id:f7847adf-a408-4ad0-ae0c-8d3c19b79f2b][f7847adf]]. The file,
+the slice test and the write each call =--id-find=, each refreshing stale id
+buffers, and the slice test's marker is never released. Resolve once, derive
+file and slice-p from it, then =set-marker= nil, as =org_edit= does.
+** TODO The id lookup copies the citation detector's exclusions and regex, and the copies already disagree
+:PROPERTIES:
+:ID:       9a8d82f8-1cd2-42cb-b93c-6c2c12497883
+:CREATED:  [2026-10-06 Tue 10:42]
+:END:
+
+From PR #34's review (=--id-reference-skip-p=, =--id-lookup-bare-at=), against
+[[id:0eaffc39-088f-48c3-a5b8-167336458114][0eaffc39]]. The hand-listed skip types omit fixed-width, comment, keyword and
+property drawer, and the bare-id match accepts an id after =/=, =.=, =:= or =#=
+that the mark and the linker reject, so eldoc and the jump answer for ids the
+mark never shows. Share one regex constant and =--citation-excluded-types=.
+** WAITING Decide whether the drawer-order corpus pass should touch tracked files outside this repo
+:PROPERTIES:
+:ID:       49137118-e960-479c-bccd-d353ab98b3de
+:CREATED:  [2026-10-06 Tue 10:42]
+:END:
+
+Raised by PR #34's reviewer but not posted, against [[id:d350ff5b-3b1f-465e-800b-962264d2e841][d350ff5b]].
+=claude-code-ide-org-normalize-drawer-order= walks every tracked file and saves
+those it changes, which includes =~/git/agentic-euchre/*.org= and
+=~/org/notes.org=. Its docstring says "the tracked files", so it may be
+intended; it is broader than the slice's scope. Held for the user's judgement.
+
 * TODO The body-prose counter reads :END: as a drawer opening, so a drawer inside a body hides everything after it :code:
 :PROPERTIES:
 :ID:       fd0f5787-d519-4acb-8e47-508235781c44
@@ -6291,15 +6430,15 @@ cluster that will close, names a filing drawer and the collector exception, and
 sanctions breaking down an unworked heading.
 
 
-* REVIEW [5/10] Make the notes org-native: links, drawers, tags, one corpus pass :code:
+* REVIEW [5/21] Make the notes org-native: links, drawers, tags, one corpus pass :code:
 :PROPERTIES:
 :ID:       6521dd56-8772-416b-9435-6da78bb86b06
 :CREATED:  [2026-09-10 Thu 08:57]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  0eaffc39-088f-48c3-a5b8-167336458114 63df67c7-de0d-43e7-9c6f-2b2979a40aba fce6bd35-27ad-4724-8dbb-c9df4b68fb10 41cf5830-fc2e-4dc6-b243-a0c2718a53a3 8a23d6ec-ca45-454d-b65f-e46ea9204816
-:MEMBERS:  b7259ee4-9aa1-4b55-8cf2-fbbacdea5310 f7847adf-a408-4ad0-ae0c-8d3c19b79f2b 0eaffc39-088f-48c3-a5b8-167336458114 d350ff5b-3b1f-465e-800b-962264d2e841 63df67c7-de0d-43e7-9c6f-2b2979a40aba e128e4fa-b0d9-49f7-99eb-bae2d4b0676b 76a6f052-e360-4a12-8077-070da83a8e84 fce6bd35-27ad-4724-8dbb-c9df4b68fb10 e28933e9-f352-4ef9-8d53-8cd9a4318768 8b945c02-7ebe-40a2-b4cc-e35811afe57f 41cf5830-fc2e-4dc6-b243-a0c2718a53a3 8a23d6ec-ca45-454d-b65f-e46ea9204816 01849bef-fdc9-4c30-b467-00ca8606e8e0 ecf66d45-18b3-477f-bca8-08bec90604e8 ea1df60b-1e28-448e-bb62-a6fc2b6b62f8
+:BLOCKER:  0eaffc39-088f-48c3-a5b8-167336458114 63df67c7-de0d-43e7-9c6f-2b2979a40aba fce6bd35-27ad-4724-8dbb-c9df4b68fb10 41cf5830-fc2e-4dc6-b243-a0c2718a53a3 8a23d6ec-ca45-454d-b65f-e46ea9204816 40b692e8-64f9-4c0f-a22b-4d859e5f25f3 f5e5ccf4-710f-4eef-8790-7bfb20b5e5b5 de5f4f98-8a95-492f-bf62-9489e670fb27 635018c2-4273-41b9-a39f-ee2c13764656 d6e435f1-df78-4970-8ede-dfae677d144b 20b7bb32-8c0f-4186-8200-3e8e3ffa5bc8 4fc8375f-d339-4f73-95da-53a718c3771b 9297f974-c682-4e32-a91a-d8ca7d18a8b2 40e5d878-4ca0-45f7-8ffc-70c9b341c275 9a8d82f8-1cd2-42cb-b93c-6c2c12497883 49137118-e960-479c-bccd-d353ab98b3de
+:MEMBERS:  b7259ee4-9aa1-4b55-8cf2-fbbacdea5310 f7847adf-a408-4ad0-ae0c-8d3c19b79f2b 0eaffc39-088f-48c3-a5b8-167336458114 d350ff5b-3b1f-465e-800b-962264d2e841 63df67c7-de0d-43e7-9c6f-2b2979a40aba e128e4fa-b0d9-49f7-99eb-bae2d4b0676b 76a6f052-e360-4a12-8077-070da83a8e84 fce6bd35-27ad-4724-8dbb-c9df4b68fb10 e28933e9-f352-4ef9-8d53-8cd9a4318768 8b945c02-7ebe-40a2-b4cc-e35811afe57f 41cf5830-fc2e-4dc6-b243-a0c2718a53a3 8a23d6ec-ca45-454d-b65f-e46ea9204816 01849bef-fdc9-4c30-b467-00ca8606e8e0 ecf66d45-18b3-477f-bca8-08bec90604e8 ea1df60b-1e28-448e-bb62-a6fc2b6b62f8 40b692e8-64f9-4c0f-a22b-4d859e5f25f3 f5e5ccf4-710f-4eef-8790-7bfb20b5e5b5 de5f4f98-8a95-492f-bf62-9489e670fb27 635018c2-4273-41b9-a39f-ee2c13764656 d6e435f1-df78-4970-8ede-dfae677d144b 20b7bb32-8c0f-4186-8200-3e8e3ffa5bc8 4fc8375f-d339-4f73-95da-53a718c3771b 9297f974-c682-4e32-a91a-d8ca7d18a8b2 40e5d878-4ca0-45f7-8ffc-70c9b341c275 9a8d82f8-1cd2-42cb-b93c-6c2c12497883 49137118-e960-479c-bccd-d353ab98b3de
 :DROPPED:  01849bef-fdc9-4c30-b467-00ca8606e8e0 ecf66d45-18b3-477f-bca8-08bec90604e8
 :END:
 :LOGBOOK:
@@ -6401,6 +6540,18 @@ Planned:
 - [[id:14c02a28-5e1f-401b-9c22-dd18c2c10847][14c02a28]] TODO Lay future work out on the agenda: commitments, milestones on slices and stories, and pacing that follows a slip
   - [[id:ecf66d45-18b3-477f-bca8-08bec90604e8][ecf66d45]] TODO When a dated heading slips, move the dates that follow it along a chosen order
 - [X] [[id:ea1df60b-1e28-448e-bb62-a6fc2b6b62f8][ea1df60b]] DONE Archived :ARCHIVE_FILE: paths are machine-absolute; audit their portability
+- [[id:92804b53-5998-4622-932f-831a8e25fa8d][92804b53]] TODO PR #34's review found ten defects the slice shipped, fixed on the branch before merge
+  - [ ] [[id:40b692e8-64f9-4c0f-a22b-4d859e5f25f3][40b692e8]] TODO The drawer normaliser deletes and reinserts the entry, so a running clock's marker lands on the headline
+  - [ ] [[id:f5e5ccf4-710f-4eef-8790-7bfb20b5e5b5][f5e5ccf4]] TODO The bare-id mark's keymap binds RET, so Enter jumps to a heading in commit, magit and org buffers
+  - [ ] [[id:de5f4f98-8a95-492f-bf62-9489e670fb27][de5f4f98]] TODO A failed drawer-order check leaves the half-done write in the buffer, unsaved, and every tool then refuses the file
+  - [ ] [[id:635018c2-4273-41b9-a39f-ee2c13764656][635018c2]] TODO The id-lookup cache is dropped on every tracked save and rebuilt inside font-lock by reading every tracked file
+  - [ ] [[id:d6e435f1-df78-4970-8ede-dfae677d144b][d6e435f1]] TODO org_history on an id that resolves to nothing throws a type error instead of refusing
+  - [ ] [[id:20b7bb32-8c0f-4186-8200-3e8e3ffa5bc8][20b7bb32]] TODO org_history reports a failed git log as zero commits, the same answer as none citing the heading
+  - [ ] [[id:4fc8375f-d339-4f73-95da-53a718c3771b][4fc8375f]] TODO A block nested inside another ends the in-block state early, so a headline after it is neither escaped nor linted
+  - [ ] [[id:9297f974-c682-4e32-a91a-d8ca7d18a8b2][9297f974]] TODO bin/lint-org went from 4.7 s to 8.1 s, parsing each live heading twice more and building a temp buffer per region
+  - [ ] [[id:40e5d878-4ca0-45f7-8ffc-70c9b341c275][40e5d878]] TODO org_amend resolves its id three times and leaks a marker on every call
+  - [ ] [[id:9a8d82f8-1cd2-42cb-b93c-6c2c12497883][9a8d82f8]] TODO The id lookup copies the citation detector's exclusions and regex, and the copies already disagree
+  - [-] [[id:49137118-e960-479c-bccd-d353ab98b3de][49137118]] WAITING Decide whether the drawer-order corpus pass should touch tracked files outside this repo
 
 
 * TODO The :PLAN: wrap nag fires only on queued DONE, so REVIEW exits skip it :code:
