@@ -4228,6 +4228,42 @@ function's to decide."
          (list :status status :names (mapcar #'car drawers) :drawers drawers
                :head-end head-end :beg beg :end end))))))
 
+(defun claude-code-ide-org--entry-drawers-plainly-canonical-p ()
+  "Non-nil when a line scan shows the heading at point's drawers in order.
+
+A fast path for the lint, which asks of every heading in both trackers:
+`claude-code-ide-org--entry-drawer-layout' parses each entry with
+`org-element', and that was three of the lint's eight seconds (PR #34's
+review).  This answers only the plain case -- managed drawers first,
+each closed by :END:, ranks rising, nothing else among them but blank
+lines, and no managed drawer line below them -- and nil means \"ask the
+parser\", never \"disordered\": a drawer-shaped line in the body may be
+inside a block, which only the parser can tell."
+  (org-with-wide-buffer
+   (org-back-to-heading t)
+   (let ((end (save-excursion (outline-next-heading) (point)))
+         (open-re (concat "^[ \t]*:\\("
+                          (mapconcat #'regexp-quote claude-code-ide-org-drawer-order "\\|")
+                          "\\):[ \t]*$"))
+         (case-fold-search t)
+         (rank -1)
+         (plain t))
+     (forward-line 1)
+     (when (looking-at-p org-planning-line-re) (forward-line 1))
+     (while (and plain (< (point) end)
+                 (cond
+                  ((looking-at-p "^[ \t]*$") t)
+                  ((looking-at open-re)
+                   (let ((index (seq-position claude-code-ide-org-drawer-order
+                                              (upcase (match-string 1)))))
+                     (if (and (> index rank)
+                              (re-search-forward "^[ \t]*:END:[ \t]*$" end t))
+                         (setq rank index)
+                       (setq plain nil))))))
+       (forward-line 1))
+     (and plain
+          (not (re-search-forward open-re end t))))))
+
 (defun claude-code-ide-org--normalize-drawer-order-at-point ()
   "Put the heading at point's drawers in canonical order.
 
@@ -18349,7 +18385,8 @@ link -- write it as a link, or run claude-code-ide-org-link-citations-in-file: %
                ;; it. A repeated drawer is not reported: DONE.org holds two
                ;; doubled :LOGBOOK:s that predate this, and an error there
                ;; would block every commit for something nothing merges.
-               (let ((layout (claude-code-ide-org--entry-drawer-layout)))
+               (let ((layout (unless (claude-code-ide-org--entry-drawers-plainly-canonical-p)
+                               (claude-code-ide-org--entry-drawer-layout))))
                  (when (eq (plist-get layout :status) 'disordered)
                    (report 'error line "drawers out of order (%s); canon is %s, \
 then the body -- claude-code-ide-org-normalize-drawer-order repairs it: %s"

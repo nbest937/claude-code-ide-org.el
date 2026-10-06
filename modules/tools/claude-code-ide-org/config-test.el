@@ -20745,6 +20745,40 @@ buffer, which stays unmodified, so the next tool does not find it busy."
       (should-not (buffer-modified-p))
       (should-not (string-match-p ":PLAN:" (buffer-string))))))
 
+(ert-deftest claude-code-ide-org-test-drawer-fast-path-never-overrules-the-parser ()
+  "The lint's line scan calls a heading canonical only where the parser
+agrees, and answers most headings without it: the parse per heading was
+three of the lint's eight seconds (PR #34's review).  It defers to the
+parser on a drawer-shaped line it cannot place."
+  (let ((decoy (concat "\nBody.\n#+begin_example\n:LOGBOOK:\nx\n:END:\n#+end_example\n")))
+    (dolist (case (list (list '("PROPERTIES" "LOGBOOK" "PLAN" "DEBRIEF") nil t)
+                        (list '("PROPERTIES" "PLAN") nil t)
+                        (list '() nil t)
+                        (list '("PROPERTIES" "DEBRIEF" "LOGBOOK") nil nil)
+                        (list '("PROPERTIES" "PLAN" "LOGBOOK") nil nil)
+                        (list '("PROPERTIES" "LOGBOOK" "LOGBOOK") nil nil)
+                        (list '("PROPERTIES" "LOGBOOK") decoy nil)))
+      (with-temp-buffer
+        (insert "#+TODO: TODO DOING | DONE\n"
+                (claude-code-ide-org-test--drawer-entry (nth 0 case) (nth 1 case)))
+        (let ((org-mode-hook nil)) (org-mode))
+        (goto-char (point-min))
+        (re-search-forward org-heading-regexp)
+        (let ((fast (claude-code-ide-org--entry-drawers-plainly-canonical-p))
+              (status (plist-get (claude-code-ide-org--entry-drawer-layout) :status)))
+          (should (eq (and fast t) (nth 2 case)))
+          (when fast (should (eq 'canonical status)))))))
+  ;; Body above a drawer: the scan stops at the body, sees the drawer
+  ;; below it, and defers.
+  (with-temp-buffer
+    (insert "* DONE A heading\n"
+            (cdr (assoc "PROPERTIES" claude-code-ide-org-test--drawers))
+            "\nThe resolution.\n"
+            (cdr (assoc "LOGBOOK" claude-code-ide-org-test--drawers)))
+    (let ((org-mode-hook nil)) (org-mode))
+    (goto-char (point-min))
+    (should-not (claude-code-ide-org--entry-drawers-plainly-canonical-p))))
+
 (ert-deftest claude-code-ide-org-test-lint-refuses-disordered-drawers ()
   "Out-of-order drawers are a lint error naming the order found; a
 canonical heading and a repeated drawer are not reported."
