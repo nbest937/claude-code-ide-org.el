@@ -20576,6 +20576,53 @@ the child's to fix, not swept up with its parent."
     (should (eq 'reordered (car result)))
     (should (string-suffix-p child (cdr result)))))
 
+(defconst claude-code-ide-org-test--running-logbook
+  ":LOGBOOK:\nCLOCK: [2026-10-06 Tue 09:00]\n:END:\n"
+  "A :LOGBOOK: holding a running clock's open CLOCK line.")
+
+(defun claude-code-ide-org-test--clock-marker-survives (text act)
+  "Insert TEXT, mark its open CLOCK line as `org-clock-marker' does, run
+ACT at the heading, and return the text at the marker afterwards."
+  (with-temp-buffer
+    (insert "#+TODO: TODO DOING | DONE\n" text)
+    (let ((org-mode-hook nil)) (org-mode))
+    (goto-char (point-min))
+    (re-search-forward "^CLOCK: ")
+    (let ((marker (copy-marker (point))))
+      (goto-char (point-min))
+      (re-search-forward org-heading-regexp)
+      (funcall act)
+      (prog1 (buffer-substring-no-properties
+              marker (save-excursion (goto-char marker) (line-end-position)))
+        (set-marker marker nil)))))
+
+(ert-deftest claude-code-ide-org-test-drawer-order-keeps-a-running-clock-marker ()
+  "Reordering a heading whose :LOGBOOK: holds a running clock leaves
+`org-clock-marker' on the CLOCK line.  Deleting and reinserting the
+whole entry collapsed every marker in it to the headline, so the next
+clock-out failed with \"Clock start time is gone\" (PR #34's review)."
+  (should (equal "[2026-10-06 Tue 09:00]"
+                 (claude-code-ide-org-test--clock-marker-survives
+                  (concat "* DOING A heading\n"
+                          (cdr (assoc "PROPERTIES" claude-code-ide-org-test--drawers))
+                          (cdr (assoc "PLAN" claude-code-ide-org-test--drawers))
+                          claude-code-ide-org-test--running-logbook
+                          "\nBody.\n")
+                  #'claude-code-ide-org--normalize-drawer-order-at-point))))
+
+(ert-deftest claude-code-ide-org-test-amend-plan-keeps-a-running-clock-marker ()
+  "drawer=PLAN on a clocked heading lands below :LOGBOOK: without
+moving the clock line: the drawer is written where it belongs, not
+written high and reordered."
+  (should (equal "[2026-10-06 Tue 09:00]"
+                 (claude-code-ide-org-test--clock-marker-survives
+                  (concat "* DOING A heading\n"
+                          (cdr (assoc "PROPERTIES" claude-code-ide-org-test--drawers))
+                          claude-code-ide-org-test--running-logbook
+                          "\nBody.\n")
+                  (lambda ()
+                    (claude-code-ide-org--amend-into-drawer "PLAN" "The plan."))))))
+
 (ert-deftest claude-code-ide-org-test-amend-creates-debrief-in-canonical-order ()
   "drawer=DEBRIEF on a heading with :PROPERTIES:, :LOGBOOK: and :PLAN:
 lands last among them.  Before the normaliser it went straight after the

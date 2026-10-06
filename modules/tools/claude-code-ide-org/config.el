@@ -4104,12 +4104,22 @@ the item rather than a write."
   (org-back-to-heading t)
   (let ((element (claude-code-ide-org--find-drawer drawer)))
     (if (not element)
-        (progn
-          (org-end-of-meta-data)
+        (let ((layout (claude-code-ide-org--entry-drawer-layout)))
+          ;; Written where it belongs when the heading is already in
+          ;; order: after the last managed drawer that ranks above it.
+          ;; Written high and reordered, it moved the :LOGBOOK: below it,
+          ;; and a running clock's marker with it (PR #34's review).
+          (if (eq (plist-get layout :status) 'canonical)
+              (let ((rank (seq-position claude-code-ide-org-drawer-order drawer))
+                    (pos (plist-get layout :head-end)))
+                (dolist (d (plist-get layout :drawers))
+                  (when (< (seq-position claude-code-ide-org-drawer-order (car d)) rank)
+                    (setq pos (nth 2 d))))
+                (goto-char pos))
+            (org-end-of-meta-data))
           (unless (bolp) (insert "\n"))
           (insert ":" drawer ":\n" (string-trim (or text "")) "\n:END:\n")
-          ;; Inserted after the property drawer, so above any :LOGBOOK:
-          ;; or :PLAN: already there; the normaliser puts it in its place
+          ;; A heading already out of order gets the normaliser
           ;; (TODO.org :ID: d350ff5b).  Creation only: an append writes
           ;; nothing it did not ask for.
           (claude-code-ide-org--normalize-drawer-order-at-point)
@@ -4260,11 +4270,36 @@ nothing.  A reorder only moves lines, so anything else is a bug here."
                         (sort (split-string new "\n") #'string<))
            (error "Drawer reorder of \"%s\" would not be lossless; nothing written"
                   (save-excursion (goto-char beg) (org-get-heading t t t t))))
-         (save-excursion
-           (goto-char beg)
-           (delete-region beg end)
-           (insert new))
+         (claude-code-ide-org--replace-around-logbook
+          beg end new (assoc "LOGBOOK" drawers))
          'reordered)))))
+
+(defun claude-code-ide-org--replace-around-logbook (beg end new logbook)
+  "Replace BEG..END with NEW, leaving LOGBOOK's own text untouched.
+
+LOGBOOK is the layout's (NAME BEG END) entry for the drawer, or nil.
+Deleting and reinserting the whole entry collapses every marker in it
+to its start, `org-clock-marker' on a running CLOCK line included, and
+the next clock-out then fails with \"Clock start time is gone\" (PR
+#34's review).  When NEW carries the :LOGBOOK: text verbatim, only the
+text either side of it is rewritten, so a marker inside it moves with
+it.  Otherwise, or with no :LOGBOOK:, the whole entry is replaced."
+  (let* ((lb-text (and logbook
+                       (buffer-substring-no-properties (nth 1 logbook) (nth 2 logbook))))
+         (at (and lb-text (string-suffix-p "\n" lb-text)
+                  (string-search lb-text new)))
+         (before (and at (substring new 0 at)))
+         (after (and at (substring new (+ at (length lb-text))))))
+    (save-excursion
+      (if (not at)
+          (progn (goto-char beg) (delete-region beg end) (insert new))
+        ;; The tail first, so the head's positions still hold.
+        (goto-char (nth 2 logbook))
+        (delete-region (nth 2 logbook) end)
+        (insert after)
+        (goto-char beg)
+        (delete-region beg (nth 1 logbook))
+        (insert before)))))
 
 (defun claude-code-ide-org-normalize-drawer-order (&optional dry-run)
   "Put every heading's drawers in canonical order across the tracked files.
