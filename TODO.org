@@ -81,6 +81,21 @@ rule, citing [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]], and the org 
 its generic advice on olpaths and per-category routing stayed. Differed from the
 plan: nothing. The always-loaded rules sit at 10185 of their 10200-word budget,
 which this change did not touch, since the conventions file is path-scoped.
+
+*Rework after PR #35's review*, in commit [[orgit-rev:./::6859b23][6859b23]]. The review posted ten
+findings. Four were in prose the first pass had written or kept, and they went
+when, at the user's direction, both texts were cut to the current standard
+alone. The org skill's archiving section shrank from about 520 words to 90,
+dropping the flat, wrapper and per-category setups and the advice to turn
+reversed order on, which malforms a datetree. Four were in the check, and all
+are fixed: an org file's =#+TAGS:= lines are unioned, tag syntax is stripped,
+the keywords match in any case, and one =as_set= helper serves both set
+comparisons. Cases 19, 20 and 22 failed first; case 19 also caught a bug in the
+first attempt, which joined lines before stripping each prefix.
+=clock-template.org= stays out, now with the reason in the check's comment. One
+thread is left open for the user: whether the template, rather than this repo's
+TODO.org, should be the reference. Self-test 27/27, pre-push 1592 passed. Filed:
+[[id:c9c75fda-c818-4e7b-9b97-c3a68e980eab][c9c75fda]], declaring the path tags as an exclusive =#+TAGS:= group.
 :END:
 
 The conventions reference and the org skill still show =#+ARCHIVE: DONE.org::=
