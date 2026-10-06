@@ -2758,12 +2758,11 @@ It gates earnest work in euchre, taking over from [[id:6a207b00-8fa1-441e-8ee5-3
 [[id:4ae7a04b-1557-44d6-91c3-384f1def5293][4ae7a04b]], the brainstorming skill, at the user's direction.
 
 *Worktree moved forward 2026-10-06:* =claude-code-ide-org-swc= is detached at
-=main= (commit [[orgit-rev:./::1fe022e][1fe022e]]), up from the [[https://github.com/nbest937/claude-code-ide-org.el/pull/28][PR #28]] apply pass. Found at the move:
-agentic-euchre has no =.claude/settings.json= and no plugin enabled in the user
-settings, and its =.claude/skills/claude-code-ide-org= links to the worktree
-root rather than to a skill. So how euchre loads the plugin is the first thing
-to establish. Its promoted rules date from the old version and include
-=org-time-tracking.md=, the stale copy check 2 expects setup to remove.
+=main= (commit [[orgit-rev:./::1fe022e][1fe022e]]), up from the [[https://github.com/nbest937/claude-code-ide-org.el/pull/28][PR #28]] apply pass. agentic-euchre loads the
+plugin through =.claude/skills/claude-code-ide-org=, a symlink to the worktree
+root, which is the README's project-scope install route, so the move is live at
+the next session start there. Its promoted rules date from the old version and
+include =org-time-tracking.md=, the stale copy check 2 expects setup to remove.
 
 
 
