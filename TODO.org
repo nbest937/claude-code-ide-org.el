@@ -2,6 +2,23 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO An accepted span with no heading reaches apply and fails as 'no org heading found with :ID: "nil"' :code:
+:PROPERTIES:
+:ID:       85f4e03b-3c7a-4f75-86af-52e04b21cf32
+:CREATED:  [2026-10-06 Tue 11:52]
+:CATEGORY: Apply
+:END:
+
+The 2026-10-06 review pass ended in that error, and Emacs then died at
+review-buffer quit ([[id:489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938][489d6f61]]). Not yet confirmed, because Emacs's messages died
+with it. The likely cause: three spans marked "accepted at review" but
+UNASSIGNED were in the queue, and they are still pending after the pass. The
+review buffer refuses to mark an unassigned span (=--review-markable-p=), but an
+acceptance carried over from an earlier pass may skip that check, and
+=--resolve-item-target= then hands =--at-id= a nil id. Reproduce with an
+accepted, unassigned span, then refuse it before apply, or treat it as not
+accepted.
+
 * REVIEW [0/11] PR #34's review found ten defects the slice shipped, fixed on the branch before merge :code:
 :PROPERTIES:
 :ID:       92804b53-5998-4622-932f-831a8e25fa8d
@@ -6478,6 +6495,14 @@ session, into =~/.claude/emacs-samples/=. The other is the stderr launch
 proposed above. This investigation cannot move until a wedge is caught in
 the act, and the hook removes the discipline of remembering to sample
 before the kill.
+
+2026-10-06 11:43: it happened again at review-buffer quit, after an apply pass
+that landed and ended with a 'no org heading found with :ID: "nil"' error. The
+stack sample is =~/.claude/emacs-samples/20261006T114432-9810.txt=; it shows
+=handle_fatal_signal= → =shut_down_emacs= → =kill_buffer_processes= →
+=redisplay_preserve_echo_area=, waiting on the GUI thread. Recovered with =kill
+-9= and a relaunch. The ceremony steps after apply did not run.
+
 
 
 * TODO Per-machine port via ${VAR:-45571} in .mcp.json, with the wire check env-aware :code:
