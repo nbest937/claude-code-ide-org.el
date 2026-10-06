@@ -21596,58 +21596,62 @@ capped at `claude-code-ide-org-history-max-groups'; and where to look
 next, including what it cannot see.  Read-only, and it reads git, not
 the org file's text, so it answers while the buffer has unsaved edits."
   (condition-case err
-      (let* ((marker (claude-code-ide-org--id-find id 'marker))
-             (file (buffer-file-name (marker-buffer marker)))
-             (full (org-with-point-at marker (org-entry-get nil "ID")))
-             (title (org-with-point-at marker
-                      (org-no-properties (org-get-heading t t t t))))
-             (id8 (substring full 0 8))
-             (root (claude-code-ide-org--history-root file)))
-        (set-marker marker nil)
-        (if (not root)
-            (format "\"%s\" (%s) is not in a git repository, so it has no history to read." title id8)
-          (let* ((split (claude-code-ide-org--history-split
-                         id8 (claude-code-ide-org--history-commits id8 root)))
-                 (work (car split)) (groups (cdr split))
-                 (wmax claude-code-ide-org-history-max-commits)
-                 (gmax claude-code-ide-org-history-max-groups)
-                 (lines (list (format "History of \"%s\" (%s), from commit messages citing it:"
-                                      title id8))))
-            (push (format "Work on it -- %d commit%s whose subject leads with it, newest first:"
-                          (length work) (if (= 1 (length work)) "" "s"))
-                  lines)
-            (dolist (c (seq-take work wmax))
-              (push (format "  %s %s %s" (nth 1 c) (nth 0 c) (nth 2 c)) lines))
-            (when (> (length work) wmax)
-              (push (format "  ... and %d older, back to %s"
-                            (- (length work) wmax) (nth 1 (car (last work))))
-                    lines))
-            (let ((cited (apply #'+ (mapcar #'cadr groups))))
-              (push (format "Citing it -- %d commit%s in %d group%s, most recent first:"
-                            cited (if (= 1 cited) "" "s")
-                            (length groups) (if (= 1 (length groups)) "" "s"))
-                    lines)
-              (dolist (g (seq-take groups gmax))
-                (push (if (= 1 (nth 1 g))
-                          (format "  1 x %s (%s, %s)" (nth 0 g) (nth 2 g) (nth 4 g))
-                        (format "  %d x %s (%s..%s, %s..%s)" (nth 1 g) (nth 0 g)
-                                (nth 3 g) (nth 2 g) (nth 5 g) (nth 4 g)))
-                      lines))
-              (when (> (length groups) gmax)
-                (let ((rest (nthcdr gmax groups)))
-                  (push (format "  ... and %d more group%s (%d commit%s)"
-                                (length rest) (if (= 1 (length rest)) "" "s")
-                                (apply #'+ (mapcar #'cadr rest))
-                                (if (= 1 (apply #'+ (mapcar #'cadr rest))) "" "s"))
-                        lines))))
-            (push (format "Next: `git show <sha>' for any line; everything: \
+      (let ((marker (claude-code-ide-org--id-find id 'marker)))
+        (if (not marker)
+            ;; The project's refusal, naming where it looked, not a
+            ;; markerp error (PR #34's review).
+            (claude-code-ide-org--id-not-found id)
+          (let* ((file (buffer-file-name (marker-buffer marker)))
+                 (full (org-with-point-at marker (org-entry-get nil "ID")))
+                 (title (org-with-point-at marker
+                                           (org-no-properties (org-get-heading t t t t))))
+                 (id8 (substring full 0 8))
+                 (root (claude-code-ide-org--history-root file)))
+            (set-marker marker nil)
+            (if (not root)
+                (format "\"%s\" (%s) is not in a git repository, so it has no history to read." title id8)
+              (let* ((split (claude-code-ide-org--history-split
+                             id8 (claude-code-ide-org--history-commits id8 root)))
+                     (work (car split)) (groups (cdr split))
+                     (wmax claude-code-ide-org-history-max-commits)
+                     (gmax claude-code-ide-org-history-max-groups)
+                     (lines (list (format "History of \"%s\" (%s), from commit messages citing it:"
+                                          title id8))))
+                (push (format "Work on it -- %d commit%s whose subject leads with it, newest first:"
+                              (length work) (if (= 1 (length work)) "" "s"))
+                      lines)
+                (dolist (c (seq-take work wmax))
+                  (push (format "  %s %s %s" (nth 1 c) (nth 0 c) (nth 2 c)) lines))
+                (when (> (length work) wmax)
+                  (push (format "  ... and %d older, back to %s"
+                                (- (length work) wmax) (nth 1 (car (last work))))
+                        lines))
+                (let ((cited (apply #'+ (mapcar #'cadr groups))))
+                  (push (format "Citing it -- %d commit%s in %d group%s, most recent first:"
+                                cited (if (= 1 cited) "" "s")
+                                (length groups) (if (= 1 (length groups)) "" "s"))
+                        lines)
+                  (dolist (g (seq-take groups gmax))
+                    (push (if (= 1 (nth 1 g))
+                              (format "  1 x %s (%s, %s)" (nth 0 g) (nth 2 g) (nth 4 g))
+                            (format "  %d x %s (%s..%s, %s..%s)" (nth 1 g) (nth 0 g)
+                                    (nth 3 g) (nth 2 g) (nth 5 g) (nth 4 g)))
+                          lines))
+                  (when (> (length groups) gmax)
+                    (let ((rest (nthcdr gmax groups)))
+                      (push (format "  ... and %d more group%s (%d commit%s)"
+                                    (length rest) (if (= 1 (length rest)) "" "s")
+                                    (apply #'+ (mapcar #'cadr rest))
+                                    (if (= 1 (apply #'+ (mapcar #'cadr rest))) "" "s"))
+                            lines))))
+                (push (format "Next: `git show <sha>' for any line; everything: \
 `git -C %s log --fixed-strings --grep=%s'." (abbreviate-file-name root) id8)
-                  lines)
-            (push "Cannot see: commits that name no heading, such as apply passes and \
+                      lines)
+                (push "Cannot see: commits that name no heading, such as apply passes and \
 unattributed sweeps -- so an empty list means no commit cites it, not that \
 nothing happened. Exact for what it lists, partial by construction."
-                  lines)
-            (string-join (nreverse lines) "\n"))))
+                      lines)
+                (string-join (nreverse lines) "\n"))))))
     (error (format "Error: %s" (error-message-string err)))))
 
 (defun claude-code-ide-org--history-front-matter-line ()

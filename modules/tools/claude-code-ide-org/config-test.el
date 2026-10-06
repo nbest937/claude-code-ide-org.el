@@ -21398,6 +21398,15 @@ answers with the limit line."
     (should (string-match-p "not in a git repository"
                             (claude-code-ide-org-history "abcd1234")))))
 
+(ert-deftest claude-code-ide-org-test-history-refuses-an-unresolved-id ()
+  "An id that resolves to nothing gets the project's refusal, naming the
+files scanned, not \"Wrong type argument: markerp, nil\" (PR #34's
+review)."
+  (claude-code-ide-org-test--with-history-repo '("abcd1234: work")
+    (let ((claude-code-ide-org-query-files (list file)))
+      (should (string-match-p "\\`Error: no org heading found with :ID: \"deadbeef\" (scanned: "
+                              (claude-code-ide-org-history "deadbeef"))))))
+
 (ert-deftest claude-code-ide-org-test-history-served-while-busy ()
   "It reads git, not the file, so unsaved edits do not stop it."
   (claude-code-ide-org-test--with-history-repo '("abcd1234: work")
