@@ -1208,177 +1208,6 @@ maintains in both directions. [[id:b0c843e3-4252-4e2b-a9e2-2cf91714a1ae][b0c843e
 made every blocker id parse.
 
 
-* DONE Headings cited in bodies are id links, written as links by the tools, so backlinks are one org_query away :code:arch:
-CLOSED: [2026-10-05 Mon 12:32]
-:PROPERTIES:
-:ID:       f7847adf-a408-4ad0-ae0c-8d3c19b79f2b
-:CREATED:  [2026-09-25 Fri 12:16]
-:CATEGORY: Tools
-:END:
-:LOGBOOK:
-CLOCK: [2026-09-25 Fri 12:08]--[2026-09-25 Fri 12:09] =>  0:01
-- [2026-09-25 Fri 12:08]--[2026-09-25 Fri 12:09] assigned at review
-CLOCK: [2026-09-25 Fri 12:14]--[2026-09-25 Fri 12:15] =>  0:01
-- [2026-09-25 Fri 12:14]--[2026-09-25 Fri 12:15] assigned at review
-CLOCK: [2026-09-25 Fri 12:15]--[2026-09-25 Fri 12:17] =>  0:02
-- [2026-09-25 Fri 12:15]--[2026-09-25 Fri 12:17] file blocked:, capture context, and id-link headings
-- Tags ":code:arch:" from ":code:"     [2026-09-28 Mon 13:01] \\
-  classified: changes how two writers treat text, plus a corpus conversion and an open backlink design
-CLOCK: [2026-09-29 Tue 19:21]--[2026-09-29 Tue 19:22] =>  0:01
-- [2026-09-29 Tue 19:21]--[2026-09-29 Tue 19:22] record the citation linker design in :PLAN:
-CLOCK: [2026-09-29 Tue 19:39]--[2026-09-29 Tue 19:41] =>  0:02
-- [2026-09-29 Tue 19:39]--[2026-09-29 Tue 19:41] assigned at review
-- State "DOING"      from "TODO"       [2026-10-05 Mon 11:54] \\
-  built together with b7259ee4, one linker
-- State "REVIEW"     from "DOING"      [2026-10-05 Mon 12:16] \\
-  shipped on branch, awaiting PR review
-- State "DONE"       from "REVIEW"     [2026-10-05 Mon 12:32] \\
-  reviewed and accepted by the user
-:END:
-:PLAN:
-
-Bodies cite other headings in two forms, and often both in one heading: measured
-with =org-element= on 2026-09-25, TODO.org holds 619 verbatim =prefix=
-references to real ids and 403 =[[id:…]]= links (52 headings carry both), and
-DONE.org holds 981 and 1,546. Decided by the user the same day: links are the
-standard, and every verbatim reference in TODO.org is converted, including those
-pointing into DONE.org. Links survive archiving, because =org-id-locations=
-covers the archive (=org-id-search-archives=) and =org-id-find= rescans on a
-stale entry. What they buy is navigation, and a link graph org already answers:
-=org_query "link:target=<prefix>"= returns every heading linking to one, one
-call, as =blocked:= does for blockers. A verbatim reference is invisible to it.
-The proposal that closed this paragraph when it was the body is superseded by
-the design below, approved in chat by the user 2026-09-28 together with
-[[id:b7259ee4-9aa1-4b55-8cf2-fbbacdea5310][b7259ee4]]'s.
-
-*The design: one citation linker, shared with [[id:b7259ee4-9aa1-4b55-8cf2-fbbacdea5310][b7259ee4]].* Heading ids, commits
-and PRs are one problem: a citation written verbatim that should open the thing
-it names, and conventions stated in prose have not made writers link it (16 bare
-commit SHAs on TODO headings, measured 2026-09-28). So one function links all
-three as the tools write, one lint catches hand edits, and one pass converts
-TODO.org. This drawer holds the shared design and the id rows; [[id:b7259ee4-9aa1-4b55-8cf2-fbbacdea5310][b7259ee4]]'s holds
-the commit and PR rows.
-
-*The linker.* Given text and the file it is bound for, it returns the text with
-its citations linked. An 8-hex prefix, in verbatim or as a bare word, becomes an
-id link whose description is the prefix, when it resolves through the id index
-to exactly one heading. Lengths never overlap: 8 hex is only ever an id, and 7
-hex never is. Never touched: text already inside a link, inside a =#+begin_=
-block, or in =~code~=. Idempotent. A verbatim candidate that does not resolve
-stays verbatim, since it may not be a citation at all, while an explicit id link
-that does not resolve is still refused, as today. The linker itself never
-refuses a write.
-
-*Where it runs.* Every write path becomes: escape headline lines inside blocks,
-link citations, resolve explicit id links, fill. The fill moves from before the
-resolve to last, because linking changes line lengths and the fill measures
-display width with link markup skipped. It runs on =org_edit='s =new_string=, on
-=org_amend='s text (a queued amend is linked at apply, as [[id:b52df20b-45c7-41aa-9d77-44ccf06c647f][b52df20b]] decided for
-the fill), and on =org_capture='s =note=, never on a title, which end matter and
-replies quote verbatim. Structural tools that write no prose are untouched. The
-reply counts what it linked ("linked 2 citations"), because the next =org_edit=
-must copy its =old_string= from disk, not from what was sent.
-
-*The lint.* A =bin/lint-org= warning on a verbatim citation the linker would
-convert, in the body, =:PLAN:= or =:DEBRIEF:= of an unfinished heading in
-TODO.org. It calls the linker's own detection, with the lint's table of known
-ids as the resolver, so there is one definition of a citation. A warning, not an
-error: after the pass only a human's hand edit can leave one, and the style of a
-citation does not justify blocking that commit.
-
-*The pass.* One command maps the linker over every heading in TODO.org, body,
-=:PLAN:= and =:DEBRIEF:=, skipping slice checklists and incidentals. DONE.org is
-never touched (the user, 2026-09-25, and the conventions' prospective-only rule
-for commits). It dry-runs by default interactively and reports counts per kind
-and per heading. It is lossless by check: with each link reduced to its
-description and each converted token to its bare text, the result must equal the
-original, or that heading is left alone. About 355 ids, 19 commits and 12 PRs
-when counted on 2026-09-28. It is committed on its own. The "before [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]]
-runs" that stood here was overtaken: [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]] ran on 2026-10-01, and of its 315
-resolutions, 86 cite verbatim. 82 of those are in DONE.org, outside this pass by
-the decision above, and 5 are in TODO.org, inside it (measured 2026-10-02).
-
-*Backlinks.* =org_query "link:target=<prefix>"= finds links in bodies and in
-drawers, verified 2026-09-29, and misses a link placed directly after an
-emphasis marker, one that opens a bold span. =org_query='s description teaches
-the predicate and that limit. Backlinks beside =:BLOCKER:= in =org_outline= are
-left out: one query answers them, and every scoped outline would pay for them.
-
-*The cost, stated.* Each id link carries about 45 characters of markup, so
-converting TODO.org's verbatim ids adds about 16k characters: some 4k tokens on
-a whole-file read, and less on the outline, which carries bodies only. Accepted
-with the decision above.
-
-*Prose.* The shipped conventions drop their warning against opening a slice
-drawer's list item with an id link: [[id:7ee3b71a-b85a-4610-a4ab-b9e06c8d79da][7ee3b71a]] made every member scan start below
-the drawers, and a test pins it. The descriptions of =org_edit=, =org_amend= and
-=org_capture= say citations are linked as written. The commit prose is
-[[id:b7259ee4-9aa1-4b55-8cf2-fbbacdea5310][b7259ee4]]'s. All of it inside the word budget.
-
-*Tests (ERT).* The linker: the id kind converts; each skip holds (a link, a
-block, =~code~=, a capture title); the length rule; an unresolved candidate is
-left alone; idempotence. The pipeline: each writer links and counts, a queued
-amend links at apply, and with the fill last a line of links is not wrapped as
-if long. The lint warns on a live heading and not on a finished one, nor
-anywhere in DONE.org. The pass: a dry run writes nothing, an injected mismatch
-is refused, a slice checklist is skipped. Each skip and condition test is shown
-to fail with its guard removed. Live: =link:target= finds a converted reference.
-The commit and PR tests are [[id:b7259ee4-9aa1-4b55-8cf2-fbbacdea5310][b7259ee4]]'s.
-
-*Built together with [[id:b7259ee4-9aa1-4b55-8cf2-fbbacdea5310][b7259ee4]]*, on one branch and in one pull request, since the
-pipeline, the lint and the pass are shared.
-:END:
-:DEBRIEF:
-*Shipped 2026-10-05* on =feature/org-native-notes=, built with [[id:b7259ee4-9aa1-4b55-8cf2-fbbacdea5310][b7259ee4]] as the
-drawer said: [[orgit-rev:./::8100822][8100822]] (the linker, the pipeline, the lint, the pass), [[orgit-rev:./::565bbbe][565bbbe]]
-(the slice-body guard below), [[orgit-rev:./::bd6dd04][bd6dd04]] (the pass over TODO.org) and [[orgit-rev:./::779d388][779d388]]
-(prose and tool descriptions). =--citation-candidates= is the one definition the
-writers, the pass and the lint share.
-
-*Verified.* Twelve new ERT tests, suite 870/870. Every skip and condition was
-mutated out in turn and each turned at least one test red: the skip zones, the
-UUID/path boundary (it needed a fixture of its own, "a/abcd1234."), the commit
-length rule, the orgit, PR and DONE.org guards, the finished-heading skip, the
-generated-line skip, the losslessness check, and the linker as a whole. Live:
-=org_query "link:target=e3d1531d"= returns the four headings citing it. The
-pass's second dry run finds 0, the file with links reduced to descriptions
-equals the original, and =bin/lint-org= reports 0 errors and no citation
-warnings.
-
-*Differed from the plan.*
-- *A guard the drawer did not name.* Linking =- =c74f8663= ...= in a slice's
-  body would make =- [[id:= -- a member line, out of prose the conventions told
-  writers to write exactly that way. In a slice's body the linker never links an
-  id that opens a list item; drawers stay linkable, since the member scan starts
-  below them. The pass had created no such line in a slice body.
-- *Ids resolve within the project's own files only*, not across org's whole
-  index: here that index also spans agentic-euchre, and a prefix matching one of
-  its headings would become a link the lint refuses.
-- *The count:* 709 ids, 23 commits and 11 PRs in 144 headings, against "about
-  355 ids, 19 commits and 12 PRs" on 2026-09-28. 686 of the ids are on live
-  headings and 25 sampled contexts were all genuine citations. The earlier
-  method is not recorded, so the gap is not explained.
-
-*Not discriminated, and not worth a contrived test:* the fill-last test pins
-that the fill measures display width after linking, but swapping the order
-would not turn it red.
-
-*Residue, judged not worth filing:* an id quoted in backticks is linked with the
-backticks kept around it -- lossless and cosmetic. What is left for [[id:0eaffc39-088f-48c3-a5b8-167336458114][0eaffc39]] is
-bare ids where no writer runs: rendered sessions and commit messages.
-:END:
-
-Bodies cite other headings by verbatim 8-hex prefix about as often as by link,
-and a verbatim reference is invisible to navigation and to =link:target=
-backlinks. One citation linker, shared with [[id:b7259ee4-9aa1-4b55-8cf2-fbbacdea5310][b7259ee4]], links ids, commits and PRs
-as the tools write; a lint warns on hand edits, and a one-off pass converts
-TODO.org. Design in =:PLAN:=.
-
-*Resolution:* one citation linker, shared with [[id:b7259ee4-9aa1-4b55-8cf2-fbbacdea5310][b7259ee4]], links ids, commits and
-PRs on every write path; =bin/lint-org= warns on a live heading's verbatim
-citation, and one pass linked TODO.org's 709 id citations.
-
-
 * TODO org_capture runs in whatever buffer the user has selected, so an Org QL view turns a capture into a prompt nobody at the tool can answer :code:
 :PROPERTIES:
 :ID:       fd29914e-0d18-4964-a104-37c136b311a6
@@ -6326,172 +6155,6 @@ detection mechanised, judgement kept human, per every surviving
 report's contract. Shapes and constraints in =:PLAN:=.
 
 
-* DONE Canonical drawer order: PROPERTIES, LOGBOOK, PLAN, DEBRIEF, then body :code:arch:
-CLOSED: [2026-10-05 Mon 12:35]
-:PROPERTIES:
-:ID:       d350ff5b-3b1f-465e-800b-962264d2e841
-:CREATED:  [2026-09-10 Thu 09:10]
-:CATEGORY: Skill
-:END:
-:LOGBOOK:
-- Tags ":code:arch:" from ":code:"     [2026-09-28 Mon 13:01] \\
-  classified: changes where several writers insert drawers, plus consolidator and ceremony report
-CLOCK: [2026-09-28 Mon 14:08]--[2026-09-28 Mon 14:10] =>  0:02
-- [2026-09-28 Mon 14:08]--[2026-09-28 Mon 14:10] brainstorm: critical read of the drawer-order plan
-CLOCK: [2026-09-28 Mon 14:21]--[2026-09-28 Mon 14:23] =>  0:02
-- [2026-09-28 Mon 14:21]--[2026-09-28 Mon 14:23] brainstorm continues; file the wrap_plan retirement heading
-CLOCK: [2026-09-28 Mon 17:14]--[2026-09-28 Mon 17:15] =>  0:01
-- [2026-09-28 Mon 17:14]--[2026-09-28 Mon 17:15] brainstorm continues; file the wrap_plan retirement heading
-CLOCK: [2026-09-29 Tue 15:45]--[2026-09-29 Tue 15:47] =>  0:02
-- [2026-09-29 Tue 15:45]--[2026-09-29 Tue 15:47] write the approved design into :PLAN:
-CLOCK: [2026-09-29 Tue 15:47]--[2026-09-29 Tue 15:48] =>  0:01
-- [2026-09-29 Tue 15:47]--[2026-09-29 Tue 15:48] assigned at review
-CLOCK: [2026-09-29 Tue 15:56]--[2026-09-29 Tue 15:57] =>  0:01
-- [2026-09-29 Tue 15:56]--[2026-09-29 Tue 15:57] assigned at review
-- State "NEXT"       from "TODO"       [2026-10-02 Fri 10:40] \\
-  slice brainstorming done; first build in 6521dd56's order
-CLOCK: [2026-10-02 Fri 15:50]--[2026-10-02 Fri 15:51] =>  0:01
-- [2026-10-02 Fri 15:50]--[2026-10-02 Fri 15:51] assigned at review
-CLOCK: [2026-10-02 Fri 15:52]--[2026-10-02 Fri 15:54] =>  0:02
-- [2026-10-02 Fri 15:52]--[2026-10-02 Fri 15:54] assigned at review
-CLOCK: [2026-10-02 Fri 15:57]--[2026-10-02 Fri 15:58] =>  0:01
-- [2026-10-02 Fri 15:57]--[2026-10-02 Fri 15:58] assigned at review
-- State "DOING"      from "NEXT"       [2026-10-05 Mon 11:27] \\
-  implementing the drawer-order normaliser
-CLOCK: [2026-10-05 Mon 11:27]--[2026-10-05 Mon 11:41] =>  0:14
-- [2026-10-05 Mon 11:27]--[2026-10-05 Mon 11:41] drawer-order normaliser, writers, corpus pass, lint
-- State "REVIEW"     from "DOING"      [2026-10-05 Mon 11:41] \\
-  shipped on branch, awaiting PR review
-- State "DONE"       from "REVIEW"     [2026-10-05 Mon 12:35] \\
-  reviewed and accepted by the user
-:END:
-:PLAN:
-Proposed by the user 2026-09-10, pushback invited and none owed — the order is
-the org-stable one. =:PROPERTIES:= first is org's own hard requirement, and
-=:LOGBOOK:= second matches where org's native logging *creates* the drawer when
-absent (right after the property drawer, even above a =:PLAN:= already there:
-observed 2026-09-28 on this heading, whose =:LOGBOOK:= was created by
-=org_set_tags= after its =:PLAN:= and landed above it); any order putting
-=:PLAN:= ahead of =:LOGBOOK:= would have the normalizer fighting org's writer
-forever. =:PLAN:= then =:DEBRIEF:= reads as lifecycle order, and
-drawers-then-body makes the body one contiguous region at the entry's tail,
-which simplifies every positional tool at once: =org_amend='s body append,
-=org_wrap_plan='s seam arithmetic, and =--outline-body-at-point= (whose
-=org-end-of-meta-data FULL= skip is only correct when the drawers are contiguous
-at the top — a below-body drawer would leak into the outline's body carriage).
-
-*The corpus is already self-inconsistent, measured 2026-09-10:* [[id:c7bf2121-755c-4e52-8bf2-e21e56b1e0c2][c7bf2121]]
-renders PROPERTIES, DEBRIEF, LOGBOOK, body while [[id:85d24dba-27fb-4a41-adbb-c19617e82e7e][85d24dba]] renders PROPERTIES,
-LOGBOOK, DEBRIEF, body — same convention, same day, two orders — because
-=org_amend= creates a missing drawer directly after the property drawer, above
-any =:LOGBOOK:= or =:PLAN:= already there (tested 2026-09-28 in a scratch
-buffer, org 9.8.7), so a heading's drawers stand in reverse order of creation.
-Nothing reorders drawers against one another: the consolidator sorts only the
-entries inside =:LOGBOOK:=. Tallied over both files 2026-09-28: one heading in
-DONE.org has the canonical order, 108 put =:DEBRIEF:= before =:PLAN:=, and 17
-across the two files put =:PLAN:= above =:LOGBOOK:=. And the =:DEBRIEF:=
-convention *documents* "created when absent, below the body", which neither
-heading exhibits and this canon reverses — that sentence dies in the same
-change.
-
-*The design*, approved in chat by the user 2026-09-28, replacing a four-part
-list that had each writer learn an insertion point and the consolidator learn
-the order.
-
-*One normaliser, the only code that knows the order.* A per-heading function
-reads the heading's own drawers with =org-element=, so a drawer-shaped line
-inside an example block is left alone. It lifts all four and reinserts them,
-=:PROPERTIES:= first, directly after the headline and planning line, leaving
-the body's text in its own order below them; that also repairs the one heading
-whose =:LOGBOOK:= sits below its body. It is lossless by check: the heading's
-lines, sorted, must be equal before and after, and on any difference it signals
-and writes nothing. It is idempotent. A heading with two drawers of one name is
-reported and skipped: DONE.org has two with a doubled =:LOGBOOK:=, which
-predate this and are not its to merge.
-
-*Called on creation, by every writer that creates a drawer* (the user,
-2026-09-28), instead of teaching each writer an insertion point:
-=--amend-into-drawer= when it returns =created=, which =org_edit= shares, and
-=org_wrap_plan= after it wraps. Not on every append, so an append writes
-nothing it did not ask for. =org_wrap_plan= therefore stays two lossless
-insertions until [[id:80aeb955-cf44-4990-8c7f-be7759fb05ec][80aeb955]] retires it.
-
-*The corpus pass and the lint, in one change* (the user chose this over a
-ceremony step, 2026-09-28). A command maps the normaliser over the tracked
-files, dry-running by default interactively as its siblings do and reporting
-counts; it runs once, beside a =bin/lint-org= error naming the order it found.
-Once the writers are right only a hand edit can disorder a heading, and a lint
-names it at the commit that made it, where a daily repair would hide it.
-Without the one-off pass the lint would block every commit over DONE.org's
-disordered headings, the trap [[id:634eb138-28bc-4d43-aed3-f242c877904d][634eb138]] describes.
-
-*Prose.* The shipped conventions state the canon, drop the "created when
-absent, below the body" sentence, and name the normaliser and the lint in one
-sentence. The ceremony gains no step, and its existing count keeps its
-meaning: it counts entry order inside =:LOGBOOK:=, which is a different thing.
-
-*Sequencing, overtaken 2026-10-01.* [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]]'s relocation pass was to wait for
-this, since it would otherwise create 88 more headings with =:DEBRIEF:= first.
-It ran first instead, and its mover put each =:DEBRIEF:= after the other
-drawers, so it added none out of order. It keeps =:BLOCKER:= [[id:d350ff5b-3b1f-465e-800b-962264d2e841][d350ff5b]], for its
-own close. Re-measured 2026-10-02 over every heading with two or more drawers:
-484 in canonical order (359 in DONE.org, 125 in TODO.org), and 140 out of order
-(133 and 7). Of those 140, 101 have =:DEBRIEF:= above =:LOGBOOK:=, 36 have it
-above =:PLAN:= only, and 3 have =:PLAN:= above =:LOGBOOK:=. The 2026-09-28
-counts above are history, and the corpus pass repairs the 140.
-
-*Tests (ERT).* Every order the tally found normalises to canon, and a second
-run changes nothing. The losslessness refusal fires. A duplicate drawer is
-skipped. The example-block decoy is untouched. =org_amend= creating a
-=:DEBRIEF:= on a heading with PROPERTIES, LOGBOOK and PLAN comes out canonical,
-and so does =org_wrap_plan= on a heading that already has a =:DEBRIEF:=. Each
-test fails with the normaliser call removed.
-:END:
-:DEBRIEF:
-*Shipped 2026-10-05* on =feature/org-native-notes=, as the drawer designed it:
-[[orgit-rev:claude-code-ide-org::a42d44e][a42d44e]] (normaliser, writers, corpus command, lint, tests), [[orgit-rev:claude-code-ide-org::30a4673][30a4673]] (the corpus
-pass) and [[orgit-rev:claude-code-ide-org::d5433ff][d5433ff]] (the conventions sentence). =--entry-drawer-layout= is the
-predicate the lint and the command share; =--normalize-drawer-order-at-point=
-rewrites only a =disordered= heading, so a canonical one is never touched and a
-rerun is a no-op.
-
-*Verified.* Ten new ERT tests, suite 859/859. With the three normaliser calls
-deleted, the =org_amend=, =org_wrap_plan= and corpus-command tests each fail,
-and the file was restored from a copy. Live reload, =bin/check-image= fresh. Dry
-run 141 against the drawer's 140: the extra is [[id:ea1df60b-1e28-448e-bb62-a6fc2b6b62f8][ea1df60b]], archived since the
-count, found disordered. After the write, a second dry run reported 0, each
-file's sorted lines equal =HEAD='s, and =bin/lint-org= went from 141 errors on
-=HEAD='s files to 0. This drawer is itself the first one created through the new
-path.
-
-*Differed from the plan.* The "two headings with a doubled :LOGBOOK:" are not
-two drawers: each opens =:LOGBOOK:= twice and closes it once, which org parses
-as one drawer holding a stray marker line. So nothing reports =duplicate= on the
-real corpus, and those drawers moved whole, with nothing merged. The duplicate
-path is still tested, and the lint stays silent on it.
-
-*Falsified, and filed.* The reorder exposed a counter bug: [[id:96a51c2f-ce11-4b40-bdff-11223d3d4eb7][96a51c2f]]'s body
-read as 7 lines while its =:LOGBOOK:= sat below it, and 208 once that drawer
-moved, which raised a genuine repeater-size warning. The cause is filed as
-[[id:fd0f5787-d519-4acb-8e47-508235781c44][fd0f5787]].
-
-*Scope note.* The corpus command runs over =--tracked-files=, which here also
-lists =~/org/notes.org= and agentic-euchre's two files. None had a disordered
-heading, so only this repo's files were written.
-:END:
-
-A heading's drawers stand in reverse order of creation, because =org_amend=
-creates each directly after =:PROPERTIES:=: 108 finished headings put
-=:DEBRIEF:= before =:PLAN:=, and the conventions document a position nothing
-uses. Adopt PROPERTIES, LOGBOOK, PLAN, DEBRIEF, then body, kept by one
-per-heading normaliser that every drawer-creating writer calls, a one-off
-corpus pass, and a lint error. Design in =:PLAN:=.
-
-*Resolution:* one normaliser owns the order, every writer that creates a drawer
-calls it, a one-off corpus pass reordered 141 headings, and =bin/lint-org= now
-errors on a disordered one.
-
-
 * REVIEW Revisit the story definition: sanction clustering and speculative breakdown :bounded:prose:
 :PROPERTIES:
 :ID:       63df67c7-de0d-43e7-9c6f-2b2979a40aba
@@ -6628,14 +6291,14 @@ cluster that will close, names a filing drawer and the collector exception, and
 sanctions breaking down an unworked heading.
 
 
-* DOING [4/10] Make the notes org-native: links, drawers, tags, one corpus pass :code:
+* REVIEW [5/10] Make the notes org-native: links, drawers, tags, one corpus pass :code:
 :PROPERTIES:
 :ID:       6521dd56-8772-416b-9435-6da78bb86b06
 :CREATED:  [2026-09-10 Thu 08:57]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  0eaffc39-088f-48c3-a5b8-167336458114 63df67c7-de0d-43e7-9c6f-2b2979a40aba e128e4fa-b0d9-49f7-99eb-bae2d4b0676b fce6bd35-27ad-4724-8dbb-c9df4b68fb10 41cf5830-fc2e-4dc6-b243-a0c2718a53a3 8a23d6ec-ca45-454d-b65f-e46ea9204816
+:BLOCKER:  0eaffc39-088f-48c3-a5b8-167336458114 63df67c7-de0d-43e7-9c6f-2b2979a40aba fce6bd35-27ad-4724-8dbb-c9df4b68fb10 41cf5830-fc2e-4dc6-b243-a0c2718a53a3 8a23d6ec-ca45-454d-b65f-e46ea9204816
 :MEMBERS:  b7259ee4-9aa1-4b55-8cf2-fbbacdea5310 f7847adf-a408-4ad0-ae0c-8d3c19b79f2b 0eaffc39-088f-48c3-a5b8-167336458114 d350ff5b-3b1f-465e-800b-962264d2e841 63df67c7-de0d-43e7-9c6f-2b2979a40aba e128e4fa-b0d9-49f7-99eb-bae2d4b0676b 76a6f052-e360-4a12-8077-070da83a8e84 fce6bd35-27ad-4724-8dbb-c9df4b68fb10 e28933e9-f352-4ef9-8d53-8cd9a4318768 8b945c02-7ebe-40a2-b4cc-e35811afe57f 41cf5830-fc2e-4dc6-b243-a0c2718a53a3 8a23d6ec-ca45-454d-b65f-e46ea9204816 01849bef-fdc9-4c30-b467-00ca8606e8e0 ecf66d45-18b3-477f-bca8-08bec90604e8 ea1df60b-1e28-448e-bb62-a6fc2b6b62f8
 :DROPPED:  01849bef-fdc9-4c30-b467-00ca8606e8e0 ecf66d45-18b3-477f-bca8-08bec90604e8
 :END:
@@ -6653,6 +6316,8 @@ CLOCK: [2026-09-28 Mon 14:06]--[2026-09-28 Mon 14:07] =>  0:01
 - [2026-09-28 Mon 14:06]--[2026-09-28 Mon 14:07] assigned at review
 - State "DOING"      from "NEXT"       [2026-10-05 Mon 11:27] \\
   slice taken up, first member started
+- State "REVIEW"     from "DOING"      [2026-10-06 Tue 09:39] \\
+  its pull request review started: /code-review
 :END:
 :PLAN:
 The notes should use org: live links instead of inert citations, drawers instead
@@ -6723,7 +6388,7 @@ Planned:
 - [X] [[id:d350ff5b-3b1f-465e-800b-962264d2e841][d350ff5b]] DONE Canonical drawer order: PROPERTIES, LOGBOOK, PLAN, DEBRIEF, then body
 - [-] [[id:63df67c7-de0d-43e7-9c6f-2b2979a40aba][63df67c7]] REVIEW Revisit the story definition: sanction clustering and speculative breakdown
 - [[id:4c834fdb-5314-4168-ab1d-09fe89ded517][4c834fdb]] DOING Make the heading body a scannable summary, with plan and debrief in drawers
-  - [-] [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]] REVIEW Move the 88 pre-convention debriefs into :DEBRIEF:, authoring each resolution
+  - [X] [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]] DONE Move the 88 pre-convention debriefs into :DEBRIEF:, authoring each resolution
 - [[id:76a6f052-e360-4a12-8077-070da83a8e84][76a6f052]] MAYBE Long prose lines have drifted back since the one fill sweep of 2026-09-14, because nothing runs it routinely
 - [-] [[id:fce6bd35-27ad-4724-8dbb-c9df4b68fb10][fce6bd35]] REVIEW The member-drawer backfill clause is scaffolding: once every open heading has its canonical shape, the lint should require it and the clause retire
 - [[id:ee3e0fa2-d4a6-4575-a5fb-e4e25c49431a][ee3e0fa2]] CANCELLED Make the corpus searchable by tag, by measurement where it can be and by decision where it cannot
@@ -6753,151 +6418,6 @@ buffer, no tool call involved — is never nagged, and =REVIEW= is the
 *expected* exit. Candidates: nag on queued =REVIEW= too (that is the
 last tool call the session makes), and/or a =bin/lint-org= warning so
 the gap is caught at commit time regardless of exit path.
-
-
-* DONE Commits cited in bodies and debriefs are orgit links, and nothing enforces it :code:arch:
-CLOSED: [2026-10-05 Mon 12:32]
-:PROPERTIES:
-:ID:       b7259ee4-9aa1-4b55-8cf2-fbbacdea5310
-:CREATED:  [2026-09-10 Thu 08:52]
-:CATEGORY: Skill
-:END:
-:LOGBOOK:
-CLOCK: [2026-09-10 Thu 08:39]--[2026-09-10 Thu 08:41] =>  0:02
-- [2026-09-10 Thu 08:39]--[2026-09-10 Thu 08:41] assigned at review
-CLOCK: [2026-09-10 Thu 08:45]--[2026-09-10 Thu 08:46] =>  0:01
-- [2026-09-10 Thu 08:45]--[2026-09-10 Thu 08:46] assigned at review
-- Tags ":code:bounded:" from ":code:"     [2026-09-28 Mon 13:00] \\
-  classified: extends an existing convention and lint; flow exists
-CLOCK: [2026-09-29 Tue 16:00]--[2026-09-29 Tue 16:01] =>  0:01
-- [2026-09-29 Tue 16:00]--[2026-09-29 Tue 16:01] brainstorm: critical read of the orgit-link plan
-CLOCK: [2026-09-29 Tue 18:48]--[2026-09-29 Tue 18:52] =>  0:04
-- [2026-09-29 Tue 18:48]--[2026-09-29 Tue 18:52] brainstorm: critical read of the orgit-link plan
-CLOCK: [2026-09-29 Tue 19:03]--[2026-09-29 Tue 19:04] =>  0:01
-- [2026-09-29 Tue 19:03]--[2026-09-29 Tue 19:04] brainstorm: critical read of the orgit-link plan
-CLOCK: [2026-09-29 Tue 19:16]--[2026-09-29 Tue 19:21] =>  0:05
-- [2026-09-29 Tue 19:16]--[2026-09-29 Tue 19:21] brainstorm: critical read of the orgit-link plan
-- Tags ":code:arch:" from ":code:bounded:" [2026-09-29 Tue 19:48] \\
-  stepped up: enforcement moves to the write path of three writers, shared with f7847adf as one citation linker
-CLOCK: [2026-10-05 Mon 11:08]--[2026-10-05 Mon 11:09] =>  0:01
-- [2026-10-05 Mon 11:08]--[2026-10-05 Mon 11:09] notes: e128e4fa's resolutions in the link retrofits; stale sequencing on d350ff5b and 6521dd56
-CLOCK: [2026-10-05 Mon 11:41]--[2026-10-05 Mon 11:42] =>  0:01
-- State "NEXT"       from "TODO"       [2026-10-05 Mon 11:41] \\
-  next in the slice's build order
-- [2026-10-05 Mon 11:41]--[2026-10-05 Mon 11:42] assigned at review
-CLOCK: [2026-10-05 Mon 11:53]--[2026-10-05 Mon 11:54] =>  0:01
-- [2026-10-05 Mon 11:53]--[2026-10-05 Mon 11:54] assigned at review
-CLOCK: [2026-10-05 Mon 11:54]--[2026-10-05 Mon 12:16] =>  0:22
-- State "DOING"      from "NEXT"       [2026-10-05 Mon 11:54] \\
-  implementing the shared citation linker
-- [2026-10-05 Mon 11:54]--[2026-10-05 Mon 12:16] citation linker for commits, PRs and ids
-- State "REVIEW"     from "DOING"      [2026-10-05 Mon 12:16] \\
-  shipped on branch, awaiting PR review
-- [2026-10-05 Mon 12:16]--[2026-10-05 Mon 12:16] assigned at review
-- State "DONE"       from "REVIEW"     [2026-10-05 Mon 12:32] \\
-  reviewed and accepted by the user
-:END:
-:PLAN:
-
-Raised by the user 2026-09-10, on reading the previous day's debriefs:
-the commit citations there ([[orgit-rev:./::f87274b][f87274b]], [[orgit-rev:./::f57d158][f57d158]], …) are exactly what
-the standing convention ("Referring to a commit",
-=skills/org/references/org-conventions.md=) says to write as
-=orgit-rev:= links — the convention exists, the practice ignored it,
-and nothing catches the miss. *PR references belong to the same
-family*: "[[https://github.com/nbest937/claude-code-ide-org.el/pull/22][PR #22]]" in a body should be a live link to the PR's URL
-(=gh pr view N --json url= is the lookup), for the same reason the
-commit gets one — the reference should open the thing it names.
-
-*The scope that stood here is superseded* by the design approved in chat by the
-user 2026-09-28. It was a rules sentence, a retrofit of the 2026-09-09 debriefs
-and a lint warning, and prose had already failed: the convention has asked for
-links since 2026-08-21, yet on 2026-09-28 16 bare SHAs sat on TODO headings, and
-TODO.org held 12 bare "PR #N" against 2 PR links. So enforcement moves to the
-write path. The linker, the pipeline, the lint and the one-off pass over
-TODO.org are shared with [[id:f7847adf-a408-4ad0-ae0c-8d3c19b79f2b][f7847adf]] and designed in its =:PLAN:=; this drawer
-holds the rows that are this heading's.
-
-*Commits.* A 7-to-12-hex SHA, in verbatim or after the word "commit", becomes
-=orgit-rev:./::<sha>= with the SHA as description, when =git cat-file -e
-<sha>^{commit}=, run from the target file's directory, confirms it and the
-=orgit-rev= link type is registered. Otherwise it stays as written: a consumer
-without =orgit= keeps verbatim text, and a missing or failing =git= costs
-nothing.
-
-*The =./= form, not the repo's name* (the user, 2026-09-29).
-=orgit--repository-directory= falls back to =expand-file-name=, so =./= resolves
-against the buffer's =default-directory=. That is the repo, because
-=find-file-visit-truename= makes TODO.org visit its true path even when opened
-through =~/org/=, and =org-agenda-open-link= follows a link inside the source
-buffer; verified live 2026-09-29. It is more portable than the named form, which
-needs =magit-repository-directories= to know the repo. A link copied into
-another repo's file would resolve there instead, but a citation stays in the
-file that makes it. The 255 named links already written stay, since they work.
-[[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]]'s resolutions, authored 2026-10-01 before this landed, cite 29 commits
-as bare SHAs, and 28 of those are in DONE.org, which the prospective-only rule
-leaves as written (measured 2026-10-02).
-
-*PRs.* "[[https://github.com/nbest937/claude-code-ide-org.el/pull/33][PR #33]]" becomes a link to =https://github.com/<owner>/<repo>/pull/33=
-with "[[https://github.com/nbest937/claude-code-ide-org.el/pull/33][PR #33]]" as description, when the file's repo has a GitHub =origin=; read
-from the remote, with no network.
-
-*Prose.* The conventions' "Referring to a commit" says the tools link commits,
-in the =./= form, where =orgit= is installed, and loses its "use the repo name"
-and "no implicit repo" paragraphs, which the =./= finding retires. The footnote
-rule's in-body commit form becomes =./=.
-
-*Tests.* Commits and PRs convert; a 7-hex that is not a commit, a missing
-=orgit-rev= link type and a non-GitHub =origin= each leave the text alone; each
-shown to fail with its guard removed.
-
-Distinct from [[id:41cf5830-fc2e-4dc6-b243-a0c2718a53a3][41cf5830]],
-which indexes a heading's *own* git history one hop away; this is
-about the citations prose makes deliberately. The two touch the same
-seam (bodies pointing into git) and belong in any future org-native
--notes grouping together.
-
-*The worked example is
-[[id:c7bf2121-755c-4e52-8bf2-e21e56b1e0c2][c7bf2121]], closed
-2026-09-10 groomed to exactly this heading's target shape*: =:PLAN:=
-wrapped at the true seam, a fixed-size body of journal plus
-resolution, and a =:DEBRIEF:= whose citations are live —
-=orgit-rev:= links for the two shipping commits and the
-streak-breaker it discriminates against, and a URL link for [[https://github.com/nbest937/claude-code-ide-org.el/pull/21][PR #21]].
-Point the retrofit and the lint at that heading to see what passing
-looks like.
-:END:
-:DEBRIEF:
-*Shipped 2026-10-05* with [[id:f7847adf-a408-4ad0-ae0c-8d3c19b79f2b][f7847adf]], whose debrief carries the shared design,
-verification and deviations. This heading's rows: commits in [[orgit-rev:./::8100822][8100822]], prose
-in [[orgit-rev:./::779d388][779d388]].
-
-*Commits.* A SHA in verbatim or after "commit" links when =git cat-file -e
-<sha>^{commit}=, run from the file's repository, confirms it and =orgit-rev= is
-registered. Commits are 7 or 9-12 hex, not this drawer's 7-12: [[id:f7847adf-a408-4ad0-ae0c-8d3c19b79f2b][f7847adf]]'s rule
-that 8 hex is only ever an id keeps the kinds disjoint, so an 8-hex SHA stays as
-written. =bin/lint-org= asks git from its working directory when the file is a
-temp copy outside any repository, which is how pre-commit lints.
-
-*PRs.* "[[https://github.com/nbest937/claude-code-ide-org.el/pull/33][PR #33]]" links to =https://github.com/<owner>/<repo>/pull/33=, with the
-repository read from =origin= and no network. Here that is
-=nbest937/claude-code-ide-org.el=, which =gh repo view= confirms.
-
-*Verified* by stubbed tests for each guard and one test against a real =git
-init= repository, for both seams. This drawer's own commit citations, written
-as bare verbatim SHAs, are the live check.
-:END:
-
-Commits and PRs are cited as bare text, though the convention has asked for
-=orgit-rev:= links since 2026-08-21 and prose has not changed the practice. The
-tools link them as they write, through the citation linker shared with [[id:f7847adf-a408-4ad0-ae0c-8d3c19b79f2b][f7847adf]],
-in the portable =orgit-rev:./::<sha>= form; a lint warns on hand edits, and the
-one-off pass converts TODO.org. Design in =:PLAN:=.
-
-*Resolution:* the tools link a confirmed commit SHA as =orgit-rev:./::= and
-"PR #N" as the pull request's URL as they write; the one pass linked TODO.org's
-23 commits and 11 PRs, and the conventions now describe that rather than ask
-for it.
 
 
 * TODO An unmatched clock_in grows an ever-wider span across review passes :code:
@@ -7101,7 +6621,7 @@ TODO.org; agenda restriction active)" turns a silent wrong answer into an
 inspectable one.
 
 
-* DOING [5/6] Make the heading body a scannable summary, with plan and debrief in drawers
+* DOING [6/6] Make the heading body a scannable summary, with plan and debrief in drawers
 :PROPERTIES:
 :ID:       4c834fdb-5314-4168-ab1d-09fe89ded517
 :CREATED:  [2026-09-02 Wed 16:00]
@@ -7699,7 +7219,8 @@ wrap-whole exception, and the line-1 debrief-marker hypothesis held for just 4
 of 73.
 
 
-** REVIEW Move the 88 pre-convention debriefs into :DEBRIEF:, authoring each resolution :code:bounded:
+** DONE Move the 88 pre-convention debriefs into :DEBRIEF:, authoring each resolution :code:bounded:
+CLOSED: [2026-10-05 Mon 14:49]
 :PROPERTIES:
 :ID:       e128e4fa-b0d9-49f7-99eb-bae2d4b0676b
 :CREATED:  [2026-09-08 Tue 16:12]
@@ -7755,6 +7276,8 @@ CLOCK: [2026-10-01 Thu 11:27]--[2026-10-01 Thu 11:28] =>  0:01
 - [2026-10-01 Thu 11:27]--[2026-10-01 Thu 11:28] assigned at review
 CLOCK: [2026-10-01 Thu 11:33]--[2026-10-01 Thu 11:34] =>  0:01
 - [2026-10-01 Thu 11:33]--[2026-10-01 Thu 11:34] assigned at review
+- State "DONE"       from "REVIEW"     [2026-10-05 Mon 14:49] \\
+  reviewed and accepted by the user
 :END:
 :PLAN:
 
@@ -7859,7 +7382,6 @@ outline fell only from 487k to 475k characters.
 
 *Resolution:* 318 finished headings carry an authored resolution and a
 =:DEBRIEF:= drawer; accepted by the user 2026-10-05.
-
 
 
 * TODO A boolean argument passed as false arrives as :false, which elisp reads as true :code:
@@ -9631,12 +9153,12 @@ before the fix and still says.
 
 
 * TODO Archive closed tasks daily
-SCHEDULED: <2026-10-06 Tue 07:00 ++1d>
+SCHEDULED: <2026-10-07 Wed 07:00 ++1d>
 :PROPERTIES:
 :CATEGORY: Meta
 :ID:       cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8
 :CREATED:  [2026-08-21 Fri 15:35]
-:LAST_REPEAT: [2026-10-05 Mon 11:22]
+:LAST_REPEAT: [2026-10-06 Tue 09:40]
 :END:
 :LOGBOOK:
 CLOCK: [2026-08-24 Mon 10:25]--[2026-08-24 Mon 10:28] =>  0:03
@@ -12452,9 +11974,6 @@ per tool -- rather than opening the servers beyond localhost.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
-CLOCK: [2026-10-05 Mon 14:45]--[2026-10-05 Mon 14:46] =>  0:01
-CLOCK: [2026-10-05 Mon 12:58]--[2026-10-05 Mon 12:59] =>  0:01
-CLOCK: [2026-10-05 Mon 12:26]--[2026-10-05 Mon 12:27] =>  0:01
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
@@ -12632,7 +12151,12 @@ CLOCK: [2026-10-01 Thu 11:27]--[2026-10-01 Thu 11:32] =>  0:05
 CLOCK: [2026-10-02 Fri 09:44]--[2026-10-02 Fri 09:58] =>  0:14
 CLOCK: [2026-10-02 Fri 10:40]--[2026-10-02 Fri 10:41] =>  0:01
 CLOCK: [2026-10-05 Mon 11:20]--[2026-10-05 Mon 11:21] =>  0:01
+CLOCK: [2026-10-05 Mon 12:26]--[2026-10-05 Mon 12:27] =>  0:01
 - <2026-10-05 Mon 12:33>--<2026-10-05 Mon 12:33> review pass (buffer buried)
+CLOCK: [2026-10-05 Mon 12:58]--[2026-10-05 Mon 12:59] =>  0:01
+CLOCK: [2026-10-05 Mon 14:45]--[2026-10-05 Mon 14:46] =>  0:01
+CLOCK: [2026-10-06 Tue 09:39]--[2026-10-06 Tue 09:40] =>  0:01
+- <2026-10-06 Tue 09:39>--<2026-10-06 Tue 09:40> review pass (buffer buried)
 :END:
 
 We created this heading on 2026-08-26. We deleted that property from its
