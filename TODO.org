@@ -428,12 +428,22 @@ list.
 :ID:       49137118-e960-479c-bccd-d353ab98b3de
 :CREATED:  [2026-10-06 Tue 10:42]
 :END:
+:PLAN:
 
 Raised by PR #34's reviewer but not posted, against [[id:d350ff5b-3b1f-465e-800b-962264d2e841][d350ff5b]].
 =claude-code-ide-org-normalize-drawer-order= walks every tracked file and saves
 those it changes, which includes =~/git/agentic-euchre/*.org= and
 =~/org/notes.org=. Its docstring says "the tracked files", so it may be
 intended; it is broader than the slice's scope. Held for the user's judgement.
+
+:END:
+*Moot, 2026-10-06 (the user).* No other repo is tracked yet in any real sense,
+and the pass is a one-time repair that nothing runs automatically. It ran once,
+in commit [[orgit-rev:./::30a4673][30a4673]], and changed only this repo's TODO.org and DONE.org. The other
+agenda files are =~/org/notes.org= and =agentic-euchre='s two stub files,
+untouched since 2026-09-10. Revisit this if a second repo adopts the plugin and
+someone means to rerun the pass.
+
 
 
 * TODO The body-prose counter reads :END: as a drawer opening, so a drawer inside a body hides everything after it :code:
