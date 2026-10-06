@@ -51,13 +51,12 @@ alongside =bin/test= and =bin/lint-org=. This lands on a feature branch, since
 it carries a script change.
 :END:
 
-The "File header" section of =skills/org/references/org-conventions.md= shows
-=#+ARCHIVE: DONE.org::=. This repo's TODO.org, the shipped template and
-agentic-euchre all use =DONE.org::datetree/=. The same file's Archiving section
-calls the destination unsettled and says not to switch unilaterally, so the
-example should either follow the practice or the question should be settled
-first. That choice is the user's.
-
+The conventions reference and the org skill still show =#+ARCHIVE: DONE.org::=
+and call the archive location unsettled. It has been a datetree by =CLOSED:=
+since [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]] (2026-09-02), in every tracker and the template. Correct both
+texts, and extend =bin/check-conventions= to compare the =#+TAGS:= and
+=#+ARCHIVE:= lines across their copies, so neither this nor the template's tag
+drift can recur unseen.
 
 * DOING The shipped TODO.org template still declares the tags dropped 2026-09-29, so every scaffolded project inherits them :code:
 :PROPERTIES:
