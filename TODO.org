@@ -8,6 +8,23 @@
 :CREATED:  [2026-10-06 Tue 10:41]
 :CATEGORY: Dev
 :END:
+:DEBRIEF:
+The =/code-review high --comment= run on 2026-10-06 found seven defects and
+three cleanups, all in =config.el=. The defects: a reorder that moved a running
+clock's marker to the headline, a failed check that left a half-written drawer
+in an unsaved buffer, RET taken over by the id mark, a nested block ending the
+outer one early, an =org_history= type error on an unknown id, a failed =git
+log= read as zero commits, and the id cache rebuilt inside font-lock on every
+save. The cleanups: a leaked marker and three id resolutions in =org_amend=,
+duplicated regex and exclusions in the id lookup, and a lint slowed from 4.7 to
+8.7 s. Each fix is one commit leading with its child's id, ten in all from
+commit [[orgit-rev:./::211eaab][211eaab]] to commit [[orgit-rev:./::1e786eb][1e786eb]]. The suite stands at 897 tests and the pre-push
+gate passed, with 26 suites and 1584 checks. The review was wrong on one point:
+the lint's added cost was the drawer-layout parse, at 3.1 s, and not the
+citation regions, at 0.6 s. Filed, not fixed: [[id:49137118-e960-479c-bccd-d353ab98b3de][49137118]], the reviewer's unposted
+point that the drawer-order corpus pass saves tracked files in other
+repositories.
+:END:
 
 The =/code-review high= run on 2026-10-06 posted ten inline findings on [[https://github.com/nbest937/claude-code-ide-org.el/pull/34][PR #34]],
 the branch of slice [[id:6521dd56-8772-416b-9435-6da78bb86b06][6521dd56]], all in =config.el=. They arrived inside the
@@ -15,11 +32,17 @@ slice's REVIEW window and are fixed on the branch before it merges, one child
 per finding, each child naming the member that shipped the defect. The two the
 reviewer would block the merge on are the drawer normaliser losing the clock
 marker ([[id:d350ff5b-3b1f-465e-800b-962264d2e841][d350ff5b]]) and the id mark taking over RET ([[id:0eaffc39-088f-48c3-a5b8-167336458114][0eaffc39]]).
+
+All ten findings are fixed on the branch, each with a test that failed first,
+and every review thread is answered and resolved; the eleventh, the corpus
+pass's reach beyond this repo, waits on the user.
+
 ** TODO The drawer normaliser deletes and reinserts the entry, so a running clock's marker lands on the headline
 :PROPERTIES:
 :ID:       40b692e8-64f9-4c0f-a22b-4d859e5f25f3
 :CREATED:  [2026-10-06 Tue 10:41]
 :END:
+:PLAN:
 
 From PR #34's review (=claude-code-ide-org--normalize-drawers=), against
 [[id:d350ff5b-3b1f-465e-800b-962264d2e841][d350ff5b]]. A disordered entry is rewritten with =delete-region= then =insert=,
@@ -28,10 +51,37 @@ running CLOCK line, window point, fold state. An =org_amend drawer=PLAN= on a
 clocked heading with a =:LOGBOOK:= then leaves the next clock-out failing with
 "Clock start time is gone". Fix so markers survive; the test asserts
 =org-clock-marker= still sits on the CLOCK line.
+
+:END:
+:DEBRIEF:
+Fixed in commit [[orgit-rev:./::211eaab][211eaab]], a [[https://github.com/nbest937/claude-code-ide-org.el/pull/34][PR #34]] review finding. Two changes:
+=--amend-into-drawer= inserts a new drawer after the last managed drawer ranking
+above it when the heading is already canonical, and
+=--normalize-drawer-order-at-point= rewrites through =--replace-around-logbook=,
+which leaves the =:LOGBOOK:= text in place and replaces the text either side of
+it. Two ERT tests, one per path, put a marker on an open CLOCK line and both
+failed first. Not covered: a marker outside =:LOGBOOK:=, such as window point,
+still collapses to a boundary on a reorder, which the review named but which
+carries no correctness cost.
+:END:
+A drawer created on an ordered heading is written in its place, and a reorder
+rewrites only the text either side of =:LOGBOOK:=, so a running clock's marker
+stays on its CLOCK line.
+
 ** TODO The bare-id mark's keymap binds RET, so Enter jumps to a heading in commit, magit and org buffers
 :PROPERTIES:
 :ID:       f5e5ccf4-710f-4eef-8790-7bfb20b5e5b5
 :CREATED:  [2026-10-06 Tue 10:41]
+:END:
+:DEBRIEF:
+Fixed in commit [[orgit-rev:./::54a58fc][54a58fc]], a [[https://github.com/nbest937/claude-code-ide-org.el/pull/34][PR #34]] review finding.
+=claude-code-ide-org-id-reference-map= binds =mouse-2= with =follow-link= (the
+button convention, so a short =mouse-1= still jumps) and =C-c C-o=. In a
+=magit-section-mode= buffer the mode no longer adds =keymap= to
+=font-lock-extra-managed-props=, so a refontify cannot strip magit's section
+keymaps. The existing mark test was changed to assert the new bindings, and a
+new test covers the magit case with a stand-in mode; both failed first. Not
+exercised: a real magit or git-commit buffer, since the suite carries no magit.
 :END:
 
 From PR #34's review (the id-lookup font-lock mark), against [[id:0eaffc39-088f-48c3-a5b8-167336458114][0eaffc39]]. A
@@ -40,10 +90,23 @@ jumps instead of opening a line in a commit buffer or showing the commit in
 magit-log. Adding =keymap= to =font-lock-extra-managed-props= can also strip
 magit's own section keymaps. Bind only the mouse and =C-c C-o=, and leave RET
 alone.
+
+The id mark jumps on a click or =C-c C-o= and leaves RET to the buffer's own
+map.
+
 ** TODO A failed drawer-order check leaves the half-done write in the buffer, unsaved, and every tool then refuses the file
 :PROPERTIES:
 :ID:       de5f4f98-8a95-492f-bf62-9489e670fb27
 :CREATED:  [2026-10-06 Tue 10:41]
+:END:
+:DEBRIEF:
+Fixed in commit [[orgit-rev:./::f6aa622][f6aa622]], a [[https://github.com/nbest937/claude-code-ide-org.el/pull/34][PR #34]] review finding. =--amend-into-drawer='s
+creation branch and =org_wrap_plan='s two insertions run inside
+=atomic-change-group=, so a failed lossless check undoes them before
+=save-buffer=. =claude-code-ide-org-normalize-drawer-order= catches a failure
+per heading, reports it under "FAILED, left as they were", and kills any buffer
+it opened under =unwind-protect=. Three ERT tests forced the failure by stubbing
+the normaliser, and all three failed first.
 :END:
 
 From PR #34's review (=--amend-into-drawer=, =org_wrap_plan=,
@@ -52,10 +115,25 @@ normaliser's lossless check runs after the drawer is inserted, so a failure
 unwinds past =save-buffer= with the insertion in place; the corpus pass has no
 =unwind-protect=, so one bad heading leaves earlier ones rewritten and unsaved
 and skips killing the buffers it opened. Roll the write back on failure.
+
+A drawer write whose reorder check fails now leaves the buffer as it was, and
+the corpus pass reports a failed heading and goes on.
+
 ** TODO The id-lookup cache is dropped on every tracked save and rebuilt inside font-lock by reading every tracked file
 :PROPERTIES:
 :ID:       635018c2-4273-41b9-a39f-ee2c13764656
 :CREATED:  [2026-10-06 Tue 10:41]
+:END:
+:DEBRIEF:
+Fixed in commit [[orgit-rev:./::26746e9][26746e9]], a [[https://github.com/nbest937/claude-code-ide-org.el/pull/34][PR #34]] review finding. =--id-lookup-drop-cache= no
+longer empties the cache: on a tracked save it starts one idle timer
+(=claude-code-ide-org-id-lookup-rebuild-delay=, 1 s), so saves in a burst share
+one rebuild, and =--id-lookup-rebuild= then flushes font-lock in buffers with
+the mode on. A buffer not in org-mode returns before =--tracked-buffer-p=. The
+cache-on-save test now counts =--slice-referent-index= calls (none before the
+rebuild, one after) and failed first. Differs from the review's suggestion: the
+rebuild is still whole, not per saved file, because one idle scan per burst
+already removes the cost from redisplay.
 :END:
 
 From PR #34's review (the id-lookup cache and its =after-save-hook=), against
@@ -64,30 +142,62 @@ TODO.org, DONE.org and the other agenda files synchronously inside jit-lock N
 times; the global hook also expands =org-agenda-files= on every save in any
 buffer. Invalidate cheaply and rebuild lazily, and test for =org-mode= before
 the tracked-buffer check.
+
+A tracked save schedules one idle rebuild of the id cache; lookups made during
+redisplay never read the files.
+
 ** TODO org_history on an id that resolves to nothing throws a type error instead of refusing
 :PROPERTIES:
 :ID:       d6e435f1-df78-4970-8ede-dfae677d144b
 :CREATED:  [2026-10-06 Tue 10:42]
+:END:
+:DEBRIEF:
+Fixed in commit [[orgit-rev:./::9731cb9][9731cb9]], a [[https://github.com/nbest937/claude-code-ide-org.el/pull/34][PR #34]] review finding: =claude-code-ide-org-history=
+tests the marker and returns =--id-not-found='s refusal, the shape =org_amend=
+uses. A new ERT test reproduced "Wrong type argument: markerp, nil" on the
+unfixed code.
 :END:
 
 From PR #34's review (=org_history=), against [[id:41cf5830-fc2e-4dc6-b243-a0c2718a53a3][41cf5830]]. =--id-find= returns nil
 for a typo'd or unknown prefix and =(marker-buffer nil)= signals =Wrong type
 argument: markerp, nil=. Refuse with =--id-not-found= the way =org_amend= does;
 the tests only ever pass a resolving id.
+
+An unresolved id gets the project's refusal, naming the files scanned.
+
 ** TODO org_history reports a failed git log as zero commits, the same answer as none citing the heading
 :PROPERTIES:
 :ID:       20b7bb32-8c0f-4186-8200-3e8e3ffa5bc8
 :CREATED:  [2026-10-06 Tue 10:42]
+:END:
+:DEBRIEF:
+Fixed in commit [[orgit-rev:./::eb18e4a][eb18e4a]], a [[https://github.com/nbest937/claude-code-ide-org.el/pull/34][PR #34]] review finding. =--history-commits= signals on
+a non-zero exit with git's own output; =org_history= already turned an error
+into "Error: ...", and =--history-front-matter-line= now catches it as "history:
+unavailable -- ...", so a scoped outline still renders. The test corrupts
+=.git/HEAD= and failed first.
 :END:
 
 From PR #34's review (=--history-commits=), against [[id:41cf5830-fc2e-4dc6-b243-a0c2718a53a3][41cf5830]]. A non-zero =git
 log= exit returns nil, so a corrupt repo, a =safe.directory= refusal or a broken
 worktree reads as "0 commits" followed by the assertion that no commit cites it.
 Signal or report the failure instead.
+
+A failed =git log= is reported as a failure by =org_history= and by the scoped
+outline's history line, never as zero commits.
+
 ** TODO A block nested inside another ends the in-block state early, so a headline after it is neither escaped nor linted
 :PROPERTIES:
 :ID:       4fc8375f-d339-4f73-95da-53a718c3771b
 :CREATED:  [2026-10-06 Tue 10:42]
+:END:
+:DEBRIEF:
+Fixed in commit [[orgit-rev:./::3d1acc1][3d1acc1]], a [[https://github.com/nbest937/claude-code-ide-org.el/pull/34][PR #34]] review finding. One helper, =--block-after=,
+gives the block type open after a line, closing it only on a matching =#+end_=
+(case-insensitive), as org reads it; =--escape-block-headlines= and the lint's
+headline-in-block check both use it, so they cannot drift apart. One ERT test
+covers both the writer and the lint and failed first. =bin/lint-org= reports no
+new errors over the trackers.
 :END:
 
 From PR #34's review (=--escape-block-headlines= and the lint's
@@ -96,10 +206,26 @@ headline-in-block check), against [[id:8a23d6ec-ca45-454d-b65f-e46ea9204816][8a2
 =#+begin_example= closes the example early and a later =* Heading= splits the
 entry undetected. Track the opening block's type and close only on the matching
 end.
+
+A block closes only on its own type's end line, on write and in the lint, so a
+headline after a quoted block is escaped and refused.
+
 ** TODO bin/lint-org went from 4.7 s to 8.1 s, parsing each live heading twice more and building a temp buffer per region
 :PROPERTIES:
 :ID:       9297f974-c682-4e32-a91a-d8ca7d18a8b2
 :CREATED:  [2026-10-06 Tue 10:42]
+:END:
+:DEBRIEF:
+Fixed in commit [[orgit-rev:./::1e786eb][1e786eb]], a [[https://github.com/nbest937/claude-code-ide-org.el/pull/34][PR #34]] review finding, though not where the review
+pointed. An advice-based profile of the real run found =--entry-drawer-layout=
+at 3.1 of 8.2 s; =--citation-regions= and =--citation-candidates= were 0.28 s
+each. =--entry-drawers-plainly-canonical-p= scans lines and answers only the
+plain canonical case; anything else, a drawer-shaped line in the body included,
+goes to the parser. 777 of 778 linted headings skip it, and the time inside the
+files is 4.45 s. The new test checks the scan never calls a heading canonical
+where the parser disagrees, and failed first. Judged not worth doing: sharing
+one parse with the citation regions, and one temp buffer per file for the
+candidates, at 0.6 s combined.
 :END:
 
 From PR #34's review (=--entry-drawer-layout=, =--citation-regions=), against
@@ -108,20 +234,42 @@ From PR #34's review (=--entry-drawer-layout=, =--citation-regions=), against
 possibly git processes, per citation region; pre-commit pays it on every commit.
 Parse each entry once and share it, and reuse one temp buffer and one
 commit-exists cache per file.
+
+=bin/lint-org= runs in 6.1 s, down from 8.7 s: a line scan answers drawer order
+for all but one heading, and only what it cannot place is parsed.
+
 ** TODO org_amend resolves its id three times and leaks a marker on every call
 :PROPERTIES:
 :ID:       40e5d878-4ca0-45f7-8ffc-70c9b341c275
 :CREATED:  [2026-10-06 Tue 10:42]
+:END:
+:DEBRIEF:
+Fixed in commit [[orgit-rev:./::5c8f89f][5c8f89f]], a [[https://github.com/nbest937/claude-code-ide-org.el/pull/34][PR #34]] review finding. One marker gives the target
+file, the slice test and the write-or-queue choice, and it is released on every
+path. The new test counts =--id-find= calls in one amend: 4 on the unfixed code,
+2 now, this one plus =--at-id-writable='s own.
 :END:
 
 From PR #34's review (=org_amend='s slice check), against [[id:f7847adf-a408-4ad0-ae0c-8d3c19b79f2b][f7847adf]]. The file,
 the slice test and the write each call =--id-find=, each refreshing stale id
 buffers, and the slice test's marker is never released. Resolve once, derive
 file and slice-p from it, then =set-marker= nil, as =org_edit= does.
+
+=org_amend= resolves its id once before the write and releases the marker.
+
 ** TODO The id lookup copies the citation detector's exclusions and regex, and the copies already disagree
 :PROPERTIES:
 :ID:       9a8d82f8-1cd2-42cb-b93c-6c2c12497883
 :CREATED:  [2026-10-06 Tue 10:42]
+:END:
+:DEBRIEF:
+Fixed in commit [[orgit-rev:./::f77233b][f77233b]], a [[https://github.com/nbest937/claude-code-ide-org.el/pull/34][PR #34]] review finding. =--bare-id-regexp= builds the
+bounded match from two constants, with the linker passing "=" as an extra
+excluded character because it matches =verbatim= ids separately.
+=--id-lookup-bare-at= uses the same character sets, and =--id-reference-skip-p=
+reads =--citation-excluded-types= minus =verbatim=. The new test covers path,
+URL, tag and colon prefixes plus fixed-width, comment and keyword lines, and
+failed first; the linker's own tests pass unchanged.
 :END:
 
 From PR #34's review (=--id-reference-skip-p=, =--id-lookup-bare-at=), against
@@ -129,6 +277,10 @@ From PR #34's review (=--id-reference-skip-p=, =--id-lookup-bare-at=), against
 property drawer, and the bare-id match accepts an id after =/=, =.=, =:= or =#=
 that the mark and the linker reject, so eldoc and the jump answer for ids the
 mark never shows. Share one regex constant and =--citation-excluded-types=.
+
+The id lookup, the mark and the linker share one bare-id regex and one exclusion
+list.
+
 ** WAITING Decide whether the drawer-order corpus pass should touch tracked files outside this repo
 :PROPERTIES:
 :ID:       49137118-e960-479c-bccd-d353ab98b3de
