@@ -2,6 +2,32 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* MAYBE Cite a symbol from a body with a search-anchored file: link, so the citation opens at the definition
+:PROPERTIES:
+:ID:       3e7bc5ac-90ab-46c2-b496-99af56d3ec37
+:CREATED:  [2026-10-06 Tue 12:41]
+:CATEGORY: Skill
+:END:
+
+A proposal from slice [[id:6521dd56-8772-416b-9435-6da78bb86b06][6521dd56]]'s plan, never filed while the slice was open and
+parked here at its close, pending the user's filter. Bodies cite code by symbol
+name ([[id:5fc7b934-28ec-4eeb-9f90-f1becec353f0][5fc7b934]] deprecated line numbers), which is stable but inert. A link of
+the form =[[file:config.el::(defun name]]= would open at the definition while
+still naming the symbol rather than a line.
+
+* MAYBE Date measured claims with an inactive timestamp, so "measured [2026-08-26 Wed]" is a parseable date
+:PROPERTIES:
+:ID:       d0253bc8-8b3d-49c0-b7bc-a36d24ffe0a6
+:CREATED:  [2026-10-06 Tue 12:41]
+:CATEGORY: Skill
+:END:
+
+A proposal from slice [[id:6521dd56-8772-416b-9435-6da78bb86b06][6521dd56]]'s plan, never filed while the slice was open and
+parked here at its close, pending the user's filter. Bodies date their
+measurements in prose ("measured 2026-08-26"), which org cannot sort, filter or
+show on the agenda. Writing the date as an inactive timestamp would make every
+measured claim queryable by date.
+
 * TODO An accepted span with no heading reaches apply and fails as 'no org heading found with :ID: "nil"' :code:
 :PROPERTIES:
 :ID:       85f4e03b-3c7a-4f75-86af-52e04b21cf32
@@ -6445,6 +6471,33 @@ those headings are in DONE.org, which the linking pass leaves alone by the
 user's 2026-09-25 decision on [[id:f7847adf-a408-4ad0-ae0c-8d3c19b79f2b][f7847adf]]; the 5 in TODO.org are within it. So
 nothing is owed to them.
 :END:
+:DEBRIEF:
+Shipped in [[https://github.com/nbest937/claude-code-ide-org.el/pull/34][PR #34]], merged 2026-10-06 as commit [[orgit-rev:./::673d6a5][673d6a5]]. Ten planned members
+reached DONE: the two link conventions with their shared linker ([[id:b7259ee4-9aa1-4b55-8cf2-fbbacdea5310][b7259ee4]],
+[[id:f7847adf-a408-4ad0-ae0c-8d3c19b79f2b][f7847adf]]), the id lookup ([[id:0eaffc39-088f-48c3-a5b8-167336458114][0eaffc39]]), the drawer canon and its normaliser
+([[id:d350ff5b-3b1f-465e-800b-962264d2e841][d350ff5b]]), the escaping of block headlines ([[id:8a23d6ec-ca45-454d-b65f-e46ea9204816][8a23d6ec]]), the story definition
+([[id:63df67c7-de0d-43e7-9c6f-2b2979a40aba][63df67c7]]), the mass move of debriefs ([[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]]), the lint that retired the
+backfill clause ([[id:fce6bd35-27ad-4724-8dbb-c9df4b68fb10][fce6bd35]]), org_history ([[id:41cf5830-fc2e-4dc6-b243-a0c2718a53a3][41cf5830]]), and the archive-path audit
+([[id:ea1df60b-1e28-448e-bb62-a6fc2b6b62f8][ea1df60b]]). The tag story [[id:ee3e0fa2-d4a6-4575-a5fb-e4e25c49431a][ee3e0fa2]] was cancelled with both of its children on
+2026-09-29, when it was decided that tags are not how this corpus is searched.
+Two members were moved out into =:DROPPED:=, and [[id:76a6f052-e360-4a12-8077-070da83a8e84][76a6f052]] was parked MAYBE by
+the user's call.
+
+The review ran inside the slice's REVIEW window, as the close rule intends.
+=/code-review high= posted ten findings, which were filed as the story [[id:92804b53-5998-4622-932f-831a8e25fa8d][92804b53]]
+and fixed before merge, each with a test that failed first. One unposted point,
+[[id:49137118-e960-479c-bccd-d353ab98b3de][49137118]], was cancelled as moot.
+
+What differed from the plan: [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]] ran ahead of the conventions it was
+sequenced after. That cost nothing, because its mover already wrote debriefs in
+canonical position. The 86 verbatim citations it left are almost all in
+DONE.org, which the linking pass leaves alone by design.
+
+Left open, all filed: [[id:4c834fdb-5314-4168-ab1d-09fe89ded517][4c834fdb]] is at =[6/6]= and still DOING, so it is owed its
+own close. [[id:14c02a28-5e1f-401b-9c22-dd18c2c10847][14c02a28]] remains TODO, and [[id:6ea84943-9eef-4940-b850-e8cf79310d2a][6ea84943]] and [[id:76a6f052-e360-4a12-8077-070da83a8e84][76a6f052]] remain MAYBE. The
+plan's two unfiled proposals were filed as MAYBE at this close, as [[id:d0253bc8-8b3d-49c0-b7bc-a36d24ffe0a6][d0253bc8]] and
+[[id:3e7bc5ac-90ab-46c2-b496-99af56d3ec37][3e7bc5ac]].
+:END:
 
 The notes cite commits, PRs and dates as inert text, narrate history
 the drawers could index, and carry tags nobody surveyed — while the
@@ -6486,6 +6539,12 @@ Planned:
   - [X] [[id:40e5d878-4ca0-45f7-8ffc-70c9b341c275][40e5d878]] DONE org_amend resolves its id three times and leaks a marker on every call
   - [X] [[id:9a8d82f8-1cd2-42cb-b93c-6c2c12497883][9a8d82f8]] DONE The id lookup copies the citation detector's exclusions and regex, and the copies already disagree
   - [[id:49137118-e960-479c-bccd-d353ab98b3de][49137118]] CANCELLED Decide whether the drawer-order corpus pass should touch tracked files outside this repo
+
+*Resolution:* merged with [[https://github.com/nbest937/claude-code-ide-org.el/pull/34][PR #34]] on 2026-10-06. Citations are now live links,
+drawers stand in canonical order, an id can be looked up anywhere in Emacs, and
+a heading's history is one call away. The ten defects the review found were
+fixed on the branch before merge.
+
 
 
 * TODO The :PLAN: wrap nag fires only on queued DONE, so REVIEW exits skip it :code:
