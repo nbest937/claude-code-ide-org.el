@@ -2744,10 +2744,12 @@ this repo only, which wires its hooks through .claude/settings.json and links
 .claude/agents by hand. Unverified in a plugin consumer: that hooks.json's two
 PreToolUse guards, the org_.* refusal/conventions-inject row and the session
 marker fire; that claude-org-setup leaves org-time-tracking.md unpromoted with
-the feature off and removes a stale copy; that conventions-inject falls back to
-the shipped reference where nothing is promoted; that a catch amended from the
-consumer resolves against the plugin's tracker; and whether a plugin's agents/
-directory is offered to the consumer at all — the manifest names no agents key.
+the feature off, keeps an already-promoted copy on a plain re-run since silence
+is not off ([[id:5fbc34cb-b5bd-4d9c-b8cb-29063f492b45][5fbc34cb]], the [[https://github.com/nbest937/claude-code-ide-org.el/pull/29][PR #29]] review), and removes it with
+--no-time-tracking; that conventions-inject falls back to the shipped reference
+where nothing is promoted; that a catch amended from the consumer resolves
+against the plugin's tracker; and whether a plugin's agents/ directory is
+offered to the consumer at all — the manifest names no agents key.
 agentic-euchre is the available consumer; its skill link resolves to the
 worktree claude-code-ide-org-swc, to be moved forward when the slice merges. Do
 it then, before resuming work there.
