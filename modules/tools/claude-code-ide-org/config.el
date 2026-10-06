@@ -21555,12 +21555,17 @@ The rest are counted as groups and commits."
          (and dir (expand-file-name dir)))))
 
 (defun claude-code-ide-org--history-commits (id8 root)
-  "Commits in ROOT whose message contains ID8, newest first: (SHA DATE SUBJECT)."
+  "Commits in ROOT whose message contains ID8, newest first: (SHA DATE SUBJECT).
+Signals when git fails: an empty answer must mean no commit cites ID8,
+never that git could not say (PR #34's review)."
   (let ((default-directory (file-name-as-directory root)))
     (with-temp-buffer
-      (when (eq 0 (process-file "git" nil t nil "log" "--fixed-strings"
-                                (concat "--grep=" id8)
-                                "--date=short" "--format=%h%x09%ad%x09%s"))
+      (let ((status (process-file "git" nil t nil "log" "--fixed-strings"
+                                  (concat "--grep=" id8)
+                                  "--date=short" "--format=%h%x09%ad%x09%s")))
+        (unless (eq 0 status)
+          (error "git log failed in %s (exit %s): %s" (abbreviate-file-name root)
+                 status (string-trim (buffer-string))))
         (mapcar (lambda (line) (split-string line "\t"))
                 (split-string (buffer-string) "\n" t))))))
 
@@ -21660,12 +21665,14 @@ at point, or nil outside a git repository.  A scoped outline's one hop."
   (let* ((full (org-entry-get nil "ID"))
          (root (and full (claude-code-ide-org--history-root buffer-file-name))))
     (when root
-      (let* ((id8 (substring full 0 8))
-             (split (claude-code-ide-org--history-split
-                     id8 (claude-code-ide-org--history-commits id8 root))))
-        (format "  history: %d commit%s on it, %d citing it (org_history)"
-                (length (car split)) (if (= 1 (length (car split))) "" "s")
-                (apply #'+ (mapcar #'cadr (cdr split))))))))
+      (condition-case err
+          (let* ((id8 (substring full 0 8))
+                 (split (claude-code-ide-org--history-split
+                         id8 (claude-code-ide-org--history-commits id8 root))))
+            (format "  history: %d commit%s on it, %d citing it (org_history)"
+                    (length (car split)) (if (= 1 (length (car split))) "" "s")
+                    (apply #'+ (mapcar #'cadr (cdr split)))))
+        (error (format "  history: unavailable -- %s" (error-message-string err)))))))
 
 ;;; Standalone wiring -- the MCP tools server for clients outside the
 ;;; vterm launcher (Warp, or a `claude' CLI started in any terminal).

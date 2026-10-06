@@ -21407,6 +21407,19 @@ review)."
       (should (string-match-p "\\`Error: no org heading found with :ID: \"deadbeef\" (scanned: "
                               (claude-code-ide-org-history "deadbeef"))))))
 
+(ert-deftest claude-code-ide-org-test-history-reports-a-failed-git-log ()
+  "A git log that fails is reported as a failure, by org_history and by
+the scoped outline's line, never as \"0 commits\" -- the answer a
+heading no commit cites would get (PR #34's review)."
+  (claude-code-ide-org-test--with-history-repo '("abcd1234: work")
+    (with-temp-file (expand-file-name ".git/HEAD" dir) (insert "garbage\n"))
+    (let ((out (claude-code-ide-org-history "abcd1234")))
+      (should (string-match-p "\\`Error: git log failed" out))
+      (should-not (string-match-p "0 commits" out)))
+    (let ((claude-code-ide-org-query-files (list file)))
+      (should (string-match-p "history: unavailable -- git log failed"
+                              (claude-code-ide-org-outline "abcd1234"))))))
+
 (ert-deftest claude-code-ide-org-test-history-served-while-busy ()
   "It reads git, not the file, so unsaved edits do not stop it."
   (claude-code-ide-org-test--with-history-repo '("abcd1234: work")
