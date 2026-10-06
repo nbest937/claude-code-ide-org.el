@@ -20674,6 +20674,23 @@ rewritten but unsaved, and the opened buffer stayed behind."
               (kill-buffer buffer)))
       (delete-directory dir t))))
 
+(ert-deftest claude-code-ide-org-test-amend-resolves-its-id-once ()
+  "org_amend resolves its id once before the write, and the write's own
+resolution is the only other: it took three, each refreshing stale id
+buffers, and the slice check's marker was never released (PR #34's
+review)."
+  (claude-code-ide-org-test--with-capture-file
+    (with-temp-file capture-file
+      (insert "#+TODO: TODO | DONE\n\n"
+              "* TODO A task\n:PROPERTIES:\n:ID: once-1\n:END:\n\nBody.\n"))
+    (org-id-update-id-locations (list capture-file))
+    (let ((finds 0)
+          (real (symbol-function 'claude-code-ide-org--id-find)))
+      (cl-letf (((symbol-function 'claude-code-ide-org--id-find)
+                 (lambda (&rest args) (cl-incf finds) (apply real args))))
+        (should (string-match-p "\\`Amended" (claude-code-ide-org-amend "once-1" "More."))))
+      (should (= 2 finds)))))
+
 (ert-deftest claude-code-ide-org-test-amend-creates-debrief-in-canonical-order ()
   "drawer=DEBRIEF on a heading with :PROPERTIES:, :LOGBOOK: and :PLAN:
 lands last among them.  Before the normaliser it went straight after the

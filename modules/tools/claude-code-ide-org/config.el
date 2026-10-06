@@ -4560,14 +4560,16 @@ undone only through git. Commit the file first, then revise.")
   ;; Every write path's order: escape, link citations (TODO.org :ID:
   ;; f7847adf), resolve explicit links, fill last -- linking changes line
   ;; lengths, and the fill (:ID: b52df20b) measures what is displayed.
-  (let* ((target (car (ignore-errors (claude-code-ide-org--id-find id))))
+  ;; Resolved once: the file, the slice test and the write-or-queue
+  ;; choice below all read this marker, which is released there (PR
+  ;; #34's review -- it was three resolutions and a leaked marker).
+  (let* ((found (ignore-errors (claude-code-ide-org--id-find id 'marker)))
+         (target (and found (buffer-file-name (marker-buffer found))))
          (linked (claude-code-ide-org--link-citations
                   (claude-code-ide-org--escape-block-headlines text) target nil
                   ;; A slice's body is where its member scan reads.
-                  (and (not drawer)
-                       (ignore-errors
-                         (org-with-point-at (claude-code-ide-org--id-find id 'marker)
-                           (claude-code-ide-org--slice-p))))))
+                  (and (not drawer) found
+                       (org-with-point-at found (claude-code-ide-org--slice-p)))))
          (linked-count (cdr linked))
          (resolved (claude-code-ide-org-resolve-id-links (car linked))))
     (unless (car resolved) (setq id nil))
@@ -4575,8 +4577,9 @@ undone only through git. Commit the file first, then revise.")
       (setq text (claude-code-ide-org--fill-prose-text
                   (cdr resolved)
                   (claude-code-ide-org--fill-column-for-file target))))
+    (when (and (null id) found) (set-marker found nil))
     (if (null id) (cdr resolved)
-  (let ((marker (ignore-errors (claude-code-ide-org--id-find id 'marker))))
+  (let ((marker found))
     (if (not marker)
         ;; A capture queued this session has an :ID: but no heading yet,
         ;; so this resolution fails -- truthfully and uselessly: "no org
