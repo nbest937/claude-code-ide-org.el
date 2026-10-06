@@ -20983,6 +20983,22 @@ link `bin/lint-org' refuses as unresolvable."
 or in org's own records.  `verbatim' is here for bare candidates; a
 verbatim token that is itself the citation is matched separately.")
 
+(defconst claude-code-ide-org--bare-id-not-before "[:alnum:]_/.:#~-"
+  "Characters that may not precede a bare 8-hex id: a word, a path, a
+URL, a tag, a footnote.  Inside a bracket expression, `-' last.")
+
+(defconst claude-code-ide-org--bare-id-not-after "[:alnum:]_/~-"
+  "Characters that may not follow a bare 8-hex id.")
+
+(defun claude-code-ide-org--bare-id-regexp (&optional also)
+  "A bare 8-hex id, group 1, bounded as the linker and the lookup agree.
+ALSO is extra characters barred on both sides -- the linker passes \"=\"
+because it matches a =verbatim= id separately; the lookup marks one."
+  (let ((also (or also "")))
+    (concat "\\(?:^\\|[^" also claude-code-ide-org--bare-id-not-before "]\\)"
+            "\\([0-9a-f]\\{8\\}\\)"
+            "\\(?:$\\|[^" also claude-code-ide-org--bare-id-not-after "]\\)")))
+
 (defun claude-code-ide-org--citation-candidates (text resolver commit-dir pr-repo
                                                     &optional members)
   "The citations in TEXT the linker would convert.
@@ -21051,9 +21067,7 @@ manufacture a member out of prose."
               (goto-char end)))
           ;; A bare 8-hex word, not part of a UUID, path or URL.
           (goto-char (point-min))
-          (while (re-search-forward
-                  "\\(?:^\\|[^[:alnum:]_/.:#=~-]\\)\\([0-9a-f]\\{8\\}\\)\\(?:$\\|[^[:alnum:]_/=~-]\\)"
-                  nil t)
+          (while (re-search-forward (claude-code-ide-org--bare-id-regexp "=") nil t)
             (let ((beg (match-beginning 1)) (end (match-end 1))
                   (token (match-string 1)))
               (goto-char end)
@@ -21357,9 +21371,12 @@ Exactly 8 hex: a 7-hex SHA or a longer token never matches."
     (goto-char pos)
     (skip-chars-backward "0-9a-f")
     (let ((case-fold-search nil))
-      (when (and (looking-at "[0-9a-f]\\{8\\}\\(?:$\\|[^[:alnum:]_-]\\)")
-                 (or (bobp) (not (string-match-p "[[:alnum:]_-]"
-                                                 (string (char-before))))))
+      (when (and (looking-at (concat "[0-9a-f]\\{8\\}\\(?:$\\|[^"
+                                     claude-code-ide-org--bare-id-not-after "]\\)"))
+                 (or (bobp)
+                     (not (string-match-p
+                           (concat "[" claude-code-ide-org--bare-id-not-before "]")
+                           (string (char-before))))))
         (cons (point) (+ (point) 8))))))
 
 (defun claude-code-ide-org--id-lookup-link-at (pos)
@@ -21427,24 +21444,23 @@ Exactly 8 hex: a 7-hex SHA or a longer token never matches."
   "Keymap on a marked bare id: a click or C-c C-o jumps to its heading.")
 
 (defun claude-code-ide-org--id-reference-skip-p (pos)
-  "Non-nil when the bare id at POS is inside a link, ~code~ or a block.
-Verbatim is not skipped: DONE.org cites ids that way."
+  "Non-nil where the linker would not read the bare id at POS a citation:
+`claude-code-ide-org--citation-excluded-types', the same list, so the
+two cannot drift.  Verbatim is the one difference: DONE.org cites ids
+that way, and the linker matches a =verbatim= id by itself."
   (and (derived-mode-p 'org-mode)
        (save-excursion
          (goto-char pos)
          (org-element-lineage
           (org-element-context)
-          '(link code inline-src-block src-block example-block export-block
-            comment-block quote-block special-block center-block verse-block)
+          (remq 'verbatim claude-code-ide-org--citation-excluded-types)
           t))))
 
 (defun claude-code-ide-org--id-reference-matcher (limit)
   "Font-lock matcher: the next bare id before LIMIT that resolves."
   (let ((case-fold-search nil) found)
     (while (and (not found)
-                (re-search-forward
-                 "\\(?:^\\|[^[:alnum:]_/.:#~-]\\)\\([0-9a-f]\\{8\\}\\)\\(?:$\\|[^[:alnum:]_/~-]\\)"
-                 limit t))
+                (re-search-forward (claude-code-ide-org--bare-id-regexp) limit t))
       (let ((beg (match-beginning 1)) (end (match-end 1)))
         (goto-char end)
         (when (and (claude-code-ide-org--id-lookup-full

@@ -21163,6 +21163,34 @@ buffer's own map (PR #34's review).  The mode is on in a tracked file."
                    'jumped)))
         (should (eq 'jumped (claude-code-ide-org-id-lookup-jump)))))))
 
+(ert-deftest claude-code-ide-org-test-id-lookup-agrees-with-the-linker ()
+  "The lookup reads an id where the linker would and nowhere else: not
+after a path or URL character, and not in a fixed-width line, a comment
+or a keyword, which the linker never treats as a citation.  The two
+used to keep separate copies, and they had drifted (PR #34's review)."
+  (claude-code-ide-org-test--with-lookup-file
+    (with-temp-buffer
+      (insert "foo/abcd1234 x.abcd1234 #abcd1234 :abcd1234\n"
+              ": abcd1234 fixed\n# abcd1234 comment\n#+TITLE: abcd1234\n"
+              "Prose abcd1234 here.\n")
+      (let ((org-mode-hook nil)) (org-mode))
+      (cl-flet ((at (s) (goto-char (point-min)) (search-forward s) (backward-char 1)
+                  (claude-code-ide-org--id-lookup-eldoc)))
+        (dolist (s '("foo/abcd1234" "x.abcd1234" "#abcd1234" ":abcd1234"))
+          (should-not (at s)))
+        (should (at "Prose abcd1234")))
+      (claude-code-ide-org-id-lookup-mode 1)
+      (font-lock-ensure)
+      (dolist (s '(": abcd1234" "# abcd1234" "#+TITLE: abcd1234"))
+        (goto-char (point-min))
+        (search-forward s)
+        (should-not (memq 'claude-code-ide-org-id-reference
+                          (ensure-list (get-text-property (1- (point)) 'face)))))
+      (goto-char (point-min))
+      (search-forward "Prose abcd1234")
+      (should (memq 'claude-code-ide-org-id-reference
+                    (ensure-list (get-text-property (1- (point)) 'face)))))))
+
 (ert-deftest claude-code-ide-org-test-id-lookup-mode-only-in-tracked-files ()
   "On for a tracked org file, off for an untracked one."
   (claude-code-ide-org-test--with-lookup-file
