@@ -2,6 +2,91 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO [0/10] The clock record beneath the review pass is still wrong: correctness, reporting, and the attention clock :code:
+:PROPERTIES:
+:ID:       7ae1cff4-c0df-4ac0-9aea-a778b2373061
+:CREATED:  [2026-10-09 Fri 11:15]
+:CATEGORY: Slices
+:KIND:     slice
+:COOKIE_DATA: checkbox recursive
+:MEMBERS:  595df230-e31d-42ad-9ea7-128e545b9aa0 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 001fb310-69f7-4417-81be-a224a3bf83e0 55125136-5939-434e-9676-96ea66a75770 37147e9e-468b-43ee-91f9-45d9647c6164 64d34a64-d336-40a8-a8e8-da8133d0da06 445ec1f1-095a-462b-abbd-7a3a00925ddb
+:BLOCKER:  595df230-e31d-42ad-9ea7-128e545b9aa0 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 001fb310-69f7-4417-81be-a224a3bf83e0 55125136-5939-434e-9676-96ea66a75770 37147e9e-468b-43ee-91f9-45d9647c6164 64d34a64-d336-40a8-a8e8-da8133d0da06 445ec1f1-095a-462b-abbd-7a3a00925ddb
+:END:
+:PLAN:
+Divided out of [[id:c7619140-f269-4329-bc05-a38ea151e202][c7619140]] on 2026-10-09 (the user, a three-way split): the "clock
+beneath it is still wrong" half of that slice's title. Every member matters only
+where time tracking is on.
+
+The order, one line each:
+
+- [[id:595df230-e31d-42ad-9ea7-128e545b9aa0][595df230]], [[id:e3d1531d-7562-4bad-bef2-fc819630c5f7][e3d1531d]], [[id:b5448133-4021-46b9-a90e-d88e149ae65d][b5448133]] first, in that order: the attention clock's own shape, then what it measured wrongly, then rebuilding the record from the audit log. They follow [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]]'s [[id:97b4f6a9-a944-40d3-8d14-7a1667c52291][97b4f6a9]], which gates the clock on the option, so the shape is settled for installs that keep it.
+- [[id:3485b0d0-3b47-4a28-ae6f-e2061fa8f226][3485b0d0]] and [[id:2d100d0d-2d04-43b9-af1e-f4d6b52bbada][2d100d0d]]: open clocks that never close, and overlapping intervals that subtraction reaches only on one side; both corrupt the record directly.
+- [[id:001fb310-69f7-4417-81be-a224a3bf83e0][001fb310]]: stale persisted clock history hanging the first clock-in after a restart.
+- [[id:55125136-5939-434e-9676-96ea66a75770][55125136]]: still WAITING on the user's decision about deriving clock events from DOING; placed after the defects, so the decision is made against a record that is right.
+- [[id:37147e9e-468b-43ee-91f9-45d9647c6164][37147e9e]] and [[id:64d34a64-d336-40a8-a8e8-da8133d0da06][64d34a64]]: reporting, worked headings without a clock interval and a parent's own time in a clocktable, which need the record right first.
+- [[id:445ec1f1-095a-462b-abbd-7a3a00925ddb][445ec1f1]] last: the A/B comparison across the fixes, which measures the slice itself.
+:END:
+
+The clock record's own correctness and reporting, divided out of [[id:c7619140-f269-4329-bc05-a38ea151e202][c7619140]] on
+2026-10-09 (the user). Matters only where time tracking is on.
+
+Planned:
+
+- [ ] [[id:595df230-e31d-42ad-9ea7-128e545b9aa0][595df230]] TODO The review-attention clock is a real org clock, so the buffer stays busy for the whole review and apply's first clock-in closes it
+- [ ] [[id:e3d1531d-7562-4bad-bef2-fc819630c5f7][e3d1531d]] TODO The review-attention clock stops at the first apply, so 101 intervals measure the wrong thing
+- [ ] [[id:b5448133-4021-46b9-a90e-d88e149ae65d][b5448133]] TODO Rebuild the 101 truncated review-attention intervals from the audit log
+- [ ] [[id:3485b0d0-3b47-4a28-ae6f-e2061fa8f226][3485b0d0]] TODO A session that ends holding an open clock never closes it: 8 of 42 clocking sessions end on a clock_in
+- [ ] [[id:2d100d0d-2d04-43b9-af1e-f4d6b52bbada][2d100d0d]] TODO Intervals on two different headings can overlap, and subtraction reaches only one
+- [ ] [[id:001fb310-69f7-4417-81be-a224a3bf83e0][001fb310]] TODO Stale entries in org-clock's persisted history hang the first clock-in after a restart
+- [-] [[id:55125136-5939-434e-9676-96ea66a75770][55125136]] WAITING Decide whether queue-append should derive clock events from DOING transitions, reversing the separation 4f6a6bb1 chose
+- [ ] [[id:37147e9e-468b-43ee-91f9-45d9647c6164][37147e9e]] TODO Report worked headings that carry no clock interval that day
+- [ ] [[id:64d34a64-d336-40a8-a8e8-da8133d0da06][64d34a64]] NEXT A clocktable never shows a parent's own time, only own-plus-subtree
+- [ ] [[id:445ec1f1-095a-462b-abbd-7a3a00925ddb][445ec1f1]] TODO A/B the clock record across the phase-3 fixes, since much of what is logged now is bogus
+
+
+* TODO [0/10] The review pass every install uses: movement, marking, apply, quit, and no clock where tracking is off :code:
+:PROPERTIES:
+:ID:       5a4896c3-3d4e-4b12-9f9e-06b97d84b238
+:CREATED:  [2026-10-09 Fri 11:15]
+:CATEGORY: Slices
+:KIND:     slice
+:COOKIE_DATA: checkbox recursive
+:MEMBERS:  97b4f6a9-a944-40d3-8d14-7a1667c52291 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 41f21b4d-278d-4ad8-a56f-122f5af33d65 e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 ee3c22c9-f99c-4d41-9c3d-8f39af916fff 6c64cc9c-33a9-4a20-af19-c188a690c755 79c224ab-188a-4ed4-a606-c28ee2cfe72d 361e2708-8124-4bd1-9c44-f97ca97aca4a 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd
+:BLOCKER:  97b4f6a9-a944-40d3-8d14-7a1667c52291 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 41f21b4d-278d-4ad8-a56f-122f5af33d65 e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 ee3c22c9-f99c-4d41-9c3d-8f39af916fff 6c64cc9c-33a9-4a20-af19-c188a690c755 79c224ab-188a-4ed4-a606-c28ee2cfe72d 361e2708-8124-4bd1-9c44-f97ca97aca4a 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd
+:END:
+:PLAN:
+Divided out of [[id:c7619140-f269-4329-bc05-a38ea151e202][c7619140]] on 2026-10-09 (the user, a three-way split). The members
+are those a task-only install also meets, since the review buffer and apply
+serve state changes whether or not time tracking is on.
+
+The order, one line each:
+
+- [[id:97b4f6a9-a944-40d3-8d14-7a1667c52291][97b4f6a9]] first: it stops the review pass opening a clock where tracking is off, so this slice stops imposing time tracking on the installs it exists to serve.
+- [[id:489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938][489d6f61]]: the crash at review-buffer quit, which has cost two Emacs restarts and can strike any review.
+- [[id:41f21b4d-278d-4ad8-a56f-122f5af33d65][41f21b4d]], [[id:e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b][e95cc5d1]], [[id:396fd1c3-70e0-4e1f-8839-670b5293a7d3][396fd1c3]] and [[id:ee3c22c9-f99c-4d41-9c3d-8f39af916fff][ee3c22c9]] together: movement and marking in the buffer, all in the same few commands.
+- [[id:6c64cc9c-33a9-4a20-af19-c188a690c755][6c64cc9c]]: returning point and windows on exit, the last of the buffer-handling members.
+- [[id:79c224ab-188a-4ed4-a606-c28ee2cfe72d][79c224ab]]: a checkout destroying applied changes, a guard outside the buffer.
+- [[id:361e2708-8124-4bd1-9c44-f97ca97aca4a][361e2708]] then [[id:2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd][2cd74268]]: how far apply can be automated is decided first, because the task-only auto-apply toggle depends on the answer.
+:END:
+
+The part of the review pass a task-only install also uses, divided out of
+[[id:c7619140-f269-4329-bc05-a38ea151e202][c7619140]] on 2026-10-09 (the user) so it can ship without waiting on the
+time-tracking work.
+
+Planned:
+
+- [ ] [[id:97b4f6a9-a944-40d3-8d14-7a1667c52291][97b4f6a9]] TODO The review command clocks the reviewer's attention even where time tracking is off, and without the meta-work anchor files the heading under whatever comes last
+- [-] [[id:489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938][489d6f61]] DOING Emacs died of a fatal signal at review-buffer quit, deadlocked in the mac port's shutdown
+- [ ] [[id:41f21b4d-278d-4ad8-a56f-122f5af33d65][41f21b4d]] TODO The review buffer has no keys to move between items; bind n and p to the next and previous item
+- [ ] [[id:e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b][e95cc5d1]] TODO =d= advances point in the review buffer, onto whatever moved up to replace the dismissed item
+- [ ] [[id:396fd1c3-70e0-4e1f-8839-670b5293a7d3][396fd1c3]] TODO Recenter after `m` advances, so the item under consideration is never at the bottom of the window
+- [ ] [[id:ee3c22c9-f99c-4d41-9c3d-8f39af916fff][ee3c22c9]] TODO Make =d= mark for dismissal rather than dismiss, so a shared reason can be given once
+- [ ] [[id:6c64cc9c-33a9-4a20-af19-c188a690c755][6c64cc9c]] TODO claude-code-ide-org-review should return point and windows to where I entered from
+- [ ] [[id:79c224ab-188a-4ed4-a606-c28ee2cfe72d][79c224ab]] TODO Applied review changes can be destroyed by a git checkout that looks like it reverts only Claude's edit
+- [ ] [[id:361e2708-8124-4bd1-9c44-f97ca97aca4a][361e2708]] TODO Decide how far the review-apply cycle can be automated, given the interactive constraint
+- [ ] [[id:2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd][2cd74268]] TODO Let a task-only install auto-apply state transitions, behind a toggle
+
+
 * TODO The review command clocks the reviewer's attention even where time tracking is off, and without the meta-work anchor files the heading under whatever comes last :code:
 :PROPERTIES:
 :ID:       97b4f6a9-a944-40d3-8d14-7a1667c52291
@@ -2124,15 +2209,15 @@ is legibility for whoever runs the lint and one small gate.
 - org-lint's own "possibly misplaced heading line" checker as the detector (measured 2026-09-25): =bin/lint-org= already runs it as a warning, and it reports 498 lines across the two files, nearly all prose lines opening with =*bold*= -- nobody reads a warning with that count, which is why neither glued heading was seen.
 
 
-* TODO [0/34] The review pass asks for judgement it cannot support, and the clock beneath it is still wrong :code:
+* TODO [0/15] The review pass asks for judgement it cannot support, and the clock beneath it is still wrong :code:
 :PROPERTIES:
 :ID:       c7619140-f269-4329-bc05-a38ea151e202
 :CREATED:  [2026-09-22 Tue 16:07]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  55125136-5939-434e-9676-96ea66a75770 361e2708-8124-4bd1-9c44-f97ca97aca4a 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 aee8487e-0650-4396-bc5c-193ca3efcecb 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 653fea66-f9d5-4431-8ce3-5d355560b475 85f4e03b-3c7a-4f75-86af-52e04b21cf32 445fe577-01ce-4e68-ab5f-c349c40a4643 2c733857-a280-42cc-bd7c-e182a4fb6ea3 79c224ab-188a-4ed4-a606-c28ee2cfe72d 001fb310-69f7-4417-81be-a224a3bf83e0 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46 e75d660f-5c0d-4707-a645-b5dea7d7ebc0 409a69ff-d57e-4c1c-ab6c-28f7e85fa391 49444167-7a29-491a-81b4-c5215fce9fc2 9b7301de-0903-4987-bb34-56f8f021fbd1 cf483f5d-2d25-4454-a580-db7935c8cb81 8028e875-3032-4ade-949e-414d9861b928 ee3c22c9-f99c-4d41-9c3d-8f39af916fff e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 41f21b4d-278d-4ad8-a56f-122f5af33d65 6c64cc9c-33a9-4a20-af19-c188a690c755 a865f83c-ea37-40c4-a104-7cc50d2c20dd 996fd2bd-be90-44b3-b2c5-9018255940b3 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 595df230-e31d-42ad-9ea7-128e545b9aa0 20cecd53-2338-4237-ab06-f8129e10a2c8 37147e9e-468b-43ee-91f9-45d9647c6164 445ec1f1-095a-462b-abbd-7a3a00925ddb 64d34a64-d336-40a8-a8e8-da8133d0da06 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd
-:DROPPED:
+:BLOCKER:  aee8487e-0650-4396-bc5c-193ca3efcecb 653fea66-f9d5-4431-8ce3-5d355560b475 85f4e03b-3c7a-4f75-86af-52e04b21cf32 445fe577-01ce-4e68-ab5f-c349c40a4643 2c733857-a280-42cc-bd7c-e182a4fb6ea3 5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46 e75d660f-5c0d-4707-a645-b5dea7d7ebc0 409a69ff-d57e-4c1c-ab6c-28f7e85fa391 49444167-7a29-491a-81b4-c5215fce9fc2 9b7301de-0903-4987-bb34-56f8f021fbd1 cf483f5d-2d25-4454-a580-db7935c8cb81 8028e875-3032-4ade-949e-414d9861b928 a865f83c-ea37-40c4-a104-7cc50d2c20dd 996fd2bd-be90-44b3-b2c5-9018255940b3 20cecd53-2338-4237-ab06-f8129e10a2c8
+:DROPPED:  361e2708-8124-4bd1-9c44-f97ca97aca4a 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd 79c224ab-188a-4ed4-a606-c28ee2cfe72d 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 41f21b4d-278d-4ad8-a56f-122f5af33d65 e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 6c64cc9c-33a9-4a20-af19-c188a690c755 ee3c22c9-f99c-4d41-9c3d-8f39af916fff 55125136-5939-434e-9676-96ea66a75770 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 001fb310-69f7-4417-81be-a224a3bf83e0 37147e9e-468b-43ee-91f9-45d9647c6164 445ec1f1-095a-462b-abbd-7a3a00925ddb 64d34a64-d336-40a8-a8e8-da8133d0da06 595df230-e31d-42ad-9ea7-128e545b9aa0 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d
 :MEMBERS:  55125136-5939-434e-9676-96ea66a75770 361e2708-8124-4bd1-9c44-f97ca97aca4a 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 aee8487e-0650-4396-bc5c-193ca3efcecb 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 653fea66-f9d5-4431-8ce3-5d355560b475 85f4e03b-3c7a-4f75-86af-52e04b21cf32 445fe577-01ce-4e68-ab5f-c349c40a4643 2c733857-a280-42cc-bd7c-e182a4fb6ea3 79c224ab-188a-4ed4-a606-c28ee2cfe72d 001fb310-69f7-4417-81be-a224a3bf83e0 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46 e75d660f-5c0d-4707-a645-b5dea7d7ebc0 409a69ff-d57e-4c1c-ab6c-28f7e85fa391 49444167-7a29-491a-81b4-c5215fce9fc2 9b7301de-0903-4987-bb34-56f8f021fbd1 cf483f5d-2d25-4454-a580-db7935c8cb81 8028e875-3032-4ade-949e-414d9861b928 01849bef-fdc9-4c30-b467-00ca8606e8e0 330710fb-ea34-466b-96a0-7be947f37a1e ee3c22c9-f99c-4d41-9c3d-8f39af916fff e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 41f21b4d-278d-4ad8-a56f-122f5af33d65 6c64cc9c-33a9-4a20-af19-c188a690c755 a865f83c-ea37-40c4-a104-7cc50d2c20dd 996fd2bd-be90-44b3-b2c5-9018255940b3 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 595df230-e31d-42ad-9ea7-128e545b9aa0 20cecd53-2338-4237-ab06-f8129e10a2c8 37147e9e-468b-43ee-91f9-45d9647c6164 445ec1f1-095a-462b-abbd-7a3a00925ddb 64d34a64-d336-40a8-a8e8-da8133d0da06 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd
 :END:
 :LOGBOOK:
@@ -2257,6 +2342,17 @@ They sit after [[id:8028e875-3032-4ade-949e-414d9861b928][8028e875]] because the
 headings; [[id:aee8487e-0650-4396-bc5c-193ca3efcecb][aee8487e]] is their closest neighbour, related rather than a twin,
 since splitting runs from gaps would still let one keystroke claim a three-hour
 gap.
+
+*Divided 2026-10-09 (the user, three ways).* This slice keeps the "asks for
+judgement it cannot support" half: spans, their evidence and claims, AFK and the
+human's share of the time, 15 counted members. The review pass every install
+uses went to [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]], and the clock record's correctness and reporting to
+[[id:7ae1cff4-c0df-4ac0-9aea-a778b2373061][7ae1cff4]]. Their 19 members are in =:DROPPED:= here and counted there. The cut
+followed what a task-only install meets: with time tracking off, =queue-append=
+writes no clock events, so only the review buffer and apply reach such an
+install. Where this drawer orders a member that has moved, the receiving slice's
+plan now governs it. The title still names both halves and wants shortening to
+the first.
 :END:
 
 Thirty-four live headings carry `:CATEGORY: Apply` or `Clock`, and three
@@ -2271,18 +2367,18 @@ start it.
 
 Planned:
 
-- [-] [[id:55125136-5939-434e-9676-96ea66a75770][55125136]] WAITING Decide whether queue-append should derive clock events from DOING transitions, reversing the separation 4f6a6bb1 chose
-- [ ] [[id:361e2708-8124-4bd1-9c44-f97ca97aca4a][361e2708]] TODO Decide how far the review-apply cycle can be automated, given the interactive constraint
-- [ ] [[id:3485b0d0-3b47-4a28-ae6f-e2061fa8f226][3485b0d0]] TODO A session that ends holding an open clock never closes it: 8 of 42 clocking sessions end on a clock_in
+- [[id:55125136-5939-434e-9676-96ea66a75770][55125136]] WAITING Decide whether queue-append should derive clock events from DOING transitions, reversing the separation 4f6a6bb1 chose
+- [[id:361e2708-8124-4bd1-9c44-f97ca97aca4a][361e2708]] TODO Decide how far the review-apply cycle can be automated, given the interactive constraint
+- [[id:3485b0d0-3b47-4a28-ae6f-e2061fa8f226][3485b0d0]] TODO A session that ends holding an open clock never closes it: 8 of 42 clocking sessions end on a clock_in
 - [ ] [[id:aee8487e-0650-4396-bc5c-193ca3efcecb][aee8487e]] TODO `c` claims an envelope whatever runs it contains, so one keystroke can record 3h11m over 16 minutes
-- [ ] [[id:2d100d0d-2d04-43b9-af1e-f4d6b52bbada][2d100d0d]] TODO Intervals on two different headings can overlap, and subtraction reaches only one
+- [[id:2d100d0d-2d04-43b9-af1e-f4d6b52bbada][2d100d0d]] TODO Intervals on two different headings can overlap, and subtraction reaches only one
 - [ ] [[id:653fea66-f9d5-4431-8ce3-5d355560b475][653fea66]] TODO The unassigned-mark guard is conjunctive, so a clock item with no id marks and then fails at apply
 - [ ] [[id:85f4e03b-3c7a-4f75-86af-52e04b21cf32][85f4e03b]] TODO An accepted span with no heading reaches apply and fails as 'no org heading found with :ID: "nil"'
 - [-] [[id:445fe577-01ce-4e68-ab5f-c349c40a4643][445fe577]] DOING The complement's gap spans carry no events, so half the review buffer cannot be dismissed
 - [ ] [[id:2c733857-a280-42cc-bd7c-e182a4fb6ea3][2c733857]] TODO A span whose only resume is a synthetic bracket edge reports "no transcript for session nil (aged out)"
-- [ ] [[id:79c224ab-188a-4ed4-a606-c28ee2cfe72d][79c224ab]] TODO Applied review changes can be destroyed by a git checkout that looks like it reverts only Claude's edit
-- [ ] [[id:001fb310-69f7-4417-81be-a224a3bf83e0][001fb310]] TODO Stale entries in org-clock's persisted history hang the first clock-in after a restart
-- [-] [[id:489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938][489d6f61]] DOING Emacs died of a fatal signal at review-buffer quit, deadlocked in the mac port's shutdown
+- [[id:79c224ab-188a-4ed4-a606-c28ee2cfe72d][79c224ab]] TODO Applied review changes can be destroyed by a git checkout that looks like it reverts only Claude's edit
+- [[id:001fb310-69f7-4417-81be-a224a3bf83e0][001fb310]] TODO Stale entries in org-clock's persisted history hang the first clock-in after a restart
+- [[id:489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938][489d6f61]] DOING Emacs died of a fatal signal at review-buffer quit, deadlocked in the mac port's shutdown
 - [ ] [[id:5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46][5a6d2c75]] TODO An unassigned span's readout omits the evidence that would make its heading obvious
 - [ ] [[id:e75d660f-5c0d-4707-a645-b5dea7d7ebc0][e75d660f]] TODO AFK markers are ground truth for the one judgement we cannot automate, and we discard them
 - [ ] [[id:409a69ff-d57e-4c1c-ab6c-28f7e85fa391][409a69ff]] TODO Classify gaps by markers at either end, not by tracking an AFK state
@@ -2293,21 +2389,21 @@ Planned:
 - [[id:6ea84943-9eef-4940-b850-e8cf79310d2a][6ea84943]] MAYBE A claimed span records agent time and human attention as one, and the reviewer has no picture of the span to judge from
   - [[id:01849bef-fdc9-4c30-b467-00ca8606e8e0][01849bef]] MAYBE A claim should keep the agent's runs and the user's attention apart, not record the whole span as attention
   - [[id:330710fb-ea34-466b-96a0-7be947f37a1e][330710fb]] MAYBE Show a span as a strip chart, its runs, gaps, waits and AFK markers on one line, so a claim is judged from the screen
-- [ ] [[id:ee3c22c9-f99c-4d41-9c3d-8f39af916fff][ee3c22c9]] TODO Make =d= mark for dismissal rather than dismiss, so a shared reason can be given once
-- [ ] [[id:e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b][e95cc5d1]] TODO =d= advances point in the review buffer, onto whatever moved up to replace the dismissed item
-- [ ] [[id:396fd1c3-70e0-4e1f-8839-670b5293a7d3][396fd1c3]] TODO Recenter after `m` advances, so the item under consideration is never at the bottom of the window
-- [ ] [[id:41f21b4d-278d-4ad8-a56f-122f5af33d65][41f21b4d]] TODO The review buffer has no keys to move between items; bind n and p to the next and previous item
-- [ ] [[id:6c64cc9c-33a9-4a20-af19-c188a690c755][6c64cc9c]] TODO claude-code-ide-org-review should return point and windows to where I entered from
+- [[id:ee3c22c9-f99c-4d41-9c3d-8f39af916fff][ee3c22c9]] TODO Make =d= mark for dismissal rather than dismiss, so a shared reason can be given once
+- [[id:e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b][e95cc5d1]] TODO =d= advances point in the review buffer, onto whatever moved up to replace the dismissed item
+- [[id:396fd1c3-70e0-4e1f-8839-670b5293a7d3][396fd1c3]] TODO Recenter after `m` advances, so the item under consideration is never at the bottom of the window
+- [[id:41f21b4d-278d-4ad8-a56f-122f5af33d65][41f21b4d]] TODO The review buffer has no keys to move between items; bind n and p to the next and previous item
+- [[id:6c64cc9c-33a9-4a20-af19-c188a690c755][6c64cc9c]] TODO claude-code-ide-org-review should return point and windows to where I entered from
 - [ ] [[id:a865f83c-ea37-40c4-a104-7cc50d2c20dd][a865f83c]] TODO Should a short 0-run span default to claimed, and where does the bound fall?
 - [ ] [[id:996fd2bd-be90-44b3-b2c5-9018255940b3][996fd2bd]] TODO A guidepost gap containing an apply timestamp is provably the human's attention
-- [ ] [[id:e3d1531d-7562-4bad-bef2-fc819630c5f7][e3d1531d]] TODO The review-attention clock stops at the first apply, so 101 intervals measure the wrong thing
-- [ ] [[id:b5448133-4021-46b9-a90e-d88e149ae65d][b5448133]] TODO Rebuild the 101 truncated review-attention intervals from the audit log
-- [ ] [[id:595df230-e31d-42ad-9ea7-128e545b9aa0][595df230]] TODO The review-attention clock is a real org clock, so the buffer stays busy for the whole review and apply's first clock-in closes it
+- [[id:e3d1531d-7562-4bad-bef2-fc819630c5f7][e3d1531d]] TODO The review-attention clock stops at the first apply, so 101 intervals measure the wrong thing
+- [[id:b5448133-4021-46b9-a90e-d88e149ae65d][b5448133]] TODO Rebuild the 101 truncated review-attention intervals from the audit log
+- [[id:595df230-e31d-42ad-9ea7-128e545b9aa0][595df230]] TODO The review-attention clock is a real org clock, so the buffer stays busy for the whole review and apply's first clock-in closes it
 - [ ] [[id:20cecd53-2338-4237-ab06-f8129e10a2c8][20cecd53]] TODO The human half of the ratio is already recorded, and thrown away
-- [ ] [[id:37147e9e-468b-43ee-91f9-45d9647c6164][37147e9e]] TODO Report worked headings that carry no clock interval that day
-- [ ] [[id:445ec1f1-095a-462b-abbd-7a3a00925ddb][445ec1f1]] TODO A/B the clock record across the phase-3 fixes, since much of what is logged now is bogus
-- [ ] [[id:64d34a64-d336-40a8-a8e8-da8133d0da06][64d34a64]] NEXT A clocktable never shows a parent's own time, only own-plus-subtree
-- [ ] [[id:2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd][2cd74268]] TODO Let a task-only install auto-apply state transitions, behind a toggle
+- [[id:37147e9e-468b-43ee-91f9-45d9647c6164][37147e9e]] TODO Report worked headings that carry no clock interval that day
+- [[id:445ec1f1-095a-462b-abbd-7a3a00925ddb][445ec1f1]] TODO A/B the clock record across the phase-3 fixes, since much of what is logged now is bogus
+- [[id:64d34a64-d336-40a8-a8e8-da8133d0da06][64d34a64]] NEXT A clocktable never shows a parent's own time, only own-plus-subtree
+- [[id:2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd][2cd74268]] TODO Let a task-only install auto-apply state transitions, behind a toggle
 
 *Dropped 2026-09-23: [[id:01849bef-fdc9-4c30-b467-00ca8606e8e0][01849bef]],* the key for flipping a span's
 timestamps to active. [[id:6521dd56-8772-416b-9435-6da78bb86b06][6521dd56]] already counted it, and a member counted
