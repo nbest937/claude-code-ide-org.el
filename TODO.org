@@ -2,6 +2,23 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO The review command clocks the reviewer's attention even where time tracking is off, and without the meta-work anchor files the heading under whatever comes last :code:
+:PROPERTIES:
+:ID:       97b4f6a9-a944-40d3-8d14-7a1667c52291
+:CREATED:  [2026-10-09 Fri 10:59]
+:CATEGORY: Apply
+:END:
+
+=claude-code-ide-org-review= calls =claude-code-ide-org-review-attention-start=
+unconditionally, so every review opens a real org clock on "Review attention"
+and writes CLOCK lines, in an install whose owner left time tracking off; the
+elisp cannot see the plugin option, which reaches only the hooks. Where the
+tracker has no =* Review and planning= heading, which the shipped template
+lacks, =--review-attention-target= inserts =** Review attention= at the end of
+the file, making it a child of whatever heading is last. Read from the code on
+2026-10-09, not run. Gate the attention clock on the same option the hooks obey,
+and anchor the heading safely when it is on.
+
 * TODO Separate what the machinery requires from what this project prefers, so a consumer can change the second :code:
 :PROPERTIES:
 :ID:       d9f77953-473d-4340-a0b7-87a181f19d8b
