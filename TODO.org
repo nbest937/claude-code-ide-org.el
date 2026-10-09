@@ -8240,60 +8240,57 @@ must not be quietly dropped with it: the trap is now rarer and no less silent,
 and rarity is what keeps a false success unnoticed.
 
 
-* TODO claude-code-ide-org-review should return point and windows to where I entered from :code:
+* TODO claude-code-ide-org-review should return point and windows to where I entered from :code:bounded:
 :PROPERTIES:
 :ID:       6c64cc9c-33a9-4a20-af19-c188a690c755
 :CREATED:  [2026-09-02 Wed 09:09]
 :CATEGORY: Apply
 :END:
+:LOGBOOK:
+- Tags ":code:bounded:" from ":code:"     [2026-10-09 Fri 18:47] \\
+  first classification: the review command's entry and bury paths already exist
+:END:
 :PLAN:
+Design, bounded (the user approved it while planning [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]], 2026-10-09). The
+options weighed were window configuration only, position by =:ID:=, or both;
+both was chosen, since a marker cannot survive the ceremony's archiving and
+sorting while an id survives them by construction (the user).
+
+Entry. Before =pop-to-buffer=, =claude-code-ide-org-review= saves the window
+configuration and, when the current buffer visits a tracked org file, the =:ID:=
+of the heading point is in and point's offset from that heading's start; before
+the first heading it saves the raw position.
+
+Exit. The =quit-window= advice and the =kill-buffer-hook= path restore after the
+ceremony steps have run, since they rewrite the file the position lives in: the
+layout first, then the heading found by =--id-find=, point at the same offset
+clamped to the heading's end so a reflowed body cannot carry it into the next
+heading. A non-org entry buffer restores the layout only.
+
+Archived and missing. When the id now resolves into DONE.org, the layout is
+restored, point stays at the top of the file, and a message names the title, the
+id and how to follow it, "M-x org-id-goto RET <id>", with the full id copied to
+the kill ring so following it is =M-x org-id-goto RET C-y RET= (the user:
+decline, and say so with the id and how to go to it). An id that resolves
+nowhere is said so too, layout only. Leaving by =C-x b= buries nothing and so
+restores nothing, as it runs no ceremony today.
+
+Testing. ERT on a scratch tracked file in batch, the window-configuration calls
+stubbed since batch has no windows: the entry heading is found again after a
+sort moves it; an archived heading produces the message with the full id, which
+is also on the kill ring; a non-org entry buffer restores the layout only; the
+offset is clamped. Run red against HEAD's version first. The layout half is
+checked live in the user's Emacs.
 
 :END:
-*Asked by the user 2026-09-02:* =M-x claude-code-ide-org-review= should
-return them to the point they were at when they entered it.
-
-*Locatable, checked the same day.*
-=claude-code-ide-org-review= ends in =(pop-to-buffer buffer)= and saves
-no window configuration and no point marker, so nothing exists to
-restore from. Two things then move the user:
-
-- =pop-to-buffer= itself rearranges windows, and burying the review
-  buffer afterwards does not put back what was displaced.
-- =claude-code-ide-org-review-goto= jumps to a heading in the org file,
-  so point in TODO.org is left wherever the last =RET= landed rather
-  than where the human was reading.
-
-*Note the exit is not only =q=.* Burying the review buffer is what runs
-the ceremony — drawer consolidation, heading separation, archiving,
-sorting — so the restore has to happen *after* four steps that write to
-the very buffer the saved point lives in. A raw marker into TODO.org can
-therefore be invalidated by the ceremony's own edits: archiving removes
-subtrees and sorting reorders every top-level heading, which is
-precisely the case a naive =point-marker= gets wrong.
-
-*So the interesting decision is what "where I was" means* once the
-ceremony has rewritten the file underneath it. Candidates, none chosen:
-
-- *Window configuration only* — =current-window-configuration= before
-  =pop-to-buffer=, restored on quit. Cheap and correct for the layout
-  half; says nothing about point moving inside TODO.org.
-- *Restore by =:ID:= rather than by position* — record the heading point
-  was inside on entry and navigate back to it by id. Survives sorting
-  and archiving by construction, which a marker does not. Degrades
-  honestly when the heading was archived: it moved to DONE.org and can
-  be followed there, or the restore can decline and say so.
-- *Both,* which is probably the answer: layout from the window
-  configuration, position from the id.
-
-*Adjacent, and worth not conflating:*
-[[id:29734f79-e698-43dd-abf8-14bc86b8b0ae][29734f79]] made the ceremony
-report its own completion on bury. This heading is about what the human
-sees *after* that report — the same moment, a different property of it.
-
-*Done when* entering and leaving the review command is position-neutral:
-same window layout, and point in TODO.org where it started, or an
-explicit message saying why it could not be.
-
+=M-x claude-code-ide-org-review= should leave the user where they entered (the
+user, 2026-09-02). It ends in =pop-to-buffer= and saves no window configuration
+or position, =RET= moves point in TODO.org, and the ceremony that runs on bury
+archives and sorts the file a saved position lives in, so a plain marker cannot
+survive it. Designed 2026-10-09 (the user): restore the layout, then the entry
+heading by =:ID:= and offset, after the ceremony; an archived heading is
+declined with a message naming its id and how to follow it. Adjacent, not the
+same: [[id:29734f79-e698-43dd-abf8-14bc86b8b0ae][29734f79]] made the ceremony report its completion on bury.
 
 * TODO Classify gaps by markers at either end, not by tracking an AFK state :code:
 :PROPERTIES:
