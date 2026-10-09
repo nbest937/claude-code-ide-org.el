@@ -2,6 +2,70 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Separate what the machinery requires from what this project prefers, so a consumer can change the second :code:
+:PROPERTIES:
+:ID:       d9f77953-473d-4340-a0b7-87a181f19d8b
+:CREATED:  [2026-10-09 Fri 10:35]
+:CATEGORY: Dev
+:END:
+:PLAN:
+Not yet designed; this drawer holds the evidence a brainstorm should start from.
+(Raised by the user, 2026-10-09, while weighing PR #35's open thread on which
+file =bin/check-conventions= should treat as the reference.)
+
+Where the product imposes on a consumer: what =claude-org-setup --org= scaffolds
+(the template's =#+TAGS:=, =#+ARCHIVE: DONE.org::datetree/= and keyword set);
+what plain setup promotes as always-loaded or path-scoped rules, whose wording
+is mandatory ("Every =.org= file in this project should start with"); and what
+the tools refuse (a top-level capture without a category, two path tags on one
+heading, an unresolvable =:BLOCKER:=, a keyword outside =org_set_todo='s list).
+
+A first, unverified split. *Machinery needs:* the =#+TODO:= keywords the tools
+and hooks name, =REVIEW= included; =#+STARTUP: logdrawer=, so apply's logging
+lands in =:LOGBOOK:=; an =:ID:= on every heading the tools address. *Project
+preference:* the tag vocabulary, datetree archiving, drawer order, the footnote
+style, the category values, and the slice conventions. Each placement wants
+checking against the code before it is believed. Datetree archiving, for one,
+couples to the ceremony's sort step and to =org-archive-reversed-order=, so
+"preference" may only hold once the archive sweep handles a flat target too.
+
+Evidence of the cost. [[id:24694d1f-34b4-495b-b0d8-d29e64894c59][24694d1f]]: a consumer has nowhere to declare its
+categories, yet the capture refuses without one. The template has no =* Review
+and planning= datetree anchor, so with time tracking on, a meta-work
+=org_clock_in= would resolve to no day node and fail at apply with =:ID: "nil"=.
+That was read from =claude-code-ide-org-resolve-day-node=, not run. And the
+template's tags drifted from this repo's for weeks because nothing distinguished
+"the tags the tools rely on" from "the tags we happen to use" ([[id:b2e4173c-26c5-4ff8-b055-350883fe4c06][b2e4173c]]).
+
+Likely shape, to be argued in the brainstorm rather than assumed: the template
+carries only requirements plus clearly marked defaults; the promoted conventions
+split into a required core and this project's practice, which a consumer may
+edit or decline; and each tool refusal is checked for whether it protects
+machinery or merely enforces taste. This is probably architectural, since it
+touches setup, the template, the promoted rules and several tools.
+:END:
+
+The plugin ships this project's habits with the same force as the things its
+tools depend on, so a consumer cannot tell which they may change and the product
+reads as more opinionated than it needs to be (the user, 2026-10-09). Draw the
+line: ship what the machinery needs as requirements, and this project's choices
+as defaults a consumer may change.
+
+* TODO The review buffer has no keys to move between items; bind n and p to the next and previous item :code:
+:PROPERTIES:
+:ID:       41f21b4d-278d-4ad8-a56f-122f5af33d65
+:CREATED:  [2026-10-09 Fri 08:36]
+:CATEGORY: Apply
+:END:
+
+=claude-code-ide-org-review-mode= binds its actions but no movement, so a
+reviewer steps through items with =C-n=/=C-p= over group headings, evidence
+lines and prompt synopses. Bind =n= and =p=, both free in =special-mode=, to
+commands that land on the next and previous item line. =--review-forward-item=
+already does the forward half, staying put at the last item; it needs a backward
+twin and two interactive wrappers.
+
+
 * TODO Declare the brainstorming path tags as an exclusive group in #+TAGS:, so org's tag menu enforces one :code:
 :PROPERTIES:
 :ID:       c9c75fda-c818-4e7b-9b97-c3a68e980eab
@@ -18,15 +82,81 @@ lint catches at commit. Adopt it in TODO.org, the template and the conventions'
 header example together; the header-line check in =bin/check-conventions=
 ([[id:189645c6-d76f-4761-96f0-f3734fe1df26][189645c6]]) already strips group markers when it compares tag sets.
 
-* TODO The docs still archive to =DONE.org::= after the =datetree= move :prose:bounded:code:
+* TODO A consuming repo has nowhere to declare its :CATEGORY: values, so its first top-level capture makes one up :code:
+:PROPERTIES:
+:ID:       24694d1f-34b4-495b-b0d8-d29e64894c59
+:CREATED:  [2026-10-09 Fri 08:33]
+:CATEGORY: Dev
+:END:
+:PLAN:
+
+The conventions say each repo declares its own =:CATEGORY:= taxonomy. This repo
+keeps its ten values in =.claude/rules/org-categories.md=, deliberately unscoped
+so that it loads in every session ([[id:b0d55552-6bbf-45b8-9897-f62e6bd779e3][b0d55552]]). =claude-org-setup= scaffolds
+nothing equivalent for a consumer: =--org= writes TODO.org and DONE.org from the
+templates, and the plain run promotes only the plugin's own rules. So a
+consumer's first top-level =org_capture= is refused with "TODO.org uses: (none
+yet)", and every value after that is invented at capture time and recognised
+only by recurring in the file, never declared. A likely shape is for =--org= to
+create a stub =.claude/rules/org-categories.md=: unscoped, owned by the consumer
+rather than generated, with an empty table and a line saying what belongs there.
+Open questions: whether setup should own it at all; whether the capture's
+refusal should point at it; and whether the always-loaded word budget for
+consumers needs room for it. Found while checking the template against this
+repo's usage, 2026-10-06.
+:END:
+
+=claude-org-setup= gives a consuming repo no place to declare its =:CATEGORY:=
+values, so the capture refusal lists "(none yet)" and every value is invented at
+capture time. A likely fix is a consumer-owned stub of
+=.claude/rules/org-categories.md= created by =--org=; the open questions are in
+the plan.
+
+=claude-org-setup= gives a consuming repo no place to declare its =:CATEGORY:=
+values, so the capture refusal lists "(none yet)" and every value is invented at
+capture time. A likely fix is a consumer-owned stub of
+=.claude/rules/org-categories.md= created by =--org=; the open questions are in
+the plan.
+
+
+* REVIEW The docs still archive to =DONE.org::= after the =datetree= move :prose:bounded:code:
 :PROPERTIES:
 :ID:       189645c6-d76f-4761-96f0-f3734fe1df26
 :CREATED:  [2026-10-06 Tue 14:08]
 :CATEGORY: Skill
 :END:
 :LOGBOOK:
+CLOCK: [2026-10-06 Tue 14:17]--[2026-10-06 Tue 14:18] =>  0:01
 - Tags ":prose:bounded:code:" from ":prose:"    [2026-10-06 Tue 14:17] \\
   classified: prose correction plus one check in an existing script
+- [2026-10-06 Tue 14:17]--[2026-10-06 Tue 14:18] record the approved design
+CLOCK: [2026-10-06 Tue 14:20]--[2026-10-06 Tue 14:22] =>  0:02
+- State "DOING"      from "TODO"       [2026-10-06 Tue 14:20] \\
+  design approved; implementing on a branch
+- [2026-10-06 Tue 14:20]--[2026-10-06 Tue 14:22] header-line check and archive prose
+- State "REVIEW"     from "DOING"      [2026-10-06 Tue 14:22] \\
+  fixed on the branch; PR opened
+CLOCK: [2026-10-06 Tue 14:25]--[2026-10-06 Tue 14:26] =>  0:01
+- [2026-10-06 Tue 14:25]--[2026-10-06 Tue 14:26] assigned at review
+CLOCK: [2026-10-06 Tue 14:28]--[2026-10-06 Tue 14:29] =>  0:01
+- [2026-10-06 Tue 14:28]--[2026-10-06 Tue 14:29] assigned at review
+CLOCK: [2026-10-06 Tue 15:08]--[2026-10-06 Tue 15:09] =>  0:01
+- [2026-10-06 Tue 15:08]--[2026-10-06 Tue 15:09] assigned at review
+CLOCK: [2026-10-06 Tue 15:11]--[2026-10-06 Tue 15:12] =>  0:01
+- [2026-10-06 Tue 15:11]--[2026-10-06 Tue 15:12] assigned at review
+CLOCK: [2026-10-06 Tue 15:14]--[2026-10-06 Tue 15:15] =>  0:01
+- [2026-10-06 Tue 15:14]--[2026-10-06 Tue 15:15] assigned at review
+CLOCK: [2026-10-06 Tue 15:17]--[2026-10-06 Tue 15:22] =>  0:05
+- State "DOING"      from "REVIEW"     [2026-10-06 Tue 15:17] \\
+  rework: PR #35 review findings
+- [2026-10-06 Tue 15:17]--[2026-10-06 Tue 15:22] rework for PR #35's review
+- State "REVIEW"     from "DOING"      [2026-10-06 Tue 15:21] \\
+  review findings addressed; one design question open
+- [2026-10-06 Tue 15:22]--[2026-10-06 Tue 15:22] assigned at review
+CLOCK: [2026-10-06 Tue 17:10]--[2026-10-06 Tue 17:11] =>  0:01
+- [2026-10-06 Tue 17:10]--[2026-10-06 Tue 17:11] assigned at review
+CLOCK: [2026-10-09 Fri 08:33]--[2026-10-09 Fri 08:34] =>  0:01
+- [2026-10-09 Fri 08:33]--[2026-10-09 Fri 08:34] file the consumer category gap
 :END:
 :PLAN:
 The archive location is settled, not open: [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]] converted DONE.org to a
@@ -110,36 +240,6 @@ and =bin/check-conventions= now fails on any copy of the =#+TAGS:= or
 =#+ARCHIVE:= line that disagrees with TODO.org's.
 
 
-* DOING The shipped TODO.org template still declares the tags dropped 2026-09-29, so every scaffolded project inherits them :code:
-:PROPERTIES:
-:ID:       b2e4173c-26c5-4ff8-b055-350883fe4c06
-:CREATED:  [2026-10-06 Tue 14:08]
-:CATEGORY: Dev
-:END:
-:DEBRIEF:
-The template's =#+TAGS:= line was rewritten to match this repo's TODO.org, and
-agentic-euchre's TODO.org got the same line. Its tracker has no headings yet, so
-nothing needed retagging. =#+TAGS:= is read only when org initialises a buffer,
-so the line was re-read with =org-set-regexps-and-options= in the open
-agentic-euchre buffer, and its =org-current-tag-alist= now lists the six tags.
-=bin/check-conventions= passes. Filed rather than fixed: [[id:189645c6-d76f-4761-96f0-f3734fe1df26][189645c6]], the
-conventions' =#+ARCHIVE:= example, which disagrees with practice on a question
-the conventions call unsettled. agentic-euchre's own change is uncommitted in
-that repo, together with its install changes.
-:END:
-
-=templates/TODO.org= declares =#+TAGS: code comms research review spike bounded
-arch=. The tag decision of 2026-09-29 dropped =comms= and =review=, and the
-template never had =prose=, so it disagrees with this repo's own tracker.
-agentic-euchre, scaffolded 2026-09-18, carries an older copy still. Fix the
-template to =code prose research spike bounded arch= and correct
-agentic-euchre's header to match; its tracker has no headings, so nothing is
-retagged.
-
-*Resolution:* the template and agentic-euchre's tracker both declare =code prose
-research spike bounded arch=, this repo's own tag set.
-
-
 * MAYBE Cite a symbol from a body with a search-anchored file: link, so the citation opens at the definition
 :PROPERTIES:
 :ID:       3e7bc5ac-90ab-46c2-b496-99af56d3ec37
@@ -183,480 +283,43 @@ CLOCK: [2026-10-06 Tue 11:54]--[2026-10-06 Tue 11:55] =>  0:01
 :PLAN:
 
 The 2026-10-06 review pass ended in that error, and Emacs then died at
-review-buffer quit ([[id:489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938][489d6f61]]). Not yet confirmed, because Emacs's messages died
-with it. The likely cause: three spans marked "accepted at review" but
-UNASSIGNED were in the queue, and they are still pending after the pass. The
-review buffer refuses to mark an unassigned span (=--review-markable-p=), but an
-acceptance carried over from an earlier pass may skip that check, and
-=--resolve-item-target= then hands =--at-id= a nil id. Reproduce with an
-accepted, unassigned span, then refuse it before apply, or treat it as not
-accepted.
+review-buffer quit ([[id:489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938][489d6f61]]). The mechanism, read from the code on 2026-10-09
+and matching the user's second occurrence that day: =--review-markable-p=
+refuses a span with no heading, and its docstring says that refusal is what
+stops apply failing later with a confusing error. But only the bulk marks
+consult it (=--review-set-all=, behind =M= and =t=). A single =m= runs
+=--review-set-mark=, which checks staleness and nothing else, so it marks a span
+with no heading. =x= then hands =--at-id= a nil target through
+=--resolve-item-target=, the item fails with this error, and it stays queued
+while the rest apply. "Suggested span, accepted at review" is not a saved
+acceptance; it is only the label =--review-annotation-label= gives an
+unbracketed span. The first guess here, an acceptance carried over from an
+earlier pass, was wrong.
+
+Fix: =--review-set-mark= refuses an unassigned span with no heading, as
+=--review-markable-p= already describes, and says to press =a=. A test marks
+such a span with =m= and expects a refusal, failing first. Apply's own nil
+target can stay a reported failure, as a backstop.
 
 :END:
 *Confirmed by the user, 2026-10-06:* the cause fits what they saw, and in the
-review buffer every item looked as though it carried an =:ID:=. So there are two
-defects. Apply accepts a span with no heading, and the buffer does not make an
-unassigned, already-accepted span stand out enough to be caught before the pass.
+review buffer every item looked as though it carried an =:ID:=. The defect,
+found in the code on 2026-10-09: a single =m= marks a span with no heading,
+which only the bulk marks refuse, so =x= reaches it and fails. The span is
+flagged =!= and faced as needing a decision; the mark is what lets it through.
 
+Seen 2026-10-09 in the user's buffer: two spans rendered =[x] ! span …
+UNASSIGNED=, marked and with no heading. The only id in sight was in an evidence
+line beneath, =commit aa8e07a 189645c6: …=, which is a commit inside the span's
+window rather than an assignment, and is what made the spans read as already
+attached to a heading.
 
-* DONE [11/11] PR #34's review found ten defects the slice shipped, fixed on the branch before merge :code:
-CLOSED: [2026-10-06 Tue 12:36]
-:PROPERTIES:
-:ID:       92804b53-5998-4622-932f-831a8e25fa8d
-:CREATED:  [2026-10-06 Tue 10:41]
-:CATEGORY: Dev
-:END:
-:LOGBOOK:
-- State "DOING"      from "TODO"       [2026-10-06 Tue 10:43] \\
-  fixing PR #34's findings on the branch
-CLOCK: [2026-10-06 Tue 10:56]--[2026-10-06 Tue 10:59] =>  0:03
-- [2026-10-06 Tue 10:56]--[2026-10-06 Tue 10:59] push, answer review threads, debriefs
-- State "REVIEW"     from "DOING"      [2026-10-06 Tue 10:59] \\
-  all ten findings fixed on the branch
-CLOCK: [2026-10-06 Tue 11:55]--[2026-10-06 Tue 11:56] =>  0:01
-- [2026-10-06 Tue 11:55]--[2026-10-06 Tue 11:56] assigned at review
-CLOCK: [2026-10-06 Tue 11:59]--[2026-10-06 Tue 12:02] =>  0:03
-- [2026-10-06 Tue 11:59]--[2026-10-06 Tue 12:02] assigned at review
-- State "DONE"       from "REVIEW"     [2026-10-06 Tue 12:36] \\
-  all ten findings fixed and merged with PR #34
-:END:
-:DEBRIEF:
-The =/code-review high --comment= run on 2026-10-06 found seven defects and
-three cleanups, all in =config.el=. The defects: a reorder that moved a running
-clock's marker to the headline, a failed check that left a half-written drawer
-in an unsaved buffer, RET taken over by the id mark, a nested block ending the
-outer one early, an =org_history= type error on an unknown id, a failed =git
-log= read as zero commits, and the id cache rebuilt inside font-lock on every
-save. The cleanups: a leaked marker and three id resolutions in =org_amend=,
-duplicated regex and exclusions in the id lookup, and a lint slowed from 4.7 to
-8.7 s. Each fix is one commit leading with its child's id, ten in all from
-commit [[orgit-rev:./::211eaab][211eaab]] to commit [[orgit-rev:./::1e786eb][1e786eb]]. The suite stands at 897 tests and the pre-push
-gate passed, with 26 suites and 1584 checks. The review was wrong on one point:
-the lint's added cost was the drawer-layout parse, at 3.1 s, and not the
-citation regions, at 0.6 s. Filed, not fixed: [[id:49137118-e960-479c-bccd-d353ab98b3de][49137118]], the reviewer's unposted
-point that the drawer-order corpus pass saves tracked files in other
-repositories.
-:END:
+*Shares its fix with [[id:653fea66-f9d5-4431-8ce3-5d355560b475][653fea66]]* (the user, 2026-10-09: two issues that happen to
+have the same fix). This heading's half: a single =m= never calls
+=--review-markable-p=. That one's half: the guard tests the =:unassigned= flag
+and a nil =:id= together. Routing =m= through the guard and testing the id alone
+closes both, and either change alone leaves the error reachable.
 
-The =/code-review high= run on 2026-10-06 posted ten inline findings on [[https://github.com/nbest937/claude-code-ide-org.el/pull/34][PR #34]],
-the branch of slice [[id:6521dd56-8772-416b-9435-6da78bb86b06][6521dd56]], all in =config.el=. They arrived inside the
-slice's REVIEW window and are fixed on the branch before it merges, one child
-per finding, each child naming the member that shipped the defect. The two the
-reviewer would block the merge on are the drawer normaliser losing the clock
-marker ([[id:d350ff5b-3b1f-465e-800b-962264d2e841][d350ff5b]]) and the id mark taking over RET ([[id:0eaffc39-088f-48c3-a5b8-167336458114][0eaffc39]]).
-
-All ten findings are fixed on the branch, each with a test that failed first,
-and every review thread is answered and resolved; the eleventh, the corpus
-pass's reach beyond this repo, waits on the user.
-
-
-** DONE The drawer normaliser deletes and reinserts the entry, so a running clock's marker lands on the headline
-CLOSED: [2026-10-06 Tue 12:02]
-:PROPERTIES:
-:ID:       40b692e8-64f9-4c0f-a22b-4d859e5f25f3
-:CREATED:  [2026-10-06 Tue 10:41]
-:END:
-:LOGBOOK:
-CLOCK: [2026-10-06 Tue 10:43]--[2026-10-06 Tue 10:45] =>  0:02
-CLOCK: [2026-10-06 Tue 10:43]--[2026-10-06 Tue 10:43] =>  0:00
-- State "DOING"      from "TODO"       [2026-10-06 Tue 10:43] \\
-  starting the fix
-- [2026-10-06 Tue 10:43]--[2026-10-06 Tue 10:43] suggested span, accepted at review
-- [2026-10-06 Tue 10:43]--[2026-10-06 Tue 10:45] keep markers through drawer normalisation
-- State "REVIEW"     from "DOING"      [2026-10-06 Tue 10:45] \\
-  fixed in 211eaab, tests failed first
-- State "DONE"       from "REVIEW"     [2026-10-06 Tue 12:02] \\
-  merged with PR #34
-:END:
-:PLAN:
-
-From PR #34's review (=claude-code-ide-org--normalize-drawers=), against
-[[id:d350ff5b-3b1f-465e-800b-962264d2e841][d350ff5b]]. A disordered entry is rewritten with =delete-region= then =insert=,
-which moves every marker inside it to the headline: =org-clock-marker= on a
-running CLOCK line, window point, fold state. An =org_amend drawer=PLAN= on a
-clocked heading with a =:LOGBOOK:= then leaves the next clock-out failing with
-"Clock start time is gone". Fix so markers survive; the test asserts
-=org-clock-marker= still sits on the CLOCK line.
-
-:END:
-:DEBRIEF:
-Fixed in commit [[orgit-rev:./::211eaab][211eaab]], a [[https://github.com/nbest937/claude-code-ide-org.el/pull/34][PR #34]] review finding. Two changes:
-=--amend-into-drawer= inserts a new drawer after the last managed drawer ranking
-above it when the heading is already canonical, and
-=--normalize-drawer-order-at-point= rewrites through =--replace-around-logbook=,
-which leaves the =:LOGBOOK:= text in place and replaces the text either side of
-it. Two ERT tests, one per path, put a marker on an open CLOCK line and both
-failed first. Not covered: a marker outside =:LOGBOOK:=, such as window point,
-still collapses to a boundary on a reorder, which the review named but which
-carries no correctness cost.
-:END:
-A drawer created on an ordered heading is written in its place, and a reorder
-rewrites only the text either side of =:LOGBOOK:=, so a running clock's marker
-stays on its CLOCK line.
-
-
-** DONE The bare-id mark's keymap binds RET, so Enter jumps to a heading in commit, magit and org buffers
-CLOSED: [2026-10-06 Tue 12:02]
-:PROPERTIES:
-:ID:       f5e5ccf4-710f-4eef-8790-7bfb20b5e5b5
-:CREATED:  [2026-10-06 Tue 10:41]
-:END:
-:LOGBOOK:
-CLOCK: [2026-10-06 Tue 10:47]--[2026-10-06 Tue 10:48] =>  0:01
-CLOCK: [2026-10-06 Tue 10:47]--[2026-10-06 Tue 10:47] =>  0:00
-- State "DOING"      from "TODO"       [2026-10-06 Tue 10:47] \\
-  starting the fix
-- [2026-10-06 Tue 10:47]--[2026-10-06 Tue 10:47] suggested span, accepted at review
-- [2026-10-06 Tue 10:47]--[2026-10-06 Tue 10:48] stop the id mark binding RET
-- State "REVIEW"     from "DOING"      [2026-10-06 Tue 10:48] \\
-  fixed in 54a58fc, tests failed first
-- State "DONE"       from "REVIEW"     [2026-10-06 Tue 12:02] \\
-  merged with PR #34
-:END:
-:DEBRIEF:
-Fixed in commit [[orgit-rev:./::54a58fc][54a58fc]], a [[https://github.com/nbest937/claude-code-ide-org.el/pull/34][PR #34]] review finding.
-=claude-code-ide-org-id-reference-map= binds =mouse-2= with =follow-link= (the
-button convention, so a short =mouse-1= still jumps) and =C-c C-o=. In a
-=magit-section-mode= buffer the mode no longer adds =keymap= to
-=font-lock-extra-managed-props=, so a refontify cannot strip magit's section
-keymaps. The existing mark test was changed to assert the new bindings, and a
-new test covers the magit case with a stand-in mode; both failed first. Not
-exercised: a real magit or git-commit buffer, since the suite carries no magit.
-:END:
-
-From PR #34's review (the id-lookup font-lock mark), against [[id:0eaffc39-088f-48c3-a5b8-167336458114][0eaffc39]]. A
-text-property =keymap= outranks major and minor mode maps, so RET on a marked id
-jumps instead of opening a line in a commit buffer or showing the commit in
-magit-log. Adding =keymap= to =font-lock-extra-managed-props= can also strip
-magit's own section keymaps. Bind only the mouse and =C-c C-o=, and leave RET
-alone.
-
-The id mark jumps on a click or =C-c C-o= and leaves RET to the buffer's own
-map.
-
-
-** DONE A failed drawer-order check leaves the half-done write in the buffer, unsaved, and every tool then refuses the file
-CLOSED: [2026-10-06 Tue 12:02]
-:PROPERTIES:
-:ID:       de5f4f98-8a95-492f-bf62-9489e670fb27
-:CREATED:  [2026-10-06 Tue 10:41]
-:END:
-:LOGBOOK:
-CLOCK: [2026-10-06 Tue 10:45]--[2026-10-06 Tue 10:47] =>  0:02
-CLOCK: [2026-10-06 Tue 10:45]--[2026-10-06 Tue 10:45] =>  0:00
-- State "DOING"      from "TODO"       [2026-10-06 Tue 10:45] \\
-  starting the fix
-- [2026-10-06 Tue 10:45]--[2026-10-06 Tue 10:45] suggested span, accepted at review
-- [2026-10-06 Tue 10:45]--[2026-10-06 Tue 10:47] roll back a drawer write whose check fails
-- State "REVIEW"     from "DOING"      [2026-10-06 Tue 10:47] \\
-  fixed in f6aa622, tests failed first
-- State "DONE"       from "REVIEW"     [2026-10-06 Tue 12:02] \\
-  merged with PR #34
-:END:
-:DEBRIEF:
-Fixed in commit [[orgit-rev:./::f6aa622][f6aa622]], a [[https://github.com/nbest937/claude-code-ide-org.el/pull/34][PR #34]] review finding. =--amend-into-drawer='s
-creation branch and =org_wrap_plan='s two insertions run inside
-=atomic-change-group=, so a failed lossless check undoes them before
-=save-buffer=. =claude-code-ide-org-normalize-drawer-order= catches a failure
-per heading, reports it under "FAILED, left as they were", and kills any buffer
-it opened under =unwind-protect=. Three ERT tests forced the failure by stubbing
-the normaliser, and all three failed first.
-:END:
-
-From PR #34's review (=--amend-into-drawer=, =org_wrap_plan=,
-=claude-code-ide-org-normalize-drawer-order=), against [[id:d350ff5b-3b1f-465e-800b-962264d2e841][d350ff5b]]. The
-normaliser's lossless check runs after the drawer is inserted, so a failure
-unwinds past =save-buffer= with the insertion in place; the corpus pass has no
-=unwind-protect=, so one bad heading leaves earlier ones rewritten and unsaved
-and skips killing the buffers it opened. Roll the write back on failure.
-
-A drawer write whose reorder check fails now leaves the buffer as it was, and
-the corpus pass reports a failed heading and goes on.
-
-
-** DONE The id-lookup cache is dropped on every tracked save and rebuilt inside font-lock by reading every tracked file
-CLOSED: [2026-10-06 Tue 12:02]
-:PROPERTIES:
-:ID:       635018c2-4273-41b9-a39f-ee2c13764656
-:CREATED:  [2026-10-06 Tue 10:41]
-:END:
-:LOGBOOK:
-CLOCK: [2026-10-06 Tue 10:48]--[2026-10-06 Tue 10:49] =>  0:01
-CLOCK: [2026-10-06 Tue 10:48]--[2026-10-06 Tue 10:48] =>  0:00
-- State "DOING"      from "TODO"       [2026-10-06 Tue 10:48] \\
-  starting the fix
-- [2026-10-06 Tue 10:48]--[2026-10-06 Tue 10:48] suggested span, accepted at review
-- [2026-10-06 Tue 10:48]--[2026-10-06 Tue 10:49] rebuild the id cache off the redisplay path
-- State "REVIEW"     from "DOING"      [2026-10-06 Tue 10:49] \\
-  fixed in 26746e9, test failed first
-- State "DONE"       from "REVIEW"     [2026-10-06 Tue 12:02] \\
-  merged with PR #34
-:END:
-:DEBRIEF:
-Fixed in commit [[orgit-rev:./::26746e9][26746e9]], a [[https://github.com/nbest937/claude-code-ide-org.el/pull/34][PR #34]] review finding. =--id-lookup-drop-cache= no
-longer empties the cache: on a tracked save it starts one idle timer
-(=claude-code-ide-org-id-lookup-rebuild-delay=, 1 s), so saves in a burst share
-one rebuild, and =--id-lookup-rebuild= then flushes font-lock in buffers with
-the mode on. A buffer not in org-mode returns before =--tracked-buffer-p=. The
-cache-on-save test now counts =--slice-referent-index= calls (none before the
-rebuild, one after) and failed first. Differs from the review's suggestion: the
-rebuild is still whole, not per saved file, because one idle scan per burst
-already removes the cost from redisplay.
-:END:
-
-From PR #34's review (the id-lookup cache and its =after-save-hook=), against
-[[id:0eaffc39-088f-48c3-a5b8-167336458114][0eaffc39]]. Every MCP write ends in a save, so a turn of N writes re-reads
-TODO.org, DONE.org and the other agenda files synchronously inside jit-lock N
-times; the global hook also expands =org-agenda-files= on every save in any
-buffer. Invalidate cheaply and rebuild lazily, and test for =org-mode= before
-the tracked-buffer check.
-
-A tracked save schedules one idle rebuild of the id cache; lookups made during
-redisplay never read the files.
-
-
-** DONE org_history on an id that resolves to nothing throws a type error instead of refusing
-CLOSED: [2026-10-06 Tue 12:02]
-:PROPERTIES:
-:ID:       d6e435f1-df78-4970-8ede-dfae677d144b
-:CREATED:  [2026-10-06 Tue 10:42]
-:END:
-:LOGBOOK:
-- State "REVIEW"     from "DOING"      [2026-10-06 Tue 10:50] \\
-  fixed in 9731cb9, test failed first
-CLOCK: [2026-10-06 Tue 10:50]--[2026-10-06 Tue 10:51] =>  0:01
-CLOCK: [2026-10-06 Tue 10:50]--[2026-10-06 Tue 10:50] =>  0:00
-- State "DOING"      from "TODO"       [2026-10-06 Tue 10:50] \\
-  starting the fix
-- [2026-10-06 Tue 10:50]--[2026-10-06 Tue 10:50] suggested span, accepted at review
-- [2026-10-06 Tue 10:50]--[2026-10-06 Tue 10:51] refuse an unresolved id in org_history
-- State "DONE"       from "REVIEW"     [2026-10-06 Tue 12:02] \\
-  merged with PR #34
-:END:
-:DEBRIEF:
-Fixed in commit [[orgit-rev:./::9731cb9][9731cb9]], a [[https://github.com/nbest937/claude-code-ide-org.el/pull/34][PR #34]] review finding: =claude-code-ide-org-history=
-tests the marker and returns =--id-not-found='s refusal, the shape =org_amend=
-uses. A new ERT test reproduced "Wrong type argument: markerp, nil" on the
-unfixed code.
-:END:
-
-From PR #34's review (=org_history=), against [[id:41cf5830-fc2e-4dc6-b243-a0c2718a53a3][41cf5830]]. =--id-find= returns nil
-for a typo'd or unknown prefix and =(marker-buffer nil)= signals =Wrong type
-argument: markerp, nil=. Refuse with =--id-not-found= the way =org_amend= does;
-the tests only ever pass a resolving id.
-
-An unresolved id gets the project's refusal, naming the files scanned.
-
-
-** DONE org_history reports a failed git log as zero commits, the same answer as none citing the heading
-CLOSED: [2026-10-06 Tue 12:02]
-:PROPERTIES:
-:ID:       20b7bb32-8c0f-4186-8200-3e8e3ffa5bc8
-:CREATED:  [2026-10-06 Tue 10:42]
-:END:
-:LOGBOOK:
-CLOCK: [2026-10-06 Tue 10:50]--[2026-10-06 Tue 10:51] =>  0:01
-CLOCK: [2026-10-06 Tue 10:50]--[2026-10-06 Tue 10:50] =>  0:00
-- State "DOING"      from "TODO"       [2026-10-06 Tue 10:50] \\
-  starting the fix
-- [2026-10-06 Tue 10:50]--[2026-10-06 Tue 10:50] suggested span, accepted at review
-- [2026-10-06 Tue 10:50]--[2026-10-06 Tue 10:51] report a failed git log, not zero commits
-- State "REVIEW"     from "DOING"      [2026-10-06 Tue 10:51] \\
-  fixed in eb18e4a, test failed first
-- State "DONE"       from "REVIEW"     [2026-10-06 Tue 12:02] \\
-  merged with PR #34
-:END:
-:DEBRIEF:
-Fixed in commit [[orgit-rev:./::eb18e4a][eb18e4a]], a [[https://github.com/nbest937/claude-code-ide-org.el/pull/34][PR #34]] review finding. =--history-commits= signals on
-a non-zero exit with git's own output; =org_history= already turned an error
-into "Error: ...", and =--history-front-matter-line= now catches it as "history:
-unavailable -- ...", so a scoped outline still renders. The test corrupts
-=.git/HEAD= and failed first.
-:END:
-
-From PR #34's review (=--history-commits=), against [[id:41cf5830-fc2e-4dc6-b243-a0c2718a53a3][41cf5830]]. A non-zero =git
-log= exit returns nil, so a corrupt repo, a =safe.directory= refusal or a broken
-worktree reads as "0 commits" followed by the assertion that no commit cites it.
-Signal or report the failure instead.
-
-A failed =git log= is reported as a failure by =org_history= and by the scoped
-outline's history line, never as zero commits.
-
-
-** DONE A block nested inside another ends the in-block state early, so a headline after it is neither escaped nor linted
-CLOSED: [2026-10-06 Tue 12:02]
-:PROPERTIES:
-:ID:       4fc8375f-d339-4f73-95da-53a718c3771b
-:CREATED:  [2026-10-06 Tue 10:42]
-:END:
-:LOGBOOK:
-CLOCK: [2026-10-06 Tue 10:51]--[2026-10-06 Tue 10:52] =>  0:01
-CLOCK: [2026-10-06 Tue 10:51]--[2026-10-06 Tue 10:51] =>  0:00
-- State "DOING"      from "TODO"       [2026-10-06 Tue 10:51] \\
-  starting the fix
-- [2026-10-06 Tue 10:51]--[2026-10-06 Tue 10:51] suggested span, accepted at review
-- [2026-10-06 Tue 10:51]--[2026-10-06 Tue 10:52] close a block only on its matching end
-- State "REVIEW"     from "DOING"      [2026-10-06 Tue 10:52] \\
-  fixed in 3d1acc1, test failed first
-- State "DONE"       from "REVIEW"     [2026-10-06 Tue 12:02] \\
-  merged with PR #34
-:END:
-:DEBRIEF:
-Fixed in commit [[orgit-rev:./::3d1acc1][3d1acc1]], a [[https://github.com/nbest937/claude-code-ide-org.el/pull/34][PR #34]] review finding. One helper, =--block-after=,
-gives the block type open after a line, closing it only on a matching =#+end_=
-(case-insensitive), as org reads it; =--escape-block-headlines= and the lint's
-headline-in-block check both use it, so they cannot drift apart. One ERT test
-covers both the writer and the lint and failed first. =bin/lint-org= reports no
-new errors over the trackers.
-:END:
-
-From PR #34's review (=--escape-block-headlines= and the lint's
-headline-in-block check), against [[id:8a23d6ec-ca45-454d-b65f-e46ea9204816][8a23d6ec]]. Both toggle one flag on any
-=#+begin_= or =#+end_=, so the =#+end_src= of a src block quoted inside
-=#+begin_example= closes the example early and a later =* Heading= splits the
-entry undetected. Track the opening block's type and close only on the matching
-end.
-
-A block closes only on its own type's end line, on write and in the lint, so a
-headline after a quoted block is escaped and refused.
-
-
-** DONE bin/lint-org went from 4.7 s to 8.1 s, parsing each live heading twice more and building a temp buffer per region
-CLOSED: [2026-10-06 Tue 12:02]
-:PROPERTIES:
-:ID:       9297f974-c682-4e32-a91a-d8ca7d18a8b2
-:CREATED:  [2026-10-06 Tue 10:42]
-:END:
-:LOGBOOK:
-CLOCK: [2026-10-06 Tue 10:53]--[2026-10-06 Tue 10:56] =>  0:03
-CLOCK: [2026-10-06 Tue 10:53]--[2026-10-06 Tue 10:53] =>  0:00
-- State "DOING"      from "TODO"       [2026-10-06 Tue 10:53] \\
-  starting the fix
-- [2026-10-06 Tue 10:53]--[2026-10-06 Tue 10:53] suggested span, accepted at review
-- [2026-10-06 Tue 10:53]--[2026-10-06 Tue 10:56] bring bin/lint-org back near its old time
-- State "REVIEW"     from "DOING"      [2026-10-06 Tue 10:56] \\
-  fixed in 1e786eb, test failed first
-- State "DONE"       from "REVIEW"     [2026-10-06 Tue 12:02] \\
-  merged with PR #34
-:END:
-:DEBRIEF:
-Fixed in commit [[orgit-rev:./::1e786eb][1e786eb]], a [[https://github.com/nbest937/claude-code-ide-org.el/pull/34][PR #34]] review finding, though not where the review
-pointed. An advice-based profile of the real run found =--entry-drawer-layout=
-at 3.1 of 8.2 s; =--citation-regions= and =--citation-candidates= were 0.28 s
-each. =--entry-drawers-plainly-canonical-p= scans lines and answers only the
-plain canonical case; anything else, a drawer-shaped line in the body included,
-goes to the parser. 777 of 778 linted headings skip it, and the time inside the
-files is 4.45 s. The new test checks the scan never calls a heading canonical
-where the parser disagrees, and failed first. Judged not worth doing: sharing
-one parse with the citation regions, and one temp buffer per file for the
-candidates, at 0.6 s combined.
-:END:
-
-From PR #34's review (=--entry-drawer-layout=, =--citation-regions=), against
-[[id:f7847adf-a408-4ad0-ae0c-8d3c19b79f2b][f7847adf]], [[id:b7259ee4-9aa1-4b55-8cf2-fbbacdea5310][b7259ee4]] and [[id:d350ff5b-3b1f-465e-800b-962264d2e841][d350ff5b]]. Each live heading gets two more
-=org-element-parse-buffer= passes plus a fresh =org-mode= temp buffer, and
-possibly git processes, per citation region; pre-commit pays it on every commit.
-Parse each entry once and share it, and reuse one temp buffer and one
-commit-exists cache per file.
-
-=bin/lint-org= runs in 6.1 s, down from 8.7 s: a line scan answers drawer order
-for all but one heading, and only what it cannot place is parsed.
-
-
-** DONE org_amend resolves its id three times and leaks a marker on every call
-CLOSED: [2026-10-06 Tue 12:02]
-:PROPERTIES:
-:ID:       40e5d878-4ca0-45f7-8ffc-70c9b341c275
-:CREATED:  [2026-10-06 Tue 10:42]
-:END:
-:LOGBOOK:
-CLOCK: [2026-10-06 Tue 10:52]--[2026-10-06 Tue 10:53] =>  0:01
-- State "DOING"      from "TODO"       [2026-10-06 Tue 10:52] \\
-  starting the fix
-- [2026-10-06 Tue 10:52]--[2026-10-06 Tue 10:53] resolve org_amend's id once
-- State "REVIEW"     from "DOING"      [2026-10-06 Tue 10:53] \\
-  fixed in 5c8f89f, test failed first
-- State "DONE"       from "REVIEW"     [2026-10-06 Tue 12:02] \\
-  merged with PR #34
-:END:
-:DEBRIEF:
-Fixed in commit [[orgit-rev:./::5c8f89f][5c8f89f]], a [[https://github.com/nbest937/claude-code-ide-org.el/pull/34][PR #34]] review finding. One marker gives the target
-file, the slice test and the write-or-queue choice, and it is released on every
-path. The new test counts =--id-find= calls in one amend: 4 on the unfixed code,
-2 now, this one plus =--at-id-writable='s own.
-:END:
-
-From PR #34's review (=org_amend='s slice check), against [[id:f7847adf-a408-4ad0-ae0c-8d3c19b79f2b][f7847adf]]. The file,
-the slice test and the write each call =--id-find=, each refreshing stale id
-buffers, and the slice test's marker is never released. Resolve once, derive
-file and slice-p from it, then =set-marker= nil, as =org_edit= does.
-
-=org_amend= resolves its id once before the write and releases the marker.
-
-
-** DONE The id lookup copies the citation detector's exclusions and regex, and the copies already disagree
-CLOSED: [2026-10-06 Tue 12:02]
-:PROPERTIES:
-:ID:       9a8d82f8-1cd2-42cb-b93c-6c2c12497883
-:CREATED:  [2026-10-06 Tue 10:42]
-:END:
-:LOGBOOK:
-CLOCK: [2026-10-06 Tue 10:49]--[2026-10-06 Tue 10:50] =>  0:01
-CLOCK: [2026-10-06 Tue 10:49]--[2026-10-06 Tue 10:49] =>  0:00
-- State "DOING"      from "TODO"       [2026-10-06 Tue 10:49] \\
-  starting the fix
-- [2026-10-06 Tue 10:49]--[2026-10-06 Tue 10:49] suggested span, accepted at review
-- [2026-10-06 Tue 10:49]--[2026-10-06 Tue 10:50] share the citation regex and exclusions
-- State "REVIEW"     from "DOING"      [2026-10-06 Tue 10:50] \\
-  fixed in f77233b, test failed first
-- State "DONE"       from "REVIEW"     [2026-10-06 Tue 12:02] \\
-  merged with PR #34; last left is 49137118, the user's call
-:END:
-:DEBRIEF:
-Fixed in commit [[orgit-rev:./::f77233b][f77233b]], a [[https://github.com/nbest937/claude-code-ide-org.el/pull/34][PR #34]] review finding. =--bare-id-regexp= builds the
-bounded match from two constants, with the linker passing "=" as an extra
-excluded character because it matches =verbatim= ids separately.
-=--id-lookup-bare-at= uses the same character sets, and =--id-reference-skip-p=
-reads =--citation-excluded-types= minus =verbatim=. The new test covers path,
-URL, tag and colon prefixes plus fixed-width, comment and keyword lines, and
-failed first; the linker's own tests pass unchanged.
-:END:
-
-From PR #34's review (=--id-reference-skip-p=, =--id-lookup-bare-at=), against
-[[id:0eaffc39-088f-48c3-a5b8-167336458114][0eaffc39]]. The hand-listed skip types omit fixed-width, comment, keyword and
-property drawer, and the bare-id match accepts an id after =/=, =.=, =:= or =#=
-that the mark and the linker reject, so eldoc and the jump answer for ids the
-mark never shows. Share one regex constant and =--citation-excluded-types=.
-
-The id lookup, the mark and the linker share one bare-id regex and one exclusion
-list.
-
-
-** CANCELLED Decide whether the drawer-order corpus pass should touch tracked files outside this repo
-CLOSED: [2026-10-06 Tue 12:36]
-:PROPERTIES:
-:ID:       49137118-e960-479c-bccd-d353ab98b3de
-:CREATED:  [2026-10-06 Tue 10:42]
-:END:
-:LOGBOOK:
-- State "CANCELLED"  from "WAITING"    [2026-10-06 Tue 12:36] \\
-  moot: one-time pass, no other tracked repos yet
-:END:
-:PLAN:
-
-Raised by PR #34's reviewer but not posted, against [[id:d350ff5b-3b1f-465e-800b-962264d2e841][d350ff5b]].
-=claude-code-ide-org-normalize-drawer-order= walks every tracked file and saves
-those it changes, which includes =~/git/agentic-euchre/*.org= and
-=~/org/notes.org=. Its docstring says "the tracked files", so it may be
-intended; it is broader than the slice's scope. Held for the user's judgement.
-
-:END:
-*Moot, 2026-10-06 (the user).* No other repo is tracked yet in any real sense,
-and the pass is a one-time repair that nothing runs automatically. It ran once,
-in commit [[orgit-rev:./::30a4673][30a4673]], and changed only this repo's TODO.org and DONE.org. The other
-agenda files are =~/org/notes.org= and =agentic-euchre='s two stub files,
-untouched since 2026-09-10. Revisit this if a second repo adopts the plugin and
-someone means to rerun the pass.
 
 
 * TODO The body-prose counter reads :END: as a drawer opening, so a drawer inside a body hides everything after it :code:
@@ -2444,16 +2107,16 @@ is legibility for whoever runs the lint and one small gate.
 - org-lint's own "possibly misplaced heading line" checker as the detector (measured 2026-09-25): =bin/lint-org= already runs it as a warning, and it reports 498 lines across the two files, nearly all prose lines opening with =*bold*= -- nobody reads a warning with that count, which is why neither glued heading was seen.
 
 
-* TODO [0/32] The review pass asks for judgement it cannot support, and the clock beneath it is still wrong :code:
+* TODO [0/34] The review pass asks for judgement it cannot support, and the clock beneath it is still wrong :code:
 :PROPERTIES:
 :ID:       c7619140-f269-4329-bc05-a38ea151e202
 :CREATED:  [2026-09-22 Tue 16:07]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  55125136-5939-434e-9676-96ea66a75770 361e2708-8124-4bd1-9c44-f97ca97aca4a 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 aee8487e-0650-4396-bc5c-193ca3efcecb 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 653fea66-f9d5-4431-8ce3-5d355560b475 445fe577-01ce-4e68-ab5f-c349c40a4643 2c733857-a280-42cc-bd7c-e182a4fb6ea3 79c224ab-188a-4ed4-a606-c28ee2cfe72d 001fb310-69f7-4417-81be-a224a3bf83e0 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46 e75d660f-5c0d-4707-a645-b5dea7d7ebc0 409a69ff-d57e-4c1c-ab6c-28f7e85fa391 49444167-7a29-491a-81b4-c5215fce9fc2 9b7301de-0903-4987-bb34-56f8f021fbd1 cf483f5d-2d25-4454-a580-db7935c8cb81 8028e875-3032-4ade-949e-414d9861b928 ee3c22c9-f99c-4d41-9c3d-8f39af916fff e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 6c64cc9c-33a9-4a20-af19-c188a690c755 a865f83c-ea37-40c4-a104-7cc50d2c20dd 996fd2bd-be90-44b3-b2c5-9018255940b3 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 595df230-e31d-42ad-9ea7-128e545b9aa0 20cecd53-2338-4237-ab06-f8129e10a2c8 37147e9e-468b-43ee-91f9-45d9647c6164 445ec1f1-095a-462b-abbd-7a3a00925ddb 64d34a64-d336-40a8-a8e8-da8133d0da06 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd
+:BLOCKER:  55125136-5939-434e-9676-96ea66a75770 361e2708-8124-4bd1-9c44-f97ca97aca4a 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 aee8487e-0650-4396-bc5c-193ca3efcecb 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 653fea66-f9d5-4431-8ce3-5d355560b475 85f4e03b-3c7a-4f75-86af-52e04b21cf32 445fe577-01ce-4e68-ab5f-c349c40a4643 2c733857-a280-42cc-bd7c-e182a4fb6ea3 79c224ab-188a-4ed4-a606-c28ee2cfe72d 001fb310-69f7-4417-81be-a224a3bf83e0 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46 e75d660f-5c0d-4707-a645-b5dea7d7ebc0 409a69ff-d57e-4c1c-ab6c-28f7e85fa391 49444167-7a29-491a-81b4-c5215fce9fc2 9b7301de-0903-4987-bb34-56f8f021fbd1 cf483f5d-2d25-4454-a580-db7935c8cb81 8028e875-3032-4ade-949e-414d9861b928 ee3c22c9-f99c-4d41-9c3d-8f39af916fff e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 41f21b4d-278d-4ad8-a56f-122f5af33d65 6c64cc9c-33a9-4a20-af19-c188a690c755 a865f83c-ea37-40c4-a104-7cc50d2c20dd 996fd2bd-be90-44b3-b2c5-9018255940b3 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 595df230-e31d-42ad-9ea7-128e545b9aa0 20cecd53-2338-4237-ab06-f8129e10a2c8 37147e9e-468b-43ee-91f9-45d9647c6164 445ec1f1-095a-462b-abbd-7a3a00925ddb 64d34a64-d336-40a8-a8e8-da8133d0da06 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd
 :DROPPED:
-:MEMBERS:  55125136-5939-434e-9676-96ea66a75770 361e2708-8124-4bd1-9c44-f97ca97aca4a 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 aee8487e-0650-4396-bc5c-193ca3efcecb 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 653fea66-f9d5-4431-8ce3-5d355560b475 445fe577-01ce-4e68-ab5f-c349c40a4643 2c733857-a280-42cc-bd7c-e182a4fb6ea3 79c224ab-188a-4ed4-a606-c28ee2cfe72d 001fb310-69f7-4417-81be-a224a3bf83e0 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46 e75d660f-5c0d-4707-a645-b5dea7d7ebc0 409a69ff-d57e-4c1c-ab6c-28f7e85fa391 49444167-7a29-491a-81b4-c5215fce9fc2 9b7301de-0903-4987-bb34-56f8f021fbd1 cf483f5d-2d25-4454-a580-db7935c8cb81 8028e875-3032-4ade-949e-414d9861b928 01849bef-fdc9-4c30-b467-00ca8606e8e0 330710fb-ea34-466b-96a0-7be947f37a1e ee3c22c9-f99c-4d41-9c3d-8f39af916fff e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 6c64cc9c-33a9-4a20-af19-c188a690c755 a865f83c-ea37-40c4-a104-7cc50d2c20dd 996fd2bd-be90-44b3-b2c5-9018255940b3 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 595df230-e31d-42ad-9ea7-128e545b9aa0 20cecd53-2338-4237-ab06-f8129e10a2c8 37147e9e-468b-43ee-91f9-45d9647c6164 445ec1f1-095a-462b-abbd-7a3a00925ddb 64d34a64-d336-40a8-a8e8-da8133d0da06 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd
+:MEMBERS:  55125136-5939-434e-9676-96ea66a75770 361e2708-8124-4bd1-9c44-f97ca97aca4a 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 aee8487e-0650-4396-bc5c-193ca3efcecb 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 653fea66-f9d5-4431-8ce3-5d355560b475 85f4e03b-3c7a-4f75-86af-52e04b21cf32 445fe577-01ce-4e68-ab5f-c349c40a4643 2c733857-a280-42cc-bd7c-e182a4fb6ea3 79c224ab-188a-4ed4-a606-c28ee2cfe72d 001fb310-69f7-4417-81be-a224a3bf83e0 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46 e75d660f-5c0d-4707-a645-b5dea7d7ebc0 409a69ff-d57e-4c1c-ab6c-28f7e85fa391 49444167-7a29-491a-81b4-c5215fce9fc2 9b7301de-0903-4987-bb34-56f8f021fbd1 cf483f5d-2d25-4454-a580-db7935c8cb81 8028e875-3032-4ade-949e-414d9861b928 01849bef-fdc9-4c30-b467-00ca8606e8e0 330710fb-ea34-466b-96a0-7be947f37a1e ee3c22c9-f99c-4d41-9c3d-8f39af916fff e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 41f21b4d-278d-4ad8-a56f-122f5af33d65 6c64cc9c-33a9-4a20-af19-c188a690c755 a865f83c-ea37-40c4-a104-7cc50d2c20dd 996fd2bd-be90-44b3-b2c5-9018255940b3 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 595df230-e31d-42ad-9ea7-128e545b9aa0 20cecd53-2338-4237-ab06-f8129e10a2c8 37147e9e-468b-43ee-91f9-45d9647c6164 445ec1f1-095a-462b-abbd-7a3a00925ddb 64d34a64-d336-40a8-a8e8-da8133d0da06 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-27 Sun 18:12]--[2026-09-27 Sun 18:13] =>  0:01
@@ -2597,6 +2260,7 @@ Planned:
 - [ ] [[id:aee8487e-0650-4396-bc5c-193ca3efcecb][aee8487e]] TODO `c` claims an envelope whatever runs it contains, so one keystroke can record 3h11m over 16 minutes
 - [ ] [[id:2d100d0d-2d04-43b9-af1e-f4d6b52bbada][2d100d0d]] TODO Intervals on two different headings can overlap, and subtraction reaches only one
 - [ ] [[id:653fea66-f9d5-4431-8ce3-5d355560b475][653fea66]] TODO The unassigned-mark guard is conjunctive, so a clock item with no id marks and then fails at apply
+- [ ] [[id:85f4e03b-3c7a-4f75-86af-52e04b21cf32][85f4e03b]] TODO An accepted span with no heading reaches apply and fails as 'no org heading found with :ID: "nil"'
 - [-] [[id:445fe577-01ce-4e68-ab5f-c349c40a4643][445fe577]] DOING The complement's gap spans carry no events, so half the review buffer cannot be dismissed
 - [ ] [[id:2c733857-a280-42cc-bd7c-e182a4fb6ea3][2c733857]] TODO A span whose only resume is a synthetic bracket edge reports "no transcript for session nil (aged out)"
 - [ ] [[id:79c224ab-188a-4ed4-a606-c28ee2cfe72d][79c224ab]] TODO Applied review changes can be destroyed by a git checkout that looks like it reverts only Claude's edit
@@ -2615,6 +2279,7 @@ Planned:
 - [ ] [[id:ee3c22c9-f99c-4d41-9c3d-8f39af916fff][ee3c22c9]] TODO Make =d= mark for dismissal rather than dismiss, so a shared reason can be given once
 - [ ] [[id:e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b][e95cc5d1]] TODO =d= advances point in the review buffer, onto whatever moved up to replace the dismissed item
 - [ ] [[id:396fd1c3-70e0-4e1f-8839-670b5293a7d3][396fd1c3]] TODO Recenter after `m` advances, so the item under consideration is never at the bottom of the window
+- [ ] [[id:41f21b4d-278d-4ad8-a56f-122f5af33d65][41f21b4d]] TODO The review buffer has no keys to move between items; bind n and p to the next and previous item
 - [ ] [[id:6c64cc9c-33a9-4a20-af19-c188a690c755][6c64cc9c]] TODO claude-code-ide-org-review should return point and windows to where I entered from
 - [ ] [[id:a865f83c-ea37-40c4-a104-7cc50d2c20dd][a865f83c]] TODO Should a short 0-run span default to claimed, and where does the bound fall?
 - [ ] [[id:996fd2bd-be90-44b3-b2c5-9018255940b3][996fd2bd]] TODO A guidepost gap containing an apply timestamp is provably the human's attention
@@ -2868,12 +2533,42 @@ made safe, the second call is still being missed often enough to show in the
 miss count.
 
 
-* TODO Nothing in the drift slice was exercised in a consumer install: the new hooks, the conditional time-file promotion, the twin-checker agent :code:
+* DOING Nothing in the drift slice was exercised in a consumer install: the new hooks, the conditional time-file promotion, the twin-checker agent :code:
 :PROPERTIES:
 :ID:       2b8930da-5223-4b75-b4f6-251a28552d1b
 :CREATED:  [2026-09-21 Mon 10:21]
 :CATEGORY: Dev
 :BLOCKER:  8a2eb687-28da-4d44-893b-db59298bdc5b 6521dd56-8772-416b-9435-6da78bb86b06 4ae7a04b-1557-44d6-91c3-384f1def5293
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-06 Tue 12:52]--[2026-10-06 Tue 12:53] =>  0:01
+- State "DOING"      from "TODO"       [2026-10-06 Tue 12:52] \\
+  blockers done; moving the swc worktree to main
+- [2026-10-06 Tue 12:52]--[2026-10-06 Tue 12:53] move the consumer's plugin worktree to main
+CLOCK: [2026-10-06 Tue 12:53]--[2026-10-06 Tue 12:54] =>  0:01
+- [2026-10-06 Tue 12:53]--[2026-10-06 Tue 12:54] suggested span, accepted at review
+- [2026-10-06 Tue 12:53]--[2026-10-06 Tue 12:53] suggested span, accepted at review
+CLOCK: [2026-10-06 Tue 12:54]--[2026-10-06 Tue 12:55] =>  0:01
+- [2026-10-06 Tue 12:54]--[2026-10-06 Tue 12:55] correct the move note
+CLOCK: [2026-10-06 Tue 14:00]--[2026-10-06 Tue 14:01] =>  0:01
+- [2026-10-06 Tue 14:00]--[2026-10-06 Tue 14:00] suggested span, accepted at review
+- [2026-10-06 Tue 14:00]--[2026-10-06 Tue 14:01] correct check 2 against setup's actual rule
+CLOCK: [2026-10-06 Tue 14:01]--[2026-10-06 Tue 14:02] =>  0:01
+- [2026-10-06 Tue 14:01]--[2026-10-06 Tue 14:02] suggested span, accepted at review
+CLOCK: [2026-10-06 Tue 14:03]--[2026-10-06 Tue 14:04] =>  0:01
+- [2026-10-06 Tue 14:03]--[2026-10-06 Tue 14:04] suggested span, accepted at review
+CLOCK: [2026-10-06 Tue 14:04]--[2026-10-06 Tue 14:05] =>  0:01
+- [2026-10-06 Tue 14:04]--[2026-10-06 Tue 14:05] record check 2 and the install state
+CLOCK: [2026-10-06 Tue 14:05]--[2026-10-06 Tue 14:06] =>  0:01
+- [2026-10-06 Tue 14:05]--[2026-10-06 Tue 14:06] suggested span, accepted at review
+CLOCK: [2026-10-06 Tue 14:06]--[2026-10-06 Tue 14:08] =>  0:02
+- [2026-10-06 Tue 14:06]--[2026-10-06 Tue 14:08] suggested span, accepted at review
+CLOCK: [2026-10-06 Tue 14:08]--[2026-10-06 Tue 14:12] =>  0:04
+- [2026-10-06 Tue 14:08]--[2026-10-06 Tue 14:12] suggested span, accepted at review
+CLOCK: [2026-10-06 Tue 14:15]--[2026-10-06 Tue 14:17] =>  0:02
+- [2026-10-06 Tue 14:15]--[2026-10-06 Tue 14:17] suggested span, accepted at review
+CLOCK: [2026-10-06 Tue 14:18]--[2026-10-06 Tue 14:20] =>  0:02
+- [2026-10-06 Tue 14:18]--[2026-10-06 Tue 14:20] suggested span, accepted at review
 :END:
 :PLAN:
 
@@ -2910,8 +2605,6 @@ six promoted rules are byte-identical to the plugin's own generated copies, and
 =claude-org-setup --check= reports all ok: the rules, no stale Doom glue, and
 =.mcp.json= naming the =agentic-euchre= session as that project's alone. Checks
 1 and 3 to 5 need a Claude Code session started in agentic-euchre.
-
-
 
 
 * TODO The duplicate query reads titles only, so a paraphrase gets past it — including the case that motivated it :code:
@@ -4883,6 +4576,14 @@ on a clock item is ordinary, since =clock_out= carries none. Proposal: test the
 id alone, and consider deriving =:unassigned= from it rather than storing both,
 since two fields encoding one fact is what let them disagree.
 
+*Shares its fix with [[id:85f4e03b-3c7a-4f75-86af-52e04b21cf32][85f4e03b]]* (the user, 2026-10-09: two issues that happen to
+have the same fix). This heading's half: the guard tests the =:unassigned= flag
+and a nil =:id= together, so an id-less item without the flag passes it. That
+one's half: a single =m= never calls the guard at all. Routing =m= through
+=--review-markable-p= and testing the id alone closes both, and either change
+alone leaves the error reachable.
+
+
 
 * TODO No tool retitles a heading or removes a property, so both reach for a raw emacsclient :code:
 :PROPERTIES:
@@ -5236,7 +4937,7 @@ written at quit, which would remove this defect's cause rather than reopen the
 clock afterwards.
 
 
-* DOING The complement's gap spans carry no events, so half the review buffer cannot be dismissed :code:
+* DOING The complement's gap spans carry no events, so half the review buffer cannot be dismissed :code:bounded:
 :PROPERTIES:
 :ID:       445fe577-01ce-4e68-ab5f-c349c40a4643
 :CREATED:  [2026-09-16 Wed 09:24]
@@ -5260,157 +4961,63 @@ CLOCK: [2026-09-17 Thu 10:33]--[2026-09-17 Thu 10:34] =>  0:01
 - [2026-09-17 Thu 10:33]--[2026-09-17 Thu 10:34]
 CLOCK: [2026-09-17 Thu 10:34]--[2026-09-17 Thu 10:34] =>  0:00
 - [2026-09-17 Thu 10:34]--[2026-09-17 Thu 10:34] suggested span, accepted at review
+- Tags ":code:bounded:" from ":code:"     [2026-10-09 Fri 10:14] \\
+  classified: one change where review builds bracket items
 :END:
 :PLAN:
+Fold the gap that leads into a clock bracket into that bracket, instead of
+offering it. A gap qualifies when it ends at a =clock_in=, has no queue event
+inside it, and lasts no longer than =claude-code-ide-org-span-idle-floor= (120
+s). Its start may be a =clock_out= or a =block_end=. (Option 3 of three offered,
+the user, 2026-10-09; widened from "between two clock brackets" in the same
+dialogue.)
+
+Where: in the review pass, where clock_in/clock_out pairs become bracket items.
+The qualifying bracket's start moves back to the gap's start, which extends both
+its item and the interval in the owned set, so =--span-complement= never
+produces the gap. No separate pass hides an offered item.
+
+Why the following bracket: a gap that ends at a =clock_in= is lead-in to that
+heading. It is the read-only orientation the clock-in rule puts before the first
+write, and [[id:b09aca60-127b-47a4-9177-a86ac90d8fac][b09aca60]] already treats time after a =clock_out= as unowned by the
+heading just left. Measured 2026-10-09 over every queue file: 59 of 693
+clock-ins have such a gap, 593 s in all. 27 are a second or less, the
+=clock_out= and =clock_in= of one tool batch; 16 run 2-10 s, 14 run 11-60 s, and
+2 run 81 s. Of the 59, 45 fold into a different heading from the one just left
+and 9 into the same one. Checked against transcripts: the 81 s gap before "file
+and fix the pre-commit basename" held the lint investigation that led to that
+filing, and today's 26 s gap after a permission answer held the capture its
+clock-in names. A capture that writes through leaves no queue event, so "nothing
+queued" does not mean nothing happened.
+
+Not folded, and still offered: a gap ending at a =block_start=, which is work
+after a =clock_out= until a permission prompt and has no owner yet ([[id:b09aca60-127b-47a4-9177-a86ac90d8fac][b09aca60]]'s
+case); and a gap over the floor. The permission wait itself, =block_start= to
+=block_end=, is already subtracted ([[id:f4e628ce-e653-429a-8f3c-0f5d4241b139][f4e628ce]]) and stays so. Superseded: this
+heading's earlier direction, to offer a gap only when it carries a guidepost.
+After [[id:5a9d877e-b492-46c7-a672-fd5971ffb0b0][5a9d877e]] removed the days-long clusters, that rule would also drop real
+lead-in minutes.
+
+Tests (ERT, a synthetic fixture, each failing first): two brackets 12 s apart
+with nothing between yield no gap item, and the second bracket starts 12 s
+earlier; the same after a =block_end=. Unchanged controls: a 200 s gap; a gap
+holding a guidepost; a gap ending at a =block_start=.
 
 :END:
-Regression introduced by [[id:c54c4215-90e3-4e0c-9de1-990c0406a2b2][c54c4215]]'s complement, found 2026-09-16 when the user
-asked what the undismissable items were. **7 of 14 currently offered items carry
-no =:events=**, and =claude-code-ide-org-review-dismiss= refuses them: "Nothing
-to dismiss: this item carries no queue events". The refusal is correct on its
-own terms — dismissal works by marking an item's backing events consumed, and
-with none there is nothing to record, so refusing beats appearing to work. *What
-they are, confirmed against the raw queue rather than inferred:* every one is
-bounded by a =clock_out= at its start and a =clock_in= at its end — the gap
-after one heading's clock closed and before the next one's opened. They are
-exactly what this heading's parent set out to surface, and they carry no events
-**by construction**: their boundaries are bracket *edges*, not guideposts, and
-any guidepost inside them would sit inside a bracket and so already be owned.
-*The trade I made without noticing.* Before the complement, a split emitted
-zero-width *endpoints* sitting on real guideposts — those had events and could
-be dismissed. The complement replaced them with real-duration gaps that cannot.
-I measured the minutes recovered (12.64 h) and never checked what happened to
-reviewability; half the buffer is now undismissable. That is [[id:355fa608-e311-4874-b2d3-bbc62172d09a][355fa608]]'s
-"offered forever" in new clothes, and that guard does not reach it because it
-keys on *zero width* while these have real duration. *Two consequences, one
-benign.* =d= is unavailable, so the only exits are accepting the item or
-applying the sibling segments that share the cluster's guideposts, which
-dissolves the cluster and takes the gap with it. Applying is at least idempotent
-— =--recorded-intervals-at-point= subtracts what is already written, so a replay
-writes nothing and there is no double-count. *Shape of the fix, not chosen.*
-Either dismissal keys on the span's bounds rather than its events, which means a
-dismissal record that is not per-event and so a second shape in the watermark
-file; or the item carries its bounding =clock_out=/=clock_in= as read-only
-=:events= it may reference but must never consume, since consuming them would
-break the brackets they belong to. The first is more honest about what is being
-dismissed; the second reuses the existing path. Worth deciding against the
-86-minute example the user surfaced ([[id:0086614a-c95c-4618-bba0-c821589dd7f2][0086614a]] -> [[id:c60a1c53-ba7f-40a2-979a-6ce0a16ce3c8][c60a1c53]]), where the gap is
-large enough that dismissing it is a real choice rather than tidying.
+The review pass offers the gaps between clock brackets as spans with no queue
+events, so =d= refuses them and they return at every pass. [[id:5a9d877e-b492-46c7-a672-fd5971ffb0b0][5a9d877e]] removed the
+days-long clusters that produced most of them; what remains is short and real,
+mostly the lead-in before a =clock_in=, such as the 12 s at 2026-10-09 08:34.
+The fix folds a gap of 120 s or less with nothing queued in it, ending at a
+=clock_in=, into that bracket; the plan has the design and the measurement.
 
-*Reproduced in batch 2026-09-16, and it carries a second consequence worse than
-the first* — found by the [[https://github.com/nbest937/claude-code-ide-org.el/pull/25][PR #25]] review, confirmed here rather than taken on
-trust. Two owned brackets at 10:01--10:05 and 10:06--10:10, guideposts at 10:00
-and 10:11, threshold 1200:
-
-: spans emitted: 3
-:   10:00:00--10:01:00  events=1  kinds-known=t
-:   10:05:00--10:06:00  events=0  kinds-known=nil
-:   10:10:00--10:11:00  events=1  kinds-known=t
-
-The middle span's endpoints are *bracket edges*, so no guidepost lies within it
-and =--span-events= returns nil. Dismissal needs a queue item to mark, which is
-the half already filed. The new half is
-=claude-code-ide-org--span-kinds-known-p=: it is =(and (seq-find ...) t)= over
-the event list, so an empty list answers nil, and its own docstring says what
-apply then does — "turns back into the single whole-span line it wrote before
-this existed". So accepting such an item writes **one CLOCK line for the whole
-envelope**, with no run structure, because there are no kinds to read.
-
-*Severity is narrower than it first reads, and worth stating so the fix is not
-overscoped.* Emitting the gap is the feature [[id:c54c4215-90e3-4e0c-9de1-990c0406a2b2][c54c4215]] shipped: the minute
-between two owned brackets is genuinely unaccounted, and offering it is the
-point. Nor is a whole-envelope line wrong for a one-minute gap. The sharp edge
-is a *large* gap, where writing the envelope whole claims every idle minute in
-it as work — which is precisely what =claude-code-ide-org-span-idle-floor=
-exists to prevent, and the run-splitting that would enforce it is disabled by
-the same empty list.
-
-*So the two halves want one fix, not two.* Whatever gives a gap span a queue
-item to dismiss is also what would give it events to split on. Attaching the
-bracket endpoints themselves as synthetic =block_start=/=block_end= events is
-the obvious shape and is not yet argued — it would make =kinds-known-p= true and
-the runs computable, at the cost of inventing events, which this project has
-refused before.
-
-*Measured 2026-09-17, and the title understates it.* Of nine spans offered for
-yesterday afternoon, **eight carry zero events**; across the whole pending set
-it is thirteen of fifteen. The two exceptions are instructive: the ones that
-still report minutes are those whose guideposts have *not* been consumed by an
-apply — =13:58--14:15=, which survived only because it was one of the three
-items that failed with =:ID: "nil"=, and today's =09:58= and =10:08=.
-
-*What is actually being offered.* =[2026-09-16 21:14]--[2026-09-17 08:40]=,
-eleven hours overnight, suggested against [[id:489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938][489d6f61]] because that heading held
-the last clock before it. =[18:34]--[21:14]=, two hours forty.
-=[15:17]--[18:28]=, the AFK stretch. These are not gaps *within* a span of
-activity — they are the interval between every adjacent pair of clock brackets,
-emitted whether or not a single turn occurred inside.
-
-*That is not what [[id:c54c4215-90e3-4e0c-9de1-990c0406a2b2][c54c4215]] set out to recover*, and its own title says so:
-"the unowned gaps between the clock pairs **that split it**" — gaps interior to
-a span that real guideposts had formed. An inter-bracket interval containing no
-guidepost was never part of any span, so there is nothing in it that was
-previously dropped.
-
-*Consequences, all of which the user hit in one morning.* Such an item cannot be
-dismissed (no events to record against), reports no minutes, runs or turns
-(=--review-written-summary= short-circuits on =--span-kinds-known-p=), writes no
-CLOCK line if applied while =:suggested=, consumes no watermark, and so returns
-at every pass forever. Where it inherits a suggested heading it looks answerable
-and is not.
-
-*Fix direction, stated but not implemented.* Emit a complement piece only when
-it carries at least one guidepost — the same conservative shape [[id:355fa608-e311-4874-b2d3-bbc62172d09a][355fa608]] used
-for the stranded single point, and with the same justification recorded there:
-"Nothing is lost: the guidepost itself stays in the queue file, which is the
-durable record. Only the *proposal* is dropped." Dismissal-by-bounds, considered
-earlier today, treats the symptom and would leave the human retiring overnight
-gaps one at a time forever.
-
-*Not yet established, and it should be before the fix lands:* whether an
-eleven-hour overnight interval can form a cluster at all, or whether these
-pieces escape clustering entirely. The =resume= -> =pause= exemption never
-splits however long the gap, and an interrupted turn emits no =pause= — so a
-crashed session may be leaving exactly the adjacency that lets a cluster span a
-night.
-
-*Mechanism settled 2026-09-17 by probe, and it is upstream of everything
-recorded above.* Running =--aggregate-guideposts= on the orphan guideposts
-**with no exclusions at all** yields clusters spanning days:
-
-: 08-24 12:33..08-31 18:13  inside=7
-: 09-02 15:41..09-03 13:17  inside=3
-: 09-16 13:58..09-17 10:27  inside=35
-
-Seven days holding seven guideposts. No gap threshold of 1200 s can produce
-that, so the =resume= -> =pause= exemption is what joins them — "a turn
-*running*, so it never splits however long it is". The premise fails on the
-**orphan stream**: two events are adjacent there only because everything between
-them was bracketed and attributed elsewhere, so the exemption reads a days-long
-hole as one continuous turn. Adjacency in a filtered stream is not
-consecutiveness in time.
-
-*The code half-knows this already.* The comment above the call warns that two
-orphans "are *adjacent* in the orphan stream, because everything between them is
-bracketed… A =resume= -> =pause= adjacency never splits however long the gap, so
-the span would straddle all four brackets by construction". The mitigation
-chosen was to subtract the brackets afterwards — which removes the bracketed
-intervals but leaves the cluster straddling days, and the complement then carves
-that into inter-bracket pieces. Those pieces are the event-less spans measured
-above. So the complement is the messenger, not the cause.
-
-*Fix shape, with a location:* the exemption should require the two events be
-adjacent in the **full** event stream rather than in the filtered one the
-function was handed — the caller knows both, the callee currently sees only one.
-No invented threshold and no new storage, and it restores [[id:c54c4215-90e3-4e0c-9de1-990c0406a2b2][c54c4215]]'s
-complement to what its own title says: the gaps between clock pairs *that split
-a span*, not the interval between every adjacent pair of brackets in the corpus.
-
-*Probe limitation, stated because it bounds the claim:* only three brackets
-survive in the live queue, the rest consumed by applies, so step 2 of the probe
-could not reproduce the current item list and is inconclusive. Step 1 needs no
-brackets and is what the finding rests on. A synthetic fixture is what the fix's
-test should use.
+*Established:* the gaps carry no events by construction, because their edges are
+bracket edges, not guideposts (reproduced in batch, 2026-09-16). The days-long
+clusters came from the =resume= -> =pause= exemption reading adjacency in a
+filtered stream, fixed by [[id:5a9d877e-b492-46c7-a672-fd5971ffb0b0][5a9d877e]]. *Ruled out:* dismissal by bounds, which
+treats the symptom and leaves a human retiring gaps one at a time; and offering
+a gap only when it holds a guidepost, which since [[id:5a9d877e-b492-46c7-a672-fd5971ffb0b0][5a9d877e]] would drop real
+lead-in minutes.
 
 
 * TODO Should a short 0-run span default to claimed, and where does the bound fall? :research:
@@ -6539,181 +6146,6 @@ conversation happens to be looking. Proposed: a recurring sweep that
 *offers* recent unattached work to the groupings it plausibly fits —
 detection mechanised, judgement kept human, per every surviving
 report's contract. Shapes and constraints in =:PLAN:=.
-
-
-* DONE [20/20] Make the notes org-native: links, drawers, tags, one corpus pass :code:
-CLOSED: [2026-10-06 Tue 12:41]
-:PROPERTIES:
-:ID:       6521dd56-8772-416b-9435-6da78bb86b06
-:CREATED:  [2026-09-10 Thu 08:57]
-:CATEGORY: Slices
-:KIND:     slice
-:COOKIE_DATA: checkbox recursive
-:MEMBERS:  b7259ee4-9aa1-4b55-8cf2-fbbacdea5310 f7847adf-a408-4ad0-ae0c-8d3c19b79f2b 0eaffc39-088f-48c3-a5b8-167336458114 d350ff5b-3b1f-465e-800b-962264d2e841 63df67c7-de0d-43e7-9c6f-2b2979a40aba e128e4fa-b0d9-49f7-99eb-bae2d4b0676b 76a6f052-e360-4a12-8077-070da83a8e84 fce6bd35-27ad-4724-8dbb-c9df4b68fb10 e28933e9-f352-4ef9-8d53-8cd9a4318768 8b945c02-7ebe-40a2-b4cc-e35811afe57f 41cf5830-fc2e-4dc6-b243-a0c2718a53a3 8a23d6ec-ca45-454d-b65f-e46ea9204816 01849bef-fdc9-4c30-b467-00ca8606e8e0 ecf66d45-18b3-477f-bca8-08bec90604e8 ea1df60b-1e28-448e-bb62-a6fc2b6b62f8 40b692e8-64f9-4c0f-a22b-4d859e5f25f3 f5e5ccf4-710f-4eef-8790-7bfb20b5e5b5 de5f4f98-8a95-492f-bf62-9489e670fb27 635018c2-4273-41b9-a39f-ee2c13764656 d6e435f1-df78-4970-8ede-dfae677d144b 20b7bb32-8c0f-4186-8200-3e8e3ffa5bc8 4fc8375f-d339-4f73-95da-53a718c3771b 9297f974-c682-4e32-a91a-d8ca7d18a8b2 40e5d878-4ca0-45f7-8ffc-70c9b341c275 9a8d82f8-1cd2-42cb-b93c-6c2c12497883 49137118-e960-479c-bccd-d353ab98b3de
-:DROPPED:  01849bef-fdc9-4c30-b467-00ca8606e8e0 ecf66d45-18b3-477f-bca8-08bec90604e8
-:END:
-:LOGBOOK:
-- State "NEXT"       from "TODO"       [2026-09-27 Sun 18:12] \\
-  nominated: blocks 2b8930da, which gates euchre
-CLOCK: [2026-09-28 Mon 12:43]--[2026-09-28 Mon 12:44] =>  0:01
-- [2026-09-28 Mon 12:43]--[2026-09-28 Mon 12:44] assigned at review
-CLOCK: [2026-09-28 Mon 12:48]--[2026-09-28 Mon 12:49] =>  0:01
-- [2026-09-28 Mon 12:48]--[2026-09-28 Mon 12:49] assigned at review
-- [2026-09-28 Mon 14:00]--[2026-09-28 Mon 14:00] assigned at review
-CLOCK: [2026-09-28 Mon 14:02]--[2026-09-28 Mon 14:03] =>  0:01
-- [2026-09-28 Mon 14:02]--[2026-09-28 Mon 14:03] assigned at review
-CLOCK: [2026-09-28 Mon 14:06]--[2026-09-28 Mon 14:07] =>  0:01
-- [2026-09-28 Mon 14:06]--[2026-09-28 Mon 14:07] assigned at review
-- State "DOING"      from "NEXT"       [2026-10-05 Mon 11:27] \\
-  slice taken up, first member started
-CLOCK: [2026-10-05 Mon 14:51]--[2026-10-05 Mon 14:54] =>  0:03
-- [2026-10-05 Mon 14:51]--[2026-10-05 Mon 14:54] assigned at review
-- State "REVIEW"     from "DOING"      [2026-10-06 Tue 09:39] \\
-  its pull request review started: /code-review
-CLOCK: [2026-10-06 Tue 09:42]--[2026-10-06 Tue 09:43] =>  0:01
-- [2026-10-06 Tue 09:42]--[2026-10-06 Tue 09:43] assigned at review
-CLOCK: [2026-10-06 Tue 09:46]--[2026-10-06 Tue 09:47] =>  0:01
-- [2026-10-06 Tue 09:46]--[2026-10-06 Tue 09:47] assigned at review
-CLOCK: [2026-10-06 Tue 09:51]--[2026-10-06 Tue 09:52] =>  0:01
-- [2026-10-06 Tue 09:51]--[2026-10-06 Tue 09:52] assigned at review
-- [2026-10-06 Tue 12:35]--[2026-10-06 Tue 12:36] assigned at review
-CLOCK: [2026-10-06 Tue 12:36]--[2026-10-06 Tue 12:37] =>  0:01
-- [2026-10-06 Tue 12:36]--[2026-10-06 Tue 12:37] settle 49137118 and close the review story
-CLOCK: [2026-10-06 Tue 12:37]--[2026-10-06 Tue 12:38] =>  0:01
-- [2026-10-06 Tue 12:37]--[2026-10-06 Tue 12:38] assigned at review
-- State "DONE"       from "REVIEW"     [2026-10-06 Tue 12:41] \\
-  merged with PR #34; review findings fixed before merge
-CLOCK: [2026-10-06 Tue 12:41]--[2026-10-06 Tue 12:42] =>  0:01
-- [2026-10-06 Tue 12:41]--[2026-10-06 Tue 12:42] assigned at review
-CLOCK: [2026-10-06 Tue 12:42]--[2026-10-06 Tue 12:43] =>  0:01
-- [2026-10-06 Tue 12:42]--[2026-10-06 Tue 12:43] close slice 6521dd56
-:END:
-:PLAN:
-The notes should use org: live links instead of inert citations, drawers instead
-of narration, tags worth querying. Every member either adopts an org feature or
-crawls the corpus to apply one. The order below serves brainstorming and
-execution alike, and it is conventions first. Every decision that constrains the
-corpus passes is settled before them, so the mass pass writes to settled
-conventions once instead of being redone after them. (Rewritten whole, the user,
-2026-09-28. It replaces a drawer composed 2026-09-10 and revised three times,
-and the order was re-derived from the members' own keywords, blockers and
-cross-references rather than carried over.)
-
-The order, one line each:
-
-- [[id:d350ff5b-3b1f-465e-800b-962264d2e841][d350ff5b]] first: it fixes where a =:DEBRIEF:= sits, and [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]] is about to create 88 of them. Settled afterwards, the consolidator would move all 88 again.
-- [[id:b7259ee4-9aa1-4b55-8cf2-fbbacdea5310][b7259ee4]]: the commit-link convention, so the resolutions [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]] authors cite commits as orgit links from the start. Its retrofit covers only the 2026-09-09 debriefs, so it does not share the corpus read.
-- [[id:f7847adf-a408-4ad0-ae0c-8d3c19b79f2b][f7847adf]]: the id-link convention and the writers that apply it. Landing before [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]] means every authored resolution gets id links through the tools, with no care owed by the author.
-- [[id:0eaffc39-088f-48c3-a5b8-167336458114][0eaffc39]]: follows [[id:f7847adf-a408-4ad0-ae0c-8d3c19b79f2b][f7847adf]], whose outcome decides what is left for it. A linked id already jumps on click, so the lookup mainly serves bare ids in rendered sessions and commit messages.
-- [[id:8a23d6ec-ca45-454d-b65f-e46ea9204816][8a23d6ec]]: a lint rule, taken beside [[id:b7259ee4-9aa1-4b55-8cf2-fbbacdea5310][b7259ee4]]'s lint warning, since both extend =bin/lint-org=.
-- [[id:63df67c7-de0d-43e7-9c6f-2b2979a40aba][63df67c7]]: prose only and independent, its analysis accepted 2026-09-10. It sits here because it is quick and nothing waits on it.
-- [[id:8b945c02-7ebe-40a2-b4cc-e35811afe57f][8b945c02]]: cancelled 2026-09-29 (the user); =:observed:= and =:bug:= were both dropped, and the ruling is recorded on [[id:e28933e9-f352-4ef9-8d53-8cd9a4318768][e28933e9]].
-- [[id:e28933e9-f352-4ef9-8d53-8cd9a4318768][e28933e9]]: cancelled 2026-09-29 (the user) with its story [[id:ee3e0fa2-d4a6-4575-a5fb-e4e25c49431a][ee3e0fa2]]; tags are not how this corpus is searched, and the ruling is in the shipped conventions' Tags section. So no read is shared with [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]] any more.
-- [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]]: the mass pass, now writing to a settled drawer order and settled link conventions. Its completion also closes [[id:4c834fdb-5314-4168-ab1d-09fe89ded517][4c834fdb]], whose last live child it is.
-- [[id:76a6f052-e360-4a12-8077-070da83a8e84][76a6f052]]: a second pass over the corpus just read. [[id:b52df20b-45c7-41aa-9d77-44ccf06c647f][b52df20b]] already changed the sweep's filter and width.
-- [[id:fce6bd35-27ad-4724-8dbb-c9df4b68fb10][fce6bd35]]: can land only once [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]] leaves every open heading in canonical shape. The lint it adds is what retires the conventions' backfill clause.
-- [[id:41cf5830-fc2e-4dc6-b243-a0c2718a53a3][41cf5830]]: builds on [[id:b7259ee4-9aa1-4b55-8cf2-fbbacdea5310][b7259ee4]]'s commit-link vocabulary.
-- [[id:01849bef-fdc9-4c30-b467-00ca8606e8e0][01849bef]]: moved to the review-pass slice [[id:c7619140-f269-4329-bc05-a38ea151e202][c7619140]] on 2026-10-02 (the user) and declared in =:DROPPED:= here. It was divided under the story [[id:6ea84943-9eef-4940-b850-e8cf79310d2a][6ea84943]], whose subject is what a claim records, not timestamp notation, which is that slice's theme.
-- [[id:ecf66d45-18b3-477f-bca8-08bec90604e8][ecf66d45]]: deferred out of this slice 2026-10-02 (the user) and declared in =:DROPPED:=, after it was divided under the story [[id:14c02a28-5e1f-401b-9c22-dd18c2c10847][14c02a28]] and became the pacing child, owed three decisions before design. Agenda dates were never this slice's theme; the story and its ready sibling [[id:a29464da-e045-4276-881e-cab41ad0b8ad][a29464da]] await their own scheduling.
-- [[id:ea1df60b-1e28-448e-bb62-a6fc2b6b62f8][ea1df60b]]: the weakest fit, a corpus audit at the tail.
-
-The checklist's order is the order of adoption, not this one, and it is left as
-it is: no tool reorders a slice's members, and a hand edit is refused by
-convention.
-
-Twins, checked on the rewrite: none. [[id:b7259ee4-9aa1-4b55-8cf2-fbbacdea5310][b7259ee4]] and [[id:41cf5830-fc2e-4dc6-b243-a0c2718a53a3][41cf5830]] are complementary
-(citation practice versus an index of a heading's own history). [[id:b7259ee4-9aa1-4b55-8cf2-fbbacdea5310][b7259ee4]] and
-[[id:f7847adf-a408-4ad0-ae0c-8d3c19b79f2b][f7847adf]] cite different targets, commits and headings. [[id:f7847adf-a408-4ad0-ae0c-8d3c19b79f2b][f7847adf]] and
-[[id:0eaffc39-088f-48c3-a5b8-167336458114][0eaffc39]] are sequenced, not duplicated. No single fix would close any pair.
-
-Two candidate members exist only as proposals, still unfiled and pending the
-user's filter: inactive timestamps on measured claims ("measured
-[2026-08-26 Wed]" as a parseable date), and search-anchored =file:= links for
-symbol citations. Filed, they join.
-
-*Overtaken 2026-10-01: [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]] ran ahead of [[id:d350ff5b-3b1f-465e-800b-962264d2e841][d350ff5b]], [[id:b7259ee4-9aa1-4b55-8cf2-fbbacdea5310][b7259ee4]] and [[id:f7847adf-a408-4ad0-ae0c-8d3c19b79f2b][f7847adf]]*
-(the user's call). The order's premise, that the mass pass would write to
-settled conventions, no longer holds, and the order stays as the build order.
-The drawer order cost nothing: its mover put every =:DEBRIEF:= after the other
-drawers (measured 2026-10-02 on [[id:d350ff5b-3b1f-465e-800b-962264d2e841][d350ff5b]]). Of its 315 authored resolutions, 86
-cite a heading or a commit verbatim, with no link: 76 ids and 29 SHAs. 82 of
-those headings are in DONE.org, which the linking pass leaves alone by the
-user's 2026-09-25 decision on [[id:f7847adf-a408-4ad0-ae0c-8d3c19b79f2b][f7847adf]]; the 5 in TODO.org are within it. So
-nothing is owed to them.
-:END:
-:DEBRIEF:
-Shipped in [[https://github.com/nbest937/claude-code-ide-org.el/pull/34][PR #34]], merged 2026-10-06 as commit [[orgit-rev:./::673d6a5][673d6a5]]. Ten planned members
-reached DONE: the two link conventions with their shared linker ([[id:b7259ee4-9aa1-4b55-8cf2-fbbacdea5310][b7259ee4]],
-[[id:f7847adf-a408-4ad0-ae0c-8d3c19b79f2b][f7847adf]]), the id lookup ([[id:0eaffc39-088f-48c3-a5b8-167336458114][0eaffc39]]), the drawer canon and its normaliser
-([[id:d350ff5b-3b1f-465e-800b-962264d2e841][d350ff5b]]), the escaping of block headlines ([[id:8a23d6ec-ca45-454d-b65f-e46ea9204816][8a23d6ec]]), the story definition
-([[id:63df67c7-de0d-43e7-9c6f-2b2979a40aba][63df67c7]]), the mass move of debriefs ([[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]]), the lint that retired the
-backfill clause ([[id:fce6bd35-27ad-4724-8dbb-c9df4b68fb10][fce6bd35]]), org_history ([[id:41cf5830-fc2e-4dc6-b243-a0c2718a53a3][41cf5830]]), and the archive-path audit
-([[id:ea1df60b-1e28-448e-bb62-a6fc2b6b62f8][ea1df60b]]). The tag story [[id:ee3e0fa2-d4a6-4575-a5fb-e4e25c49431a][ee3e0fa2]] was cancelled with both of its children on
-2026-09-29, when it was decided that tags are not how this corpus is searched.
-Two members were moved out into =:DROPPED:=, and [[id:76a6f052-e360-4a12-8077-070da83a8e84][76a6f052]] was parked MAYBE by
-the user's call.
-
-The review ran inside the slice's REVIEW window, as the close rule intends.
-=/code-review high= posted ten findings, which were filed as the story [[id:92804b53-5998-4622-932f-831a8e25fa8d][92804b53]]
-and fixed before merge, each with a test that failed first. One unposted point,
-[[id:49137118-e960-479c-bccd-d353ab98b3de][49137118]], was cancelled as moot.
-
-What differed from the plan: [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]] ran ahead of the conventions it was
-sequenced after. That cost nothing, because its mover already wrote debriefs in
-canonical position. The 86 verbatim citations it left are almost all in
-DONE.org, which the linking pass leaves alone by design.
-
-Left open, all filed: [[id:4c834fdb-5314-4168-ab1d-09fe89ded517][4c834fdb]] is at =[6/6]= and still DOING, so it is owed its
-own close. [[id:14c02a28-5e1f-401b-9c22-dd18c2c10847][14c02a28]] remains TODO, and [[id:6ea84943-9eef-4940-b850-e8cf79310d2a][6ea84943]] and [[id:76a6f052-e360-4a12-8077-070da83a8e84][76a6f052]] remain MAYBE. The
-plan's two unfiled proposals were filed as MAYBE at this close, as [[id:d0253bc8-8b3d-49c0-b7bc-a36d24ffe0a6][d0253bc8]] and
-[[id:3e7bc5ac-90ab-46c2-b496-99af56d3ec37][3e7bc5ac]].
-:END:
-
-The notes cite commits, PRs and dates as inert text, narrate history
-the drawers could index, and carry tags nobody surveyed — while the
-conventions to fix each already half-exist. This slice sequences the
-adoption: link practice first, then the corpus passes that follow it,
-then the small independents. One full-corpus read serves three
-members.
-
-Planned:
-
-- [X] [[id:b7259ee4-9aa1-4b55-8cf2-fbbacdea5310][b7259ee4]] DONE Commits cited in bodies and debriefs are orgit links, and nothing enforces it
-- [X] [[id:f7847adf-a408-4ad0-ae0c-8d3c19b79f2b][f7847adf]] DONE Headings cited in bodies are id links, written as links by the tools, so backlinks are one org_query away
-- [X] [[id:0eaffc39-088f-48c3-a5b8-167336458114][0eaffc39]] DONE Look up a tracked id wherever it appears in Emacs: its title at point, and a jump on click
-- [X] [[id:d350ff5b-3b1f-465e-800b-962264d2e841][d350ff5b]] DONE Canonical drawer order: PROPERTIES, LOGBOOK, PLAN, DEBRIEF, then body
-- [X] [[id:63df67c7-de0d-43e7-9c6f-2b2979a40aba][63df67c7]] DONE Revisit the story definition: sanction clustering and speculative breakdown
-- [[id:4c834fdb-5314-4168-ab1d-09fe89ded517][4c834fdb]] DOING Make the heading body a scannable summary, with plan and debrief in drawers
-  - [X] [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]] DONE Move the 88 pre-convention debriefs into :DEBRIEF:, authoring each resolution
-- [[id:76a6f052-e360-4a12-8077-070da83a8e84][76a6f052]] MAYBE Long prose lines have drifted back since the one fill sweep of 2026-09-14, because nothing runs it routinely
-- [X] [[id:fce6bd35-27ad-4724-8dbb-c9df4b68fb10][fce6bd35]] DONE The member-drawer backfill clause is scaffolding: once every open heading has its canonical shape, the lint should require it and the clause retire
-- [[id:ee3e0fa2-d4a6-4575-a5fb-e4e25c49431a][ee3e0fa2]] CANCELLED Make the corpus searchable by tag, by measurement where it can be and by decision where it cannot
-  - [[id:e28933e9-f352-4ef9-8d53-8cd9a4318768][e28933e9]] CANCELLED Survey all task history for a tag vocabulary worth searching on
-  - [[id:8b945c02-7ebe-40a2-b4cc-e35811afe57f][8b945c02]] CANCELLED Adopt an `observed` tag for a defect seen in use, as the severity signal the keyword set does not carry
-- [X] [[id:41cf5830-fc2e-4dc6-b243-a0c2718a53a3][41cf5830]] DONE Answer how a heading got here from the commits that cite it, one call away
-- [X] [[id:8a23d6ec-ca45-454d-b65f-e46ea9204816][8a23d6ec]] DONE Comma-escape headline lines when documenting org structure inside a body
-- [[id:6ea84943-9eef-4940-b850-e8cf79310d2a][6ea84943]] MAYBE A claimed span records agent time and human attention as one, and the reviewer has no picture of the span to judge from
-  - [[id:01849bef-fdc9-4c30-b467-00ca8606e8e0][01849bef]] MAYBE A claim should keep the agent's runs and the user's attention apart, not record the whole span as attention
-- [[id:14c02a28-5e1f-401b-9c22-dd18c2c10847][14c02a28]] TODO Lay future work out on the agenda: commitments, milestones on slices and stories, and pacing that follows a slip
-  - [[id:ecf66d45-18b3-477f-bca8-08bec90604e8][ecf66d45]] TODO When a dated heading slips, move the dates that follow it along a chosen order
-- [X] [[id:ea1df60b-1e28-448e-bb62-a6fc2b6b62f8][ea1df60b]] DONE Archived :ARCHIVE_FILE: paths are machine-absolute; audit their portability
-- [[id:92804b53-5998-4622-932f-831a8e25fa8d][92804b53]] DONE PR #34's review found ten defects the slice shipped, fixed on the branch before merge
-  - [X] [[id:40b692e8-64f9-4c0f-a22b-4d859e5f25f3][40b692e8]] DONE The drawer normaliser deletes and reinserts the entry, so a running clock's marker lands on the headline
-  - [X] [[id:f5e5ccf4-710f-4eef-8790-7bfb20b5e5b5][f5e5ccf4]] DONE The bare-id mark's keymap binds RET, so Enter jumps to a heading in commit, magit and org buffers
-  - [X] [[id:de5f4f98-8a95-492f-bf62-9489e670fb27][de5f4f98]] DONE A failed drawer-order check leaves the half-done write in the buffer, unsaved, and every tool then refuses the file
-  - [X] [[id:635018c2-4273-41b9-a39f-ee2c13764656][635018c2]] DONE The id-lookup cache is dropped on every tracked save and rebuilt inside font-lock by reading every tracked file
-  - [X] [[id:d6e435f1-df78-4970-8ede-dfae677d144b][d6e435f1]] DONE org_history on an id that resolves to nothing throws a type error instead of refusing
-  - [X] [[id:20b7bb32-8c0f-4186-8200-3e8e3ffa5bc8][20b7bb32]] DONE org_history reports a failed git log as zero commits, the same answer as none citing the heading
-  - [X] [[id:4fc8375f-d339-4f73-95da-53a718c3771b][4fc8375f]] DONE A block nested inside another ends the in-block state early, so a headline after it is neither escaped nor linted
-  - [X] [[id:9297f974-c682-4e32-a91a-d8ca7d18a8b2][9297f974]] DONE bin/lint-org went from 4.7 s to 8.1 s, parsing each live heading twice more and building a temp buffer per region
-  - [X] [[id:40e5d878-4ca0-45f7-8ffc-70c9b341c275][40e5d878]] DONE org_amend resolves its id three times and leaks a marker on every call
-  - [X] [[id:9a8d82f8-1cd2-42cb-b93c-6c2c12497883][9a8d82f8]] DONE The id lookup copies the citation detector's exclusions and regex, and the copies already disagree
-  - [[id:49137118-e960-479c-bccd-d353ab98b3de][49137118]] CANCELLED Decide whether the drawer-order corpus pass should touch tracked files outside this repo
-
-*Resolution:* merged with [[https://github.com/nbest937/claude-code-ide-org.el/pull/34][PR #34]] on 2026-10-06. Citations are now live links,
-drawers stand in canonical order, an id can be looked up anywhere in Emacs, and
-a heading's history is one call away. The ten defects the review found were
-fixed on the branch before merge.
 
 
 * TODO The :PLAN: wrap nag fires only on queued DONE, so REVIEW exits skip it :code:
@@ -9466,12 +8898,12 @@ before the fix and still says.
 
 
 * TODO Archive closed tasks daily
-SCHEDULED: <2026-10-07 Wed 07:00 ++1d>
+SCHEDULED: <2026-10-10 Sat 07:00 ++1d>
 :PROPERTIES:
 :CATEGORY: Meta
 :ID:       cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8
 :CREATED:  [2026-08-21 Fri 15:35]
-:LAST_REPEAT: [2026-10-06 Tue 09:40]
+:LAST_REPEAT: [2026-10-09 Fri 08:58]
 :END:
 :LOGBOOK:
 CLOCK: [2026-08-24 Mon 10:25]--[2026-08-24 Mon 10:28] =>  0:03
@@ -11897,8 +11329,6 @@ per tool -- rather than opening the servers beyond localhost.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
-CLOCK: [2026-10-06 Tue 12:42]--[2026-10-06 Tue 12:43] =>  0:01
-CLOCK: [2026-10-06 Tue 12:36]--[2026-10-06 Tue 12:39] =>  0:03
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
@@ -12083,6 +11513,9 @@ CLOCK: [2026-10-05 Mon 14:45]--[2026-10-05 Mon 14:46] =>  0:01
 CLOCK: [2026-10-06 Tue 09:39]--[2026-10-06 Tue 09:40] =>  0:01
 - <2026-10-06 Tue 09:39>--<2026-10-06 Tue 09:40> review pass (buffer buried)
 CLOCK: [2026-10-06 Tue 11:39]--[2026-10-06 Tue 11:41] =>  0:02
+CLOCK: [2026-10-06 Tue 12:36]--[2026-10-06 Tue 12:39] =>  0:03
+CLOCK: [2026-10-06 Tue 12:42]--[2026-10-06 Tue 12:43] =>  0:01
+CLOCK: [2026-10-09 Fri 08:33]--[2026-10-09 Fri 08:46] =>  0:13
 :END:
 
 We created this heading on 2026-08-26. We deleted that property from its
@@ -13487,4 +12920,27 @@ CLOCK: [2026-10-06 Tue 11:53]--[2026-10-06 Tue 11:54] =>  0:01
 - [2026-10-06 Tue 11:53]--[2026-10-06 Tue 11:54] recover from the apply crash
 CLOCK: [2026-10-06 Tue 12:02]--[2026-10-06 Tue 12:03] =>  0:01
 - [2026-10-06 Tue 12:02]--[2026-10-06 Tue 12:03] close PR #34's review story after merge
+:END:
+
+
+**** 2026-10-09 Friday
+:PROPERTIES:
+:ID:       5c8cca37-de80-46bc-a123-76f57367c2b5
+:CREATED:  [2026-10-09 Fri 08:25]
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-09 Fri 08:25]--[2026-10-09 Fri 08:26] =>  0:01
+- [2026-10-09 Fri 08:25]--[2026-10-09 Fri 08:26] assigned at review
+CLOCK: [2026-10-09 Fri 08:33]--[2026-10-09 Fri 08:34] =>  0:01
+- [2026-10-09 Fri 08:33]--[2026-10-09 Fri 08:34] assigned at review
+CLOCK: [2026-10-09 Fri 08:34]--[2026-10-09 Fri 08:35] =>  0:01
+- [2026-10-09 Fri 08:34]--[2026-10-09 Fri 08:35] split 24694d1f's body for the lint
+CLOCK: [2026-10-09 Fri 08:35]--[2026-10-09 Fri 08:36] =>  0:01
+- [2026-10-09 Fri 08:35]--[2026-10-09 Fri 08:36] assigned at review
+CLOCK: [2026-10-09 Fri 08:42]--[2026-10-09 Fri 08:43] =>  0:01
+- [2026-10-09 Fri 08:42]--[2026-10-09 Fri 08:43] assigned at review
+CLOCK: [2026-10-09 Fri 08:46]--[2026-10-09 Fri 08:47] =>  0:01
+- [2026-10-09 Fri 08:46]--[2026-10-09 Fri 08:47] assigned at review
+CLOCK: [2026-10-09 Fri 08:49]--[2026-10-09 Fri 08:50] =>  0:01
+- [2026-10-09 Fri 08:49]--[2026-10-09 Fri 08:50] assigned at review
 :END:
