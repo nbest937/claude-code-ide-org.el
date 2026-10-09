@@ -2,11 +2,101 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* TODO /next-session conflates planning a slice with working it; split it into two commands, each for a fresh session :code:bounded:
+* TODO /next-session conflates planning a slice with working it; split it into two commands, each for a fresh session :code:arch:
 :PROPERTIES:
 :ID:       dc21f724-78f9-4da8-9d74-002ad3306446
 :CREATED:  [2026-10-09 Fri 13:36]
 :CATEGORY: Dev
+:END:
+:LOGBOOK:
+- Tags ":code:arch:" from ":code:bounded:" [2026-10-09 Fri 15:39] \\
+  stepped up: ships a new plugin component and a per-project rules file
+:END:
+:PLAN:
+Approved in chat by the user, 2026-10-09, section by section. Names:
+=/plan-slice= and =/work-slice=, verb-first and in the project's own words.
+Stepped up from bounded once the commands were to ship: they become a plugin
+component, and each project needs a place for its own rules.
+
+**Files and loading.** =commands/plan-slice.md= and =commands/work-slice.md= at
+the plugin root are shipped. Plugin commands are always namespaced, so a
+consumer types =/claude-code-ide-org:plan-slice=; whether the bare name also
+works is undocumented. A plugin loaded by symlink brings its commands. This repo
+does not enable its own plugin, which would double every hook, so
+=.claude/commands/plan-slice.md= and =work-slice.md= are symlinks to the shipped
+files, following the =.claude/skills/org= precedent, and give the bare names
+here. =.claude/slice-rules.md= holds a project's own rules for both commands. It
+is neither a command nor a rule file, so it is never auto-loaded and costs no
+word budget. =.claude/commands/next-session.md= is replaced by a one-line stub
+naming =/work-slice=, kept for one slice and then deleted.
+
+**The line between core and project file** follows [[id:d9f77953-473d-4340-a0b7-87a181f19d8b][d9f77953]]: a step the
+tracker's machinery needs to stay correct ships in the core, and a project's
+practice goes in its own file. That file is also how a project adds its own
+testbed skill, with a line saying to load it before the first member. Claude
+Code already lets any project define skills, so no new mechanism is needed, and
+this repo's =org-dev= line moves there. Source control is the same: the branch,
+PR and merge steps live in this repo's file, so the core assumes no SCM, and
+=gh= can later be swapped project by project. The shipped conventions' "Closing
+a slice" still names a pull request as a slice's integration point, and is the
+place to change when that swap is made.
+
+**=/plan-slice=.** It takes the =NEXT= slice or the one named, and stops to ask
+when there is none or more than one, never choosing by title. It reads
+=.claude/slice-rules.md= if present, has the queue applied first and confirms
+the server. Then it goes member by member in the slice's order. Finished,
+dropped and =MAYBE= members are skipped, and so is a member whose =:PLAN:=
+already holds a design with no open question. A member with no plan, or a plan
+that is only evidence, is brainstormed with the brainstorming skill, all its
+gates included, and the clock sits on that member meanwhile. A =WAITING= member
+is raised as a question. Then the slice's own =:PLAN:=, the order with one line
+per member, is written or revised under "Review and planning", and a member's
+drawer wins where the two disagree. The slice stays =NEXT=, because planning is
+=TODO=-phase work, and no branch or code is touched. It ends with a readiness
+report and a pointer to =/work-slice= in a fresh session. It is resumable, since
+planned members are skipped, which matters for a slice of 16.
+
+**=/work-slice=.** It takes a =DOING= slice whose integration is not yet open,
+checked as the project file says or by asking, and otherwise the =NEXT= slice. A
+missing or thin slice plan, or unplanned members it reaches, stops it with a
+pointer to =/plan-slice=. The core preliminaries are: apply the queue; confirm
+the server; clock in before the first write; queue =DOING= on the slice when its
+work starts. The project file adds its own; for this repo those are the
+base-commit check, merging through a PR, cutting =feature/<name>=, loading
+=org-dev=, committing after an apply, and capturing without a body. Per member:
+=DOING= before starting it, its =:PLAN:= read first, an undecided question to
+the user before the step, the two-call close, and the nomination inside a
+grouping. These are already the shipped conventions, which the command cites
+rather than restates. Integration is the project file's business; the core says
+only that a slice carrying code closes when its integration point lands. The
+standing rules split. Shipped: the heading beats the slice's plan; never type a
+UUID from memory; a full drawer masks an empty body. To this repo's file: the
+engineering lore, including reproduce before fixing, prove a test can fail,
+silence is not a pass, never =--no-verify=, mutation tests, =git commit --
+FILE=, branch switches rewriting TODO.org, stacked PRs, =sync-plans= and
+anchored regexps. Both layers keep the rule that they grow only by addition,
+each item going to the layer it belongs to.
+
+**Renames and checks.** =CLAUDE.md='s line on =.claude/commands/= describes both
+commands and the project file. The shipped conventions' three mentions in the
+slices section are updated and regenerated into =.claude/rules/=.
+=bin/check-conventions= swaps =next-session.md= for the two commands and
+=slice-rules.md= in its file list, so their citations must resolve. The README
+gains a short note on the two commands under their plugin names and on
+=.claude/slice-rules.md=. The test fixture holding the old name is transcript
+data and stays.
+
+**Testing.** No elisp changes. =bin/check-conventions= passes over the new
+files. In a fresh session here, =/plan-slice= and =/work-slice= appear, proving
+the symlinks load, and the stub names =/work-slice=. A read-only =/work-slice=
+against [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]] finds it =NEXT=, reports its unplanned members and points to
+=/plan-slice= without starting anything. [[id:2b8930da-5223-4b75-b4f6-251a28552d1b][2b8930da]] gains a check: in
+agentic-euchre, the names the shipped commands appear under, and a missing
+=.claude/slice-rules.md= tolerated.
+
+**Where it lands:** a feature branch and a PR, since it changes shipped content.
+ It is standalone rather than a member of [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]], but serves that slice's
+ goal, and can merge before the slice starts.
 :END:
 
 A slice usually takes two sessions: one to brainstorm and plan the =NEXT= slice,
