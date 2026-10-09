@@ -2,6 +2,55 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Separate what the machinery requires from what this project prefers, so a consumer can change the second :code:
+:PROPERTIES:
+:ID:       d9f77953-473d-4340-a0b7-87a181f19d8b
+:CREATED:  [2026-10-09 Fri 10:35]
+:CATEGORY: Dev
+:END:
+:PLAN:
+Not yet designed; this drawer holds the evidence a brainstorm should start from.
+(Raised by the user, 2026-10-09, while weighing PR #35's open thread on which
+file =bin/check-conventions= should treat as the reference.)
+
+Where the product imposes on a consumer: what =claude-org-setup --org= scaffolds
+(the template's =#+TAGS:=, =#+ARCHIVE: DONE.org::datetree/= and keyword set);
+what plain setup promotes as always-loaded or path-scoped rules, whose wording
+is mandatory ("Every =.org= file in this project should start with"); and what
+the tools refuse (a top-level capture without a category, two path tags on one
+heading, an unresolvable =:BLOCKER:=, a keyword outside =org_set_todo='s list).
+
+A first, unverified split. *Machinery needs:* the =#+TODO:= keywords the tools
+and hooks name, =REVIEW= included; =#+STARTUP: logdrawer=, so apply's logging
+lands in =:LOGBOOK:=; an =:ID:= on every heading the tools address. *Project
+preference:* the tag vocabulary, datetree archiving, drawer order, the footnote
+style, the category values, and the slice conventions. Each placement wants
+checking against the code before it is believed. Datetree archiving, for one,
+couples to the ceremony's sort step and to =org-archive-reversed-order=, so
+"preference" may only hold once the archive sweep handles a flat target too.
+
+Evidence of the cost. [[id:24694d1f-34b4-495b-b0d8-d29e64894c59][24694d1f]]: a consumer has nowhere to declare its
+categories, yet the capture refuses without one. The template has no =* Review
+and planning= datetree anchor, so with time tracking on, a meta-work
+=org_clock_in= would resolve to no day node and fail at apply with =:ID: "nil"=.
+That was read from =claude-code-ide-org-resolve-day-node=, not run. And the
+template's tags drifted from this repo's for weeks because nothing distinguished
+"the tags the tools rely on" from "the tags we happen to use" ([[id:b2e4173c-26c5-4ff8-b055-350883fe4c06][b2e4173c]]).
+
+Likely shape, to be argued in the brainstorm rather than assumed: the template
+carries only requirements plus clearly marked defaults; the promoted conventions
+split into a required core and this project's practice, which a consumer may
+edit or decline; and each tool refusal is checked for whether it protects
+machinery or merely enforces taste. This is probably architectural, since it
+touches setup, the template, the promoted rules and several tools.
+:END:
+
+The plugin ships this project's habits with the same force as the things its
+tools depend on, so a consumer cannot tell which they may change and the product
+reads as more opinionated than it needs to be (the user, 2026-10-09). Draw the
+line: ship what the machinery needs as requirements, and this project's choices
+as defaults a consumer may change.
+
 * TODO The review buffer has no keys to move between items; bind n and p to the next and previous item :code:
 :PROPERTIES:
 :ID:       41f21b4d-278d-4ad8-a56f-122f5af33d65
