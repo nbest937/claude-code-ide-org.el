@@ -579,7 +579,7 @@ Planned:
 - [-] [[id:2b8930da-5223-4b75-b4f6-251a28552d1b][2b8930da]] DOING Nothing in the drift slice was exercised in a consumer install: the new hooks, the conditional time-file promotion, the twin-checker agent
 
 
-* TODO The review command clocks the reviewer's attention even where time tracking is off, and without the meta-work anchor files the heading under whatever comes last :code:
+* TODO The review command clocks the reviewer's attention even where time tracking is off, and without the meta-work anchor files the heading under whatever comes last :code:arch:
 :PROPERTIES:
 :ID:       97b4f6a9-a944-40d3-8d14-7a1667c52291
 :CREATED:  [2026-10-09 Fri 10:59]
@@ -588,18 +588,88 @@ Planned:
 :LOGBOOK:
 CLOCK: [2026-10-09 Fri 10:58]--[2026-10-09 Fri 10:59] =>  0:01
 - [2026-10-09 Fri 10:58]--[2026-10-09 Fri 10:59] assigned at review
+- Tags ":code:arch:" from ":code:"     [2026-10-09 Fri 17:06] \\
+  first classified bounded, stepped up: a new plugin-to-Emacs channel, and the gate reaches the ceremony report
+:END:
+:PLAN:
+Classified bounded, then stepped up to arch in the same dialogue: the gate needs
+a new channel from the plugin option into Emacs, and it reaches the ceremony
+report as well as the review command (the user approved the design section by
+section, 2026-10-09). With tracking off the pass does no attention work at all:
+no clock, no anchor lookup, no prompt and no heading (the user).
+
+The gate. =session-context.sh= already hands the raw =time_tracking= value to
+=claude-code-ide-org-write-session-context-report=; that function also writes it
+to a stamp, =time-tracking-option= in the queue directory, overwritten at each
+session start with =true=, =false= or empty (chosen over a new defcustom, and
+over waiting for [[id:055886c1-3dfd-4805-b05c-c66b2d631d18][055886c1]]'s module flag). A new predicate,
+=claude-code-ide-org--time-tracking-on-p=, holds only when the stamp reads
+=true=; missing, empty or =false= is off, so it fails closed.
+=claude-code-ide-org-review= calls =review-attention-start= only when it holds;
+the =quit-window= advice and =kill-buffer-hook= already do nothing without a
+marker. This repo's =session-context.sh= row in =.claude/settings.json= gains
+=CLAUDE_PLUGIN_OPTION_TIME_TRACKING=true=, which it lacks today and without
+which this repo would read as off. One value for every project, as the option is
+per user. =--trigger-auto-clock-in= may share the predicate later; that is
+[[id:055886c1-3dfd-4805-b05c-c66b2d631d18][055886c1]]'s.
+
+The anchor, with tracking on. A heading carrying the defcustom's title is used
+wherever it is, and with =* Review and planning= present the heading goes under
+it, both as today. Only with neither does =review-attention-start=, before the
+buffer appears, raise =read-multiple-choice=, explaining what is foregone (this
+pass's review time and every later pass's in this Emacs, with the ceremony's
+ran-today check falling to the watermark), when it is next offered (the first
+review after an Emacs restart), and how a permanent disable is undone (=M-x
+customize-variable= on =claude-code-ide-org-review-attention-heading=, then
+Erase Customization, or the custom file's line). The choices: =c= create, the
+default, inserting =* Review attention= at level 1 at the end of the file with
+=:ID:=, =:CREATED:= and a =:CATEGORY:= chosen by =completing-read= over the
+categories the file uses, =Meta= first when present; =s= skip for this Emacs, a
+defvar, no clock and no second prompt; =n= never, =customize-save-variable= to
+nil, saying it writes the custom file (the user: stop and ask, level 1 as the
+default, explain what is foregone and when it returns, offer the permanent
+disable with its restoration). =--mechanism-owned-heading-p= falls back to the
+defcustom's standard value when it is nil, so an existing =Review attention=
+heading stays out of =a='s candidates. The ceremony report reads the target
+without =create= (=config.el:909=) and never prompts.
+
+The ceremony. =--ceremony-reviewed-today-p= keeps its CLOCK test and, when that
+finds nothing, falls back to the apply watermarks: every =<session>.applied= in
+the queue directory and in the queue archive, since a fully applied queue's
+sidecar moves with its =.jsonl= (=config.el:12572=), looking for any applied
+pass time dated today, the value =bin/hooks/apply-detect= reads, read here in
+elisp (the user). A dismiss-only or empty pass leaves no watermark and reads as
+not run, the noisier and safer error, and the docstring says so. The report's
+wording is unchanged. Making the ceremony due in a consuming repo is [[id:de081dd9-1853-4d79-94fc-2edac498380f][de081dd9]]'s.
+
+Testing. ERT in =config-test.el=, with the queue directory and the stamp in a
+temp dir. Gate: a stamp of =false=, empty or missing opens no clock, creates no
+heading and leaves the file byte-identical; =true= opens the clock as today;
+=write-session-context-report= writes all three values. Anchor, with
+=read-multiple-choice= stubbed: =c= makes a level-1 heading with =:ID:=,
+=:CREATED:= and the chosen =:CATEGORY:=, never a child of the last heading,
+which is the filed bug's regression test; =s= opens no clock and does not prompt
+twice; =n= saves nil with =customize-save-variable= stubbed; with =* Review and
+planning= present there is no prompt and the heading goes under it. Exclusion:
+with the defcustom nil, =Review attention= is still absent from
+=--assign-candidates=. Ceremony: no clock and a today-dated watermark in the
+queue directory is true, the same in the archive is true, and only a
+yesterday-dated or dismiss-only one is nil. Each test is proved to discriminate
+by copying the fix aside and running HEAD's version red, never with =git stash=.
+=session-context.sh= is invoked directly with the variable set and unset, and
+=bin/check-conventions= runs after the =settings.json= change. Live: reload per
+the org-dev skill, then in this repo, after a new session, one real review pass
+still opens the attention clock.
 :END:
 
-=claude-code-ide-org-review= calls =claude-code-ide-org-review-attention-start=
-unconditionally, so every review opens a real org clock on "Review attention"
-and writes CLOCK lines, in an install whose owner left time tracking off; the
-elisp cannot see the plugin option, which reaches only the hooks. Where the
-tracker has no =* Review and planning= heading, which the shipped template
-lacks, =--review-attention-target= inserts =** Review attention= at the end of
-the file, making it a child of whatever heading is last. Read from the code on
-2026-10-09, not run. Gate the attention clock on the same option the hooks obey,
-and anchor the heading safely when it is on.
-
+The review command opens an attention clock on every pass, even in an install
+whose owner left time tracking off, and where the tracker has no =* Review and
+planning= anchor it files =Review attention= under whatever heading comes last.
+Designed 2026-10-09 (the user): gate the clock on a stamp the SessionStart hook
+writes from the plugin option, failing closed; with tracking on and no anchor,
+ask before creating a level-1 heading, offering skip and never; and let the
+ceremony's "a pass ran today" fall back to the apply watermarks. Read from the
+code, not yet run.
 
 * MAYBE Separate what the machinery requires from what this project prefers, so a consumer can change the second :code:arch:
 :PROPERTIES:
