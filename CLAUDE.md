@@ -110,10 +110,11 @@ repeated here.
 
 Five things you would not guess:
 
-- **`.claude-plugin/`, `hooks/` and `skills/` are the plugin surface**
-  (2026-09-09, `:ID:` b0e478f7): the manifest, the shipped hook wiring
-  (mirroring `.claude/settings.json` — a repo enables one or the other,
-  never both), and the org skill whose `references/` carry the machinery
+- **`.claude-plugin/`, `hooks/`, `skills/` and `commands/` are the plugin
+  surface** (2026-09-09, `:ID:` b0e478f7): the manifest, the shipped hook
+  wiring (mirroring `.claude/settings.json` — a repo enables one or the
+  other, never both), the slice commands, and the org skill whose
+  `references/` carry the machinery
   prose and conventions. `bin/claude-org-setup` promotes those references
   into a consuming repo's `.claude/rules/` — this repo runs it on itself,
   so the machinery files under `.claude/rules/` are **generated**, marked

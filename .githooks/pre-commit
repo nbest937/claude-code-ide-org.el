@@ -91,7 +91,10 @@ staged_all="$(git diff --cached --name-only --diff-filter=ACMR)"
 conv=""
 for f in $staged_all; do
   case "$f" in
-    CLAUDE.md|.claude/rules/*.md|.claude/skills/*/SKILL.md|.claude/commands/*.md|TODO.org|DONE.org|modules/tools/claude-code-ide-org/config.el)
+    # The shipped paths too: .claude/commands/ and .claude/skills/org are
+    # symlinks into commands/ and skills/, and an edit stages the target,
+    # never the link (PR #36 review).
+    CLAUDE.md|.claude/rules/*.md|.claude/skills/*/SKILL.md|.claude/commands/*.md|.claude/slice-rules.md|commands/*.md|skills/*/SKILL.md|skills/*/references/*.md|TODO.org|DONE.org|modules/tools/claude-code-ide-org/config.el)
       conv=1 ;;
   esac
 done

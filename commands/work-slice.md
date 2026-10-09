@@ -1,5 +1,5 @@
 ---
-description: Work the slice in hand -- the DOING slice not yet integrated, else the NEXT slice -- from its :PLAN: drawer, member by member.
+description: Work the slice in hand -- the DOING slice, else the NEXT one -- from its :PLAN: drawer, member by member.
 ---
 
 # Work the slice
@@ -8,7 +8,7 @@ description: Work the slice in hand -- the DOING slice not yet integrated, else 
 plan lives in the slice's own `:PLAN:` drawer; this file says how to find
 that slice and what every session does first. Start it in a **fresh
 session**: planning a slice is `/plan-slice`'s job, in a session of its
-own, and each deserves an empty context (TODO.org :ID: dc21f724).
+own, and each deserves an empty context (the plugin's own tracker, :ID: dc21f724).
 
 **This project's own rules come from `.claude/slice-rules.md`**, if it
 exists. Read it now, before anything below. It holds what is this
@@ -27,9 +27,12 @@ keywords are current:
 org_query "property:KIND,slice !todo:DONE !todo:CANCELLED"
 ```
 
-1. A `DOING` slice whose integration is **not yet open** is the one in
-   hand. Continue it. How integration is checked -- an open pull request,
-   say -- is the project file's business; without one, ask.
+1. A `DOING` slice is the one in hand. Continue it. A slice waiting on
+   review is `REVIEW`, not `DOING`: it moves there when its integration
+   review starts, queued by the `review-start` hook or by hand (the org
+   conventions, "Closing a slice"), so the keyword alone tells the two
+   apart. A project whose slices can wait in review while still `DOING`
+   says how to spot that in its `.claude/slice-rules.md`.
 2. Otherwise, the `NEXT` slice. There is at most one, because a category
    holds at most one top-level `NEXT`.
 3. **Neither, or more than one: stop and ask.** Do not choose by reading
@@ -55,6 +58,10 @@ the plan, not the membership.
 ---
 
 ## Step 0 -- preliminaries
+
+> Heading ids cited below as evidence -- `ff7ccb2d` and the like -- are
+> from the plugin's own tracker, where these rules were earned. They do
+> not resolve in yours, and are not owed anything there.
 
 > **Nothing below is specific to a slice or to a project.** These are the
 > steps the tracker's machinery needs. Amend this section and *Standing
@@ -83,6 +90,15 @@ the plan, not the membership.
    event; without it the slice's LOGBOOK shows a `NEXT`→`DONE` teleport
    and every report that keys on `DOING` is blind to the work in flight
    (the `4133772c` defect, one tier up).
+
+5. **Capture with no `body`, then `org_amend` the body.** `org_capture`
+   drops an argument it does not recognise without saying so (`bbf9fb77`),
+   and `body` is one of them: on 2026-09-19 eight captures in one session
+   each landed as a title with an empty body, unnoticed for five hours
+   because every one had a full `:PLAN:` drawer written by a later
+   `org_amend` — a heading with a plan drawer looks composed at a glance.
+   Check the file after the first capture of a session, not the reply.
+   Added 2026-09-19; carries forward with the rest of Step 0.
 
 Then the project file's own Step 0 items, if any.
 
@@ -130,3 +146,6 @@ a pull request, a review, a merge -- is the project file's business.
   for five hours, because each had a `:PLAN:` drawer written by a later
   call. When a tool reports success and the location, check the primary
   artifact for the *content* — the reply says where it wrote, never what.
+- **Footnote every tracked `:ID:` in every response**, title looked up rather
+  than recalled. The hook fired four times on 2026-09-03 and every miss was
+  an id that arrived *inside* evidence rather than one chosen deliberately.

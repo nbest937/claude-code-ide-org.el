@@ -8,7 +8,7 @@ description: Plan the NEXT slice -- brainstorm each member without a plan, then 
 member it reaches to a written design, and writes the slice's own plan.
 It does no implementation: working the slice is `/work-slice`, in a
 **fresh session** of its own, because each deserves an empty context
-(TODO.org :ID: dc21f724).
+(the plugin's own tracker, :ID: dc21f724).
 
 **This project's own rules come from `.claude/slice-rules.md`**, if it
 exists. Read it now; most of it governs working rather than planning,
@@ -20,10 +20,10 @@ The `NEXT` slice, or the one the user names. Find it after the queue is
 applied, so keywords are current:
 
 ```
-org_query "property:KIND,slice !todo:DONE !todo:CANCELLED"
+org_query "todo:NEXT property:KIND,slice"
 ```
 
-**None, or more than one candidate: stop and ask.** Do not choose by
+**No `NEXT` slice, or more than one: stop and ask.** Do not choose by
 reading titles.
 
 ## Preliminaries

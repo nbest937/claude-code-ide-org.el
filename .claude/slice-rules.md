@@ -13,7 +13,7 @@
 
 ## Step 0, this repository's items
 
-Run after the core's items 1-4.
+Run after the core's items 1-5.
 
 5. **Confirm the new branch will be cut at a commit that already contains
    every piece of prior work you want in it.** Three parts, in order, and the
@@ -72,14 +72,8 @@ Run after the core's items 1-4.
    a commit whose message describes your prose. On 2026-09-15 the diff was
    checked with `git diff --stat` first and committed alone; it was 75
    lines the amend's message would have misattributed.
-10. **Capture with no `body`, then `org_amend` the body.** `org_capture`
-   drops an argument it does not recognise without saying so (`bbf9fb77`),
-   and `body` is one of them: on 2026-09-19 eight captures in one session
-   each landed as a title with an empty body, unnoticed for five hours
-   because every one had a full `:PLAN:` drawer written by a later
-   `org_amend` — a heading with a plan drawer looks composed at a glance.
-   Check the file after the first capture of a session, not the reply.
-   Added 2026-09-19; carries forward with the rest of Step 0.
+10. *Moved to the shipped `/work-slice` Step 0 on 2026-10-09 (PR #36
+   review): it describes the shipped tool's defect, not this repo's practice.*
 11. **Load the `org-dev` skill before the first member** (the Skill tool,
    `org-dev`). It is this repo's primer on developing the module: how to
    reload what a member changed, *when* a reload is owed, and how to prove
@@ -89,6 +83,14 @@ Run after the core's items 1-4.
    in the tree; the stub exits 0 silently when Emacs lacks the function,
    so every session ran unchecked for an hour and nothing said so. Added
    2026-09-25 at the user's direction.
+12. **A `DOING` slice whose pull request is already open is waiting, not
+   in hand.** The shipped `/work-slice` reads the keyword alone, and
+   `bin/hooks/review-start` queues `REVIEW` only once a review starts, so
+   between `gh pr create` and the first review the slice is still
+   `DOING`. Check `gh pr list --state open` before resuming one; if its
+   PR is open, queue `REVIEW` on it and take the `NEXT` slice instead.
+   This was the old command's own check, kept here when the keyword took
+   over in the shipped core (PR #36 review, 2026-10-09).
 
 ---
 
@@ -104,9 +106,8 @@ Run after the core's items 1-4.
   scanning each heading's whole block attributed **three of eight** footnote
   titles to the wrong heading, because ids get quoted in bodies. Third
   instance of that class; the fix is `org-map-entries`, not a second parser.
-- **Footnote every tracked `:ID:` in every response**, title looked up rather
-  than recalled. The hook fired four times on 2026-09-03 and every miss was
-  an id that arrived *inside* evidence rather than one chosen deliberately.
+- *"Footnote every tracked `:ID:`" moved to the shipped `/work-slice` on
+  2026-10-09 (PR #36 review): the footnote hook ships to every consumer.*
 - **Reproduce the hypothesis before fixing it.** One heading's stated likely
   cause was wrong, and its own body had flagged it unverified for exactly
   that reason. Reproducing took one command and changed the fix entirely.

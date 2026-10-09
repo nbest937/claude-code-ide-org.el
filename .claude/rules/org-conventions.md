@@ -527,8 +527,8 @@ the change stay in their bodies as history; the member scan already
 ignores them, since it requires an `id:` link.
 
 **A slice outlives a session.** A CLI restart or a cleared context
-continues the slice in hand — `/work-slice` picks the `DOING` slice
-whose integration is not yet open — so unfinished members stay put
+continues the slice in hand — `/work-slice` picks the `DOING` slice, one
+waiting on review being `REVIEW` — so unfinished members stay put
 instead of being deferred into a successor slice that has not earned
 them. Deferral proliferates mentions of tasks that were planned and
 never reached the top of the stack.
