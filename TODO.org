@@ -4885,163 +4885,20 @@ earlier; the same after a =block_end=. Unchanged controls: a 200 s gap; a gap
 holding a guidepost; a gap ending at a =block_start=.
 
 :END:
-Regression introduced by [[id:c54c4215-90e3-4e0c-9de1-990c0406a2b2][c54c4215]]'s complement, found 2026-09-16 when the user
-asked what the undismissable items were. **7 of 14 currently offered items carry
-no =:events=**, and =claude-code-ide-org-review-dismiss= refuses them: "Nothing
-to dismiss: this item carries no queue events". The refusal is correct on its
-own terms — dismissal works by marking an item's backing events consumed, and
-with none there is nothing to record, so refusing beats appearing to work. *What
-they are, confirmed against the raw queue rather than inferred:* every one is
-bounded by a =clock_out= at its start and a =clock_in= at its end — the gap
-after one heading's clock closed and before the next one's opened. They are
-exactly what this heading's parent set out to surface, and they carry no events
-**by construction**: their boundaries are bracket *edges*, not guideposts, and
-any guidepost inside them would sit inside a bracket and so already be owned.
-*The trade I made without noticing.* Before the complement, a split emitted
-zero-width *endpoints* sitting on real guideposts — those had events and could
-be dismissed. The complement replaced them with real-duration gaps that cannot.
-I measured the minutes recovered (12.64 h) and never checked what happened to
-reviewability; half the buffer is now undismissable. That is [[id:355fa608-e311-4874-b2d3-bbc62172d09a][355fa608]]'s
-"offered forever" in new clothes, and that guard does not reach it because it
-keys on *zero width* while these have real duration. *Two consequences, one
-benign.* =d= is unavailable, so the only exits are accepting the item or
-applying the sibling segments that share the cluster's guideposts, which
-dissolves the cluster and takes the gap with it. Applying is at least idempotent
-— =--recorded-intervals-at-point= subtracts what is already written, so a replay
-writes nothing and there is no double-count. *Shape of the fix, not chosen.*
-Either dismissal keys on the span's bounds rather than its events, which means a
-dismissal record that is not per-event and so a second shape in the watermark
-file; or the item carries its bounding =clock_out=/=clock_in= as read-only
-=:events= it may reference but must never consume, since consuming them would
-break the brackets they belong to. The first is more honest about what is being
-dismissed; the second reuses the existing path. Worth deciding against the
-86-minute example the user surfaced ([[id:0086614a-c95c-4618-bba0-c821589dd7f2][0086614a]] -> [[id:c60a1c53-ba7f-40a2-979a-6ce0a16ce3c8][c60a1c53]]), where the gap is
-large enough that dismissing it is a real choice rather than tidying.
+The review pass offers the gaps between clock brackets as spans with no queue
+events, so =d= refuses them and they return at every pass. [[id:5a9d877e-b492-46c7-a672-fd5971ffb0b0][5a9d877e]] removed the
+days-long clusters that produced most of them; what remains is short and real,
+mostly the lead-in before a =clock_in=, such as the 12 s at 2026-10-09 08:34.
+The fix folds a gap of 120 s or less with nothing queued in it, ending at a
+=clock_in=, into that bracket; the plan has the design and the measurement.
 
-*Reproduced in batch 2026-09-16, and it carries a second consequence worse than
-the first* — found by the [[https://github.com/nbest937/claude-code-ide-org.el/pull/25][PR #25]] review, confirmed here rather than taken on
-trust. Two owned brackets at 10:01--10:05 and 10:06--10:10, guideposts at 10:00
-and 10:11, threshold 1200:
-
-: spans emitted: 3
-:   10:00:00--10:01:00  events=1  kinds-known=t
-:   10:05:00--10:06:00  events=0  kinds-known=nil
-:   10:10:00--10:11:00  events=1  kinds-known=t
-
-The middle span's endpoints are *bracket edges*, so no guidepost lies within it
-and =--span-events= returns nil. Dismissal needs a queue item to mark, which is
-the half already filed. The new half is
-=claude-code-ide-org--span-kinds-known-p=: it is =(and (seq-find ...) t)= over
-the event list, so an empty list answers nil, and its own docstring says what
-apply then does — "turns back into the single whole-span line it wrote before
-this existed". So accepting such an item writes **one CLOCK line for the whole
-envelope**, with no run structure, because there are no kinds to read.
-
-*Severity is narrower than it first reads, and worth stating so the fix is not
-overscoped.* Emitting the gap is the feature [[id:c54c4215-90e3-4e0c-9de1-990c0406a2b2][c54c4215]] shipped: the minute
-between two owned brackets is genuinely unaccounted, and offering it is the
-point. Nor is a whole-envelope line wrong for a one-minute gap. The sharp edge
-is a *large* gap, where writing the envelope whole claims every idle minute in
-it as work — which is precisely what =claude-code-ide-org-span-idle-floor=
-exists to prevent, and the run-splitting that would enforce it is disabled by
-the same empty list.
-
-*So the two halves want one fix, not two.* Whatever gives a gap span a queue
-item to dismiss is also what would give it events to split on. Attaching the
-bracket endpoints themselves as synthetic =block_start=/=block_end= events is
-the obvious shape and is not yet argued — it would make =kinds-known-p= true and
-the runs computable, at the cost of inventing events, which this project has
-refused before.
-
-*Measured 2026-09-17, and the title understates it.* Of nine spans offered for
-yesterday afternoon, **eight carry zero events**; across the whole pending set
-it is thirteen of fifteen. The two exceptions are instructive: the ones that
-still report minutes are those whose guideposts have *not* been consumed by an
-apply — =13:58--14:15=, which survived only because it was one of the three
-items that failed with =:ID: "nil"=, and today's =09:58= and =10:08=.
-
-*What is actually being offered.* =[2026-09-16 21:14]--[2026-09-17 08:40]=,
-eleven hours overnight, suggested against [[id:489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938][489d6f61]] because that heading held
-the last clock before it. =[18:34]--[21:14]=, two hours forty.
-=[15:17]--[18:28]=, the AFK stretch. These are not gaps *within* a span of
-activity — they are the interval between every adjacent pair of clock brackets,
-emitted whether or not a single turn occurred inside.
-
-*That is not what [[id:c54c4215-90e3-4e0c-9de1-990c0406a2b2][c54c4215]] set out to recover*, and its own title says so:
-"the unowned gaps between the clock pairs **that split it**" — gaps interior to
-a span that real guideposts had formed. An inter-bracket interval containing no
-guidepost was never part of any span, so there is nothing in it that was
-previously dropped.
-
-*Consequences, all of which the user hit in one morning.* Such an item cannot be
-dismissed (no events to record against), reports no minutes, runs or turns
-(=--review-written-summary= short-circuits on =--span-kinds-known-p=), writes no
-CLOCK line if applied while =:suggested=, consumes no watermark, and so returns
-at every pass forever. Where it inherits a suggested heading it looks answerable
-and is not.
-
-*Fix direction, stated but not implemented.* Emit a complement piece only when
-it carries at least one guidepost — the same conservative shape [[id:355fa608-e311-4874-b2d3-bbc62172d09a][355fa608]] used
-for the stranded single point, and with the same justification recorded there:
-"Nothing is lost: the guidepost itself stays in the queue file, which is the
-durable record. Only the *proposal* is dropped." Dismissal-by-bounds, considered
-earlier today, treats the symptom and would leave the human retiring overnight
-gaps one at a time forever.
-
-*Not yet established, and it should be before the fix lands:* whether an
-eleven-hour overnight interval can form a cluster at all, or whether these
-pieces escape clustering entirely. The =resume= -> =pause= exemption never
-splits however long the gap, and an interrupted turn emits no =pause= — so a
-crashed session may be leaving exactly the adjacency that lets a cluster span a
-night.
-
-*Mechanism settled 2026-09-17 by probe, and it is upstream of everything
-recorded above.* Running =--aggregate-guideposts= on the orphan guideposts
-**with no exclusions at all** yields clusters spanning days:
-
-: 08-24 12:33..08-31 18:13  inside=7
-: 09-02 15:41..09-03 13:17  inside=3
-: 09-16 13:58..09-17 10:27  inside=35
-
-Seven days holding seven guideposts. No gap threshold of 1200 s can produce
-that, so the =resume= -> =pause= exemption is what joins them — "a turn
-*running*, so it never splits however long it is". The premise fails on the
-**orphan stream**: two events are adjacent there only because everything between
-them was bracketed and attributed elsewhere, so the exemption reads a days-long
-hole as one continuous turn. Adjacency in a filtered stream is not
-consecutiveness in time.
-
-*The code half-knows this already.* The comment above the call warns that two
-orphans "are *adjacent* in the orphan stream, because everything between them is
-bracketed… A =resume= -> =pause= adjacency never splits however long the gap, so
-the span would straddle all four brackets by construction". The mitigation
-chosen was to subtract the brackets afterwards — which removes the bracketed
-intervals but leaves the cluster straddling days, and the complement then carves
-that into inter-bracket pieces. Those pieces are the event-less spans measured
-above. So the complement is the messenger, not the cause.
-
-*Fix shape, with a location:* the exemption should require the two events be
-adjacent in the **full** event stream rather than in the filtered one the
-function was handed — the caller knows both, the callee currently sees only one.
-No invented threshold and no new storage, and it restores [[id:c54c4215-90e3-4e0c-9de1-990c0406a2b2][c54c4215]]'s
-complement to what its own title says: the gaps between clock pairs *that split
-a span*, not the interval between every adjacent pair of brackets in the corpus.
-
-*Probe limitation, stated because it bounds the claim:* only three brackets
-survive in the live queue, the rest consumed by applies, so step 2 of the probe
-could not reproduce the current item list and is inconclusive. Step 1 needs no
-brackets and is what the finding rests on. A synthetic fixture is what the fix's
-test should use.
-
-*Still offered after [[id:5a9d877e-b492-46c7-a672-fd5971ffb0b0][5a9d877e]], 2026-10-09:* =[2026-10-09 Fri 08:34]--[08:34]=,
-the 12 seconds between a =clock_out= at 08:34:00 and the next =clock_in= at
-08:34:12 in session bbef464e, with no event between them in the queue. It
-rendered as =! span … UNASSIGNED= with no runs/turns summary, =d= refused it,
-and it was the last item left after the user cleared the rest. [[id:5a9d877e-b492-46c7-a672-fd5971ffb0b0][5a9d877e]] removed
-the days-long clusters, but the review pass still offers a gap between adjacent
-brackets when no guidepost lies inside it. The fix direction above, offering a
-gap only when it carries a guidepost, is the half still owed.
-
+*Established:* the gaps carry no events by construction, because their edges are
+bracket edges, not guideposts (reproduced in batch, 2026-09-16). The days-long
+clusters came from the =resume= -> =pause= exemption reading adjacency in a
+filtered stream, fixed by [[id:5a9d877e-b492-46c7-a672-fd5971ffb0b0][5a9d877e]]. *Ruled out:* dismissal by bounds, which
+treats the symptom and leaves a human retiring gaps one at a time; and offering
+a gap only when it holds a guidepost, which since [[id:5a9d877e-b492-46c7-a672-fd5971ffb0b0][5a9d877e]] would drop real
+lead-in minutes.
 
 
 * TODO Should a short 0-run span default to claimed, and where does the bound fall? :research:
