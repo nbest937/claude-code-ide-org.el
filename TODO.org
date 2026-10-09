@@ -7319,6 +7319,27 @@ than an automatic classifier.
 :CATEGORY: Queue
 :END:
 :PLAN:
+*Option 5, ask at the moment of return* (proposed by the user, 2026-10-09).
+=bin/hooks/session-resume= runs on every =UserPromptSubmit= and can read the
+session's last =pause= from its own queue file. When the gap since it exceeds
+=claude-code-ide-org-guidepost-gap-threshold= (1200 s), the hook surfaces it on
+the spot: a =systemMessage= to the user, or =additionalContext= asking the
+session to ask, e.g. "you were away 47 minutes: was that time away from the
+keyboard?". The answer is then a marker given at the boundary, while it is
+remembered, rather than one that has to be recalled at review (option 3) or
+inferred from prose later (option 4). It stays plain shell, so a stopped Emacs
+costs nothing, and it is gated on the =time_tracking= option like the hook it
+extends. Cost: an interruption at each long gap, which was five or six a day on
+2026-09-01. Open: where the answer is written, either a new queue kind or a
+field on the =resume=, and whether a non-answer counts as present, matching
+[[id:409a69ff-d57e-4c1c-ab6c-28f7e85fa391][409a69ff]]'s imputation rule.
+
+*A session-start reminder, as its cheaper partner* (the user, 2026-10-09). Where
+time tracking is on, the =SessionStart= report adds one line: type AFK when
+stepping away, and any prompt without "still AFK" counts as back. This improves
+marker discipline without fixing it; the user's own account (2026-09-04) is that
+markers are skipped when popping in briefly, which option 5 catches and a
+reminder cannot.
 
 :END:
 *Asked by the user 2026-09-01: "how are we currently using my AFK/BAK markers?"
