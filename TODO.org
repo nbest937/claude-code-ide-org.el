@@ -268,7 +268,7 @@ category title rather than hard-code it, since the target is matched by that
 title.
 
 
-* TODO The review buffer's help says ? marks an unassigned span, but ! is the span with no heading and ? the one with a suggestion :prose:
+* TODO The review buffer's help says ? marks an unassigned span, but ! is the span with no heading and ? the one with a suggestion :prose:bounded:
 :PROPERTIES:
 :ID:       9f6b19b5-18db-4d56-8545-9552a5b4e935
 :CREATED:  [2026-10-09 Fri 12:54]
@@ -277,6 +277,19 @@ title.
 :LOGBOOK:
 CLOCK: [2026-10-09 Fri 12:54]--[2026-10-09 Fri 12:55] =>  0:01
 - [2026-10-09 Fri 12:54]--[2026-10-09 Fri 12:55] file the review help-text fix into 5a4896c3
+- Tags ":prose:bounded:" from ":prose:"    [2026-10-09 Fri 17:43] \\
+  first classification: a docstring corrected to existing code
+:END:
+:PLAN:
+Design, bounded (the user approved it while planning [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]], 2026-10-09). The
+mode docstring's "A span prefixed =?= is UNASSIGNED" paragraph is corrected to
+=--review-describe=: =!= on an unassigned span means it names no heading, so =a=
+must choose one and it cannot be marked until then; =!= still also means a stale
+state change; =?= is a span carrying a suggested heading to confirm.
+
+Testing. An ERT case renders one item of each kind and asserts every prefix the
+renderer draws is named in the docstring, so the two cannot drift apart silently
+again. Run red against HEAD's version first.
 :END:
 
 =claude-code-ide-org-review-mode='s help (the =?= key) says a span prefixed =?=
@@ -786,11 +799,28 @@ other users, and until then [[id:1fac0867-1591-47fb-aed7-0f3423f9a774][1fac0867]
 The plan holds the decision and the findings that document must respect.
 
 
-* TODO The review buffer has no keys to move between items; bind n and p to the next and previous item :code:
+* TODO The review buffer has no keys to move between items; bind n and p to the next and previous item :code:bounded:
 :PROPERTIES:
 :ID:       41f21b4d-278d-4ad8-a56f-122f5af33d65
 :CREATED:  [2026-10-09 Fri 08:36]
 :CATEGORY: Apply
+:END:
+:LOGBOOK:
+- Tags ":code:bounded:" from ":code:"     [2026-10-09 Fri 17:43] \\
+  first classification: the forward walk already exists
+:END:
+:PLAN:
+Design, bounded (the user approved it while planning [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]], 2026-10-09). A
+=--review-backward-item= twin of =--review-forward-item=: it skips lines
+carrying no item and stays put at the first. Two interactive commands, bound to
+=n= and =p= in the =dolist= binding table, both free in =special-mode=; they
+recenter through [[id:396fd1c3-70e0-4e1f-8839-670b5293a7d3][396fd1c3]]'s guarded helper, so point that moved puts the item in
+the middle of the window. The key line at the top of the buffer and the mode
+docstring name them.
+
+Testing. ERT over a rendered buffer with group headings and evidence lines: =n=
+and =p= land only on item lines and stay put at either end. Run red against
+HEAD's version first.
 :END:
 
 =claude-code-ide-org-review-mode= binds its actions but no movement, so a
@@ -5200,7 +5230,7 @@ since "no events inside at all" and "events without kinds" want different
 answers from the human.
 
 
-* TODO Recenter after `m` advances, so the item under consideration is never at the bottom of the window :code:
+* TODO Recenter after `m` advances, so the item under consideration is never at the bottom of the window :code:bounded:
 :PROPERTIES:
 :ID:       396fd1c3-70e0-4e1f-8839-670b5293a7d3
 :CREATED:  [2026-09-17 Thu 10:52]
@@ -5211,6 +5241,8 @@ CLOCK: [2026-09-17 Thu 10:51]--[2026-09-17 Thu 10:52] =>  0:01
 CLOCK: [2026-09-17 Thu 10:51]--[2026-09-17 Thu 10:51] =>  0:00
 - <2026-09-17 Thu 10:51>--<2026-09-17 Thu 10:51> assigned at review
 - [2026-09-17 Thu 10:51]--[2026-09-17 Thu 10:52]
+- Tags ":code:bounded:" from ":code:"     [2026-10-09 Fri 17:43] \\
+  first classification: the redraw path it hooks already exists
 :END:
 :PLAN:
 
@@ -5236,17 +5268,24 @@ the human pressed previously, so a run of marks could start scrolling to the top
 instead of the centre. =(recenter)= always centres, which is what the request
 actually asks for.
 
-*Two open questions rather than assumptions.* Should =u= do the same? It
-advances identically, and symmetry argues yes, but unmarking is a correction and
-the eye may want to stay where it was. And should the recenter be suppressed at
-the end of the list, where there is no next item and centring would scroll the
-final line away from the bottom for no reason?
+Design, bounded (the user approved it while planning [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]], 2026-10-09).
+Every advancing key recenters, =u= included, and none does when the advance did
+not move point (the user, answering the two questions this drawer left open).
+=--review-forward-item= returns non-nil when it moved. One guarded helper
+recenters, called in =--review-redraw='s advance branch after the render, so
+=m=, =u= and [[id:ee3c22c9-f99c-4d41-9c3d-8f39af916fff][ee3c22c9]]'s =d= share it, and by [[id:41f21b4d-278d-4ad8-a56f-122f5af33d65][41f21b4d]]'s =n= and =p=. It calls
+=(recenter)= only when point moved and the review buffer is the selected
+window's, since =recenter= errors otherwise and the batch tests have no window.
+
+Testing. ERT with the helper's =recenter= stubbed to record calls: one after
+=m=, =u= and =d=; none at the last item; none from a render alone. Run red
+against HEAD's version first.
 :END:
 
 After `m` marks an item and advances, the next item can sit at the bottom of the
-window with none of its context visible. Do the equivalent of `C-l`
-(`recenter-top-bottom`) at the end of everything `m` already does, so the item
-under consideration is centred.
+window with none of its context visible. Designed 2026-10-09 (the user): every
+advancing key, =m=, =u=, =d=, =n= and =p=, calls =(recenter)= after the render,
+and none does when point did not move.
 
 
 * TODO `c` claims an envelope whatever runs it contains, so one keystroke can record 3h11m over 16 minutes :code:
