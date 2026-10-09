@@ -11773,6 +11773,7 @@ per tool -- rather than opening the servers beyond localhost.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-10-09 Fri 13:22]--[2026-10-09 Fri 13:23] =>  0:01
 CLOCK: [2026-10-09 Fri 13:10]--[2026-10-09 Fri 13:13] =>  0:03
 CLOCK: [2026-10-09 Fri 12:44]--[2026-10-09 Fri 13:02] =>  0:18
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
@@ -13463,4 +13464,17 @@ CLOCK: [2026-10-09 Fri 13:07]--[2026-10-09 Fri 13:09] =>  0:02
 - [2026-10-09 Fri 13:07]--[2026-10-09 Fri 13:09] tidy the duplicate, file the outline items, slice moves
 CLOCK: [2026-10-09 Fri 13:09]--[2026-10-09 Fri 13:10] =>  0:01
 - [2026-10-09 Fri 13:09]--[2026-10-09 Fri 13:10] file the twin report's missing list
+- [2026-10-09 Fri 13:09]--[2026-10-09 Fri 13:09] assigned at review
+CLOCK: [2026-10-09 Fri 13:10]--[2026-10-09 Fri 13:11] =>  0:01
+- [2026-10-09 Fri 13:10]--[2026-10-09 Fri 13:11] assigned at review
+CLOCK: [2026-10-09 Fri 13:17]--[2026-10-09 Fri 13:18] =>  0:01
+- [2026-10-09 Fri 13:17]--[2026-10-09 Fri 13:18] assigned at review
+CLOCK: [2026-10-09 Fri 13:18]--[2026-10-09 Fri 13:19] =>  0:01
+- [2026-10-09 Fri 13:18]--[2026-10-09 Fri 13:19] slice adoptions after apply
+CLOCK: [2026-10-09 Fri 13:19]--[2026-10-09 Fri 13:20] =>  0:01
+- [2026-10-09 Fri 13:19]--[2026-10-09 Fri 13:20] assigned at review
+CLOCK: [2026-10-09 Fri 13:21]--[2026-10-09 Fri 13:22] =>  0:01
+- [2026-10-09 Fri 13:21]--[2026-10-09 Fri 13:22] assigned at review
+CLOCK: [2026-10-09 Fri 13:22]--[2026-10-09 Fri 13:23] =>  0:01
+- [2026-10-09 Fri 13:22]--[2026-10-09 Fri 13:23] adopt d241ab6e into 5a4896c3
 :END:
