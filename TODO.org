@@ -2,6 +2,36 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO org_query returns nothing for property:KIND,slice with link:target=, though each half matches alone :code:
+:PROPERTIES:
+:ID:       ea89ef3c-ef87-4b58-a324-80ece396ed8c
+:CREATED:  [2026-10-09 Fri 13:08]
+:CATEGORY: Tools
+:END:
+
+Measured 2026-10-09: =link:target=49444167= returns [[id:c7619140-f269-4329-bc05-a38ea151e202][c7619140]],
+=property:KIND,slice todo:TODO= returns the six open slices, and
+=link:target=49444167 todo:TODO= returns [[id:c7619140-f269-4329-bc05-a38ea151e202][c7619140]], but =property:KIND,slice
+link:target=49444167= returns nothing. The tool description presents
+=link:target== as the backlink query and says predicates combine with AND, so
+this combination should find a member's slices. Not diagnosed; conflicting
+search preambles between the two predicates is a guess. Reproduce in ERT first.
+
+* TODO A scoped org_outline does not say which slices count the heading, so finding them means reading every slice :code:
+:PROPERTIES:
+:ID:       d66ae1d2-5a40-4f4d-ae51-c8977e78681c
+:CREATED:  [2026-10-09 Fri 13:08]
+:CATEGORY: Tools
+:END:
+
+Scoped to a slice, =org_outline= lists its members; scoped to a member, its
+front matter shows =:CREATED:=, =:CATEGORY:=, =:BLOCKER:= and history, but no
+slice. Add a front-matter line such as =slices: c7619140 TODO=, naming each open
+slice whose =:MEMBERS:= minus =:DROPPED:= holds the heading, the rule the
+refresh already uses. An =org_query= predicate for many headings at once is a
+possible second step. Met 2026-10-09 when sorting review-buffer headings by
+slice ended in a Python read of TODO.org, the shape [[id:67861ff3-3a72-4c53-8fd8-1cae9a31bc77][67861ff3]] names.
+
 * TODO [0/5] Document what a fork may change and what the machinery depends on :prose:bounded:
 :PROPERTIES:
 :ID:       1fac0867-1591-47fb-aed7-0f3423f9a774
@@ -183,15 +213,15 @@ Planned:
 - [ ] [[id:445ec1f1-095a-462b-abbd-7a3a00925ddb][445ec1f1]] TODO A/B the clock record across the phase-3 fixes, since much of what is logged now is bogus
 
 
-* NEXT [0/12] The review pass every install uses: movement, marking, apply, quit, and no clock where tracking is off :code:
+* NEXT [0/13] The review pass every install uses: movement, marking, apply, quit, and no clock where tracking is off :code:
 :PROPERTIES:
 :ID:       5a4896c3-3d4e-4b12-9f9e-06b97d84b238
 :CREATED:  [2026-10-09 Fri 11:15]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:MEMBERS:  97b4f6a9-a944-40d3-8d14-7a1667c52291 24694d1f-34b4-495b-b0d8-d29e64894c59 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 41f21b4d-278d-4ad8-a56f-122f5af33d65 e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 ee3c22c9-f99c-4d41-9c3d-8f39af916fff 6c64cc9c-33a9-4a20-af19-c188a690c755 79c224ab-188a-4ed4-a606-c28ee2cfe72d 361e2708-8124-4bd1-9c44-f97ca97aca4a 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd 2b8930da-5223-4b75-b4f6-251a28552d1b
-:BLOCKER:  97b4f6a9-a944-40d3-8d14-7a1667c52291 24694d1f-34b4-495b-b0d8-d29e64894c59 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 41f21b4d-278d-4ad8-a56f-122f5af33d65 e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 ee3c22c9-f99c-4d41-9c3d-8f39af916fff 6c64cc9c-33a9-4a20-af19-c188a690c755 79c224ab-188a-4ed4-a606-c28ee2cfe72d 361e2708-8124-4bd1-9c44-f97ca97aca4a 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd 2b8930da-5223-4b75-b4f6-251a28552d1b
+:MEMBERS:  97b4f6a9-a944-40d3-8d14-7a1667c52291 24694d1f-34b4-495b-b0d8-d29e64894c59 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 41f21b4d-278d-4ad8-a56f-122f5af33d65 d66ae1d2-5a40-4f4d-ae51-c8977e78681c e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 ee3c22c9-f99c-4d41-9c3d-8f39af916fff 6c64cc9c-33a9-4a20-af19-c188a690c755 79c224ab-188a-4ed4-a606-c28ee2cfe72d 361e2708-8124-4bd1-9c44-f97ca97aca4a 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd 2b8930da-5223-4b75-b4f6-251a28552d1b
+:BLOCKER:  97b4f6a9-a944-40d3-8d14-7a1667c52291 24694d1f-34b4-495b-b0d8-d29e64894c59 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 41f21b4d-278d-4ad8-a56f-122f5af33d65 d66ae1d2-5a40-4f4d-ae51-c8977e78681c e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 ee3c22c9-f99c-4d41-9c3d-8f39af916fff 6c64cc9c-33a9-4a20-af19-c188a690c755 79c224ab-188a-4ed4-a606-c28ee2cfe72d 361e2708-8124-4bd1-9c44-f97ca97aca4a 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd 2b8930da-5223-4b75-b4f6-251a28552d1b
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-10-09 Fri 11:25] \\
@@ -228,6 +258,7 @@ Planned:
 - [ ] [[id:24694d1f-34b4-495b-b0d8-d29e64894c59][24694d1f]] TODO A consuming repo has nowhere to declare its :CATEGORY: values, so its first top-level capture makes one up
 - [-] [[id:489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938][489d6f61]] DOING Emacs died of a fatal signal at review-buffer quit, deadlocked in the mac port's shutdown
 - [ ] [[id:41f21b4d-278d-4ad8-a56f-122f5af33d65][41f21b4d]] TODO The review buffer has no keys to move between items; bind n and p to the next and previous item
+- [ ] [[id:d66ae1d2-5a40-4f4d-ae51-c8977e78681c][d66ae1d2]] TODO A scoped org_outline does not say which slices count the heading, so finding them means reading every slice
 - [ ] [[id:e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b][e95cc5d1]] TODO =d= advances point in the review buffer, onto whatever moved up to replace the dismissed item
 - [ ] [[id:396fd1c3-70e0-4e1f-8839-670b5293a7d3][396fd1c3]] TODO Recenter after `m` advances, so the item under consideration is never at the bottom of the window
 - [ ] [[id:ee3c22c9-f99c-4d41-9c3d-8f39af916fff][ee3c22c9]] TODO Make =d= mark for dismissal rather than dismiss, so a shared reason can be given once
@@ -400,13 +431,6 @@ values, so the capture refusal lists "(none yet)" and every value is invented at
 capture time. A likely fix is a consumer-owned stub of
 =.claude/rules/org-categories.md= created by =--org=; the open questions are in
 the plan.
-
-=claude-org-setup= gives a consuming repo no place to declare its =:CATEGORY:=
-values, so the capture refusal lists "(none yet)" and every value is invented at
-capture time. A likely fix is a consumer-owned stub of
-=.claude/rules/org-categories.md= created by =--org=; the open questions are in
-the plan.
-
 
 * DONE The docs still archive to =DONE.org::= after the =datetree= move :prose:bounded:code:
 CLOSED: [2026-10-09 Fri 10:41]
