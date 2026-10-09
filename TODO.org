@@ -782,11 +782,15 @@ header example together; the header-line check in =bin/check-conventions=
 ([[id:189645c6-d76f-4761-96f0-f3734fe1df26][189645c6]]) already strips group markers when it compares tag sets.
 
 
-* TODO A consuming repo has nowhere to declare its :CATEGORY: values, so its first top-level capture makes one up :code:
+* TODO A consuming repo has nowhere to declare its :CATEGORY: values, so its first top-level capture makes one up :code:bounded:
 :PROPERTIES:
 :ID:       24694d1f-34b4-495b-b0d8-d29e64894c59
 :CREATED:  [2026-10-09 Fri 08:33]
 :CATEGORY: Dev
+:END:
+:LOGBOOK:
+- Tags ":code:bounded:" from ":code:"     [2026-10-09 Fri 17:17] \\
+  first classification: both flows, setup --org and the capture refusal, already exist
 :END:
 :PLAN:
 
@@ -797,21 +801,49 @@ nothing equivalent for a consumer: =--org= writes TODO.org and DONE.org from the
 templates, and the plain run promotes only the plugin's own rules. So a
 consumer's first top-level =org_capture= is refused with "TODO.org uses: (none
 yet)", and every value after that is invented at capture time and recognised
-only by recurring in the file, never declared. A likely shape is for =--org= to
-create a stub =.claude/rules/org-categories.md=: unscoped, owned by the consumer
-rather than generated, with an empty table and a line saying what belongs there.
-Open questions: whether setup should own it at all; whether the capture's
-refusal should point at it; and whether the always-loaded word budget for
-consumers needs room for it. Found while checking the template against this
-repo's usage, 2026-10-06.
+only by recurring in the file, never declared. Found while checking the template
+against this repo's usage, 2026-10-06.
+
+Design, bounded (the user approved it, 2026-10-09). The declaration is a
+consumer-owned rules file, not a =#+CATEGORIES:= header keyword or both: the
+agent sees each value and its meaning in every session, and nothing is parsed,
+so the capture keeps checking against values in use (the user).
+
+The stub. =--org= creates =.claude/rules/org-categories.md= from a new
+=templates/org-categories.md=, collision-checked like the org templates: an
+existing file is reported and left untouched, so a consumer that already ran
+=--org= gets it by running =--org= again (the user). It has no =paths:= front
+matter, so it is always loaded. It says the consumer owns it and setup never
+regenerates it, and it carries no generated marker, so the hooks that refuse
+edits to generated copies leave it alone. It states the shape from the
+conventions (single capitalised words, never a TODO keyword), a table with one
+row, =Meta=, for the meta-work datetree anchor, since the conventions give =*
+Review and planning= =:CATEGORY: Meta= and [[id:97b4f6a9-a944-40d3-8d14-7a1667c52291][97b4f6a9]]'s anchor prompt offers
+=Meta= first (the user), and a line asking for a row before a new value is used.
+
+The pointers. =--check= prints =missing: .claude/rules/org-categories.md -- run
+claude-org-setup --org= when it is absent, the shape of its =.mcp.json= line
+(the user). Both capture refusal sites (=config.el:3934= and =:12184=) and the
+novel-value warning (=--capture-novel-category-warning=, =:3520=) gain "declare
+values in =.claude/rules/org-categories.md=", the path always named. The shipped
+=org-conventions.md= "Category values" names that file as where a consumer
+declares, rather than only pointing at this repo's.
+
+The word budget. The stub stays under 150 words, which answers the always-loaded
+budget question by measurement; the number is checked when it is built.
+
+Testing. A =bin/= setup test in a temp dir: =--org= creates the stub; a second
+=--org= leaves an edited stub byte-identical; =--check= reports it missing and
+is quiet once present. ERT asserts that both refusal sites and the warning name
+the path. Each runs red against HEAD's version first.
 :END:
 
 =claude-org-setup= gives a consuming repo no place to declare its =:CATEGORY:=
-values, so the capture refusal lists "(none yet)" and every value is invented at
-capture time. A likely fix is a consumer-owned stub of
-=.claude/rules/org-categories.md= created by =--org=; the open questions are in
-the plan.
-
+values, so the capture refusal lists "(none yet)" and the first value invented
+becomes the norm by accident. Designed 2026-10-09 (the user): =--org= creates a
+consumer-owned, always-loaded =.claude/rules/org-categories.md= from a template,
+seeded with =Meta=; =--check= reports it missing; the capture refusal and the
+novel-value warning name the file.
 
 * DONE The docs still archive to =DONE.org::= after the =datetree= move :prose:bounded:code:
 CLOSED: [2026-10-09 Fri 10:41]
