@@ -2,12 +2,64 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* TODO Document what a fork may change and what the machinery depends on :prose:bounded:
+* TODO [0/5] Document what a fork may change and what the machinery depends on :prose:bounded:
 :PROPERTIES:
 :ID:       1fac0867-1591-47fb-aed7-0f3423f9a774
 :CREATED:  [2026-10-09 Fri 11:42]
 :CATEGORY: Docs
 :BLOCKER:  5a4896c3-3d4e-4b12-9f9e-06b97d84b238
+:END:
+:PLAN:
+Agreed with the user, 2026-10-09.
+
+**Two audiences, one marking.** The line between required and default serves
+consuming agents as much as people. An agent in a consuming repo loads the
+promoted rules and the skill references, which state everything as mandates, so
+it is the party most likely to enforce this project's taste against a project
+that changed a default. Every promoted file says "the consuming project's own
+rules take priority", but that is all-or-nothing and names nothing. So the
+marking lives where agents already read: each section of the shipped references
+(conventions, state transitions, tool tables, skill) is marked *required* (the
+machinery depends on it) or *default* (this project's practice, which a
+consuming project may replace). It sits beside the rule it describes, so
+changing one sits next to the other. The conventions are path-scoped, which
+keeps the always-loaded budget, 10185 of 10200 words in this repo, almost
+untouched. A pre-commit check that every section carries a marking, like the
+header-line check of [[id:189645c6-d76f-4761-96f0-f3734fe1df26][189645c6]], is a later step, not this pass.
+
+**For people, an index rather than a copy.** A short README section explains the
+two kinds, says that forking is the expected way to change a default, and points
+at the marked references, at =M-x customize-group claude-code-ide-org= and at
+the commands. It restates no values, since a restated value goes stale while the
+code moves.
+
+**The Emacs-native surface, which already exists.** Docstrings are the API
+reference in Emacs, read through =describe-function=, =describe-variable= and
+=apropos=, and Customize is a built-in configuration surface for every
+=defcustom= in a =:group=. Measured 2026-10-09 in =config.el=: 36 =defcustom=s,
+3 with no =:group= and so absent from =customize-group=; 86 public functions
+with one dash, 43 of them interactive commands; 461 internal functions with two
+dashes. =checkdoc= reports 364 warnings over the whole file, mostly style: two
+spaces after a period (107), a first line that is not a full sentence (95),
+non-imperative verbs (42), an unescaped parenthesis in column 0 (37). About ten
+undocumented arguments and four literal key sequences matter to readers.
+
+**Scope of the docstring review.** The public surface only: the =defcustom=s,
+whose docstrings should say what the setting changes and whether it is machinery
+or preference, and the public functions, commands first. The 461 internal
+docstrings serve maintainers and are long by design, so they are left alone.
+=checkdoc= is an aid on that surface, not a gate over the file. The MCP tool
+descriptions are the API a consuming agent actually reads, so they are reviewed
+against the same line.
+
+**Not now:** a generated API reference, which is not the ecosystem's practice
+and would be another copy to keep in step; and a Texinfo manual, which waits
+with [[id:d9f77953-473d-4340-a0b7-87a181f19d8b][d9f77953]].
+
+**Order.** Verification first, since every marking depends on it, and [[id:d9f77953-473d-4340-a0b7-87a181f19d8b][d9f77953]]
+ already found one placement wrong in practice (datetree archiving). Then the
+ reference marking, the docstrings and the tool descriptions, in any order. The
+ README index last, since it points at all three.
 :END:
 
 A map for a prospective user able to fork the plugin: which conventions, header
@@ -18,6 +70,60 @@ the intermediate step [[id:d9f77953-473d-4340-a0b7-87a181f19d8b][d9f77953]] chos
 2026-10-09). Verify each item against the code before writing it, starting from
 [[id:d9f77953-473d-4340-a0b7-87a181f19d8b][d9f77953]]'s plan, and write after [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]] lands, since that slice changes some
 of what it describes.
+** TODO Verify, against the code, which conventions, header lines, refusals and defaults the machinery depends on :research:
+:PROPERTIES:
+:ID:       8a1f85bf-03ef-424a-b7e6-3310aa7ed722
+:CREATED:  [2026-10-09 Fri 12:04]
+:END:
+
+Start from [[id:d9f77953-473d-4340-a0b7-87a181f19d8b][d9f77953]]'s unverified split and settle each item by reading or
+running the code, recording where each lives. Datetree archiving is already
+known to be more than a preference, through the ceremony's sort and the archive
+sweep's =org-archive-reversed-order= handling. The result is the list the other
+subtasks mark from.
+** TODO Mark each section of the shipped references as required or default :prose:
+:PROPERTIES:
+:ID:       2a4518f3-b0bc-430a-9eb8-d88b24dc1c52
+:CREATED:  [2026-10-09 Fri 12:04]
+:BLOCKER:  8a1f85bf-03ef-424a-b7e6-3310aa7ed722
+:END:
+
+In =skills/org/references/= and the org skill: every section says whether the
+machinery depends on it or it is this project's practice, which a consuming
+project may replace. The marking is where consuming agents read, and promoted
+copies are regenerated.
+** TODO Review the public docstrings and defcustoms, so describe and customize-group answer what a setting changes :code:
+:PROPERTIES:
+:ID:       748de22a-741f-4326-95eb-4dc7db87ba06
+:CREATED:  [2026-10-09 Fri 12:04]
+:BLOCKER:  8a1f85bf-03ef-424a-b7e6-3310aa7ed722
+:END:
+
+The 36 =defcustom=s (giving the 3 without =:group= one) and the 86 public
+functions, the 43 commands first. Each =defcustom= says what it changes and
+whether it is machinery or preference. =checkdoc= is an aid on this surface
+only; the 461 internal docstrings are left alone.
+** TODO Review the MCP tool descriptions against the required-or-default line :code:
+:PROPERTIES:
+:ID:       fbf031e0-2e41-4a2a-a225-0d940fc4769d
+:CREATED:  [2026-10-09 Fri 12:04]
+:BLOCKER:  8a1f85bf-03ef-424a-b7e6-3310aa7ed722
+:END:
+
+The tool descriptions are the API a consuming agent actually reads. Where a
+description states this project's practice as a rule, it says so as a default,
+and a refusal that only enforces taste is named as such for [[id:d9f77953-473d-4340-a0b7-87a181f19d8b][d9f77953]].
+** TODO Add a README section on forking: the two kinds of rule, and where each is marked and set :prose:
+:PROPERTIES:
+:ID:       eef654f8-2648-442d-a701-8da54f25dfda
+:CREATED:  [2026-10-09 Fri 12:04]
+:BLOCKER:  2a4518f3-b0bc-430a-9eb8-d88b24dc1c52 748de22a-741f-4326-95eb-4dc7db87ba06 fbf031e0-2e41-4a2a-a225-0d940fc4769d
+:END:
+
+Short, and an index rather than a copy: what required and default mean, that
+forking is the expected way to change a default, and pointers to the marked
+references, =M-x customize-group claude-code-ide-org= and the commands. Written
+last, since it points at the other three.
 
 * TODO [0/10] The clock record beneath the review pass is still wrong: correctness, reporting, and the attention clock :code:
 :PROPERTIES:
@@ -4786,6 +4892,16 @@ priority, cookie and tags. And the knock-on: a slice's member lines copy their
 referents' titles, so a rename leaves stale copies until
 =claude-code-ide-org-refresh-slice= runs. The tool should say when the renamed
 heading appears in a slice, or run the refresh itself.
+
+*Met again 2026-10-09:* capturing the first keyworded child under [[id:1fac0867-1591-47fb-aed7-0f3423f9a774][1fac0867]] made
+it a story, and =bin/lint-org= then refused the commit for a missing =[/]=
+cookie. No tool inserts one on a story; the slice path does, through
+=--ensure-statistics-cookie-at-point=, and a raw eval of that helper failed on
+the read-only buffer and was stopped there rather than forced. Narrower than
+retitling: =org_capture= with a =target= could add the parent's cookie when it
+adds the parent's first keyworded child, which is the moment the conventions
+name.
+
 
 
 * TODO org_outline's max_depth filters out the scoped heading itself, and the front matter reads as a result :code:
