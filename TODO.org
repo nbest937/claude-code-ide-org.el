@@ -16,15 +16,57 @@ rather than vanishing. Delete it, and its mention in [[id:dc21f724-78f9-4da8-9d7
 [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]] has been planned and worked under the new names. Filed at PR #36's
 review, which found the deletion tracked nowhere.
 
-* TODO /next-session conflates planning a slice with working it; split it into two commands, each for a fresh session :code:arch:
+
+* DONE /next-session conflates planning a slice with working it; split it into two commands, each for a fresh session :code:arch:
+CLOSED: [2026-10-09 Fri 16:14]
 :PROPERTIES:
 :ID:       dc21f724-78f9-4da8-9d74-002ad3306446
 :CREATED:  [2026-10-09 Fri 13:36]
 :CATEGORY: Dev
 :END:
 :LOGBOOK:
+CLOCK: [2026-10-09 Fri 13:36]--[2026-10-09 Fri 13:37] =>  0:01
+- [2026-10-09 Fri 13:36]--[2026-10-09 Fri 13:37] brainstorm the session-command split
+CLOCK: [2026-10-09 Fri 13:42]--[2026-10-09 Fri 13:45] =>  0:03
+- [2026-10-09 Fri 13:42]--[2026-10-09 Fri 13:45] brainstorm the session-command split
+CLOCK: [2026-10-09 Fri 13:49]--[2026-10-09 Fri 13:50] =>  0:01
+- [2026-10-09 Fri 13:49]--[2026-10-09 Fri 13:50] brainstorm the session-command split
+CLOCK: [2026-10-09 Fri 14:56]--[2026-10-09 Fri 14:57] =>  0:01
+- [2026-10-09 Fri 14:56]--[2026-10-09 Fri 14:57] brainstorm the session-command split
+CLOCK: [2026-10-09 Fri 15:37]--[2026-10-09 Fri 15:40] =>  0:03
+- [2026-10-09 Fri 15:37]--[2026-10-09 Fri 15:40] brainstorm the session-command split
 - Tags ":code:arch:" from ":code:bounded:" [2026-10-09 Fri 15:39] \\
   stepped up: ships a new plugin component and a per-project rules file
+- State "DOING"      from "TODO"       [2026-10-09 Fri 15:41] \\
+  drawer approved; building on a branch
+CLOCK: [2026-10-09 Fri 15:41]--[2026-10-09 Fri 15:42] =>  0:01
+- [2026-10-09 Fri 15:41]--[2026-10-09 Fri 15:42] assigned at review
+CLOCK: [2026-10-09 Fri 15:42]--[2026-10-09 Fri 15:46] =>  0:04
+- [2026-10-09 Fri 15:42]--[2026-10-09 Fri 15:46] build /plan-slice and /work-slice
+CLOCK: [2026-10-09 Fri 15:46]--[2026-10-09 Fri 15:47] =>  0:01
+- State "REVIEW"     from "DOING"      [2026-10-09 Fri 15:46] \\
+  built on the branch; PR opened
+- [2026-10-09 Fri 15:46]--[2026-10-09 Fri 15:47] assigned at review
+CLOCK: [2026-10-09 Fri 15:53]--[2026-10-09 Fri 15:54] =>  0:01
+- [2026-10-09 Fri 15:53]--[2026-10-09 Fri 15:54] assigned at review
+CLOCK: [2026-10-09 Fri 15:57]--[2026-10-09 Fri 15:58] =>  0:01
+- [2026-10-09 Fri 15:57]--[2026-10-09 Fri 15:58] assigned at review
+- State "DOING"      from "REVIEW"     [2026-10-09 Fri 16:00] \\
+  rework: PR #36 review findings
+CLOCK: [2026-10-09 Fri 16:00]--[2026-10-09 Fri 16:01] =>  0:01
+- [2026-10-09 Fri 16:00]--[2026-10-09 Fri 16:01] assigned at review
+CLOCK: [2026-10-09 Fri 16:01]--[2026-10-09 Fri 16:05] =>  0:04
+- [2026-10-09 Fri 16:01]--[2026-10-09 Fri 16:05] fix PR #36's ten findings
+- State "REVIEW"     from "DOING"      [2026-10-09 Fri 16:05] \\
+  review findings fixed on the branch
+CLOCK: [2026-10-09 Fri 16:05]--[2026-10-09 Fri 16:06] =>  0:01
+- [2026-10-09 Fri 16:05]--[2026-10-09 Fri 16:06] suggested span, accepted at review
+- State "DONE"       from "REVIEW"     [2026-10-09 Fri 16:14] \\
+  merged with PR #36
+CLOCK: [2026-10-09 Fri 16:14]--[2026-10-09 Fri 16:15] =>  0:01
+- [2026-10-09 Fri 16:14]--[2026-10-09 Fri 16:15] suggested span, accepted at review
+CLOCK: [2026-10-09 Fri 16:15]--[2026-10-09 Fri 16:16] =>  0:01
+- [2026-10-09 Fri 16:15]--[2026-10-09 Fri 16:16] merge PR #36 and close dc21f724
 :END:
 :PLAN:
 Approved in chat by the user, 2026-10-09, section by section. Names:
@@ -166,6 +208,7 @@ with the plugin, with each project's own practice moved to an optional
 what the tracker's machinery needs; this repo's practice moved verbatim into
 =.claude/slice-rules.md=, which both read, and =/next-session= is a one-slice
 stub.
+
 
 * TODO The meta-work target renders as "Review a" in the review buffer; show it as R&P, and offer "R&P (Review and planning)" when assigning :code:
 :PROPERTIES:
@@ -11964,6 +12007,7 @@ per tool -- rather than opening the servers beyond localhost.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-10-09 Fri 16:15]--[2026-10-09 Fri 16:17] =>  0:02
 CLOCK: [2026-10-09 Fri 13:22]--[2026-10-09 Fri 13:23] =>  0:01
 CLOCK: [2026-10-09 Fri 13:10]--[2026-10-09 Fri 13:13] =>  0:03
 CLOCK: [2026-10-09 Fri 12:44]--[2026-10-09 Fri 13:02] =>  0:18
@@ -13668,4 +13712,12 @@ CLOCK: [2026-10-09 Fri 13:21]--[2026-10-09 Fri 13:22] =>  0:01
 - [2026-10-09 Fri 13:21]--[2026-10-09 Fri 13:22] assigned at review
 CLOCK: [2026-10-09 Fri 13:22]--[2026-10-09 Fri 13:23] =>  0:01
 - [2026-10-09 Fri 13:22]--[2026-10-09 Fri 13:23] adopt d241ab6e into 5a4896c3
+CLOCK: [2026-10-09 Fri 13:24]--[2026-10-09 Fri 13:25] =>  0:01
+- [2026-10-09 Fri 13:24]--[2026-10-09 Fri 13:25] record later adoptions in the slice plans
+CLOCK: [2026-10-09 Fri 13:25]--[2026-10-09 Fri 13:26] =>  0:01
+- [2026-10-09 Fri 13:25]--[2026-10-09 Fri 13:26] assigned at review
+CLOCK: [2026-10-09 Fri 13:33]--[2026-10-09 Fri 13:34] =>  0:01
+- [2026-10-09 Fri 13:33]--[2026-10-09 Fri 13:34] assigned at review
+CLOCK: [2026-10-09 Fri 13:36]--[2026-10-09 Fri 13:37] =>  0:01
+- [2026-10-09 Fri 13:36]--[2026-10-09 Fri 13:37] brainstorm the session-command split
 :END:
