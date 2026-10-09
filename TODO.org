@@ -2,6 +2,22 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO The session-start report counts possible twins but never names them, so neither the user nor the session can judge the flag :code:
+:PROPERTIES:
+:ID:       d241ab6e-6cfe-482a-8980-8cb222d7ab12
+:CREATED:  [2026-10-09 Fri 13:09]
+:CATEGORY: Meta
+:END:
+
+The ceremony report says "N recent heading(s) have a possible twin by title
+overlap" and asks the session to offer the twin-checker, but carries only
+=(length (claude-code-ide-org--twin-candidates file 14))=. List each subject
+with its candidates instead, id and exact title, which costs little against the
+injection cap. On 2026-10-09 the report flagged one, the session never offered
+the checker, and by the time the user asked the detector's list was empty, so
+what it meant cannot be recovered. A named pair can be dismissed at a glance; a
+count can only be investigated.
+
 * TODO org_query returns nothing for property:KIND,slice with link:target=, though each half matches alone :code:
 :PROPERTIES:
 :ID:       ea89ef3c-ef87-4b58-a324-80ece396ed8c
