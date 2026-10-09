@@ -9,6 +9,11 @@
 :CATEGORY: Docs
 :BLOCKER:  5a4896c3-3d4e-4b12-9f9e-06b97d84b238
 :END:
+:LOGBOOK:
+CLOCK: [2026-10-09 Fri 12:04]--[2026-10-09 Fri 12:05] =>  0:01
+- [2026-10-09 Fri 12:04]--[2026-10-09 Fri 12:05] record the document's design and divide it
+- [2026-10-09 Fri 12:05]--[2026-10-09 Fri 12:05] assigned at review
+:END:
 :PLAN:
 Agreed with the user, 2026-10-09.
 
@@ -70,6 +75,8 @@ the intermediate step [[id:d9f77953-473d-4340-a0b7-87a181f19d8b][d9f77953]] chos
 2026-10-09). Verify each item against the code before writing it, starting from
 [[id:d9f77953-473d-4340-a0b7-87a181f19d8b][d9f77953]]'s plan, and write after [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]] lands, since that slice changes some
 of what it describes.
+
+
 ** TODO Verify, against the code, which conventions, header lines, refusals and defaults the machinery depends on :research:
 :PROPERTIES:
 :ID:       8a1f85bf-03ef-424a-b7e6-3310aa7ed722
@@ -81,6 +88,8 @@ running the code, recording where each lives. Datetree archiving is already
 known to be more than a preference, through the ceremony's sort and the archive
 sweep's =org-archive-reversed-order= handling. The result is the list the other
 subtasks mark from.
+
+
 ** TODO Mark each section of the shipped references as required or default :prose:
 :PROPERTIES:
 :ID:       2a4518f3-b0bc-430a-9eb8-d88b24dc1c52
@@ -92,6 +101,8 @@ In =skills/org/references/= and the org skill: every section says whether the
 machinery depends on it or it is this project's practice, which a consuming
 project may replace. The marking is where consuming agents read, and promoted
 copies are regenerated.
+
+
 ** TODO Review the public docstrings and defcustoms, so describe and customize-group answer what a setting changes :code:
 :PROPERTIES:
 :ID:       748de22a-741f-4326-95eb-4dc7db87ba06
@@ -103,6 +114,8 @@ The 36 =defcustom=s (giving the 3 without =:group= one) and the 86 public
 functions, the 43 commands first. Each =defcustom= says what it changes and
 whether it is machinery or preference. =checkdoc= is an aid on this surface
 only; the 461 internal docstrings are left alone.
+
+
 ** TODO Review the MCP tool descriptions against the required-or-default line :code:
 :PROPERTIES:
 :ID:       fbf031e0-2e41-4a2a-a225-0d940fc4769d
@@ -113,6 +126,8 @@ only; the 461 internal docstrings are left alone.
 The tool descriptions are the API a consuming agent actually reads. Where a
 description states this project's practice as a rule, it says so as a default,
 and a refusal that only enforces taste is named as such for [[id:d9f77953-473d-4340-a0b7-87a181f19d8b][d9f77953]].
+
+
 ** TODO Add a README section on forking: the two kinds of rule, and where each is marked and set :prose:
 :PROPERTIES:
 :ID:       eef654f8-2648-442d-a701-8da54f25dfda
@@ -124,6 +139,7 @@ Short, and an index rather than a copy: what required and default mean, that
 forking is the expected way to change a default, and pointers to the marked
 references, =M-x customize-group claude-code-ide-org= and the commands. Written
 last, since it points at the other three.
+
 
 * TODO [0/10] The clock record beneath the review pass is still wrong: correctness, reporting, and the attention clock :code:
 :PROPERTIES:
@@ -167,7 +183,7 @@ Planned:
 - [ ] [[id:445ec1f1-095a-462b-abbd-7a3a00925ddb][445ec1f1]] TODO A/B the clock record across the phase-3 fixes, since much of what is logged now is bogus
 
 
-* TODO [0/12] The review pass every install uses: movement, marking, apply, quit, and no clock where tracking is off :code:
+* NEXT [0/12] The review pass every install uses: movement, marking, apply, quit, and no clock where tracking is off :code:
 :PROPERTIES:
 :ID:       5a4896c3-3d4e-4b12-9f9e-06b97d84b238
 :CREATED:  [2026-10-09 Fri 11:15]
@@ -176,6 +192,10 @@ Planned:
 :COOKIE_DATA: checkbox recursive
 :MEMBERS:  97b4f6a9-a944-40d3-8d14-7a1667c52291 24694d1f-34b4-495b-b0d8-d29e64894c59 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 41f21b4d-278d-4ad8-a56f-122f5af33d65 e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 ee3c22c9-f99c-4d41-9c3d-8f39af916fff 6c64cc9c-33a9-4a20-af19-c188a690c755 79c224ab-188a-4ed4-a606-c28ee2cfe72d 361e2708-8124-4bd1-9c44-f97ca97aca4a 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd 2b8930da-5223-4b75-b4f6-251a28552d1b
 :BLOCKER:  97b4f6a9-a944-40d3-8d14-7a1667c52291 24694d1f-34b4-495b-b0d8-d29e64894c59 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 41f21b4d-278d-4ad8-a56f-122f5af33d65 e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 ee3c22c9-f99c-4d41-9c3d-8f39af916fff 6c64cc9c-33a9-4a20-af19-c188a690c755 79c224ab-188a-4ed4-a606-c28ee2cfe72d 361e2708-8124-4bd1-9c44-f97ca97aca4a 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd 2b8930da-5223-4b75-b4f6-251a28552d1b
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-10-09 Fri 11:25] \\
+  user: so the tool serves another project with ease
 :END:
 :PLAN:
 Divided out of [[id:c7619140-f269-4329-bc05-a38ea151e202][c7619140]] on 2026-10-09 (the user, a three-way split). The members
@@ -224,6 +244,10 @@ Planned:
 :CREATED:  [2026-10-09 Fri 10:59]
 :CATEGORY: Apply
 :END:
+:LOGBOOK:
+CLOCK: [2026-10-09 Fri 10:58]--[2026-10-09 Fri 10:59] =>  0:01
+- [2026-10-09 Fri 10:58]--[2026-10-09 Fri 10:59] assigned at review
+:END:
 
 =claude-code-ide-org-review= calls =claude-code-ide-org-review-attention-start=
 unconditionally, so every review opens a real org clock on "Review attention"
@@ -235,13 +259,18 @@ the file, making it a child of whatever heading is last. Read from the code on
 2026-10-09, not run. Gate the attention clock on the same option the hooks obey,
 and anchor the heading safely when it is on.
 
-* TODO Separate what the machinery requires from what this project prefers, so a consumer can change the second :code:arch:
+
+* MAYBE Separate what the machinery requires from what this project prefers, so a consumer can change the second :code:arch:
 :PROPERTIES:
 :ID:       d9f77953-473d-4340-a0b7-87a181f19d8b
 :CREATED:  [2026-10-09 Fri 10:35]
 :CATEGORY: Dev
 :END:
 :LOGBOOK:
+CLOCK: [2026-10-09 Fri 11:41]--[2026-10-09 Fri 11:42] =>  0:01
+- [2026-10-09 Fri 11:41]--[2026-10-09 Fri 11:42] record the brainstorm's decision
+- State "MAYBE"      from "TODO"       [2026-10-09 Fri 11:42] \\
+  configuration surface waits on outside interest
 - Tags ":code:arch:" from ":code:"     [2026-10-09 Fri 11:42] \\
   classified: touches setup, the template, the promoted rules and several tools
 :END:
@@ -341,6 +370,7 @@ lint catches at commit. Adopt it in TODO.org, the template and the conventions'
 header example together; the header-line check in =bin/check-conventions=
 ([[id:189645c6-d76f-4761-96f0-f3734fe1df26][189645c6]]) already strips group markers when it compares tag sets.
 
+
 * TODO A consuming repo has nowhere to declare its :CATEGORY: values, so its first top-level capture makes one up :code:
 :PROPERTIES:
 :ID:       24694d1f-34b4-495b-b0d8-d29e64894c59
@@ -378,7 +408,8 @@ capture time. A likely fix is a consumer-owned stub of
 the plan.
 
 
-* REVIEW The docs still archive to =DONE.org::= after the =datetree= move :prose:bounded:code:
+* DONE The docs still archive to =DONE.org::= after the =datetree= move :prose:bounded:code:
+CLOSED: [2026-10-09 Fri 10:41]
 :PROPERTIES:
 :ID:       189645c6-d76f-4761-96f0-f3734fe1df26
 :CREATED:  [2026-10-06 Tue 14:08]
@@ -416,6 +447,8 @@ CLOCK: [2026-10-06 Tue 17:10]--[2026-10-06 Tue 17:11] =>  0:01
 - [2026-10-06 Tue 17:10]--[2026-10-06 Tue 17:11] assigned at review
 CLOCK: [2026-10-09 Fri 08:33]--[2026-10-09 Fri 08:34] =>  0:01
 - [2026-10-09 Fri 08:33]--[2026-10-09 Fri 08:34] file the consumer category gap
+- State "DONE"       from "REVIEW"     [2026-10-09 Fri 10:41] \\
+  merged with PR #35
 :END:
 :PLAN:
 The archive location is settled, not open: [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]] converted DONE.org to a
@@ -538,6 +571,8 @@ CLOCK: [2026-10-06 Tue 11:53]--[2026-10-06 Tue 11:54] =>  0:01
 - [2026-10-06 Tue 11:53]--[2026-10-06 Tue 11:54] assigned at review
 CLOCK: [2026-10-06 Tue 11:54]--[2026-10-06 Tue 11:55] =>  0:01
 - [2026-10-06 Tue 11:54]--[2026-10-06 Tue 11:55] record the user's confirmation
+CLOCK: [2026-10-09 Fri 08:52]--[2026-10-09 Fri 08:53] =>  0:01
+- [2026-10-09 Fri 08:52]--[2026-10-09 Fri 08:53] correct the mechanism from the code
 :END:
 :PLAN:
 
@@ -578,7 +613,6 @@ have the same fix). This heading's half: a single =m= never calls
 =--review-markable-p=. That one's half: the guard tests the =:unassigned= flag
 and a nil =:id= together. Routing =m= through the guard and testing the id alone
 closes both, and either change alone leaves the error reachable.
-
 
 
 * TODO The body-prose counter reads :END: as a drawer opening, so a drawer inside a body hides everything after it :code:
@@ -2366,7 +2400,7 @@ is legibility for whoever runs the lint and one small gate.
 - org-lint's own "possibly misplaced heading line" checker as the detector (measured 2026-09-25): =bin/lint-org= already runs it as a warning, and it reports 498 lines across the two files, nearly all prose lines opening with =*bold*= -- nobody reads a warning with that count, which is why neither glued heading was seen.
 
 
-* TODO [0/15] The review pass asks for judgement it cannot support, and the clock beneath it is still wrong :code:
+* TODO [0/15] The review pass asks for judgement it cannot support :code:
 :PROPERTIES:
 :ID:       c7619140-f269-4329-bc05-a38ea151e202
 :CREATED:  [2026-09-22 Tue 16:07]
@@ -4854,7 +4888,6 @@ one's half: a single =m= never calls the guard at all. Routing =m= through
 alone leaves the error reachable.
 
 
-
 * TODO No tool retitles a heading or removes a property, so both reach for a raw emacsclient :code:
 :PROPERTIES:
 :ID:       9714f875-4a12-44e4-8f30-dfbd1b6e555e
@@ -4901,7 +4934,6 @@ the read-only buffer and was stopped there rather than forced. Narrower than
 retitling: =org_capture= with a =target= could add the parent's cookie when it
 adds the parent's first keyworded child, which is the moment the conventions
 name.
-
 
 
 * TODO org_outline's max_depth filters out the scoped heading itself, and the front matter reads as a result :code:
@@ -5241,8 +5273,16 @@ CLOCK: [2026-09-17 Thu 10:33]--[2026-09-17 Thu 10:34] =>  0:01
 - [2026-09-17 Thu 10:33]--[2026-09-17 Thu 10:34]
 CLOCK: [2026-09-17 Thu 10:34]--[2026-09-17 Thu 10:34] =>  0:00
 - [2026-09-17 Thu 10:34]--[2026-09-17 Thu 10:34] suggested span, accepted at review
+CLOCK: [2026-10-09 Fri 09:00]--[2026-10-09 Fri 09:01] =>  0:01
+- [2026-10-09 Fri 09:00]--[2026-10-09 Fri 09:01] record the 2026-10-09 gap example
+CLOCK: [2026-10-09 Fri 09:01]--[2026-10-09 Fri 09:04] =>  0:03
+- [2026-10-09 Fri 09:01]--[2026-10-09 Fri 09:04] assigned at review
+CLOCK: [2026-10-09 Fri 09:07]--[2026-10-09 Fri 09:10] =>  0:03
+- [2026-10-09 Fri 09:07]--[2026-10-09 Fri 09:10] assigned at review
+CLOCK: [2026-10-09 Fri 10:14]--[2026-10-09 Fri 10:15] =>  0:01
 - Tags ":code:bounded:" from ":code:"     [2026-10-09 Fri 10:14] \\
   classified: one change where review builds bracket items
+- [2026-10-09 Fri 10:14]--[2026-10-09 Fri 10:15] record the fold design
 :END:
 :PLAN:
 Fold the gap that leads into a clock bracket into that bracket, instead of
@@ -7597,6 +7637,10 @@ than an automatic classifier.
 :ID:       e75d660f-5c0d-4707-a645-b5dea7d7ebc0
 :CREATED:  [2026-09-01 Tue 13:11]
 :CATEGORY: Queue
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-09 Fri 10:58]--[2026-10-09 Fri 10:59] =>  0:01
+- [2026-10-09 Fri 10:58]--[2026-10-09 Fri 10:59] record the reminder and the return-time hook
 :END:
 :PLAN:
 *Option 5, ask at the moment of return* (proposed by the user, 2026-10-09).
@@ -11630,6 +11674,7 @@ per tool -- rather than opening the servers beyond localhost.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-10-09 Fri 12:44]--[2026-10-09 Fri 13:02] =>  0:18
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
@@ -13244,4 +13289,70 @@ CLOCK: [2026-10-09 Fri 08:46]--[2026-10-09 Fri 08:47] =>  0:01
 - [2026-10-09 Fri 08:46]--[2026-10-09 Fri 08:47] assigned at review
 CLOCK: [2026-10-09 Fri 08:49]--[2026-10-09 Fri 08:50] =>  0:01
 - [2026-10-09 Fri 08:49]--[2026-10-09 Fri 08:50] assigned at review
+CLOCK: [2026-10-09 Fri 08:58]--[2026-10-09 Fri 09:00] =>  0:02
+- [2026-10-09 Fri 08:58]--[2026-10-09 Fri 09:00] assigned at review
+CLOCK: [2026-10-09 Fri 10:15]--[2026-10-09 Fri 10:18] =>  0:03
+- [2026-10-09 Fri 10:15]--[2026-10-09 Fri 10:18] assigned at review
+CLOCK: [2026-10-09 Fri 10:21]--[2026-10-09 Fri 10:22] =>  0:01
+- [2026-10-09 Fri 10:21]--[2026-10-09 Fri 10:22] assigned at review
+CLOCK: [2026-10-09 Fri 10:22]--[2026-10-09 Fri 10:23] =>  0:01
+- [2026-10-09 Fri 10:22]--[2026-10-09 Fri 10:23] slice membership and the 653f/85f4 link
+CLOCK: [2026-10-09 Fri 10:23]--[2026-10-09 Fri 10:24] =>  0:01
+- [2026-10-09 Fri 10:23]--[2026-10-09 Fri 10:24] assigned at review
+CLOCK: [2026-10-09 Fri 10:28]--[2026-10-09 Fri 10:29] =>  0:01
+- [2026-10-09 Fri 10:28]--[2026-10-09 Fri 10:29] assigned at review
+CLOCK: [2026-10-09 Fri 10:34]--[2026-10-09 Fri 10:35] =>  0:01
+- [2026-10-09 Fri 10:34]--[2026-10-09 Fri 10:35] assigned at review
+CLOCK: [2026-10-09 Fri 10:35]--[2026-10-09 Fri 10:36] =>  0:01
+- [2026-10-09 Fri 10:35]--[2026-10-09 Fri 10:36] file the requirements-versus-preferences heading
+CLOCK: [2026-10-09 Fri 10:36]--[2026-10-09 Fri 10:37] =>  0:01
+- [2026-10-09 Fri 10:36]--[2026-10-09 Fri 10:37] assigned at review
+CLOCK: [2026-10-09 Fri 10:38]--[2026-10-09 Fri 10:41] =>  0:03
+- [2026-10-09 Fri 10:38]--[2026-10-09 Fri 10:41] assigned at review
+CLOCK: [2026-10-09 Fri 10:41]--[2026-10-09 Fri 10:42] =>  0:01
+- [2026-10-09 Fri 10:41]--[2026-10-09 Fri 10:42] merge PR #35 and close 189645c6
+CLOCK: [2026-10-09 Fri 10:42]--[2026-10-09 Fri 10:43] =>  0:01
+- [2026-10-09 Fri 10:42]--[2026-10-09 Fri 10:43] assigned at review
+CLOCK: [2026-10-09 Fri 10:46]--[2026-10-09 Fri 10:47] =>  0:01
+- [2026-10-09 Fri 10:46]--[2026-10-09 Fri 10:47] assigned at review
+CLOCK: [2026-10-09 Fri 10:48]--[2026-10-09 Fri 10:49] =>  0:01
+- [2026-10-09 Fri 10:48]--[2026-10-09 Fri 10:49] assigned at review
+CLOCK: [2026-10-09 Fri 10:54]--[2026-10-09 Fri 10:55] =>  0:01
+- [2026-10-09 Fri 10:54]--[2026-10-09 Fri 10:55] assigned at review
+CLOCK: [2026-10-09 Fri 10:58]--[2026-10-09 Fri 10:59] =>  0:01
+- [2026-10-09 Fri 10:58]--[2026-10-09 Fri 10:59] assigned at review
+CLOCK: [2026-10-09 Fri 10:59]--[2026-10-09 Fri 11:00] =>  0:01
+- [2026-10-09 Fri 10:59]--[2026-10-09 Fri 11:00] inspect the attention clock; file its gating defect
+CLOCK: [2026-10-09 Fri 11:00]--[2026-10-09 Fri 11:01] =>  0:01
+- [2026-10-09 Fri 11:00]--[2026-10-09 Fri 11:01] assigned at review
+CLOCK: [2026-10-09 Fri 11:14]--[2026-10-09 Fri 11:15] =>  0:01
+- [2026-10-09 Fri 11:14]--[2026-10-09 Fri 11:15] assigned at review
+CLOCK: [2026-10-09 Fri 11:15]--[2026-10-09 Fri 11:17] =>  0:02
+- [2026-10-09 Fri 11:15]--[2026-10-09 Fri 11:17] divide c7619140 three ways
+CLOCK: [2026-10-09 Fri 11:17]--[2026-10-09 Fri 11:18] =>  0:01
+- [2026-10-09 Fri 11:17]--[2026-10-09 Fri 11:18] assigned at review
+CLOCK: [2026-10-09 Fri 11:24]--[2026-10-09 Fri 11:25] =>  0:01
+- [2026-10-09 Fri 11:24]--[2026-10-09 Fri 11:25] assigned at review
+CLOCK: [2026-10-09 Fri 11:25]--[2026-10-09 Fri 11:26] =>  0:01
+- [2026-10-09 Fri 11:25]--[2026-10-09 Fri 11:26] nominate 5a4896c3
+CLOCK: [2026-10-09 Fri 11:26]--[2026-10-09 Fri 11:28] =>  0:02
+- [2026-10-09 Fri 11:26]--[2026-10-09 Fri 11:28] assigned at review
+CLOCK: [2026-10-09 Fri 11:28]--[2026-10-09 Fri 11:29] =>  0:01
+- [2026-10-09 Fri 11:28]--[2026-10-09 Fri 11:29] adopt 2b8930da and 24694d1f into 5a4896c3
+CLOCK: [2026-10-09 Fri 11:29]--[2026-10-09 Fri 11:32] =>  0:03
+- [2026-10-09 Fri 11:29]--[2026-10-09 Fri 11:32] assigned at review
+CLOCK: [2026-10-09 Fri 11:40]--[2026-10-09 Fri 11:41] =>  0:01
+- [2026-10-09 Fri 11:40]--[2026-10-09 Fri 11:41] assigned at review
+CLOCK: [2026-10-09 Fri 11:42]--[2026-10-09 Fri 11:43] =>  0:01
+- [2026-10-09 Fri 11:42]--[2026-10-09 Fri 11:43] assigned at review
+CLOCK: [2026-10-09 Fri 11:45]--[2026-10-09 Fri 11:46] =>  0:01
+- [2026-10-09 Fri 11:45]--[2026-10-09 Fri 11:46] assigned at review
+CLOCK: [2026-10-09 Fri 11:48]--[2026-10-09 Fri 11:49] =>  0:01
+- [2026-10-09 Fri 11:48]--[2026-10-09 Fri 11:49] assigned at review
+CLOCK: [2026-10-09 Fri 12:00]--[2026-10-09 Fri 12:01] =>  0:01
+- [2026-10-09 Fri 12:00]--[2026-10-09 Fri 12:01] assigned at review
+CLOCK: [2026-10-09 Fri 12:03]--[2026-10-09 Fri 12:04] =>  0:01
+- [2026-10-09 Fri 12:03]--[2026-10-09 Fri 12:04] assigned at review
+CLOCK: [2026-10-09 Fri 12:42]--[2026-10-09 Fri 12:44] =>  0:02
+- [2026-10-09 Fri 12:42]--[2026-10-09 Fri 12:44] assigned at review
 :END:
