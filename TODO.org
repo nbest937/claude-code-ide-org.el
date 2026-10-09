@@ -2,6 +2,24 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* MAYBE Nothing reconciles the queue's applied watermarks with the file, so a discarded apply stays marked applied and vanishes :code:
+:PROPERTIES:
+:ID:       7e4fb8ae-87ff-445a-b960-b7cc5302c0c8
+:CREATED:  [2026-10-09 Fri 18:49]
+:CATEGORY: Apply
+:END:
+:PLAN:
+
+:END:
+Split out of [[id:79c224ab-188a-4ed4-a606-c28ee2cfe72d][79c224ab]] while planning [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]], 2026-10-09 (the user chose the
+guard there and this filed). The watermark in the queue directory records which
+events an apply pass consumed, and the record lives in git, so discarding the
+second leaves the first claiming work that no longer exists, and the review
+buffer reads the watermark, so the loss is invisible both ways. A check
+reporting applied state events whose State line is absent from the file would
+catch any culprit, human included, which [[id:79c224ab-188a-4ed4-a606-c28ee2cfe72d][79c224ab]]'s guard cannot; it catches the
+loss after the fact, not before.
+
 * TODO The steps after apply run only when the review buffer is buried, so a session can never offer them when they are overdue :code:
 :PROPERTIES:
 :ID:       de081dd9-1853-4d79-94fc-2edac498380f
@@ -10200,7 +10218,7 @@ and the transcripts, which are append-only, and not the working tree, which is
 not.
 
 
-* TODO Applied review changes can be destroyed by a git checkout that looks like it reverts only Claude's edit :code:
+* TODO Applied review changes can be destroyed by a git checkout that looks like it reverts only Claude's edit :code:bounded:
 :PROPERTIES:
 :CATEGORY: Apply
 :ID:       79c224ab-188a-4ed4-a606-c28ee2cfe72d
@@ -10217,52 +10235,48 @@ CLOCK: [2026-08-19 Wed 08:28]--[2026-08-19 Wed 08:29] =>  0:01
 - [2026-08-19 Wed 08:28]--[2026-08-19 Wed 08:29] assigned at review
 CLOCK: [2026-08-19 Wed 08:42]--[2026-08-19 Wed 08:46] =>  0:04
 - [2026-08-19 Wed 08:42]--[2026-08-19 Wed 08:46] assigned at review
+- Tags ":code:bounded:" from ":code:"     [2026-10-09 Fri 18:49] \\
+  first classification: the guard follows emacsclient-guard's existing shape
 :END:
 :PLAN:
+Design, bounded (the user approved it while planning [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]], 2026-10-09). Of
+the two candidate fixes the body once listed, the guard ships here and
+reconciliation is filed as [[id:7e4fb8ae-87ff-445a-b960-b7cc5302c0c8][7e4fb8ae]] (the user): the guard stops the culprit that
+actually did it, before the loss; reconciliation catches any culprit, after it.
+
+The guard. =bin/hooks/discard-guard=, PreToolUse on Bash, shaped like
+=emacsclient-guard=: plain bash and =jq=, failing open, blocking with exit 2 and
+stderr, appending =miss discard-org=. It refuses only while a tracked =.org=
+file in the repo has uncommitted changes, staged or not (=git diff --name-only
+-- '*.org'= and its =--cached= twin), and only these: =git checkout --= or =git
+restore= without =--staged= whose paths include an =.org= file, =.= or a
+directory holding one; =git reset --hard=; =git stash= in its saving forms
+(bare, =push=, =save=). =stash list=, =show= and =pop= pass. The message shows
+=git diff --stat= for the =.org= files, says the changes may be another writer's
+(an apply pass, another session), and points at restoring only one's own hunks
+or going through the org tools. =ALLOW_DISCARD=1= before the command lets it
+through, still counted, as the pre-commit's =ALLOW_SWEEP=1= does.
+
+Wiring. Both =.claude/settings.json= and the plugin's =hooks/hooks.json=,
+ungated, since this is task tracking; =org-session-tracking.md='s hook table
+gains its row.
+
+Testing. A =bin/= test driving the hook with JSON on stdin in a temp git repo,
+the queue directory and session id isolated from the first case (the 2026-09-21
+rule in the slice rules): each refused form is refused with an =.org= file
+dirty; the same commands pass when it is clean or only a non-org file is dirty;
+=stash list= and =restore --staged= pass; =ALLOW_DISCARD=1= passes and is
+counted. Run red against HEAD's version first.
 
 :END:
-*Incident, 2026-08-19.* Five queued transitions were applied by the
-human, marked consumed in the watermark, and then destroyed —
-[[id:09c134c4-31eb-4f6c-aa10-f836d1d28f16][09c134c4]] -> DONE, [[id:507754ba-ae82-4f04-b209-8d8c58ac268e][507754ba]] -> DONE, [[id:7d739afd-f879-445c-b0b6-65e295585a94][7d739afd]] -> TODO,
-[[id:9202b39d-49e4-441c-89f2-382feb4ef1ea][9202b39d]] -> TODO, and [[id:507754ba-ae82-4f04-b209-8d8c58ac268e][507754ba]] -> DOING. The queue said they were
-applied; the file never carried them; =git log -S= confirms the keywords
-reached no commit at all. Discovered only because someone asked whether
-there were open loops.
-
-*Cause.* Claude ran =git checkout -- TODO.org= to undo a botched edit of
-its own, having first run =git status --porcelain=, seen =M TODO.org=,
-and assumed the modification was entirely its own. It was not: the same
-working-tree change also held the human's applied review results from
-after the previous commit. One command reverted both.
-
-*Why nothing caught it.* The watermark lives in =~/.claude/org-updates/=
-and the record lives in git, so discarding the second leaves the first
-claiming work that no longer exists. Nothing reconciles them, and the
-review buffer reads the watermark — so the lost transitions did not
-reappear as pending. They were invisible in both directions: gone from
-the file, and gone from the queue's idea of what is outstanding.
-
-This is the same class as the note already in CLAUDE.md's memory about
-never running a pathspec-less =git commit=, and it generalises: *the
-working tree is shared*, so any command that discards uncommitted state
-— =checkout=, =restore=, =stash=, =reset --hard= — must be preceded by
-reading the diff, not by assuming authorship of it.
-
-*Recovered* by re-queueing the four transitions that mattered. The
-=DOING= step of [[id:507754ba-ae82-4f04-b209-8d8c58ac268e][507754ba]] was not re-queued: it is now DONE, and
-replaying an intermediate state would write a State line for a
-transition that never happened at that time.
-
-*Not recovered:* the =- State ...= log lines the original apply wrote,
-which carried the real timestamps. The re-queued events carry today's.
-
-*Candidate fixes, none chosen.* A reconciliation check that reports
-watermark entries whose effect is absent from the file would have caught
-this the moment it happened, and is the only option that catches it
-whoever the culprit is. Cheaper and narrower: a hook or a documented
-rule that refuses to discard =TODO.org=/=DONE.org= working-tree changes
-without showing the diff first.
-
+On 2026-08-19 five applied transitions were destroyed when a session ran =git
+checkout -- TODO.org= to undo its own edit, assuming the =M TODO.org= it saw was
+all its own; the working tree also held the human's apply pass. The watermark
+still called them applied, so they vanished from the file and from the queue
+alike; four were re-queued, and their original State lines and timestamps were
+not recovered. Designed 2026-10-09 (the user): a PreToolUse guard refuses a
+discarding git command while a tracked =.org= file has uncommitted changes, and
+reconciling watermarks against the file is filed on its own.
 
 * TODO Type a span's annotation at review time, not by hand-editing it after :code:
 :PROPERTIES:
