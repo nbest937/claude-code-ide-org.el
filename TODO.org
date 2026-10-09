@@ -300,11 +300,41 @@ Correct the help to the code, naming both meanings of =!= and saying that =?= is
 a suggestion to confirm.
 
 
-* TODO The session-start report counts possible twins but never names them, so neither the user nor the session can judge the flag :code:
+* TODO The session-start report counts possible twins but never names them, so neither the user nor the session can judge the flag :code:bounded:
 :PROPERTIES:
 :ID:       d241ab6e-6cfe-482a-8980-8cb222d7ab12
 :CREATED:  [2026-10-09 Fri 13:09]
 :CATEGORY: Meta
+:END:
+:LOGBOOK:
+- Tags ":code:bounded:" from ":code:"     [2026-10-09 Fri 18:43] \\
+  first classification: the detector and its formatter already exist
+:END:
+:PLAN:
+Design, bounded (the user approved it while planning [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]], 2026-10-09). The
+detector, =--twin-candidates=, and a formatter for its output,
+=claude-code-ide-org-twin-candidates-report= behind =bin/twin-candidates=, both
+exist; the ceremony report keeps only their =length=.
+
+The list, not the count. The status plist's =:twins= carries the pairs, and the
+ceremony line names each subject's keyword, id and exact title with its
+candidates beneath, formatted by =--format-duplicate-candidates= exactly as
+=bin/twin-candidates= prints them, so the two outputs cannot drift. The sum
+guard that decides whether the report fires takes =(length twins)=, so when it
+fires is unchanged. The offer stays as it is: offer the twin-checker, never run
+it unasked; a named pair can now be dismissed at a glance, and it survives in
+the transcript after the detector's list empties, which is what was lost on
+2026-10-09.
+
+The cap. The report shares SessionStart's 10,000-character =additionalContext=
+cap, so it names at most five subjects (the user), then "and N more --
+bin/twin-candidates lists them all"; candidates stay at the detector's three per
+subject.
+
+Testing. ERT over a scratch file with two near-duplicate recent headings: the
+report names both ids and exact titles; seven subjects print five and the "and 2
+more" line; none prints no twin line; the report and =twin-candidates-report=
+give identical candidate lines. Run red against HEAD's version first.
 :END:
 
 The ceremony report says "N recent heading(s) have a possible twin by title
