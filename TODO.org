@@ -333,20 +333,61 @@ this combination should find a member's slices. Not diagnosed; conflicting
 search preambles between the two predicates is a guess. Reproduce in ERT first.
 
 
-* TODO A scoped org_outline does not say which slices count the heading, so finding them means reading every slice :code:
+* TODO A scoped org_outline does not say which slices count the heading, so finding them means reading every slice :code:bounded:
 :PROPERTIES:
 :ID:       d66ae1d2-5a40-4f4d-ae51-c8977e78681c
 :CREATED:  [2026-10-09 Fri 13:08]
 :CATEGORY: Tools
+:END:
+:LOGBOOK:
+- Tags ":code:bounded:" from ":code:"     [2026-10-09 Fri 18:42] \\
+  first classification: outline front matter and org-ql's predicate mechanism already exist
+:END:
+:PLAN:
+Design, bounded, worked together with [[id:b3177ed0-9747-4e31-ad65-bac25b9bdd1f][b3177ed0]] (the user approved it while
+planning [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]], 2026-10-09).
+
+The line. In =--outline-front-matter=, after the =:BLOCKER:= line and only when
+the outline is scoped to one heading: =slices:= names each unfinished slice
+whose =:MEMBERS:= lists the heading, with its keyword; one that dropped it
+carries =(dropped)=, read through =--slice-dropped-ids= as the refresh reads it;
+closed slices are omitted, being history that =org_history= covers (the user).
+Absent when no slice applies. A slice appears here and never in [[id:b3177ed0-9747-4e31-ad65-bac25b9bdd1f][b3177ed0]]'s
+=blocks:= line, since its =:BLOCKER:= is derived from membership (the user). One
+scan over the tracked files collects every =:KIND: slice= heading and every
+=:BLOCKER:=, serving both lines, and it runs only on a scoped call.
+
+The predicate (the user chose to build it here rather than file it). The plain
+query =property:KIND,slice regexp:<id>= reaches the many-headings case, but
+matches any slice whose prose cites the id, measured 2026-10-09 when it returned
+[[id:c7619140-f269-4329-bc05-a38ea151e202][c7619140]] for [[id:41f21b4d-278d-4ad8-a56f-122f5af33d65][41f21b4d]], and still matches a dropped member. So a custom org-ql
+predicate, =member:ID=, defined with =org-ql-defpred=: a =:KIND: slice= heading
+whose =:MEMBERS:= minus =:DROPPED:= lists the id, read from the properties and
+never from prose. It takes several ids comma-separated, as org-ql's other
+predicates do; prefixes expand as =:BLOCKER:= expands them, and an unresolvable
+id is refused rather than matching nothing. It sets no keyword filter: =member:X
+todo:= gives open slices. It shares the line's membership reader, so the two
+cannot disagree. =org_query='s name check reads =org-ql-predicates= at run time
+(=config.el:5055=), so the definition registers itself; the tool description and
+the shipped =org-mcp-tools.md= name it, and say it is the module's first custom
+predicate.
+
+Testing. ERT over scratch files: a heading that is a member of one open slice,
+dropped from a second and a member of a closed third gets =slices:= naming the
+first two, the second marked; a heading in no slice gets no line. =member:X=
+over a slice counting X, one that dropped X and one that only cites X in its
+plan returns exactly the first; two ids return the union; a prefix expands and
+an unknown id is refused. Each runs red against HEAD's version first.
 :END:
 
 Scoped to a slice, =org_outline= lists its members; scoped to a member, its
 front matter shows =:CREATED:=, =:CATEGORY:=, =:BLOCKER:= and history, but no
 slice. Add a front-matter line such as =slices: c7619140 TODO=, naming each open
 slice whose =:MEMBERS:= minus =:DROPPED:= holds the heading, the rule the
-refresh already uses. An =org_query= predicate for many headings at once is a
-possible second step. Met 2026-10-09 when sorting review-buffer headings by
-slice ended in a Python read of TODO.org, the shape [[id:67861ff3-3a72-4c53-8fd8-1cae9a31bc77][67861ff3]] names.
+refresh already uses. A =member:ID= predicate for =org_query= answers it for
+many headings at once, built here too (the user, 2026-10-09). Met 2026-10-09
+when sorting review-buffer headings by slice ended in a Python read of TODO.org,
+the shape [[id:67861ff3-3a72-4c53-8fd8-1cae9a31bc77][67861ff3]] names.
 
 
 * TODO [0/5] Document what a fork may change and what the machinery depends on :prose:bounded:
@@ -2370,11 +2411,15 @@ Doom config the matching human keystroke is =C-c n l= (=org-store-link=); =C-c
 l= is Doom's localleader prefix.
 
 
-* TODO org_outline shows what a heading is blocked by, never what it blocks :code:
+* TODO org_outline shows what a heading is blocked by, never what it blocks :code:bounded:
 :PROPERTIES:
 :ID:       b3177ed0-9747-4e31-ad65-bac25b9bdd1f
 :CREATED:  [2026-09-24 Thu 20:01]
 :CATEGORY: Tools
+:END:
+:LOGBOOK:
+- Tags ":code:bounded:" from ":code:"     [2026-10-09 Fri 18:42] \\
+  first classification: outline front matter already shows :BLOCKER:
 :END:
 :PLAN:
 
@@ -2388,6 +2433,22 @@ front matter, listing each heading that names this heading or any descendant in
 its :BLOCKER:, with its keyword, the way :BLOCKER: is shown today. A sibling of
 [[id:5acca91b-b7bf-4046-9379-cd9a8f40f116][5acca91b]], which asks what is blocked at all.
 
+Design, bounded, worked together with [[id:d66ae1d2-5a40-4f4d-ae51-c8977e78681c][d66ae1d2]] (the user approved it while
+planning [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]], 2026-10-09). The front-matter line is =blocks:=, after
+=:BLOCKER:= and [[id:d66ae1d2-5a40-4f4d-ae51-c8977e78681c][d66ae1d2]]'s =slices:=: each unfinished, non-slice heading whose
+=:BLOCKER:= names this heading or any of its descendants, with its keyword,
+since blocking on a child is blocking on part of this work. Slices are left out
+because their =:BLOCKER:= is derived from membership, which =slices:= already
+shows (the user). Derived at each read and never tagged, per what this heading
+absorbed from [[id:0eecf8e7-a8d5-4da7-9d6d-f397542b2139][0eecf8e7]]. Absent when nothing applies. It shares [[id:d66ae1d2-5a40-4f4d-ae51-c8977e78681c][d66ae1d2]]'s one
+scan of the tracked files, run only on a scoped call; the tool description and
+=org-mcp-tools.md= name the line.
+
+Testing. ERT over scratch files: a heading named in one task's =:BLOCKER:= and
+in a slice's gets =blocks:= naming only the task; a child named in a =:BLOCKER:=
+makes its parent's =blocks:= name that heading; a finished blocked heading is
+left out; a heading named nowhere gets no line. Each runs red against HEAD's
+version first.
 :END:
 *Absorbed [[id:0eecf8e7-a8d5-4da7-9d6d-f397542b2139][0eecf8e7]], 2026-09-28*: the same inverse-blocker ask, filed twice. Its
 one argument this heading lacked carries over. A pair of =:blocker:= and
