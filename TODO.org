@@ -2,6 +2,20 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO /next-session conflates planning a slice with working it; split it into two commands, each for a fresh session :code:bounded:
+:PROPERTIES:
+:ID:       dc21f724-78f9-4da8-9d74-002ad3306446
+:CREATED:  [2026-10-09 Fri 13:36]
+:CATEGORY: Dev
+:END:
+
+A slice usually takes two sessions: one to brainstorm and plan the =NEXT= slice,
+and one to work the result, and each deserves an empty context (the user,
+2026-10-09). =/next-session= covers only the second; given a slice with no plan,
+it stops and asks for one, with no command for the session that writes it. Split
+it into a planning command and a working command, and rename what the old name
+touches.
+
 * TODO The meta-work target renders as "Review a" in the review buffer; show it as R&P, and offer "R&P (Review and planning)" when assigning :code:
 :PROPERTIES:
 :ID:       62a32f7b-9f7a-4ed3-88e0-939a687852eb
