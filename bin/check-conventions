@@ -4,7 +4,7 @@
 # bin/test verifies the elisp behaves. bin/lint-org verifies the org
 # files are structurally sound. This verifies the prose that describes
 # both -- CLAUDE.md, .claude/rules/, both SKILL.md files, and the
-# next-session prompt -- still matches what it describes.
+# slice commands -- still matches what it describes.
 #
 # Generalized out of bin/check-org-dev-skill (TODO.org :ID: d2a0f54c),
 # which checks one file's claims. The harness lives in bin/lib/check.sh
@@ -86,7 +86,8 @@ for rel in CLAUDE.md .claude/rules/org-conventions.md \
            .claude/rules/org-conventions-local.md \
            .claude/rules/org-categories.md \
            .claude/skills/org/SKILL.md .claude/skills/org-dev/SKILL.md \
-           .claude/commands/next-session.md \
+           commands/plan-slice.md commands/work-slice.md \
+           .claude/slice-rules.md \
            skills/org/references/org-conventions.md \
            skills/org/references/org-event-queue.md \
            skills/org/references/org-state-transitions.md \

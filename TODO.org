@@ -2,6 +2,20 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Delete the /next-session stub once a slice has been worked under /plan-slice and /work-slice :code:
+:PROPERTIES:
+:ID:       d30c00ce-95fb-4fea-8709-bcea80700646
+:CREATED:  [2026-10-09 Fri 16:02]
+:CATEGORY: Dev
+:BLOCKER:  5a4896c3-3d4e-4b12-9f9e-06b97d84b238
+:END:
+
+=.claude/commands/next-session.md= became a short stub naming the two new
+commands when [[id:dc21f724-78f9-4da8-9d74-002ad3306446][dc21f724]] split it, kept for one slice so the old name redirects
+rather than vanishing. Delete it, and its mention in [[id:dc21f724-78f9-4da8-9d74-002ad3306446][dc21f724]]'s resolution, once
+[[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]] has been planned and worked under the new names. Filed at PR #36's
+review, which found the deletion tracked nowhere.
+
 * TODO /next-session conflates planning a slice with working it; split it into two commands, each for a fresh session :code:arch:
 :PROPERTIES:
 :ID:       dc21f724-78f9-4da8-9d74-002ad3306446
@@ -98,12 +112,61 @@ agentic-euchre, the names the shipped commands appear under, and a missing
  It is standalone rather than a member of [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]], but serves that slice's
  goal, and can merge before the slice starts.
 :END:
+:DEBRIEF:
+Shipped on =feature/slice-commands= in commit [[orgit-rev:./::3fc21d6][3fc21d6]]. =commands/work-slice.md=
+carries the old command's "Which slice" and "The plan", now pointing an
+unplanned slice at =/plan-slice=. It also carries Step 0 items 1-4 (item 3
+qualified for installs with time tracking off), a per-member section and an
+integration section that cite the conventions rather than restate them, and
+three standing rules: the heading beats the slice, no UUID from memory, a full
+drawer masks an empty body. =commands/plan-slice.md= is new and follows the
+approved design. =.claude/slice-rules.md= took Step 0 items 5-11, numbering
+kept, and the other 18 standing rules, both moved by script from the old file's
+text so nothing was paraphrased. =.claude/commands/= links both shipped files.
+Verified: the session's own command list showed =plan-slice=, =work-slice= and
+the stub with their new descriptions as soon as the files existed, which answers
+the doc question about symlinked command files. =bin/check-conventions= passes
+in full, with every citation in the three new files resolving and the promoted
+rules matching; its self-test is 27/27; the lint is clean. The always-loaded
+budget fell from 10185 to 10177 words, because the CLAUDE.md bullet shrank.
+Beyond the plan: the README's time-tracking paragraph claimed a plain setup
+re-run removes the time file, the wrong expectation of 2026-10-06, and now says
+it keeps it. Not yet run: a read-only =/work-slice= against [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]], which
+needs a fresh session, and the consumer check in agentic-euchre, now part of
+[[id:2b8930da-5223-4b75-b4f6-251a28552d1b][2b8930da]]'s plan.
+
+*Rework after PR #36's review*, in commit [[orgit-rev:./::73eb50f][73eb50f]]. All ten findings fixed. Three
+were breakages. =/work-slice= had lost the old =gh pr list= check that told a
+slice in hand from one in review; it now reads the keyword alone (DOING in hand,
+REVIEW waiting, the user's choice of the two options offered), the shipped
+conventions say so, and this repo keeps the =gh= check as its own Step 0 item 12
+for the stretch before a review starts. =/plan-slice='s query returned all six
+open slices and so always stopped; it now queries =todo:NEXT=. The pre-commit
+hook never ran =check-conventions= for =commands/= or =.claude/slice-rules.md=,
+since an edit stages the symlink's target. The shipped skills had the same gap,
+found while fixing it, and both are covered now. Proved on the real hook: a bad
+citation staged in each of the three paths passed before and was refused after.
+Four were text in the wrong layer: the =org_capture= body warning and the
+footnote rule moved to the shipped core, with pointers left in this repo's file
+so its numbering holds; the shipped commands label their ids as the plugin's own
+tracker; =CLAUDE.md='s plugin-surface bullet names =commands/=. Residue filed
+rather than described: [[id:d30c00ce-95fb-4fea-8709-bcea80700646][d30c00ce]] deletes the stub once [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]] is worked, and
+the read-only =/work-slice= check is now the first step in [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]]'s plan.
+=check-conventions= passes, self-test 27/27, =pre-commit-test= 12/12, lint
+clean, always-loaded budget 10181 of 10200.
+:END:
 
 A slice usually takes two sessions, one to plan the =NEXT= slice and one to work
 it, each with an empty context (the user, 2026-10-09), and =/next-session=
 covered only the second. Split it into =/plan-slice= and =/work-slice=, shipped
 with the plugin, with each project's own practice moved to an optional
 =.claude/slice-rules.md= that both commands read. The plan holds the design.
+
+*Resolution:* =/plan-slice= and =/work-slice= ship with the plugin and hold only
+what the tracker's machinery needs; this repo's practice moved verbatim into
+=.claude/slice-rules.md=, which both read, and =/next-session= is a one-slice
+stub.
+
 * TODO The meta-work target renders as "Review a" in the review buffer; show it as R&P, and offer "R&P (Review and planning)" when assigning :code:
 :PROPERTIES:
 :ID:       62a32f7b-9f7a-4ed3-88e0-939a687852eb
@@ -418,6 +481,14 @@ nearest relative:*
 - [[id:9f6b19b5-18db-4d56-8545-9552a5b4e935][9f6b19b5]], after [[id:41f21b4d-278d-4ad8-a56f-122f5af33d65][41f21b4d]]: the buffer's help mislabels its own =!= and =?= prefixes, which every reviewer reads.
 - [[id:d66ae1d2-5a40-4f4d-ae51-c8977e78681c][d66ae1d2]], then [[id:b3177ed0-9747-4e31-ad65-bac25b9bdd1f][b3177ed0]]: the scoped =org_outline= gains the two reverse lines it lacks, which slices count the heading and what it blocks. One change to its front matter serves both, so they are worked together.
 - [[id:d241ab6e-6cfe-482a-8980-8cb222d7ab12][d241ab6e]], after them: the session-start report names its possible twins rather than counting them.
+
+*First use of the split commands* ([[id:dc21f724-78f9-4da8-9d74-002ad3306446][dc21f724]], [[https://github.com/nbest937/claude-code-ide-org.el/pull/36][PR #36]] review, 2026-10-09). This
+slice is the first planned and worked under =/plan-slice= and =/work-slice=.
+Before =/plan-slice=, run =/work-slice= once, read-only, in a fresh session: it
+should find this slice =NEXT=, report its unplanned members and point at
+=/plan-slice= without starting anything. If it does otherwise, fix the command
+before planning here. The =/next-session= stub is deleted once the slice is
+worked ([[id:d30c00ce-95fb-4fea-8709-bcea80700646][d30c00ce]]).
 :END:
 
 The part of the review pass a task-only install also uses, divided out of
@@ -3104,6 +3175,12 @@ Once that slice's PR merges, run =git -C ../claude-code-ide-org-swc checkout
 --detach main= and re-run =claude-org-setup --no-time-tracking= in
 agentic-euchre, so the checks exercise the slice's fixes rather than the state
 before them.
+
+*One more check, added with [[id:dc21f724-78f9-4da8-9d74-002ad3306446][dc21f724]] (2026-10-09):* in agentic-euchre, the names
+under which the shipped =/plan-slice= and =/work-slice= appear (the docs say
+plugin commands are namespaced, =/claude-code-ide-org:work-slice=, and are
+silent on the bare name), and that both run with no =.claude/slice-rules.md= in
+that repo.
 :END:
 It gates earnest work in euchre, taking over from [[id:6a207b00-8fa1-441e-8ee5-354702bc979b][6a207b00]] (closed
 2026-09-22). It waits on [[id:8a2eb687-28da-4d44-893b-db59298bdc5b][8a2eb687]] and [[id:6521dd56-8772-416b-9435-6da78bb86b06][6521dd56]], moved from there, and on

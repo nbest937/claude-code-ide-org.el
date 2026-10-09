@@ -110,10 +110,11 @@ repeated here.
 
 Five things you would not guess:
 
-- **`.claude-plugin/`, `hooks/` and `skills/` are the plugin surface**
-  (2026-09-09, `:ID:` b0e478f7): the manifest, the shipped hook wiring
-  (mirroring `.claude/settings.json` — a repo enables one or the other,
-  never both), and the org skill whose `references/` carry the machinery
+- **`.claude-plugin/`, `hooks/`, `skills/` and `commands/` are the plugin
+  surface** (2026-09-09, `:ID:` b0e478f7): the manifest, the shipped hook
+  wiring (mirroring `.claude/settings.json` — a repo enables one or the
+  other, never both), the slice commands, and the org skill whose
+  `references/` carry the machinery
   prose and conventions. `bin/claude-org-setup` promotes those references
   into a consuming repo's `.claude/rules/` — this repo runs it on itself,
   so the machinery files under `.claude/rules/` are **generated**, marked
@@ -130,12 +131,11 @@ Five things you would not guess:
   `bin/hooks/`**, for no recorded reason. It produces the "what was I last
   doing" context injected at `SessionStart`. Whether the two directories
   should be consolidated is open.
-- **`.claude/commands/`** holds prompt files
-  Claude Code exposes as slash commands — `next-session.md` is `/next-session`.
-  Since 2026-09-21 it is **static**: it names no slice, finds the one in hand
-  (the `DOING` slice with no open PR, else the `NEXT` one), and points at
-  that slice's `:PLAN:` drawer. Only Step 0 and the standing rules live
-  there, and they grow by addition.
+- **`commands/`** ships the slash commands, linked into `.claude/commands/`:
+  `/plan-slice` plans the `NEXT` slice, `/work-slice` works the slice in
+  hand, each in a fresh session (`:ID:` dc21f724). Neither names a slice;
+  the plan is its `:PLAN:` drawer. This repo's own practice for both is in
+  `.claude/slice-rules.md`, read on demand; all grow by addition.
 - **`bin/check-org-dev-skill`** checks the org-dev skill's own claims still
   hold; pre-commit runs it whenever that skill is staged.
 - **`.warp/.mcp.json`** — see below; do not delete it.

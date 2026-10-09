@@ -509,7 +509,8 @@ because it is a sequencing declaration rather than a place work happens
 — there is no coordination to record that is not already one of its
 members'.
 
-**A slice no longer records the revisions of `next-session.md`** (the
+**A slice no longer records the revisions of the slice prompt**, then
+`next-session.md` (the
 user, 2026-09-21). Until then the plan that drove a slice was linked at
 the end of its body, one `orgit-rev:` link per commit that revised the
 prompt, because the file was rewritten per slice and its history *was*
@@ -521,8 +522,8 @@ the change stay in their bodies as history; the member scan already
 ignores them, since it requires an `id:` link.
 
 **A slice outlives a session.** A CLI restart or a cleared context
-continues the slice in hand — `/next-session` picks the `DOING` slice
-whose pull request is not yet open — so unfinished members stay put
+continues the slice in hand — `/work-slice` picks the `DOING` slice, one
+waiting on review being `REVIEW` — so unfinished members stay put
 instead of being deferred into a successor slice that has not earned
 them. Deferral proliferates mentions of tasks that were planned and
 never reached the top of the stack.
@@ -531,8 +532,8 @@ never reached the top of the stack.
 Nothing forbids one — `org_slice_add_member` refuses a non-slice target,
 a closed slice, a duplicate, the slice itself and a keyword-less member,
 and a member that happens to *be* a slice trips none of those — but no
-slice has ever named another, and sequencing slices is what
-`next-session.md`'s payload is already for. Do not coin a `:KIND:` value
+slice has ever named another, and sequencing slices is what the `NEXT`
+keyword and `/plan-slice` are already for. Do not coin a `:KIND:` value
 for it. If it is ever built anyway, the caveat to check first is
 incidental attribution: `--incidental-owner` resolves a tie by the
 latest clock before the close, and a parent and child slice both `DOING`
