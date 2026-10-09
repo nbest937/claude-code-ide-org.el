@@ -513,6 +513,7 @@ Planned:
 :COOKIE_DATA: checkbox recursive
 :MEMBERS:  97b4f6a9-a944-40d3-8d14-7a1667c52291 24694d1f-34b4-495b-b0d8-d29e64894c59 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 41f21b4d-278d-4ad8-a56f-122f5af33d65 9f6b19b5-18db-4d56-8545-9552a5b4e935 d66ae1d2-5a40-4f4d-ae51-c8977e78681c b3177ed0-9747-4e31-ad65-bac25b9bdd1f d241ab6e-6cfe-482a-8980-8cb222d7ab12 e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 ee3c22c9-f99c-4d41-9c3d-8f39af916fff 6c64cc9c-33a9-4a20-af19-c188a690c755 79c224ab-188a-4ed4-a606-c28ee2cfe72d 361e2708-8124-4bd1-9c44-f97ca97aca4a 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd de081dd9-1853-4d79-94fc-2edac498380f 2b8930da-5223-4b75-b4f6-251a28552d1b
 :BLOCKER:  97b4f6a9-a944-40d3-8d14-7a1667c52291 24694d1f-34b4-495b-b0d8-d29e64894c59 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 41f21b4d-278d-4ad8-a56f-122f5af33d65 9f6b19b5-18db-4d56-8545-9552a5b4e935 d66ae1d2-5a40-4f4d-ae51-c8977e78681c b3177ed0-9747-4e31-ad65-bac25b9bdd1f d241ab6e-6cfe-482a-8980-8cb222d7ab12 e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 ee3c22c9-f99c-4d41-9c3d-8f39af916fff 6c64cc9c-33a9-4a20-af19-c188a690c755 79c224ab-188a-4ed4-a606-c28ee2cfe72d 361e2708-8124-4bd1-9c44-f97ca97aca4a 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd de081dd9-1853-4d79-94fc-2edac498380f 2b8930da-5223-4b75-b4f6-251a28552d1b
+:DROPPED:  489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-10-09 Fri 11:25] \\
@@ -556,7 +557,10 @@ worked ([[id:d30c00ce-95fb-4fea-8709-bcea80700646][d30c00ce]]).
 
 The part of the review pass a task-only install also uses, divided out of
 [[id:c7619140-f269-4329-bc05-a38ea151e202][c7619140]] on 2026-10-09 (the user) so it can ship without waiting on the
-time-tracking work.
+time-tracking work. [[id:489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938][489d6f61]] was dropped while this slice was planned,
+2026-10-09 (the user): the wedge has not recurred since 2026-10-06, the user is
+investigating it from the Emacs side elsewhere, and nothing in it can be planned
+until one is caught. Its plan records the offered diff-hl probe.
 
 Planned:
 
@@ -6480,6 +6484,25 @@ CLOCK: [2026-09-17 Thu 08:36]--[2026-09-17 Thu 08:37] =>  0:01
 - [2026-09-17 Thu 08:36]--[2026-09-17 Thu 08:37] suggested span, accepted at review
 :END:
 :PLAN:
+Dropped from [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]] on 2026-10-09 (the user): no wedge since 2026-10-06, and
+the user is investigating from the Emacs side elsewhere. Classified a spike
+while planning that slice: its output is an answer, which signal arrives and
+from where, not code to keep.
+
+Offered, not applied: set =diff-hl-update-async= to nil (the user asked for the
+offer to be recorded here). It reads =thread= in the running Emacs (2026-10-09;
+where it is set was not found in Doom's modules or in =~/.config/doom=), so each
+diff-hl update after a save runs its =git diff= from a Lisp thread, and
+diff-hl's own docstring warns that a thread "might crash in some
+configurations". That bears on this heading's one untested lead, the four
+diff-hl update threads in the 2026-09-16 sample: each live process at shutdown
+is one more =Fdelete_process= to =probably_quit= re-entry into the GUI queue. At
+most it lowers the odds of the shutdown wedge; it says nothing about where the
+fatal signal comes from, nor about the two frame-update hangs that were not
+shutdowns. One line, reversible, and slow to answer, since the base rate is
+about five wedges in four weeks. The two ways to name the signal stand as
+before: an =lldb= attach reading the argument at =handle_fatal_signal= before
+the kill, or launching Emacs with stderr captured.
 
 :END:
 (Filing prose restored 2026-09-11 — the original capture note was discarded by
