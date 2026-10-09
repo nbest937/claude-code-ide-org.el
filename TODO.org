@@ -2,6 +2,23 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Document what a fork may change and what the machinery depends on :prose:bounded:
+:PROPERTIES:
+:ID:       1fac0867-1591-47fb-aed7-0f3423f9a774
+:CREATED:  [2026-10-09 Fri 11:42]
+:CATEGORY: Docs
+:BLOCKER:  5a4896c3-3d4e-4b12-9f9e-06b97d84b238
+:END:
+
+A map for a prospective user able to fork the plugin: which conventions, header
+lines, tool refusals and defaults the machinery depends on, and which are only
+this project's practice. It names where each preference lives rather than
+restating it, and lists the =defcustom=s that change one without forking. It is
+the intermediate step [[id:d9f77953-473d-4340-a0b7-87a181f19d8b][d9f77953]] chose over a configuration surface (the user,
+2026-10-09). Verify each item against the code before writing it, starting from
+[[id:d9f77953-473d-4340-a0b7-87a181f19d8b][d9f77953]]'s plan, and write after [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]] lands, since that slice changes some
+of what it describes.
+
 * TODO [0/10] The clock record beneath the review pass is still wrong: correctness, reporting, and the attention clock :code:
 :PROPERTIES:
 :ID:       7ae1cff4-c0df-4ac0-9aea-a778b2373061
@@ -112,11 +129,15 @@ the file, making it a child of whatever heading is last. Read from the code on
 2026-10-09, not run. Gate the attention clock on the same option the hooks obey,
 and anchor the heading safely when it is on.
 
-* TODO Separate what the machinery requires from what this project prefers, so a consumer can change the second :code:
+* TODO Separate what the machinery requires from what this project prefers, so a consumer can change the second :code:arch:
 :PROPERTIES:
 :ID:       d9f77953-473d-4340-a0b7-87a181f19d8b
 :CREATED:  [2026-10-09 Fri 10:35]
 :CATEGORY: Dev
+:END:
+:LOGBOOK:
+- Tags ":code:arch:" from ":code:"     [2026-10-09 Fri 11:42] \\
+  classified: touches setup, the template, the promoted rules and several tools
 :END:
 :PLAN:
 Not yet designed; this drawer holds the evidence a brainstorm should start from.
@@ -153,6 +174,23 @@ split into a required core and this project's practice, which a consumer may
 edit or decline; and each tool refusal is checked for whether it protects
 machinery or merely enforces taste. This is probably architectural, since it
 touches setup, the template, the promoted rules and several tools.
+
+*Decided in a brainstorm, 2026-10-09 (the user): the configuration surface waits
+on outside interest.* While the user is the sole user, slice [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]] supplies
+the ease and confidence needed to run the tool in a second project, and the user
+can change any default directly. For prospective users, who are assumed able to
+fork and adapt it, the intermediate step is a document: a map of what the
+machinery depends on and what is only this project's practice. That is its own
+heading, under =Docs=. Expressed interest from other parties is what would
+justify building the surface this heading describes, together with what it would
+need: documented defaults, versioning ([[id:827e1c42-708e-4f1d-bf25-d8b8b980b7ef][827e1c42]]), and rule updates that do not
+trample local changes ([[id:96ad6e95-452d-4be2-9bc7-b2c2efa44988][96ad6e95]]).
+
+*Findings from the same dialogue, which the document must respect:*
+- The split above is unverified, and at least one placement is wrong in practice. Datetree archiving looks like a preference, but the ceremony's =claude-code-ide-org-sort-datetree-descending= and the sweep's handling of =org-archive-reversed-order= assume it, so a fork that archives flat would meet both.
+- A list of preferences restating values would go stale as the code moves; it should name where each one lives (the rule file, the template line, the =defcustom=).
+- Some flexibility already exists without forking: several preferences are =defcustom=s, among them =claude-code-ide-org-review-attention-heading=, the span thresholds and =claude-code-ide-org-heading-separator-lines=.
+- [[id:a7f844ba-7b70-48c6-833c-cd7e4e38cf14][a7f844ba]], which cuts the time machinery into =+time.el= behind a module flag, is this heading's code-level counterpart, and [[id:97b4f6a9-a944-40d3-8d14-7a1667c52291][97b4f6a9]] (in [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]]) is one symptom of the entanglement it removes.
 :END:
 
 The plugin ships this project's habits with the same force as the things its
@@ -160,6 +198,11 @@ tools depend on, so a consumer cannot tell which they may change and the product
 reads as more opinionated than it needs to be (the user, 2026-10-09). Draw the
 line: ship what the machinery needs as requirements, and this project's choices
 as defaults a consumer may change.
+
+Parked 2026-10-09 (the user): the configuration surface waits on interest from
+other users, and until then [[id:1fac0867-1591-47fb-aed7-0f3423f9a774][1fac0867]] documents the line for anyone who forks.
+The plan holds the decision and the findings that document must respect.
+
 
 * TODO The review buffer has no keys to move between items; bind n and p to the next and previous item :code:
 :PROPERTIES:
