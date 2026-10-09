@@ -4818,7 +4818,7 @@ written at quit, which would remove this defect's cause rather than reopen the
 clock afterwards.
 
 
-* DOING The complement's gap spans carry no events, so half the review buffer cannot be dismissed :code:
+* DOING The complement's gap spans carry no events, so half the review buffer cannot be dismissed :code:bounded:
 :PROPERTIES:
 :ID:       445fe577-01ce-4e68-ab5f-c349c40a4643
 :CREATED:  [2026-09-16 Wed 09:24]
@@ -4842,8 +4842,47 @@ CLOCK: [2026-09-17 Thu 10:33]--[2026-09-17 Thu 10:34] =>  0:01
 - [2026-09-17 Thu 10:33]--[2026-09-17 Thu 10:34]
 CLOCK: [2026-09-17 Thu 10:34]--[2026-09-17 Thu 10:34] =>  0:00
 - [2026-09-17 Thu 10:34]--[2026-09-17 Thu 10:34] suggested span, accepted at review
+- Tags ":code:bounded:" from ":code:"     [2026-10-09 Fri 10:14] \\
+  classified: one change where review builds bracket items
 :END:
 :PLAN:
+Fold the gap that leads into a clock bracket into that bracket, instead of
+offering it. A gap qualifies when it ends at a =clock_in=, has no queue event
+inside it, and lasts no longer than =claude-code-ide-org-span-idle-floor= (120
+s). Its start may be a =clock_out= or a =block_end=. (Option 3 of three offered,
+the user, 2026-10-09; widened from "between two clock brackets" in the same
+dialogue.)
+
+Where: in the review pass, where clock_in/clock_out pairs become bracket items.
+The qualifying bracket's start moves back to the gap's start, which extends both
+its item and the interval in the owned set, so =--span-complement= never
+produces the gap. No separate pass hides an offered item.
+
+Why the following bracket: a gap that ends at a =clock_in= is lead-in to that
+heading. It is the read-only orientation the clock-in rule puts before the first
+write, and [[id:b09aca60-127b-47a4-9177-a86ac90d8fac][b09aca60]] already treats time after a =clock_out= as unowned by the
+heading just left. Measured 2026-10-09 over every queue file: 59 of 693
+clock-ins have such a gap, 593 s in all. 27 are a second or less, the
+=clock_out= and =clock_in= of one tool batch; 16 run 2-10 s, 14 run 11-60 s, and
+2 run 81 s. Of the 59, 45 fold into a different heading from the one just left
+and 9 into the same one. Checked against transcripts: the 81 s gap before "file
+and fix the pre-commit basename" held the lint investigation that led to that
+filing, and today's 26 s gap after a permission answer held the capture its
+clock-in names. A capture that writes through leaves no queue event, so "nothing
+queued" does not mean nothing happened.
+
+Not folded, and still offered: a gap ending at a =block_start=, which is work
+after a =clock_out= until a permission prompt and has no owner yet ([[id:b09aca60-127b-47a4-9177-a86ac90d8fac][b09aca60]]'s
+case); and a gap over the floor. The permission wait itself, =block_start= to
+=block_end=, is already subtracted ([[id:f4e628ce-e653-429a-8f3c-0f5d4241b139][f4e628ce]]) and stays so. Superseded: this
+heading's earlier direction, to offer a gap only when it carries a guidepost.
+After [[id:5a9d877e-b492-46c7-a672-fd5971ffb0b0][5a9d877e]] removed the days-long clusters, that rule would also drop real
+lead-in minutes.
+
+Tests (ERT, a synthetic fixture, each failing first): two brackets 12 s apart
+with nothing between yield no gap item, and the second bracket starts 12 s
+earlier; the same after a =block_end=. Unchanged controls: a 200 s gap; a gap
+holding a guidepost; a gap ending at a =block_start=.
 
 :END:
 Regression introduced by [[id:c54c4215-90e3-4e0c-9de1-990c0406a2b2][c54c4215]]'s complement, found 2026-09-16 when the user
