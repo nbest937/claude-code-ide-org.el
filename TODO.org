@@ -66,6 +66,22 @@ already does the forward half, staying put at the last item; it needs a backward
 twin and two interactive wrappers.
 
 
+* TODO Declare the brainstorming path tags as an exclusive group in #+TAGS:, so org's tag menu enforces one :code:
+:PROPERTIES:
+:ID:       c9c75fda-c818-4e7b-9b97-c3a68e980eab
+:CREATED:  [2026-10-06 Tue 15:17]
+:CATEGORY: Skill
+:END:
+
+=:spike:=, =:bounded:= and =:arch:= are mutually exclusive by convention: at
+most one per heading, which =bin/lint-org= checks and =org_set_tags= enforces by
+displacement. Org can declare the same thing in the header, as =#+TAGS: code
+prose research { spike bounded arch }=, after which picking one in the =C-c C-q=
+menu clears the others. That would cover hand edits too, which today only the
+lint catches at commit. Adopt it in TODO.org, the template and the conventions'
+header example together; the header-line check in =bin/check-conventions=
+([[id:189645c6-d76f-4761-96f0-f3734fe1df26][189645c6]]) already strips group markers when it compares tag sets.
+
 * TODO A consuming repo has nowhere to declare its :CATEGORY: values, so its first top-level capture makes one up :code:
 :PROPERTIES:
 :ID:       24694d1f-34b4-495b-b0d8-d29e64894c59
@@ -178,6 +194,39 @@ copy (never a stash) before the prose is fixed. It then passes after the fix,
 alongside =bin/test= and =bin/lint-org=. This lands on a feature branch, since
 it carries a script change.
 :END:
+:DEBRIEF:
+Shipped on =feature/archive-header-drift= in commit [[orgit-rev:./::d3ae3c6][d3ae3c6]].
+=bin/check-conventions= takes TODO.org's =#+TAGS:= and =#+ARCHIVE:= as the
+truth. It checks every such line in =templates/TODO.org=, the conventions
+reference and the org skill, comparing tags as a set and the archive location as
+a string. A file that should show the header and shows none fails. Verified in
+three steps. Run against the unfixed prose, the check failed on exactly the two
+stale =DONE.org::= examples. Four new =check-conventions-test= cases cover a
+dropped tag in the template, a superseded archive, a missing tags line, and
+reordered tags passing; the first three fail against HEAD's unextended check,
+copied aside rather than stashed. After the prose fix the check passes, the
+promoted rules match the references, and the self-test reads 23/23. In the
+prose, the conventions reference's "unsettled" paragraph became the settled
+rule, citing [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]], and the org skill's example now archives to the datetree;
+its generic advice on olpaths and per-category routing stayed. Differed from the
+plan: nothing. The always-loaded rules sit at 10185 of their 10200-word budget,
+which this change did not touch, since the conventions file is path-scoped.
+
+*Rework after PR #35's review*, in commit [[orgit-rev:./::6859b23][6859b23]]. The review posted ten
+findings. Four were in prose the first pass had written or kept, and they went
+when, at the user's direction, both texts were cut to the current standard
+alone. The org skill's archiving section shrank from about 520 words to 90,
+dropping the flat, wrapper and per-category setups and the advice to turn
+reversed order on, which malforms a datetree. Four were in the check, and all
+are fixed: an org file's =#+TAGS:= lines are unioned, tag syntax is stripped,
+the keywords match in any case, and one =as_set= helper serves both set
+comparisons. Cases 19, 20 and 22 failed first; case 19 also caught a bug in the
+first attempt, which joined lines before stripping each prefix.
+=clock-template.org= stays out, now with the reason in the check's comment. One
+thread is left open for the user: whether the template, rather than this repo's
+TODO.org, should be the reference. Self-test 27/27, pre-push 1592 passed. Filed:
+[[id:c9c75fda-c818-4e7b-9b97-c3a68e980eab][c9c75fda]], declaring the path tags as an exclusive =#+TAGS:= group.
+:END:
 
 The conventions reference and the org skill still show =#+ARCHIVE: DONE.org::=
 and call the archive location unsettled. It has been a datetree by =CLOSED:=
@@ -185,6 +234,10 @@ since [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]] (2026-09-02), in eve
 texts, and extend =bin/check-conventions= to compare the =#+TAGS:= and
 =#+ARCHIVE:= lines across their copies, so neither this nor the template's tag
 drift can recur unseen.
+
+*Resolution:* both texts show =DONE.org::datetree/= and state the settled rule,
+and =bin/check-conventions= now fails on any copy of the =#+TAGS:= or
+=#+ARCHIVE:= line that disagrees with TODO.org's.
 
 
 * MAYBE Cite a symbol from a body with a search-anchored file: link, so the citation opens at the definition

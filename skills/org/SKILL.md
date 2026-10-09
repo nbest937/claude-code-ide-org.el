@@ -98,76 +98,21 @@ not a path tag and combines with any of them.
 
 ### Archiving convention
 
-`DONE` items tagged `:code:` are archived to `DONE.org`. Set this at the top of
-any file that tracks code work:
+Finished headings, `DONE` and `CANCELLED` alike, are archived into a date
+tree in `DONE.org`, each filed under the day it was closed. Every tracked
+file sets:
 
 ```org
-#+TAGS: code prose research spike bounded arch
-#+ARCHIVE: DONE.org::
+#+ARCHIVE: DONE.org::datetree/
 ```
 
-With this in place, `C-c C-x C-a` on a `DONE :code:` heading moves it to the
-**top level** of `DONE.org`, preserving the full subtree including LOGBOOK and
-CLOCK drawers.
+`C-c C-x C-a` moves a heading with its drawers intact. Archive top-level
+headings only: a child archived on its own leaves its parent behind and
+lands one level up.
 
-*Note the empty olpath.* Naming a heading after `::` nests every archived
-entry one level below it, so a level-1 task lands at level 2 and the archive
-stops mirroring the source file's shape. This project archived under a
-`* Done` heading until 2026-08-31 and dropped it for exactly that reason —
-once TODO.org was flat, a wrapper heading was the only thing making DONE.org
-not flat.
-
-**A single flat pile is the default, not the only option.** An `:ARCHIVE:`
-property is inherited "anywhere up the hierarchy", so putting one on each
-top-level category mirrors the source file's structure into the archive:
-
-```org
-* Skill logic
-  :PROPERTIES:
-  :ARCHIVE: DONE.org::* Skill logic
-  :END:
-```
-
-Archived work then lands under a matching `* Skill logic` in `DONE.org`,
-created on demand, with `#+ARCHIVE:` still serving as the fallback for any
-category without a property — so adoption can be incremental.
-
-**This project no longer does that**, and the reason is worth carrying: it
-had no level-1 categories left to hang the properties on. Since 2026-08-27 a
-category here is a `:CATEGORY:` property on the task rather than a heading it
-sits under, so there is nothing to inherit an `:ARCHIVE:` from and routing
-collapsed to a single file-level `#+ARCHIVE: DONE.org::`. Mirroring is
-still the right answer for a file that *does* group by heading; it just stops
-being available once the grouping is declared instead of structural.
-
-Three things to know before reaching for it:
-
-- The target heading is matched as a **literal string**. A mismatch does not
-  error — org appends a second, near-identical heading at end of file. Rename
-  a category and you must update both sides in the same edit.
-- **Depth flattens for a directly-archived child.** A level-3 heading archived
-  on its own lands at level 2, a sibling of its former parent;
-  `:ARCHIVE_OLPATH:` records the real parentage but it is no longer
-  structural. Archive the level-2 parent instead and the nesting survives.
-- `org-archive-reversed-order` decides whether each entry is appended or
-  placed first under the target. Non-nil means newest-first, which is what you
-  want if the archive is meant to read chronologically.
-
-For tasks **not** tagged `:code:`, the same `#+ARCHIVE:` directive applies unless
-overridden per-heading. If the user wants non-code DONE items to go somewhere else,
-they can set a per-heading override:
-
-```org
-* DONE Write project proposal                                   :prose:
-  :PROPERTIES:
-  :ARCHIVE: archive.org::
-  :END:
-```
-
-**When helping the user archive items:**
-- Confirm the tag before suggesting `DONE.org` as the target.
-- Remind the user that `C-c C-x C-a` does the move in Emacs; Claude can also
-  produce the correctly-formatted entry for manual insertion into `DONE.org`.
+Leave `org-archive-reversed-order` off. In a date tree it files each entry
+before its day node and malforms the tree. Ordering is the ceremony's job:
+its sort step puts every tier newest first.
 
 ### Timestamps & scheduling
 

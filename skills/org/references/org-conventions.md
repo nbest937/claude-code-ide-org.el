@@ -20,7 +20,7 @@ Every `.org` file in this project should start with:
 ```org
 #+TODO: TODO(t!) NEXT(n!) DOING(d!) REVIEW(r!) WAITING(w@/!) MAYBE(m!) | DONE(D!) CANCELLED(c@)
 #+TAGS: code prose research spike bounded arch
-#+ARCHIVE: DONE.org::
+#+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
 ```
 
@@ -1150,10 +1150,12 @@ shipped came to be disordered.
 `@` cookie, so org already prompts for the reason at the transition and
 captures it where it happens.
 
-**Where archived work lands is unsettled** — per-category `:ARCHIVE:`
-routing today, versus a `datetree/` location. Don't switch unilaterally;
-it would break `bin/lint-org`'s datetree rule until the question is
-settled.
+**Archived work lands in a datetree by `CLOSED:`** (`#+ARCHIVE:
+DONE.org::datetree/`, `:ID:` 33864a0f). `bin/lint-org` measures the tree's
+depth from the file root and exempts org's own year and month nodes. The
+ceremony's `claude-code-ide-org-sort-datetree-descending` does the
+ordering, so the archive sweep keeps `org-archive-reversed-order` off for a
+datetree target.
 
 ## Referring to a commit
 
