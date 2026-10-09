@@ -22,6 +22,7 @@ consuming repo a schedule, since --ceremony-due-p reads this repo's [[id:cbe282e
 its literal id. [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]]'s "a plausible suggestion is harder to reject" is about
 proposing a value, not offering an action, so it does not forbid this.
 
+
 * TODO Delete the /next-session stub once a slice has been worked under /plan-slice and /work-slice :code:
 :PROPERTIES:
 :ID:       d30c00ce-95fb-4fea-8709-bcea80700646
@@ -87,6 +88,18 @@ CLOCK: [2026-10-09 Fri 16:14]--[2026-10-09 Fri 16:15] =>  0:01
 - [2026-10-09 Fri 16:14]--[2026-10-09 Fri 16:15] suggested span, accepted at review
 CLOCK: [2026-10-09 Fri 16:15]--[2026-10-09 Fri 16:16] =>  0:01
 - [2026-10-09 Fri 16:15]--[2026-10-09 Fri 16:16] merge PR #36 and close dc21f724
+CLOCK: [2026-10-09 Fri 16:18]--[2026-10-09 Fri 16:23] =>  0:05
+- [2026-10-09 Fri 16:18]--[2026-10-09 Fri 16:23] assigned at review
+CLOCK: [2026-10-09 Fri 16:25]--[2026-10-09 Fri 16:26] =>  0:01
+- [2026-10-09 Fri 16:25]--[2026-10-09 Fri 16:26] assigned at review
+CLOCK: [2026-10-09 Fri 16:28]--[2026-10-09 Fri 16:29] =>  0:01
+- [2026-10-09 Fri 16:28]--[2026-10-09 Fri 16:29] assigned at review
+CLOCK: [2026-10-09 Fri 16:32]--[2026-10-09 Fri 16:33] =>  0:01
+- [2026-10-09 Fri 16:32]--[2026-10-09 Fri 16:33] assigned at review
+CLOCK: [2026-10-09 Fri 16:35]--[2026-10-09 Fri 16:36] =>  0:01
+- [2026-10-09 Fri 16:35]--[2026-10-09 Fri 16:36] assigned at review
+CLOCK: [2026-10-09 Fri 16:38]--[2026-10-09 Fri 16:39] =>  0:01
+- [2026-10-09 Fri 16:38]--[2026-10-09 Fri 16:39] assigned at review
 :END:
 :PLAN:
 Approved in chat by the user, 2026-10-09, section by section. Names:
@@ -504,7 +517,7 @@ Planned:
 - [ ] [[id:445ec1f1-095a-462b-abbd-7a3a00925ddb][445ec1f1]] TODO A/B the clock record across the phase-3 fixes, since much of what is logged now is bogus
 
 
-* NEXT [0/17] The review pass every install uses: movement, marking, apply, quit, and no clock where tracking is off :code:
+* NEXT [0/16] The review pass every install uses: movement, marking, apply, quit, and no clock where tracking is off :code:
 :PROPERTIES:
 :ID:       5a4896c3-3d4e-4b12-9f9e-06b97d84b238
 :CREATED:  [2026-10-09 Fri 11:15]
@@ -512,7 +525,7 @@ Planned:
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
 :MEMBERS:  97b4f6a9-a944-40d3-8d14-7a1667c52291 24694d1f-34b4-495b-b0d8-d29e64894c59 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 41f21b4d-278d-4ad8-a56f-122f5af33d65 9f6b19b5-18db-4d56-8545-9552a5b4e935 d66ae1d2-5a40-4f4d-ae51-c8977e78681c b3177ed0-9747-4e31-ad65-bac25b9bdd1f d241ab6e-6cfe-482a-8980-8cb222d7ab12 e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 ee3c22c9-f99c-4d41-9c3d-8f39af916fff 6c64cc9c-33a9-4a20-af19-c188a690c755 79c224ab-188a-4ed4-a606-c28ee2cfe72d 361e2708-8124-4bd1-9c44-f97ca97aca4a 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd de081dd9-1853-4d79-94fc-2edac498380f 2b8930da-5223-4b75-b4f6-251a28552d1b
-:BLOCKER:  97b4f6a9-a944-40d3-8d14-7a1667c52291 24694d1f-34b4-495b-b0d8-d29e64894c59 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 41f21b4d-278d-4ad8-a56f-122f5af33d65 9f6b19b5-18db-4d56-8545-9552a5b4e935 d66ae1d2-5a40-4f4d-ae51-c8977e78681c b3177ed0-9747-4e31-ad65-bac25b9bdd1f d241ab6e-6cfe-482a-8980-8cb222d7ab12 e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 ee3c22c9-f99c-4d41-9c3d-8f39af916fff 6c64cc9c-33a9-4a20-af19-c188a690c755 79c224ab-188a-4ed4-a606-c28ee2cfe72d 361e2708-8124-4bd1-9c44-f97ca97aca4a 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd de081dd9-1853-4d79-94fc-2edac498380f 2b8930da-5223-4b75-b4f6-251a28552d1b
+:BLOCKER:  97b4f6a9-a944-40d3-8d14-7a1667c52291 24694d1f-34b4-495b-b0d8-d29e64894c59 41f21b4d-278d-4ad8-a56f-122f5af33d65 9f6b19b5-18db-4d56-8545-9552a5b4e935 d66ae1d2-5a40-4f4d-ae51-c8977e78681c b3177ed0-9747-4e31-ad65-bac25b9bdd1f d241ab6e-6cfe-482a-8980-8cb222d7ab12 e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 ee3c22c9-f99c-4d41-9c3d-8f39af916fff 6c64cc9c-33a9-4a20-af19-c188a690c755 79c224ab-188a-4ed4-a606-c28ee2cfe72d 361e2708-8124-4bd1-9c44-f97ca97aca4a 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd de081dd9-1853-4d79-94fc-2edac498380f 2b8930da-5223-4b75-b4f6-251a28552d1b
 :DROPPED:  489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938
 :END:
 :LOGBOOK:
@@ -566,7 +579,7 @@ Planned:
 
 - [ ] [[id:97b4f6a9-a944-40d3-8d14-7a1667c52291][97b4f6a9]] TODO The review command clocks the reviewer's attention even where time tracking is off, and without the meta-work anchor files the heading under whatever comes last
 - [ ] [[id:24694d1f-34b4-495b-b0d8-d29e64894c59][24694d1f]] TODO A consuming repo has nowhere to declare its :CATEGORY: values, so its first top-level capture makes one up
-- [-] [[id:489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938][489d6f61]] DOING Emacs died of a fatal signal at review-buffer quit, deadlocked in the mac port's shutdown
+- [[id:489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938][489d6f61]] DOING Emacs died of a fatal signal at review-buffer quit, deadlocked in the mac port's shutdown
 - [ ] [[id:41f21b4d-278d-4ad8-a56f-122f5af33d65][41f21b4d]] TODO The review buffer has no keys to move between items; bind n and p to the next and previous item
 - [ ] [[id:9f6b19b5-18db-4d56-8545-9552a5b4e935][9f6b19b5]] TODO The review buffer's help says ? marks an unassigned span, but ! is the span with no heading and ? the one with a suggestion
 - [ ] [[id:d66ae1d2-5a40-4f4d-ae51-c8977e78681c][d66ae1d2]] TODO A scoped org_outline does not say which slices count the heading, so finding them means reading every slice
@@ -592,6 +605,24 @@ Planned:
 :LOGBOOK:
 CLOCK: [2026-10-09 Fri 10:58]--[2026-10-09 Fri 10:59] =>  0:01
 - [2026-10-09 Fri 10:58]--[2026-10-09 Fri 10:59] assigned at review
+CLOCK: [2026-10-09 Fri 16:42]--[2026-10-09 Fri 16:43] =>  0:01
+- [2026-10-09 Fri 16:42]--[2026-10-09 Fri 16:43] brainstorm design for review attention gating
+CLOCK: [2026-10-09 Fri 16:43]--[2026-10-09 Fri 16:44] =>  0:01
+- [2026-10-09 Fri 16:43]--[2026-10-09 Fri 16:44] brainstorm design for review attention gating
+CLOCK: [2026-10-09 Fri 16:44]--[2026-10-09 Fri 16:45] =>  0:01
+- [2026-10-09 Fri 16:44]--[2026-10-09 Fri 16:45] brainstorm design for review attention gating
+CLOCK: [2026-10-09 Fri 16:50]--[2026-10-09 Fri 16:51] =>  0:01
+- [2026-10-09 Fri 16:50]--[2026-10-09 Fri 16:51] brainstorm design for review attention gating
+CLOCK: [2026-10-09 Fri 16:53]--[2026-10-09 Fri 16:54] =>  0:01
+- [2026-10-09 Fri 16:53]--[2026-10-09 Fri 16:54] brainstorm design for review attention gating
+CLOCK: [2026-10-09 Fri 16:55]--[2026-10-09 Fri 16:56] =>  0:01
+- [2026-10-09 Fri 16:55]--[2026-10-09 Fri 16:56] brainstorm design for review attention gating
+CLOCK: [2026-10-09 Fri 17:00]--[2026-10-09 Fri 17:01] =>  0:01
+- [2026-10-09 Fri 17:00]--[2026-10-09 Fri 17:01] brainstorm design for review attention gating
+CLOCK: [2026-10-09 Fri 17:01]--[2026-10-09 Fri 17:05] =>  0:04
+- [2026-10-09 Fri 17:01]--[2026-10-09 Fri 17:05] resume brainstorm of review attention gate
+CLOCK: [2026-10-09 Fri 17:05]--[2026-10-09 Fri 17:06] =>  0:01
+- [2026-10-09 Fri 17:05]--[2026-10-09 Fri 17:06] resume brainstorm of review attention gate
 - Tags ":code:arch:" from ":code:"     [2026-10-09 Fri 17:06] \\
   first classified bounded, stepped up: a new plugin-to-Emacs channel, and the gate reaches the ceremony report
 :END:
@@ -674,6 +705,7 @@ writes from the plugin option, failing closed; with tracking on and no anchor,
 ask before creating a level-1 heading, offering skip and never; and let the
 ceremony's "a pass ran today" fall back to the apply watermarks. Read from the
 code, not yet run.
+
 
 * MAYBE Separate what the machinery requires from what this project prefers, so a consumer can change the second :code:arch:
 :PROPERTIES:
@@ -793,8 +825,13 @@ header example together; the header-line check in =bin/check-conventions=
 :CATEGORY: Dev
 :END:
 :LOGBOOK:
+- [2026-10-09 Fri 17:07]--[2026-10-09 Fri 17:13] assigned at review
+CLOCK: [2026-10-09 Fri 17:16]--[2026-10-09 Fri 17:17] =>  0:01
+- [2026-10-09 Fri 17:16]--[2026-10-09 Fri 17:17] brainstorm consumer category declaration
+CLOCK: [2026-10-09 Fri 17:17]--[2026-10-09 Fri 17:18] =>  0:01
 - Tags ":code:bounded:" from ":code:"     [2026-10-09 Fri 17:17] \\
   first classification: both flows, setup --org and the capture refusal, already exist
+- [2026-10-09 Fri 17:17]--[2026-10-09 Fri 17:18] brainstorm consumer category declaration
 :END:
 :PLAN:
 
@@ -848,6 +885,7 @@ becomes the norm by accident. Designed 2026-10-09 (the user): =--org= creates a
 consumer-owned, always-loaded =.claude/rules/org-categories.md= from a template,
 seeded with =Meta=; =--check= reports it missing; the capture refusal and the
 novel-value warning name the file.
+
 
 * DONE The docs still archive to =DONE.org::= after the =datetree= move :prose:bounded:code:
 CLOSED: [2026-10-09 Fri 10:41]
@@ -6482,6 +6520,8 @@ CLOCK: [2026-09-17 Thu 08:18]--[2026-09-17 Thu 08:19] =>  0:01
 - [2026-09-17 Thu 08:18]--[2026-09-17 Thu 08:19] suggested span, accepted at review
 CLOCK: [2026-09-17 Thu 08:36]--[2026-09-17 Thu 08:37] =>  0:01
 - [2026-09-17 Thu 08:36]--[2026-09-17 Thu 08:37] suggested span, accepted at review
+CLOCK: [2026-10-09 Fri 17:19]--[2026-10-09 Fri 17:20] =>  0:01
+- [2026-10-09 Fri 17:19]--[2026-10-09 Fri 17:20] plan the review-buffer quit crash
 :END:
 :PLAN:
 Dropped from [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]] on 2026-10-09 (the user): no wedge since 2026-10-06, and
@@ -12153,6 +12193,7 @@ per tool -- rather than opening the servers beyond localhost.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-10-09 Fri 17:24]--[2026-10-09 Fri 17:26] =>  0:02
 CLOCK: [2026-10-09 Fri 16:15]--[2026-10-09 Fri 16:17] =>  0:02
 CLOCK: [2026-10-09 Fri 13:22]--[2026-10-09 Fri 13:23] =>  0:01
 CLOCK: [2026-10-09 Fri 13:10]--[2026-10-09 Fri 13:13] =>  0:03
