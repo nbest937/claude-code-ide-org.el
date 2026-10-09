@@ -6301,11 +6301,15 @@ bookkeeping so a composition pass lands on review and planning whole rather than
 a minute each across the headings it filed.
 
 
-* TODO Make =d= mark for dismissal rather than dismiss, so a shared reason can be given once :code:
+* TODO Make =d= mark for dismissal rather than dismiss, so a shared reason can be given once :code:bounded:
 :PROPERTIES:
 :ID:       ee3c22c9-f99c-4d41-9c3d-8f39af916fff
 :CREATED:  [2026-09-14 Mon 12:15]
 :CATEGORY: Apply
+:END:
+:LOGBOOK:
+- Tags ":code:bounded:" from ":code:"     [2026-10-09 Fri 17:30] \\
+  first classification: the review buffer's mark and apply commands already exist
 :END:
 :PLAN:
 
@@ -6317,29 +6321,60 @@ that had already landed, dismissed for the identical reason, and the pass had no
 way to say that once. Dired is the precedent the review buffer already follows
 for =m=/=u=/=t=/=U=, and dired marks for deletion with =d= and executes with =x=
 — so this would bring =d= into the same idiom rather than inventing one, and =x=
-already means "act on what is marked" here. Worth deciding together: whether =x=
-then executes both marks (apply the =m=s, dismiss the =D=s) or whether dismissal
-needs its own execute key; whether a =D= mark can carry a typed reason once for
-the whole set, which is the part that would actually have saved work; and how
-=D= interacts with the auto-marking [[id:b6e229c7-3035-4c0e-943b-710a12bfd7d1][b6e229c7]] does, since an item arriving
-pre-marked =m= and then marked =D= must not be both. Supersedes the narrower
-cursor question in [[id:e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b][e95cc5d1]] if it
-ships — a mark does not remove its line, so the advance becomes correct by
-construction — but that heading stands on its own until then, since it is a live
-defect and this is a design.
+already means "act on what is marked" here.
+
+Design, bounded (the user approved it while planning [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]], 2026-10-09).
+
+The mark. =d= places a =D= mark, shown in the mark column, and advances like
+=m=, since the line stays. =D= and =m= exclude each other: =d= on a marked item
+replaces its =m=, =m= on a =D= item replaces the =D=, and =u= clears either. =M=
+and =t= leave =D= items alone, as dired's do with flagged lines; =U= clears
+both. =--review-auto-mark= skips =D= items, since render re-runs it and would
+otherwise re-mark a dismissed state item =m= on the next keystroke ([[id:b6e229c7-3035-4c0e-943b-710a12bfd7d1][b6e229c7]]'s
+auto-marking).
+
+The reason. =C-u d= asks for a reason for that item and stores it; =N= is not
+reused, since it edits a clock line's annotation. At =x=, any =D= item without
+its own reason takes one shared reason asked once, "Dismiss 7 -- reason:" (the
+user: one prompt at =x=, per-item override).
+
+Execution. =x= does both, as dired's does (the user): one confirmation naming
+both counts ("Apply 5, dismiss 7?"), dismissals first through the existing
+=--queue-mark-dismissed=, then the applies, so a dismissed chain link cannot
+make an apply look stale. With nothing marked =m= it only dismisses. A stale
+item takes a =D= without the stale confirmation, which guards applying, not
+dismissing. =--review-judgement-summary= counts =D= marks as unapplied
+judgement, so =g= asks before discarding them. The key line and the mode
+docstring describe =D= and the combined =x=.
+
+[[id:e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b][e95cc5d1]] closes with this (the user): once =d= no longer removes its line, the
+advance is the =m= path and its held-order defect cannot arise. It keeps a
+pinning test here.
+
+Testing. ERT with the prompts stubbed: =d= marks and advances to the next drawn
+item, which is [[id:e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b][e95cc5d1]]'s pinning test; =m=, =d= and =u= exclude each other as
+above, and =M= and =t= skip =D=; auto-mark does not re-mark a =D= state item;
+=x= on a mix dismisses before applying, takes one shared reason and keeps a =C-u
+d= reason; =x= with only =D= items dismisses them; =g= asks when =D= marks
+exist. Each runs red against HEAD's version first.
 :END:
 
 Proposes that =d= in the review buffer marks an item for dismissal, dired-style,
 instead of dismissing it at once, so a set sharing one reason can be dismissed
-together. Open: which key executes the marks, whether one typed reason covers
-the set, and how it interacts with auto-marking.
+together. Designed 2026-10-09 (the user): =x= executes both kinds of mark,
+dismissals first; one reason is asked once for the set, with =C-u d= for an
+item's own; auto-marking skips =D= items. [[id:e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b][e95cc5d1]] closes with it.
 
 
-* TODO =d= advances point in the review buffer, onto whatever moved up to replace the dismissed item :code:
+* TODO =d= advances point in the review buffer, onto whatever moved up to replace the dismissed item :code:bounded:
 :PROPERTIES:
 :ID:       e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b
 :CREATED:  [2026-09-14 Mon 12:15]
 :CATEGORY: Apply
+:END:
+:LOGBOOK:
+- Tags ":code:bounded:" from ":code:"     [2026-10-09 Fri 17:30] \\
+  first classification: resolved inside ee3c22c9's bounded design
 :END:
 :PLAN:
 
@@ -6353,10 +6388,26 @@ remove, inverted. Proposed: =d= leaves point where it is, since the line now
 holds the item that would otherwise have been skipped. Note this is a different
 question from where point lands when the *list* is rebuilt ([[id:9e80a32d-43e1-4647-a42c-cba10f6e79cc][9e80a32d]]): nothing
 is rebuilt here, one line is removed from a rendered buffer.
+
+The cause is not the advance this drawer describes, read from the code while
+planning [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]], 2026-10-09, and not yet reproduced in a live buffer. =d= has
+not advanced since [[orgit-rev:./::b262ece][b262ece]] (2026-08-17): it redraws onto =(cadr (memq item
+--review-items))=, the next item in *held* order, which stays chronological
+because apply walks it, while the buffer is *drawn* newest-first ([[id:f1e36a65-3469-4ae6-ac1f-fdfcd1c053c9][f1e36a65]],
+=--review-display-items=). So the item it lands on is the one drawn above, and
+point jumps upward.
+
+Resolution (the user): closes with [[id:ee3c22c9-f99c-4d41-9c3d-8f39af916fff][ee3c22c9]], which makes =d= a mark that leaves
+its line in place, so the advance becomes =m='s path over drawn lines and this
+defect cannot arise. Its pinning test lives there: after =d=, point is on the
+next drawn item. Not fixed separately, since that code is replaced when the
+marks land.
 :END:
 
 After =d= dismisses an item the next one moves up into its line, and advancing
-point then skips it. Proposes that =d= leave point where it is.
+point then skips it. The cause, read from the code 2026-10-09, is that =d= lands
+on the next item in held order while the buffer is drawn newest-first. It closes
+with [[id:ee3c22c9-f99c-4d41-9c3d-8f39af916fff][ee3c22c9]], whose =D= mark leaves the line in place (the user).
 
 
 * TODO Nothing can correct a closed slice's record, even when the correction is close-time truth :code:
