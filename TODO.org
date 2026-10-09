@@ -309,6 +309,13 @@ using the tool in another project with ease and confidence:*
 
 - [[id:24694d1f-34b4-495b-b0d8-d29e64894c59][24694d1f]], second, after [[id:97b4f6a9-a944-40d3-8d14-7a1667c52291][97b4f6a9]]: a new project's first top-level capture is refused until it has somewhere to declare its categories, so it is the next thing a consumer meets.
 - [[id:2b8930da-5223-4b75-b4f6-251a28552d1b][2b8930da]], last: the consumer-install check run from agentic-euchre, so it exercises the fixes above from the consumer's side rather than before they land. Check 2 is already verified.
+
+*Adopted later the same day (the user, 2026-10-09), each placed beside its
+nearest relative:*
+
+- [[id:9f6b19b5-18db-4d56-8545-9552a5b4e935][9f6b19b5]], after [[id:41f21b4d-278d-4ad8-a56f-122f5af33d65][41f21b4d]]: the buffer's help mislabels its own =!= and =?= prefixes, which every reviewer reads.
+- [[id:d66ae1d2-5a40-4f4d-ae51-c8977e78681c][d66ae1d2]], then [[id:b3177ed0-9747-4e31-ad65-bac25b9bdd1f][b3177ed0]]: the scoped =org_outline= gains the two reverse lines it lacks, which slices count the heading and what it blocks. One change to its front matter serves both, so they are worked together.
+- [[id:d241ab6e-6cfe-482a-8980-8cb222d7ab12][d241ab6e]], after them: the session-start report names its possible twins rather than counting them.
 :END:
 
 The part of the review pass a task-only install also uses, divided out of
@@ -2635,6 +2642,11 @@ writes no clock events, so only the review buffer and apply reach such an
 install. Where this drawer orders a member that has moved, the receiving slice's
 plan now governs it. The title still names both halves and wants shortening to
 the first.
+
+*Adopted 2026-10-09 (the user):* [[id:62a32f7b-9f7a-4ed3-88e0-939a687852eb][62a32f7b]], showing the meta-work target as =R&P=
+rather than the truncated =Review a=, and offering it by that name when a span
+is assigned. It belongs here rather than in [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]] because that target only
+ever receives clock time.
 :END:
 
 Thirty-four live headings carry `:CATEGORY: Apply` or `Clock`, and three
