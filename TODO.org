@@ -16,16 +16,10 @@ per project and read the one for the project the review pass is about.
 :END:
 
 [[id:97b4f6a9-a944-40d3-8d14-7a1667c52291][97b4f6a9]] gates the review pass's attention clock on a stamp file in the global
-queue directory, written by each SessionStart from
-CLAUDE_PLUGIN_OPTION_TIME_TRACKING. This repo's own row sets it true while a
-consumer's plugin row exports the option, off for this user, so a session
-started in agentic-euchre writes an empty stamp and the next review from
-anywhere opens no clock, until a session here starts again. Read from the two
-configs 2026-10-10, not yet observed. The option is meant to be one value for
-every project; the stamp should honour that, perhaps by ignoring a row that sets
-the variable inline when the plugin option is present, or by keeping one stamp
-per project.
-
+queue directory, which every SessionStart rewrites. This repo's row writes true.
+A plugin install with the option off writes it empty, so the last project to
+start a session decides whether the next review opens a clock. Found by reading
+the two configs on 2026-10-10; not yet observed.
 * TODO An install scaffolded before the ceremony template has no :KIND: ceremony heading, so its steps after apply never run and --check does not say so :code:
 :PROPERTIES:
 :ID:       b577497c-f3a8-4754-8914-6c56589a0b52
