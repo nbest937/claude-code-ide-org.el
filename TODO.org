@@ -628,7 +628,7 @@ Planned:
 :COOKIE_DATA: checkbox recursive
 :MEMBERS:  97b4f6a9-a944-40d3-8d14-7a1667c52291 24694d1f-34b4-495b-b0d8-d29e64894c59 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 41f21b4d-278d-4ad8-a56f-122f5af33d65 9f6b19b5-18db-4d56-8545-9552a5b4e935 d66ae1d2-5a40-4f4d-ae51-c8977e78681c b3177ed0-9747-4e31-ad65-bac25b9bdd1f d241ab6e-6cfe-482a-8980-8cb222d7ab12 e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 ee3c22c9-f99c-4d41-9c3d-8f39af916fff 6c64cc9c-33a9-4a20-af19-c188a690c755 79c224ab-188a-4ed4-a606-c28ee2cfe72d 361e2708-8124-4bd1-9c44-f97ca97aca4a 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd de081dd9-1853-4d79-94fc-2edac498380f 2b8930da-5223-4b75-b4f6-251a28552d1b
 :BLOCKER:  97b4f6a9-a944-40d3-8d14-7a1667c52291 24694d1f-34b4-495b-b0d8-d29e64894c59 41f21b4d-278d-4ad8-a56f-122f5af33d65 9f6b19b5-18db-4d56-8545-9552a5b4e935 d66ae1d2-5a40-4f4d-ae51-c8977e78681c b3177ed0-9747-4e31-ad65-bac25b9bdd1f d241ab6e-6cfe-482a-8980-8cb222d7ab12 e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 ee3c22c9-f99c-4d41-9c3d-8f39af916fff 6c64cc9c-33a9-4a20-af19-c188a690c755 79c224ab-188a-4ed4-a606-c28ee2cfe72d 361e2708-8124-4bd1-9c44-f97ca97aca4a 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd de081dd9-1853-4d79-94fc-2edac498380f 2b8930da-5223-4b75-b4f6-251a28552d1b
-:DROPPED:  489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938
+:DROPPED:  489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-10-09 Fri 11:25] \\
@@ -675,7 +675,10 @@ The part of the review pass a task-only install also uses, divided out of
 time-tracking work. [[id:489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938][489d6f61]] was dropped while this slice was planned,
 2026-10-09 (the user): the wedge has not recurred since 2026-10-06, the user is
 investigating it from the Emacs side elsewhere, and nothing in it can be planned
-until one is caught. Its plan records the offered diff-hl probe.
+until one is caught. Its plan records the offered diff-hl probe. [[id:2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd][2cd74268]] was
+dropped the same day (the user): the slice's only arch-sized design, it needs an
+apply-path digest nothing provides, and the slice's purpose is met without it,
+since a task-only pass is already one =x=.
 
 Planned:
 
@@ -4754,6 +4757,15 @@ into a future slice when completing it matters. The subtasks named above — the
 digest reset, the graduation threshold, the =config.el= split — belong under
 this heading rather than beside it.
 
+The reset has no home after all, found while planning [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]], 2026-10-09. The
+body hands the digest to [[id:f12f9da4-2870-45b7-8c50-ea54415c7bc6][f12f9da4]], which closed as whole-file staleness
+detection: a SHA-256 of =config.el= saying whether the running image is stale.
+That is the file digest this drawer already rejected, since it changes on nearly
+every commit; nothing answers "the apply path is the code that was approved". So
+this heading owns the apply-path digest again, and its boundary problem above
+stands unsolved. Dropped from [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]] the same day (the user), so it waits for
+a future slice; [[id:361e2708-8124-4bd1-9c44-f97ca97aca4a][361e2708]]'s recorded answer names it as where the remaining
+automation lives.
 :END:
 *The gating question is answered, 2026-09-19, and the answer is the opposite of
 what this body predicted.* "Whether this is wanted at all" deferred to
