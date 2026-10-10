@@ -41,27 +41,37 @@ a slice. The --org TODO.org template ships "TODO Archive closed tasks daily"
 with :KIND: ceremony, :CATEGORY: Meta and SCHEDULED at today's date with ++1d;
 setup writes a fresh :ID:, :CREATED: and today's date as it copies. Burying the
 review buffer still runs the steps only when the ceremony is due, as now, and
-still advances the repeater only on a clean pass. The user runs the command;
-nothing runs it unasked.
+still advances the repeater only on a clean pass. Session start now runs the
+steps too (below), so whichever comes first while the ceremony is due runs them.
 
-*The offer.*
-At session start, while the ceremony is due:
-- with items pending, the report asks for M-x claude-code-ide-org-review, as today;
-- with nothing pending but drawers out of order or headings archivable, it names
-  the counts and offers the steps after apply, telling the user to run
-  M-x claude-code-ide-org-ceremony-finish. The session runs nothing itself.
+*Session start runs them.* (Revised 2026-10-10 at drawer review: an offer is
+a round trip for steps that need no human; this replaces it.)
+While the ceremony is due, the session-start report runs
+claude-code-ide-org-ceremony-finish itself, inside Emacs, whether or not items
+are pending, and reports only the steps whose result was non-null or failed;
+all-zero says nothing. Items pending still get the ask for
+M-x claude-code-ide-org-review, as today; apply stays the human's alone. The
+cost, accepted: the repeater advances, so the bury after that day's apply finds
+the ceremony not due, and headings apply closes wait a day to be archived.
+- Unsaved changes in TODO.org or DONE.org: skip the run, say so, leave it due.
+- Two sessions starting together: Emacs serialises them, and the second finds
+  the repeater advanced.
+- The run leaves a TODO.org/DONE.org diff; the session commits it as its own
+  bookkeeping commit, like an apply diff.
 org-session-tracking.md's "must not offer to run the pass" narrows to "must not
-offer to apply"; [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]]'s "the report asks; it never proposes" stays, since
-offering an action is not proposing a value. No new tool.
+offer to apply", and its paragraph on the steps after apply says session start
+runs them too. [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]]'s "the report asks; it never proposes" is untouched:
+nothing is offered. No new tool.
 
 *Testing.* Each test runs red against HEAD first (copy aside, restore HEAD,
 never stash).
 - ERT: --ceremony-due-p finds a :KIND: ceremony heading with a past SCHEDULED
   whose id is not [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]]; nil with none; nil when scheduled in the future.
 - ERT: --ceremony-advance-repeater advances that heading.
-- Report: due + pending asks for the review; due + nothing pending + drawers or
-  archivable offers ceremony-finish with the counts; not due offers neither;
-  the asks-never-proposes wording is asserted.
+- Report: due runs ceremony-finish and reports only non-null or failed steps,
+  silent when all are zero; due + pending also asks for the review; not due
+  runs nothing; unsaved TODO.org skips the run, says so, and the ceremony
+  stays due.
 - Setup: the --org copy gets a fresh :ID:, today's :CREATED: and SCHEDULED; a
   second run still refuses an existing TODO.org (bin/claude-org-setup:156).
 - --grouping-heading-p is nil and bin/lint-org reports no slice error for a
@@ -75,10 +85,10 @@ buffer's quit, and the session rule forbids offering the pass, so a session can
 never offer them when they are overdue. The rule's reason (org's logging needs
 an interactive command) binds apply alone. Designed 2026-10-10 (arch, in
 :PLAN:): the schedule moves to a :KIND: ceremony heading, which the --org
-template ships, and the session-start report offers M-x
-claude-code-ide-org-ceremony-finish when the ceremony is due and nothing is
-pending; the rule narrows to "must not offer to apply". [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]]'s "asks; never
-proposes" stands: offering an action is not proposing a value.
+template ships, and the session-start report runs
+claude-code-ide-org-ceremony-finish itself whenever the ceremony is due,
+pending items or not, reporting only non-null steps; the rule narrows to "must
+not offer to apply".
 
 * TODO Delete the /next-session stub once a slice has been worked under /plan-slice and /work-slice :code:
 :PROPERTIES:
