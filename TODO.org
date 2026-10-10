@@ -1044,6 +1044,15 @@ answered by measurement as the plan intended, and nothing is filed.
 
 Not verified here: a real consumer's =--org= run. That is [[id:2b8930da-5223-4b75-b4f6-251a28552d1b][2b8930da]]'s, a member
 of this slice, so nothing new is filed.
+
+Regression found after close, while working [[id:79c224ab-188a-4ed4-a606-c28ee2cfe72d][79c224ab]] (2026-10-10). The
+pre-commit generated-copy guard read =--check='s new "missing:
+.../org-categories.md" as a stale promoted copy. It would refuse a commit
+staging rules wherever the file was absent, with advice to edit the reference.
+=git-guards-test= failed 2 checks from commit [[orgit-rev:./::3ca4a0b][3ca4a0b]]; =bin/test= and the setup
+suite, which were what I ran, never exercise that guard. Fixed in 992fbde, which
+leaves the consumer-owned file out of the guard. Lesson: run =bin/test-all=, not
+only the suites a change obviously touches.
 :END:
 
 =claude-org-setup= gives a consuming repo no place to declare its =:CATEGORY:=
@@ -10355,6 +10364,25 @@ dirty; the same commands pass when it is clean or only a non-org file is dirty;
 counted. Run red against HEAD's version first.
 
 :END:
+:DEBRIEF:
+Shipped as planned. A path counts only when it reaches a dirty =.org= file: the
+file itself, =.=, a glob, or a directory holding it, resolved against the
+caller's cwd prefix. So discarding a clean =DONE.org= while =TODO.org= is dirty
+passes. Words are split on whitespace, so a quoted path containing spaces is
+misread; acceptable for a backstop.
+
+Verified: =bin/discard-guard-test=, 46 checks with the queue and session id
+isolated from the first case, 44 of them red with the hook absent. The row in
+=org-session-tracking.md= was paid for by trimming two sentences; self-hosting
+is 10196/10200.
+
+Found on the way: =bin/test-all= showed =git-guards-test= failing 2 checks
+since [[id:24694d1f-34b4-495b-b0d8-d29e64894c59][24694d1f]]'s commit [[orgit-rev:./::3ca4a0b][3ca4a0b]]. Fixed in 992fbde and recorded there.
+
+Not verified: the hook firing in a live session. The wiring loads only in a
+new session; the suite drives the same script. Not filed: the next session
+exercises it.
+:END:
 On 2026-08-19 five applied transitions were destroyed when a session ran =git
 checkout -- TODO.org= to undo its own edit, assuming the =M TODO.org= it saw was
 all its own; the working tree also held the human's apply pass. The watermark
@@ -10363,6 +10391,15 @@ alike; four were re-queued, and their original State lines and timestamps were
 not recovered. Designed 2026-10-09 (the user): a PreToolUse guard refuses a
 discarding git command while a tracked =.org= file has uncommitted changes, and
 reconciling watermarks against the file is filed on its own.
+
+Resolved in commit [[orgit-rev:./::78d4c39][78d4c39]]. =bin/hooks/discard-guard= is a PreToolUse guard on
+Bash, wired in both hook configs and never gated. While a tracked =.org= file
+has uncommitted changes, it refuses the git commands that would discard them:
+=checkout --=, =restore= (unless =--staged= alone), =reset --hard=, and the
+saving forms of =stash=. The refusal shows the diff stat and says the changes
+may be another writer's. =ALLOW_DISCARD=1= overrides it, and the override is
+still counted. Reconciling against the file remains [[id:7e4fb8ae-87ff-445a-b960-b7cc5302c0c8][7e4fb8ae]].
+
 
 
 * TODO Type a span's annotation at review time, not by hand-editing it after :code:
