@@ -101,6 +101,34 @@ never stash).
   the promoted copy regenerated, bin/check-conventions passes.
 
 :END:
+:DEBRIEF:
+Shipped as planned, with three decisions the plan left open.
+
+- Session start never stamps the ceremony done. A stamp would silence the apply
+  ask for the rest of the day. Instead, a bury that finds the ceremony not due
+  but unstamped today stamps it; otherwise the report would call the ceremony
+  unfinished all day.
+- "Non-null" was read as a positive count or a failure. Steps that return a bare
+  "ok" (slices, sorted, datetree) are never named, even when they changed
+  something.
+- Under a report scope, the file-shaped steps take the project's own TODO.org.
+  Spacing, sorted and datetree otherwise default to the capture file, which can
+  belong to another project. A scope owning no TODO.org runs nothing.
+
+The steps moved into =--ceremony-run-steps=, which =ceremony-finish= and the
+session start share. The rule edit cost 8 words, so another sentence in
+=org-session-tracking.md= was tightened: self-hosting stands at 10200/10200.
+
+Verified: six ERT tests red against HEAD; the =:KIND:=-is-not-a-slice guard
+passes on both, as the check it is. Seven new setup checks pass (104/104). Live:
+the lookup finds [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]], not due until 2026-10-11 07:00, in 0.06 s, and the
+whole session-start report takes 0.23 s.
+
+Not verified: a real session start while the ceremony is due. The first one is
+on 2026-10-11, and it writes a TODO.org/DONE.org diff that session should
+commit. Not filed: that first run is the check, and [[id:2b8930da-5223-4b75-b4f6-251a28552d1b][2b8930da]] covers the
+consumer side.
+:END:
 Drawer consolidation, heading separation and archiving run only from the review
 buffer's quit, and the session rule forbids offering the pass, so a session can
 never offer them when they are overdue. The rule's reason (org's logging needs
@@ -110,6 +138,14 @@ template ships, and the session-start report runs
 claude-code-ide-org-ceremony-finish itself whenever the ceremony is due,
 pending items or not, reporting only non-null steps; the rule narrows to "must
 not offer to apply".
+
+Resolved in commit [[orgit-rev:./::034c473][034c473]]. The schedule is now read from any =:KIND: ceremony=
+heading: [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]] carries the property, and the =--org= template ships one,
+with setup minting its id and dates. While the ceremony is due, session start
+runs the steps after apply itself and reports only steps that counted something
+or failed. A clean run advances the repeater. The rule now reads "must not offer
+to apply".
+
 
 
 * TODO Delete the /next-session stub once a slice has been worked under /plan-slice and /work-slice :code:
