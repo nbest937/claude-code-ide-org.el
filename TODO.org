@@ -20,13 +20,54 @@ reporting applied state events whose State line is absent from the file would
 catch any culprit, human included, which [[id:79c224ab-188a-4ed4-a606-c28ee2cfe72d][79c224ab]]'s guard cannot; it catches the
 loss after the fact, not before.
 
-* TODO The steps after apply run only when the review buffer is buried, so a session can never offer them when they are overdue :code:
+* TODO The steps after apply run only when the review buffer is buried, so a session can never offer them when they are overdue :code:arch:
 :PROPERTIES:
 :ID:       de081dd9-1853-4d79-94fc-2edac498380f
 :CREATED:  [2026-10-09 Fri 17:00]
 :CATEGORY: Meta
 :END:
+:LOGBOOK:
+- Tags ":code:arch:" from ":code:"     [2026-10-10 Sat 13:59] \\
+  classified arch: changes the ceremony's schedule lookup, the session-start offer and the setup template
+:END:
 :PLAN:
+Approved 2026-10-10 in /plan-slice, section by section. Path: arch.
+
+*Schedule.*
+A heading carrying :KIND: ceremony replaces the literal [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]] lookup in
+--ceremony-due-p and --ceremony-advance-repeater; [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]] gains the property.
+Check that bin/lint-org and --grouping-heading-p treat no :KIND: but slice as
+a slice. The --org TODO.org template ships "TODO Archive closed tasks daily"
+with :KIND: ceremony, :CATEGORY: Meta and SCHEDULED at today's date with ++1d;
+setup writes a fresh :ID:, :CREATED: and today's date as it copies. Burying the
+review buffer still runs the steps only when the ceremony is due, as now, and
+still advances the repeater only on a clean pass. The user runs the command;
+nothing runs it unasked.
+
+*The offer.*
+At session start, while the ceremony is due:
+- with items pending, the report asks for M-x claude-code-ide-org-review, as today;
+- with nothing pending but drawers out of order or headings archivable, it names
+  the counts and offers the steps after apply, telling the user to run
+  M-x claude-code-ide-org-ceremony-finish. The session runs nothing itself.
+org-session-tracking.md's "must not offer to run the pass" narrows to "must not
+offer to apply"; [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]]'s "the report asks; it never proposes" stays, since
+offering an action is not proposing a value. No new tool.
+
+*Testing.* Each test runs red against HEAD first (copy aside, restore HEAD,
+never stash).
+- ERT: --ceremony-due-p finds a :KIND: ceremony heading with a past SCHEDULED
+  whose id is not [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]]; nil with none; nil when scheduled in the future.
+- ERT: --ceremony-advance-repeater advances that heading.
+- Report: due + pending asks for the review; due + nothing pending + drawers or
+  archivable offers ceremony-finish with the counts; not due offers neither;
+  the asks-never-proposes wording is asserted.
+- Setup: the --org copy gets a fresh :ID:, today's :CREATED: and SCHEDULED; a
+  second run still refuses an existing TODO.org (bin/claude-org-setup:156).
+- --grouping-heading-p is nil and bin/lint-org reports no slice error for a
+  :KIND: ceremony fixture.
+- The narrowed rule is edited in skills/org/references/org-session-tracking.md,
+  the promoted copy regenerated, bin/check-conventions passes.
 
 :END:
 Drawer consolidation, heading-separation normalisation and archiving run only
