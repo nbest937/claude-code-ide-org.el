@@ -2,6 +2,44 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO The time-tracking stamp is global and every project's session start rewrites it, so the last session to start decides whether the review pass opens a clock :code:
+:PROPERTIES:
+:ID:       d30b3481-374c-4921-9fdb-284dd8e09e14
+:CREATED:  [2026-10-10 Sat 18:31]
+:CATEGORY: Clock
+:END:
+:PLAN:
+Not yet designed. The time_tracking option is meant to be one value for every
+project, and the stamp should honour that. Two candidates: ignore a row that
+sets the variable inline when the plugin option is present, or keep one stamp
+per project and read the one for the project the review pass is about.
+:END:
+
+[[id:97b4f6a9-a944-40d3-8d14-7a1667c52291][97b4f6a9]] gates the review pass's attention clock on a stamp file in the global
+queue directory, written by each SessionStart from
+CLAUDE_PLUGIN_OPTION_TIME_TRACKING. This repo's own row sets it true while a
+consumer's plugin row exports the option, off for this user, so a session
+started in agentic-euchre writes an empty stamp and the next review from
+anywhere opens no clock, until a session here starts again. Read from the two
+configs 2026-10-10, not yet observed. The option is meant to be one value for
+every project; the stamp should honour that, perhaps by ignoring a row that sets
+the variable inline when the plugin option is present, or by keeping one stamp
+per project.
+
+* TODO An install scaffolded before the ceremony template has no :KIND: ceremony heading, so its steps after apply never run and --check does not say so :code:
+:PROPERTIES:
+:ID:       b577497c-f3a8-4754-8914-6c56589a0b52
+:CREATED:  [2026-10-10 Sat 18:31]
+:CATEGORY: Dev
+:END:
+
+[[id:de081dd9-1853-4d79-94fc-2edac498380f][de081dd9]] moved the ceremony's schedule to a :KIND: ceremony heading and ships
+one in the --org template, but --org never touches an existing TODO.org.
+agentic-euchre, scaffolded before the change, has none (checked 2026-10-10), so
+neither session start nor the review buffer's bury ever runs its steps after
+apply. Proposed: --check reports a TODO.org lacking a :KIND: ceremony heading,
+and setup offers a way to add one with a fresh id and today's date.
+
 * MAYBE Nothing reconciles the queue's applied watermarks with the file, so a discarded apply stays marked applied and vanishes :code:
 :PROPERTIES:
 :ID:       7e4fb8ae-87ff-445a-b960-b7cc5302c0c8
@@ -126,8 +164,15 @@ whole session-start report takes 0.23 s.
 
 Not verified: a real session start while the ceremony is due. The first one is
 on 2026-10-11, and it writes a TODO.org/DONE.org diff that session should
-commit. Not filed: that first run is the check, and [[id:2b8930da-5223-4b75-b4f6-251a28552d1b][2b8930da]] covers the
-consumer side.
+commit. Not filed: that first run is the check. Its cost was measured with dry
+runs, since nothing was due: drawers 0.77 s, the other steps under 0.04 s each.
+Archiving is per heading and cannot be dry-run, so a large backlog could exceed
+the hook's 15 s timeout.
+
+Corrected the same day: an earlier sentence here claimed [[id:2b8930da-5223-4b75-b4f6-251a28552d1b][2b8930da]] covers the
+consumer side. Its plan excludes this ceremony. And an install scaffolded before
+this template has no =:KIND: ceremony= heading at all: agentic-euchre has none.
+Filed as [[id:b577497c-f3a8-4754-8914-6c56589a0b52][b577497c]].
 :END:
 Drawer consolidation, heading separation and archiving run only from the review
 buffer's quit, and the session rule forbids offering the pass, so a session can
@@ -3541,6 +3586,23 @@ with the queue isolated, the plugin's =discard-guard= refuses =git checkout --
 TODO.org= and =git stash=, passes =git status= and =git restore --staged=, and
 =hooks.json= wires it under PreToolUse Bash. Firing through that wiring needs a
 session there.
+
+*Check 3, script half: passed.* Driven with a project that has nothing promoted,
+the plugin's =conventions-inject= points at the plugin's own
+=skills/org/references/org-conventions.md= (1226 lines) with its section list.
+
+*Check 5, read from the manifest:* =.claude-plugin/plugin.json= has no =agents=
+key, and the plugin root holds =agents/twin-checker.md=. Whether Claude Code
+discovers that directory by convention needs a session there (=/agents=).
+
+*Check 1, wiring read:* the plugin's =hooks.json= carries both PreToolUse Bash
+guards, the =mcp__emacs-tools__org_.*= row and the queued-tool matchers.
+Whether they fire needs a session there.
+
+*Still owed to a fresh Claude Code session in agentic-euchre:* checks 1, 4, 5
+and 6, the capture half of 8, and the firing half of 9. Check 7 needs the user's
+review pass there.
+
 
 
 
