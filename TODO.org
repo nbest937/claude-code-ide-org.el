@@ -3592,24 +3592,16 @@ happened. Each failure is filed as its own heading: fixed on the branch if it
 blocks the PR, otherwise deferred. The heading closes once every check has an
 answer.
 :END:
-It gates earnest work in euchre, taking over from [[id:6a207b00-8fa1-441e-8ee5-354702bc979b][6a207b00]] (closed
-2026-09-22). It waits on [[id:8a2eb687-28da-4d44-893b-db59298bdc5b][8a2eb687]] and [[id:6521dd56-8772-416b-9435-6da78bb86b06][6521dd56]], moved from there, and on
-[[id:4ae7a04b-1557-44d6-91c3-384f1def5293][4ae7a04b]], the brainstorming skill, at the user's direction.
-
-*Worktree moved forward 2026-10-06:* =claude-code-ide-org-swc= is detached at
-=main= (commit [[orgit-rev:./::1fe022e][1fe022e]]), up from the [[https://github.com/nbest937/claude-code-ide-org.el/pull/28][PR #28]] apply pass. agentic-euchre loads the
-plugin through =.claude/skills/claude-code-ide-org=, a symlink to the worktree
-root, which is the README's project-scope install route, so the move is live at
-the next session start there. Its promoted rules date from the old version and
-include =org-time-tracking.md=, the stale copy check 2 expects setup to remove.
+It gates earnest work in agentic-euchre, taking over from [[id:6a207b00-8fa1-441e-8ee5-354702bc979b][6a207b00]] (closed
+2026-09-22); its blockers [[id:8a2eb687-28da-4d44-893b-db59298bdc5b][8a2eb687]], [[id:6521dd56-8772-416b-9435-6da78bb86b06][6521dd56]] and [[id:4ae7a04b-1557-44d6-91c3-384f1def5293][4ae7a04b]] are done. Classified
+spike 2026-10-10: the probe plan is in :PLAN:, run from the slice's feature
+branch before the PR merges, and each failure files its own heading.
 
 *Check 2 verified 2026-10-06 in agentic-euchre.* A plain re-run reported the
 time file "kept (already promoted)", and =--no-time-tracking= removed it. The
-six promoted rules are byte-identical to the plugin's own generated copies, and
-=claude-org-setup --check= reports all ok: the rules, no stale Doom glue, and
-=.mcp.json= naming the =agentic-euchre= session as that project's alone. Checks
-1 and 3 to 5 need a Claude Code session started in agentic-euchre.
-
+six promoted rules were byte-identical to the plugin's generated copies, and
+=claude-org-setup --check= reported all ok, with =.mcp.json= naming the
+=agentic-euchre= session as that project's alone.
 
 * TODO The duplicate query reads titles only, so a paraphrase gets past it — including the case that motivated it :code:
 :PROPERTIES:
