@@ -3362,6 +3362,8 @@ written; passing one there is honoured."
       (should (string-prefix-p "Error:" reply))
       (should (string-match-p "needs a category" reply))
       (should (string-match-p "uses: Queue, Tools" reply))
+      ;; And where values are declared (TODO.org :ID: 24694d1f).
+      (should (string-match-p "\\.claude/rules/org-categories\\.md" reply))
       (should-not (string-match-p "Unfiled"
                                   (claude-code-ide-org-test--disk-contents capture-file))))
     ;; A child inherits: accepted without one, and no drawer line written.
@@ -3396,6 +3398,7 @@ about nothing: there is nothing to have mistyped."
     (let ((reply (claude-code-ide-org-capture "Typo" nil nil nil "TODO" "Tool")))
       (should (string-prefix-p claude-code-ide-org--reply-captured reply))
       (should (string-match-p "WARNING: \"Tool\" is a new category" reply))
+      (should (string-match-p "\\.claude/rules/org-categories\\.md" reply))
       (should (string-match-p "uses Queue" reply))
       (should (string-match-p "^:CATEGORY: +Tool$"
                               (claude-code-ide-org-test--disk-contents capture-file))))
@@ -20162,6 +20165,7 @@ PROPS come first because `plist-get' returns the first occurrence."
                     "88888888-8888-4888-8888-888888888802" "No category"
                     :category nil))))
       (should (string-match-p "\\`Error: a top-level capture needs a category" result))
+      (should (string-match-p "\\.claude/rules/org-categories\\.md" result))
       (should (= 0 (claude-code-ide-org-test--count-matches "No category" capture-file))))))
 
 (ert-deftest claude-code-ide-org-test-apply-capture-refuses-a-keyworded-child-of-a-slice ()

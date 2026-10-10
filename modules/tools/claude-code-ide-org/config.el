@@ -3597,12 +3597,22 @@ this answers is which values the file's taxonomy actually uses."
              (push v values))))))
     (nreverse values)))
 
+(defconst claude-code-ide-org--category-declaration-hint
+  "declare values in .claude/rules/org-categories.md"
+  "Where a project declares its `:CATEGORY:' values, as a capture reply says it.
+
+Named in every category refusal and warning, the path always given
+\(TODO.org :ID: 24694d1f): `claude-org-setup --org' scaffolds the file,
+consumer-owned and always loaded, and a refusal that only listed the
+values in use left a new project with \"(none yet)\" and nowhere to look.")
+
 (defun claude-code-ide-org--capture-novel-category-warning (novel category file in-use)
   "The reply suffix for a CATEGORY that FILE has never used, or \"\"."
   (if novel
       (format " -- WARNING: \"%s\" is a new category in %s, which so far uses %s; \
-check it is not a typo for one of those"
-              category (file-name-nondirectory file) (string-join in-use ", "))
+check it is not a typo for one of those, and %s"
+              category (file-name-nondirectory file) (string-join in-use ", ")
+              claude-code-ide-org--category-declaration-hint)
     ""))
 
 ;;; The duplicate query (TODO.org :ID: c8773ec2)
@@ -4013,9 +4023,10 @@ else."
          ((and top-level (not category))
           (format (concat "Error: a top-level capture needs a category -- "
                           "it lands at level 1, where :CATEGORY: cannot be "
-                          "inherited. Pass category=; %s uses: %s")
+                          "inherited. Pass category=; %s uses: %s; %s")
                   (file-name-nondirectory file)
-                  (if in-use (string-join in-use ", ") "(none yet)")))
+                  (if in-use (string-join in-use ", ") "(none yet)")
+                  claude-code-ide-org--category-declaration-hint))
          ((claude-code-ide-org--file-busy-p file)
           (format "%s\"%s\" (ID: %s) %s; pending review.%s%s"
                   claude-code-ide-org--reply-queued-capture
@@ -12261,9 +12272,10 @@ category the file has never used only warns, as the tool does."
                                   (claude-code-ide-org--duplicate-candidates title file))))
             (cond
              ((and top-level (not category))
-              (format "Error: a top-level capture needs a category; %s uses: %s"
+              (format "Error: a top-level capture needs a category; %s uses: %s; %s"
                       (file-name-nondirectory file)
-                      (if in-use (string-join in-use ", ") "(none yet)")))
+                      (if in-use (string-join in-use ", ") "(none yet)")
+                      claude-code-ide-org--category-declaration-hint))
              (target-slice
               (format "Error: a keyworded capture here would give slice \"%s\" keyworded children"
                       target-slice))
