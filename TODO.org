@@ -688,34 +688,31 @@ Divided out of [[id:c7619140-f269-4329-bc05-a38ea151e202][c7619140]] on 2026-10-
 are those a task-only install also meets, since the review buffer and apply
 serve state changes whether or not time tracking is on.
 
-The order, one line each:
+The order, one line each (revised 2026-10-10 by /plan-slice, every member
+brainstormed; where a member's drawer disagrees with a line here, the member
+wins):
 
-- [[id:97b4f6a9-a944-40d3-8d14-7a1667c52291][97b4f6a9]] first: it stops the review pass opening a clock where tracking is off, so this slice stops imposing time tracking on the installs it exists to serve.
-- [[id:489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938][489d6f61]]: the crash at review-buffer quit, which has cost two Emacs restarts and can strike any review.
-- [[id:41f21b4d-278d-4ad8-a56f-122f5af33d65][41f21b4d]], [[id:e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b][e95cc5d1]], [[id:396fd1c3-70e0-4e1f-8839-670b5293a7d3][396fd1c3]] and [[id:ee3c22c9-f99c-4d41-9c3d-8f39af916fff][ee3c22c9]] together: movement and marking in the buffer, all in the same few commands.
-- [[id:6c64cc9c-33a9-4a20-af19-c188a690c755][6c64cc9c]]: returning point and windows on exit, the last of the buffer-handling members.
-- [[id:79c224ab-188a-4ed4-a606-c28ee2cfe72d][79c224ab]]: a checkout destroying applied changes, a guard outside the buffer.
-- [[id:361e2708-8124-4bd1-9c44-f97ca97aca4a][361e2708]] then [[id:2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd][2cd74268]]: how far apply can be automated is decided first, because the task-only auto-apply toggle depends on the answer.
+- [[id:97b4f6a9-a944-40d3-8d14-7a1667c52291][[[id:97b4f6a9-a944-40d3-8d14-7a1667c52291][97b4f6a9]]]] (arch) first: it stops the review pass opening a clock where tracking is off, so this slice stops imposing time tracking on the installs it exists to serve.
+- [[id:24694d1f-34b4-495b-b0d8-d29e64894c59][24694d1f]] (bounded) second: a new project's first top-level capture is refused until it has somewhere to declare its categories, so it is the next thing a consumer meets.
+- [[id:41f21b4d-278d-4ad8-a56f-122f5af33d65][41f21b4d]], [[id:9f6b19b5-18db-4d56-8545-9552a5b4e935][9f6b19b5]], [[id:ee3c22c9-f99c-4d41-9c3d-8f39af916fff][ee3c22c9]], [[id:e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b][e95cc5d1]] and [[id:396fd1c3-70e0-4e1f-8839-670b5293a7d3][396fd1c3]] together: movement, help text and marking in the buffer, all in the same few commands. [[id:e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b][e95cc5d1]] closes with [[id:ee3c22c9-f99c-4d41-9c3d-8f39af916fff][ee3c22c9]], whose mark design removes the advance it reports.
+- [[id:6c64cc9c-33a9-4a20-af19-c188a690c755][6c64cc9c]] (bounded): returning point and windows on exit, by :ID:, the last of the buffer-handling members.
+- [[id:d66ae1d2-5a40-4f4d-ae51-c8977e78681c][d66ae1d2]] then [[id:b3177ed0-9747-4e31-ad65-bac25b9bdd1f][b3177ed0]]: one change to the scoped org_outline's front matter serves both, so they are worked together.
+- [[id:d241ab6e-6cfe-482a-8980-8cb222d7ab12][d241ab6e]] (bounded), then [[id:de081dd9-1853-4d79-94fc-2edac498380f][de081dd9]] (arch): both change the session-start report, the twins named first, then the ceremony run there itself and its :KIND: ceremony schedule.
+- [[id:79c224ab-188a-4ed4-a606-c28ee2cfe72d][79c224ab]] (bounded): a checkout destroying applied changes, a guard outside the buffer; its reconciliation half is filed as [[id:7e4fb8ae-87ff-445a-b960-b7cc5302c0c8][7e4fb8ae]], outside the slice.
+- [[id:361e2708-8124-4bd1-9c44-f97ca97aca4a][361e2708]] (spike): closes on the answer already recorded in its drawer, with no code.
+- [[id:2b8930da-5223-4b75-b4f6-251a28552d1b][2b8930da]] (spike) last: the consumer checks, run from agentic-euchre against this slice's feature branch before the PR merges, so they exercise the fixes above from the consumer's side.
 
-*Adopted at composition, 2026-10-09 (the user), toward the slice's purpose of
-using the tool in another project with ease and confidence:*
-
-- [[id:24694d1f-34b4-495b-b0d8-d29e64894c59][24694d1f]], second, after [[id:97b4f6a9-a944-40d3-8d14-7a1667c52291][97b4f6a9]]: a new project's first top-level capture is refused until it has somewhere to declare its categories, so it is the next thing a consumer meets.
-- [[id:2b8930da-5223-4b75-b4f6-251a28552d1b][2b8930da]], last: the consumer-install check run from agentic-euchre, so it exercises the fixes above from the consumer's side rather than before they land. Check 2 is already verified.
-
-*Adopted later the same day (the user, 2026-10-09), each placed beside its
-nearest relative:*
-
-- [[id:9f6b19b5-18db-4d56-8545-9552a5b4e935][9f6b19b5]], after [[id:41f21b4d-278d-4ad8-a56f-122f5af33d65][41f21b4d]]: the buffer's help mislabels its own =!= and =?= prefixes, which every reviewer reads.
-- [[id:d66ae1d2-5a40-4f4d-ae51-c8977e78681c][d66ae1d2]], then [[id:b3177ed0-9747-4e31-ad65-bac25b9bdd1f][b3177ed0]]: the scoped =org_outline= gains the two reverse lines it lacks, which slices count the heading and what it blocks. One change to its front matter serves both, so they are worked together.
-- [[id:d241ab6e-6cfe-482a-8980-8cb222d7ab12][d241ab6e]], after them: the session-start report names its possible twins rather than counting them.
+*Dropped, 2026-10-10:* [[id:489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938][489d6f61]], the crash at review-buffer quit, which has not
+recurred and is being investigated from the Emacs side, its drawer offering
+diff-hl-update-async set to nil as a mitigation, not applied; and [[id:2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd][2cd74268]], the
+task-only auto-apply toggle, whose drawer records that [[id:f12f9da4-2870-45b7-8c50-ea54415c7bc6][f12f9da4]]'s whole-file
+digest is not the apply-path reset it needs. The :DROPPED: property holds both;
+the checklist shows the second once the queue is applied.
 
 *First use of the split commands* ([[id:dc21f724-78f9-4da8-9d74-002ad3306446][dc21f724]], [[https://github.com/nbest937/claude-code-ide-org.el/pull/36][PR #36]] review, 2026-10-09). This
 slice is the first planned and worked under =/plan-slice= and =/work-slice=.
-Before =/plan-slice=, run =/work-slice= once, read-only, in a fresh session: it
-should find this slice =NEXT=, report its unplanned members and point at
-=/plan-slice= without starting anything. If it does otherwise, fix the command
-before planning here. The =/next-session= stub is deleted once the slice is
+The read-only =/work-slice= run meant to precede planning was not verified in
+this planning session. The =/next-session= stub is deleted once the slice is
 worked ([[id:d30c00ce-95fb-4fea-8709-bcea80700646][d30c00ce]]).
 :END:
 
