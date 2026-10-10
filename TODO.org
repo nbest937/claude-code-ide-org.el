@@ -688,6 +688,38 @@ by copying the fix aside and running HEAD's version red, never with =git stash=.
 the org-dev skill, then in this repo, after a new session, one real review pass
 still opens the attention clock.
 :END:
+:DEBRIEF:
+Shipped as planned, in commit [[orgit-rev:./::736fe23][736fe23]] on =feature/review-pass-every-install=.
+=claude-code-ide-org-write-session-context-report= writes the raw option to
+=time-tracking-option= in the queue directory; =--time-tracking-on-p= fails
+closed; =claude-code-ide-org-review= gates =review-attention-start= on it. With
+neither the heading nor =* Review and planning=, =--review-attention-ask= offers
+c / s / n; =--review-attention-target= now creates a level-1 heading only when
+handed a category, and returns nil rather than appending =**= at the end of the
+file. =--mechanism-owned-heading-p= falls back to the standard title.
+=--ceremony-reviewed-today-p= falls back to the new =--applied-today-p=. This
+repo's =session-context.sh= row sets the variable.
+
+Verified: =bin/test= 906/906. Against HEAD's =config.el= nine new or changed
+tests went red; the two gate tests failed there only for missing functions, so
+the gate was also mutated to =(when t …)= inside the fix and the gate-off test
+went red alone. Live: reloaded, =bin/check-image= fresh, =session-context.sh=
+run directly wrote an empty stamp unset (predicate nil) and =true= set
+(predicate t), =bin/check-conventions= clean, and one real review pass by the
+user opened and closed the attention clock (17:36–17:40) under the gate.
+
+Differed from the plan: none in design. One test detail: the plan's "only a
+yesterday-dated" case is tested two days back, so a run near midnight cannot
+flip it.
+
+Not verified here: the prompt and the off path in a real consumer install. That
+is [[id:2b8930da-5223-4b75-b4f6-251a28552d1b][2b8930da]]'s, already a member of this slice, so nothing new is filed.
+
+The live pass ran in the implementing session, on a stamp written by running the
+hook by hand, not after a new session: the =settings.json= row itself is first
+exercised at the next session start, which should leave the stamp reading
+=true=.
+:END:
 
 The review command opens an attention clock on every pass, even in an install
 whose owner left time tracking off, and where the tracker has no =* Review and
@@ -697,6 +729,12 @@ writes from the plugin option, failing closed; with tracking on and no anchor,
 ask before creating a level-1 heading, offering skip and never; and let the
 ceremony's "a pass ran today" fall back to the apply watermarks. Read from the
 code, not yet run.
+
+*Resolved 2026-10-10:* the review command now clocks only where the hook-written
+option stamp reads true, asks before placing a heading with no meta-work
+category to go under, and the ceremony's ran-today check falls back to the apply
+watermarks (commit [[orgit-rev:./::736fe23][736fe23]], on the [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]] branch).
+
 
 
 * MAYBE Separate what the machinery requires from what this project prefers, so a consumer can change the second :code:arch:
