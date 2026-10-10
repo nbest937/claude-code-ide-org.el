@@ -14007,13 +14007,13 @@ finish pass calls the refresh alongside its siblings."
               ((symbol-function 'claude-code-ide-org-consolidate-all-drawers)
                (lambda () 0))
               ((symbol-function 'claude-code-ide-org-normalize-heading-separation)
-               (lambda () 0))
+               (lambda (&rest _) 0))
               ((symbol-function 'claude-code-ide-org-archive-finished)
-               (lambda () 0))
+               (lambda (&rest _) 0))
               ((symbol-function 'claude-code-ide-org-sort-by-created)
-               (lambda () 0))
+               (lambda (&rest _) 0))
               ((symbol-function 'claude-code-ide-org-sort-datetree-descending)
-               (lambda () 0))
+               (lambda (&rest _) 0))
               ((symbol-function 'claude-code-ide-org-mark-ceremony-done)
                (lambda (&optional _s) nil))
               ((symbol-function 'claude-code-ide-org--ceremony-due-p)
@@ -17521,7 +17521,7 @@ silently disarm the user (TODO.org :ID: c8a97d9d)."
                   (claude-code-ide-org-test--stale-repeater-line)
                   ":PROPERTIES:\n"
                   ":ID:       cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8\n"
-                  ":CREATED:  [2026-08-01 Sat 09:00]\n:END:\n"))
+                  ":CREATED:  [2026-08-01 Sat 09:00]\n:KIND:     ceremony\n:END:\n"))
     (with-current-buffer (find-file-noselect file) (setq buffer-read-only t))
     (should (claude-code-ide-org--ceremony-advance-repeater))
     ;; Org advanced the date rather than leaving the heading DONE.
@@ -17840,6 +17840,171 @@ ways."
       (goto-char (point-min))
       (should (re-search-forward "^- \\[ \\] \\[\\[id:wav-1" nil t)))))
 
+;;; The ceremony's schedule by :KIND:, and session start running it
+;;; (TODO.org :ID: de081dd9) ----------------------------------------------
+
+(defun claude-code-ide-org-test--ceremony-heading (scheduled)
+  "A `:KIND: ceremony' heading SCHEDULED at that org date, not cbe282ec."
+  (concat "* TODO Archive closed tasks daily\n"
+          "SCHEDULED: <" scheduled " ++1d>\n"
+          ":PROPERTIES:\n:ID:       c3c3c3c3-0000-4000-8000-000000000001\n"
+          ":CREATED:  [2026-10-10 Sat 09:00]\n:CATEGORY: Meta\n"
+          ":KIND:     ceremony\n:END:\n"))
+
+(defun claude-code-ide-org-test--org-date (days)
+  "Today plus DAYS, as an org date."
+  (format-time-string "%Y-%m-%d %a"
+                      (time-add (current-time) (days-to-time days))))
+
+(ert-deftest claude-code-ide-org-test-ceremony-schedule-is-found-by-kind ()
+  "The schedule is any `:KIND: ceremony' heading, not the literal id this
+repository's tracker happens to carry, so a consumer's own schedule is
+read and advanced (TODO.org :ID: de081dd9)."
+  (claude-code-ide-org-test--with-heading
+    (should-not (claude-code-ide-org--ceremony-due-p))
+    (claude-code-ide-org-test--add-child
+     file (claude-code-ide-org-test--ceremony-heading
+           (claude-code-ide-org-test--org-date -3)))
+    (should (claude-code-ide-org--ceremony-due-p))
+    (should (claude-code-ide-org--ceremony-advance-repeater))
+    (should-not (claude-code-ide-org--ceremony-due-p))
+    (should (string-match-p "^\\* TODO Archive closed tasks daily"
+                            (claude-code-ide-org-test--disk-contents file))))
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--add-child
+     file (claude-code-ide-org-test--ceremony-heading
+           (claude-code-ide-org-test--org-date 2)))
+    (should-not (claude-code-ide-org--ceremony-due-p))))
+
+(ert-deftest claude-code-ide-org-test-ceremony-kind-is-not-a-slice ()
+  "`:KIND: ceremony' makes no grouping and draws no slice finding."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--add-child
+     file (claude-code-ide-org-test--ceremony-heading
+           (claude-code-ide-org-test--org-date 1)))
+    (org-with-point-at (org-id-find "c3c3c3c3-0000-4000-8000-000000000001" 'marker)
+      (should-not (claude-code-ide-org--grouping-heading-p))
+      (should-not (claude-code-ide-org--slice-p)))
+    (should-not (claude-code-ide-org-test--lint-matches
+                 (claude-code-ide-org-lint (list file) nil) 'error "slice"))))
+
+(defmacro claude-code-ide-org-test--with-session-start-run (results &rest body)
+  "Run BODY with a due ceremony whose steps return RESULTS.
+Binds `ran-steps' and `advanced', and the stubs record into them."
+  (declare (indent 1))
+  `(let ((ran-steps nil) (advanced nil))
+     (cl-letf (((symbol-function 'claude-code-ide-org--ceremony-due-p) (lambda () t))
+               ((symbol-function 'claude-code-ide-org--ceremony-run-steps)
+                (lambda (&optional _f) (setq ran-steps t) ,results))
+               ((symbol-function 'claude-code-ide-org--ceremony-advance-repeater)
+                (lambda () (setq advanced t)))
+               ((symbol-function 'claude-code-ide-org-mark-ceremony-done)
+                (lambda (&rest _) (error "Session start must not stamp"))))
+       ,@body)))
+
+(ert-deftest claude-code-ide-org-test-session-start-runs-a-due-ceremony ()
+  "While the ceremony is due, session start runs its steps, advances the
+repeater on a clean run, never stamps, and names only the steps that
+counted something or failed (TODO.org :ID: de081dd9)."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--with-session-start-run
+        '(("slices" . "ok") ("drawers" . 0) ("archived" . 2) ("sorted" . "ok"))
+      (let ((line (claude-code-ide-org--ceremony-session-start-run)))
+        (should ran-steps)
+        (should advanced)
+        (should (string-match-p "ran at session start: archived: 2\\." line))
+        (should-not (string-match-p "drawers\\|slices" line))
+        (should (string-match-p "commit the TODO.org/DONE.org diff" line))))
+    ;; All zero says nothing, though the repeater still advances.
+    (claude-code-ide-org-test--with-session-start-run
+        '(("drawers" . 0) ("archived" . 0))
+      (should-not (claude-code-ide-org--ceremony-session-start-run))
+      (should advanced))
+    ;; A failed step is named and holds the repeater.
+    (claude-code-ide-org-test--with-session-start-run
+        '(("archived" . (failed . "on fire")))
+      (let ((line (claude-code-ide-org--ceremony-session-start-run)))
+        (should (string-match-p "archived: FAILED (on fire)" line))
+        (should (string-match-p "repeater was held" line))
+        (should-not advanced)))))
+
+(ert-deftest claude-code-ide-org-test-session-start-skips-the-ceremony-when-unsaved-or-not-due ()
+  "Unsaved changes in a tracked file skip the run and say so, leaving the
+ceremony due; a ceremony not due runs nothing."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--with-session-start-run '(("archived" . 1))
+      (with-current-buffer (get-file-buffer file)
+        (insert "unsaved")
+        (unwind-protect
+            (let ((line (claude-code-ide-org--ceremony-session-start-run)))
+              (should (string-match-p "test.org has unsaved changes" line))
+              (should (string-match-p "stays due" line))
+              (should-not ran-steps)
+              (should-not advanced))
+          (set-buffer-modified-p nil))))
+    (claude-code-ide-org-test--with-session-start-run '(("archived" . 1))
+      (cl-letf (((symbol-function 'claude-code-ide-org--ceremony-due-p) #'ignore))
+        (should-not (claude-code-ide-org--ceremony-session-start-run))
+        (should-not ran-steps)))))
+
+(ert-deftest claude-code-ide-org-test-session-start-run-stays-in-its-project ()
+  "Under a report scope the file-shaped steps get that project's own
+TODO.org, never the capture default, which may be another project's;
+a scope owning no TODO.org runs nothing (TODO.org :ID: de081dd9)."
+  (claude-code-ide-org-test--with-heading
+    (let ((given 'unset)
+          (claude-code-ide-org--report-scope dir))
+      (cl-letf (((symbol-function 'claude-code-ide-org--ceremony-due-p) (lambda () t))
+                ((symbol-function 'claude-code-ide-org--ceremony-advance-repeater) #'ignore)
+                ((symbol-function 'claude-code-ide-org--ceremony-run-steps)
+                 (lambda (&optional f) (setq given f) nil)))
+        (cl-letf (((symbol-function 'claude-code-ide-org--project-capture-file)
+                   (lambda (d) (and (equal d dir) "/the/project/TODO.org"))))
+          (claude-code-ide-org--ceremony-session-start-run)
+          (should (equal given "/the/project/TODO.org")))
+        (setq given 'unset)
+        (cl-letf (((symbol-function 'claude-code-ide-org--project-capture-file) #'ignore))
+          (should-not (claude-code-ide-org--ceremony-session-start-run))
+          (should (eq given 'unset)))))))
+
+(ert-deftest claude-code-ide-org-test-session-start-payload-carries-the-run-and-the-ask ()
+  "The run's line rides in the same payload as the ceremony report, which
+still asks for the apply when items are pending (TODO.org :ID: de081dd9)."
+  (cl-letf (((symbol-function 'claude-code-ide-org--ceremony-session-start-run)
+             (lambda () "STEPS RAN"))
+            ((symbol-function 'claude-code-ide-org-find-stale-open-intervals) #'ignore)
+            ((symbol-function 'claude-code-ide-org--ceremony-status)
+             (lambda () '(:pending 2 :drifted 0 :archivable 0)))
+            ((symbol-function 'claude-code-ide-org--image-report) #'ignore)
+            ((symbol-function 'claude-code-ide-org--tool-failure-report) #'ignore))
+    (let* ((json (json-parse-string (claude-code-ide-org--session-start-hook-json)
+                                    :object-type 'alist))
+           (ctx (alist-get 'additionalContext (alist-get 'hookSpecificOutput json))))
+      (should (string-match-p "\\`STEPS RAN" ctx))
+      (should (string-match-p "2 queued item(s) pending review" ctx))
+      (should (string-match-p "M-x claude-code-ide-org-review" ctx))
+      (should (string-match-p "steps ran" (alist-get 'systemMessage json))))))
+
+(ert-deftest claude-code-ide-org-test-bury-stamps-after-a-session-start-run ()
+  "With the steps already run at session start, the ceremony is not due
+when the review buffer is buried; the bury stamps it done instead of
+leaving the report to call it unfinished all day."
+  (let ((stamped nil) (finished nil))
+    (cl-letf (((symbol-function 'claude-code-ide-org--ceremony-due-p) #'ignore)
+              ((symbol-function 'claude-code-ide-org--ceremony-done-today-p) #'ignore)
+              ((symbol-function 'claude-code-ide-org--ceremony-headings)
+               (lambda () (list 'a-heading)))
+              ((symbol-function 'claude-code-ide-org-ceremony-finish)
+               (lambda () (setq finished t)))
+              ((symbol-function 'claude-code-ide-org-mark-ceremony-done)
+               (lambda (&rest _) (setq stamped t))))
+      (with-temp-buffer
+        (claude-code-ide-org-review-mode)
+        (setq claude-code-ide-org--review-pass-open t)
+        (claude-code-ide-org--review-attention-on-quit))
+      (should stamped)
+      (should-not finished))))
+
 (ert-deftest claude-code-ide-org-test-advance-repeater-leaves-no-deferred-note ()
   "Advancing the repeater must register nothing on `post-command-hook'.
 
@@ -17860,7 +18025,7 @@ not have -- the thing this test can see is the registration."
                   (claude-code-ide-org-test--stale-repeater-line)
                   ":PROPERTIES:\n"
                   ":ID:       cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8\n"
-                  ":CREATED:  [2026-08-01 Sat 09:00]\n:END:\n"))
+                  ":CREATED:  [2026-08-01 Sat 09:00]\n:KIND:     ceremony\n:END:\n"))
     (with-current-buffer (find-file-noselect file) (setq buffer-read-only t))
     (let ((post-command-hook nil)
           (org-log-repeat 'time))

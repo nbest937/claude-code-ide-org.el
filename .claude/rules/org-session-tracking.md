@@ -74,15 +74,16 @@ report as `additionalContext` and shows the user a one-line
 `systemMessage`, so it arrives whether or not the session relays it. It
 names what is waiting — pending queue items, drawers out of order,
 finished headings not yet archived, the miss count by rule — and then
-**asks**. Apply is the human's alone, so a session must not offer to run
-the pass; the steps after apply run on leaving the review buffer, which
-stamps `ceremony-last-run` only if every step succeeded.
+**asks**. Apply is the human's alone, so a session must not offer to
+apply. The steps after it run themselves while the ceremony is due: at
+session start, whose diff the session commits, and on leaving the review
+buffer, which stamps `ceremony-last-run`.
 
 **The report asks; it never proposes.** A plausible suggestion is harder
 to reject than none at all (measured and retired 2026-08-14, `:ID:`
 7771fc63).
 
-The two commands the ceremony runs after apply,
+Two of the ceremony's steps,
 `claude-code-ide-org-consolidate-all-drawers` (`:ID:` 7ae6562d) and
 `claude-code-ide-org-normalize-heading-separation` (`:ID:` e1284bdb), are
 idempotent and default to a dry run interactively; **from Lisp both

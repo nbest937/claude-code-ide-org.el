@@ -166,6 +166,18 @@ session_taken_by() { # name dir -> the other project's dir, or nothing
 if [ "$org" = 1 ]; then
   tdir="$plugin_root/templates"
   wrote=0
+  # The ceremony heading's identity is minted per copy (TODO.org :ID:
+  # de081dd9): two projects sharing one :ID: would collide in org-id,
+  # and a SCHEDULED date frozen in the template would be months overdue.
+  # LC_ALL=C so the weekday is org's English abbreviation.
+  cer_id="$(uuidgen 2>/dev/null | tr '[:upper:]' '[:lower:]')"
+  [ -n "$cer_id" ] || cer_id="$(cat /proc/sys/kernel/random/uuid 2>/dev/null)"
+  if [ -z "$cer_id" ]; then
+    echo "claude-org-setup: cannot mint an :ID: (no uuidgen)" >&2
+    exit 1
+  fi
+  cer_today="$(LC_ALL=C date +'%Y-%m-%d %a')"
+  cer_now="$(LC_ALL=C date +'%Y-%m-%d %a %H:%M')"
   for f in TODO.org DONE.org; do
     if [ ! -f "$tdir/$f" ]; then
       echo "claude-org-setup: missing template: $tdir/$f" >&2
@@ -174,7 +186,8 @@ if [ "$org" = 1 ]; then
     if [ -e "$target/$f" ]; then
       echo "exists:  $target/$f (left untouched)"
     else
-      cp "$tdir/$f" "$target/$f"
+      sed -e "s/@ID@/$cer_id/" -e "s/@TODAY@/$cer_today/" \
+          -e "s/@NOW@/$cer_now/" "$tdir/$f" > "$target/$f"
       echo "created: $target/$f"
       wrote=$((wrote + 1))
     fi

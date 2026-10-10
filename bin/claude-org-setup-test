@@ -182,6 +182,17 @@ out="$(env HOME="$orgdir" CLAUDE_ORG_AGENDA_LIST="$orgdir/no-such-list" "$setup"
 check "--org exits 0 in an empty dir" "$([ $rc -eq 0 ] && echo ok || echo "rc=$rc: $out")"
 check "--org created TODO.org with the header" "$(head -1 "$orgdir/TODO.org" 2>/dev/null | grep -q '^#+TODO:' && echo ok || echo missing)"
 check "--org created DONE.org" "$([ -f "$orgdir/DONE.org" ] && echo ok || echo missing)"
+# The ceremony heading's identity is minted per copy (TODO.org :ID: de081dd9).
+check "--org TODO.org carries a :KIND: ceremony heading" "$(grep -q '^:KIND: *ceremony$' "$orgdir/TODO.org" && echo ok || echo missing)"
+check "--org TODO.org has no template placeholder left" "$(grep -q '@ID@\|@TODAY@\|@NOW@' "$orgdir/TODO.org" && echo placeholder || echo ok)"
+check "--org TODO.org mints a lowercase uuid" "$(grep -Eq '^:ID: +[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' "$orgdir/TODO.org" && echo ok || echo "$(grep '^:ID:' "$orgdir/TODO.org")")"
+cer_today="$(LC_ALL=C date +'%Y-%m-%d %a')"
+check "--org TODO.org schedules the ceremony today" "$(grep -qF "SCHEDULED: <$cer_today ++1d>" "$orgdir/TODO.org" && echo ok || echo "$(grep SCHEDULED "$orgdir/TODO.org")")"
+check "--org TODO.org stamps :CREATED: today" "$(grep -Eq "^:CREATED: +\[$cer_today [0-9]{2}:[0-9]{2}\]$" "$orgdir/TODO.org" && echo ok || echo "$(grep '^:CREATED:' "$orgdir/TODO.org")")"
+cer_dir2="$(mktemp -d)"
+env HOME="$cer_dir2" CLAUDE_ORG_AGENDA_LIST="$cer_dir2/no-such-list" "$setup" --org "$cer_dir2" >/dev/null 2>&1
+check "--org mints a different :ID: per copy" "$([ "$(grep '^:ID:' "$orgdir/TODO.org")" != "$(grep '^:ID:' "$cer_dir2/TODO.org")" ] && echo ok || echo same)"
+rm -rf "$cer_dir2"
 # The consumer-owned category declaration (TODO.org :ID: 24694d1f).
 cats="$orgdir/.claude/rules/org-categories.md"
 check "--org created org-categories.md from the template" "$(cmp -s "$cats" "$script_dir/../templates/org-categories.md" && echo ok || echo "missing or different")"

@@ -2,3 +2,15 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+
+* TODO Archive closed tasks daily
+SCHEDULED: <@TODAY@ ++1d>
+:PROPERTIES:
+:ID:       @ID@
+:CREATED:  [@NOW@]
+:CATEGORY: Meta
+:KIND:     ceremony
+:END:
+The daily ceremony's schedule. The steps after apply run while it is
+overdue, at session start or when the review buffer is buried, and a clean
+run marks it done, which advances the repeater to tomorrow.

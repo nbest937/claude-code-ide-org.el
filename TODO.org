@@ -9983,6 +9983,7 @@ SCHEDULED: <2026-10-11 Sun 07:00 ++1d>
 :ID:       cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8
 :CREATED:  [2026-08-21 Fri 15:35]
 :LAST_REPEAT: [2026-10-10 Sat 17:24]
+:KIND:     ceremony
 :END:
 :LOGBOOK:
 CLOCK: [2026-08-24 Mon 10:25]--[2026-08-24 Mon 10:28] =>  0:03

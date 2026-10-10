@@ -1196,9 +1196,10 @@ over them (it reads both bodies and proposes; it changes nothing). "))
        "will, and do not run any part of it unasked. Apply is theirs alone -- "
        "M-x claude-code-ide-org-review -- because org's state-change logging "
        "only completes inside a genuinely interactive command. The steps "
-       "after it are nobody's to remember: burying the review buffer runs "
-       "slice refresh, drawer consolidation, heading separation and "
-       "archiving, and stamps the ceremony done only if every step succeeds. "
+       "after it are nobody's to remember: while the ceremony is due, session "
+       "start and burying the review buffer each run slice refresh, drawer "
+       "consolidation, heading separation and archiving, and the bury stamps "
+       "the ceremony done. "
        "So the thing to ask for is the apply; the rest follows from leaving "
        "the buffer."))))
 
@@ -1465,6 +1466,63 @@ session's markers share its cwd."
                 (string-join lines "\n")
                 "\nTell the user, and check each before redoing it.")))))
 
+(defun claude-code-ide-org--ceremony-session-start-run ()
+  "While the ceremony is due, run its steps after apply; say what changed.
+
+The steps need no human, so session start runs them rather than
+offering them (TODO.org :ID: de081dd9): before this they ran only when
+the review buffer was buried, and a session was forbidden to offer the
+pass, so overdue steps had no way to be raised.  Apply stays the
+human's.  On a clean run the repeater advances, which is the accepted
+cost: the bury after that day's apply finds the ceremony not due, and
+the headings it closes wait a day to be archived.  It never stamps the
+ceremony done -- that is the bury's, once pending items are applied.
+
+Returns a report line, or nil when nothing worth saying happened: a
+step is named only when it counted something or failed.  Skipped, and
+said so, while a tracked file has unsaved changes in Emacs, since the
+steps rewrite those files.  Under a report scope the file-shaped steps
+act on that project's own TODO.org, never the capture default."
+  (when (claude-code-ide-org--ceremony-due-p)
+    (let* ((unsaved (seq-filter
+                     (lambda (f)
+                       (let ((b (find-buffer-visiting f)))
+                         (and b (buffer-modified-p b))))
+                     (claude-code-ide-org--tracked-files)))
+           (scope claude-code-ide-org--report-scope)
+           (file (and scope (claude-code-ide-org--project-capture-file scope))))
+      (cond
+       (unsaved
+        (format "The daily ceremony is due, and its steps after apply did not \
+run at session start: %s ha%s unsaved changes in Emacs. It stays due; the \
+steps run once the review buffer is buried, or at the next session start."
+                (mapconcat #'file-name-nondirectory unsaved ", ")
+                (if (cdr unsaved) "ve" "s")))
+       ((and scope (null file)) nil)
+       (t
+        (let* ((results (claude-code-ide-org--ceremony-run-steps file))
+               (failed (seq-some #'claude-code-ide-org--ceremony-step-failed-p
+                                 results))
+               (said (seq-filter
+                      (lambda (r)
+                        (or (claude-code-ide-org--ceremony-step-failed-p r)
+                            (and (numberp (cdr r)) (> (cdr r) 0))))
+                      results)))
+          (unless failed
+            (condition-case err
+                (claude-code-ide-org--ceremony-advance-repeater)
+              (error (setq failed t)
+                     (setq said (append said (list (cons "repeater"
+                                                         (cons 'failed (error-message-string err)))))))))
+          (when said
+            (concat "The daily ceremony's steps after apply ran at session start: "
+                    (mapconcat #'claude-code-ide-org--ceremony-step-text said "; ")
+                    (if failed
+                        ". A step failed, so the repeater was held and it stays due"
+                      "")
+                    ". The tracker changed: commit the TODO.org/DONE.org diff as \
+its own bookkeeping commit. Nothing was applied; apply stays the user's."))))))))
+
 (defun claude-code-ide-org--session-start-hook-json ()
   "Return the SessionStart hook JSON payload: an empty object if there is
 nothing to report, otherwise one whose additionalContext carries every
@@ -1479,7 +1537,11 @@ single string.  Adding a second SessionStart hook would double the
 Emacs round-trip at every session start to say the same thing twice as
 often.  Either half may be absent; the payload is empty only when both
 are."
-  (let* ((findings (claude-code-ide-org-find-stale-open-intervals))
+  (let* (;; First, so the report below counts what is left after it
+         ;; (TODO.org :ID: de081dd9).  Guarded: a fault here must not
+         ;; cost the other reports.
+         (ran (ignore-errors (claude-code-ide-org--ceremony-session-start-run)))
+         (findings (claude-code-ide-org-find-stale-open-intervals))
          (stale (and findings
                      (claude-code-ide-org--format-stale-interval-report findings)))
          (status (claude-code-ide-org--ceremony-status))
@@ -1489,7 +1551,7 @@ are."
          (image (ignore-errors (claude-code-ide-org--image-report)))
          ;; Guarded the same way (TODO.org :ID: 3ad389be).
          (failures (ignore-errors (claude-code-ide-org--tool-failure-report)))
-         (parts (delq nil (list stale ceremony image failures)))
+         (parts (delq nil (list ran stale ceremony image failures)))
          ;; The user's channel (TODO.org :ID: d585d33e).  Measured on
          ;; this project's transcripts (:ID: c5b02503), additionalContext
          ;; reached the user in 15 of 24 genuine session starts -- the
@@ -1501,7 +1563,8 @@ are."
          ;; decision -- orientation, not a question.
          (summaries
           (delq nil
-                (list (and findings
+                (list (and ran "the daily ceremony's steps ran")
+                      (and findings
                            (format "%d stale open CLOCK interval%s from before today"
                                    (length findings)
                                    (if (= 1 (length findings)) "" "s")))
@@ -17904,23 +17967,40 @@ its end would bury a fresh entry under two hundred older ones."
                (length skipped) (string-join (nreverse skipped) "; ")))
     n))
 
-(defun claude-code-ide-org--ceremony-due-p ()
-  "Non-nil when the daily archive task is overdue.
+(defun claude-code-ide-org--ceremony-headings ()
+  "Markers on every `:KIND: ceremony' heading in the tracked files.
 
-Reads the SCHEDULED stamp of TODO.org :ID: cbe282ec rather than a stamp
-file of our own: it is a repeater, so org already advances it when it is
-marked done, and a second record of the same fact could disagree with
-the first."
-  (let ((m (ignore-errors
-             (claude-code-ide-org--id-find
-              "cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8" 'marker))))
-    (when m
-      (org-with-point-at m
-        (let ((s (org-entry-get nil "SCHEDULED")))
-          (and s (time-less-p (org-time-string-to-time s) (current-time))))))))
+The ceremony's schedule is a heading declaring itself, not a literal id
+(TODO.org :ID: de081dd9): the id this read until 2026-10-10, cbe282ec,
+exists only in this repository, so a consumer had no schedule and its
+steps after apply never ran.  `claude-org-setup --org' ships one.
+Confined to the report scope like every tracked-file read, so a session
+start sees its own project's."
+  (let (out)
+    (dolist (file (claude-code-ide-org--tracked-files) (nreverse out))
+      (when (file-exists-p file)
+        (with-current-buffer (find-file-noselect file)
+          (org-with-wide-buffer
+           (dolist (m (org-map-entries #'point-marker "KIND=\"ceremony\"" 'file))
+             (push m out))))))))
+
+(defun claude-code-ide-org--ceremony-heading-due-p (marker)
+  "Non-nil when the ceremony heading at MARKER is scheduled before now."
+  (org-with-point-at marker
+    (let ((s (org-entry-get nil "SCHEDULED")))
+      (and s (time-less-p (org-time-string-to-time s) (current-time))))))
+
+(defun claude-code-ide-org--ceremony-due-p ()
+  "Non-nil when a `:KIND: ceremony' heading is overdue.
+
+Reads the heading's SCHEDULED stamp rather than a stamp file of our own:
+it is a repeater, so org already advances it when it is marked done, and
+a second record of the same fact could disagree with the first."
+  (seq-some #'claude-code-ide-org--ceremony-heading-due-p
+            (claude-code-ide-org--ceremony-headings)))
 
 (defun claude-code-ide-org--ceremony-advance-repeater ()
-  "Mark TODO.org :ID: cbe282ec DONE so org advances its own repeater.
+  "Mark each overdue `:KIND: ceremony' heading DONE so org advances it.
 
 This is what stops the ceremony running again on the next `q' of the
 day.  It records the fact in the one place that already holds it -- the
@@ -17947,9 +18027,9 @@ heading wants rather than a concession -- a daily repeater would
 otherwise accrue one `State \"DONE\"\' line per day forever in a body
 nothing ever prunes, which is TODO.org :ID: ff92700e.  The durable record
 is org\'s own `:LAST_REPEAT:\' plus the ceremony stamp file."
-  (let ((m (claude-code-ide-org--id-find
-            "cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8" 'marker)))
-    (unless m (error "Ceremony heading cbe282ec not found"))
+  (let ((due (seq-filter #'claude-code-ide-org--ceremony-heading-due-p
+                        (claude-code-ide-org--ceremony-headings))))
+    (unless due (error "No overdue :KIND: ceremony heading found"))
     ;; TODO.org is normally read-only -- the user's guard against their
     ;; own stray keystrokes -- and this runs with no keystroke left to
     ;; prompt on. Same reasoning as `claude-code-ide-org-archive-finished',
@@ -17959,15 +18039,74 @@ is org\'s own `:LAST_REPEAT:\' plus the ceremony stamp file."
     ;; so the flag survives a non-local exit.
     (let ((inhibit-read-only t)
           (org-inhibit-logging t))
-      (org-with-point-at m
-        (org-todo "DONE")
-        (save-buffer)))
+      (dolist (m due)
+        (org-with-point-at m
+          (org-todo "DONE")
+          (save-buffer))))
     ;; Belt and braces: if some future org registers the hook anyway, it
     ;; must not fire against a buffer whose writability ended with the
     ;; binding above. The apply path removes it for the same reason.
     (remove-hook 'post-command-hook 'org-add-log-note)
     (setq org-log-setup nil)
     t))
+
+(defun claude-code-ide-org--ceremony-run-steps (&optional file)
+  "Run the ceremony's steps after apply, each guarded.  Return the results.
+
+A list of (NAME . RESULT) in order, RESULT being the step's own return
+value or (failed . MESSAGE).  FILE is the tracker the file-shaped steps
+act on, nil for each step's own default; a session start passes its
+project's, so it never rewrites another project's file (TODO.org :ID:
+de081dd9).  The tracked-file steps follow the report scope already.
+
+A step that signals does not stop the ones after it: they are
+independent, and losing two because the first broke would be worse than
+a partial pass."
+  (let (out)
+    (dolist (step (list
+                   ;; First, so the tidy-up steps see the regenerated
+                   ;; lines. Apply already settles slices per pass; this
+                   ;; catches drift that arose outside one -- a hand
+                   ;; edit, an archived referent -- so staleness is
+                   ;; bounded by ceremony cadence the way clock accuracy
+                   ;; already is (TODO.org :ID: d749ebd5). Idempotent
+                   ;; like its siblings.
+                   (cons "slices"   (lambda () (claude-code-ide-org-refresh-slice)))
+                   (cons "drawers"  (lambda () (claude-code-ide-org-consolidate-all-drawers)))
+                   (cons "spacing"  (lambda () (claude-code-ide-org-normalize-heading-separation file)))
+                   (cons "archived" (lambda () (claude-code-ide-org-archive-finished file)))
+                   ;; After archiving, for the same reason archiving is
+                   ;; last: sorting first would order rows that are about
+                   ;; to be removed (TODO.org :ID: 5f1068f9).
+                   (cons "sorted"   (lambda () (claude-code-ide-org-sort-by-created file)))
+                   ;; DONE.org's own ordering, and it must follow
+                   ;; archiving rather than precede it: the entries this
+                   ;; puts back in order are the ones the archive step
+                   ;; just added. Org's datetree writer inserts each new
+                   ;; node in ascending date order, so without this the
+                   ;; archive reads oldest-first again after every pass
+                   ;; (TODO.org :ID: 33864a0f).
+                   (cons "datetree" (lambda ()
+                                      (claude-code-ide-org-sort-datetree-descending
+                                       (and file (claude-code-ide-org--archive-target-file
+                                                  file)))))))
+      (push (cons (car step)
+                  (condition-case err (funcall (cdr step))
+                    (error (cons 'failed (error-message-string err)))))
+            out))
+    (nreverse out)))
+
+(defun claude-code-ide-org--ceremony-step-failed-p (result)
+  "Non-nil when RESULT, from `--ceremony-run-steps', is a failure."
+  (eq (car-safe (cdr result)) 'failed))
+
+(defun claude-code-ide-org--ceremony-step-text (result)
+  "RESULT, from `--ceremony-run-steps', as \"name: value\"."
+  (format "%s: %s" (car result)
+          (cond ((claude-code-ide-org--ceremony-step-failed-p result)
+                 (format "FAILED (%s)" (cddr result)))
+                ((numberp (cdr result)) (format "%d" (cdr result)))
+                (t "ok"))))
 
 (defun claude-code-ide-org-ceremony-finish ()
   "Run the ceremony steps that follow apply, and return a summary line.
@@ -17983,40 +18122,11 @@ did not run is the failure this project keeps finding.  A step that
 signals does not stop the ones after it: they are independent, and
 losing two because the first broke would be worse than a partial pass."
   (interactive)
-  (let ((parts nil) (failed nil))
-    (dolist (step (list
-                   ;; First, so the tidy-up steps see the regenerated
-                   ;; lines. Apply already settles slices per pass; this
-                   ;; catches drift that arose outside one -- a hand
-                   ;; edit, an archived referent -- so staleness is
-                   ;; bounded by ceremony cadence the way clock accuracy
-                   ;; already is (TODO.org :ID: d749ebd5). Idempotent
-                   ;; like its siblings.
-                   (cons "slices"   (lambda () (claude-code-ide-org-refresh-slice)))
-                   (cons "drawers"  (lambda () (claude-code-ide-org-consolidate-all-drawers)))
-                   (cons "spacing"  (lambda () (claude-code-ide-org-normalize-heading-separation)))
-                   (cons "archived" (lambda () (claude-code-ide-org-archive-finished)))
-                   ;; After archiving, for the same reason archiving is
-                   ;; last: sorting first would order rows that are about
-                   ;; to be removed (TODO.org :ID: 5f1068f9).
-                   (cons "sorted"   (lambda () (claude-code-ide-org-sort-by-created)))
-                   ;; DONE.org's own ordering, and it must follow
-                   ;; archiving rather than precede it: the entries this
-                   ;; puts back in order are the ones the archive step
-                   ;; just added. Org's datetree writer inserts each new
-                   ;; node in ascending date order, so without this the
-                   ;; archive reads oldest-first again after every pass
-                   ;; (TODO.org :ID: 33864a0f).
-                   (cons "datetree" (lambda ()
-                                      (claude-code-ide-org-sort-datetree-descending)))))
-      (push (condition-case err
-                (let ((r (funcall (cdr step))))
-                  (format "%s: %s" (car step)
-                          (if (numberp r) (format "%d" r) "ok")))
-              (error (setq failed t)
-                     (format "%s: FAILED (%s)" (car step)
-                             (error-message-string err))))
-            parts))
+  (let* ((results (claude-code-ide-org--ceremony-run-steps))
+         (failed (seq-some #'claude-code-ide-org--ceremony-step-failed-p results))
+         ;; Newest first, as the `push' below expects; reversed at the end.
+         (parts (nreverse (mapcar #'claude-code-ide-org--ceremony-step-text
+                                  results))))
     ;; Only a clean pass advances the repeater.  A ceremony that half ran
     ;; and then told the file it was done would be the one failure mode
     ;; worth guarding: the next day would open with the prompt silent and
@@ -18074,8 +18184,19 @@ logging completes normally."
       (setq claude-code-ide-org--review-pass-open nil)
       (when claude-code-ide-org--review-attention-marker
         (claude-code-ide-org-review-attention-stop "review pass (buffer buried)"))
-      (when (and pass (claude-code-ide-org--ceremony-due-p))
-        (claude-code-ide-org-ceremony-finish)))))
+      (when pass
+        (cond
+         ((claude-code-ide-org--ceremony-due-p)
+          (claude-code-ide-org-ceremony-finish))
+         ;; Not due, yet not stamped today, with a schedule to read: the
+         ;; steps already ran at session start today and advanced the
+         ;; repeater (TODO.org :ID: de081dd9).  This bury closes the
+         ;; pass, which is what the stamp says; without it the report
+         ;; would call the ceremony unfinished all day.
+         ((and (not (claude-code-ide-org--ceremony-done-today-p))
+               (claude-code-ide-org--ceremony-headings))
+          (claude-code-ide-org-mark-ceremony-done
+           "steps ran at session start; review buffer buried\n")))))))
 
 (advice-add 'quit-window :before #'claude-code-ide-org--review-attention-on-quit)
 
