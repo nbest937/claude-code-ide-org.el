@@ -206,6 +206,7 @@ CLOCK: [2026-10-09 Fri 18:29]--[2026-10-09 Fri 18:30] =>  0:01
 - [2026-10-09 Fri 18:29]--[2026-10-09 Fri 18:30] assigned at review
 CLOCK: [2026-10-09 Fri 18:30]--[2026-10-09 Fri 18:33] =>  0:03
 - [2026-10-09 Fri 18:30]--[2026-10-09 Fri 18:33] plan org_outline reverse lines
+- [2026-10-09 Fri 18:30]--[2026-10-09 Fri 18:30] resume org_outline reverse lines design
 CLOCK: [2026-10-09 Fri 18:38]--[2026-10-09 Fri 18:39] =>  0:01
 - [2026-10-09 Fri 18:38]--[2026-10-09 Fri 18:39] plan org_outline reverse lines
 CLOCK: [2026-10-09 Fri 18:39]--[2026-10-09 Fri 18:40] =>  0:01
@@ -498,7 +499,7 @@ Planned:
 - [ ] [[id:445ec1f1-095a-462b-abbd-7a3a00925ddb][445ec1f1]] TODO A/B the clock record across the phase-3 fixes, since much of what is logged now is bogus
 
 
-* NEXT [0/15] The review pass every install uses: movement, marking, apply, quit, and no clock where tracking is off :code:
+* DOING [0/15] The review pass every install uses: movement, marking, apply, quit, and no clock where tracking is off :code:
 :PROPERTIES:
 :ID:       5a4896c3-3d4e-4b12-9f9e-06b97d84b238
 :CREATED:  [2026-10-09 Fri 11:15]
@@ -515,6 +516,10 @@ Planned:
 CLOCK: [2026-10-10 Sat 15:19]--[2026-10-10 Sat 15:20] =>  0:01
 - [2026-10-10 Sat 15:19]--[2026-10-10 Sat 15:20] revise slice 5a4896c3's own plan
 - [2026-10-10 Sat 15:20]--[2026-10-10 Sat 15:20] assigned at review
+- State "DOING"      from "NEXT"       [2026-10-10 Sat 17:26] \\
+  slice work started on its branch
+CLOCK: [2026-10-10 Sat 17:26]--[2026-10-10 Sat 17:27] =>  0:01
+- [2026-10-10 Sat 17:26]--[2026-10-10 Sat 17:27] assigned at review
 :END:
 :PLAN:
 Divided out of [[id:c7619140-f269-4329-bc05-a38ea151e202][c7619140]] on 2026-10-09 (the user, a three-way split). The members
@@ -561,7 +566,7 @@ since a task-only pass is already one =x=.
 
 Planned:
 
-- [ ] [[id:97b4f6a9-a944-40d3-8d14-7a1667c52291][97b4f6a9]] TODO The review command clocks the reviewer's attention even where time tracking is off, and without the meta-work anchor files the heading under whatever comes last
+- [-] [[id:97b4f6a9-a944-40d3-8d14-7a1667c52291][97b4f6a9]] DOING The review command clocks the reviewer's attention even where time tracking is off, and without the meta-work anchor files the heading under whatever comes last
 - [ ] [[id:24694d1f-34b4-495b-b0d8-d29e64894c59][24694d1f]] TODO A consuming repo has nowhere to declare its :CATEGORY: values, so its first top-level capture makes one up
 - [[id:489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938][489d6f61]] DOING Emacs died of a fatal signal at review-buffer quit, deadlocked in the mac port's shutdown
 - [ ] [[id:41f21b4d-278d-4ad8-a56f-122f5af33d65][41f21b4d]] TODO The review buffer has no keys to move between items; bind n and p to the next and previous item
@@ -580,7 +585,7 @@ Planned:
 - [-] [[id:2b8930da-5223-4b75-b4f6-251a28552d1b][2b8930da]] DOING Nothing in the drift slice was exercised in a consumer install: the new hooks, the conditional time-file promotion, the twin-checker agent
 
 
-* TODO The review command clocks the reviewer's attention even where time tracking is off, and without the meta-work anchor files the heading under whatever comes last :code:arch:
+* DOING The review command clocks the reviewer's attention even where time tracking is off, and without the meta-work anchor files the heading under whatever comes last :code:arch:
 :PROPERTIES:
 :ID:       97b4f6a9-a944-40d3-8d14-7a1667c52291
 :CREATED:  [2026-10-09 Fri 10:59]
@@ -609,6 +614,9 @@ CLOCK: [2026-10-09 Fri 17:05]--[2026-10-09 Fri 17:06] =>  0:01
 - [2026-10-09 Fri 17:05]--[2026-10-09 Fri 17:06] resume brainstorm of review attention gate
 - Tags ":code:arch:" from ":code:"     [2026-10-09 Fri 17:06] \\
   first classified bounded, stepped up: a new plugin-to-Emacs channel, and the gate reaches the ceremony report
+- State "DOING"      from "TODO"       [2026-10-10 Sat 17:26] \\
+  first slice member, implementing gate
+- [2026-10-10 Sat 17:32]--[2026-10-10 Sat 17:32] brainstorm design for review attention gating
 :END:
 :PLAN:
 Classified bounded, then stepped up to arch in the same dialogue: the gate needs
@@ -777,6 +785,7 @@ The plan holds the decision and the findings that document must respect.
 :CATEGORY: Apply
 :END:
 :LOGBOOK:
+- [2026-10-09 Fri 17:25]--[2026-10-09 Fri 17:25] plan review buffer movement and marking members
 CLOCK: [2026-10-09 Fri 17:27]--[2026-10-09 Fri 17:28] =>  0:01
 - [2026-10-09 Fri 17:27]--[2026-10-09 Fri 17:28] plan review buffer movement and marking members
 CLOCK: [2026-10-09 Fri 17:28]--[2026-10-09 Fri 17:29] =>  0:01
@@ -6308,6 +6317,7 @@ item's own; auto-marking skips =D= items. [[id:e95cc5d1-f8ae-4aad-b9cd-5bd0277e1
 :LOGBOOK:
 - Tags ":code:bounded:" from ":code:"     [2026-10-09 Fri 17:30] \\
   first classification: resolved inside ee3c22c9's bounded design
+- [2026-10-09 Fri 17:31]--[2026-10-09 Fri 17:31] record cause and close-with plan
 CLOCK: [2026-10-09 Fri 17:33]--[2026-10-09 Fri 17:34] =>  0:01
 - [2026-10-09 Fri 17:33]--[2026-10-09 Fri 17:34] record cause and close-with plan
 :END:
@@ -8053,6 +8063,7 @@ and rarity is what keeps a false success unnoticed.
 :CATEGORY: Apply
 :END:
 :LOGBOOK:
+- [2026-10-09 Fri 18:44]--[2026-10-09 Fri 18:44] plan restoring windows after review
 CLOCK: [2026-10-09 Fri 18:46]--[2026-10-09 Fri 18:47] =>  0:01
 - [2026-10-09 Fri 18:46]--[2026-10-09 Fri 18:47] plan restoring windows after review
 - Tags ":code:bounded:" from ":code:"     [2026-10-09 Fri 18:47] \\
@@ -9836,12 +9847,14 @@ sits on the category, the one place in this repo a repeater is safe.
 :LOGBOOK:
 - State "TODO"       from              [2026-08-21 Fri 08:09] \\
   decide the automation boundary
+- [2026-10-09 Fri 18:50]--[2026-10-09 Fri 18:50] plan how far apply can be automated
 CLOCK: [2026-10-09 Fri 18:51]--[2026-10-09 Fri 18:52] =>  0:01
 - [2026-10-09 Fri 18:51]--[2026-10-09 Fri 18:52] plan how far apply can be automated
 CLOCK: [2026-10-09 Fri 20:26]--[2026-10-09 Fri 20:29] =>  0:03
 - [2026-10-09 Fri 20:26]--[2026-10-09 Fri 20:29] plan how far apply can be automated
 - Tags ":code:spike:" from ":code:"     [2026-10-09 Fri 20:28] \\
   first classification: a decision whose output is an answer, not code
+- [2026-10-09 Fri 20:46]--[2026-10-09 Fri 20:46] plan how far apply can be automated
 :END:
 :PLAN:
 
@@ -10051,6 +10064,7 @@ CLOCK: [2026-08-19 Wed 08:28]--[2026-08-19 Wed 08:29] =>  0:01
 - [2026-08-19 Wed 08:28]--[2026-08-19 Wed 08:29] assigned at review
 CLOCK: [2026-08-19 Wed 08:42]--[2026-08-19 Wed 08:46] =>  0:04
 - [2026-08-19 Wed 08:42]--[2026-08-19 Wed 08:46] assigned at review
+- [2026-10-09 Fri 18:47]--[2026-10-09 Fri 18:47] plan checkout guard for applied changes
 CLOCK: [2026-10-09 Fri 18:48]--[2026-10-09 Fri 18:49] =>  0:01
 - [2026-10-09 Fri 18:48]--[2026-10-09 Fri 18:49] plan checkout guard for applied changes
 - Tags ":code:bounded:" from ":code:"     [2026-10-09 Fri 18:49] \\
@@ -12204,6 +12218,7 @@ per tool -- rather than opening the servers beyond localhost.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-10-10 Sat 17:36]--[2026-10-10 Sat 17:40] =>  0:04
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
@@ -13919,4 +13934,15 @@ CLOCK: [2026-10-09 Fri 13:33]--[2026-10-09 Fri 13:34] =>  0:01
 - [2026-10-09 Fri 13:33]--[2026-10-09 Fri 13:34] assigned at review
 CLOCK: [2026-10-09 Fri 13:36]--[2026-10-09 Fri 13:37] =>  0:01
 - [2026-10-09 Fri 13:36]--[2026-10-09 Fri 13:37] brainstorm the session-command split
+:END:
+
+
+**** 2026-10-10 Saturday
+:PROPERTIES:
+:ID:       488ba84e-97d2-451d-94ac-d2fa8e41d796
+:CREATED:  [2026-10-10 Sat 17:24]
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-10 Sat 17:24]--[2026-10-10 Sat 17:25] =>  0:01
+- [2026-10-10 Sat 17:24]--[2026-10-10 Sat 17:25] root-cause unattributed spans, file discipline fix
 :END:
