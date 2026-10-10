@@ -732,6 +732,12 @@ The live pass ran in the implementing session, on a stamp written by running the
 hook by hand, not after a new session: the =settings.json= row itself is first
 exercised at the next session start, which should leave the stamp reading
 =true=.
+
+Regression found after close, while working [[id:6c64cc9c-33a9-4a20-af19-c188a690c755][6c64cc9c]] (2026-10-10). The ceremony
+on bury was gated on the attention marker, which this gate leaves unset where
+tracking is off, so a task-only install stopped archiving on =q=. Fixed in
+commit [[orgit-rev:./::462a82b][462a82b]] with a per-pass flag. No test here covered quit with the gate
+off.
 :END:
 
 The review command opens an attention clock on every pass, even in an install
@@ -8243,6 +8249,22 @@ offset is clamped. Run red against HEAD's version first. The layout half is
 checked live in the user's Emacs.
 
 :END:
+:DEBRIEF:
+Shipped as planned. The restore is an outermost =:around= advice on
+=quit-window=, so the =:before= advice's ceremony has rewritten the file before
+the id is looked up. Six tests, all red against HEAD; the clamp test is also
+red against a mutation that drops the clamp.
+
+Found on the way and fixed in the same commit: the ceremony on bury keyed on the
+attention marker. Since [[id:97b4f6a9-a944-40d3-8d14-7a1667c52291][97b4f6a9]] that marker is never set where time tracking
+is off, so a task-only install buried the buffer and archived nothing. It now
+keys on a per-pass flag the command sets.
+
+Not verified: the layout half, by hand in a real Emacs. The plan asked for that
+check. Not filed: the user's next review pass is the check. Recovering when the
+entry buffer is killed during the pass is untested; the restore skips a dead
+buffer.
+:END:
 =M-x claude-code-ide-org-review= should leave the user where they entered (the
 user, 2026-09-02). It ends in =pop-to-buffer= and saves no window configuration
 or position, =RET= moves point in TODO.org, and the ceremony that runs on bury
@@ -8251,6 +8273,13 @@ survive it. Designed 2026-10-09 (the user): restore the layout, then the entry
 heading by =:ID:= and offset, after the ceremony; an archived heading is
 declined with a message naming its id and how to follow it. Adjacent, not the
 same: [[id:29734f79-e698-43dd-abf8-14bc86b8b0ae][29734f79]] made the ceremony report its completion on bury.
+
+Resolved in commit [[orgit-rev:./::462a82b][462a82b]]. The command records the layout, plus the entry
+heading's =:ID:= and point's offset, before popping the buffer. Leaving by =q=
+restores them after the ceremony has run, and killing the buffer restores them
+straight away. An archived heading is declined with a message carrying the id,
+which is also copied to the kill ring. A non-org entry gets the layout only.
+
 
 
 * TODO Classify gaps by markers at either end, not by tracking an AFK state :code:
