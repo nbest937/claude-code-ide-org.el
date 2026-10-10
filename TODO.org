@@ -3513,7 +3513,7 @@ made safe, the second call is still being missed often enough to show in the
 miss count.
 
 
-* DOING Nothing in the drift slice was exercised in a consumer install: the new hooks, the conditional time-file promotion, the twin-checker agent :code:
+* DOING Nothing in the drift slice was exercised in a consumer install: the new hooks, the conditional time-file promotion, the twin-checker agent :code:spike:
 :PROPERTIES:
 :ID:       2b8930da-5223-4b75-b4f6-251a28552d1b
 :CREATED:  [2026-09-21 Mon 10:21]
@@ -3549,37 +3549,48 @@ CLOCK: [2026-10-06 Tue 14:15]--[2026-10-06 Tue 14:17] =>  0:02
 - [2026-10-06 Tue 14:15]--[2026-10-06 Tue 14:17] suggested span, accepted at review
 CLOCK: [2026-10-06 Tue 14:18]--[2026-10-06 Tue 14:20] =>  0:02
 - [2026-10-06 Tue 14:18]--[2026-10-06 Tue 14:20] suggested span, accepted at review
+- Tags ":code:spike:" from ":code:"     [2026-10-10 Sat 15:18] \\
+  classified spike: the output is an answer per check; failures file their own headings
 :END:
 :PLAN:
 
-Every consumer-facing change on feature/rules-in-wrong-places was verified in
-this repo only, which wires its hooks through .claude/settings.json and links
-.claude/agents by hand. Unverified in a plugin consumer: that hooks.json's two
-PreToolUse guards, the org_.* refusal/conventions-inject row and the session
-marker fire; that claude-org-setup leaves org-time-tracking.md unpromoted with
-the feature off, keeps an already-promoted copy on a plain re-run since silence
-is not off ([[id:5fbc34cb-b5bd-4d9c-b8cb-29063f492b45][5fbc34cb]], the [[https://github.com/nbest937/claude-code-ide-org.el/pull/29][PR #29]] review), and removes it with
---no-time-tracking; that conventions-inject falls back to the shipped reference
-where nothing is promoted; that a catch amended from the consumer resolves
-against the plugin's tracker; and whether a plugin's agents/ directory is
-offered to the consumer at all — the manifest names no agents key.
-agentic-euchre is the available consumer; its skill link resolves to the
-worktree claude-code-ide-org-swc, to be moved forward when the slice merges. Do
-it then, before resuming work there.
+Approved 2026-10-10 in /plan-slice. Path: spike. The question: does each
+shipped behaviour work in a real consumer, agentic-euchre, with time tracking
+off? Every consumer-facing change was verified only in this repo, which wires
+its hooks through .claude/settings.json and links .claude/agents by hand.
 
-*Before running the checks, move the worktree again* (the user, 2026-10-09).
-agentic-euchre loads the plugin from =claude-code-ide-org-swc=, which was moved
-to =main= at commit [[orgit-rev:./::80a7d44][80a7d44]] on 2026-10-09, before slice [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]] was worked.
-Once that slice's PR merges, run =git -C ../claude-code-ide-org-swc checkout
---detach main= and re-run =claude-org-setup --no-time-tracking= in
-agentic-euchre, so the checks exercise the slice's fixes rather than the state
-before them.
+*Setup, before the slice's PR merges* (the user, 2026-10-10; this member is the
+last of slice [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]], so it cannot wait for that merge). Run
+=git -C ../claude-code-ide-org-swc checkout --detach <the slice's feature
+branch>=, re-run =claude-org-setup --no-time-tracking= in agentic-euchre and
+confirm =--check= reports all ok, then start a fresh Claude Code session there.
+agentic-euchre loads the plugin through =.claude/skills/claude-code-ide-org=, a
+symlink to that worktree.
 
-*One more check, added with [[id:dc21f724-78f9-4da8-9d74-002ad3306446][dc21f724]] (2026-10-09):* in agentic-euchre, the names
-under which the shipped =/plan-slice= and =/work-slice= appear (the docs say
-plugin commands are namespaced, =/claude-code-ide-org:work-slice=, and are
-silent on the bare name), and that both run with no =.claude/slice-rules.md= in
-that repo.
+*The checks.* Check 2 (setup keeps an already-promoted time file on a plain
+re-run and removes it with --no-time-tracking, [[id:5fbc34cb-b5bd-4d9c-b8cb-29063f492b45][5fbc34cb]]) passed 2026-10-06.
+1. hooks.json's two PreToolUse guards, the org_.* refusal/conventions-inject
+   row and the session marker fire.
+3. conventions-inject falls back to the shipped reference where nothing is
+   promoted.
+4. A catch amended from the consumer resolves against the plugin's tracker.
+5. Whether the plugin's agents/ directory is offered to the consumer at all;
+   the manifest names no agents key.
+6. With [[id:dc21f724-78f9-4da8-9d74-002ad3306446][dc21f724]]: the names under which =/plan-slice= and =/work-slice= appear
+   (the docs say =/claude-code-ide-org:work-slice=, silent on the bare name),
+   and that both run with no =.claude/slice-rules.md=.
+7. [[id:97b4f6a9-a944-40d3-8d14-7a1667c52291][97b4f6a9]]: a review pass there applies a state change and opens no clock.
+8. [[id:24694d1f-34b4-495b-b0d8-d29e64894c59][24694d1f]]: with no categories declared, a top-level capture is refused
+   pointing at the rules-file stub, and =claude-org-setup --check= nags.
+9. [[id:79c224ab-188a-4ed4-a606-c28ee2cfe72d][79c224ab]]: a discarding git command is refused while euchre's .org file is
+   dirty, through the plugin's hooks.json wiring.
+The buffer-movement members run in the same Emacs either way, so a consumer
+adds nothing for them; [[id:de081dd9-1853-4d79-94fc-2edac498380f][de081dd9]]'s ceremony is not checked here.
+
+*Output.* Each result goes into the body as passed, or failed with what
+happened. Each failure is filed as its own heading: fixed on the branch if it
+blocks the PR, otherwise deferred. The heading closes once every check has an
+answer.
 :END:
 It gates earnest work in euchre, taking over from [[id:6a207b00-8fa1-441e-8ee5-354702bc979b][6a207b00]] (closed
 2026-09-22). It waits on [[id:8a2eb687-28da-4d44-893b-db59298bdc5b][8a2eb687]] and [[id:6521dd56-8772-416b-9435-6da78bb86b06][6521dd56]], moved from there, and on
