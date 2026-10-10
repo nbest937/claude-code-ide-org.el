@@ -12990,7 +12990,9 @@ common answer."
 ;; line and advancing, `t' to invert every mark, `U' to clear them --
 ;; because that is the muscle memory a person arrives with. `M' for
 ;; mark-all is the one addition dired has no single key for.
-(dolist (binding '(("m" . claude-code-ide-org-review-mark)
+(dolist (binding '(("n" . claude-code-ide-org-review-next-item)
+                   ("p" . claude-code-ide-org-review-previous-item)
+                   ("m" . claude-code-ide-org-review-mark)
                    ("u" . claude-code-ide-org-review-unmark)
                    ("t" . claude-code-ide-org-review-toggle-all)
                    ("M" . claude-code-ide-org-review-mark-all)
@@ -13061,8 +13063,16 @@ up -- that is how the agenda doubles as a retrospective \"what did I
 attend to\" view.  Agent intervals use [...] and stay out of the agenda,
 since unattended machine work is not attention.
 
-A span prefixed `?' is UNASSIGNED: it belongs to no heading yet, and
-press \\[claude-code-ide-org-review-assign] to say which.  The indented lines under it are the
+The prefix column carries two marks, and `!' means one of three things:
+
+  !  on a state line: STALE, as above.
+  !  on a span: it names no heading, so \\[claude-code-ide-org-review-assign] must choose one, and it
+     cannot be marked until then.
+  !  on a capture: its target heading no longer resolves.
+  ?  on a span: it carries a SUGGESTED heading, named after the arrow.
+     Confirm it by marking, or press \\[claude-code-ide-org-review-assign] to choose another.
+
+The indented lines under a span with no heading are the
 *evidence* -- git commits and headings created inside that span's window,
 in the order they happened.  They are not a recommendation and nothing
 consults them: a `:CREATED:' stamp inside the window names what was being
@@ -13070,10 +13080,19 @@ thought about, a commit just after it marks what was finished, and the
 answer is yours to draw.  Absent lines mean an empty window, not an
 error.
 
+The mark column shows `x' for an item marked to apply and `D' for one
+marked to dismiss, dired-style: \\[claude-code-ide-org-review-dismiss] marks the item at point for
+permanent dismissal, and with a prefix argument asks for its own reason
+now.  The two marks exclude each other, \\[claude-code-ide-org-review-unmark] clears either, and the
+bulk marks leave `D' items alone except \\[claude-code-ide-org-review-unmark-all], which clears them.
+\\[claude-code-ide-org-review-next-item] and \\[claude-code-ide-org-review-previous-item] move between items, skipping headings and evidence.
+
 Three behaviours worth knowing:
 
-  \\[claude-code-ide-org-review-apply] is the only consequential key.  It writes real org state and saves
-  the buffers.  Items apply oldest first and independently: if one fails
+  \\[claude-code-ide-org-review-apply] is the only consequential key.  It dismisses every `D' item
+  first, asking once for a reason the ones without their own share, and
+  then writes real org state for every marked item and saves the
+  buffers.  When there are `D' items it confirms both counts first.  Items apply oldest first and independently: if one fails
   it is reported and the rest still go.  If a target buffer is read-only
   it asks first, and answering no applies nothing and keeps your marks.
   When nothing at all applied it does not refresh, so your marks survive
@@ -15935,12 +15954,12 @@ rest from lighting up."
     ;; checks it: `c' and `?' were both bound and both unlisted, so the
     ;; one key that would have named the others was itself invisible
     ;; (TODO.org :ID: 36698ca7).
-    (insert "Pending org updates.  m/u mark, M/U all, t invert, "
-            "a assign, c claim, e interval,\n"
-            "N note, d dismiss, RET goto, T transcript, s "
+    (insert "Pending org updates.  n/p move, m/u mark, M/U all, t invert, "
+            "a assign, c claim,\n"
+            "e interval, N note, d mark to dismiss, RET goto, T transcript, s "
             (if claude-code-ide-org--review-newest-first "oldest" "newest")
             "-first,\n"
-            "x apply marked, g refresh, ? help, q quit\n\n")
+            "x apply and dismiss marked, g refresh, ? help, q quit\n\n")
     (let ((health-line (claude-code-ide-org--review-id-health-line)))
       (when health-line (insert health-line)))
     (if (null display)
@@ -16000,10 +16019,14 @@ rest from lighting up."
                      'claude-code-ide-org-line 'group))))
         (insert (propertize
                  (format "  [%s] %s\n"
-                         (if (plist-get item :marked)
-                             (propertize "x" 'face
-                                         'claude-code-ide-org-review-mark-face)
-                           " ")
+                         (cond
+                          ((plist-get item :marked)
+                           (propertize "x" 'face
+                                       'claude-code-ide-org-review-mark-face))
+                          ((plist-get item :dismiss)
+                           (propertize "D" 'face
+                                       'claude-code-ide-org-review-attention-face))
+                          (t " "))
                          ;; Faced only when the item needs a decision --
                          ;; a stale transition or an unassigned span.
                          ;; Facing every item by type was considered and
@@ -16063,7 +16086,8 @@ default, and never without having been told.  A `y-or-n-p' is safe here
 in a way it is not elsewhere in this module: this is a genuinely
 interactive command with a human at the keyboard, not an
 `emacsclient -e' call with nobody present to answer."
-  (let ((item (claude-code-ide-org--review-item-at-point)))
+  (let ((item (claude-code-ide-org--review-item-at-point))
+        (wanted marked))
     (unless item (user-error "%s" (claude-code-ide-org--review-no-item-message)))
     (when (and marked (claude-code-ide-org--review-state-stale-p item))
       (if (y-or-n-p
@@ -16079,7 +16103,17 @@ interactive command with a human at the keyboard, not an
     ;; about (:ID: b6e229c7).
     (plist-put item :auto-marked nil)
     (plist-put item :marked marked)
+    ;; `m' and `D' exclude each other, and `u' clears either. A declined
+    ;; stale confirmation leaves a `D' where it was: the human said no to
+    ;; applying, not to dismissing (TODO.org :ID: ee3c22c9).
+    (when (or marked (not wanted))
+      (claude-code-ide-org--review-clear-dismiss item))
     (claude-code-ide-org--review-redraw item advance)))
+
+(defun claude-code-ide-org--review-clear-dismiss (item)
+  "Remove ITEM's `D' mark and any reason given for it."
+  (plist-put item :dismiss nil)
+  (plist-put item :dismiss-reason nil))
 
 (defun claude-code-ide-org--review-goto-line (line)
   "Move point to LINE, 1-based, in the current buffer.
@@ -16115,7 +16149,9 @@ list that may no longer contain the same items would only look like it
 had preserved something."
   (claude-code-ide-org--review-render)
   (when (claude-code-ide-org--review-goto-item item)
-    (when advance (claude-code-ide-org--review-forward-item))))
+    (when advance
+      (claude-code-ide-org--review-recenter
+       (claude-code-ide-org--review-forward-item)))))
 
 (defun claude-code-ide-org--review-goto-item (item)
   "Move point to the line carrying ITEM.  Return non-nil when found.
@@ -16144,14 +16180,57 @@ Stays put when there is no next item, rather than landing on a blank or
 group-heading line.  That matters because the mark commands advance:
 running off the end would leave point somewhere that is not an item, and
 the next keystroke would then report \"No review item on this line\"
-instead of acting on the obvious target."
+instead of acting on the obvious target.
+
+Returns non-nil when point moved, which is what lets the recenter that
+follows every advance skip the one at the last item (TODO.org :ID:
+396fd1c3)."
   (let ((start (point)))
     (forward-line 1)
     (while (and (not (eobp))
                 (not (claude-code-ide-org--review-item-at-point)))
       (forward-line 1))
     (unless (claude-code-ide-org--review-item-at-point)
-      (goto-char start))))
+      (goto-char start))
+    (/= (point) start)))
+
+(defun claude-code-ide-org--review-backward-item ()
+  "Move point to the previous line carrying a review item.
+The twin of `claude-code-ide-org--review-forward-item': it skips group
+headings, evidence and prompt lines, stays put at the first item, and
+returns non-nil when point moved (TODO.org :ID: 41f21b4d)."
+  (let ((start (point))
+        (found nil))
+    (while (and (not found) (zerop (forward-line -1)))
+      (when (claude-code-ide-org--review-item-at-point)
+        (setq found t)))
+    (unless found (goto-char start))
+    (/= (point) start)))
+
+(defun claude-code-ide-org--review-recenter (moved)
+  "Centre the item at point when MOVED is non-nil.
+
+Called after the render, never before: every mark re-renders the
+buffer, and centring against the pre-render position would scroll to
+the wrong place only sometimes.  `recenter', not `recenter-top-bottom',
+because the latter cycles on `last-command' and a run of marks would
+start scrolling to the top.  Only in the review buffer's own selected
+window, since `recenter' errors elsewhere and the batch suite has no
+window (TODO.org :ID: 396fd1c3)."
+  (when (and moved (eq (window-buffer (selected-window)) (current-buffer)))
+    (recenter)))
+
+(defun claude-code-ide-org-review-next-item ()
+  "Move to the next item line, skipping headings and evidence."
+  (interactive)
+  (claude-code-ide-org--review-recenter
+   (claude-code-ide-org--review-forward-item)))
+
+(defun claude-code-ide-org-review-previous-item ()
+  "Move to the previous item line, skipping headings and evidence."
+  (interactive)
+  (claude-code-ide-org--review-recenter
+   (claude-code-ide-org--review-backward-item)))
 
 (defun claude-code-ide-org--review-markable-p (item)
   "Non-nil when ITEM can be marked without asking the human anything.
@@ -16211,6 +16290,10 @@ rather than the normal case."
       (plist-put item :auto-mark-considered t)
       (when (and (eq (plist-get item :type) 'state)
                  (not (plist-get item :marked))
+                 ;; A `D' is the human's word that this item never
+                 ;; applies; an `m' over it would undo that silently
+                 ;; (TODO.org :ID: ee3c22c9).
+                 (not (plist-get item :dismiss))
                  (claude-code-ide-org--review-markable-p item))
         (plist-put item :marked t)
         (plist-put item :auto-marked t))))
@@ -16229,16 +16312,21 @@ skipped rather than leaving the human to notice."
         (stale 0) (unassigned 0))
     (dolist (item claude-code-ide-org--review-items)
       (let ((want (funcall fn item)))
-        (if (and want (not (claude-code-ide-org--review-markable-p item)))
+        (cond
+         ;; `M' and `t' leave a `D' item alone, as dired's leave flagged
+         ;; lines; `U' clears it with everything else (:ID: ee3c22c9).
+         ((plist-get item :dismiss)
+          (unless want (claude-code-ide-org--review-clear-dismiss item)))
+         ((and want (not (claude-code-ide-org--review-markable-p item)))
             ;; Count the two refusals separately. They are different
             ;; problems with different answers, and reporting both as
             ;; "stale" sent the user to dismiss six spans that were
             ;; merely unassigned -- three of which carried real recorded
             ;; time (observed 2026-08-24, "13 stale item(s)" when seven
             ;; were stale and six wanted `a').
-            (if (and (plist-get item :unassigned) (null (plist-get item :id)))
-                (setq unassigned (1+ unassigned))
-              (setq stale (1+ stale)))
+          (if (and (plist-get item :unassigned) (null (plist-get item :id)))
+              (setq unassigned (1+ unassigned))
+            (setq stale (1+ stale))))
           ;; Cleared here for the same reason
           ;; `claude-code-ide-org--review-set-mark' clears it: `M', `U'
           ;; and `t' are hand gestures, so the mark they leave is the
@@ -16248,8 +16336,8 @@ skipped rather than leaving the human to notice."
           ;; so the two mark paths disagreed about what the flag means.
           ;; On this branch only: an item refused above was never touched
           ;; and keeps whatever state it arrived with.
-          (progn (plist-put item :auto-marked nil)
-                 (plist-put item :marked want)))))
+         (t (plist-put item :auto-marked nil)
+            (plist-put item :marked want)))))
     (claude-code-ide-org--review-render)
     (claude-code-ide-org--review-goto-line line)
     (when (> (+ stale unassigned) 0)
@@ -16881,61 +16969,63 @@ guideposts and still deserve `e' before they are trusted.  Only the
         ;; finishing coincide. For `a' they do not.
         (claude-code-ide-org--review-redraw item)))))
 
-(defun claude-code-ide-org-review-dismiss ()
-  "Retire the item at point permanently, so it stops being proposed.
+(defun claude-code-ide-org-review-dismiss (&optional own-reason)
+  "Mark the item at point `D', for dismissal at `x', and move on.
 
-For the item that will *never* apply, which skipping cannot express:
-skipping is how a human defers, and the watermark deliberately keeps a
-deferred item pending. Without this, the `dead-beef' phantom clock and
-the pre-cutover transitions the tools already performed live come back
-at every single review.
+Dismissal is for the item that will *never* apply, which skipping cannot
+express: skipping is how a human defers, and the watermark deliberately
+keeps a deferred item pending. Without it, the `dead-beef' phantom clock
+and the pre-cutover transitions the tools already performed live come
+back at every single review.
 
-Asks for a reason and records it, because \"already applied live
-pre-cutover\" and \"this event should never have existed\" read very
-differently at a later audit. The `y-or-n-p' is safe here for the reason
-given on `claude-code-ide-org--review-set-mark': the review buffer is
-only ever reached from a genuinely interactive command, never from an
-`emacsclient -e' call with nobody present to answer.
+A mark rather than an act, dired's `d' (TODO.org :ID: ee3c22c9): seven
+items sharing one reason used to be seven prompts, and now take one at
+`x'.  The line stays, so the advance is `m''s, over drawn lines -- which
+is what retired the jump :ID: e95cc5d1 reported, where an immediate
+dismissal redrew onto the next item in *held* order while the buffer is
+drawn newest-first.
 
-Dismisses the events the item was built from, per owning session, and
-touches no org file at all."
-  (interactive)
+With a prefix argument (OWN-REASON), asks for this item's own reason
+now; the rest share one asked at `x'.  `D' and `m' exclude each other.
+A stale item takes a `D' without the stale confirmation, which guards
+applying, not dismissing."
+  (interactive "P")
   (let ((item (claude-code-ide-org--review-item-at-point)))
     (unless item (user-error "%s" (claude-code-ide-org--review-no-item-message)))
-    (let ((events (plist-get item :events)))
-      ;; Nothing to record against means the next refresh would rebuild
-      ;; this line unchanged -- better to say so than to appear to work.
-      (unless events
-        (user-error "Nothing to dismiss: this item carries no queue events"))
-      (let ((reason (read-string "Dismiss -- reason: ")))
-        (when (y-or-n-p (format "Dismiss permanently: %s? "
-                                (string-trim
-                                 (claude-code-ide-org--review-describe item))))
-          (let ((by-session (make-hash-table :test 'equal)))
-            (dolist (event events)
-              (push (plist-get event :ts-string)
-                    (gethash (plist-get event :session-id) by-session)))
-            (maphash (lambda (session-id ts-strings)
-                       (when session-id
-                         (claude-code-ide-org--queue-mark-dismissed
-                          session-id ts-strings reason)))
-                     by-session))
-          ;; Drop the item in place rather than refreshing.  This used to
-          ;; end in `claude-code-ide-org-review-refresh', which rebuilds
-          ;; the item list from the queue and so discarded *every
-          ;; unapplied decision in the session* -- assignments, edited
-          ;; intervals, notes -- while appearing to act on one line.  The
-          ;; dismissal is already durable in the queue by this point, so
-          ;; there is nothing a rebuild would add beyond that loss.
-          (let ((next (cadr (memq item claude-code-ide-org--review-items))))
-            (setq claude-code-ide-org--review-items
-                  (delq item claude-code-ide-org--review-items))
-            ;; Advance, because dismissing answers the line's question as
-            ;; surely as assigning does -- but onto the item that took its
-            ;; place, since this one is gone.
-            (if next
-                (claude-code-ide-org--review-redraw next)
-              (claude-code-ide-org--review-render))))))))
+    ;; Nothing to record against means the next refresh would rebuild
+    ;; this line unchanged -- better to say so than to appear to work.
+    (unless (plist-get item :events)
+      (user-error "Nothing to dismiss: this item carries no queue events"))
+    (plist-put item :dismiss-reason
+               (and own-reason (read-string "Dismiss this item -- reason: ")))
+    (plist-put item :dismiss t)
+    (plist-put item :marked nil)
+    (plist-put item :auto-marked nil)
+    (claude-code-ide-org--review-redraw item 'advance)))
+
+(defun claude-code-ide-org--review-dismiss-items (items reason)
+  "Dismiss ITEMS permanently in the queue, then drop them from the buffer.
+
+Each item's own `:dismiss-reason' wins; the rest take REASON.  Records
+the events each item was built from, per owning session, and touches no
+org file at all.  Drops the items in place rather than refreshing: a
+rebuild from the queue would discard every unapplied decision in the
+session -- assignments, edited intervals, notes -- while appearing to
+act on a few lines."
+  (let ((by-key (make-hash-table :test 'equal)))
+    (dolist (item items)
+      (let ((why (or (plist-get item :dismiss-reason) reason)))
+        (dolist (event (plist-get item :events))
+          (push (plist-get event :ts-string)
+                (gethash (cons (plist-get event :session-id) why) by-key)))))
+    (maphash (lambda (key ts-strings)
+               (when (car key)
+                 (claude-code-ide-org--queue-mark-dismissed
+                  (car key) ts-strings (cdr key))))
+             by-key))
+  (setq claude-code-ide-org--review-items
+        (seq-remove (lambda (i) (memq i items))
+                    claude-code-ide-org--review-items)))
 
 (defvar claude-code-ide-org--review-stash nil
   "The item list `g' last discarded, for `claude-code-ide-org-review-undo-refresh'.")
@@ -16953,8 +17043,11 @@ Four kinds, and each leaves an unambiguous flag: `:marked' from `m'/`M',
 Counted rather than merely detected, because \"3 marked, 1 assigned\"
 tells a human whether to care and a bare \"are you sure?\" does not
 (TODO.org :ID: 8d0716fe)."
-  (let ((marked 0) (assigned 0) (notes 0) (edited 0) (claimed 0))
+  (let ((marked 0) (dismiss 0) (assigned 0) (notes 0) (edited 0) (claimed 0))
     (dolist (item items)
+      ;; A `D' is always the human's: nothing places one automatically
+      ;; (TODO.org :ID: ee3c22c9).
+      (when (plist-get item :dismiss) (setq dismiss (1+ dismiss)))
       ;; An auto-mark is not judgement -- nobody decided it, and
       ;; counting it would make `g' prompt on every refresh, turning the
       ;; guard into the decoration it was written to avoid (:ID: b6e229c7).
@@ -16971,6 +17064,7 @@ tells a human whether to care and a bare \"are you sure?\" does not
       (when (plist-get item :claimed) (setq claimed (1+ claimed))))
     (let ((parts (delq nil
                        (list (and (> marked 0) (format "%d marked" marked))
+                             (and (> dismiss 0) (format "%d to dismiss" dismiss))
                              (and (> assigned 0) (format "%d assigned" assigned))
                              (and (> notes 0) (format "%d note%s" notes
                                                       (if (= notes 1) "" "s")))
@@ -17106,7 +17200,14 @@ c8a97d9d-8b13-4b6a-a8b9-1a3f24b5e00b)."
       (with-current-buffer buffer (read-only-mode 1)))))
 
 (defun claude-code-ide-org-review-apply ()
-  "Apply every marked item, then refresh.
+  "Dismiss every `D' item and apply every marked one, then redraw.
+
+`D' items go first, as dired's `x' deletes what `d' flagged (TODO.org
+:ID: ee3c22c9): one confirmation names both counts, one reason is asked
+for every `D' item without its own, and with nothing marked `m' it only
+dismisses.  Dismissals first, so a dismissed chain link has left the
+batch before any apply is judged against it.  With no `D' item there is
+no confirmation, as before: applying is what the marks already said.
 
 Offers to make any read-only target buffer writable first; see
 `claude-code-ide-org--review-ensure-writable'.
@@ -17120,8 +17221,11 @@ failure they had no chance to react to.  A re-render instead, since
 that re-evaluates staleness against the file as it now stands."
   (interactive)
   (let ((marked (seq-filter (lambda (i) (plist-get i :marked))
-                            claude-code-ide-org--review-items)))
-    (unless marked
+                            claude-code-ide-org--review-items))
+        (doomed (seq-filter (lambda (i) (plist-get i :dismiss))
+                            claude-code-ide-org--review-items))
+        (reason nil))
+    (unless (or marked doomed)
       (user-error "%s"
                   (let ((n (length claude-code-ide-org--review-items)))
                     (cond
@@ -17130,10 +17234,35 @@ that re-evaluates staleness against the file as it now stands."
                                         "pending -- `m' marks one, `M' marks "
                                         "all that are markable")
                                 n))))))
+    ;; Asked before anything is written, so declining or quitting leaves
+    ;; every mark where it was.  The `y-or-n-p' is safe for the reason
+    ;; `claude-code-ide-org--review-set-mark' gives.
+    (when doomed
+      (unless (y-or-n-p (if marked
+                            (format "Apply %d, dismiss %d? "
+                                    (length marked) (length doomed))
+                          (format "Dismiss %d permanently? " (length doomed))))
+        (user-error "Nothing applied or dismissed; marks kept"))
+      (let ((shared (seq-remove (lambda (i) (plist-get i :dismiss-reason))
+                                doomed)))
+        (when shared
+          (setq reason (read-string (format "Dismiss %d -- reason: "
+                                            (length shared)))))))
     ;; Cleared *outside* the `unwind-protect', because declining signals
     ;; and nothing was cleared to put back.
-    (let ((cleared (claude-code-ide-org--review-ensure-writable marked)))
+    (let ((cleared (and marked
+                        (claude-code-ide-org--review-ensure-writable marked))))
+      (when doomed
+        (claude-code-ide-org--review-dismiss-items doomed reason))
       (unwind-protect
+          (if (not marked)
+              (let ((line (line-number-at-pos)))
+                (claude-code-ide-org--review-render)
+                (claude-code-ide-org--review-goto-line line)
+                (unless (claude-code-ide-org--review-item-at-point)
+                  (or (claude-code-ide-org--review-forward-item)
+                      (claude-code-ide-org--review-backward-item)))
+                (message "Dismissed %d item(s)" (length doomed)))
           (let* ((result (claude-code-ide-org--review-apply marked))
                  (line (line-number-at-pos))
                  (done (plist-get result :items))
@@ -17176,7 +17305,8 @@ that re-evaluates staleness against the file as it now stands."
               (claude-code-ide-org--review-render)
               (goto-char (point-min))
               (forward-line (1- line)))
-            (message "Applied %d item(s)%s%s"
+            (message "%sApplied %d item(s)%s%s"
+                     (if doomed (format "Dismissed %d; " (length doomed)) "")
                      (plist-get result :applied)
                      (if (plist-get result :errors)
                          (format "; %d failed: %s"
@@ -17193,7 +17323,7 @@ that re-evaluates staleness against the file as it now stands."
                                  (string-join
                                   (reverse claude-code-ide-org--review-apply-warnings)
                                   "; "))
-                       "")))
+                       ""))))
         ;; An error mid-apply must not leave the user's guard disabled --
         ;; that failure window is the whole objection c8a97d9d raised
         ;; against clear-then-restore, and `unwind-protect' is what closes

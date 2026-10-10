@@ -9515,7 +9515,11 @@ queue events -- equal in content, empty of the decision."
                       ((symbol-function 'y-or-n-p) (lambda (&rest _) t))
                       ((symbol-function 'claude-code-ide-org--queue-mark-dismissed)
                        (lambda (&rest _) t)))
-              (claude-code-ide-org-review-dismiss))
+              ;; `d' marks and `x' dismisses since :ID: ee3c22c9; the
+              ;; assignment must survive the pair. The auto-mark on the
+              ;; state item is cleared by the `D', so `x' only dismisses.
+              (claude-code-ide-org-review-dismiss)
+              (claude-code-ide-org-review-apply))
             ;; The dismissed item is gone...
             (should-not (memq doomed claude-code-ide-org--review-items))
             ;; ...and the assignment made earlier in the session survives,
@@ -9524,6 +9528,250 @@ queue events -- equal in content, empty of the decision."
             (should (plist-get assigned :assigned))
             (should (equal (plist-get assigned :id) id)))
         (kill-buffer review)))))
+
+;;; The buffer's movement and marking (TODO.org :ID: 41f21b4d, 9f6b19b5,
+;;; ee3c22c9, e95cc5d1, 396fd1c3) -------------------------------------------
+
+(defun claude-code-ide-org-test--review-state (to &optional id session)
+  "A state item queued -> TO under ID, carrying one event from SESSION."
+  (list :type 'state :id id :ts (current-time) :from "TODO" :to to
+        :events (list (list :ts-string (format "2026-10-10T09:00:%02d-0500"
+                                               (random 60))
+                            :session-id (or session "sess-x")))))
+
+(ert-deftest claude-code-ide-org-test-review-n-and-p-move-between-items ()
+  "`n' and `p' land only on item lines, across group headings, and stay
+put at either end (TODO.org :ID: 41f21b4d)."
+  (should (eq (lookup-key claude-code-ide-org-review-mode-map (kbd "n"))
+              #'claude-code-ide-org-review-next-item))
+  (should (eq (lookup-key claude-code-ide-org-review-mode-map (kbd "p"))
+              #'claude-code-ide-org-review-previous-item))
+  (let ((a (claude-code-ide-org-test--review-state "A" "test-0001"))
+        (b (claude-code-ide-org-test--review-state "B" "test-0001"))
+        (c (claude-code-ide-org-test--review-state "C" "test-0002")))
+    (claude-code-ide-org-test--with-review-buffer (list a b c)
+      (claude-code-ide-org-test--goto-nth-item 0)
+      (claude-code-ide-org-review-next-item)
+      (should (eq b (claude-code-ide-org--review-item-at-point)))
+      ;; Across the second group's heading and the blank line above it.
+      (claude-code-ide-org-review-next-item)
+      (should (eq c (claude-code-ide-org--review-item-at-point)))
+      (claude-code-ide-org-review-next-item)
+      (should (eq c (claude-code-ide-org--review-item-at-point)))
+      (claude-code-ide-org-review-previous-item)
+      (should (eq b (claude-code-ide-org--review-item-at-point)))
+      (claude-code-ide-org-review-previous-item)
+      (should (eq a (claude-code-ide-org--review-item-at-point)))
+      ;; At the first item `p' stays, never landing on the heading above.
+      (claude-code-ide-org-review-previous-item)
+      (should (eq a (claude-code-ide-org--review-item-at-point)))
+      ;; From the key legend, `n' finds the first item.
+      (goto-char (point-min))
+      (claude-code-ide-org-review-next-item)
+      (should (eq a (claude-code-ide-org--review-item-at-point))))))
+
+(ert-deftest claude-code-ide-org-test-review-help-names-every-prefix ()
+  "Every prefix the renderer draws is named in the mode's help, with the
+kind of line it marks (TODO.org :ID: 9f6b19b5).
+
+The help said a span prefixed `?' was unassigned, when `?' is the span
+carrying a suggestion and `!' the one with none -- found only when the
+user asked what the `!' lines meant.  Rendering one item of each kind
+and reading the prefix back is what stops the two drifting apart again."
+  (let ((doc (documentation 'claude-code-ide-org-review-mode t))
+        (t0 (date-to-time "2026-10-10T09:00:00-0500"))
+        (t1 (date-to-time "2026-10-10T09:30:00-0500")))
+    (cl-letf (((symbol-function 'claude-code-ide-org--review-state-stale-p)
+               (lambda (item) (eq (plist-get item :type) 'state)))
+              ((symbol-function 'claude-code-ide-org--review-current-state)
+               (lambda (&rest _) "DONE"))
+              ((symbol-function 'claude-code-ide-org--capture-target-spec)
+               (lambda (&rest _) (error "Gone"))))
+      (dolist (case
+               `((state . ,(list :type 'state :id "test-0001" :ts t0
+                                 :from "TODO" :to "DOING"))
+                 (span . ,(list :type 'clock :unassigned t :id nil
+                                :start t0 :end t1 :events nil))
+                 (span . ,(list :type 'clock :unassigned t :id "test-0001"
+                                :start t0 :end t1 :events nil))
+                 (capture . ,(list :type 'capture :target "test-0009"
+                                   :title "x" :ts t0))))
+        (let* ((line (claude-code-ide-org--review-describe (cdr case)))
+               (prefix (string-trim (substring line 0 2))))
+          (should-not (string-empty-p prefix))
+          (should (string-match-p
+                   (format "^  %s  on an? %s"
+                           (regexp-quote prefix) (car case))
+                   doc)))))))
+
+(ert-deftest claude-code-ide-org-test-review-d-marks-and-advances-down ()
+  "`d' leaves a `D' and advances to the next DRAWN item, newest-first
+included (TODO.org :ID: e95cc5d1's pinning test).
+
+An immediate dismissal redrew onto the next item in *held* order, while
+the buffer is drawn newest-first, so point jumped upward.  A mark leaves
+its line, so the advance is `m''s, over drawn lines."
+  (let ((early (claude-code-ide-org-test--review-state "EARLY"))
+        (late (claude-code-ide-org-test--review-state "LATE")))
+    (plist-put early :ts (date-to-time "2026-10-10T09:00:00-0500"))
+    (plist-put late :ts (date-to-time "2026-10-10T10:00:00-0500"))
+    (claude-code-ide-org-test--with-review-buffer (list early late)
+      (setq claude-code-ide-org--review-newest-first t)
+      (claude-code-ide-org--review-render)
+      (claude-code-ide-org-test--goto-nth-item 0)
+      (should (eq late (claude-code-ide-org--review-item-at-point)))
+      (let ((line (line-number-at-pos)))
+        (claude-code-ide-org-review-dismiss)
+        (should (plist-get late :dismiss))
+        (should-not (plist-get late :marked))
+        (should (memq late claude-code-ide-org--review-items))
+        (should (eq early (claude-code-ide-org--review-item-at-point)))
+        (should (> (line-number-at-pos) line))
+        (should (save-excursion
+                  (goto-char (point-min))
+                  (re-search-forward "^  \\[D\\] .*LATE" nil t)))))))
+
+(ert-deftest claude-code-ide-org-test-review-marks-exclude-each-other ()
+  "`m' and `D' exclude each other, `u' clears either, `M' and `t' leave a
+`D' alone and `U' clears it (TODO.org :ID: ee3c22c9)."
+  (let ((a (claude-code-ide-org-test--review-state "A"))
+        (b (claude-code-ide-org-test--review-state "B")))
+    (claude-code-ide-org-test--with-review-buffer (list a b)
+      ;; Auto-marked on arrival; `d' replaces the `m'.
+      (should (plist-get a :marked))
+      (claude-code-ide-org-test--goto-nth-item 0)
+      (claude-code-ide-org-review-dismiss)
+      (should (plist-get a :dismiss))
+      (should-not (plist-get a :marked))
+      ;; `m' replaces the `D'.
+      (claude-code-ide-org-test--goto-nth-item 0)
+      (claude-code-ide-org-review-mark)
+      (should (plist-get a :marked))
+      (should-not (plist-get a :dismiss))
+      ;; `u' clears a `D'.
+      (claude-code-ide-org-test--goto-nth-item 0)
+      (claude-code-ide-org-review-dismiss)
+      (claude-code-ide-org-test--goto-nth-item 0)
+      (claude-code-ide-org-review-unmark)
+      (should-not (plist-get a :dismiss))
+      (should-not (plist-get a :marked))
+      ;; `M' and `t' skip a `D' item; `U' clears it.
+      (claude-code-ide-org-test--goto-nth-item 0)
+      (claude-code-ide-org-review-dismiss)
+      (claude-code-ide-org-review-mark-all)
+      (should (plist-get a :dismiss))
+      (should-not (plist-get a :marked))
+      (claude-code-ide-org-review-toggle-all)
+      (should (plist-get a :dismiss))
+      (should-not (plist-get a :marked))
+      (should-not (plist-get b :marked))
+      (claude-code-ide-org-review-unmark-all)
+      (should-not (plist-get a :dismiss)))))
+
+(ert-deftest claude-code-ide-org-test-review-auto-mark-skips-a-d-item ()
+  "Render re-runs auto-marking, so a `D' state item not yet considered
+must not come back `m' on the next keystroke (TODO.org :ID: ee3c22c9)."
+  (let ((a (claude-code-ide-org-test--review-state "A")))
+    (plist-put a :dismiss t)
+    (claude-code-ide-org-test--with-review-buffer (list a)
+      (should (plist-get a :dismiss))
+      (should-not (plist-get a :marked)))))
+
+(defmacro claude-code-ide-org-test--with-x-stubs (&rest body)
+  "Run BODY with `x''s prompts and writers stubbed, recording each call.
+Binds `prompts', `reasons-asked', `log' (dismissals and applies, in
+order) and `dismissed' (session, reason, count)."
+  (declare (indent 0))
+  `(let ((prompts nil) (reasons-asked 0) (log nil) (dismissed nil))
+     (cl-letf (((symbol-function 'y-or-n-p)
+                (lambda (p) (push p prompts) t))
+               ((symbol-function 'read-string)
+                (lambda (&rest _) (setq reasons-asked (1+ reasons-asked)) "shared"))
+               ((symbol-function 'claude-code-ide-org--queue-mark-dismissed)
+                (lambda (session ts reason)
+                  (setq log (append log '(dismiss)))
+                  (push (list session reason (length ts)) dismissed)))
+               ((symbol-function 'claude-code-ide-org--review-apply)
+                (lambda (items)
+                  (setq log (append log '(apply)))
+                  (list :items items :applied (length items) :errors nil))))
+       ,@body)))
+
+(ert-deftest claude-code-ide-org-test-review-x-dismisses-then-applies ()
+  "`x' on a mix confirms both counts once, dismisses before it applies,
+asks one shared reason and keeps a `C-u d' reason (TODO.org :ID:
+ee3c22c9)."
+  (let ((keep (claude-code-ide-org-test--review-state "KEEP"))
+        (d1 (claude-code-ide-org-test--review-state "D1" nil "sess-1"))
+        (d2 (claude-code-ide-org-test--review-state "D2" nil "sess-1"))
+        (own (claude-code-ide-org-test--review-state "OWN" nil "sess-2")))
+    (claude-code-ide-org-test--with-review-buffer (list keep d1 d2 own)
+      (claude-code-ide-org-test--with-x-stubs
+        (claude-code-ide-org-test--goto-nth-item 1)
+        (claude-code-ide-org-review-dismiss)
+        (claude-code-ide-org-review-dismiss)
+        ;; The prefix argument asks for this item's own reason now.
+        (cl-letf (((symbol-function 'read-string) (lambda (&rest _) "its own")))
+          (claude-code-ide-org-review-dismiss '(4)))
+        (should (equal (plist-get own :dismiss-reason) "its own"))
+        (should (string-match-p "1 marked\\|3 to dismiss"
+                                (claude-code-ide-org--review-judgement-summary
+                                 claude-code-ide-org--review-items)))
+        (claude-code-ide-org-review-apply)
+        (should (equal prompts '("Apply 1, dismiss 3? ")))
+        (should (= reasons-asked 1))
+        (should (eq (car log) 'dismiss))
+        (should (eq (car (last log)) 'apply))
+        (should (member '("sess-1" "shared" 2) dismissed))
+        (should (member '("sess-2" "its own" 1) dismissed))
+        (should (equal claude-code-ide-org--review-items nil))))))
+
+(ert-deftest claude-code-ide-org-test-review-x-with-only-d-marks-dismisses ()
+  "With nothing marked `m', `x' dismisses and applies nothing, and a
+`D' alone is judgement `g' asks about (TODO.org :ID: ee3c22c9)."
+  (let ((a (claude-code-ide-org-test--review-state "A"))
+        (b (claude-code-ide-org-test--review-state "B")))
+    (claude-code-ide-org-test--with-review-buffer (list a b)
+      (claude-code-ide-org-test--with-x-stubs
+        (claude-code-ide-org-test--goto-nth-item 0)
+        (claude-code-ide-org-review-dismiss)
+        (plist-put b :marked nil)
+        (should (equal (claude-code-ide-org--review-judgement-summary
+                        claude-code-ide-org--review-items)
+                       "1 to dismiss"))
+        (claude-code-ide-org-review-apply)
+        (should (equal prompts '("Dismiss 1 permanently? ")))
+        (should-not (memq 'apply log))
+        (should (equal claude-code-ide-org--review-items (list b)))
+        (should (eq b (claude-code-ide-org--review-item-at-point)))))))
+
+(ert-deftest claude-code-ide-org-test-review-advances-recenter-only-when-moved ()
+  "Every advancing key recenters after the render, and none does when
+point did not move or from a render alone (TODO.org :ID: 396fd1c3)."
+  (let ((a (claude-code-ide-org-test--review-state "A"))
+        (b (claude-code-ide-org-test--review-state "B"))
+        (calls 0))
+    (claude-code-ide-org-test--with-review-buffer (list a b)
+      (set-window-buffer (selected-window) (current-buffer))
+      (cl-letf (((symbol-function 'recenter)
+                 (lambda (&rest _) (setq calls (1+ calls)))))
+        (claude-code-ide-org--review-render)
+        (should (= calls 0))
+        (dolist (cmd (list #'claude-code-ide-org-review-mark
+                           #'claude-code-ide-org-review-unmark
+                           #'claude-code-ide-org-review-dismiss
+                           #'claude-code-ide-org-review-next-item))
+          (claude-code-ide-org-test--goto-nth-item 0)
+          (setq calls 0)
+          (funcall cmd)
+          (should (= calls 1))
+          ;; At the last item nothing moves, so nothing recenters.
+          (setq calls 0)
+          (funcall cmd)
+          (should (= calls 0)))
+        (setq calls 0)
+        (claude-code-ide-org-review-previous-item)
+        (should (= calls 1))))))
 
 (ert-deftest claude-code-ide-org-test-review-goto-item-survives-a-height-change ()
   "`--review-goto-item' locates by identity, so it still finds an item
