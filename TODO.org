@@ -3527,6 +3527,22 @@ six promoted rules were byte-identical to the plugin's generated copies, and
 =claude-org-setup --check= reported all ok, with =.mcp.json= naming the
 =agentic-euchre= session as that project's alone.
 
+*Setup done 2026-10-10.* The plugin worktree was detached at the slice
+branch's commit [[orgit-rev:./::787ad35][787ad35]], and =claude-org-setup --no-time-tracking= re-promoted
+six rules in agentic-euchre. agentic-euchre already held uncommitted changes of
+its own, TODO.org among them; setup left those alone.
+
+*Check 8, setup half: passed.* =--check= exits 1, naming only "missing:
+.claude/rules/org-categories.md -- run claude-org-setup --org"; its other 11
+lines are ok. The capture-refusal half needs a session in agentic-euchre.
+
+*Check 9, script half: passed.* Driven against agentic-euchre's dirty TODO.org
+with the queue isolated, the plugin's =discard-guard= refuses =git checkout --
+TODO.org= and =git stash=, passes =git status= and =git restore --staged=, and
+=hooks.json= wires it under PreToolUse Bash. Firing through that wiring needs a
+session there.
+
+
 
 * TODO The duplicate query reads titles only, so a paraphrase gets past it — including the case that motivated it :code:
 :PROPERTIES:
