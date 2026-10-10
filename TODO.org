@@ -70,17 +70,15 @@ never stash).
   the promoted copy regenerated, bin/check-conventions passes.
 
 :END:
-Drawer consolidation, heading-separation normalisation and archiving run only
-from the review buffer's quit, bundled with apply, and the session rule says a
-session must not offer to run the pass. That rule's reason (org's logging needs
-an interactive command) binds apply alone; the steps after it need no human. The
-user (2026-10-09, while planning [[id:97b4f6a9-a944-40d3-8d14-7a1667c52291][97b4f6a9]]) wants a session to offer those steps
-at session start when they have not run since the day's scheduled time. That
-means splitting them out of the quit, narrowing the rule to apply, and giving a
-consuming repo a schedule, since --ceremony-due-p reads this repo's [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]] by
-its literal id. [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]]'s "a plausible suggestion is harder to reject" is about
-proposing a value, not offering an action, so it does not forbid this.
-
+Drawer consolidation, heading separation and archiving run only from the review
+buffer's quit, and the session rule forbids offering the pass, so a session can
+never offer them when they are overdue. The rule's reason (org's logging needs
+an interactive command) binds apply alone. Designed 2026-10-10 (arch, in
+:PLAN:): the schedule moves to a :KIND: ceremony heading, which the --org
+template ships, and the session-start report offers M-x
+claude-code-ide-org-ceremony-finish when the ceremony is due and nothing is
+pending; the rule narrows to "must not offer to apply". [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]]'s "asks; never
+proposes" stands: offering an action is not proposing a value.
 
 * TODO Delete the /next-session stub once a slice has been worked under /plan-slice and /work-slice :code:
 :PROPERTIES:
