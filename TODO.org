@@ -20,6 +20,7 @@ reporting applied state events whose State line is absent from the file would
 catch any culprit, human included, which [[id:79c224ab-188a-4ed4-a606-c28ee2cfe72d][79c224ab]]'s guard cannot; it catches the
 loss after the fact, not before.
 
+
 * TODO The steps after apply run only when the review buffer is buried, so a session can never offer them when they are overdue :code:arch:
 :PROPERTIES:
 :ID:       de081dd9-1853-4d79-94fc-2edac498380f
@@ -27,8 +28,28 @@ loss after the fact, not before.
 :CATEGORY: Meta
 :END:
 :LOGBOOK:
+CLOCK: [2026-10-09 Fri 20:46]--[2026-10-09 Fri 20:47] =>  0:01
+- [2026-10-09 Fri 20:46]--[2026-10-09 Fri 20:47] brainstorm offering post-apply steps at session start
+CLOCK: [2026-10-10 Sat 08:31]--[2026-10-10 Sat 08:32] =>  0:01
+- [2026-10-10 Sat 08:31]--[2026-10-10 Sat 08:32] brainstorm offering post-apply steps at session start
+CLOCK: [2026-10-10 Sat 08:32]--[2026-10-10 Sat 08:33] =>  0:01
+- [2026-10-10 Sat 08:32]--[2026-10-10 Sat 08:33] brainstorm offering post-apply steps at session start
+CLOCK: [2026-10-10 Sat 08:33]--[2026-10-10 Sat 08:34] =>  0:01
+- [2026-10-10 Sat 08:33]--[2026-10-10 Sat 08:34] brainstorm offering post-apply steps at session start
+CLOCK: [2026-10-10 Sat 08:42]--[2026-10-10 Sat 08:43] =>  0:01
+- [2026-10-10 Sat 08:42]--[2026-10-10 Sat 08:43] brainstorm offering post-apply steps at session start
+CLOCK: [2026-10-10 Sat 13:58]--[2026-10-10 Sat 13:59] =>  0:01
+- [2026-10-10 Sat 13:58]--[2026-10-10 Sat 13:59] brainstorm offering post-apply steps at session start
+CLOCK: [2026-10-10 Sat 13:59]--[2026-10-10 Sat 14:00] =>  0:01
 - Tags ":code:arch:" from ":code:"     [2026-10-10 Sat 13:59] \\
   classified arch: changes the ceremony's schedule lookup, the session-start offer and the setup template
+- [2026-10-10 Sat 13:59]--[2026-10-10 Sat 14:00] brainstorm offering post-apply steps at session start
+CLOCK: [2026-10-10 Sat 14:00]--[2026-10-10 Sat 14:03] =>  0:03
+- [2026-10-10 Sat 14:00]--[2026-10-10 Sat 14:03] assigned at review
+- [2026-10-10 Sat 14:05]--[2026-10-10 Sat 14:06] assigned at review
+CLOCK: [2026-10-10 Sat 14:06]--[2026-10-10 Sat 14:07] =>  0:01
+- [2026-10-10 Sat 14:06]--[2026-10-10 Sat 14:07] revise design: session start runs ceremony-finish
+- [2026-10-10 Sat 14:06]--[2026-10-10 Sat 14:07] assigned at review
 :END:
 :PLAN:
 Approved 2026-10-10 in /plan-slice, section by section. Path: arch.
@@ -90,6 +111,7 @@ claude-code-ide-org-ceremony-finish itself whenever the ceremony is due,
 pending items or not, reporting only non-null steps; the rule narrows to "must
 not offer to apply".
 
+
 * TODO Delete the /next-session stub once a slice has been worked under /plan-slice and /work-slice :code:
 :PROPERTIES:
 :ID:       d30c00ce-95fb-4fea-8709-bcea80700646
@@ -105,268 +127,6 @@ rather than vanishing. Delete it, and its mention in [[id:dc21f724-78f9-4da8-9d7
 review, which found the deletion tracked nowhere.
 
 
-* DONE /next-session conflates planning a slice with working it; split it into two commands, each for a fresh session :code:arch:
-CLOSED: [2026-10-09 Fri 16:14]
-:PROPERTIES:
-:ID:       dc21f724-78f9-4da8-9d74-002ad3306446
-:CREATED:  [2026-10-09 Fri 13:36]
-:CATEGORY: Dev
-:END:
-:LOGBOOK:
-CLOCK: [2026-10-09 Fri 13:36]--[2026-10-09 Fri 13:37] =>  0:01
-- [2026-10-09 Fri 13:36]--[2026-10-09 Fri 13:37] brainstorm the session-command split
-CLOCK: [2026-10-09 Fri 13:42]--[2026-10-09 Fri 13:45] =>  0:03
-- [2026-10-09 Fri 13:42]--[2026-10-09 Fri 13:45] brainstorm the session-command split
-CLOCK: [2026-10-09 Fri 13:49]--[2026-10-09 Fri 13:50] =>  0:01
-- [2026-10-09 Fri 13:49]--[2026-10-09 Fri 13:50] brainstorm the session-command split
-CLOCK: [2026-10-09 Fri 14:56]--[2026-10-09 Fri 14:57] =>  0:01
-- [2026-10-09 Fri 14:56]--[2026-10-09 Fri 14:57] brainstorm the session-command split
-CLOCK: [2026-10-09 Fri 15:37]--[2026-10-09 Fri 15:40] =>  0:03
-- [2026-10-09 Fri 15:37]--[2026-10-09 Fri 15:40] brainstorm the session-command split
-- Tags ":code:arch:" from ":code:bounded:" [2026-10-09 Fri 15:39] \\
-  stepped up: ships a new plugin component and a per-project rules file
-- State "DOING"      from "TODO"       [2026-10-09 Fri 15:41] \\
-  drawer approved; building on a branch
-CLOCK: [2026-10-09 Fri 15:41]--[2026-10-09 Fri 15:42] =>  0:01
-- [2026-10-09 Fri 15:41]--[2026-10-09 Fri 15:42] assigned at review
-CLOCK: [2026-10-09 Fri 15:42]--[2026-10-09 Fri 15:46] =>  0:04
-- [2026-10-09 Fri 15:42]--[2026-10-09 Fri 15:46] build /plan-slice and /work-slice
-CLOCK: [2026-10-09 Fri 15:46]--[2026-10-09 Fri 15:47] =>  0:01
-- State "REVIEW"     from "DOING"      [2026-10-09 Fri 15:46] \\
-  built on the branch; PR opened
-- [2026-10-09 Fri 15:46]--[2026-10-09 Fri 15:47] assigned at review
-CLOCK: [2026-10-09 Fri 15:53]--[2026-10-09 Fri 15:54] =>  0:01
-- [2026-10-09 Fri 15:53]--[2026-10-09 Fri 15:54] assigned at review
-CLOCK: [2026-10-09 Fri 15:57]--[2026-10-09 Fri 15:58] =>  0:01
-- [2026-10-09 Fri 15:57]--[2026-10-09 Fri 15:58] assigned at review
-- State "DOING"      from "REVIEW"     [2026-10-09 Fri 16:00] \\
-  rework: PR #36 review findings
-CLOCK: [2026-10-09 Fri 16:00]--[2026-10-09 Fri 16:01] =>  0:01
-- [2026-10-09 Fri 16:00]--[2026-10-09 Fri 16:01] assigned at review
-CLOCK: [2026-10-09 Fri 16:01]--[2026-10-09 Fri 16:05] =>  0:04
-- [2026-10-09 Fri 16:01]--[2026-10-09 Fri 16:05] fix PR #36's ten findings
-- State "REVIEW"     from "DOING"      [2026-10-09 Fri 16:05] \\
-  review findings fixed on the branch
-CLOCK: [2026-10-09 Fri 16:05]--[2026-10-09 Fri 16:06] =>  0:01
-- [2026-10-09 Fri 16:05]--[2026-10-09 Fri 16:06] suggested span, accepted at review
-- State "DONE"       from "REVIEW"     [2026-10-09 Fri 16:14] \\
-  merged with PR #36
-CLOCK: [2026-10-09 Fri 16:14]--[2026-10-09 Fri 16:15] =>  0:01
-- [2026-10-09 Fri 16:14]--[2026-10-09 Fri 16:15] suggested span, accepted at review
-CLOCK: [2026-10-09 Fri 16:15]--[2026-10-09 Fri 16:16] =>  0:01
-- [2026-10-09 Fri 16:15]--[2026-10-09 Fri 16:16] merge PR #36 and close dc21f724
-CLOCK: [2026-10-09 Fri 16:18]--[2026-10-09 Fri 16:23] =>  0:05
-- [2026-10-09 Fri 16:18]--[2026-10-09 Fri 16:23] assigned at review
-CLOCK: [2026-10-09 Fri 16:25]--[2026-10-09 Fri 16:26] =>  0:01
-- [2026-10-09 Fri 16:25]--[2026-10-09 Fri 16:26] assigned at review
-CLOCK: [2026-10-09 Fri 16:28]--[2026-10-09 Fri 16:29] =>  0:01
-- [2026-10-09 Fri 16:28]--[2026-10-09 Fri 16:29] assigned at review
-CLOCK: [2026-10-09 Fri 16:32]--[2026-10-09 Fri 16:33] =>  0:01
-- [2026-10-09 Fri 16:32]--[2026-10-09 Fri 16:33] assigned at review
-CLOCK: [2026-10-09 Fri 16:35]--[2026-10-09 Fri 16:36] =>  0:01
-- [2026-10-09 Fri 16:35]--[2026-10-09 Fri 16:36] assigned at review
-CLOCK: [2026-10-09 Fri 16:38]--[2026-10-09 Fri 16:39] =>  0:01
-- [2026-10-09 Fri 16:38]--[2026-10-09 Fri 16:39] assigned at review
-:END:
-:PLAN:
-Approved in chat by the user, 2026-10-09, section by section. Names:
-=/plan-slice= and =/work-slice=, verb-first and in the project's own words.
-Stepped up from bounded once the commands were to ship: they become a plugin
-component, and each project needs a place for its own rules.
-
-**Files and loading.** =commands/plan-slice.md= and =commands/work-slice.md= at
-the plugin root are shipped. Plugin commands are always namespaced, so a
-consumer types =/claude-code-ide-org:plan-slice=; whether the bare name also
-works is undocumented. A plugin loaded by symlink brings its commands. This repo
-does not enable its own plugin, which would double every hook, so
-=.claude/commands/plan-slice.md= and =work-slice.md= are symlinks to the shipped
-files, following the =.claude/skills/org= precedent, and give the bare names
-here. =.claude/slice-rules.md= holds a project's own rules for both commands. It
-is neither a command nor a rule file, so it is never auto-loaded and costs no
-word budget. =.claude/commands/next-session.md= is replaced by a one-line stub
-naming =/work-slice=, kept for one slice and then deleted.
-
-**The line between core and project file** follows [[id:d9f77953-473d-4340-a0b7-87a181f19d8b][d9f77953]]: a step the
-tracker's machinery needs to stay correct ships in the core, and a project's
-practice goes in its own file. That file is also how a project adds its own
-testbed skill, with a line saying to load it before the first member. Claude
-Code already lets any project define skills, so no new mechanism is needed, and
-this repo's =org-dev= line moves there. Source control is the same: the branch,
-PR and merge steps live in this repo's file, so the core assumes no SCM, and
-=gh= can later be swapped project by project. The shipped conventions' "Closing
-a slice" still names a pull request as a slice's integration point, and is the
-place to change when that swap is made.
-
-**=/plan-slice=.** It takes the =NEXT= slice or the one named, and stops to ask
-when there is none or more than one, never choosing by title. It reads
-=.claude/slice-rules.md= if present, has the queue applied first and confirms
-the server. Then it goes member by member in the slice's order. Finished,
-dropped and =MAYBE= members are skipped, and so is a member whose =:PLAN:=
-already holds a design with no open question. A member with no plan, or a plan
-that is only evidence, is brainstormed with the brainstorming skill, all its
-gates included, and the clock sits on that member meanwhile. A =WAITING= member
-is raised as a question. Then the slice's own =:PLAN:=, the order with one line
-per member, is written or revised under "Review and planning", and a member's
-drawer wins where the two disagree. The slice stays =NEXT=, because planning is
-=TODO=-phase work, and no branch or code is touched. It ends with a readiness
-report and a pointer to =/work-slice= in a fresh session. It is resumable, since
-planned members are skipped, which matters for a slice of 16.
-
-**=/work-slice=.** It takes a =DOING= slice whose integration is not yet open,
-checked as the project file says or by asking, and otherwise the =NEXT= slice. A
-missing or thin slice plan, or unplanned members it reaches, stops it with a
-pointer to =/plan-slice=. The core preliminaries are: apply the queue; confirm
-the server; clock in before the first write; queue =DOING= on the slice when its
-work starts. The project file adds its own; for this repo those are the
-base-commit check, merging through a PR, cutting =feature/<name>=, loading
-=org-dev=, committing after an apply, and capturing without a body. Per member:
-=DOING= before starting it, its =:PLAN:= read first, an undecided question to
-the user before the step, the two-call close, and the nomination inside a
-grouping. These are already the shipped conventions, which the command cites
-rather than restates. Integration is the project file's business; the core says
-only that a slice carrying code closes when its integration point lands. The
-standing rules split. Shipped: the heading beats the slice's plan; never type a
-UUID from memory; a full drawer masks an empty body. To this repo's file: the
-engineering lore, including reproduce before fixing, prove a test can fail,
-silence is not a pass, never =--no-verify=, mutation tests, =git commit --
-FILE=, branch switches rewriting TODO.org, stacked PRs, =sync-plans= and
-anchored regexps. Both layers keep the rule that they grow only by addition,
-each item going to the layer it belongs to.
-
-**Renames and checks.** =CLAUDE.md='s line on =.claude/commands/= describes both
-commands and the project file. The shipped conventions' three mentions in the
-slices section are updated and regenerated into =.claude/rules/=.
-=bin/check-conventions= swaps =next-session.md= for the two commands and
-=slice-rules.md= in its file list, so their citations must resolve. The README
-gains a short note on the two commands under their plugin names and on
-=.claude/slice-rules.md=. The test fixture holding the old name is transcript
-data and stays.
-
-**Testing.** No elisp changes. =bin/check-conventions= passes over the new
-files. In a fresh session here, =/plan-slice= and =/work-slice= appear, proving
-the symlinks load, and the stub names =/work-slice=. A read-only =/work-slice=
-against [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]] finds it =NEXT=, reports its unplanned members and points to
-=/plan-slice= without starting anything. [[id:2b8930da-5223-4b75-b4f6-251a28552d1b][2b8930da]] gains a check: in
-agentic-euchre, the names the shipped commands appear under, and a missing
-=.claude/slice-rules.md= tolerated.
-
-**Where it lands:** a feature branch and a PR, since it changes shipped content.
- It is standalone rather than a member of [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]], but serves that slice's
- goal, and can merge before the slice starts.
-:END:
-:DEBRIEF:
-Shipped on =feature/slice-commands= in commit [[orgit-rev:./::3fc21d6][3fc21d6]]. =commands/work-slice.md=
-carries the old command's "Which slice" and "The plan", now pointing an
-unplanned slice at =/plan-slice=. It also carries Step 0 items 1-4 (item 3
-qualified for installs with time tracking off), a per-member section and an
-integration section that cite the conventions rather than restate them, and
-three standing rules: the heading beats the slice, no UUID from memory, a full
-drawer masks an empty body. =commands/plan-slice.md= is new and follows the
-approved design. =.claude/slice-rules.md= took Step 0 items 5-11, numbering
-kept, and the other 18 standing rules, both moved by script from the old file's
-text so nothing was paraphrased. =.claude/commands/= links both shipped files.
-Verified: the session's own command list showed =plan-slice=, =work-slice= and
-the stub with their new descriptions as soon as the files existed, which answers
-the doc question about symlinked command files. =bin/check-conventions= passes
-in full, with every citation in the three new files resolving and the promoted
-rules matching; its self-test is 27/27; the lint is clean. The always-loaded
-budget fell from 10185 to 10177 words, because the CLAUDE.md bullet shrank.
-Beyond the plan: the README's time-tracking paragraph claimed a plain setup
-re-run removes the time file, the wrong expectation of 2026-10-06, and now says
-it keeps it. Not yet run: a read-only =/work-slice= against [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]], which
-needs a fresh session, and the consumer check in agentic-euchre, now part of
-[[id:2b8930da-5223-4b75-b4f6-251a28552d1b][2b8930da]]'s plan.
-
-*Rework after PR #36's review*, in commit [[orgit-rev:./::73eb50f][73eb50f]]. All ten findings fixed. Three
-were breakages. =/work-slice= had lost the old =gh pr list= check that told a
-slice in hand from one in review; it now reads the keyword alone (DOING in hand,
-REVIEW waiting, the user's choice of the two options offered), the shipped
-conventions say so, and this repo keeps the =gh= check as its own Step 0 item 12
-for the stretch before a review starts. =/plan-slice='s query returned all six
-open slices and so always stopped; it now queries =todo:NEXT=. The pre-commit
-hook never ran =check-conventions= for =commands/= or =.claude/slice-rules.md=,
-since an edit stages the symlink's target. The shipped skills had the same gap,
-found while fixing it, and both are covered now. Proved on the real hook: a bad
-citation staged in each of the three paths passed before and was refused after.
-Four were text in the wrong layer: the =org_capture= body warning and the
-footnote rule moved to the shipped core, with pointers left in this repo's file
-so its numbering holds; the shipped commands label their ids as the plugin's own
-tracker; =CLAUDE.md='s plugin-surface bullet names =commands/=. Residue filed
-rather than described: [[id:d30c00ce-95fb-4fea-8709-bcea80700646][d30c00ce]] deletes the stub once [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]] is worked, and
-the read-only =/work-slice= check is now the first step in [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]]'s plan.
-=check-conventions= passes, self-test 27/27, =pre-commit-test= 12/12, lint
-clean, always-loaded budget 10181 of 10200.
-:END:
-
-A slice usually takes two sessions, one to plan the =NEXT= slice and one to work
-it, each with an empty context (the user, 2026-10-09), and =/next-session=
-covered only the second. Split it into =/plan-slice= and =/work-slice=, shipped
-with the plugin, with each project's own practice moved to an optional
-=.claude/slice-rules.md= that both commands read. The plan holds the design.
-
-*Resolution:* =/plan-slice= and =/work-slice= ship with the plugin and hold only
-what the tracker's machinery needs; this repo's practice moved verbatim into
-=.claude/slice-rules.md=, which both read, and =/next-session= is a one-slice
-stub.
-
-
-* TODO The meta-work target renders as "Review a" in the review buffer; show it as R&P, and offer "R&P (Review and planning)" when assigning :code:
-:PROPERTIES:
-:ID:       62a32f7b-9f7a-4ed3-88e0-939a687852eb
-:CREATED:  [2026-10-09 Fri 12:57]
-:CATEGORY: Apply
-:END:
-:LOGBOOK:
-CLOCK: [2026-10-09 Fri 12:54]--[2026-10-09 Fri 12:55] =>  0:01
-- [2026-10-09 Fri 12:54]--[2026-10-09 Fri 12:55] assigned at review
-CLOCK: [2026-10-09 Fri 12:56]--[2026-10-09 Fri 12:57] =>  0:01
-- [2026-10-09 Fri 12:56]--[2026-10-09 Fri 12:57] assigned at review
-CLOCK: [2026-10-09 Fri 13:07]--[2026-10-09 Fri 13:08] =>  0:01
-- [2026-10-09 Fri 13:07]--[2026-10-09 Fri 13:08] assigned at review
-:END:
-
-The review buffer's id column cuts every target to 8 characters through
-=--short-id=, and the meta-work target's "id" is the title "Review and planning"
-itself, so it renders as =Review a=. Show it as =R&P= (the user, 2026-10-09).
-=--assign-candidates= ranks headings that carry an =:ID:=, so the category title
-may not be offered at all, only its dated day nodes; check that first, then
-offer it as "R&P (Review and planning)". The label should derive from the
-category title rather than hard-code it, since the target is matched by that
-title.
-
-
-* TODO The review buffer's help says ? marks an unassigned span, but ! is the span with no heading and ? the one with a suggestion :prose:bounded:
-:PROPERTIES:
-:ID:       9f6b19b5-18db-4d56-8545-9552a5b4e935
-:CREATED:  [2026-10-09 Fri 12:54]
-:CATEGORY: Apply
-:END:
-:LOGBOOK:
-CLOCK: [2026-10-09 Fri 12:54]--[2026-10-09 Fri 12:55] =>  0:01
-- [2026-10-09 Fri 12:54]--[2026-10-09 Fri 12:55] file the review help-text fix into 5a4896c3
-- Tags ":prose:bounded:" from ":prose:"    [2026-10-09 Fri 17:43] \\
-  first classification: a docstring corrected to existing code
-:END:
-:PLAN:
-Design, bounded (the user approved it while planning [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]], 2026-10-09). The
-mode docstring's "A span prefixed =?= is UNASSIGNED" paragraph is corrected to
-=--review-describe=: =!= on an unassigned span means it names no heading, so =a=
-must choose one and it cannot be marked until then; =!= still also means a stale
-state change; =?= is a span carrying a suggested heading to confirm.
-
-Testing. An ERT case renders one item of each kind and asserts every prefix the
-renderer draws is named in the docstring, so the two cannot drift apart silently
-again. Run red against HEAD's version first.
-:END:
-
-=claude-code-ide-org-review-mode='s help (the =?= key) says a span prefixed =?=
-is UNASSIGNED. =--review-describe= prefixes =!= to an unassigned span with no
-=:id= and =?= to one carrying a suggested heading, and =!= also marks a stale
-state change. Found 2026-10-09 when the user asked what the =!= lines meant.
-Correct the help to the code, naming both meanings of =!= and saying that =?= is
-a suggestion to confirm.
-
-
 * TODO The session-start report counts possible twins but never names them, so neither the user nor the session can judge the flag :code:bounded:
 :PROPERTIES:
 :ID:       d241ab6e-6cfe-482a-8980-8cb222d7ab12
@@ -376,6 +136,7 @@ a suggestion to confirm.
 :LOGBOOK:
 - Tags ":code:bounded:" from ":code:"     [2026-10-09 Fri 18:43] \\
   first classification: the detector and its formatter already exist
+- [2026-10-09 Fri 18:43]--[2026-10-09 Fri 18:43] plan naming possible twins in session-start report
 :END:
 :PLAN:
 Design, bounded (the user approved it while planning [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]], 2026-10-09). The
@@ -437,6 +198,18 @@ search preambles between the two predicates is a guess. Reproduce in ERT first.
 :CATEGORY: Tools
 :END:
 :LOGBOOK:
+CLOCK: [2026-10-09 Fri 17:44]--[2026-10-09 Fri 17:45] =>  0:01
+- [2026-10-09 Fri 17:44]--[2026-10-09 Fri 17:45] plan org_outline reverse lines
+CLOCK: [2026-10-09 Fri 18:28]--[2026-10-09 Fri 18:29] =>  0:01
+- [2026-10-09 Fri 18:28]--[2026-10-09 Fri 18:29] plan org_outline reverse lines
+CLOCK: [2026-10-09 Fri 18:29]--[2026-10-09 Fri 18:30] =>  0:01
+- [2026-10-09 Fri 18:29]--[2026-10-09 Fri 18:30] assigned at review
+CLOCK: [2026-10-09 Fri 18:30]--[2026-10-09 Fri 18:33] =>  0:03
+- [2026-10-09 Fri 18:30]--[2026-10-09 Fri 18:33] plan org_outline reverse lines
+CLOCK: [2026-10-09 Fri 18:38]--[2026-10-09 Fri 18:39] =>  0:01
+- [2026-10-09 Fri 18:38]--[2026-10-09 Fri 18:39] plan org_outline reverse lines
+CLOCK: [2026-10-09 Fri 18:39]--[2026-10-09 Fri 18:40] =>  0:01
+- [2026-10-09 Fri 18:39]--[2026-10-09 Fri 18:40] plan org_outline reverse lines
 - Tags ":code:bounded:" from ":code:"     [2026-10-09 Fri 18:42] \\
   first classification: outline front matter and org-ql's predicate mechanism already exist
 :END:
@@ -485,6 +258,63 @@ refresh already uses. A =member:ID= predicate for =org_query= answers it for
 many headings at once, built here too (the user, 2026-10-09). Met 2026-10-09
 when sorting review-buffer headings by slice ended in a Python read of TODO.org,
 the shape [[id:67861ff3-3a72-4c53-8fd8-1cae9a31bc77][67861ff3]] names.
+
+
+* TODO The meta-work target renders as "Review a" in the review buffer; show it as R&P, and offer "R&P (Review and planning)" when assigning :code:
+:PROPERTIES:
+:ID:       62a32f7b-9f7a-4ed3-88e0-939a687852eb
+:CREATED:  [2026-10-09 Fri 12:57]
+:CATEGORY: Apply
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-09 Fri 12:54]--[2026-10-09 Fri 12:55] =>  0:01
+- [2026-10-09 Fri 12:54]--[2026-10-09 Fri 12:55] assigned at review
+CLOCK: [2026-10-09 Fri 12:56]--[2026-10-09 Fri 12:57] =>  0:01
+- [2026-10-09 Fri 12:56]--[2026-10-09 Fri 12:57] assigned at review
+CLOCK: [2026-10-09 Fri 13:07]--[2026-10-09 Fri 13:08] =>  0:01
+- [2026-10-09 Fri 13:07]--[2026-10-09 Fri 13:08] assigned at review
+:END:
+
+The review buffer's id column cuts every target to 8 characters through
+=--short-id=, and the meta-work target's "id" is the title "Review and planning"
+itself, so it renders as =Review a=. Show it as =R&P= (the user, 2026-10-09).
+=--assign-candidates= ranks headings that carry an =:ID:=, so the category title
+may not be offered at all, only its dated day nodes; check that first, then
+offer it as "R&P (Review and planning)". The label should derive from the
+category title rather than hard-code it, since the target is matched by that
+title.
+
+
+* TODO The review buffer's help says ? marks an unassigned span, but ! is the span with no heading and ? the one with a suggestion :prose:bounded:
+:PROPERTIES:
+:ID:       9f6b19b5-18db-4d56-8545-9552a5b4e935
+:CREATED:  [2026-10-09 Fri 12:54]
+:CATEGORY: Apply
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-09 Fri 12:54]--[2026-10-09 Fri 12:55] =>  0:01
+- [2026-10-09 Fri 12:54]--[2026-10-09 Fri 12:55] file the review help-text fix into 5a4896c3
+- Tags ":prose:bounded:" from ":prose:"    [2026-10-09 Fri 17:43] \\
+  first classification: a docstring corrected to existing code
+:END:
+:PLAN:
+Design, bounded (the user approved it while planning [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]], 2026-10-09). The
+mode docstring's "A span prefixed =?= is UNASSIGNED" paragraph is corrected to
+=--review-describe=: =!= on an unassigned span means it names no heading, so =a=
+must choose one and it cannot be marked until then; =!= still also means a stale
+state change; =?= is a span carrying a suggested heading to confirm.
+
+Testing. An ERT case renders one item of each kind and asserts every prefix the
+renderer draws is named in the docstring, so the two cannot drift apart silently
+again. Run red against HEAD's version first.
+:END:
+
+=claude-code-ide-org-review-mode='s help (the =?= key) says a span prefixed =?=
+is UNASSIGNED. =--review-describe= prefixes =!= to an unassigned span with no
+=:id= and =?= to one carrying a suggested heading, and =!= also marks a stale
+state change. Found 2026-10-09 when the user asked what the =!= lines meant.
+Correct the help to the code, naming both meanings of =!= and saying that =?= is
+a suggestion to confirm.
 
 
 * TODO [0/5] Document what a fork may change and what the machinery depends on :prose:bounded:
@@ -668,7 +498,7 @@ Planned:
 - [ ] [[id:445ec1f1-095a-462b-abbd-7a3a00925ddb][445ec1f1]] TODO A/B the clock record across the phase-3 fixes, since much of what is logged now is bogus
 
 
-* NEXT [0/16] The review pass every install uses: movement, marking, apply, quit, and no clock where tracking is off :code:
+* NEXT [0/15] The review pass every install uses: movement, marking, apply, quit, and no clock where tracking is off :code:
 :PROPERTIES:
 :ID:       5a4896c3-3d4e-4b12-9f9e-06b97d84b238
 :CREATED:  [2026-10-09 Fri 11:15]
@@ -676,12 +506,15 @@ Planned:
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
 :MEMBERS:  97b4f6a9-a944-40d3-8d14-7a1667c52291 24694d1f-34b4-495b-b0d8-d29e64894c59 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 41f21b4d-278d-4ad8-a56f-122f5af33d65 9f6b19b5-18db-4d56-8545-9552a5b4e935 d66ae1d2-5a40-4f4d-ae51-c8977e78681c b3177ed0-9747-4e31-ad65-bac25b9bdd1f d241ab6e-6cfe-482a-8980-8cb222d7ab12 e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 ee3c22c9-f99c-4d41-9c3d-8f39af916fff 6c64cc9c-33a9-4a20-af19-c188a690c755 79c224ab-188a-4ed4-a606-c28ee2cfe72d 361e2708-8124-4bd1-9c44-f97ca97aca4a 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd de081dd9-1853-4d79-94fc-2edac498380f 2b8930da-5223-4b75-b4f6-251a28552d1b
-:BLOCKER:  97b4f6a9-a944-40d3-8d14-7a1667c52291 24694d1f-34b4-495b-b0d8-d29e64894c59 41f21b4d-278d-4ad8-a56f-122f5af33d65 9f6b19b5-18db-4d56-8545-9552a5b4e935 d66ae1d2-5a40-4f4d-ae51-c8977e78681c b3177ed0-9747-4e31-ad65-bac25b9bdd1f d241ab6e-6cfe-482a-8980-8cb222d7ab12 e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 ee3c22c9-f99c-4d41-9c3d-8f39af916fff 6c64cc9c-33a9-4a20-af19-c188a690c755 79c224ab-188a-4ed4-a606-c28ee2cfe72d 361e2708-8124-4bd1-9c44-f97ca97aca4a 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd de081dd9-1853-4d79-94fc-2edac498380f 2b8930da-5223-4b75-b4f6-251a28552d1b
+:BLOCKER:  97b4f6a9-a944-40d3-8d14-7a1667c52291 24694d1f-34b4-495b-b0d8-d29e64894c59 41f21b4d-278d-4ad8-a56f-122f5af33d65 9f6b19b5-18db-4d56-8545-9552a5b4e935 d66ae1d2-5a40-4f4d-ae51-c8977e78681c b3177ed0-9747-4e31-ad65-bac25b9bdd1f d241ab6e-6cfe-482a-8980-8cb222d7ab12 e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 ee3c22c9-f99c-4d41-9c3d-8f39af916fff 6c64cc9c-33a9-4a20-af19-c188a690c755 79c224ab-188a-4ed4-a606-c28ee2cfe72d 361e2708-8124-4bd1-9c44-f97ca97aca4a de081dd9-1853-4d79-94fc-2edac498380f 2b8930da-5223-4b75-b4f6-251a28552d1b
 :DROPPED:  489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-10-09 Fri 11:25] \\
   user: so the tool serves another project with ease
+CLOCK: [2026-10-10 Sat 15:19]--[2026-10-10 Sat 15:20] =>  0:01
+- [2026-10-10 Sat 15:19]--[2026-10-10 Sat 15:20] revise slice 5a4896c3's own plan
+- [2026-10-10 Sat 15:20]--[2026-10-10 Sat 15:20] assigned at review
 :END:
 :PLAN:
 Divided out of [[id:c7619140-f269-4329-bc05-a38ea151e202][c7619140]] on 2026-10-09 (the user, a three-way split). The members
@@ -742,7 +575,7 @@ Planned:
 - [ ] [[id:6c64cc9c-33a9-4a20-af19-c188a690c755][6c64cc9c]] TODO claude-code-ide-org-review should return point and windows to where I entered from
 - [ ] [[id:79c224ab-188a-4ed4-a606-c28ee2cfe72d][79c224ab]] TODO Applied review changes can be destroyed by a git checkout that looks like it reverts only Claude's edit
 - [ ] [[id:361e2708-8124-4bd1-9c44-f97ca97aca4a][361e2708]] TODO Decide how far the review-apply cycle can be automated, given the interactive constraint
-- [ ] [[id:2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd][2cd74268]] TODO Let a task-only install auto-apply state transitions, behind a toggle
+- [[id:2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd][2cd74268]] TODO Let a task-only install auto-apply state transitions, behind a toggle
 - [ ] [[id:de081dd9-1853-4d79-94fc-2edac498380f][de081dd9]] TODO The steps after apply run only when the review buffer is buried, so a session can never offer them when they are overdue
 - [-] [[id:2b8930da-5223-4b75-b4f6-251a28552d1b][2b8930da]] DOING Nothing in the drift slice was exercised in a consumer install: the new hooks, the conditional time-file promotion, the twin-checker agent
 
@@ -944,6 +777,12 @@ The plan holds the decision and the findings that document must respect.
 :CATEGORY: Apply
 :END:
 :LOGBOOK:
+CLOCK: [2026-10-09 Fri 17:27]--[2026-10-09 Fri 17:28] =>  0:01
+- [2026-10-09 Fri 17:27]--[2026-10-09 Fri 17:28] plan review buffer movement and marking members
+CLOCK: [2026-10-09 Fri 17:28]--[2026-10-09 Fri 17:29] =>  0:01
+- [2026-10-09 Fri 17:28]--[2026-10-09 Fri 17:29] plan review buffer movement and marking members
+CLOCK: [2026-10-09 Fri 17:29]--[2026-10-09 Fri 17:30] =>  0:01
+- [2026-10-09 Fri 17:29]--[2026-10-09 Fri 17:30] plan review buffer movement and marking members
 - Tags ":code:bounded:" from ":code:"     [2026-10-09 Fri 17:43] \\
   first classification: the forward walk already exists
 :END:
@@ -969,23 +808,6 @@ already does the forward half, staying put at the last item; it needs a backward
 twin and two interactive wrappers.
 
 
-* TODO Declare the brainstorming path tags as an exclusive group in #+TAGS:, so org's tag menu enforces one :code:
-:PROPERTIES:
-:ID:       c9c75fda-c818-4e7b-9b97-c3a68e980eab
-:CREATED:  [2026-10-06 Tue 15:17]
-:CATEGORY: Skill
-:END:
-
-=:spike:=, =:bounded:= and =:arch:= are mutually exclusive by convention: at
-most one per heading, which =bin/lint-org= checks and =org_set_tags= enforces by
-displacement. Org can declare the same thing in the header, as =#+TAGS: code
-prose research { spike bounded arch }=, after which picking one in the =C-c C-q=
-menu clears the others. That would cover hand edits too, which today only the
-lint catches at commit. Adopt it in TODO.org, the template and the conventions'
-header example together; the header-line check in =bin/check-conventions=
-([[id:189645c6-d76f-4761-96f0-f3734fe1df26][189645c6]]) already strips group markers when it compares tag sets.
-
-
 * TODO A consuming repo has nowhere to declare its :CATEGORY: values, so its first top-level capture makes one up :code:bounded:
 :PROPERTIES:
 :ID:       24694d1f-34b4-495b-b0d8-d29e64894c59
@@ -994,6 +816,7 @@ header example together; the header-line check in =bin/check-conventions=
 :END:
 :LOGBOOK:
 - [2026-10-09 Fri 17:07]--[2026-10-09 Fri 17:13] assigned at review
+- [2026-10-09 Fri 17:13]--[2026-10-09 Fri 17:13] brainstorm consumer category declaration
 CLOCK: [2026-10-09 Fri 17:16]--[2026-10-09 Fri 17:17] =>  0:01
 - [2026-10-09 Fri 17:16]--[2026-10-09 Fri 17:17] brainstorm consumer category declaration
 CLOCK: [2026-10-09 Fri 17:17]--[2026-10-09 Fri 17:18] =>  0:01
@@ -1055,128 +878,21 @@ seeded with =Meta=; =--check= reports it missing; the capture refusal and the
 novel-value warning name the file.
 
 
-* DONE The docs still archive to =DONE.org::= after the =datetree= move :prose:bounded:code:
-CLOSED: [2026-10-09 Fri 10:41]
+* TODO Declare the brainstorming path tags as an exclusive group in #+TAGS:, so org's tag menu enforces one :code:
 :PROPERTIES:
-:ID:       189645c6-d76f-4761-96f0-f3734fe1df26
-:CREATED:  [2026-10-06 Tue 14:08]
+:ID:       c9c75fda-c818-4e7b-9b97-c3a68e980eab
+:CREATED:  [2026-10-06 Tue 15:17]
 :CATEGORY: Skill
 :END:
-:LOGBOOK:
-CLOCK: [2026-10-06 Tue 14:17]--[2026-10-06 Tue 14:18] =>  0:01
-- Tags ":prose:bounded:code:" from ":prose:"    [2026-10-06 Tue 14:17] \\
-  classified: prose correction plus one check in an existing script
-- [2026-10-06 Tue 14:17]--[2026-10-06 Tue 14:18] record the approved design
-CLOCK: [2026-10-06 Tue 14:20]--[2026-10-06 Tue 14:22] =>  0:02
-- State "DOING"      from "TODO"       [2026-10-06 Tue 14:20] \\
-  design approved; implementing on a branch
-- [2026-10-06 Tue 14:20]--[2026-10-06 Tue 14:22] header-line check and archive prose
-- State "REVIEW"     from "DOING"      [2026-10-06 Tue 14:22] \\
-  fixed on the branch; PR opened
-CLOCK: [2026-10-06 Tue 14:25]--[2026-10-06 Tue 14:26] =>  0:01
-- [2026-10-06 Tue 14:25]--[2026-10-06 Tue 14:26] assigned at review
-CLOCK: [2026-10-06 Tue 14:28]--[2026-10-06 Tue 14:29] =>  0:01
-- [2026-10-06 Tue 14:28]--[2026-10-06 Tue 14:29] assigned at review
-CLOCK: [2026-10-06 Tue 15:08]--[2026-10-06 Tue 15:09] =>  0:01
-- [2026-10-06 Tue 15:08]--[2026-10-06 Tue 15:09] assigned at review
-CLOCK: [2026-10-06 Tue 15:11]--[2026-10-06 Tue 15:12] =>  0:01
-- [2026-10-06 Tue 15:11]--[2026-10-06 Tue 15:12] assigned at review
-CLOCK: [2026-10-06 Tue 15:14]--[2026-10-06 Tue 15:15] =>  0:01
-- [2026-10-06 Tue 15:14]--[2026-10-06 Tue 15:15] assigned at review
-CLOCK: [2026-10-06 Tue 15:17]--[2026-10-06 Tue 15:22] =>  0:05
-- State "DOING"      from "REVIEW"     [2026-10-06 Tue 15:17] \\
-  rework: PR #35 review findings
-- [2026-10-06 Tue 15:17]--[2026-10-06 Tue 15:22] rework for PR #35's review
-- State "REVIEW"     from "DOING"      [2026-10-06 Tue 15:21] \\
-  review findings addressed; one design question open
-- [2026-10-06 Tue 15:22]--[2026-10-06 Tue 15:22] assigned at review
-CLOCK: [2026-10-06 Tue 17:10]--[2026-10-06 Tue 17:11] =>  0:01
-- [2026-10-06 Tue 17:10]--[2026-10-06 Tue 17:11] assigned at review
-CLOCK: [2026-10-09 Fri 08:33]--[2026-10-09 Fri 08:34] =>  0:01
-- [2026-10-09 Fri 08:33]--[2026-10-09 Fri 08:34] file the consumer category gap
-- State "DONE"       from "REVIEW"     [2026-10-09 Fri 10:41] \\
-  merged with PR #35
-:END:
-:PLAN:
-The archive location is settled, not open: [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]] converted DONE.org to a
-datetree keyed by =CLOSED:= on 2026-09-02, pointed =#+ARCHIVE:= at
-=DONE.org::datetree/=, and fixed archiving into the tree.
-=org-archive-reversed-order= is now off for a datetree target, and
-=claude-code-ide-org-sort-datetree-descending= orders every tier. [[id:e30d52d7-960b-44f3-ab92-93846c81a1bd][e30d52d7]]'s
-lint already accepts the anchorless tree. Two pieces of prose never caught up,
-and nothing compares the header lines across their copies, which is also how the
-template's tags drifted ([[id:b2e4173c-26c5-4ff8-b055-350883fe4c06][b2e4173c]]). (Design approved in chat by the user,
-2026-10-06.)
 
-=skills/org/references/org-conventions.md=: the File header example becomes
-=#+ARCHIVE: DONE.org::datetree/=. The Archiving section's "Where archived work
-lands is unsettled" paragraph is replaced by the settled rule, citing [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]]:
-archived work lands in a datetree by =CLOSED:=, which the ceremony's sort step
-orders newest first, so DONE.org reads by when work finished. The promoted
-=.claude/rules/org-conventions.md= is regenerated with =claude-org-setup=.
-
-=skills/org/SKILL.md=, "Archiving convention": the generic advice on the empty
-olpath and on per-category =:ARCHIVE:= routing stays, since both remain good org
-practice. The project example and the sentence saying routing "collapsed to a
-single file-level =#+ARCHIVE: DONE.org::=" are corrected to say this project
-then moved to =datetree/= on 2026-09-02.
-
-=bin/check-conventions=: extend the keyword-set check to the =#+TAGS:= and
-=#+ARCHIVE:= lines, taking this repo's TODO.org as the truth. It compares
-=templates/TODO.org=, the conventions reference's header example and the org
-skill's example. Tags are compared as a set, as the keyword check is; the
-archive location is compared as a string. =clock-template.org= stays out, a
-worked example the pre-commit hook already exempts.
-
-Testing: the new check is proven to fail first, by reintroducing each drift on a
-copy (never a stash) before the prose is fixed. It then passes after the fix,
-alongside =bin/test= and =bin/lint-org=. This lands on a feature branch, since
-it carries a script change.
-:END:
-:DEBRIEF:
-Shipped on =feature/archive-header-drift= in commit [[orgit-rev:./::d3ae3c6][d3ae3c6]].
-=bin/check-conventions= takes TODO.org's =#+TAGS:= and =#+ARCHIVE:= as the
-truth. It checks every such line in =templates/TODO.org=, the conventions
-reference and the org skill, comparing tags as a set and the archive location as
-a string. A file that should show the header and shows none fails. Verified in
-three steps. Run against the unfixed prose, the check failed on exactly the two
-stale =DONE.org::= examples. Four new =check-conventions-test= cases cover a
-dropped tag in the template, a superseded archive, a missing tags line, and
-reordered tags passing; the first three fail against HEAD's unextended check,
-copied aside rather than stashed. After the prose fix the check passes, the
-promoted rules match the references, and the self-test reads 23/23. In the
-prose, the conventions reference's "unsettled" paragraph became the settled
-rule, citing [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]], and the org skill's example now archives to the datetree;
-its generic advice on olpaths and per-category routing stayed. Differed from the
-plan: nothing. The always-loaded rules sit at 10185 of their 10200-word budget,
-which this change did not touch, since the conventions file is path-scoped.
-
-*Rework after PR #35's review*, in commit [[orgit-rev:./::6859b23][6859b23]]. The review posted ten
-findings. Four were in prose the first pass had written or kept, and they went
-when, at the user's direction, both texts were cut to the current standard
-alone. The org skill's archiving section shrank from about 520 words to 90,
-dropping the flat, wrapper and per-category setups and the advice to turn
-reversed order on, which malforms a datetree. Four were in the check, and all
-are fixed: an org file's =#+TAGS:= lines are unioned, tag syntax is stripped,
-the keywords match in any case, and one =as_set= helper serves both set
-comparisons. Cases 19, 20 and 22 failed first; case 19 also caught a bug in the
-first attempt, which joined lines before stripping each prefix.
-=clock-template.org= stays out, now with the reason in the check's comment. One
-thread is left open for the user: whether the template, rather than this repo's
-TODO.org, should be the reference. Self-test 27/27, pre-push 1592 passed. Filed:
-[[id:c9c75fda-c818-4e7b-9b97-c3a68e980eab][c9c75fda]], declaring the path tags as an exclusive =#+TAGS:= group.
-:END:
-
-The conventions reference and the org skill still show =#+ARCHIVE: DONE.org::=
-and call the archive location unsettled. It has been a datetree by =CLOSED:=
-since [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]] (2026-09-02), in every tracker and the template. Correct both
-texts, and extend =bin/check-conventions= to compare the =#+TAGS:= and
-=#+ARCHIVE:= lines across their copies, so neither this nor the template's tag
-drift can recur unseen.
-
-*Resolution:* both texts show =DONE.org::datetree/= and state the settled rule,
-and =bin/check-conventions= now fails on any copy of the =#+TAGS:= or
-=#+ARCHIVE:= line that disagrees with TODO.org's.
+=:spike:=, =:bounded:= and =:arch:= are mutually exclusive by convention: at
+most one per heading, which =bin/lint-org= checks and =org_set_tags= enforces by
+displacement. Org can declare the same thing in the header, as =#+TAGS: code
+prose research { spike bounded arch }=, after which picking one in the =C-c C-q=
+menu clears the others. That would cover hand edits too, which today only the
+lint catches at commit. Adopt it in TODO.org, the template and the conventions'
+header example together; the header-line check in =bin/check-conventions=
+([[id:189645c6-d76f-4761-96f0-f3734fe1df26][189645c6]]) already strips group markers when it compares tag sets.
 
 
 * MAYBE Cite a symbol from a body with a search-anchored file: link, so the citation opens at the definition
@@ -3546,8 +3262,15 @@ CLOCK: [2026-10-06 Tue 14:15]--[2026-10-06 Tue 14:17] =>  0:02
 - [2026-10-06 Tue 14:15]--[2026-10-06 Tue 14:17] suggested span, accepted at review
 CLOCK: [2026-10-06 Tue 14:18]--[2026-10-06 Tue 14:20] =>  0:02
 - [2026-10-06 Tue 14:18]--[2026-10-06 Tue 14:20] suggested span, accepted at review
+CLOCK: [2026-10-10 Sat 14:07]--[2026-10-10 Sat 14:08] =>  0:01
+- [2026-10-10 Sat 14:07]--[2026-10-10 Sat 14:08] plan the consumer-install check
+CLOCK: [2026-10-10 Sat 15:17]--[2026-10-10 Sat 15:18] =>  0:01
+CLOCK: [2026-10-10 Sat 15:17]--[2026-10-10 Sat 15:18] =>  0:01
+- [2026-10-10 Sat 15:17]--[2026-10-10 Sat 15:18] plan the consumer-install check
+CLOCK: [2026-10-10 Sat 15:18]--[2026-10-10 Sat 15:19] =>  0:01
 - Tags ":code:spike:" from ":code:"     [2026-10-10 Sat 15:18] \\
   classified spike: the output is an answer per check; failures file their own headings
+- [2026-10-10 Sat 15:18]--[2026-10-10 Sat 15:19] plan the consumer-install check
 :END:
 :PLAN:
 
@@ -3599,6 +3322,7 @@ time file "kept (already promoted)", and =--no-time-tracking= removed it. The
 six promoted rules were byte-identical to the plugin's generated copies, and
 =claude-org-setup --check= reported all ok, with =.mcp.json= naming the
 =agentic-euchre= session as that project's alone.
+
 
 * TODO The duplicate query reads titles only, so a paraphrase gets past it — including the case that motivated it :code:
 :PROPERTIES:
@@ -6584,6 +6308,8 @@ item's own; auto-marking skips =D= items. [[id:e95cc5d1-f8ae-4aad-b9cd-5bd0277e1
 :LOGBOOK:
 - Tags ":code:bounded:" from ":code:"     [2026-10-09 Fri 17:30] \\
   first classification: resolved inside ee3c22c9's bounded design
+CLOCK: [2026-10-09 Fri 17:33]--[2026-10-09 Fri 17:34] =>  0:01
+- [2026-10-09 Fri 17:33]--[2026-10-09 Fri 17:34] record cause and close-with plan
 :END:
 :PLAN:
 
@@ -6780,6 +6506,7 @@ CLOCK: [2026-09-17 Thu 08:18]--[2026-09-17 Thu 08:19] =>  0:01
 - [2026-09-17 Thu 08:18]--[2026-09-17 Thu 08:19] suggested span, accepted at review
 CLOCK: [2026-09-17 Thu 08:36]--[2026-09-17 Thu 08:37] =>  0:01
 - [2026-09-17 Thu 08:36]--[2026-09-17 Thu 08:37] suggested span, accepted at review
+- [2026-10-09 Fri 17:17]--[2026-10-09 Fri 17:17] plan the review-buffer quit crash
 CLOCK: [2026-10-09 Fri 17:19]--[2026-10-09 Fri 17:20] =>  0:01
 - [2026-10-09 Fri 17:19]--[2026-10-09 Fri 17:20] plan the review-buffer quit crash
 :END:
@@ -8326,6 +8053,8 @@ and rarity is what keeps a false success unnoticed.
 :CATEGORY: Apply
 :END:
 :LOGBOOK:
+CLOCK: [2026-10-09 Fri 18:46]--[2026-10-09 Fri 18:47] =>  0:01
+- [2026-10-09 Fri 18:46]--[2026-10-09 Fri 18:47] plan restoring windows after review
 - Tags ":code:bounded:" from ":code:"     [2026-10-09 Fri 18:47] \\
   first classification: the review command's entry and bury paths already exist
 :END:
@@ -8370,6 +8099,7 @@ survive it. Designed 2026-10-09 (the user): restore the layout, then the entry
 heading by =:ID:= and offset, after the ceremony; an archived heading is
 declined with a message naming its id and how to follow it. Adjacent, not the
 same: [[id:29734f79-e698-43dd-abf8-14bc86b8b0ae][29734f79]] made the ceremony report its completion on bury.
+
 
 * TODO Classify gaps by markers at either end, not by tracking an AFK state :code:
 :PROPERTIES:
@@ -10019,12 +9749,12 @@ before the fix and still says.
 
 
 * TODO Archive closed tasks daily
-SCHEDULED: <2026-10-10 Sat 07:00 ++1d>
+SCHEDULED: <2026-10-11 Sun 07:00 ++1d>
 :PROPERTIES:
 :CATEGORY: Meta
 :ID:       cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8
 :CREATED:  [2026-08-21 Fri 15:35]
-:LAST_REPEAT: [2026-10-09 Fri 08:58]
+:LAST_REPEAT: [2026-10-10 Sat 17:24]
 :END:
 :LOGBOOK:
 CLOCK: [2026-08-24 Mon 10:25]--[2026-08-24 Mon 10:28] =>  0:03
@@ -10106,6 +9836,10 @@ sits on the category, the one place in this repo a repeater is safe.
 :LOGBOOK:
 - State "TODO"       from              [2026-08-21 Fri 08:09] \\
   decide the automation boundary
+CLOCK: [2026-10-09 Fri 18:51]--[2026-10-09 Fri 18:52] =>  0:01
+- [2026-10-09 Fri 18:51]--[2026-10-09 Fri 18:52] plan how far apply can be automated
+CLOCK: [2026-10-09 Fri 20:26]--[2026-10-09 Fri 20:29] =>  0:03
+- [2026-10-09 Fri 20:26]--[2026-10-09 Fri 20:29] plan how far apply can be automated
 - Tags ":code:spike:" from ":code:"     [2026-10-09 Fri 20:28] \\
   first classification: a decision whose output is an answer, not code
 :END:
@@ -10317,6 +10051,8 @@ CLOCK: [2026-08-19 Wed 08:28]--[2026-08-19 Wed 08:29] =>  0:01
 - [2026-08-19 Wed 08:28]--[2026-08-19 Wed 08:29] assigned at review
 CLOCK: [2026-08-19 Wed 08:42]--[2026-08-19 Wed 08:46] =>  0:04
 - [2026-08-19 Wed 08:42]--[2026-08-19 Wed 08:46] assigned at review
+CLOCK: [2026-10-09 Fri 18:48]--[2026-10-09 Fri 18:49] =>  0:01
+- [2026-10-09 Fri 18:48]--[2026-10-09 Fri 18:49] plan checkout guard for applied changes
 - Tags ":code:bounded:" from ":code:"     [2026-10-09 Fri 18:49] \\
   first classification: the guard follows emacsclient-guard's existing shape
 :END:
@@ -10359,6 +10095,7 @@ alike; four were re-queued, and their original State lines and timestamps were
 not recovered. Designed 2026-10-09 (the user): a PreToolUse guard refuses a
 discarding git command while a tracked =.org= file has uncommitted changes, and
 reconciling watermarks against the file is filed on its own.
+
 
 * TODO Type a span's annotation at review time, not by hand-editing it after :code:
 :PROPERTIES:
@@ -12467,11 +12204,6 @@ per tool -- rather than opening the servers beyond localhost.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
-CLOCK: [2026-10-09 Fri 17:24]--[2026-10-09 Fri 17:26] =>  0:02
-CLOCK: [2026-10-09 Fri 16:15]--[2026-10-09 Fri 16:17] =>  0:02
-CLOCK: [2026-10-09 Fri 13:22]--[2026-10-09 Fri 13:23] =>  0:01
-CLOCK: [2026-10-09 Fri 13:10]--[2026-10-09 Fri 13:13] =>  0:03
-CLOCK: [2026-10-09 Fri 12:44]--[2026-10-09 Fri 13:02] =>  0:18
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
@@ -12659,6 +12391,12 @@ CLOCK: [2026-10-06 Tue 11:39]--[2026-10-06 Tue 11:41] =>  0:02
 CLOCK: [2026-10-06 Tue 12:36]--[2026-10-06 Tue 12:39] =>  0:03
 CLOCK: [2026-10-06 Tue 12:42]--[2026-10-06 Tue 12:43] =>  0:01
 CLOCK: [2026-10-09 Fri 08:33]--[2026-10-09 Fri 08:46] =>  0:13
+CLOCK: [2026-10-09 Fri 12:44]--[2026-10-09 Fri 13:02] =>  0:18
+CLOCK: [2026-10-09 Fri 13:10]--[2026-10-09 Fri 13:13] =>  0:03
+CLOCK: [2026-10-09 Fri 13:22]--[2026-10-09 Fri 13:23] =>  0:01
+CLOCK: [2026-10-09 Fri 16:15]--[2026-10-09 Fri 16:17] =>  0:02
+CLOCK: [2026-10-09 Fri 17:24]--[2026-10-09 Fri 17:26] =>  0:02
+CLOCK: [2026-10-10 Sat 17:19]--[2026-10-10 Sat 17:24] =>  0:05
 :END:
 
 We created this heading on 2026-08-26. We deleted that property from its
