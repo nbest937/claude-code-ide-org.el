@@ -7820,6 +7820,211 @@ the pass."
       (should-not (claude-code-ide-org-review-attention-start))
       (should-not (org-clocking-p)))))
 
+;;; Time-tracking gate and the missing anchor (TODO.org :ID: 97b4f6a9) -----
+
+(defun claude-code-ide-org-test--run-review-command ()
+  "Run `claude-code-ide-org-review' and kill its buffer, closing any pass."
+  (save-window-excursion
+    (claude-code-ide-org-review))
+  (when (get-buffer "*org-review*")
+    (kill-buffer "*org-review*")))
+
+(ert-deftest claude-code-ide-org-test-review-gate-off-touches-nothing ()
+  "With the option stamp false, empty or missing, the pass opens no clock.
+
+A task-only install uses the review pass too, and was handed a clock
+and a heading it never asked for.  Fails closed: anything but \"true\"
+is off.  Asserted as a byte-identical file, which covers both the clock
+and the heading."
+  (claude-code-ide-org-test--with-attention-target
+    (let* ((claude-code-ide-org-queue-directory
+            (file-name-directory file))
+           (stamp (claude-code-ide-org--time-tracking-stamp-file))
+           (before (claude-code-ide-org-test--disk-contents file)))
+      (dolist (value '("false" "" missing))
+        (if (eq value 'missing)
+            (when (file-exists-p stamp) (delete-file stamp))
+          (with-temp-file stamp (insert value)))
+        (should-not (claude-code-ide-org--time-tracking-on-p))
+        (claude-code-ide-org-test--run-review-command)
+        (should-not (org-clocking-p))
+        (should (equal before (claude-code-ide-org-test--disk-contents file)))))))
+
+(ert-deftest claude-code-ide-org-test-review-gate-on-opens-the-clock ()
+  "With the stamp reading true, the pass is clocked as before."
+  (claude-code-ide-org-test--with-attention-target
+    (let ((claude-code-ide-org-queue-directory (file-name-directory file)))
+      (with-temp-file (claude-code-ide-org--time-tracking-stamp-file)
+        (insert "true\n"))
+      (should (claude-code-ide-org--time-tracking-on-p))
+      (save-window-excursion (claude-code-ide-org-review))
+      (unwind-protect
+          (should (org-clocking-p))
+        (kill-buffer "*org-review*"))
+      (should-not (org-clocking-p))
+      (should (string-match-p "^\\*\\* Review attention$"
+                              (claude-code-ide-org-test--disk-contents file))))))
+
+(ert-deftest claude-code-ide-org-test-session-context-report-writes-the-stamp ()
+  "The hook's raw option value reaches the stamp, all three forms."
+  (claude-code-ide-org-test--with-heading
+    (let* ((claude-code-ide-org-query-files (list file))
+           (claude-code-ide-org-queue-directory (file-name-directory file))
+           (out (make-temp-file "claude-code-ide-org-test-report")))
+      (unwind-protect
+          (dolist (case '(("true" . "true") ("false" . "false")
+                          ("" . "") (nil . "")))
+            (claude-code-ide-org-write-session-context-report
+             out nil (car case))
+            (should (equal (cdr case)
+                           (claude-code-ide-org-test--disk-contents
+                            (claude-code-ide-org--time-tracking-stamp-file))))
+            (should (eq (equal (cdr case) "true")
+                        (claude-code-ide-org--time-tracking-on-p))))
+        (delete-file out)))))
+
+(defmacro claude-code-ide-org-test--with-anchorless-target (&rest body)
+  "Run BODY with `file' bound to an org file with no meta-work category.
+
+Its last heading has a child, so a heading appended as `**' would be
+filed under it -- the bug this pins."
+  (declare (indent 0))
+  `(let* ((dir (file-name-as-directory (make-temp-file "ccio-anchorless" t)))
+          (file (expand-file-name "TODO.org" dir))
+          (org-id-locations-file (expand-file-name ".org-id-locations" dir))
+          (org-id-locations (make-hash-table :test 'equal))
+          (org-id-files nil)
+          (org-clock-persist nil)
+          (org-clock-history nil)
+          (claude-code-ide-org-capture-file file)
+          (claude-code-ide-org-queue-directory dir)
+          (claude-code-ide-org-review-attention-heading "Review attention")
+          (claude-code-ide-org--review-attention-skipped nil)
+          (claude-code-ide-org--review-attention-marker nil))
+     (unwind-protect
+         (progn
+           (with-temp-file file
+             (insert "#+TODO: TODO | DONE\n\n"
+                     "* Tooling\n:PROPERTIES:\n:CATEGORY: Dev\n:END:\n"
+                     "* Ceremonies\n:PROPERTIES:\n:CATEGORY: Meta\n:END:\n"
+                     "** TODO Last child\n"))
+           ,@body)
+       (when (org-clocking-p) (ignore-errors (org-clock-out)))
+       (let ((buf (get-file-buffer file)))
+         (when buf
+           (with-current-buffer buf (set-buffer-modified-p nil))
+           (kill-buffer buf)))
+       (delete-directory dir t))))
+
+(ert-deftest claude-code-ide-org-test-review-attention-create-is-level-one ()
+  "`c' makes a level-1 heading with :ID:, :CREATED: and the chosen category.
+
+The filed bug's regression test: with no `* Review and planning' the
+heading was appended as `**', a child of whatever came last.  Also pins
+the category offer: the file's own values, `Meta' first."
+  (claude-code-ide-org-test--with-anchorless-target
+    (let (offered default)
+      (cl-letf (((symbol-function 'read-multiple-choice)
+                 (lambda (&rest _) '(?c "create")))
+                ((symbol-function 'completing-read)
+                 (lambda (_prompt coll &rest args)
+                   (setq offered coll default (nth 4 args))
+                   "Meta")))
+        (should (claude-code-ide-org-review-attention-start)))
+      (should (equal '("Meta" "Dev") offered))
+      (should (equal "Meta" default))
+      (should (org-clocking-p))
+      (claude-code-ide-org-review-attention-stop)
+      (let* ((disk (claude-code-ide-org-test--disk-contents file))
+             (attn (substring disk (or (string-match "^\\* Review attention$" disk)
+                                       (error "no level-1 heading: %s" disk)))))
+        (should-not (string-match-p "^\\*\\* Review attention$" disk))
+        (should (string-match-p ":ID: " attn))
+        (should (string-match-p ":CREATED: " attn))
+        (should (string-match-p ":CATEGORY: Meta" attn))))))
+
+(ert-deftest claude-code-ide-org-test-review-attention-skip-asks-once ()
+  "`s' opens no clock, writes nothing, and is not asked twice."
+  (claude-code-ide-org-test--with-anchorless-target
+    (let ((asked 0)
+          (before (claude-code-ide-org-test--disk-contents file)))
+      (cl-letf (((symbol-function 'read-multiple-choice)
+                 (lambda (&rest _) (cl-incf asked) '(?s "skip"))))
+        (should-not (claude-code-ide-org-review-attention-start))
+        (should-not (claude-code-ide-org-review-attention-start)))
+      (should (= 1 asked))
+      (should-not (org-clocking-p))
+      (should (equal before (claude-code-ide-org-test--disk-contents file))))))
+
+(ert-deftest claude-code-ide-org-test-review-attention-never-saves-nil ()
+  "`n' saves the option as nil through Customize and opens no clock."
+  (claude-code-ide-org-test--with-anchorless-target
+    (let (saved)
+      (cl-letf (((symbol-function 'read-multiple-choice)
+                 (lambda (&rest _) '(?n "never")))
+                ((symbol-function 'customize-save-variable)
+                 (lambda (sym val &rest _) (setq saved (list sym val)) (set sym val))))
+        (should-not (claude-code-ide-org-review-attention-start)))
+      (should (equal '(claude-code-ide-org-review-attention-heading nil) saved))
+      (should-not (org-clocking-p)))))
+
+(ert-deftest claude-code-ide-org-test-review-attention-meta-category-never-asks ()
+  "With `* Review and planning' present the heading goes under it, unasked."
+  (claude-code-ide-org-test--with-attention-target
+    (cl-letf (((symbol-function 'read-multiple-choice)
+               (lambda (&rest _) (error "asked with an anchor present"))))
+      (should (claude-code-ide-org-review-attention-start)))
+    (claude-code-ide-org-review-attention-stop)
+    (should (string-match-p "^\\*\\* Review attention$"
+                            (claude-code-ide-org-test--disk-contents file)))))
+
+(ert-deftest claude-code-ide-org-test-review-attention-excluded-when-disabled ()
+  "With the option nil, an existing `Review attention' is still not offered.
+
+A heading made before clocking was disabled is still the mechanism's."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert "* Review attention\n:PROPERTIES:\n"
+            ":ID:       88888888-8888-4888-8888-888888888888\n"
+            ":CREATED:  [2026-08-15 Sat 09:00]\n:END:\n")
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    (let ((claude-code-ide-org-query-files (list file))
+          (claude-code-ide-org-review-attention-heading nil))
+      (should-not (cl-find "88888888-8888-4888-8888-888888888888"
+                           (claude-code-ide-org--assign-candidates
+                            (claude-code-ide-org-test--t "09:19")
+                            (claude-code-ide-org-test--t "09:20"))
+                           :key #'cdr :test #'equal)))))
+
+(ert-deftest claude-code-ide-org-test-ceremony-reads-apply-watermarks ()
+  "With no attention clock, a today-dated applied pass time is a pass.
+
+In the queue directory or its archive; a pass time two days old, or a
+watermark that only dismissed, is not."
+  (claude-code-ide-org-test--with-anchorless-target
+    (let* ((archive (expand-file-name "archive" dir))
+           (now (format-time-string "%Y-%m-%dT%H:%M:%S%z"))
+           (old (format-time-string "%Y-%m-%dT%H:%M:%S%z"
+                                    (time-subtract nil (days-to-time 2))))
+           (write (lambda (path applied)
+                    (with-temp-file path
+                      (insert (format "{\"applied\":{%s},\"dismissed\":{\"x\":\"why\"}}"
+                                      (if applied
+                                          (format "\"2026-01-01T00:00:00-0500\":\"%s\""
+                                                  applied)
+                                        "")))))))
+      (make-directory archive t)
+      (should-not (claude-code-ide-org--ceremony-reviewed-today-p))
+      (funcall write (expand-file-name "a.applied" dir) nil)
+      (funcall write (expand-file-name "b.applied" archive) old)
+      (should-not (claude-code-ide-org--ceremony-reviewed-today-p))
+      (funcall write (expand-file-name "c.applied" archive) now)
+      (should (claude-code-ide-org--ceremony-reviewed-today-p))
+      (delete-file (expand-file-name "c.applied" archive))
+      (funcall write (expand-file-name "d.applied" dir) now)
+      (should (claude-code-ide-org--ceremony-reviewed-today-p)))))
+
 (ert-deftest claude-code-ide-org-test-review-apply-reports-unresolvable-id ()
   "A bad :ID: is reported, not thrown, and does not count as applied."
   (claude-code-ide-org-test--with-heading
@@ -18046,10 +18251,13 @@ meta-work node."
     (should (claude-code-ide-org--mechanism-owned-heading-p "Attention pass"))
     (should-not (claude-code-ide-org--mechanism-owned-heading-p
                  "Review attention")))
-  ;; Disabled clocking leaves nothing to exclude.
+  ;; Disabled clocking still excludes the standard title: a heading made
+  ;; before the disable is still the mechanism's (TODO.org :ID: 97b4f6a9).
   (let ((claude-code-ide-org-review-attention-heading nil))
+    (should (claude-code-ide-org--mechanism-owned-heading-p
+             "Review attention"))
     (should-not (claude-code-ide-org--mechanism-owned-heading-p
-                 "Review attention"))))
+                 "Review and planning"))))
 
 
 ;;; Error context (TODO.org :ID: 169df26b) ---------------------------------

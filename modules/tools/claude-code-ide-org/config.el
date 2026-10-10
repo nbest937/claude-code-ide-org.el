@@ -905,19 +905,59 @@ This is what removes the model from the nag guard.  The prompt used to
 depend on a session remembering to call
 `claude-code-ide-org-mark-ceremony-done' an hour and many turns after
 being told to, which is the shape this project has already measured
-failing (:ID: 2758f3a0, 41 of 45, every miss on re-mention)."
-  (let ((marker (claude-code-ide-org--review-attention-target)))
-    (when marker
-      (org-with-point-at marker
-        (let ((end (save-excursion (org-end-of-subtree t) (point)))
-              found)
-          (save-excursion
-            (while (and (not found)
-                        (re-search-forward "^[ \t]*CLOCK: \\(\\[[^]]+\\]\\)" end t))
-              (when (claude-code-ide-org--today-p
-                     (claude-code-ide-org--parse-org-timestamp (match-string 1)))
-                (setq found t))))
-          found)))))
+failing (:ID: 2758f3a0, 41 of 45, every miss on re-mention).
+
+*When no clock says so, the apply watermarks are asked* (TODO.org :ID:
+97b4f6a9).  With time tracking off the pass opens no clock, so the
+CLOCK test alone would read every such pass as never run.  See
+`claude-code-ide-org--applied-today-p', and its blind spot: a pass that
+only dismissed, or applied nothing, reads as not run -- the noisier and
+safer error."
+  (or (let ((marker (claude-code-ide-org--review-attention-target)))
+        (when marker
+          (org-with-point-at marker
+            (let ((end (save-excursion (org-end-of-subtree t) (point)))
+                  found)
+              (save-excursion
+                (while (and (not found)
+                            (re-search-forward "^[ \t]*CLOCK: \\(\\[[^]]+\\]\\)" end t))
+                  (when (claude-code-ide-org--today-p
+                         (claude-code-ide-org--parse-org-timestamp (match-string 1)))
+                    (setq found t))))
+              found))))
+      (claude-code-ide-org--applied-today-p)))
+
+(defun claude-code-ide-org--applied-today-p ()
+  "Non-nil when any apply watermark records a pass dated today.
+
+Every `<session>.applied' in the queue directory and in its archive is
+read, since a fully applied queue's sidecar moves with its `.jsonl'
+\(`claude-code-ide-org-archive-drained-queues').  The value read is each
+`applied' entry's pass time -- the one `bin/hooks/apply-detect' reads,
+here in elisp.  A pass that applied nothing, or only dismissed, leaves
+no new pass time and so is not seen."
+  (let ((dirs (list claude-code-ide-org-queue-directory
+                    ;; Not `--queue-archive-directory', which creates it.
+                    (expand-file-name "archive"
+                                      claude-code-ide-org-queue-directory)))
+        found)
+    (dolist (dir dirs)
+      (when (and (not found) (file-directory-p dir))
+        (dolist (file (directory-files dir t "\\.applied\\'" t))
+          (unless found
+            (let ((data (ignore-errors
+                          (json-parse-string
+                           (with-temp-buffer
+                             (insert-file-contents file)
+                             (buffer-string))
+                           :object-type 'alist :null-object nil
+                           :false-object nil))))
+              (dolist (cell (and (listp data) (alist-get 'applied data)))
+                (let ((time (and (stringp (cdr cell))
+                                 (claude-code-ide-org--parse-iso8601 (cdr cell)))))
+                  (when (and time (claude-code-ide-org--today-p time))
+                    (setq found t)))))))))
+    found))
 
 (defun claude-code-ide-org--items-in-report-scope (items)
   "ITEMS whose events name a `cwd' under `--report-scope'.
@@ -1916,6 +1956,42 @@ context on the answer."
           . ((hookEventName . "SessionStart")
              (additionalContext . ,body))))))))
 
+(defun claude-code-ide-org--time-tracking-stamp-file ()
+  "Path of the stamp carrying the plugin's `time_tracking' option into Emacs."
+  (expand-file-name "time-tracking-option" claude-code-ide-org-queue-directory))
+
+(defun claude-code-ide-org--write-time-tracking-stamp (setting)
+  "Record SETTING, the raw `time_tracking' option, for Emacs to read.
+
+The option is legible only to hook processes (see
+`claude-code-ide-org--time-tracking-line'), so the SessionStart hook
+that already receives it leaves it here, overwritten at every session
+start with \"true\", \"false\" or nothing (TODO.org :ID: 97b4f6a9).
+Chosen over a new defcustom, which would be a second switch able to
+disagree with the first.  One value for every project, since the option
+is per user.  Failure is swallowed: a context hook must not fail on
+bookkeeping, and an unwritten stamp reads as off."
+  (ignore-errors
+    (make-directory claude-code-ide-org-queue-directory t)
+    (write-region (or setting "") nil
+                  (claude-code-ide-org--time-tracking-stamp-file) nil 'quiet)))
+
+(defun claude-code-ide-org--time-tracking-on-p ()
+  "Non-nil when the last session start recorded time tracking as on.
+
+Reads the stamp `claude-code-ide-org--write-time-tracking-stamp'
+leaves.  *Fails closed*: a missing, empty or \"false\" stamp is off,
+because a wrong \"on\" imposes a clock and a heading on an install that
+never asked for time tracking, which is the defect this exists to fix
+\(TODO.org :ID: 97b4f6a9)."
+  (let ((file (claude-code-ide-org--time-tracking-stamp-file)))
+    (and (file-readable-p file)
+         (equal "true"
+                (string-trim
+                 (with-temp-buffer
+                   (insert-file-contents file)
+                   (buffer-string)))))))
+
 (defun claude-code-ide-org-write-session-context-report
     (output-path &optional project time-tracking)
   "Write the SessionStart hook JSON payload for \"what was I last
@@ -1934,7 +2010,11 @@ for the other SessionStart report and for the same defect (TODO.org
 :ID: 43d479c8).  This one carries it too because \"what was I last
 doing\" is *more* misleading unscoped than the ceremony is: a WAITING
 heading from another repository reads as this session's own unfinished
-work."
+work.
+
+TIME-TRACKING is also left in a stamp for Emacs to read; see
+`claude-code-ide-org--write-time-tracking-stamp'."
+  (claude-code-ide-org--write-time-tracking-stamp time-tracking)
   (let ((claude-code-ide-org--report-scope
          (and project (not (string-empty-p project)) project)))
     (with-temp-file output-path
@@ -16552,9 +16632,14 @@ Compared by title rather than by id because the heading is *named* by a
 defcustom rather than pointed at: a user who renames it renames the
 thing this must exclude, where an id would go stale on the rename and
 the title cannot.  Nil when the defcustom is nil, which is how
-review-attention clocking is disabled -- with no heading there is
-nothing to exclude."
-  (let ((owned claude-code-ide-org-review-attention-heading))
+review-attention clocking is disabled -- but a heading made before it
+was disabled is still the mechanism's, so nil falls back to the
+defcustom's standard value rather than excluding nothing (TODO.org
+:ID: 97b4f6a9)."
+  (let ((owned (or claude-code-ide-org-review-attention-heading
+                   (eval (car (get 'claude-code-ide-org-review-attention-heading
+                                   'standard-value))
+                         t))))
     (and owned (stringp title) (equal title owned))))
 
 (defun claude-code-ide-org--assign-candidates (span-start span-end)
@@ -17148,9 +17233,14 @@ Non-nil exactly while a human review interval is open.")
 (defun claude-code-ide-org--review-attention-target (&optional create)
   "Return a marker for the review-attention heading, creating it with CREATE.
 
-Created as a level-2 heading under the meta-work category, since it is
-meta-work by definition and this project reserves level 1 for
-categories."
+Created as a level-2 heading under the meta-work category, `* Review and
+planning', when the file has one, since it is meta-work by definition.
+With no such category it is created only when CREATE is a string: a
+level-1 heading at the end of the file carrying that `:CATEGORY:'.
+Otherwise nil -- it used to go at the end of the file as a level-2
+heading, a child of whatever came last (TODO.org :ID: 97b4f6a9), and the
+choice of what to do instead is the human's; see
+`claude-code-ide-org--review-attention-ask'."
   (let* ((title claude-code-ide-org-review-attention-heading)
          (file (claude-code-ide-org--capture-target-file))
          ;; Respect a report's scope (TODO.org :ID: 43d479c8).
@@ -17179,7 +17269,12 @@ categories."
                  (setq found (point-marker))
                (end-of-line)))
            (or found
-               (when create
+               (when (and create
+                          (or (stringp create)
+                              (save-excursion
+                                (goto-char (point-min))
+                                (re-search-forward
+                                 "^\\* Review and planning$" nil t))))
                  (let ((buffer-read-only nil))
                    (goto-char (point-min))
                    ;; END of the category's subtree, not the line after
@@ -17197,24 +17292,89 @@ categories."
                    ;; `org-end-of-subtree' cannot land inside a drawer
                    ;; or a body, so the class of bug is gone rather than
                    ;; the instance.
-                   (if (re-search-forward "^\\* Review and planning$" nil t)
-                       (progn (org-back-to-heading t)
-                              (org-end-of-subtree t t))
-                     (goto-char (point-max)))
-                   (unless (bolp) (insert "\n"))
-                   (insert "** " title "\n")
-                   (forward-line -1)
-                   (org-id-get-create)
-                   (org-entry-put (point) "CREATED"
-                                  (format-time-string "[%Y-%m-%d %a %H:%M]"))
+                   (let ((meta (re-search-forward
+                                "^\\* Review and planning$" nil t)))
+                     (if meta
+                         (progn (org-back-to-heading t)
+                                (org-end-of-subtree t t))
+                       (goto-char (point-max)))
+                     (unless (bolp) (insert "\n"))
+                     (insert (if meta "** " "* ") title "\n")
+                     (forward-line -1)
+                     (org-id-get-create)
+                     (org-entry-put (point) "CREATED"
+                                    (format-time-string "[%Y-%m-%d %a %H:%M]"))
+                     (unless meta
+                       (org-entry-put (point) "CATEGORY" create)))
                    (save-buffer)
                    (point-marker))))))))))
 
+(defvar claude-code-ide-org--review-attention-skipped nil
+  "Non-nil once the human chose to skip review-attention clocking.
+For this Emacs only: it is asked again after a restart.")
+
+(defun claude-code-ide-org--review-attention-ask ()
+  "Ask what to do when the review-attention heading has no anchor.
+
+Raised only with neither the heading nor `* Review and planning' in the
+file.  Returns the `:CATEGORY:' to create the heading under at level 1,
+or nil when the human skipped (for this Emacs) or declined for good.
+
+The prompt explains what is foregone, when it is next offered and how a
+permanent disable is undone (the user, 2026-10-09, TODO.org :ID:
+97b4f6a9): stopping to ask rather than guessing a placement is the fix
+for the heading filed under whatever came last."
+  (let ((file (claude-code-ide-org--capture-target-file)))
+    (when (and file (file-readable-p file)
+               (not claude-code-ide-org--review-attention-skipped))
+      (let ((choice
+             (read-multiple-choice
+              (format "No \"%s\" heading and no \"Review and planning\" to put it under"
+                      claude-code-ide-org-review-attention-heading)
+              '((?c "create" "Create it at level 1 at the end of the file")
+                (?s "skip" "Not this Emacs: no clock for this pass or any later one until Emacs restarts")
+                (?n "never" "Disable for good: saves the option as nil to your custom file"))
+              (concat
+               "The review pass clocks your own time against a heading.\n"
+               "Without one, this pass's review time goes unrecorded, and\n"
+               "so does every later pass's in this Emacs; the ceremony's\n"
+               "\"reviewed today\" check then falls back to the apply\n"
+               "watermarks.\n\n"
+               "c  creates the heading at level 1 at the end of the file.\n"
+               "s  skips until the first review after an Emacs restart.\n"
+               "n  never asks again: M-x customize-variable\n"
+               "   claude-code-ide-org-review-attention-heading, then\n"
+               "   Erase Customization (or delete the line from your\n"
+               "   custom file), undoes it."))))
+        (pcase (car choice)
+          (?c (let* ((cats (claude-code-ide-org--file-categories file))
+                     (cats (if (member "Meta" cats)
+                               (cons "Meta" (delete "Meta" (copy-sequence cats)))
+                             cats)))
+                (completing-read "Category for the heading: " cats
+                                 nil nil nil nil (car cats))))
+          (?s (setq claude-code-ide-org--review-attention-skipped t)
+              nil)
+          (?n (customize-save-variable
+               'claude-code-ide-org-review-attention-heading nil)
+              (message "Review-attention clocking disabled; saved to %s"
+                       (or custom-file user-init-file))
+              nil))))))
+
 (defun claude-code-ide-org-review-attention-start ()
-  "Open a clock on the review-attention heading.  Idempotent within a pass."
+  "Open a clock on the review-attention heading.  Idempotent within a pass.
+
+With no heading and no meta-work category to make one under, asks first
+\(`claude-code-ide-org--review-attention-ask'), and does nothing on skip."
   (when (and claude-code-ide-org-review-attention-heading
-             (not claude-code-ide-org--review-attention-marker))
-    (let ((marker (claude-code-ide-org--review-attention-target 'create)))
+             (not claude-code-ide-org--review-attention-marker)
+             (not claude-code-ide-org--review-attention-skipped))
+    (let ((marker (or (claude-code-ide-org--review-attention-target 'create)
+                      (let ((category (claude-code-ide-org--review-attention-ask)))
+                        (and category
+                             (not (string-empty-p category))
+                             (claude-code-ide-org--review-attention-target
+                              category))))))
       (when marker
         (setq claude-code-ide-org--review-attention-marker marker)
         (org-with-point-at marker
@@ -17632,7 +17792,11 @@ correctly inside a real interactive command."
       ;; invoked by accident, and starting here needs no utterance and
       ;; cannot be forgotten -- unlike the "tell you to clock me in"
       ;; contract, which depends on remembering a sentence at both ends.
-      (claude-code-ide-org-review-attention-start)
+      ;; Only where time tracking is on (TODO.org :ID: 97b4f6a9): a
+      ;; task-only install uses this pass too, and was handed a clock
+      ;; and a heading it never asked for.
+      (when (claude-code-ide-org--time-tracking-on-p)
+        (claude-code-ide-org-review-attention-start))
       ;; Buffer-local, and it runs with the buffer current just before
       ;; the kill.  This is the second of three layers: burying is
       ;; handled by advice on `quit-window', and `kill-emacs-hook'
