@@ -309,6 +309,12 @@ Testing. An ERT case renders one item of each kind and asserts every prefix the
 renderer draws is named in the docstring, so the two cannot drift apart silently
 again. Run red against HEAD's version first.
 :END:
+:DEBRIEF:
+Shipped as planned. The pinning test renders one item of each kind through
+=--review-describe= and requires a help line pairing that prefix with that
+kind, so a new prefix or a changed one fails it. It is red against HEAD.
+Nothing left over.
+:END:
 
 =claude-code-ide-org-review-mode='s help (the =?= key) says a span prefixed =?=
 is UNASSIGNED. =--review-describe= prefixes =!= to an unassigned span with no
@@ -316,6 +322,13 @@ is UNASSIGNED. =--review-describe= prefixes =!= to an unassigned span with no
 state change. Found 2026-10-09 when the user asked what the =!= lines meant.
 Correct the help to the code, naming both meanings of =!= and saying that =?= is
 a suggestion to confirm.
+
+Resolved in commit [[orgit-rev:./::b3fe707][b3fe707]]: the mode help lists the prefix column line by line.
+=!= on a state line is stale, =!= on a span names no heading so =a= must choose
+one, =!= on a capture is an unresolved target, and =?= on a span is a suggested
+heading to confirm. Found while writing the test: the capture's =!= was also
+unnamed.
+
 
 
 * TODO [0/5] Document what a fork may change and what the machinery depends on :prose:bounded:
@@ -846,6 +859,13 @@ Testing. ERT over a rendered buffer with group headings and evidence lines: =n=
 and =p= land only on item lines and stay put at either end. Run red against
 HEAD's version first.
 :END:
+:DEBRIEF:
+Shipped as planned, with the group in one commit (b3fe707), since all five
+touch the same commands. Verified: =bin/test= 914/914; the move test is red
+against HEAD; live reload, =check-image= fresh, =n= bound in the running map.
+Not verified: the keys by hand in a real review buffer. Not filed: the user's
+next apply pass exercises it, and [[id:2b8930da-5223-4b75-b4f6-251a28552d1b][2b8930da]] covers the consumer side.
+:END:
 
 =claude-code-ide-org-review-mode= binds its actions but no movement, so a
 reviewer steps through items with =C-n=/=C-p= over group headings, evidence
@@ -853,6 +873,12 @@ lines and prompt synopses. Bind =n= and =p=, both free in =special-mode=, to
 commands that land on the next and previous item line. =--review-forward-item=
 already does the forward half, staying put at the last item; it needs a backward
 twin and two interactive wrappers.
+
+Resolved in commit [[orgit-rev:./::b3fe707][b3fe707]]: =n= and =p= move between item lines, through
+=--review-backward-item=, the twin of =--review-forward-item=, which now
+returns whether point moved. Both stay put at either end and recenter through
+[[id:396fd1c3-70e0-4e1f-8839-670b5293a7d3][396fd1c3]]'s helper. The key line and the mode help name them.
+
 
 
 * TODO A consuming repo has nowhere to declare its :CATEGORY: values, so its first top-level capture makes one up :code:bounded:
@@ -5255,11 +5281,25 @@ Testing. ERT with the helper's =recenter= stubbed to record calls: one after
 =m=, =u= and =d=; none at the last item; none from a render alone. Run red
 against HEAD's version first.
 :END:
+:DEBRIEF:
+Shipped as planned. The test shows the review buffer in the batch frame's
+window and stubs =recenter=. Each of =m=, =u=, =d=, =n= and =p= recenters
+exactly once when it moves, and none does at the last item or on a bare render.
+The test is red against HEAD, and also against a mutation dropping the moved
+guard. Not verified: how it looks in a real window. Not filed, for the reason
+[[id:41f21b4d-278d-4ad8-a56f-122f5af33d65][41f21b4d]] gives.
+:END:
 
 After `m` marks an item and advances, the next item can sit at the bottom of the
 window with none of its context visible. Designed 2026-10-09 (the user): every
 advancing key, =m=, =u=, =d=, =n= and =p=, calls =(recenter)= after the render,
 and none does when point did not move.
+
+Resolved in commit [[orgit-rev:./::b3fe707][b3fe707]]: =--review-recenter= calls =(recenter)= after the
+render. It runs only when the advance moved point and the review buffer is in
+the selected window. It is called from =--review-redraw='s advance branch,
+which covers =m=, =u= and =d=, and by =n= and =p=.
+
 
 
 * TODO `c` claims an envelope whatever runs it contains, so one keystroke can record 3h11m over 16 minutes :code:
@@ -6371,12 +6411,30 @@ above, and =M= and =t= skip =D=; auto-mark does not re-mark a =D= state item;
 d= reason; =x= with only =D= items dismisses them; =g= asks when =D= marks
 exist. Each runs red against HEAD's version first.
 :END:
+:DEBRIEF:
+Shipped as designed, with one reading made explicit. =x= confirms only when =D=
+items exist: an apply-only =x= stays unconfirmed, as before, because the marks
+already say it and dismissal is the permanent half. The read-only check for
+applies runs before any dismissal, so declining it dismisses nothing.
+Dismissals are grouped by session and reason, one =--queue-mark-dismissed=
+call per pair. Six tests, each red against HEAD, plus the old
+dismiss-keeps-assignments test moved to =d= then =x=. Nothing left over.
+:END:
 
 Proposes that =d= in the review buffer marks an item for dismissal, dired-style,
 instead of dismissing it at once, so a set sharing one reason can be dismissed
 together. Designed 2026-10-09 (the user): =x= executes both kinds of mark,
 dismissals first; one reason is asked once for the set, with =C-u d= for an
 item's own; auto-marking skips =D= items. [[id:e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b][e95cc5d1]] closes with it.
+
+Resolved in commit [[orgit-rev:./::b3fe707][b3fe707]]: =d= leaves a =D= in the mark column and advances,
+and =C-u d= asks for that item's own reason. =x= dismisses every =D= item first,
+asking once for a reason shared by those without one, then applies the =m=
+items, after one "Apply 5, dismiss 7?" confirmation. With only =D= items it asks
+"Dismiss 7 permanently?" and applies nothing. The mark rules are as designed:
+=m=/=D= exclude each other, =u= and =U= clear either, =M=, =t= and auto-marking
+skip =D=, and =g= counts =D= marks as judgement.
+
 
 
 * TODO =d= advances point in the review buffer, onto whatever moved up to replace the dismissed item :code:bounded:
@@ -6419,11 +6477,23 @@ defect cannot arise. Its pinning test lives there: after =d=, point is on the
 next drawn item. Not fixed separately, since that code is replaced when the
 marks land.
 :END:
+:DEBRIEF:
+Closed as planned, by replacement rather than a fix. The pinning test
+(=review-d-marks-and-advances-down=) draws newest-first, presses =d= on the
+top item, and requires point to land on the item drawn below it. It is red
+against HEAD. The cause recorded in the drawer was never reproduced live, and
+now it cannot be. Nothing left over.
+:END:
 
 After =d= dismisses an item the next one moves up into its line, and advancing
 point then skips it. The cause, read from the code 2026-10-09, is that =d= lands
 on the next item in held order while the buffer is drawn newest-first. It closes
 with [[id:ee3c22c9-f99c-4d41-9c3d-8f39af916fff][ee3c22c9]], whose =D= mark leaves the line in place (the user).
+
+Resolved with [[id:ee3c22c9-f99c-4d41-9c3d-8f39af916fff][ee3c22c9]] in commit [[orgit-rev:./::b3fe707][b3fe707]]: =d= now leaves its line in place, so
+it advances along =m='s path over drawn lines. The code that redrew onto the
+next item in held order is gone.
+
 
 
 * TODO Nothing can correct a closed slice's record, even when the correction is close-time truth :code:
