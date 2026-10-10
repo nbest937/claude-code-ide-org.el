@@ -250,6 +250,18 @@ over a slice counting X, one that dropped X and one that only cites X in its
 plan returns exactly the first; two ids return the union; a prefix expands and
 an unknown id is refused. Each runs red against HEAD's version first.
 :END:
+:DEBRIEF:
+Shipped as planned, with one forced change. A predicate named =member= failed,
+"called with 1 arg": org-ql evaluates predicate names as calls, so it reached
+Emacs's own =member=. It is now =slice-member=, with =member= as the alias that
+queries spell, which org-ql's normalizer rewrites. The plan asked
+=org-mcp-tools.md= to say it is the first custom predicate. That sentence went
+only into the tool description: self-hosting stood 5 words under its budget.
+
+Verified: three tests red against HEAD. Live, the line on [[id:41f21b4d-278d-4ad8-a56f-122f5af33d65][41f21b4d]] names
+this slice and the dropped [[id:c7619140-f269-4329-bc05-a38ea151e202][c7619140]], and =member:41f21b4d todo:= returns this
+slice alone. A scoped outline costs 0.22 s. Nothing left over.
+:END:
 
 Scoped to a slice, =org_outline= lists its members; scoped to a member, its
 front matter shows =:CREATED:=, =:CATEGORY:=, =:BLOCKER:= and history, but no
@@ -259,6 +271,13 @@ refresh already uses. A =member:ID= predicate for =org_query= answers it for
 many headings at once, built here too (the user, 2026-10-09). Met 2026-10-09
 when sorting review-buffer headings by slice ended in a Python read of TODO.org,
 the shape [[id:67861ff3-3a72-4c53-8fd8-1cae9a31bc77][67861ff3]] names.
+
+Resolved in commit [[orgit-rev:./::6de6c19][6de6c19]]. A scoped =org_outline= adds a front-matter line,
+=slices: 5a4896c3 DOING, c7619140 TODO (dropped)=, listing each open slice
+that counts the heading. =org_query= gains =member:ID=: the slices whose
+=:MEMBERS:= minus =:DROPPED:= list the id, read from the properties only. Both
+use one membership reader.
+
 
 
 * TODO The meta-work target renders as "Review a" in the review buffer; show it as R&P, and offer "R&P (Review and planning)" when assigning :code:
@@ -2375,6 +2394,13 @@ makes its parent's =blocks:= name that heading; a finished blocked heading is
 left out; a heading named nowhere gets no line. Each runs red against HEAD's
 version first.
 :END:
+:DEBRIEF:
+Shipped as planned. The test covers a blocker on the heading, a blocker on its
+child, a finished blocker, a slice's derived blocker and a heading nothing names
+(no line). It is red against HEAD. Live, the scope that motivated this,
+[[id:dd4b9a9f-ba8a-4f1f-a3da-38388e0cdb76][dd4b9a9f]], now names the six open headings that wait on it, in one call.
+Nothing left over.
+:END:
 *Absorbed [[id:0eecf8e7-a8d5-4da7-9d6d-f397542b2139][0eecf8e7]], 2026-09-28*: the same inverse-blocker ask, filed twice. Its
 one argument this heading lacked carries over. A pair of =:blocker:= and
 =:blocked:= tags was proposed for the inverse, and it is the wrong shape for the
@@ -2382,6 +2408,12 @@ reason [[id:a7f4b40c-d6e0-4bde-82ba-94bcf45253f4][a7f4b40c]] gave: blocked-ness 
 goes stale the moment the last blocker finishes, and two tags plus the property
 make three copies of one fact. So =:BLOCKS:= is derived at each read, never
 tagged.
+
+Resolved in commit [[orgit-rev:./::6de6c19][6de6c19]]. A scoped =org_outline= adds a =blocks:= line,
+listing each open non-slice heading whose =:BLOCKER:= names this heading or one
+of its descendants, each with its keyword. It is derived on every read and
+never stored. It shares the one scan with [[id:d66ae1d2-5a40-4f4d-ae51-c8977e78681c][d66ae1d2]]'s =slices:= line.
+
 
 
 * TODO org_slice_add_member's after= inserts between a story and its nested children, splitting the block :code:
