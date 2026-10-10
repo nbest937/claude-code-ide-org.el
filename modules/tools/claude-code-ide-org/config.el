@@ -17909,13 +17909,120 @@ finished headings unarchived through four applies on 2026-08-31 (TODO.org
 finished, which makes it the only point where the remaining steps are
 both due and safe -- and it is a real interactive command, so org's own
 logging completes normally."
-  (when (and claude-code-ide-org--review-attention-marker
-             (derived-mode-p 'claude-code-ide-org-review-mode))
-    (claude-code-ide-org-review-attention-stop "review pass (buffer buried)")
-    (when (claude-code-ide-org--ceremony-due-p)
-      (claude-code-ide-org-ceremony-finish))))
+  (when (derived-mode-p 'claude-code-ide-org-review-mode)
+    ;; The pass, not the clock, is what earns the ceremony.  It keyed on
+    ;; the attention marker until 2026-10-10, which since :ID: 97b4f6a9
+    ;; is never set where time tracking is off -- so a task-only install
+    ;; buried the buffer and archived nothing (found by :ID: 6c64cc9c).
+    (let ((pass (or claude-code-ide-org--review-pass-open
+                    claude-code-ide-org--review-attention-marker)))
+      (setq claude-code-ide-org--review-pass-open nil)
+      (when claude-code-ide-org--review-attention-marker
+        (claude-code-ide-org-review-attention-stop "review pass (buffer buried)"))
+      (when (and pass (claude-code-ide-org--ceremony-due-p))
+        (claude-code-ide-org-ceremony-finish)))))
 
 (advice-add 'quit-window :before #'claude-code-ide-org--review-attention-on-quit)
+
+(defvar-local claude-code-ide-org--review-pass-open nil
+  "Non-nil in the review buffer from `claude-code-ide-org-review' until
+it is first buried, so the ceremony runs once per pass.")
+
+(defvar-local claude-code-ide-org--review-entry nil
+  "Where `claude-code-ide-org-review' was entered from, until it is left.
+A plist from `claude-code-ide-org--review-capture-entry', held in the
+review buffer.")
+
+(defun claude-code-ide-org--review-capture-entry ()
+  "Return where the human is now, for the review pass to return them to.
+
+The window configuration always, and in an org buffer the :ID: of the
+heading point is in with point's offset from its start -- by id rather
+than a marker, because the ceremony that runs on leaving archives and
+sorts the very file the position lives in, which a marker cannot survive
+and an id survives by construction (TODO.org :ID: 6c64cc9c).  Before the
+first heading, or in a heading with no :ID:, the raw position.  Never
+creates an id."
+  (let ((entry (list :windows (current-window-configuration)
+                     :buffer (current-buffer))))
+    (when (derived-mode-p 'org-mode)
+      (save-excursion
+        (let ((here (point)))
+          (if (or (org-before-first-heading-p)
+                  (progn (org-back-to-heading t)
+                         (not (org-entry-get nil "ID"))))
+              (setq entry (plist-put entry :pos here))
+            (setq entry (plist-put entry :id (org-entry-get nil "ID")))
+            (setq entry (plist-put entry :offset (- here (point))))))))
+    entry))
+
+(defun claude-code-ide-org--review-set-point (buffer pos)
+  "Put point at POS in BUFFER, and in the window showing it."
+  (with-current-buffer buffer (goto-char pos))
+  (let ((window (get-buffer-window buffer)))
+    (when window (set-window-point window pos))))
+
+(defun claude-code-ide-org--review-restore-entry (entry)
+  "Return the human to ENTRY: the layout first, then the heading.
+
+Run after the ceremony, since the ceremony rewrites the file.  The
+heading is found again by :ID:, and point put back at the same offset,
+clamped to the heading's own entry so a reflowed body cannot carry it
+into the next heading.  A heading archived since is declined rather than
+followed: point goes to the top of the file and the message names it,
+with the full id on the kill ring for `org-id-goto' (the user,
+2026-10-09).  An id resolving nowhere is said so too."
+  (when entry
+    (let ((windows (plist-get entry :windows))
+          (buffer (plist-get entry :buffer))
+          (id (plist-get entry :id)))
+      (when (window-configuration-p windows)
+        (set-window-configuration windows))
+      (when (buffer-live-p buffer)
+        (cond
+         (id
+          (let ((marker (ignore-errors (claude-code-ide-org--id-find id 'marker))))
+            (cond
+             ((null marker)
+              (message "The heading you entered from (%s) no longer resolves"
+                       id))
+             ((not (eq (marker-buffer marker) buffer))
+              (let ((title (org-with-point-at marker
+                             (org-no-properties (org-get-heading t t t t)))))
+                (claude-code-ide-org--review-set-point
+                 buffer (with-current-buffer buffer (point-min)))
+                (kill-new id)
+                (message "\"%s\" was archived; M-x org-id-goto RET %s (id copied)"
+                         title id)))
+             (t
+              (let* ((start (marker-position marker))
+                     (end (with-current-buffer buffer
+                            (save-excursion
+                              (goto-char start)
+                              (let ((e (org-entry-end-position)))
+                                (goto-char e)
+                                (if (and (> e start) (org-at-heading-p))
+                                    (1- e)
+                                  e))))))
+                (claude-code-ide-org--review-set-point
+                 buffer (min end (+ start (or (plist-get entry :offset) 0)))))))))
+         ((plist-get entry :pos)
+          (claude-code-ide-org--review-set-point
+           buffer (with-current-buffer buffer
+                    (min (plist-get entry :pos) (point-max))))))))))
+
+(defun claude-code-ide-org--review-restore-on-quit (orig &rest args)
+  "Around `quit-window': after the review buffer is buried, go back.
+Outermost, so the ceremony the `:before' advice runs has finished
+rewriting the file before the entry heading is looked up."
+  (let ((entry (and (derived-mode-p 'claude-code-ide-org-review-mode)
+                    (prog1 claude-code-ide-org--review-entry
+                      (setq claude-code-ide-org--review-entry nil)))))
+    (prog1 (apply orig args)
+      (claude-code-ide-org--review-restore-entry entry))))
+
+(advice-add 'quit-window :around #'claude-code-ide-org--review-restore-on-quit
+            '((depth . -90)))
 
 (defun claude-code-ide-org-review ()
   "Review pending org updates and apply the approved ones.
@@ -17926,9 +18033,16 @@ by a person at a moment of their choosing. Deliberately never invoked
 programmatically -- org's native state-change logging only completes
 correctly inside a real interactive command."
   (interactive)
-  (let ((buffer (get-buffer-create "*org-review*")))
+  (let* ((buffer (get-buffer-create "*org-review*"))
+         ;; Re-entered from the review buffer itself, the place to go
+         ;; back to is still where the pass began.
+         (entry (if (eq (current-buffer) buffer)
+                    claude-code-ide-org--review-entry
+                  (claude-code-ide-org--review-capture-entry))))
     (with-current-buffer buffer
       (claude-code-ide-org-review-mode)
+      (setq claude-code-ide-org--review-entry entry
+            claude-code-ide-org--review-pass-open t)
       ;; The command *is* the event (TODO.org :ID: 961f15b6): it is the
       ;; documented and only entry point to the pass, it cannot be
       ;; invoked by accident, and starting here needs no utterance and
@@ -17946,7 +18060,12 @@ correctly inside a real interactive command."
       (add-hook 'kill-buffer-hook
                 (lambda ()
                   (claude-code-ide-org-review-attention-stop
-                   "review pass (buffer killed)"))
+                   "review pass (buffer killed)")
+                  ;; Killing runs no ceremony, so nothing rewrites the
+                  ;; file first; restore straight away (:ID: 6c64cc9c).
+                  (claude-code-ide-org--review-restore-entry
+                   (prog1 claude-code-ide-org--review-entry
+                     (setq claude-code-ide-org--review-entry nil))))
                 nil t)
       (claude-code-ide-org-review-refresh))
     (pop-to-buffer buffer)))

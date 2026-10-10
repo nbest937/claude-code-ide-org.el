@@ -7823,6 +7823,138 @@ the pass."
       (should-not (claude-code-ide-org-review-attention-start))
       (should-not (org-clocking-p)))))
 
+;;; Returning to where the review was entered (TODO.org :ID: 6c64cc9c) ------
+
+(defconst claude-code-ide-org-test--entry-text
+  "* A\n:PROPERTIES:\n:ID: aaaa\n:END:\nalpha body\n* B\n:PROPERTIES:\n:ID: bbbb\n:END:\nbravo body line\nmore of bravo\n"
+  "Two headings with ids, for the entry-restore tests.")
+
+(defmacro claude-code-ide-org-test--with-entry-buffer (&rest body)
+  "Run BODY in an org buffer holding the entry text, ids found in it."
+  (declare (indent 0))
+  `(with-temp-buffer
+     (org-mode)
+     (insert claude-code-ide-org-test--entry-text)
+     (let ((buf (current-buffer)))
+       (cl-letf (((symbol-function 'claude-code-ide-org--id-find)
+                  (lambda (id &rest _)
+                    (with-current-buffer buf
+                      (save-excursion
+                        (goto-char (point-min))
+                        (when (re-search-forward
+                               (concat "^:ID: +" (regexp-quote id) "$") nil t)
+                          (org-back-to-heading t)
+                          (point-marker)))))))
+         ,@body))))
+
+(defun claude-code-ide-org-test--goto-text (text)
+  "Put point at the start of TEXT in the current buffer."
+  (goto-char (point-min))
+  (search-forward text)
+  (goto-char (match-beginning 0)))
+
+(ert-deftest claude-code-ide-org-test-review-entry-survives-a-sort ()
+  "The entry heading is found again by :ID: after the ceremony moves it,
+and point lands at the same offset inside it (TODO.org :ID: 6c64cc9c)."
+  (claude-code-ide-org-test--with-entry-buffer
+    (claude-code-ide-org-test--goto-text "more of bravo")
+    (let ((entry (claude-code-ide-org--review-capture-entry)))
+      (should (equal (plist-get entry :id) "bbbb"))
+      ;; The sort: B moves above A, so every position changes.
+      (erase-buffer)
+      (insert "* B\n:PROPERTIES:\n:ID: bbbb\n:END:\nbravo body line\nmore of bravo\n"
+              "* A\n:PROPERTIES:\n:ID: aaaa\n:END:\nalpha body\n")
+      (goto-char (point-max))
+      (claude-code-ide-org--review-restore-entry entry)
+      (should (looking-at "more of bravo")))))
+
+(ert-deftest claude-code-ide-org-test-review-entry-offset-is-clamped ()
+  "A body that shrank cannot carry point into the next heading."
+  (claude-code-ide-org-test--with-entry-buffer
+    (claude-code-ide-org-test--goto-text "more of bravo")
+    (let ((entry (claude-code-ide-org--review-capture-entry)))
+      (erase-buffer)
+      (insert "* B\n:PROPERTIES:\n:ID: bbbb\n:END:\nb\n"
+              "* A\n:PROPERTIES:\n:ID: aaaa\n:END:\nalpha body\n")
+      (claude-code-ide-org--review-restore-entry entry)
+      (should (equal (org-entry-get nil "ID") "bbbb")))))
+
+(ert-deftest claude-code-ide-org-test-review-entry-archived-is-declined ()
+  "An entry heading archived since is not followed: point goes to the top,
+and the message names it with the full id, also on the kill ring."
+  (let ((kill-ring nil) (said nil)
+        (archive (generate-new-buffer " *done*")))
+    (unwind-protect
+        (claude-code-ide-org-test--with-entry-buffer
+          (claude-code-ide-org-test--goto-text "more of bravo")
+          (let ((entry (claude-code-ide-org--review-capture-entry)))
+            (with-current-buffer archive
+              (org-mode)
+              (insert "* B\n:PROPERTIES:\n:ID: bbbb\n:END:\n"))
+            (cl-letf (((symbol-function 'claude-code-ide-org--id-find)
+                       (lambda (&rest _)
+                         (with-current-buffer archive (copy-marker (point-min)))))
+                      ((symbol-function 'message)
+                       (lambda (fmt &rest args) (setq said (apply #'format fmt args)))))
+              (claude-code-ide-org--review-restore-entry entry))
+            (should (= (point) (point-min)))
+            (should (equal (car kill-ring) "bbbb"))
+            (should (string-match-p "\"B\" was archived.*org-id-goto RET bbbb" said))))
+      (kill-buffer archive))))
+
+(ert-deftest claude-code-ide-org-test-review-entry-non-org-restores-layout-only ()
+  "Outside org there is no heading to find: the layout comes back and
+point is left where the configuration puts it."
+  (let ((restored nil))
+    (with-temp-buffer
+      (insert "plain text\n")
+      (let ((entry (claude-code-ide-org--review-capture-entry)))
+        (should-not (plist-get entry :id))
+        (should-not (plist-get entry :pos))
+        (should (window-configuration-p (plist-get entry :windows)))
+        (cl-letf (((symbol-function 'set-window-configuration)
+                   (lambda (&rest _) (setq restored t))))
+          (claude-code-ide-org--review-restore-entry entry))
+        (should restored)))))
+
+(ert-deftest claude-code-ide-org-test-review-quit-runs-the-ceremony-without-a-clock ()
+  "Burying the buffer runs a due ceremony once per pass, whether or not
+an attention clock was opened (found by :ID: 6c64cc9c: since :ID:
+97b4f6a9 a task-only install never opens one, and the ceremony keyed
+on it)."
+  (let ((runs 0))
+    (cl-letf (((symbol-function 'claude-code-ide-org--ceremony-due-p) (lambda () t))
+              ((symbol-function 'claude-code-ide-org-ceremony-finish)
+               (lambda () (setq runs (1+ runs)))))
+      (with-temp-buffer
+        (claude-code-ide-org-review-mode)
+        (setq claude-code-ide-org--review-pass-open t)
+        (should-not claude-code-ide-org--review-attention-marker)
+        (claude-code-ide-org--review-attention-on-quit)
+        (should (= runs 1))
+        (claude-code-ide-org--review-attention-on-quit)
+        (should (= runs 1))))))
+
+(ert-deftest claude-code-ide-org-test-review-command-records-the-entry ()
+  "The command records where it was entered from before it pops the
+buffer, and opens the pass."
+  (let ((claude-code-ide-org-review-attention-heading nil))
+    (claude-code-ide-org-test--with-entry-buffer
+      (claude-code-ide-org-test--goto-text "alpha body")
+      (cl-letf (((symbol-function 'claude-code-ide-org--time-tracking-on-p) #'ignore)
+                ((symbol-function 'claude-code-ide-org-review-refresh) #'ignore)
+                ((symbol-function 'pop-to-buffer) #'ignore))
+        (unwind-protect
+            (progn
+              (claude-code-ide-org-review)
+              (with-current-buffer "*org-review*"
+                (should claude-code-ide-org--review-pass-open)
+                (should (equal (plist-get claude-code-ide-org--review-entry :id)
+                               "aaaa"))))
+          (cl-letf (((symbol-function 'claude-code-ide-org--review-restore-entry)
+                     #'ignore))
+            (kill-buffer "*org-review*")))))))
+
 ;;; Time-tracking gate and the missing anchor (TODO.org :ID: 97b4f6a9) -----
 
 (defun claude-code-ide-org-test--run-review-command ()
