@@ -10182,6 +10182,13 @@ So no code here. /work-slice records this as the resolution, debriefs with
 [[id:2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd][2cd74268]] named as where the remaining automation lives, and queues =DONE=,
 nominating the next member as a close inside a grouping requires.
 :END:
+:DEBRIEF:
+Closed as the plan said: a spike whose output is an answer, recorded and not
+built. One addition from this slice: [[id:de081dd9-1853-4d79-94fc-2edac498380f][de081dd9]] now runs the steps after apply at
+session start, so of the whole cycle only the apply itself still waits for a
+human. Nothing left over: the remaining automation already has its heading,
+[[id:2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd][2cd74268]], so nothing new is filed.
+:END:
 
 Decide how much of the review-apply cycle can be automated. Deciding what a span
 means is automatable in principle and writing through native org commands is
@@ -10190,6 +10197,13 @@ unambiguous pass rather than one per item. Answered by 2026-10-09 (the user
 chose to record and close): [[id:b6e229c7-3035-4c0e-943b-710a12bfd7d1][b6e229c7]]'s auto-mark already makes a task-only pass
 one =x=, [[id:2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd][2cd74268]] showed the write is walled by decision rather than mechanism,
 and span attribution is time tracking's.
+
+Resolved 2026-10-10 on the answer recorded in the drawer, with no code. Layer 2
+(confirming) has already collapsed for state items. Layer 3 (writing) is walled
+by who decides to apply, not by what org can do. Layer 1 (span attribution)
+exists only where time tracking is on. Any remaining automation of apply lives
+with [[id:2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd][2cd74268]].
+
 
 
 * TODO An unassigned span's readout omits the evidence that would make its heading obvious :code:
