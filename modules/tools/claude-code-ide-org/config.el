@@ -1101,15 +1101,17 @@ why this returns numbers and the formatter below asks a question."
                        (and (file-exists-p f)
                             (file-attribute-modification-time
                              (file-attributes f)))))
-            ;; How many recent live headings have a possible twin.
-            ;; `fboundp' and `ignore-errors' because a half-reloaded image
-            ;; must never take the SessionStart report down with it.
-            :twins (or (ignore-errors
-                         (and (fboundp 'claude-code-ide-org--twin-candidates)
-                              (length (claude-code-ide-org--twin-candidates
-                                       (claude-code-ide-org--capture-target-file)
-                                       14))))
-                       0)
+            ;; The recent live headings with a possible twin, as the
+            ;; pairs themselves: a count can only be investigated, and the
+            ;; detector's list may be empty by the time anyone asks
+            ;; (TODO.org :ID: d241ab6e).  `fboundp' and `ignore-errors'
+            ;; because a half-reloaded image must never take the
+            ;; SessionStart report down with it.
+            :twins (ignore-errors
+                     (and (fboundp 'claude-code-ide-org--twin-candidates)
+                          (claude-code-ide-org--twin-candidates
+                           (claude-code-ide-org--capture-target-file)
+                           14)))
             :reviewed-today (claude-code-ide-org--ceremony-reviewed-today-p)
             :last-done (let ((f (claude-code-ide-org--ceremony-stamp-file)))
                          (when (file-exists-p f)
@@ -1136,7 +1138,8 @@ before it was unwelcome."
          (drifted (or (plist-get status :drifted) 0))
          (archivable (or (plist-get status :archivable) 0))
          (misses (plist-get status :misses))
-         (twins (or (plist-get status :twins) 0))
+         (pairs (plist-get status :twins))
+         (twins (length pairs))
          (reviewed (plist-get status :reviewed-today)))
     (when (and status (> (+ pending drifted archivable twins) 0))
       (concat
@@ -1171,11 +1174,24 @@ conversation. "
        ;; The twin pass (TODO.org :ID: 9fb8c1fb).  Offered here because
        ;; this is the one moment a human is already reviewing; the
        ;; judgement is the agent's and the decision the human's.
+       ;; Named, not counted (TODO.org :ID: d241ab6e): a named pair can
+       ;; be dismissed at a glance, and it survives in the transcript
+       ;; after the detector's list empties.  At most
+       ;; `claude-code-ide-org--ceremony-twin-cap' subjects, since this
+       ;; shares SessionStart's 10,000-character injection cap.
        (when (> twins 0)
-         (format "%d recent heading(s) have a possible twin by title overlap. \
-Alongside the question below, offer to run the twin-checker agent over them \
-(it reads both bodies and proposes; it changes nothing). "
-                 twins))
+         (concat
+          (format "%d recent heading(s) have a possible twin by title overlap:\n"
+                  twins)
+          (mapconcat #'claude-code-ide-org--format-twin-pair
+                     (seq-take pairs claude-code-ide-org--ceremony-twin-cap)
+                     "\n")
+          (if (> twins claude-code-ide-org--ceremony-twin-cap)
+              (format "\nand %d more -- bin/twin-candidates lists them all"
+                      (- twins claude-code-ide-org--ceremony-twin-cap))
+            "")
+          "\nAlongside the question below, offer to run the twin-checker agent \
+over them (it reads both bodies and proposes; it changes nothing). "))
        "Ask the user whether they want to run it now; do not announce that you "
        "will, and do not run any part of it unasked. Apply is theirs alone -- "
        "M-x claude-code-ide-org-review -- because org's state-change logging "
@@ -3814,14 +3830,23 @@ Called through `emacsclient' by bin/twin-candidates.  Read-only."
        (format "%d recent heading(s) with a possible twin (last %d days). \
 Scores are title overlap only -- read both bodies before judging.\n"
                (length pairs) days)
-       (mapconcat
-        (lambda (p)
-          (format "\n%s {%s}  %s\n%s"
-                  (or (plist-get (car p) :keyword) "-")
-                  (substring (plist-get (car p) :id) 0 8)
-                  (plist-get (car p) :title)
-                  (claude-code-ide-org--format-duplicate-candidates (cdr p))))
-        pairs "\n")))))
+       (mapconcat (lambda (p)
+                    (concat "\n" (claude-code-ide-org--format-twin-pair p)))
+                  pairs "\n")))))
+
+(defconst claude-code-ide-org--ceremony-twin-cap 5
+  "Most twin subjects the session-start report names (the user, 2026-10-09).
+The rest are counted and left to bin/twin-candidates.")
+
+(defun claude-code-ide-org--format-twin-pair (pair)
+  "PAIR, a (SUBJECT . CANDIDATES) from `--twin-candidates', as text.
+The one formatter bin/twin-candidates and the session-start report
+share, so the two cannot drift (TODO.org :ID: d241ab6e)."
+  (format "%s {%s}  %s\n%s"
+          (or (plist-get (car pair) :keyword) "-")
+          (substring (plist-get (car pair) :id) 0 8)
+          (plist-get (car pair) :title)
+          (claude-code-ide-org--format-duplicate-candidates (cdr pair))))
 
 (defun claude-code-ide-org--format-duplicate-candidates (candidates)
   "CANDIDATES as reply lines.  Ids in braces, never as \"(ID: ...)\":

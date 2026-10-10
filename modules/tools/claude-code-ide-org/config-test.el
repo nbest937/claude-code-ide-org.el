@@ -13922,17 +13922,75 @@ reviewing -- a checker the working session must remember to call would
 be a recalled rule again (TODO.org :ID: 9fb8c1fb).  It offers; it never
 says it will run."
   (let ((text (claude-code-ide-org--format-ceremony-report
-               '(:pending 1 :drifted 0 :archivable 0 :twins 3))))
+               (list :pending 1 :drifted 0 :archivable 0
+                     :twins (claude-code-ide-org-test--twin-pairs 3)))))
     (should (string-match-p "3 recent heading" text))
     (should (string-match-p "twin-checker" text))
     (should (string-match-p "offer" text)))
   (should-not (string-match-p "twin"
                               (claude-code-ide-org--format-ceremony-report
-                               '(:pending 1 :drifted 0 :archivable 0 :twins 0))))
+                               '(:pending 1 :drifted 0 :archivable 0 :twins nil))))
   ;; Possible twins alone are reason enough to raise the report: unlike the
   ;; miss count they are something to do.
   (should (claude-code-ide-org--format-ceremony-report
-           '(:pending 0 :drifted 0 :archivable 0 :twins 2))))
+           (list :pending 0 :drifted 0 :archivable 0
+                 :twins (claude-code-ide-org-test--twin-pairs 2)))))
+
+(defun claude-code-ide-org-test--twin-pairs (n)
+  "N (SUBJECT . CANDIDATES) pairs shaped as `--twin-candidates' returns."
+  (let (out)
+    (dotimes (i n (nreverse out))
+      (push (cons (list :keyword "TODO"
+                        :id (format "%08d-0000-4000-8000-000000000000" (1+ i))
+                        :title (format "Subject number %d, exact title" (1+ i)))
+                  (list (list :score 0.5 :keyword "DONE"
+                              :id (format "9%07d-0000-4000-8000-000000000000" (1+ i))
+                              :title (format "Candidate for %d" (1+ i))
+                              :file "DONE.org")))
+            out))))
+
+(ert-deftest claude-code-ide-org-test-ceremony-report-names-the-twins ()
+  "The report names each subject's keyword, id and exact title with its
+candidates beneath, formatted exactly as bin/twin-candidates prints them,
+and caps the list at five (TODO.org :ID: d241ab6e).
+
+On 2026-10-09 it flagged one by count, the session never offered the
+checker, and by the time the user asked the detector's list was empty,
+so what it meant could not be recovered."
+  (let* ((pairs (claude-code-ide-org-test--twin-pairs 2))
+         (text (claude-code-ide-org--format-ceremony-report
+                (list :pending 0 :drifted 0 :archivable 0 :twins pairs))))
+    (should (string-match-p "TODO {00000001}  Subject number 1, exact title" text))
+    (should (string-match-p "{90000002}  Candidate for 2" text))
+    ;; The same lines bin/twin-candidates prints, character for character.
+    (dolist (p pairs)
+      (should (string-search (claude-code-ide-org--format-twin-pair p) text)))
+    (should-not (string-match-p "more -- bin/twin-candidates" text)))
+  (let ((text (claude-code-ide-org--format-ceremony-report
+               (list :pending 0 :drifted 0 :archivable 0
+                     :twins (claude-code-ide-org-test--twin-pairs 7)))))
+    (should (string-match-p "7 recent heading" text))
+    (should (string-match-p "Subject number 5," text))
+    (should-not (string-match-p "Subject number 6," text))
+    (should (string-match-p "and 2 more -- bin/twin-candidates lists them all" text))))
+
+(ert-deftest claude-code-ide-org-test-twin-report-and-ceremony-share-a-formatter ()
+  "bin/twin-candidates's report is built from the same per-pair formatter
+the ceremony uses, so the two outputs cannot drift."
+  (claude-code-ide-org-test--with-capture-file
+    (let ((recent (format-time-string "[%Y-%m-%d %a %H:%M]")))
+      (claude-code-ide-org-test--seed-dated
+       capture-file "TODO" "Record the originating project's cwd in queue events"
+       "ffffffff-0000-4000-8000-000000000004" recent)
+      (claude-code-ide-org-test--seed-dated
+       capture-file "TODO" "Record the project's cwd in queue events, again"
+       "99999999-0000-4000-8000-000000000005" recent)
+      (let ((pairs (claude-code-ide-org--twin-candidates capture-file 14))
+            (text (claude-code-ide-org-twin-candidates-report capture-file 14)))
+        (should pairs)
+        (dolist (p pairs)
+          (should (string-search (claude-code-ide-org--format-twin-pair p)
+                                 text)))))))
 
 (ert-deftest claude-code-ide-org-test-ceremony-finish-runs-the-slice-refresh ()
   "Slice refresh is a ceremony step, not a memory.
