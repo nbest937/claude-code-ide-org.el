@@ -164,6 +164,14 @@ report names both ids and exact titles; seven subjects print five and the "and 2
 more" line; none prints no twin line; the report and =twin-candidates-report=
 give identical candidate lines. Run red against HEAD's version first.
 :END:
+:DEBRIEF:
+Shipped as planned. The status plist's =:twins= now carries the pairs, and the
+sum guard reads their =length=, so the report fires exactly when it did before.
+Three tests are red against HEAD: names and exact titles, the cap at five with
+"and 2 more", and both outputs containing the same per-pair text. Live, after
+reload: no recent heading has a twin today, so the report adds no line, as
+designed. Nothing left over.
+:END:
 
 The ceremony report says "N recent heading(s) have a possible twin by title
 overlap" and asks the session to offer the twin-checker, but carries only
@@ -173,6 +181,13 @@ injection cap. On 2026-10-09 the report flagged one, the session never offered
 the checker, and by the time the user asked the detector's list was empty, so
 what it meant cannot be recovered. A named pair can be dismissed at a glance; a
 count can only be investigated.
+
+Resolved in commit 9ab6c81. The ceremony report lists each recent live heading
+that has a possible twin, with its keyword, id and exact title and its
+candidates beneath, capped at five subjects and then "and N more --
+bin/twin-candidates lists them all". It uses =--format-twin-pair=, the same
+formatter =bin/twin-candidates= now uses.
+
 
 
 * TODO org_query returns nothing for property:KIND,slice with link:target=, though each half matches alone :code:
