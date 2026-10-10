@@ -916,6 +916,33 @@ Testing. A =bin/= setup test in a temp dir: =--org= creates the stub; a second
 is quiet once present. ERT asserts that both refusal sites and the warning name
 the path. Each runs red against HEAD's version first.
 :END:
+:DEBRIEF:
+Shipped as planned, in commit [[orgit-rev:./::3ca4a0b][3ca4a0b]]. =templates/org-categories.md= is 127
+words, with no =paths:= front matter and no generated marker; =--org= copies it
+to =.claude/rules/= collision-checked, so an existing consumer gets it by
+re-running =--org= and an edited copy is reported and left alone. =--check=
+prints =missing: … org-categories.md -- run claude-org-setup --org= and fails,
+presence only, never comparing content. One constant,
+=claude-code-ide-org--category-declaration-hint=, ends both top-level refusals
+(the call in =claude-code-ide-org-capture= and the one at apply) and
+=--capture-novel-category-warning=. The shipped =org-conventions.md= "Category
+values" now names the file as where a consumer declares, and this repo's
+promoted copy was regenerated.
+
+Verified: =bin/test= 906/906 and =bin/claude-org-setup-test= 98/98; against
+HEAD's =config.el= and =claude-org-setup= three ERT tests and five setup checks
+went red. =bin/check-conventions= clean, the live image reloaded and fresh.
+
+Differed from the plan: two test fixtures that copy the plugin's templates into
+a fake clone had to copy the new one too, since =--org= now exits on a missing
+template like the org ones. The word budget: =bin/word-budget= does not count a
+consumer's stub, being the consumer's own; with its 127 words added the consumer
+figures would read 5392/5800 off and 7060/7500 on, so the budget question is
+answered by measurement as the plan intended, and nothing is filed.
+
+Not verified here: a real consumer's =--org= run. That is [[id:2b8930da-5223-4b75-b4f6-251a28552d1b][2b8930da]]'s, a member
+of this slice, so nothing new is filed.
+:END:
 
 =claude-org-setup= gives a consuming repo no place to declare its =:CATEGORY:=
 values, so the capture refusal lists "(none yet)" and the first value invented
@@ -923,6 +950,12 @@ becomes the norm by accident. Designed 2026-10-09 (the user): =--org= creates a
 consumer-owned, always-loaded =.claude/rules/org-categories.md= from a template,
 seeded with =Meta=; =--check= reports it missing; the capture refusal and the
 novel-value warning name the file.
+
+*Resolved 2026-10-10:* =claude-org-setup --org= now scaffolds a consumer-owned
+=.claude/rules/org-categories.md= seeded with =Meta=, =--check= reports it
+missing, and every category refusal and warning names it (commit [[orgit-rev:./::3ca4a0b][3ca4a0b]], on the
+[[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]] branch).
+
 
 
 * TODO Declare the brainstorming path tags as an exclusive group in #+TAGS:, so org's tag menu enforces one :code:
