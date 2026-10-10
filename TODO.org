@@ -10036,7 +10036,7 @@ create: today's node is created on demand when work happens, and the repeater
 sits on the category, the one place in this repo a repeater is safe.
 
 
-* TODO Decide how far the review-apply cycle can be automated, given the interactive constraint :code:
+* TODO Decide how far the review-apply cycle can be automated, given the interactive constraint :code:spike:
 :PROPERTIES:
 :CATEGORY: Apply
 :ID:       361e2708-8124-4bd1-9c44-f97ca97aca4a
@@ -10045,6 +10045,8 @@ sits on the category, the one place in this repo a repeater is safe.
 :LOGBOOK:
 - State "TODO"       from              [2026-08-21 Fri 08:09] \\
   decide the automation boundary
+- Tags ":code:spike:" from ":code:"     [2026-10-09 Fri 20:28] \\
+  first classification: a decision whose output is an answer, not code
 :END:
 :PLAN:
 
@@ -10091,13 +10093,32 @@ knowledge -- and that a fluent proposal is harder to reject than a transparently
 mechanical one. That holds against any automation whose only input is the queue.
 It does not settle the case for an automation that reads the session
 transcripts, which carry what the queue does not.
+
+The answer, read from the tracker and the code while planning [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]],
+2026-10-09; the user chose to record it and close the heading rather than keep
+it open over [[id:2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd][2cd74268]] or cancel it, since the question was answered, not
+abandoned.
+
+Layer 2 has collapsed for state items: [[id:b6e229c7-3035-4c0e-943b-710a12bfd7d1][b6e229c7]] auto-marks every state item that
+carries no judgement, so a task-only pass is already one =x=. Layer 3 is not
+walled in mechanism, contrary to this drawer's reading of the =@= cookies:
+[[id:2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd][2cd74268]] established that =--review-apply-state= drives =org-todo= and the
+deferred note with no human present, under batch included, so the wall is who
+decides to apply, not what org can do. Layer 1, attributing spans, exists only
+where time tracking is on, and belongs to [[id:c7619140-f269-4329-bc05-a38ea151e202][c7619140]], not this slice.
+
+So no code here. /work-slice records this as the resolution, debriefs with
+[[id:2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd][2cd74268]] named as where the remaining automation lives, and queues =DONE=,
+nominating the next member as a close inside a grouping requires.
 :END:
 
 Decide how much of the review-apply cycle can be automated. Deciding what a span
 means is automatable in principle and writing through native org commands is
-walled by the interactive constraint, so the target is one confirmation per
-unambiguous pass rather than one per item, still inside the interactive review
-command.
+walled by the interactive constraint, so the target was one confirmation per
+unambiguous pass rather than one per item. Answered by 2026-10-09 (the user
+chose to record and close): [[id:b6e229c7-3035-4c0e-943b-710a12bfd7d1][b6e229c7]]'s auto-mark already makes a task-only pass
+one =x=, [[id:2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd][2cd74268]] showed the write is walled by decision rather than mechanism,
+and span attribution is time tracking's.
 
 
 * TODO An unassigned span's readout omits the evidence that would make its heading obvious :code:
