@@ -34,7 +34,7 @@ org's state-change logging needs a genuinely interactive command.
 |---------------------|--------------------------|-----------------------------------------|
 | `org_clock_report`  | `org-clock-report`       | Clocktable summary; :ID:-scoped or all |
 | `org_archive`       | `org-archive-subtree`    | Respects `#+ARCHIVE:` directive        |
-| `org_query`         | `org-ql-select`          | Cross-file search; not :ID:-scoped     |
+| `org_query`         | `org-ql-select`          | Cross-file search; `member:ID` finds the slices counting a heading |
 | `org_capture`       | `org-capture`            | Quick-add a new heading. **A targetless capture lands at level 1 and requires `category`** — the refusal lists the values the file already uses; under an `:ID:` target the child inherits. A value the file has never used is written with a warning (`:ID:` b0d55552) |
 | `org_refile`        | `org-refile`             | Move a subtree under a different parent |
 | `org_divide`        | custom (`org-demote-subtree`) | Task mitosis: insert a new parent above a heading and demote it under. The id, clock and history stay with the **child** |
@@ -56,7 +56,7 @@ org's state-change logging needs a genuinely interactive command.
 
 | Tool                | Notes                                  |
 |---------------------|-----------------------------------------|
-| `org_outline`       | Compact index: level, keyword, title, `:ID:`, tags — **and each heading's own body prose beneath its line** (drawers excluded; `bodies=false` for structure only), since a convention-following body is a short summary and the index then answers orientation outright (`:ID:` 2a399034). Marks `[blocked: id …]`. **Scoped to one heading it leads with that heading's front matter** — `:CREATED:`, `:CATEGORY:`, `:KIND:`, the `:BLOCKER:` *value* with each id's keyword, the plan file. Accepts an 8-character prefix as scope. Use before creating a heading |
+| `org_outline`       | Compact index: level, keyword, title, `:ID:`, tags — **and each heading's own body prose beneath its line** (drawers excluded; `bodies=false` for structure only), since a convention-following body is a short summary and the index then answers orientation outright (`:ID:` 2a399034). Marks `[blocked: id …]`. **Scoped to one heading it leads with that heading's front matter** — `:CREATED:`, `:CATEGORY:`, `:KIND:`, the `:BLOCKER:` *value* with each id's keyword, the plan file, the open `slices:` counting it and what it `blocks:`. Accepts an 8-character prefix as scope. Use before creating a heading |
 | `org_body`          | Returns one heading whole — heading line, drawers and body — by `:ID:` or 8-character prefix, or **just one drawer with `drawer=`** (PLAN, DEBRIEF, LOGBOOK): the on-demand half of the read split, now that the outline carries bodies — a missing drawer errors naming the drawers present. Whole-heading reads filter **nothing**, `:PLAN:` included; how to read that drawer depends on the keyword (skip when finished, read when live). `include_children` for the subtree. Reach for `org_outline` first |
 | `org_pending_updates` | Summary of queued-but-unapplied updates, grouped by heading. Counts *proposals*, not queue lines. This is how you check a queued call landed |
 | `org_history`       | How a heading got here, from commits citing its `:ID:`: work on it (subject leads with the id), other citations grouped by subject, where to look next. Reads git, not the file; blind to commits naming no heading (`:ID:` 41cf5830) |

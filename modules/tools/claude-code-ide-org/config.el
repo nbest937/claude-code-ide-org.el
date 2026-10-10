@@ -5628,12 +5628,142 @@ keyword so a satisfied blocker is visible as such without a second call."
                                            (t (format " %s" kw))))))
                          ids " ")))
               lines)))
+    ;; What counts this heading and what waits on it, the inverse of
+    ;; `:BLOCKER:' (TODO.org :ID: d66ae1d2, b3177ed0).  One scan serves
+    ;; both lines, and it runs only here, on a scoped call.
+    (let ((id (org-entry-get nil "ID")))
+      (when id
+        (let* ((scan (claude-code-ide-org--membership-scan))
+               (mine (save-excursion
+                       (delq nil (mapcar #'downcase
+                                         (delq nil (org-map-entries
+                                                    (lambda () (org-entry-get nil "ID"))
+                                                    nil 'tree))))))
+               (slices (claude-code-ide-org--outline-slices-line
+                        (downcase id) (plist-get scan :slices)))
+               (blocks (claude-code-ide-org--outline-blocks-line
+                        (downcase id) mine (plist-get scan :blockers))))
+          (when slices (push slices lines))
+          (when blocks (push blocks lines)))))
     (when plan (push (format "  :PLAN-FILE: %s" plan) lines))
     ;; One hop to how it got here (TODO.org :ID: 41cf5830); root only, so
     ;; an unscoped outline never runs git.
     (let ((history (ignore-errors (claude-code-ide-org--history-front-matter-line))))
       (when history (push history lines)))
     (nreverse lines)))
+
+(defun claude-code-ide-org--slice-membership (id)
+  "How the slice at point counts ID: `member', `dropped', or nil.
+
+The one reader of membership that the scoped outline's `slices:' line
+and `org_query''s `member:' predicate share, so the two cannot disagree
+(TODO.org :ID: d66ae1d2).  Read from `:MEMBERS:' and `:DROPPED:', the
+properties the refresh reads, and never from prose: a slice citing an
+id in its plan does not count it."
+  (when (claude-code-ide-org--slice-p)
+    (let ((id (downcase id)))
+      (cond ((member id (claude-code-ide-org--slice-dropped-ids)) 'dropped)
+            ((member id (claude-code-ide-org--slice-declared-ids)) 'member)))))
+
+(defun claude-code-ide-org--membership-scan ()
+  "One pass over the tracked files for the scoped outline's two lines.
+
+Returns a plist.  :slices is a list of (ID KEYWORD MARKER), one per
+`:KIND: slice' heading; :blockers is a list of (ID KEYWORD BLOCKER-IDS),
+one per non-slice heading carrying a `:BLOCKER:', ids downcased.  A
+slice's `:BLOCKER:' is derived from its membership, which `slices:'
+already shows, so it is left out of the second list (the user,
+2026-10-09)."
+  (let (slices blockers)
+    (dolist (file (claude-code-ide-org--tracked-files))
+      (when (file-exists-p file)
+        (with-current-buffer (find-file-noselect file)
+          (org-with-wide-buffer
+           (org-map-entries
+            (lambda ()
+              (let ((id (org-entry-get nil "ID")))
+                (when id
+                  (if (claude-code-ide-org--slice-p)
+                      (push (list (downcase id) (org-get-todo-state) (point-marker))
+                            slices)
+                    (let ((raw (org-entry-get nil "BLOCKER")))
+                      (when raw
+                        (push (list (downcase id) (org-get-todo-state)
+                                    (mapcar #'downcase
+                                            (claude-code-ide-org--lint-blocker-ids raw)))
+                              blockers)))))))
+            nil 'file)))))
+    (list :slices (nreverse slices) :blockers (nreverse blockers))))
+
+(defun claude-code-ide-org--outline-slices-line (id slices)
+  "The `slices:' front-matter line for ID over SLICES, or nil.
+
+Each unfinished slice counting ID, with its keyword, and `(dropped)'
+on one whose `:DROPPED:' names it.  Closed slices are history, which
+`org_history' covers (the user, 2026-10-09)."
+  (let (parts)
+    (dolist (slice slices)
+      (let ((kw (nth 1 slice)))
+        (unless (member kw claude-code-ide-org--outline-finished-keywords)
+          (let ((how (org-with-point-at (nth 2 slice)
+                       (claude-code-ide-org--slice-membership id))))
+            (when how
+              (push (format "%s %s%s" (claude-code-ide-org--id-prefix (nth 0 slice))
+                            (or kw "-") (if (eq how 'dropped) " (dropped)" ""))
+                    parts))))))
+    (and parts (format "  slices: %s" (string-join (nreverse parts) ", ")))))
+
+(defun claude-code-ide-org--outline-blocks-line (id mine blockers)
+  "The `blocks:' front-matter line for ID over BLOCKERS, or nil.
+
+Each unfinished heading whose `:BLOCKER:' names ID or any of its
+descendants -- MINE, the subtree's ids -- since blocking on a child is
+blocking on part of this work.  Derived at each read and never tagged,
+because a stored copy goes stale the moment the last blocker finishes
+\(TODO.org :ID: b3177ed0)."
+  (let (parts)
+    (dolist (b blockers)
+      (let ((kw (nth 1 b)))
+        (when (and kw
+                   (not (member kw claude-code-ide-org--outline-finished-keywords))
+                   (not (equal (nth 0 b) id))
+                   (seq-some (lambda (x) (member x mine)) (nth 2 b)))
+          (push (format "%s %s" (claude-code-ide-org--id-prefix (nth 0 b)) kw)
+                parts))))
+    (and parts (format "  blocks: %s" (string-join (nreverse parts) ", ")))))
+
+(defun claude-code-ide-org--member-predicate-ids (ids)
+  "Expand IDS, the `member:' predicate's arguments, to full :ID:s.
+A prefix expands as `:BLOCKER:' expands it; an id that resolves to
+nothing, or to more than one heading, is refused rather than matching
+nothing (TODO.org :ID: d66ae1d2)."
+  (let ((table (claude-code-ide-org--id-index)))
+    (mapcar (lambda (tok)
+              (let* ((tok (format "%s" tok))
+                     (full (claude-code-ide-org--expand-id-prefix tok table)))
+                (if (stringp full) full
+                  (user-error "member: %s does not resolve to one heading" tok))))
+            ids)))
+
+;; The module's first custom org-ql predicate (TODO.org :ID: d66ae1d2).
+;; `property:KIND,slice regexp:<id>' reaches the many-headings case but
+;; matches a slice whose prose merely cites the id, and a dropped member.
+;; `org_query''s name check reads `org-ql-predicates' at run time, so
+;; defining it here is all the registration it needs.
+;;
+;; Named `slice-member', with `member' the alias a query spells: org-ql
+;; evaluates a query's predicate names as calls, so a predicate named
+;; `member' reached Emacs's own `member' and failed "called with 1 arg".
+;; The normalizer rewrites the alias to the name, as org-ql requires.
+(with-eval-after-load 'org-ql
+  (org-ql-defpred (slice-member member) (&rest ids)
+    "Match a slice whose `:MEMBERS:' minus `:DROPPED:' lists one of IDS."
+    :normalizers ((`(,predicate-names . ,ids)
+                   (cons 'slice-member
+                         (claude-code-ide-org--member-predicate-ids ids))))
+    :body (seq-some (lambda (id)
+                      (eq (claude-code-ide-org--slice-membership id) 'member))
+                    ids)))
 
 (defun claude-code-ide-org--outline-map (active-only max-depth scope &optional grouped bodies)
   "Collect index lines over SCOPE, an `org-map-entries' scope value.
@@ -22966,6 +23096,11 @@ http://localhost:%d/mcp/%s-2"
                  "Backlinks: link:target=PREFIX returns every heading whose "
                  "body or drawers link to that id (it misses a link that "
                  "directly opens a bold span). "
+                 "Slices: member:ID returns every slice whose :MEMBERS: "
+                 "minus :DROPPED: lists that id (or several, comma-separated), "
+                 "read from the properties and never from prose; add todo: "
+                 "for open ones. It is this module's own predicate, not "
+                 "org-ql's. "
                  "A zero-argument predicate takes a trailing colon: "
                  "blocked:, done:. Caution: blocked: is the union of "
                  "unfinished children, unchecked checkboxes and :BLOCKER:, "
@@ -23069,8 +23204,11 @@ http://localhost:%d/mcp/%s-2"
                  "IDs are full and can be passed straight to the other tools. "
                  "SCOPED TO ONE HEADING, the reply leads with that heading's "
                  "front matter -- :CREATED:, :CATEGORY:, :KIND:, the :BLOCKER: "
-                 "*value* with each id's current keyword, and the plan file -- "
-                 "so 'what is this, what blocks it, what is under it' is one "
+                 "*value* with each id's current keyword, the plan file, "
+                 "slices: (each open slice counting it, (dropped) where it "
+                 "was dropped) and blocks: (each open heading whose "
+                 ":BLOCKER: names it or a descendant) -- "
+                 "so 'what is this, what blocks it, what it blocks, what is under it' is one "
                  "call and no read of the file. Front matter is root only, "
                  "never per line. EVERY heading's own body prose follows its "
                  "line (drawers excluded -- fetch those per heading via "

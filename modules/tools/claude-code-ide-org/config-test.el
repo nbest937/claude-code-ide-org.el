@@ -16147,6 +16147,91 @@ an implementation detail."
           ;; and the tree still follows
           (should (string-match-p "TODO Child" out)))))))
 
+;;; What counts a heading and what waits on it (TODO.org :ID: d66ae1d2,
+;;; b3177ed0) -----------------------------------------------------------------
+
+(defmacro claude-code-ide-org-test--with-membership-file (&rest body)
+  "Run BODY with a tracked file of slices and blockers around a target.
+Ids lead with distinct digits, so their 8-character prefixes differ:
+10 the target, 20 its child, 31-34 slices (counting, dropping, closed,
+merely citing), 41-43 blockers (on the target, on the child, finished),
+50 a heading named nowhere."
+  (declare (indent 0))
+  `(claude-code-ide-org-test--with-heading
+     (let ((tree (expand-file-name "members.org" dir)))
+       (cl-flet ((h (kw title id &rest props)
+                   (concat "* " (if kw (concat kw " ") "") title
+                           "\n:PROPERTIES:\n:ID:       " id "\n"
+                           (mapconcat #'identity props "") ":END:\n")))
+         (with-temp-file tree
+           (insert "#+TODO: TODO NEXT DOING REVIEW WAITING MAYBE | DONE CANCELLED\n\n"
+                   (h "TODO" "Target" "10000000-0000-0000-0000-000000000000")
+                   "** TODO Child\n:PROPERTIES:\n:ID:       20000000-0000-0000-0000-000000000000\n:END:\n"
+                   (h "DOING" "Counting slice" "31000000-0000-0000-0000-000000000000"
+                      ":KIND: slice\n" ":MEMBERS: 10000000-0000-0000-0000-000000000000\n"
+                      ":BLOCKER: 10000000-0000-0000-0000-000000000000\n")
+                   (h "TODO" "Dropping slice" "32000000-0000-0000-0000-000000000000"
+                      ":KIND: slice\n" ":MEMBERS: 10000000-0000-0000-0000-000000000000\n"
+                      ":DROPPED: 10000000-0000-0000-0000-000000000000\n")
+                   (h "DONE" "Closed slice" "33000000-0000-0000-0000-000000000000"
+                      ":KIND: slice\n" ":MEMBERS: 10000000-0000-0000-0000-000000000000\n")
+                   (h "TODO" "Citing slice" "34000000-0000-0000-0000-000000000000"
+                      ":KIND: slice\n" ":MEMBERS: 50000000-0000-0000-0000-000000000000\n")
+                   "The plan cites [[id:10000000-0000-0000-0000-000000000000][10000000]].\n"
+                   (h "TODO" "Waits on target" "41000000-0000-0000-0000-000000000000"
+                      ":BLOCKER: 10000000-0000-0000-0000-000000000000\n")
+                   (h "NEXT" "Waits on child" "42000000-0000-0000-0000-000000000000"
+                      ":BLOCKER: 20000000-0000-0000-0000-000000000000\n")
+                   (h "DONE" "Finished waiter" "43000000-0000-0000-0000-000000000000"
+                      ":BLOCKER: 10000000-0000-0000-0000-000000000000\n")
+                   (h "TODO" "Lonely" "50000000-0000-0000-0000-000000000000"))))
+       (let ((claude-code-ide-org-query-files (list tree)))
+         (org-id-update-id-locations (list tree))
+         ,@body))))
+
+(ert-deftest claude-code-ide-org-test-outline-front-matter-names-counting-slices ()
+  "A scoped outline names each open slice counting the heading, a dropping
+one marked, and no closed slice or one that only cites it (TODO.org
+:ID: d66ae1d2)."
+  (claude-code-ide-org-test--with-membership-file
+    (let ((out (claude-code-ide-org-outline "10000000" nil nil "false")))
+      (should (string-match-p
+               "^  slices: 31000000 DOING, 32000000 TODO (dropped)$" out)))
+    (should-not (string-match-p "slices:" (claude-code-ide-org-outline
+                                           "41000000" nil nil "false")))))
+
+(ert-deftest claude-code-ide-org-test-outline-front-matter-names-what-it-blocks ()
+  "`blocks:' names each open non-slice heading whose `:BLOCKER:' names the
+heading or a descendant, and nothing for a heading named nowhere
+(TODO.org :ID: b3177ed0)."
+  (claude-code-ide-org-test--with-membership-file
+    (let ((out (claude-code-ide-org-outline "10000000" nil nil "false")))
+      (should (string-match-p "^  blocks: 41000000 TODO, 42000000 NEXT$" out)))
+    ;; The child's own line names only what waits on the child.
+    (should (string-match-p "^  blocks: 42000000 NEXT$"
+                            (claude-code-ide-org-outline "20000000" nil nil "false")))
+    (let ((out (claude-code-ide-org-outline "50000000" nil nil "false")))
+      (should-not (string-match-p "blocks:" out)))))
+
+(ert-deftest claude-code-ide-org-test-query-member-predicate ()
+  "`member:ID' matches exactly the slices whose `:MEMBERS:' minus
+`:DROPPED:' list the id, never one citing it in prose; several ids give
+the union, a prefix expands, and an unknown id is refused (TODO.org
+:ID: d66ae1d2)."
+  (claude-code-ide-org-test--with-membership-file
+    (let ((one (claude-code-ide-org-query "member:10000000")))
+      (should (string-match-p "Counting slice" one))
+      (should-not (string-match-p "Dropping slice\\|Citing slice\\|Target" one))
+      ;; Closed slices count too; `todo:' is how to ask for open ones.
+      (should (string-match-p "Closed slice" one))
+      (should-not (string-match-p "Closed slice"
+                                  (claude-code-ide-org-query "member:10000000 todo:"))))
+    (let ((both (claude-code-ide-org-query "member:10000000,50000000")))
+      (should (string-match-p "Counting slice" both))
+      (should (string-match-p "Citing slice" both)))
+    (should (string-match-p "\\`Error: .*does not resolve"
+                            (claude-code-ide-org-query "member:ffffffff")))))
+
 (ert-deftest claude-code-ide-org-test-outline-unresolved-id-is-not-a-missing-file ()
   "An id-shaped scope that resolves to nothing must say so.
 
