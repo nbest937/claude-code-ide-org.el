@@ -6286,6 +6286,30 @@ stack sample is =~/.claude/emacs-samples/20261006T114432-9810.txt=; it shows
 =redisplay_preserve_echo_area=, waiting on the GUI thread. Recovered with =kill
 -9= and a relaunch. The ceremony steps after apply did not run.
 
+*The signal is named, 2026-10-12 09:03.* It recurred at review-buffer quit,
+after the apply and the ceremony had saved both files (committed as [[orgit-rev:./::fc569fa][fc569fa]]).
+The stack sample is =~/.claude/emacs-samples/20261012T090316-17517.txt=. Besides
+the usual shutdown deadlock, it carries a third thread the earlier accounts
+never read: the =org.gnu.Emacs.drawing= queue, in
+=__mac_draw_cg_image_block_invoke= → =CGContextDrawImage= → =ripc_DrawImage= →
+=handle_sigsegv= → =deliver_fatal_thread_signal=. So the fatal signal is a
+**SIGSEGV on the drawing thread while it draws an image into a frame**. It is
+not delivered to the idle select loop; that is only where the Lisp thread
+happened to be waiting. The 2026-10-06 sample carries the identical
+drawing-thread frames, which its paragraph above missed. That makes it two of
+two samples taken since the failure hook started sampling.
+
+Both samples also show a crowd of =diff-hl--update= threads: 14 now, 45 on
+2026-10-06, against 4 on 2026-09-16. In today's sample one of them is in
+=Fdelete_process= → =redisplay_preserve_echo_area= → =update_frame=, so it is
+redisplaying from a non-main Lisp thread at the same moment. A ceremony touches
+=TODO.org= and =DONE.org=, which starts a diff-hl update per buffer. The working
+hypothesis is concurrent redisplay from diff-hl's async threads racing the
+drawing queue. This is not shown, but it now explains both the signal and the
+ceremony correlation. The =diff-hl-update-async= nil experiment in =:PLAN:= now
+tests the cause rather than only the odds of the shutdown wedge.
+
+
 
 * TODO Per-machine port via ${VAR:-45571} in .mcp.json, with the wire check env-aware :code:
 :PROPERTIES:
