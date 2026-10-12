@@ -3159,6 +3159,9 @@ re-run and removes it with --no-time-tracking, [[id:5fbc34cb-b5bd-4d9c-b8cb-2906
    pointing at the rules-file stub, and =claude-org-setup --check= nags.
 9. [[id:79c224ab-188a-4ed4-a606-c28ee2cfe72d][79c224ab]]: a discarding git command is refused while euchre's .org file is
    dirty, through the plugin's hooks.json wiring.
+10. [[id:d6375b21-a410-4c2d-9d5b-bfe980c4cc63][d6375b21]]: from =noodle-salesman=, where the leak was reported, an
+    unscoped =org_outline= shows only its own tracker and =org_pending_updates=
+    only its own items; =all_projects=true= shows every project.
 The buffer-movement members run in the same Emacs either way, so a consumer
 adds nothing for them; [[id:de081dd9-1853-4d79-94fc-2edac498380f][de081dd9]]'s ceremony is not checked here.
 

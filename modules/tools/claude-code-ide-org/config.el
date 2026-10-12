@@ -652,19 +652,27 @@ inventing seconds that did not elapse."
 (defvar claude-code-ide-org--report-scope nil
   "When non-nil, an absolute directory `--tracked-files' is confined to.
 
-Bound only around the SessionStart *reports*, never around the tools.
-That asymmetry is the whole point and is easy to get backwards: the
-org tools are deliberately global -- `org_query' and
-`org_clock_report' answer across every tracked project, which is what
-makes one Emacs serve many repos -- while anything that *reports to a
-session* must speak about that session's own project and nothing else.
+Bound around the SessionStart *reports* and around the tools' unscoped
+*reads* -- `org_outline' with no id, `org_query', `org_clock_report'
+with no id and `org_pending_updates', through
+`claude-code-ide-org--with-session-scope' -- so anything that speaks to
+a session speaks about that session's own project and nothing else.
+Never bound around a lookup by :ID:, a write tool, or the consent check
+`claude-code-ide-org--tracked-buffer-p': an id names one heading
+wherever it lives, and consent cannot depend on what some read happens
+to be looking at.  That boundary is the easy one to get wrong now, and
+neither direction announces itself.  One Emacs serving many repos is
+still reachable, behind the tools' `all_projects' argument.
 
 The defect this exists for (TODO.org :ID: 43d479c8): a session in a
 consuming repo was handed a SessionStart report naming this
 repository's headings, because the report was computed over
 `org-agenda-files', which is per-user.  It read as authoritative --
 real ids, real titles -- and would have become undetectable the moment
-that repo had a backlog of its own to confuse them with.")
+that repo had a backlog of its own to confuse them with.  That fix kept
+the tools global on purpose; TODO.org :ID: d6375b21 reversed it for
+the reads, after `org_outline' showed a second project's session this
+repository's headings.")
 
 (defun claude-code-ide-org--tracked-files ()
   "Files to scan for stale open intervals, org_query, and
@@ -716,7 +724,9 @@ kind of quiet."
     ;; TODO.org :ID: 045459f6 reintroduced, and its whole point was that
     ;; the tools go on to *write* these buffers.  Reachable rather than
     ;; theoretical: a consumer's scoped report opens this repo's TODO.org
-    ;; via `claude-code-ide-org--review-attention-target'.
+    ;; via `claude-code-ide-org--review-attention-target'.  Since
+    ;; :ID: d6375b21 the tools' confined reads bind the same variable,
+    ;; so this binding guards against their scope too.
     (let ((claude-code-ide-org--report-scope nil))
       (seq-some (lambda (f) (equal true (file-truename f)))
                 (claude-code-ide-org--tracked-files)))))
@@ -978,18 +988,28 @@ scoping exists to fix.  `cwd' has been recorded since 2026-09-04, so
 in practice this drops only pre-cutover events."
   (if (not claude-code-ide-org--report-scope)
       items
+    (seq-filter
+     (lambda (item)
+       (claude-code-ide-org--events-in-report-scope (plist-get item :events)))
+     items)))
+
+(defun claude-code-ide-org--events-in-report-scope (events)
+  "EVENTS whose `cwd' lies under `--report-scope'; unscoped, every one.
+An event with no `cwd' is excluded when scoped, for the reason
+`--items-in-report-scope' gives.  `org_pending_updates' counts these
+for its \"N of M queue event(s)\" line, which otherwise reported every
+project's scaffolding to a confined reader (TODO.org :ID: d6375b21)."
+  (if (not claude-code-ide-org--report-scope)
+      events
     (let ((root (file-name-as-directory
                  (file-truename claude-code-ide-org--report-scope))))
       (seq-filter
-       (lambda (item)
-         (seq-some
-          (lambda (e)
-            (let ((cwd (plist-get e :cwd)))
-              (and cwd (file-directory-p cwd)
-                   (string-prefix-p
-                    root (file-name-as-directory (file-truename cwd))))))
-          (plist-get item :events)))
-       items))))
+       (lambda (e)
+         (let ((cwd (plist-get e :cwd)))
+           (and cwd (file-directory-p cwd)
+                (string-prefix-p
+                 root (file-name-as-directory (file-truename cwd))))))
+       events))))
 
 (defun claude-code-ide-org--miss-counts (&optional since)
   "Count `miss' queue lines by rule: ((RULE . N) ...), most frequent first.
@@ -3374,14 +3394,77 @@ worktree session's deferred capture would misroute.
 A tracked file is the project's when its truename lives under the
 project's truename and it is named TODO.org, and it is returned under
 its *tracked* name, so org-id and the agenda keep one name per file."
+  (when-let* ((main (claude-code-ide-org--project-root dir))
+              (dir-true (file-truename main)))
+    (seq-find (lambda (f)
+                (and (equal (file-name-nondirectory f) "TODO.org")
+                     (string-prefix-p dir-true (file-truename f))))
+              (claude-code-ide-org--tracked-files))))
+
+(defun claude-code-ide-org--project-root (dir)
+  "The project DIR belongs to, as a directory name, or nil.
+
+Up to the nearest `.git', then a linked worktree's main checkout, since
+the tracked files live there (:ID: 2e09adb7).  The one resolution
+behind both a capture's target and a read's scope, so a session's
+capture and its reads always agree on which project it is in
+\(TODO.org :ID: d6375b21).  nil for a DIR that is not a directory."
   (when (and (stringp dir) (file-directory-p dir))
-    (let* ((root (or (locate-dominating-file dir ".git") dir))
-           (main (or (claude-code-ide-org--worktree-main-checkout root) root))
-           (dir-true (file-truename (file-name-as-directory main))))
-      (seq-find (lambda (f)
-                  (and (equal (file-name-nondirectory f) "TODO.org")
-                       (string-prefix-p dir-true (file-truename f))))
-                (claude-code-ide-org--tracked-files)))))
+    (let ((root (or (locate-dominating-file dir ".git") dir)))
+      (file-name-as-directory
+       (or (claude-code-ide-org--worktree-main-checkout root) root)))))
+
+(defun claude-code-ide-org--session-read-scope ()
+  "The calling session's project root, or nil when there is no session.
+
+What an unscoped read confines itself to (TODO.org :ID: d6375b21): a
+session in one project was shown another's headings by `org_outline',
+because the reads went over every tracked file.  nil -- no session, as
+from `emacsclient', the tests or an internal caller -- means the read
+stays global, unchanged."
+  (when-let* ((ctx (and (fboundp 'claude-code-ide-mcp-server-get-session-context)
+                        (claude-code-ide-mcp-server-get-session-context)))
+              (dir (plist-get ctx :project-dir)))
+    (claude-code-ide-org--project-root dir)))
+
+(defun claude-code-ide-org--truthy-arg-p (value)
+  "Non-nil when VALUE, an MCP string argument, reads as true.
+Lenient as `active_only' always was: \"t\", \"true\", \"yes\" or \"1\",
+any case; anything else, or absent, is false."
+  (and value
+       (member (downcase (format "%s" value)) '("t" "true" "yes" "1"))
+       t))
+
+(defmacro claude-code-ide-org--with-session-scope (all-projects &rest body)
+  "Run BODY confined to the calling session's project, unless ALL-PROJECTS.
+
+Confining means binding `claude-code-ide-org--report-scope' to the
+session's project root, so `--tracked-files' and
+`--items-in-report-scope' narrow exactly as they do for the SessionStart
+reports.  ALL-PROJECTS, an MCP string read by `--truthy-arg-p', runs
+BODY with the scope bound to nil, reading every tracked project.
+
+With no session nothing is bound at all -- not even nil -- so a caller
+that has already bound a scope keeps it.  A session whose project holds
+no tracked file gets a line saying so instead of BODY's empty answer,
+and never a silent global fallback, because that fallback is the leak
+\(TODO.org :ID: d6375b21).
+
+Wrap only the part of a tool that reads the tracked set: a lookup by
+:ID: names one heading wherever it lives, and stays global."
+  (declare (indent 1))
+  (let ((dir (make-symbol "dir")))
+    `(if (claude-code-ide-org--truthy-arg-p ,all-projects)
+         (let ((claude-code-ide-org--report-scope nil)) ,@body)
+       (let ((,dir (claude-code-ide-org--session-read-scope)))
+         (cond
+          ((null ,dir) ,@body)
+          ((let ((claude-code-ide-org--report-scope ,dir))
+             (claude-code-ide-org--tracked-files))
+           (let ((claude-code-ide-org--report-scope ,dir)) ,@body))
+          (t (format "No tracked org files under %s. Run \
+`claude-org-setup --org' there, or pass all_projects=true to read every \
+project." (abbreviate-file-name ,dir))))))))
 
 (defun claude-code-ide-org--capture-target-file (&optional dir)
   "File `org_capture' targets, in priority order: the calling session's
@@ -5340,7 +5423,7 @@ called with point already at the heading."
             (if tags (concat "  :" (mapconcat #'identity tags ":") ":") "")
             id (file-name-nondirectory (or file "?")))))
 
-(defun claude-code-ide-org-query (query &optional match)
+(defun claude-code-ide-org-query (query &optional match all-projects)
   "Search `claude-code-ide-org--tracked-files' with QUERY, an org-ql
 plain-string query, e.g. \"todo:WAITING\", \"tags:research,code\"
 (comma = OR), \"priority:A\", \"heading:\\\"text\\\"\", or negated
@@ -5351,7 +5434,14 @@ file — or a message string when the query is empty, is refused,
 fails to parse, or matches nothing; an empty result names the parsed
 reading.  A sexp, an unknown `name:' predicate and a bare OR/AND/|
 are refused rather than searched as text (TODO.org :ID: 37bca83a).
-Never signals an error to the MCP layer."
+Searches the calling session's project only, unless ALL-PROJECTS
+\(`claude-code-ide-org--with-session-scope'), so `member:' finds the
+same project's slices.  Never signals an error to the MCP layer."
+  (claude-code-ide-org--with-session-scope all-projects
+   (claude-code-ide-org--query-1 query match)))
+
+(defun claude-code-ide-org--query-1 (query match)
+  "`claude-code-ide-org-query' over whatever the tracked set is now."
   (condition-case err
       (let ((op (pcase match
                   ((or 'nil "" "all") 'and)
@@ -6121,7 +6211,7 @@ cannot be combined with include_children.")
 or an 8-character :ID: prefix." id))))
     (error (format "Error: %s" (error-message-string err)))))
 
-(defun claude-code-ide-org-outline (&optional scope max-depth active-only bodies)
+(defun claude-code-ide-org-outline (&optional scope max-depth active-only bodies all-projects)
   "Return a compact one-line-per-heading index.
 
 SCOPE is an :ID: to index just that subtree, a file name to index one
@@ -6148,6 +6238,13 @@ A token that resolves to nothing renders an inline error in its slot
 rather than failing the call, so one typo does not cost the other
 answers.  File names stay single-scope; every token of a multi-scope
 call must be id-shaped.
+
+An empty or file-name SCOPE reads the calling session's project only,
+unless ALL-PROJECTS (TODO.org :ID: d6375b21): a relative file name
+resolves against that project's root, and ALL-PROJECTS labels each file
+block with its project, since TODO.org alone names no one file.  An id
+scope stays global -- an id names one heading wherever it lives, and
+the front matter's slices: and blocks: scan with it.
 
 Read-only: verified that `org-map-entries' over an explicit file list
 neither moves point nor marks the buffer modified, so this is safe to
@@ -6221,30 +6318,48 @@ every token of a multi-scope call must be an :ID: or 8-character prefix."
           (format "Error: scope %S resolves to no heading. It is not a file \
 name either; pass an :ID:, an 8-character :ID: prefix, or a file name." scope))
          (t
-          (let* ((files (if scope
-                            (list (expand-file-name scope))
-                          (claude-code-ide-org--tracked-files)))
-                 (multiple (cdr files))
-                 chunks)
-            (dolist (file files)
-              (unless (file-readable-p file)
-                (error "no readable file at %s" file))
-              (let ((lines (claude-code-ide-org--outline-group
-                            (claude-code-ide-org--outline-map
-                             active depth (list file) 'grouped with-bodies))))
-                (when lines
-                  (push (if multiple
-                            ;; Only label files when there is more than
-                            ;; one, so the common single-file call stays
-                            ;; free of a header that says nothing.
-                            (concat (file-name-nondirectory file) "\n"
-                                    (mapconcat #'identity lines "\n"))
-                          (mapconcat #'identity lines "\n"))
-                        chunks))))
-            (if chunks
-                (mapconcat #'identity (nreverse chunks) "\n")
-              "No headings found.")))))
+          (claude-code-ide-org--with-session-scope all-projects
+           (let* ((files (if scope
+                             ;; Against the session's project, not
+                             ;; wherever Emacs happens to be.
+                             (list (expand-file-name
+                                    scope
+                                    (or claude-code-ide-org--report-scope
+                                        (claude-code-ide-org--session-read-scope))))
+                           (claude-code-ide-org--tracked-files)))
+                  (multiple (cdr files))
+                  (wide (claude-code-ide-org--truthy-arg-p all-projects))
+                  chunks)
+             (dolist (file files)
+               (unless (file-readable-p file)
+                 (error "no readable file at %s" file))
+               (let ((lines (claude-code-ide-org--outline-group
+                             (claude-code-ide-org--outline-map
+                              active depth (list file) 'grouped with-bodies))))
+                 (when lines
+                   (push (if multiple
+                             ;; Only label files when there is more than
+                             ;; one, so the common single-file call stays
+                             ;; free of a header that says nothing.
+                             (concat (claude-code-ide-org--outline-file-label
+                                      file wide)
+                                     "\n"
+                                     (mapconcat #'identity lines "\n"))
+                           (mapconcat #'identity lines "\n"))
+                         chunks))))
+             (if chunks
+                 (mapconcat #'identity (nreverse chunks) "\n")
+               "No headings found."))))))
     (error (format "Error: %s" (error-message-string err)))))
+
+(defun claude-code-ide-org--outline-file-label (file wide)
+  "The header line for FILE's block in a whole-corpus outline.
+The bare file name, or with WIDE -- an `all_projects' read -- the
+project before it, as noodle-salesman/TODO.org, since every project
+has a TODO.org (TODO.org :ID: d6375b21)."
+  (let ((name (file-name-nondirectory file))
+        (project (and wide (claude-code-ide-org--project-name file))))
+    (if project (concat project "/" name) name)))
 
 ;;; Structural manipulation -------------------------------------------------
 
@@ -6785,14 +6900,15 @@ from."
       (org-dblock-write:clocktable params)
       (buffer-substring-no-properties origin (point-max)))))
 
-(defun claude-code-ide-org-clock-report (&optional id block tstart tend)
+(defun claude-code-ide-org-clock-report (&optional id block tstart tend all-projects)
   "Summarize clocked time as an org clocktable report — the same
 machinery behind `org-clock-report'/column view — returned as a
 plain string.  Never creates or modifies any file.
 
-If ID is given, scope to that heading's subtree only.  Otherwise
-scope to every file in `claude-code-ide-org--tracked-files' (the
-same file list `claude-code-ide-org-query' searches).
+If ID is given, scope to that heading's subtree only, wherever it
+lives.  Otherwise scope to the calling session's project's files, or
+with ALL-PROJECTS to every file in `claude-code-ide-org--tracked-files'
+\(`claude-code-ide-org--with-session-scope', TODO.org :ID: d6375b21).
 
 BLOCK, if given, selects a named range recognized by
 `org-clock-special-range': \"today\", \"yesterday\", \"thisweek\",
@@ -6819,8 +6935,9 @@ BLOCK).  Never signals an error to the MCP layer."
              (lambda ()
                (claude-code-ide-org--clocktable-string
                 params (claude-code-ide-org--subtree-text-at-point))))
-          (claude-code-ide-org--clocktable-string
-           (plist-put params :scope (claude-code-ide-org--tracked-files)))))
+          (claude-code-ide-org--with-session-scope all-projects
+           (claude-code-ide-org--clocktable-string
+            (plist-put params :scope (claude-code-ide-org--tracked-files))))))
     (error (format "Error: %s" (error-message-string err)))))
 
 ;;; Native transition enforcement --------------------------------------------
@@ -12968,7 +13085,7 @@ content-idempotent; see `claude-code-ide-org--append-to-drawer'."
     session-id))
 
 ;;;###autoload
-(defun claude-code-ide-org-pending-updates (&optional session-id)
+(defun claude-code-ide-org-pending-updates (&optional session-id all-projects)
   "Summarize queued-but-unapplied updates as plain text.
 
 The read-only counterpart to `claude-code-ide-org-review': answers
@@ -12993,14 +13110,25 @@ nothing, so the queue files always hold far more lines than there are
 items -- a summary that counted lines would report a permanent backlog
 that does not exist.
 
-SESSION-ID limits the report to one session's queue.  Never signals to
-the MCP layer."
+SESSION-ID limits the report to one session's queue.  Either way only
+items whose events ran in the calling session's project are reported,
+and only those events counted, unless ALL-PROJECTS
+\(`claude-code-ide-org--with-session-scope', TODO.org :ID: d6375b21):
+\"did my call land\" and the queued-keyword star both want the
+session's own items.  Never signals to the MCP layer."
+  (claude-code-ide-org--with-session-scope all-projects
+   (claude-code-ide-org--pending-updates-1 session-id)))
+
+(defun claude-code-ide-org--pending-updates-1 (session-id)
+  "`claude-code-ide-org-pending-updates' over the current report scope."
   (condition-case err
       (let* ((session-id (and (stringp session-id)
                               (not (string-empty-p session-id))
                               session-id))
-             (items (claude-code-ide-org--review-items-from-queue session-id))
-             (events (claude-code-ide-org--queue-events session-id))
+             (items (claude-code-ide-org--items-in-report-scope
+                     (claude-code-ide-org--review-items-from-queue session-id)))
+             (events (claude-code-ide-org--events-in-report-scope
+                      (claude-code-ide-org--queue-events session-id)))
              ;; Sessions that contributed an *item*, not every session
              ;; holding a residual event -- the latter is nearly all of
              ;; them, forever, and reporting it as "from N sessions"
@@ -23263,14 +23391,19 @@ http://localhost:%d/mcp/%s-2"
                  "bare words do not. Returns one line per match: TODO "
                  "state, heading, tags, :ID:, and file -- or, when nothing "
                  "matches, the parsed reading of the query. Prefer this "
-                 "over reading whole files for cross-file questions.")
+                 "over reading whole files for cross-file questions. "
+                 "Confined to the calling session's project; all_projects=true reads every tracked project.")
    :args '((:name "query"
             :type string
             :description "org-ql plain-string query, e.g. \"todo:\" (everything non-terminal), \"todo:WAITING\", \"property:KIND,slice\", \"tags:research,code\", \"blocked:\", \"!todo:DONE\". Space is AND; comma is OR inside one predicate; no sexps; quote a literal containing a colon.")
            (:name "match"
             :type string
             :optional t
-            :description "\"all\" (the default: every space-separated term must hold) or \"any\" (at least one must: OR across predicates, flat, no grouping).")))
+            :description "\"all\" (the default: every space-separated term must hold) or \"any\" (at least one must: OR across predicates, flat, no grouping).")
+           (:name "all_projects"
+            :type string
+            :optional t
+            :description "\"true\" to read every tracked project. Omit to read only the calling session's project.")))
 
   (claude-code-ide-make-tool
    :function #'claude-code-ide-org-body
@@ -23362,7 +23495,10 @@ http://localhost:%d/mcp/%s-2"
                  "body is a short problem/proposal/resolution summary, so "
                  "the index answers orientation outright; pass "
                  "bodies=false for the old structure-only index when only "
-                 "the tree matters.")
+                 "the tree matters. Unscoped or file-scoped, it is "
+                 "confined to the calling session's project; "
+                 "all_projects=true reads every tracked project. An id "
+                 "scope is never confined.")
    :args '((:name "scope"
             :type string
             :optional t
@@ -23378,7 +23514,11 @@ http://localhost:%d/mcp/%s-2"
            (:name "bodies"
             :type string
             :optional t
-            :description "\"false\" for the structure-only index -- one line per heading, no body prose. Omit (the default) to carry each heading's body summary beneath its line.")))
+            :description "\"false\" for the structure-only index -- one line per heading, no body prose. Omit (the default) to carry each heading's body summary beneath its line.")
+           (:name "all_projects"
+            :type string
+            :optional t
+            :description "\"true\" to read every tracked project. Omit to read only the calling session's project.")))
 
   (claude-code-ide-make-tool
    :function #'claude-code-ide-org-sort-children
@@ -23417,19 +23557,21 @@ http://localhost:%d/mcp/%s-2"
                  "machinery behind org-clock-report/column view — so \"what did "
                  "I work on this week\" is one tool call instead of eyeballing "
                  "LOGBOOK entries by hand. Scope to a single heading's subtree "
-                 "via id, or omit id to cover every file in "
-                 "`claude-code-ide-org-query-files' (or org-agenda-files). "
+                 "via id, or omit id to cover the tracked files "
+                 "(`claude-code-ide-org-query-files', or org-agenda-files). "
                  "Give either block (a named range: today, yesterday, thisweek, "
                  "lastweek, thismonth, lastmonth, thisyear, lastyear, untilnow) "
                  "or an explicit tstart/tend pair (org timestamp strings), not "
                  "both — block takes precedence if both are given. With "
                  "neither, the report is unrestricted: all clocked time in "
                  "scope. Returns the clocktable's headline/time breakdown and "
-                 "total as plain text. Never creates or modifies any file.")
+                 "total as plain text. Never creates or modifies any file. "
+                 "Without id it is confined to the calling session's "
+                 "project; all_projects=true reads every tracked project.")
    :args '((:name "id"
             :type string
             :optional t
-            :description "Optional :ID: property of a heading to scope the report to its subtree. Omit to cover all tracked files.")
+            :description "Optional :ID: property of a heading to scope the report to its subtree. Omit to cover the tracked files.")
            (:name "block"
             :type string
             :optional t
@@ -23442,7 +23584,11 @@ http://localhost:%d/mcp/%s-2"
            (:name "tend"
             :type string
             :optional t
-            :description "Optional explicit range end, as an org timestamp string. Ignored if block is given.")))
+            :description "Optional explicit range end, as an org timestamp string. Ignored if block is given.")
+           (:name "all_projects"
+            :type string
+            :optional t
+            :description "\"true\" to read every tracked project. Omit to read only the calling session's project.")))
 
   (claude-code-ide-make-tool
    :function #'claude-code-ide-org-pending-updates
@@ -23459,11 +23605,16 @@ http://localhost:%d/mcp/%s-2"
                  "M-x claude-code-ide-org-review would open on. Counts "
                  "*proposals*, not queue lines: clock and guidepost events "
                  "are attribution scaffolding that nothing consumes, so the "
-                 "files always hold many more lines than there are items.")
+                 "files always hold many more lines than there are items. "
+                 "Confined to the calling session's project; all_projects=true reads every tracked project.")
    :args '((:name "session_id"
             :type string
             :optional t
-            :description "Limit the report to one session's queue. Omit for every session.")))
+            :description "Limit the report to one session's queue. Omit for every session.")
+           (:name "all_projects"
+            :type string
+            :optional t
+            :description "\"true\" to read every tracked project. Omit to read only the calling session's project.")))
 
   ;; The wiring, last in the block so every tool above is registered
   ;; first (TODO.org :ID: c562b69a).  It used to be a file generated into

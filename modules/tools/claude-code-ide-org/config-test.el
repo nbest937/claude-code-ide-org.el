@@ -19296,18 +19296,22 @@ running task tracking alone would hit."
 ;;; Report scope (TODO.org :ID: 43d479c8) -----------------------------------
 ;;
 ;; The SessionStart reports must speak about the session's own project
-;; and nothing else; the org tools must stay global. Both halves are
-;; asserted here, because getting the asymmetry backwards is the easy
-;; mistake and neither direction announces itself.
+;; and nothing else, and since :ID: d6375b21 so must the tools' unscoped
+;; reads; lookups by id and the consent check stay global. Both halves
+;; are asserted, because getting the boundary backwards is the easy
+;; mistake and neither direction announces itself. With no session --
+;; every test below that stubs none -- the scope is unbound and the
+;; tracked set is global, which is what the first test pins.
 
 (ert-deftest claude-code-ide-org-test-report-scope-confines-tracked-files ()
   "`--report-scope' filters the tracked set; unbound, nothing changes.
 
 The second assertion is the load-bearing one.  A scope that filtered
-unconditionally would break `org_query' and `org_clock_report', whose
-whole value is answering across every tracked project -- so \"global by
-default\" is the property, and a test that only checked the filtering
-would pass while that was broken."
+unconditionally would confine every caller with no session -- the
+reports' own internals, `emacsclient', `all_projects' -- so \"global
+when unbound\" is the property, and a test that only checked the
+filtering would pass while that was broken.  Which *tools* bind it is
+:ID: d6375b21's, pinned in the section after this one."
   (let* ((root (file-name-as-directory (make-temp-file "cioo-scope-a" t)))
          (other (file-name-as-directory (make-temp-file "cioo-scope-b" t)))
          (empty (file-name-as-directory (make-temp-file "cioo-scope-c" t)))
@@ -19438,6 +19442,176 @@ opens this repo's TODO.org via `--review-attention-target'."
                 (kill-buffer)))))
       (delete-directory mine t)
       (delete-directory other t))))
+
+;;; Session-scoped reads (TODO.org :ID: d6375b21) ---------------------------
+;;
+;; An unscoped read from a session in one project returns that project
+;; only; `all_projects' reads every one; an id lookup is global.  The
+;; fixture is `--with-two-projects' with a distinct, id'd heading in each.
+
+(defmacro claude-code-ide-org-test--with-scoped-projects (&rest body)
+  "Projects A and B as `--with-two-projects', each holding one id'd
+heading -- \"Alpha only\" (a-id) and \"Bravo only\" (b-id) -- and BODY
+run with the calling session registered to SESSION-DIR, a variable
+BODY may rebind; nil means no session.  Also binds `a-root'."
+  (declare (indent 0))
+  `(claude-code-ide-org-test--with-two-projects
+     (let* ((a-root (file-name-directory a-todo))
+            (a-id "aaaa0000-d637-4000-8000-000000000001")
+            (b-id "bbbb0000-d637-4000-8000-000000000002")
+            (session-dir a-root))
+       (with-temp-file a-todo
+         (insert "#+TODO: TODO | DONE\n\n* TODO Alpha only\n:PROPERTIES:\n:ID:       "
+                 a-id "\n:END:\n:LOGBOOK:\nCLOCK: [2026-10-01 Thu 09:00]--[2026-10-01 Thu 10:00] =>  1:00\n:END:\n"))
+       (with-temp-file b-todo
+         (insert "#+TODO: TODO | DONE\n\n* TODO Bravo only\n:PROPERTIES:\n:ID:       "
+                 b-id "\n:END:\n:LOGBOOK:\nCLOCK: [2026-10-01 Thu 11:00]--[2026-10-01 Thu 13:00] =>  2:00\n:END:\n"))
+       (org-id-update-id-locations (list a-todo b-todo) t)
+       (cl-letf (((symbol-function 'claude-code-ide-mcp-server-get-session-context)
+                  (lambda (&optional _id)
+                    (and session-dir (list :project-dir session-dir)))))
+         ,@body))))
+
+(ert-deftest claude-code-ide-org-test-scoped-outline-reads-the-sessions-project ()
+  "An unscoped outline from A shows A; with all_projects, both, each
+block labelled by project, since TODO.org alone names neither."
+  (claude-code-ide-org-test--with-scoped-projects
+    (let ((out (claude-code-ide-org-outline)))
+      (should (string-match-p "Alpha only" out))
+      (should-not (string-match-p "Bravo only" out)))
+    (let ((out (claude-code-ide-org-outline nil nil nil nil "true")))
+      (should (string-match-p "Alpha only" out))
+      (should (string-match-p "Bravo only" out))
+      (should (string-match-p "^a/TODO\\.org$" out))
+      (should (string-match-p "^b/TODO\\.org$" out)))))
+
+(ert-deftest claude-code-ide-org-test-scoped-outline-resolves-a-relative-file ()
+  "A relative file scope is the session's project's file, not wherever
+Emacs happens to be -- and from a linked worktree it is the main
+checkout's, the tracked one, not the worktree's own branch copy."
+  (claude-code-ide-org-test--with-scoped-projects
+    (let ((default-directory (file-name-directory b-todo)))
+      (let ((out (claude-code-ide-org-outline "TODO.org")))
+        (should (string-match-p "Alpha only" out))
+        (should-not (string-match-p "Bravo only" out)))
+      (with-temp-file (expand-file-name "TODO.org" b-wt)
+        (insert "#+TODO: TODO | DONE\n\n* TODO Stale branch copy\n"))
+      (setq session-dir b-wt)
+      (let ((default-directory a-root)
+            (out (claude-code-ide-org-outline "TODO.org")))
+        (should (string-match-p "Bravo only" out))
+        (should-not (string-match-p "Stale branch copy" out))))))
+
+(ert-deftest claude-code-ide-org-test-scoped-reads-leave-id-lookups-global ()
+  "An id names one heading wherever it lives: an outline or a clock
+report scoped to B's id answers from A's session."
+  (claude-code-ide-org-test--with-scoped-projects
+    (should (string-match-p "Bravo only" (claude-code-ide-org-outline b-id)))
+    (should (string-match-p "2:00" (claude-code-ide-org-clock-report b-id)))))
+
+(ert-deftest claude-code-ide-org-test-scoped-query-reads-the-sessions-project ()
+  "org_query from A matches A only; with all_projects, both."
+  (claude-code-ide-org-test--with-scoped-projects
+    (let ((out (claude-code-ide-org-query "todo:TODO")))
+      (should (string-match-p "Alpha only" out))
+      (should-not (string-match-p "Bravo only" out)))
+    (let ((out (claude-code-ide-org-query "todo:TODO" nil "true")))
+      (should (string-match-p "Alpha only" out))
+      (should (string-match-p "Bravo only" out)))))
+
+(ert-deftest claude-code-ide-org-test-scoped-clock-report-reads-the-sessions-project ()
+  "An unscoped clock report covers A's hour and not B's two."
+  (claude-code-ide-org-test--with-scoped-projects
+    (let ((out (claude-code-ide-org-clock-report)))
+      (should (string-match-p "Alpha only" out))
+      (should-not (string-match-p "Bravo only" out)))
+    (let ((out (claude-code-ide-org-clock-report nil nil nil nil "true")))
+      (should (string-match-p "Bravo only" out)))))
+
+(ert-deftest claude-code-ide-org-test-scoped-pending-updates-reads-the-sessions-project ()
+  "Queue items whose cwd lies in A are A's: B's are neither listed nor
+counted, in the item line or the queue-event line."
+  (claude-code-ide-org-test--with-scoped-projects
+    (claude-code-ide-org-test--with-queue
+      (claude-code-ide-org-test--queue-write
+       "sess-a" (claude-code-ide-org-test--queue-event
+                 "2026-10-01T09:00:00-0500" "todo" a-id "DONE" "sess-a" "from a"
+                 nil nil a-root))
+      (claude-code-ide-org-test--queue-write
+       "sess-b" (claude-code-ide-org-test--queue-event
+                 "2026-10-01T09:05:00-0500" "todo" b-id "DONE" "sess-b" "from b"
+                 nil nil (file-name-directory b-todo)))
+      (let ((out (claude-code-ide-org-pending-updates)))
+        (should (string-match-p "from a" out))
+        (should-not (string-match-p "from b" out))
+        (should (string-match-p "^1 pending item" out))
+        (should (string-match-p "1 of 1 queue event" out)))
+      (let ((out (claude-code-ide-org-pending-updates nil "true")))
+        (should (string-match-p "from b" out))
+        (should (string-match-p "^2 pending item" out))))))
+
+(ert-deftest claude-code-ide-org-test-reads-without-a-session-stay-global ()
+  "No session -- emacsclient, the tests, internal callers -- reads both
+projects, exactly as before.  And an outer report's scope survives: no
+session binds nothing, not even nil."
+  (claude-code-ide-org-test--with-scoped-projects
+    (setq session-dir nil)
+    (should (string-match-p "Bravo only" (claude-code-ide-org-outline)))
+    (should (string-match-p "Bravo only" (claude-code-ide-org-query "todo:TODO")))
+    (should (string-match-p "Bravo only" (claude-code-ide-org-clock-report)))
+    (let ((claude-code-ide-org--report-scope a-root))
+      (should-not (string-match-p "Bravo only" (claude-code-ide-org-outline))))))
+
+(ert-deftest claude-code-ide-org-test-scoped-read-from-an-untracked-project-says-so ()
+  "A session whose project holds no tracked file gets a line naming
+setup and all_projects -- never an empty answer, and never the global
+fallback that is the leak."
+  (claude-code-ide-org-test--with-scoped-projects
+    (let ((stranger (file-name-as-directory (make-temp-file "stranger" t))))
+      (unwind-protect
+          (progn
+            (setq session-dir stranger)
+            (dolist (out (list (claude-code-ide-org-outline)
+                               (claude-code-ide-org-query "todo:TODO")
+                               (claude-code-ide-org-clock-report)
+                               (claude-code-ide-org-pending-updates)))
+              (should (string-match-p "No tracked org files under" out))
+              (should (string-match-p "all_projects=true" out))
+              (should-not (string-match-p "Bravo only\\|Alpha only" out))))
+        (delete-directory stranger t)))))
+
+(ert-deftest claude-code-ide-org-test-session-read-scope-maps-worktrees-and-subdirs ()
+  "A session in a linked worktree of B, or in a subdirectory of A,
+resolves to that project's root."
+  (claude-code-ide-org-test--with-scoped-projects
+    (let ((sub (expand-file-name "deep/er/" a-root)))
+      (make-directory sub t)
+      (setq session-dir sub)
+      (should (file-equal-p a-root (claude-code-ide-org--session-read-scope)))
+      (setq session-dir b-wt)
+      (should (file-equal-p (file-name-directory b-todo)
+                            (claude-code-ide-org--session-read-scope))))))
+
+(ert-deftest claude-code-ide-org-test-scoped-read-keeps-consent-global ()
+  "During a confined read, B's file is still tracked: consent is not a
+read's scope (:ID: 045459f6)."
+  (claude-code-ide-org-test--with-scoped-projects
+    ;; Recorded, then asserted outside: the outline's `condition-case'
+    ;; would swallow a `should' failing inside it.
+    (let (seen scope consent)
+      (cl-letf* ((orig (symbol-function 'claude-code-ide-org--tracked-files))
+                 ((symbol-function 'claude-code-ide-org--tracked-files)
+                  (lambda ()
+                    (unless seen
+                      (setq seen t)
+                      (with-current-buffer (find-file-noselect b-todo)
+                        (setq scope claude-code-ide-org--report-scope
+                              consent (claude-code-ide-org--tracked-buffer-p))))
+                    (funcall orig))))
+        (claude-code-ide-org-outline))
+      (should seen)
+      (should scope)
+      (should consent))))
 
 ;;; Footnote check: the Stop hook's scanner (TODO.org :ID: c247d8f3) -----------
 
