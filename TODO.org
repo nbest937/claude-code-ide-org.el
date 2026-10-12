@@ -2,7 +2,7 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* TODO The conventions say a discovery is adopted by adding a member line; the user's practice is to let it close as incidental :prose:
+* TODO Let a discovery join a slice either as a member line or as incidental work, since both record it under the slice :prose:
 :PROPERTIES:
 :ID:       d9ed082e-9a2e-4afd-a852-bedf33f0e659
 :CREATED:  [2026-10-12 Mon 10:59]
@@ -10,15 +10,14 @@
 :END:
 :PLAN:
 Candidate steps, not yet brainstormed.
-1. Rewrite "Adopt by adding a member line" in "Adopting a discovery": adoption
-   stays the default, but adopted work is worked under the slice and becomes
-   incidental at its close. =org_slice_add_member= remains for work the user
-   decides to plan into the slice.
-2. Re-read what depends on adopted members being counted: "Expect the cookie
-   to regress" goes, and "Where adoption stops" binds on =REVIEW= through the
-   checklist (every member terminal), which incidental work no longer delays.
-   The proposed "adopt at depth one" rule exists to stop adopted members
-   receding the =REVIEW= target, so it may become unnecessary.
+1. Rewrite "Adopt by adding a member line" in "Adopting a discovery" to offer
+   two routes with one outcome: a member line, counted and blocking, or work
+   left to close as incidental, listed at its close. Say what tells them apart:
+   a member line holds the slice open until it lands, an incidental never does.
+2. Qualify what applies to one route only. "Expect the cookie to regress" is
+   the member route's cost. "Where adoption stops" binds on =REVIEW= through
+   the checklist, which incidental work does not delay, so the gate and the
+   proposed "adopt at depth one" rule bound the member route alone.
 3. State the attribution caveat beside the rule: an incidental lands in the
    =DOING= slice with the latest clock before its close (=--incidental-owner=),
    so with several slices =DOING= it can land elsewhere or, on a tie, nowhere.
@@ -26,14 +25,17 @@ Candidate steps, not yet brainstormed.
    member-line instruction, and regenerate the promoted copy.
 :END:
 
-Decided 2026-10-12 (the user): work discovered while a slice is =DOING= and
-worked within it is left to close as incidental. It is not added as a planned
-member, and the refresh lists it under =Incidental:= when it closes. The user's
-earlier "add it to this slice" for [[id:d6375b21-a410-4c2d-9d5b-bfe980c4cc63][d6375b21]] was "purely from habit", and the
-member line was removed again. The org conventions' "Adopting a discovery"
-section (=skills/org/references/org-conventions.md=) still prescribes "Adopt by
-adding a member line" with =org_slice_add_member=, and warns of the cookie
-regression that rule causes, so the shipped prose contradicts the practice.
+Decided 2026-10-12 (the user): a discovery adopted into a =DOING= slice may join
+it either way, since both record it under the slice. As a member line
+(=org_slice_add_member=), it is counted in the cookie and the =:BLOCKER:=. Left
+to close as incidental work, it is listed under =Incidental:= by the refresh.
+The org conventions' "Adopting a discovery" section
+(=skills/org/references/org-conventions.md=) names only the first: "Adopt by
+adding a member line", because the =Incidental:= section "is derived from
+closes and never curated". This is a gap, not a contradiction, since the
+incidental record is described elsewhere in the same file. It surfaced when
+[[id:d6375b21-a410-4c2d-9d5b-bfe980c4cc63][d6375b21]] was added as a member out of habit and then removed to close as
+incidental.
 
 * TODO This repo copies its own references into .claude/rules/ where a relative symlink would do, as its commands, agents and skills already are :code:
 :PROPERTIES:
