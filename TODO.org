@@ -2812,6 +2812,8 @@ CLOCK: [2026-10-10 Sat 18:28]--[2026-10-10 Sat 18:34] =>  0:06
 CLOCK: [2026-10-10 Sat 18:34]--[2026-10-10 Sat 18:35] =>  0:01
 - [2026-10-10 Sat 18:34]--[2026-10-10 Sat 18:35] suggested span, accepted at review
 - [2026-10-12 Mon 08:55]--[2026-10-12 Mon 08:55] suggested span, accepted at review
+CLOCK: [2026-10-12 Mon 09:06]--[2026-10-12 Mon 09:08] =>  0:02
+- [2026-10-12 Mon 09:06]--[2026-10-12 Mon 09:08] suggested span, accepted at review
 :END:
 :PLAN:
 
@@ -5912,6 +5914,16 @@ CLOCK: [2026-09-17 Thu 08:36]--[2026-09-17 Thu 08:37] =>  0:01
 - [2026-10-09 Fri 17:17]--[2026-10-09 Fri 17:17] plan the review-buffer quit crash
 CLOCK: [2026-10-09 Fri 17:19]--[2026-10-09 Fri 17:20] =>  0:01
 - [2026-10-09 Fri 17:19]--[2026-10-09 Fri 17:20] plan the review-buffer quit crash
+CLOCK: [2026-10-12 Mon 09:05]--[2026-10-12 Mon 09:06] =>  0:01
+- [2026-10-12 Mon 09:05]--[2026-10-12 Mon 09:06] record the 2026-10-12 crash sample
+CLOCK: [2026-10-12 Mon 09:08]--[2026-10-12 Mon 09:09] =>  0:01
+- [2026-10-12 Mon 09:08]--[2026-10-12 Mon 09:09] apply the diff-hl-update-async experiment
+CLOCK: [2026-10-12 Mon 09:09]--[2026-10-12 Mon 09:11] =>  0:02
+- [2026-10-12 Mon 09:09]--[2026-10-12 Mon 09:11] assigned at review
+CLOCK: [2026-10-12 Mon 09:16]--[2026-10-12 Mon 09:17] =>  0:01
+- [2026-10-12 Mon 09:16]--[2026-10-12 Mon 09:17] assigned at review
+CLOCK: [2026-10-12 Mon 09:20]--[2026-10-12 Mon 09:21] =>  0:01
+- [2026-10-12 Mon 09:20]--[2026-10-12 Mon 09:21] assigned at review
 :END:
 :PLAN:
 Dropped from [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]] on 2026-10-09 (the user): no wedge since 2026-10-06, and
@@ -6317,8 +6329,6 @@ was also evaluated in the running Emacs, and no buffer holds a local value. A
 further freeze whose sample shows no =diff-hl--update= threads weakens the
 hypothesis; freezes stopping when leaving the review buffer supports it. Revert
 by deleting the block.
-
-
 
 
 * TODO Per-machine port via ${VAR:-45571} in .mcp.json, with the wire check env-aware :code:
@@ -11630,6 +11640,7 @@ CLOCK: [2026-10-09 Fri 17:24]--[2026-10-09 Fri 17:26] =>  0:02
 CLOCK: [2026-10-10 Sat 17:19]--[2026-10-10 Sat 17:24] =>  0:05
 CLOCK: [2026-10-10 Sat 17:36]--[2026-10-10 Sat 17:40] =>  0:04
 CLOCK: [2026-10-12 Mon 08:55]--[2026-10-12 Mon 08:57] =>  0:02
+CLOCK: [2026-10-12 Mon 09:23]--[2026-10-12 Mon 09:24] =>  0:01
 :END:
 
 We created this heading on 2026-08-26. We deleted that property from its

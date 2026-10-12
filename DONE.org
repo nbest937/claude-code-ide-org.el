@@ -156,6 +156,8 @@ CLOCK: [2026-10-09 Fri 18:48]--[2026-10-09 Fri 18:49] =>  0:01
   implementing
 - State "DONE"       from "DOING"      [2026-10-10 Sat 18:27] \\
   discard guard shipped
+CLOCK: [2026-10-12 Mon 09:02]--[2026-10-12 Mon 09:03] =>  0:01
+- [2026-10-12 Mon 09:02]--[2026-10-12 Mon 09:03] plan checkout guard for applied changes
 :END:
 :PLAN:
 Design, bounded (the user approved it while planning [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]], 2026-10-09). Of
