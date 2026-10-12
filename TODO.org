@@ -281,6 +281,41 @@ deliberately, and the commit message says so. Then =bin/test-all=,
 =org_pending_updates= only its own items.
 
 :END:
+:DEBRIEF:
+Built as planned: =--project-root= (now also behind =--project-capture-file=),
+=--session-read-scope=, and the =--with-session-scope= macro, which binds
+=--report-scope= to the session's root. It binds nothing when there is no
+session, so an outer report scope survives, and it answers "No tracked org files
+under DIR" rather than falling back to a global read.
+
+Applied only where the tracked set is read: =org_outline='s unscoped or
+file-name branch (an id scope, and with it the front matter's
+=slices:=/=blocks:= scan, stays global), =org_clock_report= without an id, and
+=org_query= and =org_pending_updates= whole. =org_pending_updates= also filters
+its event count through a new =--events-in-report-scope=; filtering items alone
+would still have printed every project's "N of M queue event(s)".
+
+A relative file scope resolves against the session's project root, so a worktree
+session reads the tracked main-checkout =TODO.org=, not its own branch copy.
+Upstream never binds =default-directory= for these tools, so before this change
+a relative scope resolved wherever Emacs happened to be.
+
+Verified: ten ERT tests. Eight were shown red against =HEAD='s =config.el=, each
+failing on the leak itself. The other two (no session; id lookups) guard
+behaviour that must not change, so they pass both ways. The consent test first
+passed on =HEAD= because its =should= ran inside the outline's =condition-case=;
+it was rewritten to record values and assert outside, and then failed red.
+=bin/test-all= ran 27 suites, 1698 passed. =bin/word-budget= is at 10199 of
+10200 after trimming the same reference. =bin/check-conventions= passed. Live
+reload, =bin/check-image= fresh, and an unscoped =org_outline= from this session
+returned this repo's two files of the seven tracked.
+
+Differed from the plan: [[id:43d479c8-bbaa-49ec-a3be-0d8ee90425e1][43d479c8]]'s test had no tool-level assertion to flip. Its
+assertions concern the unbound scope and still hold, so only its prose changed.
+Not done here: the consumer check from =noodle-salesman=, filed as check 10 in
+[[id:2b8930da-5223-4b75-b4f6-251a28552d1b][2b8930da]]'s plan. The new =all_projects= argument appears in a session's tool
+schema only after a new session connects.
+:END:
 An unscoped =org_outline=, =org_query=, =org_clock_report= or
 =org_pending_updates= reads every tracked project, so a session in
 =noodle-salesman= was shown this repo's headings (reported 2026-10-12). Captures
@@ -289,6 +324,12 @@ because [[id:43d479c8-bbaa-49ec-a3be-0d8ee90425e1][43d479c8]] kept the tools glo
 confine those four reads to the calling session's project, with
 =all_projects=true= to read every project, while lookups by =:ID:=, the write
 tools and the consent check stay global. The design is in =:PLAN:=.
+
+Resolved on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]] in commit [[orgit-rev:./::cebd9bb][cebd9bb]]: the four unscoped reads now answer from
+the calling session's project, with =all_projects=true= to read every one. Id
+lookups, the write tools and the consent check stay global; a call with no
+session is unchanged.
+
 
 
 * TODO The time-tracking stamp is global and every project's session start rewrites it, so the last session to start decides whether the review pass opens a clock :code:
