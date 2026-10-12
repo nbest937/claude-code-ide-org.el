@@ -2,6 +2,23 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Standalone wiring at Emacs startup registered 0 project sessions, so every consumer's tool calls lose their project :code:
+:PROPERTIES:
+:ID:       28eed617-e4e0-4d29-88ea-9411de4b77e5
+:CREATED:  [2026-10-12 Mon 14:47]
+:CATEGORY: Dev
+:END:
+
+After an Emacs restart on 2026-10-12, *Messages* read "standalone tools wired on
+port 45571, 0 project session(s)", and the session table was empty. An hour
+later =claude-code-ide-org--standalone-derive-projects= derived all three
+projects. So the wiring apparently ran before the tracked set
+(=org-agenda-files=) was populated. With no session registered, the per-session
+read scope ([[id:d6375b21-a410-4c2d-9d5b-bfe980c4cc63][d6375b21]]) and capture routing ([[id:d718f6b6-5a33-4889-8b5a-8ea82553ccea][d718f6b6]]) both silently fall back to
+global. Proposed: derive the projects once the tracked set is known, or re-wire
+when it first becomes non-empty. Also refuse loudly when the derivation yields
+zero, rather than reporting success.
+
 * TODO [0/5] The SessionStart tool-failure report misstates what failed and says nothing when Emacs is down now :code:
 :PROPERTIES:
 :ID:       4bd8e14d-c741-47c7-a868-df933cbad82c
@@ -11848,6 +11865,8 @@ per tool -- rather than opening the servers beyond localhost.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-10-12 Mon 14:45]--[2026-10-12 Mon 14:46] =>  0:01
+CLOCK: [2026-10-12 Mon 14:44]--[2026-10-12 Mon 14:45] =>  0:01
 CLOCK: [2026-10-12 Mon 12:38]--[2026-10-12 Mon 12:39] =>  0:01
 CLOCK: [2026-10-12 Mon 11:27]--[2026-10-12 Mon 11:28] =>  0:01
 CLOCK: [2026-10-12 Mon 11:19]--[2026-10-12 Mon 11:27] =>  0:08
@@ -12047,6 +12066,8 @@ CLOCK: [2026-10-10 Sat 17:19]--[2026-10-10 Sat 17:24] =>  0:05
 CLOCK: [2026-10-10 Sat 17:36]--[2026-10-10 Sat 17:40] =>  0:04
 CLOCK: [2026-10-12 Mon 08:55]--[2026-10-12 Mon 08:57] =>  0:02
 CLOCK: [2026-10-12 Mon 09:23]--[2026-10-12 Mon 09:24] =>  0:01
+- <2026-10-12 Mon 14:44>--<2026-10-12 Mon 14:45> review pass (buffer buried)
+- <2026-10-12 Mon 14:45>--<2026-10-12 Mon 14:46> review pass (buffer buried)
 :END:
 
 We created this heading on 2026-08-26. We deleted that property from its
