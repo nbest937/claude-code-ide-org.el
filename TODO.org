@@ -3306,6 +3306,17 @@ discovers that directory by convention needs a session there (=/agents=).
 guards, the =mcp__emacs-tools__org_.*= row and the queued-tool matchers.
 Whether they fire needs a session there.
 
+*Check 10 passed 2026-10-12 in noodle-salesman,* session 5c832f1e, after Emacs
+was restarted and the sessions re-wired ([[id:28eed617-e4e0-4d29-88ea-9411de4b77e5][28eed617]]). An unscoped =org_outline=
+returned only noodle-salesman's TODO.org. =org_pending_updates= answered
+"Nothing pending … 0 queue event(s)", with its event count confined too.
+=org_outline= with =all_projects=true= labelled each block by project
+(=claude-code-ide-org/TODO.org=, =noodle-salesman/TODO.org=, …), so the new
+argument had reached that session's schema. An earlier =org_pending_updates= at
+15:00 listed this repo's items. That is the shape of an unregistered session,
+most likely the call ran before the re-wire, but the transcript cannot confirm
+the order.
+
 *Still owed to a fresh Claude Code session in agentic-euchre:* checks 1, 4, 5
 and 6, the capture half of 8, and the firing half of 9. Check 7 needs the user's
 review pass there.
