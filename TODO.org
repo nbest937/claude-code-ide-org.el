@@ -128,20 +128,14 @@ deliberately, and the commit message says so. Then =bin/test-all=,
 =org_pending_updates= only its own items.
 
 :END:
-Reported 2026-10-12 by a session in noodle-salesman: =org_outline= returned
-this repo's headings. The session routing is correct: the =noodle-salesman=
-MCP session is registered with its own =:project-dir=. Captures already route
-by session (=--session-project-capture-file=, [[id:d718f6b6-5a33-4889-8b5a-8ea82553ccea][d718f6b6]]). The reads do not.
-=org_outline= with no scope, =org_query= and =org_clock_report= all read
-=claude-code-ide-org--tracked-files=, which is every file in
-=org-agenda-files=. That is now four projects' trackers plus =~/org/notes.org=.
-With one tracked project the leak was invisible.
-
-A file-name scope does not help either. =org_outline= expands a relative scope
-against Emacs's =default-directory=, not the caller's project, so =TODO.org=
-names whichever file Emacs happens to resolve. Only an absolute path works
-today.
-
+An unscoped =org_outline=, =org_query=, =org_clock_report= or
+=org_pending_updates= reads every tracked project, so a session in
+=noodle-salesman= was shown this repo's headings (reported 2026-10-12). Captures
+already route to the session's own tracker ([[id:d718f6b6-5a33-4889-8b5a-8ea82553ccea][d718f6b6]]); the reads never did,
+because [[id:43d479c8-bbaa-49ec-a3be-0d8ee90425e1][43d479c8]] kept the tools global on purpose. Decided at brainstorm:
+confine those four reads to the calling session's project, with
+=all_projects=true= to read every project, while lookups by =:ID:=, the write
+tools and the consent check stay global. The design is in =:PLAN:=.
 * TODO The time-tracking stamp is global and every project's session start rewrites it, so the last session to start decides whether the review pass opens a clock :code:
 :PROPERTIES:
 :ID:       d30b3481-374c-4921-9fdb-284dd8e09e14
