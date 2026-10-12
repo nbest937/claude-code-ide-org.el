@@ -8,6 +8,10 @@
 :CREATED:  [2026-10-12 Mon 10:41]
 :CATEGORY: Dev
 :END:
+:LOGBOOK:
+CLOCK: [2026-10-12 Mon 10:41]--[2026-10-12 Mon 10:42] =>  0:01
+- [2026-10-12 Mon 10:41]--[2026-10-12 Mon 10:42] file the rules-symlink heading
+:END:
 :PLAN:
 Candidate steps, not yet brainstormed.
 1. Test first, in a fresh session: does Claude Code load a rule from a
@@ -33,6 +37,7 @@ second file in the commit, and every search of the prose finds each passage
 twice. Nothing is stale today: =--check= and the pre-commit drift guard keep the
 copies current. Consuming repos are unaffected and keep copies.
 
+
 * TODO An unscoped org_outline or org_query reads every project's tracker, so a second project's session sees this repo's headings :code:arch:
 :PROPERTIES:
 :ID:       d6375b21-a410-4c2d-9d5b-bfe980c4cc63
@@ -40,6 +45,10 @@ copies current. Consuming repos are unaffected and keep copies.
 :CATEGORY: Tools
 :END:
 :LOGBOOK:
+CLOCK: [2026-10-12 Mon 10:09]--[2026-10-12 Mon 10:10] =>  0:01
+- [2026-10-12 Mon 10:09]--[2026-10-12 Mon 10:10] file the cross-project read leak
+CLOCK: [2026-10-12 Mon 10:13]--[2026-10-12 Mon 10:26] =>  0:13
+- [2026-10-12 Mon 10:13]--[2026-10-12 Mon 10:26] brainstorm the per-session read scope
 - Tags ":code:arch:" from ":code:"     [2026-10-12 Mon 10:26] \\
   classified at brainstorm: reverses 43d479c8's global-tools decision and changes four tools' contract for every consumer
 :END:
@@ -167,6 +176,8 @@ because [[id:43d479c8-bbaa-49ec-a3be-0d8ee90425e1][43d479c8]] kept the tools glo
 confine those four reads to the calling session's project, with
 =all_projects=true= to read every project, while lookups by =:ID:=, the write
 tools and the consent check stay global. The design is in =:PLAN:=.
+
+
 * TODO The time-tracking stamp is global and every project's session start rewrites it, so the last session to start decides whether the review pass opens a clock :code:
 :PROPERTIES:
 :ID:       d30b3481-374c-4921-9fdb-284dd8e09e14
@@ -2979,6 +2990,19 @@ CLOCK: [2026-10-10 Sat 18:34]--[2026-10-10 Sat 18:35] =>  0:01
 - [2026-10-12 Mon 08:55]--[2026-10-12 Mon 08:55] suggested span, accepted at review
 CLOCK: [2026-10-12 Mon 09:06]--[2026-10-12 Mon 09:08] =>  0:02
 - [2026-10-12 Mon 09:06]--[2026-10-12 Mon 09:08] suggested span, accepted at review
+CLOCK: [2026-10-12 Mon 10:11]--[2026-10-12 Mon 10:13] =>  0:02
+- [2026-10-12 Mon 10:11]--[2026-10-12 Mon 10:13] suggested span, accepted at review
+CLOCK: [2026-10-12 Mon 10:26]--[2026-10-12 Mon 10:27] =>  0:01
+- [2026-10-12 Mon 10:26]--[2026-10-12 Mon 10:27] suggested span, accepted at review
+CLOCK: [2026-10-12 Mon 10:29]--[2026-10-12 Mon 10:30] =>  0:01
+- [2026-10-12 Mon 10:29]--[2026-10-12 Mon 10:30] suggested span, accepted at review
+CLOCK: [2026-10-12 Mon 10:32]--[2026-10-12 Mon 10:33] =>  0:01
+- [2026-10-12 Mon 10:32]--[2026-10-12 Mon 10:33] suggested span, accepted at review
+CLOCK: [2026-10-12 Mon 10:35]--[2026-10-12 Mon 10:36] =>  0:01
+- [2026-10-12 Mon 10:35]--[2026-10-12 Mon 10:36] suggested span, accepted at review
+CLOCK: [2026-10-12 Mon 10:41]--[2026-10-12 Mon 10:42] =>  0:01
+- [2026-10-12 Mon 10:41]--[2026-10-12 Mon 10:42] suggested span, accepted at review
+- [2026-10-12 Mon 10:41]--[2026-10-12 Mon 10:41] suggested span, accepted at review
 :END:
 :PLAN:
 
@@ -3254,7 +3278,6 @@ One dated line per catch.
 - 2026-10-02: two replies during [[id:41cf5830-fc2e-4dc6-b243-a0c2718a53a3][41cf5830]]'s brainstorm gave [[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]]'s end-matter title as "[5/5] Session attribution", written by hand, where the heading is "[20/20] Update CLAUDE.md and the org skill for the new architecture". The hook passed both, since it checks the id appears. Self-caught when org_footnotes returned the real title.
 - 2026-10-02: two replies on [[id:01849bef-fdc9-4c30-b467-00ca8606e8e0][01849bef]] gave [[id:e75d660f-5c0d-4707-a645-b5dea7d7ebc0][e75d660f]]'s end-matter title as "… and nothing reads them back", written by hand; the heading ends "… and we discard them". Self-caught when org_footnotes returned the real title. Third catch of this kind in three days: hand-typed end matter is the pattern, not the slip.
 - [2026-10-12 Mon] Self-caught, twice in one brainstorm: the end matter for [[id:3ad389be-2797-46c3-a51d-9f603053955a][3ad389be]] and for [[id:045459f6-a002-4c9e-921e-aeac652f10c9][045459f6]] carried titles written from memory, and both were wrong. Each was corrected in the next reply after a lookup. =org_footnotes= had answered "not wired" earlier in the session, so the end matter was being written by hand, and the lookup step was skipped exactly where the generator would have done it.
-
 
 
 ** TODO Miss: tracked work done under no clock, the wrong clock, or a clock closed before the work ended
@@ -3627,7 +3650,6 @@ since org cannot see it by construction; =org-lint= can, and [[id:5b46fbfd-6d0e-
 the lint rule.
 
 - [2026-10-12 Mon] Caught by the user: "did you really need =awk= just now?" Looking up headings' exact titles by id for end matter, the session scanned =TODO.org= and =DONE.org= with =awk= five or more times in one session. =org_outline= with the id as scope and =bodies=false= returns the keyword and the exact title, archived headings included. =org_footnotes= answering "not wired" was taken as license to leave the tools altogether, when only the end-matter generation was missing.
-
 
 
 ** TODO Before the miss review, count the misses nobody caught, from the transcripts, for every kind a transcript can show :code:research:
