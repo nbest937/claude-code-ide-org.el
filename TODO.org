@@ -2,20 +2,130 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* TODO An unscoped org_outline or org_query reads every project's tracker, so a second project's session sees this repo's headings :code:
+* TODO An unscoped org_outline or org_query reads every project's tracker, so a second project's session sees this repo's headings :code:arch:
 :PROPERTIES:
 :ID:       d6375b21-a410-4c2d-9d5b-bfe980c4cc63
 :CREATED:  [2026-10-12 Mon 10:09]
 :CATEGORY: Tools
 :END:
+:LOGBOOK:
+- Tags ":code:arch:" from ":code:"     [2026-10-12 Mon 10:26] \\
+  classified at brainstorm: reverses 43d479c8's global-tools decision and changes four tools' contract for every consumer
+:END:
 :PLAN:
-Candidate, not decided. The mechanism to confine the reads already exists:
-=claude-code-ide-org--report-scope= filters =--tracked-files= by directory
-truename. Binding it to the session's =:project-dir= around the read tools
-would confine them, and a relative file-name scope should then resolve against
-that directory too. Open questions: whether this repo's own sessions want a
-cross-project view, and whether =org_footnotes= and the =:ID:= lookups should
-stay global. An id names one heading wherever it lives, so they probably should.
+Design approved by the user at brainstorm, 2026-10-12. The choices made in
+that dialogue are marked (the user).
+
+**Intent.** An unscoped read from a session in one project returns that
+project's tracker only. A heading from another project reads as authoritative
+wherever it turns up, in a tool's answer as much as in a SessionStart report.
+Lookups by =:ID:= (=org_body=, an id-scoped =org_outline=, =org_footnotes=, the
+=slices:=/=blocks:= scan) stay global, since an id names one heading wherever it
+lives.
+
+**Scope and fallbacks.** Confined by default, with one explicit argument,
+=all_projects=, to read every tracked project (the user). A call that carries
+no session, as from =emacsclient=, the tests or internal callers, stays global
+and unchanged. A session whose project holds no tracked =TODO.org= gets nothing
+but a line saying so, never a silent global fallback, because that fallback is
+the leak (the user).
+
+**Tools covered.** =org_outline= with no scope, =org_query=, =org_clock_report=
+with no =:ID:=, and =org_pending_updates= (the user, after weighing its four
+uses: reachability works under any scope, while "did my call land", the
+queued-keyword star and the slice commands' "ask for apply" all want the
+session's own items). The capture duplicate check is out: it already reads
+only the capture target's file, which is the session's.
+
+**Approach: one scope helper and a wrapper, over the existing filter** (the
+user, of three). =claude-code-ide-org--session-read-scope= returns nil with no
+session. Otherwise it takes the session's =:project-dir=, goes up to the
+nearest =.git=, maps a linked worktree to its main checkout with
+=--worktree-main-checkout=, and returns that directory. =--project-capture-file=
+is refactored to use the same resolution, so a capture and a read from one
+session always agree on the project. A macro,
+=claude-code-ide-org--with-session-scope=, wraps a tool body. With
+=all_projects= true it runs the body unconfined. Otherwise it binds
+=--report-scope= to the helper's directory. When no tracked file lies under
+that directory, it returns: "No tracked org files under DIR. Run
+=claude-org-setup --org= there, or pass =all_projects=true= to read every
+project." The narrowing itself is unchanged: =--tracked-files= filters files by
+truename prefix, and =--items-in-report-scope= filters queue items by their
+=cwd=. Rejected: threading a project argument through =--tracked-files='s 27
+callers, which duplicates the filter; and binding the scope for every tool call
+at the server, which would confine writes, id lookups and the consent check.
+
+**Per tool.** Each gains an optional =all_projects=, parsed leniently as
+=active_only= is ("true", "t", "yes", "1"; anything else, or absent, means
+confined).
+- =org_outline=: no scope means confined. An id scope or a list of ids is
+  global, unchanged. A relative file-name scope resolves against the session's
+  project directory, not Emacs's =default-directory=; an absolute path is
+  unchanged. With =all_projects=, each file block is labelled with its project
+  directory, as in =noodle-salesman/TODO.org=, since =TODO.org= alone is
+  ambiguous across projects.
+- =org_query=: searches the confined files, so =member:ID= finds same-project
+  slices only.
+- =org_clock_report=: no =:ID:= means the session's files only. An =:ID:= is
+  global, unchanged.
+- =org_pending_updates=: lists only items whose =cwd= lies inside the project
+  directory, and its count line counts those. Its =session_id= argument works
+  within the scope.
+
+A confined answer carries no banner: it reads as a single-project answer
+always has. Each tool description gains one sentence: "Confined to the calling
+session's project; all_projects=true reads every tracked project." The model
+learns the default from the description, not the result.
+
+**The reversal.** [[id:43d479c8-bbaa-49ec-a3be-0d8ee90425e1][43d479c8]] set the asymmetry "reports confined, tools
+global". It becomes: reports and unscoped reads are confined; id lookups, every
+write tool and the consent check (=--tracked-buffer-p=) stay global. Its
+rationale, one Emacs serving many repos, moves behind =all_projects=. The
+finished heading is not rewritten; this heading's resolution records the
+reversal.
+- The =--report-scope= docstring is rewritten to the new asymmetry. Its warning
+  that inverting it is the easy mistake now names the boundary that matters:
+  id lookups and the consent check stay unscoped.
+- =--tracked-buffer-p= already binds the scope to nil. Its comment gains a line
+  saying the binding now also guards against the tools' scope, not only the
+  reports'. That is the boundary [[id:045459f6-a002-4c9e-921e-aeac652f10c9][045459f6]] drew.
+- Every path the four tools reach is checked for a reliance on the global list.
+  Known: =member:= runs =--membership-scan=, and confining it is right.
+  =org_pending_updates= judges staleness through =org-id=, which stays global.
+
+**Prose.** =skills/org/references/org-mcp-tools.md=: one clause each on the
+=org_outline=, =org_query= and =org_pending_updates= rows. The
+=org_clock_report= row's "all" becomes "the session's project, or :ID:-scoped".
+The promoted copy is regenerated. The always-loaded budget stands at 10196 of
+10200 words, so the clauses are paid for by trimming the same file's longest
+rows. =README.md= and =CLAUDE.md= are checked for any claim that the tools read
+across projects, and corrected where one is made.
+
+**Testing.** New ERT tests in =config-test.el=, each shown red against =HEAD=
+first (copy the fix aside, restore =HEAD='s version, run, copy back). The
+fixture is two scratch projects, A and B, each with a tracked =TODO.org=, and a
+stubbed session context naming A's directory.
+1. An unscoped outline from A returns only A's headings. With =all_projects=
+   it returns both, each block labelled by project.
+2. A relative =TODO.org= scope resolves to A's file.
+3. An outline scoped to B's =:ID:= from A still works.
+4. =org_query= from A matches A only; with =all_projects=, both.
+5. An unscoped clock report covers A only. Scoped to B's =:ID:=, it reports B.
+6. With queue items whose =cwd= lies in A and in B, =org_pending_updates= from
+   A lists A's only, and its count says so. With =all_projects=, both.
+7. With no session, all four read both projects, as before.
+8. A session whose directory has no tracked files gets the setup and
+   =all_projects= line, not an empty answer.
+9. A session in a linked worktree of A, or in a subdirectory of A, resolves
+   to A.
+10. During a confined read, =--tracked-buffer-p= still answers t for B's file.
+
+[[id:43d479c8-bbaa-49ec-a3be-0d8ee90425e1][43d479c8]]'s test asserts that the tools stay global. Its tool half flips,
+deliberately, and the commit message says so. Then =bin/test-all=,
+=bin/word-budget= and =bin/check-conventions=, a live reload and
+=bin/check-image=. In a consuming project, [[id:2b8930da-5223-4b75-b4f6-251a28552d1b][2b8930da]] gains a check: from
+=noodle-salesman=, an unscoped =org_outline= shows only its own tracker, and
+=org_pending_updates= only its own items.
 
 :END:
 Reported 2026-10-12 by a session in noodle-salesman: =org_outline= returned
