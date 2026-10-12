@@ -18,6 +18,8 @@ found Emacs idle, and it did land: commit [[orgit-rev:./::6cef5fc][6cef5fc]] lat
 added. The report was itself produced by a live Emacs, which proves Emacs was
 reachable, but it never says so. If Emacs is down at session start, the whole
 report is silent and the markers wait unannounced. Each child is one defect.
+
+
 ** TODO The report heads every failure "because Emacs was unreachable", even a timeout whose probe found Emacs idle :code:bounded:
 :PROPERTIES:
 :ID:       a52c6049-4b99-4abf-94f5-a7bc459263d5
@@ -29,6 +31,8 @@ markers already record the error ("timed out") and the probe's state (refused,
 idle, prompt), so the headline should reflect those per line, or drop the causal
 claim. An idle-probe timeout means Emacs was up but the call ran long, and it is
 the case most likely to have landed: on 2026-10-12 one did.
+
+
 ** TODO The report never says Emacs is reachable now, though producing it proves Emacs is up :code:bounded:
 :PROPERTIES:
 :ID:       c409714a-d5a0-4d54-8c59-9992a71fa1ad
@@ -40,6 +44,8 @@ the running Emacs, so any report at all is a live probe. The failure section
 reads as a present-tense outage, which prompted the question "shouldn't a new
 call probe the service at /clear?" One line saying the failures are from an
 earlier session and Emacs answers now settles it.
+
+
 ** TODO A read-only tool's failure is reported as "may still have landed" :code:bounded:
 :PROPERTIES:
 :ID:       25c3246c-ecff-46bb-b8e5-40551c8b48f4
@@ -50,6 +56,8 @@ bin/hooks/tool-failure sets may_land from the error text alone, so a timed-out
 org_body, org_outline or org_query is told to check the file before redoing it.
 A read writes nothing: the line should say there is nothing to check, or
 read-only tools should leave no marker at all.
+
+
 ** TODO With Emacs down at session start the report is silent, and failure markers wait unannounced :code:bounded:
 :PROPERTIES:
 :ID:       dcbcac2a-2002-4579-b88d-ae337e43628c
@@ -61,6 +69,8 @@ only a non-empty report, so a stopped Emacs looks exactly like a clean start: an
 empty result read as a passing one. The hook is plain shell and can count the
 unreported *.tool-failures.jsonl files itself, then say in one line that Emacs
 is unreachable and N failures wait.
+
+
 ** TODO org_capture cannot target a heading whose own capture is still queued :code:bounded:
 :PROPERTIES:
 :ID:       dd040240-1d0f-4381-bafb-c9e5275b791c
@@ -72,6 +82,7 @@ changes, and filing its children was refused as "not a known :ID:", although
 org_set_todo and org_clock_in accept a pending capture's id. The children waited
 for an apply. Either queue the child against the pending parent, or say in the
 refusal that the parent is queued rather than unknown.
+
 
 * TODO Let a discovery join a slice either as a member line or as incidental work, since both record it under the slice :prose:
 :PROPERTIES:
@@ -151,7 +162,7 @@ twice. Nothing is stale today: =--check= and the pre-commit drift guard keep the
 copies current. Consuming repos are unaffected and keep copies.
 
 
-* TODO An unscoped org_outline or org_query reads every project's tracker, so a second project's session sees this repo's headings :code:arch:
+* REVIEW An unscoped org_outline or org_query reads every project's tracker, so a second project's session sees this repo's headings :code:arch:
 :PROPERTIES:
 :ID:       d6375b21-a410-4c2d-9d5b-bfe980c4cc63
 :CREATED:  [2026-10-12 Mon 10:09]
@@ -164,6 +175,12 @@ CLOCK: [2026-10-12 Mon 10:13]--[2026-10-12 Mon 10:26] =>  0:13
 - [2026-10-12 Mon 10:13]--[2026-10-12 Mon 10:26] brainstorm the per-session read scope
 - Tags ":code:arch:" from ":code:"     [2026-10-12 Mon 10:26] \\
   classified at brainstorm: reverses 43d479c8's global-tools decision and changes four tools' contract for every consumer
+- State "DOING"      from "TODO"       [2026-10-12 Mon 12:16] \\
+  design approved, implementing per-session read scope
+CLOCK: [2026-10-12 Mon 12:24]--[2026-10-12 Mon 12:27] =>  0:03
+- [2026-10-12 Mon 12:24]--[2026-10-12 Mon 12:27] implement per-session read scope
+- State "REVIEW"     from "DOING"      [2026-10-12 Mon 12:27] \\
+  built and verified, in review on PR #37
 :END:
 :PLAN:
 Design approved by the user at brainstorm, 2026-10-12. The choices made in
@@ -329,7 +346,6 @@ Resolved on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37
 the calling session's project, with =all_projects=true= to read every one. Id
 lookups, the write tools and the consent check stay global; a call with no
 session is unchanged.
-
 
 
 * TODO The time-tracking stamp is global and every project's session start rewrites it, so the last session to start decides whether the review pass opens a clock :code:
@@ -3167,6 +3183,22 @@ CLOCK: [2026-10-12 Mon 11:12]--[2026-10-12 Mon 11:13] =>  0:01
 - [2026-10-12 Mon 11:12]--[2026-10-12 Mon 11:13] suggested span, accepted at review
 CLOCK: [2026-10-12 Mon 11:15]--[2026-10-12 Mon 11:17] =>  0:02
 - [2026-10-12 Mon 11:15]--[2026-10-12 Mon 11:17] suggested span, accepted at review
+CLOCK: [2026-10-12 Mon 11:22]--[2026-10-12 Mon 11:24] =>  0:02
+- [2026-10-12 Mon 11:22]--[2026-10-12 Mon 11:24] suggested span, accepted at review
+CLOCK: [2026-10-12 Mon 11:24]--[2026-10-12 Mon 11:25] =>  0:01
+- [2026-10-12 Mon 11:24]--[2026-10-12 Mon 11:25] suggested span, accepted at review
+CLOCK: [2026-10-12 Mon 11:30]--[2026-10-12 Mon 11:31] =>  0:01
+- [2026-10-12 Mon 11:30]--[2026-10-12 Mon 11:31] suggested span, accepted at review
+CLOCK: [2026-10-12 Mon 11:31]--[2026-10-12 Mon 11:32] =>  0:01
+- [2026-10-12 Mon 11:31]--[2026-10-12 Mon 11:32] file the tool-failure report subtasks
+CLOCK: [2026-10-12 Mon 11:54]--[2026-10-12 Mon 11:55] =>  0:01
+- [2026-10-12 Mon 11:54]--[2026-10-12 Mon 11:55] suggested span, accepted at review
+CLOCK: [2026-10-12 Mon 12:05]--[2026-10-12 Mon 12:06] =>  0:01
+- [2026-10-12 Mon 12:05]--[2026-10-12 Mon 12:06] suggested span, accepted at review
+CLOCK: [2026-10-12 Mon 12:07]--[2026-10-12 Mon 12:08] =>  0:01
+- [2026-10-12 Mon 12:07]--[2026-10-12 Mon 12:08] suggested span, accepted at review
+CLOCK: [2026-10-12 Mon 12:12]--[2026-10-12 Mon 12:16] =>  0:04
+- [2026-10-12 Mon 12:12]--[2026-10-12 Mon 12:16] suggested span, accepted at review
 :END:
 :PLAN:
 
@@ -11816,6 +11848,7 @@ per tool -- rather than opening the servers beyond localhost.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-10-12 Mon 12:38]--[2026-10-12 Mon 12:39] =>  0:01
 CLOCK: [2026-10-12 Mon 11:27]--[2026-10-12 Mon 11:28] =>  0:01
 CLOCK: [2026-10-12 Mon 11:19]--[2026-10-12 Mon 11:27] =>  0:08
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
