@@ -2,6 +2,37 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO This repo copies its own references into .claude/rules/ where a relative symlink would do, as its commands, agents and skills already are :code:
+:PROPERTIES:
+:ID:       bcf8068e-ce0d-45b0-b807-a3483070eb5c
+:CREATED:  [2026-10-12 Mon 10:41]
+:CATEGORY: Dev
+:END:
+:PLAN:
+Candidate steps, not yet brainstormed.
+1. Test first, in a fresh session: does Claude Code load a rule from a
+   symlinked file in =.claude/rules/=, path scope included? Skills, commands
+   and agents load through links here, but rules use a different loader. If
+   it does not, this heading closes on that answer.
+2. Setup keeps a link that resolves to its own reference rather than writing
+   a copy over it, and creates the links when run in the plugin's own repo.
+3. =--check= and the pre-commit drift guard read such a link as current.
+   =generated-guard= needs no exception: an edit through the link lands in
+   the reference, which is where edits belong.
+4. Replace the promoted copies here with relative links; the hand-kept local
+   rules stay real files.
+:END:
+
+=claude-org-setup= copies each shipped reference into =.claude/rules/= here, as
+it must in a consuming repo, since a plugin cannot supply rules. This repo does
+not enable its own plugin, and already links the plugin's other pieces into
+=.claude/= instead (=agents/=, =commands/=, =skills/org=,
+=skills/brainstorming=). The rendered copy differs from its reference only by a
+five-line provenance comment, so every reference edit costs a setup re-run and a
+second file in the commit, and every search of the prose finds each passage
+twice. Nothing is stale today: =--check= and the pre-commit drift guard keep the
+copies current. Consuming repos are unaffected and keep copies.
+
 * TODO An unscoped org_outline or org_query reads every project's tracker, so a second project's session sees this repo's headings :code:arch:
 :PROPERTIES:
 :ID:       d6375b21-a410-4c2d-9d5b-bfe980c4cc63
