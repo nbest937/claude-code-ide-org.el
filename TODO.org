@@ -2,6 +2,36 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO An unscoped org_outline or org_query reads every project's tracker, so a second project's session sees this repo's headings :code:
+:PROPERTIES:
+:ID:       d6375b21-a410-4c2d-9d5b-bfe980c4cc63
+:CREATED:  [2026-10-12 Mon 10:09]
+:CATEGORY: Tools
+:END:
+:PLAN:
+Candidate, not decided. The mechanism to confine the reads already exists:
+=claude-code-ide-org--report-scope= filters =--tracked-files= by directory
+truename. Binding it to the session's =:project-dir= around the read tools
+would confine them, and a relative file-name scope should then resolve against
+that directory too. Open questions: whether this repo's own sessions want a
+cross-project view, and whether =org_footnotes= and the =:ID:= lookups should
+stay global. An id names one heading wherever it lives, so they probably should.
+
+:END:
+Reported 2026-10-12 by a session in noodle-salesman: =org_outline= returned
+this repo's headings. The session routing is correct: the =noodle-salesman=
+MCP session is registered with its own =:project-dir=. Captures already route
+by session (=--session-project-capture-file=, [[id:d718f6b6-5a33-4889-8b5a-8ea82553ccea][d718f6b6]]). The reads do not.
+=org_outline= with no scope, =org_query= and =org_clock_report= all read
+=claude-code-ide-org--tracked-files=, which is every file in
+=org-agenda-files=. That is now four projects' trackers plus =~/org/notes.org=.
+With one tracked project the leak was invisible.
+
+A file-name scope does not help either. =org_outline= expands a relative scope
+against Emacs's =default-directory=, not the caller's project, so =TODO.org=
+names whichever file Emacs happens to resolve. Only an absolute path works
+today.
+
 * TODO The time-tracking stamp is global and every project's session start rewrites it, so the last session to start decides whether the review pass opens a clock :code:
 :PROPERTIES:
 :ID:       d30b3481-374c-4921-9fdb-284dd8e09e14
