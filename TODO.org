@@ -8,6 +8,13 @@
 :CREATED:  [2026-10-12 Mon 14:47]
 :CATEGORY: Dev
 :END:
+:LOGBOOK:
+CLOCK: [2026-10-12 Mon 12:41]--[2026-10-12 Mon 12:42] =>  0:01
+- [2026-10-12 Mon 12:41]--[2026-10-12 Mon 12:42] assigned at review
+- [2026-10-12 Mon 14:46]--[2026-10-12 Mon 14:47] assigned at review
+CLOCK: [2026-10-12 Mon 14:47]--[2026-10-12 Mon 14:48] =>  0:01
+- [2026-10-12 Mon 14:47]--[2026-10-12 Mon 14:48] file the zero-session startup wiring
+:END:
 
 After an Emacs restart on 2026-10-12, *Messages* read "standalone tools wired on
 port 45571, 0 project session(s)", and the session table was empty. An hour
@@ -18,6 +25,7 @@ read scope ([[id:d6375b21-a410-4c2d-9d5b-bfe980c4cc63][d6375b21]]) and capture r
 global. Proposed: derive the projects once the tracked set is known, or re-wire
 when it first becomes non-empty. Also refuse loudly when the derivation yields
 zero, rather than reporting success.
+
 
 * TODO [0/5] The SessionStart tool-failure report misstates what failed and says nothing when Emacs is down now :code:
 :PROPERTIES:
@@ -11865,6 +11873,7 @@ per tool -- rather than opening the servers beyond localhost.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-10-12 Mon 15:05]--[2026-10-12 Mon 15:12] =>  0:07
 CLOCK: [2026-10-12 Mon 14:45]--[2026-10-12 Mon 14:46] =>  0:01
 CLOCK: [2026-10-12 Mon 14:44]--[2026-10-12 Mon 14:45] =>  0:01
 CLOCK: [2026-10-12 Mon 12:38]--[2026-10-12 Mon 12:39] =>  0:01
