@@ -8852,6 +8852,35 @@ what this project keeps getting wrong. Derived, so it cannot drift
         ;; And the window has a lower bound: this one closed the day before.
         (should-not (member "before-01" ids))))))
 
+(ert-deftest claude-code-ide-org-test-another-projects-closes-are-not-incidental ()
+  "A close in another tracked project is not this slice's incidental work.
+
+The live case (TODO.org :ID: 1c252f9c): noodle-salesman's first commit
+and its category taxonomy closed during an apply pass while this repo's
+review slice was the only one DOING, and were listed under it.  The
+second project's close falls inside the window, so only the project
+boundary keeps it out."
+  (claude-code-ide-org-test--with-slice-window
+    (let* ((other (file-name-as-directory (make-temp-file "ccio-otherproj" t)))
+           (other-file (expand-file-name "TODO.org" other))
+           (claude-code-ide-org-query-files (list file other-file)))
+      (unwind-protect
+          (progn
+            (with-temp-file other-file
+              (insert "#+TODO: TODO DOING | DONE\n"
+                      "* DONE Another project's close\n"
+                      "CLOSED: [2026-08-21 Fri 11:30]\n"
+                      ":PROPERTIES:\n:ID:       other-001\n:END:\n"))
+            (with-current-buffer (find-file-noselect file)
+              (goto-char (point-min))
+              (re-search-forward "^\\* TODO \\[1/1\\] A slice")
+              (let ((ids (claude-code-ide-org--slice-incidental-ids)))
+                (should (member "incid-001" ids))
+                (should-not (member "other-001" ids)))))
+        (when-let* ((buf (get-file-buffer other-file)))
+          (kill-buffer buf))
+        (delete-directory other t)))))
+
 (ert-deftest claude-code-ide-org-test-another-slices-members-are-not-incidental ()
   "Work another slice declares is planned, not incidental to this one.
 

@@ -7904,7 +7904,31 @@ self-exclusion.
 
 Excludes the slice itself, which is closed inside its own window by
 definition, and every id it already names as a member, planned or
-incidental."
+incidental.
+
+*Confined to the slice's own project* (TODO.org :ID: 1c252f9c): every
+scan below reads `--id-scannable-files', which is every tracked project,
+so a close in another repo while this slice was the only one DOING was
+listed here -- noodle-salesman's first commit, under this repo's review
+slice.  The scope is bound to the project holding the slice's file, by
+the resolver reads use (`--project-root', :ID: d6375b21), so the work
+profiles that decide ownership are confined with the candidates."
+  (save-excursion
+    (org-back-to-heading t)
+    (let ((claude-code-ide-org--report-scope
+           (or (claude-code-ide-org--slice-project-scope)
+               claude-code-ide-org--report-scope)))
+      (claude-code-ide-org--slice-incidental-ids-1))))
+
+(defun claude-code-ide-org--slice-project-scope ()
+  "The project root holding the current buffer's file, or nil.
+nil for a buffer visiting no file, which leaves any outer scope alone."
+  (when-let* ((file (buffer-file-name (buffer-base-buffer))))
+    (claude-code-ide-org--project-root
+     (file-name-directory (file-truename file)))))
+
+(defun claude-code-ide-org--slice-incidental-ids-1 ()
+  "`claude-code-ide-org--slice-incidental-ids' at point, in the current scope."
   (save-excursion
     (org-back-to-heading t)
     (let* ((created (org-entry-get nil "CREATED"))
