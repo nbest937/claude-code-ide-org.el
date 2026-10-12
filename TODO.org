@@ -5109,6 +5109,15 @@ retitling: =org_capture= with a =target= could add the parent's cookie when it
 adds the parent's first keyworded child, which is the moment the conventions
 name.
 
+*Met twice more 2026-10-12, both through =emacsclient=.* Retitling [[id:d9ed082e-9a2e-4afd-a852-bedf33f0e659][d9ed082e]] used
+=org-edit-headline=, after checking the buffer had no unsaved edits. And
+removing a member from slice [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]] took =org_set_property= on =:MEMBERS:=
+plus a raw =claude-code-ide-org-refresh-slice= call, since no tool removes a
+member or runs the refresh by itself. A member-removal mode on
+=org_slice_add_member=, or a sibling tool, would cover the second, with the
+refresh it already runs.
+
+
 
 * TODO org_outline's max_depth filters out the scoped heading itself, and the front matter reads as a result :code:
 :PROPERTIES:
