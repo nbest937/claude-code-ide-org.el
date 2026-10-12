@@ -2,7 +2,7 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* TODO Standalone wiring at Emacs startup registered 0 project sessions, so every consumer's tool calls lose their project :code:
+* DOING Standalone wiring at Emacs startup registered 0 project sessions, so every consumer's tool calls lose their project :code:
 :PROPERTIES:
 :ID:       28eed617-e4e0-4d29-88ea-9411de4b77e5
 :CREATED:  [2026-10-12 Mon 14:47]
@@ -14,6 +14,14 @@ CLOCK: [2026-10-12 Mon 12:41]--[2026-10-12 Mon 12:42] =>  0:01
 - [2026-10-12 Mon 14:46]--[2026-10-12 Mon 14:47] assigned at review
 CLOCK: [2026-10-12 Mon 14:47]--[2026-10-12 Mon 14:48] =>  0:01
 - [2026-10-12 Mon 14:47]--[2026-10-12 Mon 14:48] file the zero-session startup wiring
+- [2026-10-12 Mon 14:48]--[2026-10-12 Mon 15:07] assigned at review
+- State "DOING"      from "TODO"       [2026-10-12 Mon 15:07] \\
+  the user: start on the zero-session wiring
+CLOCK: [2026-10-12 Mon 15:11]--[2026-10-12 Mon 15:12] =>  0:01
+- [2026-10-12 Mon 15:11]--[2026-10-12 Mon 15:12] start on zero-session startup wiring
+- [2026-10-12 Mon 15:33]--[2026-10-12 Mon 15:33] start on zero-session startup wiring
+CLOCK: [2026-10-12 Mon 15:41]--[2026-10-12 Mon 15:42] =>  0:01
+- [2026-10-12 Mon 15:41]--[2026-10-12 Mon 15:42] suggested span, accepted at review
 :END:
 
 After an Emacs restart on 2026-10-12, *Messages* read "standalone tools wired on
@@ -3224,6 +3232,8 @@ CLOCK: [2026-10-12 Mon 12:07]--[2026-10-12 Mon 12:08] =>  0:01
 - [2026-10-12 Mon 12:07]--[2026-10-12 Mon 12:08] suggested span, accepted at review
 CLOCK: [2026-10-12 Mon 12:12]--[2026-10-12 Mon 12:16] =>  0:04
 - [2026-10-12 Mon 12:12]--[2026-10-12 Mon 12:16] suggested span, accepted at review
+CLOCK: [2026-10-12 Mon 15:33]--[2026-10-12 Mon 15:34] =>  0:01
+- [2026-10-12 Mon 15:33]--[2026-10-12 Mon 15:34] record check 10 from noodle-salesman
 :END:
 :PLAN:
 
@@ -11884,6 +11894,7 @@ per tool -- rather than opening the servers beyond localhost.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-10-12 Mon 15:44]--[2026-10-12 Mon 15:48] =>  0:04
 CLOCK: [2026-10-12 Mon 15:05]--[2026-10-12 Mon 15:12] =>  0:07
 CLOCK: [2026-10-12 Mon 14:45]--[2026-10-12 Mon 14:46] =>  0:01
 CLOCK: [2026-10-12 Mon 14:44]--[2026-10-12 Mon 14:45] =>  0:01
@@ -12088,6 +12099,7 @@ CLOCK: [2026-10-12 Mon 08:55]--[2026-10-12 Mon 08:57] =>  0:02
 CLOCK: [2026-10-12 Mon 09:23]--[2026-10-12 Mon 09:24] =>  0:01
 - <2026-10-12 Mon 14:44>--<2026-10-12 Mon 14:45> review pass (buffer buried)
 - <2026-10-12 Mon 14:45>--<2026-10-12 Mon 14:46> review pass (buffer buried)
+- <2026-10-12 Mon 16:22>--<2026-10-12 Mon 16:22> review pass (buffer buried)
 :END:
 
 We created this heading on 2026-08-26. We deleted that property from its
