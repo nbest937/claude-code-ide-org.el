@@ -8,6 +8,35 @@
 :CREATED:  [2026-10-12 Mon 17:42]
 :CATEGORY: Slices
 :END:
+:PLAN:
+Fixed on the slice's own branch before its review, so [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]]'s record is clean
+before it closes (the user, 2026-10-12, over removing the lines by hand and
+fixing later). Bind =--report-scope= once, in =--slice-incidental-ids=, to the
+project holding the slice's file. Every scan beneath it reads the tracked set,
+so one binding confines them all, with no project argument threaded through
+=--closed-in-window=, =--slice-work-profiles= and =--other-slices-declared-ids=.
+The project comes from [[id:d6375b21-a410-4c2d-9d5b-bfe980c4cc63][d6375b21]]'s =--project-root=, so a slice and a read agree
+on what its project is.
+:END:
+:DEBRIEF:
+=--slice-incidental-ids= binds =--report-scope= to the project root holding the
+slice's file, through a new =--slice-project-scope= over =--project-root=. Every
+scan beneath it reads =--id-scannable-files=, which is derived from the tracked
+set, so one binding confines all three: the closes in the window, the work
+profiles that decide ownership, and the other slices' declared ids. A buffer
+visiting no file leaves any outer scope alone.
+
+Verified: one new ERT test, in which a second project's close falls inside the
+slice's window. It is shown red against =HEAD= at exactly that assertion. All 79
+slice tests pass, and =bin/test-all= passed 27 suites, 1699 tests. Live: after a
+reload, =claude-code-ide-org-refresh-slice= on [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]] listed 0 incidentals,
+and the pre-commit lint, which had refused the two cross-project =id:= links,
+passed. The refresh went through =emacsclient= because no org tool refreshes a
+slice on demand.
+
+The lint caught this from the other side. Its link resolution only knows the
+project's own files, so the cross-project lines could not be committed.
+:END:
 
 Slice [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]] lists noodle-salesman's 414875f3 and 9ef48eef as incidental work
 (the user, 2026-10-12): both were closed by an apply pass while this slice was
@@ -17,6 +46,11 @@ the only DOING one. The candidates come from =--closed-in-window=, which scans
 The same class as [[id:d6375b21-a410-4c2d-9d5b-bfe980c4cc63][d6375b21]], in the slice machinery. Proposed: confine the
 candidates, and the slice work profiles that decide ownership, to the slice's
 own project, resolved from its file with =--project-root=.
+
+Resolved on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]] in commit [[orgit-rev:./::7c0eb89][7c0eb89]]: a slice's incidental list now comes from
+its own project only, and [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]]'s refresh dropped both noodle-salesman
+headings.
+
 
 * DOING Standalone wiring at Emacs startup registered 0 project sessions, so every consumer's tool calls lose their project :code:
 :PROPERTIES:
