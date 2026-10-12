@@ -6309,6 +6309,16 @@ drawing queue. This is not shown, but it now explains both the signal and the
 ceremony correlation. The =diff-hl-update-async= nil experiment in =:PLAN:= now
 tests the cause rather than only the odds of the shutdown wedge.
 
+*Experiment applied 2026-10-12 (the user):* =diff-hl-update-async= is nil,
+through an =after! diff-hl= block at the end of =~/.config/doom/config.el=. It
+overrides the =thread= value that Doom's =ui/vc-gutter= module sets in its
+diff-hl config, commented "PERF: don't block Emacs when updating vc gutter". It
+was also evaluated in the running Emacs, and no buffer holds a local value. A
+further freeze whose sample shows no =diff-hl--update= threads weakens the
+hypothesis; freezes stopping when leaving the review buffer supports it. Revert
+by deleting the block.
+
+
 
 
 * TODO Per-machine port via ${VAR:-45571} in .mcp.json, with the wire check env-aware :code:
