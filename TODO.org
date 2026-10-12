@@ -2,6 +2,22 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO A slice's incidental list takes closes from every tracked project, so another repo's work is attributed to this one's slice :code:
+:PROPERTIES:
+:ID:       1c252f9c-6838-4b71-b08b-ff2e77d34dce
+:CREATED:  [2026-10-12 Mon 17:42]
+:CATEGORY: Slices
+:END:
+
+Slice [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]] lists noodle-salesman's 414875f3 and 9ef48eef as incidental work
+(the user, 2026-10-12): both were closed by an apply pass while this slice was
+the only DOING one. The candidates come from =--closed-in-window=, which scans
+=--id-scannable-files=, every tracked project plus archives.
+=--incidental-owner= then assigns any close to whichever slice was in progress.
+The same class as [[id:d6375b21-a410-4c2d-9d5b-bfe980c4cc63][d6375b21]], in the slice machinery. Proposed: confine the
+candidates, and the slice work profiles that decide ownership, to the slice's
+own project, resolved from its file with =--project-root=.
+
 * DOING Standalone wiring at Emacs startup registered 0 project sessions, so every consumer's tool calls lose their project :code:
 :PROPERTIES:
 :ID:       28eed617-e4e0-4d29-88ea-9411de4b77e5
@@ -756,6 +772,7 @@ Planned:
 - [[id:2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd][2cd74268]] TODO Let a task-only install auto-apply state transitions, behind a toggle
 - [X] [[id:de081dd9-1853-4d79-94fc-2edac498380f][de081dd9]] DONE The steps after apply run only when the review buffer is buried, so a session can never offer them when they are overdue
 - [-] [[id:2b8930da-5223-4b75-b4f6-251a28552d1b][2b8930da]] DOING Nothing in the drift slice was exercised in a consumer install: the new hooks, the conditional time-file promotion, the twin-checker agent
+
 
 
 * MAYBE Separate what the machinery requires from what this project prefers, so a consumer can change the second :code:arch:
@@ -3830,6 +3847,8 @@ written.
   commit, since =replace= refuses a file with uncommitted changes.
 
 - 2026-09-28 (user): asked about [[id:2a6a1355-615f-4c2c-a8af-c9ae8dcda09b][2a6a1355]]'s verbose body, the session measured it with a raw =emacsclient= eval (line count, word count, drawer order) when =org_body= returns the heading whole, drawers and all. The user asked why, and whether =emacs-tools= could not do it. It could. The eval came from habit, reaching for numbers in one call, and nothing required it.
+- 2026-10-12 (noodle-salesman): set :spike: on eight headings at org_capture time without the brainstorming skill, which the conventions name as the only setter of path tags. The user had asked for them to be spikes, so whether this is a miss at all is filed as a question (noodle-salesman-findings-prompt.md, item 4).
+
 
 
 ** TODO Miss: an org question answered by scraping text instead of asking org
