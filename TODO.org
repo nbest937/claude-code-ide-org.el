@@ -8,6 +8,15 @@
 :CREATED:  [2026-10-13 Tue 09:51]
 :CATEGORY: Queue
 :END:
+:LOGBOOK:
+- [2026-10-13 Tue 09:50]--[2026-10-13 Tue 09:51] assigned at review
+CLOCK: [2026-10-13 Tue 09:51]--[2026-10-13 Tue 09:52] =>  0:01
+- [2026-10-13 Tue 09:51]--[2026-10-13 Tue 09:52] file the background code-review underreport
+CLOCK: [2026-10-13 Tue 09:52]--[2026-10-13 Tue 09:53] =>  0:01
+- [2026-10-13 Tue 09:52]--[2026-10-13 Tue 09:53] assigned at review
+CLOCK: [2026-10-13 Tue 10:00]--[2026-10-13 Tue 10:01] =>  0:01
+- [2026-10-13 Tue 10:00]--[2026-10-13 Tue 10:01] assigned at review
+:END:
 :PLAN:
 Not yet designed. First establish what the background agent's hooks emit. Its
 discard-guard miss at 18:15:12 carried this session's id and a null =agent_id=,
@@ -29,6 +38,7 @@ contribute nothing, so the review buffer showed =0:06 span, 0:01 in 1 run=: six
 minutes of agent work credited as one, the notification's own reply. [[id:09c134c4-31eb-4f6c-aa10-f836d1d28f16][09c134c4]]'s
 2026-08-18 check found no such handoff worth instrumenting; this is the first
 measured one.
+
 
 * TODO An outside edit to an open, unmodified TODO.org was apparently written over within seconds, with no error :code:
 :PROPERTIES:
@@ -814,8 +824,8 @@ CLOCK: [2026-10-10 Sat 15:19]--[2026-10-10 Sat 15:20] =>  0:01
   slice work started on its branch
 CLOCK: [2026-10-10 Sat 17:26]--[2026-10-10 Sat 17:27] =>  0:01
 - [2026-10-10 Sat 17:26]--[2026-10-10 Sat 17:27] assigned at review
-CLOCK: [2026-10-12 Mon 18:16]--[2026-10-12 Mon 18:17] =>  0:01
-- [2026-10-12 Mon 18:16]--[2026-10-12 Mon 18:17] assigned at review
+CLOCK: [2026-10-12 Mon 18:10]--[2026-10-12 Mon 18:17] =>  0:07
+- [2026-10-12 Mon 18:10]--[2026-10-12 Mon 18:17] assigned at review
 :END:
 :PLAN:
 Divided out of [[id:c7619140-f269-4329-bc05-a38ea151e202][c7619140]] on 2026-10-09 (the user, a three-way split). The members
