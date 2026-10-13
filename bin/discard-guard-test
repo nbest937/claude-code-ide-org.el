@@ -66,6 +66,29 @@ for c in 'git stash list' 'git stash show' 'git stash pop' 'git restore --staged
 done
 check "nothing passed is counted" "" "$(rule_of d2)"
 
+# From a subdirectory the dirty root file is still seen (PR #37 review):
+# a cwd-relative pathspec saw only sub/, and reset --hard went through.
+check "refused from sub/: reset --hard" 2 "$(run s1 'git reset --hard' "$r/sub")"
+check "refused from sub/: stash" 2 "$(run s1 'git stash' "$r/sub")"
+check "refused from sub/: checkout -- ../TODO.org" 2 "$(run s1 'git checkout -- ../TODO.org' "$r/sub")"
+check "passes from sub/: checkout . reaches no dirty file" 0 "$(run s2 'git checkout .' "$r/sub")"
+
+# Discards the guard used to miss (PR #37 review).
+for c in '/usr/bin/git reset --hard' 'git checkout -f main' 'git checkout --force main' \
+         'git switch --discard-changes main' 'git switch -f main' 'git switch --force main'; do
+  check "refused: $c" 2 "$(run b1 "$c")"
+done
+check "passes: git switch main" 0 "$(run b2 'git switch main')"
+
+# Separators inside quotes are not separators (PR #37 review): a commit
+# message describing a discard was refused and counted as a miss.
+for c in 'git commit -m "refuse a discard; git reset --hard included"' \
+         "git commit -m 'x && git stash'" 'git log --grep="a|git checkout -- TODO.org"'; do
+  check "passes: $c" 0 "$(run q1 "$c")"
+done
+check "nothing quoted is counted" "" "$(rule_of q1)"
+check "refused: a real chain after a quote" 2 "$(run q2 'git commit -m "a;b" && git reset --hard')"
+
 # A directory holding the dirty file is the file.
 git -C "$r" checkout -q -- TODO.org
 printf '* DONE b\n' >> "$r/sub/x.org"
