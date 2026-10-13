@@ -2,6 +2,139 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO [0/10] PR #37's review found ten defects the slice shipped :code:
+:PROPERTIES:
+:ID:       c12d4189-6bb6-467b-8928-b7bdefcdc921
+:CREATED:  [2026-10-13 Tue 10:04]
+:CATEGORY: Dev
+:END:
+
+The =/code-review high --comment 37= run of 2026-10-12 posted ten inline
+comments on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]] against slice [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]]. Each comment is a child here: one is
+fixed on the branch before merge, the rest are deferred with a reason. Findings
+1, 3 and 4 were reproduced in a scratch repo; the rest come from reading the
+code.
+** TODO discard-guard's dirty-file scan is relative to cwd, so from a subdirectory a dirty root TODO.org goes unseen and reset --hard goes through
+:PROPERTIES:
+:ID:       789a25c7-84aa-4c30-b8a6-252e149b6114
+:CREATED:  [2026-10-13 Tue 10:04]
+:END:
+
+Review finding 1 on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]], reproduced. =git diff --name-only -- '*.org'=
+matches only below cwd. From =sub/=, a dirty root TODO.org leaves =dirty= empty,
+the guard exits 0, and =git reset --hard= or =git stash= wipes the file. The fix
+is the pathspec =':(top)*.org'=.
+** TODO Burying the review buffer advances every project's overdue ceremony, though the steps ran only on this repo's tracker
+:PROPERTIES:
+:ID:       9c1afc7a-161d-4e4c-aa93-9c02becfb5ba
+:CREATED:  [2026-10-13 Tue 10:04]
+:END:
+
+Review finding 2 on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]]. On the bury, =--ceremony-due-p= sees a consumer's
+overdue =:KIND: ceremony=. =ceremony-finish= runs the steps with FILE nil, which
+is this repo's TODO.org, and =--ceremony-advance-repeater= then marks the
+consumer's ceremony DONE and saves it. The consumer's next SessionStart finds it
+not due, so its closed headings are never archived. Confine the due check and
+the advance to the project whose steps ran.
+** TODO An absolute git path, checkout -f and switch --discard-changes all get past discard-guard
+:PROPERTIES:
+:ID:       025a2e8a-9b21-4044-b9df-79baf7e904ce
+:CREATED:  [2026-10-13 Tue 10:04]
+:END:
+
+Review finding 3 on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]], reproduced. With TODO.org dirty, these three were
+each allowed in a scratch repo:
+- =/usr/bin/git reset --hard=: the segment filter accepts =*/git=, but =discards= skips only a literal =git=, so it reads the path as the subcommand.
+- =git checkout -f main=.
+- =git switch --discard-changes main=.
+** TODO discard-guard splits commands on ; | && || inside quotes, so a commit message naming a discard is refused and counted as a miss
+:PROPERTIES:
+:ID:       c8ba3f41-1cec-4b67-be0e-145ccebaff8a
+:CREATED:  [2026-10-13 Tue 10:04]
+:END:
+
+Review finding 4 on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]], observed live. =git commit -m "…; git reset --hard
+…"= splits at the =;= into a segment that is blocked, and a =discard-org= miss
+is appended. The review's own probe triggered it at 2026-10-12 18:15:12, so
+=bin/miss-rate= counts one false miss. Commit messages describing this feature
+are the likeliest trigger.
+** TODO SessionStart runs the ceremony's write steps inside a 15 s hook, on whatever branch is checked out
+:PROPERTIES:
+:ID:       826d621c-25f5-4f06-9961-4b23f8658880
+:CREATED:  [2026-10-13 Tue 10:04]
+:END:
+
+Review finding 6 on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]]. Session start now runs the ceremony's write steps
+synchronously: slice refresh, drawer consolidation, spacing, archive, two sorts
+and the repeater. On a large tracker this outruns the 15 s timeout. Claude Code
+kills the hook but Emacs finishes writing, so the session never gets the "commit
+the diff" line and the tracker is left dirty. Separately, a session started on a
+feature branch writes its archive and sort onto that branch's TODO.org.
+** TODO org_outline's blocks: line reports a story blocking its own child
+:PROPERTIES:
+:ID:       84e9c7ef-72f2-4694-b471-1419f8b0dd33
+:CREATED:  [2026-10-13 Tue 10:04]
+:END:
+
+Review finding 7 on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]]. Story X has children A and B, and B's =:BLOCKER:=
+is A. =org_outline scope=X= prints =blocks: B=, as though X blocked its own
+child. The exclusion should drop every blocker entry whose id is in the scoped
+subtree (MINE), not only the root's id.
+** TODO Splitting a d-marked span with e carries :dismiss into the remainders, so x dismisses events never marked
+:PROPERTIES:
+:ID:       70d742fa-dc41-4005-8c07-01df75b3331f
+:CREATED:  [2026-10-13 Tue 10:04]
+:END:
+
+Review finding 8 on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]]. Each remainder is built from =(copy-sequence item)=,
+which resets =:marked= and nothing else. =:dismiss= and =:dismiss-reason=
+survive, so after =d= then =e=, pressing =x= permanently dismisses the
+out-of-window events. The remainder path should clear both flags, or =e= should
+clear the =d=.
+** TODO --applied-today-p ignores the report scope and parses every .applied file at each SessionStart
+:PROPERTIES:
+:ID:       2f4c04a1-db56-4427-ae62-591ba52607c6
+:CREATED:  [2026-10-13 Tue 10:04]
+:END:
+
+Review finding 9 on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]]. An apply in project A makes project B's scoped
+ceremony report read "reviewed today", unlike the CLOCK check it backs up, which
+respects =--report-scope=. It also JSON-parses about 320 watermark files
+whenever no CLOCK line is found, which re-implements =--queue-watermark-data=. A
+today-mtime prefilter and reuse of that function avoid both.
+** TODO Every id-scoped org_outline scans every heading in every tracked file, and leaks a marker per slice
+:PROPERTIES:
+:ID:       6a6f6708-eefd-4d77-8ca0-0c5aaaa80796
+:CREATED:  [2026-10-13 Tue 10:04]
+:END:
+
+Review finding 10 on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]]. Each scope token runs =--membership-scan=, a full
+=org-map-entries= pass over TODO.org and DONE.org with =org-entry-get= and
+=--slice-p= on every heading, to produce two front-matter lines. The scan also
+keeps a point-marker per slice that is never released, which slows later edits
+until GC. One regexp search per call for =:KIND: *slice= and =:BLOCKER:= lines
+does the same job.
+
+** TODO The time-tracking stamp is global and every project's session start rewrites it, so the last session to start decides whether the review pass opens a clock :code:
+:PROPERTIES:
+:ID:       d30b3481-374c-4921-9fdb-284dd8e09e14
+:CREATED:  [2026-10-10 Sat 18:31]
+:CATEGORY: Clock
+:END:
+:PLAN:
+Not yet designed. The time_tracking option is meant to be one value for every
+project, and the stamp should honour that. Two candidates: ignore a row that
+sets the variable inline when the plugin option is present, or keep one stamp
+per project and read the one for the project the review pass is about.
+:END:
+
+[[id:97b4f6a9-a944-40d3-8d14-7a1667c52291][97b4f6a9]] gates the review pass's attention clock on a stamp file in the global
+queue directory, which every SessionStart rewrites. This repo's row writes true.
+A plugin install with the option off writes it empty, so the last project to
+start a session decides whether the next review opens a clock. Found by reading
+the two configs on 2026-10-10; not yet observed.
+
+
 * TODO A slash command that runs in the background opens a run nothing closes, so its agent's minutes are dropped :code:
 :PROPERTIES:
 :ID:       3977f434-7759-41ed-92f5-41cd04f6def6
@@ -513,26 +646,6 @@ lookups, the write tools and the consent check stay global; a call with no
 session is unchanged.
 
 
-* TODO The time-tracking stamp is global and every project's session start rewrites it, so the last session to start decides whether the review pass opens a clock :code:
-:PROPERTIES:
-:ID:       d30b3481-374c-4921-9fdb-284dd8e09e14
-:CREATED:  [2026-10-10 Sat 18:31]
-:CATEGORY: Clock
-:END:
-:PLAN:
-Not yet designed. The time_tracking option is meant to be one value for every
-project, and the stamp should honour that. Two candidates: ignore a row that
-sets the variable inline when the plugin option is present, or keep one stamp
-per project and read the one for the project the review pass is about.
-:END:
-
-[[id:97b4f6a9-a944-40d3-8d14-7a1667c52291][97b4f6a9]] gates the review pass's attention clock on a stamp file in the global
-queue directory, which every SessionStart rewrites. This repo's row writes true.
-A plugin install with the option off writes it empty, so the last project to
-start a session decides whether the next review opens a clock. Found by reading
-the two configs on 2026-10-10; not yet observed.
-
-
 * TODO An install scaffolded before the ceremony template has no :KIND: ceremony heading, so its steps after apply never run and --check does not say so :code:
 :PROPERTIES:
 :ID:       b577497c-f3a8-4754-8914-6c56589a0b52
@@ -804,15 +917,16 @@ Planned:
 - [ ] [[id:445ec1f1-095a-462b-abbd-7a3a00925ddb][445ec1f1]] TODO A/B the clock record across the phase-3 fixes, since much of what is logged now is bogus
 
 
-* DOING [15/15] The review pass every install uses: movement, marking, apply, quit, and no clock where tracking is off :code:
+* DOING [15/25] The review pass every install uses: movement, marking, apply, quit, and no clock where tracking is off :code:
 :PROPERTIES:
 :ID:       5a4896c3-3d4e-4b12-9f9e-06b97d84b238
 :CREATED:  [2026-10-09 Fri 11:15]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:MEMBERS:  97b4f6a9-a944-40d3-8d14-7a1667c52291 24694d1f-34b4-495b-b0d8-d29e64894c59 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 41f21b4d-278d-4ad8-a56f-122f5af33d65 9f6b19b5-18db-4d56-8545-9552a5b4e935 d66ae1d2-5a40-4f4d-ae51-c8977e78681c b3177ed0-9747-4e31-ad65-bac25b9bdd1f d241ab6e-6cfe-482a-8980-8cb222d7ab12 e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 ee3c22c9-f99c-4d41-9c3d-8f39af916fff 6c64cc9c-33a9-4a20-af19-c188a690c755 79c224ab-188a-4ed4-a606-c28ee2cfe72d 361e2708-8124-4bd1-9c44-f97ca97aca4a 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd de081dd9-1853-4d79-94fc-2edac498380f 2b8930da-5223-4b75-b4f6-251a28552d1b
+:MEMBERS:  97b4f6a9-a944-40d3-8d14-7a1667c52291 24694d1f-34b4-495b-b0d8-d29e64894c59 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 41f21b4d-278d-4ad8-a56f-122f5af33d65 9f6b19b5-18db-4d56-8545-9552a5b4e935 d66ae1d2-5a40-4f4d-ae51-c8977e78681c b3177ed0-9747-4e31-ad65-bac25b9bdd1f d241ab6e-6cfe-482a-8980-8cb222d7ab12 e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 ee3c22c9-f99c-4d41-9c3d-8f39af916fff 6c64cc9c-33a9-4a20-af19-c188a690c755 79c224ab-188a-4ed4-a606-c28ee2cfe72d 361e2708-8124-4bd1-9c44-f97ca97aca4a 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd de081dd9-1853-4d79-94fc-2edac498380f 2b8930da-5223-4b75-b4f6-251a28552d1b 789a25c7-84aa-4c30-b8a6-252e149b6114 9c1afc7a-161d-4e4c-aa93-9c02becfb5ba 025a2e8a-9b21-4044-b9df-79baf7e904ce c8ba3f41-1cec-4b67-be0e-145ccebaff8a d30b3481-374c-4921-9fdb-284dd8e09e14 826d621c-25f5-4f06-9961-4b23f8658880 84e9c7ef-72f2-4694-b471-1419f8b0dd33 70d742fa-dc41-4005-8c07-01df75b3331f 2f4c04a1-db56-4427-ae62-591ba52607c6 6a6f6708-eefd-4d77-8ca0-0c5aaaa80796
 :DROPPED:  489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd
+:BLOCKER:  789a25c7-84aa-4c30-b8a6-252e149b6114 9c1afc7a-161d-4e4c-aa93-9c02becfb5ba 025a2e8a-9b21-4044-b9df-79baf7e904ce c8ba3f41-1cec-4b67-be0e-145ccebaff8a d30b3481-374c-4921-9fdb-284dd8e09e14 826d621c-25f5-4f06-9961-4b23f8658880 84e9c7ef-72f2-4694-b471-1419f8b0dd33 70d742fa-dc41-4005-8c07-01df75b3331f 2f4c04a1-db56-4427-ae62-591ba52607c6 6a6f6708-eefd-4d77-8ca0-0c5aaaa80796
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-10-09 Fri 11:25] \\
@@ -889,6 +1003,17 @@ Planned:
 - [[id:2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd][2cd74268]] TODO Let a task-only install auto-apply state transitions, behind a toggle
 - [X] [[id:de081dd9-1853-4d79-94fc-2edac498380f][de081dd9]] DONE The steps after apply run only when the review buffer is buried, so a session can never offer them when they are overdue
 - [X] [[id:2b8930da-5223-4b75-b4f6-251a28552d1b][2b8930da]] DONE Nothing in the drift slice was exercised in a consumer install: the new hooks, the conditional time-file promotion, the twin-checker agent
+- [[id:c12d4189-6bb6-467b-8928-b7bdefcdc921][c12d4189]] TODO PR #37's review found ten defects the slice shipped
+  - [ ] [[id:789a25c7-84aa-4c30-b8a6-252e149b6114][789a25c7]] TODO discard-guard's dirty-file scan is relative to cwd, so from a subdirectory a dirty root TODO.org goes unseen and reset --hard goes through
+  - [ ] [[id:9c1afc7a-161d-4e4c-aa93-9c02becfb5ba][9c1afc7a]] TODO Burying the review buffer advances every project's overdue ceremony, though the steps ran only on this repo's tracker
+  - [ ] [[id:025a2e8a-9b21-4044-b9df-79baf7e904ce][025a2e8a]] TODO An absolute git path, checkout -f and switch --discard-changes all get past discard-guard
+  - [ ] [[id:c8ba3f41-1cec-4b67-be0e-145ccebaff8a][c8ba3f41]] TODO discard-guard splits commands on ; | && || inside quotes, so a commit message naming a discard is refused and counted as a miss
+  - [ ] [[id:d30b3481-374c-4921-9fdb-284dd8e09e14][d30b3481]] TODO The time-tracking stamp is global and every project's session start rewrites it, so the last session to start decides whether the review pass opens a clock
+  - [ ] [[id:826d621c-25f5-4f06-9961-4b23f8658880][826d621c]] TODO SessionStart runs the ceremony's write steps inside a 15 s hook, on whatever branch is checked out
+  - [ ] [[id:84e9c7ef-72f2-4694-b471-1419f8b0dd33][84e9c7ef]] TODO org_outline's blocks: line reports a story blocking its own child
+  - [ ] [[id:70d742fa-dc41-4005-8c07-01df75b3331f][70d742fa]] TODO Splitting a d-marked span with e carries :dismiss into the remainders, so x dismisses events never marked
+  - [ ] [[id:2f4c04a1-db56-4427-ae62-591ba52607c6][2f4c04a1]] TODO --applied-today-p ignores the report scope and parses every .applied file at each SessionStart
+  - [ ] [[id:6a6f6708-eefd-4d77-8ca0-0c5aaaa80796][6a6f6708]] TODO Every id-scoped org_outline scans every heading in every tracked file, and leaks a marker per slice
 
 
 * MAYBE Separate what the machinery requires from what this project prefers, so a consumer can change the second :code:arch:
