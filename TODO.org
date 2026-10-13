@@ -8,12 +8,18 @@
 :CREATED:  [2026-10-13 Tue 10:04]
 :CATEGORY: Dev
 :END:
+:LOGBOOK:
+CLOCK: [2026-10-13 Tue 10:04]--[2026-10-13 Tue 10:06] =>  0:02
+- [2026-10-13 Tue 10:04]--[2026-10-13 Tue 10:06] file PR #37's review findings
+:END:
 
 The =/code-review high --comment 37= run of 2026-10-12 posted ten inline
 comments on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]] against slice [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]]. Each comment is a child here: one is
 fixed on the branch before merge, the rest are deferred with a reason. Findings
 1, 3 and 4 were reproduced in a scratch repo; the rest come from reading the
 code.
+
+
 ** TODO discard-guard's dirty-file scan is relative to cwd, so from a subdirectory a dirty root TODO.org goes unseen and reset --hard goes through
 :PROPERTIES:
 :ID:       789a25c7-84aa-4c30-b8a6-252e149b6114
@@ -24,6 +30,8 @@ Review finding 1 on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37
 matches only below cwd. From =sub/=, a dirty root TODO.org leaves =dirty= empty,
 the guard exits 0, and =git reset --hard= or =git stash= wipes the file. The fix
 is the pathspec =':(top)*.org'=.
+
+
 ** TODO Burying the review buffer advances every project's overdue ceremony, though the steps ran only on this repo's tracker
 :PROPERTIES:
 :ID:       9c1afc7a-161d-4e4c-aa93-9c02becfb5ba
@@ -36,6 +44,8 @@ is this repo's TODO.org, and =--ceremony-advance-repeater= then marks the
 consumer's ceremony DONE and saves it. The consumer's next SessionStart finds it
 not due, so its closed headings are never archived. Confine the due check and
 the advance to the project whose steps ran.
+
+
 ** TODO An absolute git path, checkout -f and switch --discard-changes all get past discard-guard
 :PROPERTIES:
 :ID:       025a2e8a-9b21-4044-b9df-79baf7e904ce
@@ -47,6 +57,8 @@ each allowed in a scratch repo:
 - =/usr/bin/git reset --hard=: the segment filter accepts =*/git=, but =discards= skips only a literal =git=, so it reads the path as the subcommand.
 - =git checkout -f main=.
 - =git switch --discard-changes main=.
+
+
 ** TODO discard-guard splits commands on ; | && || inside quotes, so a commit message naming a discard is refused and counted as a miss
 :PROPERTIES:
 :ID:       c8ba3f41-1cec-4b67-be0e-145ccebaff8a
@@ -58,6 +70,8 @@ Review finding 4 on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37
 is appended. The review's own probe triggered it at 2026-10-12 18:15:12, so
 =bin/miss-rate= counts one false miss. Commit messages describing this feature
 are the likeliest trigger.
+
+
 ** TODO SessionStart runs the ceremony's write steps inside a 15 s hook, on whatever branch is checked out
 :PROPERTIES:
 :ID:       826d621c-25f5-4f06-9961-4b23f8658880
@@ -70,6 +84,8 @@ and the repeater. On a large tracker this outruns the 15 s timeout. Claude Code
 kills the hook but Emacs finishes writing, so the session never gets the "commit
 the diff" line and the tracker is left dirty. Separately, a session started on a
 feature branch writes its archive and sort onto that branch's TODO.org.
+
+
 ** TODO org_outline's blocks: line reports a story blocking its own child
 :PROPERTIES:
 :ID:       84e9c7ef-72f2-4694-b471-1419f8b0dd33
@@ -80,6 +96,8 @@ Review finding 7 on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37
 is A. =org_outline scope=X= prints =blocks: B=, as though X blocked its own
 child. The exclusion should drop every blocker entry whose id is in the scoped
 subtree (MINE), not only the root's id.
+
+
 ** TODO Splitting a d-marked span with e carries :dismiss into the remainders, so x dismisses events never marked
 :PROPERTIES:
 :ID:       70d742fa-dc41-4005-8c07-01df75b3331f
@@ -91,6 +109,8 @@ which resets =:marked= and nothing else. =:dismiss= and =:dismiss-reason=
 survive, so after =d= then =e=, pressing =x= permanently dismisses the
 out-of-window events. The remainder path should clear both flags, or =e= should
 clear the =d=.
+
+
 ** TODO --applied-today-p ignores the report scope and parses every .applied file at each SessionStart
 :PROPERTIES:
 :ID:       2f4c04a1-db56-4427-ae62-591ba52607c6
@@ -102,6 +122,8 @@ ceremony report read "reviewed today", unlike the CLOCK check it backs up, which
 respects =--report-scope=. It also JSON-parses about 320 watermark files
 whenever no CLOCK line is found, which re-implements =--queue-watermark-data=. A
 today-mtime prefilter and reuse of that function avoid both.
+
+
 ** TODO Every id-scoped org_outline scans every heading in every tracked file, and leaks a marker per slice
 :PROPERTIES:
 :ID:       6a6f6708-eefd-4d77-8ca0-0c5aaaa80796
@@ -114,6 +136,7 @@ Review finding 10 on [[https://github.com/nbest937/claude-code-ide-org.el/pull/3
 keeps a point-marker per slice that is never released, which slows later edits
 until GC. One regexp search per call for =:KIND: *slice= and =:BLOCKER:= lines
 does the same job.
+
 
 ** TODO The time-tracking stamp is global and every project's session start rewrites it, so the last session to start decides whether the review pass opens a clock :code:
 :PROPERTIES:
@@ -917,7 +940,7 @@ Planned:
 - [ ] [[id:445ec1f1-095a-462b-abbd-7a3a00925ddb][445ec1f1]] TODO A/B the clock record across the phase-3 fixes, since much of what is logged now is bogus
 
 
-* DOING [15/25] The review pass every install uses: movement, marking, apply, quit, and no clock where tracking is off :code:
+* REVIEW [15/25] The review pass every install uses: movement, marking, apply, quit, and no clock where tracking is off :code:
 :PROPERTIES:
 :ID:       5a4896c3-3d4e-4b12-9f9e-06b97d84b238
 :CREATED:  [2026-10-09 Fri 11:15]
@@ -940,6 +963,8 @@ CLOCK: [2026-10-10 Sat 17:26]--[2026-10-10 Sat 17:27] =>  0:01
 - [2026-10-10 Sat 17:26]--[2026-10-10 Sat 17:27] assigned at review
 CLOCK: [2026-10-12 Mon 18:10]--[2026-10-12 Mon 18:17] =>  0:07
 - [2026-10-12 Mon 18:10]--[2026-10-12 Mon 18:17] assigned at review
+- State "REVIEW"     from "DOING"      [2026-10-13 Tue 10:05] \\
+  PR #37 review started; every planned member finished
 :END:
 :PLAN:
 Divided out of [[id:c7619140-f269-4329-bc05-a38ea151e202][c7619140]] on 2026-10-09 (the user, a three-way split). The members
