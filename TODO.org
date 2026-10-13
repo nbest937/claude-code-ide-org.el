@@ -41,10 +41,6 @@ and finding 5, already filed as [[id:d30b3481-374c-4921-9fdb-284dd8e09e14][d30b3
 and joined [[id:7ae1cff4-c0df-4ac0-9aea-a778b2373061][7ae1cff4]], the clock-record slice. So this story holds the six fixed
 findings.
 
-The first three were first cancelled here and copied to new top-level headings.
-That was a mistake: =CANCELLED= reads as "won't do", and the copies were twins.
-They were moved out and reopened instead, and the copies were deleted.
-
 
 ** REVIEW discard-guard's dirty-file scan is relative to cwd, so from a subdirectory a dirty root TODO.org goes unseen and reset --hard goes through
 :PROPERTIES:
