@@ -2,6 +2,34 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO An outside edit to an open, unmodified TODO.org was apparently written over within seconds, with no error :code:
+:PROPERTIES:
+:ID:       8185c75c-d7a5-42d2-a4eb-bc9dd1e6ce66
+:CREATED:  [2026-10-13 Tue 09:42]
+:CATEGORY: Dev
+:END:
+:PLAN:
+Reproduce before fixing anything:
+1. Open TODO.org in Emacs and leave it unmodified.
+2. From a terminal, append a line to the file on disk.
+3. Without touching Emacs, submit a prompt in a session in that repo.
+4. Check whether the line survives, and what *Messages* shows.
+5. Repeat without submitting a prompt. That separates a write driven by a hook from Emacs's own saves.
+If it reproduces, find the writer and make it check the file's modtime before
+writing.
+:END:
+
+Seen 2026-10-12 in noodle-salesman during [[id:2b8930da-5223-4b75-b4f6-251a28552d1b][2b8930da]]'s check 9, session 5c832f1e,
+not yet reproduced. Its TODO.org buffer was unmodified and in sync with the
+file. The user appended a line from a terminal, then submitted a prompt. At the
+session's first look, ten seconds after the file's mtime of 17:31:16, the line
+was gone, git status was clean, and the buffer was again in sync. So something
+rewrote the file without the line: a prompt-time hook writing through Emacs, or
+a save that skipped the changed-on-disk check. On the second attempt the line
+survived. Nobody saw the first append land, so if it never ran there is no bug.
+If it reproduces, any outside write to an open tracker can be lost
+silently, whether a git pull, another session's Edit or a hand edit.
+
 * REVIEW A slice's incidental list takes closes from every tracked project, so another repo's work is attributed to this one's slice :code:
 :PROPERTIES:
 :ID:       1c252f9c-6838-4b71-b08b-ff2e77d34dce
@@ -3404,9 +3432,43 @@ argument had reached that session's schema. An earlier =org_pending_updates= at
 most likely the call ran before the re-wire, but the transcript cannot confirm
 the order.
 
-*Still owed to a fresh Claude Code session in agentic-euchre:* checks 1, 4, 5
-and 6, the capture half of 8, and the firing half of 9. Check 7 needs the user's
-review pass there.
+*The remaining checks ran 2026-10-12 and 2026-10-13 in noodle-salesman,*
+session 5c832f1e, in place of agentic-euchre. Every check now has an answer.
+
+- *Check 1: passed.* The transcripts show SessionStart, conventions-inject and
+  footnotes-inject firing. =emacsclient -e '(when nil (org-todo "DONE"))'= was
+  blocked before it ran, and the message pointed at =org_set_todo=,
+  =org_clock_in= and =org_clock_out=.
+- *Check 4: passed.* The user reported half, but the amend half ran too. On
+  2026-10-12 the session amended a dated line onto [[id:59861867-e807-43a8-a0fa-5ca227167022][59861867]]. It landed in this
+  repo's TODO.org, not noodle-salesman's, and was committed in 9bc6bbd.
+  =org_body 59861867= also resolved here.
+- *Check 5: passed.* =claude-code-ide-org:twin-checker= is among the session's
+  agent types, with its description, so =agents/= is discovered without an
+  =agents= key. It was listed, not launched.
+- *Check 6: passed.* The commands appear only with the plugin prefix, as
+  =/claude-code-ide-org:plan-slice= and =/claude-code-ide-org:work-slice=. With
+  no =.claude/slice-rules.md=, =plan-slice= went ahead, found the =NEXT= slice
+  and stopped at its first preliminary, the unapplied queue. Nothing was
+  planned.
+- *Check 7: passed there, with a leak here.* A review pass in noodle-salesman
+  applied the keywords and wrote no CLOCK line. It did open the review-attention
+  clock in this repo, because the time-tracking stamp is global ([[id:d30b3481-374c-4921-9fdb-284dd8e09e14][d30b3481]]).
+- *Check 8, capture half: passed.* A capture with no target and no category was
+  refused and wrote nothing. The refusal listed the file's 11 categories and
+  said to declare values in =.claude/rules/org-categories.md=.
+- *Check 9: passed through the plugin's wiring.* The session's =git checkout --
+  TODO.org= was blocked while the file was dirty. The block named =TODO.org=,
+  offered =ALLOW_DISCARD=1= and said it came from the
+  =claude-code-ide-org@skills-dir= plugin. The file stayed dirty, and a
+  =discard-org= miss was queued from that cwd. The override's counting went
+  unexercised, because the cleanup ran in the user's own shell.
+
+*Failures and findings filed.* The global stamp is [[id:d30b3481-374c-4921-9fdb-284dd8e09e14][d30b3481]]. Startup wiring that
+registered no project sessions is [[id:28eed617-e4e0-4d29-88ea-9411de4b77e5][28eed617]]. Another project's closes counted as
+this slice's incidentals is [[id:1c252f9c-6838-4b71-b08b-ff2e77d34dce][1c252f9c]], fixed on the branch. An outside edit to
+the open TODO.org that was apparently written over is [[id:8185c75c-d7a5-42d2-a4eb-bc9dd1e6ce66][8185c75c]], not yet
+reproduced.
 
 
 * TODO The duplicate query reads titles only, so a paraphrase gets past it — including the case that motivated it :code:
