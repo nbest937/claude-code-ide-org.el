@@ -18,6 +18,7 @@ Mode checkpoint" changes the same way; and whether a related rule rides along,
 that a heading captured before design gets only a body (its statement and open
 questions) and its :PLAN: stays empty until a design is approved.
 
+
 * TODO Spike: one .org file per task, for per-task diffs and blame and narrower reads by the MCP server :spike:
 :PROPERTIES:
 :ID:       da9c76b5-1c27-49dd-a305-d6d4b6313188
@@ -44,6 +45,7 @@ manage. The MCP server scans whole files to answer questions about one heading
 ([[id:6a6f6708-eefd-4d77-8ca0-0c5aaaa80796][6a6f6708]], [[id:dc68d831-9e04-4f0a-8b8b-8087b39c6037][dc68d831]]). This spike asks whether one file per task would fix those,
 and what it would break in the org machinery the module is built on.
 
+
 * TODO Design a :CHANGELOG: drawer, so a heading's prose can state what holds now and still say how it got there :code:
 :PROPERTIES:
 :ID:       082ecbe9-e706-49c8-8d9a-d5f6ee3c0abb
@@ -69,6 +71,7 @@ give each heading its own revision record, so a passage can stay current and a
 reader who needs the trail still has it beside the text. Precedent already in
 the file: org_set_tags logs each tag change to :LOGBOOK: with a note. Distinct
 from [[id:4c0044bf-1b6c-44ea-807a-8f9e3523e3fd][4c0044bf]], a project-wide changelog tier, cancelled in 2026-08.
+
 
 * TODO [0/6] PR #37's review found ten defects the slice shipped :code:
 :PROPERTIES:
@@ -12450,6 +12453,7 @@ per tool -- rather than opening the servers beyond localhost.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-10-13 Tue 16:29]--[2026-10-13 Tue 16:31] =>  0:02
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
@@ -12657,6 +12661,7 @@ CLOCK: [2026-10-12 Mon 15:05]--[2026-10-12 Mon 15:12] =>  0:07
 CLOCK: [2026-10-12 Mon 15:44]--[2026-10-12 Mon 15:48] =>  0:04
 - <2026-10-12 Mon 16:22>--<2026-10-12 Mon 16:22> review pass (buffer buried)
 - <2026-10-13 Tue 09:13>--<2026-10-13 Tue 09:13> review pass (buffer buried)
+- <2026-10-13 Tue 16:29>--<2026-10-13 Tue 16:31> review pass (buffer buried)
 :END:
 
 We created this heading on 2026-08-26. We deleted that property from its
