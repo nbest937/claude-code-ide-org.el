@@ -8,15 +8,22 @@
 :CREATED:  [2026-10-13 Tue 15:39]
 :CATEGORY: Skill
 :END:
+:PLAN:
+Decided (the user, 2026-10-13):
+- At design approval the skill recommends, without requiring, that implementation start in a fresh session: =/work-slice= for a slice member, or for a heading in no slice a new session that names the heading's id. No new command.
+- The org skill's "Plan Mode checkpoint" recommends the same at =ExitPlanMode= approval. Plan Mode used together with =/plan-slice= or =/work-slice= is untested, so the wording says nothing about that combination until it has been tried.
+- The second yes stays a gate for anyone who chooses to implement in the same session anyway. (Inferred from "recommend but don't require", not stated by the user.)
+:END:
 
 After design approval the brainstorming skill asks for a second yes and then
-implements in the same session. It should instead recommend a new session and
-/work-slice (the user, 2026-10-13), above all when /plan-slice is brainstorming
-several members in turn and must stop before any work starts. Open: what it
-recommends for a heading that belongs to no slice; whether the org skill's "Plan
-Mode checkpoint" changes the same way; and whether a related rule rides along,
-that a heading captured before design gets only a body (its statement and open
-questions) and its :PLAN: stays empty until a design is approved.
+implements in the same session. That holds wherever the skill is loaded by
+description match or by =/brainstorming=. Only under =/plan-slice= is it told
+never to implement, and that command already ends with a pointer to
+=/work-slice= in a fresh session. A brainstorm that starts in the middle of
+other work therefore offers to implement in an already full context. Open:
+whether the capture-time rule rides along, that a heading captured before design
+gets only a body (its statement and open questions) and its =:PLAN:= stays empty
+until a design is approved.
 
 
 * TODO Spike: one .org file per task, for per-task diffs and blame and narrower reads by the MCP server :spike:
