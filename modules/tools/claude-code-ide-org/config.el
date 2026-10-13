@@ -17023,8 +17023,9 @@ implausible interval.
 A remainder inherits ITEM's heading as a *suggestion* but is marked
 unassigned again when the original was reconstructed: narrowing usually
 means the tail belongs somewhere else, which is the whole reason the
-human reached for `e'.  Never inherits `:marked' -- a remainder is a new
-decision, not part of the batch already confirmed.
+human reached for `e'.  Never inherits `:marked', nor a `D' and its
+reason -- a remainder is a new decision, not part of the batch already
+confirmed or dismissed (PR #37's review, TODO.org :ID: 70d742fa).
 
 *A remainder may never extend past the endpoint the human just set.*
 The events before ITEM's new start and the events after its new end are
@@ -17070,6 +17071,8 @@ side."
           (setq new (plist-put new :start (car span)))
           (setq new (plist-put new :end (cdr span)))
           (setq new (plist-put new :marked nil))
+          (setq new (plist-put new :dismiss nil))
+          (setq new (plist-put new :dismiss-reason nil))
           (setq new (plist-put new :suggested t))
           (setq new (plist-put new :events
                                (seq-filter

@@ -5553,6 +5553,43 @@ span still swallowed the whole original: a 54-minute span truncated to
                            (+ (length (plist-get span :events))
                               (length (plist-get remainder :events)))))))))))
 
+(ert-deftest claude-code-ide-org-test-narrowing-a-dismissed-span-dismisses-no-remainder ()
+  "A remainder of a `D'-marked span carries no `D' of its own.
+
+From PR #37's review (TODO.org :ID: 70d742fa): the remainder was a
+`copy-sequence' of the item that reset `:marked' only, so after `d' then
+`e' the out-of-window events were dismissed at `x' though the human never
+marked their lines."
+  (claude-code-ide-org-test--with-queue
+    (apply #'claude-code-ide-org-test--queue-write "sess-a"
+           (list (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:05:00-0500" "resume" nil nil "sess-a")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:10:00-0500" "pause" nil nil "sess-a")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:20:00-0500" "resume" nil nil "sess-a")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:25:00-0500" "pause" nil nil "sess-a")))
+    (claude-code-ide-org-test--with-review-buffer
+        (claude-code-ide-org--review-items-from-queue)
+      (let* ((items claude-code-ide-org--review-items)
+             (span (seq-find (lambda (i) (plist-get i :unassigned)) items)))
+        (should span)
+        (plist-put span :dismiss t)
+        (plist-put span :dismiss-reason "noise")
+        (claude-code-ide-org-test--goto-nth-item (seq-position items span))
+        (cl-letf (((symbol-function 'read-string)
+                   (lambda (prompt &optional _initial &rest _)
+                     (if (string-prefix-p "Start" prompt)
+                         "[2026-08-13 Thu 09:05]"
+                       "[2026-08-13 Thu 09:10]"))))
+          (claude-code-ide-org-review-edit-interval))
+        (let ((remainder (seq-find (lambda (i) (not (eq i span)))
+                                   claude-code-ide-org--review-items)))
+          (should remainder)
+          (should-not (plist-get remainder :dismiss))
+          (should-not (plist-get remainder :dismiss-reason)))))))
+
 (ert-deftest claude-code-ide-org-test-no-zero-width-remainder ()
   "A single leftover guidepost is not offered as a zero-width remainder.
 
