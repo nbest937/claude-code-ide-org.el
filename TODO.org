@@ -2,7 +2,51 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* TODO [0/10] PR #37's review found ten defects the slice shipped :code:
+* TODO Every id-scoped org_outline scans every heading in every tracked file, and leaks a marker per slice :code:
+:PROPERTIES:
+:ID:       6e888ebd-8148-4576-a91a-2caa283d7f45
+:CREATED:  [2026-10-13 Tue 10:25]
+:CATEGORY: Tools
+:END:
+
+Deferred from [[id:6a6f6708-eefd-4d77-8ca0-0c5aaaa80796][6a6f6708]], finding 10 of PR #37's review ([[id:c12d4189-6bb6-467b-8928-b7bdefcdc921][c12d4189]]). Each scope
+token runs =--membership-scan=, a full =org-map-entries= pass over TODO.org and
+DONE.org, to produce the =slices:= and =blocks:= lines. It also keeps a
+point-marker per slice that is never released. The reviewer proposes one regexp
+search per call instead. This is the same per-call full scan as [[id:dc68d831-9e04-4f0a-8b8b-8087b39c6037][dc68d831]] in the
+slice refresh, so the two may share a fix: a membership table built once and
+invalidated on save.
+
+* TODO --applied-today-p ignores the report scope and parses every .applied file at each SessionStart :code:
+:PROPERTIES:
+:ID:       a543e329-b999-401d-88d7-9048e9a45d2a
+:CREATED:  [2026-10-13 Tue 10:25]
+:CATEGORY: Meta
+:END:
+
+Deferred from [[id:2f4c04a1-db56-4427-ae62-591ba52607c6][2f4c04a1]], finding 9 of PR #37's review ([[id:c12d4189-6bb6-467b-8928-b7bdefcdc921][c12d4189]]). An apply in one
+project makes another project's scoped ceremony report read "reviewed today".
+The function also JSON-parses about 320 watermark files whenever no CLOCK line
+is found, which re-implements =--queue-watermark-data=. The reviewer's fix is a
+today-mtime prefilter plus reuse of that function. Whether a scoped report
+should consult watermarks at all is the open question.
+
+* TODO SessionStart runs the ceremony's write steps inside a 15 s hook, on whatever branch is checked out :code:
+:PROPERTIES:
+:ID:       4bbb8467-b1d4-404c-9ee2-3a97c1d0d620
+:CREATED:  [2026-10-13 Tue 10:25]
+:CATEGORY: Meta
+:END:
+
+Deferred from [[id:826d621c-25f5-4f06-9961-4b23f8658880][826d621c]], finding 6 of PR #37's review ([[id:c12d4189-6bb6-467b-8928-b7bdefcdc921][c12d4189]]), which has the
+details. The ceremony's write steps run synchronously at session start: slice
+refresh, drawer consolidation, spacing, archive, two sorts and the repeater. On
+a large tracker they can outrun the hook's 15 s timeout, leaving the tracker
+dirty with no "commit the diff" line. On a feature branch they write the archive
+and sort onto that branch. Deciding when and where those steps run is a design
+question, so it was not fixed on the slice's branch.
+
+* TODO [0/9] PR #37's review found ten defects the slice shipped :code:
 :PROPERTIES:
 :ID:       c12d4189-6bb6-467b-8928-b7bdefcdc921
 :CREATED:  [2026-10-13 Tue 10:04]
@@ -12,12 +56,32 @@
 CLOCK: [2026-10-13 Tue 10:04]--[2026-10-13 Tue 10:06] =>  0:02
 - [2026-10-13 Tue 10:04]--[2026-10-13 Tue 10:06] file PR #37's review findings
 :END:
+:PLAN:
+Fix the six on the slice's branch, each with a test that fails on HEAD first:
+1. discard-guard, together, since all three touch one script: [[id:789a25c7-84aa-4c30-b8a6-252e149b6114][789a25c7]] (pathspec =':(top)*.org'=), [[id:025a2e8a-9b21-4044-b9df-79baf7e904ce][025a2e8a]] (an absolute git path, =checkout -f=, =switch --discard-changes=/=-f=), [[id:c8ba3f41-1cec-4b67-be0e-145ccebaff8a][c8ba3f41]] (quote-aware segment splitting).
+2. [[id:70d742fa-dc41-4005-8c07-01df75b3331f][70d742fa]]: the =e= remainder path clears =:dismiss= and =:dismiss-reason=.
+3. [[id:84e9c7ef-72f2-4694-b471-1419f8b0dd33][84e9c7ef]]: =blocks:= excludes every blocker entry whose id is in the scoped subtree.
+4. [[id:9c1afc7a-161d-4e4c-aa93-9c02becfb5ba][9c1afc7a]]: the bury confines the due check and the repeater advance to the project whose steps ran.
+After each fix, reply on its [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]] thread naming the commit, and resolve the
+thread.
+:END:
 
 The =/code-review high --comment 37= run of 2026-10-12 posted ten inline
 comments on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]] against slice [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]]. Each comment is a child here: one is
 fixed on the branch before merge, the rest are deferred with a reason. Findings
 1, 3 and 4 were reproduced in a scratch repo; the rest come from reading the
 code.
+
+*Triage, 2026-10-13 (the user).* Six findings are fixed on the branch: the three
+discard-guard holes, the dismiss flag carried into split pieces, the =blocks:=
+line, and the ceremony advance that crosses projects. Four are deferred as
+design questions. Three of them are cancelled here, each linking to a new
+top-level heading: [[id:826d621c-25f5-4f06-9961-4b23f8658880][826d621c]] to [[id:4bbb8467-b1d4-404c-9ee2-3a97c1d0d620][4bbb8467]], [[id:2f4c04a1-db56-4427-ae62-591ba52607c6][2f4c04a1]] to [[id:a543e329-b999-401d-88d7-9048e9a45d2a][a543e329]], and [[id:6a6f6708-eefd-4d77-8ca0-0c5aaaa80796][6a6f6708]] to
+[[id:6e888ebd-8148-4576-a91a-2caa283d7f45][6e888ebd]], which joins slice [[id:7dcec489-f5dd-4f7f-b819-a25405436b9b][7dcec489]]. The fourth, finding 5, was already filed
+as [[id:d30b3481-374c-4921-9fdb-284dd8e09e14][d30b3481]]. It went back to the top level, was dropped from slice [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]], and
+joined slice [[id:7ae1cff4-c0df-4ac0-9aea-a778b2373061][7ae1cff4]], the clock-record slice. So this story holds nine
+children, not ten.
+
 
 
 ** TODO discard-guard's dirty-file scan is relative to cwd, so from a subdirectory a dirty root TODO.org goes unseen and reset --hard goes through
@@ -85,6 +149,10 @@ kills the hook but Emacs finishes writing, so the session never gets the "commit
 the diff" line and the tracker is left dirty. Separately, a session started on a
 feature branch writes its archive and sort onto that branch's TODO.org.
 
+Deferred 2026-10-13 to [[id:4bbb8467-b1d4-404c-9ee2-3a97c1d0d620][4bbb8467]] (the user): when and where the ceremony's write
+steps run is a design question, not a patch for the slice's branch.
+
+
 
 ** TODO org_outline's blocks: line reports a story blocking its own child
 :PROPERTIES:
@@ -123,6 +191,10 @@ respects =--report-scope=. It also JSON-parses about 320 watermark files
 whenever no CLOCK line is found, which re-implements =--queue-watermark-data=. A
 today-mtime prefilter and reuse of that function avoid both.
 
+Deferred 2026-10-13 to [[id:a543e329-b999-401d-88d7-9048e9a45d2a][a543e329]] (the user): whether a scoped report should
+consult watermarks at all needs deciding before the cost is fixed.
+
+
 
 ** TODO Every id-scoped org_outline scans every heading in every tracked file, and leaks a marker per slice
 :PROPERTIES:
@@ -137,8 +209,12 @@ keeps a point-marker per slice that is never released, which slows later edits
 until GC. One regexp search per call for =:KIND: *slice= and =:BLOCKER:= lines
 does the same job.
 
+Deferred 2026-10-13 to [[id:6e888ebd-8148-4576-a91a-2caa283d7f45][6e888ebd]] (the user), a member of slice [[id:7dcec489-f5dd-4f7f-b819-a25405436b9b][7dcec489]] beside
+[[id:dc68d831-9e04-4f0a-8b8b-8087b39c6037][dc68d831]], the same full scan in the slice refresh. The two may share one fix.
 
-** TODO The time-tracking stamp is global and every project's session start rewrites it, so the last session to start decides whether the review pass opens a clock :code:
+
+
+* TODO The time-tracking stamp is global and every project's session start rewrites it, so the last session to start decides whether the review pass opens a clock :code:
 :PROPERTIES:
 :ID:       d30b3481-374c-4921-9fdb-284dd8e09e14
 :CREATED:  [2026-10-10 Sat 18:31]
@@ -898,15 +974,15 @@ references, =M-x customize-group claude-code-ide-org= and the commands. Written
 last, since it points at the other three.
 
 
-* TODO [0/10] The clock record beneath the review pass is still wrong: correctness, reporting, and the attention clock :code:
+* TODO [0/11] The clock record beneath the review pass is still wrong: correctness, reporting, and the attention clock :code:
 :PROPERTIES:
 :ID:       7ae1cff4-c0df-4ac0-9aea-a778b2373061
 :CREATED:  [2026-10-09 Fri 11:15]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:MEMBERS:  595df230-e31d-42ad-9ea7-128e545b9aa0 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 001fb310-69f7-4417-81be-a224a3bf83e0 55125136-5939-434e-9676-96ea66a75770 37147e9e-468b-43ee-91f9-45d9647c6164 64d34a64-d336-40a8-a8e8-da8133d0da06 445ec1f1-095a-462b-abbd-7a3a00925ddb
-:BLOCKER:  595df230-e31d-42ad-9ea7-128e545b9aa0 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 001fb310-69f7-4417-81be-a224a3bf83e0 55125136-5939-434e-9676-96ea66a75770 37147e9e-468b-43ee-91f9-45d9647c6164 64d34a64-d336-40a8-a8e8-da8133d0da06 445ec1f1-095a-462b-abbd-7a3a00925ddb
+:MEMBERS:  595df230-e31d-42ad-9ea7-128e545b9aa0 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 001fb310-69f7-4417-81be-a224a3bf83e0 55125136-5939-434e-9676-96ea66a75770 37147e9e-468b-43ee-91f9-45d9647c6164 64d34a64-d336-40a8-a8e8-da8133d0da06 445ec1f1-095a-462b-abbd-7a3a00925ddb d30b3481-374c-4921-9fdb-284dd8e09e14
+:BLOCKER:  595df230-e31d-42ad-9ea7-128e545b9aa0 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 001fb310-69f7-4417-81be-a224a3bf83e0 55125136-5939-434e-9676-96ea66a75770 37147e9e-468b-43ee-91f9-45d9647c6164 64d34a64-d336-40a8-a8e8-da8133d0da06 445ec1f1-095a-462b-abbd-7a3a00925ddb d30b3481-374c-4921-9fdb-284dd8e09e14
 :END:
 :PLAN:
 Divided out of [[id:c7619140-f269-4329-bc05-a38ea151e202][c7619140]] on 2026-10-09 (the user, a three-way split): the "clock
@@ -938,6 +1014,7 @@ Planned:
 - [ ] [[id:37147e9e-468b-43ee-91f9-45d9647c6164][37147e9e]] TODO Report worked headings that carry no clock interval that day
 - [ ] [[id:64d34a64-d336-40a8-a8e8-da8133d0da06][64d34a64]] NEXT A clocktable never shows a parent's own time, only own-plus-subtree
 - [ ] [[id:445ec1f1-095a-462b-abbd-7a3a00925ddb][445ec1f1]] TODO A/B the clock record across the phase-3 fixes, since much of what is logged now is bogus
+- [ ] [[id:d30b3481-374c-4921-9fdb-284dd8e09e14][d30b3481]] TODO The time-tracking stamp is global and every project's session start rewrites it, so the last session to start decides whether the review pass opens a clock
 
 
 * REVIEW [15/25] The review pass every install uses: movement, marking, apply, quit, and no clock where tracking is off :code:
@@ -948,7 +1025,7 @@ Planned:
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
 :MEMBERS:  97b4f6a9-a944-40d3-8d14-7a1667c52291 24694d1f-34b4-495b-b0d8-d29e64894c59 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 41f21b4d-278d-4ad8-a56f-122f5af33d65 9f6b19b5-18db-4d56-8545-9552a5b4e935 d66ae1d2-5a40-4f4d-ae51-c8977e78681c b3177ed0-9747-4e31-ad65-bac25b9bdd1f d241ab6e-6cfe-482a-8980-8cb222d7ab12 e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 ee3c22c9-f99c-4d41-9c3d-8f39af916fff 6c64cc9c-33a9-4a20-af19-c188a690c755 79c224ab-188a-4ed4-a606-c28ee2cfe72d 361e2708-8124-4bd1-9c44-f97ca97aca4a 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd de081dd9-1853-4d79-94fc-2edac498380f 2b8930da-5223-4b75-b4f6-251a28552d1b 789a25c7-84aa-4c30-b8a6-252e149b6114 9c1afc7a-161d-4e4c-aa93-9c02becfb5ba 025a2e8a-9b21-4044-b9df-79baf7e904ce c8ba3f41-1cec-4b67-be0e-145ccebaff8a d30b3481-374c-4921-9fdb-284dd8e09e14 826d621c-25f5-4f06-9961-4b23f8658880 84e9c7ef-72f2-4694-b471-1419f8b0dd33 70d742fa-dc41-4005-8c07-01df75b3331f 2f4c04a1-db56-4427-ae62-591ba52607c6 6a6f6708-eefd-4d77-8ca0-0c5aaaa80796
-:DROPPED:  489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd
+:DROPPED:  489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd d30b3481-374c-4921-9fdb-284dd8e09e14
 :BLOCKER:  789a25c7-84aa-4c30-b8a6-252e149b6114 9c1afc7a-161d-4e4c-aa93-9c02becfb5ba 025a2e8a-9b21-4044-b9df-79baf7e904ce c8ba3f41-1cec-4b67-be0e-145ccebaff8a d30b3481-374c-4921-9fdb-284dd8e09e14 826d621c-25f5-4f06-9961-4b23f8658880 84e9c7ef-72f2-4694-b471-1419f8b0dd33 70d742fa-dc41-4005-8c07-01df75b3331f 2f4c04a1-db56-4427-ae62-591ba52607c6 6a6f6708-eefd-4d77-8ca0-0c5aaaa80796
 :END:
 :LOGBOOK:
@@ -2006,15 +2083,15 @@ symlink and fails now. Live: 31 archived plans were exported, and the real
 tracker linted with 0 errors with =goofy-baking-wall.md= aged out.
 
 
-* TODO [0/6] A slice's checklist can disagree with its members, and nothing can say so or fix it :code:
+* TODO [0/7] A slice's checklist can disagree with its members, and nothing can say so or fix it :code:
 :PROPERTIES:
 :ID:       7dcec489-f5dd-4f7f-b819-a25405436b9b
 :CREATED:  [2026-09-28 Mon 08:26]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:MEMBERS:  cdff5c91-3dc1-476e-a8f2-5293570a19fc a00ace04-99bd-414a-8dc7-df8305126589 a508c59e-475e-4d27-84c9-6c3ded98e15c 6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0 b112878e-6313-4bc6-bc3f-0533d5f1ad1b dc68d831-9e04-4f0a-8b8b-8087b39c6037
-:BLOCKER:  cdff5c91-3dc1-476e-a8f2-5293570a19fc a00ace04-99bd-414a-8dc7-df8305126589 a508c59e-475e-4d27-84c9-6c3ded98e15c 6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0 b112878e-6313-4bc6-bc3f-0533d5f1ad1b dc68d831-9e04-4f0a-8b8b-8087b39c6037
+:MEMBERS:  cdff5c91-3dc1-476e-a8f2-5293570a19fc a00ace04-99bd-414a-8dc7-df8305126589 a508c59e-475e-4d27-84c9-6c3ded98e15c 6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0 b112878e-6313-4bc6-bc3f-0533d5f1ad1b dc68d831-9e04-4f0a-8b8b-8087b39c6037 6e888ebd-8148-4576-a91a-2caa283d7f45
+:BLOCKER:  cdff5c91-3dc1-476e-a8f2-5293570a19fc a00ace04-99bd-414a-8dc7-df8305126589 a508c59e-475e-4d27-84c9-6c3ded98e15c 6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0 b112878e-6313-4bc6-bc3f-0533d5f1ad1b dc68d831-9e04-4f0a-8b8b-8087b39c6037 6e888ebd-8148-4576-a91a-2caa283d7f45
 :END:
 :PLAN:
 Composed 2026-09-28 from the backlog survey, at the user's direction. The theme:
@@ -2058,6 +2135,7 @@ Planned:
 - [ ] [[id:6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0][6af8fb3e]] TODO org_slice_add_member's after= inserts between a story and its nested children, splitting the block
 - [ ] [[id:b112878e-6313-4bc6-bc3f-0533d5f1ad1b][b112878e]] TODO org_slice_add_member cannot prepend or reorder, so declared order is append-only
 - [ ] [[id:dc68d831-9e04-4f0a-8b8b-8087b39c6037][dc68d831]] TODO Slice refresh re-scans every heading for other slices' members once per slice
+- [ ] [[id:6e888ebd-8148-4576-a91a-2caa283d7f45][6e888ebd]] TODO Every id-scoped org_outline scans every heading in every tracked file, and leaks a marker per slice
 
 A slice's checklist is rendered from =:MEMBERS:=, and nothing checks that the
 rendering matches its members, repairs a closed slice's record, or lets a member
