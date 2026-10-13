@@ -18278,9 +18278,22 @@ heading separation, then archive (TODO.org :ID: 29734f79).
 Each step is reported, success or failure, because a step that silently
 did not run is the failure this project keeps finding.  A step that
 signals does not stop the ones after it: they are independent, and
-losing two because the first broke would be worse than a partial pass."
+losing two because the first broke would be worse than a partial pass.
+
+*One project's ceremony.*  The steps act on the capture target's
+tracker, and the report scope is bound to that tracker's project for the
+whole pass, so the due check and the repeater advance read only the
+ceremony whose steps ran.  Unscoped, the bury marked every tracked
+project's overdue ceremony DONE, and a consumer's own session start then
+found nothing due and never archived (PR #37's review, TODO.org :ID:
+9c1afc7a)."
   (interactive)
-  (let* ((results (claude-code-ide-org--ceremony-run-steps))
+  (let* ((file (claude-code-ide-org--capture-target-file))
+         (claude-code-ide-org--report-scope
+          (or (and file (claude-code-ide-org--project-root
+                         (file-name-directory (file-truename file))))
+              claude-code-ide-org--report-scope))
+         (results (claude-code-ide-org--ceremony-run-steps file))
          (failed (seq-some #'claude-code-ide-org--ceremony-step-failed-p results))
          ;; Newest first, as the `push' below expects; reversed at the end.
          (parts (nreverse (mapcar #'claude-code-ide-org--ceremony-step-text

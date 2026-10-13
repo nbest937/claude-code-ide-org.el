@@ -14087,6 +14087,39 @@ finish pass calls the refresh alongside its siblings."
       (claude-code-ide-org-ceremony-finish))
     (should called)))
 
+(ert-deftest claude-code-ide-org-test-ceremony-finish-advances-only-its-own-project ()
+  "The bury's ceremony advances the repeater only in the project its steps ran on.
+
+From PR #37's review (TODO.org :ID: 9c1afc7a): the steps ran on the
+default tracker, but the due check and the advance read every tracked
+project, so a consumer's overdue ceremony was marked DONE and its own
+session start then found nothing due and never archived."
+  (claude-code-ide-org-test--with-two-projects
+   (let ((overdue (claude-code-ide-org-test--org-date -3)))
+    (dolist (f (list a-todo b-todo))
+      (with-temp-file f
+        (insert "#+TODO: TODO | DONE\n\n* TODO Archive closed tasks daily\n"
+                "SCHEDULED: <" overdue " ++1d>\n"
+                ":PROPERTIES:\n:KIND:     ceremony\n:END:\n")))
+    (cl-letf (((symbol-function 'claude-code-ide-org-refresh-slice) (lambda (&rest _) 0))
+              ((symbol-function 'claude-code-ide-org-consolidate-all-drawers) (lambda () 0))
+              ((symbol-function 'claude-code-ide-org-normalize-heading-separation)
+               (lambda (&rest _) 0))
+              ((symbol-function 'claude-code-ide-org-archive-finished) (lambda (&rest _) 0))
+              ((symbol-function 'claude-code-ide-org-sort-by-created) (lambda (&rest _) 0))
+              ((symbol-function 'claude-code-ide-org-sort-datetree-descending)
+               (lambda (&rest _) 0))
+              ((symbol-function 'claude-code-ide-org-mark-ceremony-done)
+               (lambda (&optional _s) nil)))
+      (should (string-match-p "repeater: advanced" (claude-code-ide-org-ceremony-finish))))
+    (let ((scheduled (lambda (f)
+                       (with-temp-buffer
+                         (insert-file-contents f)
+                         (and (re-search-forward "SCHEDULED: <\\([0-9-]+\\)" nil t)
+                              (match-string 1))))))
+      (should-not (equal (substring overdue 0 10) (funcall scheduled a-todo)))
+      (should (equal (substring overdue 0 10) (funcall scheduled b-todo)))))))
+
 (ert-deftest claude-code-ide-org-test-session-start-payload-carries-both-reports ()
   "One hook, one payload, either half optional.
 
