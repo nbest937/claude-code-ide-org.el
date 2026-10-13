@@ -2,6 +2,58 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Spike: one .org file per task, for per-task diffs and blame and narrower reads by the MCP server :spike:
+:PROPERTIES:
+:ID:       da9c76b5-1c27-49dd-a305-d6d4b6313188
+:CREATED:  [2026-10-13 Tue 14:53]
+:CATEGORY: Tools
+:END:
+:PLAN:
+Questions the spike answers, each by measurement or a scratch-repo trial rather
+than by reading:
+- *What breaks?* Go through each mechanism and say whether it survives a directory of files: =org-id-locations=, the agenda and =org-agenda-files=, =org-ql= over many files, archiving into =DONE.org=, refile, the slice refresh and =:BLOCKER:= resolution, stories (a parent and its children across files, or one file per top-level heading), the statistics cookies, the =:CATEGORY:= drawer, the lint, the footnote check, =org_history=, and the ceremony's sorts.
+- *What gets better, measured?* Diff and blame for one task, conflicts between sessions on one buffer, and the cost of an id-scoped read compared with today's whole-file scan.
+- *Which granularity?* One file per task, per top-level heading (a story keeps its children), or per category. And whether finished work still goes into one =DONE.org=.
+- *Precedent:* denote, org-roam and =org-attach= directories all keep one note per file. Note what each gave up.
+- *Migration:* whether a split is reversible, and what a consumer repo would have to do.
+
+The outcome is a recommendation with numbers, not a migration.
+:END:
+
+Every live task shares TODO.org, about 12,000 lines, and every finished one
+DONE.org, about 47,000. So a git diff or blame answers for the whole tracker
+rather than for a task. Concurrent sessions and the human contend for one
+buffer, which is what the unsaved-buffer refusals and the discard guard exist to
+manage. The MCP server scans whole files to answer questions about one heading
+([[id:6a6f6708-eefd-4d77-8ca0-0c5aaaa80796][6a6f6708]], [[id:dc68d831-9e04-4f0a-8b8b-8087b39c6037][dc68d831]]). This spike asks whether one file per task would fix those,
+and what it would break in the org machinery the module is built on.
+
+* TODO Design a :CHANGELOG: drawer, so a heading's prose can state what holds now and still say how it got there :code:
+:PROPERTIES:
+:ID:       082ecbe9-e706-49c8-8d9a-d5f6ee3c0abb
+:CREATED:  [2026-10-13 Tue 14:53]
+:CATEGORY: Skill
+:END:
+:PLAN:
+Questions to settle before any code:
+- *Does org already have it?* Org's own notes (=org-add-note=, =C-c C-z=) land in =:LOGBOOK:= under =org-log-into-drawer=, beside state changes and the =org_set_tags= lines. A separate drawer must say what it buys over a note kind there, since a second history record is a twin of the first.
+- *What is one entry?* Date, who (the user or a session), which region (body, =:PLAN:=, =:DEBRIEF:=), a one-line why, and a commit link, perhaps. Whether the old text is quoted, or left to git.
+- *Who writes it?* =org_edit= could append an entry on every write, which makes it complete but noisy. Or a session writes one only when meaning changes, which makes it judged but skippable. A hand edit in Emacs writes nothing either way.
+- *How is it read?* Collapsed by default, and whether =org_outline= and =org_body= skip it as they skip drawers today.
+- *What retires?* The provenance parentheticals, ruled-out lines and reversal notices the conventions keep in the prose, partly or wholly. Ruled-out lines probably stay, since they stop a repeat and a reader must meet them without opening a drawer.
+- *Where does the standard go?* The conventions' "Revising a pre-convention body" section holds today's revision standard under a name that has outlived its backlog. This task's outcome rewrites it as a general section.
+:END:
+
+A body and its :PLAN: are revised in place and state only what holds now. Their
+history is left to git, which records it for the whole of TODO.org at once and
+attributes a change to a heading only when a commit message cites its id
+(org_history). The only histories kept in the prose are provenance
+parentheticals, ruled-out lines and reversal notices. A :CHANGELOG: drawer would
+give each heading its own revision record, so a passage can stay current and a
+reader who needs the trail still has it beside the text. Precedent already in
+the file: org_set_tags logs each tag change to :LOGBOOK: with a note. Distinct
+from [[id:4c0044bf-1b6c-44ea-807a-8f9e3523e3fd][4c0044bf]], a project-wide changelog tier, cancelled in 2026-08.
+
 * TODO [0/6] PR #37's review found ten defects the slice shipped :code:
 :PROPERTIES:
 :ID:       c12d4189-6bb6-467b-8928-b7bdefcdc921
