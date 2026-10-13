@@ -2,54 +2,7 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* TODO Every id-scoped org_outline scans every heading in every tracked file, and leaks a marker per slice :code:
-:PROPERTIES:
-:ID:       6e888ebd-8148-4576-a91a-2caa283d7f45
-:CREATED:  [2026-10-13 Tue 10:25]
-:CATEGORY: Tools
-:END:
-
-Deferred from [[id:6a6f6708-eefd-4d77-8ca0-0c5aaaa80796][6a6f6708]], finding 10 of PR #37's review ([[id:c12d4189-6bb6-467b-8928-b7bdefcdc921][c12d4189]]). Each scope
-token runs =--membership-scan=, a full =org-map-entries= pass over TODO.org and
-DONE.org, to produce the =slices:= and =blocks:= lines. It also keeps a
-point-marker per slice that is never released. The reviewer proposes one regexp
-search per call instead. This is the same per-call full scan as [[id:dc68d831-9e04-4f0a-8b8b-8087b39c6037][dc68d831]] in the
-slice refresh, so the two may share a fix: a membership table built once and
-invalidated on save.
-
-
-* TODO --applied-today-p ignores the report scope and parses every .applied file at each SessionStart :code:
-:PROPERTIES:
-:ID:       a543e329-b999-401d-88d7-9048e9a45d2a
-:CREATED:  [2026-10-13 Tue 10:25]
-:CATEGORY: Meta
-:END:
-
-Deferred from [[id:2f4c04a1-db56-4427-ae62-591ba52607c6][2f4c04a1]], finding 9 of PR #37's review ([[id:c12d4189-6bb6-467b-8928-b7bdefcdc921][c12d4189]]). An apply in one
-project makes another project's scoped ceremony report read "reviewed today".
-The function also JSON-parses about 320 watermark files whenever no CLOCK line
-is found, which re-implements =--queue-watermark-data=. The reviewer's fix is a
-today-mtime prefilter plus reuse of that function. Whether a scoped report
-should consult watermarks at all is the open question.
-
-
-* TODO SessionStart runs the ceremony's write steps inside a 15 s hook, on whatever branch is checked out :code:
-:PROPERTIES:
-:ID:       4bbb8467-b1d4-404c-9ee2-3a97c1d0d620
-:CREATED:  [2026-10-13 Tue 10:25]
-:CATEGORY: Meta
-:END:
-
-Deferred from [[id:826d621c-25f5-4f06-9961-4b23f8658880][826d621c]], finding 6 of PR #37's review ([[id:c12d4189-6bb6-467b-8928-b7bdefcdc921][c12d4189]]), which has the
-details. The ceremony's write steps run synchronously at session start: slice
-refresh, drawer consolidation, spacing, archive, two sorts and the repeater. On
-a large tracker they can outrun the hook's 15 s timeout, leaving the tracker
-dirty with no "commit the diff" line. On a feature branch they write the archive
-and sort onto that branch. Deciding when and where those steps run is a design
-question, so it was not fixed on the slice's branch.
-
-
-* TODO [3/9] PR #37's review found ten defects the slice shipped :code:
+* TODO [0/6] PR #37's review found ten defects the slice shipped :code:
 :PROPERTIES:
 :ID:       c12d4189-6bb6-467b-8928-b7bdefcdc921
 :CREATED:  [2026-10-13 Tue 10:04]
@@ -82,12 +35,15 @@ code.
 *Triage, 2026-10-13 (the user).* Six findings are fixed on the branch: the three
 discard-guard holes, the dismiss flag carried into split pieces, the =blocks:=
 line, and the ceremony advance that crosses projects. Four are deferred as
-design questions. Three of them are cancelled here, each linking to a new
-top-level heading: [[id:826d621c-25f5-4f06-9961-4b23f8658880][826d621c]] to [[id:4bbb8467-b1d4-404c-9ee2-3a97c1d0d620][4bbb8467]], [[id:2f4c04a1-db56-4427-ae62-591ba52607c6][2f4c04a1]] to [[id:a543e329-b999-401d-88d7-9048e9a45d2a][a543e329]], and [[id:6a6f6708-eefd-4d77-8ca0-0c5aaaa80796][6a6f6708]] to
-[[id:6e888ebd-8148-4576-a91a-2caa283d7f45][6e888ebd]], which joins slice [[id:7dcec489-f5dd-4f7f-b819-a25405436b9b][7dcec489]]. The fourth, finding 5, was already filed
-as [[id:d30b3481-374c-4921-9fdb-284dd8e09e14][d30b3481]]. It went back to the top level, was dropped from slice [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]], and
-joined slice [[id:7ae1cff4-c0df-4ac0-9aea-a778b2373061][7ae1cff4]], the clock-record slice. So this story holds nine
-children, not ten.
+design questions, and each deferred finding left this story for the top level,
+still open: [[id:826d621c-25f5-4f06-9961-4b23f8658880][826d621c]] and [[id:2f4c04a1-db56-4427-ae62-591ba52607c6][2f4c04a1]] (Meta), [[id:6a6f6708-eefd-4d77-8ca0-0c5aaaa80796][6a6f6708]], which joined slice [[id:7dcec489-f5dd-4f7f-b819-a25405436b9b][7dcec489]],
+and finding 5, already filed as [[id:d30b3481-374c-4921-9fdb-284dd8e09e14][d30b3481]], which was dropped from slice [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]]
+and joined [[id:7ae1cff4-c0df-4ac0-9aea-a778b2373061][7ae1cff4]], the clock-record slice. So this story holds the six fixed
+findings.
+
+The first three were first cancelled here and copied to new top-level headings.
+That was a mistake: =CANCELLED= reads as "won't do", and the copies were twins.
+They were moved out and reopened instead, and the copies were deleted.
 
 
 ** REVIEW discard-guard's dirty-file scan is relative to cwd, so from a subdirectory a dirty root TODO.org goes unseen and reset --hard goes through
@@ -189,28 +145,6 @@ only outside quotes. The splitter is awk, because a bash per-character loop took
 stays in the count, which is a floor rather than a ledger.
 
 
-** CANCELLED SessionStart runs the ceremony's write steps inside a 15 s hook, on whatever branch is checked out
-CLOSED: [2026-10-13 Tue 10:26]
-:PROPERTIES:
-:ID:       826d621c-25f5-4f06-9961-4b23f8658880
-:CREATED:  [2026-10-13 Tue 10:04]
-:END:
-:LOGBOOK:
-- State "CANCELLED"  from "TODO"       [2026-10-13 Tue 10:26] \\
-  deferred to 4bbb8467
-:END:
-
-Review finding 6 on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]]. Session start now runs the ceremony's write steps
-synchronously: slice refresh, drawer consolidation, spacing, archive, two sorts
-and the repeater. On a large tracker this outruns the 15 s timeout. Claude Code
-kills the hook but Emacs finishes writing, so the session never gets the "commit
-the diff" line and the tracker is left dirty. Separately, a session started on a
-feature branch writes its archive and sort onto that branch's TODO.org.
-
-Deferred 2026-10-13 to [[id:4bbb8467-b1d4-404c-9ee2-3a97c1d0d620][4bbb8467]] (the user): when and where the ceremony's write
-steps run is a design question, not a patch for the slice's branch.
-
-
 ** REVIEW org_outline's blocks: line reports a story blocking its own child
 :PROPERTIES:
 :ID:       84e9c7ef-72f2-4694-b471-1419f8b0dd33
@@ -254,15 +188,18 @@ Fixed in commit [[orgit-rev:./::f64bd33][f64bd33]]: the remainder path clears =:
 =:dismiss-reason= alongside =:marked=.
 
 
-** CANCELLED --applied-today-p ignores the report scope and parses every .applied file at each SessionStart
+* CANCELLED --applied-today-p ignores the report scope and parses every .applied file at each SessionStart :code:
 CLOSED: [2026-10-13 Tue 10:26]
 :PROPERTIES:
 :ID:       2f4c04a1-db56-4427-ae62-591ba52607c6
 :CREATED:  [2026-10-13 Tue 10:04]
+:CATEGORY: Meta
 :END:
 :LOGBOOK:
 - State "CANCELLED"  from "TODO"       [2026-10-13 Tue 10:26] \\
   deferred to a543e329
+- Tags ":code:"     from ""           [2026-10-13 Tue 14:05] \\
+  promoted out of the review story; no longer inherits
 :END:
 
 Review finding 9 on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]]. An apply in project A makes project B's scoped
@@ -271,19 +208,23 @@ respects =--report-scope=. It also JSON-parses about 320 watermark files
 whenever no CLOCK line is found, which re-implements =--queue-watermark-data=. A
 today-mtime prefilter and reuse of that function avoid both.
 
-Deferred 2026-10-13 to [[id:a543e329-b999-401d-88d7-9048e9a45d2a][a543e329]] (the user): whether a scoped report should
-consult watermarks at all needs deciding before the cost is fixed.
+Deferred 2026-10-13 out of the review story [[id:c12d4189-6bb6-467b-8928-b7bdefcdc921][c12d4189]] (the user): whether a
+scoped report should consult watermarks at all needs deciding before the cost is
+fixed.
 
 
-** CANCELLED Every id-scoped org_outline scans every heading in every tracked file, and leaks a marker per slice
+* CANCELLED Every id-scoped org_outline scans every heading in every tracked file, and leaks a marker per slice :code:
 CLOSED: [2026-10-13 Tue 10:26]
 :PROPERTIES:
 :ID:       6a6f6708-eefd-4d77-8ca0-0c5aaaa80796
 :CREATED:  [2026-10-13 Tue 10:04]
+:CATEGORY: Tools
 :END:
 :LOGBOOK:
 - State "CANCELLED"  from "TODO"       [2026-10-13 Tue 10:26] \\
   deferred to 6e888ebd
+- Tags ":code:"     from ""           [2026-10-13 Tue 14:05] \\
+  promoted out of the review story; no longer inherits
 :END:
 
 Review finding 10 on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]]. Each scope token runs =--membership-scan=, a full
@@ -293,8 +234,35 @@ keeps a point-marker per slice that is never released, which slows later edits
 until GC. One regexp search per call for =:KIND: *slice= and =:BLOCKER:= lines
 does the same job.
 
-Deferred 2026-10-13 to [[id:6e888ebd-8148-4576-a91a-2caa283d7f45][6e888ebd]] (the user), a member of slice [[id:7dcec489-f5dd-4f7f-b819-a25405436b9b][7dcec489]] beside
-[[id:dc68d831-9e04-4f0a-8b8b-8087b39c6037][dc68d831]], the same full scan in the slice refresh. The two may share one fix.
+Deferred 2026-10-13 out of the review story [[id:c12d4189-6bb6-467b-8928-b7bdefcdc921][c12d4189]] (the user) into slice
+[[id:7dcec489-f5dd-4f7f-b819-a25405436b9b][7dcec489]], beside [[id:dc68d831-9e04-4f0a-8b8b-8087b39c6037][dc68d831]], the same full scan in the slice refresh. The two may
+share one fix: a membership table built once and invalidated on save.
+
+
+* CANCELLED SessionStart runs the ceremony's write steps inside a 15 s hook, on whatever branch is checked out :code:
+CLOSED: [2026-10-13 Tue 10:26]
+:PROPERTIES:
+:ID:       826d621c-25f5-4f06-9961-4b23f8658880
+:CREATED:  [2026-10-13 Tue 10:04]
+:CATEGORY: Meta
+:END:
+:LOGBOOK:
+- State "CANCELLED"  from "TODO"       [2026-10-13 Tue 10:26] \\
+  deferred to 4bbb8467
+- Tags ":code:"     from ""           [2026-10-13 Tue 14:05] \\
+  promoted out of the review story; no longer inherits
+:END:
+
+Review finding 6 on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]]. Session start now runs the ceremony's write steps
+synchronously: slice refresh, drawer consolidation, spacing, archive, two sorts
+and the repeater. On a large tracker this outruns the 15 s timeout. Claude Code
+kills the hook but Emacs finishes writing, so the session never gets the "commit
+the diff" line and the tracker is left dirty. Separately, a session started on a
+feature branch writes its archive and sort onto that branch's TODO.org.
+
+Deferred 2026-10-13 out of the review story [[id:c12d4189-6bb6-467b-8928-b7bdefcdc921][c12d4189]] (the user): when and where
+the ceremony's write steps run is a design question, not a patch for the slice's
+branch.
 
 
 * TODO The time-tracking stamp is global and every project's session start rewrites it, so the last session to start decides whether the review pass opens a clock :code:
@@ -2167,15 +2135,15 @@ symlink and fails now. Live: 31 archived plans were exported, and the real
 tracker linted with 0 errors with =goofy-baking-wall.md= aged out.
 
 
-* TODO [0/7] A slice's checklist can disagree with its members, and nothing can say so or fix it :code:
+* TODO [0/6] A slice's checklist can disagree with its members, and nothing can say so or fix it :code:
 :PROPERTIES:
 :ID:       7dcec489-f5dd-4f7f-b819-a25405436b9b
 :CREATED:  [2026-09-28 Mon 08:26]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:MEMBERS:  cdff5c91-3dc1-476e-a8f2-5293570a19fc a00ace04-99bd-414a-8dc7-df8305126589 a508c59e-475e-4d27-84c9-6c3ded98e15c 6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0 b112878e-6313-4bc6-bc3f-0533d5f1ad1b dc68d831-9e04-4f0a-8b8b-8087b39c6037 6e888ebd-8148-4576-a91a-2caa283d7f45
-:BLOCKER:  cdff5c91-3dc1-476e-a8f2-5293570a19fc a00ace04-99bd-414a-8dc7-df8305126589 a508c59e-475e-4d27-84c9-6c3ded98e15c 6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0 b112878e-6313-4bc6-bc3f-0533d5f1ad1b dc68d831-9e04-4f0a-8b8b-8087b39c6037 6e888ebd-8148-4576-a91a-2caa283d7f45
+:MEMBERS:  cdff5c91-3dc1-476e-a8f2-5293570a19fc a00ace04-99bd-414a-8dc7-df8305126589 a508c59e-475e-4d27-84c9-6c3ded98e15c 6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0 b112878e-6313-4bc6-bc3f-0533d5f1ad1b dc68d831-9e04-4f0a-8b8b-8087b39c6037 6a6f6708-eefd-4d77-8ca0-0c5aaaa80796
+:BLOCKER:  cdff5c91-3dc1-476e-a8f2-5293570a19fc a00ace04-99bd-414a-8dc7-df8305126589 a508c59e-475e-4d27-84c9-6c3ded98e15c 6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0 b112878e-6313-4bc6-bc3f-0533d5f1ad1b dc68d831-9e04-4f0a-8b8b-8087b39c6037
 :END:
 :PLAN:
 Composed 2026-09-28 from the backlog survey, at the user's direction. The theme:
@@ -2219,7 +2187,7 @@ Planned:
 - [ ] [[id:6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0][6af8fb3e]] TODO org_slice_add_member's after= inserts between a story and its nested children, splitting the block
 - [ ] [[id:b112878e-6313-4bc6-bc3f-0533d5f1ad1b][b112878e]] TODO org_slice_add_member cannot prepend or reorder, so declared order is append-only
 - [ ] [[id:dc68d831-9e04-4f0a-8b8b-8087b39c6037][dc68d831]] TODO Slice refresh re-scans every heading for other slices' members once per slice
-- [ ] [[id:6e888ebd-8148-4576-a91a-2caa283d7f45][6e888ebd]] TODO Every id-scoped org_outline scans every heading in every tracked file, and leaks a marker per slice
+- [[id:6a6f6708-eefd-4d77-8ca0-0c5aaaa80796][6a6f6708]] CANCELLED Every id-scoped org_outline scans every heading in every tracked file, and leaks a marker per slice
 
 A slice's checklist is rendered from =:MEMBERS:=, and nothing checks that the
 rendering matches its members, repairs a closed slice's record, or lets a member
