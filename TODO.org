@@ -2,6 +2,34 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO A slash command that runs in the background opens a run nothing closes, so its agent's minutes are dropped :code:
+:PROPERTIES:
+:ID:       3977f434-7759-41ed-92f5-41cd04f6def6
+:CREATED:  [2026-10-13 Tue 09:51]
+:CATEGORY: Queue
+:END:
+:PLAN:
+Not yet designed. First establish what the background agent's hooks emit. Its
+discard-guard miss at 18:15:12 carried this session's id and a null =agent_id=,
+so its tool calls do fire this session's hooks. Find out whether =SubagentStop=,
+or the agent's own =Stop=, fires and with what payload. Candidates, none chosen:
+- wire =SubagentStop= (or the background agent's =Stop=) to append a =pause=, closing the run at the agent's real end;
+- treat the notification's =resume= as the close of a run opened by a background launch, which needs the launch marked, for example by the local-command output "Running in the background";
+- give the agent's tool calls a guidepost of their own as evidence of work inside the gap. =block-end= already runs on every PostToolUse, but it appends only when a permission block is open.
+Whichever is chosen, keep [[id:09c134c4-31eb-4f6c-aa10-f836d1d28f16][09c134c4]]'s rule for the ordinary interrupt, where two
+prompts arrive with no Stop between them and nothing marks a launch.
+:END:
+
+On 2026-10-12, =/code-review high --comment 37= ran as the background agent
+=@code-review= from 18:10:33 to 18:16:33. Its UserPromptSubmit wrote a =resume=,
+but no model turn followed, so no =Stop= wrote a =pause=. The agent's own work
+emitted no guideposts. The completion notification wrote a second =resume= at
+18:16:33. [[id:09c134c4-31eb-4f6c-aa10-f836d1d28f16][09c134c4]] deliberately makes a =resume= -> =resume= adjacency
+contribute nothing, so the review buffer showed =0:06 span, 0:01 in 1 run=: six
+minutes of agent work credited as one, the notification's own reply. [[id:09c134c4-31eb-4f6c-aa10-f836d1d28f16][09c134c4]]'s
+2026-08-18 check found no such handoff worth instrumenting; this is the first
+measured one.
+
 * TODO An outside edit to an open, unmodified TODO.org was apparently written over within seconds, with no error :code:
 :PROPERTIES:
 :ID:       8185c75c-d7a5-42d2-a4eb-bc9dd1e6ce66
@@ -29,6 +57,7 @@ a save that skipped the changed-on-disk check. On the second attempt the line
 survived. Nobody saw the first append land, so if it never ran there is no bug.
 If it reproduces, any outside write to an open tracker can be lost
 silently, whether a git pull, another session's Edit or a hand edit.
+
 
 * REVIEW A slice's incidental list takes closes from every tracked project, so another repo's work is attributed to this one's slice :code:
 :PROPERTIES:
@@ -765,7 +794,7 @@ Planned:
 - [ ] [[id:445ec1f1-095a-462b-abbd-7a3a00925ddb][445ec1f1]] TODO A/B the clock record across the phase-3 fixes, since much of what is logged now is bogus
 
 
-* DOING [14/15] The review pass every install uses: movement, marking, apply, quit, and no clock where tracking is off :code:
+* DOING [15/15] The review pass every install uses: movement, marking, apply, quit, and no clock where tracking is off :code:
 :PROPERTIES:
 :ID:       5a4896c3-3d4e-4b12-9f9e-06b97d84b238
 :CREATED:  [2026-10-09 Fri 11:15]
@@ -773,7 +802,6 @@ Planned:
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
 :MEMBERS:  97b4f6a9-a944-40d3-8d14-7a1667c52291 24694d1f-34b4-495b-b0d8-d29e64894c59 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 41f21b4d-278d-4ad8-a56f-122f5af33d65 9f6b19b5-18db-4d56-8545-9552a5b4e935 d66ae1d2-5a40-4f4d-ae51-c8977e78681c b3177ed0-9747-4e31-ad65-bac25b9bdd1f d241ab6e-6cfe-482a-8980-8cb222d7ab12 e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 ee3c22c9-f99c-4d41-9c3d-8f39af916fff 6c64cc9c-33a9-4a20-af19-c188a690c755 79c224ab-188a-4ed4-a606-c28ee2cfe72d 361e2708-8124-4bd1-9c44-f97ca97aca4a 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd de081dd9-1853-4d79-94fc-2edac498380f 2b8930da-5223-4b75-b4f6-251a28552d1b
-:BLOCKER:  2b8930da-5223-4b75-b4f6-251a28552d1b
 :DROPPED:  489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd
 :END:
 :LOGBOOK:
@@ -786,6 +814,8 @@ CLOCK: [2026-10-10 Sat 15:19]--[2026-10-10 Sat 15:20] =>  0:01
   slice work started on its branch
 CLOCK: [2026-10-10 Sat 17:26]--[2026-10-10 Sat 17:27] =>  0:01
 - [2026-10-10 Sat 17:26]--[2026-10-10 Sat 17:27] assigned at review
+CLOCK: [2026-10-12 Mon 18:16]--[2026-10-12 Mon 18:17] =>  0:01
+- [2026-10-12 Mon 18:16]--[2026-10-12 Mon 18:17] assigned at review
 :END:
 :PLAN:
 Divided out of [[id:c7619140-f269-4329-bc05-a38ea151e202][c7619140]] on 2026-10-09 (the user, a three-way split). The members
@@ -848,7 +878,7 @@ Planned:
 - [X] [[id:361e2708-8124-4bd1-9c44-f97ca97aca4a][361e2708]] DONE Decide how far the review-apply cycle can be automated, given the interactive constraint
 - [[id:2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd][2cd74268]] TODO Let a task-only install auto-apply state transitions, behind a toggle
 - [X] [[id:de081dd9-1853-4d79-94fc-2edac498380f][de081dd9]] DONE The steps after apply run only when the review buffer is buried, so a session can never offer them when they are overdue
-- [-] [[id:2b8930da-5223-4b75-b4f6-251a28552d1b][2b8930da]] DOING Nothing in the drift slice was exercised in a consumer install: the new hooks, the conditional time-file promotion, the twin-checker agent
+- [X] [[id:2b8930da-5223-4b75-b4f6-251a28552d1b][2b8930da]] DONE Nothing in the drift slice was exercised in a consumer install: the new hooks, the conditional time-file promotion, the twin-checker agent
 
 
 * MAYBE Separate what the machinery requires from what this project prefers, so a consumer can change the second :code:arch:
@@ -3230,7 +3260,8 @@ made safe, the second call is still being missed often enough to show in the
 miss count.
 
 
-* DOING Nothing in the drift slice was exercised in a consumer install: the new hooks, the conditional time-file promotion, the twin-checker agent :code:spike:
+* DONE Nothing in the drift slice was exercised in a consumer install: the new hooks, the conditional time-file promotion, the twin-checker agent :code:spike:
+CLOSED: [2026-10-13 Tue 09:45]
 :PROPERTIES:
 :ID:       2b8930da-5223-4b75-b4f6-251a28552d1b
 :CREATED:  [2026-09-21 Mon 10:21]
@@ -3339,6 +3370,17 @@ CLOCK: [2026-10-12 Mon 17:25]--[2026-10-12 Mon 17:26] =>  0:01
 - [2026-10-12 Mon 17:25]--[2026-10-12 Mon 17:26] assigned at review
 CLOCK: [2026-10-12 Mon 17:42]--[2026-10-12 Mon 17:43] =>  0:01
 - [2026-10-12 Mon 17:42]--[2026-10-12 Mon 17:43] assigned at review
+CLOCK: [2026-10-13 Tue 09:39]--[2026-10-13 Tue 09:42] =>  0:03
+- [2026-10-13 Tue 09:39]--[2026-10-13 Tue 09:42] assigned at review
+CLOCK: [2026-10-13 Tue 09:42]--[2026-10-13 Tue 09:43] =>  0:01
+- [2026-10-13 Tue 09:42]--[2026-10-13 Tue 09:43] record the noodle-salesman check results
+CLOCK: [2026-10-13 Tue 09:43]--[2026-10-13 Tue 09:45] =>  0:02
+- [2026-10-13 Tue 09:43]--[2026-10-13 Tue 09:45] assigned at review
+- State "DONE"       from "DOING"      [2026-10-13 Tue 09:45] \\
+  every consumer check answered; failures filed
+CLOCK: [2026-10-13 Tue 09:45]--[2026-10-13 Tue 09:46] =>  0:01
+- [2026-10-13 Tue 09:45]--[2026-10-13 Tue 09:46] close the consumer-install spike
+- [2026-10-13 Tue 09:45]--[2026-10-13 Tue 09:45] assigned at review
 :END:
 :PLAN:
 
@@ -3489,7 +3531,6 @@ override's counting (check 9), and actually launching =twin-checker= (check 5).
 Neither is worth a heading. The override's counting is the same miss path that
 check 9's block already exercised, and an agent that is offered launches through
 Claude Code's own mechanism.
-
 
 
 * TODO The duplicate query reads titles only, so a paraphrase gets past it — including the case that motivated it :code:
