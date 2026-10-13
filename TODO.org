@@ -2,6 +2,22 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO The brainstorming skill's exit asks to start implementing, where it should recommend a fresh session and /work-slice
+:PROPERTIES:
+:ID:       67636413-fd31-433b-b84e-a49e16da259f
+:CREATED:  [2026-10-13 Tue 15:39]
+:CATEGORY: Skill
+:END:
+
+After design approval the brainstorming skill asks for a second yes and then
+implements in the same session. It should instead recommend a new session and
+/work-slice (the user, 2026-10-13), above all when /plan-slice is brainstorming
+several members in turn and must stop before any work starts. Open: what it
+recommends for a heading that belongs to no slice; whether the org skill's "Plan
+Mode checkpoint" changes the same way; and whether a related rule rides along,
+that a heading captured before design gets only a body (its statement and open
+questions) and its :PLAN: stays empty until a design is approved.
+
 * TODO Spike: one .org file per task, for per-task diffs and blame and narrower reads by the MCP server :spike:
 :PROPERTIES:
 :ID:       da9c76b5-1c27-49dd-a305-d6d4b6313188
