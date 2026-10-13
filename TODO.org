@@ -3383,6 +3383,18 @@ happened. Each failure is filed as its own heading: fixed on the branch if it
 blocks the PR, otherwise deferred. The heading closes once every check has an
 answer.
 :END:
+:DEBRIEF:
+The checks ran in noodle-salesman, not in agentic-euchre as planned. The
+consumer that reported the leak was the better probe, and that substitution
+found three of the four defects. The checks were only a vehicle; the defects
+were the yield. Check 10 exposed the startup wiring ([[id:28eed617-e4e0-4d29-88ea-9411de4b77e5][28eed617]]). Check 7 exposed
+the global stamp ([[id:d30b3481-374c-4921-9fdb-284dd8e09e14][d30b3481]]). The slice's own refresh, seen from a second
+project, exposed cross-project incidentals ([[id:1c252f9c-6838-4b71-b08b-ff2e77d34dce][1c252f9c]]). Check 9 turned up a
+possible lost write ([[id:8185c75c-d7a5-42d2-a4eb-bc9dd1e6ce66][8185c75c]]). Checks were fragile in one way that cost the
+most time: the instructions told the user to type commands, and a command typed
+with =!= bypasses every hook. A consumer check of a hook must be run by the
+session itself. A later spike of this kind should say so in its first step.
+:END:
 It gates earnest work in agentic-euchre, taking over from [[id:6a207b00-8fa1-441e-8ee5-354702bc979b][6a207b00]] (closed
 2026-09-22); its blockers [[id:8a2eb687-28da-4d44-893b-db59298bdc5b][8a2eb687]], [[id:6521dd56-8772-416b-9435-6da78bb86b06][6521dd56]] and [[id:4ae7a04b-1557-44d6-91c3-384f1def5293][4ae7a04b]] are done. Classified
 spike 2026-10-10: the probe plan is in :PLAN:, run from the slice's feature
@@ -3469,6 +3481,15 @@ registered no project sessions is [[id:28eed617-e4e0-4d29-88ea-9411de4b77e5][28e
 this slice's incidentals is [[id:1c252f9c-6838-4b71-b08b-ff2e77d34dce][1c252f9c]], fixed on the branch. An outside edit to
 the open TODO.org that was apparently written over is [[id:8185c75c-d7a5-42d2-a4eb-bc9dd1e6ce66][8185c75c]], not yet
 reproduced.
+
+*Resolved 2026-10-13: the drift slice works in a consumer install.* Every check
+passed, apart from check 7's clock opening in this repo. What failed is filed
+elsewhere, not fixed here. Two things were not exercised: the =ALLOW_DISCARD=1=
+override's counting (check 9), and actually launching =twin-checker= (check 5).
+Neither is worth a heading. The override's counting is the same miss path that
+check 9's block already exercised, and an agent that is offered launches through
+Claude Code's own mechanism.
+
 
 
 * TODO The duplicate query reads titles only, so a paraphrase gets past it — including the case that motivated it :code:
