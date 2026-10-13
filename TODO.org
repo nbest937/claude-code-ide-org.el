@@ -2,11 +2,26 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* TODO A slice's incidental list takes closes from every tracked project, so another repo's work is attributed to this one's slice :code:
+* REVIEW A slice's incidental list takes closes from every tracked project, so another repo's work is attributed to this one's slice :code:
 :PROPERTIES:
 :ID:       1c252f9c-6838-4b71-b08b-ff2e77d34dce
 :CREATED:  [2026-10-12 Mon 17:42]
 :CATEGORY: Slices
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-12 Mon 17:42]--[2026-10-12 Mon 17:43] =>  0:01
+- [2026-10-12 Mon 17:42]--[2026-10-12 Mon 17:43] file cross-project incidental attribution
+CLOCK: [2026-10-12 Mon 17:43]--[2026-10-12 Mon 17:44] =>  0:01
+- [2026-10-12 Mon 17:43]--[2026-10-12 Mon 17:44] assigned at review
+- State "DOING"      from "TODO"       [2026-10-12 Mon 17:46] \\
+  the user: fix now, on the slice's branch
+CLOCK: [2026-10-12 Mon 17:46]--[2026-10-12 Mon 17:47] =>  0:01
+- [2026-10-12 Mon 17:46]--[2026-10-12 Mon 17:47] assigned at review
+CLOCK: [2026-10-12 Mon 17:48]--[2026-10-12 Mon 17:51] =>  0:03
+- [2026-10-12 Mon 17:48]--[2026-10-12 Mon 17:51] confine incidental candidates to the slice's project
+- State "REVIEW"     from "DOING"      [2026-10-12 Mon 17:51] \\
+  fixed and verified, in review on PR #37
+- [2026-10-12 Mon 17:51]--[2026-10-12 Mon 17:51] assigned at review
 :END:
 :PLAN:
 Fixed on the slice's own branch before its review, so [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]]'s record is clean
@@ -806,7 +821,6 @@ Planned:
 - [[id:2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd][2cd74268]] TODO Let a task-only install auto-apply state transitions, behind a toggle
 - [X] [[id:de081dd9-1853-4d79-94fc-2edac498380f][de081dd9]] DONE The steps after apply run only when the review buffer is buried, so a session can never offer them when they are overdue
 - [-] [[id:2b8930da-5223-4b75-b4f6-251a28552d1b][2b8930da]] DOING Nothing in the drift slice was exercised in a consumer install: the new hooks, the conditional time-file promotion, the twin-checker agent
-
 
 
 * MAYBE Separate what the machinery requires from what this project prefers, so a consumer can change the second :code:arch:
@@ -3285,6 +3299,18 @@ CLOCK: [2026-10-12 Mon 12:12]--[2026-10-12 Mon 12:16] =>  0:04
 - [2026-10-12 Mon 12:12]--[2026-10-12 Mon 12:16] suggested span, accepted at review
 CLOCK: [2026-10-12 Mon 15:33]--[2026-10-12 Mon 15:34] =>  0:01
 - [2026-10-12 Mon 15:33]--[2026-10-12 Mon 15:34] record check 10 from noodle-salesman
+CLOCK: [2026-10-12 Mon 16:32]--[2026-10-12 Mon 16:33] =>  0:01
+- [2026-10-12 Mon 16:32]--[2026-10-12 Mon 16:33] assigned at review
+CLOCK: [2026-10-12 Mon 17:08]--[2026-10-12 Mon 17:09] =>  0:01
+- [2026-10-12 Mon 17:08]--[2026-10-12 Mon 17:09] assigned at review
+CLOCK: [2026-10-12 Mon 17:13]--[2026-10-12 Mon 17:14] =>  0:01
+- [2026-10-12 Mon 17:13]--[2026-10-12 Mon 17:14] assigned at review
+CLOCK: [2026-10-12 Mon 17:18]--[2026-10-12 Mon 17:19] =>  0:01
+- [2026-10-12 Mon 17:18]--[2026-10-12 Mon 17:19] assigned at review
+CLOCK: [2026-10-12 Mon 17:25]--[2026-10-12 Mon 17:26] =>  0:01
+- [2026-10-12 Mon 17:25]--[2026-10-12 Mon 17:26] assigned at review
+CLOCK: [2026-10-12 Mon 17:42]--[2026-10-12 Mon 17:43] =>  0:01
+- [2026-10-12 Mon 17:42]--[2026-10-12 Mon 17:43] assigned at review
 :END:
 :PLAN:
 
@@ -3882,7 +3908,6 @@ written.
 
 - 2026-09-28 (user): asked about [[id:2a6a1355-615f-4c2c-a8af-c9ae8dcda09b][2a6a1355]]'s verbose body, the session measured it with a raw =emacsclient= eval (line count, word count, drawer order) when =org_body= returns the heading whole, drawers and all. The user asked why, and whether =emacs-tools= could not do it. It could. The eval came from habit, reaching for numbers in one call, and nothing required it.
 - 2026-10-12 (noodle-salesman): set :spike: on eight headings at org_capture time without the brainstorming skill, which the conventions name as the only setter of path tags. The user had asked for them to be spikes, so whether this is a miss at all is filed as a question (noodle-salesman-findings-prompt.md, item 4).
-
 
 
 ** TODO Miss: an org question answered by scraping text instead of asking org
@@ -9643,12 +9668,12 @@ before the fix and still says.
 
 
 * TODO Archive closed tasks daily
-SCHEDULED: <2026-10-13 Tue 07:00 ++1d>
+SCHEDULED: <2026-10-14 Wed 07:00 ++1d>
 :PROPERTIES:
 :CATEGORY: Meta
 :ID:       cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8
 :CREATED:  [2026-08-21 Fri 15:35]
-:LAST_REPEAT: [2026-10-12 Mon 08:57]
+:LAST_REPEAT: [2026-10-13 Tue 09:13]
 :KIND:     ceremony
 :END:
 :LOGBOOK:
@@ -11947,13 +11972,6 @@ per tool -- rather than opening the servers beyond localhost.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
-CLOCK: [2026-10-12 Mon 15:44]--[2026-10-12 Mon 15:48] =>  0:04
-CLOCK: [2026-10-12 Mon 15:05]--[2026-10-12 Mon 15:12] =>  0:07
-CLOCK: [2026-10-12 Mon 14:45]--[2026-10-12 Mon 14:46] =>  0:01
-CLOCK: [2026-10-12 Mon 14:44]--[2026-10-12 Mon 14:45] =>  0:01
-CLOCK: [2026-10-12 Mon 12:38]--[2026-10-12 Mon 12:39] =>  0:01
-CLOCK: [2026-10-12 Mon 11:27]--[2026-10-12 Mon 11:28] =>  0:01
-CLOCK: [2026-10-12 Mon 11:19]--[2026-10-12 Mon 11:27] =>  0:08
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
@@ -12150,9 +12168,17 @@ CLOCK: [2026-10-10 Sat 17:19]--[2026-10-10 Sat 17:24] =>  0:05
 CLOCK: [2026-10-10 Sat 17:36]--[2026-10-10 Sat 17:40] =>  0:04
 CLOCK: [2026-10-12 Mon 08:55]--[2026-10-12 Mon 08:57] =>  0:02
 CLOCK: [2026-10-12 Mon 09:23]--[2026-10-12 Mon 09:24] =>  0:01
+CLOCK: [2026-10-12 Mon 11:19]--[2026-10-12 Mon 11:27] =>  0:08
+CLOCK: [2026-10-12 Mon 11:27]--[2026-10-12 Mon 11:28] =>  0:01
+CLOCK: [2026-10-12 Mon 12:38]--[2026-10-12 Mon 12:39] =>  0:01
+CLOCK: [2026-10-12 Mon 14:44]--[2026-10-12 Mon 14:45] =>  0:01
 - <2026-10-12 Mon 14:44>--<2026-10-12 Mon 14:45> review pass (buffer buried)
+CLOCK: [2026-10-12 Mon 14:45]--[2026-10-12 Mon 14:46] =>  0:01
 - <2026-10-12 Mon 14:45>--<2026-10-12 Mon 14:46> review pass (buffer buried)
+CLOCK: [2026-10-12 Mon 15:05]--[2026-10-12 Mon 15:12] =>  0:07
+CLOCK: [2026-10-12 Mon 15:44]--[2026-10-12 Mon 15:48] =>  0:04
 - <2026-10-12 Mon 16:22>--<2026-10-12 Mon 16:22> review pass (buffer buried)
+- <2026-10-13 Tue 09:13>--<2026-10-13 Tue 09:13> review pass (buffer buried)
 :END:
 
 We created this heading on 2026-08-26. We deleted that property from its
