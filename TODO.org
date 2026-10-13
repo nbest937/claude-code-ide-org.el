@@ -95,11 +95,20 @@ matches only below cwd. From =sub/=, a dirty root TODO.org leaves =dirty= empty,
 the guard exits 0, and =git reset --hard= or =git stash= wipes the file. The fix
 is the pathspec =':(top)*.org'=.
 
+Fixed in commit [[orgit-rev:./::7466161][7466161]]: the scan uses =':(top)*.org'=, and a path argument is
+folded against the prefix, =..= included, so =git checkout .= from =sub/= still
+passes when only the root file is dirty.
+
+
 
 ** TODO Burying the review buffer advances every project's overdue ceremony, though the steps ran only on this repo's tracker
 :PROPERTIES:
 :ID:       9c1afc7a-161d-4e4c-aa93-9c02becfb5ba
 :CREATED:  [2026-10-13 Tue 10:04]
+:END:
+:PLAN:
+The reviewer's fix: confine the due check and the advance to the project whose
+steps ran, with a two-project test that fails on HEAD first.
 :END:
 
 Review finding 2 on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]]. On the bury, =--ceremony-due-p= sees a consumer's
@@ -108,6 +117,12 @@ is this repo's TODO.org, and =--ceremony-advance-repeater= then marks the
 consumer's ceremony DONE and saves it. The consumer's next SessionStart finds it
 not due, so its closed headings are never archived. Confine the due check and
 the advance to the project whose steps ran.
+
+Fixed in commit [[orgit-rev:./::2ba7f02][2ba7f02]]: =ceremony-finish=
+runs its steps on the capture target's tracker, with the report scope bound to
+that project for the whole pass. The due check and the advance then see only
+that project's ceremony. Reloaded live 2026-10-13.
+
 
 
 ** TODO An absolute git path, checkout -f and switch --discard-changes all get past discard-guard
@@ -122,6 +137,11 @@ each allowed in a scratch repo:
 - =git checkout -f main=.
 - =git switch --discard-changes main=.
 
+Fixed in commit [[orgit-rev:./::7466161][7466161]]: an absolute git path is skipped like =git=, and
+=checkout -f=/=--force= and =switch -f=/=--force=/=--discard-changes= are
+refused; a plain =switch= still passes.
+
+
 
 ** TODO discard-guard splits commands on ; | && || inside quotes, so a commit message naming a discard is refused and counted as a miss
 :PROPERTIES:
@@ -134,6 +154,12 @@ Review finding 4 on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37
 is appended. The review's own probe triggered it at 2026-10-12 18:15:12, so
 =bin/miss-rate= counts one false miss. Commit messages describing this feature
 are the likeliest trigger.
+
+Fixed in commit [[orgit-rev:./::7466161][7466161]]: the command line splits at =;= =|= =&= and newlines
+only outside quotes. The splitter is awk, because a bash per-character loop took
+18 s on a 40 KB heredoc; awk takes 0.2 s. The false miss of 2026-10-12 18:15:12
+stays in the count, which is a floor rather than a ledger.
+
 
 
 ** TODO SessionStart runs the ceremony's write steps inside a 15 s hook, on whatever branch is checked out
@@ -165,6 +191,10 @@ is A. =org_outline scope=X= prints =blocks: B=, as though X blocked its own
 child. The exclusion should drop every blocker entry whose id is in the scoped
 subtree (MINE), not only the root's id.
 
+Fixed in commit [[orgit-rev:./::83be1a1][83be1a1]]: =blocks:= leaves out any heading inside the scoped
+subtree.
+
+
 
 ** TODO Splitting a d-marked span with e carries :dismiss into the remainders, so x dismisses events never marked
 :PROPERTIES:
@@ -177,6 +207,10 @@ which resets =:marked= and nothing else. =:dismiss= and =:dismiss-reason=
 survive, so after =d= then =e=, pressing =x= permanently dismisses the
 out-of-window events. The remainder path should clear both flags, or =e= should
 clear the =d=.
+
+Fixed in commit [[orgit-rev:./::f64bd33][f64bd33]]: the remainder path clears =:dismiss= and
+=:dismiss-reason= alongside =:marked=.
+
 
 
 ** TODO --applied-today-p ignores the report scope and parses every .applied file at each SessionStart
