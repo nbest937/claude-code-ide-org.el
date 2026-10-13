@@ -16337,6 +16337,18 @@ heading or a descendant, and nothing for a heading named nowhere
     (let ((out (claude-code-ide-org-outline "50000000" nil nil "false")))
       (should-not (string-match-p "blocks:" out)))))
 
+(ert-deftest claude-code-ide-org-test-outline-blocks-skips-a-sibling-blocking-a-sibling ()
+  "A child whose `:BLOCKER:' names its sibling is not blocked by the parent.
+
+From PR #37's review (TODO.org :ID: 84e9c7ef): only the root's own id was
+excluded, so story X with children A and B, B waiting on A, printed
+`blocks: B' on X -- X blocking its own child."
+  (should (equal "  blocks: 99000000 TODO"
+                 (claude-code-ide-org--outline-blocks-line
+                  "x0000000" '("x0000000" "a0000000" "b0000000")
+                  '(("b0000000" "TODO" ("a0000000"))
+                    ("99000000" "TODO" ("a0000000")))))))
+
 (ert-deftest claude-code-ide-org-test-query-member-predicate ()
   "`member:ID' matches exactly the slices whose `:MEMBERS:' minus
 `:DROPPED:' list the id, never one citing it in prose; several ids give

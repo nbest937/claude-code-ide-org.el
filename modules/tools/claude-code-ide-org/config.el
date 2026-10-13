@@ -5896,7 +5896,9 @@ on one whose `:DROPPED:' names it.  Closed slices are history, which
 
 Each unfinished heading whose `:BLOCKER:' names ID or any of its
 descendants -- MINE, the subtree's ids -- since blocking on a child is
-blocking on part of this work.  Derived at each read and never tagged,
+blocking on part of this work.  A heading inside MINE is left out: a
+child waiting on its sibling is the subtree's own ordering, not
+something ID blocks (PR #37's review, TODO.org :ID: 84e9c7ef).  Derived at each read and never tagged,
 because a stored copy goes stale the moment the last blocker finishes
 \(TODO.org :ID: b3177ed0)."
   (let (parts)
@@ -5905,6 +5907,7 @@ because a stored copy goes stale the moment the last blocker finishes
         (when (and kw
                    (not (member kw claude-code-ide-org--outline-finished-keywords))
                    (not (equal (nth 0 b) id))
+                   (not (member (nth 0 b) mine))
                    (seq-some (lambda (x) (member x mine)) (nth 2 b)))
           (push (format "%s %s" (claude-code-ide-org--id-prefix (nth 0 b)) kw)
                 parts))))
