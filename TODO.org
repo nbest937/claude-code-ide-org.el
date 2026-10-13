@@ -58,6 +58,10 @@ question, so it was not fixed on the slice's branch.
 :LOGBOOK:
 CLOCK: [2026-10-13 Tue 10:04]--[2026-10-13 Tue 10:06] =>  0:02
 - [2026-10-13 Tue 10:04]--[2026-10-13 Tue 10:06] file PR #37's review findings
+CLOCK: [2026-10-13 Tue 10:24]--[2026-10-13 Tue 10:27] =>  0:03
+- [2026-10-13 Tue 10:24]--[2026-10-13 Tue 10:27] assigned at review
+CLOCK: [2026-10-13 Tue 10:35]--[2026-10-13 Tue 10:39] =>  0:04
+- [2026-10-13 Tue 10:35]--[2026-10-13 Tue 10:39] defer four findings to top-level headings
 :END:
 :PLAN:
 Fix the six on the slice's branch, each with a test that fails on HEAD first:
