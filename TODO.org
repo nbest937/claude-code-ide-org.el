@@ -2,6 +2,37 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Let a project's slice-rules win over /plan-slice on points of practice :prose:
+:PROPERTIES:
+:ID:       62cb31fa-4f1b-48e2-b244-2370b9672e57
+:CREATED:  [2026-10-14 Wed 12:35]
+:CATEGORY: Skill
+:END:
+:PLAN:
+
+:END:
+/work-slice says that where a project's .claude/slice-rules.md and the command
+disagree on a point of practice, the project file wins. /plan-slice reads the
+same file, but only "for what a plan here must cover", so a project cannot
+override /plan-slice's own steps with the same authority. Add /work-slice's
+precedence sentence to /plan-slice: the project file wins on practice, and where
+it would break the machinery the session says so and asks.
+
+The motivating case: noodle-salesman's .claude/slice-rules.md has /plan-slice
+cut the slice's git branch before its first write, overriding the command's "No
+branch". The override is named there, but the command gives it no standing. The
+branching itself stays out of the command: how a slice integrates is the project
+file's business, as /work-slice already says. noodle-salesman takes the plugin
+from the claude-code-ide-org-swc worktree, so it picks the change up once that
+worktree is moved to the commit. Until then, the override named in its
+slice-rules carries it.
+
+Also worth considering here: the same file names branches
+<type>/<id>-<short-kebab>, where the type is the tracker's word for the heading
+the branch carries (slice/, story/ or task/), with two levels by default:
+members branch from the slice branch, and only a slice's merge moves main. This
+repo names branches feature/short-name (CLAUDE.md).
+
 * TODO A brainstorm runs in whatever context loads it: entry should offer to park the idea, exit should recommend a fresh session
 :PROPERTIES:
 :ID:       67636413-fd31-433b-b84e-a49e16da259f
@@ -1240,12 +1271,12 @@ Planned:
   - [-] [[id:025a2e8a-9b21-4044-b9df-79baf7e904ce][025a2e8a]] REVIEW An absolute git path, checkout -f and switch --discard-changes all get past discard-guard
   - [-] [[id:c8ba3f41-1cec-4b67-be0e-145ccebaff8a][c8ba3f41]] REVIEW discard-guard splits commands on ; | && || inside quotes, so a commit message naming a discard is refused and counted as a miss
 - [[id:d30b3481-374c-4921-9fdb-284dd8e09e14][d30b3481]] TODO The time-tracking stamp is global and every project's session start rewrites it, so the last session to start decides whether the review pass opens a clock
+- [[id:826d621c-25f5-4f06-9961-4b23f8658880][826d621c]] CANCELLED SessionStart runs the ceremony's write steps inside a 15 s hook, on whatever branch is checked out
 - [[id:c12d4189-6bb6-467b-8928-b7bdefcdc921][c12d4189]] TODO PR #37's review found ten defects the slice shipped
-  - [[id:826d621c-25f5-4f06-9961-4b23f8658880][826d621c]] CANCELLED SessionStart runs the ceremony's write steps inside a 15 s hook, on whatever branch is checked out
   - [-] [[id:84e9c7ef-72f2-4694-b471-1419f8b0dd33][84e9c7ef]] REVIEW org_outline's blocks: line reports a story blocking its own child
   - [-] [[id:70d742fa-dc41-4005-8c07-01df75b3331f][70d742fa]] REVIEW Splitting a d-marked span with e carries :dismiss into the remainders, so x dismisses events never marked
-  - [[id:2f4c04a1-db56-4427-ae62-591ba52607c6][2f4c04a1]] CANCELLED --applied-today-p ignores the report scope and parses every .applied file at each SessionStart
-  - [[id:6a6f6708-eefd-4d77-8ca0-0c5aaaa80796][6a6f6708]] CANCELLED Every id-scoped org_outline scans every heading in every tracked file, and leaks a marker per slice
+- [[id:2f4c04a1-db56-4427-ae62-591ba52607c6][2f4c04a1]] CANCELLED --applied-today-p ignores the report scope and parses every .applied file at each SessionStart
+- [[id:6a6f6708-eefd-4d77-8ca0-0c5aaaa80796][6a6f6708]] CANCELLED Every id-scoped org_outline scans every heading in every tracked file, and leaks a marker per slice
 
 
 * MAYBE Separate what the machinery requires from what this project prefers, so a consumer can change the second :code:arch:
