@@ -2,7 +2,7 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* TODO The brainstorming skill's exit asks to start implementing, where it should recommend a fresh session and /work-slice
+* TODO A brainstorm runs in whatever context loads it: entry should offer to park the idea, exit should recommend a fresh session
 :PROPERTIES:
 :ID:       67636413-fd31-433b-b84e-a49e16da259f
 :CREATED:  [2026-10-13 Tue 15:39]
