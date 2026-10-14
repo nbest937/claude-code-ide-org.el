@@ -2,6 +2,51 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO A capture or refile that gives a heading its first keyworded child leaves it with no statistics cookie, which lint-org then refuses :code:
+:PROPERTIES:
+:ID:       ed3e6862-db3e-4e81-badd-859ddf629400
+:CREATED:  [2026-10-14 Wed 16:34]
+:CATEGORY: Tools
+:END:
+:PLAN:
+
+:END:
+The conventions say a heading takes its =[/]= cookie when its first
+keyworded child appears, and =bin/lint-org= errors on one without it. The
+tools do not do it: =org_capture= with a =target= writes the child through
+=--capture-write=, which never touches the parent's headline, and =org_refile=
+under a cookie-less parent probably does the same. Only =org_divide= calls
+=--ensure-statistics-cookie-at-point=. A cookie that already exists is updated
+correctly; only the first child misses out. Since no tool edits a headline
+([[id:9714f875-4a12-44e4-8f30-dfbd1b6e555e][9714f875]]), the session's only remedies are a raw edit behind Emacs or asking
+the human for =C-c #=. Seen in noodle-sales: four new stories (=57d6bf66=,
+=2366e0f0=, =dfdeb760=, and =7616fa92='s new parent) all came out cookie-less.
+
+Proposed: after =--capture-write= files a keyworded child under a target, and
+after =org_refile= lands one under a new parent, call
+=--ensure-statistics-cookie-at-point= on the parent and then
+=org-update-statistics-cookies=, as =org_divide= does, and say so in the reply.
+A fixture test for each path: capture or refile a keyworded child under a
+keywordless-children parent, and assert the cookie appears after the keyword.
+
+* TODO lint-org with no arguments lints the plugin checkout, not the consuming repo, and passes :code:
+:PROPERTIES:
+:ID:       9a8013d7-7525-466b-9aaf-10eb647f5e9f
+:CREATED:  [2026-10-14 Wed 16:22]
+:CATEGORY: Dev
+:END:
+
+=bin/lint-org= with no arguments resolves its repo root from the script's own
+location, so in a consuming repo, where =.claude/skills/claude-code-ide-org= is
+a symlink to a plugin checkout, it lints that checkout's =TODO.org= and
+=DONE.org= and reports a clean run that says nothing about the project. Seen in
+noodle-sales: a no-argument run read a 58,000-line =DONE.org= and passed, while
+the project's own files needed to be named (=lint-org TODO.org DONE.org=).
+Proposed: default to the tracked files of the git root of the current
+directory (or the files =claude-code-ide-org-query-files= names for it), and
+print which files were linted so a run on the wrong project is visible.
+
+
 * TODO The review buffer's T ends every jump in a void-variable error: the message names a file binding that eddee10f removed :code:
 :PROPERTIES:
 :ID:       d12fb6f7-5fde-45c1-b8a3-c59293130365
