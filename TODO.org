@@ -8,13 +8,23 @@
 :CREATED:  [2026-10-14 Wed 13:01]
 :CATEGORY: Apply
 :END:
+:PLAN:
 
+:END:
 claude-code-ide-org-review-open-session ends with (message "%s"
 (file-name-nondirectory file)), but commit [[orgit-rev:./::907279d][907279d]] ([[id:eddee10f-b916-43ed-bd69-217adc068433][eddee10f]]) replaced the let
 that bound file with the live render, and nothing binds it now. So every T opens
 the render, jumps to the span, then signals "Symbol's value as variable is void:
 file". The fix names the render buffer's file instead, with a test that presses
 T and expects no error.
+
+Open, not reproduced: with items from two projects in the buffer (2026-10-14), T
+showed a render without the turns the review listed (the user). Suspected: T on
+the other project's row opened this session's render instead of its own. That
+project's session had a transcript on disk and rendered fine in memory, yet no
+render file was ever written for it. Next time two projects share the buffer,
+note which row T was pressed on and which render opened.
+
 
 * TODO Let a project's slice-rules win over /plan-slice on points of practice :prose:
 :PROPERTIES:
