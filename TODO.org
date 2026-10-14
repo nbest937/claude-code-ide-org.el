@@ -2,11 +2,29 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO The review buffer's T ends every jump in a void-variable error: the message names a file binding that eddee10f removed :code:
+:PROPERTIES:
+:ID:       d12fb6f7-5fde-45c1-b8a3-c59293130365
+:CREATED:  [2026-10-14 Wed 13:01]
+:CATEGORY: Apply
+:END:
+
+claude-code-ide-org-review-open-session ends with (message "%s"
+(file-name-nondirectory file)), but commit [[orgit-rev:./::907279d][907279d]] ([[id:eddee10f-b916-43ed-bd69-217adc068433][eddee10f]]) replaced the let
+that bound file with the live render, and nothing binds it now. So every T opens
+the render, jumps to the span, then signals "Symbol's value as variable is void:
+file". The fix names the render buffer's file instead, with a test that presses
+T and expects no error.
+
 * TODO Let a project's slice-rules win over /plan-slice on points of practice :prose:
 :PROPERTIES:
 :ID:       62cb31fa-4f1b-48e2-b244-2370b9672e57
 :CREATED:  [2026-10-14 Wed 12:35]
 :CATEGORY: Skill
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-14 Wed 12:35]--[2026-10-14 Wed 12:36] =>  0:01
+- [2026-10-14 Wed 12:35]--[2026-10-14 Wed 12:36] capture the slice-rules precedence task
 :END:
 :PLAN:
 
@@ -33,11 +51,32 @@ the branch carries (slice/, story/ or task/), with two levels by default:
 members branch from the slice branch, and only a slice's merge moves main. This
 repo names branches feature/short-name (CLAUDE.md).
 
+
 * TODO A brainstorm runs in whatever context loads it: entry should offer to park the idea, exit should recommend a fresh session
 :PROPERTIES:
 :ID:       67636413-fd31-433b-b84e-a49e16da259f
 :CREATED:  [2026-10-13 Tue 15:39]
 :CATEGORY: Skill
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-13 Tue 15:39]--[2026-10-13 Tue 15:40] =>  0:01
+- [2026-10-13 Tue 15:39]--[2026-10-13 Tue 15:40] file the brainstorming exit decision
+CLOCK: [2026-10-13 Tue 15:40]--[2026-10-13 Tue 15:41] =>  0:01
+- [2026-10-13 Tue 15:40]--[2026-10-13 Tue 15:41] assigned at review
+CLOCK: [2026-10-13 Tue 15:46]--[2026-10-13 Tue 15:47] =>  0:01
+- [2026-10-13 Tue 15:46]--[2026-10-13 Tue 15:47] assigned at review
+CLOCK: [2026-10-13 Tue 17:27]--[2026-10-13 Tue 17:28] =>  0:01
+- [2026-10-13 Tue 17:27]--[2026-10-13 Tue 17:28] assigned at review
+CLOCK: [2026-10-13 Tue 17:30]--[2026-10-13 Tue 17:31] =>  0:01
+- [2026-10-13 Tue 17:30]--[2026-10-13 Tue 17:31] assigned at review
+CLOCK: [2026-10-13 Tue 17:31]--[2026-10-13 Tue 17:32] =>  0:01
+- [2026-10-13 Tue 17:31]--[2026-10-13 Tue 17:32] record decisions 1 and 2
+CLOCK: [2026-10-13 Tue 17:32]--[2026-10-13 Tue 17:35] =>  0:03
+- [2026-10-13 Tue 17:32]--[2026-10-13 Tue 17:35] assigned at review
+CLOCK: [2026-10-14 Wed 08:41]--[2026-10-14 Wed 08:45] =>  0:04
+- [2026-10-14 Wed 08:41]--[2026-10-14 Wed 08:45] assigned at review
+CLOCK: [2026-10-14 Wed 08:45]--[2026-10-14 Wed 08:46] =>  0:01
+- [2026-10-14 Wed 08:45]--[2026-10-14 Wed 08:46] retitle to cover entry and exit
 :END:
 :PLAN:
 Decided (the user, 2026-10-13):
@@ -64,6 +103,10 @@ capture-time rule that parking needs.
 :CREATED:  [2026-10-13 Tue 14:53]
 :CATEGORY: Tools
 :END:
+:LOGBOOK:
+CLOCK: [2026-10-13 Tue 17:35]--[2026-10-13 Tue 17:36] =>  0:01
+- [2026-10-13 Tue 17:35]--[2026-10-13 Tue 17:36] move open questions from PLAN to body
+:END:
 :PLAN:
 
 :END:
@@ -84,12 +127,15 @@ Open questions:
 - Is a split reversible, and what would a consumer repo have to do?
 
 
-
 * TODO Design a :CHANGELOG: drawer, so a heading's prose can state what holds now and still say how it got there :code:
 :PROPERTIES:
 :ID:       082ecbe9-e706-49c8-8d9a-d5f6ee3c0abb
 :CREATED:  [2026-10-13 Tue 14:53]
 :CATEGORY: Skill
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-13 Tue 14:53]--[2026-10-13 Tue 14:53] =>  0:00
+- [2026-10-13 Tue 14:53]--[2026-10-13 Tue 14:53] assigned at review
 :END:
 :PLAN:
 
@@ -114,7 +160,6 @@ Open questions:
 - The conventions' "Revising a pre-convention body" section holds today's revision standard under a name that has outlived its backlog. Does this task's outcome rewrite it as a general section?
 
 
-
 * TODO [0/6] PR #37's review found ten defects the slice shipped :code:
 :PROPERTIES:
 :ID:       c12d4189-6bb6-467b-8928-b7bdefcdc921
@@ -128,6 +173,11 @@ CLOCK: [2026-10-13 Tue 10:24]--[2026-10-13 Tue 10:27] =>  0:03
 - [2026-10-13 Tue 10:24]--[2026-10-13 Tue 10:27] assigned at review
 CLOCK: [2026-10-13 Tue 10:35]--[2026-10-13 Tue 10:39] =>  0:04
 - [2026-10-13 Tue 10:35]--[2026-10-13 Tue 10:39] defer four findings to top-level headings
+CLOCK: [2026-10-13 Tue 14:04]--[2026-10-13 Tue 14:06] =>  0:02
+- [2026-10-13 Tue 14:04]--[2026-10-13 Tue 14:06] promote the three deferred findings, retire copies
+CLOCK: [2026-10-13 Tue 14:52]--[2026-10-13 Tue 14:53] =>  0:01
+- [2026-10-13 Tue 14:52]--[2026-10-13 Tue 14:52] assigned at review
+- [2026-10-13 Tue 14:52]--[2026-10-13 Tue 14:53] trim the triage paragraph's log entry
 :END:
 :PLAN:
 Fix the six on the slice's branch, each with a test that fails on HEAD first:
@@ -297,8 +347,7 @@ Fixed in commit [[orgit-rev:./::f64bd33][f64bd33]]: the remainder path clears =:
 =:dismiss-reason= alongside =:marked=.
 
 
-* CANCELLED --applied-today-p ignores the report scope and parses every .applied file at each SessionStart :code:
-CLOSED: [2026-10-13 Tue 10:26]
+* TODO --applied-today-p ignores the report scope and parses every .applied file at each SessionStart :code:
 :PROPERTIES:
 :ID:       2f4c04a1-db56-4427-ae62-591ba52607c6
 :CREATED:  [2026-10-13 Tue 10:04]
@@ -307,6 +356,8 @@ CLOSED: [2026-10-13 Tue 10:26]
 :LOGBOOK:
 - State "CANCELLED"  from "TODO"       [2026-10-13 Tue 10:26] \\
   deferred to a543e329
+- State "TODO"       from "CANCELLED"  [2026-10-13 Tue 14:05] \\
+  reopened: deferred, not cancelled
 - Tags ":code:"     from ""           [2026-10-13 Tue 14:05] \\
   promoted out of the review story; no longer inherits
 :END:
@@ -322,8 +373,7 @@ scoped report should consult watermarks at all needs deciding before the cost is
 fixed.
 
 
-* CANCELLED Every id-scoped org_outline scans every heading in every tracked file, and leaks a marker per slice :code:
-CLOSED: [2026-10-13 Tue 10:26]
+* TODO Every id-scoped org_outline scans every heading in every tracked file, and leaks a marker per slice :code:
 :PROPERTIES:
 :ID:       6a6f6708-eefd-4d77-8ca0-0c5aaaa80796
 :CREATED:  [2026-10-13 Tue 10:04]
@@ -332,6 +382,8 @@ CLOSED: [2026-10-13 Tue 10:26]
 :LOGBOOK:
 - State "CANCELLED"  from "TODO"       [2026-10-13 Tue 10:26] \\
   deferred to 6e888ebd
+- State "TODO"       from "CANCELLED"  [2026-10-13 Tue 14:05] \\
+  reopened: deferred, not cancelled
 - Tags ":code:"     from ""           [2026-10-13 Tue 14:05] \\
   promoted out of the review story; no longer inherits
 :END:
@@ -348,8 +400,7 @@ Deferred 2026-10-13 out of the review story [[id:c12d4189-6bb6-467b-8928-b7bdefc
 share one fix: a membership table built once and invalidated on save.
 
 
-* CANCELLED SessionStart runs the ceremony's write steps inside a 15 s hook, on whatever branch is checked out :code:
-CLOSED: [2026-10-13 Tue 10:26]
+* TODO SessionStart runs the ceremony's write steps inside a 15 s hook, on whatever branch is checked out :code:
 :PROPERTIES:
 :ID:       826d621c-25f5-4f06-9961-4b23f8658880
 :CREATED:  [2026-10-13 Tue 10:04]
@@ -358,6 +409,8 @@ CLOSED: [2026-10-13 Tue 10:26]
 :LOGBOOK:
 - State "CANCELLED"  from "TODO"       [2026-10-13 Tue 10:26] \\
   deferred to 4bbb8467
+- State "TODO"       from "CANCELLED"  [2026-10-13 Tue 14:05] \\
+  reopened: deferred, not cancelled
 - Tags ":code:"     from ""           [2026-10-13 Tue 14:05] \\
   promoted out of the review story; no longer inherits
 :END:
@@ -372,26 +425,6 @@ feature branch writes its archive and sort onto that branch's TODO.org.
 Deferred 2026-10-13 out of the review story [[id:c12d4189-6bb6-467b-8928-b7bdefcdc921][c12d4189]] (the user): when and where
 the ceremony's write steps run is a design question, not a patch for the slice's
 branch.
-
-
-* TODO The time-tracking stamp is global and every project's session start rewrites it, so the last session to start decides whether the review pass opens a clock :code:
-:PROPERTIES:
-:ID:       d30b3481-374c-4921-9fdb-284dd8e09e14
-:CREATED:  [2026-10-10 Sat 18:31]
-:CATEGORY: Clock
-:END:
-:PLAN:
-Not yet designed. The time_tracking option is meant to be one value for every
-project, and the stamp should honour that. Two candidates: ignore a row that
-sets the variable inline when the plugin option is present, or keep one stamp
-per project and read the one for the project the review pass is about.
-:END:
-
-[[id:97b4f6a9-a944-40d3-8d14-7a1667c52291][97b4f6a9]] gates the review pass's attention clock on a stamp file in the global
-queue directory, which every SessionStart rewrites. This repo's row writes true.
-A plugin install with the option off writes it empty, so the last project to
-start a session decides whether the next review opens a clock. Found by reading
-the two configs on 2026-10-10; not yet observed.
 
 
 * TODO A slash command that runs in the background opens a run nothing closes, so its agent's minutes are dropped :code:
@@ -905,6 +938,26 @@ lookups, the write tools and the consent check stay global; a call with no
 session is unchanged.
 
 
+* TODO The time-tracking stamp is global and every project's session start rewrites it, so the last session to start decides whether the review pass opens a clock :code:
+:PROPERTIES:
+:ID:       d30b3481-374c-4921-9fdb-284dd8e09e14
+:CREATED:  [2026-10-10 Sat 18:31]
+:CATEGORY: Clock
+:END:
+:PLAN:
+Not yet designed. The time_tracking option is meant to be one value for every
+project, and the stamp should honour that. Two candidates: ignore a row that
+sets the variable inline when the plugin option is present, or keep one stamp
+per project and read the one for the project the review pass is about.
+:END:
+
+[[id:97b4f6a9-a944-40d3-8d14-7a1667c52291][97b4f6a9]] gates the review pass's attention clock on a stamp file in the global
+queue directory, which every SessionStart rewrites. This repo's row writes true.
+A plugin install with the option off writes it empty, so the last project to
+start a session decides whether the next review opens a clock. Found by reading
+the two configs on 2026-10-10; not yet observed.
+
+
 * TODO An install scaffolded before the ceremony template has no :KIND: ceremony heading, so its steps after apply never run and --check does not say so :code:
 :PROPERTIES:
 :ID:       b577497c-f3a8-4754-8914-6c56589a0b52
@@ -1177,7 +1230,7 @@ Planned:
 - [ ] [[id:d30b3481-374c-4921-9fdb-284dd8e09e14][d30b3481]] TODO The time-tracking stamp is global and every project's session start rewrites it, so the last session to start decides whether the review pass opens a clock
 
 
-* REVIEW [15/21] The review pass every install uses: movement, marking, apply, quit, and no clock where tracking is off :code:
+* REVIEW [15/24] The review pass every install uses: movement, marking, apply, quit, and no clock where tracking is off :code:
 :PROPERTIES:
 :ID:       5a4896c3-3d4e-4b12-9f9e-06b97d84b238
 :CREATED:  [2026-10-09 Fri 11:15]
@@ -1186,7 +1239,7 @@ Planned:
 :COOKIE_DATA: checkbox recursive
 :MEMBERS:  97b4f6a9-a944-40d3-8d14-7a1667c52291 24694d1f-34b4-495b-b0d8-d29e64894c59 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 41f21b4d-278d-4ad8-a56f-122f5af33d65 9f6b19b5-18db-4d56-8545-9552a5b4e935 d66ae1d2-5a40-4f4d-ae51-c8977e78681c b3177ed0-9747-4e31-ad65-bac25b9bdd1f d241ab6e-6cfe-482a-8980-8cb222d7ab12 e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 ee3c22c9-f99c-4d41-9c3d-8f39af916fff 6c64cc9c-33a9-4a20-af19-c188a690c755 79c224ab-188a-4ed4-a606-c28ee2cfe72d 361e2708-8124-4bd1-9c44-f97ca97aca4a 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd de081dd9-1853-4d79-94fc-2edac498380f 2b8930da-5223-4b75-b4f6-251a28552d1b 789a25c7-84aa-4c30-b8a6-252e149b6114 9c1afc7a-161d-4e4c-aa93-9c02becfb5ba 025a2e8a-9b21-4044-b9df-79baf7e904ce c8ba3f41-1cec-4b67-be0e-145ccebaff8a d30b3481-374c-4921-9fdb-284dd8e09e14 826d621c-25f5-4f06-9961-4b23f8658880 84e9c7ef-72f2-4694-b471-1419f8b0dd33 70d742fa-dc41-4005-8c07-01df75b3331f 2f4c04a1-db56-4427-ae62-591ba52607c6 6a6f6708-eefd-4d77-8ca0-0c5aaaa80796
 :DROPPED:  489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd d30b3481-374c-4921-9fdb-284dd8e09e14
-:BLOCKER:  789a25c7-84aa-4c30-b8a6-252e149b6114 9c1afc7a-161d-4e4c-aa93-9c02becfb5ba 025a2e8a-9b21-4044-b9df-79baf7e904ce c8ba3f41-1cec-4b67-be0e-145ccebaff8a 84e9c7ef-72f2-4694-b471-1419f8b0dd33 70d742fa-dc41-4005-8c07-01df75b3331f
+:BLOCKER:  789a25c7-84aa-4c30-b8a6-252e149b6114 9c1afc7a-161d-4e4c-aa93-9c02becfb5ba 025a2e8a-9b21-4044-b9df-79baf7e904ce c8ba3f41-1cec-4b67-be0e-145ccebaff8a 826d621c-25f5-4f06-9961-4b23f8658880 84e9c7ef-72f2-4694-b471-1419f8b0dd33 70d742fa-dc41-4005-8c07-01df75b3331f 2f4c04a1-db56-4427-ae62-591ba52607c6 6a6f6708-eefd-4d77-8ca0-0c5aaaa80796
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-10-09 Fri 11:25] \\
@@ -1271,12 +1324,12 @@ Planned:
   - [-] [[id:025a2e8a-9b21-4044-b9df-79baf7e904ce][025a2e8a]] REVIEW An absolute git path, checkout -f and switch --discard-changes all get past discard-guard
   - [-] [[id:c8ba3f41-1cec-4b67-be0e-145ccebaff8a][c8ba3f41]] REVIEW discard-guard splits commands on ; | && || inside quotes, so a commit message naming a discard is refused and counted as a miss
 - [[id:d30b3481-374c-4921-9fdb-284dd8e09e14][d30b3481]] TODO The time-tracking stamp is global and every project's session start rewrites it, so the last session to start decides whether the review pass opens a clock
-- [[id:826d621c-25f5-4f06-9961-4b23f8658880][826d621c]] CANCELLED SessionStart runs the ceremony's write steps inside a 15 s hook, on whatever branch is checked out
+- [ ] [[id:826d621c-25f5-4f06-9961-4b23f8658880][826d621c]] TODO SessionStart runs the ceremony's write steps inside a 15 s hook, on whatever branch is checked out
 - [[id:c12d4189-6bb6-467b-8928-b7bdefcdc921][c12d4189]] TODO PR #37's review found ten defects the slice shipped
   - [-] [[id:84e9c7ef-72f2-4694-b471-1419f8b0dd33][84e9c7ef]] REVIEW org_outline's blocks: line reports a story blocking its own child
   - [-] [[id:70d742fa-dc41-4005-8c07-01df75b3331f][70d742fa]] REVIEW Splitting a d-marked span with e carries :dismiss into the remainders, so x dismisses events never marked
-- [[id:2f4c04a1-db56-4427-ae62-591ba52607c6][2f4c04a1]] CANCELLED --applied-today-p ignores the report scope and parses every .applied file at each SessionStart
-- [[id:6a6f6708-eefd-4d77-8ca0-0c5aaaa80796][6a6f6708]] CANCELLED Every id-scoped org_outline scans every heading in every tracked file, and leaks a marker per slice
+- [ ] [[id:2f4c04a1-db56-4427-ae62-591ba52607c6][2f4c04a1]] TODO --applied-today-p ignores the report scope and parses every .applied file at each SessionStart
+- [ ] [[id:6a6f6708-eefd-4d77-8ca0-0c5aaaa80796][6a6f6708]] TODO Every id-scoped org_outline scans every heading in every tracked file, and leaks a marker per slice
 
 
 * MAYBE Separate what the machinery requires from what this project prefers, so a consumer can change the second :code:arch:
@@ -2244,7 +2297,7 @@ symlink and fails now. Live: 31 archived plans were exported, and the real
 tracker linted with 0 errors with =goofy-baking-wall.md= aged out.
 
 
-* TODO [0/6] A slice's checklist can disagree with its members, and nothing can say so or fix it :code:
+* TODO [0/7] A slice's checklist can disagree with its members, and nothing can say so or fix it :code:
 :PROPERTIES:
 :ID:       7dcec489-f5dd-4f7f-b819-a25405436b9b
 :CREATED:  [2026-09-28 Mon 08:26]
@@ -2252,7 +2305,7 @@ tracker linted with 0 errors with =goofy-baking-wall.md= aged out.
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
 :MEMBERS:  cdff5c91-3dc1-476e-a8f2-5293570a19fc a00ace04-99bd-414a-8dc7-df8305126589 a508c59e-475e-4d27-84c9-6c3ded98e15c 6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0 b112878e-6313-4bc6-bc3f-0533d5f1ad1b dc68d831-9e04-4f0a-8b8b-8087b39c6037 6a6f6708-eefd-4d77-8ca0-0c5aaaa80796
-:BLOCKER:  cdff5c91-3dc1-476e-a8f2-5293570a19fc a00ace04-99bd-414a-8dc7-df8305126589 a508c59e-475e-4d27-84c9-6c3ded98e15c 6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0 b112878e-6313-4bc6-bc3f-0533d5f1ad1b dc68d831-9e04-4f0a-8b8b-8087b39c6037
+:BLOCKER:  cdff5c91-3dc1-476e-a8f2-5293570a19fc a00ace04-99bd-414a-8dc7-df8305126589 a508c59e-475e-4d27-84c9-6c3ded98e15c 6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0 b112878e-6313-4bc6-bc3f-0533d5f1ad1b dc68d831-9e04-4f0a-8b8b-8087b39c6037 6a6f6708-eefd-4d77-8ca0-0c5aaaa80796
 :END:
 :PLAN:
 Composed 2026-09-28 from the backlog survey, at the user's direction. The theme:
@@ -2296,7 +2349,7 @@ Planned:
 - [ ] [[id:6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0][6af8fb3e]] TODO org_slice_add_member's after= inserts between a story and its nested children, splitting the block
 - [ ] [[id:b112878e-6313-4bc6-bc3f-0533d5f1ad1b][b112878e]] TODO org_slice_add_member cannot prepend or reorder, so declared order is append-only
 - [ ] [[id:dc68d831-9e04-4f0a-8b8b-8087b39c6037][dc68d831]] TODO Slice refresh re-scans every heading for other slices' members once per slice
-- [[id:6a6f6708-eefd-4d77-8ca0-0c5aaaa80796][6a6f6708]] CANCELLED Every id-scoped org_outline scans every heading in every tracked file, and leaks a marker per slice
+- [ ] [[id:6a6f6708-eefd-4d77-8ca0-0c5aaaa80796][6a6f6708]] TODO Every id-scoped org_outline scans every heading in every tracked file, and leaks a marker per slice
 
 A slice's checklist is rendered from =:MEMBERS:=, and nothing checks that the
 rendering matches its members, repairs a closed slice's record, or lets a member
@@ -3657,279 +3710,6 @@ DOING would close the run. Decide after [[id:b09aca60-127b-47a4-9177-a86ac90d8fa
 — and fix [[id:b09aca60-127b-47a4-9177-a86ac90d8fac][b09aca60]] first. Still parked; revisit only if, with clock-out timing
 made safe, the second call is still being missed often enough to show in the
 miss count.
-
-
-* DONE Nothing in the drift slice was exercised in a consumer install: the new hooks, the conditional time-file promotion, the twin-checker agent :code:spike:
-CLOSED: [2026-10-13 Tue 09:45]
-:PROPERTIES:
-:ID:       2b8930da-5223-4b75-b4f6-251a28552d1b
-:CREATED:  [2026-09-21 Mon 10:21]
-:CATEGORY: Dev
-:BLOCKER:  8a2eb687-28da-4d44-893b-db59298bdc5b 6521dd56-8772-416b-9435-6da78bb86b06 4ae7a04b-1557-44d6-91c3-384f1def5293
-:END:
-:LOGBOOK:
-CLOCK: [2026-10-06 Tue 12:52]--[2026-10-06 Tue 12:53] =>  0:01
-- State "DOING"      from "TODO"       [2026-10-06 Tue 12:52] \\
-  blockers done; moving the swc worktree to main
-- [2026-10-06 Tue 12:52]--[2026-10-06 Tue 12:53] move the consumer's plugin worktree to main
-CLOCK: [2026-10-06 Tue 12:53]--[2026-10-06 Tue 12:54] =>  0:01
-- [2026-10-06 Tue 12:53]--[2026-10-06 Tue 12:54] suggested span, accepted at review
-- [2026-10-06 Tue 12:53]--[2026-10-06 Tue 12:53] suggested span, accepted at review
-CLOCK: [2026-10-06 Tue 12:54]--[2026-10-06 Tue 12:55] =>  0:01
-- [2026-10-06 Tue 12:54]--[2026-10-06 Tue 12:55] correct the move note
-CLOCK: [2026-10-06 Tue 14:00]--[2026-10-06 Tue 14:01] =>  0:01
-- [2026-10-06 Tue 14:00]--[2026-10-06 Tue 14:00] suggested span, accepted at review
-- [2026-10-06 Tue 14:00]--[2026-10-06 Tue 14:01] correct check 2 against setup's actual rule
-CLOCK: [2026-10-06 Tue 14:01]--[2026-10-06 Tue 14:02] =>  0:01
-- [2026-10-06 Tue 14:01]--[2026-10-06 Tue 14:02] suggested span, accepted at review
-CLOCK: [2026-10-06 Tue 14:03]--[2026-10-06 Tue 14:04] =>  0:01
-- [2026-10-06 Tue 14:03]--[2026-10-06 Tue 14:04] suggested span, accepted at review
-CLOCK: [2026-10-06 Tue 14:04]--[2026-10-06 Tue 14:05] =>  0:01
-- [2026-10-06 Tue 14:04]--[2026-10-06 Tue 14:05] record check 2 and the install state
-CLOCK: [2026-10-06 Tue 14:05]--[2026-10-06 Tue 14:06] =>  0:01
-- [2026-10-06 Tue 14:05]--[2026-10-06 Tue 14:06] suggested span, accepted at review
-CLOCK: [2026-10-06 Tue 14:06]--[2026-10-06 Tue 14:08] =>  0:02
-- [2026-10-06 Tue 14:06]--[2026-10-06 Tue 14:08] suggested span, accepted at review
-CLOCK: [2026-10-06 Tue 14:08]--[2026-10-06 Tue 14:12] =>  0:04
-- [2026-10-06 Tue 14:08]--[2026-10-06 Tue 14:12] suggested span, accepted at review
-CLOCK: [2026-10-06 Tue 14:15]--[2026-10-06 Tue 14:17] =>  0:02
-- [2026-10-06 Tue 14:15]--[2026-10-06 Tue 14:17] suggested span, accepted at review
-CLOCK: [2026-10-06 Tue 14:18]--[2026-10-06 Tue 14:20] =>  0:02
-- [2026-10-06 Tue 14:18]--[2026-10-06 Tue 14:20] suggested span, accepted at review
-CLOCK: [2026-10-10 Sat 14:07]--[2026-10-10 Sat 14:08] =>  0:01
-- [2026-10-10 Sat 14:07]--[2026-10-10 Sat 14:08] plan the consumer-install check
-CLOCK: [2026-10-10 Sat 15:17]--[2026-10-10 Sat 15:18] =>  0:01
-CLOCK: [2026-10-10 Sat 15:17]--[2026-10-10 Sat 15:18] =>  0:01
-- [2026-10-10 Sat 15:17]--[2026-10-10 Sat 15:18] plan the consumer-install check
-CLOCK: [2026-10-10 Sat 15:18]--[2026-10-10 Sat 15:19] =>  0:01
-- Tags ":code:spike:" from ":code:"     [2026-10-10 Sat 15:18] \\
-  classified spike: the output is an answer per check; failures file their own headings
-- [2026-10-10 Sat 15:18]--[2026-10-10 Sat 15:19] plan the consumer-install check
-CLOCK: [2026-10-10 Sat 18:28]--[2026-10-10 Sat 18:34] =>  0:06
-- State "DOING"      from "NEXT"       [2026-10-10 Sat 18:28] \\
-  undo NEXT queued in error; resuming checks
-- State "NEXT"       from "DOING"      [2026-10-10 Sat 18:28] \\
-  last member: consumer checks
-- [2026-10-10 Sat 18:28]--[2026-10-10 Sat 18:34] consumer checks from agentic-euchre
-CLOCK: [2026-10-10 Sat 18:34]--[2026-10-10 Sat 18:35] =>  0:01
-- [2026-10-10 Sat 18:34]--[2026-10-10 Sat 18:35] suggested span, accepted at review
-- [2026-10-12 Mon 08:55]--[2026-10-12 Mon 08:55] suggested span, accepted at review
-CLOCK: [2026-10-12 Mon 09:06]--[2026-10-12 Mon 09:08] =>  0:02
-- [2026-10-12 Mon 09:06]--[2026-10-12 Mon 09:08] suggested span, accepted at review
-CLOCK: [2026-10-12 Mon 10:11]--[2026-10-12 Mon 10:13] =>  0:02
-- [2026-10-12 Mon 10:11]--[2026-10-12 Mon 10:13] suggested span, accepted at review
-CLOCK: [2026-10-12 Mon 10:26]--[2026-10-12 Mon 10:27] =>  0:01
-- [2026-10-12 Mon 10:26]--[2026-10-12 Mon 10:27] suggested span, accepted at review
-CLOCK: [2026-10-12 Mon 10:29]--[2026-10-12 Mon 10:30] =>  0:01
-- [2026-10-12 Mon 10:29]--[2026-10-12 Mon 10:30] suggested span, accepted at review
-CLOCK: [2026-10-12 Mon 10:32]--[2026-10-12 Mon 10:33] =>  0:01
-- [2026-10-12 Mon 10:32]--[2026-10-12 Mon 10:33] suggested span, accepted at review
-CLOCK: [2026-10-12 Mon 10:35]--[2026-10-12 Mon 10:36] =>  0:01
-- [2026-10-12 Mon 10:35]--[2026-10-12 Mon 10:36] suggested span, accepted at review
-CLOCK: [2026-10-12 Mon 10:41]--[2026-10-12 Mon 10:42] =>  0:01
-- [2026-10-12 Mon 10:41]--[2026-10-12 Mon 10:42] suggested span, accepted at review
-- [2026-10-12 Mon 10:41]--[2026-10-12 Mon 10:41] suggested span, accepted at review
-CLOCK: [2026-10-12 Mon 11:01]--[2026-10-12 Mon 11:02] =>  0:01
-- [2026-10-12 Mon 11:01]--[2026-10-12 Mon 11:02] suggested span, accepted at review
-CLOCK: [2026-10-12 Mon 11:02]--[2026-10-12 Mon 11:03] =>  0:01
-- [2026-10-12 Mon 11:02]--[2026-10-12 Mon 11:03] suggested span, accepted at review
-CLOCK: [2026-10-12 Mon 11:11]--[2026-10-12 Mon 11:12] =>  0:01
-- [2026-10-12 Mon 11:11]--[2026-10-12 Mon 11:12] suggested span, accepted at review
-CLOCK: [2026-10-12 Mon 11:12]--[2026-10-12 Mon 11:13] =>  0:01
-- [2026-10-12 Mon 11:12]--[2026-10-12 Mon 11:13] suggested span, accepted at review
-CLOCK: [2026-10-12 Mon 11:15]--[2026-10-12 Mon 11:17] =>  0:02
-- [2026-10-12 Mon 11:15]--[2026-10-12 Mon 11:17] suggested span, accepted at review
-CLOCK: [2026-10-12 Mon 11:22]--[2026-10-12 Mon 11:24] =>  0:02
-- [2026-10-12 Mon 11:22]--[2026-10-12 Mon 11:24] suggested span, accepted at review
-CLOCK: [2026-10-12 Mon 11:24]--[2026-10-12 Mon 11:25] =>  0:01
-- [2026-10-12 Mon 11:24]--[2026-10-12 Mon 11:25] suggested span, accepted at review
-CLOCK: [2026-10-12 Mon 11:30]--[2026-10-12 Mon 11:31] =>  0:01
-- [2026-10-12 Mon 11:30]--[2026-10-12 Mon 11:31] suggested span, accepted at review
-CLOCK: [2026-10-12 Mon 11:31]--[2026-10-12 Mon 11:32] =>  0:01
-- [2026-10-12 Mon 11:31]--[2026-10-12 Mon 11:32] file the tool-failure report subtasks
-CLOCK: [2026-10-12 Mon 11:54]--[2026-10-12 Mon 11:55] =>  0:01
-- [2026-10-12 Mon 11:54]--[2026-10-12 Mon 11:55] suggested span, accepted at review
-CLOCK: [2026-10-12 Mon 12:05]--[2026-10-12 Mon 12:06] =>  0:01
-- [2026-10-12 Mon 12:05]--[2026-10-12 Mon 12:06] suggested span, accepted at review
-CLOCK: [2026-10-12 Mon 12:07]--[2026-10-12 Mon 12:08] =>  0:01
-- [2026-10-12 Mon 12:07]--[2026-10-12 Mon 12:08] suggested span, accepted at review
-CLOCK: [2026-10-12 Mon 12:12]--[2026-10-12 Mon 12:16] =>  0:04
-- [2026-10-12 Mon 12:12]--[2026-10-12 Mon 12:16] suggested span, accepted at review
-CLOCK: [2026-10-12 Mon 15:33]--[2026-10-12 Mon 15:34] =>  0:01
-- [2026-10-12 Mon 15:33]--[2026-10-12 Mon 15:34] record check 10 from noodle-salesman
-CLOCK: [2026-10-12 Mon 16:32]--[2026-10-12 Mon 16:33] =>  0:01
-- [2026-10-12 Mon 16:32]--[2026-10-12 Mon 16:33] assigned at review
-CLOCK: [2026-10-12 Mon 17:08]--[2026-10-12 Mon 17:09] =>  0:01
-- [2026-10-12 Mon 17:08]--[2026-10-12 Mon 17:09] assigned at review
-CLOCK: [2026-10-12 Mon 17:13]--[2026-10-12 Mon 17:14] =>  0:01
-- [2026-10-12 Mon 17:13]--[2026-10-12 Mon 17:14] assigned at review
-CLOCK: [2026-10-12 Mon 17:18]--[2026-10-12 Mon 17:19] =>  0:01
-- [2026-10-12 Mon 17:18]--[2026-10-12 Mon 17:19] assigned at review
-CLOCK: [2026-10-12 Mon 17:25]--[2026-10-12 Mon 17:26] =>  0:01
-- [2026-10-12 Mon 17:25]--[2026-10-12 Mon 17:26] assigned at review
-CLOCK: [2026-10-12 Mon 17:42]--[2026-10-12 Mon 17:43] =>  0:01
-- [2026-10-12 Mon 17:42]--[2026-10-12 Mon 17:43] assigned at review
-CLOCK: [2026-10-13 Tue 09:39]--[2026-10-13 Tue 09:42] =>  0:03
-- [2026-10-13 Tue 09:39]--[2026-10-13 Tue 09:42] assigned at review
-CLOCK: [2026-10-13 Tue 09:42]--[2026-10-13 Tue 09:43] =>  0:01
-- [2026-10-13 Tue 09:42]--[2026-10-13 Tue 09:43] record the noodle-salesman check results
-CLOCK: [2026-10-13 Tue 09:43]--[2026-10-13 Tue 09:45] =>  0:02
-- [2026-10-13 Tue 09:43]--[2026-10-13 Tue 09:45] assigned at review
-- State "DONE"       from "DOING"      [2026-10-13 Tue 09:45] \\
-  every consumer check answered; failures filed
-CLOCK: [2026-10-13 Tue 09:45]--[2026-10-13 Tue 09:46] =>  0:01
-- [2026-10-13 Tue 09:45]--[2026-10-13 Tue 09:46] close the consumer-install spike
-- [2026-10-13 Tue 09:45]--[2026-10-13 Tue 09:45] assigned at review
-:END:
-:PLAN:
-
-Approved 2026-10-10 in /plan-slice. Path: spike. The question: does each
-shipped behaviour work in a real consumer, agentic-euchre, with time tracking
-off? Every consumer-facing change was verified only in this repo, which wires
-its hooks through .claude/settings.json and links .claude/agents by hand.
-
-*Setup, before the slice's PR merges* (the user, 2026-10-10; this member is the
-last of slice [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]], so it cannot wait for that merge). Run
-=git -C ../claude-code-ide-org-swc checkout --detach <the slice's feature
-branch>=, re-run =claude-org-setup --no-time-tracking= in agentic-euchre and
-confirm =--check= reports all ok, then start a fresh Claude Code session there.
-agentic-euchre loads the plugin through =.claude/skills/claude-code-ide-org=, a
-symlink to that worktree.
-
-*The checks.* Check 2 (setup keeps an already-promoted time file on a plain
-re-run and removes it with --no-time-tracking, [[id:5fbc34cb-b5bd-4d9c-b8cb-29063f492b45][5fbc34cb]]) passed 2026-10-06.
-1. hooks.json's two PreToolUse guards, the org_.* refusal/conventions-inject
-   row and the session marker fire.
-3. conventions-inject falls back to the shipped reference where nothing is
-   promoted.
-4. A catch amended from the consumer resolves against the plugin's tracker.
-5. Whether the plugin's agents/ directory is offered to the consumer at all;
-   the manifest names no agents key.
-6. With [[id:dc21f724-78f9-4da8-9d74-002ad3306446][dc21f724]]: the names under which =/plan-slice= and =/work-slice= appear
-   (the docs say =/claude-code-ide-org:work-slice=, silent on the bare name),
-   and that both run with no =.claude/slice-rules.md=.
-7. [[id:97b4f6a9-a944-40d3-8d14-7a1667c52291][97b4f6a9]]: a review pass there applies a state change and opens no clock.
-8. [[id:24694d1f-34b4-495b-b0d8-d29e64894c59][24694d1f]]: with no categories declared, a top-level capture is refused
-   pointing at the rules-file stub, and =claude-org-setup --check= nags.
-9. [[id:79c224ab-188a-4ed4-a606-c28ee2cfe72d][79c224ab]]: a discarding git command is refused while euchre's .org file is
-   dirty, through the plugin's hooks.json wiring.
-10. [[id:d6375b21-a410-4c2d-9d5b-bfe980c4cc63][d6375b21]]: from =noodle-salesman=, where the leak was reported, an
-    unscoped =org_outline= shows only its own tracker and =org_pending_updates=
-    only its own items; =all_projects=true= shows every project.
-The buffer-movement members run in the same Emacs either way, so a consumer
-adds nothing for them; [[id:de081dd9-1853-4d79-94fc-2edac498380f][de081dd9]]'s ceremony is not checked here.
-
-*Output.* Each result goes into the body as passed, or failed with what
-happened. Each failure is filed as its own heading: fixed on the branch if it
-blocks the PR, otherwise deferred. The heading closes once every check has an
-answer.
-:END:
-:DEBRIEF:
-The checks ran in noodle-salesman, not in agentic-euchre as planned. The
-consumer that reported the leak was the better probe, and that substitution
-found three of the four defects. The checks were only a vehicle; the defects
-were the yield. Check 10 exposed the startup wiring ([[id:28eed617-e4e0-4d29-88ea-9411de4b77e5][28eed617]]). Check 7 exposed
-the global stamp ([[id:d30b3481-374c-4921-9fdb-284dd8e09e14][d30b3481]]). The slice's own refresh, seen from a second
-project, exposed cross-project incidentals ([[id:1c252f9c-6838-4b71-b08b-ff2e77d34dce][1c252f9c]]). Check 9 turned up a
-possible lost write ([[id:8185c75c-d7a5-42d2-a4eb-bc9dd1e6ce66][8185c75c]]). Checks were fragile in one way that cost the
-most time: the instructions told the user to type commands, and a command typed
-with =!= bypasses every hook. A consumer check of a hook must be run by the
-session itself. A later spike of this kind should say so in its first step.
-:END:
-It gates earnest work in agentic-euchre, taking over from [[id:6a207b00-8fa1-441e-8ee5-354702bc979b][6a207b00]] (closed
-2026-09-22); its blockers [[id:8a2eb687-28da-4d44-893b-db59298bdc5b][8a2eb687]], [[id:6521dd56-8772-416b-9435-6da78bb86b06][6521dd56]] and [[id:4ae7a04b-1557-44d6-91c3-384f1def5293][4ae7a04b]] are done. Classified
-spike 2026-10-10: the probe plan is in :PLAN:, run from the slice's feature
-branch before the PR merges, and each failure files its own heading.
-
-*Check 2 verified 2026-10-06 in agentic-euchre.* A plain re-run reported the
-time file "kept (already promoted)", and =--no-time-tracking= removed it. The
-six promoted rules were byte-identical to the plugin's generated copies, and
-=claude-org-setup --check= reported all ok, with =.mcp.json= naming the
-=agentic-euchre= session as that project's alone.
-
-*Setup done 2026-10-10.* The plugin worktree was detached at the slice
-branch's commit [[orgit-rev:./::787ad35][787ad35]], and =claude-org-setup --no-time-tracking= re-promoted
-six rules in agentic-euchre. agentic-euchre already held uncommitted changes of
-its own, TODO.org among them; setup left those alone.
-
-*Check 8, setup half: passed.* =--check= exits 1, naming only "missing:
-.claude/rules/org-categories.md -- run claude-org-setup --org"; its other 11
-lines are ok. The capture-refusal half needs a session in agentic-euchre.
-
-*Check 9, script half: passed.* Driven against agentic-euchre's dirty TODO.org
-with the queue isolated, the plugin's =discard-guard= refuses =git checkout --
-TODO.org= and =git stash=, passes =git status= and =git restore --staged=, and
-=hooks.json= wires it under PreToolUse Bash. Firing through that wiring needs a
-session there.
-
-*Check 3, script half: passed.* Driven with a project that has nothing promoted,
-the plugin's =conventions-inject= points at the plugin's own
-=skills/org/references/org-conventions.md= (1226 lines) with its section list.
-
-*Check 5, read from the manifest:* =.claude-plugin/plugin.json= has no =agents=
-key, and the plugin root holds =agents/twin-checker.md=. Whether Claude Code
-discovers that directory by convention needs a session there (=/agents=).
-
-*Check 1, wiring read:* the plugin's =hooks.json= carries both PreToolUse Bash
-guards, the =mcp__emacs-tools__org_.*= row and the queued-tool matchers.
-Whether they fire needs a session there.
-
-*Check 10 passed 2026-10-12 in noodle-salesman,* session 5c832f1e, after Emacs
-was restarted and the sessions re-wired ([[id:28eed617-e4e0-4d29-88ea-9411de4b77e5][28eed617]]). An unscoped =org_outline=
-returned only noodle-salesman's TODO.org. =org_pending_updates= answered
-"Nothing pending … 0 queue event(s)", with its event count confined too.
-=org_outline= with =all_projects=true= labelled each block by project
-(=claude-code-ide-org/TODO.org=, =noodle-salesman/TODO.org=, …), so the new
-argument had reached that session's schema. An earlier =org_pending_updates= at
-15:00 listed this repo's items. That is the shape of an unregistered session,
-most likely the call ran before the re-wire, but the transcript cannot confirm
-the order.
-
-*The remaining checks ran 2026-10-12 and 2026-10-13 in noodle-salesman,*
-session 5c832f1e, in place of agentic-euchre. Every check now has an answer.
-
-- *Check 1: passed.* The transcripts show SessionStart, conventions-inject and
-  footnotes-inject firing. =emacsclient -e '(when nil (org-todo "DONE"))'= was
-  blocked before it ran, and the message pointed at =org_set_todo=,
-  =org_clock_in= and =org_clock_out=.
-- *Check 4: passed.* The user reported half, but the amend half ran too. On
-  2026-10-12 the session amended a dated line onto [[id:59861867-e807-43a8-a0fa-5ca227167022][59861867]]. It landed in this
-  repo's TODO.org, not noodle-salesman's, and was committed in 9bc6bbd.
-  =org_body 59861867= also resolved here.
-- *Check 5: passed.* =claude-code-ide-org:twin-checker= is among the session's
-  agent types, with its description, so =agents/= is discovered without an
-  =agents= key. It was listed, not launched.
-- *Check 6: passed.* The commands appear only with the plugin prefix, as
-  =/claude-code-ide-org:plan-slice= and =/claude-code-ide-org:work-slice=. With
-  no =.claude/slice-rules.md=, =plan-slice= went ahead, found the =NEXT= slice
-  and stopped at its first preliminary, the unapplied queue. Nothing was
-  planned.
-- *Check 7: passed there, with a leak here.* A review pass in noodle-salesman
-  applied the keywords and wrote no CLOCK line. It did open the review-attention
-  clock in this repo, because the time-tracking stamp is global ([[id:d30b3481-374c-4921-9fdb-284dd8e09e14][d30b3481]]).
-- *Check 8, capture half: passed.* A capture with no target and no category was
-  refused and wrote nothing. The refusal listed the file's 11 categories and
-  said to declare values in =.claude/rules/org-categories.md=.
-- *Check 9: passed through the plugin's wiring.* The session's =git checkout --
-  TODO.org= was blocked while the file was dirty. The block named =TODO.org=,
-  offered =ALLOW_DISCARD=1= and said it came from the
-  =claude-code-ide-org@skills-dir= plugin. The file stayed dirty, and a
-  =discard-org= miss was queued from that cwd. The override's counting went
-  unexercised, because the cleanup ran in the user's own shell.
-
-*Failures and findings filed.* The global stamp is [[id:d30b3481-374c-4921-9fdb-284dd8e09e14][d30b3481]]. Startup wiring that
-registered no project sessions is [[id:28eed617-e4e0-4d29-88ea-9411de4b77e5][28eed617]]. Another project's closes counted as
-this slice's incidentals is [[id:1c252f9c-6838-4b71-b08b-ff2e77d34dce][1c252f9c]], fixed on the branch. An outside edit to
-the open TODO.org that was apparently written over is [[id:8185c75c-d7a5-42d2-a4eb-bc9dd1e6ce66][8185c75c]], not yet
-reproduced.
-
-*Resolved 2026-10-13: the drift slice works in a consumer install.* Every check
-passed, apart from check 7's clock opening in this repo. What failed is filed
-elsewhere, not fixed here. Two things were not exercised: the =ALLOW_DISCARD=1=
-override's counting (check 9), and actually launching =twin-checker= (check 5).
-Neither is worth a heading. The override's counting is the same miss path that
-check 9's block already exercised, and an agent that is offered launches through
-Claude Code's own mechanism.
 
 
 * TODO The duplicate query reads titles only, so a paraphrase gets past it — including the case that motivated it :code:
@@ -6675,6 +6455,12 @@ outside the tool so Emacs is never frozen while the human saves.
 :ID:       b2d4012c-6c61-47df-8086-d1cd205c73fc
 :CREATED:  [2026-09-23 Wed 10:34]
 :BLOCKER:  704d8558-657b-43e2-9440-1c054c923ed2 c35087d8-19fe-4179-a61c-cb615b2e7679
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-13 Tue 14:06]--[2026-10-13 Tue 14:07] =>  0:01
+- [2026-10-13 Tue 14:06]--[2026-10-13 Tue 14:07] assigned at review
+CLOCK: [2026-10-13 Tue 14:19]--[2026-10-13 Tue 14:20] =>  0:01
+- [2026-10-13 Tue 14:19]--[2026-10-13 Tue 14:20] assigned at review
 :END:
 :PLAN:
 
@@ -10191,12 +9977,12 @@ before the fix and still says.
 
 
 * TODO Archive closed tasks daily
-SCHEDULED: <2026-10-14 Wed 07:00 ++1d>
+SCHEDULED: <2026-10-15 Thu 07:00 ++1d>
 :PROPERTIES:
 :CATEGORY: Meta
 :ID:       cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8
 :CREATED:  [2026-08-21 Fri 15:35]
-:LAST_REPEAT: [2026-10-13 Tue 09:13]
+:LAST_REPEAT: [2026-10-14 Wed 13:01]
 :KIND:     ceremony
 :END:
 :LOGBOOK:
@@ -12495,7 +12281,6 @@ per tool -- rather than opening the servers beyond localhost.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
-CLOCK: [2026-10-13 Tue 16:29]--[2026-10-13 Tue 16:31] =>  0:02
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
@@ -12703,7 +12488,9 @@ CLOCK: [2026-10-12 Mon 15:05]--[2026-10-12 Mon 15:12] =>  0:07
 CLOCK: [2026-10-12 Mon 15:44]--[2026-10-12 Mon 15:48] =>  0:04
 - <2026-10-12 Mon 16:22>--<2026-10-12 Mon 16:22> review pass (buffer buried)
 - <2026-10-13 Tue 09:13>--<2026-10-13 Tue 09:13> review pass (buffer buried)
+CLOCK: [2026-10-13 Tue 16:29]--[2026-10-13 Tue 16:31] =>  0:02
 - <2026-10-13 Tue 16:29>--<2026-10-13 Tue 16:31> review pass (buffer buried)
+CLOCK: [2026-10-14 Wed 12:51]--[2026-10-14 Wed 13:01] =>  0:10
 :END:
 
 We created this heading on 2026-08-26. We deleted that property from its
@@ -14248,4 +14035,23 @@ CLOCK: [2026-10-10 Sat 17:24]--[2026-10-10 Sat 17:25] =>  0:01
 :LOGBOOK:
 CLOCK: [2026-10-12 Mon 11:24]--[2026-10-12 Mon 11:25] =>  0:01
 - [2026-10-12 Mon 11:24]--[2026-10-12 Mon 11:25] file the tool-failure report wording defects
+:END:
+
+
+**** 2026-10-13 Tuesday
+:PROPERTIES:
+:ID:       0bb2a715-90f3-47f1-9c42-0d4c170122e0
+:CREATED:  [2026-10-13 Tue 14:01]
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-13 Tue 14:01]--[2026-10-13 Tue 14:02] =>  0:01
+- [2026-10-13 Tue 14:01]--[2026-10-13 Tue 14:02] assigned at review
+CLOCK: [2026-10-13 Tue 14:03]--[2026-10-13 Tue 14:04] =>  0:01
+- [2026-10-13 Tue 14:03]--[2026-10-13 Tue 14:04] assigned at review
+CLOCK: [2026-10-13 Tue 14:53]--[2026-10-13 Tue 14:54] =>  0:01
+- [2026-10-13 Tue 14:53]--[2026-10-13 Tue 14:54] file CHANGELOG drawer task and file-per-task spike
+CLOCK: [2026-10-13 Tue 14:54]--[2026-10-13 Tue 14:55] =>  0:01
+- [2026-10-13 Tue 14:54]--[2026-10-13 Tue 14:55] assigned at review
+CLOCK: [2026-10-13 Tue 14:58]--[2026-10-13 Tue 14:59] =>  0:01
+- [2026-10-13 Tue 14:58]--[2026-10-13 Tue 14:59] assigned at review
 :END:
