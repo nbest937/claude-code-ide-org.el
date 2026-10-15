@@ -2,6 +2,106 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO [0/5] A :PLAN: can be written without the brainstorm's classify step, so most plans carry no path and /plan-slice trusts them anyway
+:PROPERTIES:
+:ID:       ad0bc484-072c-47b0-ab68-d2fc55df9281
+:CREATED:  [2026-10-15 Thu 12:50]
+:CATEGORY: Skill
+:END:
+:PLAN:
+
+:END:
+A live heading can get a non-empty :PLAN: with no path tag (:spike:, :bounded:,
+:arch:), so nothing records which process produced the design, and /plan-slice
+then skips it as already planned. Seen in noodle-salesman planning its 0.1
+slice: one bulk pass ("plan every open leaf of 0.1") wrote 20 plans and no tags,
+and an audit of 30 planned leaves found every arch-shaped plan stating one
+design, with no approaches compared and no review. Measured 2026-10-15 over live
+non-slice headings: here 80 of 90 non-empty plans carry no path tag (48 more are
+empty), in noodle-salesman 32 of 48. Most of this repo's predate the
+brainstorming skill (Plan Mode copies, retroactive wraps of pre-convention
+bodies), so an untagged plan shows that no classification is recorded, not that
+one was skipped.
+
+Three causes: nothing gates a plan write; /plan-slice skips a member whose plan
+has no open question, tagged or not; and :bounded: is unreachable in a young
+repo, because the skill defines it against code that already exists, so ordinary
+tasks were left untagged rather than tagged :arch:.
+
+Proposed, not yet decided: an empty :PLAN: is exempt everywhere, since under the
+capture-time rule on [[id:67636413-fd31-433b-b84e-a49e16da259f][67636413]] it records that no design is approved yet; so is a
+slice, whose plan is order rather than design. A design agreed in conversation
+is a proposal and stays in the body until a brainstorm or a Plan Mode approval
+moves it into the drawer, so no in-drawer "awaiting brainstorm" marker is
+needed. Related, not a twin: [[id:c9c75fda-c818-4e7b-9b97-c3a68e980eab][c9c75fda]] makes the three path tags an exclusive
+group.
+** TODO The brainstorming skill and the conventions never say a non-empty :PLAN: is an approved design whose path tag names how it was approved :prose:
+:PROPERTIES:
+:ID:       84d9bed6-1326-4cd3-a85a-2c6662709557
+:CREATED:  [2026-10-15 Thu 12:50]
+:END:
+
+Proposed: in the conventions' ":PLAN: drawer" section, say that a non-empty
+:PLAN: is an approved design, from a brainstorm or a Plan Mode approval, and
+that its path tag names the path that approved it. Also give the backlog a
+sanctioned route the skill's "tag only the heading in hand" rule now forbids:
+classify an existing plan after the fact with an org_set_tags note beginning
+"classified retroactively", saying whether the plan has that path's shape. The
+other members enforce what this one states, so it goes first.
+** TODO org_amend and org_edit write a :PLAN: on a heading that carries no path tag :code:
+:PROPERTIES:
+:ID:       83da971e-9ded-4d6f-afef-31cdb7a7374b
+:CREATED:  [2026-10-15 Thu 12:50]
+:CATEGORY: Tools
+:END:
+
+Proposed: refuse a drawer=PLAN write on a live heading with no :spike:,
+:bounded: or :arch: tag, name the remedy (org_set_tags add=<path> with a note,
+or tags= at capture), and count it as a miss. Exempt slices, and org_wrap_plan,
+which moves existing prose rather than writing a design. Writing into an empty
+drawer is not exempt: the first design write is exactly the case to gate. A tag
+is a weak proxy, since a session can add one to pass; what the gate buys is that
+classifying becomes a deliberate act logged with a note.
+** TODO bin/lint-org does not flag a live :PLAN: that carries no path tag :code:
+:PROPERTIES:
+:ID:       1e35a7db-f8f3-47e0-9e29-0b5f36b5e00d
+:CREATED:  [2026-10-15 Thu 12:50]
+:CATEGORY: Dev
+:END:
+
+Proposed: flag a live, non-slice heading whose :PLAN: is non-empty and has no
+path tag. As an error it would fire 80 times here and 32 in noodle-salesman on
+its first run. Open: warn on the backlog and error only where the commit changed
+that heading's :PLAN:, or ship a warning with a migration note. The first needs
+lint to see what the commit changed, and pre-commit lints a temp copy
+([[id:634eb138-28bc-4d43-aed3-f242c877904d][634eb138]]).
+** TODO /plan-slice skips any member whose :PLAN: has no open question, whether or not it was ever classified :prose:
+:PROPERTIES:
+:ID:       374794f1-850f-4d1c-a978-db1433b55796
+:CREATED:  [2026-10-15 Thu 12:50]
+:END:
+
+Proposed: skip a member only when it carries a path tag and its plan has that
+path's shape (spike: a question and a probe; bounded: a short design; arch:
+approaches compared, a sectioned design, reviewed). Otherwise brainstorm it:
+classify, bring the plan up to shape, review. This is also the backlog's route:
+an untagged plan is classified when a slice next takes it up, so no sweep is
+needed. Open: shape is judged by reading, and "reviewed" may need a recorded
+marker to be checkable.
+** TODO :bounded: is unreachable in a young repo, so ordinary tasks there go untagged rather than mislabelled :arch: :prose:
+:PROPERTIES:
+:ID:       5ec94946-7ed7-4ff6-9206-dfa575138fc3
+:CREATED:  [2026-10-15 Thu 12:50]
+:END:
+
+The brainstorming skill defines bounded against code that already exists ("A new
+project has no existing flow — it is architectural"), so before the first
+feature lands every build task is formally :arch:. Proposed: bounded also when
+the flow it changes is fixed by an earlier member of the slice whose :arch:
+design is approved. That means an approved design, not merely a place in the
+order: a bounded change built on an unapproved design inherits that design's
+uncertainty. Keep "when in doubt, heavier".
+
 * TODO A capture or refile that gives a heading its first keyworded child leaves it with no statistics cookie, which lint-org then refuses :code:
 :PROPERTIES:
 :ID:       ed3e6862-db3e-4e81-badd-859ddf629400
