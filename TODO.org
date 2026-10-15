@@ -57,6 +57,20 @@ implies this by brainstorming every member without a design, but nothing states
 it, so an open slice whose members carry no path tag reads as a miss when it is
 only not yet planned. The miss is a design written without one.
 
+The same sentences invite the opposite misreading downstream. The conventions
+and the org skill say the path tags are set by the brainstorming skill "at
+capture or when it classifies" a filed heading, and the skill says "for a new
+heading, pass the tag in org_capture's tags". All three mean the capture that
+the brainstorm itself makes after the design is approved (bounded step 5,
+architectural step 7). A noodle-salesman session read them as saying any capture
+should carry a path tag, which is too early: capture records that work exists,
+and for a task mentioned in passing, debrief residue or a review finding the
+path is often unknowable. Proposed (from that repo's brief): say a heading is
+classified when it is brainstormed and that classifying is the brainstorm's
+first step; drop "at capture"; and say a heading that never gets a design, such
+as a chore or a note, never needs a path tag.
+
+
 ** TODO org_amend and org_edit write a :PLAN: on a heading that carries no path tag :code:
 :PROPERTIES:
 :ID:       83da971e-9ded-4d6f-afef-31cdb7a7374b
