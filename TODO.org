@@ -8,6 +8,10 @@
 :CREATED:  [2026-10-14 Wed 16:34]
 :CATEGORY: Tools
 :END:
+:LOGBOOK:
+CLOCK: [2026-10-14 Wed 16:34]--[2026-10-14 Wed 16:35] =>  0:01
+- [2026-10-14 Wed 16:34]--[2026-10-14 Wed 16:35] file the first-child cookie gap
+:END:
 :PLAN:
 
 :END:
@@ -29,11 +33,18 @@ after =org_refile= lands one under a new parent, call
 A fixture test for each path: capture or refile a keyworded child under a
 keywordless-children parent, and assert the cookie appears after the keyword.
 
+
 * TODO lint-org with no arguments lints the plugin checkout, not the consuming repo, and passes :code:
 :PROPERTIES:
 :ID:       9a8013d7-7525-466b-9aaf-10eb647f5e9f
 :CREATED:  [2026-10-14 Wed 16:22]
 :CATEGORY: Dev
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-14 Wed 16:28]--[2026-10-14 Wed 16:29] =>  0:01
+- [2026-10-14 Wed 16:28]--[2026-10-14 Wed 16:29] assigned at review
+CLOCK: [2026-10-14 Wed 16:34]--[2026-10-14 Wed 16:35] =>  0:01
+- [2026-10-14 Wed 16:34]--[2026-10-14 Wed 16:35] assigned at review
 :END:
 
 =bin/lint-org= with no arguments resolves its repo root from the script's own
@@ -52,6 +63,14 @@ print which files were linted so a run on the wrong project is visible.
 :ID:       d12fb6f7-5fde-45c1-b8a3-c59293130365
 :CREATED:  [2026-10-14 Wed 13:01]
 :CATEGORY: Apply
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-14 Wed 13:01]--[2026-10-14 Wed 13:02] =>  0:01
+- [2026-10-14 Wed 13:01]--[2026-10-14 Wed 13:02] diagnose T in a multi-project review buffer
+CLOCK: [2026-10-14 Wed 13:04]--[2026-10-14 Wed 13:05] =>  0:01
+- [2026-10-14 Wed 13:04]--[2026-10-14 Wed 13:05] assigned at review
+CLOCK: [2026-10-14 Wed 13:05]--[2026-10-14 Wed 13:06] =>  0:01
+- [2026-10-14 Wed 13:05]--[2026-10-14 Wed 13:06] record the unreproduced multi-project symptom
 :END:
 :PLAN:
 
@@ -191,6 +210,7 @@ Open questions:
 :LOGBOOK:
 CLOCK: [2026-10-13 Tue 14:53]--[2026-10-13 Tue 14:53] =>  0:00
 - [2026-10-13 Tue 14:53]--[2026-10-13 Tue 14:53] assigned at review
+- [2026-10-14 Wed 13:00]--[2026-10-14 Wed 13:00] move open questions from PLAN to body
 :END:
 :PLAN:
 
@@ -10032,12 +10052,12 @@ before the fix and still says.
 
 
 * TODO Archive closed tasks daily
-SCHEDULED: <2026-10-15 Thu 07:00 ++1d>
+SCHEDULED: <2026-10-16 Fri 07:00 ++1d>
 :PROPERTIES:
 :CATEGORY: Meta
 :ID:       cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8
 :CREATED:  [2026-08-21 Fri 15:35]
-:LAST_REPEAT: [2026-10-14 Wed 13:01]
+:LAST_REPEAT: [2026-10-15 Thu 08:27]
 :KIND:     ceremony
 :END:
 :LOGBOOK:
