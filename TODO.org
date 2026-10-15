@@ -40,7 +40,9 @@ group.
 :ID:       84d9bed6-1326-4cd3-a85a-2c6662709557
 :CREATED:  [2026-10-15 Thu 12:50]
 :END:
+:PLAN:
 
+:END:
 Proposed: in the conventions' ":PLAN: drawer" section, say that a non-empty
 :PLAN: is an approved design, from a brainstorm or a Plan Mode approval, and
 that its path tag names the path that approved it. Also give the backlog a
@@ -48,6 +50,13 @@ sanctioned route the skill's "tag only the heading in hand" rule now forbids:
 classify an existing plan after the fact with an org_set_tags note beginning
 "classified retroactively", saying whether the plan has that path's shape. The
 other members enforce what this one states, so it goes first.
+
+Also say when classification is owed: when a heading is brainstormed, which for
+a slice member is /plan-slice, just before the slice is worked. /plan-slice
+implies this by brainstorming every member without a design, but nothing states
+it, so an open slice whose members carry no path tag reads as a miss when it is
+only not yet planned. The miss is a design written without one.
+
 ** TODO org_amend and org_edit write a :PLAN: on a heading that carries no path tag :code:
 :PROPERTIES:
 :ID:       83da971e-9ded-4d6f-afef-31cdb7a7374b
