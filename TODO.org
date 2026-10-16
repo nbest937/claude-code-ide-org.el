@@ -15,11 +15,16 @@ only a parent :ID:. Proposed: a top_level=true option, or a file= target, that
 lands the subtree at level 1 of a named tracked file. Refuse a file outside the
 tracked set.
 
+
 * TODO A targetless org_capture from a session with no registered project writes to the global capture file, another project's tracker, and says nothing :code:
 :PROPERTIES:
 :ID:       4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8
 :CREATED:  [2026-10-16 Fri 13:43]
 :CATEGORY: Tools
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-16 Fri 13:43]--[2026-10-16 Fri 13:44] =>  0:01
+- [2026-10-16 Fri 13:43]--[2026-10-16 Fri 13:44] file the misrouted-capture report
 :END:
 :PLAN:
 
@@ -38,6 +43,7 @@ signal was a new-category warning naming the path, which reads as a typo check.
 Proposed (from that repo's brief): refuse a targetless capture when no session
 project resolves, or when the resolved file is outside the caller's project,
 naming both paths; and lead every capture reply with the destination file.
+
 
 * TODO [0/5] A :PLAN: can be written without the brainstorm's classify step, so most plans carry no path and /plan-slice trusts them anyway
 :PROPERTIES:
@@ -860,7 +866,6 @@ noodle-salesman capture fell through to this repo's TODO.org ([[id:4a6f6dc3-c4d4
 this repo's own unscoped org_query returned a noodle-salesman heading.
 Unchecked: whether starting a claude-code-ide session resets the table, or
 whether the startup wiring yielded zero again.
-
 
 
 * TODO [0/5] The SessionStart tool-failure report misstates what failed and says nothing when Emacs is down now :code:
