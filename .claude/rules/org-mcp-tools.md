@@ -13,6 +13,8 @@
 Most tools locate a single heading by its `:ID:` property.  Every heading
 Claude is expected to act on must have one (`M-x org-id-get-create`).
 `org_query` is the exception — it searches across files by query, not by ID.
+An unscoped read sees only the calling session's project; `all_projects=true`
+reads every one (`:ID:` d6375b21).
 
 **Queued (change nothing when called)** — the three that caused every
 incident, and the reason the queue exists:
@@ -32,9 +34,9 @@ org's state-change logging needs a genuinely interactive command.
 
 | Tool                | Wraps                    | Notes                                  |
 |---------------------|--------------------------|-----------------------------------------|
-| `org_clock_report`  | `org-clock-report`       | Clocktable summary; :ID:-scoped or all |
+| `org_clock_report`  | `org-clock-report`       | Clocktable summary; :ID:-scoped or the session's project |
 | `org_archive`       | `org-archive-subtree`    | Respects `#+ARCHIVE:` directive        |
-| `org_query`         | `org-ql-select`          | Cross-file search; not :ID:-scoped     |
+| `org_query`         | `org-ql-select`          | Search across the session's project; `member:ID` finds the slices counting a heading |
 | `org_capture`       | `org-capture`            | Quick-add a new heading. **A targetless capture lands at level 1 and requires `category`** — the refusal lists the values the file already uses; under an `:ID:` target the child inherits. A value the file has never used is written with a warning (`:ID:` b0d55552) |
 | `org_refile`        | `org-refile`             | Move a subtree under a different parent |
 | `org_divide`        | custom (`org-demote-subtree`) | Task mitosis: insert a new parent above a heading and demote it under. The id, clock and history stay with the **child** |
@@ -56,9 +58,9 @@ org's state-change logging needs a genuinely interactive command.
 
 | Tool                | Notes                                  |
 |---------------------|-----------------------------------------|
-| `org_outline`       | Compact index: level, keyword, title, `:ID:`, tags — **and each heading's own body prose beneath its line** (drawers excluded; `bodies=false` for structure only), since a convention-following body is a short summary and the index then answers orientation outright (`:ID:` 2a399034). Marks `[blocked: id …]`. **Scoped to one heading it leads with that heading's front matter** — `:CREATED:`, `:CATEGORY:`, `:KIND:`, the `:BLOCKER:` *value* with each id's keyword, the plan file. Accepts an 8-character prefix as scope. Use before creating a heading |
+| `org_outline`       | Compact index: level, keyword, title, `:ID:`, tags — **and each heading's own body prose beneath its line** (drawers excluded; `bodies=false` for structure only; `:ID:` 2a399034). Unscoped, the session's project only. Marks `[blocked: id …]`. **Scoped to one heading it leads with that heading's front matter** — `:CREATED:`, `:CATEGORY:`, `:KIND:`, the `:BLOCKER:` *value* with each id's keyword, the plan file, the open `slices:` counting it and what it `blocks:`. Takes an 8-character prefix. Use before creating a heading |
 | `org_body`          | Returns one heading whole — heading line, drawers and body — by `:ID:` or 8-character prefix, or **just one drawer with `drawer=`** (PLAN, DEBRIEF, LOGBOOK): the on-demand half of the read split, now that the outline carries bodies — a missing drawer errors naming the drawers present. Whole-heading reads filter **nothing**, `:PLAN:` included; how to read that drawer depends on the keyword (skip when finished, read when live). `include_children` for the subtree. Reach for `org_outline` first |
-| `org_pending_updates` | Summary of queued-but-unapplied updates, grouped by heading. Counts *proposals*, not queue lines. This is how you check a queued call landed |
+| `org_pending_updates` | The session's project's queued-but-unapplied updates, grouped by heading. Counts *proposals*, not queue lines. This is how you check a queued call landed |
 | `org_history`       | How a heading got here, from commits citing its `:ID:`: work on it (subject leads with the id), other citations grouped by subject, where to look next. Reads git, not the file; blind to commits naming no heading (`:ID:` 41cf5830) |
 
 There is **no MCP tool that applies the queue**, by design. Apply is `M-x
@@ -69,7 +71,7 @@ tool.
 Text editing (via the org skill) is used for new headings and time
 reporting. `org_query` now covers
 structured cross-file reads (e.g. "what's blocked," "everything :research:
-and not DONE") that used to mean Claude reading whole files by hand.
+and not DONE") instead of whole-file reads.
 
 **Read-only buffers: nothing to do.** The file-touching tools *bind*
 `inhibit-read-only` themselves, so a buffer toggled read-only (`C-x C-q`)

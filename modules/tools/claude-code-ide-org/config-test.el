@@ -3362,6 +3362,8 @@ written; passing one there is honoured."
       (should (string-prefix-p "Error:" reply))
       (should (string-match-p "needs a category" reply))
       (should (string-match-p "uses: Queue, Tools" reply))
+      ;; And where values are declared (TODO.org :ID: 24694d1f).
+      (should (string-match-p "\\.claude/rules/org-categories\\.md" reply))
       (should-not (string-match-p "Unfiled"
                                   (claude-code-ide-org-test--disk-contents capture-file))))
     ;; A child inherits: accepted without one, and no drawer line written.
@@ -3396,6 +3398,7 @@ about nothing: there is nothing to have mistyped."
     (let ((reply (claude-code-ide-org-capture "Typo" nil nil nil "TODO" "Tool")))
       (should (string-prefix-p claude-code-ide-org--reply-captured reply))
       (should (string-match-p "WARNING: \"Tool\" is a new category" reply))
+      (should (string-match-p "\\.claude/rules/org-categories\\.md" reply))
       (should (string-match-p "uses Queue" reply))
       (should (string-match-p "^:CATEGORY: +Tool$"
                               (claude-code-ide-org-test--disk-contents capture-file))))
@@ -5549,6 +5552,43 @@ span still swallowed the whole original: a 54-minute span truncated to
             (should (equal before
                            (+ (length (plist-get span :events))
                               (length (plist-get remainder :events)))))))))))
+
+(ert-deftest claude-code-ide-org-test-narrowing-a-dismissed-span-dismisses-no-remainder ()
+  "A remainder of a `D'-marked span carries no `D' of its own.
+
+From PR #37's review (TODO.org :ID: 70d742fa): the remainder was a
+`copy-sequence' of the item that reset `:marked' only, so after `d' then
+`e' the out-of-window events were dismissed at `x' though the human never
+marked their lines."
+  (claude-code-ide-org-test--with-queue
+    (apply #'claude-code-ide-org-test--queue-write "sess-a"
+           (list (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:05:00-0500" "resume" nil nil "sess-a")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:10:00-0500" "pause" nil nil "sess-a")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:20:00-0500" "resume" nil nil "sess-a")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:25:00-0500" "pause" nil nil "sess-a")))
+    (claude-code-ide-org-test--with-review-buffer
+        (claude-code-ide-org--review-items-from-queue)
+      (let* ((items claude-code-ide-org--review-items)
+             (span (seq-find (lambda (i) (plist-get i :unassigned)) items)))
+        (should span)
+        (plist-put span :dismiss t)
+        (plist-put span :dismiss-reason "noise")
+        (claude-code-ide-org-test--goto-nth-item (seq-position items span))
+        (cl-letf (((symbol-function 'read-string)
+                   (lambda (prompt &optional _initial &rest _)
+                     (if (string-prefix-p "Start" prompt)
+                         "[2026-08-13 Thu 09:05]"
+                       "[2026-08-13 Thu 09:10]"))))
+          (claude-code-ide-org-review-edit-interval))
+        (let ((remainder (seq-find (lambda (i) (not (eq i span)))
+                                   claude-code-ide-org--review-items)))
+          (should remainder)
+          (should-not (plist-get remainder :dismiss))
+          (should-not (plist-get remainder :dismiss-reason)))))))
 
 (ert-deftest claude-code-ide-org-test-no-zero-width-remainder ()
   "A single leftover guidepost is not offered as a zero-width remainder.
@@ -7820,6 +7860,343 @@ the pass."
       (should-not (claude-code-ide-org-review-attention-start))
       (should-not (org-clocking-p)))))
 
+;;; Returning to where the review was entered (TODO.org :ID: 6c64cc9c) ------
+
+(defconst claude-code-ide-org-test--entry-text
+  "* A\n:PROPERTIES:\n:ID: aaaa\n:END:\nalpha body\n* B\n:PROPERTIES:\n:ID: bbbb\n:END:\nbravo body line\nmore of bravo\n"
+  "Two headings with ids, for the entry-restore tests.")
+
+(defmacro claude-code-ide-org-test--with-entry-buffer (&rest body)
+  "Run BODY in an org buffer holding the entry text, ids found in it."
+  (declare (indent 0))
+  `(with-temp-buffer
+     (org-mode)
+     (insert claude-code-ide-org-test--entry-text)
+     (let ((buf (current-buffer)))
+       (cl-letf (((symbol-function 'claude-code-ide-org--id-find)
+                  (lambda (id &rest _)
+                    (with-current-buffer buf
+                      (save-excursion
+                        (goto-char (point-min))
+                        (when (re-search-forward
+                               (concat "^:ID: +" (regexp-quote id) "$") nil t)
+                          (org-back-to-heading t)
+                          (point-marker)))))))
+         ,@body))))
+
+(defun claude-code-ide-org-test--goto-text (text)
+  "Put point at the start of TEXT in the current buffer."
+  (goto-char (point-min))
+  (search-forward text)
+  (goto-char (match-beginning 0)))
+
+(ert-deftest claude-code-ide-org-test-review-entry-survives-a-sort ()
+  "The entry heading is found again by :ID: after the ceremony moves it,
+and point lands at the same offset inside it (TODO.org :ID: 6c64cc9c)."
+  (claude-code-ide-org-test--with-entry-buffer
+    (claude-code-ide-org-test--goto-text "more of bravo")
+    (let ((entry (claude-code-ide-org--review-capture-entry)))
+      (should (equal (plist-get entry :id) "bbbb"))
+      ;; The sort: B moves above A, so every position changes.
+      (erase-buffer)
+      (insert "* B\n:PROPERTIES:\n:ID: bbbb\n:END:\nbravo body line\nmore of bravo\n"
+              "* A\n:PROPERTIES:\n:ID: aaaa\n:END:\nalpha body\n")
+      (goto-char (point-max))
+      (claude-code-ide-org--review-restore-entry entry)
+      (should (looking-at "more of bravo")))))
+
+(ert-deftest claude-code-ide-org-test-review-entry-offset-is-clamped ()
+  "A body that shrank cannot carry point into the next heading."
+  (claude-code-ide-org-test--with-entry-buffer
+    (claude-code-ide-org-test--goto-text "more of bravo")
+    (let ((entry (claude-code-ide-org--review-capture-entry)))
+      (erase-buffer)
+      (insert "* B\n:PROPERTIES:\n:ID: bbbb\n:END:\nb\n"
+              "* A\n:PROPERTIES:\n:ID: aaaa\n:END:\nalpha body\n")
+      (claude-code-ide-org--review-restore-entry entry)
+      (should (equal (org-entry-get nil "ID") "bbbb")))))
+
+(ert-deftest claude-code-ide-org-test-review-entry-archived-is-declined ()
+  "An entry heading archived since is not followed: point goes to the top,
+and the message names it with the full id, also on the kill ring."
+  (let ((kill-ring nil) (said nil)
+        (archive (generate-new-buffer " *done*")))
+    (unwind-protect
+        (claude-code-ide-org-test--with-entry-buffer
+          (claude-code-ide-org-test--goto-text "more of bravo")
+          (let ((entry (claude-code-ide-org--review-capture-entry)))
+            (with-current-buffer archive
+              (org-mode)
+              (insert "* B\n:PROPERTIES:\n:ID: bbbb\n:END:\n"))
+            (cl-letf (((symbol-function 'claude-code-ide-org--id-find)
+                       (lambda (&rest _)
+                         (with-current-buffer archive (copy-marker (point-min)))))
+                      ((symbol-function 'message)
+                       (lambda (fmt &rest args) (setq said (apply #'format fmt args)))))
+              (claude-code-ide-org--review-restore-entry entry))
+            (should (= (point) (point-min)))
+            (should (equal (car kill-ring) "bbbb"))
+            (should (string-match-p "\"B\" was archived.*org-id-goto RET bbbb" said))))
+      (kill-buffer archive))))
+
+(ert-deftest claude-code-ide-org-test-review-entry-non-org-restores-layout-only ()
+  "Outside org there is no heading to find: the layout comes back and
+point is left where the configuration puts it."
+  (let ((restored nil))
+    (with-temp-buffer
+      (insert "plain text\n")
+      (let ((entry (claude-code-ide-org--review-capture-entry)))
+        (should-not (plist-get entry :id))
+        (should-not (plist-get entry :pos))
+        (should (window-configuration-p (plist-get entry :windows)))
+        (cl-letf (((symbol-function 'set-window-configuration)
+                   (lambda (&rest _) (setq restored t))))
+          (claude-code-ide-org--review-restore-entry entry))
+        (should restored)))))
+
+(ert-deftest claude-code-ide-org-test-review-quit-runs-the-ceremony-without-a-clock ()
+  "Burying the buffer runs a due ceremony once per pass, whether or not
+an attention clock was opened (found by :ID: 6c64cc9c: since :ID:
+97b4f6a9 a task-only install never opens one, and the ceremony keyed
+on it)."
+  (let ((runs 0))
+    (cl-letf (((symbol-function 'claude-code-ide-org--ceremony-due-p) (lambda () t))
+              ((symbol-function 'claude-code-ide-org-ceremony-finish)
+               (lambda () (setq runs (1+ runs)))))
+      (with-temp-buffer
+        (claude-code-ide-org-review-mode)
+        (setq claude-code-ide-org--review-pass-open t)
+        (should-not claude-code-ide-org--review-attention-marker)
+        (claude-code-ide-org--review-attention-on-quit)
+        (should (= runs 1))
+        (claude-code-ide-org--review-attention-on-quit)
+        (should (= runs 1))))))
+
+(ert-deftest claude-code-ide-org-test-review-command-records-the-entry ()
+  "The command records where it was entered from before it pops the
+buffer, and opens the pass."
+  (let ((claude-code-ide-org-review-attention-heading nil))
+    (claude-code-ide-org-test--with-entry-buffer
+      (claude-code-ide-org-test--goto-text "alpha body")
+      (cl-letf (((symbol-function 'claude-code-ide-org--time-tracking-on-p) #'ignore)
+                ((symbol-function 'claude-code-ide-org-review-refresh) #'ignore)
+                ((symbol-function 'pop-to-buffer) #'ignore))
+        (unwind-protect
+            (progn
+              (claude-code-ide-org-review)
+              (with-current-buffer "*org-review*"
+                (should claude-code-ide-org--review-pass-open)
+                (should (equal (plist-get claude-code-ide-org--review-entry :id)
+                               "aaaa"))))
+          (cl-letf (((symbol-function 'claude-code-ide-org--review-restore-entry)
+                     #'ignore))
+            (kill-buffer "*org-review*")))))))
+
+;;; Time-tracking gate and the missing anchor (TODO.org :ID: 97b4f6a9) -----
+
+(defun claude-code-ide-org-test--run-review-command ()
+  "Run `claude-code-ide-org-review' and kill its buffer, closing any pass."
+  (save-window-excursion
+    (claude-code-ide-org-review))
+  (when (get-buffer "*org-review*")
+    (kill-buffer "*org-review*")))
+
+(ert-deftest claude-code-ide-org-test-review-gate-off-touches-nothing ()
+  "With the option stamp false, empty or missing, the pass opens no clock.
+
+A task-only install uses the review pass too, and was handed a clock
+and a heading it never asked for.  Fails closed: anything but \"true\"
+is off.  Asserted as a byte-identical file, which covers both the clock
+and the heading."
+  (claude-code-ide-org-test--with-attention-target
+    (let* ((claude-code-ide-org-queue-directory
+            (file-name-directory file))
+           (stamp (claude-code-ide-org--time-tracking-stamp-file))
+           (before (claude-code-ide-org-test--disk-contents file)))
+      (dolist (value '("false" "" missing))
+        (if (eq value 'missing)
+            (when (file-exists-p stamp) (delete-file stamp))
+          (with-temp-file stamp (insert value)))
+        (should-not (claude-code-ide-org--time-tracking-on-p))
+        (claude-code-ide-org-test--run-review-command)
+        (should-not (org-clocking-p))
+        (should (equal before (claude-code-ide-org-test--disk-contents file)))))))
+
+(ert-deftest claude-code-ide-org-test-review-gate-on-opens-the-clock ()
+  "With the stamp reading true, the pass is clocked as before."
+  (claude-code-ide-org-test--with-attention-target
+    (let ((claude-code-ide-org-queue-directory (file-name-directory file)))
+      (with-temp-file (claude-code-ide-org--time-tracking-stamp-file)
+        (insert "true\n"))
+      (should (claude-code-ide-org--time-tracking-on-p))
+      (save-window-excursion (claude-code-ide-org-review))
+      (unwind-protect
+          (should (org-clocking-p))
+        (kill-buffer "*org-review*"))
+      (should-not (org-clocking-p))
+      (should (string-match-p "^\\*\\* Review attention$"
+                              (claude-code-ide-org-test--disk-contents file))))))
+
+(ert-deftest claude-code-ide-org-test-session-context-report-writes-the-stamp ()
+  "The hook's raw option value reaches the stamp, all three forms."
+  (claude-code-ide-org-test--with-heading
+    (let* ((claude-code-ide-org-query-files (list file))
+           (claude-code-ide-org-queue-directory (file-name-directory file))
+           (out (make-temp-file "claude-code-ide-org-test-report")))
+      (unwind-protect
+          (dolist (case '(("true" . "true") ("false" . "false")
+                          ("" . "") (nil . "")))
+            (claude-code-ide-org-write-session-context-report
+             out nil (car case))
+            (should (equal (cdr case)
+                           (claude-code-ide-org-test--disk-contents
+                            (claude-code-ide-org--time-tracking-stamp-file))))
+            (should (eq (equal (cdr case) "true")
+                        (claude-code-ide-org--time-tracking-on-p))))
+        (delete-file out)))))
+
+(defmacro claude-code-ide-org-test--with-anchorless-target (&rest body)
+  "Run BODY with `file' bound to an org file with no meta-work category.
+
+Its last heading has a child, so a heading appended as `**' would be
+filed under it -- the bug this pins."
+  (declare (indent 0))
+  `(let* ((dir (file-name-as-directory (make-temp-file "ccio-anchorless" t)))
+          (file (expand-file-name "TODO.org" dir))
+          (org-id-locations-file (expand-file-name ".org-id-locations" dir))
+          (org-id-locations (make-hash-table :test 'equal))
+          (org-id-files nil)
+          (org-clock-persist nil)
+          (org-clock-history nil)
+          (claude-code-ide-org-capture-file file)
+          (claude-code-ide-org-queue-directory dir)
+          (claude-code-ide-org-review-attention-heading "Review attention")
+          (claude-code-ide-org--review-attention-skipped nil)
+          (claude-code-ide-org--review-attention-marker nil))
+     (unwind-protect
+         (progn
+           (with-temp-file file
+             (insert "#+TODO: TODO | DONE\n\n"
+                     "* Tooling\n:PROPERTIES:\n:CATEGORY: Dev\n:END:\n"
+                     "* Ceremonies\n:PROPERTIES:\n:CATEGORY: Meta\n:END:\n"
+                     "** TODO Last child\n"))
+           ,@body)
+       (when (org-clocking-p) (ignore-errors (org-clock-out)))
+       (let ((buf (get-file-buffer file)))
+         (when buf
+           (with-current-buffer buf (set-buffer-modified-p nil))
+           (kill-buffer buf)))
+       (delete-directory dir t))))
+
+(ert-deftest claude-code-ide-org-test-review-attention-create-is-level-one ()
+  "`c' makes a level-1 heading with :ID:, :CREATED: and the chosen category.
+
+The filed bug's regression test: with no `* Review and planning' the
+heading was appended as `**', a child of whatever came last.  Also pins
+the category offer: the file's own values, `Meta' first."
+  (claude-code-ide-org-test--with-anchorless-target
+    (let (offered default)
+      (cl-letf (((symbol-function 'read-multiple-choice)
+                 (lambda (&rest _) '(?c "create")))
+                ((symbol-function 'completing-read)
+                 (lambda (_prompt coll &rest args)
+                   (setq offered coll default (nth 4 args))
+                   "Meta")))
+        (should (claude-code-ide-org-review-attention-start)))
+      (should (equal '("Meta" "Dev") offered))
+      (should (equal "Meta" default))
+      (should (org-clocking-p))
+      (claude-code-ide-org-review-attention-stop)
+      (let* ((disk (claude-code-ide-org-test--disk-contents file))
+             (attn (substring disk (or (string-match "^\\* Review attention$" disk)
+                                       (error "no level-1 heading: %s" disk)))))
+        (should-not (string-match-p "^\\*\\* Review attention$" disk))
+        (should (string-match-p ":ID: " attn))
+        (should (string-match-p ":CREATED: " attn))
+        (should (string-match-p ":CATEGORY: Meta" attn))))))
+
+(ert-deftest claude-code-ide-org-test-review-attention-skip-asks-once ()
+  "`s' opens no clock, writes nothing, and is not asked twice."
+  (claude-code-ide-org-test--with-anchorless-target
+    (let ((asked 0)
+          (before (claude-code-ide-org-test--disk-contents file)))
+      (cl-letf (((symbol-function 'read-multiple-choice)
+                 (lambda (&rest _) (cl-incf asked) '(?s "skip"))))
+        (should-not (claude-code-ide-org-review-attention-start))
+        (should-not (claude-code-ide-org-review-attention-start)))
+      (should (= 1 asked))
+      (should-not (org-clocking-p))
+      (should (equal before (claude-code-ide-org-test--disk-contents file))))))
+
+(ert-deftest claude-code-ide-org-test-review-attention-never-saves-nil ()
+  "`n' saves the option as nil through Customize and opens no clock."
+  (claude-code-ide-org-test--with-anchorless-target
+    (let (saved)
+      (cl-letf (((symbol-function 'read-multiple-choice)
+                 (lambda (&rest _) '(?n "never")))
+                ((symbol-function 'customize-save-variable)
+                 (lambda (sym val &rest _) (setq saved (list sym val)) (set sym val))))
+        (should-not (claude-code-ide-org-review-attention-start)))
+      (should (equal '(claude-code-ide-org-review-attention-heading nil) saved))
+      (should-not (org-clocking-p)))))
+
+(ert-deftest claude-code-ide-org-test-review-attention-meta-category-never-asks ()
+  "With `* Review and planning' present the heading goes under it, unasked."
+  (claude-code-ide-org-test--with-attention-target
+    (cl-letf (((symbol-function 'read-multiple-choice)
+               (lambda (&rest _) (error "asked with an anchor present"))))
+      (should (claude-code-ide-org-review-attention-start)))
+    (claude-code-ide-org-review-attention-stop)
+    (should (string-match-p "^\\*\\* Review attention$"
+                            (claude-code-ide-org-test--disk-contents file)))))
+
+(ert-deftest claude-code-ide-org-test-review-attention-excluded-when-disabled ()
+  "With the option nil, an existing `Review attention' is still not offered.
+
+A heading made before clocking was disabled is still the mechanism's."
+  (claude-code-ide-org-test--with-heading
+    (goto-char (point-max))
+    (insert "* Review attention\n:PROPERTIES:\n"
+            ":ID:       88888888-8888-4888-8888-888888888888\n"
+            ":CREATED:  [2026-08-15 Sat 09:00]\n:END:\n")
+    (save-buffer)
+    (org-id-update-id-locations (list file))
+    (let ((claude-code-ide-org-query-files (list file))
+          (claude-code-ide-org-review-attention-heading nil))
+      (should-not (cl-find "88888888-8888-4888-8888-888888888888"
+                           (claude-code-ide-org--assign-candidates
+                            (claude-code-ide-org-test--t "09:19")
+                            (claude-code-ide-org-test--t "09:20"))
+                           :key #'cdr :test #'equal)))))
+
+(ert-deftest claude-code-ide-org-test-ceremony-reads-apply-watermarks ()
+  "With no attention clock, a today-dated applied pass time is a pass.
+
+In the queue directory or its archive; a pass time two days old, or a
+watermark that only dismissed, is not."
+  (claude-code-ide-org-test--with-anchorless-target
+    (let* ((archive (expand-file-name "archive" dir))
+           (now (format-time-string "%Y-%m-%dT%H:%M:%S%z"))
+           (old (format-time-string "%Y-%m-%dT%H:%M:%S%z"
+                                    (time-subtract nil (days-to-time 2))))
+           (write (lambda (path applied)
+                    (with-temp-file path
+                      (insert (format "{\"applied\":{%s},\"dismissed\":{\"x\":\"why\"}}"
+                                      (if applied
+                                          (format "\"2026-01-01T00:00:00-0500\":\"%s\""
+                                                  applied)
+                                        "")))))))
+      (make-directory archive t)
+      (should-not (claude-code-ide-org--ceremony-reviewed-today-p))
+      (funcall write (expand-file-name "a.applied" dir) nil)
+      (funcall write (expand-file-name "b.applied" archive) old)
+      (should-not (claude-code-ide-org--ceremony-reviewed-today-p))
+      (funcall write (expand-file-name "c.applied" archive) now)
+      (should (claude-code-ide-org--ceremony-reviewed-today-p))
+      (delete-file (expand-file-name "c.applied" archive))
+      (funcall write (expand-file-name "d.applied" dir) now)
+      (should (claude-code-ide-org--ceremony-reviewed-today-p)))))
+
 (ert-deftest claude-code-ide-org-test-review-apply-reports-unresolvable-id ()
   "A bad :ID: is reported, not thrown, and does not count as applied."
   (claude-code-ide-org-test--with-heading
@@ -8511,6 +8888,35 @@ what this project keeps getting wrong. Derived, so it cannot drift
         (should-not (member "slice-001" ids))
         ;; And the window has a lower bound: this one closed the day before.
         (should-not (member "before-01" ids))))))
+
+(ert-deftest claude-code-ide-org-test-another-projects-closes-are-not-incidental ()
+  "A close in another tracked project is not this slice's incidental work.
+
+The live case (TODO.org :ID: 1c252f9c): noodle-salesman's first commit
+and its category taxonomy closed during an apply pass while this repo's
+review slice was the only one DOING, and were listed under it.  The
+second project's close falls inside the window, so only the project
+boundary keeps it out."
+  (claude-code-ide-org-test--with-slice-window
+    (let* ((other (file-name-as-directory (make-temp-file "ccio-otherproj" t)))
+           (other-file (expand-file-name "TODO.org" other))
+           (claude-code-ide-org-query-files (list file other-file)))
+      (unwind-protect
+          (progn
+            (with-temp-file other-file
+              (insert "#+TODO: TODO DOING | DONE\n"
+                      "* DONE Another project's close\n"
+                      "CLOSED: [2026-08-21 Fri 11:30]\n"
+                      ":PROPERTIES:\n:ID:       other-001\n:END:\n"))
+            (with-current-buffer (find-file-noselect file)
+              (goto-char (point-min))
+              (re-search-forward "^\\* TODO \\[1/1\\] A slice")
+              (let ((ids (claude-code-ide-org--slice-incidental-ids)))
+                (should (member "incid-001" ids))
+                (should-not (member "other-001" ids)))))
+        (when-let* ((buf (get-file-buffer other-file)))
+          (kill-buffer buf))
+        (delete-directory other t)))))
 
 (ert-deftest claude-code-ide-org-test-another-slices-members-are-not-incidental ()
   "Work another slice declares is planned, not incidental to this one.
@@ -9307,7 +9713,11 @@ queue events -- equal in content, empty of the decision."
                       ((symbol-function 'y-or-n-p) (lambda (&rest _) t))
                       ((symbol-function 'claude-code-ide-org--queue-mark-dismissed)
                        (lambda (&rest _) t)))
-              (claude-code-ide-org-review-dismiss))
+              ;; `d' marks and `x' dismisses since :ID: ee3c22c9; the
+              ;; assignment must survive the pair. The auto-mark on the
+              ;; state item is cleared by the `D', so `x' only dismisses.
+              (claude-code-ide-org-review-dismiss)
+              (claude-code-ide-org-review-apply))
             ;; The dismissed item is gone...
             (should-not (memq doomed claude-code-ide-org--review-items))
             ;; ...and the assignment made earlier in the session survives,
@@ -9316,6 +9726,250 @@ queue events -- equal in content, empty of the decision."
             (should (plist-get assigned :assigned))
             (should (equal (plist-get assigned :id) id)))
         (kill-buffer review)))))
+
+;;; The buffer's movement and marking (TODO.org :ID: 41f21b4d, 9f6b19b5,
+;;; ee3c22c9, e95cc5d1, 396fd1c3) -------------------------------------------
+
+(defun claude-code-ide-org-test--review-state (to &optional id session)
+  "A state item queued -> TO under ID, carrying one event from SESSION."
+  (list :type 'state :id id :ts (current-time) :from "TODO" :to to
+        :events (list (list :ts-string (format "2026-10-10T09:00:%02d-0500"
+                                               (random 60))
+                            :session-id (or session "sess-x")))))
+
+(ert-deftest claude-code-ide-org-test-review-n-and-p-move-between-items ()
+  "`n' and `p' land only on item lines, across group headings, and stay
+put at either end (TODO.org :ID: 41f21b4d)."
+  (should (eq (lookup-key claude-code-ide-org-review-mode-map (kbd "n"))
+              #'claude-code-ide-org-review-next-item))
+  (should (eq (lookup-key claude-code-ide-org-review-mode-map (kbd "p"))
+              #'claude-code-ide-org-review-previous-item))
+  (let ((a (claude-code-ide-org-test--review-state "A" "test-0001"))
+        (b (claude-code-ide-org-test--review-state "B" "test-0001"))
+        (c (claude-code-ide-org-test--review-state "C" "test-0002")))
+    (claude-code-ide-org-test--with-review-buffer (list a b c)
+      (claude-code-ide-org-test--goto-nth-item 0)
+      (claude-code-ide-org-review-next-item)
+      (should (eq b (claude-code-ide-org--review-item-at-point)))
+      ;; Across the second group's heading and the blank line above it.
+      (claude-code-ide-org-review-next-item)
+      (should (eq c (claude-code-ide-org--review-item-at-point)))
+      (claude-code-ide-org-review-next-item)
+      (should (eq c (claude-code-ide-org--review-item-at-point)))
+      (claude-code-ide-org-review-previous-item)
+      (should (eq b (claude-code-ide-org--review-item-at-point)))
+      (claude-code-ide-org-review-previous-item)
+      (should (eq a (claude-code-ide-org--review-item-at-point)))
+      ;; At the first item `p' stays, never landing on the heading above.
+      (claude-code-ide-org-review-previous-item)
+      (should (eq a (claude-code-ide-org--review-item-at-point)))
+      ;; From the key legend, `n' finds the first item.
+      (goto-char (point-min))
+      (claude-code-ide-org-review-next-item)
+      (should (eq a (claude-code-ide-org--review-item-at-point))))))
+
+(ert-deftest claude-code-ide-org-test-review-help-names-every-prefix ()
+  "Every prefix the renderer draws is named in the mode's help, with the
+kind of line it marks (TODO.org :ID: 9f6b19b5).
+
+The help said a span prefixed `?' was unassigned, when `?' is the span
+carrying a suggestion and `!' the one with none -- found only when the
+user asked what the `!' lines meant.  Rendering one item of each kind
+and reading the prefix back is what stops the two drifting apart again."
+  (let ((doc (documentation 'claude-code-ide-org-review-mode t))
+        (t0 (date-to-time "2026-10-10T09:00:00-0500"))
+        (t1 (date-to-time "2026-10-10T09:30:00-0500")))
+    (cl-letf (((symbol-function 'claude-code-ide-org--review-state-stale-p)
+               (lambda (item) (eq (plist-get item :type) 'state)))
+              ((symbol-function 'claude-code-ide-org--review-current-state)
+               (lambda (&rest _) "DONE"))
+              ((symbol-function 'claude-code-ide-org--capture-target-spec)
+               (lambda (&rest _) (error "Gone"))))
+      (dolist (case
+               `((state . ,(list :type 'state :id "test-0001" :ts t0
+                                 :from "TODO" :to "DOING"))
+                 (span . ,(list :type 'clock :unassigned t :id nil
+                                :start t0 :end t1 :events nil))
+                 (span . ,(list :type 'clock :unassigned t :id "test-0001"
+                                :start t0 :end t1 :events nil))
+                 (capture . ,(list :type 'capture :target "test-0009"
+                                   :title "x" :ts t0))))
+        (let* ((line (claude-code-ide-org--review-describe (cdr case)))
+               (prefix (string-trim (substring line 0 2))))
+          (should-not (string-empty-p prefix))
+          (should (string-match-p
+                   (format "^  %s  on an? %s"
+                           (regexp-quote prefix) (car case))
+                   doc)))))))
+
+(ert-deftest claude-code-ide-org-test-review-d-marks-and-advances-down ()
+  "`d' leaves a `D' and advances to the next DRAWN item, newest-first
+included (TODO.org :ID: e95cc5d1's pinning test).
+
+An immediate dismissal redrew onto the next item in *held* order, while
+the buffer is drawn newest-first, so point jumped upward.  A mark leaves
+its line, so the advance is `m''s, over drawn lines."
+  (let ((early (claude-code-ide-org-test--review-state "EARLY"))
+        (late (claude-code-ide-org-test--review-state "LATE")))
+    (plist-put early :ts (date-to-time "2026-10-10T09:00:00-0500"))
+    (plist-put late :ts (date-to-time "2026-10-10T10:00:00-0500"))
+    (claude-code-ide-org-test--with-review-buffer (list early late)
+      (setq claude-code-ide-org--review-newest-first t)
+      (claude-code-ide-org--review-render)
+      (claude-code-ide-org-test--goto-nth-item 0)
+      (should (eq late (claude-code-ide-org--review-item-at-point)))
+      (let ((line (line-number-at-pos)))
+        (claude-code-ide-org-review-dismiss)
+        (should (plist-get late :dismiss))
+        (should-not (plist-get late :marked))
+        (should (memq late claude-code-ide-org--review-items))
+        (should (eq early (claude-code-ide-org--review-item-at-point)))
+        (should (> (line-number-at-pos) line))
+        (should (save-excursion
+                  (goto-char (point-min))
+                  (re-search-forward "^  \\[D\\] .*LATE" nil t)))))))
+
+(ert-deftest claude-code-ide-org-test-review-marks-exclude-each-other ()
+  "`m' and `D' exclude each other, `u' clears either, `M' and `t' leave a
+`D' alone and `U' clears it (TODO.org :ID: ee3c22c9)."
+  (let ((a (claude-code-ide-org-test--review-state "A"))
+        (b (claude-code-ide-org-test--review-state "B")))
+    (claude-code-ide-org-test--with-review-buffer (list a b)
+      ;; Auto-marked on arrival; `d' replaces the `m'.
+      (should (plist-get a :marked))
+      (claude-code-ide-org-test--goto-nth-item 0)
+      (claude-code-ide-org-review-dismiss)
+      (should (plist-get a :dismiss))
+      (should-not (plist-get a :marked))
+      ;; `m' replaces the `D'.
+      (claude-code-ide-org-test--goto-nth-item 0)
+      (claude-code-ide-org-review-mark)
+      (should (plist-get a :marked))
+      (should-not (plist-get a :dismiss))
+      ;; `u' clears a `D'.
+      (claude-code-ide-org-test--goto-nth-item 0)
+      (claude-code-ide-org-review-dismiss)
+      (claude-code-ide-org-test--goto-nth-item 0)
+      (claude-code-ide-org-review-unmark)
+      (should-not (plist-get a :dismiss))
+      (should-not (plist-get a :marked))
+      ;; `M' and `t' skip a `D' item; `U' clears it.
+      (claude-code-ide-org-test--goto-nth-item 0)
+      (claude-code-ide-org-review-dismiss)
+      (claude-code-ide-org-review-mark-all)
+      (should (plist-get a :dismiss))
+      (should-not (plist-get a :marked))
+      (claude-code-ide-org-review-toggle-all)
+      (should (plist-get a :dismiss))
+      (should-not (plist-get a :marked))
+      (should-not (plist-get b :marked))
+      (claude-code-ide-org-review-unmark-all)
+      (should-not (plist-get a :dismiss)))))
+
+(ert-deftest claude-code-ide-org-test-review-auto-mark-skips-a-d-item ()
+  "Render re-runs auto-marking, so a `D' state item not yet considered
+must not come back `m' on the next keystroke (TODO.org :ID: ee3c22c9)."
+  (let ((a (claude-code-ide-org-test--review-state "A")))
+    (plist-put a :dismiss t)
+    (claude-code-ide-org-test--with-review-buffer (list a)
+      (should (plist-get a :dismiss))
+      (should-not (plist-get a :marked)))))
+
+(defmacro claude-code-ide-org-test--with-x-stubs (&rest body)
+  "Run BODY with `x''s prompts and writers stubbed, recording each call.
+Binds `prompts', `reasons-asked', `log' (dismissals and applies, in
+order) and `dismissed' (session, reason, count)."
+  (declare (indent 0))
+  `(let ((prompts nil) (reasons-asked 0) (log nil) (dismissed nil))
+     (cl-letf (((symbol-function 'y-or-n-p)
+                (lambda (p) (push p prompts) t))
+               ((symbol-function 'read-string)
+                (lambda (&rest _) (setq reasons-asked (1+ reasons-asked)) "shared"))
+               ((symbol-function 'claude-code-ide-org--queue-mark-dismissed)
+                (lambda (session ts reason)
+                  (setq log (append log '(dismiss)))
+                  (push (list session reason (length ts)) dismissed)))
+               ((symbol-function 'claude-code-ide-org--review-apply)
+                (lambda (items)
+                  (setq log (append log '(apply)))
+                  (list :items items :applied (length items) :errors nil))))
+       ,@body)))
+
+(ert-deftest claude-code-ide-org-test-review-x-dismisses-then-applies ()
+  "`x' on a mix confirms both counts once, dismisses before it applies,
+asks one shared reason and keeps a `C-u d' reason (TODO.org :ID:
+ee3c22c9)."
+  (let ((keep (claude-code-ide-org-test--review-state "KEEP"))
+        (d1 (claude-code-ide-org-test--review-state "D1" nil "sess-1"))
+        (d2 (claude-code-ide-org-test--review-state "D2" nil "sess-1"))
+        (own (claude-code-ide-org-test--review-state "OWN" nil "sess-2")))
+    (claude-code-ide-org-test--with-review-buffer (list keep d1 d2 own)
+      (claude-code-ide-org-test--with-x-stubs
+        (claude-code-ide-org-test--goto-nth-item 1)
+        (claude-code-ide-org-review-dismiss)
+        (claude-code-ide-org-review-dismiss)
+        ;; The prefix argument asks for this item's own reason now.
+        (cl-letf (((symbol-function 'read-string) (lambda (&rest _) "its own")))
+          (claude-code-ide-org-review-dismiss '(4)))
+        (should (equal (plist-get own :dismiss-reason) "its own"))
+        (should (string-match-p "1 marked\\|3 to dismiss"
+                                (claude-code-ide-org--review-judgement-summary
+                                 claude-code-ide-org--review-items)))
+        (claude-code-ide-org-review-apply)
+        (should (equal prompts '("Apply 1, dismiss 3? ")))
+        (should (= reasons-asked 1))
+        (should (eq (car log) 'dismiss))
+        (should (eq (car (last log)) 'apply))
+        (should (member '("sess-1" "shared" 2) dismissed))
+        (should (member '("sess-2" "its own" 1) dismissed))
+        (should (equal claude-code-ide-org--review-items nil))))))
+
+(ert-deftest claude-code-ide-org-test-review-x-with-only-d-marks-dismisses ()
+  "With nothing marked `m', `x' dismisses and applies nothing, and a
+`D' alone is judgement `g' asks about (TODO.org :ID: ee3c22c9)."
+  (let ((a (claude-code-ide-org-test--review-state "A"))
+        (b (claude-code-ide-org-test--review-state "B")))
+    (claude-code-ide-org-test--with-review-buffer (list a b)
+      (claude-code-ide-org-test--with-x-stubs
+        (claude-code-ide-org-test--goto-nth-item 0)
+        (claude-code-ide-org-review-dismiss)
+        (plist-put b :marked nil)
+        (should (equal (claude-code-ide-org--review-judgement-summary
+                        claude-code-ide-org--review-items)
+                       "1 to dismiss"))
+        (claude-code-ide-org-review-apply)
+        (should (equal prompts '("Dismiss 1 permanently? ")))
+        (should-not (memq 'apply log))
+        (should (equal claude-code-ide-org--review-items (list b)))
+        (should (eq b (claude-code-ide-org--review-item-at-point)))))))
+
+(ert-deftest claude-code-ide-org-test-review-advances-recenter-only-when-moved ()
+  "Every advancing key recenters after the render, and none does when
+point did not move or from a render alone (TODO.org :ID: 396fd1c3)."
+  (let ((a (claude-code-ide-org-test--review-state "A"))
+        (b (claude-code-ide-org-test--review-state "B"))
+        (calls 0))
+    (claude-code-ide-org-test--with-review-buffer (list a b)
+      (set-window-buffer (selected-window) (current-buffer))
+      (cl-letf (((symbol-function 'recenter)
+                 (lambda (&rest _) (setq calls (1+ calls)))))
+        (claude-code-ide-org--review-render)
+        (should (= calls 0))
+        (dolist (cmd (list #'claude-code-ide-org-review-mark
+                           #'claude-code-ide-org-review-unmark
+                           #'claude-code-ide-org-review-dismiss
+                           #'claude-code-ide-org-review-next-item))
+          (claude-code-ide-org-test--goto-nth-item 0)
+          (setq calls 0)
+          (funcall cmd)
+          (should (= calls 1))
+          ;; At the last item nothing moves, so nothing recenters.
+          (setq calls 0)
+          (funcall cmd)
+          (should (= calls 0)))
+        (setq calls 0)
+        (claude-code-ide-org-review-previous-item)
+        (should (= calls 1))))))
 
 (ert-deftest claude-code-ide-org-test-review-goto-item-survives-a-height-change ()
   "`--review-goto-item' locates by identity, so it still finds an item
@@ -13334,17 +13988,75 @@ reviewing -- a checker the working session must remember to call would
 be a recalled rule again (TODO.org :ID: 9fb8c1fb).  It offers; it never
 says it will run."
   (let ((text (claude-code-ide-org--format-ceremony-report
-               '(:pending 1 :drifted 0 :archivable 0 :twins 3))))
+               (list :pending 1 :drifted 0 :archivable 0
+                     :twins (claude-code-ide-org-test--twin-pairs 3)))))
     (should (string-match-p "3 recent heading" text))
     (should (string-match-p "twin-checker" text))
     (should (string-match-p "offer" text)))
   (should-not (string-match-p "twin"
                               (claude-code-ide-org--format-ceremony-report
-                               '(:pending 1 :drifted 0 :archivable 0 :twins 0))))
+                               '(:pending 1 :drifted 0 :archivable 0 :twins nil))))
   ;; Possible twins alone are reason enough to raise the report: unlike the
   ;; miss count they are something to do.
   (should (claude-code-ide-org--format-ceremony-report
-           '(:pending 0 :drifted 0 :archivable 0 :twins 2))))
+           (list :pending 0 :drifted 0 :archivable 0
+                 :twins (claude-code-ide-org-test--twin-pairs 2)))))
+
+(defun claude-code-ide-org-test--twin-pairs (n)
+  "N (SUBJECT . CANDIDATES) pairs shaped as `--twin-candidates' returns."
+  (let (out)
+    (dotimes (i n (nreverse out))
+      (push (cons (list :keyword "TODO"
+                        :id (format "%08d-0000-4000-8000-000000000000" (1+ i))
+                        :title (format "Subject number %d, exact title" (1+ i)))
+                  (list (list :score 0.5 :keyword "DONE"
+                              :id (format "9%07d-0000-4000-8000-000000000000" (1+ i))
+                              :title (format "Candidate for %d" (1+ i))
+                              :file "DONE.org")))
+            out))))
+
+(ert-deftest claude-code-ide-org-test-ceremony-report-names-the-twins ()
+  "The report names each subject's keyword, id and exact title with its
+candidates beneath, formatted exactly as bin/twin-candidates prints them,
+and caps the list at five (TODO.org :ID: d241ab6e).
+
+On 2026-10-09 it flagged one by count, the session never offered the
+checker, and by the time the user asked the detector's list was empty,
+so what it meant could not be recovered."
+  (let* ((pairs (claude-code-ide-org-test--twin-pairs 2))
+         (text (claude-code-ide-org--format-ceremony-report
+                (list :pending 0 :drifted 0 :archivable 0 :twins pairs))))
+    (should (string-match-p "TODO {00000001}  Subject number 1, exact title" text))
+    (should (string-match-p "{90000002}  Candidate for 2" text))
+    ;; The same lines bin/twin-candidates prints, character for character.
+    (dolist (p pairs)
+      (should (string-search (claude-code-ide-org--format-twin-pair p) text)))
+    (should-not (string-match-p "more -- bin/twin-candidates" text)))
+  (let ((text (claude-code-ide-org--format-ceremony-report
+               (list :pending 0 :drifted 0 :archivable 0
+                     :twins (claude-code-ide-org-test--twin-pairs 7)))))
+    (should (string-match-p "7 recent heading" text))
+    (should (string-match-p "Subject number 5," text))
+    (should-not (string-match-p "Subject number 6," text))
+    (should (string-match-p "and 2 more -- bin/twin-candidates lists them all" text))))
+
+(ert-deftest claude-code-ide-org-test-twin-report-and-ceremony-share-a-formatter ()
+  "bin/twin-candidates's report is built from the same per-pair formatter
+the ceremony uses, so the two outputs cannot drift."
+  (claude-code-ide-org-test--with-capture-file
+    (let ((recent (format-time-string "[%Y-%m-%d %a %H:%M]")))
+      (claude-code-ide-org-test--seed-dated
+       capture-file "TODO" "Record the originating project's cwd in queue events"
+       "ffffffff-0000-4000-8000-000000000004" recent)
+      (claude-code-ide-org-test--seed-dated
+       capture-file "TODO" "Record the project's cwd in queue events, again"
+       "99999999-0000-4000-8000-000000000005" recent)
+      (let ((pairs (claude-code-ide-org--twin-candidates capture-file 14))
+            (text (claude-code-ide-org-twin-candidates-report capture-file 14)))
+        (should pairs)
+        (dolist (p pairs)
+          (should (string-search (claude-code-ide-org--format-twin-pair p)
+                                 text)))))))
 
 (ert-deftest claude-code-ide-org-test-ceremony-finish-runs-the-slice-refresh ()
   "Slice refresh is a ceremony step, not a memory.
@@ -13361,19 +14073,52 @@ finish pass calls the refresh alongside its siblings."
               ((symbol-function 'claude-code-ide-org-consolidate-all-drawers)
                (lambda () 0))
               ((symbol-function 'claude-code-ide-org-normalize-heading-separation)
-               (lambda () 0))
+               (lambda (&rest _) 0))
               ((symbol-function 'claude-code-ide-org-archive-finished)
-               (lambda () 0))
+               (lambda (&rest _) 0))
               ((symbol-function 'claude-code-ide-org-sort-by-created)
-               (lambda () 0))
+               (lambda (&rest _) 0))
               ((symbol-function 'claude-code-ide-org-sort-datetree-descending)
-               (lambda () 0))
+               (lambda (&rest _) 0))
               ((symbol-function 'claude-code-ide-org-mark-ceremony-done)
                (lambda (&optional _s) nil))
               ((symbol-function 'claude-code-ide-org--ceremony-due-p)
                (lambda () nil)))
       (claude-code-ide-org-ceremony-finish))
     (should called)))
+
+(ert-deftest claude-code-ide-org-test-ceremony-finish-advances-only-its-own-project ()
+  "The bury's ceremony advances the repeater only in the project its steps ran on.
+
+From PR #37's review (TODO.org :ID: 9c1afc7a): the steps ran on the
+default tracker, but the due check and the advance read every tracked
+project, so a consumer's overdue ceremony was marked DONE and its own
+session start then found nothing due and never archived."
+  (claude-code-ide-org-test--with-two-projects
+   (let ((overdue (claude-code-ide-org-test--org-date -3)))
+    (dolist (f (list a-todo b-todo))
+      (with-temp-file f
+        (insert "#+TODO: TODO | DONE\n\n* TODO Archive closed tasks daily\n"
+                "SCHEDULED: <" overdue " ++1d>\n"
+                ":PROPERTIES:\n:KIND:     ceremony\n:END:\n")))
+    (cl-letf (((symbol-function 'claude-code-ide-org-refresh-slice) (lambda (&rest _) 0))
+              ((symbol-function 'claude-code-ide-org-consolidate-all-drawers) (lambda () 0))
+              ((symbol-function 'claude-code-ide-org-normalize-heading-separation)
+               (lambda (&rest _) 0))
+              ((symbol-function 'claude-code-ide-org-archive-finished) (lambda (&rest _) 0))
+              ((symbol-function 'claude-code-ide-org-sort-by-created) (lambda (&rest _) 0))
+              ((symbol-function 'claude-code-ide-org-sort-datetree-descending)
+               (lambda (&rest _) 0))
+              ((symbol-function 'claude-code-ide-org-mark-ceremony-done)
+               (lambda (&optional _s) nil)))
+      (should (string-match-p "repeater: advanced" (claude-code-ide-org-ceremony-finish))))
+    (let ((scheduled (lambda (f)
+                       (with-temp-buffer
+                         (insert-file-contents f)
+                         (and (re-search-forward "SCHEDULED: <\\([0-9-]+\\)" nil t)
+                              (match-string 1))))))
+      (should-not (equal (substring overdue 0 10) (funcall scheduled a-todo)))
+      (should (equal (substring overdue 0 10) (funcall scheduled b-todo)))))))
 
 (ert-deftest claude-code-ide-org-test-session-start-payload-carries-both-reports ()
   "One hook, one payload, either half optional.
@@ -15559,6 +16304,103 @@ an implementation detail."
           ;; and the tree still follows
           (should (string-match-p "TODO Child" out)))))))
 
+;;; What counts a heading and what waits on it (TODO.org :ID: d66ae1d2,
+;;; b3177ed0) -----------------------------------------------------------------
+
+(defmacro claude-code-ide-org-test--with-membership-file (&rest body)
+  "Run BODY with a tracked file of slices and blockers around a target.
+Ids lead with distinct digits, so their 8-character prefixes differ:
+10 the target, 20 its child, 31-34 slices (counting, dropping, closed,
+merely citing), 41-43 blockers (on the target, on the child, finished),
+50 a heading named nowhere."
+  (declare (indent 0))
+  `(claude-code-ide-org-test--with-heading
+     (let ((tree (expand-file-name "members.org" dir)))
+       (cl-flet ((h (kw title id &rest props)
+                   (concat "* " (if kw (concat kw " ") "") title
+                           "\n:PROPERTIES:\n:ID:       " id "\n"
+                           (mapconcat #'identity props "") ":END:\n")))
+         (with-temp-file tree
+           (insert "#+TODO: TODO NEXT DOING REVIEW WAITING MAYBE | DONE CANCELLED\n\n"
+                   (h "TODO" "Target" "10000000-0000-0000-0000-000000000000")
+                   "** TODO Child\n:PROPERTIES:\n:ID:       20000000-0000-0000-0000-000000000000\n:END:\n"
+                   (h "DOING" "Counting slice" "31000000-0000-0000-0000-000000000000"
+                      ":KIND: slice\n" ":MEMBERS: 10000000-0000-0000-0000-000000000000\n"
+                      ":BLOCKER: 10000000-0000-0000-0000-000000000000\n")
+                   (h "TODO" "Dropping slice" "32000000-0000-0000-0000-000000000000"
+                      ":KIND: slice\n" ":MEMBERS: 10000000-0000-0000-0000-000000000000\n"
+                      ":DROPPED: 10000000-0000-0000-0000-000000000000\n")
+                   (h "DONE" "Closed slice" "33000000-0000-0000-0000-000000000000"
+                      ":KIND: slice\n" ":MEMBERS: 10000000-0000-0000-0000-000000000000\n")
+                   (h "TODO" "Citing slice" "34000000-0000-0000-0000-000000000000"
+                      ":KIND: slice\n" ":MEMBERS: 50000000-0000-0000-0000-000000000000\n")
+                   "The plan cites [[id:10000000-0000-0000-0000-000000000000][10000000]].\n"
+                   (h "TODO" "Waits on target" "41000000-0000-0000-0000-000000000000"
+                      ":BLOCKER: 10000000-0000-0000-0000-000000000000\n")
+                   (h "NEXT" "Waits on child" "42000000-0000-0000-0000-000000000000"
+                      ":BLOCKER: 20000000-0000-0000-0000-000000000000\n")
+                   (h "DONE" "Finished waiter" "43000000-0000-0000-0000-000000000000"
+                      ":BLOCKER: 10000000-0000-0000-0000-000000000000\n")
+                   (h "TODO" "Lonely" "50000000-0000-0000-0000-000000000000"))))
+       (let ((claude-code-ide-org-query-files (list tree)))
+         (org-id-update-id-locations (list tree))
+         ,@body))))
+
+(ert-deftest claude-code-ide-org-test-outline-front-matter-names-counting-slices ()
+  "A scoped outline names each open slice counting the heading, a dropping
+one marked, and no closed slice or one that only cites it (TODO.org
+:ID: d66ae1d2)."
+  (claude-code-ide-org-test--with-membership-file
+    (let ((out (claude-code-ide-org-outline "10000000" nil nil "false")))
+      (should (string-match-p
+               "^  slices: 31000000 DOING, 32000000 TODO (dropped)$" out)))
+    (should-not (string-match-p "slices:" (claude-code-ide-org-outline
+                                           "41000000" nil nil "false")))))
+
+(ert-deftest claude-code-ide-org-test-outline-front-matter-names-what-it-blocks ()
+  "`blocks:' names each open non-slice heading whose `:BLOCKER:' names the
+heading or a descendant, and nothing for a heading named nowhere
+(TODO.org :ID: b3177ed0)."
+  (claude-code-ide-org-test--with-membership-file
+    (let ((out (claude-code-ide-org-outline "10000000" nil nil "false")))
+      (should (string-match-p "^  blocks: 41000000 TODO, 42000000 NEXT$" out)))
+    ;; The child's own line names only what waits on the child.
+    (should (string-match-p "^  blocks: 42000000 NEXT$"
+                            (claude-code-ide-org-outline "20000000" nil nil "false")))
+    (let ((out (claude-code-ide-org-outline "50000000" nil nil "false")))
+      (should-not (string-match-p "blocks:" out)))))
+
+(ert-deftest claude-code-ide-org-test-outline-blocks-skips-a-sibling-blocking-a-sibling ()
+  "A child whose `:BLOCKER:' names its sibling is not blocked by the parent.
+
+From PR #37's review (TODO.org :ID: 84e9c7ef): only the root's own id was
+excluded, so story X with children A and B, B waiting on A, printed
+`blocks: B' on X -- X blocking its own child."
+  (should (equal "  blocks: 99000000 TODO"
+                 (claude-code-ide-org--outline-blocks-line
+                  "x0000000" '("x0000000" "a0000000" "b0000000")
+                  '(("b0000000" "TODO" ("a0000000"))
+                    ("99000000" "TODO" ("a0000000")))))))
+
+(ert-deftest claude-code-ide-org-test-query-member-predicate ()
+  "`member:ID' matches exactly the slices whose `:MEMBERS:' minus
+`:DROPPED:' list the id, never one citing it in prose; several ids give
+the union, a prefix expands, and an unknown id is refused (TODO.org
+:ID: d66ae1d2)."
+  (claude-code-ide-org-test--with-membership-file
+    (let ((one (claude-code-ide-org-query "member:10000000")))
+      (should (string-match-p "Counting slice" one))
+      (should-not (string-match-p "Dropping slice\\|Citing slice\\|Target" one))
+      ;; Closed slices count too; `todo:' is how to ask for open ones.
+      (should (string-match-p "Closed slice" one))
+      (should-not (string-match-p "Closed slice"
+                                  (claude-code-ide-org-query "member:10000000 todo:"))))
+    (let ((both (claude-code-ide-org-query "member:10000000,50000000")))
+      (should (string-match-p "Counting slice" both))
+      (should (string-match-p "Citing slice" both)))
+    (should (string-match-p "\\`Error: .*does not resolve"
+                            (claude-code-ide-org-query "member:ffffffff")))))
+
 (ert-deftest claude-code-ide-org-test-outline-unresolved-id-is-not-a-missing-file ()
   "An id-shaped scope that resolves to nothing must say so.
 
@@ -16790,7 +17632,7 @@ silently disarm the user (TODO.org :ID: c8a97d9d)."
                   (claude-code-ide-org-test--stale-repeater-line)
                   ":PROPERTIES:\n"
                   ":ID:       cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8\n"
-                  ":CREATED:  [2026-08-01 Sat 09:00]\n:END:\n"))
+                  ":CREATED:  [2026-08-01 Sat 09:00]\n:KIND:     ceremony\n:END:\n"))
     (with-current-buffer (find-file-noselect file) (setq buffer-read-only t))
     (should (claude-code-ide-org--ceremony-advance-repeater))
     ;; Org advanced the date rather than leaving the heading DONE.
@@ -17109,6 +17951,171 @@ ways."
       (goto-char (point-min))
       (should (re-search-forward "^- \\[ \\] \\[\\[id:wav-1" nil t)))))
 
+;;; The ceremony's schedule by :KIND:, and session start running it
+;;; (TODO.org :ID: de081dd9) ----------------------------------------------
+
+(defun claude-code-ide-org-test--ceremony-heading (scheduled)
+  "A `:KIND: ceremony' heading SCHEDULED at that org date, not cbe282ec."
+  (concat "* TODO Archive closed tasks daily\n"
+          "SCHEDULED: <" scheduled " ++1d>\n"
+          ":PROPERTIES:\n:ID:       c3c3c3c3-0000-4000-8000-000000000001\n"
+          ":CREATED:  [2026-10-10 Sat 09:00]\n:CATEGORY: Meta\n"
+          ":KIND:     ceremony\n:END:\n"))
+
+(defun claude-code-ide-org-test--org-date (days)
+  "Today plus DAYS, as an org date."
+  (format-time-string "%Y-%m-%d %a"
+                      (time-add (current-time) (days-to-time days))))
+
+(ert-deftest claude-code-ide-org-test-ceremony-schedule-is-found-by-kind ()
+  "The schedule is any `:KIND: ceremony' heading, not the literal id this
+repository's tracker happens to carry, so a consumer's own schedule is
+read and advanced (TODO.org :ID: de081dd9)."
+  (claude-code-ide-org-test--with-heading
+    (should-not (claude-code-ide-org--ceremony-due-p))
+    (claude-code-ide-org-test--add-child
+     file (claude-code-ide-org-test--ceremony-heading
+           (claude-code-ide-org-test--org-date -3)))
+    (should (claude-code-ide-org--ceremony-due-p))
+    (should (claude-code-ide-org--ceremony-advance-repeater))
+    (should-not (claude-code-ide-org--ceremony-due-p))
+    (should (string-match-p "^\\* TODO Archive closed tasks daily"
+                            (claude-code-ide-org-test--disk-contents file))))
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--add-child
+     file (claude-code-ide-org-test--ceremony-heading
+           (claude-code-ide-org-test--org-date 2)))
+    (should-not (claude-code-ide-org--ceremony-due-p))))
+
+(ert-deftest claude-code-ide-org-test-ceremony-kind-is-not-a-slice ()
+  "`:KIND: ceremony' makes no grouping and draws no slice finding."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--add-child
+     file (claude-code-ide-org-test--ceremony-heading
+           (claude-code-ide-org-test--org-date 1)))
+    (org-with-point-at (org-id-find "c3c3c3c3-0000-4000-8000-000000000001" 'marker)
+      (should-not (claude-code-ide-org--grouping-heading-p))
+      (should-not (claude-code-ide-org--slice-p)))
+    (should-not (claude-code-ide-org-test--lint-matches
+                 (claude-code-ide-org-lint (list file) nil) 'error "slice"))))
+
+(defmacro claude-code-ide-org-test--with-session-start-run (results &rest body)
+  "Run BODY with a due ceremony whose steps return RESULTS.
+Binds `ran-steps' and `advanced', and the stubs record into them."
+  (declare (indent 1))
+  `(let ((ran-steps nil) (advanced nil))
+     (cl-letf (((symbol-function 'claude-code-ide-org--ceremony-due-p) (lambda () t))
+               ((symbol-function 'claude-code-ide-org--ceremony-run-steps)
+                (lambda (&optional _f) (setq ran-steps t) ,results))
+               ((symbol-function 'claude-code-ide-org--ceremony-advance-repeater)
+                (lambda () (setq advanced t)))
+               ((symbol-function 'claude-code-ide-org-mark-ceremony-done)
+                (lambda (&rest _) (error "Session start must not stamp"))))
+       ,@body)))
+
+(ert-deftest claude-code-ide-org-test-session-start-runs-a-due-ceremony ()
+  "While the ceremony is due, session start runs its steps, advances the
+repeater on a clean run, never stamps, and names only the steps that
+counted something or failed (TODO.org :ID: de081dd9)."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--with-session-start-run
+        '(("slices" . "ok") ("drawers" . 0) ("archived" . 2) ("sorted" . "ok"))
+      (let ((line (claude-code-ide-org--ceremony-session-start-run)))
+        (should ran-steps)
+        (should advanced)
+        (should (string-match-p "ran at session start: archived: 2\\." line))
+        (should-not (string-match-p "drawers\\|slices" line))
+        (should (string-match-p "commit the TODO.org/DONE.org diff" line))))
+    ;; All zero says nothing, though the repeater still advances.
+    (claude-code-ide-org-test--with-session-start-run
+        '(("drawers" . 0) ("archived" . 0))
+      (should-not (claude-code-ide-org--ceremony-session-start-run))
+      (should advanced))
+    ;; A failed step is named and holds the repeater.
+    (claude-code-ide-org-test--with-session-start-run
+        '(("archived" . (failed . "on fire")))
+      (let ((line (claude-code-ide-org--ceremony-session-start-run)))
+        (should (string-match-p "archived: FAILED (on fire)" line))
+        (should (string-match-p "repeater was held" line))
+        (should-not advanced)))))
+
+(ert-deftest claude-code-ide-org-test-session-start-skips-the-ceremony-when-unsaved-or-not-due ()
+  "Unsaved changes in a tracked file skip the run and say so, leaving the
+ceremony due; a ceremony not due runs nothing."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--with-session-start-run '(("archived" . 1))
+      (with-current-buffer (get-file-buffer file)
+        (insert "unsaved")
+        (unwind-protect
+            (let ((line (claude-code-ide-org--ceremony-session-start-run)))
+              (should (string-match-p "test.org has unsaved changes" line))
+              (should (string-match-p "stays due" line))
+              (should-not ran-steps)
+              (should-not advanced))
+          (set-buffer-modified-p nil))))
+    (claude-code-ide-org-test--with-session-start-run '(("archived" . 1))
+      (cl-letf (((symbol-function 'claude-code-ide-org--ceremony-due-p) #'ignore))
+        (should-not (claude-code-ide-org--ceremony-session-start-run))
+        (should-not ran-steps)))))
+
+(ert-deftest claude-code-ide-org-test-session-start-run-stays-in-its-project ()
+  "Under a report scope the file-shaped steps get that project's own
+TODO.org, never the capture default, which may be another project's;
+a scope owning no TODO.org runs nothing (TODO.org :ID: de081dd9)."
+  (claude-code-ide-org-test--with-heading
+    (let ((given 'unset)
+          (claude-code-ide-org--report-scope dir))
+      (cl-letf (((symbol-function 'claude-code-ide-org--ceremony-due-p) (lambda () t))
+                ((symbol-function 'claude-code-ide-org--ceremony-advance-repeater) #'ignore)
+                ((symbol-function 'claude-code-ide-org--ceremony-run-steps)
+                 (lambda (&optional f) (setq given f) nil)))
+        (cl-letf (((symbol-function 'claude-code-ide-org--project-capture-file)
+                   (lambda (d) (and (equal d dir) "/the/project/TODO.org"))))
+          (claude-code-ide-org--ceremony-session-start-run)
+          (should (equal given "/the/project/TODO.org")))
+        (setq given 'unset)
+        (cl-letf (((symbol-function 'claude-code-ide-org--project-capture-file) #'ignore))
+          (should-not (claude-code-ide-org--ceremony-session-start-run))
+          (should (eq given 'unset)))))))
+
+(ert-deftest claude-code-ide-org-test-session-start-payload-carries-the-run-and-the-ask ()
+  "The run's line rides in the same payload as the ceremony report, which
+still asks for the apply when items are pending (TODO.org :ID: de081dd9)."
+  (cl-letf (((symbol-function 'claude-code-ide-org--ceremony-session-start-run)
+             (lambda () "STEPS RAN"))
+            ((symbol-function 'claude-code-ide-org-find-stale-open-intervals) #'ignore)
+            ((symbol-function 'claude-code-ide-org--ceremony-status)
+             (lambda () '(:pending 2 :drifted 0 :archivable 0)))
+            ((symbol-function 'claude-code-ide-org--image-report) #'ignore)
+            ((symbol-function 'claude-code-ide-org--tool-failure-report) #'ignore))
+    (let* ((json (json-parse-string (claude-code-ide-org--session-start-hook-json)
+                                    :object-type 'alist))
+           (ctx (alist-get 'additionalContext (alist-get 'hookSpecificOutput json))))
+      (should (string-match-p "\\`STEPS RAN" ctx))
+      (should (string-match-p "2 queued item(s) pending review" ctx))
+      (should (string-match-p "M-x claude-code-ide-org-review" ctx))
+      (should (string-match-p "steps ran" (alist-get 'systemMessage json))))))
+
+(ert-deftest claude-code-ide-org-test-bury-stamps-after-a-session-start-run ()
+  "With the steps already run at session start, the ceremony is not due
+when the review buffer is buried; the bury stamps it done instead of
+leaving the report to call it unfinished all day."
+  (let ((stamped nil) (finished nil))
+    (cl-letf (((symbol-function 'claude-code-ide-org--ceremony-due-p) #'ignore)
+              ((symbol-function 'claude-code-ide-org--ceremony-done-today-p) #'ignore)
+              ((symbol-function 'claude-code-ide-org--ceremony-headings)
+               (lambda () (list 'a-heading)))
+              ((symbol-function 'claude-code-ide-org-ceremony-finish)
+               (lambda () (setq finished t)))
+              ((symbol-function 'claude-code-ide-org-mark-ceremony-done)
+               (lambda (&rest _) (setq stamped t))))
+      (with-temp-buffer
+        (claude-code-ide-org-review-mode)
+        (setq claude-code-ide-org--review-pass-open t)
+        (claude-code-ide-org--review-attention-on-quit))
+      (should stamped)
+      (should-not finished))))
+
 (ert-deftest claude-code-ide-org-test-advance-repeater-leaves-no-deferred-note ()
   "Advancing the repeater must register nothing on `post-command-hook'.
 
@@ -17129,7 +18136,7 @@ not have -- the thing this test can see is the registration."
                   (claude-code-ide-org-test--stale-repeater-line)
                   ":PROPERTIES:\n"
                   ":ID:       cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8\n"
-                  ":CREATED:  [2026-08-01 Sat 09:00]\n:END:\n"))
+                  ":CREATED:  [2026-08-01 Sat 09:00]\n:KIND:     ceremony\n:END:\n"))
     (with-current-buffer (find-file-noselect file) (setq buffer-read-only t))
     (let ((post-command-hook nil)
           (org-log-repeat 'time))
@@ -18046,10 +19053,13 @@ meta-work node."
     (should (claude-code-ide-org--mechanism-owned-heading-p "Attention pass"))
     (should-not (claude-code-ide-org--mechanism-owned-heading-p
                  "Review attention")))
-  ;; Disabled clocking leaves nothing to exclude.
+  ;; Disabled clocking still excludes the standard title: a heading made
+  ;; before the disable is still the mechanism's (TODO.org :ID: 97b4f6a9).
   (let ((claude-code-ide-org-review-attention-heading nil))
+    (should (claude-code-ide-org--mechanism-owned-heading-p
+             "Review attention"))
     (should-not (claude-code-ide-org--mechanism-owned-heading-p
-                 "Review attention"))))
+                 "Review and planning"))))
 
 
 ;;; Error context (TODO.org :ID: 169df26b) ---------------------------------
@@ -18397,18 +19407,22 @@ running task tracking alone would hit."
 ;;; Report scope (TODO.org :ID: 43d479c8) -----------------------------------
 ;;
 ;; The SessionStart reports must speak about the session's own project
-;; and nothing else; the org tools must stay global. Both halves are
-;; asserted here, because getting the asymmetry backwards is the easy
-;; mistake and neither direction announces itself.
+;; and nothing else, and since :ID: d6375b21 so must the tools' unscoped
+;; reads; lookups by id and the consent check stay global. Both halves
+;; are asserted, because getting the boundary backwards is the easy
+;; mistake and neither direction announces itself. With no session --
+;; every test below that stubs none -- the scope is unbound and the
+;; tracked set is global, which is what the first test pins.
 
 (ert-deftest claude-code-ide-org-test-report-scope-confines-tracked-files ()
   "`--report-scope' filters the tracked set; unbound, nothing changes.
 
 The second assertion is the load-bearing one.  A scope that filtered
-unconditionally would break `org_query' and `org_clock_report', whose
-whole value is answering across every tracked project -- so \"global by
-default\" is the property, and a test that only checked the filtering
-would pass while that was broken."
+unconditionally would confine every caller with no session -- the
+reports' own internals, `emacsclient', `all_projects' -- so \"global
+when unbound\" is the property, and a test that only checked the
+filtering would pass while that was broken.  Which *tools* bind it is
+:ID: d6375b21's, pinned in the section after this one."
   (let* ((root (file-name-as-directory (make-temp-file "cioo-scope-a" t)))
          (other (file-name-as-directory (make-temp-file "cioo-scope-b" t)))
          (empty (file-name-as-directory (make-temp-file "cioo-scope-c" t)))
@@ -18539,6 +19553,176 @@ opens this repo's TODO.org via `--review-attention-target'."
                 (kill-buffer)))))
       (delete-directory mine t)
       (delete-directory other t))))
+
+;;; Session-scoped reads (TODO.org :ID: d6375b21) ---------------------------
+;;
+;; An unscoped read from a session in one project returns that project
+;; only; `all_projects' reads every one; an id lookup is global.  The
+;; fixture is `--with-two-projects' with a distinct, id'd heading in each.
+
+(defmacro claude-code-ide-org-test--with-scoped-projects (&rest body)
+  "Projects A and B as `--with-two-projects', each holding one id'd
+heading -- \"Alpha only\" (a-id) and \"Bravo only\" (b-id) -- and BODY
+run with the calling session registered to SESSION-DIR, a variable
+BODY may rebind; nil means no session.  Also binds `a-root'."
+  (declare (indent 0))
+  `(claude-code-ide-org-test--with-two-projects
+     (let* ((a-root (file-name-directory a-todo))
+            (a-id "aaaa0000-d637-4000-8000-000000000001")
+            (b-id "bbbb0000-d637-4000-8000-000000000002")
+            (session-dir a-root))
+       (with-temp-file a-todo
+         (insert "#+TODO: TODO | DONE\n\n* TODO Alpha only\n:PROPERTIES:\n:ID:       "
+                 a-id "\n:END:\n:LOGBOOK:\nCLOCK: [2026-10-01 Thu 09:00]--[2026-10-01 Thu 10:00] =>  1:00\n:END:\n"))
+       (with-temp-file b-todo
+         (insert "#+TODO: TODO | DONE\n\n* TODO Bravo only\n:PROPERTIES:\n:ID:       "
+                 b-id "\n:END:\n:LOGBOOK:\nCLOCK: [2026-10-01 Thu 11:00]--[2026-10-01 Thu 13:00] =>  2:00\n:END:\n"))
+       (org-id-update-id-locations (list a-todo b-todo) t)
+       (cl-letf (((symbol-function 'claude-code-ide-mcp-server-get-session-context)
+                  (lambda (&optional _id)
+                    (and session-dir (list :project-dir session-dir)))))
+         ,@body))))
+
+(ert-deftest claude-code-ide-org-test-scoped-outline-reads-the-sessions-project ()
+  "An unscoped outline from A shows A; with all_projects, both, each
+block labelled by project, since TODO.org alone names neither."
+  (claude-code-ide-org-test--with-scoped-projects
+    (let ((out (claude-code-ide-org-outline)))
+      (should (string-match-p "Alpha only" out))
+      (should-not (string-match-p "Bravo only" out)))
+    (let ((out (claude-code-ide-org-outline nil nil nil nil "true")))
+      (should (string-match-p "Alpha only" out))
+      (should (string-match-p "Bravo only" out))
+      (should (string-match-p "^a/TODO\\.org$" out))
+      (should (string-match-p "^b/TODO\\.org$" out)))))
+
+(ert-deftest claude-code-ide-org-test-scoped-outline-resolves-a-relative-file ()
+  "A relative file scope is the session's project's file, not wherever
+Emacs happens to be -- and from a linked worktree it is the main
+checkout's, the tracked one, not the worktree's own branch copy."
+  (claude-code-ide-org-test--with-scoped-projects
+    (let ((default-directory (file-name-directory b-todo)))
+      (let ((out (claude-code-ide-org-outline "TODO.org")))
+        (should (string-match-p "Alpha only" out))
+        (should-not (string-match-p "Bravo only" out)))
+      (with-temp-file (expand-file-name "TODO.org" b-wt)
+        (insert "#+TODO: TODO | DONE\n\n* TODO Stale branch copy\n"))
+      (setq session-dir b-wt)
+      (let ((default-directory a-root)
+            (out (claude-code-ide-org-outline "TODO.org")))
+        (should (string-match-p "Bravo only" out))
+        (should-not (string-match-p "Stale branch copy" out))))))
+
+(ert-deftest claude-code-ide-org-test-scoped-reads-leave-id-lookups-global ()
+  "An id names one heading wherever it lives: an outline or a clock
+report scoped to B's id answers from A's session."
+  (claude-code-ide-org-test--with-scoped-projects
+    (should (string-match-p "Bravo only" (claude-code-ide-org-outline b-id)))
+    (should (string-match-p "2:00" (claude-code-ide-org-clock-report b-id)))))
+
+(ert-deftest claude-code-ide-org-test-scoped-query-reads-the-sessions-project ()
+  "org_query from A matches A only; with all_projects, both."
+  (claude-code-ide-org-test--with-scoped-projects
+    (let ((out (claude-code-ide-org-query "todo:TODO")))
+      (should (string-match-p "Alpha only" out))
+      (should-not (string-match-p "Bravo only" out)))
+    (let ((out (claude-code-ide-org-query "todo:TODO" nil "true")))
+      (should (string-match-p "Alpha only" out))
+      (should (string-match-p "Bravo only" out)))))
+
+(ert-deftest claude-code-ide-org-test-scoped-clock-report-reads-the-sessions-project ()
+  "An unscoped clock report covers A's hour and not B's two."
+  (claude-code-ide-org-test--with-scoped-projects
+    (let ((out (claude-code-ide-org-clock-report)))
+      (should (string-match-p "Alpha only" out))
+      (should-not (string-match-p "Bravo only" out)))
+    (let ((out (claude-code-ide-org-clock-report nil nil nil nil "true")))
+      (should (string-match-p "Bravo only" out)))))
+
+(ert-deftest claude-code-ide-org-test-scoped-pending-updates-reads-the-sessions-project ()
+  "Queue items whose cwd lies in A are A's: B's are neither listed nor
+counted, in the item line or the queue-event line."
+  (claude-code-ide-org-test--with-scoped-projects
+    (claude-code-ide-org-test--with-queue
+      (claude-code-ide-org-test--queue-write
+       "sess-a" (claude-code-ide-org-test--queue-event
+                 "2026-10-01T09:00:00-0500" "todo" a-id "DONE" "sess-a" "from a"
+                 nil nil a-root))
+      (claude-code-ide-org-test--queue-write
+       "sess-b" (claude-code-ide-org-test--queue-event
+                 "2026-10-01T09:05:00-0500" "todo" b-id "DONE" "sess-b" "from b"
+                 nil nil (file-name-directory b-todo)))
+      (let ((out (claude-code-ide-org-pending-updates)))
+        (should (string-match-p "from a" out))
+        (should-not (string-match-p "from b" out))
+        (should (string-match-p "^1 pending item" out))
+        (should (string-match-p "1 of 1 queue event" out)))
+      (let ((out (claude-code-ide-org-pending-updates nil "true")))
+        (should (string-match-p "from b" out))
+        (should (string-match-p "^2 pending item" out))))))
+
+(ert-deftest claude-code-ide-org-test-reads-without-a-session-stay-global ()
+  "No session -- emacsclient, the tests, internal callers -- reads both
+projects, exactly as before.  And an outer report's scope survives: no
+session binds nothing, not even nil."
+  (claude-code-ide-org-test--with-scoped-projects
+    (setq session-dir nil)
+    (should (string-match-p "Bravo only" (claude-code-ide-org-outline)))
+    (should (string-match-p "Bravo only" (claude-code-ide-org-query "todo:TODO")))
+    (should (string-match-p "Bravo only" (claude-code-ide-org-clock-report)))
+    (let ((claude-code-ide-org--report-scope a-root))
+      (should-not (string-match-p "Bravo only" (claude-code-ide-org-outline))))))
+
+(ert-deftest claude-code-ide-org-test-scoped-read-from-an-untracked-project-says-so ()
+  "A session whose project holds no tracked file gets a line naming
+setup and all_projects -- never an empty answer, and never the global
+fallback that is the leak."
+  (claude-code-ide-org-test--with-scoped-projects
+    (let ((stranger (file-name-as-directory (make-temp-file "stranger" t))))
+      (unwind-protect
+          (progn
+            (setq session-dir stranger)
+            (dolist (out (list (claude-code-ide-org-outline)
+                               (claude-code-ide-org-query "todo:TODO")
+                               (claude-code-ide-org-clock-report)
+                               (claude-code-ide-org-pending-updates)))
+              (should (string-match-p "No tracked org files under" out))
+              (should (string-match-p "all_projects=true" out))
+              (should-not (string-match-p "Bravo only\\|Alpha only" out))))
+        (delete-directory stranger t)))))
+
+(ert-deftest claude-code-ide-org-test-session-read-scope-maps-worktrees-and-subdirs ()
+  "A session in a linked worktree of B, or in a subdirectory of A,
+resolves to that project's root."
+  (claude-code-ide-org-test--with-scoped-projects
+    (let ((sub (expand-file-name "deep/er/" a-root)))
+      (make-directory sub t)
+      (setq session-dir sub)
+      (should (file-equal-p a-root (claude-code-ide-org--session-read-scope)))
+      (setq session-dir b-wt)
+      (should (file-equal-p (file-name-directory b-todo)
+                            (claude-code-ide-org--session-read-scope))))))
+
+(ert-deftest claude-code-ide-org-test-scoped-read-keeps-consent-global ()
+  "During a confined read, B's file is still tracked: consent is not a
+read's scope (:ID: 045459f6)."
+  (claude-code-ide-org-test--with-scoped-projects
+    ;; Recorded, then asserted outside: the outline's `condition-case'
+    ;; would swallow a `should' failing inside it.
+    (let (seen scope consent)
+      (cl-letf* ((orig (symbol-function 'claude-code-ide-org--tracked-files))
+                 ((symbol-function 'claude-code-ide-org--tracked-files)
+                  (lambda ()
+                    (unless seen
+                      (setq seen t)
+                      (with-current-buffer (find-file-noselect b-todo)
+                        (setq scope claude-code-ide-org--report-scope
+                              consent (claude-code-ide-org--tracked-buffer-p))))
+                    (funcall orig))))
+        (claude-code-ide-org-outline))
+      (should seen)
+      (should scope)
+      (should consent))))
 
 ;;; Footnote check: the Stop hook's scanner (TODO.org :ID: c247d8f3) -----------
 
@@ -19954,6 +21138,7 @@ PROPS come first because `plist-get' returns the first occurrence."
                     "88888888-8888-4888-8888-888888888802" "No category"
                     :category nil))))
       (should (string-match-p "\\`Error: a top-level capture needs a category" result))
+      (should (string-match-p "\\.claude/rules/org-categories\\.md" result))
       (should (= 0 (claude-code-ide-org-test--count-matches "No category" capture-file))))))
 
 (ert-deftest claude-code-ide-org-test-apply-capture-refuses-a-keyworded-child-of-a-slice ()

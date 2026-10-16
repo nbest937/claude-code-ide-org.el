@@ -2,6 +2,1274 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO A DONE that a :BLOCKER: refuses fails at apply as "did not take effect", and org's own message names the blocker as "" :code:
+:PROPERTIES:
+:ID:       7e2a6608-16a7-419b-8a99-b8016583c094
+:CREATED:  [2026-10-16 Fri 14:15]
+:CATEGORY: Apply
+:END:
+:PLAN:
+
+:END:
+On 2026-10-16 three noodle-salesman DONE transitions (4347100f, e6f2aad5,
+c66ddc28) failed apply on every attempt. The review pass said "did not take
+effect; the heading reads DOING", and org's message read "TODO state change from
+DOING to DONE blocked (by \"\")". The cause was org-depend-block-todo honouring
+each heading's :BLOCKER:. Two name 64ee96fb, a story whose grants member is
+still DOING, and e6f2aad5 names 4347100f, so they fail as a chain. org-depend
+sets no org-block-entry-blocking, hence the empty name. The user answered two
+prompts (stale, read-only) to reach a refusal that never said why. Proposed:
+when apply finds a DONE refused, name each unfinished :BLOCKER: id with its
+keyword. Have org_set_todo say the same at queue time, since a blocked DONE is
+knowable when the session queues it.
+
+* TODO org_refile can only place a heading under a parent, so a top-level heading moved by mistake cannot be put back at top level :code:
+:PROPERTIES:
+:ID:       e8db8aef-17d4-42e0-a2d1-a51f48fd35b8
+:CREATED:  [2026-10-16 Fri 13:43]
+:CATEGORY: Tools
+:END:
+
+Found recovering [[id:4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8][4a6f6dc3]]'s misrouted capture: ee3d52cd had to go back into
+noodle-salesman's TODO.org under an unrelated parent, since org_refile takes
+only a parent :ID:. Proposed: a top_level=true option, or a file= target, that
+lands the subtree at level 1 of a named tracked file. Refuse a file outside the
+tracked set.
+
+
+* TODO A targetless org_capture from a session with no registered project writes to the global capture file, another project's tracker, and says nothing :code:
+:PROPERTIES:
+:ID:       4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8
+:CREATED:  [2026-10-16 Fri 13:43]
+:CATEGORY: Tools
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-16 Fri 13:43]--[2026-10-16 Fri 13:44] =>  0:01
+- [2026-10-16 Fri 13:43]--[2026-10-16 Fri 13:44] file the misrouted-capture report
+:END:
+:PLAN:
+
+:END:
+On 2026-10-16 a noodle-salesman session captured ee3d52cd ("Add Subu Iyer to the
+Illinois territory as a rep") with no target, and it landed at the top of this
+repo's TODO.org. The session moved it back with org_refile, under an unrelated
+parent, because refile cannot make a heading top-level. --capture-target-file
+tries the calling session's project first, but the session table held only
+claude-code-ide's own buffer session (claude-noodle-salesman-20261016-082125),
+not the pinned ids noodle-salesman and claude-code-ide-org that the two
+.mcp.json URLs name. So the lookup found no project and fell through to
+claude-code-ide-org-capture-file, which is this repo's TODO.org. That missing
+registration is [[id:28eed617-e4e0-4d29-88ea-9411de4b77e5][28eed617]]. This heading is about the silent fallback: the only
+signal was a new-category warning naming the path, which reads as a typo check.
+Proposed (from that repo's brief): refuse a targetless capture when no session
+project resolves, or when the resolved file is outside the caller's project,
+naming both paths; and lead every capture reply with the destination file.
+
+
+* TODO [0/5] A :PLAN: can be written without the brainstorm's classify step, so most plans carry no path and /plan-slice trusts them anyway
+:PROPERTIES:
+:ID:       ad0bc484-072c-47b0-ab68-d2fc55df9281
+:CREATED:  [2026-10-15 Thu 12:50]
+:CATEGORY: Skill
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-15 Thu 12:50]--[2026-10-15 Thu 12:51] =>  0:01
+- [2026-10-15 Thu 12:50]--[2026-10-15 Thu 12:51] file the unclassified-plan story
+:END:
+:PLAN:
+
+:END:
+A live heading can get a non-empty :PLAN: with no path tag (:spike:, :bounded:,
+:arch:), so nothing records which process produced the design, and /plan-slice
+then skips it as already planned. Seen in noodle-salesman planning its 0.1
+slice: one bulk pass ("plan every open leaf of 0.1") wrote 20 plans and no tags,
+and an audit of 30 planned leaves found every arch-shaped plan stating one
+design, with no approaches compared and no review. Measured 2026-10-15 over live
+non-slice headings: here 80 of 90 non-empty plans carry no path tag (48 more are
+empty), in noodle-salesman 32 of 48. Most of this repo's predate the
+brainstorming skill (Plan Mode copies, retroactive wraps of pre-convention
+bodies), so an untagged plan shows that no classification is recorded, not that
+one was skipped.
+
+Three causes: nothing gates a plan write; /plan-slice skips a member whose plan
+has no open question, tagged or not; and :bounded: is unreachable in a young
+repo, because the skill defines it against code that already exists, so ordinary
+tasks were left untagged rather than tagged :arch:.
+
+Proposed, not yet decided: an empty :PLAN: is exempt everywhere, since under the
+capture-time rule on [[id:67636413-fd31-433b-b84e-a49e16da259f][67636413]] it records that no design is approved yet; so is a
+slice, whose plan is order rather than design. A design agreed in conversation
+is a proposal and stays in the body until a brainstorm or a Plan Mode approval
+moves it into the drawer, so no in-drawer "awaiting brainstorm" marker is
+needed. Related, not a twin: [[id:c9c75fda-c818-4e7b-9b97-c3a68e980eab][c9c75fda]] makes the three path tags an exclusive
+group.
+
+
+** TODO The brainstorming skill and the conventions never say a non-empty :PLAN: is an approved design whose path tag names how it was approved :prose:
+:PROPERTIES:
+:ID:       84d9bed6-1326-4cd3-a85a-2c6662709557
+:CREATED:  [2026-10-15 Thu 12:50]
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-15 Thu 12:54]--[2026-10-15 Thu 12:55] =>  0:01
+- [2026-10-15 Thu 12:54]--[2026-10-15 Thu 12:55] state when classification is owed
+CLOCK: [2026-10-15 Thu 13:03]--[2026-10-15 Thu 13:04] =>  0:01
+- [2026-10-15 Thu 13:03]--[2026-10-15 Thu 13:04] fold in the at-capture tag brief
+:END:
+:PLAN:
+
+:END:
+Proposed: in the conventions' ":PLAN: drawer" section, say that a non-empty
+:PLAN: is an approved design, from a brainstorm or a Plan Mode approval, and
+that its path tag names the path that approved it. Also give the backlog a
+sanctioned route the skill's "tag only the heading in hand" rule now forbids:
+classify an existing plan after the fact with an org_set_tags note beginning
+"classified retroactively", saying whether the plan has that path's shape. The
+other members enforce what this one states, so it goes first.
+
+Also say when classification is owed: when a heading is brainstormed, which for
+a slice member is /plan-slice, just before the slice is worked. /plan-slice
+implies this by brainstorming every member without a design, but nothing states
+it, so an open slice whose members carry no path tag reads as a miss when it is
+only not yet planned. The miss is a design written without one.
+
+The same sentences invite the opposite misreading downstream. The conventions
+and the org skill say the path tags are set by the brainstorming skill "at
+capture or when it classifies" a filed heading, and the skill says "for a new
+heading, pass the tag in org_capture's tags". All three mean the capture that
+the brainstorm itself makes after the design is approved (bounded step 5,
+architectural step 7). A noodle-salesman session read them as saying any capture
+should carry a path tag, which is too early: capture records that work exists,
+and for a task mentioned in passing, debrief residue or a review finding the
+path is often unknowable. Proposed (from that repo's brief): say a heading is
+classified when it is brainstormed and that classifying is the brainstorm's
+first step; drop "at capture"; and say a heading that never gets a design, such
+as a chore or a note, never needs a path tag.
+
+
+** TODO org_amend and org_edit write a :PLAN: on a heading that carries no path tag :code:
+:PROPERTIES:
+:ID:       83da971e-9ded-4d6f-afef-31cdb7a7374b
+:CREATED:  [2026-10-15 Thu 12:50]
+:CATEGORY: Tools
+:END:
+
+Proposed: refuse a drawer=PLAN write on a live heading with no :spike:,
+:bounded: or :arch: tag, name the remedy (org_set_tags add=<path> with a note,
+or tags= at capture), and count it as a miss. Exempt slices, and org_wrap_plan,
+which moves existing prose rather than writing a design. Writing into an empty
+drawer is not exempt: the first design write is exactly the case to gate. A tag
+is a weak proxy, since a session can add one to pass; what the gate buys is that
+classifying becomes a deliberate act logged with a note.
+
+
+** TODO bin/lint-org does not flag a live :PLAN: that carries no path tag :code:
+:PROPERTIES:
+:ID:       1e35a7db-f8f3-47e0-9e29-0b5f36b5e00d
+:CREATED:  [2026-10-15 Thu 12:50]
+:CATEGORY: Dev
+:END:
+
+Proposed: flag a live, non-slice heading whose :PLAN: is non-empty and has no
+path tag. As an error it would fire 80 times here and 32 in noodle-salesman on
+its first run. Open: warn on the backlog and error only where the commit changed
+that heading's :PLAN:, or ship a warning with a migration note. The first needs
+lint to see what the commit changed, and pre-commit lints a temp copy
+([[id:634eb138-28bc-4d43-aed3-f242c877904d][634eb138]]).
+
+
+** TODO /plan-slice skips any member whose :PLAN: has no open question, whether or not it was ever classified :prose:
+:PROPERTIES:
+:ID:       374794f1-850f-4d1c-a978-db1433b55796
+:CREATED:  [2026-10-15 Thu 12:50]
+:END:
+
+Proposed: skip a member only when it carries a path tag and its plan has that
+path's shape (spike: a question and a probe; bounded: a short design; arch:
+approaches compared, a sectioned design, reviewed). Otherwise brainstorm it:
+classify, bring the plan up to shape, review. This is also the backlog's route:
+an untagged plan is classified when a slice next takes it up, so no sweep is
+needed. Open: shape is judged by reading, and "reviewed" may need a recorded
+marker to be checkable.
+
+
+** TODO :bounded: is unreachable in a young repo, so ordinary tasks there go untagged rather than mislabelled :arch: :prose:
+:PROPERTIES:
+:ID:       5ec94946-7ed7-4ff6-9206-dfa575138fc3
+:CREATED:  [2026-10-15 Thu 12:50]
+:END:
+
+The brainstorming skill defines bounded against code that already exists ("A new
+project has no existing flow — it is architectural"), so before the first
+feature lands every build task is formally :arch:. Proposed: bounded also when
+the flow it changes is fixed by an earlier member of the slice whose :arch:
+design is approved. That means an approved design, not merely a place in the
+order: a bounded change built on an unapproved design inherits that design's
+uncertainty. Keep "when in doubt, heavier".
+
+
+* TODO A capture or refile that gives a heading its first keyworded child leaves it with no statistics cookie, which lint-org then refuses :code:
+:PROPERTIES:
+:ID:       ed3e6862-db3e-4e81-badd-859ddf629400
+:CREATED:  [2026-10-14 Wed 16:34]
+:CATEGORY: Tools
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-14 Wed 16:34]--[2026-10-14 Wed 16:35] =>  0:01
+- [2026-10-14 Wed 16:34]--[2026-10-14 Wed 16:35] file the first-child cookie gap
+:END:
+:PLAN:
+
+:END:
+The conventions say a heading takes its =[/]= cookie when its first
+keyworded child appears, and =bin/lint-org= errors on one without it. The
+tools do not do it: =org_capture= with a =target= writes the child through
+=--capture-write=, which never touches the parent's headline, and =org_refile=
+under a cookie-less parent probably does the same. Only =org_divide= calls
+=--ensure-statistics-cookie-at-point=. A cookie that already exists is updated
+correctly; only the first child misses out. Since no tool edits a headline
+([[id:9714f875-4a12-44e4-8f30-dfbd1b6e555e][9714f875]]), the session's only remedies are a raw edit behind Emacs or asking
+the human for =C-c #=. Seen in noodle-sales: four new stories (=57d6bf66=,
+=2366e0f0=, =dfdeb760=, and =7616fa92='s new parent) all came out cookie-less.
+
+Proposed: after =--capture-write= files a keyworded child under a target, and
+after =org_refile= lands one under a new parent, call
+=--ensure-statistics-cookie-at-point= on the parent and then
+=org-update-statistics-cookies=, as =org_divide= does, and say so in the reply.
+A fixture test for each path: capture or refile a keyworded child under a
+keywordless-children parent, and assert the cookie appears after the keyword.
+
+
+* TODO lint-org with no arguments lints the plugin checkout, not the consuming repo, and passes :code:
+:PROPERTIES:
+:ID:       9a8013d7-7525-466b-9aaf-10eb647f5e9f
+:CREATED:  [2026-10-14 Wed 16:22]
+:CATEGORY: Dev
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-14 Wed 16:28]--[2026-10-14 Wed 16:29] =>  0:01
+- [2026-10-14 Wed 16:28]--[2026-10-14 Wed 16:29] assigned at review
+CLOCK: [2026-10-14 Wed 16:34]--[2026-10-14 Wed 16:35] =>  0:01
+- [2026-10-14 Wed 16:34]--[2026-10-14 Wed 16:35] assigned at review
+:END:
+
+=bin/lint-org= with no arguments resolves its repo root from the script's own
+location, so in a consuming repo, where =.claude/skills/claude-code-ide-org= is
+a symlink to a plugin checkout, it lints that checkout's =TODO.org= and
+=DONE.org= and reports a clean run that says nothing about the project. Seen in
+noodle-sales: a no-argument run read a 58,000-line =DONE.org= and passed, while
+the project's own files needed to be named (=lint-org TODO.org DONE.org=).
+Proposed: default to the tracked files of the git root of the current
+directory (or the files =claude-code-ide-org-query-files= names for it), and
+print which files were linted so a run on the wrong project is visible.
+
+
+* TODO The review buffer's T ends every jump in a void-variable error: the message names a file binding that eddee10f removed :code:
+:PROPERTIES:
+:ID:       d12fb6f7-5fde-45c1-b8a3-c59293130365
+:CREATED:  [2026-10-14 Wed 13:01]
+:CATEGORY: Apply
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-14 Wed 13:01]--[2026-10-14 Wed 13:02] =>  0:01
+- [2026-10-14 Wed 13:01]--[2026-10-14 Wed 13:02] diagnose T in a multi-project review buffer
+CLOCK: [2026-10-14 Wed 13:04]--[2026-10-14 Wed 13:05] =>  0:01
+- [2026-10-14 Wed 13:04]--[2026-10-14 Wed 13:05] assigned at review
+CLOCK: [2026-10-14 Wed 13:05]--[2026-10-14 Wed 13:06] =>  0:01
+- [2026-10-14 Wed 13:05]--[2026-10-14 Wed 13:06] record the unreproduced multi-project symptom
+:END:
+:PLAN:
+
+:END:
+claude-code-ide-org-review-open-session ends with (message "%s"
+(file-name-nondirectory file)), but commit [[orgit-rev:./::907279d][907279d]] ([[id:eddee10f-b916-43ed-bd69-217adc068433][eddee10f]]) replaced the let
+that bound file with the live render, and nothing binds it now. So every T opens
+the render, jumps to the span, then signals "Symbol's value as variable is void:
+file". The fix names the render buffer's file instead, with a test that presses
+T and expects no error.
+
+Open, not reproduced: with items from two projects in the buffer (2026-10-14), T
+showed a render without the turns the review listed (the user). Suspected: T on
+the other project's row opened this session's render instead of its own. That
+project's session had a transcript on disk and rendered fine in memory, yet no
+render file was ever written for it. Next time two projects share the buffer,
+note which row T was pressed on and which render opened.
+
+
+* TODO Let a project's slice-rules win over /plan-slice on points of practice :prose:
+:PROPERTIES:
+:ID:       62cb31fa-4f1b-48e2-b244-2370b9672e57
+:CREATED:  [2026-10-14 Wed 12:35]
+:CATEGORY: Skill
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-14 Wed 12:35]--[2026-10-14 Wed 12:36] =>  0:01
+- [2026-10-14 Wed 12:35]--[2026-10-14 Wed 12:36] capture the slice-rules precedence task
+:END:
+:PLAN:
+
+:END:
+/work-slice says that where a project's .claude/slice-rules.md and the command
+disagree on a point of practice, the project file wins. /plan-slice reads the
+same file, but only "for what a plan here must cover", so a project cannot
+override /plan-slice's own steps with the same authority. Add /work-slice's
+precedence sentence to /plan-slice: the project file wins on practice, and where
+it would break the machinery the session says so and asks.
+
+The motivating case: noodle-salesman's .claude/slice-rules.md has /plan-slice
+cut the slice's git branch before its first write, overriding the command's "No
+branch". The override is named there, but the command gives it no standing. The
+branching itself stays out of the command: how a slice integrates is the project
+file's business, as /work-slice already says. noodle-salesman takes the plugin
+from the claude-code-ide-org-swc worktree, so it picks the change up once that
+worktree is moved to the commit. Until then, the override named in its
+slice-rules carries it.
+
+Also worth considering here: the same file names branches
+<type>/<id>-<short-kebab>, where the type is the tracker's word for the heading
+the branch carries (slice/, story/ or task/), with two levels by default:
+members branch from the slice branch, and only a slice's merge moves main. This
+repo names branches feature/short-name (CLAUDE.md).
+
+
+* TODO A brainstorm runs in whatever context loads it: entry should offer to park the idea, exit should recommend a fresh session
+:PROPERTIES:
+:ID:       67636413-fd31-433b-b84e-a49e16da259f
+:CREATED:  [2026-10-13 Tue 15:39]
+:CATEGORY: Skill
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-13 Tue 15:39]--[2026-10-13 Tue 15:40] =>  0:01
+- [2026-10-13 Tue 15:39]--[2026-10-13 Tue 15:40] file the brainstorming exit decision
+CLOCK: [2026-10-13 Tue 15:40]--[2026-10-13 Tue 15:41] =>  0:01
+- [2026-10-13 Tue 15:40]--[2026-10-13 Tue 15:41] assigned at review
+CLOCK: [2026-10-13 Tue 15:46]--[2026-10-13 Tue 15:47] =>  0:01
+- [2026-10-13 Tue 15:46]--[2026-10-13 Tue 15:47] assigned at review
+CLOCK: [2026-10-13 Tue 17:27]--[2026-10-13 Tue 17:28] =>  0:01
+- [2026-10-13 Tue 17:27]--[2026-10-13 Tue 17:28] assigned at review
+CLOCK: [2026-10-13 Tue 17:30]--[2026-10-13 Tue 17:31] =>  0:01
+- [2026-10-13 Tue 17:30]--[2026-10-13 Tue 17:31] assigned at review
+CLOCK: [2026-10-13 Tue 17:31]--[2026-10-13 Tue 17:32] =>  0:01
+- [2026-10-13 Tue 17:31]--[2026-10-13 Tue 17:32] record decisions 1 and 2
+CLOCK: [2026-10-13 Tue 17:32]--[2026-10-13 Tue 17:35] =>  0:03
+- [2026-10-13 Tue 17:32]--[2026-10-13 Tue 17:35] assigned at review
+CLOCK: [2026-10-14 Wed 08:41]--[2026-10-14 Wed 08:45] =>  0:04
+- [2026-10-14 Wed 08:41]--[2026-10-14 Wed 08:45] assigned at review
+CLOCK: [2026-10-14 Wed 08:45]--[2026-10-14 Wed 08:46] =>  0:01
+- [2026-10-14 Wed 08:45]--[2026-10-14 Wed 08:46] retitle to cover entry and exit
+:END:
+:PLAN:
+Decided (the user, 2026-10-13):
+- At design approval the skill recommends, without requiring, that implementation start in a fresh session: =/work-slice= for a slice member, or for a heading in no slice a new session that names the heading's id. No new command.
+- The org skill's "Plan Mode checkpoint" recommends the same at =ExitPlanMode= approval. Plan Mode used together with =/plan-slice= or =/work-slice= is untested, so the wording says nothing about that combination until it has been tried.
+- The second yes stays a gate for anyone who chooses to implement in the same session anyway. (Inferred from "recommend but don't require", not stated by the user.)
+- *Entry.* When the skill loads in a session already carrying other work (a clocked heading, edits made, a slice in hand), its first move asks: brainstorm now, or capture and park. Parking captures the idea by the capture-time rule, and the brainstorm happens later, in =/plan-slice= if the heading joins a slice, else in a fresh session naming its id. When the idea is what the session opened with, the skill brainstorms at once, as now.
+- *The capture-time rule.* A heading captured before its design is approved gets only a body: a statement and its open questions. Its =:PLAN:= stays empty until a design is approved, by a brainstorm or by a Plan Mode approval the session copies into the drawer. It goes in the conventions' =:PLAN:= section and in the brainstorming skill.
+:END:
+
+After design approval the brainstorming skill asks for a second yes and then
+implements in the same session. That holds wherever the skill is loaded by
+description match or by =/brainstorming=. Only under =/plan-slice= is it told
+never to implement, and that command already ends with a pointer to
+=/work-slice= in a fresh session. A brainstorm that starts in the middle of
+other work therefore designs, and then offers to implement, in an already full
+context. The change covers the skill's entry as well as its exit, and the
+capture-time rule that parking needs.
+
+
+* TODO Spike: one .org file per task, for per-task diffs and blame and narrower reads by the MCP server :spike:
+:PROPERTIES:
+:ID:       da9c76b5-1c27-49dd-a305-d6d4b6313188
+:CREATED:  [2026-10-13 Tue 14:53]
+:CATEGORY: Tools
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-13 Tue 17:35]--[2026-10-13 Tue 17:36] =>  0:01
+- [2026-10-13 Tue 17:35]--[2026-10-13 Tue 17:36] move open questions from PLAN to body
+:END:
+:PLAN:
+
+:END:
+
+Every live task shares TODO.org, about 12,000 lines, and every finished one
+DONE.org, about 47,000. So a git diff or blame answers for the whole tracker
+rather than for a task. Concurrent sessions and the human contend for one
+buffer, which is what the unsaved-buffer refusals and the discard guard exist to
+manage. The MCP server scans whole files to answer questions about one heading
+([[id:6a6f6708-eefd-4d77-8ca0-0c5aaaa80796][6a6f6708]], [[id:dc68d831-9e04-4f0a-8b8b-8087b39c6037][dc68d831]]). This spike asks whether one file per task would fix those,
+and what it would break in the org machinery the module is built on.
+
+Open questions:
+- What breaks? Does each mechanism survive a directory of files: =org-id-locations=, the agenda and =org-agenda-files=, =org-ql= over many files, archiving into =DONE.org=, refile, the slice refresh and =:BLOCKER:= resolution, stories (a parent and its children across files), the statistics cookies, the =:CATEGORY:= drawer, the lint, the footnote check, =org_history=, the ceremony's sorts?
+- What gets better, by how much: diff and blame for one task, conflicts between sessions on one buffer, the cost of an id-scoped read against today's whole-file scan?
+- Which granularity: one file per task, per top-level heading (a story keeps its children), or per category? Does finished work still go into one =DONE.org=?
+- What did denote, org-roam and =org-attach= directories, which all keep one note per file, give up?
+- Is a split reversible, and what would a consumer repo have to do?
+
+
+* TODO Design a :CHANGELOG: drawer, so a heading's prose can state what holds now and still say how it got there :code:
+:PROPERTIES:
+:ID:       082ecbe9-e706-49c8-8d9a-d5f6ee3c0abb
+:CREATED:  [2026-10-13 Tue 14:53]
+:CATEGORY: Skill
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-13 Tue 14:53]--[2026-10-13 Tue 14:53] =>  0:00
+- [2026-10-13 Tue 14:53]--[2026-10-13 Tue 14:53] assigned at review
+- [2026-10-14 Wed 13:00]--[2026-10-14 Wed 13:00] move open questions from PLAN to body
+CLOCK: [2026-10-15 Thu 08:32]--[2026-10-15 Thu 08:33] =>  0:01
+- [2026-10-15 Thu 08:32]--[2026-10-15 Thu 08:33] move open questions from PLAN to body
+CLOCK: [2026-10-15 Thu 09:24]--[2026-10-15 Thu 09:25] =>  0:01
+- [2026-10-15 Thu 09:24]--[2026-10-15 Thu 09:25] move open questions from PLAN to body
+- [2026-10-15 Thu 12:49]--[2026-10-15 Thu 12:49] move open questions from PLAN to body
+:END:
+:PLAN:
+
+:END:
+
+A body and its :PLAN: are revised in place and state only what holds now. Their
+history is left to git, which records it for the whole of TODO.org at once and
+attributes a change to a heading only when a commit message cites its id
+(org_history). The only histories kept in the prose are provenance
+parentheticals, ruled-out lines and reversal notices. A :CHANGELOG: drawer would
+give each heading its own revision record, so a passage can stay current and a
+reader who needs the trail still has it beside the text. Precedent already in
+the file: org_set_tags logs each tag change to :LOGBOOK: with a note. Distinct
+from [[id:4c0044bf-1b6c-44ea-807a-8f9e3523e3fd][4c0044bf]], a project-wide changelog tier, cancelled in 2026-08.
+
+Open questions:
+- Does org already have it? Org's own notes (=org-add-note=, =C-c C-z=) land in =:LOGBOOK:= under =org-log-into-drawer=, beside state changes and the =org_set_tags= lines. What would a separate drawer buy over a note kind there?
+- What is one entry: date, who, which region (body, =:PLAN:=, =:DEBRIEF:=), a one-line why, a commit link? Is the old text quoted, or left to git?
+- Who writes it: =org_edit= on every write, or a session only when meaning changes? A hand edit in Emacs writes nothing either way.
+- How is it read: collapsed by default, and do =org_outline= and =org_body= skip it as they skip drawers today?
+- Which of the provenance parentheticals, ruled-out lines and reversal notices kept in the prose would it replace?
+- The conventions' "Revising a pre-convention body" section holds today's revision standard under a name that has outlived its backlog. Does this task's outcome rewrite it as a general section?
+
+
+* TODO [0/6] PR #37's review found ten defects the slice shipped :code:
+:PROPERTIES:
+:ID:       c12d4189-6bb6-467b-8928-b7bdefcdc921
+:CREATED:  [2026-10-13 Tue 10:04]
+:CATEGORY: Dev
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-13 Tue 10:04]--[2026-10-13 Tue 10:06] =>  0:02
+- [2026-10-13 Tue 10:04]--[2026-10-13 Tue 10:06] file PR #37's review findings
+CLOCK: [2026-10-13 Tue 10:24]--[2026-10-13 Tue 10:27] =>  0:03
+- [2026-10-13 Tue 10:24]--[2026-10-13 Tue 10:27] assigned at review
+CLOCK: [2026-10-13 Tue 10:35]--[2026-10-13 Tue 10:39] =>  0:04
+- [2026-10-13 Tue 10:35]--[2026-10-13 Tue 10:39] defer four findings to top-level headings
+CLOCK: [2026-10-13 Tue 14:04]--[2026-10-13 Tue 14:06] =>  0:02
+- [2026-10-13 Tue 14:04]--[2026-10-13 Tue 14:06] promote the three deferred findings, retire copies
+CLOCK: [2026-10-13 Tue 14:52]--[2026-10-13 Tue 14:53] =>  0:01
+- [2026-10-13 Tue 14:52]--[2026-10-13 Tue 14:52] assigned at review
+- [2026-10-13 Tue 14:52]--[2026-10-13 Tue 14:53] trim the triage paragraph's log entry
+:END:
+:PLAN:
+Fix the six on the slice's branch, each with a test that fails on HEAD first:
+1. discard-guard, together, since all three touch one script: [[id:789a25c7-84aa-4c30-b8a6-252e149b6114][789a25c7]] (pathspec =':(top)*.org'=), [[id:025a2e8a-9b21-4044-b9df-79baf7e904ce][025a2e8a]] (an absolute git path, =checkout -f=, =switch --discard-changes=/=-f=), [[id:c8ba3f41-1cec-4b67-be0e-145ccebaff8a][c8ba3f41]] (quote-aware segment splitting).
+2. [[id:70d742fa-dc41-4005-8c07-01df75b3331f][70d742fa]]: the =e= remainder path clears =:dismiss= and =:dismiss-reason=.
+3. [[id:84e9c7ef-72f2-4694-b471-1419f8b0dd33][84e9c7ef]]: =blocks:= excludes every blocker entry whose id is in the scoped subtree.
+4. [[id:9c1afc7a-161d-4e4c-aa93-9c02becfb5ba][9c1afc7a]]: the bury confines the due check and the repeater advance to the project whose steps ran.
+After each fix, reply on its [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]] thread naming the commit, and resolve the
+thread.
+:END:
+
+The =/code-review high --comment 37= run of 2026-10-12 posted ten inline
+comments on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]] against slice [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]]. Each comment is a child here: one is
+fixed on the branch before merge, the rest are deferred with a reason. Findings
+1, 3 and 4 were reproduced in a scratch repo; the rest come from reading the
+code.
+
+*Triage, 2026-10-13 (the user).* Six findings are fixed on the branch: the three
+discard-guard holes, the dismiss flag carried into split pieces, the =blocks:=
+line, and the ceremony advance that crosses projects. Four are deferred as
+design questions, and each deferred finding left this story for the top level,
+still open: [[id:826d621c-25f5-4f06-9961-4b23f8658880][826d621c]] and [[id:2f4c04a1-db56-4427-ae62-591ba52607c6][2f4c04a1]] (Meta), [[id:6a6f6708-eefd-4d77-8ca0-0c5aaaa80796][6a6f6708]], which joined slice [[id:7dcec489-f5dd-4f7f-b819-a25405436b9b][7dcec489]],
+and finding 5, already filed as [[id:d30b3481-374c-4921-9fdb-284dd8e09e14][d30b3481]], which was dropped from slice [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]]
+and joined [[id:7ae1cff4-c0df-4ac0-9aea-a778b2373061][7ae1cff4]], the clock-record slice. So this story holds the six fixed
+findings.
+
+
+** REVIEW discard-guard's dirty-file scan is relative to cwd, so from a subdirectory a dirty root TODO.org goes unseen and reset --hard goes through
+:PROPERTIES:
+:ID:       789a25c7-84aa-4c30-b8a6-252e149b6114
+:CREATED:  [2026-10-13 Tue 10:04]
+:END:
+:LOGBOOK:
+- State "DOING"      from "TODO"       [2026-10-13 Tue 10:27] \\
+  fixing discard-guard's three holes together
+- [2026-10-13 Tue 10:35]--[2026-10-13 Tue 10:35] discard-guard: top pathspec, bypasses, quoting
+- State "REVIEW"     from "DOING"      [2026-10-13 Tue 10:36] \\
+  fixed in 7466161; in review on PR #37
+:END:
+
+Review finding 1 on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]], reproduced. =git diff --name-only -- '*.org'=
+matches only below cwd. From =sub/=, a dirty root TODO.org leaves =dirty= empty,
+the guard exits 0, and =git reset --hard= or =git stash= wipes the file. The fix
+is the pathspec =':(top)*.org'=.
+
+Fixed in commit [[orgit-rev:./::7466161][7466161]]: the scan uses =':(top)*.org'=, and a path argument is
+folded against the prefix, =..= included, so =git checkout .= from =sub/= still
+passes when only the root file is dirty.
+
+
+** REVIEW Burying the review buffer advances every project's overdue ceremony, though the steps ran only on this repo's tracker
+:PROPERTIES:
+:ID:       9c1afc7a-161d-4e4c-aa93-9c02becfb5ba
+:CREATED:  [2026-10-13 Tue 10:04]
+:END:
+:LOGBOOK:
+- State "REVIEW"     from "DOING"      [2026-10-13 Tue 10:36] \\
+  fixed in 2ba7f02; in review on PR #37
+- State "DOING"      from "TODO"       [2026-10-13 Tue 10:36] \\
+  retroactive: fixed this session
+:END:
+:PLAN:
+The reviewer's fix: confine the due check and the advance to the project whose
+steps ran, with a two-project test that fails on HEAD first.
+:END:
+
+Review finding 2 on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]]. On the bury, =--ceremony-due-p= sees a consumer's
+overdue =:KIND: ceremony=. =ceremony-finish= runs the steps with FILE nil, which
+is this repo's TODO.org, and =--ceremony-advance-repeater= then marks the
+consumer's ceremony DONE and saves it. The consumer's next SessionStart finds it
+not due, so its closed headings are never archived. Confine the due check and
+the advance to the project whose steps ran.
+
+Fixed in commit [[orgit-rev:./::2ba7f02][2ba7f02]]: =ceremony-finish=
+runs its steps on the capture target's tracker, with the report scope bound to
+that project for the whole pass. The due check and the advance then see only
+that project's ceremony. Reloaded live 2026-10-13.
+
+
+** REVIEW An absolute git path, checkout -f and switch --discard-changes all get past discard-guard
+:PROPERTIES:
+:ID:       025a2e8a-9b21-4044-b9df-79baf7e904ce
+:CREATED:  [2026-10-13 Tue 10:04]
+:END:
+:LOGBOOK:
+- State "DOING"      from "TODO"       [2026-10-13 Tue 10:27] \\
+  fixing discard-guard's three holes together
+- State "REVIEW"     from "DOING"      [2026-10-13 Tue 10:36] \\
+  fixed in 7466161; in review on PR #37
+:END:
+
+Review finding 3 on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]], reproduced. With TODO.org dirty, these three were
+each allowed in a scratch repo:
+- =/usr/bin/git reset --hard=: the segment filter accepts =*/git=, but =discards= skips only a literal =git=, so it reads the path as the subcommand.
+- =git checkout -f main=.
+- =git switch --discard-changes main=.
+
+Fixed in commit [[orgit-rev:./::7466161][7466161]]: an absolute git path is skipped like =git=, and
+=checkout -f=/=--force= and =switch -f=/=--force=/=--discard-changes= are
+refused; a plain =switch= still passes.
+
+
+** REVIEW discard-guard splits commands on ; | && || inside quotes, so a commit message naming a discard is refused and counted as a miss
+:PROPERTIES:
+:ID:       c8ba3f41-1cec-4b67-be0e-145ccebaff8a
+:CREATED:  [2026-10-13 Tue 10:04]
+:END:
+:LOGBOOK:
+- State "DOING"      from "TODO"       [2026-10-13 Tue 10:27] \\
+  fixing discard-guard's three holes together
+- State "REVIEW"     from "DOING"      [2026-10-13 Tue 10:36] \\
+  fixed in 7466161; in review on PR #37
+:END:
+
+Review finding 4 on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]], observed live. =git commit -m "…; git reset --hard
+…"= splits at the =;= into a segment that is blocked, and a =discard-org= miss
+is appended. The review's own probe triggered it at 2026-10-12 18:15:12, so
+=bin/miss-rate= counts one false miss. Commit messages describing this feature
+are the likeliest trigger.
+
+Fixed in commit [[orgit-rev:./::7466161][7466161]]: the command line splits at =;= =|= =&= and newlines
+only outside quotes. The splitter is awk, because a bash per-character loop took
+18 s on a 40 KB heredoc; awk takes 0.2 s. The false miss of 2026-10-12 18:15:12
+stays in the count, which is a floor rather than a ledger.
+
+
+** REVIEW org_outline's blocks: line reports a story blocking its own child
+:PROPERTIES:
+:ID:       84e9c7ef-72f2-4694-b471-1419f8b0dd33
+:CREATED:  [2026-10-13 Tue 10:04]
+:END:
+:LOGBOOK:
+- State "REVIEW"     from "DOING"      [2026-10-13 Tue 10:36] \\
+  fixed in 83be1a1; in review on PR #37
+- State "DOING"      from "TODO"       [2026-10-13 Tue 10:36] \\
+  retroactive: fixed this session
+:END:
+
+Review finding 7 on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]]. Story X has children A and B, and B's =:BLOCKER:=
+is A. =org_outline scope=X= prints =blocks: B=, as though X blocked its own
+child. The exclusion should drop every blocker entry whose id is in the scoped
+subtree (MINE), not only the root's id.
+
+Fixed in commit [[orgit-rev:./::83be1a1][83be1a1]]: =blocks:= leaves out any heading inside the scoped
+subtree.
+
+
+** REVIEW Splitting a d-marked span with e carries :dismiss into the remainders, so x dismisses events never marked
+:PROPERTIES:
+:ID:       70d742fa-dc41-4005-8c07-01df75b3331f
+:CREATED:  [2026-10-13 Tue 10:04]
+:END:
+:LOGBOOK:
+- State "REVIEW"     from "DOING"      [2026-10-13 Tue 10:36] \\
+  fixed in f64bd33; in review on PR #37
+- State "DOING"      from "TODO"       [2026-10-13 Tue 10:36] \\
+  retroactive: fixed this session
+:END:
+
+Review finding 8 on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]]. Each remainder is built from =(copy-sequence item)=,
+which resets =:marked= and nothing else. =:dismiss= and =:dismiss-reason=
+survive, so after =d= then =e=, pressing =x= permanently dismisses the
+out-of-window events. The remainder path should clear both flags, or =e= should
+clear the =d=.
+
+Fixed in commit [[orgit-rev:./::f64bd33][f64bd33]]: the remainder path clears =:dismiss= and
+=:dismiss-reason= alongside =:marked=.
+
+
+* TODO --applied-today-p ignores the report scope and parses every .applied file at each SessionStart :code:
+:PROPERTIES:
+:ID:       2f4c04a1-db56-4427-ae62-591ba52607c6
+:CREATED:  [2026-10-13 Tue 10:04]
+:CATEGORY: Meta
+:END:
+:LOGBOOK:
+- State "CANCELLED"  from "TODO"       [2026-10-13 Tue 10:26] \\
+  deferred to a543e329
+- State "TODO"       from "CANCELLED"  [2026-10-13 Tue 14:05] \\
+  reopened: deferred, not cancelled
+- Tags ":code:"     from ""           [2026-10-13 Tue 14:05] \\
+  promoted out of the review story; no longer inherits
+:END:
+
+Review finding 9 on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]]. An apply in project A makes project B's scoped
+ceremony report read "reviewed today", unlike the CLOCK check it backs up, which
+respects =--report-scope=. It also JSON-parses about 320 watermark files
+whenever no CLOCK line is found, which re-implements =--queue-watermark-data=. A
+today-mtime prefilter and reuse of that function avoid both.
+
+Deferred 2026-10-13 out of the review story [[id:c12d4189-6bb6-467b-8928-b7bdefcdc921][c12d4189]] (the user): whether a
+scoped report should consult watermarks at all needs deciding before the cost is
+fixed.
+
+
+* TODO Every id-scoped org_outline scans every heading in every tracked file, and leaks a marker per slice :code:
+:PROPERTIES:
+:ID:       6a6f6708-eefd-4d77-8ca0-0c5aaaa80796
+:CREATED:  [2026-10-13 Tue 10:04]
+:CATEGORY: Tools
+:END:
+:LOGBOOK:
+- State "CANCELLED"  from "TODO"       [2026-10-13 Tue 10:26] \\
+  deferred to 6e888ebd
+- State "TODO"       from "CANCELLED"  [2026-10-13 Tue 14:05] \\
+  reopened: deferred, not cancelled
+- Tags ":code:"     from ""           [2026-10-13 Tue 14:05] \\
+  promoted out of the review story; no longer inherits
+:END:
+
+Review finding 10 on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]]. Each scope token runs =--membership-scan=, a full
+=org-map-entries= pass over TODO.org and DONE.org with =org-entry-get= and
+=--slice-p= on every heading, to produce two front-matter lines. The scan also
+keeps a point-marker per slice that is never released, which slows later edits
+until GC. One regexp search per call for =:KIND: *slice= and =:BLOCKER:= lines
+does the same job.
+
+Deferred 2026-10-13 out of the review story [[id:c12d4189-6bb6-467b-8928-b7bdefcdc921][c12d4189]] (the user) into slice
+[[id:7dcec489-f5dd-4f7f-b819-a25405436b9b][7dcec489]], beside [[id:dc68d831-9e04-4f0a-8b8b-8087b39c6037][dc68d831]], the same full scan in the slice refresh. The two may
+share one fix: a membership table built once and invalidated on save.
+
+
+* TODO SessionStart runs the ceremony's write steps inside a 15 s hook, on whatever branch is checked out :code:
+:PROPERTIES:
+:ID:       826d621c-25f5-4f06-9961-4b23f8658880
+:CREATED:  [2026-10-13 Tue 10:04]
+:CATEGORY: Meta
+:END:
+:LOGBOOK:
+- State "CANCELLED"  from "TODO"       [2026-10-13 Tue 10:26] \\
+  deferred to 4bbb8467
+- State "TODO"       from "CANCELLED"  [2026-10-13 Tue 14:05] \\
+  reopened: deferred, not cancelled
+- Tags ":code:"     from ""           [2026-10-13 Tue 14:05] \\
+  promoted out of the review story; no longer inherits
+:END:
+
+Review finding 6 on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]]. Session start now runs the ceremony's write steps
+synchronously: slice refresh, drawer consolidation, spacing, archive, two sorts
+and the repeater. On a large tracker this outruns the 15 s timeout. Claude Code
+kills the hook but Emacs finishes writing, so the session never gets the "commit
+the diff" line and the tracker is left dirty. Separately, a session started on a
+feature branch writes its archive and sort onto that branch's TODO.org.
+
+Deferred 2026-10-13 out of the review story [[id:c12d4189-6bb6-467b-8928-b7bdefcdc921][c12d4189]] (the user): when and where
+the ceremony's write steps run is a design question, not a patch for the slice's
+branch.
+
+
+* TODO A slash command that runs in the background opens a run nothing closes, so its agent's minutes are dropped :code:
+:PROPERTIES:
+:ID:       3977f434-7759-41ed-92f5-41cd04f6def6
+:CREATED:  [2026-10-13 Tue 09:51]
+:CATEGORY: Queue
+:END:
+:LOGBOOK:
+- [2026-10-13 Tue 09:50]--[2026-10-13 Tue 09:51] assigned at review
+CLOCK: [2026-10-13 Tue 09:51]--[2026-10-13 Tue 09:52] =>  0:01
+- [2026-10-13 Tue 09:51]--[2026-10-13 Tue 09:52] file the background code-review underreport
+CLOCK: [2026-10-13 Tue 09:52]--[2026-10-13 Tue 09:53] =>  0:01
+- [2026-10-13 Tue 09:52]--[2026-10-13 Tue 09:53] assigned at review
+CLOCK: [2026-10-13 Tue 10:00]--[2026-10-13 Tue 10:01] =>  0:01
+- [2026-10-13 Tue 10:00]--[2026-10-13 Tue 10:01] assigned at review
+:END:
+:PLAN:
+Not yet designed. First establish what the background agent's hooks emit. Its
+discard-guard miss at 18:15:12 carried this session's id and a null =agent_id=,
+so its tool calls do fire this session's hooks. Find out whether =SubagentStop=,
+or the agent's own =Stop=, fires and with what payload. Candidates, none chosen:
+- wire =SubagentStop= (or the background agent's =Stop=) to append a =pause=, closing the run at the agent's real end;
+- treat the notification's =resume= as the close of a run opened by a background launch, which needs the launch marked, for example by the local-command output "Running in the background";
+- give the agent's tool calls a guidepost of their own as evidence of work inside the gap. =block-end= already runs on every PostToolUse, but it appends only when a permission block is open.
+Whichever is chosen, keep [[id:09c134c4-31eb-4f6c-aa10-f836d1d28f16][09c134c4]]'s rule for the ordinary interrupt, where two
+prompts arrive with no Stop between them and nothing marks a launch.
+:END:
+
+On 2026-10-12, =/code-review high --comment 37= ran as the background agent
+=@code-review= from 18:10:33 to 18:16:33. Its UserPromptSubmit wrote a =resume=,
+but no model turn followed, so no =Stop= wrote a =pause=. The agent's own work
+emitted no guideposts. The completion notification wrote a second =resume= at
+18:16:33. [[id:09c134c4-31eb-4f6c-aa10-f836d1d28f16][09c134c4]] deliberately makes a =resume= -> =resume= adjacency
+contribute nothing, so the review buffer showed =0:06 span, 0:01 in 1 run=: six
+minutes of agent work credited as one, the notification's own reply. [[id:09c134c4-31eb-4f6c-aa10-f836d1d28f16][09c134c4]]'s
+2026-08-18 check found no such handoff worth instrumenting; this is the first
+measured one.
+
+
+* TODO An outside edit to an open, unmodified TODO.org was apparently written over within seconds, with no error :code:
+:PROPERTIES:
+:ID:       8185c75c-d7a5-42d2-a4eb-bc9dd1e6ce66
+:CREATED:  [2026-10-13 Tue 09:42]
+:CATEGORY: Dev
+:END:
+:PLAN:
+Reproduce before fixing anything:
+1. Open TODO.org in Emacs and leave it unmodified.
+2. From a terminal, append a line to the file on disk.
+3. Without touching Emacs, submit a prompt in a session in that repo.
+4. Check whether the line survives, and what *Messages* shows.
+5. Repeat without submitting a prompt. That separates a write driven by a hook from Emacs's own saves.
+If it reproduces, find the writer and make it check the file's modtime before
+writing.
+:END:
+
+Seen 2026-10-12 in noodle-salesman during [[id:2b8930da-5223-4b75-b4f6-251a28552d1b][2b8930da]]'s check 9, session 5c832f1e,
+not yet reproduced. Its TODO.org buffer was unmodified and in sync with the
+file. The user appended a line from a terminal, then submitted a prompt. At the
+session's first look, ten seconds after the file's mtime of 17:31:16, the line
+was gone, git status was clean, and the buffer was again in sync. So something
+rewrote the file without the line: a prompt-time hook writing through Emacs, or
+a save that skipped the changed-on-disk check. On the second attempt the line
+survived. Nobody saw the first append land, so if it never ran there is no bug.
+If it reproduces, any outside write to an open tracker can be lost
+silently, whether a git pull, another session's Edit or a hand edit.
+
+
+* REVIEW A slice's incidental list takes closes from every tracked project, so another repo's work is attributed to this one's slice :code:
+:PROPERTIES:
+:ID:       1c252f9c-6838-4b71-b08b-ff2e77d34dce
+:CREATED:  [2026-10-12 Mon 17:42]
+:CATEGORY: Slices
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-12 Mon 17:42]--[2026-10-12 Mon 17:43] =>  0:01
+- [2026-10-12 Mon 17:42]--[2026-10-12 Mon 17:43] file cross-project incidental attribution
+CLOCK: [2026-10-12 Mon 17:43]--[2026-10-12 Mon 17:44] =>  0:01
+- [2026-10-12 Mon 17:43]--[2026-10-12 Mon 17:44] assigned at review
+- State "DOING"      from "TODO"       [2026-10-12 Mon 17:46] \\
+  the user: fix now, on the slice's branch
+CLOCK: [2026-10-12 Mon 17:46]--[2026-10-12 Mon 17:47] =>  0:01
+- [2026-10-12 Mon 17:46]--[2026-10-12 Mon 17:47] assigned at review
+CLOCK: [2026-10-12 Mon 17:48]--[2026-10-12 Mon 17:51] =>  0:03
+- [2026-10-12 Mon 17:48]--[2026-10-12 Mon 17:51] confine incidental candidates to the slice's project
+- State "REVIEW"     from "DOING"      [2026-10-12 Mon 17:51] \\
+  fixed and verified, in review on PR #37
+- [2026-10-12 Mon 17:51]--[2026-10-12 Mon 17:51] assigned at review
+:END:
+:PLAN:
+Fixed on the slice's own branch before its review, so [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]]'s record is clean
+before it closes (the user, 2026-10-12, over removing the lines by hand and
+fixing later). Bind =--report-scope= once, in =--slice-incidental-ids=, to the
+project holding the slice's file. Every scan beneath it reads the tracked set,
+so one binding confines them all, with no project argument threaded through
+=--closed-in-window=, =--slice-work-profiles= and =--other-slices-declared-ids=.
+The project comes from [[id:d6375b21-a410-4c2d-9d5b-bfe980c4cc63][d6375b21]]'s =--project-root=, so a slice and a read agree
+on what its project is.
+:END:
+:DEBRIEF:
+=--slice-incidental-ids= binds =--report-scope= to the project root holding the
+slice's file, through a new =--slice-project-scope= over =--project-root=. Every
+scan beneath it reads =--id-scannable-files=, which is derived from the tracked
+set, so one binding confines all three: the closes in the window, the work
+profiles that decide ownership, and the other slices' declared ids. A buffer
+visiting no file leaves any outer scope alone.
+
+Verified: one new ERT test, in which a second project's close falls inside the
+slice's window. It is shown red against =HEAD= at exactly that assertion. All 79
+slice tests pass, and =bin/test-all= passed 27 suites, 1699 tests. Live: after a
+reload, =claude-code-ide-org-refresh-slice= on [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]] listed 0 incidentals,
+and the pre-commit lint, which had refused the two cross-project =id:= links,
+passed. The refresh went through =emacsclient= because no org tool refreshes a
+slice on demand.
+
+The lint caught this from the other side. Its link resolution only knows the
+project's own files, so the cross-project lines could not be committed.
+:END:
+
+Slice [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]] lists noodle-salesman's 414875f3 and 9ef48eef as incidental work
+(the user, 2026-10-12): both were closed by an apply pass while this slice was
+the only DOING one. The candidates come from =--closed-in-window=, which scans
+=--id-scannable-files=, every tracked project plus archives.
+=--incidental-owner= then assigns any close to whichever slice was in progress.
+The same class as [[id:d6375b21-a410-4c2d-9d5b-bfe980c4cc63][d6375b21]], in the slice machinery. Proposed: confine the
+candidates, and the slice work profiles that decide ownership, to the slice's
+own project, resolved from its file with =--project-root=.
+
+Resolved on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]] in commit [[orgit-rev:./::7c0eb89][7c0eb89]]: a slice's incidental list now comes from
+its own project only, and [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]]'s refresh dropped both noodle-salesman
+headings.
+
+
+* DOING Standalone wiring at Emacs startup registered 0 project sessions, so every consumer's tool calls lose their project :code:
+:PROPERTIES:
+:ID:       28eed617-e4e0-4d29-88ea-9411de4b77e5
+:CREATED:  [2026-10-12 Mon 14:47]
+:CATEGORY: Dev
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-12 Mon 12:41]--[2026-10-12 Mon 12:42] =>  0:01
+- [2026-10-12 Mon 12:41]--[2026-10-12 Mon 12:42] assigned at review
+- [2026-10-12 Mon 14:46]--[2026-10-12 Mon 14:47] assigned at review
+CLOCK: [2026-10-12 Mon 14:47]--[2026-10-12 Mon 14:48] =>  0:01
+- [2026-10-12 Mon 14:47]--[2026-10-12 Mon 14:48] file the zero-session startup wiring
+- [2026-10-12 Mon 14:48]--[2026-10-12 Mon 15:07] assigned at review
+- State "DOING"      from "TODO"       [2026-10-12 Mon 15:07] \\
+  the user: start on the zero-session wiring
+CLOCK: [2026-10-12 Mon 15:11]--[2026-10-12 Mon 15:12] =>  0:01
+- [2026-10-12 Mon 15:11]--[2026-10-12 Mon 15:12] start on zero-session startup wiring
+- [2026-10-12 Mon 15:33]--[2026-10-12 Mon 15:33] start on zero-session startup wiring
+CLOCK: [2026-10-12 Mon 15:41]--[2026-10-12 Mon 15:42] =>  0:01
+- [2026-10-12 Mon 15:41]--[2026-10-12 Mon 15:42] suggested span, accepted at review
+:END:
+:PLAN:
+
+:END:
+After an Emacs restart on 2026-10-12, *Messages* read "standalone tools wired on
+port 45571, 0 project session(s)", and the session table was empty. An hour
+later =claude-code-ide-org--standalone-derive-projects= derived all three
+projects. So the wiring apparently ran before the tracked set
+(=org-agenda-files=) was populated. With no session registered, the per-session
+read scope ([[id:d6375b21-a410-4c2d-9d5b-bfe980c4cc63][d6375b21]]) and capture routing ([[id:d718f6b6-5a33-4889-8b5a-8ea82553ccea][d718f6b6]]) both silently fall back to
+global. Proposed: derive the projects once the tracked set is known, or re-wire
+when it first becomes non-empty. Also refuse loudly when the derivation yields
+zero, rather than reporting success.
+
+It recurred by 2026-10-16. The session table held one entry,
+claude-noodle-salesman-20261016-082125, which is claude-code-ide's own buffer
+session, started at 08:21. Neither pinned id named by a .mcp.json URL
+(claude-code-ide-org, noodle-salesman) was registered. That day a
+noodle-salesman capture fell through to this repo's TODO.org ([[id:4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8][4a6f6dc3]]), and
+this repo's own unscoped org_query returned a noodle-salesman heading.
+Unchecked: whether starting a claude-code-ide session resets the table, or
+whether the startup wiring yielded zero again.
+
+
+* TODO [0/5] The SessionStart tool-failure report misstates what failed and says nothing when Emacs is down now :code:
+:PROPERTIES:
+:ID:       4bd8e14d-c741-47c7-a868-df933cbad82c
+:CREATED:  [2026-10-12 Mon 11:24]
+:CATEGORY: Queue
+:END:
+
+The report that [[id:3ad389be-2797-46c3-a51d-9f603053955a][3ad389be]] added to SessionStart
+(claude-code-ide-org--tool-failure-report) misled a reader on 2026-10-12: two
+timed-out calls from the previous session were headed "failed because Emacs was
+unreachable". One was a read-only org_body, and it was flagged "may still have
+landed". The other was an org_slice_add_member that timed out while the probe
+found Emacs idle, and it did land: commit [[orgit-rev:./::6cef5fc][6cef5fc]] later removed the member it
+added. The report was itself produced by a live Emacs, which proves Emacs was
+reachable, but it never says so. If Emacs is down at session start, the whole
+report is silent and the markers wait unannounced. Each child is one defect.
+
+
+** TODO The report heads every failure "because Emacs was unreachable", even a timeout whose probe found Emacs idle :code:bounded:
+:PROPERTIES:
+:ID:       a52c6049-4b99-4abf-94f5-a7bc459263d5
+:CREATED:  [2026-10-12 Mon 11:30]
+:END:
+
+The headline in claude-code-ide-org--tool-failure-report is fixed text. The
+markers already record the error ("timed out") and the probe's state (refused,
+idle, prompt), so the headline should reflect those per line, or drop the causal
+claim. An idle-probe timeout means Emacs was up but the call ran long, and it is
+the case most likely to have landed: on 2026-10-12 one did.
+
+
+** TODO The report never says Emacs is reachable now, though producing it proves Emacs is up :code:bounded:
+:PROPERTIES:
+:ID:       c409714a-d5a0-4d54-8c59-9992a71fa1ad
+:CREATED:  [2026-10-12 Mon 11:30]
+:END:
+
+The report is written by claude-code-ide-org-write-session-start-report inside
+the running Emacs, so any report at all is a live probe. The failure section
+reads as a present-tense outage, which prompted the question "shouldn't a new
+call probe the service at /clear?" One line saying the failures are from an
+earlier session and Emacs answers now settles it.
+
+
+** TODO A read-only tool's failure is reported as "may still have landed" :code:bounded:
+:PROPERTIES:
+:ID:       25c3246c-ecff-46bb-b8e5-40551c8b48f4
+:CREATED:  [2026-10-12 Mon 11:30]
+:END:
+
+bin/hooks/tool-failure sets may_land from the error text alone, so a timed-out
+org_body, org_outline or org_query is told to check the file before redoing it.
+A read writes nothing: the line should say there is nothing to check, or
+read-only tools should leave no marker at all.
+
+
+** TODO With Emacs down at session start the report is silent, and failure markers wait unannounced :code:bounded:
+:PROPERTIES:
+:ID:       dcbcac2a-2002-4579-b88d-ae337e43628c
+:CREATED:  [2026-10-12 Mon 11:30]
+:END:
+
+bin/hooks/session-start-recovery-check discards emacsclient's output and prints
+only a non-empty report, so a stopped Emacs looks exactly like a clean start: an
+empty result read as a passing one. The hook is plain shell and can count the
+unreported *.tool-failures.jsonl files itself, then say in one line that Emacs
+is unreachable and N failures wait.
+
+
+** TODO org_capture cannot target a heading whose own capture is still queued :code:bounded:
+:PROPERTIES:
+:ID:       dd040240-1d0f-4381-bafb-c9e5275b791c
+:CREATED:  [2026-10-12 Mon 11:30]
+:END:
+
+On 2026-10-12 the parent [[id:4bd8e14d-c741-47c7-a868-df933cbad82c][4bd8e14d]] was queued because TODO.org had unsaved
+changes, and filing its children was refused as "not a known :ID:", although
+org_set_todo and org_clock_in accept a pending capture's id. The children waited
+for an apply. Either queue the child against the pending parent, or say in the
+refusal that the parent is queued rather than unknown.
+
+
+* TODO Let a discovery join a slice either as a member line or as incidental work, since both record it under the slice :prose:
+:PROPERTIES:
+:ID:       d9ed082e-9a2e-4afd-a852-bedf33f0e659
+:CREATED:  [2026-10-12 Mon 10:59]
+:CATEGORY: Skill
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-12 Mon 10:59]--[2026-10-12 Mon 11:00] =>  0:01
+- [2026-10-12 Mon 10:59]--[2026-10-12 Mon 11:00] file the adoption-convention change
+CLOCK: [2026-10-12 Mon 11:01]--[2026-10-12 Mon 11:02] =>  0:01
+- [2026-10-12 Mon 11:01]--[2026-10-12 Mon 11:02] reframe as permitting both routes
+:END:
+:PLAN:
+Candidate steps, not yet brainstormed.
+1. Rewrite "Adopt by adding a member line" in "Adopting a discovery" to offer
+   two routes with one outcome: a member line, counted and blocking, or work
+   left to close as incidental, listed at its close. Say what tells them apart:
+   a member line holds the slice open until it lands, an incidental never does.
+2. Qualify what applies to one route only. "Expect the cookie to regress" is
+   the member route's cost. "Where adoption stops" binds on =REVIEW= through
+   the checklist, which incidental work does not delay, so the gate and the
+   proposed "adopt at depth one" rule bound the member route alone.
+3. State the attribution caveat beside the rule: an incidental lands in the
+   =DOING= slice with the latest clock before its close (=--incidental-owner=),
+   so with several slices =DOING= it can land elsewhere or, on a tie, nowhere.
+4. Check =/plan-slice=, =/work-slice= and =.claude/slice-rules.md= for the
+   member-line instruction, and regenerate the promoted copy.
+:END:
+
+Decided 2026-10-12 (the user): a discovery adopted into a =DOING= slice may join
+it either way, since both record it under the slice. As a member line
+(=org_slice_add_member=), it is counted in the cookie and the =:BLOCKER:=. Left
+to close as incidental work, it is listed under =Incidental:= by the refresh.
+The org conventions' "Adopting a discovery" section
+(=skills/org/references/org-conventions.md=) names only the first: "Adopt by
+adding a member line", because the =Incidental:= section "is derived from
+closes and never curated". This is a gap, not a contradiction, since the
+incidental record is described elsewhere in the same file. It surfaced when
+[[id:d6375b21-a410-4c2d-9d5b-bfe980c4cc63][d6375b21]] was added as a member out of habit and then removed to close as
+incidental.
+
+
+* TODO This repo copies its own references into .claude/rules/ where a relative symlink would do, as its commands, agents and skills already are :code:
+:PROPERTIES:
+:ID:       bcf8068e-ce0d-45b0-b807-a3483070eb5c
+:CREATED:  [2026-10-12 Mon 10:41]
+:CATEGORY: Dev
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-12 Mon 10:41]--[2026-10-12 Mon 10:42] =>  0:01
+- [2026-10-12 Mon 10:41]--[2026-10-12 Mon 10:42] file the rules-symlink heading
+:END:
+:PLAN:
+Candidate steps, not yet brainstormed.
+1. Test first, in a fresh session: does Claude Code load a rule from a
+   symlinked file in =.claude/rules/=, path scope included? Skills, commands
+   and agents load through links here, but rules use a different loader. If
+   it does not, this heading closes on that answer.
+2. Setup keeps a link that resolves to its own reference rather than writing
+   a copy over it, and creates the links when run in the plugin's own repo.
+3. =--check= and the pre-commit drift guard read such a link as current.
+   =generated-guard= needs no exception: an edit through the link lands in
+   the reference, which is where edits belong.
+4. Replace the promoted copies here with relative links; the hand-kept local
+   rules stay real files.
+:END:
+
+=claude-org-setup= copies each shipped reference into =.claude/rules/= here, as
+it must in a consuming repo, since a plugin cannot supply rules. This repo does
+not enable its own plugin, and already links the plugin's other pieces into
+=.claude/= instead (=agents/=, =commands/=, =skills/org=,
+=skills/brainstorming=). The rendered copy differs from its reference only by a
+five-line provenance comment, so every reference edit costs a setup re-run and a
+second file in the commit, and every search of the prose finds each passage
+twice. Nothing is stale today: =--check= and the pre-commit drift guard keep the
+copies current. Consuming repos are unaffected and keep copies.
+
+
+* REVIEW An unscoped org_outline or org_query reads every project's tracker, so a second project's session sees this repo's headings :code:arch:
+:PROPERTIES:
+:ID:       d6375b21-a410-4c2d-9d5b-bfe980c4cc63
+:CREATED:  [2026-10-12 Mon 10:09]
+:CATEGORY: Tools
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-12 Mon 10:09]--[2026-10-12 Mon 10:10] =>  0:01
+- [2026-10-12 Mon 10:09]--[2026-10-12 Mon 10:10] file the cross-project read leak
+CLOCK: [2026-10-12 Mon 10:13]--[2026-10-12 Mon 10:26] =>  0:13
+- [2026-10-12 Mon 10:13]--[2026-10-12 Mon 10:26] brainstorm the per-session read scope
+- Tags ":code:arch:" from ":code:"     [2026-10-12 Mon 10:26] \\
+  classified at brainstorm: reverses 43d479c8's global-tools decision and changes four tools' contract for every consumer
+- State "DOING"      from "TODO"       [2026-10-12 Mon 12:16] \\
+  design approved, implementing per-session read scope
+CLOCK: [2026-10-12 Mon 12:24]--[2026-10-12 Mon 12:27] =>  0:03
+- [2026-10-12 Mon 12:24]--[2026-10-12 Mon 12:27] implement per-session read scope
+- State "REVIEW"     from "DOING"      [2026-10-12 Mon 12:27] \\
+  built and verified, in review on PR #37
+:END:
+:PLAN:
+Design approved by the user at brainstorm, 2026-10-12. The choices made in
+that dialogue are marked (the user).
+
+**Intent.** An unscoped read from a session in one project returns that
+project's tracker only. A heading from another project reads as authoritative
+wherever it turns up, in a tool's answer as much as in a SessionStart report.
+Lookups by =:ID:= (=org_body=, an id-scoped =org_outline=, =org_footnotes=, the
+=slices:=/=blocks:= scan) stay global, since an id names one heading wherever it
+lives.
+
+**Scope and fallbacks.** Confined by default, with one explicit argument,
+=all_projects=, to read every tracked project (the user). A call that carries
+no session, as from =emacsclient=, the tests or internal callers, stays global
+and unchanged. A session whose project holds no tracked =TODO.org= gets nothing
+but a line saying so, never a silent global fallback, because that fallback is
+the leak (the user).
+
+**Tools covered.** =org_outline= with no scope, =org_query=, =org_clock_report=
+with no =:ID:=, and =org_pending_updates= (the user, after weighing its four
+uses: reachability works under any scope, while "did my call land", the
+queued-keyword star and the slice commands' "ask for apply" all want the
+session's own items). The capture duplicate check is out: it already reads
+only the capture target's file, which is the session's.
+
+**Approach: one scope helper and a wrapper, over the existing filter** (the
+user, of three). =claude-code-ide-org--session-read-scope= returns nil with no
+session. Otherwise it takes the session's =:project-dir=, goes up to the
+nearest =.git=, maps a linked worktree to its main checkout with
+=--worktree-main-checkout=, and returns that directory. =--project-capture-file=
+is refactored to use the same resolution, so a capture and a read from one
+session always agree on the project. A macro,
+=claude-code-ide-org--with-session-scope=, wraps a tool body. With
+=all_projects= true it runs the body unconfined. Otherwise it binds
+=--report-scope= to the helper's directory. When no tracked file lies under
+that directory, it returns: "No tracked org files under DIR. Run
+=claude-org-setup --org= there, or pass =all_projects=true= to read every
+project." The narrowing itself is unchanged: =--tracked-files= filters files by
+truename prefix, and =--items-in-report-scope= filters queue items by their
+=cwd=. Rejected: threading a project argument through =--tracked-files='s 27
+callers, which duplicates the filter; and binding the scope for every tool call
+at the server, which would confine writes, id lookups and the consent check.
+
+**Per tool.** Each gains an optional =all_projects=, parsed leniently as
+=active_only= is ("true", "t", "yes", "1"; anything else, or absent, means
+confined).
+- =org_outline=: no scope means confined. An id scope or a list of ids is
+  global, unchanged. A relative file-name scope resolves against the session's
+  project directory, not Emacs's =default-directory=; an absolute path is
+  unchanged. With =all_projects=, each file block is labelled with its project
+  directory, as in =noodle-salesman/TODO.org=, since =TODO.org= alone is
+  ambiguous across projects.
+- =org_query=: searches the confined files, so =member:ID= finds same-project
+  slices only.
+- =org_clock_report=: no =:ID:= means the session's files only. An =:ID:= is
+  global, unchanged.
+- =org_pending_updates=: lists only items whose =cwd= lies inside the project
+  directory, and its count line counts those. Its =session_id= argument works
+  within the scope.
+
+A confined answer carries no banner: it reads as a single-project answer
+always has. Each tool description gains one sentence: "Confined to the calling
+session's project; all_projects=true reads every tracked project." The model
+learns the default from the description, not the result.
+
+**The reversal.** [[id:43d479c8-bbaa-49ec-a3be-0d8ee90425e1][43d479c8]] set the asymmetry "reports confined, tools
+global". It becomes: reports and unscoped reads are confined; id lookups, every
+write tool and the consent check (=--tracked-buffer-p=) stay global. Its
+rationale, one Emacs serving many repos, moves behind =all_projects=. The
+finished heading is not rewritten; this heading's resolution records the
+reversal.
+- The =--report-scope= docstring is rewritten to the new asymmetry. Its warning
+  that inverting it is the easy mistake now names the boundary that matters:
+  id lookups and the consent check stay unscoped.
+- =--tracked-buffer-p= already binds the scope to nil. Its comment gains a line
+  saying the binding now also guards against the tools' scope, not only the
+  reports'. That is the boundary [[id:045459f6-a002-4c9e-921e-aeac652f10c9][045459f6]] drew.
+- Every path the four tools reach is checked for a reliance on the global list.
+  Known: =member:= runs =--membership-scan=, and confining it is right.
+  =org_pending_updates= judges staleness through =org-id=, which stays global.
+
+**Prose.** =skills/org/references/org-mcp-tools.md=: one clause each on the
+=org_outline=, =org_query= and =org_pending_updates= rows. The
+=org_clock_report= row's "all" becomes "the session's project, or :ID:-scoped".
+The promoted copy is regenerated. The always-loaded budget stands at 10196 of
+10200 words, so the clauses are paid for by trimming the same file's longest
+rows. =README.md= and =CLAUDE.md= are checked for any claim that the tools read
+across projects, and corrected where one is made.
+
+**Testing.** New ERT tests in =config-test.el=, each shown red against =HEAD=
+first (copy the fix aside, restore =HEAD='s version, run, copy back). The
+fixture is two scratch projects, A and B, each with a tracked =TODO.org=, and a
+stubbed session context naming A's directory.
+1. An unscoped outline from A returns only A's headings. With =all_projects=
+   it returns both, each block labelled by project.
+2. A relative =TODO.org= scope resolves to A's file.
+3. An outline scoped to B's =:ID:= from A still works.
+4. =org_query= from A matches A only; with =all_projects=, both.
+5. An unscoped clock report covers A only. Scoped to B's =:ID:=, it reports B.
+6. With queue items whose =cwd= lies in A and in B, =org_pending_updates= from
+   A lists A's only, and its count says so. With =all_projects=, both.
+7. With no session, all four read both projects, as before.
+8. A session whose directory has no tracked files gets the setup and
+   =all_projects= line, not an empty answer.
+9. A session in a linked worktree of A, or in a subdirectory of A, resolves
+   to A.
+10. During a confined read, =--tracked-buffer-p= still answers t for B's file.
+
+[[id:43d479c8-bbaa-49ec-a3be-0d8ee90425e1][43d479c8]]'s test asserts that the tools stay global. Its tool half flips,
+deliberately, and the commit message says so. Then =bin/test-all=,
+=bin/word-budget= and =bin/check-conventions=, a live reload and
+=bin/check-image=. In a consuming project, [[id:2b8930da-5223-4b75-b4f6-251a28552d1b][2b8930da]] gains a check: from
+=noodle-salesman=, an unscoped =org_outline= shows only its own tracker, and
+=org_pending_updates= only its own items.
+
+:END:
+:DEBRIEF:
+Built as planned: =--project-root= (now also behind =--project-capture-file=),
+=--session-read-scope=, and the =--with-session-scope= macro, which binds
+=--report-scope= to the session's root. It binds nothing when there is no
+session, so an outer report scope survives, and it answers "No tracked org files
+under DIR" rather than falling back to a global read.
+
+Applied only where the tracked set is read: =org_outline='s unscoped or
+file-name branch (an id scope, and with it the front matter's
+=slices:=/=blocks:= scan, stays global), =org_clock_report= without an id, and
+=org_query= and =org_pending_updates= whole. =org_pending_updates= also filters
+its event count through a new =--events-in-report-scope=; filtering items alone
+would still have printed every project's "N of M queue event(s)".
+
+A relative file scope resolves against the session's project root, so a worktree
+session reads the tracked main-checkout =TODO.org=, not its own branch copy.
+Upstream never binds =default-directory= for these tools, so before this change
+a relative scope resolved wherever Emacs happened to be.
+
+Verified: ten ERT tests. Eight were shown red against =HEAD='s =config.el=, each
+failing on the leak itself. The other two (no session; id lookups) guard
+behaviour that must not change, so they pass both ways. The consent test first
+passed on =HEAD= because its =should= ran inside the outline's =condition-case=;
+it was rewritten to record values and assert outside, and then failed red.
+=bin/test-all= ran 27 suites, 1698 passed. =bin/word-budget= is at 10199 of
+10200 after trimming the same reference. =bin/check-conventions= passed. Live
+reload, =bin/check-image= fresh, and an unscoped =org_outline= from this session
+returned this repo's two files of the seven tracked.
+
+Differed from the plan: [[id:43d479c8-bbaa-49ec-a3be-0d8ee90425e1][43d479c8]]'s test had no tool-level assertion to flip. Its
+assertions concern the unbound scope and still hold, so only its prose changed.
+Not done here: the consumer check from =noodle-salesman=, filed as check 10 in
+[[id:2b8930da-5223-4b75-b4f6-251a28552d1b][2b8930da]]'s plan. The new =all_projects= argument appears in a session's tool
+schema only after a new session connects.
+:END:
+An unscoped =org_outline=, =org_query=, =org_clock_report= or
+=org_pending_updates= reads every tracked project, so a session in
+=noodle-salesman= was shown this repo's headings (reported 2026-10-12). Captures
+already route to the session's own tracker ([[id:d718f6b6-5a33-4889-8b5a-8ea82553ccea][d718f6b6]]); the reads never did,
+because [[id:43d479c8-bbaa-49ec-a3be-0d8ee90425e1][43d479c8]] kept the tools global on purpose. Decided at brainstorm:
+confine those four reads to the calling session's project, with
+=all_projects=true= to read every project, while lookups by =:ID:=, the write
+tools and the consent check stay global. The design is in =:PLAN:=.
+
+Resolved on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]] in commit [[orgit-rev:./::cebd9bb][cebd9bb]]: the four unscoped reads now answer from
+the calling session's project, with =all_projects=true= to read every one. Id
+lookups, the write tools and the consent check stay global; a call with no
+session is unchanged.
+
+
+* TODO The time-tracking stamp is global and every project's session start rewrites it, so the last session to start decides whether the review pass opens a clock :code:
+:PROPERTIES:
+:ID:       d30b3481-374c-4921-9fdb-284dd8e09e14
+:CREATED:  [2026-10-10 Sat 18:31]
+:CATEGORY: Clock
+:END:
+:PLAN:
+Not yet designed. The time_tracking option is meant to be one value for every
+project, and the stamp should honour that. Two candidates: ignore a row that
+sets the variable inline when the plugin option is present, or keep one stamp
+per project and read the one for the project the review pass is about.
+:END:
+
+[[id:97b4f6a9-a944-40d3-8d14-7a1667c52291][97b4f6a9]] gates the review pass's attention clock on a stamp file in the global
+queue directory, which every SessionStart rewrites. This repo's row writes true.
+A plugin install with the option off writes it empty, so the last project to
+start a session decides whether the next review opens a clock. Found by reading
+the two configs on 2026-10-10; not yet observed.
+
+
+* TODO An install scaffolded before the ceremony template has no :KIND: ceremony heading, so its steps after apply never run and --check does not say so :code:
+:PROPERTIES:
+:ID:       b577497c-f3a8-4754-8914-6c56589a0b52
+:CREATED:  [2026-10-10 Sat 18:31]
+:CATEGORY: Dev
+:END:
+
+[[id:de081dd9-1853-4d79-94fc-2edac498380f][de081dd9]] moved the ceremony's schedule to a :KIND: ceremony heading and ships
+one in the --org template, but --org never touches an existing TODO.org.
+agentic-euchre, scaffolded before the change, has none (checked 2026-10-10), so
+neither session start nor the review buffer's bury ever runs its steps after
+apply. Proposed: --check reports a TODO.org lacking a :KIND: ceremony heading,
+and setup offers a way to add one with a fresh id and today's date.
+
+
 * MAYBE Nothing reconciles the queue's applied watermarks with the file, so a discarded apply stays marked applied and vanishes :code:
 :PROPERTIES:
 :ID:       7e4fb8ae-87ff-445a-b960-b7cc5302c0c8
@@ -21,97 +1289,6 @@ catch any culprit, human included, which [[id:79c224ab-188a-4ed4-a606-c28ee2cfe7
 loss after the fact, not before.
 
 
-* TODO The steps after apply run only when the review buffer is buried, so a session can never offer them when they are overdue :code:arch:
-:PROPERTIES:
-:ID:       de081dd9-1853-4d79-94fc-2edac498380f
-:CREATED:  [2026-10-09 Fri 17:00]
-:CATEGORY: Meta
-:END:
-:LOGBOOK:
-CLOCK: [2026-10-09 Fri 20:46]--[2026-10-09 Fri 20:47] =>  0:01
-- [2026-10-09 Fri 20:46]--[2026-10-09 Fri 20:47] brainstorm offering post-apply steps at session start
-CLOCK: [2026-10-10 Sat 08:31]--[2026-10-10 Sat 08:32] =>  0:01
-- [2026-10-10 Sat 08:31]--[2026-10-10 Sat 08:32] brainstorm offering post-apply steps at session start
-CLOCK: [2026-10-10 Sat 08:32]--[2026-10-10 Sat 08:33] =>  0:01
-- [2026-10-10 Sat 08:32]--[2026-10-10 Sat 08:33] brainstorm offering post-apply steps at session start
-CLOCK: [2026-10-10 Sat 08:33]--[2026-10-10 Sat 08:34] =>  0:01
-- [2026-10-10 Sat 08:33]--[2026-10-10 Sat 08:34] brainstorm offering post-apply steps at session start
-CLOCK: [2026-10-10 Sat 08:42]--[2026-10-10 Sat 08:43] =>  0:01
-- [2026-10-10 Sat 08:42]--[2026-10-10 Sat 08:43] brainstorm offering post-apply steps at session start
-CLOCK: [2026-10-10 Sat 13:58]--[2026-10-10 Sat 13:59] =>  0:01
-- [2026-10-10 Sat 13:58]--[2026-10-10 Sat 13:59] brainstorm offering post-apply steps at session start
-CLOCK: [2026-10-10 Sat 13:59]--[2026-10-10 Sat 14:00] =>  0:01
-- Tags ":code:arch:" from ":code:"     [2026-10-10 Sat 13:59] \\
-  classified arch: changes the ceremony's schedule lookup, the session-start offer and the setup template
-- [2026-10-10 Sat 13:59]--[2026-10-10 Sat 14:00] brainstorm offering post-apply steps at session start
-CLOCK: [2026-10-10 Sat 14:00]--[2026-10-10 Sat 14:03] =>  0:03
-- [2026-10-10 Sat 14:00]--[2026-10-10 Sat 14:03] assigned at review
-- [2026-10-10 Sat 14:05]--[2026-10-10 Sat 14:06] assigned at review
-CLOCK: [2026-10-10 Sat 14:06]--[2026-10-10 Sat 14:07] =>  0:01
-- [2026-10-10 Sat 14:06]--[2026-10-10 Sat 14:07] revise design: session start runs ceremony-finish
-- [2026-10-10 Sat 14:06]--[2026-10-10 Sat 14:07] assigned at review
-:END:
-:PLAN:
-Approved 2026-10-10 in /plan-slice, section by section. Path: arch.
-
-*Schedule.*
-A heading carrying :KIND: ceremony replaces the literal [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]] lookup in
---ceremony-due-p and --ceremony-advance-repeater; [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]] gains the property.
-Check that bin/lint-org and --grouping-heading-p treat no :KIND: but slice as
-a slice. The --org TODO.org template ships "TODO Archive closed tasks daily"
-with :KIND: ceremony, :CATEGORY: Meta and SCHEDULED at today's date with ++1d;
-setup writes a fresh :ID:, :CREATED: and today's date as it copies. Burying the
-review buffer still runs the steps only when the ceremony is due, as now, and
-still advances the repeater only on a clean pass. Session start now runs the
-steps too (below), so whichever comes first while the ceremony is due runs them.
-
-*Session start runs them.* (Revised 2026-10-10 at drawer review: an offer is
-a round trip for steps that need no human; this replaces it.)
-While the ceremony is due, the session-start report runs
-claude-code-ide-org-ceremony-finish itself, inside Emacs, whether or not items
-are pending, and reports only the steps whose result was non-null or failed;
-all-zero says nothing. Items pending still get the ask for
-M-x claude-code-ide-org-review, as today; apply stays the human's alone. The
-cost, accepted: the repeater advances, so the bury after that day's apply finds
-the ceremony not due, and headings apply closes wait a day to be archived.
-- Unsaved changes in TODO.org or DONE.org: skip the run, say so, leave it due.
-- Two sessions starting together: Emacs serialises them, and the second finds
-  the repeater advanced.
-- The run leaves a TODO.org/DONE.org diff; the session commits it as its own
-  bookkeeping commit, like an apply diff.
-org-session-tracking.md's "must not offer to run the pass" narrows to "must not
-offer to apply", and its paragraph on the steps after apply says session start
-runs them too. [[id:7771fc63-9374-4c8a-9e80-24ceec21977c][7771fc63]]'s "the report asks; it never proposes" is untouched:
-nothing is offered. No new tool.
-
-*Testing.* Each test runs red against HEAD first (copy aside, restore HEAD,
-never stash).
-- ERT: --ceremony-due-p finds a :KIND: ceremony heading with a past SCHEDULED
-  whose id is not [[id:cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8][cbe282ec]]; nil with none; nil when scheduled in the future.
-- ERT: --ceremony-advance-repeater advances that heading.
-- Report: due runs ceremony-finish and reports only non-null or failed steps,
-  silent when all are zero; due + pending also asks for the review; not due
-  runs nothing; unsaved TODO.org skips the run, says so, and the ceremony
-  stays due.
-- Setup: the --org copy gets a fresh :ID:, today's :CREATED: and SCHEDULED; a
-  second run still refuses an existing TODO.org (bin/claude-org-setup:156).
-- --grouping-heading-p is nil and bin/lint-org reports no slice error for a
-  :KIND: ceremony fixture.
-- The narrowed rule is edited in skills/org/references/org-session-tracking.md,
-  the promoted copy regenerated, bin/check-conventions passes.
-
-:END:
-Drawer consolidation, heading separation and archiving run only from the review
-buffer's quit, and the session rule forbids offering the pass, so a session can
-never offer them when they are overdue. The rule's reason (org's logging needs
-an interactive command) binds apply alone. Designed 2026-10-10 (arch, in
-:PLAN:): the schedule moves to a :KIND: ceremony heading, which the --org
-template ships, and the session-start report runs
-claude-code-ide-org-ceremony-finish itself whenever the ceremony is due,
-pending items or not, reporting only non-null steps; the rule narrows to "must
-not offer to apply".
-
-
 * TODO Delete the /next-session stub once a slice has been worked under /plan-slice and /work-slice :code:
 :PROPERTIES:
 :ID:       d30c00ce-95fb-4fea-8709-bcea80700646
@@ -125,54 +1302,6 @@ commands when [[id:dc21f724-78f9-4da8-9d74-002ad3306446][dc21f724]] split it, ke
 rather than vanishing. Delete it, and its mention in [[id:dc21f724-78f9-4da8-9d74-002ad3306446][dc21f724]]'s resolution, once
 [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]] has been planned and worked under the new names. Filed at PR #36's
 review, which found the deletion tracked nowhere.
-
-
-* TODO The session-start report counts possible twins but never names them, so neither the user nor the session can judge the flag :code:bounded:
-:PROPERTIES:
-:ID:       d241ab6e-6cfe-482a-8980-8cb222d7ab12
-:CREATED:  [2026-10-09 Fri 13:09]
-:CATEGORY: Meta
-:END:
-:LOGBOOK:
-- Tags ":code:bounded:" from ":code:"     [2026-10-09 Fri 18:43] \\
-  first classification: the detector and its formatter already exist
-- [2026-10-09 Fri 18:43]--[2026-10-09 Fri 18:43] plan naming possible twins in session-start report
-:END:
-:PLAN:
-Design, bounded (the user approved it while planning [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]], 2026-10-09). The
-detector, =--twin-candidates=, and a formatter for its output,
-=claude-code-ide-org-twin-candidates-report= behind =bin/twin-candidates=, both
-exist; the ceremony report keeps only their =length=.
-
-The list, not the count. The status plist's =:twins= carries the pairs, and the
-ceremony line names each subject's keyword, id and exact title with its
-candidates beneath, formatted by =--format-duplicate-candidates= exactly as
-=bin/twin-candidates= prints them, so the two outputs cannot drift. The sum
-guard that decides whether the report fires takes =(length twins)=, so when it
-fires is unchanged. The offer stays as it is: offer the twin-checker, never run
-it unasked; a named pair can now be dismissed at a glance, and it survives in
-the transcript after the detector's list empties, which is what was lost on
-2026-10-09.
-
-The cap. The report shares SessionStart's 10,000-character =additionalContext=
-cap, so it names at most five subjects (the user), then "and N more --
-bin/twin-candidates lists them all"; candidates stay at the detector's three per
-subject.
-
-Testing. ERT over a scratch file with two near-duplicate recent headings: the
-report names both ids and exact titles; seven subjects print five and the "and 2
-more" line; none prints no twin line; the report and =twin-candidates-report=
-give identical candidate lines. Run red against HEAD's version first.
-:END:
-
-The ceremony report says "N recent heading(s) have a possible twin by title
-overlap" and asks the session to offer the twin-checker, but carries only
-=(length (claude-code-ide-org--twin-candidates file 14))=. List each subject
-with its candidates instead, id and exact title, which costs little against the
-injection cap. On 2026-10-09 the report flagged one, the session never offered
-the checker, and by the time the user asked the detector's list was empty, so
-what it meant cannot be recovered. A named pair can be dismissed at a glance; a
-count can only be investigated.
 
 
 * TODO org_query returns nothing for property:KIND,slice with link:target=, though each half matches alone :code:
@@ -189,76 +1318,6 @@ link:target=49444167= returns nothing. The tool description presents
 =link:target== as the backlink query and says predicates combine with AND, so
 this combination should find a member's slices. Not diagnosed; conflicting
 search preambles between the two predicates is a guess. Reproduce in ERT first.
-
-
-* TODO A scoped org_outline does not say which slices count the heading, so finding them means reading every slice :code:bounded:
-:PROPERTIES:
-:ID:       d66ae1d2-5a40-4f4d-ae51-c8977e78681c
-:CREATED:  [2026-10-09 Fri 13:08]
-:CATEGORY: Tools
-:END:
-:LOGBOOK:
-CLOCK: [2026-10-09 Fri 17:44]--[2026-10-09 Fri 17:45] =>  0:01
-- [2026-10-09 Fri 17:44]--[2026-10-09 Fri 17:45] plan org_outline reverse lines
-CLOCK: [2026-10-09 Fri 18:28]--[2026-10-09 Fri 18:29] =>  0:01
-- [2026-10-09 Fri 18:28]--[2026-10-09 Fri 18:29] plan org_outline reverse lines
-CLOCK: [2026-10-09 Fri 18:29]--[2026-10-09 Fri 18:30] =>  0:01
-- [2026-10-09 Fri 18:29]--[2026-10-09 Fri 18:30] assigned at review
-CLOCK: [2026-10-09 Fri 18:30]--[2026-10-09 Fri 18:33] =>  0:03
-- [2026-10-09 Fri 18:30]--[2026-10-09 Fri 18:33] plan org_outline reverse lines
-- [2026-10-09 Fri 18:30]--[2026-10-09 Fri 18:30] resume org_outline reverse lines design
-CLOCK: [2026-10-09 Fri 18:38]--[2026-10-09 Fri 18:39] =>  0:01
-- [2026-10-09 Fri 18:38]--[2026-10-09 Fri 18:39] plan org_outline reverse lines
-CLOCK: [2026-10-09 Fri 18:39]--[2026-10-09 Fri 18:40] =>  0:01
-- [2026-10-09 Fri 18:39]--[2026-10-09 Fri 18:40] plan org_outline reverse lines
-- Tags ":code:bounded:" from ":code:"     [2026-10-09 Fri 18:42] \\
-  first classification: outline front matter and org-ql's predicate mechanism already exist
-:END:
-:PLAN:
-Design, bounded, worked together with [[id:b3177ed0-9747-4e31-ad65-bac25b9bdd1f][b3177ed0]] (the user approved it while
-planning [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]], 2026-10-09).
-
-The line. In =--outline-front-matter=, after the =:BLOCKER:= line and only when
-the outline is scoped to one heading: =slices:= names each unfinished slice
-whose =:MEMBERS:= lists the heading, with its keyword; one that dropped it
-carries =(dropped)=, read through =--slice-dropped-ids= as the refresh reads it;
-closed slices are omitted, being history that =org_history= covers (the user).
-Absent when no slice applies. A slice appears here and never in [[id:b3177ed0-9747-4e31-ad65-bac25b9bdd1f][b3177ed0]]'s
-=blocks:= line, since its =:BLOCKER:= is derived from membership (the user). One
-scan over the tracked files collects every =:KIND: slice= heading and every
-=:BLOCKER:=, serving both lines, and it runs only on a scoped call.
-
-The predicate (the user chose to build it here rather than file it). The plain
-query =property:KIND,slice regexp:<id>= reaches the many-headings case, but
-matches any slice whose prose cites the id, measured 2026-10-09 when it returned
-[[id:c7619140-f269-4329-bc05-a38ea151e202][c7619140]] for [[id:41f21b4d-278d-4ad8-a56f-122f5af33d65][41f21b4d]], and still matches a dropped member. So a custom org-ql
-predicate, =member:ID=, defined with =org-ql-defpred=: a =:KIND: slice= heading
-whose =:MEMBERS:= minus =:DROPPED:= lists the id, read from the properties and
-never from prose. It takes several ids comma-separated, as org-ql's other
-predicates do; prefixes expand as =:BLOCKER:= expands them, and an unresolvable
-id is refused rather than matching nothing. It sets no keyword filter: =member:X
-todo:= gives open slices. It shares the line's membership reader, so the two
-cannot disagree. =org_query='s name check reads =org-ql-predicates= at run time
-(=config.el:5055=), so the definition registers itself; the tool description and
-the shipped =org-mcp-tools.md= name it, and say it is the module's first custom
-predicate.
-
-Testing. ERT over scratch files: a heading that is a member of one open slice,
-dropped from a second and a member of a closed third gets =slices:= naming the
-first two, the second marked; a heading in no slice gets no line. =member:X=
-over a slice counting X, one that dropped X and one that only cites X in its
-plan returns exactly the first; two ids return the union; a prefix expands and
-an unknown id is refused. Each runs red against HEAD's version first.
-:END:
-
-Scoped to a slice, =org_outline= lists its members; scoped to a member, its
-front matter shows =:CREATED:=, =:CATEGORY:=, =:BLOCKER:= and history, but no
-slice. Add a front-matter line such as =slices: c7619140 TODO=, naming each open
-slice whose =:MEMBERS:= minus =:DROPPED:= holds the heading, the rule the
-refresh already uses. A =member:ID= predicate for =org_query= answers it for
-many headings at once, built here too (the user, 2026-10-09). Met 2026-10-09
-when sorting review-buffer headings by slice ended in a Python read of TODO.org,
-the shape [[id:67861ff3-3a72-4c53-8fd8-1cae9a31bc77][67861ff3]] names.
 
 
 * TODO The meta-work target renders as "Review a" in the review buffer; show it as R&P, and offer "R&P (Review and planning)" when assigning :code:
@@ -284,38 +1343,6 @@ may not be offered at all, only its dated day nodes; check that first, then
 offer it as "R&P (Review and planning)". The label should derive from the
 category title rather than hard-code it, since the target is matched by that
 title.
-
-
-* TODO The review buffer's help says ? marks an unassigned span, but ! is the span with no heading and ? the one with a suggestion :prose:bounded:
-:PROPERTIES:
-:ID:       9f6b19b5-18db-4d56-8545-9552a5b4e935
-:CREATED:  [2026-10-09 Fri 12:54]
-:CATEGORY: Apply
-:END:
-:LOGBOOK:
-CLOCK: [2026-10-09 Fri 12:54]--[2026-10-09 Fri 12:55] =>  0:01
-- [2026-10-09 Fri 12:54]--[2026-10-09 Fri 12:55] file the review help-text fix into 5a4896c3
-- Tags ":prose:bounded:" from ":prose:"    [2026-10-09 Fri 17:43] \\
-  first classification: a docstring corrected to existing code
-:END:
-:PLAN:
-Design, bounded (the user approved it while planning [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]], 2026-10-09). The
-mode docstring's "A span prefixed =?= is UNASSIGNED" paragraph is corrected to
-=--review-describe=: =!= on an unassigned span means it names no heading, so =a=
-must choose one and it cannot be marked until then; =!= still also means a stale
-state change; =?= is a span carrying a suggested heading to confirm.
-
-Testing. An ERT case renders one item of each kind and asserts every prefix the
-renderer draws is named in the docstring, so the two cannot drift apart silently
-again. Run red against HEAD's version first.
-:END:
-
-=claude-code-ide-org-review-mode='s help (the =?= key) says a span prefixed =?=
-is UNASSIGNED. =--review-describe= prefixes =!= to an unassigned span with no
-=:id= and =?= to one carrying a suggested heading, and =!= also marks a stale
-state change. Found 2026-10-09 when the user asked what the =!= lines meant.
-Correct the help to the code, naming both meanings of =!= and saying that =?= is
-a suggestion to confirm.
 
 
 * TODO [0/5] Document what a fork may change and what the machinery depends on :prose:bounded:
@@ -457,15 +1484,15 @@ references, =M-x customize-group claude-code-ide-org= and the commands. Written
 last, since it points at the other three.
 
 
-* TODO [0/10] The clock record beneath the review pass is still wrong: correctness, reporting, and the attention clock :code:
+* TODO [0/11] The clock record beneath the review pass is still wrong: correctness, reporting, and the attention clock :code:
 :PROPERTIES:
 :ID:       7ae1cff4-c0df-4ac0-9aea-a778b2373061
 :CREATED:  [2026-10-09 Fri 11:15]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:MEMBERS:  595df230-e31d-42ad-9ea7-128e545b9aa0 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 001fb310-69f7-4417-81be-a224a3bf83e0 55125136-5939-434e-9676-96ea66a75770 37147e9e-468b-43ee-91f9-45d9647c6164 64d34a64-d336-40a8-a8e8-da8133d0da06 445ec1f1-095a-462b-abbd-7a3a00925ddb
-:BLOCKER:  595df230-e31d-42ad-9ea7-128e545b9aa0 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 001fb310-69f7-4417-81be-a224a3bf83e0 55125136-5939-434e-9676-96ea66a75770 37147e9e-468b-43ee-91f9-45d9647c6164 64d34a64-d336-40a8-a8e8-da8133d0da06 445ec1f1-095a-462b-abbd-7a3a00925ddb
+:MEMBERS:  595df230-e31d-42ad-9ea7-128e545b9aa0 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 001fb310-69f7-4417-81be-a224a3bf83e0 55125136-5939-434e-9676-96ea66a75770 37147e9e-468b-43ee-91f9-45d9647c6164 64d34a64-d336-40a8-a8e8-da8133d0da06 445ec1f1-095a-462b-abbd-7a3a00925ddb d30b3481-374c-4921-9fdb-284dd8e09e14
+:BLOCKER:  595df230-e31d-42ad-9ea7-128e545b9aa0 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 001fb310-69f7-4417-81be-a224a3bf83e0 55125136-5939-434e-9676-96ea66a75770 37147e9e-468b-43ee-91f9-45d9647c6164 64d34a64-d336-40a8-a8e8-da8133d0da06 445ec1f1-095a-462b-abbd-7a3a00925ddb d30b3481-374c-4921-9fdb-284dd8e09e14
 :END:
 :PLAN:
 Divided out of [[id:c7619140-f269-4329-bc05-a38ea151e202][c7619140]] on 2026-10-09 (the user, a three-way split): the "clock
@@ -497,18 +1524,19 @@ Planned:
 - [ ] [[id:37147e9e-468b-43ee-91f9-45d9647c6164][37147e9e]] TODO Report worked headings that carry no clock interval that day
 - [ ] [[id:64d34a64-d336-40a8-a8e8-da8133d0da06][64d34a64]] NEXT A clocktable never shows a parent's own time, only own-plus-subtree
 - [ ] [[id:445ec1f1-095a-462b-abbd-7a3a00925ddb][445ec1f1]] TODO A/B the clock record across the phase-3 fixes, since much of what is logged now is bogus
+- [ ] [[id:d30b3481-374c-4921-9fdb-284dd8e09e14][d30b3481]] TODO The time-tracking stamp is global and every project's session start rewrites it, so the last session to start decides whether the review pass opens a clock
 
 
-* DOING [0/15] The review pass every install uses: movement, marking, apply, quit, and no clock where tracking is off :code:
+* REVIEW [15/24] The review pass every install uses: movement, marking, apply, quit, and no clock where tracking is off :code:
 :PROPERTIES:
 :ID:       5a4896c3-3d4e-4b12-9f9e-06b97d84b238
 :CREATED:  [2026-10-09 Fri 11:15]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:MEMBERS:  97b4f6a9-a944-40d3-8d14-7a1667c52291 24694d1f-34b4-495b-b0d8-d29e64894c59 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 41f21b4d-278d-4ad8-a56f-122f5af33d65 9f6b19b5-18db-4d56-8545-9552a5b4e935 d66ae1d2-5a40-4f4d-ae51-c8977e78681c b3177ed0-9747-4e31-ad65-bac25b9bdd1f d241ab6e-6cfe-482a-8980-8cb222d7ab12 e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 ee3c22c9-f99c-4d41-9c3d-8f39af916fff 6c64cc9c-33a9-4a20-af19-c188a690c755 79c224ab-188a-4ed4-a606-c28ee2cfe72d 361e2708-8124-4bd1-9c44-f97ca97aca4a 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd de081dd9-1853-4d79-94fc-2edac498380f 2b8930da-5223-4b75-b4f6-251a28552d1b
-:BLOCKER:  97b4f6a9-a944-40d3-8d14-7a1667c52291 24694d1f-34b4-495b-b0d8-d29e64894c59 41f21b4d-278d-4ad8-a56f-122f5af33d65 9f6b19b5-18db-4d56-8545-9552a5b4e935 d66ae1d2-5a40-4f4d-ae51-c8977e78681c b3177ed0-9747-4e31-ad65-bac25b9bdd1f d241ab6e-6cfe-482a-8980-8cb222d7ab12 e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 ee3c22c9-f99c-4d41-9c3d-8f39af916fff 6c64cc9c-33a9-4a20-af19-c188a690c755 79c224ab-188a-4ed4-a606-c28ee2cfe72d 361e2708-8124-4bd1-9c44-f97ca97aca4a de081dd9-1853-4d79-94fc-2edac498380f 2b8930da-5223-4b75-b4f6-251a28552d1b
-:DROPPED:  489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd
+:MEMBERS:  97b4f6a9-a944-40d3-8d14-7a1667c52291 24694d1f-34b4-495b-b0d8-d29e64894c59 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 41f21b4d-278d-4ad8-a56f-122f5af33d65 9f6b19b5-18db-4d56-8545-9552a5b4e935 d66ae1d2-5a40-4f4d-ae51-c8977e78681c b3177ed0-9747-4e31-ad65-bac25b9bdd1f d241ab6e-6cfe-482a-8980-8cb222d7ab12 e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 ee3c22c9-f99c-4d41-9c3d-8f39af916fff 6c64cc9c-33a9-4a20-af19-c188a690c755 79c224ab-188a-4ed4-a606-c28ee2cfe72d 361e2708-8124-4bd1-9c44-f97ca97aca4a 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd de081dd9-1853-4d79-94fc-2edac498380f 2b8930da-5223-4b75-b4f6-251a28552d1b 789a25c7-84aa-4c30-b8a6-252e149b6114 9c1afc7a-161d-4e4c-aa93-9c02becfb5ba 025a2e8a-9b21-4044-b9df-79baf7e904ce c8ba3f41-1cec-4b67-be0e-145ccebaff8a d30b3481-374c-4921-9fdb-284dd8e09e14 826d621c-25f5-4f06-9961-4b23f8658880 84e9c7ef-72f2-4694-b471-1419f8b0dd33 70d742fa-dc41-4005-8c07-01df75b3331f 2f4c04a1-db56-4427-ae62-591ba52607c6 6a6f6708-eefd-4d77-8ca0-0c5aaaa80796
+:DROPPED:  489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd d30b3481-374c-4921-9fdb-284dd8e09e14
+:BLOCKER:  789a25c7-84aa-4c30-b8a6-252e149b6114 9c1afc7a-161d-4e4c-aa93-9c02becfb5ba 025a2e8a-9b21-4044-b9df-79baf7e904ce c8ba3f41-1cec-4b67-be0e-145ccebaff8a 826d621c-25f5-4f06-9961-4b23f8658880 84e9c7ef-72f2-4694-b471-1419f8b0dd33 70d742fa-dc41-4005-8c07-01df75b3331f 2f4c04a1-db56-4427-ae62-591ba52607c6 6a6f6708-eefd-4d77-8ca0-0c5aaaa80796
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-10-09 Fri 11:25] \\
@@ -520,6 +1548,10 @@ CLOCK: [2026-10-10 Sat 15:19]--[2026-10-10 Sat 15:20] =>  0:01
   slice work started on its branch
 CLOCK: [2026-10-10 Sat 17:26]--[2026-10-10 Sat 17:27] =>  0:01
 - [2026-10-10 Sat 17:26]--[2026-10-10 Sat 17:27] assigned at review
+CLOCK: [2026-10-12 Mon 18:10]--[2026-10-12 Mon 18:17] =>  0:07
+- [2026-10-12 Mon 18:10]--[2026-10-12 Mon 18:17] assigned at review
+- State "REVIEW"     from "DOING"      [2026-10-13 Tue 10:05] \\
+  PR #37 review started; every planned member finished
 :END:
 :PLAN:
 Divided out of [[id:c7619140-f269-4329-bc05-a38ea151e202][c7619140]] on 2026-10-09 (the user, a three-way split). The members
@@ -566,137 +1598,35 @@ since a task-only pass is already one =x=.
 
 Planned:
 
-- [-] [[id:97b4f6a9-a944-40d3-8d14-7a1667c52291][97b4f6a9]] DOING The review command clocks the reviewer's attention even where time tracking is off, and without the meta-work anchor files the heading under whatever comes last
-- [ ] [[id:24694d1f-34b4-495b-b0d8-d29e64894c59][24694d1f]] TODO A consuming repo has nowhere to declare its :CATEGORY: values, so its first top-level capture makes one up
+- [X] [[id:97b4f6a9-a944-40d3-8d14-7a1667c52291][97b4f6a9]] DONE The review command clocks the reviewer's attention even where time tracking is off, and without the meta-work anchor files the heading under whatever comes last
+- [X] [[id:24694d1f-34b4-495b-b0d8-d29e64894c59][24694d1f]] DONE A consuming repo has nowhere to declare its :CATEGORY: values, so its first top-level capture makes one up
 - [[id:489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938][489d6f61]] DOING Emacs died of a fatal signal at review-buffer quit, deadlocked in the mac port's shutdown
-- [ ] [[id:41f21b4d-278d-4ad8-a56f-122f5af33d65][41f21b4d]] TODO The review buffer has no keys to move between items; bind n and p to the next and previous item
-- [ ] [[id:9f6b19b5-18db-4d56-8545-9552a5b4e935][9f6b19b5]] TODO The review buffer's help says ? marks an unassigned span, but ! is the span with no heading and ? the one with a suggestion
-- [ ] [[id:d66ae1d2-5a40-4f4d-ae51-c8977e78681c][d66ae1d2]] TODO A scoped org_outline does not say which slices count the heading, so finding them means reading every slice
-- [ ] [[id:b3177ed0-9747-4e31-ad65-bac25b9bdd1f][b3177ed0]] TODO org_outline shows what a heading is blocked by, never what it blocks
-- [ ] [[id:d241ab6e-6cfe-482a-8980-8cb222d7ab12][d241ab6e]] TODO The session-start report counts possible twins but never names them, so neither the user nor the session can judge the flag
-- [ ] [[id:e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b][e95cc5d1]] TODO =d= advances point in the review buffer, onto whatever moved up to replace the dismissed item
-- [ ] [[id:396fd1c3-70e0-4e1f-8839-670b5293a7d3][396fd1c3]] TODO Recenter after `m` advances, so the item under consideration is never at the bottom of the window
-- [ ] [[id:ee3c22c9-f99c-4d41-9c3d-8f39af916fff][ee3c22c9]] TODO Make =d= mark for dismissal rather than dismiss, so a shared reason can be given once
-- [ ] [[id:6c64cc9c-33a9-4a20-af19-c188a690c755][6c64cc9c]] TODO claude-code-ide-org-review should return point and windows to where I entered from
-- [ ] [[id:79c224ab-188a-4ed4-a606-c28ee2cfe72d][79c224ab]] TODO Applied review changes can be destroyed by a git checkout that looks like it reverts only Claude's edit
-- [ ] [[id:361e2708-8124-4bd1-9c44-f97ca97aca4a][361e2708]] TODO Decide how far the review-apply cycle can be automated, given the interactive constraint
+- [X] [[id:41f21b4d-278d-4ad8-a56f-122f5af33d65][41f21b4d]] DONE The review buffer has no keys to move between items; bind n and p to the next and previous item
+- [X] [[id:9f6b19b5-18db-4d56-8545-9552a5b4e935][9f6b19b5]] DONE The review buffer's help says ? marks an unassigned span, but ! is the span with no heading and ? the one with a suggestion
+- [X] [[id:d66ae1d2-5a40-4f4d-ae51-c8977e78681c][d66ae1d2]] DONE A scoped org_outline does not say which slices count the heading, so finding them means reading every slice
+- [X] [[id:b3177ed0-9747-4e31-ad65-bac25b9bdd1f][b3177ed0]] DONE org_outline shows what a heading is blocked by, never what it blocks
+- [X] [[id:d241ab6e-6cfe-482a-8980-8cb222d7ab12][d241ab6e]] DONE The session-start report counts possible twins but never names them, so neither the user nor the session can judge the flag
+- [X] [[id:e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b][e95cc5d1]] DONE =d= advances point in the review buffer, onto whatever moved up to replace the dismissed item
+- [X] [[id:396fd1c3-70e0-4e1f-8839-670b5293a7d3][396fd1c3]] DONE Recenter after `m` advances, so the item under consideration is never at the bottom of the window
+- [X] [[id:ee3c22c9-f99c-4d41-9c3d-8f39af916fff][ee3c22c9]] DONE Make =d= mark for dismissal rather than dismiss, so a shared reason can be given once
+- [X] [[id:6c64cc9c-33a9-4a20-af19-c188a690c755][6c64cc9c]] DONE claude-code-ide-org-review should return point and windows to where I entered from
+- [X] [[id:79c224ab-188a-4ed4-a606-c28ee2cfe72d][79c224ab]] DONE Applied review changes can be destroyed by a git checkout that looks like it reverts only Claude's edit
+- [X] [[id:361e2708-8124-4bd1-9c44-f97ca97aca4a][361e2708]] DONE Decide how far the review-apply cycle can be automated, given the interactive constraint
 - [[id:2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd][2cd74268]] TODO Let a task-only install auto-apply state transitions, behind a toggle
-- [ ] [[id:de081dd9-1853-4d79-94fc-2edac498380f][de081dd9]] TODO The steps after apply run only when the review buffer is buried, so a session can never offer them when they are overdue
-- [-] [[id:2b8930da-5223-4b75-b4f6-251a28552d1b][2b8930da]] DOING Nothing in the drift slice was exercised in a consumer install: the new hooks, the conditional time-file promotion, the twin-checker agent
-
-
-* DOING The review command clocks the reviewer's attention even where time tracking is off, and without the meta-work anchor files the heading under whatever comes last :code:arch:
-:PROPERTIES:
-:ID:       97b4f6a9-a944-40d3-8d14-7a1667c52291
-:CREATED:  [2026-10-09 Fri 10:59]
-:CATEGORY: Apply
-:END:
-:LOGBOOK:
-CLOCK: [2026-10-09 Fri 10:58]--[2026-10-09 Fri 10:59] =>  0:01
-- [2026-10-09 Fri 10:58]--[2026-10-09 Fri 10:59] assigned at review
-CLOCK: [2026-10-09 Fri 16:42]--[2026-10-09 Fri 16:43] =>  0:01
-- [2026-10-09 Fri 16:42]--[2026-10-09 Fri 16:43] brainstorm design for review attention gating
-CLOCK: [2026-10-09 Fri 16:43]--[2026-10-09 Fri 16:44] =>  0:01
-- [2026-10-09 Fri 16:43]--[2026-10-09 Fri 16:44] brainstorm design for review attention gating
-CLOCK: [2026-10-09 Fri 16:44]--[2026-10-09 Fri 16:45] =>  0:01
-- [2026-10-09 Fri 16:44]--[2026-10-09 Fri 16:45] brainstorm design for review attention gating
-CLOCK: [2026-10-09 Fri 16:50]--[2026-10-09 Fri 16:51] =>  0:01
-- [2026-10-09 Fri 16:50]--[2026-10-09 Fri 16:51] brainstorm design for review attention gating
-CLOCK: [2026-10-09 Fri 16:53]--[2026-10-09 Fri 16:54] =>  0:01
-- [2026-10-09 Fri 16:53]--[2026-10-09 Fri 16:54] brainstorm design for review attention gating
-CLOCK: [2026-10-09 Fri 16:55]--[2026-10-09 Fri 16:56] =>  0:01
-- [2026-10-09 Fri 16:55]--[2026-10-09 Fri 16:56] brainstorm design for review attention gating
-CLOCK: [2026-10-09 Fri 17:00]--[2026-10-09 Fri 17:01] =>  0:01
-- [2026-10-09 Fri 17:00]--[2026-10-09 Fri 17:01] brainstorm design for review attention gating
-CLOCK: [2026-10-09 Fri 17:01]--[2026-10-09 Fri 17:05] =>  0:04
-- [2026-10-09 Fri 17:01]--[2026-10-09 Fri 17:05] resume brainstorm of review attention gate
-CLOCK: [2026-10-09 Fri 17:05]--[2026-10-09 Fri 17:06] =>  0:01
-- [2026-10-09 Fri 17:05]--[2026-10-09 Fri 17:06] resume brainstorm of review attention gate
-- Tags ":code:arch:" from ":code:"     [2026-10-09 Fri 17:06] \\
-  first classified bounded, stepped up: a new plugin-to-Emacs channel, and the gate reaches the ceremony report
-- State "DOING"      from "TODO"       [2026-10-10 Sat 17:26] \\
-  first slice member, implementing gate
-- [2026-10-10 Sat 17:32]--[2026-10-10 Sat 17:32] brainstorm design for review attention gating
-:END:
-:PLAN:
-Classified bounded, then stepped up to arch in the same dialogue: the gate needs
-a new channel from the plugin option into Emacs, and it reaches the ceremony
-report as well as the review command (the user approved the design section by
-section, 2026-10-09). With tracking off the pass does no attention work at all:
-no clock, no anchor lookup, no prompt and no heading (the user).
-
-The gate. =session-context.sh= already hands the raw =time_tracking= value to
-=claude-code-ide-org-write-session-context-report=; that function also writes it
-to a stamp, =time-tracking-option= in the queue directory, overwritten at each
-session start with =true=, =false= or empty (chosen over a new defcustom, and
-over waiting for [[id:055886c1-3dfd-4805-b05c-c66b2d631d18][055886c1]]'s module flag). A new predicate,
-=claude-code-ide-org--time-tracking-on-p=, holds only when the stamp reads
-=true=; missing, empty or =false= is off, so it fails closed.
-=claude-code-ide-org-review= calls =review-attention-start= only when it holds;
-the =quit-window= advice and =kill-buffer-hook= already do nothing without a
-marker. This repo's =session-context.sh= row in =.claude/settings.json= gains
-=CLAUDE_PLUGIN_OPTION_TIME_TRACKING=true=, which it lacks today and without
-which this repo would read as off. One value for every project, as the option is
-per user. =--trigger-auto-clock-in= may share the predicate later; that is
-[[id:055886c1-3dfd-4805-b05c-c66b2d631d18][055886c1]]'s.
-
-The anchor, with tracking on. A heading carrying the defcustom's title is used
-wherever it is, and with =* Review and planning= present the heading goes under
-it, both as today. Only with neither does =review-attention-start=, before the
-buffer appears, raise =read-multiple-choice=, explaining what is foregone (this
-pass's review time and every later pass's in this Emacs, with the ceremony's
-ran-today check falling to the watermark), when it is next offered (the first
-review after an Emacs restart), and how a permanent disable is undone (=M-x
-customize-variable= on =claude-code-ide-org-review-attention-heading=, then
-Erase Customization, or the custom file's line). The choices: =c= create, the
-default, inserting =* Review attention= at level 1 at the end of the file with
-=:ID:=, =:CREATED:= and a =:CATEGORY:= chosen by =completing-read= over the
-categories the file uses, =Meta= first when present; =s= skip for this Emacs, a
-defvar, no clock and no second prompt; =n= never, =customize-save-variable= to
-nil, saying it writes the custom file (the user: stop and ask, level 1 as the
-default, explain what is foregone and when it returns, offer the permanent
-disable with its restoration). =--mechanism-owned-heading-p= falls back to the
-defcustom's standard value when it is nil, so an existing =Review attention=
-heading stays out of =a='s candidates. The ceremony report reads the target
-without =create= (=config.el:909=) and never prompts.
-
-The ceremony. =--ceremony-reviewed-today-p= keeps its CLOCK test and, when that
-finds nothing, falls back to the apply watermarks: every =<session>.applied= in
-the queue directory and in the queue archive, since a fully applied queue's
-sidecar moves with its =.jsonl= (=config.el:12572=), looking for any applied
-pass time dated today, the value =bin/hooks/apply-detect= reads, read here in
-elisp (the user). A dismiss-only or empty pass leaves no watermark and reads as
-not run, the noisier and safer error, and the docstring says so. The report's
-wording is unchanged. Making the ceremony due in a consuming repo is [[id:de081dd9-1853-4d79-94fc-2edac498380f][de081dd9]]'s.
-
-Testing. ERT in =config-test.el=, with the queue directory and the stamp in a
-temp dir. Gate: a stamp of =false=, empty or missing opens no clock, creates no
-heading and leaves the file byte-identical; =true= opens the clock as today;
-=write-session-context-report= writes all three values. Anchor, with
-=read-multiple-choice= stubbed: =c= makes a level-1 heading with =:ID:=,
-=:CREATED:= and the chosen =:CATEGORY:=, never a child of the last heading,
-which is the filed bug's regression test; =s= opens no clock and does not prompt
-twice; =n= saves nil with =customize-save-variable= stubbed; with =* Review and
-planning= present there is no prompt and the heading goes under it. Exclusion:
-with the defcustom nil, =Review attention= is still absent from
-=--assign-candidates=. Ceremony: no clock and a today-dated watermark in the
-queue directory is true, the same in the archive is true, and only a
-yesterday-dated or dismiss-only one is nil. Each test is proved to discriminate
-by copying the fix aside and running HEAD's version red, never with =git stash=.
-=session-context.sh= is invoked directly with the variable set and unset, and
-=bin/check-conventions= runs after the =settings.json= change. Live: reload per
-the org-dev skill, then in this repo, after a new session, one real review pass
-still opens the attention clock.
-:END:
-
-The review command opens an attention clock on every pass, even in an install
-whose owner left time tracking off, and where the tracker has no =* Review and
-planning= anchor it files =Review attention= under whatever heading comes last.
-Designed 2026-10-09 (the user): gate the clock on a stamp the SessionStart hook
-writes from the plugin option, failing closed; with tracking on and no anchor,
-ask before creating a level-1 heading, offering skip and never; and let the
-ceremony's "a pass ran today" fall back to the apply watermarks. Read from the
-code, not yet run.
+- [X] [[id:de081dd9-1853-4d79-94fc-2edac498380f][de081dd9]] DONE The steps after apply run only when the review buffer is buried, so a session can never offer them when they are overdue
+- [X] [[id:2b8930da-5223-4b75-b4f6-251a28552d1b][2b8930da]] DONE Nothing in the drift slice was exercised in a consumer install: the new hooks, the conditional time-file promotion, the twin-checker agent
+- [[id:c12d4189-6bb6-467b-8928-b7bdefcdc921][c12d4189]] TODO PR #37's review found ten defects the slice shipped
+  - [-] [[id:789a25c7-84aa-4c30-b8a6-252e149b6114][789a25c7]] REVIEW discard-guard's dirty-file scan is relative to cwd, so from a subdirectory a dirty root TODO.org goes unseen and reset --hard goes through
+  - [-] [[id:9c1afc7a-161d-4e4c-aa93-9c02becfb5ba][9c1afc7a]] REVIEW Burying the review buffer advances every project's overdue ceremony, though the steps ran only on this repo's tracker
+  - [-] [[id:025a2e8a-9b21-4044-b9df-79baf7e904ce][025a2e8a]] REVIEW An absolute git path, checkout -f and switch --discard-changes all get past discard-guard
+  - [-] [[id:c8ba3f41-1cec-4b67-be0e-145ccebaff8a][c8ba3f41]] REVIEW discard-guard splits commands on ; | && || inside quotes, so a commit message naming a discard is refused and counted as a miss
+- [[id:d30b3481-374c-4921-9fdb-284dd8e09e14][d30b3481]] TODO The time-tracking stamp is global and every project's session start rewrites it, so the last session to start decides whether the review pass opens a clock
+- [ ] [[id:826d621c-25f5-4f06-9961-4b23f8658880][826d621c]] TODO SessionStart runs the ceremony's write steps inside a 15 s hook, on whatever branch is checked out
+- [[id:c12d4189-6bb6-467b-8928-b7bdefcdc921][c12d4189]] TODO PR #37's review found ten defects the slice shipped
+  - [-] [[id:84e9c7ef-72f2-4694-b471-1419f8b0dd33][84e9c7ef]] REVIEW org_outline's blocks: line reports a story blocking its own child
+  - [-] [[id:70d742fa-dc41-4005-8c07-01df75b3331f][70d742fa]] REVIEW Splitting a d-marked span with e carries :dismiss into the remainders, so x dismisses events never marked
+- [ ] [[id:2f4c04a1-db56-4427-ae62-591ba52607c6][2f4c04a1]] TODO --applied-today-p ignores the report scope and parses every .applied file at each SessionStart
+- [ ] [[id:6a6f6708-eefd-4d77-8ca0-0c5aaaa80796][6a6f6708]] TODO Every id-scoped org_outline scans every heading in every tracked file, and leaks a marker per slice
 
 
 * MAYBE Separate what the machinery requires from what this project prefers, so a consumer can change the second :code:arch:
@@ -776,115 +1706,6 @@ as defaults a consumer may change.
 Parked 2026-10-09 (the user): the configuration surface waits on interest from
 other users, and until then [[id:1fac0867-1591-47fb-aed7-0f3423f9a774][1fac0867]] documents the line for anyone who forks.
 The plan holds the decision and the findings that document must respect.
-
-
-* TODO The review buffer has no keys to move between items; bind n and p to the next and previous item :code:bounded:
-:PROPERTIES:
-:ID:       41f21b4d-278d-4ad8-a56f-122f5af33d65
-:CREATED:  [2026-10-09 Fri 08:36]
-:CATEGORY: Apply
-:END:
-:LOGBOOK:
-- [2026-10-09 Fri 17:25]--[2026-10-09 Fri 17:25] plan review buffer movement and marking members
-CLOCK: [2026-10-09 Fri 17:27]--[2026-10-09 Fri 17:28] =>  0:01
-- [2026-10-09 Fri 17:27]--[2026-10-09 Fri 17:28] plan review buffer movement and marking members
-CLOCK: [2026-10-09 Fri 17:28]--[2026-10-09 Fri 17:29] =>  0:01
-- [2026-10-09 Fri 17:28]--[2026-10-09 Fri 17:29] plan review buffer movement and marking members
-CLOCK: [2026-10-09 Fri 17:29]--[2026-10-09 Fri 17:30] =>  0:01
-- [2026-10-09 Fri 17:29]--[2026-10-09 Fri 17:30] plan review buffer movement and marking members
-- Tags ":code:bounded:" from ":code:"     [2026-10-09 Fri 17:43] \\
-  first classification: the forward walk already exists
-:END:
-:PLAN:
-Design, bounded (the user approved it while planning [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]], 2026-10-09). A
-=--review-backward-item= twin of =--review-forward-item=: it skips lines
-carrying no item and stays put at the first. Two interactive commands, bound to
-=n= and =p= in the =dolist= binding table, both free in =special-mode=; they
-recenter through [[id:396fd1c3-70e0-4e1f-8839-670b5293a7d3][396fd1c3]]'s guarded helper, so point that moved puts the item in
-the middle of the window. The key line at the top of the buffer and the mode
-docstring name them.
-
-Testing. ERT over a rendered buffer with group headings and evidence lines: =n=
-and =p= land only on item lines and stay put at either end. Run red against
-HEAD's version first.
-:END:
-
-=claude-code-ide-org-review-mode= binds its actions but no movement, so a
-reviewer steps through items with =C-n=/=C-p= over group headings, evidence
-lines and prompt synopses. Bind =n= and =p=, both free in =special-mode=, to
-commands that land on the next and previous item line. =--review-forward-item=
-already does the forward half, staying put at the last item; it needs a backward
-twin and two interactive wrappers.
-
-
-* TODO A consuming repo has nowhere to declare its :CATEGORY: values, so its first top-level capture makes one up :code:bounded:
-:PROPERTIES:
-:ID:       24694d1f-34b4-495b-b0d8-d29e64894c59
-:CREATED:  [2026-10-09 Fri 08:33]
-:CATEGORY: Dev
-:END:
-:LOGBOOK:
-- [2026-10-09 Fri 17:07]--[2026-10-09 Fri 17:13] assigned at review
-- [2026-10-09 Fri 17:13]--[2026-10-09 Fri 17:13] brainstorm consumer category declaration
-CLOCK: [2026-10-09 Fri 17:16]--[2026-10-09 Fri 17:17] =>  0:01
-- [2026-10-09 Fri 17:16]--[2026-10-09 Fri 17:17] brainstorm consumer category declaration
-CLOCK: [2026-10-09 Fri 17:17]--[2026-10-09 Fri 17:18] =>  0:01
-- Tags ":code:bounded:" from ":code:"     [2026-10-09 Fri 17:17] \\
-  first classification: both flows, setup --org and the capture refusal, already exist
-- [2026-10-09 Fri 17:17]--[2026-10-09 Fri 17:18] brainstorm consumer category declaration
-:END:
-:PLAN:
-
-The conventions say each repo declares its own =:CATEGORY:= taxonomy. This repo
-keeps its ten values in =.claude/rules/org-categories.md=, deliberately unscoped
-so that it loads in every session ([[id:b0d55552-6bbf-45b8-9897-f62e6bd779e3][b0d55552]]). =claude-org-setup= scaffolds
-nothing equivalent for a consumer: =--org= writes TODO.org and DONE.org from the
-templates, and the plain run promotes only the plugin's own rules. So a
-consumer's first top-level =org_capture= is refused with "TODO.org uses: (none
-yet)", and every value after that is invented at capture time and recognised
-only by recurring in the file, never declared. Found while checking the template
-against this repo's usage, 2026-10-06.
-
-Design, bounded (the user approved it, 2026-10-09). The declaration is a
-consumer-owned rules file, not a =#+CATEGORIES:= header keyword or both: the
-agent sees each value and its meaning in every session, and nothing is parsed,
-so the capture keeps checking against values in use (the user).
-
-The stub. =--org= creates =.claude/rules/org-categories.md= from a new
-=templates/org-categories.md=, collision-checked like the org templates: an
-existing file is reported and left untouched, so a consumer that already ran
-=--org= gets it by running =--org= again (the user). It has no =paths:= front
-matter, so it is always loaded. It says the consumer owns it and setup never
-regenerates it, and it carries no generated marker, so the hooks that refuse
-edits to generated copies leave it alone. It states the shape from the
-conventions (single capitalised words, never a TODO keyword), a table with one
-row, =Meta=, for the meta-work datetree anchor, since the conventions give =*
-Review and planning= =:CATEGORY: Meta= and [[id:97b4f6a9-a944-40d3-8d14-7a1667c52291][97b4f6a9]]'s anchor prompt offers
-=Meta= first (the user), and a line asking for a row before a new value is used.
-
-The pointers. =--check= prints =missing: .claude/rules/org-categories.md -- run
-claude-org-setup --org= when it is absent, the shape of its =.mcp.json= line
-(the user). Both capture refusal sites (=config.el:3934= and =:12184=) and the
-novel-value warning (=--capture-novel-category-warning=, =:3520=) gain "declare
-values in =.claude/rules/org-categories.md=", the path always named. The shipped
-=org-conventions.md= "Category values" names that file as where a consumer
-declares, rather than only pointing at this repo's.
-
-The word budget. The stub stays under 150 words, which answers the always-loaded
-budget question by measurement; the number is checked when it is built.
-
-Testing. A =bin/= setup test in a temp dir: =--org= creates the stub; a second
-=--org= leaves an edited stub byte-identical; =--check= reports it missing and
-is quiet once present. ERT asserts that both refusal sites and the warning name
-the path. Each runs red against HEAD's version first.
-:END:
-
-=claude-org-setup= gives a consuming repo no place to declare its =:CATEGORY:=
-values, so the capture refusal lists "(none yet)" and the first value invented
-becomes the norm by accident. Designed 2026-10-09 (the user): =--org= creates a
-consumer-owned, always-loaded =.claude/rules/org-categories.md= from a template,
-seeded with =Meta=; =--check= reports it missing; the capture refusal and the
-novel-value warning name the file.
 
 
 * TODO Declare the brainstorming path tags as an exclusive group in #+TAGS:, so org's tag menu enforces one :code:
@@ -1773,15 +2594,15 @@ symlink and fails now. Live: 31 archived plans were exported, and the real
 tracker linted with 0 errors with =goofy-baking-wall.md= aged out.
 
 
-* TODO [0/6] A slice's checklist can disagree with its members, and nothing can say so or fix it :code:
+* TODO [0/7] A slice's checklist can disagree with its members, and nothing can say so or fix it :code:
 :PROPERTIES:
 :ID:       7dcec489-f5dd-4f7f-b819-a25405436b9b
 :CREATED:  [2026-09-28 Mon 08:26]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:MEMBERS:  cdff5c91-3dc1-476e-a8f2-5293570a19fc a00ace04-99bd-414a-8dc7-df8305126589 a508c59e-475e-4d27-84c9-6c3ded98e15c 6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0 b112878e-6313-4bc6-bc3f-0533d5f1ad1b dc68d831-9e04-4f0a-8b8b-8087b39c6037
-:BLOCKER:  cdff5c91-3dc1-476e-a8f2-5293570a19fc a00ace04-99bd-414a-8dc7-df8305126589 a508c59e-475e-4d27-84c9-6c3ded98e15c 6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0 b112878e-6313-4bc6-bc3f-0533d5f1ad1b dc68d831-9e04-4f0a-8b8b-8087b39c6037
+:MEMBERS:  cdff5c91-3dc1-476e-a8f2-5293570a19fc a00ace04-99bd-414a-8dc7-df8305126589 a508c59e-475e-4d27-84c9-6c3ded98e15c 6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0 b112878e-6313-4bc6-bc3f-0533d5f1ad1b dc68d831-9e04-4f0a-8b8b-8087b39c6037 6a6f6708-eefd-4d77-8ca0-0c5aaaa80796
+:BLOCKER:  cdff5c91-3dc1-476e-a8f2-5293570a19fc a00ace04-99bd-414a-8dc7-df8305126589 a508c59e-475e-4d27-84c9-6c3ded98e15c 6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0 b112878e-6313-4bc6-bc3f-0533d5f1ad1b dc68d831-9e04-4f0a-8b8b-8087b39c6037 6a6f6708-eefd-4d77-8ca0-0c5aaaa80796
 :END:
 :PLAN:
 Composed 2026-09-28 from the backlog survey, at the user's direction. The theme:
@@ -1825,6 +2646,7 @@ Planned:
 - [ ] [[id:6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0][6af8fb3e]] TODO org_slice_add_member's after= inserts between a story and its nested children, splitting the block
 - [ ] [[id:b112878e-6313-4bc6-bc3f-0533d5f1ad1b][b112878e]] TODO org_slice_add_member cannot prepend or reorder, so declared order is append-only
 - [ ] [[id:dc68d831-9e04-4f0a-8b8b-8087b39c6037][dc68d831]] TODO Slice refresh re-scans every heading for other slices' members once per slice
+- [ ] [[id:6a6f6708-eefd-4d77-8ca0-0c5aaaa80796][6a6f6708]] TODO Every id-scoped org_outline scans every heading in every tracked file, and leaks a marker per slice
 
 A slice's checklist is rendered from =:MEMBERS:=, and nothing checks that the
 rendering matches its members, repairs a closed slice's record, or lets a member
@@ -2231,54 +3053,6 @@ and after the user buried it with =q= the capture ran clean. The earlier
 =*Messages*= and =*Ibuffer*= readings caught the user between buffers. In this
 Doom config the matching human keystroke is =C-c n l= (=org-store-link=); =C-c
 l= is Doom's localleader prefix.
-
-
-* TODO org_outline shows what a heading is blocked by, never what it blocks :code:bounded:
-:PROPERTIES:
-:ID:       b3177ed0-9747-4e31-ad65-bac25b9bdd1f
-:CREATED:  [2026-09-24 Thu 20:01]
-:CATEGORY: Tools
-:END:
-:LOGBOOK:
-- Tags ":code:bounded:" from ":code:"     [2026-10-09 Fri 18:42] \\
-  first classification: outline front matter already shows :BLOCKER:
-:END:
-:PLAN:
-
-Scoped to one heading, org_outline's front matter lists that heading's :BLOCKER:
-value with each id's keyword. It never lists the headings whose :BLOCKER: names
-this one, so "what does this block?" means grepping :BLOCKER: lines and walking
-each hit back to its :ID:. That was done by hand for [[id:dd4b9a9f-ba8a-4f1f-a3da-38388e0cdb76][dd4b9a9f]] on 2026-09-24, and
-org-ql's regexp: returned nothing for an alternation over five ids, while a
-single-id regexp:"BLOCKER:.*<id>" works. Proposal: a :BLOCKS: line in the scoped
-front matter, listing each heading that names this heading or any descendant in
-its :BLOCKER:, with its keyword, the way :BLOCKER: is shown today. A sibling of
-[[id:5acca91b-b7bf-4046-9379-cd9a8f40f116][5acca91b]], which asks what is blocked at all.
-
-Design, bounded, worked together with [[id:d66ae1d2-5a40-4f4d-ae51-c8977e78681c][d66ae1d2]] (the user approved it while
-planning [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]], 2026-10-09). The front-matter line is =blocks:=, after
-=:BLOCKER:= and [[id:d66ae1d2-5a40-4f4d-ae51-c8977e78681c][d66ae1d2]]'s =slices:=: each unfinished, non-slice heading whose
-=:BLOCKER:= names this heading or any of its descendants, with its keyword,
-since blocking on a child is blocking on part of this work. Slices are left out
-because their =:BLOCKER:= is derived from membership, which =slices:= already
-shows (the user). Derived at each read and never tagged, per what this heading
-absorbed from [[id:0eecf8e7-a8d5-4da7-9d6d-f397542b2139][0eecf8e7]]. Absent when nothing applies. It shares [[id:d66ae1d2-5a40-4f4d-ae51-c8977e78681c][d66ae1d2]]'s one
-scan of the tracked files, run only on a scoped call; the tool description and
-=org-mcp-tools.md= name the line.
-
-Testing. ERT over scratch files: a heading named in one task's =:BLOCKER:= and
-in a slice's gets =blocks:= naming only the task; a child named in a =:BLOCKER:=
-makes its parent's =blocks:= name that heading; a finished blocked heading is
-left out; a heading named nowhere gets no line. Each runs red against HEAD's
-version first.
-:END:
-*Absorbed [[id:0eecf8e7-a8d5-4da7-9d6d-f397542b2139][0eecf8e7]], 2026-09-28*: the same inverse-blocker ask, filed twice. Its
-one argument this heading lacked carries over. A pair of =:blocker:= and
-=:blocked:= tags was proposed for the inverse, and it is the wrong shape for the
-reason [[id:a7f4b40c-d6e0-4bde-82ba-94bcf45253f4][a7f4b40c]] gave: blocked-ness is derivable while a tag is stored, so it
-goes stale the moment the last blocker finishes, and two tags plus the property
-make three copies of one fact. So =:BLOCKS:= is derived at each read, never
-tagged.
 
 
 * TODO org_slice_add_member's after= inserts between a story and its nested children, splitting the block :code:
@@ -2956,7 +3730,7 @@ start it.
 Planned:
 
 - [[id:55125136-5939-434e-9676-96ea66a75770][55125136]] WAITING Decide whether queue-append should derive clock events from DOING transitions, reversing the separation 4f6a6bb1 chose
-- [[id:361e2708-8124-4bd1-9c44-f97ca97aca4a][361e2708]] TODO Decide how far the review-apply cycle can be automated, given the interactive constraint
+- [[id:361e2708-8124-4bd1-9c44-f97ca97aca4a][361e2708]] DONE Decide how far the review-apply cycle can be automated, given the interactive constraint
 - [[id:3485b0d0-3b47-4a28-ae6f-e2061fa8f226][3485b0d0]] TODO A session that ends holding an open clock never closes it: 8 of 42 clocking sessions end on a clock_in
 - [ ] [[id:aee8487e-0650-4396-bc5c-193ca3efcecb][aee8487e]] TODO `c` claims an envelope whatever runs it contains, so one keystroke can record 3h11m over 16 minutes
 - [[id:2d100d0d-2d04-43b9-af1e-f4d6b52bbada][2d100d0d]] TODO Intervals on two different headings can overlap, and subtraction reaches only one
@@ -2964,7 +3738,7 @@ Planned:
 - [ ] [[id:85f4e03b-3c7a-4f75-86af-52e04b21cf32][85f4e03b]] TODO An accepted span with no heading reaches apply and fails as 'no org heading found with :ID: "nil"'
 - [-] [[id:445fe577-01ce-4e68-ab5f-c349c40a4643][445fe577]] DOING The complement's gap spans carry no events, so half the review buffer cannot be dismissed
 - [ ] [[id:2c733857-a280-42cc-bd7c-e182a4fb6ea3][2c733857]] TODO A span whose only resume is a synthetic bracket edge reports "no transcript for session nil (aged out)"
-- [[id:79c224ab-188a-4ed4-a606-c28ee2cfe72d][79c224ab]] TODO Applied review changes can be destroyed by a git checkout that looks like it reverts only Claude's edit
+- [[id:79c224ab-188a-4ed4-a606-c28ee2cfe72d][79c224ab]] DONE Applied review changes can be destroyed by a git checkout that looks like it reverts only Claude's edit
 - [[id:001fb310-69f7-4417-81be-a224a3bf83e0][001fb310]] TODO Stale entries in org-clock's persisted history hang the first clock-in after a restart
 - [[id:489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938][489d6f61]] DOING Emacs died of a fatal signal at review-buffer quit, deadlocked in the mac port's shutdown
 - [ ] [[id:5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46][5a6d2c75]] TODO An unassigned span's readout omits the evidence that would make its heading obvious
@@ -2977,11 +3751,11 @@ Planned:
 - [[id:6ea84943-9eef-4940-b850-e8cf79310d2a][6ea84943]] MAYBE A claimed span records agent time and human attention as one, and the reviewer has no picture of the span to judge from
   - [[id:01849bef-fdc9-4c30-b467-00ca8606e8e0][01849bef]] MAYBE A claim should keep the agent's runs and the user's attention apart, not record the whole span as attention
   - [[id:330710fb-ea34-466b-96a0-7be947f37a1e][330710fb]] MAYBE Show a span as a strip chart, its runs, gaps, waits and AFK markers on one line, so a claim is judged from the screen
-- [[id:ee3c22c9-f99c-4d41-9c3d-8f39af916fff][ee3c22c9]] TODO Make =d= mark for dismissal rather than dismiss, so a shared reason can be given once
-- [[id:e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b][e95cc5d1]] TODO =d= advances point in the review buffer, onto whatever moved up to replace the dismissed item
-- [[id:396fd1c3-70e0-4e1f-8839-670b5293a7d3][396fd1c3]] TODO Recenter after `m` advances, so the item under consideration is never at the bottom of the window
-- [[id:41f21b4d-278d-4ad8-a56f-122f5af33d65][41f21b4d]] TODO The review buffer has no keys to move between items; bind n and p to the next and previous item
-- [[id:6c64cc9c-33a9-4a20-af19-c188a690c755][6c64cc9c]] TODO claude-code-ide-org-review should return point and windows to where I entered from
+- [[id:ee3c22c9-f99c-4d41-9c3d-8f39af916fff][ee3c22c9]] DONE Make =d= mark for dismissal rather than dismiss, so a shared reason can be given once
+- [[id:e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b][e95cc5d1]] DONE =d= advances point in the review buffer, onto whatever moved up to replace the dismissed item
+- [[id:396fd1c3-70e0-4e1f-8839-670b5293a7d3][396fd1c3]] DONE Recenter after `m` advances, so the item under consideration is never at the bottom of the window
+- [[id:41f21b4d-278d-4ad8-a56f-122f5af33d65][41f21b4d]] DONE The review buffer has no keys to move between items; bind n and p to the next and previous item
+- [[id:6c64cc9c-33a9-4a20-af19-c188a690c755][6c64cc9c]] DONE claude-code-ide-org-review should return point and windows to where I entered from
 - [ ] [[id:a865f83c-ea37-40c4-a104-7cc50d2c20dd][a865f83c]] TODO Should a short 0-run span default to claimed, and where does the bound fall?
 - [ ] [[id:996fd2bd-be90-44b3-b2c5-9018255940b3][996fd2bd]] TODO A guidepost gap containing an apply timestamp is provably the human's attention
 - [[id:e3d1531d-7562-4bad-bef2-fc819630c5f7][e3d1531d]] TODO The review-attention clock stops at the first apply, so 101 intervals measure the wrong thing
@@ -3235,104 +4009,6 @@ made safe, the second call is still being missed often enough to show in the
 miss count.
 
 
-* DOING Nothing in the drift slice was exercised in a consumer install: the new hooks, the conditional time-file promotion, the twin-checker agent :code:spike:
-:PROPERTIES:
-:ID:       2b8930da-5223-4b75-b4f6-251a28552d1b
-:CREATED:  [2026-09-21 Mon 10:21]
-:CATEGORY: Dev
-:BLOCKER:  8a2eb687-28da-4d44-893b-db59298bdc5b 6521dd56-8772-416b-9435-6da78bb86b06 4ae7a04b-1557-44d6-91c3-384f1def5293
-:END:
-:LOGBOOK:
-CLOCK: [2026-10-06 Tue 12:52]--[2026-10-06 Tue 12:53] =>  0:01
-- State "DOING"      from "TODO"       [2026-10-06 Tue 12:52] \\
-  blockers done; moving the swc worktree to main
-- [2026-10-06 Tue 12:52]--[2026-10-06 Tue 12:53] move the consumer's plugin worktree to main
-CLOCK: [2026-10-06 Tue 12:53]--[2026-10-06 Tue 12:54] =>  0:01
-- [2026-10-06 Tue 12:53]--[2026-10-06 Tue 12:54] suggested span, accepted at review
-- [2026-10-06 Tue 12:53]--[2026-10-06 Tue 12:53] suggested span, accepted at review
-CLOCK: [2026-10-06 Tue 12:54]--[2026-10-06 Tue 12:55] =>  0:01
-- [2026-10-06 Tue 12:54]--[2026-10-06 Tue 12:55] correct the move note
-CLOCK: [2026-10-06 Tue 14:00]--[2026-10-06 Tue 14:01] =>  0:01
-- [2026-10-06 Tue 14:00]--[2026-10-06 Tue 14:00] suggested span, accepted at review
-- [2026-10-06 Tue 14:00]--[2026-10-06 Tue 14:01] correct check 2 against setup's actual rule
-CLOCK: [2026-10-06 Tue 14:01]--[2026-10-06 Tue 14:02] =>  0:01
-- [2026-10-06 Tue 14:01]--[2026-10-06 Tue 14:02] suggested span, accepted at review
-CLOCK: [2026-10-06 Tue 14:03]--[2026-10-06 Tue 14:04] =>  0:01
-- [2026-10-06 Tue 14:03]--[2026-10-06 Tue 14:04] suggested span, accepted at review
-CLOCK: [2026-10-06 Tue 14:04]--[2026-10-06 Tue 14:05] =>  0:01
-- [2026-10-06 Tue 14:04]--[2026-10-06 Tue 14:05] record check 2 and the install state
-CLOCK: [2026-10-06 Tue 14:05]--[2026-10-06 Tue 14:06] =>  0:01
-- [2026-10-06 Tue 14:05]--[2026-10-06 Tue 14:06] suggested span, accepted at review
-CLOCK: [2026-10-06 Tue 14:06]--[2026-10-06 Tue 14:08] =>  0:02
-- [2026-10-06 Tue 14:06]--[2026-10-06 Tue 14:08] suggested span, accepted at review
-CLOCK: [2026-10-06 Tue 14:08]--[2026-10-06 Tue 14:12] =>  0:04
-- [2026-10-06 Tue 14:08]--[2026-10-06 Tue 14:12] suggested span, accepted at review
-CLOCK: [2026-10-06 Tue 14:15]--[2026-10-06 Tue 14:17] =>  0:02
-- [2026-10-06 Tue 14:15]--[2026-10-06 Tue 14:17] suggested span, accepted at review
-CLOCK: [2026-10-06 Tue 14:18]--[2026-10-06 Tue 14:20] =>  0:02
-- [2026-10-06 Tue 14:18]--[2026-10-06 Tue 14:20] suggested span, accepted at review
-CLOCK: [2026-10-10 Sat 14:07]--[2026-10-10 Sat 14:08] =>  0:01
-- [2026-10-10 Sat 14:07]--[2026-10-10 Sat 14:08] plan the consumer-install check
-CLOCK: [2026-10-10 Sat 15:17]--[2026-10-10 Sat 15:18] =>  0:01
-CLOCK: [2026-10-10 Sat 15:17]--[2026-10-10 Sat 15:18] =>  0:01
-- [2026-10-10 Sat 15:17]--[2026-10-10 Sat 15:18] plan the consumer-install check
-CLOCK: [2026-10-10 Sat 15:18]--[2026-10-10 Sat 15:19] =>  0:01
-- Tags ":code:spike:" from ":code:"     [2026-10-10 Sat 15:18] \\
-  classified spike: the output is an answer per check; failures file their own headings
-- [2026-10-10 Sat 15:18]--[2026-10-10 Sat 15:19] plan the consumer-install check
-:END:
-:PLAN:
-
-Approved 2026-10-10 in /plan-slice. Path: spike. The question: does each
-shipped behaviour work in a real consumer, agentic-euchre, with time tracking
-off? Every consumer-facing change was verified only in this repo, which wires
-its hooks through .claude/settings.json and links .claude/agents by hand.
-
-*Setup, before the slice's PR merges* (the user, 2026-10-10; this member is the
-last of slice [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]], so it cannot wait for that merge). Run
-=git -C ../claude-code-ide-org-swc checkout --detach <the slice's feature
-branch>=, re-run =claude-org-setup --no-time-tracking= in agentic-euchre and
-confirm =--check= reports all ok, then start a fresh Claude Code session there.
-agentic-euchre loads the plugin through =.claude/skills/claude-code-ide-org=, a
-symlink to that worktree.
-
-*The checks.* Check 2 (setup keeps an already-promoted time file on a plain
-re-run and removes it with --no-time-tracking, [[id:5fbc34cb-b5bd-4d9c-b8cb-29063f492b45][5fbc34cb]]) passed 2026-10-06.
-1. hooks.json's two PreToolUse guards, the org_.* refusal/conventions-inject
-   row and the session marker fire.
-3. conventions-inject falls back to the shipped reference where nothing is
-   promoted.
-4. A catch amended from the consumer resolves against the plugin's tracker.
-5. Whether the plugin's agents/ directory is offered to the consumer at all;
-   the manifest names no agents key.
-6. With [[id:dc21f724-78f9-4da8-9d74-002ad3306446][dc21f724]]: the names under which =/plan-slice= and =/work-slice= appear
-   (the docs say =/claude-code-ide-org:work-slice=, silent on the bare name),
-   and that both run with no =.claude/slice-rules.md=.
-7. [[id:97b4f6a9-a944-40d3-8d14-7a1667c52291][97b4f6a9]]: a review pass there applies a state change and opens no clock.
-8. [[id:24694d1f-34b4-495b-b0d8-d29e64894c59][24694d1f]]: with no categories declared, a top-level capture is refused
-   pointing at the rules-file stub, and =claude-org-setup --check= nags.
-9. [[id:79c224ab-188a-4ed4-a606-c28ee2cfe72d][79c224ab]]: a discarding git command is refused while euchre's .org file is
-   dirty, through the plugin's hooks.json wiring.
-The buffer-movement members run in the same Emacs either way, so a consumer
-adds nothing for them; [[id:de081dd9-1853-4d79-94fc-2edac498380f][de081dd9]]'s ceremony is not checked here.
-
-*Output.* Each result goes into the body as passed, or failed with what
-happened. Each failure is filed as its own heading: fixed on the branch if it
-blocks the PR, otherwise deferred. The heading closes once every check has an
-answer.
-:END:
-It gates earnest work in agentic-euchre, taking over from [[id:6a207b00-8fa1-441e-8ee5-354702bc979b][6a207b00]] (closed
-2026-09-22); its blockers [[id:8a2eb687-28da-4d44-893b-db59298bdc5b][8a2eb687]], [[id:6521dd56-8772-416b-9435-6da78bb86b06][6521dd56]] and [[id:4ae7a04b-1557-44d6-91c3-384f1def5293][4ae7a04b]] are done. Classified
-spike 2026-10-10: the probe plan is in :PLAN:, run from the slice's feature
-branch before the PR merges, and each failure files its own heading.
-
-*Check 2 verified 2026-10-06 in agentic-euchre.* A plain re-run reported the
-time file "kept (already promoted)", and =--no-time-tracking= removed it. The
-six promoted rules were byte-identical to the plugin's generated copies, and
-=claude-org-setup --check= reported all ok, with =.mcp.json= naming the
-=agentic-euchre= session as that project's alone.
-
-
 * TODO The duplicate query reads titles only, so a paraphrase gets past it — including the case that motivated it :code:
 :PROPERTIES:
 :ID:       12033cc8-3b15-44b1-a80c-068f63f21025
@@ -3523,6 +4199,7 @@ One dated line per catch.
 - 2026-09-30: a reply on [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]]'s verifier findings carried 21 end-matter lines written by hand instead of through org_footnotes, most of their titles invented from the ids' subject matter (for example "Close the ten unarchived finished headings" for [[id:8c662dfb-b4ab-4f4d-a5d4-8a4beda996a8][8c662dfb]], "Sweep the ten longest live bodies into :PLAN: drawers"). The Stop hook passed it, since it checks that an id appears, not that its title is true. Self-caught on the next turn and reissued from org_footnotes.
 - 2026-10-02: two replies during [[id:41cf5830-fc2e-4dc6-b243-a0c2718a53a3][41cf5830]]'s brainstorm gave [[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]]'s end-matter title as "[5/5] Session attribution", written by hand, where the heading is "[20/20] Update CLAUDE.md and the org skill for the new architecture". The hook passed both, since it checks the id appears. Self-caught when org_footnotes returned the real title.
 - 2026-10-02: two replies on [[id:01849bef-fdc9-4c30-b467-00ca8606e8e0][01849bef]] gave [[id:e75d660f-5c0d-4707-a645-b5dea7d7ebc0][e75d660f]]'s end-matter title as "… and nothing reads them back", written by hand; the heading ends "… and we discard them". Self-caught when org_footnotes returned the real title. Third catch of this kind in three days: hand-typed end matter is the pattern, not the slip.
+- [2026-10-12 Mon] Self-caught, twice in one brainstorm: the end matter for [[id:3ad389be-2797-46c3-a51d-9f603053955a][3ad389be]] and for [[id:045459f6-a002-4c9e-921e-aeac652f10c9][045459f6]] carried titles written from memory, and both were wrong. Each was corrected in the next reply after a lookup. =org_footnotes= had answered "not wired" earlier in the session, so the end matter was being written by hand, and the lookup step was skipped exactly where the generator would have done it.
 
 
 ** TODO Miss: tracked work done under no clock, the wrong clock, or a clock closed before the work ended
@@ -3830,6 +4507,7 @@ written.
   commit, since =replace= refuses a file with uncommitted changes.
 
 - 2026-09-28 (user): asked about [[id:2a6a1355-615f-4c2c-a8af-c9ae8dcda09b][2a6a1355]]'s verbose body, the session measured it with a raw =emacsclient= eval (line count, word count, drawer order) when =org_body= returns the heading whole, drawers and all. The user asked why, and whether =emacs-tools= could not do it. It could. The eval came from habit, reaching for numbers in one call, and nothing required it.
+- 2026-10-12 (noodle-salesman): set :spike: on eight headings at org_capture time without the brainstorming skill, which the conventions name as the only setter of path tags. The user had asked for them to be spikes, so whether this is a miss at all is filed as a question (noodle-salesman-findings-prompt.md, item 4).
 
 
 ** TODO Miss: an org question answered by scraping text instead of asking org
@@ -3893,6 +4571,8 @@ description is too narrow, which is exactly what the 2026-09-23 catch above
 found. A heading glued onto a body line is the one case no query can reach,
 since org cannot see it by construction; =org-lint= can, and [[id:5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997][5b46fbfd]] proposes
 the lint rule.
+
+- [2026-10-12 Mon] Caught by the user: "did you really need =awk= just now?" Looking up headings' exact titles by id for end matter, the session scanned =TODO.org= and =DONE.org= with =awk= five or more times in one session. =org_outline= with the id as scope and =bodies=false= returns the keyword and the exact title, archived headings included. =org_footnotes= answering "not wired" was taken as license to leave the tools altogether, when only the end-matter generation was missing.
 
 
 ** TODO Before the miss review, count the misses nobody caught, from the transcripts, for every kind a transcript can show :code:research:
@@ -5133,64 +5813,6 @@ since "no events inside at all" and "events without kinds" want different
 answers from the human.
 
 
-* TODO Recenter after `m` advances, so the item under consideration is never at the bottom of the window :code:bounded:
-:PROPERTIES:
-:ID:       396fd1c3-70e0-4e1f-8839-670b5293a7d3
-:CREATED:  [2026-09-17 Thu 10:52]
-:CATEGORY: Apply
-:END:
-:LOGBOOK:
-CLOCK: [2026-09-17 Thu 10:51]--[2026-09-17 Thu 10:52] =>  0:01
-CLOCK: [2026-09-17 Thu 10:51]--[2026-09-17 Thu 10:51] =>  0:00
-- <2026-09-17 Thu 10:51>--<2026-09-17 Thu 10:51> assigned at review
-- [2026-09-17 Thu 10:51]--[2026-09-17 Thu 10:52]
-- Tags ":code:bounded:" from ":code:"     [2026-10-09 Fri 17:43] \\
-  first classification: the redraw path it hooks already exists
-:END:
-:PLAN:
-
-Requested by the user 2026-09-17. =m= marks and advances — that advance is what
-makes marking a run =m m m= rather than =m n m n m=, and it was "the single
-biggest complaint after the first real by-hand apply". But point walks steadily
-down the window, so after a few marks the item being decided sits at the bottom
-edge with no following context, and the human is reading the one line they are
-about to judge with everything after it off-screen. Do the equivalent of =C-l=
-once the advance has happened, bringing the next item to the centre.
-
-*Implementation note that will bite if missed: the recenter must come after the
-re-render, not before.* =--review-set-mark= re-renders the buffer on every
-keystroke, and centring against the pre-render line number would scroll to the
-wrong place — silently, and only sometimes, since the two agree until a render
-changes a line's height or position.
-
-*Prefer =(recenter)= to =(recenter-top-bottom)= despite the request naming
-=C-l=.* =recenter-top-bottom= deliberately *cycles* centre → top → bottom by
-consulting =last-command=, which is right for a human pressing =C-l= repeatedly
-and wrong here: called from Lisp after =m=, its behaviour would depend on what
-the human pressed previously, so a run of marks could start scrolling to the top
-instead of the centre. =(recenter)= always centres, which is what the request
-actually asks for.
-
-Design, bounded (the user approved it while planning [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]], 2026-10-09).
-Every advancing key recenters, =u= included, and none does when the advance did
-not move point (the user, answering the two questions this drawer left open).
-=--review-forward-item= returns non-nil when it moved. One guarded helper
-recenters, called in =--review-redraw='s advance branch after the render, so
-=m=, =u= and [[id:ee3c22c9-f99c-4d41-9c3d-8f39af916fff][ee3c22c9]]'s =d= share it, and by [[id:41f21b4d-278d-4ad8-a56f-122f5af33d65][41f21b4d]]'s =n= and =p=. It calls
-=(recenter)= only when point moved and the review buffer is the selected
-window's, since =recenter= errors otherwise and the batch tests have no window.
-
-Testing. ERT with the helper's =recenter= stubbed to record calls: one after
-=m=, =u= and =d=; none at the last item; none from a render alone. Run red
-against HEAD's version first.
-:END:
-
-After `m` marks an item and advances, the next item can sit at the bottom of the
-window with none of its context visible. Designed 2026-10-09 (the user): every
-advancing key, =m=, =u=, =d=, =n= and =p=, calls =(recenter)= after the render,
-and none does when point did not move.
-
-
 * TODO `c` claims an envelope whatever runs it contains, so one keystroke can record 3h11m over 16 minutes :code:
 :PROPERTIES:
 :ID:       aee8487e-0650-4396-bc5c-193ca3efcecb
@@ -5334,6 +5956,10 @@ alone leaves the error reachable.
 :CREATED:  [2026-09-16 Wed 14:50]
 :CATEGORY: Tools
 :END:
+:LOGBOOK:
+CLOCK: [2026-10-12 Mon 11:11]--[2026-10-12 Mon 11:12] =>  0:01
+- [2026-10-12 Mon 11:11]--[2026-10-12 Mon 11:12] record two more raw emacsclient fallbacks
+:END:
 :PLAN:
 
 Both gaps surfaced within a minute of each other while correcting [[id:37bca83a-e83b-4070-9058-6318a58a24db][37bca83a]].
@@ -5374,6 +6000,14 @@ the read-only buffer and was stopped there rather than forced. Narrower than
 retitling: =org_capture= with a =target= could add the parent's cookie when it
 adds the parent's first keyworded child, which is the moment the conventions
 name.
+
+*Met twice more 2026-10-12, both through =emacsclient=.* Retitling [[id:d9ed082e-9a2e-4afd-a852-bedf33f0e659][d9ed082e]] used
+=org-edit-headline=, after checking the buffer had no unsaved edits. And
+removing a member from slice [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]] took =org_set_property= on =:MEMBERS:=
+plus a raw =claude-code-ide-org-refresh-slice= call, since no tool removes a
+member or runs the refresh by itself. A member-removal mode on
+=org_slice_add_member=, or a sibling tool, would cover the second, with the
+refresh it already runs.
 
 
 * TODO org_outline's max_depth filters out the scoped heading itself, and the front matter reads as a result :code:
@@ -6119,6 +6753,12 @@ outside the tool so Emacs is never frozen while the human saves.
 :CREATED:  [2026-09-23 Wed 10:34]
 :BLOCKER:  704d8558-657b-43e2-9440-1c054c923ed2 c35087d8-19fe-4179-a61c-cb615b2e7679
 :END:
+:LOGBOOK:
+CLOCK: [2026-10-13 Tue 14:06]--[2026-10-13 Tue 14:07] =>  0:01
+- [2026-10-13 Tue 14:06]--[2026-10-13 Tue 14:07] assigned at review
+CLOCK: [2026-10-13 Tue 14:19]--[2026-10-13 Tue 14:20] =>  0:01
+- [2026-10-13 Tue 14:19]--[2026-10-13 Tue 14:20] assigned at review
+:END:
 :PLAN:
 
 Remove =org_amend='s registration and entry point, keeping the internals
@@ -6241,118 +6881,6 @@ slice composition. Proposed: decide whether a bookkeeping write on a heading is
 work *on* that heading, and if not, split --worked-tool-names into work and
 bookkeeping so a composition pass lands on review and planning whole rather than
 a minute each across the headings it filed.
-
-
-* TODO Make =d= mark for dismissal rather than dismiss, so a shared reason can be given once :code:bounded:
-:PROPERTIES:
-:ID:       ee3c22c9-f99c-4d41-9c3d-8f39af916fff
-:CREATED:  [2026-09-14 Mon 12:15]
-:CATEGORY: Apply
-:END:
-:LOGBOOK:
-- Tags ":code:bounded:" from ":code:"     [2026-10-09 Fri 17:30] \\
-  first classification: the review buffer's mark and apply commands already exist
-:END:
-:PLAN:
-
-Asked by the user 2026-09-14, immediately after dismissing seven items that
-shared one reason: =d= should leave a mark the way =m= does — a *different*
-mark, =D= suggested — so dismissal becomes a bulk operation instead of seven
-separate acts. The motivating case is concrete: all seven were state transitions
-that had already landed, dismissed for the identical reason, and the pass had no
-way to say that once. Dired is the precedent the review buffer already follows
-for =m=/=u=/=t=/=U=, and dired marks for deletion with =d= and executes with =x=
-— so this would bring =d= into the same idiom rather than inventing one, and =x=
-already means "act on what is marked" here.
-
-Design, bounded (the user approved it while planning [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]], 2026-10-09).
-
-The mark. =d= places a =D= mark, shown in the mark column, and advances like
-=m=, since the line stays. =D= and =m= exclude each other: =d= on a marked item
-replaces its =m=, =m= on a =D= item replaces the =D=, and =u= clears either. =M=
-and =t= leave =D= items alone, as dired's do with flagged lines; =U= clears
-both. =--review-auto-mark= skips =D= items, since render re-runs it and would
-otherwise re-mark a dismissed state item =m= on the next keystroke ([[id:b6e229c7-3035-4c0e-943b-710a12bfd7d1][b6e229c7]]'s
-auto-marking).
-
-The reason. =C-u d= asks for a reason for that item and stores it; =N= is not
-reused, since it edits a clock line's annotation. At =x=, any =D= item without
-its own reason takes one shared reason asked once, "Dismiss 7 -- reason:" (the
-user: one prompt at =x=, per-item override).
-
-Execution. =x= does both, as dired's does (the user): one confirmation naming
-both counts ("Apply 5, dismiss 7?"), dismissals first through the existing
-=--queue-mark-dismissed=, then the applies, so a dismissed chain link cannot
-make an apply look stale. With nothing marked =m= it only dismisses. A stale
-item takes a =D= without the stale confirmation, which guards applying, not
-dismissing. =--review-judgement-summary= counts =D= marks as unapplied
-judgement, so =g= asks before discarding them. The key line and the mode
-docstring describe =D= and the combined =x=.
-
-[[id:e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b][e95cc5d1]] closes with this (the user): once =d= no longer removes its line, the
-advance is the =m= path and its held-order defect cannot arise. It keeps a
-pinning test here.
-
-Testing. ERT with the prompts stubbed: =d= marks and advances to the next drawn
-item, which is [[id:e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b][e95cc5d1]]'s pinning test; =m=, =d= and =u= exclude each other as
-above, and =M= and =t= skip =D=; auto-mark does not re-mark a =D= state item;
-=x= on a mix dismisses before applying, takes one shared reason and keeps a =C-u
-d= reason; =x= with only =D= items dismisses them; =g= asks when =D= marks
-exist. Each runs red against HEAD's version first.
-:END:
-
-Proposes that =d= in the review buffer marks an item for dismissal, dired-style,
-instead of dismissing it at once, so a set sharing one reason can be dismissed
-together. Designed 2026-10-09 (the user): =x= executes both kinds of mark,
-dismissals first; one reason is asked once for the set, with =C-u d= for an
-item's own; auto-marking skips =D= items. [[id:e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b][e95cc5d1]] closes with it.
-
-
-* TODO =d= advances point in the review buffer, onto whatever moved up to replace the dismissed item :code:bounded:
-:PROPERTIES:
-:ID:       e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b
-:CREATED:  [2026-09-14 Mon 12:15]
-:CATEGORY: Apply
-:END:
-:LOGBOOK:
-- Tags ":code:bounded:" from ":code:"     [2026-10-09 Fri 17:30] \\
-  first classification: resolved inside ee3c22c9's bounded design
-- [2026-10-09 Fri 17:31]--[2026-10-09 Fri 17:31] record cause and close-with plan
-CLOCK: [2026-10-09 Fri 17:33]--[2026-10-09 Fri 17:34] =>  0:01
-- [2026-10-09 Fri 17:33]--[2026-10-09 Fri 17:34] record cause and close-with plan
-:END:
-:PLAN:
-
-Reported by the user 2026-09-14 after dismissing seven stale state items in one
-pass. =claude-code-ide-org-review-dismiss= advances point the way =m= does, but
-the two are not analogous: =m= leaves its item in place, so advancing lands on
-the *next* item, whereas =d= removes its item, so the next one moves *up into
-the vacated line* — and advancing then skips it. The user must move back by hand
-after every dismissal, which is exactly the friction =m='s advance exists to
-remove, inverted. Proposed: =d= leaves point where it is, since the line now
-holds the item that would otherwise have been skipped. Note this is a different
-question from where point lands when the *list* is rebuilt ([[id:9e80a32d-43e1-4647-a42c-cba10f6e79cc][9e80a32d]]): nothing
-is rebuilt here, one line is removed from a rendered buffer.
-
-The cause is not the advance this drawer describes, read from the code while
-planning [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]], 2026-10-09, and not yet reproduced in a live buffer. =d= has
-not advanced since [[orgit-rev:./::b262ece][b262ece]] (2026-08-17): it redraws onto =(cadr (memq item
---review-items))=, the next item in *held* order, which stays chronological
-because apply walks it, while the buffer is *drawn* newest-first ([[id:f1e36a65-3469-4ae6-ac1f-fdfcd1c053c9][f1e36a65]],
-=--review-display-items=). So the item it lands on is the one drawn above, and
-point jumps upward.
-
-Resolution (the user): closes with [[id:ee3c22c9-f99c-4d41-9c3d-8f39af916fff][ee3c22c9]], which makes =d= a mark that leaves
-its line in place, so the advance becomes =m='s path over drawn lines and this
-defect cannot arise. Its pinning test lives there: after =d=, point is on the
-next drawn item. Not fixed separately, since that code is replaced when the
-marks land.
-:END:
-
-After =d= dismisses an item the next one moves up into its line, and advancing
-point then skips it. The cause, read from the code 2026-10-09, is that =d= lands
-on the next item in held order while the buffer is drawn newest-first. It closes
-with [[id:ee3c22c9-f99c-4d41-9c3d-8f39af916fff][ee3c22c9]], whose =D= mark leaves the line in place (the user).
 
 
 * TODO Nothing can correct a closed slice's record, even when the correction is close-time truth :code:
@@ -6519,6 +7047,16 @@ CLOCK: [2026-09-17 Thu 08:36]--[2026-09-17 Thu 08:37] =>  0:01
 - [2026-10-09 Fri 17:17]--[2026-10-09 Fri 17:17] plan the review-buffer quit crash
 CLOCK: [2026-10-09 Fri 17:19]--[2026-10-09 Fri 17:20] =>  0:01
 - [2026-10-09 Fri 17:19]--[2026-10-09 Fri 17:20] plan the review-buffer quit crash
+CLOCK: [2026-10-12 Mon 09:05]--[2026-10-12 Mon 09:06] =>  0:01
+- [2026-10-12 Mon 09:05]--[2026-10-12 Mon 09:06] record the 2026-10-12 crash sample
+CLOCK: [2026-10-12 Mon 09:08]--[2026-10-12 Mon 09:09] =>  0:01
+- [2026-10-12 Mon 09:08]--[2026-10-12 Mon 09:09] apply the diff-hl-update-async experiment
+CLOCK: [2026-10-12 Mon 09:09]--[2026-10-12 Mon 09:11] =>  0:02
+- [2026-10-12 Mon 09:09]--[2026-10-12 Mon 09:11] assigned at review
+CLOCK: [2026-10-12 Mon 09:16]--[2026-10-12 Mon 09:17] =>  0:01
+- [2026-10-12 Mon 09:16]--[2026-10-12 Mon 09:17] assigned at review
+CLOCK: [2026-10-12 Mon 09:20]--[2026-10-12 Mon 09:21] =>  0:01
+- [2026-10-12 Mon 09:20]--[2026-10-12 Mon 09:21] assigned at review
 :END:
 :PLAN:
 Dropped from [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]] on 2026-10-09 (the user): no wedge since 2026-10-06, and
@@ -6892,6 +7430,38 @@ stack sample is =~/.claude/emacs-samples/20261006T114432-9810.txt=; it shows
 =handle_fatal_signal= → =shut_down_emacs= → =kill_buffer_processes= →
 =redisplay_preserve_echo_area=, waiting on the GUI thread. Recovered with =kill
 -9= and a relaunch. The ceremony steps after apply did not run.
+
+*The signal is named, 2026-10-12 09:03.* It recurred at review-buffer quit,
+after the apply and the ceremony had saved both files (committed as [[orgit-rev:./::fc569fa][fc569fa]]).
+The stack sample is =~/.claude/emacs-samples/20261012T090316-17517.txt=. Besides
+the usual shutdown deadlock, it carries a third thread the earlier accounts
+never read: the =org.gnu.Emacs.drawing= queue, in
+=__mac_draw_cg_image_block_invoke= → =CGContextDrawImage= → =ripc_DrawImage= →
+=handle_sigsegv= → =deliver_fatal_thread_signal=. So the fatal signal is a
+**SIGSEGV on the drawing thread while it draws an image into a frame**. It is
+not delivered to the idle select loop; that is only where the Lisp thread
+happened to be waiting. The 2026-10-06 sample carries the identical
+drawing-thread frames, which its paragraph above missed. That makes it two of
+two samples taken since the failure hook started sampling.
+
+Both samples also show a crowd of =diff-hl--update= threads: 14 now, 45 on
+2026-10-06, against 4 on 2026-09-16. In today's sample one of them is in
+=Fdelete_process= → =redisplay_preserve_echo_area= → =update_frame=, so it is
+redisplaying from a non-main Lisp thread at the same moment. A ceremony touches
+=TODO.org= and =DONE.org=, which starts a diff-hl update per buffer. The working
+hypothesis is concurrent redisplay from diff-hl's async threads racing the
+drawing queue. This is not shown, but it now explains both the signal and the
+ceremony correlation. The =diff-hl-update-async= nil experiment in =:PLAN:= now
+tests the cause rather than only the odds of the shutdown wedge.
+
+*Experiment applied 2026-10-12 (the user):* =diff-hl-update-async= is nil,
+through an =after! diff-hl= block at the end of =~/.config/doom/config.el=. It
+overrides the =thread= value that Doom's =ui/vc-gutter= module sets in its
+diff-hl config, commented "PERF: don't block Emacs when updating vc gutter". It
+was also evaluated in the running Emacs, and no buffer holds a local value. A
+further freeze whose sample shows no =diff-hl--update= threads weakens the
+hypothesis; freezes stopping when leaving the review buffer supports it. Revert
+by deleting the block.
 
 
 * TODO Per-machine port via ${VAR:-45571} in .mcp.json, with the wire check env-aware :code:
@@ -8054,62 +8624,6 @@ the resulting =json-rpc-error= escaped every handler. That fix removes the
 *reason* to reach for the =emacsclient= fallback, which is exactly why this one
 must not be quietly dropped with it: the trap is now rarer and no less silent,
 and rarity is what keeps a false success unnoticed.
-
-
-* TODO claude-code-ide-org-review should return point and windows to where I entered from :code:bounded:
-:PROPERTIES:
-:ID:       6c64cc9c-33a9-4a20-af19-c188a690c755
-:CREATED:  [2026-09-02 Wed 09:09]
-:CATEGORY: Apply
-:END:
-:LOGBOOK:
-- [2026-10-09 Fri 18:44]--[2026-10-09 Fri 18:44] plan restoring windows after review
-CLOCK: [2026-10-09 Fri 18:46]--[2026-10-09 Fri 18:47] =>  0:01
-- [2026-10-09 Fri 18:46]--[2026-10-09 Fri 18:47] plan restoring windows after review
-- Tags ":code:bounded:" from ":code:"     [2026-10-09 Fri 18:47] \\
-  first classification: the review command's entry and bury paths already exist
-:END:
-:PLAN:
-Design, bounded (the user approved it while planning [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]], 2026-10-09). The
-options weighed were window configuration only, position by =:ID:=, or both;
-both was chosen, since a marker cannot survive the ceremony's archiving and
-sorting while an id survives them by construction (the user).
-
-Entry. Before =pop-to-buffer=, =claude-code-ide-org-review= saves the window
-configuration and, when the current buffer visits a tracked org file, the =:ID:=
-of the heading point is in and point's offset from that heading's start; before
-the first heading it saves the raw position.
-
-Exit. The =quit-window= advice and the =kill-buffer-hook= path restore after the
-ceremony steps have run, since they rewrite the file the position lives in: the
-layout first, then the heading found by =--id-find=, point at the same offset
-clamped to the heading's end so a reflowed body cannot carry it into the next
-heading. A non-org entry buffer restores the layout only.
-
-Archived and missing. When the id now resolves into DONE.org, the layout is
-restored, point stays at the top of the file, and a message names the title, the
-id and how to follow it, "M-x org-id-goto RET <id>", with the full id copied to
-the kill ring so following it is =M-x org-id-goto RET C-y RET= (the user:
-decline, and say so with the id and how to go to it). An id that resolves
-nowhere is said so too, layout only. Leaving by =C-x b= buries nothing and so
-restores nothing, as it runs no ceremony today.
-
-Testing. ERT on a scratch tracked file in batch, the window-configuration calls
-stubbed since batch has no windows: the entry heading is found again after a
-sort moves it; an archived heading produces the message with the full id, which
-is also on the kill ring; a non-org entry buffer restores the layout only; the
-offset is clamped. Run red against HEAD's version first. The layout half is
-checked live in the user's Emacs.
-
-:END:
-=M-x claude-code-ide-org-review= should leave the user where they entered (the
-user, 2026-09-02). It ends in =pop-to-buffer= and saves no window configuration
-or position, =RET= moves point in TODO.org, and the ceremony that runs on bury
-archives and sorts the file a saved position lives in, so a plain marker cannot
-survive it. Designed 2026-10-09 (the user): restore the layout, then the entry
-heading by =:ID:= and offset, after the ceremony; an archived heading is
-declined with a message naming its id and how to follow it. Adjacent, not the
-same: [[id:29734f79-e698-43dd-abf8-14bc86b8b0ae][29734f79]] made the ceremony report its completion on bury.
 
 
 * TODO Classify gaps by markers at either end, not by tracking an AFK state :code:
@@ -9760,12 +10274,13 @@ before the fix and still says.
 
 
 * TODO Archive closed tasks daily
-SCHEDULED: <2026-10-11 Sun 07:00 ++1d>
+SCHEDULED: <2026-10-17 Sat 07:00 ++1d>
 :PROPERTIES:
 :CATEGORY: Meta
 :ID:       cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8
 :CREATED:  [2026-08-21 Fri 15:35]
-:LAST_REPEAT: [2026-10-10 Sat 17:24]
+:LAST_REPEAT: [2026-10-16 Fri 08:47]
+:KIND:     ceremony
 :END:
 :LOGBOOK:
 CLOCK: [2026-08-24 Mon 10:25]--[2026-08-24 Mon 10:28] =>  0:03
@@ -9836,97 +10351,6 @@ carries no keyword and completes nothing.
 A standing daily prompt to do review and planning. It reminds and does not
 create: today's node is created on demand when work happens, and the repeater
 sits on the category, the one place in this repo a repeater is safe.
-
-
-* TODO Decide how far the review-apply cycle can be automated, given the interactive constraint :code:spike:
-:PROPERTIES:
-:CATEGORY: Apply
-:ID:       361e2708-8124-4bd1-9c44-f97ca97aca4a
-:CREATED:  [2026-08-21 Fri 08:08]
-:END:
-:LOGBOOK:
-- State "TODO"       from              [2026-08-21 Fri 08:09] \\
-  decide the automation boundary
-- [2026-10-09 Fri 18:50]--[2026-10-09 Fri 18:50] plan how far apply can be automated
-CLOCK: [2026-10-09 Fri 18:51]--[2026-10-09 Fri 18:52] =>  0:01
-- [2026-10-09 Fri 18:51]--[2026-10-09 Fri 18:52] plan how far apply can be automated
-CLOCK: [2026-10-09 Fri 20:26]--[2026-10-09 Fri 20:29] =>  0:03
-- [2026-10-09 Fri 20:26]--[2026-10-09 Fri 20:29] plan how far apply can be automated
-- Tags ":code:spike:" from ":code:"     [2026-10-09 Fri 20:28] \\
-  first classification: a decision whose output is an answer, not code
-- [2026-10-09 Fri 20:46]--[2026-10-09 Fri 20:46] plan how far apply can be automated
-:END:
-:PLAN:
-
-Raised by the user 2026-08-21: the review-apply cycle "seems pretty
-straightforward lately", so how much of it still needs a human at all?
-
-*It is three layers, and only one of them is actually walled.* Keeping them
-apart is the whole of this heading, because "automate the review" reads as one
-question and is not:
-
-1. *Deciding what a span means* -- computing a heading for an unassigned
-   interval. Pure computation over the queue and whatever external evidence is
-   admitted; it touches no org buffer and no live Emacs state. Automatable in
-   principle, and the thing standing in its way is evidence, not architecture --
-   see [[id:5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46][5a6d2c75]].
-2. *Confirming* -- the human keystroke per item. Not walled, just currently
-   per-item.
-3. *Writing* -- applying through native
-   =org-todo=/=org-clock-in=/=org-clock-out=. This is the wall, and CLAUDE.md
-   names it as load-bearing: org's native state-change logging only completes
-   correctly inside a genuinely interactive command, and a non-interactive
-   =emacsclient -e= hits the exact hang the queue exists to route around. The
-   concrete mechanism is the =#+TODO:= cookies -- =WAITING(w@/!)= and
-   =CANCELLED(c@)= carry =@= and *prompt for a note*, so those two keywords and
-   only those two block a non-interactive apply.
-
-*So "completely" is available for layer 1 and not for layer 3.* The honest
-target is that layer 2 collapses: a pass in which every item is unambiguous
-should be appliable with one confirmation for the whole pass rather than one per
-item, still inside =M-x claude-code-ide-org-review= so layer 3 keeps its
-interactive context. Nothing about that weakens the constraint -- the command is
-still human-triggered and still interactive.
-
-*What has to be defined before any of it is built:* what "unambiguous" means
-mechanically. A rule that admits a bulk confirmation has to be one a human can
-trust without reading the items, which is a higher bar than the per-item readout
-meets today.
-
-*The objection that binds, and its exact scope.*
-[[id:0c8644ff-f7b1-4789-ac1e-babf2e9fbc8e][0c8644ff]] records that a model
-reasoning over the queue file alone has *strictly less* information than the
-threshold algorithm -- the same timestamps and heading IDs, minus any domain
-knowledge -- and that a fluent proposal is harder to reject than a transparently
-mechanical one. That holds against any automation whose only input is the queue.
-It does not settle the case for an automation that reads the session
-transcripts, which carry what the queue does not.
-
-The answer, read from the tracker and the code while planning [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]],
-2026-10-09; the user chose to record it and close the heading rather than keep
-it open over [[id:2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd][2cd74268]] or cancel it, since the question was answered, not
-abandoned.
-
-Layer 2 has collapsed for state items: [[id:b6e229c7-3035-4c0e-943b-710a12bfd7d1][b6e229c7]] auto-marks every state item that
-carries no judgement, so a task-only pass is already one =x=. Layer 3 is not
-walled in mechanism, contrary to this drawer's reading of the =@= cookies:
-[[id:2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd][2cd74268]] established that =--review-apply-state= drives =org-todo= and the
-deferred note with no human present, under batch included, so the wall is who
-decides to apply, not what org can do. Layer 1, attributing spans, exists only
-where time tracking is on, and belongs to [[id:c7619140-f269-4329-bc05-a38ea151e202][c7619140]], not this slice.
-
-So no code here. /work-slice records this as the resolution, debriefs with
-[[id:2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd][2cd74268]] named as where the remaining automation lives, and queues =DONE=,
-nominating the next member as a close inside a grouping requires.
-:END:
-
-Decide how much of the review-apply cycle can be automated. Deciding what a span
-means is automatable in principle and writing through native org commands is
-walled by the interactive constraint, so the target was one confirmation per
-unambiguous pass rather than one per item. Answered by 2026-10-09 (the user
-chose to record and close): [[id:b6e229c7-3035-4c0e-943b-710a12bfd7d1][b6e229c7]]'s auto-mark already makes a task-only pass
-one =x=, [[id:2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd][2cd74268]] showed the write is walled by decision rather than mechanism,
-and span attribution is time tracking's.
 
 
 * TODO An unassigned span's readout omits the evidence that would make its heading obvious :code:
@@ -10045,70 +10469,6 @@ timestamp inside the span, and a later =git fetch= in the same session overwrote
 it. Filesystem mtimes are not a corpus. Whatever this builds must read the queue
 and the transcripts, which are append-only, and not the working tree, which is
 not.
-
-
-* TODO Applied review changes can be destroyed by a git checkout that looks like it reverts only Claude's edit :code:bounded:
-:PROPERTIES:
-:CATEGORY: Apply
-:ID:       79c224ab-188a-4ed4-a606-c28ee2cfe72d
-:CREATED:  [2026-08-19 Wed 08:06]
-:END:
-:LOGBOOK:
-CLOCK: [2026-08-19 Wed 08:02]--[2026-08-19 Wed 08:08] =>  0:06
-- [2026-08-19 Wed 08:02]--[2026-08-19 Wed 08:08] assigned at review
-- State "TODO"       from              [2026-08-19 Wed 08:07] \\
-  reconciliation check is the durable fix
-CLOCK: [2026-08-19 Wed 08:20]--[2026-08-19 Wed 08:22] =>  0:02
-- [2026-08-19 Wed 08:20]--[2026-08-19 Wed 08:22] assigned at review
-CLOCK: [2026-08-19 Wed 08:28]--[2026-08-19 Wed 08:29] =>  0:01
-- [2026-08-19 Wed 08:28]--[2026-08-19 Wed 08:29] assigned at review
-CLOCK: [2026-08-19 Wed 08:42]--[2026-08-19 Wed 08:46] =>  0:04
-- [2026-08-19 Wed 08:42]--[2026-08-19 Wed 08:46] assigned at review
-- [2026-10-09 Fri 18:47]--[2026-10-09 Fri 18:47] plan checkout guard for applied changes
-CLOCK: [2026-10-09 Fri 18:48]--[2026-10-09 Fri 18:49] =>  0:01
-- [2026-10-09 Fri 18:48]--[2026-10-09 Fri 18:49] plan checkout guard for applied changes
-- Tags ":code:bounded:" from ":code:"     [2026-10-09 Fri 18:49] \\
-  first classification: the guard follows emacsclient-guard's existing shape
-:END:
-:PLAN:
-Design, bounded (the user approved it while planning [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]], 2026-10-09). Of
-the two candidate fixes the body once listed, the guard ships here and
-reconciliation is filed as [[id:7e4fb8ae-87ff-445a-b960-b7cc5302c0c8][7e4fb8ae]] (the user): the guard stops the culprit that
-actually did it, before the loss; reconciliation catches any culprit, after it.
-
-The guard. =bin/hooks/discard-guard=, PreToolUse on Bash, shaped like
-=emacsclient-guard=: plain bash and =jq=, failing open, blocking with exit 2 and
-stderr, appending =miss discard-org=. It refuses only while a tracked =.org=
-file in the repo has uncommitted changes, staged or not (=git diff --name-only
--- '*.org'= and its =--cached= twin), and only these: =git checkout --= or =git
-restore= without =--staged= whose paths include an =.org= file, =.= or a
-directory holding one; =git reset --hard=; =git stash= in its saving forms
-(bare, =push=, =save=). =stash list=, =show= and =pop= pass. The message shows
-=git diff --stat= for the =.org= files, says the changes may be another writer's
-(an apply pass, another session), and points at restoring only one's own hunks
-or going through the org tools. =ALLOW_DISCARD=1= before the command lets it
-through, still counted, as the pre-commit's =ALLOW_SWEEP=1= does.
-
-Wiring. Both =.claude/settings.json= and the plugin's =hooks/hooks.json=,
-ungated, since this is task tracking; =org-session-tracking.md='s hook table
-gains its row.
-
-Testing. A =bin/= test driving the hook with JSON on stdin in a temp git repo,
-the queue directory and session id isolated from the first case (the 2026-09-21
-rule in the slice rules): each refused form is refused with an =.org= file
-dirty; the same commands pass when it is clean or only a non-org file is dirty;
-=stash list= and =restore --staged= pass; =ALLOW_DISCARD=1= passes and is
-counted. Run red against HEAD's version first.
-
-:END:
-On 2026-08-19 five applied transitions were destroyed when a session ran =git
-checkout -- TODO.org= to undo its own edit, assuming the =M TODO.org= it saw was
-all its own; the working tree also held the human's apply pass. The watermark
-still called them applied, so they vanished from the file and from the queue
-alike; four were re-queued, and their original State lines and timestamps were
-not recovered. Designed 2026-10-09 (the user): a PreToolUse guard refuses a
-discarding git command while a tracked =.org= file has uncommitted changes, and
-reconciling watermarks against the file is filed on its own.
 
 
 * TODO Type a span's annotation at review time, not by hand-editing it after :code:
@@ -12218,7 +12578,6 @@ per tool -- rather than opening the servers beyond localhost.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
-CLOCK: [2026-10-10 Sat 17:36]--[2026-10-10 Sat 17:40] =>  0:04
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
@@ -12412,6 +12771,23 @@ CLOCK: [2026-10-09 Fri 13:22]--[2026-10-09 Fri 13:23] =>  0:01
 CLOCK: [2026-10-09 Fri 16:15]--[2026-10-09 Fri 16:17] =>  0:02
 CLOCK: [2026-10-09 Fri 17:24]--[2026-10-09 Fri 17:26] =>  0:02
 CLOCK: [2026-10-10 Sat 17:19]--[2026-10-10 Sat 17:24] =>  0:05
+CLOCK: [2026-10-10 Sat 17:36]--[2026-10-10 Sat 17:40] =>  0:04
+CLOCK: [2026-10-12 Mon 08:55]--[2026-10-12 Mon 08:57] =>  0:02
+CLOCK: [2026-10-12 Mon 09:23]--[2026-10-12 Mon 09:24] =>  0:01
+CLOCK: [2026-10-12 Mon 11:19]--[2026-10-12 Mon 11:27] =>  0:08
+CLOCK: [2026-10-12 Mon 11:27]--[2026-10-12 Mon 11:28] =>  0:01
+CLOCK: [2026-10-12 Mon 12:38]--[2026-10-12 Mon 12:39] =>  0:01
+CLOCK: [2026-10-12 Mon 14:44]--[2026-10-12 Mon 14:45] =>  0:01
+- <2026-10-12 Mon 14:44>--<2026-10-12 Mon 14:45> review pass (buffer buried)
+CLOCK: [2026-10-12 Mon 14:45]--[2026-10-12 Mon 14:46] =>  0:01
+- <2026-10-12 Mon 14:45>--<2026-10-12 Mon 14:46> review pass (buffer buried)
+CLOCK: [2026-10-12 Mon 15:05]--[2026-10-12 Mon 15:12] =>  0:07
+CLOCK: [2026-10-12 Mon 15:44]--[2026-10-12 Mon 15:48] =>  0:04
+- <2026-10-12 Mon 16:22>--<2026-10-12 Mon 16:22> review pass (buffer buried)
+- <2026-10-13 Tue 09:13>--<2026-10-13 Tue 09:13> review pass (buffer buried)
+CLOCK: [2026-10-13 Tue 16:29]--[2026-10-13 Tue 16:31] =>  0:02
+- <2026-10-13 Tue 16:29>--<2026-10-13 Tue 16:31> review pass (buffer buried)
+CLOCK: [2026-10-14 Wed 12:51]--[2026-10-14 Wed 13:01] =>  0:10
 :END:
 
 We created this heading on 2026-08-26. We deleted that property from its
@@ -13945,4 +14321,34 @@ CLOCK: [2026-10-09 Fri 13:36]--[2026-10-09 Fri 13:37] =>  0:01
 :LOGBOOK:
 CLOCK: [2026-10-10 Sat 17:24]--[2026-10-10 Sat 17:25] =>  0:01
 - [2026-10-10 Sat 17:24]--[2026-10-10 Sat 17:25] root-cause unattributed spans, file discipline fix
+:END:
+
+
+**** 2026-10-12 Monday
+:PROPERTIES:
+:ID:       bd4e4274-1a7e-40d0-93bc-fb723bf667fc
+:CREATED:  [2026-10-12 Mon 11:24]
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-12 Mon 11:24]--[2026-10-12 Mon 11:25] =>  0:01
+- [2026-10-12 Mon 11:24]--[2026-10-12 Mon 11:25] file the tool-failure report wording defects
+:END:
+
+
+**** 2026-10-13 Tuesday
+:PROPERTIES:
+:ID:       0bb2a715-90f3-47f1-9c42-0d4c170122e0
+:CREATED:  [2026-10-13 Tue 14:01]
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-13 Tue 14:01]--[2026-10-13 Tue 14:02] =>  0:01
+- [2026-10-13 Tue 14:01]--[2026-10-13 Tue 14:02] assigned at review
+CLOCK: [2026-10-13 Tue 14:03]--[2026-10-13 Tue 14:04] =>  0:01
+- [2026-10-13 Tue 14:03]--[2026-10-13 Tue 14:04] assigned at review
+CLOCK: [2026-10-13 Tue 14:53]--[2026-10-13 Tue 14:54] =>  0:01
+- [2026-10-13 Tue 14:53]--[2026-10-13 Tue 14:54] file CHANGELOG drawer task and file-per-task spike
+CLOCK: [2026-10-13 Tue 14:54]--[2026-10-13 Tue 14:55] =>  0:01
+- [2026-10-13 Tue 14:54]--[2026-10-13 Tue 14:55] assigned at review
+CLOCK: [2026-10-13 Tue 14:58]--[2026-10-13 Tue 14:59] =>  0:01
+- [2026-10-13 Tue 14:58]--[2026-10-13 Tue 14:59] assigned at review
 :END:

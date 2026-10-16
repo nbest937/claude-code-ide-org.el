@@ -166,6 +166,18 @@ session_taken_by() { # name dir -> the other project's dir, or nothing
 if [ "$org" = 1 ]; then
   tdir="$plugin_root/templates"
   wrote=0
+  # The ceremony heading's identity is minted per copy (TODO.org :ID:
+  # de081dd9): two projects sharing one :ID: would collide in org-id,
+  # and a SCHEDULED date frozen in the template would be months overdue.
+  # LC_ALL=C so the weekday is org's English abbreviation.
+  cer_id="$(uuidgen 2>/dev/null | tr '[:upper:]' '[:lower:]')"
+  [ -n "$cer_id" ] || cer_id="$(cat /proc/sys/kernel/random/uuid 2>/dev/null)"
+  if [ -z "$cer_id" ]; then
+    echo "claude-org-setup: cannot mint an :ID: (no uuidgen)" >&2
+    exit 1
+  fi
+  cer_today="$(LC_ALL=C date +'%Y-%m-%d %a')"
+  cer_now="$(LC_ALL=C date +'%Y-%m-%d %a %H:%M')"
   for f in TODO.org DONE.org; do
     if [ ! -f "$tdir/$f" ]; then
       echo "claude-org-setup: missing template: $tdir/$f" >&2
@@ -174,11 +186,34 @@ if [ "$org" = 1 ]; then
     if [ -e "$target/$f" ]; then
       echo "exists:  $target/$f (left untouched)"
     else
-      cp "$tdir/$f" "$target/$f"
+      sed -e "s/@ID@/$cer_id/" -e "s/@TODAY@/$cer_today/" \
+          -e "s/@NOW@/$cer_now/" "$tdir/$f" > "$target/$f"
       echo "created: $target/$f"
       wrote=$((wrote + 1))
     fi
   done
+
+  # The consumer's :CATEGORY: declaration (TODO.org :ID: 24694d1f).
+  # Without it a first top-level capture is refused naming "(none yet)",
+  # and every value after that is invented at capture time. Consumer-
+  # owned: no generated marker, so the hooks that refuse edits to
+  # generated copies leave it alone, and collision-checked like the org
+  # templates, so a project that already ran --org gets it by running
+  # --org again and an edited copy is never touched.
+  cat_src="$tdir/org-categories.md"
+  cat_dest="$target/.claude/rules/org-categories.md"
+  if [ ! -f "$cat_src" ]; then
+    echo "claude-org-setup: missing template: $cat_src" >&2
+    exit 1
+  fi
+  if [ -e "$cat_dest" ]; then
+    echo "exists:  $cat_dest (left untouched)"
+  else
+    mkdir -p "$target/.claude/rules"
+    cp "$cat_src" "$cat_dest"
+    echo "created: $cat_dest (yours: declare :CATEGORY: values here)"
+    wrote=$((wrote + 1))
+  fi
 
   # The consumer's own .mcp.json (TODO.org :ID: 805bf287). Without it a
   # consuming repo gets the hooks, the rules and the skill but NO org
@@ -571,6 +606,16 @@ if [ "$check" = 1 ]; then
     drifted=1
   fi
 
+  # The consumer's :CATEGORY: declaration (TODO.org :ID: 24694d1f).
+  # Presence only: the file is the project's, so its content is never
+  # compared with the template.
+  if [ -f "$target/.claude/rules/org-categories.md" ]; then
+    echo "ok:      $target/.claude/rules/org-categories.md"
+  else
+    echo "missing: $target/.claude/rules/org-categories.md -- run claude-org-setup --org"
+    drifted=1
+  fi
+
   # Two tracked projects on one session name: the wiring refuses them,
   # so the check names it too (TODO.org :ID: 965f94eb).
   if [ -d "$target" ]; then
@@ -589,7 +634,8 @@ if [ "$check" = 1 ]; then
   # clean run read as "up to date" and meant "the rules match"; naming
   # the gaps is half the fix and the cheaper half.
   echo
-  echo "Checked: promoted rules, obsolete Doom glue, this project's .mcp.json."
+  echo "Checked: promoted rules, obsolete Doom glue, this project's .mcp.json,"
+  echo "  and that its org-categories.md exists."
   echo "NOT checked: whether the running Emacs has loaded the current"
   echo "  module (needs a digest; TODO.org :ID: 2cd74268), or the"
   echo "  time_tracking option -- that is per-user and lives in"
