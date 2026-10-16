@@ -2,11 +2,52 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO org_refile can only place a heading under a parent, so a top-level heading moved by mistake cannot be put back at top level :code:
+:PROPERTIES:
+:ID:       e8db8aef-17d4-42e0-a2d1-a51f48fd35b8
+:CREATED:  [2026-10-16 Fri 13:43]
+:CATEGORY: Tools
+:END:
+
+Found recovering [[id:4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8][4a6f6dc3]]'s misrouted capture: ee3d52cd had to go back into
+noodle-salesman's TODO.org under an unrelated parent, since org_refile takes
+only a parent :ID:. Proposed: a top_level=true option, or a file= target, that
+lands the subtree at level 1 of a named tracked file. Refuse a file outside the
+tracked set.
+
+* TODO A targetless org_capture from a session with no registered project writes to the global capture file, another project's tracker, and says nothing :code:
+:PROPERTIES:
+:ID:       4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8
+:CREATED:  [2026-10-16 Fri 13:43]
+:CATEGORY: Tools
+:END:
+:PLAN:
+
+:END:
+On 2026-10-16 a noodle-salesman session captured ee3d52cd ("Add Subu Iyer to the
+Illinois territory as a rep") with no target, and it landed at the top of this
+repo's TODO.org. The session moved it back with org_refile, under an unrelated
+parent, because refile cannot make a heading top-level. --capture-target-file
+tries the calling session's project first, but the session table held only
+claude-code-ide's own buffer session (claude-noodle-salesman-20261016-082125),
+not the pinned ids noodle-salesman and claude-code-ide-org that the two
+.mcp.json URLs name. So the lookup found no project and fell through to
+claude-code-ide-org-capture-file, which is this repo's TODO.org. That missing
+registration is [[id:28eed617-e4e0-4d29-88ea-9411de4b77e5][28eed617]]. This heading is about the silent fallback: the only
+signal was a new-category warning naming the path, which reads as a typo check.
+Proposed (from that repo's brief): refuse a targetless capture when no session
+project resolves, or when the resolved file is outside the caller's project,
+naming both paths; and lead every capture reply with the destination file.
+
 * TODO [0/5] A :PLAN: can be written without the brainstorm's classify step, so most plans carry no path and /plan-slice trusts them anyway
 :PROPERTIES:
 :ID:       ad0bc484-072c-47b0-ab68-d2fc55df9281
 :CREATED:  [2026-10-15 Thu 12:50]
 :CATEGORY: Skill
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-15 Thu 12:50]--[2026-10-15 Thu 12:51] =>  0:01
+- [2026-10-15 Thu 12:50]--[2026-10-15 Thu 12:51] file the unclassified-plan story
 :END:
 :PLAN:
 
@@ -35,10 +76,18 @@ is a proposal and stays in the body until a brainstorm or a Plan Mode approval
 moves it into the drawer, so no in-drawer "awaiting brainstorm" marker is
 needed. Related, not a twin: [[id:c9c75fda-c818-4e7b-9b97-c3a68e980eab][c9c75fda]] makes the three path tags an exclusive
 group.
+
+
 ** TODO The brainstorming skill and the conventions never say a non-empty :PLAN: is an approved design whose path tag names how it was approved :prose:
 :PROPERTIES:
 :ID:       84d9bed6-1326-4cd3-a85a-2c6662709557
 :CREATED:  [2026-10-15 Thu 12:50]
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-15 Thu 12:54]--[2026-10-15 Thu 12:55] =>  0:01
+- [2026-10-15 Thu 12:54]--[2026-10-15 Thu 12:55] state when classification is owed
+CLOCK: [2026-10-15 Thu 13:03]--[2026-10-15 Thu 13:04] =>  0:01
+- [2026-10-15 Thu 13:03]--[2026-10-15 Thu 13:04] fold in the at-capture tag brief
 :END:
 :PLAN:
 
@@ -85,6 +134,8 @@ which moves existing prose rather than writing a design. Writing into an empty
 drawer is not exempt: the first design write is exactly the case to gate. A tag
 is a weak proxy, since a session can add one to pass; what the gate buys is that
 classifying becomes a deliberate act logged with a note.
+
+
 ** TODO bin/lint-org does not flag a live :PLAN: that carries no path tag :code:
 :PROPERTIES:
 :ID:       1e35a7db-f8f3-47e0-9e29-0b5f36b5e00d
@@ -98,6 +149,8 @@ its first run. Open: warn on the backlog and error only where the commit changed
 that heading's :PLAN:, or ship a warning with a migration note. The first needs
 lint to see what the commit changed, and pre-commit lints a temp copy
 ([[id:634eb138-28bc-4d43-aed3-f242c877904d][634eb138]]).
+
+
 ** TODO /plan-slice skips any member whose :PLAN: has no open question, whether or not it was ever classified :prose:
 :PROPERTIES:
 :ID:       374794f1-850f-4d1c-a978-db1433b55796
@@ -111,6 +164,8 @@ classify, bring the plan up to shape, review. This is also the backlog's route:
 an untagged plan is classified when a slice next takes it up, so no sweep is
 needed. Open: shape is judged by reading, and "reviewed" may need a recorded
 marker to be checkable.
+
+
 ** TODO :bounded: is unreachable in a young repo, so ordinary tasks there go untagged rather than mislabelled :arch: :prose:
 :PROPERTIES:
 :ID:       5ec94946-7ed7-4ff6-9206-dfa575138fc3
@@ -124,6 +179,7 @@ the flow it changes is fixed by an earlier member of the slice whose :arch:
 design is approved. That means an approved design, not merely a place in the
 order: a bounded change built on an unapproved design inherits that design's
 uncertainty. Keep "when in doubt, heavier".
+
 
 * TODO A capture or refile that gives a heading its first keyworded child leaves it with no statistics cookie, which lint-org then refuses :code:
 :PROPERTIES:
@@ -334,6 +390,11 @@ Open questions:
 CLOCK: [2026-10-13 Tue 14:53]--[2026-10-13 Tue 14:53] =>  0:00
 - [2026-10-13 Tue 14:53]--[2026-10-13 Tue 14:53] assigned at review
 - [2026-10-14 Wed 13:00]--[2026-10-14 Wed 13:00] move open questions from PLAN to body
+CLOCK: [2026-10-15 Thu 08:32]--[2026-10-15 Thu 08:33] =>  0:01
+- [2026-10-15 Thu 08:32]--[2026-10-15 Thu 08:33] move open questions from PLAN to body
+CLOCK: [2026-10-15 Thu 09:24]--[2026-10-15 Thu 09:25] =>  0:01
+- [2026-10-15 Thu 09:24]--[2026-10-15 Thu 09:25] move open questions from PLAN to body
+- [2026-10-15 Thu 12:49]--[2026-10-15 Thu 12:49] move open questions from PLAN to body
 :END:
 :PLAN:
 
@@ -778,7 +839,9 @@ CLOCK: [2026-10-12 Mon 15:11]--[2026-10-12 Mon 15:12] =>  0:01
 CLOCK: [2026-10-12 Mon 15:41]--[2026-10-12 Mon 15:42] =>  0:01
 - [2026-10-12 Mon 15:41]--[2026-10-12 Mon 15:42] suggested span, accepted at review
 :END:
+:PLAN:
 
+:END:
 After an Emacs restart on 2026-10-12, *Messages* read "standalone tools wired on
 port 45571, 0 project session(s)", and the session table was empty. An hour
 later =claude-code-ide-org--standalone-derive-projects= derived all three
@@ -788,6 +851,16 @@ read scope ([[id:d6375b21-a410-4c2d-9d5b-bfe980c4cc63][d6375b21]]) and capture r
 global. Proposed: derive the projects once the tracked set is known, or re-wire
 when it first becomes non-empty. Also refuse loudly when the derivation yields
 zero, rather than reporting success.
+
+It recurred by 2026-10-16. The session table held one entry,
+claude-noodle-salesman-20261016-082125, which is claude-code-ide's own buffer
+session, started at 08:21. Neither pinned id named by a .mcp.json URL
+(claude-code-ide-org, noodle-salesman) was registered. That day a
+noodle-salesman capture fell through to this repo's TODO.org ([[id:4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8][4a6f6dc3]]), and
+this repo's own unscoped org_query returned a noodle-salesman heading.
+Unchecked: whether starting a claude-code-ide session resets the table, or
+whether the startup wiring yielded zero again.
+
 
 
 * TODO [0/5] The SessionStart tool-failure report misstates what failed and says nothing when Emacs is down now :code:
@@ -10175,12 +10248,12 @@ before the fix and still says.
 
 
 * TODO Archive closed tasks daily
-SCHEDULED: <2026-10-16 Fri 07:00 ++1d>
+SCHEDULED: <2026-10-17 Sat 07:00 ++1d>
 :PROPERTIES:
 :CATEGORY: Meta
 :ID:       cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8
 :CREATED:  [2026-08-21 Fri 15:35]
-:LAST_REPEAT: [2026-10-15 Thu 08:27]
+:LAST_REPEAT: [2026-10-16 Fri 08:47]
 :KIND:     ceremony
 :END:
 :LOGBOOK:
