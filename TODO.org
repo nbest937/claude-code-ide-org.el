@@ -2,6 +2,27 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO A DONE that a :BLOCKER: refuses fails at apply as "did not take effect", and org's own message names the blocker as "" :code:
+:PROPERTIES:
+:ID:       7e2a6608-16a7-419b-8a99-b8016583c094
+:CREATED:  [2026-10-16 Fri 14:15]
+:CATEGORY: Apply
+:END:
+:PLAN:
+
+:END:
+On 2026-10-16 three noodle-salesman DONE transitions (4347100f, e6f2aad5,
+c66ddc28) failed apply on every attempt. The review pass said "did not take
+effect; the heading reads DOING", and org's message read "TODO state change from
+DOING to DONE blocked (by \"\")". The cause was org-depend-block-todo honouring
+each heading's :BLOCKER:. Two name 64ee96fb, a story whose grants member is
+still DOING, and e6f2aad5 names 4347100f, so they fail as a chain. org-depend
+sets no org-block-entry-blocking, hence the empty name. The user answered two
+prompts (stale, read-only) to reach a refusal that never said why. Proposed:
+when apply finds a DONE refused, name each unfinished :BLOCKER: id with its
+keyword. Have org_set_todo say the same at queue time, since a blocked DONE is
+knowable when the session queues it.
+
 * TODO org_refile can only place a heading under a parent, so a top-level heading moved by mistake cannot be put back at top level :code:
 :PROPERTIES:
 :ID:       e8db8aef-17d4-42e0-a2d1-a51f48fd35b8
