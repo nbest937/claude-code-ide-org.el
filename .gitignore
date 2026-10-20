@@ -6,3 +6,5 @@ clock-status.json
 # Byte-compiled elisp: `load' prefers a newer .elc, and git restores no
 # mtime ordering, so a tracked one can silently shadow a config.el edit.
 *.elc
+
+.envrc
