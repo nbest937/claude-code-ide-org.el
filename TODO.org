@@ -2,6 +2,49 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO A story's members split by an unrelated line in :MEMBERS: render its parent row twice in the planned list :code:
+:PROPERTIES:
+:ID:       18b5c60e-30bf-48d1-a892-29d226ca6667
+:CREATED:  [2026-10-20 Tue 11:56]
+:CATEGORY: Slices
+:END:
+:PLAN:
+
+:END:
+In slice [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]]'s Planned: list, parent row [[id:c12d4189-6bb6-467b-8928-b7bdefcdc921][c12d4189]] appears twice. Its four
+discard-guard and ceremony findings sit under the first copy, [[id:d30b3481-374c-4921-9fdb-284dd8e09e14][d30b3481]] and
+[[id:826d621c-25f5-4f06-9961-4b23f8658880][826d621c]] come next, and its other two findings sit under the second copy. This
+is by design: claude-code-ide-org--slice-render-planned-lines gives a member a
+new parent row whenever the previous member had a different parent, "so order in
+:MEMBERS: is always the order shown". But a reader sees the same story twice and
+can't tell from the list that it is one unit. Options: keep a story's members
+together under one row, placed at its first member's position; or keep the order
+and have bin/lint-org or the refresh report a parent whose members are not
+contiguous, so :MEMBERS: gets reordered. Settle the choice before building.
+[[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]] is closing, so the instance there stays as a record.
+
+* TODO A DONE refused at apply leaves its note on org-depend's :blocked: tag line instead of a state line :code:
+:PROPERTIES:
+:ID:       8e33ea9e-54c0-458f-968d-28054dc464a7
+:CREATED:  [2026-10-20 Tue 11:56]
+:CATEGORY: Apply
+:END:
+:PLAN:
+
+:END:
+Seen in noodle-salesman on 2026-10-20. A :BLOCKER: refused e6f2aad5's queued
+DONE at apply. Its :LOGBOOK: then gained the line `- Tags ":bounded:blocked:"
+from ":bounded:"`, carrying the DONE's note ("11/11 pass; usage rows
+confirmed"). Likely mechanism, not yet verified: when org-depend-block-todo
+refuses, it toggles the blocked tag through org-set-tags
+(org-depend-tag-blocked). The hand-edit advice
+claude-code-ide-org--log-hand-tag-change then calls org-add-log-setup 'tags,
+which takes over org's single pending-note slot, and the apply's note is written
+under that tag line. So a refused transition records its reason as a tag change.
+Proposed: the advice stands aside while the apply pass runs, or while the
+blocker hook runs, as it already does for org_set_tags. Check: refuse a blocked
+DONE in a test file and assert that no Tags line carries the note.
+
 * TODO A slice's incidental list renders a subtask flat, with no row naming the story it belongs to :code:
 :PROPERTIES:
 :ID:       2608c131-87cf-4b74-b7d1-970277632bb1
@@ -47,8 +90,16 @@ flags :MEMBERS: naming both a parent and its child.
 :CATEGORY: Queue
 :END:
 :LOGBOOK:
+CLOCK: [2026-10-20 Tue 09:03]--[2026-10-20 Tue 09:04] =>  0:01
+- [2026-10-20 Tue 09:03]--[2026-10-20 Tue 09:04] assigned at review
+CLOCK: [2026-10-20 Tue 09:12]--[2026-10-20 Tue 09:13] =>  0:01
+- [2026-10-20 Tue 09:12]--[2026-10-20 Tue 09:13] assigned at review
 CLOCK: [2026-10-20 Tue 09:13]--[2026-10-20 Tue 09:14] =>  0:01
 - [2026-10-20 Tue 09:13]--[2026-10-20 Tue 09:14] diagnose DONEs lost from the queue
+CLOCK: [2026-10-20 Tue 09:14]--[2026-10-20 Tue 09:16] =>  0:02
+- [2026-10-20 Tue 09:14]--[2026-10-20 Tue 09:16] assigned at review
+- [2026-10-20 Tue 11:08]--[2026-10-20 Tue 11:09] assigned at review
+- [2026-10-20 Tue 11:10]--[2026-10-20 Tue 11:10] assigned at review
 :END:
 :PLAN:
 
@@ -12495,7 +12546,6 @@ per tool -- rather than opening the servers beyond localhost.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
-CLOCK: [2026-10-20 Tue 11:49]--[2026-10-20 Tue 11:50] =>  0:01
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
@@ -12706,6 +12756,7 @@ CLOCK: [2026-10-12 Mon 15:44]--[2026-10-12 Mon 15:48] =>  0:04
 CLOCK: [2026-10-13 Tue 16:29]--[2026-10-13 Tue 16:31] =>  0:02
 - <2026-10-13 Tue 16:29>--<2026-10-13 Tue 16:31> review pass (buffer buried)
 CLOCK: [2026-10-14 Wed 12:51]--[2026-10-14 Wed 13:01] =>  0:10
+CLOCK: [2026-10-20 Tue 11:49]--[2026-10-20 Tue 11:50] =>  0:01
 :END:
 
 We created this heading on 2026-08-26. We deleted that property from its
