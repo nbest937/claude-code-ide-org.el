@@ -8,6 +8,151 @@ Archived entries from file /Users/neil.best/git/claude-code-ide-org/TODO.org
 
 ** 2026-10 October
 *** 2026-10-20 Tuesday
+**** DONE [21/21] The review pass every install uses: movement, marking, apply, quit, and no clock where tracking is off :code:
+CLOSED: [2026-10-20 Tue 12:24]
+:PROPERTIES:
+:ID:       5a4896c3-3d4e-4b12-9f9e-06b97d84b238
+:CREATED:  [2026-10-09 Fri 11:15]
+:CATEGORY: Slices
+:KIND:     slice
+:COOKIE_DATA: checkbox recursive
+:MEMBERS:  97b4f6a9-a944-40d3-8d14-7a1667c52291 24694d1f-34b4-495b-b0d8-d29e64894c59 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 41f21b4d-278d-4ad8-a56f-122f5af33d65 9f6b19b5-18db-4d56-8545-9552a5b4e935 d66ae1d2-5a40-4f4d-ae51-c8977e78681c b3177ed0-9747-4e31-ad65-bac25b9bdd1f d241ab6e-6cfe-482a-8980-8cb222d7ab12 e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 ee3c22c9-f99c-4d41-9c3d-8f39af916fff 6c64cc9c-33a9-4a20-af19-c188a690c755 79c224ab-188a-4ed4-a606-c28ee2cfe72d 361e2708-8124-4bd1-9c44-f97ca97aca4a 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd de081dd9-1853-4d79-94fc-2edac498380f 2b8930da-5223-4b75-b4f6-251a28552d1b 789a25c7-84aa-4c30-b8a6-252e149b6114 9c1afc7a-161d-4e4c-aa93-9c02becfb5ba 025a2e8a-9b21-4044-b9df-79baf7e904ce c8ba3f41-1cec-4b67-be0e-145ccebaff8a d30b3481-374c-4921-9fdb-284dd8e09e14 826d621c-25f5-4f06-9961-4b23f8658880 84e9c7ef-72f2-4694-b471-1419f8b0dd33 70d742fa-dc41-4005-8c07-01df75b3331f 2f4c04a1-db56-4427-ae62-591ba52607c6 6a6f6708-eefd-4d77-8ca0-0c5aaaa80796
+:DROPPED:  489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd d30b3481-374c-4921-9fdb-284dd8e09e14 826d621c-25f5-4f06-9961-4b23f8658880 2f4c04a1-db56-4427-ae62-591ba52607c6 6a6f6708-eefd-4d77-8ca0-0c5aaaa80796
+:ARCHIVE_TIME: 2026-10-20 Tue 14:54
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Slices
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-10-09 Fri 11:25] \\
+  user: so the tool serves another project with ease
+CLOCK: [2026-10-10 Sat 15:19]--[2026-10-10 Sat 15:20] =>  0:01
+- [2026-10-10 Sat 15:19]--[2026-10-10 Sat 15:20] revise slice 5a4896c3's own plan
+- [2026-10-10 Sat 15:20]--[2026-10-10 Sat 15:20] assigned at review
+- State "DOING"      from "NEXT"       [2026-10-10 Sat 17:26] \\
+  slice work started on its branch
+CLOCK: [2026-10-10 Sat 17:26]--[2026-10-10 Sat 17:27] =>  0:01
+- [2026-10-10 Sat 17:26]--[2026-10-10 Sat 17:27] assigned at review
+CLOCK: [2026-10-12 Mon 18:10]--[2026-10-12 Mon 18:17] =>  0:07
+- [2026-10-12 Mon 18:10]--[2026-10-12 Mon 18:17] assigned at review
+- State "REVIEW"     from "DOING"      [2026-10-13 Tue 10:05] \\
+  PR #37 review started; every planned member finished
+- State "DONE"       from "REVIEW"     [2026-10-20 Tue 12:24] \\
+  PR #37 merged as cefcb2b
+CLOCK: [2026-10-20 Tue 12:24]--[2026-10-20 Tue 12:25] =>  0:01
+- [2026-10-20 Tue 12:24]--[2026-10-20 Tue 12:25] close slice 5a4896c3 after PR #37 merged
+:END:
+:PLAN:
+Divided out of [[id:c7619140-f269-4329-bc05-a38ea151e202][c7619140]] on 2026-10-09 (the user, a three-way split). The members
+are those a task-only install also meets, since the review buffer and apply
+serve state changes whether or not time tracking is on.
+
+The order, one line each (revised 2026-10-10 by /plan-slice, every member
+brainstormed; where a member's drawer disagrees with a line here, the member
+wins):
+
+- [[id:97b4f6a9-a944-40d3-8d14-7a1667c52291][97b4f6a9]] (arch) first: it stops the review pass opening a clock where tracking is off, so this slice stops imposing time tracking on the installs it exists to serve.
+- [[id:24694d1f-34b4-495b-b0d8-d29e64894c59][24694d1f]] (bounded) second: a new project's first top-level capture is refused until it has somewhere to declare its categories, so it is the next thing a consumer meets.
+- [[id:41f21b4d-278d-4ad8-a56f-122f5af33d65][41f21b4d]], [[id:9f6b19b5-18db-4d56-8545-9552a5b4e935][9f6b19b5]], [[id:ee3c22c9-f99c-4d41-9c3d-8f39af916fff][ee3c22c9]], [[id:e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b][e95cc5d1]] and [[id:396fd1c3-70e0-4e1f-8839-670b5293a7d3][396fd1c3]] together: movement, help text and marking in the buffer, all in the same few commands. [[id:e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b][e95cc5d1]] closes with [[id:ee3c22c9-f99c-4d41-9c3d-8f39af916fff][ee3c22c9]], whose mark design removes the advance it reports.
+- [[id:6c64cc9c-33a9-4a20-af19-c188a690c755][6c64cc9c]] (bounded): returning point and windows on exit, by :ID:, the last of the buffer-handling members.
+- [[id:d66ae1d2-5a40-4f4d-ae51-c8977e78681c][d66ae1d2]] then [[id:b3177ed0-9747-4e31-ad65-bac25b9bdd1f][b3177ed0]]: one change to the scoped org_outline's front matter serves both, so they are worked together.
+- [[id:d241ab6e-6cfe-482a-8980-8cb222d7ab12][d241ab6e]] (bounded), then [[id:de081dd9-1853-4d79-94fc-2edac498380f][de081dd9]] (arch): both change the session-start report, the twins named first, then the ceremony run there itself and its :KIND: ceremony schedule.
+- [[id:79c224ab-188a-4ed4-a606-c28ee2cfe72d][79c224ab]] (bounded): a checkout destroying applied changes, a guard outside the buffer; its reconciliation half is filed as [[id:7e4fb8ae-87ff-445a-b960-b7cc5302c0c8][7e4fb8ae]], outside the slice.
+- [[id:361e2708-8124-4bd1-9c44-f97ca97aca4a][361e2708]] (spike): closes on the answer already recorded in its drawer, with no code.
+- [[id:2b8930da-5223-4b75-b4f6-251a28552d1b][2b8930da]] (spike) last: the consumer checks, run from agentic-euchre against this slice's feature branch before the PR merges, so they exercise the fixes above from the consumer's side.
+
+*Dropped, 2026-10-10:* [[id:489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938][489d6f61]], the crash at review-buffer quit, which has not
+recurred and is being investigated from the Emacs side, its drawer offering
+diff-hl-update-async set to nil as a mitigation, not applied; and [[id:2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd][2cd74268]], the
+task-only auto-apply toggle, whose drawer records that [[id:f12f9da4-2870-45b7-8c50-ea54415c7bc6][f12f9da4]]'s whole-file
+digest is not the apply-path reset it needs. The :DROPPED: property holds both;
+the checklist shows the second once the queue is applied.
+
+*First use of the split commands* ([[id:dc21f724-78f9-4da8-9d74-002ad3306446][dc21f724]], [[https://github.com/nbest937/claude-code-ide-org.el/pull/36][PR #36]] review, 2026-10-09). This
+slice is the first planned and worked under =/plan-slice= and =/work-slice=.
+The read-only =/work-slice= run meant to precede planning was not verified in
+this planning session. The =/next-session= stub is deleted once the slice is
+worked ([[id:d30c00ce-95fb-4fea-8709-bcea80700646][d30c00ce]]).
+:END:
+:DEBRIEF:
+Shipped on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]], merged 2026-10-20 as commit [[orgit-rev:./::cefcb2b][cefcb2b]], 86 commits from
+feature/review-pass-every-install.
+
+- The review pass no longer opens a clock where time tracking is off ([[id:97b4f6a9-a944-40d3-8d14-7a1667c52291][97b4f6a9]]).
+- A consuming repo has somewhere to declare its categories ([[id:24694d1f-34b4-495b-b0d8-d29e64894c59][24694d1f]]).
+- The review buffer gained movement, mark-to-dismiss and recentring, with corrected help text ([[id:41f21b4d-278d-4ad8-a56f-122f5af33d65][41f21b4d]], [[id:9f6b19b5-18db-4d56-8545-9552a5b4e935][9f6b19b5]], [[id:e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b][e95cc5d1]], [[id:ee3c22c9-f99c-4d41-9c3d-8f39af916fff][ee3c22c9]], [[id:396fd1c3-70e0-4e1f-8839-670b5293a7d3][396fd1c3]]), and returns point and windows on exit ([[id:6c64cc9c-33a9-4a20-af19-c188a690c755][6c64cc9c]]).
+- The scoped org_outline names the slices counting a heading and what it blocks ([[id:d66ae1d2-5a40-4f4d-ae51-c8977e78681c][d66ae1d2]], [[id:b3177ed0-9747-4e31-ad65-bac25b9bdd1f][b3177ed0]]).
+- The session-start report names possible twins, and the ceremony runs from session start ([[id:d241ab6e-6cfe-482a-8980-8cb222d7ab12][d241ab6e]], [[id:de081dd9-1853-4d79-94fc-2edac498380f][de081dd9]]).
+- discard-guard was added ([[id:79c224ab-188a-4ed4-a606-c28ee2cfe72d][79c224ab]]), and the automation question was answered with no code ([[id:361e2708-8124-4bd1-9c44-f97ca97aca4a][361e2708]]).
+- The consumer checks were run from agentic-euchre ([[id:2b8930da-5223-4b75-b4f6-251a28552d1b][2b8930da]]).
+
+Verified: bin/test-all passed 27 suites and 1718 tests on 2026-10-20, just
+before the merge. The /code-review run of 2026-10-12 posted ten findings, and
+all ten threads are answered and resolved. Six were fixed on the branch with a
+test each ([[id:c12d4189-6bb6-467b-8928-b7bdefcdc921][c12d4189]]).
+
+Differed from the plan: the review window held four findings that were deferred,
+not fixed: [[id:d30b3481-374c-4921-9fdb-284dd8e09e14][d30b3481]], [[id:826d621c-25f5-4f06-9961-4b23f8658880][826d621c]], [[id:2f4c04a1-db56-4427-ae62-591ba52607c6][2f4c04a1]] and [[id:6a6f6708-eefd-4d77-8ca0-0c5aaaa80796][6a6f6708]]. Only [[id:d30b3481-374c-4921-9fdb-284dd8e09e14][d30b3481]] was dropped
+at triage. The other three kept the slice blocked until they were dropped on
+2026-10-20, the day of the merge. All four stay open elsewhere, so nothing here
+is unfiled. Also differing: [[id:c12d4189-6bb6-467b-8928-b7bdefcdc921][c12d4189]]'s parent row renders twice in the
+checklist, because its members are split in :MEMBERS:; that is filed as
+[[id:18b5c60e-30bf-48d1-a892-29d226ca6667][18b5c60e]].
+:END:
+
+The part of the review pass a task-only install also uses, divided out of
+[[id:c7619140-f269-4329-bc05-a38ea151e202][c7619140]] on 2026-10-09 (the user) so it can ship without waiting on the
+time-tracking work. [[id:489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938][489d6f61]] was dropped while this slice was planned,
+2026-10-09 (the user): the wedge has not recurred since 2026-10-06, the user is
+investigating it from the Emacs side elsewhere, and nothing in it can be planned
+until one is caught. Its plan records the offered diff-hl probe. [[id:2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd][2cd74268]] was
+dropped the same day (the user): the slice's only arch-sized design, it needs an
+apply-path digest nothing provides, and the slice's purpose is met without it,
+since a task-only pass is already one =x=.
+
+Planned:
+
+- [X] [[id:97b4f6a9-a944-40d3-8d14-7a1667c52291][97b4f6a9]] DONE The review command clocks the reviewer's attention even where time tracking is off, and without the meta-work anchor files the heading under whatever comes last
+- [X] [[id:24694d1f-34b4-495b-b0d8-d29e64894c59][24694d1f]] DONE A consuming repo has nowhere to declare its :CATEGORY: values, so its first top-level capture makes one up
+- [[id:489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938][489d6f61]] DOING Emacs died of a fatal signal at review-buffer quit, deadlocked in the mac port's shutdown
+- [X] [[id:41f21b4d-278d-4ad8-a56f-122f5af33d65][41f21b4d]] DONE The review buffer has no keys to move between items; bind n and p to the next and previous item
+- [X] [[id:9f6b19b5-18db-4d56-8545-9552a5b4e935][9f6b19b5]] DONE The review buffer's help says ? marks an unassigned span, but ! is the span with no heading and ? the one with a suggestion
+- [X] [[id:d66ae1d2-5a40-4f4d-ae51-c8977e78681c][d66ae1d2]] DONE A scoped org_outline does not say which slices count the heading, so finding them means reading every slice
+- [X] [[id:b3177ed0-9747-4e31-ad65-bac25b9bdd1f][b3177ed0]] DONE org_outline shows what a heading is blocked by, never what it blocks
+- [X] [[id:d241ab6e-6cfe-482a-8980-8cb222d7ab12][d241ab6e]] DONE The session-start report counts possible twins but never names them, so neither the user nor the session can judge the flag
+- [X] [[id:e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b][e95cc5d1]] DONE =d= advances point in the review buffer, onto whatever moved up to replace the dismissed item
+- [X] [[id:396fd1c3-70e0-4e1f-8839-670b5293a7d3][396fd1c3]] DONE Recenter after `m` advances, so the item under consideration is never at the bottom of the window
+- [X] [[id:ee3c22c9-f99c-4d41-9c3d-8f39af916fff][ee3c22c9]] DONE Make =d= mark for dismissal rather than dismiss, so a shared reason can be given once
+- [X] [[id:6c64cc9c-33a9-4a20-af19-c188a690c755][6c64cc9c]] DONE claude-code-ide-org-review should return point and windows to where I entered from
+- [X] [[id:79c224ab-188a-4ed4-a606-c28ee2cfe72d][79c224ab]] DONE Applied review changes can be destroyed by a git checkout that looks like it reverts only Claude's edit
+- [X] [[id:361e2708-8124-4bd1-9c44-f97ca97aca4a][361e2708]] DONE Decide how far the review-apply cycle can be automated, given the interactive constraint
+- [[id:2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd][2cd74268]] TODO Let a task-only install auto-apply state transitions, behind a toggle
+- [X] [[id:de081dd9-1853-4d79-94fc-2edac498380f][de081dd9]] DONE The steps after apply run only when the review buffer is buried, so a session can never offer them when they are overdue
+- [X] [[id:2b8930da-5223-4b75-b4f6-251a28552d1b][2b8930da]] DONE Nothing in the drift slice was exercised in a consumer install: the new hooks, the conditional time-file promotion, the twin-checker agent
+- [[id:c12d4189-6bb6-467b-8928-b7bdefcdc921][c12d4189]] DONE PR #37's review found ten defects the slice shipped
+  - [X] [[id:789a25c7-84aa-4c30-b8a6-252e149b6114][789a25c7]] DONE discard-guard's dirty-file scan is relative to cwd, so from a subdirectory a dirty root TODO.org goes unseen and reset --hard goes through
+  - [X] [[id:9c1afc7a-161d-4e4c-aa93-9c02becfb5ba][9c1afc7a]] DONE Burying the review buffer advances every project's overdue ceremony, though the steps ran only on this repo's tracker
+  - [X] [[id:025a2e8a-9b21-4044-b9df-79baf7e904ce][025a2e8a]] DONE An absolute git path, checkout -f and switch --discard-changes all get past discard-guard
+  - [X] [[id:c8ba3f41-1cec-4b67-be0e-145ccebaff8a][c8ba3f41]] DONE discard-guard splits commands on ; | && || inside quotes, so a commit message naming a discard is refused and counted as a miss
+- [[id:d30b3481-374c-4921-9fdb-284dd8e09e14][d30b3481]] TODO The time-tracking stamp is global and every project's session start rewrites it, so the last session to start decides whether the review pass opens a clock
+- [[id:826d621c-25f5-4f06-9961-4b23f8658880][826d621c]] TODO SessionStart runs the ceremony's write steps inside a 15 s hook, on whatever branch is checked out
+- [[id:c12d4189-6bb6-467b-8928-b7bdefcdc921][c12d4189]] DONE PR #37's review found ten defects the slice shipped
+  - [X] [[id:84e9c7ef-72f2-4694-b471-1419f8b0dd33][84e9c7ef]] DONE org_outline's blocks: line reports a story blocking its own child
+  - [X] [[id:70d742fa-dc41-4005-8c07-01df75b3331f][70d742fa]] DONE Splitting a d-marked span with e carries :dismiss into the remainders, so x dismisses events never marked
+- [[id:2f4c04a1-db56-4427-ae62-591ba52607c6][2f4c04a1]] TODO --applied-today-p ignores the report scope and parses every .applied file at each SessionStart
+- [[id:6a6f6708-eefd-4d77-8ca0-0c5aaaa80796][6a6f6708]] TODO Every id-scoped org_outline scans every heading in every tracked file, and leaks a marker per slice
+
+Three more members dropped on 2026-10-20: [[id:826d621c-25f5-4f06-9961-4b23f8658880][826d621c]], [[id:2f4c04a1-db56-4427-ae62-591ba52607c6][2f4c04a1]] and [[id:6a6f6708-eefd-4d77-8ca0-0c5aaaa80796][6a6f6708]]. They
+are three of the four [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]] findings the user's 2026-10-13 triage deferred as
+design questions, which put them outside this merge. At the time only [[id:d30b3481-374c-4921-9fdb-284dd8e09e14][d30b3481]]
+went into :DROPPED:. The other three stayed counted, so the slice stayed blocked
+on work it had decided not to do. [[id:6a6f6708-eefd-4d77-8ca0-0c5aaaa80796][6a6f6708]] is counted in [[id:7dcec489-f5dd-4f7f-b819-a25405436b9b][7dcec489]], and the other
+two stand open at the top level.
+
+Resolved 2026-10-20: [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]] merged to main as commit [[orgit-rev:./::cefcb2b][cefcb2b]]. The 15 planned
+members still counted and the six review findings fixed under [[id:c12d4189-6bb6-467b-8928-b7bdefcdc921][c12d4189]] shipped.
+Six members were dropped, and each is accounted for above.
+
 **** DONE [6/6] PR #37's review found ten defects the slice shipped :code:
 CLOSED: [2026-10-20 Tue 09:13]
 :PROPERTIES:
@@ -315,6 +460,7 @@ Fixed in commit [[orgit-rev:./::f64bd33][f64bd33]]: the remainder path clears =:
 Resolved in f64bd33: a remainder split off by e starts with no dismissal and no
 reason, as it already started unmarked, so x dismisses only lines the human
 marked.
+
 
 *** 2026-10-13 Tuesday
 **** DONE Nothing in the drift slice was exercised in a consumer install: the new hooks, the conditional time-file promotion, the twin-checker agent :code:spike:
