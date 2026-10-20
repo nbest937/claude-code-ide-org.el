@@ -531,7 +531,17 @@ findings.
 - State "REVIEW"     from "DOING"      [2026-10-13 Tue 10:36] \\
   fixed in 7466161; in review on PR #37
 :END:
+:PLAN:
 
+:END:
+:DEBRIEF:
+Shipped in 7466161 with [[id:025a2e8a-9b21-4044-b9df-79baf7e904ce][025a2e8a]] and [[id:c8ba3f41-1cec-4b67-be0e-145ccebaff8a][c8ba3f41]]: the scan's pathspec is
+':(top)*.org', and a path argument is folded against the cwd's prefix, '..'
+included. Verified by bin/discard-guard-test, four cases run from sub/: reset
+--hard, stash and checkout -- ../TODO.org refused, and checkout . passing when
+no dirty file is under it. 62/62 passed on 2026-10-20. Accepted by the user at
+review the same day.
+:END:
 Review finding 1 on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]], reproduced. =git diff --name-only -- '*.org'=
 matches only below cwd. From =sub/=, a dirty root TODO.org leaves =dirty= empty,
 the guard exits 0, and =git reset --hard= or =git stash= wipes the file. The fix
@@ -540,6 +550,11 @@ is the pathspec =':(top)*.org'=.
 Fixed in commit [[orgit-rev:./::7466161][7466161]]: the scan uses =':(top)*.org'=, and a path argument is
 folded against the prefix, =..= included, so =git checkout .= from =sub/= still
 passes when only the root file is dirty.
+
+Resolved in 7466161: the dirty-file scan covers every .org file from the repo
+root, and a path argument is resolved against the subdirectory, so a discard run
+from sub/ is refused when the root TODO.org is dirty.
+
 
 
 ** REVIEW Burying the review buffer advances every project's overdue ceremony, though the steps ran only on this repo's tracker
@@ -557,6 +572,16 @@ passes when only the root file is dirty.
 The reviewer's fix: confine the due check and the advance to the project whose
 steps ran, with a two-project test that fails on HEAD first.
 :END:
+:DEBRIEF:
+Shipped in 2ba7f02, covered by a new ERT test; bin/test ran 946/946 on
+2026-10-20. Seen working on 2026-10-15: a bury advanced this repo's repeater and
+left noodle-salesman's for its own session start. At bury time there is no MCP
+session, so the tracker is always the capture default, this repo's, and other
+projects' ceremonies run at their session start, as intended. Not reached: the
+done-stamp, one file for every project, so a bury here still silences another
+project's report for the day. Filed as [[id:0e2f2e2f-c231-4f25-92cc-a37b63535efc][0e2f2e2f]]. Accepted by the user at review
+on 2026-10-20.
+:END:
 
 Review finding 2 on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]]. On the bury, =--ceremony-due-p= sees a consumer's
 overdue =:KIND: ceremony=. =ceremony-finish= runs the steps with FILE nil, which
@@ -570,6 +595,10 @@ runs its steps on the capture target's tracker, with the report scope bound to
 that project for the whole pass. The due check and the advance then see only
 that project's ceremony. Reloaded live 2026-10-13.
 
+Resolved in 2ba7f02: ceremony-finish binds the report scope to the project whose
+tracker its steps act on, so a bury advances only that project's ceremony.
+
+
 
 ** REVIEW An absolute git path, checkout -f and switch --discard-changes all get past discard-guard
 :PROPERTIES:
@@ -582,7 +611,15 @@ that project's ceremony. Reloaded live 2026-10-13.
 - State "REVIEW"     from "DOING"      [2026-10-13 Tue 10:36] \\
   fixed in 7466161; in review on PR #37
 :END:
+:PLAN:
 
+:END:
+:DEBRIEF:
+Shipped in 7466161 with [[id:789a25c7-84aa-4c30-b8a6-252e149b6114][789a25c7]] and [[id:c8ba3f41-1cec-4b67-be0e-145ccebaff8a][c8ba3f41]]. Verified by
+bin/discard-guard-test: /usr/bin/git reset --hard and the five forced checkout
+and switch forms are refused, and a plain git switch main still passes. 62/62
+passed on 2026-10-20. Accepted by the user at review the same day.
+:END:
 Review finding 3 on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]], reproduced. With TODO.org dirty, these three were
 each allowed in a scratch repo:
 - =/usr/bin/git reset --hard=: the segment filter accepts =*/git=, but =discards= skips only a literal =git=, so it reads the path as the subcommand.
@@ -592,6 +629,10 @@ each allowed in a scratch repo:
 Fixed in commit [[orgit-rev:./::7466161][7466161]]: an absolute git path is skipped like =git=, and
 =checkout -f=/=--force= and =switch -f=/=--force=/=--discard-changes= are
 refused; a plain =switch= still passes.
+
+Resolved in 7466161: an absolute git path, checkout -f/--force and switch
+-f/--force/--discard-changes are refused while a .org file is dirty.
+
 
 
 ** REVIEW discard-guard splits commands on ; | && || inside quotes, so a commit message naming a discard is refused and counted as a miss
@@ -605,7 +646,19 @@ refused; a plain =switch= still passes.
 - State "REVIEW"     from "DOING"      [2026-10-13 Tue 10:36] \\
   fixed in 7466161; in review on PR #37
 :END:
+:PLAN:
 
+:END:
+:DEBRIEF:
+Shipped in 7466161 with [[id:789a25c7-84aa-4c30-b8a6-252e149b6114][789a25c7]] and [[id:025a2e8a-9b21-4044-b9df-79baf7e904ce][025a2e8a]]. The split runs in awk, because a
+per-character bash loop took 18 s on a 40 KB heredoc. Verified by
+bin/discard-guard-test: three quoted commands pass and are not counted, while a
+real chain after a quote is still refused. On 2026-10-20 a probe confirmed
+escaped quotes inside double quotes are handled. It also found one false
+positive: a heredoc whose body has git reset --hard on a line of its own is
+refused and counted as a miss, since a newline is a separator. The user accepted
+that as rare and on the safe side; not worth filing unless it recurs.
+:END:
 Review finding 4 on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]], observed live. =git commit -m "…; git reset --hard
 …"= splits at the =;= into a segment that is blocked, and a =discard-org= miss
 is appended. The review's own probe triggered it at 2026-10-12 18:15:12, so
@@ -616,6 +669,10 @@ Fixed in commit [[orgit-rev:./::7466161][7466161]]: the command line splits at =
 only outside quotes. The splitter is awk, because a bash per-character loop took
 18 s on a 40 KB heredoc; awk takes 0.2 s. The false miss of 2026-10-12 18:15:12
 stays in the count, which is a floor rather than a ledger.
+
+Resolved in 7466161: the command line is split at ; | & and newlines only
+outside quotes, so a commit message naming a discard passes.
+
 
 
 ** REVIEW org_outline's blocks: line reports a story blocking its own child
@@ -629,6 +686,11 @@ stays in the count, which is a floor rather than a ledger.
 - State "DOING"      from "TODO"       [2026-10-13 Tue 10:36] \\
   retroactive: fixed this session
 :END:
+:DEBRIEF:
+Shipped in 83be1a1: one added condition excludes any blocked heading whose id is
+in the subtree's own ids, and the docstring says why. Covered by a new ERT test;
+bin/test ran 946/946 on 2026-10-20. Accepted by the user at review the same day.
+:END:
 
 Review finding 7 on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]]. Story X has children A and B, and B's =:BLOCKER:=
 is A. =org_outline scope=X= prints =blocks: B=, as though X blocked its own
@@ -637,6 +699,11 @@ subtree (MINE), not only the root's id.
 
 Fixed in commit [[orgit-rev:./::83be1a1][83be1a1]]: =blocks:= leaves out any heading inside the scoped
 subtree.
+
+Resolved in 83be1a1: the blocks: line leaves out headings inside the scoped
+subtree, so a child waiting on its sibling no longer reads as the story blocking
+it.
+
 
 
 ** REVIEW Splitting a d-marked span with e carries :dismiss into the remainders, so x dismisses events never marked
@@ -650,7 +717,16 @@ subtree.
 - State "DOING"      from "TODO"       [2026-10-13 Tue 10:36] \\
   retroactive: fixed this session
 :END:
+:PLAN:
 
+:END:
+:DEBRIEF:
+Shipped in f64bd33: the remainder resets :dismiss and :dismiss-reason beside
+:marked, and the docstring says why. A remainder is a new decision, the same
+reason it is already made unassigned. Covered by a new ERT test in
+config-test.el; bin/test ran 946/946 on 2026-10-20. Accepted by the user at
+review the same day.
+:END:
 Review finding 8 on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]]. Each remainder is built from =(copy-sequence item)=,
 which resets =:marked= and nothing else. =:dismiss= and =:dismiss-reason=
 survive, so after =d= then =e=, pressing =x= permanently dismisses the
@@ -659,6 +735,11 @@ clear the =d=.
 
 Fixed in commit [[orgit-rev:./::f64bd33][f64bd33]]: the remainder path clears =:dismiss= and
 =:dismiss-reason= alongside =:marked=.
+
+Resolved in f64bd33: a remainder split off by e starts with no dismissal and no
+reason, as it already started unmarked, so x dismisses only lines the human
+marked.
+
 
 
 * TODO --applied-today-p ignores the report scope and parses every .applied file at each SessionStart :code:
