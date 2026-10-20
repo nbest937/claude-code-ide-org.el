@@ -1490,7 +1490,7 @@ Planned:
 - [ ] [[id:d30b3481-374c-4921-9fdb-284dd8e09e14][d30b3481]] TODO The time-tracking stamp is global and every project's session start rewrites it, so the last session to start decides whether the review pass opens a clock
 
 
-* REVIEW [21/24] The review pass every install uses: movement, marking, apply, quit, and no clock where tracking is off :code:
+* REVIEW [21/21] The review pass every install uses: movement, marking, apply, quit, and no clock where tracking is off :code:
 :PROPERTIES:
 :ID:       5a4896c3-3d4e-4b12-9f9e-06b97d84b238
 :CREATED:  [2026-10-09 Fri 11:15]
@@ -1498,8 +1498,7 @@ Planned:
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
 :MEMBERS:  97b4f6a9-a944-40d3-8d14-7a1667c52291 24694d1f-34b4-495b-b0d8-d29e64894c59 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 41f21b4d-278d-4ad8-a56f-122f5af33d65 9f6b19b5-18db-4d56-8545-9552a5b4e935 d66ae1d2-5a40-4f4d-ae51-c8977e78681c b3177ed0-9747-4e31-ad65-bac25b9bdd1f d241ab6e-6cfe-482a-8980-8cb222d7ab12 e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 ee3c22c9-f99c-4d41-9c3d-8f39af916fff 6c64cc9c-33a9-4a20-af19-c188a690c755 79c224ab-188a-4ed4-a606-c28ee2cfe72d 361e2708-8124-4bd1-9c44-f97ca97aca4a 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd de081dd9-1853-4d79-94fc-2edac498380f 2b8930da-5223-4b75-b4f6-251a28552d1b 789a25c7-84aa-4c30-b8a6-252e149b6114 9c1afc7a-161d-4e4c-aa93-9c02becfb5ba 025a2e8a-9b21-4044-b9df-79baf7e904ce c8ba3f41-1cec-4b67-be0e-145ccebaff8a d30b3481-374c-4921-9fdb-284dd8e09e14 826d621c-25f5-4f06-9961-4b23f8658880 84e9c7ef-72f2-4694-b471-1419f8b0dd33 70d742fa-dc41-4005-8c07-01df75b3331f 2f4c04a1-db56-4427-ae62-591ba52607c6 6a6f6708-eefd-4d77-8ca0-0c5aaaa80796
-:DROPPED:  489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd d30b3481-374c-4921-9fdb-284dd8e09e14
-:BLOCKER:  826d621c-25f5-4f06-9961-4b23f8658880 2f4c04a1-db56-4427-ae62-591ba52607c6 6a6f6708-eefd-4d77-8ca0-0c5aaaa80796
+:DROPPED:  489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd d30b3481-374c-4921-9fdb-284dd8e09e14 826d621c-25f5-4f06-9961-4b23f8658880 2f4c04a1-db56-4427-ae62-591ba52607c6 6a6f6708-eefd-4d77-8ca0-0c5aaaa80796
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-10-09 Fri 11:25] \\
@@ -1584,12 +1583,20 @@ Planned:
   - [X] [[id:025a2e8a-9b21-4044-b9df-79baf7e904ce][025a2e8a]] DONE An absolute git path, checkout -f and switch --discard-changes all get past discard-guard
   - [X] [[id:c8ba3f41-1cec-4b67-be0e-145ccebaff8a][c8ba3f41]] DONE discard-guard splits commands on ; | && || inside quotes, so a commit message naming a discard is refused and counted as a miss
 - [[id:d30b3481-374c-4921-9fdb-284dd8e09e14][d30b3481]] TODO The time-tracking stamp is global and every project's session start rewrites it, so the last session to start decides whether the review pass opens a clock
-- [ ] [[id:826d621c-25f5-4f06-9961-4b23f8658880][826d621c]] TODO SessionStart runs the ceremony's write steps inside a 15 s hook, on whatever branch is checked out
+- [[id:826d621c-25f5-4f06-9961-4b23f8658880][826d621c]] TODO SessionStart runs the ceremony's write steps inside a 15 s hook, on whatever branch is checked out
 - [[id:c12d4189-6bb6-467b-8928-b7bdefcdc921][c12d4189]] DONE PR #37's review found ten defects the slice shipped
   - [X] [[id:84e9c7ef-72f2-4694-b471-1419f8b0dd33][84e9c7ef]] DONE org_outline's blocks: line reports a story blocking its own child
   - [X] [[id:70d742fa-dc41-4005-8c07-01df75b3331f][70d742fa]] DONE Splitting a d-marked span with e carries :dismiss into the remainders, so x dismisses events never marked
-- [ ] [[id:2f4c04a1-db56-4427-ae62-591ba52607c6][2f4c04a1]] TODO --applied-today-p ignores the report scope and parses every .applied file at each SessionStart
-- [ ] [[id:6a6f6708-eefd-4d77-8ca0-0c5aaaa80796][6a6f6708]] TODO Every id-scoped org_outline scans every heading in every tracked file, and leaks a marker per slice
+- [[id:2f4c04a1-db56-4427-ae62-591ba52607c6][2f4c04a1]] TODO --applied-today-p ignores the report scope and parses every .applied file at each SessionStart
+- [[id:6a6f6708-eefd-4d77-8ca0-0c5aaaa80796][6a6f6708]] TODO Every id-scoped org_outline scans every heading in every tracked file, and leaks a marker per slice
+
+Three more members dropped on 2026-10-20: [[id:826d621c-25f5-4f06-9961-4b23f8658880][826d621c]], [[id:2f4c04a1-db56-4427-ae62-591ba52607c6][2f4c04a1]] and [[id:6a6f6708-eefd-4d77-8ca0-0c5aaaa80796][6a6f6708]]. They
+are three of the four [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]] findings the user's 2026-10-13 triage deferred as
+design questions, which put them outside this merge. At the time only [[id:d30b3481-374c-4921-9fdb-284dd8e09e14][d30b3481]]
+went into :DROPPED:. The other three stayed counted, so the slice stayed blocked
+on work it had decided not to do. [[id:6a6f6708-eefd-4d77-8ca0-0c5aaaa80796][6a6f6708]] is counted in [[id:7dcec489-f5dd-4f7f-b819-a25405436b9b][7dcec489]], and the other
+two stand open at the top level.
+
 
 
 * MAYBE Separate what the machinery requires from what this project prefers, so a consumer can change the second :code:arch:
