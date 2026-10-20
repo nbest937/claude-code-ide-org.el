@@ -16,6 +16,7 @@ once the classification defect is fixed is 4efdb992 in slice 39c39427, whose
 parent e9f800aa is not a member. Proposed: apply Planned:'s nesting rule to
 Incidental: too. Closed slices stay untouched.
 
+
 * TODO A slice's incidental list counts a planned story's subtasks as unplanned work :code:
 :PROPERTIES:
 :ID:       f4474cbb-41f8-46fb-b047-fb131f2caa5e
@@ -37,6 +38,7 @@ member. Closed slices stay untouched. Check: after the fix, a refresh of
 39c39427 leaves two incidental entries, e5cdba9e and 4efdb992. A lint check
 could flag an incidental line whose ancestor is a planned member, as it already
 flags :MEMBERS: naming both a parent and its child.
+
 
 * TODO The applied record keys a session's events by timestamp to the second, so an event that failed or was skipped is consumed when another from the same second applies :code:
 :PROPERTIES:
@@ -3475,7 +3477,6 @@ is legibility for whoever runs the lint and one small gate.
 
 *What is ruled out.*
 - org-lint's own "possibly misplaced heading line" checker as the detector (measured 2026-09-25): =bin/lint-org= already runs it as a warning, and it reports 498 lines across the two files, nearly all prose lines opening with =*bold*= -- nobody reads a warning with that count, which is why neither glued heading was seen.
-
 
 
 * TODO [0/16] The review pass asks for judgement it cannot support :code:
@@ -12494,6 +12495,7 @@ per tool -- rather than opening the servers beyond localhost.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-10-20 Tue 11:49]--[2026-10-20 Tue 11:50] =>  0:01
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
@@ -14267,4 +14269,15 @@ CLOCK: [2026-10-13 Tue 14:54]--[2026-10-13 Tue 14:55] =>  0:01
 - [2026-10-13 Tue 14:54]--[2026-10-13 Tue 14:55] assigned at review
 CLOCK: [2026-10-13 Tue 14:58]--[2026-10-13 Tue 14:59] =>  0:01
 - [2026-10-13 Tue 14:58]--[2026-10-13 Tue 14:59] assigned at review
+:END:
+
+
+**** 2026-10-20 Tuesday
+:PROPERTIES:
+:ID:       68977253-d730-44df-b972-2d1c7b276704
+:CREATED:  [2026-10-20 Tue 11:09]
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-20 Tue 11:09]--[2026-10-20 Tue 11:10] =>  0:01
+- [2026-10-20 Tue 11:09]--[2026-10-20 Tue 11:10] file noodle-salesman incidental-list brief
 :END:
