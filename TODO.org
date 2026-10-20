@@ -2,6 +2,33 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Burying the review buffer stamps the ceremony done while apply failures are still pending, though the session-start docstring says it waits for them :code:
+:PROPERTIES:
+:ID:       0e2f2e2f-c231-4f25-92cc-a37b63535efc
+:CREATED:  [2026-10-20 Tue 08:36]
+:CATEGORY: Meta
+:END:
+:PLAN:
+
+:END:
+--ceremony-session-start-run's docstring says it never stamps the ceremony done,
+  since "that is the bury's, once pending items are applied". The bury checks no
+  such thing. --review-attention-on-quit runs ceremony-finish whenever the
+  ceremony is due, and that writes ceremony-last-run after a clean set of steps.
+  When nothing is due, the bury writes the stamp anyway ("steps ran at session
+  start"). Neither branch looks at the queue. So on a day when apply leaves
+  items failed and pending, as with noodle-salesman's three blocked DONEs
+  ([[id:7e2a6608-16a7-419b-8a99-b8016583c094][7e2a6608]]), the stamp still says the ceremony ran, and the SessionStart
+  report, which lists what waits only while the ceremony is not done today,
+  stays quiet about them until tomorrow. Open: make the stamp wait until nothing
+  failed at apply, or correct the docstring and leave the failures to the review
+  buffer.
+
+The stamp is one file for every project, under the queue directory, so a bury
+that ran this repo's ceremony also silences noodle-salesman's report for the day
+(config.el, the done-today gate in --ceremony-status).
+
+
 * TODO A DONE that a :BLOCKER: refuses fails at apply as "did not take effect", and org's own message names the blocker as "" :code:
 :PROPERTIES:
 :ID:       7e2a6608-16a7-419b-8a99-b8016583c094
