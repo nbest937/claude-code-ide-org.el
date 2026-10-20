@@ -1,0 +1,197 @@
+#!/usr/bin/env bash
+# PreToolUse on Bash: refuse a git command that discards working-tree
+# changes while a tracked .org file has uncommitted changes.
+#
+# TODO.org :ID: 79c224ab. On 2026-08-19 a session ran `git checkout --
+# TODO.org' to undo its own edit, reading the `M TODO.org' it saw as all
+# its own. The working tree also held the human's apply pass, and five
+# applied transitions went -- from the file, and from the queue too,
+# since the watermark still called them applied. The org files are the
+# one place two writers share a working tree: an apply pass, another
+# session, the ceremony. Reconciling watermarks against the file, which
+# catches any culprit after the loss, is :ID: 7e4fb8ae.
+#
+# Refused, only while a .org file is dirty (staged or not):
+#   git checkout ... -- PATHS, or git checkout PATH.org
+#   git restore PATHS, unless it is --staged alone (index only)
+#     -- where a PATH is a dirty .org file, `.', a glob or a directory
+#     holding one
+#   git reset --hard
+#   git stash, git stash push|save (and flag-only forms)
+#   git checkout -f|--force, git switch -f|--force|--discard-changes
+# `stash list|show|pop|apply', `restore --staged', a plain branch switch
+# and a discard of a non-org path all pass. ALLOW_DISCARD=1 before the command
+# lets it through, still counted, as ALLOW_SWEEP=1 does at pre-commit.
+#
+# Blocks with exit 2 and stderr, and counts itself as a miss. The command
+# line is split into segments at ; | & and newlines outside quotes, so a
+# commit message describing a discard is not one (PR #37's review). Words
+# are split on whitespace, so a quoted path with a space is read as two:
+# good enough for a backstop, which is all this is. Plain bash + jq and
+# git; fails open.
+
+set -uo pipefail
+
+command -v jq >/dev/null 2>&1 || exit 0
+command -v git >/dev/null 2>&1 || exit 0
+input="$(cat)"
+cmd="$(jq -r '.tool_input.command // empty' <<<"$input" 2>/dev/null)"
+[[ -n "$cmd" ]] || exit 0
+grep -qE '(^|[^[:alnum:]_-])git[[:space:]]' <<<"$cmd" || exit 0
+
+cwd="$(jq -r '.cwd // empty' <<<"$input" 2>/dev/null)"
+[[ -n "$cwd" && -d "$cwd" ]] || cwd="$PWD"
+git -C "$cwd" rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 0
+
+# Repository-relative names of every .org file with uncommitted changes,
+# anywhere in the tree: `:(top)' because reset --hard and stash act on the
+# whole tree whatever the cwd (PR #37's review).
+dirty="$( { git -C "$cwd" diff --name-only -- ':(top)*.org'
+            git -C "$cwd" diff --cached --name-only -- ':(top)*.org'; } 2>/dev/null | sort -u)"
+[[ -n "$dirty" ]] || exit 0
+prefix="$(git -C "$cwd" rev-parse --show-prefix 2>/dev/null)"
+
+# hits PATH -> 0 when discarding PATH would reach a dirty .org file.
+hits() {
+  local p="$1" f
+  p="${p//\'/}"; p="${p//\"/}"; p="${p#./}"
+  [[ "$p" == ":/" ]] && return 0
+  [[ "$p" == "." ]] && p=""
+  p="$(normalize "${prefix}${p%/}")"
+  [[ -z "$p" ]] && return 0
+  while IFS= read -r f; do
+    [[ -n "$f" ]] || continue
+    # shellcheck disable=SC2053 -- a glob in PATH is meant to match.
+    if [[ "$f" == "$p" || "$f" == $p || "$f" == "$p/"* ]]; then return 0; fi
+  done <<<"$dirty"
+  return 1
+}
+
+# normalize PATH -> PATH with `x/..' and `.' components folded away.
+normalize() {
+  local out=() parts c
+  IFS=/ read -ra parts <<<"$1"
+  for c in "${parts[@]}"; do
+    case "$c" in
+      ""|.) ;;
+      ..) (( ${#out[@]} )) && unset 'out[${#out[@]}-1]' ;;
+      *) out+=("$c") ;;
+    esac
+  done
+  local IFS=/; printf '%s' "${out[*]}"
+}
+
+discards() { # discards WORD... -> 0 when this git invocation discards a dirty .org
+  local sub="" words=("$@") i=0 n=$#
+  # Skip `git' and its global options to the subcommand.
+  while (( i < n )); do
+    case "${words[i]}" in
+      git|*/git) ;;
+      -C|-c|--git-dir|--work-tree) i=$((i + 1)) ;;
+      -*) ;;
+      *) sub="${words[i]}"; i=$((i + 1)); break ;;
+    esac
+    i=$((i + 1))
+  done
+  local rest=("${words[@]:i}") w
+  case "$sub" in
+    reset)
+      for w in "${rest[@]}"; do [[ "$w" == "--hard" ]] && return 0; done ;;
+    stash)
+      case "${rest[0]:-}" in
+        ""|push|save|-*) return 0 ;;
+      esac ;;
+    switch)
+      for w in "${rest[@]}"; do
+        case "$w" in -f|--force|--discard-changes) return 0 ;; esac
+      done ;;
+    checkout)
+      local seen=0
+      for w in "${rest[@]}"; do
+        if [[ "$w" == "--" ]]; then seen=1; continue; fi
+        if (( ! seen )) && [[ "$w" == "-f" || "$w" == "--force" ]]; then return 0; fi
+        if (( seen )) || [[ "$w" == *.org || "$w" == "." ]]; then
+          hits "$w" && return 0
+        fi
+      done ;;
+    restore)
+      local staged=0 worktree=0 paths=()
+      for w in "${rest[@]}"; do
+        case "$w" in
+          --staged|-S) staged=1 ;;
+          --worktree|-W) worktree=1 ;;
+          -SW|-WS) staged=1; worktree=1 ;;
+          --source=*|--) ;;
+          -s|--source) ;;
+          -*) ;;
+          *) paths+=("$w") ;;
+        esac
+      done
+      (( staged && ! worktree )) && return 1
+      for w in "${paths[@]}"; do hits "$w" && return 0; done ;;
+  esac
+  return 1
+}
+
+# segments CMD -> one line per command, split at ; | & and newlines that
+# sit outside quotes. A backslash escapes the next character either way.
+segments() {
+  # awk, not a bash loop: ${s:i:1} rescans the string, which took 18 s
+  # on a 40 KB heredoc. RS is \001, a byte no command carries, so the whole
+  # command is one record and its newlines stay separators.
+  printf '%s' "$1" | awk -v RS='\001' '
+    { n = split($0, ch, ""); out = ""; q = ""
+      for (i = 1; i <= n; i++) {
+        c = ch[i]
+        if (c == "\\" && q != "\047") { out = out c ch[i + 1]; i++; continue }
+        if (q != "") { if (c == q) q = ""; out = out c; continue }
+        if (c == "\047" || c == "\"") { q = c; out = out c }
+        else if (c == ";" || c == "|" || c == "&" || c == "\n") { print out; out = "" }
+        else out = out c
+      }
+      print out }'
+}
+
+hit="" allowed=0
+# One command line may chain several; judge each segment on its own.
+while IFS= read -r seg; do
+  read -ra words <<<"$seg"
+  # Leading environment assignments, ALLOW_DISCARD among them.
+  local_allow=0
+  while (( ${#words[@]} )) && [[ "${words[0]}" == *=* && "${words[0]}" != -* ]]; do
+    [[ "${words[0]}" == "ALLOW_DISCARD=1" ]] && local_allow=1
+    words=("${words[@]:1}")
+  done
+  (( ${#words[@]} )) || continue
+  [[ "${words[0]}" == "git" || "${words[0]}" == */git ]] || continue
+  if discards "${words[@]}"; then
+    hit="$seg"
+    (( local_allow )) && allowed=1
+    break
+  fi
+done < <(segments "$cmd")
+
+[[ -n "$hit" ]] || exit 0
+
+note="$(printf '%s' "$hit" | sed 's/^[[:space:]]*//')"
+if (( allowed )); then
+  jq -c '{session_id, cwd, hook_event_name}' <<<"$input" 2>/dev/null \
+    | "$(dirname "${BASH_SOURCE[0]}")/queue-append" miss discard-org "ALLOW_DISCARD ${note:0:180}" 2>/dev/null
+  exit 0
+fi
+
+jq -c '{session_id, cwd, hook_event_name}' <<<"$input" 2>/dev/null \
+  | "$(dirname "${BASH_SOURCE[0]}")/queue-append" miss discard-org "${note:0:200}" 2>/dev/null
+
+{
+  echo "Blocked: this would discard uncommitted changes to tracked org files:"
+  git -C "$cwd" diff --stat HEAD -- ':(top)*.org' 2>/dev/null | sed 's/^/  /'
+  cat <<'MSG'
+Those changes may not be yours: an apply pass, another session or the
+ceremony may have written them, and a discard destroys theirs with yours.
+Undo only your own hunks (git diff, then an Edit or the org tools), or
+commit first. If the whole discard is genuinely intended, rerun it as
+ALLOW_DISCARD=1 <command> (counted).
+MSG
+} >&2
+exit 2

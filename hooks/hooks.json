@@ -198,6 +198,11 @@
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/bin/hooks/emacsclient-guard",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/bin/hooks/discard-guard",
+            "timeout": 10
           }
         ]
       },

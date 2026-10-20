@@ -20,8 +20,8 @@ file and its absence means the feature is not installed.
 
 Driven by Claude Code hooks, wired by the plugin's `hooks/hooks.json`
 (the `claude-code-ide-org` repo itself wires the same scripts through its
-own `.claude/settings.json`). None of them reaches Emacs — each appends a
-line to the session's queue file and exits, or blocks, or injects context:
+own `.claude/settings.json`). None reaches Emacs — each appends to the
+session's queue file, blocks, or injects context:
 
 | Hook                | Script                        | Appends       |
 |---------------------|-------------------------------|---------------|
@@ -30,11 +30,10 @@ line to the session's queue file and exits, or blocks, or injects context:
 | `UserPromptSubmit`, `PostToolUse` (Bash) | `bin/hooks/review-start` | `todo` → `REVIEW` for the one `DOING` slice when a PR review starts (`/code-review`, a reviewer requested) and its unfinished members are all `REVIEW` |
 | `SessionStart`      | `bin/hooks/session-start-recovery-check` | nothing — *injects* the daily ceremony prompt (and, where time tracking is wired, the stale-interval report) |
 | `PostToolUseFailure` (`org_*`) | `bin/hooks/tool-failure` | a marker, reported once at `SessionStart`; *injects* guidance (`:ID:` 3ad389be) |
+| `PreToolUse` (Bash) | `bin/hooks/discard-guard` | nothing — *blocks* a git discard while a `.org` file is dirty; `ALLOW_DISCARD=1` overrides (`:ID:` 79c224ab) |
 
-*The table omits the three `PostToolUse` `queue-append` matchers*, which
-wire `org_set_todo`, `org_capture` and `org_amend` to the queue. They are
-the queued tools' own mechanism rather than session tracking, and
-`hooks/hooks.json` is where their wiring is read.
+*The table omits the `queue-append` matchers* wiring the queued tools,
+their own mechanism; `hooks/hooks.json` holds them.
 
 **The first `org_*` call of a session injects a pointer to the org
 conventions** (`bin/hooks/conventions-inject`, `:ID:` 436e0991). They are
@@ -74,15 +73,16 @@ report as `additionalContext` and shows the user a one-line
 `systemMessage`, so it arrives whether or not the session relays it. It
 names what is waiting — pending queue items, drawers out of order,
 finished headings not yet archived, the miss count by rule — and then
-**asks**. Apply is the human's alone, so a session must not offer to run
-the pass; the steps after apply run on leaving the review buffer, which
-stamps `ceremony-last-run` only if every step succeeded.
+**asks**. Apply is the human's alone, so a session must not offer to
+apply. The steps after it run themselves while the ceremony is due: at
+session start, whose diff the session commits, and on leaving the review
+buffer, which stamps `ceremony-last-run`.
 
 **The report asks; it never proposes.** A plausible suggestion is harder
 to reject than none at all (measured and retired 2026-08-14, `:ID:`
 7771fc63).
 
-The two commands the ceremony runs after apply,
+Two of the ceremony's steps,
 `claude-code-ide-org-consolidate-all-drawers` (`:ID:` 7ae6562d) and
 `claude-code-ide-org-normalize-heading-separation` (`:ID:` e1284bdb), are
 idempotent and default to a dry run interactively; **from Lisp both

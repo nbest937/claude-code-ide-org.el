@@ -1,0 +1,114 @@
+#!/usr/bin/env bash
+# Shell test harness for bin/hooks/discard-guard (TODO.org :ID:
+# 79c224ab). Same register as bin/tool-guards-test: the guard blocks
+# with exit 2 and a message on stderr, and counts itself as a miss.
+#
+# Isolated from the first case, queue directory AND session id: a test
+# run from a session is part of that session, and the guards it provokes
+# would otherwise count as that session's misses (the 2026-09-21 rule in
+# .claude/slice-rules.md).
+set -uo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+tmp="$(mktemp -d)"
+trap 'rm -rf "$tmp"' EXIT
+export CLAUDE_ORG_QUEUE_DIR="$tmp/queue"
+export CLAUDE_CODE_SESSION_ID="discard-guard-test"
+
+pass=0 failures=0
+check() {
+  if [[ "$2" == "$3" ]]; then echo "ok   - $1"; pass=$((pass + 1))
+  else echo "FAIL - $1: wanted [$2], got [$3]"; failures=$((failures + 1)); fi
+}
+rule_of() { jq -r 'select(.kind=="miss") | .rule' "$tmp/queue/$1.jsonl" 2>/dev/null | tail -1; }
+note_of() { jq -r 'select(.kind=="miss") | .note // .detail // empty' "$tmp/queue/$1.jsonl" 2>/dev/null | tail -1; }
+
+g="$repo_root/bin/hooks/discard-guard"
+r="$tmp/repo"
+mkdir -p "$r/sub"
+git -C "$r" init -q -b main
+git -C "$r" config user.email t@example.com
+git -C "$r" config user.name t
+printf '* TODO a\n' > "$r/TODO.org"
+printf '* TODO b\n' > "$r/sub/x.org"
+printf 'notes\n' > "$r/notes.txt"
+git -C "$r" add -A && git -C "$r" commit -q -m init
+
+call() { jq -n -c --arg c "$2" --arg s "$1" --arg d "${3:-$r}" \
+  '{session_id:$s, cwd:$d, hook_event_name:"PreToolUse", tool_name:"Bash", tool_input:{command:$c}}'; }
+run() { call "$@" | "$g" 2>"$tmp/err"; echo $?; }
+
+# --- clean tree: nothing is refused -------------------------------------
+check "a clean tree lets checkout -- TODO.org through" 0 "$(run c0 'git checkout -- TODO.org')"
+check "a clean tree lets reset --hard through" 0 "$(run c0 'git reset --hard')"
+printf 'changed\n' >> "$r/notes.txt"
+check "only a non-org file dirty: reset --hard passes" 0 "$(run c0 'git reset --hard')"
+check "only a non-org file dirty: checkout of it passes" 0 "$(run c0 'git checkout -- notes.txt')"
+check "nothing passed is counted" "" "$(rule_of c0)"
+
+# --- a dirty .org file ----------------------------------------------------
+printf '* DONE applied by someone else\n' >> "$r/TODO.org"
+for c in 'git checkout -- TODO.org' 'git checkout HEAD -- TODO.org' 'git checkout TODO.org' \
+         'git checkout .' 'git checkout -- .' "git checkout -- '*.org'" \
+         'git restore TODO.org' 'git restore .' 'git restore --staged --worktree TODO.org' \
+         'git reset --hard' 'git reset --hard HEAD~1' 'git stash' 'git stash push -m x' \
+         'git stash save wip' 'git stash -u' 'git -C . checkout -- TODO.org' \
+         'cd /tmp && git checkout -- TODO.org' 'git status; git checkout -- TODO.org'; do
+  check "refused: $c" 2 "$(run d1 "$c")"
+done
+check "the refusal shows the diff stat" yes "$(grep -q 'TODO.org' "$tmp/err" && echo yes || echo no)"
+check "and says whose the changes may be" yes "$(grep -q 'apply pass' "$tmp/err" && echo yes || echo no)"
+check "and is counted as a miss" "discard-org" "$(rule_of d1)"
+for c in 'git stash list' 'git stash show' 'git stash pop' 'git restore --staged TODO.org' \
+         'git checkout -- notes.txt' 'git checkout main' 'git checkout -b topic' \
+         'git status' 'git diff TODO.org' 'grep -n "git reset --hard" README'; do
+  check "passes: $c" 0 "$(run d2 "$c")"
+done
+check "nothing passed is counted" "" "$(rule_of d2)"
+
+# From a subdirectory the dirty root file is still seen (PR #37 review):
+# a cwd-relative pathspec saw only sub/, and reset --hard went through.
+check "refused from sub/: reset --hard" 2 "$(run s1 'git reset --hard' "$r/sub")"
+check "refused from sub/: stash" 2 "$(run s1 'git stash' "$r/sub")"
+check "refused from sub/: checkout -- ../TODO.org" 2 "$(run s1 'git checkout -- ../TODO.org' "$r/sub")"
+check "passes from sub/: checkout . reaches no dirty file" 0 "$(run s2 'git checkout .' "$r/sub")"
+
+# Discards the guard used to miss (PR #37 review).
+for c in '/usr/bin/git reset --hard' 'git checkout -f main' 'git checkout --force main' \
+         'git switch --discard-changes main' 'git switch -f main' 'git switch --force main'; do
+  check "refused: $c" 2 "$(run b1 "$c")"
+done
+check "passes: git switch main" 0 "$(run b2 'git switch main')"
+
+# Separators inside quotes are not separators (PR #37 review): a commit
+# message describing a discard was refused and counted as a miss.
+for c in 'git commit -m "refuse a discard; git reset --hard included"' \
+         "git commit -m 'x && git stash'" 'git log --grep="a|git checkout -- TODO.org"'; do
+  check "passes: $c" 0 "$(run q1 "$c")"
+done
+check "nothing quoted is counted" "" "$(rule_of q1)"
+check "refused: a real chain after a quote" 2 "$(run q2 'git commit -m "a;b" && git reset --hard')"
+
+# A directory holding the dirty file is the file.
+git -C "$r" checkout -q -- TODO.org
+printf '* DONE b\n' >> "$r/sub/x.org"
+check "refused: a directory holding a dirty .org" 2 "$(run d3 'git checkout -- sub')"
+check "refused: run from inside it" 2 "$(run d3 'git checkout -- x.org' "$r/sub")"
+check "passes: a sibling path" 0 "$(run d3 'git checkout -- notes.txt')"
+
+# Staged counts as dirty too.
+git -C "$r" add sub/x.org
+check "refused: a staged-only .org change under reset --hard" 2 "$(run d4 'git reset --hard')"
+
+# The deliberate override passes, and is still counted.
+check "ALLOW_DISCARD=1 passes" 0 "$(run a1 'ALLOW_DISCARD=1 git reset --hard')"
+check "and is counted" "discard-org" "$(rule_of a1)"
+check "with the override named" yes "$(note_of a1 | grep -q '^ALLOW_DISCARD' && echo yes || echo "no: $(note_of a1)")"
+
+printf 'garbage' | "$g" >/dev/null 2>&1
+check "garbage on stdin never blocks" 0 "$?"
+check "outside a repository never blocks" 0 "$(run o1 'git reset --hard' "$tmp")"
+
+echo
+echo "discard-guard-test: $pass passed, $failures failed"
+exit $((failures > 0))
