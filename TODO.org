@@ -745,7 +745,8 @@ If it reproduces, any outside write to an open tracker can be lost
 silently, whether a git pull, another session's Edit or a hand edit.
 
 
-* REVIEW A slice's incidental list takes closes from every tracked project, so another repo's work is attributed to this one's slice :code:
+* DONE A slice's incidental list takes closes from every tracked project, so another repo's work is attributed to this one's slice :code:
+CLOSED: [2026-10-20 Tue 15:07]
 :PROPERTIES:
 :ID:       1c252f9c-6838-4b71-b08b-ff2e77d34dce
 :CREATED:  [2026-10-12 Mon 17:42]
@@ -765,6 +766,8 @@ CLOCK: [2026-10-12 Mon 17:48]--[2026-10-12 Mon 17:51] =>  0:03
 - State "REVIEW"     from "DOING"      [2026-10-12 Mon 17:51] \\
   fixed and verified, in review on PR #37
 - [2026-10-12 Mon 17:51]--[2026-10-12 Mon 17:51] assigned at review
+- State "DONE"       from "REVIEW"     [2026-10-20 Tue 15:07] \\
+  merged PR #37, session-independent fix
 :END:
 :PLAN:
 Fixed on the slice's own branch before its review, so [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]]'s record is clean
@@ -2386,7 +2389,8 @@ and those 53 are cleared, unless [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128
 move generalised to :DEBRIEF:. Details in :PLAN:.
 
 
-* REVIEW pre-commit lints a temp copy with no plans/ beside it, so every archived plan that ages out blocks every commit :code:
+* DONE pre-commit lints a temp copy with no plans/ beside it, so every archived plan that ages out blocks every commit :code:
+CLOSED: [2026-10-20 Tue 15:07]
 :PROPERTIES:
 :ID:       634eb138-28bc-4d43-aed3-f242c877904d
 :CREATED:  [2026-09-28 Mon 08:31]
@@ -2409,6 +2413,8 @@ CLOCK: [2026-09-28 Mon 08:56]--[2026-09-28 Mon 08:58] =>  0:02
 - [2026-09-28 Mon 08:56]--[2026-09-28 Mon 08:58] assigned at review
 - Tags ":code:"     from ":code:observed:" [2026-09-29 Tue 21:46] \\
   tag dropped (the user, 2026-09-29): applied by recall, so its absence meant nothing
+- State "DONE"       from "REVIEW"     [2026-10-20 Tue 15:07] \\
+  merged PR #32, held 22 days
 :END:
 :PLAN:
 
@@ -14243,4 +14249,10 @@ CLOCK: [2026-10-20 Tue 11:55]--[2026-10-20 Tue 11:56] =>  0:01
 - [2026-10-20 Tue 11:55]--[2026-10-20 Tue 11:56] file tag-note and duplicate parent-row bugs
 CLOCK: [2026-10-20 Tue 12:11]--[2026-10-20 Tue 12:12] =>  0:01
 - [2026-10-20 Tue 12:11]--[2026-10-20 Tue 12:12] drop three deferred findings from 5a4896c3
+CLOCK: [2026-10-20 Tue 14:59]--[2026-10-20 Tue 15:00] =>  0:01
+- [2026-10-20 Tue 14:59]--[2026-10-20 Tue 15:00] assigned at review
+CLOCK: [2026-10-20 Tue 15:03]--[2026-10-20 Tue 15:04] =>  0:01
+- [2026-10-20 Tue 15:03]--[2026-10-20 Tue 15:04] assigned at review
+CLOCK: [2026-10-20 Tue 15:07]--[2026-10-20 Tue 15:10] =>  0:03
+- [2026-10-20 Tue 15:07]--[2026-10-20 Tue 15:10] assigned at review
 :END:
