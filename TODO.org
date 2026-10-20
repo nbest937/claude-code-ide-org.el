@@ -1524,7 +1524,7 @@ The order, one line each (revised 2026-10-10 by /plan-slice, every member
 brainstormed; where a member's drawer disagrees with a line here, the member
 wins):
 
-- [[id:97b4f6a9-a944-40d3-8d14-7a1667c52291][[[id:97b4f6a9-a944-40d3-8d14-7a1667c52291][97b4f6a9]]]] (arch) first: it stops the review pass opening a clock where tracking is off, so this slice stops imposing time tracking on the installs it exists to serve.
+- [[id:97b4f6a9-a944-40d3-8d14-7a1667c52291][97b4f6a9]] (arch) first: it stops the review pass opening a clock where tracking is off, so this slice stops imposing time tracking on the installs it exists to serve.
 - [[id:24694d1f-34b4-495b-b0d8-d29e64894c59][24694d1f]] (bounded) second: a new project's first top-level capture is refused until it has somewhere to declare its categories, so it is the next thing a consumer meets.
 - [[id:41f21b4d-278d-4ad8-a56f-122f5af33d65][41f21b4d]], [[id:9f6b19b5-18db-4d56-8545-9552a5b4e935][9f6b19b5]], [[id:ee3c22c9-f99c-4d41-9c3d-8f39af916fff][ee3c22c9]], [[id:e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b][e95cc5d1]] and [[id:396fd1c3-70e0-4e1f-8839-670b5293a7d3][396fd1c3]] together: movement, help text and marking in the buffer, all in the same few commands. [[id:e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b][e95cc5d1]] closes with [[id:ee3c22c9-f99c-4d41-9c3d-8f39af916fff][ee3c22c9]], whose mark design removes the advance it reports.
 - [[id:6c64cc9c-33a9-4a20-af19-c188a690c755][6c64cc9c]] (bounded): returning point and windows on exit, by :ID:, the last of the buffer-handling members.
@@ -1546,6 +1546,31 @@ slice is the first planned and worked under =/plan-slice= and =/work-slice=.
 The read-only =/work-slice= run meant to precede planning was not verified in
 this planning session. The =/next-session= stub is deleted once the slice is
 worked ([[id:d30c00ce-95fb-4fea-8709-bcea80700646][d30c00ce]]).
+:END:
+:DEBRIEF:
+Shipped on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]], merged 2026-10-20 as commit [[orgit-rev:./::cefcb2b][cefcb2b]], 86 commits from
+feature/review-pass-every-install.
+
+- The review pass no longer opens a clock where time tracking is off ([[id:97b4f6a9-a944-40d3-8d14-7a1667c52291][97b4f6a9]]).
+- A consuming repo has somewhere to declare its categories ([[id:24694d1f-34b4-495b-b0d8-d29e64894c59][24694d1f]]).
+- The review buffer gained movement, mark-to-dismiss and recentring, with corrected help text ([[id:41f21b4d-278d-4ad8-a56f-122f5af33d65][41f21b4d]], [[id:9f6b19b5-18db-4d56-8545-9552a5b4e935][9f6b19b5]], [[id:e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b][e95cc5d1]], [[id:ee3c22c9-f99c-4d41-9c3d-8f39af916fff][ee3c22c9]], [[id:396fd1c3-70e0-4e1f-8839-670b5293a7d3][396fd1c3]]), and returns point and windows on exit ([[id:6c64cc9c-33a9-4a20-af19-c188a690c755][6c64cc9c]]).
+- The scoped org_outline names the slices counting a heading and what it blocks ([[id:d66ae1d2-5a40-4f4d-ae51-c8977e78681c][d66ae1d2]], [[id:b3177ed0-9747-4e31-ad65-bac25b9bdd1f][b3177ed0]]).
+- The session-start report names possible twins, and the ceremony runs from session start ([[id:d241ab6e-6cfe-482a-8980-8cb222d7ab12][d241ab6e]], [[id:de081dd9-1853-4d79-94fc-2edac498380f][de081dd9]]).
+- discard-guard was added ([[id:79c224ab-188a-4ed4-a606-c28ee2cfe72d][79c224ab]]), and the automation question was answered with no code ([[id:361e2708-8124-4bd1-9c44-f97ca97aca4a][361e2708]]).
+- The consumer checks were run from agentic-euchre ([[id:2b8930da-5223-4b75-b4f6-251a28552d1b][2b8930da]]).
+
+Verified: bin/test-all passed 27 suites and 1718 tests on 2026-10-20, just
+before the merge. The /code-review run of 2026-10-12 posted ten findings, and
+all ten threads are answered and resolved. Six were fixed on the branch with a
+test each ([[id:c12d4189-6bb6-467b-8928-b7bdefcdc921][c12d4189]]).
+
+Differed from the plan: the review window held four findings that were deferred,
+not fixed: [[id:d30b3481-374c-4921-9fdb-284dd8e09e14][d30b3481]], [[id:826d621c-25f5-4f06-9961-4b23f8658880][826d621c]], [[id:2f4c04a1-db56-4427-ae62-591ba52607c6][2f4c04a1]] and [[id:6a6f6708-eefd-4d77-8ca0-0c5aaaa80796][6a6f6708]]. Only [[id:d30b3481-374c-4921-9fdb-284dd8e09e14][d30b3481]] was dropped
+at triage. The other three kept the slice blocked until they were dropped on
+2026-10-20, the day of the merge. All four stay open elsewhere, so nothing here
+is unfiled. Also differing: [[id:c12d4189-6bb6-467b-8928-b7bdefcdc921][c12d4189]]'s parent row renders twice in the
+checklist, because its members are split in :MEMBERS:; that is filed as
+[[id:18b5c60e-30bf-48d1-a892-29d226ca6667][18b5c60e]].
 :END:
 
 The part of the review pass a task-only install also uses, divided out of
@@ -1596,6 +1621,11 @@ design questions, which put them outside this merge. At the time only [[id:d30b3
 went into :DROPPED:. The other three stayed counted, so the slice stayed blocked
 on work it had decided not to do. [[id:6a6f6708-eefd-4d77-8ca0-0c5aaaa80796][6a6f6708]] is counted in [[id:7dcec489-f5dd-4f7f-b819-a25405436b9b][7dcec489]], and the other
 two stand open at the top level.
+
+Resolved 2026-10-20: [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]] merged to main as commit [[orgit-rev:./::cefcb2b][cefcb2b]]. The 15 planned
+members still counted and the six review findings fixed under [[id:c12d4189-6bb6-467b-8928-b7bdefcdc921][c12d4189]] shipped.
+Six members were dropped, and each is accounted for above.
+
 
 
 
