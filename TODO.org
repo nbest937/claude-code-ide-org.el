@@ -2413,6 +2413,13 @@ CLOCK: [2026-09-28 Mon 08:56]--[2026-09-28 Mon 08:58] =>  0:02
 :PLAN:
 
 :END:
+:DEBRIEF:
+Merged with [[https://github.com/nbest937/claude-code-ide-org.el/pull/32][PR #32]] on 2026-09-28 (commit [[orgit-rev:./::b2ea13b][b2ea13b]]). Confirmed at close on
+2026-10-20 by 22 days of use: plans kept aging out of =~/.claude/plans= the
+whole time, and the hook refused no commit for a missing plan. Nothing is left
+undone. Retiring the fallback, as described above, is optional and not residue
+from this heading.
+:END:
 Observed 2026-09-28 when a bookkeeping commit was refused: "plan link points at
 a missing file: ~/.claude/plans/goofy-baking-wall.md". The link sits in a
 =DONE.org= heading. The plan had aged out of =~/.claude/plans=, and
