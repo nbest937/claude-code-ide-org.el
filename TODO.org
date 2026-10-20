@@ -2,6 +2,30 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO The applied record keys a session's events by timestamp to the second, so an event that failed or was skipped is consumed when another from the same second applies :code:
+:PROPERTIES:
+:ID:       0a0dee55-d709-466e-a525-c3bb1c437b91
+:CREATED:  [2026-10-20 Tue 09:13]
+:CATEGORY: Queue
+:END:
+:PLAN:
+
+:END:
+A session's .applied file maps each event's ts string to the pass that consumed
+it, and dismissal uses the same key. Two events queued in the same second share
+one key, so applying either marks both consumed. Three noodle-salesman DONEs
+refused by their :BLOCKER: ([[id:7e2a6608-16a7-419b-8a99-b8016583c094][7e2a6608]]) left the queue this way without a
+dismissal. On 2026-10-16 at 14:05, 4347100f and c66ddc28 each shared their
+second with DONEs that landed. On 2026-10-20 at 09:01, eca35991's DONE shared
+08:54:30 with the NEXT nominating 618d03d1. The apply reported each as "left
+pending rather than consumed", which was true of the failure path and undone by
+the sibling's write. A DONE and the NEXT it nominates are routinely queued
+together, and across all session queues 280 groups of state, clock, capture or
+amend events share a second. A skipped item is presumably consumed the same way,
+and a dismissal takes its same-second siblings with it; neither is verified yet.
+Proposed: key each event by something unique, such as its line number in the
+queue file or a hash of the whole line, and keep reading old ts keys.
+
 * TODO Burying the review buffer stamps the ceremony done while apply failures are still pending, though the session-start docstring says it waits for them :code:
 :PROPERTIES:
 :ID:       0e2f2e2f-c231-4f25-92cc-a37b63535efc
@@ -508,6 +532,22 @@ Fix the six on the slice's branch, each with a test that fails on HEAD first:
 After each fix, reply on its [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]] thread naming the commit, and resolve the
 thread.
 :END:
+:DEBRIEF:
+Shipped on the slice's branch in four commits: 7466161 ([[id:789a25c7-84aa-4c30-b8a6-252e149b6114][789a25c7]], [[id:025a2e8a-9b21-4044-b9df-79baf7e904ce][025a2e8a]],
+[[id:c8ba3f41-1cec-4b67-be0e-145ccebaff8a][c8ba3f41]]), f64bd33 ([[id:70d742fa-dc41-4005-8c07-01df75b3331f][70d742fa]]), 83be1a1 ([[id:84e9c7ef-72f2-4694-b471-1419f8b0dd33][84e9c7ef]]) and 2ba7f02 ([[id:9c1afc7a-161d-4e4c-aa93-9c02becfb5ba][9c1afc7a]]), each
+with a test. On 2026-10-20 bin/test ran 946/946 and bin/discard-guard-test
+62/62, and the user accepted all six after a walk-through. All ten [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]]
+threads are resolved with a reply. Differed from the plan: three of those
+replies, posted 2026-10-13 for the deferred findings, lost their ids to shell
+command substitution (backticks inside a double-quoted string) and read
+"Correction: was a duplicate …". They were edited on 2026-10-20 to name 4bbb8467
+→ [[id:826d621c-25f5-4f06-9961-4b23f8658880][826d621c]], a543e329 → [[id:2f4c04a1-db56-4427-ae62-591ba52607c6][2f4c04a1]] and 6e888ebd → [[id:6a6f6708-eefd-4d77-8ca0-0c5aaaa80796][6a6f6708]], with the body passed
+from a file this time. Not done here and tracked elsewhere: the four deferred
+findings ([[id:826d621c-25f5-4f06-9961-4b23f8658880][826d621c]], [[id:2f4c04a1-db56-4427-ae62-591ba52607c6][2f4c04a1]], [[id:6a6f6708-eefd-4d77-8ca0-0c5aaaa80796][6a6f6708]], [[id:d30b3481-374c-4921-9fdb-284dd8e09e14][d30b3481]]), and the done-stamp that
+[[id:9c1afc7a-161d-4e4c-aa93-9c02becfb5ba][9c1afc7a]]'s fix did not reach ([[id:0e2f2e2f-c231-4f25-92cc-a37b63535efc][0e2f2e2f]]). One residue accepted rather than filed:
+discard-guard refuses a heredoc whose body has git reset --hard on a line of its
+own.
+:END:
 
 The =/code-review high --comment 37= run of 2026-10-12 posted ten inline
 comments on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]] against slice [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]]. Each comment is a child here: one is
@@ -523,6 +563,11 @@ still open: [[id:826d621c-25f5-4f06-9961-4b23f8658880][826d621c]] and [[id:2f4c0
 and finding 5, already filed as [[id:d30b3481-374c-4921-9fdb-284dd8e09e14][d30b3481]], which was dropped from slice [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]]
 and joined [[id:7ae1cff4-c0df-4ac0-9aea-a778b2373061][7ae1cff4]], the clock-record slice. So this story holds the six fixed
 findings.
+
+Resolved 2026-10-20: the six fixed findings were accepted at review and closed,
+and each [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]] thread carries a reply naming its fix commit or its tracking
+heading. The four deferred findings stay open at top level.
+
 
 
 ** DONE discard-guard's dirty-file scan is relative to cwd, so from a subdirectory a dirty root TODO.org goes unseen and reset --hard goes through
