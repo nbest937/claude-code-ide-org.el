@@ -2,6 +2,42 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO A slice's incidental list renders a subtask flat, with no row naming the story it belongs to :code:
+:PROPERTIES:
+:ID:       2608c131-87cf-4b74-b7d1-970277632bb1
+:CREATED:  [2026-10-20 Tue 11:09]
+:CATEGORY: Slices
+:END:
+
+Reported from noodle-salesman on 2026-10-20. Planned: renders a member that has
+a keyworded parent under a derived parent row with no checkbox. Incidental: does
+not, so a reader can't tell which story the work belonged to. The one live case
+once the classification defect is fixed is 4efdb992 in slice 39c39427, whose
+parent e9f800aa is not a member. Proposed: apply Planned:'s nesting rule to
+Incidental: too. Closed slices stay untouched.
+
+* TODO A slice's incidental list counts a planned story's subtasks as unplanned work :code:
+:PROPERTIES:
+:ID:       f4474cbb-41f8-46fb-b047-fb131f2caa5e
+:CREATED:  [2026-10-20 Tue 11:09]
+:CATEGORY: Slices
+:END:
+:PLAN:
+
+:END:
+Reported from noodle-salesman on 2026-10-20. In slice 39c39427 (0.1), the
+refresh lists 24 incidental closes, and 22 of them are subtasks whose parent or
+grandparent is a planned member of the same slice. Examples are add3ffc1 under
+279e8081, and 8b514881 under 1d4e5453 under 00aa63af. Listing them counts the
+same work twice, once through the ancestor's planned line and once as
+incidental. It also says the plan's own subject was unrelated to the plan, which
+the conventions' nesting rule exists to prevent. Proposed: when choosing
+incidental candidates, the refresh drops any close whose ancestor is a planned
+member. Closed slices stay untouched. Check: after the fix, a refresh of
+39c39427 leaves two incidental entries, e5cdba9e and 4efdb992. A lint check
+could flag an incidental line whose ancestor is a planned member, as it already
+flags :MEMBERS: naming both a parent and its child.
+
 * TODO The applied record keys a session's events by timestamp to the second, so an event that failed or was skipped is consumed when another from the same second applies :code:
 :PROPERTIES:
 :ID:       0a0dee55-d709-466e-a525-c3bb1c437b91
@@ -3435,9 +3471,11 @@ is legibility for whoever runs the lint and one small gate.
 - Those two were found 2026-09-25 by the footnote scanner of [[id:c247d8f3-9f3f-464a-b3a0-543b1bb9de4f][c247d8f3]], which refuses an =:ID:= line whose heading does not own it; the user repaired both by hand in Emacs (commit [[orgit-rev:claude-code-ide-org::d1ed5f0][d1ed5f0]]); the call behind each is in its transcript.
 - A fill makes this damage worse: the fill pass of [[id:496b665e-3370-4a66-814a-3c5bd2d3dddc][496b665e]] (commit [[orgit-rev:claude-code-ide-org::5880bf8][5880bf8]], 2026-09-14) wrapped the glued [[id:61f05e56-9d05-4f3e-9131-5eb899f95b8f][61f05e56]] across three lines, hiding it even from a line-anchored search; the fill-on-write of [[id:b52df20b-45c7-41aa-9d77-44ccf06c647f][b52df20b]] will do the same unless it lands after this fix or refuses a paragraph holding =* KEYWORD=.
 - Reproduced in batch 2026-09-25: replacing the body of a heading followed by a sibling, with text lacking a trailing newline, leaves the sibling off column 0.
+- A fourth instance, in noodle-salesman (reported 2026-10-20): a replace on 618d03d1-8981-4ae6-a104-f064e4b70127 glued the next sibling ccbc139b onto the body's last line. The repair was a direct file edit, because org_edit refuses a line starting with =*=, so in a consuming repo the only way out is by hand.
 
 *What is ruled out.*
 - org-lint's own "possibly misplaced heading line" checker as the detector (measured 2026-09-25): =bin/lint-org= already runs it as a warning, and it reports 498 lines across the two files, nearly all prose lines opening with =*bold*= -- nobody reads a warning with that count, which is why neither glued heading was seen.
+
 
 
 * TODO [0/16] The review pass asks for judgement it cannot support :code:
