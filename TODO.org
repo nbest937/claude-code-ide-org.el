@@ -23,6 +23,7 @@ when apply finds a DONE refused, name each unfinished :BLOCKER: id with its
 keyword. Have org_set_todo say the same at queue time, since a blocked DONE is
 knowable when the session queues it.
 
+
 * TODO org_refile can only place a heading under a parent, so a top-level heading moved by mistake cannot be put back at top level :code:
 :PROPERTIES:
 :ID:       e8db8aef-17d4-42e0-a2d1-a51f48fd35b8
@@ -4287,6 +4288,8 @@ backstop. One dated line per catch.
   =org_body= before retrying. Refusal was the only safeguard: a recalled id
   that happened to resolve would have clocked the wrong heading.
 
+- 2026-10-19 (noodle-salesman): naming the closed heading whose decision a policy change reversed, the session typed =7a1b2c3d= from memory instead of looking it up. No such heading existed; the real one was =abdd2b8c=. Caught by the session on the next lookup and corrected in the reply.
+
 
 ** TODO Miss: a commit that swept in a change its message does not describe
 :PROPERTIES:
@@ -4508,6 +4511,7 @@ written.
 
 - 2026-09-28 (user): asked about [[id:2a6a1355-615f-4c2c-a8af-c9ae8dcda09b][2a6a1355]]'s verbose body, the session measured it with a raw =emacsclient= eval (line count, word count, drawer order) when =org_body= returns the heading whole, drawers and all. The user asked why, and whether =emacs-tools= could not do it. It could. The eval came from habit, reaching for numbers in one call, and nothing required it.
 - 2026-10-12 (noodle-salesman): set :spike: on eight headings at org_capture time without the brainstorming skill, which the conventions name as the only setter of path tags. The user had asked for them to be spikes, so whether this is a miss at all is filed as a question (noodle-salesman-findings-prompt.md, item 4).
+- 2026-10-19 (noodle-salesman): a top-level =org_capture= with no target, meant for the consuming repo, landed in the plugin repo's =TODO.org=. It was the second time in the same session; the first had been noted as "always pass a target" and not acted on. The session caught it from the reply's path. The user reverted the file.
 
 
 ** TODO Miss: an org question answered by scraping text instead of asking org
@@ -4573,6 +4577,7 @@ since org cannot see it by construction; =org-lint= can, and [[id:5b46fbfd-6d0e-
 the lint rule.
 
 - [2026-10-12 Mon] Caught by the user: "did you really need =awk= just now?" Looking up headings' exact titles by id for end matter, the session scanned =TODO.org= and =DONE.org= with =awk= five or more times in one session. =org_outline= with the id as scope and =bodies=false= returns the keyword and the exact title, archived headings included. =org_footnotes= answering "not wired" was taken as license to leave the tools altogether, when only the end-matter generation was missing.
+- 2026-10-19 (noodle-salesman): asked which of 15 upcoming headings had a =:PLAN:= drawer and open questions, the session scraped =TODO.org= with Python instead of =org_body drawer=PLAN= per id or =org_query regexp:=, and gave no reason why no tool fit. Its "open question" count was a regex heuristic. The user caught it by asking whether =emacs-tools= could have done it.
 
 
 ** TODO Before the miss review, count the misses nobody caught, from the transcripts, for every kind a transcript can show :code:research:
@@ -10274,12 +10279,12 @@ before the fix and still says.
 
 
 * TODO Archive closed tasks daily
-SCHEDULED: <2026-10-17 Sat 07:00 ++1d>
+SCHEDULED: <2026-10-21 Wed 07:00 ++1d>
 :PROPERTIES:
 :CATEGORY: Meta
 :ID:       cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8
 :CREATED:  [2026-08-21 Fri 15:35]
-:LAST_REPEAT: [2026-10-16 Fri 08:47]
+:LAST_REPEAT: [2026-10-20 Tue 08:03]
 :KIND:     ceremony
 :END:
 :LOGBOOK:
