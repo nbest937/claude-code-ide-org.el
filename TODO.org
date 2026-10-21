@@ -813,7 +813,7 @@ its own project only, and [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]]'
 headings.
 
 
-* DOING Standalone wiring at Emacs startup registered 0 project sessions, so every consumer's tool calls lose their project :code:
+* DOING Standalone wiring at Emacs startup registered 0 project sessions, so every consumer's tool calls lose their project :code:bounded:
 :PROPERTIES:
 :ID:       28eed617-e4e0-4d29-88ea-9411de4b77e5
 :CREATED:  [2026-10-12 Mon 14:47]
@@ -835,8 +835,43 @@ CLOCK: [2026-10-12 Mon 15:41]--[2026-10-12 Mon 15:42] =>  0:01
 - [2026-10-12 Mon 15:41]--[2026-10-12 Mon 15:42] suggested span, accepted at review
 CLOCK: [2026-10-20 Tue 17:28]--[2026-10-20 Tue 17:29] =>  0:01
 - [2026-10-20 Tue 17:28]--[2026-10-20 Tue 17:29] assigned at review
+- Tags ":code:bounded:" from ":code:"     [2026-10-21 Wed 12:13] \\
+  classified at brainstorm: fixes existing wiring code in config.el
 :END:
 :PLAN:
+Two causes empty the session table, and the fix covers both (approach 3 of
+three, the user, 2026-10-20, since the launcher is in occasional use).
+
+Cause 1, load order: the wiring runs from the module's own load
+(=claude-code-ide-org--wire-on-load=, last form of the =with-eval-after-load
+'claude-code-ide= block). Doom loads module configs before the private
+=config.el=, whose =after! org= sets =org-agenda-files=. So the derivation sees
+no tracked files, registers 0 sessions, and reports success. Inferred from the
+code and the config, not watched.
+
+Cause 2, upstream clearing: =claude-code-ide-mcp-server-session-ended= stops the
+server when its count reaches 0, and =--stop-server= runs =clrhash= over every
+session, ours included. Confirmed in batch against upstream's own code with only
+the network stop stubbed: one launcher session started and ended left the table
+empty and the server nil. Between that stop and the next launcher start, Warp
+and CLI clients have no server.
+
+A. Register on demand. A new =claude-code-ide-org--session-context= replaces the two direct =claude-code-ide-mcp-server-get-session-context= calls (=--session-read-scope= and the capture router). When the table has no entry for =claude-code-ide-mcp-server--current-session-id=, it derives the projects, registers the one whose =--project-session-name= matches, and returns its context. No match, or two matches (the existing collision rule), registers nothing and returns nil, so the caller stays global as now. This repairs cause 1 and any future emptying alike.
+
+B. Keep the server up through a launcher session's end. Advice on =claude-code-ide-mcp-server-session-ended=: it still unregisters the launcher's session and decrements the count, but the stop-server call is suppressed while standalone projects are wired. It advises an upstream internal, so its docstring says when to retire it, as the 202 override's does, and the defect is filed under [[id:9d6449c7-529f-49a0-b28f-015cce869715][9d6449c7]].
+
+C. Warn at zero. When the startup wiring derives no projects, a =display-warning= says sessions will register on their first call, in place of the success message.
+
+Testing. ERT, each case shown red against HEAD first: an empty table plus a
+known session id registers it and scopes to it; an unknown id registers nothing
+and stays global; a collision registers nothing; a launcher start and end with a
+fake server leaves our sessions and the server in place; a zero derivation at
+wire time warns. Then =bin/test-all=. Live: after a reload, with the table
+empty, one unscoped =org_outline= from a session here registers
+=claude-code-ide-org=.
+
+Files: =config.el= and its test file, on =feature/session-registration=, merged
+by PR.
 
 :END:
 After an Emacs restart on 2026-10-12, *Messages* read "standalone tools wired on
