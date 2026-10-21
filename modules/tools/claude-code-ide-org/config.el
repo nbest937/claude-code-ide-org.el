@@ -3354,6 +3354,35 @@ children. Add the heading to the member list instead, or refile it elsewhere"
 ;; immediately usable, as the tool's contract promises, regardless of
 ;; agenda-file configuration.
 
+(defvar claude-code-ide-mcp-server--current-session-id)
+
+(defun claude-code-ide-org--session-context ()
+  "The calling session's MCP context, registering it first if need be.
+
+Upstream's table can be empty while a client calls (TODO.org :ID:
+28eed617): the startup wiring can run before the private config sets
+`org-agenda-files' and so derive no project, and a launcher session's
+end used to clear every session.  Either way the session's project was
+lost and the read scope and capture routing fell back to global.  So a
+miss on the bound session id derives the projects and registers the one
+whose `claude-code-ide-org--project-session-name' is that id.  No
+match, or two -- the collision `claude-code-ide-org-standalone-wire'
+refuses -- registers nothing and returns nil, so the caller stays
+global, as before.  nil outside a tool call."
+  (when (fboundp 'claude-code-ide-mcp-server-get-session-context)
+    (or (claude-code-ide-mcp-server-get-session-context)
+        (when-let* ((id (bound-and-true-p claude-code-ide-mcp-server--current-session-id))
+                    (dirs (seq-filter
+                           (lambda (dir)
+                             (equal id (claude-code-ide-org--project-session-name dir)))
+                           (mapcar #'expand-file-name
+                                   (if (listp claude-code-ide-org-standalone-projects)
+                                       claude-code-ide-org-standalone-projects
+                                     (claude-code-ide-org--standalone-derive-projects)))))
+                    ((null (cdr dirs))))
+          (claude-code-ide-mcp-server-register-session id (car dirs) nil)
+          (claude-code-ide-mcp-server-get-session-context)))))
+
 (defun claude-code-ide-org--session-project-capture-file ()
   "The tracked TODO.org belonging to the calling session's project, or nil.
 
@@ -3375,8 +3404,7 @@ back to the global default, unchanged.
 The lookup itself is `claude-code-ide-org--project-capture-file', which
 the deferred path calls with the queued event's cwd, since there is no
 session at apply (TODO.org :ID: 5e731a23)."
-  (when-let* ((ctx (and (fboundp 'claude-code-ide-mcp-server-get-session-context)
-                        (claude-code-ide-mcp-server-get-session-context)))
+  (when-let* ((ctx (claude-code-ide-org--session-context))
               (dir (plist-get ctx :project-dir)))
     (claude-code-ide-org--project-capture-file dir)))
 
@@ -3422,8 +3450,7 @@ session in one project was shown another's headings by `org_outline',
 because the reads went over every tracked file.  nil -- no session, as
 from `emacsclient', the tests or an internal caller -- means the read
 stays global, unchanged."
-  (when-let* ((ctx (and (fboundp 'claude-code-ide-mcp-server-get-session-context)
-                        (claude-code-ide-mcp-server-get-session-context)))
+  (when-let* ((ctx (claude-code-ide-org--session-context))
               (dir (plist-get ctx :project-dir)))
     (claude-code-ide-org--project-root dir)))
 
@@ -22861,6 +22888,36 @@ targetless captures -- to the wrong project (TODO.org :ID: 965f94eb)."
             (push (list name (cdr prior) dir) out)
           (push (cons name dir) seen))))))
 
+;;; A launcher session's end must not stop the standalone server.
+
+(defvar claude-code-ide-org--standalone-wired nil
+  "Non-nil once `claude-code-ide-org-standalone-wire' has started the server.
+Standalone clients -- Warp, a `claude' in any terminal -- hold no
+launcher session, so upstream's count does not know they exist.")
+
+(defun claude-code-ide-org--keep-server-on-session-end (orig &optional session-id)
+  "Run ORIG for SESSION-ID, but never let it stop a standalone server.
+
+Upstream `claude-code-ide-mcp-server-session-ended' stops the server
+when its count of launcher sessions reaches zero, and the stop
+`clrhash'es every session, the standalone ones included -- confirmed in
+batch (TODO.org :ID: 28eed617).  So one launcher session ending left
+Warp and CLI clients with no server and no project.  The launcher's own
+session is still unregistered and the count still decremented; only the
+stop is suppressed, and only once standalone wiring has run.
+
+*Retire this when upstream counts standalone sessions*, or stops
+clearing them on a launcher's end (filed under TODO.org :ID: 9d6449c7).
+It advises an upstream internal, so check that function's source after
+a `claude-code-ide' update, as for the 202 override."
+  (if claude-code-ide-org--standalone-wired
+      (cl-letf (((symbol-function 'claude-code-ide-mcp-server--stop-server) #'ignore))
+        (funcall orig session-id))
+    (funcall orig session-id)))
+
+(advice-add 'claude-code-ide-mcp-server-session-ended :around
+            #'claude-code-ide-org--keep-server-on-session-end)
+
 (defun claude-code-ide-org-standalone-wire ()
   "Wire the MCP tools server for standalone clients, loudly.
 Pins upstream's `claude-code-ide-mcp-server-port' to
@@ -22895,6 +22952,7 @@ the project list."
     ;; the headless sandbox run found this (:ID: 7c86ab4c debrief).
     (unless (claude-code-ide-mcp-server-ensure-server)
       (user-error "claude-code-ide-org: tools server did not start -- is `claude-code-ide-enable-mcp-server' t? (`claude-code-ide-emacs-tools-setup' enables it)"))
+    (setq claude-code-ide-org--standalone-wired t)
     (let ((projects (mapcar #'expand-file-name
                             (if (eq claude-code-ide-org-standalone-projects
                                     'derive)
@@ -22942,8 +23000,17 @@ http://localhost:%d/mcp/%s-2"
               (user-error "claude-code-ide-org: %d project session(s) wired on port %d; refused: %s"
                           (length wired) pin
                           (string-join (nreverse refusals) "; "))
-            (message "claude-code-ide-org: standalone tools wired on port %d, %d project session(s)"
-                     pin (length wired))))))))
+            (if projects
+                (message "claude-code-ide-org: standalone tools wired on port %d, %d project session(s)"
+                         pin (length wired))
+              ;; Zero is not success (TODO.org :ID: 28eed617): at startup
+              ;; it meant the tracked files were not set yet, and the
+              ;; success line hid it for days.
+              (display-warning
+               'claude-code-ide-org
+               (format "tools server on port %d, but no project derived from the tracked files; sessions will register on their first call"
+                       pin)
+               :warning))))))))
 
 (with-eval-after-load 'claude-code-ide
 
