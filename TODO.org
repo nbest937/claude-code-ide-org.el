@@ -745,7 +745,7 @@ If it reproduces, any outside write to an open tracker can be lost
 silently, whether a git pull, another session's Edit or a hand edit.
 
 
-* DOING Standalone wiring at Emacs startup registered 0 project sessions, so every consumer's tool calls lose their project :code:bounded:
+* REVIEW Standalone wiring at Emacs startup registered 0 project sessions, so every consumer's tool calls lose their project :code:bounded:
 :PROPERTIES:
 :ID:       28eed617-e4e0-4d29-88ea-9411de4b77e5
 :CREATED:  [2026-10-12 Mon 14:47]
@@ -772,6 +772,12 @@ CLOCK: [2026-10-21 Wed 12:13]--[2026-10-21 Wed 12:14] =>  0:01
   classified at brainstorm: fixes existing wiring code in config.el
 - [2026-10-21 Wed 12:13]--[2026-10-21 Wed 12:13] assigned at review
 - [2026-10-21 Wed 12:13]--[2026-10-21 Wed 12:14] brainstorm and record session-registration design
+CLOCK: [2026-10-21 Wed 12:40]--[2026-10-21 Wed 12:41] =>  0:01
+- [2026-10-21 Wed 12:40]--[2026-10-21 Wed 12:41] add follow-up reminder for noodle-salesman hook
+CLOCK: [2026-10-21 Wed 14:46]--[2026-10-21 Wed 14:54] =>  0:08
+- [2026-10-21 Wed 14:46]--[2026-10-21 Wed 14:54] implement on-demand session registration
+- State "REVIEW"     from "DOING"      [2026-10-21 Wed 14:54] \\
+  PR #38 open, awaiting review and merge
 :END:
 :PLAN:
 Two causes empty the session table, and the fix covers both (approach 3 of
@@ -837,7 +843,6 @@ removed; =bin/test-all= is 27 suites, 1723 passed. Live, after a =load-file=:
 with this repo's entry removed from upstream's table, one unscoped =org_outline=
 came back confined to this repo and re-registered =claude-code-ide-org= at its
 checkout. The upstream defect is [[id:14f9779f-a5ec-4edb-8e90-28bb24c236ad][14f9779f]].
-
 
 
 * TODO [0/5] The SessionStart tool-failure report misstates what failed and says nothing when Emacs is down now :code:
@@ -12248,6 +12253,8 @@ exactly, and the new tooling doing the reader's catch.
 Cancelled as a twin of [[id:ce012ad4-87f7-435c-a2ee-25210c071865][ce012ad4]], which already held the diagnosis and fix
 sketch for the undefined =json-rpc-error= symbol; this heading's new
 observations were folded there.
+
+
 ** TODO A launcher session's end stops the MCP server and clears every session, standalone clients included :code:
 :PROPERTIES:
 :ID:       14f9779f-a5ec-4edb-8e90-28bb24c236ad
@@ -12263,6 +12270,7 @@ those clients lose both the server and their project. Confirmed in batch against
 upstream's own code by [[id:28eed617-e4e0-4d29-88ea-9411de4b77e5][28eed617]], which works around it with =:around= advice
 that suppresses the stop once standalone wiring has run. The upstream fix would
 be to count registered sessions, or to stop only when the table is empty.
+
 
 * MAYBE Consider archives in org_clock_report's scope (agenda-with-archives) :code:
 :PROPERTIES:

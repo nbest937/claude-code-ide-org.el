@@ -8,6 +8,162 @@ Archived entries from file /Users/neil.best/git/claude-code-ide-org/TODO.org
 
 ** 2026-10 October
 *** 2026-10-20 Tuesday
+**** DONE pre-commit lints a temp copy with no plans/ beside it, so every archived plan that ages out blocks every commit :code:
+CLOSED: [2026-10-20 Tue 15:07]
+:PROPERTIES:
+:ID:       634eb138-28bc-4d43-aed3-f242c877904d
+:CREATED:  [2026-09-28 Mon 08:31]
+:CATEGORY: Dev
+:ARCHIVE_TIME: 2026-10-21 Wed 12:39
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Dev
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+CLOCK: [2026-09-28 Mon 08:43]--[2026-09-28 Mon 08:46] =>  0:03
+- State "DOING"      from "TODO"       [2026-09-28 Mon 08:43] \\
+  fixing on feature/precommit-plans-archive
+- [2026-09-28 Mon 08:43]--[2026-09-28 Mon 08:46] pre-commit lints with plans/ beside the copy
+- State "REVIEW"     from "DOING"      [2026-09-28 Mon 08:45] \\
+  fixed on its branch; PR opened
+CLOCK: [2026-09-28 Mon 08:51]--[2026-09-28 Mon 08:54] =>  0:03
+- State "DOING"      from "REVIEW"     [2026-09-28 Mon 08:51] \\
+  rework: the review found the working copy's plans/ linked, not the staged
+- [2026-09-28 Mon 08:51]--[2026-09-28 Mon 08:54] export the staged plans/ instead of linking
+- State "REVIEW"     from "DOING"      [2026-09-28 Mon 08:52] \\
+  rework done: the staged archive is exported
+CLOCK: [2026-09-28 Mon 08:56]--[2026-09-28 Mon 08:58] =>  0:02
+- [2026-09-28 Mon 08:56]--[2026-09-28 Mon 08:58] assigned at review
+- Tags ":code:"     from ":code:observed:" [2026-09-29 Tue 21:46] \\
+  tag dropped (the user, 2026-09-29): applied by recall, so its absence meant nothing
+- State "DONE"       from "REVIEW"     [2026-10-20 Tue 15:07] \\
+  merged PR #32, held 22 days
+:END:
+:PLAN:
+
+:END:
+:DEBRIEF:
+Merged with [[https://github.com/nbest937/claude-code-ide-org.el/pull/32][PR #32]] on 2026-09-28 (commit [[orgit-rev:./::b2ea13b][b2ea13b]]). Confirmed at close on
+2026-10-20 by 22 days of use: plans kept aging out of =~/.claude/plans= the
+whole time, and the hook refused no commit for a missing plan. Nothing is left
+undone. Retiring the fallback, as described above, is optional and not residue
+from this heading.
+:END:
+Observed 2026-09-28 when a bookkeeping commit was refused: "plan link points at
+a missing file: ~/.claude/plans/goofy-baking-wall.md". The link sits in a
+=DONE.org= heading. The plan had aged out of =~/.claude/plans=, and
+=plans/goofy-baking-wall.md= holds the archived copy. The lint rule in
+=claude-code-ide-org= accepts a missing plan when =plans/= beside the linted
+file holds it, and =bin/lint-org= run in place passed. But
+=.githooks/pre-commit= copies =TODO.org= and =DONE.org= into a =mktemp -d=
+directory and lints them there, with no =plans/= beside them, so inside the hook
+the archive fallback can never succeed. Every plan still linked from a heading
+will block every commit on the day it ages out, and 31 are archived. Unblocked
+for now by restoring the file byte-for-byte from =plans/=, the standing
+workaround. Proposed fix: link the repo's =plans/= into the temp directory
+before linting, with a =bin/pre-commit= test case that lints a heading whose
+plan exists only in the archive.
+
+*What this keeps working* (the user, 2026-09-28). Plan files were superseded on
+2026-09-21: a plan now lives in its heading's =:PLAN:= drawer, and no new
+plan-file link is written. The headings that still link one lean on a transition
+mechanism, stated in CLAUDE.md ("=plans/= is a frozen archive"). Their originals
+are left to age out of =~/.claude/plans=, and the archived copy in =plans/= is
+the record, which the checks accept. This heading makes the pre-commit hook
+honour that fallback as the policy already promises. It changes nothing about
+the policy. The mechanism's end state is not decided here: when [[id:6521dd56-8772-416b-9435-6da78bb86b06][6521dd56]]'s
+corpus pass reads each pre-convention heading ([[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128e4fa]]), it could move a linked
+plan into that heading's =:PLAN:= drawer and drop the link, after which the
+fallback, the archive and this fix can retire together.
+
+*Shipped* in [[orgit-rev:claude-code-ide-org::bd375a8][bd375a8]] on =feature/precommit-plans-archive=:
+=.githooks/pre-commit= links the repo's =plans/= into its temp directory before
+linting. The new case in =bin/pre-commit-test= failed against the old hook, and
+its negative (a plan in neither place) still fails. Verified live with
+=goofy-baking-wall.md= moved back out of =~/.claude/plans=: a copy of the real
+tracker linted with 1 error without the link, and with 0 errors with it. The
+file stays aged out, as the policy intends.
+
+*Reworked after PR #32's review.* The first fix symlinked the working copy's
+=plans/=. That let a plan in the working copy but never staged satisfy the
+check, though the commit carries no copy of it. =plans/= is now exported from
+the index with =checkout-index=, the same way guard 2 exports its scratch tree.
+A new test case, a plan only in the unstaged working copy, passed against the
+symlink and fails now. Live: 31 archived plans were exported, and the real
+tracker linted with 0 errors with =goofy-baking-wall.md= aged out.
+
+
+**** DONE A slice's incidental list takes closes from every tracked project, so another repo's work is attributed to this one's slice :code:
+CLOSED: [2026-10-20 Tue 15:07]
+:PROPERTIES:
+:ID:       1c252f9c-6838-4b71-b08b-ff2e77d34dce
+:CREATED:  [2026-10-12 Mon 17:42]
+:CATEGORY: Slices
+:ARCHIVE_TIME: 2026-10-21 Wed 12:39
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Slices
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-12 Mon 17:42]--[2026-10-12 Mon 17:43] =>  0:01
+- [2026-10-12 Mon 17:42]--[2026-10-12 Mon 17:43] file cross-project incidental attribution
+CLOCK: [2026-10-12 Mon 17:43]--[2026-10-12 Mon 17:44] =>  0:01
+- [2026-10-12 Mon 17:43]--[2026-10-12 Mon 17:44] assigned at review
+- State "DOING"      from "TODO"       [2026-10-12 Mon 17:46] \\
+  the user: fix now, on the slice's branch
+CLOCK: [2026-10-12 Mon 17:46]--[2026-10-12 Mon 17:47] =>  0:01
+- [2026-10-12 Mon 17:46]--[2026-10-12 Mon 17:47] assigned at review
+CLOCK: [2026-10-12 Mon 17:48]--[2026-10-12 Mon 17:51] =>  0:03
+- [2026-10-12 Mon 17:48]--[2026-10-12 Mon 17:51] confine incidental candidates to the slice's project
+- State "REVIEW"     from "DOING"      [2026-10-12 Mon 17:51] \\
+  fixed and verified, in review on PR #37
+- [2026-10-12 Mon 17:51]--[2026-10-12 Mon 17:51] assigned at review
+- State "DONE"       from "REVIEW"     [2026-10-20 Tue 15:07] \\
+  merged PR #37, session-independent fix
+:END:
+:PLAN:
+Fixed on the slice's own branch before its review, so [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]]'s record is clean
+before it closes (the user, 2026-10-12, over removing the lines by hand and
+fixing later). Bind =--report-scope= once, in =--slice-incidental-ids=, to the
+project holding the slice's file. Every scan beneath it reads the tracked set,
+so one binding confines them all, with no project argument threaded through
+=--closed-in-window=, =--slice-work-profiles= and =--other-slices-declared-ids=.
+The project comes from [[id:d6375b21-a410-4c2d-9d5b-bfe980c4cc63][d6375b21]]'s =--project-root=, so a slice and a read agree
+on what its project is.
+:END:
+:DEBRIEF:
+=--slice-incidental-ids= binds =--report-scope= to the project root holding the
+slice's file, through a new =--slice-project-scope= over =--project-root=. Every
+scan beneath it reads =--id-scannable-files=, which is derived from the tracked
+set, so one binding confines all three: the closes in the window, the work
+profiles that decide ownership, and the other slices' declared ids. A buffer
+visiting no file leaves any outer scope alone.
+
+Verified: one new ERT test, in which a second project's close falls inside the
+slice's window. It is shown red against =HEAD= at exactly that assertion. All 79
+slice tests pass, and =bin/test-all= passed 27 suites, 1699 tests. Live: after a
+reload, =claude-code-ide-org-refresh-slice= on [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]] listed 0 incidentals,
+and the pre-commit lint, which had refused the two cross-project =id:= links,
+passed. The refresh went through =emacsclient= because no org tool refreshes a
+slice on demand.
+
+The lint caught this from the other side. Its link resolution only knows the
+project's own files, so the cross-project lines could not be committed.
+:END:
+
+Slice [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]] lists noodle-salesman's 414875f3 and 9ef48eef as incidental work
+(the user, 2026-10-12): both were closed by an apply pass while this slice was
+the only DOING one. The candidates come from =--closed-in-window=, which scans
+=--id-scannable-files=, every tracked project plus archives.
+=--incidental-owner= then assigns any close to whichever slice was in progress.
+The same class as [[id:d6375b21-a410-4c2d-9d5b-bfe980c4cc63][d6375b21]], in the slice machinery. Proposed: confine the
+candidates, and the slice work profiles that decide ownership, to the slice's
+own project, resolved from its file with =--project-root=.
+
+Resolved on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]] in commit [[orgit-rev:./::7c0eb89][7c0eb89]]: a slice's incidental list now comes from
+its own project only, and [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]]'s refresh dropped both noodle-salesman
+headings.
+
 **** DONE [21/21] The review pass every install uses: movement, marking, apply, quit, and no clock where tracking is off :code:
 CLOSED: [2026-10-20 Tue 12:24]
 :PROPERTIES:
@@ -460,6 +616,7 @@ Fixed in commit [[orgit-rev:./::f64bd33][f64bd33]]: the remainder path clears =:
 Resolved in f64bd33: a remainder split off by e starts with no dismissal and no
 reason, as it already started unmarked, so x dismisses only lines the human
 marked.
+
 
 
 *** 2026-10-13 Tuesday
