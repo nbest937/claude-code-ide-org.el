@@ -2,6 +2,22 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO A launcher session's exit stops the IDE companion that standalone wiring started for the same directory :code:
+:PROPERTIES:
+:ID:       b4be636e-e665-44a9-9ab5-5fb3992f280c
+:CREATED:  [2026-10-21 Wed 15:45]
+:CATEGORY: Dev
+:END:
+
+Review finding on [[https://github.com/nbest937/claude-code-ide-org.el/pull/38][PR #38]] for [[id:28eed617-e4e0-4d29-88ea-9411de4b77e5][28eed617]], not verified.
+=claude-code-ide--cleanup-on-exit= calls =claude-code-ide-mcp-stop-session= on
+the launcher's directory before =session-ended=, which would close the WebSocket
+server and remove the lockfile that =claude-code-ide-org-standalone-wire=
+started for that project. Standalone clients there would keep the tools server
+but lose IDE integration until the next wire. Verify by reading
+=--cleanup-on-exit= and checking the lockfile after a launcher exits in a wired
+project.
+
 * TODO A story's members split by an unrelated line in :MEMBERS: render its parent row twice in the planned list :code:
 :PROPERTIES:
 :ID:       18b5c60e-30bf-48d1-a892-29d226ca6667
@@ -797,11 +813,11 @@ the network stop stubbed: one launcher session started and ended left the table
 empty and the server nil. Between that stop and the next launcher start, Warp
 and CLI clients have no server.
 
-A. Register on demand. A new =claude-code-ide-org--session-context= replaces the two direct =claude-code-ide-mcp-server-get-session-context= calls (=--session-read-scope= and the capture router). When the table has no entry for =claude-code-ide-mcp-server--current-session-id=, it derives the projects, registers the one whose =--project-session-name= matches, and returns its context. No match, or two matches (the existing collision rule), registers nothing and returns nil, so the caller stays global as now. This repairs cause 1 and any future emptying alike.
+A. Register on demand, at the shared lookup (revised after the [[https://github.com/nbest937/claude-code-ide-org.el/pull/38][PR #38]] review). =:around= advice on upstream's =claude-code-ide-mcp-server-get-session-context=, through which upstream's own tools also pass: on a miss it registers the project the wire would have registered under that id and starts its IDE companion as the wire does. One partition rule, shared with the wire, decides what may register: the first of a colliding pair registers, a port mismatch is refused. An explicit nil project list means no sessions. A miss is cached against the tracked-file list until that changes or the next wire, since the lookup is on every tool call's path.
 
-B. Keep the server up through a launcher session's end. Advice on =claude-code-ide-mcp-server-session-ended=: it still unregisters the launcher's session and decrements the count, but the stop-server call is suppressed while standalone projects are wired. It advises an upstream internal, so its docstring says when to retire it, as the 202 override's does, and the defect is filed under [[id:9d6449c7-529f-49a0-b28f-015cce869715][9d6449c7]].
+B. Keep the server up through a launcher session's end, by holding one reference on upstream's count: the wire calls the public =claude-code-ide-mcp-server-session-started= with no arguments, once per server object. The count then never reaches zero from launcher ends. No advice on an upstream internal and no flag. The defect is filed as [[id:14f9779f-a5ec-4edb-8e90-28bb24c236ad][14f9779f]] under [[id:9d6449c7-529f-49a0-b28f-015cce869715][9d6449c7]].
 
-C. Warn at zero. When the startup wiring derives no projects, a =display-warning= says sessions will register on their first call, in place of the success message.
+C. Warn at zero. When a ='derive= wire finds no projects, a =display-warning= says sessions will register on their first call, in place of the success message.
 
 Testing. ERT, each case shown red against HEAD first: an empty table plus a
 known session id registers it and scopes to it; an unknown id registers nothing
@@ -833,16 +849,19 @@ session when a launcher session ends, which was confirmed in batch. The fix
 registers sessions on demand, keeps the server up through a launcher session's
 end, and warns when the startup wiring derives no projects.
 
-Shipped on =feature/session-registration= (commit [[orgit-rev:./::5039395][5039395]]), all three parts as
-planned. Part B's flag is set whenever the wire starts the server, not only when
-it derives a project, because at startup a zero derivation is exactly the case
-cause 1 produces. Verified: the three behaviour tests fail against HEAD; the
-collision and unknown-id tests pass on HEAD by construction (HEAD never
-registers), and the collision test fails when the fix's collision guard is
-removed; =bin/test-all= is 27 suites, 1723 passed. Live, after a =load-file=:
-with this repo's entry removed from upstream's table, one unscoped =org_outline=
-came back confined to this repo and re-registered =claude-code-ide-org= at its
-checkout. The upstream defect is [[id:14f9779f-a5ec-4edb-8e90-28bb24c236ad][14f9779f]].
+Shipped on =feature/session-registration= (commit [[orgit-rev:./::5039395][5039395]]), then reworked after
+PR #38's review (commit [[orgit-rev:./::688c691][688c691]]). The review found that the first cut registered
+only for org's own tools, refused both clones of a collision where the wire
+registers the first, gave on-demand sessions no IDE companion, warned falsely
+for an explicit nil, and suppressed upstream's stop with a flag that was never
+cleared. The :PLAN: describes the reworked design. Verified: each new test fails
+against the first cut, against main, or both, except the one guarding upstream's
+own stop when no reference is held; =bin/test-all= is 27 suites, 1725 passed.
+Live, after a =load-file= and removing the first cut's advice by hand: with this
+repo's entry removed from the table, upstream's own =project-info= tool
+re-registered =claude-code-ide-org= at its checkout, and the count held one
+reference. Not addressed, by agreement: a launcher's exit still stops the IDE
+companion for its own directory (unverified review finding), filed as [[id:b4be636e-e665-44a9-9ab5-5fb3992f280c][b4be636e]].
 
 
 * TODO [0/5] The SessionStart tool-failure report misstates what failed and says nothing when Emacs is down now :code:
