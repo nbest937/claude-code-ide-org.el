@@ -874,25 +874,16 @@ Files: =config.el= and its test file, on =feature/session-registration=, merged
 by PR.
 
 :END:
-After an Emacs restart on 2026-10-12, *Messages* read "standalone tools wired on
-port 45571, 0 project session(s)", and the session table was empty. An hour
-later =claude-code-ide-org--standalone-derive-projects= derived all three
-projects. So the wiring apparently ran before the tracked set
-(=org-agenda-files=) was populated. With no session registered, the per-session
-read scope ([[id:d6375b21-a410-4c2d-9d5b-bfe980c4cc63][d6375b21]]) and capture routing ([[id:d718f6b6-5a33-4889-8b5a-8ea82553ccea][d718f6b6]]) both silently fall back to
-global. Proposed: derive the projects once the tracked set is known, or re-wire
-when it first becomes non-empty. Also refuse loudly when the derivation yields
-zero, rather than reporting success.
-
-It recurred by 2026-10-16. The session table held one entry,
-claude-noodle-salesman-20261016-082125, which is claude-code-ide's own buffer
-session, started at 08:21. Neither pinned id named by a .mcp.json URL
-(claude-code-ide-org, noodle-salesman) was registered. That day a
-noodle-salesman capture fell through to this repo's TODO.org ([[id:4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8][4a6f6dc3]]), and
-this repo's own unscoped org_query returned a noodle-salesman heading.
-Unchecked: whether starting a claude-code-ide session resets the table, or
-whether the startup wiring yielded zero again.
-
+The MCP session table empties, so tool calls from a consumer repo lose their
+project, and read scoping ([[id:d6375b21-a410-4c2d-9d5b-bfe980c4cc63][d6375b21]]) and capture routing ([[id:d718f6b6-5a33-4889-8b5a-8ea82553ccea][d718f6b6]]) silently
+fall back to global. Seen 2026-10-12 after a restart ("0 project session(s)"),
+2026-10-16 (only a launcher session registered, and a noodle-salesman capture
+fell through, [[id:4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8][4a6f6dc3]]), and 2026-10-20 (table empty while the derivation found
+all three projects). Two causes, both in =:PLAN:=: the startup wiring runs
+before the private config sets =org-agenda-files=, and upstream clears every
+session when a launcher session ends, which was confirmed in batch. The fix
+registers sessions on demand, keeps the server up through a launcher session's
+end, and warns when the startup wiring derives no projects.
 
 * TODO [0/5] The SessionStart tool-failure report misstates what failed and says nothing when Emacs is down now :code:
 :PROPERTIES:
