@@ -827,6 +827,18 @@ session when a launcher session ends, which was confirmed in batch. The fix
 registers sessions on demand, keeps the server up through a launcher session's
 end, and warns when the startup wiring derives no projects.
 
+Shipped on =feature/session-registration= (commit [[orgit-rev:./::5039395][5039395]]), all three parts as
+planned. Part B's flag is set whenever the wire starts the server, not only when
+it derives a project, because at startup a zero derivation is exactly the case
+cause 1 produces. Verified: the three behaviour tests fail against HEAD; the
+collision and unknown-id tests pass on HEAD by construction (HEAD never
+registers), and the collision test fails when the fix's collision guard is
+removed; =bin/test-all= is 27 suites, 1723 passed. Live, after a =load-file=:
+with this repo's entry removed from upstream's table, one unscoped =org_outline=
+came back confined to this repo and re-registered =claude-code-ide-org= at its
+checkout. The upstream defect is [[id:14f9779f-a5ec-4edb-8e90-28bb24c236ad][14f9779f]].
+
+
 
 * TODO [0/5] The SessionStart tool-failure report misstates what failed and says nothing when Emacs is down now :code:
 :PROPERTIES:
