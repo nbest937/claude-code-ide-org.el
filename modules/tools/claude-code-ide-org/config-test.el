@@ -21041,6 +21041,77 @@ with a local entry on the second, both register under their own names."
         ;; The other project still registers (TODO.org :ID: 7def4fff).
         (should (equal '("repo") (mapcar #'car registered)))))))
 
+;;; On-demand session registration (TODO.org :ID: 28eed617) ---------------
+
+(defmacro claude-code-ide-org-test--with-empty-session-table (&rest body)
+  "BODY with upstream's session table empty and its count at zero."
+  (declare (indent 0))
+  `(progn
+     (require 'claude-code-ide-mcp-server)
+     (let ((claude-code-ide-mcp-server--sessions (make-hash-table :test 'equal))
+           (claude-code-ide-mcp-server--session-count 0))
+       ,@body)))
+
+(ert-deftest claude-code-ide-org-test-session-register-on-demand ()
+  "An empty table and a session id naming a known project registers it,
+and the read scope follows it instead of falling back to global."
+  (claude-code-ide-org-test--with-clones
+    (claude-code-ide-org-test--with-empty-session-table
+      (let ((claude-code-ide-org-standalone-projects (list a))
+            (claude-code-ide-mcp-server--current-session-id "repo"))
+        (should (file-equal-p a (claude-code-ide-org--session-read-scope)))
+        (should (file-equal-p
+                 a (plist-get (gethash "repo" claude-code-ide-mcp-server--sessions)
+                              :project-dir)))))))
+
+(ert-deftest claude-code-ide-org-test-session-register-unknown-id-stays-global ()
+  "An id no project resolves to registers nothing and scopes nothing."
+  (claude-code-ide-org-test--with-clones
+    (claude-code-ide-org-test--with-empty-session-table
+      (let ((claude-code-ide-org-standalone-projects (list a))
+            (claude-code-ide-mcp-server--current-session-id "nope"))
+        (should-not (claude-code-ide-org--session-read-scope))
+        (should (zerop (hash-table-count claude-code-ide-mcp-server--sessions)))))))
+
+(ert-deftest claude-code-ide-org-test-session-register-collision-registers-nothing ()
+  "Two projects on one name are the collision the wiring refuses, so the
+on-demand path refuses it too, silently, and the caller stays global."
+  (claude-code-ide-org-test--with-clones
+    (claude-code-ide-org-test--with-empty-session-table
+      (let ((claude-code-ide-org-standalone-projects (list a b))
+            (claude-code-ide-mcp-server--current-session-id "repo"))
+        (should-not (claude-code-ide-org--session-read-scope))
+        (should (zerop (hash-table-count claude-code-ide-mcp-server--sessions)))))))
+
+(ert-deftest claude-code-ide-org-test-launcher-end-keeps-standalone-server ()
+  "A launcher session starting and ending leaves the standalone sessions
+and the server in place, though the launcher's own session is gone.
+Upstream alone stops the server and clears the table."
+  (claude-code-ide-org-test--with-empty-session-table
+    (let ((claude-code-ide-org--standalone-wired t)
+          (claude-code-ide-mcp-server--server 'fake-server)
+          (claude-code-ide-mcp-server--port 45571))
+      (cl-letf (((symbol-function 'claude-code-ide-mcp-http-server-stop) #'ignore))
+        (claude-code-ide-mcp-server-register-session "repo" "/tmp/repo/" nil)
+        (claude-code-ide-mcp-server-session-started "launch" "/tmp/repo/" (current-buffer))
+        (claude-code-ide-mcp-server-session-ended "launch")
+        (should (gethash "repo" claude-code-ide-mcp-server--sessions))
+        (should-not (gethash "launch" claude-code-ide-mcp-server--sessions))
+        (should (zerop claude-code-ide-mcp-server--session-count))
+        (should (eq 'fake-server claude-code-ide-mcp-server--server))))))
+
+(ert-deftest claude-code-ide-org-test-wire-warns-on-zero-projects ()
+  "A wire deriving no project warns rather than reporting success."
+  (claude-code-ide-org-test--with-stubbed-server
+    (let ((claude-code-ide-org-standalone-projects nil)
+          (claude-code-ide-org--standalone-wired nil)
+          (warned nil))
+      (cl-letf (((symbol-function 'display-warning)
+                 (lambda (_type msg &rest _) (push msg warned))))
+        (claude-code-ide-org-standalone-wire))
+      (should (string-match-p "sessions will register on their first call"
+                              (or (car warned) ""))))))
+
 ;;; Tool-failure markers (TODO.org :ID: 3ad389be) ---------------------------
 
 (defun claude-code-ide-org-test--plant-failures (session-id &rest lines)

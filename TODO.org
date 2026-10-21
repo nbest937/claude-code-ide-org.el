@@ -827,6 +827,18 @@ session when a launcher session ends, which was confirmed in batch. The fix
 registers sessions on demand, keeps the server up through a launcher session's
 end, and warns when the startup wiring derives no projects.
 
+Shipped on =feature/session-registration= (commit [[orgit-rev:./::5039395][5039395]]), all three parts as
+planned. Part B's flag is set whenever the wire starts the server, not only when
+it derives a project, because at startup a zero derivation is exactly the case
+cause 1 produces. Verified: the three behaviour tests fail against HEAD; the
+collision and unknown-id tests pass on HEAD by construction (HEAD never
+registers), and the collision test fails when the fix's collision guard is
+removed; =bin/test-all= is 27 suites, 1723 passed. Live, after a =load-file=:
+with this repo's entry removed from upstream's table, one unscoped =org_outline=
+came back confined to this repo and re-registered =claude-code-ide-org= at its
+checkout. The upstream defect is [[id:14f9779f-a5ec-4edb-8e90-28bb24c236ad][14f9779f]].
+
+
 
 * TODO [0/5] The SessionStart tool-failure report misstates what failed and says nothing when Emacs is down now :code:
 :PROPERTIES:
@@ -12048,7 +12060,7 @@ code by the worktree-aware convention checks. No partitioning
 machinery; the design questions all have their own headings.
 
 
-* MAYBE [1/4] Accumulate issues to report upstream to claude-code-ide.el :code:
+* MAYBE [1/5] Accumulate issues to report upstream to claude-code-ide.el :code:
 :PROPERTIES:
 :CATEGORY: Upstream
 :ID:       9d6449c7-529f-49a0-b28f-015cce869715
@@ -12236,7 +12248,21 @@ exactly, and the new tooling doing the reader's catch.
 Cancelled as a twin of [[id:ce012ad4-87f7-435c-a2ee-25210c071865][ce012ad4]], which already held the diagnosis and fix
 sketch for the undefined =json-rpc-error= symbol; this heading's new
 observations were folded there.
+** TODO A launcher session's end stops the MCP server and clears every session, standalone clients included :code:
+:PROPERTIES:
+:ID:       14f9779f-a5ec-4edb-8e90-28bb24c236ad
+:CREATED:  [2026-10-21 Wed 14:49]
+:END:
 
+=claude-code-ide-mcp-server-session-ended= stops the server once its count of
+launcher sessions reaches 0, and =--stop-server= runs =clrhash= over the session
+table. Sessions registered directly with
+=claude-code-ide-mcp-server-register-session=, as standalone clients (Warp, a
+CLI =claude=) are, never enter that count. So when one launcher session ends,
+those clients lose both the server and their project. Confirmed in batch against
+upstream's own code by [[id:28eed617-e4e0-4d29-88ea-9411de4b77e5][28eed617]], which works around it with =:around= advice
+that suppresses the stop once standalone wiring has run. The upstream fix would
+be to count registered sessions, or to stop only when the table is empty.
 
 * MAYBE Consider archives in org_clock_report's scope (agenda-with-archives) :code:
 :PROPERTIES:
