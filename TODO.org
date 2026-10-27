@@ -2,6 +2,29 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Setting :MEMBERS: or :DROPPED: refreshes nothing, so the checklist goes stale and org_slice_add_member refuses on a row already gone :code:
+:PROPERTIES:
+:ID:       6f3a5342-1905-4831-b712-3b6e5e83e0c4
+:CREATED:  [2026-10-27 Tue 10:42]
+:CATEGORY: Slices
+:END:
+:PLAN:
+Not yet designed; the body's proposal is the starting point. A candidate for
+slice [[id:7dcec489-f5dd-4f7f-b819-a25405436b9b][7dcec489]], whose theme it is.
+:END:
+
+Reported by noodle-salesman's session 2026-10-27, on its slice 39c39427. It
+removed four members by setting :MEMBERS: with org_set_property, which writes
+the property and refreshes nothing: only org_slice_add_member and the ceremony's
+steps run the refresh, and no MCP tool exposes
+claude-code-ide-org-refresh-slice. So the checklist and :BLOCKER: kept the old
+members, and a following org_slice_add_member was refused as a duplicate,
+because its test unions the declared ids with the rendered checklist ids. The
+same holds for :DROPPED:, which the conventions say "the refresh renders".
+Proposed: org_set_property refreshes the slice after writing :MEMBERS: or
+:DROPPED:, as its KIND=slice branch already completes the declaration, and the
+duplicate test reads only the declared ids.
+
 * TODO Stopping a launcher ends its MCP session twice, which spends the held reference and stops the tools server :code:
 :PROPERTIES:
 :ID:       f22246cc-50e1-49e8-acc1-d71eecab814c
