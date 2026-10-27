@@ -2,6 +2,354 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Audit what the two 2026-10-27 repo audits left unread, and run the suites they did not :code:research:
+:PROPERTIES:
+:ID:       37f4c6ec-6337-43bc-9efc-bf8ce56acdb4
+:CREATED:  [2026-10-27 Tue 13:53]
+:CATEGORY: Dev
+:END:
+:PLAN:
+
+Two audits on 2026-10-27 read most of config.el, the hooks and setup, and filed
+what they found; these parts were not read, or only skimmed: the review buffer's
+mark, apply, assign and claim commands (from about --review-render on); the
+archive and ceremony machinery (--duplicate-ids-in-file through
+ceremony-finish); --review-annotation-label and the code just before it; the
+apply path past --review-apply-clock; the lint's citation half
+(--citation-regions, --citation-candidates) and --entry-drawer-layout;
+--recompute-logbook-text past its --busy-intervals call;
+--slice-incidental-ids-1, --incidental-owner and --slice-doing-spans for
+correctness; behaviour across a DST fall-back hour; and the brainstorming
+companion's helper.js and frame-template.html. No test suite ran in either
+audit. Same method as before: findings need a concrete case, and each is checked
+against open headings before filing.
+:END:
+
+The coverage two repo audits on 2026-10-27 left: the parts they did not read,
+and the test suites neither ran. The list is in :PLAN:.
+
+
+
+* TODO The transcript prompt test is written four times, and all four let local-command output open a turn :code:
+:PROPERTIES:
+:ID:       4d9b82f3-5762-4109-8b12-6d0caadc0607
+:CREATED:  [2026-10-27 Tue 13:53]
+:CATEGORY: Dev
+:END:
+
+--transcript-prompts, --turn-reader-view-buffer and --session-first-prompt each
+  inline the test that --transcript-prompt-obj-p holds, and every copy accepts
+  user lines carrying local-command-stdout, of which the transcripts hold 32. So
+  /model or /clear renders as an extra turn headed with the raw tag text, and a
+  comment claims the copies agree by construction. Measured by a repo audit
+  2026-10-27. Proposed: have all four call --transcript-prompt-obj-p and exclude
+  local-command output there once.
+
+
+* TODO A slice-scoped org_outline lists derived parent rows and incidentals as members, because it reads the body rather than :MEMBERS: :code:
+:PROPERTIES:
+:ID:       6385df59-ca01-48f8-9a91-d9319fa8de15
+:CREATED:  [2026-10-27 Tue 13:53]
+:CATEGORY: Tools
+:END:
+
+--outline-slice-members takes every id link line in the body, so a member's
+  story parent row prints as a member with no box, which is how a cancelled or
+  parked member looks, and incidental lines appear the same way. Five functions
+  answer "which ids are members" by five rules: --slice-membership,
+  --slice-members, --slice-planned-member-ids, --slice-checklist-ids and the
+  refresh region. Reproduced by a repo audit 2026-10-27. Proposed: build the
+  outline's list from --slice-declared-ids with :DROPPED: marked, and
+  incidentals under their own label.
+
+
+* TODO A :DROPPED: id that names no member does nothing, and no lint rule reads :DROPPED: though a comment says one does :code:
+:PROPERTIES:
+:ID:       23303aab-e151-449f-997c-0b5a9d2cc5eb
+:CREATED:  [2026-10-27 Tue 13:53]
+:CATEGORY: Slices
+:END:
+
+A mistyped id in :DROPPED: leaves the intended member boxed, counted and in the
+:BLOCKER:, holding the slice open; the comment in --slice-dropped-ids says an
+unexpanded token stays so the lint still sees it, and no lint rule reads the
+property. A non-member listed there also makes the scoped outline show
+"(dropped)" on a heading that was never a member. Reproduced by a repo audit
+2026-10-27. Proposed: a lint error for each :DROPPED: id not in :MEMBERS:, and
+correct the comment.
+
+
+* TODO A duplicate id in a slice's :MEMBERS: renders twice and counts twice, and lint says nothing :code:
+:PROPERTIES:
+:ID:       5fa51c64-297e-4937-b3eb-1535b84151aa
+:CREATED:  [2026-10-27 Tue 13:52]
+:CATEGORY: Slices
+:END:
+
+--slice-declared-ids keeps duplicates, so :MEMBERS: a b a renders three lines
+  and [0/3], while the :BLOCKER: is de-duplicated. The lint compares listed
+  against declared, and both carry the duplicate, so it passes;
+  org_slice_add_member refuses duplicates but org_set_property and hand edits do
+  not. Reproduced by a repo audit 2026-10-27. Proposed: a lint error when
+  :MEMBERS: holds a duplicate, and optionally de-duplicate on read.
+
+
+* TODO A residue bookend is laid over a qualifying attention interval instead of through the day's gaps :code:
+:PROPERTIES:
+:ID:       2211d720-5e3f-45b6-bcb4-437b2a43baed
+:CREATED:  [2026-10-27 Tue 13:52]
+:CATEGORY: Queue
+:END:
+
+--attention-bookends sizes each bookend to the day's sub-floor busy time and
+  anchors it at the first or last observed moment, knowing nothing of the
+  qualifying intervals. Reproduced by a repo audit 2026-10-27: an early bookend
+  08:01-09:21 wholly covered a qualifying 08:31-09:19 while the work it stood
+  for ran 09:41-12:19, so the day's totals are close and its placement wrong.
+  Proposed: lay bookends through the gaps between qualifying intervals, or at
+  least end the early one before the first.
+
+
+* TODO Allocated shares spill outside their window and overlap the next window's shares :code:
+:PROPERTIES:
+:ID:       8f5dc7a6-5b90-44b7-b712-ee396e4357b5
+:CREATED:  [2026-10-27 Tue 13:52]
+:CATEGORY: Queue
+:END:
+
+claude-code-ide-org-allocation-intervals totals the run time overlapping each
+window, including a run that started before it, but lays the shares out from the
+first run that starts inside it. Reproduced by a repo audit 2026-10-27: runs
+18:50-19:12, 19:15-19:18 and 19:20-19:35 gave one heading 19:15-19:30, past its
+window's end and over the next heading's share, against the docstring's promise.
+Proposed: start placement at the later of the window start and each overlapping
+run's start.
+
+
+* TODO Editing a span with e drops a claim's active notation, and a refused edit still marks the item edited :code:
+:PROPERTIES:
+:ID:       954e61b1-5bf8-49a1-b33e-cf07da5dc7ca
+:CREATED:  [2026-10-27 Tue 13:52]
+:CATEGORY: Apply
+:END:
+
+review-edit-interval always prefills both prompts in the inactive bracket form
+and recomputes :active from what is typed, so RET RET on a span claimed with c
+writes the claim inactive. It also sets :active and :edited before checking that
+the end is not before the start, so a refused edit still changes the item and g
+counts it. Found by a repo audit 2026-10-27, by reading. Proposed: prefill in
+the item's current form, and set both flags after the check.
+
+
+* TODO A sub-minute run rounded up to a minute can overlap the next run, counting a minute twice and crediting a permission wait :code:
+:PROPERTIES:
+:ID:       04a9d1b4-c8c5-40af-bf9e-9ced6a7225fe
+:CREATED:  [2026-10-27 Tue 13:52]
+:CATEGORY: Queue
+:END:
+
+--apply-idle-floor promotes any positive interval under a minute to a full
+  minute after its barrier check, so resume 10:00:05, a permission block
+  10:00:15-10:00:45 and pause 10:05 write [10:00]--[10:01] and [10:00]--[10:05].
+  Reproduced by a repo audit 2026-10-27; any span-idle-floor under 60 s overlaps
+  the same way with no block. Proposed: clamp a promoted end to the next
+  interval's start.
+
+
+* TODO An unassigned span pooling several sessions pairs resume and pause by adjacency, so concurrent work is undercounted :code:
+:PROPERTIES:
+:ID:       2ff6f683-d7e2-495e-9eff-88d522af87a7
+:CREATED:  [2026-10-27 Tue 13:52]
+:CATEGORY: Queue
+:END:
+
+Orphan and residue spans take every session's guideposts, deliberately, and
+--raw-work-runs then pairs each resume with the next pause whatever its session:
+A running 10:00-10:20 and B 10:10-10:15 writes only 10:10-10:15. Reproduced by a
+repo audit 2026-10-27; --busy-intervals' own docstring says only the union is
+meaningful across sessions. Proposed: for spans whose events come from more than
+one session, derive runs from the busy-time union, bounded at the span end.
+
+
+* TODO Whether a session was running at a bracket edge is read from the newest guidepost of any session :code:
+:PROPERTIES:
+:ID:       4eadfc8f-22b5-4466-875d-fdbc5c922ea4
+:CREATED:  [2026-10-27 Tue 13:52]
+:CATEGORY: Queue
+:END:
+
+--lane-running-at-p scans history from every session, so session B's pause at
+  10:05 makes session A, resumed at 10:00 and clocked in at 10:10, look idle,
+  and A's lead-in yields no run; another session's resume can invent one the
+  same way. Reproduced by a repo audit 2026-10-27, which counted 29 of 1,562
+  main-lane clock events whose answer differs from their own session's.
+  Proposed: filter history to the span's canonical session first, through
+  --session-alias-map.
+
+
+* TODO A blank line inside a slice's checklist leaves stale duplicate lines that no refresh removes, and the cookie counts them :code:
+:PROPERTIES:
+:ID:       b3949615-9260-4d97-a33f-7d74ee45ccb1
+:CREATED:  [2026-10-27 Tue 13:52]
+:CATEGORY: Slices
+:END:
+
+--slice-planned-region ends the replaced region at the first non-list line, a
+  blank one included, while the cookie counts the whole body. Reproduced by a
+  repo audit 2026-10-27: :MEMBERS: a b c with a blank line after the first item
+  renders a fresh list above two stale lines and reads [2/5]; lint says run the
+  refresh, which cannot fix it. Proposed: let blank lines followed by another
+  list line extend the region, as the incidental region already does, with a
+  test.
+
+
+* TODO Recomputing accumulated CLOCK lines deletes every line that opens at a clock_in or a permission block's end :code:
+:PROPERTIES:
+:ID:       94e7b511-0adb-4afc-83c0-ba450198f221
+:CREATED:  [2026-10-27 Tue 13:52]
+:CATEGORY: Clock
+:END:
+
+claude-code-ide-org-recompute-accumulated-clock-lines re-derives each line from
+--busy-intervals over pause and resume guideposts only; a line opening at a
+clock_in or block_end has no resume in its window, busy time comes back nil, and
+the recompute drops the CLOCK line and keeps its annotation. That covers every
+bracket line since 2026-08-22, though nothing runs the command automatically.
+Found by a repo audit 2026-10-27, the engine checked in batch. Proposed: feed it
+the bracket and block edges as boundaries, or refuse dates after the bracket
+method arrived.
+
+
+* TODO A long turn that hit a permission prompt loses its unowned head and tail, because the never-split rule tests literal resume and pause :code:
+:PROPERTIES:
+:ID:       a4acdd35-ddba-4557-8dcb-86bc754374db
+:CREATED:  [2026-10-27 Tue 13:52]
+:CATEGORY: Queue
+:END:
+
+--aggregate-guideposts keeps a turn over the gap threshold whole only when it
+  runs literally from resume to pause with no event between, and its stream
+  includes block markers; --run-boundary-kind already normalises those kinds
+  elsewhere. Reproduced by a repo audit 2026-10-27 on session 2fe6a015 of
+  2026-09-15: about 7.5 minutes of agent work around two brackets reached review
+  as nothing, the loss [[id:b09aca60-127b-47a4-9177-a86ac90d8fac][b09aca60]] fixed. Proposed: classify through
+  --run-boundary-kind, and have --guidepost-between-p count only resume and
+  pause.
+
+
+* TODO review-start moves the DOING slice to REVIEW on any Bash command that mentions requested_reviewers :code:
+:PROPERTIES:
+:ID:       75819160-60f8-482e-a6b3-57124a5260b9
+:CREATED:  [2026-10-27 Tue 13:52]
+:CATEGORY: Dev
+:END:
+
+The hook greps the whole command string for gh pr edit --add-reviewer or
+requested_reviewers, so a grep of the hook itself or a read-only gh api call on
+requested_reviewers each queued todo REVIEW in a scratch reproduction by a repo
+audit 2026-10-27; a /code-review of a different pull request also moves the
+slice in hand. Proposed: require a write (-X POST or --method POST) on
+requested_reviewers and anchor the match at a gh invocation.
+
+
+* TODO The stale-interval report treats a clock that is still running as crash residue, and its recovery call corrupts that clock :code:
+:PROPERTIES:
+:ID:       22264369-2d9d-4339-9b97-f3ea25ad0137
+:CREATED:  [2026-10-27 Tue 13:52]
+:CATEGORY: Clock
+:END:
+
+find-stale-open-intervals scans the file text for open CLOCK lines dated before
+today and never asks org-clocking-p. Clock in by hand at 23:40, or keep the
+review buffer open past midnight, and a session at 00:05 is told it is a crash;
+close-open-interval then closes the text line while org-clock-marker still
+points at it, so the next clock-out rewrites it or errors. Found by a repo audit
+2026-10-27, by reading. Proposed: skip an entry when org-clocking-p and
+org-clock-marker falls inside it.
+
+
+* TODO The ceremony's sort steps reorder and save TODO.org or DONE.org while it holds the human's unsaved edits :code:
+:PROPERTIES:
+:ID:       254308f7-70a9-4296-9166-fe4138c6382b
+:CREATED:  [2026-10-27 Tue 13:52]
+:CATEGORY: Meta
+:END:
+
+sort-by-created and sort-datetree-descending sort in place and save with no
+--file-busy-p check, though archive-finished in the same pass skips a busy file.
+Burying the review buffer while the ceremony is due and TODO.org has an unsaved
+edit reorders the half-finished buffer and saves it, and a session later commits
+it. Found by a repo audit 2026-10-27, by reading. Proposed: return "skipped:
+unsaved" at the top of both when the file is busy.
+
+
+* TODO A narrowed span's leftover copies the human's :active and :edited flags, so agent time is written as attention :code:
+:PROPERTIES:
+:ID:       187a87b4-20db-4fbf-931f-a4b4e1bed668
+:CREATED:  [2026-10-27 Tue 13:52]
+:CATEGORY: Apply
+:END:
+
+--review-insert-remainders copies the edited item and resets only its mark,
+  dismissal and suggested flags, so the leftover keeps :active, :edited,
+  :claimed and :note-edited. Applied, it writes active timestamps, which
+  org-agenda shows as the human's attention, against the annotation docstring's
+  rule that active is only ever a human assertion; g also counts an edit nobody
+  made. Found by a repo audit 2026-10-27, by reading; the remainder tests check
+  only marks and bounds. Proposed: clear those flags and :auto-marked on the
+  copy, with one test.
+
+
+* TODO The session render escapes only column-zero lines, so an indented #+ line in transcript text takes effect, SETUPFILE included :code:
+:PROPERTIES:
+:ID:       8985f8ae-8b26-45eb-8898-73f17c98680a
+:CREATED:  [2026-10-27 Tue 13:52]
+:CATEGORY: Dev
+:END:
+
+--org-escape-body commas a line only when * or # is its first character, but org
+  reads indented keyword and block lines. Reproduced in batch by a repo audit
+  2026-10-27: an indented #+end_quote closed the prompt's quote early, an
+  indented #+TODO: redefined the render's keywords, and an indented #+SETUPFILE:
+  loaded that file when the render was opened; the test
+  org-escape-body-only-escapes-column-zero asserts the wrong rule. Proposed:
+  also escape lines matching optional indentation then #+, comma after the
+  indent, and fix the test.
+
+
+* TODO A replayed apply writes an extra one-minute CLOCK line for every run whose end has seconds :code:
+:PROPERTIES:
+:ID:       6c969cbd-0c03-409f-835f-80ddb1faedf6
+:CREATED:  [2026-10-27 Tue 13:52]
+:CATEGORY: Clock
+:END:
+
+Org records a run ending 10:30:20 as 10:30, so on replay --subtract-intervals
+leaves a 20-second residue, and its last step passes residues through
+--apply-idle-floor, which rounds any sub-minute piece up to a full minute: a new
+[10:30]--[10:31] line. Reproduced in batch by a repo audit 2026-10-27;
+guideposts almost never fall on :00, and the tests' fixtures all do. Proposed:
+drop pieces that render as nothing instead of rounding them up, and add a test
+ending at :20.
+
+
+* TODO Archiving into DONE.org's newest-first datetree creates a duplicate day or month node for any date older than the newest :code:
+:PROPERTIES:
+:ID:       62bc2f7f-0d55-4049-af00-52a2b333188a
+:CREATED:  [2026-10-27 Tue 13:52]
+:CATEGORY: Meta
+:END:
+
+org-archive-subtree finds the day node with org-datetree-find-date-create, which
+takes the first sibling at or after the target and matches only on equality; on
+a newest-first tree that sibling is the newest, so a heading closed 2026-10-13
+gets a second 2026-10-13 node above 2026-10-20, and a September close a second
+September. Reproduced in batch on org 9.8.7 by a repo audit 2026-10-27; DONE.org
+has no duplicates yet only because most headings close on the newest date.
+Proposed: create the node with org-datetree-find-create-hierarchy and reversed
+comparators, as [[id:0c3f1319-67c0-4b29-a8e7-5ffa12948aaf][0c3f1319]] measured for TODO.org, then archive into it.
+
+
 * TODO The IDE companion's WebSocket may accept any web page, and executeCode runs whatever elisp it is sent :code:
 :PROPERTIES:
 :ID:       d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80
@@ -19,6 +367,7 @@ HTTP tools server. Proposed: confirm with a local page first, then either close
 any socket whose websocket-origin is non-nil or bind
 claude-code-ide-enable-execute-code to nil in the module.
 
+
 * TODO footnotes-inject reads hook JSON with sed, so a path or id containing an escaped quote is cut short :code:
 :PROPERTIES:
 :ID:       8bc0bbcf-12cf-412b-a9f4-e335286dda58
@@ -34,15 +383,16 @@ wait loop that follows poll a file that does not exist for its full 2 s before
 going on. Seen by a repo audit 2026-10-27, by reading only, and untested.
 Proposed: read both fields with jq, as the sibling hooks do.
 
-* NEXT [0/9] The tracker can lose or corrupt its record, or Emacs can stop on a prompt, and nothing says so :code:
+
+* NEXT [0/14] The tracker can lose or corrupt its record, or Emacs can stop on a prompt, and nothing says so :code:
 :PROPERTIES:
 :ID:       3bfa593c-c2da-4e44-b47f-2d5f0750f2aa
 :CREATED:  [2026-10-27 Tue 12:56]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:MEMBERS:  8c4a3aea-3208-46c8-a491-2ff024fbf822 0a0dee55-d709-466e-a525-c3bb1c437b91 d3468075-b17a-45a2-bd3a-838521f11a87 c0a21a0f-89ed-4b66-b7ed-acbfd5583015 e9f8b780-c93b-41f9-b146-1c4695283af9 b0e46168-2548-49ca-8f5f-5dcc6f3fc524 a3ad9732-681c-4103-a9e2-5f919e60522c 412768a0-3d9b-4cfe-9264-3f214d4baed1 fd29914e-0d18-4964-a104-37c136b311a6
-:BLOCKER:  8c4a3aea-3208-46c8-a491-2ff024fbf822 0a0dee55-d709-466e-a525-c3bb1c437b91 d3468075-b17a-45a2-bd3a-838521f11a87 c0a21a0f-89ed-4b66-b7ed-acbfd5583015 e9f8b780-c93b-41f9-b146-1c4695283af9 b0e46168-2548-49ca-8f5f-5dcc6f3fc524 a3ad9732-681c-4103-a9e2-5f919e60522c 412768a0-3d9b-4cfe-9264-3f214d4baed1 fd29914e-0d18-4964-a104-37c136b311a6
+:MEMBERS:  8c4a3aea-3208-46c8-a491-2ff024fbf822 8985f8ae-8b26-45eb-8898-73f17c98680a 0a0dee55-d709-466e-a525-c3bb1c437b91 d3468075-b17a-45a2-bd3a-838521f11a87 6c969cbd-0c03-409f-835f-80ddb1faedf6 187a87b4-20db-4fbf-931f-a4b4e1bed668 c0a21a0f-89ed-4b66-b7ed-acbfd5583015 62bc2f7f-0d55-4049-af00-52a2b333188a e9f8b780-c93b-41f9-b146-1c4695283af9 b0e46168-2548-49ca-8f5f-5dcc6f3fc524 254308f7-70a9-4296-9166-fe4138c6382b a3ad9732-681c-4103-a9e2-5f919e60522c 412768a0-3d9b-4cfe-9264-3f214d4baed1 fd29914e-0d18-4964-a104-37c136b311a6
+:BLOCKER:  8c4a3aea-3208-46c8-a491-2ff024fbf822 8985f8ae-8b26-45eb-8898-73f17c98680a 0a0dee55-d709-466e-a525-c3bb1c437b91 d3468075-b17a-45a2-bd3a-838521f11a87 6c969cbd-0c03-409f-835f-80ddb1faedf6 187a87b4-20db-4fbf-931f-a4b4e1bed668 c0a21a0f-89ed-4b66-b7ed-acbfd5583015 62bc2f7f-0d55-4049-af00-52a2b333188a e9f8b780-c93b-41f9-b146-1c4695283af9 b0e46168-2548-49ca-8f5f-5dcc6f3fc524 254308f7-70a9-4296-9166-fe4138c6382b a3ad9732-681c-4103-a9e2-5f919e60522c 412768a0-3d9b-4cfe-9264-3f214d4baed1 fd29914e-0d18-4964-a104-37c136b311a6
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-10-27 Tue 12:58] \\
@@ -65,14 +415,26 @@ their cookies.
 Planned:
 
 - [ ] [[id:8c4a3aea-3208-46c8-a491-2ff024fbf822][8c4a3aea]] TODO The tools server answers any web page: it checks no Origin or Host, and every reply says Access-Control-Allow-Origin: *
+- [ ] [[id:8985f8ae-8b26-45eb-8898-73f17c98680a][8985f8ae]] TODO The session render escapes only column-zero lines, so an indented #+ line in transcript text takes effect, SETUPFILE included
 - [ ] [[id:0a0dee55-d709-466e-a525-c3bb1c437b91][0a0dee55]] TODO The applied record keys a session's events by timestamp to the second, so an event that failed or was skipped is consumed when another from the same second applies
 - [ ] [[id:d3468075-b17a-45a2-bd3a-838521f11a87][d3468075]] TODO An apply interrupted after its writes records nothing, and the next pass inserts each amend a second time
+- [ ] [[id:6c969cbd-0c03-409f-835f-80ddb1faedf6][6c969cbd]] TODO A replayed apply writes an extra one-minute CLOCK line for every run whose end has seconds
+- [ ] [[id:187a87b4-20db-4fbf-931f-a4b4e1bed668][187a87b4]] TODO A narrowed span's leftover copies the human's :active and :edited flags, so agent time is written as attention
 - [ ] [[id:c0a21a0f-89ed-4b66-b7ed-acbfd5583015][c0a21a0f]] TODO Archiving a session already in the archive overwrites it, and restore overwrites a live queue the same way
+- [ ] [[id:62bc2f7f-0d55-4049-af00-52a2b333188a][62bc2f7f]] TODO Archiving into DONE.org's newest-first datetree creates a duplicate day or month node for any date older than the newest
 - [ ] [[id:e9f8b780-c93b-41f9-b146-1c4695283af9][e9f8b780]] TODO An unreadable .applied file reads as nothing applied, and the next write replaces it
 - [ ] [[id:b0e46168-2548-49ca-8f5f-5dcc6f3fc524][b0e46168]] TODO discard-guard misses absolute paths, git -C, and a cd before the git command
+- [ ] [[id:254308f7-70a9-4296-9166-fe4138c6382b][254308f7]] TODO The ceremony's sort steps reorder and save TODO.org or DONE.org while it holds the human's unsaved edits
 - [ ] [[id:a3ad9732-681c-4103-a9e2-5f919e60522c][a3ad9732]] TODO org_set_property writes TODO, SCHEDULED and DEADLINE through org-entry-put, which changes the keyword live or opens a prompt
 - [ ] [[id:412768a0-3d9b-4cfe-9264-3f214d4baed1][412768a0]] TODO org_capture's title goes through capture-template expansion, so a newline splits the heading and %^ opens a prompt
 - [ ] [[id:fd29914e-0d18-4964-a104-37c136b311a6][fd29914e]] TODO org_capture runs in whatever buffer the user has selected, so an Org QL view turns a capture into a prompt nobody at the tool can answer
+
+Four joined from the second audit the same day (the user): an indented #+ line
+in a rendered transcript takes effect ([[id:8985f8ae-8b26-45eb-8898-73f17c98680a][8985f8ae]]), a replayed apply adds a minute
+per run ([[id:6c969cbd-0c03-409f-835f-80ddb1faedf6][6c969cbd]]), a narrowed span's leftover is written as the human's
+attention ([[id:187a87b4-20db-4fbf-931f-a4b4e1bed668][187a87b4]]), and archiving into DONE.org's newest-first datetree
+duplicates nodes ([[id:62bc2f7f-0d55-4049-af00-52a2b333188a][62bc2f7f]]). The render member is a security hole rather than
+tracker loss, so it sits second, beside the other way in from outside.
 
 
 * TODO claude-org-setup assigns mcp_action and nothing reads it :code:
@@ -2166,15 +2528,15 @@ references, =M-x customize-group claude-code-ide-org= and the commands. Written
 last, since it points at the other three.
 
 
-* TODO [0/12] The clock record beneath the review pass is still wrong: correctness, reporting, and the attention clock :code:
+* TODO [0/20] The clock record beneath the review pass is still wrong: correctness, reporting, and the attention clock :code:
 :PROPERTIES:
 :ID:       7ae1cff4-c0df-4ac0-9aea-a778b2373061
 :CREATED:  [2026-10-09 Fri 11:15]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:MEMBERS:  595df230-e31d-42ad-9ea7-128e545b9aa0 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 001fb310-69f7-4417-81be-a224a3bf83e0 55125136-5939-434e-9676-96ea66a75770 37147e9e-468b-43ee-91f9-45d9647c6164 64d34a64-d336-40a8-a8e8-da8133d0da06 445ec1f1-095a-462b-abbd-7a3a00925ddb d30b3481-374c-4921-9fdb-284dd8e09e14 3a6ff84e-ed47-4c83-94ff-18c439dd842c
-:BLOCKER:  595df230-e31d-42ad-9ea7-128e545b9aa0 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 001fb310-69f7-4417-81be-a224a3bf83e0 55125136-5939-434e-9676-96ea66a75770 37147e9e-468b-43ee-91f9-45d9647c6164 64d34a64-d336-40a8-a8e8-da8133d0da06 445ec1f1-095a-462b-abbd-7a3a00925ddb d30b3481-374c-4921-9fdb-284dd8e09e14 3a6ff84e-ed47-4c83-94ff-18c439dd842c
+:MEMBERS:  595df230-e31d-42ad-9ea7-128e545b9aa0 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 001fb310-69f7-4417-81be-a224a3bf83e0 55125136-5939-434e-9676-96ea66a75770 37147e9e-468b-43ee-91f9-45d9647c6164 64d34a64-d336-40a8-a8e8-da8133d0da06 445ec1f1-095a-462b-abbd-7a3a00925ddb d30b3481-374c-4921-9fdb-284dd8e09e14 3a6ff84e-ed47-4c83-94ff-18c439dd842c 22264369-2d9d-4339-9b97-f3ea25ad0137 a4acdd35-ddba-4557-8dcb-86bc754374db 94e7b511-0adb-4afc-83c0-ba450198f221 4eadfc8f-22b5-4466-875d-fdbc5c922ea4 2ff6f683-d7e2-495e-9eff-88d522af87a7 04a9d1b4-c8c5-40af-bf9e-9ced6a7225fe 8f5dc7a6-5b90-44b7-b712-ee396e4357b5 2211d720-5e3f-45b6-bcb4-437b2a43baed
+:BLOCKER:  595df230-e31d-42ad-9ea7-128e545b9aa0 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 001fb310-69f7-4417-81be-a224a3bf83e0 55125136-5939-434e-9676-96ea66a75770 37147e9e-468b-43ee-91f9-45d9647c6164 64d34a64-d336-40a8-a8e8-da8133d0da06 445ec1f1-095a-462b-abbd-7a3a00925ddb d30b3481-374c-4921-9fdb-284dd8e09e14 3a6ff84e-ed47-4c83-94ff-18c439dd842c 22264369-2d9d-4339-9b97-f3ea25ad0137 a4acdd35-ddba-4557-8dcb-86bc754374db 94e7b511-0adb-4afc-83c0-ba450198f221 4eadfc8f-22b5-4466-875d-fdbc5c922ea4 2ff6f683-d7e2-495e-9eff-88d522af87a7 04a9d1b4-c8c5-40af-bf9e-9ced6a7225fe 8f5dc7a6-5b90-44b7-b712-ee396e4357b5 2211d720-5e3f-45b6-bcb4-437b2a43baed
 :END:
 :PLAN:
 Divided out of [[id:c7619140-f269-4329-bc05-a38ea151e202][c7619140]] on 2026-10-09 (the user, a three-way split): the "clock
@@ -2208,6 +2570,14 @@ Planned:
 - [ ] [[id:445ec1f1-095a-462b-abbd-7a3a00925ddb][445ec1f1]] TODO A/B the clock record across the phase-3 fixes, since much of what is logged now is bogus
 - [ ] [[id:d30b3481-374c-4921-9fdb-284dd8e09e14][d30b3481]] TODO The time-tracking stamp is global and every project's session start rewrites it, so the last session to start decides whether the review pass opens a clock
 - [ ] [[id:3a6ff84e-ed47-4c83-94ff-18c439dd842c][3a6ff84e]] TODO A permission block left open when a prompt is dismissed is closed by the next turn's first tool call
+- [ ] [[id:22264369-2d9d-4339-9b97-f3ea25ad0137][22264369]] TODO The stale-interval report treats a clock that is still running as crash residue, and its recovery call corrupts that clock
+- [ ] [[id:a4acdd35-ddba-4557-8dcb-86bc754374db][a4acdd35]] TODO A long turn that hit a permission prompt loses its unowned head and tail, because the never-split rule tests literal resume and pause
+- [ ] [[id:94e7b511-0adb-4afc-83c0-ba450198f221][94e7b511]] TODO Recomputing accumulated CLOCK lines deletes every line that opens at a clock_in or a permission block's end
+- [ ] [[id:4eadfc8f-22b5-4466-875d-fdbc5c922ea4][4eadfc8f]] TODO Whether a session was running at a bracket edge is read from the newest guidepost of any session
+- [ ] [[id:2ff6f683-d7e2-495e-9eff-88d522af87a7][2ff6f683]] TODO An unassigned span pooling several sessions pairs resume and pause by adjacency, so concurrent work is undercounted
+- [ ] [[id:04a9d1b4-c8c5-40af-bf9e-9ced6a7225fe][04a9d1b4]] TODO A sub-minute run rounded up to a minute can overlap the next run, counting a minute twice and crediting a permission wait
+- [ ] [[id:8f5dc7a6-5b90-44b7-b712-ee396e4357b5][8f5dc7a6]] TODO Allocated shares spill outside their window and overlap the next window's shares
+- [ ] [[id:2211d720-5e3f-45b6-bcb4-437b2a43baed][2211d720]] TODO A residue bookend is laid over a qualifying attention interval instead of through the day's gaps
 
 
 * MAYBE Separate what the machinery requires from what this project prefers, so a consumer can change the second :code:arch:
@@ -3111,15 +3481,15 @@ and those 53 are cleared, unless [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128
 move generalised to :DEBRIEF:. Details in :PLAN:.
 
 
-* TODO [0/8] A slice's checklist can disagree with its members, and nothing can say so or fix it :code:
+* TODO [0/12] A slice's checklist can disagree with its members, and nothing can say so or fix it :code:
 :PROPERTIES:
 :ID:       7dcec489-f5dd-4f7f-b819-a25405436b9b
 :CREATED:  [2026-09-28 Mon 08:26]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:MEMBERS:  cdff5c91-3dc1-476e-a8f2-5293570a19fc a00ace04-99bd-414a-8dc7-df8305126589 a508c59e-475e-4d27-84c9-6c3ded98e15c 6f3a5342-1905-4831-b712-3b6e5e83e0c4 6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0 b112878e-6313-4bc6-bc3f-0533d5f1ad1b dc68d831-9e04-4f0a-8b8b-8087b39c6037 6a6f6708-eefd-4d77-8ca0-0c5aaaa80796
-:BLOCKER:  cdff5c91-3dc1-476e-a8f2-5293570a19fc a00ace04-99bd-414a-8dc7-df8305126589 a508c59e-475e-4d27-84c9-6c3ded98e15c 6f3a5342-1905-4831-b712-3b6e5e83e0c4 6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0 b112878e-6313-4bc6-bc3f-0533d5f1ad1b dc68d831-9e04-4f0a-8b8b-8087b39c6037 6a6f6708-eefd-4d77-8ca0-0c5aaaa80796
+:MEMBERS:  cdff5c91-3dc1-476e-a8f2-5293570a19fc a00ace04-99bd-414a-8dc7-df8305126589 a508c59e-475e-4d27-84c9-6c3ded98e15c 6f3a5342-1905-4831-b712-3b6e5e83e0c4 6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0 b112878e-6313-4bc6-bc3f-0533d5f1ad1b dc68d831-9e04-4f0a-8b8b-8087b39c6037 6a6f6708-eefd-4d77-8ca0-0c5aaaa80796 b3949615-9260-4d97-a33f-7d74ee45ccb1 5fa51c64-297e-4937-b3eb-1535b84151aa 23303aab-e151-449f-997c-0b5a9d2cc5eb 6385df59-ca01-48f8-9a91-d9319fa8de15
+:BLOCKER:  cdff5c91-3dc1-476e-a8f2-5293570a19fc a00ace04-99bd-414a-8dc7-df8305126589 a508c59e-475e-4d27-84c9-6c3ded98e15c 6f3a5342-1905-4831-b712-3b6e5e83e0c4 6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0 b112878e-6313-4bc6-bc3f-0533d5f1ad1b dc68d831-9e04-4f0a-8b8b-8087b39c6037 6a6f6708-eefd-4d77-8ca0-0c5aaaa80796 b3949615-9260-4d97-a33f-7d74ee45ccb1 5fa51c64-297e-4937-b3eb-1535b84151aa 23303aab-e151-449f-997c-0b5a9d2cc5eb 6385df59-ca01-48f8-9a91-d9319fa8de15
 :END:
 :PLAN:
 Composed 2026-09-28 from the backlog survey, at the user's direction. The theme:
@@ -3171,6 +3541,10 @@ Planned:
 - [ ] [[id:b112878e-6313-4bc6-bc3f-0533d5f1ad1b][b112878e]] TODO org_slice_add_member cannot prepend or reorder, so declared order is append-only
 - [ ] [[id:dc68d831-9e04-4f0a-8b8b-8087b39c6037][dc68d831]] TODO Slice refresh re-scans every heading for other slices' members once per slice
 - [ ] [[id:6a6f6708-eefd-4d77-8ca0-0c5aaaa80796][6a6f6708]] TODO Every id-scoped org_outline scans every heading in every tracked file, and leaks a marker per slice
+- [ ] [[id:b3949615-9260-4d97-a33f-7d74ee45ccb1][b3949615]] TODO A blank line inside a slice's checklist leaves stale duplicate lines that no refresh removes, and the cookie counts them
+- [ ] [[id:5fa51c64-297e-4937-b3eb-1535b84151aa][5fa51c64]] TODO A duplicate id in a slice's :MEMBERS: renders twice and counts twice, and lint says nothing
+- [ ] [[id:23303aab-e151-449f-997c-0b5a9d2cc5eb][23303aab]] TODO A :DROPPED: id that names no member does nothing, and no lint rule reads :DROPPED: though a comment says one does
+- [ ] [[id:6385df59-ca01-48f8-9a91-d9319fa8de15][6385df59]] TODO A slice-scoped org_outline lists derived parent rows and incidentals as members, because it reads the body rather than :MEMBERS:
 
 A slice's checklist is rendered from =:MEMBERS:=, and nothing checks that the
 rendering matches its members, repairs a closed slice's record, or lets a member
@@ -3283,7 +3657,6 @@ slice of ways the tracker loses state or Emacs blocks with nothing reported. A
 capture blocked on a prompt is that slice's theme as much as this one's, and it
 sits beside [[id:412768a0-3d9b-4cfe-9264-3f214d4baed1][412768a0]], the same prompt from a different trigger. The plan's order
 above still names it in third place; read that order without it.
-
 
 
 * TODO The review-attention clock is a real org clock, so the buffer stays busy for the whole review and apply's first clock-in closes it :code:
@@ -3866,7 +4239,6 @@ claude-code-ide-org--review-advance-watermarks, which nothing in the tree
 defines.
 
 
-
 * TODO A Claude Code upgrade can add hook events and nothing notices: 26 of 33 go unwired, and PostToolUseFailure was found by accident :code:
 :PROPERTIES:
 :ID:       fd85928e-5630-4468-a7e5-e14ef688d0bc
@@ -4182,16 +4554,16 @@ and the org-lint triage per checker.
 - org-lint's own "possibly misplaced heading line" checker as the detector (measured 2026-09-25): =bin/lint-org= already runs it as a warning, and it reports 498 lines across the two files, nearly all prose lines opening with =*bold*= -- nobody reads a warning with that count, which is why neither glued heading was seen.
 
 
-* TODO [0/16] The review pass asks for judgement it cannot support :code:
+* TODO [0/17] The review pass asks for judgement it cannot support :code:
 :PROPERTIES:
 :ID:       c7619140-f269-4329-bc05-a38ea151e202
 :CREATED:  [2026-09-22 Tue 16:07]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  aee8487e-0650-4396-bc5c-193ca3efcecb 653fea66-f9d5-4431-8ce3-5d355560b475 85f4e03b-3c7a-4f75-86af-52e04b21cf32 445fe577-01ce-4e68-ab5f-c349c40a4643 2c733857-a280-42cc-bd7c-e182a4fb6ea3 5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46 e75d660f-5c0d-4707-a645-b5dea7d7ebc0 409a69ff-d57e-4c1c-ab6c-28f7e85fa391 49444167-7a29-491a-81b4-c5215fce9fc2 9b7301de-0903-4987-bb34-56f8f021fbd1 cf483f5d-2d25-4454-a580-db7935c8cb81 8028e875-3032-4ade-949e-414d9861b928 a865f83c-ea37-40c4-a104-7cc50d2c20dd 996fd2bd-be90-44b3-b2c5-9018255940b3 20cecd53-2338-4237-ab06-f8129e10a2c8 62a32f7b-9f7a-4ed3-88e0-939a687852eb
+:BLOCKER:  aee8487e-0650-4396-bc5c-193ca3efcecb 653fea66-f9d5-4431-8ce3-5d355560b475 85f4e03b-3c7a-4f75-86af-52e04b21cf32 445fe577-01ce-4e68-ab5f-c349c40a4643 2c733857-a280-42cc-bd7c-e182a4fb6ea3 5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46 e75d660f-5c0d-4707-a645-b5dea7d7ebc0 409a69ff-d57e-4c1c-ab6c-28f7e85fa391 49444167-7a29-491a-81b4-c5215fce9fc2 9b7301de-0903-4987-bb34-56f8f021fbd1 cf483f5d-2d25-4454-a580-db7935c8cb81 8028e875-3032-4ade-949e-414d9861b928 a865f83c-ea37-40c4-a104-7cc50d2c20dd 996fd2bd-be90-44b3-b2c5-9018255940b3 20cecd53-2338-4237-ab06-f8129e10a2c8 62a32f7b-9f7a-4ed3-88e0-939a687852eb 954e61b1-5bf8-49a1-b33e-cf07da5dc7ca
 :DROPPED:  361e2708-8124-4bd1-9c44-f97ca97aca4a 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd 79c224ab-188a-4ed4-a606-c28ee2cfe72d 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 41f21b4d-278d-4ad8-a56f-122f5af33d65 e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 6c64cc9c-33a9-4a20-af19-c188a690c755 ee3c22c9-f99c-4d41-9c3d-8f39af916fff 55125136-5939-434e-9676-96ea66a75770 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 001fb310-69f7-4417-81be-a224a3bf83e0 37147e9e-468b-43ee-91f9-45d9647c6164 445ec1f1-095a-462b-abbd-7a3a00925ddb 64d34a64-d336-40a8-a8e8-da8133d0da06 595df230-e31d-42ad-9ea7-128e545b9aa0 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d
-:MEMBERS:  55125136-5939-434e-9676-96ea66a75770 361e2708-8124-4bd1-9c44-f97ca97aca4a 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 aee8487e-0650-4396-bc5c-193ca3efcecb 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 653fea66-f9d5-4431-8ce3-5d355560b475 85f4e03b-3c7a-4f75-86af-52e04b21cf32 445fe577-01ce-4e68-ab5f-c349c40a4643 2c733857-a280-42cc-bd7c-e182a4fb6ea3 79c224ab-188a-4ed4-a606-c28ee2cfe72d 001fb310-69f7-4417-81be-a224a3bf83e0 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46 e75d660f-5c0d-4707-a645-b5dea7d7ebc0 409a69ff-d57e-4c1c-ab6c-28f7e85fa391 49444167-7a29-491a-81b4-c5215fce9fc2 9b7301de-0903-4987-bb34-56f8f021fbd1 cf483f5d-2d25-4454-a580-db7935c8cb81 8028e875-3032-4ade-949e-414d9861b928 01849bef-fdc9-4c30-b467-00ca8606e8e0 330710fb-ea34-466b-96a0-7be947f37a1e ee3c22c9-f99c-4d41-9c3d-8f39af916fff e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 41f21b4d-278d-4ad8-a56f-122f5af33d65 6c64cc9c-33a9-4a20-af19-c188a690c755 a865f83c-ea37-40c4-a104-7cc50d2c20dd 996fd2bd-be90-44b3-b2c5-9018255940b3 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 595df230-e31d-42ad-9ea7-128e545b9aa0 20cecd53-2338-4237-ab06-f8129e10a2c8 37147e9e-468b-43ee-91f9-45d9647c6164 445ec1f1-095a-462b-abbd-7a3a00925ddb 64d34a64-d336-40a8-a8e8-da8133d0da06 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd 62a32f7b-9f7a-4ed3-88e0-939a687852eb
+:MEMBERS:  55125136-5939-434e-9676-96ea66a75770 361e2708-8124-4bd1-9c44-f97ca97aca4a 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 aee8487e-0650-4396-bc5c-193ca3efcecb 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 653fea66-f9d5-4431-8ce3-5d355560b475 85f4e03b-3c7a-4f75-86af-52e04b21cf32 445fe577-01ce-4e68-ab5f-c349c40a4643 2c733857-a280-42cc-bd7c-e182a4fb6ea3 79c224ab-188a-4ed4-a606-c28ee2cfe72d 001fb310-69f7-4417-81be-a224a3bf83e0 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46 e75d660f-5c0d-4707-a645-b5dea7d7ebc0 409a69ff-d57e-4c1c-ab6c-28f7e85fa391 49444167-7a29-491a-81b4-c5215fce9fc2 9b7301de-0903-4987-bb34-56f8f021fbd1 cf483f5d-2d25-4454-a580-db7935c8cb81 8028e875-3032-4ade-949e-414d9861b928 01849bef-fdc9-4c30-b467-00ca8606e8e0 330710fb-ea34-466b-96a0-7be947f37a1e ee3c22c9-f99c-4d41-9c3d-8f39af916fff e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 41f21b4d-278d-4ad8-a56f-122f5af33d65 6c64cc9c-33a9-4a20-af19-c188a690c755 a865f83c-ea37-40c4-a104-7cc50d2c20dd 996fd2bd-be90-44b3-b2c5-9018255940b3 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 595df230-e31d-42ad-9ea7-128e545b9aa0 20cecd53-2338-4237-ab06-f8129e10a2c8 37147e9e-468b-43ee-91f9-45d9647c6164 445ec1f1-095a-462b-abbd-7a3a00925ddb 64d34a64-d336-40a8-a8e8-da8133d0da06 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd 62a32f7b-9f7a-4ed3-88e0-939a687852eb 954e61b1-5bf8-49a1-b33e-cf07da5dc7ca
 :END:
 :LOGBOOK:
 CLOCK: [2026-09-27 Sun 18:12]--[2026-09-27 Sun 18:13] =>  0:01
@@ -4383,6 +4755,7 @@ Planned:
 - [[id:64d34a64-d336-40a8-a8e8-da8133d0da06][64d34a64]] NEXT A clocktable never shows a parent's own time, only own-plus-subtree
 - [[id:2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd][2cd74268]] TODO Let a task-only install auto-apply state transitions, behind a toggle
 - [ ] [[id:62a32f7b-9f7a-4ed3-88e0-939a687852eb][62a32f7b]] TODO The meta-work target renders as "Review a" in the review buffer; show it as R&P, and offer "R&P (Review and planning)" when assigning
+- [ ] [[id:954e61b1-5bf8-49a1-b33e-cf07da5dc7ca][954e61b1]] TODO Editing a span with e drops a claim's active notation, and a refused edit still marks the item edited
 
 *Dropped 2026-09-23: [[id:01849bef-fdc9-4c30-b467-00ca8606e8e0][01849bef]],* the key for flipping a span's
 timestamps to active. [[id:6521dd56-8772-416b-9435-6da78bb86b06][6521dd56]] already counted it, and a member counted
@@ -13286,6 +13659,7 @@ per tool -- rather than opening the servers beyond localhost.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-10-27 Tue 13:54]--[2026-10-27 Tue 13:56] =>  0:02
 CLOCK: [2026-10-27 Tue 13:05]--[2026-10-27 Tue 13:09] =>  0:04
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
@@ -15165,4 +15539,26 @@ CLOCK: [2026-10-27 Tue 12:58]--[2026-10-27 Tue 12:59] =>  0:01
 - [2026-10-27 Tue 12:58]--[2026-10-27 Tue 12:59] file 22 audit findings and compose a slice
 CLOCK: [2026-10-27 Tue 12:59]--[2026-10-27 Tue 13:02] =>  0:03
 - [2026-10-27 Tue 12:59]--[2026-10-27 Tue 13:02] assigned at review
+CLOCK: [2026-10-27 Tue 13:05]--[2026-10-27 Tue 13:06] =>  0:01
+- [2026-10-27 Tue 13:05]--[2026-10-27 Tue 13:06] assigned at review
+CLOCK: [2026-10-27 Tue 13:11]--[2026-10-27 Tue 13:12] =>  0:01
+- [2026-10-27 Tue 13:11]--[2026-10-27 Tue 13:12] assigned at review
+CLOCK: [2026-10-27 Tue 13:12]--[2026-10-27 Tue 13:13] =>  0:01
+- [2026-10-27 Tue 13:12]--[2026-10-27 Tue 13:13] recompose 3bfa593c: move fd29914e, add three members
+CLOCK: [2026-10-27 Tue 13:13]--[2026-10-27 Tue 13:16] =>  0:03
+- [2026-10-27 Tue 13:13]--[2026-10-27 Tue 13:16] assigned at review
+CLOCK: [2026-10-27 Tue 13:19]--[2026-10-27 Tue 13:20] =>  0:01
+- [2026-10-27 Tue 13:19]--[2026-10-27 Tue 13:20] assigned at review
+CLOCK: [2026-10-27 Tue 13:20]--[2026-10-27 Tue 13:21] =>  0:01
+- [2026-10-27 Tue 13:20]--[2026-10-27 Tue 13:21] align 3bfa593c's body with its new title
+CLOCK: [2026-10-27 Tue 13:22]--[2026-10-27 Tue 13:23] =>  0:01
+- [2026-10-27 Tue 13:22]--[2026-10-27 Tue 13:23] assigned at review
+CLOCK: [2026-10-27 Tue 13:23]--[2026-10-27 Tue 13:24] =>  0:01
+- [2026-10-27 Tue 13:23]--[2026-10-27 Tue 13:24] file the audit's last side remarks
+CLOCK: [2026-10-27 Tue 13:24]--[2026-10-27 Tue 13:27] =>  0:03
+- [2026-10-27 Tue 13:24]--[2026-10-27 Tue 13:27] assigned at review
+CLOCK: [2026-10-27 Tue 13:30]--[2026-10-27 Tue 13:33] =>  0:03
+- [2026-10-27 Tue 13:30]--[2026-10-27 Tue 13:33] assigned at review
+CLOCK: [2026-10-27 Tue 13:35]--[2026-10-27 Tue 13:37] =>  0:02
+- [2026-10-27 Tue 13:35]--[2026-10-27 Tue 13:37] assigned at review
 :END:
