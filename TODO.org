@@ -2,6 +2,30 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Stopping a launcher ends its MCP session twice, which spends the held reference and stops the tools server :code:
+:PROPERTIES:
+:ID:       f22246cc-50e1-49e8-acc1-d71eecab814c
+:CREATED:  [2026-10-27 Tue 10:10]
+:CATEGORY: Dev
+:END:
+:PLAN:
+Not yet designed. The body's proposal (skip a cleanup for a directory already
+gone from claude-code-ide--processes) is the starting point; the design must
+also say whether a normal /exit double-counts, and whether [[id:9d704e0c-b2b4-4113-87f4-b0944c81f921][9d704e0c]] landing
+upstream retires the advice.
+:END:
+
+Reproduced 2026-10-27 while verifying [[id:b4be636e-e665-44a9-9ab5-5fb3992f280c][b4be636e]]. claude-code-ide-stop kills the
+launcher's buffer, whose kill-buffer-hook runs claude-code-ide--cleanup-on-exit
+and so session-ended; the killed process's sentinel then runs the same cleanup
+again, since its only guard resets when the first run returns. The count went
+from 2 (the launcher plus [[id:28eed617-e4e0-4d29-88ea-9411de4b77e5][28eed617]]'s held reference) to 0, and the tools server
+stopped, taking every standalone session's org tools with it until
+claude-code-ide-org-standalone-wire was run again. Proposed: make session-ended
+count each launcher once, for example by advising cleanup-on-exit to do nothing
+for a directory no longer in claude-code-ide--processes, and test the double
+call. A normal /exit inside the launcher has not been checked.
+
 * DONE Closing a slice nominates nothing, so the slice after it waits on a hand-picked NEXT :code:
 CLOSED: [2026-10-27 Tue 09:08]
 :PROPERTIES:
@@ -107,8 +131,11 @@ Planned:
 :CREATED:  [2026-10-21 Wed 15:45]
 :CATEGORY: Dev
 :END:
+:PLAN:
+Not yet designed; planned as future work (the user, 2026-10-27).
+:END:
 
-Review finding on [[https://github.com/nbest937/claude-code-ide-org.el/pull/38][PR #38]] for [[id:28eed617-e4e0-4d29-88ea-9411de4b77e5][28eed617]], not verified.
+Review finding on [[https://github.com/nbest937/claude-code-ide-org.el/pull/38][PR #38]] for [[id:28eed617-e4e0-4d29-88ea-9411de4b77e5][28eed617]]; reproduced 2026-10-27, below.
 =claude-code-ide--cleanup-on-exit= calls =claude-code-ide-mcp-stop-session= on
 the launcher's directory before =session-ended=, which would close the WebSocket
 server and remove the lockfile that =claude-code-ide-org-standalone-wire=
@@ -116,6 +143,15 @@ started for that project. Standalone clients there would keep the tools server
 but lose IDE integration until the next wire. Verify by reading
 =--cleanup-on-exit= and checking the lockfile after a launcher exits in a wired
 project.
+
+*Reproduced 2026-10-27* in this repo, wired, with its standalone session
+running. claude-code-ide started from the repo's directory reused the wired
+companion (no new lockfile; 54701.lock stayed). claude-code-ide-stop then
+removed the directory from the companion table and deleted 54701.lock.
+claude-code-ide-org--start-companion restored it on a new port (44603.lock), so
+a standalone client already connected to the old port has to reconnect its IDE
+link. The same stop also took the tools server down, which is a separate defect.
+
 
 
 * TODO A story's members split by an unrelated line in :MEMBERS: render its parent row twice in the planned list :code:
@@ -12233,7 +12269,7 @@ code by the worktree-aware convention checks. No partitioning
 machinery; the design questions all have their own headings.
 
 
-* MAYBE [1/6] Accumulate issues to report upstream to claude-code-ide.el :code:
+* MAYBE [1/7] Accumulate issues to report upstream to claude-code-ide.el :code:
 :PROPERTIES:
 :CATEGORY: Upstream
 :ID:       9d6449c7-529f-49a0-b28f-015cce869715
@@ -12459,7 +12495,18 @@ derives session names; a change to either breaks registration without an error.
 Propose upstream a hook (e.g.
 claude-code-ide-mcp-server-unknown-session-functions) run on a miss, so the
 advice can be dropped.
+** TODO claude-code-ide-stop runs cleanup-on-exit twice, from the kill-buffer hook and from the process sentinel, so session-ended decrements twice :code:
+:PROPERTIES:
+:ID:       9d704e0c-b2b4-4113-87f4-b0944c81f921
+:CREATED:  [2026-10-27 Tue 10:10]
+:END:
 
+Upstream defect behind the local workaround's heading, reproduced 2026-10-27.
+cleanup-on-exit's claude-code-ide--cleanup-in-progress guard only stops
+recursion within one call; the sentinel's later call finds nothing to skip and
+calls claude-code-ide-mcp-server-session-ended a second time, so one launcher
+costs two counts. Report: make cleanup-on-exit idempotent per directory (return
+early when the directory is no longer in claude-code-ide--processes).
 
 * MAYBE Consider archives in org_clock_report's scope (agenda-with-archives) :code:
 :PROPERTIES:
