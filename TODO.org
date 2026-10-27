@@ -52,7 +52,21 @@ CLOCK: [2026-10-27 Tue 15:28]--[2026-10-27 Tue 15:30] =>  0:02
 CLOCK: [2026-10-27 Tue 15:33]--[2026-10-27 Tue 15:35] =>  0:02
 - [2026-10-27 Tue 15:33]--[2026-10-27 Tue 15:35] suggested span, accepted at review
 :END:
+:PLAN:
 
+:END:
+:DEBRIEF:
+Two corrections to the audit that found this: datetree-file had three tests, not
+none, and --recorded-close-time turned out to have no live caller once the
+backfills went (its one other mention was a docstring), so it went too, with
+--git-close-time and the --with-backfill-file fixture. The datetree sort's
+idempotency test had built its tree with datetree-file; it now writes the tree
+literally, so the sort it keeps is still tested. Verified with bin/test-all in a
+worktree of the branch, 27 suites and 1716 tests. A running Emacs keeps the
+removed functions defined until restart, since reloading never unbinds;
+harmless, and not worth filing. One process slip on the way: bookkeeping done
+from the feature branch was rewritten by a branch switch, recorded on [[id:fb995c2f-d923-4f95-9bf9-e4c252980369][fb995c2f]].
+:END:
 A repo audit on 2026-10-27 found code whose one job is done. The :MEMBERS:
 migration, its proof and --slice-checklist-structure ran once; every slice here
 and in the one consumer carries :MEMBERS:, and refresh rebuilds it for open
@@ -61,6 +75,10 @@ backfill-closed and backfill-closed-from-git with --git-close-time filled 58
 CLOSED: lines once. --file-line-count lost its last caller to a size check. The
 user asked 2026-10-27 to remove all of it with its tests, keeping
 --recorded-close-time and --datetree-target-file, which live code still calls.
+
+Done 2026-10-27 in [[https://github.com/nbest937/claude-code-ide-org.el/pull/39][PR #39]] (merge commit [[orgit-rev:./::aad7095][aad7095]]): all of it removed with its
+tests, 683 lines out and 21 in, and bin/test-all green on the branch.
+
 
 
 * TODO Audit what the two 2026-10-27 repo audits left unread, and run the suites they did not :code:research:
