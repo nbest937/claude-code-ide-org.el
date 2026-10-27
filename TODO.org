@@ -3148,7 +3148,7 @@ the lint and the repair, finishes the ordering tool, and makes the refresh cheap
 enough to run on every exit.
 
 
-* TODO [0/14] A tool call can be told the opposite of what happened: a negated boolean, a phantom capture, a hang :code:
+* TODO [0/13] A tool call can be told the opposite of what happened: a negated boolean, a phantom capture, a hang :code:
 :PROPERTIES:
 :ID:       f436a3b8-58ba-45a7-9f84-b8dee0934ca7
 :CREATED:  [2026-09-28 Mon 08:25]
@@ -3156,7 +3156,7 @@ enough to run on every exit.
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
 :MEMBERS:  a8ccd6ac-3452-4926-b176-ff5951dcd5b2 c35087d8-19fe-4179-a61c-cb615b2e7679 b2d4012c-6c61-47df-8086-d1cd205c73fc 5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997 c0c5e015-c33e-4e1a-ad6e-907f9fa56c07 4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8 8326a46f-e3f9-4ecc-8bc2-05d54907987b d842b9e7-fd75-45eb-80fd-597daa3e36b0 fd29914e-0d18-4964-a104-37c136b311a6 ecbbec2e-50d9-4581-9ded-15716f16c5f3 94fe3c57-89f6-4d17-943e-0cb6145f3419 c6b068aa-f9de-4edc-a5b3-380bff666d2e eeb18e56-fcfd-4653-86e6-09448474de07 e4734e2c-2083-413b-941d-9503dd0f4a23
-:BLOCKER:  a8ccd6ac-3452-4926-b176-ff5951dcd5b2 c35087d8-19fe-4179-a61c-cb615b2e7679 b2d4012c-6c61-47df-8086-d1cd205c73fc 5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997 c0c5e015-c33e-4e1a-ad6e-907f9fa56c07 4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8 8326a46f-e3f9-4ecc-8bc2-05d54907987b d842b9e7-fd75-45eb-80fd-597daa3e36b0 fd29914e-0d18-4964-a104-37c136b311a6 ecbbec2e-50d9-4581-9ded-15716f16c5f3 94fe3c57-89f6-4d17-943e-0cb6145f3419 c6b068aa-f9de-4edc-a5b3-380bff666d2e eeb18e56-fcfd-4653-86e6-09448474de07 e4734e2c-2083-413b-941d-9503dd0f4a23
+:BLOCKER:  a8ccd6ac-3452-4926-b176-ff5951dcd5b2 c35087d8-19fe-4179-a61c-cb615b2e7679 b2d4012c-6c61-47df-8086-d1cd205c73fc 5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997 c0c5e015-c33e-4e1a-ad6e-907f9fa56c07 4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8 8326a46f-e3f9-4ecc-8bc2-05d54907987b d842b9e7-fd75-45eb-80fd-597daa3e36b0 ecbbec2e-50d9-4581-9ded-15716f16c5f3 94fe3c57-89f6-4d17-943e-0cb6145f3419 c6b068aa-f9de-4edc-a5b3-380bff666d2e eeb18e56-fcfd-4653-86e6-09448474de07 e4734e2c-2083-413b-941d-9503dd0f4a23
 :DROPPED:  fd29914e-0d18-4964-a104-37c136b311a6
 :END:
 :LOGBOOK:
@@ -3234,7 +3234,7 @@ Planned:
 - [ ] [[id:4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8][4a6f6dc3]] TODO A targetless org_capture from a session with no registered project writes to the global capture file, another project's tracker, and says nothing
 - [ ] [[id:8326a46f-e3f9-4ecc-8bc2-05d54907987b][8326a46f]] TODO claude-code-ide-org-capture reports a queued capture it never persists
 - [ ] [[id:d842b9e7-fd75-45eb-80fd-597daa3e36b0][d842b9e7]] TODO org_query blocked: errors on a read-only buffer, though a query changes nothing the user can see
-- [ ] [[id:fd29914e-0d18-4964-a104-37c136b311a6][fd29914e]] TODO org_capture runs in whatever buffer the user has selected, so an Org QL view turns a capture into a prompt nobody at the tool can answer
+- [[id:fd29914e-0d18-4964-a104-37c136b311a6][fd29914e]] TODO org_capture runs in whatever buffer the user has selected, so an Org QL view turns a capture into a prompt nobody at the tool can answer
 - [ ] [[id:ecbbec2e-50d9-4581-9ded-15716f16c5f3][ecbbec2e]] TODO Answer a bad tool call with its error rather than a hang, until upstream defines json-rpc-error
 - [ ] [[id:94fe3c57-89f6-4d17-943e-0cb6145f3419][94fe3c57]] TODO A live reload that changes a tool's description registers it a second time beside the stale one
 - [ ] [[id:c6b068aa-f9de-4edc-a5b3-380bff666d2e][c6b068aa]] TODO An ambiguous id prefix is reported as not found, and a short prefix can resolve to the wrong heading while the index is stale
