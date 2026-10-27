@@ -2,6 +2,399 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO [0/5] A web page, a shared second, an archive rename or one tool argument can corrupt the tracker or hang Emacs :code:
+:PROPERTIES:
+:ID:       3bfa593c-c2da-4e44-b47f-2d5f0750f2aa
+:CREATED:  [2026-10-27 Tue 12:56]
+:CATEGORY: Slices
+:KIND:     slice
+:COOKIE_DATA: checkbox recursive
+:MEMBERS:  8c4a3aea-3208-46c8-a491-2ff024fbf822 0a0dee55-d709-466e-a525-c3bb1c437b91 c0a21a0f-89ed-4b66-b7ed-acbfd5583015 a3ad9732-681c-4103-a9e2-5f919e60522c 412768a0-3d9b-4cfe-9264-3f214d4baed1
+:BLOCKER:  8c4a3aea-3208-46c8-a491-2ff024fbf822 0a0dee55-d709-466e-a525-c3bb1c437b91 c0a21a0f-89ed-4b66-b7ed-acbfd5583015 a3ad9732-681c-4103-a9e2-5f919e60522c 412768a0-3d9b-4cfe-9264-3f214d4baed1
+:END:
+
+The must-fix findings of the 2026-10-27 repo audit not already held by a slice:
+any web page can call and read the tools server; events stamped in the same
+second are consumed together; archiving overwrites an earlier archive of the
+same session; org_set_property applies TODO live and prompts on SCHEDULED; and
+an org_capture title is expanded as a template. Each loses tracked state or
+blocks Emacs with nothing reported, so they are fixed worst first. The audit's
+sixth must-fix of this kind, headline lines in amend text, stays with [[id:c0c5e015-c33e-4e1a-ad6e-907f9fa56c07][c0c5e015]]
+in [[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]], since a member counted by two slices splits their cookies.
+
+Planned:
+
+- [ ] [[id:8c4a3aea-3208-46c8-a491-2ff024fbf822][8c4a3aea]] TODO The tools server answers any web page: it checks no Origin or Host, and every reply says Access-Control-Allow-Origin: *
+- [ ] [[id:0a0dee55-d709-466e-a525-c3bb1c437b91][0a0dee55]] TODO The applied record keys a session's events by timestamp to the second, so an event that failed or was skipped is consumed when another from the same second applies
+- [ ] [[id:c0a21a0f-89ed-4b66-b7ed-acbfd5583015][c0a21a0f]] TODO Archiving a session already in the archive overwrites it, and restore overwrites a live queue the same way
+- [ ] [[id:a3ad9732-681c-4103-a9e2-5f919e60522c][a3ad9732]] TODO org_set_property writes TODO, SCHEDULED and DEADLINE through org-entry-put, which changes the keyword live or opens a prompt
+- [ ] [[id:412768a0-3d9b-4cfe-9264-3f214d4baed1][412768a0]] TODO org_capture's title goes through capture-template expansion, so a newline splits the heading and %^ opens a prompt
+
+
+* TODO claude-org-setup assigns mcp_action and nothing reads it :code:
+:PROPERTIES:
+:ID:       21217b78-ef83-416b-9982-ae3c73c47e3d
+:CREATED:  [2026-10-27 Tue 12:56]
+:CATEGORY: Dev
+:END:
+
+bin/claude-org-setup sets mcp_action=1 at two places, and grep finds no reader
+anywhere in the tree. Found by a repo audit 2026-10-27. Proposed: delete both
+assignments.
+
+* TODO count-miss passes a jq argument nothing reads :code:
+:PROPERTIES:
+:ID:       d94730c7-e99c-44d9-8de3-a5d82dac0ca3
+:CREATED:  [2026-10-27 Tue 12:56]
+:CATEGORY: Dev
+:END:
+
+.githooks/count-miss passes --arg h naming git:$0, which its filter never uses,
+and $0 would name count-miss rather than the calling hook anyway. Found by a
+repo audit 2026-10-27, confirmed by reading the filter. Proposed: delete it, or
+pass the calling hook's name in and record it as hook_event_name.
+
+* TODO count-miss passes a jq argument nothing reads, and claude-org-setup sets mcp_action and never reads it :code:
+:PROPERTIES:
+:ID:       63193123-2d6f-4441-92fa-2f40bb4f084a
+:CREATED:  [2026-10-27 Tue 12:56]
+:CATEGORY: Dev
+:END:
+
+.githooks/count-miss passes --arg h naming git:$0, which its filter never uses,
+and $0 would name count-miss rather than the calling hook anyway.
+bin/claude-org-setup assigns mcp_action=1 at two places and nothing in the tree
+reads it. Found by a repo audit 2026-10-27, confirmed by grep. Proposed: delete
+both, or pass the calling hook's name into count-miss and record it.
+
+* TODO The exact-duplicate refusal fires on any two titles with no ASCII letters or digits :code:
+:PROPERTIES:
+:ID:       4afa5cd5-2d08-4a77-91c9-86a262bcab2d
+:CREATED:  [2026-10-27 Tue 12:55]
+:CATEGORY: Tools
+:END:
+
+--title-loosely collapses everything outside a-z and 0-9, so an all-CJK, emoji
+  or punctuation title reduces to the empty string and matches every other such
+  title: capturing 部署文档 beside 修复登录 is refused as already carried. Found
+  by a repo audit 2026-10-27; allow_duplicate works around it, and this corpus
+  is English. Proposed: never treat an empty loose title as exact. [[id:12033cc8-3b15-44b1-a80c-068f63f21025][12033cc8]] is
+  the same check failing the other way, on paraphrase.
+
+* TODO queue-append passes the whole payload as an argument, so an event over about 1 MB is dropped silently :code:
+:PROPERTIES:
+:ID:       104e45b3-ca4f-4262-8ec9-991e9f1bba9c
+:CREATED:  [2026-10-27 Tue 12:55]
+:CATEGORY: Queue
+:END:
+
+The final jq takes the payload through --argjson, which hits ARG_MAX (1,048,576
+here): the line comes out empty and the script exits 0 with nothing written. A
+repo audit 2026-10-27 reproduced it; a 600 KB amend worked. The comment that
+writes are atomic under PIPE_BUF is also wrong, since PIPE_BUF is 512, though
+concurrency runs and 366 real queue files showed no torn line. Proposed: feed
+the payload to the final jq on stdin, and correct the comment.
+
+* TODO apply-detect builds a file path from session_id without the check every sibling hook makes :code:
+:PROPERTIES:
+:ID:       bc92bbc8-2854-4a1c-8edf-7e7ac78608fb
+:CREATED:  [2026-10-27 Tue 12:55]
+:CATEGORY: Dev
+:END:
+
+Every other hook rejects a session_id containing anything outside A-Za-z0-9._-
+or equal to . or ..; apply-detect writes the .apply-seen file under the queue
+directory unchecked. A repo audit 2026-10-27 reproduced a session_id of
+../escaped writing outside the queue directory. Claude Code supplies the id, so
+the risk is low. Proposed: the same three-line case guard.
+
+* TODO clock-status.json stays active after a clock is cancelled :code:
+:PROPERTIES:
+:ID:       e39fc6a0-a8e3-4c84-a0b3-a4a42eb7594e
+:CREATED:  [2026-10-27 Tue 12:55]
+:CATEGORY: Clock
+:END:
+
+--clock-status-hook-out is on org-clock-out-hook but not org-clock-cancel-hook,
+  so apply's own error path, which cancels a clock it opened, and a hand C-c C-x
+  C-q leave the file reporting a running clock at a backdated start until some
+  later clock-out. Found by reading in a repo audit 2026-10-27; only external
+  status readers see it. Proposed: add the function to org-clock-cancel-hook.
+
+* TODO A permission block left open when a prompt is dismissed is closed by the next turn's first tool call :code:
+:PROPERTIES:
+:ID:       3a6ff84e-ed47-4c83-94ff-18c439dd842c
+:CREATED:  [2026-10-27 Tue 12:55]
+:CATEGORY: Queue
+:END:
+
+When an AskUserQuestion or ExitPlanMode prompt is dismissed or answered with
+free text, neither PostToolUse nor PermissionDenied fires, so block-start's
+sentinel survives the Stop and the next turn's first tool call closes the block,
+subtracting that turn's agent time. A repo audit 2026-10-27 found 17 start/end
+pairs with different source tools in the live queues, one opened 2026-09-18
+18:45 and closed 09-19 05:37 across a pause and a resume. Proposed:
+session-pause closes any open block, appending block_end before pause;
+optionally block-end ignores a subagent's tool calls. Matters only where time
+tracking is on.
+
+* TODO The body region drops the last line when the file has no final newline, so a replace glues it to the new text :code:
+:PROPERTIES:
+:ID:       e4734e2c-2083-413b-941d-9503dd0f4a23
+:CREATED:  [2026-10-27 Tue 12:53]
+:CATEGORY: Tools
+:END:
+
+--heading-body-bounds steps back to the start of the last line when forward-line
+  stops at the end of the buffer, so a body "one\ntwo" with no final newline is
+  read as "one\n". org_amend replace then writes the new text with "two" glued
+  on, org_wrap_plan leaves the last line outside the drawer while reporting the
+  text preserved, and a one-line last body reads as none. Reproduced in batch by
+  a repo audit 2026-10-27; it needs a file written outside Emacs, since Doom
+  adds the newline on save. Proposed: when forward-line reaches the end of the
+  buffer, end the region at point-max.
+
+* TODO org_set_tags and capture accept tag names org cannot parse, which land in the title while the logbook says the tag was set :code:
+:PROPERTIES:
+:ID:       eeb18e56-fcfd-4653-86e6-09448474de07
+:CREATED:  [2026-10-27 Tue 12:53]
+:CATEGORY: Tools
+:END:
+
+Tags are split on spaces, commas and colons only, and org-set-tags validates
+nothing, so add="follow-up" writes :follow-up:, which org reads as title text
+because a hyphen is not a tag character. The :LOGBOOK: line and the reply both
+claim the tag was set, and a later real tag is appended after the junk. Found by
+a repo audit 2026-10-27; org's tag syntax was recalled, not re-read. Proposed:
+refuse any tag not matching [[:alnum:]_@#%]+, naming it.
+
+* TODO One review build reads every queue file four or five times :code:
+:PROPERTIES:
+:ID:       78bc1960-ba2b-4907-afbc-b70807870681
+:CREATED:  [2026-10-27 Tue 12:53]
+:CATEGORY: Apply
+:END:
+
+history, both --queue-events-by-id calls and all each read every queue file, and
+--queue-applied and --queue-dismissed each parse every .applied;
+org_pending_updates adds another read plus one per unresolved capture. A repo
+audit 2026-10-27 counted 113 live files and about 9,000 lines, and the code's
+own note puts one read near a second, so several seconds per call; not timed.
+Proposed: compute the groups once, reuse history for all, and read each
+watermark once. [[id:2f4c04a1-db56-4427-ae62-591ba52607c6][2f4c04a1]] is the same waste at session start.
+
+* TODO An ambiguous id prefix is reported as not found, and a short prefix can resolve to the wrong heading while the index is stale :code:
+:PROPERTIES:
+:ID:       c6b068aa-f9de-4edc-a5b3-380bff666d2e
+:CREATED:  [2026-10-27 Tue 12:53]
+:CATEGORY: Tools
+:END:
+
+--expand-id-prefix returns the candidates for an ambiguous prefix, but --id-find
+  drops them and every tool replies that no heading has that :ID:, which invites
+  a duplicate capture; resolve-id-links does report the candidates, so the two
+  paths disagree. The minimum prefix is 4 characters and the rescan runs only
+  when nothing matches, so a heading not yet indexed loses its prefix to an
+  indexed one sharing it and the write lands there. Found by reading in a repo
+  audit 2026-10-27. Proposed: surface the candidates through --at-id, and
+  require 8 characters, or a rescan, for write tools.
+
+* TODO An unreadable .applied file reads as nothing applied, and the next write replaces it :code:
+:PROPERTIES:
+:ID:       e9f8b780-c93b-41f9-b146-1c4695283af9
+:CREATED:  [2026-10-27 Tue 12:53]
+:CATEGORY: Queue
+:END:
+
+--queue-watermark-data wraps its parse in ignore-errors, so a truncated or
+  hand-mangled file returns nil: every consumed event in that session is offered
+  again, and the next mark-applied or dismissal writes a fresh file holding only
+  the new keys, losing the old set and its pass stamps. Found by reading in a
+  repo audit 2026-10-27; unlikely, since writes are atomic. Proposed: tell an
+  absent file from an unparseable one, and on a parse failure refuse to write
+  and keep a .corrupt copy.
+
+* TODO statusline.sh and session-start-recovery-check call emacsclient with no watchdog, so a wedged Emacs stalls them :code:
+:PROPERTIES:
+:ID:       d7d3e88e-cd1a-43aa-85f4-bc9e63413a37
+:CREATED:  [2026-10-27 Tue 12:52]
+:CATEGORY: Dev
+:END:
+
+footnote-check, footnotes-inject and tool-failure kill emacsclient after 3 s,
+because --timeout does not bound evaluation; these two do not. With a fake
+emacsclient sleeping 8 s a repo audit 2026-10-27 measured 8 s and 9 s; this repo
+caps SessionStart at 15 s, but hooks/hooks.json sets no timeout for consumers,
+and statusline.sh has no trap for its temp files. Proposed: copy
+footnote-check's watchdog into both and add the trap. Related: [[id:dcbcac2a-2002-4579-b88d-ae337e43628c][dcbcac2a]], the
+same hook saying nothing when Emacs is down, and [[id:826d621c-25f5-4f06-9961-4b23f8658880][826d621c]].
+
+* TODO prepare-commit-msg rewrites a correct Co-Authored-By trailer to an older model name :code:
+:PROPERTIES:
+:ID:       6d1a5192-21ad-4316-b0c6-219403459f28
+:CREATED:  [2026-10-27 Tue 12:52]
+:CATEGORY: Dev
+:END:
+
+The hook's alias table maps opus to "Opus 5" and rewrites any existing Claude
+trailer, so the harness's "Claude Opus 5.5" is committed as "Claude Opus 5";
+commit [[orgit-rev:./::292b2e5][292b2e5]] is an instance, found by a repo audit 2026-10-27. An alias
+carries no minor version, so bumping the table would go stale again. Proposed:
+rewrite only when the existing trailer's family (Opus, Sonnet, Fable, Haiku)
+differs from the alias's, and update bin/prepare-commit-msg-test, which asserts
+the current behaviour.
+
+* TODO Loading the module sets claude-code-ide-org-standalone-projects to derive, overriding a user's nil or list :code:
+:PROPERTIES:
+:ID:       0ecf8820-5db4-4264-9cae-fc55a3f6926a
+:CREATED:  [2026-10-27 Tue 12:52]
+:CATEGORY: Dev
+:END:
+
+--wire-on-load runs (setq claude-code-ide-org-standalone-projects 'derive)
+  unconditionally; it arrived in commit [[orgit-rev:./::575be08][575be08]]. Depending on load order a
+  user's nil or explicit list is overwritten, or startup wires derive while the
+  on-demand path reads the user's value, the disagreement --standalone-partition
+  exists to prevent. Found by reading in a repo audit 2026-10-27; the load order
+  on this machine was not checked. Proposed: make derive the defcustom's default
+  and delete the setq.
+
+* TODO An apply interrupted after its writes records nothing, and the next pass inserts each amend a second time :code:
+:PROPERTIES:
+:ID:       d3468075-b17a-45a2-bd3a-838521f11a87
+:CREATED:  [2026-10-27 Tue 12:51]
+:CATEGORY: Apply
+:END:
+
+--review-apply records the applied set only after settle-slices,
+  settle-separation and settle-forgotten, outside any unwind-protect, and those
+  steps swallow errors but not quit. A C-g during the slow refresh, or a
+  day-node item signalling, leaves saved items unrecorded; the next pass
+  re-offers them, and state, clock and capture items detect the repeat while
+  --review-apply-amend does not. Found by reading in a repo audit 2026-10-27;
+  frequency unknown. Proposed: record right after the apply loop inside
+  unwind-protect, and give amends an already-present check. The reverse case,
+  recorded as applied but missing from the file, is [[id:7e4fb8ae-87ff-445a-b960-b7cc5302c0c8][7e4fb8ae]].
+
+* TODO org_capture's title goes through capture-template expansion, so a newline splits the heading and %^ opens a prompt :code:
+:PROPERTIES:
+:ID:       412768a0-3d9b-4cfe-9264-3f214d4baed1
+:CREATED:  [2026-10-27 Tue 12:48]
+:CATEGORY: Tools
+:END:
+:PLAN:
+Not yet designed. The audit's proposal: refuse newlines in titles and in
+org_divide's parent_title, and neutralise % in a title, by a placeholder
+replaced after finalize or by refusing a % sequence outright.
+:END:
+
+The title arrives as %i, which repeats the line prefix on every line, so a title
+"First\nSecond" writes two headings and the :ID: lands on the second. A %^{...}
+in the title is expanded after insertion and reads the minibuffer; tags are
+template text too, the same path runs at queue apply, and org_divide's
+parent_title is inserted raw. Reproduced in batch by a repo audit 2026-10-27. [[id:fd29914e-0d18-4964-a104-37c136b311a6][fd29914e]] is the same failure, a capture waiting on a prompt, from a
+different cause.
+
+Reproduced live by filing this very heading, 2026-10-27: the bare "%^" in its
+title raised "Enter string:" in the user's Emacs and the call timed out until
+they typed %^ back. The note's %^{...} was not expanded, so the note path is
+safe and only the title is affected.
+
+
+* TODO footnote-check blocks every stop when its loop-guard file cannot be written :code:
+:PROPERTIES:
+:ID:       ea069e92-6051-48a1-b9a5-e3c6f166c89e
+:CREATED:  [2026-10-27 Tue 12:49]
+:CATEGORY: Dev
+:END:
+
+The demand is appended to the per-turn sentinel with its error ignored, and exit
+2 follows regardless, so both the identical-demand check and the three-block
+bound read an empty file and never fire. Reproduced by a repo audit 2026-10-27
+with an unwritable queue directory: four stops, four blocks, against 2, 0, 0, 0
+with a writable one. clock-target-check fixed the same bug with || exit 0 and a
+test for an unwritable directory; copy both.
+
+* TODO discard-guard misses absolute paths, git -C, and a cd before the git command :code:
+:PROPERTIES:
+:ID:       b0e46168-2548-49ca-8f5f-5dcc6f3fc524
+:CREATED:  [2026-10-27 Tue 12:49]
+:CATEGORY: Dev
+:END:
+:PLAN:
+Not yet designed. The audit's proposal: strip the toplevel from absolute paths
+(resolving /tmp against /private/tmp), recompute the repo from -C, strip a
+leading (, and add each spelling to bin/discard-guard-test.
+:END:
+
+hits() prefixes the session's repo-relative directory onto every path, so
+/abs/repo/TODO.org never matches a dirty TODO.org. git -C repo from a cwd
+outside a repo exits before the check, -C or cd into a subdirectory takes its
+prefix from the session cwd, and a leading ( hides the git word. Reproduced by a
+repo audit 2026-10-27; these are the spellings sessions here are told to prefer,
+and bin/discard-guard-test has none of them.
+
+Related, not a twin: [[id:025a2e8a-9b21-4044-b9df-79baf7e904ce][025a2e8a]] fixed an absolute path to the git binary and the
+force flags; this is an absolute path to the file being discarded, and -C or cd
+choosing the repo.
+
+
+* TODO org_set_property writes TODO, SCHEDULED and DEADLINE through org-entry-put, which changes the keyword live or opens a prompt :code:
+:PROPERTIES:
+:ID:       a3ad9732-681c-4103-a9e2-5f919e60522c
+:CREATED:  [2026-10-27 Tue 12:48]
+:CATEGORY: Tools
+:END:
+
+Only ID and CREATED are refused (--property-tool-refused). org-entry-put calls
+org-todo for TODO, so property=TODO value=DONE is an immediate transition the
+queue never sees, which can hang on the logging note; SCHEDULED or DEADLINE with
+a non-date value calls org-schedule interactively and leaves the MCP call
+waiting on a minibuffer. A value containing a newline is written raw into the
+drawer. Found by a repo audit 2026-10-27, by reading org's source and the
+wrapper. Proposed: refuse everything in org-special-properties, pointing TODO at
+org_set_todo, and refuse newlines in values.
+
+* TODO Archiving a session already in the archive overwrites it, and restore overwrites a live queue the same way :code:
+:PROPERTIES:
+:ID:       c0a21a0f-89ed-4b66-b7ed-acbfd5583015
+:CREATED:  [2026-10-27 Tue 12:48]
+:CATEGORY: Queue
+:END:
+
+archive-drained-queues and restore-queue both call rename-file with
+OK-IF-ALREADY-EXISTS, so a session that writes again after being archived (a
+/resume keeps its id) replaces its archived .jsonl and .applied on the next run.
+Live on 2026-10-27, found by a repo audit: a2c50743 had 1 pause in its live file
+and 15 guideposts in its archived one, which the next archive run would destroy,
+while a comment beside the archive reader says no file is ever in both places.
+No test covers an existing destination. Proposed: never overwrite; append the
+lines onto the archived file and union the two .applied maps, or skip that
+session with a message.
+
+* TODO The tools server answers any web page: it checks no Origin or Host, and every reply says Access-Control-Allow-Origin: * :code:
+:PROPERTIES:
+:ID:       8c4a3aea-3208-46c8-a491-2ff024fbf822
+:CREATED:  [2026-10-27 Tue 12:48]
+:CATEGORY: Tools
+:END:
+:PLAN:
+Not yet designed. The audit's proposal: :around advice on
+claude-code-ide-mcp-http-server--handle-post refusing any request that carries
+Origin, or whose Host is not localhost or 127.0.0.1 on the port, since CLI
+clients send no Origin. Check the IDE companion's WebSocket too: executeCode is
+on by default and it looks to have the same gap, unverified. [[id:5adeb6c2-afc0-4472-9529-fff48f8ba825][5adeb6c2]] is the
+design for auth beyond localhost.
+:END:
+
+The HTTP MCP server the module starts on port 45571 binds 127.0.0.1 but checks
+neither Origin nor Host, and upstream's --send-json-response sends
+Access-Control-Allow-Origin: *. So a page can POST a text/plain tools/call,
+which needs no CORS preflight, to org_capture or org_edit and read the reply,
+planting text that later sessions read and trust; recent Chrome's local-network
+prompt blocks some of this, Firefox and Safari do not. Found by a repo audit
+2026-10-27, by reading.
+
 * TODO Setting :MEMBERS: or :DROPPED: refreshes nothing, so the checklist goes stale and org_slice_add_member refuses on a row already gone :code:
 :PROPERTIES:
 :ID:       6f3a5342-1905-4831-b712-3b6e5e83e0c4
@@ -1686,15 +2079,15 @@ references, =M-x customize-group claude-code-ide-org= and the commands. Written
 last, since it points at the other three.
 
 
-* TODO [0/11] The clock record beneath the review pass is still wrong: correctness, reporting, and the attention clock :code:
+* TODO [0/12] The clock record beneath the review pass is still wrong: correctness, reporting, and the attention clock :code:
 :PROPERTIES:
 :ID:       7ae1cff4-c0df-4ac0-9aea-a778b2373061
 :CREATED:  [2026-10-09 Fri 11:15]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:MEMBERS:  595df230-e31d-42ad-9ea7-128e545b9aa0 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 001fb310-69f7-4417-81be-a224a3bf83e0 55125136-5939-434e-9676-96ea66a75770 37147e9e-468b-43ee-91f9-45d9647c6164 64d34a64-d336-40a8-a8e8-da8133d0da06 445ec1f1-095a-462b-abbd-7a3a00925ddb d30b3481-374c-4921-9fdb-284dd8e09e14
-:BLOCKER:  595df230-e31d-42ad-9ea7-128e545b9aa0 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 001fb310-69f7-4417-81be-a224a3bf83e0 55125136-5939-434e-9676-96ea66a75770 37147e9e-468b-43ee-91f9-45d9647c6164 64d34a64-d336-40a8-a8e8-da8133d0da06 445ec1f1-095a-462b-abbd-7a3a00925ddb d30b3481-374c-4921-9fdb-284dd8e09e14
+:MEMBERS:  595df230-e31d-42ad-9ea7-128e545b9aa0 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 001fb310-69f7-4417-81be-a224a3bf83e0 55125136-5939-434e-9676-96ea66a75770 37147e9e-468b-43ee-91f9-45d9647c6164 64d34a64-d336-40a8-a8e8-da8133d0da06 445ec1f1-095a-462b-abbd-7a3a00925ddb d30b3481-374c-4921-9fdb-284dd8e09e14 3a6ff84e-ed47-4c83-94ff-18c439dd842c
+:BLOCKER:  595df230-e31d-42ad-9ea7-128e545b9aa0 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 001fb310-69f7-4417-81be-a224a3bf83e0 55125136-5939-434e-9676-96ea66a75770 37147e9e-468b-43ee-91f9-45d9647c6164 64d34a64-d336-40a8-a8e8-da8133d0da06 445ec1f1-095a-462b-abbd-7a3a00925ddb d30b3481-374c-4921-9fdb-284dd8e09e14 3a6ff84e-ed47-4c83-94ff-18c439dd842c
 :END:
 :PLAN:
 Divided out of [[id:c7619140-f269-4329-bc05-a38ea151e202][c7619140]] on 2026-10-09 (the user, a three-way split): the "clock
@@ -1727,6 +2120,7 @@ Planned:
 - [ ] [[id:64d34a64-d336-40a8-a8e8-da8133d0da06][64d34a64]] NEXT A clocktable never shows a parent's own time, only own-plus-subtree
 - [ ] [[id:445ec1f1-095a-462b-abbd-7a3a00925ddb][445ec1f1]] TODO A/B the clock record across the phase-3 fixes, since much of what is logged now is bogus
 - [ ] [[id:d30b3481-374c-4921-9fdb-284dd8e09e14][d30b3481]] TODO The time-tracking stamp is global and every project's session start rewrites it, so the last session to start decides whether the review pass opens a clock
+- [ ] [[id:3a6ff84e-ed47-4c83-94ff-18c439dd842c][3a6ff84e]] TODO A permission block left open when a prompt is dismissed is closed by the next turn's first tool call
 
 
 * MAYBE Separate what the machinery requires from what this project prefers, so a consumer can change the second :code:arch:
@@ -2699,15 +3093,15 @@ the lint and the repair, finishes the ordering tool, and makes the refresh cheap
 enough to run on every exit.
 
 
-* NEXT [0/11] A tool call can be told the opposite of what happened: a negated boolean, a phantom capture, a hang :code:
+* NEXT [0/14] A tool call can be told the opposite of what happened: a negated boolean, a phantom capture, a hang :code:
 :PROPERTIES:
 :ID:       f436a3b8-58ba-45a7-9f84-b8dee0934ca7
 :CREATED:  [2026-09-28 Mon 08:25]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:MEMBERS:  a8ccd6ac-3452-4926-b176-ff5951dcd5b2 c35087d8-19fe-4179-a61c-cb615b2e7679 b2d4012c-6c61-47df-8086-d1cd205c73fc 5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997 c0c5e015-c33e-4e1a-ad6e-907f9fa56c07 4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8 8326a46f-e3f9-4ecc-8bc2-05d54907987b d842b9e7-fd75-45eb-80fd-597daa3e36b0 fd29914e-0d18-4964-a104-37c136b311a6 ecbbec2e-50d9-4581-9ded-15716f16c5f3 94fe3c57-89f6-4d17-943e-0cb6145f3419
-:BLOCKER:  a8ccd6ac-3452-4926-b176-ff5951dcd5b2 c35087d8-19fe-4179-a61c-cb615b2e7679 b2d4012c-6c61-47df-8086-d1cd205c73fc 5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997 c0c5e015-c33e-4e1a-ad6e-907f9fa56c07 4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8 8326a46f-e3f9-4ecc-8bc2-05d54907987b d842b9e7-fd75-45eb-80fd-597daa3e36b0 fd29914e-0d18-4964-a104-37c136b311a6 ecbbec2e-50d9-4581-9ded-15716f16c5f3 94fe3c57-89f6-4d17-943e-0cb6145f3419
+:MEMBERS:  a8ccd6ac-3452-4926-b176-ff5951dcd5b2 c35087d8-19fe-4179-a61c-cb615b2e7679 b2d4012c-6c61-47df-8086-d1cd205c73fc 5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997 c0c5e015-c33e-4e1a-ad6e-907f9fa56c07 4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8 8326a46f-e3f9-4ecc-8bc2-05d54907987b d842b9e7-fd75-45eb-80fd-597daa3e36b0 fd29914e-0d18-4964-a104-37c136b311a6 ecbbec2e-50d9-4581-9ded-15716f16c5f3 94fe3c57-89f6-4d17-943e-0cb6145f3419 c6b068aa-f9de-4edc-a5b3-380bff666d2e eeb18e56-fcfd-4653-86e6-09448474de07 e4734e2c-2083-413b-941d-9503dd0f4a23
+:BLOCKER:  a8ccd6ac-3452-4926-b176-ff5951dcd5b2 c35087d8-19fe-4179-a61c-cb615b2e7679 b2d4012c-6c61-47df-8086-d1cd205c73fc 5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997 c0c5e015-c33e-4e1a-ad6e-907f9fa56c07 4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8 8326a46f-e3f9-4ecc-8bc2-05d54907987b d842b9e7-fd75-45eb-80fd-597daa3e36b0 fd29914e-0d18-4964-a104-37c136b311a6 ecbbec2e-50d9-4581-9ded-15716f16c5f3 94fe3c57-89f6-4d17-943e-0cb6145f3419 c6b068aa-f9de-4edc-a5b3-380bff666d2e eeb18e56-fcfd-4653-86e6-09448474de07 e4734e2c-2083-413b-941d-9503dd0f4a23
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-10-27 Tue 09:05] \\
@@ -2785,6 +3179,9 @@ Planned:
 - [ ] [[id:fd29914e-0d18-4964-a104-37c136b311a6][fd29914e]] TODO org_capture runs in whatever buffer the user has selected, so an Org QL view turns a capture into a prompt nobody at the tool can answer
 - [ ] [[id:ecbbec2e-50d9-4581-9ded-15716f16c5f3][ecbbec2e]] TODO Answer a bad tool call with its error rather than a hang, until upstream defines json-rpc-error
 - [ ] [[id:94fe3c57-89f6-4d17-943e-0cb6145f3419][94fe3c57]] TODO A live reload that changes a tool's description registers it a second time beside the stale one
+- [ ] [[id:c6b068aa-f9de-4edc-a5b3-380bff666d2e][c6b068aa]] TODO An ambiguous id prefix is reported as not found, and a short prefix can resolve to the wrong heading while the index is stale
+- [ ] [[id:eeb18e56-fcfd-4653-86e6-09448474de07][eeb18e56]] TODO org_set_tags and capture accept tag names org cannot parse, which land in the title while the logbook says the tag was set
+- [ ] [[id:e4734e2c-2083-413b-941d-9503dd0f4a23][e4734e2c]] TODO The body region drops the last line when the file has no final newline, so a replace glues it to the new text
 
 Five ways an =org_*= call tells its caller something other than what happened: a
 =false= that acts as true, a capture that reports success and persists nothing,
