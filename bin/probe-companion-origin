@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# Can a web page reach the IDE companion? TODO.org :ID: d7b2f50f.
+#
+# claude-code-ide's companion WebSocket checks no Origin, so a page in the
+# user's browser can connect, and with `claude-code-ide-enable-execute-code'
+# on it can run elisp in Emacs. This connects the way such a page would,
+# with Origin: https://evil.example.com, then calls tools/list and
+# executeCode with a harmless expression. It is the test that must pass
+# once d7b2f50f is fixed, and the proof behind the upstream report,
+# b24abffd. The core is elisp (bin/lib/probe-companion-origin.el), run as
+# a client in a batch Emacs, never through the running one.
+#
+# Usage: bin/probe-companion-origin [PORT...]
+#   With no PORT, probes every Emacs lockfile in ~/.claude/ide.
+# Exit: 0 every companion refused; 1 one accepted the foreign Origin;
+#   2 one was unreachable, or there was nothing to probe.
+#
+# Not a suite: it needs live companions, so bin/test-all must not run it.
+set -uo pipefail
+here="$(cd "$(dirname "$0")" && pwd)"
+if (($# == 0)); then
+  for f in "$HOME"/.claude/ide/*.lock; do
+    [[ -e "$f" ]] && grep -q '"ideName":"Emacs"' "$f" && set -- "$@" "$(basename "$f" .lock)"
+  done
+  if (($# == 0)); then
+    echo "probe-companion-origin: no Emacs lockfile in ~/.claude/ide; pass a port" >&2
+    exit 2
+  fi
+fi
+exec "$here/lib/batch-emacs" -l "$here/lib/probe-companion-origin.el" \
+  -f probe-companion-origin-main "$@"
