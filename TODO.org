@@ -17,18 +17,21 @@ no linked worktree; /code-review --fix creates one.
 :END:
 
 Git exports GIT_DIR to a hook run from a linked worktree, and none from the main
-checkout; GIT_DIR overrides git -C's discovery. On 2026-10-27 a push of [[https://github.com/nbest937/claude-code-ide-org.el/pull/40][PR #40]]
-from a review worktree ran test-all under pre-push, and hookspath-check-test's
-git -C "$r" config core.hooksPath somewhere/else wrote the real .git/config,
-switching every guard off in the main checkout; its own last check then failed
-on that. Reproduced in throwaway repos: the hook sees GIT_DIR only in the
-worktree, and the suite run with GIT_DIR set writes that repo's config. Restored
-by hand to .githooks. Any suite that runs git -C on a temp repo can do the same,
-git-guards-test's commits included. Proposed: unset GIT_DIR, GIT_WORK_TREE,
-GIT_INDEX_FILE and GIT_COMMON_DIR at the top of bin/test-all, with a
-test-all-test check that runs a suite under an exported GIT_DIR and finds that
-repo untouched.
+checkout. GIT_DIR overrides git -C's discovery, so every suite that runs git -C
+"$r" on a temp repo writes the real repo instead. Reproduced 2026-10-27 in
+throwaway repos.
 
+It happened 2026-10-27 between 17:37 and 17:39, when [[https://github.com/nbest937/claude-code-ide-org.el/pull/40][PR #40]] was pushed from a
+review worktree. Through the real repo, the suites:
+- set core.hooksPath to somewhere/else, core.bare to true, and a [user] t identity;
+- committed fixture commits onto main and feature/companion-origin-probe, and created the branches feat, side, feature/y and wt-branch;
+- rewrote the review worktree's index and HEAD;
+- in git-guards-test (git -C "$r" push -q origin main), pushed twice to the real GitHub origin, the second time leaving main at a Test <t@example.com> commit that deletes 149 files.
+
+Repaired locally by hand: config restored, refs moved back with guarded
+update-ref (main to 15734e9, the PR branch to c9e290a), the leaked branches and
+the worktree removed. The fixture reflog entries are kept as evidence. git -C is
+no protection.
 * TODO An apply whose writes never reach disk is committed short, and the only alarm for it is a log line nobody reads :code:
 :PROPERTIES:
 :ID:       4a700efb-c96c-4d40-942a-27755b5b5b4e
