@@ -2,6 +2,62 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO [0/6] A consumer's install can be wrong while every check says it is fine :code:
+:PROPERTIES:
+:ID:       005fef09-e34f-4994-8c0d-6d17ada3d7ac
+:CREATED:  [2026-10-27 Tue 08:52]
+:CATEGORY: Slices
+:KIND:     slice
+:COOKIE_DATA: checkbox recursive
+:MEMBERS:  96ad6e95-452d-4be2-9bc7-b2c2efa44988 b577497c-f3a8-4754-8914-6c56589a0b52 9a8013d7-7525-466b-9aaf-10eb647f5e9f 0e2f2e2f-c231-4f25-92cc-a37b63535efc 826d621c-25f5-4f06-9961-4b23f8658880 827e1c42-708e-4f1d-bf25-d8b8b980b7ef
+:BLOCKER:  96ad6e95-452d-4be2-9bc7-b2c2efa44988 b577497c-f3a8-4754-8914-6c56589a0b52 9a8013d7-7525-466b-9aaf-10eb647f5e9f 0e2f2e2f-c231-4f25-92cc-a37b63535efc 826d621c-25f5-4f06-9961-4b23f8658880 827e1c42-708e-4f1d-bf25-d8b8b980b7ef
+:END:
+:PLAN:
+Composed 2026-10-27 from the consumer-usability survey, at the user's direction.
+The theme: a consuming repo's install is wrong, and the check that should say so
+passes or stays quiet. Each member makes a check or a report say what is true.
+
+*The order is by reach, then cost.* [[id:96ad6e95-452d-4be2-9bc7-b2c2efa44988][96ad6e95]] comes first: a rule file the plugin
+stops shipping stays loaded in every consumer while --check passes, and the
+generated-file marker makes detection two lines; whether to report or prune is
+that member's decision. [[id:b577497c-f3a8-4754-8914-6c56589a0b52][b577497c]] is next, in the same --check pass: a tracker
+scaffolded before the ceremony template has no :KIND: ceremony heading, so the
+steps after apply never run. [[id:9a8013d7-7525-466b-9aaf-10eb647f5e9f][9a8013d7]] follows: lint-org with no arguments lints
+the plugin checkout and passes, so a consumer's own lint is silently skipped.
+[[id:0e2f2e2f-c231-4f25-92cc-a37b63535efc][0e2f2e2f]] is fourth: one project's bury stamps the ceremony done for every
+project, hiding another repo's apply failures; its open choice (wait for the
+queue, or correct the docstring) is the member's. [[id:826d621c-25f5-4f06-9961-4b23f8658880][826d621c]] is fifth because it
+is a design question, not a patch: where and when the ceremony's write steps
+run, given a 15 s hook and a checked-out feature branch. [[id:827e1c42-708e-4f1d-bf25-d8b8b980b7ef][827e1c42]] closes the
+slice, so the first tagged version carries the fixes above; its open questions
+(bump cadence, first tag) are the member's.
+
+*Twin review.* None found. [[id:2f4c04a1-db56-4427-ae62-591ba52607c6][2f4c04a1]] (--applied-today-p ignores the report scope)
+is related to [[id:0e2f2e2f-c231-4f25-92cc-a37b63535efc][0e2f2e2f]], not a twin: one fix would not close both. [[id:bcf8068e-ce0d-45b0-b807-a3483070eb5c][bcf8068e]]
+concerns this repo's own promoted copies, not a consumer's.
+
+*Category mix:* four Dev ([[id:96ad6e95-452d-4be2-9bc7-b2c2efa44988][96ad6e95]], [[id:b577497c-f3a8-4754-8914-6c56589a0b52][b577497c]], [[id:9a8013d7-7525-466b-9aaf-10eb647f5e9f][9a8013d7]], [[id:827e1c42-708e-4f1d-bf25-d8b8b980b7ef][827e1c42]])
+and two Meta ([[id:0e2f2e2f-c231-4f25-92cc-a37b63535efc][0e2f2e2f]], [[id:826d621c-25f5-4f06-9961-4b23f8658880][826d621c]]).
+:END:
+
+Six ways a consuming repo's install goes wrong without anything saying so: a
+rule file the plugin dropped stays loaded, a pre-template tracker never runs the
+ceremony's later steps, lint-org passes on the plugin's files instead of the
+project's, one project's bury silences another's report, session start writes
+onto a feature branch and times out, and no version says which plugin a consumer
+has. Each is fixed so a check or report says what is true, ending with the first
+tagged version.
+
+Planned:
+
+- [ ] [[id:96ad6e95-452d-4be2-9bc7-b2c2efa44988][96ad6e95]] TODO Promotion never removes, and --check never looks, so a dropped rule file would linger in every consumer
+- [ ] [[id:b577497c-f3a8-4754-8914-6c56589a0b52][b577497c]] TODO An install scaffolded before the ceremony template has no :KIND: ceremony heading, so its steps after apply never run and --check does not say so
+- [ ] [[id:9a8013d7-7525-466b-9aaf-10eb647f5e9f][9a8013d7]] TODO lint-org with no arguments lints the plugin checkout, not the consuming repo, and passes
+- [ ] [[id:0e2f2e2f-c231-4f25-92cc-a37b63535efc][0e2f2e2f]] TODO Burying the review buffer stamps the ceremony done while apply failures are still pending, though the session-start docstring says it waits for them
+- [ ] [[id:826d621c-25f5-4f06-9961-4b23f8658880][826d621c]] TODO SessionStart runs the ceremony's write steps inside a 15 s hook, on whatever branch is checked out
+- [ ] [[id:827e1c42-708e-4f1d-bf25-d8b8b980b7ef][827e1c42]] TODO The plugin has never been tagged or version-bumped, and nothing would notice
+
+
 * TODO A launcher session's exit stops the IDE companion that standalone wiring started for the same directory :code:
 :PROPERTIES:
 :ID:       b4be636e-e665-44a9-9ab5-5fb3992f280c
@@ -2467,15 +2523,15 @@ the lint and the repair, finishes the ordering tool, and makes the refresh cheap
 enough to run on every exit.
 
 
-* TODO [0/5] A tool call can be told the opposite of what happened: a negated boolean, a phantom capture, a hang :code:
+* TODO [0/7] A tool call can be told the opposite of what happened: a negated boolean, a phantom capture, a hang :code:
 :PROPERTIES:
 :ID:       f436a3b8-58ba-45a7-9f84-b8dee0934ca7
 :CREATED:  [2026-09-28 Mon 08:25]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:MEMBERS:  a8ccd6ac-3452-4926-b176-ff5951dcd5b2 8326a46f-e3f9-4ecc-8bc2-05d54907987b fd29914e-0d18-4964-a104-37c136b311a6 ecbbec2e-50d9-4581-9ded-15716f16c5f3 94fe3c57-89f6-4d17-943e-0cb6145f3419
-:BLOCKER:  a8ccd6ac-3452-4926-b176-ff5951dcd5b2 8326a46f-e3f9-4ecc-8bc2-05d54907987b fd29914e-0d18-4964-a104-37c136b311a6 ecbbec2e-50d9-4581-9ded-15716f16c5f3 94fe3c57-89f6-4d17-943e-0cb6145f3419
+:MEMBERS:  a8ccd6ac-3452-4926-b176-ff5951dcd5b2 4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8 8326a46f-e3f9-4ecc-8bc2-05d54907987b d842b9e7-fd75-45eb-80fd-597daa3e36b0 fd29914e-0d18-4964-a104-37c136b311a6 ecbbec2e-50d9-4581-9ded-15716f16c5f3 94fe3c57-89f6-4d17-943e-0cb6145f3419
+:BLOCKER:  a8ccd6ac-3452-4926-b176-ff5951dcd5b2 4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8 8326a46f-e3f9-4ecc-8bc2-05d54907987b d842b9e7-fd75-45eb-80fd-597daa3e36b0 fd29914e-0d18-4964-a104-37c136b311a6 ecbbec2e-50d9-4581-9ded-15716f16c5f3 94fe3c57-89f6-4d17-943e-0cb6145f3419
 :END:
 :PLAN:
 Composed 2026-09-28 from the backlog survey, at the user's direction. The theme:
@@ -2506,13 +2562,24 @@ dropped by upstream's dispatch) and [[id:ce012ad4-87f7-435c-a2ee-25210c071865][c
 upstream, so building it may end as a report filed there plus a local shadow,
 which that member's own plan has to decide.
 
-*Category mix:* all five are =Tools=.
+*Two members added 2026-10-27* (the user, from the consumer-usability survey).
+[[id:4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8][4a6f6dc3]] goes second: a capture with no target can land in another project's
+tracker and say nothing, the slice's theme with a consumer's tracker as the
+casualty. [[id:28eed617-e4e0-4d29-88ea-9411de4b77e5][28eed617]] removed its usual cause, so what remains is making the
+fallback visible. [[id:d842b9e7-fd75-45eb-80fd-597daa3e36b0][d842b9e7]] follows [[id:8326a46f-e3f9-4ecc-8bc2-05d54907987b][8326a46f]]: a read that edits the buffer and
+then makes every write refuse it. Its fix is one binding, but the choice between
+binding it in =org_query= and setting =org-depend-tag-blocked= nil globally is
+still the user's.
+
+*Category mix:* all seven are =Tools=.
 :END:
 
 Planned:
 
 - [ ] [[id:a8ccd6ac-3452-4926-b176-ff5951dcd5b2][a8ccd6ac]] TODO A boolean argument passed as false arrives as :false, which elisp reads as true
+- [ ] [[id:4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8][4a6f6dc3]] TODO A targetless org_capture from a session with no registered project writes to the global capture file, another project's tracker, and says nothing
 - [ ] [[id:8326a46f-e3f9-4ecc-8bc2-05d54907987b][8326a46f]] TODO claude-code-ide-org-capture reports a queued capture it never persists
+- [ ] [[id:d842b9e7-fd75-45eb-80fd-597daa3e36b0][d842b9e7]] TODO org_query blocked: errors on a read-only buffer, though a query changes nothing the user can see
 - [ ] [[id:fd29914e-0d18-4964-a104-37c136b311a6][fd29914e]] TODO org_capture runs in whatever buffer the user has selected, so an Org QL view turns a capture into a prompt nobody at the tool can answer
 - [ ] [[id:ecbbec2e-50d9-4581-9ded-15716f16c5f3][ecbbec2e]] TODO Answer a bad tool call with its error rather than a hang, until upstream defines json-rpc-error
 - [ ] [[id:94fe3c57-89f6-4d17-943e-0cb6145f3419][94fe3c57]] TODO A live reload that changes a tool's description registers it a second time beside the stale one
