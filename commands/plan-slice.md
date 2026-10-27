@@ -63,6 +63,10 @@ member's drawer should hold, and **where it and a member's drawer
 disagree, the member wins** (the org conventions, "A slice's plan, and
 its members'").
 
+End it with the slice that follows: "Followed by" and its id, or
+"Followed by: none named" -- ask the user which, never infer it.
+`/work-slice` nominates that slice when this one enters `REVIEW`.
+
 ## End state
 
 - The slice **stays `NEXT`**. Planning is `TODO`-phase work; `DOING`

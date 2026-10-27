@@ -2,6 +2,41 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* DOING Closing a slice nominates nothing, so the slice after it waits on a hand-picked NEXT :code:
+:PROPERTIES:
+:ID:       d984abe6-2fe6-4dc2-9c7b-6bb4de20100f
+:CREATED:  [2026-10-27 Tue 09:05]
+:CATEGORY: Slices
+:END:
+:PLAN:
+The proposal in the body is the whole design: a line in the slice's own plan,
+read by the two commands. No property and no hook.
+:END:
+:DEBRIEF:
+Prose only, in the two shipped commands, so consumers receive it with the
+plugin. bin/check-conventions and bin/test-all passed (27 suites, 1725). Not
+mechanised: the review-start hook could queue the nomination itself, and a
+declared property could replace the plan line once [[id:ecf66d45-18b3-477f-bca8-08bec90604e8][ecf66d45]] settles which order
+successors follow; neither is filed, since the plan line has not yet been used
+once.
+:END:
+
+A slice is top-level, and closing a top-level heading nominates nothing; a
+slice's :BLOCKER: is derived from its own members on every refresh, so it cannot
+name a predecessor either. So when a slice finished, /plan-slice found no NEXT
+slice and stopped to ask. Proposed (the user, 2026-10-27): a slice's :PLAN: ends
+with "Followed by <id>" or "Followed by: none named", and /work-slice's close
+step queues NEXT on the named slice when the slice enters REVIEW, so the next
+one can be planned while the review runs. A declared property is deferred to
+[[id:ecf66d45-18b3-477f-bca8-08bec90604e8][ecf66d45]]'s open question of which order successors follow.
+
+*Shipped 2026-10-27 on main.* /plan-slice now ends a slice's plan with its
+successor, asked of the user and never inferred, and /work-slice queues NEXT on
+that successor when the slice enters REVIEW. First use: [[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]] names [[id:005fef09-e34f-4994-8c0d-6d17ada3d7ac][005fef09]];
+[[id:005fef09-e34f-4994-8c0d-6d17ada3d7ac][005fef09]] names none.
+
+
+
 * TODO [0/6] A consumer's install can be wrong while every check says it is fine :code:
 :PROPERTIES:
 :ID:       005fef09-e34f-4994-8c0d-6d17ada3d7ac
@@ -38,6 +73,8 @@ concerns this repo's own promoted copies, not a consumer's.
 
 *Category mix:* four Dev ([[id:96ad6e95-452d-4be2-9bc7-b2c2efa44988][96ad6e95]], [[id:b577497c-f3a8-4754-8914-6c56589a0b52][b577497c]], [[id:9a8013d7-7525-466b-9aaf-10eb647f5e9f][9a8013d7]], [[id:827e1c42-708e-4f1d-bf25-d8b8b980b7ef][827e1c42]])
 and two Meta ([[id:0e2f2e2f-c231-4f25-92cc-a37b63535efc][0e2f2e2f]], [[id:826d621c-25f5-4f06-9961-4b23f8658880][826d621c]]).
+
+Followed by: none named.
 :END:
 
 Six ways a consuming repo's install goes wrong without anything saying so: a
@@ -2527,15 +2564,19 @@ the lint and the repair, finishes the ordering tool, and makes the refresh cheap
 enough to run on every exit.
 
 
-* TODO [0/7] A tool call can be told the opposite of what happened: a negated boolean, a phantom capture, a hang :code:
+* NEXT [0/11] A tool call can be told the opposite of what happened: a negated boolean, a phantom capture, a hang :code:
 :PROPERTIES:
 :ID:       f436a3b8-58ba-45a7-9f84-b8dee0934ca7
 :CREATED:  [2026-09-28 Mon 08:25]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:MEMBERS:  a8ccd6ac-3452-4926-b176-ff5951dcd5b2 4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8 8326a46f-e3f9-4ecc-8bc2-05d54907987b d842b9e7-fd75-45eb-80fd-597daa3e36b0 fd29914e-0d18-4964-a104-37c136b311a6 ecbbec2e-50d9-4581-9ded-15716f16c5f3 94fe3c57-89f6-4d17-943e-0cb6145f3419
-:BLOCKER:  a8ccd6ac-3452-4926-b176-ff5951dcd5b2 4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8 8326a46f-e3f9-4ecc-8bc2-05d54907987b d842b9e7-fd75-45eb-80fd-597daa3e36b0 fd29914e-0d18-4964-a104-37c136b311a6 ecbbec2e-50d9-4581-9ded-15716f16c5f3 94fe3c57-89f6-4d17-943e-0cb6145f3419
+:MEMBERS:  a8ccd6ac-3452-4926-b176-ff5951dcd5b2 c35087d8-19fe-4179-a61c-cb615b2e7679 b2d4012c-6c61-47df-8086-d1cd205c73fc 5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997 c0c5e015-c33e-4e1a-ad6e-907f9fa56c07 4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8 8326a46f-e3f9-4ecc-8bc2-05d54907987b d842b9e7-fd75-45eb-80fd-597daa3e36b0 fd29914e-0d18-4964-a104-37c136b311a6 ecbbec2e-50d9-4581-9ded-15716f16c5f3 94fe3c57-89f6-4d17-943e-0cb6145f3419
+:BLOCKER:  a8ccd6ac-3452-4926-b176-ff5951dcd5b2 c35087d8-19fe-4179-a61c-cb615b2e7679 b2d4012c-6c61-47df-8086-d1cd205c73fc 5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997 c0c5e015-c33e-4e1a-ad6e-907f9fa56c07 4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8 8326a46f-e3f9-4ecc-8bc2-05d54907987b d842b9e7-fd75-45eb-80fd-597daa3e36b0 fd29914e-0d18-4964-a104-37c136b311a6 ecbbec2e-50d9-4581-9ded-15716f16c5f3 94fe3c57-89f6-4d17-943e-0cb6145f3419
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-10-27 Tue 09:05] \\
+  nominated: amend retirement folded in, plan next
 :END:
 :PLAN:
 Composed 2026-09-28 from the backlog survey, at the user's direction. The theme:
@@ -2567,20 +2608,41 @@ upstream, so building it may end as a report filed there plus a local shadow,
 which that member's own plan has to decide.
 
 *Two members added 2026-10-27* (the user, from the consumer-usability survey).
-[[id:4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8][4a6f6dc3]] goes second: a capture with no target can land in another project's
-tracker and say nothing, the slice's theme with a consumer's tracker as the
-casualty. [[id:28eed617-e4e0-4d29-88ea-9411de4b77e5][28eed617]] removed its usual cause, so what remains is making the
-fallback visible. [[id:d842b9e7-fd75-45eb-80fd-597daa3e36b0][d842b9e7]] follows [[id:8326a46f-e3f9-4ecc-8bc2-05d54907987b][8326a46f]]: a read that edits the buffer and
-then makes every write refuse it. Its fix is one binding, but the choice between
-binding it in =org_query= and setting =org-depend-tag-blocked= nil globally is
-still the user's.
+[[id:4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8][4a6f6dc3]] goes after the retirement members below: a capture with no target can
+land in another project's tracker and say nothing, the slice's theme with a
+consumer's tracker as the casualty. [[id:28eed617-e4e0-4d29-88ea-9411de4b77e5][28eed617]] removed its usual cause, so what
+remains is making the fallback visible. [[id:d842b9e7-fd75-45eb-80fd-597daa3e36b0][d842b9e7]] follows [[id:8326a46f-e3f9-4ecc-8bc2-05d54907987b][8326a46f]]: a read that
+edits the buffer and then makes every write refuse it. Its fix is one binding,
+but the choice between binding it in =org_query= and setting
+=org-depend-tag-blocked= nil globally is still the user's.
 
-*Category mix:* all seven are =Tools=.
+*The retirement of =org_amend= joined 2026-10-27* (the user), as members two to
+five, so the order is [[id:a8ccd6ac-3452-4926-b176-ff5951dcd5b2][a8ccd6ac]], [[id:c35087d8-19fe-4179-a61c-cb615b2e7679][c35087d8]], [[id:b2d4012c-6c61-47df-8086-d1cd205c73fc][b2d4012c]], [[id:5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997][5b46fbfd]], [[id:c0c5e015-c33e-4e1a-ad6e-907f9fa56c07][c0c5e015]], then the
+rest as above. [[id:c35087d8-19fe-4179-a61c-cb615b2e7679][c35087d8]] comes before [[id:b2d4012c-6c61-47df-8086-d1cd205c73fc][b2d4012c]] because =org_amend= queues an
+interjection when the buffer has unsaved edits and =org_edit= must not lose that
+before it becomes the only tool. [[id:b2d4012c-6c61-47df-8086-d1cd205c73fc][b2d4012c]] comes early because the conventions
+still teach =org_amend=, so every consumer session keeps reaching for the tool
+that carries the worst damage, and because it overtakes two members: [[id:5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997][5b46fbfd]]
+exists only in =org_amend='s replace path, and [[id:c0c5e015-c33e-4e1a-ad6e-907f9fa56c07][c0c5e015]] is already refused by
+=org_edit=. Each closes as overtaken once a test shows =org_edit= does not
+reproduce it; for [[id:5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997][5b46fbfd]] that means a whole-region rewrite keeps the blank
+lines before the next heading, which is unverified. [[id:381dfc89-932b-4448-a58d-7e3cad51db55][381dfc89]] stays out of the
+slice: its gate is every queue drained of amend events, a state rather than a
+heading.
+
+*Category mix:* all eleven are =Tools=.
+
+Followed by [[id:005fef09-e34f-4994-8c0d-6d17ada3d7ac][005fef09]].
 :END:
 
 Planned:
 
 - [ ] [[id:a8ccd6ac-3452-4926-b176-ff5951dcd5b2][a8ccd6ac]] TODO A boolean argument passed as false arrives as :false, which elisp reads as true
+- [[id:dd4b9a9f-ba8a-4f1f-a3da-38388e0cdb76][dd4b9a9f]] NEXT No org tool edits a phrase in place: org_amend appends or replaces the whole body
+  - [ ] [[id:c35087d8-19fe-4179-a61c-cb615b2e7679][c35087d8]] NEXT org_edit refuses an unsaved buffer, asks for the save in a header line, and the agent waits on it
+  - [ ] [[id:b2d4012c-6c61-47df-8086-d1cd205c73fc][b2d4012c]] TODO Retire org_amend in one move: hooks, prose, and the live headings renamed with org_edit
+- [ ] [[id:5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997][5b46fbfd]] TODO org_amend replace=true eats the blank lines before the next heading, so org stops seeing it
+- [ ] [[id:c0c5e015-c33e-4e1a-ad6e-907f9fa56c07][c0c5e015]] TODO org_amend accepts a headline-shaped line in drawer text, which tears the drawer open
 - [ ] [[id:4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8][4a6f6dc3]] TODO A targetless org_capture from a session with no registered project writes to the global capture file, another project's tracker, and says nothing
 - [ ] [[id:8326a46f-e3f9-4ecc-8bc2-05d54907987b][8326a46f]] TODO claude-code-ide-org-capture reports a queued capture it never persists
 - [ ] [[id:d842b9e7-fd75-45eb-80fd-597daa3e36b0][d842b9e7]] TODO org_query blocked: errors on a read-only buffer, though a query changes nothing the user can see
@@ -14326,4 +14388,8 @@ CLOCK: [2026-10-21 Wed 12:27]--[2026-10-21 Wed 12:28] =>  0:01
 CLOCK: [2026-10-27 Tue 08:01]--[2026-10-27 Tue 08:02] =>  0:01
 - [2026-10-27 Tue 08:01]--[2026-10-27 Tue 08:02] assigned at review
 - [2026-10-27 Tue 08:25]--[2026-10-27 Tue 08:25] assigned at review
+CLOCK: [2026-10-27 Tue 08:51]--[2026-10-27 Tue 08:53] =>  0:02
+- [2026-10-27 Tue 08:51]--[2026-10-27 Tue 08:53] extend f436a3b8, compose install slice
+CLOCK: [2026-10-27 Tue 08:58]--[2026-10-27 Tue 09:00] =>  0:02
+- [2026-10-27 Tue 08:58]--[2026-10-27 Tue 09:00] assigned at review
 :END:

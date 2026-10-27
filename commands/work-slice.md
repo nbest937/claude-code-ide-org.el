@@ -118,6 +118,15 @@ its last member goes terminal; it sits in `REVIEW` between the two (the
 org conventions, "Closing a slice"). **How** it integrates -- a branch,
 a pull request, a review, a merge -- is the project file's business.
 
+**Entering `REVIEW` nominates the slice that follows.** The slice's
+`:PLAN:` ends with "Followed by" and an id, or "Followed by: none
+named". When the slice is queued to `REVIEW`, queue `NEXT` on the slice
+named there, so `/plan-slice` can plan it while the review runs; a slice
+in `REVIEW` does not hold the category's one `NEXT`. None named: say so,
+and the next `/plan-slice` stops and asks. Without this, closing a slice
+nominates nothing, being top-level, and its successor waits on a choice
+made by hand (the plugin's own tracker, :ID: d984abe6).
+
 ---
 
 ## Standing rules, with what actually happened
