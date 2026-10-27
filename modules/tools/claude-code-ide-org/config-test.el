@@ -21041,6 +21041,133 @@ with a local entry on the second, both register under their own names."
         ;; The other project still registers (TODO.org :ID: 7def4fff).
         (should (equal '("repo") (mapcar #'car registered)))))))
 
+;;; On-demand session registration (TODO.org :ID: 28eed617) ---------------
+
+(defmacro claude-code-ide-org-test--with-empty-session-table (&rest body)
+  "BODY with upstream's session table empty, its count at zero, no miss
+cached, no reference held, and the IDE companion's starts recorded in
+`started'."
+  (declare (indent 0))
+  `(progn
+     (require 'claude-code-ide-mcp-server)
+     (let ((claude-code-ide-mcp-server--sessions (make-hash-table :test 'equal))
+           (claude-code-ide-mcp-server--session-count 0)
+           (claude-code-ide-org--session-misses (make-hash-table :test 'equal))
+           (claude-code-ide-org--held-server nil)
+           (started nil))
+       (cl-letf (((symbol-function 'claude-code-ide-mcp-start)
+                  (lambda (&optional dir) (push dir started))))
+         ,@body))))
+
+(ert-deftest claude-code-ide-org-test-session-register-on-demand ()
+  "An empty table and a session id naming a known project registers it,
+starts its companion, and serves upstream's own tools as well as the
+read scope."
+  (claude-code-ide-org-test--with-clones
+    (claude-code-ide-org-test--with-empty-session-table
+      (let ((claude-code-ide-org-standalone-projects (list a))
+            (claude-code-ide-mcp-server--current-session-id "repo"))
+        (should (file-equal-p
+                 a (claude-code-ide-mcp-server-with-session-context nil
+                     default-directory)))
+        (should (file-equal-p a (claude-code-ide-org--session-read-scope)))
+        (should (equal (list a) started))))))
+
+(ert-deftest claude-code-ide-org-test-session-register-caches-a-miss ()
+  "An id no project resolves to registers nothing, and is not derived
+again until the tracked files change."
+  (claude-code-ide-org-test--with-clones
+    (claude-code-ide-org-test--with-empty-session-table
+      (let* ((claude-code-ide-org-standalone-projects (list a))
+             (claude-code-ide-mcp-server--current-session-id "nope")
+             (tracked '("/t/one.org"))
+             (lookups 0)
+             (orig (symbol-function 'claude-code-ide-org--project-session-name)))
+        (cl-letf (((symbol-function 'claude-code-ide-org--tracked-files)
+                   (lambda (&rest _) tracked))
+                  ((symbol-function 'claude-code-ide-org--project-session-name)
+                   (lambda (dir) (cl-incf lookups) (funcall orig dir))))
+          (should-not (claude-code-ide-org--session-read-scope))
+          (let ((first lookups))
+            (should (> first 0))
+            (should-not (claude-code-ide-org--session-read-scope))
+            (should (= first lookups))
+            (setq tracked '("/t/one.org" "/t/two.org"))
+            (should-not (claude-code-ide-org--session-read-scope))
+            (should (> lookups first))))
+        (should (zerop (hash-table-count claude-code-ide-mcp-server--sessions)))))))
+
+(ert-deftest claude-code-ide-org-test-session-register-collision-follows-the-wire ()
+  "Two projects on one name: on demand, as on the wire, the first
+registers and only the duplicate is refused."
+  (claude-code-ide-org-test--with-clones
+    (claude-code-ide-org-test--with-empty-session-table
+      (let ((claude-code-ide-org-standalone-projects (list a b))
+            (claude-code-ide-mcp-server--current-session-id "repo"))
+        (should (file-equal-p a (claude-code-ide-org--session-read-scope)))))))
+
+(ert-deftest claude-code-ide-org-test-session-register-respects-an-explicit-nil ()
+  "An explicit nil asks for no project sessions: nothing registers on
+demand, and the wire reports rather than warning that some will."
+  (claude-code-ide-org-test--with-clones
+    (claude-code-ide-org-test--with-empty-session-table
+      (let ((claude-code-ide-org-standalone-projects nil)
+            (claude-code-ide-mcp-server--current-session-id "repo")
+            (warned nil))
+        (cl-letf (((symbol-function 'claude-code-ide-org--standalone-derive-projects)
+                   (lambda () (list a))))
+          (should-not (claude-code-ide-org--session-read-scope))
+          (claude-code-ide-org-test--with-stubbed-server
+            (cl-letf (((symbol-function 'display-warning)
+                       (lambda (_type msg &rest _) (push msg warned))))
+              (claude-code-ide-org-standalone-wire))))
+        (should-not warned)))))
+
+(ert-deftest claude-code-ide-org-test-held-reference-keeps-the-server ()
+  "With the reference held, a launcher session starting and ending
+leaves the standalone sessions and the server in place, its own
+session gone; holding twice takes one reference."
+  (claude-code-ide-org-test--with-empty-session-table
+    (let ((claude-code-ide-mcp-server--server 'fake-server)
+          (claude-code-ide-mcp-server--port 45571))
+      (cl-letf (((symbol-function 'claude-code-ide-mcp-http-server-stop) #'ignore))
+        (claude-code-ide-org--hold-server-reference)
+        (claude-code-ide-org--hold-server-reference)
+        (should (= 1 claude-code-ide-mcp-server--session-count))
+        (claude-code-ide-mcp-server-register-session "repo" "/tmp/repo/" nil)
+        (claude-code-ide-mcp-server-session-started "launch" "/tmp/repo/" (current-buffer))
+        (claude-code-ide-mcp-server-session-ended "launch")
+        (should (gethash "repo" claude-code-ide-mcp-server--sessions))
+        (should-not (gethash "launch" claude-code-ide-mcp-server--sessions))
+        (should (eq 'fake-server claude-code-ide-mcp-server--server))))))
+
+(ert-deftest claude-code-ide-org-test-no-reference-lets-upstream-stop ()
+  "Without the reference, upstream behaves as it always did: the last
+launcher session's end stops the server and clears the table."
+  (claude-code-ide-org-test--with-empty-session-table
+    (let ((claude-code-ide-mcp-server--server 'fake-server)
+          (claude-code-ide-mcp-server--port 45571))
+      (cl-letf (((symbol-function 'claude-code-ide-mcp-http-server-stop) #'ignore))
+        (claude-code-ide-mcp-server-register-session "repo" "/tmp/repo/" nil)
+        (claude-code-ide-mcp-server-session-started "launch" "/tmp/repo/" (current-buffer))
+        (claude-code-ide-mcp-server-session-ended "launch")
+        (should-not claude-code-ide-mcp-server--server)
+        (should (zerop (hash-table-count claude-code-ide-mcp-server--sessions)))))))
+
+(ert-deftest claude-code-ide-org-test-wire-warns-on-zero-derived ()
+  "A wire deriving no project warns rather than reporting success."
+  (claude-code-ide-org-test--with-stubbed-server
+    (let ((claude-code-ide-org-standalone-projects 'derive)
+          (claude-code-ide-org--session-misses (make-hash-table :test 'equal))
+          (warned nil))
+      (cl-letf (((symbol-function 'claude-code-ide-org--standalone-derive-projects)
+                 (lambda () nil))
+                ((symbol-function 'display-warning)
+                 (lambda (_type msg &rest _) (push msg warned))))
+        (claude-code-ide-org-standalone-wire))
+      (should (string-match-p "sessions will register on their first call"
+                              (or (car warned) ""))))))
+
 ;;; Tool-failure markers (TODO.org :ID: 3ad389be) ---------------------------
 
 (defun claude-code-ide-org-test--plant-failures (session-id &rest lines)

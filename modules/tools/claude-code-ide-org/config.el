@@ -22861,6 +22861,138 @@ targetless captures -- to the wrong project (TODO.org :ID: 965f94eb)."
             (push (list name (cdr prior) dir) out)
           (push (cons name dir) seen))))))
 
+;;; Standalone sessions outlive a launcher's, and register on demand
+;;; (TODO.org :ID: 28eed617).
+;;
+;; Upstream's table emptied two ways.  The startup wiring could run before
+;; the private config set `org-agenda-files', and so derive no project;
+;; and `claude-code-ide-mcp-server-session-ended' stops the server, which
+;; `clrhash'es every session, once its count of launcher sessions reaches
+;; zero -- confirmed in batch.  Standalone clients never enter that count.
+
+(defvar claude-code-ide-mcp-server--server)
+(defvar claude-code-ide-mcp-server--current-session-id)
+
+(defvar claude-code-ide-org--held-server nil
+  "The tools server this module holds one reference on, or nil.")
+
+(defun claude-code-ide-org--hold-server-reference ()
+  "Count the standalone clients as one session in upstream's count.
+
+Through upstream's public `claude-code-ide-mcp-server-session-started',
+called with no arguments, which only increments.  The count then never
+reaches zero from launcher sessions ending, so the last one no longer
+stops the server and clears the standalone sessions.  Once per server
+object, so a re-wire or a live reload takes no second reference; a
+server restarted under it gets a fresh one.  Nothing releases it: the
+standalone clients are not counted individually, so nothing could
+know when the last one left."
+  (when (and (bound-and-true-p claude-code-ide-mcp-server--server)
+             (not (eq claude-code-ide-org--held-server
+                      claude-code-ide-mcp-server--server)))
+    (claude-code-ide-mcp-server-session-started)
+    (setq claude-code-ide-org--held-server claude-code-ide-mcp-server--server)))
+
+(defun claude-code-ide-org--standalone-project-list ()
+  "`claude-code-ide-org-standalone-projects' as directories, deriving
+when it is the symbol `derive'.  An explicit nil means no project
+sessions, on the wire and on demand alike."
+  (mapcar #'expand-file-name
+          (if (eq claude-code-ide-org-standalone-projects 'derive)
+              (claude-code-ide-org--standalone-derive-projects)
+            claude-code-ide-org-standalone-projects)))
+
+(defun claude-code-ide-org--standalone-partition (projects pin)
+  "PROJECTS split into those to register and the refusals: (WIRED . REFUSALS).
+
+The one rule for which projects get a session, so the wire and the
+on-demand path cannot disagree about it."
+  ;; Refuse a collision rather than let the later project win
+  ;; silently, naming both and the one command that separates them
+  ;; (TODO.org :ID: 965f94eb) -- and refuse *only* the duplicate.
+  ;; Refusing before any registration left every project, the
+  ;; unrelated ones included, without a session on a running server
+  ;; (TODO.org :ID: 7def4fff, PR #31 review).
+  (let (refusals refused)
+    (dolist (c (claude-code-ide-org--session-collisions projects))
+      (push (nth 2 c) refused)
+      (push (format "%s and %s both resolve to MCP session \"%s\"; \
+in the second, run: claude mcp add --scope local --transport http emacs-tools \
+http://localhost:%d/mcp/%s-2"
+                    (nth 1 c) (nth 2 c) (nth 0 c) pin (nth 0 c))
+            refusals))
+    ;; A local entry may name another port; the pin is the contract.
+    (dolist (dir projects)
+      (let ((port (claude-code-ide-org--url-port
+                   (claude-code-ide-org--project-mcp-url dir))))
+        (when (and port (/= port pin))
+          (push dir refused)
+          (push (format "%s's emacs-tools URL names port %d, but the tools server is pinned to %d"
+                        dir port pin)
+                refusals))))
+    (cons (seq-remove (lambda (d) (member d refused)) projects)
+          (nreverse refusals))))
+
+(defun claude-code-ide-org--start-companion (dir)
+  "Start the IDE companion (WebSocket server and lockfile) for DIR, if there is one.
+
+It lives in claude-code-ide-mcp.el, which loading claude-code-ide does
+not pull in -- found when the headless Doom sandbox's glue boot threw
+void-function (:ID: 7c86ab4c).  Optional by construction: the MCP tools
+need only the HTTP server, so a missing companion degrades with a
+message, never an error."
+  (require 'claude-code-ide-mcp nil t)
+  (if (fboundp 'claude-code-ide-mcp-start)
+      (claude-code-ide-mcp-start dir)
+    (message "claude-code-ide-org: IDE companion unavailable; tools server only")))
+
+(defvar claude-code-ide-org--session-misses (make-hash-table :test 'equal)
+  "Session ids no project resolved to, each mapped to the tracked files
+it was tried against.  A miss is retried only once that list changes,
+or after the next `claude-code-ide-org-standalone-wire', which clears
+this: the lookup sits on every tool call's path, and the derivation
+reads every project's .mcp.json and ~/.claude.json.")
+
+(defun claude-code-ide-org--on-demand-project (id)
+  "The project directory session ID should be registered for, or nil."
+  (let* ((claude-code-ide-org--report-scope nil)
+         (files (claude-code-ide-org--tracked-files)))
+    (unless (equal files (gethash id claude-code-ide-org--session-misses 'none))
+      (or (seq-find (lambda (dir)
+                      (equal id (claude-code-ide-org--project-session-name dir)))
+                    (car (claude-code-ide-org--standalone-partition
+                          (claude-code-ide-org--standalone-project-list)
+                          claude-code-ide-org-standalone-port)))
+          (progn (puthash id files claude-code-ide-org--session-misses) nil)))))
+
+(defun claude-code-ide-org--register-on-demand (orig &optional session-id)
+  "Around ORIG, upstream's session lookup: register SESSION-ID on a miss.
+
+A miss on the id -- given, or bound for the tool call -- registers the
+project `claude-code-ide-org-standalone-wire' would have registered
+under it, and starts its companion as the wire does, then looks again.
+On the shared lookup, so upstream's own tools recover too, not only
+this module's.  An id no project resolves to stays a miss, so a caller
+stays global as before.  Never signals: an error here would fail every
+tool call, so it is shown and the miss returned."
+  (or (funcall orig session-id)
+      (when-let* ((id (or session-id
+                          (bound-and-true-p claude-code-ide-mcp-server--current-session-id)))
+                  (dir (condition-case err
+                           (claude-code-ide-org--on-demand-project id)
+                         (error (message "claude-code-ide-org: on-demand registration of %s failed: %s"
+                                         id (error-message-string err))
+                                nil))))
+        (claude-code-ide-mcp-server-register-session id dir nil)
+        (condition-case err
+            (claude-code-ide-org--start-companion dir)
+          (error (message "claude-code-ide-org: IDE companion for %s failed: %s"
+                          dir (error-message-string err))))
+        (funcall orig session-id))))
+
+(advice-add 'claude-code-ide-mcp-server-get-session-context :around
+            #'claude-code-ide-org--register-on-demand)
+
 (defun claude-code-ide-org-standalone-wire ()
   "Wire the MCP tools server for standalone clients, loudly.
 Pins upstream's `claude-code-ide-mcp-server-port' to
@@ -22895,55 +23027,32 @@ the project list."
     ;; the headless sandbox run found this (:ID: 7c86ab4c debrief).
     (unless (claude-code-ide-mcp-server-ensure-server)
       (user-error "claude-code-ide-org: tools server did not start -- is `claude-code-ide-enable-mcp-server' t? (`claude-code-ide-emacs-tools-setup' enables it)"))
-    (let ((projects (mapcar #'expand-file-name
-                            (if (eq claude-code-ide-org-standalone-projects
-                                    'derive)
-                                (claude-code-ide-org--standalone-derive-projects)
-                              claude-code-ide-org-standalone-projects))))
-      ;; Refuse a collision rather than let the later project win
-      ;; silently, naming both and the one command that separates them
-      ;; (TODO.org :ID: 965f94eb) -- and refuse *only* the duplicate.
-      ;; Refusing before any registration left every project, the
-      ;; unrelated ones included, without a session on a running server
-      ;; (TODO.org :ID: 7def4fff, PR #31 review).  So the refusals are
-      ;; collected, the rest register, and then the refusal signals.
-      (let (refusals refused)
-        (dolist (c (claude-code-ide-org--session-collisions projects))
-          (push (nth 2 c) refused)
-          (push (format "%s and %s both resolve to MCP session \"%s\"; \
-in the second, run: claude mcp add --scope local --transport http emacs-tools \
-http://localhost:%d/mcp/%s-2"
-                        (nth 1 c) (nth 2 c) (nth 0 c) pin (nth 0 c))
-                refusals))
-        ;; A local entry may name another port; the pin is the contract.
-        (dolist (dir projects)
-          (let ((port (claude-code-ide-org--url-port
-                       (claude-code-ide-org--project-mcp-url dir))))
-            (when (and port (/= port pin))
-              (push dir refused)
-              (push (format "%s's emacs-tools URL names port %d, but the tools server is pinned to %d"
-                            dir port pin)
-                    refusals))))
-        ;; The IDE-companion (WebSocket server + lockfile) lives in
-        ;; claude-code-ide-mcp.el, which loading claude-code-ide does
-        ;; not pull in -- found when the headless Doom sandbox's glue
-        ;; boot threw void-function here (:ID: 7c86ab4c). Optional by
-        ;; construction: the MCP tools need only the HTTP server, so a
-        ;; missing companion degrades with a message, never an error.
-        (require 'claude-code-ide-mcp nil t)
-        (let ((wired (seq-remove (lambda (d) (member d refused)) projects)))
-          (dolist (dir wired)
-            (claude-code-ide-mcp-server-register-session
-             (claude-code-ide-org--project-session-name dir) dir nil)
-            (if (fboundp 'claude-code-ide-mcp-start)
-                (claude-code-ide-mcp-start dir)
-              (message "claude-code-ide-org: IDE companion unavailable; tools server only")))
-          (if refusals
-              (user-error "claude-code-ide-org: %d project session(s) wired on port %d; refused: %s"
-                          (length wired) pin
-                          (string-join (nreverse refusals) "; "))
-            (message "claude-code-ide-org: standalone tools wired on port %d, %d project session(s)"
-                     pin (length wired))))))))
+    (claude-code-ide-org--hold-server-reference)
+    (clrhash claude-code-ide-org--session-misses)
+    (let* ((projects (claude-code-ide-org--standalone-project-list))
+           (part (claude-code-ide-org--standalone-partition projects pin))
+           (wired (car part))
+           (refusals (cdr part)))
+      ;; Register what can be, then signal the refusals.
+      (dolist (dir wired)
+        (claude-code-ide-mcp-server-register-session
+         (claude-code-ide-org--project-session-name dir) dir nil)
+        (claude-code-ide-org--start-companion dir))
+      (cond
+       (refusals
+        (user-error "claude-code-ide-org: %d project session(s) wired on port %d; refused: %s"
+                    (length wired) pin (string-join refusals "; ")))
+       ;; Zero derived is not success (TODO.org :ID: 28eed617): at
+       ;; startup it meant the tracked files were not set yet, and the
+       ;; success line hid it for days.  An explicit nil asked for none.
+       ((and (null projects) (eq claude-code-ide-org-standalone-projects 'derive))
+        (display-warning
+         'claude-code-ide-org
+         (format "tools server on port %d, but no project derived from the tracked files; sessions will register on their first call"
+                 pin)
+         :warning))
+       (t (message "claude-code-ide-org: standalone tools wired on port %d, %d project session(s)"
+                   pin (length wired)))))))
 
 (with-eval-after-load 'claude-code-ide
 
