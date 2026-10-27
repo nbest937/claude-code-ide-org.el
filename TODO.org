@@ -2,7 +2,37 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO The IDE companion's WebSocket may accept any web page, and executeCode runs whatever elisp it is sent :code:
+:PROPERTIES:
+:ID:       d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80
+:CREATED:  [2026-10-27 Tue 13:23]
+:CATEGORY: Tools
+:END:
 
+Unverified, from a repo audit 2026-10-27, by reading: upstream's lockfile
+carries no authToken, nothing checks websocket-origin, and
+claude-code-ide-enable-execute-code defaults to t, with no override in the live
+Doom config. A browser WebSocket is not subject to CORS, so a page that finds
+the companion's port could evaluate elisp in Emacs; --start-companion keeps one
+running per tracked project. Sibling of [[id:8c4a3aea-3208-46c8-a491-2ff024fbf822][8c4a3aea]], which is the same gap on the
+HTTP tools server. Proposed: confirm with a local page first, then either close
+any socket whose websocket-origin is non-nil or bind
+claude-code-ide-enable-execute-code to nil in the module.
+
+* TODO footnotes-inject reads hook JSON with sed, so a path or id containing an escaped quote is cut short :code:
+:PROPERTIES:
+:ID:       8bc0bbcf-12cf-412b-a9f4-e335286dda58
+:CREATED:  [2026-10-27 Tue 13:23]
+:CATEGORY: Dev
+:END:
+
+Its field() helper extracts tool_use_id and transcript_path with a sed pattern
+that stops at the first double quote and takes the last match on the line, so an
+escaped quote in transcript_path truncates it, and a "tool_use_id" key inside
+tool_input could be read in place of the real one. A truncated path makes the
+wait loop that follows poll a file that does not exist for its full 2 s before
+going on. Seen by a repo audit 2026-10-27, by reading only, and untested.
+Proposed: read both fields with jq, as the sibling hooks do.
 
 * NEXT [0/9] The tracker can lose or corrupt its record, or Emacs can stop on a prompt, and nothing says so :code:
 :PROPERTIES:
@@ -3818,7 +3848,9 @@ this heading, where there was no id to cite at all.
 :CREATED:  [2026-09-23 Wed 19:51]
 :CATEGORY: Dev
 :END:
+:PLAN:
 
+:END:
 Split out of [[id:60ed5b96-40e3-4676-a742-07a8ad6cc3b7][60ed5b96]] at the user's direction (2026-09-23).
 That heading fixes one docstring. This one is about the whole class:
 =bin/check-conventions= checks documents against the code, but nothing
@@ -3827,6 +3859,12 @@ loaded into a reader's attention the way CLAUDE.md is, so a stale one
 outranks the code until someone checks. [[id:60ed5b96-40e3-4676-a742-07a8ad6cc3b7][60ed5b96]]'s docstring misled
 two readings in one day, in opposite directions. Whether any mechanical
 check can catch this, or only review can, is open.
+
+A live instance, found by a repo audit 2026-10-27: the docstring of
+claude-code-ide-org--review-items-from-queue cites
+claude-code-ide-org--review-advance-watermarks, which nothing in the tree
+defines.
+
 
 
 * TODO A Claude Code upgrade can add hook events and nothing notices: 26 of 33 go unwired, and PostToolUseFailure was found by accident :code:
