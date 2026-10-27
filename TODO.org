@@ -1061,7 +1061,7 @@ twice; that residue is [[id:f22246cc-50e1-49e8-acc1-d71eecab814c][f22246cc]].
 
 
 
-* TODO [0/5] The SessionStart tool-failure report misstates what failed and says nothing when Emacs is down now :code:
+* TODO [0/6] The SessionStart tool-failure report misstates what failed and says nothing when Emacs is down now :code:
 :PROPERTIES:
 :ID:       4bd8e14d-c741-47c7-a868-df933cbad82c
 :CREATED:  [2026-10-12 Mon 11:24]
@@ -1090,6 +1090,12 @@ markers already record the error ("timed out") and the probe's state (refused,
 idle, prompt), so the headline should reflect those per line, or drop the causal
 claim. An idle-probe timeout means Emacs was up but the call ran long, and it is
 the case most likely to have landed: on 2026-10-12 one did.
+
+A second case, 2026-10-27: ECONNREFUSED with the probe idle. Emacs answered but
+the MCP tools server was down, stopped by the [[id:f22246cc-50e1-49e8-acc1-d71eecab814c][f22246cc]] defect, and the report
+still headed it "Emacs was unreachable". Refused-while-idle should read as the
+tools server being down, with Emacs up.
+
 
 
 ** TODO The report never says Emacs is reachable now, though producing it proves Emacs is up :code:bounded:
@@ -1141,7 +1147,19 @@ changes, and filing its children was refused as "not a known :ID:", although
 org_set_todo and org_clock_in accept a pending capture's id. The children waited
 for an apply. Either queue the child against the pending parent, or say in the
 refusal that the parent is queued rather than unknown.
+** TODO The report says "did not land, redo it" for a call the same session already retried and landed :code:bounded:
+:PROPERTIES:
+:ID:       9c33d0bc-34b5-4e55-8574-f0e6a4121955
+:CREATED:  [2026-10-27 Tue 11:40]
+:END:
 
+On 2026-10-27 three refused calls on [[id:b4be636e-e665-44a9-9ab5-5fb3992f280c][b4be636e]] were reported for redo, though the
+session had retried all three: the clock_in reached the queue 41 s later and
+both org_edit calls are in commit [[orgit-rev:./::13a9b05][13a9b05]]. Redoing them would have
+double-credited a clock and, for the empty-old_string append, written the
+paragraph twice. The marker records tool_input and the session id, so the report
+could look for a later queue event or file text matching it and say "retried and
+landed" instead, or at least warn that an append is not idempotent.
 
 * TODO Let a discovery join a slice either as a member line or as incidental work, since both record it under the slice :prose:
 :PROPERTIES:
