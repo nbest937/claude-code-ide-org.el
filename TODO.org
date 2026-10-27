@@ -5112,6 +5112,16 @@ none written down:
 - *Partial stories inside slices are historical*, not a pattern to copy: the story work predates the slice mechanism.
 - *The lifecycle, the load-bearing omission:* a task first exists **outside** a slice, and a slice **promotes** it from the backlog when completing it has been prioritized, so slice membership *means* "this is prioritized for near-term completion". Grepped 2026-09-18: nothing in =org-conventions.md=, =CLAUDE.md= or the org skill describes promotion; the only documented way in is adoption-on-discovery, the mid-flight exception.
 
+*A fourth, the mechanics, stated nowhere as one rule* (the user, 2026-10-27): a
+slice takes on a story by declaring its children in :MEMBERS:, never the story;
+the story's row is derived, boxless, and a story declared alone means none of
+its children belong. Today this is only implied, split between the nesting rule
+("its relevant children get indented member lines beneath it") and the
+review-story paragraph ("the story itself is not declared"). A noodle-salesman
+session read both on 2026-10-27, swapped a review story's four tasks out of
+:MEMBERS: for the story itself, and argued the conventions said nothing either
+way. The revision states it once, in the general section on stories and slices,
+and the two passages point at it.
 :END:
 *What is established.*
 - Deliberate composition is the norm (measured 2026-09-18): of the six live groupings in =TODO.org= -- level-1 headings with keyworded children -- **five carry no CLOCK line of their own**, so they were *composed*; only one ([[id:a1d63f52-4c07-4b9e-8f31-6d2b90c4e7a5][a1d63f52]], 9 own CLOCK lines) is the accidental shape the conventions describe.
