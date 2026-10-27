@@ -18,6 +18,7 @@ but lose IDE integration until the next wire. Verify by reading
 =--cleanup-on-exit= and checking the lockfile after a launcher exits in a wired
 project.
 
+
 * TODO A story's members split by an unrelated line in :MEMBERS: render its parent row twice in the planned list :code:
 :PROPERTIES:
 :ID:       18b5c60e-30bf-48d1-a892-29d226ca6667
@@ -794,6 +795,13 @@ CLOCK: [2026-10-21 Wed 14:46]--[2026-10-21 Wed 14:54] =>  0:08
 - [2026-10-21 Wed 14:46]--[2026-10-21 Wed 14:54] implement on-demand session registration
 - State "REVIEW"     from "DOING"      [2026-10-21 Wed 14:54] \\
   PR #38 open, awaiting review and merge
+CLOCK: [2026-10-21 Wed 15:39]--[2026-10-21 Wed 15:48] =>  0:09
+- State "DOING"      from "REVIEW"     [2026-10-21 Wed 15:39] \\
+  PR #38 review findings, rework
+- [2026-10-21 Wed 15:39]--[2026-10-21 Wed 15:48] rework PR #38 review findings
+- State "REVIEW"     from "DOING"      [2026-10-21 Wed 15:48] \\
+  review rework pushed to PR #38
+- [2026-10-21 Wed 15:48]--[2026-10-21 Wed 15:48] suggested span, accepted at review
 :END:
 :PLAN:
 Two causes empty the session table, and the fix covers both (approach 3 of
@@ -10081,12 +10089,12 @@ before the fix and still says.
 
 
 * TODO Archive closed tasks daily
-SCHEDULED: <2026-10-22 Thu 07:00 ++1d>
+SCHEDULED: <2026-10-28 Wed 07:00 ++1d>
 :PROPERTIES:
 :CATEGORY: Meta
 :ID:       cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8
 :CREATED:  [2026-08-21 Fri 15:35]
-:LAST_REPEAT: [2026-10-21 Wed 12:39]
+:LAST_REPEAT: [2026-10-27 Tue 08:00]
 :KIND:     ceremony
 :END:
 :LOGBOOK:
@@ -12614,6 +12622,7 @@ CLOCK: [2026-10-13 Tue 16:29]--[2026-10-13 Tue 16:31] =>  0:02
 CLOCK: [2026-10-14 Wed 12:51]--[2026-10-14 Wed 13:01] =>  0:10
 CLOCK: [2026-10-20 Tue 11:49]--[2026-10-20 Tue 11:50] =>  0:01
 CLOCK: [2026-10-20 Tue 12:51]--[2026-10-20 Tue 14:54] =>  2:03
+CLOCK: [2026-10-21 Wed 17:01]--[2026-10-21 Wed 17:02] =>  0:01
 :END:
 
 We created this heading on 2026-08-26. We deleted that property from its
