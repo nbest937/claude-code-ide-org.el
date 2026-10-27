@@ -13430,7 +13430,7 @@ code by the worktree-aware convention checks. No partitioning
 machinery; the design questions all have their own headings.
 
 
-* MAYBE [1/7] Accumulate issues to report upstream to claude-code-ide.el :code:
+* MAYBE [1/8] Accumulate issues to report upstream to claude-code-ide.el :code:
 :PROPERTIES:
 :CATEGORY: Upstream
 :ID:       9d6449c7-529f-49a0-b28f-015cce869715
@@ -13670,7 +13670,99 @@ recursion within one call; the sentinel's later call finds nothing to skip and
 calls claude-code-ide-mcp-server-session-ended a second time, so one launcher
 costs two counts. Report: make cleanup-on-exit idempotent per directory (return
 early when the directory is no longer in claude-code-ide--processes).
+** TODO Both MCP servers accept any web page's requests, and the WebSocket one runs elisp for it through executeCode, on by default :code:
+:PROPERTIES:
+:ID:       b24abffd-3f23-4c1a-91e8-bb90c9e8e43e
+:CREATED:  [2026-10-27 Tue 16:56]
+:END:
+:PLAN:
+To send through the repository's Security tab (Report a vulnerability), not as a
+public issue. Check first that private reporting is enabled on
+manzaltu/claude-code-ide.el; if it is not, open a public issue that asks for a
+private channel and leaves the detail out. Re-run the probe against the version
+current on the day it is sent, and correct the versions line if it has changed.
 
+#+begin_example
+Title: Both local MCP servers accept requests from any web page, and executeCode lets one run Elisp
+
+## Summary
+
+claude-code-ide starts two local servers: the WebSocket server Claude Code
+connects to (claude-code-ide-mcp.el), and the MCP HTTP server for custom tools
+(claude-code-ide-mcp-http-server.el). Neither one checks the Origin header, and
+the WebSocket server needs no token. A web page open in the user's browser can
+therefore connect to either one. With claude-code-ide-enable-execute-code at its
+default of t, the page can make Emacs evaluate any Elisp, and so run any command
+as the user.
+
+Checked at 1de17bb and at 50a3d55 (0.3.0), on macOS.
+
+## Details
+
+1. WebSocket server. claude-code-ide-mcp--find-free-port binds 127.0.0.1 on a
+   random port in 10000-65535 and accepts every handshake, whatever its Origin.
+   claude-code-ide-mcp--create-lockfile writes no authToken, so a client is
+   never asked to prove it read the lockfile. Claude Code's IDE extensions closed
+   the same gap with a lockfile token checked at the handshake (CVE-2025-52882).
+2. executeCode. claude-code-ide-enable-execute-code defaults to t, so the tool
+   is offered to every client of that server, a web page included.
+3. HTTP server. claude-code-ide-mcp-http-server--send-json-response sends
+   Access-Control-Allow-Origin: * on every reply, and no handler checks Origin
+   or Host. A cross-site POST sent as text/plain needs no CORS preflight, so a
+   page can call every registered tool and read the replies. The MCP
+   Streamable HTTP transport says servers MUST validate the Origin header,
+   because without that check DNS rebinding reaches localhost servers.
+
+## Proof of concept
+
+A WebSocket client that sends the handshake a browser would send, with
+Origin: https://evil.example.com, then:
+
+    {"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}
+    {"jsonrpc":"2.0","id":2,"method":"tools/call",
+     "params":{"name":"executeCode",
+               "arguments":{"code":"(list (emacs-pid) (+ 40 2))"}}}
+
+The handshake succeeds, tools/list includes executeCode, and the call returns
+Emacs's pid and 42. For the HTTP server, a POST of a tools/list request with
+Content-Type: text/plain and the same Origin header gets 200, the tool list,
+and Access-Control-Allow-Origin: *.
+
+## What limits it
+
+A page has to find the port. The WebSocket port is random, but scanning
+loopback from a browser is practical. The HTTP port is often fixed in config.
+Recent Chrome restricts public pages from reaching loopback addresses; Firefox
+and Safari do not. Any local process can read ~/.claude/ide/*.lock as it is,
+so the lockfile itself gives away the port.
+
+## Suggested fixes
+
+1. WebSocket: write a random authToken into the lockfile, create the lockfile
+   with mode 0600, and refuse a handshake without a matching
+   x-claude-code-ide-authorization header. That is the header Claude Code sends.
+   Also refuse a handshake that carries an Origin header.
+2. HTTP: remove Access-Control-Allow-Origin: *. Refuse a request whose Origin is
+   present and not local, and one whose Host is not localhost or 127.0.0.1 with
+   the server's port.
+3. Make claude-code-ide-enable-execute-code default to nil.
+
+Fix 1 alone stops a web page from reaching executeCode. Fix 3 limits the damage
+if something else gets in.
+#+end_example
+
+Before sending, confirm that the header name and the CVE number are right. Both
+come from memory, not from a source read today.
+:END:
+
+The upstream half of [[id:8c4a3aea-3208-46c8-a491-2ff024fbf822][8c4a3aea]] and [[id:d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80][d7b2f50f]]. Neither of claude-code-ide's servers
+checks a request's Origin, the WebSocket lockfile carries no authToken, the HTTP
+replies say Access-Control-Allow-Origin: *, and
+claude-code-ide-enable-execute-code defaults to t. Verified 2026-10-27 on
+upstream 1de17bb and still true at 50a3d55. The report is drafted in :PLAN:, to
+send as a private security advisory rather than a public issue, since the probe
+works as written. Locally executeCode is off since 2026-10-27, set in the Doom
+config; the Origin guards remain our own work in [[id:3bfa593c-c2da-4e44-b47f-2d5f0750f2aa][3bfa593c]].
 
 * MAYBE Consider archives in org_clock_report's scope (agenda-with-archives) :code:
 :PROPERTIES:
