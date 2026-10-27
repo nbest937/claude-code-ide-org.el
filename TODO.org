@@ -2,6 +2,22 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Prune the spent one-off code: the :MEMBERS: migration and its proof, datetree-file, the CLOSED backfills, and --file-line-count :code:
+:PROPERTIES:
+:ID:       dce10826-bc70-4cdf-bf48-aee8c5371a0d
+:CREATED:  [2026-10-27 Tue 14:03]
+:CATEGORY: Dev
+:END:
+
+A repo audit on 2026-10-27 found code whose one job is done. The :MEMBERS:
+migration, its proof and --slice-checklist-structure ran once; every slice here
+and in the one consumer carries :MEMBERS:, and refresh rebuilds it for open
+slices. claude-code-ide-org-datetree-file converted DONE.org once.
+backfill-closed and backfill-closed-from-git with --git-close-time filled 58
+CLOSED: lines once. --file-line-count lost its last caller to a size check. The
+user asked 2026-10-27 to remove all of it with its tests, keeping
+--recorded-close-time and --datetree-target-file, which live code still calls.
+
 * TODO Audit what the two 2026-10-27 repo audits left unread, and run the suites they did not :code:research:
 :PROPERTIES:
 :ID:       37f4c6ec-6337-43bc-9efc-bf8ce56acdb4
