@@ -25,6 +25,7 @@ the clock and keyword hooks, nearly all noise, and the archive pass lost its
 source label after August. Supersedes [[id:e9ee1a50-085f-4c37-b064-4aec71cecb41][e9ee1a50]]; the log's
 existing data stays for [[id:b5448133-4021-46b9-a90e-d88e149ae65d][b5448133]] and any attribution question.
 
+
 * DOING Prune the spent one-off code: the :MEMBERS: migration and its proof, datetree-file, the CLOSED backfills, and --file-line-count :code:
 :PROPERTIES:
 :ID:       dce10826-bc70-4cdf-bf48-aee8c5371a0d
@@ -42,6 +43,14 @@ CLOCK: [2026-10-27 Tue 14:33]--[2026-10-27 Tue 14:34] =>  0:01
 - [2026-10-27 Tue 14:33]--[2026-10-27 Tue 14:34] suggested span, accepted at review
 CLOCK: [2026-10-27 Tue 14:46]--[2026-10-27 Tue 14:47] =>  0:01
 - [2026-10-27 Tue 14:46]--[2026-10-27 Tue 14:47] suggested span, accepted at review
+CLOCK: [2026-10-27 Tue 15:23]--[2026-10-27 Tue 15:24] =>  0:01
+- [2026-10-27 Tue 15:23]--[2026-10-27 Tue 15:24] suggested span, accepted at review
+CLOCK: [2026-10-27 Tue 15:25]--[2026-10-27 Tue 15:26] =>  0:01
+- [2026-10-27 Tue 15:25]--[2026-10-27 Tue 15:26] suggested span, accepted at review
+CLOCK: [2026-10-27 Tue 15:28]--[2026-10-27 Tue 15:30] =>  0:02
+- [2026-10-27 Tue 15:28]--[2026-10-27 Tue 15:30] suggested span, accepted at review
+CLOCK: [2026-10-27 Tue 15:33]--[2026-10-27 Tue 15:35] =>  0:02
+- [2026-10-27 Tue 15:33]--[2026-10-27 Tue 15:35] suggested span, accepted at review
 :END:
 
 A repo audit on 2026-10-27 found code whose one job is done. The :MEMBERS:
@@ -5368,7 +5377,6 @@ dated line per catch.
 - 2026-10-27: did tracker bookkeeping while on a feature branch, committed it on main, then switched back; the switch rewrote TODO.org without the new line and the next apply landed on that stale copy, so returning to main needed a saved patch and a forced switch. Bookkeeping belongs on main from the start.
 
 
-
 ** TODO Miss: an org act performed before reading the convention that governs it
 :PROPERTIES:
 :ID:       d606eaff-8cde-4c21-94ab-2d4115200ff9
@@ -5472,7 +5480,6 @@ never closes; the count is the point. One dated line per catch.
   Caught by the user.
 
 - 2026-10-27: argued the tool-call audit log could be deleted because a failed apply save "would show in the tracker's diff". Nobody reads that diff: apply-detect tells the session an apply landed and the session commits it unasked, which is the point of that hook, so an unsaved apply is committed short with nothing to show it. The user caught it.
-
 
 
 ** TODO Miss: a heading closed with its unfinished part left in prose, or its group left un-nominated
@@ -7161,11 +7168,16 @@ explanation. The third option is cheaper than it sounds and should not be
 dismissed.
 
 
-* TODO The audit log answers attribution questions nobody asks it :code:
+* CANCELLED The audit log answers attribution questions nobody asks it :code:
+CLOSED: [2026-10-27 Tue 15:24]
 :PROPERTIES:
 :ID:       e9ee1a50-085f-4c37-b064-4aec71cecb41
 :CREATED:  [2026-09-16 Wed 13:47]
 :CATEGORY: Dev
+:END:
+:LOGBOOK:
+- State "CANCELLED"  from "TODO"       [2026-10-27 Tue 15:24] \\
+  overtaken by 4a700efb: the reader moves to apply-detect
 :END:
 :PLAN:
 
@@ -7217,7 +7229,6 @@ last stamp, or stop writing the log.
 Cancelled 2026-10-27, overtaken by [[id:4a700efb-c96c-4d40-942a-27755b5b5b4e][4a700efb]]: the reader the log needs is an
 alarm in apply-detect for an apply that never reached disk, not an attribution
 report. The data stays for attribution questions.
-
 
 
 * TODO The review-attention clock stops at the first apply, so 101 intervals measure the wrong thing :code:
@@ -13730,6 +13741,7 @@ per tool -- rather than opening the servers beyond localhost.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-10-27 Tue 15:36]--[2026-10-27 Tue 15:37] =>  0:01
 CLOCK: [2026-10-27 Tue 15:01]--[2026-10-27 Tue 15:02] =>  0:01
 CLOCK: [2026-10-27 Tue 13:54]--[2026-10-27 Tue 13:56] =>  0:02
 CLOCK: [2026-10-27 Tue 13:05]--[2026-10-27 Tue 13:09] =>  0:04
@@ -15639,4 +15651,6 @@ CLOCK: [2026-10-27 Tue 14:02]--[2026-10-27 Tue 14:03] =>  0:01
 - [2026-10-27 Tue 14:02]--[2026-10-27 Tue 14:03] file the second audit's 20 findings
 CLOCK: [2026-10-27 Tue 14:46]--[2026-10-27 Tue 14:47] =>  0:01
 - [2026-10-27 Tue 14:46]--[2026-10-27 Tue 14:47] record the audit-log miss
+CLOCK: [2026-10-27 Tue 15:24]--[2026-10-27 Tue 15:25] =>  0:01
+- [2026-10-27 Tue 15:24]--[2026-10-27 Tue 15:25] file the apply-alarm heading, retire e9ee1a50
 :END:
