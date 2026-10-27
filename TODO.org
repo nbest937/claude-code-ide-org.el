@@ -5433,6 +5433,9 @@ never closes; the count is the point. One dated line per catch.
   transcript stored. The model's own context was the odd one out.
   Caught by the user.
 
+- 2026-10-27: argued the tool-call audit log could be deleted because a failed apply save "would show in the tracker's diff". Nobody reads that diff: apply-detect tells the session an apply landed and the session commits it unasked, which is the point of that hook, so an unsaved apply is committed short with nothing to show it. The user caught it.
+
+
 
 ** TODO Miss: a heading closed with its unfinished part left in prose, or its group left un-nominated
 :PROPERTIES:
