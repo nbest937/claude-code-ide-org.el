@@ -2,6 +2,33 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO A pre-push from a linked worktree exports GIT_DIR to bin/test-all, so a suite's git -C on a temp repo writes the real repo instead :code:
+:PROPERTIES:
+:ID:       689a3b6e-03ae-4d35-8b86-6b4c388cf66b
+:CREATED:  [2026-10-27 Tue 17:42]
+:CATEGORY: Dev
+:END:
+:PLAN:
+Unset GIT_DIR, GIT_WORK_TREE, GIT_INDEX_FILE and GIT_COMMON_DIR at the top of
+bin/test-all, and in pre-push before it calls test-all. Add a test-all-test
+check that runs a suite under an exported GIT_DIR pointing at a scratch repo and
+finds that repo's config, refs and remote untouched. Until this lands, push from
+no linked worktree; /code-review --fix creates one.
+:END:
+
+Git exports GIT_DIR to a hook run from a linked worktree, and none from the main
+checkout; GIT_DIR overrides git -C's discovery. On 2026-10-27 a push of [[https://github.com/nbest937/claude-code-ide-org.el/pull/40][PR #40]]
+from a review worktree ran test-all under pre-push, and hookspath-check-test's
+git -C "$r" config core.hooksPath somewhere/else wrote the real .git/config,
+switching every guard off in the main checkout; its own last check then failed
+on that. Reproduced in throwaway repos: the hook sees GIT_DIR only in the
+worktree, and the suite run with GIT_DIR set writes that repo's config. Restored
+by hand to .githooks. Any suite that runs git -C on a temp repo can do the same,
+git-guards-test's commits included. Proposed: unset GIT_DIR, GIT_WORK_TREE,
+GIT_INDEX_FILE and GIT_COMMON_DIR at the top of bin/test-all, with a
+test-all-test check that runs a suite under an exported GIT_DIR and finds that
+repo untouched.
+
 * TODO An apply whose writes never reach disk is committed short, and the only alarm for it is a log line nobody reads :code:
 :PROPERTIES:
 :ID:       4a700efb-c96c-4d40-942a-27755b5b5b4e
