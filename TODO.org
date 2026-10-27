@@ -3510,6 +3510,17 @@ CLOCK: [2026-09-25 Fri 12:24]--[2026-09-25 Fri 12:25] =>  0:01
   tag dropped (the user, 2026-09-29): applied by recall, so its absence meant nothing
 :END:
 :PLAN:
+Approved by the user 2026-10-27, from org's source. org-capture computes its
+annotation by calling (org-store-link nil) on the current buffer
+(org-capture.el:745), unless org-capture-link-is-already-stored is non-nil, in
+which case it reads :annotation from org-store-link-plist instead. So bind
+org-capture-link-is-already-stored to t and org-store-link-plist to nil around
+the capture in --capture-write: the annotation is nil and no link function runs,
+org-ql's included. Nothing in the file changes, since the annotation feeds only
+%a, %A and %l and the template (config.el:3657) uses none of them; that is also
+why the prompt's answer never mattered. Test: a capture run with
+org-ql-view-query set buffer-locally in the current buffer completes without
+reading the minibuffer.
 
 :END:
 Twice on 2026-09-25 an =org_capture= stopped at "Make link that searches: ", a
