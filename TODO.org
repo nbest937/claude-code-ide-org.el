@@ -296,6 +296,18 @@ and a dismissal takes its same-second siblings with it; neither is verified yet.
 Proposed: key each event by something unique, such as its line number in the
 queue file or a hash of the whole line, and keep reading old ts keys.
 
+From a repo audit, 2026-10-27, by reading config.el: dismissal does take its
+same-second siblings, since =--queue-dismissed= and =--queue-events= share the
+bare-ts key. A second consequence: a todo DOING and its clock_in usually share a
+second, so applying the state item consumes the clock_in, and the later
+clock_out then pairs with nothing in the pending group while the history
+brackets still exclude its guideposts, so the whole interval is offered nowhere.
+=--queue-mark-applied= keeps an earlier pass's stamp for a sibling applied
+later, so "un-apply pass X" picks the wrong events. That day 133 groups of todo,
+capture or amend events within one session shared a second, live and archived
+queues together; no test writes two events in one second.
+
+
 
 * TODO Burying the review buffer stamps the ceremony done while apply failures are still pending, though the session-start docstring says it waits for them :code:
 :PROPERTIES:
@@ -1935,6 +1947,14 @@ CLOCK: [2026-10-02 Fri 13:21]--[2026-10-02 Fri 13:25] =>  0:04
 - [2026-10-02 Fri 13:21]--[2026-10-02 Fri 13:25] assigned at review
 :END:
 
+Cause, found by a repo audit 2026-10-27: =claude-org-setup --check= builds the
+expected URL from the directory's basename, while the elisp wiring and setup's
+own collision advice resolve the name through the local-scope =~/.claude.json=
+entry (=resolve_session_name=). So a worktree, or a second clone that followed
+setup's =<name>-2= advice, reports =drifted= and exits 1 while everything works.
+Comparing against =$(resolve_session_name "$target")= would fix both.
+
+
 
 * TODO [0/2] Lay future work out on the agenda: commitments, milestones on slices and stories, and pacing that follows a slip
 :PROPERTIES:
@@ -3562,6 +3582,16 @@ cause. Proposed: extend the write-path escape to any ^\*+ line in drawer text,
 or refuse it there, since a drawer cannot contain a headline at all and escaping
 silently rewrites what the caller wrote.
 
+A repo audit, 2026-10-27, found the gap wider than drawer text. In the body,
+org_amend text such as "* first\n* second" appends two level-1 headings before
+the heading's first child, so every child is re-parented under the last one. A
+bare =:END:= line in drawer text closes the drawer early, in org_amend and in
+org_edit alike, since org_edit guards headline lines only. The capture =note=
+path has no headline guard either. Only org_edit calls
+=--edit-headline-refusal=, so the org_edit and capture halves outlive
+org_amend's retirement ([[id:b2d4012c-6c61-47df-8086-d1cd205c73fc][b2d4012c]]).
+
+
 
 * TODO org_amend replace=true eats the blank lines before the next heading, so org stops seeing it :code:
 :PROPERTIES:
@@ -3950,6 +3980,15 @@ whether a design dialogue in this project ever wants a rendered mock-up
 is answerable only by a dialogue that wants one. Pick it up at that
 moment, as a spike whose output is an answer about keeping, scoping or
 cutting step 2 — not code.
+
+For whenever the spike runs, from a repo audit 2026-10-27: with =--project-dir=
+the companion writes =.superpowers/brainstorm/= into the project (=.last-token=,
+=.last-port=, per-session state embedding the key, and the mock-ups), and
+nothing ignores it, neither this repo's =.gitignore= nor setup's
+=ensure_ignored= list. A =git add -A= after one run stages them. The server
+itself read clean: it binds 127.0.0.1, uses a random key compared in constant
+time, checks WebSocket Origin and confines =/files/=.
+
 
 
 * TODO A span whose only resume is a synthetic bracket edge reports "no transcript for session nil (aged out)"
@@ -5671,6 +5710,13 @@ The analysis above stays useful either way, because it is the record of *why*
 the field misleads — which is the argument for deleting it, not merely for
 renaming it.
 
+A repo audit, 2026-10-27: "the last one named" is named by any session in any
+project. =--queue-latest-session-id= picks the queue file with the newest mtime,
+so another session's Stop hook appending =pause= retargets this session's line
+to that session's heading. The statusLine payload carries =session_id=, which
+would scope it, and no test names either function.
+
+
 
 * MAYBE Revisit building the footnote block with org-ql or the agenda, once Emacs stops wedging :research:
 :PROPERTIES:
@@ -6202,6 +6248,15 @@ touch =Review attention= except by closing its clock — an inference from the
 mechanism, not from the record. A log entry naming the *operation* would make
 that class of question direct rather than lucky, and that is the one place more
 instrumentation is genuinely warranted.
+
+A repo audit, 2026-10-27: the log had grown to 2.9 MB and 8514 records, with no
+rotation. It held 284 =UNSAVED-MISMATCH= records nobody had seen: 266 are
+=hand-edit=, noise by construction, since the flush runs before the human saves;
+12 are =org_set_todo= and 6 are =org_review_apply=, the alarm the log was built
+to raise. Each logged event costs two whole-file sha256 reads. The audit's
+proposal: a ceremony-report line counting non-hand-edit mismatches since the
+last stamp, or stop writing the log.
+
 
 
 * TODO The review-attention clock stops at the first apply, so 101 intervals measure the wrong thing :code:
