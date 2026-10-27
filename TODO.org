@@ -2,7 +2,7 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* TODO [0/5] A web page, a shared second, an archive rename or one tool argument can corrupt the tracker or hang Emacs :code:
+* NEXT [0/5] A web page, a shared second, an archive rename or one tool argument can corrupt the tracker or hang Emacs :code:
 :PROPERTIES:
 :ID:       3bfa593c-c2da-4e44-b47f-2d5f0750f2aa
 :CREATED:  [2026-10-27 Tue 12:56]
@@ -11,6 +11,10 @@
 :COOKIE_DATA: checkbox recursive
 :MEMBERS:  8c4a3aea-3208-46c8-a491-2ff024fbf822 0a0dee55-d709-466e-a525-c3bb1c437b91 c0a21a0f-89ed-4b66-b7ed-acbfd5583015 a3ad9732-681c-4103-a9e2-5f919e60522c 412768a0-3d9b-4cfe-9264-3f214d4baed1
 :BLOCKER:  8c4a3aea-3208-46c8-a491-2ff024fbf822 0a0dee55-d709-466e-a525-c3bb1c437b91 c0a21a0f-89ed-4b66-b7ed-acbfd5583015 a3ad9732-681c-4103-a9e2-5f919e60522c 412768a0-3d9b-4cfe-9264-3f214d4baed1
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-10-27 Tue 12:58] \\
+  nominated over f436a3b8: security hole and silent data loss
 :END:
 
 The must-fix findings of the 2026-10-27 repo audit not already held by a slice:
@@ -42,6 +46,7 @@ bin/claude-org-setup sets mcp_action=1 at two places, and grep finds no reader
 anywhere in the tree. Found by a repo audit 2026-10-27. Proposed: delete both
 assignments.
 
+
 * TODO count-miss passes a jq argument nothing reads :code:
 :PROPERTIES:
 :ID:       d94730c7-e99c-44d9-8de3-a5d82dac0ca3
@@ -54,11 +59,17 @@ and $0 would name count-miss rather than the calling hook anyway. Found by a
 repo audit 2026-10-27, confirmed by reading the filter. Proposed: delete it, or
 pass the calling hook's name in and record it as hook_event_name.
 
-* TODO count-miss passes a jq argument nothing reads, and claude-org-setup sets mcp_action and never reads it :code:
+
+* CANCELLED count-miss passes a jq argument nothing reads, and claude-org-setup sets mcp_action and never reads it :code:
+CLOSED: [2026-10-27 Tue 12:56]
 :PROPERTIES:
 :ID:       63193123-2d6f-4441-92fa-2f40bb4f084a
 :CREATED:  [2026-10-27 Tue 12:56]
 :CATEGORY: Dev
+:END:
+:LOGBOOK:
+- State "CANCELLED"  from "TODO"       [2026-10-27 Tue 12:56] \\
+  filed as two: d94730c7 and 21217b78
 :END:
 
 .githooks/count-miss passes --arg h naming git:$0, which its filter never uses,
@@ -66,6 +77,7 @@ and $0 would name count-miss rather than the calling hook anyway.
 bin/claude-org-setup assigns mcp_action=1 at two places and nothing in the tree
 reads it. Found by a repo audit 2026-10-27, confirmed by grep. Proposed: delete
 both, or pass the calling hook's name into count-miss and record it.
+
 
 * TODO The exact-duplicate refusal fires on any two titles with no ASCII letters or digits :code:
 :PROPERTIES:
@@ -81,6 +93,7 @@ both, or pass the calling hook's name into count-miss and record it.
   is English. Proposed: never treat an empty loose title as exact. [[id:12033cc8-3b15-44b1-a80c-068f63f21025][12033cc8]] is
   the same check failing the other way, on paraphrase.
 
+
 * TODO queue-append passes the whole payload as an argument, so an event over about 1 MB is dropped silently :code:
 :PROPERTIES:
 :ID:       104e45b3-ca4f-4262-8ec9-991e9f1bba9c
@@ -95,6 +108,7 @@ writes are atomic under PIPE_BUF is also wrong, since PIPE_BUF is 512, though
 concurrency runs and 366 real queue files showed no torn line. Proposed: feed
 the payload to the final jq on stdin, and correct the comment.
 
+
 * TODO apply-detect builds a file path from session_id without the check every sibling hook makes :code:
 :PROPERTIES:
 :ID:       bc92bbc8-2854-4a1c-8edf-7e7ac78608fb
@@ -108,6 +122,7 @@ directory unchecked. A repo audit 2026-10-27 reproduced a session_id of
 ../escaped writing outside the queue directory. Claude Code supplies the id, so
 the risk is low. Proposed: the same three-line case guard.
 
+
 * TODO clock-status.json stays active after a clock is cancelled :code:
 :PROPERTIES:
 :ID:       e39fc6a0-a8e3-4c84-a0b3-a4a42eb7594e
@@ -120,6 +135,7 @@ the risk is low. Proposed: the same three-line case guard.
   C-q leave the file reporting a running clock at a backdated start until some
   later clock-out. Found by reading in a repo audit 2026-10-27; only external
   status readers see it. Proposed: add the function to org-clock-cancel-hook.
+
 
 * TODO A permission block left open when a prompt is dismissed is closed by the next turn's first tool call :code:
 :PROPERTIES:
@@ -138,6 +154,7 @@ session-pause closes any open block, appending block_end before pause;
 optionally block-end ignores a subagent's tool calls. Matters only where time
 tracking is on.
 
+
 * TODO The body region drops the last line when the file has no final newline, so a replace glues it to the new text :code:
 :PROPERTIES:
 :ID:       e4734e2c-2083-413b-941d-9503dd0f4a23
@@ -154,6 +171,7 @@ tracking is on.
   adds the newline on save. Proposed: when forward-line reaches the end of the
   buffer, end the region at point-max.
 
+
 * TODO org_set_tags and capture accept tag names org cannot parse, which land in the title while the logbook says the tag was set :code:
 :PROPERTIES:
 :ID:       eeb18e56-fcfd-4653-86e6-09448474de07
@@ -167,6 +185,7 @@ because a hyphen is not a tag character. The :LOGBOOK: line and the reply both
 claim the tag was set, and a later real tag is appended after the junk. Found by
 a repo audit 2026-10-27; org's tag syntax was recalled, not re-read. Proposed:
 refuse any tag not matching [[:alnum:]_@#%]+, naming it.
+
 
 * TODO One review build reads every queue file four or five times :code:
 :PROPERTIES:
@@ -182,6 +201,7 @@ audit 2026-10-27 counted 113 live files and about 9,000 lines, and the code's
 own note puts one read near a second, so several seconds per call; not timed.
 Proposed: compute the groups once, reuse history for all, and read each
 watermark once. [[id:2f4c04a1-db56-4427-ae62-591ba52607c6][2f4c04a1]] is the same waste at session start.
+
 
 * TODO An ambiguous id prefix is reported as not found, and a short prefix can resolve to the wrong heading while the index is stale :code:
 :PROPERTIES:
@@ -199,6 +219,7 @@ watermark once. [[id:2f4c04a1-db56-4427-ae62-591ba52607c6][2f4c04a1]] is the sam
   audit 2026-10-27. Proposed: surface the candidates through --at-id, and
   require 8 characters, or a rescan, for write tools.
 
+
 * TODO An unreadable .applied file reads as nothing applied, and the next write replaces it :code:
 :PROPERTIES:
 :ID:       e9f8b780-c93b-41f9-b146-1c4695283af9
@@ -213,6 +234,7 @@ watermark once. [[id:2f4c04a1-db56-4427-ae62-591ba52607c6][2f4c04a1]] is the sam
   repo audit 2026-10-27; unlikely, since writes are atomic. Proposed: tell an
   absent file from an unparseable one, and on a parse failure refuse to write
   and keep a .corrupt copy.
+
 
 * TODO statusline.sh and session-start-recovery-check call emacsclient with no watchdog, so a wedged Emacs stalls them :code:
 :PROPERTIES:
@@ -229,6 +251,7 @@ and statusline.sh has no trap for its temp files. Proposed: copy
 footnote-check's watchdog into both and add the trap. Related: [[id:dcbcac2a-2002-4579-b88d-ae337e43628c][dcbcac2a]], the
 same hook saying nothing when Emacs is down, and [[id:826d621c-25f5-4f06-9961-4b23f8658880][826d621c]].
 
+
 * TODO prepare-commit-msg rewrites a correct Co-Authored-By trailer to an older model name :code:
 :PROPERTIES:
 :ID:       6d1a5192-21ad-4316-b0c6-219403459f28
@@ -244,6 +267,7 @@ rewrite only when the existing trailer's family (Opus, Sonnet, Fable, Haiku)
 differs from the alias's, and update bin/prepare-commit-msg-test, which asserts
 the current behaviour.
 
+
 * TODO Loading the module sets claude-code-ide-org-standalone-projects to derive, overriding a user's nil or list :code:
 :PROPERTIES:
 :ID:       0ecf8820-5db4-4264-9cae-fc55a3f6926a
@@ -258,6 +282,7 @@ the current behaviour.
   exists to prevent. Found by reading in a repo audit 2026-10-27; the load order
   on this machine was not checked. Proposed: make derive the defcustom's default
   and delete the setq.
+
 
 * TODO An apply interrupted after its writes records nothing, and the next pass inserts each amend a second time :code:
 :PROPERTIES:
@@ -275,6 +300,7 @@ the current behaviour.
   frequency unknown. Proposed: record right after the apply loop inside
   unwind-protect, and give amends an already-present check. The reverse case,
   recorded as applied but missing from the file, is [[id:7e4fb8ae-87ff-445a-b960-b7cc5302c0c8][7e4fb8ae]].
+
 
 * TODO org_capture's title goes through capture-template expansion, so a newline splits the heading and %^ opens a prompt :code:
 :PROPERTIES:
@@ -314,6 +340,7 @@ bound read an empty file and never fire. Reproduced by a repo audit 2026-10-27
 with an unwritable queue directory: four stops, four blocks, against 2, 0, 0, 0
 with a writable one. clock-target-check fixed the same bug with || exit 0 and a
 test for an unwritable directory; copy both.
+
 
 * TODO discard-guard misses absolute paths, git -C, and a cd before the git command :code:
 :PROPERTIES:
@@ -355,6 +382,7 @@ drawer. Found by a repo audit 2026-10-27, by reading org's source and the
 wrapper. Proposed: refuse everything in org-special-properties, pointing TODO at
 org_set_todo, and refuse newlines in values.
 
+
 * TODO Archiving a session already in the archive overwrites it, and restore overwrites a live queue the same way :code:
 :PROPERTIES:
 :ID:       c0a21a0f-89ed-4b66-b7ed-acbfd5583015
@@ -371,6 +399,7 @@ while a comment beside the archive reader says no file is ever in both places.
 No test covers an existing destination. Proposed: never overwrite; append the
 lines onto the archived file and union the two .applied maps, or skip that
 session with a message.
+
 
 * TODO The tools server answers any web page: it checks no Origin or Host, and every reply says Access-Control-Allow-Origin: * :code:
 :PROPERTIES:
@@ -395,11 +424,16 @@ planting text that later sessions read and trust; recent Chrome's local-network
 prompt blocks some of this, Firefox and Safari do not. Found by a repo audit
 2026-10-27, by reading.
 
+
 * TODO Setting :MEMBERS: or :DROPPED: refreshes nothing, so the checklist goes stale and org_slice_add_member refuses on a row already gone :code:
 :PROPERTIES:
 :ID:       6f3a5342-1905-4831-b712-3b6e5e83e0c4
 :CREATED:  [2026-10-27 Tue 10:42]
 :CATEGORY: Slices
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-27 Tue 10:42]--[2026-10-27 Tue 10:43] =>  0:01
+- [2026-10-27 Tue 10:42]--[2026-10-27 Tue 10:43] file the stale-checklist report from downstream
 :END:
 :PLAN:
 Not yet designed; the body's proposal is the starting point. A candidate for
@@ -417,6 +451,7 @@ same holds for :DROPPED:, which the conventions say "the refresh renders".
 Proposed: org_set_property refreshes the slice after writing :MEMBERS: or
 :DROPPED:, as its KIND=slice branch already completes the declaration, and the
 duplicate test reads only the declared ids.
+
 
 * TODO Stopping a launcher ends its MCP session twice, which spends the held reference and stops the tools server :code:
 :PROPERTIES:
@@ -441,6 +476,7 @@ claude-code-ide-org-standalone-wire was run again. Proposed: make session-ended
 count each launcher once, for example by advising cleanup-on-exit to do nothing
 for a directory no longer in claude-code-ide--processes, and test the double
 call. A normal /exit inside the launcher has not been checked.
+
 
 * DONE Closing a slice nominates nothing, so the slice after it waits on a hand-picked NEXT :code:
 CLOSED: [2026-10-27 Tue 09:08]
@@ -547,6 +583,13 @@ Planned:
 :CREATED:  [2026-10-21 Wed 15:45]
 :CATEGORY: Dev
 :END:
+:LOGBOOK:
+CLOCK: [2026-10-27 Tue 10:09]--[2026-10-27 Tue 10:10] =>  0:01
+- [2026-10-27 Tue 10:09]--[2026-10-27 Tue 10:10] assigned at review
+CLOCK: [2026-10-27 Tue 10:10]--[2026-10-27 Tue 10:11] =>  0:01
+- [2026-10-27 Tue 10:10]--[2026-10-27 Tue 10:11] verify the companion teardown on launcher exit
+- [2026-10-27 Tue 10:11]--[2026-10-27 Tue 10:11] assigned at review
+:END:
 :PLAN:
 Not yet designed; planned as future work (the user, 2026-10-27).
 :END:
@@ -567,7 +610,6 @@ removed the directory from the companion table and deleted 54701.lock.
 claude-code-ide-org--start-companion restored it on a new port (44603.lock), so
 a standalone client already connected to the old port has to reconnect its IDE
 link. The same stop also took the tools server down, which is a separate defect.
-
 
 
 * TODO A story's members split by an unrelated line in :MEMBERS: render its parent row twice in the planned list :code:
@@ -699,7 +741,6 @@ brackets still exclude its guideposts, so the whole interval is offered nowhere.
 later, so "un-apply pass X" picks the wrong events. That day 133 groups of todo,
 capture or amend events within one session shared a second, live and archived
 queues together; no test writes two events in one second.
-
 
 
 * TODO Burying the review buffer stamps the ceremony done while apply failures are still pending, though the session-start docstring says it waits for them :code:
@@ -1325,7 +1366,8 @@ If it reproduces, any outside write to an open tracker can be lost
 silently, whether a git pull, another session's Edit or a hand edit.
 
 
-* REVIEW Standalone wiring at Emacs startup registered 0 project sessions, so every consumer's tool calls lose their project :code:bounded:
+* DONE Standalone wiring at Emacs startup registered 0 project sessions, so every consumer's tool calls lose their project :code:bounded:
+CLOSED: [2026-10-27 Tue 11:21]
 :PROPERTIES:
 :ID:       28eed617-e4e0-4d29-88ea-9411de4b77e5
 :CREATED:  [2026-10-12 Mon 14:47]
@@ -1371,6 +1413,10 @@ CLOCK: [2026-10-27 Tue 08:32]--[2026-10-27 Tue 08:33] =>  0:01
 - [2026-10-27 Tue 08:32]--[2026-10-27 Tue 08:33] assigned at review
 CLOCK: [2026-10-27 Tue 08:40]--[2026-10-27 Tue 08:41] =>  0:01
 - [2026-10-27 Tue 08:40]--[2026-10-27 Tue 08:41] assigned at review
+- State "DONE"       from "REVIEW"     [2026-10-27 Tue 11:21] \\
+  PR #38 merged; launcher-stop residue filed as f22246cc
+CLOCK: [2026-10-27 Tue 11:21]--[2026-10-27 Tue 11:22] =>  0:01
+- [2026-10-27 Tue 11:21]--[2026-10-27 Tue 11:22] close: resolution and debrief
 :END:
 :PLAN:
 Two causes empty the session table, and the fix covers both (approach 3 of
@@ -1465,7 +1511,6 @@ itself, but not one stopped with claude-code-ide-stop, which ends its session
 twice; that residue is [[id:f22246cc-50e1-49e8-acc1-d71eecab814c][f22246cc]].
 
 
-
 * TODO [0/6] The SessionStart tool-failure report misstates what failed and says nothing when Emacs is down now :code:
 :PROPERTIES:
 :ID:       4bd8e14d-c741-47c7-a868-df933cbad82c
@@ -1500,7 +1545,6 @@ A second case, 2026-10-27: ECONNREFUSED with the probe idle. Emacs answered but
 the MCP tools server was down, stopped by the [[id:f22246cc-50e1-49e8-acc1-d71eecab814c][f22246cc]] defect, and the report
 still headed it "Emacs was unreachable". Refused-while-idle should read as the
 tools server being down, with Emacs up.
-
 
 
 ** TODO The report never says Emacs is reachable now, though producing it proves Emacs is up :code:bounded:
@@ -1552,6 +1596,8 @@ changes, and filing its children was refused as "not a known :ID:", although
 org_set_todo and org_clock_in accept a pending capture's id. The children waited
 for an apply. Either queue the child against the pending parent, or say in the
 refusal that the parent is queued rather than unknown.
+
+
 ** TODO The report says "did not land, redo it" for a call the same session already retried and landed :code:bounded:
 :PROPERTIES:
 :ID:       9c33d0bc-34b5-4e55-8574-f0e6a4121955
@@ -1565,6 +1611,7 @@ double-credited a clock and, for the empty-old_string append, written the
 paragraph twice. The marker records tool_input and the session id, so the report
 could look for a later queue event or file text matching it and say "retried and
 landed" instead, or at least warn that an append is not idempotent.
+
 
 * TODO Let a discovery join a slice either as a member line or as incidental work, since both record it under the slice :prose:
 :PROPERTIES:
@@ -2349,7 +2396,6 @@ setup's =<name>-2= advice, reports =drifted= and exits 1 while everything works.
 Comparing against =$(resolve_session_name "$target")= would fix both.
 
 
-
 * TODO [0/2] Lay future work out on the agenda: commitments, milestones on slices and stories, and pacing that follows a slip
 :PROPERTIES:
 :ID:       14c02a28-5e1f-401b-9c22-dd18c2c10847
@@ -3093,7 +3139,7 @@ the lint and the repair, finishes the ordering tool, and makes the refresh cheap
 enough to run on every exit.
 
 
-* NEXT [0/14] A tool call can be told the opposite of what happened: a negated boolean, a phantom capture, a hang :code:
+* TODO [0/14] A tool call can be told the opposite of what happened: a negated boolean, a phantom capture, a hang :code:
 :PROPERTIES:
 :ID:       f436a3b8-58ba-45a7-9f84-b8dee0934ca7
 :CREATED:  [2026-09-28 Mon 08:25]
@@ -3106,6 +3152,8 @@ enough to run on every exit.
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-10-27 Tue 09:05] \\
   nominated: amend retirement folded in, plan next
+- State "TODO"       from "NEXT"       [2026-10-27 Tue 12:58] \\
+  nomination passes to 3bfa593c, the audit's must-fix slice
 :END:
 :PLAN:
 Composed 2026-09-28 from the backlog survey, at the user's direction. The theme:
@@ -3508,6 +3556,8 @@ CLOCK: [2026-09-25 Fri 12:24]--[2026-09-25 Fri 12:25] =>  0:01
 - [2026-09-25 Fri 12:24]--[2026-09-25 Fri 12:25] assigned at review
 - Tags ":code:"     from ":code:bug:" [2026-09-29 Tue 21:46] \\
   tag dropped (the user, 2026-09-29): applied by recall, so its absence meant nothing
+CLOCK: [2026-10-27 Tue 13:02]--[2026-10-27 Tue 13:03] =>  0:01
+- [2026-10-27 Tue 13:02]--[2026-10-27 Tue 13:03] record the link-store fix in the plan
 :END:
 :PLAN:
 Approved by the user 2026-10-27, from org's source. org-capture computes its
@@ -4000,7 +4050,6 @@ path has no headline guard either. Only org_edit calls
 org_amend's retirement ([[id:b2d4012c-6c61-47df-8086-d1cd205c73fc][b2d4012c]]).
 
 
-
 * TODO org_amend replace=true eats the blank lines before the next heading, so org stops seeing it :code:
 :PROPERTIES:
 :ID:       5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997
@@ -4396,7 +4445,6 @@ nothing ignores it, neither this repo's =.gitignore= nor setup's
 =ensure_ignored= list. A =git add -A= after one run stages them. The server
 itself read clean: it binds 127.0.0.1, uses a random key compared in constant
 time, checks WebSocket Origin and confines =/files/=.
-
 
 
 * TODO A span whose only resume is a synthetic bracket edge reports "no transcript for session nil (aged out)"
@@ -5598,6 +5646,10 @@ settles it in one command.
 :CREATED:  [2026-09-18 Fri 11:39]
 :CATEGORY: Skill
 :END:
+:LOGBOOK:
+CLOCK: [2026-10-27 Tue 11:10]--[2026-10-27 Tue 11:11] =>  0:01
+- [2026-10-27 Tue 11:10]--[2026-10-27 Tue 11:11] add the story-children membership rule to the plan
+:END:
 :PLAN:
 
 Raised by the user 2026-09-18. =org-conventions.md= says a story "is not
@@ -6123,7 +6175,6 @@ project. =--queue-latest-session-id= picks the queue file with the newest mtime,
 so another session's Stop hook appending =pause= retargets this session's line
 to that session's heading. The statusLine payload carries =session_id=, which
 would scope it, and no test names either function.
-
 
 
 * MAYBE Revisit building the footnote block with org-ql or the agenda, once Emacs stops wedging :research:
@@ -6664,7 +6715,6 @@ rotation. It held 284 =UNSAVED-MISMATCH= records nobody had seen: 266 are
 to raise. Each logged event costs two whole-file sha256 reads. The audit's
 proposal: a ceremony-report line counting non-hand-edit mismatches since the
 last stamp, or stop writing the log.
-
 
 
 * TODO The review-attention clock stops at the first apply, so 101 intervals measure the wrong thing :code:
@@ -13050,6 +13100,8 @@ derives session names; a change to either breaks registration without an error.
 Propose upstream a hook (e.g.
 claude-code-ide-mcp-server-unknown-session-functions) run on a miss, so the
 advice can be dropped.
+
+
 ** TODO claude-code-ide-stop runs cleanup-on-exit twice, from the kill-buffer hook and from the process sentinel, so session-ended decrements twice :code:
 :PROPERTIES:
 :ID:       9d704e0c-b2b4-4113-87f4-b0944c81f921
@@ -13062,6 +13114,7 @@ recursion within one call; the sentinel's later call finds nothing to skip and
 calls claude-code-ide-mcp-server-session-ended a second time, so one launcher
 costs two counts. Report: make cleanup-on-exit idempotent per directory (return
 early when the directory is no longer in claude-code-ide--processes).
+
 
 * MAYBE Consider archives in org_clock_report's scope (agenda-with-archives) :code:
 :PROPERTIES:
@@ -13174,6 +13227,7 @@ per tool -- rather than opening the servers beyond localhost.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-10-27 Tue 13:05]--[2026-10-27 Tue 13:09] =>  0:04
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
@@ -15006,4 +15060,50 @@ CLOCK: [2026-10-27 Tue 09:52]--[2026-10-27 Tue 09:53] =>  0:01
 - [2026-10-27 Tue 09:52]--[2026-10-27 Tue 09:53] assigned at review
 CLOCK: [2026-10-27 Tue 09:54]--[2026-10-27 Tue 09:55] =>  0:01
 - [2026-10-27 Tue 09:54]--[2026-10-27 Tue 09:55] assigned at review
+- [2026-10-27 Tue 10:41]--[2026-10-27 Tue 10:42] assigned at review
+CLOCK: [2026-10-27 Tue 10:42]--[2026-10-27 Tue 10:43] =>  0:01
+- [2026-10-27 Tue 10:42]--[2026-10-27 Tue 10:43] assigned at review
+CLOCK: [2026-10-27 Tue 10:47]--[2026-10-27 Tue 10:48] =>  0:01
+- [2026-10-27 Tue 10:47]--[2026-10-27 Tue 10:48] assigned at review
+CLOCK: [2026-10-27 Tue 10:51]--[2026-10-27 Tue 10:52] =>  0:01
+- [2026-10-27 Tue 10:51]--[2026-10-27 Tue 10:52] assigned at review
+CLOCK: [2026-10-27 Tue 11:02]--[2026-10-27 Tue 11:04] =>  0:02
+- [2026-10-27 Tue 11:02]--[2026-10-27 Tue 11:04] assigned at review
+CLOCK: [2026-10-27 Tue 11:10]--[2026-10-27 Tue 11:11] =>  0:01
+- [2026-10-27 Tue 11:10]--[2026-10-27 Tue 11:11] assigned at review
+CLOCK: [2026-10-27 Tue 11:11]--[2026-10-27 Tue 11:12] =>  0:01
+- [2026-10-27 Tue 11:11]--[2026-10-27 Tue 11:12] assigned at review
+CLOCK: [2026-10-27 Tue 11:20]--[2026-10-27 Tue 11:21] =>  0:01
+- [2026-10-27 Tue 11:20]--[2026-10-27 Tue 11:21] assigned at review
+CLOCK: [2026-10-27 Tue 11:21]--[2026-10-27 Tue 11:22] =>  0:01
+- [2026-10-27 Tue 11:21]--[2026-10-27 Tue 11:22] add 6f3a5342 to 7dcec489
+CLOCK: [2026-10-27 Tue 11:26]--[2026-10-27 Tue 11:27] =>  0:01
+- [2026-10-27 Tue 11:26]--[2026-10-27 Tue 11:27] reconcile 5b46fbfd's plan with the amend retirement
+CLOCK: [2026-10-27 Tue 11:27]--[2026-10-27 Tue 11:28] =>  0:01
+- [2026-10-27 Tue 11:27]--[2026-10-27 Tue 11:28] assigned at review
+CLOCK: [2026-10-27 Tue 11:37]--[2026-10-27 Tue 11:40] =>  0:03
+- [2026-10-27 Tue 11:37]--[2026-10-27 Tue 11:40] assigned at review
+CLOCK: [2026-10-27 Tue 11:40]--[2026-10-27 Tue 11:41] =>  0:01
+- [2026-10-27 Tue 11:40]--[2026-10-27 Tue 11:41] file tool-failure report findings under 4bd8e14d
+CLOCK: [2026-10-27 Tue 11:41]--[2026-10-27 Tue 11:43] =>  0:02
+- [2026-10-27 Tue 11:41]--[2026-10-27 Tue 11:43] assigned at review
+CLOCK: [2026-10-27 Tue 11:51]--[2026-10-27 Tue 11:52] =>  0:01
+- [2026-10-27 Tue 11:51]--[2026-10-27 Tue 11:52] assigned at review
+CLOCK: [2026-10-27 Tue 11:54]--[2026-10-27 Tue 11:56] =>  0:02
+- [2026-10-27 Tue 11:54]--[2026-10-27 Tue 11:56] assigned at review
+- [2026-10-27 Tue 12:29]--[2026-10-27 Tue 12:30] assigned at review
+CLOCK: [2026-10-27 Tue 12:30]--[2026-10-27 Tue 12:31] =>  0:01
+- [2026-10-27 Tue 12:30]--[2026-10-27 Tue 12:31] match audit findings to open tasks
+CLOCK: [2026-10-27 Tue 12:31]--[2026-10-27 Tue 12:32] =>  0:01
+- [2026-10-27 Tue 12:31]--[2026-10-27 Tue 12:32] assigned at review
+CLOCK: [2026-10-27 Tue 12:46]--[2026-10-27 Tue 12:48] =>  0:02
+- [2026-10-27 Tue 12:46]--[2026-10-27 Tue 12:48] assigned at review
+CLOCK: [2026-10-27 Tue 12:49]--[2026-10-27 Tue 12:50] =>  0:01
+- [2026-10-27 Tue 12:49]--[2026-10-27 Tue 12:50] file 22 audit findings and compose a slice
+CLOCK: [2026-10-27 Tue 12:53]--[2026-10-27 Tue 12:58] =>  0:05
+- [2026-10-27 Tue 12:53]--[2026-10-27 Tue 12:58] file 22 audit findings and compose a slice
+CLOCK: [2026-10-27 Tue 12:58]--[2026-10-27 Tue 12:59] =>  0:01
+- [2026-10-27 Tue 12:58]--[2026-10-27 Tue 12:59] file 22 audit findings and compose a slice
+CLOCK: [2026-10-27 Tue 12:59]--[2026-10-27 Tue 13:02] =>  0:03
+- [2026-10-27 Tue 12:59]--[2026-10-27 Tue 13:02] assigned at review
 :END:
