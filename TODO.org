@@ -12094,7 +12094,7 @@ code by the worktree-aware convention checks. No partitioning
 machinery; the design questions all have their own headings.
 
 
-* MAYBE [1/5] Accumulate issues to report upstream to claude-code-ide.el :code:
+* MAYBE [1/6] Accumulate issues to report upstream to claude-code-ide.el :code:
 :PROPERTIES:
 :CATEGORY: Upstream
 :ID:       9d6449c7-529f-49a0-b28f-015cce869715
@@ -12299,7 +12299,21 @@ those clients lose both the server and their project. Confirmed in batch against
 upstream's own code by [[id:28eed617-e4e0-4d29-88ea-9411de4b77e5][28eed617]], which works around it with =:around= advice
 that suppresses the stop once standalone wiring has run. The upstream fix would
 be to count registered sessions, or to stop only when the table is empty.
+** TODO An unknown session id has no hook, so the module advises get-session-context to register projects on demand :code:
+:PROPERTIES:
+:ID:       56f26c45-39b9-4a6e-9df2-4358aa83c19f
+:CREATED:  [2026-10-27 Tue 08:41]
+:END:
 
+Upstream's session lookup, claude-code-ide-mcp-server-get-session-context,
+returns nil for an id it has never seen, and offers no hook to supply one.
+[[id:28eed617-e4e0-4d29-88ea-9411de4b77e5][28eed617]] ([[https://github.com/nbest937/claude-code-ide-org.el/pull/38][PR #38]]) therefore wraps it in :around advice that registers the
+project whose session name matches the id. Every upstream lookup now runs
+through module code that depends on the function's signature and on how upstream
+derives session names; a change to either breaks registration without an error.
+Propose upstream a hook (e.g.
+claude-code-ide-mcp-server-unknown-session-functions) run on a miss, so the
+advice can be dropped.
 
 * MAYBE Consider archives in org_clock_report's scope (agenda-with-archives) :code:
 :PROPERTIES:
