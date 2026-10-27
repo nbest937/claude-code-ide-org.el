@@ -26,7 +26,8 @@ source label after August. Supersedes [[id:e9ee1a50-085f-4c37-b064-4aec71cecb41]
 existing data stays for [[id:b5448133-4021-46b9-a90e-d88e149ae65d][b5448133]] and any attribution question.
 
 
-* DOING Prune the spent one-off code: the :MEMBERS: migration and its proof, datetree-file, the CLOSED backfills, and --file-line-count :code:
+* DONE Prune the spent one-off code: the :MEMBERS: migration and its proof, datetree-file, the CLOSED backfills, and --file-line-count :code:
+CLOSED: [2026-10-27 Tue 15:41]
 :PROPERTIES:
 :ID:       dce10826-bc70-4cdf-bf48-aee8c5371a0d
 :CREATED:  [2026-10-27 Tue 14:03]
@@ -51,6 +52,12 @@ CLOCK: [2026-10-27 Tue 15:28]--[2026-10-27 Tue 15:30] =>  0:02
 - [2026-10-27 Tue 15:28]--[2026-10-27 Tue 15:30] suggested span, accepted at review
 CLOCK: [2026-10-27 Tue 15:33]--[2026-10-27 Tue 15:35] =>  0:02
 - [2026-10-27 Tue 15:33]--[2026-10-27 Tue 15:35] suggested span, accepted at review
+CLOCK: [2026-10-27 Tue 15:38]--[2026-10-27 Tue 15:41] =>  0:03
+- [2026-10-27 Tue 15:38]--[2026-10-27 Tue 15:41] suggested span, accepted at review
+- State "DONE"       from "DOING"      [2026-10-27 Tue 15:41] \\
+  merged in PR #39
+CLOCK: [2026-10-27 Tue 15:41]--[2026-10-27 Tue 15:42] =>  0:01
+- [2026-10-27 Tue 15:41]--[2026-10-27 Tue 15:42] close after PR #39 merged
 :END:
 :PLAN:
 
@@ -78,7 +85,6 @@ user asked 2026-10-27 to remove all of it with its tests, keeping
 
 Done 2026-10-27 in [[https://github.com/nbest937/claude-code-ide-org.el/pull/39][PR #39]] (merge commit [[orgit-rev:./::aad7095][aad7095]]): all of it removed with its
 tests, 683 lines out and 21 in, and bin/test-all green on the branch.
-
 
 
 * TODO Audit what the two 2026-10-27 repo audits left unread, and run the suites they did not :code:research:
@@ -428,11 +434,32 @@ Proposed: create the node with org-datetree-find-create-hierarchy and reversed
 comparators, as [[id:0c3f1319-67c0-4b29-a8e7-5ffa12948aaf][0c3f1319]] measured for TODO.org, then archive into it.
 
 
-* TODO The IDE companion's WebSocket accepts any web page, and =executeCode= runs whatever elisp it is sent :code:
+* DOING The IDE companion's WebSocket accepts any web page, and =executeCode= runs whatever elisp it is sent :code:
 :PROPERTIES:
 :ID:       d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80
 :CREATED:  [2026-10-27 Tue 13:23]
 :CATEGORY: Tools
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-27 Tue 15:41]--[2026-10-27 Tue 15:42] =>  0:01
+- [2026-10-27 Tue 15:41]--[2026-10-27 Tue 15:42] assigned at review
+CLOCK: [2026-10-27 Tue 15:42]--[2026-10-27 Tue 15:43] =>  0:01
+- State "DOING"      from "TODO"       [2026-10-27 Tue 15:42] \\
+  verify the hole with a harmless probe
+- [2026-10-27 Tue 15:42]--[2026-10-27 Tue 15:43] probe the companion WebSocket from a foreign origin
+- [2026-10-27 Tue 15:43]--[2026-10-27 Tue 15:43] suggested span, accepted at review
+CLOCK: [2026-10-27 Tue 16:45]--[2026-10-27 Tue 16:46] =>  0:01
+- [2026-10-27 Tue 16:45]--[2026-10-27 Tue 16:46] suggested span, accepted at review
+CLOCK: [2026-10-27 Tue 16:54]--[2026-10-27 Tue 16:56] =>  0:02
+- [2026-10-27 Tue 16:54]--[2026-10-27 Tue 16:56] suggested span, accepted at review
+CLOCK: [2026-10-27 Tue 16:57]--[2026-10-27 Tue 16:58] =>  0:01
+- [2026-10-27 Tue 16:57]--[2026-10-27 Tue 16:58] suggested span, accepted at review
+CLOCK: [2026-10-27 Tue 17:02]--[2026-10-27 Tue 17:03] =>  0:01
+- [2026-10-27 Tue 17:02]--[2026-10-27 Tue 17:03] suggested span, accepted at review
+CLOCK: [2026-10-27 Tue 17:03]--[2026-10-27 Tue 17:09] =>  0:06
+- [2026-10-27 Tue 17:03]--[2026-10-27 Tue 17:09] add the foreign-origin probe to the repo
+CLOCK: [2026-10-27 Tue 17:09]--[2026-10-27 Tue 17:10] =>  0:01
+- [2026-10-27 Tue 17:09]--[2026-10-27 Tue 17:10] suggested span, accepted at review
 :END:
 :PLAN:
 Not yet designed. The audit's proposal: close any companion socket whose
@@ -463,7 +490,6 @@ executeCode among its tools, and evaluated (list (emacs-pid) (+ 40 2)) to (2986
 each lockfile world-readable in ~/.claude/ide/. What a real page still needs is
 the port, among 10000-65535, and a browser that lets a public page reach
 loopback, which recent Chrome restricts and Firefox and Safari do not.
-
 
 
 * TODO footnotes-inject reads hook JSON with sed, so a path or id containing an escaped quote is cut short :code:
@@ -513,7 +539,7 @@ their cookies.
 Planned:
 
 - [ ] [[id:8c4a3aea-3208-46c8-a491-2ff024fbf822][8c4a3aea]] TODO The tools server answers any web page: it checks no Origin or Host, and every reply says Access-Control-Allow-Origin: *
-- [ ] [[id:d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80][d7b2f50f]] TODO The IDE companion's WebSocket accepts any web page, and =executeCode= runs whatever elisp it is sent
+- [-] [[id:d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80][d7b2f50f]] DOING The IDE companion's WebSocket accepts any web page, and =executeCode= runs whatever elisp it is sent
 - [ ] [[id:8985f8ae-8b26-45eb-8898-73f17c98680a][8985f8ae]] TODO The session render escapes only column-zero lines, so an indented #+ line in transcript text takes effect, SETUPFILE included
 - [ ] [[id:0a0dee55-d709-466e-a525-c3bb1c437b91][0a0dee55]] TODO The applied record keys a session's events by timestamp to the second, so an event that failed or was skipped is consumed when another from the same second applies
 - [ ] [[id:d3468075-b17a-45a2-bd3a-838521f11a87][d3468075]] TODO An apply interrupted after its writes records nothing, and the next pass inserts each amend a second time
@@ -930,7 +956,6 @@ https://evil.example.com to 127.0.0.1:45571 was answered 200 with
 Access-Control-Allow-Origin: *, so a page can read the reply. Its sibling
 [[id:d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80][d7b2f50f]], the companion WebSocket, was confirmed the same day to run elisp sent
 from a foreign origin.
-
 
 
 * TODO Setting :MEMBERS: or :DROPPED: refreshes nothing, so the checklist goes stale and org_slice_add_member refuses on a row already gone :code:
@@ -13674,10 +13699,16 @@ recursion within one call; the sentinel's later call finds nothing to skip and
 calls claude-code-ide-mcp-server-session-ended a second time, so one launcher
 costs two counts. Report: make cleanup-on-exit idempotent per directory (return
 early when the directory is no longer in claude-code-ide--processes).
+
+
 ** TODO Both MCP servers accept any web page's requests, and the WebSocket one runs elisp for it through executeCode, on by default :code:
 :PROPERTIES:
 :ID:       b24abffd-3f23-4c1a-91e8-bb90c9e8e43e
 :CREATED:  [2026-10-27 Tue 16:56]
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-27 Tue 16:56]--[2026-10-27 Tue 16:57] =>  0:01
+- [2026-10-27 Tue 16:56]--[2026-10-27 Tue 16:57] compose the upstream security advisory
 :END:
 :PLAN:
 To send through the repository's Security tab (Report a vulnerability), not as a
@@ -13768,6 +13799,7 @@ upstream 1de17bb and still true at 50a3d55. The report is drafted in :PLAN:, to
 send as a private security advisory rather than a public issue, since the probe
 works as written. Locally executeCode is off since 2026-10-27, set in the Doom
 config; the Origin guards remain our own work in [[id:3bfa593c-c2da-4e44-b47f-2d5f0750f2aa][3bfa593c]].
+
 
 * MAYBE Consider archives in org_clock_report's scope (agenda-with-archives) :code:
 :PROPERTIES:
@@ -13880,6 +13912,7 @@ per tool -- rather than opening the servers beyond localhost.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-10-27 Tue 17:18]--[2026-10-27 Tue 17:19] =>  0:01
 CLOCK: [2026-10-27 Tue 15:36]--[2026-10-27 Tue 15:37] =>  0:01
 CLOCK: [2026-10-27 Tue 15:01]--[2026-10-27 Tue 15:02] =>  0:01
 CLOCK: [2026-10-27 Tue 13:54]--[2026-10-27 Tue 13:56] =>  0:02
