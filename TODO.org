@@ -1010,6 +1010,24 @@ capture (reported by that repo's agent 2026-10-21). Verify there first: with a
 session registered, a targetless capture with =category= lands in
 noodle-salesman's own TODO.org.
 :END:
+:DEBRIEF:
+Verified after an Emacs restart (2026-10-26): noodle-salesman's session was
+registered on demand at its first call on 2026-10-27, a day after startup,
+pointed at its own checkout, and its later queue lines followed. The
+noodle-salesman follow-up landed there: the targetless-capture rule is gone from
+its org-local-only guard.
+
+Falsified on 2026-10-27, verifying [[id:b4be636e-e665-44a9-9ab5-5fb3992f280c][b4be636e]]: claude-code-ide-stop in a wired
+project runs upstream's exit cleanup twice (kill-buffer hook, then the process
+sentinel), so session-ended decrements twice and spends the held reference; the
+tools server stopped until the wire was re-run. Filed locally as [[id:f22246cc-50e1-49e8-acc1-d71eecab814c][f22246cc]] and
+upstream as [[id:9d704e0c-b2b4-4113-87f4-b0944c81f921][9d704e0c]]. The companion teardown itself is [[id:b4be636e-e665-44a9-9ab5-5fb3992f280c][b4be636e]], reproduced,
+deferred as future work (the user).
+
+Also filed from this work: [[id:56f26c45-39b9-4a6e-9df2-4358aa83c19f][56f26c45]], an upstream hook for an unknown session id
+so the :around advice on get-session-context can go. The server never stopping
+once a reference is held was judged acceptable (the user, 2026-10-27).
+:END:
 The MCP session table empties, so tool calls from a consumer repo lose their
 project, and read scoping ([[id:d6375b21-a410-4c2d-9d5b-bfe980c4cc63][d6375b21]]) and capture routing ([[id:d718f6b6-5a33-4889-8b5a-8ea82553ccea][d718f6b6]]) silently
 fall back to global. Seen 2026-10-12 after a restart ("0 project session(s)"),
@@ -1033,7 +1051,14 @@ Live, after a =load-file= and removing the first cut's advice by hand: with this
 repo's entry removed from the table, upstream's own =project-info= tool
 re-registered =claude-code-ide-org= at its checkout, and the count held one
 reference. Not addressed, by agreement: a launcher's exit still stops the IDE
-companion for its own directory (unverified review finding), filed as [[id:b4be636e-e665-44a9-9ab5-5fb3992f280c][b4be636e]].
+companion for its own directory (review finding, reproduced 2026-10-27), filed
+as [[id:b4be636e-e665-44a9-9ab5-5fb3992f280c][b4be636e]].
+
+*Resolved 2026-10-27*: [[https://github.com/nbest937/claude-code-ide-org.el/pull/38][PR #38]] merged as commit [[orgit-rev:./::c9177fb][c9177fb]]. Sessions register on
+their first call and the held reference survives a launcher that exits by
+itself, but not one stopped with claude-code-ide-stop, which ends its session
+twice; that residue is [[id:f22246cc-50e1-49e8-acc1-d71eecab814c][f22246cc]].
+
 
 
 * TODO [0/5] The SessionStart tool-failure report misstates what failed and says nothing when Emacs is down now :code:
@@ -2568,15 +2593,15 @@ and those 53 are cleared, unless [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128
 move generalised to :DEBRIEF:. Details in :PLAN:.
 
 
-* TODO [0/7] A slice's checklist can disagree with its members, and nothing can say so or fix it :code:
+* TODO [0/8] A slice's checklist can disagree with its members, and nothing can say so or fix it :code:
 :PROPERTIES:
 :ID:       7dcec489-f5dd-4f7f-b819-a25405436b9b
 :CREATED:  [2026-09-28 Mon 08:26]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:MEMBERS:  cdff5c91-3dc1-476e-a8f2-5293570a19fc a00ace04-99bd-414a-8dc7-df8305126589 a508c59e-475e-4d27-84c9-6c3ded98e15c 6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0 b112878e-6313-4bc6-bc3f-0533d5f1ad1b dc68d831-9e04-4f0a-8b8b-8087b39c6037 6a6f6708-eefd-4d77-8ca0-0c5aaaa80796
-:BLOCKER:  cdff5c91-3dc1-476e-a8f2-5293570a19fc a00ace04-99bd-414a-8dc7-df8305126589 a508c59e-475e-4d27-84c9-6c3ded98e15c 6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0 b112878e-6313-4bc6-bc3f-0533d5f1ad1b dc68d831-9e04-4f0a-8b8b-8087b39c6037 6a6f6708-eefd-4d77-8ca0-0c5aaaa80796
+:MEMBERS:  cdff5c91-3dc1-476e-a8f2-5293570a19fc a00ace04-99bd-414a-8dc7-df8305126589 a508c59e-475e-4d27-84c9-6c3ded98e15c 6f3a5342-1905-4831-b712-3b6e5e83e0c4 6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0 b112878e-6313-4bc6-bc3f-0533d5f1ad1b dc68d831-9e04-4f0a-8b8b-8087b39c6037 6a6f6708-eefd-4d77-8ca0-0c5aaaa80796
+:BLOCKER:  cdff5c91-3dc1-476e-a8f2-5293570a19fc a00ace04-99bd-414a-8dc7-df8305126589 a508c59e-475e-4d27-84c9-6c3ded98e15c 6f3a5342-1905-4831-b712-3b6e5e83e0c4 6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0 b112878e-6313-4bc6-bc3f-0533d5f1ad1b dc68d831-9e04-4f0a-8b8b-8087b39c6037 6a6f6708-eefd-4d77-8ca0-0c5aaaa80796
 :END:
 :PLAN:
 Composed 2026-09-28 from the backlog survey, at the user's direction. The theme:
@@ -2603,6 +2628,12 @@ the per-slice scan waits until the rendering this slice changes is settled, and
 until it is known whether a refresh can rewrite =:MEMBERS:= partway through a
 pass.
 
+*Added 2026-10-27* (the user): [[id:6f3a5342-1905-4831-b712-3b6e5e83e0c4][6f3a5342]] follows [[id:a508c59e-475e-4d27-84c9-6c3ded98e15c][a508c59e]]. Setting =:MEMBERS:= or
+=:DROPPED:= refreshes nothing, so an open slice's rendering goes stale with no
+tool to repair it, and =org_slice_add_member= then refuses on a row already
+gone. It is the open-slice half of the repair [[id:a508c59e-475e-4d27-84c9-6c3ded98e15c][a508c59e]] does for closed ones, and
+comes before the ordering members, which edit the same declaration.
+
 *Twin review.* [[id:6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0][6af8fb3e]] and [[id:b112878e-6313-4bc6-bc3f-0533d5f1ad1b][b112878e]] are both =org_slice_add_member= ordering,
 but different gaps (placement relative to nested rows, and prepend or reorder),
 so they stay separate headings sequenced together. [[id:4d896425-586a-4a5e-8d13-0a737d15a954][4d896425]], closed with
@@ -2617,6 +2648,7 @@ Planned:
 - [ ] [[id:cdff5c91-3dc1-476e-a8f2-5293570a19fc][cdff5c91]] TODO A REVIEW member is ticked [X]: the cookie counts work finished on our side, and the blocker still waits for acceptance
 - [ ] [[id:a00ace04-99bd-414a-8dc7-df8305126589][a00ace04]] TODO lint-org cannot see a slice checkbox that disagrees with its referent
 - [ ] [[id:a508c59e-475e-4d27-84c9-6c3ded98e15c][a508c59e]] TODO Nothing can correct a closed slice's record, even when the correction is close-time truth
+- [ ] [[id:6f3a5342-1905-4831-b712-3b6e5e83e0c4][6f3a5342]] TODO Setting :MEMBERS: or :DROPPED: refreshes nothing, so the checklist goes stale and org_slice_add_member refuses on a row already gone
 - [ ] [[id:6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0][6af8fb3e]] TODO org_slice_add_member's after= inserts between a story and its nested children, splitting the block
 - [ ] [[id:b112878e-6313-4bc6-bc3f-0533d5f1ad1b][b112878e]] TODO org_slice_add_member cannot prepend or reorder, so declared order is append-only
 - [ ] [[id:dc68d831-9e04-4f0a-8b8b-8087b39c6037][dc68d831]] TODO Slice refresh re-scans every heading for other slices' members once per slice
