@@ -802,6 +802,8 @@ CLOCK: [2026-10-21 Wed 15:39]--[2026-10-21 Wed 15:48] =>  0:09
 - State "REVIEW"     from "DOING"      [2026-10-21 Wed 15:48] \\
   review rework pushed to PR #38
 - [2026-10-21 Wed 15:48]--[2026-10-21 Wed 15:48] suggested span, accepted at review
+CLOCK: [2026-10-27 Tue 08:25]--[2026-10-27 Tue 08:26] =>  0:01
+- [2026-10-27 Tue 08:25]--[2026-10-27 Tue 08:26] close the companion thread, merge PR #38
 :END:
 :PLAN:
 Two causes empty the session table, and the fix covers both (approach 3 of
@@ -14220,4 +14222,16 @@ CLOCK: [2026-10-21 Wed 12:14]--[2026-10-21 Wed 12:15] =>  0:01
 - [2026-10-21 Wed 12:14]--[2026-10-21 Wed 12:15] assigned at review
 CLOCK: [2026-10-21 Wed 12:27]--[2026-10-21 Wed 12:28] =>  0:01
 - [2026-10-21 Wed 12:27]--[2026-10-21 Wed 12:28] assigned at review
+:END:
+
+
+**** 2026-10-27 Tuesday
+:PROPERTIES:
+:ID:       2e81db4d-2722-4f21-8346-1df68e02a962
+:CREATED:  [2026-10-27 Tue 08:01]
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-27 Tue 08:01]--[2026-10-27 Tue 08:02] =>  0:01
+- [2026-10-27 Tue 08:01]--[2026-10-27 Tue 08:02] assigned at review
+- [2026-10-27 Tue 08:25]--[2026-10-27 Tue 08:25] assigned at review
 :END:
