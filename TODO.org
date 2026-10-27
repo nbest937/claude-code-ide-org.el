@@ -2,37 +2,46 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* NEXT [0/5] A web page, a shared second, an archive rename or one tool argument can corrupt the tracker or hang Emacs :code:
+* NEXT [0/9] A web page, a shared second, an archive rename or one tool argument can corrupt the tracker or hang Emacs :code:
 :PROPERTIES:
 :ID:       3bfa593c-c2da-4e44-b47f-2d5f0750f2aa
 :CREATED:  [2026-10-27 Tue 12:56]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:MEMBERS:  8c4a3aea-3208-46c8-a491-2ff024fbf822 0a0dee55-d709-466e-a525-c3bb1c437b91 c0a21a0f-89ed-4b66-b7ed-acbfd5583015 a3ad9732-681c-4103-a9e2-5f919e60522c 412768a0-3d9b-4cfe-9264-3f214d4baed1
-:BLOCKER:  8c4a3aea-3208-46c8-a491-2ff024fbf822 0a0dee55-d709-466e-a525-c3bb1c437b91 c0a21a0f-89ed-4b66-b7ed-acbfd5583015 a3ad9732-681c-4103-a9e2-5f919e60522c 412768a0-3d9b-4cfe-9264-3f214d4baed1
+:MEMBERS:  8c4a3aea-3208-46c8-a491-2ff024fbf822 0a0dee55-d709-466e-a525-c3bb1c437b91 d3468075-b17a-45a2-bd3a-838521f11a87 c0a21a0f-89ed-4b66-b7ed-acbfd5583015 e9f8b780-c93b-41f9-b146-1c4695283af9 b0e46168-2548-49ca-8f5f-5dcc6f3fc524 a3ad9732-681c-4103-a9e2-5f919e60522c 412768a0-3d9b-4cfe-9264-3f214d4baed1 fd29914e-0d18-4964-a104-37c136b311a6
+:BLOCKER:  8c4a3aea-3208-46c8-a491-2ff024fbf822 0a0dee55-d709-466e-a525-c3bb1c437b91 d3468075-b17a-45a2-bd3a-838521f11a87 c0a21a0f-89ed-4b66-b7ed-acbfd5583015 e9f8b780-c93b-41f9-b146-1c4695283af9 b0e46168-2548-49ca-8f5f-5dcc6f3fc524 a3ad9732-681c-4103-a9e2-5f919e60522c 412768a0-3d9b-4cfe-9264-3f214d4baed1 fd29914e-0d18-4964-a104-37c136b311a6
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-10-27 Tue 12:58] \\
   nominated over f436a3b8: security hole and silent data loss
 :END:
 
-The must-fix findings of the 2026-10-27 repo audit not already held by a slice:
-any web page can call and read the tools server; events stamped in the same
-second are consumed together; archiving overwrites an earlier archive of the
-same session; org_set_property applies TODO live and prompts on SCHEDULED; and
-an org_capture title is expanded as a template. Each loses tracked state or
-blocks Emacs with nothing reported, so they are fixed worst first. The audit's
-sixth must-fix of this kind, headline lines in amend text, stays with [[id:c0c5e015-c33e-4e1a-ad6e-907f9fa56c07][c0c5e015]]
-in [[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]], since a member counted by two slices splits their cookies.
+Ways the tracker loses state, or Emacs blocks on a prompt, with nothing
+reported, gathered from the 2026-10-27 repo audit: any web page can call and
+read the tools server; events stamped in the same second are consumed together;
+an interrupted apply writes amend text twice; archiving overwrites an earlier
+archive of the same session; an unreadable applied record is read as empty and
+then overwritten; the discard guard misses the spellings sessions use;
+org_set_property applies TODO live and prompts on SCHEDULED; and a capture
+blocks on a prompt, from its title's template expansion or from an Org QL view's
+link store ([[id:fd29914e-0d18-4964-a104-37c136b311a6][fd29914e]], moved here from [[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]] 2026-10-27, the user). Fixed
+worst first. The title predates the last four members and names only the first
+ones. The audit's sixth must-fix of this kind, headline lines in amend text,
+stays with [[id:c0c5e015-c33e-4e1a-ad6e-907f9fa56c07][c0c5e015]] in [[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]], since a member counted by two slices splits
+their cookies.
 
 Planned:
 
 - [ ] [[id:8c4a3aea-3208-46c8-a491-2ff024fbf822][8c4a3aea]] TODO The tools server answers any web page: it checks no Origin or Host, and every reply says Access-Control-Allow-Origin: *
 - [ ] [[id:0a0dee55-d709-466e-a525-c3bb1c437b91][0a0dee55]] TODO The applied record keys a session's events by timestamp to the second, so an event that failed or was skipped is consumed when another from the same second applies
+- [ ] [[id:d3468075-b17a-45a2-bd3a-838521f11a87][d3468075]] TODO An apply interrupted after its writes records nothing, and the next pass inserts each amend a second time
 - [ ] [[id:c0a21a0f-89ed-4b66-b7ed-acbfd5583015][c0a21a0f]] TODO Archiving a session already in the archive overwrites it, and restore overwrites a live queue the same way
+- [ ] [[id:e9f8b780-c93b-41f9-b146-1c4695283af9][e9f8b780]] TODO An unreadable .applied file reads as nothing applied, and the next write replaces it
+- [ ] [[id:b0e46168-2548-49ca-8f5f-5dcc6f3fc524][b0e46168]] TODO discard-guard misses absolute paths, git -C, and a cd before the git command
 - [ ] [[id:a3ad9732-681c-4103-a9e2-5f919e60522c][a3ad9732]] TODO org_set_property writes TODO, SCHEDULED and DEADLINE through org-entry-put, which changes the keyword live or opens a prompt
 - [ ] [[id:412768a0-3d9b-4cfe-9264-3f214d4baed1][412768a0]] TODO org_capture's title goes through capture-template expansion, so a newline splits the heading and %^ opens a prompt
+- [ ] [[id:fd29914e-0d18-4964-a104-37c136b311a6][fd29914e]] TODO org_capture runs in whatever buffer the user has selected, so an Org QL view turns a capture into a prompt nobody at the tool can answer
 
 
 * TODO claude-org-setup assigns mcp_action and nothing reads it :code:
@@ -3148,6 +3157,7 @@ enough to run on every exit.
 :COOKIE_DATA: checkbox recursive
 :MEMBERS:  a8ccd6ac-3452-4926-b176-ff5951dcd5b2 c35087d8-19fe-4179-a61c-cb615b2e7679 b2d4012c-6c61-47df-8086-d1cd205c73fc 5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997 c0c5e015-c33e-4e1a-ad6e-907f9fa56c07 4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8 8326a46f-e3f9-4ecc-8bc2-05d54907987b d842b9e7-fd75-45eb-80fd-597daa3e36b0 fd29914e-0d18-4964-a104-37c136b311a6 ecbbec2e-50d9-4581-9ded-15716f16c5f3 94fe3c57-89f6-4d17-943e-0cb6145f3419 c6b068aa-f9de-4edc-a5b3-380bff666d2e eeb18e56-fcfd-4653-86e6-09448474de07 e4734e2c-2083-413b-941d-9503dd0f4a23
 :BLOCKER:  a8ccd6ac-3452-4926-b176-ff5951dcd5b2 c35087d8-19fe-4179-a61c-cb615b2e7679 b2d4012c-6c61-47df-8086-d1cd205c73fc 5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997 c0c5e015-c33e-4e1a-ad6e-907f9fa56c07 4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8 8326a46f-e3f9-4ecc-8bc2-05d54907987b d842b9e7-fd75-45eb-80fd-597daa3e36b0 fd29914e-0d18-4964-a104-37c136b311a6 ecbbec2e-50d9-4581-9ded-15716f16c5f3 94fe3c57-89f6-4d17-943e-0cb6145f3419 c6b068aa-f9de-4edc-a5b3-380bff666d2e eeb18e56-fcfd-4653-86e6-09448474de07 e4734e2c-2083-413b-941d-9503dd0f4a23
+:DROPPED:  fd29914e-0d18-4964-a104-37c136b311a6
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-10-27 Tue 09:05] \\
@@ -3236,6 +3246,13 @@ Five ways an =org_*= call tells its caller something other than what happened: a
 a capture that hangs on a prompt, a bad call that times out instead of erroring,
 and a stale schema shown after a reload. Fixed worst first, because each
 misleads the one reader that cannot check behind the tool.
+
+*Dropped 2026-10-27: [[id:fd29914e-0d18-4964-a104-37c136b311a6][fd29914e]]* (the user), moved to [[id:3bfa593c-c2da-4e44-b47f-2d5f0750f2aa][3bfa593c]], the nominated
+slice of ways the tracker loses state or Emacs blocks with nothing reported. A
+capture blocked on a prompt is that slice's theme as much as this one's, and it
+sits beside [[id:412768a0-3d9b-4cfe-9264-3f214d4baed1][412768a0]], the same prompt from a different trigger. The plan's order
+above still names it in third place; read that order without it.
+
 
 
 * TODO The review-attention clock is a real org clock, so the buffer stays busy for the whole review and apply's first clock-in closes it :code:
@@ -3572,6 +3589,9 @@ why the prompt's answer never mattered. Test: a capture run with
 org-ql-view-query set buffer-locally in the current buffer completes without
 reading the minibuffer.
 
+Open question (the user, 2026-10-27): the path is unclassified. The mechanism
+above is evidence for the brainstorm, not its result, so /plan-slice should
+classify this heading and settle the design with the user before any work.
 :END:
 Twice on 2026-09-25 an =org_capture= stopped at "Make link that searches: ", a
 prompt from org-ql's =org-ql-view--link-store=. Org's capture stores a link to
