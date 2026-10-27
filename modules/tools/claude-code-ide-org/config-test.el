@@ -8734,67 +8734,6 @@ difference is always empty after a sort and once read \"0 moved\" over a
       ;; The child sits directly after its parent, not stranded elsewhere.
       (should (string-match-p "\\* TODO Oldest\n\\*\\* TODO A child of Oldest" disk)))))
 
-(ert-deftest claude-code-ide-org-test-backfill-from-git-fills-and-marks ()
-  "A heading with no logged close gets one from git, marked as derived.
-
-The marker is why this is allowed to exist. Nothing mechanical is misled
-by an approximate CLOSED: -- the three consumers use it as a placement
-key, a threshold and a presence test -- but a human cannot otherwise
-tell a derived date from a measured one, and TODO.org :ID: 7771fc63 is
-the standing finding that a plausible value is harder to reject than an
-absent one (TODO.org :ID: b7b46a26)."
-  (skip-unless (executable-find "git"))
-  (claude-code-ide-org-test--with-git-repo
-    (with-temp-file org
-      (insert "#+TODO: TODO | DONE\n"
-              "* DONE Finished long ago\n:PROPERTIES:\n:ID:       zzzz-0001\n:END:\n"))
-    (claude-code-ide-org-test--git-commit dir "close it" "2026-08-05T09:00:00-0500")
-    (let ((summary (claude-code-ide-org-backfill-closed-from-git org)))
-      (should (string-match-p "1 filled from git" summary)))
-    (let ((disk (claude-code-ide-org-test--disk-contents org)))
-      (should (string-match-p "^CLOSED: \\[2026-08-05" disk))
-      (should (string-match-p ":CLOSED_SOURCE: git" disk)))))
-
-(ert-deftest claude-code-ide-org-test-backfill-from-git-is-idempotent ()
-  "A heading that already has CLOSED: is left alone, whatever its source.
-Otherwise a second run would overwrite a *measured* close with an
-upper bound -- the one outcome that would make the file worse."
-  (skip-unless (executable-find "git"))
-  (claude-code-ide-org-test--with-git-repo
-    (with-temp-file org
-      (insert "#+TODO: TODO | DONE\n"
-              "* DONE Already dated\nCLOSED: [2026-08-01 Sat 10:00]\n"
-              ":PROPERTIES:\n:ID:       zzzz-0002\n:END:\n"))
-    (claude-code-ide-org-test--git-commit dir "seed" "2026-08-05T09:00:00-0500")
-    (let ((summary (claude-code-ide-org-backfill-closed-from-git org)))
-      (should (string-match-p "0 filled from git" summary))
-      (should (string-match-p "1 already had CLOSED:" summary)))
-    (let ((disk (claude-code-ide-org-test--disk-contents org)))
-      ;; The measured value survives, and no marker is added to it.
-      (should (string-match-p "CLOSED: \\[2026-08-01 Sat 10:00\\]" disk))
-      (should-not (string-match-p "CLOSED_SOURCE" disk)))))
-
-(ert-deftest claude-code-ide-org-test-backfill-from-git-dry-run-writes-nothing ()
-  "The dry run reports what the real run would do and writes nothing.
-Identical reports are what make a dry run worth trusting."
-  (skip-unless (executable-find "git"))
-  (claude-code-ide-org-test--with-git-repo
-    (with-temp-file org
-      (insert "#+TODO: TODO | DONE\n"
-              "* DONE Finished long ago\n:PROPERTIES:\n:ID:       zzzz-0003\n:END:\n"))
-    (claude-code-ide-org-test--git-commit dir "close it" "2026-08-05T09:00:00-0500")
-    (let ((dry (claude-code-ide-org-backfill-closed-from-git org t)))
-      (should (string-match-p "1 filled from git" dry))
-      (should (string-match-p "dry run" dry)))
-    (should-not (string-match-p
-                 "CLOSED:" (claude-code-ide-org-test--disk-contents org)))
-    ;; And the *buffer* is untouched, not merely unsaved. A dry run that
-    ;; edits without saving leaves a dirty buffer a human can save by
-    ;; accident, and makes the file read as busy to
-    ;; `claude-code-ide-org--file-busy-p'. Checking disk alone passes
-    ;; against that, which a mutation showed.
-    (should-not (buffer-modified-p (find-file-noselect org)))))
-
 (ert-deftest claude-code-ide-org-test-forgotten-detects-a-subject-id ()
   "A commit whose *subject* names a non-member is reported.
 
@@ -12438,8 +12377,8 @@ cannot flake on the hour it is run, which is the trap :ID: c31b6c76 and
 
 A heading that went REVIEW, back to DOING on rework, then REVIEW again
 has been waiting since the second one; the first records a moment the
-second superseded.  Same rule and same shape as
-`claude-code-ide-org--recorded-close-time' (TODO.org :ID: 43aa25b2)."
+second superseded.  Same rule and same shape as the retired CLOSED:
+backfill's close time (TODO.org :ID: 43aa25b2)."
   (with-temp-buffer
     (org-mode)
     (insert "* REVIEW Reworked once\n:PROPERTIES:\n:ID: r1\n:END:\n"
@@ -13641,35 +13580,7 @@ letting it record the answer."
     (should (string-match-p "already has a :PLAN: drawer"
                             (claude-code-ide-org-wrap-plan id)))))
 
-;;; CLOSED: backfill (TODO.org :ID: f4b07fc0)
-
-(defmacro claude-code-ide-org-test--with-backfill-file (&rest body)
-  "Run BODY with `file' bound to an org file holding four finished
-headings: one evidenced, one reopened-then-closed, one with no State
-line at all, and one that already carries CLOSED:."
-  (declare (indent 0))
-  `(let* ((dir (file-name-as-directory (make-temp-file "ccio-backfill" t)))
-          (file (expand-file-name "DONE.org" dir)))
-     (unwind-protect
-         (progn
-           (with-temp-file file
-             (insert "#+TODO: TODO(t!) DOING(d!) | DONE(D!) CANCELLED(c@)\n"
-                     "#+STARTUP: logdrawer logdone content\n\n"
-                     "* DONE Evidenced\n:LOGBOOK:\n"
-                     "- State \"DONE\"       from \"DOING\"      [2026-08-12 Wed 17:01]\n"
-                     ":END:\n"
-                     "* DONE Reopened then closed again\n:LOGBOOK:\n"
-                     "- State \"DONE\"       from \"DOING\"      [2026-08-14 Fri 09:00]\n"
-                     "- State \"DOING\"      from \"DONE\"       [2026-08-13 Thu 12:00]\n"
-                     "- State \"DONE\"       from \"DOING\"      [2026-08-13 Thu 09:00]\n"
-                     ":END:\n"
-                     "* DONE No evidence\n:PROPERTIES:\n:ARCHIVE_TIME: 2026-08-17 Sun 10:00\n:END:\n"
-                     "* DONE Already closed\nCLOSED: [2026-08-01 Sat 08:00]\n"
-                     ":LOGBOOK:\n"
-                     "- State \"DONE\"       from \"DOING\"      [2026-08-02 Sun 09:00]\n"
-                     ":END:\n"))
-           ,@body)
-       (delete-directory dir t))))
+;;; Drawer consolidation and the daily ceremony
 
 (defmacro claude-code-ide-org-test--with-drifted-drawers (&rest body)
   "Run BODY with `file' bound to a tracked org file whose drawers drift.
@@ -14259,60 +14170,6 @@ accumulate across a daily run."
     ;; Now with no buffer open beforehand: none is left behind.
     (claude-code-ide-org-consolidate-all-drawers nil)
     (should-not (find-buffer-visiting file))))
-
-(ert-deftest claude-code-ide-org-test-backfill-closed-uses-only-recorded-times ()
-  "Fills from the :LOGBOOK:, takes the latest close, and invents nothing.
-
-The no-evidence heading deliberately carries an :ARCHIVE_TIME:, which is
-the obvious substitute and the wrong one -- when the subtree moved, not
-when the work stopped.  If it were ever used, this heading would gain a
-CLOSED: of 2026-08-17 that reads as authoritative.  The assertion is
-that it gains nothing at all."
-  (claude-code-ide-org-test--with-backfill-file
-    (let ((report (claude-code-ide-org-backfill-closed file)))
-      (should (string-match-p "2 filled" report))
-      (should (string-match-p "1 skipped" report))
-      (should (string-match-p "1 already" report)))
-    (with-current-buffer (find-file-noselect file)
-      (revert-buffer t t t)
-      (let ((text (buffer-substring-no-properties (point-min) (point-max))))
-        (should (string-match-p "\\* DONE Evidenced\nCLOSED: \\[2026-08-12 Wed 17:01\\]" text))
-        ;; The LATEST close, not the first one in the drawer.
-        (should (string-match-p
-                 "\\* DONE Reopened then closed again\nCLOSED: \\[2026-08-14 Fri 09:00\\]" text))
-        ;; Nothing invented from :ARCHIVE_TIME:.
-        (should-not (string-match-p "CLOSED: \\[2026-08-17" text))
-        (should (string-match-p "\\* DONE No evidence\n:PROPERTIES:" text))
-        ;; The pre-existing marker is left exactly as it was.
-        (should (string-match-p "CLOSED: \\[2026-08-01 Sat 08:00\\]" text))
-        (should-not (string-match-p "CLOSED: \\[2026-08-02" text))))))
-
-(ert-deftest claude-code-ide-org-test-backfill-closed-dry-run-writes-nothing ()
-  "A dry run reports exactly what a real run would do, and changes no byte.
-
-The report has to be identical, because a dry run whose output differs
-from the real one is not a preview of anything."
-  (claude-code-ide-org-test--with-backfill-file
-    (let ((before (with-temp-buffer (insert-file-contents file) (buffer-string)))
-          (dry (claude-code-ide-org-backfill-closed file t)))
-      (should (string-match-p "dry run" dry))
-      (should (equal before
-                     (with-temp-buffer (insert-file-contents file) (buffer-string))))
-      ;; Same counts as the real run that follows it.
-      (let ((real (claude-code-ide-org-backfill-closed file)))
-        (should (equal (replace-regexp-in-string "  \\[dry run.*" "" dry) real))))))
-
-(ert-deftest claude-code-ide-org-test-backfill-closed-is-idempotent ()
-  "A second pass fills nothing, because the first pass's markers are seen.
-
-Without this a repeated run would stack CLOSED: lines, and the command
-is one somebody will reasonably run twice while wondering whether it
-worked."
-  (claude-code-ide-org-test--with-backfill-file
-    (claude-code-ide-org-backfill-closed file)
-    (let ((second (claude-code-ide-org-backfill-closed file)))
-      (should (string-match-p "0 filled" second))
-      (should (string-match-p "3 already had" second)))))
 
 ;;; :PLAN: drawer lint rule (TODO.org :ID: 8bcd56f4)
 
@@ -17186,116 +17043,6 @@ without one cannot be sorted at all."
     (insert "#+TITLE: Archive\n\n" body))
   path)
 
-(ert-deftest claude-code-ide-org-test-datetree-file-files-tasks-by-their-close-date ()
-  "A flat archive becomes a year/month/day tree, newest first
-(TODO.org :ID: 33864a0f).
-
-Asserts both halves at once, because they fail differently: the tasks
-must land under the day node their own CLOSED: names, and the tiers must
-read descending.  Org builds a datetree *ascending*, so a conversion that
-only filed would produce a correct tree in exactly the wrong order."
-  (claude-code-ide-org-test--with-heading
-    (let ((f (claude-code-ide-org-test--datetree-fixture
-              archive-file
-              (concat "* DONE Older task\n"
-                      "CLOSED: [2026-07-15 Wed 10:00]\n"
-                      ":PROPERTIES:\n:ID:       aaaaaaaa-0001\n"
-                      ":CREATED:  [2026-07-14 Tue 09:00]\n:END:\n"
-                      "* DONE Earlier that Friday\n"
-                      "CLOSED: [2026-08-21 Fri 09:00]\n"
-                      ":PROPERTIES:\n:ID:       aaaaaaaa-0002\n"
-                      ":CREATED:  [2026-08-20 Thu 09:00]\n:END:\n"
-                      "* DONE Later that Friday\n"
-                      "CLOSED: [2026-08-21 Fri 13:20]\n"
-                      ":PROPERTIES:\n:ID:       aaaaaaaa-0003\n"
-                      ":CREATED:  [2026-08-20 Thu 09:00]\n:END:\n"))))
-      (claude-code-ide-org-datetree-file f)
-      (let* ((text (claude-code-ide-org-test--disk-contents f))
-             (lines (seq-filter (lambda (l) (string-prefix-p "*" l))
-                                (split-string text "\n"))))
-        (should (equal lines
-                       '("* 2026"
-                         "** 2026-08 August"
-                         "*** 2026-08-21 Friday"
-                         "**** DONE Later that Friday"
-                         "**** DONE Earlier that Friday"
-                         "** 2026-07 July"
-                         "*** 2026-07-15 Wednesday"
-                         "**** DONE Older task")))))))
-
-(ert-deftest claude-code-ide-org-test-datetree-file-refuses-a-heading-with-no-closed ()
-  "The conversion refuses rather than filing an undated heading under today.
-
-This is the guard that made TODO.org :ID: 33864a0f block on :ID: b7b46a26
-instead of merely following it.  `org-archive-subtree' dates a datetree
-entry from `(or (org-entry-get nil \"CLOSED\" t) time)', so a heading with
-no CLOSED: files under *today* and nothing warns -- 39 headings would
-have collapsed into one wrong day node when this was measured.
-
-Asserts the file is untouched as well as the error, because a refusal
-raised halfway through a conversion would be worse than none."
-  (claude-code-ide-org-test--with-heading
-    (let* ((body (concat "* DONE Dated\n"
-                         "CLOSED: [2026-07-15 Wed 10:00]\n"
-                         ":PROPERTIES:\n:ID:       aaaaaaaa-0001\n"
-                         ":CREATED:  [2026-07-14 Tue 09:00]\n:END:\n"
-                         "* DONE Undated\n"
-                         ":PROPERTIES:\n:ID:       aaaaaaaa-0002\n"
-                         ":CREATED:  [2026-07-14 Tue 09:00]\n:END:\n"))
-           (f (claude-code-ide-org-test--datetree-fixture archive-file body))
-           (before (claude-code-ide-org-test--disk-contents f)))
-      ;; The *message* is asserted, not merely that something signalled.
-      ;; Without the pre-flight guard this still raises -- CLOSED: is nil,
-      ;; `org-date-to-gregorian' returns (nil nil nil) and `encode-time'
-      ;; throws `wrong-type-argument' from three frames down. A bare
-      ;; `should-error' therefore passes with the guard deleted, which is
-      ;; what a mutation run showed on 2026-09-02: the test was
-      ;; structurally incapable of failing for its own reason.
-      (should (string-match-p
-               "Refusing to convert"
-               (cadr (should-error (claude-code-ide-org-datetree-file f)))))
-      ;; And nothing moved -- checked in the buffer as well as on disk,
-      ;; since the write happens only at the end and an aborted half
-      ;; conversion would leave disk innocent and the buffer wrecked.
-      (should (equal before (claude-code-ide-org-test--disk-contents f)))
-      (should-not (buffer-modified-p (find-file-noselect f))))))
-
-(ert-deftest claude-code-ide-org-test-datetree-file-dates-a-story-from-its-own-closed ()
-  "A story files under *its own* close date, never a child's.
-
-`org-entry-get' is called without the inherit flag for exactly this
-reason.  Scoping a date scan to the subtree is what dated `b5f7c5c7' two
-days early during :ID: 38b92521's manifest work; here the same mistake
-would file a parent under a child's date and mis-order the largest
-entries, with nothing downstream to notice.
-
-The child is deliberately closed in a *different month*, so an inherited
-or subtree-scoped read lands in a visibly wrong place rather than one
-day off."
-  (claude-code-ide-org-test--with-heading
-    (let ((f (claude-code-ide-org-test--datetree-fixture
-              archive-file
-              (concat "* DONE [1/1] A story\n"
-                      "CLOSED: [2026-07-15 Wed 10:00]\n"
-                      ":PROPERTIES:\n:ID:       aaaaaaaa-0001\n"
-                      ":CREATED:  [2026-07-01 Wed 09:00]\n:END:\n"
-                      "** DONE A child closed much later\n"
-                      "CLOSED: [2026-08-21 Fri 13:20]\n"
-                      ":PROPERTIES:\n:ID:       aaaaaaaa-0002\n"
-                      ":CREATED:  [2026-07-02 Thu 09:00]\n:END:\n"))))
-      (claude-code-ide-org-datetree-file f)
-      (let ((lines (seq-filter (lambda (l) (string-prefix-p "*" l))
-                               (split-string
-                                (claude-code-ide-org-test--disk-contents f) "\n"))))
-        ;; July, from the parent's own CLOSED: -- and the child travelled
-        ;; with it rather than being filed separately under August.
-        (should (equal lines
-                       '("* 2026"
-                         "** 2026-07 July"
-                         "*** 2026-07-15 Wednesday"
-                         "**** DONE [1/1] A story"
-                         "***** DONE A child closed much later")))))))
-
 (ert-deftest claude-code-ide-org-test-sort-datetree-descending-is-idempotent ()
   "Sorting an already-sorted tree changes nothing.
 
@@ -17305,15 +17052,14 @@ unreadable."
   (claude-code-ide-org-test--with-heading
     (let ((f (claude-code-ide-org-test--datetree-fixture
               archive-file
-              (concat "* DONE Older\n"
-                      "CLOSED: [2026-07-15 Wed 10:00]\n"
-                      ":PROPERTIES:\n:ID:       aaaaaaaa-0001\n"
-                      ":CREATED:  [2026-07-14 Tue 09:00]\n:END:\n"
-                      "* DONE Newer\n"
-                      "CLOSED: [2026-08-21 Fri 13:20]\n"
-                      ":PROPERTIES:\n:ID:       aaaaaaaa-0002\n"
-                      ":CREATED:  [2026-08-20 Thu 09:00]\n:END:\n"))))
-      (claude-code-ide-org-datetree-file f)
+              (concat "* 2026\n"
+                      "** 2026-07 July\n"
+                      "*** 2026-07-15 Wednesday\n"
+                      "**** DONE Older :code:\nCLOSED: [2026-07-15 Wed 10:00]\n"
+                      "** 2026-08 August\n"
+                      "*** 2026-08-21 Friday\n"
+                      "**** DONE Newer :code:\nCLOSED: [2026-08-21 Fri 13:20]\n"))))
+      (claude-code-ide-org-sort-datetree-descending f)
       (let ((once (claude-code-ide-org-test--disk-contents f)))
         (claude-code-ide-org-sort-datetree-descending f)
         (should (equal once (claude-code-ide-org-test--disk-contents f)))))))
@@ -21469,12 +21215,11 @@ file-list derivation on every lookup, as the old Doom glue's buffer did."
 ;;; Passes over every tracked file leave unsaved edits alone (TODO.org :ID: b5d97b90)
 
 (ert-deftest claude-code-ide-org-test-slice-passes-skip-a-busy-file ()
-  "The refresh, the blocker refresh and the member migration each skip a
-file whose buffer holds the human's unsaved edits, and say so -- never
-writing into it and saving the edits along with their own."
+  "The refresh and the blocker refresh each skip a file whose buffer
+holds the human's unsaved edits, and say so -- never writing into it and
+saving the edits along with their own."
   (dolist (pass (list (lambda () (claude-code-ide-org-refresh-slice))
-                      (lambda () (claude-code-ide-org-refresh-slice-blocker))
-                      (lambda () (claude-code-ide-org-migrate-slice-members))))
+                      (lambda () (claude-code-ide-org-refresh-slice-blocker))))
     (claude-code-ide-org-test--with-members-fixture
       (let ((claude-code-ide-org-query-files (list capture-file))
             (before (claude-code-ide-org-test--disk-contents capture-file)))
