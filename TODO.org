@@ -2,11 +2,18 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* DOING Closing a slice nominates nothing, so the slice after it waits on a hand-picked NEXT :code:
+* DONE Closing a slice nominates nothing, so the slice after it waits on a hand-picked NEXT :code:
+CLOSED: [2026-10-27 Tue 09:08]
 :PROPERTIES:
 :ID:       d984abe6-2fe6-4dc2-9c7b-6bb4de20100f
 :CREATED:  [2026-10-27 Tue 09:05]
 :CATEGORY: Slices
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-27 Tue 09:05]--[2026-10-27 Tue 09:08] =>  0:03
+- [2026-10-27 Tue 09:05]--[2026-10-27 Tue 09:08] successor rule in the slice commands
+- State "DONE"       from "DOING"      [2026-10-27 Tue 09:08] \\
+  successor line and nomination rule shipped
 :END:
 :PLAN:
 The proposal in the body is the whole design: a line in the slice's own plan,
@@ -34,7 +41,6 @@ one can be planned while the review runs. A declared property is deferred to
 successor, asked of the user and never inferred, and /work-slice queues NEXT on
 that successor when the slice enters REVIEW. First use: [[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]] names [[id:005fef09-e34f-4994-8c0d-6d17ada3d7ac][005fef09]];
 [[id:005fef09-e34f-4994-8c0d-6d17ada3d7ac][005fef09]] names none.
-
 
 
 * TODO [0/6] A consumer's install can be wrong while every check says it is fine :code:
@@ -14392,4 +14398,10 @@ CLOCK: [2026-10-27 Tue 08:51]--[2026-10-27 Tue 08:53] =>  0:02
 - [2026-10-27 Tue 08:51]--[2026-10-27 Tue 08:53] extend f436a3b8, compose install slice
 CLOCK: [2026-10-27 Tue 08:58]--[2026-10-27 Tue 09:00] =>  0:02
 - [2026-10-27 Tue 08:58]--[2026-10-27 Tue 09:00] assigned at review
+CLOCK: [2026-10-27 Tue 09:51]--[2026-10-27 Tue 09:52] =>  0:01
+- [2026-10-27 Tue 09:51]--[2026-10-27 Tue 09:52] bring noodle-salesman's plugin checkout to main
+CLOCK: [2026-10-27 Tue 09:52]--[2026-10-27 Tue 09:53] =>  0:01
+- [2026-10-27 Tue 09:52]--[2026-10-27 Tue 09:53] assigned at review
+CLOCK: [2026-10-27 Tue 09:54]--[2026-10-27 Tue 09:55] =>  0:01
+- [2026-10-27 Tue 09:54]--[2026-10-27 Tue 09:55] assigned at review
 :END:
