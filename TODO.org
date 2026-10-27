@@ -860,6 +860,10 @@ CLOCK: [2026-10-21 Wed 15:39]--[2026-10-21 Wed 15:48] =>  0:09
 - [2026-10-21 Wed 15:48]--[2026-10-21 Wed 15:48] suggested span, accepted at review
 CLOCK: [2026-10-27 Tue 08:25]--[2026-10-27 Tue 08:26] =>  0:01
 - [2026-10-27 Tue 08:25]--[2026-10-27 Tue 08:26] close the companion thread, merge PR #38
+CLOCK: [2026-10-27 Tue 08:32]--[2026-10-27 Tue 08:33] =>  0:01
+- [2026-10-27 Tue 08:32]--[2026-10-27 Tue 08:33] assigned at review
+CLOCK: [2026-10-27 Tue 08:40]--[2026-10-27 Tue 08:41] =>  0:01
+- [2026-10-27 Tue 08:40]--[2026-10-27 Tue 08:41] assigned at review
 :END:
 :PLAN:
 Two causes empty the session table, and the fix covers both (approach 3 of
@@ -12366,10 +12370,16 @@ those clients lose both the server and their project. Confirmed in batch against
 upstream's own code by [[id:28eed617-e4e0-4d29-88ea-9411de4b77e5][28eed617]], which works around it with =:around= advice
 that suppresses the stop once standalone wiring has run. The upstream fix would
 be to count registered sessions, or to stop only when the table is empty.
+
+
 ** TODO An unknown session id has no hook, so the module advises get-session-context to register projects on demand :code:
 :PROPERTIES:
 :ID:       56f26c45-39b9-4a6e-9df2-4358aa83c19f
 :CREATED:  [2026-10-27 Tue 08:41]
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-27 Tue 08:41]--[2026-10-27 Tue 08:42] =>  0:01
+- [2026-10-27 Tue 08:41]--[2026-10-27 Tue 08:42] file the upstream hook request
 :END:
 
 Upstream's session lookup, claude-code-ide-mcp-server-get-session-context,
@@ -12381,6 +12391,7 @@ derives session names; a change to either breaks registration without an error.
 Propose upstream a hook (e.g.
 claude-code-ide-mcp-server-unknown-session-functions) run on a miss, so the
 advice can be dropped.
+
 
 * MAYBE Consider archives in org_clock_report's scope (agenda-with-archives) :code:
 :PROPERTIES:
