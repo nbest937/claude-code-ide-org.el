@@ -2,7 +2,9 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* NEXT [0/9] A web page, a shared second, an archive rename or one tool argument can corrupt the tracker or hang Emacs :code:
+
+
+* NEXT [0/9] The tracker can lose or corrupt its record, or Emacs can stop on a prompt, and nothing says so :code:
 :PROPERTIES:
 :ID:       3bfa593c-c2da-4e44-b47f-2d5f0750f2aa
 :CREATED:  [2026-10-27 Tue 12:56]
@@ -26,8 +28,7 @@ then overwritten; the discard guard misses the spellings sessions use;
 org_set_property applies TODO live and prompts on SCHEDULED; and a capture
 blocks on a prompt, from its title's template expansion or from an Org QL view's
 link store ([[id:fd29914e-0d18-4964-a104-37c136b311a6][fd29914e]], moved here from [[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]] 2026-10-27, the user). Fixed
-worst first. The title predates the last four members and names only the first
-ones. The audit's sixth must-fix of this kind, headline lines in amend text,
+worst first. The audit's sixth must-fix of this kind, headline lines in amend text,
 stays with [[id:c0c5e015-c33e-4e1a-ad6e-907f9fa56c07][c0c5e015]] in [[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]], since a member counted by two slices splits
 their cookies.
 
