@@ -434,16 +434,32 @@ comparators, as [[id:0c3f1319-67c0-4b29-a8e7-5ffa12948aaf][0c3f1319]] measured f
 :CREATED:  [2026-10-27 Tue 13:23]
 :CATEGORY: Tools
 :END:
+:PLAN:
+Not yet designed. The audit's proposal: close any companion socket whose
+websocket-origin is non-nil, since Claude Code's CLI sends none, or bind
+claude-code-ide-enable-execute-code to nil in the module, or both. The
+verification client (a raw-socket WebSocket handshake carrying Origin, then
+tools/list and an executeCode call) is the test to keep: it must fail after the
+fix.
+:END:
 
-Unverified, from a repo audit 2026-10-27, by reading: upstream's lockfile
+Found by a repo audit 2026-10-27: upstream's lockfile
 carries no authToken, nothing checks websocket-origin, and
 claude-code-ide-enable-execute-code defaults to t, with no override in the live
 Doom config. A browser WebSocket is not subject to CORS, so a page that finds
 the companion's port could evaluate elisp in Emacs; --start-companion keeps one
 running per tracked project. Sibling of [[id:8c4a3aea-3208-46c8-a491-2ff024fbf822][8c4a3aea]], which is the same gap on the
-HTTP tools server. Proposed: confirm with a local page first, then either close
-any socket whose websocket-origin is non-nil or bind
-claude-code-ide-enable-execute-code to nil in the module.
+HTTP tools server.
+
+*Verified 2026-10-27, so the title's "may" is settled.* A minimal WebSocket
+client sent the browser-style handshake with Origin: https://evil.example.com to
+this repo's companion on 127.0.0.1:44603: it switched protocols, listed
+executeCode among its tools, and evaluated (list (emacs-pid) (+ 40 2)) to (2986
+42), the live Emacs. Three companions were listening, one per tracked project,
+each lockfile world-readable in ~/.claude/ide/. What a real page still needs is
+the port, among 10000-65535, and a browser that lets a public page reach
+loopback, which recent Chrome restricts and Firefox and Safari do not.
+
 
 
 * TODO footnotes-inject reads hook JSON with sed, so a path or id containing an escaped quote is cut short :code:
@@ -462,15 +478,15 @@ going on. Seen by a repo audit 2026-10-27, by reading only, and untested.
 Proposed: read both fields with jq, as the sibling hooks do.
 
 
-* NEXT [0/14] The tracker can lose or corrupt its record, or Emacs can stop on a prompt, and nothing says so :code:
+* NEXT [0/15] The tracker can lose or corrupt its record, or Emacs can stop on a prompt, and nothing says so :code:
 :PROPERTIES:
 :ID:       3bfa593c-c2da-4e44-b47f-2d5f0750f2aa
 :CREATED:  [2026-10-27 Tue 12:56]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:MEMBERS:  8c4a3aea-3208-46c8-a491-2ff024fbf822 8985f8ae-8b26-45eb-8898-73f17c98680a 0a0dee55-d709-466e-a525-c3bb1c437b91 d3468075-b17a-45a2-bd3a-838521f11a87 6c969cbd-0c03-409f-835f-80ddb1faedf6 187a87b4-20db-4fbf-931f-a4b4e1bed668 c0a21a0f-89ed-4b66-b7ed-acbfd5583015 62bc2f7f-0d55-4049-af00-52a2b333188a e9f8b780-c93b-41f9-b146-1c4695283af9 b0e46168-2548-49ca-8f5f-5dcc6f3fc524 254308f7-70a9-4296-9166-fe4138c6382b a3ad9732-681c-4103-a9e2-5f919e60522c 412768a0-3d9b-4cfe-9264-3f214d4baed1 fd29914e-0d18-4964-a104-37c136b311a6
-:BLOCKER:  8c4a3aea-3208-46c8-a491-2ff024fbf822 8985f8ae-8b26-45eb-8898-73f17c98680a 0a0dee55-d709-466e-a525-c3bb1c437b91 d3468075-b17a-45a2-bd3a-838521f11a87 6c969cbd-0c03-409f-835f-80ddb1faedf6 187a87b4-20db-4fbf-931f-a4b4e1bed668 c0a21a0f-89ed-4b66-b7ed-acbfd5583015 62bc2f7f-0d55-4049-af00-52a2b333188a e9f8b780-c93b-41f9-b146-1c4695283af9 b0e46168-2548-49ca-8f5f-5dcc6f3fc524 254308f7-70a9-4296-9166-fe4138c6382b a3ad9732-681c-4103-a9e2-5f919e60522c 412768a0-3d9b-4cfe-9264-3f214d4baed1 fd29914e-0d18-4964-a104-37c136b311a6
+:MEMBERS:  8c4a3aea-3208-46c8-a491-2ff024fbf822 d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80 8985f8ae-8b26-45eb-8898-73f17c98680a 0a0dee55-d709-466e-a525-c3bb1c437b91 d3468075-b17a-45a2-bd3a-838521f11a87 6c969cbd-0c03-409f-835f-80ddb1faedf6 187a87b4-20db-4fbf-931f-a4b4e1bed668 c0a21a0f-89ed-4b66-b7ed-acbfd5583015 62bc2f7f-0d55-4049-af00-52a2b333188a e9f8b780-c93b-41f9-b146-1c4695283af9 b0e46168-2548-49ca-8f5f-5dcc6f3fc524 254308f7-70a9-4296-9166-fe4138c6382b a3ad9732-681c-4103-a9e2-5f919e60522c 412768a0-3d9b-4cfe-9264-3f214d4baed1 fd29914e-0d18-4964-a104-37c136b311a6
+:BLOCKER:  8c4a3aea-3208-46c8-a491-2ff024fbf822 d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80 8985f8ae-8b26-45eb-8898-73f17c98680a 0a0dee55-d709-466e-a525-c3bb1c437b91 d3468075-b17a-45a2-bd3a-838521f11a87 6c969cbd-0c03-409f-835f-80ddb1faedf6 187a87b4-20db-4fbf-931f-a4b4e1bed668 c0a21a0f-89ed-4b66-b7ed-acbfd5583015 62bc2f7f-0d55-4049-af00-52a2b333188a e9f8b780-c93b-41f9-b146-1c4695283af9 b0e46168-2548-49ca-8f5f-5dcc6f3fc524 254308f7-70a9-4296-9166-fe4138c6382b a3ad9732-681c-4103-a9e2-5f919e60522c 412768a0-3d9b-4cfe-9264-3f214d4baed1 fd29914e-0d18-4964-a104-37c136b311a6
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-10-27 Tue 12:58] \\
@@ -493,6 +509,7 @@ their cookies.
 Planned:
 
 - [ ] [[id:8c4a3aea-3208-46c8-a491-2ff024fbf822][8c4a3aea]] TODO The tools server answers any web page: it checks no Origin or Host, and every reply says Access-Control-Allow-Origin: *
+- [ ] [[id:d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80][d7b2f50f]] TODO The IDE companion's WebSocket may accept any web page, and executeCode runs whatever elisp it is sent
 - [ ] [[id:8985f8ae-8b26-45eb-8898-73f17c98680a][8985f8ae]] TODO The session render escapes only column-zero lines, so an indented #+ line in transcript text takes effect, SETUPFILE included
 - [ ] [[id:0a0dee55-d709-466e-a525-c3bb1c437b91][0a0dee55]] TODO The applied record keys a session's events by timestamp to the second, so an event that failed or was skipped is consumed when another from the same second applies
 - [ ] [[id:d3468075-b17a-45a2-bd3a-838521f11a87][d3468075]] TODO An apply interrupted after its writes records nothing, and the next pass inserts each amend a second time
@@ -891,8 +908,8 @@ session with a message.
 Not yet designed. The audit's proposal: :around advice on
 claude-code-ide-mcp-http-server--handle-post refusing any request that carries
 Origin, or whose Host is not localhost or 127.0.0.1 on the port, since CLI
-clients send no Origin. Check the IDE companion's WebSocket too: executeCode is
-on by default and it looks to have the same gap, unverified. [[id:5adeb6c2-afc0-4472-9529-fff48f8ba825][5adeb6c2]] is the
+clients send no Origin. The IDE companion's WebSocket has the same gap, verified
+2026-10-27, and is [[id:d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80][d7b2f50f]]; one Origin rule should serve both. [[id:5adeb6c2-afc0-4472-9529-fff48f8ba825][5adeb6c2]] is the
 design for auth beyond localhost.
 :END:
 
@@ -903,6 +920,13 @@ which needs no CORS preflight, to org_capture or org_edit and read the reply,
 planting text that later sessions read and trust; recent Chrome's local-network
 prompt blocks some of this, Firefox and Safari do not. Found by a repo audit
 2026-10-27, by reading.
+
+Verified 2026-10-27: a text/plain POST of tools/list carrying Origin:
+https://evil.example.com to 127.0.0.1:45571 was answered 200 with
+Access-Control-Allow-Origin: *, so a page can read the reply. Its sibling
+[[id:d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80][d7b2f50f]], the companion WebSocket, was confirmed the same day to run elisp sent
+from a foreign origin.
+
 
 
 * TODO Setting :MEMBERS: or :DROPPED: refreshes nothing, so the checklist goes stale and org_slice_add_member refuses on a row already gone :code:
