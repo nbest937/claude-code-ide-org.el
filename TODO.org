@@ -440,7 +440,11 @@ websocket-origin is non-nil, since Claude Code's CLI sends none, or bind
 claude-code-ide-enable-execute-code to nil in the module, or both. The
 verification client (a raw-socket WebSocket handshake carrying Origin, then
 tools/list and an executeCode call) is the test to keep: it must fail after the
-fix.
+fix. It is now bin/probe-companion-origin ([[https://github.com/nbest937/claude-code-ide-org.el/pull/40][PR #40]]), whose exit 0 means every
+companion refused the foreign Origin: that is the fix's acceptance test. Since
+2026-10-27 the Doom config sets claude-code-ide-enable-execute-code to nil, and
+the probe confirms all three companions refuse executeCode while still accepting
+the handshake, so the Origin check is what remains.
 :END:
 
 Found by a repo audit 2026-10-27: upstream's lockfile
@@ -13679,8 +13683,9 @@ early when the directory is no longer in claude-code-ide--processes).
 To send through the repository's Security tab (Report a vulnerability), not as a
 public issue. Check first that private reporting is enabled on
 manzaltu/claude-code-ide.el; if it is not, open a public issue that asks for a
-private channel and leaves the detail out. Re-run the probe against the version
-current on the day it is sent, and correct the versions line if it has changed.
+private channel and leaves the detail out. Re-run bin/probe-companion-origin
+against the version current on the day it is sent, and correct the versions line
+if it has changed.
 
 #+begin_example
 Title: Both local MCP servers accept requests from any web page, and executeCode lets one run Elisp
