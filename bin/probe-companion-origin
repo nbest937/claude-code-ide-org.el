@@ -11,21 +11,44 @@
 # a client in a batch Emacs, never through the running one.
 #
 # Usage: bin/probe-companion-origin [PORT...]
-#   With no PORT, probes every Emacs lockfile in ~/.claude/ide.
-# Exit: 0 every companion refused; 1 one accepted the foreign Origin;
-#   2 one was unreachable, or there was nothing to probe.
+#   With no PORT, probes every Emacs lockfile in ~/.claude/ide (or
+#   $PROBE_LOCKFILE_DIR) whose recorded pid is still running. A crashed
+#   Emacs leaves its lockfile behind, and that port, closed or reused,
+#   would decide the run for a reason unrelated to the companions.
+# Exit: 0 every companion refused -- failed the handshake, or closed the
+#   socket after it without answering; 1 one answered the foreign Origin
+#   (or stayed silent with the socket open); 2 one was unreachable, a
+#   PORT was not a port, or there was nothing to probe.
 #
 # Not a suite: it needs live companions, so bin/test-all must not run it.
+# bin/probe-companion-origin-test drives it against fixture servers.
 set -uo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
 if (($# == 0)); then
-  for f in "$HOME"/.claude/ide/*.lock; do
-    [[ -e "$f" ]] && grep -q '"ideName":"Emacs"' "$f" && set -- "$@" "$(basename "$f" .lock)"
+  dir="${PROBE_LOCKFILE_DIR:-$HOME/.claude/ide}"
+  for f in "$dir"/*.lock; do
+    [[ -e "$f" ]] && grep -q '"ideName":"Emacs"' "$f" || continue
+    port="$(basename "$f" .lock)"
+    pid="$(grep -o '"pid":[0-9]*' "$f" | cut -d: -f2)"
+    if [[ -z "$pid" ]] || ! kill -0 "$pid" 2>/dev/null; then
+      echo "probe-companion-origin: $port: skipped -- stale lockfile, pid ${pid:-?} is not running" >&2
+      continue
+    fi
+    set -- "$@" "$port"
   done
   if (($# == 0)); then
-    echo "probe-companion-origin: no Emacs lockfile in ~/.claude/ide; pass a port" >&2
+    echo "probe-companion-origin: no live Emacs lockfile in $dir; pass a port" >&2
     exit 2
   fi
 fi
+# Every argument reaches Emacs's own command line: `--help' would print
+# Emacs's usage and exit 0, and `abc' would become port 0, which url.el
+# reads as the default, 80.
+for p in "$@"; do
+  if ! [[ "$p" =~ ^[1-9][0-9]{0,4}$ ]] || ((p > 65535)); then
+    echo "probe-companion-origin: not a port: $p" >&2
+    exit 2
+  fi
+done
 exec "$here/lib/batch-emacs" -l "$here/lib/probe-companion-origin.el" \
   -f probe-companion-origin-main "$@"

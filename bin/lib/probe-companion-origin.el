@@ -48,15 +48,21 @@ Prints one line saying which, and for `open' whether executeCode ran."
                   ;; anyway, so the refusal has to win.
                   :on-open (lambda (_ws)
                              (unless (eq state 'refused) (setq state 'open)))
+                  ;; A frame that is not JSON is not a reply. Left to
+                  ;; signal, websocket.el would route it to `on-error'.
                   :on-message
                   (lambda (_ws frame)
-                    (let* ((msg (json-parse-string (websocket-frame-text frame)
-                                                   :object-type 'alist))
-                           (id (alist-get 'id msg)))
+                    (let* ((msg (ignore-errors
+                                  (json-parse-string (websocket-frame-text frame)
+                                                     :object-type 'alist)))
+                           (id (and (consp msg) (alist-get 'id msg))))
                       (when id (puthash id msg replies))))
                   :on-close (lambda (_ws)
                               (unless (eq state 'open) (setq state 'refused)))
-                  :on-error (lambda (_ws _type _err) (setq state 'refused))))
+                  ;; websocket.el also calls `on-error' for any callback
+                  ;; that signals, so only a handshake error is a refusal.
+                  :on-error (lambda (_ws _type _err)
+                              (when (eq state 'connecting) (setq state 'refused)))))
       (error
        (message "probe-companion-origin: %d: unreachable (%s)"
                 port (error-message-string err))
@@ -64,26 +70,42 @@ Prints one line saying which, and for `open' whether executeCode ran."
     (unless (eq state 'unreachable)
       (probe-companion-origin--wait (lambda () (not (eq state 'connecting))))
       (pcase state
+        ;; A handshake is not the verdict: websocket.el's server sends the
+        ;; 101 before `on-open' can see the Origin, so a companion that
+        ;; checks it can only close the socket after accepting. An answer
+        ;; is the verdict -- a page that is answered can drive the server.
         ('open
-         (let ((call
-                (lambda (id method params)
-                  (ignore-errors
-                    (websocket-send-text
-                     ws (json-encode `((jsonrpc . "2.0") (id . ,id)
-                                       (method . ,method) (params . ,params)))))
-                  (probe-companion-origin--wait (lambda () (gethash id replies))))))
-           (funcall call 1 "tools/list" (make-hash-table))
-           (let* ((reply (funcall call 2 "tools/call"
-                                  '((name . "executeCode")
-                                    (arguments
-                                     . ((code . "(list (emacs-pid) (+ 40 2))"))))))
-                  (result (alist-get 'result reply)))
-             (message "probe-companion-origin: %d: OPEN -- a page from %s connected; %s"
-                      port probe-companion-origin--origin
-                      (if result
-                          (format "executeCode ran and returned %s"
-                                  (json-encode result))
-                        "executeCode refused")))))
+         (let* ((call
+                 (lambda (id method params)
+                   (ignore-errors
+                     (websocket-send-text
+                      ws (json-encode `((jsonrpc . "2.0") (id . ,id)
+                                        (method . ,method) (params . ,params)))))
+                   (probe-companion-origin--wait
+                    (lambda () (or (gethash id replies) (not (websocket-openp ws)))))
+                   (gethash id replies)))
+                (listing (funcall call 1 "tools/list" (make-hash-table))))
+           (cond
+            (listing
+             (let* ((reply (funcall call 2 "tools/call"
+                                    '((name . "executeCode")
+                                      (arguments
+                                       . ((code . "(list (emacs-pid) (+ 40 2))"))))))
+                    (result (alist-get 'result reply)))
+               (message "probe-companion-origin: %d: OPEN -- a page from %s was answered; %s"
+                        port probe-companion-origin--origin
+                        (cond (result (format "executeCode ran and returned %s"
+                                              (json-encode result)))
+                              (reply (format "executeCode refused (%s)"
+                                             (alist-get 'message (alist-get 'error reply))))
+                              (t "executeCode did not answer")))))
+            ((not (websocket-openp ws))
+             (message "probe-companion-origin: %d: refused -- the socket closed unanswered after the handshake"
+                      port)
+             (setq state 'refused))
+            (t
+             (message "probe-companion-origin: %d: handshake accepted, no answer in %ds; treating it as open"
+                      port probe-companion-origin--seconds)))))
         ('connecting
          (message "probe-companion-origin: %d: no handshake reply in %ds; treating it as open"
                   port probe-companion-origin--seconds)
