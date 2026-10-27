@@ -2,11 +2,23 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* TODO Prune the spent one-off code: the :MEMBERS: migration and its proof, datetree-file, the CLOSED backfills, and --file-line-count :code:
+* DOING Prune the spent one-off code: the :MEMBERS: migration and its proof, datetree-file, the CLOSED backfills, and --file-line-count :code:
 :PROPERTIES:
 :ID:       dce10826-bc70-4cdf-bf48-aee8c5371a0d
 :CREATED:  [2026-10-27 Tue 14:03]
 :CATEGORY: Dev
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-27 Tue 14:03]--[2026-10-27 Tue 14:07] =>  0:04
+- State "DOING"      from "TODO"       [2026-10-27 Tue 14:03] \\
+  user asked to prune now
+- [2026-10-27 Tue 14:03]--[2026-10-27 Tue 14:07] delete spent one-off code and its tests
+CLOCK: [2026-10-27 Tue 14:21]--[2026-10-27 Tue 14:24] =>  0:03
+- [2026-10-27 Tue 14:21]--[2026-10-27 Tue 14:24] suggested span, accepted at review
+CLOCK: [2026-10-27 Tue 14:33]--[2026-10-27 Tue 14:34] =>  0:01
+- [2026-10-27 Tue 14:33]--[2026-10-27 Tue 14:34] suggested span, accepted at review
+CLOCK: [2026-10-27 Tue 14:46]--[2026-10-27 Tue 14:47] =>  0:01
+- [2026-10-27 Tue 14:46]--[2026-10-27 Tue 14:47] suggested span, accepted at review
 :END:
 
 A repo audit on 2026-10-27 found code whose one job is done. The :MEMBERS:
@@ -17,6 +29,7 @@ backfill-closed and backfill-closed-from-git with --git-close-time filled 58
 CLOSED: lines once. --file-line-count lost its last caller to a size check. The
 user asked 2026-10-27 to remove all of it with its tests, keeping
 --recorded-close-time and --datetree-target-file, which live code still calls.
+
 
 * TODO Audit what the two 2026-10-27 repo audits left unread, and run the suites they did not :code:research:
 :PROPERTIES:
@@ -43,7 +56,6 @@ against open headings before filing.
 
 The coverage two repo audits on 2026-10-27 left: the parts they did not read,
 and the test suites neither ran. The list is in :PLAN:.
-
 
 
 * TODO The transcript prompt test is written four times, and all four let local-command output open a turn :code:
@@ -13678,6 +13690,7 @@ per tool -- rather than opening the servers beyond localhost.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-10-27 Tue 15:01]--[2026-10-27 Tue 15:02] =>  0:01
 CLOCK: [2026-10-27 Tue 13:54]--[2026-10-27 Tue 13:56] =>  0:02
 CLOCK: [2026-10-27 Tue 13:05]--[2026-10-27 Tue 13:09] =>  0:04
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
@@ -15580,4 +15593,10 @@ CLOCK: [2026-10-27 Tue 13:30]--[2026-10-27 Tue 13:33] =>  0:03
 - [2026-10-27 Tue 13:30]--[2026-10-27 Tue 13:33] assigned at review
 CLOCK: [2026-10-27 Tue 13:35]--[2026-10-27 Tue 13:37] =>  0:02
 - [2026-10-27 Tue 13:35]--[2026-10-27 Tue 13:37] assigned at review
+CLOCK: [2026-10-27 Tue 13:52]--[2026-10-27 Tue 13:55] =>  0:03
+- [2026-10-27 Tue 13:52]--[2026-10-27 Tue 13:55] file the second audit's 20 findings
+CLOCK: [2026-10-27 Tue 14:02]--[2026-10-27 Tue 14:03] =>  0:01
+- [2026-10-27 Tue 14:02]--[2026-10-27 Tue 14:03] file the second audit's 20 findings
+CLOCK: [2026-10-27 Tue 14:46]--[2026-10-27 Tue 14:47] =>  0:01
+- [2026-10-27 Tue 14:46]--[2026-10-27 Tue 14:47] record the audit-log miss
 :END:
