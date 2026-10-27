@@ -2,6 +2,29 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO An apply whose writes never reach disk is committed short, and the only alarm for it is a log line nobody reads :code:
+:PROPERTIES:
+:ID:       4a700efb-c96c-4d40-942a-27755b5b5b4e
+:CREATED:  [2026-10-27 Tue 15:24]
+:CATEGORY: Apply
+:END:
+:PLAN:
+Not yet designed. The direction agreed with the user 2026-10-27: apply-detect,
+which already fires when an apply lands, counts the audit log's org_review_apply
+records marked UNSAVED-MISMATCH since the session last looked and says so before
+the session commits; the clock and keyword hooks stop logging events no wrapper
+attributed; the ceremony's archive pass carries a source label again.
+:END:
+
+apply-detect tells the session an apply landed and the session commits it
+unasked, so nobody reads that diff; apply checks only that its state items
+landed, and the tool-call audit log's UNSAVED-MISMATCH record is the one thing
+that sees a clock line or amend that never reached disk, as on 2026-09-14.
+Nothing reads the log. Meanwhile 881 of its 8,601 records are hand edits from
+the clock and keyword hooks, nearly all noise, and the archive pass lost its
+source label after August. Supersedes [[id:e9ee1a50-085f-4c37-b064-4aec71cecb41][e9ee1a50]]; the log's
+existing data stays for [[id:b5448133-4021-46b9-a90e-d88e149ae65d][b5448133]] and any attribution question.
+
 * DOING Prune the spent one-off code: the :MEMBERS: migration and its proof, datetree-file, the CLOSED backfills, and --file-line-count :code:
 :PROPERTIES:
 :ID:       dce10826-bc70-4cdf-bf48-aee8c5371a0d
@@ -5342,6 +5365,9 @@ main and left the originals. Also covers org bookkeeping on a stale branch.
 Closes when pre-commit refuses a branch already contained in origin/main. One
 dated line per catch.
 
+- 2026-10-27: did tracker bookkeeping while on a feature branch, committed it on main, then switched back; the switch rewrote TODO.org without the new line and the next apply landed on that stale copy, so returning to main needed a saved patch and a forced switch. Bookkeeping belongs on main from the start.
+
+
 
 ** TODO Miss: an org act performed before reading the convention that governs it
 :PROPERTIES:
@@ -7144,6 +7170,15 @@ dismissed.
 :PLAN:
 
 :END:
+:DEBRIEF:
+No reader was built. A repo audit on 2026-10-27 found the log at 8,601 records,
+with no attribution question asked of it since 2026-09-16, and 18
+UNSAVED-MISMATCH alarms nobody had seen: 12 from org_set_todo before the
+2026-08-11 queue cutover, and 6 from apply, the last on 2026-09-14. Deleting it
+was proposed, then withdrawn when the user pointed out that the session commits
+the apply diff unread, so the apply alarm is the log's live job; that moved to
+[[id:4a700efb-c96c-4d40-942a-27755b5b5b4e][4a700efb]]. [[id:b5448133-4021-46b9-a90e-d88e149ae65d][b5448133]] still needs the existing file.
+:END:
 Found 2026-09-16. =.claude-code-ide-org-audit.jsonl= holds **5053 records, 1.7
 MB**, accumulated since August in the repo root (gitignored, =.gitignore:4=),
 and 2026-09-16 was the **first time anything ever read it**. It was built for
@@ -7178,6 +7213,11 @@ rotation. It held 284 =UNSAVED-MISMATCH= records nobody had seen: 266 are
 to raise. Each logged event costs two whole-file sha256 reads. The audit's
 proposal: a ceremony-report line counting non-hand-edit mismatches since the
 last stamp, or stop writing the log.
+
+Cancelled 2026-10-27, overtaken by [[id:4a700efb-c96c-4d40-942a-27755b5b5b4e][4a700efb]]: the reader the log needs is an
+alarm in apply-detect for an apply that never reached disk, not an attribution
+report. The data stays for attribution questions.
+
 
 
 * TODO The review-attention clock stops at the first apply, so 101 intervals measure the wrong thing :code:
