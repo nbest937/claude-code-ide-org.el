@@ -357,11 +357,26 @@ Code on a feature/ branch, merged through a PR.
   comma after the indent, and corrects the test that pins the wrong rule; the
   design is in :PLAN:.
 
-* TODO A replayed apply writes an extra one-minute CLOCK line for every run whose end has seconds :code:
+* TODO A replayed apply writes an extra one-minute CLOCK line for every run whose end has seconds :code:bounded:
 :PROPERTIES:
 :ID:       6c969cbd-0c03-409f-835f-80ddb1faedf6
 :CREATED:  [2026-10-27 Tue 13:52]
 :CATEGORY: Clock
+:END:
+:LOGBOOK:
+- Tags ":code:bounded:" from ":code:"     [2026-10-28 Wed 13:05] \\
+  classified at /plan-slice: one function
+:END:
+:PLAN:
+Bounded: one function, --subtract-intervals in config.el.
+
+1. Before subtracting, widen each recorded interval's end to the end of its minute: a line recorded as ending 10:30 covers up to 10:31:00, since org truncates the real end to the minute when it writes the line. That removes exactly the artifact the format creates. The start needs nothing: org truncates it downwards, so a run never begins inside the gap. Inside --subtract-intervals only; no other caller of --apply-idle-floor changes, and its promotion of positive sub-minute pieces stays, so a genuine piece beyond the widened end is still recorded (the user, 2026-10-28, option a). Ruled out: dropping sub-minute pieces in the cut path instead of promoting them, the audit's proposal, which also drops a real piece outside a recorded interval -- the erasure [[id:293ac49e-3324-421c-8495-de1a46fc04ac][293ac49e]] closed.
+
+2. Tests, ERT in config-test.el, each proved red against HEAD: a run ending at :20 replayed against its own written line writes nothing; a run ending 10:31:40 against a line ending 10:30 still yields [10:31]--[10:32]; the existing replay tests, whose fixtures fall on :00, still pass.
+
+3. Acceptance: replay one real span whose run ends off the minute and check the drawer is unchanged.
+
+Code on a feature/ branch, merged through a PR.
 :END:
 
 Org records a run ending 10:30:20 as 10:30, so on replay --subtract-intervals
@@ -804,11 +819,10 @@ Code on a feature/ branch, merged through a PR.
   steps swallow errors but not quit. A C-g during the slow refresh, or a
   day-node item signalling, leaves saved items unrecorded; the next pass
   re-offers them, and state, clock and capture items detect the repeat while
-  --review-apply-amend does not. Found by reading in a repo audit 2026-10-27;
-  frequency unknown. Proposed: record right after the apply loop inside
-  unwind-protect, and give amends an already-present check. The reverse case,
-  recorded as applied but missing from the file, is [[id:7e4fb8ae-87ff-445a-b960-b7cc5302c0c8][7e4fb8ae]].
-
+  --review-apply-amend does not (repo audit 2026-10-27, by reading; frequency
+  unknown). The fix records in an unwind-protect right after the loop and gives
+  amends a repeat check; the design is in :PLAN:. The reverse case, recorded as
+  applied but missing from the file, is [[id:7e4fb8ae-87ff-445a-b960-b7cc5302c0c8][7e4fb8ae]].
 
 * TODO footnote-check blocks every stop when its loop-guard file cannot be written :code:
 :PROPERTIES:
