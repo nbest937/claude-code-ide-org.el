@@ -4234,26 +4234,14 @@ prompt, so org-ql's link function still reads the minibuffer.
 It shares --capture-write with [[id:412768a0-3d9b-4cfe-9264-3f214d4baed1][412768a0]], so the two land on one branch and one
 PR.
 :END:
-Twice on 2026-09-25 an =org_capture= stopped at "Make link that searches: ", a
-prompt from org-ql's =org-ql-view--link-store=. Org's capture stores a link to
-the current buffer, and that function asks this question whenever the current
-buffer has =org-ql-view-query= set, which is true only in an Org QL view buffer
-(four were open, each with the variable buffer-local). With no human at the
-keyboard the call hangs until the MCP request times out; =C-g= aborts it, and
-the reply then fails on a dead websocket. Unverified, and the title may be wrong
-about it: whether the view has to be the *selected* buffer. At one failure the
-selected buffer was =*Messages*= a minute earlier and =*Ibuffer*= just after.
-Proposed: run the capture with a neutral current buffer, or bind
-=org-store-link-functions= to nil around it, since a tool capture has no use for
-an annotation link to wherever the user happens to be.
-
-Settled the same day: the selected window's buffer is what counts. With the Org
-QL view selected in the only frame, the check before the next capture showed it,
-and after the user buried it with =q= the capture ran clean. The earlier
-=*Messages*= and =*Ibuffer*= readings caught the user between buffers. In this
-Doom config the matching human keystroke is =C-c n l= (=org-store-link=); =C-c
-l= is Doom's localleader prefix.
-
+Twice on 2026-09-25 an org_capture stopped at "Make link that searches: ", a
+prompt from org-ql's org-ql-view--link-store: org's capture stores a link to the
+current buffer, and that function asks whenever the buffer has org-ql-view-query
+set, which only an Org QL view does. With no human at the keyboard the call
+hangs until the MCP request times out. Settled the same day: the selected
+window's buffer is what counts; with the view buried the capture ran clean. The
+fix binds org-capture's link-already-stored switch around the capture so no link
+function runs; the design is in :PLAN:.
 
 * TODO org_slice_add_member's after= inserts between a story and its nested children, splitting the block :code:
 :PROPERTIES:
