@@ -13873,6 +13873,17 @@ scoped per tool.
 your live Emacs — a bearer token alone adds no TLS, per-tool
 scoping, or rate limiting. Don't just flip the host to 0.0.0.0 and
 call it done.
+
+A tunnel meets [[id:8c4a3aea-3208-46c8-a491-2ff024fbf822][8c4a3aea]]'s refusal (a side agent's note, relayed by the user
+2026-10-28): that design answers 403 to any request whose Host is not localhost,
+127.0.0.1 or [::1] on the server's port, which is what closes DNS rebinding. A
+request arriving through a tunnel such as ngrok carries the tunnel's public
+hostname as its Host, so once [[id:8c4a3aea-3208-46c8-a491-2ff024fbf822][8c4a3aea]] lands it is refused. The repo holds an
+untracked .ngrok/ directory whose purpose is not recorded. Remote access
+designed here therefore needs either an allowlist of hostnames beside the bearer
+token, read by the same advice, or a tunnel that rewrites Host to localhost; if
+a tunnel already reaches the tools server, [[id:8c4a3aea-3208-46c8-a491-2ff024fbf822][8c4a3aea]] should take the allowlist
+before it is built.
 :END:
 
 Off-machine access to the tools server and IDE companion, from a phone, another
