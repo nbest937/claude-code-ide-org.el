@@ -625,6 +625,27 @@ Proposed: read both fields with jq, as the sibling hooks do.
   nominated over f436a3b8: security hole and silent data loss
 :END:
 :PLAN:
+The order, composed at /plan-slice 2026-10-28 from the members' own :PLAN:
+drawers, which win wherever this disagrees with them. The two ways in from
+outside come first, then the queue's record, from its keys outward, then the
+independent fixes. It differs from :MEMBERS:' order, which the checklist
+renders; read the checklist for membership and this for sequence.
+
+1. [[id:d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80][d7b2f50f]], already DOING with its gate passed: it defines claude-code-ide-org-refuse-browser-origins, the switch [[id:8c4a3aea-3208-46c8-a491-2ff024fbf822][8c4a3aea]]'s advice joins.
+2. [[id:8c4a3aea-3208-46c8-a491-2ff024fbf822][8c4a3aea]], the HTTP refusal, added to that switch's :set.
+3. [[id:8985f8ae-8b26-45eb-8898-73f17c98680a][8985f8ae]], the render's escaping: the last way in from outside, a transcript's text taking effect in a rendered file.
+4. [[id:0a0dee55-d709-466e-a525-c3bb1c437b91][0a0dee55]], the only architectural member: event ids change the key every later queue member reads, so they land on it rather than on ts keys.
+5. [[id:d3468075-b17a-45a2-bd3a-838521f11a87][d3468075]], record-first and the amend repeat check, which [[id:e9f8b780-c93b-41f9-b146-1c4695283af9][e9f8b780]]'s refused write leans on.
+6. [[id:e9f8b780-c93b-41f9-b146-1c4695283af9][e9f8b780]], the unreadable watermark, after the key change because both rewrite the same reader.
+7. [[id:c0a21a0f-89ed-4b66-b7ed-acbfd5583015][c0a21a0f]], archive merge and restore refusal, unioning keys of either shape.
+8. [[id:6c969cbd-0c03-409f-835f-80ddb1faedf6][6c969cbd]], the replay residue, one function and independent.
+9. [[id:187a87b4-20db-4fbf-931f-a4b4e1bed668][187a87b4]], the leftover's flags, one function and independent.
+10. [[id:62bc2f7f-0d55-4049-af00-52a2b333188a][62bc2f7f]], the descending datetree finder and its lint check.
+11. [[id:254308f7-70a9-4296-9166-fe4138c6382b][254308f7]], the ceremony's two sorts refusing a busy file.
+12. [[id:b0e46168-2548-49ca-8f5f-5dcc6f3fc524][b0e46168]], discard-guard's per-segment directory, shell only.
+13. [[id:a3ad9732-681c-4103-a9e2-5f919e60522c][a3ad9732]], org_set_property's special-property refusal.
+14. [[id:412768a0-3d9b-4cfe-9264-3f214d4baed1][412768a0]] and 15. [[id:fd29914e-0d18-4964-a104-37c136b311a6][fd29914e]] together: both change --capture-write, so they share one PR.
+
 Followed by [[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]] (the user, 2026-10-28): the sibling slice of tool calls
 that tell their caller the opposite of what happened, which gave [[id:fd29914e-0d18-4964-a104-37c136b311a6][fd29914e]] to
 this one, and which finishes org_edit for every later slice's bookkeeping.
