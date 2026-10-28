@@ -58,6 +58,15 @@ Repaired locally by hand: config restored, refs moved back with guarded
 update-ref (main to 15734e9, the PR branch to c9e290a), the leaked branches and
 the worktree removed. The fixture reflog entries are kept as evidence. git -C is
 no protection.
+
+The fix is [[https://github.com/nbest937/claude-code-ide-org.el/pull/41][PR #41]] (commit [[orgit-rev:./::2b97523][2b97523]]): bin/test-all unsets every name git rev-parse
+--local-env-vars prints and refuses to run when the list lacks GIT_DIR. Its four
+new test-all-test checks all fail against the old runner. End to end, a real
+pre-push from a linked worktree of a scratch clone left the clone untouched;
+with the old runner the same push reproduced the 2026-10-27 damage, down to
+rewriting the clone's origin URL. The push-from-no-worktree caution stands until
+the PR merges.
+
 * TODO An apply whose writes never reach disk is committed short, and the only alarm for it is a log line nobody reads :code:
 :PROPERTIES:
 :ID:       4a700efb-c96c-4d40-942a-27755b5b5b4e
