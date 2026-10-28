@@ -13797,11 +13797,32 @@ CLOCK: [2026-10-27 Tue 16:56]--[2026-10-27 Tue 16:57] =>  0:01
 :END:
 :PLAN:
 To send through the repository's Security tab (Report a vulnerability), not as a
-public issue. Check first that private reporting is enabled on
-manzaltu/claude-code-ide.el; if it is not, open a public issue that asks for a
-private channel and leaves the detail out. Re-run bin/probe-companion-origin
-against the version current on the day it is sent, and correct the versions line
-if it has changed.
+public issue. Nothing below has been done; each check is owed on the day it is
+sent, since upstream may have moved in the meantime.
+
+Before sending:
+- [ ] Private reporting: confirm it is enabled on manzaltu/claude-code-ide.el.
+  If it is not, open a public issue that asks for a private channel and leaves
+  every detail out.
+- [ ] Header name: confirm from a primary source (Claude Code's IDE extension
+  source or docs) that the token header is x-claude-code-ide-authorization.
+  Written from memory, unread.
+- [ ] CVE number: confirm CVE-2025-52882 is the Claude Code IDE extensions'
+  WebSocket advisory, from the CVE record or Anthropic's advisory. Also from
+  memory.
+- [ ] Current version: pull upstream and re-read the four places the report
+  cites (claude-code-ide-mcp--find-free-port, --create-lockfile, --on-open and
+  --on-close, and the HTTP server's Access-Control-Allow-Origin line). Correct
+  the "Checked at" line and drop any detail that has been fixed.
+- [ ] Re-probe the current version with bin/probe-companion-origin. Probing
+  takes over the session it reaches ([[id:207e9044-f05c-4507-bbd9-c2cfb9ef3f8e][207e9044]]), so it refuses a live companion
+  without --live: use a throwaway Emacs running the updated package, or pass
+  --live and then run /ide in the probed Claude session. Exit 1 with executeCode
+  ran confirms details 1 and 2, as long as executeCode is still on in the Emacs
+  probed. This repo's Doom config turns it off.
+- [ ] Session takeover (detail 4): after a --live probe, confirm the probed
+  session lost its Emacs link (an mcp__ide tool fails until /ide). That is the
+  report's evidence for detail 4.
 
 #+begin_example
 Title: Both local MCP servers accept requests from any web page, and executeCode lets one run Elisp
@@ -13883,9 +13904,6 @@ so the lockfile itself gives away the port.
 Fix 1 alone stops a web page from reaching executeCode or the session. Fix 3 limits the damage
 if something else gets in.
 #+end_example
-
-Before sending, confirm that the header name and the CVE number are right. Both
-come from memory, not from a source read today.
 :END:
 
 The upstream half of [[id:8c4a3aea-3208-46c8-a491-2ff024fbf822][8c4a3aea]] and [[id:d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80][d7b2f50f]]. Neither of claude-code-ide's servers
