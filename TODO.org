@@ -1019,16 +1019,33 @@ force flags; this is an absolute path to the file being discarded, and -C or cd
 choosing the repo.
 
 
-* TODO org_capture's title goes through capture-template expansion, so a newline splits the heading and %^ opens a prompt :code:
+* TODO org_capture's title goes through capture-template expansion, so a newline splits the heading and %^ opens a prompt :code:bounded:
 :PROPERTIES:
 :ID:       412768a0-3d9b-4cfe-9264-3f214d4baed1
 :CREATED:  [2026-10-27 Tue 12:48]
 :CATEGORY: Tools
 :END:
+:LOGBOOK:
+- Tags ":code:bounded:" from ":code:"     [2026-10-28 Wed 15:13] \\
+  classified at /plan-slice: one shared writer and one argument
+:END:
 :PLAN:
-Not yet designed. The audit's proposal: refuse newlines in titles and in
-org_divide's parent_title, and neutralise % in a title, by a placeholder
-replaced after finalize or by refusing a % sequence outright.
+Bounded: --capture-write in config.el, the one writer both capture paths share,
+and org_divide's parent_title. The title enters the template as %i, which org
+expands and then scans with the rest of the template, so a %^{...} in it prompts
+and %U stamps a time. The note and the category already moved out of the
+template for this reason and are written after finalize; the title is the one
+input still inside it.
+
+1. The title takes the same route: the template carries a %-free placeholder, claude-code-ide-org-title-<new-id>, and after finalize org-edit-headline replaces it with the real title at org-capture-last-stored-marker, keeping the keyword and tags, so nothing ever scans the title. Tags are template text too, and % is a legal tag character, so they leave the template the same way: set with org-set-tags at the same marker after finalize. Name validation stays [[id:eeb18e56-fcfd-4653-86e6-09448474de07][eeb18e56]]'s. Ruled out: refusing a % sequence outright, the audit's other option, which refuses honest titles such as "50% of runs".
+
+2. Newlines and carriage returns are refused in org_capture's title and org_divide's parent_title, with an error naming the argument; a heading cannot hold one. org_divide inserts its line directly, so % was never a hazard there.
+
+3. On the apply path, a queued capture whose title holds a newline -- an outage capture never met the call-site check -- is returned as an apply error and never written, so the item stays pending for the human to dismiss or retarget, as an unresolvable target already does.
+
+4. Tests, ERT in config-test.el, each proved red against HEAD: a title holding %^{x}, %U and %i lands verbatim with no minibuffer read (read-string stubbed to fail); the keyword and tags survive the swap; a newline title is refused by org_capture and by org_divide; a queued newline capture fails at apply with the file unchanged.
+
+Code on a feature/ branch, merged through a PR.
 :END:
 
 The title arrives as %i, which repeats the line prefix on every line, so a title
@@ -1078,11 +1095,10 @@ Only ID and CREATED are refused (--property-tool-refused). org-entry-put calls
 org-todo for TODO, so property=TODO value=DONE is an immediate transition the
 queue never sees, which can hang on the logging note; SCHEDULED or DEADLINE with
 a non-date value calls org-schedule interactively and leaves the MCP call
-waiting on a minibuffer. A value containing a newline is written raw into the
-drawer. Found by a repo audit 2026-10-27, by reading org's source and the
-wrapper. Proposed: refuse everything in org-special-properties, pointing TODO at
-org_set_todo, and refuse newlines in values.
-
+waiting on a minibuffer; a value containing a newline is written raw into the
+drawer (repo audit 2026-10-27, by reading org's source and the wrapper). The fix
+refuses every name in org-special-properties, each pointing to its route, and
+newlines in any value; the design is in :PLAN:.
 
 * TODO Archiving a session already in the archive overwrites it, and restore overwrites a live queue the same way :code:bounded:
 :PROPERTIES:
