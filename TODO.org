@@ -13805,11 +13805,16 @@ Before sending:
   If it is not, open a public issue that asks for a private channel and leaves
   every detail out.
 - [ ] Header name: confirm from a primary source (Claude Code's IDE extension
-  source or docs) that the token header is x-claude-code-ide-authorization.
-  Written from memory, unread.
-- [ ] CVE number: confirm CVE-2025-52882 is the Claude Code IDE extensions'
-  WebSocket advisory, from the CVE record or Anthropic's advisory. Also from
-  memory.
+  source or docs) that the token header is x-claude-code-ide-authorization,
+  and that the CVE's fix was that lockfile token. Written from memory, unread;
+  the advisory does not say.
+- [X] CVE number: CVE-2025-52882 is right, checked 2026-10-28 against
+  Anthropic's advisory GHSA-9f65-56v6-gxw7 on anthropics/claude-code ("Claude
+  Code IDE extensions allow websocket connections from arbitrary origins";
+  VS Code extension 0.2.116 to 1.0.23, fixed in 1.0.24; JetBrains plugin 0.1.1
+  to 0.1.8, fixed in 0.1.9). It names no fix mechanism, so the draft's "a
+  lockfile token checked at the handshake" rests on the header-name check
+  above. Its impact list includes selection events, the same leak as detail 4.
 - [ ] Current version: pull upstream and re-read the four places the report
   cites (claude-code-ide-mcp--find-free-port, --create-lockfile, --on-open and
   --on-close, and the HTTP server's Access-Control-Allow-Origin line). Correct
