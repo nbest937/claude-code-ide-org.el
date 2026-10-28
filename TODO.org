@@ -2,6 +2,23 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO A slice's place in the order is advisory: nothing refuses NEXT or DOING on a slice while the slice before it is still open :code:
+:PROPERTIES:
+:ID:       d5d9fdec-5fac-4035-a630-62ba48582cd6
+:CREATED:  [2026-10-28 Wed 14:13]
+:CATEGORY: Slices
+:END:
+
+Slices are ordered only by the "Followed by" line in each slice's :PLAN:, which
+/work-slice reads to nominate; nothing stops a later slice being started first.
+A slice's :BLOCKER: cannot carry the order: --refresh-slice-blocker-at-point
+rebuilds it from :MEMBERS: after every apply, and org-depend-block-todo blocks
+only a move to a done keyword, so a predecessor there would mean "closes after",
+never "starts after" (read 2026-10-28). Proposed: a declared predecessor the
+refresh keeps, and a guard refusing NEXT or DOING on a slice while that
+predecessor is open. Raised while ordering [[id:3bfa593c-c2da-4e44-b47f-2d5f0750f2aa][3bfa593c]], [[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]], [[id:7dcec489-f5dd-4f7f-b819-a25405436b9b][7dcec489]] and
+[[id:005fef09-e34f-4994-8c0d-6d17ada3d7ac][005fef09]] (the user, 2026-10-28).
+
 * TODO An apply whose writes never reach disk is committed short, and the only alarm for it is a log line nobody reads :code:
 :PROPERTIES:
 :ID:       4a700efb-c96c-4d40-942a-27755b5b5b4e
@@ -584,6 +601,11 @@ Proposed: read both fields with jq, as the sibling hooks do.
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-10-27 Tue 12:58] \\
   nominated over f436a3b8: security hole and silent data loss
+:END:
+:PLAN:
+Followed by [[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]] (the user, 2026-10-28): the sibling slice of tool calls
+that tell their caller the opposite of what happened, which gave [[id:fd29914e-0d18-4964-a104-37c136b311a6][fd29914e]] to
+this one, and which finishes org_edit for every later slice's bookkeeping.
 :END:
 
 Ways the tracker loses state, or Emacs blocks on a prompt, with nothing
@@ -3625,6 +3647,9 @@ so they stay separate headings sequenced together. [[id:4d896425-586a-4a5e-8d13-
 
 *Category mix:* =Slices= ([[id:cdff5c91-3dc1-476e-a8f2-5293570a19fc][cdff5c91]], [[id:a508c59e-475e-4d27-84c9-6c3ded98e15c][a508c59e]], [[id:6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0][6af8fb3e]], [[id:b112878e-6313-4bc6-bc3f-0533d5f1ad1b][b112878e]], [[id:dc68d831-9e04-4f0a-8b8b-8087b39c6037][dc68d831]]) and
 =Dev= ([[id:a00ace04-99bd-414a-8dc7-df8305126589][a00ace04]]).
+
+Followed by [[id:005fef09-e34f-4994-8c0d-6d17ada3d7ac][005fef09]] (the user, 2026-10-28): a consumer's first tagged version
+should carry this slice's fixes.
 :END:
 
 Planned:
@@ -3721,7 +3746,9 @@ rather than a heading.
 
 *Category mix:* all eleven are =Tools=.
 
-Followed by [[id:005fef09-e34f-4994-8c0d-6d17ada3d7ac][005fef09]].
+Followed by [[id:7dcec489-f5dd-4f7f-b819-a25405436b9b][7dcec489]], which now comes between this slice and [[id:005fef09-e34f-4994-8c0d-6d17ada3d7ac][005fef09]] (the user,
+2026-10-28, setting the order [[id:3bfa593c-c2da-4e44-b47f-2d5f0750f2aa][3bfa593c]], [[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]], [[id:7dcec489-f5dd-4f7f-b819-a25405436b9b][7dcec489]], [[id:005fef09-e34f-4994-8c0d-6d17ada3d7ac][005fef09]]): the slice
+machinery is fixed before a tagged release carries it.
 :END:
 
 Planned:
