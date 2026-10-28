@@ -349,14 +349,13 @@ Code on a feature/ branch, merged through a PR.
 :END:
 
 --org-escape-body commas a line only when * or # is its first character, but org
-  reads indented keyword and block lines. Reproduced in batch by a repo audit
-  2026-10-27: an indented #+end_quote closed the prompt's quote early, an
-  indented #+TODO: redefined the render's keywords, and an indented #+SETUPFILE:
-  loaded that file when the render was opened; the test
-  org-escape-body-only-escapes-column-zero asserts the wrong rule. Proposed:
-  also escape lines matching optional indentation then #+, comma after the
-  indent, and fix the test.
-
+  also reads indented keyword, block and comment lines. Reproduced in batch
+  2026-10-27: an indented #+end_quote closed a prompt's quote early, an
+  indented #+TODO: redefined the render's keywords and an indented #+SETUPFILE:
+  loaded its file when the render opened; an indented "# " line is hidden as a
+  comment (2026-10-28). The fix escapes every line whose first non-blank is #,
+  comma after the indent, and corrects the test that pins the wrong rule; the
+  design is in :PLAN:.
 
 * TODO A replayed apply writes an extra one-minute CLOCK line for every run whose end has seconds :code:
 :PROPERTIES:
@@ -1159,7 +1158,7 @@ could flag an incidental line whose ancestor is a planned member, as it already
 flags :MEMBERS: naming both a parent and its child.
 
 
-* TODO The applied record keys a session's events by timestamp to the second, so an event that failed or was skipped is consumed when another from the same second applies :code:
+* TODO The applied record keys a session's events by timestamp to the second, so an event that failed or was skipped is consumed when another from the same second applies :code:arch:
 :PROPERTIES:
 :ID:       0a0dee55-d709-466e-a525-c3bb1c437b91
 :CREATED:  [2026-10-20 Tue 09:13]
@@ -1176,8 +1175,56 @@ CLOCK: [2026-10-20 Tue 09:14]--[2026-10-20 Tue 09:16] =>  0:02
 - [2026-10-20 Tue 09:14]--[2026-10-20 Tue 09:16] assigned at review
 - [2026-10-20 Tue 11:08]--[2026-10-20 Tue 11:09] assigned at review
 - [2026-10-20 Tue 11:10]--[2026-10-20 Tue 11:10] assigned at review
+- Tags ":code:arch:" from ":code:"     [2026-10-28 Wed 12:40] \\
+  classified at /plan-slice: changes the queue's event schema, read by four consumers
 :END:
 :PLAN:
+Architectural: a writer-assigned event id, eid, keys consumption in place of the
+ts string (the user, 2026-10-28, approach A). Ruled out at the design: a hash of
+the raw line (B), which every reader including review-start's jq would have to
+compute byte-exact; and the line number (C), which any edit to the append-only
+file shifts, consuming or reviving the wrong events silently.
+
+**1. The writer.** bin/hooks/queue-append, the queue's only writer, adds eid to
+every line: 16 hex characters from od -An -N8 -tx1 on the random source, passed
+to its jq -n builder with --arg. The source is /dev/urandom behind
+CLAUDE_ORG_RANDOM_SOURCE, for the test. When it cannot be read the line is
+written without eid and keys by ts, so a failure costs exactness and never the
+event. An eid cannot collide with a ts key, since every ts contains a colon.
+
+**2. The readers.** --queue-parse-line gives each event :key, its eid or else
+its ts-string, and every site that marks or matches on :ts-string uses :key
+instead: the consumed check in --queue-events and its pre-parse fast path, which
+extracts "eid" before "ts"; --review-record-applied; the dismiss path; the
+pending-count dedup. A line carrying eid is consumed only by its eid key, never
+by a legacy ts key that matches its ts; a line without one is consumed by ts, as
+now. Nothing is migrated: .applied's legacy ts keys stay as written, and the
+legacy siblings already consumed with them stay consumed.
+bin/hooks/review-start's one jq select becomes (.eid // .ts).
+bin/hooks/apply-detect reads only .applied's values, the pass times, and is
+untouched. The body's two knock-ons fall out: a todo DOING and its clock_in get
+separate keys, so applying the state item leaves the clock_in pending; and
+--queue-mark-applied keeping the earlier stamp now applies only to a genuine
+re-mark, so un-applying a pass picks the right events.
+
+**3. Tests.** bin/queue-append-test: two events appended in one second carry
+distinct 16-hex eids; with the random source unreadable the line is still
+written, without eid. ERT in config-test.el, a scratch queue with two events in
+one second, the first fixtures to share a second: applying one leaves the other
+pending; dismissing one leaves the other pending; a todo DOING and a clock_in in
+one second, the state item applied, leave the clock_in pending; a later pass
+applying the sibling stamps it with that pass's time; legacy eid-less lines
+against a legacy ts-keyed .applied are consumed as before; an eid line whose ts
+matches a legacy key is not consumed. bin/review-start-test: a REVIEW event
+sharing its second with an applied event is still pending. Each proved red
+against HEAD; every suite isolates both the queue directory and the session id
+from its first case.
+
+**4. Acceptance.** After the reload a real session queues a NEXT and a DONE in
+the same second; the user applies only the DONE, and org_pending_updates still
+shows the NEXT.
+
+Code on a feature/ branch, merged through a PR.
 
 :END:
 A session's .applied file maps each event's ts string to the pass that consumed
