@@ -426,7 +426,7 @@ Bounded: one advice on upstream's claude-code-ide-mcp--on-open
 (claude-code-ide-mcp.el at 1de17bb), in the shape the module already uses for
 the 202 fix (claude-code-ide-org-accept-notifications-with-202).
 
-1. Gate, before any code: run /ide in a Claude session and read websocket-origin on its session's client in the live Emacs. It must be nil. If Claude Code's own connection carries an Origin, stop: the design becomes an allowlist and comes back for approval. Not yet seen; the assumption is that Node's WebSocket clients send no Origin unless told to.
+1. Gate, before any code: run /ide in a Claude session and read websocket-origin on its session's client in the live Emacs. It must be nil. If Claude Code's own connection carries an Origin, stop: the design becomes an allowlist and comes back for approval. Passed 2026-10-28: after /ide in this repo's session, its client was open with websocket-origin nil and no negotiated protocol.
 
 2. The advice, :around on claude-code-ide-mcp--on-open: a socket whose websocket-origin is non-nil gets websocket-close and one log line naming the origin and the port, and upstream's handler never runs; a socket without one goes straight through. Before upstream, not after, because upstream's handler is what makes the socket the session's client: a refused socket never becomes it, so its close finds no session to clear and the real session is not cut off. That closes the browser half of [[id:207e9044-f05c-4507-bbd9-c2cfb9ef3f8e][207e9044]] too. A local process can still take a session over, out of scope: it can read the lockfile and run anything as the user already.
 
