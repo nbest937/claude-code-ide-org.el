@@ -49,38 +49,37 @@ the same kind of leak, one level up.
 A feature/ branch and a PR, pushed from the main checkout. Until this lands,
 push from no linked worktree; /code-review --fix creates one.
 :END:
+:DEBRIEF:
+Shipped as planned in step 1 and revised in step 2a: the runner-only scrub
+became a shared helper after the [[https://github.com/nbest937/claude-code-ide-org.el/pull/41][PR #41]] review showed git rebase -x and !
+aliases export GIT_DIR too, and that the first test-all-test was itself a
+leaking suite. The static check (a suite running git -C, init or clone without
+the helper fails unrun) was added beyond the five findings so a new suite cannot
+reopen the hole. Verified: each new test-all-test check fails against the
+regression it targets (no scrub 9, a two-name unset 2, no static check 2); end
+to end, a real pre-push from a linked worktree of a scratch clone was clean with
+the fix and reproduced the incident without it; bin/test-all ran 27 suites, 1733
+passed. The push-from-no-linked-worktree caution is retired with the merge.
+Nothing left unfiled.
+:END:
 
-Git exports GIT_DIR to a hook run from a linked worktree, and none from the main
-checkout. GIT_DIR overrides git -C's discovery, so every suite that runs git -C
-"$r" on a temp repo writes the real repo instead. Reproduced 2026-10-27 in
-throwaway repos.
+Git exports GIT_DIR to whatever it runs from a linked worktree (a hook, git
+rebase -x, a ! alias), and GIT_DIR overrides git -C, so a test suite's git -C on
+a temp repo wrote the real repo. Fixed by [[https://github.com/nbest937/claude-code-ide-org.el/pull/41][PR #41]], merged 2026-10-28:
+bin/lib/git-hermetic.sh unsets every name git rev-parse --local-env-vars prints,
+sourced by bin/test-all and by bin/test and every git-using suite, and test-all
+refuses a suite that runs git without it.
 
-It happened 2026-10-27 between 17:37 and 17:39, when [[https://github.com/nbest937/claude-code-ide-org.el/pull/40][PR #40]] was pushed from a
-review worktree. Through the real repo, the suites:
-- set core.hooksPath to somewhere/else, core.bare to true, and a [user] t identity;
-- committed fixture commits onto main and feature/companion-origin-probe, and created the branches feat, side, feature/y and wt-branch;
-- rewrote the review worktree's index and HEAD;
-- in git-guards-test (git -C "$r" push -q origin main), pushed twice to the real GitHub origin, the second time leaving main at a Test <t@example.com> commit that deletes 149 files.
-
-Repaired locally by hand: config restored, refs moved back with guarded
-update-ref (main to 15734e9, the PR branch to c9e290a), the leaked branches and
-the worktree removed. The fixture reflog entries are kept as evidence. git -C is
-no protection.
-
-The fix is [[https://github.com/nbest937/claude-code-ide-org.el/pull/41][PR #41]] (commit [[orgit-rev:./::2b97523][2b97523]]): bin/test-all unsets every name git rev-parse
---local-env-vars prints and refuses to run when the list lacks GIT_DIR. Its four
-new test-all-test checks all fail against the old runner. End to end, a real
-pre-push from a linked worktree of a scratch clone left the clone untouched;
-with the old runner the same push reproduced the 2026-10-27 damage, down to
-rewriting the clone's origin URL. The push-from-no-worktree caution stands until
-the PR merges.
-
-The [[https://github.com/nbest937/claude-code-ide-org.el/pull/41][PR #41]] review (5 findings) showed the runner-only scrub left routes open,
-the new test-all-test among them, and is answered in commit [[orgit-rev:./::5586fb0][5586fb0]]: every
-git-using suite and bin/test source the shared helper, and test-all refuses a
-suite that runs git without it. Each new check fails against the regression it
-targets; bin/test-all ran 27 suites, 1733 passed.
-
+The incident, 2026-10-27 17:37–17:39, when [[https://github.com/nbest937/claude-code-ide-org.el/pull/40][PR #40]] was pushed from a review
+worktree: through the real repo the suites set core.hooksPath to somewhere/else,
+core.bare to true and a [user] t identity; committed fixtures onto main and
+feature/companion-origin-probe and created the branches feat, side, feature/y
+and wt-branch; rewrote the review worktree's index and HEAD; and git-guards-test
+pushed twice to the real GitHub origin, leaving main at a Test <t@example.com>
+commit that deleted 149 files. Its parent was the real tip, so GitHub took it as
+a fast-forward. Repaired locally by hand the same evening (the fixture reflog
+entries kept as evidence); GitHub main was restored by a force push with lease
+2026-10-28.
 
 * TODO An apply whose writes never reach disk is committed short, and the only alarm for it is a log line nobody reads :code:
 :PROPERTIES:
