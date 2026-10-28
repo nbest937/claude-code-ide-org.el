@@ -430,7 +430,7 @@ the 202 fix (claude-code-ide-org-accept-notifications-with-202).
 
 2. The advice, :around on claude-code-ide-mcp--on-open: a socket whose websocket-origin is non-nil gets websocket-close and one log line naming the origin and the port, and upstream's handler never runs; a socket without one goes straight through. Before upstream, not after, because upstream's handler is what makes the socket the session's client: a refused socket never becomes it, so its close finds no session to clear and the real session is not cut off. That closes the browser half of [[id:207e9044-f05c-4507-bbd9-c2cfb9ef3f8e][207e9044]] too. A local process can still take a session over, out of scope: it can read the lockfile and run anything as the user already.
 
-3. The switch: a defcustom claude-code-ide-org-refuse-browser-origins, default t, whose :set installs or removes the advice, idempotently, installed once claude-code-ide-mcp loads, as the 202 advice is.
+3. The switch: a defcustom claude-code-ide-org-refuse-browser-origins, default t, whose :set installs or removes the advice, idempotently, installed once claude-code-ide-mcp loads, as the 202 advice is. The same switch also governs [[id:8c4a3aea-3208-46c8-a491-2ff024fbf822][8c4a3aea]]'s refusal on the HTTP tools server (the user, 2026-10-28): whichever member lands second adds its advice to the :set.
 
 4. executeCode stays the user's setting (the user, 2026-10-28, option a): the module does not bind claude-code-ide-enable-execute-code. With browsers refused it serves only Claude, which some users want; the user's own Doom config keeps it nil.
 
@@ -903,20 +903,14 @@ Bounded: one advice on upstream's claude-code-ide-mcp-http-server--handle-post
 Code on a feature/ branch, merged through a PR.
 :END:
 
-The HTTP MCP server the module starts on port 45571 binds 127.0.0.1 but checks
-neither Origin nor Host, and upstream's --send-json-response sends
-Access-Control-Allow-Origin: *. So a page can POST a text/plain tools/call,
-which needs no CORS preflight, to org_capture or org_edit and read the reply,
-planting text that later sessions read and trust; recent Chrome's local-network
-prompt blocks some of this, Firefox and Safari do not. Found by a repo audit
-2026-10-27, by reading.
-
-Verified 2026-10-27: a text/plain POST of tools/list carrying Origin:
-https://evil.example.com to 127.0.0.1:45571 was answered 200 with
-Access-Control-Allow-Origin: *, so a page can read the reply. Its sibling
-[[id:d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80][d7b2f50f]], the companion WebSocket, was confirmed the same day to run elisp sent
-from a foreign origin.
-
+The HTTP MCP server on port 45571 binds 127.0.0.1 but checks neither Origin nor
+Host, and upstream's --send-json-response sends Access-Control-Allow-Origin: *,
+so a web page can POST a preflight-free text/plain tools/call to org_capture or
+org_edit and read the reply, planting text later sessions trust. Verified
+2026-10-27: such a POST carrying Origin: https://evil.example.com was answered
+200 with that header. The fix refuses Origin-bearing and foreign-Host requests
+before dispatch, behind the same switch as its WebSocket sibling [[id:d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80][d7b2f50f]]; the
+design is in :PLAN:.
 
 * TODO Setting :MEMBERS: or :DROPPED: refreshes nothing, so the checklist goes stale and org_slice_add_member refuses on a row already gone :code:
 :PROPERTIES:
