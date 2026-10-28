@@ -26,6 +26,22 @@
 
 set -uo pipefail
 
+# Every variable that points git at a particular repo goes, before any
+# suite runs (TODO.org :ID: 689a3b6e). Git exports GIT_DIR to a hook run
+# from a linked worktree, and it overrides `git -C': on 2026-10-27 a
+# pre-push from a review worktree let the suites' `git -C "$tmp"' write
+# the real repo, and one of them pushed a fixture commit to GitHub main.
+# Git's own list rather than a hand-picked one, so a variable git adds
+# later is covered; one that comes back without GIT_DIR has stopped
+# meaning what this relies on, and running anyway would scrub nothing.
+git_env="$(git rev-parse --local-env-vars 2>/dev/null)"
+if ! grep -qx GIT_DIR <<<"$git_env"; then
+  echo "test-all: \`git rev-parse --local-env-vars' did not name GIT_DIR; refusing to run the suites unscrubbed." >&2
+  exit 1
+fi
+# shellcheck disable=SC2086 # one name per line, split on purpose
+unset $git_env
+
 bin_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
