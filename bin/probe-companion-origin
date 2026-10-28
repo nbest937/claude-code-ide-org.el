@@ -10,28 +10,51 @@
 # b24abffd. The core is elisp (bin/lib/probe-companion-origin.el), run as
 # a client in a batch Emacs, never through the running one.
 #
-# Usage: bin/probe-companion-origin [PORT...]
-#   With no PORT, probes every Emacs lockfile in ~/.claude/ide (or
-#   $PROBE_LOCKFILE_DIR) whose recorded pid is still running. A crashed
-#   Emacs leaves its lockfile behind, and that port, closed or reused,
-#   would decide the run for a reason unrelated to the companions.
+# Usage: bin/probe-companion-origin [--live] [PORT...]
+#   PORTs are probed as given -- fixture servers, normally. A port that a
+#   live Emacs lockfile names is a real companion, and probing one cuts
+#   its Claude session off from Emacs: upstream makes any connection the
+#   session's client and clears it on close (TODO.org :ID: 207e9044), so
+#   the session needs /ide afterwards. Such a port needs --live, and so
+#   does giving no PORT, which probes every Emacs lockfile in
+#   ~/.claude/ide (or $PROBE_LOCKFILE_DIR) whose recorded pid is still
+#   running. A crashed Emacs leaves its lockfile behind, and that port,
+#   closed or reused, would decide the run for a reason unrelated to the
+#   companions.
 # Exit: 0 every companion refused -- failed the handshake, or closed the
-#   socket after it without answering; 1 one answered the foreign Origin
-#   (or stayed silent with the socket open); 2 one was unreachable, a
-#   PORT was not a port, or there was nothing to probe.
+#   socket after it without answering; 1 one answered the foreign Origin;
+#   2 one was unreachable or gave no verdict (silent past the timeout,
+#   PROBE_SECONDS, default 10), a PORT was not a port, a live companion
+#   was named without --live, or there was nothing to probe.
 #
 # Not a suite: it needs live companions, so bin/test-all must not run it.
 # bin/probe-companion-origin-test drives it against fixture servers.
 set -uo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
+dir="${PROBE_LOCKFILE_DIR:-$HOME/.claude/ide}"
+live=0
+if [[ "${1:-}" == --live ]]; then live=1; shift; fi
+
+# The pid in PORT's lockfile when it names a running Emacs, else nothing.
+# Whitespace-tolerant: a pretty-printed lockfile is still a lockfile.
+live_pid () { # PORT
+  local f="$dir/$1.lock" pid
+  [[ -f "$f" ]] && grep -qE '"ideName"[[:space:]]*:[[:space:]]*"Emacs"' "$f" || return 1
+  pid="$(grep -oE '"pid"[[:space:]]*:[[:space:]]*[0-9]+' "$f" | grep -oE '[0-9]+$')"
+  [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null && printf '%s' "$pid"
+}
+
 if (($# == 0)); then
-  dir="${PROBE_LOCKFILE_DIR:-$HOME/.claude/ide}"
+  if ((live == 0)); then
+    echo "probe-companion-origin: with no PORT this probes the live companions, and each probed session" >&2
+    echo "  loses its link to Emacs until /ide; pass --live to mean it, or give a fixture's port" >&2
+    exit 2
+  fi
   for f in "$dir"/*.lock; do
-    [[ -e "$f" ]] && grep -q '"ideName":"Emacs"' "$f" || continue
+    [[ -e "$f" ]] && grep -qE '"ideName"[[:space:]]*:[[:space:]]*"Emacs"' "$f" || continue
     port="$(basename "$f" .lock)"
-    pid="$(grep -o '"pid":[0-9]*' "$f" | cut -d: -f2)"
-    if [[ -z "$pid" ]] || ! kill -0 "$pid" 2>/dev/null; then
-      echo "probe-companion-origin: $port: skipped -- stale lockfile, pid ${pid:-?} is not running" >&2
+    if ! live_pid "$port" >/dev/null; then
+      echo "probe-companion-origin: $port: skipped -- stale lockfile, its pid is not running" >&2
       continue
     fi
     set -- "$@" "$port"
@@ -48,6 +71,14 @@ for p in "$@"; do
   if ! [[ "$p" =~ ^[1-9][0-9]{0,4}$ ]] || ((p > 65535)); then
     echo "probe-companion-origin: not a port: $p" >&2
     exit 2
+  fi
+  if pid="$(live_pid "$p")"; then
+    if ((live == 0)); then
+      echo "probe-companion-origin: $p is a live companion (Emacs pid $pid); probing it cuts its session" >&2
+      echo "  off from Emacs until /ide -- pass --live to mean it" >&2
+      exit 2
+    fi
+    echo "probe-companion-origin: $p: live companion -- run /ide in its Claude session afterwards" >&2
   fi
 done
 exec "$here/lib/batch-emacs" -l "$here/lib/probe-companion-origin.el" \
