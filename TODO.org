@@ -313,6 +313,7 @@ unsaved" at the top of both when the file is busy.
 :CATEGORY: Apply
 :END:
 :LOGBOOK:
+- [2026-10-28 Wed 13:06]--[2026-10-28 Wed 13:12] brainstorm remainder flag reset
 - Tags ":code:bounded:" from ":code:"     [2026-10-28 Wed 13:12] \\
   classified at /plan-slice: one function
 :END:
@@ -341,6 +342,7 @@ Code on a feature/ branch, merged through a PR.
   and bounds). The fix clears those flags and :auto-marked on the copy, and a
   human-typed note with them; the design is in :PLAN:.
 
+
 * TODO The session render escapes only column-zero lines, so an indented #+ line in transcript text takes effect, SETUPFILE included :code:bounded:
 :PROPERTIES:
 :ID:       8985f8ae-8b26-45eb-8898-73f17c98680a
@@ -348,6 +350,7 @@ Code on a feature/ branch, merged through a PR.
 :CATEGORY: Dev
 :END:
 :LOGBOOK:
+- [2026-10-28 Wed 12:26]--[2026-10-28 Wed 12:29] brainstorm the render escaping fix
 - Tags ":code:bounded:" from ":code:"     [2026-10-28 Wed 12:29] \\
   classified at /plan-slice: one function and its test
 :END:
@@ -375,6 +378,7 @@ Code on a feature/ branch, merged through a PR.
   comma after the indent, and corrects the test that pins the wrong rule; the
   design is in :PLAN:.
 
+
 * TODO A replayed apply writes an extra one-minute CLOCK line for every run whose end has seconds :code:bounded:
 :PROPERTIES:
 :ID:       6c969cbd-0c03-409f-835f-80ddb1faedf6
@@ -382,6 +386,7 @@ Code on a feature/ branch, merged through a PR.
 :CATEGORY: Clock
 :END:
 :LOGBOOK:
+- [2026-10-28 Wed 12:53]--[2026-10-28 Wed 13:05] brainstorm replay residue rounding
 - Tags ":code:bounded:" from ":code:"     [2026-10-28 Wed 13:05] \\
   classified at /plan-slice: one function
 :END:
@@ -405,11 +410,42 @@ minute: a new [10:30]--[10:31] line. Reproduced in batch by a repo audit
 The fix widens each recorded interval to the end of its minute before
 subtracting; the design is in :PLAN:.
 
-* TODO Archiving into DONE.org's newest-first datetree creates a duplicate day or month node for any date older than the newest :code:
+
+* TODO Archiving into DONE.org's newest-first datetree creates a duplicate day or month node for any date older than the newest :code:bounded:
 :PROPERTIES:
 :ID:       62bc2f7f-0d55-4049-af00-52a2b333188a
 :CREATED:  [2026-10-27 Tue 13:52]
 :CATEGORY: Meta
+:END:
+:LOGBOOK:
+- [2026-10-28 Wed 13:16]--[2026-10-28 Wed 13:16] brainstorm newest-first datetree archive
+CLOCK: [2026-10-28 Wed 13:47]--[2026-10-28 Wed 13:48] =>  0:01
+- [2026-10-28 Wed 13:47]--[2026-10-28 Wed 13:48] brainstorm newest-first datetree archive
+- Tags ":code:bounded:" from ":code:"     [2026-10-28 Wed 13:53] \\
+  classified at /plan-slice: one finder at two archive sites, one lint check
+:END:
+:PLAN:
+Bounded: the org_archive tool and the archive-finished sweep, both of which
+reach org-archive-subtree, which calls org-datetree-find-date-create
+(org-archive.el:343) -- a scan for the first sibling at or after the date, right
+for an ascending tree, while DONE.org is kept descending by the ceremony's
+claude-code-ide-org-sort-datetree-descending. The mechanism is [[id:0c3f1319-67c0-4b29-a8e7-5ffa12948aaf][0c3f1319]]'s
+measurement on org 9.8.7: org-datetree-find-create-hierarchy with comparators
+built by org-datetree-comparefun-from-regex and negated inverts lookup and
+insertion together, correct for the newest date, an interior one and one already
+present.
+
+1. A descending finder, claude-code-ide-org--datetree-find-date-create-descending, with org-datetree-find-date-create's signature, building year, month and day through find-create-hierarchy from org's own regexes with the comparators negated.
+
+2. Bound in for one archive call only: both sites cl-letf it over org-datetree-find-date-create around org-archive-subtree, and only for a datetree target, by the --archive-datetree-target-p both already call. No global advice, so a hand C-c C-x C-a and any capture template keep org's own behaviour. It assumes a descending tree because the module's sort step keeps every archive datetree so, and its docstring says that.
+
+3. A backstop in bin/lint-org (the user, 2026-10-28): an error for two sibling datetree nodes with the same date title under one parent, year, month or day, in DONE.org -- for whatever bypasses the finder, a hand archive included.
+
+4. Tests, ERT in config-test.el on a scratch descending DONE.org, each proved red against HEAD: an interior date lands in its existing day node; a date between two days creates one node in its slot; an older month gets one month node in its slot; the newest date still goes on top. The lint check gets a fixture with a duplicate day and one with a duplicate month, and the real DONE.org passes it.
+
+5. Acceptance: archive one finished heading whose close date is older than DONE.org's newest day, then check no date title appears twice. DONE.org holds no duplicates today, so there is nothing to repair. [[id:0c3f1319-67c0-4b29-a8e7-5ffa12948aaf][0c3f1319]] may reuse the finder for TODO.org's meta-work tree later.
+
+Code on a feature/ branch, merged through a PR.
 :END:
 
 org-archive-subtree finds the day node with org-datetree-find-date-create, which
@@ -467,8 +503,22 @@ CLOCK: [2026-10-28 Wed 07:31]--[2026-10-28 Wed 07:32] =>  0:01
 - [2026-10-28 Wed 07:31]--[2026-10-28 Wed 07:32] suggested span, accepted at review
 CLOCK: [2026-10-28 Wed 09:11]--[2026-10-28 Wed 09:13] =>  0:02
 - [2026-10-28 Wed 09:11]--[2026-10-28 Wed 09:13] file the session takeover, fix PR #40 review
+CLOCK: [2026-10-28 Wed 11:20]--[2026-10-28 Wed 11:21] =>  0:01
 - Tags ":code:bounded:" from ":code:"     [2026-10-28 Wed 11:20] \\
   brainstormed: one advice on upstream's on-open, in the 202 fix's shape
+- [2026-10-28 Wed 11:20]--[2026-10-28 Wed 11:21] record the Origin-check design
+CLOCK: [2026-10-28 Wed 11:21]--[2026-10-28 Wed 11:22] =>  0:01
+- [2026-10-28 Wed 11:21]--[2026-10-28 Wed 11:22] assigned at review
+CLOCK: [2026-10-28 Wed 11:25]--[2026-10-28 Wed 11:26] =>  0:01
+- [2026-10-28 Wed 11:25]--[2026-10-28 Wed 11:26] assigned at review
+CLOCK: [2026-10-28 Wed 11:29]--[2026-10-28 Wed 11:30] =>  0:01
+- [2026-10-28 Wed 11:29]--[2026-10-28 Wed 11:30] assigned at review
+CLOCK: [2026-10-28 Wed 11:32]--[2026-10-28 Wed 11:33] =>  0:01
+- [2026-10-28 Wed 11:32]--[2026-10-28 Wed 11:33] assigned at review
+CLOCK: [2026-10-28 Wed 11:36]--[2026-10-28 Wed 11:37] =>  0:01
+- [2026-10-28 Wed 11:36]--[2026-10-28 Wed 11:37] assigned at review
+CLOCK: [2026-10-28 Wed 11:37]--[2026-10-28 Wed 11:38] =>  0:01
+- [2026-10-28 Wed 11:37]--[2026-10-28 Wed 11:38] record the gate result
 :END:
 :PLAN:
 Bounded: one advice on upstream's claude-code-ide-mcp--on-open
@@ -503,6 +553,7 @@ user's Doom config sets executeCode to nil, so the probe finds it not offered,
 but the handshake is still accepted. The fix, refusing any socket that carries
 an Origin before upstream makes it the session's client, is designed in :PLAN:;
 it also closes the browser half of [[id:207e9044-f05c-4507-bbd9-c2cfb9ef3f8e][207e9044]].
+
 
 * TODO footnotes-inject reads hook JSON with sed, so a path or id containing an escaped quote is cut short :code:
 :PROPERTIES:
@@ -811,6 +862,7 @@ the current behaviour.
 :CATEGORY: Apply
 :END:
 :LOGBOOK:
+- [2026-10-28 Wed 12:44]--[2026-10-28 Wed 12:52] brainstorm interrupted-apply recording
 - Tags ":code:bounded:" from ":code:"     [2026-10-28 Wed 12:52] \\
   classified at /plan-slice: two changes inside the existing apply path
 :END:
@@ -840,6 +892,7 @@ Code on a feature/ branch, merged through a PR.
   unknown). The fix records in an unwind-protect right after the loop and gives
   amends a repeat check; the design is in :PLAN:. The reverse case, recorded as
   applied but missing from the file, is [[id:7e4fb8ae-87ff-445a-b960-b7cc5302c0c8][7e4fb8ae]].
+
 
 * TODO footnote-check blocks every stop when its loop-guard file cannot be written :code:
 :PROPERTIES:
@@ -929,6 +982,7 @@ org_set_todo, and refuse newlines in values.
 :CATEGORY: Queue
 :END:
 :LOGBOOK:
+- [2026-10-28 Wed 13:13]--[2026-10-28 Wed 13:14] brainstorm archive and restore overwrite
 - Tags ":code:bounded:" from ":code:"     [2026-10-28 Wed 13:14] \\
   classified at /plan-slice: two existing commands
 :END:
@@ -953,12 +1007,11 @@ Code on a feature/ branch, merged through a PR.
 archive-drained-queues and restore-queue both call rename-file with
 OK-IF-ALREADY-EXISTS, so a session that writes again after being archived (a
 /resume keeps its id) replaces its archived .jsonl and .applied on the next run.
-Live on 2026-10-27, found by a repo audit: a2c50743 had 1 pause in its live file
-and 15 guideposts in its archived one, which the next archive run would destroy,
-while a comment beside the archive reader says no file is ever in both places.
-No test covers an existing destination. Proposed: never overwrite; append the
-lines onto the archived file and union the two .applied maps, or skip that
-session with a message.
+Live on 2026-10-27, found by a repo audit: session a2c50743 had 1 pause in its
+live file and 15 guideposts in its archived one, which the next archive run
+would destroy, while a comment beside the archive reader says no file is ever in
+both places; no test covers an existing destination. The fix merges on archive
+and refuses on restore; the design is in :PLAN:.
 
 
 * TODO The tools server answers any web page: it checks no Origin or Host, and every reply says Access-Control-Allow-Origin: * :code:bounded:
@@ -968,6 +1021,8 @@ session with a message.
 :CATEGORY: Tools
 :END:
 :LOGBOOK:
+CLOCK: [2026-10-28 Wed 12:20]--[2026-10-28 Wed 12:21] =>  0:01
+- [2026-10-28 Wed 12:20]--[2026-10-28 Wed 12:21] brainstorm the tools-server Origin check
 - Tags ":code:bounded:" from ":code:"     [2026-10-28 Wed 12:25] \\
   classified at /plan-slice: one advice on an existing handler
 :END:
@@ -1000,6 +1055,7 @@ org_edit and read the reply, planting text later sessions trust. Verified
 200 with that header. The fix refuses Origin-bearing and foreign-Host requests
 before dispatch, behind the same switch as its WebSocket sibling [[id:d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80][d7b2f50f]]; the
 design is in :PLAN:.
+
 
 * TODO Setting :MEMBERS: or :DROPPED: refreshes nothing, so the checklist goes stale and org_slice_add_member refuses on a row already gone :code:
 :PROPERTIES:
@@ -1198,6 +1254,17 @@ DONE in a test file and assert that no Tags line carries the note.
 :CREATED:  [2026-10-20 Tue 11:09]
 :CATEGORY: Slices
 :END:
+:PLAN:
+Not yet designed; evidence for the brainstorm. The refresh's region bound has to
+learn the nested shape too (read 2026-10-28):
+--refresh-slice-incidentals-at-point deletes only lines matching
+--slice-incidental-item-re, flush-left generated items and the blanks between
+them. An indented member under a parent row would no longer match, so each
+refresh would stop at the first parent row and leave the old nested lines
+behind, duplicating the list. The regexp, or a sibling for parent rows, must
+match exactly what the nested rendering writes, as --slice-list-line-re already
+does for Planned:.
+:END:
 
 Reported from noodle-salesman on 2026-10-20. Planned: renders a member that has
 a keyworded parent under a derived parent row with no checkbox. Incidental: does
@@ -1247,6 +1314,8 @@ CLOCK: [2026-10-20 Tue 09:14]--[2026-10-20 Tue 09:16] =>  0:02
 - [2026-10-20 Tue 09:14]--[2026-10-20 Tue 09:16] assigned at review
 - [2026-10-20 Tue 11:08]--[2026-10-20 Tue 11:09] assigned at review
 - [2026-10-20 Tue 11:10]--[2026-10-20 Tue 11:10] assigned at review
+CLOCK: [2026-10-28 Wed 12:36]--[2026-10-28 Wed 12:41] =>  0:05
+- [2026-10-28 Wed 12:36]--[2026-10-28 Wed 12:41] brainstorm applied-record event keys
 - Tags ":code:arch:" from ":code:"     [2026-10-28 Wed 12:40] \\
   classified at /plan-slice: changes the queue's event schema, read by four consumers
 :END:
@@ -1315,6 +1384,7 @@ offered nowhere; and --queue-mark-applied keeps an earlier pass's stamp for a
 sibling applied later, so un-applying a pass picks the wrong events (repo audit,
 2026-10-27, by reading). Across all queues 280 groups of state, clock, capture
 or amend events share a second; no test wrote two in one.
+
 
 * TODO Burying the review buffer stamps the ceremony done while apply failures are still pending, though the session-start docstring says it waits for them :code:
 :PROPERTIES:
@@ -14037,6 +14107,7 @@ CLOCK: [2026-10-27 Tue 15:36]--[2026-10-27 Tue 15:37] =>  0:01
 CLOCK: [2026-10-27 Tue 17:18]--[2026-10-27 Tue 17:19] =>  0:01
 CLOCK: [2026-10-28 Wed 09:40]--[2026-10-28 Wed 09:43] =>  0:03
 CLOCK: [2026-10-28 Wed 10:32]--[2026-10-28 Wed 10:34] =>  0:02
+CLOCK: [2026-10-28 Wed 13:54]--[2026-10-28 Wed 13:57] =>  0:03
 :END:
 
 We created this heading on 2026-08-26. We deleted that property from its
@@ -15745,4 +15816,15 @@ CLOCK: [2026-10-28 Wed 07:40]--[2026-10-28 Wed 07:41] =>  0:01
 - [2026-10-28 Wed 07:40]--[2026-10-28 Wed 07:41] assigned at review
 CLOCK: [2026-10-28 Wed 07:59]--[2026-10-28 Wed 08:00] =>  0:01
 - [2026-10-28 Wed 07:59]--[2026-10-28 Wed 08:00] assigned at review
+CLOCK: [2026-10-28 Wed 11:03]--[2026-10-28 Wed 11:04] =>  0:01
+- [2026-10-28 Wed 11:03]--[2026-10-28 Wed 11:04] commit the apply pass, orient
+CLOCK: [2026-10-28 Wed 11:04]--[2026-10-28 Wed 11:05] =>  0:01
+- [2026-10-28 Wed 11:04]--[2026-10-28 Wed 11:05] assigned at review
+CLOCK: [2026-10-28 Wed 11:12]--[2026-10-28 Wed 11:13] =>  0:01
+- [2026-10-28 Wed 11:12]--[2026-10-28 Wed 11:13] assigned at review
+CLOCK: [2026-10-28 Wed 11:14]--[2026-10-28 Wed 11:15] =>  0:01
+- [2026-10-28 Wed 11:14]--[2026-10-28 Wed 11:15] assigned at review
+CLOCK: [2026-10-28 Wed 11:18]--[2026-10-28 Wed 11:20] =>  0:02
+- [2026-10-28 Wed 11:18]--[2026-10-28 Wed 11:20] assigned at review
+- [2026-10-28 Wed 11:37]--[2026-10-28 Wed 11:37] assigned at review
 :END:
