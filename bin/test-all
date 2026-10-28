@@ -26,23 +26,13 @@
 
 set -uo pipefail
 
-# Every variable that points git at a particular repo goes, before any
-# suite runs (TODO.org :ID: 689a3b6e). Git exports GIT_DIR to a hook run
-# from a linked worktree, and it overrides `git -C': on 2026-10-27 a
-# pre-push from a review worktree let the suites' `git -C "$tmp"' write
-# the real repo, and one of them pushed a fixture commit to GitHub main.
-# Git's own list rather than a hand-picked one, so a variable git adds
-# later is covered; one that comes back without GIT_DIR has stopped
-# meaning what this relies on, and running anyway would scrub nothing.
-git_env="$(git rev-parse --local-env-vars 2>/dev/null)"
-if ! grep -qx GIT_DIR <<<"$git_env"; then
-  echo "test-all: \`git rev-parse --local-env-vars' did not name GIT_DIR; refusing to run the suites unscrubbed." >&2
-  exit 1
-fi
-# shellcheck disable=SC2086 # one name per line, split on purpose
-unset $git_env
-
 bin_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Every variable that points git at a particular repo goes, before any
+# suite runs (TODO.org :ID: 689a3b6e): the outer layer. Why, and the
+# inner layer each git-using suite carries, are in the helper.
+# shellcheck source=lib/git-hermetic.sh
+. "$bin_dir/lib/git-hermetic.sh"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 
@@ -58,6 +48,12 @@ show_output() { sed 's/^/      | /' "$1"; }
 # The patterns that make a suite non-hermetic. Written so this file does
 # not match itself: it is not a suite, and the glob never reaches it.
 real_paths='\$repo_root/(TODO|DONE)\.org|~/\.config/doom|\$HOME/\.config'
+
+# A suite that runs git without sourcing lib/git-hermetic.sh fails
+# statically too: run directly from a linked worktree, its `git -C' on a
+# temp repo writes the real one (TODO.org :ID: 689a3b6e). The scrub
+# above covers only runs that come through here.
+git_use='(^|[^-[:alnum:]_])git (-C|init|clone) '
 
 run_suite() { # name command...
   local name="$1"; shift
@@ -110,6 +106,12 @@ for suite in "$bin_dir"/*-test; do
     grep -nE "$real_paths" "$suite" > "$work/$name.static"
     judge "$name" "" "" "" 0 "$work/$name.static" \
       "reads real user data (this repo's TODO.org/DONE.org or a real Doom config); not run"
+    continue
+  fi
+  if grep -qE "$git_use" "$suite" && ! grep -q 'lib/git-hermetic\.sh' "$suite"; then
+    grep -nE "$git_use" "$suite" | head -3 > "$work/$name.static"
+    judge "$name" "" "" "" 0 "$work/$name.static" \
+      "runs git without sourcing bin/lib/git-hermetic.sh; not run"
     continue
   fi
   run_suite "$name" bash "$suite"
