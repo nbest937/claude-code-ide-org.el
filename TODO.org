@@ -872,11 +872,15 @@ lines onto the archived file and union the two .applied maps, or skip that
 session with a message.
 
 
-* TODO The tools server answers any web page: it checks no Origin or Host, and every reply says Access-Control-Allow-Origin: * :code:
+* TODO The tools server answers any web page: it checks no Origin or Host, and every reply says Access-Control-Allow-Origin: * :code:bounded:
 :PROPERTIES:
 :ID:       8c4a3aea-3208-46c8-a491-2ff024fbf822
 :CREATED:  [2026-10-27 Tue 12:48]
 :CATEGORY: Tools
+:END:
+:LOGBOOK:
+- Tags ":code:bounded:" from ":code:"     [2026-10-28 Wed 12:25] \\
+  classified at /plan-slice: one advice on an existing handler
 :END:
 :PLAN:
 Not yet designed. The audit's proposal: :around advice on
