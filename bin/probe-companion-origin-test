@@ -1,0 +1,196 @@
+#!/usr/bin/env bash
+# Tests for bin/probe-companion-origin (TODO.org :ID: d7b2f50f), against
+# fixture servers in a second batch Emacs: no live companion, nothing in
+# ~/.claude/ide read. Always prints a result line -- silence is not a
+# passing check.
+set -uo pipefail
+repo="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+probe="$repo/bin/probe-companion-origin"
+tmp="$(mktemp -d)"
+server_pid=""
+trap 'stop; rm -rf "$tmp"' EXIT
+pass=0 fail=0
+check () { # name expected actual
+  if [[ "$2" == "$3" ]]; then printf 'ok   - %s\n' "$1"; pass=$((pass+1))
+  else printf 'FAIL - %s: wanted [%s], got [%s]\n' "$1" "$2" "$3"; fail=$((fail+1)); fi
+}
+
+# One fixture server per MODE, on a port the OS picks, written to a file:
+#   answer  a companion with no Origin check: answers every call
+#   deny    the same with executeCode switched off
+#   greet   answers, but opens with a frame that is not JSON
+#   close   the planned fix: closes any socket that carries an Origin
+#   needmcp a fix that closes any socket that did not negotiate `mcp'
+#   fail    executeCode exists but its evaluation fails: -32603
+#   empty   executeCode answers with a result of {}
+#   mute    accepts the handshake and never answers
+#   403     refuses the handshake with an HTTP 403
+#   stall   accepts the TCP connection and never replies to the handshake
+# The WebSocket modes offer `mcp', as the companion does.
+cat > "$tmp/server.el" <<'EOF'
+(require 'websocket)
+;; websocket.el's server never records the protocols a client asked for,
+;; so the needmcp fixture records them itself before answering.
+(advice-add 'websocket-get-server-response :before
+            (lambda (ws client-protocols _ext)
+              (setf (websocket-negotiated-protocols ws) client-protocols)))
+(let* ((mode (pop command-line-args-left))
+       (out (pop command-line-args-left))
+       (reply
+        (lambda (ws frame)
+          (let* ((msg (json-parse-string (websocket-frame-text frame)
+                                         :object-type 'alist))
+                 (id (alist-get 'id msg))
+                 (exec (equal (alist-get 'name (alist-get 'params msg))
+                              "executeCode")))
+            (websocket-send-text
+             ws (json-encode
+                 (cond
+                  ((and exec (equal mode "deny"))
+                   `((jsonrpc . "2.0") (id . ,id)
+                     (error . ((code . -32601)
+                               (message . "Unknown tool: executeCode")))))
+                  ((and exec (equal mode "fail"))
+                   `((jsonrpc . "2.0") (id . ,id)
+                     (error . ((code . -32603)
+                               (message . "Evaluation error: boom")))))
+                  ((and exec (equal mode "empty"))
+                   `((jsonrpc . "2.0") (id . ,id) (result . ,(make-hash-table))))
+                  (t
+                   `((jsonrpc . "2.0") (id . ,id)
+                     (result . ((content . [((type . "text")
+                                             (text . "ran"))])))))))))))
+       (server
+        (pcase mode
+          ("403"
+           (make-network-process
+            :name "fixture" :server t :family 'ipv4 :host 'local :service t
+            :filter (lambda (proc _out)
+                      (process-send-string
+                       proc "HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\n\r\n")
+                      (delete-process proc))))
+          ("stall"
+           (make-network-process
+            :name "fixture" :server t :family 'ipv4 :host 'local :service t
+            :filter #'ignore))
+          (_
+           (websocket-server
+            t :host 'local :protocol '("mcp")
+            :on-open (lambda (ws)
+                       (pcase mode
+                         ("close" (when (websocket-origin ws) (websocket-close ws)))
+                         ("needmcp" (unless (member "mcp" (websocket-negotiated-protocols ws))
+                                      (websocket-close ws)))
+                         ("greet" (websocket-send-text ws "hello"))))
+            :on-message (lambda (ws frame)
+                          (unless (equal mode "mute") (funcall reply ws frame))))))))
+  (with-temp-file out
+    (insert (number-to-string (process-contact server :service))))
+  ;; Killing the batch-emacs wrapper can orphan the Emacs under it, so
+  ;; the server exits by itself: when its port file goes, or after a minute.
+  (let ((deadline (+ (float-time) 60)))
+    (while (and (file-exists-p out) (< (float-time) deadline))
+      (accept-process-output nil 0.1)))
+  (kill-emacs 0))
+EOF
+
+serve () { # MODE -> sets $port, $server_pid
+  rm -f "$tmp/port"
+  "$repo/bin/lib/batch-emacs" -l "$tmp/server.el" "$1" "$tmp/port" \
+    >"$tmp/server.log" 2>&1 &
+  server_pid=$!
+  for _ in $(seq 300); do [[ -s "$tmp/port" ]] && break; sleep 0.1; done
+  port="$(cat "$tmp/port" 2>/dev/null)"
+  # A fixture that never started would otherwise read as the probe getting
+  # the verdict wrong; say so, show why, and stop.
+  if [[ -z "$port" ]]; then
+    echo "FAIL - the $1 fixture wrote no port in 30 s; its log:"
+    sed 's/^/      | /' "$tmp/server.log"
+    fail=$((fail + 1))
+    echo "probe-companion-origin-test: $pass passed, $fail failed"
+    exit 1
+  fi
+}
+stop () { # remove the port file and wait for the server to exit
+  rm -f "$tmp/port"
+  [[ -n "$server_pid" ]] && wait "$server_pid" 2>/dev/null
+  server_pid=""
+}
+run () { "$probe" "$@" 2>&1; echo "rc=$?"; }
+has () { grep -q -- "$1" <<<"$2" && echo yes || echo no; }
+
+serve answer; out="$(run "$port")"; stop
+check "an answering companion exits 1" yes "$(has '^rc=1$' "$out")"
+check "and says executeCode ran" yes "$(has 'executeCode ran' "$out")"
+
+serve deny; out="$(run "$port")"; stop
+check "executeCode off still exits 1" yes "$(has '^rc=1$' "$out")"
+check "and says executeCode is not offered" yes "$(has 'executeCode not offered (Unknown tool' "$out")"
+
+serve fail; out="$(run "$port")"; stop
+check "an eval error is OPEN" yes "$(has '^rc=1$' "$out")"
+check "and says executeCode exists, not refused" yes "$(has 'executeCode exists and failed (-32603' "$out")"
+
+serve empty; out="$(run "$port")"; stop
+check "a result of {} says executeCode ran" yes "$(has 'executeCode ran and returned {}' "$out")"
+
+serve needmcp; out="$(run "$port")"; stop
+check "a fix demanding the mcp subprotocol is still OPEN to a page asking for it" yes "$(has '^rc=1$' "$out")"
+
+serve greet; out="$(run "$port")"; stop
+check "a non-JSON frame does not turn OPEN into a pass" yes "$(has '^rc=1$' "$out")"
+
+serve close; out="$(run "$port")"; stop
+check "closing after the handshake is a refusal" yes "$(has '^rc=0$' "$out")"
+check "and says the socket closed unanswered" yes "$(has 'closed unanswered' "$out")"
+
+serve 403; out="$(run "$port")"; stop
+check "a 403 handshake is a refusal" yes "$(has '^rc=0$' "$out")"
+
+# Silence is no verdict: a busy Emacs is silent too.
+serve stall; out="$(PROBE_SECONDS=1 run "$port")"; stop
+check "no handshake reply is no verdict" yes "$(has '^rc=2$' "$out")"
+check "and says so" yes "$(has 'no verdict -- no handshake reply' "$out")"
+serve mute; out="$(PROBE_SECONDS=1 run "$port")"; stop
+check "a handshake with no answer is no verdict" yes "$(has '^rc=2$' "$out")"
+check "and says so" yes "$(has 'no verdict -- handshake accepted, no answer' "$out")"
+
+serve close; closed="$port"; stop
+out="$(run "$closed")"
+check "a closed port is unreachable" yes "$(has '^rc=2$' "$out")"
+
+# Discovery: a live lockfile (this shell's pid, pretty-printed) on a
+# refusing port, and a stale one (a pid that has exited) on a closed port.
+# Without the pid check the stale one makes the run exit 2.
+serve 403; locks="$tmp/locks"; mkdir -p "$locks"
+sleep 0 & dead=$!; wait "$dead"
+printf '{\n  "pid": %d,\n  "ideName": "Emacs",\n  "transport": "ws"\n}\n' $$ > "$locks/$port.lock"
+printf '{"pid":%d,"ideName":"Emacs","transport":"ws"}' "$dead" > "$locks/$closed.lock"
+# A live companion is probed only on request: the probe takes over its session.
+out="$(PROBE_LOCKFILE_DIR="$locks" run)"
+check "no PORT without --live refuses" yes "$(has '^rc=2$' "$out")"
+check "and says why" yes "$(has 'pass --live' "$out")"
+out="$(PROBE_LOCKFILE_DIR="$locks" run "$port")"
+check "a live companion's port without --live refuses" yes "$(has '^rc=2$' "$out")"
+check "and names its Emacs" yes "$(has "$port is a live companion (Emacs pid $$)" "$out")"
+out="$(PROBE_LOCKFILE_DIR="$locks" run --live)"; stop
+check "--live probes a pretty-printed lockfile" yes "$(has "$port: refused" "$out")"
+check "and warns its session needs /ide" yes "$(has "$port: live companion -- run /ide" "$out")"
+check "a stale lockfile is skipped" yes "$(has "$closed: skipped -- stale lockfile" "$out")"
+check "and does not decide the run" yes "$(has '^rc=0$' "$out")"
+rm -f "$locks/$port.lock"
+out="$(PROBE_LOCKFILE_DIR="$locks" run --live)"
+check "only stale lockfiles is nothing to probe" yes "$(has '^rc=2$' "$out")"
+
+# Loading the core changes nothing about websocket.el until main runs.
+check "loading the core installs no advice" no "$("$repo/bin/lib/batch-emacs" \
+  -l "$repo/bin/lib/probe-companion-origin.el" \
+  --eval "(princ (if (advice--p (advice--symbol-function 'websocket-process-input-on-open-ws)) 'yes 'no))" 2>/dev/null)"
+
+out="$(run --help)"
+check "--help is not handed to Emacs" yes "$(has '^rc=2$' "$out")"
+out="$(run abc)"
+check "a non-numeric port is refused" yes "$(has 'not a port: abc' "$out")"
+
+echo "probe-companion-origin-test: $pass passed, $fail failed"
+((fail == 0))
