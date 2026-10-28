@@ -441,30 +441,19 @@ the 202 fix (claude-code-ide-org-accept-notifications-with-202).
 Code on a feature/ branch, merged through a PR.
 :END:
 
-Found by a repo audit 2026-10-27: upstream's lockfile
-carries no authToken, nothing checks websocket-origin, and
-claude-code-ide-enable-execute-code defaults to t, with no override in the live
-Doom config. A browser WebSocket is not subject to CORS, so a page that finds
-the companion's port could evaluate elisp in Emacs; --start-companion keeps one
-running per tracked project. Sibling of [[id:8c4a3aea-3208-46c8-a491-2ff024fbf822][8c4a3aea]], which is the same gap on the
+Upstream's companion WebSocket checks no Origin, so a web page that finds its
+port can connect, and with claude-code-ide-enable-execute-code at its default of
+t, evaluate elisp. Verified 2026-10-27 against this repo's live companion: a
+handshake carrying Origin: https://evil.example.com listed executeCode and
+evaluated (list (emacs-pid) (+ 40 2)). Sibling of [[id:8c4a3aea-3208-46c8-a491-2ff024fbf822][8c4a3aea]], the same gap on the
 HTTP tools server.
 
-*Verified 2026-10-27, so the title's "may" is settled.* A minimal WebSocket
-client sent the browser-style handshake with Origin: https://evil.example.com to
-this repo's companion on 127.0.0.1:44603: it switched protocols, listed
-executeCode among its tools, and evaluated (list (emacs-pid) (+ 40 2)) to (2986
-42), the live Emacs. Three companions were listening, one per tracked project,
-each lockfile world-readable in ~/.claude/ide/. What a real page still needs is
-the port, among 10000-65535, and a browser that lets a public page reach
-loopback, which recent Chrome restricts and Firefox and Safari do not.
-
-The [[https://github.com/nbest937/claude-code-ide-org.el/pull/40][PR #40]] review (9 findings) is answered in commit [[orgit-rev:./::182db18][182db18]]. The first finding
-is upstream's own, filed as [[id:207e9044-f05c-4507-bbd9-c2cfb9ef3f8e][207e9044]]: probing a live companion cuts its session
-off from Emacs, so the probe now needs --live for one. Silence past the timeout
-is no verdict (exit 2) rather than OPEN, the probe asks for the mcp subprotocol,
-and -32601 alone reads as executeCode not offered. The suite grows from 14 to 29
-checks, 15 of which fail against the previous code.
-
+bin/probe-companion-origin ([[https://github.com/nbest937/claude-code-ide-org.el/pull/40][PR #40]], review answered in commit [[orgit-rev:./::182db18][182db18]]) is the
+acceptance test: exit 0 means every companion refused. Since 2026-10-27 the
+user's Doom config sets executeCode to nil, so the probe finds it not offered,
+but the handshake is still accepted. The fix, refusing any socket that carries
+an Origin before upstream makes it the session's client, is designed in :PLAN:;
+it also closes the browser half of [[id:207e9044-f05c-4507-bbd9-c2cfb9ef3f8e][207e9044]].
 
 * TODO footnotes-inject reads hook JSON with sed, so a path or id containing an escaped quote is cut short :code:
 :PROPERTIES:
