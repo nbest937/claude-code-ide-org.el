@@ -2,85 +2,6 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* TODO A pre-push from a linked worktree exports GIT_DIR to bin/test-all, so a suite's git -C on a temp repo writes the real repo instead :code:bounded:
-:PROPERTIES:
-:ID:       689a3b6e-03ae-4d35-8b86-6b4c388cf66b
-:CREATED:  [2026-10-27 Tue 17:42]
-:CATEGORY: Dev
-:END:
-:LOGBOOK:
-- Tags ":code:bounded:" from ":code:"     [2026-10-28 Wed 07:28] \\
-  brainstormed: a change to the existing test-all runner
-:END:
-:PLAN:
-bin/test-all is the only path from a hook to a suite: pre-push calls it, and
-pre-commit runs checkers only (check-conventions' one git call reads the real
-repo on purpose). It already strips CLAUDE_CODE_SESSION_ID from every suite for
-the same kind of leak, one level up.
-
-1. bin/test-all: near the top, unset every name git rev-parse --local-env-vars
-   prints (15 in git 2.55: GIT_DIR, GIT_WORK_TREE, GIT_INDEX_FILE,
-   GIT_COMMON_DIR, GIT_OBJECT_DIRECTORY, GIT_CONFIG_PARAMETERS and the rest), so
-   nothing it runs, ERT included, inherits a pointer at the real repo. Git's own
-   list instead of four hand-picked names, so a variable git adds later is
-   covered. The list prints outside a repo and under a broken GIT_DIR (measured
-   2026-10-28); if it ever lacks GIT_DIR, the runner exits with an error before
-   running anything rather than scrub nothing silently.
-2. pre-push is not changed (approved 2026-10-28, a departure from the first
-   plan): its own git calls need GIT_DIR, and step 1 covers the one runner it
-   calls.
-2a. Revised after the [[https://github.com/nbest937/claude-code-ide-org.el/pull/41][PR #41]] review (approved 2026-10-28): the scrub lives in
-   bin/lib/git-hermetic.sh, sourced by test-all as the outer layer and by
-   bin/test and every git-using suite at its top, beside its
-   CLAUDE_CODE_SESSION_ID unset. In a linked worktree git rebase -x and a !
-   alias export GIT_DIR too, so a suite run directly is a route the runner
-   never sees. test-all fails statically a suite that runs git -C, init or
-   clone without sourcing the helper, and the helper lets git's own error
-   through.
-3. bin/test-all-test gains a check beside the session-id one: a scratch victim
-   repo, GIT_DIR exported at it, the runner run over a fake suite that does git
-   -C on its own temp dir (init, config user.name leak), then the victim's config
-   and refs found untouched. Proven to discriminate: with step 1 removed it
-   fails.
-4. Close-out: once merged, drop the "push from no linked worktree" caution, and
-   confirm end to end with a real pre-push from a throwaway linked worktree of a
-   scratch clone, never this repo.
-
-A feature/ branch and a PR, pushed from the main checkout. Until this lands,
-push from no linked worktree; /code-review --fix creates one.
-:END:
-:DEBRIEF:
-Shipped as planned in step 1 and revised in step 2a: the runner-only scrub
-became a shared helper after the [[https://github.com/nbest937/claude-code-ide-org.el/pull/41][PR #41]] review showed git rebase -x and !
-aliases export GIT_DIR too, and that the first test-all-test was itself a
-leaking suite. The static check (a suite running git -C, init or clone without
-the helper fails unrun) was added beyond the five findings so a new suite cannot
-reopen the hole. Verified: each new test-all-test check fails against the
-regression it targets (no scrub 9, a two-name unset 2, no static check 2); end
-to end, a real pre-push from a linked worktree of a scratch clone was clean with
-the fix and reproduced the incident without it; bin/test-all ran 27 suites, 1733
-passed. The push-from-no-linked-worktree caution is retired with the merge.
-Nothing left unfiled.
-:END:
-
-Git exports GIT_DIR to whatever it runs from a linked worktree (a hook, git
-rebase -x, a ! alias), and GIT_DIR overrides git -C, so a test suite's git -C on
-a temp repo wrote the real repo. Fixed by [[https://github.com/nbest937/claude-code-ide-org.el/pull/41][PR #41]], merged 2026-10-28:
-bin/lib/git-hermetic.sh unsets every name git rev-parse --local-env-vars prints,
-sourced by bin/test-all and by bin/test and every git-using suite, and test-all
-refuses a suite that runs git without it.
-
-The incident, 2026-10-27 17:37–17:39, when [[https://github.com/nbest937/claude-code-ide-org.el/pull/40][PR #40]] was pushed from a review
-worktree: through the real repo the suites set core.hooksPath to somewhere/else,
-core.bare to true and a [user] t identity; committed fixtures onto main and
-feature/companion-origin-probe and created the branches feat, side, feature/y
-and wt-branch; rewrote the review worktree's index and HEAD; and git-guards-test
-pushed twice to the real GitHub origin, leaving main at a Test <t@example.com>
-commit that deleted 149 files. Its parent was the real tip, so GitHub took it as
-a fast-forward. Repaired locally by hand the same evening (the fixture reflog
-entries kept as evidence); GitHub main was restored by a force push with lease
-2026-10-28.
-
 * TODO An apply whose writes never reach disk is committed short, and the only alarm for it is a log line nobody reads :code:
 :PROPERTIES:
 :ID:       4a700efb-c96c-4d40-942a-27755b5b5b4e
@@ -103,67 +24,6 @@ Nothing reads the log. Meanwhile 881 of its 8,601 records are hand edits from
 the clock and keyword hooks, nearly all noise, and the archive pass lost its
 source label after August. Supersedes [[id:e9ee1a50-085f-4c37-b064-4aec71cecb41][e9ee1a50]]; the log's
 existing data stays for [[id:b5448133-4021-46b9-a90e-d88e149ae65d][b5448133]] and any attribution question.
-
-
-* DONE Prune the spent one-off code: the :MEMBERS: migration and its proof, datetree-file, the CLOSED backfills, and --file-line-count :code:
-CLOSED: [2026-10-27 Tue 15:41]
-:PROPERTIES:
-:ID:       dce10826-bc70-4cdf-bf48-aee8c5371a0d
-:CREATED:  [2026-10-27 Tue 14:03]
-:CATEGORY: Dev
-:END:
-:LOGBOOK:
-CLOCK: [2026-10-27 Tue 14:03]--[2026-10-27 Tue 14:07] =>  0:04
-- State "DOING"      from "TODO"       [2026-10-27 Tue 14:03] \\
-  user asked to prune now
-- [2026-10-27 Tue 14:03]--[2026-10-27 Tue 14:07] delete spent one-off code and its tests
-CLOCK: [2026-10-27 Tue 14:21]--[2026-10-27 Tue 14:24] =>  0:03
-- [2026-10-27 Tue 14:21]--[2026-10-27 Tue 14:24] suggested span, accepted at review
-CLOCK: [2026-10-27 Tue 14:33]--[2026-10-27 Tue 14:34] =>  0:01
-- [2026-10-27 Tue 14:33]--[2026-10-27 Tue 14:34] suggested span, accepted at review
-CLOCK: [2026-10-27 Tue 14:46]--[2026-10-27 Tue 14:47] =>  0:01
-- [2026-10-27 Tue 14:46]--[2026-10-27 Tue 14:47] suggested span, accepted at review
-CLOCK: [2026-10-27 Tue 15:23]--[2026-10-27 Tue 15:24] =>  0:01
-- [2026-10-27 Tue 15:23]--[2026-10-27 Tue 15:24] suggested span, accepted at review
-CLOCK: [2026-10-27 Tue 15:25]--[2026-10-27 Tue 15:26] =>  0:01
-- [2026-10-27 Tue 15:25]--[2026-10-27 Tue 15:26] suggested span, accepted at review
-CLOCK: [2026-10-27 Tue 15:28]--[2026-10-27 Tue 15:30] =>  0:02
-- [2026-10-27 Tue 15:28]--[2026-10-27 Tue 15:30] suggested span, accepted at review
-CLOCK: [2026-10-27 Tue 15:33]--[2026-10-27 Tue 15:35] =>  0:02
-- [2026-10-27 Tue 15:33]--[2026-10-27 Tue 15:35] suggested span, accepted at review
-CLOCK: [2026-10-27 Tue 15:38]--[2026-10-27 Tue 15:41] =>  0:03
-- [2026-10-27 Tue 15:38]--[2026-10-27 Tue 15:41] suggested span, accepted at review
-- State "DONE"       from "DOING"      [2026-10-27 Tue 15:41] \\
-  merged in PR #39
-CLOCK: [2026-10-27 Tue 15:41]--[2026-10-27 Tue 15:42] =>  0:01
-- [2026-10-27 Tue 15:41]--[2026-10-27 Tue 15:42] close after PR #39 merged
-:END:
-:PLAN:
-
-:END:
-:DEBRIEF:
-Two corrections to the audit that found this: datetree-file had three tests, not
-none, and --recorded-close-time turned out to have no live caller once the
-backfills went (its one other mention was a docstring), so it went too, with
---git-close-time and the --with-backfill-file fixture. The datetree sort's
-idempotency test had built its tree with datetree-file; it now writes the tree
-literally, so the sort it keeps is still tested. Verified with bin/test-all in a
-worktree of the branch, 27 suites and 1716 tests. A running Emacs keeps the
-removed functions defined until restart, since reloading never unbinds;
-harmless, and not worth filing. One process slip on the way: bookkeeping done
-from the feature branch was rewritten by a branch switch, recorded on [[id:fb995c2f-d923-4f95-9bf9-e4c252980369][fb995c2f]].
-:END:
-A repo audit on 2026-10-27 found code whose one job is done. The :MEMBERS:
-migration, its proof and --slice-checklist-structure ran once; every slice here
-and in the one consumer carries :MEMBERS:, and refresh rebuilds it for open
-slices. claude-code-ide-org-datetree-file converted DONE.org once.
-backfill-closed and backfill-closed-from-git with --git-close-time filled 58
-CLOSED: lines once. --file-line-count lost its last caller to a size check. The
-user asked 2026-10-27 to remove all of it with its tests, keeping
---recorded-close-time and --datetree-target-file, which live code still calls.
-
-Done 2026-10-27 in [[https://github.com/nbest937/claude-code-ide-org.el/pull/39][PR #39]] (merge commit [[orgit-rev:./::aad7095][aad7095]]): all of it removed with its
-tests, 683 lines out and 21 in, and bin/test-all green on the branch.
 
 
 * TODO Audit what the two 2026-10-27 repo audits left unread, and run the suites they did not :code:research:
@@ -539,6 +399,25 @@ CLOCK: [2026-10-27 Tue 17:03]--[2026-10-27 Tue 17:09] =>  0:06
 - [2026-10-27 Tue 17:03]--[2026-10-27 Tue 17:09] add the foreign-origin probe to the repo
 CLOCK: [2026-10-27 Tue 17:09]--[2026-10-27 Tue 17:10] =>  0:01
 - [2026-10-27 Tue 17:09]--[2026-10-27 Tue 17:10] suggested span, accepted at review
+CLOCK: [2026-10-27 Tue 17:31]--[2026-10-27 Tue 17:32] =>  0:01
+- [2026-10-27 Tue 17:31]--[2026-10-27 Tue 17:32] suggested span, accepted at review
+CLOCK: [2026-10-27 Tue 17:36]--[2026-10-27 Tue 17:37] =>  0:01
+- [2026-10-27 Tue 17:36]--[2026-10-27 Tue 17:37] suggested span, accepted at review
+CLOCK: [2026-10-27 Tue 17:37]--[2026-10-27 Tue 17:51] =>  0:14
+- [2026-10-27 Tue 17:37]--[2026-10-27 Tue 17:51] commit review fixes to the probe, add pid check
+- [2026-10-27 Tue 17:51]--[2026-10-27 Tue 17:51] suggested span, accepted at review
+CLOCK: [2026-10-28 Wed 06:29]--[2026-10-28 Wed 06:32] =>  0:03
+- [2026-10-28 Wed 06:29]--[2026-10-28 Wed 06:32] suggested span, accepted at review
+CLOCK: [2026-10-28 Wed 07:18]--[2026-10-28 Wed 07:19] =>  0:01
+- [2026-10-28 Wed 07:18]--[2026-10-28 Wed 07:19] suggested span, accepted at review
+CLOCK: [2026-10-28 Wed 07:25]--[2026-10-28 Wed 07:28] =>  0:03
+- [2026-10-28 Wed 07:25]--[2026-10-28 Wed 07:28] suggested span, accepted at review
+CLOCK: [2026-10-28 Wed 07:29]--[2026-10-28 Wed 07:30] =>  0:01
+- [2026-10-28 Wed 07:29]--[2026-10-28 Wed 07:30] suggested span, accepted at review
+CLOCK: [2026-10-28 Wed 07:31]--[2026-10-28 Wed 07:32] =>  0:01
+- [2026-10-28 Wed 07:31]--[2026-10-28 Wed 07:32] suggested span, accepted at review
+CLOCK: [2026-10-28 Wed 09:11]--[2026-10-28 Wed 09:13] =>  0:02
+- [2026-10-28 Wed 09:11]--[2026-10-28 Wed 09:13] file the session takeover, fix PR #40 review
 :END:
 :PLAN:
 Not yet designed. The audit's proposal: close any companion socket whose
@@ -576,6 +455,7 @@ off from Emacs, so the probe now needs --live for one. Silence past the timeout
 is no verdict (exit 2) rather than OPEN, the probe asks for the mcp subprotocol,
 and -32601 alone reads as executeCode not offered. The suite grows from 14 to 29
 checks, 15 of which fail against the previous code.
+
 
 * TODO footnotes-inject reads hook JSON with sed, so a path or id containing an escaped quote is cut short :code:
 :PROPERTIES:
@@ -670,25 +550,6 @@ assignments.
 and $0 would name count-miss rather than the calling hook anyway. Found by a
 repo audit 2026-10-27, confirmed by reading the filter. Proposed: delete it, or
 pass the calling hook's name in and record it as hook_event_name.
-
-
-* CANCELLED count-miss passes a jq argument nothing reads, and claude-org-setup sets mcp_action and never reads it :code:
-CLOSED: [2026-10-27 Tue 12:56]
-:PROPERTIES:
-:ID:       63193123-2d6f-4441-92fa-2f40bb4f084a
-:CREATED:  [2026-10-27 Tue 12:56]
-:CATEGORY: Dev
-:END:
-:LOGBOOK:
-- State "CANCELLED"  from "TODO"       [2026-10-27 Tue 12:56] \\
-  filed as two: d94730c7 and 21217b78
-:END:
-
-.githooks/count-miss passes --arg h naming git:$0, which its filter never uses,
-and $0 would name count-miss rather than the calling hook anyway.
-bin/claude-org-setup assigns mcp_action=1 at two places and nothing in the tree
-reads it. Found by a repo audit 2026-10-27, confirmed by grep. Proposed: delete
-both, or pass the calling hook's name into count-miss and record it.
 
 
 * TODO The exact-duplicate refusal fires on any two titles with no ASCII letters or digits :code:
@@ -914,31 +775,6 @@ the current behaviour.
   recorded as applied but missing from the file, is [[id:7e4fb8ae-87ff-445a-b960-b7cc5302c0c8][7e4fb8ae]].
 
 
-* TODO org_capture's title goes through capture-template expansion, so a newline splits the heading and %^ opens a prompt :code:
-:PROPERTIES:
-:ID:       412768a0-3d9b-4cfe-9264-3f214d4baed1
-:CREATED:  [2026-10-27 Tue 12:48]
-:CATEGORY: Tools
-:END:
-:PLAN:
-Not yet designed. The audit's proposal: refuse newlines in titles and in
-org_divide's parent_title, and neutralise % in a title, by a placeholder
-replaced after finalize or by refusing a % sequence outright.
-:END:
-
-The title arrives as %i, which repeats the line prefix on every line, so a title
-"First\nSecond" writes two headings and the :ID: lands on the second. A %^{...}
-in the title is expanded after insertion and reads the minibuffer; tags are
-template text too, the same path runs at queue apply, and org_divide's
-parent_title is inserted raw. Reproduced in batch by a repo audit 2026-10-27. [[id:fd29914e-0d18-4964-a104-37c136b311a6][fd29914e]] is the same failure, a capture waiting on a prompt, from a
-different cause.
-
-Reproduced live by filing this very heading, 2026-10-27: the bare "%^" in its
-title raised "Enter string:" in the user's Emacs and the call timed out until
-they typed %^ back. The note's %^{...} was not expanded, so the note path is
-safe and only the title is affected.
-
-
 * TODO footnote-check blocks every stop when its loop-guard file cannot be written :code:
 :PROPERTIES:
 :ID:       ea069e92-6051-48a1-b9a5-e3c6f166c89e
@@ -976,6 +812,31 @@ and bin/discard-guard-test has none of them.
 Related, not a twin: [[id:025a2e8a-9b21-4044-b9df-79baf7e904ce][025a2e8a]] fixed an absolute path to the git binary and the
 force flags; this is an absolute path to the file being discarded, and -C or cd
 choosing the repo.
+
+
+* TODO org_capture's title goes through capture-template expansion, so a newline splits the heading and %^ opens a prompt :code:
+:PROPERTIES:
+:ID:       412768a0-3d9b-4cfe-9264-3f214d4baed1
+:CREATED:  [2026-10-27 Tue 12:48]
+:CATEGORY: Tools
+:END:
+:PLAN:
+Not yet designed. The audit's proposal: refuse newlines in titles and in
+org_divide's parent_title, and neutralise % in a title, by a placeholder
+replaced after finalize or by refusing a % sequence outright.
+:END:
+
+The title arrives as %i, which repeats the line prefix on every line, so a title
+"First\nSecond" writes two headings and the :ID: lands on the second. A %^{...}
+in the title is expanded after insertion and reads the minibuffer; tags are
+template text too, the same path runs at queue apply, and org_divide's
+parent_title is inserted raw. Reproduced in batch by a repo audit 2026-10-27. [[id:fd29914e-0d18-4964-a104-37c136b311a6][fd29914e]] is the same failure, a capture waiting on a prompt, from a
+different cause.
+
+Reproduced live by filing this very heading, 2026-10-27: the bare "%^" in its
+title raised "Enter string:" in the user's Emacs and the call timed out until
+they typed %^ back. The note's %^{...} was not expanded, so the note path is
+safe and only the title is affected.
 
 
 * TODO org_set_property writes TODO, SCHEDULED and DEADLINE through org-entry-put, which changes the keyword live or opens a prompt :code:
@@ -1094,47 +955,6 @@ claude-code-ide-org-standalone-wire was run again. Proposed: make session-ended
 count each launcher once, for example by advising cleanup-on-exit to do nothing
 for a directory no longer in claude-code-ide--processes, and test the double
 call. A normal /exit inside the launcher has not been checked.
-
-
-* DONE Closing a slice nominates nothing, so the slice after it waits on a hand-picked NEXT :code:
-CLOSED: [2026-10-27 Tue 09:08]
-:PROPERTIES:
-:ID:       d984abe6-2fe6-4dc2-9c7b-6bb4de20100f
-:CREATED:  [2026-10-27 Tue 09:05]
-:CATEGORY: Slices
-:END:
-:LOGBOOK:
-CLOCK: [2026-10-27 Tue 09:05]--[2026-10-27 Tue 09:08] =>  0:03
-- [2026-10-27 Tue 09:05]--[2026-10-27 Tue 09:08] successor rule in the slice commands
-- State "DONE"       from "DOING"      [2026-10-27 Tue 09:08] \\
-  successor line and nomination rule shipped
-:END:
-:PLAN:
-The proposal in the body is the whole design: a line in the slice's own plan,
-read by the two commands. No property and no hook.
-:END:
-:DEBRIEF:
-Prose only, in the two shipped commands, so consumers receive it with the
-plugin. bin/check-conventions and bin/test-all passed (27 suites, 1725). Not
-mechanised: the review-start hook could queue the nomination itself, and a
-declared property could replace the plan line once [[id:ecf66d45-18b3-477f-bca8-08bec90604e8][ecf66d45]] settles which order
-successors follow; neither is filed, since the plan line has not yet been used
-once.
-:END:
-
-A slice is top-level, and closing a top-level heading nominates nothing; a
-slice's :BLOCKER: is derived from its own members on every refresh, so it cannot
-name a predecessor either. So when a slice finished, /plan-slice found no NEXT
-slice and stopped to ask. Proposed (the user, 2026-10-27): a slice's :PLAN: ends
-with "Followed by <id>" or "Followed by: none named", and /work-slice's close
-step queues NEXT on the named slice when the slice enters REVIEW, so the next
-one can be planned while the review runs. A declared property is deferred to
-[[id:ecf66d45-18b3-477f-bca8-08bec90604e8][ecf66d45]]'s open question of which order successors follow.
-
-*Shipped 2026-10-27 on main.* /plan-slice now ends a slice's plan with its
-successor, asked of the user and never inferred, and /work-slice queues NEXT on
-that successor when the slice enters REVIEW. First use: [[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]] names [[id:005fef09-e34f-4994-8c0d-6d17ada3d7ac][005fef09]];
-[[id:005fef09-e34f-4994-8c0d-6d17ada3d7ac][005fef09]] names none.
 
 
 * TODO [0/6] A consumer's install can be wrong while every check says it is fine :code:
@@ -1982,151 +1802,6 @@ a save that skipped the changed-on-disk check. On the second attempt the line
 survived. Nobody saw the first append land, so if it never ran there is no bug.
 If it reproduces, any outside write to an open tracker can be lost
 silently, whether a git pull, another session's Edit or a hand edit.
-
-
-* DONE Standalone wiring at Emacs startup registered 0 project sessions, so every consumer's tool calls lose their project :code:bounded:
-CLOSED: [2026-10-27 Tue 11:21]
-:PROPERTIES:
-:ID:       28eed617-e4e0-4d29-88ea-9411de4b77e5
-:CREATED:  [2026-10-12 Mon 14:47]
-:CATEGORY: Dev
-:END:
-:LOGBOOK:
-CLOCK: [2026-10-12 Mon 12:41]--[2026-10-12 Mon 12:42] =>  0:01
-- [2026-10-12 Mon 12:41]--[2026-10-12 Mon 12:42] assigned at review
-- [2026-10-12 Mon 14:46]--[2026-10-12 Mon 14:47] assigned at review
-CLOCK: [2026-10-12 Mon 14:47]--[2026-10-12 Mon 14:48] =>  0:01
-- [2026-10-12 Mon 14:47]--[2026-10-12 Mon 14:48] file the zero-session startup wiring
-- [2026-10-12 Mon 14:48]--[2026-10-12 Mon 15:07] assigned at review
-- State "DOING"      from "TODO"       [2026-10-12 Mon 15:07] \\
-  the user: start on the zero-session wiring
-CLOCK: [2026-10-12 Mon 15:11]--[2026-10-12 Mon 15:12] =>  0:01
-- [2026-10-12 Mon 15:11]--[2026-10-12 Mon 15:12] start on zero-session startup wiring
-- [2026-10-12 Mon 15:33]--[2026-10-12 Mon 15:33] start on zero-session startup wiring
-CLOCK: [2026-10-12 Mon 15:41]--[2026-10-12 Mon 15:42] =>  0:01
-- [2026-10-12 Mon 15:41]--[2026-10-12 Mon 15:42] suggested span, accepted at review
-CLOCK: [2026-10-20 Tue 17:28]--[2026-10-20 Tue 17:29] =>  0:01
-- [2026-10-20 Tue 17:28]--[2026-10-20 Tue 17:29] assigned at review
-CLOCK: [2026-10-21 Wed 12:13]--[2026-10-21 Wed 12:14] =>  0:01
-- Tags ":code:bounded:" from ":code:"     [2026-10-21 Wed 12:13] \\
-  classified at brainstorm: fixes existing wiring code in config.el
-- [2026-10-21 Wed 12:13]--[2026-10-21 Wed 12:13] assigned at review
-- [2026-10-21 Wed 12:13]--[2026-10-21 Wed 12:14] brainstorm and record session-registration design
-CLOCK: [2026-10-21 Wed 12:40]--[2026-10-21 Wed 12:41] =>  0:01
-- [2026-10-21 Wed 12:40]--[2026-10-21 Wed 12:41] add follow-up reminder for noodle-salesman hook
-CLOCK: [2026-10-21 Wed 14:46]--[2026-10-21 Wed 14:54] =>  0:08
-- [2026-10-21 Wed 14:46]--[2026-10-21 Wed 14:54] implement on-demand session registration
-- State "REVIEW"     from "DOING"      [2026-10-21 Wed 14:54] \\
-  PR #38 open, awaiting review and merge
-CLOCK: [2026-10-21 Wed 15:39]--[2026-10-21 Wed 15:48] =>  0:09
-- State "DOING"      from "REVIEW"     [2026-10-21 Wed 15:39] \\
-  PR #38 review findings, rework
-- [2026-10-21 Wed 15:39]--[2026-10-21 Wed 15:48] rework PR #38 review findings
-- State "REVIEW"     from "DOING"      [2026-10-21 Wed 15:48] \\
-  review rework pushed to PR #38
-- [2026-10-21 Wed 15:48]--[2026-10-21 Wed 15:48] suggested span, accepted at review
-CLOCK: [2026-10-27 Tue 08:25]--[2026-10-27 Tue 08:26] =>  0:01
-- [2026-10-27 Tue 08:25]--[2026-10-27 Tue 08:26] close the companion thread, merge PR #38
-CLOCK: [2026-10-27 Tue 08:32]--[2026-10-27 Tue 08:33] =>  0:01
-- [2026-10-27 Tue 08:32]--[2026-10-27 Tue 08:33] assigned at review
-CLOCK: [2026-10-27 Tue 08:40]--[2026-10-27 Tue 08:41] =>  0:01
-- [2026-10-27 Tue 08:40]--[2026-10-27 Tue 08:41] assigned at review
-- State "DONE"       from "REVIEW"     [2026-10-27 Tue 11:21] \\
-  PR #38 merged; launcher-stop residue filed as f22246cc
-CLOCK: [2026-10-27 Tue 11:21]--[2026-10-27 Tue 11:22] =>  0:01
-- [2026-10-27 Tue 11:21]--[2026-10-27 Tue 11:22] close: resolution and debrief
-:END:
-:PLAN:
-Two causes empty the session table, and the fix covers both (approach 3 of
-three, the user, 2026-10-20, since the launcher is in occasional use).
-
-Cause 1, load order: the wiring runs from the module's own load
-(=claude-code-ide-org--wire-on-load=, last form of the =with-eval-after-load
-'claude-code-ide= block). Doom loads module configs before the private
-=config.el=, whose =after! org= sets =org-agenda-files=. So the derivation sees
-no tracked files, registers 0 sessions, and reports success. Inferred from the
-code and the config, not watched.
-
-Cause 2, upstream clearing: =claude-code-ide-mcp-server-session-ended= stops the
-server when its count reaches 0, and =--stop-server= runs =clrhash= over every
-session, ours included. Confirmed in batch against upstream's own code with only
-the network stop stubbed: one launcher session started and ended left the table
-empty and the server nil. Between that stop and the next launcher start, Warp
-and CLI clients have no server.
-
-A. Register on demand, at the shared lookup (revised after the [[https://github.com/nbest937/claude-code-ide-org.el/pull/38][PR #38]] review). =:around= advice on upstream's =claude-code-ide-mcp-server-get-session-context=, through which upstream's own tools also pass: on a miss it registers the project the wire would have registered under that id and starts its IDE companion as the wire does. One partition rule, shared with the wire, decides what may register: the first of a colliding pair registers, a port mismatch is refused. An explicit nil project list means no sessions. A miss is cached against the tracked-file list until that changes or the next wire, since the lookup is on every tool call's path.
-
-B. Keep the server up through a launcher session's end, by holding one reference on upstream's count: the wire calls the public =claude-code-ide-mcp-server-session-started= with no arguments, once per server object. The count then never reaches zero from launcher ends. No advice on an upstream internal and no flag. The defect is filed as [[id:14f9779f-a5ec-4edb-8e90-28bb24c236ad][14f9779f]] under [[id:9d6449c7-529f-49a0-b28f-015cce869715][9d6449c7]].
-
-C. Warn at zero. When a ='derive= wire finds no projects, a =display-warning= says sessions will register on their first call, in place of the success message.
-
-Testing. ERT, each case shown red against HEAD first: an empty table plus a
-known session id registers it and scopes to it; an unknown id registers nothing
-and stays global; a collision registers nothing; a launcher start and end with a
-fake server leaves our sessions and the server in place; a zero derivation at
-wire time warns. Then =bin/test-all=. Live: after a reload, with the table
-empty, one unscoped =org_outline= from a session here registers
-=claude-code-ide-org=.
-
-Files: =config.el= and its test file, on =feature/session-registration=, merged
-by PR.
-
-After the merge, in noodle-salesman: drop the targetless-capture rule from its
-=.claude/hooks/org-local-only= (commit 6efc6a4 there), and keep the rule that
-ids must be local. That rule refuses every targetless =org_capture= as a guard
-against this bug's misroute ([[id:4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8][4a6f6dc3]]), so it also blocks a legitimate top-level
-capture (reported by that repo's agent 2026-10-21). Verify there first: with a
-session registered, a targetless capture with =category= lands in
-noodle-salesman's own TODO.org.
-:END:
-:DEBRIEF:
-Verified after an Emacs restart (2026-10-26): noodle-salesman's session was
-registered on demand at its first call on 2026-10-27, a day after startup,
-pointed at its own checkout, and its later queue lines followed. The
-noodle-salesman follow-up landed there: the targetless-capture rule is gone from
-its org-local-only guard.
-
-Falsified on 2026-10-27, verifying [[id:b4be636e-e665-44a9-9ab5-5fb3992f280c][b4be636e]]: claude-code-ide-stop in a wired
-project runs upstream's exit cleanup twice (kill-buffer hook, then the process
-sentinel), so session-ended decrements twice and spends the held reference; the
-tools server stopped until the wire was re-run. Filed locally as [[id:f22246cc-50e1-49e8-acc1-d71eecab814c][f22246cc]] and
-upstream as [[id:9d704e0c-b2b4-4113-87f4-b0944c81f921][9d704e0c]]. The companion teardown itself is [[id:b4be636e-e665-44a9-9ab5-5fb3992f280c][b4be636e]], reproduced,
-deferred as future work (the user).
-
-Also filed from this work: [[id:56f26c45-39b9-4a6e-9df2-4358aa83c19f][56f26c45]], an upstream hook for an unknown session id
-so the :around advice on get-session-context can go. The server never stopping
-once a reference is held was judged acceptable (the user, 2026-10-27).
-:END:
-The MCP session table empties, so tool calls from a consumer repo lose their
-project, and read scoping ([[id:d6375b21-a410-4c2d-9d5b-bfe980c4cc63][d6375b21]]) and capture routing ([[id:d718f6b6-5a33-4889-8b5a-8ea82553ccea][d718f6b6]]) silently
-fall back to global. Seen 2026-10-12 after a restart ("0 project session(s)"),
-2026-10-16 (only a launcher session registered, and a noodle-salesman capture
-fell through, [[id:4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8][4a6f6dc3]]), and 2026-10-20 (table empty while the derivation found
-all three projects). Two causes, both in =:PLAN:=: the startup wiring runs
-before the private config sets =org-agenda-files=, and upstream clears every
-session when a launcher session ends, which was confirmed in batch. The fix
-registers sessions on demand, keeps the server up through a launcher session's
-end, and warns when the startup wiring derives no projects.
-
-Shipped on =feature/session-registration= (commit [[orgit-rev:./::5039395][5039395]]), then reworked after
-PR #38's review (commit [[orgit-rev:./::688c691][688c691]]). The review found that the first cut registered
-only for org's own tools, refused both clones of a collision where the wire
-registers the first, gave on-demand sessions no IDE companion, warned falsely
-for an explicit nil, and suppressed upstream's stop with a flag that was never
-cleared. The :PLAN: describes the reworked design. Verified: each new test fails
-against the first cut, against main, or both, except the one guarding upstream's
-own stop when no reference is held; =bin/test-all= is 27 suites, 1725 passed.
-Live, after a =load-file= and removing the first cut's advice by hand: with this
-repo's entry removed from the table, upstream's own =project-info= tool
-re-registered =claude-code-ide-org= at its checkout, and the count held one
-reference. Not addressed, by agreement: a launcher's exit still stops the IDE
-companion for its own directory (review finding, reproduced 2026-10-27), filed
-as [[id:b4be636e-e665-44a9-9ab5-5fb3992f280c][b4be636e]].
-
-*Resolved 2026-10-27*: [[https://github.com/nbest937/claude-code-ide-org.el/pull/38][PR #38]] merged as commit [[orgit-rev:./::c9177fb][c9177fb]]. Sessions register on
-their first call and the held reference survives a launcher that exits by
-itself, but not one stopped with claude-code-ide-stop, which ends its session
-twice; that residue is [[id:f22246cc-50e1-49e8-acc1-d71eecab814c][f22246cc]].
 
 
 * TODO [0/6] The SessionStart tool-failure report misstates what failed and says nothing when Emacs is down now :code:
@@ -7324,69 +6999,6 @@ explanation. The third option is cheaper than it sounds and should not be
 dismissed.
 
 
-* CANCELLED The audit log answers attribution questions nobody asks it :code:
-CLOSED: [2026-10-27 Tue 15:24]
-:PROPERTIES:
-:ID:       e9ee1a50-085f-4c37-b064-4aec71cecb41
-:CREATED:  [2026-09-16 Wed 13:47]
-:CATEGORY: Dev
-:END:
-:LOGBOOK:
-- State "CANCELLED"  from "TODO"       [2026-10-27 Tue 15:24] \\
-  overtaken by 4a700efb: the reader moves to apply-detect
-:END:
-:PLAN:
-
-:END:
-:DEBRIEF:
-No reader was built. A repo audit on 2026-10-27 found the log at 8,601 records,
-with no attribution question asked of it since 2026-09-16, and 18
-UNSAVED-MISMATCH alarms nobody had seen: 12 from org_set_todo before the
-2026-08-11 queue cutover, and 6 from apply, the last on 2026-09-14. Deleting it
-was proposed, then withdrawn when the user pointed out that the session commits
-the apply diff unread, so the apply alarm is the log's live job; that moved to
-[[id:4a700efb-c96c-4d40-942a-27755b5b5b4e][4a700efb]]. [[id:b5448133-4021-46b9-a90e-d88e149ae65d][b5448133]] still needs the existing file.
-:END:
-Found 2026-09-16. =.claude-code-ide-org-audit.jsonl= holds **5053 records, 1.7
-MB**, accumulated since August in the repo root (gitignored, =.gitignore:4=),
-and 2026-09-16 was the **first time anything ever read it**. It was built for
-one job — catching a mutation that did not reach disk, which is why each record
-carries before/after =sha256= and a =result= of =saved= or =UNSAVED-MISMATCH= —
-and it turns out to answer a second, larger class for free: **which tool changed
-which heading, when**. It settled [[id:e3d1531d-7562-4bad-bef2-fc819630c5f7][e3d1531d]] in one query after two purpose-built
-measurements had failed on instrument grounds, and it did so from data already
-on disk for weeks. *The gap is not more logging.* Four times in one session the
-answer was already built — =org-ql='s predicates behind a wrapper that dropped
-them, =--transcript-longer-sibling='s re-key detection, =--merge-time-intervals=
-duplicated as =--merge-overlapping-runs=, and now this. Adding instrumentation
-without a reader grows a file nobody queries; the standing habit to fix is
-reaching for construction before interrogation. *Proposed, in order of
-cheapness.* A one-line recipe in the org-dev skill — "before building a
-measurement, query the audit log" — with the two shapes that work: count by
-=tool= for a heading, and correlate a =timestamp= against an interval. Then, if
-it earns it, a small reader: =claude-code-ide-org-audit-report= taking an =:ID:=
-and returning tool counts and a timeline, so the query is a command rather than
-a =python3= one-liner reconstructed each time. *One real limitation, stated so
-the reader is not over-trusted.* It records that a tool touched a heading, never
-what it did to it. [[id:e3d1531d-7562-4bad-bef2-fc819630c5f7][e3d1531d]] was answerable only because apply has no reason to
-touch =Review attention= except by closing its clock — an inference from the
-mechanism, not from the record. A log entry naming the *operation* would make
-that class of question direct rather than lucky, and that is the one place more
-instrumentation is genuinely warranted.
-
-A repo audit, 2026-10-27: the log had grown to 2.9 MB and 8514 records, with no
-rotation. It held 284 =UNSAVED-MISMATCH= records nobody had seen: 266 are
-=hand-edit=, noise by construction, since the flush runs before the human saves;
-12 are =org_set_todo= and 6 are =org_review_apply=, the alarm the log was built
-to raise. Each logged event costs two whole-file sha256 reads. The audit's
-proposal: a ceremony-report line counting non-hand-edit mismatches since the
-last stamp, or stop writing the log.
-
-Cancelled 2026-10-27, overtaken by [[id:4a700efb-c96c-4d40-942a-27755b5b5b4e][4a700efb]]: the reader the log needs is an
-alarm in apply-detect for an apply that never reached disk, not an attribution
-report. The data stays for attribution questions.
-
-
 * TODO The review-attention clock stops at the first apply, so 101 intervals measure the wrong thing :code:
 :PROPERTIES:
 :ID:       e3d1531d-7562-4bad-bef2-fc819630c5f7
@@ -11541,12 +11153,12 @@ before the fix and still says.
 
 
 * TODO Archive closed tasks daily
-SCHEDULED: <2026-10-28 Wed 07:00 ++1d>
+SCHEDULED: <2026-10-29 Thu 07:00 ++1d>
 :PROPERTIES:
 :CATEGORY: Meta
 :ID:       cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8
 :CREATED:  [2026-08-21 Fri 15:35]
-:LAST_REPEAT: [2026-10-27 Tue 08:00]
+:LAST_REPEAT: [2026-10-28 Wed 09:43]
 :KIND:     ceremony
 :END:
 :LOGBOOK:
@@ -13794,6 +13406,16 @@ early when the directory is no longer in claude-code-ide--processes).
 :LOGBOOK:
 CLOCK: [2026-10-27 Tue 16:56]--[2026-10-27 Tue 16:57] =>  0:01
 - [2026-10-27 Tue 16:56]--[2026-10-27 Tue 16:57] compose the upstream security advisory
+CLOCK: [2026-10-28 Wed 09:15]--[2026-10-28 Wed 09:16] =>  0:01
+- [2026-10-28 Wed 09:15]--[2026-10-28 Wed 09:16] assigned at review
+CLOCK: [2026-10-28 Wed 09:25]--[2026-10-28 Wed 09:26] =>  0:01
+- [2026-10-28 Wed 09:25]--[2026-10-28 Wed 09:26] assigned at review
+CLOCK: [2026-10-28 Wed 09:26]--[2026-10-28 Wed 09:27] =>  0:01
+- [2026-10-28 Wed 09:26]--[2026-10-28 Wed 09:27] record the pre-send checks
+CLOCK: [2026-10-28 Wed 09:38]--[2026-10-28 Wed 09:39] =>  0:01
+- [2026-10-28 Wed 09:38]--[2026-10-28 Wed 09:39] assigned at review
+CLOCK: [2026-10-28 Wed 09:39]--[2026-10-28 Wed 09:40] =>  0:01
+- [2026-10-28 Wed 09:39]--[2026-10-28 Wed 09:40] verify the CVE number
 :END:
 :PLAN:
 To send through the repository's Security tab (Report a vulnerability), not as a
@@ -13948,6 +13570,7 @@ or read what the user selects. Found by the [[https://github.com/nbest937/claude
 probe did it to all three live companions on 2026-10-27. Reported upstream
 through [[id:b24abffd-3f23-4c1a-91e8-bb90c9e8e43e][b24abffd]].
 
+
 * MAYBE Consider archives in org_clock_report's scope (agenda-with-archives) :code:
 :PROPERTIES:
 :CATEGORY: Clock
@@ -14059,11 +13682,6 @@ per tool -- rather than opening the servers beyond localhost.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
-CLOCK: [2026-10-27 Tue 17:18]--[2026-10-27 Tue 17:19] =>  0:01
-CLOCK: [2026-10-27 Tue 15:36]--[2026-10-27 Tue 15:37] =>  0:01
-CLOCK: [2026-10-27 Tue 15:01]--[2026-10-27 Tue 15:02] =>  0:01
-CLOCK: [2026-10-27 Tue 13:54]--[2026-10-27 Tue 13:56] =>  0:02
-CLOCK: [2026-10-27 Tue 13:05]--[2026-10-27 Tue 13:09] =>  0:04
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
@@ -14277,6 +13895,13 @@ CLOCK: [2026-10-14 Wed 12:51]--[2026-10-14 Wed 13:01] =>  0:10
 CLOCK: [2026-10-20 Tue 11:49]--[2026-10-20 Tue 11:50] =>  0:01
 CLOCK: [2026-10-20 Tue 12:51]--[2026-10-20 Tue 14:54] =>  2:03
 CLOCK: [2026-10-21 Wed 17:01]--[2026-10-21 Wed 17:02] =>  0:01
+CLOCK: [2026-10-27 Tue 13:05]--[2026-10-27 Tue 13:09] =>  0:04
+CLOCK: [2026-10-27 Tue 13:54]--[2026-10-27 Tue 13:56] =>  0:02
+CLOCK: [2026-10-27 Tue 15:01]--[2026-10-27 Tue 15:02] =>  0:01
+CLOCK: [2026-10-27 Tue 15:36]--[2026-10-27 Tue 15:37] =>  0:01
+CLOCK: [2026-10-27 Tue 17:18]--[2026-10-27 Tue 17:19] =>  0:01
+CLOCK: [2026-10-28 Wed 09:40]--[2026-10-28 Wed 09:43] =>  0:03
+CLOCK: [2026-10-28 Wed 10:32]--[2026-10-28 Wed 10:34] =>  0:02
 :END:
 
 We created this heading on 2026-08-26. We deleted that property from its
@@ -15972,4 +15597,17 @@ CLOCK: [2026-10-27 Tue 14:46]--[2026-10-27 Tue 14:47] =>  0:01
 - [2026-10-27 Tue 14:46]--[2026-10-27 Tue 14:47] record the audit-log miss
 CLOCK: [2026-10-27 Tue 15:24]--[2026-10-27 Tue 15:25] =>  0:01
 - [2026-10-27 Tue 15:24]--[2026-10-27 Tue 15:25] file the apply-alarm heading, retire e9ee1a50
+:END:
+
+
+**** 2026-10-28 Wednesday
+:PROPERTIES:
+:ID:       c1534bed-12ba-43a2-98eb-bfbcb3c3331e
+:CREATED:  [2026-10-28 Wed 07:40]
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-28 Wed 07:40]--[2026-10-28 Wed 07:41] =>  0:01
+- [2026-10-28 Wed 07:40]--[2026-10-28 Wed 07:41] assigned at review
+CLOCK: [2026-10-28 Wed 07:59]--[2026-10-28 Wed 08:00] =>  0:01
+- [2026-10-28 Wed 07:59]--[2026-10-28 Wed 08:00] assigned at review
 :END:
