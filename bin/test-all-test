@@ -3,6 +3,8 @@
 # a copy of the runner in a scratch bin/, beside fake suites, one case
 # per way a suite can look green without being green.
 set -uo pipefail
+# shellcheck source=lib/git-hermetic.sh
+. "$(dirname "${BASH_SOURCE[0]}")/lib/git-hermetic.sh"  # git -C must not reach the real repo (TODO.org :ID: 689a3b6e)
 unset CLAUDE_CODE_SESSION_ID  # else a provoked refusal counts as a miss in the calling session
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -19,6 +21,7 @@ check() {
 fresh() {
   rm -rf "$work/bin"; mkdir -p "$work/bin"
   cp "$repo_root/bin/test-all" "$work/bin/test-all"
+  mkdir -p "$work/bin/lib"; cp "$repo_root/bin/lib/git-hermetic.sh" "$work/bin/lib/"
   printf '#!/usr/bin/env bash\n%s\n' "${1:-echo 'Ran 3 tests, 3 results as expected, 0 unexpected'}" > "$work/bin/test"
   chmod +x "$work/bin/test"
 }
@@ -63,6 +66,70 @@ check "and says why" yes "$(grep -q 'reads real user data' "$work/out" && echo y
 fresh; suite env-test 'echo "sid=${CLAUDE_CODE_SESSION_ID:-unset}"; [ -z "${CLAUDE_CODE_SESSION_ID:-}" ] || exit 1; case "$CLAUDE_ORG_QUEUE_DIR" in "$HOME"/.claude*) exit 1;; esac; echo "env-test: 1 passed, 0 failed"'
 check "session id unset and queue redirected" 0 \
   "$(CLAUDE_CODE_SESSION_ID=sess-real CLAUDE_ORG_QUEUE_DIR="$HOME/.claude/org-queue" "$work/bin/test-all" >/dev/null 2>&1; echo $?)"
+
+# A victim repo stands in for the real one, as it did on 2026-10-27
+# (TODO.org :ID: 689a3b6e): git's variables exported at it, the way git
+# exports them to a hook in a linked worktree, and a suite doing `git -C'
+# on a temp repo of its own. Without the scrub its writes land in the
+# victim: config, a branch, a remote, the index.
+victim="$work/victim"
+git init -q -b main "$victim"
+printf 'v\n' > "$victim/v"; git -C "$victim" add v
+git -C "$victim" -c user.name=v -c user.email=v@example.invalid commit -q -m v
+victim_state() {
+  git -C "$victim" config --local --get user.name
+  git -C "$victim" for-each-ref --format='%(refname:short) %(objectname)'
+  git -C "$victim" remote
+  md5 -q "$victim/.git/index" 2>/dev/null || md5sum "$victim/.git/index"
+}
+clean_state="$(victim_state)"
+# `$g', not git: a literal `git -C' here would trip the static check
+# below, and this fixture must reach the runner's own scrub.
+writer='g=git; t="$(mktemp -d)"; $g -C "$t" init -q; $g -C "$t" config user.name leak
+$g -C "$t" checkout -q -b leak-branch 2>/dev/null; $g -C "$t" remote add origin git@github.com:o/r.git
+printf x > "$t/f"; $g -C "$t" add f; rm -rf "$t"'
+fresh; suite leak-test "$writer"'
+echo "leak-test: 1 passed, 0 failed"'
+check "a run under an exported GIT_DIR passes" 0 \
+  "$(GIT_DIR="$victim/.git" GIT_WORK_TREE="$victim" "$work/bin/test-all" >"$work/out" 2>&1; echo $?)"
+check "and the writing suite ran" ok "$(line_for leak-test)"
+check "and the victim's config, refs, remotes and index are untouched" "$clean_state" "$(victim_state)"
+# The index alone, as pre-commit exports it: a hand-written list of
+# GIT_DIR and GIT_WORK_TREE would pass every check above and fail this.
+check "a run under an exported GIT_INDEX_FILE passes" 0 \
+  "$(GIT_INDEX_FILE="$victim/.git/index" "$work/bin/test-all" >"$work/out" 2>&1; echo $?)"
+check "and the writing suite ran" ok "$(line_for leak-test)"
+check "and the victim's index is untouched" "$clean_state" "$(victim_state)"
+
+# The inner layer: a suite run directly, not through the runner, still
+# scrubs itself when it sources the helper (`git rebase -x' and a `!'
+# alias export GIT_DIR in a linked worktree too).
+printf '#!/usr/bin/env bash\n. "%s/bin/lib/git-hermetic.sh"\n%s\necho done\n' "$repo_root" "$writer" > "$work/direct"
+check "a suite sourcing the helper, run directly under GIT_DIR, finishes" done \
+  "$(GIT_DIR="$victim/.git" GIT_WORK_TREE="$victim" GIT_INDEX_FILE="$victim/.git/index" bash "$work/direct" 2>/dev/null)"
+check "and leaves the victim untouched" "$clean_state" "$(victim_state)"
+
+# A suite that runs git without sourcing the helper fails statically.
+fresh; suite bare-git-test 'git -C "$(mktemp -d)" init -q; echo "bare-git-test: 1 passed, 0 failed"'
+check "a suite running git without the helper fails statically" 1 "$(run)"
+check "and says why" yes "$(grep -q 'without sourcing bin/lib/git-hermetic.sh' "$work/out" && echo yes || echo no)"
+fresh; suite sourced-git-test '. "$(dirname "$0")/lib/git-hermetic.sh"; git -C "$(mktemp -d)" init -q; echo "sourced-git-test: 1 passed, 0 failed"'
+check "one that sources it runs" 0 "$(run)"
+
+# A git whose list no longer names GIT_DIR, or whose call fails: refuse
+# rather than run unscrubbed, and say which.
+mkdir -p "$work/fakegit"
+printf '#!/bin/sh\necho GIT_SOMETHING_ELSE\n' > "$work/fakegit/git"; chmod +x "$work/fakegit/git"
+fresh; suite good-test 'echo "good-test: 1 passed, 0 failed"'
+check "a list without GIT_DIR refuses the run" 1 \
+  "$(PATH="$work/fakegit:$PATH" "$work/bin/test-all" >"$work/out" 2>&1; echo $?)"
+check "and runs no suite" no "$(grep -q good-test "$work/out" && echo yes || echo no)"
+check "and says the list lacked GIT_DIR" yes "$(grep -q 'did not name GIT_DIR' "$work/out" && echo yes || echo no)"
+printf '#!/bin/sh\necho "fatal: broken on purpose" >&2; exit 128\n' > "$work/fakegit/git"
+check "a failing git refuses the run" 1 \
+  "$(PATH="$work/fakegit:$PATH" "$work/bin/test-all" >"$work/out" 2>&1; echo $?)"
+check "and shows git's own error" yes "$(grep -q 'fatal: broken on purpose' "$work/out" && echo yes || echo no)"
+check "and says the call failed" yes "$(grep -q 'local-env-vars. failed' "$work/out" && echo yes || echo no)"
 
 fresh 'echo "Ran 3 tests, 2 results as expected, 1 unexpected"; exit 1'
 check "an ERT failure fails the run" 1 "$(run)"
