@@ -2,6 +2,85 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO A pre-push from a linked worktree exports GIT_DIR to bin/test-all, so a suite's git -C on a temp repo writes the real repo instead :code:bounded:
+:PROPERTIES:
+:ID:       689a3b6e-03ae-4d35-8b86-6b4c388cf66b
+:CREATED:  [2026-10-27 Tue 17:42]
+:CATEGORY: Dev
+:END:
+:LOGBOOK:
+- Tags ":code:bounded:" from ":code:"     [2026-10-28 Wed 07:28] \\
+  brainstormed: a change to the existing test-all runner
+:END:
+:PLAN:
+bin/test-all is the only path from a hook to a suite: pre-push calls it, and
+pre-commit runs checkers only (check-conventions' one git call reads the real
+repo on purpose). It already strips CLAUDE_CODE_SESSION_ID from every suite for
+the same kind of leak, one level up.
+
+1. bin/test-all: near the top, unset every name git rev-parse --local-env-vars
+   prints (15 in git 2.55: GIT_DIR, GIT_WORK_TREE, GIT_INDEX_FILE,
+   GIT_COMMON_DIR, GIT_OBJECT_DIRECTORY, GIT_CONFIG_PARAMETERS and the rest), so
+   nothing it runs, ERT included, inherits a pointer at the real repo. Git's own
+   list instead of four hand-picked names, so a variable git adds later is
+   covered. The list prints outside a repo and under a broken GIT_DIR (measured
+   2026-10-28); if it ever lacks GIT_DIR, the runner exits with an error before
+   running anything rather than scrub nothing silently.
+2. pre-push is not changed (approved 2026-10-28, a departure from the first
+   plan): its own git calls need GIT_DIR, and step 1 covers the one runner it
+   calls.
+2a. Revised after the [[https://github.com/nbest937/claude-code-ide-org.el/pull/41][PR #41]] review (approved 2026-10-28): the scrub lives in
+   bin/lib/git-hermetic.sh, sourced by test-all as the outer layer and by
+   bin/test and every git-using suite at its top, beside its
+   CLAUDE_CODE_SESSION_ID unset. In a linked worktree git rebase -x and a !
+   alias export GIT_DIR too, so a suite run directly is a route the runner
+   never sees. test-all fails statically a suite that runs git -C, init or
+   clone without sourcing the helper, and the helper lets git's own error
+   through.
+3. bin/test-all-test gains a check beside the session-id one: a scratch victim
+   repo, GIT_DIR exported at it, the runner run over a fake suite that does git
+   -C on its own temp dir (init, config user.name leak), then the victim's config
+   and refs found untouched. Proven to discriminate: with step 1 removed it
+   fails.
+4. Close-out: once merged, drop the "push from no linked worktree" caution, and
+   confirm end to end with a real pre-push from a throwaway linked worktree of a
+   scratch clone, never this repo.
+
+A feature/ branch and a PR, pushed from the main checkout. Until this lands,
+push from no linked worktree; /code-review --fix creates one.
+:END:
+:DEBRIEF:
+Shipped as planned in step 1 and revised in step 2a: the runner-only scrub
+became a shared helper after the [[https://github.com/nbest937/claude-code-ide-org.el/pull/41][PR #41]] review showed git rebase -x and !
+aliases export GIT_DIR too, and that the first test-all-test was itself a
+leaking suite. The static check (a suite running git -C, init or clone without
+the helper fails unrun) was added beyond the five findings so a new suite cannot
+reopen the hole. Verified: each new test-all-test check fails against the
+regression it targets (no scrub 9, a two-name unset 2, no static check 2); end
+to end, a real pre-push from a linked worktree of a scratch clone was clean with
+the fix and reproduced the incident without it; bin/test-all ran 27 suites, 1733
+passed. The push-from-no-linked-worktree caution is retired with the merge.
+Nothing left unfiled.
+:END:
+
+Git exports GIT_DIR to whatever it runs from a linked worktree (a hook, git
+rebase -x, a ! alias), and GIT_DIR overrides git -C, so a test suite's git -C on
+a temp repo wrote the real repo. Fixed by [[https://github.com/nbest937/claude-code-ide-org.el/pull/41][PR #41]], merged 2026-10-28:
+bin/lib/git-hermetic.sh unsets every name git rev-parse --local-env-vars prints,
+sourced by bin/test-all and by bin/test and every git-using suite, and test-all
+refuses a suite that runs git without it.
+
+The incident, 2026-10-27 17:37–17:39, when [[https://github.com/nbest937/claude-code-ide-org.el/pull/40][PR #40]] was pushed from a review
+worktree: through the real repo the suites set core.hooksPath to somewhere/else,
+core.bare to true and a [user] t identity; committed fixtures onto main and
+feature/companion-origin-probe and created the branches feat, side, feature/y
+and wt-branch; rewrote the review worktree's index and HEAD; and git-guards-test
+pushed twice to the real GitHub origin, leaving main at a Test <t@example.com>
+commit that deleted 149 files. Its parent was the real tip, so GitHub took it as
+a fast-forward. Repaired locally by hand the same evening (the fixture reflog
+entries kept as evidence); GitHub main was restored by a force push with lease
+2026-10-28.
+
 * TODO An apply whose writes never reach disk is committed short, and the only alarm for it is a log line nobody reads :code:
 :PROPERTIES:
 :ID:       4a700efb-c96c-4d40-942a-27755b5b5b4e
@@ -26,7 +105,8 @@ source label after August. Supersedes [[id:e9ee1a50-085f-4c37-b064-4aec71cecb41]
 existing data stays for [[id:b5448133-4021-46b9-a90e-d88e149ae65d][b5448133]] and any attribution question.
 
 
-* DOING Prune the spent one-off code: the :MEMBERS: migration and its proof, datetree-file, the CLOSED backfills, and --file-line-count :code:
+* DONE Prune the spent one-off code: the :MEMBERS: migration and its proof, datetree-file, the CLOSED backfills, and --file-line-count :code:
+CLOSED: [2026-10-27 Tue 15:41]
 :PROPERTIES:
 :ID:       dce10826-bc70-4cdf-bf48-aee8c5371a0d
 :CREATED:  [2026-10-27 Tue 14:03]
@@ -51,6 +131,12 @@ CLOCK: [2026-10-27 Tue 15:28]--[2026-10-27 Tue 15:30] =>  0:02
 - [2026-10-27 Tue 15:28]--[2026-10-27 Tue 15:30] suggested span, accepted at review
 CLOCK: [2026-10-27 Tue 15:33]--[2026-10-27 Tue 15:35] =>  0:02
 - [2026-10-27 Tue 15:33]--[2026-10-27 Tue 15:35] suggested span, accepted at review
+CLOCK: [2026-10-27 Tue 15:38]--[2026-10-27 Tue 15:41] =>  0:03
+- [2026-10-27 Tue 15:38]--[2026-10-27 Tue 15:41] suggested span, accepted at review
+- State "DONE"       from "DOING"      [2026-10-27 Tue 15:41] \\
+  merged in PR #39
+CLOCK: [2026-10-27 Tue 15:41]--[2026-10-27 Tue 15:42] =>  0:01
+- [2026-10-27 Tue 15:41]--[2026-10-27 Tue 15:42] close after PR #39 merged
 :END:
 :PLAN:
 
@@ -78,7 +164,6 @@ user asked 2026-10-27 to remove all of it with its tests, keeping
 
 Done 2026-10-27 in [[https://github.com/nbest937/claude-code-ide-org.el/pull/39][PR #39]] (merge commit [[orgit-rev:./::aad7095][aad7095]]): all of it removed with its
 tests, 683 lines out and 21 in, and bin/test-all green on the branch.
-
 
 
 * TODO Audit what the two 2026-10-27 repo audits left unread, and run the suites they did not :code:research:
@@ -428,11 +513,32 @@ Proposed: create the node with org-datetree-find-create-hierarchy and reversed
 comparators, as [[id:0c3f1319-67c0-4b29-a8e7-5ffa12948aaf][0c3f1319]] measured for TODO.org, then archive into it.
 
 
-* TODO The IDE companion's WebSocket accepts any web page, and =executeCode= runs whatever elisp it is sent :code:
+* DOING The IDE companion's WebSocket accepts any web page, and =executeCode= runs whatever elisp it is sent :code:
 :PROPERTIES:
 :ID:       d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80
 :CREATED:  [2026-10-27 Tue 13:23]
 :CATEGORY: Tools
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-27 Tue 15:41]--[2026-10-27 Tue 15:42] =>  0:01
+- [2026-10-27 Tue 15:41]--[2026-10-27 Tue 15:42] assigned at review
+CLOCK: [2026-10-27 Tue 15:42]--[2026-10-27 Tue 15:43] =>  0:01
+- State "DOING"      from "TODO"       [2026-10-27 Tue 15:42] \\
+  verify the hole with a harmless probe
+- [2026-10-27 Tue 15:42]--[2026-10-27 Tue 15:43] probe the companion WebSocket from a foreign origin
+- [2026-10-27 Tue 15:43]--[2026-10-27 Tue 15:43] suggested span, accepted at review
+CLOCK: [2026-10-27 Tue 16:45]--[2026-10-27 Tue 16:46] =>  0:01
+- [2026-10-27 Tue 16:45]--[2026-10-27 Tue 16:46] suggested span, accepted at review
+CLOCK: [2026-10-27 Tue 16:54]--[2026-10-27 Tue 16:56] =>  0:02
+- [2026-10-27 Tue 16:54]--[2026-10-27 Tue 16:56] suggested span, accepted at review
+CLOCK: [2026-10-27 Tue 16:57]--[2026-10-27 Tue 16:58] =>  0:01
+- [2026-10-27 Tue 16:57]--[2026-10-27 Tue 16:58] suggested span, accepted at review
+CLOCK: [2026-10-27 Tue 17:02]--[2026-10-27 Tue 17:03] =>  0:01
+- [2026-10-27 Tue 17:02]--[2026-10-27 Tue 17:03] suggested span, accepted at review
+CLOCK: [2026-10-27 Tue 17:03]--[2026-10-27 Tue 17:09] =>  0:06
+- [2026-10-27 Tue 17:03]--[2026-10-27 Tue 17:09] add the foreign-origin probe to the repo
+CLOCK: [2026-10-27 Tue 17:09]--[2026-10-27 Tue 17:10] =>  0:01
+- [2026-10-27 Tue 17:09]--[2026-10-27 Tue 17:10] suggested span, accepted at review
 :END:
 :PLAN:
 Not yet designed. The audit's proposal: close any companion socket whose
@@ -440,7 +546,11 @@ websocket-origin is non-nil, since Claude Code's CLI sends none, or bind
 claude-code-ide-enable-execute-code to nil in the module, or both. The
 verification client (a raw-socket WebSocket handshake carrying Origin, then
 tools/list and an executeCode call) is the test to keep: it must fail after the
-fix.
+fix. It is now bin/probe-companion-origin ([[https://github.com/nbest937/claude-code-ide-org.el/pull/40][PR #40]]), whose exit 0 means every
+companion refused the foreign Origin: that is the fix's acceptance test. Since
+2026-10-27 the Doom config sets claude-code-ide-enable-execute-code to nil, and
+the probe confirms all three companions refuse executeCode while still accepting
+the handshake, so the Origin check is what remains.
 :END:
 
 Found by a repo audit 2026-10-27: upstream's lockfile
@@ -459,9 +569,6 @@ executeCode among its tools, and evaluated (list (emacs-pid) (+ 40 2)) to (2986
 each lockfile world-readable in ~/.claude/ide/. What a real page still needs is
 the port, among 10000-65535, and a browser that lets a public page reach
 loopback, which recent Chrome restricts and Firefox and Safari do not.
-
-
-
 * TODO footnotes-inject reads hook JSON with sed, so a path or id containing an escaped quote is cut short :code:
 :PROPERTIES:
 :ID:       8bc0bbcf-12cf-412b-a9f4-e335286dda58
@@ -509,7 +616,7 @@ their cookies.
 Planned:
 
 - [ ] [[id:8c4a3aea-3208-46c8-a491-2ff024fbf822][8c4a3aea]] TODO The tools server answers any web page: it checks no Origin or Host, and every reply says Access-Control-Allow-Origin: *
-- [ ] [[id:d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80][d7b2f50f]] TODO The IDE companion's WebSocket accepts any web page, and =executeCode= runs whatever elisp it is sent
+- [-] [[id:d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80][d7b2f50f]] DOING The IDE companion's WebSocket accepts any web page, and =executeCode= runs whatever elisp it is sent
 - [ ] [[id:8985f8ae-8b26-45eb-8898-73f17c98680a][8985f8ae]] TODO The session render escapes only column-zero lines, so an indented #+ line in transcript text takes effect, SETUPFILE included
 - [ ] [[id:0a0dee55-d709-466e-a525-c3bb1c437b91][0a0dee55]] TODO The applied record keys a session's events by timestamp to the second, so an event that failed or was skipped is consumed when another from the same second applies
 - [ ] [[id:d3468075-b17a-45a2-bd3a-838521f11a87][d3468075]] TODO An apply interrupted after its writes records nothing, and the next pass inserts each amend a second time
@@ -926,7 +1033,6 @@ https://evil.example.com to 127.0.0.1:45571 was answered 200 with
 Access-Control-Allow-Origin: *, so a page can read the reply. Its sibling
 [[id:d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80][d7b2f50f]], the companion WebSocket, was confirmed the same day to run elisp sent
 from a foreign origin.
-
 
 
 * TODO Setting :MEMBERS: or :DROPPED: refreshes nothing, so the checklist goes stale and org_slice_add_member refuses on a row already gone :code:
@@ -13670,17 +13776,24 @@ recursion within one call; the sentinel's later call finds nothing to skip and
 calls claude-code-ide-mcp-server-session-ended a second time, so one launcher
 costs two counts. Report: make cleanup-on-exit idempotent per directory (return
 early when the directory is no longer in claude-code-ide--processes).
+
+
 ** TODO Both MCP servers accept any web page's requests, and the WebSocket one runs elisp for it through executeCode, on by default :code:
 :PROPERTIES:
 :ID:       b24abffd-3f23-4c1a-91e8-bb90c9e8e43e
 :CREATED:  [2026-10-27 Tue 16:56]
 :END:
+:LOGBOOK:
+CLOCK: [2026-10-27 Tue 16:56]--[2026-10-27 Tue 16:57] =>  0:01
+- [2026-10-27 Tue 16:56]--[2026-10-27 Tue 16:57] compose the upstream security advisory
+:END:
 :PLAN:
 To send through the repository's Security tab (Report a vulnerability), not as a
 public issue. Check first that private reporting is enabled on
 manzaltu/claude-code-ide.el; if it is not, open a public issue that asks for a
-private channel and leaves the detail out. Re-run the probe against the version
-current on the day it is sent, and correct the versions line if it has changed.
+private channel and leaves the detail out. Re-run bin/probe-companion-origin
+against the version current on the day it is sent, and correct the versions line
+if it has changed.
 
 #+begin_example
 Title: Both local MCP servers accept requests from any web page, and executeCode lets one run Elisp
@@ -13712,6 +13825,15 @@ Checked at 1de17bb and at 50a3d55 (0.3.0), on macOS.
    page can call every registered tool and read the replies. The MCP
    Streamable HTTP transport says servers MUST validate the Origin header,
    because without that check DNS rebinding reaches localhost servers.
+4. Session takeover. claude-code-ide-mcp--on-open makes whichever socket just
+   connected the session's client, replacing Claude Code's own connection, and
+   claude-code-ide-mcp--on-close sets the client to nil and stops the ping
+   timer. Claude Code's socket stays open, but on-message no longer finds a
+   session for it and drops every message until Claude reconnects. While
+   connected, the new client receives the session's notifications:
+   selection_changed (the selected text and its file path) and at_mentioned.
+   So a page that reaches the port can cut Claude Code off from Emacs, or read
+   what the user selects, even with executeCode off.
 
 ## Proof of concept
 
@@ -13746,8 +13868,11 @@ so the lockfile itself gives away the port.
    present and not local, and one whose Host is not localhost or 127.0.0.1 with
    the server's port.
 3. Make claude-code-ide-enable-execute-code default to nil.
+4. Do not let a second connection replace a session's client: while the
+   session's client is still open, refuse a new handshake (fix 1's token makes
+   that refusal the rare case rather than the only defence).
 
-Fix 1 alone stops a web page from reaching executeCode. Fix 3 limits the damage
+Fix 1 alone stops a web page from reaching executeCode or the session. Fix 3 limits the damage
 if something else gets in.
 #+end_example
 
@@ -13763,6 +13888,34 @@ upstream 1de17bb and still true at 50a3d55. The report is drafted in :PLAN:, to
 send as a private security advisory rather than a public issue, since the probe
 works as written. Locally executeCode is off since 2026-10-27, set in the Doom
 config; the Origin guards remain our own work in [[id:3bfa593c-c2da-4e44-b47f-2d5f0750f2aa][3bfa593c]].
+
+
+** TODO Any connection to the IDE companion becomes its session's client, so a web page cuts Claude off and receives its editor notifications :code:
+:PROPERTIES:
+:ID:       207e9044-f05c-4507-bbd9-c2cfb9ef3f8e
+:CREATED:  [2026-10-28 Wed 08:57]
+:END:
+:LOGBOOK:
+- Tags ":code:"     from ":upstream:" [2026-10-28 Wed 09:02] \\
+  match siblings: the Upstream category carries what the tag said
+:END:
+:PLAN:
+Nothing to build in this repo. Reported upstream as detail 4 and fix 4 of the
+[[id:b24abffd-3f23-4c1a-91e8-bb90c9e8e43e][b24abffd]] advisory draft. Locally, [[https://github.com/nbest937/claude-code-ide-org.el/pull/40][PR #40]] stops the probe from connecting to a
+live companion unless asked, since a probe is itself such a connection; the
+companion side of it is [[id:d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80][d7b2f50f]].
+:END:
+
+Upstream claude-code-ide-mcp--on-open (claude-code-ide-mcp.el, checked at
+1de17bb) sets the matching session's client to whichever socket just connected,
+replacing Claude's own, and on-close clears it and stops the ping timer.
+Afterwards on-message finds no session for Claude's still-open socket and drops
+every message until Claude reconnects (/ide). Meanwhile the new client receives
+selection_changed (the selected text and its file) and at_mentioned. So any page
+that reaches the port, with no Origin check and no token, can cut a session off
+or read what the user selects. Found by the [[https://github.com/nbest937/claude-code-ide-org.el/pull/40][PR #40]] review on 2026-10-28; the
+probe did it to all three live companions on 2026-10-27. Reported upstream
+through [[id:b24abffd-3f23-4c1a-91e8-bb90c9e8e43e][b24abffd]].
 
 * MAYBE Consider archives in org_clock_report's scope (agenda-with-archives) :code:
 :PROPERTIES:
@@ -13875,6 +14028,7 @@ per tool -- rather than opening the servers beyond localhost.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-10-27 Tue 17:18]--[2026-10-27 Tue 17:19] =>  0:01
 CLOCK: [2026-10-27 Tue 15:36]--[2026-10-27 Tue 15:37] =>  0:01
 CLOCK: [2026-10-27 Tue 15:01]--[2026-10-27 Tue 15:02] =>  0:01
 CLOCK: [2026-10-27 Tue 13:54]--[2026-10-27 Tue 13:56] =>  0:02

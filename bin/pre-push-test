@@ -11,6 +11,8 @@
 # blocking half doing its job, not a defect here.
 
 set -uo pipefail
+# shellcheck source=lib/git-hermetic.sh
+. "$(dirname "${BASH_SOURCE[0]}")/lib/git-hermetic.sh"  # git -C must not reach the real repo (TODO.org :ID: 689a3b6e)
 unset CLAUDE_CODE_SESSION_ID  # else a provoked refusal counts as a miss in the calling session
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
