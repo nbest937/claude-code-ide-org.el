@@ -29,6 +29,14 @@ the same kind of leak, one level up.
 2. pre-push is not changed (approved 2026-10-28, a departure from the first
    plan): its own git calls need GIT_DIR, and step 1 covers the one runner it
    calls.
+2a. Revised after the [[https://github.com/nbest937/claude-code-ide-org.el/pull/41][PR #41]] review (approved 2026-10-28): the scrub lives in
+   bin/lib/git-hermetic.sh, sourced by test-all as the outer layer and by
+   bin/test and every git-using suite at its top, beside its
+   CLAUDE_CODE_SESSION_ID unset. In a linked worktree git rebase -x and a !
+   alias export GIT_DIR too, so a suite run directly is a route the runner
+   never sees. test-all fails statically a suite that runs git -C, init or
+   clone without sourcing the helper, and the helper lets git's own error
+   through.
 3. bin/test-all-test gains a check beside the session-id one: a scratch victim
    repo, GIT_DIR exported at it, the runner run over a fake suite that does git
    -C on its own temp dir (init, config user.name leak), then the victim's config
@@ -66,6 +74,13 @@ pre-push from a linked worktree of a scratch clone left the clone untouched;
 with the old runner the same push reproduced the 2026-10-27 damage, down to
 rewriting the clone's origin URL. The push-from-no-worktree caution stands until
 the PR merges.
+
+The [[https://github.com/nbest937/claude-code-ide-org.el/pull/41][PR #41]] review (5 findings) showed the runner-only scrub left routes open,
+the new test-all-test among them, and is answered in commit [[orgit-rev:./::5586fb0][5586fb0]]: every
+git-using suite and bin/test source the shared helper, and test-all refuses a
+suite that runs git without it. Each new check fails against the regression it
+targets; bin/test-all ran 27 suites, 1733 passed.
+
 
 * TODO An apply whose writes never reach disk is committed short, and the only alarm for it is a log line nobody reads :code:
 :PROPERTIES:
