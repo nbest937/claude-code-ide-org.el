@@ -336,11 +336,10 @@ Code on a feature/ branch, merged through a PR.
   dismissal and suggested flags, so the leftover keeps :active, :edited,
   :claimed and :note-edited. Applied, it writes active timestamps, which
   org-agenda shows as the human's attention, against the annotation docstring's
-  rule that active is only ever a human assertion; g also counts an edit nobody
-  made. Found by a repo audit 2026-10-27, by reading; the remainder tests check
-  only marks and bounds. Proposed: clear those flags and :auto-marked on the
-  copy, with one test.
-
+  rule that active is only ever a human assertion, and g counts an edit nobody
+  made (repo audit 2026-10-27, by reading; the remainder tests check only marks
+  and bounds). The fix clears those flags and :auto-marked on the copy, and a
+  human-typed note with them; the design is in :PLAN:.
 
 * TODO The session render escapes only column-zero lines, so an indented #+ line in transcript text takes effect, SETUPFILE included :code:bounded:
 :PROPERTIES:
@@ -923,11 +922,32 @@ wrapper. Proposed: refuse everything in org-special-properties, pointing TODO at
 org_set_todo, and refuse newlines in values.
 
 
-* TODO Archiving a session already in the archive overwrites it, and restore overwrites a live queue the same way :code:
+* TODO Archiving a session already in the archive overwrites it, and restore overwrites a live queue the same way :code:bounded:
 :PROPERTIES:
 :ID:       c0a21a0f-89ed-4b66-b7ed-acbfd5583015
 :CREATED:  [2026-10-27 Tue 12:48]
 :CATEGORY: Queue
+:END:
+:LOGBOOK:
+- Tags ":code:bounded:" from ":code:"     [2026-10-28 Wed 13:14] \\
+  classified at /plan-slice: two existing commands
+:END:
+:PLAN:
+Bounded: claude-code-ide-org-archive-drained-queues and
+claude-code-ide-org-restore-queue in config.el, both of which rename-file onto
+their destination with OK-IF-ALREADY-EXISTS.
+
+1. Archive merges instead of overwriting. When the archive already holds the session, the live .jsonl is first renamed to a temp sibling -- atomic, and a /resume appending after it simply starts a fresh live file, so no line is lost to the race -- then its lines are appended to the archived .jsonl (archived lines are older, so order holds), the two .applied maps are unioned, applied and dismissed each, keeping the earlier pass stamp where both hold a key, the merged sidecar is written through --atomic-write, and the temp is deleted. [[id:0a0dee55-d709-466e-a525-c3bb1c437b91][0a0dee55]]'s eid keys and the legacy ts keys union alike, so the two members land in either order. The message names the session as merged.
+
+2. Restore refuses when a live file exists. Merging there would rewrite a file a live session may be appending to, which the queue's design forbids; the refusal names the session and says to let it go idle and archive it, which merges, then restore. Without a live file restore is unchanged.
+
+3. The comment beside the archive reader saying no file is ever in both places is corrected in the same commit.
+
+4. Tests, ERT in config-test.el with a scratch queue directory, each proved red against HEAD: archiving a session already archived keeps both files' lines and both maps' keys; restore over a live file refuses and changes nothing; plain archive and restore are unchanged.
+
+5. Acceptance: session a2c50743, live on 2026-10-27 with 1 pause live and 15 guideposts archived: archive it and check the archived file holds 16 guidepost lines.
+
+Code on a feature/ branch, merged through a PR.
 :END:
 
 archive-drained-queues and restore-queue both call rename-file with
