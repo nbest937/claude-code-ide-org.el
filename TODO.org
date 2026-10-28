@@ -569,6 +569,14 @@ executeCode among its tools, and evaluated (list (emacs-pid) (+ 40 2)) to (2986
 each lockfile world-readable in ~/.claude/ide/. What a real page still needs is
 the port, among 10000-65535, and a browser that lets a public page reach
 loopback, which recent Chrome restricts and Firefox and Safari do not.
+
+The [[https://github.com/nbest937/claude-code-ide-org.el/pull/40][PR #40]] review (9 findings) is answered in commit [[orgit-rev:./::182db18][182db18]]. The first finding
+is upstream's own, filed as [[id:207e9044-f05c-4507-bbd9-c2cfb9ef3f8e][207e9044]]: probing a live companion cuts its session
+off from Emacs, so the probe now needs --live for one. Silence past the timeout
+is no verdict (exit 2) rather than OPEN, the probe asks for the mcp subprotocol,
+and -32601 alone reads as executeCode not offered. The suite grows from 14 to 29
+checks, 15 of which fail against the previous code.
+
 * TODO footnotes-inject reads hook JSON with sed, so a path or id containing an escaped quote is cut short :code:
 :PROPERTIES:
 :ID:       8bc0bbcf-12cf-412b-a9f4-e335286dda58
@@ -13536,7 +13544,7 @@ code by the worktree-aware convention checks. No partitioning
 machinery; the design questions all have their own headings.
 
 
-* MAYBE [1/8] Accumulate issues to report upstream to claude-code-ide.el :code:
+* MAYBE [1/9] Accumulate issues to report upstream to claude-code-ide.el :code:
 :PROPERTIES:
 :CATEGORY: Upstream
 :ID:       9d6449c7-529f-49a0-b28f-015cce869715
