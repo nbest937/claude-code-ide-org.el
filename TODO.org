@@ -2,18 +2,44 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* TODO A pre-push from a linked worktree exports GIT_DIR to bin/test-all, so a suite's git -C on a temp repo writes the real repo instead :code:
+* TODO A pre-push from a linked worktree exports GIT_DIR to bin/test-all, so a suite's git -C on a temp repo writes the real repo instead :code:bounded:
 :PROPERTIES:
 :ID:       689a3b6e-03ae-4d35-8b86-6b4c388cf66b
 :CREATED:  [2026-10-27 Tue 17:42]
 :CATEGORY: Dev
 :END:
+:LOGBOOK:
+- Tags ":code:bounded:" from ":code:"     [2026-10-28 Wed 07:28] \\
+  brainstormed: a change to the existing test-all runner
+:END:
 :PLAN:
-Unset GIT_DIR, GIT_WORK_TREE, GIT_INDEX_FILE and GIT_COMMON_DIR at the top of
-bin/test-all, and in pre-push before it calls test-all. Add a test-all-test
-check that runs a suite under an exported GIT_DIR pointing at a scratch repo and
-finds that repo's config, refs and remote untouched. Until this lands, push from
-no linked worktree; /code-review --fix creates one.
+bin/test-all is the only path from a hook to a suite: pre-push calls it, and
+pre-commit runs checkers only (check-conventions' one git call reads the real
+repo on purpose). It already strips CLAUDE_CODE_SESSION_ID from every suite for
+the same kind of leak, one level up.
+
+1. bin/test-all: near the top, unset every name git rev-parse --local-env-vars
+   prints (15 in git 2.55: GIT_DIR, GIT_WORK_TREE, GIT_INDEX_FILE,
+   GIT_COMMON_DIR, GIT_OBJECT_DIRECTORY, GIT_CONFIG_PARAMETERS and the rest), so
+   nothing it runs, ERT included, inherits a pointer at the real repo. Git's own
+   list instead of four hand-picked names, so a variable git adds later is
+   covered. The list prints outside a repo and under a broken GIT_DIR (measured
+   2026-10-28); if it ever lacks GIT_DIR, the runner exits with an error before
+   running anything rather than scrub nothing silently.
+2. pre-push is not changed (approved 2026-10-28, a departure from the first
+   plan): its own git calls need GIT_DIR, and step 1 covers the one runner it
+   calls.
+3. bin/test-all-test gains a check beside the session-id one: a scratch victim
+   repo, GIT_DIR exported at it, the runner run over a fake suite that does git
+   -C on its own temp dir (init, config user.name leak), then the victim's config
+   and refs found untouched. Proven to discriminate: with step 1 removed it
+   fails.
+4. Close-out: once merged, drop the "push from no linked worktree" caution, and
+   confirm end to end with a real pre-push from a throwaway linked worktree of a
+   scratch clone, never this repo.
+
+A feature/ branch and a PR, pushed from the main checkout. Until this lands,
+push from no linked worktree; /code-review --fix creates one.
 :END:
 
 Git exports GIT_DIR to a hook run from a linked worktree, and none from the main
