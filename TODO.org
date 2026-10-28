@@ -844,13 +844,13 @@ Code on a feature/ branch, merged through a PR.
 :END:
 
 --queue-watermark-data wraps its parse in ignore-errors, so a truncated or
-  hand-mangled file returns nil: every consumed event in that session is offered
-  again, and the next mark-applied or dismissal writes a fresh file holding only
-  the new keys, losing the old set and its pass stamps. Found by reading in a
-  repo audit 2026-10-27; unlikely, since writes are atomic. Proposed: tell an
-  absent file from an unparseable one, and on a parse failure refuse to write
-  and keep a .corrupt copy.
-
+  hand-mangled .applied returns nil: every consumed event in that session is
+  offered again, and the next mark-applied or dismissal writes a fresh file
+  holding only the new keys, losing the old set and its pass stamps. Found by
+  reading in a repo audit 2026-10-27; unlikely, since writes are atomic. The fix
+  tells an absent file from an unreadable one, keeps a .corrupt copy, refuses
+  the write and withholds the session's events with a report; the design is in
+  :PLAN:.
 
 * TODO statusline.sh and session-start-recovery-check call emacsclient with no watchdog, so a wedged Emacs stalls them :code:
 :PROPERTIES:
@@ -954,16 +954,35 @@ with a writable one. clock-target-check fixed the same bug with || exit 0 and a
 test for an unwritable directory; copy both.
 
 
-* TODO discard-guard misses absolute paths, git -C, and a cd before the git command :code:
+* TODO discard-guard misses absolute paths, git -C, and a cd before the git command :code:bounded:
 :PROPERTIES:
 :ID:       b0e46168-2548-49ca-8f5f-5dcc6f3fc524
 :CREATED:  [2026-10-27 Tue 12:49]
 :CATEGORY: Dev
 :END:
+:LOGBOOK:
+- Tags ":code:bounded:" from ":code:"     [2026-10-28 Wed 14:19] \\
+  classified at /plan-slice: one hook and its test
+:END:
 :PLAN:
-Not yet designed. The audit's proposal: strip the toplevel from absolute paths
-(resolving /tmp against /private/tmp), recompute the repo from -C, strip a
-leading (, and add each spelling to bin/discard-guard-test.
+Bounded: bin/hooks/discard-guard and bin/discard-guard-test. All three misses
+share one assumption: the repository, its prefix and its dirty set are computed
+once, from the payload's cwd. hits prepends that prefix, so an absolute path
+never matches; discards skips -C's value but judges against the cwd's
+repository; and a cd segment is ignored, while "(cd repo && ..." starts with
+"(cd" and is not even read as one.
+
+1. A directory per segment: the segments loop carries an effective directory, starting at the payload's cwd. A cd or pushd segment moves it, resolved against the current one, and a bare cd goes to $HOME. A leading ( pushes it and a trailing ) pops it, so a subshell's cd does not leak into later segments; both are stripped before the words are read.
+
+2. -C composes: discards collects every -C value and applies them in order to the segment's directory, as git does, before judging.
+
+3. Repository state per directory: the dirty and prefix computation becomes a function of a directory, called once per git segment. A directory that is not a work tree fails open, as now.
+
+4. Absolute paths: hits strips the repository's top level from an absolute path under it, comparing physical paths (cd ... && pwd -P) so /tmp and /private/tmp agree, instead of prepending the prefix.
+
+5. Tests, in bin/discard-guard-test, each red against HEAD where it is a miss today, the repo under $TMPDIR, whose physical path differs on macOS. Refused: git checkout -- an absolute path to TODO.org; git -C repo checkout -- TODO.org from outside it; cd repo && git restore TODO.org; (cd repo && git checkout -- TODO.org). Allowed: (cd repo) ; git checkout -- x.org in a clean repo; git -C clean-repo reset --hard. The suite isolates the queue directory and the session id from its first case.
+
+Code on a feature/ branch, merged through a PR.
 :END:
 
 hits() prefixes the session's repo-relative directory onto every path, so
