@@ -338,12 +338,12 @@ Code on a feature/ branch, merged through a PR.
 :END:
 
 sort-by-created and sort-datetree-descending sort in place and save with no
---file-busy-p check, though archive-finished in the same pass skips a busy file.
-Burying the review buffer while the ceremony is due and TODO.org has an unsaved
-edit reorders the half-finished buffer and saves it, and a session later commits
-it. Found by a repo audit 2026-10-27, by reading. Proposed: return "skipped:
-unsaved" at the top of both when the file is busy.
-
+--file-busy-p check. Burying the review buffer while the ceremony is due and
+TODO.org has an unsaved edit reorders the half-finished buffer and saves it, and
+a session later commits it; the session-start path already declines while a file
+is unsaved, the bury path does not (repo audit 2026-10-27, by reading). The fix
+makes both sorts signal on a busy file, so the step fails and the ceremony stays
+due; the design is in :PLAN:.
 
 * TODO A narrowed span's leftover copies the human's :active and :edited flags, so agent time is written as attention :code:bounded:
 :PROPERTIES:
@@ -1044,11 +1044,34 @@ they typed %^ back. The note's %^{...} was not expanded, so the note path is
 safe and only the title is affected.
 
 
-* TODO org_set_property writes TODO, SCHEDULED and DEADLINE through org-entry-put, which changes the keyword live or opens a prompt :code:
+* TODO org_set_property writes TODO, SCHEDULED and DEADLINE through org-entry-put, which changes the keyword live or opens a prompt :code:bounded:
 :PROPERTIES:
 :ID:       a3ad9732-681c-4103-a9e2-5f919e60522c
 :CREATED:  [2026-10-27 Tue 12:48]
 :CATEGORY: Tools
+:END:
+:LOGBOOK:
+- Tags ":code:bounded:" from ":code:"     [2026-10-28 Wed 14:53] \\
+  classified at /plan-slice: one tool's refusal list
+:END:
+:PLAN:
+Bounded: claude-code-ide-org-set-property in config.el, whose only refused names
+are ID and CREATED (--property-tool-refused). org-entry-put special-cases TODO
+(it runs org-todo, a live keyword change bypassing the queue and its logging),
+PRIORITY, SCHEDULED and DEADLINE (through org-schedule and org-deadline, which
+can prompt); the rest of org-special-properties -- ALLTAGS BLOCKED CLOCKSUM
+CLOCKSUM_T CLOSED FILE ITEM TAGS TIMESTAMP TIMESTAMP_IA -- are computed by org,
+so writing one errors or plants an entry org ignores.
+
+1. Refuse every name in org-special-properties, read from org at call time so a later org's list is honoured, each refusal naming the right route: TODO to org_set_todo, which queues; TAGS and ALLTAGS to org_set_tags; SCHEDULED, DEADLINE and PRIORITY as having no tool yet; the computed ones as computed by org, not stored. A value containing a newline is refused too, for every property, since org-entry-put writes it raw into the drawer and the next line becomes drawer text of its own.
+
+2. Planning lines are out of scope: a structural tool for SCHEDULED and DEADLINE is [[id:a29464da-e045-4276-881e-cab41ad0b8ad][a29464da]], under [[id:14c02a28-5e1f-401b-9c22-dd18c2c10847][14c02a28]]'s agenda work, which will say what a scheduled heading means here. This member only closes the hole, and [[id:a29464da-e045-4276-881e-cab41ad0b8ad][a29464da]] is told so.
+
+3. The refusal is counted as a miss, with its own slug in queue-append's refusal-fragment table, as the other org_* refusals for a rule the caller broke are.
+
+4. Tests, ERT in config-test.el, each proved red against HEAD: TODO, SCHEDULED, DEADLINE, PRIORITY, TAGS, CLOSED and a lowercase todo are each refused with the file byte-identical and no prompt read; an ordinary property and :BLOCKER: still write. bin/queue-append-test's fragment check covers the new refusal text.
+
+Code on a feature/ branch, merged through a PR.
 :END:
 
 Only ID and CREATED are refused (--property-tool-refused). org-entry-put calls
@@ -3163,6 +3186,12 @@ move. Research and decisions in =:PLAN:=.
 :PROPERTIES:
 :ID:       a29464da-e045-4276-881e-cab41ad0b8ad
 :CREATED:  [2026-10-02 Fri 10:10]
+:END:
+:PLAN:
+[[id:a3ad9732-681c-4103-a9e2-5f919e60522c][a3ad9732]] makes org_set_property refuse SCHEDULED, DEADLINE and PRIORITY, naming
+them as having no tool yet (the user, 2026-10-28), so this member's tool is the
+only route to a planning line once that lands, and its refusal text should then
+name this tool.
 :END:
 
 No tool sets a planning line, so a session cannot put a heading on the agenda
