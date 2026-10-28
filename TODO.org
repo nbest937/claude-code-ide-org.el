@@ -883,12 +883,24 @@ session with a message.
   classified at /plan-slice: one advice on an existing handler
 :END:
 :PLAN:
-Not yet designed. The audit's proposal: :around advice on
-claude-code-ide-mcp-http-server--handle-post refusing any request that carries
-Origin, or whose Host is not localhost or 127.0.0.1 on the port, since CLI
-clients send no Origin. The IDE companion's WebSocket has the same gap, verified
-2026-10-27, and is [[id:d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80][d7b2f50f]]; one Origin rule should serve both. [[id:5adeb6c2-afc0-4472-9529-fff48f8ba825][5adeb6c2]] is the
-design for auth beyond localhost.
+Bounded: one advice on upstream's claude-code-ide-mcp-http-server--handle-post
+(claude-code-ide-mcp-http-server.el at 1de17bb), in the shape of the 202 fix
+(claude-code-ide-org-accept-notifications-with-202). Auth beyond localhost is
+[[id:5adeb6c2-afc0-4472-9529-fff48f8ba825][5adeb6c2]]'s design, not this one.
+
+1. Gate, before any code: record the headers of one real tools/call from Claude Code, and from Warp if connected, with a temporary logging advice in the live Emacs. Neither may carry an Origin, and each must send Host localhost:45571 or 127.0.0.1:45571. If one carries an Origin, stop: the design becomes an allowlist and comes back for approval.
+
+2. The advice, :around on --handle-post: a request whose ws-headers carry :ORIGIN, or whose :HOST is not localhost, 127.0.0.1 or [::1] on the server's own port, gets 403 with an empty body and one log line naming the origin or host, and upstream's handler never runs, so nothing is dispatched. Anything else goes straight through. The Host check closes DNS rebinding; the Origin check closes every browser, which always sends Origin on a cross-origin POST, the preflight-free text/plain one included.
+
+3. The switch is [[id:d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80][d7b2f50f]]'s defcustom, claude-code-ide-org-refuse-browser-origins, default t, one switch for both transports (the user, 2026-10-28, option a): its :set installs or removes both advices idempotently, each once its upstream file loads, as the 202 advice is. The functions it calls are defined before it, per the standing rule on setters. Whichever member lands second adds its advice to that :set.
+
+4. Access-Control-Allow-Origin: * is left alone: with every Origin-bearing request refused, only non-browser clients ever see it, so overriding --send-json-response buys nothing.
+
+5. Tests, ERT in config-test.el, with a fake request (ws-headers and ws-response-header stubbed): an Origin gets 403 and upstream is not called; a foreign Host gets 403; localhost, 127.0.0.1 and [::1] on the right port reach upstream; the defcustom off removes the advice. Each proved to discriminate against the unadvised handler.
+
+6. Acceptance: reload the module, then the 2026-10-27 curl against 127.0.0.1:45571 three ways: with Origin: https://evil.example.com it gets 403, with Host: evil.example.com:45571 it gets 403, with neither it gets 200. Then one real org tool call from a session.
+
+Code on a feature/ branch, merged through a PR.
 :END:
 
 The HTTP MCP server the module starts on port 45571 binds 127.0.0.1 but checks
