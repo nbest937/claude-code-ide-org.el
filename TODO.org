@@ -772,11 +772,31 @@ the current behaviour.
   and delete the setq.
 
 
-* TODO An apply interrupted after its writes records nothing, and the next pass inserts each amend a second time :code:
+* TODO An apply interrupted after its writes records nothing, and the next pass inserts each amend a second time :code:bounded:
 :PROPERTIES:
 :ID:       d3468075-b17a-45a2-bd3a-838521f11a87
 :CREATED:  [2026-10-27 Tue 12:51]
 :CATEGORY: Apply
+:END:
+:LOGBOOK:
+- Tags ":code:bounded:" from ":code:"     [2026-10-28 Wed 12:52] \\
+  classified at /plan-slice: two changes inside the existing apply path
+:END:
+:PLAN:
+Bounded: --review-apply and --review-apply-amend in config.el. Each item already
+saves its own buffer inside --review-apply-item; the gap is only that
+--review-record-applied runs last, after the three settle steps and outside any
+unwind-protect.
+
+1. Record first, and always: the apply loop goes inside an unwind-protect whose cleanup calls --review-record-applied on the items applied so far, before the settle steps and whether a quit or an error ended the loop. applied is pushed only after an item returns cleanly, so one interrupted mid-write stays pending.
+
+2. Amends detect a repeat, as capture's id-already-resolves check does: before inserting, the amend path computes its final text (escaped, linked, filled) and searches the target region -- the body, or the named drawer -- for it with runs of whitespace collapsed. Found, it writes nothing, counts as applied and adds the warning "amend already present, not inserted again" to the apply result. That also covers the window between a save and the push. Accepted cost: two deliberately identical amends to one heading land once, with the warning.
+
+3. The settle steps are unchanged. One interrupted waits for the next pass touching the same slice or heading; the record is safe by then and nothing is written twice.
+
+4. Tests, ERT in config-test.el, each proved red against HEAD: a quit signalled from a stubbed settle-slices still leaves the applied items recorded; a quit on the second of three items records the first only; an amend whose text is already in the body, or in the drawer, writes nothing and returns the warning; a different amend to the same heading still lands.
+
+Code on a feature/ branch, merged through a PR.
 :END:
 
 --review-apply records the applied set only after settle-slices,
