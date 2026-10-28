@@ -373,7 +373,7 @@ Proposed: create the node with org-datetree-find-create-hierarchy and reversed
 comparators, as [[id:0c3f1319-67c0-4b29-a8e7-5ffa12948aaf][0c3f1319]] measured for TODO.org, then archive into it.
 
 
-* DOING The IDE companion's WebSocket accepts any web page, and =executeCode= runs whatever elisp it is sent :code:
+* DOING The IDE companion's WebSocket accepts any web page, and =executeCode= runs whatever elisp it is sent :code:bounded:
 :PROPERTIES:
 :ID:       d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80
 :CREATED:  [2026-10-27 Tue 13:23]
@@ -418,18 +418,27 @@ CLOCK: [2026-10-28 Wed 07:31]--[2026-10-28 Wed 07:32] =>  0:01
 - [2026-10-28 Wed 07:31]--[2026-10-28 Wed 07:32] suggested span, accepted at review
 CLOCK: [2026-10-28 Wed 09:11]--[2026-10-28 Wed 09:13] =>  0:02
 - [2026-10-28 Wed 09:11]--[2026-10-28 Wed 09:13] file the session takeover, fix PR #40 review
+- Tags ":code:bounded:" from ":code:"     [2026-10-28 Wed 11:20] \\
+  brainstormed: one advice on upstream's on-open, in the 202 fix's shape
 :END:
 :PLAN:
-Not yet designed. The audit's proposal: close any companion socket whose
-websocket-origin is non-nil, since Claude Code's CLI sends none, or bind
-claude-code-ide-enable-execute-code to nil in the module, or both. The
-verification client (a raw-socket WebSocket handshake carrying Origin, then
-tools/list and an executeCode call) is the test to keep: it must fail after the
-fix. It is now bin/probe-companion-origin ([[https://github.com/nbest937/claude-code-ide-org.el/pull/40][PR #40]]), whose exit 0 means every
-companion refused the foreign Origin: that is the fix's acceptance test. Since
-2026-10-27 the Doom config sets claude-code-ide-enable-execute-code to nil, and
-the probe confirms all three companions refuse executeCode while still accepting
-the handshake, so the Origin check is what remains.
+Bounded: one advice on upstream's claude-code-ide-mcp--on-open
+(claude-code-ide-mcp.el at 1de17bb), in the shape the module already uses for
+the 202 fix (claude-code-ide-org-accept-notifications-with-202).
+
+1. Gate, before any code: run /ide in a Claude session and read websocket-origin on its session's client in the live Emacs. It must be nil. If Claude Code's own connection carries an Origin, stop: the design becomes an allowlist and comes back for approval. Not yet seen; the assumption is that Node's WebSocket clients send no Origin unless told to.
+
+2. The advice, :around on claude-code-ide-mcp--on-open: a socket whose websocket-origin is non-nil gets websocket-close and one log line naming the origin and the port, and upstream's handler never runs; a socket without one goes straight through. Before upstream, not after, because upstream's handler is what makes the socket the session's client: a refused socket never becomes it, so its close finds no session to clear and the real session is not cut off. That closes the browser half of [[id:207e9044-f05c-4507-bbd9-c2cfb9ef3f8e][207e9044]] too. A local process can still take a session over, out of scope: it can read the lockfile and run anything as the user already.
+
+3. The switch: a defcustom claude-code-ide-org-refuse-browser-origins, default t, whose :set installs or removes the advice, idempotently, installed once claude-code-ide-mcp loads, as the 202 advice is.
+
+4. executeCode stays the user's setting (the user, 2026-10-28, option a): the module does not bind claude-code-ide-enable-execute-code. With browsers refused it serves only Claude, which some users want; the user's own Doom config keeps it nil.
+
+5. Tests, ERT in config-test.el, with a fake socket (websocket-origin and websocket-close stubbed): an Origin is closed and upstream is not called; no Origin reaches upstream; the refused socket's on-close leaves the session's client as it was; the defcustom off removes the advice. Each proved to discriminate against the unadvised handler.
+
+6. Acceptance: reload the module, then bin/probe-companion-origin --live exits 0 against every companion, then /ide in each session the probe took over, then the gate's check once more on the reconnected client.
+
+Code on a feature/ branch, merged through a PR.
 :END:
 
 Found by a repo audit 2026-10-27: upstream's lockfile
