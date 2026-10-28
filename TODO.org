@@ -4194,7 +4194,7 @@ maintains in both directions. [[id:b0c843e3-4252-4e2b-a9e2-2cf91714a1ae][b0c843e
 made every blocker id parse.
 
 
-* TODO org_capture runs in whatever buffer the user has selected, so an Org QL view turns a capture into a prompt nobody at the tool can answer :code:
+* TODO org_capture runs in whatever buffer the user has selected, so an Org QL view turns a capture into a prompt nobody at the tool can answer :code:bounded:
 :PROPERTIES:
 :ID:       fd29914e-0d18-4964-a104-37c136b311a6
 :CREATED:  [2026-09-25 Fri 12:16]
@@ -4211,23 +4211,28 @@ CLOCK: [2026-09-25 Fri 12:24]--[2026-09-25 Fri 12:25] =>  0:01
   tag dropped (the user, 2026-09-29): applied by recall, so its absence meant nothing
 CLOCK: [2026-10-27 Tue 13:02]--[2026-10-27 Tue 13:03] =>  0:01
 - [2026-10-27 Tue 13:02]--[2026-10-27 Tue 13:03] record the link-store fix in the plan
+- Tags ":code:bounded:" from ":code:"     [2026-10-28 Wed 15:45] \\
+  classified at /plan-slice: one binding in the shared capture writer
 :END:
 :PLAN:
-Approved by the user 2026-10-27, from org's source. org-capture computes its
-annotation by calling (org-store-link nil) on the current buffer
-(org-capture.el:745), unless org-capture-link-is-already-stored is non-nil, in
-which case it reads :annotation from org-store-link-plist instead. So bind
-org-capture-link-is-already-stored to t and org-store-link-plist to nil around
-the capture in --capture-write: the annotation is nil and no link function runs,
-org-ql's included. Nothing in the file changes, since the annotation feeds only
-%a, %A and %l and the template (config.el:3657) uses none of them; that is also
-why the prompt's answer never mattered. Test: a capture run with
-org-ql-view-query set buffer-locally in the current buffer completes without
-reading the minibuffer.
+Bounded: one binding in --capture-write, the writer both capture paths share
+(classified and settled at /plan-slice, the user, 2026-10-28; the mechanism was
+approved 2026-10-27). org-capture's annotation is (plist-get
+org-store-link-plist :annotation) when org-capture-link-is-already-stored is
+non-nil, and otherwise (ignore-errors (org-store-link nil)) on the current
+buffer (org-capture.el:742, checked 2026-10-28); ignore-errors does not stop a
+prompt, so org-ql's link function still reads the minibuffer.
 
-Open question (the user, 2026-10-27): the path is unclassified. The mechanism
-above is evidence for the brainstorm, not its result, so /plan-slice should
-classify this heading and settle the design with the user before any work.
+1. The binding: around org-capture-string in --capture-write, org-capture-link-is-already-stored bound to t and org-store-link-plist to nil, so the annotation is nil and no link function runs, org-ql's or any other's. The template uses none of %a, %A or %l, so the file is unchanged, which is also why the prompt's answer never mattered. Being the shared writer, it covers the queued-capture apply path too, wherever point is when the review runs.
+
+2. No change to which buffer is current. Ruled out: running the capture from a neutral buffer, the heading's other proposal. The binding removes the only reason the current buffer mattered, and switching would disturb the user's windows.
+
+3. Tests, ERT in config-test.el, each proved red against HEAD: a capture with org-ql-view-query set buffer-locally in the current buffer completes without reading the minibuffer (read-string and read-from-minibuffer stubbed to fail); a link function added to org-store-link-functions that would error is never called; the heading is byte-identical to one captured from a plain buffer.
+
+4. Acceptance: with an Org QL view selected in the only frame, org_capture returns with no prompt.
+
+It shares --capture-write with [[id:412768a0-3d9b-4cfe-9264-3f214d4baed1][412768a0]], so the two land on one branch and one
+PR.
 :END:
 Twice on 2026-09-25 an =org_capture= stopped at "Make link that searches: ", a
 prompt from org-ql's =org-ql-view--link-store=. Org's capture stores a link to
