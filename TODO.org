@@ -813,11 +813,34 @@ watermark once. [[id:2f4c04a1-db56-4427-ae62-591ba52607c6][2f4c04a1]] is the sam
   require 8 characters, or a rescan, for write tools.
 
 
-* TODO An unreadable .applied file reads as nothing applied, and the next write replaces it :code:
+* TODO An unreadable .applied file reads as nothing applied, and the next write replaces it :code:bounded:
 :PROPERTIES:
 :ID:       e9f8b780-c93b-41f9-b146-1c4695283af9
 :CREATED:  [2026-10-27 Tue 12:53]
 :CATEGORY: Queue
+:END:
+:LOGBOOK:
+- Tags ":code:bounded:" from ":code:"     [2026-10-28 Wed 14:16] \\
+  classified at /plan-slice: one reader and its two writers
+:END:
+:PLAN:
+Bounded: --queue-watermark-data in config.el, its two readers (--queue-applied,
+--queue-dismissed) and two writers (--queue-mark-applied,
+--queue-mark-dismissed).
+
+1. Absent and unreadable told apart: an absent file stays nil; a file that exists and does not parse signals claude-code-ide-org-watermark-unreadable carrying its path, after copying it once to <session>.applied.corrupt, never over an earlier copy, so the evidence outlives whatever runs next.
+
+2. Writers refuse: mark-applied and mark-dismissed let the signal through, so nothing replaces the file. In an apply pass that session's items are applied and not recorded, re-offered next time, and [[id:d3468075-b17a-45a2-bd3a-838521f11a87][d3468075]]'s repeat check keeps amends from landing twice; the error names the file and the copy.
+
+3. Readers withhold, loudly: --queue-events catches the signal per session and returns none of that session's events rather than re-offering them all, and records the session as unreadable for org_pending_updates, the review buffer's header and the session-start ceremony report to name. --queue-file-drained-p treats an unreadable session as not drained, so the archive never moves it out of sight.
+
+4. Repair is the human's, by hand or from the copy, which the message names. No automatic recovery: guessing which events were consumed is the confidently wrong record the queue exists to avoid.
+
+5. Shell readers unchanged: apply-detect already treats an unreadable file as no pass, and review-start's fallback to everything-pending can only suppress a duplicate REVIEW, never add one.
+
+6. Tests, ERT in config-test.el with a scratch queue directory, each proved red against HEAD: a truncated .applied makes mark-applied signal, leaves the file byte-identical and a .corrupt copy beside it; --queue-events returns nothing for that session and reports it; drained-p is nil for it; an absent file still reads as empty.
+
+Code on a feature/ branch, merged through a PR.
 :END:
 
 --queue-watermark-data wraps its parse in ignore-errors, so a truncated or
