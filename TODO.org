@@ -308,11 +308,33 @@ points at it, so the next clock-out rewrites it or errors. Found by a repo audit
 org-clock-marker falls inside it.
 
 
-* TODO The ceremony's sort steps reorder and save TODO.org or DONE.org while it holds the human's unsaved edits :code:
+* TODO The ceremony's sort steps reorder and save TODO.org or DONE.org while it holds the human's unsaved edits :code:bounded:
 :PROPERTIES:
 :ID:       254308f7-70a9-4296-9166-fe4138c6382b
 :CREATED:  [2026-10-27 Tue 13:52]
 :CATEGORY: Meta
+:END:
+:LOGBOOK:
+- Tags ":code:bounded:" from ":code:"     [2026-10-28 Wed 14:24] \\
+  classified at /plan-slice: two existing functions
+:END:
+:PLAN:
+Bounded: claude-code-ide-org-sort-by-created and
+claude-code-ide-org-sort-datetree-descending in config.el. The session-start
+path already declines the ceremony's steps while a tracked file is unsaved; the
+bury path runs --ceremony-run-steps with no such check, and that is where the
+two sorts reorder and save a half-edited buffer. A step that signals is printed
+FAILED there and holds the repeater, so the ceremony stays due.
+
+1. Refuse by signalling, not by returning: each sort checks --file-busy-p on its file before touching the buffer and, when busy, signals a user-error naming it -- unsaved changes in Emacs; save, and the ceremony runs it again. Ruled out: returning "skipped: unsaved", the audit's proposal, which --ceremony-step-text prints as ok, so the repeater advances and the sort waits a day. Signalling holds the repeater, so the next bury or session start retries. An interactive call gets the same message.
+
+2. Only the two sorts. The other steps -- slices, drawers, spacing, archive -- keep their own busy handling or their own headings; that check is not folded in here.
+
+3. Tests, ERT in config-test.el, each proved red against HEAD: each sort refuses on a modified buffer and leaves its text and modified flag untouched; --ceremony-run-steps reports that step failed and the bury path holds the repeater; an unmodified buffer still sorts.
+
+4. Acceptance: with an unsaved edit in TODO.org, bury the review buffer while the ceremony is due; the edit is still unsaved and in place, and the ceremony is still due.
+
+Code on a feature/ branch, merged through a PR.
 :END:
 
 sort-by-created and sort-datetree-descending sort in place and save with no
