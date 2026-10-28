@@ -323,11 +323,29 @@ unsaved" at the top of both when the file is busy.
   copy, with one test.
 
 
-* TODO The session render escapes only column-zero lines, so an indented #+ line in transcript text takes effect, SETUPFILE included :code:
+* TODO The session render escapes only column-zero lines, so an indented #+ line in transcript text takes effect, SETUPFILE included :code:bounded:
 :PROPERTIES:
 :ID:       8985f8ae-8b26-45eb-8898-73f17c98680a
 :CREATED:  [2026-10-27 Tue 13:52]
 :CATEGORY: Dev
+:END:
+:LOGBOOK:
+- Tags ":code:bounded:" from ":code:"     [2026-10-28 Wed 12:29] \\
+  classified at /plan-slice: one function and its test
+:END:
+:PLAN:
+Bounded: one function, claude-code-ide-org--org-escape-body (config.el), and its
+test.
+
+1. The rule: a line whose first non-blank character is # gets a comma after its indentation, so "  #+end_quote" becomes "  ,#+end_quote" -- keywords, block delimiters, SETUPFILE and comments alike. Comments belong in the rule because org reads an indented "# " line as a comment and hides it (org-comment-regexp is ^[ \t]*#\(?: \|$\); checked in batch 2026-10-28), so the old test's "  # indented" pinned a hidden line as correct. * stays column-zero only, since an indented * is a list bullet and escaping it breaks nested lists, the original reason for the column-zero rule. A line already starting with commas before * or #+ gets one more, as org-escape-code-in-string does.
+
+2. Out of scope: drawer-shaped lines (:END:) and table lines. A stray :END: in prose opens no drawer and a table renders oddly at worst; neither hides text or changes the parse.
+
+3. Tests, in config-test.el: rename org-escape-body-only-escapes-column-zero to say what it now asserts, keeping column-zero *, indented * untouched and plain text. Add: an indented #+end_quote inside a rendered prompt does not end the quote early; indented #+TODO: and #+SETUPFILE: come out as ,#+; an indented "# step" parses as text, not a comment element. Assert by parsing the output with org-element rather than by regexp, and prove each discriminates against HEAD's function.
+
+4. Acceptance: re-render one real session whose transcript holds an indented # line and read it in Emacs.
+
+Code on a feature/ branch, merged through a PR.
 :END:
 
 --org-escape-body commas a line only when * or # is its first character, but org
