@@ -306,11 +306,30 @@ it. Found by a repo audit 2026-10-27, by reading. Proposed: return "skipped:
 unsaved" at the top of both when the file is busy.
 
 
-* TODO A narrowed span's leftover copies the human's :active and :edited flags, so agent time is written as attention :code:
+* TODO A narrowed span's leftover copies the human's :active and :edited flags, so agent time is written as attention :code:bounded:
 :PROPERTIES:
 :ID:       187a87b4-20db-4fbf-931f-a4b4e1bed668
 :CREATED:  [2026-10-27 Tue 13:52]
 :CATEGORY: Apply
+:END:
+:LOGBOOK:
+- Tags ":code:bounded:" from ":code:"     [2026-10-28 Wed 13:12] \\
+  classified at /plan-slice: one function
+:END:
+:PLAN:
+Bounded: one function, --review-insert-remainders in config.el, whose
+copy-sequence of the item resets only :marked, :dismiss, :dismiss-reason and
+:suggested.
+
+1. The copy also clears :active, :edited, :claimed, :note-edited and :auto-marked. Each records something the human did to the original: :active is written as active timestamps, shown as their attention; :edited and :note-edited make g ask about edits nobody made; :claimed writes the solid interval instead of the runs.
+
+2. The note: when the original's was typed by the human (:note-edited), the leftover's :note is cleared too, since those words described the span they kept; an unedited note, the queue's own clock_in label, is copied as now (the user, 2026-10-28).
+
+3. Tests, ERT in config-test.el, each proved red against HEAD: an item with all five flags set, narrowed, yields a leftover with none of them; a human-edited note is not carried; a queue-suggested note is.
+
+4. Acceptance: in the review buffer, mark a span active and edit its note, narrow it with e, and check the leftover shows neither.
+
+Code on a feature/ branch, merged through a PR.
 :END:
 
 --review-insert-remainders copies the edited item and resets only its mark,
@@ -381,12 +400,11 @@ Code on a feature/ branch, merged through a PR.
 
 Org records a run ending 10:30:20 as 10:30, so on replay --subtract-intervals
 leaves a 20-second residue, and its last step passes residues through
---apply-idle-floor, which rounds any sub-minute piece up to a full minute: a new
-[10:30]--[10:31] line. Reproduced in batch by a repo audit 2026-10-27;
-guideposts almost never fall on :00, and the tests' fixtures all do. Proposed:
-drop pieces that render as nothing instead of rounding them up, and add a test
-ending at :20.
-
+--apply-idle-floor, which promotes any positive sub-minute piece to a full
+minute: a new [10:30]--[10:31] line. Reproduced in batch by a repo audit
+2026-10-27; guideposts almost never fall on :00, and the tests' fixtures all do.
+The fix widens each recorded interval to the end of its minute before
+subtracting; the design is in :PLAN:.
 
 * TODO Archiving into DONE.org's newest-first datetree creates a duplicate day or month node for any date older than the newest :code:
 :PROPERTIES:
