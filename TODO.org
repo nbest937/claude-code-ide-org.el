@@ -1227,32 +1227,22 @@ shows the NEXT.
 Code on a feature/ branch, merged through a PR.
 
 :END:
-A session's .applied file maps each event's ts string to the pass that consumed
-it, and dismissal uses the same key. Two events queued in the same second share
-one key, so applying either marks both consumed. Three noodle-salesman DONEs
-refused by their :BLOCKER: ([[id:7e2a6608-16a7-419b-8a99-b8016583c094][7e2a6608]]) left the queue this way without a
-dismissal. On 2026-10-16 at 14:05, 4347100f and c66ddc28 each shared their
-second with DONEs that landed. On 2026-10-20 at 09:01, eca35991's DONE shared
-08:54:30 with the NEXT nominating 618d03d1. The apply reported each as "left
-pending rather than consumed", which was true of the failure path and undone by
-the sibling's write. A DONE and the NEXT it nominates are routinely queued
-together, and across all session queues 280 groups of state, clock, capture or
-amend events share a second. A skipped item is presumably consumed the same way,
-and a dismissal takes its same-second siblings with it; neither is verified yet.
-Proposed: key each event by something unique, such as its line number in the
-queue file or a hash of the whole line, and keep reading old ts keys.
+A session's .applied file keys each consumed or dismissed event by its ts
+string, to the second, so two events queued in the same second share one key and
+applying or dismissing either consumes both. The fix gives every new event a
+writer-assigned eid and keys by that; the design is in :PLAN:.
 
-From a repo audit, 2026-10-27, by reading config.el: dismissal does take its
-same-second siblings, since =--queue-dismissed= and =--queue-events= share the
-bare-ts key. A second consequence: a todo DOING and its clock_in usually share a
-second, so applying the state item consumes the clock_in, and the later
-clock_out then pairs with nothing in the pending group while the history
-brackets still exclude its guideposts, so the whole interval is offered nowhere.
-=--queue-mark-applied= keeps an earlier pass's stamp for a sibling applied
-later, so "un-apply pass X" picks the wrong events. That day 133 groups of todo,
-capture or amend events within one session shared a second, live and archived
-queues together; no test writes two events in one second.
-
+Established: three noodle-salesman DONEs refused by their :BLOCKER: ([[id:7e2a6608-16a7-419b-8a99-b8016583c094][7e2a6608]])
+left the queue this way, as did 4347100f and c66ddc28 on 2026-10-16 and
+eca35991's DONE beside the NEXT nominating 618d03d1 on 2026-10-20, each reported
+"left pending rather than consumed" and then consumed by its sibling's write.
+Dismissal takes same-second siblings too, since --queue-dismissed and
+--queue-events share the key; a todo DOING usually shares its second with its
+clock_in, so applying the state consumes the clock_in and the interval is
+offered nowhere; and --queue-mark-applied keeps an earlier pass's stamp for a
+sibling applied later, so un-applying a pass picks the wrong events (repo audit,
+2026-10-27, by reading). Across all queues 280 groups of state, clock, capture
+or amend events share a second; no test wrote two in one.
 
 * TODO Burying the review buffer stamps the ceremony done while apply failures are still pending, though the session-start docstring says it waits for them :code:
 :PROPERTIES:
