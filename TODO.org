@@ -569,8 +569,6 @@ executeCode among its tools, and evaluated (list (emacs-pid) (+ 40 2)) to (2986
 each lockfile world-readable in ~/.claude/ide/. What a real page still needs is
 the port, among 10000-65535, and a browser that lets a public page reach
 loopback, which recent Chrome restricts and Firefox and Safari do not.
-
-
 * TODO footnotes-inject reads hook JSON with sed, so a path or id containing an escaped quote is cut short :code:
 :PROPERTIES:
 :ID:       8bc0bbcf-12cf-412b-a9f4-e335286dda58
@@ -13827,6 +13825,15 @@ Checked at 1de17bb and at 50a3d55 (0.3.0), on macOS.
    page can call every registered tool and read the replies. The MCP
    Streamable HTTP transport says servers MUST validate the Origin header,
    because without that check DNS rebinding reaches localhost servers.
+4. Session takeover. claude-code-ide-mcp--on-open makes whichever socket just
+   connected the session's client, replacing Claude Code's own connection, and
+   claude-code-ide-mcp--on-close sets the client to nil and stops the ping
+   timer. Claude Code's socket stays open, but on-message no longer finds a
+   session for it and drops every message until Claude reconnects. While
+   connected, the new client receives the session's notifications:
+   selection_changed (the selected text and its file path) and at_mentioned.
+   So a page that reaches the port can cut Claude Code off from Emacs, or read
+   what the user selects, even with executeCode off.
 
 ## Proof of concept
 
@@ -13861,8 +13868,11 @@ so the lockfile itself gives away the port.
    present and not local, and one whose Host is not localhost or 127.0.0.1 with
    the server's port.
 3. Make claude-code-ide-enable-execute-code default to nil.
+4. Do not let a second connection replace a session's client: while the
+   session's client is still open, refuse a new handshake (fix 1's token makes
+   that refusal the rare case rather than the only defence).
 
-Fix 1 alone stops a web page from reaching executeCode. Fix 3 limits the damage
+Fix 1 alone stops a web page from reaching executeCode or the session. Fix 3 limits the damage
 if something else gets in.
 #+end_example
 
@@ -13879,6 +13889,33 @@ send as a private security advisory rather than a public issue, since the probe
 works as written. Locally executeCode is off since 2026-10-27, set in the Doom
 config; the Origin guards remain our own work in [[id:3bfa593c-c2da-4e44-b47f-2d5f0750f2aa][3bfa593c]].
 
+
+** TODO Any connection to the IDE companion becomes its session's client, so a web page cuts Claude off and receives its editor notifications :code:
+:PROPERTIES:
+:ID:       207e9044-f05c-4507-bbd9-c2cfb9ef3f8e
+:CREATED:  [2026-10-28 Wed 08:57]
+:END:
+:LOGBOOK:
+- Tags ":code:"     from ":upstream:" [2026-10-28 Wed 09:02] \\
+  match siblings: the Upstream category carries what the tag said
+:END:
+:PLAN:
+Nothing to build in this repo. Reported upstream as detail 4 and fix 4 of the
+[[id:b24abffd-3f23-4c1a-91e8-bb90c9e8e43e][b24abffd]] advisory draft. Locally, [[https://github.com/nbest937/claude-code-ide-org.el/pull/40][PR #40]] stops the probe from connecting to a
+live companion unless asked, since a probe is itself such a connection; the
+companion side of it is [[id:d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80][d7b2f50f]].
+:END:
+
+Upstream claude-code-ide-mcp--on-open (claude-code-ide-mcp.el, checked at
+1de17bb) sets the matching session's client to whichever socket just connected,
+replacing Claude's own, and on-close clears it and stops the ping timer.
+Afterwards on-message finds no session for Claude's still-open socket and drops
+every message until Claude reconnects (/ide). Meanwhile the new client receives
+selection_changed (the selected text and its file) and at_mentioned. So any page
+that reaches the port, with no Origin check and no token, can cut a session off
+or read what the user selects. Found by the [[https://github.com/nbest937/claude-code-ide-org.el/pull/40][PR #40]] review on 2026-10-28; the
+probe did it to all three live companions on 2026-10-27. Reported upstream
+through [[id:b24abffd-3f23-4c1a-91e8-bb90c9e8e43e][b24abffd]].
 
 * MAYBE Consider archives in org_clock_report's scope (agenda-with-archives) :code:
 :PROPERTIES:
