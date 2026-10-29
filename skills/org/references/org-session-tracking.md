@@ -32,10 +32,14 @@ their own mechanism; `hooks/hooks.json` holds them.
 
 **The first `org_*` call of a session injects a pointer to the org
 conventions** (`bin/hooks/conventions-inject`, `:ID:` 436e0991). They are
-path-scoped, and a path scope fires only on a Read of a matching file —
+path-scoped, and a path scope fires on a Read of a matching file —
 never on an org tool — so tool-driven work would otherwise never load
 them. A pointer and a generated section list, not the text: the
 injection cap is 10,000 characters and the file is six times that.
+
+**It also fires on a file the IDE companion reports focused**; the
+module suppresses it by default
+(`claude-code-ide-org-push-selection`, `:ID:` f6398e59).
 
 **Every backstop that fires is counted** (`:ID:` 63713df3): a hook that
 blocks, and an `org_*` refusal for a rule the caller broke, appends one
