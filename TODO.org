@@ -2,6 +2,21 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO The IDE companion pushes every cursor move to Claude Code, and the file it names loads the whole path-scoped conventions :code:bounded:
+:PROPERTIES:
+:ID:       f6398e59-b02d-4b3a-961a-f349eeaca125
+:CREATED:  [2026-10-29 Thu 07:32]
+:CATEGORY: Dev
+:END:
+
+claude-code-ide's companion sends selection_changed from post-command-hook on
+every command in a project file, with no option to stop it, so focusing TODO.org
+makes Claude Code load the 60k-character org-conventions file whole. That
+defeats the tools' read-only-what-you-need design, and it contradicts the docs,
+which say a path scope fires only on a Read. Fix: a module defcustom, default
+off, gating claude-code-ide-mcp--track-selection;
+claude-code-ide-insert-at-mentioned remains the on-command route.
+
 * TODO A slice's place in the order is advisory: nothing refuses NEXT or DOING on a slice while the slice before it is still open :code:
 :PROPERTIES:
 :ID:       d5d9fdec-5fac-4035-a630-62ba48582cd6
