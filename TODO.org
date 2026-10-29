@@ -8,6 +8,15 @@
 :CREATED:  [2026-10-29 Thu 07:32]
 :CATEGORY: Dev
 :END:
+:PLAN:
+Bounded: :around advice on claude-code-ide-mcp--track-selection, because
+upstream re-adds its post-command-hook entry at every session start, so
+remove-hook would not hold. Leave claude-code-ide-mcp--track-active-buffer
+alone: it sends nothing to Claude Code and feeds the Emacs-side tools'
+last-active buffer. Correct the session-tracking reference's "fires only on a
+Read" inside the always-loaded word budget (the user, 2026-10-29: in the module,
+default off).
+:END:
 
 claude-code-ide's companion sends selection_changed from post-command-hook on
 every command in a project file, with no option to stop it, so focusing TODO.org
@@ -16,6 +25,15 @@ defeats the tools' read-only-what-you-need design, and it contradicts the docs,
 which say a path scope fires only on a Read. Fix: a module defcustom, default
 off, gating claude-code-ide-mcp--track-selection;
 claude-code-ide-insert-at-mentioned remains the on-command route.
+
+Shipped on [[https://github.com/nbest937/claude-code-ide-org.el/pull/42][PR #42]]: claude-code-ide-org-push-selection, default nil, gates the
+push through :around advice read at every call. Verified live with a probe on
+the companion's send-notification: off, nothing was sent while moving in
+TODO.org; on, one selection_changed per move, and a selected region reached the
+session as context. The ERT test fails with the advice-add removed. Not
+verified: that Claude Code no longer loads the conventions in a fresh session,
+which needs one focused on an org buffer before any Read.
+
 
 * TODO A slice's place in the order is advisory: nothing refuses NEXT or DOING on a slice while the slice before it is still open :code:
 :PROPERTIES:
