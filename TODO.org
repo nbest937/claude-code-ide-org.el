@@ -19,6 +19,7 @@ refresh keeps, and a guard refusing NEXT or DOING on a slice while that
 predecessor is open. Raised while ordering [[id:3bfa593c-c2da-4e44-b47f-2d5f0750f2aa][3bfa593c]], [[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]], [[id:7dcec489-f5dd-4f7f-b819-a25405436b9b][7dcec489]] and
 [[id:005fef09-e34f-4994-8c0d-6d17ada3d7ac][005fef09]] (the user, 2026-10-28).
 
+
 * TODO An apply whose writes never reach disk is committed short, and the only alarm for it is a log line nobody reads :code:
 :PROPERTIES:
 :ID:       4a700efb-c96c-4d40-942a-27755b5b5b4e
@@ -315,6 +316,7 @@ org-clock-marker falls inside it.
 :CATEGORY: Meta
 :END:
 :LOGBOOK:
+- [2026-10-28 Wed 14:20]--[2026-10-28 Wed 14:24] brainstorm busy-file guard on sort steps
 - Tags ":code:bounded:" from ":code:"     [2026-10-28 Wed 14:24] \\
   classified at /plan-slice: two existing functions
 :END:
@@ -344,6 +346,7 @@ a session later commits it; the session-start path already declines while a file
 is unsaved, the bury path does not (repo audit 2026-10-27, by reading). The fix
 makes both sorts signal on a busy file, so the step fails and the ceremony stays
 due; the design is in :PLAN:.
+
 
 * TODO A narrowed span's leftover copies the human's :active and :edited flags, so agent time is written as attention :code:bounded:
 :PROPERTIES:
@@ -457,11 +460,17 @@ subtracting; the design is in :PLAN:.
 :CATEGORY: Meta
 :END:
 :LOGBOOK:
+CLOCK: [2026-10-28 Wed 13:15]--[2026-10-28 Wed 13:16] =>  0:01
+- [2026-10-28 Wed 13:15]--[2026-10-28 Wed 13:16] brainstorm newest-first datetree archive
 - [2026-10-28 Wed 13:16]--[2026-10-28 Wed 13:16] brainstorm newest-first datetree archive
 CLOCK: [2026-10-28 Wed 13:47]--[2026-10-28 Wed 13:48] =>  0:01
 - [2026-10-28 Wed 13:47]--[2026-10-28 Wed 13:48] brainstorm newest-first datetree archive
+CLOCK: [2026-10-28 Wed 13:48]--[2026-10-28 Wed 13:49] =>  0:01
+- [2026-10-28 Wed 13:48]--[2026-10-28 Wed 13:49] brainstorm newest-first datetree archive
+CLOCK: [2026-10-28 Wed 13:53]--[2026-10-28 Wed 13:54] =>  0:01
 - Tags ":code:bounded:" from ":code:"     [2026-10-28 Wed 13:53] \\
   classified at /plan-slice: one finder at two archive sites, one lint check
+- [2026-10-28 Wed 13:53]--[2026-10-28 Wed 13:54] brainstorm newest-first datetree archive
 :END:
 :PLAN:
 Bounded: the org_archive tool and the archive-finished sweep, both of which
@@ -863,6 +872,7 @@ watermark once. [[id:2f4c04a1-db56-4427-ae62-591ba52607c6][2f4c04a1]] is the sam
 :CATEGORY: Queue
 :END:
 :LOGBOOK:
+- [2026-10-28 Wed 14:14]--[2026-10-28 Wed 14:16] brainstorm unreadable .applied handling
 - Tags ":code:bounded:" from ":code:"     [2026-10-28 Wed 14:16] \\
   classified at /plan-slice: one reader and its two writers
 :END:
@@ -894,6 +904,7 @@ Code on a feature/ branch, merged through a PR.
   tells an absent file from an unreadable one, keeps a .corrupt copy, refuses
   the write and withholds the session's events with a report; the design is in
   :PLAN:.
+
 
 * TODO statusline.sh and session-start-recovery-check call emacsclient with no watchdog, so a wedged Emacs stalls them :code:
 :PROPERTIES:
@@ -1004,6 +1015,7 @@ test for an unwritable directory; copy both.
 :CATEGORY: Dev
 :END:
 :LOGBOOK:
+- [2026-10-28 Wed 14:17]--[2026-10-28 Wed 14:19] brainstorm discard-guard spellings
 - Tags ":code:bounded:" from ":code:"     [2026-10-28 Wed 14:19] \\
   classified at /plan-slice: one hook and its test
 :END:
@@ -1047,6 +1059,7 @@ choosing the repo.
 :CATEGORY: Tools
 :END:
 :LOGBOOK:
+- [2026-10-28 Wed 14:54]--[2026-10-28 Wed 15:12] brainstorm capture title template expansion
 - Tags ":code:bounded:" from ":code:"     [2026-10-28 Wed 15:13] \\
   classified at /plan-slice: one shared writer and one argument
 :END:
@@ -1089,6 +1102,8 @@ safe and only the title is affected.
 :CATEGORY: Tools
 :END:
 :LOGBOOK:
+- [2026-10-28 Wed 14:25]--[2026-10-28 Wed 14:25] brainstorm org_set_property special properties
+- [2026-10-28 Wed 14:52]--[2026-10-28 Wed 14:52] brainstorm org_set_property special properties
 - Tags ":code:bounded:" from ":code:"     [2026-10-28 Wed 14:53] \\
   classified at /plan-slice: one tool's refusal list
 :END:
@@ -1120,6 +1135,7 @@ waiting on a minibuffer; a value containing a newline is written raw into the
 drawer (repo audit 2026-10-27, by reading org's source and the wrapper). The fix
 refuses every name in org-special-properties, each pointing to its route, and
 newlines in any value; the design is in :PLAN:.
+
 
 * TODO Archiving a session already in the archive overwrites it, and restore overwrites a live queue the same way :code:bounded:
 :PROPERTIES:
@@ -4232,8 +4248,11 @@ CLOCK: [2026-09-25 Fri 12:24]--[2026-09-25 Fri 12:25] =>  0:01
   tag dropped (the user, 2026-09-29): applied by recall, so its absence meant nothing
 CLOCK: [2026-10-27 Tue 13:02]--[2026-10-27 Tue 13:03] =>  0:01
 - [2026-10-27 Tue 13:02]--[2026-10-27 Tue 13:03] record the link-store fix in the plan
+- [2026-10-28 Wed 15:14]--[2026-10-28 Wed 15:14] classify and settle the capture link-store fix
 - Tags ":code:bounded:" from ":code:"     [2026-10-28 Wed 15:45] \\
   classified at /plan-slice: one binding in the shared capture writer
+CLOCK: [2026-10-28 Wed 15:46]--[2026-10-28 Wed 15:47] =>  0:01
+- [2026-10-28 Wed 15:46]--[2026-10-28 Wed 15:47] compose 3bfa593c's slice plan
 :END:
 :PLAN:
 Bounded: one binding in --capture-write, the writer both capture paths share
@@ -4263,6 +4282,7 @@ hangs until the MCP request times out. Settled the same day: the selected
 window's buffer is what counts; with the view buried the capture ran clean. The
 fix binds org-capture's link-already-stored switch around the capture so no link
 function runs; the design is in :PLAN:.
+
 
 * TODO org_slice_add_member's after= inserts between a story and its nested children, splitting the block :code:
 :PROPERTIES:
@@ -11508,12 +11528,12 @@ before the fix and still says.
 
 
 * TODO Archive closed tasks daily
-SCHEDULED: <2026-10-29 Thu 07:00 ++1d>
+SCHEDULED: <2026-10-30 Fri 07:00 ++1d>
 :PROPERTIES:
 :CATEGORY: Meta
 :ID:       cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8
 :CREATED:  [2026-08-21 Fri 15:35]
-:LAST_REPEAT: [2026-10-28 Wed 09:43]
+:LAST_REPEAT: [2026-10-29 Thu 07:08]
 :KIND:     ceremony
 :END:
 :LOGBOOK:
@@ -14269,6 +14289,9 @@ CLOCK: [2026-10-27 Tue 17:18]--[2026-10-27 Tue 17:19] =>  0:01
 CLOCK: [2026-10-28 Wed 09:40]--[2026-10-28 Wed 09:43] =>  0:03
 CLOCK: [2026-10-28 Wed 10:32]--[2026-10-28 Wed 10:34] =>  0:02
 CLOCK: [2026-10-28 Wed 13:54]--[2026-10-28 Wed 13:57] =>  0:03
+CLOCK: [2026-10-28 Wed 15:50]--[2026-10-28 Wed 15:51] =>  0:01
+- <2026-10-28 Wed 15:50>--<2026-10-28 Wed 15:51> review pass (buffer buried)
+- <2026-10-28 Wed 15:52>--<2026-10-28 Wed 15:52> review pass (buffer buried)
 :END:
 
 We created this heading on 2026-08-26. We deleted that property from its
@@ -15988,4 +16011,8 @@ CLOCK: [2026-10-28 Wed 11:14]--[2026-10-28 Wed 11:15] =>  0:01
 CLOCK: [2026-10-28 Wed 11:18]--[2026-10-28 Wed 11:20] =>  0:02
 - [2026-10-28 Wed 11:18]--[2026-10-28 Wed 11:20] assigned at review
 - [2026-10-28 Wed 11:37]--[2026-10-28 Wed 11:37] assigned at review
+CLOCK: [2026-10-28 Wed 14:02]--[2026-10-28 Wed 14:03] =>  0:01
+- [2026-10-28 Wed 14:02]--[2026-10-28 Wed 14:03] assigned at review
+CLOCK: [2026-10-28 Wed 14:08]--[2026-10-28 Wed 14:12] =>  0:04
+- [2026-10-28 Wed 14:08]--[2026-10-28 Wed 14:12] assigned at review
 :END:
