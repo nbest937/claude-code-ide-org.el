@@ -2,6 +2,28 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO The review suggests a heading from any project's todo events, so a project with time tracking off collects other projects' time as CLOCK lines :code:
+:PROPERTIES:
+:ID:       d0f8042c-c294-45b2-9016-7efca7977982
+:CREATED:  [2026-10-30 Fri 14:21]
+:CATEGORY: Apply
+:END:
+:PLAN:
+
+:END:
+--review-items-from-queue passes --review-suggest-heading the full queue history
+  of every session, so a span from one project takes the newest work-in-progress
+  todo event from any project, and the span's own cwd plays no part. Measured
+  2026-10-30: noodle-salesman's queue files hold 356 todo events and not one
+  guidepost since 2026-10-12, because its sessions run with time tracking off,
+  yet its TODO.org and DONE.org carry 35 CLOCK lines totalling 49 minutes, all
+  labelled as accepted suggestions, and every one overlaps this repo's turns
+  with none of its own possible. The same day two more spans of this repo's were
+  offered for a noodle-salesman heading and refused at review. The suggestion
+  should read only events from the span's project. Which of the 35 lines to move
+  or drop is a separate decision for that tracker. A related scope failure is
+  [[id:70b47b8f-b413-4660-bf32-b0b90db45ff4][70b47b8f]].
+
 * TODO Burying the review buffer runs this project's ceremony because another project's is overdue, since the due check ignores the project scope :code:
 :PROPERTIES:
 :ID:       70b47b8f-b413-4660-bf32-b0b90db45ff4
@@ -16096,4 +16118,6 @@ CLOCK: [2026-10-30 Fri 11:36]--[2026-10-30 Fri 11:37] =>  0:01
 - [2026-10-30 Fri 11:36]--[2026-10-30 Fri 11:37] commit the 11:31 apply; trace the ceremony rerun
 CLOCK: [2026-10-30 Fri 11:55]--[2026-10-30 Fri 11:56] =>  0:01
 - [2026-10-30 Fri 11:55]--[2026-10-30 Fri 11:56] commit the 11:31 apply; trace the ceremony rerun
+CLOCK: [2026-10-30 Fri 14:06]--[2026-10-30 Fri 14:07] =>  0:01
+- [2026-10-30 Fri 14:06]--[2026-10-30 Fri 14:07] commit the apply; verify noodle ceremony run
 :END:
