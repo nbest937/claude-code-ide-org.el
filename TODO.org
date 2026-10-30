@@ -2,6 +2,26 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Burying the review buffer runs this project's ceremony because another project's is overdue, since the due check ignores the project scope :code:
+:PROPERTIES:
+:ID:       70b47b8f-b413-4660-bf32-b0b90db45ff4
+:CREATED:  [2026-10-30 Fri 11:55]
+:CATEGORY: Apply
+:END:
+:PLAN:
+
+:END:
+--review-attention-on-quit calls --ceremony-due-p with no report scope, so
+  --ceremony-headings reads every project's tracker, while ceremony-finish binds
+  the scope only inside itself and acts on --capture-target-file. On 2026-10-30
+  noodle-salesman's overdue heading made a bury at 11:31 rerun this repo's
+  steps, archiving [[id:f6398e59-b02d-4b3a-961a-f349eeaca125][f6398e59]] and [[id:1abff8d5-d142-4de1-b939-578e993ecc8d][1abff8d5]] though this repo's repeater was already
+  at 2026-10-31; noodle-salesman's own steps did not run and its repeater stayed
+  overdue, so every bury repeats this until it does. The scope fix in [[id:9c1afc7a-161d-4e4c-aa93-9c02becfb5ba][9c1afc7a]]
+  reached ceremony-finish and not its caller. The bury should decide due for the
+  project whose steps it would run. The second branch of the same cond, which
+  stamps the ceremony done, has the same unscoped reads.
+
 * TODO An apply refused by org-depend reports neither the blocker nor the reason, only that the keyword did not change :code:
 :PROPERTIES:
 :ID:       f128a8b1-5769-4d48-b947-dfaf9a58fbcd
