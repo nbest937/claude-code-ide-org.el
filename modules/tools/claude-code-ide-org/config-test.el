@@ -20783,6 +20783,37 @@ live Emacs and break `bin/test' itself."
       (should-not (claude-code-ide-org--wire-on-load))
       (should-not calls))))
 
+(defvar doom-init-time)
+(defvar doom-after-init-hook)
+
+(ert-deftest claude-code-ide-org-test-wire-waits-for-doom-init ()
+  "During Doom's startup the wiring waits for the end of init, when the
+private config has set the tracked files (TODO.org :ID: e6a24204)."
+  (claude-code-ide-org-test--with-wiring-spy
+    (let ((noninteractive nil) (claude-code-ide-org-wire-on-load t)
+          (doom-init-time nil) (doom-after-init-hook nil))
+      (claude-code-ide-org--wire-after-init)
+      (claude-code-ide-org--wire-after-init)
+      (should-not calls)
+      (should (equal '(claude-code-ide-org--wire-on-load) doom-after-init-hook))
+      (run-hooks 'doom-after-init-hook)
+      (should (equal '(tools-setup wire) (reverse calls))))))
+
+(ert-deftest claude-code-ide-org-test-wire-at-once-when-nothing-to-wait-for ()
+  "A live reload, after Doom's init, and an Emacs with no Doom both wire
+at once."
+  (claude-code-ide-org-test--with-wiring-spy
+    (let ((noninteractive nil) (claude-code-ide-org-wire-on-load t)
+          (doom-init-time 1.0) (doom-after-init-hook nil))
+      (claude-code-ide-org--wire-after-init)
+      (should-not doom-after-init-hook)
+      (should (equal '(tools-setup wire) (reverse calls)))))
+  (claude-code-ide-org-test--with-wiring-spy
+    (let ((noninteractive nil) (claude-code-ide-org-wire-on-load t))
+      (should-not (boundp 'doom-after-init-hook))
+      (claude-code-ide-org--wire-after-init)
+      (should (equal '(tools-setup wire) (reverse calls))))))
+
 ;;; Two clones, one session name (TODO.org :ID: 965f94eb)
 
 (defmacro claude-code-ide-org-test--with-clones (&rest body)
