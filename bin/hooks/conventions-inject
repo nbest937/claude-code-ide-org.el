@@ -101,9 +101,10 @@ $(sections "$f")
 done
 
 context="This session has just used an org tool and has NOT loaded the org \
-conventions. They are path-scoped to **/*.org, and a path scope fires only \
-when the Read tool opens a matching file -- never on an org_* call, a Bash \
-read, or an Emacs buffer -- so working through the tools, as intended, is \
+conventions. They are path-scoped to **/*.org, and a path scope fires \
+when the Read tool opens a matching file -- never on an org_* call or a \
+Bash read, nor on an Emacs buffer unless claude-code-ide-org-push-selection \
+is set -- so working through the tools, as intended, is \
 exactly what keeps them out of context. Before you compose a heading or a \
 slice, close one, write a :PLAN: or :DEBRIEF: drawer, set a :BLOCKER:, \
 archive, or cite a commit in a body, Read the file below (whole, or the \

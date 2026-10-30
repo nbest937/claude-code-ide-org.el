@@ -22539,6 +22539,40 @@ message, never an error."
       (claude-code-ide-mcp-start dir)
     (message "claude-code-ide-org: IDE companion unavailable; tools server only")))
 
+(defcustom claude-code-ide-org-push-selection nil
+  "Non-nil lets the IDE companion push the cursor position to Claude Code.
+
+Upstream's companion runs `claude-code-ide-mcp--track-selection' on
+`post-command-hook' and sends `selection_changed' after every command
+in a project file -- the file path and cursor even with no region, and
+no option to stop it.  Claude Code then treats the file as opened, and
+loads every rule path-scoped to it: focusing TODO.org pulled the whole
+org-conventions file into the session, which is the opposite of the
+incremental, structured reads the org tools exist for (:ID: f6398e59).
+
+nil, the default, makes the push a no-op, for every file: context
+reaches Claude only when sent on command, as
+`claude-code-ide-insert-at-mentioned' does.  That sends a file path
+too, and whether Claude Code loads path-scoped rules for a mentioned
+file is unverified -- the difference is that you chose to send it.
+The companion's other hook, which records the last active buffer for
+the Emacs-side tools, is untouched.
+
+The gate sits on the sender, `claude-code-ide-mcp--send-selection-for-project',
+not on the hook that arms its timer, so a push already pending when
+the option changes obeys the new value, and every upstream path to
+`selection_changed' passes through it (PR #42 review)."
+  :type 'boolean
+  :group 'claude-code-ide-org)
+
+(defun claude-code-ide-org--gate-selection-push (orig &rest args)
+  "Run ORIG with ARGS only when `claude-code-ide-org-push-selection' is set."
+  (when claude-code-ide-org-push-selection
+    (apply orig args)))
+
+(advice-add 'claude-code-ide-mcp--send-selection-for-project :around
+            #'claude-code-ide-org--gate-selection-push)
+
 (defvar claude-code-ide-org--session-misses (make-hash-table :test 'equal)
   "Session ids no project resolved to, each mapped to the tracked files
 it was tried against.  A miss is retried only once that list changes,

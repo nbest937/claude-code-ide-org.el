@@ -88,6 +88,14 @@ strict MCP clients need is the module's, as advice gated by
 **org 9.7+**, refusing loudly otherwise (Emacs 29's bundled 9.6.x is
 not enough; Doom's straight-managed org is).
 
+The module also switches off the IDE companion's cursor push:
+`claude-code-ide-org-push-selection` defaults to nil, so Claude Code
+gets no context on a cursor move (`:ID:` f6398e59). With the push on,
+focusing an `.org` buffer loads the whole path-scoped conventions file
+into the session. Send context deliberately with
+`claude-code-ide-insert-at-mentioned`; set the option to `t` only if you
+want the push back.
+
 ### 2. The plugin — per machine, from a clone
 
 ```sh

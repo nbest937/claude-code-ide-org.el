@@ -17980,6 +17980,25 @@ membership, is what stops an alias being reintroduced silently."
       (should (equal (nreverse started) '("/tmp/repo-alpha" "/tmp/repo-beta")))
       (should (= claude-code-ide-mcp-server-port 45571)))))
 
+(ert-deftest claude-code-ide-org-test-selection-push-gated-off-by-default ()
+  "The companion's `selection_changed' push runs only when opted into
+(TODO.org :ID: f6398e59).  Off, focusing an org file loaded the whole
+path-scoped conventions into the session.  The gate is asserted on the
+advised symbol itself, so the advice cannot be dropped silently."
+  (should (advice-member-p #'claude-code-ide-org--gate-selection-push
+                           'claude-code-ide-mcp--send-selection-for-project))
+  ;; On the sender, not the timer-arming hook (PR #42 review).
+  (should-not (advice-member-p #'claude-code-ide-org--gate-selection-push
+                               'claude-code-ide-mcp--track-selection))
+  (should-not (default-value 'claude-code-ide-org-push-selection))
+  (let ((calls 0))
+    (let ((claude-code-ide-org-push-selection nil))
+      (claude-code-ide-org--gate-selection-push (lambda () (cl-incf calls)))
+      (should (= calls 0)))
+    (let ((claude-code-ide-org-push-selection t))
+      (claude-code-ide-org--gate-selection-push (lambda () (cl-incf calls)))
+      (should (= calls 1)))))
+
 ;;; Nested slice members (TODO.org :ID: 1206b5b0)
 
 (defmacro claude-code-ide-org-test--with-nesting-fixture (&rest body)
