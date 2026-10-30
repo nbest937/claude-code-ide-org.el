@@ -34,6 +34,15 @@ session as context. The ERT test fails with the advice-add removed. Not
 verified: that Claude Code no longer loads the conventions in a fresh session,
 which needs one focused on an org buffer before any Read.
 
+The [[https://github.com/nbest937/claude-code-ide-org.el/pull/42][PR #42]] review's seven findings, answered in commit [[orgit-rev:./::637d44f][637d44f]]: the gate moved
+from the timer-arming hook to the sender, so a pending push obeys the option;
+the injected conventions-inject text, the docstring's at_mentioned claim,
+CLAUDE.md's reason for the [[id:436e0991-c8ac-40fb-860d-a6c4c381bee5][436e0991]] pointer and an ambiguous antecedent in the
+reference were corrected; main was pushed so the PR carries only this work.
+Scoping the gate to .org buffers was declined (the user, 2026-10-30): context
+goes on command, for every file.
+
+
 
 * TODO A slice's place in the order is advisory: nothing refuses NEXT or DOING on a slice while the slice before it is still open :code:
 :PROPERTIES:
