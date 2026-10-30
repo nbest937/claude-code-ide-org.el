@@ -11527,7 +11527,18 @@ from a skipped one."
                      latest
                      (time-less-p (cdr span) latest))
           (push (list :type 'clock
-                    :id (claude-code-ide-org--review-suggest-heading (car span) all)
+                    ;; A span splits on a project boundary, so its first
+                    ;; known cwd is its project (TODO.org :ID: c9940558).
+                    :id (claude-code-ide-org--review-suggest-heading
+                         (car span) all
+                         (claude-code-ide-org--cwd-project
+                          (seq-some
+                           (lambda (e)
+                             (let ((ts (plist-get e :ts)))
+                               (and (not (time-less-p ts (car span)))
+                                    (not (time-less-p (cdr span) ts))
+                                    (plist-get e :cwd))))
+                           guideposts)))
                     :start (car span) :end (cdr span)
                     ;; :unassigned is transient -- `a' clears it once a
                     ;; heading is chosen. :origin is permanent, so the
@@ -11620,8 +11631,24 @@ question.  Org divides keywords into not-done and done at the `|'; this
 divides them into \"being worked\" and everything else, and WAITING, TODO
 and NEXT all sit on org's not-done side while meaning nobody is working.")
 
-(defun claude-code-ide-org--review-suggest-heading (time events)
+(defun claude-code-ide-org--cwd-project (cwd)
+  "The project CWD belongs to, as a truename, or nil for no CWD.
+A directory that no longer exists answers as itself, so a removed
+scratch checkout is still somewhere else rather than unknown."
+  (when cwd
+    (file-truename (or (claude-code-ide-org--project-root cwd)
+                       (file-name-as-directory cwd)))))
+
+(defun claude-code-ide-org--review-suggest-heading (time events &optional project)
   "Return the :ID: most plausibly being worked on at TIME, from EVENTS.
+
+With PROJECT, a `--cwd-project' value, only that project's events count:
+the queue is global, so without it a span took the newest heading in
+progress anywhere, and a project with time tracking off, which has no
+spans of its own, collected every other project's (TODO.org :ID:
+d0f8042c: 35 CLOCK lines).  An event with no `cwd' does not count then,
+for the reason `--items-in-report-scope' gives.  Nil, for a span of no
+known project, reads every event.
 
 A heading is the answer only while it is *in* a work-in-progress state
 at TIME: something entered it into DOING before TIME and
@@ -11670,11 +11697,18 @@ Measured 2026-08-21, four spans totalling 24 minutes were assigned to
 one `[0/1]' container that no session had worked on for a day.  On the
 same date all three DOING headings in TODO.org were containers, so
 every answer this function could return was wrong by construction."
-  (let (active)
+  (let ((roots (make-hash-table :test 'equal))
+        active)
     (dolist (e events)
       (when (and (equal (plist-get e :kind) "todo")
                  (plist-get e :id)
-                 (not (time-less-p time (plist-get e :ts))))
+                 (not (time-less-p time (plist-get e :ts)))
+                 (or (not project)
+                     (let ((cwd (plist-get e :cwd)))
+                       ;; Per distinct cwd: a span reads the whole history.
+                       (equal project
+                              (with-memoization (gethash cwd roots)
+                                (claude-code-ide-org--cwd-project cwd))))))
         (let ((id (plist-get e :id))
               (state (plist-get e :state)))
           (cond

@@ -12539,6 +12539,73 @@ simply stopped working."
       (when (find-buffer-visiting file) (kill-buffer (find-buffer-visiting file)))
       (delete-file file))))
 
+;; A span's suggestion stays in its own project (TODO.org :ID: d0f8042c).
+(ert-deftest claude-code-ide-org-test-suggest-heading-stays-in-the-project ()
+  "Another project's heading in progress is no answer for this project's
+time; this project's is, through a worktree too, and an event of no known
+project does not count once the project is known."
+  (claude-code-ide-org-test--with-scoped-projects
+    (let* ((base (date-to-time "2026-10-30T14:00:00-0500"))
+           (at (time-add base 600))
+           (b-root (file-name-directory b-todo))
+           (project (claude-code-ide-org--cwd-project a-root))
+           (other (list (list :kind "todo" :id "id-b" :state "DOING"
+                              :ts base :cwd b-root))))
+      (should-not (claude-code-ide-org--review-suggest-heading
+                   at other project))
+      (should (equal "id-a"
+                     (claude-code-ide-org--review-suggest-heading
+                      at (cons (list :kind "todo" :id "id-a" :state "DOING"
+                                     :ts base :cwd a-root)
+                               other)
+                      project)))
+      (should (equal "id-b"
+                     (claude-code-ide-org--review-suggest-heading
+                      at (list (list :kind "todo" :id "id-b" :state "DOING"
+                                     :ts base :cwd b-wt))
+                      (claude-code-ide-org--cwd-project b-root))))
+      (should-not (claude-code-ide-org--review-suggest-heading
+                   at (list (list :kind "todo" :id "id-a" :state "DOING"
+                                  :ts base))
+                   project))
+      ;; A span of no known project reads everything, as it always has.
+      (should (equal "id-b"
+                     (claude-code-ide-org--review-suggest-heading at other))))))
+
+(ert-deftest claude-code-ide-org-test-span-is-not-offered-another-projects-heading ()
+  "Through the review items: a project with no guideposts of its own, as
+one with time tracking off, is never suggested for another's span, and a
+span's own project still is."
+  (claude-code-ide-org-test--with-scoped-projects
+    (let ((b-root (file-name-directory b-todo))
+          (span-of
+           (lambda ()
+             (seq-find (lambda (i) (plist-get i :unassigned))
+                       (claude-code-ide-org--review-items-from-queue)))))
+      (claude-code-ide-org-test--with-queue
+        (claude-code-ide-org-test--queue-write
+         "sess-b"
+         (claude-code-ide-org-test--queue-event
+          "2026-10-30T08:00:00-0500" "todo" "id-b" "DOING" "sess-b"
+          nil nil nil b-root))
+        (claude-code-ide-org-test--queue-write
+         "sess-a"
+         (claude-code-ide-org-test--queue-event
+          "2026-10-30T09:00:00-0500" "resume" nil nil "sess-a"
+          nil nil nil a-root)
+         (claude-code-ide-org-test--queue-event
+          "2026-10-30T09:10:00-0500" "pause" nil nil "sess-a"
+          nil nil nil a-root))
+        (let ((span (funcall span-of)))
+          (should span)
+          (should-not (plist-get span :id)))
+        (claude-code-ide-org-test--queue-write
+         "sess-c"
+         (claude-code-ide-org-test--queue-event
+          "2026-10-30T08:30:00-0500" "todo" "id-a" "DOING" "sess-c"
+          nil nil nil a-root))
+        (should (equal "id-a" (plist-get (funcall span-of) :id)))))))
+
 ;;; Explicit clock brackets as authoritative attribution (TODO.org :ID: eaeeb4ee)
 ;;
 ;; Before 2026-08-22 a main-lane `clock_in'/`clock_out' pair produced no
