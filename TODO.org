@@ -22,6 +22,7 @@
   project whose steps it would run. The second branch of the same cond, which
   stamps the ceremony done, has the same unscoped reads.
 
+
 * TODO An apply refused by org-depend reports neither the blocker nor the reason, only that the keyword did not change :code:
 :PROPERTIES:
 :ID:       f128a8b1-5769-4d48-b947-dfaf9a58fbcd
@@ -16091,4 +16092,8 @@ CLOCK: [2026-10-30 Fri 09:02]--[2026-10-30 Fri 09:03] =>  0:01
 - [2026-10-30 Fri 09:03]--[2026-10-30 Fri 09:03] assigned at review
 CLOCK: [2026-10-30 Fri 09:46]--[2026-10-30 Fri 09:47] =>  0:01
 - [2026-10-30 Fri 09:46]--[2026-10-30 Fri 09:47] assigned at review
+CLOCK: [2026-10-30 Fri 11:36]--[2026-10-30 Fri 11:37] =>  0:01
+- [2026-10-30 Fri 11:36]--[2026-10-30 Fri 11:37] commit the 11:31 apply; trace the ceremony rerun
+CLOCK: [2026-10-30 Fri 11:55]--[2026-10-30 Fri 11:56] =>  0:01
+- [2026-10-30 Fri 11:55]--[2026-10-30 Fri 11:56] commit the 11:31 apply; trace the ceremony rerun
 :END:
