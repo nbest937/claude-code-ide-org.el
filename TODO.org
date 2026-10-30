@@ -2,6 +2,23 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO An active region in TODO.org makes apply and the ceremony's repeater set a keyword on every heading in it :code:bounded:
+:PROPERTIES:
+:ID:       1abff8d5-d142-4de1-b939-578e993ecc8d
+:CREATED:  [2026-10-30 Fri 08:34]
+:CATEGORY: Apply
+:END:
+
+On 2026-10-30 the 08:19 apply pass ran with a region active in this repo's
+TODO.org. With org-loop-over-headlines-in-active-region t, each queued state
+item applied its keyword across the region, its note landing on [[id:d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80][d7b2f50f]], the
+last heading looped; then the ceremony's repeater, an org-todo DONE under
+org-inhibit-logging, marked 217 headings DONE with no State line and no CLOSED
+stamp, and the file was saved. Restored from HEAD; the pass's ledger entries for
+this repo's two sessions are to be rewound. The archive sites were guarded
+against the same option by [[id:4a4ebb21-9388-494f-a40a-641ff663b19e][4a4ebb21]]; every org-todo the module drives is guarded
+the same way.
+
 * TODO An apply refused by org-depend reports neither the blocker nor the reason, only that the keyword did not change :code:
 :PROPERTIES:
 :ID:       f128a8b1-5769-4d48-b947-dfaf9a58fbcd
