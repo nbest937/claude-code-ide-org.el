@@ -2,6 +2,31 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Every startup warns that no project was derived, because the module wires before the private config sets the tracked files :code:bounded:
+:PROPERTIES:
+:ID:       e6a24204-b22d-4971-822a-abaa452f3f95
+:CREATED:  [2026-10-30 Fri 17:48]
+:CATEGORY: Dev
+:END:
+:PLAN:
+Bounded: during Doom's startup, before doom-init-time is set, the module's call
+hands --wire-on-load to doom-after-init-hook; otherwise it runs at once, which
+covers a live reload and an Emacs without Doom. The private config has run by
+then, and its after! org body runs at that point because the module requires org
+at load, so derivation sees the tracked files. The warning stays as it is and
+now fires only for a tracked set that is really empty. Accepted cost: sessions
+register and companions start at launch rather than at first use. Tests:
+deferred during init, immediate once init is done, immediate without Doom.
+Verified by a restart, since no batch run reaches this.
+:END:
+
+Doom loads module configs before the private config.el, whose after! org sets
+org-agenda-files, so the on-load wire derives zero projects and warns on every
+startup while the same derivation finds three afterwards. Harmless, since
+sessions register on their first call ([[id:28eed617-e4e0-4d29-88ea-9411de4b77e5][28eed617]]), but a warning that always
+fires hides the one that means something. The user chose to move the wiring past
+Doom's init rather than mute it, 2026-10-30.
+
 * REVIEW The review suggests a heading from any project's todo events, so a project with time tracking off collects other projects' time as CLOCK lines :code:bounded:
 :PROPERTIES:
 :ID:       d0f8042c-c294-45b2-9016-7efca7977982
@@ -43,6 +68,15 @@ suggestion, the span's own project's still does, a worktree cwd counts as its
 main checkout, a span with no cwd behaves as today; each proved to fail against
 the current code, then bin/test-all.
 
+Revised after the review of [[https://github.com/nbest937/claude-code-ide-org.el/pull/44][PR #44]], approved by the user 2026-10-30, and
+superseding the text above where they differ: the test is the project of the
+heading's file against the span's, both through --project-name, the resolver the
+span splitter already uses, and it gates only entering DOING. So --cwd-project,
+the per-call cache and the rule for an event with no cwd are gone. A span with
+no guidepost takes its project from the clock events on its edges, and a span
+whose every cwd is gone matches no heading rather than every heading. Two
+checkouts sharing a basename stay one project here, as they already are to the
+splitter.
 :END:
 --review-items-from-queue passes --review-suggest-heading the full queue history
   of every session, so a span from one project takes the newest work-in-progress
