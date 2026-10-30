@@ -8,6 +8,17 @@
 :CREATED:  [2026-10-30 Fri 08:34]
 :CATEGORY: Apply
 :END:
+:PLAN:
+Bounded: bind org-loop-over-headlines-in-active-region to nil in --at-id, which
+every id-targeted tool and apply item runs through, and at the two org-todo
+calls outside it (the ceremony repeater, the sibling demotion), rather than
+deactivating the mark, which would discard a region the human may still want.
+Tests bind the option t, since org's default is nil. Recovery: restore TODO.org
+from HEAD and rewind the 08:19:05 pass's entries in this repo's two .applied
+records, so the next apply re-offers them; noodle-salesman's two sessions keep
+theirs, since every keyword change there carries its own State or CLOSED line
+(the user, 2026-10-30: restore, fix, re-offer).
+:END:
 
 On 2026-10-30 the 08:19 apply pass ran with a region active in this repo's
 TODO.org. With org-loop-over-headlines-in-active-region t, each queued state
@@ -18,6 +29,14 @@ stamp, and the file was saved. Restored from HEAD; the pass's ledger entries for
 this repo's two sessions are to be rewound. The archive sites were guarded
 against the same option by [[id:4a4ebb21-9388-494f-a40a-641ff663b19e][4a4ebb21]]; every org-todo the module drives is guarded
 the same way.
+
+Shipped on [[https://github.com/nbest937/claude-code-ide-org.el/pull/43][PR #43]], loaded into the running Emacs. Two ERT tests fail against the
+previous config.el and pass with the guard. TODO.org was restored from HEAD and
+this repo's 36 consumed events were re-offered; noodle-salesman's TODO.org was
+checked and is undamaged. Not established: how the mark came to sit near the top
+of the file, and whether that pass also wrote the 07:45 span to
+noodle-salesman's d988b28d.
+
 
 * TODO An apply refused by org-depend reports neither the blocker nor the reason, only that the keyword did not change :code:
 :PROPERTIES:
