@@ -2,11 +2,23 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* TODO An active region in TODO.org makes apply and the ceremony's repeater set a keyword on every heading in it :code:bounded:
+* REVIEW An active region in TODO.org makes apply and the ceremony's repeater set a keyword on every heading in it :code:bounded:
 :PROPERTIES:
 :ID:       1abff8d5-d142-4de1-b939-578e993ecc8d
 :CREATED:  [2026-10-30 Fri 08:34]
 :CATEGORY: Apply
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-30 Fri 08:17]--[2026-10-30 Fri 08:21] =>  0:04
+- [2026-10-30 Fri 08:17]--[2026-10-30 Fri 08:21] assigned at review
+CLOCK: [2026-10-30 Fri 08:27]--[2026-10-30 Fri 08:34] =>  0:07
+- [2026-10-30 Fri 08:27]--[2026-10-30 Fri 08:34] assigned at review
+- State "DOING"      from "TODO"       [2026-10-30 Fri 08:34] \\
+  user asked: restore, fix, re-offer
+CLOCK: [2026-10-30 Fri 08:34]--[2026-10-30 Fri 08:43] =>  0:09
+- [2026-10-30 Fri 08:34]--[2026-10-30 Fri 08:43] guard org-todo against an active region
+- State "REVIEW"     from "DOING"      [2026-10-30 Fri 08:43] \\
+  PR #43 open, guard loaded live
 :END:
 :PLAN:
 Bounded: bind org-loop-over-headlines-in-active-region to nil in --at-id, which
@@ -44,6 +56,12 @@ noodle-salesman's d988b28d.
 :CREATED:  [2026-10-30 Fri 08:16]
 :CATEGORY: Apply
 :END:
+:LOGBOOK:
+CLOCK: [2026-10-30 Fri 08:14]--[2026-10-30 Fri 08:16] =>  0:02
+- [2026-10-30 Fri 08:14]--[2026-10-30 Fri 08:16] assigned at review
+CLOCK: [2026-10-30 Fri 08:16]--[2026-10-30 Fri 08:17] =>  0:01
+- [2026-10-30 Fri 08:16]--[2026-10-30 Fri 08:17] file the silent org-depend refusal bug
+:END:
 
 Applying CANCELLED to 6ef2e557 in noodle-salesman on 2026-10-28 failed with "did
 not take effect; the heading reads TODO", while org-todo's own message read
@@ -53,40 +71,30 @@ fill in. Finding the cause took a session reading the Messages buffer and the
 heading's front matter. The apply pass should name the unfinished :BLOCKER: ids
 and their keywords when a transition into a done state is refused.
 
-* TODO The README recommends no personal settings, so each user rediscovers which permissions are safe to grant :prose:
-:PROPERTIES:
-:ID:       28e2e444-bcc0-4272-996a-5d918b09f35f
-:CREATED:  [2026-10-30 Fri 08:10]
-:CATEGORY: Docs
-:END:
-:DEBRIEF:
-Shipped: enabledMcpjsonServers for emacs-tools; the six read-only and three
-queued org tools; two gh rules, one listing review threads (a query starting
-{repository( holds no mutation) and one matching only resolveReviewThread, in
-place of the broad gh api graphql * granted earlier the same day;
-Bash(emacsclient *) named as deliberately not recommended. The read rule was
-exercised in its documented shape; that the permission matcher, rather than auto
-mode, approved it was not isolated. The Emacs-side paragraph on
-claude-code-ide-org-push-selection went onto the [[https://github.com/nbest937/claude-code-ide-org.el/pull/42][PR #42]] branch instead, since
-the option exists only there until it merges.
-:END:
 
-Nothing tells a new user which Claude Code permissions this workflow needs or
-which are safe: the org tools that cannot change a file on their own, the narrow
-gh rules for resolving review threads, and the emacsclient eval rule that should
-not be granted. Add a README section of recommended personal settings for
-.claude/settings.local.json, each with the intent that makes it safe (the user,
-2026-10-30).
-
-Resolved by commit [[orgit-rev:./::04a585b][04a585b]]: README step 6 lists the recommended
-.claude/settings.local.json entries, each with what makes it safe.
-
-
-* TODO The IDE companion pushes every cursor move to Claude Code, and the file it names loads the whole path-scoped conventions :code:bounded:
+* REVIEW The IDE companion pushes every cursor move to Claude Code, and the file it names loads the whole path-scoped conventions :code:bounded:
 :PROPERTIES:
 :ID:       f6398e59-b02d-4b3a-961a-f349eeaca125
 :CREATED:  [2026-10-29 Thu 07:32]
 :CATEGORY: Dev
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-29 Thu 07:32]--[2026-10-29 Thu 07:35] =>  0:03
+- State "DOING"      from "TODO"       [2026-10-29 Thu 07:32] \\
+  user asked: defcustom, default off, then test
+- [2026-10-29 Thu 07:32]--[2026-10-29 Thu 07:35] gate the companion's selection push
+CLOCK: [2026-10-29 Thu 07:40]--[2026-10-29 Thu 07:41] =>  0:01
+- [2026-10-29 Thu 07:40]--[2026-10-29 Thu 07:41] gate the companion's selection push
+CLOCK: [2026-10-29 Thu 07:42]--[2026-10-29 Thu 07:57] =>  0:15
+- [2026-10-29 Thu 07:42]--[2026-10-29 Thu 07:57] gate the companion's selection push
+- State "REVIEW"     from "DOING"      [2026-10-29 Thu 07:57] \\
+  PR #42 open, verified live
+- State "DOING"      from "REVIEW"     [2026-10-30 Fri 07:52] \\
+  rework: PR #42 review findings
+CLOCK: [2026-10-30 Fri 07:52]--[2026-10-30 Fri 08:01] =>  0:09
+- [2026-10-30 Fri 07:52]--[2026-10-30 Fri 08:01] address PR #42 review findings
+- State "REVIEW"     from "DOING"      [2026-10-30 Fri 08:01] \\
+  review findings fixed, threads answered
 :END:
 :PLAN:
 Bounded: :around advice on claude-code-ide-mcp--track-selection, because
@@ -121,7 +129,6 @@ CLAUDE.md's reason for the [[id:436e0991-c8ac-40fb-860d-a6c4c381bee5][436e0991]]
 reference were corrected; main was pushed so the PR carries only this work.
 Scoping the gate to .org buffers was declined (the user, 2026-10-30): context
 goes on command, for every file.
-
 
 
 * TODO A slice's place in the order is advisory: nothing refuses NEXT or DOING on a slice while the slice before it is still open :code:
@@ -4375,6 +4382,8 @@ CLOCK: [2026-10-27 Tue 13:02]--[2026-10-27 Tue 13:03] =>  0:01
   classified at /plan-slice: one binding in the shared capture writer
 CLOCK: [2026-10-28 Wed 15:46]--[2026-10-28 Wed 15:47] =>  0:01
 - [2026-10-28 Wed 15:46]--[2026-10-28 Wed 15:47] compose 3bfa593c's slice plan
+CLOCK: [2026-10-28 Wed 15:49]--[2026-10-28 Wed 15:50] =>  0:01
+- [2026-10-28 Wed 15:49]--[2026-10-28 Wed 15:50] classify and settle the capture link-store fix
 :END:
 :PLAN:
 Bounded: one binding in --capture-write, the writer both capture paths share
@@ -11650,12 +11659,12 @@ before the fix and still says.
 
 
 * TODO Archive closed tasks daily
-SCHEDULED: <2026-10-30 Fri 07:00 ++1d>
+SCHEDULED: <2026-10-31 Sat 07:00 ++1d>
 :PROPERTIES:
 :CATEGORY: Meta
 :ID:       cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8
 :CREATED:  [2026-08-21 Fri 15:35]
-:LAST_REPEAT: [2026-10-29 Thu 07:08]
+:LAST_REPEAT: [2026-10-30 Fri 08:58]
 :KIND:     ceremony
 :END:
 :LOGBOOK:
@@ -16137,4 +16146,19 @@ CLOCK: [2026-10-28 Wed 14:02]--[2026-10-28 Wed 14:03] =>  0:01
 - [2026-10-28 Wed 14:02]--[2026-10-28 Wed 14:03] assigned at review
 CLOCK: [2026-10-28 Wed 14:08]--[2026-10-28 Wed 14:12] =>  0:04
 - [2026-10-28 Wed 14:08]--[2026-10-28 Wed 14:12] assigned at review
+:END:
+
+
+**** 2026-10-29 Thursday
+:PROPERTIES:
+:ID:       f6b6064c-4a28-4d01-8e9f-01ae4f1a0fe2
+:CREATED:  [2026-10-29 Thu 07:08]
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-29 Thu 07:08]--[2026-10-29 Thu 07:09] =>  0:01
+- [2026-10-29 Thu 07:08]--[2026-10-29 Thu 07:09] assigned at review
+CLOCK: [2026-10-29 Thu 07:13]--[2026-10-29 Thu 07:14] =>  0:01
+- [2026-10-29 Thu 07:13]--[2026-10-29 Thu 07:14] assigned at review
+CLOCK: [2026-10-29 Thu 07:23]--[2026-10-29 Thu 07:30] =>  0:07
+- [2026-10-29 Thu 07:23]--[2026-10-29 Thu 07:30] assigned at review
 :END:

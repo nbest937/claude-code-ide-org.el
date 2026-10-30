@@ -7,6 +7,54 @@ Archived entries from file /Users/neil.best/git/claude-code-ide-org/TODO.org
 * 2026
 
 ** 2026-10 October
+*** 2026-10-30 Friday
+**** DONE The README recommends no personal settings, so each user rediscovers which permissions are safe to grant :prose:
+CLOSED: [2026-10-30 Fri 08:14]
+:PROPERTIES:
+:ID:       28e2e444-bcc0-4272-996a-5d918b09f35f
+:CREATED:  [2026-10-30 Fri 08:10]
+:CATEGORY: Docs
+:ARCHIVE_TIME: 2026-10-30 Fri 08:58
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Docs
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-30 Fri 08:01]--[2026-10-30 Fri 08:02] =>  0:01
+- [2026-10-30 Fri 08:01]--[2026-10-30 Fri 08:02] assigned at review
+CLOCK: [2026-10-30 Fri 08:05]--[2026-10-30 Fri 08:06] =>  0:01
+- [2026-10-30 Fri 08:05]--[2026-10-30 Fri 08:06] assigned at review
+- State "DOING"      from "TODO"       [2026-10-30 Fri 08:10] \\
+  user asked for the README section
+CLOCK: [2026-10-30 Fri 08:10]--[2026-10-30 Fri 08:11] =>  0:01
+- [2026-10-30 Fri 08:10]--[2026-10-30 Fri 08:11] assigned at review
+- State "DONE"       from "DOING"      [2026-10-30 Fri 08:14] \\
+  README recommended settings landed
+CLOCK: [2026-10-30 Fri 08:14]--[2026-10-30 Fri 08:15] =>  0:01
+- [2026-10-30 Fri 08:14]--[2026-10-30 Fri 08:15] write recommended personal settings into README
+:END:
+:DEBRIEF:
+Shipped: enabledMcpjsonServers for emacs-tools; the six read-only and three
+queued org tools; two gh rules, one listing review threads (a query starting
+{repository( holds no mutation) and one matching only resolveReviewThread, in
+place of the broad gh api graphql * granted earlier the same day;
+Bash(emacsclient *) named as deliberately not recommended. The read rule was
+exercised in its documented shape; that the permission matcher, rather than auto
+mode, approved it was not isolated. The Emacs-side paragraph on
+claude-code-ide-org-push-selection went onto the [[https://github.com/nbest937/claude-code-ide-org.el/pull/42][PR #42]] branch instead, since
+the option exists only there until it merges.
+:END:
+
+Nothing tells a new user which Claude Code permissions this workflow needs or
+which are safe: the org tools that cannot change a file on their own, the narrow
+gh rules for resolving review threads, and the emacsclient eval rule that should
+not be granted. Add a README section of recommended personal settings for
+.claude/settings.local.json, each with the intent that makes it safe (the user,
+2026-10-30).
+
+Resolved by commit [[orgit-rev:./::04a585b][04a585b]]: README step 6 lists the recommended
+.claude/settings.local.json entries, each with what makes it safe.
+
 *** 2026-10-28 Wednesday
 **** DONE A pre-push from a linked worktree exports GIT_DIR to bin/test-all, so a suite's git -C on a temp repo writes the real repo instead :code:bounded:
 CLOSED: [2026-10-28 Wed 08:15]
