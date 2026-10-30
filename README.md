@@ -184,6 +184,57 @@ skill to load, rules its slices have earned -- goes in an optional
 `.claude/slice-rules.md`, which both read first; this repo's is an
 example.
 
+### 6. Recommended personal settings
+
+None of these are installed for you. They belong in a repo's
+`.claude/settings.local.json`, which is per user and gitignored, so each
+is a choice you make for yourself. Each is listed with what makes it
+safe to grant.
+
+```json
+{
+  "enabledMcpjsonServers": ["emacs-tools"],
+  "permissions": {
+    "allow": [
+      "mcp__emacs-tools__org_outline",
+      "mcp__emacs-tools__org_body",
+      "mcp__emacs-tools__org_query",
+      "mcp__emacs-tools__org_pending_updates",
+      "mcp__emacs-tools__org_history",
+      "mcp__emacs-tools__org_footnotes",
+      "mcp__emacs-tools__org_set_todo",
+      "mcp__emacs-tools__org_clock_in",
+      "mcp__emacs-tools__org_clock_out",
+      "Bash(gh api graphql -f 'query={repository(*reviewThreads*)",
+      "Bash(gh api graphql -f 'query=mutation{resolveReviewThread(input:{threadId:*)"
+    ]
+  }
+}
+```
+
+- **`enabledMcpjsonServers`** approves the `emacs-tools` server that
+  `claude-org-setup --org` writes into `.mcp.json`, so the trust prompt
+  is not asked every session.
+- **The first six tools only read.** **The last three change nothing
+  when called**: they queue an event that reaches a file only when you
+  run `M-x claude-code-ide-org-review`. The tools that write at once
+  (`org_capture`, `org_amend`, `org_edit`, `org_refile`, `org_archive`
+  and the rest) are left to prompt.
+- **The two `gh` rules let a session resolve a pull request's review
+  threads**, which the conventions ask for once each finding is fixed
+  and answered. The first only lists threads: a query starting with
+  `{repository(` can contain no mutation. The second matches only
+  `resolveReviewThread`. A rule matches the command's text, so the
+  session must write these calls in exactly this shape. `gh api
+  graphql *` would also work, but it allows any query or mutation as
+  your GitHub account. Where this repo's `gh` account is not your
+  global one, add `"env": {"GH_CONFIG_DIR": "…"}` to the same file.
+- **Deliberately not recommended: `Bash(emacsclient *)`.** An eval runs
+  arbitrary code in your editor, and a direct `org-todo` through it
+  skips the queue and can hang on a note prompt. The org tools exist so
+  that a session does not need it. Leave it to prompt; an eval should be
+  rare and justified each time.
+
 ### Developing this repo
 
 Git hooks need one manual step per clone (the setting is not version

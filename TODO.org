@@ -2,6 +2,20 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO The README recommends no personal settings, so each user rediscovers which permissions are safe to grant :prose:
+:PROPERTIES:
+:ID:       28e2e444-bcc0-4272-996a-5d918b09f35f
+:CREATED:  [2026-10-30 Fri 08:10]
+:CATEGORY: Docs
+:END:
+
+Nothing tells a new user which Claude Code permissions this workflow needs or
+which are safe: the org tools that cannot change a file on their own, the narrow
+gh rules for resolving review threads, and the emacsclient eval rule that should
+not be granted. Add a README section of recommended personal settings for
+.claude/settings.local.json, each with the intent that makes it safe (the user,
+2026-10-30).
+
 * TODO The IDE companion pushes every cursor move to Claude Code, and the file it names loads the whole path-scoped conventions :code:bounded:
 :PROPERTIES:
 :ID:       f6398e59-b02d-4b3a-961a-f349eeaca125
