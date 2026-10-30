@@ -8,6 +8,17 @@
 :CREATED:  [2026-10-30 Fri 08:10]
 :CATEGORY: Docs
 :END:
+:DEBRIEF:
+Shipped: enabledMcpjsonServers for emacs-tools; the six read-only and three
+queued org tools; two gh rules, one listing review threads (a query starting
+{repository( holds no mutation) and one matching only resolveReviewThread, in
+place of the broad gh api graphql * granted earlier the same day;
+Bash(emacsclient *) named as deliberately not recommended. The read rule was
+exercised in its documented shape; that the permission matcher, rather than auto
+mode, approved it was not isolated. The Emacs-side paragraph on
+claude-code-ide-org-push-selection went onto the [[https://github.com/nbest937/claude-code-ide-org.el/pull/42][PR #42]] branch instead, since
+the option exists only there until it merges.
+:END:
 
 Nothing tells a new user which Claude Code permissions this workflow needs or
 which are safe: the org tools that cannot change a file on their own, the narrow
@@ -15,6 +26,10 @@ gh rules for resolving review threads, and the emacsclient eval rule that should
 not be granted. Add a README section of recommended personal settings for
 .claude/settings.local.json, each with the intent that makes it safe (the user,
 2026-10-30).
+
+Resolved by commit [[orgit-rev:./::04a585b][04a585b]]: README step 6 lists the recommended
+.claude/settings.local.json entries, each with what makes it safe.
+
 
 * TODO The IDE companion pushes every cursor move to Claude Code, and the file it names loads the whole path-scoped conventions :code:bounded:
 :PROPERTIES:
