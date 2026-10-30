@@ -153,7 +153,15 @@ cannot be resolved or FN signals an error."
         (claude-code-ide-org--id-not-found id)
       (condition-case err
           (org-with-point-at marker
-            (funcall fn))
+            ;; The heading named, never the region's.  With the option
+            ;; t, an active region makes `org-todo' set its keyword on
+            ;; every heading in it instead of the one at point, and its
+            ;; note lands on the last one looped: a 2026-10-30 apply put
+            ;; five notes on one bystander that way (TODO.org :ID:
+            ;; 1abff8d5).  The archive calls learned this first (:ID:
+            ;; 4a4ebb21); binding it here covers every caller at once.
+            (let ((org-loop-over-headlines-in-active-region nil))
+              (funcall fn)))
         (error
          ;; Record where it actually failed. This function converts every
          ;; error into a string, which is what lets callers report a
@@ -9222,7 +9230,10 @@ equivalent line by hand instead."
       (claude-code-ide-org--map-siblings
        (lambda ()
          (when (equal (org-get-todo-state) "NEXT")
-           (let ((org-inhibit-logging t)) (org-todo "TODO"))
+           (let ((org-inhibit-logging t)
+                 ;; The sibling at point, never the region (:ID: 1abff8d5).
+                 (org-loop-over-headlines-in-active-region nil))
+             (org-todo "TODO"))
            (claude-code-ide-org--append-to-drawer
             "LOGBOOK"
             (claude-code-ide-org--format-log-state-line
@@ -18058,7 +18069,11 @@ is org\'s own `:LAST_REPEAT:\' plus the ceremony stamp file."
     ;; "repeater: FAILED (Buffer is read-only)". A binding, never a setq,
     ;; so the flag survives a non-local exit.
     (let ((inhibit-read-only t)
-          (org-inhibit-logging t))
+          (org-inhibit-logging t)
+          ;; Or an active region turns this one DONE into a DONE on
+          ;; every heading in it -- unlogged, so with no trace on any of
+          ;; them: 217 headings on 2026-10-30 (TODO.org :ID: 1abff8d5).
+          (org-loop-over-headlines-in-active-region nil))
       (dolist (m due)
         (org-with-point-at m
           (org-todo "DONE")

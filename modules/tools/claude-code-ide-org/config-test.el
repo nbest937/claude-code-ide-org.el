@@ -16508,6 +16508,66 @@ The tool's own call to `org-archive-subtree' had the sweep's exposure
       (should-not (string-match-p "Still live" arch))
       (should (string-match-p "Test heading" arch)))))
 
+(defun claude-code-ide-org-test--activate-whole-buffer-region (file)
+  "Leave FILE's buffer with an active region spanning all of it."
+  (with-current-buffer (find-file-noselect file)
+    (transient-mark-mode 1)
+    (set-mark (point-max))
+    (goto-char (point-min))
+    (activate-mark)))
+
+(ert-deftest claude-code-ide-org-test-apply-state-ignores-an-active-region ()
+  "An applied state item changes the heading it names, whatever region
+is active, and its note lands there.
+
+On 2026-10-30 a region left active in TODO.org, with
+`org-loop-over-headlines-in-active-region' t (the live setting), made
+each queued state item set its keyword across the region and store its
+note on the last heading looped (TODO.org :ID: 1abff8d5).  The option
+is bound t here because org's default is nil, which would let this pass
+without the guard."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--add-child
+     file (concat "* TODO Bystander\n"
+                  ":PROPERTIES:\n:ID:       test-0002\n:END:\n"))
+    (claude-code-ide-org-test--activate-whole-buffer-region file)
+    (let ((org-loop-over-headlines-in-active-region t)
+          (item (list :type 'state :id id
+                      :ts (date-to-time "2026-10-30T08:19:00-0500")
+                      :from "TODO" :to "DOING"
+                      :note "only the named heading"
+                      :events nil)))
+      (should-not (claude-code-ide-org--review-apply-item item)))
+    (let ((disk (claude-code-ide-org-test--disk-contents file)))
+      (should (string-match-p "^\\* DOING Test heading" disk))
+      (should (string-match-p "^\\* TODO Bystander" disk))
+      (should (string-match-p "only the named heading"
+                              (claude-code-ide-org-test--logbook file))))))
+
+(ert-deftest claude-code-ide-org-test-advance-repeater-ignores-an-active-region ()
+  "The ceremony repeater marks only the ritual heading DONE.
+
+Its `org-todo' runs under `org-inhibit-logging', so an active region
+once turned it into an unlogged DONE on every heading in the region --
+217 on 2026-10-30, with no State line or CLOSED stamp on any of them
+(TODO.org :ID: 1abff8d5)."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--add-child
+     file (concat "* TODO Archive closed tasks daily\n"
+                  (claude-code-ide-org-test--stale-repeater-line)
+                  ":PROPERTIES:\n"
+                  ":ID:       cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8\n"
+                  ":CREATED:  [2026-08-01 Sat 09:00]\n:KIND:     ceremony\n:END:\n"
+                  "* TODO Bystander\n"
+                  ":PROPERTIES:\n:ID:       test-0002\n:END:\n"))
+    (claude-code-ide-org-test--activate-whole-buffer-region file)
+    (let ((org-loop-over-headlines-in-active-region t))
+      (should (claude-code-ide-org--ceremony-advance-repeater)))
+    (let ((disk (claude-code-ide-org-test--disk-contents file)))
+      (should (string-match-p "^\\* TODO Test heading" disk))
+      (should (string-match-p "^\\* TODO Bystander" disk))
+      (should (string-match-p "^\\* TODO Archive closed tasks daily" disk)))))
+
 (ert-deftest claude-code-ide-org-test-archive-finished-sweeps-every-top-level-heading ()
   "Several finished top-level headings are all archived, and counted.
 
