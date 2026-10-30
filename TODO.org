@@ -31,6 +31,18 @@ records, so the next apply re-offers them; noodle-salesman's two sessions keep
 theirs, since every keyword change there carries its own State or CLOSED line
 (the user, 2026-10-30: restore, fix, re-offer).
 :END:
+:DEBRIEF:
+Shipped: org-loop-over-headlines-in-active-region bound nil in --at-id and at
+the ceremony repeater and sibling demotion. Verified: two ERT tests, the option
+bound t, fail against the previous config.el; the next live apply after the
+guard loaded landed every state line on its own heading and archived [[id:28e2e444-bcc0-4272-996a-5d918b09f35f][28e2e444]]
+with its CLOSED stamp. Recovery: TODO.org restored from HEAD, this repo's 36
+consumed events re-offered by rewinding the 08:19:05 pass in two .applied
+records; noodle-salesman's tracker was undamaged, and d988b28d's 07:45 span was
+not written twice. The sibling demotion's binding has no test of its own. Not
+filed, because the guard makes it moot: how the mark came to sit near the top of
+TODO.org.
+:END:
 
 On 2026-10-30 the 08:19 apply pass ran with a region active in this repo's
 TODO.org. With org-loop-over-headlines-in-active-region t, each queued state
@@ -48,6 +60,10 @@ this repo's 36 consumed events were re-offered; noodle-salesman's TODO.org was
 checked and is undamaged. Not established: how the mark came to sit near the top
 of the file, and whether that pass also wrote the 07:45 span to
 noodle-salesman's d988b28d.
+
+Resolved by [[https://github.com/nbest937/claude-code-ide-org.el/pull/43][PR #43]], merged 2026-10-30: every org-todo the module drives acts on
+the heading named, whatever region is active.
+
 
 
 * TODO An apply refused by org-depend reports neither the blocker nor the reason, only that the keyword did not change :code:
@@ -105,6 +121,19 @@ last-active buffer. Correct the session-tracking reference's "fires only on a
 Read" inside the always-loaded word budget (the user, 2026-10-29: in the module,
 default off).
 :END:
+:DEBRIEF:
+Shipped: claude-code-ide-org-push-selection (nil), :around advice on
+claude-code-ide-mcp--send-selection-for-project; corrected prose in the
+session-tracking reference, CLAUDE.md, the conventions-inject text and the
+README. Verified: a live probe on the companion's notifications sent nothing
+with the option off and one selection_changed per move with it on; the ERT test
+fails with the advice removed or moved back to the timer-arming hook. Differed
+from the plan: the first version advised --track-selection, which only arms a
+timer, and the [[https://github.com/nbest937/claude-code-ide-org.el/pull/42][PR #42]] review moved it to the sender. Declined at review: scoping
+the gate to .org buffers (the user: context on command, for every file). Not
+filed, as a one-time check rather than work: confirming in a fresh session that
+focusing an .org buffer no longer loads the conventions.
+:END:
 
 claude-code-ide's companion sends selection_changed from post-command-hook on
 every command in a project file, with no option to stop it, so focusing TODO.org
@@ -129,6 +158,11 @@ CLAUDE.md's reason for the [[id:436e0991-c8ac-40fb-860d-a6c4c381bee5][436e0991]]
 reference were corrected; main was pushed so the PR carries only this work.
 Scoping the gate to .org buffers was declined (the user, 2026-10-30): context
 goes on command, for every file.
+
+Resolved by [[https://github.com/nbest937/claude-code-ide-org.el/pull/42][PR #42]], merged 2026-10-30: the companion's selection push is off by
+default, gated on its sender, and the prose that said a path scope fires only on
+a Read is corrected.
+
 
 
 * TODO A slice's place in the order is advisory: nothing refuses NEXT or DOING on a slice while the slice before it is still open :code:
