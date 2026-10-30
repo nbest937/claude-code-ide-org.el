@@ -2,6 +2,21 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO An apply refused by org-depend reports neither the blocker nor the reason, only that the keyword did not change :code:
+:PROPERTIES:
+:ID:       f128a8b1-5769-4d48-b947-dfaf9a58fbcd
+:CREATED:  [2026-10-30 Fri 08:16]
+:CATEGORY: Apply
+:END:
+
+Applying CANCELLED to 6ef2e557 in noodle-salesman on 2026-10-28 failed with "did
+not take effect; the heading reads TODO", while org-todo's own message read
+blocked (by ""): org-depend-block-todo refuses a done state while a :BLOCKER: is
+unfinished but never sets org-block-entry-blocking, which org's other blockers
+fill in. Finding the cause took a session reading the Messages buffer and the
+heading's front matter. The apply pass should name the unfinished :BLOCKER: ids
+and their keywords when a transition into a done state is refused.
+
 * TODO The README recommends no personal settings, so each user rediscovers which permissions are safe to grant :prose:
 :PROPERTIES:
 :ID:       28e2e444-bcc0-4272-996a-5d918b09f35f
