@@ -17986,7 +17986,10 @@ membership, is what stops an alias being reintroduced silently."
 path-scoped conventions into the session.  The gate is asserted on the
 advised symbol itself, so the advice cannot be dropped silently."
   (should (advice-member-p #'claude-code-ide-org--gate-selection-push
-                           'claude-code-ide-mcp--track-selection))
+                           'claude-code-ide-mcp--send-selection-for-project))
+  ;; On the sender, not the timer-arming hook (PR #42 review).
+  (should-not (advice-member-p #'claude-code-ide-org--gate-selection-push
+                               'claude-code-ide-mcp--track-selection))
   (should-not (default-value 'claude-code-ide-org-push-selection))
   (let ((calls 0))
     (let ((claude-code-ide-org-push-selection nil))

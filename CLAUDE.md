@@ -302,8 +302,9 @@ blind wrap would bury, and no lexical marker finds the seam, so the pass
 
 They ship as the plugin's `skills/org/references/org-conventions.md`,
 promoted into `.claude/rules/org-conventions.md` and path-scoped to
-`**/*.org`. The first `org_*` call of a session injects a pointer to
-them (`:ID:` 436e0991) — Read the section that governs the act. **The ten
+`**/*.org`. A path scope never fires on an org tool, so the first
+`org_*` call of a session injects a pointer to them (`:ID:` 436e0991) —
+Read the section that governs the act. **The ten
 `:CATEGORY:` values are in `.claude/rules/org-categories.md`, always
 loaded** (`:ID:` b0d55552: behind the path scope, ten headings arrived
 unfiled in two days); the history of the level-1 tier stays path-scoped in

@@ -22550,11 +22550,18 @@ loads every rule path-scoped to it: focusing TODO.org pulled the whole
 org-conventions file into the session, which is the opposite of the
 incremental, structured reads the org tools exist for (:ID: f6398e59).
 
-nil, the default, makes the push a no-op.  Context then reaches
-Claude only on command, via `claude-code-ide-insert-at-mentioned'.
+nil, the default, makes the push a no-op, for every file: context
+reaches Claude only when sent on command, as
+`claude-code-ide-insert-at-mentioned' does.  That sends a file path
+too, and whether Claude Code loads path-scoped rules for a mentioned
+file is unverified -- the difference is that you chose to send it.
 The companion's other hook, which records the last active buffer for
-the Emacs-side tools, is untouched.  Read at every call, so a change
-takes effect without a restart."
+the Emacs-side tools, is untouched.
+
+The gate sits on the sender, `claude-code-ide-mcp--send-selection-for-project',
+not on the hook that arms its timer, so a push already pending when
+the option changes obeys the new value, and every upstream path to
+`selection_changed' passes through it (PR #42 review)."
   :type 'boolean
   :group 'claude-code-ide-org)
 
@@ -22563,7 +22570,7 @@ takes effect without a restart."
   (when claude-code-ide-org-push-selection
     (apply orig args)))
 
-(advice-add 'claude-code-ide-mcp--track-selection :around
+(advice-add 'claude-code-ide-mcp--send-selection-for-project :around
             #'claude-code-ide-org--gate-selection-push)
 
 (defvar claude-code-ide-org--session-misses (make-hash-table :test 'equal)
