@@ -2,15 +2,25 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* TODO The review suggests a heading from any project's todo events, so a project with time tracking off collects other projects' time as CLOCK lines :code:bounded:
+* REVIEW The review suggests a heading from any project's todo events, so a project with time tracking off collects other projects' time as CLOCK lines :code:bounded:
 :PROPERTIES:
 :ID:       d0f8042c-c294-45b2-9016-7efca7977982
 :CREATED:  [2026-10-30 Fri 14:21]
 :CATEGORY: Apply
 :END:
 :LOGBOOK:
+CLOCK: [2026-10-30 Fri 15:40]--[2026-10-30 Fri 15:41] =>  0:01
+- [2026-10-30 Fri 15:40]--[2026-10-30 Fri 15:41] delete misfiled noodle clocks, brainstorm the fix
+- State "DOING"      from "TODO"       [2026-10-30 Fri 15:43] \\
+  user approved: record the plan, work it now
+CLOCK: [2026-10-30 Fri 15:43]--[2026-10-30 Fri 15:50] =>  0:07
 - Tags ":code:bounded:" from ":code:"     [2026-10-30 Fri 15:43] \\
   brainstormed: one flow, the suggester and its caller
+- [2026-10-30 Fri 15:43]--[2026-10-30 Fri 15:50] scope span suggestions to the span's project
+- State "REVIEW"     from "DOING"      [2026-10-30 Fri 15:50] \\
+  PR open, test-all green
+CLOCK: [2026-10-30 Fri 15:51]--[2026-10-30 Fri 15:52] =>  0:01
+- [2026-10-30 Fri 15:51]--[2026-10-30 Fri 15:52] suggested span, accepted at review
 :END:
 :PLAN:
 Bounded: a span is suggested a heading only from its own project; with nothing
@@ -46,6 +56,7 @@ the current code, then bin/test-all.
   should read only events from the span's project. Which of the 35 lines to move
   or drop is a separate decision for that tracker. A related scope failure is
   [[id:70b47b8f-b413-4660-bf32-b0b90db45ff4][70b47b8f]].
+
 
 * TODO Burying the review buffer runs this project's ceremony because another project's is overdue, since the due check ignores the project scope :code:
 :PROPERTIES:
@@ -14158,6 +14169,8 @@ per tool -- rather than opening the servers beyond localhost.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-10-30 Fri 17:38]--[2026-10-30 Fri 17:39] =>  0:01
+CLOCK: [2026-10-30 Fri 17:37]--[2026-10-30 Fri 17:38] =>  0:01
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
@@ -14383,6 +14396,7 @@ CLOCK: [2026-10-28 Wed 15:50]--[2026-10-28 Wed 15:51] =>  0:01
 - <2026-10-28 Wed 15:50>--<2026-10-28 Wed 15:51> review pass (buffer buried)
 - <2026-10-28 Wed 15:52>--<2026-10-28 Wed 15:52> review pass (buffer buried)
 CLOCK: [2026-10-30 Fri 11:29]--[2026-10-30 Fri 11:31] =>  0:02
+- <2026-10-30 Fri 17:37>--<2026-10-30 Fri 17:38> review pass (buffer buried)
 :END:
 
 We created this heading on 2026-08-26. We deleted that property from its
@@ -16143,4 +16157,6 @@ CLOCK: [2026-10-30 Fri 11:55]--[2026-10-30 Fri 11:56] =>  0:01
 - [2026-10-30 Fri 11:55]--[2026-10-30 Fri 11:56] commit the 11:31 apply; trace the ceremony rerun
 CLOCK: [2026-10-30 Fri 14:06]--[2026-10-30 Fri 14:07] =>  0:01
 - [2026-10-30 Fri 14:06]--[2026-10-30 Fri 14:07] commit the apply; verify noodle ceremony run
+CLOCK: [2026-10-30 Fri 14:19]--[2026-10-30 Fri 14:21] =>  0:02
+- [2026-10-30 Fri 14:19]--[2026-10-30 Fri 14:21] push main, file span bug, audit misfiled time
 :END:
