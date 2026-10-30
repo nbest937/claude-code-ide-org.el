@@ -2,13 +2,36 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* TODO The review suggests a heading from any project's todo events, so a project with time tracking off collects other projects' time as CLOCK lines :code:
+* TODO The review suggests a heading from any project's todo events, so a project with time tracking off collects other projects' time as CLOCK lines :code:bounded:
 :PROPERTIES:
 :ID:       d0f8042c-c294-45b2-9016-7efca7977982
 :CREATED:  [2026-10-30 Fri 14:21]
 :CATEGORY: Apply
 :END:
+:LOGBOOK:
+- Tags ":code:bounded:" from ":code:"     [2026-10-30 Fri 15:43] \\
+  brainstormed: one flow, the suggester and its caller
+:END:
 :PLAN:
+Bounded: a span is suggested a heading only from its own project; with nothing
+in progress there it is offered unassigned, since no answer beats a plausible
+wrong one (the user, 2026-10-30). --review-suggest-heading takes an optional
+third argument, the span's project root, and ignores todo events from any other
+project; two-argument calls behave as before. The caller reads the project from
+the span's own events' cwd, which is at most one known project because spans
+already split on a project boundary. --project-root does the comparison, so a
+linked worktree counts as its main checkout, cached per cwd because it touches
+the disk and the history is long. The review keeps reading every session within
+a project, which keeps the 2026-08-13 fix for spans with no suggestion. A span
+with no known project keeps today's behaviour, unfiltered. A todo event with no
+cwd is ignored for a span whose project is known, the choice the report scope
+makes: never show what may be someone else's work as this project's. Bracketed
+spans and the apply path are unchanged; pending spans correct themselves because
+items are rebuilt each pass. Accepted cost: more of this repo's spans arrive
+unassigned. Tests in config-test.el: another project's DOING gives no
+suggestion, the span's own project's still does, a worktree cwd counts as its
+main checkout, a span with no cwd behaves as today; each proved to fail against
+the current code, then bin/test-all.
 
 :END:
 --review-items-from-queue passes --review-suggest-heading the full queue history
