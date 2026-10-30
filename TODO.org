@@ -2,70 +2,6 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* REVIEW An active region in TODO.org makes apply and the ceremony's repeater set a keyword on every heading in it :code:bounded:
-:PROPERTIES:
-:ID:       1abff8d5-d142-4de1-b939-578e993ecc8d
-:CREATED:  [2026-10-30 Fri 08:34]
-:CATEGORY: Apply
-:END:
-:LOGBOOK:
-CLOCK: [2026-10-30 Fri 08:17]--[2026-10-30 Fri 08:21] =>  0:04
-- [2026-10-30 Fri 08:17]--[2026-10-30 Fri 08:21] assigned at review
-CLOCK: [2026-10-30 Fri 08:27]--[2026-10-30 Fri 08:34] =>  0:07
-- [2026-10-30 Fri 08:27]--[2026-10-30 Fri 08:34] assigned at review
-- State "DOING"      from "TODO"       [2026-10-30 Fri 08:34] \\
-  user asked: restore, fix, re-offer
-CLOCK: [2026-10-30 Fri 08:34]--[2026-10-30 Fri 08:43] =>  0:09
-- [2026-10-30 Fri 08:34]--[2026-10-30 Fri 08:43] guard org-todo against an active region
-- State "REVIEW"     from "DOING"      [2026-10-30 Fri 08:43] \\
-  PR #43 open, guard loaded live
-:END:
-:PLAN:
-Bounded: bind org-loop-over-headlines-in-active-region to nil in --at-id, which
-every id-targeted tool and apply item runs through, and at the two org-todo
-calls outside it (the ceremony repeater, the sibling demotion), rather than
-deactivating the mark, which would discard a region the human may still want.
-Tests bind the option t, since org's default is nil. Recovery: restore TODO.org
-from HEAD and rewind the 08:19:05 pass's entries in this repo's two .applied
-records, so the next apply re-offers them; noodle-salesman's two sessions keep
-theirs, since every keyword change there carries its own State or CLOSED line
-(the user, 2026-10-30: restore, fix, re-offer).
-:END:
-:DEBRIEF:
-Shipped: org-loop-over-headlines-in-active-region bound nil in --at-id and at
-the ceremony repeater and sibling demotion. Verified: two ERT tests, the option
-bound t, fail against the previous config.el; the next live apply after the
-guard loaded landed every state line on its own heading and archived [[id:28e2e444-bcc0-4272-996a-5d918b09f35f][28e2e444]]
-with its CLOSED stamp. Recovery: TODO.org restored from HEAD, this repo's 36
-consumed events re-offered by rewinding the 08:19:05 pass in two .applied
-records; noodle-salesman's tracker was undamaged, and d988b28d's 07:45 span was
-not written twice. The sibling demotion's binding has no test of its own. Not
-filed, because the guard makes it moot: how the mark came to sit near the top of
-TODO.org.
-:END:
-
-On 2026-10-30 the 08:19 apply pass ran with a region active in this repo's
-TODO.org. With org-loop-over-headlines-in-active-region t, each queued state
-item applied its keyword across the region, its note landing on [[id:d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80][d7b2f50f]], the
-last heading looped; then the ceremony's repeater, an org-todo DONE under
-org-inhibit-logging, marked 217 headings DONE with no State line and no CLOSED
-stamp, and the file was saved. Restored from HEAD; the pass's ledger entries for
-this repo's two sessions are to be rewound. The archive sites were guarded
-against the same option by [[id:4a4ebb21-9388-494f-a40a-641ff663b19e][4a4ebb21]]; every org-todo the module drives is guarded
-the same way.
-
-Shipped on [[https://github.com/nbest937/claude-code-ide-org.el/pull/43][PR #43]], loaded into the running Emacs. Two ERT tests fail against the
-previous config.el and pass with the guard. TODO.org was restored from HEAD and
-this repo's 36 consumed events were re-offered; noodle-salesman's TODO.org was
-checked and is undamaged. Not established: how the mark came to sit near the top
-of the file, and whether that pass also wrote the 07:45 span to
-noodle-salesman's d988b28d.
-
-Resolved by [[https://github.com/nbest937/claude-code-ide-org.el/pull/43][PR #43]], merged 2026-10-30: every org-todo the module drives acts on
-the heading named, whatever region is active.
-
-
-
 * TODO An apply refused by org-depend reports neither the blocker nor the reason, only that the keyword did not change :code:
 :PROPERTIES:
 :ID:       f128a8b1-5769-4d48-b947-dfaf9a58fbcd
@@ -86,83 +22,6 @@ unfinished but never sets org-block-entry-blocking, which org's other blockers
 fill in. Finding the cause took a session reading the Messages buffer and the
 heading's front matter. The apply pass should name the unfinished :BLOCKER: ids
 and their keywords when a transition into a done state is refused.
-
-
-* REVIEW The IDE companion pushes every cursor move to Claude Code, and the file it names loads the whole path-scoped conventions :code:bounded:
-:PROPERTIES:
-:ID:       f6398e59-b02d-4b3a-961a-f349eeaca125
-:CREATED:  [2026-10-29 Thu 07:32]
-:CATEGORY: Dev
-:END:
-:LOGBOOK:
-CLOCK: [2026-10-29 Thu 07:32]--[2026-10-29 Thu 07:35] =>  0:03
-- State "DOING"      from "TODO"       [2026-10-29 Thu 07:32] \\
-  user asked: defcustom, default off, then test
-- [2026-10-29 Thu 07:32]--[2026-10-29 Thu 07:35] gate the companion's selection push
-CLOCK: [2026-10-29 Thu 07:40]--[2026-10-29 Thu 07:41] =>  0:01
-- [2026-10-29 Thu 07:40]--[2026-10-29 Thu 07:41] gate the companion's selection push
-CLOCK: [2026-10-29 Thu 07:42]--[2026-10-29 Thu 07:57] =>  0:15
-- [2026-10-29 Thu 07:42]--[2026-10-29 Thu 07:57] gate the companion's selection push
-- State "REVIEW"     from "DOING"      [2026-10-29 Thu 07:57] \\
-  PR #42 open, verified live
-- State "DOING"      from "REVIEW"     [2026-10-30 Fri 07:52] \\
-  rework: PR #42 review findings
-CLOCK: [2026-10-30 Fri 07:52]--[2026-10-30 Fri 08:01] =>  0:09
-- [2026-10-30 Fri 07:52]--[2026-10-30 Fri 08:01] address PR #42 review findings
-- State "REVIEW"     from "DOING"      [2026-10-30 Fri 08:01] \\
-  review findings fixed, threads answered
-:END:
-:PLAN:
-Bounded: :around advice on claude-code-ide-mcp--track-selection, because
-upstream re-adds its post-command-hook entry at every session start, so
-remove-hook would not hold. Leave claude-code-ide-mcp--track-active-buffer
-alone: it sends nothing to Claude Code and feeds the Emacs-side tools'
-last-active buffer. Correct the session-tracking reference's "fires only on a
-Read" inside the always-loaded word budget (the user, 2026-10-29: in the module,
-default off).
-:END:
-:DEBRIEF:
-Shipped: claude-code-ide-org-push-selection (nil), :around advice on
-claude-code-ide-mcp--send-selection-for-project; corrected prose in the
-session-tracking reference, CLAUDE.md, the conventions-inject text and the
-README. Verified: a live probe on the companion's notifications sent nothing
-with the option off and one selection_changed per move with it on; the ERT test
-fails with the advice removed or moved back to the timer-arming hook. Differed
-from the plan: the first version advised --track-selection, which only arms a
-timer, and the [[https://github.com/nbest937/claude-code-ide-org.el/pull/42][PR #42]] review moved it to the sender. Declined at review: scoping
-the gate to .org buffers (the user: context on command, for every file). Not
-filed, as a one-time check rather than work: confirming in a fresh session that
-focusing an .org buffer no longer loads the conventions.
-:END:
-
-claude-code-ide's companion sends selection_changed from post-command-hook on
-every command in a project file, with no option to stop it, so focusing TODO.org
-makes Claude Code load the 60k-character org-conventions file whole. That
-defeats the tools' read-only-what-you-need design, and it contradicts the docs,
-which say a path scope fires only on a Read. Fix: a module defcustom, default
-off, gating claude-code-ide-mcp--track-selection;
-claude-code-ide-insert-at-mentioned remains the on-command route.
-
-Shipped on [[https://github.com/nbest937/claude-code-ide-org.el/pull/42][PR #42]]: claude-code-ide-org-push-selection, default nil, gates the
-push through :around advice read at every call. Verified live with a probe on
-the companion's send-notification: off, nothing was sent while moving in
-TODO.org; on, one selection_changed per move, and a selected region reached the
-session as context. The ERT test fails with the advice-add removed. Not
-verified: that Claude Code no longer loads the conventions in a fresh session,
-which needs one focused on an org buffer before any Read.
-
-The [[https://github.com/nbest937/claude-code-ide-org.el/pull/42][PR #42]] review's seven findings, answered in commit [[orgit-rev:./::637d44f][637d44f]]: the gate moved
-from the timer-arming hook to the sender, so a pending push obeys the option;
-the injected conventions-inject text, the docstring's at_mentioned claim,
-CLAUDE.md's reason for the [[id:436e0991-c8ac-40fb-860d-a6c4c381bee5][436e0991]] pointer and an ambiguous antecedent in the
-reference were corrected; main was pushed so the PR carries only this work.
-Scoping the gate to .org buffers was declined (the user, 2026-10-30): context
-goes on command, for every file.
-
-Resolved by [[https://github.com/nbest937/claude-code-ide-org.el/pull/42][PR #42]], merged 2026-10-30: the companion's selection push is off by
-default, gated on its sender, and the prose that said a path scope fires only on
-a Read is corrected.
-
 
 
 * TODO A slice's place in the order is advisory: nothing refuses NEXT or DOING on a slice while the slice before it is still open :code:
@@ -14457,6 +14316,7 @@ CLOCK: [2026-10-28 Wed 13:54]--[2026-10-28 Wed 13:57] =>  0:03
 CLOCK: [2026-10-28 Wed 15:50]--[2026-10-28 Wed 15:51] =>  0:01
 - <2026-10-28 Wed 15:50>--<2026-10-28 Wed 15:51> review pass (buffer buried)
 - <2026-10-28 Wed 15:52>--<2026-10-28 Wed 15:52> review pass (buffer buried)
+CLOCK: [2026-10-30 Fri 11:29]--[2026-10-30 Fri 11:31] =>  0:02
 :END:
 
 We created this heading on 2026-08-26. We deleted that property from its
@@ -16195,4 +16055,20 @@ CLOCK: [2026-10-29 Thu 07:13]--[2026-10-29 Thu 07:14] =>  0:01
 - [2026-10-29 Thu 07:13]--[2026-10-29 Thu 07:14] assigned at review
 CLOCK: [2026-10-29 Thu 07:23]--[2026-10-29 Thu 07:30] =>  0:07
 - [2026-10-29 Thu 07:23]--[2026-10-29 Thu 07:30] assigned at review
+:END:
+
+
+**** 2026-10-30 Friday
+:PROPERTIES:
+:ID:       f6a9174b-36b1-4ac5-a34c-5b71e297bf01
+:CREATED:  [2026-10-30 Fri 08:43]
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-30 Fri 09:01]--[2026-10-30 Fri 09:02] =>  0:01
+- [2026-10-30 Fri 09:01]--[2026-10-30 Fri 09:02] assigned at review
+CLOCK: [2026-10-30 Fri 09:02]--[2026-10-30 Fri 09:03] =>  0:01
+- [2026-10-30 Fri 09:02]--[2026-10-30 Fri 09:03] close f6398e59 and 1abff8d5 after merge
+- [2026-10-30 Fri 09:03]--[2026-10-30 Fri 09:03] assigned at review
+CLOCK: [2026-10-30 Fri 09:46]--[2026-10-30 Fri 09:47] =>  0:01
+- [2026-10-30 Fri 09:46]--[2026-10-30 Fri 09:47] assigned at review
 :END:
