@@ -41,7 +41,8 @@ upgrade. The old equivalent — symlinking
 - **Enabling the module is the wiring** (`:ID:` c562b69a, since
   2026-09-27): no generated files, no pasted line. The module's own
   `config.el` enables upstream's tools server and wires this machine's
-  sessions whenever it loads. `claude-code-ide-org-wire-on-load`
+  sessions whenever it loads, at the end of Doom's startup when it loads
+  during one, so the tracked files are set by then. `claude-code-ide-org-wire-on-load`
   (default `t`) is the opt-out, for a second Emacs that should not
   contend for the port; batch Emacs never wires, so `bin/test` is safe.
 
