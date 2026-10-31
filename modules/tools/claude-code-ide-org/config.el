@@ -11442,12 +11442,8 @@ from a skipped one."
               (push (list :type 'clock :id id
                           :start (car span) :end (cdr span)
                           :note label :agent nil :suggested t
-                          :events (seq-filter
-                                   (lambda (e)
-                                     (let ((ts (plist-get e :ts)))
-                                       (and (not (time-less-p ts (car span)))
-                                            (not (time-less-p (cdr span) ts)))))
-                                   guideposts))
+                          :events (claude-code-ide-org--events-in-span
+                                   span guideposts))
                     items))))))
     ;; Unassigned spans: guideposts that never fell inside a
     ;; clock_in/clock_out bracket, so `--queue-events-by-id' could attach
@@ -11526,8 +11522,18 @@ from a skipped one."
         (unless (and (time-equal-p (car span) (cdr span))
                      latest
                      (time-less-p (cdr span) latest))
-          (push (list :type 'clock
-                    :id (claude-code-ide-org--review-suggest-heading (car span) all)
+          (let ((inside (claude-code-ide-org--events-in-span span guideposts)))
+            (push (list :type 'clock
+                    :id (claude-code-ide-org--review-suggest-heading
+                         (car span) all
+                         ;; A span splits on a project boundary, so its
+                         ;; first known cwd is its project (TODO.org :ID:
+                         ;; c9940558).  A span between two brackets holds
+                         ;; no guidepost; the clock events bounding it say.
+                         (or (claude-code-ide-org--span-project inside)
+                             (claude-code-ide-org--span-project
+                              (claude-code-ide-org--events-on-span-edges
+                               span history))))
                     :start (car span) :end (cdr span)
                     ;; :unassigned is transient -- `a' clears it once a
                     ;; heading is chosen. :origin is permanent, so the
@@ -11537,14 +11543,8 @@ from a skipped one."
                     :note nil :agent nil :suggested t
                     :unassigned t :origin 'unbracketed
                     :events (claude-code-ide-org--with-bracket-edges
-                             span bracketed history
-                             (seq-filter
-                              (lambda (e)
-                                (let ((ts (plist-get e :ts)))
-                                  (and (not (time-less-p ts (car span)))
-                                       (not (time-less-p (cdr span) ts)))))
-                              guideposts)))
-                items))))
+                             span bracketed history inside))
+                items)))))
     (sort (nreverse items)
           (lambda (a b)
             (time-less-p (or (plist-get a :ts) (plist-get a :start))
@@ -11620,8 +11620,54 @@ question.  Org divides keywords into not-done and done at the `|'; this
 divides them into \"being worked\" and everything else, and WAITING, TODO
 and NEXT all sit on org's not-done side while meaning nobody is working.")
 
-(defun claude-code-ide-org--review-suggest-heading (time events)
+(defun claude-code-ide-org--events-in-span (span events)
+  "EVENTS timestamped within SPAN, a (START . END) pair, edges included."
+  (seq-filter (lambda (e)
+                (let ((ts (plist-get e :ts)))
+                  (and (not (time-less-p ts (car span)))
+                       (not (time-less-p (cdr span) ts)))))
+              events))
+
+(defun claude-code-ide-org--events-on-span-edges (span events)
+  "EVENTS timestamped exactly at either end of SPAN.
+Not the window: EVENTS may be the whole queue, and a window that holds
+no guidepost of this lane can still hold another session's."
+  (seq-filter (lambda (e)
+                (when-let* ((ts (plist-get e :ts)))
+                  (or (time-equal-p ts (car span))
+                      (time-equal-p ts (cdr span)))))
+              events))
+
+(defun claude-code-ide-org--span-project (events)
+  "The project of a span holding EVENTS, as `--project-name' answers.
+
+Nil when no event names a `cwd', which leaves the span of no known
+project.  The symbol `gone' when each one names a directory that no
+longer exists: that span's project is unknown but it is known not to be
+every project, so `--review-suggest-heading' matches no heading for it."
+  (when-let* ((cwds (seq-remove (lambda (cwd) (or (null cwd) (equal cwd "")))
+                                (mapcar (lambda (e) (plist-get e :cwd)) events))))
+    (or (seq-some #'claude-code-ide-org--project-name cwds) 'gone)))
+
+(defun claude-code-ide-org--heading-in-project-p (id project)
+  "Non-nil when the file holding heading ID belongs to PROJECT.
+From `org-id-locations' rather than `--id-find', which visits the file:
+this runs for every DOING in the queue's history, once per span."
+  (when-let* ((file (and (hash-table-p org-id-locations)
+                         (gethash id org-id-locations))))
+    (equal project (claude-code-ide-org--project-name file))))
+
+(defun claude-code-ide-org--review-suggest-heading (time events &optional project)
   "Return the :ID: most plausibly being worked on at TIME, from EVENTS.
+
+With PROJECT, a `--span-project' value, only a heading in that project
+can be the answer: the queue is global, so without it a span took the
+newest heading in progress anywhere, and a project with time tracking
+off, which has no spans of its own, collected every other project's
+\(TODO.org :ID: d0f8042c: 35 CLOCK lines).  The test is where the
+heading lives, not where its event came from, and it gates only entering
+DOING, so a heading closed from anywhere is still closed.  Nil, for a
+span of no known project, reads every event.
 
 A heading is the answer only while it is *in* a work-in-progress state
 at TIME: something entered it into DOING before TIME and
@@ -11679,7 +11725,9 @@ every answer this function could return was wrong by construction."
               (state (plist-get e :state)))
           (cond
            ((member state claude-code-ide-org--work-in-progress-keywords)
-            (setq active id))
+            (when (or (not project)
+                      (claude-code-ide-org--heading-in-project-p id project))
+              (setq active id)))
            ;; A heading that has left DOING is no longer what anyone is
            ;; working on, so it must stop being suggested. Without this
            ;; the guess latches: measured live 2026-08-13, three spans
