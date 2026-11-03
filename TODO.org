@@ -27,6 +27,17 @@ pre-commit, and this repo's own hook silently passes anywhere bin/lint-org is
 absent. Reported by noodle-salesman's session 2026-11-03; the plan has the
 proposal.
 
+noodle-salesman's session wrote itself one the same day, =.githooks/pre-commit=
+in that repo, enabled with core.hooksPath. It may serve as the model for a
+general hook shipped with the plugin. Its choices: it runs only when TODO.org or
+DONE.org is staged; it calls the plugin's lint where a consumer has it, under
+=.claude/skills/claude-code-ide-org/bin/lint-org=, naming the pair; it lints the
+staged pair and HEAD's pair with line numbers stripped and refuses only errors
+the commit adds, so errors already on HEAD never block an unrelated commit;
+warnings never block; and it fails closed, refusing a tracker commit when the
+lint is missing, where this repo's hook passes it.
+
+
 
 * TODO [8/14] PR #44's review found fourteen defects in the project-scoped suggestion, eight fixed and six open :code:
 :PROPERTIES:
