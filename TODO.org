@@ -2,6 +2,21 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Warp now posts its own notifications for Claude Code, alongside the osascript Notification hook's Script Editor ones :spike:
+:PROPERTIES:
+:ID:       e9b00465-0526-4ff8-ad6f-b2b41a92192a
+:CREATED:  [2026-11-03 Tue 15:56]
+:CATEGORY: Dev
+:END:
+
+Seen 2026-11-03 after a Warp update: Warp shows notifications of its own, worded
+differently from ours, so presumably triggered by a signal Claude Code itself
+emits rather than by our hook. Ours is a user-global Notification hook in
+~/.claude/settings.json, not in this repo, running osascript display
+notification, which macOS attributes to Script Editor. Question: what does Warp
+react to and what can its notifications do that ours cannot, so we can decide
+whether to drop the osascript hook, keep both, or move to Warp's.
+
 * TODO A consuming repo gets no commit-time lint: setup installs no pre-commit, and this repo's assumes the plugin's layout :code:
 :PROPERTIES:
 :ID:       1495fa8f-8030-4100-921f-9e5ffde399ee
