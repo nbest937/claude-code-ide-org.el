@@ -674,9 +674,14 @@ in aggregate, which six scattered members cannot. `f6d160c2` filed its
 six findings as separate members, and that is the shape this replaces;
 `c77e4d5a` (PR #31's ten findings) is the shape as it now stands.
 
-**A pull request for a single heading needs no story** (the user,
-2026-09-28): a finding is rework on that heading — `REVIEW` → `DOING`,
-fixed, back to `REVIEW`.
+**A pull request for a single heading gets a story too** (the user,
+2026-11-03, reversing the 2026-09-28 ruling that it needed none, from
+PRs #44 and #45 on). Rework on the heading itself left the findings only
+in the pull request's threads: the heading recorded one `REVIEW` →
+`DOING` loop and a revised plan, never what the review found. The story
+need not sit under the reviewed heading — it is filed where any task
+goes, with a back-link to that heading in its body — and the heading
+stays `REVIEW` while the story's children are worked, as a slice does.
 
 **Answer every review thread** (the user, 2026-09-28). Once a finding
 is fixed, reply on its thread naming the fixing commit, then resolve the
