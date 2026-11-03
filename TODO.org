@@ -2,6 +2,19 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO org_capture reports success on a task heading with no body, so a dropped note goes unseen :code:
+:PROPERTIES:
+:ID:       4953af21-da47-423c-a3e6-2f0b9023853b
+:CREATED:  [2026-11-03 Tue 08:28]
+:CATEGORY: Tools
+:END:
+
+Upstream drops an undeclared argument silently ([[id:bbf9fb77-f081-48c5-bb01-1b4d4f201969][bbf9fb77]]), so a body passed as
+body or text is lost and the reply still says Captured. Proposed by
+noodle-salesman, 2026-11-03: when note is empty and initial_state is a task
+keyword, the reply should say no body was written. That is local, needs nothing
+from upstream, and catches every misnamed synonym, which an alias list cannot.
+
 * REVIEW Every startup warns that no project was derived, because the module wires before the private config sets the tracked files :code:bounded:
 :PROPERTIES:
 :ID:       e6a24204-b22d-4971-822a-abaa452f3f95
@@ -5834,6 +5847,8 @@ never closes; the count is the point. One dated line per catch.
   Caught by the user.
 
 - 2026-10-27: argued the tool-call audit log could be deleted because a failed apply save "would show in the tracker's diff". Nobody reads that diff: apply-detect tells the session an apply landed and the session commits it unasked, which is the point of that hook, so an unsaved apply is committed short with nothing to show it. The user caught it.
+- [2026-11-03 Tue] Caught by the user, in noodle-salesman: the session told the user what the body of a heading it had just captured said, without reading the heading back. The body was empty, because the text had gone in an undeclared =body= parameter ([[id:bbf9fb77-f081-48c5-bb01-1b4d4f201969][bbf9fb77]]). One =org_body= call would have shown it.
+
 
 
 ** TODO Miss: a heading closed with its unfinished part left in prose, or its group left un-nominated
@@ -13803,6 +13818,7 @@ at the first call is the only mechanism that would have caught it.
 - 2026-09-18: two calls with =body= ([[id:2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd][2cd74268]], [[id:0b5cacf5-9299-499d-9036-2da2625c1233][0b5cacf5]]), in this repository with this heading on disk; found minutes later by a =git diff --stat= reading =6 insertions= where about thirty were expected.
 - 2026-09-19: eight calls with =body= in one session, noticed five hours after the first when a slice heading was inspected by hand; the =org_amend= calls into =:PLAN:= that did land masked the loss.
 - 2026-09-22: two calls with =text= ([[id:3485b0d0-3b47-4a28-ae6f-e2061fa8f226][3485b0d0]], [[id:c4bb5db3-2717-4f95-8add-5cc487ea3a28][c4bb5db3]]), the first *different* invented name; found by =git diff --stat= again; the catch is recorded on [[id:59861867-e807-43a8-a0fa-5ca227167022][59861867]].
+- 2026-11-03: one =org_capture= with =body= in noodle-salesman, the first occurrence in a consuming repo, with the schema not loaded at the call. The session described the body to the user as written; the user caught it, and it was repaired in that repo's commit 8d74860.
 - The failure is self-concealing: [[id:2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd][2cd74268]] was reported as carrying a substantial body and discussed for roughly two hours while empty, and surfaced only when a *second* capture's diff looked short.
 - The correct parameter, =note=, was documented in the same =:args= list the 2026-09-18 session read -- forty minutes *after* the failure, while investigating it.
 
