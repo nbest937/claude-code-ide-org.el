@@ -2,11 +2,19 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* TODO Every startup warns that no project was derived, because the module wires before the private config sets the tracked files :code:bounded:
+* REVIEW Every startup warns that no project was derived, because the module wires before the private config sets the tracked files :code:bounded:
 :PROPERTIES:
 :ID:       e6a24204-b22d-4971-822a-abaa452f3f95
 :CREATED:  [2026-10-30 Fri 17:48]
 :CATEGORY: Dev
+:END:
+:LOGBOOK:
+- State "DOING"      from "TODO"       [2026-10-30 Fri 17:48] \\
+  user approved: wire after Doom's init
+CLOCK: [2026-10-30 Fri 17:51]--[2026-10-30 Fri 17:54] =>  0:03
+- [2026-10-30 Fri 17:51]--[2026-10-30 Fri 17:54] defer on-load wiring past Doom init
+- State "REVIEW"     from "DOING"      [2026-10-30 Fri 17:54] \\
+  PR 45 open, restart check owed
 :END:
 :PLAN:
 Bounded: during Doom's startup, before doom-init-time is set, the module's call
@@ -27,6 +35,7 @@ sessions register on their first call ([[id:28eed617-e4e0-4d29-88ea-9411de4b77e5
 fires hides the one that means something. The user chose to move the wiring past
 Doom's init rather than mute it, 2026-10-30.
 
+
 * REVIEW The review suggests a heading from any project's todo events, so a project with time tracking off collects other projects' time as CLOCK lines :code:bounded:
 :PROPERTIES:
 :ID:       d0f8042c-c294-45b2-9016-7efca7977982
@@ -46,6 +55,10 @@ CLOCK: [2026-10-30 Fri 15:43]--[2026-10-30 Fri 15:50] =>  0:07
   PR open, test-all green
 CLOCK: [2026-10-30 Fri 15:51]--[2026-10-30 Fri 15:52] =>  0:01
 - [2026-10-30 Fri 15:51]--[2026-10-30 Fri 15:52] suggested span, accepted at review
+- State "DOING"      from "REVIEW"     [2026-10-30 Fri 17:41] \\
+  PR 44 review findings, rework
+- State "REVIEW"     from "DOING"      [2026-10-30 Fri 17:54] \\
+  review findings fixed, threads resolved
 :END:
 :PLAN:
 Bounded: a span is suggested a heading only from its own project; with nothing
@@ -11663,12 +11676,12 @@ before the fix and still says.
 
 
 * TODO Archive closed tasks daily
-SCHEDULED: <2026-10-31 Sat 07:00 ++1d>
+SCHEDULED: <2026-11-04 Wed 07:00 ++1d>
 :PROPERTIES:
 :CATEGORY: Meta
 :ID:       cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8
 :CREATED:  [2026-08-21 Fri 15:35]
-:LAST_REPEAT: [2026-10-30 Fri 08:58]
+:LAST_REPEAT: [2026-11-03 Tue 08:07]
 :KIND:     ceremony
 :END:
 :LOGBOOK:
@@ -14203,8 +14216,6 @@ per tool -- rather than opening the servers beyond localhost.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
-CLOCK: [2026-10-30 Fri 17:38]--[2026-10-30 Fri 17:39] =>  0:01
-CLOCK: [2026-10-30 Fri 17:37]--[2026-10-30 Fri 17:38] =>  0:01
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
@@ -14430,7 +14441,9 @@ CLOCK: [2026-10-28 Wed 15:50]--[2026-10-28 Wed 15:51] =>  0:01
 - <2026-10-28 Wed 15:50>--<2026-10-28 Wed 15:51> review pass (buffer buried)
 - <2026-10-28 Wed 15:52>--<2026-10-28 Wed 15:52> review pass (buffer buried)
 CLOCK: [2026-10-30 Fri 11:29]--[2026-10-30 Fri 11:31] =>  0:02
+CLOCK: [2026-10-30 Fri 17:37]--[2026-10-30 Fri 17:38] =>  0:01
 - <2026-10-30 Fri 17:37>--<2026-10-30 Fri 17:38> review pass (buffer buried)
+CLOCK: [2026-10-30 Fri 17:38]--[2026-10-30 Fri 17:39] =>  0:01
 :END:
 
 We created this heading on 2026-08-26. We deleted that property from its
