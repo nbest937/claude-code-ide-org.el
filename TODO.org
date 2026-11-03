@@ -2,6 +2,32 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO A consuming repo gets no commit-time lint: setup installs no pre-commit, and this repo's assumes the plugin's layout :code:
+:PROPERTIES:
+:ID:       1495fa8f-8030-4100-921f-9e5ffde399ee
+:CREATED:  [2026-11-03 Tue 15:02]
+:CATEGORY: Dev
+:END:
+:PLAN:
+
+Reported by noodle-salesman's session 2026-11-03. claude-org-setup promotes
+rules and wires nothing at commit time, and bin/hooks/hookspath-check says
+outright that the plugin ships no .githooks, so a consumer's TODO.org and
+DONE.org are linted only when someone runs lint-org by hand. This repo's
+.githooks/pre-commit cannot simply be reused: it runs $repo_root/bin/lint-org,
+which a consumer does not have, and exits 0 when the script is missing, so a
+copied hook passes every commit silently. Proposed: setup installs or offers a
+pre-commit that runs the plugin's lint-org on the consumer's own tracked files,
+named explicitly, since lint-org with no arguments lints the plugin checkout
+([[id:9a8013d7-7525-466b-9aaf-10eb647f5e9f][9a8013d7]]).
+:END:
+
+A consumer's TODO.org and DONE.org are linted only by hand: setup wires no
+pre-commit, and this repo's own hook silently passes anywhere bin/lint-org is
+absent. Reported by noodle-salesman's session 2026-11-03; the plan has the
+proposal.
+
+
 * TODO [8/14] PR #44's review found fourteen defects in the project-scoped suggestion, eight fixed and six open :code:
 :PROPERTIES:
 :ID:       c56b4eef-0637-4ada-9c88-29eed6ffd4c0
