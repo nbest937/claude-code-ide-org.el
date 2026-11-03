@@ -2,6 +2,141 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO [8/14] PR #44's review found fourteen defects in the project-scoped suggestion, eight fixed and six open :code:
+:PROPERTIES:
+:ID:       c56b4eef-0637-4ada-9c88-29eed6ffd4c0
+:CREATED:  [2026-11-03 Tue 13:18]
+:CATEGORY: Apply
+:END:
+
+The findings of PR #44's two code reviews, against [[id:d0f8042c-c294-45b2-9016-7efca7977982][d0f8042c]], which stays REVIEW
+while these are worked. The first review, of commit [[orgit-rev:./::ec73f62][ec73f62]] on 2026-10-30,
+posted eight, all fixed in commit [[orgit-rev:./::4a875a9][4a875a9]]. The second, of commit [[orgit-rev:./::4a875a9][4a875a9]] on
+2026-11-03, posted seven; one, that a prefixed DOING id never counts as
+in-project, was a false positive, because --queue-parse-line expands prefixes
+and all 569 live DOING events resolved, so it has no child here.
+** DONE A span holding no guidepost resolves to no project, so it still reads every project's events and can be offered another project's heading
+CLOSED: [2026-11-03 Tue 13:18]
+:PROPERTIES:
+:ID:       3e374dc6-900c-417f-807f-333d67f10842
+:CREATED:  [2026-11-03 Tue 13:18]
+:END:
+
+First review. Fixed in commit [[orgit-rev:./::4a875a9][4a875a9]]: a span with no guidepost inside takes its
+project from the events on its edges.
+** DONE The project filter also drops events that clear the active heading, so a heading closed from another cwd stays suggested after it has left DOING
+CLOSED: [2026-11-03 Tue 13:18]
+:PROPERTIES:
+:ID:       d9b3a26e-2957-4f6c-9c64-fd8dc12979e0
+:CREATED:  [2026-11-03 Tue 13:18]
+:END:
+
+First review. Fixed in commit [[orgit-rev:./::4a875a9][4a875a9]]: only the DOING branch is gated on the
+project; the clear branch is not.
+** DONE A linked worktree counts as its main checkout only while it exists, so the mapping depends on when the review runs
+CLOSED: [2026-11-03 Tue 13:18]
+:PROPERTIES:
+:ID:       3f724f17-7467-4cdd-8a82-d7e0794137fa
+:CREATED:  [2026-11-03 Tue 13:18]
+:END:
+
+First review. Fixed in commit [[orgit-rev:./::4a875a9][4a875a9]] by resolving through --project-name, whose
+session-long cache keeps the first mapping; a worktree removed before its first
+resolution is the second review's open finding on removed worktrees.
+** DONE --cwd-project is a second cwd-to-project resolver that disagrees with the --project-name the span splitter uses
+CLOSED: [2026-11-03 Tue 13:18]
+:PROPERTIES:
+:ID:       5824c005-4b30-4cec-aadc-736c83f1a436
+:CREATED:  [2026-11-03 Tue 13:18]
+:END:
+
+First review. Fixed in commit [[orgit-rev:./::4a875a9][4a875a9]]: --cwd-project removed, one resolver.
+** DONE The filter tests the cwd of the event rather than the project of the heading, so the only-its-own-project guarantee is approximate
+CLOSED: [2026-11-03 Tue 13:18]
+:PROPERTIES:
+:ID:       5144171f-019c-4e46-aa3f-bc8b9391a71f
+:CREATED:  [2026-11-03 Tue 13:18]
+:END:
+
+First review. Fixed in commit [[orgit-rev:./::4a875a9][4a875a9]]: --heading-in-project-p compares the
+heading's own file's project.
+** DONE An empty-string cwd passes the guard and resolves against Emacs's default-directory
+CLOSED: [2026-11-03 Tue 13:18]
+:PROPERTIES:
+:ID:       3ba687f9-b20a-44ee-a500-aaac0d5d9ebf
+:CREATED:  [2026-11-03 Tue 13:18]
+:END:
+
+First review. Fixed in commit [[orgit-rev:./::4a875a9][4a875a9]]: --span-project skips empty cwds and
+--project-name guards an empty string.
+** DONE The roots memo lives for one call, so every span re-resolves every distinct cwd
+CLOSED: [2026-11-03 Tue 13:18]
+:PROPERTIES:
+:ID:       a7469759-0855-4976-a243-502b264d65ed
+:CREATED:  [2026-11-03 Tue 13:18]
+:END:
+
+First review. Fixed in commit [[orgit-rev:./::4a875a9][4a875a9]]: the memo removed; --project-name's
+session-long cache serves.
+** DONE The span-window predicate is a third copy of the filter that :events runs a few lines later for the same span
+CLOSED: [2026-11-03 Tue 13:18]
+:PROPERTIES:
+:ID:       dd98f9f0-e010-4c54-ab0c-925dc8f11714
+:CREATED:  [2026-11-03 Tue 13:18]
+:END:
+
+First review. Fixed in commit [[orgit-rev:./::4a875a9][4a875a9]]: both paths use --events-in-span.
+** TODO A gap span's edge events come from every session's history, so another project's event in the same second can decide the span's project
+:PROPERTIES:
+:ID:       6080f611-1005-42d4-942b-0fedbd162bc4
+:CREATED:  [2026-11-03 Tue 13:18]
+:END:
+
+Second review. Proposed: take the lane's nearest guidepost on each side instead;
+when they disagree the span gets no suggestion. That also removes the
+full-history edge scan.
+** TODO Projects are compared by directory basename, so two checkouts with the same name count as one project
+:PROPERTIES:
+:ID:       e08fb599-8cce-4c50-8fe9-9291ec24c7d7
+:CREATED:  [2026-11-03 Tue 13:18]
+:END:
+
+Second review. Accepted as a limit in the first round; proposed now: resolve
+each path to its full root and derive --project-name's name from it, so the
+splitter and the scoped reads agree.
+** TODO A heading missing from org-id-locations counts as another project's, since the project test does no rescan on a miss
+:PROPERTIES:
+:ID:       e70cad3f-5546-405b-b659-9ebc90fb45d0
+:CREATED:  [2026-11-03 Tue 13:18]
+:END:
+
+Second review. A heading added by a hand edit or a pull is missed. Proposed:
+fall back to --id-find on a miss, once per id per pass.
+** TODO A span from a removed linked worktree resolves to gone, and gone stops the project lookup before the edge events are read
+:PROPERTIES:
+:ID:       460dfe96-8a08-456f-bdbd-2ace19afd404
+:CREATED:  [2026-11-03 Tue 13:18]
+:END:
+
+Second review. Proposed: treat gone as unknown until the last step; a worktree
+that sat inside the repo can be traced by walking up to the nearest existing
+directory, a sibling one cannot.
+** TODO PR #44's description still describes the first design: --cwd-project and the no-cwd rule
+:PROPERTIES:
+:ID:       d6d06bae-197f-42ca-9277-f95e01009140
+:CREATED:  [2026-11-03 Tue 13:18]
+:END:
+
+Second review. Rewrite the description once the code findings are fixed.
+** TODO Each review render re-resolves every DOING heading's project per span and rescans the whole history for edge events
+:PROPERTIES:
+:ID:       89355c78-d0c9-424e-856f-24f8f857ab91
+:CREATED:  [2026-11-03 Tue 13:18]
+:END:
+
+Second review. Proposed: cache each heading's project once per pass; the
+edge-event fix removes the rescan.
+
 * TODO org_capture reports success on a task heading with no body, so a dropped note goes unseen :code:
 :PROPERTIES:
 :ID:       4953af21-da47-423c-a3e6-2f0b9023853b
@@ -14232,6 +14367,7 @@ per tool -- rather than opening the servers beyond localhost.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-11-03 Tue 12:38]--[2026-11-03 Tue 12:39] =>  0:01
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
@@ -14460,6 +14596,7 @@ CLOCK: [2026-10-30 Fri 11:29]--[2026-10-30 Fri 11:31] =>  0:02
 CLOCK: [2026-10-30 Fri 17:37]--[2026-10-30 Fri 17:38] =>  0:01
 - <2026-10-30 Fri 17:37>--<2026-10-30 Fri 17:38> review pass (buffer buried)
 CLOCK: [2026-10-30 Fri 17:38]--[2026-10-30 Fri 17:39] =>  0:01
+- <2026-11-03 Tue 12:38>--<2026-11-03 Tue 12:39> review pass (buffer buried)
 :END:
 
 We created this heading on 2026-08-26. We deleted that property from its
