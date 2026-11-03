@@ -330,8 +330,10 @@ without picking). Both lint rules are right and both fire at once on a
 keyword-less referent: naming it in the `:BLOCKER:` is an error because
 `org-depend` acts only on an unfinished keyword, and omitting an
 unfinished member from the `:BLOCKER:` is also an error — so
-`.githooks/pre-commit` refuses, and it did twice, once costing a full
-revert. In practice this costs nothing: `org_capture` with an
+`bin/lint-org` fails either way. In the plugin's own repo, whose
+pre-commit runs it, that refused a commit twice, once costing a full
+revert; a consuming repo has no such hook and finds out only when it
+runs the lint (`:ID:` 1495fa8f). In practice this costs nothing: `org_capture` with an
 `initial_state` writes the keyword through immediately when the file is
 free, and its reply says which happened — after "Captured:" the heading
 may be added to a slice at once, after "Queued capture:" the queue is
