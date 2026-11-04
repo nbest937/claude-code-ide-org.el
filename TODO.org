@@ -53,6 +53,15 @@ osascript …, dry-run both ways with osascript stubbed (Warp skips,
 Apple_Terminal notifies, both exit 0). The file is user-global and outside the
 repo, so no commit records it.
 
+Guard widened the same day: [ "$TERM_PROGRAM" = WarpTerminal ] && [ -z
+"$INSIDE_EMACS" ] || osascript …, because an Emacs launched from a Warp shell
+would pass WarpTerminal to its vterm sessions, where neither notification
+reaches the user. vterm sets INSIDE_EMACS=vterm (vterm.el), as comint, term and
+eat do. Dry-run in four environments: only Warp proper skips. Open: a third,
+in-window notification with a Claude icon, seen in Warp beside the Warp-icon one
+with the same payload; its source is not yet established.
+
+
 
 
 * TODO A consuming repo gets no commit-time lint: setup installs no pre-commit, and this repo's assumes the plugin's layout :code:
