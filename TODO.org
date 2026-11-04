@@ -2,11 +2,27 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* TODO Warp now posts its own notifications for Claude Code, alongside the osascript Notification hook's Script Editor ones :spike:
+* REVIEW Warp now posts its own notifications for Claude Code, alongside the osascript Notification hook's Script Editor ones :spike:
 :PROPERTIES:
 :ID:       e9b00465-0526-4ff8-ad6f-b2b41a92192a
 :CREATED:  [2026-11-03 Tue 15:56]
 :CATEGORY: Dev
+:END:
+:LOGBOOK:
+CLOCK: [2026-11-04 Wed 08:30]--[2026-11-04 Wed 08:31] =>  0:01
+- [2026-11-04 Wed 08:30]--[2026-11-04 Wed 08:31] assigned at review
+CLOCK: [2026-11-04 Wed 08:37]--[2026-11-04 Wed 08:38] =>  0:01
+- State "DOING"      from "TODO"       [2026-11-04 Wed 08:37] \\
+  spike started: what Warp reacts to
+- [2026-11-04 Wed 08:37]--[2026-11-04 Wed 08:38] assigned at review
+CLOCK: [2026-11-04 Wed 08:38]--[2026-11-04 Wed 08:39] =>  0:01
+- [2026-11-04 Wed 08:38]--[2026-11-04 Wed 08:39] probe Warp and Claude Code notifications
+- State "REVIEW"     from "DOING"      [2026-11-04 Wed 08:48] \\
+  finding recorded, recommendation awaits the user
+CLOCK: [2026-11-04 Wed 08:48]--[2026-11-04 Wed 08:49] =>  0:01
+- [2026-11-04 Wed 08:48]--[2026-11-04 Wed 08:49] probe Warp and Claude Code notifications
+CLOCK: [2026-11-04 Wed 08:49]--[2026-11-04 Wed 08:50] =>  0:01
+- [2026-11-04 Wed 08:49]--[2026-11-04 Wed 08:50] split the question into :PLAN:
 :END:
 :PLAN:
 
@@ -30,6 +46,12 @@ Warp shows the event's own message and a completion notice; ours always says
 session in an Emacs terminal buffer still has only ours. Recommended: keep ours
 but skip it when TERM_PROGRAM is WarpTerminal, so Warp sessions get one
 notification and the rest keep theirs.
+
+Applied 2026-11-04 at the user's request: the Notification hook in
+~/.claude/settings.json now reads [ "$TERM_PROGRAM" = WarpTerminal ] ||
+osascript …, dry-run both ways with osascript stubbed (Warp skips,
+Apple_Terminal notifies, both exit 0). The file is user-global and outside the
+repo, so no commit records it.
 
 
 
@@ -14469,6 +14491,7 @@ per tool -- rather than opening the servers beyond localhost.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-11-04 Wed 11:15]--[2026-11-04 Wed 11:17] =>  0:02
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
