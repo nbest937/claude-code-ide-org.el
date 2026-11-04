@@ -17,11 +17,18 @@ notification, which macOS attributes to Script Editor. Question: what does Warp
 react to and what can its notifications do that ours cannot, so we can decide
 whether to drop the osascript hook, keep both, or move to Warp's.
 
+
 * TODO A consuming repo gets no commit-time lint: setup installs no pre-commit, and this repo's assumes the plugin's layout :code:
 :PROPERTIES:
 :ID:       1495fa8f-8030-4100-921f-9e5ffde399ee
 :CREATED:  [2026-11-03 Tue 15:02]
 :CATEGORY: Dev
+:END:
+:LOGBOOK:
+CLOCK: [2026-11-03 Tue 15:03]--[2026-11-03 Tue 15:03] =>  0:00
+- [2026-11-03 Tue 15:03]--[2026-11-03 Tue 15:03] assigned at review
+CLOCK: [2026-11-03 Tue 15:51]--[2026-11-03 Tue 15:52] =>  0:01
+- [2026-11-03 Tue 15:51]--[2026-11-03 Tue 15:52] note noodle-salesman's hook as a model
 :END:
 :PLAN:
 
@@ -53,7 +60,6 @@ warnings never block; and it fails closed, refusing a tracker commit when the
 lint is missing, where this repo's hook passes it.
 
 
-
 * TODO [8/14] PR #44's review found fourteen defects in the project-scoped suggestion, eight fixed and six open :code:
 :PROPERTIES:
 :ID:       c56b4eef-0637-4ada-9c88-29eed6ffd4c0
@@ -67,6 +73,8 @@ posted eight, all fixed in commit [[orgit-rev:./::4a875a9][4a875a9]]. The second
 2026-11-03, posted seven; one, that a prefixed DOING id never counts as
 in-project, was a false positive, because --queue-parse-line expands prefixes
 and all 569 live DOING events resolved, so it has no child here.
+
+
 ** DONE A span holding no guidepost resolves to no project, so it still reads every project's events and can be offered another project's heading
 CLOSED: [2026-11-03 Tue 13:18]
 :PROPERTIES:
@@ -76,6 +84,8 @@ CLOSED: [2026-11-03 Tue 13:18]
 
 First review. Fixed in commit [[orgit-rev:./::4a875a9][4a875a9]]: a span with no guidepost inside takes its
 project from the events on its edges.
+
+
 ** DONE The project filter also drops events that clear the active heading, so a heading closed from another cwd stays suggested after it has left DOING
 CLOSED: [2026-11-03 Tue 13:18]
 :PROPERTIES:
@@ -85,6 +95,8 @@ CLOSED: [2026-11-03 Tue 13:18]
 
 First review. Fixed in commit [[orgit-rev:./::4a875a9][4a875a9]]: only the DOING branch is gated on the
 project; the clear branch is not.
+
+
 ** DONE A linked worktree counts as its main checkout only while it exists, so the mapping depends on when the review runs
 CLOSED: [2026-11-03 Tue 13:18]
 :PROPERTIES:
@@ -95,6 +107,8 @@ CLOSED: [2026-11-03 Tue 13:18]
 First review. Fixed in commit [[orgit-rev:./::4a875a9][4a875a9]] by resolving through --project-name, whose
 session-long cache keeps the first mapping; a worktree removed before its first
 resolution is the second review's open finding on removed worktrees.
+
+
 ** DONE --cwd-project is a second cwd-to-project resolver that disagrees with the --project-name the span splitter uses
 CLOSED: [2026-11-03 Tue 13:18]
 :PROPERTIES:
@@ -103,6 +117,8 @@ CLOSED: [2026-11-03 Tue 13:18]
 :END:
 
 First review. Fixed in commit [[orgit-rev:./::4a875a9][4a875a9]]: --cwd-project removed, one resolver.
+
+
 ** DONE The filter tests the cwd of the event rather than the project of the heading, so the only-its-own-project guarantee is approximate
 CLOSED: [2026-11-03 Tue 13:18]
 :PROPERTIES:
@@ -112,6 +128,8 @@ CLOSED: [2026-11-03 Tue 13:18]
 
 First review. Fixed in commit [[orgit-rev:./::4a875a9][4a875a9]]: --heading-in-project-p compares the
 heading's own file's project.
+
+
 ** DONE An empty-string cwd passes the guard and resolves against Emacs's default-directory
 CLOSED: [2026-11-03 Tue 13:18]
 :PROPERTIES:
@@ -121,6 +139,8 @@ CLOSED: [2026-11-03 Tue 13:18]
 
 First review. Fixed in commit [[orgit-rev:./::4a875a9][4a875a9]]: --span-project skips empty cwds and
 --project-name guards an empty string.
+
+
 ** DONE The roots memo lives for one call, so every span re-resolves every distinct cwd
 CLOSED: [2026-11-03 Tue 13:18]
 :PROPERTIES:
@@ -130,6 +150,8 @@ CLOSED: [2026-11-03 Tue 13:18]
 
 First review. Fixed in commit [[orgit-rev:./::4a875a9][4a875a9]]: the memo removed; --project-name's
 session-long cache serves.
+
+
 ** DONE The span-window predicate is a third copy of the filter that :events runs a few lines later for the same span
 CLOSED: [2026-11-03 Tue 13:18]
 :PROPERTIES:
@@ -138,6 +160,8 @@ CLOSED: [2026-11-03 Tue 13:18]
 :END:
 
 First review. Fixed in commit [[orgit-rev:./::4a875a9][4a875a9]]: both paths use --events-in-span.
+
+
 ** TODO A gap span's edge events come from every session's history, so another project's event in the same second can decide the span's project
 :PROPERTIES:
 :ID:       6080f611-1005-42d4-942b-0fedbd162bc4
@@ -147,6 +171,8 @@ First review. Fixed in commit [[orgit-rev:./::4a875a9][4a875a9]]: both paths use
 Second review. Proposed: take the lane's nearest guidepost on each side instead;
 when they disagree the span gets no suggestion. That also removes the
 full-history edge scan.
+
+
 ** TODO Projects are compared by directory basename, so two checkouts with the same name count as one project
 :PROPERTIES:
 :ID:       e08fb599-8cce-4c50-8fe9-9291ec24c7d7
@@ -156,6 +182,8 @@ full-history edge scan.
 Second review. Accepted as a limit in the first round; proposed now: resolve
 each path to its full root and derive --project-name's name from it, so the
 splitter and the scoped reads agree.
+
+
 ** TODO A heading missing from org-id-locations counts as another project's, since the project test does no rescan on a miss
 :PROPERTIES:
 :ID:       e70cad3f-5546-405b-b659-9ebc90fb45d0
@@ -164,6 +192,8 @@ splitter and the scoped reads agree.
 
 Second review. A heading added by a hand edit or a pull is missed. Proposed:
 fall back to --id-find on a miss, once per id per pass.
+
+
 ** TODO A span from a removed linked worktree resolves to gone, and gone stops the project lookup before the edge events are read
 :PROPERTIES:
 :ID:       460dfe96-8a08-456f-bdbd-2ace19afd404
@@ -173,6 +203,8 @@ fall back to --id-find on a miss, once per id per pass.
 Second review. Proposed: treat gone as unknown until the last step; a worktree
 that sat inside the repo can be traced by walking up to the nearest existing
 directory, a sibling one cannot.
+
+
 ** TODO PR #44's description still describes the first design: --cwd-project and the no-cwd rule
 :PROPERTIES:
 :ID:       d6d06bae-197f-42ca-9277-f95e01009140
@@ -180,6 +212,8 @@ directory, a sibling one cannot.
 :END:
 
 Second review. Rewrite the description once the code findings are fixed.
+
+
 ** TODO Each review render re-resolves every DOING heading's project per span and rescans the whole history for edge events
 :PROPERTIES:
 :ID:       89355c78-d0c9-424e-856f-24f8f857ab91
@@ -188,6 +222,7 @@ Second review. Rewrite the description once the code findings are fixed.
 
 Second review. Proposed: cache each heading's project once per pass; the
 edge-event fix removes the rescan.
+
 
 * TODO org_capture reports success on a task heading with no body, so a dropped note goes unseen :code:
 :PROPERTIES:
@@ -201,6 +236,7 @@ body or text is lost and the reply still says Captured. Proposed by
 noodle-salesman, 2026-11-03: when note is empty and initial_state is a task
 keyword, the reply should say no body was written. That is local, needs nothing
 from upstream, and catches every misnamed synonym, which an alias list cannot.
+
 
 * REVIEW Every startup warns that no project was derived, because the module wires before the private config sets the tracked files :code:bounded:
 :PROPERTIES:
@@ -6035,7 +6071,6 @@ never closes; the count is the point. One dated line per catch.
 
 - 2026-10-27: argued the tool-call audit log could be deleted because a failed apply save "would show in the tracker's diff". Nobody reads that diff: apply-detect tells the session an apply landed and the session commits it unasked, which is the point of that hook, so an unsaved apply is committed short with nothing to show it. The user caught it.
 - [2026-11-03 Tue] Caught by the user, in noodle-salesman: the session told the user what the body of a heading it had just captured said, without reading the heading back. The body was empty, because the text had gone in an undeclared =body= parameter ([[id:bbf9fb77-f081-48c5-bb01-1b4d4f201969][bbf9fb77]]). One =org_body= call would have shown it.
-
 
 
 ** TODO Miss: a heading closed with its unfinished part left in prose, or its group left un-nominated
@@ -11878,12 +11913,12 @@ before the fix and still says.
 
 
 * TODO Archive closed tasks daily
-SCHEDULED: <2026-11-04 Wed 07:00 ++1d>
+SCHEDULED: <2026-11-05 Thu 07:00 ++1d>
 :PROPERTIES:
 :CATEGORY: Meta
 :ID:       cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8
 :CREATED:  [2026-08-21 Fri 15:35]
-:LAST_REPEAT: [2026-11-03 Tue 08:07]
+:LAST_REPEAT: [2026-11-04 Wed 07:24]
 :KIND:     ceremony
 :END:
 :LOGBOOK:
@@ -14419,7 +14454,6 @@ per tool -- rather than opening the servers beyond localhost.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
-CLOCK: [2026-11-03 Tue 12:38]--[2026-11-03 Tue 12:39] =>  0:01
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
@@ -14648,7 +14682,11 @@ CLOCK: [2026-10-30 Fri 11:29]--[2026-10-30 Fri 11:31] =>  0:02
 CLOCK: [2026-10-30 Fri 17:37]--[2026-10-30 Fri 17:38] =>  0:01
 - <2026-10-30 Fri 17:37>--<2026-10-30 Fri 17:38> review pass (buffer buried)
 CLOCK: [2026-10-30 Fri 17:38]--[2026-10-30 Fri 17:39] =>  0:01
+CLOCK: [2026-11-03 Tue 12:38]--[2026-11-03 Tue 12:39] =>  0:01
 - <2026-11-03 Tue 12:38>--<2026-11-03 Tue 12:39> review pass (buffer buried)
+CLOCK: [2026-11-04 Wed 07:22]--[2026-11-04 Wed 07:24] =>  0:02
+- <2026-11-04 Wed 07:22>--<2026-11-04 Wed 07:24> review pass (buffer buried)
+- <2026-11-04 Wed 07:49>--<2026-11-04 Wed 07:49> review pass (buffer buried)
 :END:
 
 We created this heading on 2026-08-26. We deleted that property from its
@@ -16411,4 +16449,49 @@ CLOCK: [2026-10-30 Fri 14:06]--[2026-10-30 Fri 14:07] =>  0:01
 - [2026-10-30 Fri 14:06]--[2026-10-30 Fri 14:07] commit the apply; verify noodle ceremony run
 CLOCK: [2026-10-30 Fri 14:19]--[2026-10-30 Fri 14:21] =>  0:02
 - [2026-10-30 Fri 14:19]--[2026-10-30 Fri 14:21] push main, file span bug, audit misfiled time
+:END:
+
+
+*** 2026-11 November
+
+
+**** 2026-11-03 Tuesday
+:PROPERTIES:
+:ID:       42a1fef2-7f6c-4df3-a054-43f738a54279
+:CREATED:  [2026-11-03 Tue 08:27]
+:END:
+:LOGBOOK:
+- [2026-11-03 Tue 08:27]--[2026-11-03 Tue 08:28] assigned at review
+CLOCK: [2026-11-03 Tue 08:28]--[2026-11-03 Tue 08:29] =>  0:01
+- [2026-11-03 Tue 08:28]--[2026-11-03 Tue 08:29] file noodle-salesman's dropped-body miss
+CLOCK: [2026-11-03 Tue 08:29]--[2026-11-03 Tue 08:30] =>  0:01
+- [2026-11-03 Tue 08:29]--[2026-11-03 Tue 08:30] assigned at review
+CLOCK: [2026-11-03 Tue 08:33]--[2026-11-03 Tue 08:34] =>  0:01
+- [2026-11-03 Tue 08:33]--[2026-11-03 Tue 08:34] assigned at review
+CLOCK: [2026-11-03 Tue 08:40]--[2026-11-03 Tue 08:41] =>  0:01
+- [2026-11-03 Tue 08:40]--[2026-11-03 Tue 08:41] assigned at review
+CLOCK: [2026-11-03 Tue 10:42]--[2026-11-03 Tue 10:43] =>  0:01
+- [2026-11-03 Tue 10:42]--[2026-11-03 Tue 10:43] assigned at review
+CLOCK: [2026-11-03 Tue 12:55]--[2026-11-03 Tue 12:56] =>  0:01
+- [2026-11-03 Tue 12:55]--[2026-11-03 Tue 12:56] assigned at review
+CLOCK: [2026-11-03 Tue 12:59]--[2026-11-03 Tue 13:01] =>  0:02
+- [2026-11-03 Tue 12:59]--[2026-11-03 Tue 13:01] assigned at review
+CLOCK: [2026-11-03 Tue 13:13]--[2026-11-03 Tue 13:14] =>  0:01
+- [2026-11-03 Tue 13:13]--[2026-11-03 Tue 13:14] assigned at review
+CLOCK: [2026-11-03 Tue 13:17]--[2026-11-03 Tue 13:18] =>  0:01
+- [2026-11-03 Tue 13:17]--[2026-11-03 Tue 13:18] assigned at review
+CLOCK: [2026-11-03 Tue 13:18]--[2026-11-03 Tue 13:19] =>  0:01
+- [2026-11-03 Tue 13:18]--[2026-11-03 Tue 13:19] review story ruling and PR #44's story
+CLOCK: [2026-11-03 Tue 15:02]--[2026-11-03 Tue 15:03] =>  0:01
+- [2026-11-03 Tue 15:02]--[2026-11-03 Tue 15:03] file the consumer commit-lint gap
+CLOCK: [2026-11-03 Tue 15:03]--[2026-11-03 Tue 15:04] =>  0:01
+- [2026-11-03 Tue 15:03]--[2026-11-03 Tue 15:04] fix the filing's lint refusal
+CLOCK: [2026-11-03 Tue 15:42]--[2026-11-03 Tue 15:43] =>  0:01
+- [2026-11-03 Tue 15:42]--[2026-11-03 Tue 15:43] conventions line implying consumers get pre-commit
+CLOCK: [2026-11-03 Tue 15:51]--[2026-11-03 Tue 15:52] =>  0:01
+- [2026-11-03 Tue 15:51]--[2026-11-03 Tue 15:52] assigned at review
+CLOCK: [2026-11-03 Tue 15:56]--[2026-11-03 Tue 15:57] =>  0:01
+- [2026-11-03 Tue 15:56]--[2026-11-03 Tue 15:57] assigned at review
+CLOCK: [2026-11-03 Tue 15:57]--[2026-11-03 Tue 15:58] =>  0:01
+- [2026-11-03 Tue 15:57]--[2026-11-03 Tue 15:58] file Warp notification spike
 :END:
