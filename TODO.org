@@ -8,6 +8,7 @@
 :CREATED:  [2026-11-03 Tue 15:56]
 :CATEGORY: Dev
 :END:
+:PLAN:
 
 Seen 2026-11-03 after a Warp update: Warp shows notifications of its own, worded
 differently from ours, so presumably triggered by a signal Claude Code itself
@@ -16,6 +17,20 @@ emits rather than by our hook. Ours is a user-global Notification hook in
 notification, which macOS attributes to Script Editor. Question: what does Warp
 react to and what can its notifications do that ours cannot, so we can decide
 whether to drop the osascript hook, keep both, or move to Warp's.
+
+:END:
+Found 2026-11-04: the source is not Warp itself but Warp's Claude Code plugin,
+warp@claude-code-warp 2.4.0 from warpdotdev/claude-code-warp, installed at user
+scope 2026-11-02 20:08 UTC and enabled. Its hooks on Notification, Stop,
+StopFailure, PermissionRequest, SessionStart, UserPromptSubmit and PostToolUse
+send a structured payload to warp://cli-agent as an OSC 777 sequence, through
+the hook output's terminalSequence field on Claude Code 2.1.141 and later, so
+Warp shows the event's own message and a completion notice; ours always says
+"Claude needs your input". Outside Warp the plugin exits without notifying, so a
+session in an Emacs terminal buffer still has only ours. Recommended: keep ours
+but skip it when TERM_PROGRAM is WarpTerminal, so Warp sessions get one
+notification and the rest keep theirs.
+
 
 
 * TODO A consuming repo gets no commit-time lint: setup installs no pre-commit, and this repo's assumes the plugin's layout :code:
