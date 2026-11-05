@@ -2,6 +2,44 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO [0/2] footnote-check blocks about half of all replies, because the end matter must be generated before the reply it annotates exists
+:PROPERTIES:
+:ID:       4f49ea34-5b8c-4ad8-8dbb-6f17126c420f
+:CREATED:  [2026-11-05 Thu 15:56]
+:CATEGORY: Skill
+:END:
+
+org_footnotes is a tool call, so it runs before the final text is written, and
+any id the reply cites that the call did not anticipate is blocked at Stop. The
+user estimates half of all replies; footnote is 128 of the 149 misses counted
+since 2026-10-27. Proposed (the user, 2026-11-05): the Stop hook shows the end
+matter to the user instead of blocking, and a /footnotes command re-shows it for
+a reply on demand.
+** TODO footnote-check shows the end matter it computes as a systemMessage, instead of blocking the stop for the session to write it :code:
+:PROPERTIES:
+:ID:       5504b175-6577-4255-9f77-958a482170de
+:CREATED:  [2026-11-05 Thu 15:56]
+:END:
+
+The hook already resolves every cited id to its keyword and exact title. Return
+those lines as a Stop-hook systemMessage, which the user sees and the session
+does not, and never exit 2. The session then owes no end matter, org_footnotes
+and its inject hook retire, and the citation rules change from "the reply
+carries end matter" to "the hook delivers it". Unverified: that a Stop
+systemMessage renders below the reply in the terminal and in claude-code-ide's
+vterm.
+** TODO A /footnotes command prints the end matter for the previous reply, or an earlier one, on request :code:
+:PROPERTIES:
+:ID:       b7cbb44d-adbd-4c6a-9d17-b2ad8c1c0461
+:CREATED:  [2026-11-05 Thu 15:56]
+:END:
+
+Reads the last assistant reply from the transcript, resolves its ids with the
+same function footnote-check uses, and prints the canonical lines. A slash
+command costs a model turn, so the lines should come from a !-preprocessed shell
+step and the turn only relay them. Re-shows what the systemMessage showed once,
+for a reply that has scrolled away.
+
 * REVIEW Warp now posts its own notifications for Claude Code, alongside the osascript Notification hook's Script Editor ones :spike:
 :PROPERTIES:
 :ID:       e9b00465-0526-4ff8-ad6f-b2b41a92192a
