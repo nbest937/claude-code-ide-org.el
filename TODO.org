@@ -12,6 +12,16 @@
 :MEMBERS:  5504b175-6577-4255-9f77-958a482170de 4a583ff2-2f6c-435b-acc2-9c52ad05539f 5ed2cfaa-8c0c-4aaa-bdfa-7762039817cc ea069e92-6051-48a1-b9a5-e3c6f166c89e 8bc0bbcf-12cf-412b-a9f4-e335286dda58 b7cbb44d-adbd-4c6a-9d17-b2ad8c1c0461
 :BLOCKER:  5504b175-6577-4255-9f77-958a482170de 4a583ff2-2f6c-435b-acc2-9c52ad05539f 5ed2cfaa-8c0c-4aaa-bdfa-7762039817cc ea069e92-6051-48a1-b9a5-e3c6f166c89e 8bc0bbcf-12cf-412b-a9f4-e335286dda58 b7cbb44d-adbd-4c6a-9d17-b2ad8c1c0461
 :END:
+:PLAN:
+Order: [[id:5504b175-6577-4255-9f77-958a482170de][5504b175]], the hook change; then [[id:4a583ff2-2f6c-435b-acc2-9c52ad05539f][4a583ff2]], [[id:5ed2cfaa-8c0c-4aaa-bdfa-7762039817cc][5ed2cfaa]], [[id:ea069e92-6051-48a1-b9a5-e3c6f166c89e][ea069e92]] and
+[[id:8bc0bbcf-12cf-412b-a9f4-e335286dda58][8bc0bbcf]], each closed CANCELLED as made moot by it; then [[id:b7cbb44d-adbd-4c6a-9d17-b2ad8c1c0461][b7cbb44d]], which reuses
+the hook's resolver. Not yet planned with /plan-slice.
+
+Followed by [[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]] (the user, 2026-11-05): the slice of tool calls that tell
+their caller the opposite of what happened, which finishes org_edit for every
+later slice's bookkeeping. It was [[id:3bfa593c-c2da-4e44-b47f-2d5f0750f2aa][3bfa593c]]'s successor until this slice went
+between them.
+:END:
 
 org_footnotes is a tool call, so it runs before the final text is written, and
 any id the reply cites that the call did not anticipate is blocked at Stop. The
@@ -1199,9 +1209,10 @@ renders; read the checklist for membership and this for sequence.
 13. [[id:a3ad9732-681c-4103-a9e2-5f919e60522c][a3ad9732]], org_set_property's special-property refusal.
 14. [[id:412768a0-3d9b-4cfe-9264-3f214d4baed1][412768a0]] and 15. [[id:fd29914e-0d18-4964-a104-37c136b311a6][fd29914e]] together: both change --capture-write, so they share one PR.
 
-Followed by [[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]] (the user, 2026-10-28): the sibling slice of tool calls
-that tell their caller the opposite of what happened, which gave [[id:fd29914e-0d18-4964-a104-37c136b311a6][fd29914e]] to
-this one, and which finishes org_edit for every later slice's bookkeeping.
+Followed by [[id:4f49ea34-5b8c-4ad8-8dbb-6f17126c420f][4f49ea34]] (the user, 2026-11-05): the footnote slice, which stops
+footnote-check blocking about half of all replies, ahead of [[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]], which was
+named here 2026-10-28. It is one change, and every later slice's sessions pay
+the cost until it lands.
 :END:
 
 Ways the tracker loses state, or Emacs blocks on a prompt, with nothing
@@ -4423,7 +4434,9 @@ rather than a heading.
 
 Followed by [[id:7dcec489-f5dd-4f7f-b819-a25405436b9b][7dcec489]], which now comes between this slice and [[id:005fef09-e34f-4994-8c0d-6d17ada3d7ac][005fef09]] (the user,
 2026-10-28, setting the order [[id:3bfa593c-c2da-4e44-b47f-2d5f0750f2aa][3bfa593c]], [[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]], [[id:7dcec489-f5dd-4f7f-b819-a25405436b9b][7dcec489]], [[id:005fef09-e34f-4994-8c0d-6d17ada3d7ac][005fef09]]): the slice
-machinery is fixed before a tagged release carries it.
+machinery is fixed before a tagged release carries it. Since 2026-11-05 (the
+user) the order is [[id:3bfa593c-c2da-4e44-b47f-2d5f0750f2aa][3bfa593c]], [[id:4f49ea34-5b8c-4ad8-8dbb-6f17126c420f][4f49ea34]], [[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]], [[id:7dcec489-f5dd-4f7f-b819-a25405436b9b][7dcec489]], [[id:005fef09-e34f-4994-8c0d-6d17ada3d7ac][005fef09]]: the
+footnote slice goes second.
 :END:
 
 Planned:
