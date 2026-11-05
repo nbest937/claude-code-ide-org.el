@@ -2,11 +2,15 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* TODO [0/2] footnote-check blocks about half of all replies, because the end matter must be generated before the reply it annotates exists
+* TODO [0/6] footnote-check blocks about half of all replies, because the end matter must be generated before the reply it annotates exists
 :PROPERTIES:
 :ID:       4f49ea34-5b8c-4ad8-8dbb-6f17126c420f
 :CREATED:  [2026-11-05 Thu 15:56]
-:CATEGORY: Skill
+:CATEGORY: Slices
+:KIND:     slice
+:COOKIE_DATA: checkbox recursive
+:MEMBERS:  5504b175-6577-4255-9f77-958a482170de 4a583ff2-2f6c-435b-acc2-9c52ad05539f 5ed2cfaa-8c0c-4aaa-bdfa-7762039817cc ea069e92-6051-48a1-b9a5-e3c6f166c89e 8bc0bbcf-12cf-412b-a9f4-e335286dda58 b7cbb44d-adbd-4c6a-9d17-b2ad8c1c0461
+:BLOCKER:  5504b175-6577-4255-9f77-958a482170de 4a583ff2-2f6c-435b-acc2-9c52ad05539f 5ed2cfaa-8c0c-4aaa-bdfa-7762039817cc ea069e92-6051-48a1-b9a5-e3c6f166c89e 8bc0bbcf-12cf-412b-a9f4-e335286dda58 b7cbb44d-adbd-4c6a-9d17-b2ad8c1c0461
 :END:
 
 org_footnotes is a tool call, so it runs before the final text is written, and
@@ -15,10 +19,26 @@ user estimates half of all replies; footnote is 128 of the 149 misses counted
 since 2026-10-27. Proposed (the user, 2026-11-05): the Stop hook shows the end
 matter to the user instead of blocking, and a /footnotes command re-shows it for
 a reply on demand.
-** TODO footnote-check shows the end matter it computes as a systemMessage, instead of blocking the stop for the session to write it :code:
+
+Planned:
+
+- [ ] [[id:5504b175-6577-4255-9f77-958a482170de][5504b175]] TODO footnote-check shows the end matter it computes as a systemMessage, instead of blocking the stop for the session to write it
+- [ ] [[id:4a583ff2-2f6c-435b-acc2-9c52ad05539f][4a583ff2]] TODO footnote-check verifies that an id appears in the end matter, never that the title beside it is right
+- [ ] [[id:5ed2cfaa-8c0c-4aaa-bdfa-7762039817cc][5ed2cfaa]] TODO Nothing says which call ends a turn: org_clock_out, then org_footnotes, then the reply
+- [ ] [[id:ea069e92-6051-48a1-b9a5-e3c6f166c89e][ea069e92]] TODO footnote-check blocks every stop when its loop-guard file cannot be written
+- [ ] [[id:8bc0bbcf-12cf-412b-a9f4-e335286dda58][8bc0bbcf]] TODO footnotes-inject reads hook JSON with sed, so a path or id containing an escaped quote is cut short
+- [ ] [[id:b7cbb44d-adbd-4c6a-9d17-b2ad8c1c0461][b7cbb44d]] TODO A /footnotes command prints the end matter for the previous reply, or an earlier one, on request
+
+Declared a flat slice 2026-11-05 (the user). [[id:5504b175-6577-4255-9f77-958a482170de][5504b175]] is the work. The four
+after it are made moot by it, not fixed: each closes CANCELLED, naming [[id:5504b175-6577-4255-9f77-958a482170de][5504b175]],
+once it lands. [[id:b7cbb44d-adbd-4c6a-9d17-b2ad8c1c0461][b7cbb44d]] comes last because it reuses the hook's resolver.
+
+
+* TODO footnote-check shows the end matter it computes as a systemMessage, instead of blocking the stop for the session to write it :code:
 :PROPERTIES:
 :ID:       5504b175-6577-4255-9f77-958a482170de
 :CREATED:  [2026-11-05 Thu 15:56]
+:CATEGORY: Dev
 :END:
 
 The hook already resolves every cited id to its keyword and exact title. Return
@@ -28,10 +48,11 @@ and its inject hook retire, and the citation rules change from "the reply
 carries end matter" to "the hook delivers it". Unverified: that a Stop
 systemMessage renders below the reply in the terminal and in claude-code-ide's
 vterm.
-** TODO A /footnotes command prints the end matter for the previous reply, or an earlier one, on request :code:
+* TODO A /footnotes command prints the end matter for the previous reply, or an earlier one, on request :code:
 :PROPERTIES:
 :ID:       b7cbb44d-adbd-4c6a-9d17-b2ad8c1c0461
 :CREATED:  [2026-11-05 Thu 15:56]
+:CATEGORY: Dev
 :END:
 
 Reads the last assistant reply from the transcript, resolves its ids with the
@@ -39,6 +60,77 @@ same function footnote-check uses, and prints the canonical lines. A slash
 command costs a model turn, so the lines should come from a !-preprocessed shell
 step and the turn only relay them. Re-shows what the systemMessage showed once,
 for a reply that has scrolled away.
+
+* TODO footnote-check verifies that an id appears in the end matter, never that the title beside it is right :code:
+:PROPERTIES:
+:ID:       4a583ff2-2f6c-435b-acc2-9c52ad05539f
+:CREATED:  [2026-09-24 Thu 15:26]
+:CATEGORY: Skill
+:END:
+:PLAN:
+
+:END:
+The citation rules require each end-matter line to carry the heading's *exact,
+full* title, looked up rather than recalled. =bin/hooks/footnote-check= enforces
+only half of that: it blocks when a cited id is *absent* from the end matter,
+and passes any line whose id is present, whatever title sits beside it. On
+2026-09-23 and 2026-09-24 one session wrote five invented titles into end
+matter, recorded on [[id:e74ca757-5e2f-4a9c-b97b-4af9164bce9d][e74ca757]]. Each was an id met in another heading's prose, a
+code comment or a standing rule, given a title that fitted where it was cited,
+and the hook passed every one. It already resolves each cited id's exact title
+([[id:33c3eabc-00f2-4cf1-afb7-4071aa256d62][33c3eabc]]), so the proposal is cheap: compare the title on each end-matter
+line with the resolved one, and block on a mismatch, handing back the correct
+line as it does for a missing entry. Open: whether a keyword mismatch also
+blocks. That is harder, because a starred queued keyword legitimately differs
+from the file, and the hook deliberately knows nothing of the queue.
+
+
+* TODO Nothing says which call ends a turn: org_clock_out, then org_footnotes, then the reply
+:PROPERTIES:
+:ID:       5ed2cfaa-8c0c-4aaa-bdfa-7762039817cc
+:CREATED:  [2026-09-28 Mon 07:43]
+:CATEGORY: Skill
+:END:
+
+Proposed on 2026-09-27 and never decided or written into a reference. The order
+is: =org_clock_out=, then =org_footnotes=, then the reply. =org_clock_out= has
+to come after the last write (the time-tracking rule). =org_footnotes= has to
+come last before the reply, so that its keywords show every state the turn
+queued, starred. Nothing currently says which of the two goes last. Decide it,
+then write one line into the footnote-citations reference, within the word
+budget. Found at [[id:30d05c93-f82b-40c0-9181-d018323af49f][30d05c93]]'s close.
+
+
+* TODO footnote-check blocks every stop when its loop-guard file cannot be written :code:
+:PROPERTIES:
+:ID:       ea069e92-6051-48a1-b9a5-e3c6f166c89e
+:CREATED:  [2026-10-27 Tue 12:49]
+:CATEGORY: Dev
+:END:
+
+The demand is appended to the per-turn sentinel with its error ignored, and exit
+2 follows regardless, so both the identical-demand check and the three-block
+bound read an empty file and never fire. Reproduced by a repo audit 2026-10-27
+with an unwritable queue directory: four stops, four blocks, against 2, 0, 0, 0
+with a writable one. clock-target-check fixed the same bug with || exit 0 and a
+test for an unwritable directory; copy both.
+
+
+* TODO footnotes-inject reads hook JSON with sed, so a path or id containing an escaped quote is cut short :code:
+:PROPERTIES:
+:ID:       8bc0bbcf-12cf-412b-a9f4-e335286dda58
+:CREATED:  [2026-10-27 Tue 13:23]
+:CATEGORY: Dev
+:END:
+
+Its field() helper extracts tool_use_id and transcript_path with a sed pattern
+that stops at the first double quote and takes the last match on the line, so an
+escaped quote in transcript_path truncates it, and a "tool_use_id" key inside
+tool_input could be read in place of the real one. A truncated path makes the
+wait loop that follows poll a file that does not exist for its full 2 s before
+going on. Seen by a repo audit 2026-10-27, by reading only, and untested.
+Proposed: read both fields with jq, as the sibling hooks do.
+
 
 * REVIEW Warp now posts its own notifications for Claude Code, alongside the osascript Notification hook's Script Editor ones :spike:
 :PROPERTIES:
@@ -1071,22 +1163,6 @@ an Origin before upstream makes it the session's client, is designed in :PLAN:;
 it also closes the browser half of [[id:207e9044-f05c-4507-bbd9-c2cfb9ef3f8e][207e9044]].
 
 
-* TODO footnotes-inject reads hook JSON with sed, so a path or id containing an escaped quote is cut short :code:
-:PROPERTIES:
-:ID:       8bc0bbcf-12cf-412b-a9f4-e335286dda58
-:CREATED:  [2026-10-27 Tue 13:23]
-:CATEGORY: Dev
-:END:
-
-Its field() helper extracts tool_use_id and transcript_path with a sed pattern
-that stops at the first double quote and takes the last match on the line, so an
-escaped quote in transcript_path truncates it, and a "tool_use_id" key inside
-tool_input could be read in place of the real one. A truncated path makes the
-wait loop that follows poll a file that does not exist for its full 2 s before
-going on. Seen by a repo audit 2026-10-27, by reading only, and untested.
-Proposed: read both fields with jq, as the sibling hooks do.
-
-
 * NEXT [0/15] The tracker can lose or corrupt its record, or Emacs can stop on a prompt, and nothing says so :code:
 :PROPERTIES:
 :ID:       3bfa593c-c2da-4e44-b47f-2d5f0750f2aa
@@ -1459,21 +1535,6 @@ Code on a feature/ branch, merged through a PR.
   unknown). The fix records in an unwind-protect right after the loop and gives
   amends a repeat check; the design is in :PLAN:. The reverse case, recorded as
   applied but missing from the file, is [[id:7e4fb8ae-87ff-445a-b960-b7cc5302c0c8][7e4fb8ae]].
-
-
-* TODO footnote-check blocks every stop when its loop-guard file cannot be written :code:
-:PROPERTIES:
-:ID:       ea069e92-6051-48a1-b9a5-e3c6f166c89e
-:CREATED:  [2026-10-27 Tue 12:49]
-:CATEGORY: Dev
-:END:
-
-The demand is appended to the per-turn sentinel with its error ignored, and exit
-2 follows regardless, so both the identical-demand check and the three-block
-bound read an empty file and never fire. Reproduced by a repo audit 2026-10-27
-with an unwritable queue directory: four stops, four blocks, against 2, 0, 0, 0
-with a writable one. clock-target-check fixed the same bug with || exit 0 and a
-test for an unwritable directory; copy both.
 
 
 * TODO discard-guard misses absolute paths, git -C, and a cd before the git command :code:bounded:
@@ -4423,22 +4484,6 @@ late, shows it to the user as an item in every review, and keeps the org clock
 that apply displaces.
 
 
-* TODO Nothing says which call ends a turn: org_clock_out, then org_footnotes, then the reply
-:PROPERTIES:
-:ID:       5ed2cfaa-8c0c-4aaa-bdfa-7762039817cc
-:CREATED:  [2026-09-28 Mon 07:43]
-:CATEGORY: Skill
-:END:
-
-Proposed on 2026-09-27 and never decided or written into a reference. The order
-is: =org_clock_out=, then =org_footnotes=, then the reply. =org_clock_out= has
-to come after the last write (the time-tracking rule). =org_footnotes= has to
-come last before the reply, so that its keywords show every state the turn
-queued, starred. Nothing currently says which of the two goes last. Decide it,
-then write one line into the footnote-citations reference, within the word
-budget. Found at [[id:30d05c93-f82b-40c0-9181-d018323af49f][30d05c93]]'s close.
-
-
 * TODO The archive double write has three live conditions no replay tested: auto-revert of DONE.org mid-pass, a stale DONE.org buffer, the system clipboard :code:
 :PROPERTIES:
 :ID:       d56e379d-fec4-4bee-be4a-a1bee6b48d13
@@ -4806,30 +4851,6 @@ The nearest heading is [[id:5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46][5a6d2c75]], ab
 this one is about how that evidence is ordered and attributed. [[id:c7619140-f269-4329-bc05-a38ea151e202][c7619140]]'s
 slice gathers review-pass judgement work, so it may belong there, which is the
 user's scheduling call.
-
-
-* TODO footnote-check verifies that an id appears in the end matter, never that the title beside it is right :code:
-:PROPERTIES:
-:ID:       4a583ff2-2f6c-435b-acc2-9c52ad05539f
-:CREATED:  [2026-09-24 Thu 15:26]
-:CATEGORY: Skill
-:END:
-:PLAN:
-
-:END:
-The citation rules require each end-matter line to carry the heading's *exact,
-full* title, looked up rather than recalled. =bin/hooks/footnote-check= enforces
-only half of that: it blocks when a cited id is *absent* from the end matter,
-and passes any line whose id is present, whatever title sits beside it. On
-2026-09-23 and 2026-09-24 one session wrote five invented titles into end
-matter, recorded on [[id:e74ca757-5e2f-4a9c-b97b-4af9164bce9d][e74ca757]]. Each was an id met in another heading's prose, a
-code comment or a standing rule, given a title that fitted where it was cited,
-and the hook passed every one. It already resolves each cited id's exact title
-([[id:33c3eabc-00f2-4cf1-afb7-4071aa256d62][33c3eabc]]), so the proposal is cheap: compare the title on each end-matter
-line with the resolved one, and block on a mismatch, handing back the correct
-line as it does for a missing entry. Open: whether a keyword mismatch also
-blocks. That is harder, because a starred queued keyword legitimately differs
-from the file, and the hook deliberately knows nothing of the queue.
 
 
 * TODO Sessions share one working tree, so a pathspec commit of TODO.org carries edits another writer has not committed :code:
