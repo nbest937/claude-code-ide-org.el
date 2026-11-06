@@ -2,6 +2,31 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO The conventions tell a slice to declare a story and its children together, which the lint refuses :bounded:
+:PROPERTIES:
+:ID:       3685c3bc-92fe-4c21-b43c-406b4ba6674c
+:CREATED:  [2026-11-06 Fri 14:44]
+:CATEGORY: Skill
+:END:
+:PLAN:
+Rewrite the section in skills/org/references/org-conventions.md to the rule the
+tools enforce: declare only the children that belong to the slice; the parent
+renders by itself as a row without a checkbox and counts nothing; declare a
+story as a member itself only when the slice takes none of its children
+separately, that is, undertakes it whole. Fold the partial-coverage paragraph
+into it rather than leaving two statements of one rule, and drop the "nested
+lines count toward the cookie" consequence only if it still reads as declaring
+the parent. Then run claude-org-setup so the promoted .claude/rules copy
+follows, and bin/check-conventions.
+:END:
+
+Reported by a downstream session 2026-11-06. org-conventions' "When a member is
+a story" (2026-08-28) says a story member gets its relevant children as member
+lines beneath it, and a story with no relevant children appears as one line.
+Since the 2026-09-25 ruling ([[id:30a340fd-c216-4231-a8d9-fff83c54b9f8][30a340fd]]) the lint errors when :MEMBERS: names a
+heading and its ancestor, and the refresh derives the parent as a row without a
+checkbox. The next paragraph, on partial coverage, already half-says this.
+
 * TODO A deferred or cancelled slice member loses its box and nothing else, so it reads as a parent row; strike it through instead :code:
 :PROPERTIES:
 :ID:       0b3b6566-0b20-4df1-aa20-f303512c5c6b
@@ -1790,6 +1815,14 @@ same holds for :DROPPED:, which the conventions say "the refresh renders".
 Proposed: org_set_property refreshes the slice after writing :MEMBERS: or
 :DROPPED:, as its KIND=slice branch already completes the declaration, and the
 duplicate test reads only the declared ids.
+
+*Seen again 2026-11-06, same repo.* After org_set_property rewrote :MEMBERS:,
+org_slice_add_member refused e2289df4 as "already a planned member", read off
+the stale checklist, and then refused after=e2289df4 because it "names no
+planned member". So the after= lookup reads the checklist too, and the stale
+rendering can refuse a call both ways. The session worked around it by setting
+the full list and letting one last add run the refresh.
+
 
 
 * TODO Stopping a launcher ends its MCP session twice, which spends the held reference and stops the tools server :code:
