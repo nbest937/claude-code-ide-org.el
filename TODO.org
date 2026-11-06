@@ -2,6 +2,23 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO org_set_property ignores append on :DROPPED: and every property but :BLOCKER:, so an append shortens the list and reports success :code:bounded:
+:PROPERTIES:
+:ID:       0c18b5c1-1cc5-4f18-8ba0-e2949e9dba34
+:CREATED:  [2026-11-06 Fri 11:39]
+:CATEGORY: Tools
+:END:
+
+Reported by a downstream session 2026-11-06: append=true on a slice's :DROPPED:
+holding 13 ids left one, and the reply said only "Set DROPPED ... to 1 id".
+Confirmed in claude-code-ide-org-set-property: the :DROPPED: branch validates
+the ids as :BLOCKER:'s does, then calls org-entry-put with the new value alone
+and never reads APPEND; the general branch ignores it too. Proposed: :DROPPED:
+unions under append exactly as :BLOCKER: does, any other property refuses append
+and names the ones that take it, and :MEMBERS: joins the union if it is ever
+written by hand ([[id:6f3a5342-1905-4831-b712-3b6e5e83e0c4][6f3a5342]] is its missing refresh). Test: append on :DROPPED:
+unions or refuses, and never shortens the list.
+
 * TODO [0/6] footnote-check blocks about half of all replies, because the end matter must be generated before the reply it annotates exists
 :PROPERTIES:
 :ID:       4f49ea34-5b8c-4ad8-8dbb-6f17126c420f
@@ -58,6 +75,8 @@ and its inject hook retire, and the citation rules change from "the reply
 carries end matter" to "the hook delivers it". Unverified: that a Stop
 systemMessage renders below the reply in the terminal and in claude-code-ide's
 vterm.
+
+
 * TODO A /footnotes command prints the end matter for the previous reply, or an earlier one, on request :code:
 :PROPERTIES:
 :ID:       b7cbb44d-adbd-4c6a-9d17-b2ad8c1c0461
@@ -70,76 +89,6 @@ same function footnote-check uses, and prints the canonical lines. A slash
 command costs a model turn, so the lines should come from a !-preprocessed shell
 step and the turn only relay them. Re-shows what the systemMessage showed once,
 for a reply that has scrolled away.
-
-* TODO footnote-check verifies that an id appears in the end matter, never that the title beside it is right :code:
-:PROPERTIES:
-:ID:       4a583ff2-2f6c-435b-acc2-9c52ad05539f
-:CREATED:  [2026-09-24 Thu 15:26]
-:CATEGORY: Skill
-:END:
-:PLAN:
-
-:END:
-The citation rules require each end-matter line to carry the heading's *exact,
-full* title, looked up rather than recalled. =bin/hooks/footnote-check= enforces
-only half of that: it blocks when a cited id is *absent* from the end matter,
-and passes any line whose id is present, whatever title sits beside it. On
-2026-09-23 and 2026-09-24 one session wrote five invented titles into end
-matter, recorded on [[id:e74ca757-5e2f-4a9c-b97b-4af9164bce9d][e74ca757]]. Each was an id met in another heading's prose, a
-code comment or a standing rule, given a title that fitted where it was cited,
-and the hook passed every one. It already resolves each cited id's exact title
-([[id:33c3eabc-00f2-4cf1-afb7-4071aa256d62][33c3eabc]]), so the proposal is cheap: compare the title on each end-matter
-line with the resolved one, and block on a mismatch, handing back the correct
-line as it does for a missing entry. Open: whether a keyword mismatch also
-blocks. That is harder, because a starred queued keyword legitimately differs
-from the file, and the hook deliberately knows nothing of the queue.
-
-
-* TODO Nothing says which call ends a turn: org_clock_out, then org_footnotes, then the reply
-:PROPERTIES:
-:ID:       5ed2cfaa-8c0c-4aaa-bdfa-7762039817cc
-:CREATED:  [2026-09-28 Mon 07:43]
-:CATEGORY: Skill
-:END:
-
-Proposed on 2026-09-27 and never decided or written into a reference. The order
-is: =org_clock_out=, then =org_footnotes=, then the reply. =org_clock_out= has
-to come after the last write (the time-tracking rule). =org_footnotes= has to
-come last before the reply, so that its keywords show every state the turn
-queued, starred. Nothing currently says which of the two goes last. Decide it,
-then write one line into the footnote-citations reference, within the word
-budget. Found at [[id:30d05c93-f82b-40c0-9181-d018323af49f][30d05c93]]'s close.
-
-
-* TODO footnote-check blocks every stop when its loop-guard file cannot be written :code:
-:PROPERTIES:
-:ID:       ea069e92-6051-48a1-b9a5-e3c6f166c89e
-:CREATED:  [2026-10-27 Tue 12:49]
-:CATEGORY: Dev
-:END:
-
-The demand is appended to the per-turn sentinel with its error ignored, and exit
-2 follows regardless, so both the identical-demand check and the three-block
-bound read an empty file and never fire. Reproduced by a repo audit 2026-10-27
-with an unwritable queue directory: four stops, four blocks, against 2, 0, 0, 0
-with a writable one. clock-target-check fixed the same bug with || exit 0 and a
-test for an unwritable directory; copy both.
-
-
-* TODO footnotes-inject reads hook JSON with sed, so a path or id containing an escaped quote is cut short :code:
-:PROPERTIES:
-:ID:       8bc0bbcf-12cf-412b-a9f4-e335286dda58
-:CREATED:  [2026-10-27 Tue 13:23]
-:CATEGORY: Dev
-:END:
-
-Its field() helper extracts tool_use_id and transcript_path with a sed pattern
-that stops at the first double quote and takes the last match on the line, so an
-escaped quote in transcript_path truncates it, and a "tool_use_id" key inside
-tool_input could be read in place of the real one. A truncated path makes the
-wait loop that follows poll a file that does not exist for its full 2 s before
-going on. Seen by a repo audit 2026-10-27, by reading only, and untested.
-Proposed: read both fields with jq, as the sibling hooks do.
 
 
 * REVIEW Warp now posts its own notifications for Claude Code, alongside the osascript Notification hook's Script Editor ones :spike:
@@ -1076,6 +1025,22 @@ Proposed: create the node with org-datetree-find-create-hierarchy and reversed
 comparators, as [[id:0c3f1319-67c0-4b29-a8e7-5ffa12948aaf][0c3f1319]] measured for TODO.org, then archive into it.
 
 
+* TODO footnotes-inject reads hook JSON with sed, so a path or id containing an escaped quote is cut short :code:
+:PROPERTIES:
+:ID:       8bc0bbcf-12cf-412b-a9f4-e335286dda58
+:CREATED:  [2026-10-27 Tue 13:23]
+:CATEGORY: Dev
+:END:
+
+Its field() helper extracts tool_use_id and transcript_path with a sed pattern
+that stops at the first double quote and takes the last match on the line, so an
+escaped quote in transcript_path truncates it, and a "tool_use_id" key inside
+tool_input could be read in place of the real one. A truncated path makes the
+wait loop that follows poll a file that does not exist for its full 2 s before
+going on. Seen by a repo audit 2026-10-27, by reading only, and untested.
+Proposed: read both fields with jq, as the sibling hooks do.
+
+
 * DOING The IDE companion's WebSocket accepts any web page, and =executeCode= runs whatever elisp it is sent :code:bounded:
 :PROPERTIES:
 :ID:       d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80
@@ -1546,6 +1511,21 @@ Code on a feature/ branch, merged through a PR.
   unknown). The fix records in an unwind-protect right after the loop and gives
   amends a repeat check; the design is in :PLAN:. The reverse case, recorded as
   applied but missing from the file, is [[id:7e4fb8ae-87ff-445a-b960-b7cc5302c0c8][7e4fb8ae]].
+
+
+* TODO footnote-check blocks every stop when its loop-guard file cannot be written :code:
+:PROPERTIES:
+:ID:       ea069e92-6051-48a1-b9a5-e3c6f166c89e
+:CREATED:  [2026-10-27 Tue 12:49]
+:CATEGORY: Dev
+:END:
+
+The demand is appended to the per-turn sentinel with its error ignored, and exit
+2 follows regardless, so both the identical-demand check and the three-block
+bound read an empty file and never fire. Reproduced by a repo audit 2026-10-27
+with an unwritable queue directory: four stops, four blocks, against 2, 0, 0, 0
+with a writable one. clock-target-check fixed the same bug with || exit 0 and a
+test for an unwritable directory; copy both.
 
 
 * TODO discard-guard misses absolute paths, git -C, and a cd before the git command :code:bounded:
@@ -4497,6 +4477,22 @@ late, shows it to the user as an item in every review, and keeps the org clock
 that apply displaces.
 
 
+* TODO Nothing says which call ends a turn: org_clock_out, then org_footnotes, then the reply
+:PROPERTIES:
+:ID:       5ed2cfaa-8c0c-4aaa-bdfa-7762039817cc
+:CREATED:  [2026-09-28 Mon 07:43]
+:CATEGORY: Skill
+:END:
+
+Proposed on 2026-09-27 and never decided or written into a reference. The order
+is: =org_clock_out=, then =org_footnotes=, then the reply. =org_clock_out= has
+to come after the last write (the time-tracking rule). =org_footnotes= has to
+come last before the reply, so that its keywords show every state the turn
+queued, starred. Nothing currently says which of the two goes last. Decide it,
+then write one line into the footnote-citations reference, within the word
+budget. Found at [[id:30d05c93-f82b-40c0-9181-d018323af49f][30d05c93]]'s close.
+
+
 * TODO The archive double write has three live conditions no replay tested: auto-revert of DONE.org mid-pass, a stale DONE.org buffer, the system clipboard :code:
 :PROPERTIES:
 :ID:       d56e379d-fec4-4bee-be4a-a1bee6b48d13
@@ -4866,6 +4862,30 @@ slice gathers review-pass judgement work, so it may belong there, which is the
 user's scheduling call.
 
 
+* TODO footnote-check verifies that an id appears in the end matter, never that the title beside it is right :code:
+:PROPERTIES:
+:ID:       4a583ff2-2f6c-435b-acc2-9c52ad05539f
+:CREATED:  [2026-09-24 Thu 15:26]
+:CATEGORY: Skill
+:END:
+:PLAN:
+
+:END:
+The citation rules require each end-matter line to carry the heading's *exact,
+full* title, looked up rather than recalled. =bin/hooks/footnote-check= enforces
+only half of that: it blocks when a cited id is *absent* from the end matter,
+and passes any line whose id is present, whatever title sits beside it. On
+2026-09-23 and 2026-09-24 one session wrote five invented titles into end
+matter, recorded on [[id:e74ca757-5e2f-4a9c-b97b-4af9164bce9d][e74ca757]]. Each was an id met in another heading's prose, a
+code comment or a standing rule, given a title that fitted where it was cited,
+and the hook passed every one. It already resolves each cited id's exact title
+([[id:33c3eabc-00f2-4cf1-afb7-4071aa256d62][33c3eabc]]), so the proposal is cheap: compare the title on each end-matter
+line with the resolved one, and block on a mismatch, handing back the correct
+line as it does for a missing entry. Open: whether a keyword mismatch also
+blocks. That is harder, because a starred queued keyword legitimately differs
+from the file, and the hook deliberately knows nothing of the queue.
+
+
 * TODO Sessions share one working tree, so a pathspec commit of TODO.org carries edits another writer has not committed :code:
 :PROPERTIES:
 :ID:       27082893-102e-49d5-a35a-dea0bc3bbaaf
@@ -5211,6 +5231,13 @@ which invites =logging/setLevel=; the =curl= probe on [[id:ce012ad4-87f7-435c-a2
 the trap should cover =--dispatch= too and answer =-32601= with the request's
 own =id=. Or, more simply, stop advertising =logging=, if that turns out to be
 the method.
+
+*Seen again 2026-11-06, downstream.* A consuming repo's session called
+org_slice_add_member with slice and member for slice_id and member_id, the same
+pair [[id:ce012ad4-87f7-435c-a2ee-25210c071865][ce012ad4]] records, and it timed out rather than being refused. Its ask is
+this heading's fix: a refusal naming the argument. Naming the *unknown*
+argument, as opposed to the missing required one, is [[id:bbf9fb77-f081-48c5-bb01-1b4d4f201969][bbf9fb77]]'s half.
+
 
 
 * TODO org_amend accepts a headline-shaped line in drawer text, which tears the drawer open :code:
@@ -12033,12 +12060,12 @@ before the fix and still says.
 
 
 * TODO Archive closed tasks daily
-SCHEDULED: <2026-11-06 Fri 07:00 ++1d>
+SCHEDULED: <2026-11-07 Sat 07:00 ++1d>
 :PROPERTIES:
 :CATEGORY: Meta
 :ID:       cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8
 :CREATED:  [2026-08-21 Fri 15:35]
-:LAST_REPEAT: [2026-11-05 Thu 09:24]
+:LAST_REPEAT: [2026-11-06 Fri 09:22]
 :KIND:     ceremony
 :END:
 :LOGBOOK:
@@ -14808,6 +14835,8 @@ CLOCK: [2026-11-04 Wed 07:22]--[2026-11-04 Wed 07:24] =>  0:02
 - <2026-11-04 Wed 07:22>--<2026-11-04 Wed 07:24> review pass (buffer buried)
 - <2026-11-04 Wed 07:49>--<2026-11-04 Wed 07:49> review pass (buffer buried)
 CLOCK: [2026-11-04 Wed 11:15]--[2026-11-04 Wed 11:17] =>  0:02
+CLOCK: [2026-11-06 Fri 09:21]--[2026-11-06 Fri 09:22] =>  0:01
+- <2026-11-06 Fri 09:21>--<2026-11-06 Fri 09:22> review pass (buffer buried)
 :END:
 
 We created this heading on 2026-08-26. We deleted that property from its
