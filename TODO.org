@@ -442,10 +442,11 @@ config-test.el, one per change, each proved to fail on the branch as it is; then
 bin/test-all.
 :END:
 
-Second review. Proposed: treat gone as unknown until the last step; a worktree
-that sat inside the repo can be traced by walking up to the nearest existing
-directory, a sibling one cannot.
-
+From PR #44's second review. A span whose every cwd is gone resolves to gone,
+which is non-nil, so the lookup stops before reading the edge events. The
+approved design lets gone fall through to the edges, and recovers a removed
+worktree that sat inside the repo by walking up to the nearest existing
+directory.
 
 ** TODO PR #44's description still describes the first design: --cwd-project and the no-cwd rule
 :PROPERTIES:
