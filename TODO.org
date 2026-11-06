@@ -415,9 +415,10 @@ on disk is still found in its project, proved to fail on the branch as it is;
 then bin/test-all.
 :END:
 
-Second review. A heading added by a hand edit or a pull is missed. Proposed:
-fall back to --id-find on a miss, once per id per pass.
-
+From PR #44's second review. --heading-in-project-p answers nil for a heading
+missing from org-id-locations, so one added by a hand edit or a pull counts as
+another project's. The approved design falls back to --id-find, at most once per
+id per pass.
 
 ** TODO A span from a removed linked worktree resolves to gone, and gone stops the project lookup before the edge events are read :bounded:
 :PROPERTIES:
