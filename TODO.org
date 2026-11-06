@@ -474,9 +474,9 @@ render on the live queue. If it is still slow, cache each heading's project once
 per pass; if not, close this heading as done by [[id:6080f611-1005-42d4-942b-0fedbd162bc4][6080f611]].
 :END:
 
-Second review. Proposed: cache each heading's project once per pass; the
-edge-event fix removes the rescan.
-
+From PR #44's second review. Most of the cost is the whole-history edge scan per
+span, which [[id:6080f611-1005-42d4-942b-0fedbd162bc4][6080f611]] removes, since the per-heading lookup is already cached by
+path. Measure once that lands, and close this if the render is fast.
 
 * TODO org_capture reports success on a task heading with no body, so a dropped note goes unseen :code:
 :PROPERTIES:
