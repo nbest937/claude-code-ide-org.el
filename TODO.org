@@ -23,9 +23,10 @@ follows, and bin/check-conventions.
 Reported by a downstream session 2026-11-06. org-conventions' "When a member is
 a story" (2026-08-28) says a story member gets its relevant children as member
 lines beneath it, and a story with no relevant children appears as one line.
-Since the 2026-09-25 ruling ([[id:30a340fd-c216-4231-a8d9-fff83c54b9f8][30a340fd]]) the lint errors when :MEMBERS: names a
-heading and its ancestor, and the refresh derives the parent as a row without a
-checkbox. The next paragraph, on partial coverage, already half-says this.
+Since the user's 2026-09-25 ruling, on [[id:7ee3b71a-b85a-4610-a4ab-b9e06c8d79da][7ee3b71a]], that a parent carries no work a
+slice counts, the lint errors when :MEMBERS: names a heading and its ancestor,
+and the refresh derives the parent as a row without a checkbox. The next
+paragraph, on partial coverage, already half-says this.
 
 * TODO A deferred or cancelled slice member loses its box and nothing else, so it reads as a parent row; strike it through instead :code:
 :PROPERTIES:
