@@ -377,10 +377,11 @@ as a span's edge no longer decides it, proved to fail on the branch as it is;
 then bin/test-all.
 :END:
 
-Second review. Proposed: take the lane's nearest guidepost on each side instead;
-when they disagree the span gets no suggestion. That also removes the
-full-history edge scan.
-
+From PR #44's second review. A span holding no guidepost takes its project from
+any event in the whole queue at either edge second, so another project's event
+in the same second can decide it. The approved design reads only the clock
+events of the brackets the span abuts, and also removes the whole-history scan
+behind [[id:89355c78-d0c9-424e-856f-24f8f857ab91][89355c78]].
 
 ** TODO Projects are compared by directory basename, so two checkouts with the same name count as one project
 :PROPERTIES:
