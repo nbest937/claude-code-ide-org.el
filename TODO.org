@@ -21,17 +21,9 @@ planned-region scan and every parser that uses it. And a title holding a + or an
 unbalanced = could close the emphasis early.
 :END:
 
-Asked for by the user, 2026-11-06. The refresh renders a member with no box when
-:DROPPED: names it or its keyword maps to none (CANCELLED, MAYBE), in
-claude-code-ide-org--slice-render-planned-lines and the incidental renderer
-beside it, so it looks just like a derived parent row. Proposed: wrap such a
-line's text after the bullet in org's +strike-through+ markup at the same moment
-the box is removed, leaving parent rows plain. Two things to check first.
-claude-code-ide-org--slice-list-line-re anchors [[id: right after the optional
-box, so a leading + would stop the planned-region scan and every parser that
-uses it from seeing the line. And a title holding a + or an unbalanced = could
-close the emphasis early.
-
+Asked for by the user, 2026-11-06. The refresh renders a dropped, cancelled or
+MAYBE member with no box and nothing else, so its line looks just like a derived
+parent row. The plan strikes it through instead.
 * TODO org_set_property ignores append on :DROPPED: and every property but :BLOCKER:, so an append shortens the list and reports success :code:bounded:
 :PROPERTIES:
 :ID:       0c18b5c1-1cc5-4f18-8ba0-e2949e9dba34
