@@ -24,6 +24,8 @@ unbalanced = could close the emphasis early.
 Asked for by the user, 2026-11-06. The refresh renders a dropped, cancelled or
 MAYBE member with no box and nothing else, so its line looks just like a derived
 parent row. The plan strikes it through instead.
+
+
 * TODO org_set_property ignores append on :DROPPED: and every property but :BLOCKER:, so an append shortens the list and reports success :code:bounded:
 :PROPERTIES:
 :ID:       0c18b5c1-1cc5-4f18-8ba0-e2949e9dba34
@@ -40,6 +42,7 @@ unions under append exactly as :BLOCKER: does, any other property refuses append
 and names the ones that take it, and :MEMBERS: joins the union if it is ever
 written by hand ([[id:6f3a5342-1905-4831-b712-3b6e5e83e0c4][6f3a5342]] is its missing refresh). Test: append on :DROPPED:
 unions or refuses, and never shortens the list.
+
 
 * TODO [0/6] footnote-check blocks about half of all replies, because the end matter must be generated before the reply it annotates exists
 :PROPERTIES:
@@ -5261,7 +5264,6 @@ org_slice_add_member with slice and member for slice_id and member_id, the same
 pair [[id:ce012ad4-87f7-435c-a2ee-25210c071865][ce012ad4]] records, and it timed out rather than being refused. Its ask is
 this heading's fix: a refusal naming the argument. Naming the *unknown*
 argument, as opposed to the missing required one, is [[id:bbf9fb77-f081-48c5-bb01-1b4d4f201969][bbf9fb77]]'s half.
-
 
 
 * TODO org_amend accepts a headline-shaped line in drawer text, which tears the drawer open :code:
@@ -16668,4 +16670,50 @@ CLOCK: [2026-11-03 Tue 15:56]--[2026-11-03 Tue 15:57] =>  0:01
 - [2026-11-03 Tue 15:56]--[2026-11-03 Tue 15:57] assigned at review
 CLOCK: [2026-11-03 Tue 15:57]--[2026-11-03 Tue 15:58] =>  0:01
 - [2026-11-03 Tue 15:57]--[2026-11-03 Tue 15:58] file Warp notification spike
+:END:
+
+
+**** 2026-11-05 Thursday
+:PROPERTIES:
+:ID:       e9ec2f76-9102-4590-8047-bc12590722b8
+:CREATED:  [2026-11-05 Thu 15:56]
+:END:
+:LOGBOOK:
+CLOCK: [2026-11-05 Thu 15:56]--[2026-11-05 Thu 15:57] =>  0:01
+- [2026-11-05 Thu 15:56]--[2026-11-05 Thu 15:57] file the footnote-delivery story
+CLOCK: [2026-11-05 Thu 15:57]--[2026-11-05 Thu 15:58] =>  0:01
+- [2026-11-05 Thu 15:57]--[2026-11-05 Thu 15:58] assigned at review
+CLOCK: [2026-11-05 Thu 16:03]--[2026-11-05 Thu 16:04] =>  0:01
+- [2026-11-05 Thu 16:03]--[2026-11-05 Thu 16:04] assigned at review
+CLOCK: [2026-11-05 Thu 16:04]--[2026-11-05 Thu 16:05] =>  0:01
+- [2026-11-05 Thu 16:04]--[2026-11-05 Thu 16:05] flatten the footnote story, rank slices
+CLOCK: [2026-11-05 Thu 16:05]--[2026-11-05 Thu 16:06] =>  0:01
+- [2026-11-05 Thu 16:05]--[2026-11-05 Thu 16:06] assigned at review
+CLOCK: [2026-11-05 Thu 16:09]--[2026-11-05 Thu 16:10] =>  0:01
+- [2026-11-05 Thu 16:09]--[2026-11-05 Thu 16:10] assigned at review
+CLOCK: [2026-11-05 Thu 16:10]--[2026-11-05 Thu 16:11] =>  0:01
+- [2026-11-05 Thu 16:10]--[2026-11-05 Thu 16:11] put the footnote slice second in the chain
+:END:
+
+
+**** 2026-11-06 Friday
+:PROPERTIES:
+:ID:       6244a7c8-2fc3-4450-a7f7-e81bc8775f95
+:CREATED:  [2026-11-06 Fri 11:39]
+:END:
+:LOGBOOK:
+CLOCK: [2026-11-06 Fri 11:39]--[2026-11-06 Fri 11:40] =>  0:01
+- [2026-11-06 Fri 11:39]--[2026-11-06 Fri 11:40] file two downstream tool reports
+CLOCK: [2026-11-06 Fri 11:40]--[2026-11-06 Fri 11:41] =>  0:01
+- [2026-11-06 Fri 11:40]--[2026-11-06 Fri 11:41] assigned at review
+CLOCK: [2026-11-06 Fri 11:43]--[2026-11-06 Fri 11:44] =>  0:01
+- [2026-11-06 Fri 11:43]--[2026-11-06 Fri 11:44] assigned at review
+CLOCK: [2026-11-06 Fri 11:44]--[2026-11-06 Fri 11:45] =>  0:01
+- [2026-11-06 Fri 11:44]--[2026-11-06 Fri 11:45] add 0c18b5c1 to f436a3b8
+CLOCK: [2026-11-06 Fri 11:45]--[2026-11-06 Fri 11:46] =>  0:01
+- [2026-11-06 Fri 11:45]--[2026-11-06 Fri 11:46] assigned at review
+CLOCK: [2026-11-06 Fri 11:46]--[2026-11-06 Fri 11:47] =>  0:01
+- [2026-11-06 Fri 11:46]--[2026-11-06 Fri 11:47] file the strike-through rendering item
+CLOCK: [2026-11-06 Fri 12:17]--[2026-11-06 Fri 12:18] =>  0:01
+- [2026-11-06 Fri 12:17]--[2026-11-06 Fri 12:18] add 0b3b6566 to 7dcec489
 :END:
