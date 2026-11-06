@@ -2866,6 +2866,10 @@ CLOCK: [2026-10-12 Mon 11:01]--[2026-10-12 Mon 11:02] =>  0:01
 :END:
 :PLAN:
 Candidate steps, not yet brainstormed.
+0. Widened 2026-11-06 (the user): work joining a slice after work on it has
+   begun is incidental by default, so step 1 leads with the incidental route and
+   names when a member line is still warranted. The title should follow; no tool
+   edits a headline, so that is a hand edit.
 1. Rewrite "Adopt by adding a member line" in "Adopting a discovery" to offer
    two routes with one outcome: a member line, counted and blocking, or work
    left to close as incidental, listed at its close. Say what tells them apart:
@@ -2892,6 +2896,14 @@ closes and never curated". This is a gap, not a contradiction, since the
 incidental record is described elsewhere in the same file. It surfaced when
 [[id:d6375b21-a410-4c2d-9d5b-bfe980c4cc63][d6375b21]] was added as a member out of habit and then removed to close as
 incidental.
+
+*Widened 2026-11-06 (the user):* any work that joins a slice after work on it
+has begun should be considered incidental. So once a slice is =DOING=, the
+incidental route is the default rather than one of two equals, and a member line
+added then is the exception that needs a reason: it reopens the scope the slice
+was planned with and regresses the cookie. Before work begins, adding members is
+ordinary planning.
+
 
 
 * TODO This repo copies its own references into .claude/rules/ where a relative symlink would do, as its commands, agents and skills already are :code:
