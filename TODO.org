@@ -350,10 +350,31 @@ CLOSED: [2026-11-03 Tue 13:18]
 First review. Fixed in commit [[orgit-rev:./::4a875a9][4a875a9]]: both paths use --events-in-span.
 
 
-** TODO A gap span's edge events come from every session's history, so another project's event in the same second can decide the span's project
+** TODO A gap span's edge events come from every session's history, so another project's event in the same second can decide the span's project :bounded:
 :PROPERTIES:
 :ID:       6080f611-1005-42d4-942b-0fedbd162bc4
 :CREATED:  [2026-11-03 Tue 13:18]
+:END:
+:LOGBOOK:
+- Tags ":bounded:"  from ""           [2026-11-06 Fri 15:40] \\
+  design approved 2026-11-06; changes code PR #44 already added
+:END:
+:PLAN:
+Approved by the user 2026-11-06, on feature/suggest-own-project. A span holding
+no guidepost takes its project only from the clock events of the brackets it
+abuts: the ones --with-bracket-edges already finds, a bracket ending at the
+span's start or starting at its end. Each bracket is one lane's
+clock_in/clock_out pair, so its events are one session's by construction, where
+today --events-on-span-edges takes any event at either edge second from the
+whole history. When the two edges name different projects the span gets no
+suggestion. The review's proposal, the lane's nearest guidepost on each side,
+was not taken: the orphan stream mixes sessions, so it moves the collision
+rather than removing it. To check while implementing: whether the bracket list
+keeps its clock events or only their times; if only times, take the pairs from
+--lane-clock-pairs. This removes the whole-history scan per span, which is most
+of [[id:89355c78-d0c9-424e-856f-24f8f857ab91][89355c78]]. Test in config-test.el: another project's event in the same second
+as a span's edge no longer decides it, proved to fail on the branch as it is;
+then bin/test-all.
 :END:
 
 Second review. Proposed: take the lane's nearest guidepost on each side instead;
@@ -372,20 +393,51 @@ each path to its full root and derive --project-name's name from it, so the
 splitter and the scoped reads agree.
 
 
-** TODO A heading missing from org-id-locations counts as another project's, since the project test does no rescan on a miss
+** TODO A heading missing from org-id-locations counts as another project's, since the project test does no rescan on a miss :bounded:
 :PROPERTIES:
 :ID:       e70cad3f-5546-405b-b659-9ebc90fb45d0
 :CREATED:  [2026-11-03 Tue 13:18]
+:END:
+:LOGBOOK:
+- Tags ":bounded:"  from ""           [2026-11-06 Fri 15:40] \\
+  design approved 2026-11-06
+:END:
+:PLAN:
+Approved by the user 2026-11-06, on feature/suggest-own-project. When
+org-id-locations has no entry for a heading, --heading-in-project-p falls back
+to looking its file up with --id-find instead of answering nil. It does that at
+most once per id per pass, keeping each answer, including "not found", in a
+table bound for the pass, so a heading added by a hand edit or a pull keeps its
+suggestion and the fallback cannot become a scan per span. Test in
+config-test.el: an id removed from org-id-locations while its heading is still
+on disk is still found in its project, proved to fail on the branch as it is;
+then bin/test-all.
 :END:
 
 Second review. A heading added by a hand edit or a pull is missed. Proposed:
 fall back to --id-find on a miss, once per id per pass.
 
 
-** TODO A span from a removed linked worktree resolves to gone, and gone stops the project lookup before the edge events are read
+** TODO A span from a removed linked worktree resolves to gone, and gone stops the project lookup before the edge events are read :bounded:
 :PROPERTIES:
 :ID:       460dfe96-8a08-456f-bdbd-2ace19afd404
 :CREATED:  [2026-11-03 Tue 13:18]
+:END:
+:LOGBOOK:
+- Tags ":bounded:"  from ""           [2026-11-06 Fri 15:40] \\
+  design approved 2026-11-06
+:END:
+:PLAN:
+Approved by the user 2026-11-06, on feature/suggest-own-project. Two changes.
+First, a gone from inside the span no longer ends the lookup: today (or inside
+edges) stops there because gone is non-nil, so the span falls through to its
+edge events and stays gone only when they give nothing either. Second, for a cwd
+that no longer exists, --span-project walks up to the nearest directory that
+does and accepts the answer only when that directory is inside a git checkout.
+That recovers a worktree that sat inside the repo, while a sibling worktree
+stays unknown, because its parent directory belongs to no project. Tests in
+config-test.el, one per change, each proved to fail on the branch as it is; then
+bin/test-all.
 :END:
 
 Second review. Proposed: treat gone as unknown until the last step; a worktree
@@ -402,10 +454,23 @@ directory, a sibling one cannot.
 Second review. Rewrite the description once the code findings are fixed.
 
 
-** TODO Each review render re-resolves every DOING heading's project per span and rescans the whole history for edge events
+** TODO Each review render re-resolves every DOING heading's project per span and rescans the whole history for edge events :bounded:
 :PROPERTIES:
 :ID:       89355c78-d0c9-424e-856f-24f8f857ab91
 :CREATED:  [2026-11-03 Tue 13:18]
+:END:
+:LOGBOOK:
+- Tags ":bounded:"  from ""           [2026-11-06 Fri 15:40] \\
+  design approved 2026-11-06; folded into 6080f611 and measured after
+:END:
+:PLAN:
+Approved by the user 2026-11-06: folded into [[id:6080f611-1005-42d4-942b-0fedbd162bc4][6080f611]] and measured after it. The
+per-heading lookup is already cheap, because --project-name caches by path and
+--heading-in-project-p is a gethash on org-id-locations followed by that cached
+call. The real cost is the whole-history scan once per span in
+--events-on-span-edges, which [[id:6080f611-1005-42d4-942b-0fedbd162bc4][6080f611]] removes. Once that lands, time one review
+render on the live queue. If it is still slow, cache each heading's project once
+per pass; if not, close this heading as done by [[id:6080f611-1005-42d4-942b-0fedbd162bc4][6080f611]].
 :END:
 
 Second review. Proposed: cache each heading's project once per pass; the
