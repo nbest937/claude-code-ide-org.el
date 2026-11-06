@@ -4287,15 +4287,15 @@ and those 53 are cleared, unless [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128
 move generalised to :DEBRIEF:. Details in :PLAN:.
 
 
-* TODO [0/12] A slice's checklist can disagree with its members, and nothing can say so or fix it :code:
+* TODO [0/13] A slice's checklist can disagree with its members, and nothing can say so or fix it :code:
 :PROPERTIES:
 :ID:       7dcec489-f5dd-4f7f-b819-a25405436b9b
 :CREATED:  [2026-09-28 Mon 08:26]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:MEMBERS:  cdff5c91-3dc1-476e-a8f2-5293570a19fc a00ace04-99bd-414a-8dc7-df8305126589 a508c59e-475e-4d27-84c9-6c3ded98e15c 6f3a5342-1905-4831-b712-3b6e5e83e0c4 6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0 b112878e-6313-4bc6-bc3f-0533d5f1ad1b dc68d831-9e04-4f0a-8b8b-8087b39c6037 6a6f6708-eefd-4d77-8ca0-0c5aaaa80796 b3949615-9260-4d97-a33f-7d74ee45ccb1 5fa51c64-297e-4937-b3eb-1535b84151aa 23303aab-e151-449f-997c-0b5a9d2cc5eb 6385df59-ca01-48f8-9a91-d9319fa8de15
-:BLOCKER:  cdff5c91-3dc1-476e-a8f2-5293570a19fc a00ace04-99bd-414a-8dc7-df8305126589 a508c59e-475e-4d27-84c9-6c3ded98e15c 6f3a5342-1905-4831-b712-3b6e5e83e0c4 6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0 b112878e-6313-4bc6-bc3f-0533d5f1ad1b dc68d831-9e04-4f0a-8b8b-8087b39c6037 6a6f6708-eefd-4d77-8ca0-0c5aaaa80796 b3949615-9260-4d97-a33f-7d74ee45ccb1 5fa51c64-297e-4937-b3eb-1535b84151aa 23303aab-e151-449f-997c-0b5a9d2cc5eb 6385df59-ca01-48f8-9a91-d9319fa8de15
+:MEMBERS:  cdff5c91-3dc1-476e-a8f2-5293570a19fc a00ace04-99bd-414a-8dc7-df8305126589 a508c59e-475e-4d27-84c9-6c3ded98e15c 6f3a5342-1905-4831-b712-3b6e5e83e0c4 6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0 b112878e-6313-4bc6-bc3f-0533d5f1ad1b dc68d831-9e04-4f0a-8b8b-8087b39c6037 6a6f6708-eefd-4d77-8ca0-0c5aaaa80796 b3949615-9260-4d97-a33f-7d74ee45ccb1 5fa51c64-297e-4937-b3eb-1535b84151aa 23303aab-e151-449f-997c-0b5a9d2cc5eb 6385df59-ca01-48f8-9a91-d9319fa8de15 0b3b6566-0b20-4df1-aa20-f303512c5c6b
+:BLOCKER:  cdff5c91-3dc1-476e-a8f2-5293570a19fc a00ace04-99bd-414a-8dc7-df8305126589 a508c59e-475e-4d27-84c9-6c3ded98e15c 6f3a5342-1905-4831-b712-3b6e5e83e0c4 6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0 b112878e-6313-4bc6-bc3f-0533d5f1ad1b dc68d831-9e04-4f0a-8b8b-8087b39c6037 6a6f6708-eefd-4d77-8ca0-0c5aaaa80796 b3949615-9260-4d97-a33f-7d74ee45ccb1 5fa51c64-297e-4937-b3eb-1535b84151aa 23303aab-e151-449f-997c-0b5a9d2cc5eb 6385df59-ca01-48f8-9a91-d9319fa8de15 0b3b6566-0b20-4df1-aa20-f303512c5c6b
 :END:
 :PLAN:
 Composed 2026-09-28 from the backlog survey, at the user's direction. The theme:
@@ -4354,6 +4354,7 @@ Planned:
 - [ ] [[id:5fa51c64-297e-4937-b3eb-1535b84151aa][5fa51c64]] TODO A duplicate id in a slice's :MEMBERS: renders twice and counts twice, and lint says nothing
 - [ ] [[id:23303aab-e151-449f-997c-0b5a9d2cc5eb][23303aab]] TODO A :DROPPED: id that names no member does nothing, and no lint rule reads :DROPPED: though a comment says one does
 - [ ] [[id:6385df59-ca01-48f8-9a91-d9319fa8de15][6385df59]] TODO A slice-scoped org_outline lists derived parent rows and incidentals as members, because it reads the body rather than :MEMBERS:
+- [ ] [[id:0b3b6566-0b20-4df1-aa20-f303512c5c6b][0b3b6566]] TODO A deferred or cancelled slice member loses its box and nothing else, so it reads as a parent row; strike it through instead
 
 A slice's checklist is rendered from =:MEMBERS:=, and nothing checks that the
 rendering matches its members, repairs a closed slice's record, or lets a member
