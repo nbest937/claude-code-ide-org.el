@@ -2,6 +2,36 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO A deferred or cancelled slice member loses its box and nothing else, so it reads as a parent row; strike it through instead :code:
+:PROPERTIES:
+:ID:       0b3b6566-0b20-4df1-aa20-f303512c5c6b
+:CREATED:  [2026-11-06 Fri 11:45]
+:CATEGORY: Slices
+:END:
+:PLAN:
+Wrap the text after the bullet in org's +strike-through+ markup on a member
+line, at the same moment its box is removed: when :DROPPED: names it, or its
+keyword maps to no box (CANCELLED, MAYBE). Parent rows stay plain. Both
+renderers change: claude-code-ide-org--slice-render-planned-lines and the
+incidental renderer beside it.
+
+Check two things first. claude-code-ide-org--slice-list-line-re anchors [[id:
+right after the optional box, so a leading + would hide the line from the
+planned-region scan and every parser that uses it. And a title holding a + or an
+unbalanced = could close the emphasis early.
+:END:
+
+Asked for by the user, 2026-11-06. The refresh renders a member with no box when
+:DROPPED: names it or its keyword maps to none (CANCELLED, MAYBE), in
+claude-code-ide-org--slice-render-planned-lines and the incidental renderer
+beside it, so it looks just like a derived parent row. Proposed: wrap such a
+line's text after the bullet in org's +strike-through+ markup at the same moment
+the box is removed, leaving parent rows plain. Two things to check first.
+claude-code-ide-org--slice-list-line-re anchors [[id: right after the optional
+box, so a leading + would stop the planned-region scan and every parser that
+uses it from seeing the line. And a title holding a + or an unbalanced = could
+close the emphasis early.
+
 * TODO org_set_property ignores append on :DROPPED: and every property but :BLOCKER:, so an append shortens the list and reports success :code:bounded:
 :PROPERTIES:
 :ID:       0c18b5c1-1cc5-4f18-8ba0-e2949e9dba34
