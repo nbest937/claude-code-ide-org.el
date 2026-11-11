@@ -11314,6 +11314,69 @@ honest answer."
     (should-not (claude-code-ide-org--project-name
                  "/no/such/checkout/modules/tools/x"))))
 
+(defmacro claude-code-ide-org-test--with-same-named-checkouts (&rest body)
+  "Run BODY with A and B bound to two git checkouts both named `proj'.
+
+They sit under different parents, each holding an empty `.git' directory
+so that a path inside one resolves up to it, and the project-name cache
+is fresh.  Nothing is seeded into the cache: a seeded entry would make
+the assertions agree with the implementation by construction (TODO.org
+:ID: e08fb599)."
+  (declare (indent 0))
+  `(let* ((parents (list (file-name-as-directory (make-temp-file "cciorg-pa" t))
+                         (file-name-as-directory (make-temp-file "cciorg-pb" t))))
+          (a (expand-file-name "proj" (car parents)))
+          (b (expand-file-name "proj" (cadr parents)))
+          (claude-code-ide-org--project-name-cache (make-hash-table :test 'equal)))
+     (unwind-protect
+         (progn
+           (dolist (root (list a b))
+             (make-directory (expand-file-name ".git" root) t)
+             (make-directory (expand-file-name "sub" root) t))
+           ,@body)
+       (dolist (p parents) (ignore-errors (delete-directory p t))))))
+
+(ert-deftest claude-code-ide-org-test-same-named-checkouts-are-two-projects ()
+  "Two checkouts that share a directory name are not one project.
+
+The span's project is what the splitter and the suggestion compare, and
+it was the git root's last path component, so `~/a/proj' and `~/b/proj'
+read as equal.  The display name stays the bare basename for both
+(TODO.org :ID: e08fb599, option A)."
+  (claude-code-ide-org-test--with-same-named-checkouts
+    (should (equal "proj" (claude-code-ide-org--project-name a)))
+    (should (equal "proj" (claude-code-ide-org--project-name b)))
+    (let ((of (lambda (cwd) (claude-code-ide-org--span-project (list (list :cwd cwd))))))
+      (should-not (equal (funcall of a) (funcall of b)))
+      ;; The control: a path nested in one checkout is still that checkout.
+      (should (equal (funcall of a) (funcall of (expand-file-name "sub" a)))))))
+
+(ert-deftest claude-code-ide-org-test-same-named-checkouts-split-a-span ()
+  "Guideposts from two same-named checkouts do not cluster into one span.
+
+The timestamps sit well inside the gap threshold, so only the project
+boundary can be what splits them."
+  (claude-code-ide-org-test--with-same-named-checkouts
+    (let ((spans (claude-code-ide-org--aggregate-guideposts
+                  (claude-code-ide-org-test--events
+                   (list "2026-11-11T10:00:00-0600" "resume" nil nil "s" nil nil nil a)
+                   (list "2026-11-11T10:00:30-0600" "pause" nil nil "s" nil nil nil a)
+                   (list "2026-11-11T10:01:00-0600" "resume" nil nil "s" nil nil nil b)
+                   (list "2026-11-11T10:01:30-0600" "pause" nil nil "s" nil nil nil b)))))
+      (should (= 2 (length spans))))))
+
+(ert-deftest claude-code-ide-org-test-same-named-checkout-is-not-the-spans-project ()
+  "A heading held in one checkout is not in the other that shares its name."
+  (claude-code-ide-org-test--with-same-named-checkouts
+    (let ((org-id-locations (make-hash-table :test 'equal))
+          (file (expand-file-name "TODO.org" b)))
+      (write-region "" nil file nil 'quiet)
+      (puthash "id-in-b" file org-id-locations)
+      (should (claude-code-ide-org--heading-in-project-p
+               "id-in-b" (claude-code-ide-org--span-project (list (list :cwd b)))))
+      (should-not (claude-code-ide-org--heading-in-project-p
+                   "id-in-b" (claude-code-ide-org--span-project (list (list :cwd a))))))))
+
 (ert-deftest claude-code-ide-org-test-queue-event-carries-cwd ()
   "`cwd' survives the parse, and its absence stays distinguishable.
 
@@ -12546,20 +12609,24 @@ event that entered DOING came from."
   (claude-code-ide-org-test--with-scoped-projects
     (let* ((base (date-to-time "2026-10-30T14:00:00-0500"))
            (at (time-add base 600))
+           ;; The project is the root, not the name (TODO.org :ID:
+           ;; e08fb599), spelled here without the code under test.
+           (a (directory-file-name (file-truename a-root)))
+           (b (directory-file-name (file-truename b-root)))
            (b-doing (list :kind "todo" :id b-id :state "DOING" :ts base :cwd b-root)))
-      (should-not (claude-code-ide-org--review-suggest-heading at (list b-doing) "a"))
+      (should-not (claude-code-ide-org--review-suggest-heading at (list b-doing) a))
       (should (equal b-id (claude-code-ide-org--review-suggest-heading
-                           at (list b-doing) "b")))
+                           at (list b-doing) b)))
       ;; Where the heading lives decides, not where the session stood.
       (should-not (claude-code-ide-org--review-suggest-heading
-                   at (list (plist-put (copy-sequence b-doing) :cwd a-root)) "a"))
+                   at (list (plist-put (copy-sequence b-doing) :cwd a-root)) a))
       (should (equal b-id (claude-code-ide-org--review-suggest-heading
-                           at (list (plist-put (copy-sequence b-doing) :cwd nil)) "b")))
+                           at (list (plist-put (copy-sequence b-doing) :cwd nil)) b)))
       ;; No heading of a project that is gone, or an id nothing resolves.
       (should-not (claude-code-ide-org--review-suggest-heading at (list b-doing) 'gone))
       (should-not (claude-code-ide-org--review-suggest-heading
                    at (list (list :kind "todo" :id "no-such-id" :state "DOING" :ts base))
-                   "a"))
+                   a))
       ;; A span of no known project reads everything, as it always has.
       (should (equal b-id (claude-code-ide-org--review-suggest-heading
                            at (list b-doing)))))))
@@ -12567,13 +12634,22 @@ event that entered DOING came from."
 (ert-deftest claude-code-ide-org-test-suggest-heading-closed-from-elsewhere ()
   "Leaving DOING clears the suggestion whichever cwd recorded it."
   (claude-code-ide-org-test--with-scoped-projects
-    (let* ((base (date-to-time "2026-10-30T14:00:00-0500")))
+    (let* ((base (date-to-time "2026-10-30T14:00:00-0500"))
+           ;; A bare name matches nothing now that the project is a
+           ;; root, which would make this pass whatever the code did.
+           (a (directory-file-name (file-truename a-root))))
+      ;; The control: with no DONE, the heading is the answer.
+      (should (equal a-id (claude-code-ide-org--review-suggest-heading
+                           (time-add base 600)
+                           (list (list :kind "todo" :id a-id :state "DOING"
+                                       :ts base :cwd a-root))
+                           a)))
       (should-not (claude-code-ide-org--review-suggest-heading
                    (time-add base 600)
                    (list (list :kind "todo" :id a-id :state "DOING" :ts base :cwd a-root)
                          (list :kind "todo" :id a-id :state "DONE"
                                :ts (time-add base 60) :cwd b-root))
-                   "a")))))
+                   a)))))
 
 (ert-deftest claude-code-ide-org-test-span-project-from-its-events ()
   "The resolver the span splitter uses: a worktree is its main checkout,
@@ -12582,13 +12658,17 @@ a symlink its target, an empty cwd nothing, and a removed one `gone'."
     (let ((of (lambda (&rest cwds)
                 (claude-code-ide-org--span-project
                  (mapcar (lambda (cwd) (list :cwd cwd)) cwds))))
-          (link (expand-file-name "link" dir)))
+          (link (expand-file-name "link" dir))
+          ;; The project is the root (TODO.org :ID: e08fb599), spelled
+          ;; here without the code under test.
+          (a (directory-file-name (file-truename a-root)))
+          (b (directory-file-name (file-truename b-root))))
       (make-symbolic-link b-root link)
-      (should (equal "b" (funcall of b-wt)))
-      (should (equal "b" (funcall of link)))
+      (should (equal b (funcall of b-wt)))
+      (should (equal b (funcall of link)))
       (should-not (funcall of nil ""))
       (should (eq 'gone (funcall of (expand-file-name "removed/" dir))))
-      (should (equal "a" (funcall of "" (expand-file-name "removed/" dir) a-root))))))
+      (should (equal a (funcall of "" (expand-file-name "removed/" dir) a-root))))))
 
 (ert-deftest claude-code-ide-org-test-span-is-not-offered-another-projects-heading ()
   "Through the review items: a project with no guideposts of its own, as

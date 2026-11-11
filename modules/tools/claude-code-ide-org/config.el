@@ -10501,14 +10501,16 @@ other."
          ;; bracket it, and the old code discarded `:kind' here -- which is
          ;; how a long turn came to be unmeasurable (TODO.org :ID: 226ed53b).
          ;; (TS KIND PROJECT), the project being `cwd' normalised through
-         ;; `claude-code-ide-org--project-name' -- git root, and a linked
+         ;; `claude-code-ide-org--project-root-key' -- git root, and a linked
          ;; worktree folded into its main checkout, which is the second
          ;; obligation :ID: 5461c349 recorded the field for.  Without that
          ;; normalisation one project splits into one span per worktree.
+         ;; The root and not the name: two checkouts sharing a directory
+         ;; name are two projects (:ID: e08fb599).
          (points (sort (mapcar (lambda (e)
                                  (list (plist-get e :ts)
                                        (plist-get e :kind)
-                                       (claude-code-ide-org--project-name
+                                       (claude-code-ide-org--project-root-key
                                         (plist-get e :cwd))))
                                (seq-remove
                                 (lambda (e)
@@ -11639,7 +11641,7 @@ no guidepost of this lane can still hold another session's."
               events))
 
 (defun claude-code-ide-org--span-project (events)
-  "The project of a span holding EVENTS, as `--project-name' answers.
+  "The project of a span holding EVENTS, as `--project-root-key' answers.
 
 Nil when no event names a `cwd', which leaves the span of no known
 project.  The symbol `gone' when each one names a directory that no
@@ -11647,7 +11649,7 @@ longer exists: that span's project is unknown but it is known not to be
 every project, so `--review-suggest-heading' matches no heading for it."
   (when-let* ((cwds (seq-remove (lambda (cwd) (or (null cwd) (equal cwd "")))
                                 (mapcar (lambda (e) (plist-get e :cwd)) events))))
-    (or (seq-some #'claude-code-ide-org--project-name cwds) 'gone)))
+    (or (seq-some #'claude-code-ide-org--project-root-key cwds) 'gone)))
 
 (defun claude-code-ide-org--heading-in-project-p (id project)
   "Non-nil when the file holding heading ID belongs to PROJECT.
@@ -11655,7 +11657,7 @@ From `org-id-locations' rather than `--id-find', which visits the file:
 this runs for every DOING in the queue's history, once per span."
   (when-let* ((file (and (hash-table-p org-id-locations)
                          (gethash id org-id-locations))))
-    (equal project (claude-code-ide-org--project-name file))))
+    (equal project (claude-code-ide-org--project-root-key file))))
 
 (defun claude-code-ide-org--review-suggest-heading (time events &optional project)
   "Return the :ID: most plausibly being worked on at TIME, from EVENTS.
@@ -15667,7 +15669,8 @@ and opened with following on."
 
 (defvar claude-code-ide-org--project-name-cache
   (make-hash-table :test 'equal)
-  "Memo for `claude-code-ide-org--project-name', keyed by the path given.
+  "Memo for `claude-code-ide-org--project-root-key', keyed by the path given.
+Holds the root, which `--project-name' reads its name from.
 
 Not an optimisation looking for a problem: the review buffer re-renders
 on every keystroke, and the cwd annotation asks this question once per
@@ -15718,30 +15721,33 @@ no `.git' component -- answers nil, and the caller keeps ROOT."
           (when (equal (file-name-nondirectory dir) ".git")
             (file-name-directory dir)))))))
 
-(defun claude-code-ide-org--project-name (path)
-  "Return the name of the project directory containing PATH, or nil.
+(defun claude-code-ide-org--project-root-key (path)
+  "Return the full root directory of the project containing PATH, or nil.
 
-The *git root's* own directory name when PATH is inside a repository,
-and the containing directory's name otherwise.  The git root is what
-makes two paths comparable: a session `cwd' three levels down inside a
-checkout and the tracked org file at its top must answer with the same
-name, or the annotation this feeds would report one project as two.
-Measured on the live queue the day it was written -- 722 events at the
-repo root and 18 in `modules/tools/claude-code-ide-org' were one
-project, not two.
+What two paths are compared by, where `--project-name' is what a human is
+shown: `~/a/proj' and `~/b/proj' share a name and are two projects
+\(TODO.org :ID: e08fb599).  The root is the git root when PATH is inside a
+repository and the containing directory otherwise, as a truename without
+a trailing slash.  The git root is what makes two paths comparable: a
+session `cwd' three levels down inside a checkout and the tracked org
+file at its top must answer alike, or the annotation this feeds would
+report one project as two.  Measured on the live queue the day it was
+written -- 722 events at the repo root and 18 in
+`modules/tools/claude-code-ide-org' were one project, not two.
 
 Truenames first, for the reason `claude-code-ide-org--git-roots' gives:
 a tracked path may be a symlink into the repo, and walking up from the
 link's own directory finds no .git at all.  A *linked worktree* then
 normalises to its main checkout
 \(`claude-code-ide-org--worktree-main-checkout'), so one project does
-not render as one name per worktree.
+not render as one root per worktree.
 
 Nil for a path that is nil or no longer exists -- a session's cwd
 outlives the directory it names.  Display code degrades rather than
 signalling, and nil renders as no annotation, which is the honest
 answer.  Deliberately *not* the last path component in that case: for
-a nested cwd that would name a subdirectory and call it the project."
+a nested cwd that would name a subdirectory and call it the project.
+Nil too for the filesystem root, whose name is empty."
   (when (and (stringp path) (not (string-empty-p path)))
     (let ((cached (gethash path claude-code-ide-org--project-name-cache 'miss)))
       (if (not (eq cached 'miss))
@@ -15757,16 +15763,31 @@ a nested cwd that would name a subdirectory and call it the project."
                   (root (or (ignore-errors (locate-dominating-file dir ".git"))
                             dir))
                   ;; A linked worktree is the same project as its main
-                  ;; checkout, under a different directory name.
-                  (root (or (ignore-errors
-                              (claude-code-ide-org--worktree-main-checkout root))
-                            root))
-                  (name (file-name-nondirectory (directory-file-name root))))
-             ;; "" is what the filesystem root answers, and it would
-             ;; render as an empty pair of brackets -- a label that
+                  ;; checkout, under a different directory name.  The
+                  ;; pointer file names the main checkout as git wrote
+                  ;; it, which need not be a truename, so it is made one:
+                  ;; the root is compared, and a worktree's must equal
+                  ;; the main checkout's own.
+                  (root (directory-file-name
+                         (or (ignore-errors
+                               (file-truename
+                                (claude-code-ide-org--worktree-main-checkout root)))
+                             root))))
+             ;; "" is what the filesystem root's name answers, and it
+             ;; would render as an empty pair of brackets -- a label that
              ;; looks like a failed lookup rather than a project.
-             (unless (string-empty-p name) name)))
+             (unless (string-empty-p (file-name-nondirectory root)) root)))
          claude-code-ide-org--project-name-cache)))))
+
+(defun claude-code-ide-org--project-name (path)
+  "Return the name of the project directory containing PATH, or nil.
+
+The last component of `--project-root-key's answer, the display half of
+the pair: it is what the outline label and the cwd annotation show, and
+two checkouts sharing it render alike.  Anything that decides whether
+two paths are one project compares the root instead."
+  (when-let* ((root (claude-code-ide-org--project-root-key path)))
+    (file-name-nondirectory root)))
 
 (defun claude-code-ide-org--git-roots ()
   "Distinct git roots containing the tracked org files.
