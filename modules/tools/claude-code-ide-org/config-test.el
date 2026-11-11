@@ -12651,6 +12651,46 @@ event that entered DOING came from."
                                :ts (time-add base 60) :cwd b-root))
                    a)))))
 
+(ert-deftest claude-code-ide-org-test-heading-missing-from-the-index-is-still-found ()
+  "A heading `org-id-locations' lacks is looked up, not counted as another
+project's.
+
+One added by a hand edit or a pull is absent from the index until
+something looks (TODO.org :ID: e70cad3f), and answering nil there made
+`--review-suggest-heading' drop a heading of the span's own project."
+  (claude-code-ide-org-test--with-scoped-projects
+    (let ((a (directory-file-name (file-truename a-root)))
+          (b (directory-file-name (file-truename b-root)))
+          (new-id "cccc0000-d637-4000-8000-000000000003"))
+      ;; The control: an indexed heading answers right.
+      (should (claude-code-ide-org--heading-in-project-p a-id a))
+      ;; Added to the file after the index was built, as a hand edit or a
+      ;; pull does.  Not `remhash': org skips its rescan when no file's
+      ;; modification time has moved, so that would not model this.
+      (write-region (concat "\n* TODO Added by hand\n:PROPERTIES:\n:ID:       "
+                            new-id "\n:END:\n")
+                    nil a-todo 'append 'quiet)
+      (set-file-times a-todo (time-add (current-time) 5))
+      (should-not (gethash new-id org-id-locations))
+      (should (claude-code-ide-org--heading-in-project-p new-id a))
+      (should-not (claude-code-ide-org--heading-in-project-p new-id b)))))
+
+(ert-deftest claude-code-ide-org-test-heading-lookup-runs-once-per-id-per-pass ()
+  "The fallback cannot become a scan per span: each id is looked up once
+in a pass, a miss included, and answers again from the pass's table."
+  (let ((claude-code-ide-org--id-file-memo (make-hash-table :test 'equal))
+        (org-id-locations (make-hash-table :test 'equal))
+        (calls nil))
+    (cl-letf (((symbol-function 'claude-code-ide-org--id-find)
+               (lambda (id &optional _markerp)
+                 (push id calls)
+                 (and (equal id "known") (cons "/no/such/TODO.org" 1)))))
+      (dotimes (_ 3)
+        (claude-code-ide-org--heading-in-project-p "unknown" "/p")
+        (claude-code-ide-org--heading-in-project-p "known" "/p"))
+      (should (equal '("known" "unknown") (sort (copy-sequence calls) #'string<)))
+      (should (= 2 (length calls))))))
+
 (ert-deftest claude-code-ide-org-test-span-project-from-its-events ()
   "The resolver the span splitter uses: a worktree is its main checkout,
 a symlink its target, an empty cwd nothing, and a removed one `gone'."
