@@ -311,6 +311,26 @@ CLOCK: [2026-11-06 Fri 15:33]--[2026-11-06 Fri 15:35] =>  0:02
 CLOCK: [2026-11-06 Fri 15:40]--[2026-11-06 Fri 15:41] =>  0:01
 - [2026-11-06 Fri 15:40]--[2026-11-06 Fri 15:41] assigned at review
 :END:
+:DEBRIEF:
+Shipped: the six second-round findings landed on the PR's branch in commits
+0ad95cc ([[id:e08fb599-8cce-4c50-8fe9-9291ec24c7d7][e08fb599]]), 250b2c2 and 43c21e3 ([[id:e70cad3f-5546-405b-b659-9ebc90fb45d0][e70cad3f]]), 288aeb0 ([[id:460dfe96-8a08-456f-bdbd-2ace19afd404][460dfe96]]) and
+54787ac ([[id:6080f611-1005-42d4-942b-0fedbd162bc4][6080f611]]), with [[id:89355c78-d0c9-424e-856f-24f8f857ab91][89355c78]] measured and [[id:d6d06bae-197f-42ca-9277-f95e01009140][d6d06bae]] the description rewrite;
+[[https://github.com/nbest937/claude-code-ide-org.el/pull/44][PR #44]] merged as d54d78d. Each member's debrief has its own detail.
+
+What the round taught, in order of cost. First, a design approved on reasoning
+alone was wrong: [[id:e70cad3f-5546-405b-b659-9ebc90fb45d0][e70cad3f]]'s per-id lookup made a render 8.7 s against 3.5 s, and
+only measuring on the live queue showed it; it was replaced by one rescan per
+pass. Second, two of the new tests passed against the code they were meant to
+fail, the same-second edge test and the remhash test for the index, and were
+found only by running them against the previous code. Third, a review asked for
+before the push read the old head and its findings named code that no longer
+existed; the review that mattered ran after.
+
+Verified: bin/test-all 28 suites, 1781 passed, 0 failed before the push; the
+merged module live in the running Emacs with a fresh image check.
+
+Not done: the render's real cost, queue parsing at 3.8 s of 4.8, is [[id:3565ba71-bb57-4b97-b4ca-66bd917096fe][3565ba71]].
+:END:
 
 The findings of PR #44's two code reviews, against [[id:d0f8042c-c294-45b2-9016-7efca7977982][d0f8042c]], which stays REVIEW
 while these are worked. The first review, of commit [[orgit-rev:./::ec73f62][ec73f62]] on 2026-10-30,
@@ -318,6 +338,11 @@ posted eight, all fixed in commit [[orgit-rev:./::4a875a9][4a875a9]]. The second
 2026-11-03, posted seven; one, that a prefixed DOING id never counts as
 in-project, was a false positive, because --queue-parse-line expands prefixes
 and all 569 live DOING events resolved, so it has no child here.
+
+Resolved 2026-11-11: all fourteen findings are closed, and [[https://github.com/nbest937/claude-code-ide-org.el/pull/44][PR #44]] merged as
+commit [[orgit-rev:./::d54d78d][d54d78d]]. Eight were fixed after the first review, six after the second,
+and one of the second's seven was a false positive with no child.
+
 
 
 ** DONE A span holding no guidepost resolves to no project, so it still reads every project's events and can be offered another project's heading
@@ -467,9 +492,9 @@ in the same second can decide it. The approved design reads only the clock
 events of the brackets the span abuts, and also removes the whole-history scan
 behind [[id:89355c78-d0c9-424e-856f-24f8f857ab91][89355c78]].
 
-Resolved on feature/suggest-own-project in commit [[orgit-rev:./::54787ac][54787ac]], awaiting PR #44's
-merge: a gap span takes its project from the brackets it abuts only, and two
-brackets naming different projects leave it with no suggestion.
+Resolved on feature/suggest-own-project in commit [[orgit-rev:./::54787ac][54787ac]], merged in [[https://github.com/nbest937/claude-code-ide-org.el/pull/44][PR #44]]
+(commit [[orgit-rev:./::d54d78d][d54d78d]]): a gap span takes its project from the brackets it abuts only,
+and two brackets naming different projects leave it with no suggestion.
 
 
 
@@ -543,9 +568,9 @@ span splitter keeps them in one span, and a heading from the other counts as
 in-project. The design resolves each path to its full root and compares on
 that, leaving the display name the bare basename.
 
-Resolved on feature/suggest-own-project in commit [[orgit-rev:./::0ad95cc][0ad95cc]], awaiting PR #44's
-merge: projects are compared by their full truename root, and the bare name
-remains the display label.
+Resolved on feature/suggest-own-project in commit [[orgit-rev:./::0ad95cc][0ad95cc]], merged in [[https://github.com/nbest937/claude-code-ide-org.el/pull/44][PR #44]]
+(commit [[orgit-rev:./::d54d78d][d54d78d]]): projects are compared by their full truename root, and the
+bare name remains the display label.
 
 
 ** TODO A heading missing from org-id-locations counts as another project's, since the project test does no rescan on a miss :bounded:
@@ -596,10 +621,10 @@ missing from org-id-locations, so one added by a hand edit or a pull counts as
 another project's. The approved design falls back to --id-find, at most once per
 id per pass.
 
-Resolved on feature/suggest-own-project in commits 250b2c2 and 43c21e3, awaiting
-PR #44's merge: a heading the id index lacks is found by rescanning the index
-once per review pass. This replaces the approved per-id lookup, which measured
-too slow.
+Resolved on feature/suggest-own-project in commits 250b2c2 and 43c21e3, merged
+in [[https://github.com/nbest937/claude-code-ide-org.el/pull/44][PR #44]] (commit [[orgit-rev:./::d54d78d][d54d78d]]): a heading the id index lacks is found by rescanning
+the index once per review pass. This replaces the approved per-id lookup, which
+measured too slow.
 
 
 
@@ -649,9 +674,9 @@ approved design lets gone fall through to the edges, and recovers a removed
 worktree that sat inside the repo by walking up to the nearest existing
 directory.
 
-Resolved on feature/suggest-own-project in commit [[orgit-rev:./::288aeb0][288aeb0]], awaiting PR #44's
-merge: gone no longer ends the project lookup, and a removed worktree inside the
-repo is recovered from its nearest existing directory.
+Resolved on feature/suggest-own-project in commit [[orgit-rev:./::288aeb0][288aeb0]], merged in [[https://github.com/nbest937/claude-code-ide-org.el/pull/44][PR #44]]
+(commit [[orgit-rev:./::d54d78d][d54d78d]]): gone no longer ends the project lookup, and a removed worktree
+inside the repo is recovered from its nearest existing directory.
 
 
 
@@ -871,6 +896,35 @@ whose every cwd is gone matches no heading rather than every heading. Two
 checkouts sharing a basename stay one project here, as they already are to the
 splitter.
 :END:
+:DEBRIEF:
+Shipped: --review-suggest-heading takes the span's project and counts a heading
+entering DOING only if its file is in that project; leaving DOING still clears
+from any cwd. The project is the full root of the git checkout, a linked
+worktree folded into its main checkout. A span with no guidepost takes it from
+the brackets it abuts, a span of no known project reads every event as before,
+and a heading the id index lacks is found by one rescan per review pass.
+
+Verified: merged as [[https://github.com/nbest937/claude-code-ide-org.el/pull/44][PR #44]] at head 43c21e3, merge commit [[orgit-rev:./::d54d78d][d54d78d]], with the
+pre-push bin/test-all at 28 suites, 1781 passed, 0 failed; the merged module
+reloaded into the running Emacs, whose image check reads fresh. Measured on the
+live queue: a render costs 3.5 to 4.5 s, of which the project work is about
+0.4 s; the rest is queue parsing, filed as [[id:3565ba71-bb57-4b97-b4ca-66bd917096fe][3565ba71]].
+
+Differed from the plan, a good deal. The design at filing compared by cwd and
+kept a no-cwd rule; two review rounds (fourteen findings, eight fixed in the
+first) rewrote it into the resolver above, which [[id:c56b4eef-0637-4ada-9c88-29eed6ffd4c0][c56b4eef]] records. A third
+review of the final head returned six; two were refuted by measurement and the
+code, one was already fixed, and three stand as accepted limits: a removed cwd
+whose nearest existing ancestor sits in an unrelated enclosing repo resolves
+there, which only misleads if that repo is itself tracked; a project with no
+.git splits a cwd below its root from the root, as the basename comparison
+always did, and none tracked here lacks one; and the path-to-root cache is never
+invalidated, as its docstring says. None is filed: each is harmless on the
+current projects, and the third review's account is in this paragraph.
+
+The misfiled CLOCK lines in noodle-salesman that started this were deleted on
+2026-10-30, per the logbook.
+:END:
 --review-items-from-queue passes --review-suggest-heading the full queue history
   of every session, so a span from one project takes the newest work-in-progress
   todo event from any project, and the span's own cwd plays no part. Measured
@@ -883,6 +937,11 @@ splitter.
   should read only events from the span's project. Which of the 35 lines to move
   or drop is a separate decision for that tracker. A related scope failure is
   [[id:70b47b8f-b413-4660-bf32-b0b90db45ff4][70b47b8f]].
+
+Resolved by [[https://github.com/nbest937/claude-code-ide-org.el/pull/44][PR #44]] (merge commit [[orgit-rev:./::d54d78d][d54d78d]], 2026-11-11): a span is offered a
+heading only from its own project, compared by full root. The findings of the
+PR's review rounds are in [[id:c56b4eef-0637-4ada-9c88-29eed6ffd4c0][c56b4eef]].
+
 
 
 * TODO Burying the review buffer runs this project's ceremony because another project's is overdue, since the due check ignores the project scope :code:
