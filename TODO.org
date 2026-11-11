@@ -26,6 +26,7 @@ keystroke, so every one pays it. Found while measuring the [[https://github.com/
 ([[id:89355c78-d0c9-424e-856f-24f8f857ab91][89355c78]]), whose premise, that project resolution was the cost, it falsifies:
 heading-in-project-p over 3003 calls is under half a second.
 
+
 * TODO bin/check-conventions fails in a linked worktree, which it reads as a clone with the wrong MCP session name, so a PR worked from a worktree cannot commit :code:
 :PROPERTIES:
 :ID:       fc76aab0-423c-4e42-aded-3de9a6df317c
@@ -51,6 +52,7 @@ worktree shares its repository with the main checkout, so it should neither need
 its own session name nor collide. The check should recognise a linked worktree,
 as --worktree-main-checkout already does for the module, and skip both findings
 for it.
+
 
 * TODO The conventions tell a slice to declare a story and its children together, which the lint refuses :bounded:
 :PROPERTIES:
@@ -299,7 +301,8 @@ warnings never block; and it fails closed, refusing a tracker commit when the
 lint is missing, where this repo's hook passes it.
 
 
-* TODO [8/14] PR #44's review found fourteen defects in the project-scoped suggestion, eight fixed and six open :code:
+* DONE [14/14] PR #44's review found fourteen defects in the project-scoped suggestion, eight fixed and six open :code:
+CLOSED: [2026-11-11 Wed 17:08]
 :PROPERTIES:
 :ID:       c56b4eef-0637-4ada-9c88-29eed6ffd4c0
 :CREATED:  [2026-11-03 Tue 13:18]
@@ -310,6 +313,24 @@ CLOCK: [2026-11-06 Fri 15:33]--[2026-11-06 Fri 15:35] =>  0:02
 - [2026-11-06 Fri 15:33]--[2026-11-06 Fri 15:35] assigned at review
 CLOCK: [2026-11-06 Fri 15:40]--[2026-11-06 Fri 15:41] =>  0:01
 - [2026-11-06 Fri 15:40]--[2026-11-06 Fri 15:41] assigned at review
+CLOCK: [2026-11-11 Wed 16:32]--[2026-11-11 Wed 16:33] =>  0:01
+- [2026-11-11 Wed 16:32]--[2026-11-11 Wed 16:33] assigned at review
+CLOCK: [2026-11-11 Wed 16:35]--[2026-11-11 Wed 16:36] =>  0:01
+- [2026-11-11 Wed 16:35]--[2026-11-11 Wed 16:36] assigned at review
+CLOCK: [2026-11-11 Wed 16:48]--[2026-11-11 Wed 16:49] =>  0:01
+- [2026-11-11 Wed 16:48]--[2026-11-11 Wed 16:49] assigned at review
+CLOCK: [2026-11-11 Wed 16:50]--[2026-11-11 Wed 16:51] =>  0:01
+- [2026-11-11 Wed 16:50]--[2026-11-11 Wed 16:51] assigned at review
+CLOCK: [2026-11-11 Wed 16:51]--[2026-11-11 Wed 16:52] =>  0:01
+- [2026-11-11 Wed 16:51]--[2026-11-11 Wed 16:52] assigned at review
+CLOCK: [2026-11-11 Wed 16:56]--[2026-11-11 Wed 16:57] =>  0:01
+- [2026-11-11 Wed 16:56]--[2026-11-11 Wed 16:57] assigned at review
+CLOCK: [2026-11-11 Wed 17:06]--[2026-11-11 Wed 17:08] =>  0:02
+- [2026-11-11 Wed 17:06]--[2026-11-11 Wed 17:08] assigned at review
+- State "DONE"       from "TODO"       [2026-11-11 Wed 17:08] \\
+  all findings closed, PR 44 merged
+CLOCK: [2026-11-11 Wed 17:08]--[2026-11-11 Wed 17:09] =>  0:01
+- [2026-11-11 Wed 17:08]--[2026-11-11 Wed 17:09] close PR 44 findings after merge
 :END:
 :DEBRIEF:
 Shipped: the six second-round findings landed on the PR's branch in commits
@@ -342,7 +363,6 @@ and all 569 live DOING events resolved, so it has no child here.
 Resolved 2026-11-11: all fourteen findings are closed, and [[https://github.com/nbest937/claude-code-ide-org.el/pull/44][PR #44]] merged as
 commit [[orgit-rev:./::d54d78d][d54d78d]]. Eight were fixed after the first review, six after the second,
 and one of the second's seven was a false positive with no child.
-
 
 
 ** DONE A span holding no guidepost resolves to no project, so it still reads every project's events and can be offered another project's heading
@@ -432,7 +452,8 @@ CLOSED: [2026-11-03 Tue 13:18]
 First review. Fixed in commit [[orgit-rev:./::4a875a9][4a875a9]]: both paths use --events-in-span.
 
 
-** TODO A gap span's edge events come from every session's history, so another project's event in the same second can decide the span's project :bounded:
+** DONE A gap span's edge events come from every session's history, so another project's event in the same second can decide the span's project :bounded:
+CLOSED: [2026-11-11 Wed 17:08]
 :PROPERTIES:
 :ID:       6080f611-1005-42d4-942b-0fedbd162bc4
 :CREATED:  [2026-11-03 Tue 13:18]
@@ -446,6 +467,14 @@ CLOCK: [2026-11-06 Fri 15:42]--[2026-11-06 Fri 15:43] =>  0:01
 - [2026-11-06 Fri 15:42]--[2026-11-06 Fri 15:43] assigned at review
 CLOCK: [2026-11-06 Fri 15:45]--[2026-11-06 Fri 15:46] =>  0:01
 - [2026-11-06 Fri 15:45]--[2026-11-06 Fri 15:46] assigned at review
+CLOCK: [2026-11-11 Wed 16:18]--[2026-11-11 Wed 16:32] =>  0:14
+- State "DOING"      from "TODO"       [2026-11-11 Wed 16:18] \\
+  approved design, working on PR 44 branch
+- [2026-11-11 Wed 16:18]--[2026-11-11 Wed 16:32] edge project from abutting brackets only
+- State "REVIEW"     from "DOING"      [2026-11-11 Wed 16:32] \\
+  code on PR 44 branch, awaiting merge
+- State "DONE"       from "REVIEW"     [2026-11-11 Wed 17:08] \\
+  merged in PR 44
 :END:
 :PLAN:
 Approved by the user 2026-11-06, on feature/suggest-own-project. A span holding
@@ -497,15 +526,23 @@ Resolved on feature/suggest-own-project in commit [[orgit-rev:./::54787ac][54787
 and two brackets naming different projects leave it with no suggestion.
 
 
-
-** TODO Projects are compared by directory basename, so two checkouts with the same name count as one project :bounded:
+** DONE Projects are compared by directory basename, so two checkouts with the same name count as one project :bounded:
+CLOSED: [2026-11-11 Wed 17:08]
 :PROPERTIES:
 :ID:       e08fb599-8cce-4c50-8fe9-9291ec24c7d7
 :CREATED:  [2026-11-03 Tue 13:18]
 :END:
 :LOGBOOK:
+CLOCK: [2026-11-11 Wed 15:11]--[2026-11-11 Wed 15:12] =>  0:01
+- [2026-11-11 Wed 15:11]--[2026-11-11 Wed 15:12] record approved bounded design
 - Tags ":bounded:"  from ""           [2026-11-11 Wed 15:12] \\
   design approved 2026-11-11; changes code PR #44 already added
+- State "DOING"      from "TODO"       [2026-11-11 Wed 16:08] \\
+  approved design, working on PR 44 branch
+- State "REVIEW"     from "DOING"      [2026-11-11 Wed 16:32] \\
+  code on PR 44 branch, awaiting merge
+- State "DONE"       from "REVIEW"     [2026-11-11 Wed 17:08] \\
+  merged in PR 44
 :END:
 :PLAN:
 Approved by the user 2026-11-11, on feature/suggest-own-project, the branch
@@ -573,7 +610,8 @@ Resolved on feature/suggest-own-project in commit [[orgit-rev:./::0ad95cc][0ad95
 bare name remains the display label.
 
 
-** TODO A heading missing from org-id-locations counts as another project's, since the project test does no rescan on a miss :bounded:
+** DONE A heading missing from org-id-locations counts as another project's, since the project test does no rescan on a miss :bounded:
+CLOSED: [2026-11-11 Wed 17:08]
 :PROPERTIES:
 :ID:       e70cad3f-5546-405b-b659-9ebc90fb45d0
 :CREATED:  [2026-11-03 Tue 13:18]
@@ -581,6 +619,12 @@ bare name remains the display label.
 :LOGBOOK:
 - Tags ":bounded:"  from ""           [2026-11-06 Fri 15:40] \\
   design approved 2026-11-06
+- State "DOING"      from "TODO"       [2026-11-11 Wed 16:12] \\
+  approved design, working on PR 44 branch
+- State "REVIEW"     from "DOING"      [2026-11-11 Wed 16:32] \\
+  code on PR 44 branch, awaiting merge
+- State "DONE"       from "REVIEW"     [2026-11-11 Wed 17:08] \\
+  merged in PR 44
 :END:
 :PLAN:
 Approved by the user 2026-11-06, on feature/suggest-own-project. When
@@ -627,8 +671,8 @@ the index once per review pass. This replaces the approved per-id lookup, which
 measured too slow.
 
 
-
-** TODO A span from a removed linked worktree resolves to gone, and gone stops the project lookup before the edge events are read :bounded:
+** DONE A span from a removed linked worktree resolves to gone, and gone stops the project lookup before the edge events are read :bounded:
+CLOSED: [2026-11-11 Wed 17:08]
 :PROPERTIES:
 :ID:       460dfe96-8a08-456f-bdbd-2ace19afd404
 :CREATED:  [2026-11-03 Tue 13:18]
@@ -636,6 +680,12 @@ measured too slow.
 :LOGBOOK:
 - Tags ":bounded:"  from ""           [2026-11-06 Fri 15:40] \\
   design approved 2026-11-06
+- State "DOING"      from "TODO"       [2026-11-11 Wed 16:17] \\
+  approved design, working on PR 44 branch
+- State "REVIEW"     from "DOING"      [2026-11-11 Wed 16:32] \\
+  code on PR 44 branch, awaiting merge
+- State "DONE"       from "REVIEW"     [2026-11-11 Wed 17:08] \\
+  merged in PR 44
 :END:
 :PLAN:
 Approved by the user 2026-11-06, on feature/suggest-own-project. Two changes.
@@ -679,11 +729,19 @@ Resolved on feature/suggest-own-project in commit [[orgit-rev:./::288aeb0][288ae
 inside the repo is recovered from its nearest existing directory.
 
 
-
-** TODO PR #44's description still describes the first design: --cwd-project and the no-cwd rule
+** DONE PR #44's description still describes the first design: --cwd-project and the no-cwd rule
+CLOSED: [2026-11-11 Wed 16:51]
 :PROPERTIES:
 :ID:       d6d06bae-197f-42ca-9277-f95e01009140
 :CREATED:  [2026-11-03 Tue 13:18]
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-11-11 Wed 16:32] \\
+  the last open code-review finding member
+- State "DONE"       from "NEXT"       [2026-11-11 Wed 16:51] \\
+  description rewritten, branch pushed
+CLOCK: [2026-11-11 Wed 16:51]--[2026-11-11 Wed 16:52] =>  0:01
+- [2026-11-11 Wed 16:51]--[2026-11-11 Wed 16:52] rewrite PR 44 description
 :END:
 :DEBRIEF:
 Shipped: the description now states the full-root comparison, the edge lookup
@@ -711,8 +769,8 @@ Resolved 2026-11-11: PR #44's description rewritten after the code findings
 landed on its branch, and the branch pushed so GitHub's head matches it.
 
 
-
-** TODO Each review render re-resolves every DOING heading's project per span and rescans the whole history for edge events :bounded:
+** DONE Each review render re-resolves every DOING heading's project per span and rescans the whole history for edge events :bounded:
+CLOSED: [2026-11-11 Wed 16:32]
 :PROPERTIES:
 :ID:       89355c78-d0c9-424e-856f-24f8f857ab91
 :CREATED:  [2026-11-03 Tue 13:18]
@@ -720,6 +778,10 @@ landed on its branch, and the branch pushed so GitHub's head matches it.
 :LOGBOOK:
 - Tags ":bounded:"  from ""           [2026-11-06 Fri 15:40] \\
   design approved 2026-11-06; folded into 6080f611 and measured after
+- State "DOING"      from "TODO"       [2026-11-11 Wed 16:21] \\
+  measure render after 6080f611 landed
+- State "DONE"       from "DOING"      [2026-11-11 Wed 16:32] \\
+  measured, project resolution is not the cost
 :END:
 :PLAN:
 Approved by the user 2026-11-06: folded into [[id:6080f611-1005-42d4-942b-0fedbd162bc4][6080f611]] and measured after it. The
@@ -759,7 +821,6 @@ about 0.4 s of a render that costs 3.5 to 4.5 s; the rest is queue parsing,
 filed as [[id:3565ba71-bb57-4b97-b4ca-66bd917096fe][3565ba71]].
 
 
-
 * TODO org_capture reports success on a task heading with no body, so a dropped note goes unseen :code:
 :PROPERTIES:
 :ID:       4953af21-da47-423c-a3e6-2f0b9023853b
@@ -774,7 +835,8 @@ keyword, the reply should say no body was written. That is local, needs nothing
 from upstream, and catches every misnamed synonym, which an alias list cannot.
 
 
-* REVIEW Every startup warns that no project was derived, because the module wires before the private config sets the tracked files :code:bounded:
+* DONE Every startup warns that no project was derived, because the module wires before the private config sets the tracked files :code:bounded:
+CLOSED: [2026-11-11 Wed 16:05]
 :PROPERTIES:
 :ID:       e6a24204-b22d-4971-822a-abaa452f3f95
 :CREATED:  [2026-10-30 Fri 17:48]
@@ -787,6 +849,16 @@ CLOCK: [2026-10-30 Fri 17:51]--[2026-10-30 Fri 17:54] =>  0:03
 - [2026-10-30 Fri 17:51]--[2026-10-30 Fri 17:54] defer on-load wiring past Doom init
 - State "REVIEW"     from "DOING"      [2026-10-30 Fri 17:54] \\
   PR 45 open, restart check owed
+- State "DOING"      from "REVIEW"     [2026-11-11 Wed 15:29] \\
+  rework: review findings on PR 45
+CLOCK: [2026-11-11 Wed 15:29]--[2026-11-11 Wed 15:31] =>  0:02
+- [2026-11-11 Wed 15:29]--[2026-11-11 Wed 15:31] fix review findings on PR 45
+CLOCK: [2026-11-11 Wed 15:45]--[2026-11-11 Wed 15:48] =>  0:03
+- [2026-11-11 Wed 15:45]--[2026-11-11 Wed 15:48] fix review findings on PR 45
+CLOCK: [2026-11-11 Wed 16:00]--[2026-11-11 Wed 16:06] =>  0:06
+- [2026-11-11 Wed 16:00]--[2026-11-11 Wed 16:06] fix review findings on PR 45
+- State "DONE"       from "DOING"      [2026-11-11 Wed 16:05] \\
+  PR 45 merged, restart check passed
 :END:
 :PLAN:
 Bounded: during Doom's startup, before doom-init-time is set, the module's call
@@ -840,8 +912,8 @@ Doom's after-init hook while Doom is starting and runs at once otherwise. A real
 Doom restart showed the warning gone and the three project sessions wired.
 
 
-
-* REVIEW The review suggests a heading from any project's todo events, so a project with time tracking off collects other projects' time as CLOCK lines :code:bounded:
+* DONE The review suggests a heading from any project's todo events, so a project with time tracking off collects other projects' time as CLOCK lines :code:bounded:
+CLOSED: [2026-11-11 Wed 17:08]
 :PROPERTIES:
 :ID:       d0f8042c-c294-45b2-9016-7efca7977982
 :CREATED:  [2026-10-30 Fri 14:21]
@@ -864,6 +936,8 @@ CLOCK: [2026-10-30 Fri 15:51]--[2026-10-30 Fri 15:52] =>  0:01
   PR 44 review findings, rework
 - State "REVIEW"     from "DOING"      [2026-10-30 Fri 17:54] \\
   review findings fixed, threads resolved
+- State "DONE"       from "REVIEW"     [2026-11-11 Wed 17:08] \\
+  PR 44 merged
 :END:
 :PLAN:
 Bounded: a span is suggested a heading only from its own project; with nothing
@@ -941,7 +1015,6 @@ The misfiled CLOCK lines in noodle-salesman that started this were deleted on
 Resolved by [[https://github.com/nbest937/claude-code-ide-org.el/pull/44][PR #44]] (merge commit [[orgit-rev:./::d54d78d][d54d78d]], 2026-11-11): a span is offered a
 heading only from its own project, compared by full root. The findings of the
 PR's review rounds are in [[id:c56b4eef-0637-4ada-9c88-29eed6ffd4c0][c56b4eef]].
-
 
 
 * TODO Burying the review buffer runs this project's ceremony because another project's is overdue, since the due check ignores the project scope :code:
@@ -1568,6 +1641,8 @@ CLOCK: [2026-10-28 Wed 11:36]--[2026-10-28 Wed 11:37] =>  0:01
 - [2026-10-28 Wed 11:36]--[2026-10-28 Wed 11:37] assigned at review
 CLOCK: [2026-10-28 Wed 11:37]--[2026-10-28 Wed 11:38] =>  0:01
 - [2026-10-28 Wed 11:37]--[2026-10-28 Wed 11:38] record the gate result
+CLOCK: [2026-11-11 Wed 15:07]--[2026-11-11 Wed 15:11] =>  0:04
+- [2026-11-11 Wed 15:07]--[2026-11-11 Wed 15:11] work slice 3bfa593c, first member
 :END:
 :PLAN:
 Bounded: one advice on upstream's claude-code-ide-mcp--on-open
@@ -1604,7 +1679,7 @@ an Origin before upstream makes it the session's client, is designed in :PLAN:;
 it also closes the browser half of [[id:207e9044-f05c-4507-bbd9-c2cfb9ef3f8e][207e9044]].
 
 
-* NEXT [0/15] The tracker can lose or corrupt its record, or Emacs can stop on a prompt, and nothing says so :code:
+* DOING [9/24] The tracker can lose or corrupt its record, or Emacs can stop on a prompt, and nothing says so :code:
 :PROPERTIES:
 :ID:       3bfa593c-c2da-4e44-b47f-2d5f0750f2aa
 :CREATED:  [2026-10-27 Tue 12:56]
@@ -1617,6 +1692,8 @@ it also closes the browser half of [[id:207e9044-f05c-4507-bbd9-c2cfb9ef3f8e][20
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-10-27 Tue 12:58] \\
   nominated over f436a3b8: security hole and silent data loss
+- State "DOING"      from "NEXT"       [2026-11-11 Wed 15:06] \\
+  slice work starting
 :END:
 :PLAN:
 The order, composed at /plan-slice 2026-10-28 from the members' own :PLAN:
@@ -1683,6 +1760,18 @@ per run ([[id:6c969cbd-0c03-409f-835f-80ddb1faedf6][6c969cbd]]), a narrowed span
 attention ([[id:187a87b4-20db-4fbf-931f-a4b4e1bed668][187a87b4]]), and archiving into DONE.org's newest-first datetree
 duplicates nodes ([[id:62bc2f7f-0d55-4049-af00-52a2b333188a][62bc2f7f]]). The render member is a security hole rather than
 tracker loss, so it sits second, beside the other way in from outside.
+
+Incidental:
+
+- [X] [[id:e6a24204-b22d-4971-822a-abaa452f3f95][e6a24204]] DONE Every startup warns that no project was derived, because the module wires before the private config sets the tracked files
+- [X] [[id:89355c78-d0c9-424e-856f-24f8f857ab91][89355c78]] DONE Each review render re-resolves every DOING heading's project per span and rescans the whole history for edge events
+- [X] [[id:d6d06bae-197f-42ca-9277-f95e01009140][d6d06bae]] DONE PR #44's description still describes the first design: --cwd-project and the no-cwd rule
+- [X] [[id:c56b4eef-0637-4ada-9c88-29eed6ffd4c0][c56b4eef]] DONE PR #44's review found fourteen defects in the project-scoped suggestion, eight fixed and six open
+- [X] [[id:6080f611-1005-42d4-942b-0fedbd162bc4][6080f611]] DONE A gap span's edge events come from every session's history, so another project's event in the same second can decide the span's project
+- [X] [[id:e08fb599-8cce-4c50-8fe9-9291ec24c7d7][e08fb599]] DONE Projects are compared by directory basename, so two checkouts with the same name count as one project
+- [X] [[id:e70cad3f-5546-405b-b659-9ebc90fb45d0][e70cad3f]] DONE A heading missing from org-id-locations counts as another project's, since the project test does no rescan on a miss
+- [X] [[id:460dfe96-8a08-456f-bdbd-2ace19afd404][460dfe96]] DONE A span from a removed linked worktree resolves to gone, and gone stops the project lookup before the edge events are read
+- [X] [[id:d0f8042c-c294-45b2-9016-7efca7977982][d0f8042c]] DONE The review suggests a heading from any project's todo events, so a project with time tracking off collects other projects' time as CLOCK lines
 
 
 * TODO claude-org-setup assigns mcp_action and nothing reads it :code:
@@ -15099,6 +15188,7 @@ per tool -- rather than opening the servers beyond localhost.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-11-11 Wed 17:47]--[2026-11-11 Wed 17:50] =>  0:03
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
@@ -17195,4 +17285,37 @@ CLOCK: [2026-11-06 Fri 14:45]--[2026-11-06 Fri 14:47] =>  0:02
 - [2026-11-06 Fri 14:45]--[2026-11-06 Fri 14:47] assigned at review
 CLOCK: [2026-11-06 Fri 14:47]--[2026-11-06 Fri 14:48] =>  0:01
 - [2026-11-06 Fri 14:47]--[2026-11-06 Fri 14:48] add 3685c3bc to 7dcec489
+:END:
+
+
+**** 2026-11-11 Wednesday
+:PROPERTIES:
+:ID:       6b6b1fd1-456e-4f44-bdb8-420cdb9f3c5a
+:CREATED:  [2026-11-11 Wed 11:02]
+:END:
+:LOGBOOK:
+CLOCK: [2026-11-11 Wed 11:11]--[2026-11-11 Wed 11:17] =>  0:06
+- [2026-11-11 Wed 11:11]--[2026-11-11 Wed 11:17] assigned at review
+CLOCK: [2026-11-11 Wed 11:19]--[2026-11-11 Wed 11:22] =>  0:03
+- [2026-11-11 Wed 11:19]--[2026-11-11 Wed 11:22] assigned at review
+CLOCK: [2026-11-11 Wed 11:25]--[2026-11-11 Wed 11:26] =>  0:01
+- [2026-11-11 Wed 11:25]--[2026-11-11 Wed 11:26] assigned at review
+CLOCK: [2026-11-11 Wed 11:30]--[2026-11-11 Wed 11:31] =>  0:01
+- [2026-11-11 Wed 11:30]--[2026-11-11 Wed 11:31] assigned at review
+CLOCK: [2026-11-11 Wed 11:33]--[2026-11-11 Wed 11:34] =>  0:01
+- [2026-11-11 Wed 11:33]--[2026-11-11 Wed 11:34] assigned at review
+CLOCK: [2026-11-11 Wed 11:37]--[2026-11-11 Wed 11:40] =>  0:03
+- [2026-11-11 Wed 11:37]--[2026-11-11 Wed 11:40] assigned at review
+CLOCK: [2026-11-11 Wed 11:44]--[2026-11-11 Wed 11:48] =>  0:04
+- [2026-11-11 Wed 11:44]--[2026-11-11 Wed 11:48] assigned at review
+CLOCK: [2026-11-11 Wed 11:51]--[2026-11-11 Wed 11:53] =>  0:02
+- [2026-11-11 Wed 11:51]--[2026-11-11 Wed 11:53] assigned at review
+CLOCK: [2026-11-11 Wed 13:49]--[2026-11-11 Wed 13:50] =>  0:01
+- [2026-11-11 Wed 13:49]--[2026-11-11 Wed 13:50] assigned at review
+CLOCK: [2026-11-11 Wed 15:03]--[2026-11-11 Wed 15:04] =>  0:01
+- [2026-11-11 Wed 15:03]--[2026-11-11 Wed 15:04] assigned at review
+CLOCK: [2026-11-11 Wed 15:16]--[2026-11-11 Wed 15:17] =>  0:01
+- [2026-11-11 Wed 15:16]--[2026-11-11 Wed 15:17] assigned at review
+CLOCK: [2026-11-11 Wed 15:26]--[2026-11-11 Wed 15:27] =>  0:01
+- [2026-11-11 Wed 15:26]--[2026-11-11 Wed 15:27] assigned at review
 :END:
