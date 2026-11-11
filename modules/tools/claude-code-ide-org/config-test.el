@@ -12710,6 +12710,54 @@ a symlink its target, an empty cwd nothing, and a removed one `gone'."
       (should (eq 'gone (funcall of (expand-file-name "removed/" dir))))
       (should (equal a (funcall of "" (expand-file-name "removed/" dir) a-root))))))
 
+(ert-deftest claude-code-ide-org-test-span-project-recovers-a-removed-worktree-inside-the-repo ()
+  "A cwd that no longer exists is recovered from its nearest existing
+directory, but only when that directory is inside a git checkout.
+
+A worktree that sat inside the repo leaves its parent behind, which is in
+the project; a sibling worktree's parent belongs to no project, so the
+span stays unknown rather than guessed (TODO.org :ID: 460dfe96)."
+  (claude-code-ide-org-test--with-scoped-projects
+    (let ((of (lambda (cwd)
+                (claude-code-ide-org--span-project (list (list :cwd cwd)))))
+          (b (directory-file-name (file-truename b-root))))
+      ;; The control: the worktree that does exist.
+      (should (equal b (funcall of b-wt)))
+      (should (equal b (funcall of (expand-file-name ".claude/worktrees/gone/" b-root))))
+      (should (equal b (funcall of (expand-file-name
+                                    ".claude/worktrees/gone/deeper/still/" b-root))))
+      (should (eq 'gone (funcall of (expand-file-name "sibling-wt/" dir))))
+      (should (eq 'gone (funcall of "/no/such/checkout/at/all/"))))))
+
+(ert-deftest claude-code-ide-org-test-gone-inside-falls-through-to-the-edges ()
+  "A span whose own cwds are all gone is still given the project of the
+clocks that bound it, and stays gone only when they say nothing either
+\(TODO.org :ID: 460dfe96).  `gone' is non-nil, so it used to end the
+lookup before the edge events were read."
+  (claude-code-ide-org-test--with-scoped-projects
+    (let ((removed (expand-file-name "sibling-wt/" dir))
+          (suggestion
+           (lambda ()
+             (seq-some (lambda (i) (and (plist-get i :unassigned) (plist-get i :id)))
+                       (claude-code-ide-org--review-items-from-queue)))))
+      (claude-code-ide-org-test--with-queue
+        (claude-code-ide-org-test--queue-write
+         "sess-c"
+         (claude-code-ide-org-test--queue-event
+          "2026-10-30T08:30:00-0500" "todo" a-id "DOING" "sess-c"
+          nil nil nil a-root))
+        (claude-code-ide-org-test--queue-write
+         "sess-a"
+         (claude-code-ide-org-test--queue-event
+          "2026-10-30T09:00:00-0500" "resume" nil nil "sess-a" nil nil nil removed)
+         (claude-code-ide-org-test--queue-event
+          "2026-10-30T09:05:00-0500" "clock_in" a-id nil "sess-a" nil nil nil a-root)
+         (claude-code-ide-org-test--queue-event
+          "2026-10-30T09:10:00-0500" "clock_out" nil nil "sess-a" nil nil nil a-root)
+         (claude-code-ide-org-test--queue-event
+          "2026-10-30T09:30:00-0500" "pause" nil nil "sess-a" nil nil nil removed))
+        (should (equal a-id (funcall suggestion)))))))
+
 (ert-deftest claude-code-ide-org-test-span-is-not-offered-another-projects-heading ()
   "Through the review items: a project with no guideposts of its own, as
 one with time tracking off, is never suggested for another's span, and a

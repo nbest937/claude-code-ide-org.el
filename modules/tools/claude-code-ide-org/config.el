@@ -11542,10 +11542,11 @@ from a skipped one."
                          ;; first known cwd is its project (TODO.org :ID:
                          ;; c9940558).  A span between two brackets holds
                          ;; no guidepost; the clock events bounding it say.
-                         (or (claude-code-ide-org--span-project inside)
-                             (claude-code-ide-org--span-project
-                              (claude-code-ide-org--events-on-span-edges
-                               span history))))
+                         (claude-code-ide-org--span-project-with-edges
+                          inside
+                          (lambda ()
+                            (claude-code-ide-org--events-on-span-edges
+                             span history))))
                     :start (car span) :end (cdr span)
                     ;; :unassigned is transient -- `a' clears it once a
                     ;; heading is chosen. :origin is permanent, so the
@@ -11659,7 +11660,45 @@ longer exists: that span's project is unknown but it is known not to be
 every project, so `--review-suggest-heading' matches no heading for it."
   (when-let* ((cwds (seq-remove (lambda (cwd) (or (null cwd) (equal cwd "")))
                                 (mapcar (lambda (e) (plist-get e :cwd)) events))))
-    (or (seq-some #'claude-code-ide-org--project-root-key cwds) 'gone)))
+    (or (seq-some (lambda (cwd)
+                    (or (claude-code-ide-org--project-root-key cwd)
+                        (claude-code-ide-org--removed-cwd-root-key cwd)))
+                  cwds)
+        'gone)))
+
+(defun claude-code-ide-org--removed-cwd-root-key (cwd)
+  "The project root of CWD, a directory that no longer exists, or nil.
+
+Walks up to the nearest directory that does exist and answers its root
+only when that directory is inside a git checkout (TODO.org :ID:
+460dfe96).  A linked worktree that sat inside the repo leaves its parent
+behind, which is in the project; a sibling worktree's parent belongs to no
+project, so that span stays unknown rather than guessed."
+  (let ((dir (directory-file-name (expand-file-name cwd)))
+        parent)
+    ;; Bounded by the parent check: `file-name-directory' of "/" is "/".
+    (while (and (not (file-directory-p dir))
+                (not (equal (setq parent (directory-file-name
+                                          (file-name-directory dir)))
+                            dir)))
+      (setq dir parent))
+    (when (and (file-directory-p dir)
+               (ignore-errors (locate-dominating-file dir ".git")))
+      (claude-code-ide-org--project-root-key dir))))
+
+(defun claude-code-ide-org--span-project-with-edges (inside edges-fn)
+  "The project of a span holding the events INSIDE, else of its edges.
+
+INSIDE is the span's own events; EDGES-FN, called only when they do not
+settle it, returns the events at its edges.  `gone' from INSIDE is not
+an answer: it is non-nil, so it used to end the lookup before the edge
+events were read.  The span stays `gone' only when the edges give nothing
+either (TODO.org :ID: 460dfe96)."
+  (let ((own (claude-code-ide-org--span-project inside)))
+    (if (stringp own)
+        own
+      (let ((edge (claude-code-ide-org--span-project (funcall edges-fn))))
+        (if (stringp edge) edge (or own edge))))))
 
 (defun claude-code-ide-org--heading-file (id)
   "The file holding heading ID, or nil.
