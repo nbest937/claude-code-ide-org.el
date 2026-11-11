@@ -20809,7 +20809,13 @@ at once."
       (should-not doom-after-init-hook)
       (should (equal '(tools-setup wire) (reverse calls)))))
   (claude-code-ide-org-test--with-wiring-spy
-    (let ((noninteractive nil) (claude-code-ide-org-wire-on-load t))
+    ;; The hook is bound inside a live Doom, so bind it and then unbind
+    ;; it: the case is "no Doom here", and a bare `boundp' assertion
+    ;; would fail whenever the suite runs in one.  The `let' restores
+    ;; the real value on exit.
+    (let ((noninteractive nil) (claude-code-ide-org-wire-on-load t)
+          (doom-after-init-hook nil))
+      (makunbound 'doom-after-init-hook)
       (should-not (boundp 'doom-after-init-hook))
       (claude-code-ide-org--wire-after-init)
       (should (equal '(tools-setup wire) (reverse calls))))))
