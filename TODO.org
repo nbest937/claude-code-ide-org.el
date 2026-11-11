@@ -397,10 +397,46 @@ events of the brackets the span abuts, and also removes the whole-history scan
 behind [[id:89355c78-d0c9-424e-856f-24f8f857ab91][89355c78]].
 
 
-** TODO Projects are compared by directory basename, so two checkouts with the same name count as one project
+** TODO Projects are compared by directory basename, so two checkouts with the same name count as one project :bounded:
 :PROPERTIES:
 :ID:       e08fb599-8cce-4c50-8fe9-9291ec24c7d7
 :CREATED:  [2026-11-03 Tue 13:18]
+:END:
+:LOGBOOK:
+- Tags ":bounded:"  from ""           [2026-11-11 Wed 15:12] \\
+  design approved 2026-11-11; changes code PR #44 already added
+:END:
+:PLAN:
+Approved by the user 2026-11-11, on feature/suggest-own-project, the branch
+that carries --span-project and --heading-in-project-p. Display stays the bare
+basename (option A, the user, 2026-11-11); only comparison moves to the full
+root.
+
+Resolve each path to its root once. A new --project-root-key does what
+--project-name does today up to the name: file-truename, the nearest .git, a
+linked worktree folded into its main checkout. It answers the root directory as
+a truename string, and nil for a nil, empty or missing path. The existing
+session-long cache keeps the root, keyed by the path given.
+
+--project-name becomes a thin wrapper: the root's last component, nil when that
+is empty. Its display callers stay as they are: the outline label, the cwd
+annotation and the group annotation lookups.
+
+The comparison callers switch to the root. The span splitter's points carry the
+root as their third element, so two same-named checkouts split into two spans.
+--span-project and --heading-in-project-p compare roots, and gone stays as it
+is.
+
+Out of scope: disambiguated labels for two roots sharing a basename (option B,
+declined), and the other open findings of [[id:c56b4eef-0637-4ada-9c88-29eed6ffd4c0][c56b4eef]].
+
+Tests, the first two failing against the basename comparison: two temporary
+repos with the same basename under different parents split into two spans, and
+--heading-in-project-p answers nil for a heading in the other; --project-name
+still answers the bare basename for both; the existing normalisation tests
+(git root, nested path, linked worktree, degrade to nil) keep passing against
+the root. Prove they discriminate by copying the changed file aside and
+restoring HEAD's version, never by stash, then run bin/test-all.
 :END:
 
 Second review. Accepted as a limit in the first round; proposed now: resolve
