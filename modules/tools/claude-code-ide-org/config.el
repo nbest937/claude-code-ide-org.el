@@ -22635,6 +22635,23 @@ tool call, so it is shown and the miss returned."
 (advice-add 'claude-code-ide-mcp-server-get-session-context :around
             #'claude-code-ide-org--register-on-demand)
 
+;; Set by Doom, and only bound there.
+(defvar doom-init-time)
+(defvar doom-after-init-hook)
+
+(defun claude-code-ide-org--wire-after-init ()
+  "Run `--wire-on-load' now, or at the end of Doom's startup if that is ahead.
+
+Doom loads module configs before the private config.el, which is where
+`org-agenda-files' is set, so wiring during startup derives no project
+and warns on every launch (TODO.org :ID: e6a24204).  Once init is done,
+as in a live reload, or with no Doom at all, there is nothing to wait
+for.  `add-hook' keeps a second load from wiring twice."
+  (if (and (boundp 'doom-after-init-hook)
+           (not (bound-and-true-p doom-init-time)))
+      (add-hook 'doom-after-init-hook #'claude-code-ide-org--wire-on-load)
+    (claude-code-ide-org--wire-on-load)))
+
 (defun claude-code-ide-org-standalone-wire ()
   "Wire the MCP tools server for standalone clients, loudly.
 Pins upstream's `claude-code-ide-mcp-server-port' to
@@ -23413,7 +23430,7 @@ the project list."
   ;; The wiring, last in the block so every tool above is registered
   ;; first (TODO.org :ID: c562b69a).  It used to be a file generated into
   ;; the user's Doom directory and loaded by a pasted line.
-  (claude-code-ide-org--wire-on-load))
+  (claude-code-ide-org--wire-after-init))
 
 ;; LAST, and it must stay last (TODO.org :ID: f12f9da4): the stamp says a
 ;; load of this file *completed*, so a `load-file' that aborts partway
