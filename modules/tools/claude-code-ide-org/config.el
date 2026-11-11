@@ -11264,14 +11264,13 @@ them a second time."
                             (plist-get (nth 1 pair) :ts)))))
                 (claude-code-ide-org--lane-clock-pairs events))))
 
-(defvar claude-code-ide-org--id-file-memo nil
-  "Heading id -> the file holding it, or nil, for one review pass.
+(defvar claude-code-ide-org--id-rescanned nil
+  "A one-element list whose car says the id index was rescanned this pass.
 
-Bound to a fresh table by `--review-items-from-queue' and read by
-`--heading-file', so an id `org-id-locations' lacks is looked up once per
-pass and a miss is remembered as one (TODO.org :ID: e70cad3f).  nil
-outside a pass: the lookup then runs unmemoised, which is correct and
-only slower.")
+Bound to a fresh (nil) cell by `--review-items-from-queue' and read by
+`--heading-file', so the index is rescanned at most once per pass however
+many ids it lacks (TODO.org :ID: e70cad3f).  nil outside a pass: the
+rescan then runs on every miss, which is correct and only slower.")
 
 (defun claude-code-ide-org--review-items-from-queue (&optional session-id)
   "Build review items from the pending queue, oldest first.
@@ -11299,7 +11298,7 @@ clock_in/clock_out, where the interval is authoritative.
 Items carry the `:events' they were derived from, which is what lets
 `claude-code-ide-org--review-advance-watermarks' tell an applied event
 from a skipped one."
-  (let* ((claude-code-ide-org--id-file-memo (make-hash-table :test 'equal))
+  (let* ((claude-code-ide-org--id-rescanned (list nil))
          (history (claude-code-ide-org--queue-events session-id t))
          ;; Hoisted out of the per-group loop 2026-08-24. Computed
          ;; inside it, this ran once per heading -- 53 groups against
@@ -11723,22 +11722,35 @@ so it used to end the lookup before the edges were read.  The span stays
 
 `org-id-locations' first, a `gethash': this runs for every DOING in the
 queue's history, once per span.  An id it lacks -- one that arrived by a
-hand edit or a pull is not indexed until something looks -- falls back to
-`--id-find', whose miss path rescans the tracked files and is therefore
-costly.  So the fallback runs at most once per id per pass, a miss
-remembered as one in `--id-file-memo' (TODO.org :ID: e70cad3f).  A refusal
-from the lookup, such as a stale buffer holding unsaved edits, reads as
-not found: this feeds a suggestion and must not signal."
-  (or (and (hash-table-p org-id-locations)
-           (gethash id org-id-locations))
-      (let* ((memo claude-code-ide-org--id-file-memo)
-             (hit (if (hash-table-p memo) (gethash id memo 'miss) 'miss)))
-        (if (not (eq hit 'miss))
-            hit
-          (let ((file (car-safe (ignore-errors
-                                  (claude-code-ide-org--id-find id)))))
-            (when (hash-table-p memo) (puthash id file memo))
-            file)))))
+hand edit or a pull is not indexed until something looks -- rescans the
+index (`--rescan-id-index') and reads it again, so the heading is found
+if it is on disk (TODO.org :ID: e70cad3f).
+
+The rescan, not `--id-find' per id: that was the first design, and
+measured on the live queue it cost 27 ms a miss, 193 distinct ids not in
+the index, 5.2 s of an 8.7 s render that had been 3.5 s.  One rescan per
+pass refreshes the index for every id at once."
+  (let ((lookup (lambda ()
+                  (and (hash-table-p org-id-locations)
+                       (gethash id org-id-locations)))))
+    (or (funcall lookup)
+        (progn (claude-code-ide-org--rescan-id-index)
+               (funcall lookup)))))
+
+(defun claude-code-ide-org--rescan-id-index ()
+  "Rescan the tracked files and their archives into `org-id-locations'.
+
+At most once per review pass (`--id-rescanned'): org skips the work when
+no file's modification time has moved, so an unchanged tree costs one
+pass over the file attributes, and a changed one is rescanned once and
+indexed from then on.  A refusal or an error reads as nothing found:
+this feeds a suggestion and must not signal.  Not `--id-find', which
+would also visit buffers and refuse on a stale modified one."
+  (unless (car claude-code-ide-org--id-rescanned)
+    (ignore-errors
+      (org-id-update-id-locations (claude-code-ide-org--id-scannable-files) t))
+    (when claude-code-ide-org--id-rescanned
+      (setcar claude-code-ide-org--id-rescanned t))))
 
 (defun claude-code-ide-org--heading-in-project-p (id project)
   "Non-nil when the file holding heading ID belongs to PROJECT.

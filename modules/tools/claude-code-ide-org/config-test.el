@@ -12675,21 +12675,31 @@ something looks (TODO.org :ID: e70cad3f), and answering nil there made
       (should (claude-code-ide-org--heading-in-project-p new-id a))
       (should-not (claude-code-ide-org--heading-in-project-p new-id b)))))
 
-(ert-deftest claude-code-ide-org-test-heading-lookup-runs-once-per-id-per-pass ()
-  "The fallback cannot become a scan per span: each id is looked up once
-in a pass, a miss included, and answers again from the pass's table."
-  (let ((claude-code-ide-org--id-file-memo (make-hash-table :test 'equal))
-        (org-id-locations (make-hash-table :test 'equal))
-        (calls nil))
-    (cl-letf (((symbol-function 'claude-code-ide-org--id-find)
-               (lambda (id &optional _markerp)
-                 (push id calls)
-                 (and (equal id "known") (cons "/no/such/TODO.org" 1)))))
-      (dotimes (_ 3)
-        (claude-code-ide-org--heading-in-project-p "unknown" "/p")
-        (claude-code-ide-org--heading-in-project-p "known" "/p"))
-      (should (equal '("known" "unknown") (sort (copy-sequence calls) #'string<)))
-      (should (= 2 (length calls))))))
+(ert-deftest claude-code-ide-org-test-id-index-is-rescanned-once-per-pass ()
+  "However many ids the index lacks, a pass rescans it once.
+
+The first design looked each missing id up with `--id-find'.  Measured on
+the live queue that was 193 ids at 27 ms, 5.2 s of an 8.7 s render that
+had been 3.5 s, and the review re-renders on every keystroke (TODO.org
+:ID: e70cad3f)."
+  (let ((org-id-locations (make-hash-table :test 'equal))
+        (rescans 0))
+    (cl-letf (((symbol-function 'org-id-update-id-locations)
+               (lambda (&rest _) (cl-incf rescans)))
+              ((symbol-function 'claude-code-ide-org--id-scannable-files)
+               (lambda () nil)))
+      ;; In a pass: 20 distinct missing ids, each asked three times.
+      (let ((claude-code-ide-org--id-rescanned (list nil)))
+        (dotimes (_ 3)
+          (dotimes (i 20)
+            (claude-code-ide-org--heading-in-project-p (format "missing-%d" i) "/p")))
+        (should (= 1 rescans)))
+      ;; Outside a pass nothing remembers, so each miss rescans: correct
+      ;; and slower, and the control that the count above is the cell's.
+      (setq rescans 0)
+      (claude-code-ide-org--heading-in-project-p "missing-a" "/p")
+      (claude-code-ide-org--heading-in-project-p "missing-b" "/p")
+      (should (= 2 rescans)))))
 
 (ert-deftest claude-code-ide-org-test-span-project-from-its-events ()
   "The resolver the span splitter uses: a worktree is its main checkout,
