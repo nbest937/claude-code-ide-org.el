@@ -2,6 +2,32 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO bin/check-conventions fails in a linked worktree, which it reads as a clone with the wrong MCP session name, so a PR worked from a worktree cannot commit :code:
+:PROPERTIES:
+:ID:       fc76aab0-423c-4e42-aded-3de9a6df317c
+:CREATED:  [2026-11-11 Wed 16:05]
+:CATEGORY: Dev
+:END:
+:PLAN:
+Unclassified; the brainstorming skill decides spike or bounded when it is picked
+up. Candidate: have the session-name check ask whether the directory is a linked
+worktree, through the same .git pointer file --worktree-main-checkout parses,
+and report neither the drift nor the collision for it, since a worktree names
+the session of its main checkout. Open: whether bin/claude-org-setup --check,
+which raises the same two findings, needs the same exemption.
+:END:
+
+Committing from a linked worktree of this repo fails pre-commit:
+bin/check-conventions reads the worktree as a clone under another name,
+reporting that .mcp.json does not name the URL its directory implies and that
+its MCP session name collides with the main checkout's. Found 2026-11-11 working
+[[https://github.com/nbest937/claude-code-ide-org.el/pull/45][PR #45]] from a worktree, where the way through was pointing the worktree's
+.mcp.json at its own session name for the commit and restoring it afterwards. A
+worktree shares its repository with the main checkout, so it should neither need
+its own session name nor collide. The check should recognise a linked worktree,
+as --worktree-main-checkout already does for the module, and skip both findings
+for it.
+
 * TODO The conventions tell a slice to declare a story and its children together, which the lint refuses :bounded:
 :PROPERTIES:
 :ID:       3685c3bc-92fe-4c21-b43c-406b4ba6674c
@@ -573,6 +599,34 @@ register and companions start at launch rather than at first use. Tests:
 deferred during init, immediate once init is done, immediate without Doom.
 Verified by a restart, since no batch run reaches this.
 :END:
+:DEBRIEF:
+Shipped: --wire-after-init defers --wire-on-load to doom-after-init-hook while
+doom-init-time is unset, and wires at once otherwise (a live reload, or no
+Doom). Three ERT tests: deferred during init, immediate after it, immediate with
+no Doom.
+
+Verified: bin/test 949 of 949 and the pre-push bin/test-all 28 suites, 1767
+passed, on the final commit; and a real Doom restart on 2026-11-11, with Doom's
+module symlink pointed at a worktree of the branch. Before the restart
+*Warnings* held "no project derived from the tracked files"; after it, none, and
+*Messages* read "standalone tools wired on port 45571, 3 project session(s)",
+the port answered, and all three IDE lockfiles carried the new PID.
+
+Review: a medium /code-review of [[https://github.com/nbest937/claude-code-ide-org.el/pull/45][PR #45]] returned five findings. Two were real
+and fixed in 2ffe45d: the no-Doom test asserted the hook unbound and so failed
+inside a live Doom (proved by running the old and new test with the hook
+pre-bound), and the setup bullet was not re-flowed. Three were wrong: that
+doom-init-time may be set after the hook runs (doom-finalize sets it immediately
+before running doom-after-init-hook), that a re-eval leaves a second hook entry
+(add-hook does not duplicate), and a duplicate defvar conflict. The run was
+asked to post with --comment and posted nothing.
+
+Falsified: the reviewer's claim above, by Doom's own source. Differed from the
+plan: nothing in the code; the review round and the worktree were added.
+
+Not done: committing from a linked worktree is refused by bin/check-conventions,
+filed as [[id:fc76aab0-423c-4e42-aded-3de9a6df317c][fc76aab0]].
+:END:
 
 Doom loads module configs before the private config.el, whose after! org sets
 org-agenda-files, so the on-load wire derives zero projects and warns on every
@@ -580,6 +634,11 @@ startup while the same derivation finds three afterwards. Harmless, since
 sessions register on their first call ([[id:28eed617-e4e0-4d29-88ea-9411de4b77e5][28eed617]]), but a warning that always
 fires hides the one that means something. The user chose to move the wiring past
 Doom's init rather than mute it, 2026-10-30.
+
+Resolved by [[https://github.com/nbest937/claude-code-ide-org.el/pull/45][PR #45]] (merge commit [[orgit-rev:./::9f4e8e9][9f4e8e9]], 2026-11-11): the wiring waits on
+Doom's after-init hook while Doom is starting and runs at once otherwise. A real
+Doom restart showed the warning gone and the three project sessions wired.
+
 
 
 * REVIEW The review suggests a heading from any project's todo events, so a project with time tracking off collects other projects' time as CLOCK lines :code:bounded:
