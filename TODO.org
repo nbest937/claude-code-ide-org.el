@@ -28,6 +28,7 @@ slice counts, the lint errors when :MEMBERS: names a heading and its ancestor,
 and the refresh derives the parent as a row without a checkbox. The next
 paragraph, on partial coverage, already half-says this.
 
+
 * TODO A deferred or cancelled slice member loses its box and nothing else, so it reads as a parent row; strike it through instead :code:
 :PROPERTIES:
 :ID:       0b3b6566-0b20-4df1-aa20-f303512c5c6b
@@ -254,6 +255,12 @@ lint is missing, where this repo's hook passes it.
 :CREATED:  [2026-11-03 Tue 13:18]
 :CATEGORY: Apply
 :END:
+:LOGBOOK:
+CLOCK: [2026-11-06 Fri 15:33]--[2026-11-06 Fri 15:35] =>  0:02
+- [2026-11-06 Fri 15:33]--[2026-11-06 Fri 15:35] assigned at review
+CLOCK: [2026-11-06 Fri 15:40]--[2026-11-06 Fri 15:41] =>  0:01
+- [2026-11-06 Fri 15:40]--[2026-11-06 Fri 15:41] assigned at review
+:END:
 
 The findings of PR #44's two code reviews, against [[id:d0f8042c-c294-45b2-9016-7efca7977982][d0f8042c]], which stays REVIEW
 while these are worked. The first review, of commit [[orgit-rev:./::ec73f62][ec73f62]] on 2026-10-30,
@@ -356,8 +363,14 @@ First review. Fixed in commit [[orgit-rev:./::4a875a9][4a875a9]]: both paths use
 :CREATED:  [2026-11-03 Tue 13:18]
 :END:
 :LOGBOOK:
+CLOCK: [2026-11-06 Fri 15:40]--[2026-11-06 Fri 15:42] =>  0:02
 - Tags ":bounded:"  from ""           [2026-11-06 Fri 15:40] \\
   design approved 2026-11-06; changes code PR #44 already added
+- [2026-11-06 Fri 15:40]--[2026-11-06 Fri 15:42] record the approved designs for PR #44's findings
+CLOCK: [2026-11-06 Fri 15:42]--[2026-11-06 Fri 15:43] =>  0:01
+- [2026-11-06 Fri 15:42]--[2026-11-06 Fri 15:43] assigned at review
+CLOCK: [2026-11-06 Fri 15:45]--[2026-11-06 Fri 15:46] =>  0:01
+- [2026-11-06 Fri 15:45]--[2026-11-06 Fri 15:46] assigned at review
 :END:
 :PLAN:
 Approved by the user 2026-11-06, on feature/suggest-own-project. A span holding
@@ -382,6 +395,7 @@ any event in the whole queue at either edge second, so another project's event
 in the same second can decide it. The approved design reads only the clock
 events of the brackets the span abuts, and also removes the whole-history scan
 behind [[id:89355c78-d0c9-424e-856f-24f8f857ab91][89355c78]].
+
 
 ** TODO Projects are compared by directory basename, so two checkouts with the same name count as one project
 :PROPERTIES:
@@ -420,6 +434,7 @@ missing from org-id-locations, so one added by a hand edit or a pull counts as
 another project's. The approved design falls back to --id-find, at most once per
 id per pass.
 
+
 ** TODO A span from a removed linked worktree resolves to gone, and gone stops the project lookup before the edge events are read :bounded:
 :PROPERTIES:
 :ID:       460dfe96-8a08-456f-bdbd-2ace19afd404
@@ -447,6 +462,7 @@ which is non-nil, so the lookup stops before reading the edge events. The
 approved design lets gone fall through to the edges, and recovers a removed
 worktree that sat inside the repo by walking up to the nearest existing
 directory.
+
 
 ** TODO PR #44's description still describes the first design: --cwd-project and the no-cwd rule
 :PROPERTIES:
@@ -479,6 +495,7 @@ per pass; if not, close this heading as done by [[id:6080f611-1005-42d4-942b-0fe
 From PR #44's second review. Most of the cost is the whole-history edge scan per
 span, which [[id:6080f611-1005-42d4-942b-0fedbd162bc4][6080f611]] removes, since the per-heading lookup is already cached by
 path. Measure once that lands, and close this if the render is fast.
+
 
 * TODO org_capture reports success on a task heading with no body, so a dropped note goes unseen :code:
 :PROPERTIES:
@@ -1893,7 +1910,6 @@ rendering can refuse a call both ways. The session worked around it by setting
 the full list and letting one last add run the refresh.
 
 
-
 * TODO Stopping a launcher ends its MCP session twice, which spends the held reference and stops the tools server :code:
 :PROPERTIES:
 :ID:       f22246cc-50e1-49e8-acc1-d71eecab814c
@@ -2931,6 +2947,18 @@ CLOCK: [2026-10-12 Mon 10:59]--[2026-10-12 Mon 11:00] =>  0:01
 - [2026-10-12 Mon 10:59]--[2026-10-12 Mon 11:00] file the adoption-convention change
 CLOCK: [2026-10-12 Mon 11:01]--[2026-10-12 Mon 11:02] =>  0:01
 - [2026-10-12 Mon 11:01]--[2026-10-12 Mon 11:02] reframe as permitting both routes
+CLOCK: [2026-11-06 Fri 14:47]--[2026-11-06 Fri 14:48] =>  0:01
+- [2026-11-06 Fri 14:47]--[2026-11-06 Fri 14:48] assigned at review
+CLOCK: [2026-11-06 Fri 14:54]--[2026-11-06 Fri 14:55] =>  0:01
+- [2026-11-06 Fri 14:54]--[2026-11-06 Fri 14:55] assigned at review
+CLOCK: [2026-11-06 Fri 14:58]--[2026-11-06 Fri 14:59] =>  0:01
+- [2026-11-06 Fri 14:58]--[2026-11-06 Fri 14:59] assigned at review
+CLOCK: [2026-11-06 Fri 14:59]--[2026-11-06 Fri 15:00] =>  0:01
+- [2026-11-06 Fri 14:59]--[2026-11-06 Fri 15:00] widen to work joining after a slice starts
+CLOCK: [2026-11-06 Fri 15:00]--[2026-11-06 Fri 15:01] =>  0:01
+- [2026-11-06 Fri 15:00]--[2026-11-06 Fri 15:01] assigned at review
+CLOCK: [2026-11-06 Fri 15:02]--[2026-11-06 Fri 15:03] =>  0:01
+- [2026-11-06 Fri 15:02]--[2026-11-06 Fri 15:03] assigned at review
 :END:
 :PLAN:
 Candidate steps, not yet brainstormed.
@@ -2971,7 +2999,6 @@ incidental route is the default rather than one of two equals, and a member line
 added then is the exception that needs a reason: it reopens the scope the slice
 was planned with and regresses the cookie. Before work begins, adding members is
 ordinary planning.
-
 
 
 * TODO This repo copies its own references into .claude/rules/ where a relative symlink would do, as its commands, agents and skills already are :code:
@@ -12201,12 +12228,12 @@ before the fix and still says.
 
 
 * TODO Archive closed tasks daily
-SCHEDULED: <2026-11-07 Sat 07:00 ++1d>
+SCHEDULED: <2026-11-12 Thu 07:00 ++1d>
 :PROPERTIES:
 :CATEGORY: Meta
 :ID:       cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8
 :CREATED:  [2026-08-21 Fri 15:35]
-:LAST_REPEAT: [2026-11-06 Fri 09:22]
+:LAST_REPEAT: [2026-11-11 Wed 08:47]
 :KIND:     ceremony
 :END:
 :LOGBOOK:
@@ -16831,4 +16858,11 @@ CLOCK: [2026-11-06 Fri 11:46]--[2026-11-06 Fri 11:47] =>  0:01
 - [2026-11-06 Fri 11:46]--[2026-11-06 Fri 11:47] file the strike-through rendering item
 CLOCK: [2026-11-06 Fri 12:17]--[2026-11-06 Fri 12:18] =>  0:01
 - [2026-11-06 Fri 12:17]--[2026-11-06 Fri 12:18] add 0b3b6566 to 7dcec489
+- [2026-11-06 Fri 14:43]--[2026-11-06 Fri 14:44] assigned at review
+CLOCK: [2026-11-06 Fri 14:44]--[2026-11-06 Fri 14:45] =>  0:01
+- [2026-11-06 Fri 14:44]--[2026-11-06 Fri 14:45] file two more downstream reports
+CLOCK: [2026-11-06 Fri 14:45]--[2026-11-06 Fri 14:47] =>  0:02
+- [2026-11-06 Fri 14:45]--[2026-11-06 Fri 14:47] assigned at review
+CLOCK: [2026-11-06 Fri 14:47]--[2026-11-06 Fri 14:48] =>  0:01
+- [2026-11-06 Fri 14:47]--[2026-11-06 Fri 14:48] add 3685c3bc to 7dcec489
 :END:
