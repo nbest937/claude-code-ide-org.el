@@ -325,8 +325,10 @@ without picking). Both lint rules are right and both fire at once on a
 keyword-less referent: naming it in the `:BLOCKER:` is an error because
 `org-depend` acts only on an unfinished keyword, and omitting an
 unfinished member from the `:BLOCKER:` is also an error — so
-`.githooks/pre-commit` refuses, and it did twice, once costing a full
-revert. In practice this costs nothing: `org_capture` with an
+`bin/lint-org` fails either way. In the plugin's own repo, whose
+pre-commit runs it, that refused a commit twice, once costing a full
+revert; a consuming repo has no such hook and finds out only when it
+runs the lint (`:ID:` 1495fa8f). In practice this costs nothing: `org_capture` with an
 `initial_state` writes the keyword through immediately when the file is
 free, and its reply says which happened — after "Captured:" the heading
 may be added to a slice at once, after "Queued capture:" the queue is
@@ -674,9 +676,14 @@ in aggregate, which six scattered members cannot. `f6d160c2` filed its
 six findings as separate members, and that is the shape this replaces;
 `c77e4d5a` (PR #31's ten findings) is the shape as it now stands.
 
-**A pull request for a single heading needs no story** (the user,
-2026-09-28): a finding is rework on that heading — `REVIEW` → `DOING`,
-fixed, back to `REVIEW`.
+**A pull request for a single heading gets a story too** (the user,
+2026-11-03, reversing the 2026-09-28 ruling that it needed none, from
+PRs #44 and #45 on). Rework on the heading itself left the findings only
+in the pull request's threads: the heading recorded one `REVIEW` →
+`DOING` loop and a revised plan, never what the review found. The story
+need not sit under the reviewed heading — it is filed where any task
+goes, with a back-link to that heading in its body — and the heading
+stays `REVIEW` while the story's children are worked, as a slice does.
 
 **Answer every review thread** (the user, 2026-09-28). Once a finding
 is fixed, reply on its thread naming the fixing commit, then resolve the

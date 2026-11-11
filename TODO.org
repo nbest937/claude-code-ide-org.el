@@ -2,6 +2,714 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO bin/check-conventions fails in a linked worktree, which it reads as a clone with the wrong MCP session name, so a PR worked from a worktree cannot commit :code:
+:PROPERTIES:
+:ID:       fc76aab0-423c-4e42-aded-3de9a6df317c
+:CREATED:  [2026-11-11 Wed 16:05]
+:CATEGORY: Dev
+:END:
+:PLAN:
+Unclassified; the brainstorming skill decides spike or bounded when it is picked
+up. Candidate: have the session-name check ask whether the directory is a linked
+worktree, through the same .git pointer file --worktree-main-checkout parses,
+and report neither the drift nor the collision for it, since a worktree names
+the session of its main checkout. Open: whether bin/claude-org-setup --check,
+which raises the same two findings, needs the same exemption.
+:END:
+
+Committing from a linked worktree of this repo fails pre-commit:
+bin/check-conventions reads the worktree as a clone under another name,
+reporting that .mcp.json does not name the URL its directory implies and that
+its MCP session name collides with the main checkout's. Found 2026-11-11 working
+[[https://github.com/nbest937/claude-code-ide-org.el/pull/45][PR #45]] from a worktree, where the way through was pointing the worktree's
+.mcp.json at its own session name for the commit and restoring it afterwards. A
+worktree shares its repository with the main checkout, so it should neither need
+its own session name nor collide. The check should recognise a linked worktree,
+as --worktree-main-checkout already does for the module, and skip both findings
+for it.
+
+* TODO The conventions tell a slice to declare a story and its children together, which the lint refuses :bounded:
+:PROPERTIES:
+:ID:       3685c3bc-92fe-4c21-b43c-406b4ba6674c
+:CREATED:  [2026-11-06 Fri 14:44]
+:CATEGORY: Skill
+:END:
+:PLAN:
+Rewrite the section in skills/org/references/org-conventions.md to the rule the
+tools enforce: declare only the children that belong to the slice; the parent
+renders by itself as a row without a checkbox and counts nothing; declare a
+story as a member itself only when the slice takes none of its children
+separately, that is, undertakes it whole. Fold the partial-coverage paragraph
+into it rather than leaving two statements of one rule, and drop the "nested
+lines count toward the cookie" consequence only if it still reads as declaring
+the parent. Then run claude-org-setup so the promoted .claude/rules copy
+follows, and bin/check-conventions.
+:END:
+
+Reported by a downstream session 2026-11-06. org-conventions' "When a member is
+a story" (2026-08-28) says a story member gets its relevant children as member
+lines beneath it, and a story with no relevant children appears as one line.
+Since the user's 2026-09-25 ruling, on [[id:7ee3b71a-b85a-4610-a4ab-b9e06c8d79da][7ee3b71a]], that a parent carries no work a
+slice counts, the lint errors when :MEMBERS: names a heading and its ancestor,
+and the refresh derives the parent as a row without a checkbox. The next
+paragraph, on partial coverage, already half-says this.
+
+
+* TODO A deferred or cancelled slice member loses its box and nothing else, so it reads as a parent row; strike it through instead :code:
+:PROPERTIES:
+:ID:       0b3b6566-0b20-4df1-aa20-f303512c5c6b
+:CREATED:  [2026-11-06 Fri 11:45]
+:CATEGORY: Slices
+:END:
+:PLAN:
+Wrap the text after the bullet in org's +strike-through+ markup on a member
+line, at the same moment its box is removed: when :DROPPED: names it, or its
+keyword maps to no box (CANCELLED, MAYBE). Parent rows stay plain. Both
+renderers change: claude-code-ide-org--slice-render-planned-lines and the
+incidental renderer beside it.
+
+Check two things first. claude-code-ide-org--slice-list-line-re anchors [[id:
+right after the optional box, so a leading + would hide the line from the
+planned-region scan and every parser that uses it. And a title holding a + or an
+unbalanced = could close the emphasis early.
+:END:
+
+Asked for by the user, 2026-11-06. The refresh renders a dropped, cancelled or
+MAYBE member with no box and nothing else, so its line looks just like a derived
+parent row. The plan strikes it through instead.
+
+
+* TODO org_set_property ignores append on :DROPPED: and every property but :BLOCKER:, so an append shortens the list and reports success :code:bounded:
+:PROPERTIES:
+:ID:       0c18b5c1-1cc5-4f18-8ba0-e2949e9dba34
+:CREATED:  [2026-11-06 Fri 11:39]
+:CATEGORY: Tools
+:END:
+
+Reported by a downstream session 2026-11-06: append=true on a slice's :DROPPED:
+holding 13 ids left one, and the reply said only "Set DROPPED ... to 1 id".
+Confirmed in claude-code-ide-org-set-property: the :DROPPED: branch validates
+the ids as :BLOCKER:'s does, then calls org-entry-put with the new value alone
+and never reads APPEND; the general branch ignores it too. Proposed: :DROPPED:
+unions under append exactly as :BLOCKER: does, any other property refuses append
+and names the ones that take it, and :MEMBERS: joins the union if it is ever
+written by hand ([[id:6f3a5342-1905-4831-b712-3b6e5e83e0c4][6f3a5342]] is its missing refresh). Test: append on :DROPPED:
+unions or refuses, and never shortens the list.
+
+
+* TODO [0/6] footnote-check blocks about half of all replies, because the end matter must be generated before the reply it annotates exists
+:PROPERTIES:
+:ID:       4f49ea34-5b8c-4ad8-8dbb-6f17126c420f
+:CREATED:  [2026-11-05 Thu 15:56]
+:CATEGORY: Slices
+:KIND:     slice
+:COOKIE_DATA: checkbox recursive
+:MEMBERS:  5504b175-6577-4255-9f77-958a482170de 4a583ff2-2f6c-435b-acc2-9c52ad05539f 5ed2cfaa-8c0c-4aaa-bdfa-7762039817cc ea069e92-6051-48a1-b9a5-e3c6f166c89e 8bc0bbcf-12cf-412b-a9f4-e335286dda58 b7cbb44d-adbd-4c6a-9d17-b2ad8c1c0461
+:BLOCKER:  5504b175-6577-4255-9f77-958a482170de 4a583ff2-2f6c-435b-acc2-9c52ad05539f 5ed2cfaa-8c0c-4aaa-bdfa-7762039817cc ea069e92-6051-48a1-b9a5-e3c6f166c89e 8bc0bbcf-12cf-412b-a9f4-e335286dda58 b7cbb44d-adbd-4c6a-9d17-b2ad8c1c0461
+:END:
+:PLAN:
+Order: [[id:5504b175-6577-4255-9f77-958a482170de][5504b175]], the hook change; then [[id:4a583ff2-2f6c-435b-acc2-9c52ad05539f][4a583ff2]], [[id:5ed2cfaa-8c0c-4aaa-bdfa-7762039817cc][5ed2cfaa]], [[id:ea069e92-6051-48a1-b9a5-e3c6f166c89e][ea069e92]] and
+[[id:8bc0bbcf-12cf-412b-a9f4-e335286dda58][8bc0bbcf]], each closed CANCELLED as made moot by it; then [[id:b7cbb44d-adbd-4c6a-9d17-b2ad8c1c0461][b7cbb44d]], which reuses
+the hook's resolver. Not yet planned with /plan-slice.
+
+Followed by [[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]] (the user, 2026-11-05): the slice of tool calls that tell
+their caller the opposite of what happened, which finishes org_edit for every
+later slice's bookkeeping. It was [[id:3bfa593c-c2da-4e44-b47f-2d5f0750f2aa][3bfa593c]]'s successor until this slice went
+between them.
+:END:
+
+org_footnotes is a tool call, so it runs before the final text is written, and
+any id the reply cites that the call did not anticipate is blocked at Stop. The
+user estimates half of all replies; footnote is 128 of the 149 misses counted
+since 2026-10-27. Proposed (the user, 2026-11-05): the Stop hook shows the end
+matter to the user instead of blocking, and a /footnotes command re-shows it for
+a reply on demand.
+
+Planned:
+
+- [ ] [[id:5504b175-6577-4255-9f77-958a482170de][5504b175]] TODO footnote-check shows the end matter it computes as a systemMessage, instead of blocking the stop for the session to write it
+- [ ] [[id:4a583ff2-2f6c-435b-acc2-9c52ad05539f][4a583ff2]] TODO footnote-check verifies that an id appears in the end matter, never that the title beside it is right
+- [ ] [[id:5ed2cfaa-8c0c-4aaa-bdfa-7762039817cc][5ed2cfaa]] TODO Nothing says which call ends a turn: org_clock_out, then org_footnotes, then the reply
+- [ ] [[id:ea069e92-6051-48a1-b9a5-e3c6f166c89e][ea069e92]] TODO footnote-check blocks every stop when its loop-guard file cannot be written
+- [ ] [[id:8bc0bbcf-12cf-412b-a9f4-e335286dda58][8bc0bbcf]] TODO footnotes-inject reads hook JSON with sed, so a path or id containing an escaped quote is cut short
+- [ ] [[id:b7cbb44d-adbd-4c6a-9d17-b2ad8c1c0461][b7cbb44d]] TODO A /footnotes command prints the end matter for the previous reply, or an earlier one, on request
+
+Declared a flat slice 2026-11-05 (the user). [[id:5504b175-6577-4255-9f77-958a482170de][5504b175]] is the work. The four
+after it are made moot by it, not fixed: each closes CANCELLED, naming [[id:5504b175-6577-4255-9f77-958a482170de][5504b175]],
+once it lands. [[id:b7cbb44d-adbd-4c6a-9d17-b2ad8c1c0461][b7cbb44d]] comes last because it reuses the hook's resolver.
+
+
+* TODO footnote-check shows the end matter it computes as a systemMessage, instead of blocking the stop for the session to write it :code:
+:PROPERTIES:
+:ID:       5504b175-6577-4255-9f77-958a482170de
+:CREATED:  [2026-11-05 Thu 15:56]
+:CATEGORY: Dev
+:END:
+
+The hook already resolves every cited id to its keyword and exact title. Return
+those lines as a Stop-hook systemMessage, which the user sees and the session
+does not, and never exit 2. The session then owes no end matter, org_footnotes
+and its inject hook retire, and the citation rules change from "the reply
+carries end matter" to "the hook delivers it". Unverified: that a Stop
+systemMessage renders below the reply in the terminal and in claude-code-ide's
+vterm.
+
+
+* TODO A /footnotes command prints the end matter for the previous reply, or an earlier one, on request :code:
+:PROPERTIES:
+:ID:       b7cbb44d-adbd-4c6a-9d17-b2ad8c1c0461
+:CREATED:  [2026-11-05 Thu 15:56]
+:CATEGORY: Dev
+:END:
+
+Reads the last assistant reply from the transcript, resolves its ids with the
+same function footnote-check uses, and prints the canonical lines. A slash
+command costs a model turn, so the lines should come from a !-preprocessed shell
+step and the turn only relay them. Re-shows what the systemMessage showed once,
+for a reply that has scrolled away.
+
+
+* REVIEW Warp now posts its own notifications for Claude Code, alongside the osascript Notification hook's Script Editor ones :spike:
+:PROPERTIES:
+:ID:       e9b00465-0526-4ff8-ad6f-b2b41a92192a
+:CREATED:  [2026-11-03 Tue 15:56]
+:CATEGORY: Dev
+:END:
+:LOGBOOK:
+CLOCK: [2026-11-04 Wed 08:30]--[2026-11-04 Wed 08:31] =>  0:01
+- [2026-11-04 Wed 08:30]--[2026-11-04 Wed 08:31] assigned at review
+CLOCK: [2026-11-04 Wed 08:37]--[2026-11-04 Wed 08:38] =>  0:01
+- State "DOING"      from "TODO"       [2026-11-04 Wed 08:37] \\
+  spike started: what Warp reacts to
+- [2026-11-04 Wed 08:37]--[2026-11-04 Wed 08:38] assigned at review
+CLOCK: [2026-11-04 Wed 08:38]--[2026-11-04 Wed 08:39] =>  0:01
+- [2026-11-04 Wed 08:38]--[2026-11-04 Wed 08:39] probe Warp and Claude Code notifications
+- State "REVIEW"     from "DOING"      [2026-11-04 Wed 08:48] \\
+  finding recorded, recommendation awaits the user
+CLOCK: [2026-11-04 Wed 08:48]--[2026-11-04 Wed 08:49] =>  0:01
+- [2026-11-04 Wed 08:48]--[2026-11-04 Wed 08:49] probe Warp and Claude Code notifications
+CLOCK: [2026-11-04 Wed 08:49]--[2026-11-04 Wed 08:50] =>  0:01
+- [2026-11-04 Wed 08:49]--[2026-11-04 Wed 08:50] split the question into :PLAN:
+CLOCK: [2026-11-04 Wed 11:21]--[2026-11-04 Wed 11:22] =>  0:01
+- [2026-11-04 Wed 11:21]--[2026-11-04 Wed 11:22] gate osascript hook off in Warp
+CLOCK: [2026-11-04 Wed 11:30]--[2026-11-04 Wed 11:31] =>  0:01
+- [2026-11-04 Wed 11:30]--[2026-11-04 Wed 11:31] Emacs guard; third notification
+:END:
+:PLAN:
+
+Seen 2026-11-03 after a Warp update: Warp shows notifications of its own, worded
+differently from ours, so presumably triggered by a signal Claude Code itself
+emits rather than by our hook. Ours is a user-global Notification hook in
+~/.claude/settings.json, not in this repo, running osascript display
+notification, which macOS attributes to Script Editor. Question: what does Warp
+react to and what can its notifications do that ours cannot, so we can decide
+whether to drop the osascript hook, keep both, or move to Warp's.
+
+:END:
+Found 2026-11-04: the source is not Warp itself but Warp's Claude Code plugin,
+warp@claude-code-warp 2.4.0 from warpdotdev/claude-code-warp, installed at user
+scope 2026-11-02 20:08 UTC and enabled. Its hooks on Notification, Stop,
+StopFailure, PermissionRequest, SessionStart, UserPromptSubmit and PostToolUse
+send a structured payload to warp://cli-agent as an OSC 777 sequence, through
+the hook output's terminalSequence field on Claude Code 2.1.141 and later, so
+Warp shows the event's own message and a completion notice; ours always says
+"Claude needs your input". Outside Warp the plugin exits without notifying, so a
+session in an Emacs terminal buffer still has only ours. Recommended: keep ours
+but skip it when TERM_PROGRAM is WarpTerminal, so Warp sessions get one
+notification and the rest keep theirs.
+
+Applied 2026-11-04 at the user's request: the Notification hook in
+~/.claude/settings.json now reads [ "$TERM_PROGRAM" = WarpTerminal ] ||
+osascript …, dry-run both ways with osascript stubbed (Warp skips,
+Apple_Terminal notifies, both exit 0). The file is user-global and outside the
+repo, so no commit records it.
+
+Guard widened the same day: [ "$TERM_PROGRAM" = WarpTerminal ] && [ -z
+"$INSIDE_EMACS" ] || osascript …, because an Emacs launched from a Warp shell
+would pass WarpTerminal to its vterm sessions, where neither notification
+reaches the user. vterm sets INSIDE_EMACS=vterm (vterm.el), as comint, term and
+eat do. Dry-run in four environments: only Warp proper skips. Open: a third,
+in-window notification with a Claude icon, seen in Warp beside the Warp-icon one
+with the same payload; its source is not yet established.
+
+
+* TODO A consuming repo gets no commit-time lint: setup installs no pre-commit, and this repo's assumes the plugin's layout :code:
+:PROPERTIES:
+:ID:       1495fa8f-8030-4100-921f-9e5ffde399ee
+:CREATED:  [2026-11-03 Tue 15:02]
+:CATEGORY: Dev
+:END:
+:LOGBOOK:
+CLOCK: [2026-11-03 Tue 15:03]--[2026-11-03 Tue 15:03] =>  0:00
+- [2026-11-03 Tue 15:03]--[2026-11-03 Tue 15:03] assigned at review
+CLOCK: [2026-11-03 Tue 15:51]--[2026-11-03 Tue 15:52] =>  0:01
+- [2026-11-03 Tue 15:51]--[2026-11-03 Tue 15:52] note noodle-salesman's hook as a model
+:END:
+:PLAN:
+
+Reported by noodle-salesman's session 2026-11-03. claude-org-setup promotes
+rules and wires nothing at commit time, and bin/hooks/hookspath-check says
+outright that the plugin ships no .githooks, so a consumer's TODO.org and
+DONE.org are linted only when someone runs lint-org by hand. This repo's
+.githooks/pre-commit cannot simply be reused: it runs $repo_root/bin/lint-org,
+which a consumer does not have, and exits 0 when the script is missing, so a
+copied hook passes every commit silently. Proposed: setup installs or offers a
+pre-commit that runs the plugin's lint-org on the consumer's own tracked files,
+named explicitly, since lint-org with no arguments lints the plugin checkout
+([[id:9a8013d7-7525-466b-9aaf-10eb647f5e9f][9a8013d7]]).
+:END:
+
+A consumer's TODO.org and DONE.org are linted only by hand: setup wires no
+pre-commit, and this repo's own hook silently passes anywhere bin/lint-org is
+absent. Reported by noodle-salesman's session 2026-11-03; the plan has the
+proposal.
+
+noodle-salesman's session wrote itself one the same day, =.githooks/pre-commit=
+in that repo, enabled with core.hooksPath. It may serve as the model for a
+general hook shipped with the plugin. Its choices: it runs only when TODO.org or
+DONE.org is staged; it calls the plugin's lint where a consumer has it, under
+=.claude/skills/claude-code-ide-org/bin/lint-org=, naming the pair; it lints the
+staged pair and HEAD's pair with line numbers stripped and refuses only errors
+the commit adds, so errors already on HEAD never block an unrelated commit;
+warnings never block; and it fails closed, refusing a tracker commit when the
+lint is missing, where this repo's hook passes it.
+
+
+* TODO [8/14] PR #44's review found fourteen defects in the project-scoped suggestion, eight fixed and six open :code:
+:PROPERTIES:
+:ID:       c56b4eef-0637-4ada-9c88-29eed6ffd4c0
+:CREATED:  [2026-11-03 Tue 13:18]
+:CATEGORY: Apply
+:END:
+:LOGBOOK:
+CLOCK: [2026-11-06 Fri 15:33]--[2026-11-06 Fri 15:35] =>  0:02
+- [2026-11-06 Fri 15:33]--[2026-11-06 Fri 15:35] assigned at review
+CLOCK: [2026-11-06 Fri 15:40]--[2026-11-06 Fri 15:41] =>  0:01
+- [2026-11-06 Fri 15:40]--[2026-11-06 Fri 15:41] assigned at review
+:END:
+
+The findings of PR #44's two code reviews, against [[id:d0f8042c-c294-45b2-9016-7efca7977982][d0f8042c]], which stays REVIEW
+while these are worked. The first review, of commit [[orgit-rev:./::ec73f62][ec73f62]] on 2026-10-30,
+posted eight, all fixed in commit [[orgit-rev:./::4a875a9][4a875a9]]. The second, of commit [[orgit-rev:./::4a875a9][4a875a9]] on
+2026-11-03, posted seven; one, that a prefixed DOING id never counts as
+in-project, was a false positive, because --queue-parse-line expands prefixes
+and all 569 live DOING events resolved, so it has no child here.
+
+
+** DONE A span holding no guidepost resolves to no project, so it still reads every project's events and can be offered another project's heading
+CLOSED: [2026-11-03 Tue 13:18]
+:PROPERTIES:
+:ID:       3e374dc6-900c-417f-807f-333d67f10842
+:CREATED:  [2026-11-03 Tue 13:18]
+:END:
+
+First review. Fixed in commit [[orgit-rev:./::4a875a9][4a875a9]]: a span with no guidepost inside takes its
+project from the events on its edges.
+
+
+** DONE The project filter also drops events that clear the active heading, so a heading closed from another cwd stays suggested after it has left DOING
+CLOSED: [2026-11-03 Tue 13:18]
+:PROPERTIES:
+:ID:       d9b3a26e-2957-4f6c-9c64-fd8dc12979e0
+:CREATED:  [2026-11-03 Tue 13:18]
+:END:
+
+First review. Fixed in commit [[orgit-rev:./::4a875a9][4a875a9]]: only the DOING branch is gated on the
+project; the clear branch is not.
+
+
+** DONE A linked worktree counts as its main checkout only while it exists, so the mapping depends on when the review runs
+CLOSED: [2026-11-03 Tue 13:18]
+:PROPERTIES:
+:ID:       3f724f17-7467-4cdd-8a82-d7e0794137fa
+:CREATED:  [2026-11-03 Tue 13:18]
+:END:
+
+First review. Fixed in commit [[orgit-rev:./::4a875a9][4a875a9]] by resolving through --project-name, whose
+session-long cache keeps the first mapping; a worktree removed before its first
+resolution is the second review's open finding on removed worktrees.
+
+
+** DONE --cwd-project is a second cwd-to-project resolver that disagrees with the --project-name the span splitter uses
+CLOSED: [2026-11-03 Tue 13:18]
+:PROPERTIES:
+:ID:       5824c005-4b30-4cec-aadc-736c83f1a436
+:CREATED:  [2026-11-03 Tue 13:18]
+:END:
+
+First review. Fixed in commit [[orgit-rev:./::4a875a9][4a875a9]]: --cwd-project removed, one resolver.
+
+
+** DONE The filter tests the cwd of the event rather than the project of the heading, so the only-its-own-project guarantee is approximate
+CLOSED: [2026-11-03 Tue 13:18]
+:PROPERTIES:
+:ID:       5144171f-019c-4e46-aa3f-bc8b9391a71f
+:CREATED:  [2026-11-03 Tue 13:18]
+:END:
+
+First review. Fixed in commit [[orgit-rev:./::4a875a9][4a875a9]]: --heading-in-project-p compares the
+heading's own file's project.
+
+
+** DONE An empty-string cwd passes the guard and resolves against Emacs's default-directory
+CLOSED: [2026-11-03 Tue 13:18]
+:PROPERTIES:
+:ID:       3ba687f9-b20a-44ee-a500-aaac0d5d9ebf
+:CREATED:  [2026-11-03 Tue 13:18]
+:END:
+
+First review. Fixed in commit [[orgit-rev:./::4a875a9][4a875a9]]: --span-project skips empty cwds and
+--project-name guards an empty string.
+
+
+** DONE The roots memo lives for one call, so every span re-resolves every distinct cwd
+CLOSED: [2026-11-03 Tue 13:18]
+:PROPERTIES:
+:ID:       a7469759-0855-4976-a243-502b264d65ed
+:CREATED:  [2026-11-03 Tue 13:18]
+:END:
+
+First review. Fixed in commit [[orgit-rev:./::4a875a9][4a875a9]]: the memo removed; --project-name's
+session-long cache serves.
+
+
+** DONE The span-window predicate is a third copy of the filter that :events runs a few lines later for the same span
+CLOSED: [2026-11-03 Tue 13:18]
+:PROPERTIES:
+:ID:       dd98f9f0-e010-4c54-ab0c-925dc8f11714
+:CREATED:  [2026-11-03 Tue 13:18]
+:END:
+
+First review. Fixed in commit [[orgit-rev:./::4a875a9][4a875a9]]: both paths use --events-in-span.
+
+
+** TODO A gap span's edge events come from every session's history, so another project's event in the same second can decide the span's project :bounded:
+:PROPERTIES:
+:ID:       6080f611-1005-42d4-942b-0fedbd162bc4
+:CREATED:  [2026-11-03 Tue 13:18]
+:END:
+:LOGBOOK:
+CLOCK: [2026-11-06 Fri 15:40]--[2026-11-06 Fri 15:42] =>  0:02
+- Tags ":bounded:"  from ""           [2026-11-06 Fri 15:40] \\
+  design approved 2026-11-06; changes code PR #44 already added
+- [2026-11-06 Fri 15:40]--[2026-11-06 Fri 15:42] record the approved designs for PR #44's findings
+CLOCK: [2026-11-06 Fri 15:42]--[2026-11-06 Fri 15:43] =>  0:01
+- [2026-11-06 Fri 15:42]--[2026-11-06 Fri 15:43] assigned at review
+CLOCK: [2026-11-06 Fri 15:45]--[2026-11-06 Fri 15:46] =>  0:01
+- [2026-11-06 Fri 15:45]--[2026-11-06 Fri 15:46] assigned at review
+:END:
+:PLAN:
+Approved by the user 2026-11-06, on feature/suggest-own-project. A span holding
+no guidepost takes its project only from the clock events of the brackets it
+abuts: the ones --with-bracket-edges already finds, a bracket ending at the
+span's start or starting at its end. Each bracket is one lane's
+clock_in/clock_out pair, so its events are one session's by construction, where
+today --events-on-span-edges takes any event at either edge second from the
+whole history. When the two edges name different projects the span gets no
+suggestion. The review's proposal, the lane's nearest guidepost on each side,
+was not taken: the orphan stream mixes sessions, so it moves the collision
+rather than removing it. To check while implementing: whether the bracket list
+keeps its clock events or only their times; if only times, take the pairs from
+--lane-clock-pairs. This removes the whole-history scan per span, which is most
+of [[id:89355c78-d0c9-424e-856f-24f8f857ab91][89355c78]]. Test in config-test.el: another project's event in the same second
+as a span's edge no longer decides it, proved to fail on the branch as it is;
+then bin/test-all.
+:END:
+
+From PR #44's second review. A span holding no guidepost takes its project from
+any event in the whole queue at either edge second, so another project's event
+in the same second can decide it. The approved design reads only the clock
+events of the brackets the span abuts, and also removes the whole-history scan
+behind [[id:89355c78-d0c9-424e-856f-24f8f857ab91][89355c78]].
+
+
+** TODO Projects are compared by directory basename, so two checkouts with the same name count as one project :bounded:
+:PROPERTIES:
+:ID:       e08fb599-8cce-4c50-8fe9-9291ec24c7d7
+:CREATED:  [2026-11-03 Tue 13:18]
+:END:
+:LOGBOOK:
+- Tags ":bounded:"  from ""           [2026-11-11 Wed 15:12] \\
+  design approved 2026-11-11; changes code PR #44 already added
+:END:
+:PLAN:
+Approved by the user 2026-11-11, on feature/suggest-own-project, the branch
+that carries --span-project and --heading-in-project-p. Display stays the bare
+basename (option A, the user, 2026-11-11); only comparison moves to the full
+root.
+
+Resolve each path to its root once. A new --project-root-key does what
+--project-name does today up to the name: file-truename, the nearest .git, a
+linked worktree folded into its main checkout. It answers the root directory as
+a truename string, and nil for a nil, empty or missing path. The existing
+session-long cache keeps the root, keyed by the path given.
+
+--project-name becomes a thin wrapper: the root's last component, nil when that
+is empty. Its display callers stay as they are: the outline label, the cwd
+annotation and the group annotation lookups.
+
+The comparison callers switch to the root. The span splitter's points carry the
+root as their third element, so two same-named checkouts split into two spans.
+--span-project and --heading-in-project-p compare roots, and gone stays as it
+is.
+
+Out of scope: disambiguated labels for two roots sharing a basename (option B,
+declined), and the other open findings of [[id:c56b4eef-0637-4ada-9c88-29eed6ffd4c0][c56b4eef]].
+
+Tests, the first two failing against the basename comparison: two temporary
+repos with the same basename under different parents split into two spans, and
+--heading-in-project-p answers nil for a heading in the other; --project-name
+still answers the bare basename for both; the existing normalisation tests
+(git root, nested path, linked worktree, degrade to nil) keep passing against
+the root. Prove they discriminate by copying the changed file aside and
+restoring HEAD's version, never by stash, then run bin/test-all.
+:END:
+
+Second review of [[https://github.com/nbest937/claude-code-ide-org.el/pull/44][PR #44]]. Projects are compared by --project-name, the git
+root's directory basename, so two checkouts sharing a name merge into one: the
+span splitter keeps them in one span, and a heading from the other counts as
+in-project. The design resolves each path to its full root and compares on
+that, leaving the display name the bare basename.
+
+** TODO A heading missing from org-id-locations counts as another project's, since the project test does no rescan on a miss :bounded:
+:PROPERTIES:
+:ID:       e70cad3f-5546-405b-b659-9ebc90fb45d0
+:CREATED:  [2026-11-03 Tue 13:18]
+:END:
+:LOGBOOK:
+- Tags ":bounded:"  from ""           [2026-11-06 Fri 15:40] \\
+  design approved 2026-11-06
+:END:
+:PLAN:
+Approved by the user 2026-11-06, on feature/suggest-own-project. When
+org-id-locations has no entry for a heading, --heading-in-project-p falls back
+to looking its file up with --id-find instead of answering nil. It does that at
+most once per id per pass, keeping each answer, including "not found", in a
+table bound for the pass, so a heading added by a hand edit or a pull keeps its
+suggestion and the fallback cannot become a scan per span. Test in
+config-test.el: an id removed from org-id-locations while its heading is still
+on disk is still found in its project, proved to fail on the branch as it is;
+then bin/test-all.
+:END:
+
+From PR #44's second review. --heading-in-project-p answers nil for a heading
+missing from org-id-locations, so one added by a hand edit or a pull counts as
+another project's. The approved design falls back to --id-find, at most once per
+id per pass.
+
+
+** TODO A span from a removed linked worktree resolves to gone, and gone stops the project lookup before the edge events are read :bounded:
+:PROPERTIES:
+:ID:       460dfe96-8a08-456f-bdbd-2ace19afd404
+:CREATED:  [2026-11-03 Tue 13:18]
+:END:
+:LOGBOOK:
+- Tags ":bounded:"  from ""           [2026-11-06 Fri 15:40] \\
+  design approved 2026-11-06
+:END:
+:PLAN:
+Approved by the user 2026-11-06, on feature/suggest-own-project. Two changes.
+First, a gone from inside the span no longer ends the lookup: today (or inside
+edges) stops there because gone is non-nil, so the span falls through to its
+edge events and stays gone only when they give nothing either. Second, for a cwd
+that no longer exists, --span-project walks up to the nearest directory that
+does and accepts the answer only when that directory is inside a git checkout.
+That recovers a worktree that sat inside the repo, while a sibling worktree
+stays unknown, because its parent directory belongs to no project. Tests in
+config-test.el, one per change, each proved to fail on the branch as it is; then
+bin/test-all.
+:END:
+
+From PR #44's second review. A span whose every cwd is gone resolves to gone,
+which is non-nil, so the lookup stops before reading the edge events. The
+approved design lets gone fall through to the edges, and recovers a removed
+worktree that sat inside the repo by walking up to the nearest existing
+directory.
+
+
+** TODO PR #44's description still describes the first design: --cwd-project and the no-cwd rule
+:PROPERTIES:
+:ID:       d6d06bae-197f-42ca-9277-f95e01009140
+:CREATED:  [2026-11-03 Tue 13:18]
+:END:
+
+Second review. Rewrite the description once the code findings are fixed.
+
+
+** TODO Each review render re-resolves every DOING heading's project per span and rescans the whole history for edge events :bounded:
+:PROPERTIES:
+:ID:       89355c78-d0c9-424e-856f-24f8f857ab91
+:CREATED:  [2026-11-03 Tue 13:18]
+:END:
+:LOGBOOK:
+- Tags ":bounded:"  from ""           [2026-11-06 Fri 15:40] \\
+  design approved 2026-11-06; folded into 6080f611 and measured after
+:END:
+:PLAN:
+Approved by the user 2026-11-06: folded into [[id:6080f611-1005-42d4-942b-0fedbd162bc4][6080f611]] and measured after it. The
+per-heading lookup is already cheap, because --project-name caches by path and
+--heading-in-project-p is a gethash on org-id-locations followed by that cached
+call. The real cost is the whole-history scan once per span in
+--events-on-span-edges, which [[id:6080f611-1005-42d4-942b-0fedbd162bc4][6080f611]] removes. Once that lands, time one review
+render on the live queue. If it is still slow, cache each heading's project once
+per pass; if not, close this heading as done by [[id:6080f611-1005-42d4-942b-0fedbd162bc4][6080f611]].
+:END:
+
+From PR #44's second review. Most of the cost is the whole-history edge scan per
+span, which [[id:6080f611-1005-42d4-942b-0fedbd162bc4][6080f611]] removes, since the per-heading lookup is already cached by
+path. Measure once that lands, and close this if the render is fast.
+
+
+* TODO org_capture reports success on a task heading with no body, so a dropped note goes unseen :code:
+:PROPERTIES:
+:ID:       4953af21-da47-423c-a3e6-2f0b9023853b
+:CREATED:  [2026-11-03 Tue 08:28]
+:CATEGORY: Tools
+:END:
+
+Upstream drops an undeclared argument silently ([[id:bbf9fb77-f081-48c5-bb01-1b4d4f201969][bbf9fb77]]), so a body passed as
+body or text is lost and the reply still says Captured. Proposed by
+noodle-salesman, 2026-11-03: when note is empty and initial_state is a task
+keyword, the reply should say no body was written. That is local, needs nothing
+from upstream, and catches every misnamed synonym, which an alias list cannot.
+
+
+* REVIEW Every startup warns that no project was derived, because the module wires before the private config sets the tracked files :code:bounded:
+:PROPERTIES:
+:ID:       e6a24204-b22d-4971-822a-abaa452f3f95
+:CREATED:  [2026-10-30 Fri 17:48]
+:CATEGORY: Dev
+:END:
+:LOGBOOK:
+- State "DOING"      from "TODO"       [2026-10-30 Fri 17:48] \\
+  user approved: wire after Doom's init
+CLOCK: [2026-10-30 Fri 17:51]--[2026-10-30 Fri 17:54] =>  0:03
+- [2026-10-30 Fri 17:51]--[2026-10-30 Fri 17:54] defer on-load wiring past Doom init
+- State "REVIEW"     from "DOING"      [2026-10-30 Fri 17:54] \\
+  PR 45 open, restart check owed
+:END:
+:PLAN:
+Bounded: during Doom's startup, before doom-init-time is set, the module's call
+hands --wire-on-load to doom-after-init-hook; otherwise it runs at once, which
+covers a live reload and an Emacs without Doom. The private config has run by
+then, and its after! org body runs at that point because the module requires org
+at load, so derivation sees the tracked files. The warning stays as it is and
+now fires only for a tracked set that is really empty. Accepted cost: sessions
+register and companions start at launch rather than at first use. Tests:
+deferred during init, immediate once init is done, immediate without Doom.
+Verified by a restart, since no batch run reaches this.
+:END:
+:DEBRIEF:
+Shipped: --wire-after-init defers --wire-on-load to doom-after-init-hook while
+doom-init-time is unset, and wires at once otherwise (a live reload, or no
+Doom). Three ERT tests: deferred during init, immediate after it, immediate with
+no Doom.
+
+Verified: bin/test 949 of 949 and the pre-push bin/test-all 28 suites, 1767
+passed, on the final commit; and a real Doom restart on 2026-11-11, with Doom's
+module symlink pointed at a worktree of the branch. Before the restart
+*Warnings* held "no project derived from the tracked files"; after it, none, and
+*Messages* read "standalone tools wired on port 45571, 3 project session(s)",
+the port answered, and all three IDE lockfiles carried the new PID.
+
+Review: a medium /code-review of [[https://github.com/nbest937/claude-code-ide-org.el/pull/45][PR #45]] returned five findings. Two were real
+and fixed in 2ffe45d: the no-Doom test asserted the hook unbound and so failed
+inside a live Doom (proved by running the old and new test with the hook
+pre-bound), and the setup bullet was not re-flowed. Three were wrong: that
+doom-init-time may be set after the hook runs (doom-finalize sets it immediately
+before running doom-after-init-hook), that a re-eval leaves a second hook entry
+(add-hook does not duplicate), and a duplicate defvar conflict. The run was
+asked to post with --comment and posted nothing.
+
+Falsified: the reviewer's claim above, by Doom's own source. Differed from the
+plan: nothing in the code; the review round and the worktree were added.
+
+Not done: committing from a linked worktree is refused by bin/check-conventions,
+filed as [[id:fc76aab0-423c-4e42-aded-3de9a6df317c][fc76aab0]].
+:END:
+
+Doom loads module configs before the private config.el, whose after! org sets
+org-agenda-files, so the on-load wire derives zero projects and warns on every
+startup while the same derivation finds three afterwards. Harmless, since
+sessions register on their first call ([[id:28eed617-e4e0-4d29-88ea-9411de4b77e5][28eed617]]), but a warning that always
+fires hides the one that means something. The user chose to move the wiring past
+Doom's init rather than mute it, 2026-10-30.
+
+Resolved by [[https://github.com/nbest937/claude-code-ide-org.el/pull/45][PR #45]] (merge commit [[orgit-rev:./::9f4e8e9][9f4e8e9]], 2026-11-11): the wiring waits on
+Doom's after-init hook while Doom is starting and runs at once otherwise. A real
+Doom restart showed the warning gone and the three project sessions wired.
+
+
+
+* REVIEW The review suggests a heading from any project's todo events, so a project with time tracking off collects other projects' time as CLOCK lines :code:bounded:
+:PROPERTIES:
+:ID:       d0f8042c-c294-45b2-9016-7efca7977982
+:CREATED:  [2026-10-30 Fri 14:21]
+:CATEGORY: Apply
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-30 Fri 15:40]--[2026-10-30 Fri 15:41] =>  0:01
+- [2026-10-30 Fri 15:40]--[2026-10-30 Fri 15:41] delete misfiled noodle clocks, brainstorm the fix
+- State "DOING"      from "TODO"       [2026-10-30 Fri 15:43] \\
+  user approved: record the plan, work it now
+CLOCK: [2026-10-30 Fri 15:43]--[2026-10-30 Fri 15:50] =>  0:07
+- Tags ":code:bounded:" from ":code:"     [2026-10-30 Fri 15:43] \\
+  brainstormed: one flow, the suggester and its caller
+- [2026-10-30 Fri 15:43]--[2026-10-30 Fri 15:50] scope span suggestions to the span's project
+- State "REVIEW"     from "DOING"      [2026-10-30 Fri 15:50] \\
+  PR open, test-all green
+CLOCK: [2026-10-30 Fri 15:51]--[2026-10-30 Fri 15:52] =>  0:01
+- [2026-10-30 Fri 15:51]--[2026-10-30 Fri 15:52] suggested span, accepted at review
+- State "DOING"      from "REVIEW"     [2026-10-30 Fri 17:41] \\
+  PR 44 review findings, rework
+- State "REVIEW"     from "DOING"      [2026-10-30 Fri 17:54] \\
+  review findings fixed, threads resolved
+:END:
+:PLAN:
+Bounded: a span is suggested a heading only from its own project; with nothing
+in progress there it is offered unassigned, since no answer beats a plausible
+wrong one (the user, 2026-10-30). --review-suggest-heading takes an optional
+third argument, the span's project root, and ignores todo events from any other
+project; two-argument calls behave as before. The caller reads the project from
+the span's own events' cwd, which is at most one known project because spans
+already split on a project boundary. --project-root does the comparison, so a
+linked worktree counts as its main checkout, cached per cwd because it touches
+the disk and the history is long. The review keeps reading every session within
+a project, which keeps the 2026-08-13 fix for spans with no suggestion. A span
+with no known project keeps today's behaviour, unfiltered. A todo event with no
+cwd is ignored for a span whose project is known, the choice the report scope
+makes: never show what may be someone else's work as this project's. Bracketed
+spans and the apply path are unchanged; pending spans correct themselves because
+items are rebuilt each pass. Accepted cost: more of this repo's spans arrive
+unassigned. Tests in config-test.el: another project's DOING gives no
+suggestion, the span's own project's still does, a worktree cwd counts as its
+main checkout, a span with no cwd behaves as today; each proved to fail against
+the current code, then bin/test-all.
+
+Revised after the review of [[https://github.com/nbest937/claude-code-ide-org.el/pull/44][PR #44]], approved by the user 2026-10-30, and
+superseding the text above where they differ: the test is the project of the
+heading's file against the span's, both through --project-name, the resolver the
+span splitter already uses, and it gates only entering DOING. So --cwd-project,
+the per-call cache and the rule for an event with no cwd are gone. A span with
+no guidepost takes its project from the clock events on its edges, and a span
+whose every cwd is gone matches no heading rather than every heading. Two
+checkouts sharing a basename stay one project here, as they already are to the
+splitter.
+:END:
+--review-items-from-queue passes --review-suggest-heading the full queue history
+  of every session, so a span from one project takes the newest work-in-progress
+  todo event from any project, and the span's own cwd plays no part. Measured
+  2026-10-30: noodle-salesman's queue files hold 356 todo events and not one
+  guidepost since 2026-10-12, because its sessions run with time tracking off,
+  yet its TODO.org and DONE.org carry 35 CLOCK lines totalling 49 minutes, all
+  labelled as accepted suggestions, and every one overlaps this repo's turns
+  with none of its own possible. The same day two more spans of this repo's were
+  offered for a noodle-salesman heading and refused at review. The suggestion
+  should read only events from the span's project. Which of the 35 lines to move
+  or drop is a separate decision for that tracker. A related scope failure is
+  [[id:70b47b8f-b413-4660-bf32-b0b90db45ff4][70b47b8f]].
+
+
 * TODO Burying the review buffer runs this project's ceremony because another project's is overdue, since the due check ignores the project scope :code:
 :PROPERTIES:
 :ID:       70b47b8f-b413-4660-bf32-b0b90db45ff4
@@ -549,6 +1257,22 @@ Proposed: create the node with org-datetree-find-create-hierarchy and reversed
 comparators, as [[id:0c3f1319-67c0-4b29-a8e7-5ffa12948aaf][0c3f1319]] measured for TODO.org, then archive into it.
 
 
+* TODO footnotes-inject reads hook JSON with sed, so a path or id containing an escaped quote is cut short :code:
+:PROPERTIES:
+:ID:       8bc0bbcf-12cf-412b-a9f4-e335286dda58
+:CREATED:  [2026-10-27 Tue 13:23]
+:CATEGORY: Dev
+:END:
+
+Its field() helper extracts tool_use_id and transcript_path with a sed pattern
+that stops at the first double quote and takes the last match on the line, so an
+escaped quote in transcript_path truncates it, and a "tool_use_id" key inside
+tool_input could be read in place of the real one. A truncated path makes the
+wait loop that follows poll a file that does not exist for its full 2 s before
+going on. Seen by a repo audit 2026-10-27, by reading only, and untested.
+Proposed: read both fields with jq, as the sibling hooks do.
+
+
 * DOING The IDE companion's WebSocket accepts any web page, and =executeCode= runs whatever elisp it is sent :code:bounded:
 :PROPERTIES:
 :ID:       d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80
@@ -646,22 +1370,6 @@ an Origin before upstream makes it the session's client, is designed in :PLAN:;
 it also closes the browser half of [[id:207e9044-f05c-4507-bbd9-c2cfb9ef3f8e][207e9044]].
 
 
-* TODO footnotes-inject reads hook JSON with sed, so a path or id containing an escaped quote is cut short :code:
-:PROPERTIES:
-:ID:       8bc0bbcf-12cf-412b-a9f4-e335286dda58
-:CREATED:  [2026-10-27 Tue 13:23]
-:CATEGORY: Dev
-:END:
-
-Its field() helper extracts tool_use_id and transcript_path with a sed pattern
-that stops at the first double quote and takes the last match on the line, so an
-escaped quote in transcript_path truncates it, and a "tool_use_id" key inside
-tool_input could be read in place of the real one. A truncated path makes the
-wait loop that follows poll a file that does not exist for its full 2 s before
-going on. Seen by a repo audit 2026-10-27, by reading only, and untested.
-Proposed: read both fields with jq, as the sibling hooks do.
-
-
 * NEXT [0/15] The tracker can lose or corrupt its record, or Emacs can stop on a prompt, and nothing says so :code:
 :PROPERTIES:
 :ID:       3bfa593c-c2da-4e44-b47f-2d5f0750f2aa
@@ -698,9 +1406,10 @@ renders; read the checklist for membership and this for sequence.
 13. [[id:a3ad9732-681c-4103-a9e2-5f919e60522c][a3ad9732]], org_set_property's special-property refusal.
 14. [[id:412768a0-3d9b-4cfe-9264-3f214d4baed1][412768a0]] and 15. [[id:fd29914e-0d18-4964-a104-37c136b311a6][fd29914e]] together: both change --capture-write, so they share one PR.
 
-Followed by [[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]] (the user, 2026-10-28): the sibling slice of tool calls
-that tell their caller the opposite of what happened, which gave [[id:fd29914e-0d18-4964-a104-37c136b311a6][fd29914e]] to
-this one, and which finishes org_edit for every later slice's bookkeeping.
+Followed by [[id:4f49ea34-5b8c-4ad8-8dbb-6f17126c420f][4f49ea34]] (the user, 2026-11-05): the footnote slice, which stops
+footnote-check blocking about half of all replies, ahead of [[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]], which was
+named here 2026-10-28. It is one change, and every later slice's sessions pay
+the cost until it lands.
 :END:
 
 Ways the tracker loses state, or Emacs blocks on a prompt, with nothing
@@ -1288,6 +1997,13 @@ same holds for :DROPPED:, which the conventions say "the refresh renders".
 Proposed: org_set_property refreshes the slice after writing :MEMBERS: or
 :DROPPED:, as its KIND=slice branch already completes the declaration, and the
 duplicate test reads only the declared ids.
+
+*Seen again 2026-11-06, same repo.* After org_set_property rewrote :MEMBERS:,
+org_slice_add_member refused e2289df4 as "already a planned member", read off
+the stale checklist, and then refused after=e2289df4 because it "names no
+planned member". So the after= lookup reads the checklist too, and the stale
+rendering can refuse a call both ways. The session worked around it by setting
+the full list and letting one last add run the refresh.
 
 
 * TODO Stopping a launcher ends its MCP session twice, which spends the held reference and stops the tools server :code:
@@ -2327,9 +3043,25 @@ CLOCK: [2026-10-12 Mon 10:59]--[2026-10-12 Mon 11:00] =>  0:01
 - [2026-10-12 Mon 10:59]--[2026-10-12 Mon 11:00] file the adoption-convention change
 CLOCK: [2026-10-12 Mon 11:01]--[2026-10-12 Mon 11:02] =>  0:01
 - [2026-10-12 Mon 11:01]--[2026-10-12 Mon 11:02] reframe as permitting both routes
+CLOCK: [2026-11-06 Fri 14:47]--[2026-11-06 Fri 14:48] =>  0:01
+- [2026-11-06 Fri 14:47]--[2026-11-06 Fri 14:48] assigned at review
+CLOCK: [2026-11-06 Fri 14:54]--[2026-11-06 Fri 14:55] =>  0:01
+- [2026-11-06 Fri 14:54]--[2026-11-06 Fri 14:55] assigned at review
+CLOCK: [2026-11-06 Fri 14:58]--[2026-11-06 Fri 14:59] =>  0:01
+- [2026-11-06 Fri 14:58]--[2026-11-06 Fri 14:59] assigned at review
+CLOCK: [2026-11-06 Fri 14:59]--[2026-11-06 Fri 15:00] =>  0:01
+- [2026-11-06 Fri 14:59]--[2026-11-06 Fri 15:00] widen to work joining after a slice starts
+CLOCK: [2026-11-06 Fri 15:00]--[2026-11-06 Fri 15:01] =>  0:01
+- [2026-11-06 Fri 15:00]--[2026-11-06 Fri 15:01] assigned at review
+CLOCK: [2026-11-06 Fri 15:02]--[2026-11-06 Fri 15:03] =>  0:01
+- [2026-11-06 Fri 15:02]--[2026-11-06 Fri 15:03] assigned at review
 :END:
 :PLAN:
 Candidate steps, not yet brainstormed.
+0. Widened 2026-11-06 (the user): work joining a slice after work on it has
+   begun is incidental by default, so step 1 leads with the incidental route and
+   names when a member line is still warranted. The title should follow; no tool
+   edits a headline, so that is a hand edit.
 1. Rewrite "Adopt by adding a member line" in "Adopting a discovery" to offer
    two routes with one outcome: a member line, counted and blocking, or work
    left to close as incidental, listed at its close. Say what tells them apart:
@@ -2356,6 +3088,13 @@ closes and never curated". This is a gap, not a contradiction, since the
 incidental record is described elsewhere in the same file. It surfaced when
 [[id:d6375b21-a410-4c2d-9d5b-bfe980c4cc63][d6375b21]] was added as a member out of habit and then removed to close as
 incidental.
+
+*Widened 2026-11-06 (the user):* any work that joins a slice after work on it
+has begun should be considered incidental. So once a slice is =DOING=, the
+incidental route is the default rather than one of two equals, and a member line
+added then is the exception that needs a reason: it reopens the scope the slice
+was planned with and regresses the cookie. Before work begins, adding members is
+ordinary planning.
 
 
 * TODO This repo copies its own references into .claude/rules/ where a relative symlink would do, as its commands, agents and skills already are :code:
@@ -3788,15 +4527,15 @@ and those 53 are cleared, unless [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128
 move generalised to :DEBRIEF:. Details in :PLAN:.
 
 
-* TODO [0/12] A slice's checklist can disagree with its members, and nothing can say so or fix it :code:
+* TODO [0/14] A slice's checklist can disagree with its members, and nothing can say so or fix it :code:
 :PROPERTIES:
 :ID:       7dcec489-f5dd-4f7f-b819-a25405436b9b
 :CREATED:  [2026-09-28 Mon 08:26]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:MEMBERS:  cdff5c91-3dc1-476e-a8f2-5293570a19fc a00ace04-99bd-414a-8dc7-df8305126589 a508c59e-475e-4d27-84c9-6c3ded98e15c 6f3a5342-1905-4831-b712-3b6e5e83e0c4 6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0 b112878e-6313-4bc6-bc3f-0533d5f1ad1b dc68d831-9e04-4f0a-8b8b-8087b39c6037 6a6f6708-eefd-4d77-8ca0-0c5aaaa80796 b3949615-9260-4d97-a33f-7d74ee45ccb1 5fa51c64-297e-4937-b3eb-1535b84151aa 23303aab-e151-449f-997c-0b5a9d2cc5eb 6385df59-ca01-48f8-9a91-d9319fa8de15
-:BLOCKER:  cdff5c91-3dc1-476e-a8f2-5293570a19fc a00ace04-99bd-414a-8dc7-df8305126589 a508c59e-475e-4d27-84c9-6c3ded98e15c 6f3a5342-1905-4831-b712-3b6e5e83e0c4 6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0 b112878e-6313-4bc6-bc3f-0533d5f1ad1b dc68d831-9e04-4f0a-8b8b-8087b39c6037 6a6f6708-eefd-4d77-8ca0-0c5aaaa80796 b3949615-9260-4d97-a33f-7d74ee45ccb1 5fa51c64-297e-4937-b3eb-1535b84151aa 23303aab-e151-449f-997c-0b5a9d2cc5eb 6385df59-ca01-48f8-9a91-d9319fa8de15
+:MEMBERS:  cdff5c91-3dc1-476e-a8f2-5293570a19fc a00ace04-99bd-414a-8dc7-df8305126589 a508c59e-475e-4d27-84c9-6c3ded98e15c 6f3a5342-1905-4831-b712-3b6e5e83e0c4 6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0 b112878e-6313-4bc6-bc3f-0533d5f1ad1b dc68d831-9e04-4f0a-8b8b-8087b39c6037 6a6f6708-eefd-4d77-8ca0-0c5aaaa80796 b3949615-9260-4d97-a33f-7d74ee45ccb1 5fa51c64-297e-4937-b3eb-1535b84151aa 23303aab-e151-449f-997c-0b5a9d2cc5eb 6385df59-ca01-48f8-9a91-d9319fa8de15 0b3b6566-0b20-4df1-aa20-f303512c5c6b 3685c3bc-92fe-4c21-b43c-406b4ba6674c
+:BLOCKER:  cdff5c91-3dc1-476e-a8f2-5293570a19fc a00ace04-99bd-414a-8dc7-df8305126589 a508c59e-475e-4d27-84c9-6c3ded98e15c 6f3a5342-1905-4831-b712-3b6e5e83e0c4 6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0 b112878e-6313-4bc6-bc3f-0533d5f1ad1b dc68d831-9e04-4f0a-8b8b-8087b39c6037 6a6f6708-eefd-4d77-8ca0-0c5aaaa80796 b3949615-9260-4d97-a33f-7d74ee45ccb1 5fa51c64-297e-4937-b3eb-1535b84151aa 23303aab-e151-449f-997c-0b5a9d2cc5eb 6385df59-ca01-48f8-9a91-d9319fa8de15 0b3b6566-0b20-4df1-aa20-f303512c5c6b 3685c3bc-92fe-4c21-b43c-406b4ba6674c
 :END:
 :PLAN:
 Composed 2026-09-28 from the backlog survey, at the user's direction. The theme:
@@ -3855,6 +4594,8 @@ Planned:
 - [ ] [[id:5fa51c64-297e-4937-b3eb-1535b84151aa][5fa51c64]] TODO A duplicate id in a slice's :MEMBERS: renders twice and counts twice, and lint says nothing
 - [ ] [[id:23303aab-e151-449f-997c-0b5a9d2cc5eb][23303aab]] TODO A :DROPPED: id that names no member does nothing, and no lint rule reads :DROPPED: though a comment says one does
 - [ ] [[id:6385df59-ca01-48f8-9a91-d9319fa8de15][6385df59]] TODO A slice-scoped org_outline lists derived parent rows and incidentals as members, because it reads the body rather than :MEMBERS:
+- [ ] [[id:0b3b6566-0b20-4df1-aa20-f303512c5c6b][0b3b6566]] TODO A deferred or cancelled slice member loses its box and nothing else, so it reads as a parent row; strike it through instead
+- [ ] [[id:3685c3bc-92fe-4c21-b43c-406b4ba6674c][3685c3bc]] TODO The conventions tell a slice to declare a story and its children together, which the lint refuses
 
 A slice's checklist is rendered from =:MEMBERS:=, and nothing checks that the
 rendering matches its members, repairs a closed slice's record, or lets a member
@@ -3863,15 +4604,15 @@ the lint and the repair, finishes the ordering tool, and makes the refresh cheap
 enough to run on every exit.
 
 
-* TODO [0/13] A tool call can be told the opposite of what happened: a negated boolean, a phantom capture, a hang :code:
+* TODO [0/14] A tool call can be told the opposite of what happened: a negated boolean, a phantom capture, a hang :code:
 :PROPERTIES:
 :ID:       f436a3b8-58ba-45a7-9f84-b8dee0934ca7
 :CREATED:  [2026-09-28 Mon 08:25]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:MEMBERS:  a8ccd6ac-3452-4926-b176-ff5951dcd5b2 c35087d8-19fe-4179-a61c-cb615b2e7679 b2d4012c-6c61-47df-8086-d1cd205c73fc 5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997 c0c5e015-c33e-4e1a-ad6e-907f9fa56c07 4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8 8326a46f-e3f9-4ecc-8bc2-05d54907987b d842b9e7-fd75-45eb-80fd-597daa3e36b0 fd29914e-0d18-4964-a104-37c136b311a6 ecbbec2e-50d9-4581-9ded-15716f16c5f3 94fe3c57-89f6-4d17-943e-0cb6145f3419 c6b068aa-f9de-4edc-a5b3-380bff666d2e eeb18e56-fcfd-4653-86e6-09448474de07 e4734e2c-2083-413b-941d-9503dd0f4a23
-:BLOCKER:  a8ccd6ac-3452-4926-b176-ff5951dcd5b2 c35087d8-19fe-4179-a61c-cb615b2e7679 b2d4012c-6c61-47df-8086-d1cd205c73fc 5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997 c0c5e015-c33e-4e1a-ad6e-907f9fa56c07 4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8 8326a46f-e3f9-4ecc-8bc2-05d54907987b d842b9e7-fd75-45eb-80fd-597daa3e36b0 ecbbec2e-50d9-4581-9ded-15716f16c5f3 94fe3c57-89f6-4d17-943e-0cb6145f3419 c6b068aa-f9de-4edc-a5b3-380bff666d2e eeb18e56-fcfd-4653-86e6-09448474de07 e4734e2c-2083-413b-941d-9503dd0f4a23
+:MEMBERS:  a8ccd6ac-3452-4926-b176-ff5951dcd5b2 c35087d8-19fe-4179-a61c-cb615b2e7679 b2d4012c-6c61-47df-8086-d1cd205c73fc 5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997 c0c5e015-c33e-4e1a-ad6e-907f9fa56c07 4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8 8326a46f-e3f9-4ecc-8bc2-05d54907987b d842b9e7-fd75-45eb-80fd-597daa3e36b0 fd29914e-0d18-4964-a104-37c136b311a6 ecbbec2e-50d9-4581-9ded-15716f16c5f3 94fe3c57-89f6-4d17-943e-0cb6145f3419 c6b068aa-f9de-4edc-a5b3-380bff666d2e eeb18e56-fcfd-4653-86e6-09448474de07 e4734e2c-2083-413b-941d-9503dd0f4a23 0c18b5c1-1cc5-4f18-8ba0-e2949e9dba34
+:BLOCKER:  a8ccd6ac-3452-4926-b176-ff5951dcd5b2 c35087d8-19fe-4179-a61c-cb615b2e7679 b2d4012c-6c61-47df-8086-d1cd205c73fc 5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997 c0c5e015-c33e-4e1a-ad6e-907f9fa56c07 4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8 8326a46f-e3f9-4ecc-8bc2-05d54907987b d842b9e7-fd75-45eb-80fd-597daa3e36b0 ecbbec2e-50d9-4581-9ded-15716f16c5f3 94fe3c57-89f6-4d17-943e-0cb6145f3419 c6b068aa-f9de-4edc-a5b3-380bff666d2e eeb18e56-fcfd-4653-86e6-09448474de07 e4734e2c-2083-413b-941d-9503dd0f4a23 0c18b5c1-1cc5-4f18-8ba0-e2949e9dba34
 :DROPPED:  fd29914e-0d18-4964-a104-37c136b311a6
 :END:
 :LOGBOOK:
@@ -3937,7 +4678,9 @@ rather than a heading.
 
 Followed by [[id:7dcec489-f5dd-4f7f-b819-a25405436b9b][7dcec489]], which now comes between this slice and [[id:005fef09-e34f-4994-8c0d-6d17ada3d7ac][005fef09]] (the user,
 2026-10-28, setting the order [[id:3bfa593c-c2da-4e44-b47f-2d5f0750f2aa][3bfa593c]], [[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]], [[id:7dcec489-f5dd-4f7f-b819-a25405436b9b][7dcec489]], [[id:005fef09-e34f-4994-8c0d-6d17ada3d7ac][005fef09]]): the slice
-machinery is fixed before a tagged release carries it.
+machinery is fixed before a tagged release carries it. Since 2026-11-05 (the
+user) the order is [[id:3bfa593c-c2da-4e44-b47f-2d5f0750f2aa][3bfa593c]], [[id:4f49ea34-5b8c-4ad8-8dbb-6f17126c420f][4f49ea34]], [[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]], [[id:7dcec489-f5dd-4f7f-b819-a25405436b9b][7dcec489]], [[id:005fef09-e34f-4994-8c0d-6d17ada3d7ac][005fef09]]: the
+footnote slice goes second.
 :END:
 
 Planned:
@@ -3957,6 +4700,7 @@ Planned:
 - [ ] [[id:c6b068aa-f9de-4edc-a5b3-380bff666d2e][c6b068aa]] TODO An ambiguous id prefix is reported as not found, and a short prefix can resolve to the wrong heading while the index is stale
 - [ ] [[id:eeb18e56-fcfd-4653-86e6-09448474de07][eeb18e56]] TODO org_set_tags and capture accept tag names org cannot parse, which land in the title while the logbook says the tag was set
 - [ ] [[id:e4734e2c-2083-413b-941d-9503dd0f4a23][e4734e2c]] TODO The body region drops the last line when the file has no final newline, so a replace glues it to the new text
+- [ ] [[id:0c18b5c1-1cc5-4f18-8ba0-e2949e9dba34][0c18b5c1]] TODO org_set_property ignores append on :DROPPED: and every property but :BLOCKER:, so an append shortens the list and reports success
 
 Five ways an =org_*= call tells its caller something other than what happened: a
 =false= that acts as true, a capture that reports success and persists nothing,
@@ -4752,6 +5496,12 @@ which invites =logging/setLevel=; the =curl= probe on [[id:ce012ad4-87f7-435c-a2
 the trap should cover =--dispatch= too and answer =-32601= with the request's
 own =id=. Or, more simply, stop advertising =logging=, if that turns out to be
 the method.
+
+*Seen again 2026-11-06, downstream.* A consuming repo's session called
+org_slice_add_member with slice and member for slice_id and member_id, the same
+pair [[id:ce012ad4-87f7-435c-a2ee-25210c071865][ce012ad4]] records, and it timed out rather than being refused. Its ask is
+this heading's fix: a refusal naming the argument. Naming the *unknown*
+argument, as opposed to the missing required one, is [[id:bbf9fb77-f081-48c5-bb01-1b4d4f201969][bbf9fb77]]'s half.
 
 
 * TODO org_amend accepts a headline-shaped line in drawer text, which tears the drawer open :code:
@@ -5731,6 +6481,7 @@ never closes; the count is the point. One dated line per catch.
   Caught by the user.
 
 - 2026-10-27: argued the tool-call audit log could be deleted because a failed apply save "would show in the tracker's diff". Nobody reads that diff: apply-detect tells the session an apply landed and the session commits it unasked, which is the point of that hook, so an unsaved apply is committed short with nothing to show it. The user caught it.
+- [2026-11-03 Tue] Caught by the user, in noodle-salesman: the session told the user what the body of a heading it had just captured said, without reading the heading back. The body was empty, because the text had gone in an undeclared =body= parameter ([[id:bbf9fb77-f081-48c5-bb01-1b4d4f201969][bbf9fb77]]). One =org_body= call would have shown it.
 
 
 ** TODO Miss: a heading closed with its unfinished part left in prose, or its group left un-nominated
@@ -11573,12 +12324,12 @@ before the fix and still says.
 
 
 * TODO Archive closed tasks daily
-SCHEDULED: <2026-10-31 Sat 07:00 ++1d>
+SCHEDULED: <2026-11-12 Thu 07:00 ++1d>
 :PROPERTIES:
 :CATEGORY: Meta
 :ID:       cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8
 :CREATED:  [2026-08-21 Fri 15:35]
-:LAST_REPEAT: [2026-10-30 Fri 08:58]
+:LAST_REPEAT: [2026-11-11 Wed 08:47]
 :KIND:     ceremony
 :END:
 :LOGBOOK:
@@ -13700,6 +14451,7 @@ at the first call is the only mechanism that would have caught it.
 - 2026-09-18: two calls with =body= ([[id:2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd][2cd74268]], [[id:0b5cacf5-9299-499d-9036-2da2625c1233][0b5cacf5]]), in this repository with this heading on disk; found minutes later by a =git diff --stat= reading =6 insertions= where about thirty were expected.
 - 2026-09-19: eight calls with =body= in one session, noticed five hours after the first when a slice heading was inspected by hand; the =org_amend= calls into =:PLAN:= that did land masked the loss.
 - 2026-09-22: two calls with =text= ([[id:3485b0d0-3b47-4a28-ae6f-e2061fa8f226][3485b0d0]], [[id:c4bb5db3-2717-4f95-8add-5cc487ea3a28][c4bb5db3]]), the first *different* invented name; found by =git diff --stat= again; the catch is recorded on [[id:59861867-e807-43a8-a0fa-5ca227167022][59861867]].
+- 2026-11-03: one =org_capture= with =body= in noodle-salesman, the first occurrence in a consuming repo, with the schema not loaded at the call. The session described the body to the user as written; the user caught it, and it was repaired in that repo's commit 8d74860.
 - The failure is self-concealing: [[id:2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd][2cd74268]] was reported as carrying a substantial body and discussed for roughly two hours while empty, and surfaced only when a *second* capture's diff looked short.
 - The correct parameter, =note=, was documented in the same =:args= list the 2026-09-18 session read -- forty minutes *after* the failure, while investigating it.
 
@@ -14338,6 +15090,17 @@ CLOCK: [2026-10-28 Wed 15:50]--[2026-10-28 Wed 15:51] =>  0:01
 - <2026-10-28 Wed 15:50>--<2026-10-28 Wed 15:51> review pass (buffer buried)
 - <2026-10-28 Wed 15:52>--<2026-10-28 Wed 15:52> review pass (buffer buried)
 CLOCK: [2026-10-30 Fri 11:29]--[2026-10-30 Fri 11:31] =>  0:02
+CLOCK: [2026-10-30 Fri 17:37]--[2026-10-30 Fri 17:38] =>  0:01
+- <2026-10-30 Fri 17:37>--<2026-10-30 Fri 17:38> review pass (buffer buried)
+CLOCK: [2026-10-30 Fri 17:38]--[2026-10-30 Fri 17:39] =>  0:01
+CLOCK: [2026-11-03 Tue 12:38]--[2026-11-03 Tue 12:39] =>  0:01
+- <2026-11-03 Tue 12:38>--<2026-11-03 Tue 12:39> review pass (buffer buried)
+CLOCK: [2026-11-04 Wed 07:22]--[2026-11-04 Wed 07:24] =>  0:02
+- <2026-11-04 Wed 07:22>--<2026-11-04 Wed 07:24> review pass (buffer buried)
+- <2026-11-04 Wed 07:49>--<2026-11-04 Wed 07:49> review pass (buffer buried)
+CLOCK: [2026-11-04 Wed 11:15]--[2026-11-04 Wed 11:17] =>  0:02
+CLOCK: [2026-11-06 Fri 09:21]--[2026-11-06 Fri 09:22] =>  0:01
+- <2026-11-06 Fri 09:21>--<2026-11-06 Fri 09:22> review pass (buffer buried)
 :END:
 
 We created this heading on 2026-08-26. We deleted that property from its
@@ -16096,4 +16859,106 @@ CLOCK: [2026-10-30 Fri 11:36]--[2026-10-30 Fri 11:37] =>  0:01
 - [2026-10-30 Fri 11:36]--[2026-10-30 Fri 11:37] commit the 11:31 apply; trace the ceremony rerun
 CLOCK: [2026-10-30 Fri 11:55]--[2026-10-30 Fri 11:56] =>  0:01
 - [2026-10-30 Fri 11:55]--[2026-10-30 Fri 11:56] commit the 11:31 apply; trace the ceremony rerun
+CLOCK: [2026-10-30 Fri 14:06]--[2026-10-30 Fri 14:07] =>  0:01
+- [2026-10-30 Fri 14:06]--[2026-10-30 Fri 14:07] commit the apply; verify noodle ceremony run
+CLOCK: [2026-10-30 Fri 14:19]--[2026-10-30 Fri 14:21] =>  0:02
+- [2026-10-30 Fri 14:19]--[2026-10-30 Fri 14:21] push main, file span bug, audit misfiled time
+:END:
+
+
+*** 2026-11 November
+
+
+**** 2026-11-03 Tuesday
+:PROPERTIES:
+:ID:       42a1fef2-7f6c-4df3-a054-43f738a54279
+:CREATED:  [2026-11-03 Tue 08:27]
+:END:
+:LOGBOOK:
+- [2026-11-03 Tue 08:27]--[2026-11-03 Tue 08:28] assigned at review
+CLOCK: [2026-11-03 Tue 08:28]--[2026-11-03 Tue 08:29] =>  0:01
+- [2026-11-03 Tue 08:28]--[2026-11-03 Tue 08:29] file noodle-salesman's dropped-body miss
+CLOCK: [2026-11-03 Tue 08:29]--[2026-11-03 Tue 08:30] =>  0:01
+- [2026-11-03 Tue 08:29]--[2026-11-03 Tue 08:30] assigned at review
+CLOCK: [2026-11-03 Tue 08:33]--[2026-11-03 Tue 08:34] =>  0:01
+- [2026-11-03 Tue 08:33]--[2026-11-03 Tue 08:34] assigned at review
+CLOCK: [2026-11-03 Tue 08:40]--[2026-11-03 Tue 08:41] =>  0:01
+- [2026-11-03 Tue 08:40]--[2026-11-03 Tue 08:41] assigned at review
+CLOCK: [2026-11-03 Tue 10:42]--[2026-11-03 Tue 10:43] =>  0:01
+- [2026-11-03 Tue 10:42]--[2026-11-03 Tue 10:43] assigned at review
+CLOCK: [2026-11-03 Tue 12:55]--[2026-11-03 Tue 12:56] =>  0:01
+- [2026-11-03 Tue 12:55]--[2026-11-03 Tue 12:56] assigned at review
+CLOCK: [2026-11-03 Tue 12:59]--[2026-11-03 Tue 13:01] =>  0:02
+- [2026-11-03 Tue 12:59]--[2026-11-03 Tue 13:01] assigned at review
+CLOCK: [2026-11-03 Tue 13:13]--[2026-11-03 Tue 13:14] =>  0:01
+- [2026-11-03 Tue 13:13]--[2026-11-03 Tue 13:14] assigned at review
+CLOCK: [2026-11-03 Tue 13:17]--[2026-11-03 Tue 13:18] =>  0:01
+- [2026-11-03 Tue 13:17]--[2026-11-03 Tue 13:18] assigned at review
+CLOCK: [2026-11-03 Tue 13:18]--[2026-11-03 Tue 13:19] =>  0:01
+- [2026-11-03 Tue 13:18]--[2026-11-03 Tue 13:19] review story ruling and PR #44's story
+CLOCK: [2026-11-03 Tue 15:02]--[2026-11-03 Tue 15:03] =>  0:01
+- [2026-11-03 Tue 15:02]--[2026-11-03 Tue 15:03] file the consumer commit-lint gap
+CLOCK: [2026-11-03 Tue 15:03]--[2026-11-03 Tue 15:04] =>  0:01
+- [2026-11-03 Tue 15:03]--[2026-11-03 Tue 15:04] fix the filing's lint refusal
+CLOCK: [2026-11-03 Tue 15:42]--[2026-11-03 Tue 15:43] =>  0:01
+- [2026-11-03 Tue 15:42]--[2026-11-03 Tue 15:43] conventions line implying consumers get pre-commit
+CLOCK: [2026-11-03 Tue 15:51]--[2026-11-03 Tue 15:52] =>  0:01
+- [2026-11-03 Tue 15:51]--[2026-11-03 Tue 15:52] assigned at review
+CLOCK: [2026-11-03 Tue 15:56]--[2026-11-03 Tue 15:57] =>  0:01
+- [2026-11-03 Tue 15:56]--[2026-11-03 Tue 15:57] assigned at review
+CLOCK: [2026-11-03 Tue 15:57]--[2026-11-03 Tue 15:58] =>  0:01
+- [2026-11-03 Tue 15:57]--[2026-11-03 Tue 15:58] file Warp notification spike
+:END:
+
+
+**** 2026-11-05 Thursday
+:PROPERTIES:
+:ID:       e9ec2f76-9102-4590-8047-bc12590722b8
+:CREATED:  [2026-11-05 Thu 15:56]
+:END:
+:LOGBOOK:
+CLOCK: [2026-11-05 Thu 15:56]--[2026-11-05 Thu 15:57] =>  0:01
+- [2026-11-05 Thu 15:56]--[2026-11-05 Thu 15:57] file the footnote-delivery story
+CLOCK: [2026-11-05 Thu 15:57]--[2026-11-05 Thu 15:58] =>  0:01
+- [2026-11-05 Thu 15:57]--[2026-11-05 Thu 15:58] assigned at review
+CLOCK: [2026-11-05 Thu 16:03]--[2026-11-05 Thu 16:04] =>  0:01
+- [2026-11-05 Thu 16:03]--[2026-11-05 Thu 16:04] assigned at review
+CLOCK: [2026-11-05 Thu 16:04]--[2026-11-05 Thu 16:05] =>  0:01
+- [2026-11-05 Thu 16:04]--[2026-11-05 Thu 16:05] flatten the footnote story, rank slices
+CLOCK: [2026-11-05 Thu 16:05]--[2026-11-05 Thu 16:06] =>  0:01
+- [2026-11-05 Thu 16:05]--[2026-11-05 Thu 16:06] assigned at review
+CLOCK: [2026-11-05 Thu 16:09]--[2026-11-05 Thu 16:10] =>  0:01
+- [2026-11-05 Thu 16:09]--[2026-11-05 Thu 16:10] assigned at review
+CLOCK: [2026-11-05 Thu 16:10]--[2026-11-05 Thu 16:11] =>  0:01
+- [2026-11-05 Thu 16:10]--[2026-11-05 Thu 16:11] put the footnote slice second in the chain
+:END:
+
+
+**** 2026-11-06 Friday
+:PROPERTIES:
+:ID:       6244a7c8-2fc3-4450-a7f7-e81bc8775f95
+:CREATED:  [2026-11-06 Fri 11:39]
+:END:
+:LOGBOOK:
+CLOCK: [2026-11-06 Fri 11:39]--[2026-11-06 Fri 11:40] =>  0:01
+- [2026-11-06 Fri 11:39]--[2026-11-06 Fri 11:40] file two downstream tool reports
+CLOCK: [2026-11-06 Fri 11:40]--[2026-11-06 Fri 11:41] =>  0:01
+- [2026-11-06 Fri 11:40]--[2026-11-06 Fri 11:41] assigned at review
+CLOCK: [2026-11-06 Fri 11:43]--[2026-11-06 Fri 11:44] =>  0:01
+- [2026-11-06 Fri 11:43]--[2026-11-06 Fri 11:44] assigned at review
+CLOCK: [2026-11-06 Fri 11:44]--[2026-11-06 Fri 11:45] =>  0:01
+- [2026-11-06 Fri 11:44]--[2026-11-06 Fri 11:45] add 0c18b5c1 to f436a3b8
+CLOCK: [2026-11-06 Fri 11:45]--[2026-11-06 Fri 11:46] =>  0:01
+- [2026-11-06 Fri 11:45]--[2026-11-06 Fri 11:46] assigned at review
+CLOCK: [2026-11-06 Fri 11:46]--[2026-11-06 Fri 11:47] =>  0:01
+- [2026-11-06 Fri 11:46]--[2026-11-06 Fri 11:47] file the strike-through rendering item
+CLOCK: [2026-11-06 Fri 12:17]--[2026-11-06 Fri 12:18] =>  0:01
+- [2026-11-06 Fri 12:17]--[2026-11-06 Fri 12:18] add 0b3b6566 to 7dcec489
+- [2026-11-06 Fri 14:43]--[2026-11-06 Fri 14:44] assigned at review
+CLOCK: [2026-11-06 Fri 14:44]--[2026-11-06 Fri 14:45] =>  0:01
+- [2026-11-06 Fri 14:44]--[2026-11-06 Fri 14:45] file two more downstream reports
+CLOCK: [2026-11-06 Fri 14:45]--[2026-11-06 Fri 14:47] =>  0:02
+- [2026-11-06 Fri 14:45]--[2026-11-06 Fri 14:47] assigned at review
+CLOCK: [2026-11-06 Fri 14:47]--[2026-11-06 Fri 14:48] =>  0:01
+- [2026-11-06 Fri 14:47]--[2026-11-06 Fri 14:48] add 3685c3bc to 7dcec489
 :END:
