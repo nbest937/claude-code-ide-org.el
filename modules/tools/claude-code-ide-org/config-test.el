@@ -16312,6 +16312,92 @@ what makes the difference and that turning the gate off removes it."
         (claude-code-ide-org--apply-notification-status-advice)
         (should (= 202 (answer)))))))
 
+;;; Browser origins refused (TODO.org :ID: d7b2f50f) ----------------------
+
+(defmacro claude-code-ide-org-test--with-origin-sockets (&rest body)
+  "Run BODY with upstream's on-open replaced by a recorder and sockets faked.
+Binds `opened' (sockets upstream saw) and `closed' (sockets closed), and
+restores the advice and the original function afterwards."
+  (declare (indent 0))
+  `(progn
+     (require 'claude-code-ide-mcp)
+     (require 'websocket)
+     (let ((opened nil) (closed nil)
+           (orig (symbol-function 'claude-code-ide-mcp--on-open))
+           (had-switch claude-code-ide-org-refuse-browser-origins))
+       (unwind-protect
+           (cl-letf (((symbol-function 'websocket-close)
+                      (lambda (ws) (push ws closed))))
+             (advice-remove 'claude-code-ide-mcp--on-open
+                            #'claude-code-ide-org--refuse-origin-on-open)
+             (fset 'claude-code-ide-mcp--on-open
+                   (lambda (ws) (push ws opened)))
+             ,@body)
+         (advice-remove 'claude-code-ide-mcp--on-open
+                        #'claude-code-ide-org--refuse-origin-on-open)
+         (fset 'claude-code-ide-mcp--on-open orig)
+         (setq claude-code-ide-org-refuse-browser-origins had-switch)
+         (claude-code-ide-org--apply-origin-refusal-advice)))))
+
+(ert-deftest claude-code-ide-org-test-origin-socket-closed-and-upstream-not-called ()
+  "A socket carrying an Origin is closed and upstream never sees it; one
+without goes straight through.  The off case is the discriminating
+control: with the switch nil the same Origin reaches upstream."
+  (claude-code-ide-org-test--with-origin-sockets
+    (let ((claude-code-ide-org-refuse-browser-origins t)
+          (evil (websocket-inner-create :url "ws://x" :conn "c"
+                                :origin "https://evil.example.com"))
+          (own (websocket-inner-create :url "ws://x" :conn "c")))
+      (claude-code-ide-org--apply-origin-refusal-advice)
+      (claude-code-ide-mcp--on-open evil)
+      (should (equal (list evil) closed))
+      (should-not opened)
+      (claude-code-ide-mcp--on-open own)
+      (should (equal (list own) opened))
+      (should (equal (list evil) closed))
+      ;; Idempotent: applying twice does not stack.
+      (claude-code-ide-org--apply-origin-refusal-advice)
+      (setq opened nil closed nil)
+      (claude-code-ide-mcp--on-open evil)
+      (should (= 1 (length closed)))
+      ;; Off: the advice is gone and upstream's handler sees the Origin.
+      (setq claude-code-ide-org-refuse-browser-origins nil)
+      (claude-code-ide-org--apply-origin-refusal-advice)
+      (setq opened nil closed nil)
+      (claude-code-ide-mcp--on-open evil)
+      (should (equal (list evil) opened))
+      (should-not closed))))
+
+(ert-deftest claude-code-ide-org-test-refused-origin-leaves-session-client ()
+  "A refused socket never becomes the session's client, and its close
+leaves the real client as it was.  Driven through the real upstream
+on-open and on-close with a session already holding a client."
+  (require 'claude-code-ide-mcp)
+  (require 'websocket)
+  (let* ((real (websocket-inner-create
+                :url "ws://x" :conn "websocket server on port 4242 <real>"))
+         (evil (websocket-inner-create
+                :url "ws://x" :conn "websocket server on port 4242 <evil>"
+                :origin "https://evil.example.com"))
+         (session (make-claude-code-ide-mcp-session
+                   :project-dir "/tmp/origin-test/" :port 4242 :client real))
+         (claude-code-ide-mcp--sessions (make-hash-table :test 'equal))
+         (claude-code-ide-org-refuse-browser-origins t)
+         (closed nil))
+    (puthash "/tmp/origin-test/" session claude-code-ide-mcp--sessions)
+    (unwind-protect
+        (cl-letf (((symbol-function 'websocket-close)
+                   (lambda (ws)
+                     (push ws closed)
+                     (claude-code-ide-mcp--on-close ws)))
+                  ((symbol-function 'websocket-ready-state)
+                   (lambda (_ws) 'open)))
+          (claude-code-ide-org--apply-origin-refusal-advice)
+          (claude-code-ide-mcp--on-open evil)
+          (should (equal (list evil) closed))
+          (should (eq real (claude-code-ide-mcp-session-client session))))
+      (claude-code-ide-org--apply-origin-refusal-advice))))
+
 (ert-deftest claude-code-ide-org-test-set-property-kind-slice-completes-the-declaration ()
   "KIND=slice writes everything a slice must carry that a mechanism can
 derive: :COOKIE_DATA:, the [/] cookie, and the :BLOCKER: from the

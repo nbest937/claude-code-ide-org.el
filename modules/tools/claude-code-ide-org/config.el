@@ -22536,6 +22536,66 @@ delete this defcustom, the advice and its test together."
 (with-eval-after-load 'claude-code-ide-mcp-http-server
   (claude-code-ide-org--apply-notification-status-advice))
 
+;;; Browser origins refused (TODO.org :ID: d7b2f50f) ----------------------
+
+;; The advice and its applier precede the defcustom, for the same reason
+;; as the 202 pair above: a `:set' runs when the defcustom is evaluated.
+(defun claude-code-ide-org--refuse-origin-on-open (orig-fn ws &rest args)
+  "Around advice for `claude-code-ide-mcp--on-open': close a socket with an Origin.
+A browser always sends an Origin header; Claude Code's own companion
+connection sends none (measured 2026-10-28, `websocket-origin' nil on
+its client).  A socket carrying one is closed with one log line and
+ORIG-FN never runs, so the refused socket never becomes the session's
+client and its close finds no session to clear.  A socket without one
+goes straight through to ORIG-FN with WS and ARGS.  See
+`claude-code-ide-org-refuse-browser-origins'."
+  (let ((origin (websocket-origin ws)))
+    (if (null origin)
+        (apply orig-fn ws args)
+      (message "claude-code-ide-org: refused WebSocket with Origin %s on %s"
+               origin (format "%s" ws))
+      (websocket-close ws)
+      nil)))
+
+(defun claude-code-ide-org--apply-origin-refusal-advice ()
+  "Install or remove the Origin refusal, per
+`claude-code-ide-org-refuse-browser-origins'.  Idempotent."
+  (if claude-code-ide-org-refuse-browser-origins
+      (advice-add 'claude-code-ide-mcp--on-open
+                  :around #'claude-code-ide-org--refuse-origin-on-open)
+    (advice-remove 'claude-code-ide-mcp--on-open
+                   #'claude-code-ide-org--refuse-origin-on-open)))
+
+(defcustom claude-code-ide-org-refuse-browser-origins t
+  "Refuse a connection that carries an Origin header.
+
+Upstream's IDE-companion WebSocket checks no Origin, so any web page
+that finds its port can connect and, with
+`claude-code-ide-enable-execute-code' at its default of t, evaluate
+elisp in this Emacs (verified 2026-10-27; TODO.org :ID: d7b2f50f).
+Claude Code's own connection sends no Origin, so refusing every socket
+that has one closes the browser route and costs the legitimate client
+nothing.  A local process can still connect: it can read the lockfile
+and already runs as you.
+
+Non-nil installs `:around' advice on `claude-code-ide-mcp--on-open' the
+moment that file loads; nil removes it.  Setting it through Customize
+re-applies at once; a `setq' needs
+`claude-code-ide-org--apply-origin-refusal-advice' after it.  The
+HTTP tools server's refusal (TODO.org :ID: 8c4a3aea) joins this switch
+by adding its own advice to that applier.
+
+`claude-code-ide-enable-execute-code' is deliberately left alone."
+  :type 'boolean
+  :group 'claude-code-ide-org
+  :set (lambda (sym val)
+         (set-default sym val)
+         (when (featurep 'claude-code-ide-mcp)
+           (claude-code-ide-org--apply-origin-refusal-advice))))
+
+(with-eval-after-load 'claude-code-ide-mcp
+  (claude-code-ide-org--apply-origin-refusal-advice))
+
 (defcustom claude-code-ide-org-wire-on-load t
   "Non-nil: start the MCP tools server and register sessions when the module loads.
 
