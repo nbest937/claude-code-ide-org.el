@@ -660,8 +660,31 @@ repo is recovered from its nearest existing directory.
 :ID:       d6d06bae-197f-42ca-9277-f95e01009140
 :CREATED:  [2026-11-03 Tue 13:18]
 :END:
+:DEBRIEF:
+Shipped: the description now states the full-root comparison, the edge lookup
+from the brackets a span abuts, the gone fall-through and worktree recovery, and
+the once-per-pass index rescan; --cwd-project and the no-cwd rule are gone from
+it. It also carries the measured render cost and the first fallback's 8.7 s,
+which the branch replaced, and points at [[id:3565ba71-bb57-4b97-b4ca-66bd917096fe][3565ba71]] for what the render really
+spends.
+
+Verified: the branch pushed with the pre-push bin/test-all at 28 suites, 1781
+passed, 0 failed, and GitHub's head equal to the local one, 43c21e3; the
+rewritten body read back from GitHub holds --project-root-key and neither of the
+old names.
+
+Differed from the plan: the plan said to rewrite once the code findings were
+fixed, and a /code-review of #44 ran in between against the head GitHub then
+held, 4a875a9, so it reviewed code the branch had already replaced. Its five
+findings were triaged against the new code and none stands; the lesson is to
+push before asking for a review of pushed work.
+:END:
 
 Second review. Rewrite the description once the code findings are fixed.
+
+Resolved 2026-11-11: PR #44's description rewritten after the code findings
+landed on its branch, and the branch pushed so GitHub's head matches it.
+
 
 
 ** TODO Each review render re-resolves every DOING heading's project per span and rescans the whole history for edge events :bounded:
