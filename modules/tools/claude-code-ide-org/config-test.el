@@ -12758,6 +12758,97 @@ lookup before the edge events were read."
           "2026-10-30T09:30:00-0500" "pause" nil nil "sess-a" nil nil nil removed))
         (should (equal a-id (funcall suggestion)))))))
 
+(ert-deftest claude-code-ide-org-test-another-projects-event-at-an-edge-does-not-decide ()
+  "A gap span takes its project from the brackets it abuts, not from any
+event that shares an edge second with it.
+
+Another project's event in the same second used to decide, because the
+edge events were read from the whole history (TODO.org :ID: 6080f611).
+The session names are chosen so that project B's event sorts first, which
+is the order the old lookup picked from."
+  (claude-code-ide-org-test--with-scoped-projects
+    (let ((suggestion
+           ;; The one gap that opens at the shared second, not any span:
+           ;; the others carry A's suggestion whatever the edge lookup does.
+           (lambda ()
+             (plist-get
+              (seq-find
+               (lambda (i)
+                 (and (plist-get i :unassigned)
+                      (time-equal-p (plist-get i :start)
+                                    (date-to-time "2026-10-30T09:10:00-0500"))))
+               (claude-code-ide-org--review-items-from-queue))
+              :id))))
+      (claude-code-ide-org-test--with-queue
+        (claude-code-ide-org-test--queue-write
+         "sess-0b"
+         (claude-code-ide-org-test--queue-event
+          "2026-10-30T08:00:00-0500" "todo" b-id "DOING" "sess-0b"
+          nil nil nil b-root)
+         ;; Shares the second at which the gap opens.  Not a guidepost:
+         ;; that would fall inside the span and decide by the ordinary
+         ;; path, where this is about the edge lookup.
+         (claude-code-ide-org-test--queue-event
+          "2026-10-30T09:10:00-0500" "todo" b-id "DOING" "sess-0b"
+          nil nil nil b-root))
+        (claude-code-ide-org-test--queue-write
+         "sess-c"
+         (claude-code-ide-org-test--queue-event
+          "2026-10-30T08:30:00-0500" "todo" a-id "DOING" "sess-c"
+          nil nil nil a-root))
+        (claude-code-ide-org-test--queue-write
+         "sess-z"
+         (claude-code-ide-org-test--queue-event
+          "2026-10-30T09:00:00-0500" "resume" nil nil "sess-z" nil nil nil a-root)
+         (claude-code-ide-org-test--queue-event
+          "2026-10-30T09:05:00-0500" "clock_in" a-id nil "sess-z" nil nil nil a-root)
+         (claude-code-ide-org-test--queue-event
+          "2026-10-30T09:10:00-0500" "clock_out" nil nil "sess-z" nil nil nil a-root)
+         (claude-code-ide-org-test--queue-event
+          "2026-10-30T09:15:00-0500" "clock_in" a-id nil "sess-z" nil nil nil a-root)
+         (claude-code-ide-org-test--queue-event
+          "2026-10-30T09:20:00-0500" "clock_out" nil nil "sess-z" nil nil nil a-root)
+         (claude-code-ide-org-test--queue-event
+          "2026-10-30T09:30:00-0500" "pause" nil nil "sess-z" nil nil nil a-root))
+        (should (equal a-id (funcall suggestion)))))))
+
+(ert-deftest claude-code-ide-org-test-edges-in-two-projects-give-no-suggestion ()
+  "Where the brackets either side of a gap are in different projects the
+span's project is not known, so it is offered no heading at all (TODO.org
+:ID: 6080f611)."
+  (claude-code-ide-org-test--with-scoped-projects
+    (claude-code-ide-org-test--with-queue
+      (claude-code-ide-org-test--queue-write
+       "sess-c"
+       (claude-code-ide-org-test--queue-event
+        "2026-10-30T08:30:00-0500" "todo" a-id "DOING" "sess-c" nil nil nil a-root)
+       (claude-code-ide-org-test--queue-event
+        "2026-10-30T08:31:00-0500" "todo" b-id "DOING" "sess-c" nil nil nil b-root))
+      (claude-code-ide-org-test--queue-write
+       "sess-a"
+       (claude-code-ide-org-test--queue-event
+        "2026-10-30T09:00:00-0500" "resume" nil nil "sess-a" nil nil nil a-root)
+       (claude-code-ide-org-test--queue-event
+        "2026-10-30T09:00:00-0500" "clock_in" a-id nil "sess-a" nil nil nil a-root)
+       (claude-code-ide-org-test--queue-event
+        "2026-10-30T09:10:00-0500" "clock_out" nil nil "sess-a" nil nil nil a-root)
+       (claude-code-ide-org-test--queue-event
+        "2026-10-30T09:30:00-0500" "pause" nil nil "sess-a" nil nil nil a-root))
+      (claude-code-ide-org-test--queue-write
+       "sess-b"
+       (claude-code-ide-org-test--queue-event
+        "2026-10-30T09:20:00-0500" "clock_in" b-id nil "sess-b" nil nil nil b-root)
+       (claude-code-ide-org-test--queue-event
+        "2026-10-30T09:30:00-0500" "clock_out" nil nil "sess-b" nil nil nil b-root))
+      (let ((gap (seq-find
+                  (lambda (i)
+                    (and (plist-get i :unassigned)
+                         (time-equal-p (plist-get i :start)
+                                       (date-to-time "2026-10-30T09:10:00-0500"))))
+                  (claude-code-ide-org--review-items-from-queue))))
+        (should gap)
+        (should-not (plist-get gap :id))))))
+
 (ert-deftest claude-code-ide-org-test-span-is-not-offered-another-projects-heading ()
   "Through the review items: a project with no guideposts of its own, as
 one with time tracking off, is never suggested for another's span, and a

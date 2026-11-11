@@ -11308,6 +11308,10 @@ from a skipped one."
          ;; O(groups x history) for a constant.
          (main-brackets (claude-code-ide-org--lane-clock-intervals history nil))
          (all-brackets (claude-code-ide-org--lane-clock-intervals history 'all))
+         ;; Hoisted for the same reason: `--edge-project' reads these per
+         ;; span, and pairing the history is not cheap (TODO.org :ID:
+         ;; 6080f611).
+         (clock-pairs (claude-code-ide-org--lane-clock-pairs history))
          items)
     (dolist (group (claude-code-ide-org--queue-events-by-id session-id))
       (let* ((id (car group))
@@ -11545,8 +11549,8 @@ from a skipped one."
                          (claude-code-ide-org--span-project-with-edges
                           inside
                           (lambda ()
-                            (claude-code-ide-org--events-on-span-edges
-                             span history))))
+                            (claude-code-ide-org--edge-project
+                             span clock-pairs))))
                     :start (car span) :end (cdr span)
                     ;; :unassigned is transient -- `a' clears it once a
                     ;; heading is chosen. :origin is permanent, so the
@@ -11641,15 +11645,29 @@ and NEXT all sit on org's not-done side while meaning nobody is working.")
                        (not (time-less-p (cdr span) ts)))))
               events))
 
-(defun claude-code-ide-org--events-on-span-edges (span events)
-  "EVENTS timestamped exactly at either end of SPAN.
-Not the window: EVENTS may be the whole queue, and a window that holds
-no guidepost of this lane can still hold another session's."
-  (seq-filter (lambda (e)
-                (when-let* ((ts (plist-get e :ts)))
-                  (or (time-equal-p ts (car span))
-                      (time-equal-p ts (cdr span)))))
-              events))
+(defun claude-code-ide-org--edge-project (span pairs)
+  "The project of the brackets SPAN abuts, from PAIRS, or nil.
+
+PAIRS is `--lane-clock-pairs' of the history.  A span holding no
+guidepost sits between brackets; the ones it abuts are those closing at
+its start and opening at its end -- the same two `--with-bracket-edges'
+looks for.  Each bracket is one lane's `clock_in'/`clock_out', so its
+events are one session's by construction.  This replaces reading every
+event of the whole history at the two edge seconds, which let another
+project's event in the same second decide (TODO.org :ID: 6080f611).
+
+Where the brackets name different projects the answer is `gone': the
+span's project is not known, and it is known not to be every project, so
+it is offered no heading.  Nil when none names a `cwd'."
+  (let (projects)
+    (dolist (pair pairs)
+      (when (or (time-equal-p (plist-get (nth 1 pair) :ts) (car span))
+                (time-equal-p (plist-get (nth 0 pair) :ts) (cdr span)))
+        (push (claude-code-ide-org--span-project pair) projects)))
+    (let ((roots (delete-dups (seq-filter #'stringp projects))))
+      (cond ((cdr roots) 'gone)
+            (roots (car roots))
+            ((memq 'gone projects) 'gone)))))
 
 (defun claude-code-ide-org--span-project (events)
   "The project of a span holding EVENTS, as `--project-root-key' answers.
@@ -11690,14 +11708,14 @@ project, so that span stays unknown rather than guessed."
   "The project of a span holding the events INSIDE, else of its edges.
 
 INSIDE is the span's own events; EDGES-FN, called only when they do not
-settle it, returns the events at its edges.  `gone' from INSIDE is not
-an answer: it is non-nil, so it used to end the lookup before the edge
-events were read.  The span stays `gone' only when the edges give nothing
-either (TODO.org :ID: 460dfe96)."
+settle it, returns the project of the brackets it abuts
+\(`--edge-project').  `gone' from INSIDE is not an answer: it is non-nil,
+so it used to end the lookup before the edges were read.  The span stays
+`gone' only when the edges give nothing either (TODO.org :ID: 460dfe96)."
   (let ((own (claude-code-ide-org--span-project inside)))
     (if (stringp own)
         own
-      (let ((edge (claude-code-ide-org--span-project (funcall edges-fn))))
+      (let ((edge (funcall edges-fn)))
         (if (stringp edge) edge (or own edge))))))
 
 (defun claude-code-ide-org--heading-file (id)
