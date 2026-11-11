@@ -10501,14 +10501,16 @@ other."
          ;; bracket it, and the old code discarded `:kind' here -- which is
          ;; how a long turn came to be unmeasurable (TODO.org :ID: 226ed53b).
          ;; (TS KIND PROJECT), the project being `cwd' normalised through
-         ;; `claude-code-ide-org--project-name' -- git root, and a linked
+         ;; `claude-code-ide-org--project-root-key' -- git root, and a linked
          ;; worktree folded into its main checkout, which is the second
          ;; obligation :ID: 5461c349 recorded the field for.  Without that
          ;; normalisation one project splits into one span per worktree.
+         ;; The root and not the name: two checkouts sharing a directory
+         ;; name are two projects (:ID: e08fb599).
          (points (sort (mapcar (lambda (e)
                                  (list (plist-get e :ts)
                                        (plist-get e :kind)
-                                       (claude-code-ide-org--project-name
+                                       (claude-code-ide-org--project-root-key
                                         (plist-get e :cwd))))
                                (seq-remove
                                 (lambda (e)
@@ -11262,6 +11264,14 @@ them a second time."
                             (plist-get (nth 1 pair) :ts)))))
                 (claude-code-ide-org--lane-clock-pairs events))))
 
+(defvar claude-code-ide-org--id-rescanned nil
+  "A one-element list whose car says the id index was rescanned this pass.
+
+Bound to a fresh (nil) cell by `--review-items-from-queue' and read by
+`--heading-file', so the index is rescanned at most once per pass however
+many ids it lacks (TODO.org :ID: e70cad3f).  nil outside a pass: the
+rescan then runs on every miss, which is correct and only slower.")
+
 (defun claude-code-ide-org--review-items-from-queue (&optional session-id)
   "Build review items from the pending queue, oldest first.
 
@@ -11288,7 +11298,8 @@ clock_in/clock_out, where the interval is authoritative.
 Items carry the `:events' they were derived from, which is what lets
 `claude-code-ide-org--review-advance-watermarks' tell an applied event
 from a skipped one."
-  (let* ((history (claude-code-ide-org--queue-events session-id t))
+  (let* ((claude-code-ide-org--id-rescanned (list nil))
+         (history (claude-code-ide-org--queue-events session-id t))
          ;; Hoisted out of the per-group loop 2026-08-24. Computed
          ;; inside it, this ran once per heading -- 53 groups against
          ;; ~250 events, each call re-filtering and re-sorting the whole
@@ -11296,6 +11307,10 @@ from a skipped one."
          ;; O(groups x history) for a constant.
          (main-brackets (claude-code-ide-org--lane-clock-intervals history nil))
          (all-brackets (claude-code-ide-org--lane-clock-intervals history 'all))
+         ;; Hoisted for the same reason: `--edge-project' reads these per
+         ;; span, and pairing the history is not cheap (TODO.org :ID:
+         ;; 6080f611).
+         (clock-pairs (claude-code-ide-org--lane-clock-pairs history))
          items)
     (dolist (group (claude-code-ide-org--queue-events-by-id session-id))
       (let* ((id (car group))
@@ -11442,12 +11457,8 @@ from a skipped one."
               (push (list :type 'clock :id id
                           :start (car span) :end (cdr span)
                           :note label :agent nil :suggested t
-                          :events (seq-filter
-                                   (lambda (e)
-                                     (let ((ts (plist-get e :ts)))
-                                       (and (not (time-less-p ts (car span)))
-                                            (not (time-less-p (cdr span) ts)))))
-                                   guideposts))
+                          :events (claude-code-ide-org--events-in-span
+                                   span guideposts))
                     items))))))
     ;; Unassigned spans: guideposts that never fell inside a
     ;; clock_in/clock_out bracket, so `--queue-events-by-id' could attach
@@ -11526,8 +11537,19 @@ from a skipped one."
         (unless (and (time-equal-p (car span) (cdr span))
                      latest
                      (time-less-p (cdr span) latest))
-          (push (list :type 'clock
-                    :id (claude-code-ide-org--review-suggest-heading (car span) all)
+          (let ((inside (claude-code-ide-org--events-in-span span guideposts)))
+            (push (list :type 'clock
+                    :id (claude-code-ide-org--review-suggest-heading
+                         (car span) all
+                         ;; A span splits on a project boundary, so its
+                         ;; first known cwd is its project (TODO.org :ID:
+                         ;; c9940558).  A span between two brackets holds
+                         ;; no guidepost; the clock events bounding it say.
+                         (claude-code-ide-org--span-project-with-edges
+                          inside
+                          (lambda ()
+                            (claude-code-ide-org--edge-project
+                             span clock-pairs))))
                     :start (car span) :end (cdr span)
                     ;; :unassigned is transient -- `a' clears it once a
                     ;; heading is chosen. :origin is permanent, so the
@@ -11537,14 +11559,8 @@ from a skipped one."
                     :note nil :agent nil :suggested t
                     :unassigned t :origin 'unbracketed
                     :events (claude-code-ide-org--with-bracket-edges
-                             span bracketed history
-                             (seq-filter
-                              (lambda (e)
-                                (let ((ts (plist-get e :ts)))
-                                  (and (not (time-less-p ts (car span)))
-                                       (not (time-less-p (cdr span) ts)))))
-                              guideposts)))
-                items))))
+                             span bracketed history inside))
+                items)))))
     (sort (nreverse items)
           (lambda (a b)
             (time-less-p (or (plist-get a :ts) (plist-get a :start))
@@ -11620,8 +11636,140 @@ question.  Org divides keywords into not-done and done at the `|'; this
 divides them into \"being worked\" and everything else, and WAITING, TODO
 and NEXT all sit on org's not-done side while meaning nobody is working.")
 
-(defun claude-code-ide-org--review-suggest-heading (time events)
+(defun claude-code-ide-org--events-in-span (span events)
+  "EVENTS timestamped within SPAN, a (START . END) pair, edges included."
+  (seq-filter (lambda (e)
+                (let ((ts (plist-get e :ts)))
+                  (and (not (time-less-p ts (car span)))
+                       (not (time-less-p (cdr span) ts)))))
+              events))
+
+(defun claude-code-ide-org--edge-project (span pairs)
+  "The project of the brackets SPAN abuts, from PAIRS, or nil.
+
+PAIRS is `--lane-clock-pairs' of the history.  A span holding no
+guidepost sits between brackets; the ones it abuts are those closing at
+its start and opening at its end -- the same two `--with-bracket-edges'
+looks for.  Each bracket is one lane's `clock_in'/`clock_out', so its
+events are one session's by construction.  This replaces reading every
+event of the whole history at the two edge seconds, which let another
+project's event in the same second decide (TODO.org :ID: 6080f611).
+
+Where the brackets name different projects the answer is `gone': the
+span's project is not known, and it is known not to be every project, so
+it is offered no heading.  Nil when none names a `cwd'."
+  (let (projects)
+    (dolist (pair pairs)
+      (when (or (time-equal-p (plist-get (nth 1 pair) :ts) (car span))
+                (time-equal-p (plist-get (nth 0 pair) :ts) (cdr span)))
+        (push (claude-code-ide-org--span-project pair) projects)))
+    (let ((roots (delete-dups (seq-filter #'stringp projects))))
+      (cond ((cdr roots) 'gone)
+            (roots (car roots))
+            ((memq 'gone projects) 'gone)))))
+
+(defun claude-code-ide-org--span-project (events)
+  "The project of a span holding EVENTS, as `--project-root-key' answers.
+
+Nil when no event names a `cwd', which leaves the span of no known
+project.  The symbol `gone' when each one names a directory that no
+longer exists: that span's project is unknown but it is known not to be
+every project, so `--review-suggest-heading' matches no heading for it."
+  (when-let* ((cwds (seq-remove (lambda (cwd) (or (null cwd) (equal cwd "")))
+                                (mapcar (lambda (e) (plist-get e :cwd)) events))))
+    (or (seq-some (lambda (cwd)
+                    (or (claude-code-ide-org--project-root-key cwd)
+                        (claude-code-ide-org--removed-cwd-root-key cwd)))
+                  cwds)
+        'gone)))
+
+(defun claude-code-ide-org--removed-cwd-root-key (cwd)
+  "The project root of CWD, a directory that no longer exists, or nil.
+
+Walks up to the nearest directory that does exist and answers its root
+only when that directory is inside a git checkout (TODO.org :ID:
+460dfe96).  A linked worktree that sat inside the repo leaves its parent
+behind, which is in the project; a sibling worktree's parent belongs to no
+project, so that span stays unknown rather than guessed."
+  (let ((dir (directory-file-name (expand-file-name cwd)))
+        parent)
+    ;; Bounded by the parent check: `file-name-directory' of "/" is "/".
+    (while (and (not (file-directory-p dir))
+                (not (equal (setq parent (directory-file-name
+                                          (file-name-directory dir)))
+                            dir)))
+      (setq dir parent))
+    (when (and (file-directory-p dir)
+               (ignore-errors (locate-dominating-file dir ".git")))
+      (claude-code-ide-org--project-root-key dir))))
+
+(defun claude-code-ide-org--span-project-with-edges (inside edges-fn)
+  "The project of a span holding the events INSIDE, else of its edges.
+
+INSIDE is the span's own events; EDGES-FN, called only when they do not
+settle it, returns the project of the brackets it abuts
+\(`--edge-project').  `gone' from INSIDE is not an answer: it is non-nil,
+so it used to end the lookup before the edges were read.  The span stays
+`gone' only when the edges give nothing either (TODO.org :ID: 460dfe96)."
+  (let ((own (claude-code-ide-org--span-project inside)))
+    (if (stringp own)
+        own
+      (let ((edge (funcall edges-fn)))
+        (if (stringp edge) edge (or own edge))))))
+
+(defun claude-code-ide-org--heading-file (id)
+  "The file holding heading ID, or nil.
+
+`org-id-locations' first, a `gethash': this runs for every DOING in the
+queue's history, once per span.  An id it lacks -- one that arrived by a
+hand edit or a pull is not indexed until something looks -- rescans the
+index (`--rescan-id-index') and reads it again, so the heading is found
+if it is on disk (TODO.org :ID: e70cad3f).
+
+The rescan, not `--id-find' per id: that was the first design, and
+measured on the live queue it cost 27 ms a miss, 193 distinct ids not in
+the index, 5.2 s of an 8.7 s render that had been 3.5 s.  One rescan per
+pass refreshes the index for every id at once."
+  (let ((lookup (lambda ()
+                  (and (hash-table-p org-id-locations)
+                       (gethash id org-id-locations)))))
+    (or (funcall lookup)
+        (progn (claude-code-ide-org--rescan-id-index)
+               (funcall lookup)))))
+
+(defun claude-code-ide-org--rescan-id-index ()
+  "Rescan the tracked files and their archives into `org-id-locations'.
+
+At most once per review pass (`--id-rescanned'): org skips the work when
+no file's modification time has moved, so an unchanged tree costs one
+pass over the file attributes, and a changed one is rescanned once and
+indexed from then on.  A refusal or an error reads as nothing found:
+this feeds a suggestion and must not signal.  Not `--id-find', which
+would also visit buffers and refuse on a stale modified one."
+  (unless (car claude-code-ide-org--id-rescanned)
+    (ignore-errors
+      (org-id-update-id-locations (claude-code-ide-org--id-scannable-files) t))
+    (when claude-code-ide-org--id-rescanned
+      (setcar claude-code-ide-org--id-rescanned t))))
+
+(defun claude-code-ide-org--heading-in-project-p (id project)
+  "Non-nil when the file holding heading ID belongs to PROJECT.
+PROJECT is a `--span-project' value, a root.  Where the file comes from,
+and what it costs, is `--heading-file's."
+  (when-let* ((file (claude-code-ide-org--heading-file id)))
+    (equal project (claude-code-ide-org--project-root-key file))))
+
+(defun claude-code-ide-org--review-suggest-heading (time events &optional project)
   "Return the :ID: most plausibly being worked on at TIME, from EVENTS.
+
+With PROJECT, a `--span-project' value, only a heading in that project
+can be the answer: the queue is global, so without it a span took the
+newest heading in progress anywhere, and a project with time tracking
+off, which has no spans of its own, collected every other project's
+\(TODO.org :ID: d0f8042c: 35 CLOCK lines).  The test is where the
+heading lives, not where its event came from, and it gates only entering
+DOING, so a heading closed from anywhere is still closed.  Nil, for a
+span of no known project, reads every event.
 
 A heading is the answer only while it is *in* a work-in-progress state
 at TIME: something entered it into DOING before TIME and
@@ -11679,7 +11827,9 @@ every answer this function could return was wrong by construction."
               (state (plist-get e :state)))
           (cond
            ((member state claude-code-ide-org--work-in-progress-keywords)
-            (setq active id))
+            (when (or (not project)
+                      (claude-code-ide-org--heading-in-project-p id project))
+              (setq active id)))
            ;; A heading that has left DOING is no longer what anyone is
            ;; working on, so it must stop being suggested. Without this
            ;; the guess latches: measured live 2026-08-13, three spans
@@ -15619,7 +15769,8 @@ and opened with following on."
 
 (defvar claude-code-ide-org--project-name-cache
   (make-hash-table :test 'equal)
-  "Memo for `claude-code-ide-org--project-name', keyed by the path given.
+  "Memo for `claude-code-ide-org--project-root-key', keyed by the path given.
+Holds the root, which `--project-name' reads its name from.
 
 Not an optimisation looking for a problem: the review buffer re-renders
 on every keystroke, and the cwd annotation asks this question once per
@@ -15670,30 +15821,33 @@ no `.git' component -- answers nil, and the caller keeps ROOT."
           (when (equal (file-name-nondirectory dir) ".git")
             (file-name-directory dir)))))))
 
-(defun claude-code-ide-org--project-name (path)
-  "Return the name of the project directory containing PATH, or nil.
+(defun claude-code-ide-org--project-root-key (path)
+  "Return the full root directory of the project containing PATH, or nil.
 
-The *git root's* own directory name when PATH is inside a repository,
-and the containing directory's name otherwise.  The git root is what
-makes two paths comparable: a session `cwd' three levels down inside a
-checkout and the tracked org file at its top must answer with the same
-name, or the annotation this feeds would report one project as two.
-Measured on the live queue the day it was written -- 722 events at the
-repo root and 18 in `modules/tools/claude-code-ide-org' were one
-project, not two.
+What two paths are compared by, where `--project-name' is what a human is
+shown: `~/a/proj' and `~/b/proj' share a name and are two projects
+\(TODO.org :ID: e08fb599).  The root is the git root when PATH is inside a
+repository and the containing directory otherwise, as a truename without
+a trailing slash.  The git root is what makes two paths comparable: a
+session `cwd' three levels down inside a checkout and the tracked org
+file at its top must answer alike, or the annotation this feeds would
+report one project as two.  Measured on the live queue the day it was
+written -- 722 events at the repo root and 18 in
+`modules/tools/claude-code-ide-org' were one project, not two.
 
 Truenames first, for the reason `claude-code-ide-org--git-roots' gives:
 a tracked path may be a symlink into the repo, and walking up from the
 link's own directory finds no .git at all.  A *linked worktree* then
 normalises to its main checkout
 \(`claude-code-ide-org--worktree-main-checkout'), so one project does
-not render as one name per worktree.
+not render as one root per worktree.
 
 Nil for a path that is nil or no longer exists -- a session's cwd
 outlives the directory it names.  Display code degrades rather than
 signalling, and nil renders as no annotation, which is the honest
 answer.  Deliberately *not* the last path component in that case: for
-a nested cwd that would name a subdirectory and call it the project."
+a nested cwd that would name a subdirectory and call it the project.
+Nil too for the filesystem root, whose name is empty."
   (when (and (stringp path) (not (string-empty-p path)))
     (let ((cached (gethash path claude-code-ide-org--project-name-cache 'miss)))
       (if (not (eq cached 'miss))
@@ -15709,16 +15863,31 @@ a nested cwd that would name a subdirectory and call it the project."
                   (root (or (ignore-errors (locate-dominating-file dir ".git"))
                             dir))
                   ;; A linked worktree is the same project as its main
-                  ;; checkout, under a different directory name.
-                  (root (or (ignore-errors
-                              (claude-code-ide-org--worktree-main-checkout root))
-                            root))
-                  (name (file-name-nondirectory (directory-file-name root))))
-             ;; "" is what the filesystem root answers, and it would
-             ;; render as an empty pair of brackets -- a label that
+                  ;; checkout, under a different directory name.  The
+                  ;; pointer file names the main checkout as git wrote
+                  ;; it, which need not be a truename, so it is made one:
+                  ;; the root is compared, and a worktree's must equal
+                  ;; the main checkout's own.
+                  (root (directory-file-name
+                         (or (ignore-errors
+                               (file-truename
+                                (claude-code-ide-org--worktree-main-checkout root)))
+                             root))))
+             ;; "" is what the filesystem root's name answers, and it
+             ;; would render as an empty pair of brackets -- a label that
              ;; looks like a failed lookup rather than a project.
-             (unless (string-empty-p name) name)))
+             (unless (string-empty-p (file-name-nondirectory root)) root)))
          claude-code-ide-org--project-name-cache)))))
+
+(defun claude-code-ide-org--project-name (path)
+  "Return the name of the project directory containing PATH, or nil.
+
+The last component of `--project-root-key's answer, the display half of
+the pair: it is what the outline label and the cwd annotation show, and
+two checkouts sharing it render alike.  Anything that decides whether
+two paths are one project compares the root instead."
+  (when-let* ((root (claude-code-ide-org--project-root-key path)))
+    (file-name-nondirectory root)))
 
 (defun claude-code-ide-org--git-roots ()
   "Distinct git roots containing the tracked org files.

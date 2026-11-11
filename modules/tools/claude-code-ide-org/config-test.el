@@ -11314,6 +11314,69 @@ honest answer."
     (should-not (claude-code-ide-org--project-name
                  "/no/such/checkout/modules/tools/x"))))
 
+(defmacro claude-code-ide-org-test--with-same-named-checkouts (&rest body)
+  "Run BODY with A and B bound to two git checkouts both named `proj'.
+
+They sit under different parents, each holding an empty `.git' directory
+so that a path inside one resolves up to it, and the project-name cache
+is fresh.  Nothing is seeded into the cache: a seeded entry would make
+the assertions agree with the implementation by construction (TODO.org
+:ID: e08fb599)."
+  (declare (indent 0))
+  `(let* ((parents (list (file-name-as-directory (make-temp-file "cciorg-pa" t))
+                         (file-name-as-directory (make-temp-file "cciorg-pb" t))))
+          (a (expand-file-name "proj" (car parents)))
+          (b (expand-file-name "proj" (cadr parents)))
+          (claude-code-ide-org--project-name-cache (make-hash-table :test 'equal)))
+     (unwind-protect
+         (progn
+           (dolist (root (list a b))
+             (make-directory (expand-file-name ".git" root) t)
+             (make-directory (expand-file-name "sub" root) t))
+           ,@body)
+       (dolist (p parents) (ignore-errors (delete-directory p t))))))
+
+(ert-deftest claude-code-ide-org-test-same-named-checkouts-are-two-projects ()
+  "Two checkouts that share a directory name are not one project.
+
+The span's project is what the splitter and the suggestion compare, and
+it was the git root's last path component, so `~/a/proj' and `~/b/proj'
+read as equal.  The display name stays the bare basename for both
+(TODO.org :ID: e08fb599, option A)."
+  (claude-code-ide-org-test--with-same-named-checkouts
+    (should (equal "proj" (claude-code-ide-org--project-name a)))
+    (should (equal "proj" (claude-code-ide-org--project-name b)))
+    (let ((of (lambda (cwd) (claude-code-ide-org--span-project (list (list :cwd cwd))))))
+      (should-not (equal (funcall of a) (funcall of b)))
+      ;; The control: a path nested in one checkout is still that checkout.
+      (should (equal (funcall of a) (funcall of (expand-file-name "sub" a)))))))
+
+(ert-deftest claude-code-ide-org-test-same-named-checkouts-split-a-span ()
+  "Guideposts from two same-named checkouts do not cluster into one span.
+
+The timestamps sit well inside the gap threshold, so only the project
+boundary can be what splits them."
+  (claude-code-ide-org-test--with-same-named-checkouts
+    (let ((spans (claude-code-ide-org--aggregate-guideposts
+                  (claude-code-ide-org-test--events
+                   (list "2026-11-11T10:00:00-0600" "resume" nil nil "s" nil nil nil a)
+                   (list "2026-11-11T10:00:30-0600" "pause" nil nil "s" nil nil nil a)
+                   (list "2026-11-11T10:01:00-0600" "resume" nil nil "s" nil nil nil b)
+                   (list "2026-11-11T10:01:30-0600" "pause" nil nil "s" nil nil nil b)))))
+      (should (= 2 (length spans))))))
+
+(ert-deftest claude-code-ide-org-test-same-named-checkout-is-not-the-spans-project ()
+  "A heading held in one checkout is not in the other that shares its name."
+  (claude-code-ide-org-test--with-same-named-checkouts
+    (let ((org-id-locations (make-hash-table :test 'equal))
+          (file (expand-file-name "TODO.org" b)))
+      (write-region "" nil file nil 'quiet)
+      (puthash "id-in-b" file org-id-locations)
+      (should (claude-code-ide-org--heading-in-project-p
+               "id-in-b" (claude-code-ide-org--span-project (list (list :cwd b)))))
+      (should-not (claude-code-ide-org--heading-in-project-p
+                   "id-in-b" (claude-code-ide-org--span-project (list (list :cwd a))))))))
+
 (ert-deftest claude-code-ide-org-test-queue-event-carries-cwd ()
   "`cwd' survives the parse, and its absence stays distinguishable.
 
@@ -12538,6 +12601,325 @@ simply stopped working."
                          now events))))
       (when (find-buffer-visiting file) (kill-buffer (find-buffer-visiting file)))
       (delete-file file))))
+
+;; A span's suggestion stays in its own project (TODO.org :ID: d0f8042c).
+(ert-deftest claude-code-ide-org-test-suggest-heading-stays-in-the-project ()
+  "Only a heading held in the span's project is an answer, wherever the
+event that entered DOING came from."
+  (claude-code-ide-org-test--with-scoped-projects
+    (let* ((base (date-to-time "2026-10-30T14:00:00-0500"))
+           (at (time-add base 600))
+           ;; The project is the root, not the name (TODO.org :ID:
+           ;; e08fb599), spelled here without the code under test.
+           (a (directory-file-name (file-truename a-root)))
+           (b (directory-file-name (file-truename b-root)))
+           (b-doing (list :kind "todo" :id b-id :state "DOING" :ts base :cwd b-root)))
+      (should-not (claude-code-ide-org--review-suggest-heading at (list b-doing) a))
+      (should (equal b-id (claude-code-ide-org--review-suggest-heading
+                           at (list b-doing) b)))
+      ;; Where the heading lives decides, not where the session stood.
+      (should-not (claude-code-ide-org--review-suggest-heading
+                   at (list (plist-put (copy-sequence b-doing) :cwd a-root)) a))
+      (should (equal b-id (claude-code-ide-org--review-suggest-heading
+                           at (list (plist-put (copy-sequence b-doing) :cwd nil)) b)))
+      ;; No heading of a project that is gone, or an id nothing resolves.
+      (should-not (claude-code-ide-org--review-suggest-heading at (list b-doing) 'gone))
+      (should-not (claude-code-ide-org--review-suggest-heading
+                   at (list (list :kind "todo" :id "no-such-id" :state "DOING" :ts base))
+                   a))
+      ;; A span of no known project reads everything, as it always has.
+      (should (equal b-id (claude-code-ide-org--review-suggest-heading
+                           at (list b-doing)))))))
+
+(ert-deftest claude-code-ide-org-test-suggest-heading-closed-from-elsewhere ()
+  "Leaving DOING clears the suggestion whichever cwd recorded it."
+  (claude-code-ide-org-test--with-scoped-projects
+    (let* ((base (date-to-time "2026-10-30T14:00:00-0500"))
+           ;; A bare name matches nothing now that the project is a
+           ;; root, which would make this pass whatever the code did.
+           (a (directory-file-name (file-truename a-root))))
+      ;; The control: with no DONE, the heading is the answer.
+      (should (equal a-id (claude-code-ide-org--review-suggest-heading
+                           (time-add base 600)
+                           (list (list :kind "todo" :id a-id :state "DOING"
+                                       :ts base :cwd a-root))
+                           a)))
+      (should-not (claude-code-ide-org--review-suggest-heading
+                   (time-add base 600)
+                   (list (list :kind "todo" :id a-id :state "DOING" :ts base :cwd a-root)
+                         (list :kind "todo" :id a-id :state "DONE"
+                               :ts (time-add base 60) :cwd b-root))
+                   a)))))
+
+(ert-deftest claude-code-ide-org-test-heading-missing-from-the-index-is-still-found ()
+  "A heading `org-id-locations' lacks is looked up, not counted as another
+project's.
+
+One added by a hand edit or a pull is absent from the index until
+something looks (TODO.org :ID: e70cad3f), and answering nil there made
+`--review-suggest-heading' drop a heading of the span's own project."
+  (claude-code-ide-org-test--with-scoped-projects
+    (let ((a (directory-file-name (file-truename a-root)))
+          (b (directory-file-name (file-truename b-root)))
+          (new-id "cccc0000-d637-4000-8000-000000000003"))
+      ;; The control: an indexed heading answers right.
+      (should (claude-code-ide-org--heading-in-project-p a-id a))
+      ;; Added to the file after the index was built, as a hand edit or a
+      ;; pull does.  Not `remhash': org skips its rescan when no file's
+      ;; modification time has moved, so that would not model this.
+      (write-region (concat "\n* TODO Added by hand\n:PROPERTIES:\n:ID:       "
+                            new-id "\n:END:\n")
+                    nil a-todo 'append 'quiet)
+      (set-file-times a-todo (time-add (current-time) 5))
+      (should-not (gethash new-id org-id-locations))
+      (should (claude-code-ide-org--heading-in-project-p new-id a))
+      (should-not (claude-code-ide-org--heading-in-project-p new-id b)))))
+
+(ert-deftest claude-code-ide-org-test-id-index-is-rescanned-once-per-pass ()
+  "However many ids the index lacks, a pass rescans it once.
+
+The first design looked each missing id up with `--id-find'.  Measured on
+the live queue that was 193 ids at 27 ms, 5.2 s of an 8.7 s render that
+had been 3.5 s, and the review re-renders on every keystroke (TODO.org
+:ID: e70cad3f)."
+  (let ((org-id-locations (make-hash-table :test 'equal))
+        (rescans 0))
+    (cl-letf (((symbol-function 'org-id-update-id-locations)
+               (lambda (&rest _) (cl-incf rescans)))
+              ((symbol-function 'claude-code-ide-org--id-scannable-files)
+               (lambda () nil)))
+      ;; In a pass: 20 distinct missing ids, each asked three times.
+      (let ((claude-code-ide-org--id-rescanned (list nil)))
+        (dotimes (_ 3)
+          (dotimes (i 20)
+            (claude-code-ide-org--heading-in-project-p (format "missing-%d" i) "/p")))
+        (should (= 1 rescans)))
+      ;; Outside a pass nothing remembers, so each miss rescans: correct
+      ;; and slower, and the control that the count above is the cell's.
+      (setq rescans 0)
+      (claude-code-ide-org--heading-in-project-p "missing-a" "/p")
+      (claude-code-ide-org--heading-in-project-p "missing-b" "/p")
+      (should (= 2 rescans)))))
+
+(ert-deftest claude-code-ide-org-test-span-project-from-its-events ()
+  "The resolver the span splitter uses: a worktree is its main checkout,
+a symlink its target, an empty cwd nothing, and a removed one `gone'."
+  (claude-code-ide-org-test--with-scoped-projects
+    (let ((of (lambda (&rest cwds)
+                (claude-code-ide-org--span-project
+                 (mapcar (lambda (cwd) (list :cwd cwd)) cwds))))
+          (link (expand-file-name "link" dir))
+          ;; The project is the root (TODO.org :ID: e08fb599), spelled
+          ;; here without the code under test.
+          (a (directory-file-name (file-truename a-root)))
+          (b (directory-file-name (file-truename b-root))))
+      (make-symbolic-link b-root link)
+      (should (equal b (funcall of b-wt)))
+      (should (equal b (funcall of link)))
+      (should-not (funcall of nil ""))
+      (should (eq 'gone (funcall of (expand-file-name "removed/" dir))))
+      (should (equal a (funcall of "" (expand-file-name "removed/" dir) a-root))))))
+
+(ert-deftest claude-code-ide-org-test-span-project-recovers-a-removed-worktree-inside-the-repo ()
+  "A cwd that no longer exists is recovered from its nearest existing
+directory, but only when that directory is inside a git checkout.
+
+A worktree that sat inside the repo leaves its parent behind, which is in
+the project; a sibling worktree's parent belongs to no project, so the
+span stays unknown rather than guessed (TODO.org :ID: 460dfe96)."
+  (claude-code-ide-org-test--with-scoped-projects
+    (let ((of (lambda (cwd)
+                (claude-code-ide-org--span-project (list (list :cwd cwd)))))
+          (b (directory-file-name (file-truename b-root))))
+      ;; The control: the worktree that does exist.
+      (should (equal b (funcall of b-wt)))
+      (should (equal b (funcall of (expand-file-name ".claude/worktrees/gone/" b-root))))
+      (should (equal b (funcall of (expand-file-name
+                                    ".claude/worktrees/gone/deeper/still/" b-root))))
+      (should (eq 'gone (funcall of (expand-file-name "sibling-wt/" dir))))
+      (should (eq 'gone (funcall of "/no/such/checkout/at/all/"))))))
+
+(ert-deftest claude-code-ide-org-test-gone-inside-falls-through-to-the-edges ()
+  "A span whose own cwds are all gone is still given the project of the
+clocks that bound it, and stays gone only when they say nothing either
+\(TODO.org :ID: 460dfe96).  `gone' is non-nil, so it used to end the
+lookup before the edge events were read."
+  (claude-code-ide-org-test--with-scoped-projects
+    (let ((removed (expand-file-name "sibling-wt/" dir))
+          (suggestion
+           (lambda ()
+             (seq-some (lambda (i) (and (plist-get i :unassigned) (plist-get i :id)))
+                       (claude-code-ide-org--review-items-from-queue)))))
+      (claude-code-ide-org-test--with-queue
+        (claude-code-ide-org-test--queue-write
+         "sess-c"
+         (claude-code-ide-org-test--queue-event
+          "2026-10-30T08:30:00-0500" "todo" a-id "DOING" "sess-c"
+          nil nil nil a-root))
+        (claude-code-ide-org-test--queue-write
+         "sess-a"
+         (claude-code-ide-org-test--queue-event
+          "2026-10-30T09:00:00-0500" "resume" nil nil "sess-a" nil nil nil removed)
+         (claude-code-ide-org-test--queue-event
+          "2026-10-30T09:05:00-0500" "clock_in" a-id nil "sess-a" nil nil nil a-root)
+         (claude-code-ide-org-test--queue-event
+          "2026-10-30T09:10:00-0500" "clock_out" nil nil "sess-a" nil nil nil a-root)
+         (claude-code-ide-org-test--queue-event
+          "2026-10-30T09:30:00-0500" "pause" nil nil "sess-a" nil nil nil removed))
+        (should (equal a-id (funcall suggestion)))))))
+
+(ert-deftest claude-code-ide-org-test-another-projects-event-at-an-edge-does-not-decide ()
+  "A gap span takes its project from the brackets it abuts, not from any
+event that shares an edge second with it.
+
+Another project's event in the same second used to decide, because the
+edge events were read from the whole history (TODO.org :ID: 6080f611).
+The session names are chosen so that project B's event sorts first, which
+is the order the old lookup picked from."
+  (claude-code-ide-org-test--with-scoped-projects
+    (let ((suggestion
+           ;; The one gap that opens at the shared second, not any span:
+           ;; the others carry A's suggestion whatever the edge lookup does.
+           (lambda ()
+             (plist-get
+              (seq-find
+               (lambda (i)
+                 (and (plist-get i :unassigned)
+                      (time-equal-p (plist-get i :start)
+                                    (date-to-time "2026-10-30T09:10:00-0500"))))
+               (claude-code-ide-org--review-items-from-queue))
+              :id))))
+      (claude-code-ide-org-test--with-queue
+        (claude-code-ide-org-test--queue-write
+         "sess-0b"
+         (claude-code-ide-org-test--queue-event
+          "2026-10-30T08:00:00-0500" "todo" b-id "DOING" "sess-0b"
+          nil nil nil b-root)
+         ;; Shares the second at which the gap opens.  Not a guidepost:
+         ;; that would fall inside the span and decide by the ordinary
+         ;; path, where this is about the edge lookup.
+         (claude-code-ide-org-test--queue-event
+          "2026-10-30T09:10:00-0500" "todo" b-id "DOING" "sess-0b"
+          nil nil nil b-root))
+        (claude-code-ide-org-test--queue-write
+         "sess-c"
+         (claude-code-ide-org-test--queue-event
+          "2026-10-30T08:30:00-0500" "todo" a-id "DOING" "sess-c"
+          nil nil nil a-root))
+        (claude-code-ide-org-test--queue-write
+         "sess-z"
+         (claude-code-ide-org-test--queue-event
+          "2026-10-30T09:00:00-0500" "resume" nil nil "sess-z" nil nil nil a-root)
+         (claude-code-ide-org-test--queue-event
+          "2026-10-30T09:05:00-0500" "clock_in" a-id nil "sess-z" nil nil nil a-root)
+         (claude-code-ide-org-test--queue-event
+          "2026-10-30T09:10:00-0500" "clock_out" nil nil "sess-z" nil nil nil a-root)
+         (claude-code-ide-org-test--queue-event
+          "2026-10-30T09:15:00-0500" "clock_in" a-id nil "sess-z" nil nil nil a-root)
+         (claude-code-ide-org-test--queue-event
+          "2026-10-30T09:20:00-0500" "clock_out" nil nil "sess-z" nil nil nil a-root)
+         (claude-code-ide-org-test--queue-event
+          "2026-10-30T09:30:00-0500" "pause" nil nil "sess-z" nil nil nil a-root))
+        (should (equal a-id (funcall suggestion)))))))
+
+(ert-deftest claude-code-ide-org-test-edges-in-two-projects-give-no-suggestion ()
+  "Where the brackets either side of a gap are in different projects the
+span's project is not known, so it is offered no heading at all (TODO.org
+:ID: 6080f611)."
+  (claude-code-ide-org-test--with-scoped-projects
+    (claude-code-ide-org-test--with-queue
+      (claude-code-ide-org-test--queue-write
+       "sess-c"
+       (claude-code-ide-org-test--queue-event
+        "2026-10-30T08:30:00-0500" "todo" a-id "DOING" "sess-c" nil nil nil a-root)
+       (claude-code-ide-org-test--queue-event
+        "2026-10-30T08:31:00-0500" "todo" b-id "DOING" "sess-c" nil nil nil b-root))
+      (claude-code-ide-org-test--queue-write
+       "sess-a"
+       (claude-code-ide-org-test--queue-event
+        "2026-10-30T09:00:00-0500" "resume" nil nil "sess-a" nil nil nil a-root)
+       (claude-code-ide-org-test--queue-event
+        "2026-10-30T09:00:00-0500" "clock_in" a-id nil "sess-a" nil nil nil a-root)
+       (claude-code-ide-org-test--queue-event
+        "2026-10-30T09:10:00-0500" "clock_out" nil nil "sess-a" nil nil nil a-root)
+       (claude-code-ide-org-test--queue-event
+        "2026-10-30T09:30:00-0500" "pause" nil nil "sess-a" nil nil nil a-root))
+      (claude-code-ide-org-test--queue-write
+       "sess-b"
+       (claude-code-ide-org-test--queue-event
+        "2026-10-30T09:20:00-0500" "clock_in" b-id nil "sess-b" nil nil nil b-root)
+       (claude-code-ide-org-test--queue-event
+        "2026-10-30T09:30:00-0500" "clock_out" nil nil "sess-b" nil nil nil b-root))
+      (let ((gap (seq-find
+                  (lambda (i)
+                    (and (plist-get i :unassigned)
+                         (time-equal-p (plist-get i :start)
+                                       (date-to-time "2026-10-30T09:10:00-0500"))))
+                  (claude-code-ide-org--review-items-from-queue))))
+        (should gap)
+        (should-not (plist-get gap :id))))))
+
+(ert-deftest claude-code-ide-org-test-span-is-not-offered-another-projects-heading ()
+  "Through the review items: a project with no guideposts of its own, as
+one with time tracking off, is never suggested for another's span, and a
+span's own project still is."
+  (claude-code-ide-org-test--with-scoped-projects
+    (let ((span-of
+           (lambda ()
+             (seq-find (lambda (i) (plist-get i :unassigned))
+                       (claude-code-ide-org--review-items-from-queue)))))
+      (claude-code-ide-org-test--with-queue
+        (claude-code-ide-org-test--queue-write
+         "sess-b"
+         (claude-code-ide-org-test--queue-event
+          "2026-10-30T08:00:00-0500" "todo" b-id "DOING" "sess-b"
+          nil nil nil b-root))
+        (claude-code-ide-org-test--queue-write
+         "sess-a"
+         (claude-code-ide-org-test--queue-event
+          "2026-10-30T09:00:00-0500" "resume" nil nil "sess-a"
+          nil nil nil a-root)
+         (claude-code-ide-org-test--queue-event
+          "2026-10-30T09:10:00-0500" "pause" nil nil "sess-a"
+          nil nil nil a-root))
+        (let ((span (funcall span-of)))
+          (should span)
+          (should-not (plist-get span :id)))
+        (claude-code-ide-org-test--queue-write
+         "sess-c"
+         (claude-code-ide-org-test--queue-event
+          "2026-10-30T08:30:00-0500" "todo" a-id "DOING" "sess-c"
+          nil nil nil a-root))
+        (should (equal a-id (plist-get (funcall span-of) :id)))))))
+
+(ert-deftest claude-code-ide-org-test-gap-between-brackets-stays-in-the-project ()
+  "A span between two clocks holds no guidepost, so its project comes from
+the clock events bounding it (the review of PR #44)."
+  (claude-code-ide-org-test--with-scoped-projects
+    (claude-code-ide-org-test--with-queue
+      (claude-code-ide-org-test--queue-write
+       "sess-b"
+       (claude-code-ide-org-test--queue-event
+        "2026-10-30T08:00:00-0500" "todo" b-id "DOING" "sess-b"
+        nil nil nil b-root))
+      (claude-code-ide-org-test--queue-write
+       "sess-a"
+       (claude-code-ide-org-test--queue-event
+        "2026-10-30T09:00:00-0500" "resume" nil nil "sess-a" nil nil nil a-root)
+       (claude-code-ide-org-test--queue-event
+        "2026-10-30T09:05:00-0500" "clock_in" a-id nil "sess-a" nil nil nil a-root)
+       (claude-code-ide-org-test--queue-event
+        "2026-10-30T09:10:00-0500" "clock_out" nil nil "sess-a" nil nil nil a-root)
+       (claude-code-ide-org-test--queue-event
+        "2026-10-30T09:15:00-0500" "clock_in" a-id nil "sess-a" nil nil nil a-root)
+       (claude-code-ide-org-test--queue-event
+        "2026-10-30T09:20:00-0500" "clock_out" nil nil "sess-a" nil nil nil a-root)
+       (claude-code-ide-org-test--queue-event
+        "2026-10-30T09:30:00-0500" "pause" nil nil "sess-a" nil nil nil a-root))
+      (let ((spans (seq-filter (lambda (i) (plist-get i :unassigned))
+                               (claude-code-ide-org--review-items-from-queue))))
+        (should (= 3 (length spans)))
+        (should-not (seq-some (lambda (i) (plist-get i :id)) spans))))))
 
 ;;; Explicit clock brackets as authoritative attribution (TODO.org :ID: eaeeb4ee)
 ;;
