@@ -439,10 +439,11 @@ the root. Prove they discriminate by copying the changed file aside and
 restoring HEAD's version, never by stash, then run bin/test-all.
 :END:
 
-Second review. Accepted as a limit in the first round; proposed now: resolve
-each path to its full root and derive --project-name's name from it, so the
-splitter and the scoped reads agree.
-
+Second review of [[https://github.com/nbest937/claude-code-ide-org.el/pull/44][PR #44]]. Projects are compared by --project-name, the git
+root's directory basename, so two checkouts sharing a name merge into one: the
+span splitter keeps them in one span, and a heading from the other counts as
+in-project. The design resolves each path to its full root and compares on
+that, leaving the display name the bare basename.
 
 ** TODO A heading missing from org-id-locations counts as another project's, since the project test does no rescan on a miss :bounded:
 :PROPERTIES:
