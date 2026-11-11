@@ -2,6 +2,30 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO A review render parses the whole queue four times, 3.8 of its 4.8 seconds on the live queue :code:
+:PROPERTIES:
+:ID:       3565ba71-bb57-4b97-b4ca-66bd917096fe
+:CREATED:  [2026-11-11 Wed 16:31]
+:CATEGORY: Apply
+:END:
+:PLAN:
+Unclassified; the brainstorming skill decides spike or bounded when it is picked
+up. Candidate: parse each queue file once and keep the parsed events keyed by
+the file's size and modification time, so a render re-reads only a file that
+changed, and have the four callers of --queue-events in a render share the
+result. Open: whether the four calls differ in a way a shared result must keep
+(the second argument, the session filter), and what invalidates the cache when
+apply rewrites or archives a queue file.
+:END:
+
+Measured 2026-11-11 on the live queue, in a batch Emacs with the org-id file
+copied: one --review-items-from-queue call takes about 3.5 s before any project
+work, and --queue-events accounts for 3.8 s of a 4.8 s profiled render, 22,362
+lines through --queue-parse-line in four calls. The review re-renders on every
+keystroke, so every one pays it. Found while measuring the [[https://github.com/nbest937/claude-code-ide-org.el/pull/44][PR #44]] findings
+([[id:89355c78-d0c9-424e-856f-24f8f857ab91][89355c78]]), whose premise, that project resolution was the cost, it falsifies:
+heading-in-project-p over 3003 calls is under half a second.
+
 * TODO bin/check-conventions fails in a linked worktree, which it reads as a clone with the wrong MCP session name, so a PR worked from a worktree cannot commit :code:
 :PROPERTIES:
 :ID:       fc76aab0-423c-4e42-aded-3de9a6df317c
@@ -415,12 +439,38 @@ of [[id:89355c78-d0c9-424e-856f-24f8f857ab91][89355c78]]. Test in config-test.el
 as a span's edge no longer decides it, proved to fail on the branch as it is;
 then bin/test-all.
 :END:
+:DEBRIEF:
+Shipped: --edge-project reads the clock pairs of the brackets a span abuts, one
+closing at its start or one opening at its end, from --lane-clock-pairs hoisted
+once per pass; distinct roots are compared and two disagreeing give gone. The
+whole-history scan per span, --events-on-span-edges, is deleted. The bracket
+list held only times, as the plan said to check, so the pairs come from
+--lane-clock-pairs.
+
+Verified: suite 963 as expected; both new tests red against the code before
+the change.
+
+Falsified: my first version of the same-second test passed against the old
+code. A resume at the shared second is a guidepost, so it falls inside the span
+and decides by the ordinary path; and the test took any unassigned span's
+suggestion, so the other gaps supplied A's answer whatever the edge lookup did.
+It now uses a todo event at the edge and reads the one gap that opens there. A
+test that passes both ways verifies nothing.
+
+Not done: the review's other proposal, the lane's nearest guidepost on each
+side, was not taken, as the plan said: the orphan stream mixes sessions.
+:END:
 
 From PR #44's second review. A span holding no guidepost takes its project from
 any event in the whole queue at either edge second, so another project's event
 in the same second can decide it. The approved design reads only the clock
 events of the brackets the span abuts, and also removes the whole-history scan
 behind [[id:89355c78-d0c9-424e-856f-24f8f857ab91][89355c78]].
+
+Resolved on feature/suggest-own-project in commit [[orgit-rev:./::54787ac][54787ac]], awaiting PR #44's
+merge: a gap span takes its project from the brackets it abuts only, and two
+brackets naming different projects leave it with no suggestion.
+
 
 
 ** TODO Projects are compared by directory basename, so two checkouts with the same name count as one project :bounded:
@@ -464,12 +514,39 @@ still answers the bare basename for both; the existing normalisation tests
 the root. Prove they discriminate by copying the changed file aside and
 restoring HEAD's version, never by stash, then run bin/test-all.
 :END:
+:DEBRIEF:
+Shipped: --project-root-key answers a path's full truename root, a linked
+worktree folded into its main checkout; --project-name is its last component.
+The span splitter, --span-project and --heading-in-project-p compare the root.
+Tests: two real directories named proj under different parents are two projects
+for --span-project, split a span, and one's heading is not in the other, each
+red against the basename comparison before the change; the display name is still
+proj for both.
+
+Verified: bin/test 957, then 963 after the later members, all as expected.
+
+Differed from the plan, twice. The worktree root came back as /var/... while the
+main checkout's own was /private/var/...: the pointer file names the checkout as
+git wrote it, which need not be a truename, and names had hidden it because both
+end in b. It is now truenamed, found by the existing worktree test. And two
+existing tests passed the bare name "a" as the project, one of which would have
+kept passing vacuously, since a bare name now matches nothing: it was updated
+and given a control.
+
+Not done: labels for two roots sharing a basename stay ambiguous (option A, the
+user, 2026-11-11).
+:END:
 
 Second review of [[https://github.com/nbest937/claude-code-ide-org.el/pull/44][PR #44]]. Projects are compared by --project-name, the git
 root's directory basename, so two checkouts sharing a name merge into one: the
 span splitter keeps them in one span, and a heading from the other counts as
 in-project. The design resolves each path to its full root and compares on
 that, leaving the display name the bare basename.
+
+Resolved on feature/suggest-own-project in commit [[orgit-rev:./::0ad95cc][0ad95cc]], awaiting PR #44's
+merge: projects are compared by their full truename root, and the bare name
+remains the display label.
+
 
 ** TODO A heading missing from org-id-locations counts as another project's, since the project test does no rescan on a miss :bounded:
 :PROPERTIES:
@@ -491,11 +568,39 @@ config-test.el: an id removed from org-id-locations while its heading is still
 on disk is still found in its project, proved to fail on the branch as it is;
 then bin/test-all.
 :END:
+:DEBRIEF:
+Shipped: --heading-file reads org-id-locations first and, on a miss, calls
+--rescan-id-index, which runs org-id-update-id-locations over the tracked files
+and their archives at most once per review pass (--id-rescanned, bound by
+--review-items-from-queue), then reads the index again. A heading added by a
+hand edit or a pull is found; ids the rescan does not find cost a gethash.
+
+Differed from the approved plan, and this is the point. The plan said to fall
+back to --id-find at most once per id per pass. That shipped first, in commit
+[[orgit-rev:./::250b2c2][250b2c2]], and the measurement [[id:89355c78-d0c9-424e-856f-24f8f857ab91][89355c78]] asked for falsified it: on the live queue
+193 distinct ids were not in the index, each miss cost 27 ms in org's own
+rescan check, and the render went from 3.5 s to 8.7 s, 5.2 s of it in --id-find.
+One rescan per pass now serves every id: 3.5 to 4.5 s, the lookup about 0.4 s of
+it. The user was told of the departure.
+
+Falsified: remhash on a live index does not model a hand-added heading. Org
+skips its rescan when no file's modification time has moved, so the first
+version of the test could never pass; it now appends a heading to the file and
+moves its mtime, as an edit or a pull does. Both new tests are red against the
+code before them: the found-after-index-miss test against the old nil answer,
+the rescan-count test against the per-id design.
+:END:
 
 From PR #44's second review. --heading-in-project-p answers nil for a heading
 missing from org-id-locations, so one added by a hand edit or a pull counts as
 another project's. The approved design falls back to --id-find, at most once per
 id per pass.
+
+Resolved on feature/suggest-own-project in commits 250b2c2 and 43c21e3, awaiting
+PR #44's merge: a heading the id index lacks is found by rescanning the index
+once per review pass. This replaces the approved per-id lookup, which measured
+too slow.
+
 
 
 ** TODO A span from a removed linked worktree resolves to gone, and gone stops the project lookup before the edge events are read :bounded:
@@ -519,12 +624,35 @@ stays unknown, because its parent directory belongs to no project. Tests in
 config-test.el, one per change, each proved to fail on the branch as it is; then
 bin/test-all.
 :END:
+:DEBRIEF:
+Shipped: --span-project-with-edges treats gone from a span's own events as no
+answer until the edges give none either; --removed-cwd-root-key walks a cwd that
+no longer exists up to its nearest existing directory and answers that
+directory's root only when it is inside a git checkout, so a worktree that sat
+in the repo is recovered and a sibling worktree stays gone.
+
+Verified: one test per change, each red against the code before it, and the
+suite at 961 as expected. The recovery test pins both sides: a removed worktree
+at any depth under the repo resolves to the repo, a removed sibling and an
+absent path stay gone. The fall-through test goes through the review items,
+with a span whose own guideposts are all in a removed directory and a bracket in
+a live project beside it.
+
+Differed from the plan: nothing in the design. The edge lookup this feeds was
+then replaced by [[id:6080f611-1005-42d4-942b-0fedbd162bc4][6080f611]], which the helper's edge argument now carries as a
+project rather than as events.
+:END:
 
 From PR #44's second review. A span whose every cwd is gone resolves to gone,
 which is non-nil, so the lookup stops before reading the edge events. The
 approved design lets gone fall through to the edges, and recovers a removed
 worktree that sat inside the repo by walking up to the nearest existing
 directory.
+
+Resolved on feature/suggest-own-project in commit [[orgit-rev:./::288aeb0][288aeb0]], awaiting PR #44's
+merge: gone no longer ends the project lookup, and a removed worktree inside the
+repo is recovered from its nearest existing directory.
+
 
 
 ** TODO PR #44's description still describes the first design: --cwd-project and the no-cwd rule
@@ -554,10 +682,34 @@ call. The real cost is the whole-history scan once per span in
 render on the live queue. If it is still slow, cache each heading's project once
 per pass; if not, close this heading as done by [[id:6080f611-1005-42d4-942b-0fedbd162bc4][6080f611]].
 :END:
+:DEBRIEF:
+Measured as the plan said, once [[id:6080f611-1005-42d4-942b-0fedbd162bc4][6080f611]] landed: one --review-items-from-queue
+on the live queue, in a batch Emacs with the org-id file copied, three runs per
+configuration. Before this session's changes 3.4 to 3.6 s; the first cut of the
+branch 8.7 s, which was [[id:e70cad3f-5546-405b-b659-9ebc90fb45d0][e70cad3f]]'s per-id lookup, not the edge scan; the branch
+as it stands 3.5 to 4.5 s. The heading's premise held in part and failed in
+part. The edge scan was not the cost: --lane-clock-pairs is 0.05 s over 82
+calls. Per-heading resolution was cheap too, 3003 calls to
+--heading-in-project-p at 0.00 s before the index fallback and about 0.4 s with
+its one rescan. Caching each heading's project per pass, the plan's fallback,
+was not needed.
+
+What the render does cost is --queue-events, 3.8 s of a 4.8 s profiled render,
+22,362 lines through --queue-parse-line in four calls. That is not this
+heading's finding and is filed as [[id:3565ba71-bb57-4b97-b4ca-66bd917096fe][3565ba71]].
+
+Differed from the plan: it asked for one timing; the first one was a regression
+caused by a sibling member, which is why [[id:e70cad3f-5546-405b-b659-9ebc90fb45d0][e70cad3f]]'s design changed.
+:END:
 
 From PR #44's second review. Most of the cost is the whole-history edge scan per
 span, which [[id:6080f611-1005-42d4-942b-0fedbd162bc4][6080f611]] removes, since the per-heading lookup is already cached by
 path. Measure once that lands, and close this if the render is fast.
+
+Measured and closed 2026-11-11: with [[id:6080f611-1005-42d4-942b-0fedbd162bc4][6080f611]] in place, project resolution is
+about 0.4 s of a render that costs 3.5 to 4.5 s; the rest is queue parsing,
+filed as [[id:3565ba71-bb57-4b97-b4ca-66bd917096fe][3565ba71]].
+
 
 
 * TODO org_capture reports success on a task heading with no body, so a dropped note goes unseen :code:
