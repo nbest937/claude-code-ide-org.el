@@ -1045,7 +1045,12 @@ renders; read the checklist for membership and this for sequence.
 11. [[id:254308f7-70a9-4296-9166-fe4138c6382b][254308f7]], the ceremony's two sorts refusing a busy file.
 12. [[id:b0e46168-2548-49ca-8f5f-5dcc6f3fc524][b0e46168]], discard-guard's per-segment directory, shell only.
 13. [[id:a3ad9732-681c-4103-a9e2-5f919e60522c][a3ad9732]], org_set_property's special-property refusal.
-14. [[id:412768a0-3d9b-4cfe-9264-3f214d4baed1][412768a0]] and 15. [[id:fd29914e-0d18-4964-a104-37c136b311a6][fd29914e]] together: both change --capture-write, so they share one PR.
+14. [[id:412768a0-3d9b-4cfe-9264-3f214d4baed1][412768a0]] and 15. [[id:fd29914e-0d18-4964-a104-37c136b311a6][fd29914e]] together: both change --capture-write, so they are worked as one step.
+
+The slice integrates as one branch and one PR, feature/tracker-record-loss (the
+user, 2026-11-13): the review-start hook moves a slice to REVIEW when its one
+PR's review starts. [[https://github.com/nbest937/claude-code-ide-org.el/pull/44][PR #44]] and #45 landed only incidental members, as hotfixes,
+and set no precedent.
 
 Followed by [[id:4f49ea34-5b8c-4ad8-8dbb-6f17126c420f][4f49ea34]] (the user, 2026-11-05): the footnote slice, which stops
 footnote-check blocking about half of all replies, ahead of [[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]], which was
