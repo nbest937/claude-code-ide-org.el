@@ -16405,6 +16405,70 @@ on-open and on-close with a session already holding a client."
                          logged)))
       (claude-code-ide-org--apply-origin-refusal-advice))))
 
+(ert-deftest claude-code-ide-org-test-http-origin-and-foreign-host-refused ()
+  "A tools-server POST carrying an Origin, or a Host that is not this
+machine's loopback on the server's port, is answered 403 and nothing is
+dispatched; localhost, 127.0.0.1 and [::1] on the right port reach the
+dispatcher.  Driven through upstream's real handle-post and web-server's
+request class, with only the socket writes and the dispatch stubbed.
+The off case is the discriminating control: with the switch nil the
+same Origin is dispatched (TODO.org :ID: 8c4a3aea)."
+  (require 'web-server)
+  (require 'claude-code-ide-mcp-http-server)
+  (let ((claude-code-ide-mcp-server--port 45571)
+        (had-switch claude-code-ide-org-refuse-browser-origins)
+        (status nil) (dispatched nil) (logged nil))
+    (unwind-protect
+        (cl-letf (((symbol-function 'ws-response-header)
+                   (lambda (_proc code &rest _headers) (setq status code)))
+                  ((symbol-function 'ws-send) #'ignore)
+                  ((symbol-function 'claude-code-ide-mcp-http-server--dispatch)
+                   (lambda (method _params) (push method dispatched) nil))
+                  ((symbol-function 'message)
+                   (lambda (fmt &rest args)
+                     (push (apply #'format fmt args) logged))))
+          (cl-flet ((post (headers)
+                      (setq status nil dispatched nil logged nil)
+                      (catch 'close-connection
+                        (claude-code-ide-mcp-http-server--handle-post
+                         (ws-request :process 'fake-process
+                                     :headers headers
+                                     :body "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\"}")))
+                      (list status dispatched)))
+            (setq claude-code-ide-org-refuse-browser-origins t)
+            (claude-code-ide-org--apply-origin-refusal-advice)
+            ;; An Origin, even beside a good Host.
+            (should (equal '(403 nil)
+                           (post '((:HOST . "localhost:45571")
+                                   (:ORIGIN . "https://evil.example.com")))))
+            (should (equal '("claude-code-ide-org: refused HTTP request with Origin https://evil.example.com")
+                           logged))
+            ;; Foreign Host: DNS rebinding.
+            (should (equal '(403 nil) (post '((:HOST . "evil.example.com:45571")))))
+            (should (equal '("claude-code-ide-org: refused HTTP request with Host evil.example.com:45571")
+                           logged))
+            ;; Loopback on another port, and no Host at all.
+            (should (equal '(403 nil) (post '((:HOST . "localhost:8080")))))
+            (should (equal '(403 nil) (post '((:USER-AGENT . "x")))))
+            ;; The three loopback names on the right port go through.
+            (dolist (host '("localhost:45571" "127.0.0.1:45571"
+                            "[::1]:45571" "LocalHost:45571"))
+              (should (equal '(200 ("tools/list"))
+                             (post `((:HOST . ,host))))))
+            ;; Idempotent: applying twice does not stack.
+            (claude-code-ide-org--apply-origin-refusal-advice)
+            (should (equal '(403 nil)
+                           (post '((:HOST . "localhost:45571")
+                                   (:ORIGIN . "https://evil.example.com")))))
+            ;; Off: the advice is gone and the Origin is dispatched.
+            (setq claude-code-ide-org-refuse-browser-origins nil)
+            (claude-code-ide-org--apply-origin-refusal-advice)
+            (should (equal '(200 ("tools/list"))
+                           (post '((:HOST . "localhost:45571")
+                                   (:ORIGIN . "https://evil.example.com")))))))
+      (setq claude-code-ide-org-refuse-browser-origins had-switch)
+      (claude-code-ide-org--apply-origin-refusal-advice))))
+
 (ert-deftest claude-code-ide-org-test-set-property-kind-slice-completes-the-declaration ()
   "KIND=slice writes everything a slice must carry that a mechanism can
 derive: :COOKIE_DATA:, the [/] cookie, and the :BLOCKER: from the

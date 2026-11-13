@@ -22563,43 +22563,103 @@ goes straight through to ORIG-FN with WS and ARGS.  See
       (websocket-close ws)
       nil)))
 
+(defvar claude-code-ide-mcp-server--port)
+
+(defun claude-code-ide-org--http-host-allowed-p (host port)
+  "Non-nil when HOST names this machine's loopback on PORT.
+HOST is the request's Host header: localhost, 127.0.0.1 or [::1],
+any case, followed by :PORT.  A missing Host, another name, or another
+port is refused -- another name is how DNS rebinding reaches a
+loopback server.  With PORT nil (the server's port unknown) any port
+is accepted, so the name check still holds."
+  (and (stringp host)
+       (let ((case-fold-search t))
+         (string-match
+          "\\`\\(localhost\\|127\\.0\\.0\\.1\\|\\[::1\\]\\):\\([0-9]+\\)\\'"
+          host))
+       (or (null port)
+           (= port (string-to-number (match-string 2 host))))))
+
+(defun claude-code-ide-org--refuse-origin-on-post (orig-fn request &rest args)
+  "Around advice for `claude-code-ide-mcp-http-server--handle-post'.
+A request carrying an Origin header, or whose Host is not this
+machine's loopback on the tools server's own port, is answered 403
+with an empty body and one log line, and ORIG-FN never runs, so
+nothing is dispatched.  Anything else goes straight through to ORIG-FN
+with REQUEST and ARGS.
+
+A browser sends Origin on every cross-origin POST, the preflight-free
+text/plain one included, so the Origin check closes every web page;
+the Host check closes DNS rebinding.  Claude Code sends neither an
+Origin nor a foreign Host (measured 2026-11-13: Host localhost:45571).
+Upstream's Access-Control-Allow-Origin: * is left alone, since only
+non-browser clients now ever see it.  See
+`claude-code-ide-org-refuse-browser-origins' (TODO.org :ID: 8c4a3aea)."
+  (let* ((headers (ws-headers request))
+         (origin (alist-get :ORIGIN headers))
+         (host (alist-get :HOST headers))
+         (port (bound-and-true-p claude-code-ide-mcp-server--port)))
+    (if (and (null origin)
+             (claude-code-ide-org--http-host-allowed-p host port))
+        (apply orig-fn request args)
+      (message "claude-code-ide-org: refused HTTP request with %s"
+               (if origin
+                   (format "Origin %s" origin)
+                 (format "Host %s" (or host "(none)"))))
+      (with-slots (process) request
+        (ws-response-header process 403
+                            (cons "Content-Type" "text/plain")
+                            (cons "Content-Length" "0"))
+        (throw 'close-connection nil)))))
+
 (defun claude-code-ide-org--apply-origin-refusal-advice ()
-  "Install or remove the Origin refusal, per
-`claude-code-ide-org-refuse-browser-origins'.  Idempotent."
+  "Install or remove both Origin refusals, per
+`claude-code-ide-org-refuse-browser-origins'.  Idempotent.
+Advising a function its file has not yet defined is fine; the advice
+takes effect when the `defun' runs."
   (if claude-code-ide-org-refuse-browser-origins
-      (advice-add 'claude-code-ide-mcp--on-open
-                  :around #'claude-code-ide-org--refuse-origin-on-open)
+      (progn
+        (advice-add 'claude-code-ide-mcp--on-open
+                    :around #'claude-code-ide-org--refuse-origin-on-open)
+        (advice-add 'claude-code-ide-mcp-http-server--handle-post
+                    :around #'claude-code-ide-org--refuse-origin-on-post))
     (advice-remove 'claude-code-ide-mcp--on-open
-                   #'claude-code-ide-org--refuse-origin-on-open)))
+                   #'claude-code-ide-org--refuse-origin-on-open)
+    (advice-remove 'claude-code-ide-mcp-http-server--handle-post
+                   #'claude-code-ide-org--refuse-origin-on-post)))
 
 (defcustom claude-code-ide-org-refuse-browser-origins t
-  "Refuse a connection that carries an Origin header.
+  "Refuse a connection that carries an Origin header, on both transports.
 
 Upstream's IDE-companion WebSocket checks no Origin, so any web page
 that finds its port can connect and, with
 `claude-code-ide-enable-execute-code' at its default of t, evaluate
 elisp in this Emacs (verified 2026-10-27; TODO.org :ID: d7b2f50f).
-Claude Code's own connection sends no Origin, so refusing every socket
-that has one closes the browser route and costs the legitimate client
-nothing.  A local process can still connect: it can read the lockfile
-and already runs as you.
+The HTTP tools server checks neither Origin nor Host and answers with
+Access-Control-Allow-Origin: *, so a web page can call any org tool
+and read the reply (verified 2026-10-27; TODO.org :ID: 8c4a3aea).
+Claude Code's own connections send no Origin and a loopback Host, so
+refusing the rest closes the browser route and costs the legitimate
+client nothing.  A local process can still connect: it can read the
+lockfile and already runs as you.
 
-Non-nil installs `:around' advice on `claude-code-ide-mcp--on-open' the
-moment that file loads; nil removes it.  Setting it through Customize
-re-applies at once; a `setq' needs
-`claude-code-ide-org--apply-origin-refusal-advice' after it.  The
-HTTP tools server's refusal (TODO.org :ID: 8c4a3aea) joins this switch
-by adding its own advice to that applier.
+Non-nil installs `:around' advice on `claude-code-ide-mcp--on-open'
+and on `claude-code-ide-mcp-http-server--handle-post'; nil removes
+both.  Setting it through Customize re-applies at once; a `setq' needs
+`claude-code-ide-org--apply-origin-refusal-advice' after it.
 
 `claude-code-ide-enable-execute-code' is deliberately left alone."
   :type 'boolean
   :group 'claude-code-ide-org
   :set (lambda (sym val)
          (set-default sym val)
-         (when (featurep 'claude-code-ide-mcp)
+         (when (or (featurep 'claude-code-ide-mcp)
+                   (featurep 'claude-code-ide-mcp-http-server))
            (claude-code-ide-org--apply-origin-refusal-advice))))
 
 (with-eval-after-load 'claude-code-ide-mcp
+  (claude-code-ide-org--apply-origin-refusal-advice))
+(with-eval-after-load 'claude-code-ide-mcp-http-server
   (claude-code-ide-org--apply-origin-refusal-advice))
 
 (defcustom claude-code-ide-org-wire-on-load t
