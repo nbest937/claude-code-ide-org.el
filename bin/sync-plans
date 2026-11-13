@@ -39,7 +39,15 @@ read -r -a org_files <<<"${PLANS_ORG_FILES:-$repo_root/TODO.org $repo_root/DONE.
 check_only=0
 [[ "${1:-}" == "--check" ]] && check_only=1
 
-[[ -d "$src" ]] || { echo "sync-plans: no such source directory: $src" >&2; exit 2; }
+# A missing source directory reads as an empty one (TODO.org :ID:
+# b4c1f663). Claude Code removes plan files after its retention period,
+# and the directory with them, and since 2026-09-21 that is left to
+# happen: every linked plan is then checked against the archive alone,
+# so a plan in neither place is still refused below. This used to exit 2,
+# which made pre-push refuse every push from a machine with no plans
+# left. Said in one line rather than silently, since a mistyped
+# PLANS_SRC_DIR reads the same way.
+[[ -d "$src" ]] || echo "sync-plans: no source directory $src; checking linked plans against the archive alone"
 
 # Referenced plans, deduplicated. Matches the link form CLAUDE.md
 # mandates: [[file:~/.claude/plans/<slug>.md][Plan]].

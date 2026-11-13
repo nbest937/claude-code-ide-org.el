@@ -4,7 +4,7 @@
 #
 # Fully covered: which plans get archived (org links are the rule),
 # new/updated/unchanged detection, --check's exit status and its promise
-# to change nothing, missing-source handling, and the two report-only
+# to change nothing, a missing source read as empty, and the two report-only
 # categories (orphan in the archive, unlinked at the source).
 #
 # NOT covered, and not claimed: that ~/.claude/plans is really where
@@ -108,10 +108,29 @@ check "orphan in the archive is reported" "1" "$(grep -c 'ORPHAN   beta-plan.md'
 check "orphan is never deleted" "1" \
   "$([[ -f "$work/dest/beta-plan.md" ]] && echo 1 || echo 0)"
 
-# --- a missing source directory is an error, not a silent no-op --------
-out="$(PLANS_SRC_DIR="$work/nope" PLANS_DEST_DIR="$work/dest" \
-       PLANS_ORG_FILES="$work/todo.org" "$script" 2>&1)"; rc=$?
-check "missing source dir exits 2" "2" "$rc"
+# --- a missing source directory reads as empty, never as an error ------
+# TODO.org :ID: b4c1f663: Claude Code removes ~/.claude/plans with its
+# last plan, and an exit 2 here made pre-push refuse every push.
+setup; run >/dev/null
+nosrc() {
+  PLANS_SRC_DIR="$work/nope" PLANS_DEST_DIR="$work/dest" \
+  PLANS_ORG_FILES="$work/todo.org $work/done.org" "$script" "$@" 2>&1
+}
+out="$(nosrc --check)"; rc=$?
+check "missing source dir, every plan archived: --check exits 0" "0" "$rc"
+check "says the source directory is absent" "1" \
+  "$(grep -c 'no source directory' <<<"$out")"
+check "reports every linked plan as evaporated" "2" \
+  "$(grep -c '  evaporated  ' <<<"$out")"
+out="$(nosrc)"; rc=$?
+check "missing source dir, every plan archived: a sync exits 0" "0" "$rc"
+check "a sync with no source leaves the archive alone" "alpha-plan.md beta-plan.md" \
+  "$(ls "$work/dest" | tr '\n' ' ' | sed 's/ $//')"
+rm "$work/dest/beta-plan.md"
+out="$(nosrc --check)"; rc=$?
+check "missing source dir, a plan in neither place: --check exits 1" "1" "$rc"
+check "names the plan in neither place" "1" \
+  "$(grep -c 'MISSING  beta-plan.md' <<<"$out")"
 
 echo
 echo "sync-plans-test: $pass passed, $fail failed"
