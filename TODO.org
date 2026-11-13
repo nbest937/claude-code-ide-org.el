@@ -774,7 +774,7 @@ Code on a feature/ branch, merged through a PR.
   human-typed note with them; the design is in :PLAN:.
 
 
-* DOING The session render escapes only column-zero lines, so an indented #+ line in transcript text takes effect, SETUPFILE included :code:bounded:
+* REVIEW The session render escapes only column-zero lines, so an indented #+ line in transcript text takes effect, SETUPFILE included :code:bounded:
 :PROPERTIES:
 :ID:       8985f8ae-8b26-45eb-8898-73f17c98680a
 :CREATED:  [2026-10-27 Tue 13:52]
@@ -790,6 +790,8 @@ Code on a feature/ branch, merged through a PR.
   slice step 3, starting
 CLOCK: [2026-11-13 Fri 12:15]--[2026-11-13 Fri 12:16] =>  0:01
 - [2026-11-13 Fri 12:15]--[2026-11-13 Fri 12:16] brainstorm the render escaping fix
+- State "REVIEW"     from "DOING"      [2026-11-13 Fri 12:26] \\
+  done on the slice branch; DONE at merge
 :END:
 :PLAN:
 Bounded: one function, claude-code-ide-org--org-escape-body (config.el), and its
@@ -1014,14 +1016,48 @@ CLOCK: [2026-11-11 Wed 17:51]--[2026-11-11 Wed 17:52] =>  0:01
 - [2026-11-11 Wed 17:51]--[2026-11-11 Wed 17:52] work slice 3bfa593c, first member
 CLOCK: [2026-11-13 Fri 09:02]--[2026-11-13 Fri 09:04] =>  0:02
 - [2026-11-13 Fri 09:02]--[2026-11-13 Fri 09:04] work slice 3bfa593c, first member
+CLOCK: [2026-11-13 Fri 09:04]--[2026-11-13 Fri 09:05] =>  0:01
+- [2026-11-13 Fri 09:04]--[2026-11-13 Fri 09:05] acceptance: probe with a live client, log line
+CLOCK: [2026-11-13 Fri 09:12]--[2026-11-13 Fri 09:16] =>  0:04
 - [2026-11-13 Fri 09:12]--[2026-11-13 Fri 09:12] work slice 3bfa593c, first member
+- [2026-11-13 Fri 09:12]--[2026-11-13 Fri 09:16] acceptance: probe with a live client, log line
 - [2026-11-13 Fri 09:16]--[2026-11-13 Fri 09:16] work slice 3bfa593c, first member
 - [2026-11-13 Fri 09:18]--[2026-11-13 Fri 09:19] work slice 3bfa593c, first member
+CLOCK: [2026-11-13 Fri 09:19]--[2026-11-13 Fri 09:23] =>  0:04
+- [2026-11-13 Fri 09:19]--[2026-11-13 Fri 09:23] acceptance: probe with a live client, log line
+CLOCK: [2026-11-13 Fri 09:25]--[2026-11-13 Fri 09:26] =>  0:01
+- [2026-11-13 Fri 09:25]--[2026-11-13 Fri 09:26] acceptance: probe with a live client, log line
+CLOCK: [2026-11-13 Fri 09:30]--[2026-11-13 Fri 09:41] =>  0:11
+- [2026-11-13 Fri 09:30]--[2026-11-13 Fri 09:41] acceptance: probe with a live client, log line
 - State "REVIEW"     from "DOING"      [2026-11-13 Fri 09:40] \\
   done on the slice branch; DONE at merge
 - [2026-11-13 Fri 09:41]--[2026-11-13 Fri 09:41] work slice 3bfa593c, first member
 CLOCK: [2026-11-13 Fri 10:09]--[2026-11-13 Fri 10:12] =>  0:03
 - [2026-11-13 Fri 10:09]--[2026-11-13 Fri 10:12] work slice 3bfa593c, first member
+CLOCK: [2026-11-13 Fri 10:12]--[2026-11-13 Fri 10:13] =>  0:01
+- [2026-11-13 Fri 10:12]--[2026-11-13 Fri 10:13] acceptance: probe with a live client, log line
+CLOCK: [2026-11-13 Fri 10:19]--[2026-11-13 Fri 10:20] =>  0:01
+- [2026-11-13 Fri 10:19]--[2026-11-13 Fri 10:20] acceptance: probe with a live client, log line
+CLOCK: [2026-11-13 Fri 10:24]--[2026-11-13 Fri 10:25] =>  0:01
+- [2026-11-13 Fri 10:24]--[2026-11-13 Fri 10:25] acceptance: probe with a live client, log line
+CLOCK: [2026-11-13 Fri 10:28]--[2026-11-13 Fri 10:29] =>  0:01
+- [2026-11-13 Fri 10:28]--[2026-11-13 Fri 10:29] acceptance: probe with a live client, log line
+CLOCK: [2026-11-13 Fri 10:48]--[2026-11-13 Fri 10:49] =>  0:01
+- [2026-11-13 Fri 10:48]--[2026-11-13 Fri 10:49] acceptance: probe with a live client, log line
+CLOCK: [2026-11-13 Fri 11:28]--[2026-11-13 Fri 11:29] =>  0:01
+- [2026-11-13 Fri 11:28]--[2026-11-13 Fri 11:29] acceptance: probe with a live client, log line
+CLOCK: [2026-11-13 Fri 11:34]--[2026-11-13 Fri 11:43] =>  0:09
+- [2026-11-13 Fri 11:34]--[2026-11-13 Fri 11:43] acceptance: probe with a live client, log line
+CLOCK: [2026-11-13 Fri 11:48]--[2026-11-13 Fri 11:49] =>  0:01
+- [2026-11-13 Fri 11:48]--[2026-11-13 Fri 11:49] acceptance: probe with a live client, log line
+CLOCK: [2026-11-13 Fri 11:54]--[2026-11-13 Fri 11:55] =>  0:01
+- [2026-11-13 Fri 11:54]--[2026-11-13 Fri 11:55] acceptance: probe with a live client, log line
+CLOCK: [2026-11-13 Fri 12:02]--[2026-11-13 Fri 12:07] =>  0:05
+- [2026-11-13 Fri 12:02]--[2026-11-13 Fri 12:07] acceptance: probe with a live client, log line
+CLOCK: [2026-11-13 Fri 12:15]--[2026-11-13 Fri 12:16] =>  0:01
+- [2026-11-13 Fri 12:15]--[2026-11-13 Fri 12:16] acceptance: probe with a live client, log line
+CLOCK: [2026-11-13 Fri 12:25]--[2026-11-13 Fri 12:26] =>  0:01
+- [2026-11-13 Fri 12:25]--[2026-11-13 Fri 12:26] acceptance: probe with a live client, log line
 :END:
 :PLAN:
 Bounded: one advice on upstream's claude-code-ide-mcp--on-open
@@ -1164,9 +1200,9 @@ Planned:
 
 - [-] [[id:8c4a3aea-3208-46c8-a491-2ff024fbf822][8c4a3aea]] REVIEW The tools server answers any web page: it checks no Origin or Host, and every reply says Access-Control-Allow-Origin: *
 - [-] [[id:d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80][d7b2f50f]] REVIEW The IDE companion's WebSocket accepts any web page, and =executeCode= runs whatever elisp it is sent
-- [-] [[id:8985f8ae-8b26-45eb-8898-73f17c98680a][8985f8ae]] DOING The session render escapes only column-zero lines, so an indented #+ line in transcript text takes effect, SETUPFILE included
-- [ ] [[id:0a0dee55-d709-466e-a525-c3bb1c437b91][0a0dee55]] TODO The applied record keys a session's events by timestamp to the second, so an event that failed or was skipped is consumed when another from the same second applies
-- [ ] [[id:d3468075-b17a-45a2-bd3a-838521f11a87][d3468075]] TODO An apply interrupted after its writes records nothing, and the next pass inserts each amend a second time
+- [-] [[id:8985f8ae-8b26-45eb-8898-73f17c98680a][8985f8ae]] REVIEW The session render escapes only column-zero lines, so an indented #+ line in transcript text takes effect, SETUPFILE included
+- [-] [[id:0a0dee55-d709-466e-a525-c3bb1c437b91][0a0dee55]] REVIEW The applied record keys a session's events by timestamp to the second, so an event that failed or was skipped is consumed when another from the same second applies
+- [ ] [[id:d3468075-b17a-45a2-bd3a-838521f11a87][d3468075]] NEXT An apply interrupted after its writes records nothing, and the next pass inserts each amend a second time
 - [ ] [[id:6c969cbd-0c03-409f-835f-80ddb1faedf6][6c969cbd]] TODO A replayed apply writes an extra one-minute CLOCK line for every run whose end has seconds
 - [ ] [[id:187a87b4-20db-4fbf-931f-a4b4e1bed668][187a87b4]] TODO A narrowed span's leftover copies the human's :active and :edited flags, so agent time is written as attention
 - [ ] [[id:c0a21a0f-89ed-4b66-b7ed-acbfd5583015][c0a21a0f]] TODO Archiving a session already in the archive overwrites it, and restore overwrites a live queue the same way
@@ -1459,7 +1495,7 @@ the current behaviour.
   and delete the setq.
 
 
-* TODO An apply interrupted after its writes records nothing, and the next pass inserts each amend a second time :code:bounded:
+* NEXT An apply interrupted after its writes records nothing, and the next pass inserts each amend a second time :code:bounded:
 :PROPERTIES:
 :ID:       d3468075-b17a-45a2-bd3a-838521f11a87
 :CREATED:  [2026-10-27 Tue 12:51]
@@ -1469,6 +1505,8 @@ the current behaviour.
 - [2026-10-28 Wed 12:44]--[2026-10-28 Wed 12:52] brainstorm interrupted-apply recording
 - Tags ":code:bounded:" from ":code:"     [2026-10-28 Wed 12:52] \\
   classified at /plan-slice: two changes inside the existing apply path
+- State "NEXT"       from "TODO"       [2026-11-13 Fri 13:08] \\
+  slice plan step 5, record-first apply
 :END:
 :PLAN:
 Bounded: --review-apply and --review-apply-amend in config.el. Each item already
@@ -2015,7 +2053,7 @@ could flag an incidental line whose ancestor is a planned member, as it already
 flags :MEMBERS: naming both a parent and its child.
 
 
-* TODO The applied record keys a session's events by timestamp to the second, so an event that failed or was skipped is consumed when another from the same second applies :code:arch:
+* REVIEW The applied record keys a session's events by timestamp to the second, so an event that failed or was skipped is consumed when another from the same second applies :code:arch:
 :PROPERTIES:
 :ID:       0a0dee55-d709-466e-a525-c3bb1c437b91
 :CREATED:  [2026-10-20 Tue 09:13]
@@ -2036,6 +2074,18 @@ CLOCK: [2026-10-28 Wed 12:36]--[2026-10-28 Wed 12:41] =>  0:05
 - [2026-10-28 Wed 12:36]--[2026-10-28 Wed 12:41] brainstorm applied-record event keys
 - Tags ":code:arch:" from ":code:"     [2026-10-28 Wed 12:40] \\
   classified at /plan-slice: changes the queue's event schema, read by four consumers
+- State "NEXT"       from "TODO"       [2026-11-13 Fri 12:26] \\
+  slice plan step 4, the event-id key
+CLOCK: [2026-11-13 Fri 12:37]--[2026-11-13 Fri 12:57] =>  0:20
+- State "DOING"      from "NEXT"       [2026-11-13 Fri 12:37] \\
+  slice step 4, event ids
+- [2026-11-13 Fri 12:37]--[2026-11-13 Fri 12:57] event id as the queue's consumption key
+CLOCK: [2026-11-13 Fri 13:03]--[2026-11-13 Fri 13:04] =>  0:01
+- [2026-11-13 Fri 13:03]--[2026-11-13 Fri 13:04] event id as the queue's consumption key
+CLOCK: [2026-11-13 Fri 13:07]--[2026-11-13 Fri 13:08] =>  0:01
+- [2026-11-13 Fri 13:07]--[2026-11-13 Fri 13:08] event id as the queue's consumption key
+- State "REVIEW"     from "DOING"      [2026-11-13 Fri 13:08] \\
+  done on the slice branch; DONE at merge
 :END:
 :PLAN:
 Architectural: a writer-assigned event id, eid, keys consumption in place of the
@@ -2145,7 +2195,6 @@ Resolved 2026-11-13: every queue event carries a writer-assigned eid, and
 consumption is keyed by it (or by ts on a line written before eids), so two
 events of one second are applied and dismissed apart. On the slice's branch,
 feature/tracker-record-loss.
-
 
 
 * TODO Burying the review buffer stamps the ceremony done while apply failures are still pending, though the session-start docstring says it waits for them :code:
@@ -14967,6 +15016,9 @@ CLOCK: [2026-11-11 Wed 17:47]--[2026-11-11 Wed 17:50] =>  0:03
 CLOCK: [2026-11-13 Fri 12:23]--[2026-11-13 Fri 12:25] =>  0:02
 CLOCK: [2026-11-13 Fri 13:02]--[2026-11-13 Fri 13:06] =>  0:04
 - <2026-11-13 Fri 13:02>--<2026-11-13 Fri 13:06> review pass (buffer buried)
+CLOCK: [2026-11-13 Fri 13:25]--[2026-11-13 Fri 13:27] =>  0:02
+CLOCK: [2026-11-13 Fri 13:34]--[2026-11-13 Fri 13:35] =>  0:01
+- <2026-11-13 Fri 13:34>--<2026-11-13 Fri 13:35> review pass (buffer buried)
 :END:
 
 We created this heading on 2026-08-26. We deleted that property from its
