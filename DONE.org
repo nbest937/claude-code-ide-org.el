@@ -6,6 +6,716 @@ Archived entries from file /Users/neil.best/git/claude-code-ide-org/TODO.org
 
 * 2026
 
+** 2026-11 November
+*** 2026-11-11 Wednesday
+**** DONE The review suggests a heading from any project's todo events, so a project with time tracking off collects other projects' time as CLOCK lines :code:bounded:
+CLOSED: [2026-11-11 Wed 17:08]
+:PROPERTIES:
+:ID:       d0f8042c-c294-45b2-9016-7efca7977982
+:CREATED:  [2026-10-30 Fri 14:21]
+:CATEGORY: Apply
+:ARCHIVE_TIME: 2026-11-12 Thu 15:21
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Apply
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-30 Fri 15:40]--[2026-10-30 Fri 15:41] =>  0:01
+- [2026-10-30 Fri 15:40]--[2026-10-30 Fri 15:41] delete misfiled noodle clocks, brainstorm the fix
+- State "DOING"      from "TODO"       [2026-10-30 Fri 15:43] \\
+  user approved: record the plan, work it now
+CLOCK: [2026-10-30 Fri 15:43]--[2026-10-30 Fri 15:50] =>  0:07
+- Tags ":code:bounded:" from ":code:"     [2026-10-30 Fri 15:43] \\
+  brainstormed: one flow, the suggester and its caller
+- [2026-10-30 Fri 15:43]--[2026-10-30 Fri 15:50] scope span suggestions to the span's project
+- State "REVIEW"     from "DOING"      [2026-10-30 Fri 15:50] \\
+  PR open, test-all green
+CLOCK: [2026-10-30 Fri 15:51]--[2026-10-30 Fri 15:52] =>  0:01
+- [2026-10-30 Fri 15:51]--[2026-10-30 Fri 15:52] suggested span, accepted at review
+- State "DOING"      from "REVIEW"     [2026-10-30 Fri 17:41] \\
+  PR 44 review findings, rework
+- State "REVIEW"     from "DOING"      [2026-10-30 Fri 17:54] \\
+  review findings fixed, threads resolved
+- State "DONE"       from "REVIEW"     [2026-11-11 Wed 17:08] \\
+  PR 44 merged
+:END:
+:PLAN:
+Bounded: a span is suggested a heading only from its own project; with nothing
+in progress there it is offered unassigned, since no answer beats a plausible
+wrong one (the user, 2026-10-30). --review-suggest-heading takes an optional
+third argument, the span's project root, and ignores todo events from any other
+project; two-argument calls behave as before. The caller reads the project from
+the span's own events' cwd, which is at most one known project because spans
+already split on a project boundary. --project-root does the comparison, so a
+linked worktree counts as its main checkout, cached per cwd because it touches
+the disk and the history is long. The review keeps reading every session within
+a project, which keeps the 2026-08-13 fix for spans with no suggestion. A span
+with no known project keeps today's behaviour, unfiltered. A todo event with no
+cwd is ignored for a span whose project is known, the choice the report scope
+makes: never show what may be someone else's work as this project's. Bracketed
+spans and the apply path are unchanged; pending spans correct themselves because
+items are rebuilt each pass. Accepted cost: more of this repo's spans arrive
+unassigned. Tests in config-test.el: another project's DOING gives no
+suggestion, the span's own project's still does, a worktree cwd counts as its
+main checkout, a span with no cwd behaves as today; each proved to fail against
+the current code, then bin/test-all.
+
+Revised after the review of [[https://github.com/nbest937/claude-code-ide-org.el/pull/44][PR #44]], approved by the user 2026-10-30, and
+superseding the text above where they differ: the test is the project of the
+heading's file against the span's, both through --project-name, the resolver the
+span splitter already uses, and it gates only entering DOING. So --cwd-project,
+the per-call cache and the rule for an event with no cwd are gone. A span with
+no guidepost takes its project from the clock events on its edges, and a span
+whose every cwd is gone matches no heading rather than every heading. Two
+checkouts sharing a basename stay one project here, as they already are to the
+splitter.
+:END:
+:DEBRIEF:
+Shipped: --review-suggest-heading takes the span's project and counts a heading
+entering DOING only if its file is in that project; leaving DOING still clears
+from any cwd. The project is the full root of the git checkout, a linked
+worktree folded into its main checkout. A span with no guidepost takes it from
+the brackets it abuts, a span of no known project reads every event as before,
+and a heading the id index lacks is found by one rescan per review pass.
+
+Verified: merged as [[https://github.com/nbest937/claude-code-ide-org.el/pull/44][PR #44]] at head 43c21e3, merge commit [[orgit-rev:./::d54d78d][d54d78d]], with the
+pre-push bin/test-all at 28 suites, 1781 passed, 0 failed; the merged module
+reloaded into the running Emacs, whose image check reads fresh. Measured on the
+live queue: a render costs 3.5 to 4.5 s, of which the project work is about
+0.4 s; the rest is queue parsing, filed as [[id:3565ba71-bb57-4b97-b4ca-66bd917096fe][3565ba71]].
+
+Differed from the plan, a good deal. The design at filing compared by cwd and
+kept a no-cwd rule; two review rounds (fourteen findings, eight fixed in the
+first) rewrote it into the resolver above, which [[id:c56b4eef-0637-4ada-9c88-29eed6ffd4c0][c56b4eef]] records. A third
+review of the final head returned six; two were refuted by measurement and the
+code, one was already fixed, and three stand as accepted limits: a removed cwd
+whose nearest existing ancestor sits in an unrelated enclosing repo resolves
+there, which only misleads if that repo is itself tracked; a project with no
+.git splits a cwd below its root from the root, as the basename comparison
+always did, and none tracked here lacks one; and the path-to-root cache is never
+invalidated, as its docstring says. None is filed: each is harmless on the
+current projects, and the third review's account is in this paragraph.
+
+The misfiled CLOCK lines in noodle-salesman that started this were deleted on
+2026-10-30, per the logbook.
+:END:
+--review-items-from-queue passes --review-suggest-heading the full queue history
+  of every session, so a span from one project takes the newest work-in-progress
+  todo event from any project, and the span's own cwd plays no part. Measured
+  2026-10-30: noodle-salesman's queue files hold 356 todo events and not one
+  guidepost since 2026-10-12, because its sessions run with time tracking off,
+  yet its TODO.org and DONE.org carry 35 CLOCK lines totalling 49 minutes, all
+  labelled as accepted suggestions, and every one overlaps this repo's turns
+  with none of its own possible. The same day two more spans of this repo's were
+  offered for a noodle-salesman heading and refused at review. The suggestion
+  should read only events from the span's project. Which of the 35 lines to move
+  or drop is a separate decision for that tracker. A related scope failure is
+  [[id:70b47b8f-b413-4660-bf32-b0b90db45ff4][70b47b8f]].
+
+Resolved by [[https://github.com/nbest937/claude-code-ide-org.el/pull/44][PR #44]] (merge commit [[orgit-rev:./::d54d78d][d54d78d]], 2026-11-11): a span is offered a
+heading only from its own project, compared by full root. The findings of the
+PR's review rounds are in [[id:c56b4eef-0637-4ada-9c88-29eed6ffd4c0][c56b4eef]].
+**** DONE [14/14] PR #44's review found fourteen defects in the project-scoped suggestion, eight fixed and six open :code:
+CLOSED: [2026-11-11 Wed 17:08]
+:PROPERTIES:
+:ID:       c56b4eef-0637-4ada-9c88-29eed6ffd4c0
+:CREATED:  [2026-11-03 Tue 13:18]
+:CATEGORY: Apply
+:ARCHIVE_TIME: 2026-11-12 Thu 15:21
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Apply
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+CLOCK: [2026-11-06 Fri 15:33]--[2026-11-06 Fri 15:35] =>  0:02
+- [2026-11-06 Fri 15:33]--[2026-11-06 Fri 15:35] assigned at review
+CLOCK: [2026-11-06 Fri 15:40]--[2026-11-06 Fri 15:41] =>  0:01
+- [2026-11-06 Fri 15:40]--[2026-11-06 Fri 15:41] assigned at review
+CLOCK: [2026-11-11 Wed 16:32]--[2026-11-11 Wed 16:33] =>  0:01
+- [2026-11-11 Wed 16:32]--[2026-11-11 Wed 16:33] assigned at review
+CLOCK: [2026-11-11 Wed 16:35]--[2026-11-11 Wed 16:36] =>  0:01
+- [2026-11-11 Wed 16:35]--[2026-11-11 Wed 16:36] assigned at review
+CLOCK: [2026-11-11 Wed 16:48]--[2026-11-11 Wed 16:49] =>  0:01
+- [2026-11-11 Wed 16:48]--[2026-11-11 Wed 16:49] assigned at review
+CLOCK: [2026-11-11 Wed 16:50]--[2026-11-11 Wed 16:51] =>  0:01
+- [2026-11-11 Wed 16:50]--[2026-11-11 Wed 16:51] assigned at review
+CLOCK: [2026-11-11 Wed 16:51]--[2026-11-11 Wed 16:52] =>  0:01
+- [2026-11-11 Wed 16:51]--[2026-11-11 Wed 16:52] assigned at review
+CLOCK: [2026-11-11 Wed 16:56]--[2026-11-11 Wed 16:57] =>  0:01
+- [2026-11-11 Wed 16:56]--[2026-11-11 Wed 16:57] assigned at review
+CLOCK: [2026-11-11 Wed 17:06]--[2026-11-11 Wed 17:08] =>  0:02
+- [2026-11-11 Wed 17:06]--[2026-11-11 Wed 17:08] assigned at review
+- State "DONE"       from "TODO"       [2026-11-11 Wed 17:08] \\
+  all findings closed, PR 44 merged
+CLOCK: [2026-11-11 Wed 17:08]--[2026-11-11 Wed 17:09] =>  0:01
+- [2026-11-11 Wed 17:08]--[2026-11-11 Wed 17:09] close PR 44 findings after merge
+:END:
+:DEBRIEF:
+Shipped: the six second-round findings landed on the PR's branch in commits
+0ad95cc ([[id:e08fb599-8cce-4c50-8fe9-9291ec24c7d7][e08fb599]]), 250b2c2 and 43c21e3 ([[id:e70cad3f-5546-405b-b659-9ebc90fb45d0][e70cad3f]]), 288aeb0 ([[id:460dfe96-8a08-456f-bdbd-2ace19afd404][460dfe96]]) and
+54787ac ([[id:6080f611-1005-42d4-942b-0fedbd162bc4][6080f611]]), with [[id:89355c78-d0c9-424e-856f-24f8f857ab91][89355c78]] measured and [[id:d6d06bae-197f-42ca-9277-f95e01009140][d6d06bae]] the description rewrite;
+[[https://github.com/nbest937/claude-code-ide-org.el/pull/44][PR #44]] merged as d54d78d. Each member's debrief has its own detail.
+
+What the round taught, in order of cost. First, a design approved on reasoning
+alone was wrong: [[id:e70cad3f-5546-405b-b659-9ebc90fb45d0][e70cad3f]]'s per-id lookup made a render 8.7 s against 3.5 s, and
+only measuring on the live queue showed it; it was replaced by one rescan per
+pass. Second, two of the new tests passed against the code they were meant to
+fail, the same-second edge test and the remhash test for the index, and were
+found only by running them against the previous code. Third, a review asked for
+before the push read the old head and its findings named code that no longer
+existed; the review that mattered ran after.
+
+Verified: bin/test-all 28 suites, 1781 passed, 0 failed before the push; the
+merged module live in the running Emacs with a fresh image check.
+
+Not done: the render's real cost, queue parsing at 3.8 s of 4.8, is [[id:3565ba71-bb57-4b97-b4ca-66bd917096fe][3565ba71]].
+:END:
+
+The findings of PR #44's two code reviews, against [[id:d0f8042c-c294-45b2-9016-7efca7977982][d0f8042c]], which stays REVIEW
+while these are worked. The first review, of commit [[orgit-rev:./::ec73f62][ec73f62]] on 2026-10-30,
+posted eight, all fixed in commit [[orgit-rev:./::4a875a9][4a875a9]]. The second, of commit [[orgit-rev:./::4a875a9][4a875a9]] on
+2026-11-03, posted seven; one, that a prefixed DOING id never counts as
+in-project, was a false positive, because --queue-parse-line expands prefixes
+and all 569 live DOING events resolved, so it has no child here.
+
+Resolved 2026-11-11: all fourteen findings are closed, and [[https://github.com/nbest937/claude-code-ide-org.el/pull/44][PR #44]] merged as
+commit [[orgit-rev:./::d54d78d][d54d78d]]. Eight were fixed after the first review, six after the second,
+and one of the second's seven was a false positive with no child.
+
+
+***** DONE A span holding no guidepost resolves to no project, so it still reads every project's events and can be offered another project's heading
+CLOSED: [2026-11-03 Tue 13:18]
+:PROPERTIES:
+:ID:       3e374dc6-900c-417f-807f-333d67f10842
+:CREATED:  [2026-11-03 Tue 13:18]
+:END:
+
+First review. Fixed in commit [[orgit-rev:./::4a875a9][4a875a9]]: a span with no guidepost inside takes its
+project from the events on its edges.
+
+
+***** DONE The project filter also drops events that clear the active heading, so a heading closed from another cwd stays suggested after it has left DOING
+CLOSED: [2026-11-03 Tue 13:18]
+:PROPERTIES:
+:ID:       d9b3a26e-2957-4f6c-9c64-fd8dc12979e0
+:CREATED:  [2026-11-03 Tue 13:18]
+:END:
+
+First review. Fixed in commit [[orgit-rev:./::4a875a9][4a875a9]]: only the DOING branch is gated on the
+project; the clear branch is not.
+
+
+***** DONE A linked worktree counts as its main checkout only while it exists, so the mapping depends on when the review runs
+CLOSED: [2026-11-03 Tue 13:18]
+:PROPERTIES:
+:ID:       3f724f17-7467-4cdd-8a82-d7e0794137fa
+:CREATED:  [2026-11-03 Tue 13:18]
+:END:
+
+First review. Fixed in commit [[orgit-rev:./::4a875a9][4a875a9]] by resolving through --project-name, whose
+session-long cache keeps the first mapping; a worktree removed before its first
+resolution is the second review's open finding on removed worktrees.
+
+
+***** DONE --cwd-project is a second cwd-to-project resolver that disagrees with the --project-name the span splitter uses
+CLOSED: [2026-11-03 Tue 13:18]
+:PROPERTIES:
+:ID:       5824c005-4b30-4cec-aadc-736c83f1a436
+:CREATED:  [2026-11-03 Tue 13:18]
+:END:
+
+First review. Fixed in commit [[orgit-rev:./::4a875a9][4a875a9]]: --cwd-project removed, one resolver.
+
+
+***** DONE The filter tests the cwd of the event rather than the project of the heading, so the only-its-own-project guarantee is approximate
+CLOSED: [2026-11-03 Tue 13:18]
+:PROPERTIES:
+:ID:       5144171f-019c-4e46-aa3f-bc8b9391a71f
+:CREATED:  [2026-11-03 Tue 13:18]
+:END:
+
+First review. Fixed in commit [[orgit-rev:./::4a875a9][4a875a9]]: --heading-in-project-p compares the
+heading's own file's project.
+
+
+***** DONE An empty-string cwd passes the guard and resolves against Emacs's default-directory
+CLOSED: [2026-11-03 Tue 13:18]
+:PROPERTIES:
+:ID:       3ba687f9-b20a-44ee-a500-aaac0d5d9ebf
+:CREATED:  [2026-11-03 Tue 13:18]
+:END:
+
+First review. Fixed in commit [[orgit-rev:./::4a875a9][4a875a9]]: --span-project skips empty cwds and
+--project-name guards an empty string.
+
+
+***** DONE The roots memo lives for one call, so every span re-resolves every distinct cwd
+CLOSED: [2026-11-03 Tue 13:18]
+:PROPERTIES:
+:ID:       a7469759-0855-4976-a243-502b264d65ed
+:CREATED:  [2026-11-03 Tue 13:18]
+:END:
+
+First review. Fixed in commit [[orgit-rev:./::4a875a9][4a875a9]]: the memo removed; --project-name's
+session-long cache serves.
+
+
+***** DONE The span-window predicate is a third copy of the filter that :events runs a few lines later for the same span
+CLOSED: [2026-11-03 Tue 13:18]
+:PROPERTIES:
+:ID:       dd98f9f0-e010-4c54-ab0c-925dc8f11714
+:CREATED:  [2026-11-03 Tue 13:18]
+:END:
+
+First review. Fixed in commit [[orgit-rev:./::4a875a9][4a875a9]]: both paths use --events-in-span.
+
+
+***** DONE A gap span's edge events come from every session's history, so another project's event in the same second can decide the span's project :bounded:
+CLOSED: [2026-11-11 Wed 17:08]
+:PROPERTIES:
+:ID:       6080f611-1005-42d4-942b-0fedbd162bc4
+:CREATED:  [2026-11-03 Tue 13:18]
+:END:
+:LOGBOOK:
+CLOCK: [2026-11-06 Fri 15:40]--[2026-11-06 Fri 15:42] =>  0:02
+- Tags ":bounded:"  from ""           [2026-11-06 Fri 15:40] \\
+  design approved 2026-11-06; changes code PR #44 already added
+- [2026-11-06 Fri 15:40]--[2026-11-06 Fri 15:42] record the approved designs for PR #44's findings
+CLOCK: [2026-11-06 Fri 15:42]--[2026-11-06 Fri 15:43] =>  0:01
+- [2026-11-06 Fri 15:42]--[2026-11-06 Fri 15:43] assigned at review
+CLOCK: [2026-11-06 Fri 15:45]--[2026-11-06 Fri 15:46] =>  0:01
+- [2026-11-06 Fri 15:45]--[2026-11-06 Fri 15:46] assigned at review
+CLOCK: [2026-11-11 Wed 16:18]--[2026-11-11 Wed 16:32] =>  0:14
+- State "DOING"      from "TODO"       [2026-11-11 Wed 16:18] \\
+  approved design, working on PR 44 branch
+- [2026-11-11 Wed 16:18]--[2026-11-11 Wed 16:32] edge project from abutting brackets only
+- State "REVIEW"     from "DOING"      [2026-11-11 Wed 16:32] \\
+  code on PR 44 branch, awaiting merge
+- State "DONE"       from "REVIEW"     [2026-11-11 Wed 17:08] \\
+  merged in PR 44
+:END:
+:PLAN:
+Approved by the user 2026-11-06, on feature/suggest-own-project. A span holding
+no guidepost takes its project only from the clock events of the brackets it
+abuts: the ones --with-bracket-edges already finds, a bracket ending at the
+span's start or starting at its end. Each bracket is one lane's
+clock_in/clock_out pair, so its events are one session's by construction, where
+today --events-on-span-edges takes any event at either edge second from the
+whole history. When the two edges name different projects the span gets no
+suggestion. The review's proposal, the lane's nearest guidepost on each side,
+was not taken: the orphan stream mixes sessions, so it moves the collision
+rather than removing it. To check while implementing: whether the bracket list
+keeps its clock events or only their times; if only times, take the pairs from
+--lane-clock-pairs. This removes the whole-history scan per span, which is most
+of [[id:89355c78-d0c9-424e-856f-24f8f857ab91][89355c78]]. Test in config-test.el: another project's event in the same second
+as a span's edge no longer decides it, proved to fail on the branch as it is;
+then bin/test-all.
+:END:
+:DEBRIEF:
+Shipped: --edge-project reads the clock pairs of the brackets a span abuts, one
+closing at its start or one opening at its end, from --lane-clock-pairs hoisted
+once per pass; distinct roots are compared and two disagreeing give gone. The
+whole-history scan per span, --events-on-span-edges, is deleted. The bracket
+list held only times, as the plan said to check, so the pairs come from
+--lane-clock-pairs.
+
+Verified: suite 963 as expected; both new tests red against the code before
+the change.
+
+Falsified: my first version of the same-second test passed against the old
+code. A resume at the shared second is a guidepost, so it falls inside the span
+and decides by the ordinary path; and the test took any unassigned span's
+suggestion, so the other gaps supplied A's answer whatever the edge lookup did.
+It now uses a todo event at the edge and reads the one gap that opens there. A
+test that passes both ways verifies nothing.
+
+Not done: the review's other proposal, the lane's nearest guidepost on each
+side, was not taken, as the plan said: the orphan stream mixes sessions.
+:END:
+
+From PR #44's second review. A span holding no guidepost takes its project from
+any event in the whole queue at either edge second, so another project's event
+in the same second can decide it. The approved design reads only the clock
+events of the brackets the span abuts, and also removes the whole-history scan
+behind [[id:89355c78-d0c9-424e-856f-24f8f857ab91][89355c78]].
+
+Resolved on feature/suggest-own-project in commit [[orgit-rev:./::54787ac][54787ac]], merged in [[https://github.com/nbest937/claude-code-ide-org.el/pull/44][PR #44]]
+(commit [[orgit-rev:./::d54d78d][d54d78d]]): a gap span takes its project from the brackets it abuts only,
+and two brackets naming different projects leave it with no suggestion.
+
+
+***** DONE Projects are compared by directory basename, so two checkouts with the same name count as one project :bounded:
+CLOSED: [2026-11-11 Wed 17:08]
+:PROPERTIES:
+:ID:       e08fb599-8cce-4c50-8fe9-9291ec24c7d7
+:CREATED:  [2026-11-03 Tue 13:18]
+:END:
+:LOGBOOK:
+CLOCK: [2026-11-11 Wed 15:11]--[2026-11-11 Wed 15:12] =>  0:01
+- [2026-11-11 Wed 15:11]--[2026-11-11 Wed 15:12] record approved bounded design
+- Tags ":bounded:"  from ""           [2026-11-11 Wed 15:12] \\
+  design approved 2026-11-11; changes code PR #44 already added
+- State "DOING"      from "TODO"       [2026-11-11 Wed 16:08] \\
+  approved design, working on PR 44 branch
+- State "REVIEW"     from "DOING"      [2026-11-11 Wed 16:32] \\
+  code on PR 44 branch, awaiting merge
+- State "DONE"       from "REVIEW"     [2026-11-11 Wed 17:08] \\
+  merged in PR 44
+:END:
+:PLAN:
+Approved by the user 2026-11-11, on feature/suggest-own-project, the branch
+that carries --span-project and --heading-in-project-p. Display stays the bare
+basename (option A, the user, 2026-11-11); only comparison moves to the full
+root.
+
+Resolve each path to its root once. A new --project-root-key does what
+--project-name does today up to the name: file-truename, the nearest .git, a
+linked worktree folded into its main checkout. It answers the root directory as
+a truename string, and nil for a nil, empty or missing path. The existing
+session-long cache keeps the root, keyed by the path given.
+
+--project-name becomes a thin wrapper: the root's last component, nil when that
+is empty. Its display callers stay as they are: the outline label, the cwd
+annotation and the group annotation lookups.
+
+The comparison callers switch to the root. The span splitter's points carry the
+root as their third element, so two same-named checkouts split into two spans.
+--span-project and --heading-in-project-p compare roots, and gone stays as it
+is.
+
+Out of scope: disambiguated labels for two roots sharing a basename (option B,
+declined), and the other open findings of [[id:c56b4eef-0637-4ada-9c88-29eed6ffd4c0][c56b4eef]].
+
+Tests, the first two failing against the basename comparison: two temporary
+repos with the same basename under different parents split into two spans, and
+--heading-in-project-p answers nil for a heading in the other; --project-name
+still answers the bare basename for both; the existing normalisation tests
+(git root, nested path, linked worktree, degrade to nil) keep passing against
+the root. Prove they discriminate by copying the changed file aside and
+restoring HEAD's version, never by stash, then run bin/test-all.
+:END:
+:DEBRIEF:
+Shipped: --project-root-key answers a path's full truename root, a linked
+worktree folded into its main checkout; --project-name is its last component.
+The span splitter, --span-project and --heading-in-project-p compare the root.
+Tests: two real directories named proj under different parents are two projects
+for --span-project, split a span, and one's heading is not in the other, each
+red against the basename comparison before the change; the display name is still
+proj for both.
+
+Verified: bin/test 957, then 963 after the later members, all as expected.
+
+Differed from the plan, twice. The worktree root came back as /var/... while the
+main checkout's own was /private/var/...: the pointer file names the checkout as
+git wrote it, which need not be a truename, and names had hidden it because both
+end in b. It is now truenamed, found by the existing worktree test. And two
+existing tests passed the bare name "a" as the project, one of which would have
+kept passing vacuously, since a bare name now matches nothing: it was updated
+and given a control.
+
+Not done: labels for two roots sharing a basename stay ambiguous (option A, the
+user, 2026-11-11).
+:END:
+
+Second review of [[https://github.com/nbest937/claude-code-ide-org.el/pull/44][PR #44]]. Projects are compared by --project-name, the git
+root's directory basename, so two checkouts sharing a name merge into one: the
+span splitter keeps them in one span, and a heading from the other counts as
+in-project. The design resolves each path to its full root and compares on
+that, leaving the display name the bare basename.
+
+Resolved on feature/suggest-own-project in commit [[orgit-rev:./::0ad95cc][0ad95cc]], merged in [[https://github.com/nbest937/claude-code-ide-org.el/pull/44][PR #44]]
+(commit [[orgit-rev:./::d54d78d][d54d78d]]): projects are compared by their full truename root, and the
+bare name remains the display label.
+
+
+***** DONE A heading missing from org-id-locations counts as another project's, since the project test does no rescan on a miss :bounded:
+CLOSED: [2026-11-11 Wed 17:08]
+:PROPERTIES:
+:ID:       e70cad3f-5546-405b-b659-9ebc90fb45d0
+:CREATED:  [2026-11-03 Tue 13:18]
+:END:
+:LOGBOOK:
+- Tags ":bounded:"  from ""           [2026-11-06 Fri 15:40] \\
+  design approved 2026-11-06
+- State "DOING"      from "TODO"       [2026-11-11 Wed 16:12] \\
+  approved design, working on PR 44 branch
+- State "REVIEW"     from "DOING"      [2026-11-11 Wed 16:32] \\
+  code on PR 44 branch, awaiting merge
+- State "DONE"       from "REVIEW"     [2026-11-11 Wed 17:08] \\
+  merged in PR 44
+:END:
+:PLAN:
+Approved by the user 2026-11-06, on feature/suggest-own-project. When
+org-id-locations has no entry for a heading, --heading-in-project-p falls back
+to looking its file up with --id-find instead of answering nil. It does that at
+most once per id per pass, keeping each answer, including "not found", in a
+table bound for the pass, so a heading added by a hand edit or a pull keeps its
+suggestion and the fallback cannot become a scan per span. Test in
+config-test.el: an id removed from org-id-locations while its heading is still
+on disk is still found in its project, proved to fail on the branch as it is;
+then bin/test-all.
+:END:
+:DEBRIEF:
+Shipped: --heading-file reads org-id-locations first and, on a miss, calls
+--rescan-id-index, which runs org-id-update-id-locations over the tracked files
+and their archives at most once per review pass (--id-rescanned, bound by
+--review-items-from-queue), then reads the index again. A heading added by a
+hand edit or a pull is found; ids the rescan does not find cost a gethash.
+
+Differed from the approved plan, and this is the point. The plan said to fall
+back to --id-find at most once per id per pass. That shipped first, in commit
+[[orgit-rev:./::250b2c2][250b2c2]], and the measurement [[id:89355c78-d0c9-424e-856f-24f8f857ab91][89355c78]] asked for falsified it: on the live queue
+193 distinct ids were not in the index, each miss cost 27 ms in org's own
+rescan check, and the render went from 3.5 s to 8.7 s, 5.2 s of it in --id-find.
+One rescan per pass now serves every id: 3.5 to 4.5 s, the lookup about 0.4 s of
+it. The user was told of the departure.
+
+Falsified: remhash on a live index does not model a hand-added heading. Org
+skips its rescan when no file's modification time has moved, so the first
+version of the test could never pass; it now appends a heading to the file and
+moves its mtime, as an edit or a pull does. Both new tests are red against the
+code before them: the found-after-index-miss test against the old nil answer,
+the rescan-count test against the per-id design.
+:END:
+
+From PR #44's second review. --heading-in-project-p answers nil for a heading
+missing from org-id-locations, so one added by a hand edit or a pull counts as
+another project's. The approved design falls back to --id-find, at most once per
+id per pass.
+
+Resolved on feature/suggest-own-project in commits 250b2c2 and 43c21e3, merged
+in [[https://github.com/nbest937/claude-code-ide-org.el/pull/44][PR #44]] (commit [[orgit-rev:./::d54d78d][d54d78d]]): a heading the id index lacks is found by rescanning
+the index once per review pass. This replaces the approved per-id lookup, which
+measured too slow.
+
+
+***** DONE A span from a removed linked worktree resolves to gone, and gone stops the project lookup before the edge events are read :bounded:
+CLOSED: [2026-11-11 Wed 17:08]
+:PROPERTIES:
+:ID:       460dfe96-8a08-456f-bdbd-2ace19afd404
+:CREATED:  [2026-11-03 Tue 13:18]
+:END:
+:LOGBOOK:
+- Tags ":bounded:"  from ""           [2026-11-06 Fri 15:40] \\
+  design approved 2026-11-06
+- State "DOING"      from "TODO"       [2026-11-11 Wed 16:17] \\
+  approved design, working on PR 44 branch
+- State "REVIEW"     from "DOING"      [2026-11-11 Wed 16:32] \\
+  code on PR 44 branch, awaiting merge
+- State "DONE"       from "REVIEW"     [2026-11-11 Wed 17:08] \\
+  merged in PR 44
+:END:
+:PLAN:
+Approved by the user 2026-11-06, on feature/suggest-own-project. Two changes.
+First, a gone from inside the span no longer ends the lookup: today (or inside
+edges) stops there because gone is non-nil, so the span falls through to its
+edge events and stays gone only when they give nothing either. Second, for a cwd
+that no longer exists, --span-project walks up to the nearest directory that
+does and accepts the answer only when that directory is inside a git checkout.
+That recovers a worktree that sat inside the repo, while a sibling worktree
+stays unknown, because its parent directory belongs to no project. Tests in
+config-test.el, one per change, each proved to fail on the branch as it is; then
+bin/test-all.
+:END:
+:DEBRIEF:
+Shipped: --span-project-with-edges treats gone from a span's own events as no
+answer until the edges give none either; --removed-cwd-root-key walks a cwd that
+no longer exists up to its nearest existing directory and answers that
+directory's root only when it is inside a git checkout, so a worktree that sat
+in the repo is recovered and a sibling worktree stays gone.
+
+Verified: one test per change, each red against the code before it, and the
+suite at 961 as expected. The recovery test pins both sides: a removed worktree
+at any depth under the repo resolves to the repo, a removed sibling and an
+absent path stay gone. The fall-through test goes through the review items,
+with a span whose own guideposts are all in a removed directory and a bracket in
+a live project beside it.
+
+Differed from the plan: nothing in the design. The edge lookup this feeds was
+then replaced by [[id:6080f611-1005-42d4-942b-0fedbd162bc4][6080f611]], which the helper's edge argument now carries as a
+project rather than as events.
+:END:
+
+From PR #44's second review. A span whose every cwd is gone resolves to gone,
+which is non-nil, so the lookup stops before reading the edge events. The
+approved design lets gone fall through to the edges, and recovers a removed
+worktree that sat inside the repo by walking up to the nearest existing
+directory.
+
+Resolved on feature/suggest-own-project in commit [[orgit-rev:./::288aeb0][288aeb0]], merged in [[https://github.com/nbest937/claude-code-ide-org.el/pull/44][PR #44]]
+(commit [[orgit-rev:./::d54d78d][d54d78d]]): gone no longer ends the project lookup, and a removed worktree
+inside the repo is recovered from its nearest existing directory.
+
+
+***** DONE PR #44's description still describes the first design: --cwd-project and the no-cwd rule
+CLOSED: [2026-11-11 Wed 16:51]
+:PROPERTIES:
+:ID:       d6d06bae-197f-42ca-9277-f95e01009140
+:CREATED:  [2026-11-03 Tue 13:18]
+:END:
+:LOGBOOK:
+- State "NEXT"       from "TODO"       [2026-11-11 Wed 16:32] \\
+  the last open code-review finding member
+- State "DONE"       from "NEXT"       [2026-11-11 Wed 16:51] \\
+  description rewritten, branch pushed
+CLOCK: [2026-11-11 Wed 16:51]--[2026-11-11 Wed 16:52] =>  0:01
+- [2026-11-11 Wed 16:51]--[2026-11-11 Wed 16:52] rewrite PR 44 description
+:END:
+:DEBRIEF:
+Shipped: the description now states the full-root comparison, the edge lookup
+from the brackets a span abuts, the gone fall-through and worktree recovery, and
+the once-per-pass index rescan; --cwd-project and the no-cwd rule are gone from
+it. It also carries the measured render cost and the first fallback's 8.7 s,
+which the branch replaced, and points at [[id:3565ba71-bb57-4b97-b4ca-66bd917096fe][3565ba71]] for what the render really
+spends.
+
+Verified: the branch pushed with the pre-push bin/test-all at 28 suites, 1781
+passed, 0 failed, and GitHub's head equal to the local one, 43c21e3; the
+rewritten body read back from GitHub holds --project-root-key and neither of the
+old names.
+
+Differed from the plan: the plan said to rewrite once the code findings were
+fixed, and a /code-review of #44 ran in between against the head GitHub then
+held, 4a875a9, so it reviewed code the branch had already replaced. Its five
+findings were triaged against the new code and none stands; the lesson is to
+push before asking for a review of pushed work.
+:END:
+
+Second review. Rewrite the description once the code findings are fixed.
+
+Resolved 2026-11-11: PR #44's description rewritten after the code findings
+landed on its branch, and the branch pushed so GitHub's head matches it.
+
+
+***** DONE Each review render re-resolves every DOING heading's project per span and rescans the whole history for edge events :bounded:
+CLOSED: [2026-11-11 Wed 16:32]
+:PROPERTIES:
+:ID:       89355c78-d0c9-424e-856f-24f8f857ab91
+:CREATED:  [2026-11-03 Tue 13:18]
+:END:
+:LOGBOOK:
+- Tags ":bounded:"  from ""           [2026-11-06 Fri 15:40] \\
+  design approved 2026-11-06; folded into 6080f611 and measured after
+- State "DOING"      from "TODO"       [2026-11-11 Wed 16:21] \\
+  measure render after 6080f611 landed
+- State "DONE"       from "DOING"      [2026-11-11 Wed 16:32] \\
+  measured, project resolution is not the cost
+:END:
+:PLAN:
+Approved by the user 2026-11-06: folded into [[id:6080f611-1005-42d4-942b-0fedbd162bc4][6080f611]] and measured after it. The
+per-heading lookup is already cheap, because --project-name caches by path and
+--heading-in-project-p is a gethash on org-id-locations followed by that cached
+call. The real cost is the whole-history scan once per span in
+--events-on-span-edges, which [[id:6080f611-1005-42d4-942b-0fedbd162bc4][6080f611]] removes. Once that lands, time one review
+render on the live queue. If it is still slow, cache each heading's project once
+per pass; if not, close this heading as done by [[id:6080f611-1005-42d4-942b-0fedbd162bc4][6080f611]].
+:END:
+:DEBRIEF:
+Measured as the plan said, once [[id:6080f611-1005-42d4-942b-0fedbd162bc4][6080f611]] landed: one --review-items-from-queue
+on the live queue, in a batch Emacs with the org-id file copied, three runs per
+configuration. Before this session's changes 3.4 to 3.6 s; the first cut of the
+branch 8.7 s, which was [[id:e70cad3f-5546-405b-b659-9ebc90fb45d0][e70cad3f]]'s per-id lookup, not the edge scan; the branch
+as it stands 3.5 to 4.5 s. The heading's premise held in part and failed in
+part. The edge scan was not the cost: --lane-clock-pairs is 0.05 s over 82
+calls. Per-heading resolution was cheap too, 3003 calls to
+--heading-in-project-p at 0.00 s before the index fallback and about 0.4 s with
+its one rescan. Caching each heading's project per pass, the plan's fallback,
+was not needed.
+
+What the render does cost is --queue-events, 3.8 s of a 4.8 s profiled render,
+22,362 lines through --queue-parse-line in four calls. That is not this
+heading's finding and is filed as [[id:3565ba71-bb57-4b97-b4ca-66bd917096fe][3565ba71]].
+
+Differed from the plan: it asked for one timing; the first one was a regression
+caused by a sibling member, which is why [[id:e70cad3f-5546-405b-b659-9ebc90fb45d0][e70cad3f]]'s design changed.
+:END:
+
+From PR #44's second review. Most of the cost is the whole-history edge scan per
+span, which [[id:6080f611-1005-42d4-942b-0fedbd162bc4][6080f611]] removes, since the per-heading lookup is already cached by
+path. Measure once that lands, and close this if the render is fast.
+
+Measured and closed 2026-11-11: with [[id:6080f611-1005-42d4-942b-0fedbd162bc4][6080f611]] in place, project resolution is
+about 0.4 s of a render that costs 3.5 to 4.5 s; the rest is queue parsing,
+filed as [[id:3565ba71-bb57-4b97-b4ca-66bd917096fe][3565ba71]].
+**** DONE Every startup warns that no project was derived, because the module wires before the private config sets the tracked files :code:bounded:
+CLOSED: [2026-11-11 Wed 16:05]
+:PROPERTIES:
+:ID:       e6a24204-b22d-4971-822a-abaa452f3f95
+:CREATED:  [2026-10-30 Fri 17:48]
+:CATEGORY: Dev
+:ARCHIVE_TIME: 2026-11-12 Thu 15:21
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Dev
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+- State "DOING"      from "TODO"       [2026-10-30 Fri 17:48] \\
+  user approved: wire after Doom's init
+CLOCK: [2026-10-30 Fri 17:51]--[2026-10-30 Fri 17:54] =>  0:03
+- [2026-10-30 Fri 17:51]--[2026-10-30 Fri 17:54] defer on-load wiring past Doom init
+- State "REVIEW"     from "DOING"      [2026-10-30 Fri 17:54] \\
+  PR 45 open, restart check owed
+- State "DOING"      from "REVIEW"     [2026-11-11 Wed 15:29] \\
+  rework: review findings on PR 45
+CLOCK: [2026-11-11 Wed 15:29]--[2026-11-11 Wed 15:31] =>  0:02
+- [2026-11-11 Wed 15:29]--[2026-11-11 Wed 15:31] fix review findings on PR 45
+CLOCK: [2026-11-11 Wed 15:45]--[2026-11-11 Wed 15:48] =>  0:03
+- [2026-11-11 Wed 15:45]--[2026-11-11 Wed 15:48] fix review findings on PR 45
+CLOCK: [2026-11-11 Wed 16:00]--[2026-11-11 Wed 16:06] =>  0:06
+- [2026-11-11 Wed 16:00]--[2026-11-11 Wed 16:06] fix review findings on PR 45
+- State "DONE"       from "DOING"      [2026-11-11 Wed 16:05] \\
+  PR 45 merged, restart check passed
+:END:
+:PLAN:
+Bounded: during Doom's startup, before doom-init-time is set, the module's call
+hands --wire-on-load to doom-after-init-hook; otherwise it runs at once, which
+covers a live reload and an Emacs without Doom. The private config has run by
+then, and its after! org body runs at that point because the module requires org
+at load, so derivation sees the tracked files. The warning stays as it is and
+now fires only for a tracked set that is really empty. Accepted cost: sessions
+register and companions start at launch rather than at first use. Tests:
+deferred during init, immediate once init is done, immediate without Doom.
+Verified by a restart, since no batch run reaches this.
+:END:
+:DEBRIEF:
+Shipped: --wire-after-init defers --wire-on-load to doom-after-init-hook while
+doom-init-time is unset, and wires at once otherwise (a live reload, or no
+Doom). Three ERT tests: deferred during init, immediate after it, immediate with
+no Doom.
+
+Verified: bin/test 949 of 949 and the pre-push bin/test-all 28 suites, 1767
+passed, on the final commit; and a real Doom restart on 2026-11-11, with Doom's
+module symlink pointed at a worktree of the branch. Before the restart
+*Warnings* held "no project derived from the tracked files"; after it, none, and
+*Messages* read "standalone tools wired on port 45571, 3 project session(s)",
+the port answered, and all three IDE lockfiles carried the new PID.
+
+Review: a medium /code-review of [[https://github.com/nbest937/claude-code-ide-org.el/pull/45][PR #45]] returned five findings. Two were real
+and fixed in 2ffe45d: the no-Doom test asserted the hook unbound and so failed
+inside a live Doom (proved by running the old and new test with the hook
+pre-bound), and the setup bullet was not re-flowed. Three were wrong: that
+doom-init-time may be set after the hook runs (doom-finalize sets it immediately
+before running doom-after-init-hook), that a re-eval leaves a second hook entry
+(add-hook does not duplicate), and a duplicate defvar conflict. The run was
+asked to post with --comment and posted nothing.
+
+Falsified: the reviewer's claim above, by Doom's own source. Differed from the
+plan: nothing in the code; the review round and the worktree were added.
+
+Not done: committing from a linked worktree is refused by bin/check-conventions,
+filed as [[id:fc76aab0-423c-4e42-aded-3de9a6df317c][fc76aab0]].
+:END:
+
+Doom loads module configs before the private config.el, whose after! org sets
+org-agenda-files, so the on-load wire derives zero projects and warns on every
+startup while the same derivation finds three afterwards. Harmless, since
+sessions register on their first call ([[id:28eed617-e4e0-4d29-88ea-9411de4b77e5][28eed617]]), but a warning that always
+fires hides the one that means something. The user chose to move the wiring past
+Doom's init rather than mute it, 2026-10-30.
+
+Resolved by [[https://github.com/nbest937/claude-code-ide-org.el/pull/45][PR #45]] (merge commit [[orgit-rev:./::9f4e8e9][9f4e8e9]], 2026-11-11): the wiring waits on
+Doom's after-init hook while Doom is starting and runs at once otherwise. A real
+Doom restart showed the warning gone and the three project sessions wired.
 ** 2026-10 October
 *** 2026-10-30 Friday
 **** DONE The IDE companion pushes every cursor move to Claude Code, and the file it names loads the whole path-scoped conventions :code:bounded:
