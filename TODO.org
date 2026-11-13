@@ -2,6 +2,70 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO [0/2] Address the PR #46 review: eight findings, answered by retiring the pre-push plans gate :code:
+:PROPERTIES:
+:ID:       4899c4c2-50da-4fa5-a2dd-a327f2c391b8
+:CREATED:  [2026-11-13 Fri 11:41]
+:CATEGORY: Dev
+:END:
+
+The /code-review of [[https://github.com/nbest937/claude-code-ide-org.el/pull/46][PR #46]] ([[id:b4c1f663-78eb-4c18-9f53-2809e2ed93b7][b4c1f663]], 2026-11-13) found eight defects in
+teaching bin/sync-plans to read a missing source directory as empty. The
+deepest: the pre-push gate it served guarded a plan file revised twice between
+syncs, and since 2026-09-21 no plan file is linked, so the gate checked a source
+that only empties. The user chose to retire the gate rather than fix each
+finding. One child per remediation: the retirement answers seven findings, the
+stale header the eighth.
+** TODO The pre-push plans gate checks a source that only empties, and its new warning is never shown: retire it
+:PROPERTIES:
+:ID:       a8f070af-8438-4dc5-abef-52ac845c53bc
+:CREATED:  [2026-11-13 Fri 11:41]
+:END:
+:PLAN:
+
+:END:
+:DEBRIEF:
+Shipped on PR #46's branch, feature/sync-plans-missing-source: the plans block
+and its rationale removed from .githooks/pre-push, the header saying why;
+bin/sync-plans and bin/sync-plans-test restored to main's; the pre-commit
+header, CLAUDE.md's plans/ paragraph and one test docstring no longer name the
+gate. bin/pre-push-test gains case 6, a bin/sync-plans that exits 2 in the
+scratch repo, asserting the push still exits 0 and the gate's message never
+appears. Against the old hook that case fails, with the seven older cases
+~/.claude/plans had broken; against the new one bin/pre-push-test passes 22/22.
+The push itself ran the new hook: test-all 28 suites, 1783 passed, 0 failed. One
+word-budget overrun on the way, from a sentence added to CLAUDE.md, was deleted
+rather than relocated. bin/sync-plans stays as a manual tool and still exits 2
+with no source; nothing calls it.
+:END:
+Seven of the [[https://github.com/nbest937/claude-code-ide-org.el/pull/46][PR #46]] review's findings: the new missing-source warning went to
+/dev/null on the pre-push path that passes; a relocated source
+(CLAUDE_CONFIG_DIR, a moved directory) now read as clean; one "evaporated" line
+per plan would bury a real MISSING; the warning went to stdout beside a stderr
+sibling; the gate itself was vestigial since plan-file links were retired
+2026-09-21; the new comment restated the loop's rationale; and the
+missing-source tests left gaps. All are answered by removing the gate rather
+than by fixing the code it called.
+
+Resolved 2026-11-13: .githooks/pre-push no longer runs bin/sync-plans, and
+bin/sync-plans and its test are back to main's, so the code the findings named
+is gone. bin/lint-org still checks every plan link resolves, at commit.
+
+** TODO bin/sync-plans' header still calls ~/.claude/plans the working copy org headings link to
+:PROPERTIES:
+:ID:       7b2e5fff-3444-4388-9628-ad70cce5bd38
+:CREATED:  [2026-11-13 Fri 11:41]
+:END:
+
+The eighth [[https://github.com/nbest937/claude-code-ide-org.el/pull/46][PR #46]] finding: bin/sync-plans' header called ~/.claude/plans the
+working copy org headings link to, and a later comment cited "the link form
+CLAUDE.md mandates", both false since 2026-09-21. Not answered by retiring the
+gate, since the script stays.
+
+Resolved 2026-11-13: the header now opens by saying the script is a manual,
+mostly historical tool, why, and that nothing runs it; the link-form comment
+says older headings carry that form and none is written now. On PR #46's branch.
+
 * TODO Two worktrees developing the module share one running Emacs, which holds whichever config.el was loaded last, and check-image calls that fresh to both :code:
 :PROPERTIES:
 :ID:       e07eb33a-2971-4bb9-b429-bbee9a6f4322
@@ -2356,8 +2420,9 @@ leaves it stale until a human presses =C-c #=. Seen in noodle-sales on
 =58dee438=: one child captured, two refiled under it, the cookie still =[0/1]=
 over three children. org-archive-subtree, by contrast, updated its parent's
 cookie itself in the same test (=[1/2]= to =[0/1]=), so archiving needs nothing.
-Not measured: whether the source parent a refile leaves is updated, and whether
-a targeted org_capture updates a cookie that is already there. The proposal
+Not measured: whether the source parent a refile leaves is updated. A targeted
+org_capture does update a cookie already there: two captures under =[/]= left
+=[0/2]= on disk (2026-11-13). The proposal
 covers both ends of a refile: ensure and update the cookie on the target, and
 update it on the old parent.
 
