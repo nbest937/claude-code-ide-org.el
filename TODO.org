@@ -2,6 +2,34 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Two worktrees developing the module share one running Emacs, which holds whichever config.el was loaded last, and check-image calls that fresh to both :code:
+:PROPERTIES:
+:ID:       e07eb33a-2971-4bb9-b429-bbee9a6f4322
+:CREATED:  [2026-11-13 Fri 10:28]
+:CATEGORY: Dev
+:END:
+:PLAN:
+Unplanned; a proposal only. Reproduce first: load one worktree's config.el, then
+run bin/check-image from another checkout and see whether it reports fresh. If
+it does, make the check compare the image's stamp against the caller's own
+config.el (bin/check-image knows its checkout; pass it in), and name the
+checkout the image was loaded from in every report, so an agent learns its code
+is not the one loaded. Whether two agents should ever develop the module
+concurrently, and how they would take turns with the one image, is a separate
+decision for the user.
+:END:
+
+Worktrees make concurrent agents safe for code ([[id:2e09adb7-6e29-499c-a40e-98cd2b327cff][2e09adb7]]), but agents developing
+this module also share the one running Emacs that serves every MCP tool. A live
+reload loads one checkout's config.el into it, so when two worktrees each
+reload, the last one wins and the other agent's live checks run someone else's
+code. The image check cannot say so: claude-code-ide-org--module-files hashes
+the config.el the image was loaded from (symbol-file), not the caller's
+checkout, so bin/check-image reports "image fresh" to both agents, and
+pre-commit runs it. Read from the code 2026-11-13, not reproduced. Raised while
+weighing worktrees for a slice's code, to stop switching branches for every
+bookkeeping commit.
+
 * DOING sync-plans --check exits 2 when ~/.claude/plans is gone, so pre-push refuses every push :code:bounded:
 :PROPERTIES:
 :ID:       b4c1f663-78eb-4c18-9f53-2809e2ed93b7
