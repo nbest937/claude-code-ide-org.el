@@ -2086,6 +2086,44 @@ shows the NEXT.
 Code on a feature/ branch, merged through a PR.
 
 :END:
+:DEBRIEF:
+Shipped as planned (approach A). bin/hooks/queue-append writes eid, 16 hex from
+od on /dev/urandom (CLAUDE_ORG_RANDOM_SOURCE for the test), and writes the line
+without one when the source cannot be read. --queue-parse-line gives each event
+:eid and :key, eid else ts; --queue-events' pre-parse fast path looks for "eid"
+before "ts"; --review-record-applied, the dismiss path and the pending-count
+dedup use :key; review-start's select reads (.eid // .ts). Nothing migrated.
+Beyond the plan: both mark functions now skip a nil key, which a hand-built
+event without one would otherwise turn into a crashing JSON write.
+
+Verified. Six ERT cases (same-second apply apart, dismiss apart, state applied
+leaving its same-second clock_in, a later pass stamping the sibling with its own
+time, legacy ts keys still consuming, an eid line ignoring a matching legacy
+key), two in bin/queue-append-test (distinct 16-hex eids; no eid and the line
+still written when the source is unreadable) and one in bin/review-start-test (a
+REVIEW sharing its second with an applied event stays pending). All red against
+HEAD but the two backward-compatibility guards, which pass both ways by design.
+Four older fixtures built events with only :ts-string and moved to :key;
+review-start-test had dismissed an eid-bearing event by its ts, which the new
+rule forbids. test-all 28 suites, 1798 passed on the push.
+
+Acceptance, live after a reload: a NEXT and a DONE on the probe [[id:a27e8f5a-bc7a-4407-8c5a-4b6f2e5cc99f][a27e8f5a]],
+written by the real queue-append in one second (12:48:02) with distinct eids.
+The user applied only the DONE; the watermark recorded it under its eid, and
+org_pending_updates still showed the NEXT, flagged stale since the heading was
+DONE. The first attempt, through two tool calls, landed a second apart and
+tested nothing; it was dismissed.
+
+Along the way: the probe was first captured under this heading, which would have
+made it a story; it was removed by one guarded emacsclient cut and TODO.org
+restored, then recaptured at top level. Its title, which quotes this id, broke
+footnote-check-test's discharge case, whose fixture took the corpus's first
+heading; the fixture now takes the first headings whose titles name no id
+(commit [[orgit-rev:./::fc13f90][fc13f90]]).
+
+Not done: nothing. The probe's leftover NEXT awaits the user's dismissal in the
+review buffer.
+:END:
 A session's .applied file keys each consumed or dismissed event by its ts
 string, to the second, so two events queued in the same second share one key and
 applying or dismissing either consumes both. The fix gives every new event a
@@ -2102,6 +2140,12 @@ offered nowhere; and --queue-mark-applied keeps an earlier pass's stamp for a
 sibling applied later, so un-applying a pass picks the wrong events (repo audit,
 2026-10-27, by reading). Across all queues 280 groups of state, clock, capture
 or amend events share a second; no test wrote two in one.
+
+Resolved 2026-11-13: every queue event carries a writer-assigned eid, and
+consumption is keyed by it (or by ts on a line written before eids), so two
+events of one second are applied and dismissed apart. On the slice's branch,
+feature/tracker-record-loss.
+
 
 
 * TODO Burying the review buffer stamps the ceremony done while apply failures are still pending, though the session-start docstring says it waits for them :code:
