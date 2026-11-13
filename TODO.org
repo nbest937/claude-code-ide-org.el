@@ -867,6 +867,30 @@ Bounded: one function, --subtract-intervals in config.el.
 
 Code on a feature/ branch, merged through a PR.
 :END:
+:DEBRIEF:
+Shipped as planned, inside --subtract-intervals only: each recorded interval's
+end is widened to the end of its minute before subtracting; starts untouched;
+--apply-idle-floor and its promotion of positive sub-minute pieces unchanged, so
+a genuine piece past the widened end is still written.
+
+Verified. A new ERT test replays runs ending 10:30:20 and 10:30:59 against their
+written line [10:00]--[10:30] through subtract and the idle floor, and gets
+nothing; a run ending 10:31:40 still yields [10:31]--[10:32]. The unit test of
+the rule, subtract-intervals-splits-and-clears, moved its two expectations by
+the minute the widening adds (10:40 to 10:41, 10:30 to 10:31); the plan's
+"existing replay tests still pass" held for the replay tests, whose fixtures
+fall on :00, and that unit test is the rule itself. Both red against HEAD.
+bin/test 981 of 981; test-all 28 suites, 1806 passed on the push.
+
+Acceptance, computed rather than applied: a real replay goes through the review
+buffer, which is the user's. Read-only in the reloaded image, [[id:d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80][d7b2f50f]]'s 46
+CLOCK lines were taken as the record and each run given 40 seconds past its
+recorded end; subtract plus the idle floor would write 0 lines, where the same
+subtraction without the widening would write 38. Nothing was written, so the
+drawer is unchanged by construction.
+
+Not done: nothing.
+:END:
 
 Org records a run ending 10:30:20 as 10:30, so on replay --subtract-intervals
 leaves a 20-second residue, and its last step passes residues through
@@ -875,6 +899,12 @@ minute: a new [10:30]--[10:31] line. Reproduced in batch by a repo audit
 2026-10-27; guideposts almost never fall on :00, and the tests' fixtures all do.
 The fix widens each recorded interval to the end of its minute before
 subtracting; the design is in :PLAN:.
+
+Resolved 2026-11-13: a replay against a heading's own CLOCK lines no longer
+writes an extra minute for each run whose end had seconds, because each recorded
+end is read as covering its whole minute. On the slice's branch,
+feature/tracker-record-loss.
+
 
 
 * TODO Archiving into DONE.org's newest-first datetree creates a duplicate day or month node for any date older than the newest :code:bounded:
