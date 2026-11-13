@@ -762,7 +762,7 @@ Code on a feature/ branch, merged through a PR.
   human-typed note with them; the design is in :PLAN:.
 
 
-* TODO The session render escapes only column-zero lines, so an indented #+ line in transcript text takes effect, SETUPFILE included :code:bounded:
+* NEXT The session render escapes only column-zero lines, so an indented #+ line in transcript text takes effect, SETUPFILE included :code:bounded:
 :PROPERTIES:
 :ID:       8985f8ae-8b26-45eb-8898-73f17c98680a
 :CREATED:  [2026-10-27 Tue 13:52]
@@ -772,6 +772,8 @@ Code on a feature/ branch, merged through a PR.
 - [2026-10-28 Wed 12:26]--[2026-10-28 Wed 12:29] brainstorm the render escaping fix
 - Tags ":code:bounded:" from ":code:"     [2026-10-28 Wed 12:29] \\
   classified at /plan-slice: one function and its test
+- State "NEXT"       from "TODO"       [2026-11-13 Fri 09:40] \\
+  slice plan step 3, last way in from outside
 :END:
 :PLAN:
 Bounded: one function, claude-code-ide-org--org-escape-body (config.el), and its
@@ -899,7 +901,7 @@ going on. Seen by a repo audit 2026-10-27, by reading only, and untested.
 Proposed: read both fields with jq, as the sibling hooks do.
 
 
-* DOING The IDE companion's WebSocket accepts any web page, and =executeCode= runs whatever elisp it is sent :code:bounded:
+* REVIEW The IDE companion's WebSocket accepts any web page, and =executeCode= runs whatever elisp it is sent :code:bounded:
 :PROPERTIES:
 :ID:       d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80
 :CREATED:  [2026-10-27 Tue 13:23]
@@ -970,6 +972,9 @@ CLOCK: [2026-11-11 Wed 17:51]--[2026-11-11 Wed 17:52] =>  0:01
 CLOCK: [2026-11-13 Fri 09:02]--[2026-11-13 Fri 09:04] =>  0:02
 - [2026-11-13 Fri 09:02]--[2026-11-13 Fri 09:04] work slice 3bfa593c, first member
 - [2026-11-13 Fri 09:12]--[2026-11-13 Fri 09:12] work slice 3bfa593c, first member
+- [2026-11-13 Fri 09:18]--[2026-11-13 Fri 09:19] work slice 3bfa593c, first member
+- State "REVIEW"     from "DOING"      [2026-11-13 Fri 09:40] \\
+  done on the slice branch; DONE at merge
 :END:
 :PLAN:
 Bounded: one advice on upstream's claude-code-ide-mcp--on-open
@@ -1040,7 +1045,6 @@ claude-code-ide-org-refuse-browser-origins, and the probe finds every live
 companion refusing. On the slice's branch, feature/tracker-record-loss.
 
 
-
 * DOING [9/24] The tracker can lose or corrupt its record, or Emacs can stop on a prompt, and nothing says so :code:
 :PROPERTIES:
 :ID:       3bfa593c-c2da-4e44-b47f-2d5f0750f2aa
@@ -1108,9 +1112,9 @@ their cookies.
 
 Planned:
 
-- [ ] [[id:8c4a3aea-3208-46c8-a491-2ff024fbf822][8c4a3aea]] TODO The tools server answers any web page: it checks no Origin or Host, and every reply says Access-Control-Allow-Origin: *
-- [-] [[id:d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80][d7b2f50f]] DOING The IDE companion's WebSocket accepts any web page, and =executeCode= runs whatever elisp it is sent
-- [ ] [[id:8985f8ae-8b26-45eb-8898-73f17c98680a][8985f8ae]] TODO The session render escapes only column-zero lines, so an indented #+ line in transcript text takes effect, SETUPFILE included
+- [-] [[id:8c4a3aea-3208-46c8-a491-2ff024fbf822][8c4a3aea]] REVIEW The tools server answers any web page: it checks no Origin or Host, and every reply says Access-Control-Allow-Origin: *
+- [-] [[id:d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80][d7b2f50f]] REVIEW The IDE companion's WebSocket accepts any web page, and =executeCode= runs whatever elisp it is sent
+- [ ] [[id:8985f8ae-8b26-45eb-8898-73f17c98680a][8985f8ae]] NEXT The session render escapes only column-zero lines, so an indented #+ line in transcript text takes effect, SETUPFILE included
 - [ ] [[id:0a0dee55-d709-466e-a525-c3bb1c437b91][0a0dee55]] TODO The applied record keys a session's events by timestamp to the second, so an event that failed or was skipped is consumed when another from the same second applies
 - [ ] [[id:d3468075-b17a-45a2-bd3a-838521f11a87][d3468075]] TODO An apply interrupted after its writes records nothing, and the next pass inserts each amend a second time
 - [ ] [[id:6c969cbd-0c03-409f-835f-80ddb1faedf6][6c969cbd]] TODO A replayed apply writes an extra one-minute CLOCK line for every run whose end has seconds
@@ -1621,7 +1625,7 @@ both places; no test covers an existing destination. The fix merges on archive
 and refuses on restore; the design is in :PLAN:.
 
 
-* TODO The tools server answers any web page: it checks no Origin or Host, and every reply says Access-Control-Allow-Origin: * :code:bounded:
+* REVIEW The tools server answers any web page: it checks no Origin or Host, and every reply says Access-Control-Allow-Origin: * :code:bounded:
 :PROPERTIES:
 :ID:       8c4a3aea-3208-46c8-a491-2ff024fbf822
 :CREATED:  [2026-10-27 Tue 12:48]
@@ -1632,6 +1636,16 @@ CLOCK: [2026-10-28 Wed 12:20]--[2026-10-28 Wed 12:21] =>  0:01
 - [2026-10-28 Wed 12:20]--[2026-10-28 Wed 12:21] brainstorm the tools-server Origin check
 - Tags ":code:bounded:" from ":code:"     [2026-10-28 Wed 12:25] \\
   classified at /plan-slice: one advice on an existing handler
+- State "DOING"      from "TODO"       [2026-11-13 Fri 09:21] \\
+  second refusal, same branch as d7b2f50f
+CLOCK: [2026-11-13 Fri 09:21]--[2026-11-13 Fri 09:23] =>  0:02
+- [2026-11-13 Fri 09:21]--[2026-11-13 Fri 09:23] read plan for the HTTP Origin refusal
+CLOCK: [2026-11-13 Fri 09:25]--[2026-11-13 Fri 09:26] =>  0:01
+- [2026-11-13 Fri 09:25]--[2026-11-13 Fri 09:26] read plan for the HTTP Origin refusal
+CLOCK: [2026-11-13 Fri 09:30]--[2026-11-13 Fri 09:40] =>  0:10
+- [2026-11-13 Fri 09:30]--[2026-11-13 Fri 09:40] read plan for the HTTP Origin refusal
+- State "REVIEW"     from "DOING"      [2026-11-13 Fri 09:40] \\
+  done on the slice branch; DONE at merge
 :END:
 :PLAN:
 Bounded: one advice on upstream's claude-code-ide-mcp-http-server--handle-post
@@ -1696,7 +1710,6 @@ Resolved 2026-11-13: the tools server answers 403 before dispatch to any request
 carrying an Origin or a Host other than this machine's loopback on its own port,
 behind the same switch as [[id:d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80][d7b2f50f]]. On the slice's branch,
 feature/tracker-record-loss.
-
 
 
 * TODO Setting :MEMBERS: or :DROPPED: refreshes nothing, so the checklist goes stale and org_slice_add_member refuses on a row already gone :code:
@@ -14475,7 +14488,6 @@ carrying an Origin is closed before upstream's on-open runs, so a web page can
 no longer become a session's client, and a test pins that Claude's own client is
 left in place. A local process can still take a session over, and upstream's
 handler is unchanged, so the defect and its report stand.
-
 
 
 * MAYBE Consider archives in org_clock_report's scope (agenda-with-archives) :code:
