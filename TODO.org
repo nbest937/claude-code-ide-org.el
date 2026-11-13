@@ -16,6 +16,10 @@ syncs, and since 2026-09-21 no plan file is linked, so the gate checked a source
 that only empties. The user chose to retire the gate rather than fix each
 finding. One child per remediation: the retirement answers seven findings, the
 stale header the eighth.
+
+Resolved 2026-11-13: both remediations merged with [[https://github.com/nbest937/claude-code-ide-org.el/pull/46][PR #46]], all eight threads
+answered and resolved.
+
 ** TODO The pre-push plans gate checks a source that only empties, and its new warning is never shown: retire it
 :PROPERTIES:
 :ID:       a8f070af-8438-4dc5-abef-52ac845c53bc
@@ -55,6 +59,10 @@ is gone. bin/lint-org still checks every plan link resolves, at commit.
 :PROPERTIES:
 :ID:       7b2e5fff-3444-4388-9628-ad70cce5bd38
 :CREATED:  [2026-11-13 Fri 11:41]
+:END:
+:DEBRIEF:
+Shipped in [[https://github.com/nbest937/claude-code-ide-org.el/pull/46][PR #46]]: the header and the link-form comment rewritten; nothing else
+in the script changed. Its thread was answered and resolved.
 :END:
 
 The eighth [[https://github.com/nbest937/claude-code-ide-org.el/pull/46][PR #46]] finding: bin/sync-plans' header called ~/.claude/plans the
@@ -104,6 +112,27 @@ bookkeeping commit.
 - State "DOING"      from "TODO"       [2026-11-13 Fri 09:12] \\
   fix first, it blocks every push
 :END:
+:PLAN:
+Filed outcome-first, with the proposal in the body: read a missing source as
+empty. That shipped as the first revision and was superseded at review by
+retiring the gate; see :DEBRIEF:.
+:END:
+:DEBRIEF:
+Two revisions. The first made a missing source directory read as empty, with a
+one-line warning; its own tests discriminated and test-all passed. Its
+/code-review found eight defects, the deepest that the gate was vestigial: it
+guarded a plan file revised twice between syncs, and since 2026-09-21 no plan
+file is linked. The user chose retirement. The second revision removed the gate
+from .githooks/pre-push, restored bin/sync-plans and its test to main's with an
+honest header, and pinned the retirement in bin/pre-push-test (a failing
+sync-plans no longer refuses a push; it fails against the old hook). The
+pre-push run on that push was test-all 28 suites, 1783 passed. The findings are
+the story [[id:4899c4c2-50da-4fa5-a2dd-a327f2c391b8][4899c4c2]]; every thread was answered and resolved.
+
+Differed from the filing: the body proposed the first revision's fix and a mkdir
+workaround; neither was needed. bin/sync-plans still exits 2 with no source, now
+harmless since nothing calls it. Not done: nothing.
+:END:
 
 bin/sync-plans refuses with exit 2 when its source directory does not exist (its
 directory test on =$src=, near the top), and .githooks/pre-push runs it, so on a
@@ -113,6 +142,11 @@ CLAUDE.md says the originals are left to expire and plans/ is their archive, so
 a missing source should read as an empty one: --check passes when every linked
 plan is archived, and refuses only one that is in neither. Workaround until
 then: mkdir ~/.claude/plans.
+
+Resolved 2026-11-13 by retiring the gate, not by teaching sync-plans a missing
+source: pre-push no longer runs bin/sync-plans, so pushes go through again, and
+bin/lint-org keeps checking that every plan link resolves. Merged as [[https://github.com/nbest937/claude-code-ide-org.el/pull/46][PR #46]].
+
 
 
 * TODO A review render parses the whole queue four times, 3.8 of its 4.8 seconds on the live queue :code:
