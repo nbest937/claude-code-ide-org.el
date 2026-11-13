@@ -18,6 +18,7 @@ a missing source should read as an empty one: --check passes when every linked
 plan is archived, and refuses only one that is in neither. Workaround until
 then: mkdir ~/.claude/plans.
 
+
 * TODO A review render parses the whole queue four times, 3.8 of its 4.8 seconds on the live queue :code:
 :PROPERTIES:
 :ID:       3565ba71-bb57-4b97-b4ca-66bd917096fe
@@ -957,6 +958,13 @@ CLOCK: [2026-10-28 Wed 11:37]--[2026-10-28 Wed 11:38] =>  0:01
 - [2026-10-28 Wed 11:37]--[2026-10-28 Wed 11:38] record the gate result
 CLOCK: [2026-11-11 Wed 15:07]--[2026-11-11 Wed 15:11] =>  0:04
 - [2026-11-11 Wed 15:07]--[2026-11-11 Wed 15:11] work slice 3bfa593c, first member
+- [2026-11-11 Wed 17:09]--[2026-11-11 Wed 17:09] work slice 3bfa593c, first member
+CLOCK: [2026-11-11 Wed 17:46]--[2026-11-11 Wed 17:47] =>  0:01
+- [2026-11-11 Wed 17:46]--[2026-11-11 Wed 17:47] work slice 3bfa593c, first member
+CLOCK: [2026-11-11 Wed 17:51]--[2026-11-11 Wed 17:52] =>  0:01
+- [2026-11-11 Wed 17:51]--[2026-11-11 Wed 17:52] work slice 3bfa593c, first member
+CLOCK: [2026-11-13 Fri 09:02]--[2026-11-13 Fri 09:04] =>  0:02
+- [2026-11-13 Fri 09:02]--[2026-11-13 Fri 09:04] work slice 3bfa593c, first member
 :END:
 :PLAN:
 Bounded: one advice on upstream's claude-code-ide-mcp--on-open
@@ -1008,6 +1016,9 @@ it also closes the browser half of [[id:207e9044-f05c-4507-bbd9-c2cfb9ef3f8e][20
   nominated over f436a3b8: security hole and silent data loss
 - State "DOING"      from "NEXT"       [2026-11-11 Wed 15:06] \\
   slice work starting
+CLOCK: [2026-11-11 Wed 17:54]--[2026-11-11 Wed 18:00] =>  0:06
+- [2026-11-11 Wed 17:54]--[2026-11-11 Wed 18:00] work slice 3bfa593c, next member
+- [2026-11-13 Fri 08:56]--[2026-11-13 Fri 08:57] work slice 3bfa593c, next member
 :END:
 :PLAN:
 The order, composed at /plan-slice 2026-10-28 from the members' own :PLAN:
