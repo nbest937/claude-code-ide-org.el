@@ -39,8 +39,21 @@ export PATH="$tmp/fakebin:$PATH"
 
 pass=0; fail=0
 # A real tracked id, and a real one used as the "already footnoted" case.
-REAL="$(grep -ohE '^:ID: +[0-9a-f]{8}' "$repo/TODO.org" | head -1 | awk '{print $2}')"
-REAL2="$(grep -ohE '^:ID: +[0-9a-f]{8}' "$repo/TODO.org" | sed -n '2p' | awk '{print $2}')"
+# The first two tracked ids whose TITLES name no other id. A title that
+# quotes another heading's id (`Acceptance probe for 0a0dee55: ...') is
+# itself a citation, so pairing such a heading with its title still owes
+# the quoted id an entry, and the discharge case below blocked on
+# 2026-11-13 when one became the corpus's first heading. Which heading is
+# first is an accident of filing order; this is not.
+real_ids="$(awk '
+  /^\*+ / { h = $0 }
+  /^:ID:[ \t]+[0-9a-f]/ {
+    if (h !~ /[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]/)
+      print substr($2, 1, 8)
+  }
+' "$repo/TODO.org" | head -2)"
+REAL="$(sed -n '1p' <<<"$real_ids")"
+REAL2="$(sed -n '2p' <<<"$real_ids")"
 # A tracked id whose 8-char prefix is ALL DIGITS. Derived rather than
 # written down so it cannot rot, and the tests using it skip loudly if
 # the corpus ever has none -- a vacuous pass here would hide exactly the
