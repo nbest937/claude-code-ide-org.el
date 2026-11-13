@@ -6,9 +6,8 @@
 # never a gate. Runs against real history: fee51fd is one of the two
 # local merges that broke the ten-PR streak, 101287f is PR #21's merge.
 #
-# The hook also runs bin/sync-plans --check first, so this test fails
-# honestly (in case 0) if the plans archive is stale — that is the
-# blocking half doing its job, not a defect here.
+# The hook no longer runs bin/sync-plans --check (retired 2026-11-13,
+# TODO.org :ID: b4c1f663); case 6 pins that it does not.
 
 set -uo pipefail
 # shellcheck source=lib/git-hermetic.sh
@@ -82,8 +81,7 @@ check "a PR branch's own merges draw no advisory" "$([ $rc -eq 0 ] && [ "$(no_ad
 check "the catch-up merge is not named" "$(printf '%s' "$out" | grep -q '32f5c2a' && echo "named it: $out" || echo ok)"
 
 # 5. The suite gate (TODO.org :ID: 94e6b615), in a scratch repo so the
-#    ranges are exactly what each case says. No bin/sync-plans there, so
-#    the plans check stands aside and only the gate is under test.
+#    ranges are exactly what each case says.
 r="$work/repo"; mkdir -p "$r"; git -C "$r" init -q
 git -C "$r" config user.email t@example.invalid; git -C "$r" config user.name t
 commit() { # file...
@@ -122,6 +120,17 @@ check "a new remote branch with code runs the suites" "$([ -e "$work/ran" ] && e
 out="$(gate "$mixed" "1234567890abcdef1234567890abcdef12345678")"; rc=$?
 check "an unknown remote sha runs the suites" "$([ -e "$work/ran" ] && echo ok || echo "not run: $out")"
 check "and says the range was unknown" "$(printf '%s' "$out" | grep -q 'could not compute' && echo ok || echo "output: $out")"
+
+# 6. The plans gate is retired (TODO.org :ID: b4c1f663, PR #46 review): a
+#    bin/sync-plans that fails every check, as it did once ~/.claude/plans
+#    was gone, no longer refuses a push. The old hook refused an org-only
+#    push here before the suite gate was reached.
+mkdir -p "$r/bin"
+printf '#!/usr/bin/env bash\necho "sync-plans: no such source directory" >&2\nexit 2\n' > "$r/bin/sync-plans"
+chmod +x "$r/bin/sync-plans"
+out="$(gate "$org" "$base")"; rc=$?
+check "a failing bin/sync-plans no longer refuses the push" "$([ $rc -eq 0 ] && echo ok || echo "rc=$rc: $out")"
+check "and is never mentioned" "$(printf '%s' "$out" | grep -q 'plans under plans/' && echo "mentioned: $out" || echo ok)"
 
 echo
 echo "pre-push-test: $pass passed, $fails failed"
