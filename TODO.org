@@ -2,11 +2,15 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* TODO sync-plans --check exits 2 when ~/.claude/plans is gone, so pre-push refuses every push :code:bounded:
+* DOING sync-plans --check exits 2 when ~/.claude/plans is gone, so pre-push refuses every push :code:bounded:
 :PROPERTIES:
 :ID:       b4c1f663-78eb-4c18-9f53-2809e2ed93b7
 :CREATED:  [2026-11-13 Fri 09:03]
 :CATEGORY: Dev
+:END:
+:LOGBOOK:
+- State "DOING"      from "TODO"       [2026-11-13 Fri 09:12] \\
+  fix first, it blocks every push
 :END:
 
 bin/sync-plans refuses with exit 2 when its source directory does not exist (its
@@ -965,6 +969,7 @@ CLOCK: [2026-11-11 Wed 17:51]--[2026-11-11 Wed 17:52] =>  0:01
 - [2026-11-11 Wed 17:51]--[2026-11-11 Wed 17:52] work slice 3bfa593c, first member
 CLOCK: [2026-11-13 Fri 09:02]--[2026-11-13 Fri 09:04] =>  0:02
 - [2026-11-13 Fri 09:02]--[2026-11-13 Fri 09:04] work slice 3bfa593c, first member
+- [2026-11-13 Fri 09:12]--[2026-11-13 Fri 09:12] work slice 3bfa593c, first member
 :END:
 :PLAN:
 Bounded: one advice on upstream's claude-code-ide-mcp--on-open
