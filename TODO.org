@@ -990,6 +990,35 @@ the 202 fix (claude-code-ide-org-accept-notifications-with-202).
 
 Code on a feature/ branch, merged through a PR.
 :END:
+:DEBRIEF:
+Shipped as planned: claude-code-ide-org--refuse-origin-on-open, :around on
+claude-code-ide-mcp--on-open, closes a socket whose websocket-origin is non-nil
+and logs one line naming the origin and the port; the defcustom
+claude-code-ide-org-refuse-browser-origins (default t) installs or removes it
+through claude-code-ide-org--apply-origin-refusal-advice, which [[id:8c4a3aea-3208-46c8-a491-2ff024fbf822][8c4a3aea]] then
+extended. executeCode left as the user's setting.
+
+Verified. Two ERT tests: an Origin is closed and upstream not called, no Origin
+reaches upstream, the switch off lets the Origin through; and, driven through
+upstream's real on-open and on-close, a refused socket leaves the session's
+existing client in place and logs origin and port. Both fail with the advice
+neutered, and the log assertion fails against the first log line. Live: after a
+reload, bin/probe-companion-origin --live exited 0 with all three companions
+refusing, and with this session connected the same client (same accept key) was
+still open after the probe; the reconnected client after /ide carries no Origin.
+
+Differed from the plan. The first log line printed the whole socket struct; it
+now extracts the port as upstream's on-open does. The tests needed real
+websocket structs (websocket-inner-create): websocket-origin is an inlined
+struct accessor, so stubbing it changed nothing.
+
+Ruled out. After the first live probe on 2026-11-11 every session's client read
+nil, but nobody had looked before it; the second run, with a client connected,
+showed the refusal leaves it alone, so that nil was not this change.
+
+Not done: nothing. The browser half of [[id:207e9044-f05c-4507-bbd9-c2cfb9ef3f8e][207e9044]] closes with this, and that
+heading says so; its local-process half and the upstream report stand there.
+:END:
 
 Upstream's companion WebSocket checks no Origin, so a web page that finds its
 port can connect, and with claude-code-ide-enable-execute-code at its default of
@@ -1004,6 +1033,12 @@ user's Doom config sets executeCode to nil, so the probe finds it not offered,
 but the handshake is still accepted. The fix, refusing any socket that carries
 an Origin before upstream makes it the session's client, is designed in :PLAN:;
 it also closes the browser half of [[id:207e9044-f05c-4507-bbd9-c2cfb9ef3f8e][207e9044]].
+
+Resolved 2026-11-13: the companion closes any socket carrying an Origin before
+upstream can make it a session's client, behind
+claude-code-ide-org-refuse-browser-origins, and the probe finds every live
+companion refusing. On the slice's branch, feature/tracker-record-loss.
+
 
 
 * DOING [9/24] The tracker can lose or corrupt its record, or Emacs can stop on a prompt, and nothing says so :code:
@@ -1618,6 +1653,35 @@ Bounded: one advice on upstream's claude-code-ide-mcp-http-server--handle-post
 
 Code on a feature/ branch, merged through a PR.
 :END:
+:DEBRIEF:
+Shipped as planned: claude-code-ide-org--refuse-origin-on-post, :around on
+claude-code-ide-mcp-http-server--handle-post, answers 403 with an empty body and
+one log line when a request carries an Origin, or its Host is not localhost,
+127.0.0.1 or [::1] (any case) on claude-code-ide-mcp-server--port; a missing
+Host is refused, and with the port unknown any port passes so the name check
+still holds. It joined [[id:d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80][d7b2f50f]]'s applier, so the one switch installs or removes
+both advices, applied after either upstream file loads.
+Access-Control-Allow-Origin: * left alone, as planned.
+
+Gate, half run. Claude Code's tools calls carry no Origin and Host
+localhost:45571, recorded live 2026-11-13 by a temporary :before advice
+(cci-org--gate-log) over every request this session made. Warp was not checked:
+the user parked it 2026-11-13 and may not bother. The logging advice stays
+installed in the running Emacs until they decide; a restart removes it, a config
+reload does not. Not filed, because the decision is the user's and it is held;
+should Warp send an Origin, its first call gets 403 and *Messages* names it.
+
+Verified. One ERT test through upstream's real handle-post and web-server's
+request class: Origin beside a good Host, a foreign Host, loopback on another
+port and no Host all get 403 with nothing dispatched; the three loopback names
+on the right port reach the dispatcher; the switch off dispatches the Origin. It
+fails with the whole refusal neutered and with the Host check alone neutered.
+Live, after a reload: curl with Origin https://evil.example.com got 403, with
+Host evil.example.com:45571 got 403, with neither got 200 and the tool list;
+both refusals logged; a real org tool call from this session went through.
+
+Not done: the Warp half of the gate, held by the user as above.
+:END:
 
 The HTTP MCP server on port 45571 binds 127.0.0.1 but checks neither Origin nor
 Host, and upstream's --send-json-response sends Access-Control-Allow-Origin: *,
@@ -1627,6 +1691,12 @@ org_edit and read the reply, planting text later sessions trust. Verified
 200 with that header. The fix refuses Origin-bearing and foreign-Host requests
 before dispatch, behind the same switch as its WebSocket sibling [[id:d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80][d7b2f50f]]; the
 design is in :PLAN:.
+
+Resolved 2026-11-13: the tools server answers 403 before dispatch to any request
+carrying an Origin or a Host other than this machine's loopback on its own port,
+behind the same switch as [[id:d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80][d7b2f50f]]. On the slice's branch,
+feature/tracker-record-loss.
+
 
 
 * TODO Setting :MEMBERS: or :DROPPED: refreshes nothing, so the checklist goes stale and org_slice_add_member refuses on a row already gone :code:
@@ -14399,6 +14469,13 @@ that reaches the port, with no Origin check and no token, can cut a session off
 or read what the user selects. Found by the [[https://github.com/nbest937/claude-code-ide-org.el/pull/40][PR #40]] review on 2026-10-28; the
 probe did it to all three live companions on 2026-10-27. Reported upstream
 through [[id:b24abffd-3f23-4c1a-91e8-bb90c9e8e43e][b24abffd]].
+
+2026-11-13: the browser half is closed in this repo by [[id:d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80][d7b2f50f]]. A socket
+carrying an Origin is closed before upstream's on-open runs, so a web page can
+no longer become a session's client, and a test pins that Claude's own client is
+left in place. A local process can still take a session over, and upstream's
+handler is unchanged, so the defect and its report stand.
+
 
 
 * MAYBE Consider archives in org_clock_report's scope (agenda-with-archives) :code:
