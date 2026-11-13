@@ -12226,8 +12226,24 @@ finds its own previously written line in RECORDED, subtracts to nothing,
 and writes nothing.  Generalised rather than removed -- the old check
 could only recognise an interval it had written verbatim, and a
 re-derived run whose endpoints moved by a second slipped straight past
-it."
-  (let (out)
+it.
+
+*Each recorded end is widened to the end of its minute first* (TODO.org
+:ID: 6c969cbd).  A CLOCK line holds minutes only, and org truncates the
+real end down when it writes one, so a run ending 10:30:40 is written
+as ending 10:30 -- and replayed against its own line, the forty seconds
+past 10:30 survived the subtraction and, promoted by the idle floor,
+came back as an extra one-minute line every pass.  A line recorded as
+ending 10:30 covers up to 10:31:00.  The start needs nothing: org
+truncates it downwards, so a run never begins inside the gap.  A genuine
+piece beyond the widened end is still kept, and still promoted."
+  (let ((recorded
+         (mapcar (lambda (rec)
+                   (let ((end (floor (float-time (cdr rec)))))
+                     (cons (car rec)
+                           (seconds-to-time (+ (* 60 (floor end 60)) 60)))))
+                 recorded))
+        out)
     (dolist (run runs)
       (let ((pieces (list run)))
         (dolist (rec recorded)

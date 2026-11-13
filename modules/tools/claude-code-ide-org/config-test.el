@@ -6821,14 +6821,40 @@ direction."
                              (list run)
                              (list (cons (date-to-time (concat "2026-08-06T" from "-0500"))
                                          (date-to-time (concat "2026-08-06T" to "-0500")))))))))
-    ;; Straddled: two pieces, not zero.
-    (should (equal '("10:00-10:20" "10:40-11:00") (funcall sub "10:20:00" "10:40:00")))
+    ;; Straddled: two pieces, not zero.  A recorded line ending 10:40
+    ;; covers up to 10:41:00, since org truncated its real end to the
+    ;; minute (TODO.org :ID: 6c969cbd), so the later piece starts there.
+    (should (equal '("10:00-10:20" "10:41-11:00") (funcall sub "10:20:00" "10:40:00")))
     ;; Wholly covered: nothing left -- this is how a replay writes nothing.
     (should-not (funcall sub "09:00:00" "12:00:00"))
-    ;; Overlapping one end: the uncovered remainder only.
-    (should (equal '("10:30-11:00") (funcall sub "09:00:00" "10:30:00")))
+    ;; Overlapping one end: the uncovered remainder only, from the end of
+    ;; the recorded minute.
+    (should (equal '("10:31-11:00") (funcall sub "09:00:00" "10:30:00")))
     ;; Disjoint: untouched.
     (should (equal '("10:00-11:00") (funcall sub "12:00:00" "13:00:00")))))
+
+(ert-deftest claude-code-ide-org-test-subtract-intervals-replay-of-a-seconds-end-writes-nothing ()
+  "A run whose end has seconds, replayed against its own written line,
+leaves nothing to write (TODO.org :ID: 6c969cbd).
+
+The line holds minutes only: a run ending 10:30:20 was written as
+ending 10:30, so subtracting it left the twenty seconds after 10:30,
+and the idle floor promoted that to an extra [10:30]--[10:31] line on
+every replay.  A genuine piece past the recorded minute is still
+written: the widening covers the truncation and nothing more."
+  (let* ((at (lambda (hms) (date-to-time (concat "2026-11-13T" hms "-0600"))))
+         (fmt (lambda (i) (concat (format-time-string "%H:%M" (car i)) "-"
+                                  (format-time-string "%H:%M" (cdr i)))))
+         (written (cons (funcall at "10:00:00") (funcall at "10:30:00")))
+         (replay (lambda (end)
+                   (mapcar fmt (claude-code-ide-org--apply-idle-floor
+                                (claude-code-ide-org--subtract-intervals
+                                 (list (cons (funcall at "10:00:00") (funcall at end)))
+                                 (list written))
+                                0)))))
+    (should-not (funcall replay "10:30:20"))
+    (should-not (funcall replay "10:30:59"))
+    (should (equal '("10:31-10:32") (funcall replay "10:31:40")))))
 
 (ert-deftest claude-code-ide-org-test-apply-yields-to-a-hand-clocked-interval ()
   "Apply must not double count against a CLOCK line the human wrote.
