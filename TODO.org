@@ -737,7 +737,7 @@ makes both sorts signal on a busy file, so the step fails and the ceremony stays
 due; the design is in :PLAN:.
 
 
-* TODO A narrowed span's leftover copies the human's :active and :edited flags, so agent time is written as attention :code:bounded:
+* NEXT A narrowed span's leftover copies the human's :active and :edited flags, so agent time is written as attention :code:bounded:
 :PROPERTIES:
 :ID:       187a87b4-20db-4fbf-931f-a4b4e1bed668
 :CREATED:  [2026-10-27 Tue 13:52]
@@ -747,6 +747,8 @@ due; the design is in :PLAN:.
 - [2026-10-28 Wed 13:06]--[2026-10-28 Wed 13:12] brainstorm remainder flag reset
 - Tags ":code:bounded:" from ":code:"     [2026-10-28 Wed 13:12] \\
   classified at /plan-slice: one function
+- State "NEXT"       from "TODO"       [2026-11-13 Fri 14:01] \\
+  slice plan step 9, the leftover's flags
 :END:
 :PLAN:
 Bounded: one function, --review-insert-remainders in config.el, whose
@@ -845,7 +847,7 @@ define keywords, load a SETUPFILE or hide itself as a comment. On the slice's
 branch, feature/tracker-record-loss.
 
 
-* TODO A replayed apply writes an extra one-minute CLOCK line for every run whose end has seconds :code:bounded:
+* REVIEW A replayed apply writes an extra one-minute CLOCK line for every run whose end has seconds :code:bounded:
 :PROPERTIES:
 :ID:       6c969cbd-0c03-409f-835f-80ddb1faedf6
 :CREATED:  [2026-10-27 Tue 13:52]
@@ -855,6 +857,14 @@ branch, feature/tracker-record-loss.
 - [2026-10-28 Wed 12:53]--[2026-10-28 Wed 13:05] brainstorm replay residue rounding
 - Tags ":code:bounded:" from ":code:"     [2026-10-28 Wed 13:05] \\
   classified at /plan-slice: one function
+CLOCK: [2026-11-13 Fri 13:55]--[2026-11-13 Fri 14:01] =>  0:06
+- State "DOING"      from "NEXT"       [2026-11-13 Fri 13:55] \\
+  slice step 8, starting
+- State "NEXT"       from "TODO"       [2026-11-13 Fri 13:55] \\
+  slice plan step 8, replay residue
+- [2026-11-13 Fri 13:55]--[2026-11-13 Fri 14:01] widen recorded ends to the minute before subtracting
+- State "REVIEW"     from "DOING"      [2026-11-13 Fri 14:01] \\
+  done on the slice branch; DONE at merge
 :END:
 :PLAN:
 Bounded: one function, --subtract-intervals in config.el.
@@ -904,7 +914,6 @@ Resolved 2026-11-13: a replay against a heading's own CLOCK lines no longer
 writes an extra minute for each run whose end had seconds, because each recorded
 end is read as covering its whole minute. On the slice's branch,
 feature/tracker-record-loss.
-
 
 
 * TODO Archiving into DONE.org's newest-first datetree creates a duplicate day or month node for any date older than the newest :code:bounded:
@@ -1178,6 +1187,7 @@ CLOCK: [2026-11-11 Wed 17:54]--[2026-11-11 Wed 18:00] =>  0:06
 - [2026-11-13 Fri 08:56]--[2026-11-13 Fri 08:57] work slice 3bfa593c, next member
 CLOCK: [2026-11-13 Fri 10:19]--[2026-11-13 Fri 10:20] =>  0:01
 - [2026-11-13 Fri 10:19]--[2026-11-13 Fri 10:20] add ed3e6862 to the slice
+- [2026-11-13 Fri 13:35]--[2026-11-13 Fri 13:35] work slice 3bfa593c, next member
 :END:
 :PLAN:
 The order, composed at /plan-slice 2026-10-28 from the members' own :PLAN:
@@ -1232,12 +1242,12 @@ Planned:
 - [-] [[id:d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80][d7b2f50f]] REVIEW The IDE companion's WebSocket accepts any web page, and =executeCode= runs whatever elisp it is sent
 - [-] [[id:8985f8ae-8b26-45eb-8898-73f17c98680a][8985f8ae]] REVIEW The session render escapes only column-zero lines, so an indented #+ line in transcript text takes effect, SETUPFILE included
 - [-] [[id:0a0dee55-d709-466e-a525-c3bb1c437b91][0a0dee55]] REVIEW The applied record keys a session's events by timestamp to the second, so an event that failed or was skipped is consumed when another from the same second applies
-- [ ] [[id:d3468075-b17a-45a2-bd3a-838521f11a87][d3468075]] NEXT An apply interrupted after its writes records nothing, and the next pass inserts each amend a second time
-- [ ] [[id:6c969cbd-0c03-409f-835f-80ddb1faedf6][6c969cbd]] TODO A replayed apply writes an extra one-minute CLOCK line for every run whose end has seconds
-- [ ] [[id:187a87b4-20db-4fbf-931f-a4b4e1bed668][187a87b4]] TODO A narrowed span's leftover copies the human's :active and :edited flags, so agent time is written as attention
-- [ ] [[id:c0a21a0f-89ed-4b66-b7ed-acbfd5583015][c0a21a0f]] TODO Archiving a session already in the archive overwrites it, and restore overwrites a live queue the same way
+- [-] [[id:d3468075-b17a-45a2-bd3a-838521f11a87][d3468075]] REVIEW An apply interrupted after its writes records nothing, and the next pass inserts each amend a second time
+- [-] [[id:6c969cbd-0c03-409f-835f-80ddb1faedf6][6c969cbd]] REVIEW A replayed apply writes an extra one-minute CLOCK line for every run whose end has seconds
+- [ ] [[id:187a87b4-20db-4fbf-931f-a4b4e1bed668][187a87b4]] NEXT A narrowed span's leftover copies the human's :active and :edited flags, so agent time is written as attention
+- [-] [[id:c0a21a0f-89ed-4b66-b7ed-acbfd5583015][c0a21a0f]] REVIEW Archiving a session already in the archive overwrites it, and restore overwrites a live queue the same way
 - [ ] [[id:62bc2f7f-0d55-4049-af00-52a2b333188a][62bc2f7f]] TODO Archiving into DONE.org's newest-first datetree creates a duplicate day or month node for any date older than the newest
-- [ ] [[id:e9f8b780-c93b-41f9-b146-1c4695283af9][e9f8b780]] TODO An unreadable .applied file reads as nothing applied, and the next write replaces it
+- [-] [[id:e9f8b780-c93b-41f9-b146-1c4695283af9][e9f8b780]] REVIEW An unreadable .applied file reads as nothing applied, and the next write replaces it
 - [ ] [[id:b0e46168-2548-49ca-8f5f-5dcc6f3fc524][b0e46168]] TODO discard-guard misses absolute paths, git -C, and a cd before the git command
 - [ ] [[id:254308f7-70a9-4296-9166-fe4138c6382b][254308f7]] TODO The ceremony's sort steps reorder and save TODO.org or DONE.org while it holds the human's unsaved edits
 - [ ] [[id:a3ad9732-681c-4103-a9e2-5f919e60522c][a3ad9732]] TODO org_set_property writes TODO, SCHEDULED and DEADLINE through org-entry-put, which changes the keyword live or opens a prompt
@@ -1436,7 +1446,7 @@ watermark once. [[id:2f4c04a1-db56-4427-ae62-591ba52607c6][2f4c04a1]] is the sam
   require 8 characters, or a rescan, for write tools.
 
 
-* TODO An unreadable .applied file reads as nothing applied, and the next write replaces it :code:bounded:
+* REVIEW An unreadable .applied file reads as nothing applied, and the next write replaces it :code:bounded:
 :PROPERTIES:
 :ID:       e9f8b780-c93b-41f9-b146-1c4695283af9
 :CREATED:  [2026-10-27 Tue 12:53]
@@ -1446,6 +1456,12 @@ watermark once. [[id:2f4c04a1-db56-4427-ae62-591ba52607c6][2f4c04a1]] is the sam
 - [2026-10-28 Wed 14:14]--[2026-10-28 Wed 14:16] brainstorm unreadable .applied handling
 - Tags ":code:bounded:" from ":code:"     [2026-10-28 Wed 14:16] \\
   classified at /plan-slice: one reader and its two writers
+- State "DOING"      from "NEXT"       [2026-11-13 Fri 13:42] \\
+  slice step 6, starting
+- State "NEXT"       from "TODO"       [2026-11-13 Fri 13:42] \\
+  slice plan step 6, unreadable watermark
+- State "REVIEW"     from "DOING"      [2026-11-13 Fri 13:49] \\
+  done on the slice branch; DONE at merge
 :END:
 :PLAN:
 Bounded: --queue-watermark-data in config.el, its two readers (--queue-applied,
@@ -1507,7 +1523,6 @@ and every report names it until a human repairs it. On the slice's branch,
 feature/tracker-record-loss.
 
 
-
 * TODO statusline.sh and session-start-recovery-check call emacsclient with no watchdog, so a wedged Emacs stalls them :code:
 :PROPERTIES:
 :ID:       d7d3e88e-cd1a-43aa-85f4-bc9e63413a37
@@ -1556,7 +1571,7 @@ the current behaviour.
   and delete the setq.
 
 
-* NEXT An apply interrupted after its writes records nothing, and the next pass inserts each amend a second time :code:bounded:
+* REVIEW An apply interrupted after its writes records nothing, and the next pass inserts each amend a second time :code:bounded:
 :PROPERTIES:
 :ID:       d3468075-b17a-45a2-bd3a-838521f11a87
 :CREATED:  [2026-10-27 Tue 12:51]
@@ -1568,6 +1583,11 @@ the current behaviour.
   classified at /plan-slice: two changes inside the existing apply path
 - State "NEXT"       from "TODO"       [2026-11-13 Fri 13:08] \\
   slice plan step 5, record-first apply
+- State "DOING"      from "NEXT"       [2026-11-13 Fri 13:36] \\
+  slice step 5, starting
+- [2026-11-13 Fri 13:40]--[2026-11-13 Fri 13:40] brainstorm interrupted-apply recording
+- State "REVIEW"     from "DOING"      [2026-11-13 Fri 13:42] \\
+  done on the slice branch; DONE at merge
 :END:
 :PLAN:
 Bounded: --review-apply and --review-apply-amend in config.el. Each item already
@@ -1626,7 +1646,6 @@ Not done: nothing.
 Resolved 2026-11-13: apply records the items it applied before anything else can
 interrupt it, and an amend whose text already stands in its body or drawer is
 not inserted again. On the slice's branch, feature/tracker-record-loss.
-
 
 
 * TODO footnote-check blocks every stop when its loop-guard file cannot be written :code:
@@ -1773,7 +1792,7 @@ refuses every name in org-special-properties, each pointing to its route, and
 newlines in any value; the design is in :PLAN:.
 
 
-* TODO Archiving a session already in the archive overwrites it, and restore overwrites a live queue the same way :code:bounded:
+* REVIEW Archiving a session already in the archive overwrites it, and restore overwrites a live queue the same way :code:bounded:
 :PROPERTIES:
 :ID:       c0a21a0f-89ed-4b66-b7ed-acbfd5583015
 :CREATED:  [2026-10-27 Tue 12:48]
@@ -1783,6 +1802,12 @@ newlines in any value; the design is in :PLAN:.
 - [2026-10-28 Wed 13:13]--[2026-10-28 Wed 13:14] brainstorm archive and restore overwrite
 - Tags ":code:bounded:" from ":code:"     [2026-10-28 Wed 13:14] \\
   classified at /plan-slice: two existing commands
+- State "DOING"      from "NEXT"       [2026-11-13 Fri 13:49] \\
+  slice step 7, starting
+- State "NEXT"       from "TODO"       [2026-11-13 Fri 13:49] \\
+  slice plan step 7, archive merge
+- State "REVIEW"     from "DOING"      [2026-11-13 Fri 13:55] \\
+  done on the slice branch; DONE at merge
 :END:
 :PLAN:
 Bounded: claude-code-ide-org-archive-drained-queues and
@@ -1842,7 +1867,6 @@ Resolved 2026-11-13: archiving a session the archive already holds merges its
 lines and watermark into the archived copy, and restore refuses over a live
 queue file rather than overwrite it. On the slice's branch,
 feature/tracker-record-loss.
-
 
 
 * REVIEW The tools server answers any web page: it checks no Origin or Host, and every reply says Access-Control-Allow-Origin: * :code:bounded:
@@ -15145,6 +15169,7 @@ CLOCK: [2026-11-13 Fri 13:02]--[2026-11-13 Fri 13:06] =>  0:04
 CLOCK: [2026-11-13 Fri 13:25]--[2026-11-13 Fri 13:27] =>  0:02
 CLOCK: [2026-11-13 Fri 13:34]--[2026-11-13 Fri 13:35] =>  0:01
 - <2026-11-13 Fri 13:34>--<2026-11-13 Fri 13:35> review pass (buffer buried)
+CLOCK: [2026-11-13 Fri 14:06]--[2026-11-13 Fri 14:08] =>  0:02
 :END:
 
 We created this heading on 2026-08-26. We deleted that property from its
