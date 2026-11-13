@@ -2757,7 +2757,7 @@ and combines with any of them."
                  'error "more than one brainstorming path tag"))))
 
 (ert-deftest claude-code-ide-org-test-lint-catches-dangling-plan-link ()
-  "bin/sync-plans --check covers the archive side; nothing covered a
+  "bin/sync-plans covers the archive side; nothing covered a
 heading linking a plan file that is not there."
   (should (claude-code-ide-org-test--lint-matches
            (claude-code-ide-org-test--lint

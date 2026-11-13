@@ -2,12 +2,8 @@
 # Refuse a commit whose staged org files violate this project's structural
 # conventions.
 #
-# Why pre-commit, when the plans check next door is deliberately pre-push:
-#
-#   The two guard different things. `sync-plans' compares the repo against
-#   files that live outside it, so a stale archive says nothing about the
-#   commit being made -- coupling them would block unrelated commits, and
-#   that hook's own header says so.
+# Why pre-commit rather than pre-push, where a plans check stood until
+# 2026-11-13 (TODO.org :ID: b4c1f663):
 #
 #   Lint is a property of the content being committed. Every error it
 #   catches was introduced by the same edit that staged it: five in one

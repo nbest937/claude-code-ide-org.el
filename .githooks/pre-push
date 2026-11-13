@@ -1,53 +1,22 @@
 #!/usr/bin/env bash
-# Refuse to push while the archived plans under plans/ are out of date,
-# or while any test suite is red (the suite gate, at the foot).
+# Refuse to push while any test suite is red (the suite gate, at the
+# foot), and advise when main carries a merge that skipped a pull request.
 #
-# Why pre-push and not pre-commit:
-#
-#   A pre-commit hook that ran bin/sync-plans and staged the result would
-#   add files the user never staged -- sweeping unrelated plan edits into
-#   a focused commit, and fighting `git add -p`, `--amend` and `stash`.
-#   Silently mutating the index is the surprise most likely to cause a
-#   "why is that in my commit" incident.
-#
-#   A pre-commit hook that only *checked* would be worse in a different
-#   way: plans change outside this repo, so revising a plan would block
-#   every subsequent commit until you synced, including commits with
-#   nothing to do with plans. That is a false coupling.
-#
-#   post-commit would land the sync in the *next* commit, permanently
-#   attributing plan changes to the wrong one.
-#
-#   A push is deliberate, infrequent, and the moment local history becomes
-#   shared history. Blocking there costs one command and couples nothing.
-#
-# What this does NOT do, and cannot: prevent the loss it guards against.
-# History is destroyed when a plan is revised *twice* with no sync in
-# between -- the intermediate state is then gone from both the working
-# copy and the archive. That is a Claude Code event, not a git event, so
-# this hook only bounds how stale the archive can be when it is shared.
-# Actually closing the window needs a hook on the plan write itself; see
-# TODO.org's plan-archive heading.
+# This hook used to refuse first while the archived plans under plans/
+# were out of date, running `bin/sync-plans --check`. Retired 2026-11-13
+# (TODO.org :ID: b4c1f663, PR #46 review): it guarded a plan file in
+# ~/.claude/plans revised twice between syncs, and since 2026-09-21 plans
+# live in :PLAN: drawers, so no new plan file is linked and every linked
+# one has aged out of the source. What remains to guard -- every plan
+# link resolves to an archived copy -- `bin/lint-org` checks at every
+# commit. Once the source directory itself was gone, the gate refused
+# every push. `bin/sync-plans` stays as a manual tool.
 #
 # Bypass with `git push --no-verify` when you mean to.
 
 set -uo pipefail
 
 repo_root="$(git rev-parse --show-toplevel)"
-sync="$repo_root/bin/sync-plans"
-
-# Not an error if the script is absent -- an older checkout, or a worktree
-# mid-rebase. A hook should never be the reason a push is impossible.
-# Only this check stands aside then; the ones below still run.
-if [[ -x "$sync" ]] && ! "$sync" --check >/dev/null 2>&1; then
-  echo "pre-push: archived plans under plans/ are out of date." >&2
-  echo >&2
-  "$sync" --check 2>&1 | sed 's/^/  /' >&2
-  echo >&2
-  echo "  Fix:  bin/sync-plans && git add plans && git commit" >&2
-  echo "  Skip: git push --no-verify" >&2
-  exit 1
-fi
 
 # Advisory: a merge on main that did not come through a pull request
 # (TODO.org :ID: c7bf2121). Ten consecutive integrations used PRs while

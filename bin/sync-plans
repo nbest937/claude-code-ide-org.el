@@ -2,12 +2,19 @@
 # Copy this project's Plan Mode documents into the repo, so they have
 # history.
 #
+# A manual tool now, and mostly a historical one. Since 2026-09-21 a plan
+# lives in its heading's :PLAN: drawer and no new plan-file link is
+# written, so plans/ is a frozen archive (CLAUDE.md) and Claude Code's
+# retention empties ~/.claude/plans of the files it once held. Nothing
+# runs this automatically: the pre-push gate that did was retired
+# 2026-11-13 (TODO.org :ID: b4c1f663), and bin/lint-org checks that every
+# plan link resolves. With no source directory it still exits 2.
+#
 # Claude Code owns ~/.claude/plans/ and writes plan files there by
 # absolute path; Plan Mode cannot be redirected, and this script does not
-# try. That directory stays the *working* copy — the one org headings link
-# to and the one a plan revision edits. The copy under plans/ is an
-# archive: it exists to give plans diffs, blame and a record that survives
-# a lost home directory.
+# try. While plan files were linked, that directory was the working copy
+# and plans/ the archive, giving plans diffs, blame and a record that
+# survives a lost home directory.
 #
 # Symlinking was considered and rejected. Any writer using the ordinary
 # temp-file-plus-rename idiom would replace the symlink with a regular
@@ -41,8 +48,8 @@ check_only=0
 
 [[ -d "$src" ]] || { echo "sync-plans: no such source directory: $src" >&2; exit 2; }
 
-# Referenced plans, deduplicated. Matches the link form CLAUDE.md
-# mandates: [[file:~/.claude/plans/<slug>.md][Plan]].
+# Referenced plans, deduplicated. Matches the link form older headings
+# carry, [[file:~/.claude/plans/<slug>.md][Plan]]; none is written now.
 referenced="$(grep -oh 'plans/[a-z0-9-]*\.md' "${org_files[@]}" 2>/dev/null \
               | sed 's|^plans/||' | sort -u)"
 

@@ -125,8 +125,8 @@ Five things you would not guess:
   pattern is retired (below), and Claude Code deletes the originals after
   its retention period, which is left to happen. The copies here are the
   record for the headings that still link one — which is why
-  `bin/sync-plans --check` and `bin/lint-org` accept a plan that is gone
-  from the source but archived, and refuse only one that is in neither.
+  `bin/lint-org` accepts a plan that is gone from the source but
+  archived, and refuses only one that is in neither.
 - **`.claude/hooks/session-context.sh` is the one hook not under
   `bin/hooks/`**, for no recorded reason. It produces the "what was I last
   doing" context injected at `SessionStart`. Whether the two directories
