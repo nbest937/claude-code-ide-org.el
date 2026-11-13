@@ -22552,8 +22552,14 @@ goes straight through to ORIG-FN with WS and ARGS.  See
   (let ((origin (websocket-origin ws)))
     (if (null origin)
         (apply orig-fn ws args)
-      (message "claude-code-ide-org: refused WebSocket with Origin %s on %s"
-               origin (format "%s" ws))
+      ;; The port as upstream's on-open finds it: from the printed
+      ;; socket, whose server connection is named "... on port N".
+      (message "claude-code-ide-org: refused WebSocket with Origin %s on port %s"
+               origin
+               (let ((s (format "%s" ws)))
+                 (if (string-match "on port \\([0-9]+\\)" s)
+                     (match-string 1 s)
+                   "unknown")))
       (websocket-close ws)
       nil)))
 
