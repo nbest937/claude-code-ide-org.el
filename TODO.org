@@ -1045,15 +1045,15 @@ claude-code-ide-org-refuse-browser-origins, and the probe finds every live
 companion refusing. On the slice's branch, feature/tracker-record-loss.
 
 
-* DOING [9/24] The tracker can lose or corrupt its record, or Emacs can stop on a prompt, and nothing says so :code:
+* DOING [9/25] The tracker can lose or corrupt its record, or Emacs can stop on a prompt, and nothing says so :code:
 :PROPERTIES:
 :ID:       3bfa593c-c2da-4e44-b47f-2d5f0750f2aa
 :CREATED:  [2026-10-27 Tue 12:56]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:MEMBERS:  8c4a3aea-3208-46c8-a491-2ff024fbf822 d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80 8985f8ae-8b26-45eb-8898-73f17c98680a 0a0dee55-d709-466e-a525-c3bb1c437b91 d3468075-b17a-45a2-bd3a-838521f11a87 6c969cbd-0c03-409f-835f-80ddb1faedf6 187a87b4-20db-4fbf-931f-a4b4e1bed668 c0a21a0f-89ed-4b66-b7ed-acbfd5583015 62bc2f7f-0d55-4049-af00-52a2b333188a e9f8b780-c93b-41f9-b146-1c4695283af9 b0e46168-2548-49ca-8f5f-5dcc6f3fc524 254308f7-70a9-4296-9166-fe4138c6382b a3ad9732-681c-4103-a9e2-5f919e60522c 412768a0-3d9b-4cfe-9264-3f214d4baed1 fd29914e-0d18-4964-a104-37c136b311a6
-:BLOCKER:  8c4a3aea-3208-46c8-a491-2ff024fbf822 d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80 8985f8ae-8b26-45eb-8898-73f17c98680a 0a0dee55-d709-466e-a525-c3bb1c437b91 d3468075-b17a-45a2-bd3a-838521f11a87 6c969cbd-0c03-409f-835f-80ddb1faedf6 187a87b4-20db-4fbf-931f-a4b4e1bed668 c0a21a0f-89ed-4b66-b7ed-acbfd5583015 62bc2f7f-0d55-4049-af00-52a2b333188a e9f8b780-c93b-41f9-b146-1c4695283af9 b0e46168-2548-49ca-8f5f-5dcc6f3fc524 254308f7-70a9-4296-9166-fe4138c6382b a3ad9732-681c-4103-a9e2-5f919e60522c 412768a0-3d9b-4cfe-9264-3f214d4baed1 fd29914e-0d18-4964-a104-37c136b311a6
+:MEMBERS:  8c4a3aea-3208-46c8-a491-2ff024fbf822 d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80 8985f8ae-8b26-45eb-8898-73f17c98680a 0a0dee55-d709-466e-a525-c3bb1c437b91 d3468075-b17a-45a2-bd3a-838521f11a87 6c969cbd-0c03-409f-835f-80ddb1faedf6 187a87b4-20db-4fbf-931f-a4b4e1bed668 c0a21a0f-89ed-4b66-b7ed-acbfd5583015 62bc2f7f-0d55-4049-af00-52a2b333188a e9f8b780-c93b-41f9-b146-1c4695283af9 b0e46168-2548-49ca-8f5f-5dcc6f3fc524 254308f7-70a9-4296-9166-fe4138c6382b a3ad9732-681c-4103-a9e2-5f919e60522c 412768a0-3d9b-4cfe-9264-3f214d4baed1 fd29914e-0d18-4964-a104-37c136b311a6 ed3e6862-db3e-4e81-badd-859ddf629400
+:BLOCKER:  8c4a3aea-3208-46c8-a491-2ff024fbf822 d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80 8985f8ae-8b26-45eb-8898-73f17c98680a 0a0dee55-d709-466e-a525-c3bb1c437b91 d3468075-b17a-45a2-bd3a-838521f11a87 6c969cbd-0c03-409f-835f-80ddb1faedf6 187a87b4-20db-4fbf-931f-a4b4e1bed668 c0a21a0f-89ed-4b66-b7ed-acbfd5583015 62bc2f7f-0d55-4049-af00-52a2b333188a e9f8b780-c93b-41f9-b146-1c4695283af9 b0e46168-2548-49ca-8f5f-5dcc6f3fc524 254308f7-70a9-4296-9166-fe4138c6382b a3ad9732-681c-4103-a9e2-5f919e60522c 412768a0-3d9b-4cfe-9264-3f214d4baed1 fd29914e-0d18-4964-a104-37c136b311a6 ed3e6862-db3e-4e81-badd-859ddf629400
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-10-27 Tue 12:58] \\
@@ -1085,6 +1085,7 @@ renders; read the checklist for membership and this for sequence.
 12. [[id:b0e46168-2548-49ca-8f5f-5dcc6f3fc524][b0e46168]], discard-guard's per-segment directory, shell only.
 13. [[id:a3ad9732-681c-4103-a9e2-5f919e60522c][a3ad9732]], org_set_property's special-property refusal.
 14. [[id:412768a0-3d9b-4cfe-9264-3f214d4baed1][412768a0]] and 15. [[id:fd29914e-0d18-4964-a104-37c136b311a6][fd29914e]] together: both change --capture-write, so they are worked as one step.
+16. [[id:ed3e6862-db3e-4e81-badd-859ddf629400][ed3e6862]], joined 2026-11-13 (the user): org_refile leaves the target's statistics cookie stale, and a capture or refile giving a heading its first child leaves it none. Last, because its capture half changes --capture-write after 14 and 15. Its :PLAN: drawer is empty, so it needs a /plan-slice pass before it is worked.
 
 The slice integrates as one branch and one PR, feature/tracker-record-loss (the
 user, 2026-11-13): the review-start hook moves a slice to REVIEW when its one
@@ -1127,6 +1128,7 @@ Planned:
 - [ ] [[id:a3ad9732-681c-4103-a9e2-5f919e60522c][a3ad9732]] TODO org_set_property writes TODO, SCHEDULED and DEADLINE through org-entry-put, which changes the keyword live or opens a prompt
 - [ ] [[id:412768a0-3d9b-4cfe-9264-3f214d4baed1][412768a0]] TODO org_capture's title goes through capture-template expansion, so a newline splits the heading and %^ opens a prompt
 - [ ] [[id:fd29914e-0d18-4964-a104-37c136b311a6][fd29914e]] TODO org_capture runs in whatever buffer the user has selected, so an Org QL view turns a capture into a prompt nobody at the tool can answer
+- [ ] [[id:ed3e6862-db3e-4e81-badd-859ddf629400][ed3e6862]] TODO A capture or refile that gives a heading its first keyworded child leaves it with no statistics cookie, which lint-org then refuses
 
 Four joined from the second audit the same day (the user): an indented #+ line
 in a rendered transcript takes effect ([[id:8985f8ae-8b26-45eb-8898-73f17c98680a][8985f8ae]]), a replayed apply adds a minute
