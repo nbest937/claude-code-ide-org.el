@@ -19612,21 +19612,61 @@ set resolves to nothing or prefix-matches something unrelated."
   (should (memq 'member_id claude-code-ide-org--worked-id-keys))
   (should-not (memq 'slice_id claude-code-ide-org--worked-id-keys)))
 
-(ert-deftest claude-code-ide-org-test-org-escape-body-only-escapes-column-zero ()
-  "Only a line starting at column 0 can be a headline or a keyword.
+(ert-deftest claude-code-ide-org-test-org-escape-body-stars-at-column-zero-hashes-at-any-indent ()
+  "`*' is escaped at column 0 only; `#' wherever it is the first non-blank.
 
-An indented `*' is a list bullet and an indented `#' is ordinary text.
-Escaping those mangled prose that needed nothing, and put the comma
-before the indentation rather than against the marker -- so a nested
-markdown bullet rendered with a stray leading comma."
+An indented `*' is a list bullet, and a comma before its indentation
+broke nested markdown bullets.  An indented `#' is not ordinary text,
+which this test used to pin: org reads an indented `#+' line as a
+keyword and an indented `# ' line as a comment (TODO.org :ID:
+8985f8ae).  The comma goes after the indentation, against the marker."
   (let ((out (claude-code-ide-org--org-escape-body
-              "* real headline\n  * nested bullet\n#+TITLE: keyword\n  # indented\nplain")))
+              (concat "* real headline\n  * nested bullet\n#+TITLE: keyword\n"
+                      "  # indented\n\t#+end_src\n,* already escaped\n"
+                      "  ,#+begin_quote\nplain\n  ,# not org syntax"))))
     (should (string-match-p "^,\\* real headline$" out))
-    (should (string-match-p "^,#\\+TITLE: keyword$" out))
-    ;; Indented lines are left exactly alone.
     (should (string-match-p "^  \\* nested bullet$" out))
-    (should (string-match-p "^  # indented$" out))
-    (should (string-match-p "^plain$" out))))
+    (should (string-match-p "^,#\\+TITLE: keyword$" out))
+    (should (string-match-p "^  ,# indented$" out))
+    (should (string-match-p "^\t,#\\+end_src$" out))
+    ;; An escape already in the text gets one more comma, as org's own does.
+    (should (string-match-p "^,,\\* already escaped$" out))
+    (should (string-match-p "^  ,,#\\+begin_quote$" out))
+    (should (string-match-p "^plain$" out))
+    ;; A comma before a bare `#' is not org syntax and is left alone.
+    (should (string-match-p "^  ,# not org syntax$" out))))
+
+(defun claude-code-ide-org-test--parse-org (text)
+  "Parse TEXT as an org buffer and return the element tree."
+  (with-temp-buffer
+    (insert text)
+    (let ((org-mode-hook nil)) (org-mode))
+    (org-element-parse-buffer)))
+
+(ert-deftest claude-code-ide-org-test-org-escape-body-indented-hash-lines-stay-text ()
+  "Indented `#' lines in transcript text take no effect once escaped.
+
+Asserted by parsing the rendered shape with org-element, the parser
+that would act on them, rather than by regexp (TODO.org :ID: 8985f8ae):
+an indented `#+end_quote' must not close the prompt's quote early, an
+indented `#+TODO:' or `#+SETUPFILE:' must not become a keyword, and an
+indented `# step' must not become a hidden comment."
+  (let* ((prompt (concat "before\n  #+end_quote\nafter\n"
+                         "  #+TODO: A B | C\n  #+SETUPFILE: /tmp/evil.org\n"
+                         "  # step one"))
+         (tree (claude-code-ide-org-test--parse-org
+                (concat "#+begin_quote\n"
+                        (claude-code-ide-org--org-escape-body prompt)
+                        "\n#+end_quote\n")))
+         (quotes (org-element-map tree 'quote-block #'identity)))
+    ;; One quote block, and it holds everything through the last line.
+    (should (= 1 (length quotes)))
+    (let ((inside (org-element-interpret-data (car quotes))))
+      (should (string-match-p "after" inside))
+      (should (string-match-p "step one" inside)))
+    ;; Nothing became a keyword or a comment.
+    (should-not (org-element-map tree 'keyword #'identity))
+    (should-not (org-element-map tree '(comment comment-block) #'identity))))
 
 (ert-deftest claude-code-ide-org-test-hhmm-minutes-orders-across-midnight ()
   "Minutes order correctly where the rendered strings do not.

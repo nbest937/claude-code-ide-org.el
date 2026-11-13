@@ -14458,21 +14458,34 @@ either."
 A line beginning with `*' would become a *heading* and silently
 restructure the file -- the render is generated from prose nobody wrote
 for org, so this is the common case rather than an edge one.  Org's own
-escape is a leading comma, which it strips on display.  `#+' gets the
-same treatment, since a stray keyword line can change how the file is
-parsed."
+escape is a leading comma.
+
+Two rules, because org reads the two markers differently:
+
+- `*' is escaped at column 0 only.  An indented `*' is a list bullet,
+  and a comma before its indentation would break a nested list.
+
+- A line whose first non-blank character is `#' gets a comma *after*
+  its indentation, at any indent.  Org reads an indented `#+' line as a
+  keyword or block delimiter and an indented `# ' line as a comment
+  (`org-comment-regexp'), so escaping column 0 alone let transcript text
+  end a quote block early, redefine the render's TODO keywords, load a
+  `#+SETUPFILE:', or hide a line (TODO.org :ID: 8985f8ae).
+
+A line already starting with commas before `*' or `#+' gets one more,
+as `org-escape-code-in-string' does, so an escape in the source text
+survives as written."
   (when (stringp text)
     (mapconcat (lambda (line)
-                 ;; Column 0 only.  Org reads `*' as a headline and `#+'
-                 ;; as a keyword *only* at the start of a line -- an
-                 ;; indented `*' is a list bullet and an indented `#' is
-                 ;; ordinary text, so escaping those both mangles prose
-                 ;; that needed nothing and, worse, breaks a nested list
-                 ;; by putting the comma before its indentation rather
-                 ;; than against the marker.
-                 (if (string-match-p "\\`[*#]" line)
-                     (concat "," line)
-                   line))
+                 (cond
+                  ((string-match-p "\\`,*\\*" line)
+                   (concat "," line))
+                  ((string-match "\\`[ \t]*\\(?:#\\|,+#\\+\\)" line)
+                   (let ((indent (progn (string-match "\\`[ \t]*" line)
+                                        (match-end 0))))
+                     (concat (substring line 0 indent) ","
+                             (substring line indent))))
+                  (t line)))
                (split-string text "\n")
                "\n")))
 
