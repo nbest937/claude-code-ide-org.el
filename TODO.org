@@ -2304,8 +2304,9 @@ keyworded child appears, and =bin/lint-org= errors on one without it. The
 tools do not do it: =org_capture= with a =target= writes the child through
 =--capture-write=, which never touches the parent's headline, and =org_refile=
 under a cookie-less parent probably does the same. Only =org_divide= calls
-=--ensure-statistics-cookie-at-point=. A cookie that already exists is updated
-correctly; only the first child misses out. Since no tool edits a headline
+=--ensure-statistics-cookie-at-point=. A cookie that already exists is
+not updated by a refile either (measured 2026-11-13, below), so refile misses
+every child, not only the first. Since no tool edits a headline
 ([[id:9714f875-4a12-44e4-8f30-dfbd1b6e555e][9714f875]]), the session's only remedies are a raw edit behind Emacs or asking
 the human for =C-c #=. Seen in noodle-sales: four new stories (=57d6bf66=,
 =2366e0f0=, =dfdeb760=, and =7616fa92='s new parent) all came out cookie-less.
@@ -2316,6 +2317,20 @@ after =org_refile= lands one under a new parent, call
 =org-update-statistics-cookies=, as =org_divide= does, and say so in the reply.
 A fixture test for each path: capture or refile a keyworded child under a
 keywordless-children parent, and assert the cookie appears after the keyword.
+
+Measured 2026-11-13, against the straight org Doom loads, in batch: org-refile
+moving a TODO under =* TODO [0/1] Story= left the cookie at =[0/1]=, and a
+following =org-update-statistics-cookies= gave =[0/2]=. org_refile adds nothing
+after org-refile but saving, so every refile under a cookie-bearing heading
+leaves it stale until a human presses =C-c #=. Seen in noodle-sales on
+=58dee438=: one child captured, two refiled under it, the cookie still =[0/1]=
+over three children. org-archive-subtree, by contrast, updated its parent's
+cookie itself in the same test (=[1/2]= to =[0/1]=), so archiving needs nothing.
+Not measured: whether the source parent a refile leaves is updated, and whether
+a targeted org_capture updates a cookie that is already there. The proposal
+covers both ends of a refile: ensure and update the cookie on the target, and
+update it on the old parent.
+
 
 
 * TODO lint-org with no arguments lints the plugin checkout, not the consuming repo, and passes :code:
