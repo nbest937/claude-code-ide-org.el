@@ -5006,6 +5006,78 @@ it out of sight."
       (cl-letf (((symbol-function 'claude-code-ide-org--queue-file-idle-p) (lambda (_) t)))
         (should-not (claude-code-ide-org--queue-file-drained-p "sess-a"))))))
 
+(ert-deftest claude-code-ide-org-test-archive-merges-a-session-already-archived ()
+  "Archiving a session the archive already holds merges, never overwrites
+(TODO.org :ID: c0a21a0f).
+
+A session archived, resumed and archived again used to have its first
+archive replaced: every line and every applied key it held, gone.  Now
+the archived lines stay first, the live ones follow, and the two maps
+union -- an eid key and a legacy ts key alike, the earlier pass stamp
+kept where both hold one, the archived dismissal reason kept."
+  (claude-code-ide-org-test--with-queue
+    (let* ((archive (claude-code-ide-org--queue-archive-directory))
+           (old (claude-code-ide-org-test--queue-event "2026-10-27T09:00:00-0500" "pause"))
+           (new (claude-code-ide-org-test--queue-event-eid
+                 "bbbbbbbbbbbbbbbb" "2026-11-13T09:00:00-0600" "resume")))
+      ;; The archive's earlier copy, written as the writer would.
+      (let ((claude-code-ide-org-queue-directory archive))
+        (claude-code-ide-org-test--queue-write "sess-a" old)
+        (claude-code-ide-org--queue-mark-applied
+         "sess-a" '("2026-10-27T09:00:00-0500" "shared-key") "pass-early")
+        (claude-code-ide-org--queue-mark-dismissed "sess-a" '("dk") "archived reason"))
+      ;; The live remainder after a /resume.
+      (claude-code-ide-org-test--queue-write "sess-a" new)
+      (claude-code-ide-org--queue-mark-applied
+       "sess-a" '("bbbbbbbbbbbbbbbb" "shared-key") "pass-late")
+      (claude-code-ide-org--queue-mark-dismissed "sess-a" '("dk") "live reason")
+      (cl-letf (((symbol-function 'claude-code-ide-org--queue-file-drained-p) (lambda (_) t)))
+        (should (equal '("sess-a")
+                       (plist-get (claude-code-ide-org-archive-drained-queues) :merged))))
+      ;; Nothing live is left; the archive holds both lines, old first.
+      (should-not (file-exists-p (claude-code-ide-org--queue-file "sess-a")))
+      (should-not (file-exists-p (claude-code-ide-org--queue-watermark-file "sess-a")))
+      (should (equal (concat old "\n" new "\n")
+                     (claude-code-ide-org-test--disk-contents
+                      (expand-file-name "sess-a.jsonl" archive))))
+      (let ((claude-code-ide-org-queue-directory archive))
+        (let ((applied (claude-code-ide-org--queue-applied "sess-a"))
+              (dismissed (claude-code-ide-org--queue-dismissed "sess-a")))
+          (should (equal "pass-early" (gethash "2026-10-27T09:00:00-0500" applied)))
+          (should (equal "pass-late" (gethash "bbbbbbbbbbbbbbbb" applied)))
+          (should (equal "pass-early" (gethash "shared-key" applied)))
+          (should (equal "archived reason" (gethash "dk" dismissed))))))))
+
+(ert-deftest claude-code-ide-org-test-restore-refuses-over-a-live-queue ()
+  "Restoring a session that has a live queue file refuses and changes
+nothing; without one, archive and restore move the pair as before."
+  (claude-code-ide-org-test--with-queue
+    (let ((archive (claude-code-ide-org--queue-archive-directory))
+          (line (claude-code-ide-org-test--queue-event "2026-11-13T09:00:00-0600" "pause")))
+      ;; Plain archive, then plain restore: the pair moves both ways.
+      (claude-code-ide-org-test--queue-write "sess-a" line)
+      (claude-code-ide-org--queue-mark-applied "sess-a" '("k") "p")
+      (cl-letf (((symbol-function 'claude-code-ide-org--queue-file-drained-p) (lambda (_) t)))
+        (should (equal '("sess-a") (plist-get (claude-code-ide-org-archive-drained-queues) :moved))))
+      (should (file-exists-p (expand-file-name "sess-a.jsonl" archive)))
+      (should (file-exists-p (expand-file-name "sess-a.applied" archive)))
+      (claude-code-ide-org-restore-queue "sess-a")
+      (should (file-exists-p (claude-code-ide-org--queue-file "sess-a")))
+      (should (gethash "k" (claude-code-ide-org--queue-applied "sess-a")))
+      ;; Archive again, then a live file appears: restore refuses.
+      (cl-letf (((symbol-function 'claude-code-ide-org--queue-file-drained-p) (lambda (_) t)))
+        (claude-code-ide-org-archive-drained-queues))
+      (claude-code-ide-org-test--queue-write "sess-a" line)
+      (let ((archived (claude-code-ide-org-test--disk-contents
+                       (expand-file-name "sess-a.jsonl" archive)))
+            (live (claude-code-ide-org-test--disk-contents
+                   (claude-code-ide-org--queue-file "sess-a"))))
+        (should-error (claude-code-ide-org-restore-queue "sess-a") :type 'user-error)
+        (should (equal archived (claude-code-ide-org-test--disk-contents
+                                 (expand-file-name "sess-a.jsonl" archive))))
+        (should (equal live (claude-code-ide-org-test--disk-contents
+                             (claude-code-ide-org--queue-file "sess-a"))))))))
+
 (ert-deftest claude-code-ide-org-test-absent-watermark-still-reads-as-empty ()
   "An absent watermark is \"nothing applied yet\", not unreadable: its
 events are pending, no report names it, and a mark creates the file."

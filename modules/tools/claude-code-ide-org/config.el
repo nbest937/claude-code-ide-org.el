@@ -1042,8 +1042,10 @@ ones the number most wants."
     ;; The archive too: a file holding only miss lines yields no review
     ;; items, so `archive-drained-queues' moves it out of the directory
     ;; `--queue-files' scans, and its misses would silently leave the
-    ;; count (PR #29 review, TODO.org :ID: fd7d9715).  `restore-queue'
-    ;; moves rather than copies, so no file is ever in both places.
+    ;; count (PR #29 review, TODO.org :ID: fd7d9715).  No file is ever in
+    ;; both places: `restore-queue' moves rather than copies and refuses
+    ;; over a live file, and archiving a session the archive already
+    ;; holds merges into it (TODO.org :ID: c0a21a0f).
     (dolist (file (append (claude-code-ide-org--queue-files)
                           (let ((archive (expand-file-name
                                           "archive" claude-code-ide-org-queue-directory)))
@@ -13175,15 +13177,13 @@ restored file that lost its watermark cannot support selective
 reprocessing, only all-or-nothing."
   (interactive "P")
   (let ((archive (claude-code-ide-org--queue-archive-directory))
-        moved skipped)
+        moved skipped merged)
     (dolist (sid (claude-code-ide-org--queue-session-ids))
       (if (claude-code-ide-org--queue-file-drained-p sid)
-          (let ((jsonl (claude-code-ide-org--queue-file sid))
-                (applied (claude-code-ide-org--queue-watermark-file sid)))
+          (progn
             (unless dry-run
-              (dolist (f (list jsonl applied))
-                (when (file-exists-p f)
-                  (rename-file f (expand-file-name (file-name-nondirectory f) archive) t))))
+              (when (eq 'merged (claude-code-ide-org--queue-archive-session sid archive))
+                (push sid merged)))
             (push sid moved))
         (push sid skipped)))
     ;; Reverse ONCE, into fresh bindings. `nreverse' is destructive:
@@ -13206,7 +13206,71 @@ reprocessing, only all-or-nothing."
              (if moved (mapconcat #'claude-code-ide-org--short-id moved ", ")
                "none")
              (length skipped))
-    (list :moved moved :skipped skipped)))
+    ;; Reversed once into the binding, for the reason given above.
+    (setq merged (nreverse merged))
+    (when merged
+      (message "Merged into the archive's earlier copy: %s"
+               (mapconcat #'claude-code-ide-org--short-id merged ", ")))
+    (list :moved moved :skipped skipped :merged merged)))
+
+(defun claude-code-ide-org--queue-archive-session (session-id archive)
+  "Move SESSION-ID's live queue and watermark into ARCHIVE.
+Returns `moved', or `merged' when ARCHIVE already held the session.
+
+Merging rather than overwriting (TODO.org :ID: c0a21a0f): a session
+archived, then resumed with /resume, then archived again used to have
+its first archive replaced by the second, losing every line and every
+applied key it held.  Both watermarks are read before anything moves,
+so an unreadable one signals with nothing changed.  The live file is
+renamed to a temp sibling first -- atomic, and a session appending
+after that simply starts a fresh live file -- then its lines go after
+the archived ones, which are older, and the two maps are unioned:
+applied keeping the earlier pass stamp where both hold a key, dismissed
+keeping the archived reason.  Event-id and legacy ts keys union alike.
+The readers and the single writer are reused by pointing
+`claude-code-ide-org-queue-directory' at ARCHIVE."
+  (let* ((jsonl (claude-code-ide-org--queue-file session-id))
+         (applied (claude-code-ide-org--queue-watermark-file session-id))
+         (dest (expand-file-name (file-name-nondirectory jsonl) archive)))
+    (if (not (file-exists-p dest))
+        (progn
+          (dolist (f (list jsonl applied))
+            (when (file-exists-p f)
+              (rename-file f (expand-file-name (file-name-nondirectory f) archive) t)))
+          'moved)
+      (let ((live-applied (claude-code-ide-org--queue-applied session-id))
+            (live-dismissed (claude-code-ide-org--queue-dismissed session-id))
+            (arch-applied (let ((claude-code-ide-org-queue-directory archive))
+                            (claude-code-ide-org--queue-applied session-id)))
+            (arch-dismissed (let ((claude-code-ide-org-queue-directory archive))
+                              (claude-code-ide-org--queue-dismissed session-id)))
+            (tmp (make-temp-name (concat jsonl ".merging-"))))
+        (maphash (lambda (k v)
+                   (let ((old (gethash k arch-applied)))
+                     (puthash k (cond ((null old) v)
+                                      ((string-empty-p old) v)
+                                      ((string-empty-p v) old)
+                                      ((string< v old) v)
+                                      (t old))
+                              arch-applied)))
+                 live-applied)
+        (maphash (lambda (k v) (unless (gethash k arch-dismissed)
+                                 (puthash k v arch-dismissed)))
+                 live-dismissed)
+        (rename-file jsonl tmp)
+        (let ((lines (with-temp-buffer (insert-file-contents tmp) (buffer-string)))
+              (lead (with-temp-buffer
+                      (insert-file-contents dest)
+                      (if (or (= (point-min) (point-max))
+                              (eq (char-before (point-max)) ?\n))
+                          "" "\n"))))
+          (write-region (concat lead lines) nil dest t 'silent))
+        (let ((claude-code-ide-org-queue-directory archive))
+          (claude-code-ide-org--queue-watermark-write
+           session-id arch-applied arch-dismissed))
+        (when (file-exists-p applied) (delete-file applied))
+        (delete-file tmp)
+        'merged))))
 
 (defun claude-code-ide-org-restore-queue (session-id &optional ignore-watermark)
   "Move SESSION-ID's queue file back out of the archive for reprocessing.
@@ -13250,6 +13314,12 @@ content-idempotent; see `claude-code-ide-org--append-to-drawer'."
                                          (seq-take available 5))
                                  " "))
                       "; none are archived"))))
+    ;; Refused over a live file (TODO.org :ID: c0a21a0f).  Merging here
+    ;; would rewrite a file a live session may be appending to, which the
+    ;; queue's design forbids; archiving merges, so that is the way round.
+    (when (file-exists-p (claude-code-ide-org--queue-file session-id))
+      (user-error "%s has a live queue file; let it go idle and archive it, which merges, then restore"
+                  (claude-code-ide-org--short-id session-id)))
     (rename-file jsonl (claude-code-ide-org--queue-file session-id) t)
     (when (and (file-exists-p applied) (not ignore-watermark))
       (rename-file applied (claude-code-ide-org--queue-watermark-file session-id) t))
