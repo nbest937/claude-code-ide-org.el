@@ -1524,6 +1524,33 @@ unwind-protect.
 
 Code on a feature/ branch, merged through a PR.
 :END:
+:DEBRIEF:
+Shipped as planned. --review-apply's loop is inside an unwind-protect whose
+cleanup calls --review-record-applied on the items applied so far, before the
+three settle steps, which are unchanged and are skipped by an interruption; an
+item joins the list only once --review-apply-item returns cleanly.
+--review-apply-amend computes the amend's final text as before, then
+--amend-present-p searches the region org_edit uses (the body, or the named
+drawer, via --edit-region) with whitespace runs collapsed; found, it writes
+nothing, counts as applied and pushes "amend already present, not inserted
+again".
+
+Verified. Three ERT tests, each red against HEAD: a quit from a stubbed settle
+step leaves both applied items recorded; a quit on the second of three items
+records the first only; an amend already in the body, and one already in the
+PLAN drawer, leave the file byte-identical with two warnings, while a different
+amend to the same heading lands. bin/test 976 of 976; test-all 28 suites, 1801
+passed on the push. Reloaded live; image fresh. No live acceptance step in the
+plan.
+
+Noted, not built: until the slice merges, main's config.el cannot read the eid
+keys [[id:0a0dee55-d709-466e-a525-c3bb1c437b91][0a0dee55]] writes, so loading it into Emacs would re-propose applied events,
+and a re-applied amend would land twice without this member's check. Held as a
+working rule (load config.el only from the slice branch), not filed, since the
+slice's merge ends it.
+
+Not done: nothing.
+:END:
 
 --review-apply records the applied set only after settle-slices,
   settle-separation and settle-forgotten, outside any unwind-protect, and those
@@ -1534,6 +1561,11 @@ Code on a feature/ branch, merged through a PR.
   unknown). The fix records in an unwind-protect right after the loop and gives
   amends a repeat check; the design is in :PLAN:. The reverse case, recorded as
   applied but missing from the file, is [[id:7e4fb8ae-87ff-445a-b960-b7cc5302c0c8][7e4fb8ae]].
+
+Resolved 2026-11-13: apply records the items it applied before anything else can
+interrupt it, and an amend whose text already stands in its body or drawer is
+not inserted again. On the slice's branch, feature/tracker-record-loss.
+
 
 
 * TODO footnote-check blocks every stop when its loop-guard file cannot be written :code:
