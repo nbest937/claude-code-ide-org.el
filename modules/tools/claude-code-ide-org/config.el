@@ -17341,6 +17341,19 @@ side."
           (setq new (plist-put new :dismiss nil))
           (setq new (plist-put new :dismiss-reason nil))
           (setq new (plist-put new :suggested t))
+          ;; Nor anything else the human did to the original (TODO.org
+          ;; :ID: 187a87b4): `:active' would write the leftover's agent
+          ;; time as their attention, `:claimed' would write it as one
+          ;; solid interval, `:edited' and `:note-edited' would make `g'
+          ;; ask about edits nobody made to it, and `:auto-marked' is
+          ;; the original's mark, which `:marked' above already drops.
+          (dolist (flag '(:active :edited :claimed :note-edited :auto-marked))
+            (setq new (plist-put new flag nil)))
+          ;; A note the human typed described the span they kept; the
+          ;; queue's own clock_in label is not theirs, and carries over
+          ;; (the user, 2026-10-28).
+          (when (plist-get item :note-edited)
+            (setq new (plist-put new :note nil)))
           (setq new (plist-put new :events
                                (seq-filter
                               (lambda (e)

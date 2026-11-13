@@ -5923,6 +5923,61 @@ marked their lines."
           (should-not (plist-get remainder :dismiss))
           (should-not (plist-get remainder :dismiss-reason)))))))
 
+(defun claude-code-ide-org-test--narrow-and-take-remainder (flags)
+  "Narrow sess-a's span, set up with FLAGS, to 09:05-09:10; return the leftover.
+Drives the real `e' command, as the dismissed-span test above does."
+  (claude-code-ide-org-test--with-queue
+    (apply #'claude-code-ide-org-test--queue-write "sess-a"
+           (list (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:05:00-0500" "resume" nil nil "sess-a")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:10:00-0500" "pause" nil nil "sess-a")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:20:00-0500" "resume" nil nil "sess-a")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:25:00-0500" "pause" nil nil "sess-a")))
+    (claude-code-ide-org-test--with-review-buffer
+        (claude-code-ide-org--review-items-from-queue)
+      (let* ((items claude-code-ide-org--review-items)
+             (span (seq-find (lambda (i) (plist-get i :unassigned)) items)))
+        (should span)
+        (while flags
+          (plist-put span (pop flags) (pop flags)))
+        (claude-code-ide-org-test--goto-nth-item (seq-position items span))
+        (cl-letf (((symbol-function 'read-string)
+                   (lambda (prompt &optional _initial &rest _)
+                     (if (string-prefix-p "Start" prompt)
+                         "[2026-08-13 Thu 09:05]"
+                       "[2026-08-13 Thu 09:10]"))))
+          (claude-code-ide-org-review-edit-interval))
+        (let ((remainder (seq-find (lambda (i) (not (eq i span)))
+                                   claude-code-ide-org--review-items)))
+          (should remainder)
+          remainder)))))
+
+(ert-deftest claude-code-ide-org-test-remainder-drops-the-humans-flags ()
+  "A narrowed span's leftover carries none of the human's decisions
+(TODO.org :ID: 187a87b4).
+
+The copy reset only :marked, :dismiss, :dismiss-reason and :suggested,
+so `:active' wrote the leftover's agent time as the human's attention,
+`:claimed' wrote it as one solid interval, and `:edited'/`:note-edited'
+made `g' ask about edits nobody made.  A note the human typed described
+the span they kept, so it does not travel either."
+  (let ((remainder (claude-code-ide-org-test--narrow-and-take-remainder
+                    (list :active t :edited t :claimed t :note-edited t
+                          :auto-marked t :note "what I was doing then"))))
+    (dolist (flag '(:active :edited :claimed :note-edited :auto-marked))
+      (should-not (plist-get remainder flag)))
+    (should-not (plist-get remainder :note))))
+
+(ert-deftest claude-code-ide-org-test-remainder-keeps-the-queues-own-note ()
+  "A note the queue suggested -- the clock_in label, never edited -- is
+not the human's, and the leftover keeps it (the user, 2026-10-28)."
+  (let ((remainder (claude-code-ide-org-test--narrow-and-take-remainder
+                    (list :note "queue clock_in label"))))
+    (should (equal "queue clock_in label" (plist-get remainder :note)))))
+
 (ert-deftest claude-code-ide-org-test-no-zero-width-remainder ()
   "A single leftover guidepost is not offered as a zero-width remainder.
 
