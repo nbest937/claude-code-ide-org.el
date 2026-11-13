@@ -2,6 +2,18 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO Acceptance probe for 0a0dee55: a NEXT and a DONE queued in one second, only the DONE applied
+:PROPERTIES:
+:ID:       a27e8f5a-bc7a-4407-8c5a-4b6f2e5cc99f
+:CREATED:  [2026-11-13 Fri 12:47]
+:CATEGORY: Queue
+:END:
+
+A throwaway heading for [[id:0a0dee55-d709-466e-a525-c3bb1c437b91][0a0dee55]]'s acceptance step. One session queues NEXT and
+DONE on it in the same second; the user applies only the DONE, and
+org_pending_updates must still show the NEXT, which is then dismissed. Before
+event ids, applying the DONE consumed the NEXT with it.
+
 * TODO Two worktrees developing the module share one running Emacs, which holds whichever config.el was loaded last, and check-image calls that fresh to both :code:
 :PROPERTIES:
 :ID:       e07eb33a-2971-4bb9-b429-bbee9a6f4322
