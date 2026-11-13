@@ -12627,11 +12627,43 @@ deferred write must mean what the immediate one would have."
                buffer-file-name nil
                (and (not (plist-get item :drawer)) (claude-code-ide-org--slice-p))))
          fill-column)))
-    (if drawer
-        (claude-code-ide-org--amend-into-drawer drawer text)
+    (cond
+     ;; Already there: an apply interrupted after this amend was saved
+     ;; but before the pass was recorded leaves it pending, and the next
+     ;; pass would insert it a second time (TODO.org :ID: d3468075).
+     ;; Write nothing, count it applied, and say so.
+     ((claude-code-ide-org--amend-present-p drawer text)
+      (push (format "%s: amend already present, not inserted again"
+                    (claude-code-ide-org--short-id (plist-get item :id)))
+            claude-code-ide-org--review-apply-warnings)
+      nil)
+     (drawer
+      (claude-code-ide-org--amend-into-drawer drawer text))
+     (t
       (claude-code-ide-org--end-of-body)
       (insert (claude-code-ide-org--amend-separator text)
-              (string-trim (or text "")) "\n"))))
+              (string-trim (or text "")) "\n")))))
+
+(defun claude-code-ide-org--amend-present-p (drawer text)
+  "Non-nil when TEXT already stands in the heading at point's region.
+
+The region is the one `org_edit' matches in: the heading's own body,
+or with DRAWER the inside of that drawer (`claude-code-ide-org--edit-region').
+Compared with runs of whitespace collapsed, so a paragraph refilled or
+re-indented since it was written still counts -- the same text, laid
+out differently, is a repeat.  TEXT is the amend's final form, escaped,
+linked and filled exactly as it would be inserted.
+
+The cost is accepted (TODO.org :ID: d3468075): two deliberately
+identical amends to one heading land once, with a warning."
+  (let ((needle (string-trim (or text "")))
+        (region (claude-code-ide-org--edit-region drawer)))
+    (and region
+         (not (string-empty-p needle))
+         (let ((squash (lambda (s) (replace-regexp-in-string "[ \t\n]+" " " s))))
+           (string-search (funcall squash needle)
+                          (funcall squash (buffer-substring-no-properties
+                                           (car region) (cdr region))))))))
 
 (defun claude-code-ide-org--review-apply-capture (item)
   "Write ITEM's captured heading.  Nil on success, an error string otherwise.
@@ -12996,23 +13028,32 @@ purpose was guarding a trigger that wrote to the file on its own."
   ;; worse than no warning at all.
   (setq claude-code-ide-org--review-apply-warnings nil)
   (let (applied errors)
-    (progn
-      (dolist (item items)
-        (setq claude-code-ide-org--last-error-context nil)
-        (let ((error (claude-code-ide-org--review-apply-item item)))
-          (if error
-              ;; Name the item. A bare error string cannot say WHICH of
-              ;; five failures it belongs to, and the review buffer shows
-              ;; them as one run-on line -- so the human sees the same
-              ;; sentence five times and learns nothing about which
-              ;; heading, kind or timestamp produced it.
-              (push (claude-code-ide-org--review-describe-failure item error)
-                    errors)
-            (push item applied)))))
+    ;; Record first, and always (TODO.org :ID: d3468075).  Each item
+    ;; saves its own buffer as it applies, so a quit or an error part
+    ;; way through -- in the loop or in a settle step -- used to leave
+    ;; written items unrecorded, and the next pass applied them again:
+    ;; an amend twice.  The cleanup records what applied so far, and an
+    ;; item joins `applied' only once it has returned cleanly, so one
+    ;; interrupted mid-write stays pending.  The settle steps run after
+    ;; and are skipped by an interruption; the next pass touching the
+    ;; same slice or heading settles it.
+    (unwind-protect
+        (dolist (item items)
+          (setq claude-code-ide-org--last-error-context nil)
+          (let ((error (claude-code-ide-org--review-apply-item item)))
+            (if error
+                ;; Name the item. A bare error string cannot say WHICH of
+                ;; five failures it belongs to, and the review buffer shows
+                ;; them as one run-on line -- so the human sees the same
+                ;; sentence five times and learns nothing about which
+                ;; heading, kind or timestamp produced it.
+                (push (claude-code-ide-org--review-describe-failure item error)
+                      errors)
+              (push item applied))))
+      (claude-code-ide-org--review-record-applied applied))
     (claude-code-ide-org--review-settle-slices applied)
     (claude-code-ide-org--review-settle-separation applied)
     (claude-code-ide-org--review-settle-forgotten applied)
-    (claude-code-ide-org--review-record-applied applied)
     ;; :items alongside the count, so the caller can drop exactly what
     ;; applied rather than rebuilding the list from the queue.  The count
     ;; stays for the message, and existing callers are unaffected.

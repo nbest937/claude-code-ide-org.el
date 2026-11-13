@@ -3270,6 +3270,101 @@ heading in the tracker (PR #29 review, TODO.org :ID: 00aa6a85)."
                        (how-many "^,\\* Fake$" (point-min) (point-max)))))
         (should-not (string-match-p "^\\* Fake$" disk))))))
 
+(defmacro claude-code-ide-org-test--with-apply-stubs (apply-item settle &rest body)
+  "Run BODY in a scratch queue with `--review-apply-item' as APPLY-ITEM
+and `--review-settle-slices' as SETTLE, the other settle steps and the
+staleness projection stubbed out, so only the record is under test."
+  (declare (indent 2))
+  `(claude-code-ide-org-test--with-queue
+     (cl-letf (((symbol-function 'claude-code-ide-org--review-projected-staleness) #'ignore)
+               ((symbol-function 'claude-code-ide-org--review-apply-item) ,apply-item)
+               ((symbol-function 'claude-code-ide-org--review-settle-slices) ,settle)
+               ((symbol-function 'claude-code-ide-org--review-settle-separation) #'ignore)
+               ((symbol-function 'claude-code-ide-org--review-settle-forgotten) #'ignore))
+       ,@body)))
+
+(defun claude-code-ide-org-test--apply-items (&rest keys)
+  "One review item per key in KEYS, each backed by one event of sess-a."
+  (mapcar (lambda (k) (list :type 'state :id "h" :events (list (list :key k :session-id "sess-a"))))
+          keys))
+
+(ert-deftest claude-code-ide-org-test-apply-records-before-a-settle-step-quits ()
+  "A quit in a settle step leaves the applied items recorded.
+
+Each item saves its own buffer as it applies, but the pass was recorded
+only after the three settle steps, outside any protection, so a quit
+there left written items pending and the next pass applied them again
+(TODO.org :ID: d3468075)."
+  (claude-code-ide-org-test--with-apply-stubs
+      (lambda (_item) nil)
+      (lambda (_applied) (signal 'quit nil))
+    (should (eq 'quit (condition-case nil
+                          (progn (claude-code-ide-org--review-apply
+                                  (claude-code-ide-org-test--apply-items "k1" "k2"))
+                                 'finished)
+                        (quit 'quit))))
+    (let ((applied (claude-code-ide-org--queue-applied "sess-a")))
+      (should (gethash "k1" applied))
+      (should (gethash "k2" applied)))))
+
+(ert-deftest claude-code-ide-org-test-apply-quit-mid-batch-records-only-what-applied ()
+  "A quit on the second of three items records the first and only it:
+the interrupted item never joined the applied list, so it stays pending."
+  (let ((n 0))
+    (claude-code-ide-org-test--with-apply-stubs
+        (lambda (_item) (setq n (1+ n)) (when (= n 2) (signal 'quit nil)) nil)
+        #'ignore
+      (condition-case nil
+          (claude-code-ide-org--review-apply
+           (claude-code-ide-org-test--apply-items "k1" "k2" "k3"))
+        (quit nil))
+      (let ((applied (claude-code-ide-org--queue-applied "sess-a")))
+        (should (gethash "k1" applied))
+        (should-not (gethash "k2" applied))
+        (should-not (gethash "k3" applied))))))
+
+(ert-deftest claude-code-ide-org-test-apply-amend-already-present-writes-nothing ()
+  "An amend whose text already stands in the body, or in the named
+drawer, writes nothing and says so; a different amend still lands
+(TODO.org :ID: d3468075).  This is the second half of an interrupted
+pass: the text was saved, the pass was not recorded, and the next pass
+used to insert it again."
+  (claude-code-ide-org-test--with-capture-file
+    (should-not (string-prefix-p "Error" (claude-code-ide-org-capture
+                                          "Amended once" nil nil nil "TODO" "Test")))
+    (org-id-update-id-locations (list capture-file))
+    (let ((id (with-temp-buffer
+                (insert-file-contents capture-file)
+                (re-search-forward "^:ID: +\\(\\S-+\\)")
+                (match-string 1)))
+          (body "The body sentence, written once.")
+          (plan "The plan sentence, written once."))
+      (should (string-prefix-p "Amended" (claude-code-ide-org-amend id body)))
+      (should (string-prefix-p "Amended" (claude-code-ide-org-amend id plan nil nil "PLAN")))
+      (let ((before (claude-code-ide-org-test--disk-contents capture-file))
+            (claude-code-ide-org--review-apply-warnings nil))
+        (claude-code-ide-org--at-id
+         id (lambda ()
+              (claude-code-ide-org--review-apply-amend (list :type 'amend :id id :text body))
+              (claude-code-ide-org--review-apply-amend
+               (list :type 'amend :id id :text plan :drawer "PLAN"))
+              (save-buffer)))
+        (should (equal before (claude-code-ide-org-test--disk-contents capture-file)))
+        (should (= 2 (cl-count-if (lambda (w) (string-match-p "amend already present" w))
+                                  claude-code-ide-org--review-apply-warnings)))
+        ;; A different amend to the same heading is not a repeat.
+        (claude-code-ide-org--at-id
+         id (lambda ()
+              (claude-code-ide-org--review-apply-amend
+               (list :type 'amend :id id :text "A second, different sentence."))
+              (save-buffer)))
+        (should (string-match-p "A second, different sentence\\."
+                                (claude-code-ide-org-test--disk-contents capture-file)))
+        (should (= 1 (with-temp-buffer
+                       (insert (claude-code-ide-org-test--disk-contents capture-file))
+                       (how-many "The body sentence, written once\\."
+                                 (point-min) (point-max)))))))))
+
 (ert-deftest claude-code-ide-org-test-capture-refuses-a-leading-todo-keyword ()
   "A title starting with a TODO keyword must be refused, not written.
 
