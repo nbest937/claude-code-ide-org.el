@@ -2,6 +2,22 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO sync-plans --check exits 2 when ~/.claude/plans is gone, so pre-push refuses every push :code:bounded:
+:PROPERTIES:
+:ID:       b4c1f663-78eb-4c18-9f53-2809e2ed93b7
+:CREATED:  [2026-11-13 Fri 09:03]
+:CATEGORY: Dev
+:END:
+
+bin/sync-plans refuses with exit 2 when its source directory does not exist (its
+directory test on =$src=, near the top), and .githooks/pre-push runs it, so on a
+machine where Claude Code has removed ~/.claude/plans every push is refused.
+Found 2026-11-13: seven pre-push-test checks failed on that message alone.
+CLAUDE.md says the originals are left to expire and plans/ is their archive, so
+a missing source should read as an empty one: --check passes when every linked
+plan is archived, and refuses only one that is in neither. Workaround until
+then: mkdir ~/.claude/plans.
+
 * TODO A review render parses the whole queue four times, 3.8 of its 4.8 seconds on the live queue :code:
 :PROPERTIES:
 :ID:       3565ba71-bb57-4b97-b4ca-66bd917096fe
