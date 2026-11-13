@@ -4758,6 +4758,115 @@ than that has no key at all."
                        (when cwd `((cwd . ,cwd)))
                        `((source . ,kind)))))
 
+(defun claude-code-ide-org-test--queue-event-eid (eid ts kind &optional id state)
+  "One queue line as `claude-code-ide-org-test--queue-event' writes it,
+carrying the writer's EID as bin/hooks/queue-append now does."
+  (let ((line (claude-code-ide-org-test--queue-event ts kind id state)))
+    (concat (substring line 0 -1) (format ",\"eid\":%S}" eid))))
+
+(defmacro claude-code-ide-org-test--with-same-second-queue (lines &rest body)
+  "Run BODY over a scratch queue holding LINES in session sess-a, with
+`events' bound to its pending events, oldest first."
+  (declare (indent 1))
+  `(claude-code-ide-org-test--with-queue
+     (apply #'claude-code-ide-org-test--queue-write "sess-a" ,lines)
+     (let ((events (claude-code-ide-org--queue-events "sess-a")))
+       ,@body)))
+
+(defun claude-code-ide-org-test--pending-eids ()
+  "The eids of sess-a's pending events, oldest first."
+  (mapcar (lambda (e) (plist-get e :eid))
+          (claude-code-ide-org--queue-events "sess-a")))
+
+(ert-deftest claude-code-ide-org-test-queue-same-second-events-apply-apart ()
+  "Two events of one second are consumed apart (TODO.org :ID: 0a0dee55).
+
+Consumption was keyed by `ts', to the second, so applying either event
+consumed both.  Every fixture before this one stamped its events at
+least a second apart, which is how the defect went untested."
+  (claude-code-ide-org-test--with-same-second-queue
+      (list (claude-code-ide-org-test--queue-event-eid
+             "aaaaaaaaaaaaaaaa" "2026-11-13T09:00:00-0600" "pause")
+            (claude-code-ide-org-test--queue-event-eid
+             "bbbbbbbbbbbbbbbb" "2026-11-13T09:00:00-0600" "resume"))
+    (should (equal '("aaaaaaaaaaaaaaaa" "bbbbbbbbbbbbbbbb")
+                   (claude-code-ide-org-test--pending-eids)))
+    (claude-code-ide-org--review-record-applied
+     (list (list :events (list (car events)))))
+    (should (equal '("bbbbbbbbbbbbbbbb") (claude-code-ide-org-test--pending-eids)))))
+
+(ert-deftest claude-code-ide-org-test-queue-same-second-events-dismiss-apart ()
+  "Dismissing one event of a second leaves its sibling pending."
+  (claude-code-ide-org-test--with-same-second-queue
+      (list (claude-code-ide-org-test--queue-event-eid
+             "aaaaaaaaaaaaaaaa" "2026-11-13T09:00:00-0600" "pause")
+            (claude-code-ide-org-test--queue-event-eid
+             "bbbbbbbbbbbbbbbb" "2026-11-13T09:00:00-0600" "resume"))
+    (claude-code-ide-org--queue-mark-dismissed
+     "sess-a" (list (plist-get (cadr events) :key)) "obsolete")
+    (should (equal '("aaaaaaaaaaaaaaaa") (claude-code-ide-org-test--pending-eids)))))
+
+(ert-deftest claude-code-ide-org-test-queue-state-applied-leaves-same-second-clock ()
+  "A todo DOING and its clock_in, queued in one second: applying the
+state item leaves the clock_in pending, the knock-on the heading names."
+  (claude-code-ide-org-test--with-same-second-queue
+      (list (claude-code-ide-org-test--queue-event-eid
+             "aaaaaaaaaaaaaaaa" "2026-11-13T09:00:00-0600" "todo" "h-1" "DOING")
+            (claude-code-ide-org-test--queue-event-eid
+             "bbbbbbbbbbbbbbbb" "2026-11-13T09:00:00-0600" "clock_in" "h-1"))
+    (claude-code-ide-org--review-record-applied
+     (list (list :events (seq-filter (lambda (e) (equal "todo" (plist-get e :kind)))
+                                     events))))
+    (should (equal '("clock_in")
+                   (mapcar (lambda (e) (plist-get e :kind))
+                           (claude-code-ide-org--queue-events "sess-a"))))))
+
+(ert-deftest claude-code-ide-org-test-queue-later-pass-stamps-same-second-sibling ()
+  "A sibling applied by a later pass carries that pass's stamp.
+
+Under ts keys the second mark found the key already stamped and kept the
+first pass's time, so un-applying a pass picked the wrong events."
+  (claude-code-ide-org-test--with-same-second-queue
+      (list (claude-code-ide-org-test--queue-event-eid
+             "aaaaaaaaaaaaaaaa" "2026-11-13T09:00:00-0600" "pause")
+            (claude-code-ide-org-test--queue-event-eid
+             "bbbbbbbbbbbbbbbb" "2026-11-13T09:00:00-0600" "resume"))
+    (let ((pass "pass-1"))
+      (cl-letf (((symbol-function 'format-time-string) (lambda (&rest _) pass)))
+        (claude-code-ide-org--review-record-applied
+         (list (list :events (list (car events)))))
+        (setq pass "pass-2")
+        (claude-code-ide-org--review-record-applied
+         (list (list :events (list (cadr events)))))))
+    (let ((applied (claude-code-ide-org--queue-applied "sess-a")))
+      (should (equal "pass-1" (gethash "aaaaaaaaaaaaaaaa" applied)))
+      (should (equal "pass-2" (gethash "bbbbbbbbbbbbbbbb" applied))))))
+
+(ert-deftest claude-code-ide-org-test-queue-legacy-ts-keys-still-consume ()
+  "Lines written before eids are consumed by their ts, as before, and
+nothing is migrated: a legacy ts key in .applied still drops its line."
+  (claude-code-ide-org-test--with-queue
+    (claude-code-ide-org-test--queue-write
+     "sess-a"
+     (claude-code-ide-org-test--queue-event "2026-11-13T09:00:00-0600" "pause")
+     (claude-code-ide-org-test--queue-event "2026-11-13T09:05:00-0600" "resume"))
+    (claude-code-ide-org--queue-mark-applied "sess-a" '("2026-11-13T09:00:00-0600"))
+    (should (equal '("resume")
+                   (mapcar (lambda (e) (plist-get e :kind))
+                           (claude-code-ide-org--queue-events "sess-a"))))))
+
+(ert-deftest claude-code-ide-org-test-queue-eid-line-ignores-matching-legacy-key ()
+  "An eid line is consumed only by its eid, never by a legacy ts key
+that happens to equal its ts -- else an old pass's record would
+consume a new event of the same second."
+  (claude-code-ide-org-test--with-queue
+    (claude-code-ide-org-test--queue-write
+     "sess-a"
+     (claude-code-ide-org-test--queue-event-eid
+      "aaaaaaaaaaaaaaaa" "2026-11-13T09:00:00-0600" "pause"))
+    (claude-code-ide-org--queue-mark-applied "sess-a" '("2026-11-13T09:00:00-0600"))
+    (should (equal '("aaaaaaaaaaaaaaaa") (claude-code-ide-org-test--pending-eids)))))
+
 (ert-deftest claude-code-ide-org-test-queue-round-trips-every-kind ()
   "Every event kind parses back with its fields and ordering intact."
   (claude-code-ide-org-test--with-queue
@@ -5088,11 +5197,11 @@ for the whole pass, however many sessions it touches."
                    (setq calls (1+ calls))
                    (format "stamp-%d" calls))))
         (claude-code-ide-org--review-record-applied
-         (list (list :events (list (list :ts-string "2026-08-07T09:00:00-0500"
+         (list (list :events (list (list :key "2026-08-07T09:00:00-0500"
                                          :session-id "sess-a")
-                                   (list :ts-string "2026-08-07T09:05:00-0500"
+                                   (list :key "2026-08-07T09:05:00-0500"
                                          :session-id "sess-a")))
-               (list :events (list (list :ts-string "2026-08-07T10:00:00-0500"
+               (list :events (list (list :key "2026-08-07T10:00:00-0500"
                                          :session-id "sess-b"))))))
       (should (= 1 calls)))
     (should (equal '("stamp-1" "stamp-1" "stamp-1")
@@ -5105,7 +5214,7 @@ for the whole pass, however many sessions it touches."
     ;; And the real path writes the queue's own timestamp format, so a
     ;; stamp and an event `ts' are comparable without conversion.
     (claude-code-ide-org--review-record-applied
-     (list (list :events (list (list :ts-string "2026-08-07T11:00:00-0500"
+     (list (list :events (list (list :key "2026-08-07T11:00:00-0500"
                                      :session-id "sess-c")))))
     (should (string-match-p
              "\\`[0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}T[0-9]\\{2\\}:[0-9]\\{2\\}:[0-9]\\{2\\}[-+][0-9]\\{4\\}\\'"
@@ -7576,7 +7685,7 @@ clock pairs are authoritative, human guideposts become suggested spans."
                  (claude-code-ide-org-test--queue-event
                   "2026-08-06T09:10:00-0500" "pause")))
     (claude-code-ide-org--review-record-applied
-     (list (list :events (list (list :ts-string "2026-08-06T09:05:00-0500"
+     (list (list :events (list (list :key "2026-08-06T09:05:00-0500"
                                      :session-id "sess-a")))))
     (should (equal (mapcar (lambda (e) (plist-get e :ts-string))
                            (claude-code-ide-org--queue-events))
@@ -9638,7 +9747,7 @@ queue events -- equal in content, empty of the decision."
                            :events nil))
            (doomed (list :type 'state :id id :ts (current-time)
                          :from "TODO" :to "DOING"
-                         :events (list (list :ts-string "2026-08-15T09:00:00-0500"
+                         :events (list (list :key "2026-08-15T09:00:00-0500"
                                              :session-id "sess-x")))))
       (unwind-protect
           (with-current-buffer review
@@ -9672,7 +9781,7 @@ queue events -- equal in content, empty of the decision."
 (defun claude-code-ide-org-test--review-state (to &optional id session)
   "A state item queued -> TO under ID, carrying one event from SESSION."
   (list :type 'state :id id :ts (current-time) :from "TODO" :to to
-        :events (list (list :ts-string (format "2026-10-10T09:00:%02d-0500"
+        :events (list (list :key (format "2026-10-10T09:00:%02d-0500"
                                                (random 60))
                             :session-id (or session "sess-x")))))
 

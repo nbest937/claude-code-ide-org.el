@@ -695,6 +695,24 @@ reset_queue
 check "with the feature on there is no notice" "" \
   "$(printf '%s' '{"session_id":"sess-o3","tool_input":{"id":"x"},"tool_response":"Queued clock_in"}' | "$script" clock_in)"
 
+# --- every event carries its own key (TODO.org :ID: 0a0dee55) ----------
+# Consumption was keyed by ts, to the second, so two events of one second
+# were applied or dismissed together. Two appends back to back land in one
+# second far more often than not; the eids must differ either way.
+reset_queue
+run pause '{"session_id":"sess-e","hook_event_name":"Stop"}'
+run resume '{"session_id":"sess-e","hook_event_name":"UserPromptSubmit"}'
+eids="$(jq -r '.eid // "none"' <<<"$(queue_lines sess-e)")"
+check "each line carries a 16-hex eid" "2" "$(grep -cE '^[0-9a-f]{16}$' <<<"$eids")"
+check "and no two eids are the same" "2" "$(sort -u <<<"$eids" | wc -l | tr -d ' ')"
+
+# An unreadable random source costs the eid, never the event: the line
+# is written without one and is keyed by ts, as before eids.
+reset_queue
+CLAUDE_ORG_RANDOM_SOURCE="$work/no-such-source" run pause '{"session_id":"sess-n","hook_event_name":"Stop"}'
+check "with no random source the event is still written" "1" "$(queue_lines sess-n | wc -l | tr -d ' ')"
+check "and carries no eid at all" "false" "$(jq -c 'has("eid")' <<<"$(queue_lines sess-n)")"
+
 # --- the script never fails its caller ---------------------------------
 printf '%s' 'garbage' | "$script" pause >/dev/null 2>&1
 check "always exits 0" "0" "$?"

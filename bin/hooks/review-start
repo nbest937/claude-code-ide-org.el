@@ -103,7 +103,9 @@ queue_dir="${CLAUDE_ORG_QUEUE_DIR:-$HOME/.claude/org-updates}"
 # Redundant if ANY session already has this slice queued to REVIEW and
 # not yet applied or dismissed -- a second session running /code-review
 # must not queue it again. Applied events stay in the files, so each
-# session's watermark (event ts -> when) decides what is still pending.
+# session's watermark (event key -> when; the key is the event's eid, or
+# its ts on a line written before eids, TODO.org :ID: 0a0dee55) decides
+# what is still pending.
 # An applied REVIEW needs no check here: the slice is then REVIEW on disk,
 # and only DOING slices reach this point.
 shopt -s nullglob
@@ -113,7 +115,7 @@ for f in "$queue_dir"/*.jsonl; do
   [ -f "$wm" ] && done_ts="$(jq -c '[(.applied // {} | keys[]), (.dismissed // {} | keys[])]' "$wm" 2>/dev/null || echo '[]')"
   if jq -R -n -e --arg id "$id" --argjson done "$done_ts" \
        '[inputs | fromjson? | select(.kind == "todo" and .id == $id and .state == "REVIEW")
-         | select(.ts as $t | $done | index($t) | not)] | length > 0' < "$f" >/dev/null 2>&1; then
+         | select((.eid // .ts) as $t | $done | index($t) | not)] | length > 0' < "$f" >/dev/null 2>&1; then
     exit 0
   fi
 done

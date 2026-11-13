@@ -346,6 +346,17 @@ fi
 queue_dir="${CLAUDE_ORG_QUEUE_DIR:-$HOME/.claude/org-updates}"
 mkdir -p "$queue_dir" 2>/dev/null || exit 0
 
+# The event's own key (TODO.org :ID: 0a0dee55). Consumption used to be
+# keyed by `ts', which is to the second, so two events from one second
+# shared a key and applying or dismissing one consumed both. 16 hex from
+# the random source, which an unreadable source turns into no eid at all:
+# the line is then written without one and keyed by ts as before, so a
+# failure costs exactness, never the event. An eid cannot collide with a
+# ts key, since every ts contains a colon. CLAUDE_ORG_RANDOM_SOURCE is for
+# the test.
+eid="$(od -An -N8 -tx1 "${CLAUDE_ORG_RANDOM_SOURCE:-/dev/urandom}" 2>/dev/null | tr -d ' \n')"
+[[ "$eid" =~ ^[0-9a-f]{16}$ ]] || eid=""
+
 # One line, built and encoded entirely by jq. Field names and the
 # timestamp format deliberately match the existing audit log written by
 # claude-code-ide-org--log-event, so both logs read the same way.
@@ -366,6 +377,7 @@ mkdir -p "$queue_dir" 2>/dev/null || exit 0
 # tool_name needs no field of its own: `source' already resolves to it.
 line="$(jq -n -c \
   --arg ts "$(date '+%Y-%m-%dT%H:%M:%S%z')" \
+  --arg eid "$eid" \
   --arg kind "$kind" \
   --arg session_id "$session_id" \
   --arg recovered_id "$recovered_id" \
@@ -408,7 +420,7 @@ line="$(jq -n -c \
      agent_id: ($payload.agent_id // null),
      agent_type: ($payload.agent_type // null),
      source: ($payload.tool_name // $payload.hook_event_name // $kind)
-   }' 2>/dev/null)"
+   } + (if $eid == "" then {} else {eid: $eid} end)' 2>/dev/null)"
 
 [[ -n "$line" ]] || exit 0
 

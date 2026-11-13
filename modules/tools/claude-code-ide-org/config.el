@@ -9809,6 +9809,14 @@ whole file. This is the single place that judgement is made."
         (when (and ts (member kind claude-code-ide-org--queue-kinds))
           (list :ts ts
                 :ts-string (alist-get 'ts obj)
+                ;; What consumption is keyed by (TODO.org :ID: 0a0dee55):
+                ;; the writer's eid, else the ts string on a line written
+                ;; before eids.  A ts is only to the second, so two events
+                ;; of one second shared it and applying or dismissing one
+                ;; consumed both.  An eid line is never consumed by a
+                ;; legacy ts key, since its key is never its ts.
+                :eid (alist-get 'eid obj)
+                :key (or (alist-get 'eid obj) (alist-get 'ts obj))
                 :kind kind
                 ;; Expanded when a prefix (TODO.org :ID: 4c43145d).
                 :id (claude-code-ide-org--queue-full-id (alist-get 'id obj))
@@ -9856,7 +9864,10 @@ whole file. This is the single place that judgement is made."
                 :source (alist-get 'source obj)))))))
 
 (defun claude-code-ide-org--queue-applied (session-id)
-  "Return SESSION-ID's already-applied events, a hash of `ts' -> apply time.
+  "Return SESSION-ID's already-applied events, a hash of key -> apply time.
+The key is the event's `eid', or its `ts' string on a line written
+before eids (TODO.org :ID: 0a0dee55); keys of both shapes share the
+hash, and nothing is migrated.
 Empty when nothing has been applied. The value is the timestamp of the
 *apply pass* that consumed the event, in the queue's own
 `%Y-%m-%dT%H:%M:%S%z' format -- or the empty string for an entry written
@@ -9986,7 +9997,7 @@ from a small JSON file. That is deliberate -- an append-only log stays
 append-only, and the decision to retire an event is bookkeeping about
 the log, not an edit to it."
   (let ((dismissed (claude-code-ide-org--queue-dismissed session-id)))
-    (dolist (ts ts-strings) (puthash ts (or reason "") dismissed))
+    (dolist (ts ts-strings) (when ts (puthash ts (or reason "") dismissed)))
     (claude-code-ide-org--queue-watermark-write
      session-id
      (claude-code-ide-org--queue-applied session-id)
@@ -10034,7 +10045,9 @@ was applied -- see `claude-code-ide-org--queue-watermark-data'."
   (let ((applied (claude-code-ide-org--queue-applied session-id))
         (stamp (or applied-at (format-time-string "%Y-%m-%dT%H:%M:%S%z"))))
     (dolist (ts ts-strings)
-      (unless (gethash ts applied) (puthash ts stamp applied)))
+      ;; A nil key is an event built by hand with none; it names
+      ;; nothing to consume, and would break the JSON write.
+      (when (and ts (not (gethash ts applied))) (puthash ts stamp applied)))
     (claude-code-ide-org--queue-watermark-write
      session-id applied
      (claude-code-ide-org--queue-dismissed session-id))))
@@ -10068,16 +10081,19 @@ it would re-propose work already applied."
                            (insert-file-contents file)
                            (buffer-string))
                          "\n" t))
-            ;; A consumed line is dropped on its raw `ts' before any
-            ;; parse: the two sets are keyed by that exact string, and
-            ;; 97% of lines were consumed ones (TODO.org :ID: fa617d99).
-            (let ((event (unless (and (string-match "\"ts\":\"\\([^\"]+\\)\"" line)
-                                      (let ((ts (match-string 1 line)))
-                                        (or (gethash ts applied) (gethash ts dismissed))))
+            ;; A consumed line is dropped on its raw key before any
+            ;; parse: 97% of lines were consumed ones (TODO.org :ID:
+            ;; fa617d99).  The key is the eid when the line has one and
+            ;; the ts otherwise, the same choice `:key' makes, so "eid"
+            ;; is looked for first (TODO.org :ID: 0a0dee55).
+            (let ((event (unless (and (or (string-match "\"eid\":\"\\([^\"]+\\)\"" line)
+                                          (string-match "\"ts\":\"\\([^\"]+\\)\"" line))
+                                      (let ((key (match-string 1 line)))
+                                        (or (gethash key applied) (gethash key dismissed))))
                            (claude-code-ide-org--queue-parse-line line))))
               (when (and event
-                         (not (gethash (plist-get event :ts-string) applied))
-                         (not (gethash (plist-get event :ts-string) dismissed)))
+                         (not (gethash (plist-get event :key) applied))
+                         (not (gethash (plist-get event :key) dismissed)))
                 (push event events)))))))
     (sort (nreverse events)
           (lambda (a b) (time-less-p (plist-get a :ts) (plist-get b :ts))))))
@@ -11600,8 +11616,8 @@ synthetic `resume' is added at that instant; where it ends at a bracket's
 start, a synthetic `pause'.  *Evidence, not assertion*: both instants are
 clock events from the queue, and \"running\" is read off the turn
 guideposts either side.  The synthetic events carry no `:session-id' and
-no `:ts-string', so apply and dismiss -- which mark events consumed by
-those two keys -- skip them by construction.
+no `:key', so apply and dismiss -- which mark events consumed by those
+two -- skip them by construction.
 
 Only for a SPAN of a minute or more; see the binding below."
   (let ((start (car span)) (end (cdr span)) (out events)
@@ -12747,7 +12763,7 @@ each session its own value and answer a subtly different question."
         (applied-at (format-time-string "%Y-%m-%dT%H:%M:%S%z")))
     (dolist (item applied-items)
       (dolist (event (plist-get item :events))
-        (push (plist-get event :ts-string)
+        (push (plist-get event :key)
               (gethash (plist-get event :session-id) by-session))))
     (maphash (lambda (session-id ts-strings)
                (when session-id
@@ -13201,12 +13217,12 @@ session's own items.  Never signals to the MCP layer."
              (pending (let ((h (make-hash-table :test 'equal)))
                         (dolist (e events h)
                           (puthash (cons (plist-get e :session-id)
-                                         (plist-get e :ts-string))
+                                         (plist-get e :key))
                                    t h))))
              (backing (seq-filter
                        (lambda (e)
                          (gethash (cons (plist-get e :session-id)
-                                        (plist-get e :ts-string))
+                                        (plist-get e :key))
                                   pending))
                        (delete-dups
                         (apply #'append
@@ -17447,7 +17463,7 @@ act on a few lines."
     (dolist (item items)
       (let ((why (or (plist-get item :dismiss-reason) reason)))
         (dolist (event (plist-get item :events))
-          (push (plist-get event :ts-string)
+          (push (plist-get event :key)
                 (gethash (cons (plist-get event :session-id) why) by-key)))))
     (maphash (lambda (key ts-strings)
                (when (car key)

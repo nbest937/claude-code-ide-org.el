@@ -63,7 +63,8 @@ check "another session does not queue it again while s1's is pending" "0" "$(lin
 # Pending means in no session's watermark, applied or dismissed. Once s1's
 # event is applied the slice is REVIEW on disk and is skipped anyway; a
 # dismissed one leaves it DOING, and a new review start should queue it.
-ts="$(jq -r 'select(.kind == "todo") | .ts' "$CLAUDE_ORG_QUEUE_DIR/s1.jsonl")"
+# Keyed as consumption is: the eid, else the ts (TODO.org :ID: 0a0dee55).
+ts="$(jq -r 'select(.kind == "todo") | (.eid // .ts)' "$CLAUDE_ORG_QUEUE_DIR/s1.jsonl")"
 jq -n -c --arg t "$ts" '{applied: {}, dismissed: {($t): "2026-09-21T18:00:00-0500"}}' > "$CLAUDE_ORG_QUEUE_DIR/s1.applied"
 prompt s1c "/ultrareview" >/dev/null
 check "once dismissed, the deprecated alias queues it anew" "1" "$(lines s1c)"
@@ -95,6 +96,21 @@ rm -f "$CLAUDE_ORG_QUEUE_DIR"/*   # each case that expects a line starts from an
 { slice "$S1" DOING "$M1"; printf '* REVIEW Task cccc\n:PROPERTIES:\n:ID:       %s\n:END:\nA body naming :ID: %s as TODO.\n\n' "$M1" "$M2"; } > "$CLAUDE_PROJECT_DIR/TODO.org"
 prompt s7 "/code-review" >/dev/null
 check "ids in a body are not headings" "1" "$(lines s7)"
+
+# A pending REVIEW event that shares its second with an event an older
+# pass applied by ts (TODO.org :ID: 0a0dee55). The REVIEW line carries an
+# eid, so it is consumed only by its eid; the legacy ts key in .applied
+# belongs to its sibling. Read by ts, the hook took it for consumed and
+# queued the slice a second time.
+rm -rf "$CLAUDE_ORG_QUEUE_DIR"; mkdir -p "$CLAUDE_ORG_QUEUE_DIR"
+{ slice "$S1" DOING "$M1"; task "$M1" REVIEW; } > "$CLAUDE_PROJECT_DIR/TODO.org"
+t="2026-11-13T09:00:00-0600"
+jq -n -c --arg t "$t" --arg id "$S1" \
+  '{ts: $t, kind: "todo", id: $id, state: "REVIEW", session_id: "s8", eid: "aaaaaaaaaaaaaaaa"}' \
+  > "$CLAUDE_ORG_QUEUE_DIR/s8.jsonl"
+jq -n -c --arg t "$t" '{applied: {($t): $t}, dismissed: {}}' > "$CLAUDE_ORG_QUEUE_DIR/s8.applied"
+prompt s9 "/code-review" >/dev/null
+check "a REVIEW sharing its second with an applied event is still pending" "0" "$(lines s9)"
 
 echo
 echo "review-start-test: $pass passed, $fail failed"
