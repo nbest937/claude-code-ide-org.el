@@ -8,6 +8,27 @@ Archived entries from file /Users/neil.best/git/claude-code-ide-org/TODO.org
 
 ** 2026-11 November
 *** 2026-11-13 Friday
+**** DONE Acceptance probe for 0a0dee55: a NEXT and a DONE queued in one second, only the DONE applied
+CLOSED: [2026-11-13 Fri 12:48]
+:PROPERTIES:
+:ID:       a27e8f5a-bc7a-4407-8c5a-4b6f2e5cc99f
+:CREATED:  [2026-11-13 Fri 12:47]
+:CATEGORY: Queue
+:ARCHIVE_TIME: 2026-11-13 Fri 13:06
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Queue
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+- State "DONE"       from "TODO"       [2026-11-13 Fri 12:48] \\
+  same-second probe: apply this
+:END:
+
+A throwaway heading for [[id:0a0dee55-d709-466e-a525-c3bb1c437b91][0a0dee55]]'s acceptance step. One session queues NEXT and
+DONE on it in the same second; the user applies only the DONE, and
+org_pending_updates must still show the NEXT, which is then dismissed. Before
+event ids, applying the DONE consumed the NEXT with it.
+
 **** DONE sync-plans --check exits 2 when ~/.claude/plans is gone, so pre-push refuses every push :code:bounded:
 CLOSED: [2026-11-13 Fri 11:55]
 :PROPERTIES:
@@ -165,6 +186,7 @@ gate, since the script stays.
 Resolved 2026-11-13: the header now opens by saying the script is a manual,
 mostly historical tool, why, and that nothing runs it; the link-form comment
 says older headings carry that form and none is written now. On PR #46's branch.
+
 
 *** 2026-11-11 Wednesday
 **** DONE The review suggests a heading from any project's todo events, so a project with time tracking off collects other projects' time as CLOCK lines :code:bounded:

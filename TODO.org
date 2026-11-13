@@ -2,18 +2,6 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* TODO Acceptance probe for 0a0dee55: a NEXT and a DONE queued in one second, only the DONE applied
-:PROPERTIES:
-:ID:       a27e8f5a-bc7a-4407-8c5a-4b6f2e5cc99f
-:CREATED:  [2026-11-13 Fri 12:47]
-:CATEGORY: Queue
-:END:
-
-A throwaway heading for [[id:0a0dee55-d709-466e-a525-c3bb1c437b91][0a0dee55]]'s acceptance step. One session queues NEXT and
-DONE on it in the same second; the user applies only the DONE, and
-org_pending_updates must still show the NEXT, which is then dismissed. Before
-event ids, applying the DONE consumed the NEXT with it.
-
 * TODO Two worktrees developing the module share one running Emacs, which holds whichever config.el was loaded last, and check-image calls that fresh to both :code:
 :PROPERTIES:
 :ID:       e07eb33a-2971-4bb9-b429-bbee9a6f4322
@@ -1104,7 +1092,7 @@ claude-code-ide-org-refuse-browser-origins, and the probe finds every live
 companion refusing. On the slice's branch, feature/tracker-record-loss.
 
 
-* DOING [13/29] The tracker can lose or corrupt its record, or Emacs can stop on a prompt, and nothing says so :code:
+* DOING [14/30] The tracker can lose or corrupt its record, or Emacs can stop on a prompt, and nothing says so :code:
 :PROPERTIES:
 :ID:       3bfa593c-c2da-4e44-b47f-2d5f0750f2aa
 :CREATED:  [2026-10-27 Tue 12:56]
@@ -1209,10 +1197,11 @@ Incidental:
 - [X] [[id:e08fb599-8cce-4c50-8fe9-9291ec24c7d7][e08fb599]] DONE Projects are compared by directory basename, so two checkouts with the same name count as one project
 - [X] [[id:e70cad3f-5546-405b-b659-9ebc90fb45d0][e70cad3f]] DONE A heading missing from org-id-locations counts as another project's, since the project test does no rescan on a miss
 - [X] [[id:460dfe96-8a08-456f-bdbd-2ace19afd404][460dfe96]] DONE A span from a removed linked worktree resolves to gone, and gone stops the project lookup before the edge events are read
+- [X] [[id:b4c1f663-78eb-4c18-9f53-2809e2ed93b7][b4c1f663]] DONE sync-plans --check exits 2 when ~/.claude/plans is gone, so pre-push refuses every push
 - [X] [[id:4899c4c2-50da-4fa5-a2dd-a327f2c391b8][4899c4c2]] DONE Address the PR #46 review: eight findings, answered by retiring the pre-push plans gate
 - [X] [[id:a8f070af-8438-4dc5-abef-52ac845c53bc][a8f070af]] DONE The pre-push plans gate checks a source that only empties, and its new warning is never shown: retire it
 - [X] [[id:7b2e5fff-3444-4388-9628-ad70cce5bd38][7b2e5fff]] DONE bin/sync-plans' header still calls ~/.claude/plans the working copy org headings link to
-- [X] [[id:b4c1f663-78eb-4c18-9f53-2809e2ed93b7][b4c1f663]] DONE sync-plans --check exits 2 when ~/.claude/plans is gone, so pre-push refuses every push
+- [X] [[id:a27e8f5a-bc7a-4407-8c5a-4b6f2e5cc99f][a27e8f5a]] DONE Acceptance probe for 0a0dee55: a NEXT and a DONE queued in one second, only the DONE applied
 
 
 * TODO claude-org-setup assigns mcp_action and nothing reads it :code:
@@ -14932,6 +14921,8 @@ CLOCK: [2026-11-06 Fri 09:21]--[2026-11-06 Fri 09:22] =>  0:01
 - <2026-11-06 Fri 09:21>--<2026-11-06 Fri 09:22> review pass (buffer buried)
 CLOCK: [2026-11-11 Wed 17:47]--[2026-11-11 Wed 17:50] =>  0:03
 CLOCK: [2026-11-13 Fri 12:23]--[2026-11-13 Fri 12:25] =>  0:02
+CLOCK: [2026-11-13 Fri 13:02]--[2026-11-13 Fri 13:06] =>  0:04
+- <2026-11-13 Fri 13:02>--<2026-11-13 Fri 13:06> review pass (buffer buried)
 :END:
 
 We created this heading on 2026-08-26. We deleted that property from its
