@@ -1579,7 +1579,8 @@ are."
          (image (ignore-errors (claude-code-ide-org--image-report)))
          ;; Guarded the same way (TODO.org :ID: 3ad389be).
          (failures (ignore-errors (claude-code-ide-org--tool-failure-report)))
-         (parts (delq nil (list ran stale ceremony image failures)))
+         (watermarks (ignore-errors (claude-code-ide-org--queue-unreadable-report)))
+         (parts (delq nil (list ran stale ceremony image failures watermarks)))
          ;; The user's channel (TODO.org :ID: d585d33e).  Measured on
          ;; this project's transcripts (:ID: c5b02503), additionalContext
          ;; reached the user in 15 of 24 genuine session starts -- the
@@ -1599,7 +1600,8 @@ are."
                       (and ceremony
                            (claude-code-ide-org--ceremony-summary status))
                       (and image "the running Emacs is out of step with config.el")
-                      (and failures "org tool calls failed while Emacs was unreachable")))))
+                      (and failures "org tool calls failed while Emacs was unreachable")
+                      (and watermarks "a queue watermark does not parse, so its session's events are withheld")))))
     (if (null parts)
         "{}"
       (json-encode
@@ -9908,6 +9910,9 @@ since the file is rewritten wholesale every time."
         (puthash entry "" table)))
     table))
 
+(define-error 'claude-code-ide-org-watermark-unreadable
+  "Queue watermark does not parse; left untouched, a copy kept beside it, repair by hand")
+
 (defun claude-code-ide-org--queue-watermark-data (session-id)
   "Return SESSION-ID's parsed watermark file as an alist, or nil.
 
@@ -9918,14 +9923,28 @@ own key would silently erase the other, and that failure is a nasty one
 to diagnose from the symptom: dismissed items quietly reappearing reads
 as \"dismissal does not work\" rather than \"apply clobbered it\"."
   (let ((file (claude-code-ide-org--queue-watermark-file session-id)))
-    (when (file-readable-p file)
-      (ignore-errors
-        (json-parse-string
-         (with-temp-buffer
-           (insert-file-contents file)
-           (buffer-string))
-         :object-type 'alist :array-type 'list
-         :null-object nil :false-object nil)))))
+    ;; Absent and unreadable are different answers (TODO.org :ID:
+    ;; e9f8b780).  Absent is "nothing applied yet", nil.  A file that is
+    ;; there and will not parse used to read as nil too, so every event
+    ;; it had consumed came back as pending and the next write replaced
+    ;; the file, record and evidence both.  Now it is copied aside once
+    ;; and signals, and the callers decide: writers refuse, readers
+    ;; withhold that session and say so.
+    (when (file-exists-p file)
+      (condition-case nil
+          (json-parse-string
+           (with-temp-buffer
+             (insert-file-contents file)
+             (buffer-string))
+           :object-type 'alist :array-type 'list
+           :null-object nil :false-object nil)
+        (error
+         (let ((copy (concat file ".corrupt")))
+           ;; Once: never over an earlier copy, which is the first
+           ;; evidence and the one most worth keeping.
+           (unless (file-exists-p copy) (ignore-errors (copy-file file copy)))
+           (signal 'claude-code-ide-org-watermark-unreadable
+                   (list file (and (file-exists-p copy) copy)))))))))
 
 (defun claude-code-ide-org--queue-dismissed (session-id)
   "Return SESSION-ID's dismissed events, a hash of `ts' string -> reason.
@@ -9947,6 +9966,37 @@ different treatment at any later audit, and the reason costs one
                              (claude-code-ide-org--queue-watermark-data session-id)))
       (puthash (format "%s" (car cell)) (cdr cell) table))
     table))
+
+(defun claude-code-ide-org--queue-unreadable-watermarks (&optional session-id)
+  "Sessions whose watermark exists but does not parse, as (SESSION FILE COPY).
+SESSION-ID limits the check to that session.  COPY is the `.corrupt'
+copy, or nil when it could not be made (TODO.org :ID: e9f8b780)."
+  (let (bad)
+    (dolist (sid (if session-id (list session-id)
+                   (claude-code-ide-org--queue-session-ids)))
+      (condition-case err
+          (claude-code-ide-org--queue-watermark-data sid)
+        (claude-code-ide-org-watermark-unreadable
+         (push (cons sid (cdr err)) bad))))
+    (nreverse bad)))
+
+(defun claude-code-ide-org--queue-unreadable-report (&optional session-id)
+  "One paragraph naming every unreadable watermark, or nil when none is.
+Shared by `org_pending_updates', the review buffer's header and the
+session-start report, so all three say the same thing: the session's
+events are withheld rather than re-offered, and repair is the human's.
+No automatic recovery, deliberately -- guessing which events were
+consumed is the confidently wrong record the queue exists to avoid."
+  (let ((bad (claude-code-ide-org--queue-unreadable-watermarks session-id)))
+    (when bad
+      (format "UNREADABLE: %d queue watermark%s do%s not parse, so %s events are withheld from review rather than offered again as unapplied. Repair by hand, or from the copy kept beside it:\n%s\n"
+              (length bad) (if (cdr bad) "s" "") (if (cdr bad) "" "es")
+              (if (cdr bad) "those sessions'" "that session's")
+              (mapconcat (lambda (b)
+                           (format "  %s%s" (nth 1 b)
+                                   (if (nth 2 b) (format " (copy: %s)" (nth 2 b))
+                                     " (no copy could be made)")))
+                         bad "\n")))))
 
 (defun claude-code-ide-org--queue-watermark-write (session-id applied dismissed)
   "Write both APPLIED and DISMISSED for SESSION-ID, atomically.
@@ -10070,31 +10120,37 @@ it would re-propose work already applied."
   (let (events)
     (dolist (sid (if session-id (list session-id)
                    (claude-code-ide-org--queue-session-ids)))
-      (let ((file (claude-code-ide-org--queue-file sid))
-            (applied (if include-consumed (make-hash-table :test 'equal)
-                       (claude-code-ide-org--queue-applied sid)))
-            (dismissed (if include-consumed (make-hash-table :test 'equal)
-                         (claude-code-ide-org--queue-dismissed sid))))
-        (when (file-readable-p file)
-          (dolist (line (split-string
-                         (with-temp-buffer
-                           (insert-file-contents file)
-                           (buffer-string))
-                         "\n" t))
-            ;; A consumed line is dropped on its raw key before any
-            ;; parse: 97% of lines were consumed ones (TODO.org :ID:
-            ;; fa617d99).  The key is the eid when the line has one and
-            ;; the ts otherwise, the same choice `:key' makes, so "eid"
-            ;; is looked for first (TODO.org :ID: 0a0dee55).
-            (let ((event (unless (and (or (string-match "\"eid\":\"\\([^\"]+\\)\"" line)
-                                          (string-match "\"ts\":\"\\([^\"]+\\)\"" line))
-                                      (let ((key (match-string 1 line)))
-                                        (or (gethash key applied) (gethash key dismissed))))
-                           (claude-code-ide-org--queue-parse-line line))))
-              (when (and event
-                         (not (gethash (plist-get event :key) applied))
-                         (not (gethash (plist-get event :key) dismissed)))
-                (push event events)))))))
+      ;; A session whose watermark will not parse is withheld whole, not
+      ;; re-offered whole (TODO.org :ID: e9f8b780): every event it had
+      ;; consumed would otherwise come back as pending.  The reports name
+      ;; it, through `claude-code-ide-org--queue-unreadable-report'.
+      (condition-case nil
+	  (let ((file (claude-code-ide-org--queue-file sid))
+		(applied (if include-consumed (make-hash-table :test 'equal)
+			   (claude-code-ide-org--queue-applied sid)))
+		(dismissed (if include-consumed (make-hash-table :test 'equal)
+                             (claude-code-ide-org--queue-dismissed sid))))
+            (when (file-readable-p file)
+              (dolist (line (split-string
+                             (with-temp-buffer
+                               (insert-file-contents file)
+                               (buffer-string))
+                             "\n" t))
+		;; A consumed line is dropped on its raw key before any
+		;; parse: 97% of lines were consumed ones (TODO.org :ID:
+		;; fa617d99).  The key is the eid when the line has one and
+		;; the ts otherwise, the same choice `:key' makes, so "eid"
+		;; is looked for first (TODO.org :ID: 0a0dee55).
+		(let ((event (unless (and (or (string-match "\"eid\":\"\\([^\"]+\\)\"" line)
+                                              (string-match "\"ts\":\"\\([^\"]+\\)\"" line))
+					  (let ((key (match-string 1 line)))
+                                            (or (gethash key applied) (gethash key dismissed))))
+                               (claude-code-ide-org--queue-parse-line line))))
+		  (when (and event
+                             (not (gethash (plist-get event :key) applied))
+                             (not (gethash (plist-get event :key) dismissed)))
+                    (push event events))))))
+        (claude-code-ide-org-watermark-unreadable nil)))
     (sort (nreverse events)
           (lambda (a b) (time-less-p (plist-get a :ts) (plist-get b :ts))))))
 
@@ -13100,7 +13156,11 @@ Both clauses are load-bearing.  Yielding nothing is what makes a file
 finished; being idle is what stops a *live* session's stream being split
 in two.  A file can satisfy the first and fail the second all day --
 that is a session sitting at a prompt, not a finished one."
-  (and (null (claude-code-ide-org--review-items-from-queue session-id))
+  ;; An unreadable watermark withholds the session's events, so it
+  ;; yields nothing and would look drained, and archiving would move it
+  ;; out of sight before anyone repaired it (TODO.org :ID: e9f8b780).
+  (and (null (claude-code-ide-org--queue-unreadable-watermarks session-id))
+       (null (claude-code-ide-org--review-items-from-queue session-id))
        (claude-code-ide-org--queue-file-idle-p session-id)))
 
 (defun claude-code-ide-org-archive-drained-queues (&optional dry-run)
@@ -13325,6 +13385,8 @@ session's own items.  Never signals to the MCP layer."
                      (or (gethash item annotations) ""))
                     lines)))
           (push (claude-code-ide-org--review-describe item) lines))
+        (concat
+         (or (claude-code-ide-org--queue-unreadable-report session-id) "")
         (if (null items)
             (format (concat "Nothing pending: no queued update is proposing a "
                             "change.\n%d queue event(s) carry no proposal -- "
@@ -13353,7 +13415,7 @@ session's own items.  Never signals to the MCP layer."
                             "nothing reaches a file until a human does.\n"
                             "%d of %d queue event(s) back these items; the rest "
                             "is attribution scaffolding, not a backlog.")
-                    (length backing) (length events))))))
+                    (length backing) (length events)))))))
     (error (format "Error: %s" (error-message-string err)))))
 
 ;;; Review buffer
@@ -16447,6 +16509,10 @@ rest from lighting up."
             "x apply and dismiss marked, g refresh, ? help, q quit\n\n")
     (let ((health-line (claude-code-ide-org--review-id-health-line)))
       (when health-line (insert health-line)))
+    ;; A withheld session is invisible below, by construction, so the
+    ;; header is the only place it can be seen (TODO.org :ID: e9f8b780).
+    (let ((unreadable (claude-code-ide-org--queue-unreadable-report)))
+      (when unreadable (insert unreadable "\n")))
     (if (null display)
         (insert "  Nothing pending.\n")
       (dolist (item display)

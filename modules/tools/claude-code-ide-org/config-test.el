@@ -4962,6 +4962,63 @@ consume a new event of the same second."
     (claude-code-ide-org--queue-mark-applied "sess-a" '("2026-11-13T09:00:00-0600"))
     (should (equal '("aaaaaaaaaaaaaaaa") (claude-code-ide-org-test--pending-eids)))))
 
+(ert-deftest claude-code-ide-org-test-unreadable-watermark-refuses-withholds-and-reports ()
+  "A watermark that exists and does not parse is never read as empty
+(TODO.org :ID: e9f8b780).
+
+It used to: every event it had consumed came back as pending, and the
+next mark replaced the file, losing the record and the evidence both.
+Now the writer refuses and leaves it byte-identical with a .corrupt
+copy beside it, the reader withholds that session and the report names
+it, and the session never counts as drained, so archiving cannot move
+it out of sight."
+  (claude-code-ide-org-test--with-queue
+    (claude-code-ide-org-test--queue-write
+     "sess-a"
+     (claude-code-ide-org-test--queue-event "2026-11-13T09:00:00-0600" "todo" "h-1" "DOING"))
+    (let* ((file (claude-code-ide-org--queue-watermark-file "sess-a"))
+           (torn "{\"applied\":{\"2026-11-13T08:00:00-0600\":\"2026-11-13T08:30:00-06"))
+      (with-temp-file file (insert torn))
+      ;; The writer refuses, and replaces nothing.
+      (should-error (claude-code-ide-org--queue-mark-applied
+                     "sess-a" '("2026-11-13T09:00:00-0600"))
+                    :type 'claude-code-ide-org-watermark-unreadable)
+      (should (equal torn (claude-code-ide-org-test--disk-contents file)))
+      (should (equal torn (claude-code-ide-org-test--disk-contents (concat file ".corrupt"))))
+      ;; The dismiss writer refuses the same way.
+      (should-error (claude-code-ide-org--queue-mark-dismissed
+                     "sess-a" '("2026-11-13T09:00:00-0600") "x")
+                    :type 'claude-code-ide-org-watermark-unreadable)
+      ;; The copy is made once: a later, different breakage does not
+      ;; replace the first evidence.
+      (with-temp-file file (insert "also broken"))
+      (should-error (claude-code-ide-org--queue-applied "sess-a")
+                    :type 'claude-code-ide-org-watermark-unreadable)
+      (should (equal torn (claude-code-ide-org-test--disk-contents (concat file ".corrupt"))))
+      ;; Readers withhold the session and say so.
+      (should-not (claude-code-ide-org--queue-events "sess-a"))
+      (should-not (claude-code-ide-org--queue-events))
+      (let ((report (claude-code-ide-org--queue-unreadable-report)))
+        (should (string-match-p "UNREADABLE" report))
+        (should (string-search file report)))
+      (should (string-search file (claude-code-ide-org-pending-updates "sess-a")))
+      ;; Never drained, however long it sits idle.
+      (cl-letf (((symbol-function 'claude-code-ide-org--queue-file-idle-p) (lambda (_) t)))
+        (should-not (claude-code-ide-org--queue-file-drained-p "sess-a"))))))
+
+(ert-deftest claude-code-ide-org-test-absent-watermark-still-reads-as-empty ()
+  "An absent watermark is \"nothing applied yet\", not unreadable: its
+events are pending, no report names it, and a mark creates the file."
+  (claude-code-ide-org-test--with-queue
+    (claude-code-ide-org-test--queue-write
+     "sess-a"
+     (claude-code-ide-org-test--queue-event "2026-11-13T09:00:00-0600" "pause"))
+    (should-not (file-exists-p (claude-code-ide-org--queue-watermark-file "sess-a")))
+    (should (= 1 (length (claude-code-ide-org--queue-events "sess-a"))))
+    (should-not (claude-code-ide-org--queue-unreadable-report))
+    (claude-code-ide-org--queue-mark-applied "sess-a" '("2026-11-13T09:00:00-0600"))
+    (should-not (claude-code-ide-org--queue-events "sess-a"))))
+
 (ert-deftest claude-code-ide-org-test-queue-round-trips-every-kind ()
   "Every event kind parses back with its fields and ordering intact."
   (claude-code-ide-org-test--with-queue
