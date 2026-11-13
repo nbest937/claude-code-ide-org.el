@@ -1436,6 +1436,31 @@ Bounded: --queue-watermark-data in config.el, its two readers (--queue-applied,
 
 Code on a feature/ branch, merged through a PR.
 :END:
+:DEBRIEF:
+Shipped as planned. --queue-watermark-data tells absent (nil) from unreadable: a
+file that exists and will not parse is copied to <session>.applied.corrupt, once
+and never over an earlier copy, and claude-code-ide-org-watermark-unreadable is
+signalled with the file and the copy. --queue-mark-applied and
+--queue-mark-dismissed let it through, so nothing replaces the file; inside an
+apply pass that lands in [[id:d3468075-b17a-45a2-bd3a-838521f11a87][d3468075]]'s cleanup, so the items applied are re-offered
+next time and its repeat check keeps amends from landing twice. --queue-events
+catches it per session and withholds that session's events;
+--queue-file-drained-p never counts such a session drained. One shared report,
+--queue-unreadable-report, is prefixed to org_pending_updates, drawn under the
+review buffer's header and added to the session-start payload. Shell readers
+unchanged, as planned.
+
+Verified. Two ERT tests: a torn .applied makes both writers signal, stays
+byte-identical, gets a .corrupt copy that a later breakage does not replace,
+withholds the session from --queue-events and names the file in the report and
+in org_pending_updates, and is never drained; an absent file still reads as
+empty. The first fails against HEAD; the second fails there only because HEAD
+lacks the report function, and is a guard. bin/test 978 of 978; test-all 28
+suites, 1803 passed on the push. Reloaded live: all 149 sessions' watermarks
+parse, no report. No live acceptance step in the plan.
+
+Not done: nothing.
+:END:
 
 --queue-watermark-data wraps its parse in ignore-errors, so a truncated or
   hand-mangled .applied returns nil: every consumed event in that session is
@@ -1445,6 +1470,12 @@ Code on a feature/ branch, merged through a PR.
   tells an absent file from an unreadable one, keeps a .corrupt copy, refuses
   the write and withholds the session's events with a report; the design is in
   :PLAN:.
+
+Resolved 2026-11-13: an .applied that exists and does not parse is copied aside
+once and never read as empty; writers refuse it, readers withhold its session,
+and every report names it until a human repairs it. On the slice's branch,
+feature/tracker-record-loss.
+
 
 
 * TODO statusline.sh and session-start-recovery-check call emacsclient with no watchdog, so a wedged Emacs stalls them :code:
