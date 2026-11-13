@@ -2,11 +2,20 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* TODO [0/2] Address the PR #46 review: eight findings, answered by retiring the pre-push plans gate :code:
+* DONE [2/2] Address the PR #46 review: eight findings, answered by retiring the pre-push plans gate :code:
+CLOSED: [2026-11-13 Fri 11:55]
 :PROPERTIES:
 :ID:       4899c4c2-50da-4fa5-a2dd-a327f2c391b8
 :CREATED:  [2026-11-13 Fri 11:41]
 :CATEGORY: Dev
+:END:
+:LOGBOOK:
+CLOCK: [2026-11-13 Fri 11:41]--[2026-11-13 Fri 11:42] =>  0:01
+- [2026-11-13 Fri 11:41]--[2026-11-13 Fri 11:42] file and answer the PR #46 review
+- State "REVIEW"     from "TODO"       [2026-11-13 Fri 11:42] \\
+  both remediations on the branch
+- State "DONE"       from "REVIEW"     [2026-11-13 Fri 11:55] \\
+  both remediations merged; no child remains
 :END:
 
 The /code-review of [[https://github.com/nbest937/claude-code-ide-org.el/pull/46][PR #46]] ([[id:b4c1f663-78eb-4c18-9f53-2809e2ed93b7][b4c1f663]], 2026-11-13) found eight defects in
@@ -20,10 +29,18 @@ stale header the eighth.
 Resolved 2026-11-13: both remediations merged with [[https://github.com/nbest937/claude-code-ide-org.el/pull/46][PR #46]], all eight threads
 answered and resolved.
 
-** TODO The pre-push plans gate checks a source that only empties, and its new warning is never shown: retire it
+
+** DONE The pre-push plans gate checks a source that only empties, and its new warning is never shown: retire it
+CLOSED: [2026-11-13 Fri 11:55]
 :PROPERTIES:
 :ID:       a8f070af-8438-4dc5-abef-52ac845c53bc
 :CREATED:  [2026-11-13 Fri 11:41]
+:END:
+:LOGBOOK:
+- State "REVIEW"     from "TODO"       [2026-11-13 Fri 11:42] \\
+  gate retired on PR #46's branch
+- State "DONE"       from "REVIEW"     [2026-11-13 Fri 11:55] \\
+  merged in PR #46
 :END:
 :PLAN:
 
@@ -55,10 +72,18 @@ Resolved 2026-11-13: .githooks/pre-push no longer runs bin/sync-plans, and
 bin/sync-plans and its test are back to main's, so the code the findings named
 is gone. bin/lint-org still checks every plan link resolves, at commit.
 
-** TODO bin/sync-plans' header still calls ~/.claude/plans the working copy org headings link to
+
+** DONE bin/sync-plans' header still calls ~/.claude/plans the working copy org headings link to
+CLOSED: [2026-11-13 Fri 11:55]
 :PROPERTIES:
 :ID:       7b2e5fff-3444-4388-9628-ad70cce5bd38
 :CREATED:  [2026-11-13 Fri 11:41]
+:END:
+:LOGBOOK:
+- State "REVIEW"     from "TODO"       [2026-11-13 Fri 11:42] \\
+  header fixed on PR #46's branch
+- State "DONE"       from "REVIEW"     [2026-11-13 Fri 11:55] \\
+  merged in PR #46
 :END:
 :DEBRIEF:
 Shipped in [[https://github.com/nbest937/claude-code-ide-org.el/pull/46][PR #46]]: the header and the link-form comment rewritten; nothing else
@@ -74,11 +99,16 @@ Resolved 2026-11-13: the header now opens by saying the script is a manual,
 mostly historical tool, why, and that nothing runs it; the link-form comment
 says older headings carry that form and none is written now. On PR #46's branch.
 
+
 * TODO Two worktrees developing the module share one running Emacs, which holds whichever config.el was loaded last, and check-image calls that fresh to both :code:
 :PROPERTIES:
 :ID:       e07eb33a-2971-4bb9-b429-bbee9a6f4322
 :CREATED:  [2026-11-13 Fri 10:28]
 :CATEGORY: Dev
+:END:
+:LOGBOOK:
+CLOCK: [2026-11-13 Fri 10:28]--[2026-11-13 Fri 10:29] =>  0:01
+- [2026-11-13 Fri 10:28]--[2026-11-13 Fri 10:29] file the shared-image gap for worktrees
 :END:
 :PLAN:
 Unplanned; a proposal only. Reproduce first: load one worktree's config.el, then
@@ -102,7 +132,9 @@ pre-commit runs it. Read from the code 2026-11-13, not reproduced. Raised while
 weighing worktrees for a slice's code, to stop switching branches for every
 bookkeeping commit.
 
-* DOING sync-plans --check exits 2 when ~/.claude/plans is gone, so pre-push refuses every push :code:bounded:
+
+* DONE sync-plans --check exits 2 when ~/.claude/plans is gone, so pre-push refuses every push :code:bounded:
+CLOSED: [2026-11-13 Fri 11:55]
 :PROPERTIES:
 :ID:       b4c1f663-78eb-4c18-9f53-2809e2ed93b7
 :CREATED:  [2026-11-13 Fri 09:03]
@@ -111,6 +143,12 @@ bookkeeping commit.
 :LOGBOOK:
 - State "DOING"      from "TODO"       [2026-11-13 Fri 09:12] \\
   fix first, it blocks every push
+- State "REVIEW"     from "DOING"      [2026-11-13 Fri 11:28] \\
+  PR #46 review ran: eight findings
+CLOCK: [2026-11-13 Fri 11:54]--[2026-11-13 Fri 11:55] =>  0:01
+- [2026-11-13 Fri 11:54]--[2026-11-13 Fri 11:55] close after PR 46 merged
+- State "DONE"       from "REVIEW"     [2026-11-13 Fri 11:55] \\
+  PR #46 merged as 85fc654
 :END:
 :PLAN:
 Filed outcome-first, with the proposal in the body: read a missing source as
@@ -146,7 +184,6 @@ then: mkdir ~/.claude/plans.
 Resolved 2026-11-13 by retiring the gate, not by teaching sync-plans a missing
 source: pre-push no longer runs bin/sync-plans, so pushes go through again, and
 bin/lint-org keeps checking that every plan link resolves. Merged as [[https://github.com/nbest937/claude-code-ide-org.el/pull/46][PR #46]].
-
 
 
 * TODO A review render parses the whole queue four times, 3.8 of its 4.8 seconds on the live queue :code:
@@ -888,7 +925,7 @@ Code on a feature/ branch, merged through a PR.
   human-typed note with them; the design is in :PLAN:.
 
 
-* NEXT The session render escapes only column-zero lines, so an indented #+ line in transcript text takes effect, SETUPFILE included :code:bounded:
+* DOING The session render escapes only column-zero lines, so an indented #+ line in transcript text takes effect, SETUPFILE included :code:bounded:
 :PROPERTIES:
 :ID:       8985f8ae-8b26-45eb-8898-73f17c98680a
 :CREATED:  [2026-10-27 Tue 13:52]
@@ -900,6 +937,8 @@ Code on a feature/ branch, merged through a PR.
   classified at /plan-slice: one function and its test
 - State "NEXT"       from "TODO"       [2026-11-13 Fri 09:40] \\
   slice plan step 3, last way in from outside
+- State "DOING"      from "NEXT"       [2026-11-13 Fri 12:04] \\
+  slice step 3, starting
 :END:
 :PLAN:
 Bounded: one function, claude-code-ide-org--org-escape-body (config.el), and its
@@ -1098,9 +1137,13 @@ CLOCK: [2026-11-11 Wed 17:51]--[2026-11-11 Wed 17:52] =>  0:01
 CLOCK: [2026-11-13 Fri 09:02]--[2026-11-13 Fri 09:04] =>  0:02
 - [2026-11-13 Fri 09:02]--[2026-11-13 Fri 09:04] work slice 3bfa593c, first member
 - [2026-11-13 Fri 09:12]--[2026-11-13 Fri 09:12] work slice 3bfa593c, first member
+- [2026-11-13 Fri 09:16]--[2026-11-13 Fri 09:16] work slice 3bfa593c, first member
 - [2026-11-13 Fri 09:18]--[2026-11-13 Fri 09:19] work slice 3bfa593c, first member
 - State "REVIEW"     from "DOING"      [2026-11-13 Fri 09:40] \\
   done on the slice branch; DONE at merge
+- [2026-11-13 Fri 09:41]--[2026-11-13 Fri 09:41] work slice 3bfa593c, first member
+CLOCK: [2026-11-13 Fri 10:09]--[2026-11-13 Fri 10:12] =>  0:03
+- [2026-11-13 Fri 10:09]--[2026-11-13 Fri 10:12] work slice 3bfa593c, first member
 :END:
 :PLAN:
 Bounded: one advice on upstream's claude-code-ide-mcp--on-open
@@ -1171,7 +1214,7 @@ claude-code-ide-org-refuse-browser-origins, and the probe finds every live
 companion refusing. On the slice's branch, feature/tracker-record-loss.
 
 
-* DOING [9/25] The tracker can lose or corrupt its record, or Emacs can stop on a prompt, and nothing says so :code:
+* DOING [13/29] The tracker can lose or corrupt its record, or Emacs can stop on a prompt, and nothing says so :code:
 :PROPERTIES:
 :ID:       3bfa593c-c2da-4e44-b47f-2d5f0750f2aa
 :CREATED:  [2026-10-27 Tue 12:56]
@@ -1189,6 +1232,8 @@ companion refusing. On the slice's branch, feature/tracker-record-loss.
 CLOCK: [2026-11-11 Wed 17:54]--[2026-11-11 Wed 18:00] =>  0:06
 - [2026-11-11 Wed 17:54]--[2026-11-11 Wed 18:00] work slice 3bfa593c, next member
 - [2026-11-13 Fri 08:56]--[2026-11-13 Fri 08:57] work slice 3bfa593c, next member
+CLOCK: [2026-11-13 Fri 10:19]--[2026-11-13 Fri 10:20] =>  0:01
+- [2026-11-13 Fri 10:19]--[2026-11-13 Fri 10:20] add ed3e6862 to the slice
 :END:
 :PLAN:
 The order, composed at /plan-slice 2026-10-28 from the members' own :PLAN:
@@ -1241,7 +1286,7 @@ Planned:
 
 - [-] [[id:8c4a3aea-3208-46c8-a491-2ff024fbf822][8c4a3aea]] REVIEW The tools server answers any web page: it checks no Origin or Host, and every reply says Access-Control-Allow-Origin: *
 - [-] [[id:d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80][d7b2f50f]] REVIEW The IDE companion's WebSocket accepts any web page, and =executeCode= runs whatever elisp it is sent
-- [ ] [[id:8985f8ae-8b26-45eb-8898-73f17c98680a][8985f8ae]] NEXT The session render escapes only column-zero lines, so an indented #+ line in transcript text takes effect, SETUPFILE included
+- [-] [[id:8985f8ae-8b26-45eb-8898-73f17c98680a][8985f8ae]] DOING The session render escapes only column-zero lines, so an indented #+ line in transcript text takes effect, SETUPFILE included
 - [ ] [[id:0a0dee55-d709-466e-a525-c3bb1c437b91][0a0dee55]] TODO The applied record keys a session's events by timestamp to the second, so an event that failed or was skipped is consumed when another from the same second applies
 - [ ] [[id:d3468075-b17a-45a2-bd3a-838521f11a87][d3468075]] TODO An apply interrupted after its writes records nothing, and the next pass inserts each amend a second time
 - [ ] [[id:6c969cbd-0c03-409f-835f-80ddb1faedf6][6c969cbd]] TODO A replayed apply writes an extra one-minute CLOCK line for every run whose end has seconds
@@ -1274,6 +1319,10 @@ Incidental:
 - [X] [[id:e08fb599-8cce-4c50-8fe9-9291ec24c7d7][e08fb599]] DONE Projects are compared by directory basename, so two checkouts with the same name count as one project
 - [X] [[id:e70cad3f-5546-405b-b659-9ebc90fb45d0][e70cad3f]] DONE A heading missing from org-id-locations counts as another project's, since the project test does no rescan on a miss
 - [X] [[id:460dfe96-8a08-456f-bdbd-2ace19afd404][460dfe96]] DONE A span from a removed linked worktree resolves to gone, and gone stops the project lookup before the edge events are read
+- [X] [[id:4899c4c2-50da-4fa5-a2dd-a327f2c391b8][4899c4c2]] DONE Address the PR #46 review: eight findings, answered by retiring the pre-push plans gate
+- [X] [[id:a8f070af-8438-4dc5-abef-52ac845c53bc][a8f070af]] DONE The pre-push plans gate checks a source that only empties, and its new warning is never shown: retire it
+- [X] [[id:7b2e5fff-3444-4388-9628-ad70cce5bd38][7b2e5fff]] DONE bin/sync-plans' header still calls ~/.claude/plans the working copy org headings link to
+- [X] [[id:b4c1f663-78eb-4c18-9f53-2809e2ed93b7][b4c1f663]] DONE sync-plans --check exits 2 when ~/.claude/plans is gone, so pre-push refuses every push
 
 
 * TODO claude-org-setup assigns mcp_action and nothing reads it :code:
@@ -2459,7 +2508,6 @@ org_capture does update a cookie already there: two captures under =[/]= left
 =[0/2]= on disk (2026-11-13). The proposal
 covers both ends of a refile: ensure and update the cookie on the target, and
 update it on the old parent.
-
 
 
 * TODO lint-org with no arguments lints the plugin checkout, not the consuming repo, and passes :code:
@@ -14756,6 +14804,7 @@ per tool -- rather than opening the servers beyond localhost.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-11-13 Fri 12:23]--[2026-11-13 Fri 12:25] =>  0:02
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
@@ -16886,4 +16935,17 @@ CLOCK: [2026-11-11 Wed 15:16]--[2026-11-11 Wed 15:17] =>  0:01
 - [2026-11-11 Wed 15:16]--[2026-11-11 Wed 15:17] assigned at review
 CLOCK: [2026-11-11 Wed 15:26]--[2026-11-11 Wed 15:27] =>  0:01
 - [2026-11-11 Wed 15:26]--[2026-11-11 Wed 15:27] assigned at review
+:END:
+
+
+**** 2026-11-13 Friday
+:PROPERTIES:
+:ID:       253b1010-b0ee-4311-befc-58a6004386a9
+:CREATED:  [2026-11-13 Fri 10:19]
+:END:
+:LOGBOOK:
+CLOCK: [2026-11-13 Fri 10:24]--[2026-11-13 Fri 10:25] =>  0:01
+- [2026-11-13 Fri 10:24]--[2026-11-13 Fri 10:25] assigned at review
+CLOCK: [2026-11-13 Fri 10:28]--[2026-11-13 Fri 10:29] =>  0:01
+- [2026-11-13 Fri 10:28]--[2026-11-13 Fri 10:29] assigned at review
 :END:
