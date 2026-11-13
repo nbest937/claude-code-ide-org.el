@@ -1771,6 +1771,33 @@ their destination with OK-IF-ALREADY-EXISTS.
 
 Code on a feature/ branch, merged through a PR.
 :END:
+:DEBRIEF:
+Shipped as planned. --queue-archive-session moves a session whose archive copy
+does not exist exactly as before, and otherwise merges: both watermarks are read
+first, so an unreadable one ([[id:e9f8b780-c93b-41f9-b146-1c4695283af9][e9f8b780]]'s signal) stops it with nothing moved; the
+live .jsonl is renamed to a temp sibling, its lines appended after the archived
+ones, the maps unioned (applied keeping the earlier pass stamp where both hold a
+key, a stamp-less legacy entry yielding to a stamped one; dismissed keeping the
+archived reason; eid and ts keys alike), written through the existing
+--queue-watermark-write with claude-code-ide-org-queue-directory bound to the
+archive, and the live sidecar and temp deleted. archive-drained-queues reports
+merged sessions and returns them as :merged. restore-queue refuses with a
+user-error when a live file exists. The archive reader's comment now says why no
+file is ever in both places.
+
+Verified. Two ERT tests, both red against HEAD: archiving a session already
+archived keeps both lines in order and every key of both maps with the right
+stamps and reason; restore over a live file refuses and leaves both files
+byte-identical, and plain archive and restore still move the pair. bin/test 980
+of 980; test-all 28 suites, 1805 passed on the push. Acceptance, live after a
+reload: session a2c50743, 1 guidepost live and 15 archived as the plan found it,
+was drained; archived alone through --queue-archive-session (the command would
+also have archived every other drained session), it merged, leaving 16
+guideposts and 16 applied keys in the archive, nothing live and no temp. Both
+pairs were backed up to the session's scratchpad first.
+
+Not done: nothing.
+:END:
 
 archive-drained-queues and restore-queue both call rename-file with
 OK-IF-ALREADY-EXISTS, so a session that writes again after being archived (a
@@ -1780,6 +1807,12 @@ live file and 15 guideposts in its archived one, which the next archive run
 would destroy, while a comment beside the archive reader says no file is ever in
 both places; no test covers an existing destination. The fix merges on archive
 and refuses on restore; the design is in :PLAN:.
+
+Resolved 2026-11-13: archiving a session the archive already holds merges its
+lines and watermark into the archived copy, and restore refuses over a live
+queue file rather than overwrite it. On the slice's branch,
+feature/tracker-record-loss.
+
 
 
 * REVIEW The tools server answers any web page: it checks no Origin or Host, and every reply says Access-Control-Allow-Origin: * :code:bounded:
