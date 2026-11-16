@@ -1829,6 +1829,8 @@ newlines in any value; the design is in :PLAN:.
 CLOCK: [2026-11-13 Fri 14:09]--[2026-11-13 Fri 14:10] =>  0:01
 - [2026-11-13 Fri 14:09]--[2026-11-13 Fri 14:10] brainstorm archive and restore overwrite
 - [2026-11-13 Fri 14:40]--[2026-11-13 Fri 14:40] brainstorm archive and restore overwrite
+CLOCK: [2026-11-16 Mon 11:25]--[2026-11-16 Mon 11:26] =>  0:01
+- [2026-11-16 Mon 11:25]--[2026-11-16 Mon 11:26] brainstorm archive and restore overwrite
 :END:
 :PLAN:
 Bounded: claude-code-ide-org-archive-drained-queues and
