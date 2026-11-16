@@ -737,7 +737,7 @@ makes both sorts signal on a busy file, so the step fails and the ceremony stays
 due; the design is in :PLAN:.
 
 
-* NEXT A narrowed span's leftover copies the human's :active and :edited flags, so agent time is written as attention :code:bounded:
+* DOING A narrowed span's leftover copies the human's :active and :edited flags, so agent time is written as attention :code:bounded:
 :PROPERTIES:
 :ID:       187a87b4-20db-4fbf-931f-a4b4e1bed668
 :CREATED:  [2026-10-27 Tue 13:52]
@@ -749,6 +749,24 @@ due; the design is in :PLAN:.
   classified at /plan-slice: one function
 - State "NEXT"       from "TODO"       [2026-11-13 Fri 14:01] \\
   slice plan step 9, the leftover's flags
+CLOCK: [2026-11-13 Fri 14:40]--[2026-11-13 Fri 14:45] =>  0:05
+- State "DOING"      from "NEXT"       [2026-11-13 Fri 14:40] \\
+  slice step 9, starting
+- [2026-11-13 Fri 14:40]--[2026-11-13 Fri 14:45] the leftover drops the human's flags
+CLOCK: [2026-11-13 Fri 14:47]--[2026-11-13 Fri 14:48] =>  0:01
+- [2026-11-13 Fri 14:47]--[2026-11-13 Fri 14:48] suggested span, accepted at review
+CLOCK: [2026-11-13 Fri 14:53]--[2026-11-13 Fri 14:54] =>  0:01
+- [2026-11-13 Fri 14:53]--[2026-11-13 Fri 14:54] suggested span, accepted at review
+CLOCK: [2026-11-13 Fri 15:03]--[2026-11-13 Fri 15:04] =>  0:01
+- [2026-11-13 Fri 15:03]--[2026-11-13 Fri 15:04] suggested span, accepted at review
+CLOCK: [2026-11-13 Fri 15:05]--[2026-11-13 Fri 15:06] =>  0:01
+- [2026-11-13 Fri 15:05]--[2026-11-13 Fri 15:06] suggested span, accepted at review
+CLOCK: [2026-11-13 Fri 16:28]--[2026-11-13 Fri 16:29] =>  0:01
+- [2026-11-13 Fri 16:28]--[2026-11-13 Fri 16:29] suggested span, accepted at review
+CLOCK: [2026-11-13 Fri 16:40]--[2026-11-13 Fri 16:41] =>  0:01
+- [2026-11-13 Fri 16:40]--[2026-11-13 Fri 16:41] suggested span, accepted at review
+CLOCK: [2026-11-16 Mon 10:57]--[2026-11-16 Mon 10:58] =>  0:01
+- [2026-11-16 Mon 10:57]--[2026-11-16 Mon 10:58] suggested span, accepted at review
 :END:
 :PLAN:
 Bounded: one function, --review-insert-remainders in config.el, whose
@@ -1244,7 +1262,7 @@ Planned:
 - [-] [[id:0a0dee55-d709-466e-a525-c3bb1c437b91][0a0dee55]] REVIEW The applied record keys a session's events by timestamp to the second, so an event that failed or was skipped is consumed when another from the same second applies
 - [-] [[id:d3468075-b17a-45a2-bd3a-838521f11a87][d3468075]] REVIEW An apply interrupted after its writes records nothing, and the next pass inserts each amend a second time
 - [-] [[id:6c969cbd-0c03-409f-835f-80ddb1faedf6][6c969cbd]] REVIEW A replayed apply writes an extra one-minute CLOCK line for every run whose end has seconds
-- [ ] [[id:187a87b4-20db-4fbf-931f-a4b4e1bed668][187a87b4]] NEXT A narrowed span's leftover copies the human's :active and :edited flags, so agent time is written as attention
+- [-] [[id:187a87b4-20db-4fbf-931f-a4b4e1bed668][187a87b4]] DOING A narrowed span's leftover copies the human's :active and :edited flags, so agent time is written as attention
 - [-] [[id:c0a21a0f-89ed-4b66-b7ed-acbfd5583015][c0a21a0f]] REVIEW Archiving a session already in the archive overwrites it, and restore overwrites a live queue the same way
 - [ ] [[id:62bc2f7f-0d55-4049-af00-52a2b333188a][62bc2f7f]] TODO Archiving into DONE.org's newest-first datetree creates a duplicate day or month node for any date older than the newest
 - [-] [[id:e9f8b780-c93b-41f9-b146-1c4695283af9][e9f8b780]] REVIEW An unreadable .applied file reads as nothing applied, and the next write replaces it
@@ -1808,6 +1826,9 @@ newlines in any value; the design is in :PLAN:.
   slice plan step 7, archive merge
 - State "REVIEW"     from "DOING"      [2026-11-13 Fri 13:55] \\
   done on the slice branch; DONE at merge
+CLOCK: [2026-11-13 Fri 14:09]--[2026-11-13 Fri 14:10] =>  0:01
+- [2026-11-13 Fri 14:09]--[2026-11-13 Fri 14:10] brainstorm archive and restore overwrite
+- [2026-11-13 Fri 14:40]--[2026-11-13 Fri 14:40] brainstorm archive and restore overwrite
 :END:
 :PLAN:
 Bounded: claude-code-ide-org-archive-drained-queues and
@@ -12379,12 +12400,12 @@ before the fix and still says.
 
 
 * TODO Archive closed tasks daily
-SCHEDULED: <2026-11-14 Sat 07:00 ++1d>
+SCHEDULED: <2026-11-17 Tue 07:00 ++1d>
 :PROPERTIES:
 :CATEGORY: Meta
 :ID:       cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8
 :CREATED:  [2026-08-21 Fri 15:35]
-:LAST_REPEAT: [2026-11-13 Fri 08:55]
+:LAST_REPEAT: [2026-11-16 Mon 10:33]
 :KIND:     ceremony
 :END:
 :LOGBOOK:
