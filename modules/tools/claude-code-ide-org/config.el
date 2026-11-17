@@ -17317,9 +17317,13 @@ side."
                             events))
         (after (seq-filter (lambda (e) (time-less-p (plist-get item :end)
                                                     (plist-get e :ts)))
-                           events)))
-    (dolist (span (append (claude-code-ide-org--aggregate-guideposts before threshold)
-                          (claude-code-ide-org--aggregate-guideposts after threshold)))
+                           events))
+        (ahead nil)
+        (behind nil))
+    (dolist (entry (append (mapcar (lambda (s) (cons 'ahead s))
+                                   (claude-code-ide-org--aggregate-guideposts before threshold))
+                           (mapcar (lambda (s) (cons 'behind s))
+                                   (claude-code-ide-org--aggregate-guideposts after threshold))))
       ;; Skip a zero-width remainder. On the main path a lone guidepost
       ;; is real evidence that something happened at that moment, so a
       ;; zero-width span is honest and worth offering. As a *remainder*
@@ -17333,39 +17337,54 @@ side."
       ;; re-clusters with its neighbours on the next build. That is the
       ;; same conservation property this whole function exists to
       ;; restore, applied to its own output.
-      (unless (time-equal-p (car span) (cdr span))
-        (let ((new (copy-sequence item)))
-          (setq new (plist-put new :start (car span)))
-          (setq new (plist-put new :end (cdr span)))
-          (setq new (plist-put new :marked nil))
-          (setq new (plist-put new :dismiss nil))
-          (setq new (plist-put new :dismiss-reason nil))
-          (setq new (plist-put new :suggested t))
-          ;; Nor anything else the human did to the original (TODO.org
-          ;; :ID: 187a87b4): `:active' would write the leftover's agent
-          ;; time as their attention, `:claimed' would write it as one
-          ;; solid interval, `:edited' and `:note-edited' would make `g'
-          ;; ask about edits nobody made to it, and `:auto-marked' is
-          ;; the original's mark, which `:marked' above already drops.
-          (dolist (flag '(:active :edited :claimed :note-edited :auto-marked))
-            (setq new (plist-put new flag nil)))
-          ;; A note the human typed described the span they kept; the
-          ;; queue's own clock_in label is not theirs, and carries over
-          ;; (the user, 2026-10-28).
-          (when (plist-get item :note-edited)
-            (setq new (plist-put new :note nil)))
-          (setq new (plist-put new :events
-                               (seq-filter
-                              (lambda (e)
-                                (let ((ts (plist-get e :ts)))
-                                  (and (not (time-less-p ts (car span)))
-                                       (not (time-less-p (cdr span) ts)))))
-                              events)))
-          (when (eq (plist-get item :origin) 'unbracketed)
-            (setq new (plist-put new :unassigned t))
-            (setq new (plist-put new :assigned nil)))
-          (setq claude-code-ide-org--review-items
-                (append claude-code-ide-org--review-items (list new))))))))
+      (let ((side (car entry)) (span (cdr entry)))
+        (unless (time-equal-p (car span) (cdr span))
+          (let ((new (copy-sequence item)))
+            (setq new (plist-put new :start (car span)))
+            (setq new (plist-put new :end (cdr span)))
+            (setq new (plist-put new :marked nil))
+            (setq new (plist-put new :dismiss nil))
+            (setq new (plist-put new :dismiss-reason nil))
+            (setq new (plist-put new :suggested t))
+            ;; Nor anything else the human did to the original (TODO.org
+            ;; :ID: 187a87b4): `:active' would write the leftover's agent
+            ;; time as their attention, `:claimed' would write it as one
+            ;; solid interval, `:edited' and `:note-edited' would make `g'
+            ;; ask about edits nobody made to it, and `:auto-marked' is
+            ;; the original's mark, which `:marked' above already drops.
+            (dolist (flag '(:active :edited :claimed :note-edited :auto-marked))
+              (setq new (plist-put new flag nil)))
+            ;; A note the human typed described the span they kept; the
+            ;; queue's own clock_in label is not theirs, and carries over
+            ;; (the user, 2026-10-28).
+            (when (plist-get item :note-edited)
+              (setq new (plist-put new :note nil)))
+            (setq new (plist-put new :events
+                                 (seq-filter
+                                  (lambda (e)
+                                    (let ((ts (plist-get e :ts)))
+                                      (and (not (time-less-p ts (car span)))
+                                           (not (time-less-p (cdr span) ts)))))
+                                  events)))
+            (when (eq (plist-get item :origin) 'unbracketed)
+              (setq new (plist-put new :unassigned t))
+              (setq new (plist-put new :assigned nil)))
+            (if (eq side 'ahead) (push new ahead) (push new behind))))))
+    ;; Beside the original, not at the end (TODO.org :ID: aa7edd6c).
+    ;; The list is chronological by contract -- apply writes and replays
+    ;; in list order, `--review-display-items' -- and an appended
+    ;; leftover was drawn at the far end of the buffer from the span the
+    ;; human had just narrowed.  The ahead leftovers precede ITEM's new
+    ;; start and the behind ones follow its new end, so splicing them
+    ;; either side of it keeps the order without sorting anything.
+    (let* ((items claude-code-ide-org--review-items)
+           (tail (memq item items)))
+      (setq claude-code-ide-org--review-items
+            (if tail
+                (append (seq-take items (- (length items) (length tail)))
+                        (nreverse ahead) (list item) (nreverse behind)
+                        (cdr tail))
+              (append items (nreverse ahead) (nreverse behind)))))))
 
 (defvar claude-code-ide-org-review-attention-heading)
 

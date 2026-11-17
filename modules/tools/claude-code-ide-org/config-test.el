@@ -5978,6 +5978,57 @@ not the human's, and the leftover keeps it (the user, 2026-10-28)."
                     (list :note "queue clock_in label"))))
     (should (equal "queue clock_in label" (plist-get remainder :note)))))
 
+(ert-deftest claude-code-ide-org-test-remainders-sit-beside-their-original ()
+  "A narrowed span's leftovers are placed beside it, keeping the list in
+time order (TODO.org :ID: aa7edd6c).
+
+They were appended to the end of `--review-items', which is
+chronological by contract -- apply writes and replays in list order --
+so a leftover was drawn at the far end of the buffer from the span just
+narrowed, where `s', a pure reversal of the view, could not bring it
+back.  Narrowed in its middle, the span here leaves one leftover on each
+side, and an item later than all of them must stay last."
+  (claude-code-ide-org-test--with-queue
+    (apply #'claude-code-ide-org-test--queue-write "sess-a"
+           (list (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:00:00-0500" "resume" nil nil "sess-a")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:02:00-0500" "pause" nil nil "sess-a")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:05:00-0500" "resume" nil nil "sess-a")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:10:00-0500" "pause" nil nil "sess-a")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:12:00-0500" "resume" nil nil "sess-a")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T09:14:00-0500" "pause" nil nil "sess-a")
+                 (claude-code-ide-org-test--queue-event
+                  "2026-08-13T11:00:00-0500" "todo" "id-b" "DONE" "sess-a")))
+    (claude-code-ide-org-test--with-review-buffer
+        (claude-code-ide-org--review-items-from-queue)
+      (let* ((items claude-code-ide-org--review-items)
+             (span (seq-find (lambda (i) (plist-get i :unassigned)) items))
+             (later (seq-find (lambda (i) (eq (plist-get i :type) 'state)) items)))
+        (should span)
+        (should later)
+        (should (= 6 (length (plist-get span :events))))
+        (claude-code-ide-org-test--goto-nth-item (seq-position items span))
+        (cl-letf (((symbol-function 'read-string)
+                   (lambda (prompt &optional _initial &rest _)
+                     (if (string-prefix-p "Start" prompt)
+                         "[2026-08-13 Thu 09:05]"
+                       "[2026-08-13 Thu 09:10]"))))
+          (claude-code-ide-org-review-edit-interval))
+        (let* ((now claude-code-ide-org--review-items)
+               (pos (seq-position now span)))
+          (should (= 4 (length now)))
+          (should (= 1 pos))
+          (should (equal "09:00" (format-time-string
+                                  "%H:%M" (plist-get (nth 0 now) :start))))
+          (should (equal "09:12" (format-time-string
+                                  "%H:%M" (plist-get (nth 2 now) :start))))
+          (should (eq later (nth 3 now))))))))
+
 (ert-deftest claude-code-ide-org-test-no-zero-width-remainder ()
   "A single leftover guidepost is not offered as a zero-width remainder.
 
