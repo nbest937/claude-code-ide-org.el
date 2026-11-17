@@ -20924,6 +20924,25 @@ stays visible as the debrief. Text preserved: %s."
 ;; f4b07fc0) ran once and was removed with the other spent one-offs
 ;; (TODO.org :ID: dce10826).
 
+(defun claude-code-ide-org--sort-refuse-busy (file dry-run)
+  "Signal when FILE has unsaved edits and the sort would write (not DRY-RUN).
+
+Both ceremony sorts reorder the whole buffer and save it, so a human's
+half-finished edit in TODO.org or DONE.org was reordered and saved with
+them, and a session later committed it (TODO.org :ID: 254308f7).  The
+session-start path declined while a tracked file was unsaved; the bury
+path ran the steps with no check.
+
+*A signal, not a skipped result.*  `--ceremony-step-text' prints any
+returned value as ok, so a returned \"skipped\" would advance the
+repeater and the sort would wait a day.  Signalled, the step is reported
+FAILED, `claude-code-ide-org-ceremony-finish' holds the repeater, and the
+next bury or session start runs it again.  A dry run writes nothing and
+is let through."
+  (when (and (not dry-run) (claude-code-ide-org--file-busy-p file))
+    (user-error "%s has unsaved changes in Emacs; save it, and the ceremony runs this step again"
+                (file-name-nondirectory file))))
+
 (defun claude-code-ide-org-sort-by-created (&optional file dry-run)
   "Sort FILE's level-1 headings by :CREATED:, newest first.
 
@@ -20957,6 +20976,7 @@ something to remember.  Returns a summary string."
   (interactive)
   (let* ((file (or file (claude-code-ide-org--capture-target-file)))
          (before nil) (after nil))
+    (claude-code-ide-org--sort-refuse-busy file dry-run)
     (with-current-buffer (find-file-noselect file)
       (let ((buffer-read-only nil))
         (org-with-wide-buffer
@@ -21079,6 +21099,7 @@ Idempotent.  Returns a summary string."
     ;; one. That is exactly how the symlink defect presented.
     (unless (file-exists-p file)
       (error "No archive file to sort at %s" file))
+    (claude-code-ide-org--sort-refuse-busy file dry-run)
     (with-current-buffer (find-file-noselect file)
       (let ((buffer-read-only nil))
         (org-with-wide-buffer

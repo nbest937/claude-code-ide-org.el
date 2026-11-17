@@ -9185,6 +9185,74 @@ difference is always empty after a sort and once read \"0 moved\" over a
       (should (string-match-p "0 moved" second))
       (should (equal once (claude-code-ide-org-test--disk-contents file))))))
 
+(defun claude-code-ide-org-test--unsaved-edit (file)
+  "Make an unsaved edit at the end of FILE's buffer; return the buffer's text."
+  (with-current-buffer (find-file-noselect file)
+    (goto-char (point-max))
+    (insert "an unsaved edit\n")
+    (should (buffer-modified-p))
+    (buffer-string)))
+
+(ert-deftest claude-code-ide-org-test-sort-by-created-refuses-a-busy-file ()
+  "The sort signals on a buffer with unsaved edits and touches nothing
+(TODO.org :ID: 254308f7).  It reordered the half-edited buffer and saved
+it, so a session later committed the human's unfinished edit."
+  (claude-code-ide-org-test--with-unsorted-file
+    (let ((disk (claude-code-ide-org-test--disk-contents file))
+          (text (claude-code-ide-org-test--unsaved-edit file)))
+      (should-error (claude-code-ide-org-sort-by-created file) :type 'user-error)
+      (with-current-buffer (get-file-buffer file)
+        (should (equal text (buffer-string)))
+        (should (buffer-modified-p)))
+      (should (equal disk (claude-code-ide-org-test--disk-contents file)))
+      ;; A dry run writes nothing, so it still answers.
+      (should (stringp (claude-code-ide-org-sort-by-created file t))))))
+
+(ert-deftest claude-code-ide-org-test-sort-datetree-refuses-a-busy-file ()
+  "DONE.org's sort refuses an unsaved buffer the same way."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--datetree-fixture
+     archive-file
+     (concat "* 2026\n"
+             "** 2026-09 September\n*** 2026-09-01 Tuesday\n"
+             "** 2026-11 November\n*** 2026-11-13 Friday\n"))
+    (let ((disk (claude-code-ide-org-test--disk-contents archive-file))
+          (text (claude-code-ide-org-test--unsaved-edit archive-file)))
+      (unwind-protect
+          (progn
+            (should-error (claude-code-ide-org-sort-datetree-descending archive-file)
+                          :type 'user-error)
+            (with-current-buffer (get-file-buffer archive-file)
+              (should (equal text (buffer-string)))
+              (should (buffer-modified-p)))
+            (should (equal disk (claude-code-ide-org-test--disk-contents archive-file))))
+        (with-current-buffer (get-file-buffer archive-file)
+          (set-buffer-modified-p nil))))))
+
+(ert-deftest claude-code-ide-org-test-ceremony-holds-the-repeater-on-a-busy-sort ()
+  "The bury's ceremony reports the refused sort FAILED and holds the
+repeater, so the next bury or session start runs it again.  A returned
+\"skipped\" would print as ok and advance it, and the sort would wait a day."
+  (claude-code-ide-org-test--with-unsorted-file
+    (claude-code-ide-org-test--unsaved-edit file)
+    (let (advanced)
+      (cl-letf (((symbol-function 'claude-code-ide-org-refresh-slice) (lambda (&rest _) 0))
+                ((symbol-function 'claude-code-ide-org-consolidate-all-drawers) (lambda () 0))
+                ((symbol-function 'claude-code-ide-org-normalize-heading-separation)
+                 (lambda (&rest _) 0))
+                ((symbol-function 'claude-code-ide-org-archive-finished) (lambda (&rest _) 0))
+                ((symbol-function 'claude-code-ide-org-sort-datetree-descending)
+                 (lambda (&rest _) 0))
+                ((symbol-function 'claude-code-ide-org-mark-ceremony-done)
+                 (lambda (&optional _s) nil))
+                ((symbol-function 'claude-code-ide-org--ceremony-due-p) (lambda () t))
+                ((symbol-function 'claude-code-ide-org--ceremony-advance-repeater)
+                 (lambda () (setq advanced t))))
+        (let ((summary (claude-code-ide-org-ceremony-finish)))
+          (should (string-match-p "sorted: FAILED (TODO.org has unsaved changes" summary))
+          (should (string-match-p "repeater: held" summary))
+          (should-not advanced))))))
+
 (ert-deftest claude-code-ide-org-test-sort-keeps-subtrees-with-their-parents ()
   "A child must travel with its heading, or sorting silently reparents work."
   (claude-code-ide-org-test--with-unsorted-file
