@@ -3229,11 +3229,21 @@ hand \\[org-archive-subtree] and every capture template keep org's own."
 For a datetree LOCATION the descending finder stands in for org's for
 this one call (`claude-code-ide-org--datetree-find-date-create-descending').
 Both archive sites come through here -- the `org_archive' tool and the
-sweep -- so neither can create a duplicate date node the other would not."
+sweep -- so neither can create a duplicate date node the other would not.
+
+`org-datetree' is required *before* the binding.  `org-archive-subtree'
+requires it itself just before the call, and on a session's first
+archive that load redefines `org-datetree-find-date-create' over the
+binding, so org's own finder ran and wrote a duplicate month: measured
+2026-11-17 on a copy of DONE.org, where the first of three archives
+went wrong and the other two cascaded from it.  The suite had missed it
+because earlier tests had already loaded the library."
   (if (claude-code-ide-org--archive-datetree-target-p location)
-      (cl-letf (((symbol-function 'org-datetree-find-date-create)
-                 #'claude-code-ide-org--datetree-find-date-create-descending))
-        (org-archive-subtree))
+      (progn
+        (require 'org-datetree)
+        (cl-letf (((symbol-function 'org-datetree-find-date-create)
+                   #'claude-code-ide-org--datetree-find-date-create-descending))
+          (org-archive-subtree)))
     (org-archive-subtree)))
 
 (defun claude-code-ide-org-archive (id)

@@ -18423,6 +18423,46 @@ The sweep's path, since both sites share the finder."
                    "*** 2026-09-01 Tuesday"
                    "**** DONE Oldest archived :code:"))))
 
+(ert-deftest claude-code-ide-org-test-archive-finder-survives-the-first-load ()
+  "The descending finder holds on the archive that first loads org-datetree.
+
+`org-archive-subtree' requires the library just before calling its
+finder, and on a session's first archive that load redefined
+`org-datetree-find-date-create' over the binding, so org's own finder
+ran: measured 2026-11-17 on a copy of the real DONE.org, which this
+suite missed because an earlier test always loaded the library first.
+The load is modelled rather than repeated -- let-binding `features' did
+not make the require reload in batch -- by advice under which the first
+require of `org-datetree' restores org's finder, as loading the file
+does, and later ones do nothing, as a loaded feature does."
+  (require 'org-datetree)
+  (let* ((orgs (symbol-function 'org-datetree-find-date-create))
+         (loaded nil)
+         (model (lambda (fn feature &rest args)
+                  (if (and (eq feature 'org-datetree) (not loaded))
+                      (progn (setq loaded t)
+                             (fset 'org-datetree-find-date-create orgs)
+                             feature)
+                    (apply fn feature args)))))
+    (advice-add 'require :around model)
+    (unwind-protect
+        (should (equal (claude-code-ide-org-test--archive-into-descending
+                        "[2026-10-05 Mon 15:00]" 'sweep)
+                       '("* 2026"
+                         "** 2026-11 November"
+                         "*** 2026-11-13 Friday"
+                         "**** DONE Newest archived :code:"
+                         "*** 2026-11-10 Tuesday"
+                         "**** DONE Older archived :code:"
+                         "** 2026-10 October"
+                         "*** 2026-10-05 Monday"
+                         "**** DONE The task archived now :code:"
+                         "** 2026-09 September"
+                         "*** 2026-09-01 Tuesday"
+                         "**** DONE Oldest archived :code:")))
+      (advice-remove 'require model)
+      (fset 'org-datetree-find-date-create orgs))))
+
 (ert-deftest claude-code-ide-org-test-archive-puts-the-newest-date-on-top ()
   "The newest date lands first in its month.  Org's finder found no day
 at or after it and appended it at the month's end, where only the next
