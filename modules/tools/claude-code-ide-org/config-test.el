@@ -18012,6 +18012,48 @@ hand edit or an older tool left it."
     (should (string-prefix-p "Error"
                              (claude-code-ide-org-set-property (id 'S) "DROPPED" "0badc0de")))))
 
+(defun claude-code-ide-org-test--datetree-duplicate-findings (text)
+  "The duplicate-datetree-node errors in linting TEXT."
+  (seq-filter (lambda (f) (and (eq 'error (car f))
+                               (string-match-p "datetree node" (cdr f))))
+              (claude-code-ide-org-test--lint text)))
+
+(ert-deftest claude-code-ide-org-test-lint-refuses-a-duplicate-day-node ()
+  "Two day nodes with one title under one month are an error (TODO.org
+:ID: 62bc2f7f): the shape org's finder left in a newest-first DONE.org,
+and what a hand archive can still make."
+  (let ((errors (claude-code-ide-org-test--datetree-duplicate-findings
+                 (concat "* 2026\n"
+                         "** 2026-11 November\n"
+                         "*** 2026-11-10 Tuesday\n"
+                         "*** 2026-11-13 Friday\n"
+                         "*** 2026-11-10 Tuesday\n"))))
+    (should (= 1 (length errors)))
+    (should (string-match-p "\"2026-11-10 Tuesday\".*line 4" (cdar errors)))))
+
+(ert-deftest claude-code-ide-org-test-lint-refuses-a-duplicate-month-node ()
+  "A month node twice under one year is an error, as a day node is."
+  (should (= 1 (length (claude-code-ide-org-test--datetree-duplicate-findings
+                        (concat "* 2026\n"
+                                "** 2026-11 November\n"
+                                "*** 2026-11-13 Friday\n"
+                                "** 2026-10 October\n"
+                                "** 2026-11 November\n"
+                                "*** 2026-11-10 Tuesday\n"))))))
+
+(ert-deftest claude-code-ide-org-test-lint-accepts-one-title-under-two-parents ()
+  "The same title under different parents is two dates, not a duplicate:
+the check compares siblings only.  Here 2026-11 sits under two years and
+each year's tree is otherwise sound -- impossible in a real tree, but it
+is the case a check keyed on title alone would wrongly refuse."
+  (should (null (claude-code-ide-org-test--datetree-duplicate-findings
+                 (concat "* 2026\n"
+                         "** 2026-11 November\n"
+                         "*** 2026-11-10 Tuesday\n"
+                         "* 2025\n"
+                         "** 2026-11 November\n"
+                         "*** 2026-11-10 Tuesday\n")))))
+
 (ert-deftest claude-code-ide-org-test-lint-accepts-an-unanchored-archive-datetree ()
   "The datetree `org-archive-subtree' builds in DONE.org carries no
 :DATE_TREE: property and lints clean anyway (TODO.org :ID: 33864a0f).
@@ -18287,6 +18329,111 @@ with an empty day node after it."
       (should (member "**** DONE A finished task :code:" lines))
       (should (= 1 (seq-count (lambda (l) (equal l "*** 2026-09-01 Tuesday"))
                               lines))))))
+
+(defconst claude-code-ide-org-test--descending-archive
+  (concat "* 2026\n"
+          "** 2026-11 November\n"
+          "*** 2026-11-13 Friday\n"
+          "**** DONE Newest archived :code:\n"
+          "CLOSED: [2026-11-13 Fri 10:00]\n"
+          "*** 2026-11-10 Tuesday\n"
+          "**** DONE Older archived :code:\n"
+          "CLOSED: [2026-11-10 Tue 10:00]\n"
+          "** 2026-09 September\n"
+          "*** 2026-09-01 Tuesday\n"
+          "**** DONE Oldest archived :code:\n"
+          "CLOSED: [2026-09-01 Tue 10:00]\n")
+  "A DONE.org datetree kept newest-first, as the ceremony's sort leaves it.")
+
+(defun claude-code-ide-org-test--archive-into-descending (closed via)
+  "Archive a task CLOSED (an org timestamp) into the descending fixture.
+VIA is `tool' for `org_archive' or `sweep' for the ceremony's sweep.
+Return the archive's heading lines, whitespace normalised."
+  (claude-code-ide-org-test--with-heading
+    (claude-code-ide-org-test--datetree-fixture
+     archive-file claude-code-ide-org-test--descending-archive)
+    (with-temp-file file
+      (insert "#+TODO: TODO NEXT DOING REVIEW WAITING | DONE CANCELLED MAYBE\n"
+              "#+ARCHIVE: DONE.org::datetree/\n\n"
+              "* DONE The task archived now :code:\n"
+              "CLOSED: " closed "\n"
+              ":PROPERTIES:\n:ID:       " id "\n"
+              ":CREATED:  [2026-08-30 Sun 09:00]\n:END:\n"))
+    (dolist (f (list file archive-file))
+      (let ((b (get-file-buffer f))) (when b (kill-buffer b))))
+    (org-id-update-id-locations (list file))
+    (if (eq via 'sweep)
+        (should (= 1 (claude-code-ide-org-archive-finished file)))
+      (claude-code-ide-org-archive id))
+    (mapcar (lambda (l) (replace-regexp-in-string "[ \t]+" " " l))
+            (seq-filter (lambda (l) (string-prefix-p "*" l))
+                        (split-string
+                         (claude-code-ide-org-test--disk-contents archive-file)
+                         "\n")))))
+
+(ert-deftest claude-code-ide-org-test-archive-into-an-existing-interior-day ()
+  "An older date with a day node already present lands in that node
+(TODO.org :ID: 62bc2f7f).  Org's finder takes the first sibling at or
+after the date, which in a newest-first tree is the newest node, so it
+wrote a second 2026-11-10 above the first."
+  (should (equal (claude-code-ide-org-test--archive-into-descending
+                  "[2026-11-10 Tue 15:00]" 'tool)
+                 '("* 2026"
+                   "** 2026-11 November"
+                   "*** 2026-11-13 Friday"
+                   "**** DONE Newest archived :code:"
+                   "*** 2026-11-10 Tuesday"
+                   "**** DONE Older archived :code:"
+                   "**** DONE The task archived now :code:"
+                   "** 2026-09 September"
+                   "*** 2026-09-01 Tuesday"
+                   "**** DONE Oldest archived :code:"))))
+
+(ert-deftest claude-code-ide-org-test-archive-creates-a-day-in-its-slot ()
+  "A date between two day nodes gets one new node, between them."
+  (should (equal (claude-code-ide-org-test--archive-into-descending
+                  "[2026-11-11 Wed 15:00]" 'tool)
+                 '("* 2026"
+                   "** 2026-11 November"
+                   "*** 2026-11-13 Friday"
+                   "**** DONE Newest archived :code:"
+                   "*** 2026-11-11 Wednesday"
+                   "**** DONE The task archived now :code:"
+                   "*** 2026-11-10 Tuesday"
+                   "**** DONE Older archived :code:"
+                   "** 2026-09 September"
+                   "*** 2026-09-01 Tuesday"
+                   "**** DONE Oldest archived :code:"))))
+
+(ert-deftest claude-code-ide-org-test-archive-creates-an-older-month-in-its-slot ()
+  "An older month with no node gets one, below the newer months.
+The sweep's path, since both sites share the finder."
+  (should (equal (claude-code-ide-org-test--archive-into-descending
+                  "[2026-10-05 Mon 15:00]" 'sweep)
+                 '("* 2026"
+                   "** 2026-11 November"
+                   "*** 2026-11-13 Friday"
+                   "**** DONE Newest archived :code:"
+                   "*** 2026-11-10 Tuesday"
+                   "**** DONE Older archived :code:"
+                   "** 2026-10 October"
+                   "*** 2026-10-05 Monday"
+                   "**** DONE The task archived now :code:"
+                   "** 2026-09 September"
+                   "*** 2026-09-01 Tuesday"
+                   "**** DONE Oldest archived :code:"))))
+
+(ert-deftest claude-code-ide-org-test-archive-puts-the-newest-date-on-top ()
+  "The newest date lands first in its month.  Org's finder found no day
+at or after it and appended it at the month's end, where only the next
+ceremony sort moved it up; no duplicate, but out of order until then."
+  (should (equal (seq-take (claude-code-ide-org-test--archive-into-descending
+                            "[2026-11-16 Mon 15:00]" 'tool)
+                           4)
+                 '("* 2026"
+                   "** 2026-11 November"
+                   "*** 2026-11-16 Monday"
+                   "**** DONE The task archived now :code:"))))
 
 (ert-deftest claude-code-ide-org-test-org-archive-leaves-a-flat-target-reversed ()
   "The guard is scoped to a datetree and must not disarm reversed order generally.

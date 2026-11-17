@@ -3194,6 +3194,48 @@ not, and archived under whatever the global held.  Latent only because
 that global is unset (TODO.org :ID: eb3b8e84)."
   (string-match-p "::datetree/" (or location "")))
 
+(defun claude-code-ide-org--datetree-find-date-create-descending
+    (d &optional keep-restriction)
+  "Like `org-datetree-find-date-create', for a tree kept newest-first.
+
+Org's finder walks a tier for the first sibling at or AFTER the date,
+which is the slot in an ascending tree.  DONE.org is kept descending by
+`claude-code-ide-org-sort-datetree-descending', so there the first
+sibling at or after the date is the newest node, and any older date was
+given a second year, month or day node above it (TODO.org :ID:
+62bc2f7f).  This builds the same year, month and day hierarchy through
+`org-datetree-find-create-entry', from org's own regexes, with each
+comparator negated -- inverting lookup and insertion together, as
+TODO.org :ID: 0c3f1319 measured on org 9.8.7.
+
+It assumes the tree is descending: on an ascending one it inverts the
+order the same way org's finder does on a descending one.  So it is
+bound in only around an archive into a datetree target, by
+`claude-code-ide-org--archive-subtree', and never installed globally: a
+hand \\[org-archive-subtree] and every capture template keep org's own."
+  (require 'org-datetree)
+  (let ((ascending (symbol-function 'org-datetree-comparefun-from-regex)))
+    (cl-letf (((symbol-function 'org-datetree-comparefun-from-regex)
+               (lambda (regex)
+                 (let ((compare (funcall ascending regex)))
+                   (lambda (sibling new)
+                     (let ((r (funcall compare sibling new)))
+                       (and (numberp r) (- r))))))))
+      (org-datetree-find-create-entry '(year month day) d keep-restriction))))
+
+(defun claude-code-ide-org--archive-subtree (location)
+  "Archive the subtree at point to LOCATION's target with `org-archive-subtree'.
+
+For a datetree LOCATION the descending finder stands in for org's for
+this one call (`claude-code-ide-org--datetree-find-date-create-descending').
+Both archive sites come through here -- the `org_archive' tool and the
+sweep -- so neither can create a duplicate date node the other would not."
+  (if (claude-code-ide-org--archive-datetree-target-p location)
+      (cl-letf (((symbol-function 'org-datetree-find-date-create)
+                 #'claude-code-ide-org--datetree-find-date-create-descending))
+        (org-archive-subtree))
+    (org-archive-subtree)))
+
 (defun claude-code-ide-org-archive (id)
   "Archive the org heading whose :ID: property equals ID.
 Uses the #+ARCHIVE: directive in effect at the heading (file-level
@@ -3230,7 +3272,7 @@ honoured."
              (progn
                ;; The heading named, never the region's (:ID: 4a4ebb21).
                (let ((org-loop-over-headlines-in-active-region nil))
-                 (org-archive-subtree))
+                 (claude-code-ide-org--archive-subtree location))
                (save-buffer)
                (format "Archived: \"%s\"" heading))))))))
 
@@ -18399,7 +18441,8 @@ its end would bury a fresh entry under two hundred older ones."
                    ;; one at point -- live work included, then
                    ;; `end-of-buffer' (TODO.org :ID: 4a4ebb21).
                    (let ((org-loop-over-headlines-in-active-region nil))
-                     (org-archive-subtree))
+                     (claude-code-ide-org--archive-subtree
+                      org-archive-location))
                    (setq n (1+ n))))))
            (set-marker m nil))))
       (when (buffer-modified-p) (save-buffer)))
@@ -19058,6 +19101,47 @@ written; this stops it being committed."
                                         places " and ")))
                findings)))
      (claude-code-ide-org--lint-id-locations (append files reference-files)))
+    (nreverse findings)))
+
+(defconst claude-code-ide-org--lint-datetree-title-regexp
+  (concat "\\`\\(?:[12][0-9]\\{3\\}"
+          "\\|[12][0-9]\\{3\\}-[01][0-9] \\w+"
+          "\\|[12][0-9]\\{3\\}-[01][0-9]-[0123][0-9] \\w+\\)\\'")
+  "A datetree node's title: year, month or day, in org-datetree's own shapes.")
+
+(defun claude-code-ide-org--lint-duplicate-datetree-nodes (file)
+  "Errors for two sibling datetree nodes with one title in FILE.
+
+A year, month or day node twice under one parent is never intended: it
+is what org's finder made of a newest-first tree before
+`claude-code-ide-org--datetree-find-date-create-descending' (TODO.org
+:ID: 62bc2f7f).  The finder fixes the tools' path; this catches
+whatever bypasses it, a hand \\[org-archive-subtree] included, before
+the duplicate is committed.  Read from the text, so it needs no org
+parse, and every file is checked: duplicates are never right anywhere."
+  (let ((seen (make-hash-table :test 'equal))
+        findings)
+    (with-temp-buffer
+      (insert-file-contents file)
+      (goto-char (point-min))
+      ;; SEEN maps (LEVEL . TITLE) to the line first seen, and is cleared
+      ;; of every level deeper than a heading as each heading is met, so
+      ;; a key only ever compares children of the same parent.
+      (while (re-search-forward "^\\(\\*+\\) +\\(.*?\\)[ \t]*$" nil t)
+        (let ((level (length (match-string 1)))
+              (title (match-string 2))
+              (line (line-number-at-pos)))
+          (maphash (lambda (k _) (when (>= (car k) (1+ level)) (remhash k seen)))
+                   seen)
+          (when (string-match-p claude-code-ide-org--lint-datetree-title-regexp title)
+            (let* ((key (cons level title))
+                   (first (gethash key seen)))
+              (if first
+                  (push (cons 'error
+                              (format "%s:%d: datetree node \"%s\" already exists among its siblings at line %d"
+                                      (file-name-nondirectory file) line title first))
+                        findings)
+                (puthash key line seen)))))))
     (nreverse findings)))
 
 (defun claude-code-ide-org--lint-routing-categories (files)
@@ -19831,6 +19915,8 @@ evidence lines, arriving here by a different route."
       (append
        (claude-code-ide-org--lint-duplicate-ids
         files (seq-filter #'file-exists-p (or reference-files nil)))
+       (apply #'append
+              (mapcar #'claude-code-ide-org--lint-duplicate-datetree-nodes files))
        (apply #'append
               (mapcar (lambda (f) (claude-code-ide-org--lint-file f known categories))
                       files))))))
