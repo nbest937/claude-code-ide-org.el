@@ -28,6 +28,7 @@ items on both sides yields leftovers adjacent to it, in time order.
   order but discards the session's edits. The fix is placement, not sorting;
   the design is in :PLAN:.
 
+
 * TODO Two worktrees developing the module share one running Emacs, which holds whichever config.el was loaded last, and check-image calls that fresh to both :code:
 :PROPERTIES:
 :ID:       e07eb33a-2971-4bb9-b429-bbee9a6f4322
@@ -601,7 +602,6 @@ Seen in use 2026-11-17, during [[id:187a87b4-20db-4fbf-931f-a4b4e1bed668][187a87
 active form meant retyping the brackets.
 
 
-
 * TODO A sub-minute run rounded up to a minute can overlap the next run, counting a minute twice and crediting a permission wait :code:
 :PROPERTIES:
 :ID:       04a9d1b4-c8c5-40af-bf9e-9ced6a7225fe
@@ -768,7 +768,7 @@ makes both sorts signal on a busy file, so the step fails and the ceremony stays
 due; the design is in :PLAN:.
 
 
-* DOING A narrowed span's leftover copies the human's :active and :edited flags, so agent time is written as attention :code:bounded:
+* REVIEW A narrowed span's leftover copies the human's :active and :edited flags, so agent time is written as attention :code:bounded:
 :PROPERTIES:
 :ID:       187a87b4-20db-4fbf-931f-a4b4e1bed668
 :CREATED:  [2026-10-27 Tue 13:52]
@@ -798,6 +798,21 @@ CLOCK: [2026-11-13 Fri 16:40]--[2026-11-13 Fri 16:41] =>  0:01
 - [2026-11-13 Fri 16:40]--[2026-11-13 Fri 16:41] suggested span, accepted at review
 CLOCK: [2026-11-16 Mon 10:57]--[2026-11-16 Mon 10:58] =>  0:01
 - [2026-11-16 Mon 10:57]--[2026-11-16 Mon 10:58] suggested span, accepted at review
+CLOCK: [2026-11-16 Mon 15:13]--[2026-11-16 Mon 15:14] =>  0:01
+- [2026-11-16 Mon 15:13]--[2026-11-16 Mon 15:14] suggested span, accepted at review
+CLOCK: [2026-11-16 Mon 15:19]--[2026-11-16 Mon 15:20] =>  0:01
+- [2026-11-16 Mon 15:19]--[2026-11-16 Mon 15:20] suggested span, accepted at review
+CLOCK: [2026-11-17 Tue 10:44]--[2026-11-17 Tue 10:46] =>  0:02
+- [2026-11-17 Tue 10:44]--[2026-11-17 Tue 10:46] suggested span, accepted at review
+CLOCK: [2026-11-17 Tue 11:07]--[2026-11-17 Tue 11:09] =>  0:02
+- [2026-11-17 Tue 11:07]--[2026-11-17 Tue 11:09] suggested span, accepted at review
+CLOCK: [2026-11-17 Tue 11:21]--[2026-11-17 Tue 11:22] =>  0:01
+- [2026-11-17 Tue 11:21]--[2026-11-17 Tue 11:22] suggested span, accepted at review
+- [2026-11-17 Tue 11:23]--[2026-11-17 Tue 11:24] suggested span, accepted at review
+- State "REVIEW"     from "DOING"      [2026-11-17 Tue 11:24] \\
+  accepted in the review buffer 2026-11-17
+CLOCK: [2026-11-17 Tue 11:24]--[2026-11-17 Tue 11:25] =>  0:01
+- [2026-11-17 Tue 11:24]--[2026-11-17 Tue 11:25] acceptance and close
 :END:
 :PLAN:
 Bounded: one function, --review-insert-remainders in config.el, whose
@@ -839,7 +854,6 @@ clears :active, :edited, :claimed, :note-edited and :auto-marked, and drops
 [[id:c0a21a0f-89ed-4b66-b7ed-acbfd5583015][c0a21a0f]]'s 12:01-12:10 span narrowed to 12:05-12:10: a typed note and active
 bounds stayed on the narrowed span and the leftover showed neither; a claim did
 not carry; the queue's own label did.
-
 
 
 * REVIEW The session render escapes only column-zero lines, so an indented #+ line in transcript text takes effect, SETUPFILE included :code:bounded:
@@ -982,7 +996,7 @@ end is read as covering its whole minute. On the slice's branch,
 feature/tracker-record-loss.
 
 
-* TODO Archiving into DONE.org's newest-first datetree creates a duplicate day or month node for any date older than the newest :code:bounded:
+* NEXT Archiving into DONE.org's newest-first datetree creates a duplicate day or month node for any date older than the newest :code:bounded:
 :PROPERTIES:
 :ID:       62bc2f7f-0d55-4049-af00-52a2b333188a
 :CREATED:  [2026-10-27 Tue 13:52]
@@ -1000,6 +1014,8 @@ CLOCK: [2026-10-28 Wed 13:53]--[2026-10-28 Wed 13:54] =>  0:01
 - Tags ":code:bounded:" from ":code:"     [2026-10-28 Wed 13:53] \\
   classified at /plan-slice: one finder at two archive sites, one lint check
 - [2026-10-28 Wed 13:53]--[2026-10-28 Wed 13:54] brainstorm newest-first datetree archive
+- State "NEXT"       from "TODO"       [2026-11-17 Tue 11:24] \\
+  slice plan step 10, the descending datetree finder
 :END:
 :PLAN:
 Bounded: the org_archive tool and the archive-finished sweep, both of which
@@ -1233,15 +1249,15 @@ claude-code-ide-org-refuse-browser-origins, and the probe finds every live
 companion refusing. On the slice's branch, feature/tracker-record-loss.
 
 
-* DOING [14/31] The tracker can lose or corrupt its record, or Emacs can stop on a prompt, and nothing says so :code:
+* DOING [14/32] The tracker can lose or corrupt its record, or Emacs can stop on a prompt, and nothing says so :code:
 :PROPERTIES:
 :ID:       3bfa593c-c2da-4e44-b47f-2d5f0750f2aa
 :CREATED:  [2026-10-27 Tue 12:56]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:MEMBERS:  8c4a3aea-3208-46c8-a491-2ff024fbf822 d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80 8985f8ae-8b26-45eb-8898-73f17c98680a 0a0dee55-d709-466e-a525-c3bb1c437b91 d3468075-b17a-45a2-bd3a-838521f11a87 6c969cbd-0c03-409f-835f-80ddb1faedf6 187a87b4-20db-4fbf-931f-a4b4e1bed668 c0a21a0f-89ed-4b66-b7ed-acbfd5583015 62bc2f7f-0d55-4049-af00-52a2b333188a e9f8b780-c93b-41f9-b146-1c4695283af9 b0e46168-2548-49ca-8f5f-5dcc6f3fc524 254308f7-70a9-4296-9166-fe4138c6382b 70b47b8f-b413-4660-bf32-b0b90db45ff4 a3ad9732-681c-4103-a9e2-5f919e60522c 412768a0-3d9b-4cfe-9264-3f214d4baed1 fd29914e-0d18-4964-a104-37c136b311a6 ed3e6862-db3e-4e81-badd-859ddf629400
-:BLOCKER:  8c4a3aea-3208-46c8-a491-2ff024fbf822 d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80 8985f8ae-8b26-45eb-8898-73f17c98680a 0a0dee55-d709-466e-a525-c3bb1c437b91 d3468075-b17a-45a2-bd3a-838521f11a87 6c969cbd-0c03-409f-835f-80ddb1faedf6 187a87b4-20db-4fbf-931f-a4b4e1bed668 c0a21a0f-89ed-4b66-b7ed-acbfd5583015 62bc2f7f-0d55-4049-af00-52a2b333188a e9f8b780-c93b-41f9-b146-1c4695283af9 b0e46168-2548-49ca-8f5f-5dcc6f3fc524 254308f7-70a9-4296-9166-fe4138c6382b 70b47b8f-b413-4660-bf32-b0b90db45ff4 a3ad9732-681c-4103-a9e2-5f919e60522c 412768a0-3d9b-4cfe-9264-3f214d4baed1 fd29914e-0d18-4964-a104-37c136b311a6 ed3e6862-db3e-4e81-badd-859ddf629400
+:MEMBERS:  8c4a3aea-3208-46c8-a491-2ff024fbf822 d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80 8985f8ae-8b26-45eb-8898-73f17c98680a 0a0dee55-d709-466e-a525-c3bb1c437b91 d3468075-b17a-45a2-bd3a-838521f11a87 6c969cbd-0c03-409f-835f-80ddb1faedf6 187a87b4-20db-4fbf-931f-a4b4e1bed668 aa7edd6c-d985-44b2-9359-a605761e5c3d c0a21a0f-89ed-4b66-b7ed-acbfd5583015 62bc2f7f-0d55-4049-af00-52a2b333188a e9f8b780-c93b-41f9-b146-1c4695283af9 b0e46168-2548-49ca-8f5f-5dcc6f3fc524 254308f7-70a9-4296-9166-fe4138c6382b 70b47b8f-b413-4660-bf32-b0b90db45ff4 a3ad9732-681c-4103-a9e2-5f919e60522c 412768a0-3d9b-4cfe-9264-3f214d4baed1 fd29914e-0d18-4964-a104-37c136b311a6 ed3e6862-db3e-4e81-badd-859ddf629400
+:BLOCKER:  8c4a3aea-3208-46c8-a491-2ff024fbf822 d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80 8985f8ae-8b26-45eb-8898-73f17c98680a 0a0dee55-d709-466e-a525-c3bb1c437b91 d3468075-b17a-45a2-bd3a-838521f11a87 6c969cbd-0c03-409f-835f-80ddb1faedf6 187a87b4-20db-4fbf-931f-a4b4e1bed668 aa7edd6c-d985-44b2-9359-a605761e5c3d c0a21a0f-89ed-4b66-b7ed-acbfd5583015 62bc2f7f-0d55-4049-af00-52a2b333188a e9f8b780-c93b-41f9-b146-1c4695283af9 b0e46168-2548-49ca-8f5f-5dcc6f3fc524 254308f7-70a9-4296-9166-fe4138c6382b 70b47b8f-b413-4660-bf32-b0b90db45ff4 a3ad9732-681c-4103-a9e2-5f919e60522c 412768a0-3d9b-4cfe-9264-3f214d4baed1 fd29914e-0d18-4964-a104-37c136b311a6 ed3e6862-db3e-4e81-badd-859ddf629400
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-10-27 Tue 12:58] \\
@@ -1254,6 +1270,8 @@ CLOCK: [2026-11-11 Wed 17:54]--[2026-11-11 Wed 18:00] =>  0:06
 CLOCK: [2026-11-13 Fri 10:19]--[2026-11-13 Fri 10:20] =>  0:01
 - [2026-11-13 Fri 10:19]--[2026-11-13 Fri 10:20] add ed3e6862 to the slice
 - [2026-11-13 Fri 13:35]--[2026-11-13 Fri 13:35] work slice 3bfa593c, next member
+CLOCK: [2026-11-16 Mon 12:10]--[2026-11-16 Mon 12:11] =>  0:01
+- [2026-11-16 Mon 12:10]--[2026-11-16 Mon 12:11] adopt 70b47b8f into the slice
 :END:
 :PLAN:
 The order, composed at /plan-slice 2026-10-28 from the members' own :PLAN:
@@ -1271,6 +1289,9 @@ renders; read the checklist for membership and this for sequence.
 7. [[id:c0a21a0f-89ed-4b66-b7ed-acbfd5583015][c0a21a0f]], archive merge and restore refusal, unioning keys of either shape.
 8. [[id:6c969cbd-0c03-409f-835f-80ddb1faedf6][6c969cbd]], the replay residue, one function and independent.
 9. [[id:187a87b4-20db-4fbf-931f-a4b4e1bed668][187a87b4]], the leftover's flags, one function and independent.
+9a. [[id:aa7edd6c-d985-44b2-9359-a605761e5c3d][aa7edd6c]], joined 2026-11-17 (the user): the same function places each
+leftover beside its original instead of at the end of the item list. Found in
+[[id:187a87b4-20db-4fbf-931f-a4b4e1bed668][187a87b4]]'s acceptance; planned in its own :PLAN: drawer.
 10. [[id:62bc2f7f-0d55-4049-af00-52a2b333188a][62bc2f7f]], the descending datetree finder and its lint check.
 11. [[id:254308f7-70a9-4296-9166-fe4138c6382b][254308f7]], the ceremony's two sorts refusing a busy file.
 11a. [[id:70b47b8f-b413-4660-bf32-b0b90db45ff4][70b47b8f]], joined 2026-11-16 (the user): the bury's due check reads every
@@ -1314,9 +1335,10 @@ Planned:
 - [-] [[id:0a0dee55-d709-466e-a525-c3bb1c437b91][0a0dee55]] REVIEW The applied record keys a session's events by timestamp to the second, so an event that failed or was skipped is consumed when another from the same second applies
 - [-] [[id:d3468075-b17a-45a2-bd3a-838521f11a87][d3468075]] REVIEW An apply interrupted after its writes records nothing, and the next pass inserts each amend a second time
 - [-] [[id:6c969cbd-0c03-409f-835f-80ddb1faedf6][6c969cbd]] REVIEW A replayed apply writes an extra one-minute CLOCK line for every run whose end has seconds
-- [-] [[id:187a87b4-20db-4fbf-931f-a4b4e1bed668][187a87b4]] DOING A narrowed span's leftover copies the human's :active and :edited flags, so agent time is written as attention
+- [-] [[id:187a87b4-20db-4fbf-931f-a4b4e1bed668][187a87b4]] REVIEW A narrowed span's leftover copies the human's :active and :edited flags, so agent time is written as attention
+- [ ] [[id:aa7edd6c-d985-44b2-9359-a605761e5c3d][aa7edd6c]] TODO A narrowed span's leftover is appended to the end of the item list, so it is drawn at the far end of the buffer and out of time order
 - [-] [[id:c0a21a0f-89ed-4b66-b7ed-acbfd5583015][c0a21a0f]] REVIEW Archiving a session already in the archive overwrites it, and restore overwrites a live queue the same way
-- [ ] [[id:62bc2f7f-0d55-4049-af00-52a2b333188a][62bc2f7f]] TODO Archiving into DONE.org's newest-first datetree creates a duplicate day or month node for any date older than the newest
+- [ ] [[id:62bc2f7f-0d55-4049-af00-52a2b333188a][62bc2f7f]] NEXT Archiving into DONE.org's newest-first datetree creates a duplicate day or month node for any date older than the newest
 - [-] [[id:e9f8b780-c93b-41f9-b146-1c4695283af9][e9f8b780]] REVIEW An unreadable .applied file reads as nothing applied, and the next write replaces it
 - [ ] [[id:b0e46168-2548-49ca-8f5f-5dcc6f3fc524][b0e46168]] TODO discard-guard misses absolute paths, git -C, and a cd before the git command
 - [ ] [[id:254308f7-70a9-4296-9166-fe4138c6382b][254308f7]] TODO The ceremony's sort steps reorder and save TODO.org or DONE.org while it holds the human's unsaved edits
@@ -1884,6 +1906,8 @@ CLOCK: [2026-11-13 Fri 14:09]--[2026-11-13 Fri 14:10] =>  0:01
 - [2026-11-13 Fri 14:40]--[2026-11-13 Fri 14:40] brainstorm archive and restore overwrite
 CLOCK: [2026-11-16 Mon 11:25]--[2026-11-16 Mon 11:26] =>  0:01
 - [2026-11-16 Mon 11:25]--[2026-11-16 Mon 11:26] brainstorm archive and restore overwrite
+CLOCK: [2026-11-16 Mon 12:01]--[2026-11-16 Mon 12:02] =>  0:01
+- [2026-11-16 Mon 12:01]--[2026-11-16 Mon 12:02] brainstorm archive and restore overwrite
 :END:
 :PLAN:
 Bounded: claude-code-ide-org-archive-drained-queues and
