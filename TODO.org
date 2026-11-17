@@ -2,6 +2,32 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO A narrowed span's leftover is appended to the end of the item list, so it is drawn at the far end of the buffer and out of time order :code:bounded:
+:PROPERTIES:
+:ID:       aa7edd6c-d985-44b2-9359-a605761e5c3d
+:CREATED:  [2026-11-17 Tue 11:24]
+:CATEGORY: Apply
+:END:
+:PLAN:
+Bounded: one function, --review-insert-remainders. Insert each leftover beside
+its original instead of appending it: a before-side leftover immediately before
+the original, an after-side one immediately after. The list then stays
+chronological, the contract apply relies on, and s stays a pure reversal of the
+view; s is not changed and no whole-list sort is added, since state items carry
+no :start to sort on. Test, ERT, proved red against HEAD: narrowing a span with
+items on both sides yields leftovers adjacent to it, in time order.
+:END:
+
+--review-insert-remainders appends each leftover to --review-items, whose
+  docstring (--review-display-items) says the list is chronological by contract
+  because apply writes CLOCK lines and replays transitions in list order. So the
+  leftover is drawn at the opposite end of the buffer from the span the human
+  just narrowed, and s, which only reverses the view, cannot bring it back.
+  Found 2026-11-17 in [[id:187a87b4-20db-4fbf-931f-a4b4e1bed668][187a87b4]]'s acceptance, where the user took two passing
+  tests for failures because the leftover was off screen; g would rebuild in
+  order but discards the session's edits. The fix is placement, not sorting;
+  the design is in :PLAN:.
+
 * TODO Two worktrees developing the module share one running Emacs, which holds whichever config.el was loaded last, and check-image calls that fresh to both :code:
 :PROPERTIES:
 :ID:       e07eb33a-2971-4bb9-b429-bbee9a6f4322
@@ -570,6 +596,11 @@ the end is not before the start, so a refused edit still changes the item and g
 counts it. Found by a repo audit 2026-10-27, by reading. Proposed: prefill in
 the item's current form, and set both flags after the check.
 
+Seen in use 2026-11-17, during [[id:187a87b4-20db-4fbf-931f-a4b4e1bed668][187a87b4]]'s acceptance: after c redrew the span as
+<...>--<...>, e still offered [...] in both prompts, so keeping the claim's
+active form meant retyping the brackets.
+
+
 
 * TODO A sub-minute run rounded up to a minute can overlap the next run, counting a minute twice and crediting a permission wait :code:
 :PROPERTIES:
@@ -783,6 +814,15 @@ copy-sequence of the item resets only :marked, :dismiss, :dismiss-reason and
 
 Code on a feature/ branch, merged through a PR.
 :END:
+:DEBRIEF:
+The fix was one dolist in --review-insert-remainders; the ERT tests were proved
+red against HEAD. Acceptance first read as two failures: the leftover is
+appended to the end of the item list, so it is drawn at the far end of the
+buffer from the span it came from, and the user was looking beside the original.
+That is its own defect, filed as a separate heading, not this one's. Test B also
+met [[id:954e61b1-5bf8-49a1-b33e-cf07da5dc7ca][954e61b1]] (e's prompt prefills inactive brackets after c), already filed; its
+body now records the sighting.
+:END:
 
 --review-insert-remainders copies the edited item and resets only its mark,
   dismissal and suggested flags, so the leftover keeps :active, :edited,
@@ -792,6 +832,14 @@ Code on a feature/ branch, merged through a PR.
   made (repo audit 2026-10-27, by reading; the remainder tests check only marks
   and bounds). The fix clears those flags and :auto-marked on the copy, and a
   human-typed note with them; the design is in :PLAN:.
+
+Resolved on feature/tracker-record-loss (commit 68002a0): the leftover's copy
+clears :active, :edited, :claimed, :note-edited and :auto-marked, and drops
+:note when the human typed it. Accepted in the review buffer 2026-11-17 on
+[[id:c0a21a0f-89ed-4b66-b7ed-acbfd5583015][c0a21a0f]]'s 12:01-12:10 span narrowed to 12:05-12:10: a typed note and active
+bounds stayed on the narrowed span and the leftover showed neither; a claim did
+not carry; the queue's own label did.
+
 
 
 * REVIEW The session render escapes only column-zero lines, so an indented #+ line in transcript text takes effect, SETUPFILE included :code:bounded:
@@ -12407,12 +12455,12 @@ before the fix and still says.
 
 
 * TODO Archive closed tasks daily
-SCHEDULED: <2026-11-17 Tue 07:00 ++1d>
+SCHEDULED: <2026-11-18 Wed 07:00 ++1d>
 :PROPERTIES:
 :CATEGORY: Meta
 :ID:       cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8
 :CREATED:  [2026-08-21 Fri 15:35]
-:LAST_REPEAT: [2026-11-16 Mon 10:33]
+:LAST_REPEAT: [2026-11-17 Tue 10:55]
 :KIND:     ceremony
 :END:
 :LOGBOOK:
