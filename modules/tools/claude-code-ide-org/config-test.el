@@ -9229,29 +9229,89 @@ it, so a session later committed the human's unfinished edit."
         (with-current-buffer (get-file-buffer archive-file)
           (set-buffer-modified-p nil))))))
 
-(ert-deftest claude-code-ide-org-test-ceremony-holds-the-repeater-on-a-busy-sort ()
-  "The bury's ceremony reports the refused sort FAILED and holds the
-repeater, so the next bury or session start runs it again.  A returned
-\"skipped\" would print as ok and advance it, and the sort would wait a day."
+(ert-deftest claude-code-ide-org-test-ceremony-reports-a-busy-sort-failed ()
+  "Should a busy file reach the steps anyway, the refused sort is reported
+FAILED, which holds the repeater.  A returned \"skipped\" would print as
+ok and advance it, and the sort would wait a day (TODO.org :ID: 254308f7)."
   (claude-code-ide-org-test--with-unsorted-file
     (claude-code-ide-org-test--unsaved-edit file)
-    (let (advanced)
-      (cl-letf (((symbol-function 'claude-code-ide-org-refresh-slice) (lambda (&rest _) 0))
-                ((symbol-function 'claude-code-ide-org-consolidate-all-drawers) (lambda () 0))
-                ((symbol-function 'claude-code-ide-org-normalize-heading-separation)
-                 (lambda (&rest _) 0))
-                ((symbol-function 'claude-code-ide-org-archive-finished) (lambda (&rest _) 0))
-                ((symbol-function 'claude-code-ide-org-sort-datetree-descending)
-                 (lambda (&rest _) 0))
-                ((symbol-function 'claude-code-ide-org-mark-ceremony-done)
-                 (lambda (&optional _s) nil))
-                ((symbol-function 'claude-code-ide-org--ceremony-due-p) (lambda () t))
-                ((symbol-function 'claude-code-ide-org--ceremony-advance-repeater)
-                 (lambda () (setq advanced t))))
+    (cl-letf (((symbol-function 'claude-code-ide-org-refresh-slice) (lambda (&rest _) 0))
+              ((symbol-function 'claude-code-ide-org-consolidate-all-drawers) (lambda () 0))
+              ((symbol-function 'claude-code-ide-org-normalize-heading-separation)
+               (lambda (&rest _) 0))
+              ((symbol-function 'claude-code-ide-org-archive-finished) (lambda (&rest _) 0))
+              ((symbol-function 'claude-code-ide-org-sort-datetree-descending)
+               (lambda (&rest _) 0)))
+      (let ((sorted (assoc "sorted" (claude-code-ide-org--ceremony-run-steps file))))
+        (should (claude-code-ide-org--ceremony-step-failed-p sorted))
+        (should (string-match-p "TODO.org has unsaved changes" (cddr sorted)))))))
+
+(defmacro claude-code-ide-org-test--with-recorded-ceremony (&rest body)
+  "Run BODY with every ceremony step, the stamp and the advance recorded.
+CALLED lists the step and stamp names that ran."
+  (declare (indent 0))
+  `(let (called)
+     (cl-letf (((symbol-function 'claude-code-ide-org-refresh-slice)
+                (lambda (&rest _) (push "slices" called) 0))
+               ((symbol-function 'claude-code-ide-org-consolidate-all-drawers)
+                (lambda (&rest _) (push "drawers" called) 0))
+               ((symbol-function 'claude-code-ide-org-normalize-heading-separation)
+                (lambda (&rest _) (push "spacing" called) 0))
+               ((symbol-function 'claude-code-ide-org-archive-finished)
+                (lambda (&rest _) (push "archived" called) 0))
+               ((symbol-function 'claude-code-ide-org-sort-by-created)
+                (lambda (&rest _) (push "sorted" called) 0))
+               ((symbol-function 'claude-code-ide-org-sort-datetree-descending)
+                (lambda (&rest _) (push "datetree" called) 0))
+               ((symbol-function 'claude-code-ide-org-mark-ceremony-done)
+                (lambda (&optional _s) (push "stamped" called) nil))
+               ((symbol-function 'claude-code-ide-org--ceremony-due-p) (lambda () t))
+               ((symbol-function 'claude-code-ide-org--ceremony-advance-repeater)
+                (lambda () (push "advanced" called) t)))
+       ,@body)))
+
+(ert-deftest claude-code-ide-org-test-ceremony-finish-runs-nothing-on-a-busy-file ()
+  "The bury runs no step while the tracker holds unsaved edits, stamps
+nothing and holds the repeater (TODO.org :ID: 254308f7).  It ran every
+step, and the spacing and archive steps saved the human's edit."
+  (claude-code-ide-org-test--with-unsorted-file
+    (let ((text (claude-code-ide-org-test--unsaved-edit file)))
+      (claude-code-ide-org-test--with-recorded-ceremony
         (let ((summary (claude-code-ide-org-ceremony-finish)))
-          (should (string-match-p "sorted: FAILED (TODO.org has unsaved changes" summary))
+          (should (string-match-p "steps: SKIPPED (TODO.org has unsaved changes" summary))
           (should (string-match-p "repeater: held" summary))
-          (should-not advanced))))))
+          (should-not called)))
+      (with-current-buffer (get-file-buffer file)
+        (should (equal text (buffer-string)))
+        (should (buffer-modified-p))))))
+
+(ert-deftest claude-code-ide-org-test-ceremony-finish-runs-nothing-on-a-busy-archive ()
+  "DONE.org counts too, tracked or not: the archive and datetree steps
+write it."
+  (claude-code-ide-org-test--with-unsorted-file
+    (let ((done (expand-file-name "DONE.org" dir)))
+      (with-current-buffer (find-file-noselect file)
+        (setq-local org-archive-location "DONE.org::datetree/"))
+      (with-temp-file done (insert "* 2026\n"))
+      (claude-code-ide-org-test--unsaved-edit done)
+      (unwind-protect
+          (claude-code-ide-org-test--with-recorded-ceremony
+            (should (string-match-p "steps: SKIPPED (DONE.org has unsaved changes"
+                                    (claude-code-ide-org-ceremony-finish)))
+            (should-not called))
+        (let ((buf (get-file-buffer done)))
+          (when buf
+            (with-current-buffer buf (set-buffer-modified-p nil))
+            (kill-buffer buf)))))))
+
+(ert-deftest claude-code-ide-org-test-ceremony-finish-runs-every-step-when-saved ()
+  "With nothing busy the bury runs all six steps, stamps and advances."
+  (claude-code-ide-org-test--with-unsorted-file
+    (claude-code-ide-org-test--with-recorded-ceremony
+      (should (string-match-p "repeater: advanced" (claude-code-ide-org-ceremony-finish)))
+      (should (equal '("slices" "drawers" "spacing" "archived" "sorted" "datetree"
+                       "stamped" "advanced")
+                     (reverse called))))))
 
 (ert-deftest claude-code-ide-org-test-sort-keeps-subtrees-with-their-parents ()
   "A child must travel with its heading, or sorting silently reparents work."

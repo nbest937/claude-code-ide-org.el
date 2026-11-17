@@ -1514,13 +1514,9 @@ said so, while a tracked file has unsaved changes in Emacs, since the
 steps rewrite those files.  Under a report scope the file-shaped steps
 act on that project's own TODO.org, never the capture default."
   (when (claude-code-ide-org--ceremony-due-p)
-    (let* ((unsaved (seq-filter
-                     (lambda (f)
-                       (let ((b (find-buffer-visiting f)))
-                         (and b (buffer-modified-p b))))
-                     (claude-code-ide-org--tracked-files)))
-           (scope claude-code-ide-org--report-scope)
-           (file (and scope (claude-code-ide-org--project-capture-file scope))))
+    (let* ((scope claude-code-ide-org--report-scope)
+           (file (and scope (claude-code-ide-org--project-capture-file scope)))
+           (unsaved (claude-code-ide-org--ceremony-busy-files file)))
       (cond
        (unsaved
         (format "The daily ceremony is due, and its steps after apply did not \
@@ -18607,6 +18603,29 @@ a partial pass."
             out))
     (nreverse out)))
 
+(defun claude-code-ide-org--ceremony-busy-files (&optional file)
+  "The files the ceremony's steps would write that hold unsaved edits.
+
+The tracked files, plus FILE and its archive target when FILE is given,
+since the archive and datetree steps write DONE.org whether or not it is
+tracked.  Each file once, by truename.  Both ceremony paths ask this
+before running a step (TODO.org :ID: 254308f7): the steps save what
+they touch, and spacing and archiving save the whole buffer, so one
+step run on a busy file commits the human's half-finished edit with it."
+  (let (seen busy)
+    (dolist (f (append (claude-code-ide-org--tracked-files)
+                       (and file
+                            (list file (ignore-errors
+                                         (claude-code-ide-org--archive-target-file
+                                          file))))))
+      (when f
+        (let ((true (file-truename f)))
+          (unless (member true seen)
+            (push true seen)
+            (when (claude-code-ide-org--file-busy-p f)
+              (push f busy))))))
+    (nreverse busy)))
+
 (defun claude-code-ide-org--ceremony-step-failed-p (result)
   "Non-nil when RESULT, from `--ceremony-run-steps', is a failure."
   (eq (car-safe (cdr result)) 'failed))
@@ -18639,14 +18658,35 @@ whole pass, so the due check and the repeater advance read only the
 ceremony whose steps ran.  Unscoped, the bury marked every tracked
 project's overdue ceremony DONE, and a consumer's own session start then
 found nothing due and never archived (PR #37's review, TODO.org :ID:
-9c1afc7a)."
+9c1afc7a).
+
+*Nothing runs on a busy file.*  While a file the steps would write holds
+unsaved edits, no step runs, the ceremony is not stamped done and the
+repeater is held, so the next bury or session start runs the whole pass
+once the file is saved.  Session start already declined this way; the
+bury ran every step, and the spacing and archive steps saved the
+human's half-finished edit (TODO.org :ID: 254308f7)."
   (interactive)
   (let* ((file (claude-code-ide-org--capture-target-file))
          (claude-code-ide-org--report-scope
           (or (and file (claude-code-ide-org--project-root
                          (file-name-directory (file-truename file))))
               claude-code-ide-org--report-scope))
-         (results (claude-code-ide-org--ceremony-run-steps file))
+         (busy (claude-code-ide-org--ceremony-busy-files file)))
+    (if busy
+        (let ((summary
+               (format "steps: SKIPPED (%s ha%s unsaved changes in Emacs; save, \
+then bury the review buffer again or start a session); repeater: held"
+                       (mapconcat #'file-name-nondirectory busy ", ")
+                       (if (cdr busy) "ve" "s"))))
+          (message "ceremony: %s" summary)
+          summary)
+      (claude-code-ide-org--ceremony-finish-steps file))))
+
+(defun claude-code-ide-org--ceremony-finish-steps (file)
+  "Run the ceremony's steps on FILE and stamp it; the body of
+`claude-code-ide-org-ceremony-finish' once no file is busy."
+  (let* ((results (claude-code-ide-org--ceremony-run-steps file))
          (failed (seq-some #'claude-code-ide-org--ceremony-step-failed-p results))
          ;; Newest first, as the `push' below expects; reversed at the end.
          (parts (nreverse (mapcar #'claude-code-ide-org--ceremony-step-text
