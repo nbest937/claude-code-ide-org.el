@@ -17,6 +17,14 @@ view; s is not changed and no whole-list sort is added, since state items carry
 no :start to sort on. Test, ERT, proved red against HEAD: narrowing a span with
 items on both sides yields leftovers adjacent to it, in time order.
 :END:
+:DEBRIEF:
+The fix is a splice at the end of --review-insert-remainders, with a fallback to
+the old append if the original is somehow not in the list. The new ERT test was
+proved red against HEAD; bin/test-all passed. Nothing named here is left undone.
+One observation from acceptance, not filed: time worked after [[id:187a87b4-20db-4fbf-931f-a4b4e1bed668][187a87b4]]'s
+clock_out was suggested under [[id:c0a21a0f-89ed-4b66-b7ed-acbfd5583015][c0a21a0f]]'s day-old label, which may be the
+session's last label carrying forward by design; unchecked.
+:END:
 
 --review-insert-remainders appends each leftover to --review-items, whose
   docstring (--review-display-items) says the list is chronological by contract
@@ -27,6 +35,14 @@ items on both sides yields leftovers adjacent to it, in time order.
   tests for failures because the leftover was off screen; g would rebuild in
   order but discards the session's edits. The fix is placement, not sorting;
   the design is in :PLAN:.
+
+Resolved on feature/tracker-record-loss (commit a200899): leftovers before the
+new start are spliced in immediately before the original, those after its end
+immediately after; s is unchanged. Accepted in the review buffer 2026-11-17 on
+[[id:c0a21a0f-89ed-4b66-b7ed-acbfd5583015][c0a21a0f]]'s 11:25-11:34 span: narrowed to 11:26-11:31 the leftover sat just
+after it, narrowed to 11:33-11:34 just before it, and both stayed beside it
+through s.
+
 
 
 * TODO Two worktrees developing the module share one running Emacs, which holds whichever config.el was loaded last, and check-image calls that fresh to both :code:
@@ -15271,6 +15287,9 @@ CLOCK: [2026-11-13 Fri 13:34]--[2026-11-13 Fri 13:35] =>  0:01
 - <2026-11-13 Fri 13:34>--<2026-11-13 Fri 13:35> review pass (buffer buried)
 CLOCK: [2026-11-13 Fri 14:06]--[2026-11-13 Fri 14:08] =>  0:02
 - <2026-11-13 Fri 14:35>--<2026-11-13 Fri 14:35> review pass (buffer buried)
+CLOCK: [2026-11-17 Tue 13:33]--[2026-11-17 Tue 13:34] =>  0:01
+- <2026-11-17 Tue 13:33>--<2026-11-17 Tue 13:34> review pass (buffer buried)
+- <2026-11-17 Tue 13:35>--<2026-11-17 Tue 13:35> review pass (buffer buried)
 :END:
 
 We created this heading on 2026-08-26. We deleted that property from its
