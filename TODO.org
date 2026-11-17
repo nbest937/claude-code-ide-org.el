@@ -1066,6 +1066,17 @@ has no duplicates yet only because most headings close on the newest date.
 Proposed: create the node with org-datetree-find-create-hierarchy and reversed
 comparators, as [[id:0c3f1319-67c0-4b29-a8e7-5ffa12948aaf][0c3f1319]] measured for TODO.org, then archive into it.
 
+Implemented on feature/tracker-record-loss (commits b796201 and b828803): the
+descending finder, bound in at both archive sites through --archive-subtree, and
+the lint-org check for duplicate sibling datetree nodes. A first archive in a
+fresh session loaded org-datetree inside the binding and overwrote it; the
+finder's library is now required before binding. Verified 2026-11-17 on a copy
+of the real DONE.org: tasks closed 11-11, 11-12 and 10-29 went into the existing
+day or one new day in its slot, with no duplicate. Left DOING by the user until
+a live archive of a heading closed before DONE.org's newest day; then check
+DONE.org with bin/lint-org and close.
+
+
 
 * TODO footnotes-inject reads hook JSON with sed, so a path or id containing an escaped quote is cut short :code:
 :PROPERTIES:
