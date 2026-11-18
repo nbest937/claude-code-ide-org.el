@@ -1356,12 +1356,12 @@ leftover beside its original instead of at the end of the item list. Found in
 11. [[id:254308f7-70a9-4296-9166-fe4138c6382b][254308f7]], the ceremony's two sorts refusing a busy file.
 11a. [[id:70b47b8f-b413-4660-bf32-b0b90db45ff4][70b47b8f]], joined 2026-11-16 (the user): the bury's due check reads every
 project's ceremony, so another project's overdue heading reruns this one's steps
-while its own never run. Beside 11, the other ceremony member. Its :PLAN: drawer
-is empty, so it needs a /plan-slice pass before it is worked.
+while its own never run. Beside 11, the other ceremony member. Planned at
+/plan-slice 2026-11-18 in its own :PLAN: drawer.
 12. [[id:b0e46168-2548-49ca-8f5f-5dcc6f3fc524][b0e46168]], discard-guard's per-segment directory, shell only.
 13. [[id:a3ad9732-681c-4103-a9e2-5f919e60522c][a3ad9732]], org_set_property's special-property refusal.
 14. [[id:412768a0-3d9b-4cfe-9264-3f214d4baed1][412768a0]] and 15. [[id:fd29914e-0d18-4964-a104-37c136b311a6][fd29914e]] together: both change --capture-write, so they are worked as one step.
-16. [[id:ed3e6862-db3e-4e81-badd-859ddf629400][ed3e6862]], joined 2026-11-13 (the user): org_refile leaves the target's statistics cookie stale, and a capture or refile giving a heading its first child leaves it none. Last, because its capture half changes --capture-write after 14 and 15. Its :PLAN: drawer is empty, so it needs a /plan-slice pass before it is worked.
+16. [[id:ed3e6862-db3e-4e81-badd-859ddf629400][ed3e6862]], joined 2026-11-13 (the user): org_refile leaves the target's statistics cookie stale, and a capture or refile giving a heading its first child leaves it none. Last, because its capture half changes --capture-write after 14 and 15. Planned at /plan-slice 2026-11-18 in its own :PLAN: drawer.
 
 The slice integrates as one branch and one PR, feature/tracker-record-loss (the
 user, 2026-11-13): the review-start hook moves a slice to REVIEW when its one
@@ -2778,39 +2778,14 @@ refile does nothing after org-refile but save.
 Code on feature/tracker-record-loss, merged through the slice's PR.
 
 :END:
-The conventions say a heading takes its =[/]= cookie when its first
-keyworded child appears, and =bin/lint-org= errors on one without it. The
-tools do not do it: =org_capture= with a =target= writes the child through
-=--capture-write=, which never touches the parent's headline, and =org_refile=
-under a cookie-less parent probably does the same. Only =org_divide= calls
-=--ensure-statistics-cookie-at-point=. A cookie that already exists is
-not updated by a refile either (measured 2026-11-13, below), so refile misses
-every child, not only the first. Since no tool edits a headline
-([[id:9714f875-4a12-44e4-8f30-dfbd1b6e555e][9714f875]]), the session's only remedies are a raw edit behind Emacs or asking
-the human for =C-c #=. Seen in noodle-sales: four new stories (=57d6bf66=,
-=2366e0f0=, =dfdeb760=, and =7616fa92='s new parent) all came out cookie-less.
-
-Proposed: after =--capture-write= files a keyworded child under a target, and
-after =org_refile= lands one under a new parent, call
-=--ensure-statistics-cookie-at-point= on the parent and then
-=org-update-statistics-cookies=, as =org_divide= does, and say so in the reply.
-A fixture test for each path: capture or refile a keyworded child under a
-keywordless-children parent, and assert the cookie appears after the keyword.
-
-Measured 2026-11-13, against the straight org Doom loads, in batch: org-refile
-moving a TODO under =* TODO [0/1] Story= left the cookie at =[0/1]=, and a
-following =org-update-statistics-cookies= gave =[0/2]=. org_refile adds nothing
-after org-refile but saving, so every refile under a cookie-bearing heading
-leaves it stale until a human presses =C-c #=. Seen in noodle-sales on
-=58dee438=: one child captured, two refiled under it, the cookie still =[0/1]=
-over three children. org-archive-subtree, by contrast, updated its parent's
-cookie itself in the same test (=[1/2]= to =[0/1]=), so archiving needs nothing.
-Not measured: whether the source parent a refile leaves is updated. A targeted
-org_capture does update a cookie already there: two captures under =[/]= left
-=[0/2]= on disk (2026-11-13). The proposal
-covers both ends of a refile: ensure and update the cookie on the target, and
-update it on the old parent.
-
+The conventions give a heading its [/] cookie with its first keyworded child,
+and bin/lint-org errors on one without it, but only org_divide adds it: a
+targeted org_capture never touches the parent's headline, and org_refile leaves
+a cookie stale on both ends (measured 2026-11-13; archiving updates its own).
+Seen in noodle-sales, where four new stories came out cookie-less and a refiled
+story read [0/1] over three children. The fix gives capture and refile one
+shared helper that ensures and updates the parent's cookie; the design is in
+:PLAN:.
 
 * TODO lint-org with no arguments lints the plugin checkout, not the consuming repo, and passes :code:
 :PROPERTIES:
