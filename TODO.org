@@ -420,17 +420,12 @@ Code on feature/tracker-record-loss, slice [[id:3bfa593c-c2da-4e44-b47f-2d5f0750
 PR.
 
 :END:
---review-attention-on-quit calls --ceremony-due-p with no report scope, so
-  --ceremony-headings reads every project's tracker, while ceremony-finish binds
-  the scope only inside itself and acts on --capture-target-file. On 2026-10-30
-  noodle-salesman's overdue heading made a bury at 11:31 rerun this repo's
-  steps, archiving [[id:f6398e59-b02d-4b3a-961a-f349eeaca125][f6398e59]] and [[id:1abff8d5-d142-4de1-b939-578e993ecc8d][1abff8d5]] though this repo's repeater was already
-  at 2026-10-31; noodle-salesman's own steps did not run and its repeater stayed
-  overdue, so every bury repeats this until it does. The scope fix in [[id:9c1afc7a-161d-4e4c-aa93-9c02becfb5ba][9c1afc7a]]
-  reached ceremony-finish and not its caller. The bury should decide due for the
-  project whose steps it would run. The second branch of the same cond, which
-  stamps the ceremony done, has the same unscoped reads.
-
+The bury's due check reads every project's ceremony, so another project's
+overdue heading makes it rerun this one's steps, while that project's own steps
+never run from a bury; on 2026-10-30 noodle-salesman's overdue heading archived
+[[id:f6398e59-b02d-4b3a-961a-f349eeaca125][f6398e59]] and [[id:1abff8d5-d142-4de1-b939-578e993ecc8d][1abff8d5]] here a day early. The scope fix in [[id:9c1afc7a-161d-4e4c-aa93-9c02becfb5ba][9c1afc7a]] reached
+ceremony-finish and not its caller. The fix scopes both of the bury's ceremony
+reads to the project its steps act on; the design is in :PLAN:.
 
 * TODO An apply refused by org-depend reports neither the blocker nor the reason, only that the keyword did not change :code:
 :PROPERTIES:
@@ -2750,7 +2745,7 @@ order: a bounded change built on an unapproved design inherits that design's
 uncertainty. Keep "when in doubt, heavier".
 
 
-* TODO A capture or refile that gives a heading its first keyworded child leaves it with no statistics cookie, which lint-org then refuses :code:
+* TODO A capture or refile that gives a heading its first keyworded child leaves it with no statistics cookie, which lint-org then refuses :code:bounded:
 :PROPERTIES:
 :ID:       ed3e6862-db3e-4e81-badd-859ddf629400
 :CREATED:  [2026-10-14 Wed 16:34]
@@ -2759,8 +2754,28 @@ uncertainty. Keep "when in doubt, heavier".
 :LOGBOOK:
 CLOCK: [2026-10-14 Wed 16:34]--[2026-10-14 Wed 16:35] =>  0:01
 - [2026-10-14 Wed 16:34]--[2026-10-14 Wed 16:35] file the first-child cookie gap
+- Tags ":code:bounded:" from ":code:"     [2026-11-18 Wed 12:57] \\
+  classified at /plan-slice: two existing writers
 :END:
 :PLAN:
+Bounded: claude-code-ide-org--capture-write and claude-code-ide-org-refile in
+config.el. Only org_divide calls --ensure-statistics-cookie-at-point and then
+org-update-statistics-cookies; capture never touches the parent's headline, and
+refile does nothing after org-refile but save.
+
+1. One helper settles a parent's cookie, at the heading at point: when it carries a keyword and --container-heading-p holds (lint's own test), --ensure-statistics-cookie-at-point inserts [/] if absent; then org-update-statistics-cookies updates whatever cookie it has. A slice (:KIND: slice) is skipped, since the slice refresh owns its checkbox cookie. Returns whether it inserted one, so the reply can say "gave X a [/] cookie".
+
+2. --capture-write, after finalize, when SPEC targets a heading rather than a file: the helper on the new heading's parent. The immediate and the deferred (apply) captures share the function, so both are fixed.
+
+3. org_refile: record the old parent's marker before moving; after it, the helper on the new parent, and only the update on the old one, never removing its cookie, so a parent left childless keeps [0/0]. Archiving needs nothing: org-archive-subtree updates its parent's cookie itself (measured 2026-11-13).
+
+4. Worked last in slice [[id:3bfa593c-c2da-4e44-b47f-2d5f0750f2aa][3bfa593c]], after [[id:412768a0-3d9b-4cfe-9264-3f214d4baed1][412768a0]] and [[id:fd29914e-0d18-4964-a104-37c136b311a6][fd29914e]], which change --capture-write too.
+
+5. Tests, ERT in config-test.el, each proved red against HEAD: a targeted capture of a TODO child under a cookie-less keyworded parent gives it [0/1]; a keywordless child adds none; a deferred capture applied gives the cookie; a refile under a cookie-less parent gives [0/1]; a refile under [0/1] gives [0/2] and updates the old parent.
+
+6. Acceptance: in a scratch tracked file, capture a TODO child under a childless TODO heading, then refile a second TODO child under it; the parent reads [0/1], then [0/2], and bin/lint-org passes.
+
+Code on feature/tracker-record-loss, merged through the slice's PR.
 
 :END:
 The conventions say a heading takes its =[/]= cookie when its first
