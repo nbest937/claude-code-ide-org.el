@@ -3205,10 +3205,10 @@ comparator negated -- inverting lookup and insertion together, as
 TODO.org :ID: 0c3f1319 measured on org 9.8.7.
 
 It assumes the tree is descending: on an ascending one it inverts the
-order the same way org's finder does on a descending one.  So it is
-bound in only around an archive into a datetree target, by
-`claude-code-ide-org--archive-subtree', and never installed globally: a
-hand \\[org-archive-subtree] and every capture template keep org's own."
+order the same way org's finder does on a descending one.  So it runs
+only inside an archive from a tracked file into a datetree target, by
+`claude-code-ide-org--datetree-descending-around'; every capture
+template, and every archive from an untracked file, keeps org's own."
   (require 'org-datetree)
   (let ((ascending (symbol-function 'org-datetree-comparefun-from-regex)))
     (cl-letf (((symbol-function 'org-datetree-comparefun-from-regex)
@@ -3219,28 +3219,48 @@ hand \\[org-archive-subtree] and every capture template keep org's own."
                        (and (numberp r) (- r))))))))
       (org-datetree-find-create-entry '(year month day) d keep-restriction))))
 
-(defun claude-code-ide-org--archive-subtree (location)
-  "Archive the subtree at point to LOCATION's target with `org-archive-subtree'.
+(defvar claude-code-ide-org--archive-descending nil
+  "Non-nil while `org-archive-subtree' archives a tracked file into a
+datetree, which the ceremony keeps newest-first.  Bound by
+`claude-code-ide-org--archive-descending-around', read by
+`claude-code-ide-org--datetree-descending-around'.")
 
-For a datetree LOCATION the descending finder stands in for org's for
-this one call (`claude-code-ide-org--datetree-find-date-create-descending').
-Both archive sites come through here -- the `org_archive' tool and the
-sweep -- so neither can create a duplicate date node the other would not.
+(defun claude-code-ide-org--archive-descending-around (fn &rest args)
+  "Around `org-archive-subtree': bind the descending-archive flag.
 
-`org-datetree' is required *before* the binding.  `org-archive-subtree'
-requires it itself just before the call, and on a session's first
-archive that load redefines `org-datetree-find-date-create' over the
-binding, so org's own finder ran and wrote a duplicate month: measured
-2026-11-17 on a copy of DONE.org, where the first of three archives
-went wrong and the other two cascaded from it.  The suite had missed it
-because earlier tests had already loaded the library."
-  (if (claude-code-ide-org--archive-datetree-target-p location)
-      (progn
-        (require 'org-datetree)
-        (cl-letf (((symbol-function 'org-datetree-find-date-create)
-                   #'claude-code-ide-org--datetree-find-date-create-descending))
-          (org-archive-subtree)))
-    (org-archive-subtree)))
+Bound when the buffer archived from is tracked -- the consent boundary
+of TODO.org :ID: 67c3208f, since only a tracked file's archive target
+is the one the ceremony sorts newest-first -- and the location in force
+at point is a datetree.  Advice on org's command rather than a binding
+in the module's own callers, because a hand \\[org-archive-subtree]
+is an archive too: with the finder bound only in the tool and the sweep,
+a hand archive of an older date wrote the duplicate node that
+`bin/lint-org' then refuses at commit (TODO.org :ID: 62bc2f7f)."
+  (let ((claude-code-ide-org--archive-descending
+         (and (claude-code-ide-org--tracked-buffer-p)
+              (claude-code-ide-org--archive-datetree-target-p
+               (or (org-entry-get nil "ARCHIVE" 'inherit)
+                   org-archive-location)))))
+    (apply fn args)))
+
+(defun claude-code-ide-org--datetree-descending-around (fn &rest args)
+  "Around `org-datetree-find-date-create': the descending finder while
+`claude-code-ide-org--archive-descending' is bound, else org's own.
+
+Advice, not a `cl-letf' of the function cell, because advice survives
+the redefinition a binding did not: `org-archive-subtree' requires
+`org-datetree' just before calling the finder, and on a session's first
+archive that load replaced the bound function with org's, which wrote a
+duplicate month (measured 2026-11-17 on a copy of DONE.org).  `defalias'
+keeps advice in place; checked in batch on 2026-11-18."
+  (if claude-code-ide-org--archive-descending
+      (apply #'claude-code-ide-org--datetree-find-date-create-descending args)
+    (apply fn args)))
+
+(advice-add 'org-archive-subtree :around
+            #'claude-code-ide-org--archive-descending-around)
+(advice-add 'org-datetree-find-date-create :around
+            #'claude-code-ide-org--datetree-descending-around)
 
 (defun claude-code-ide-org-archive (id)
   "Archive the org heading whose :ID: property equals ID.
@@ -3278,7 +3298,7 @@ honoured."
              (progn
                ;; The heading named, never the region's (:ID: 4a4ebb21).
                (let ((org-loop-over-headlines-in-active-region nil))
-                 (claude-code-ide-org--archive-subtree location))
+                 (org-archive-subtree))
                (save-buffer)
                (format "Archived: \"%s\"" heading))))))))
 
@@ -18447,8 +18467,7 @@ its end would bury a fresh entry under two hundred older ones."
                    ;; one at point -- live work included, then
                    ;; `end-of-buffer' (TODO.org :ID: 4a4ebb21).
                    (let ((org-loop-over-headlines-in-active-region nil))
-                     (claude-code-ide-org--archive-subtree
-                      org-archive-location))
+                     (org-archive-subtree))
                    (setq n (1+ n))))))
            (set-marker m nil))))
       (when (buffer-modified-p) (save-buffer)))

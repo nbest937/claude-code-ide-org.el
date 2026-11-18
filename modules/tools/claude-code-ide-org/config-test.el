@@ -18475,7 +18475,8 @@ with an empty day node after it."
 
 (defun claude-code-ide-org-test--archive-into-descending (closed via)
   "Archive a task CLOSED (an org timestamp) into the descending fixture.
-VIA is `tool' for `org_archive' or `sweep' for the ceremony's sweep.
+VIA is `tool' for `org_archive', `sweep' for the ceremony's sweep, or
+`hand' for a direct `org-archive-subtree', as \\[org-archive-subtree] runs.
 Return the archive's heading lines, whitespace normalised."
   (claude-code-ide-org-test--with-heading
     (claude-code-ide-org-test--datetree-fixture
@@ -18490,9 +18491,17 @@ Return the archive's heading lines, whitespace normalised."
     (dolist (f (list file archive-file))
       (let ((b (get-file-buffer f))) (when b (kill-buffer b))))
     (org-id-update-id-locations (list file))
-    (if (eq via 'sweep)
-        (should (= 1 (claude-code-ide-org-archive-finished file)))
-      (claude-code-ide-org-archive id))
+    ;; Tracked, as the real TODO.org is: the descending finder runs only
+    ;; for an archive from a tracked file.
+    (let ((claude-code-ide-org-query-files (list file archive-file)))
+      (pcase via
+        ('sweep (should (= 1 (claude-code-ide-org-archive-finished file))))
+        ('hand (with-current-buffer (find-file-noselect file)
+                 (goto-char (point-min))
+                 (re-search-forward "^\\* DONE The task archived now")
+                 (org-archive-subtree)
+                 (save-buffer)))
+        (_ (claude-code-ide-org-archive id))))
     (mapcar (lambda (l) (replace-regexp-in-string "[ \t]+" " " l))
             (seq-filter (lambda (l) (string-prefix-p "*" l))
                         (split-string
@@ -18569,7 +18578,9 @@ does, and later ones do nothing, as a loaded feature does."
          (model (lambda (fn feature &rest args)
                   (if (and (eq feature 'org-datetree) (not loaded))
                       (progn (setq loaded t)
-                             (fset 'org-datetree-find-date-create orgs)
+                             ;; `defalias', as loading the file does.
+                             (defalias 'org-datetree-find-date-create
+                               (advice--cd*r orgs))
                              feature)
                     (apply fn feature args)))))
     (advice-add 'require :around model)
@@ -18590,6 +18601,56 @@ does, and later ones do nothing, as a loaded feature does."
                          "**** DONE Oldest archived :code:")))
       (advice-remove 'require model)
       (fset 'org-datetree-find-date-create orgs))))
+
+(ert-deftest claude-code-ide-org-test-hand-archive-creates-a-day-in-its-slot ()
+  "A hand \\[org-archive-subtree] from a tracked file uses the descending
+finder too (TODO.org :ID: 62bc2f7f).  Bound only in the module's own
+callers, it left a hand archive writing the duplicate node the lint
+refuses at commit."
+  (should (equal (claude-code-ide-org-test--archive-into-descending
+                  "[2026-11-12 Thu 15:00]" 'hand)
+                 '("* 2026"
+                   "** 2026-11 November"
+                   "*** 2026-11-13 Friday"
+                   "**** DONE Newest archived :code:"
+                   "*** 2026-11-12 Thursday"
+                   "**** DONE The task archived now :code:"
+                   "*** 2026-11-10 Tuesday"
+                   "**** DONE Older archived :code:"
+                   "** 2026-09 September"
+                   "*** 2026-09-01 Tuesday"
+                   "**** DONE Oldest archived :code:"))))
+
+(ert-deftest claude-code-ide-org-test-descending-finder-only-inside-a-tracked-archive ()
+  "Outside an archive, or archiving an untracked file, org's own finder
+runs: capture templates and the user's other files keep org's order."
+  (require 'org-datetree)
+  (let (ran)
+    (cl-letf (((symbol-function 'claude-code-ide-org--datetree-find-date-create-descending)
+               (lambda (&rest _) (setq ran t))))
+      (with-temp-buffer
+        (org-mode)
+        (insert "* 2026\n")
+        (org-datetree-find-date-create '(11 12 2026))
+        (should-not ran)
+        (should (string-match-p "^\\*\\*\\* 2026-11-12" (buffer-string))))
+      (claude-code-ide-org-test--with-heading
+        (let ((b (get-file-buffer file))) (when b (kill-buffer b)))
+        (with-temp-file (expand-file-name "DONE.org" (file-name-directory file))
+          (insert "* 2026\n"))
+        (with-temp-file file
+          (insert "#+ARCHIVE: DONE.org::datetree/\n\n* DONE Untracked :code:\n"
+                  "CLOSED: [2026-11-12 Thu 15:00]\n"))
+        (let ((claude-code-ide-org-query-files nil)
+              (org-agenda-files nil))
+          (with-current-buffer (find-file-noselect file)
+            (goto-char (point-min))
+            (re-search-forward "^\\* DONE Untracked")
+            (org-archive-subtree)
+            (set-buffer-modified-p nil))
+          (should-not ran)
+          (let ((b (find-buffer-visiting (expand-file-name "DONE.org" (file-name-directory file)))))
+            (when b (with-current-buffer b (set-buffer-modified-p nil)) (kill-buffer b))))))))
 
 (ert-deftest claude-code-ide-org-test-archive-puts-the-newest-date-on-top ()
   "The newest date lands first in its month.  Org's finder found no day
