@@ -44,7 +44,6 @@ after it, narrowed to 11:33-11:34 just before it, and both stayed beside it
 through s.
 
 
-
 * TODO Two worktrees developing the module share one running Emacs, which holds whichever config.el was loaded last, and check-image calls that fresh to both :code:
 :PROPERTIES:
 :ID:       e07eb33a-2971-4bb9-b429-bbee9a6f4322
@@ -774,6 +773,17 @@ FAILED there and holds the repeater, so the ceremony stays due.
 
 Code on a feature/ branch, merged through a PR.
 :END:
+:DEBRIEF:
+The plan's scope (the two sorts only) could not pass its own acceptance step:
+spacing and archive-finished also save the buffer they touch, so the edit was
+saved by the archive step even with the sorts refusing. Found while writing the
+procedure, not by a test; widened to a whole-ceremony guard on the bury path at
+the user's choice. Lesson: an acceptance step that names an end state ("the edit
+is still unsaved") tests every writer on that path, so check them all at
+planning time, not only the ones the heading names. Nothing left unfiled: the
+guard covers every step, and the unscoped due check that made the ceremony due
+here is [[id:70b47b8f-b413-4660-bf32-b0b90db45ff4][70b47b8f]]'s.
+:END:
 
 sort-by-created and sort-datetree-descending sort in place and save with no
 --file-busy-p check. Burying the review buffer while the ceremony is due and
@@ -782,6 +792,14 @@ a session later commits it; the session-start path already declines while a file
 is unsaved, the bury path does not (repo audit 2026-10-27, by reading). The fix
 makes both sorts signal on a busy file, so the step fails and the ceremony stays
 due; the design is in :PLAN:.
+
+Extended at the user's choice (2026-11-17) past the sorts: the bury's ceremony
+now runs no step while a file it writes is unsaved, as session start already
+did, through one helper both paths share that also counts the archive target.
+The sort refusals stay as a second line. Commits 7915131 and 247e4c5; the two
+guard tests fail against the prior code. Accepted live by the user 2026-11-18:
+an unsaved edit in TODO.org survived a due bury, reported SKIPPED with the
+repeater held, and the bury after saving ran all six steps.
 
 
 * REVIEW A narrowed span's leftover copies the human's :active and :edited flags, so agent time is written as attention :code:bounded:
@@ -1075,7 +1093,6 @@ of the real DONE.org: tasks closed 11-11, 11-12 and 10-29 went into the existing
 day or one new day in its slot, with no duplicate. Left DOING by the user until
 a live archive of a heading closed before DONE.org's newest day; then check
 DONE.org with bin/lint-org and close.
-
 
 
 * TODO footnotes-inject reads hook JSON with sed, so a path or id containing an escaped quote is cut short :code:
@@ -12506,12 +12523,12 @@ before the fix and still says.
 
 
 * TODO Archive closed tasks daily
-SCHEDULED: <2026-11-18 Wed 07:00 ++1d>
+SCHEDULED: <2026-11-19 Thu 07:00 ++1d>
 :PROPERTIES:
 :CATEGORY: Meta
 :ID:       cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8
 :CREATED:  [2026-08-21 Fri 15:35]
-:LAST_REPEAT: [2026-11-17 Tue 10:55]
+:LAST_REPEAT: [2026-11-18 Wed 11:38]
 :KIND:     ceremony
 :END:
 :LOGBOOK:
