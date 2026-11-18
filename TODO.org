@@ -390,13 +390,34 @@ keyword, the reply should say no body was written. That is local, needs nothing
 from upstream, and catches every misnamed synonym, which an alias list cannot.
 
 
-* TODO Burying the review buffer runs this project's ceremony because another project's is overdue, since the due check ignores the project scope :code:
+* TODO Burying the review buffer runs this project's ceremony because another project's is overdue, since the due check ignores the project scope :code:bounded:
 :PROPERTIES:
 :ID:       70b47b8f-b413-4660-bf32-b0b90db45ff4
 :CREATED:  [2026-10-30 Fri 11:55]
 :CATEGORY: Apply
 :END:
+:LOGBOOK:
+- Tags ":code:bounded:" from ":code:"     [2026-11-18 Wed 12:52] \\
+  classified at /plan-slice: one existing function
+:END:
 :PLAN:
+Bounded: claude-code-ide-org--review-attention-on-quit and
+claude-code-ide-org-ceremony-finish in config.el. The bury asks --ceremony-due-p
+unscoped, so any tracked project's overdue heading makes it run ceremony-finish,
+which acts only on --capture-target-file's project.
+
+1. One helper returns the project root a bury acts on: the root of --capture-target-file, as ceremony-finish computes it now. ceremony-finish uses it, so the two cannot drift.
+
+2. --review-attention-on-quit binds claude-code-ide-org--report-scope to that root around both branches of its cond: the due check that calls ceremony-finish, and the not-due, not-stamped-today branch that stamps it done.
+
+3. Another project's ceremony is left to its own session start, which already runs scoped ([[id:de081dd9-1853-4d79-94fc-2edac498380f][de081dd9]]). Ruled out: a bury running every due project's ceremony, each scoped, since this Emacs would archive and sort another repo with no session there to commit the diff; the heading asks for due to be decided for the project whose steps would run (the user approved, 2026-11-18). Out of scope: the global ceremony-last-run stamp, which one project's bury writes for all, is [[id:0e2f2e2f-c231-4f25-92cc-a37b63535efc][0e2f2e2f]]'s.
+
+4. Tests, ERT in config-test.el on the two-project fixture, each proved red against HEAD: project B overdue and A not, a bury runs no step and leaves B's repeater; A overdue, a bury runs A's steps.
+
+5. Acceptance: with this repo's repeater in the future and noodle-salesman's overdue, burying the review buffer prints no ceremony: line and leaves TODO.org and DONE.org unchanged.
+
+Code on feature/tracker-record-loss, slice [[id:3bfa593c-c2da-4e44-b47f-2d5f0750f2aa][3bfa593c]]'s branch, merged through its
+PR.
 
 :END:
 --review-attention-on-quit calls --ceremony-due-p with no report scope, so
