@@ -27,6 +27,7 @@ CLOCK: [2026-11-18 Wed 15:57]--[2026-11-18 Wed 15:58] =>  0:01
 - [2026-11-18 Wed 15:57]--[2026-11-18 Wed 15:58] place leftovers beside their original
 CLOCK: [2026-11-19 Thu 14:52]--[2026-11-19 Thu 14:53] =>  0:01
 - [2026-11-19 Thu 14:52]--[2026-11-19 Thu 14:53] place leftovers beside their original
+- [2026-11-23 Mon 10:43]--[2026-11-23 Mon 10:43] place leftovers beside their original
 :END:
 :PLAN:
 Bounded: one function, --review-insert-remainders. Insert each leftover beside
@@ -450,6 +451,13 @@ never run from a bury; on 2026-10-30 noodle-salesman's overdue heading archived
 [[id:f6398e59-b02d-4b3a-961a-f349eeaca125][f6398e59]] and [[id:1abff8d5-d142-4de1-b939-578e993ecc8d][1abff8d5]] here a day early. The scope fix in [[id:9c1afc7a-161d-4e4c-aa93-9c02becfb5ba][9c1afc7a]] reached
 ceremony-finish and not its caller. The fix scopes both of the bury's ceremony
 reads to the project its steps act on; the design is in :PLAN:.
+
+Reproduced live 2026-11-23 10:52. This repo's ceremony had already run that day
+(the stamp was written at 09:20, and the scoped due check returned nil), while
+the unscoped check returned t. Quitting the review buffer after an apply then
+ran every step, repeater "not due, left alone", and archived probe [[id:047cb0e3-73ac-4dd1-8b5c-2b4888e7459e][047cb0e3]]
+before it could be archived by hand.
+
 
 
 * TODO An apply refused by org-depend reports neither the blocker nor the reason, only that the keyword did not change :code:
@@ -1121,6 +1129,12 @@ CLOCK: [2026-11-18 Wed 15:09]--[2026-11-18 Wed 15:12] =>  0:03
 - [2026-11-18 Wed 15:09]--[2026-11-18 Wed 15:12] assigned at review
 CLOCK: [2026-11-18 Wed 15:13]--[2026-11-18 Wed 15:22] =>  0:09
 - [2026-11-18 Wed 15:13]--[2026-11-18 Wed 15:22] extend descending finder to hand archives
+CLOCK: [2026-11-23 Mon 10:45]--[2026-11-23 Mon 10:46] =>  0:01
+- [2026-11-23 Mon 10:45]--[2026-11-23 Mon 10:46] commit apply pass, plan the second probe
+CLOCK: [2026-11-23 Mon 10:49]--[2026-11-23 Mon 10:50] =>  0:01
+- [2026-11-23 Mon 10:49]--[2026-11-23 Mon 10:50] assigned at review
+CLOCK: [2026-11-23 Mon 10:51]--[2026-11-23 Mon 10:52] =>  0:01
+- [2026-11-23 Mon 10:51]--[2026-11-23 Mon 10:52] set up second archive probe
 :END:
 :PLAN:
 Bounded: the org_archive tool and the archive-finished sweep, both of which
