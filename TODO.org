@@ -2,11 +2,31 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
-* TODO A narrowed span's leftover is appended to the end of the item list, so it is drawn at the far end of the buffer and out of time order :code:bounded:
+* REVIEW A narrowed span's leftover is appended to the end of the item list, so it is drawn at the far end of the buffer and out of time order :code:bounded:
 :PROPERTIES:
 :ID:       aa7edd6c-d985-44b2-9359-a605761e5c3d
 :CREATED:  [2026-11-17 Tue 11:24]
 :CATEGORY: Apply
+:END:
+:LOGBOOK:
+- State "DOING"      from "TODO"       [2026-11-17 Tue 11:34] \\
+  slice step 9a, starting
+- [2026-11-17 Tue 11:41]--[2026-11-17 Tue 11:42] place leftovers beside their original
+- State "REVIEW"     from "DOING"      [2026-11-17 Tue 13:36] \\
+  accepted in the review buffer 2026-11-17
+CLOCK: [2026-11-17 Tue 13:36]--[2026-11-17 Tue 13:37] =>  0:01
+- [2026-11-17 Tue 13:36]--[2026-11-17 Tue 13:36] place leftovers beside their original
+- [2026-11-17 Tue 13:36]--[2026-11-17 Tue 13:37] acceptance and close
+- [2026-11-18 Wed 12:36]--[2026-11-18 Wed 12:36] place leftovers beside their original
+CLOCK: [2026-11-18 Wed 12:58]--[2026-11-18 Wed 14:46] =>  1:48
+- [2026-11-18 Wed 12:58]--[2026-11-18 Wed 14:46] place leftovers beside their original
+CLOCK: [2026-11-18 Wed 14:47]--[2026-11-18 Wed 15:12] =>  0:25
+- [2026-11-18 Wed 14:47]--[2026-11-18 Wed 15:12] place leftovers beside their original
+- [2026-11-18 Wed 15:22]--[2026-11-18 Wed 15:22] place leftovers beside their original
+CLOCK: [2026-11-18 Wed 15:57]--[2026-11-18 Wed 15:58] =>  0:01
+- [2026-11-18 Wed 15:57]--[2026-11-18 Wed 15:58] place leftovers beside their original
+CLOCK: [2026-11-19 Thu 14:52]--[2026-11-19 Thu 14:53] =>  0:01
+- [2026-11-19 Thu 14:52]--[2026-11-19 Thu 14:53] place leftovers beside their original
 :END:
 :PLAN:
 Bounded: one function, --review-insert-remainders. Insert each leftover beside
@@ -397,8 +417,12 @@ from upstream, and catches every misnamed synonym, which an alias list cannot.
 :CATEGORY: Apply
 :END:
 :LOGBOOK:
+CLOCK: [2026-11-18 Wed 12:36]--[2026-11-18 Wed 12:37] =>  0:01
+- [2026-11-18 Wed 12:36]--[2026-11-18 Wed 12:37] brainstorm scoped due check on bury
+CLOCK: [2026-11-18 Wed 12:52]--[2026-11-18 Wed 12:53] =>  0:01
 - Tags ":code:bounded:" from ":code:"     [2026-11-18 Wed 12:52] \\
   classified at /plan-slice: one existing function
+- [2026-11-18 Wed 12:52]--[2026-11-18 Wed 12:53] brainstorm scoped due check on bury
 :END:
 :PLAN:
 Bounded: claude-code-ide-org--review-attention-on-quit and
@@ -426,6 +450,7 @@ never run from a bury; on 2026-10-30 noodle-salesman's overdue heading archived
 [[id:f6398e59-b02d-4b3a-961a-f349eeaca125][f6398e59]] and [[id:1abff8d5-d142-4de1-b939-578e993ecc8d][1abff8d5]] here a day early. The scope fix in [[id:9c1afc7a-161d-4e4c-aa93-9c02becfb5ba][9c1afc7a]] reached
 ceremony-finish and not its caller. The fix scopes both of the bury's ceremony
 reads to the project its steps act on; the design is in :PLAN:.
+
 
 * TODO An apply refused by org-depend reports neither the blocker nor the reason, only that the keyword did not change :code:
 :PROPERTIES:
@@ -760,7 +785,7 @@ points at it, so the next clock-out rewrites it or errors. Found by a repo audit
 org-clock-marker falls inside it.
 
 
-* TODO The ceremony's sort steps reorder and save TODO.org or DONE.org while it holds the human's unsaved edits :code:bounded:
+* REVIEW The ceremony's sort steps reorder and save TODO.org or DONE.org while it holds the human's unsaved edits :code:bounded:
 :PROPERTIES:
 :ID:       254308f7-70a9-4296-9166-fe4138c6382b
 :CREATED:  [2026-10-27 Tue 13:52]
@@ -770,6 +795,20 @@ org-clock-marker falls inside it.
 - [2026-10-28 Wed 14:20]--[2026-10-28 Wed 14:24] brainstorm busy-file guard on sort steps
 - Tags ":code:bounded:" from ":code:"     [2026-10-28 Wed 14:24] \\
   classified at /plan-slice: two existing functions
+CLOCK: [2026-11-17 Tue 14:15]--[2026-11-17 Tue 14:22] =>  0:07
+- State "DOING"      from "TODO"       [2026-11-17 Tue 14:15] \\
+  slice step 11, starting
+- [2026-11-17 Tue 14:15]--[2026-11-17 Tue 14:22] sorts refuse a busy file
+- [2026-11-17 Tue 14:22]--[2026-11-17 Tue 14:22] suggested span, accepted at review
+- [2026-11-17 Tue 15:53]--[2026-11-17 Tue 15:54] suggested span, accepted at review
+CLOCK: [2026-11-17 Tue 16:00]--[2026-11-17 Tue 16:01] =>  0:01
+- [2026-11-17 Tue 16:00]--[2026-11-17 Tue 16:01] busy guard on the bury path's ceremony
+- [2026-11-17 Tue 16:00]--[2026-11-17 Tue 16:01] suggested span, accepted at review
+CLOCK: [2026-11-18 Wed 11:48]--[2026-11-18 Wed 11:49] =>  0:01
+- [2026-11-18 Wed 11:48]--[2026-11-18 Wed 11:48] suggested span, accepted at review
+- [2026-11-18 Wed 11:48]--[2026-11-18 Wed 11:49] close after acceptance
+- State "REVIEW"     from "DOING"      [2026-11-18 Wed 11:49] \\
+  accepted live; integrates with the slice PR
 :END:
 :PLAN:
 Bounded: claude-code-ide-org-sort-by-created and
@@ -1046,7 +1085,7 @@ end is read as covering its whole minute. On the slice's branch,
 feature/tracker-record-loss.
 
 
-* NEXT Archiving into DONE.org's newest-first datetree creates a duplicate day or month node for any date older than the newest :code:bounded:
+* DOING Archiving into DONE.org's newest-first datetree creates a duplicate day or month node for any date older than the newest :code:bounded:
 :PROPERTIES:
 :ID:       62bc2f7f-0d55-4049-af00-52a2b333188a
 :CREATED:  [2026-10-27 Tue 13:52]
@@ -1066,6 +1105,22 @@ CLOCK: [2026-10-28 Wed 13:53]--[2026-10-28 Wed 13:54] =>  0:01
 - [2026-10-28 Wed 13:53]--[2026-10-28 Wed 13:54] brainstorm newest-first datetree archive
 - State "NEXT"       from "TODO"       [2026-11-17 Tue 11:24] \\
   slice plan step 10, the descending datetree finder
+CLOCK: [2026-11-17 Tue 13:38]--[2026-11-17 Tue 13:58] =>  0:20
+- State "DOING"      from "NEXT"       [2026-11-17 Tue 13:38] \\
+  slice step 10, starting
+- [2026-11-17 Tue 13:38]--[2026-11-17 Tue 13:58] descending datetree finder for archive
+CLOCK: [2026-11-17 Tue 13:59]--[2026-11-17 Tue 14:00] =>  0:01
+- [2026-11-17 Tue 13:59]--[2026-11-17 Tue 14:00] suggested span, accepted at review
+CLOCK: [2026-11-17 Tue 14:10]--[2026-11-17 Tue 14:11] =>  0:01
+- [2026-11-17 Tue 14:10]--[2026-11-17 Tue 14:11] suggested span, accepted at review
+CLOCK: [2026-11-17 Tue 14:14]--[2026-11-17 Tue 14:15] =>  0:01
+- [2026-11-17 Tue 14:14]--[2026-11-17 Tue 14:15] suggested span, accepted at review
+CLOCK: [2026-11-18 Wed 14:46]--[2026-11-18 Wed 14:47] =>  0:01
+- [2026-11-18 Wed 14:46]--[2026-11-18 Wed 14:47] set up deliberate archive acceptance probe
+CLOCK: [2026-11-18 Wed 15:09]--[2026-11-18 Wed 15:12] =>  0:03
+- [2026-11-18 Wed 15:09]--[2026-11-18 Wed 15:12] assigned at review
+CLOCK: [2026-11-18 Wed 15:13]--[2026-11-18 Wed 15:22] =>  0:09
+- [2026-11-18 Wed 15:13]--[2026-11-18 Wed 15:22] extend descending finder to hand archives
 :END:
 :PLAN:
 Bounded: the org_archive tool and the archive-finished sweep, both of which
@@ -1089,6 +1144,24 @@ present.
 5. Acceptance: archive one finished heading whose close date is older than DONE.org's newest day, then check no date title appears twice. DONE.org holds no duplicates today, so there is nothing to repair. [[id:0c3f1319-67c0-4b29-a8e7-5ffa12948aaf][0c3f1319]] may reuse the finder for TODO.org's meta-work tree later.
 
 Code on a feature/ branch, merged through a PR.
+
+Extension (the user, 2026-11-18, found while setting up the live acceptance): a
+hand C-c C-x C-s still ran org's own finder, since the descending one was bound
+only inside claude-code-ide-org--archive-subtree, so a hand archive of an older
+date wrote the duplicate node the lint now refuses at commit. The finder moves
+from a cl-letf binding to two advices. :around org-archive-subtree binds a flag
+when the source buffer is tracked (--tracked-buffer-p, the consent boundary
+[[id:67c3208f-a155-486a-beba-1763d3c86137][67c3208f]]) and the archive location is a datetree; :around
+org-datetree-find-date-create runs the descending finder while that flag is
+bound, and org's own otherwise, so capture templates and untracked files keep
+org's behaviour. Advice survives the load that redefined the bound function
+(checked in batch: advice-add before (require 'org-datetree) is still in place
+after it), so the require-first workaround of b828803 goes, and
+--archive-subtree's two callers call org-archive-subtree directly. Tests: a
+direct org-archive-subtree from a tracked file lands in the slot; from an
+untracked file and outside an archive the descending finder never runs; the
+first-load model redefines with defalias, as load does. Acceptance: the user
+archives [[id:4746e280-4108-413c-8834-1c3e61adc370][4746e280]] by hand.
 :END:
 
 org-archive-subtree finds the day node with org-datetree-find-date-create, which
@@ -1309,7 +1382,7 @@ claude-code-ide-org-refuse-browser-origins, and the probe finds every live
 companion refusing. On the slice's branch, feature/tracker-record-loss.
 
 
-* DOING [14/32] The tracker can lose or corrupt its record, or Emacs can stop on a prompt, and nothing says so :code:
+* DOING [15/33] The tracker can lose or corrupt its record, or Emacs can stop on a prompt, and nothing says so :code:
 :PROPERTIES:
 :ID:       3bfa593c-c2da-4e44-b47f-2d5f0750f2aa
 :CREATED:  [2026-10-27 Tue 12:56]
@@ -1396,12 +1469,12 @@ Planned:
 - [-] [[id:d3468075-b17a-45a2-bd3a-838521f11a87][d3468075]] REVIEW An apply interrupted after its writes records nothing, and the next pass inserts each amend a second time
 - [-] [[id:6c969cbd-0c03-409f-835f-80ddb1faedf6][6c969cbd]] REVIEW A replayed apply writes an extra one-minute CLOCK line for every run whose end has seconds
 - [-] [[id:187a87b4-20db-4fbf-931f-a4b4e1bed668][187a87b4]] REVIEW A narrowed span's leftover copies the human's :active and :edited flags, so agent time is written as attention
-- [ ] [[id:aa7edd6c-d985-44b2-9359-a605761e5c3d][aa7edd6c]] TODO A narrowed span's leftover is appended to the end of the item list, so it is drawn at the far end of the buffer and out of time order
+- [-] [[id:aa7edd6c-d985-44b2-9359-a605761e5c3d][aa7edd6c]] REVIEW A narrowed span's leftover is appended to the end of the item list, so it is drawn at the far end of the buffer and out of time order
 - [-] [[id:c0a21a0f-89ed-4b66-b7ed-acbfd5583015][c0a21a0f]] REVIEW Archiving a session already in the archive overwrites it, and restore overwrites a live queue the same way
-- [ ] [[id:62bc2f7f-0d55-4049-af00-52a2b333188a][62bc2f7f]] NEXT Archiving into DONE.org's newest-first datetree creates a duplicate day or month node for any date older than the newest
+- [-] [[id:62bc2f7f-0d55-4049-af00-52a2b333188a][62bc2f7f]] DOING Archiving into DONE.org's newest-first datetree creates a duplicate day or month node for any date older than the newest
 - [-] [[id:e9f8b780-c93b-41f9-b146-1c4695283af9][e9f8b780]] REVIEW An unreadable .applied file reads as nothing applied, and the next write replaces it
 - [ ] [[id:b0e46168-2548-49ca-8f5f-5dcc6f3fc524][b0e46168]] TODO discard-guard misses absolute paths, git -C, and a cd before the git command
-- [ ] [[id:254308f7-70a9-4296-9166-fe4138c6382b][254308f7]] TODO The ceremony's sort steps reorder and save TODO.org or DONE.org while it holds the human's unsaved edits
+- [-] [[id:254308f7-70a9-4296-9166-fe4138c6382b][254308f7]] REVIEW The ceremony's sort steps reorder and save TODO.org or DONE.org while it holds the human's unsaved edits
 - [ ] [[id:70b47b8f-b413-4660-bf32-b0b90db45ff4][70b47b8f]] TODO Burying the review buffer runs this project's ceremony because another project's is overdue, since the due check ignores the project scope
 - [ ] [[id:a3ad9732-681c-4103-a9e2-5f919e60522c][a3ad9732]] TODO org_set_property writes TODO, SCHEDULED and DEADLINE through org-entry-put, which changes the keyword live or opens a prompt
 - [ ] [[id:412768a0-3d9b-4cfe-9264-3f214d4baed1][412768a0]] TODO org_capture's title goes through capture-template expansion, so a newline splits the heading and %^ opens a prompt
@@ -1426,6 +1499,7 @@ Incidental:
 - [X] [[id:e08fb599-8cce-4c50-8fe9-9291ec24c7d7][e08fb599]] DONE Projects are compared by directory basename, so two checkouts with the same name count as one project
 - [X] [[id:e70cad3f-5546-405b-b659-9ebc90fb45d0][e70cad3f]] DONE A heading missing from org-id-locations counts as another project's, since the project test does no rescan on a miss
 - [X] [[id:460dfe96-8a08-456f-bdbd-2ace19afd404][460dfe96]] DONE A span from a removed linked worktree resolves to gone, and gone stops the project lookup before the edge events are read
+- [X] [[id:4746e280-4108-413c-8834-1c3e61adc370][4746e280]] DONE Acceptance probe for 62bc2f7f: a heading closed 2026-11-12 archives into its own day between 11-11 and 11-13
 - [X] [[id:b4c1f663-78eb-4c18-9f53-2809e2ed93b7][b4c1f663]] DONE sync-plans --check exits 2 when ~/.claude/plans is gone, so pre-push refuses every push
 - [X] [[id:4899c4c2-50da-4fa5-a2dd-a327f2c391b8][4899c4c2]] DONE Address the PR #46 review: eight findings, answered by retiring the pre-push plans gate
 - [X] [[id:a8f070af-8438-4dc5-abef-52ac845c53bc][a8f070af]] DONE The pre-push plans gate checks a source that only empties, and its new warning is never shown: retire it
@@ -1968,6 +2042,9 @@ CLOCK: [2026-11-16 Mon 11:25]--[2026-11-16 Mon 11:26] =>  0:01
 - [2026-11-16 Mon 11:25]--[2026-11-16 Mon 11:26] brainstorm archive and restore overwrite
 CLOCK: [2026-11-16 Mon 12:01]--[2026-11-16 Mon 12:02] =>  0:01
 - [2026-11-16 Mon 12:01]--[2026-11-16 Mon 12:02] brainstorm archive and restore overwrite
+- [2026-11-16 Mon 12:11]--[2026-11-16 Mon 12:11] brainstorm archive and restore overwrite
+CLOCK: [2026-11-17 Tue 11:31]--[2026-11-17 Tue 11:32] =>  0:01
+- [2026-11-17 Tue 11:31]--[2026-11-17 Tue 11:32] brainstorm archive and restore overwrite
 :END:
 :PLAN:
 Bounded: claude-code-ide-org-archive-drained-queues and
@@ -2754,8 +2831,12 @@ uncertainty. Keep "when in doubt, heavier".
 :LOGBOOK:
 CLOCK: [2026-10-14 Wed 16:34]--[2026-10-14 Wed 16:35] =>  0:01
 - [2026-10-14 Wed 16:34]--[2026-10-14 Wed 16:35] file the first-child cookie gap
+CLOCK: [2026-11-18 Wed 12:52]--[2026-11-18 Wed 12:53] =>  0:01
+- [2026-11-18 Wed 12:52]--[2026-11-18 Wed 12:53] brainstorm cookie on capture and refile
+CLOCK: [2026-11-18 Wed 12:57]--[2026-11-18 Wed 12:58] =>  0:01
 - Tags ":code:bounded:" from ":code:"     [2026-11-18 Wed 12:57] \\
   classified at /plan-slice: two existing writers
+- [2026-11-18 Wed 12:57]--[2026-11-18 Wed 12:58] brainstorm cookie on capture and refile
 :END:
 :PLAN:
 Bounded: claude-code-ide-org--capture-write and claude-code-ide-org-refile in
@@ -2786,6 +2867,7 @@ Seen in noodle-sales, where four new stories came out cookie-less and a refiled
 story read [0/1] over three children. The fix gives capture and refile one
 shared helper that ensures and updates the parent's cookie; the design is in
 :PLAN:.
+
 
 * TODO lint-org with no arguments lints the plugin checkout, not the consuming repo, and passes :code:
 :PROPERTIES:
@@ -12534,12 +12616,12 @@ before the fix and still says.
 
 
 * TODO Archive closed tasks daily
-SCHEDULED: <2026-11-19 Thu 07:00 ++1d>
+SCHEDULED: <2026-11-24 Tue 07:00 ++1d>
 :PROPERTIES:
 :CATEGORY: Meta
 :ID:       cbe282ec-10c3-4aa0-8d3a-f30e17a12fa8
 :CREATED:  [2026-08-21 Fri 15:35]
-:LAST_REPEAT: [2026-11-18 Wed 11:38]
+:LAST_REPEAT: [2026-11-23 Mon 09:20]
 :KIND:     ceremony
 :END:
 :LOGBOOK:
@@ -17235,4 +17317,20 @@ CLOCK: [2026-11-13 Fri 10:24]--[2026-11-13 Fri 10:25] =>  0:01
 - [2026-11-13 Fri 10:24]--[2026-11-13 Fri 10:25] assigned at review
 CLOCK: [2026-11-13 Fri 10:28]--[2026-11-13 Fri 10:29] =>  0:01
 - [2026-11-13 Fri 10:28]--[2026-11-13 Fri 10:29] assigned at review
+:END:
+
+
+**** 2026-11-18 Wednesday
+:PROPERTIES:
+:ID:       8a80d9ee-861d-493e-a80c-e3de0be3a925
+:CREATED:  [2026-11-18 Wed 12:57]
+:END:
+:LOGBOOK:
+CLOCK: [2026-11-18 Wed 12:57]--[2026-11-18 Wed 12:58] =>  0:01
+- [2026-11-18 Wed 12:57]--[2026-11-18 Wed 12:58] revise slice 3bfa593c plan after member plans
+- [2026-11-18 Wed 12:58]--[2026-11-18 Wed 12:58] assigned at review
+CLOCK: [2026-11-18 Wed 14:33]--[2026-11-18 Wed 14:35] =>  0:02
+- [2026-11-18 Wed 14:33]--[2026-11-18 Wed 14:35] assigned at review
+CLOCK: [2026-11-18 Wed 14:46]--[2026-11-18 Wed 14:47] =>  0:01
+- [2026-11-18 Wed 14:46]--[2026-11-18 Wed 14:47] assigned at review
 :END:
