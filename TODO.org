@@ -1892,6 +1892,25 @@ not a member of [[id:3bfa593c-c2da-4e44-b47f-2d5f0750f2aa][3bfa593c]]. Acceptanc
 Opus 5.5" exactly as typed, where every commit of 2026-11-24 before it was
 rewritten to "Opus 5".
 :END:
+:DEBRIEF:
+Shipped on feature/commit-trailer, [[https://github.com/nbest937/claude-code-ide-org.el/pull/47][PR #47]], as planned.
+- prepare-commit-msg now only adds Claude-Session, through git interpret-trailers --if-exists doNothing --in-place. The settings read, the alias table and jq are gone.
+- commit-msg's trailer check runs before the apply-pass check. It reads trailers with git interpret-trailers --parse and counts a missing-trailer miss.
+
+Verified:
+- bin/prepare-commit-msg-test: 10 checks, 7 of them red against HEAD's hook.
+- bin/git-guards-test: 8 new cases. The 4 refusal cases were red against HEAD's hook; the pass cases are guards and pass either way.
+- bin/test-all: 28 suites, 1792 passed, 0 failed.
+- Live: the shipping commit kept "Claude Opus 5.5" as typed. An empty commit with no trailer was refused with HEAD unchanged, and that probe counted one missing-trailer miss in this session.
+
+Differed from the plan: bin/git-guards-test now unsets CLAUDECODE at the top.
+Every existing case carries no trailer, so when the suite runs inside a session
+the new check would have refused them all. Only the trailer cases set it.
+
+Until [[https://github.com/nbest937/claude-code-ide-org.el/pull/47][PR #47]] merges, main's working tree still runs the old prepare-commit-msg,
+so bookkeeping commits made on main keep being rewritten to "Opus 5". Not filed:
+the merge ends it.
+:END:
 
 prepare-commit-msg rewrites every Claude Co-Authored-By trailer from
 ~/.claude/settings.json, so a correct trailer is committed wrong. The fix stops
@@ -1906,6 +1925,11 @@ Established:
 Ruled out:
 - Rewriting only when the model family differs, this body's first proposal. It still trusts the shared settings file over the session.
 - Bumping the alias table. An alias carries no minor version, so the table would go stale again.
+
+Resolved 2026-11-24 on feature/commit-trailer, [[https://github.com/nbest937/claude-code-ide-org.el/pull/47][PR #47]]: prepare-commit-msg no
+longer touches Co-Authored-By, and commit-msg refuses a session commit without a
+Claude trailer. The shipping commit kept "Claude Opus 5.5" as typed.
+
 
 
 
