@@ -1,7 +1,19 @@
 #!/usr/bin/env bash
-# commit-msg hook: refuse an apply-shaped org diff under a message that
-# does not say so.
+# commit-msg hook, two refusals:
+#   1. a commit from a Claude Code session with no Claude co-author trailer;
+#   2. an apply-shaped org diff under a message that does not say so.
 #
+# 1. TODO.org :ID: 6d1a5192. Only the session knows its model -- the
+# harness gives it the exact trailer -- so .githooks/prepare-commit-msg
+# no longer writes one, and a commit without it would go out unattributed
+# with nothing saying so. Trailers are read with `git interpret-trailers
+# --parse', not grep: a line glued to the subject, as a hand append once
+# left on `git merge --no-edit' messages, is not a trailer and is refused
+# too. Gated on CLAUDECODE=1, so a human's own commits are never checked.
+# A `git merge --no-edit' in a session is therefore refused; finish it
+# with `git commit -m' carrying the trailer.
+#
+# 2.
 # TODO.org :ID: 3cd7b7d3, and the predicate :ID: 3cb3f955 was waiting on.
 # The review pass is the only thing that writes `- State "..."' and
 # `CLOCK:' lines, and the human runs it whenever they choose -- including
@@ -26,6 +38,23 @@ set -uo pipefail
 
 msg_file="${1:-}"
 [ -n "$msg_file" ] && [ -r "$msg_file" ] || exit 0
+
+if [ "${CLAUDECODE:-}" = "1" ] \
+   && ! git interpret-trailers --parse "$msg_file" 2>/dev/null | grep -q '^Co-Authored-By: Claude '; then
+  "$(dirname "${BASH_SOURCE[0]}")/count-miss" missing-trailer "no Co-Authored-By: Claude trailer"
+  cat >&2 <<'MSG'
+commit-msg: this commit comes from a Claude Code session but carries no
+"Co-Authored-By: Claude ..." trailer, so it would go out unattributed.
+Only the session knows its model, and nothing adds the trailer for it.
+
+  Fix:   end the message with the trailer your instructions give, after a
+         blank line, e.g.  git commit -m "subject" -m "Co-Authored-By: ..."
+  Merge: a `git merge --no-edit' is refused here; finish it with
+         git commit -m "..." carrying the trailer
+  Skip:  git commit --no-verify
+MSG
+  exit 1
+fi
 
 diff="$(git diff --cached -U0 -- TODO.org DONE.org 2>/dev/null)" || exit 0
 [ -n "$diff" ] || exit 0

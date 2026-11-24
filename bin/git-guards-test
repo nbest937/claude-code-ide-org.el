@@ -28,6 +28,10 @@ trap 'rm -rf "$work"' EXIT
 # land in that session's real queue as a miss: 24 of the first 29 counted.
 # Only the counting cases below name a session, and only into $work.
 unset CLAUDE_CODE_SESSION_ID
+# And CLAUDECODE, which commit-msg's trailer check gates on: every other
+# case here writes no trailer, so inheriting it would refuse them all.
+# Only the trailer cases below set it (TODO.org :ID: 6d1a5192).
+unset CLAUDECODE
 export CLAUDE_ORG_QUEUE_DIR="$work/queue"
 
 # A repo with a bare "origin", so origin/main is a real remote-tracking ref.
@@ -219,6 +223,43 @@ check "a human's refusal, with no session, writes nothing" "1" "$(ls "$work/queu
 printf 'Apply pass: fine\n' > "$msg"
 (cd "$r" && CLAUDE_CODE_SESSION_ID=sess-g2 "$hooks/commit-msg" "$msg" >/dev/null 2>&1)
 check "an accepted commit counts nothing" "" "$(rule_of sess-g2)"
+git -C "$r" reset -q --hard
+
+# --- commit-msg: a session's commit with no Claude co-author trailer -------
+# TODO.org :ID: 6d1a5192. No org diff, so only the trailer check answers.
+r="$(new_repo trailer)"
+printf 'x\n' >> "$r/README"; git -C "$r" add README
+run_trailer () { # run_trailer CLAUDECODE|- SESSION|- MESSAGE -> exit code
+  printf '%s' "$3" > "$msg"
+  local -a envs=()
+  [[ "$1" != "-" ]] && envs+=(CLAUDECODE="$1")
+  [[ "$2" != "-" ]] && envs+=(CLAUDE_CODE_SESSION_ID="$2")
+  (cd "$r" && env -u CLAUDECODE -u CLAUDE_CODE_SESSION_ID "${envs[@]}" "$hooks/commit-msg" "$msg" >/dev/null 2>&1); echo $?
+}
+trailer='Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>'
+check "a session commit with no trailer is refused" 1 "$(run_trailer 1 sess-t1 "subject
+")"
+check "and is counted as missing-trailer" missing-trailer "$(rule_of sess-t1)"
+check "a trailer glued to a merge subject is refused" 1 "$(run_trailer 1 - "Merge branch 'main' into feature/x
+$trailer
+")"
+check "a trailer after a blank line passes" 0 "$(run_trailer 1 sess-t2 "subject
+
+body
+
+$trailer
+")"
+check "and counts nothing" "" "$(rule_of sess-t2)"
+check "a stale model name still passes: the check is presence, not version" 0 "$(run_trailer 1 - "subject
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+")"
+check "a human's commit with no trailer is never refused" 0 "$(run_trailer - - "subject
+")"
+check "a human co-author is not a Claude trailer" 1 "$(run_trailer 1 - "subject
+
+Co-Authored-By: A Person <a@example.com>
+")"
 git -C "$r" reset -q --hard
 
 r="$work/merge"
