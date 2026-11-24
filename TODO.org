@@ -2,6 +2,122 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* DOING [0/6] Address the PR #47 review: seven findings, two important, against the trailer hooks :code:
+:PROPERTIES:
+:ID:       b6502d4a-90dd-464b-b700-4fde0511d73f
+:CREATED:  [2026-11-24 Tue 15:02]
+:CATEGORY: Dev
+:END:
+:DEBRIEF:
+The review's two important findings were real gaps in the design, not slips in
+the code.
+- A --- line hides trailers from interpret-trailers by default. That reached both hooks, because the plan had chosen interpret-trailers for its blank-line handling without checking its divider rule.
+- --no-verify skips commit-msg but not prepare-commit-msg. So taking the trailer out of prepare-commit-msg moved the bypass's cost from a wrong model name to no attribution at all, and the refusal texts were advertising that bypass.
+
+Verified:
+- bin/prepare-commit-msg-test: 15 checks, 3 of the new ones red against the previous head.
+- bin/git-guards-test: 61 checks, 4 of the new ones red against the previous head. Under /bin/bash 3.2 the previous suite fails its human-commit case.
+- bin/test-all: 28 suites, 1801 passed, 0 failed.
+- The pipefail race (finding 4) has no deterministic test, so the fix removes the pipe.
+
+Left as is: a ! git commit the user types at a session's prompt is still refused
+without a trailer. Nothing in the environment tells it apart from the session's
+own commit, so the refusal now says how to get past it. Not filed: it is a
+stated cost of the design, not a gap.
+:END:
+
+The /code-review of [[https://github.com/nbest937/claude-code-ide-org.el/pull/47][PR #47]] ([[id:6d1a5192-21ad-4316-b0c6-219403459f28][6d1a5192]], feature/commit-trailer) on 2026-11-24
+posted seven inline findings, two important and five nits. One child per
+remediation; the case and pipefail findings share one fix. [[id:6d1a5192-21ad-4316-b0c6-219403459f28][6d1a5192]] stays REVIEW
+while these are worked, and each thread is answered with its fixing commit and
+resolved.
+
+Resolved 2026-11-24: all seven findings fixed in one commit, f4e4481 on
+feature/commit-trailer, and every review thread answered with it and resolved.
+
+** TODO A --- line in a commit message hides its trailers from git interpret-trailers, so commit-msg refuses a correct trailer and Claude-Session lands mid-body :code:
+:PROPERTIES:
+:ID:       5d7590fe-7bf4-41b3-ad7a-0513bcb1f577
+:CREATED:  [2026-11-24 Tue 15:02]
+:END:
+
+Finding 1, important. interpret-trailers takes --- as a patch divider by
+default; footnote end matter starts with exactly ---. Fix: --no-divider on both
+calls.
+
+Resolved 2026-11-24 in commit f4e4481: both calls pass --no-divider, tested in
+both suites and red against the previous head.
+
+** TODO A session commit made with --no-verify now ships with no attribution and no warning :code:
+:PROPERTIES:
+:ID:       8a803f15-01f3-43e1-b4f7-1575c2474af0
+:CREATED:  [2026-11-24 Tue 15:02]
+:END:
+
+Finding 2, important. --no-verify skips commit-msg but not prepare-commit-msg,
+which no longer appends a trailer, and both commit-msg refusals advertise
+--no-verify. Fix: prepare-commit-msg warns on stderr when a session commit
+carries no Claude trailer, without blocking or guessing a model.
+
+Resolved 2026-11-24 in commit f4e4481: prepare-commit-msg warns when a session
+commit (-m, merge, amend) has no Claude trailer, and both commit-msg refusals
+say --no-verify leaves the commit unattributed. Tested and red against the
+previous head.
+
+** TODO commit-msg's trailer match is case-sensitive and races under pipefail, so a correct trailer can be refused :code:
+:PROPERTIES:
+:ID:       569bdee3-71e7-4424-a511-4a9f5d2f19b5
+:CREATED:  [2026-11-24 Tue 15:02]
+:END:
+
+Findings 3 and 4, nits. Git trailer keys are case-insensitive, so
+Co-authored-by: is refused; and grep -q exiting early can fail the pipeline
+under pipefail. Fix: capture the parsed trailers first, then match
+case-insensitively.
+
+Resolved 2026-11-24 in commit f4e4481: the parse is captured, then matched
+case-insensitively through a here-string. The case test is red against the
+previous head; the race has no deterministic test, and the pipe is gone.
+
+** TODO commit-msg says a human's commits are never checked, but a ! git commit typed in a session inherits CLAUDECODE and is refused :code:
+:PROPERTIES:
+:ID:       aaef2b68-6103-40fd-8e01-3efd59bb63a8
+:CREATED:  [2026-11-24 Tue 15:02]
+:END:
+
+Finding 5, nit. Nothing in the environment tells a user's own ! command from the
+session's. Fix: correct the comment, and say in the refusal text that a commit
+typed by the user can add the trailer or use --no-verify.
+
+Resolved 2026-11-24 in commit f4e4481: the header states the ! git commit case,
+and the refusal gains a "Yours:" line. Tested and red against the previous head.
+
+** TODO git-guards-test's run_trailer expands an empty array under set -u, which fails on bash before 4.4 :code:
+:PROPERTIES:
+:ID:       71b48bc1-0ee4-4a8c-8e64-6e8765917673
+:CREATED:  [2026-11-24 Tue 15:02]
+:END:
+
+Finding 6, nit. macOS /bin/bash is 3.2. Fix: ${envs[@]+"${envs[@]}"}, and the
+same in prepare-commit-msg-test's run.
+
+Resolved 2026-11-24 in commit f4e4481: both helpers expand the array as
+${envs[@]+"${envs[@]}"}. Under /bin/bash 3.2.57 the previous head's suite fails
+one case and this one passes 61 of 61.
+
+** TODO Amending a commit whose Claude-Session line is glued to the subject adds a second one :code:
+:PROPERTIES:
+:ID:       b4aeb131-5e32-4eb8-81c6-09bdf7759003
+:CREATED:  [2026-11-24 Tue 15:02]
+:END:
+
+Finding 7, nit. --if-exists doNothing sees only the last trailer block. Fix:
+skip when any line of the message already starts Claude-Session:.
+
+Resolved 2026-11-24 in commit f4e4481: prepare-commit-msg skips when any line
+already starts with Claude-Session:. Tested and red against the previous head.
+
+
 * TODO A commit hash that does not resolve is written as plain text, so a guessed hash enters the record and nothing says so :code:
 :PROPERTIES:
 :ID:       32b790fd-9a72-46a5-863d-a32d5e54457e
