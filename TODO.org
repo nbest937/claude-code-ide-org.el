@@ -1846,42 +1846,66 @@ footnote-check's watchdog into both and add the trap. Related: [[id:dcbcac2a-200
 same hook saying nothing when Emacs is down, and [[id:826d621c-25f5-4f06-9961-4b23f8658880][826d621c]].
 
 
-* TODO prepare-commit-msg rewrites a correct Co-Authored-By trailer to an older model name :code:
+* TODO prepare-commit-msg rewrites a correct Co-Authored-By trailer to an older model name :code:bounded:
 :PROPERTIES:
 :ID:       6d1a5192-21ad-4316-b0c6-219403459f28
 :CREATED:  [2026-10-27 Tue 12:52]
 :CATEGORY: Dev
 :END:
+:LOGBOOK:
+- Tags ":code:bounded:" from ":code:"     [2026-11-24 Tue 14:14] \\
+  classified at brainstorm: two existing git hooks and their tests
+:END:
 :PLAN:
-Not yet designed; classify with the brainstorming skill first. The candidates so
-far are:
-- rewrite only when the family differs, the body's first proposal;
-- never rewrite a trailer that is present, and append one only when it is absent;
-- retire the hook, since the harness now supplies the trailer.
+Bounded: .githooks/prepare-commit-msg and .githooks/commit-msg, with their
+suites bin/prepare-commit-msg-test and bin/git-guards-test. The premise of
+[[id:f1ff027e-5826-4812-8221-96eeba966333][f1ff027e]] (2026-09-04) expired: the harness now gives each session an exact,
+versioned trailer, while ~/.claude/settings.json holds one model for every
+session and the hook's alias table lags the versions. So the session's own
+trailer is the only trustworthy source, and the hook stops speaking for it.
 
-Any of them also wants a blank line before an appended trailer, and a test case
-for a merge made with --no-edit in bin/prepare-commit-msg-test.
+prepare-commit-msg, still gated on CLAUDECODE=1 and always exiting 0:
+- never touches Co-Authored-By: a present trailer stays byte for byte, and a missing one is not appended (the user, 2026-11-24, choosing "add nothing" over a guess from the shared settings file);
+- the settings read, the alias table and the jq dependency go;
+- Claude-Session is still added from CLAUDE_CODE_BRIDGE_SESSION_ID when absent, through git interpret-trailers --if-exists doNothing --in-place, so a blank line separates it from the subject even on a one-line merge message;
+- the header comment says why it stopped rewriting and points to [[id:f1ff027e-5826-4812-8221-96eeba966333][f1ff027e]] for the original reason.
+
+commit-msg gains a check (the user, 2026-11-24: without detection, option 1
+leaves a missing trailer silent). In a Claude session it reads trailers with git
+interpret-trailers --parse, which does not count a line glued to the subject;
+with no Co-Authored-By: Claude trailer it refuses, says to add the trailer the
+session's instructions give after a blank line, and counts a miss through
+.githooks/count-miss. A git merge --no-edit in a session is therefore refused
+and finished with git commit -m, as the apply-pass check already does.
+
+Tests, each proved red against HEAD's hooks:
+- prepare-commit-msg: a present trailer survives byte for byte, current or stale; a bare message gains no Co-Authored-By; the session line follows a blank line, including on a one-line merge message, and is not duplicated; outside a session, or with no bridge id, nothing changes. The rewrite and alias-mapping cases go.
+- commit-msg: a session commit with no trailer is refused; a trailer glued to the subject is refused; a proper trailer passes; a commit outside a session is never refused.
+bin/test-all runs before the close.
+
+Not done: past commits with wrong trailers stay as they are, since they are
+pushed; the 2026-09-04 filter-branch is no precedent for rewriting shared
+history.
+
+Branch feature/commit-trailer, cut from main, merged through its own PR; it is
+not a member of [[id:3bfa593c-c2da-4e44-b47f-2d5f0750f2aa][3bfa593c]]. Acceptance: the commit shipping the fix keeps "Claude
+Opus 5.5" exactly as typed, where every commit of 2026-11-24 before it was
+rewritten to "Opus 5".
 :END:
 
-The hook's alias table maps opus to "Opus 5" and rewrites any existing Claude
-trailer, so the harness's "Claude Opus 5.5" is committed as "Claude Opus 5";
-commit [[orgit-rev:./::292b2e5][292b2e5]] is an instance, found by a repo audit 2026-10-27. An alias
-carries no minor version, so bumping the table would go stale again. Proposed:
-rewrite only when the existing trailer's family (Opus, Sonnet, Fable, Haiku)
-differs from the alias's, and update bin/prepare-commit-msg-test, which asserts
-the current behaviour.
+prepare-commit-msg rewrites every Claude Co-Authored-By trailer from
+~/.claude/settings.json, so a correct trailer is committed wrong. The fix stops
+it touching that trailer at all, and has commit-msg refuse a session commit that
+has none.
 
-Two more defects in the same hook, found 2026-11-24. First,
-~/.claude/settings.json holds one model for every session, so another session's
-/model choice relabels this one's commits: the 2026-11-18 merges into
-feature/tracker-record-loss, commit f6dd155 among them, say "Claude Sonnet 5"
-from an Opus 5.5 session. Second, on git merge --no-edit the appended trailer
-lands on the line straight after the subject, with no blank line, so it joins
-the subject paragraph. Reproduced in a scratch repo with the hook and a settings
-file saying sonnet. The design dates from [[id:f1ff027e-5826-4812-8221-96eeba966333][f1ff027e]] (2026-09-04), which took the
-settings file as the live model when nothing else named it. The harness now
-supplies a correct, versioned trailer, so that premise no longer holds, and the
-fix may be to stop rewriting a trailer that is already present.
+Established:
+- Its alias table maps opus to "Opus 5", so the harness's "Claude Opus 5.5" is committed as "Claude Opus 5". Commit 292b2e5 was found by a repo audit on 2026-10-27, and every commit of 2026-11-24 was rewritten the same way.
+- The settings file holds one model for every session, so another session's /model choice relabels this one's commits. The 2026-11-18 merges, commit f6dd155 among them, say "Claude Sonnet 5" though an Opus 5.5 session made them.
+- On git merge --no-edit, the appended line follows the subject with no blank line and joins the subject paragraph. This was reproduced in a scratch repo, and git interpret-trailers --parse does not read such a line as a trailer.
+
+Ruled out:
+- Rewriting only when the model family differs, this body's first proposal. It still trusts the shared settings file over the session.
+- Bumping the alias table. An alias carries no minor version, so the table would go stale again.
 
 
 
