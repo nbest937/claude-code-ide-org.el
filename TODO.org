@@ -2,6 +2,39 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO A commit hash that does not resolve is written as plain text, so a guessed hash enters the record and nothing says so :code:
+:PROPERTIES:
+:ID:       32b790fd-9a72-46a5-863d-a32d5e54457e
+:CREATED:  [2026-11-24 Tue 12:22]
+:CATEGORY: Tools
+:END:
+
+A noodle-salesman session wrote three commit hashes that do not exist (4d62f32,
+0b0b9ee, 7350d86) into its tracker. The tools' shared citation detector checks a
+hash in a commit context with git cat-file before linking it ([[id:b7259ee4-9aa1-4b55-8cf2-fbbacdea5310][b7259ee4]],
+[[id:f7847adf-a408-4ad0-ae0c-8d3c19b79f2b][f7847adf]]), but a failed check only drops the candidate: the write succeeds with
+the hash as plain text, and the lint's warning sees only citations that would
+link. Proposed: a hash-shaped token in a commit context that does not resolve
+refuses the whole write, names the hash, and counts a miss ([[id:63713df3-4ed9-42be-b971-8ac4485e76c2][63713df3]]). Gaps it
+leaves: a real but wrong commit, and an 8-hex SHA, which the detector never
+checks. Classify with the brainstorming skill before any code.
+
+* TODO Work after a clock-out is offered in review under an unrelated heading's day-old label :code:
+:PROPERTIES:
+:ID:       19e98e58-4e95-4023-a69a-03a3533c042b
+:CREATED:  [2026-11-24 Tue 12:22]
+:CATEGORY: Apply
+:END:
+
+On 2026-11-17 this session clocked out of [[id:187a87b4-20db-4fbf-931f-a4b4e1bed668][187a87b4]] and kept working from 11:25
+to 11:34. The review buffer offered that stretch as a suggested span under
+[[id:c0a21a0f-89ed-4b66-b7ed-acbfd5583015][c0a21a0f]]'s label "brainstorm archive and restore overwrite", from the day
+before, though [[id:c0a21a0f-89ed-4b66-b7ed-acbfd5583015][c0a21a0f]] had nothing to do with the work. Work after a clock-out
+is meant to reach review unassigned ([[id:b09aca60-127b-47a4-9177-a86ac90d8fac][b09aca60]]), so it should carry no heading's
+label. Not yet checked: whether the suggestion carries the session's last label
+forward on purpose. If it does, the label still points the human at the wrong
+heading.
+
 * REVIEW A narrowed span's leftover is appended to the end of the item list, so it is drawn at the far end of the buffer and out of time order :code:bounded:
 :PROPERTIES:
 :ID:       aa7edd6c-d985-44b2-9359-a605761e5c3d
@@ -29,6 +62,8 @@ CLOCK: [2026-11-19 Thu 14:52]--[2026-11-19 Thu 14:53] =>  0:01
 - [2026-11-19 Thu 14:52]--[2026-11-19 Thu 14:53] place leftovers beside their original
 - [2026-11-23 Mon 10:43]--[2026-11-23 Mon 10:43] place leftovers beside their original
 - [2026-11-23 Mon 10:51]--[2026-11-23 Mon 11:00] place leftovers beside their original
+- [2026-11-23 Mon 11:02]--[2026-11-23 Mon 11:02] place leftovers beside their original
+- [2026-11-24 Tue 09:22]--[2026-11-24 Tue 09:22] place leftovers beside their original
 :END:
 :PLAN:
 Bounded: one function, --review-insert-remainders. Insert each leftover beside
@@ -412,7 +447,7 @@ keyword, the reply should say no body was written. That is local, needs nothing
 from upstream, and catches every misnamed synonym, which an alias list cannot.
 
 
-* TODO Burying the review buffer runs this project's ceremony because another project's is overdue, since the due check ignores the project scope :code:bounded:
+* NEXT Burying the review buffer runs this project's ceremony because another project's is overdue, since the due check ignores the project scope :code:bounded:
 :PROPERTIES:
 :ID:       70b47b8f-b413-4660-bf32-b0b90db45ff4
 :CREATED:  [2026-10-30 Fri 11:55]
@@ -427,6 +462,8 @@ CLOCK: [2026-11-18 Wed 12:52]--[2026-11-18 Wed 12:53] =>  0:01
 - [2026-11-18 Wed 12:52]--[2026-11-18 Wed 12:53] brainstorm scoped due check on bury
 CLOCK: [2026-11-23 Mon 11:01]--[2026-11-23 Mon 11:02] =>  0:01
 - [2026-11-23 Mon 11:01]--[2026-11-23 Mon 11:02] record live reproduction from probe 2
+- State "NEXT"       from "TODO"       [2026-11-24 Tue 09:25] \\
+  slice plan: next member after 62bc2f7f
 :END:
 :PLAN:
 Bounded: claude-code-ide-org--review-attention-on-quit and
@@ -458,8 +495,8 @@ reads to the project its steps act on; the design is in :PLAN:.
 Reproduced live 2026-11-23 10:52. This repo's ceremony had already run that day
 (the stamp was written at 09:20, and the scoped due check returned nil), while
 the unscoped check returned t. Quitting the review buffer after an apply then
-ran every step, repeater "not due, left alone", and archived probe [[id:047cb0e3-73ac-4dd1-8b5c-2b4888e7459e][047cb0e3]]
-before it could be archived by hand.
+ran every step, repeater "not due, left alone", and archived probe =047cb0e3=
+(since removed) before it could be archived by hand.
 
 
 * TODO An apply refused by org-depend reports neither the blocker nor the reason, only that the keyword did not change :code:
@@ -1095,7 +1132,7 @@ end is read as covering its whole minute. On the slice's branch,
 feature/tracker-record-loss.
 
 
-* DOING Archiving into DONE.org's newest-first datetree creates a duplicate day or month node for any date older than the newest :code:bounded:
+* REVIEW Archiving into DONE.org's newest-first datetree creates a duplicate day or month node for any date older than the newest :code:bounded:
 :PROPERTIES:
 :ID:       62bc2f7f-0d55-4049-af00-52a2b333188a
 :CREATED:  [2026-10-27 Tue 13:52]
@@ -1137,6 +1174,12 @@ CLOCK: [2026-11-23 Mon 10:49]--[2026-11-23 Mon 10:50] =>  0:01
 - [2026-11-23 Mon 10:49]--[2026-11-23 Mon 10:50] assigned at review
 CLOCK: [2026-11-23 Mon 10:51]--[2026-11-23 Mon 10:52] =>  0:01
 - [2026-11-23 Mon 10:51]--[2026-11-23 Mon 10:52] set up second archive probe
+- State "REVIEW"     from "DOING"      [2026-11-24 Tue 09:25] \\
+  accepted on two live sweep archives
+CLOCK: [2026-11-24 Tue 09:25]--[2026-11-24 Tue 09:26] =>  0:01
+- [2026-11-24 Tue 09:25]--[2026-11-24 Tue 09:26] accept and close to REVIEW
+CLOCK: [2026-11-24 Tue 09:28]--[2026-11-24 Tue 09:29] =>  0:01
+- [2026-11-24 Tue 09:28]--[2026-11-24 Tue 09:29] assigned at review
 :END:
 :PLAN:
 Bounded: the org_archive tool and the archive-finished sweep, both of which
@@ -1177,7 +1220,7 @@ after it), so the require-first workaround of b828803 goes, and
 direct org-archive-subtree from a tracked file lands in the slot; from an
 untracked file and outside an archive the descending finder never runs; the
 first-load model redefines with defalias, as load does. Acceptance: the user
-archives [[id:4746e280-4108-413c-8834-1c3e61adc370][4746e280]] by hand.
+archives =4746e280= (since removed) by hand.
 :END:
 :DEBRIEF:
 Shipped on feature/tracker-record-loss in commits b796201, b828803 and 9e96e4f:
@@ -1189,12 +1232,12 @@ Shipped on feature/tracker-record-loss in commits b796201, b828803 and 9e96e4f:
 Verified:
 - The ERT tests were each proved red against HEAD. hand-archive-creates-a-day-in-its-slot failed before the advice. descending-finder-only-inside-a-tracked-archive failed with the gate removed.
 - bin/test-all passed 28 suites, 1825 checks, on 2026-11-24.
-- Two live archives into the real DONE.org. Probe [[id:4746e280-4108-413c-8834-1c3e61adc370][4746e280]], closed 11-12, went into a new 11-12 day between 11-13 and 11-11 on 2026-11-20. Probe [[id:047cb0e3-73ac-4dd1-8b5c-2b4888e7459e][047cb0e3]], closed 10-29, went into a new 10-29 day between 10-30 and 10-28 on 2026-11-23. Each left one year node and one month node, and bin/lint-org reported 0 errors.
+- Two live archives into the real DONE.org. Probe =4746e280=, closed 11-12, went into a new 11-12 day between 11-13 and 11-11 on 2026-11-20. Probe =047cb0e3=, closed 10-29, went into a new 10-29 day between 10-30 and 10-28 on 2026-11-23. Each left one year node and one month node, and bin/lint-org reported 0 errors.
 
 Differed from the plan:
 - The plan bound the finder with cl-letf at the two module sites only. Setting up the acceptance showed that a hand C-c C-x C-s missed it, so the binding became advice, gated to tracked files (the user, 2026-11-18).
 - The acceptance was meant to be a hand archive, and it never happened. The ceremony sweep archived both probes first. The first was swept at a session start. The second was swept when the review buffer was quit, through [[id:70b47b8f-b413-4660-bf32-b0b90db45ff4][70b47b8f]]'s unscoped due check, which this reproduced live. The hand path is covered by its ERT test and shares org-archive-subtree and both advices with the sweep, and the user accepted on that basis. Not filed: it is the same code path.
-- Each probe was also counted in slice [[id:3bfa593c-c2da-4e44-b47f-2d5f0750f2aa][3bfa593c]]'s incidental list, since it closed while the slice was in progress. That list is derived, so the entries go when the probes leave DONE.org.
+- Each probe was also counted in slice [[id:3bfa593c-c2da-4e44-b47f-2d5f0750f2aa][3bfa593c]]'s incidental list, since it closed while the slice was in progress. That list is derived, so the entries go when the probes leave DONE.org. Both probes were removed from DONE.org on 2026-11-24, after the user accepted.
 :END:
 
 org-archive-subtree finds the day node with org-datetree-find-date-create, which
@@ -1220,7 +1263,6 @@ Resolved 2026-11-24, accepted by the user: archiving into DONE.org now puts an
 older date in its own slot, whether the ceremony sweep archives it or a hand
 archive from a tracked file does, with no duplicate day or month. Two live
 archives confirmed it, one within a month and one in an older month.
-
 
 
 * TODO footnotes-inject reads hook JSON with sed, so a path or id containing an escaped quote is cut short :code:
@@ -1421,7 +1463,7 @@ claude-code-ide-org-refuse-browser-origins, and the probe finds every live
 companion refusing. On the slice's branch, feature/tracker-record-loss.
 
 
-* DOING [15/33] The tracker can lose or corrupt its record, or Emacs can stop on a prompt, and nothing says so :code:
+* DOING [14/32] The tracker can lose or corrupt its record, or Emacs can stop on a prompt, and nothing says so :code:
 :PROPERTIES:
 :ID:       3bfa593c-c2da-4e44-b47f-2d5f0750f2aa
 :CREATED:  [2026-10-27 Tue 12:56]
@@ -1510,11 +1552,11 @@ Planned:
 - [-] [[id:187a87b4-20db-4fbf-931f-a4b4e1bed668][187a87b4]] REVIEW A narrowed span's leftover copies the human's :active and :edited flags, so agent time is written as attention
 - [-] [[id:aa7edd6c-d985-44b2-9359-a605761e5c3d][aa7edd6c]] REVIEW A narrowed span's leftover is appended to the end of the item list, so it is drawn at the far end of the buffer and out of time order
 - [-] [[id:c0a21a0f-89ed-4b66-b7ed-acbfd5583015][c0a21a0f]] REVIEW Archiving a session already in the archive overwrites it, and restore overwrites a live queue the same way
-- [-] [[id:62bc2f7f-0d55-4049-af00-52a2b333188a][62bc2f7f]] DOING Archiving into DONE.org's newest-first datetree creates a duplicate day or month node for any date older than the newest
+- [-] [[id:62bc2f7f-0d55-4049-af00-52a2b333188a][62bc2f7f]] REVIEW Archiving into DONE.org's newest-first datetree creates a duplicate day or month node for any date older than the newest
 - [-] [[id:e9f8b780-c93b-41f9-b146-1c4695283af9][e9f8b780]] REVIEW An unreadable .applied file reads as nothing applied, and the next write replaces it
 - [ ] [[id:b0e46168-2548-49ca-8f5f-5dcc6f3fc524][b0e46168]] TODO discard-guard misses absolute paths, git -C, and a cd before the git command
 - [-] [[id:254308f7-70a9-4296-9166-fe4138c6382b][254308f7]] REVIEW The ceremony's sort steps reorder and save TODO.org or DONE.org while it holds the human's unsaved edits
-- [ ] [[id:70b47b8f-b413-4660-bf32-b0b90db45ff4][70b47b8f]] TODO Burying the review buffer runs this project's ceremony because another project's is overdue, since the due check ignores the project scope
+- [ ] [[id:70b47b8f-b413-4660-bf32-b0b90db45ff4][70b47b8f]] NEXT Burying the review buffer runs this project's ceremony because another project's is overdue, since the due check ignores the project scope
 - [ ] [[id:a3ad9732-681c-4103-a9e2-5f919e60522c][a3ad9732]] TODO org_set_property writes TODO, SCHEDULED and DEADLINE through org-entry-put, which changes the keyword live or opens a prompt
 - [ ] [[id:412768a0-3d9b-4cfe-9264-3f214d4baed1][412768a0]] TODO org_capture's title goes through capture-template expansion, so a newline splits the heading and %^ opens a prompt
 - [ ] [[id:fd29914e-0d18-4964-a104-37c136b311a6][fd29914e]] TODO org_capture runs in whatever buffer the user has selected, so an Org QL view turns a capture into a prompt nobody at the tool can answer
@@ -1538,7 +1580,6 @@ Incidental:
 - [X] [[id:e08fb599-8cce-4c50-8fe9-9291ec24c7d7][e08fb599]] DONE Projects are compared by directory basename, so two checkouts with the same name count as one project
 - [X] [[id:e70cad3f-5546-405b-b659-9ebc90fb45d0][e70cad3f]] DONE A heading missing from org-id-locations counts as another project's, since the project test does no rescan on a miss
 - [X] [[id:460dfe96-8a08-456f-bdbd-2ace19afd404][460dfe96]] DONE A span from a removed linked worktree resolves to gone, and gone stops the project lookup before the edge events are read
-- [X] [[id:4746e280-4108-413c-8834-1c3e61adc370][4746e280]] DONE Acceptance probe for 62bc2f7f: a heading closed 2026-11-12 archives into its own day between 11-11 and 11-13
 - [X] [[id:b4c1f663-78eb-4c18-9f53-2809e2ed93b7][b4c1f663]] DONE sync-plans --check exits 2 when ~/.claude/plans is gone, so pre-push refuses every push
 - [X] [[id:4899c4c2-50da-4fa5-a2dd-a327f2c391b8][4899c4c2]] DONE Address the PR #46 review: eight findings, answered by retiring the pre-push plans gate
 - [X] [[id:a8f070af-8438-4dc5-abef-52ac845c53bc][a8f070af]] DONE The pre-push plans gate checks a source that only empties, and its new warning is never shown: retire it
@@ -1811,6 +1852,16 @@ same hook saying nothing when Emacs is down, and [[id:826d621c-25f5-4f06-9961-4b
 :CREATED:  [2026-10-27 Tue 12:52]
 :CATEGORY: Dev
 :END:
+:PLAN:
+Not yet designed; classify with the brainstorming skill first. The candidates so
+far are:
+- rewrite only when the family differs, the body's first proposal;
+- never rewrite a trailer that is present, and append one only when it is absent;
+- retire the hook, since the harness now supplies the trailer.
+
+Any of them also wants a blank line before an appended trailer, and a test case
+for a merge made with --no-edit in bin/prepare-commit-msg-test.
+:END:
 
 The hook's alias table maps opus to "Opus 5" and rewrites any existing Claude
 trailer, so the harness's "Claude Opus 5.5" is committed as "Claude Opus 5";
@@ -1819,6 +1870,19 @@ carries no minor version, so bumping the table would go stale again. Proposed:
 rewrite only when the existing trailer's family (Opus, Sonnet, Fable, Haiku)
 differs from the alias's, and update bin/prepare-commit-msg-test, which asserts
 the current behaviour.
+
+Two more defects in the same hook, found 2026-11-24. First,
+~/.claude/settings.json holds one model for every session, so another session's
+/model choice relabels this one's commits: the 2026-11-18 merges into
+feature/tracker-record-loss, commit f6dd155 among them, say "Claude Sonnet 5"
+from an Opus 5.5 session. Second, on git merge --no-edit the appended trailer
+lands on the line straight after the subject, with no blank line, so it joins
+the subject paragraph. Reproduced in a scratch repo with the hook and a settings
+file saying sonnet. The design dates from [[id:f1ff027e-5826-4812-8221-96eeba966333][f1ff027e]] (2026-09-04), which took the
+settings file as the live model when nothing else named it. The harness now
+supplies a correct, versioned trailer, so that premise no longer holds, and the
+fix may be to stop rewriting a trailer that is already present.
+
 
 
 * TODO Loading the module sets claude-code-ide-org-standalone-projects to derive, overriding a user's nil or list :code:
@@ -4935,15 +4999,15 @@ the lint and the repair, finishes the ordering tool, and makes the refresh cheap
 enough to run on every exit.
 
 
-* TODO [0/14] A tool call can be told the opposite of what happened: a negated boolean, a phantom capture, a hang :code:
+* TODO [0/15] A tool call can be told the opposite of what happened: a negated boolean, a phantom capture, a hang :code:
 :PROPERTIES:
 :ID:       f436a3b8-58ba-45a7-9f84-b8dee0934ca7
 :CREATED:  [2026-09-28 Mon 08:25]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:MEMBERS:  a8ccd6ac-3452-4926-b176-ff5951dcd5b2 c35087d8-19fe-4179-a61c-cb615b2e7679 b2d4012c-6c61-47df-8086-d1cd205c73fc 5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997 c0c5e015-c33e-4e1a-ad6e-907f9fa56c07 4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8 8326a46f-e3f9-4ecc-8bc2-05d54907987b d842b9e7-fd75-45eb-80fd-597daa3e36b0 fd29914e-0d18-4964-a104-37c136b311a6 ecbbec2e-50d9-4581-9ded-15716f16c5f3 94fe3c57-89f6-4d17-943e-0cb6145f3419 c6b068aa-f9de-4edc-a5b3-380bff666d2e eeb18e56-fcfd-4653-86e6-09448474de07 e4734e2c-2083-413b-941d-9503dd0f4a23 0c18b5c1-1cc5-4f18-8ba0-e2949e9dba34
-:BLOCKER:  a8ccd6ac-3452-4926-b176-ff5951dcd5b2 c35087d8-19fe-4179-a61c-cb615b2e7679 b2d4012c-6c61-47df-8086-d1cd205c73fc 5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997 c0c5e015-c33e-4e1a-ad6e-907f9fa56c07 4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8 8326a46f-e3f9-4ecc-8bc2-05d54907987b d842b9e7-fd75-45eb-80fd-597daa3e36b0 ecbbec2e-50d9-4581-9ded-15716f16c5f3 94fe3c57-89f6-4d17-943e-0cb6145f3419 c6b068aa-f9de-4edc-a5b3-380bff666d2e eeb18e56-fcfd-4653-86e6-09448474de07 e4734e2c-2083-413b-941d-9503dd0f4a23 0c18b5c1-1cc5-4f18-8ba0-e2949e9dba34
+:MEMBERS:  a8ccd6ac-3452-4926-b176-ff5951dcd5b2 c35087d8-19fe-4179-a61c-cb615b2e7679 b2d4012c-6c61-47df-8086-d1cd205c73fc 5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997 c0c5e015-c33e-4e1a-ad6e-907f9fa56c07 4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8 8326a46f-e3f9-4ecc-8bc2-05d54907987b d842b9e7-fd75-45eb-80fd-597daa3e36b0 fd29914e-0d18-4964-a104-37c136b311a6 ecbbec2e-50d9-4581-9ded-15716f16c5f3 94fe3c57-89f6-4d17-943e-0cb6145f3419 c6b068aa-f9de-4edc-a5b3-380bff666d2e eeb18e56-fcfd-4653-86e6-09448474de07 e4734e2c-2083-413b-941d-9503dd0f4a23 0c18b5c1-1cc5-4f18-8ba0-e2949e9dba34 32b790fd-9a72-46a5-863d-a32d5e54457e
+:BLOCKER:  a8ccd6ac-3452-4926-b176-ff5951dcd5b2 c35087d8-19fe-4179-a61c-cb615b2e7679 b2d4012c-6c61-47df-8086-d1cd205c73fc 5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997 c0c5e015-c33e-4e1a-ad6e-907f9fa56c07 4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8 8326a46f-e3f9-4ecc-8bc2-05d54907987b d842b9e7-fd75-45eb-80fd-597daa3e36b0 ecbbec2e-50d9-4581-9ded-15716f16c5f3 94fe3c57-89f6-4d17-943e-0cb6145f3419 c6b068aa-f9de-4edc-a5b3-380bff666d2e eeb18e56-fcfd-4653-86e6-09448474de07 e4734e2c-2083-413b-941d-9503dd0f4a23 0c18b5c1-1cc5-4f18-8ba0-e2949e9dba34 32b790fd-9a72-46a5-863d-a32d5e54457e
 :DROPPED:  fd29914e-0d18-4964-a104-37c136b311a6
 :END:
 :LOGBOOK:
@@ -5032,6 +5096,7 @@ Planned:
 - [ ] [[id:eeb18e56-fcfd-4653-86e6-09448474de07][eeb18e56]] TODO org_set_tags and capture accept tag names org cannot parse, which land in the title while the logbook says the tag was set
 - [ ] [[id:e4734e2c-2083-413b-941d-9503dd0f4a23][e4734e2c]] TODO The body region drops the last line when the file has no final newline, so a replace glues it to the new text
 - [ ] [[id:0c18b5c1-1cc5-4f18-8ba0-e2949e9dba34][0c18b5c1]] TODO org_set_property ignores append on :DROPPED: and every property but :BLOCKER:, so an append shortens the list and reports success
+- [ ] [[id:32b790fd-9a72-46a5-863d-a32d5e54457e][32b790fd]] TODO A commit hash that does not resolve is written as plain text, so a guessed hash enters the record and nothing says so
 
 Five ways an =org_*= call tells its caller something other than what happened: a
 =false= that acts as true, a capture that reports success and persists nothing,
@@ -17372,4 +17437,19 @@ CLOCK: [2026-11-18 Wed 14:33]--[2026-11-18 Wed 14:35] =>  0:02
 - [2026-11-18 Wed 14:33]--[2026-11-18 Wed 14:35] assigned at review
 CLOCK: [2026-11-18 Wed 14:46]--[2026-11-18 Wed 14:47] =>  0:01
 - [2026-11-18 Wed 14:46]--[2026-11-18 Wed 14:47] assigned at review
+:END:
+
+
+**** 2026-11-24 Tuesday
+:PROPERTIES:
+:ID:       e139201f-8569-4ccc-8e60-d029cbba0d94
+:CREATED:  [2026-11-24 Tue 09:29]
+:END:
+:LOGBOOK:
+CLOCK: [2026-11-24 Tue 09:29]--[2026-11-24 Tue 09:30] =>  0:01
+- [2026-11-24 Tue 09:29]--[2026-11-24 Tue 09:30] assigned at review
+CLOCK: [2026-11-24 Tue 09:44]--[2026-11-24 Tue 09:45] =>  0:01
+- [2026-11-24 Tue 09:44]--[2026-11-24 Tue 09:45] assigned at review
+CLOCK: [2026-11-24 Tue 11:42]--[2026-11-24 Tue 11:43] =>  0:01
+- [2026-11-24 Tue 11:42]--[2026-11-24 Tue 11:43] assigned at review
 :END:
