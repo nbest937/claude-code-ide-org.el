@@ -1,65 +1,69 @@
 #!/usr/bin/env bash
-# Make the commit's Claude attribution tell the truth (TODO.org :ID:
-# f1ff027e-5826-4812-8221-96eeba966333).
+# Add the Claude-Session trailer to a commit made from a Claude Code
+# session, and leave the Co-Authored-By trailer to the session (TODO.org
+# :ID: 6d1a5192-21ad-4316-b0c6-219403459f28).
 #
-# The problem: the co-author trailer a session types into -m is static
-# text frozen at session start, so a mid-session /model switch (or a
-# stale prompt template) misattributes the work -- observed 2026-09-04,
-# ten commits crediting Opus for Fable's work. No model env var exists
-# (probed: CLAUDECODE, CLAUDE_CODE_BRIDGE_SESSION_ID, CLAUDE_EFFORT --
-# nothing names the model), but /model persists its choice to
-# ~/.claude/settings.json as {"model": "<alias>"}, which this hook reads
-# as the live source of truth.
+# History. f1ff027e (2026-09-04) made this hook REWRITE every
+# "Co-Authored-By: Claude ..." line from the model ~/.claude/settings.json
+# names, because the trailer a session typed was frozen at session start
+# and went stale after /model. That premise expired: the harness now
+# gives each session an exact, versioned trailer, while settings.json
+# holds one model for every session, so another session's /model choice
+# relabelled this one's commits ("Sonnet 5" on an Opus 5.5 session's
+# merges, 2026-11-18), and the hook's alias table lagged the versions
+# (every "Opus 5.5" committed as "Opus 5"). The session's own trailer is
+# the only trustworthy source, so this hook no longer touches it, and
+# does not append one either: a guess from the shared file is worse than
+# none. A missing trailer is refused by .githooks/commit-msg instead.
 #
-# Behaviour, gated on CLAUDECODE=1 so a human's own commits are never
-# touched: an existing "Co-Authored-By: Claude ..." line is REWRITTEN to
-# the live model (fixing exactly the hand-typed staleness above); a
-# missing one is appended; a Claude-Session line is appended from
-# CLAUDE_CODE_BRIDGE_SESSION_ID when absent. Unknown model or unreadable
-# settings: leave the message alone -- a wrong guess is worse than none.
+# What remains, inside a session (CLAUDECODE=1):
 #
-# Fire-and-forget like bin/hooks/queue-append: always exit 0, never
-# block a commit. Plain bash per the Emacs-boundary shell decision
-# (:ID: 84b7d8b3) -- a git hook must run with no Emacs at all.
-# CLAUDE_SETTINGS_FILE is a test seam (bin/prepare-commit-msg-test).
+# - Warn on stderr when the message carries no Co-Authored-By: Claude
+#   trailer. commit-msg refuses such a commit, but `--no-verify' skips
+#   commit-msg and not this hook, so this is the one place left to say
+#   the commit goes out unattributed. It warns only, and guesses nothing.
+#   Only for a message that already exists (-m, a merge, an amend): an
+#   editor commit's message is not written yet.
+# - Append Claude-Session from CLAUDE_CODE_BRIDGE_SESSION_ID when no line
+#   of the message starts with one -- the whole message, not only the
+#   last trailer block, so amending a commit whose line was glued to its
+#   subject adds no second one. Through git interpret-trailers, which
+#   puts the blank line before a new trailer block itself; appending by
+#   hand glued the line to a one-line `git merge --no-edit' subject.
+#
+# Both read with --no-divider: by default interpret-trailers takes a
+# `---' line for the start of a patch, and footnote end matter starts
+# with exactly that.
+#
+# Fire-and-forget: always exit 0, never block a commit. Plain bash per
+# the Emacs-boundary shell decision (:ID: 84b7d8b3) -- a git hook must
+# run with no Emacs at all.
 
 set -uo pipefail
 
 msg_file="${1:-}"
 [[ -n "$msg_file" && -f "$msg_file" ]] || exit 0
+source="${2:-}"
 [[ "${CLAUDECODE:-}" == "1" ]] || exit 0
-command -v jq >/dev/null 2>&1 || exit 0
 
-settings="${CLAUDE_SETTINGS_FILE:-$HOME/.claude/settings.json}"
-alias_name="$(jq -r '.model // empty' "$settings" 2>/dev/null)"
-
-# Display names for the aliases /model documents; a full model id or an
-# unrecognised alias falls through verbatim rather than being guessed at.
-case "$alias_name" in
-  fable|claude-fable*)   model="Fable 5" ;;
-  opus|claude-opus*)     model="Opus 5" ;;
-  sonnet|claude-sonnet*) model="Sonnet 5" ;;
-  haiku|claude-haiku*)   model="Haiku 4.5" ;;
-  "")                    exit 0 ;;
-  *)                     model="$alias_name" ;;
+case "$source" in
+  message|merge|commit)
+    trailers="$(git interpret-trailers --no-divider --parse "$msg_file" 2>/dev/null)"
+    if ! grep -qi '^co-authored-by: claude ' <<<"$trailers"; then
+      cat >&2 <<'MSG'
+prepare-commit-msg: warning: no "Co-Authored-By: Claude ..." trailer. commit-msg
+refuses this commit; under --no-verify it goes out unattributed. Add the
+trailer your instructions give, after a blank line.
+MSG
+    fi
+    ;;
 esac
 
-trailer="Co-Authored-By: Claude $model <noreply@anthropic.com>"
+[[ -n "${CLAUDE_CODE_BRIDGE_SESSION_ID:-}" ]] || exit 0
+grep -q '^Claude-Session:' "$msg_file" && exit 0
 
-if grep -q '^Co-Authored-By: Claude ' "$msg_file"; then
-  tmp="$(mktemp)" || exit 0
-  awk -v t="$trailer" \
-    '{ if ($0 ~ /^Co-Authored-By: Claude /) print t; else print }' \
-    "$msg_file" > "$tmp" 2>/dev/null && mv "$tmp" "$msg_file"
-  rm -f "$tmp" 2>/dev/null
-else
-  printf '\n%s\n' "$trailer" >> "$msg_file"
-fi
-
-if [[ -n "${CLAUDE_CODE_BRIDGE_SESSION_ID:-}" ]] \
-   && ! grep -q '^Claude-Session:' "$msg_file"; then
-  printf 'Claude-Session: https://claude.ai/code/%s\n' \
-    "$CLAUDE_CODE_BRIDGE_SESSION_ID" >> "$msg_file"
-fi
+git interpret-trailers --in-place --no-divider \
+  --trailer "Claude-Session: https://claude.ai/code/$CLAUDE_CODE_BRIDGE_SESSION_ID" \
+  "$msg_file" 2>/dev/null
 
 exit 0

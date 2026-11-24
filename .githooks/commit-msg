@@ -1,7 +1,29 @@
 #!/usr/bin/env bash
-# commit-msg hook: refuse an apply-shaped org diff under a message that
-# does not say so.
+# commit-msg hook, two refusals:
+#   1. a commit from a Claude Code session with no Claude co-author trailer;
+#   2. an apply-shaped org diff under a message that does not say so.
 #
+# 1. TODO.org :ID: 6d1a5192. Only the session knows its model -- the
+# harness gives it the exact trailer -- so .githooks/prepare-commit-msg
+# no longer writes one, and a commit without it would go out unattributed
+# with nothing saying so. Trailers are read with `git interpret-trailers
+# --parse', not grep: a line glued to the subject, as a hand append once
+# left on `git merge --no-edit' messages, is not a trailer and is refused
+# too, and --no-divider keeps a `---' line in the message (footnote end
+# matter starts with one) from hiding the trailers after it. Keys match
+# case-insensitively, as git's do, and the parse is captured before it is
+# matched, so an early `grep -q' cannot fail the pipe under pipefail.
+#
+# Gated on CLAUDECODE=1, which a session sets for everything it runs --
+# including a `! git commit' the user types at its prompt, which nothing
+# in the environment tells apart from the session's own. Such a commit is
+# refused too; the refusal says how to get past it. A commit made in a
+# shell outside any session is never checked. A `git merge --no-edit' in
+# a session is refused as well; finish it with `git commit -m' carrying
+# the trailer. `--no-verify' skips this hook, and prepare-commit-msg,
+# which still runs, warns that such a commit goes out unattributed.
+#
+# 2.
 # TODO.org :ID: 3cd7b7d3, and the predicate :ID: 3cb3f955 was waiting on.
 # The review pass is the only thing that writes `- State "..."' and
 # `CLOCK:' lines, and the human runs it whenever they choose -- including
@@ -27,6 +49,28 @@ set -uo pipefail
 msg_file="${1:-}"
 [ -n "$msg_file" ] && [ -r "$msg_file" ] || exit 0
 
+trailers=""
+[ "${CLAUDECODE:-}" = "1" ] \
+  && trailers="$(git interpret-trailers --no-divider --parse "$msg_file" 2>/dev/null)"
+if [ "${CLAUDECODE:-}" = "1" ] && ! grep -qi '^co-authored-by: claude ' <<<"$trailers"; then
+  "$(dirname "${BASH_SOURCE[0]}")/count-miss" missing-trailer "no Co-Authored-By: Claude trailer"
+  cat >&2 <<'MSG'
+commit-msg: this commit comes from a Claude Code session but carries no
+"Co-Authored-By: Claude ..." trailer, so it would go out unattributed.
+Only the session knows its model, and nothing adds the trailer for it.
+
+  Fix:   end the message with the trailer your instructions give, after a
+         blank line, e.g.  git commit -m "subject" -m "Co-Authored-By: ..."
+  Merge: a `git merge --no-edit' is refused here; finish it with
+         git commit -m "..." carrying the trailer
+  Yours: a commit you typed yourself at the session's prompt (! git ...)
+         inherits the session's CLAUDECODE; add the trailer, or skip
+  Skip:  git commit --no-verify -- which also skips this check, so the
+         commit goes out with no attribution
+MSG
+  exit 1
+fi
+
 diff="$(git diff --cached -U0 -- TODO.org DONE.org 2>/dev/null)" || exit 0
 [ -n "$diff" ] || exit 0
 
@@ -48,6 +92,7 @@ mention an apply pass. A human's pass has probably been swept in.
   Look:  git diff --cached --stat -- TODO.org DONE.org
   Fix:   commit the pass on its own ("Apply pass: ..."), then your change
   Or:    name it -- include the words "apply pass" in this message
-  Skip:  git commit --no-verify
+  Skip:  git commit --no-verify -- which also skips the co-author
+         trailer check; from a session, carry the trailer yourself
 MSG
 exit 1
