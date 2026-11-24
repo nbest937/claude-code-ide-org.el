@@ -26,9 +26,9 @@ run() { # run <CLAUDECODE or -> <msgfile> [bridge id, - for none]
   local -a envs=(CLAUDE_SETTINGS_FILE="$work/settings.json")
   [[ "$sid" != "-" ]] && envs+=(CLAUDE_CODE_BRIDGE_SESSION_ID="$sid")
   if [[ "$cc" == "-" ]]; then
-    env -u CLAUDECODE -u CLAUDE_CODE_BRIDGE_SESSION_ID "${envs[@]}" bash "$hook" "$msg" message
+    env -u CLAUDECODE -u CLAUDE_CODE_BRIDGE_SESSION_ID ${envs[@]+"${envs[@]}"} bash "$hook" "$msg" message
   else
-    env -u CLAUDE_CODE_BRIDGE_SESSION_ID CLAUDECODE="$cc" "${envs[@]}" bash "$hook" "$msg" message
+    env -u CLAUDE_CODE_BRIDGE_SESSION_ID CLAUDECODE="$cc" ${envs[@]+"${envs[@]}"} bash "$hook" "$msg" message
   fi
 }
 session='Claude-Session: https://claude.ai/code/session_TEST'
@@ -54,24 +54,47 @@ check "a stale trailer and present session line: byte-identical" "$(cat "$work/m
 
 # 4. a bare message gains the session line and no Co-Authored-By
 printf 'subject only\n' > "$work/m4"
-run 1 "$work/m4"
+run 1 "$work/m4" 2>/dev/null
 check "no Co-Authored-By is appended" "0" "$(grep -c 'Co-Authored-By' "$work/m4")"
 check "the session line follows a blank line" "$(printf 'subject only\n\n%s' "$session")" "$(cat "$work/m4")"
 
 # 5. a one-line merge message with no trailing newline, as `git merge --no-edit' writes
 printf "Merge branch 'main' into feature/x" > "$work/m5"
-run 1 "$work/m5"
+run 1 "$work/m5" 2>/dev/null
 check "a merge subject stays alone in its paragraph" \
   "$(printf "Merge branch 'main' into feature/x\n\n%s" "$session")" "$(cat "$work/m5")"
 
 # 6. no bridge id: nothing to add, nothing touched
 printf 'subject\n\nbody\n' > "$work/m6"; cp "$work/m6" "$work/m6.orig"
-run 1 "$work/m6" -
+run 1 "$work/m6" - 2>/dev/null
 check "no bridge id leaves the message alone" "$(cat "$work/m6.orig")" "$(cat "$work/m6")"
 
 # 7. never blocks
-run 1 "$work/does-not-exist"
+run 1 "$work/does-not-exist" 2>/dev/null
 check "a missing message file still exits 0" "0" "$?"
+
+# 8. a --- line (footnote end matter) does not hide the trailer block (PR #47 finding 1)
+printf 'subject\n\nbody\n\n---\n`6d1a5192`  TODO  a title\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>\n' > "$work/m8"
+run 1 "$work/m8"
+check "after a --- line, the session line still joins the trailer block" \
+  "$(printf 'subject\n\nbody\n\n---\n`6d1a5192`  TODO  a title\n\nCo-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>\n%s' "$session")" "$(cat "$work/m8")"
+
+# 9. a session commit with no Claude trailer is warned about, since
+#    --no-verify skips commit-msg (PR #47 finding 2); nothing else is
+printf 'subject only\n' > "$work/m9"
+check "no Claude trailer in a session: warned" "yes" \
+  "$(run 1 "$work/m9" 2>&1 >/dev/null | grep -q 'unattributed' && echo yes || echo no)"
+printf 'subject\n\nCo-authored-by: Claude Opus 5.5 <noreply@anthropic.com>\n' > "$work/m9b"
+check "a Claude trailer, any case: not warned" "" "$(run 1 "$work/m9b" 2>&1 >/dev/null)"
+printf 'subject only\n' > "$work/m9c"
+check "outside a session: not warned" "" "$(run - "$work/m9c" 2>&1 >/dev/null)"
+
+# 10. amending a commit whose session line was glued to its subject adds
+#     no second one (PR #47 finding 7)
+printf "Merge branch 'main' into feature/x\n%s\n" "$session" > "$work/m10"
+cp "$work/m10" "$work/m10.orig"
+run 1 "$work/m10" 2>/dev/null
+check "a glued session line is not duplicated" "$(cat "$work/m10.orig")" "$(cat "$work/m10")"
 
 echo
 echo "prepare-commit-msg-test: $pass passed, $fail failed"

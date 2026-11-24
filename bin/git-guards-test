@@ -234,7 +234,7 @@ run_trailer () { # run_trailer CLAUDECODE|- SESSION|- MESSAGE -> exit code
   local -a envs=()
   [[ "$1" != "-" ]] && envs+=(CLAUDECODE="$1")
   [[ "$2" != "-" ]] && envs+=(CLAUDE_CODE_SESSION_ID="$2")
-  (cd "$r" && env -u CLAUDECODE -u CLAUDE_CODE_SESSION_ID "${envs[@]}" "$hooks/commit-msg" "$msg" >/dev/null 2>&1); echo $?
+  (cd "$r" && env -u CLAUDECODE -u CLAUDE_CODE_SESSION_ID ${envs[@]+"${envs[@]}"} "$hooks/commit-msg" "$msg" >/dev/null 2>&1); echo $?
 }
 trailer='Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>'
 check "a session commit with no trailer is refused" 1 "$(run_trailer 1 sess-t1 "subject
@@ -260,6 +260,25 @@ check "a human co-author is not a Claude trailer" 1 "$(run_trailer 1 - "subject
 
 Co-Authored-By: A Person <a@example.com>
 ")"
+check "a --- line does not hide the trailer block (PR #47 finding 1)" 0 "$(run_trailer 1 - "subject
+
+body
+
+---
+\`6d1a5192\`  TODO  a title
+
+$trailer
+")"
+check "trailer keys match case-insensitively (PR #47 finding 3)" 0 "$(run_trailer 1 - "subject
+
+Co-authored-by: Claude Opus 5.5 <noreply@anthropic.com>
+")"
+printf 'subject\n' > "$msg"
+refusal="$(cd "$r" && env -u CLAUDE_CODE_SESSION_ID CLAUDECODE=1 "$hooks/commit-msg" "$msg" 2>&1 >/dev/null)"
+check "the refusal tells a user who typed the commit how to get past it (finding 5)" yes \
+  "$(grep -q 'typed yourself' <<<"$refusal" && echo yes || echo no)"
+check "and says --no-verify leaves the commit unattributed (finding 2)" yes \
+  "$(grep -q 'no attribution' <<<"$refusal" && echo yes || echo no)"
 git -C "$r" reset -q --hard
 
 r="$work/merge"

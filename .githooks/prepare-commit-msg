@@ -16,11 +16,24 @@
 # does not append one either: a guess from the shared file is worse than
 # none. A missing trailer is refused by .githooks/commit-msg instead.
 #
-# What remains: inside a session (CLAUDECODE=1), append Claude-Session
-# from CLAUDE_CODE_BRIDGE_SESSION_ID when the message has none. Through
-# git interpret-trailers, which puts the blank line before a new trailer
-# block itself -- appending by hand glued the line to the subject of a
-# one-line `git merge --no-edit' message.
+# What remains, inside a session (CLAUDECODE=1):
+#
+# - Warn on stderr when the message carries no Co-Authored-By: Claude
+#   trailer. commit-msg refuses such a commit, but `--no-verify' skips
+#   commit-msg and not this hook, so this is the one place left to say
+#   the commit goes out unattributed. It warns only, and guesses nothing.
+#   Only for a message that already exists (-m, a merge, an amend): an
+#   editor commit's message is not written yet.
+# - Append Claude-Session from CLAUDE_CODE_BRIDGE_SESSION_ID when no line
+#   of the message starts with one -- the whole message, not only the
+#   last trailer block, so amending a commit whose line was glued to its
+#   subject adds no second one. Through git interpret-trailers, which
+#   puts the blank line before a new trailer block itself; appending by
+#   hand glued the line to a one-line `git merge --no-edit' subject.
+#
+# Both read with --no-divider: by default interpret-trailers takes a
+# `---' line for the start of a patch, and footnote end matter starts
+# with exactly that.
 #
 # Fire-and-forget: always exit 0, never block a commit. Plain bash per
 # the Emacs-boundary shell decision (:ID: 84b7d8b3) -- a git hook must
@@ -30,10 +43,26 @@ set -uo pipefail
 
 msg_file="${1:-}"
 [[ -n "$msg_file" && -f "$msg_file" ]] || exit 0
+source="${2:-}"
 [[ "${CLAUDECODE:-}" == "1" ]] || exit 0
-[[ -n "${CLAUDE_CODE_BRIDGE_SESSION_ID:-}" ]] || exit 0
 
-git interpret-trailers --in-place --if-exists doNothing \
+case "$source" in
+  message|merge|commit)
+    trailers="$(git interpret-trailers --no-divider --parse "$msg_file" 2>/dev/null)"
+    if ! grep -qi '^co-authored-by: claude ' <<<"$trailers"; then
+      cat >&2 <<'MSG'
+prepare-commit-msg: warning: no "Co-Authored-By: Claude ..." trailer. commit-msg
+refuses this commit; under --no-verify it goes out unattributed. Add the
+trailer your instructions give, after a blank line.
+MSG
+    fi
+    ;;
+esac
+
+[[ -n "${CLAUDE_CODE_BRIDGE_SESSION_ID:-}" ]] || exit 0
+grep -q '^Claude-Session:' "$msg_file" && exit 0
+
+git interpret-trailers --in-place --no-divider \
   --trailer "Claude-Session: https://claude.ai/code/$CLAUDE_CODE_BRIDGE_SESSION_ID" \
   "$msg_file" 2>/dev/null
 
