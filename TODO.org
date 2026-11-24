@@ -2026,6 +2026,11 @@ the new check would have refused them all. Only the trailer cases set it.
 Until [[https://github.com/nbest937/claude-code-ide-org.el/pull/47][PR #47]] merges, main's working tree still runs the old prepare-commit-msg,
 so bookkeeping commits made on main keep being rewritten to "Opus 5". Not filed:
 the merge ends it.
+
+[[https://github.com/nbest937/claude-code-ide-org.el/pull/47][PR #47]] merged 2026-11-24 as commit 98add0e, after its review story [[id:b6502d4a-90dd-464b-b700-4fde0511d73f][b6502d4a]]
+fixed all seven findings in commit f4e4481. The first merge made under the new
+hooks, commit 51cfc51, kept "Claude Opus 5.5" as typed, so the rewrite to "Opus
+5" noted above has ended.
 :END:
 
 prepare-commit-msg rewrites every Claude Co-Authored-By trailer from
