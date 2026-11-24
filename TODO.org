@@ -1179,6 +1179,23 @@ untracked file and outside an archive the descending finder never runs; the
 first-load model redefines with defalias, as load does. Acceptance: the user
 archives [[id:4746e280-4108-413c-8834-1c3e61adc370][4746e280]] by hand.
 :END:
+:DEBRIEF:
+Shipped on feature/tracker-record-loss in commits b796201, b828803 and 9e96e4f:
+- the descending finder;
+- the bin/lint-org error for duplicate sibling datetree nodes;
+- two advices replacing the cl-letf binding. One is :around org-archive-subtree, gated on --tracked-buffer-p and a datetree target. The other is :around org-datetree-find-date-create.
+--archive-subtree is gone, and both callers call org-archive-subtree directly.
+
+Verified:
+- The ERT tests were each proved red against HEAD. hand-archive-creates-a-day-in-its-slot failed before the advice. descending-finder-only-inside-a-tracked-archive failed with the gate removed.
+- bin/test-all passed 28 suites, 1825 checks, on 2026-11-24.
+- Two live archives into the real DONE.org. Probe [[id:4746e280-4108-413c-8834-1c3e61adc370][4746e280]], closed 11-12, went into a new 11-12 day between 11-13 and 11-11 on 2026-11-20. Probe [[id:047cb0e3-73ac-4dd1-8b5c-2b4888e7459e][047cb0e3]], closed 10-29, went into a new 10-29 day between 10-30 and 10-28 on 2026-11-23. Each left one year node and one month node, and bin/lint-org reported 0 errors.
+
+Differed from the plan:
+- The plan bound the finder with cl-letf at the two module sites only. Setting up the acceptance showed that a hand C-c C-x C-s missed it, so the binding became advice, gated to tracked files (the user, 2026-11-18).
+- The acceptance was meant to be a hand archive, and it never happened. The ceremony sweep archived both probes first. The first was swept at a session start. The second was swept when the review buffer was quit, through [[id:70b47b8f-b413-4660-bf32-b0b90db45ff4][70b47b8f]]'s unscoped due check, which this reproduced live. The hand path is covered by its ERT test and shares org-archive-subtree and both advices with the sweep, and the user accepted on that basis. Not filed: it is the same code path.
+- Each probe was also counted in slice [[id:3bfa593c-c2da-4e44-b47f-2d5f0750f2aa][3bfa593c]]'s incidental list, since it closed while the slice was in progress. That list is derived, so the entries go when the probes leave DONE.org.
+:END:
 
 org-archive-subtree finds the day node with org-datetree-find-date-create, which
 takes the first sibling at or after the target and matches only on equality; on
@@ -1198,6 +1215,12 @@ of the real DONE.org: tasks closed 11-11, 11-12 and 10-29 went into the existing
 day or one new day in its slot, with no duplicate. Left DOING by the user until
 a live archive of a heading closed before DONE.org's newest day; then check
 DONE.org with bin/lint-org and close.
+
+Resolved 2026-11-24, accepted by the user: archiving into DONE.org now puts an
+older date in its own slot, whether the ceremony sweep archives it or a hand
+archive from a tracked file does, with no duplicate day or month. Two live
+archives confirmed it, one within a month and one in an older month.
+
 
 
 * TODO footnotes-inject reads hook JSON with sed, so a path or id containing an escaped quote is cut short :code:
