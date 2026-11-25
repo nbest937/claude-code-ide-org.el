@@ -8,6 +8,34 @@ Archived entries from file /Users/neil.best/git/claude-code-ide-org/TODO.org
 
 ** 2026-11 November
 *** 2026-11-25 Wednesday
+**** CANCELLED An apply refused by org-depend reports neither the blocker nor the reason, only that the keyword did not change :code:
+CLOSED: [2026-11-25 Wed 13:38]
+:PROPERTIES:
+:ID:       f128a8b1-5769-4d48-b947-dfaf9a58fbcd
+:CREATED:  [2026-10-30 Fri 08:16]
+:CATEGORY: Apply
+:ARCHIVE_TIME: 2026-11-25 Wed 15:31
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Apply
+:ARCHIVE_TODO: CANCELLED
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-30 Fri 08:14]--[2026-10-30 Fri 08:16] =>  0:02
+- [2026-10-30 Fri 08:14]--[2026-10-30 Fri 08:16] assigned at review
+CLOCK: [2026-10-30 Fri 08:16]--[2026-10-30 Fri 08:17] =>  0:01
+- [2026-10-30 Fri 08:16]--[2026-10-30 Fri 08:17] file the silent org-depend refusal bug
+- State "CANCELLED"  from "TODO"       [2026-11-25 Wed 13:38] \\
+  twin of 7e2a6608, merged there
+:END:
+
+Applying CANCELLED to 6ef2e557 in noodle-salesman on 2026-10-28 failed with "did
+not take effect; the heading reads TODO", while org-todo's own message read
+blocked (by ""): org-depend-block-todo refuses a done state while a :BLOCKER: is
+unfinished but never sets org-block-entry-blocking, which org's other blockers
+fill in. Finding the cause took a session reading the Messages buffer and the
+heading's front matter. The apply pass should name the unfinished :BLOCKER: ids
+and their keywords when a transition into a done state is refused.
+
 **** CANCELLED [0/0] Past days' records never leave TODO.org :code:
 CLOSED: [2026-11-25 Wed 11:02]
 :PROPERTIES:
@@ -64,6 +92,7 @@ Planned:
 Folded into [[id:7ae1cff4-c0df-4ac0-9aea-a778b2373061][7ae1cff4]] (0.2.0) on 2026-11-25 (the user): both members moved there,
 and this slice is cancelled with nothing left to undertake. The outside block it
 waited on is gone; [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]] and [[id:b36e6369-a210-4540-adc7-0c0c188e9791][b36e6369]] are both DONE.
+
 
 
 
