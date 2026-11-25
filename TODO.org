@@ -2,6 +2,80 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO [0/5] 0.2.2: The clock record cannot be reported on: no parent's own time, no unclocked worked headings, past days kept in TODO.org :code:
+:PROPERTIES:
+:ID:       f155ed56-ec52-432e-9a4c-9db0250dfb34
+:CREATED:  [2026-11-25 Wed 14:30]
+:CATEGORY: Slices
+:KIND:     slice
+:COOKIE_DATA: checkbox recursive
+:MEMBERS:  37147e9e-468b-43ee-91f9-45d9647c6164 64d34a64-d336-40a8-a8e8-da8133d0da06 d6fc47a5-b84d-4287-b973-aa5b37410270 591e7af3-4f37-4f90-86ba-62400c6e649b 445ec1f1-095a-462b-abbd-7a3a00925ddb
+:BLOCKER:  37147e9e-468b-43ee-91f9-45d9647c6164 64d34a64-d336-40a8-a8e8-da8133d0da06 d6fc47a5-b84d-4287-b973-aa5b37410270 591e7af3-4f37-4f90-86ba-62400c6e649b 445ec1f1-095a-462b-abbd-7a3a00925ddb
+:END:
+:PLAN:
+The order, carried over from [[id:7ae1cff4-c0df-4ac0-9aea-a778b2373061][7ae1cff4]]'s plan; each member's own drawer wins
+where this disagrees.
+
+- [[id:37147e9e-468b-43ee-91f9-45d9647c6164][37147e9e]] and [[id:64d34a64-d336-40a8-a8e8-da8133d0da06][64d34a64]]: reporting. Worked headings with no clock interval that day, and a parent's own time in a clocktable. Both need the record right first, which 0.2.0 and 0.2.1 give.
+- [[id:d6fc47a5-b84d-4287-b973-aa5b37410270][d6fc47a5]] and [[id:591e7af3-4f37-4f90-86ba-62400c6e649b][591e7af3]]: past days' clock records moved out of TODO.org (Review and planning's day nodes, Review attention's LOGBOOK). They come after reporting because they move CLOCK lines the clocktables read. Kept together as they were folded in from [[id:f9fe9fac-a423-4ede-bc42-1d201c2c3d82][f9fe9fac]]. That puts [[id:591e7af3-4f37-4f90-86ba-62400c6e649b][591e7af3]] here rather than in 0.2.1, where the review's grouping had it.
+- [[id:445ec1f1-095a-462b-abbd-7a3a00925ddb][445ec1f1]] last: the A/B comparison across the fixes, which measures 0.2.0 to 0.2.2 together.
+
+Followed by [[id:c7619140-f269-4329-bc05-a38ea151e202][c7619140]].
+:END:
+
+Divided out of [[id:7ae1cff4-c0df-4ac0-9aea-a778b2373061][7ae1cff4]] on 2026-11-25 (the user, the slice-coherence review):
+the reporting third of that slice's title. It comes after the record is correct
+(0.2.0) and the attention clock is reshaped (0.2.1), because every member reads
+or moves the CLOCK lines those fix.
+
+Planned:
+
+- [ ] [[id:37147e9e-468b-43ee-91f9-45d9647c6164][37147e9e]] TODO Report worked headings that carry no clock interval that day
+- [ ] [[id:64d34a64-d336-40a8-a8e8-da8133d0da06][64d34a64]] NEXT A clocktable never shows a parent's own time, only own-plus-subtree
+- [ ] [[id:d6fc47a5-b84d-4287-b973-aa5b37410270][d6fc47a5]] TODO Distribute Review and planning's past day nodes into DONE.org's datetree
+- [ ] [[id:591e7af3-4f37-4f90-86ba-62400c6e649b][591e7af3]] TODO Bound Review attention's LOGBOOK by refiling old entries into dated clones
+- [ ] [[id:445ec1f1-095a-462b-abbd-7a3a00925ddb][445ec1f1]] TODO A/B the clock record across the phase-3 fixes, since much of what is logged now is bogus
+
+
+* TODO [0/3] 0.2.1: The review-attention clock is a real org clock that stops at the first apply, so it measures the wrong thing :code:
+:PROPERTIES:
+:ID:       8696bf65-1a8d-486b-80e9-a1454eb0e519
+:CREATED:  [2026-11-25 Wed 14:30]
+:CATEGORY: Slices
+:KIND:     slice
+:COOKIE_DATA: checkbox recursive
+:MEMBERS:  595df230-e31d-42ad-9ea7-128e545b9aa0 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d
+:BLOCKER:  595df230-e31d-42ad-9ea7-128e545b9aa0 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d
+:END:
+:PLAN:
+The order, carried over from [[id:7ae1cff4-c0df-4ac0-9aea-a778b2373061][7ae1cff4]]'s plan, which had these three first; each
+member's own drawer wins where this disagrees.
+
+- [[id:595df230-e31d-42ad-9ea7-128e545b9aa0][595df230]]: the clock's shape. It is a real org clock, so the buffer stays busy through the review, and apply's first clock-in closes it. Making it something else probably removes [[id:e3d1531d-7562-4bad-bef2-fc819630c5f7][e3d1531d]]'s cause.
+- [[id:e3d1531d-7562-4bad-bef2-fc819630c5f7][e3d1531d]]: what it measured wrongly, 101 intervals truncated at the first apply.
+- [[id:b5448133-4021-46b9-a90e-d88e149ae65d][b5448133]]: rebuilding those intervals from the audit log, after the shape is settled so the rebuild targets the new one.
+
+Moved behind 0.2.0, the record's correctness, on 2026-11-25 (the user's
+numbering). [[id:7ae1cff4-c0df-4ac0-9aea-a778b2373061][7ae1cff4]] had put these first, after [[id:97b4f6a9-a944-40d3-8d14-7a1667c52291][97b4f6a9]] gated the clock on the
+time-tracking option. Nothing in these three depends on 0.2.0's members, so the
+change only defers them. [[id:591e7af3-4f37-4f90-86ba-62400c6e649b][591e7af3]], which bounds this clock's LOGBOOK, went to
+0.2.2 with [[id:d6fc47a5-b84d-4287-b973-aa5b37410270][d6fc47a5]] instead, because [[id:7ae1cff4-c0df-4ac0-9aea-a778b2373061][7ae1cff4]]'s plan put the two together after
+reporting.
+
+Followed by [[id:f155ed56-ec52-432e-9a4c-9db0250dfb34][f155ed56]].
+:END:
+
+Divided out of [[id:7ae1cff4-c0df-4ac0-9aea-a778b2373061][7ae1cff4]] on 2026-11-25 (the user, the slice-coherence review):
+the attention-clock third of that slice's title. It matters only where time
+tracking is on.
+
+Planned:
+
+- [ ] [[id:595df230-e31d-42ad-9ea7-128e545b9aa0][595df230]] TODO The review-attention clock is a real org clock, so the buffer stays busy for the whole review and apply's first clock-in closes it
+- [ ] [[id:e3d1531d-7562-4bad-bef2-fc819630c5f7][e3d1531d]] TODO The review-attention clock stops at the first apply, so 101 intervals measure the wrong thing
+- [ ] [[id:b5448133-4021-46b9-a90e-d88e149ae65d][b5448133]] TODO Rebuild the 101 truncated review-attention intervals from the audit log
+
+
 * TODO [0/5] 0.0.4: Sessions still reach for org_amend, the tool whose replace path does the most damage :code:
 :PROPERTIES:
 :ID:       f8e82978-a1d3-48dc-9aea-d13ec821cdfe
@@ -4261,7 +4335,7 @@ references, =M-x customize-group claude-code-ide-org= and the commands. Written
 last, since it points at the other three.
 
 
-* TODO [0/22] 0.2.0: The clock record beneath the review pass is still wrong: correctness, reporting, and the attention clock :code:
+* TODO [0/14] 0.2.0: The clock record beneath the review pass is still wrong: correctness, reporting, and the attention clock :code:
 :PROPERTIES:
 :ID:       7ae1cff4-c0df-4ac0-9aea-a778b2373061
 :CREATED:  [2026-10-09 Fri 11:15]
@@ -4269,7 +4343,8 @@ last, since it points at the other three.
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
 :MEMBERS:  595df230-e31d-42ad-9ea7-128e545b9aa0 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 001fb310-69f7-4417-81be-a224a3bf83e0 55125136-5939-434e-9676-96ea66a75770 37147e9e-468b-43ee-91f9-45d9647c6164 64d34a64-d336-40a8-a8e8-da8133d0da06 445ec1f1-095a-462b-abbd-7a3a00925ddb d30b3481-374c-4921-9fdb-284dd8e09e14 3a6ff84e-ed47-4c83-94ff-18c439dd842c 22264369-2d9d-4339-9b97-f3ea25ad0137 a4acdd35-ddba-4557-8dcb-86bc754374db 94e7b511-0adb-4afc-83c0-ba450198f221 4eadfc8f-22b5-4466-875d-fdbc5c922ea4 2ff6f683-d7e2-495e-9eff-88d522af87a7 04a9d1b4-c8c5-40af-bf9e-9ced6a7225fe 8f5dc7a6-5b90-44b7-b712-ee396e4357b5 2211d720-5e3f-45b6-bcb4-437b2a43baed d6fc47a5-b84d-4287-b973-aa5b37410270 591e7af3-4f37-4f90-86ba-62400c6e649b
-:BLOCKER:  595df230-e31d-42ad-9ea7-128e545b9aa0 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 001fb310-69f7-4417-81be-a224a3bf83e0 55125136-5939-434e-9676-96ea66a75770 37147e9e-468b-43ee-91f9-45d9647c6164 64d34a64-d336-40a8-a8e8-da8133d0da06 445ec1f1-095a-462b-abbd-7a3a00925ddb d30b3481-374c-4921-9fdb-284dd8e09e14 3a6ff84e-ed47-4c83-94ff-18c439dd842c 22264369-2d9d-4339-9b97-f3ea25ad0137 a4acdd35-ddba-4557-8dcb-86bc754374db 94e7b511-0adb-4afc-83c0-ba450198f221 4eadfc8f-22b5-4466-875d-fdbc5c922ea4 2ff6f683-d7e2-495e-9eff-88d522af87a7 04a9d1b4-c8c5-40af-bf9e-9ced6a7225fe 8f5dc7a6-5b90-44b7-b712-ee396e4357b5 2211d720-5e3f-45b6-bcb4-437b2a43baed d6fc47a5-b84d-4287-b973-aa5b37410270 591e7af3-4f37-4f90-86ba-62400c6e649b
+:BLOCKER:  3485b0d0-3b47-4a28-ae6f-e2061fa8f226 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 001fb310-69f7-4417-81be-a224a3bf83e0 55125136-5939-434e-9676-96ea66a75770 d30b3481-374c-4921-9fdb-284dd8e09e14 3a6ff84e-ed47-4c83-94ff-18c439dd842c 22264369-2d9d-4339-9b97-f3ea25ad0137 a4acdd35-ddba-4557-8dcb-86bc754374db 94e7b511-0adb-4afc-83c0-ba450198f221 4eadfc8f-22b5-4466-875d-fdbc5c922ea4 2ff6f683-d7e2-495e-9eff-88d522af87a7 04a9d1b4-c8c5-40af-bf9e-9ced6a7225fe 8f5dc7a6-5b90-44b7-b712-ee396e4357b5 2211d720-5e3f-45b6-bcb4-437b2a43baed
+:DROPPED:  595df230-e31d-42ad-9ea7-128e545b9aa0 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 37147e9e-468b-43ee-91f9-45d9647c6164 64d34a64-d336-40a8-a8e8-da8133d0da06 d6fc47a5-b84d-4287-b973-aa5b37410270 591e7af3-4f37-4f90-86ba-62400c6e649b 445ec1f1-095a-462b-abbd-7a3a00925ddb
 :END:
 :PLAN:
 Divided out of [[id:c7619140-f269-4329-bc05-a38ea151e202][c7619140]] on 2026-10-09 (the user, a three-way split): the "clock
@@ -4285,6 +4360,15 @@ The order, one line each:
 - [[id:37147e9e-468b-43ee-91f9-45d9647c6164][37147e9e]] and [[id:64d34a64-d336-40a8-a8e8-da8133d0da06][64d34a64]]: reporting, worked headings without a clock interval and a parent's own time in a clocktable, which need the record right first.
 - [[id:d6fc47a5-b84d-4287-b973-aa5b37410270][d6fc47a5]] and [[id:591e7af3-4f37-4f90-86ba-62400c6e649b][591e7af3]]: past days' clock records moved out of TODO.org, Review and planning's day nodes and Review attention's LOGBOOK. Folded in from [[id:f9fe9fac-a423-4ede-bc42-1d201c2c3d82][f9fe9fac]] on 2026-11-25 (the user); they come after reporting because they move CLOCK lines its clocktables read.
 - [[id:445ec1f1-095a-462b-abbd-7a3a00925ddb][445ec1f1]] last: the A/B comparison across the fixes, which measures the slice itself.
+
+Divided 2026-11-25 (the user, the slice-coherence review), along this slice's
+own title. The attention clock ([[id:595df230-e31d-42ad-9ea7-128e545b9aa0][595df230]], [[id:e3d1531d-7562-4bad-bef2-fc819630c5f7][e3d1531d]], [[id:b5448133-4021-46b9-a90e-d88e149ae65d][b5448133]]) went to [[id:8696bf65-1a8d-486b-80e9-a1454eb0e519][8696bf65]],
+0.2.1, and reporting and the past-days pair ([[id:37147e9e-468b-43ee-91f9-45d9647c6164][37147e9e]], [[id:64d34a64-d336-40a8-a8e8-da8133d0da06][64d34a64]], [[id:d6fc47a5-b84d-4287-b973-aa5b37410270][d6fc47a5]],
+[[id:591e7af3-4f37-4f90-86ba-62400c6e649b][591e7af3]], [[id:445ec1f1-095a-462b-abbd-7a3a00925ddb][445ec1f1]]) to [[id:f155ed56-ec52-432e-9a4c-9db0250dfb34][f155ed56]], 0.2.2. All eight are in :DROPPED: here, and the
+receiving slices' plans now order them. This slice keeps the record's
+correctness: 14 members. Ten of them ([[id:d30b3481-374c-4921-9fdb-284dd8e09e14][d30b3481]], [[id:3a6ff84e-ed47-4c83-94ff-18c439dd842c][3a6ff84e]], [[id:22264369-2d9d-4339-9b97-f3ea25ad0137][22264369]], [[id:a4acdd35-ddba-4557-8dcb-86bc754374db][a4acdd35]],
+[[id:94e7b511-0adb-4afc-83c0-ba450198f221][94e7b511]], [[id:4eadfc8f-22b5-4466-875d-fdbc5c922ea4][4eadfc8f]], [[id:2ff6f683-d7e2-495e-9eff-88d522af87a7][2ff6f683]], [[id:04a9d1b4-c8c5-40af-bf9e-9ced6a7225fe][04a9d1b4]], [[id:8f5dc7a6-5b90-44b7-b712-ee396e4357b5][8f5dc7a6]], [[id:2211d720-5e3f-45b6-bcb4-437b2a43baed][2211d720]]) joined without a
+line above, so their order is for /plan-slice to settle. Followed by [[id:8696bf65-1a8d-486b-80e9-a1454eb0e519][8696bf65]].
 :END:
 
 The clock record's own correctness and reporting, divided out of [[id:c7619140-f269-4329-bc05-a38ea151e202][c7619140]] on
@@ -4292,16 +4376,16 @@ The clock record's own correctness and reporting, divided out of [[id:c7619140-f
 
 Planned:
 
-- [ ] [[id:595df230-e31d-42ad-9ea7-128e545b9aa0][595df230]] TODO The review-attention clock is a real org clock, so the buffer stays busy for the whole review and apply's first clock-in closes it
-- [ ] [[id:e3d1531d-7562-4bad-bef2-fc819630c5f7][e3d1531d]] TODO The review-attention clock stops at the first apply, so 101 intervals measure the wrong thing
-- [ ] [[id:b5448133-4021-46b9-a90e-d88e149ae65d][b5448133]] TODO Rebuild the 101 truncated review-attention intervals from the audit log
+- [[id:595df230-e31d-42ad-9ea7-128e545b9aa0][595df230]] TODO The review-attention clock is a real org clock, so the buffer stays busy for the whole review and apply's first clock-in closes it
+- [[id:e3d1531d-7562-4bad-bef2-fc819630c5f7][e3d1531d]] TODO The review-attention clock stops at the first apply, so 101 intervals measure the wrong thing
+- [[id:b5448133-4021-46b9-a90e-d88e149ae65d][b5448133]] TODO Rebuild the 101 truncated review-attention intervals from the audit log
 - [ ] [[id:3485b0d0-3b47-4a28-ae6f-e2061fa8f226][3485b0d0]] TODO A session that ends holding an open clock never closes it: 8 of 42 clocking sessions end on a clock_in
 - [ ] [[id:2d100d0d-2d04-43b9-af1e-f4d6b52bbada][2d100d0d]] TODO Intervals on two different headings can overlap, and subtraction reaches only one
 - [ ] [[id:001fb310-69f7-4417-81be-a224a3bf83e0][001fb310]] TODO Stale entries in org-clock's persisted history hang the first clock-in after a restart
 - [-] [[id:55125136-5939-434e-9676-96ea66a75770][55125136]] WAITING Decide whether queue-append should derive clock events from DOING transitions, reversing the separation 4f6a6bb1 chose
-- [ ] [[id:37147e9e-468b-43ee-91f9-45d9647c6164][37147e9e]] TODO Report worked headings that carry no clock interval that day
-- [ ] [[id:64d34a64-d336-40a8-a8e8-da8133d0da06][64d34a64]] NEXT A clocktable never shows a parent's own time, only own-plus-subtree
-- [ ] [[id:445ec1f1-095a-462b-abbd-7a3a00925ddb][445ec1f1]] TODO A/B the clock record across the phase-3 fixes, since much of what is logged now is bogus
+- [[id:37147e9e-468b-43ee-91f9-45d9647c6164][37147e9e]] TODO Report worked headings that carry no clock interval that day
+- [[id:64d34a64-d336-40a8-a8e8-da8133d0da06][64d34a64]] NEXT A clocktable never shows a parent's own time, only own-plus-subtree
+- [[id:445ec1f1-095a-462b-abbd-7a3a00925ddb][445ec1f1]] TODO A/B the clock record across the phase-3 fixes, since much of what is logged now is bogus
 - [ ] [[id:d30b3481-374c-4921-9fdb-284dd8e09e14][d30b3481]] TODO The time-tracking stamp is global and every project's session start rewrites it, so the last session to start decides whether the review pass opens a clock
 - [ ] [[id:3a6ff84e-ed47-4c83-94ff-18c439dd842c][3a6ff84e]] TODO A permission block left open when a prompt is dismissed is closed by the next turn's first tool call
 - [ ] [[id:22264369-2d9d-4339-9b97-f3ea25ad0137][22264369]] TODO The stale-interval report treats a clock that is still running as crash residue, and its recovery call corrupts that clock
@@ -4312,8 +4396,8 @@ Planned:
 - [ ] [[id:04a9d1b4-c8c5-40af-bf9e-9ced6a7225fe][04a9d1b4]] TODO A sub-minute run rounded up to a minute can overlap the next run, counting a minute twice and crediting a permission wait
 - [ ] [[id:8f5dc7a6-5b90-44b7-b712-ee396e4357b5][8f5dc7a6]] TODO Allocated shares spill outside their window and overlap the next window's shares
 - [ ] [[id:2211d720-5e3f-45b6-bcb4-437b2a43baed][2211d720]] TODO A residue bookend is laid over a qualifying attention interval instead of through the day's gaps
-- [ ] [[id:d6fc47a5-b84d-4287-b973-aa5b37410270][d6fc47a5]] TODO Distribute Review and planning's past day nodes into DONE.org's datetree
-- [ ] [[id:591e7af3-4f37-4f90-86ba-62400c6e649b][591e7af3]] TODO Bound Review attention's LOGBOOK by refiling old entries into dated clones
+- [[id:d6fc47a5-b84d-4287-b973-aa5b37410270][d6fc47a5]] TODO Distribute Review and planning's past day nodes into DONE.org's datetree
+- [[id:591e7af3-4f37-4f90-86ba-62400c6e649b][591e7af3]] TODO Bound Review attention's LOGBOOK by refiling old entries into dated clones
 
 
 * MAYBE Separate what the machinery requires from what this project prefers, so a consumer can change the second :code:arch:
