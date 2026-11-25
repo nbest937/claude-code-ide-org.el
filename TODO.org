@@ -6492,7 +6492,7 @@ and the org-lint triage per checker.
 - org-lint's own "possibly misplaced heading line" checker as the detector (measured 2026-09-25): =bin/lint-org= already runs it as a warning, and it reports 498 lines across the two files, nearly all prose lines opening with =*bold*= -- nobody reads a warning with that count, which is why neither glued heading was seen.
 
 
-* TODO [0/6] 0.3.0: The review pass asks for judgement it cannot support :code:
+* TODO [0/6] 0.3.0: The review pass can write a false record, or accept a span that then fails at apply :code:
 :PROPERTIES:
 :ID:       c7619140-f269-4329-bc05-a38ea151e202
 :CREATED:  [2026-09-22 Tue 16:07]
