@@ -2,6 +2,48 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO [0/5] 0.0.4: Sessions still reach for org_amend, the tool whose replace path does the most damage :code:
+:PROPERTIES:
+:ID:       f8e82978-a1d3-48dc-9aea-d13ec821cdfe
+:CREATED:  [2026-11-25 Wed 14:29]
+:CATEGORY: Slices
+:KIND:     slice
+:COOKIE_DATA: checkbox recursive
+:MEMBERS:  c35087d8-19fe-4179-a61c-cb615b2e7679 b2d4012c-6c61-47df-8086-d1cd205c73fc 5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997 c0c5e015-c33e-4e1a-ad6e-907f9fa56c07 e4734e2c-2083-413b-941d-9503dd0f4a23
+:BLOCKER:  c35087d8-19fe-4179-a61c-cb615b2e7679 b2d4012c-6c61-47df-8086-d1cd205c73fc 5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997 c0c5e015-c33e-4e1a-ad6e-907f9fa56c07 e4734e2c-2083-413b-941d-9503dd0f4a23
+:END:
+:PLAN:
+The order, carried over from [[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]]'s plan, where the retirement was members
+two to five; each member's own drawer wins where this disagrees.
+
+1. [[id:c35087d8-19fe-4179-a61c-cb615b2e7679][c35087d8]] first: org_amend queues an interjection when the buffer has unsaved edits, and org_edit must not lose that before it becomes the only tool.
+2. [[id:b2d4012c-6c61-47df-8086-d1cd205c73fc][b2d4012c]]: the retirement itself. The conventions still teach org_amend, so every consumer session keeps reaching for the tool with the worst damage. It overtakes most of the next two.
+3. [[id:5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997][5b46fbfd]]: only partly overtaken. Its own plan keeps the glued-heading lint and the org-lint triage, and tests org_edit's whole-region rewrite in place of fixing --replace-body.
+4. [[id:c0c5e015-c33e-4e1a-ad6e-907f9fa56c07][c0c5e015]]: closes as overtaken once a test shows org_edit does not reproduce it.
+5. [[id:e4734e2c-2083-413b-941d-9503dd0f4a23][e4734e2c]]: the body region's missing final line. Moved with the rest on 2026-11-25 because it is the region org_edit's whole-region rewrite reads. Its own plan decides whether that makes it org_edit's defect too.
+
+Out of the slice: [[id:381dfc89-932b-4448-a58d-7e3cad51db55][381dfc89]], whose gate is every queue drained of amend events (a
+state, not a heading), and [[id:dd4b9a9f-ba8a-4f1f-a3da-38388e0cdb76][dd4b9a9f]], the story that [[id:c35087d8-19fe-4179-a61c-cb615b2e7679][c35087d8]] and [[id:b2d4012c-6c61-47df-8086-d1cd205c73fc][b2d4012c]] sit
+under; it renders as their parent row.
+
+Followed by [[id:7dcec489-f5dd-4f7f-b819-a25405436b9b][7dcec489]].
+:END:
+
+Divided out of [[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]] on 2026-11-25 (the user, the slice-coherence review).
+Retiring org_amend is a refactor, not a call that misleads its caller, so it is
+its own slice. It follows 0.0.3, whose [[id:a8ccd6ac-3452-4926-b176-ff5951dcd5b2][a8ccd6ac]] fixes the negated boolean that
+makes org_amend replace=false replace a whole body.
+
+Planned:
+
+- [[id:dd4b9a9f-ba8a-4f1f-a3da-38388e0cdb76][dd4b9a9f]] NEXT No org tool edits a phrase in place: org_amend appends or replaces the whole body
+  - [ ] [[id:c35087d8-19fe-4179-a61c-cb615b2e7679][c35087d8]] NEXT org_edit refuses an unsaved buffer, asks for the save in a header line, and the agent waits on it
+  - [ ] [[id:b2d4012c-6c61-47df-8086-d1cd205c73fc][b2d4012c]] TODO Retire org_amend in one move: hooks, prose, and the live headings renamed with org_edit
+- [ ] [[id:5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997][5b46fbfd]] TODO org_amend replace=true eats the blank lines before the next heading, so org stops seeing it
+- [ ] [[id:c0c5e015-c33e-4e1a-ad6e-907f9fa56c07][c0c5e015]] TODO org_amend accepts a headline-shaped line in drawer text, which tears the drawer open
+- [ ] [[id:e4734e2c-2083-413b-941d-9503dd0f4a23][e4734e2c]] TODO The body region drops the last line when the file has no final newline, so a replace glues it to the new text
+
+
 * TODO [0/5] Releases are planned as versioned slices that close whole user stories
 :PROPERTIES:
 :ID:       a5a05306-9d37-413d-b44f-fa8d5ca058b8
@@ -5181,15 +5223,15 @@ and those 53 are cleared, unless [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128
 move generalised to :DEBRIEF:. Details in :PLAN:.
 
 
-* TODO [0/14] 0.0.4: A slice's checklist can disagree with its members, and nothing can say so or fix it :code:
+* TODO [0/15] 0.0.4: A slice's checklist can disagree with its members, and nothing can say so or fix it :code:
 :PROPERTIES:
 :ID:       7dcec489-f5dd-4f7f-b819-a25405436b9b
 :CREATED:  [2026-09-28 Mon 08:26]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:MEMBERS:  cdff5c91-3dc1-476e-a8f2-5293570a19fc a00ace04-99bd-414a-8dc7-df8305126589 a508c59e-475e-4d27-84c9-6c3ded98e15c 6f3a5342-1905-4831-b712-3b6e5e83e0c4 6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0 b112878e-6313-4bc6-bc3f-0533d5f1ad1b dc68d831-9e04-4f0a-8b8b-8087b39c6037 6a6f6708-eefd-4d77-8ca0-0c5aaaa80796 b3949615-9260-4d97-a33f-7d74ee45ccb1 5fa51c64-297e-4937-b3eb-1535b84151aa 23303aab-e151-449f-997c-0b5a9d2cc5eb 6385df59-ca01-48f8-9a91-d9319fa8de15 0b3b6566-0b20-4df1-aa20-f303512c5c6b 3685c3bc-92fe-4c21-b43c-406b4ba6674c
-:BLOCKER:  cdff5c91-3dc1-476e-a8f2-5293570a19fc a00ace04-99bd-414a-8dc7-df8305126589 a508c59e-475e-4d27-84c9-6c3ded98e15c 6f3a5342-1905-4831-b712-3b6e5e83e0c4 6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0 b112878e-6313-4bc6-bc3f-0533d5f1ad1b dc68d831-9e04-4f0a-8b8b-8087b39c6037 6a6f6708-eefd-4d77-8ca0-0c5aaaa80796 b3949615-9260-4d97-a33f-7d74ee45ccb1 5fa51c64-297e-4937-b3eb-1535b84151aa 23303aab-e151-449f-997c-0b5a9d2cc5eb 6385df59-ca01-48f8-9a91-d9319fa8de15 0b3b6566-0b20-4df1-aa20-f303512c5c6b 3685c3bc-92fe-4c21-b43c-406b4ba6674c
+:MEMBERS:  cdff5c91-3dc1-476e-a8f2-5293570a19fc a00ace04-99bd-414a-8dc7-df8305126589 a508c59e-475e-4d27-84c9-6c3ded98e15c 6f3a5342-1905-4831-b712-3b6e5e83e0c4 6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0 b112878e-6313-4bc6-bc3f-0533d5f1ad1b dc68d831-9e04-4f0a-8b8b-8087b39c6037 6a6f6708-eefd-4d77-8ca0-0c5aaaa80796 b3949615-9260-4d97-a33f-7d74ee45ccb1 5fa51c64-297e-4937-b3eb-1535b84151aa 23303aab-e151-449f-997c-0b5a9d2cc5eb 0c18b5c1-1cc5-4f18-8ba0-e2949e9dba34 6385df59-ca01-48f8-9a91-d9319fa8de15 0b3b6566-0b20-4df1-aa20-f303512c5c6b 3685c3bc-92fe-4c21-b43c-406b4ba6674c
+:BLOCKER:  cdff5c91-3dc1-476e-a8f2-5293570a19fc a00ace04-99bd-414a-8dc7-df8305126589 a508c59e-475e-4d27-84c9-6c3ded98e15c 6f3a5342-1905-4831-b712-3b6e5e83e0c4 6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0 b112878e-6313-4bc6-bc3f-0533d5f1ad1b dc68d831-9e04-4f0a-8b8b-8087b39c6037 6a6f6708-eefd-4d77-8ca0-0c5aaaa80796 b3949615-9260-4d97-a33f-7d74ee45ccb1 5fa51c64-297e-4937-b3eb-1535b84151aa 23303aab-e151-449f-997c-0b5a9d2cc5eb 0c18b5c1-1cc5-4f18-8ba0-e2949e9dba34 6385df59-ca01-48f8-9a91-d9319fa8de15 0b3b6566-0b20-4df1-aa20-f303512c5c6b 3685c3bc-92fe-4c21-b43c-406b4ba6674c
 :END:
 :PLAN:
 Composed 2026-09-28 from the backlog survey, at the user's direction. The theme:
@@ -5232,6 +5274,11 @@ so they stay separate headings sequenced together. [[id:4d896425-586a-4a5e-8d13-
 
 Followed by [[id:005fef09-e34f-4994-8c0d-6d17ada3d7ac][005fef09]] (the user, 2026-10-28): a consumer's first tagged version
 should carry this slice's fixes.
+
+Revised 2026-11-25 (the user, the slice-coherence review): [[id:0c18b5c1-1cc5-4f18-8ba0-e2949e9dba34][0c18b5c1]] joined from
+[[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]], after [[id:23303aab-e151-449f-997c-0b5a9d2cc5eb][23303aab]]. An append to :DROPPED: shortens the list, and it
+belongs with the other :DROPPED: and :MEMBERS: defects ([[id:6f3a5342-1905-4831-b712-3b6e5e83e0c4][6f3a5342]], [[id:23303aab-e151-449f-997c-0b5a9d2cc5eb][23303aab]]).
+This slice is now 0.0.5, after the org_amend retirement [[id:f8e82978-a1d3-48dc-9aea-d13ec821cdfe][f8e82978]].
 :END:
 
 Planned:
@@ -5247,6 +5294,7 @@ Planned:
 - [ ] [[id:b3949615-9260-4d97-a33f-7d74ee45ccb1][b3949615]] TODO A blank line inside a slice's checklist leaves stale duplicate lines that no refresh removes, and the cookie counts them
 - [ ] [[id:5fa51c64-297e-4937-b3eb-1535b84151aa][5fa51c64]] TODO A duplicate id in a slice's :MEMBERS: renders twice and counts twice, and lint says nothing
 - [ ] [[id:23303aab-e151-449f-997c-0b5a9d2cc5eb][23303aab]] TODO A :DROPPED: id that names no member does nothing, and no lint rule reads :DROPPED: though a comment says one does
+- [ ] [[id:0c18b5c1-1cc5-4f18-8ba0-e2949e9dba34][0c18b5c1]] TODO org_set_property ignores append on :DROPPED: and every property but :BLOCKER:, so an append shortens the list and reports success
 - [ ] [[id:6385df59-ca01-48f8-9a91-d9319fa8de15][6385df59]] TODO A slice-scoped org_outline lists derived parent rows and incidentals as members, because it reads the body rather than :MEMBERS:
 - [ ] [[id:0b3b6566-0b20-4df1-aa20-f303512c5c6b][0b3b6566]] TODO A deferred or cancelled slice member loses its box and nothing else, so it reads as a parent row; strike it through instead
 - [ ] [[id:3685c3bc-92fe-4c21-b43c-406b4ba6674c][3685c3bc]] TODO The conventions tell a slice to declare a story and its children together, which the lint refuses
@@ -5330,11 +5378,12 @@ rather than a heading.
 
 *Category mix:* all eleven are =Tools=.
 
-Followed by [[id:7dcec489-f5dd-4f7f-b819-a25405436b9b][7dcec489]], which now comes between this slice and [[id:005fef09-e34f-4994-8c0d-6d17ada3d7ac][005fef09]] (the user,
-2026-10-28, setting the order [[id:3bfa593c-c2da-4e44-b47f-2d5f0750f2aa][3bfa593c]], [[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]], [[id:7dcec489-f5dd-4f7f-b819-a25405436b9b][7dcec489]], [[id:005fef09-e34f-4994-8c0d-6d17ada3d7ac][005fef09]]): the slice
-machinery is fixed before a tagged release carries it. Since 2026-11-05 (the
-user) the order is [[id:3bfa593c-c2da-4e44-b47f-2d5f0750f2aa][3bfa593c]], [[id:4f49ea34-5b8c-4ad8-8dbb-6f17126c420f][4f49ea34]], [[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]], [[id:7dcec489-f5dd-4f7f-b819-a25405436b9b][7dcec489]], [[id:005fef09-e34f-4994-8c0d-6d17ada3d7ac][005fef09]]: the
-footnote slice goes second.
+Followed by [[id:f8e82978-a1d3-48dc-9aea-d13ec821cdfe][f8e82978]], the org_amend retirement (0.0.4), since 2026-11-25 (the
+user); [[id:7dcec489-f5dd-4f7f-b819-a25405436b9b][7dcec489]] follows that. Before then: followed by [[id:7dcec489-f5dd-4f7f-b819-a25405436b9b][7dcec489]], which came
+between this slice and [[id:005fef09-e34f-4994-8c0d-6d17ada3d7ac][005fef09]] (the user, 2026-10-28, setting the order
+[[id:3bfa593c-c2da-4e44-b47f-2d5f0750f2aa][3bfa593c]], [[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]], [[id:7dcec489-f5dd-4f7f-b819-a25405436b9b][7dcec489]], [[id:005fef09-e34f-4994-8c0d-6d17ada3d7ac][005fef09]]): the slice machinery is fixed before a
+tagged release carries it. Since 2026-11-05 (the user) the order is [[id:3bfa593c-c2da-4e44-b47f-2d5f0750f2aa][3bfa593c]],
+[[id:4f49ea34-5b8c-4ad8-8dbb-6f17126c420f][4f49ea34]], [[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]], [[id:7dcec489-f5dd-4f7f-b819-a25405436b9b][7dcec489]], [[id:005fef09-e34f-4994-8c0d-6d17ada3d7ac][005fef09]]: the footnote slice goes second.
 
 Revised 2026-11-25 (the user, the slice-coherence review). The org_amend
 retirement ([[id:c35087d8-19fe-4179-a61c-cb615b2e7679][c35087d8]], [[id:b2d4012c-6c61-47df-8086-d1cd205c73fc][b2d4012c]], [[id:5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997][5b46fbfd]], [[id:c0c5e015-c33e-4e1a-ad6e-907f9fa56c07][c0c5e015]], [[id:e4734e2c-2083-413b-941d-9503dd0f4a23][e4734e2c]]) left for its own
