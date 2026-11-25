@@ -2711,6 +2711,20 @@ Proposed: the advice stands aside while the apply pass runs, or while the
 blocker hook runs, as it already does for org_set_tags. Check: refuse a blocked
 DONE in a test file and assert that no Tags line carries the note.
 
+*Seen again here, 2026-11-25, on a CANCELLED: the title's DONE is too narrow.*
+The first apply of [[id:f9fe9fac-a423-4ede-bc42-1d201c2c3d82][f9fe9fac]]'s queued CANCELLED was refused by its :BLOCKER:, and
+its :LOGBOOK: gained `- Tags ":code:blocked:" from ":code:"`, stamped with the
+state event's time (11:02) and carrying its note ("folded into [[id:7ae1cff4-c0df-4ac0-9aea-a778b2373061][7ae1cff4]], the
+0.2.0 slice"). Once the blocker was cleared, the second apply landed the State
+line. org-depend removed the tag in the same pass, but no line logs the removal,
+presumably because the state change's log setup took the single pending-note
+slot after the advice had queued it. So the drawer, archived to DONE.org, still
+reads as though the tag was added deliberately, with a reason, and never taken
+off. A fix should cover both directions. Also worth deciding alongside it:
+[[id:d842b9e7-fd75-45eb-80fd-597daa3e36b0][d842b9e7]]'s open question, whether to set org-depend-tag-blocked to nil, which
+would remove the tag writes altogether.
+
+
 
 * TODO A slice's incidental list renders a subtask flat, with no row naming the story it belongs to :code:
 :PROPERTIES:
