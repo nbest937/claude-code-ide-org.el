@@ -3144,23 +3144,13 @@ around both of the bury's branches.
 Code on feature/tracker-record-loss, slice [[id:3bfa593c-c2da-4e44-b47f-2d5f0750f2aa][3bfa593c]], after [[id:70b47b8f-b413-4660-bf32-b0b90db45ff4][70b47b8f]].
 
 :END:
---ceremony-session-start-run's docstring says it never stamps the ceremony done,
-  since "that is the bury's, once pending items are applied". The bury checks no
-  such thing. --review-attention-on-quit runs ceremony-finish whenever the
-  ceremony is due, and that writes ceremony-last-run after a clean set of steps.
-  When nothing is due, the bury writes the stamp anyway ("steps ran at session
-  start"). Neither branch looks at the queue. So on a day when apply leaves
-  items failed and pending, as with noodle-salesman's three blocked DONEs
-  ([[id:7e2a6608-16a7-419b-8a99-b8016583c094][7e2a6608]]), the stamp still says the ceremony ran, and the SessionStart
-  report, which lists what waits only while the ceremony is not done today,
-  stays quiet about them until tomorrow. Open: make the stamp wait until nothing
-  failed at apply, or correct the docstring and leave the failures to the review
-  buffer.
-
-The stamp is one file for every project, under the queue directory, so a bury
-that ran this repo's ceremony also silences noodle-salesman's report for the day
-(config.el, the done-today gate in --ceremony-status).
-
+The ceremony's done stamp is one file for every project, so one project's bury
+silences every other project's session-start report for the day. It is also
+written after a pass whose apply left items failed, so the next report says
+nothing about them, though --ceremony-session-start-run's docstring says the
+bury waits. Decided 2026-11-25 (the user): one stamp per project, and the bury
+holds it when the pass it closes had an apply error in that project; the steps
+after apply and the repeater are unaffected. Design in :PLAN:.
 
 * TODO A DONE that a :BLOCKER: refuses fails at apply as "did not take effect", and org's own message names the blocker as "" :code:
 :PROPERTIES:
@@ -3629,7 +3619,7 @@ Open questions:
 - The conventions' "Revising a pre-convention body" section holds today's revision standard under a name that has outlived its backlog. Does this task's outcome rewrite it as a general section?
 
 
-* TODO --applied-today-p ignores the report scope and parses every .applied file at each SessionStart :code:
+* TODO --applied-today-p ignores the report scope and parses every .applied file at each SessionStart :code:bounded:
 :PROPERTIES:
 :ID:       2f4c04a1-db56-4427-ae62-591ba52607c6
 :CREATED:  [2026-10-13 Tue 10:04]
@@ -3642,6 +3632,30 @@ Open questions:
   reopened: deferred, not cancelled
 - Tags ":code:"     from ""           [2026-10-13 Tue 14:05] \\
   promoted out of the review story; no longer inherits
+- Tags ":code:bounded:" from ":code:"     [2026-11-25 Wed 15:03] \\
+  classified at brainstorm: one function and its one caller
+:END:
+:PLAN:
+Bounded: claude-code-ide-org--applied-today-p and its one caller,
+--ceremony-reviewed-today-p, which decides only the SessionStart report's
+wording ("a review pass ran today but the ceremony did not complete" against
+"has not been run yet").
+
+Decided 2026-11-25 (the user): a scoped report keeps consulting watermarks,
+because with time tracking off they are the only evidence a pass ran ([[id:97b4f6a9-a944-40d3-8d14-7a1667c52291][97b4f6a9]]).
+
+1. Prefilter by mtime. Only .applied files in the queue directory and its archive whose mtime is today are opened; the rest cost a stat. On 2026-11-25 there were 136.
+
+2. One reader. Each candidate is parsed with --queue-watermark-data instead of the hand-rolled json-parse-string. Its unreadable-file signal ([[id:e9f8b780-c93b-41f9-b146-1c4695283af9][e9f8b780]]) is caught and the file skipped, so an unreadable file never counts as applied.
+
+3. Scoped. Under --report-scope a watermark counts only when its session's queue events name a cwd inside that root (--events-in-report-scope over that session's events, from the .jsonl beside it or in the archive). Unscoped, unchanged.
+
+4. Check the CLOCK half. Confirm that --review-attention-target, the other half of --ceremony-reviewed-today-p, resolves this project's attention heading under the scope. If it does not, scope it the same way.
+
+5. Tests, ERT, each proved red against HEAD: two sessions in two projects, an apply in B today, so A's scoped check is nil and B's is t; a watermark not modified today is never parsed (count reader calls).
+
+Code on feature/tracker-record-loss, slice [[id:3bfa593c-c2da-4e44-b47f-2d5f0750f2aa][3bfa593c]], after [[id:0e2f2e2f-c231-4f25-92cc-a37b63535efc][0e2f2e2f]], which it
+shares the scope binding with.
 :END:
 
 Review finding 9 on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]]. An apply in project A makes project B's scoped
