@@ -3113,7 +3113,7 @@ events of one second are applied and dismissed apart. On the slice's branch,
 feature/tracker-record-loss.
 
 
-* TODO Burying the review buffer stamps the ceremony done while apply failures are still pending, though the session-start docstring says it waits for them :code:
+* TODO Burying the review buffer stamps the ceremony done while apply failures are still pending, though the session-start docstring says it waits for them :code:bounded:
 :PROPERTIES:
 :ID:       0e2f2e2f-c231-4f25-92cc-a37b63535efc
 :CREATED:  [2026-10-20 Tue 08:36]
@@ -3122,8 +3122,26 @@ feature/tracker-record-loss.
 :LOGBOOK:
 CLOCK: [2026-10-20 Tue 08:36]--[2026-10-20 Tue 08:37] =>  0:01
 - [2026-10-20 Tue 08:36]--[2026-10-20 Tue 08:37] file the done-stamp inconsistency
+- Tags ":code:bounded:" from ":code:"     [2026-11-25 Wed 15:02] \\
+  classified at brainstorm: the stamp, the bury and the report all exist
 :END:
 :PLAN:
+Bounded: the ceremony stamp, claude-code-ide-org--review-attention-on-quit,
+--ceremony-finish-steps and the SessionStart report in config.el. Built on
+[[id:70b47b8f-b413-4660-bf32-b0b90db45ff4][70b47b8f]], which binds claude-code-ide-org--report-scope to the bury's project
+around both of the bury's branches.
+
+1. One stamp per project. --ceremony-stamp-file returns a file for the project in scope: --report-scope when bound, otherwise the capture target's project root, the same root [[id:70b47b8f-b413-4660-bf32-b0b90db45ff4][70b47b8f]]'s helper gives. The file goes under ceremony-last-run.d/ in the queue directory, named from the root (--project-root-key, hashed). Its mtime still carries the date, so the count is bounded by projects and nothing needs reaping. Every writer and reader goes through it: mark-ceremony-done, --ceremony-finish-steps, the on-quit not-due branch, --ceremony-done-today-p, and --ceremony-status's :last-done and :misses-since. So no caller can still reach the global file. The old global ceremony-last-run is no longer read; each project reports once on the first day after.
+
+2. Hold the stamp when an apply failed (the user, 2026-11-25). The review buffer keeps, buffer-locally for the pass, the items whose apply returned an error. At bury, if any of them is in the project being closed (--items-in-report-scope under the bound scope), the steps after apply still run and the repeater advances as now, but no stamp is written, and the not-due branch writes none either. The SessionStart report's "a review pass ran today but the ceremony did not complete" sentence gains "an apply failed" among its causes. A failure left in place is reported again each day until resolved; that is intended.
+
+3. Correct --ceremony-session-start-run's docstring: the bury stamps after a pass with no apply error in that project, not "once pending items are applied".
+
+4. Tests, ERT in config-test.el on the two-project fixture, each proved red against HEAD: a bury in A leaves B's stamp unwritten and B's report still fires; a pass with one failed A item leaves A unstamped with its repeater advanced; a clean pass stamps A.
+
+5. Acceptance: apply a deliberately blocked CANCELLED in this repo, bury, and confirm the next session start reports it. noodle-salesman's report on the same day is unaffected.
+
+Code on feature/tracker-record-loss, slice [[id:3bfa593c-c2da-4e44-b47f-2d5f0750f2aa][3bfa593c]], after [[id:70b47b8f-b413-4660-bf32-b0b90db45ff4][70b47b8f]].
 
 :END:
 --ceremony-session-start-run's docstring says it never stamps the ceremony done,
