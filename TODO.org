@@ -2,6 +2,215 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO [0/5] Releases are planned as versioned slices that close whole user stories
+:PROPERTIES:
+:ID:       a5a05306-9d37-413d-b44f-fa8d5ca058b8
+:CREATED:  [2026-11-25 Wed 11:13]
+:CATEGORY: Skill
+:END:
+:PLAN:
+
+:END:
+/This is a user story in the classic sense./
+
+As the developer planning this plugin's releases, I want each slice to carry its
+target release version and each story to state the value it delivers and how it
+is accepted, so that the plan reads from the titles and a release closes whole
+stories rather than an assortment of tasks.
+
+Acceptance criteria:
+- /plan-slice and /work-slice choose the next slice by the version in its title, and no slice body carries a "Followed by" line.
+- CLAUDE.md and .claude/slice-rules.md state the convention: semantic versions, a tag when a slice closes, and plugin.json's version set by the slice branch's first commit of work.
+- A version tag exists and a check refuses when the tag and the manifest disagree.
+- A new story opens with the note above, an "As a ..., I want ..., so that ..." statement and acceptance criteria, and the conventions say so.
+- The open backlog, open stories' members included, has been composed into coherent stories of that form.
+
+Modelled on noodle-salesman, whose release slices carry the version (0.2.4,
+0.3.0) and whose stories open with this note (14 open, 13 closed, 2026-11-25).
+** NEXT Slices are ordered by "Followed by" lines in their plans, not by the release version their titles now carry :code:
+:PROPERTIES:
+:ID:       ef770d58-2137-418f-923d-69acae6f88bd
+:CREATED:  [2026-11-25 Wed 11:13]
+:END:
+:PLAN:
+
+:END:
+Since 2026-11-25 every open slice's title carries its target release (0.0.1
+through 0.3.0, the user), but commands/plan-slice.md and commands/work-slice.md
+still nominate the next slice from the "Followed by" line at the end of each
+slice's :PLAN:, and nothing else reads that line. Proposed: both commands pick
+the open slice with the next version; the convention (semantic versions, a tag
+when a slice closes, plugin.json's version set by the slice branch's first
+commit of work, a patch number for a split or an inserted slice) goes into
+CLAUDE.md and .claude/slice-rules.md, after noodle-salesman's; then the
+"Followed by" lines are removed. The commands ship in the plugin, so a consumer
+whose slices carry no version needs a fallback or a stated requirement.
+plugin.json says 0.1.0, ahead of the 0.0.x releases, and goes back to 0.0.1 on
+the [[id:3bfa593c-c2da-4e44-b47f-2d5f0750f2aa][3bfa593c]] branch. Related: [[id:d5d9fdec-5fac-4035-a630-62ba48582cd6][d5d9fdec]], where nothing refuses starting a slice
+out of order; a version gives it something to check against.
+** TODO The plugin has never been tagged or version-bumped, and nothing would notice :code:
+:PROPERTIES:
+:ID:       827e1c42-708e-4f1d-bf25-d8b8b980b7ef
+:CREATED:  [2026-09-18 Fri 17:18]
+:CATEGORY: Dev
+:END:
+:PLAN:
+
+:END:
+Asked for 2026-09-18: create a version tag, and find a way to keep the tag and
+the manifest version in step automatically. =.claude-plugin/plugin.json= says
+=0.1.0= and has since it was written; there is no release history at all. The
+version is currently **inert** -- every consumer loads the plugin **in place**,
+and the docs are explicit that a plugin loaded in place, or from a =command=
+source, updates regardless of the version field -- but it starts mattering the
+moment anything is installed from a marketplace, where "users only receive
+updates when you bump this field" makes a stale =0.1.0= a silent refusal to ship
+updates.
+
+*What is established.*
+- Four commits have touched =plugin.json= and **none** bumped the version, across the packaging slice, [[id:749301a0-0bd0-4fbd-b3f7-79739226e15a][749301a0]], and [[id:8bbae3aa-55db-441c-8c33-405570ad879a][8bbae3aa]]'s thirteen members (2026-09-18).
+- The repo carries two tags, =archive/review-ui-fixes-presplit= and =archive/span-pipeline-planning=, neither version-shaped; =claude plugin list= reports "Version: 0.1.0".
+- Every consumer today loads in place -- euchre by a relative symlink into a clone.
+- =claude plugin tag= creates a ={name}--v{version}= tag **from the manifest**, validating that =plugin.json= and any enclosing marketplace entry agree, with =--dry-run=, =-m= (=%s= interpolates the version), =--push= and =--remote=, and refuses on a dirty tree or an existing tag unless forced. Tag *creation* needs no invention.
+- What is missing is the discipline, in three failure modes, in order of likelihood: the version is never bumped; a bump happens and no tag follows; a tag exists and the manifest has moved on.
+
+*Proposed: a check that refuses, not a reminder.*
+- =.githooks/pre-push= already refuses a push while the =plans/= archive is stale, so a version-versus-tag assertion there would fire at the one moment that matters -- sharing.
+- =claude plugin tag --dry-run= is the validator to call rather than reimplement; it already compares the manifest against a marketplace entry, which a hand-rolled =git tag -l= grep would not.
+- =bin/check-conventions= is the other candidate and is weaker for this: it runs pre-commit on a narrow staged set, and a version bump is not a =.org= or rules edit.
+
+*What has to be decided rather than assumed.* **When a bump is due** — every
+merged slice, every PR, or only at a deliberate release — because a check can
+only enforce a rule that exists. The slice/PR cadence is the one this project
+actually has, and [[id:8bbae3aa-55db-441c-8c33-405570ad879a][8bbae3aa]] merging would be the natural first bump. And **what
+the first tag should be**: =0.1.0= against today's HEAD records a release that
+is not what =0.1.0= ever described, while bumping first and tagging that is
+honest but discards the history the tag was supposed to give.
+
+*One thing to verify rather than assume when this is worked:* whether =claude
+plugin tag= objects to this repo having no marketplace entry at all. Its
+validation is described as covering "any enclosing marketplace entry", which
+reads as tolerant of none — but that is a reading, not a test, and =--dry-run=
+settles it in one command.
+
+
+** TODO Stories are not composed in the classic sense: nothing asks for a user, the value delivered, or acceptance criteria
+:PROPERTIES:
+:ID:       7e4968ab-b11c-4a49-a331-8979ff48ab9d
+:CREATED:  [2026-11-25 Wed 11:13]
+:END:
+:PLAN:
+
+:END:
+Adopt noodle-salesman's form for a story from now on: the body opens with "/This
+is a user story in the classic sense./", then "As a ..., I want ..., so that
+...", then acceptance criteria, and its children are the tasks that meet them.
+This repo's conventions use "story" structurally, for any task with keyworded
+children, so the two senses collide; story-kind-proposal.md (untracked in the
+repo root, prepared in a noodle-salesman session 2026-10-12) analyses that and
+proposes :KIND: story with lint, capture and outline support, retiring
+"container". Whether the mark is that body note or :KIND: story is [[id:0b5cacf5-9299-499d-9036-2da2625c1233][0b5cacf5]]'s
+question, refiled beside this one. Settle the vocabulary, write the form into
+the shipped org conventions, and keep the proposal somewhere tracked.
+** TODO The conventions never say how stories and slices compose, and "not declared" reads as a ban on composing one :code:
+:PROPERTIES:
+:ID:       0b5cacf5-9299-499d-9036-2da2625c1233
+:CREATED:  [2026-09-18 Fri 11:39]
+:CATEGORY: Skill
+:END:
+:LOGBOOK:
+CLOCK: [2026-10-27 Tue 11:10]--[2026-10-27 Tue 11:11] =>  0:01
+- [2026-10-27 Tue 11:10]--[2026-10-27 Tue 11:11] add the story-children membership rule to the plan
+:END:
+:PLAN:
+
+Raised by the user 2026-09-18. =org-conventions.md= says a story "is not
+declared, it is emergent... **Don't classify a heading as one when writing
+it**", and =CLAUDE.md= compresses that to "detected and never declared".
+Strictly this is about *labelling* -- there is no =:KIND: story=, and a story is
+detected from its keyworded children by =--container-heading-p= -- but naturally
+read it forbids *composing* a task together with its subtasks, which is ordinary
+and fine. It misled a session on 2026-09-18 into arguing that a deliberate
+parent-with-subtasks shape was disallowed and that a slice was therefore the
+only option. The fix is to separate *detection* from *composition* in the
+wording, not to change the practice, and to add three ideas the governing
+documents omit.
+
+*Three ideas absent from every governing document*, each stated by the user and
+none written down:
+- *A well-composed story brings all of its subtasks into a slice*, and a slice that closes several whole stories is the highest expression of the two concepts working together; the conventions never say how the two groupings compose.
+- *Partial stories inside slices are historical*, not a pattern to copy: the story work predates the slice mechanism.
+- *The lifecycle, the load-bearing omission:* a task first exists **outside** a slice, and a slice **promotes** it from the backlog when completing it has been prioritized, so slice membership *means* "this is prioritized for near-term completion". Grepped 2026-09-18: nothing in =org-conventions.md=, =CLAUDE.md= or the org skill describes promotion; the only documented way in is adoption-on-discovery, the mid-flight exception.
+
+*A fourth, the mechanics, stated nowhere as one rule* (the user, 2026-10-27): a
+slice takes on a story by declaring its children in :MEMBERS:, never the story;
+the story's row is derived, boxless, and a story declared alone means none of
+its children belong. Today this is only implied, split between the nesting rule
+("its relevant children get indented member lines beneath it") and the
+review-story paragraph ("the story itself is not declared"). A noodle-salesman
+session read both on 2026-10-27, swapped a review story's four tasks out of
+:MEMBERS: for the story itself, and argued the conventions said nothing either
+way. The revision states it once, in the general section on stories and slices,
+and the two passages point at it.
+:END:
+*What is established.*
+- Deliberate composition is the norm (measured 2026-09-18): of the six live groupings in =TODO.org= -- level-1 headings with keyworded children -- **five carry no CLOCK line of their own**, so they were *composed*; only one ([[id:a1d63f52-4c07-4b9e-8f31-6d2b90c4e7a5][a1d63f52]], 9 own CLOCK lines) is the accidental shape the conventions describe.
+- =CLAUDE.md='s account -- "each was clocked honestly while it was still a leaf, and became a grouping later by acquiring children or by a refile" -- is true of the historical corpus it was written against, and is now the minority case.
+- Caveat on that count: level-1 headings in =TODO.org= only, by a crude scan; =DONE.org= was not included, and the nine-groupings figure in =CLAUDE.md= presumably spans both.
+- Already correct, recorded so it is not re-opened: deferral by deleting a member's checkbox cookie while keeping its reference line is documented (the dropping section, and "A cancelled or deferred member has its checkbox cookie deleted"), and so is the dual-membership guard ("Check no other slice already counts it... a discovery already claimed elsewhere is not adopted, it is cross-referenced"). The user's deferral exception is *consistent* with that guard: dropping the checkbox is exactly what stops two cookies counting the same work.
+- No rule requires a story's members to share a =:CATEGORY:= (checked 2026-09-18): no convention text, =bin/lint-org='s only category rule is "level-1 task has no =:CATEGORY:=" (=config.el= 14654), =org_capture= makes =category= "optional under an =:ID:= target", and one override exists (a =Tools= child under a =Meta= parent). Worth *stating* only because the absence of a rule reads as a prohibition.
+
+*=:KIND: story=, offered by the user, is conditional on a consumer.* The project
+has retired declared state that nothing read -- =PLANNING= went for exactly
+that, 7 uses in 432 transitions. A **slice** must be declared because its
+members are *links*, so there is nothing to detect; a **story's** children are
+structurally present and already detected by =--container-heading-p=, so a label
+is a *second* source of truth that can disagree with the tree -- marked with no
+children, or children with no mark. **=:KIND: story= earns its place if and only
+if the "well-composed" lint is wanted** -- *does this story have all of its
+subtasks in one slice?* -- a question that can only be asked of a heading
+someone asserted was a story. Without that check it is a label with no reader.
+
+*Proposed, as amended 2026-09-19 against the drift analysis and the slice
+[[id:f6d160c2-c0ac-4c4b-a298-fe581ea3962a][f6d160c2]].* Revise the story section of =org-conventions.md= to split detection
+from composition, add the story/slice composition rule and the backlog-promotion
+lifecycle, and note the historical reason partial stories exist. That file is
+path-scoped and, per [[id:436e0991-c8ac-40fb-860d-a6c4c381bee5][436e0991]], loads only on a Read of an =.org= file, so the
+practice must also survive its not being loaded (the tools' own refusals are the
+only rules no session has missed). The =CLAUDE.md= half is a *net deletion*: the
+one-screen map should point at the conventions rather than paraphrase them, so
+the fix removes "detected and never declared" instead of expanding it. Re-run
+=bin/claude-org-setup= and =bin/check-conventions=, since the promoted copies
+are generated. Acceptance: the always-loaded line count ([[id:bf7e0b8e-f83a-4d4a-9950-3ab23a225156][bf7e0b8e]], 1,573 on
+2026-09-19) does not rise from this change, and =check-conventions= passes after
+re-promotion.
+
+Not a member of [[id:8bbae3aa-55db-441c-8c33-405570ad879a][8bbae3aa]]: that slice's proximate goal is making the plugin
+usable in another project, and this is convention refinement that can wait for a
+slice of its own.
+
+*Why this is ordinary, in the user's own framing:* "this framework is a means,
+not an end in and of itself. As such it has also served as a means of improving
+itself."
+
+*What is ruled out.*
+- Reading "detected and never declared" as a ban on composing a story: it misled a session on 2026-09-18, and the 2026-09-18 count shows composition is the norm.
+
+
+** TODO Scan the open backlog, open stories' members included, and compose it into coherent user stories
+:PROPERTIES:
+:ID:       c7f8f58c-9511-4df2-954b-7bd9f2354e68
+:CREATED:  [2026-11-25 Wed 11:13]
+:END:
+
+Once the classic form is settled, read every open heading, the members of open
+stories included, and group them into stories in that form: a user, the value,
+acceptance criteria, the tasks as children. Proposes; the user decides each
+grouping, and a worked heading moves by refile, never by copy. Today's groupings
+that are only task bundles (a review's findings, a technical breakdown) are
+named as such rather than forced into stories. Slices then take whole stories
+where they can.
+
 * TODO A commit hash that does not resolve is written as plain text, so a guessed hash enters the record and nothing says so :code:
 :PROPERTIES:
 :ID:       32b790fd-9a72-46a5-863d-a32d5e54457e
@@ -7463,137 +7672,6 @@ the =200=-versus-=202= defect in this project's own HTTP server.
 correct the four false claims, and decide whether =.warp/.mcp.json= stays as a
 zero-cost convention or goes with it. That is a bounded pass and does not need
 Warp to exist.
-
-
-* TODO The plugin has never been tagged or version-bumped, and nothing would notice :code:
-:PROPERTIES:
-:ID:       827e1c42-708e-4f1d-bf25-d8b8b980b7ef
-:CREATED:  [2026-09-18 Fri 17:18]
-:CATEGORY: Dev
-:END:
-:PLAN:
-
-:END:
-Asked for 2026-09-18: create a version tag, and find a way to keep the tag and
-the manifest version in step automatically. =.claude-plugin/plugin.json= says
-=0.1.0= and has since it was written; there is no release history at all. The
-version is currently **inert** -- every consumer loads the plugin **in place**,
-and the docs are explicit that a plugin loaded in place, or from a =command=
-source, updates regardless of the version field -- but it starts mattering the
-moment anything is installed from a marketplace, where "users only receive
-updates when you bump this field" makes a stale =0.1.0= a silent refusal to ship
-updates.
-
-*What is established.*
-- Four commits have touched =plugin.json= and **none** bumped the version, across the packaging slice, [[id:749301a0-0bd0-4fbd-b3f7-79739226e15a][749301a0]], and [[id:8bbae3aa-55db-441c-8c33-405570ad879a][8bbae3aa]]'s thirteen members (2026-09-18).
-- The repo carries two tags, =archive/review-ui-fixes-presplit= and =archive/span-pipeline-planning=, neither version-shaped; =claude plugin list= reports "Version: 0.1.0".
-- Every consumer today loads in place -- euchre by a relative symlink into a clone.
-- =claude plugin tag= creates a ={name}--v{version}= tag **from the manifest**, validating that =plugin.json= and any enclosing marketplace entry agree, with =--dry-run=, =-m= (=%s= interpolates the version), =--push= and =--remote=, and refuses on a dirty tree or an existing tag unless forced. Tag *creation* needs no invention.
-- What is missing is the discipline, in three failure modes, in order of likelihood: the version is never bumped; a bump happens and no tag follows; a tag exists and the manifest has moved on.
-
-*Proposed: a check that refuses, not a reminder.*
-- =.githooks/pre-push= already refuses a push while the =plans/= archive is stale, so a version-versus-tag assertion there would fire at the one moment that matters -- sharing.
-- =claude plugin tag --dry-run= is the validator to call rather than reimplement; it already compares the manifest against a marketplace entry, which a hand-rolled =git tag -l= grep would not.
-- =bin/check-conventions= is the other candidate and is weaker for this: it runs pre-commit on a narrow staged set, and a version bump is not a =.org= or rules edit.
-
-*What has to be decided rather than assumed.* **When a bump is due** — every
-merged slice, every PR, or only at a deliberate release — because a check can
-only enforce a rule that exists. The slice/PR cadence is the one this project
-actually has, and [[id:8bbae3aa-55db-441c-8c33-405570ad879a][8bbae3aa]] merging would be the natural first bump. And **what
-the first tag should be**: =0.1.0= against today's HEAD records a release that
-is not what =0.1.0= ever described, while bumping first and tagging that is
-honest but discards the history the tag was supposed to give.
-
-*One thing to verify rather than assume when this is worked:* whether =claude
-plugin tag= objects to this repo having no marketplace entry at all. Its
-validation is described as covering "any enclosing marketplace entry", which
-reads as tolerant of none — but that is a reading, not a test, and =--dry-run=
-settles it in one command.
-
-
-* TODO The conventions never say how stories and slices compose, and "not declared" reads as a ban on composing one :code:
-:PROPERTIES:
-:ID:       0b5cacf5-9299-499d-9036-2da2625c1233
-:CREATED:  [2026-09-18 Fri 11:39]
-:CATEGORY: Skill
-:END:
-:LOGBOOK:
-CLOCK: [2026-10-27 Tue 11:10]--[2026-10-27 Tue 11:11] =>  0:01
-- [2026-10-27 Tue 11:10]--[2026-10-27 Tue 11:11] add the story-children membership rule to the plan
-:END:
-:PLAN:
-
-Raised by the user 2026-09-18. =org-conventions.md= says a story "is not
-declared, it is emergent... **Don't classify a heading as one when writing
-it**", and =CLAUDE.md= compresses that to "detected and never declared".
-Strictly this is about *labelling* -- there is no =:KIND: story=, and a story is
-detected from its keyworded children by =--container-heading-p= -- but naturally
-read it forbids *composing* a task together with its subtasks, which is ordinary
-and fine. It misled a session on 2026-09-18 into arguing that a deliberate
-parent-with-subtasks shape was disallowed and that a slice was therefore the
-only option. The fix is to separate *detection* from *composition* in the
-wording, not to change the practice, and to add three ideas the governing
-documents omit.
-
-*Three ideas absent from every governing document*, each stated by the user and
-none written down:
-- *A well-composed story brings all of its subtasks into a slice*, and a slice that closes several whole stories is the highest expression of the two concepts working together; the conventions never say how the two groupings compose.
-- *Partial stories inside slices are historical*, not a pattern to copy: the story work predates the slice mechanism.
-- *The lifecycle, the load-bearing omission:* a task first exists **outside** a slice, and a slice **promotes** it from the backlog when completing it has been prioritized, so slice membership *means* "this is prioritized for near-term completion". Grepped 2026-09-18: nothing in =org-conventions.md=, =CLAUDE.md= or the org skill describes promotion; the only documented way in is adoption-on-discovery, the mid-flight exception.
-
-*A fourth, the mechanics, stated nowhere as one rule* (the user, 2026-10-27): a
-slice takes on a story by declaring its children in :MEMBERS:, never the story;
-the story's row is derived, boxless, and a story declared alone means none of
-its children belong. Today this is only implied, split between the nesting rule
-("its relevant children get indented member lines beneath it") and the
-review-story paragraph ("the story itself is not declared"). A noodle-salesman
-session read both on 2026-10-27, swapped a review story's four tasks out of
-:MEMBERS: for the story itself, and argued the conventions said nothing either
-way. The revision states it once, in the general section on stories and slices,
-and the two passages point at it.
-:END:
-*What is established.*
-- Deliberate composition is the norm (measured 2026-09-18): of the six live groupings in =TODO.org= -- level-1 headings with keyworded children -- **five carry no CLOCK line of their own**, so they were *composed*; only one ([[id:a1d63f52-4c07-4b9e-8f31-6d2b90c4e7a5][a1d63f52]], 9 own CLOCK lines) is the accidental shape the conventions describe.
-- =CLAUDE.md='s account -- "each was clocked honestly while it was still a leaf, and became a grouping later by acquiring children or by a refile" -- is true of the historical corpus it was written against, and is now the minority case.
-- Caveat on that count: level-1 headings in =TODO.org= only, by a crude scan; =DONE.org= was not included, and the nine-groupings figure in =CLAUDE.md= presumably spans both.
-- Already correct, recorded so it is not re-opened: deferral by deleting a member's checkbox cookie while keeping its reference line is documented (the dropping section, and "A cancelled or deferred member has its checkbox cookie deleted"), and so is the dual-membership guard ("Check no other slice already counts it... a discovery already claimed elsewhere is not adopted, it is cross-referenced"). The user's deferral exception is *consistent* with that guard: dropping the checkbox is exactly what stops two cookies counting the same work.
-- No rule requires a story's members to share a =:CATEGORY:= (checked 2026-09-18): no convention text, =bin/lint-org='s only category rule is "level-1 task has no =:CATEGORY:=" (=config.el= 14654), =org_capture= makes =category= "optional under an =:ID:= target", and one override exists (a =Tools= child under a =Meta= parent). Worth *stating* only because the absence of a rule reads as a prohibition.
-
-*=:KIND: story=, offered by the user, is conditional on a consumer.* The project
-has retired declared state that nothing read -- =PLANNING= went for exactly
-that, 7 uses in 432 transitions. A **slice** must be declared because its
-members are *links*, so there is nothing to detect; a **story's** children are
-structurally present and already detected by =--container-heading-p=, so a label
-is a *second* source of truth that can disagree with the tree -- marked with no
-children, or children with no mark. **=:KIND: story= earns its place if and only
-if the "well-composed" lint is wanted** -- *does this story have all of its
-subtasks in one slice?* -- a question that can only be asked of a heading
-someone asserted was a story. Without that check it is a label with no reader.
-
-*Proposed, as amended 2026-09-19 against the drift analysis and the slice
-[[id:f6d160c2-c0ac-4c4b-a298-fe581ea3962a][f6d160c2]].* Revise the story section of =org-conventions.md= to split detection
-from composition, add the story/slice composition rule and the backlog-promotion
-lifecycle, and note the historical reason partial stories exist. That file is
-path-scoped and, per [[id:436e0991-c8ac-40fb-860d-a6c4c381bee5][436e0991]], loads only on a Read of an =.org= file, so the
-practice must also survive its not being loaded (the tools' own refusals are the
-only rules no session has missed). The =CLAUDE.md= half is a *net deletion*: the
-one-screen map should point at the conventions rather than paraphrase them, so
-the fix removes "detected and never declared" instead of expanding it. Re-run
-=bin/claude-org-setup= and =bin/check-conventions=, since the promoted copies
-are generated. Acceptance: the always-loaded line count ([[id:bf7e0b8e-f83a-4d4a-9950-3ab23a225156][bf7e0b8e]], 1,573 on
-2026-09-19) does not rise from this change, and =check-conventions= passes after
-re-promotion.
-
-Not a member of [[id:8bbae3aa-55db-441c-8c33-405570ad879a][8bbae3aa]]: that slice's proximate goal is making the plugin
-usable in another project, and this is convention refinement that can wait for a
-slice of its own.
-
-*Why this is ordinary, in the user's own framing:* "this framework is a means,
-not an end in and of itself. As such it has also served as a means of improving
-itself."
-
-*What is ruled out.*
-- Reading "detected and never declared" as a ban on composing a story: it misled a session on 2026-09-18, and the 2026-09-18 count shows composition is the norm.
 
 
 * TODO Let a task-only install auto-apply state transitions, behind a toggle :code:
