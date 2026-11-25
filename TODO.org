@@ -2,6 +2,176 @@
 #+TAGS: code prose research spike bounded arch
 #+ARCHIVE: DONE.org::datetree/
 #+STARTUP: logdrawer logdone content
+* TODO [0/11] 0.3.1: A span is judged with no evidence for it, and the measurement that would set its defaults is never taken :code:
+:PROPERTIES:
+:ID:       62d6d23b-dd28-43d5-8c43-d10cd702f4b6
+:CREATED:  [2026-11-25 Wed 14:32]
+:CATEGORY: Slices
+:KIND:     slice
+:COOKIE_DATA: checkbox recursive
+:MEMBERS:  5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46 cf483f5d-2d25-4454-a580-db7935c8cb81 49444167-7a29-491a-81b4-c5215fce9fc2 9b7301de-0903-4987-bb34-56f8f021fbd1 e75d660f-5c0d-4707-a645-b5dea7d7ebc0 409a69ff-d57e-4c1c-ab6c-28f7e85fa391 8028e875-3032-4ade-949e-414d9861b928 01849bef-fdc9-4c30-b467-00ca8606e8e0 330710fb-ea34-466b-96a0-7be947f37a1e 62a32f7b-9f7a-4ed3-88e0-939a687852eb a865f83c-ea37-40c4-a104-7cc50d2c20dd 996fd2bd-be90-44b3-b2c5-9018255940b3 20cecd53-2338-4237-ab06-f8129e10a2c8
+:BLOCKER:  5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46 cf483f5d-2d25-4454-a580-db7935c8cb81 49444167-7a29-491a-81b4-c5215fce9fc2 9b7301de-0903-4987-bb34-56f8f021fbd1 e75d660f-5c0d-4707-a645-b5dea7d7ebc0 409a69ff-d57e-4c1c-ab6c-28f7e85fa391 8028e875-3032-4ade-949e-414d9861b928 62a32f7b-9f7a-4ed3-88e0-939a687852eb a865f83c-ea37-40c4-a104-7cc50d2c20dd 996fd2bd-be90-44b3-b2c5-9018255940b3 20cecd53-2338-4237-ab06-f8129e10a2c8
+:END:
+:PLAN:
+The order, carried over from [[id:c7619140-f269-4329-bc05-a38ea151e202][c7619140]]'s plan, whose evidence and measurement
+phases this is; each member's own drawer wins where this disagrees.
+
+Evidence first, because the judgement is the product. [[id:5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46][5a6d2c75]] and [[id:cf483f5d-2d25-4454-a580-db7935c8cb81][cf483f5d]] are
+the two halves of one hole: an unassigned span's readout omitting what would
+identify its heading, and a no-evidence span printing nothing. Next, [[id:49444167-7a29-491a-81b4-c5215fce9fc2][49444167]]
+(context mixing sessions and sort orders, nothing from after a span) and
+[[id:9b7301de-0903-4987-bb34-56f8f021fbd1][9b7301de]] (a borrowed clock_in note, the false direction of the same hole). Then
+[[id:e75d660f-5c0d-4707-a645-b5dea7d7ebc0][e75d660f]] and [[id:409a69ff-d57e-4c1c-ab6c-28f7e85fa391][409a69ff]], AFK markers raising or lowering confidence on a span
+judged anyway. Then [[id:8028e875-3032-4ade-949e-414d9861b928][8028e875]], annotating at review time. Beside it the parked
+MAYBEs [[id:01849bef-fdc9-4c30-b467-00ca8606e8e0][01849bef]] and [[id:330710fb-ea34-466b-96a0-7be947f37a1e][330710fb]], under their story [[id:6ea84943-9eef-4940-b850-e8cf79310d2a][6ea84943]], visible and uncounted.
+Then [[id:62a32f7b-9f7a-4ed3-88e0-939a687852eb][62a32f7b]], the R&P label.
+
+Measurement last, meaningless before the above. [[id:a865f83c-ea37-40c4-a104-7cc50d2c20dd][a865f83c]], whether a short
+zero-run span defaults to claimed, is research that sets a default the rest
+inherit. [[id:996fd2bd-be90-44b3-b2c5-9018255940b3][996fd2bd]] follows it, the apply-inside-a-gap test it handed that
+question to. Then [[id:20cecd53-2338-4237-ab06-f8129e10a2c8][20cecd53]], the human half of the ratio.
+
+Followed by: none named.
+:END:
+
+Divided out of [[id:c7619140-f269-4329-bc05-a38ea151e202][c7619140]] on 2026-11-25 (the user, the slice-coherence review),
+along that slice's own plan: its evidence and measurement phases. [[id:c7619140-f269-4329-bc05-a38ea151e202][c7619140]] keeps
+the members that write something false or fail at apply, which come first.
+
+Planned:
+
+- [ ] [[id:5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46][5a6d2c75]] TODO An unassigned span's readout omits the evidence that would make its heading obvious
+- [ ] [[id:cf483f5d-2d25-4454-a580-db7935c8cb81][cf483f5d]] TODO A span with no readable evidence prints nothing about itself, so absence is the only signal
+- [ ] [[id:49444167-7a29-491a-81b4-c5215fce9fc2][49444167]] TODO The review buffer's transcript context mixes sessions, mixes sort orders, and shows only one side of a span
+- [ ] [[id:9b7301de-0903-4987-bb34-56f8f021fbd1][9b7301de]] TODO A guidepost span is labelled with the first pending clock_in note of its heading, from any session and any date
+- [ ] [[id:e75d660f-5c0d-4707-a645-b5dea7d7ebc0][e75d660f]] TODO AFK markers are ground truth for the one judgement we cannot automate, and we discard them
+- [ ] [[id:409a69ff-d57e-4c1c-ab6c-28f7e85fa391][409a69ff]] TODO Classify gaps by markers at either end, not by tracking an AFK state
+- [ ] [[id:8028e875-3032-4ade-949e-414d9861b928][8028e875]] TODO Type a span's annotation at review time, not by hand-editing it after
+- [[id:6ea84943-9eef-4940-b850-e8cf79310d2a][6ea84943]] MAYBE A claimed span records agent time and human attention as one, and the reviewer has no picture of the span to judge from
+  - [[id:01849bef-fdc9-4c30-b467-00ca8606e8e0][01849bef]] MAYBE A claim should keep the agent's runs and the user's attention apart, not record the whole span as attention
+  - [[id:330710fb-ea34-466b-96a0-7be947f37a1e][330710fb]] MAYBE Show a span as a strip chart, its runs, gaps, waits and AFK markers on one line, so a claim is judged from the screen
+- [ ] [[id:62a32f7b-9f7a-4ed3-88e0-939a687852eb][62a32f7b]] TODO The meta-work target renders as "Review a" in the review buffer; show it as R&P, and offer "R&P (Review and planning)" when assigning
+- [ ] [[id:a865f83c-ea37-40c4-a104-7cc50d2c20dd][a865f83c]] TODO Should a short 0-run span default to claimed, and where does the bound fall?
+- [ ] [[id:996fd2bd-be90-44b3-b2c5-9018255940b3][996fd2bd]] TODO A guidepost gap containing an apply timestamp is provably the human's attention
+- [ ] [[id:20cecd53-2338-4237-ab06-f8129e10a2c8][20cecd53]] TODO The human half of the ratio is already recorded, and thrown away
+
+
+* TODO [0/5] 0.2.2: The clock record cannot be reported on: no parent's own time, no unclocked worked headings, past days kept in TODO.org :code:
+:PROPERTIES:
+:ID:       f155ed56-ec52-432e-9a4c-9db0250dfb34
+:CREATED:  [2026-11-25 Wed 14:30]
+:CATEGORY: Slices
+:KIND:     slice
+:COOKIE_DATA: checkbox recursive
+:MEMBERS:  37147e9e-468b-43ee-91f9-45d9647c6164 64d34a64-d336-40a8-a8e8-da8133d0da06 d6fc47a5-b84d-4287-b973-aa5b37410270 591e7af3-4f37-4f90-86ba-62400c6e649b 445ec1f1-095a-462b-abbd-7a3a00925ddb
+:BLOCKER:  37147e9e-468b-43ee-91f9-45d9647c6164 64d34a64-d336-40a8-a8e8-da8133d0da06 d6fc47a5-b84d-4287-b973-aa5b37410270 591e7af3-4f37-4f90-86ba-62400c6e649b 445ec1f1-095a-462b-abbd-7a3a00925ddb
+:END:
+:PLAN:
+The order, carried over from [[id:7ae1cff4-c0df-4ac0-9aea-a778b2373061][7ae1cff4]]'s plan; each member's own drawer wins
+where this disagrees.
+
+- [[id:37147e9e-468b-43ee-91f9-45d9647c6164][37147e9e]] and [[id:64d34a64-d336-40a8-a8e8-da8133d0da06][64d34a64]]: reporting. Worked headings with no clock interval that day, and a parent's own time in a clocktable. Both need the record right first, which 0.2.0 and 0.2.1 give.
+- [[id:d6fc47a5-b84d-4287-b973-aa5b37410270][d6fc47a5]] and [[id:591e7af3-4f37-4f90-86ba-62400c6e649b][591e7af3]]: past days' clock records moved out of TODO.org (Review and planning's day nodes, Review attention's LOGBOOK). They come after reporting because they move CLOCK lines the clocktables read. Kept together as they were folded in from [[id:f9fe9fac-a423-4ede-bc42-1d201c2c3d82][f9fe9fac]]. That puts [[id:591e7af3-4f37-4f90-86ba-62400c6e649b][591e7af3]] here rather than in 0.2.1, where the review's grouping had it.
+- [[id:445ec1f1-095a-462b-abbd-7a3a00925ddb][445ec1f1]] last: the A/B comparison across the fixes, which measures 0.2.0 to 0.2.2 together.
+
+Followed by [[id:c7619140-f269-4329-bc05-a38ea151e202][c7619140]].
+:END:
+
+Divided out of [[id:7ae1cff4-c0df-4ac0-9aea-a778b2373061][7ae1cff4]] on 2026-11-25 (the user, the slice-coherence review):
+the reporting third of that slice's title. It comes after the record is correct
+(0.2.0) and the attention clock is reshaped (0.2.1), because every member reads
+or moves the CLOCK lines those fix.
+
+Planned:
+
+- [ ] [[id:37147e9e-468b-43ee-91f9-45d9647c6164][37147e9e]] TODO Report worked headings that carry no clock interval that day
+- [ ] [[id:64d34a64-d336-40a8-a8e8-da8133d0da06][64d34a64]] NEXT A clocktable never shows a parent's own time, only own-plus-subtree
+- [ ] [[id:d6fc47a5-b84d-4287-b973-aa5b37410270][d6fc47a5]] TODO Distribute Review and planning's past day nodes into DONE.org's datetree
+- [ ] [[id:591e7af3-4f37-4f90-86ba-62400c6e649b][591e7af3]] TODO Bound Review attention's LOGBOOK by refiling old entries into dated clones
+- [ ] [[id:445ec1f1-095a-462b-abbd-7a3a00925ddb][445ec1f1]] TODO A/B the clock record across the phase-3 fixes, since much of what is logged now is bogus
+
+
+* TODO [0/3] 0.2.1: The review-attention clock is a real org clock that stops at the first apply, so it measures the wrong thing :code:
+:PROPERTIES:
+:ID:       8696bf65-1a8d-486b-80e9-a1454eb0e519
+:CREATED:  [2026-11-25 Wed 14:30]
+:CATEGORY: Slices
+:KIND:     slice
+:COOKIE_DATA: checkbox recursive
+:MEMBERS:  595df230-e31d-42ad-9ea7-128e545b9aa0 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d
+:BLOCKER:  595df230-e31d-42ad-9ea7-128e545b9aa0 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d
+:END:
+:PLAN:
+The order, carried over from [[id:7ae1cff4-c0df-4ac0-9aea-a778b2373061][7ae1cff4]]'s plan, which had these three first; each
+member's own drawer wins where this disagrees.
+
+- [[id:595df230-e31d-42ad-9ea7-128e545b9aa0][595df230]]: the clock's shape. It is a real org clock, so the buffer stays busy through the review, and apply's first clock-in closes it. Making it something else probably removes [[id:e3d1531d-7562-4bad-bef2-fc819630c5f7][e3d1531d]]'s cause.
+- [[id:e3d1531d-7562-4bad-bef2-fc819630c5f7][e3d1531d]]: what it measured wrongly, 101 intervals truncated at the first apply.
+- [[id:b5448133-4021-46b9-a90e-d88e149ae65d][b5448133]]: rebuilding those intervals from the audit log, after the shape is settled so the rebuild targets the new one.
+
+Moved behind 0.2.0, the record's correctness, on 2026-11-25 (the user's
+numbering). [[id:7ae1cff4-c0df-4ac0-9aea-a778b2373061][7ae1cff4]] had put these first, after [[id:97b4f6a9-a944-40d3-8d14-7a1667c52291][97b4f6a9]] gated the clock on the
+time-tracking option. Nothing in these three depends on 0.2.0's members, so the
+change only defers them. [[id:591e7af3-4f37-4f90-86ba-62400c6e649b][591e7af3]], which bounds this clock's LOGBOOK, went to
+0.2.2 with [[id:d6fc47a5-b84d-4287-b973-aa5b37410270][d6fc47a5]] instead, because [[id:7ae1cff4-c0df-4ac0-9aea-a778b2373061][7ae1cff4]]'s plan put the two together after
+reporting.
+
+Followed by [[id:f155ed56-ec52-432e-9a4c-9db0250dfb34][f155ed56]].
+:END:
+
+Divided out of [[id:7ae1cff4-c0df-4ac0-9aea-a778b2373061][7ae1cff4]] on 2026-11-25 (the user, the slice-coherence review):
+the attention-clock third of that slice's title. It matters only where time
+tracking is on.
+
+Planned:
+
+- [ ] [[id:595df230-e31d-42ad-9ea7-128e545b9aa0][595df230]] TODO The review-attention clock is a real org clock, so the buffer stays busy for the whole review and apply's first clock-in closes it
+- [ ] [[id:e3d1531d-7562-4bad-bef2-fc819630c5f7][e3d1531d]] TODO The review-attention clock stops at the first apply, so 101 intervals measure the wrong thing
+- [ ] [[id:b5448133-4021-46b9-a90e-d88e149ae65d][b5448133]] TODO Rebuild the 101 truncated review-attention intervals from the audit log
+
+
+* TODO [0/5] 0.0.4: Sessions still reach for org_amend, the tool whose replace path does the most damage :code:
+:PROPERTIES:
+:ID:       f8e82978-a1d3-48dc-9aea-d13ec821cdfe
+:CREATED:  [2026-11-25 Wed 14:29]
+:CATEGORY: Slices
+:KIND:     slice
+:COOKIE_DATA: checkbox recursive
+:MEMBERS:  c35087d8-19fe-4179-a61c-cb615b2e7679 b2d4012c-6c61-47df-8086-d1cd205c73fc 5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997 c0c5e015-c33e-4e1a-ad6e-907f9fa56c07 e4734e2c-2083-413b-941d-9503dd0f4a23
+:BLOCKER:  c35087d8-19fe-4179-a61c-cb615b2e7679 b2d4012c-6c61-47df-8086-d1cd205c73fc 5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997 c0c5e015-c33e-4e1a-ad6e-907f9fa56c07 e4734e2c-2083-413b-941d-9503dd0f4a23
+:END:
+:PLAN:
+The order, carried over from [[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]]'s plan, where the retirement was members
+two to five; each member's own drawer wins where this disagrees.
+
+1. [[id:c35087d8-19fe-4179-a61c-cb615b2e7679][c35087d8]] first: org_amend queues an interjection when the buffer has unsaved edits, and org_edit must not lose that before it becomes the only tool.
+2. [[id:b2d4012c-6c61-47df-8086-d1cd205c73fc][b2d4012c]]: the retirement itself. The conventions still teach org_amend, so every consumer session keeps reaching for the tool with the worst damage. It overtakes most of the next two.
+3. [[id:5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997][5b46fbfd]]: only partly overtaken. Its own plan keeps the glued-heading lint and the org-lint triage, and tests org_edit's whole-region rewrite in place of fixing --replace-body.
+4. [[id:c0c5e015-c33e-4e1a-ad6e-907f9fa56c07][c0c5e015]]: closes as overtaken once a test shows org_edit does not reproduce it.
+5. [[id:e4734e2c-2083-413b-941d-9503dd0f4a23][e4734e2c]]: the body region's missing final line. Moved with the rest on 2026-11-25 because it is the region org_edit's whole-region rewrite reads. Its own plan decides whether that makes it org_edit's defect too.
+
+Out of the slice: [[id:381dfc89-932b-4448-a58d-7e3cad51db55][381dfc89]], whose gate is every queue drained of amend events (a
+state, not a heading), and [[id:dd4b9a9f-ba8a-4f1f-a3da-38388e0cdb76][dd4b9a9f]], the story that [[id:c35087d8-19fe-4179-a61c-cb615b2e7679][c35087d8]] and [[id:b2d4012c-6c61-47df-8086-d1cd205c73fc][b2d4012c]] sit
+under; it renders as their parent row.
+
+Followed by [[id:7dcec489-f5dd-4f7f-b819-a25405436b9b][7dcec489]].
+:END:
+
+Divided out of [[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]] on 2026-11-25 (the user, the slice-coherence review).
+Retiring org_amend is a refactor, not a call that misleads its caller, so it is
+its own slice. It follows 0.0.3, whose [[id:a8ccd6ac-3452-4926-b176-ff5951dcd5b2][a8ccd6ac]] fixes the negated boolean that
+makes org_amend replace=false replace a whole body.
+
+Planned:
+
+- [[id:dd4b9a9f-ba8a-4f1f-a3da-38388e0cdb76][dd4b9a9f]] NEXT No org tool edits a phrase in place: org_amend appends or replaces the whole body
+  - [ ] [[id:c35087d8-19fe-4179-a61c-cb615b2e7679][c35087d8]] NEXT org_edit refuses an unsaved buffer, asks for the save in a header line, and the agent waits on it
+  - [ ] [[id:b2d4012c-6c61-47df-8086-d1cd205c73fc][b2d4012c]] TODO Retire org_amend in one move: hooks, prose, and the live headings renamed with org_edit
+- [ ] [[id:5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997][5b46fbfd]] TODO org_amend replace=true eats the blank lines before the next heading, so org stops seeing it
+- [ ] [[id:c0c5e015-c33e-4e1a-ad6e-907f9fa56c07][c0c5e015]] TODO org_amend accepts a headline-shaped line in drawer text, which tears the drawer open
+- [ ] [[id:e4734e2c-2083-413b-941d-9503dd0f4a23][e4734e2c]] TODO The body region drops the last line when the file has no final newline, so a replace glues it to the new text
+
+
 * TODO [0/5] Releases are planned as versioned slices that close whole user stories
 :PROPERTIES:
 :ID:       a5a05306-9d37-413d-b44f-fa8d5ca058b8
@@ -1711,15 +1881,16 @@ claude-code-ide-org-refuse-browser-origins, and the probe finds every live
 companion refusing. On the slice's branch, feature/tracker-record-loss.
 
 
-* DOING [22/40] 0.0.1: The tracker can lose or corrupt its record, or Emacs can stop on a prompt, and nothing says so :code:
+* DOING [22/38] 0.0.1: The tracker can lose or corrupt its record, or Emacs can stop on a prompt, and nothing says so :code:
 :PROPERTIES:
 :ID:       3bfa593c-c2da-4e44-b47f-2d5f0750f2aa
 :CREATED:  [2026-10-27 Tue 12:56]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:MEMBERS:  8c4a3aea-3208-46c8-a491-2ff024fbf822 d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80 8985f8ae-8b26-45eb-8898-73f17c98680a 0a0dee55-d709-466e-a525-c3bb1c437b91 d3468075-b17a-45a2-bd3a-838521f11a87 6c969cbd-0c03-409f-835f-80ddb1faedf6 187a87b4-20db-4fbf-931f-a4b4e1bed668 aa7edd6c-d985-44b2-9359-a605761e5c3d c0a21a0f-89ed-4b66-b7ed-acbfd5583015 62bc2f7f-0d55-4049-af00-52a2b333188a e9f8b780-c93b-41f9-b146-1c4695283af9 b0e46168-2548-49ca-8f5f-5dcc6f3fc524 254308f7-70a9-4296-9166-fe4138c6382b 70b47b8f-b413-4660-bf32-b0b90db45ff4 a3ad9732-681c-4103-a9e2-5f919e60522c 412768a0-3d9b-4cfe-9264-3f214d4baed1 fd29914e-0d18-4964-a104-37c136b311a6 ed3e6862-db3e-4e81-badd-859ddf629400
-:BLOCKER:  8c4a3aea-3208-46c8-a491-2ff024fbf822 d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80 8985f8ae-8b26-45eb-8898-73f17c98680a 0a0dee55-d709-466e-a525-c3bb1c437b91 d3468075-b17a-45a2-bd3a-838521f11a87 6c969cbd-0c03-409f-835f-80ddb1faedf6 187a87b4-20db-4fbf-931f-a4b4e1bed668 aa7edd6c-d985-44b2-9359-a605761e5c3d c0a21a0f-89ed-4b66-b7ed-acbfd5583015 62bc2f7f-0d55-4049-af00-52a2b333188a e9f8b780-c93b-41f9-b146-1c4695283af9 b0e46168-2548-49ca-8f5f-5dcc6f3fc524 254308f7-70a9-4296-9166-fe4138c6382b 70b47b8f-b413-4660-bf32-b0b90db45ff4 a3ad9732-681c-4103-a9e2-5f919e60522c 412768a0-3d9b-4cfe-9264-3f214d4baed1 fd29914e-0d18-4964-a104-37c136b311a6 ed3e6862-db3e-4e81-badd-859ddf629400
+:MEMBERS:  8c4a3aea-3208-46c8-a491-2ff024fbf822 d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80 8985f8ae-8b26-45eb-8898-73f17c98680a 0a0dee55-d709-466e-a525-c3bb1c437b91 d3468075-b17a-45a2-bd3a-838521f11a87 6c969cbd-0c03-409f-835f-80ddb1faedf6 187a87b4-20db-4fbf-931f-a4b4e1bed668 aa7edd6c-d985-44b2-9359-a605761e5c3d c0a21a0f-89ed-4b66-b7ed-acbfd5583015 62bc2f7f-0d55-4049-af00-52a2b333188a e9f8b780-c93b-41f9-b146-1c4695283af9 b0e46168-2548-49ca-8f5f-5dcc6f3fc524 254308f7-70a9-4296-9166-fe4138c6382b 70b47b8f-b413-4660-bf32-b0b90db45ff4 0e2f2e2f-c231-4f25-92cc-a37b63535efc 2f4c04a1-db56-4427-ae62-591ba52607c6 a3ad9732-681c-4103-a9e2-5f919e60522c 412768a0-3d9b-4cfe-9264-3f214d4baed1 fd29914e-0d18-4964-a104-37c136b311a6 ed3e6862-db3e-4e81-badd-859ddf629400
+:BLOCKER:  8c4a3aea-3208-46c8-a491-2ff024fbf822 d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80 8985f8ae-8b26-45eb-8898-73f17c98680a 0a0dee55-d709-466e-a525-c3bb1c437b91 d3468075-b17a-45a2-bd3a-838521f11a87 6c969cbd-0c03-409f-835f-80ddb1faedf6 187a87b4-20db-4fbf-931f-a4b4e1bed668 aa7edd6c-d985-44b2-9359-a605761e5c3d c0a21a0f-89ed-4b66-b7ed-acbfd5583015 62bc2f7f-0d55-4049-af00-52a2b333188a e9f8b780-c93b-41f9-b146-1c4695283af9 b0e46168-2548-49ca-8f5f-5dcc6f3fc524 254308f7-70a9-4296-9166-fe4138c6382b 70b47b8f-b413-4660-bf32-b0b90db45ff4 0e2f2e2f-c231-4f25-92cc-a37b63535efc 2f4c04a1-db56-4427-ae62-591ba52607c6
+:DROPPED:  a3ad9732-681c-4103-a9e2-5f919e60522c 412768a0-3d9b-4cfe-9264-3f214d4baed1 fd29914e-0d18-4964-a104-37c136b311a6 ed3e6862-db3e-4e81-badd-859ddf629400
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-10-27 Tue 12:58] \\
@@ -1774,6 +1945,15 @@ Followed by [[id:4f49ea34-5b8c-4ad8-8dbb-6f17126c420f][4f49ea34]] (the user, 202
 footnote-check blocking about half of all replies, ahead of [[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]], which was
 named here 2026-10-28. It is one change, and every later slice's sessions pay
 the cost until it lands.
+
+Revised 2026-11-25 (the user, the slice-coherence review), so this slice can
+close on its PR. Steps 13 to 16 ([[id:a3ad9732-681c-4103-a9e2-5f919e60522c][a3ad9732]], [[id:412768a0-3d9b-4cfe-9264-3f214d4baed1][412768a0]], [[id:fd29914e-0d18-4964-a104-37c136b311a6][fd29914e]], [[id:ed3e6862-db3e-4e81-badd-859ddf629400][ed3e6862]]) moved
+to [[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]], beside its other capture and prompt members; they are in :DROPPED:
+here, and [[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]]'s plan now orders them. [[id:0e2f2e2f-c231-4f25-92cc-a37b63535efc][0e2f2e2f]] and [[id:2f4c04a1-db56-4427-ae62-591ba52607c6][2f4c04a1]] joined as 11b
+and 11c, after [[id:70b47b8f-b413-4660-bf32-b0b90db45ff4][70b47b8f]]. [[id:0e2f2e2f-c231-4f25-92cc-a37b63535efc][0e2f2e2f]] is the global ceremony stamp that [[id:70b47b8f-b413-4660-bf32-b0b90db45ff4][70b47b8f]]'s
+plan leaves out of scope, in the same function. [[id:2f4c04a1-db56-4427-ae62-591ba52607c6][2f4c04a1]] is the same
+project-scope fault at SessionStart. Neither has a plan yet, and both need one
+before they are worked.
 :END:
 
 Ways the tracker loses state, or Emacs blocks on a prompt, with nothing
@@ -1805,10 +1985,12 @@ Planned:
 - [ ] [[id:b0e46168-2548-49ca-8f5f-5dcc6f3fc524][b0e46168]] TODO discard-guard misses absolute paths, git -C, and a cd before the git command
 - [-] [[id:254308f7-70a9-4296-9166-fe4138c6382b][254308f7]] REVIEW The ceremony's sort steps reorder and save TODO.org or DONE.org while it holds the human's unsaved edits
 - [ ] [[id:70b47b8f-b413-4660-bf32-b0b90db45ff4][70b47b8f]] NEXT Burying the review buffer runs this project's ceremony because another project's is overdue, since the due check ignores the project scope
-- [ ] [[id:a3ad9732-681c-4103-a9e2-5f919e60522c][a3ad9732]] TODO org_set_property writes TODO, SCHEDULED and DEADLINE through org-entry-put, which changes the keyword live or opens a prompt
-- [ ] [[id:412768a0-3d9b-4cfe-9264-3f214d4baed1][412768a0]] TODO org_capture's title goes through capture-template expansion, so a newline splits the heading and %^ opens a prompt
-- [ ] [[id:fd29914e-0d18-4964-a104-37c136b311a6][fd29914e]] TODO org_capture runs in whatever buffer the user has selected, so an Org QL view turns a capture into a prompt nobody at the tool can answer
-- [ ] [[id:ed3e6862-db3e-4e81-badd-859ddf629400][ed3e6862]] TODO A capture or refile that gives a heading its first keyworded child leaves it with no statistics cookie, which lint-org then refuses
+- [ ] [[id:0e2f2e2f-c231-4f25-92cc-a37b63535efc][0e2f2e2f]] TODO Burying the review buffer stamps the ceremony done while apply failures are still pending, though the session-start docstring says it waits for them
+- [ ] [[id:2f4c04a1-db56-4427-ae62-591ba52607c6][2f4c04a1]] TODO --applied-today-p ignores the report scope and parses every .applied file at each SessionStart
+- [[id:a3ad9732-681c-4103-a9e2-5f919e60522c][a3ad9732]] TODO org_set_property writes TODO, SCHEDULED and DEADLINE through org-entry-put, which changes the keyword live or opens a prompt
+- [[id:412768a0-3d9b-4cfe-9264-3f214d4baed1][412768a0]] TODO org_capture's title goes through capture-template expansion, so a newline splits the heading and %^ opens a prompt
+- [[id:fd29914e-0d18-4964-a104-37c136b311a6][fd29914e]] TODO org_capture runs in whatever buffer the user has selected, so an Org QL view turns a capture into a prompt nobody at the tool can answer
+- [[id:ed3e6862-db3e-4e81-badd-859ddf629400][ed3e6862]] TODO A capture or refile that gives a heading its first keyworded child leaves it with no statistics cookie, which lint-org then refuses
 
 Four joined from the second audit the same day (the user): an indented #+ line
 in a rendered transcript takes effect ([[id:8985f8ae-8b26-45eb-8898-73f17c98680a][8985f8ae]]), a replayed apply adds a minute
@@ -2573,7 +2755,7 @@ for a directory no longer in claude-code-ide--processes, and test the double
 call. A normal /exit inside the launcher has not been checked.
 
 
-* TODO [0/6] 0.1.0: A consumer's install can be wrong while every check says it is fine :code:
+* TODO [0/5] 0.1.0: A consumer's install can be wrong while every check says it is fine :code:
 :PROPERTIES:
 :ID:       005fef09-e34f-4994-8c0d-6d17ada3d7ac
 :CREATED:  [2026-10-27 Tue 08:52]
@@ -2581,7 +2763,8 @@ call. A normal /exit inside the launcher has not been checked.
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
 :MEMBERS:  96ad6e95-452d-4be2-9bc7-b2c2efa44988 b577497c-f3a8-4754-8914-6c56589a0b52 9a8013d7-7525-466b-9aaf-10eb647f5e9f 0e2f2e2f-c231-4f25-92cc-a37b63535efc 826d621c-25f5-4f06-9961-4b23f8658880 827e1c42-708e-4f1d-bf25-d8b8b980b7ef
-:BLOCKER:  96ad6e95-452d-4be2-9bc7-b2c2efa44988 b577497c-f3a8-4754-8914-6c56589a0b52 9a8013d7-7525-466b-9aaf-10eb647f5e9f 0e2f2e2f-c231-4f25-92cc-a37b63535efc 826d621c-25f5-4f06-9961-4b23f8658880 827e1c42-708e-4f1d-bf25-d8b8b980b7ef
+:BLOCKER:  96ad6e95-452d-4be2-9bc7-b2c2efa44988 b577497c-f3a8-4754-8914-6c56589a0b52 9a8013d7-7525-466b-9aaf-10eb647f5e9f 826d621c-25f5-4f06-9961-4b23f8658880 827e1c42-708e-4f1d-bf25-d8b8b980b7ef
+:DROPPED:  0e2f2e2f-c231-4f25-92cc-a37b63535efc
 :END:
 :PLAN:
 Composed 2026-10-27 from the consumer-usability survey, at the user's direction.
@@ -2611,6 +2794,10 @@ concerns this repo's own promoted copies, not a consumer's.
 and two Meta ([[id:0e2f2e2f-c231-4f25-92cc-a37b63535efc][0e2f2e2f]], [[id:826d621c-25f5-4f06-9961-4b23f8658880][826d621c]]).
 
 Followed by: none named.
+
+Revised 2026-11-25 (the user, the slice-coherence review): [[id:0e2f2e2f-c231-4f25-92cc-a37b63535efc][0e2f2e2f]] moved to
+[[id:3bfa593c-c2da-4e44-b47f-2d5f0750f2aa][3bfa593c]] beside [[id:70b47b8f-b413-4660-bf32-b0b90db45ff4][70b47b8f]], which touches the same function, and is in :DROPPED:
+here. [[id:826d621c-25f5-4f06-9961-4b23f8658880][826d621c]] stays, as the ceremony's design question.
 :END:
 
 Six ways a consuming repo's install goes wrong without anything saying so: a
@@ -2626,7 +2813,7 @@ Planned:
 - [ ] [[id:96ad6e95-452d-4be2-9bc7-b2c2efa44988][96ad6e95]] TODO Promotion never removes, and --check never looks, so a dropped rule file would linger in every consumer
 - [ ] [[id:b577497c-f3a8-4754-8914-6c56589a0b52][b577497c]] TODO An install scaffolded before the ceremony template has no :KIND: ceremony heading, so its steps after apply never run and --check does not say so
 - [ ] [[id:9a8013d7-7525-466b-9aaf-10eb647f5e9f][9a8013d7]] TODO lint-org with no arguments lints the plugin checkout, not the consuming repo, and passes
-- [ ] [[id:0e2f2e2f-c231-4f25-92cc-a37b63535efc][0e2f2e2f]] TODO Burying the review buffer stamps the ceremony done while apply failures are still pending, though the session-start docstring says it waits for them
+- [[id:0e2f2e2f-c231-4f25-92cc-a37b63535efc][0e2f2e2f]] TODO Burying the review buffer stamps the ceremony done while apply failures are still pending, though the session-start docstring says it waits for them
 - [ ] [[id:826d621c-25f5-4f06-9961-4b23f8658880][826d621c]] TODO SessionStart runs the ceremony's write steps inside a 15 s hook, on whatever branch is checked out
 - [[id:a5a05306-9d37-413d-b44f-fa8d5ca058b8][a5a05306]] TODO Releases are planned as versioned slices that close whole user stories
   - [ ] [[id:827e1c42-708e-4f1d-bf25-d8b8b980b7ef][827e1c42]] TODO The plugin has never been tagged or version-bumped, and nothing would notice
@@ -4202,7 +4389,7 @@ references, =M-x customize-group claude-code-ide-org= and the commands. Written
 last, since it points at the other three.
 
 
-* TODO [0/22] 0.2.0: The clock record beneath the review pass is still wrong: correctness, reporting, and the attention clock :code:
+* TODO [0/14] 0.2.0: The clock record beneath the review pass is still wrong: correctness, reporting, and the attention clock :code:
 :PROPERTIES:
 :ID:       7ae1cff4-c0df-4ac0-9aea-a778b2373061
 :CREATED:  [2026-10-09 Fri 11:15]
@@ -4210,7 +4397,8 @@ last, since it points at the other three.
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
 :MEMBERS:  595df230-e31d-42ad-9ea7-128e545b9aa0 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 001fb310-69f7-4417-81be-a224a3bf83e0 55125136-5939-434e-9676-96ea66a75770 37147e9e-468b-43ee-91f9-45d9647c6164 64d34a64-d336-40a8-a8e8-da8133d0da06 445ec1f1-095a-462b-abbd-7a3a00925ddb d30b3481-374c-4921-9fdb-284dd8e09e14 3a6ff84e-ed47-4c83-94ff-18c439dd842c 22264369-2d9d-4339-9b97-f3ea25ad0137 a4acdd35-ddba-4557-8dcb-86bc754374db 94e7b511-0adb-4afc-83c0-ba450198f221 4eadfc8f-22b5-4466-875d-fdbc5c922ea4 2ff6f683-d7e2-495e-9eff-88d522af87a7 04a9d1b4-c8c5-40af-bf9e-9ced6a7225fe 8f5dc7a6-5b90-44b7-b712-ee396e4357b5 2211d720-5e3f-45b6-bcb4-437b2a43baed d6fc47a5-b84d-4287-b973-aa5b37410270 591e7af3-4f37-4f90-86ba-62400c6e649b
-:BLOCKER:  595df230-e31d-42ad-9ea7-128e545b9aa0 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 001fb310-69f7-4417-81be-a224a3bf83e0 55125136-5939-434e-9676-96ea66a75770 37147e9e-468b-43ee-91f9-45d9647c6164 64d34a64-d336-40a8-a8e8-da8133d0da06 445ec1f1-095a-462b-abbd-7a3a00925ddb d30b3481-374c-4921-9fdb-284dd8e09e14 3a6ff84e-ed47-4c83-94ff-18c439dd842c 22264369-2d9d-4339-9b97-f3ea25ad0137 a4acdd35-ddba-4557-8dcb-86bc754374db 94e7b511-0adb-4afc-83c0-ba450198f221 4eadfc8f-22b5-4466-875d-fdbc5c922ea4 2ff6f683-d7e2-495e-9eff-88d522af87a7 04a9d1b4-c8c5-40af-bf9e-9ced6a7225fe 8f5dc7a6-5b90-44b7-b712-ee396e4357b5 2211d720-5e3f-45b6-bcb4-437b2a43baed d6fc47a5-b84d-4287-b973-aa5b37410270 591e7af3-4f37-4f90-86ba-62400c6e649b
+:BLOCKER:  3485b0d0-3b47-4a28-ae6f-e2061fa8f226 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 001fb310-69f7-4417-81be-a224a3bf83e0 55125136-5939-434e-9676-96ea66a75770 d30b3481-374c-4921-9fdb-284dd8e09e14 3a6ff84e-ed47-4c83-94ff-18c439dd842c 22264369-2d9d-4339-9b97-f3ea25ad0137 a4acdd35-ddba-4557-8dcb-86bc754374db 94e7b511-0adb-4afc-83c0-ba450198f221 4eadfc8f-22b5-4466-875d-fdbc5c922ea4 2ff6f683-d7e2-495e-9eff-88d522af87a7 04a9d1b4-c8c5-40af-bf9e-9ced6a7225fe 8f5dc7a6-5b90-44b7-b712-ee396e4357b5 2211d720-5e3f-45b6-bcb4-437b2a43baed
+:DROPPED:  595df230-e31d-42ad-9ea7-128e545b9aa0 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 37147e9e-468b-43ee-91f9-45d9647c6164 64d34a64-d336-40a8-a8e8-da8133d0da06 d6fc47a5-b84d-4287-b973-aa5b37410270 591e7af3-4f37-4f90-86ba-62400c6e649b 445ec1f1-095a-462b-abbd-7a3a00925ddb
 :END:
 :PLAN:
 Divided out of [[id:c7619140-f269-4329-bc05-a38ea151e202][c7619140]] on 2026-10-09 (the user, a three-way split): the "clock
@@ -4226,6 +4414,15 @@ The order, one line each:
 - [[id:37147e9e-468b-43ee-91f9-45d9647c6164][37147e9e]] and [[id:64d34a64-d336-40a8-a8e8-da8133d0da06][64d34a64]]: reporting, worked headings without a clock interval and a parent's own time in a clocktable, which need the record right first.
 - [[id:d6fc47a5-b84d-4287-b973-aa5b37410270][d6fc47a5]] and [[id:591e7af3-4f37-4f90-86ba-62400c6e649b][591e7af3]]: past days' clock records moved out of TODO.org, Review and planning's day nodes and Review attention's LOGBOOK. Folded in from [[id:f9fe9fac-a423-4ede-bc42-1d201c2c3d82][f9fe9fac]] on 2026-11-25 (the user); they come after reporting because they move CLOCK lines its clocktables read.
 - [[id:445ec1f1-095a-462b-abbd-7a3a00925ddb][445ec1f1]] last: the A/B comparison across the fixes, which measures the slice itself.
+
+Divided 2026-11-25 (the user, the slice-coherence review), along this slice's
+own title. The attention clock ([[id:595df230-e31d-42ad-9ea7-128e545b9aa0][595df230]], [[id:e3d1531d-7562-4bad-bef2-fc819630c5f7][e3d1531d]], [[id:b5448133-4021-46b9-a90e-d88e149ae65d][b5448133]]) went to [[id:8696bf65-1a8d-486b-80e9-a1454eb0e519][8696bf65]],
+0.2.1, and reporting and the past-days pair ([[id:37147e9e-468b-43ee-91f9-45d9647c6164][37147e9e]], [[id:64d34a64-d336-40a8-a8e8-da8133d0da06][64d34a64]], [[id:d6fc47a5-b84d-4287-b973-aa5b37410270][d6fc47a5]],
+[[id:591e7af3-4f37-4f90-86ba-62400c6e649b][591e7af3]], [[id:445ec1f1-095a-462b-abbd-7a3a00925ddb][445ec1f1]]) to [[id:f155ed56-ec52-432e-9a4c-9db0250dfb34][f155ed56]], 0.2.2. All eight are in :DROPPED: here, and the
+receiving slices' plans now order them. This slice keeps the record's
+correctness: 14 members. Ten of them ([[id:d30b3481-374c-4921-9fdb-284dd8e09e14][d30b3481]], [[id:3a6ff84e-ed47-4c83-94ff-18c439dd842c][3a6ff84e]], [[id:22264369-2d9d-4339-9b97-f3ea25ad0137][22264369]], [[id:a4acdd35-ddba-4557-8dcb-86bc754374db][a4acdd35]],
+[[id:94e7b511-0adb-4afc-83c0-ba450198f221][94e7b511]], [[id:4eadfc8f-22b5-4466-875d-fdbc5c922ea4][4eadfc8f]], [[id:2ff6f683-d7e2-495e-9eff-88d522af87a7][2ff6f683]], [[id:04a9d1b4-c8c5-40af-bf9e-9ced6a7225fe][04a9d1b4]], [[id:8f5dc7a6-5b90-44b7-b712-ee396e4357b5][8f5dc7a6]], [[id:2211d720-5e3f-45b6-bcb4-437b2a43baed][2211d720]]) joined without a
+line above, so their order is for /plan-slice to settle. Followed by [[id:8696bf65-1a8d-486b-80e9-a1454eb0e519][8696bf65]].
 :END:
 
 The clock record's own correctness and reporting, divided out of [[id:c7619140-f269-4329-bc05-a38ea151e202][c7619140]] on
@@ -4233,16 +4430,16 @@ The clock record's own correctness and reporting, divided out of [[id:c7619140-f
 
 Planned:
 
-- [ ] [[id:595df230-e31d-42ad-9ea7-128e545b9aa0][595df230]] TODO The review-attention clock is a real org clock, so the buffer stays busy for the whole review and apply's first clock-in closes it
-- [ ] [[id:e3d1531d-7562-4bad-bef2-fc819630c5f7][e3d1531d]] TODO The review-attention clock stops at the first apply, so 101 intervals measure the wrong thing
-- [ ] [[id:b5448133-4021-46b9-a90e-d88e149ae65d][b5448133]] TODO Rebuild the 101 truncated review-attention intervals from the audit log
+- [[id:595df230-e31d-42ad-9ea7-128e545b9aa0][595df230]] TODO The review-attention clock is a real org clock, so the buffer stays busy for the whole review and apply's first clock-in closes it
+- [[id:e3d1531d-7562-4bad-bef2-fc819630c5f7][e3d1531d]] TODO The review-attention clock stops at the first apply, so 101 intervals measure the wrong thing
+- [[id:b5448133-4021-46b9-a90e-d88e149ae65d][b5448133]] TODO Rebuild the 101 truncated review-attention intervals from the audit log
 - [ ] [[id:3485b0d0-3b47-4a28-ae6f-e2061fa8f226][3485b0d0]] TODO A session that ends holding an open clock never closes it: 8 of 42 clocking sessions end on a clock_in
 - [ ] [[id:2d100d0d-2d04-43b9-af1e-f4d6b52bbada][2d100d0d]] TODO Intervals on two different headings can overlap, and subtraction reaches only one
 - [ ] [[id:001fb310-69f7-4417-81be-a224a3bf83e0][001fb310]] TODO Stale entries in org-clock's persisted history hang the first clock-in after a restart
 - [-] [[id:55125136-5939-434e-9676-96ea66a75770][55125136]] WAITING Decide whether queue-append should derive clock events from DOING transitions, reversing the separation 4f6a6bb1 chose
-- [ ] [[id:37147e9e-468b-43ee-91f9-45d9647c6164][37147e9e]] TODO Report worked headings that carry no clock interval that day
-- [ ] [[id:64d34a64-d336-40a8-a8e8-da8133d0da06][64d34a64]] NEXT A clocktable never shows a parent's own time, only own-plus-subtree
-- [ ] [[id:445ec1f1-095a-462b-abbd-7a3a00925ddb][445ec1f1]] TODO A/B the clock record across the phase-3 fixes, since much of what is logged now is bogus
+- [[id:37147e9e-468b-43ee-91f9-45d9647c6164][37147e9e]] TODO Report worked headings that carry no clock interval that day
+- [[id:64d34a64-d336-40a8-a8e8-da8133d0da06][64d34a64]] NEXT A clocktable never shows a parent's own time, only own-plus-subtree
+- [[id:445ec1f1-095a-462b-abbd-7a3a00925ddb][445ec1f1]] TODO A/B the clock record across the phase-3 fixes, since much of what is logged now is bogus
 - [ ] [[id:d30b3481-374c-4921-9fdb-284dd8e09e14][d30b3481]] TODO The time-tracking stamp is global and every project's session start rewrites it, so the last session to start decides whether the review pass opens a clock
 - [ ] [[id:3a6ff84e-ed47-4c83-94ff-18c439dd842c][3a6ff84e]] TODO A permission block left open when a prompt is dismissed is closed by the next turn's first tool call
 - [ ] [[id:22264369-2d9d-4339-9b97-f3ea25ad0137][22264369]] TODO The stale-interval report treats a clock that is still running as crash residue, and its recovery call corrupts that clock
@@ -4253,8 +4450,8 @@ Planned:
 - [ ] [[id:04a9d1b4-c8c5-40af-bf9e-9ced6a7225fe][04a9d1b4]] TODO A sub-minute run rounded up to a minute can overlap the next run, counting a minute twice and crediting a permission wait
 - [ ] [[id:8f5dc7a6-5b90-44b7-b712-ee396e4357b5][8f5dc7a6]] TODO Allocated shares spill outside their window and overlap the next window's shares
 - [ ] [[id:2211d720-5e3f-45b6-bcb4-437b2a43baed][2211d720]] TODO A residue bookend is laid over a qualifying attention interval instead of through the day's gaps
-- [ ] [[id:d6fc47a5-b84d-4287-b973-aa5b37410270][d6fc47a5]] TODO Distribute Review and planning's past day nodes into DONE.org's datetree
-- [ ] [[id:591e7af3-4f37-4f90-86ba-62400c6e649b][591e7af3]] TODO Bound Review attention's LOGBOOK by refiling old entries into dated clones
+- [[id:d6fc47a5-b84d-4287-b973-aa5b37410270][d6fc47a5]] TODO Distribute Review and planning's past day nodes into DONE.org's datetree
+- [[id:591e7af3-4f37-4f90-86ba-62400c6e649b][591e7af3]] TODO Bound Review attention's LOGBOOK by refiling old entries into dated clones
 
 
 * MAYBE Separate what the machinery requires from what this project prefers, so a consumer can change the second :code:arch:
@@ -5164,15 +5361,15 @@ and those 53 are cleared, unless [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128
 move generalised to :DEBRIEF:. Details in :PLAN:.
 
 
-* TODO [0/14] 0.0.4: A slice's checklist can disagree with its members, and nothing can say so or fix it :code:
+* TODO [0/15] 0.0.4: A slice's checklist can disagree with its members, and nothing can say so or fix it :code:
 :PROPERTIES:
 :ID:       7dcec489-f5dd-4f7f-b819-a25405436b9b
 :CREATED:  [2026-09-28 Mon 08:26]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:MEMBERS:  cdff5c91-3dc1-476e-a8f2-5293570a19fc a00ace04-99bd-414a-8dc7-df8305126589 a508c59e-475e-4d27-84c9-6c3ded98e15c 6f3a5342-1905-4831-b712-3b6e5e83e0c4 6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0 b112878e-6313-4bc6-bc3f-0533d5f1ad1b dc68d831-9e04-4f0a-8b8b-8087b39c6037 6a6f6708-eefd-4d77-8ca0-0c5aaaa80796 b3949615-9260-4d97-a33f-7d74ee45ccb1 5fa51c64-297e-4937-b3eb-1535b84151aa 23303aab-e151-449f-997c-0b5a9d2cc5eb 6385df59-ca01-48f8-9a91-d9319fa8de15 0b3b6566-0b20-4df1-aa20-f303512c5c6b 3685c3bc-92fe-4c21-b43c-406b4ba6674c
-:BLOCKER:  cdff5c91-3dc1-476e-a8f2-5293570a19fc a00ace04-99bd-414a-8dc7-df8305126589 a508c59e-475e-4d27-84c9-6c3ded98e15c 6f3a5342-1905-4831-b712-3b6e5e83e0c4 6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0 b112878e-6313-4bc6-bc3f-0533d5f1ad1b dc68d831-9e04-4f0a-8b8b-8087b39c6037 6a6f6708-eefd-4d77-8ca0-0c5aaaa80796 b3949615-9260-4d97-a33f-7d74ee45ccb1 5fa51c64-297e-4937-b3eb-1535b84151aa 23303aab-e151-449f-997c-0b5a9d2cc5eb 6385df59-ca01-48f8-9a91-d9319fa8de15 0b3b6566-0b20-4df1-aa20-f303512c5c6b 3685c3bc-92fe-4c21-b43c-406b4ba6674c
+:MEMBERS:  cdff5c91-3dc1-476e-a8f2-5293570a19fc a00ace04-99bd-414a-8dc7-df8305126589 a508c59e-475e-4d27-84c9-6c3ded98e15c 6f3a5342-1905-4831-b712-3b6e5e83e0c4 6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0 b112878e-6313-4bc6-bc3f-0533d5f1ad1b dc68d831-9e04-4f0a-8b8b-8087b39c6037 6a6f6708-eefd-4d77-8ca0-0c5aaaa80796 b3949615-9260-4d97-a33f-7d74ee45ccb1 5fa51c64-297e-4937-b3eb-1535b84151aa 23303aab-e151-449f-997c-0b5a9d2cc5eb 0c18b5c1-1cc5-4f18-8ba0-e2949e9dba34 6385df59-ca01-48f8-9a91-d9319fa8de15 0b3b6566-0b20-4df1-aa20-f303512c5c6b 3685c3bc-92fe-4c21-b43c-406b4ba6674c
+:BLOCKER:  cdff5c91-3dc1-476e-a8f2-5293570a19fc a00ace04-99bd-414a-8dc7-df8305126589 a508c59e-475e-4d27-84c9-6c3ded98e15c 6f3a5342-1905-4831-b712-3b6e5e83e0c4 6af8fb3e-7b19-4ab8-a79d-29e0ca4649a0 b112878e-6313-4bc6-bc3f-0533d5f1ad1b dc68d831-9e04-4f0a-8b8b-8087b39c6037 6a6f6708-eefd-4d77-8ca0-0c5aaaa80796 b3949615-9260-4d97-a33f-7d74ee45ccb1 5fa51c64-297e-4937-b3eb-1535b84151aa 23303aab-e151-449f-997c-0b5a9d2cc5eb 0c18b5c1-1cc5-4f18-8ba0-e2949e9dba34 6385df59-ca01-48f8-9a91-d9319fa8de15 0b3b6566-0b20-4df1-aa20-f303512c5c6b 3685c3bc-92fe-4c21-b43c-406b4ba6674c
 :END:
 :PLAN:
 Composed 2026-09-28 from the backlog survey, at the user's direction. The theme:
@@ -5215,6 +5412,11 @@ so they stay separate headings sequenced together. [[id:4d896425-586a-4a5e-8d13-
 
 Followed by [[id:005fef09-e34f-4994-8c0d-6d17ada3d7ac][005fef09]] (the user, 2026-10-28): a consumer's first tagged version
 should carry this slice's fixes.
+
+Revised 2026-11-25 (the user, the slice-coherence review): [[id:0c18b5c1-1cc5-4f18-8ba0-e2949e9dba34][0c18b5c1]] joined from
+[[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]], after [[id:23303aab-e151-449f-997c-0b5a9d2cc5eb][23303aab]]. An append to :DROPPED: shortens the list, and it
+belongs with the other :DROPPED: and :MEMBERS: defects ([[id:6f3a5342-1905-4831-b712-3b6e5e83e0c4][6f3a5342]], [[id:23303aab-e151-449f-997c-0b5a9d2cc5eb][23303aab]]).
+This slice is now 0.0.5, after the org_amend retirement [[id:f8e82978-a1d3-48dc-9aea-d13ec821cdfe][f8e82978]].
 :END:
 
 Planned:
@@ -5230,6 +5432,7 @@ Planned:
 - [ ] [[id:b3949615-9260-4d97-a33f-7d74ee45ccb1][b3949615]] TODO A blank line inside a slice's checklist leaves stale duplicate lines that no refresh removes, and the cookie counts them
 - [ ] [[id:5fa51c64-297e-4937-b3eb-1535b84151aa][5fa51c64]] TODO A duplicate id in a slice's :MEMBERS: renders twice and counts twice, and lint says nothing
 - [ ] [[id:23303aab-e151-449f-997c-0b5a9d2cc5eb][23303aab]] TODO A :DROPPED: id that names no member does nothing, and no lint rule reads :DROPPED: though a comment says one does
+- [ ] [[id:0c18b5c1-1cc5-4f18-8ba0-e2949e9dba34][0c18b5c1]] TODO org_set_property ignores append on :DROPPED: and every property but :BLOCKER:, so an append shortens the list and reports success
 - [ ] [[id:6385df59-ca01-48f8-9a91-d9319fa8de15][6385df59]] TODO A slice-scoped org_outline lists derived parent rows and incidentals as members, because it reads the body rather than :MEMBERS:
 - [ ] [[id:0b3b6566-0b20-4df1-aa20-f303512c5c6b][0b3b6566]] TODO A deferred or cancelled slice member loses its box and nothing else, so it reads as a parent row; strike it through instead
 - [ ] [[id:3685c3bc-92fe-4c21-b43c-406b4ba6674c][3685c3bc]] TODO The conventions tell a slice to declare a story and its children together, which the lint refuses
@@ -5248,9 +5451,9 @@ enough to run on every exit.
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:MEMBERS:  a8ccd6ac-3452-4926-b176-ff5951dcd5b2 c35087d8-19fe-4179-a61c-cb615b2e7679 b2d4012c-6c61-47df-8086-d1cd205c73fc 5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997 c0c5e015-c33e-4e1a-ad6e-907f9fa56c07 4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8 8326a46f-e3f9-4ecc-8bc2-05d54907987b d842b9e7-fd75-45eb-80fd-597daa3e36b0 fd29914e-0d18-4964-a104-37c136b311a6 ecbbec2e-50d9-4581-9ded-15716f16c5f3 94fe3c57-89f6-4d17-943e-0cb6145f3419 c6b068aa-f9de-4edc-a5b3-380bff666d2e eeb18e56-fcfd-4653-86e6-09448474de07 e4734e2c-2083-413b-941d-9503dd0f4a23 0c18b5c1-1cc5-4f18-8ba0-e2949e9dba34 32b790fd-9a72-46a5-863d-a32d5e54457e
-:BLOCKER:  a8ccd6ac-3452-4926-b176-ff5951dcd5b2 c35087d8-19fe-4179-a61c-cb615b2e7679 b2d4012c-6c61-47df-8086-d1cd205c73fc 5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997 c0c5e015-c33e-4e1a-ad6e-907f9fa56c07 4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8 8326a46f-e3f9-4ecc-8bc2-05d54907987b d842b9e7-fd75-45eb-80fd-597daa3e36b0 ecbbec2e-50d9-4581-9ded-15716f16c5f3 94fe3c57-89f6-4d17-943e-0cb6145f3419 c6b068aa-f9de-4edc-a5b3-380bff666d2e eeb18e56-fcfd-4653-86e6-09448474de07 e4734e2c-2083-413b-941d-9503dd0f4a23 0c18b5c1-1cc5-4f18-8ba0-e2949e9dba34 32b790fd-9a72-46a5-863d-a32d5e54457e
-:DROPPED:  fd29914e-0d18-4964-a104-37c136b311a6
+:MEMBERS:  a8ccd6ac-3452-4926-b176-ff5951dcd5b2 c35087d8-19fe-4179-a61c-cb615b2e7679 b2d4012c-6c61-47df-8086-d1cd205c73fc 5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997 c0c5e015-c33e-4e1a-ad6e-907f9fa56c07 4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8 8326a46f-e3f9-4ecc-8bc2-05d54907987b d842b9e7-fd75-45eb-80fd-597daa3e36b0 7e2a6608-16a7-419b-8a99-b8016583c094 8e33ea9e-54c0-458f-968d-28054dc464a7 fd29914e-0d18-4964-a104-37c136b311a6 a3ad9732-681c-4103-a9e2-5f919e60522c 412768a0-3d9b-4cfe-9264-3f214d4baed1 ed3e6862-db3e-4e81-badd-859ddf629400 ecbbec2e-50d9-4581-9ded-15716f16c5f3 94fe3c57-89f6-4d17-943e-0cb6145f3419 c6b068aa-f9de-4edc-a5b3-380bff666d2e eeb18e56-fcfd-4653-86e6-09448474de07 e4734e2c-2083-413b-941d-9503dd0f4a23 0c18b5c1-1cc5-4f18-8ba0-e2949e9dba34 32b790fd-9a72-46a5-863d-a32d5e54457e
+:BLOCKER:  a8ccd6ac-3452-4926-b176-ff5951dcd5b2 4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8 8326a46f-e3f9-4ecc-8bc2-05d54907987b d842b9e7-fd75-45eb-80fd-597daa3e36b0 7e2a6608-16a7-419b-8a99-b8016583c094 8e33ea9e-54c0-458f-968d-28054dc464a7 fd29914e-0d18-4964-a104-37c136b311a6 a3ad9732-681c-4103-a9e2-5f919e60522c 412768a0-3d9b-4cfe-9264-3f214d4baed1 ed3e6862-db3e-4e81-badd-859ddf629400 ecbbec2e-50d9-4581-9ded-15716f16c5f3 94fe3c57-89f6-4d17-943e-0cb6145f3419 c6b068aa-f9de-4edc-a5b3-380bff666d2e eeb18e56-fcfd-4653-86e6-09448474de07 32b790fd-9a72-46a5-863d-a32d5e54457e
+:DROPPED:  c35087d8-19fe-4179-a61c-cb615b2e7679 b2d4012c-6c61-47df-8086-d1cd205c73fc 5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997 c0c5e015-c33e-4e1a-ad6e-907f9fa56c07 e4734e2c-2083-413b-941d-9503dd0f4a23 0c18b5c1-1cc5-4f18-8ba0-e2949e9dba34
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-10-27 Tue 09:05] \\
@@ -5313,31 +5516,49 @@ rather than a heading.
 
 *Category mix:* all eleven are =Tools=.
 
-Followed by [[id:7dcec489-f5dd-4f7f-b819-a25405436b9b][7dcec489]], which now comes between this slice and [[id:005fef09-e34f-4994-8c0d-6d17ada3d7ac][005fef09]] (the user,
-2026-10-28, setting the order [[id:3bfa593c-c2da-4e44-b47f-2d5f0750f2aa][3bfa593c]], [[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]], [[id:7dcec489-f5dd-4f7f-b819-a25405436b9b][7dcec489]], [[id:005fef09-e34f-4994-8c0d-6d17ada3d7ac][005fef09]]): the slice
-machinery is fixed before a tagged release carries it. Since 2026-11-05 (the
-user) the order is [[id:3bfa593c-c2da-4e44-b47f-2d5f0750f2aa][3bfa593c]], [[id:4f49ea34-5b8c-4ad8-8dbb-6f17126c420f][4f49ea34]], [[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]], [[id:7dcec489-f5dd-4f7f-b819-a25405436b9b][7dcec489]], [[id:005fef09-e34f-4994-8c0d-6d17ada3d7ac][005fef09]]: the
-footnote slice goes second.
+Followed by [[id:f8e82978-a1d3-48dc-9aea-d13ec821cdfe][f8e82978]], the org_amend retirement (0.0.4), since 2026-11-25 (the
+user); [[id:7dcec489-f5dd-4f7f-b819-a25405436b9b][7dcec489]] follows that. Before then: followed by [[id:7dcec489-f5dd-4f7f-b819-a25405436b9b][7dcec489]], which came
+between this slice and [[id:005fef09-e34f-4994-8c0d-6d17ada3d7ac][005fef09]] (the user, 2026-10-28, setting the order
+[[id:3bfa593c-c2da-4e44-b47f-2d5f0750f2aa][3bfa593c]], [[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]], [[id:7dcec489-f5dd-4f7f-b819-a25405436b9b][7dcec489]], [[id:005fef09-e34f-4994-8c0d-6d17ada3d7ac][005fef09]]): the slice machinery is fixed before a
+tagged release carries it. Since 2026-11-05 (the user) the order is [[id:3bfa593c-c2da-4e44-b47f-2d5f0750f2aa][3bfa593c]],
+[[id:4f49ea34-5b8c-4ad8-8dbb-6f17126c420f][4f49ea34]], [[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]], [[id:7dcec489-f5dd-4f7f-b819-a25405436b9b][7dcec489]], [[id:005fef09-e34f-4994-8c0d-6d17ada3d7ac][005fef09]]: the footnote slice goes second.
+
+Revised 2026-11-25 (the user, the slice-coherence review). The org_amend
+retirement ([[id:c35087d8-19fe-4179-a61c-cb615b2e7679][c35087d8]], [[id:b2d4012c-6c61-47df-8086-d1cd205c73fc][b2d4012c]], [[id:5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997][5b46fbfd]], [[id:c0c5e015-c33e-4e1a-ad6e-907f9fa56c07][c0c5e015]], [[id:e4734e2c-2083-413b-941d-9503dd0f4a23][e4734e2c]]) left for its own
+slice, 0.0.4, which follows this one; the retirement paragraph above now orders
+that slice's members. [[id:0c18b5c1-1cc5-4f18-8ba0-e2949e9dba34][0c18b5c1]] moved to [[id:7dcec489-f5dd-4f7f-b819-a25405436b9b][7dcec489]], beside the other :DROPPED:
+defects. All six are in :DROPPED: here. Joined: [[id:a3ad9732-681c-4103-a9e2-5f919e60522c][a3ad9732]], [[id:412768a0-3d9b-4cfe-9264-3f214d4baed1][412768a0]] and [[id:ed3e6862-db3e-4e81-badd-859ddf629400][ed3e6862]]
+from [[id:3bfa593c-c2da-4e44-b47f-2d5f0750f2aa][3bfa593c]] after [[id:fd29914e-0d18-4964-a104-37c136b311a6][fd29914e]], which returned from there. They are the capture
+and prompt members, worked in the order [[id:3bfa593c-c2da-4e44-b47f-2d5f0750f2aa][3bfa593c]]'s plan gave them: [[id:a3ad9732-681c-4103-a9e2-5f919e60522c][a3ad9732]],
+then [[id:412768a0-3d9b-4cfe-9264-3f214d4baed1][412768a0]] with [[id:fd29914e-0d18-4964-a104-37c136b311a6][fd29914e]] as one step, since both change --capture-write, then
+[[id:ed3e6862-db3e-4e81-badd-859ddf629400][ed3e6862]]. Also joined: [[id:7e2a6608-16a7-419b-8a99-b8016583c094][7e2a6608]] and [[id:8e33ea9e-54c0-458f-968d-28054dc464a7][8e33ea9e]] after [[id:d842b9e7-fd75-45eb-80fd-597daa3e36b0][d842b9e7]], because all three
+come from org-depend, and [[id:d842b9e7-fd75-45eb-80fd-597daa3e36b0][d842b9e7]]'s open choice about org-depend-tag-blocked
+decides most of [[id:8e33ea9e-54c0-458f-968d-28054dc464a7][8e33ea9e]].
 :END:
 
 Planned:
 
 - [ ] [[id:a8ccd6ac-3452-4926-b176-ff5951dcd5b2][a8ccd6ac]] TODO A boolean argument passed as false arrives as :false, which elisp reads as true
 - [[id:dd4b9a9f-ba8a-4f1f-a3da-38388e0cdb76][dd4b9a9f]] NEXT No org tool edits a phrase in place: org_amend appends or replaces the whole body
-  - [ ] [[id:c35087d8-19fe-4179-a61c-cb615b2e7679][c35087d8]] NEXT org_edit refuses an unsaved buffer, asks for the save in a header line, and the agent waits on it
-  - [ ] [[id:b2d4012c-6c61-47df-8086-d1cd205c73fc][b2d4012c]] TODO Retire org_amend in one move: hooks, prose, and the live headings renamed with org_edit
-- [ ] [[id:5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997][5b46fbfd]] TODO org_amend replace=true eats the blank lines before the next heading, so org stops seeing it
-- [ ] [[id:c0c5e015-c33e-4e1a-ad6e-907f9fa56c07][c0c5e015]] TODO org_amend accepts a headline-shaped line in drawer text, which tears the drawer open
+  - [[id:c35087d8-19fe-4179-a61c-cb615b2e7679][c35087d8]] NEXT org_edit refuses an unsaved buffer, asks for the save in a header line, and the agent waits on it
+  - [[id:b2d4012c-6c61-47df-8086-d1cd205c73fc][b2d4012c]] TODO Retire org_amend in one move: hooks, prose, and the live headings renamed with org_edit
+- [[id:5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997][5b46fbfd]] TODO org_amend replace=true eats the blank lines before the next heading, so org stops seeing it
+- [[id:c0c5e015-c33e-4e1a-ad6e-907f9fa56c07][c0c5e015]] TODO org_amend accepts a headline-shaped line in drawer text, which tears the drawer open
 - [ ] [[id:4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8][4a6f6dc3]] TODO A targetless org_capture from a session with no registered project writes to the global capture file, another project's tracker, and says nothing
 - [ ] [[id:8326a46f-e3f9-4ecc-8bc2-05d54907987b][8326a46f]] TODO claude-code-ide-org-capture reports a queued capture it never persists
 - [ ] [[id:d842b9e7-fd75-45eb-80fd-597daa3e36b0][d842b9e7]] TODO org_query blocked: errors on a read-only buffer, though a query changes nothing the user can see
-- [[id:fd29914e-0d18-4964-a104-37c136b311a6][fd29914e]] TODO org_capture runs in whatever buffer the user has selected, so an Org QL view turns a capture into a prompt nobody at the tool can answer
+- [ ] [[id:7e2a6608-16a7-419b-8a99-b8016583c094][7e2a6608]] TODO A DONE that a :BLOCKER: refuses fails at apply as "did not take effect", and org's own message names the blocker as ""
+- [ ] [[id:8e33ea9e-54c0-458f-968d-28054dc464a7][8e33ea9e]] TODO A DONE refused at apply leaves its note on org-depend's :blocked: tag line instead of a state line
+- [ ] [[id:fd29914e-0d18-4964-a104-37c136b311a6][fd29914e]] TODO org_capture runs in whatever buffer the user has selected, so an Org QL view turns a capture into a prompt nobody at the tool can answer
+- [ ] [[id:a3ad9732-681c-4103-a9e2-5f919e60522c][a3ad9732]] TODO org_set_property writes TODO, SCHEDULED and DEADLINE through org-entry-put, which changes the keyword live or opens a prompt
+- [ ] [[id:412768a0-3d9b-4cfe-9264-3f214d4baed1][412768a0]] TODO org_capture's title goes through capture-template expansion, so a newline splits the heading and %^ opens a prompt
+- [ ] [[id:ed3e6862-db3e-4e81-badd-859ddf629400][ed3e6862]] TODO A capture or refile that gives a heading its first keyworded child leaves it with no statistics cookie, which lint-org then refuses
 - [ ] [[id:ecbbec2e-50d9-4581-9ded-15716f16c5f3][ecbbec2e]] TODO Answer a bad tool call with its error rather than a hang, until upstream defines json-rpc-error
 - [ ] [[id:94fe3c57-89f6-4d17-943e-0cb6145f3419][94fe3c57]] TODO A live reload that changes a tool's description registers it a second time beside the stale one
 - [ ] [[id:c6b068aa-f9de-4edc-a5b3-380bff666d2e][c6b068aa]] TODO An ambiguous id prefix is reported as not found, and a short prefix can resolve to the wrong heading while the index is stale
 - [ ] [[id:eeb18e56-fcfd-4653-86e6-09448474de07][eeb18e56]] TODO org_set_tags and capture accept tag names org cannot parse, which land in the title while the logbook says the tag was set
-- [ ] [[id:e4734e2c-2083-413b-941d-9503dd0f4a23][e4734e2c]] TODO The body region drops the last line when the file has no final newline, so a replace glues it to the new text
-- [ ] [[id:0c18b5c1-1cc5-4f18-8ba0-e2949e9dba34][0c18b5c1]] TODO org_set_property ignores append on :DROPPED: and every property but :BLOCKER:, so an append shortens the list and reports success
+- [[id:e4734e2c-2083-413b-941d-9503dd0f4a23][e4734e2c]] TODO The body region drops the last line when the file has no final newline, so a replace glues it to the new text
+- [[id:0c18b5c1-1cc5-4f18-8ba0-e2949e9dba34][0c18b5c1]] TODO org_set_property ignores append on :DROPPED: and every property but :BLOCKER:, so an append shortens the list and reports success
 - [ ] [[id:32b790fd-9a72-46a5-863d-a32d5e54457e][32b790fd]] TODO A commit hash that does not resolve is written as plain text, so a guessed hash enters the record and nothing says so
 
 Five ways an =org_*= call tells its caller something other than what happened: a
@@ -6253,15 +6474,15 @@ and the org-lint triage per checker.
 - org-lint's own "possibly misplaced heading line" checker as the detector (measured 2026-09-25): =bin/lint-org= already runs it as a warning, and it reports 498 lines across the two files, nearly all prose lines opening with =*bold*= -- nobody reads a warning with that count, which is why neither glued heading was seen.
 
 
-* TODO [0/17] 0.3.0: The review pass asks for judgement it cannot support :code:
+* TODO [0/6] 0.3.0: The review pass asks for judgement it cannot support :code:
 :PROPERTIES:
 :ID:       c7619140-f269-4329-bc05-a38ea151e202
 :CREATED:  [2026-09-22 Tue 16:07]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  aee8487e-0650-4396-bc5c-193ca3efcecb 653fea66-f9d5-4431-8ce3-5d355560b475 85f4e03b-3c7a-4f75-86af-52e04b21cf32 445fe577-01ce-4e68-ab5f-c349c40a4643 2c733857-a280-42cc-bd7c-e182a4fb6ea3 5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46 e75d660f-5c0d-4707-a645-b5dea7d7ebc0 409a69ff-d57e-4c1c-ab6c-28f7e85fa391 49444167-7a29-491a-81b4-c5215fce9fc2 9b7301de-0903-4987-bb34-56f8f021fbd1 cf483f5d-2d25-4454-a580-db7935c8cb81 8028e875-3032-4ade-949e-414d9861b928 a865f83c-ea37-40c4-a104-7cc50d2c20dd 996fd2bd-be90-44b3-b2c5-9018255940b3 20cecd53-2338-4237-ab06-f8129e10a2c8 62a32f7b-9f7a-4ed3-88e0-939a687852eb 954e61b1-5bf8-49a1-b33e-cf07da5dc7ca
-:DROPPED:  361e2708-8124-4bd1-9c44-f97ca97aca4a 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd 79c224ab-188a-4ed4-a606-c28ee2cfe72d 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 41f21b4d-278d-4ad8-a56f-122f5af33d65 e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 6c64cc9c-33a9-4a20-af19-c188a690c755 ee3c22c9-f99c-4d41-9c3d-8f39af916fff 55125136-5939-434e-9676-96ea66a75770 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 001fb310-69f7-4417-81be-a224a3bf83e0 37147e9e-468b-43ee-91f9-45d9647c6164 445ec1f1-095a-462b-abbd-7a3a00925ddb 64d34a64-d336-40a8-a8e8-da8133d0da06 595df230-e31d-42ad-9ea7-128e545b9aa0 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d
+:BLOCKER:  aee8487e-0650-4396-bc5c-193ca3efcecb 653fea66-f9d5-4431-8ce3-5d355560b475 85f4e03b-3c7a-4f75-86af-52e04b21cf32 445fe577-01ce-4e68-ab5f-c349c40a4643 2c733857-a280-42cc-bd7c-e182a4fb6ea3 954e61b1-5bf8-49a1-b33e-cf07da5dc7ca
+:DROPPED:  361e2708-8124-4bd1-9c44-f97ca97aca4a 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd 79c224ab-188a-4ed4-a606-c28ee2cfe72d 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 41f21b4d-278d-4ad8-a56f-122f5af33d65 e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 6c64cc9c-33a9-4a20-af19-c188a690c755 ee3c22c9-f99c-4d41-9c3d-8f39af916fff 55125136-5939-434e-9676-96ea66a75770 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 001fb310-69f7-4417-81be-a224a3bf83e0 37147e9e-468b-43ee-91f9-45d9647c6164 445ec1f1-095a-462b-abbd-7a3a00925ddb 64d34a64-d336-40a8-a8e8-da8133d0da06 595df230-e31d-42ad-9ea7-128e545b9aa0 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46 cf483f5d-2d25-4454-a580-db7935c8cb81 49444167-7a29-491a-81b4-c5215fce9fc2 9b7301de-0903-4987-bb34-56f8f021fbd1 e75d660f-5c0d-4707-a645-b5dea7d7ebc0 409a69ff-d57e-4c1c-ab6c-28f7e85fa391 8028e875-3032-4ade-949e-414d9861b928 01849bef-fdc9-4c30-b467-00ca8606e8e0 330710fb-ea34-466b-96a0-7be947f37a1e 62a32f7b-9f7a-4ed3-88e0-939a687852eb a865f83c-ea37-40c4-a104-7cc50d2c20dd 996fd2bd-be90-44b3-b2c5-9018255940b3 20cecd53-2338-4237-ab06-f8129e10a2c8
 :MEMBERS:  55125136-5939-434e-9676-96ea66a75770 361e2708-8124-4bd1-9c44-f97ca97aca4a 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 aee8487e-0650-4396-bc5c-193ca3efcecb 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 653fea66-f9d5-4431-8ce3-5d355560b475 85f4e03b-3c7a-4f75-86af-52e04b21cf32 445fe577-01ce-4e68-ab5f-c349c40a4643 2c733857-a280-42cc-bd7c-e182a4fb6ea3 79c224ab-188a-4ed4-a606-c28ee2cfe72d 001fb310-69f7-4417-81be-a224a3bf83e0 489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938 5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46 e75d660f-5c0d-4707-a645-b5dea7d7ebc0 409a69ff-d57e-4c1c-ab6c-28f7e85fa391 49444167-7a29-491a-81b4-c5215fce9fc2 9b7301de-0903-4987-bb34-56f8f021fbd1 cf483f5d-2d25-4454-a580-db7935c8cb81 8028e875-3032-4ade-949e-414d9861b928 01849bef-fdc9-4c30-b467-00ca8606e8e0 330710fb-ea34-466b-96a0-7be947f37a1e ee3c22c9-f99c-4d41-9c3d-8f39af916fff e95cc5d1-f8ae-4aad-b9cd-5bd0277e1d4b 396fd1c3-70e0-4e1f-8839-670b5293a7d3 41f21b4d-278d-4ad8-a56f-122f5af33d65 6c64cc9c-33a9-4a20-af19-c188a690c755 a865f83c-ea37-40c4-a104-7cc50d2c20dd 996fd2bd-be90-44b3-b2c5-9018255940b3 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 595df230-e31d-42ad-9ea7-128e545b9aa0 20cecd53-2338-4237-ab06-f8129e10a2c8 37147e9e-468b-43ee-91f9-45d9647c6164 445ec1f1-095a-462b-abbd-7a3a00925ddb 64d34a64-d336-40a8-a8e8-da8133d0da06 2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd 62a32f7b-9f7a-4ed3-88e0-939a687852eb 954e61b1-5bf8-49a1-b33e-cf07da5dc7ca
 :END:
 :LOGBOOK:
@@ -6402,6 +6623,15 @@ the first.
 rather than the truncated =Review a=, and offering it by that name when a span
 is assigned. It belongs here rather than in [[id:5a4896c3-3d4e-4b12-9f9e-06b97d84b238][5a4896c3]] because that target only
 ever receives clock time.
+
+*Divided 2026-11-25 (the user, the slice-coherence review), along this plan's
+own phases.* The evidence and measurement members went to [[id:62d6d23b-dd28-43d5-8c43-d10cd702f4b6][62d6d23b]], 0.3.1, and
+are in :DROPPED: here: [[id:5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46][5a6d2c75]], [[id:cf483f5d-2d25-4454-a580-db7935c8cb81][cf483f5d]], [[id:49444167-7a29-491a-81b4-c5215fce9fc2][49444167]], [[id:9b7301de-0903-4987-bb34-56f8f021fbd1][9b7301de]], [[id:e75d660f-5c0d-4707-a645-b5dea7d7ebc0][e75d660f]],
+[[id:409a69ff-d57e-4c1c-ab6c-28f7e85fa391][409a69ff]], [[id:8028e875-3032-4ade-949e-414d9861b928][8028e875]], [[id:62a32f7b-9f7a-4ed3-88e0-939a687852eb][62a32f7b]], [[id:a865f83c-ea37-40c4-a104-7cc50d2c20dd][a865f83c]], [[id:996fd2bd-be90-44b3-b2c5-9018255940b3][996fd2bd]], [[id:20cecd53-2338-4237-ab06-f8129e10a2c8][20cecd53]], and the MAYBEs
+[[id:01849bef-fdc9-4c30-b467-00ca8606e8e0][01849bef]] and [[id:330710fb-ea34-466b-96a0-7be947f37a1e][330710fb]]. This slice keeps the record's active errors and the
+pass's failures to complete, six members: [[id:aee8487e-0650-4396-bc5c-193ca3efcecb][aee8487e]], [[id:653fea66-f9d5-4431-8ce3-5d355560b475][653fea66]], [[id:85f4e03b-3c7a-4f75-86af-52e04b21cf32][85f4e03b]],
+[[id:445fe577-01ce-4e68-ab5f-c349c40a4643][445fe577]], [[id:2c733857-a280-42cc-bd7c-e182a4fb6ea3][2c733857]], [[id:954e61b1-5bf8-49a1-b33e-cf07da5dc7ca][954e61b1]], each of which writes something false or fails at
+apply. Its title wants shortening to that. Followed by [[id:62d6d23b-dd28-43d5-8c43-d10cd702f4b6][62d6d23b]].
 :END:
 
 Thirty-four live headings carry `:CATEGORY: Apply` or `Clock`, and three
@@ -6428,13 +6658,13 @@ Planned:
 - [[id:79c224ab-188a-4ed4-a606-c28ee2cfe72d][79c224ab]] DONE Applied review changes can be destroyed by a git checkout that looks like it reverts only Claude's edit
 - [[id:001fb310-69f7-4417-81be-a224a3bf83e0][001fb310]] TODO Stale entries in org-clock's persisted history hang the first clock-in after a restart
 - [[id:489d6f61-0cd8-4b0c-9f9a-9abcf0cf3938][489d6f61]] DOING Emacs died of a fatal signal at review-buffer quit, deadlocked in the mac port's shutdown
-- [ ] [[id:5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46][5a6d2c75]] TODO An unassigned span's readout omits the evidence that would make its heading obvious
-- [ ] [[id:e75d660f-5c0d-4707-a645-b5dea7d7ebc0][e75d660f]] TODO AFK markers are ground truth for the one judgement we cannot automate, and we discard them
-- [ ] [[id:409a69ff-d57e-4c1c-ab6c-28f7e85fa391][409a69ff]] TODO Classify gaps by markers at either end, not by tracking an AFK state
-- [ ] [[id:49444167-7a29-491a-81b4-c5215fce9fc2][49444167]] TODO The review buffer's transcript context mixes sessions, mixes sort orders, and shows only one side of a span
-- [ ] [[id:9b7301de-0903-4987-bb34-56f8f021fbd1][9b7301de]] TODO A guidepost span is labelled with the first pending clock_in note of its heading, from any session and any date
-- [ ] [[id:cf483f5d-2d25-4454-a580-db7935c8cb81][cf483f5d]] TODO A span with no readable evidence prints nothing about itself, so absence is the only signal
-- [ ] [[id:8028e875-3032-4ade-949e-414d9861b928][8028e875]] TODO Type a span's annotation at review time, not by hand-editing it after
+- [[id:5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46][5a6d2c75]] TODO An unassigned span's readout omits the evidence that would make its heading obvious
+- [[id:e75d660f-5c0d-4707-a645-b5dea7d7ebc0][e75d660f]] TODO AFK markers are ground truth for the one judgement we cannot automate, and we discard them
+- [[id:409a69ff-d57e-4c1c-ab6c-28f7e85fa391][409a69ff]] TODO Classify gaps by markers at either end, not by tracking an AFK state
+- [[id:49444167-7a29-491a-81b4-c5215fce9fc2][49444167]] TODO The review buffer's transcript context mixes sessions, mixes sort orders, and shows only one side of a span
+- [[id:9b7301de-0903-4987-bb34-56f8f021fbd1][9b7301de]] TODO A guidepost span is labelled with the first pending clock_in note of its heading, from any session and any date
+- [[id:cf483f5d-2d25-4454-a580-db7935c8cb81][cf483f5d]] TODO A span with no readable evidence prints nothing about itself, so absence is the only signal
+- [[id:8028e875-3032-4ade-949e-414d9861b928][8028e875]] TODO Type a span's annotation at review time, not by hand-editing it after
 - [[id:6ea84943-9eef-4940-b850-e8cf79310d2a][6ea84943]] MAYBE A claimed span records agent time and human attention as one, and the reviewer has no picture of the span to judge from
   - [[id:01849bef-fdc9-4c30-b467-00ca8606e8e0][01849bef]] MAYBE A claim should keep the agent's runs and the user's attention apart, not record the whole span as attention
   - [[id:330710fb-ea34-466b-96a0-7be947f37a1e][330710fb]] MAYBE Show a span as a strip chart, its runs, gaps, waits and AFK markers on one line, so a claim is judged from the screen
@@ -6443,17 +6673,17 @@ Planned:
 - [[id:396fd1c3-70e0-4e1f-8839-670b5293a7d3][396fd1c3]] DONE Recenter after `m` advances, so the item under consideration is never at the bottom of the window
 - [[id:41f21b4d-278d-4ad8-a56f-122f5af33d65][41f21b4d]] DONE The review buffer has no keys to move between items; bind n and p to the next and previous item
 - [[id:6c64cc9c-33a9-4a20-af19-c188a690c755][6c64cc9c]] DONE claude-code-ide-org-review should return point and windows to where I entered from
-- [ ] [[id:a865f83c-ea37-40c4-a104-7cc50d2c20dd][a865f83c]] TODO Should a short 0-run span default to claimed, and where does the bound fall?
-- [ ] [[id:996fd2bd-be90-44b3-b2c5-9018255940b3][996fd2bd]] TODO A guidepost gap containing an apply timestamp is provably the human's attention
+- [[id:a865f83c-ea37-40c4-a104-7cc50d2c20dd][a865f83c]] TODO Should a short 0-run span default to claimed, and where does the bound fall?
+- [[id:996fd2bd-be90-44b3-b2c5-9018255940b3][996fd2bd]] TODO A guidepost gap containing an apply timestamp is provably the human's attention
 - [[id:e3d1531d-7562-4bad-bef2-fc819630c5f7][e3d1531d]] TODO The review-attention clock stops at the first apply, so 101 intervals measure the wrong thing
 - [[id:b5448133-4021-46b9-a90e-d88e149ae65d][b5448133]] TODO Rebuild the 101 truncated review-attention intervals from the audit log
 - [[id:595df230-e31d-42ad-9ea7-128e545b9aa0][595df230]] TODO The review-attention clock is a real org clock, so the buffer stays busy for the whole review and apply's first clock-in closes it
-- [ ] [[id:20cecd53-2338-4237-ab06-f8129e10a2c8][20cecd53]] TODO The human half of the ratio is already recorded, and thrown away
+- [[id:20cecd53-2338-4237-ab06-f8129e10a2c8][20cecd53]] TODO The human half of the ratio is already recorded, and thrown away
 - [[id:37147e9e-468b-43ee-91f9-45d9647c6164][37147e9e]] TODO Report worked headings that carry no clock interval that day
 - [[id:445ec1f1-095a-462b-abbd-7a3a00925ddb][445ec1f1]] TODO A/B the clock record across the phase-3 fixes, since much of what is logged now is bogus
 - [[id:64d34a64-d336-40a8-a8e8-da8133d0da06][64d34a64]] NEXT A clocktable never shows a parent's own time, only own-plus-subtree
 - [[id:2cd74268-5f54-4ac1-9fc7-2ef01e5f3edd][2cd74268]] TODO Let a task-only install auto-apply state transitions, behind a toggle
-- [ ] [[id:62a32f7b-9f7a-4ed3-88e0-939a687852eb][62a32f7b]] TODO The meta-work target renders as "Review a" in the review buffer; show it as R&P, and offer "R&P (Review and planning)" when assigning
+- [[id:62a32f7b-9f7a-4ed3-88e0-939a687852eb][62a32f7b]] TODO The meta-work target renders as "Review a" in the review buffer; show it as R&P, and offer "R&P (Review and planning)" when assigning
 - [ ] [[id:954e61b1-5bf8-49a1-b33e-cf07da5dc7ca][954e61b1]] TODO Editing a span with e drops a claim's active notation, and a refused edit still marks the item edited
 
 *Dropped 2026-09-23: [[id:01849bef-fdc9-4c30-b467-00ca8606e8e0][01849bef]],* the key for flipping a span's
