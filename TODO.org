@@ -7013,6 +7013,8 @@ at REVIEW. One dated line per catch.
 - [2026-09-23 Wed] Self-caught: the session filed [[id:9702f283-625d-4124-aa6f-808c3c913c26][9702f283]] and queued a story =NEXT= without reading the org conventions, although the first =org_*= call of the session had injected a pointer to them.
 - [2026-09-25 Fri] Self-caught: amending [[id:5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997][5b46fbfd]], the session cited four commits as bare verbatim SHAs, then read "Referring to a commit", which asks for =orgit-rev:= links. The conventions-inject pointer had named that section at the session's first org call. The fix could not go through =org_amend replace=true=, the very defect being recorded, so it was a surgical text edit with the buffer confirmed unmodified.
 - 2026-09-28 (self): 22 commit links written into bodies on 2026-09-27 used the path form =orgit-rev:~/git/claude-code-ide-org::SHA=. The org conventions, "Referring to a commit", say "Use the repo /name/, never a path." That section was never read before the links were written, and the close prompts given to four subagents repeated the path form. Two of the subagents caught it by reading the convention. All 24 links were normalised the same day.
+- [2026-11-25 Wed] Caught by the user, at apply: [[id:f9fe9fac-a423-4ede-bc42-1d201c2c3d82][f9fe9fac]]'s two members were folded into [[id:7ae1cff4-c0df-4ac0-9aea-a778b2373061][7ae1cff4]] without dropping them from [[id:f9fe9fac-a423-4ede-bc42-1d201c2c3d82][f9fe9fac]], which the conventions' "Dropping a member from a slice" requires when work moves. Its :BLOCKER: still named both TODO members, so org-depend refused the queued CANCELLED, and the apply reported only that the keyword did not change ([[id:f128a8b1-5769-4d48-b947-dfaf9a58fbcd][f128a8b1]]).
+
 
 
 ** TODO Miss: a prediction or a claim about state reported as fact without checking the artifact
@@ -12275,15 +12277,15 @@ cannot be interpreted.
 and only an instrument outside the clock system answers it.
 
 
-* TODO [0/2] Past days' records never leave TODO.org :code:blocked:
+* TODO [0/0] Past days' records never leave TODO.org :code:blocked:
 :PROPERTIES:
 :ID:       f9fe9fac-a423-4ede-bc42-1d201c2c3d82
 :CREATED:  [2026-08-31 Mon 12:07]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  d6fc47a5-b84d-4287-b973-aa5b37410270 591e7af3-4f37-4f90-86ba-62400c6e649b
 :MEMBERS:  d6fc47a5-b84d-4287-b973-aa5b37410270 591e7af3-4f37-4f90-86ba-62400c6e649b
+:DROPPED:  d6fc47a5-b84d-4287-b973-aa5b37410270 591e7af3-4f37-4f90-86ba-62400c6e649b
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-31 Mon 12:07]
@@ -12318,8 +12320,8 @@ went where.
 
 Planned:
 
-- [ ] [[id:d6fc47a5-b84d-4287-b973-aa5b37410270][d6fc47a5]] TODO Distribute Review and planning's past day nodes into DONE.org's datetree
-- [ ] [[id:591e7af3-4f37-4f90-86ba-62400c6e649b][591e7af3]] TODO Bound Review attention's LOGBOOK by refiling old entries into dated clones
+- [[id:d6fc47a5-b84d-4287-b973-aa5b37410270][d6fc47a5]] TODO Distribute Review and planning's past day nodes into DONE.org's datetree
+- [[id:591e7af3-4f37-4f90-86ba-62400c6e649b][591e7af3]] TODO Bound Review attention's LOGBOOK by refiling old entries into dated clones
 
 Folded into [[id:7ae1cff4-c0df-4ac0-9aea-a778b2373061][7ae1cff4]] (0.2.0) on 2026-11-25 (the user): both members moved there,
 and this slice is cancelled with nothing left to undertake. The outside block it
