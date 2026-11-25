@@ -8,6 +8,22 @@
 :CREATED:  [2026-11-25 Wed 11:13]
 :CATEGORY: Skill
 :END:
+:LOGBOOK:
+CLOCK: [2026-11-25 Wed 10:06]--[2026-11-25 Wed 10:07] =>  0:01
+- [2026-11-25 Wed 10:06]--[2026-11-25 Wed 10:07] assigned at review
+CLOCK: [2026-11-25 Wed 10:11]--[2026-11-25 Wed 10:12] =>  0:01
+- [2026-11-25 Wed 10:11]--[2026-11-25 Wed 10:12] assigned at review
+CLOCK: [2026-11-25 Wed 10:14]--[2026-11-25 Wed 10:15] =>  0:01
+- [2026-11-25 Wed 10:14]--[2026-11-25 Wed 10:15] assigned at review
+CLOCK: [2026-11-25 Wed 10:20]--[2026-11-25 Wed 10:21] =>  0:01
+- [2026-11-25 Wed 10:20]--[2026-11-25 Wed 10:21] assigned at review
+CLOCK: [2026-11-25 Wed 10:26]--[2026-11-25 Wed 10:27] =>  0:01
+- [2026-11-25 Wed 10:26]--[2026-11-25 Wed 10:27] assigned at review
+CLOCK: [2026-11-25 Wed 11:15]--[2026-11-25 Wed 11:16] =>  0:01
+- [2026-11-25 Wed 11:15]--[2026-11-25 Wed 11:16] assigned at review
+CLOCK: [2026-11-25 Wed 11:23]--[2026-11-25 Wed 11:24] =>  0:01
+- [2026-11-25 Wed 11:23]--[2026-11-25 Wed 11:24] assigned at review
+:END:
 :PLAN:
 
 :END:
@@ -27,6 +43,8 @@ Acceptance criteria:
 
 Modelled on noodle-salesman, whose release slices carry the version (0.2.4,
 0.3.0) and whose stories open with this note (14 open, 13 closed, 2026-11-25).
+
+
 ** NEXT Slices are ordered by "Followed by" lines in their plans, not by the release version their titles now carry :code:
 :PROPERTIES:
 :ID:       ef770d58-2137-418f-923d-69acae6f88bd
@@ -48,6 +66,8 @@ whose slices carry no version needs a fallback or a stated requirement.
 plugin.json says 0.1.0, ahead of the 0.0.x releases, and goes back to 0.0.1 on
 the [[id:3bfa593c-c2da-4e44-b47f-2d5f0750f2aa][3bfa593c]] branch. Related: [[id:d5d9fdec-5fac-4035-a630-62ba48582cd6][d5d9fdec]], where nothing refuses starting a slice
 out of order; a version gives it something to check against.
+
+
 ** TODO The plugin has never been tagged or version-bumped, and nothing would notice :code:
 :PROPERTIES:
 :ID:       827e1c42-708e-4f1d-bf25-d8b8b980b7ef
@@ -112,6 +132,8 @@ proposes :KIND: story with lint, capture and outline support, retiring
 "container". Whether the mark is that body note or :KIND: story is [[id:0b5cacf5-9299-499d-9036-2da2625c1233][0b5cacf5]]'s
 question, refiled beside this one. Settle the vocabulary, write the form into
 the shipped org conventions, and keep the proposal somewhere tracked.
+
+
 ** TODO The conventions never say how stories and slices compose, and "not declared" reads as a ban on composing one :code:
 :PROPERTIES:
 :ID:       0b5cacf5-9299-499d-9036-2da2625c1233
@@ -121,6 +143,8 @@ the shipped org conventions, and keep the proposal somewhere tracked.
 :LOGBOOK:
 CLOCK: [2026-10-27 Tue 11:10]--[2026-10-27 Tue 11:11] =>  0:01
 - [2026-10-27 Tue 11:10]--[2026-10-27 Tue 11:11] add the story-children membership rule to the plan
+CLOCK: [2026-11-25 Wed 11:24]--[2026-11-25 Wed 11:25] =>  0:01
+- [2026-11-25 Wed 11:24]--[2026-11-25 Wed 11:25] record that noodle-salesman stories span slices
 :END:
 :PLAN:
 
@@ -206,7 +230,6 @@ whether the body note alone marks a story, or :KIND: story finds another reader,
 is open (the user, 2026-11-25, asked only that this be confirmed).
 
 
-
 ** TODO Scan the open backlog, open stories' members included, and compose it into coherent user stories
 :PROPERTIES:
 :ID:       c7f8f58c-9511-4df2-954b-7bd9f2354e68
@@ -220,6 +243,7 @@ grouping, and a worked heading moves by refile, never by copy. Today's groupings
 that are only task bundles (a review's findings, a technical breakdown) are
 named as such rather than forced into stories. Slices then take whole stories
 where they can.
+
 
 * TODO A commit hash that does not resolve is written as plain text, so a guessed hash enters the record and nothing says so :code:
 :PROPERTIES:
@@ -286,6 +310,8 @@ CLOCK: [2026-11-19 Thu 14:52]--[2026-11-19 Thu 14:53] =>  0:01
 - [2026-11-23 Mon 11:02]--[2026-11-23 Mon 11:02] place leftovers beside their original
 - [2026-11-24 Tue 09:22]--[2026-11-24 Tue 09:22] place leftovers beside their original
 - [2026-11-24 Tue 12:20]--[2026-11-24 Tue 12:20] place leftovers beside their original
+- [2026-11-24 Tue 12:23]--[2026-11-24 Tue 12:23] place leftovers beside their original
+- [2026-11-25 Wed 09:59]--[2026-11-25 Wed 09:59] place leftovers beside their original
 :END:
 :PLAN:
 Bounded: one function, --review-insert-remainders. Insert each leftover beside
@@ -2602,7 +2628,8 @@ Planned:
 - [ ] [[id:9a8013d7-7525-466b-9aaf-10eb647f5e9f][9a8013d7]] TODO lint-org with no arguments lints the plugin checkout, not the consuming repo, and passes
 - [ ] [[id:0e2f2e2f-c231-4f25-92cc-a37b63535efc][0e2f2e2f]] TODO Burying the review buffer stamps the ceremony done while apply failures are still pending, though the session-start docstring says it waits for them
 - [ ] [[id:826d621c-25f5-4f06-9961-4b23f8658880][826d621c]] TODO SessionStart runs the ceremony's write steps inside a 15 s hook, on whatever branch is checked out
-- [ ] [[id:827e1c42-708e-4f1d-bf25-d8b8b980b7ef][827e1c42]] TODO The plugin has never been tagged or version-bumped, and nothing would notice
+- [[id:a5a05306-9d37-413d-b44f-fa8d5ca058b8][a5a05306]] TODO Releases are planned as versioned slices that close whole user stories
+  - [ ] [[id:827e1c42-708e-4f1d-bf25-d8b8b980b7ef][827e1c42]] TODO The plugin has never been tagged or version-bumped, and nothing would notice
 
 
 * TODO A launcher session's exit stops the IDE companion that standalone wiring started for the same directory :code:
@@ -6851,7 +6878,6 @@ One dated line per catch.
 - [2026-11-25 Wed] Self-caught: proposing versions for the open slices, a hand-written end-matter block gave [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]] as "Build DONE.org's datetree in descending order", recalled; org_footnotes was available and was not called. Its title is "Reorder DONE.org as a datetree descending by CLOSED:, and fix archiving into one".
 
 
-
 ** TODO Miss: tracked work done under no clock, the wrong clock, or a clock closed before the work ended
 :PROPERTIES:
 :ID:       a4005ebc-8be7-4def-b551-2911020333a9
@@ -6987,6 +7013,8 @@ at REVIEW. One dated line per catch.
 - [2026-09-23 Wed] Self-caught: the session filed [[id:9702f283-625d-4124-aa6f-808c3c913c26][9702f283]] and queued a story =NEXT= without reading the org conventions, although the first =org_*= call of the session had injected a pointer to them.
 - [2026-09-25 Fri] Self-caught: amending [[id:5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997][5b46fbfd]], the session cited four commits as bare verbatim SHAs, then read "Referring to a commit", which asks for =orgit-rev:= links. The conventions-inject pointer had named that section at the session's first org call. The fix could not go through =org_amend replace=true=, the very defect being recorded, so it was a surgical text edit with the buffer confirmed unmodified.
 - 2026-09-28 (self): 22 commit links written into bodies on 2026-09-27 used the path form =orgit-rev:~/git/claude-code-ide-org::SHA=. The org conventions, "Referring to a commit", say "Use the repo /name/, never a path." That section was never read before the links were written, and the close prompts given to four subagents repeated the path form. Two of the subagents caught it by reading the convention. All 24 links were normalised the same day.
+- [2026-11-25 Wed] Caught by the user, at apply: [[id:f9fe9fac-a423-4ede-bc42-1d201c2c3d82][f9fe9fac]]'s two members were folded into [[id:7ae1cff4-c0df-4ac0-9aea-a778b2373061][7ae1cff4]] without dropping them from [[id:f9fe9fac-a423-4ede-bc42-1d201c2c3d82][f9fe9fac]], which the conventions' "Dropping a member from a slice" requires when work moves. Its :BLOCKER: still named both TODO members, so org-depend refused the queued CANCELLED, and the apply reported only that the keyword did not change ([[id:f128a8b1-5769-4d48-b947-dfaf9a58fbcd][f128a8b1]]).
+
 
 
 ** TODO Miss: a prediction or a claim about state reported as fact without checking the artifact
@@ -12249,18 +12277,20 @@ cannot be interpreted.
 and only an instrument outside the clock system answers it.
 
 
-* TODO [0/2] Past days' records never leave TODO.org :code:
+* TODO [0/0] Past days' records never leave TODO.org :code:blocked:
 :PROPERTIES:
 :ID:       f9fe9fac-a423-4ede-bc42-1d201c2c3d82
 :CREATED:  [2026-08-31 Mon 12:07]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:BLOCKER:  d6fc47a5-b84d-4287-b973-aa5b37410270 591e7af3-4f37-4f90-86ba-62400c6e649b
 :MEMBERS:  d6fc47a5-b84d-4287-b973-aa5b37410270 591e7af3-4f37-4f90-86ba-62400c6e649b
+:DROPPED:  d6fc47a5-b84d-4287-b973-aa5b37410270 591e7af3-4f37-4f90-86ba-62400c6e649b
 :END:
 :LOGBOOK:
 - State "TODO"       from              [2026-08-31 Mon 12:07]
+- Tags ":code:blocked:" from ":code:"     [2026-11-25 Wed 11:02] \\
+  folded into 7ae1cff4, the 0.2.0 slice
 :END:
 
 Seeded 2026-08-31 from the proposal reviewed in conversation: DONE.org's
@@ -12290,13 +12320,12 @@ went where.
 
 Planned:
 
-- [ ] [[id:d6fc47a5-b84d-4287-b973-aa5b37410270][d6fc47a5]] TODO Distribute Review and planning's past day nodes into DONE.org's datetree
-- [ ] [[id:591e7af3-4f37-4f90-86ba-62400c6e649b][591e7af3]] TODO Bound Review attention's LOGBOOK by refiling old entries into dated clones
+- [[id:d6fc47a5-b84d-4287-b973-aa5b37410270][d6fc47a5]] TODO Distribute Review and planning's past day nodes into DONE.org's datetree
+- [[id:591e7af3-4f37-4f90-86ba-62400c6e649b][591e7af3]] TODO Bound Review attention's LOGBOOK by refiling old entries into dated clones
 
 Folded into [[id:7ae1cff4-c0df-4ac0-9aea-a778b2373061][7ae1cff4]] (0.2.0) on 2026-11-25 (the user): both members moved there,
 and this slice is cancelled with nothing left to undertake. The outside block it
 waited on is gone; [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]] and [[id:b36e6369-a210-4540-adc7-0c0c188e9791][b36e6369]] are both DONE.
-
 
 
 * TODO Bound Review attention's LOGBOOK by refiling old entries into dated clones :code:
@@ -15337,6 +15366,7 @@ per tool -- rather than opening the servers beyond localhost.
 :ID:       335dfa97-c1b0-4e98-804f-81495eb63f20
 :END:
 :LOGBOOK:
+CLOCK: [2026-11-25 Wed 12:51]
 CLOCK: [2026-08-26 Wed 09:54]--[2026-08-26 Wed 09:56] =>  0:02
 CLOCK: [2026-08-26 Wed 09:59]--[2026-08-26 Wed 10:03] =>  0:04
 CLOCK: [2026-08-26 Wed 10:21]--[2026-08-26 Wed 10:25] =>  0:04
@@ -15585,6 +15615,7 @@ CLOCK: [2026-11-13 Fri 14:06]--[2026-11-13 Fri 14:08] =>  0:02
 CLOCK: [2026-11-17 Tue 13:33]--[2026-11-17 Tue 13:34] =>  0:01
 - <2026-11-17 Tue 13:33>--<2026-11-17 Tue 13:34> review pass (buffer buried)
 - <2026-11-17 Tue 13:35>--<2026-11-17 Tue 13:35> review pass (buffer buried)
+CLOCK: [2026-11-25 Wed 12:44]--[2026-11-25 Wed 12:49] =>  0:05
 :END:
 
 We created this heading on 2026-08-26. We deleted that property from its
@@ -17524,4 +17555,27 @@ CLOCK: [2026-11-24 Tue 11:42]--[2026-11-24 Tue 11:43] =>  0:01
 - [2026-11-24 Tue 11:42]--[2026-11-24 Tue 11:43] assigned at review
 CLOCK: [2026-11-24 Tue 12:21]--[2026-11-24 Tue 12:23] =>  0:02
 - [2026-11-24 Tue 12:21]--[2026-11-24 Tue 12:23] file three items outside the slice
+:END:
+
+
+**** 2026-11-25 Wednesday
+:PROPERTIES:
+:ID:       0fb267b8-d581-4eb3-aa9d-75661e6fed44
+:CREATED:  [2026-11-25 Wed 09:59]
+:END:
+:LOGBOOK:
+CLOCK: [2026-11-25 Wed 09:59]--[2026-11-25 Wed 10:00] =>  0:01
+- [2026-11-25 Wed 09:59]--[2026-11-25 Wed 10:00] commit the apply pass
+CLOCK: [2026-11-25 Wed 10:27]--[2026-11-25 Wed 10:28] =>  0:01
+- [2026-11-25 Wed 10:27]--[2026-11-25 Wed 10:28] record self-caught recalled-title miss
+CLOCK: [2026-11-25 Wed 11:01]--[2026-11-25 Wed 11:03] =>  0:02
+- [2026-11-25 Wed 11:01]--[2026-11-25 Wed 11:03] fold f9fe9fac into the 0.2.0 slice
+CLOCK: [2026-11-25 Wed 11:04]--[2026-11-25 Wed 11:05] =>  0:01
+- [2026-11-25 Wed 11:04]--[2026-11-25 Wed 11:05] assigned at review
+CLOCK: [2026-11-25 Wed 11:12]--[2026-11-25 Wed 11:13] =>  0:01
+- [2026-11-25 Wed 11:12]--[2026-11-25 Wed 11:13] assigned at review
+CLOCK: [2026-11-25 Wed 11:14]--[2026-11-25 Wed 11:15] =>  0:01
+- [2026-11-25 Wed 11:14]--[2026-11-25 Wed 11:15] file the versioned-releases and classic-stories story
+CLOCK: [2026-11-25 Wed 12:41]--[2026-11-25 Wed 12:42] =>  0:01
+- [2026-11-25 Wed 12:41]--[2026-11-25 Wed 12:42] assigned at review
 :END:
