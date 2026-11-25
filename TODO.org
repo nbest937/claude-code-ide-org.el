@@ -489,6 +489,8 @@ CLOCK: [2026-11-19 Thu 14:52]--[2026-11-19 Thu 14:53] =>  0:01
 - [2026-11-24 Tue 12:20]--[2026-11-24 Tue 12:20] place leftovers beside their original
 - [2026-11-24 Tue 12:23]--[2026-11-24 Tue 12:23] place leftovers beside their original
 - [2026-11-25 Wed 09:59]--[2026-11-25 Wed 09:59] place leftovers beside their original
+CLOCK: [2026-11-25 Wed 12:53]--[2026-11-25 Wed 12:54] =>  0:01
+- [2026-11-25 Wed 12:53]--[2026-11-25 Wed 12:54] place leftovers beside their original
 :END:
 :PLAN:
 Bounded: one function, --review-insert-remainders. Insert each leftover beside
@@ -922,28 +924,6 @@ Reproduced live 2026-11-23 10:52. This repo's ceremony had already run that day
 the unscoped check returned t. Quitting the review buffer after an apply then
 ran every step, repeater "not due, left alone", and archived probe =047cb0e3=
 (since removed) before it could be archived by hand.
-
-
-* TODO An apply refused by org-depend reports neither the blocker nor the reason, only that the keyword did not change :code:
-:PROPERTIES:
-:ID:       f128a8b1-5769-4d48-b947-dfaf9a58fbcd
-:CREATED:  [2026-10-30 Fri 08:16]
-:CATEGORY: Apply
-:END:
-:LOGBOOK:
-CLOCK: [2026-10-30 Fri 08:14]--[2026-10-30 Fri 08:16] =>  0:02
-- [2026-10-30 Fri 08:14]--[2026-10-30 Fri 08:16] assigned at review
-CLOCK: [2026-10-30 Fri 08:16]--[2026-10-30 Fri 08:17] =>  0:01
-- [2026-10-30 Fri 08:16]--[2026-10-30 Fri 08:17] file the silent org-depend refusal bug
-:END:
-
-Applying CANCELLED to 6ef2e557 in noodle-salesman on 2026-10-28 failed with "did
-not take effect; the heading reads TODO", while org-todo's own message read
-blocked (by ""): org-depend-block-todo refuses a done state while a :BLOCKER: is
-unfinished but never sets org-block-entry-blocking, which org's other blockers
-fill in. Finding the cause took a session reading the Messages buffer and the
-heading's front matter. The apply pass should name the unfinished :BLOCKER: ids
-and their keywords when a transition into a done state is refused.
 
 
 * TODO A slice's place in the order is advisory: nothing refuses NEXT or DOING on a slice while the slice before it is still open :code:
@@ -2033,6 +2013,7 @@ Incidental:
 - [X] [[id:71b48bc1-0ee4-4a8c-8e64-6e8765917673][71b48bc1]] DONE git-guards-test's run_trailer expands an empty array under set -u, which fails on bash before 4.4
 - [X] [[id:b4aeb131-5e32-4eb8-81c6-09bdf7759003][b4aeb131]] DONE Amending a commit whose Claude-Session line is glued to the subject adds a second one
 - [X] [[id:6d1a5192-21ad-4316-b0c6-219403459f28][6d1a5192]] DONE prepare-commit-msg rewrites a correct Co-Authored-By trailer to an older model name
+- [[id:f128a8b1-5769-4d48-b947-dfaf9a58fbcd][f128a8b1]] CANCELLED An apply refused by org-depend reports neither the blocker nor the reason, only that the keyword did not change
 
 
 * TODO claude-org-setup assigns mcp_action and nothing reads it :code:
@@ -2922,7 +2903,6 @@ off. A fix should cover both directions. Also worth deciding alongside it:
 would remove the tag writes altogether.
 
 
-
 * TODO A slice's incidental list renders a subtask flat, with no row naming the story it belongs to :code:
 :PROPERTIES:
 :ID:       2608c131-87cf-4b74-b7d1-970277632bb1
@@ -3155,6 +3135,7 @@ bury waits. Decided 2026-11-25 (the user): one stamp per project, and the bury
 holds it when the pass it closes had an apply error in that project; the steps
 after apply and the repeater are unaffected. Design in :PLAN:.
 
+
 * TODO A DONE that a :BLOCKER: refuses fails at apply as "did not take effect", and org's own message names the blocker as "" :code:
 :PROPERTIES:
 :ID:       7e2a6608-16a7-419b-8a99-b8016583c094
@@ -3181,7 +3162,6 @@ now merged into this heading, saw the same failure on a CANCELLED of 6ef2e557 in
 noodle-salesman on 2026-10-28. It happened again here on 2026-11-25 with
 [[id:f9fe9fac-a423-4ede-bc42-1d201c2c3d82][f9fe9fac]]'s CANCELLED. The fix is the same for both states: name each unfinished
 :BLOCKER: id with its keyword.
-
 
 
 * TODO org_refile can only place a heading under a parent, so a top-level heading moved by mistake cannot be put back at top level :code:
@@ -3668,6 +3648,7 @@ start, reimplementing --queue-watermark-data. Decided 2026-11-25 (the user):
 keep consulting watermarks, since with time tracking off they are the only
 evidence a pass ran, but only files touched today and only sessions inside the
 project. Design in :PLAN:.
+
 
 * TODO Every id-scoped org_outline scans every heading in every tracked file, and leaks a marker per slice :code:
 :PROPERTIES:
@@ -5926,7 +5907,6 @@ a refused transition's note lands is unknown, so that member keeps its own test.
 [[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]].
 
 
-
 * TODO org_capture runs in whatever buffer the user has selected, so an Org QL view turns a capture into a prompt nobody at the tool can answer :code:bounded:
 :PROPERTIES:
 :ID:       fd29914e-0d18-4964-a104-37c136b311a6
@@ -7404,7 +7384,6 @@ never closes; the count is the point. One dated line per catch.
 - 2026-10-27: argued the tool-call audit log could be deleted because a failed apply save "would show in the tracker's diff". Nobody reads that diff: apply-detect tells the session an apply landed and the session commits it unasked, which is the point of that hook, so an unsaved apply is committed short with nothing to show it. The user caught it.
 - [2026-11-03 Tue] Caught by the user, in noodle-salesman: the session told the user what the body of a heading it had just captured said, without reading the heading back. The body was empty, because the text had gone in an undeclared =body= parameter ([[id:bbf9fb77-f081-48c5-bb01-1b4d4f201969][bbf9fb77]]). One =org_body= call would have shown it.
 - [2026-11-25 Wed] Caught by the user's question: the session told the user that [[id:c7619140-f269-4329-bc05-a38ea151e202][c7619140]]'s "plan already says to shorten" its title. That sentence, from its 2026-10-09 division, referred to an older two-halves title, which had already been shortened to the current one. The session had also written "its title wants shortening" into the plan that turn, and then credited the plan with it. The current mismatch is new: after today's split, the title describes [[id:62d6d23b-dd28-43d5-8c43-d10cd702f4b6][62d6d23b]] better than the six members [[id:c7619140-f269-4329-bc05-a38ea151e202][c7619140]] kept.
-
 
 
 ** TODO Miss: a heading closed with its unfinished part left in prose, or its group left un-nominated
@@ -15869,6 +15848,7 @@ CLOCK: [2026-11-17 Tue 13:33]--[2026-11-17 Tue 13:34] =>  0:01
 CLOCK: [2026-11-25 Wed 12:44]--[2026-11-25 Wed 12:49] =>  0:05
 CLOCK: [2026-11-25 Wed 12:51]--[2026-11-25 Wed 13:16] =>  0:25
 - <2026-11-25 Wed 12:51>--<2026-11-25 Wed 13:16> review pass (buffer buried)
+CLOCK: [2026-11-25 Wed 15:27]--[2026-11-25 Wed 15:29] =>  0:02
 :END:
 
 We created this heading on 2026-08-26. We deleted that property from its
@@ -17831,4 +17811,41 @@ CLOCK: [2026-11-25 Wed 11:14]--[2026-11-25 Wed 11:15] =>  0:01
 - [2026-11-25 Wed 11:14]--[2026-11-25 Wed 11:15] file the versioned-releases and classic-stories story
 CLOCK: [2026-11-25 Wed 12:41]--[2026-11-25 Wed 12:42] =>  0:01
 - [2026-11-25 Wed 12:41]--[2026-11-25 Wed 12:42] assigned at review
+CLOCK: [2026-11-25 Wed 12:56]--[2026-11-25 Wed 12:58] =>  0:02
+- [2026-11-25 Wed 12:56]--[2026-11-25 Wed 12:58] drop f9fe9fac's moved members so CANCELLED applies
+CLOCK: [2026-11-25 Wed 13:17]--[2026-11-25 Wed 13:18] =>  0:01
+- [2026-11-25 Wed 13:17]--[2026-11-25 Wed 13:18] assigned at review
+CLOCK: [2026-11-25 Wed 13:19]--[2026-11-25 Wed 13:20] =>  0:01
+- [2026-11-25 Wed 13:19]--[2026-11-25 Wed 13:20] trace f9fe9fac's stray blocked-tag log line
+CLOCK: [2026-11-25 Wed 13:31]--[2026-11-25 Wed 13:32] =>  0:01
+- [2026-11-25 Wed 13:31]--[2026-11-25 Wed 13:32] assigned at review
+CLOCK: [2026-11-25 Wed 13:37]--[2026-11-25 Wed 13:38] =>  0:01
+- [2026-11-25 Wed 13:37]--[2026-11-25 Wed 13:38] assigned at review
+CLOCK: [2026-11-25 Wed 13:39]--[2026-11-25 Wed 13:40] =>  0:01
+- [2026-11-25 Wed 13:39]--[2026-11-25 Wed 13:40] merge f128a8b1 into 7e2a6608; slice coherence pass
+- [2026-11-25 Wed 13:39]--[2026-11-25 Wed 13:40] assigned at review
+CLOCK: [2026-11-25 Wed 14:13]--[2026-11-25 Wed 14:17] =>  0:04
+- [2026-11-25 Wed 14:13]--[2026-11-25 Wed 14:17] assigned at review
+CLOCK: [2026-11-25 Wed 14:20]--[2026-11-25 Wed 14:21] =>  0:01
+- [2026-11-25 Wed 14:20]--[2026-11-25 Wed 14:21] assigned at review
+CLOCK: [2026-11-25 Wed 14:25]--[2026-11-25 Wed 14:27] =>  0:02
+- [2026-11-25 Wed 14:25]--[2026-11-25 Wed 14:27] assigned at review
+CLOCK: [2026-11-25 Wed 14:30]--[2026-11-25 Wed 14:33] =>  0:03
+- [2026-11-25 Wed 14:30]--[2026-11-25 Wed 14:33] slice coherence pass: moves, splits, new slices
+CLOCK: [2026-11-25 Wed 14:34]--[2026-11-25 Wed 14:35] =>  0:01
+- [2026-11-25 Wed 14:34]--[2026-11-25 Wed 14:35] assigned at review
+CLOCK: [2026-11-25 Wed 14:43]--[2026-11-25 Wed 14:44] =>  0:01
+- [2026-11-25 Wed 14:43]--[2026-11-25 Wed 14:44] assigned at review
+CLOCK: [2026-11-25 Wed 14:45]--[2026-11-25 Wed 14:46] =>  0:01
+- [2026-11-25 Wed 14:45]--[2026-11-25 Wed 14:46] assigned at review
+CLOCK: [2026-11-25 Wed 14:51]--[2026-11-25 Wed 14:52] =>  0:01
+- [2026-11-25 Wed 14:51]--[2026-11-25 Wed 14:52] assigned at review
+CLOCK: [2026-11-25 Wed 14:57]--[2026-11-25 Wed 14:58] =>  0:01
+- [2026-11-25 Wed 14:57]--[2026-11-25 Wed 14:58] assigned at review
+CLOCK: [2026-11-25 Wed 15:01]--[2026-11-25 Wed 15:03] =>  0:02
+- [2026-11-25 Wed 15:01]--[2026-11-25 Wed 15:03] assigned at review
+CLOCK: [2026-11-25 Wed 15:04]--[2026-11-25 Wed 15:05] =>  0:01
+- [2026-11-25 Wed 15:04]--[2026-11-25 Wed 15:05] note 0e2f2e2f and 2f4c04a1 planned in 3bfa593c
+CLOCK: [2026-11-25 Wed 15:10]--[2026-11-25 Wed 15:12] =>  0:02
+- [2026-11-25 Wed 15:10]--[2026-11-25 Wed 15:12] assigned at review
 :END:
