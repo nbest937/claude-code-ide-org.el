@@ -258,7 +258,7 @@ written by hand ([[id:6f3a5342-1905-4831-b712-3b6e5e83e0c4][6f3a5342]] is its mi
 unions or refuses, and never shortens the list.
 
 
-* TODO [0/6] footnote-check blocks about half of all replies, because the end matter must be generated before the reply it annotates exists
+* TODO [0/6] 0.0.2: footnote-check blocks about half of all replies, because the end matter must be generated before the reply it annotates exists
 :PROPERTIES:
 :ID:       4f49ea34-5b8c-4ad8-8dbb-6f17126c420f
 :CREATED:  [2026-11-05 Thu 15:56]
@@ -1466,7 +1466,7 @@ claude-code-ide-org-refuse-browser-origins, and the probe finds every live
 companion refusing. On the slice's branch, feature/tracker-record-loss.
 
 
-* DOING [22/40] The tracker can lose or corrupt its record, or Emacs can stop on a prompt, and nothing says so :code:
+* DOING [22/40] 0.0.1: The tracker can lose or corrupt its record, or Emacs can stop on a prompt, and nothing says so :code:
 :PROPERTIES:
 :ID:       3bfa593c-c2da-4e44-b47f-2d5f0750f2aa
 :CREATED:  [2026-10-27 Tue 12:56]
@@ -2328,7 +2328,7 @@ for a directory no longer in claude-code-ide--processes, and test the double
 call. A normal /exit inside the launcher has not been checked.
 
 
-* TODO [0/6] A consumer's install can be wrong while every check says it is fine :code:
+* TODO [0/6] 0.1.0: A consumer's install can be wrong while every check says it is fine :code:
 :PROPERTIES:
 :ID:       005fef09-e34f-4994-8c0d-6d17ada3d7ac
 :CREATED:  [2026-10-27 Tue 08:52]
@@ -3935,7 +3935,7 @@ references, =M-x customize-group claude-code-ide-org= and the commands. Written
 last, since it points at the other three.
 
 
-* TODO [0/20] The clock record beneath the review pass is still wrong: correctness, reporting, and the attention clock :code:
+* TODO [0/20] 0.2.0: The clock record beneath the review pass is still wrong: correctness, reporting, and the attention clock :code:
 :PROPERTIES:
 :ID:       7ae1cff4-c0df-4ac0-9aea-a778b2373061
 :CREATED:  [2026-10-09 Fri 11:15]
@@ -4894,7 +4894,7 @@ and those 53 are cleared, unless [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128
 move generalised to :DEBRIEF:. Details in :PLAN:.
 
 
-* TODO [0/14] A slice's checklist can disagree with its members, and nothing can say so or fix it :code:
+* TODO [0/14] 0.0.4: A slice's checklist can disagree with its members, and nothing can say so or fix it :code:
 :PROPERTIES:
 :ID:       7dcec489-f5dd-4f7f-b819-a25405436b9b
 :CREATED:  [2026-09-28 Mon 08:26]
@@ -4971,7 +4971,7 @@ the lint and the repair, finishes the ordering tool, and makes the refresh cheap
 enough to run on every exit.
 
 
-* TODO [0/15] A tool call can be told the opposite of what happened: a negated boolean, a phantom capture, a hang :code:
+* TODO [0/15] 0.0.3: A tool call can be told the opposite of what happened: a negated boolean, a phantom capture, a hang :code:
 :PROPERTIES:
 :ID:       f436a3b8-58ba-45a7-9f84-b8dee0934ca7
 :CREATED:  [2026-09-28 Mon 08:25]
@@ -5983,7 +5983,7 @@ and the org-lint triage per checker.
 - org-lint's own "possibly misplaced heading line" checker as the detector (measured 2026-09-25): =bin/lint-org= already runs it as a warning, and it reports 498 lines across the two files, nearly all prose lines opening with =*bold*= -- nobody reads a warning with that count, which is why neither glued heading was seen.
 
 
-* TODO [0/17] The review pass asks for judgement it cannot support :code:
+* TODO [0/17] 0.3.0: The review pass asks for judgement it cannot support :code:
 :PROPERTIES:
 :ID:       c7619140-f269-4329-bc05-a38ea151e202
 :CREATED:  [2026-09-22 Tue 16:07]
@@ -6626,6 +6626,8 @@ One dated line per catch.
 - 2026-10-02: two replies during [[id:41cf5830-fc2e-4dc6-b243-a0c2718a53a3][41cf5830]]'s brainstorm gave [[id:02aaae22-0958-4c0f-b5bb-2cbea32416ae][02aaae22]]'s end-matter title as "[5/5] Session attribution", written by hand, where the heading is "[20/20] Update CLAUDE.md and the org skill for the new architecture". The hook passed both, since it checks the id appears. Self-caught when org_footnotes returned the real title.
 - 2026-10-02: two replies on [[id:01849bef-fdc9-4c30-b467-00ca8606e8e0][01849bef]] gave [[id:e75d660f-5c0d-4707-a645-b5dea7d7ebc0][e75d660f]]'s end-matter title as "… and nothing reads them back", written by hand; the heading ends "… and we discard them". Self-caught when org_footnotes returned the real title. Third catch of this kind in three days: hand-typed end matter is the pattern, not the slip.
 - [2026-10-12 Mon] Self-caught, twice in one brainstorm: the end matter for [[id:3ad389be-2797-46c3-a51d-9f603053955a][3ad389be]] and for [[id:045459f6-a002-4c9e-921e-aeac652f10c9][045459f6]] carried titles written from memory, and both were wrong. Each was corrected in the next reply after a lookup. =org_footnotes= had answered "not wired" earlier in the session, so the end matter was being written by hand, and the lookup step was skipped exactly where the generator would have done it.
+- [2026-11-25 Wed] Self-caught: proposing versions for the open slices, a hand-written end-matter block gave [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]] as "Build DONE.org's datetree in descending order", recalled; org_footnotes was available and was not called. Its title is "Reorder DONE.org as a datetree descending by CLOSED:, and fix archiving into one".
+
 
 
 ** TODO Miss: tracked work done under no clock, the wrong clock, or a clock closed before the work ended
@@ -12156,7 +12158,7 @@ cannot be interpreted.
 and only an instrument outside the clock system answers it.
 
 
-* TODO [0/2] Make an archived day hold that day's record :code:
+* TODO [0/2] Past days' records never leave TODO.org :code:
 :PROPERTIES:
 :ID:       f9fe9fac-a423-4ede-bc42-1d201c2c3d82
 :CREATED:  [2026-08-31 Mon 12:07]
