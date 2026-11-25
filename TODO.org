@@ -196,6 +196,16 @@ itself."
 *What is ruled out.*
 - Reading "detected and never declared" as a ban on composing a story: it misled a session on 2026-09-18, and the 2026-09-18 count shows composition is the norm.
 
+*The classic form being adopted ([[id:7e4968ab-b11c-4a49-a331-8979ff48ab9d][7e4968ab]]) does not ask for that lint.*
+noodle-salesman, whose stories are the model, has no rule that a story's tasks
+share a slice, and its open classic stories span several (measured 2026-11-25:
+one across 5 slices, three across 3, one across 2); a slice there is a release
+increment taking whichever tasks of a story are ready. So the condition above
+under which :KIND: story earns its place is not met by adopting that form;
+whether the body note alone marks a story, or :KIND: story finds another reader,
+is open (the user, 2026-11-25, asked only that this be confirmed).
+
+
 
 ** TODO Scan the open backlog, open stories' members included, and compose it into coherent user stories
 :PROPERTIES:
