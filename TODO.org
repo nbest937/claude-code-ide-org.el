@@ -3935,15 +3935,15 @@ references, =M-x customize-group claude-code-ide-org= and the commands. Written
 last, since it points at the other three.
 
 
-* TODO [0/20] 0.2.0: The clock record beneath the review pass is still wrong: correctness, reporting, and the attention clock :code:
+* TODO [0/22] 0.2.0: The clock record beneath the review pass is still wrong: correctness, reporting, and the attention clock :code:
 :PROPERTIES:
 :ID:       7ae1cff4-c0df-4ac0-9aea-a778b2373061
 :CREATED:  [2026-10-09 Fri 11:15]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:MEMBERS:  595df230-e31d-42ad-9ea7-128e545b9aa0 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 001fb310-69f7-4417-81be-a224a3bf83e0 55125136-5939-434e-9676-96ea66a75770 37147e9e-468b-43ee-91f9-45d9647c6164 64d34a64-d336-40a8-a8e8-da8133d0da06 445ec1f1-095a-462b-abbd-7a3a00925ddb d30b3481-374c-4921-9fdb-284dd8e09e14 3a6ff84e-ed47-4c83-94ff-18c439dd842c 22264369-2d9d-4339-9b97-f3ea25ad0137 a4acdd35-ddba-4557-8dcb-86bc754374db 94e7b511-0adb-4afc-83c0-ba450198f221 4eadfc8f-22b5-4466-875d-fdbc5c922ea4 2ff6f683-d7e2-495e-9eff-88d522af87a7 04a9d1b4-c8c5-40af-bf9e-9ced6a7225fe 8f5dc7a6-5b90-44b7-b712-ee396e4357b5 2211d720-5e3f-45b6-bcb4-437b2a43baed
-:BLOCKER:  595df230-e31d-42ad-9ea7-128e545b9aa0 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 001fb310-69f7-4417-81be-a224a3bf83e0 55125136-5939-434e-9676-96ea66a75770 37147e9e-468b-43ee-91f9-45d9647c6164 64d34a64-d336-40a8-a8e8-da8133d0da06 445ec1f1-095a-462b-abbd-7a3a00925ddb d30b3481-374c-4921-9fdb-284dd8e09e14 3a6ff84e-ed47-4c83-94ff-18c439dd842c 22264369-2d9d-4339-9b97-f3ea25ad0137 a4acdd35-ddba-4557-8dcb-86bc754374db 94e7b511-0adb-4afc-83c0-ba450198f221 4eadfc8f-22b5-4466-875d-fdbc5c922ea4 2ff6f683-d7e2-495e-9eff-88d522af87a7 04a9d1b4-c8c5-40af-bf9e-9ced6a7225fe 8f5dc7a6-5b90-44b7-b712-ee396e4357b5 2211d720-5e3f-45b6-bcb4-437b2a43baed
+:MEMBERS:  595df230-e31d-42ad-9ea7-128e545b9aa0 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 001fb310-69f7-4417-81be-a224a3bf83e0 55125136-5939-434e-9676-96ea66a75770 37147e9e-468b-43ee-91f9-45d9647c6164 64d34a64-d336-40a8-a8e8-da8133d0da06 445ec1f1-095a-462b-abbd-7a3a00925ddb d30b3481-374c-4921-9fdb-284dd8e09e14 3a6ff84e-ed47-4c83-94ff-18c439dd842c 22264369-2d9d-4339-9b97-f3ea25ad0137 a4acdd35-ddba-4557-8dcb-86bc754374db 94e7b511-0adb-4afc-83c0-ba450198f221 4eadfc8f-22b5-4466-875d-fdbc5c922ea4 2ff6f683-d7e2-495e-9eff-88d522af87a7 04a9d1b4-c8c5-40af-bf9e-9ced6a7225fe 8f5dc7a6-5b90-44b7-b712-ee396e4357b5 2211d720-5e3f-45b6-bcb4-437b2a43baed d6fc47a5-b84d-4287-b973-aa5b37410270 591e7af3-4f37-4f90-86ba-62400c6e649b
+:BLOCKER:  595df230-e31d-42ad-9ea7-128e545b9aa0 e3d1531d-7562-4bad-bef2-fc819630c5f7 b5448133-4021-46b9-a90e-d88e149ae65d 3485b0d0-3b47-4a28-ae6f-e2061fa8f226 2d100d0d-2d04-43b9-af1e-f4d6b52bbada 001fb310-69f7-4417-81be-a224a3bf83e0 55125136-5939-434e-9676-96ea66a75770 37147e9e-468b-43ee-91f9-45d9647c6164 64d34a64-d336-40a8-a8e8-da8133d0da06 445ec1f1-095a-462b-abbd-7a3a00925ddb d30b3481-374c-4921-9fdb-284dd8e09e14 3a6ff84e-ed47-4c83-94ff-18c439dd842c 22264369-2d9d-4339-9b97-f3ea25ad0137 a4acdd35-ddba-4557-8dcb-86bc754374db 94e7b511-0adb-4afc-83c0-ba450198f221 4eadfc8f-22b5-4466-875d-fdbc5c922ea4 2ff6f683-d7e2-495e-9eff-88d522af87a7 04a9d1b4-c8c5-40af-bf9e-9ced6a7225fe 8f5dc7a6-5b90-44b7-b712-ee396e4357b5 2211d720-5e3f-45b6-bcb4-437b2a43baed d6fc47a5-b84d-4287-b973-aa5b37410270 591e7af3-4f37-4f90-86ba-62400c6e649b
 :END:
 :PLAN:
 Divided out of [[id:c7619140-f269-4329-bc05-a38ea151e202][c7619140]] on 2026-10-09 (the user, a three-way split): the "clock
@@ -3957,6 +3957,7 @@ The order, one line each:
 - [[id:001fb310-69f7-4417-81be-a224a3bf83e0][001fb310]]: stale persisted clock history hanging the first clock-in after a restart.
 - [[id:55125136-5939-434e-9676-96ea66a75770][55125136]]: still WAITING on the user's decision about deriving clock events from DOING; placed after the defects, so the decision is made against a record that is right.
 - [[id:37147e9e-468b-43ee-91f9-45d9647c6164][37147e9e]] and [[id:64d34a64-d336-40a8-a8e8-da8133d0da06][64d34a64]]: reporting, worked headings without a clock interval and a parent's own time in a clocktable, which need the record right first.
+- [[id:d6fc47a5-b84d-4287-b973-aa5b37410270][d6fc47a5]] and [[id:591e7af3-4f37-4f90-86ba-62400c6e649b][591e7af3]]: past days' clock records moved out of TODO.org, Review and planning's day nodes and Review attention's LOGBOOK. Folded in from [[id:f9fe9fac-a423-4ede-bc42-1d201c2c3d82][f9fe9fac]] on 2026-11-25 (the user); they come after reporting because they move CLOCK lines its clocktables read.
 - [[id:445ec1f1-095a-462b-abbd-7a3a00925ddb][445ec1f1]] last: the A/B comparison across the fixes, which measures the slice itself.
 :END:
 
@@ -3985,6 +3986,8 @@ Planned:
 - [ ] [[id:04a9d1b4-c8c5-40af-bf9e-9ced6a7225fe][04a9d1b4]] TODO A sub-minute run rounded up to a minute can overlap the next run, counting a minute twice and crediting a permission wait
 - [ ] [[id:8f5dc7a6-5b90-44b7-b712-ee396e4357b5][8f5dc7a6]] TODO Allocated shares spill outside their window and overlap the next window's shares
 - [ ] [[id:2211d720-5e3f-45b6-bcb4-437b2a43baed][2211d720]] TODO A residue bookend is laid over a qualifying attention interval instead of through the day's gaps
+- [ ] [[id:d6fc47a5-b84d-4287-b973-aa5b37410270][d6fc47a5]] TODO Distribute Review and planning's past day nodes into DONE.org's datetree
+- [ ] [[id:591e7af3-4f37-4f90-86ba-62400c6e649b][591e7af3]] TODO Bound Review attention's LOGBOOK by refiling old entries into dated clones
 
 
 * MAYBE Separate what the machinery requires from what this project prefers, so a consumer can change the second :code:arch:
@@ -12201,6 +12204,11 @@ Planned:
 
 - [ ] [[id:d6fc47a5-b84d-4287-b973-aa5b37410270][d6fc47a5]] TODO Distribute Review and planning's past day nodes into DONE.org's datetree
 - [ ] [[id:591e7af3-4f37-4f90-86ba-62400c6e649b][591e7af3]] TODO Bound Review attention's LOGBOOK by refiling old entries into dated clones
+
+Folded into [[id:7ae1cff4-c0df-4ac0-9aea-a778b2373061][7ae1cff4]] (0.2.0) on 2026-11-25 (the user): both members moved there,
+and this slice is cancelled with nothing left to undertake. The outside block it
+waited on is gone; [[id:33864a0f-5e13-4235-85a6-0bd9d2fe5252][33864a0f]] and [[id:b36e6369-a210-4540-adc7-0c0c188e9791][b36e6369]] are both DONE.
+
 
 
 * TODO Bound Review attention's LOGBOOK by refiling old entries into dated clones :code:
