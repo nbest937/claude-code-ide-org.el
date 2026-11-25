@@ -7,6 +7,308 @@ Archived entries from file /Users/neil.best/git/claude-code-ide-org/TODO.org
 * 2026
 
 ** 2026-11 November
+*** 2026-11-24 Tuesday
+**** DONE prepare-commit-msg rewrites a correct Co-Authored-By trailer to an older model name :code:bounded:
+CLOSED: [2026-11-24 Tue 15:52]
+:PROPERTIES:
+:ID:       6d1a5192-21ad-4316-b0c6-219403459f28
+:CREATED:  [2026-10-27 Tue 12:52]
+:CATEGORY: Dev
+:ARCHIVE_TIME: 2026-11-25 Wed 09:59
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Dev
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+CLOCK: [2026-11-24 Tue 13:11]--[2026-11-24 Tue 13:12] =>  0:01
+- [2026-11-24 Tue 13:11]--[2026-11-24 Tue 13:12] brainstorm co-author trailer hook fix
+CLOCK: [2026-11-24 Tue 13:19]--[2026-11-24 Tue 13:20] =>  0:01
+- [2026-11-24 Tue 13:19]--[2026-11-24 Tue 13:20] assigned at review
+CLOCK: [2026-11-24 Tue 13:59]--[2026-11-24 Tue 14:00] =>  0:01
+- [2026-11-24 Tue 13:59]--[2026-11-24 Tue 14:00] assigned at review
+CLOCK: [2026-11-24 Tue 14:03]--[2026-11-24 Tue 14:04] =>  0:01
+- [2026-11-24 Tue 14:03]--[2026-11-24 Tue 14:04] assigned at review
+CLOCK: [2026-11-24 Tue 14:13]--[2026-11-24 Tue 14:14] =>  0:01
+- [2026-11-24 Tue 14:13]--[2026-11-24 Tue 14:14] assigned at review
+- Tags ":code:bounded:" from ":code:"     [2026-11-24 Tue 14:14] \\
+  classified at brainstorm: two existing git hooks and their tests
+- State "DOING"      from "TODO"       [2026-11-24 Tue 14:15] \\
+  design approved, implementing
+CLOCK: [2026-11-24 Tue 14:15]--[2026-11-24 Tue 14:16] =>  0:01
+- [2026-11-24 Tue 14:15]--[2026-11-24 Tue 14:16] assigned at review
+CLOCK: [2026-11-24 Tue 14:17]--[2026-11-24 Tue 14:22] =>  0:05
+- [2026-11-24 Tue 14:17]--[2026-11-24 Tue 14:22] implement trailer hook fix
+- State "REVIEW"     from "DOING"      [2026-11-24 Tue 14:22] \\
+  PR #47 open, awaiting review and merge
+CLOCK: [2026-11-24 Tue 14:23]--[2026-11-24 Tue 14:24] =>  0:01
+- [2026-11-24 Tue 14:23]--[2026-11-24 Tue 14:24] commit the close
+CLOCK: [2026-11-24 Tue 14:42]--[2026-11-24 Tue 14:43] =>  0:01
+- [2026-11-24 Tue 14:42]--[2026-11-24 Tue 14:43] assigned at review
+CLOCK: [2026-11-24 Tue 14:59]--[2026-11-24 Tue 15:00] =>  0:01
+- [2026-11-24 Tue 14:59]--[2026-11-24 Tue 15:00] assigned at review
+CLOCK: [2026-11-24 Tue 15:01]--[2026-11-24 Tue 15:11] =>  0:10
+- [2026-11-24 Tue 15:01]--[2026-11-24 Tue 15:11] file and address the PR #47 review
+CLOCK: [2026-11-24 Tue 15:39]--[2026-11-24 Tue 15:42] =>  0:03
+- [2026-11-24 Tue 15:39]--[2026-11-24 Tue 15:42] assigned at review
+CLOCK: [2026-11-24 Tue 15:51]--[2026-11-24 Tue 15:52] =>  0:01
+- [2026-11-24 Tue 15:51]--[2026-11-24 Tue 15:52] assigned at review
+- State "DONE"       from "REVIEW"     [2026-11-24 Tue 15:52] \\
+  PR #47 merged
+:END:
+:PLAN:
+Bounded: .githooks/prepare-commit-msg and .githooks/commit-msg, with their
+suites bin/prepare-commit-msg-test and bin/git-guards-test. The premise of
+[[id:f1ff027e-5826-4812-8221-96eeba966333][f1ff027e]] (2026-09-04) expired: the harness now gives each session an exact,
+versioned trailer, while ~/.claude/settings.json holds one model for every
+session and the hook's alias table lags the versions. So the session's own
+trailer is the only trustworthy source, and the hook stops speaking for it.
+
+prepare-commit-msg, still gated on CLAUDECODE=1 and always exiting 0:
+- never touches Co-Authored-By: a present trailer stays byte for byte, and a missing one is not appended (the user, 2026-11-24, choosing "add nothing" over a guess from the shared settings file);
+- the settings read, the alias table and the jq dependency go;
+- Claude-Session is still added from CLAUDE_CODE_BRIDGE_SESSION_ID when absent, through git interpret-trailers --if-exists doNothing --in-place, so a blank line separates it from the subject even on a one-line merge message;
+- the header comment says why it stopped rewriting and points to [[id:f1ff027e-5826-4812-8221-96eeba966333][f1ff027e]] for the original reason.
+
+commit-msg gains a check (the user, 2026-11-24: without detection, option 1
+leaves a missing trailer silent). In a Claude session it reads trailers with git
+interpret-trailers --parse, which does not count a line glued to the subject;
+with no Co-Authored-By: Claude trailer it refuses, says to add the trailer the
+session's instructions give after a blank line, and counts a miss through
+.githooks/count-miss. A git merge --no-edit in a session is therefore refused
+and finished with git commit -m, as the apply-pass check already does.
+
+Tests, each proved red against HEAD's hooks:
+- prepare-commit-msg: a present trailer survives byte for byte, current or stale; a bare message gains no Co-Authored-By; the session line follows a blank line, including on a one-line merge message, and is not duplicated; outside a session, or with no bridge id, nothing changes. The rewrite and alias-mapping cases go.
+- commit-msg: a session commit with no trailer is refused; a trailer glued to the subject is refused; a proper trailer passes; a commit outside a session is never refused.
+bin/test-all runs before the close.
+
+Not done: past commits with wrong trailers stay as they are, since they are
+pushed; the 2026-09-04 filter-branch is no precedent for rewriting shared
+history.
+
+Branch feature/commit-trailer, cut from main, merged through its own PR; it is
+not a member of [[id:3bfa593c-c2da-4e44-b47f-2d5f0750f2aa][3bfa593c]]. Acceptance: the commit shipping the fix keeps "Claude
+Opus 5.5" exactly as typed, where every commit of 2026-11-24 before it was
+rewritten to "Opus 5".
+:END:
+:DEBRIEF:
+Shipped on feature/commit-trailer, [[https://github.com/nbest937/claude-code-ide-org.el/pull/47][PR #47]], as planned.
+- prepare-commit-msg now only adds Claude-Session, through git interpret-trailers --if-exists doNothing --in-place. The settings read, the alias table and jq are gone.
+- commit-msg's trailer check runs before the apply-pass check. It reads trailers with git interpret-trailers --parse and counts a missing-trailer miss.
+
+Verified:
+- bin/prepare-commit-msg-test: 10 checks, 7 of them red against HEAD's hook.
+- bin/git-guards-test: 8 new cases. The 4 refusal cases were red against HEAD's hook; the pass cases are guards and pass either way.
+- bin/test-all: 28 suites, 1792 passed, 0 failed.
+- Live: the shipping commit kept "Claude Opus 5.5" as typed. An empty commit with no trailer was refused with HEAD unchanged, and that probe counted one missing-trailer miss in this session.
+
+Differed from the plan: bin/git-guards-test now unsets CLAUDECODE at the top.
+Every existing case carries no trailer, so when the suite runs inside a session
+the new check would have refused them all. Only the trailer cases set it.
+
+Until [[https://github.com/nbest937/claude-code-ide-org.el/pull/47][PR #47]] merges, main's working tree still runs the old prepare-commit-msg,
+so bookkeeping commits made on main keep being rewritten to "Opus 5". Not filed:
+the merge ends it.
+
+[[https://github.com/nbest937/claude-code-ide-org.el/pull/47][PR #47]] merged 2026-11-24 as commit 98add0e, after its review story [[id:b6502d4a-90dd-464b-b700-4fde0511d73f][b6502d4a]]
+fixed all seven findings in commit f4e4481. The first merge made under the new
+hooks, commit 51cfc51, kept "Claude Opus 5.5" as typed, so the rewrite to "Opus
+5" noted above has ended.
+:END:
+
+prepare-commit-msg rewrites every Claude Co-Authored-By trailer from
+~/.claude/settings.json, so a correct trailer is committed wrong. The fix stops
+it touching that trailer at all, and has commit-msg refuse a session commit that
+has none.
+
+Established:
+- Its alias table maps opus to "Opus 5", so the harness's "Claude Opus 5.5" is committed as "Claude Opus 5". Commit 292b2e5 was found by a repo audit on 2026-10-27, and every commit of 2026-11-24 was rewritten the same way.
+- The settings file holds one model for every session, so another session's /model choice relabels this one's commits. The 2026-11-18 merges, commit f6dd155 among them, say "Claude Sonnet 5" though an Opus 5.5 session made them.
+- On git merge --no-edit, the appended line follows the subject with no blank line and joins the subject paragraph. This was reproduced in a scratch repo, and git interpret-trailers --parse does not read such a line as a trailer.
+
+Ruled out:
+- Rewriting only when the model family differs, this body's first proposal. It still trusts the shared settings file over the session.
+- Bumping the alias table. An alias carries no minor version, so the table would go stale again.
+
+Resolved 2026-11-24 on feature/commit-trailer, [[https://github.com/nbest937/claude-code-ide-org.el/pull/47][PR #47]]: prepare-commit-msg no
+longer touches Co-Authored-By, and commit-msg refuses a session commit without a
+Claude trailer. The shipping commit kept "Claude Opus 5.5" as typed.
+
+
+**** DONE [6/6] Address the PR #47 review: seven findings, two important, against the trailer hooks :code:
+CLOSED: [2026-11-24 Tue 15:10]
+:PROPERTIES:
+:ID:       b6502d4a-90dd-464b-b700-4fde0511d73f
+:CREATED:  [2026-11-24 Tue 15:02]
+:CATEGORY: Dev
+:ARCHIVE_TIME: 2026-11-25 Wed 09:59
+:ARCHIVE_FILE: ~/git/claude-code-ide-org/TODO.org
+:ARCHIVE_CATEGORY: Dev
+:ARCHIVE_TODO: DONE
+:END:
+:LOGBOOK:
+- State "DONE"       from "DOING"      [2026-11-24 Tue 15:10] \\
+  all seven findings fixed and threads resolved
+:END:
+:DEBRIEF:
+The review's two important findings were real gaps in the design, not slips in
+the code.
+- A --- line hides trailers from interpret-trailers by default. That reached both hooks, because the plan had chosen interpret-trailers for its blank-line handling without checking its divider rule.
+- --no-verify skips commit-msg but not prepare-commit-msg. So taking the trailer out of prepare-commit-msg moved the bypass's cost from a wrong model name to no attribution at all, and the refusal texts were advertising that bypass.
+
+Verified:
+- bin/prepare-commit-msg-test: 15 checks, 3 of the new ones red against the previous head.
+- bin/git-guards-test: 61 checks, 4 of the new ones red against the previous head. Under /bin/bash 3.2 the previous suite fails its human-commit case.
+- bin/test-all: 28 suites, 1801 passed, 0 failed.
+- The pipefail race (finding 4) has no deterministic test, so the fix removes the pipe.
+
+Left as is: a ! git commit the user types at a session's prompt is still refused
+without a trailer. Nothing in the environment tells it apart from the session's
+own commit, so the refusal now says how to get past it. Not filed: it is a
+stated cost of the design, not a gap.
+:END:
+
+The /code-review of [[https://github.com/nbest937/claude-code-ide-org.el/pull/47][PR #47]] ([[id:6d1a5192-21ad-4316-b0c6-219403459f28][6d1a5192]], feature/commit-trailer) on 2026-11-24
+posted seven inline findings, two important and five nits. One child per
+remediation; the case and pipefail findings share one fix. [[id:6d1a5192-21ad-4316-b0c6-219403459f28][6d1a5192]] stays REVIEW
+while these are worked, and each thread is answered with its fixing commit and
+resolved.
+
+Resolved 2026-11-24: all seven findings fixed in one commit, f4e4481 on
+feature/commit-trailer, and every review thread answered with it and resolved.
+
+
+***** DONE A --- line in a commit message hides its trailers from git interpret-trailers, so commit-msg refuses a correct trailer and Claude-Session lands mid-body :code:
+CLOSED: [2026-11-24 Tue 15:10]
+:PROPERTIES:
+:ID:       5d7590fe-7bf4-41b3-ad7a-0513bcb1f577
+:CREATED:  [2026-11-24 Tue 15:02]
+:END:
+:LOGBOOK:
+- State "DONE"       from "DOING"      [2026-11-24 Tue 15:10] \\
+  fixed in f4e4481
+- State "DOING"      from "TODO"       [2026-11-24 Tue 15:10] \\
+  retroactive: worked in the review pass
+:END:
+
+Finding 1, important. interpret-trailers takes --- as a patch divider by
+default; footnote end matter starts with exactly ---. Fix: --no-divider on both
+calls.
+
+Resolved 2026-11-24 in commit f4e4481: both calls pass --no-divider, tested in
+both suites and red against the previous head.
+
+
+***** DONE A session commit made with --no-verify now ships with no attribution and no warning :code:
+CLOSED: [2026-11-24 Tue 15:10]
+:PROPERTIES:
+:ID:       8a803f15-01f3-43e1-b4f7-1575c2474af0
+:CREATED:  [2026-11-24 Tue 15:02]
+:END:
+:LOGBOOK:
+- State "DONE"       from "DOING"      [2026-11-24 Tue 15:10] \\
+  fixed in f4e4481
+- State "DOING"      from "TODO"       [2026-11-24 Tue 15:10] \\
+  retroactive: worked in the review pass
+:END:
+
+Finding 2, important. --no-verify skips commit-msg but not prepare-commit-msg,
+which no longer appends a trailer, and both commit-msg refusals advertise
+--no-verify. Fix: prepare-commit-msg warns on stderr when a session commit
+carries no Claude trailer, without blocking or guessing a model.
+
+Resolved 2026-11-24 in commit f4e4481: prepare-commit-msg warns when a session
+commit (-m, merge, amend) has no Claude trailer, and both commit-msg refusals
+say --no-verify leaves the commit unattributed. Tested and red against the
+previous head.
+
+
+***** DONE commit-msg's trailer match is case-sensitive and races under pipefail, so a correct trailer can be refused :code:
+CLOSED: [2026-11-24 Tue 15:10]
+:PROPERTIES:
+:ID:       569bdee3-71e7-4424-a511-4a9f5d2f19b5
+:CREATED:  [2026-11-24 Tue 15:02]
+:END:
+:LOGBOOK:
+- State "DONE"       from "DOING"      [2026-11-24 Tue 15:10] \\
+  fixed in f4e4481
+- State "DOING"      from "TODO"       [2026-11-24 Tue 15:10] \\
+  retroactive: worked in the review pass
+:END:
+
+Findings 3 and 4, nits. Git trailer keys are case-insensitive, so
+Co-authored-by: is refused; and grep -q exiting early can fail the pipeline
+under pipefail. Fix: capture the parsed trailers first, then match
+case-insensitively.
+
+Resolved 2026-11-24 in commit f4e4481: the parse is captured, then matched
+case-insensitively through a here-string. The case test is red against the
+previous head; the race has no deterministic test, and the pipe is gone.
+
+
+***** DONE commit-msg says a human's commits are never checked, but a ! git commit typed in a session inherits CLAUDECODE and is refused :code:
+CLOSED: [2026-11-24 Tue 15:10]
+:PROPERTIES:
+:ID:       aaef2b68-6103-40fd-8e01-3efd59bb63a8
+:CREATED:  [2026-11-24 Tue 15:02]
+:END:
+:LOGBOOK:
+- State "DONE"       from "DOING"      [2026-11-24 Tue 15:10] \\
+  fixed in f4e4481
+- State "DOING"      from "TODO"       [2026-11-24 Tue 15:10] \\
+  retroactive: worked in the review pass
+:END:
+
+Finding 5, nit. Nothing in the environment tells a user's own ! command from the
+session's. Fix: correct the comment, and say in the refusal text that a commit
+typed by the user can add the trailer or use --no-verify.
+
+Resolved 2026-11-24 in commit f4e4481: the header states the ! git commit case,
+and the refusal gains a "Yours:" line. Tested and red against the previous head.
+
+
+***** DONE git-guards-test's run_trailer expands an empty array under set -u, which fails on bash before 4.4 :code:
+CLOSED: [2026-11-24 Tue 15:10]
+:PROPERTIES:
+:ID:       71b48bc1-0ee4-4a8c-8e64-6e8765917673
+:CREATED:  [2026-11-24 Tue 15:02]
+:END:
+:LOGBOOK:
+- State "DONE"       from "DOING"      [2026-11-24 Tue 15:10] \\
+  fixed in f4e4481
+- State "DOING"      from "TODO"       [2026-11-24 Tue 15:10] \\
+  retroactive: worked in the review pass
+:END:
+
+Finding 6, nit. macOS /bin/bash is 3.2. Fix: ${envs[@]+"${envs[@]}"}, and the
+same in prepare-commit-msg-test's run.
+
+Resolved 2026-11-24 in commit f4e4481: both helpers expand the array as
+${envs[@]+"${envs[@]}"}. Under /bin/bash 3.2.57 the previous head's suite fails
+one case and this one passes 61 of 61.
+
+
+***** DONE Amending a commit whose Claude-Session line is glued to the subject adds a second one :code:
+CLOSED: [2026-11-24 Tue 15:10]
+:PROPERTIES:
+:ID:       b4aeb131-5e32-4eb8-81c6-09bdf7759003
+:CREATED:  [2026-11-24 Tue 15:02]
+:END:
+:LOGBOOK:
+- State "DONE"       from "DOING"      [2026-11-24 Tue 15:10] \\
+  fixed in f4e4481; last of the six
+- State "DOING"      from "TODO"       [2026-11-24 Tue 15:10] \\
+  retroactive: worked in the review pass
+:END:
+
+Finding 7, nit. --if-exists doNothing sees only the last trailer block. Fix:
+skip when any line of the message already starts Claude-Session:.
+
+Resolved 2026-11-24 in commit f4e4481: prepare-commit-msg skips when any line
+already starts with Claude-Session:. Tested and red against the previous head.
+
+
+
 *** 2026-11-13 Friday
 **** DONE Acceptance probe for 0a0dee55: a NEXT and a DONE queued in one second, only the DONE applied
 CLOSED: [2026-11-13 Fri 12:48]
