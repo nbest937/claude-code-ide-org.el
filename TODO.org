@@ -2971,6 +2971,13 @@ when apply finds a DONE refused, name each unfinished :BLOCKER: id with its
 keyword. Have org_set_todo say the same at queue time, since a blocked DONE is
 knowable when the session queues it.
 
+*Not only DONE: any done state.* [[id:f128a8b1-5769-4d48-b947-dfaf9a58fbcd][f128a8b1]], filed separately on 2026-10-30 and
+now merged into this heading, saw the same failure on a CANCELLED of 6ef2e557 in
+noodle-salesman on 2026-10-28. It happened again here on 2026-11-25 with
+[[id:f9fe9fac-a423-4ede-bc42-1d201c2c3d82][f9fe9fac]]'s CANCELLED. The fix is the same for both states: name each unfinished
+:BLOCKER: id with its keyword.
+
+
 
 * TODO org_refile can only place a heading under a parent, so a top-level heading moved by mistake cannot be put back at top level :code:
 :PROPERTIES:
