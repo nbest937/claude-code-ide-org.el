@@ -1711,15 +1711,16 @@ claude-code-ide-org-refuse-browser-origins, and the probe finds every live
 companion refusing. On the slice's branch, feature/tracker-record-loss.
 
 
-* DOING [22/40] 0.0.1: The tracker can lose or corrupt its record, or Emacs can stop on a prompt, and nothing says so :code:
+* DOING [22/38] 0.0.1: The tracker can lose or corrupt its record, or Emacs can stop on a prompt, and nothing says so :code:
 :PROPERTIES:
 :ID:       3bfa593c-c2da-4e44-b47f-2d5f0750f2aa
 :CREATED:  [2026-10-27 Tue 12:56]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:MEMBERS:  8c4a3aea-3208-46c8-a491-2ff024fbf822 d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80 8985f8ae-8b26-45eb-8898-73f17c98680a 0a0dee55-d709-466e-a525-c3bb1c437b91 d3468075-b17a-45a2-bd3a-838521f11a87 6c969cbd-0c03-409f-835f-80ddb1faedf6 187a87b4-20db-4fbf-931f-a4b4e1bed668 aa7edd6c-d985-44b2-9359-a605761e5c3d c0a21a0f-89ed-4b66-b7ed-acbfd5583015 62bc2f7f-0d55-4049-af00-52a2b333188a e9f8b780-c93b-41f9-b146-1c4695283af9 b0e46168-2548-49ca-8f5f-5dcc6f3fc524 254308f7-70a9-4296-9166-fe4138c6382b 70b47b8f-b413-4660-bf32-b0b90db45ff4 a3ad9732-681c-4103-a9e2-5f919e60522c 412768a0-3d9b-4cfe-9264-3f214d4baed1 fd29914e-0d18-4964-a104-37c136b311a6 ed3e6862-db3e-4e81-badd-859ddf629400
-:BLOCKER:  8c4a3aea-3208-46c8-a491-2ff024fbf822 d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80 8985f8ae-8b26-45eb-8898-73f17c98680a 0a0dee55-d709-466e-a525-c3bb1c437b91 d3468075-b17a-45a2-bd3a-838521f11a87 6c969cbd-0c03-409f-835f-80ddb1faedf6 187a87b4-20db-4fbf-931f-a4b4e1bed668 aa7edd6c-d985-44b2-9359-a605761e5c3d c0a21a0f-89ed-4b66-b7ed-acbfd5583015 62bc2f7f-0d55-4049-af00-52a2b333188a e9f8b780-c93b-41f9-b146-1c4695283af9 b0e46168-2548-49ca-8f5f-5dcc6f3fc524 254308f7-70a9-4296-9166-fe4138c6382b 70b47b8f-b413-4660-bf32-b0b90db45ff4 a3ad9732-681c-4103-a9e2-5f919e60522c 412768a0-3d9b-4cfe-9264-3f214d4baed1 fd29914e-0d18-4964-a104-37c136b311a6 ed3e6862-db3e-4e81-badd-859ddf629400
+:MEMBERS:  8c4a3aea-3208-46c8-a491-2ff024fbf822 d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80 8985f8ae-8b26-45eb-8898-73f17c98680a 0a0dee55-d709-466e-a525-c3bb1c437b91 d3468075-b17a-45a2-bd3a-838521f11a87 6c969cbd-0c03-409f-835f-80ddb1faedf6 187a87b4-20db-4fbf-931f-a4b4e1bed668 aa7edd6c-d985-44b2-9359-a605761e5c3d c0a21a0f-89ed-4b66-b7ed-acbfd5583015 62bc2f7f-0d55-4049-af00-52a2b333188a e9f8b780-c93b-41f9-b146-1c4695283af9 b0e46168-2548-49ca-8f5f-5dcc6f3fc524 254308f7-70a9-4296-9166-fe4138c6382b 70b47b8f-b413-4660-bf32-b0b90db45ff4 0e2f2e2f-c231-4f25-92cc-a37b63535efc 2f4c04a1-db56-4427-ae62-591ba52607c6 a3ad9732-681c-4103-a9e2-5f919e60522c 412768a0-3d9b-4cfe-9264-3f214d4baed1 fd29914e-0d18-4964-a104-37c136b311a6 ed3e6862-db3e-4e81-badd-859ddf629400
+:BLOCKER:  8c4a3aea-3208-46c8-a491-2ff024fbf822 d7b2f50f-a35f-4ca0-863f-8cc58d1b2d80 8985f8ae-8b26-45eb-8898-73f17c98680a 0a0dee55-d709-466e-a525-c3bb1c437b91 d3468075-b17a-45a2-bd3a-838521f11a87 6c969cbd-0c03-409f-835f-80ddb1faedf6 187a87b4-20db-4fbf-931f-a4b4e1bed668 aa7edd6c-d985-44b2-9359-a605761e5c3d c0a21a0f-89ed-4b66-b7ed-acbfd5583015 62bc2f7f-0d55-4049-af00-52a2b333188a e9f8b780-c93b-41f9-b146-1c4695283af9 b0e46168-2548-49ca-8f5f-5dcc6f3fc524 254308f7-70a9-4296-9166-fe4138c6382b 70b47b8f-b413-4660-bf32-b0b90db45ff4 0e2f2e2f-c231-4f25-92cc-a37b63535efc 2f4c04a1-db56-4427-ae62-591ba52607c6
+:DROPPED:  a3ad9732-681c-4103-a9e2-5f919e60522c 412768a0-3d9b-4cfe-9264-3f214d4baed1 fd29914e-0d18-4964-a104-37c136b311a6 ed3e6862-db3e-4e81-badd-859ddf629400
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-10-27 Tue 12:58] \\
@@ -1774,6 +1775,15 @@ Followed by [[id:4f49ea34-5b8c-4ad8-8dbb-6f17126c420f][4f49ea34]] (the user, 202
 footnote-check blocking about half of all replies, ahead of [[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]], which was
 named here 2026-10-28. It is one change, and every later slice's sessions pay
 the cost until it lands.
+
+Revised 2026-11-25 (the user, the slice-coherence review), so this slice can
+close on its PR. Steps 13 to 16 ([[id:a3ad9732-681c-4103-a9e2-5f919e60522c][a3ad9732]], [[id:412768a0-3d9b-4cfe-9264-3f214d4baed1][412768a0]], [[id:fd29914e-0d18-4964-a104-37c136b311a6][fd29914e]], [[id:ed3e6862-db3e-4e81-badd-859ddf629400][ed3e6862]]) moved
+to [[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]], beside its other capture and prompt members; they are in :DROPPED:
+here, and [[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]]'s plan now orders them. [[id:0e2f2e2f-c231-4f25-92cc-a37b63535efc][0e2f2e2f]] and [[id:2f4c04a1-db56-4427-ae62-591ba52607c6][2f4c04a1]] joined as 11b
+and 11c, after [[id:70b47b8f-b413-4660-bf32-b0b90db45ff4][70b47b8f]]. [[id:0e2f2e2f-c231-4f25-92cc-a37b63535efc][0e2f2e2f]] is the global ceremony stamp that [[id:70b47b8f-b413-4660-bf32-b0b90db45ff4][70b47b8f]]'s
+plan leaves out of scope, in the same function. [[id:2f4c04a1-db56-4427-ae62-591ba52607c6][2f4c04a1]] is the same
+project-scope fault at SessionStart. Neither has a plan yet, and both need one
+before they are worked.
 :END:
 
 Ways the tracker loses state, or Emacs blocks on a prompt, with nothing
@@ -1805,10 +1815,12 @@ Planned:
 - [ ] [[id:b0e46168-2548-49ca-8f5f-5dcc6f3fc524][b0e46168]] TODO discard-guard misses absolute paths, git -C, and a cd before the git command
 - [-] [[id:254308f7-70a9-4296-9166-fe4138c6382b][254308f7]] REVIEW The ceremony's sort steps reorder and save TODO.org or DONE.org while it holds the human's unsaved edits
 - [ ] [[id:70b47b8f-b413-4660-bf32-b0b90db45ff4][70b47b8f]] NEXT Burying the review buffer runs this project's ceremony because another project's is overdue, since the due check ignores the project scope
-- [ ] [[id:a3ad9732-681c-4103-a9e2-5f919e60522c][a3ad9732]] TODO org_set_property writes TODO, SCHEDULED and DEADLINE through org-entry-put, which changes the keyword live or opens a prompt
-- [ ] [[id:412768a0-3d9b-4cfe-9264-3f214d4baed1][412768a0]] TODO org_capture's title goes through capture-template expansion, so a newline splits the heading and %^ opens a prompt
-- [ ] [[id:fd29914e-0d18-4964-a104-37c136b311a6][fd29914e]] TODO org_capture runs in whatever buffer the user has selected, so an Org QL view turns a capture into a prompt nobody at the tool can answer
-- [ ] [[id:ed3e6862-db3e-4e81-badd-859ddf629400][ed3e6862]] TODO A capture or refile that gives a heading its first keyworded child leaves it with no statistics cookie, which lint-org then refuses
+- [ ] [[id:0e2f2e2f-c231-4f25-92cc-a37b63535efc][0e2f2e2f]] TODO Burying the review buffer stamps the ceremony done while apply failures are still pending, though the session-start docstring says it waits for them
+- [ ] [[id:2f4c04a1-db56-4427-ae62-591ba52607c6][2f4c04a1]] TODO --applied-today-p ignores the report scope and parses every .applied file at each SessionStart
+- [[id:a3ad9732-681c-4103-a9e2-5f919e60522c][a3ad9732]] TODO org_set_property writes TODO, SCHEDULED and DEADLINE through org-entry-put, which changes the keyword live or opens a prompt
+- [[id:412768a0-3d9b-4cfe-9264-3f214d4baed1][412768a0]] TODO org_capture's title goes through capture-template expansion, so a newline splits the heading and %^ opens a prompt
+- [[id:fd29914e-0d18-4964-a104-37c136b311a6][fd29914e]] TODO org_capture runs in whatever buffer the user has selected, so an Org QL view turns a capture into a prompt nobody at the tool can answer
+- [[id:ed3e6862-db3e-4e81-badd-859ddf629400][ed3e6862]] TODO A capture or refile that gives a heading its first keyworded child leaves it with no statistics cookie, which lint-org then refuses
 
 Four joined from the second audit the same day (the user): an indented #+ line
 in a rendered transcript takes effect ([[id:8985f8ae-8b26-45eb-8898-73f17c98680a][8985f8ae]]), a replayed apply adds a minute
@@ -2573,7 +2585,7 @@ for a directory no longer in claude-code-ide--processes, and test the double
 call. A normal /exit inside the launcher has not been checked.
 
 
-* TODO [0/6] 0.1.0: A consumer's install can be wrong while every check says it is fine :code:
+* TODO [0/5] 0.1.0: A consumer's install can be wrong while every check says it is fine :code:
 :PROPERTIES:
 :ID:       005fef09-e34f-4994-8c0d-6d17ada3d7ac
 :CREATED:  [2026-10-27 Tue 08:52]
@@ -2581,7 +2593,8 @@ call. A normal /exit inside the launcher has not been checked.
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
 :MEMBERS:  96ad6e95-452d-4be2-9bc7-b2c2efa44988 b577497c-f3a8-4754-8914-6c56589a0b52 9a8013d7-7525-466b-9aaf-10eb647f5e9f 0e2f2e2f-c231-4f25-92cc-a37b63535efc 826d621c-25f5-4f06-9961-4b23f8658880 827e1c42-708e-4f1d-bf25-d8b8b980b7ef
-:BLOCKER:  96ad6e95-452d-4be2-9bc7-b2c2efa44988 b577497c-f3a8-4754-8914-6c56589a0b52 9a8013d7-7525-466b-9aaf-10eb647f5e9f 0e2f2e2f-c231-4f25-92cc-a37b63535efc 826d621c-25f5-4f06-9961-4b23f8658880 827e1c42-708e-4f1d-bf25-d8b8b980b7ef
+:BLOCKER:  96ad6e95-452d-4be2-9bc7-b2c2efa44988 b577497c-f3a8-4754-8914-6c56589a0b52 9a8013d7-7525-466b-9aaf-10eb647f5e9f 826d621c-25f5-4f06-9961-4b23f8658880 827e1c42-708e-4f1d-bf25-d8b8b980b7ef
+:DROPPED:  0e2f2e2f-c231-4f25-92cc-a37b63535efc
 :END:
 :PLAN:
 Composed 2026-10-27 from the consumer-usability survey, at the user's direction.
@@ -2611,6 +2624,10 @@ concerns this repo's own promoted copies, not a consumer's.
 and two Meta ([[id:0e2f2e2f-c231-4f25-92cc-a37b63535efc][0e2f2e2f]], [[id:826d621c-25f5-4f06-9961-4b23f8658880][826d621c]]).
 
 Followed by: none named.
+
+Revised 2026-11-25 (the user, the slice-coherence review): [[id:0e2f2e2f-c231-4f25-92cc-a37b63535efc][0e2f2e2f]] moved to
+[[id:3bfa593c-c2da-4e44-b47f-2d5f0750f2aa][3bfa593c]] beside [[id:70b47b8f-b413-4660-bf32-b0b90db45ff4][70b47b8f]], which touches the same function, and is in :DROPPED:
+here. [[id:826d621c-25f5-4f06-9961-4b23f8658880][826d621c]] stays, as the ceremony's design question.
 :END:
 
 Six ways a consuming repo's install goes wrong without anything saying so: a
@@ -2626,7 +2643,7 @@ Planned:
 - [ ] [[id:96ad6e95-452d-4be2-9bc7-b2c2efa44988][96ad6e95]] TODO Promotion never removes, and --check never looks, so a dropped rule file would linger in every consumer
 - [ ] [[id:b577497c-f3a8-4754-8914-6c56589a0b52][b577497c]] TODO An install scaffolded before the ceremony template has no :KIND: ceremony heading, so its steps after apply never run and --check does not say so
 - [ ] [[id:9a8013d7-7525-466b-9aaf-10eb647f5e9f][9a8013d7]] TODO lint-org with no arguments lints the plugin checkout, not the consuming repo, and passes
-- [ ] [[id:0e2f2e2f-c231-4f25-92cc-a37b63535efc][0e2f2e2f]] TODO Burying the review buffer stamps the ceremony done while apply failures are still pending, though the session-start docstring says it waits for them
+- [[id:0e2f2e2f-c231-4f25-92cc-a37b63535efc][0e2f2e2f]] TODO Burying the review buffer stamps the ceremony done while apply failures are still pending, though the session-start docstring says it waits for them
 - [ ] [[id:826d621c-25f5-4f06-9961-4b23f8658880][826d621c]] TODO SessionStart runs the ceremony's write steps inside a 15 s hook, on whatever branch is checked out
 - [[id:a5a05306-9d37-413d-b44f-fa8d5ca058b8][a5a05306]] TODO Releases are planned as versioned slices that close whole user stories
   - [ ] [[id:827e1c42-708e-4f1d-bf25-d8b8b980b7ef][827e1c42]] TODO The plugin has never been tagged or version-bumped, and nothing would notice
@@ -5248,9 +5265,9 @@ enough to run on every exit.
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:MEMBERS:  a8ccd6ac-3452-4926-b176-ff5951dcd5b2 c35087d8-19fe-4179-a61c-cb615b2e7679 b2d4012c-6c61-47df-8086-d1cd205c73fc 5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997 c0c5e015-c33e-4e1a-ad6e-907f9fa56c07 4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8 8326a46f-e3f9-4ecc-8bc2-05d54907987b d842b9e7-fd75-45eb-80fd-597daa3e36b0 fd29914e-0d18-4964-a104-37c136b311a6 ecbbec2e-50d9-4581-9ded-15716f16c5f3 94fe3c57-89f6-4d17-943e-0cb6145f3419 c6b068aa-f9de-4edc-a5b3-380bff666d2e eeb18e56-fcfd-4653-86e6-09448474de07 e4734e2c-2083-413b-941d-9503dd0f4a23 0c18b5c1-1cc5-4f18-8ba0-e2949e9dba34 32b790fd-9a72-46a5-863d-a32d5e54457e
-:BLOCKER:  a8ccd6ac-3452-4926-b176-ff5951dcd5b2 c35087d8-19fe-4179-a61c-cb615b2e7679 b2d4012c-6c61-47df-8086-d1cd205c73fc 5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997 c0c5e015-c33e-4e1a-ad6e-907f9fa56c07 4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8 8326a46f-e3f9-4ecc-8bc2-05d54907987b d842b9e7-fd75-45eb-80fd-597daa3e36b0 ecbbec2e-50d9-4581-9ded-15716f16c5f3 94fe3c57-89f6-4d17-943e-0cb6145f3419 c6b068aa-f9de-4edc-a5b3-380bff666d2e eeb18e56-fcfd-4653-86e6-09448474de07 e4734e2c-2083-413b-941d-9503dd0f4a23 0c18b5c1-1cc5-4f18-8ba0-e2949e9dba34 32b790fd-9a72-46a5-863d-a32d5e54457e
-:DROPPED:  fd29914e-0d18-4964-a104-37c136b311a6
+:MEMBERS:  a8ccd6ac-3452-4926-b176-ff5951dcd5b2 c35087d8-19fe-4179-a61c-cb615b2e7679 b2d4012c-6c61-47df-8086-d1cd205c73fc 5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997 c0c5e015-c33e-4e1a-ad6e-907f9fa56c07 4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8 8326a46f-e3f9-4ecc-8bc2-05d54907987b d842b9e7-fd75-45eb-80fd-597daa3e36b0 7e2a6608-16a7-419b-8a99-b8016583c094 8e33ea9e-54c0-458f-968d-28054dc464a7 fd29914e-0d18-4964-a104-37c136b311a6 a3ad9732-681c-4103-a9e2-5f919e60522c 412768a0-3d9b-4cfe-9264-3f214d4baed1 ed3e6862-db3e-4e81-badd-859ddf629400 ecbbec2e-50d9-4581-9ded-15716f16c5f3 94fe3c57-89f6-4d17-943e-0cb6145f3419 c6b068aa-f9de-4edc-a5b3-380bff666d2e eeb18e56-fcfd-4653-86e6-09448474de07 e4734e2c-2083-413b-941d-9503dd0f4a23 0c18b5c1-1cc5-4f18-8ba0-e2949e9dba34 32b790fd-9a72-46a5-863d-a32d5e54457e
+:BLOCKER:  a8ccd6ac-3452-4926-b176-ff5951dcd5b2 4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8 8326a46f-e3f9-4ecc-8bc2-05d54907987b d842b9e7-fd75-45eb-80fd-597daa3e36b0 7e2a6608-16a7-419b-8a99-b8016583c094 8e33ea9e-54c0-458f-968d-28054dc464a7 fd29914e-0d18-4964-a104-37c136b311a6 a3ad9732-681c-4103-a9e2-5f919e60522c 412768a0-3d9b-4cfe-9264-3f214d4baed1 ed3e6862-db3e-4e81-badd-859ddf629400 ecbbec2e-50d9-4581-9ded-15716f16c5f3 94fe3c57-89f6-4d17-943e-0cb6145f3419 c6b068aa-f9de-4edc-a5b3-380bff666d2e eeb18e56-fcfd-4653-86e6-09448474de07 32b790fd-9a72-46a5-863d-a32d5e54457e
+:DROPPED:  c35087d8-19fe-4179-a61c-cb615b2e7679 b2d4012c-6c61-47df-8086-d1cd205c73fc 5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997 c0c5e015-c33e-4e1a-ad6e-907f9fa56c07 e4734e2c-2083-413b-941d-9503dd0f4a23 0c18b5c1-1cc5-4f18-8ba0-e2949e9dba34
 :END:
 :LOGBOOK:
 - State "NEXT"       from "TODO"       [2026-10-27 Tue 09:05] \\
@@ -5318,26 +5335,43 @@ Followed by [[id:7dcec489-f5dd-4f7f-b819-a25405436b9b][7dcec489]], which now com
 machinery is fixed before a tagged release carries it. Since 2026-11-05 (the
 user) the order is [[id:3bfa593c-c2da-4e44-b47f-2d5f0750f2aa][3bfa593c]], [[id:4f49ea34-5b8c-4ad8-8dbb-6f17126c420f][4f49ea34]], [[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]], [[id:7dcec489-f5dd-4f7f-b819-a25405436b9b][7dcec489]], [[id:005fef09-e34f-4994-8c0d-6d17ada3d7ac][005fef09]]: the
 footnote slice goes second.
+
+Revised 2026-11-25 (the user, the slice-coherence review). The org_amend
+retirement ([[id:c35087d8-19fe-4179-a61c-cb615b2e7679][c35087d8]], [[id:b2d4012c-6c61-47df-8086-d1cd205c73fc][b2d4012c]], [[id:5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997][5b46fbfd]], [[id:c0c5e015-c33e-4e1a-ad6e-907f9fa56c07][c0c5e015]], [[id:e4734e2c-2083-413b-941d-9503dd0f4a23][e4734e2c]]) left for its own
+slice, 0.0.4, which follows this one; the retirement paragraph above now orders
+that slice's members. [[id:0c18b5c1-1cc5-4f18-8ba0-e2949e9dba34][0c18b5c1]] moved to [[id:7dcec489-f5dd-4f7f-b819-a25405436b9b][7dcec489]], beside the other :DROPPED:
+defects. All six are in :DROPPED: here. Joined: [[id:a3ad9732-681c-4103-a9e2-5f919e60522c][a3ad9732]], [[id:412768a0-3d9b-4cfe-9264-3f214d4baed1][412768a0]] and [[id:ed3e6862-db3e-4e81-badd-859ddf629400][ed3e6862]]
+from [[id:3bfa593c-c2da-4e44-b47f-2d5f0750f2aa][3bfa593c]] after [[id:fd29914e-0d18-4964-a104-37c136b311a6][fd29914e]], which returned from there. They are the capture
+and prompt members, worked in the order [[id:3bfa593c-c2da-4e44-b47f-2d5f0750f2aa][3bfa593c]]'s plan gave them: [[id:a3ad9732-681c-4103-a9e2-5f919e60522c][a3ad9732]],
+then [[id:412768a0-3d9b-4cfe-9264-3f214d4baed1][412768a0]] with [[id:fd29914e-0d18-4964-a104-37c136b311a6][fd29914e]] as one step, since both change --capture-write, then
+[[id:ed3e6862-db3e-4e81-badd-859ddf629400][ed3e6862]]. Also joined: [[id:7e2a6608-16a7-419b-8a99-b8016583c094][7e2a6608]] and [[id:8e33ea9e-54c0-458f-968d-28054dc464a7][8e33ea9e]] after [[id:d842b9e7-fd75-45eb-80fd-597daa3e36b0][d842b9e7]], because all three
+come from org-depend, and [[id:d842b9e7-fd75-45eb-80fd-597daa3e36b0][d842b9e7]]'s open choice about org-depend-tag-blocked
+decides most of [[id:8e33ea9e-54c0-458f-968d-28054dc464a7][8e33ea9e]].
 :END:
 
 Planned:
 
 - [ ] [[id:a8ccd6ac-3452-4926-b176-ff5951dcd5b2][a8ccd6ac]] TODO A boolean argument passed as false arrives as :false, which elisp reads as true
 - [[id:dd4b9a9f-ba8a-4f1f-a3da-38388e0cdb76][dd4b9a9f]] NEXT No org tool edits a phrase in place: org_amend appends or replaces the whole body
-  - [ ] [[id:c35087d8-19fe-4179-a61c-cb615b2e7679][c35087d8]] NEXT org_edit refuses an unsaved buffer, asks for the save in a header line, and the agent waits on it
-  - [ ] [[id:b2d4012c-6c61-47df-8086-d1cd205c73fc][b2d4012c]] TODO Retire org_amend in one move: hooks, prose, and the live headings renamed with org_edit
-- [ ] [[id:5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997][5b46fbfd]] TODO org_amend replace=true eats the blank lines before the next heading, so org stops seeing it
-- [ ] [[id:c0c5e015-c33e-4e1a-ad6e-907f9fa56c07][c0c5e015]] TODO org_amend accepts a headline-shaped line in drawer text, which tears the drawer open
+  - [[id:c35087d8-19fe-4179-a61c-cb615b2e7679][c35087d8]] NEXT org_edit refuses an unsaved buffer, asks for the save in a header line, and the agent waits on it
+  - [[id:b2d4012c-6c61-47df-8086-d1cd205c73fc][b2d4012c]] TODO Retire org_amend in one move: hooks, prose, and the live headings renamed with org_edit
+- [[id:5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997][5b46fbfd]] TODO org_amend replace=true eats the blank lines before the next heading, so org stops seeing it
+- [[id:c0c5e015-c33e-4e1a-ad6e-907f9fa56c07][c0c5e015]] TODO org_amend accepts a headline-shaped line in drawer text, which tears the drawer open
 - [ ] [[id:4a6f6dc3-c4d4-4b26-8369-0c034ccd3fc8][4a6f6dc3]] TODO A targetless org_capture from a session with no registered project writes to the global capture file, another project's tracker, and says nothing
 - [ ] [[id:8326a46f-e3f9-4ecc-8bc2-05d54907987b][8326a46f]] TODO claude-code-ide-org-capture reports a queued capture it never persists
 - [ ] [[id:d842b9e7-fd75-45eb-80fd-597daa3e36b0][d842b9e7]] TODO org_query blocked: errors on a read-only buffer, though a query changes nothing the user can see
-- [[id:fd29914e-0d18-4964-a104-37c136b311a6][fd29914e]] TODO org_capture runs in whatever buffer the user has selected, so an Org QL view turns a capture into a prompt nobody at the tool can answer
+- [ ] [[id:7e2a6608-16a7-419b-8a99-b8016583c094][7e2a6608]] TODO A DONE that a :BLOCKER: refuses fails at apply as "did not take effect", and org's own message names the blocker as ""
+- [ ] [[id:8e33ea9e-54c0-458f-968d-28054dc464a7][8e33ea9e]] TODO A DONE refused at apply leaves its note on org-depend's :blocked: tag line instead of a state line
+- [ ] [[id:fd29914e-0d18-4964-a104-37c136b311a6][fd29914e]] TODO org_capture runs in whatever buffer the user has selected, so an Org QL view turns a capture into a prompt nobody at the tool can answer
+- [ ] [[id:a3ad9732-681c-4103-a9e2-5f919e60522c][a3ad9732]] TODO org_set_property writes TODO, SCHEDULED and DEADLINE through org-entry-put, which changes the keyword live or opens a prompt
+- [ ] [[id:412768a0-3d9b-4cfe-9264-3f214d4baed1][412768a0]] TODO org_capture's title goes through capture-template expansion, so a newline splits the heading and %^ opens a prompt
+- [ ] [[id:ed3e6862-db3e-4e81-badd-859ddf629400][ed3e6862]] TODO A capture or refile that gives a heading its first keyworded child leaves it with no statistics cookie, which lint-org then refuses
 - [ ] [[id:ecbbec2e-50d9-4581-9ded-15716f16c5f3][ecbbec2e]] TODO Answer a bad tool call with its error rather than a hang, until upstream defines json-rpc-error
 - [ ] [[id:94fe3c57-89f6-4d17-943e-0cb6145f3419][94fe3c57]] TODO A live reload that changes a tool's description registers it a second time beside the stale one
 - [ ] [[id:c6b068aa-f9de-4edc-a5b3-380bff666d2e][c6b068aa]] TODO An ambiguous id prefix is reported as not found, and a short prefix can resolve to the wrong heading while the index is stale
 - [ ] [[id:eeb18e56-fcfd-4653-86e6-09448474de07][eeb18e56]] TODO org_set_tags and capture accept tag names org cannot parse, which land in the title while the logbook says the tag was set
-- [ ] [[id:e4734e2c-2083-413b-941d-9503dd0f4a23][e4734e2c]] TODO The body region drops the last line when the file has no final newline, so a replace glues it to the new text
-- [ ] [[id:0c18b5c1-1cc5-4f18-8ba0-e2949e9dba34][0c18b5c1]] TODO org_set_property ignores append on :DROPPED: and every property but :BLOCKER:, so an append shortens the list and reports success
+- [[id:e4734e2c-2083-413b-941d-9503dd0f4a23][e4734e2c]] TODO The body region drops the last line when the file has no final newline, so a replace glues it to the new text
+- [[id:0c18b5c1-1cc5-4f18-8ba0-e2949e9dba34][0c18b5c1]] TODO org_set_property ignores append on :DROPPED: and every property but :BLOCKER:, so an append shortens the list and reports success
 - [ ] [[id:32b790fd-9a72-46a5-863d-a32d5e54457e][32b790fd]] TODO A commit hash that does not resolve is written as plain text, so a guessed hash enters the record and nothing says so
 
 Five ways an =org_*= call tells its caller something other than what happened: a
