@@ -4389,7 +4389,7 @@ references, =M-x customize-group claude-code-ide-org= and the commands. Written
 last, since it points at the other three.
 
 
-* TODO [0/14] 0.2.0: The clock record beneath the review pass is still wrong: correctness, reporting, and the attention clock :code:
+* TODO [0/14] 0.2.0: The clock record beneath the review pass is incorrect :code:
 :PROPERTIES:
 :ID:       7ae1cff4-c0df-4ac0-9aea-a778b2373061
 :CREATED:  [2026-10-09 Fri 11:15]
@@ -5361,7 +5361,7 @@ and those 53 are cleared, unless [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128
 move generalised to :DEBRIEF:. Details in :PLAN:.
 
 
-* TODO [0/15] 0.0.4: A slice's checklist can disagree with its members, and nothing can say so or fix it :code:
+* TODO [0/15] 0.0.5: A slice's checklist can disagree with its members, and nothing can say so or fix it :code:
 :PROPERTIES:
 :ID:       7dcec489-f5dd-4f7f-b819-a25405436b9b
 :CREATED:  [2026-09-28 Mon 08:26]
