@@ -130,15 +130,15 @@ Planned:
 - [ ] [[id:b5448133-4021-46b9-a90e-d88e149ae65d][b5448133]] TODO Rebuild the 101 truncated review-attention intervals from the audit log
 
 
-* TODO [0/5] 0.0.4: Sessions still reach for org_amend, the tool whose replace path does the most damage :code:
+* TODO [0/6] 0.0.4: Sessions still reach for org_amend, the tool whose replace path does the most damage :code:
 :PROPERTIES:
 :ID:       f8e82978-a1d3-48dc-9aea-d13ec821cdfe
 :CREATED:  [2026-11-25 Wed 14:29]
 :CATEGORY: Slices
 :KIND:     slice
 :COOKIE_DATA: checkbox recursive
-:MEMBERS:  c35087d8-19fe-4179-a61c-cb615b2e7679 b2d4012c-6c61-47df-8086-d1cd205c73fc 5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997 c0c5e015-c33e-4e1a-ad6e-907f9fa56c07 e4734e2c-2083-413b-941d-9503dd0f4a23
-:BLOCKER:  c35087d8-19fe-4179-a61c-cb615b2e7679 b2d4012c-6c61-47df-8086-d1cd205c73fc 5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997 c0c5e015-c33e-4e1a-ad6e-907f9fa56c07 e4734e2c-2083-413b-941d-9503dd0f4a23
+:MEMBERS:  c35087d8-19fe-4179-a61c-cb615b2e7679 b2d4012c-6c61-47df-8086-d1cd205c73fc 9714f875-4a12-44e4-8f30-dfbd1b6e555e 5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997 c0c5e015-c33e-4e1a-ad6e-907f9fa56c07 e4734e2c-2083-413b-941d-9503dd0f4a23
+:BLOCKER:  c35087d8-19fe-4179-a61c-cb615b2e7679 b2d4012c-6c61-47df-8086-d1cd205c73fc 9714f875-4a12-44e4-8f30-dfbd1b6e555e 5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997 c0c5e015-c33e-4e1a-ad6e-907f9fa56c07 e4734e2c-2083-413b-941d-9503dd0f4a23
 :END:
 :PLAN:
 The order, carried over from [[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]]'s plan, where the retirement was members
@@ -149,6 +149,12 @@ two to five; each member's own drawer wins where this disagrees.
 3. [[id:5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997][5b46fbfd]]: only partly overtaken. Its own plan keeps the glued-heading lint and the org-lint triage, and tests org_edit's whole-region rewrite in place of fixing --replace-body.
 4. [[id:c0c5e015-c33e-4e1a-ad6e-907f9fa56c07][c0c5e015]]: closes as overtaken once a test shows org_edit does not reproduce it.
 5. [[id:e4734e2c-2083-413b-941d-9503dd0f4a23][e4734e2c]]: the body region's missing final line. Moved with the rest on 2026-11-25 because it is the region org_edit's whole-region rewrite reads. Its own plan decides whether that makes it org_edit's defect too.
+
+2a. [[id:9714f875-4a12-44e4-8f30-dfbd1b6e555e][9714f875]], joined 2026-11-25 (the user): a tool that retitles a heading, plus
+a delete mode on org_set_property. Titles are the part of a heading's text
+org_edit does not reach, so this completes the editing surface that [[id:b2d4012c-6c61-47df-8086-d1cd205c73fc][b2d4012c]]
+leaves as the only one. It goes right after [[id:b2d4012c-6c61-47df-8086-d1cd205c73fc][b2d4012c]] because nothing before it
+depends on it, and it lets a session carry out a version renumbering itself.
 
 Out of the slice: [[id:381dfc89-932b-4448-a58d-7e3cad51db55][381dfc89]], whose gate is every queue drained of amend events (a
 state, not a heading), and [[id:dd4b9a9f-ba8a-4f1f-a3da-38388e0cdb76][dd4b9a9f]], the story that [[id:c35087d8-19fe-4179-a61c-cb615b2e7679][c35087d8]] and [[id:b2d4012c-6c61-47df-8086-d1cd205c73fc][b2d4012c]] sit
@@ -167,6 +173,7 @@ Planned:
 - [[id:dd4b9a9f-ba8a-4f1f-a3da-38388e0cdb76][dd4b9a9f]] NEXT No org tool edits a phrase in place: org_amend appends or replaces the whole body
   - [ ] [[id:c35087d8-19fe-4179-a61c-cb615b2e7679][c35087d8]] NEXT org_edit refuses an unsaved buffer, asks for the save in a header line, and the agent waits on it
   - [ ] [[id:b2d4012c-6c61-47df-8086-d1cd205c73fc][b2d4012c]] TODO Retire org_amend in one move: hooks, prose, and the live headings renamed with org_edit
+- [ ] [[id:9714f875-4a12-44e4-8f30-dfbd1b6e555e][9714f875]] TODO No tool retitles a heading or removes a property, so both reach for a raw emacsclient
 - [ ] [[id:5b46fbfd-6d0e-4eea-bcf5-baa1e39e1997][5b46fbfd]] TODO org_amend replace=true eats the blank lines before the next heading, so org stops seeing it
 - [ ] [[id:c0c5e015-c33e-4e1a-ad6e-907f9fa56c07][c0c5e015]] TODO org_amend accepts a headline-shaped line in drawer text, which tears the drawer open
 - [ ] [[id:e4734e2c-2083-413b-941d-9503dd0f4a23][e4734e2c]] TODO The body region drops the last line when the file has no final newline, so a replace glues it to the new text
@@ -4389,7 +4396,7 @@ references, =M-x customize-group claude-code-ide-org= and the commands. Written
 last, since it points at the other three.
 
 
-* TODO [0/14] 0.2.0: The clock record beneath the review pass is still wrong: correctness, reporting, and the attention clock :code:
+* TODO [0/14] 0.2.0: The clock record beneath the review pass is incorrect :code:
 :PROPERTIES:
 :ID:       7ae1cff4-c0df-4ac0-9aea-a778b2373061
 :CREATED:  [2026-10-09 Fri 11:15]
@@ -5361,7 +5368,7 @@ and those 53 are cleared, unless [[id:e128e4fa-b0d9-49f7-99eb-bae2d4b0676b][e128
 move generalised to :DEBRIEF:. Details in :PLAN:.
 
 
-* TODO [0/15] 0.0.4: A slice's checklist can disagree with its members, and nothing can say so or fix it :code:
+* TODO [0/15] 0.0.5: A slice's checklist can disagree with its members, and nothing can say so or fix it :code:
 :PROPERTIES:
 :ID:       7dcec489-f5dd-4f7f-b819-a25405436b9b
 :CREATED:  [2026-09-28 Mon 08:26]
@@ -5532,8 +5539,9 @@ from [[id:3bfa593c-c2da-4e44-b47f-2d5f0750f2aa][3bfa593c]] after [[id:fd29914e-0
 and prompt members, worked in the order [[id:3bfa593c-c2da-4e44-b47f-2d5f0750f2aa][3bfa593c]]'s plan gave them: [[id:a3ad9732-681c-4103-a9e2-5f919e60522c][a3ad9732]],
 then [[id:412768a0-3d9b-4cfe-9264-3f214d4baed1][412768a0]] with [[id:fd29914e-0d18-4964-a104-37c136b311a6][fd29914e]] as one step, since both change --capture-write, then
 [[id:ed3e6862-db3e-4e81-badd-859ddf629400][ed3e6862]]. Also joined: [[id:7e2a6608-16a7-419b-8a99-b8016583c094][7e2a6608]] and [[id:8e33ea9e-54c0-458f-968d-28054dc464a7][8e33ea9e]] after [[id:d842b9e7-fd75-45eb-80fd-597daa3e36b0][d842b9e7]], because all three
-come from org-depend, and [[id:d842b9e7-fd75-45eb-80fd-597daa3e36b0][d842b9e7]]'s open choice about org-depend-tag-blocked
-decides most of [[id:8e33ea9e-54c0-458f-968d-28054dc464a7][8e33ea9e]].
+come from org-depend, and [[id:d842b9e7-fd75-45eb-80fd-597daa3e36b0][d842b9e7]]'s choice about org-depend-tag-blocked decides
+most of [[id:8e33ea9e-54c0-458f-968d-28054dc464a7][8e33ea9e]]. The user decided it 2026-11-25: nil everywhere ([[id:d842b9e7-fd75-45eb-80fd-597daa3e36b0][d842b9e7]]'s
+body).
 :END:
 
 Planned:
@@ -5875,6 +5883,16 @@ binding proposed above fixes only =org_query=. Setting it nil globally would fix
 this and every other caller of =org-entry-blocked-p=, but it drops a tag org
 maintains in both directions. [[id:b0c843e3-4252-4e2b-a9e2-2cf91714a1ae][b0c843e3]] had deferred the choice until [[id:3f4fd744-4ba7-4be8-9fe4-54e46119515a][3f4fd744]]
 made every blocker id parse.
+
+*Decided 2026-11-25 (the user): set org-depend-tag-blocked to nil everywhere,*
+not only inside org_query. Nothing in the repo or the Doom config reads the tag.
+org_outline and org-ql's blocked: compute blocked state live. A binding only in
+the module's paths would leave a hand refusal setting a tag that no module call
+ever clears. Expected to fix most of [[id:8e33ea9e-54c0-458f-968d-28054dc464a7][8e33ea9e]], untested: with the tag off, where
+a refused transition's note lands is unknown, so that member keeps its own test.
+[[id:7e2a6608-16a7-419b-8a99-b8016583c094][7e2a6608]] is unaffected. Config is changed when this member is worked, in
+[[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]].
+
 
 
 * TODO org_capture runs in whatever buffer the user has selected, so an Org QL view turns a capture into a prompt nobody at the tool can answer :code:bounded:
@@ -6631,7 +6649,8 @@ are in :DROPPED: here: [[id:5a6d2c75-9a42-4dd4-b4d6-670aeebc5b46][5a6d2c75]], [[
 [[id:01849bef-fdc9-4c30-b467-00ca8606e8e0][01849bef]] and [[id:330710fb-ea34-466b-96a0-7be947f37a1e][330710fb]]. This slice keeps the record's active errors and the
 pass's failures to complete, six members: [[id:aee8487e-0650-4396-bc5c-193ca3efcecb][aee8487e]], [[id:653fea66-f9d5-4431-8ce3-5d355560b475][653fea66]], [[id:85f4e03b-3c7a-4f75-86af-52e04b21cf32][85f4e03b]],
 [[id:445fe577-01ce-4e68-ab5f-c349c40a4643][445fe577]], [[id:2c733857-a280-42cc-bd7c-e182a4fb6ea3][2c733857]], [[id:954e61b1-5bf8-49a1-b33e-cf07da5dc7ca][954e61b1]], each of which writes something false or fails at
-apply. Its title wants shortening to that. Followed by [[id:62d6d23b-dd28-43d5-8c43-d10cd702f4b6][62d6d23b]].
+apply. Its title, "asks for judgement it cannot support", now describes [[id:62d6d23b-dd28-43d5-8c43-d10cd702f4b6][62d6d23b]]
+better than these six, so it wants rewording for them. Followed by [[id:62d6d23b-dd28-43d5-8c43-d10cd702f4b6][62d6d23b]].
 :END:
 
 Thirty-four live headings carry `:CATEGORY: Apply` or `Clock`, and three
@@ -7352,6 +7371,8 @@ never closes; the count is the point. One dated line per catch.
 
 - 2026-10-27: argued the tool-call audit log could be deleted because a failed apply save "would show in the tracker's diff". Nobody reads that diff: apply-detect tells the session an apply landed and the session commits it unasked, which is the point of that hook, so an unsaved apply is committed short with nothing to show it. The user caught it.
 - [2026-11-03 Tue] Caught by the user, in noodle-salesman: the session told the user what the body of a heading it had just captured said, without reading the heading back. The body was empty, because the text had gone in an undeclared =body= parameter ([[id:bbf9fb77-f081-48c5-bb01-1b4d4f201969][bbf9fb77]]). One =org_body= call would have shown it.
+- [2026-11-25 Wed] Caught by the user's question: the session told the user that [[id:c7619140-f269-4329-bc05-a38ea151e202][c7619140]]'s "plan already says to shorten" its title. That sentence, from its 2026-10-09 division, referred to an older two-halves title, which had already been shortened to the current one. The session had also written "its title wants shortening" into the plan that turn, and then credited the plan with it. The current mismatch is new: after today's split, the title describes [[id:62d6d23b-dd28-43d5-8c43-d10cd702f4b6][62d6d23b]] better than the six members [[id:c7619140-f269-4329-bc05-a38ea151e202][c7619140]] kept.
+
 
 
 ** TODO Miss: a heading closed with its unfinished part left in prose, or its group left un-nominated
