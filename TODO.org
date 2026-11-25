@@ -1959,8 +1959,11 @@ to [[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]], beside its other captu
 here, and [[id:f436a3b8-58ba-45a7-9f84-b8dee0934ca7][f436a3b8]]'s plan now orders them. [[id:0e2f2e2f-c231-4f25-92cc-a37b63535efc][0e2f2e2f]] and [[id:2f4c04a1-db56-4427-ae62-591ba52607c6][2f4c04a1]] joined as 11b
 and 11c, after [[id:70b47b8f-b413-4660-bf32-b0b90db45ff4][70b47b8f]]. [[id:0e2f2e2f-c231-4f25-92cc-a37b63535efc][0e2f2e2f]] is the global ceremony stamp that [[id:70b47b8f-b413-4660-bf32-b0b90db45ff4][70b47b8f]]'s
 plan leaves out of scope, in the same function. [[id:2f4c04a1-db56-4427-ae62-591ba52607c6][2f4c04a1]] is the same
-project-scope fault at SessionStart. Neither has a plan yet, and both need one
-before they are worked.
+project-scope fault at SessionStart. Both were planned at a brainstorm
+2026-11-25, each in its own :PLAN: drawer. [[id:0e2f2e2f-c231-4f25-92cc-a37b63535efc][0e2f2e2f]] comes first: one ceremony
+stamp per project, held when an apply failed. [[id:2f4c04a1-db56-4427-ae62-591ba52607c6][2f4c04a1]] follows it, under the
+same scope binding: watermarks read only for this project, and only when touched
+today.
 :END:
 
 Ways the tracker loses state, or Emacs blocks on a prompt, with nothing
@@ -3658,16 +3661,13 @@ Code on feature/tracker-record-loss, slice [[id:3bfa593c-c2da-4e44-b47f-2d5f0750
 shares the scope binding with.
 :END:
 
-Review finding 9 on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]]. An apply in project A makes project B's scoped
-ceremony report read "reviewed today", unlike the CLOCK check it backs up, which
-respects =--report-scope=. It also JSON-parses about 320 watermark files
-whenever no CLOCK line is found, which re-implements =--queue-watermark-data=. A
-today-mtime prefilter and reuse of that function avoid both.
-
-Deferred 2026-10-13 out of the review story [[id:c12d4189-6bb6-467b-8928-b7bdefcdc921][c12d4189]] (the user): whether a
-scoped report should consult watermarks at all needs deciding before the cost is
-fixed.
-
+Review finding 9 on [[https://github.com/nbest937/claude-code-ide-org.el/pull/37][PR #37]]. --applied-today-p reads every project's watermarks,
+so an apply in project A makes project B's scoped report read "reviewed today",
+and it JSON-parses every .applied file (136 on 2026-11-25) at each session
+start, reimplementing --queue-watermark-data. Decided 2026-11-25 (the user):
+keep consulting watermarks, since with time tracking off they are the only
+evidence a pass ran, but only files touched today and only sessions inside the
+project. Design in :PLAN:.
 
 * TODO Every id-scoped org_outline scans every heading in every tracked file, and leaks a marker per slice :code:
 :PROPERTIES:
